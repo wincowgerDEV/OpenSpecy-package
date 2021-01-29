@@ -1,0 +1,33 @@
+Package: OpenSpecy
+Type: Package
+Title: Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
+Version: 0.7.0
+Date: 2021-01-28
+Authors@R: c(
+  person("Win", "Cowger", role = c("cre", "aut"),
+    email = "wcowg001@ucr.edu",
+    comment = c(ORCID = "0000-0001-9226-3104")),
+  person("Zacharias", "Steinmetz", role = c("aut"),
+    email = "steinmetz-z@uni-landau.de",
+    comment = c(ORCID = "0000-0001-6675-5033")))
+Maintainer: Win Cowger <wcowg001@ucr.edu>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+URL: https://github.com/zsteinmetz/OpenSpecy
+BugReports: https://github.com/zsteinmetz/OpenSpecy/issues
+License: Apache License (>= 2)
+Encoding: UTF-8
+LazyLoad: true
+LazyData: true
+VignetteBuilder: knitr
+Depends:
+    R (>= 4.0.0)
+Imports:
+    jsonlite,
+    hyperSpec,
+    hexView
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat
+RoxygenNote: 7.1.1
