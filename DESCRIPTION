@@ -5,7 +5,7 @@ Version: 0.7.0
 Date: 2021-01-28
 Authors@R: c(
   person("Win", "Cowger", role = c("cre", "aut"),
-    email = "wcowg001@ucr.edu",
+    email = "wincowger@gmail.com",
     comment = c(ORCID = "0000-0001-9226-3104")),
   person("Zacharias", "Steinmetz", role = c("aut"),
     email = "steinmetz-z@uni-landau.de",
