@@ -11,9 +11,13 @@ Authors@R: c(
     email = "steinmetz-z@uni-landau.de",
     comment = c(ORCID = "0000-0001-6675-5033")))
 Maintainer: Win Cowger <wincowger@gmail.com>
-Description: Open Specy is a Raman and (FT)IR spectral analysis tool which was first developed for microplastic spectral analysis, 
-but we also will be developing it for spectral analysis more broadly. This package is live online at www.openspecy.org. 
-Features currently supported focus on reading spectral files, identifying spectra using an onboard spectral library, processing spectra using baseline correction and smoothing techniques, and sharing spectra with others using metadata standards.
+Description: Open Specy is a Raman and (FT)IR spectral analysis tool which was
+  first developed for microplastic analysis, but we also will be developing it
+  for spectral analysis more broadly. A Shiny app of this package is live online
+  at www.openspecy.org. Features currently supported focus on reading spectral
+  files, identifying spectra using an onboard spectral library, processing
+  spectra using baseline correction and smoothing techniques, as well as sharing
+  spectra with others using metadata standards.
 URL: https://github.com/zsteinmetz/OpenSpecy
 BugReports: https://github.com/zsteinmetz/OpenSpecy/issues
 License: Apache License (>= 2)
