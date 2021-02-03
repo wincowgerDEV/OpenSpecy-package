@@ -30,10 +30,11 @@ Depends:
 Imports:
     jsonlite,
     hyperSpec,
-    hexView
+    hexView,
+    shiny
 Suggests:
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
 RoxygenNote: 7.1.1
 Config/testthat/edition: 3
