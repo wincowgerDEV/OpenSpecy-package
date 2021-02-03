@@ -33,7 +33,7 @@ appCSS <-
 
 #UI ----
 ui <- fluidPage(
-  shinyjs::useShinyjs(), #Required for any of the shinyjs functions. 
+  shinyjs::useShinyjs(), #Required for any of the shinyjs functions.
   tags$head(uiOutput("translate")), #google translate tab.
   tags$head(uiOutput("analytics")), #google analytics.
   theme = shinytheme("cyborg"), #Change this for other themes
@@ -58,9 +58,9 @@ ui <- fluidPage(
                                         ')))
     ),
   shinyjs::inlineCSS(appCSS),
-  
+
   #About Tab----
-  titlePanel("Open Specy"), 
+  titlePanel("Open Specy"),
   tabsetPanel(id = "tabs",
     tabPanel("About", value = "about",
              fluidRow(
@@ -77,41 +77,41 @@ ui <- fluidPage(
                ),
                column(3)
              ),
-             
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
+
              # HOW
              fluidRow(
                column(3),
                column(6,
                       shiny::HTML("<br><br><center> <h1>Instructions</h1> </center><br>"),
-                      shiny::HTML("<h5>In Brief: To use the tool upload a csv, jdx, spc, or spa file to the upload file tab. 
+                      shiny::HTML("<h5>In Brief: To use the tool upload a csv, jdx, spc, or spa file to the upload file tab.
                                   If csv, one column should be named -Wavelength- (in units of 1/cm) and another named -Absorbance-.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
-                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your 
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
                                   uploaded or processed data will be presented in an interactive plot and table.</h5>"),
-                      tags$div(align = "center", 
+                      tags$div(align = "center",
                                tags$a("Detailed Standard Operating Procedure",
                                       onclick = "window.open('https://docs.google.com/document/d/1DU9zsqKJqN5eW5yhDZ123BGUmYAdfXJ2KAykjjXIhOg/edit?usp=sharing', '_blank')",
                                       class="btn btn-primary btn-lg")
-                               
-                               
+
+
                       )
                ),
                column(3)
              ),
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
+
              fluidRow(
                column(3),
                column(6,
@@ -120,7 +120,7 @@ ui <- fluidPage(
                ),
                column(3)
              ),
-             
+
              fluidRow(
                column(1),
                column(10,
@@ -133,55 +133,55 @@ ui <- fluidPage(
                ),
                column(1)
              ),
-            
-           
+
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
+
              fluidRow(
                column(3),
                column(6,
                       shiny::HTML("<br><br><center> <h1>Tool Validation</h1> </center><br>"),
                       shiny::HTML("<h5>All parameters in this tool are tested to validate that the tool is functioning as best as possible and determine the best default parameters to use. Our current validation proceedure includes correcting duplicated entries in the reference libraries, checking for spectra in metadata that isn't in the spectral library, and ensuring the the default parameters provide over 80% accuracy in the first match.</h5>"),
-                      tags$div(align = "center", 
+                      tags$div(align = "center",
                       tags$a("Detailed Validation Procedure",
                              onclick = "window.open('https://docs.google.com/document/d/1Zd2GY4bWIwegGeE4JpX8O0S5l_IYju0sLDl1ddTTMxU/edit?usp=sharing', '_blank')",
-                             class="btn btn-primary btn-lg")                      
+                             class="btn btn-primary btn-lg")
                )),
                column(3)
              ),
-             
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
+
              fluidRow(
                column(3),
                column(6,
                       shiny::HTML("<br><br><center> <h1>Updates, Feature Requests, and Bug Reports</h1> </center><br>"),
                       shiny::HTML("<h5>We keep track of all updates using version control on our code. Features can be requested and bug reported by contacting Win at wincowger@gmail.com. We log these updates and requests at the link below.</h5>"),
-                      tags$div(align = "center", 
+                      tags$div(align = "center",
                        tags$a("Updates, Feature Requests, Bug Reports",
                              onclick = "window.open('https://docs.google.com/document/d/1Zd2GY4bWIwegGeE4JpX8O0S5l_IYju0sLDl1ddTTMxU/edit?usp=sharing', '_blank')",
-                             class="btn btn-primary btn-lg")                      
+                             class="btn btn-primary btn-lg")
                )),
                column(3)
              ),
-             
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
+
              fluidRow(
                column(3),
                column(6,
@@ -193,47 +193,47 @@ ui <- fluidPage(
              fluidRow(
                column(3),
                column(6,
-                      
-                      tags$div(align = "center", 
+
+                      tags$div(align = "center",
                                tags$a("Community Data Warehouse",
                                       onclick = "window.open('https://osf.io/rjg3c/', '_blank')",
                                       class="btn btn-primary btn-lg")
-                               
-                               
+
+
                       )
                ),
                column(3)
              ),
-             
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
+
              fluidRow(
                column(3),
                column(6,
                       shiny::HTML("<br><br><center> <h1>Contribute time</h1> </center>
                                   <br>"),
                       shiny::HTML("<h5>We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com</h5>"),
-                      tags$div(align = "center", 
+                      tags$div(align = "center",
                                tags$a("Community Contribution Guidelines",
                                       onclick = "window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')",
                                       class="btn btn-primary btn-lg")
                       )),
                column(3)
              ),
-             
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
-            
+
+
                           fluidRow(
                column(3),
                column(6,
@@ -243,15 +243,15 @@ ui <- fluidPage(
                       ),
                column(3)
              ),
-             
-             
+
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
+
              fluidRow(
                column(3),
                column(6,
@@ -261,14 +261,14 @@ ui <- fluidPage(
                ),
                column(3)
              ),
-             
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
+
              fluidRow(
                column(3),
                column(6,
@@ -283,14 +283,14 @@ ui <- fluidPage(
                       tags$a(align = "center", href = "https://www.effemm2.de/spectragryph/index.html", "Free desktop application for spectral analysis and links to reference databases.")),
                column(3)
              ),
-             
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              # PAGE BREAK
              tags$hr(),
-             
+
              fluidRow(
                column(3),
                column(6,
@@ -300,36 +300,36 @@ ui <- fluidPage(
                       ),
                column(3)
              ),
-             
+
              fluidRow(
-               
+
                style = "height:50px;"),
-             
+
              fluidRow(
                column(3),
                column(6,
                       shiny::HTML("<br><br><center> <h1>Privacy Policy</h1> </center>
                                   <br>"),
-                      pre(includeText("data/Privacy Policy.txt"))
+                      pre(includeText("data/PrivacyPolicy.txt"))
                       ),
                column(3)
              ),
-             
+
              fluidRow(
-               
+
                style = "height:50px;"),
              tags$hr()
              ),
-    
+
     #Upload File Tab ----
     tabPanel("Upload File", value = "tab1",
              titlePanel(tags$h4("Upload. View and Share Spectra Files")),
              fluidRow(
-               column(2, 
+               column(2,
                       fileInput('file1', 'Choose .csv (preferred), .jdx, .spc, .spa, or .0 File',
-                                accept=c('text/csv', 
-                                         'text/comma-separated-values,text/plain', 
-                                         '.csv', ".spc", ".jdx", ".spa", ".0"))%>% 
+                                accept=c('text/csv',
+                                         'text/comma-separated-values,text/plain',
+                                         '.csv', ".spc", ".jdx", ".spa", ".0"))%>%
                         helper(type = "inline",
                                title = "Upload Help",
                                content = c("Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled Wavelength in units of (1/cm) and another column labeled Absorbance in absorbance units.
@@ -338,8 +338,8 @@ ui <- fluidPage(
                                size = "m"),
                       tags$div(downloadButton('downloadData7', 'Test Data')),
                       tags$br(),
-                      
-                      
+
+
                       helper(selectInput("ShareDecision", "Share uploaded spectra?",
                                   c("Share" = "Share",
                                     "Not Now" = "Not now")),
@@ -381,41 +381,41 @@ ui <- fluidPage(
                       textInput("Level of Confidence in Identification", label = "Level of Confidence in Identification", placeholder = "99%"),
                       textInput("Description of Identification", label = "Description of Identification", placeholder = "E.g. Spectra were matched with 99% HQI in Know-it-all"),
                       textInput("Other Information", label = "Other Information"),
-                      
+
                       tags$br(),
                       actionButton("submit", "Share Data", class = "btn-primary"))
-                      
-                      
+
+
                ),
-               
-               
+
+
                column(8,
                       plotlyOutput('MyPlot')
-                      
-               ), 
+
+               ),
                column(2,
 
                       selectInput("IntensityCorr", "Intensity Adjustment",
                                   c("None" = "None",
-                                    "Transmittance" = "Transmittance", "Reflectance" = "Reflectance"))%>% 
+                                    "Transmittance" = "Transmittance", "Reflectance" = "Reflectance"))%>%
                         helper(type = "inline",
                                title = "Share Help",
                                content = c("If the uploaded spectrum is not in absorbance units, use this input to specify the units to convert from.Open Specy can adjust reflectance or transmittance spectra to Absorbance units using this drop down in the upload file tab. All of the preceding tabs assume that the data is in absorbance units so you should make the correction before continuing if needed. The transmittance adjustment uses the log10(1/T) calculation which does not correct for system and particle characteristics. The reflectance adjustment uses the Kubelka-Munk equation (1-R)2/(2*R). If none is selected, Open Specy assumes that the uploaded data is an absorbance spectrum."),
                                size = "m")
-                      
+
                )),
              fluidRow(
                       align="center",
                       hr(),
                       tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
     )),
-    
-    
+
+
     #Preprocess Spectrum Tab ----
     tabPanel("Preprocess Spectrum", value = "tab2",
              titlePanel(tags$h4("Smooth, Baseline Correct, and Download Processed Spectra")),
              fluidRow(
-               column(2, 
+               column(2,
                       sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3) %>%
                         helper(type = "inline",
                                title = "Smoother Help",
@@ -426,7 +426,7 @@ ui <- fluidPage(
                                title = "Baseline Correction Help",
                                content = c("This baseline correction routine utilizes the imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra."),
                                size = "m"),
-                      
+
                       numericInput(
                         "MinRange",
                         "Minimum Spectral Range",
@@ -453,31 +453,31 @@ ui <- fluidPage(
                                title = "Spectral Range Help",
                                content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
                                size = "m"),
-                      
+
                       downloadButton('downloadData', 'Download (recommended)') %>%
                         helper(type = "inline",
                                title = "Download Help",
                                content = c("Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file."),
                                size = "m")
-                      
-                      
+
+
                ),
-               
+
                column(10,
                       plotlyOutput('MyPlotB')
-                      
-               )), 
+
+               )),
              fluidRow(
                align="center",
                hr(),
                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
              )),
-    
+
     #Match Spectrum Tab ----
     tabPanel("Match Spectrum",value = "tab3",
              titlePanel(tags$h4("Identify Spectrum Using the Reference Library")),
              fluidRow(
-               column(2, 
+               column(2,
                       selectInput("Spectra", "Spectrum Type:",
                                   c("Raman" = "Raman",
                                     "FTIR" = "FTIR")) %>%
@@ -501,51 +501,51 @@ ui <- fluidPage(
                                content = c("This selection will determine whether the the library you are matching to consists of the full spectrum or only spectrum peaks."),
                                size = "m")
                ),
-               
+
                column(7,
-                      
+
                       plotlyOutput('MyPlotC'),
                       DT::dataTableOutput('eventmetadata')
-                      
-               ), 
+
+               ),
                column(3, DT::dataTableOutput('event'))),
 
-               
-               
+
+
              fluidRow(
                align="center",
                hr(),
                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
              )),
 
-    
+
     #Support us tab ----
     tabPanel("Support Us",
              fluidRow(
-               column(1), 
-               column(10, 
+               column(1),
+               column(10,
                tags$h2("We are trying to make this project financially sustainable. It currently costs the developers about a 1000$ each year and no one is paid for their time. See expenses and donations below."),
                tags$h3("You can help with a direct donation. Donate here."),
                actionButton(inputId='ab1', label="Donate", width = "100%",
-                            icon = icon("donate"), 
+                            icon = icon("donate"),
                             onclick ="window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')"),
                tags$h3("Or by purchasing some Open Specy merchandise here."),
                 actionButton(inputId='ab2', label="Swag Shop", width = "100%",
-                            icon = icon("shopping-cart"), 
+                            icon = icon("shopping-cart"),
                             onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")#,
-                      ), 
+                      ),
                column(1)
-               
+
              ),
              fluidRow(
                column(1),
                column(5,
-               DT::dataTableOutput('donations')), 
-               column(5, 
-               DT::dataTableOutput('costs')), 
+               DT::dataTableOutput('donations')),
+               column(5,
+               DT::dataTableOutput('costs')),
                column(1)
              ),
-             
+
              fluidRow(
                align="center",
                hr(),
