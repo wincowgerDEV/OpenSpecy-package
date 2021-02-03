@@ -22,6 +22,7 @@ library(readr)
 library(tidyr)
 library(hexView)
 library(curl)
+library(OpenSpecy)
 
 
 #Required Data ----
