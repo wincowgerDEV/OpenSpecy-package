@@ -7,12 +7,12 @@
 #'
 #' @examples
 #' \dontrun{
-#' start_app(launch.browser = TRUE)
+#' run_app(launch.browser = TRUE)
 #' }
 #'
 #' @importFrom shiny runApp
 #' @export
-start_app <- function(...) {
+run_app <- function(...) {
   app_dir <- system.file("shiny", package = "OpenSpecy")
   if (app_dir == "") {
     stop("Could not find app directory. Try reinstalling OpenSpecy.",
