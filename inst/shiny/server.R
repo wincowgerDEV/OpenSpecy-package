@@ -60,16 +60,6 @@ if(droptoken){
 }
 
 #Required functions ----
-#Function adjusts negative values
-adjustnegative <- function(x){
-  if(min(x) < 1){
-    x + abs(min(x)) + 1
-  }
-  else{
-    x
-  }
-}
-
 #Function is the imodpolyfit function described by Zhao 2007.
 iModPolyFit <- function(x, y, n) {
   OriginalWavelengths <- x #Need the original wavelengths
@@ -340,9 +330,9 @@ server <- shinyServer(function(input, output, session) {
 
   #Corrects spectral intensity units using the user specified correction ----
   absorbance <- reactive({
-    if(input$IntensityCorr == "Transmittance"){log10(1/adjustnegative(preprocesseddata()$Absorbance))}
-    else if(input$IntensityCorr == "Reflectance"){(1-adjustnegative(preprocesseddata()$Absorbance))^2/(2*adjustnegative(preprocesseddata()$Absorbance))}
-    else{adjustnegative(preprocesseddata()$Absorbance)}
+    if(input$IntensityCorr == "Transmittance"){log10(1/adjust_negative(preprocesseddata()$Absorbance))}
+    else if(input$IntensityCorr == "Reflectance"){(1-adjust_negative(preprocesseddata()$Absorbance))^2/(2*adjust_negative(preprocesseddata()$Absorbance))}
+    else{adjust_negative(preprocesseddata()$Absorbance)}
   })
 
   #Formatting the dataset for further processing ----
