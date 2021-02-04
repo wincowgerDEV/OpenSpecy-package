@@ -1,5 +1,3 @@
-context("Human readable timestamps")
-
 test_that("Make sure timestamps really differ", {
   t1 <- human_timestamp()
   Sys.sleep(1)
