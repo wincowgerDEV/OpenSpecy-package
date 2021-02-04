@@ -10,8 +10,8 @@
 #' @examples
 #' human_timestamp()
 #'
+#' @importFrom magrittr %>%
 #' @export
 human_timestamp <- function() {
-  format(Sys.time(), "%Y%m%d-%H%M%OS")
+  Sys.time() %>% format("%Y%m%d-%H%M%OS")
 }
-

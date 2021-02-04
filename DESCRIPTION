@@ -28,10 +28,11 @@ VignetteBuilder: knitr
 Depends:
     R (>= 4.0.0)
 Imports:
-    jsonlite,
+    magrittr,
     hyperSpec,
     hexView,
-    shiny
+    shiny,
+    jsonlite
 Suggests:
     knitr,
     rmarkdown,
