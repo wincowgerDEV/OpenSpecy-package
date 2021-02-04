@@ -22,32 +22,20 @@ library(readr)
 library(tidyr)
 library(hexView)
 library(curl)
-library(OpenSpecy)
+#library(OpenSpecy)
 
 
 #Required Data ----
-testdata <- fread("data/HDPE_Raman_Test.csv")
-Costs <- fread("data/Costs.csv")
-Donations <- fread("data/Donations.csv")
-FTIRLibrary <- fread("data/cleanftirspectradatafile.csv")
-FTIRLibraryMetadata <- fread("data/metadatafileFTIR.csv")
-FTIRLibrary$Wavelength <- round(FTIRLibrary$Wavelength, 1)
-FTIRLibraryMetadata$Organization <- as.factor(FTIRLibraryMetadata$Organization)
-FTIRLibraryMetadata$InstrumentAccesories = ifelse(is.na(FTIRLibraryMetadata$InstrumentAccessories) |  FTIRLibraryMetadata$InstrumentAccessories == "", FTIRLibraryMetadata$InstrumentAccesories, FTIRLibraryMetadata$InstrumentAccessories)
-FTIRLibraryMetadata <- select(FTIRLibraryMetadata, -InstrumentAccesories)
-RamanLibrary <- fread("data/cleanramanspectradatafile.csv")
-RamanLibrary$Wavelength <- round(RamanLibrary$Wavelength, 1)
-RamanLibraryMetadata <- fread("data/metadatafileRaman.csv")
-RamanLibraryMetadata$Organization <- as.factor(RamanLibraryMetadata$Organization)
-RamanLibraryMetadata$InstrumentAccesories = ifelse(is.na(RamanLibraryMetadata$InstrumentAccessories) |  RamanLibraryMetadata$InstrumentAccessories == "", RamanLibraryMetadata$InstrumentAccesories, RamanLibraryMetadata$InstrumentAccessories)
-RamanLibraryMetadata <- select(RamanLibraryMetadata, -InstrumentAccesories)
-FTIRLibraryPeak <- fread("data/cleanftirpeaksdatafile.csv")
-FTIRLibraryPeak$Wavelength <- round(FTIRLibraryPeak$Wavelength, 1)
-RamanLibraryPeak <- fread("data/cleanramanpeaksdatafile.csv")
-RamanLibraryPeak$Wavelength <- round(RamanLibraryPeak$Wavelength, 1)
+load("data/Costs.RData")
+load("data/Donations.RData")
+load("data/FTIRLibrary.RData")
+load("data/FTIRLibraryMetadata.RData")
+load("data/RamanLibrary.RData")
+load("data/RamanLibraryMetadata.RData")
+load("data/FTIRLibraryPeak.RData")
+load("data/RamanLibraryPeak.RData")
+load("data/testdata.RData")
 WavelengthApprox <- seq(0,6000, by = 0.1)
-
-
 
 
 #Check for Auth Tokens and setup ----
@@ -60,6 +48,22 @@ if(droptoken){
 }
 
 #Required functions ----
+
+human_timestamp <- function() {
+  format(Sys.time(), "%Y%m%d-%H%M%OS")
+}
+
+#Function adjusts spectra with negative intensity values so that all intensity values are greater than 1.
+adjust_negative <- function(x){
+  if(min(x) < 1){
+    x + abs(min(x)) + 1
+  }
+  else{
+    x
+  }
+}
+
+
 #Function is the imodpolyfit function described by Zhao 2007.
 iModPolyFit <- function(x, y, n) {
   OriginalWavelengths <- x #Need the original wavelengths
