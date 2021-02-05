@@ -13,8 +13,7 @@
 #' \code{\link[base]{min}} for the calculation of minima
 #'
 #' @examples
-#' adjust_negative(-5:5)
-#' adjust_negative(c(0.2, 0.7, 1))
+#' adjust_negative(c(-1000, -1, 0, 1, 10))
 #'
 #' @importFrom magrittr %>%
 #' @export

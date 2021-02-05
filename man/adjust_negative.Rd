@@ -18,8 +18,7 @@ by keeping absolute differences between values. If \code{na.rm} is
 \code{TRUE}, missing values are removed before the computation proceeds.
 }
 \examples{
-adjust_negative(-5:5)
-adjust_negative(c(0.2, 0.7, 1))
+adjust_negative(c(-1000, -1, 0, 1, 10))
 
 }
 \seealso{
