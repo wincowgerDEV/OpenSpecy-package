@@ -2,7 +2,7 @@
 % Please edit documentation in R/background_subtraction.R
 \name{background_subtraction}
 \alias{background_subtraction}
-\title{Automated background subtraction for Raman spectroscopy}
+\title{Automated background subtraction for spectral data}
 \usage{
 background_subtraction(formula, data = NULL, degree = 8, ...)
 }

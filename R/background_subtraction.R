@@ -1,4 +1,4 @@
-#' @title Automated background subtraction for Raman spectroscopy
+#' @title Automated background subtraction for spectral data
 #'
 #' @description
 #' This baseline correction routine iteratively finds the baseline of a spectrum
