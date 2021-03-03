@@ -30,6 +30,7 @@ Depends:
 Imports:
     magrittr,
     hyperSpec,
+    osfr,
     hexView,
     shiny,
     jsonlite
