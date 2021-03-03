@@ -3,6 +3,7 @@
 export(adjust_negative)
 export(background_subtraction)
 export(human_timestamp)
+export(make_relative)
 export(run_app)
 importFrom(magrittr,"%>%")
 importFrom(shiny,runApp)
