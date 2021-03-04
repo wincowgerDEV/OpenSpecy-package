@@ -16,8 +16,8 @@
 #' seealso
 #'
 #' @examples
-#' data("raman_pe")
-#' background_subtraction(absorbance ~ wavenumber, data = raman_pe)
+#' data("raman_hdpe")
+#' background_subtraction(absorbance ~ wavenumber, data = raman_hdpe)
 #'
 #' @importFrom magrittr %>%
 #' @importFrom stats terms model.frame sd lm poly approx

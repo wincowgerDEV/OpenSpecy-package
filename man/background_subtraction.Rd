@@ -31,8 +31,8 @@ This baseline correction routine iteratively finds the baseline of a spectrum
 using a polynomial fitting.
 }
 \examples{
-data("raman_pe")
-background_subtraction(absorbance ~ wavenumber, data = raman_pe)
+data("raman_hdpe")
+background_subtraction(absorbance ~ wavenumber, data = raman_hdpe)
 
 }
 \seealso{
