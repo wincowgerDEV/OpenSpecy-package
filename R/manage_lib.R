@@ -6,6 +6,7 @@
 #' Description
 #'
 #' @param which which
+#' @param node node
 #'
 #' @seealso
 #' seealso
@@ -44,9 +45,10 @@ check_lib <- function(which = c("ftir", "raman"), condition = "warning") {
 #' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
 #'
 #' @export
-get_lib <- function(which = c("ftir", "raman"), conflicts = "overwrite", ...) {
+get_lib <- function(which = c("ftir", "raman"), node = "x7dpz",
+                    conflicts = "overwrite", ...) {
   pkg <- system.file("extdata", package = "OpenSpecy")
-  osf <- osf_retrieve_node("g3axs") %>%
+  osf <- osf_retrieve_node(node) %>%
     osf_ls_files(pattern = ".RData", n_max = Inf)
 
   cat("Fetching data from OSF ... \n\n")
