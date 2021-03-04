@@ -29,8 +29,11 @@ Depends:
     R (>= 4.0.0)
 Imports:
     magrittr,
-    hyperSpec,
+    rlang,
+    dplyr,
     osfr,
+    signal,
+    hyperSpec,
     hexView,
     shiny,
     jsonlite
@@ -40,3 +43,4 @@ Suggests:
     testthat (>= 3.0.0),
 RoxygenNote: 7.1.1
 Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
