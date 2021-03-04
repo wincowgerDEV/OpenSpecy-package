@@ -47,13 +47,14 @@ get_lib <- function(which = c("ftir", "raman"), conflicts = "overwrite", ...) {
   osf <- osf_retrieve_node("g3axs") %>%
     osf_ls_files(pattern = ".RData", n_max = Inf)
 
-  cat("Fetching data from OSF ... \n")
+  cat("Fetching data from OSF ... \n\n")
   for (w in which) {
     osf %>% dplyr::filter(grepl(paste0(w, "*"), .data$name)) %>%
       osf_download(path = pkg, conflicts = conflicts, progress = TRUE, ...)
   }
+  cat("Done\n\n")
 
-  message("Done")
+  message("Use 'load_lib()' to load the library")
 }
 
 #' @rdname manage_lib
