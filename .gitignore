@@ -41,3 +41,8 @@ inst/doc
 
 # pkgdown site
 docs/
+
+# System files
+desktop.ini
+*.swp
+.DS_Store

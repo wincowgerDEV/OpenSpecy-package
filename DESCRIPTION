@@ -29,6 +29,10 @@ Depends:
     R (>= 4.0.0)
 Imports:
     magrittr,
+    rlang,
+    dplyr,
+    osfr,
+    signal,
     hyperSpec,
     hexView,
     shiny,
@@ -37,5 +41,6 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
+    data.table
 RoxygenNote: 7.1.1
 Config/testthat/edition: 3
