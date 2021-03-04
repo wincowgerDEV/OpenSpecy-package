@@ -46,6 +46,6 @@ inst/doc
 docs/
 
 # System files
-desktop.ini
+*.ini
 *.swp
 .DS_Store
