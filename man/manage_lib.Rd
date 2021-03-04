@@ -6,7 +6,7 @@
 \alias{load_lib}
 \title{Manage spectral libraries}
 \usage{
-check_lib(which = c("ftir", "raman"))
+check_lib(which = c("ftir", "raman"), condition = "warning")
 
 get_lib(which = c("ftir", "raman"), conflicts = "overwrite", ...)
 
@@ -14,6 +14,8 @@ load_lib(which = c("ftir", "raman"))
 }
 \arguments{
 \item{which}{which}
+
+\item{condition}{condition}
 
 \item{conflicts}{determines what happens when a file with the same name
 exists at the specified destination. Can be one of the following (see

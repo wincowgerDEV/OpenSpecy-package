@@ -15,26 +15,15 @@
 #' get_lib()
 #' }
 #'
+#' @param condition condition
+#'
 #' @importFrom magrittr %>%
 #'
 #' @export
-check_lib <- function(which = c("ftir", "raman")) {
-  types <- c("metadata", "peaks", "library")
+check_lib <- function(which = c("ftir", "raman"), condition = "warning") {
+  sapply(which, .chkf, condition = condition)
 
-  for (w in which) {
-    n <- paste0(w, "_", types, ".RData")
-
-    chk <- system.file("extdata", package = "OpenSpecy") %>%
-      file.path(n) %>% file.exists()
-
-    wout <- switch (w,
-      "ftir" = "FTIR",
-      "raman" = "Raman"
-    )
-
-    if (!all(chk)) packageStartupMessage(wout, " library missing or incomplete; ",
-                                         "use 'get_lib()' to download a current version")
-  }
+  invisible()
 }
 
 #' @rdname manage_lib
@@ -58,7 +47,7 @@ get_lib <- function(which = c("ftir", "raman"), conflicts = "overwrite", ...) {
   osf <- osf_retrieve_node("g3axs") %>%
     osf_ls_files(pattern = ".RData", n_max = Inf)
 
-  message("Fetching data from OSF ... \n")
+  cat("Fetching data from OSF ... \n")
   for (w in which) {
     osf %>% dplyr::filter(grepl(paste0(w, "*"), .data$name)) %>%
       osf_download(path = pkg, conflicts = conflicts, progress = TRUE, ...)
@@ -71,5 +60,36 @@ get_lib <- function(which = c("ftir", "raman"), conflicts = "overwrite", ...) {
 #'
 #' @export
 load_lib <- function(which = c("ftir", "raman")) {
+  chk <- lapply(which, .chkf, condition = "stop")
+  pkg <- system.file("extdata", package = "OpenSpecy")
 
+  for (c in chk) {
+    fn <- paste0(c[[2L]], "_", names(c[[1L]]), ".RData")
+    pth <- file.path(pkg, fn)
+    for (cp in pth) {
+      load(cp, .GlobalEnv)
+    }
+  }
+}
+
+# Auxiliary function for library checks
+.chkf <- function(x, types = c("metadata", "peaks", "library"),
+                  condition = "warning") {
+  fn <- paste0(x, "_", types, ".RData")
+
+  chk <- system.file("extdata", package = "OpenSpecy") %>%
+    file.path(fn) %>% file.exists()
+  names(chk) <- types
+
+  xout <- switch (x,
+                  "ftir" = "FTIR",
+                  "raman" = "Raman"
+  )
+
+  if (!all(chk)) do.call(condition, list(xout, " library missing or incomplete; ",
+                                         "use 'get_lib()' to download a current version",
+                                         call. =  ifelse(condition %in%
+                                           c("message", "packageStartupMessage"),
+                                           "", FALSE)))
+  list(chk, x, xout)
 }
