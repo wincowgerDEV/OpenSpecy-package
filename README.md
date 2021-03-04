@@ -11,3 +11,33 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 ## :warning: WARNING :warning:
 
 This R package is currently **not** stable; please use the Shiny app on [openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/) instead.
+
+## Installation
+
+<!-- **OpenSpecy** is available from CRAN and GitHub.
+
+### Install from CRAN (stable version)
+
+You can install the released version of **OpenSpecy** from
+[CRAN](https://CRAN.R-project.org) with:
+
+```r
+install.packages("envalysis")
+```
+-->
+
+### Install from GitHub (development version)
+
+To install the development version of this package, paste the following code
+into your R console (requires **devtools**):
+
+```r
+if (!require(devtools)) install.packages("devtools")
+devtools::install_github("zsteinmetz/OpenSpecy")
+```
+
+## Getting started
+
+```r
+library(OpenSpecy)
+```
