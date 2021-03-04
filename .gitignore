@@ -2,6 +2,9 @@
 .Rhistory
 .Rapp.history
 
+# Desktop drive files
+.ini
+
 # Session Data files
 .RData
 
