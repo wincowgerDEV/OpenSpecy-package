@@ -16,7 +16,12 @@ make_relative(x, na.rm = FALSE)
 \item{na.rm}{logical. Should missing values be removed?}
 }
 \description{
-\code{adjust_negative()} converts numeric values \code{x < 1} into values= 1 by keeping absolute differences between values.\code{make_relative()} converts values \code{x} into relative values between0 and 1.If \code{na.rm} is \code{TRUE}, missing values are removed before thecomputation proceeds.
+\code{adjust_negative()} converts numeric values \code{x < 1} into values
+>= 1 by keeping absolute differences between values.
+\code{make_relative()} converts values \code{x} into relative values between
+0 and 1.
+If \code{na.rm} is \code{TRUE}, missing values are removed before the
+computation proceeds.
 }
 \examples{
 adjust_negative(c(-1000, -1, 0, 1, 10))

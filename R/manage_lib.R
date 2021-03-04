@@ -31,9 +31,11 @@ check_lib <- function(which = c("ftir", "raman"), condition = "warning") {
 #' @param conflicts determines what happens when a file with the same name
 #' exists at the specified destination. Can be one of the following (see
 #' \code{\link[osfr]{osf_download}()} for details):
-#' * "error": throw an error and abort the file transfer operation.
-#' * "skip": skip the conflicting file(s) and continue transferring the remaining files.
-#' * "overwrite" (the default): replace the existing file with the transferred copy.
+#' \itemize{
+##'  \item{"error"}{throw an error and abort the file transfer operation.}
+##'  \item{"skip"}{skip the conflicting file(s) and continue transferring the remaining files.}
+##'  \item{"overwrite" (default)}{replace the existing file with the transferred copy.}
+##' }
 #' @param \ldots arguments passed to \code{\link[osfr]{osf_download}()}
 #'
 #' @importFrom utils read.csv
