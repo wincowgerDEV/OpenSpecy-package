@@ -24,7 +24,12 @@ read_0(file = ".", ...)
 \item{\ldots}{...}
 }
 \description{
-Read Raman or FTIR spectrum files as csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled Wavelength in units of (1/cm) and another column labeled Absorbance in absorbance units. If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavelength in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+Read Raman or FTIR spectrum files as asp, jdx, spc, or spa. A csv file is
+preferred. If a csv, the file must contain one column labeled Wavelength in
+units of (1/cm) and another column labeled Absorbance in absorbance units.
+If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with
+wavelength in (1/cm). These files will not always work perfectly because they
+are tricky to read so double check them in another software.
 }
 \examples{
 c()

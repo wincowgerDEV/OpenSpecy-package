@@ -108,6 +108,9 @@ read_0 <- function(file = ".", ...) {
   pr <- pa$fileRaw
 
   # Get positions where the following parameters are found in the file
+  codes <- c("ZFF", "RES", "SNM", "DAT", "LWN", "FXV", "LXV", "NPT", "MXY",
+             "MNY", "END", "TIM")
+
   z <- grepRaw(codes[1],pr,all=TRUE)[1]+5
   re <- grepRaw(codes[2],pr,all=TRUE)[1]+5
   snm <- grepRaw(codes[3],pr,all=TRUE)[1]+7
