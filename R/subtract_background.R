@@ -5,7 +5,8 @@
 #' using a polynomial fitting.
 #'
 #' @param x wavenumber
-#' @param y absorbance
+#' @param y intensity
+#' @param make_relative make_relative
 #' @param formula formula
 #' @param data data
 #' @param degree the degree of the polynomial. Must be less than the number of
@@ -44,7 +45,8 @@ subtract_background.formula <- function(formula, data = NULL, ...) {
 #' @rdname subtract_background
 #'
 #' @export
-subtract_background.default <- function(x, y, degree = 8, ...) {
+subtract_background.default <- function(x, y, degree = 8, make_relative = TRUE,
+                                        ...) {
   xin <- x
   dev_prev <- 0 # standard deviation residuals for the last iteration of polyfit;
                 # set initially to 0
@@ -90,11 +92,14 @@ subtract_background.default <- function(x, y, degree = 8, ...) {
     # Approximate the intensity back to the original wavelengths, allows below
     # the peak to be interpolated
     if(criteria_met) {
-      yout <- approx(x, y, xout = xin, rule = 2, method = "linear",
+      ysbg <- approx(x, y, xout = xin, rule = 2, method = "linear",
                          ties = mean)[2] %>%
         unlist() %>%
         unname()
-      return(data.frame(wavenumber = xin, absorbance = yout))
+
+      if (make_relative) yout <- make_relative(ysbg) else yout <- ysbg
+
+      return(data.frame(wavenumber = xin, intensity = yout))
     }
 
     # Update previous residual metric

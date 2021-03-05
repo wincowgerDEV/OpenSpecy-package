@@ -10,7 +10,7 @@ subtract_background(x, ...)
 
 \method{subtract_background}{formula}(formula, data = NULL, ...)
 
-\method{subtract_background}{default}(x, y, degree = 8, ...)
+\method{subtract_background}{default}(x, y, degree = 8, make_relative = TRUE, ...)
 }
 \arguments{
 \item{x}{wavenumber}
@@ -19,10 +19,12 @@ subtract_background(x, ...)
 
 \item{data}{data}
 
-\item{y}{absorbance}
+\item{y}{intensity}
 
 \item{degree}{the degree of the polynomial. Must be less than the number of
 unique points when raw is false, as by default.}
+
+\item{make_relative}{make_relative}
 
 \item{\ldots}{...}
 }
