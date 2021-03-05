@@ -32,9 +32,9 @@ Imports:
     rlang,
     dplyr,
     osfr,
-    signal,
     hyperSpec,
     hexView,
+    signal,
     shiny,
     jsonlite
 Suggests:

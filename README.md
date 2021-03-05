@@ -40,4 +40,13 @@ devtools::install_github("zsteinmetz/OpenSpecy")
 
 ```r
 library(OpenSpecy)
+
+# Fetch current spectral library from https://osf.io/x7dpz/
+get_lib()
+
+# Load library into global environment
+spec_lib <- load_lib()
+
+# Read sample spectrum
+data("raman_hdpe")
 ```
