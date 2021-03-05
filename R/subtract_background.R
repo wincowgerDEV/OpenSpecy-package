@@ -17,19 +17,19 @@
 #'
 #' @examples
 #' data("raman_hdpe")
-#' background_subtraction(absorbance ~ wavenumber, data = raman_hdpe)
+#' subtract_background(absorbance ~ wavenumber, data = raman_hdpe)
 #'
 #' @importFrom magrittr %>%
 #' @importFrom stats terms model.frame sd lm poly approx
 #' @export
-background_subtraction <- function(x, ...) {
-  UseMethod("background_subtraction")
+subtract_background <- function(x, ...) {
+  UseMethod("subtract_background")
 }
 
-#' @rdname background_subtraction
+#' @rdname subtract_background
 #'
 #' @export
-background_subtraction.formula <- function(formula, data = NULL, ...) {
+subtract_background.formula <- function(formula, data = NULL, ...) {
   if (missing(formula) || (length(formula) != 3L) || (length(attr(terms(formula[-2L]),
                                                                   "term.labels")) != 1L))
     stop("'formula' missing or incorrect")
@@ -38,13 +38,13 @@ background_subtraction.formula <- function(formula, data = NULL, ...) {
   lst <- as.list(mf)
   names(lst) <- c("x", "y")
 
-  do.call("background_subtraction", c(lst, list(...)))
+  do.call("subtract_background", c(lst, list(...)))
 }
 
-#' @rdname background_subtraction
+#' @rdname subtract_background
 #'
 #' @export
-background_subtraction.default <- function(x, y, degree = 8, ...) {
+subtract_background.default <- function(x, y, degree = 8, ...) {
   xin <- x
   dev_prev <- 0 # standard deviation residuals for the last iteration of polyfit;
                 # set initially to 0
