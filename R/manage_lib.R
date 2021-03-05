@@ -69,7 +69,7 @@ load_lib <- function(which = c("ftir", "raman")) {
   pkg <- system.file("extdata", package = "OpenSpecy")
 
   for (c in chk) {
-    fn <- paste0(c[[2L]], "_", names(c[[1L]]), ".RData")
+    fn <- paste0(c[[2L]], "_", names(c[[1L]]), ".rds")
     pth <- file.path(pkg, fn)
     for (cp in pth) {
       load(cp, .GlobalEnv)
@@ -80,7 +80,7 @@ load_lib <- function(which = c("ftir", "raman")) {
 # Auxiliary function for library checks
 .chkf <- function(x, types = c("metadata", "peaks", "library"),
                   condition = "warning") {
-  fn <- paste0(x, "_", types, ".RData")
+  fn <- paste0(x, "_", types, ".rds")
 
   chk <- system.file("extdata", package = "OpenSpecy") %>%
     file.path(fn) %>% file.exists()
