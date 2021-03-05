@@ -68,13 +68,17 @@ load_lib <- function(which = c("ftir", "raman")) {
   chk <- lapply(which, .chkf, condition = "stop")
   pkg <- system.file("extdata", package = "OpenSpecy")
 
-  for (c in chk) {
-    fn <- paste0(c[[2L]], "_", names(c[[1L]]), ".rds")
-    pth <- file.path(pkg, fn)
-    for (cp in pth) {
-      load(cp, .GlobalEnv)
-    }
-  }
+  res <- lapply(chk, function(x) {
+    fls <- file.path(pkg, paste0(x[[2L]], "_", names(x[[1L]]), ".rds"))
+
+    rrds <- lapply(fls, readRDS)
+    names(rrds) <- names(x[[1L]])
+
+    rrds
+  })
+
+  names(res) <- which
+  return(res)
 }
 
 # Auxiliary function for library checks
