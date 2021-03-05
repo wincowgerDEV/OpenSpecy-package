@@ -17,6 +17,8 @@
 #' @importFrom magrittr %>%
 #' @export
 read_asp <- function(file = ".", ...) {
+  if (!grepl("\\.asp$", file)) stop("file type should be '.asp'")
+
   tr <- file.path(file) %>% file(...)
   lns <- tr %>% readLines() %>% as.numeric()
   close(tr)
@@ -32,34 +34,39 @@ read_asp <- function(file = ".", ...) {
 #' @importFrom utils read.table
 #' @export
 read_spa <- function(file = ".", ...) {
-  tr <- file.path(file) %>%
-    file(open = "rb", ...)
-  lns <- file.path(file) %>%
-    read.table(sep = " ")
-  fhd <- lns$`Spectral Data File`[grepl("Resolution", lns$`Spectral Data File`)]
+  if (!grepl("\\.spa$", file)) stop("file type should be '.spa'")
 
-  start <- as.numeric(strsplit(fhd, " ")[[1]][4])
-  end <- as.numeric(strsplit(fhd, " ")[[1]][6])
+  trr <- file.path(file) %>% file(...)
+  lns <- trr %>% readLines(n = 10, warn = FALSE)
+  close(trr)
+
+  mgn <- lns[grepl("Resolution", lns, useBytes = T)]
+
+  start <- strsplit(mgn, " ")[[1]][5] %>% as.numeric()
+  end <- strsplit(mgn, " ")[[1]][7] %>% as.numeric()
+
+  trb <- file.path(file) %>% file(open = "rb", ...)
 
   # Read the start offset
-  seek(tr, 386, origin = "start")
-  startOffset <- readBin(tr, "int", n = 1, size = 2)
+  seek(trb, 386, origin = "start")
+  startOffset <- readBin(trb, "int", n = 1, size = 2)
   # Read the length
-  seek(tr, 390, origin="start")
-  readLength <- readBin(tr, "int", n = 1, size = 2)
+  seek(trb, 390, origin = "start")
+  readLength <- readBin(trb, "int", n = 1, size = 2)
 
   # seek to the start
-  seek(tr, startOffset, origin = "start")
+  seek(trb, startOffset, origin = "start")
 
   # we'll read four byte chunks
   floatCount <- readLength/4
 
   # read all our floats
-  floatData <- c(readBin(tr,"double",floatCount, size=4))
+  floatData <- c(readBin(trb, "double", floatCount, size = 4))
 
-  close(tr)
+  close(trb)
 
-  data.frame(wavenumber = seq(end, start, length = length(floatData)), absorbance = floatData)
+  data.frame(wavenumber = seq(end, start, length = length(floatData)),
+             absorbance = floatData)
 }
 
 #' @rdname read_spectra
