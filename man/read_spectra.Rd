@@ -6,6 +6,7 @@
 \alias{read_jdx}
 \alias{read_spc}
 \alias{read_0}
+\alias{read_example}
 \title{Read spectral data}
 \usage{
 read_asp(file = ".", ...)
@@ -17,6 +18,8 @@ read_jdx(file = ".", ...)
 read_spc(file = ".", ...)
 
 read_0(file = ".", ...)
+
+read_example(file = NULL)
 }
 \arguments{
 \item{file}{file.}
@@ -32,7 +35,9 @@ wavelength in (1/cm). These files will not always work perfectly because they
 are tricky to read so double check them in another software.
 }
 \examples{
-c()
+ftir_ldpe_soil <- read_asp(read_example("ftir_ldpe_soil.asp"))
+
+ftir_ps <- read_0(read_example("ftir_ps.0"))
 
 }
 \seealso{
