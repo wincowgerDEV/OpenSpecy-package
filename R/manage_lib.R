@@ -49,7 +49,7 @@ get_lib <- function(which = c("ftir", "raman"), node = "x7dpz",
                     conflicts = "overwrite", ...) {
   pkg <- system.file("extdata", package = "OpenSpecy")
   osf <- osf_retrieve_node(node) %>%
-    osf_ls_files(pattern = ".RData", n_max = Inf)
+    osf_ls_files(pattern = ".rds", n_max = Inf)
 
   cat("Fetching data from OSF ... \n\n")
   for (w in which) {
