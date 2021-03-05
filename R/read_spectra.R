@@ -33,7 +33,7 @@ read_asp <- function(file = ".", ...) {
 #' @export
 read_spa <- function(file = ".", ...) {
   tr <- file.path(file) %>%
-    file(mode = "rb", ...)
+    file(open = "rb", ...)
   lns <- file.path(file) %>%
     read.table(sep = " ")
   fhd <- lns$`Spectral Data File`[grepl("Resolution", lns$`Spectral Data File`)]

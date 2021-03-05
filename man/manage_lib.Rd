@@ -40,7 +40,10 @@ Description
 }
 \examples{
 \dontrun{
-get_lib()
+check_lib(which = c("ftir", "raman"))
+get_lib(which = c("ftir", "raman"))
+
+spectral_db <- load_lib(which = c("ftir", "raman"))
 }
 
 }
