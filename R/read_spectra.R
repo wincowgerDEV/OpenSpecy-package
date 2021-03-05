@@ -3,7 +3,12 @@
 #' @title Read spectral data
 #'
 #' @description
-#' Read Raman or FTIR spectrum files as csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled Wavelength in units of (1/cm) and another column labeled Absorbance in absorbance units. If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavelength in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+#' Read Raman or FTIR spectrum files as asp, jdx, spc, or spa. A csv file is
+#' preferred. If a csv, the file must contain one column labeled Wavelength in
+#' units of (1/cm) and another column labeled Absorbance in absorbance units.
+#' If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with
+#' wavelength in (1/cm). These files will not always work perfectly because they
+#' are tricky to read so double check them in another software.
 #'
 #' @param file file.
 #' @param \ldots ...
@@ -17,7 +22,7 @@
 #' @importFrom magrittr %>%
 #' @export
 read_asp <- function(file = ".", ...) {
-  if (!grepl("\\.asp$", file)) stop("file type should be '.asp'")
+  if (!grepl("\\.asp$", file)) stop("file type should be 'asp'")
 
   tr <- file.path(file) %>% file(...)
   lns <- tr %>% readLines() %>% as.numeric()
@@ -34,7 +39,7 @@ read_asp <- function(file = ".", ...) {
 #' @importFrom utils read.table
 #' @export
 read_spa <- function(file = ".", ...) {
-  if (!grepl("\\.spa$", file)) stop("file type should be '.spa'")
+  if (!grepl("\\.spa$", file)) stop("file type should be 'spa'")
 
   trr <- file.path(file) %>% file(...)
   lns <- trr %>% readLines(n = 10, warn = FALSE)
@@ -96,14 +101,13 @@ read_spc <- function(file = ".", ...) {
 #' @importFrom hexView readRaw blockString
 #' @export
 read_0 <- function(file = ".", ...) {
+  if (!grepl("\\.[0-999]$", file)) stop("file type should be '0'")
+
   pa <- readRaw(file, offset = 0, nbytes = file.info(file)$size, human = "char",
                 size = 1, endian = "little")
   pr <- pa$fileRaw
 
-  codes <- c("ZFF","RES","SNM","DAT","LWN","FXV","LXV","NPT","MXY","MNY","END","TIM")
-
-
-  ## Get positions where the following parameters are found in the file
+  # Get positions where the following parameters are found in the file
   z <- grepRaw(codes[1],pr,all=TRUE)[1]+5
   re <- grepRaw(codes[2],pr,all=TRUE)[1]+5
   snm <- grepRaw(codes[3],pr,all=TRUE)[1]+7
@@ -145,7 +149,7 @@ read_0 <- function(file = ".", ...) {
     offs.f<-offs[2]
   }
 
-  ## Selected spectra block
+  # Selected spectra block
   opus.p <- readRaw(file, width = NULL, offset = offs.f - 4,
                     nbytes = nbytes.f, human = "real", size = 4, endian="little")
   y <- opus.p[[5]]
