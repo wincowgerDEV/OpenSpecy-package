@@ -1,18 +1,24 @@
 #' @title Match spectra with reference library
 #'
 #' @description
-#' desc
+#' This function will compare a spectrum to a spectral library formatted with the Open Specy standard and report the best match using the Pearson correlation coefficient.  
 #'
-#' @param x wavenumber
-#' @param y intensity
+#' @details
+#' This routine will first match the spectrum you want to identify to the wavenumbers present in the spectral library. 
+#' Once the spectra are aligned, it computes the pearson corellation coefficient between the spectrum you want to identify and all spectra in the library. 
+#' Lastly, it returns a table with the Pearson correlation coefficient values and all metadata for the top spectral matches.
+#' If using the Open Specy library, all intensity values are in absorbance so your spectra should also be in absorbance units. If you need to convert your spectrum, see \code{adjust_intensity()}
+#'
+#' @param x Wavenumber column
+#' @param y Intensity column
 #' @param formula formula
-#' @param data data
-#' @param library library
+#' @param data Data you want to identify.
+#' @param library Library you want to compare against.
 #' @param which which
 #' @param type type
-#' @param range range
+#' @param range This should be all possible wavenumber values from your spectral library. 
 #' @param col_names col_names
-#' @param top_n top_n
+#' @param top_n Number of top matches that you want to be returned.
 #' @param \ldots ...
 #'
 #' @seealso
