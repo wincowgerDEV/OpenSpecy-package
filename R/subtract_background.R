@@ -48,6 +48,7 @@ subtract_background.formula <- function(formula, data = NULL, ...) {
 subtract_background.default <- function(x, y, degree = 8, make_relative = TRUE,
                                         ...) {
   xin <- x
+  yin <- y
   dev_prev <- 0 # standard deviation residuals for the last iteration of polyfit;
                 # set initially to 0
   first_iter <- TRUE
@@ -80,9 +81,9 @@ subtract_background.default <- function(x, y, degree = 8, make_relative = TRUE,
     # Replace data with lower value if polynomial is lower
     for (j in 1:length(y)) {
       if (mod_poly[j] + dev_curr > y[j]) {
-        y[j] = y[j]
+        y[j] <- y[j]
       } else {
-        y[j] = mod_poly[j]
+        y[j] <- mod_poly[j]
       }
     }
 
@@ -97,7 +98,7 @@ subtract_background.default <- function(x, y, degree = 8, make_relative = TRUE,
         unlist() %>%
         unname()
 
-      if (make_relative) yout <- make_relative(ysbg) else yout <- ysbg
+      if (make_relative) yout <- make_relative(yin - ysbg) else yout <- yin - ysbg
 
       return(data.frame(wavenumber = xin, intensity = yout))
     }
