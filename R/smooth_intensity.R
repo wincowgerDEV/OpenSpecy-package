@@ -4,7 +4,8 @@
 #' This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with a running window of data points and the polynomial specified.
 #'
 #' @details
-#' This is a wrapper around the filter function in the signal package to improve integration with other Open Specy functions.
+#' This is a wrapper around the filter function in the signal package to improve integration with other Open Specy functions. 
+#' A typical good smooth can be achieved with 11 data point window and a 3rd or 4th order polynomial.
 #'
 #' @param x Wavenumber column
 #' @param y Intensity column
