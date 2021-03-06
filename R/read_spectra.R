@@ -3,14 +3,15 @@
 #' @title Read spectral data
 #'
 #' @description
-#' Read Raman or FTIR spectrum files as asp, jdx, spc, or spa. A csv file is
-#' preferred. If a csv, the file must contain one column labeled Wavelength in
-#' units of (1/cm) and another column labeled Absorbance in absorbance units.
-#' If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with
-#' wavelength in (1/cm). These files will not always work perfectly because they
-#' are tricky to read so double check them in another software.
+#' Functions for reading in spectral data types including asp, jdx, spc, spa, 0, and csv. 
 #'
-#' @param file file.
+#' @details
+#' \code{read_spc()} and \code{read_jdx()} are just a wrapper around the functions provided by the hyperSpec packages. 
+#' Other functions have been adapted from combining various sources online. All functions convert datasets to a 2 column 
+#' table with one column labeled wavenumber and the other intensity. There are many unique itterations of spectral file 
+#' formats so there may be bugs in the file conversion. Please contact us if you identify any. 
+#'
+#' @param file The file you want to convert.
 #' @param \ldots ...
 #'
 #' @seealso
