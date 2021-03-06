@@ -3,7 +3,10 @@
 #' @description
 #' desc
 #'
-#' @param spectrum spectrum
+#' @param x wavenumber
+#' @param y intensity
+#' @param formula formula
+#' @param data data
 #' @param library library
 #' @param which which
 #' @param type type
@@ -29,28 +32,53 @@
 #' @importFrom rlang .data
 #' @importFrom stats approx cor
 #' @importFrom dplyr inner_join rename group_by mutate group_by ungroup summarize select arrange desc top_n
+#'
 #' @export
-match_spectrum <- function(spectrum, library, which = NULL, type = "full",
-                           range = seq(0, 6000, 0.1), col_names = NULL, top_n = 100,
-                           ...) {
-  # Try to guess column names
-  if (is.null(col_names))
-    col_names <- c(
-      names(spectrum)[grep("wav*", ignore.case = T, names(spectrum))][1L],
-      names(spectrum)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)",
-                           ignore.case = T, names(spectrum))][1L]
-    )
+match_spectrum <- function(x, ...) {
+  UseMethod("match_spectrum")
+}
+
+#' @rdname match_spectrum
+#'
+#' @export
+match_spectrum.formula <- function(formula, data = NULL, ...) {
+  if (missing(formula) || (length(formula) != 3L) || (length(attr(terms(formula[-2L]),
+                                                                  "term.labels")) != 1L))
+    stop("'formula' missing or incorrect")
+
+  mf <- model.frame(formula, data)
+  lst <- as.list(mf)
+  names(lst) <- c("y", "x")
+
+  do.call("match_spectrum", c(lst, list(...)))
+}
+
+#' @rdname match_spectrum
+#'
+#' @export
+match_spectrum.data.frame <- function(x, ...) {
+  if (!all(c("wavenumber", "intensity") %in% names(x)))
+    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
+
+  do.call("match_spectrum", list(x$wavenumber, x$intensity, ...))
+}
+
+#' @rdname match_spectrum
+#'
+#' @export
+match_spectrum.default <- function(x, y, library, which = NULL, type = "full",
+                                   range = seq(0, 6000, 0.1), col_names = NULL,
+                                   top_n = 100, ...) {
   if(type == "full") type <- "library"
 
-  spc <- spectrum[col_names]
   lib <- library[[which]][[type]]
   meta <- library[[which]][["metadata"]]
 
-  wls <- range[range >= min(spc[, 1]) & range <= max(spc[, 1])]
+  wls <- range[range >= min(x) & range <= max(x)]
 
   m <- lib %>%
-    inner_join(dplyr::rename(data.frame(approx(spc[, 1], spc[, 2], xout = wls,
-                                               rule = 2, method = "linear", ties=mean)),
+    inner_join(dplyr::rename(data.frame(approx(x, y, xout = wls, rule = 2,
+                                               method = "linear", ties=mean)),
                              "Wavelength" = .data$x), by = "Wavelength") %>%
     dplyr::rename("BaselineRemove" = .data$y) %>%
     group_by(.data$group, .data$SampleName) %>%

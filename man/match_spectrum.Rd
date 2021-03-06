@@ -2,10 +2,20 @@
 % Please edit documentation in R/match_spectrum.R
 \name{match_spectrum}
 \alias{match_spectrum}
+\alias{match_spectrum.formula}
+\alias{match_spectrum.data.frame}
+\alias{match_spectrum.default}
 \title{Match spectra with reference library}
 \usage{
-match_spectrum(
-  spectrum,
+match_spectrum(x, ...)
+
+\method{match_spectrum}{formula}(formula, data = NULL, ...)
+
+\method{match_spectrum}{data.frame}(x, ...)
+
+\method{match_spectrum}{default}(
+  x,
+  y,
   library,
   which = NULL,
   type = "full",
@@ -16,7 +26,13 @@ match_spectrum(
 )
 }
 \arguments{
-\item{spectrum}{spectrum}
+\item{x}{wavenumber}
+
+\item{formula}{formula}
+
+\item{data}{data}
+
+\item{y}{intensity}
 
 \item{library}{library}
 
