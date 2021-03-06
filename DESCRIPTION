@@ -9,7 +9,22 @@ Authors@R: c(
     comment = c(ORCID = "0000-0001-9226-3104")),
   person("Zacharias", "Steinmetz", role = c("aut"),
     email = "steinmetz-z@uni-landau.de",
-    comment = c(ORCID = "0000-0001-6675-5033")))
+    comment = c(ORCID = "0000-0001-6675-5033")),
+  person("Andrew", "Gray", role = c("ctb"),
+    comment = c(ORCID = "0000-0003-2252-7367")), 
+  person("Hannah", "Hapich", role = c("ctb"),
+    comment = c(ORCID = "0000-0003-0000-6632")),
+  person("Jennifer", "Lynch", role = c("ctb","dtc"),
+    comment = c(ORCID = "0000-0003-3572-8782")),
+  person("Hannah", "De Frond", role = c("ctb", "dtc"),
+    comment = c(ORCID = "0000-0003-1199-0727")),
+  person("Keenan", "Munno", role = c("ctb", "dtc"),
+    comment = c(ORCID = "0000-0003-2916-5944")),
+  person("Chelsea", "Rochman", role = c("ctb", "dtc"),
+    comment = c(ORCID = "0000-0002-7624-711X")),
+  person("Sebastian", "Primpke", role = c("ctb", "dtc"),
+    comment = c(ORCID = "0000-0001-7633-8524")),
+  person("Orestis", "Herodotou", role = c("ctb", "dtc")))
 Maintainer: Win Cowger <wincowger@gmail.com>
 Description: Open Specy is a Raman and (FT)IR spectral analysis tool which was
   first developed for microplastic analysis, but we also will be developing it
