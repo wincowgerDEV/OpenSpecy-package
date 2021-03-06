@@ -10,6 +10,9 @@
 #' If \code{na.rm} is \code{TRUE}, missing values are removed before the
 #' computation proceeds.
 #'
+#' @details
+#' 
+#'
 #' @param x a numeric vector or an \R object which is coercible to one by
 #' \code{as.vector(x, "numeric")}.
 #' @param na.rm logical. Should missing values be removed?
