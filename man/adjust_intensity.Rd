@@ -3,12 +3,15 @@
 \name{adjust_intensity}
 \alias{adjust_intensity}
 \alias{adjust_intensity.formula}
+\alias{adjust_intensity.data.frame}
 \alias{adjust_intensity.default}
 \title{Adjust spectral intensities}
 \usage{
 adjust_intensity(x, ...)
 
 \method{adjust_intensity}{formula}(formula, data = NULL, ...)
+
+\method{adjust_intensity}{data.frame}(x, ...)
 
 \method{adjust_intensity}{default}(x, y, type = "none", make_relative = TRUE, ...)
 }

@@ -45,6 +45,16 @@ adjust_intensity.formula <- function(formula, data = NULL, ...) {
 #' @rdname adjust_intensity
 #'
 #' @export
+adjust_intensity.data.frame <- function(x, ...) {
+  if (!all(c("wavenumber", "intensity") %in% names(x)))
+    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
+
+  do.call("adjust_intensity", list(x$wavenumber, x$intensity, ...))
+}
+
+#' @rdname adjust_intensity
+#'
+#' @export
 adjust_intensity.default <- function(x, y, type = "none", make_relative = TRUE,
                                      ...) {
   yadj <- switch(type,

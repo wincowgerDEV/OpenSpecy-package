@@ -3,12 +3,15 @@
 \name{smooth_intensity}
 \alias{smooth_intensity}
 \alias{smooth_intensity.formula}
+\alias{smooth_intensity.data.frame}
 \alias{smooth_intensity.default}
 \title{Adjust spectral intensities}
 \usage{
 smooth_intensity(x, ...)
 
 \method{smooth_intensity}{formula}(formula, data = NULL, ...)
+
+\method{smooth_intensity}{data.frame}(x, ...)
 
 \method{smooth_intensity}{default}(x, y, p = 3, n = 11, make_relative = TRUE, ...)
 }

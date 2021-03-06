@@ -3,12 +3,15 @@
 \name{subtract_background}
 \alias{subtract_background}
 \alias{subtract_background.formula}
+\alias{subtract_background.data.frame}
 \alias{subtract_background.default}
 \title{Automated background subtraction for spectral data}
 \usage{
 subtract_background(x, ...)
 
 \method{subtract_background}{formula}(formula, data = NULL, ...)
+
+\method{subtract_background}{data.frame}(x, ...)
 
 \method{subtract_background}{default}(x, y, degree = 8, make_relative = TRUE, ...)
 }

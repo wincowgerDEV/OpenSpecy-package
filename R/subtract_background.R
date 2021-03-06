@@ -45,6 +45,16 @@ subtract_background.formula <- function(formula, data = NULL, ...) {
 #' @rdname subtract_background
 #'
 #' @export
+subtract_background.data.frame <- function(x, ...) {
+  if (!all(c("wavenumber", "intensity") %in% names(x)))
+    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
+
+  do.call("subtract_background", list(x$wavenumber, x$intensity, ...))
+}
+
+#' @rdname subtract_background
+#'
+#' @export
 subtract_background.default <- function(x, y, degree = 8, make_relative = TRUE,
                                         ...) {
   xin <- x

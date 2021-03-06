@@ -41,6 +41,16 @@ smooth_intensity.formula <- function(formula, data = NULL, ...) {
 }
 
 #' @rdname smooth_intensity
+#'
+#' @export
+smooth_intensity.data.frame <- function(x, ...) {
+  if (!all(c("wavenumber", "intensity") %in% names(x)))
+    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
+
+  do.call("smooth_intensity", list(x$wavenumber, x$intensity, ...))
+}
+
+#' @rdname smooth_intensity
 #' @importFrom signal filter sgolay
 #' @export
 smooth_intensity.default <- function(x, y, p = 3, n = 11, make_relative = TRUE,
