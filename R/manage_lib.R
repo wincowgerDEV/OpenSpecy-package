@@ -3,13 +3,19 @@
 #' @title Manage spectral libraries
 #'
 #' @description
-#' Description
+#' These functions will import the spectral libraries from Open Specy if they were not already downloaded. 
+#' The CRAN does not allow for deployment of large datasets so this was a workaround that we are using to make sure everyone can easilly get Open Specy functionality running on their desktop.
 #'
-#' @param which which
+#' @details
+#' \code{check_lib()} Checks to see if the Open Specy library already exists on the users computer.
+#' \code{get_lib()} will download the Open Specy Library from OSF if it does not exist on the users computer. 
+#' \code{load_lib()} will load the library into the global environment for use with the Open Specy functions. 
+#'
+#' @param which Which spectral library to check, raman or  ftir?
 #' @param node node
 #'
 #' @seealso
-#' seealso
+#' \code{match_spectrum()}
 #'
 #' @examples
 #' \dontrun{
