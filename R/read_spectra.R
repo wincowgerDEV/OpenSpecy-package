@@ -17,9 +17,9 @@
 #' seealso
 #'
 #' @examples
-#' ftir_ldpe_soil <- read_asp(read_example("ftir_ldpe_soil.asp"))
+#' ftir_ldpe_soil <- read_asp(read_extdata("ftir_ldpe_soil.asp"))
 #'
-#' ftir_ps <- read_0(read_example("ftir_ps.0"))
+#' ftir_ps <- read_0(read_extdata("ftir_ps.0"))
 #'
 #' @importFrom magrittr %>%
 #' @export
@@ -164,9 +164,8 @@ read_0 <- function(file = ".", ...) {
 
 #' @rdname read_spectra
 #'
-#' @importFrom hexView readRaw blockString
 #' @export
-read_example <- function(file = NULL) {
+read_extdata <- function(file = NULL) {
   if (is.null(file)) {
     dir(system.file("extdata", package = "OpenSpecy"))
   }
