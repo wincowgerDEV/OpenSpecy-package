@@ -18,7 +18,7 @@
 #'
 #' @examples
 #' data("raman_hdpe")
-#' subtract_background(absorbance ~ wavenumber, data = raman_hdpe)
+#' subtract_background(intensity ~ wavenumber, data = raman_hdpe)
 #'
 #' @importFrom magrittr %>%
 #' @importFrom stats terms model.frame sd lm poly approx
@@ -37,7 +37,7 @@ subtract_background.formula <- function(formula, data = NULL, ...) {
 
   mf <- model.frame(formula, data)
   lst <- as.list(mf)
-  names(lst) <- c("x", "y")
+  names(lst) <- c("y", "x")
 
   do.call("subtract_background", c(lst, list(...)))
 }

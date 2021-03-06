@@ -17,7 +17,7 @@
 #'
 #' @examples
 #' data("raman_hdpe")
-#' smooth_intensity(absorbance ~ wavenumber, data = raman_hdpe)
+#' smooth_intensity(intensity ~ wavenumber, data = raman_hdpe)
 #'
 #' @importFrom magrittr %>%
 #' @export
@@ -35,7 +35,7 @@ smooth_intensity.formula <- function(formula, data = NULL, ...) {
 
   mf <- model.frame(formula, data)
   lst <- as.list(mf)
-  names(lst) <- c("x", "y")
+  names(lst) <- c("y", "x")
 
   do.call("smooth_intensity", c(lst, list(...)))
 }

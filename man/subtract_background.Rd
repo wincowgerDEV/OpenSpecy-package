@@ -34,7 +34,7 @@ using a polynomial fitting.
 }
 \examples{
 data("raman_hdpe")
-subtract_background(absorbance ~ wavenumber, data = raman_hdpe)
+subtract_background(intensity ~ wavenumber, data = raman_hdpe)
 
 }
 \seealso{

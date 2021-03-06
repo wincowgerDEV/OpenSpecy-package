@@ -7,7 +7,7 @@
 #' If the uploaded spectrum is not in absorbance units, use this input to specify the units to convert from.Open Specy can adjust reflectance or transmittance spectra to Absorbance units using this drop down in the upload file tab. All of the preceding tabs assume that the data is in absorbance units so you should make the correction before continuing if needed. The transmittance adjustment uses the log10(1/T) calculation which does not correct for system and particle characteristics. The reflectance adjustment uses the Kubelka-Munk equation (1-R)2/(2*R). If none is selected, Open Specy assumes that the uploaded data is an absorbance spectrum.
 #'
 #' @param x wavenumber
-#' @param y absorbance
+#' @param y intensity
 #' @param type type
 #' @param make_relative make_relative
 #' @param formula formula
@@ -19,7 +19,7 @@
 #'
 #' @examples
 #' data("raman_hdpe")
-#' adjust_intensity(absorbance ~ wavenumber, data = raman_hdpe)
+#' adjust_intensity(intensity ~ wavenumber, data = raman_hdpe)
 #'
 #' @importFrom magrittr %>%
 #' @export
@@ -37,7 +37,7 @@ adjust_intensity.formula <- function(formula, data = NULL, ...) {
 
   mf <- model.frame(formula, data)
   lst <- as.list(mf)
-  names(lst) <- c("x", "y")
+  names(lst) <- c("y", "x")
 
   do.call("adjust_intensity", c(lst, list(...)))
 }
@@ -54,5 +54,5 @@ adjust_intensity.default <- function(x, y, type = "none", make_relative = TRUE,
                 )
   if (make_relative) yout <- make_relative(yadj) else yout <- yadj
 
-  data.frame(wavenumber = x, absorbance = yout)
+  data.frame(wavenumber = x, intensity = yout)
 }

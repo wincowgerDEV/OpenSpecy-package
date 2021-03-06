@@ -34,7 +34,7 @@ This smoother can enhance the signal to noise ratio of the data and uses a Savit
 }
 \examples{
 data("raman_hdpe")
-smooth_intensity(absorbance ~ wavenumber, data = raman_hdpe)
+smooth_intensity(intensity ~ wavenumber, data = raman_hdpe)
 
 }
 \seealso{

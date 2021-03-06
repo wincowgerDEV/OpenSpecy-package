@@ -33,7 +33,7 @@ read_asp <- function(file = ".", ...) {
   y <- lns[-c(1:6)]
   x <- seq(lns[2], lns[3], length.out = lns[1])
 
-  data.frame(wavenumber = x, absorbance = y)
+  data.frame(wavenumber = x, intensity = y)
 }
 
 #' @rdname read_spectra
@@ -73,7 +73,7 @@ read_spa <- function(file = ".", ...) {
   close(trb)
 
   data.frame(wavenumber = seq(end, start, length = length(floatData)),
-             absorbance = floatData)
+             intensity = floatData)
 }
 
 #' @rdname read_spectra
@@ -84,7 +84,7 @@ read_jdx <- function(file = ".", ...) {
   jdx <- read.jdx(file, ...)
 
   data.frame(wavenumber = jdx@wavelength,
-             absorbance = as.numeric(unname(jdx@data$spc[1,])))
+             intensity = as.numeric(unname(jdx@data$spc[1,])))
 }
 
 #' @rdname read_spectra
@@ -95,7 +95,7 @@ read_spc <- function(file = ".", ...) {
   spc <- read.spc(file)
 
   data.frame(wavenumber = spc@wavelength,
-             absorbance = as.numeric(unname(spc@data$spc[1,])))
+             intensity = as.numeric(unname(spc@data$spc[1,])))
 }
 
 #' @rdname read_spectra
@@ -159,7 +159,7 @@ read_0 <- function(file = ".", ...) {
                     nbytes = nbytes.f, human = "real", size = 4, endian = "little")
   y <- opus.p[[5]]
 
-  data.frame(wavenumber = x, absorbance = y)
+  data.frame(wavenumber = x, intensity = y)
 }
 
 #' @rdname read_spectra

@@ -16,13 +16,19 @@
 #' seealso
 #'
 #' @examples
+#' \dontrun{
 #' data("raman_hdpe")
 #'
+#' get_lib("raman")
+#' spec_lib <- load_lib("raman")
+#'
+#' match_spectrum(raman_hdpe, spec_lib, "raman", "full")
+#' }
 #'
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
 #' @importFrom stats approx cor
-#' @importFrom dplyr inner_join rename group_by mutate group_by ungroup summarize select arrange desc
+#' @importFrom dplyr inner_join rename group_by mutate group_by ungroup summarize select arrange desc top_n
 #' @export
 match_spectrum <- function(spectrum, library, which = NULL, type = "full",
                            range = seq(0, 6000, 0.1), col_names = NULL, top_n = 100,

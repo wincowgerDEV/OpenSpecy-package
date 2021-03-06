@@ -36,8 +36,14 @@ match_spectrum(
 desc
 }
 \examples{
+\dontrun{
 data("raman_hdpe")
 
+get_lib("raman")
+spec_lib <- load_lib("raman")
+
+match_spectrum(raman_hdpe, spec_lib, "raman", "full")
+}
 
 }
 \seealso{

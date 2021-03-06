@@ -43,7 +43,7 @@ Description
 check_lib(which = c("ftir", "raman"))
 get_lib(which = c("ftir", "raman"))
 
-spectral_db <- load_lib(which = c("ftir", "raman"))
+spec_lib <- load_lib(which = c("ftir", "raman"))
 }
 
 }

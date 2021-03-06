@@ -19,7 +19,7 @@ adjust_intensity(x, ...)
 
 \item{data}{data}
 
-\item{y}{absorbance}
+\item{y}{intensity}
 
 \item{type}{type}
 
@@ -35,7 +35,7 @@ If the uploaded spectrum is not in absorbance units, use this input to specify t
 }
 \examples{
 data("raman_hdpe")
-adjust_intensity(absorbance ~ wavenumber, data = raman_hdpe)
+adjust_intensity(intensity ~ wavenumber, data = raman_hdpe)
 
 }
 \seealso{
