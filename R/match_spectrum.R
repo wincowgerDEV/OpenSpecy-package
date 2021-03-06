@@ -65,5 +65,7 @@ match_spectrum <- function(spectrum, library, which = NULL, type = "full",
     arrange(desc(.data$rsq)) %>%
     mutate(rsq = round(.data$rsq, 2))
 
+  message("Visit openspecy.org to share your spectrum with the Open Specy ",
+          "community and improve the spectral library.")
   return(m)
 }
