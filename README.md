@@ -49,4 +49,15 @@ spec_lib <- load_lib()
 
 # Read sample spectrum
 data("raman_hdpe")
+
+# Adjust spectral intensity
+raman_adj <- adjust_intensity(intensity ~ wavenumber, raman_hdpe)
+
+# Smooth and background-correct spectrum
+raman_smoothed <- smooth_intensity(intensity ~ wavenumber, raman_adj)
+raman_bgcor <- subtract_background(intensity ~ wavenumber, raman_smoothed)
+
+# Match spectrum with library
+match_spectrum(raman_bgcor, spec_lib, "raman", "full")
 ```
+
