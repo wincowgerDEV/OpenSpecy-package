@@ -4,13 +4,16 @@
 #' This baseline correction routine iteratively finds the baseline of a spectrum
 #' using a polynomial fitting.
 #'
-#' @param x wavenumber
-#' @param y intensity
-#' @param make_relative make_relative
+#' @details
+#' This is an translation of a matlab code written for the imodpolyfit routine from Zhao et a. 2007.
+#'
+#' @param x wavenumber column
+#' @param y intensity column
+#' @param make_relative Data Normalization
 #' @param formula formula
-#' @param data data
+#' @param data Dataset to subtract background from.
 #' @param degree the degree of the polynomial. Must be less than the number of
-#' unique points when raw is false, as by default.
+#' unique points when raw is false, as by default. Typically a good fit can be found with a 8th order polynomial.
 #' @param \ldots ...
 #'
 #' @seealso
