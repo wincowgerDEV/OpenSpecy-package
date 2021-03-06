@@ -41,15 +41,13 @@ smooth_intensity.formula <- function(formula, data = NULL, ...) {
 }
 
 #' @rdname smooth_intensity
-#'
+#' @importFrom signal filter sgolay
 #' @export
 smooth_intensity.default <- function(x, y, p = 3, n = 11, make_relative = TRUE,
                                      ...) {
-  # TODO: Decide for best smoothing function
-  #
-  # ysmt <- signal::filter(filt = sgolay(p = p, n = n, ...), x = y)
-  #
-  # if (make_relative) yout <- make_relative(ysmt) else yout <- ysmt
-  #
-  # data.frame(wavenumber = x, intensity = yout)
+  yflt <- signal::filter(filt = sgolay(p = p, n = n, ...), x = y)
+
+  if (make_relative) yout <- make_relative(yflt) else yout <- yflt
+
+  data.frame(wavenumber = x, intensity = yout)
 }

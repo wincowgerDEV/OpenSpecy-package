@@ -43,8 +43,6 @@ check_lib <- function(which = c("ftir", "raman"), condition = "warning") {
 #' @param \ldots arguments passed to \code{\link[osfr]{osf_download}()}
 #'
 #' @importFrom utils read.csv
-#' @importFrom rlang .data
-#' @importFrom dplyr filter
 #' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
 #'
 #' @export
@@ -56,7 +54,7 @@ get_lib <- function(which = c("ftir", "raman"), node = "x7dpz",
 
   cat("Fetching data from OSF ... \n\n")
   for (w in which) {
-    osf %>% dplyr::filter(grepl(paste0(w, "*"), .data$name)) %>%
+    osf %>% subset(grepl(paste0(w, "*"), osf$name)) %>%
       osf_download(path = pkg, conflicts = conflicts, progress = TRUE, ...)
   }
   cat("Done\n\n")

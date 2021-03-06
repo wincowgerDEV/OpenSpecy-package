@@ -29,8 +29,6 @@ Depends:
     R (>= 4.0.0)
 Imports:
     magrittr,
-    rlang,
-    dplyr,
     osfr,
     hyperSpec,
     hexView,
