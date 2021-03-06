@@ -1,13 +1,17 @@
-#' @title Adjust spectral intensities
+#' @title Adjust spectral intensities to absorbance units
 #'
 #' @description
-#' description
+#' Converts reflectance or transmittance intensity units to absorbance units.
 #'
 #' @details
-#' If the uploaded spectrum is not in absorbance units, use this input to specify the units to convert from.Open Specy can adjust reflectance or transmittance spectra to Absorbance units using this drop down in the upload file tab. All of the preceding tabs assume that the data is in absorbance units so you should make the correction before continuing if needed. The transmittance adjustment uses the log10(1/T) calculation which does not correct for system and particle characteristics. The reflectance adjustment uses the Kubelka-Munk equation (1-R)2/(2*R). If none is selected, Open Specy assumes that the uploaded data is an absorbance spectrum.
+#' Many of the Open Specy functions will assume that the spectrum is in absorbance units. For example, see \code{\link{match_spectrum}} and
+#'      \code{\link{subtract_background}}. To run those functions properly, you will need to first convert any spectra from transmittance or reflectance to absorbance using this function. 
+#'       
+#'      The transmittance adjustment uses the log10(1/T) calculation which does not correct for system and particle characteristics. 
+#'      The reflectance adjustment uses the Kubelka-Munk equation (1-R)2/(2*R).
 #'
-#' @param x wavenumber
-#' @param y intensity
+#' @param x wavenumber The wavenumber value of the spectrum.
+#' @param y intensity The intenisity units in transmission or reflectance of the spectrum.
 #' @param type type
 #' @param make_relative make_relative
 #' @param formula formula
@@ -15,7 +19,10 @@
 #' @param \ldots ...
 #'
 #' @seealso
-#' seealso
+#' \code{\link{match_spectrum}}
+#' \code{\link{subtract_background}}
+#' @keywords
+#' spectra, intensity conversion
 #'
 #' @examples
 #' data("raman_hdpe")
