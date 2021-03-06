@@ -203,26 +203,21 @@ server <- shinyServer(function(input, output, session) {
   # All cleaning of the data happens here. Smoothing and Baseline removing. ----
   # TODO: Continue here
   baseline_data <- reactive({
-    testdata <- data() %>% dplyr::filter(wavenumber > input$MinRange & wavenumber < input$MaxRange)
+    testdata <- data() %>% dplyr::filter(Wavelength > input$MinRange & Wavelength < input$MaxRange)
     test <-  nrow(testdata) < 3
-    if(test) {
-      data() %>% {
-        if(input$smoother != 0) {
-          smooth_intensity(., p = input$smoother)
-        } else {.} } %>% {
-        if(input$baseline != 0) {
-          subtract_background(., degree = input$baseline)
-        } else {.} }
-      } else {
+    if(test){
       data() %>%
-      dplyr::filter(wavenumber > input$MinRange & wavenumber < input$MaxRange) %>% {
-        if(input$smoother != 0) {
-          smooth_intensity(., p = input$smoother)
-        } else {.} } %>% {
-          if(input$baseline != 0) {
-            subtract_background(., degree = input$baseline)
-          } else {.} }
-      }
+        mutate(Smoothed = if(input$smoother != 0) signal::filter(filt = sgolay(p = input$smoother, n = 11), x = AbsorbanceAdj) else AbsorbanceAdj) %>%
+        mutate(BaselineRemove = if(input$baseline != 0) Smoothed - iModPolyFit(Wavelength,Smoothed, input$baseline) else Smoothed) %>%
+        mutate(BaselineRemove = minmax(BaselineRemove))
+    }
+    else{
+      data() %>%
+        dplyr::filter(Wavelength > input$MinRange & Wavelength < input$MaxRange) %>%
+        mutate(Smoothed = if(input$smoother != 0) signal::filter(filt = sgolay(p = input$smoother, n = 11), x = AbsorbanceAdj) else AbsorbanceAdj) %>%
+        mutate(BaselineRemove = if(input$baseline != 0) Smoothed - iModPolyFit(Wavelength,Smoothed, input$baseline) else Smoothed) %>%
+        mutate(BaselineRemove = minmax(BaselineRemove))
+    }
   })
 
   # Create file view and preprocess view.
