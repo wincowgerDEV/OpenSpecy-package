@@ -3,6 +3,20 @@
 #' @importFrom graphics hist
 #' @import shiny
 
+# Libraries
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(viridis)
+library(shinyjs)
+library(shinythemes)
+library(shinyhelper)
+library(DT)
+library(rdrop2)
+
+
+# Functions
 labelMandatory <- function(label) {
   tagList(
     label,
@@ -309,7 +323,7 @@ ui <- fluidPage(
              titlePanel(tags$h4("Upload. View and Share Spectra Files")),
              fluidRow(
                column(2,
-                      fileInput('file1', 'Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 file',
+                      fileInput('file1', 'Choose .csv (preferred), .jdx, .spc, .spa, or .0 File',
                                 accept=c('text/csv',
                                          'text/comma-separated-values,text/plain',
                                          '.csv', ".spc", ".jdx", ".spa", ".0"))%>%

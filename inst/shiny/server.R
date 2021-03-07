@@ -3,35 +3,31 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 
-#Libraries ----
+# Libraries ----
 library(shiny)
 library(ggplot2)
 library(dplyr)
 library(plotly)
 library(data.table)
-library(signal)
 library(viridis)
-library(shinyjs)
-library(shinythemes)
 library(DT)
 library(rdrop2)
 library(shinyhelper)
-library(tidyr)
 library(curl)
 
-#Required Data ----
+# Required Data ----
 dir <- system.file("shiny", "data", package = "OpenSpecy")
 load(file.path(dir, "Costs.RData"))
 load(file.path(dir, "Donations.RData"))
 load(file.path(dir, "testdata.RData"))
 
-# Check if spectral library is present
+# Check if spectral library is present ----
 lib <- class(tryCatch(check_lib(), warning = function(w) {w}))
 if(any(lib == "warning")) get_lib()
 
 spec_lib <- load_lib()
 
-#Check for Auth Tokens and setup ----
+# Check for Auth Tokens and setup ----
 droptoken <- file.exists("data/droptoken.rds")
 
 outputDir <- "Spectra"
@@ -40,10 +36,10 @@ if(droptoken){
   drop_auth(rdstoken = "data/droptoken.rds")
 }
 
-# This is the actual server functions, all functions before this point are not reactive.
+# This is the actual server functions, all functions before this point are not reactive
 server <- shinyServer(function(input, output, session) {
 
-  #For desktop version of the app.
+  # For desktop version of the app.
   if (!interactive()) {
     session$onSessionEnded(function() {
       stopApp()
@@ -241,41 +237,25 @@ server <- shinyServer(function(input, output, session) {
              font = list(color = '#FFFFFF'))
   })
 
-  #Choose which spectrum to use ----
+  # Choose which spectrum to use
   DataR <- reactive({
-    if(input$Data == "uploaded"){
+    if(input$Data == "uploaded") {
       data()
     }
-    else if(input$Data == "processed"){
+    else if(input$Data == "processed") {
       baseline_data()
     }
   })
 
   #React Reference library to library type ----
   Library <- reactive({
-    if(input$Spectra== "Raman" & input$Library == "Full"){
-      RamanLibrary
-    }
-    else if(input$Spectra== "FTIR" & input$Library == "Full"){
-      FTIRLibrary
-    }
-    else if(input$Spectra== "Raman" & input$Library == "Peaks"){
-      RamanLibraryPeak
-    }
-    else if(input$Spectra== "FTIR" & input$Library == "Peaks"){
-      FTIRLibraryPeak
-    }
+    l <- tolower(input$Library)
+    spec_lib[[tolower(input$Spectra)]][[ifelse(l == "full", "library", l)]]
   })
-
 
   #React to metadata library to library type choice----
   Metadata <- reactive({
-    if(input$Spectra== "Raman"){
-      RamanLibraryMetadata
-    }
-    else{
-      FTIRLibraryMetadata
-    }
+    spec_lib[[tolower(input$Spectra)]][["metadata"]]
   })
 
   #Identify Spectra function ----
@@ -286,22 +266,10 @@ server <- shinyServer(function(input, output, session) {
     withProgress(message = 'Analyzing Spectrum', value = 1/3, {
 
       incProgress(1/3, detail = "Finding Match")
-      WavelengthSubset <- WavelengthApprox[WavelengthApprox >= min(DataR()$Wavelength) & WavelengthApprox <= max(DataR()$Wavelength)]
 
-    Lib <- Library() %>%
-        inner_join(dplyr::rename(data.frame(approx(DataR()$Wavelength, DataR()$BaselineRemove, xout = WavelengthSubset , rule = 2, method = "linear", ties=mean)), "Wavelength" = x), by = "Wavelength") %>%
-        dplyr::rename("BaselineRemove" = y) %>%
-        group_by(group, SampleName) %>%
-        mutate(BaselineRemove = BaselineRemove - min(BaselineRemove)) %>%
-        ungroup() %>%
-        mutate(BaselineRemove = minmax(BaselineRemove)) %>%
-        group_by(SampleName) %>%
-        dplyr::summarise(rsq = cor(Intensity, BaselineRemove)) %>%
-        top_n(1000,rsq) %>%
-        inner_join(select(Metadata(), -rsq), by = "SampleName") %>%
-        select(SampleName, SpectrumIdentity, rsq, Organization) %>%
-        arrange(desc(rsq)) %>%
-        mutate(rsq = round(rsq, 2))
+      Lib <- match_spectrum(DataR(),
+                            library = spec_lib, which = tolower(input$Spectra),
+                            type = tolower(input$Library), top_n = 100)
 
       incProgress(1/3, detail = "Making Plot")
 
@@ -309,38 +277,71 @@ server <- shinyServer(function(input, output, session) {
     return(Lib)
   })
 
-
-#Create the data tables ----
+  # Create the data tables
   output$event <- DT::renderDataTable({
     datatable(MatchSpectra() %>%
-                 dplyr::rename("Material" = SpectrumIdentity) %>%
-                 dplyr::select(-SampleName) %>%
-                 dplyr::rename("Pearson's r" = rsq), options = list(searchHighlight = TRUE, sDom  = '<"top">lrt<"bottom">ip', lengthChange = FALSE, pageLength = 5),  filter = 'top',caption = "Selectable Matches", style = 'bootstrap', selection = list(mode = 'single', selected = c(1)))
+                 dplyr::rename("Material" = spectrum_identity) %>%
+                 dplyr::select(-sample_name) %>%
+                 dplyr::rename("Pearson's r" = rsq,
+                               "Organization" = organization),
+              options = list(searchHighlight = TRUE,
+                             sDom  = '<"top">lrt<"bottom">ip',
+                             lengthChange = FALSE, pageLength = 5),
+              filter = 'top',caption = "Selectable Matches", style = 'bootstrap',
+              selection = list(mode = 'single', selected = c(1)))
   })
 
   output$costs <- DT::renderDataTable({
-    datatable(Costs, options = list(searchHighlight = TRUE, sDom  = '<"top">lrt<"bottom">ip', lengthChange = FALSE, pageLength = 5),  filter = 'top',caption = "Operation Costs", style = 'bootstrap', selection = list(mode = 'single', selected = c(1)))
+    datatable(Costs, options = list(searchHighlight = TRUE,
+                                    sDom  = '<"top">lrt<"bottom">ip',
+                                    lengthChange = FALSE, pageLength = 5),
+              filter = 'top', caption = "Operation Costs", style = 'bootstrap',
+              selection = list(mode = 'single', selected = c(1)))
   })
 
   output$donations <- DT::renderDataTable({
-    datatable(Donations, options = list(searchHighlight = TRUE, sDom  = '<"top">lrt<"bottom">ip', lengthChange = FALSE, pageLength = 5),  filter = 'top',caption = "Donations", style = 'bootstrap', selection = list(mode = 'single', selected = c(1)))
+    datatable(Donations, options = list(searchHighlight = TRUE,
+                                        sDom  = '<"top">lrt<"bottom">ip',
+                                        lengthChange = FALSE, pageLength = 5),
+              filter = 'top', caption = "Donations", style = 'bootstrap',
+              selection = list(mode = 'single', selected = c(1)))
   })
 
   output$eventmetadata <- DT::renderDataTable({
     datatable(Metadata() %>%
-                select(SpectrumIdentity, Organization, ContactInfo, SpectrumType, InstrumentUsed, InstrumentAccessories, InstrumentMode, LaserLightUsed, TotalAcquisitionTime_s,
-                       NumberofAccumulations, LevelofConfidenceinIdentification, CASNumber, MaterialProducer, MaterialPurity, MaterialForm, MaterialQuality, SpectralResolution, DataProcessingProcedure,
-                       OtherInformation, SampleName) %>%
-                rename("Material" = SpectrumIdentity, "Contact Information" = ContactInfo, "Spectrum Type" = SpectrumType, "Instrument Type" = InstrumentUsed,
-                "Spectral Resolution" = SpectralResolution, "Number of Accumulations" = NumberofAccumulations,
-                "Material Form" = MaterialForm,  "Instrument Mode" = InstrumentMode, "Other Information" = OtherInformation, "Material Producer" = MaterialProducer,
-                 "CAS Number" = CASNumber, "Material Purity" = MaterialPurity, "Material Quality" = MaterialQuality,
-                "Instrument Accessories" = InstrumentAccessories, "Laser or Light Used" = LaserLightUsed, "Total Acquisition Time" = TotalAcquisitionTime_s,
-                "Data Processing Procedure" = DataProcessingProcedure, "Level of Confidence in Identification" = LevelofConfidenceinIdentification) %>%
-                inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE] %>% select(-Organization, -SpectrumIdentity), by = "SampleName") %>%
-                select_if(function(x){!all(x == "" | is.na(x))}),
-                escape=FALSE,
-                options = list(dom = 't', bSort = F, lengthChange = FALSE, rownames=FALSE, info = FALSE),
+                select(spectrum_identity, organization, contact_info, spectrum_type,
+                       instrument_used, instrument_accessories, instrument_mode,
+                       laser_light_used, total_acquisition_time_s,
+                       number_of_accumulations, level_of_confidence_in_identification,
+                       cas_number, material_producer, material_purity,
+                       material_form, material_quality, spectral_resolution,
+                       data_processing_procedure, other_information, sample_name) %>%
+                inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE] %>%
+                             select(-organization, -spectrum_identity), by = "sample_name") %>%
+                rename("Material" = spectrum_identity,
+                       "Material Form" = material_form,
+                       "Material Producer" = material_producer,
+                       "Material Purity" = material_purity,
+                       "Material Quality" = material_quality,
+                       "CAS" = cas_number,
+                       "Organization" = organization,
+                       "Contact Information" = contact_info,
+                       "Spectrum Type" = spectrum_type,
+                       "Sample Name" = sample_name,
+                       "Pearson's r" = rsq,
+                       "Instrument Type" = instrument_used,
+                       "Instrument Accessories" = instrument_accessories,
+                       "Instrument Mode" = instrument_mode,
+                       "Spectral Resolution" = spectral_resolution,
+                       "Laser or Light Used" = laser_light_used,
+                       "Total Acquisition Time" = total_acquisition_time_s,
+                       "Number of Accumulations" = number_of_accumulations,
+                       "Data Processing Procedure" = data_processing_procedure,
+                       "Level of Confidence in Identification" = level_of_confidence_in_identification,
+                       "Other Information" = other_information
+                       ) %>%
+                select_if(function(x){!all(x == "" | is.na(x))}), escape = FALSE,
+                options = list(dom = 't', bSort = F, lengthChange = FALSE, rownames = FALSE, info = FALSE),
                 style = 'bootstrap', caption = "Selection Metadata", selection = list(mode = 'none'))
   })
 
@@ -348,27 +349,30 @@ server <- shinyServer(function(input, output, session) {
     output$MyPlotC <- renderPlotly({
     if(!length(input$event_rows_selected)) {
         plot_ly(DataR()) %>%
-        add_lines(x = ~Wavelength, y = ~BaselineRemove, line = list(color = 'rgba(255,255,255,0.8)'))%>%
-        layout(yaxis = list(title = "Absorbance Intensity"), xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0, 73)', paper_bgcolor='black', font = list(color = '#FFFFFF'))
+        add_lines(x = ~wavenumber, y = ~intensity,
+                  line = list(color = 'rgba(255,255,255,0.8)'))%>%
+        layout(yaxis = list(title = "Absorbance Intensity"),
+               xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0, 73)',
+               paper_bgcolor='black', font = list(color = '#FFFFFF'))
     }
-    else if(length(input$event_rows_selected)){
+    else if(length(input$event_rows_selected)) {
       TopTens <- Library() %>%
-        inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE], by = "SampleName") %>%
-        select(Wavelength, Intensity, SpectrumIdentity)
+        inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE],
+                   by = "sample_name") %>%
+        select(wavenumber, intensity, spectrum_identity)
 
       OGData <- DataR() %>%
-        select(Wavelength, BaselineRemove) %>%
-        dplyr::rename(Intensity = BaselineRemove) %>%
-        mutate(SpectrumIdentity = "Spectrum to Analyze")
+        select(wavenumber, intensity) %>%
+        mutate(spectrum_identity = "Spectrum to Analyze")
 
-        plot_ly(TopTens, x = ~Wavelength, y = ~Intensity) %>%
-        add_lines(data = TopTens, x = ~Wavelength, y = ~Intensity, color = ~factor(SpectrumIdentity), colors = "#FF0000")%>% #viridisLite::plasma(7, begin = 0.2, end = 0.8)
-        add_lines(data = OGData, x = ~Wavelength, y = ~Intensity, line = list(color = 'rgba(255,255,255,0.8)'), name = 'Spectrum to Analyze')%>%
+        plot_ly(TopTens, x = ~wavenumber, y = ~Intensity) %>%
+        add_lines(data = TopTens, x = ~wavenumber, y = ~intensity, color = ~factor(spectrum_identity), colors = "#FF0000")%>% #viridisLite::plasma(7, begin = 0.2, end = 0.8)
+        add_lines(data = OGData, x = ~wavenumber, y = ~intensity, line = list(color = 'rgba(255,255,255,0.8)'), name = 'Spectrum to Analyze')%>%
         layout(yaxis = list(title = "Absorbance Intensity"), xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0, 73)', paper_bgcolor='black', font = list(color = '#FFFFFF'))
     }})
 
 
-#Data Download options ----
+# Data Download options
   output$downloadData5 <- downloadHandler(
     filename = function() {
       paste(deparse(substitute(FTIRLibrary)), '.csv', sep='')
