@@ -4,7 +4,8 @@
 #' This function starts the graphical user interface of Open Specy.
 #'
 #' @details
-#' After running this function the Open Specy GUI should open in your computer browser. 
+#' After running this function the Open Specy GUI should open in a separate
+#' window or in your computer browser.
 #'
 #' @param \dots arguments passed to \code{\link[shiny]{runApp}}.
 #'

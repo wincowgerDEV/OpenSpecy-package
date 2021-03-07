@@ -4,24 +4,28 @@
 #' This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with a running window of data points and the polynomial specified.
 #'
 #' @details
-#' This is a wrapper around the filter function in the signal package to improve integration with other Open Specy functions. 
+#' This is a wrapper around the filter function in the signal package to improve integration with other Open Specy functions.
 #' A typical good smooth can be achieved with 11 data point window and a 3rd or 4th order polynomial.
 #'
-#' @param x Wavenumber column
-#' @param y Intensity column
-#' @param p Polynomial order for the filter
-#' @param n Number of data points in the window.
-#' @param make_relative Normalization function.
-#' @param formula formula
-#' @param data data
-#' @param \ldots ...
+#' @param x a numeric vector containing the spectral wavenumbers; alternatively
+#' a data frame containing spectral data as \code{"wavenumber"} and
+#' \code{"intensity"} can be supplied.
+#' @param y a numeric vector containing the spectral intensities.
+#' @param formula an object of class '\code{\link[stats]{formula}}' of the form
+#' \code{intensity ~ wavenumber}.
+#' @param data a data frame containing the variables in \code{formula}.
+#' @param p polynomial order for the filter
+#' @param n number of data points in the window, filter length (must be odd).
+#' @param make_relative logical; if \code{TRUE} spectra are automatically
+#' normalized with \code{\link{make_relative}()}.
+#' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}.
 #'
 #' @seealso
-#' seealso
+#' \code{\link[signal]{sgolay}()}
 #'
 #' @examples
 #' data("raman_hdpe")
-#' smooth_intensity(intensity ~ wavenumber, data = raman_hdpe)
+#' smooth_intensity(raman_hdpe)
 #'
 #' @importFrom magrittr %>%
 #' @export

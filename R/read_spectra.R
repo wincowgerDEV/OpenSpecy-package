@@ -3,19 +3,22 @@
 #' @title Read spectral data
 #'
 #' @description
-#' Functions for reading in spectral data types including asp, jdx, spc, spa, 0, and csv. 
+#' Functions for reading in spectral data types including asp, jdx, spc, spa, 0, and csv.
 #'
 #' @details
-#' \code{read_spc()} and \code{read_jdx()} are just a wrapper around the functions provided by the hyperSpec packages. 
-#' Other functions have been adapted from combining various sources online. All functions convert datasets to a 2 column 
-#' table with one column labeled wavenumber and the other intensity. There are many unique itterations of spectral file 
-#' formats so there may be bugs in the file conversion. Please contact us if you identify any. 
+#' \code{read_spc()} and \code{read_jdx()} are just a wrapper around the
+#' functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec} package.
+#' Other functions have been adapted various online sources.
+#' All functions convert datasets to a 2 column table with one column labeled
+#' "wavenumber" and the other "intensity". There are many unique iterations of
+#' spectral file formats so there may be bugs in the file conversion. Please contact us if you identify any.
 #'
-#' @param file The file you want to convert.
-#' @param \ldots ...
+#' @param file file you to from.
+#' @param \ldots further arguments passed to the submethods.
 #'
 #' @seealso
-#' seealso
+#' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
+#' \code{\link[hexView]{readRaw}()}
 #'
 #' @examples
 #' ftir_ldpe_soil <- read_asp(read_extdata("ftir_ldpe_soil.asp"))

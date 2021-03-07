@@ -18,25 +18,39 @@ get_lib(
 load_lib(which = c("ftir", "raman"))
 }
 \arguments{
-\item{which}{which}
+\item{which}{a character string specifying which library to use,
+\code{"raman"} or \code{"ftir"}.}
 
-\item{condition}{condition}
+\item{condition}{determines if \code{check_lib()} should warn
+(\code{"warning"}, the default) or throw and error (\code{"error"}).}
 
-\item{node}{node}
+\item{node}{the OSF node to be retrieved. Should be \code{"x7dpz"}.}
 
 \item{conflicts}{determines what happens when a file with the same name
 exists at the specified destination. Can be one of the following (see
 \code{\link[osfr]{osf_download}()} for details):
 \itemize{
- \item{"error"}{throw an error and abort the file transfer operation.}
- \item{"skip"}{skip the conflicting file(s) and continue transferring the remaining files.}
- \item{"overwrite" (default)}{replace the existing file with the transferred copy.}
+  \item{"error"}{throw an error and abort the file transfer operation.}
+  \item{"skip"}{skip the conflicting file(s) and continue transferring the remaining files.}
+  \item{"overwrite" (default)}{replace the existing file with the transferred copy.}
 }}
 
-\item{\ldots}{arguments passed to \code{\link[osfr]{osf_download}()}}
+\item{\ldots}{further arguments passed to \code{\link[osfr]{osf_download}()}.}
 }
 \description{
-Description
+These functions will import the spectral libraries from Open Specy if they
+were not already downloaded.
+The CRAN does not allow for deployment of large datasets so this was a
+workaround that we are using to make sure everyone can easily get Open Specy
+functionality running on their desktop.
+}
+\details{
+\code{check_lib()} checks to see if the Open Specy library already exists
+on the users computer.
+\code{get_lib()} will download the Open Specy Library from OSF
+(\url{https://osf.io/x7dpz/}).
+\code{load_lib()} will load the library into the global environment for use
+with the Open Specy functions.
 }
 \examples{
 \dontrun{
@@ -48,5 +62,5 @@ spec_lib <- load_lib(which = c("ftir", "raman"))
 
 }
 \seealso{
-seealso
+\code{\link{match_spectrum}()}
 }
