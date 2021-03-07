@@ -20,36 +20,52 @@ match_spectrum(x, ...)
   which = NULL,
   type = "full",
   range = seq(0, 6000, 0.1),
-  col_names = NULL,
   top_n = 100,
   ...
 )
 }
 \arguments{
-\item{x}{wavenumber}
+\item{x}{a numeric vector containing the spectral wavenumbers; alternatively
+a data frame containing spectral data as \code{"wavenumber"} and
+\code{"intensity"} can be supplied.}
 
-\item{formula}{formula}
+\item{formula}{an object of class '\code{\link[stats]{formula}}' of the form
+\code{intensity ~ wavenumber}.}
 
-\item{data}{data}
+\item{data}{a data frame containing the variables in \code{formula}.}
 
-\item{y}{intensity}
+\item{y}{a numeric vector containing the spectral intensities.}
 
-\item{library}{library}
+\item{library}{reference library you want to compare against.}
 
-\item{which}{which}
+\item{which}{a character string specifying whether \code{"raman"} or
+\code{"ftir"} spectra should be matched.}
 
-\item{type}{type}
+\item{type}{a character string specifying whether the \code{"full"} spectrum
+should be matched or spectrum \code{"peaks"} only.}
 
-\item{range}{range}
+\item{range}{this should be all possible wavenumber values from your spectral
+library.}
 
-\item{col_names}{col_names}
+\item{top_n}{number of top matches that you want to be returned.}
 
-\item{top_n}{top_n}
-
-\item{\ldots}{...}
+\item{\ldots}{further arguments passed to the submethods.}
 }
 \description{
-desc
+This function will compare a spectrum to a spectral library formatted with
+the Open Specy standard and report the best match using the Pearson
+correlation coefficient.
+}
+\details{
+This routine will match the spectrum you want to identify to the
+wavenumbers present in the spectral library. Once the spectra are aligned, it
+computes the Pearson correlation coefficient between the spectrum you want to
+identify and all spectra in the library (see \code{\link[stats]{cor}}').
+The function returns a table with the Pearson correlation coefficient values
+and all metadata for the top spectral matches.
+If using the Open Specy library, all intensity values are in absorbance, so
+your spectra should also be in absorbance units. If you need to convert your
+spectrum, use \code{\link{adjust_intensity}()}.
 }
 \examples{
 \dontrun{
@@ -63,5 +79,8 @@ match_spectrum(raman_hdpe, spec_lib, "raman", "full")
 
 }
 \seealso{
-seealso
+\code{\link{adjust_intensity}()} converts spectra;
+\code{\link{get_lib}()} retrieves the Open Specy reference library;
+\code{\link{load_lib}()} loads the Open Specy reference library into an \R
+object of choice.
 }
