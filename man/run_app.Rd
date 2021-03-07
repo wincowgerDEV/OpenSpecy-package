@@ -4,10 +4,18 @@
 \alias{run_app}
 \title{Run Open Specy app}
 \usage{
-run_app(...)
+run_app(
+  app_dir = system.file("shiny", package = "OpenSpecy"),
+  remote = FALSE,
+  ...
+)
 }
 \arguments{
-\item{\dots}{arguments passed to \code{\link[shiny]{runApp}}.}
+\item{app_dir}{the app to run; see \code{\link[shiny]{runApp}()}.}
+
+\item{remote}{logical; does the app run remotely?}
+
+\item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
 }
 \description{
 This function starts the graphical user interface of Open Specy.
@@ -21,4 +29,7 @@ window or in your computer browser.
 run_app(launch.browser = TRUE)
 }
 
+}
+\seealso{
+\code{\link[shiny]{runApp}()}
 }
