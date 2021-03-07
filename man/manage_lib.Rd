@@ -6,20 +6,30 @@
 \alias{load_lib}
 \title{Manage spectral libraries}
 \usage{
-check_lib(which = c("ftir", "raman"), condition = "warning")
+check_lib(
+  which = c("ftir", "raman"),
+  location = system.file("extdata", package = "OpenSpecy"),
+  condition = "warning"
+)
 
 get_lib(
   which = c("ftir", "raman"),
+  location = system.file("extdata", package = "OpenSpecy"),
   node = "x7dpz",
   conflicts = "overwrite",
   ...
 )
 
-load_lib(which = c("ftir", "raman"))
+load_lib(
+  which = c("ftir", "raman"),
+  location = system.file("extdata", package = "OpenSpecy")
+)
 }
 \arguments{
 \item{which}{a character string specifying which library to use,
 \code{"raman"} or \code{"ftir"}.}
+
+\item{location}{where to save or look for library files.}
 
 \item{condition}{determines if \code{check_lib()} should warn
 (\code{"warning"}, the default) or throw and error (\code{"error"}).}
@@ -30,9 +40,9 @@ load_lib(which = c("ftir", "raman"))
 exists at the specified destination. Can be one of the following (see
 \code{\link[osfr]{osf_download}()} for details):
 \itemize{
-  \item{"error"}{throw an error and abort the file transfer operation.}
-  \item{"skip"}{skip the conflicting file(s) and continue transferring the remaining files.}
-  \item{"overwrite" (default)}{replace the existing file with the transferred copy.}
+  \item{"error"}{ throw an error and abort the file transfer operation.}
+  \item{"skip"}{ skip the conflicting file(s) and continue transferring the remaining files.}
+  \item{"overwrite" (default)}{ replace the existing file with the transferred copy.}
 }}
 
 \item{\ldots}{further arguments passed to \code{\link[osfr]{osf_download}()}.}

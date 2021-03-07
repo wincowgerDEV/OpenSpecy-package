@@ -20,13 +20,14 @@
 #' @param which a character string specifying which library to use,
 #' \code{"raman"} or \code{"ftir"}.
 #' @param node the OSF node to be retrieved. Should be \code{"x7dpz"}.
+#' @param location where to save or look for library files.
 #' @param conflicts determines what happens when a file with the same name
 #' exists at the specified destination. Can be one of the following (see
 #' \code{\link[osfr]{osf_download}()} for details):
 #' \itemize{
-#'   \item{"error"}{throw an error and abort the file transfer operation.}
-#'   \item{"skip"}{skip the conflicting file(s) and continue transferring the remaining files.}
-#'   \item{"overwrite" (default)}{replace the existing file with the transferred copy.}
+#'   \item{"error"}{ throw an error and abort the file transfer operation.}
+#'   \item{"skip"}{ skip the conflicting file(s) and continue transferring the remaining files.}
+#'   \item{"overwrite" (default)}{ replace the existing file with the transferred copy.}
 #' }
 #' @param condition determines if \code{check_lib()} should warn
 #' (\code{"warning"}, the default) or throw and error (\code{"error"}).
@@ -46,8 +47,10 @@
 #' @importFrom magrittr %>%
 #'
 #' @export
-check_lib <- function(which = c("ftir", "raman"), condition = "warning") {
-  sapply(which, .chkf, condition = condition)
+check_lib <- function(which = c("ftir", "raman"),
+                      location = system.file("extdata", package = "OpenSpecy"),
+                      condition = "warning") {
+  sapply(which, .chkf, location = location, condition = condition)
 
   invisible()
 }
@@ -58,16 +61,16 @@ check_lib <- function(which = c("ftir", "raman"), condition = "warning") {
 #' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
 #'
 #' @export
-get_lib <- function(which = c("ftir", "raman"), node = "x7dpz",
-                    conflicts = "overwrite", ...) {
-  pkg <- system.file("extdata", package = "OpenSpecy")
+get_lib <- function(which = c("ftir", "raman"),
+                    location = system.file("extdata", package = "OpenSpecy"),
+                    node = "x7dpz", conflicts = "overwrite", ...) {
   osf <- osf_retrieve_node(node) %>%
     osf_ls_files(pattern = ".rds", n_max = Inf)
 
   cat("Fetching data from OSF ... \n\n")
   for (w in which) {
     osf %>% subset(grepl(paste0(w, "*"), osf$name)) %>%
-      osf_download(path = pkg, conflicts = conflicts, progress = TRUE, ...)
+      osf_download(path = location, conflicts = conflicts, progress = TRUE, ...)
   }
   cat("Done\n\n")
 
@@ -77,12 +80,12 @@ get_lib <- function(which = c("ftir", "raman"), node = "x7dpz",
 #' @rdname manage_lib
 #'
 #' @export
-load_lib <- function(which = c("ftir", "raman")) {
-  chk <- lapply(which, .chkf, condition = "stop")
-  pkg <- system.file("extdata", package = "OpenSpecy")
+load_lib <- function(which = c("ftir", "raman"),
+                     location = system.file("extdata", package = "OpenSpecy")) {
+  chk <- lapply(which, .chkf, location = location, condition = "stop")
 
   res <- lapply(chk, function(x) {
-    fls <- file.path(pkg, paste0(x[[2L]], "_", names(x[[1L]]), ".rds"))
+    fls <- file.path(location, paste0(x[[2L]], "_", names(x[[1L]]), ".rds"))
 
     rrds <- lapply(fls, readRDS)
     names(rrds) <- names(x[[1L]])
@@ -95,23 +98,23 @@ load_lib <- function(which = c("ftir", "raman")) {
 }
 
 # Auxiliary function for library checks
-.chkf <- function(x, types = c("metadata", "peaks", "library"),
+.chkf <- function(which, types = c("metadata", "peaks", "library"),
+                  location = system.file("extdata", package = "OpenSpecy"),
                   condition = "warning") {
-  fn <- paste0(x, "_", types, ".rds")
+  fn <- paste0(which, "_", types, ".rds")
 
-  chk <- system.file("extdata", package = "OpenSpecy") %>%
-    file.path(fn) %>% file.exists()
+  chk <- file.path(location, fn) %>% file.exists()
   names(chk) <- types
 
-  xout <- switch (x,
-                  "ftir" = "FTIR",
-                  "raman" = "Raman"
+  out <- switch (which,
+                 "ftir" = "FTIR",
+                 "raman" = "Raman"
   )
 
-  if (!all(chk)) do.call(condition, list(xout, " library missing or incomplete; ",
+  if (!all(chk)) do.call(condition, list(out, " library missing or incomplete; ",
                                          "use 'get_lib()' to download a current version",
                                          call. =  ifelse(condition %in%
                                            c("message", "packageStartupMessage"),
                                            "", FALSE)))
-  list(chk, x, xout)
+  list(chk, which, out)
 }
