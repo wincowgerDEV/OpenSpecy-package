@@ -105,7 +105,7 @@ server <- shinyServer(function(input, output, session) {
     drop_upload(filepath, path = outputDir)
   }
 
-  #How to save the metadata
+  # How to save the metadata
   saveDataForm <- function(data, UniqueID) {
     data <- data.frame(input = data, variable = c(fieldsAll))
     # Create a unique file name
@@ -117,7 +117,7 @@ server <- shinyServer(function(input, output, session) {
     drop_upload(filepath, path = outputDir)
   }
 
-  #Compile metadata input
+  # Compile metadata input
   formData <- reactive({
     data <- sapply(fieldsAll[1:(length(fieldsAll)-1)], function(x) input[[x]])
     data <- c(data, paste(input[[fieldsAll[length(fieldsAll)]]][1],
@@ -126,7 +126,7 @@ server <- shinyServer(function(input, output, session) {
     data
   })
 
-  #Save the metadata and data submitted upon pressing the button.
+  # Save the metadata and data submitted upon pressing the button
   observeEvent(input$submit,{
     if(curl::has_internet() & droptoken){
     UniqueID <- digest::digest(data(), algo = "md5")
@@ -136,23 +136,19 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-  #Helper icon requirement ----
-  #Needs to run to add the little helper icons to the data.
+  # Helper icon requirement
+  # Needs to run to add the little helper icons to the data
   observe_helpers(withMathJax = TRUE)
 
 
-  #Read in data when uploaded based on the file type----
+  # Read in data when uploaded based on the file type
   preprocessed_data <- reactive({
     req(input$file1)
     inFile <- input$file1
     filename <- tolower(as.character(inFile$datapath))
 
-    shiny::validate(shiny::need(any(c(endsWith(filename, ".jdx"),
-                                      endsWith(filename, ".spc"),
-                                      endsWith(filename, ".spa"),
-                                      endsWith(filename, ".0"),
-                                      endsWith(filename, ".asp"),
-                                      endsWith(filename, ".csv"))),
+    shiny::validate(shiny::need(grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
+                                      ignore.case = T, filename),
                                 "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
 
     if(endsWith(filename, ".jdx")){
@@ -187,38 +183,43 @@ server <- shinyServer(function(input, output, session) {
 
   })
 
-  # Corrects spectral intensity units using the user specified correction ----
+  # Corrects spectral intensity units using the user specified correction
   data <- reactive({
     adjust_intensity(preprocessed_data(), type = tolower(input$IntensityCorr))
   })
 
-  # Compute spectral resolution ----
+  # Compute spectral resolution
   SpectralResolution <- reactive({
     (max(data()$wavenumber) - min(data()$wavenumber)) /
       length(data()$wavenumber)
   })
 
-  # All cleaning of the data happens here. Smoothing and Baseline removing. ----
-  # TODO: Continue here
+  # All cleaning of the data happens here. Smoothing and Baseline removing
   baseline_data <- reactive({
-    testdata <- data() %>% dplyr::filter(Wavelength > input$MinRange & Wavelength < input$MaxRange)
+    testdata <- data() %>% dplyr::filter(wavenumber > input$MinRange & wavenumber < input$MaxRange)
     test <-  nrow(testdata) < 3
     if(test){
       data() %>%
-        mutate(Smoothed = if(input$smoother != 0) signal::filter(filt = sgolay(p = input$smoother, n = 11), x = AbsorbanceAdj) else AbsorbanceAdj) %>%
-        mutate(BaselineRemove = if(input$baseline != 0) Smoothed - iModPolyFit(Wavelength,Smoothed, input$baseline) else Smoothed) %>%
-        mutate(BaselineRemove = minmax(BaselineRemove))
+        mutate(intensity = if(input$smoother != 0) {
+          smooth_intensity(.$wavenumber, .$intensity, p = input$smoother)$intensity
+          } else .$intensity) %>%
+        mutate(intensity = if(input$baseline != 0) {
+          subtract_background(.$wavenumber, .$intensity, degree = input$baseline)$intensity }
+          else .$intensity)
     }
     else{
       data() %>%
-        dplyr::filter(Wavelength > input$MinRange & Wavelength < input$MaxRange) %>%
-        mutate(Smoothed = if(input$smoother != 0) signal::filter(filt = sgolay(p = input$smoother, n = 11), x = AbsorbanceAdj) else AbsorbanceAdj) %>%
-        mutate(BaselineRemove = if(input$baseline != 0) Smoothed - iModPolyFit(Wavelength,Smoothed, input$baseline) else Smoothed) %>%
-        mutate(BaselineRemove = minmax(BaselineRemove))
+        dplyr::filter(wavenumber > input$MinRange & wavenumber < input$MaxRange) %>%
+        mutate(intensity = if(input$smoother != 0) {
+          smooth_intensity(.$wavenumber, .$intensity, p = input$smoother)$intensity
+        } else .$intensity) %>%
+        mutate(intensity = if(input$baseline != 0) {
+          subtract_background(.$wavenumber, .$intensity, degree = input$baseline)$intensity }
+          else .$intensity)
     }
   })
 
-  # Create file view and preprocess view.
+  # Create file view and preprocess view
   output$MyPlot <- renderPlotly({
     plot_ly(data(), type = 'scatter', mode = 'lines') %>%
       add_trace(x = ~wavenumber, y = ~intensity, name = 'Uploaded Spectrum',
