@@ -60,6 +60,3 @@ adjust_intensity(raman_hdpe)
 \code{\link{match_spectrum}()} matches spectra with the Open Specy or other
 reference libraries.
 }
-\keyword{conversion}
-\keyword{intensity}
-\keyword{spectra,}

@@ -33,9 +33,6 @@
 #' \code{\link{match_spectrum}()} matches spectra with the Open Specy or other
 #' reference libraries.
 #'
-#' @keywords
-#' spectra, intensity conversion
-#'
 #' @examples
 #' data("raman_hdpe")
 #' adjust_intensity(raman_hdpe)
