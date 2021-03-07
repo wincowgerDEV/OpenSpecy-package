@@ -5,23 +5,31 @@
 #' using a polynomial fitting.
 #'
 #' @details
-#' This is an translation of a matlab code written for the imodpolyfit routine from Zhao et a. 2007.
+#' This is an translation of a matlab code written for the imodpolyfit routine
+#' from Zhao et a. 2007.
 #'
-#' @param x wavenumber column
-#' @param y intensity column
-#' @param make_relative Data Normalization
-#' @param formula formula
-#' @param data Dataset to subtract background from.
+#' @param x a numeric vector containing the spectral wavenumbers; alternatively
+#' a data frame containing spectral data as \code{"wavenumber"} and
+#' \code{"intensity"} can be supplied.
+#' @param y a numeric vector containing the spectral intensities.
+#' @param formula an object of class '\code{\link[stats]{formula}}' of the form
+#' \code{intensity ~ wavenumber}.
+#' @param data a data frame containing the variables in \code{formula}.
 #' @param degree the degree of the polynomial. Must be less than the number of
-#' unique points when raw is false, as by default. Typically a good fit can be found with a 8th order polynomial.
-#' @param \ldots ...
+#' unique points when raw is \code{FALSE}. Typically a good fit can be
+#' found with a 8th order polynomial.
+#' @param raw if \code{TRUE}, use raw and not orthogonal polynomials.
+#' @param make_relative logical; if \code{TRUE} spectra are automatically
+#' normalized with \code{\link{make_relative}()}.
+#' @param \ldots further arguments passed to \code{\link[stats]{poly}()}
 #'
 #' @seealso
-#' seealso
+#' \code{\link[stats]{poly}()};
+#' \code{\link{smooth_intensity}()}
 #'
 #' @examples
 #' data("raman_hdpe")
-#' subtract_background(intensity ~ wavenumber, data = raman_hdpe)
+#' subtract_background(raman_hdpe)
 #'
 #' @importFrom magrittr %>%
 #' @importFrom stats terms model.frame sd lm poly approx
@@ -58,8 +66,8 @@ subtract_background.data.frame <- function(x, ...) {
 #' @rdname subtract_background
 #'
 #' @export
-subtract_background.default <- function(x, y, degree = 8, make_relative = TRUE,
-                                        ...) {
+subtract_background.default <- function(x, y, degree = 8, raw = FALSE,
+                                        make_relative = TRUE, ...) {
   xin <- x
   yin <- y
   dev_prev <- 0 # standard deviation residuals for the last iteration of polyfit;
@@ -69,7 +77,7 @@ subtract_background.default <- function(x, y, degree = 8, make_relative = TRUE,
 
   while (!criteria_met) {
     # Predict the intensity using the polynomial of specified length
-    paramVector <- lm(y ~ stats::poly(x, degree = degree, raw = TRUE))
+    paramVector <- lm(y ~ stats::poly(x, degree = degree, raw = raw, ...))
 
     residual <- paramVector$residuals
 

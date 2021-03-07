@@ -13,33 +13,45 @@ subtract_background(x, ...)
 
 \method{subtract_background}{data.frame}(x, ...)
 
-\method{subtract_background}{default}(x, y, degree = 8, make_relative = TRUE, ...)
+\method{subtract_background}{default}(x, y, degree = 8, raw = FALSE, make_relative = TRUE, ...)
 }
 \arguments{
-\item{x}{wavenumber}
+\item{x}{a numeric vector containing the spectral wavenumbers; alternatively
+a data frame containing spectral data as \code{"wavenumber"} and
+\code{"intensity"} can be supplied.}
 
-\item{formula}{formula}
+\item{formula}{an object of class '\code{\link[stats]{formula}}' of the form
+\code{intensity ~ wavenumber}.}
 
-\item{data}{data}
+\item{data}{a data frame containing the variables in \code{formula}.}
 
-\item{y}{intensity}
+\item{y}{a numeric vector containing the spectral intensities.}
 
 \item{degree}{the degree of the polynomial. Must be less than the number of
-unique points when raw is false, as by default.}
+unique points when raw is \code{FALSE}. Typically a good fit can be
+found with a 8th order polynomial.}
 
-\item{make_relative}{make_relative}
+\item{raw}{if \code{TRUE}, use raw and not orthogonal polynomials.}
 
-\item{\ldots}{...}
+\item{make_relative}{logical; if \code{TRUE} spectra are automatically
+normalized with \code{\link{make_relative}()}.}
+
+\item{\ldots}{further arguments passed to \code{\link[stats]{poly}()}}
 }
 \description{
 This baseline correction routine iteratively finds the baseline of a spectrum
 using a polynomial fitting.
 }
+\details{
+This is an translation of a matlab code written for the imodpolyfit routine
+from Zhao et a. 2007.
+}
 \examples{
 data("raman_hdpe")
-subtract_background(intensity ~ wavenumber, data = raman_hdpe)
+subtract_background(raman_hdpe)
 
 }
 \seealso{
-seealso
+\code{\link[stats]{poly}()};
+\code{\link{smooth_intensity}()}
 }
