@@ -28,7 +28,7 @@
 #' @importFrom magrittr %>%
 #' @export
 read_asp <- function(file = ".", ...) {
-  if (!grepl("\\.asp$", file)) stop("file type should be 'asp'")
+  if (!grepl("\\.asp$", ignore.case = T, file)) stop("file type should be 'asp'")
 
   tr <- file.path(file) %>% file(...)
   lns <- tr %>% readLines() %>% as.numeric()
@@ -45,7 +45,7 @@ read_asp <- function(file = ".", ...) {
 #' @importFrom utils read.table
 #' @export
 read_spa <- function(file = ".", ...) {
-  if (!grepl("\\.spa$", file)) stop("file type should be 'spa'")
+  if (!grepl("\\.spa$", ignore.case = T, file)) stop("file type should be 'spa'")
 
   trr <- file.path(file) %>% file(...)
   lns <- trr %>% readLines(n = 10, warn = FALSE)
@@ -107,7 +107,7 @@ read_spc <- function(file = ".", ...) {
 #' @importFrom hexView readRaw blockString
 #' @export
 read_0 <- function(file = ".", ...) {
-  if (!grepl("\\.[0-999]$", file)) stop("file type should be '0'")
+  if (!grepl("\\.[0-999]$", ignore.case = T, file)) stop("file type should be '0'")
 
   pa <- readRaw(file, offset = 0, nbytes = file.info(file)$size, human = "char",
                 size = 1, endian = "little")
