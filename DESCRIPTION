@@ -33,8 +33,8 @@ Description: Open Specy is a Raman and (FT)IR spectral analysis tool which was
   files, identifying spectra using an onboard spectral library, processing
   spectra using baseline correction and smoothing techniques, as well as sharing
   spectra with others using metadata standards.
-URL: https://github.com/zsteinmetz/OpenSpecy
-BugReports: https://github.com/zsteinmetz/OpenSpecy/issues
+URL: https://github.com/wincowgerDEV/OpenSpecy
+BugReports: https://github.com/wincowgerDEV/OpenSpecy/issues
 License: CC BY 4.0
 Encoding: UTF-8
 LazyLoad: true
