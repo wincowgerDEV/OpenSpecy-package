@@ -1,11 +1,11 @@
 #' @title Match spectra with reference library
 #'
 #' @description
-#' This function will compare a spectrum to a spectral library formatted with the Open Specy standard and report the best match using the Pearson correlation coefficient.  
+#' This function will compare a spectrum to a spectral library formatted with the Open Specy standard and report the best match using the Pearson correlation coefficient.
 #'
 #' @details
-#' This routine will first match the spectrum you want to identify to the wavenumbers present in the spectral library. 
-#' Once the spectra are aligned, it computes the pearson corellation coefficient between the spectrum you want to identify and all spectra in the library. 
+#' This routine will first match the spectrum you want to identify to the wavenumbers present in the spectral library.
+#' Once the spectra are aligned, it computes the pearson corellation coefficient between the spectrum you want to identify and all spectra in the library.
 #' Lastly, it returns a table with the Pearson correlation coefficient values and all metadata for the top spectral matches.
 #' If using the Open Specy library, all intensity values are in absorbance so your spectra should also be in absorbance units. If you need to convert your spectrum, see \code{adjust_intensity()}
 #'
@@ -16,8 +16,7 @@
 #' @param library Library you want to compare against.
 #' @param which which
 #' @param type type
-#' @param range This should be all possible wavenumber values from your spectral library. 
-#' @param col_names col_names
+#' @param range This should be all possible wavenumber values from your spectral library.
 #' @param top_n Number of top matches that you want to be returned.
 #' @param \ldots ...
 #'
@@ -73,8 +72,7 @@ match_spectrum.data.frame <- function(x, ...) {
 #'
 #' @export
 match_spectrum.default <- function(x, y, library, which = NULL, type = "full",
-                                   range = seq(0, 6000, 0.1), col_names = NULL,
-                                   top_n = 100, ...) {
+                                   range = seq(0, 6000, 0.1), top_n = 100, ...) {
   if(type == "full") type <- "library"
 
   lib <- library[[which]][[type]]
@@ -84,18 +82,18 @@ match_spectrum.default <- function(x, y, library, which = NULL, type = "full",
 
   m <- lib %>%
     inner_join(dplyr::rename(data.frame(approx(x, y, xout = wls, rule = 2,
-                                               method = "linear", ties=mean)),
-                             "Wavelength" = .data$x), by = "Wavelength") %>%
-    dplyr::rename("BaselineRemove" = .data$y) %>%
-    group_by(.data$group, .data$SampleName) %>%
-    mutate(BaselineRemove = .data$BaselineRemove - min(.data$BaselineRemove)) %>%
+                                               method = "linear", ties = mean)),
+                             "wavenumber" = .data$x), by = "wavenumber") %>%
+    dplyr::rename("baseline_remove" = .data$y) %>%
+    group_by(.data$group, .data$sample_name) %>%
+    mutate(baseline_remove = .data$baseline_remove - min(.data$baseline_remove)) %>%
     ungroup() %>%
-    mutate(BaselineRemove = make_relative(.data$BaselineRemove)) %>%
-    group_by(.data$SampleName) %>%
-    dplyr::summarize(rsq = cor(.data$Intensity, .data$BaselineRemove)) %>%
+    mutate(baseline_remove = make_relative(.data$baseline_remove)) %>%
+    group_by(.data$sample_name) %>%
+    dplyr::summarize(rsq = cor(.data$intensity, .data$baseline_remove)) %>%
     top_n(top_n, .data$rsq) %>%
-    inner_join(select(meta, -.data$rsq), by = "SampleName") %>%
-    select(.data$SampleName, .data$SpectrumIdentity, .data$rsq, .data$Organization) %>%
+    inner_join(select(meta, -.data$rsq), by = "sample_name") %>%
+    select(.data$sample_name, .data$spectrum_identity, .data$rsq, .data$organization) %>%
     arrange(desc(.data$rsq)) %>%
     mutate(rsq = round(.data$rsq, 2))
 

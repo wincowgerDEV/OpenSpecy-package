@@ -54,10 +54,11 @@ data("raman_hdpe")
 raman_adj <- adjust_intensity(raman_hdpe)
 
 # Smooth and background-correct spectrum
-raman_smoothed <- smooth_intensity(raman_adj)
-raman_bgcor <- subtract_background(raman_smoothed)
+raman_final <- raman_adj %>% 
+  smooth_intensity() %>% 
+  subtract_background()
 
 # Match spectrum with library
-match_spectrum(raman_bgcor, spec_lib, which = "raman", type = "full")
+match_spectrum(raman_final, spec_lib, which = "raman", type = "full")
 ```
 
