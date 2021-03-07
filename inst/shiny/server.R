@@ -16,16 +16,14 @@ library(shinythemes)
 library(DT)
 library(rdrop2)
 library(shinyhelper)
-library(hyperSpec)
 library(tidyr)
-library(hexView)
 library(curl)
 
 #Required Data ----
 dir <- system.file("shiny", "data", package = "OpenSpecy")
-file.path(dir, "Costs.RData") %>% load()
-file.path(dir, "Donations.RData") %>% load()
-file.path(dir, "testdata.RData") %>% load()
+load(file.path(dir, "Costs.RData"))
+load(file.path(dir, "Donations.RData"))
+load(file.path(dir, "testdata.RData"))
 
 # Check if spectral library is present
 lib <- class(tryCatch(check_lib(), warning = function(w) {w}))
