@@ -84,16 +84,16 @@ match_spectrum.default <- function(x, y, library, which = NULL, type = "full",
     inner_join(dplyr::rename(data.frame(approx(x, y, xout = wls, rule = 2,
                                                method = "linear", ties = mean)),
                              "wavenumber" = .data$x), by = "wavenumber") %>%
-    dplyr::rename("BaselineRemove" = .data$y) %>%
+    dplyr::rename("baseline_remove" = .data$y) %>%
     group_by(.data$group, .data$sample_name) %>%
-    mutate(BaselineRemove = .data$BaselineRemove - min(.data$BaselineRemove)) %>%
+    mutate(baseline_remove = .data$baseline_remove - min(.data$baseline_remove)) %>%
     ungroup() %>%
-    mutate(BaselineRemove = make_relative(.data$BaselineRemove)) %>%
+    mutate(baseline_remove = make_relative(.data$baseline_remove)) %>%
     group_by(.data$sample_name) %>%
-    dplyr::summarize(rsq = cor(.data$intensity, .data$BaselineRemove)) %>%
+    dplyr::summarize(rsq = cor(.data$intensity, .data$baseline_remove)) %>%
     top_n(top_n, .data$rsq) %>%
     inner_join(select(meta, -.data$rsq), by = "sample_name") %>%
-    select(.data$sample_name, .data$SpectrumIdentity, .data$rsq, .data$Organization) %>%
+    select(.data$sample_name, .data$spectrum_identity, .data$rsq, .data$organization) %>%
     arrange(desc(.data$rsq)) %>%
     mutate(rsq = round(.data$rsq, 2))
 
