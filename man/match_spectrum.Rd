@@ -38,8 +38,8 @@ a data frame containing spectral data as \code{"wavenumber"} and
 
 \item{library}{reference library you want to compare against.}
 
-\item{which}{a character string specifying whether \code{"raman"} or
-\code{"ftir"} spectra should be matched.}
+\item{which}{a character string specifying which library to match,
+\code{"raman"} or \code{"ftir"}.}
 
 \item{type}{a character string specifying whether the \code{"full"} spectrum
 should be matched or spectrum \code{"peaks"} only.}

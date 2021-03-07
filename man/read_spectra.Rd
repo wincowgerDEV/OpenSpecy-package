@@ -22,17 +22,20 @@ read_0(file = ".", ...)
 read_extdata(file = NULL)
 }
 \arguments{
-\item{file}{file.}
+\item{file}{file you to from.}
 
-\item{\ldots}{...}
+\item{\ldots}{further arguments passed to the submethods.}
 }
 \description{
-Read Raman or FTIR spectrum files as asp, jdx, spc, or spa. A csv file is
-preferred. If a csv, the file must contain one column labeled Wavelength in
-units of (1/cm) and another column labeled Absorbance in absorbance units.
-If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with
-wavelength in (1/cm). These files will not always work perfectly because they
-are tricky to read so double check them in another software.
+Functions for reading in spectral data types including asp, jdx, spc, spa, 0, and csv.
+}
+\details{
+\code{read_spc()} and \code{read_jdx()} are just a wrapper around the
+functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec} package.
+Other functions have been adapted various online sources.
+All functions convert datasets to a 2 column table with one column labeled
+"wavenumber" and the other "intensity". There are many unique iterations of
+spectral file formats so there may be bugs in the file conversion. Please contact us if you identify any.
 }
 \examples{
 ftir_ldpe_soil <- read_asp(read_extdata("ftir_ldpe_soil.asp"))
@@ -41,5 +44,6 @@ ftir_ps <- read_0(read_extdata("ftir_ps.0"))
 
 }
 \seealso{
-seealso
+\code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
+\code{\link[hexView]{readRaw}()}
 }

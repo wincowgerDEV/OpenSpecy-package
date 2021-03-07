@@ -18,7 +18,7 @@
 #' @param n number of data points in the window, filter length (must be odd).
 #' @param make_relative logical; if \code{TRUE} spectra are automatically
 #' normalized with \code{\link{make_relative}()}.
-#' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}
+#' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}.
 #'
 #' @seealso
 #' \code{\link[signal]{sgolay}()}

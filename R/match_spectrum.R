@@ -24,8 +24,8 @@
 #' \code{intensity ~ wavenumber}.
 #' @param data a data frame containing the variables in \code{formula}.
 #' @param library reference library you want to compare against.
-#' @param which a character string specifying whether \code{"raman"} or
-#' \code{"ftir"} spectra should be matched.
+#' @param which a character string specifying which library to match,
+#' \code{"raman"} or \code{"ftir"}.
 #' @param type a character string specifying whether the \code{"full"} spectrum
 #' should be matched or spectrum \code{"peaks"} only.
 #' @param range this should be all possible wavenumber values from your spectral

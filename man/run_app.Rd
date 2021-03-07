@@ -12,6 +12,10 @@ run_app(...)
 \description{
 This function starts the graphical user interface of Open Specy.
 }
+\details{
+After running this function the Open Specy GUI should open in a separate
+window or in your computer browser.
+}
 \examples{
 \dontrun{
 run_app(launch.browser = TRUE)

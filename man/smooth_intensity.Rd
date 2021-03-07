@@ -34,7 +34,7 @@ a data frame containing spectral data as \code{"wavenumber"} and
 \item{make_relative}{logical; if \code{TRUE} spectra are automatically
 normalized with \code{\link{make_relative}()}.}
 
-\item{\ldots}{further arguments passed to \code{\link[signal]{sgolay}()}}
+\item{\ldots}{further arguments passed to \code{\link[signal]{sgolay}()}.}
 }
 \description{
 This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with a running window of data points and the polynomial specified.

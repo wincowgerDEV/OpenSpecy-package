@@ -36,7 +36,7 @@ found with a 8th order polynomial.}
 \item{make_relative}{logical; if \code{TRUE} spectra are automatically
 normalized with \code{\link{make_relative}()}.}
 
-\item{\ldots}{further arguments passed to \code{\link[stats]{poly}()}}
+\item{\ldots}{further arguments passed to \code{\link[stats]{poly}()}.}
 }
 \description{
 This baseline correction routine iteratively finds the baseline of a spectrum

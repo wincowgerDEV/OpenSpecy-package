@@ -21,7 +21,7 @@
 #' @param raw if \code{TRUE}, use raw and not orthogonal polynomials.
 #' @param make_relative logical; if \code{TRUE} spectra are automatically
 #' normalized with \code{\link{make_relative}()}.
-#' @param \ldots further arguments passed to \code{\link[stats]{poly}()}
+#' @param \ldots further arguments passed to \code{\link[stats]{poly}()}.
 #'
 #' @seealso
 #' \code{\link[stats]{poly}()};
