@@ -31,7 +31,7 @@
 #' @seealso
 #' \code{\link{subtract_background}()} for spectral background correction;
 #' \code{\link{match_spectrum}()} matches spectra with the Open Specy or other
-#' reference libraries.
+#' reference libraries
 #'
 #' @examples
 #' data("raman_hdpe")

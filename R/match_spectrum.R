@@ -9,7 +9,7 @@
 #' This routine will match the spectrum you want to identify to the
 #' wavenumbers present in the spectral library. Once the spectra are aligned, it
 #' computes the Pearson correlation coefficient between the spectrum you want to
-#' identify and all spectra in the library (see \code{\link[stats]{cor}}').
+#' identify and all spectra in the library (see \code{\link[stats]{cor}}).
 #' The function returns a table with the Pearson correlation coefficient values
 #' and all metadata for the top spectral matches.
 #' If using the Open Specy library, all intensity values are in absorbance, so
@@ -37,7 +37,7 @@
 #' \code{\link{adjust_intensity}()} converts spectra;
 #' \code{\link{get_lib}()} retrieves the Open Specy reference library;
 #' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
-#' object of choice.
+#' object of choice
 #'
 #' @examples
 #' \dontrun{
