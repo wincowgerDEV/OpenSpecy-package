@@ -54,7 +54,9 @@ Imports:
 Suggests:
     knitr,
     rmarkdown,
+    mathjaxr,
     testthat (>= 3.0.0),
     data.table
 RoxygenNote: 7.1.1
 Config/testthat/edition: 3
+RdMacros: mathjaxr

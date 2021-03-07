@@ -5,7 +5,7 @@
 \alias{adjust_intensity.formula}
 \alias{adjust_intensity.data.frame}
 \alias{adjust_intensity.default}
-\title{Adjust spectral intensities}
+\title{Adjust spectral intensities to absorbance units}
 \usage{
 adjust_intensity(x, ...)
 
@@ -16,31 +16,50 @@ adjust_intensity(x, ...)
 \method{adjust_intensity}{default}(x, y, type = "none", make_relative = TRUE, ...)
 }
 \arguments{
-\item{x}{wavenumber}
+\item{x}{a numeric vector containing the spectral wavenumbers; alternatively
+a data frame containing spectral data as \code{"wavenumber"} and
+\code{"intensity"} can be supplied.}
 
-\item{formula}{formula}
+\item{formula}{an object of class '\code{\link[stats]{formula}}' of the form
+\code{intensity ~ wavenumber}.}
 
-\item{data}{data}
+\item{data}{a data frame containing the variables in \code{formula}.}
 
-\item{y}{intensity}
+\item{y}{a numeric vector containing the spectral intensities.}
 
-\item{type}{type}
+\item{type}{a character string specifying whether the \code{"full"} spectrum
+should be matched or spectrum \code{"peaks"} only.}
 
-\item{make_relative}{make_relative}
+\item{make_relative}{logical; if \code{TRUE} spectra are automatically
+normalized with \code{\link{make_relative}()}.}
 
-\item{\ldots}{...}
+\item{\ldots}{further arguments passed to the submethods.}
 }
 \description{
-description
+Converts reflectance or transmittance intensity units to absorbance units.
 }
 \details{
-If the uploaded spectrum is not in absorbance units, use this input to specify the units to convert from.Open Specy can adjust reflectance or transmittance spectra to Absorbance units using this drop down in the upload file tab. All of the preceding tabs assume that the data is in absorbance units so you should make the correction before continuing if needed. The transmittance adjustment uses the log10(1/T) calculation which does not correct for system and particle characteristics. The reflectance adjustment uses the Kubelka-Munk equation (1-R)2/(2*R). If none is selected, Open Specy assumes that the uploaded data is an absorbance spectrum.
+Many of the Open Specy functions will assume that the spectrum is in
+absorbance units. For example, see \code{\link{match_spectrum}()} and
+\code{\link{subtract_background}()}.
+To run those functions properly, you will need to first convert any spectra
+from transmittance or reflectance to absorbance using this function.
+The transmittance adjustment uses the log10(1/T) calculation which does not
+correct for system and particle characteristics.
+\loadmathjax
+The reflectance adjustment uses the Kubelka-Munk equation
+\mjeqn{\frac{(1 - R)^2}{2R}}{(1 - R)2 / (2 * R)}.
 }
 \examples{
 data("raman_hdpe")
-adjust_intensity(intensity ~ wavenumber, data = raman_hdpe)
+adjust_intensity(raman_hdpe)
 
 }
 \seealso{
-seealso
+\code{\link{subtract_background}()} for spectral background correction;
+\code{\link{match_spectrum}()} matches spectra with the Open Specy or other
+reference libraries.
 }
+\keyword{conversion}
+\keyword{intensity}
+\keyword{spectra,}
