@@ -3,23 +3,20 @@
 #' @importFrom graphics hist
 #' @import shiny
 
-#Libraries ----
+# Libraries
 library(shiny)
 library(ggplot2)
-library(smoother)
 library(dplyr)
 library(plotly)
-library(data.table)
-library(signal)
 library(viridis)
 library(shinyjs)
 library(shinythemes)
+library(shinyhelper)
 library(DT)
 library(rdrop2)
-library(shinyhelper)
 
 
-#Functions ----
+# Functions
 labelMandatory <- function(label) {
   tagList(
     label,
