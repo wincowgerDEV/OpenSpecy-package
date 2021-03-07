@@ -50,11 +50,11 @@ Imports:
     hyperSpec,
     hexView,
     signal,
-    shiny
+    shiny,
+    mathjaxr
 Suggests:
     knitr,
     rmarkdown,
-    mathjaxr,
     testthat (>= 3.0.0),
     data.table
 RoxygenNote: 7.1.1
