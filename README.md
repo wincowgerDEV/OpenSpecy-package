@@ -8,6 +8,8 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 <!-- badges: end -->
 
+![Graphical Abstract](https://github.com/wincowgerDEV/OpenSpecy/blob/main/inst/shiny/www/GraphicalAbstract.png?raw=true)
+
 ## :warning: WARNING :warning:
 
 This R package is currently **not** stable; please use the Shiny app on [openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/) instead.
@@ -45,6 +47,8 @@ run_app()
 ## Workflow
 
 ```r
+library(dplyr)
+
 # Fetch current spectral library from https://osf.io/x7dpz/
 get_lib()
 
