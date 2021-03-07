@@ -56,7 +56,14 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
-    data.table
+    shinyjs,
+    shinythemes,
+    shinyhelper,
+    plotly,
+    data.table,
+    DT,
+    curl,
+    rdrop2
 RoxygenNote: 7.1.1
 Config/testthat/edition: 3
 RdMacros: mathjaxr

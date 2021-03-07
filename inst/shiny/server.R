@@ -2,17 +2,19 @@
 #'
 #' @param input provided by shiny
 #' @param output provided by shiny
-
+#'
 # Libraries ----
 library(shiny)
-library(ggplot2)
+library(shinyjs)
+library(shinythemes)
+library(shinyhelper)
+
 library(dplyr)
 library(plotly)
+# library(viridis)
 library(data.table)
-library(viridis)
 library(DT)
 library(rdrop2)
-library(shinyhelper)
 library(curl)
 
 # Required Data ----
@@ -47,8 +49,8 @@ server <- shinyServer(function(input, output, session) {
     })
   }
 
-  #File sharing functions ----
-  #Share if share is selected on upload
+  # File sharing functions ----
+  # Share if share is selected on upload
   observeEvent(input$file1, {
     if(input$ShareDecision == "Share" & curl::has_internet() & droptoken){
       withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
@@ -59,7 +61,7 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-  #Metadata fields we want to save.
+  # Metadata fields we want to save
   fieldsAll <- c("User Name",
                  "Contact Info",
                  "Affiliation",
@@ -89,7 +91,7 @@ server <- shinyServer(function(input, output, session) {
                  "baseline",
                  "range") #Small bug, range is getting replaced with the datetime somehow.
 
-  #Save data to cloud.
+  #Save data to cloud
   saveData <- function(data, UniqueID) {
     # Create a unique file name
     fileName <- paste0(paste(human_timestamp(), UniqueID, sep = "_"), ".csv")#sprintf("%s_%s.csv", as.integer(Sys.time()), digest(data))
@@ -247,19 +249,19 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-  #React Reference library to library type ----
+  # React Reference library to library type ----
   Library <- reactive({
     l <- tolower(input$Library)
     spec_lib[[tolower(input$Spectra)]][[ifelse(l == "full", "library", l)]]
   })
 
-  #React to metadata library to library type choice----
+  # React to metadata library to library type choice ----
   Metadata <- reactive({
     spec_lib[[tolower(input$Spectra)]][["metadata"]]
   })
 
-  #Identify Spectra function ----
-  #Joins their spectrum to the internal database and computes correlation.
+  # Identify Spectra function ----
+  # Joins their spectrum to the internal database and computes correlation.
   MatchSpectra <- reactive ({
     req(input$tabs == "tab3")
     input

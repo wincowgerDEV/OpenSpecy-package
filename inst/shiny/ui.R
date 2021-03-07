@@ -2,21 +2,22 @@
 #'
 #' @importFrom graphics hist
 #' @import shiny
-
-# Libraries
+#'
+# Libraries ----
 library(shiny)
-library(ggplot2)
-library(dplyr)
-library(plotly)
-library(viridis)
 library(shinyjs)
 library(shinythemes)
 library(shinyhelper)
+
+library(dplyr)
+library(plotly)
+# library(viridis)
+library(data.table)
 library(DT)
 library(rdrop2)
+library(curl)
 
-
-# Functions
+# Functions ----
 labelMandatory <- function(label) {
   tagList(
     label,
@@ -24,11 +25,11 @@ labelMandatory <- function(label) {
   )
 }
 
-#CSS for star
+# CSS for star
 appCSS <-
   ".mandatory_star { color: red; }"
 
-#UI ----
+# UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), #Required for any of the shinyjs functions.
   tags$head(uiOutput("translate")), #google translate tab.
@@ -40,7 +41,8 @@ ui <- fluidPage(
                     color: green; font-size: 300%;
                     }
                     ")),
-    #This will allow us to reference tabs in other tabs and create links, https://stackoverflow.com/questions/36412407/shiny-add-link-to-another-tabpanel-in-another-tabpanel/36426258
+    # This will allow us to reference tabs in other tabs and create links
+    # https://stackoverflow.com/questions/36412407/shiny-add-link-to-another-tabpanel-in-another-tabpanel/36426258
     tags$head(
         tags$script(HTML('
                                         var fakeClick = function(tabName) {
@@ -56,7 +58,7 @@ ui <- fluidPage(
     ),
   shinyjs::inlineCSS(appCSS),
 
-  #About Tab----
+  # About Tab----
   titlePanel("Open Specy"),
   tabsetPanel(id = "tabs",
     tabPanel("About", value = "about",
