@@ -23,6 +23,12 @@ load(file.path(dir, "Costs.RData"))
 load(file.path(dir, "Donations.RData"))
 load(file.path(dir, "testdata.RData"))
 
+# Check if spectral library is present ----
+lib <- class(tryCatch(check_lib(), warning = function(w) {w}))
+if(any(lib == "warning")) get_lib()
+
+spec_lib <- load_lib()
+
 # Check for Auth Tokens and setup ----
 droptoken <- file.exists("data/droptoken.rds")
 
