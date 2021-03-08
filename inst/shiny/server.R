@@ -6,7 +6,6 @@
 # Libraries ----
 library(shiny)
 library(shinyjs)
-library(shinythemes)
 library(shinyhelper)
 
 library(dplyr)
@@ -14,16 +13,18 @@ library(plotly)
 # library(viridis)
 library(data.table)
 library(DT)
+library(digest)
 library(rdrop2)
 library(curl)
 
 # Required Data ----
 dir <- system.file("shiny", "data", package = "OpenSpecy")
-load(file.path(dir, "Costs.RData"))
-load(file.path(dir, "Donations.RData"))
-load(file.path(dir, "testdata.RData"))
 
-# Check if spectral library is present ----
+costs <- fread(file.path(dir, "costs.csv"))
+donations <- fread(file.path(dir, "donations.csv"))
+testdata <- raman_hdpe
+
+# Check if spectral library is present and load ----
 lib <- class(tryCatch(check_lib(), warning = function(w) {w}))
 if(any(lib == "warning")) get_lib()
 
@@ -127,10 +128,10 @@ server <- shinyServer(function(input, output, session) {
   # Save the metadata and data submitted upon pressing the button
   observeEvent(input$submit,{
     if(curl::has_internet() & droptoken){
-    UniqueID <- digest::digest(data(), algo = "md5")
-    saveDataForm(formData(), UniqueID)
-    saveData(data(), UniqueID)
-    shinyjs::alert(paste("Thank you for sharing your data! Your data will soon be available @ https://osf.io/stmv4/")) #Your Fortune For Today is:  ", sample(Fortunes$Fortunes, 1), sep = ""))
+      UniqueID <- digest::digest(data(), algo = "md5")
+      saveDataForm(formData(), UniqueID)
+      saveData(data(), UniqueID)
+      shinyjs::alert(paste("Thank you for sharing your data! Your data will soon be available @ https://osf.io/stmv4/")) #Your Fortune For Today is:  ", sample(Fortunes$Fortunes, 1), sep = ""))
     }
   })
 
@@ -143,28 +144,13 @@ server <- shinyServer(function(input, output, session) {
   preprocessed_data <- reactive({
     req(input$file1)
     inFile <- input$file1
-    filename <- tolower(as.character(inFile$datapath))
+    filename <- as.character(inFile$datapath)
 
     shiny::validate(shiny::need(grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
                                       ignore.case = T, filename),
                                 "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
 
-    if(endsWith(filename, ".jdx")){
-      read_jdx(inFile$datapath)
-    }
-    else if(endsWith(filename, ".spc")){
-      read_spc(inFile$datapath)
-    }
-    else if(endsWith(filename, ".spa")){
-      read_spa(inFile$datapath)
-    }
-    else if(endsWith(filename, ".0")){
-      read_0(inFile$datapath)
-    }
-    else if(endsWith(filename, ".asp")){
-      read_asp(inFile$datapath)
-    }
-    else{
+    if(grepl("\\.csv$", ignore.case = T, filename)) {
       csv <- data.frame(fread(inFile$datapath))
 
       # Try to guess column names
@@ -177,6 +163,13 @@ server <- shinyServer(function(input, output, session) {
       names(out) <- c("wavenumber", "intensity")
 
       out
+    }
+    else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
+      read_0(inFile$datapath)
+    }
+    else {
+      ex <- strsplit(basename(filename), split="\\.")[[1]]
+      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath))
     }
 
   })
@@ -200,7 +193,7 @@ server <- shinyServer(function(input, output, session) {
       data() %>%
         mutate(intensity = if(input$smoother != 0) {
           smooth_intensity(.$wavenumber, .$intensity, p = input$smoother)$intensity
-          } else .$intensity) %>%
+        } else .$intensity) %>%
         mutate(intensity = if(input$baseline != 0) {
           subtract_background(.$wavenumber, .$intensity, degree = input$baseline)$intensity }
           else .$intensity)
@@ -227,12 +220,13 @@ server <- shinyServer(function(input, output, session) {
              paper_bgcolor='black', font = list(color = '#FFFFFF'))
   })
   output$MyPlotB <- renderPlotly({
-   plot_ly(type = 'scatter', mode = 'lines') %>%
+    plot_ly(type = 'scatter', mode = 'lines') %>%
       add_trace(data = baseline_data(), x = ~wavenumber, y = ~intensity,
                 name = 'Processed Spectrum', line = list(color = 'rgb(240,19,207)')) %>%
       add_trace(data = data(), x = ~wavenumber, y = ~intensity,
                 name = 'Uploaded Spectrum', line = list(color = 'rgba(240,236,19,0.8)')) %>%
-      #Dark blue rgb(63,96,130) https://www.rapidtables.com/web/color/RGB_Color.html https://www.color-hex.com/color-names.html
+      # Dark blue rgb(63,96,130)
+      # https://www.rapidtables.com/web/color/RGB_Color.html https://www.color-hex.com/color-names.html
       layout(yaxis = list(title = "Absorbance Intensity"),
              xaxis = list(title = "Wavenumber (1/cm)"),
              plot_bgcolor='rgb(17,0,73)', paper_bgcolor='black',
@@ -282,27 +276,27 @@ server <- shinyServer(function(input, output, session) {
   # Create the data tables
   output$event <- DT::renderDataTable({
     datatable(MatchSpectra() %>%
-                 dplyr::rename("Material" = spectrum_identity) %>%
-                 dplyr::select(-sample_name) %>%
-                 dplyr::rename("Pearson's r" = rsq,
-                               "Organization" = organization),
+                dplyr::rename("Material" = spectrum_identity) %>%
+                dplyr::select(-sample_name) %>%
+                dplyr::rename("Pearson's r" = rsq,
+                              "Organization" = organization),
               options = list(searchHighlight = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
                              lengthChange = FALSE, pageLength = 5),
-              filter = 'top',caption = "Selectable Matches", style = 'bootstrap',
-              selection = list(mode = 'single', selected = c(1)))
+              filter = "top",caption = "Selectable Matches", style = "bootstrap",
+              selection = list(mode = "single", selected = c(1)))
   })
 
   output$costs <- DT::renderDataTable({
-    datatable(Costs, options = list(searchHighlight = TRUE,
+    datatable(costs, options = list(searchHighlight = TRUE,
                                     sDom  = '<"top">lrt<"bottom">ip',
                                     lengthChange = FALSE, pageLength = 5),
-              filter = 'top', caption = "Operation Costs", style = 'bootstrap',
-              selection = list(mode = 'single', selected = c(1)))
+              filter = "top", caption = "Operation Costs", style = "bootstrap",
+              selection = list(mode = "single", selected = c(1)))
   })
 
   output$donations <- DT::renderDataTable({
-    datatable(Donations, options = list(searchHighlight = TRUE,
+    datatable(donations, options = list(searchHighlight = TRUE,
                                         sDom  = '<"top">lrt<"bottom">ip',
                                         lengthChange = FALSE, pageLength = 5),
               filter = 'top', caption = "Donations", style = 'bootstrap',
@@ -341,16 +335,18 @@ server <- shinyServer(function(input, output, session) {
                        "Data Processing Procedure" = data_processing_procedure,
                        "Level of Confidence in Identification" = level_of_confidence_in_identification,
                        "Other Information" = other_information
-                       ) %>%
+                ) %>%
                 select_if(function(x){!all(x == "" | is.na(x))}), escape = FALSE,
-                options = list(dom = 't', bSort = F, lengthChange = FALSE, rownames = FALSE, info = FALSE),
-                style = 'bootstrap', caption = "Selection Metadata", selection = list(mode = 'none'))
+              options = list(dom = 't', bSort = F, lengthChange = FALSE,
+                             rownames = FALSE, info = FALSE),
+              style = 'bootstrap', caption = "Selection Metadata",
+              selection = list(mode = 'none'))
   })
 
-#Display matches based on table selection ----
-    output$MyPlotC <- renderPlotly({
+  #Display matches based on table selection ----
+  output$MyPlotC <- renderPlotly({
     if(!length(input$event_rows_selected)) {
-        plot_ly(DataR()) %>%
+      plot_ly(DataR()) %>%
         add_lines(x = ~wavenumber, y = ~intensity,
                   line = list(color = 'rgba(255,255,255,0.8)'))%>%
         layout(yaxis = list(title = "Absorbance Intensity"),
@@ -367,71 +363,54 @@ server <- shinyServer(function(input, output, session) {
         select(wavenumber, intensity) %>%
         mutate(spectrum_identity = "Spectrum to Analyze")
 
-        plot_ly(TopTens, x = ~wavenumber, y = ~Intensity) %>%
-        add_lines(data = TopTens, x = ~wavenumber, y = ~intensity, color = ~factor(spectrum_identity), colors = "#FF0000")%>% #viridisLite::plasma(7, begin = 0.2, end = 0.8)
-        add_lines(data = OGData, x = ~wavenumber, y = ~intensity, line = list(color = 'rgba(255,255,255,0.8)'), name = 'Spectrum to Analyze')%>%
-        layout(yaxis = list(title = "Absorbance Intensity"), xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0, 73)', paper_bgcolor='black', font = list(color = '#FFFFFF'))
+      plot_ly(TopTens, x = ~wavenumber, y = ~Intensity) %>%
+        add_lines(data = TopTens, x = ~wavenumber, y = ~intensity,
+                  color = ~factor(spectrum_identity), colors = "#FF0000") %>%
+        # viridisLite::plasma(7, begin = 0.2, end = 0.8)
+        add_lines(data = OGData, x = ~wavenumber, y = ~intensity,
+                  line = list(color = "rgba(255,255,255,0.8)"),
+                  name = "Spectrum to Analyze") %>%
+        layout(yaxis = list(title = "Absorbance Intensity"),
+               xaxis = list(title = "Wavenumber (1/cm)"),
+               plot_bgcolor = "rgb(17,0, 73)", paper_bgcolor = "black",
+               font = list(color = "#FFFFFF"))
     }})
 
-
-# Data Download options
+  # Data Download options
   output$downloadData5 <- downloadHandler(
-    filename = function() {
-      paste(deparse(substitute(FTIRLibrary)), '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(FTIRLibrary, file)
-    }
+    filename = function() {"ftir_library.csv"},
+    content = function(file) {fwrite(spec_lib[["ftir"]][["library"]], file)}
   )
 
   output$downloadData6 <- downloadHandler(
-    filename = function() {
-      paste(deparse(substitute(RamanLibrary)), '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(RamanLibrary, file)
-    }
+    filename = function() {"raman_library.csv"},
+    content = function(file) {fwrite(spec_lib[["raman"]][["library"]], file)}
   )
 
   output$downloadData4 <- downloadHandler(
-    filename = function() {
-      paste(deparse(substitute(RamanLibraryMetadata)), '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(RamanLibraryMetadata, file)
-    }
+    filename = function() {"raman_metadata.csv"},
+    content = function(file) {fwrite(spec_lib[["raman"]][["metadata"]], file)}
   )
+
   output$downloadData3 <- downloadHandler(
-    filename = function() {
-      paste(deparse(substitute(FTIRLibraryMetadata)), '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(FTIRLibraryMetadata, file)
-    }
+    filename = function() {"raman_metadata.csv"},
+    content = function(file) {fwrite(spec_lib[["ftir"]][["metadata"]], file)}
   )
 
   output$downloadData7 <- downloadHandler(
-    filename = function() {
-      paste('testdata', '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(testdata, file)
-    }
+    filename = function() {"testdata.csv"},
+    content = function(file) {fwrite(testdata, file)}
   )
 
-  ##Download their own data.----
+  ## Download their own data ----
   output$downloadData <- downloadHandler(
-    filename = function() {
-      paste('data-', human_timestamp(), '.csv', sep='')
-    },
-    content = function(file) {
-      write.csv(baseline_data(), file)
-    }
+    filename = function() {paste('data-', human_timestamp(), '.csv', sep='')},
+    content = function(file) {fwrite(baseline_data(), file)}
   )
 
-  #Hide functions which shouldn't exist when there is no internet or when the API token doesnt exist ----
+  # Hide functions which shouldn't exist when there is no internet or when the API token doesnt exist ----
   observe({
-    if(droptoken & curl::has_internet()){
+    if(droptoken & curl::has_internet()) {
       show("ShareDecision")
       show("btn")
       show("helper1")
@@ -470,26 +449,24 @@ server <- shinyServer(function(input, output, session) {
     toggle("Description of Identification")
     toggle("Other Information")
     toggle("submit")
-
   })
 
-output$translate <- renderUI({
-  if(file.exists("data/googletranslate.html") & curl::has_internet()){
-            includeHTML("data/googletranslate.html")
-  }
-  else{
-    NULL
-  }
-})
+  output$translate <- renderUI({
+    if(file.exists("data/googletranslate.html") & curl::has_internet()){
+      includeHTML("data/googletranslate.html")
+    }
+    else{
+      NULL
+    }
+  })
 
-output$analytics <- renderUI({
-  if(file.exists("data/google-analytics.js") & curl::has_internet()){
-    includeScript("data/google-analytics.js")
-  }
-  else{
-    NULL
-  }
-})
+  output$analytics <- renderUI({
+    if(file.exists("data/google-analytics.js") & curl::has_internet()){
+      includeScript("data/google-analytics.js")
+    }
+    else{
+      NULL
+    }
+  })
 
 })
-
