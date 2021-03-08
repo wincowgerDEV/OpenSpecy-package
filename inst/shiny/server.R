@@ -128,10 +128,10 @@ server <- shinyServer(function(input, output, session) {
   # Save the metadata and data submitted upon pressing the button
   observeEvent(input$submit,{
     if(curl::has_internet() & droptoken){
-    UniqueID <- digest::digest(data(), algo = "md5")
-    saveDataForm(formData(), UniqueID)
-    saveData(data(), UniqueID)
-    shinyjs::alert(paste("Thank you for sharing your data! Your data will soon be available @ https://osf.io/stmv4/")) #Your Fortune For Today is:  ", sample(Fortunes$Fortunes, 1), sep = ""))
+      UniqueID <- digest::digest(data(), algo = "md5")
+      saveDataForm(formData(), UniqueID)
+      saveData(data(), UniqueID)
+      shinyjs::alert(paste("Thank you for sharing your data! Your data will soon be available @ https://osf.io/stmv4/")) #Your Fortune For Today is:  ", sample(Fortunes$Fortunes, 1), sep = ""))
     }
   })
 
@@ -193,7 +193,7 @@ server <- shinyServer(function(input, output, session) {
       data() %>%
         mutate(intensity = if(input$smoother != 0) {
           smooth_intensity(.$wavenumber, .$intensity, p = input$smoother)$intensity
-          } else .$intensity) %>%
+        } else .$intensity) %>%
         mutate(intensity = if(input$baseline != 0) {
           subtract_background(.$wavenumber, .$intensity, degree = input$baseline)$intensity }
           else .$intensity)
@@ -220,12 +220,13 @@ server <- shinyServer(function(input, output, session) {
              paper_bgcolor='black', font = list(color = '#FFFFFF'))
   })
   output$MyPlotB <- renderPlotly({
-   plot_ly(type = 'scatter', mode = 'lines') %>%
+    plot_ly(type = 'scatter', mode = 'lines') %>%
       add_trace(data = baseline_data(), x = ~wavenumber, y = ~intensity,
                 name = 'Processed Spectrum', line = list(color = 'rgb(240,19,207)')) %>%
       add_trace(data = data(), x = ~wavenumber, y = ~intensity,
                 name = 'Uploaded Spectrum', line = list(color = 'rgba(240,236,19,0.8)')) %>%
-      #Dark blue rgb(63,96,130) https://www.rapidtables.com/web/color/RGB_Color.html https://www.color-hex.com/color-names.html
+      # Dark blue rgb(63,96,130)
+      # https://www.rapidtables.com/web/color/RGB_Color.html https://www.color-hex.com/color-names.html
       layout(yaxis = list(title = "Absorbance Intensity"),
              xaxis = list(title = "Wavenumber (1/cm)"),
              plot_bgcolor='rgb(17,0,73)', paper_bgcolor='black',
@@ -275,10 +276,10 @@ server <- shinyServer(function(input, output, session) {
   # Create the data tables
   output$event <- DT::renderDataTable({
     datatable(MatchSpectra() %>%
-                 dplyr::rename("Material" = spectrum_identity) %>%
-                 dplyr::select(-sample_name) %>%
-                 dplyr::rename("Pearson's r" = rsq,
-                               "Organization" = organization),
+                dplyr::rename("Material" = spectrum_identity) %>%
+                dplyr::select(-sample_name) %>%
+                dplyr::rename("Pearson's r" = rsq,
+                              "Organization" = organization),
               options = list(searchHighlight = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
                              lengthChange = FALSE, pageLength = 5),
@@ -334,16 +335,16 @@ server <- shinyServer(function(input, output, session) {
                        "Data Processing Procedure" = data_processing_procedure,
                        "Level of Confidence in Identification" = level_of_confidence_in_identification,
                        "Other Information" = other_information
-                       ) %>%
+                ) %>%
                 select_if(function(x){!all(x == "" | is.na(x))}), escape = FALSE,
-                options = list(dom = 't', bSort = F, lengthChange = FALSE, rownames = FALSE, info = FALSE),
-                style = 'bootstrap', caption = "Selection Metadata", selection = list(mode = 'none'))
+              options = list(dom = 't', bSort = F, lengthChange = FALSE, rownames = FALSE, info = FALSE),
+              style = 'bootstrap', caption = "Selection Metadata", selection = list(mode = 'none'))
   })
 
-#Display matches based on table selection ----
-    output$MyPlotC <- renderPlotly({
+  #Display matches based on table selection ----
+  output$MyPlotC <- renderPlotly({
     if(!length(input$event_rows_selected)) {
-        plot_ly(DataR()) %>%
+      plot_ly(DataR()) %>%
         add_lines(x = ~wavenumber, y = ~intensity,
                   line = list(color = 'rgba(255,255,255,0.8)'))%>%
         layout(yaxis = list(title = "Absorbance Intensity"),
@@ -360,14 +361,14 @@ server <- shinyServer(function(input, output, session) {
         select(wavenumber, intensity) %>%
         mutate(spectrum_identity = "Spectrum to Analyze")
 
-        plot_ly(TopTens, x = ~wavenumber, y = ~Intensity) %>%
+      plot_ly(TopTens, x = ~wavenumber, y = ~Intensity) %>%
         add_lines(data = TopTens, x = ~wavenumber, y = ~intensity, color = ~factor(spectrum_identity), colors = "#FF0000")%>% #viridisLite::plasma(7, begin = 0.2, end = 0.8)
         add_lines(data = OGData, x = ~wavenumber, y = ~intensity, line = list(color = 'rgba(255,255,255,0.8)'), name = 'Spectrum to Analyze')%>%
         layout(yaxis = list(title = "Absorbance Intensity"), xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0, 73)', paper_bgcolor='black', font = list(color = '#FFFFFF'))
     }})
 
 
-# Data Download options
+  # Data Download options
   output$downloadData5 <- downloadHandler(
     filename = function() {"ftir_library.csv"},
     content = function(file) {fwrite(spec_lib[["ftir"]][["library"]], file)}
@@ -442,22 +443,22 @@ server <- shinyServer(function(input, output, session) {
     toggle("submit")
   })
 
-output$translate <- renderUI({
-  if(file.exists("data/googletranslate.html") & curl::has_internet()){
-            includeHTML("data/googletranslate.html")
-  }
-  else{
-    NULL
-  }
-})
+  output$translate <- renderUI({
+    if(file.exists("data/googletranslate.html") & curl::has_internet()){
+      includeHTML("data/googletranslate.html")
+    }
+    else{
+      NULL
+    }
+  })
 
-output$analytics <- renderUI({
-  if(file.exists("data/google-analytics.js") & curl::has_internet()){
-    includeScript("data/google-analytics.js")
-  }
-  else{
-    NULL
-  }
-})
+  output$analytics <- renderUI({
+    if(file.exists("data/google-analytics.js") & curl::has_internet()){
+      includeScript("data/google-analytics.js")
+    }
+    else{
+      NULL
+    }
+  })
 
 })
