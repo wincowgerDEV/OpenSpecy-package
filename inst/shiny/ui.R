@@ -165,10 +165,10 @@ ui <- fluidPage(
                column(3),
                column(6,
                       shiny::HTML("<br><br><center> <h1>Updates, Feature Requests, and Bug Reports</h1> </center><br>"),
-                      shiny::HTML("<h5>We keep track of all updates using version control on our code. Features can be requested and bug reported by contacting Win at wincowger@gmail.com. We log these updates and requests at the link below.</h5>"),
+                      shiny::HTML("<h5>We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.</h5>"),
                       tags$div(align = "center",
                        tags$a("Updates, Feature Requests, Bug Reports",
-                             onclick = "window.open('https://docs.google.com/document/d/1Zd2GY4bWIwegGeE4JpX8O0S5l_IYju0sLDl1ddTTMxU/edit?usp=sharing', '_blank')",
+                             onclick = "window.open('https://github.com/wincowgerDEV/OpenSpecy', '_blank')",
                              class="btn btn-primary btn-lg")
                )),
                column(3)
