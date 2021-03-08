@@ -144,28 +144,13 @@ server <- shinyServer(function(input, output, session) {
   preprocessed_data <- reactive({
     req(input$file1)
     inFile <- input$file1
-    filename <- tolower(as.character(inFile$datapath))
+    filename <- as.character(inFile$datapath)
 
     shiny::validate(shiny::need(grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
                                       ignore.case = T, filename),
                                 "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
 
-    if(endsWith(filename, ".jdx")){
-      read_jdx(inFile$datapath)
-    }
-    else if(endsWith(filename, ".spc")){
-      read_spc(inFile$datapath)
-    }
-    else if(endsWith(filename, ".spa")){
-      read_spa(inFile$datapath)
-    }
-    else if(endsWith(filename, ".0")){
-      read_0(inFile$datapath)
-    }
-    else if(endsWith(filename, ".asp")){
-      read_asp(inFile$datapath)
-    }
-    else{
+    if(grepl("\\.csv$", ignore.case = T, filename)) {
       csv <- data.frame(fread(inFile$datapath))
 
       # Try to guess column names
@@ -178,6 +163,13 @@ server <- shinyServer(function(input, output, session) {
       names(out) <- c("wavenumber", "intensity")
 
       out
+    }
+    else if(grepl("\\.[0-9]$", ignore.case = T, filename)){
+      read_0(inFile$datapath)
+    }
+    else {
+      ex <- strsplit(basename(filename), split="\\.")[[1]]
+      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath))
     }
 
   })
@@ -404,7 +396,7 @@ server <- shinyServer(function(input, output, session) {
   ## Download their own data.----
   output$downloadData <- downloadHandler(
     filename = function() {paste('data-', human_timestamp(), '.csv', sep='')},
-    content = function(file) {write.csv(baseline_data(), file)}
+    content = function(file) {fwrite(baseline_data(), file)}
   )
 
   #Hide functions which shouldn't exist when there is no internet or when the API token doesnt exist ----
@@ -469,4 +461,3 @@ output$analytics <- renderUI({
 })
 
 })
-
