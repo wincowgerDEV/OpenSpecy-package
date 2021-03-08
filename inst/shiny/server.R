@@ -14,6 +14,7 @@ library(plotly)
 # library(viridis)
 library(data.table)
 library(DT)
+library(digest)
 library(rdrop2)
 library(curl)
 
@@ -24,7 +25,7 @@ costs <- fread(file.path(dir, "costs.csv"))
 donations <- fread(file.path(dir, "donations.csv"))
 testdata <- raman_hdpe
 
-# Check if spectral library is present ----
+# Check if spectral library is present and load ----
 lib <- class(tryCatch(check_lib(), warning = function(w) {w}))
 if(any(lib == "warning")) get_lib()
 
