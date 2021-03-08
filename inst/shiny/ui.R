@@ -11,12 +11,7 @@ library(shinyhelper)
 
 library(dplyr)
 library(plotly)
-# library(viridis)
-library(data.table)
 library(DT)
-library(digest)
-library(rdrop2)
-library(curl)
 
 # Functions ----
 labelMandatory <- function(label) {

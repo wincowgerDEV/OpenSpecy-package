@@ -6,7 +6,6 @@
 # Libraries ----
 library(shiny)
 library(shinyjs)
-library(shinythemes)
 library(shinyhelper)
 
 library(dplyr)
@@ -165,7 +164,7 @@ server <- shinyServer(function(input, output, session) {
 
       out
     }
-    else if(grepl("\\.[0-9]$", ignore.case = T, filename)){
+    else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
       read_0(inFile$datapath)
     }
     else {
@@ -284,16 +283,16 @@ server <- shinyServer(function(input, output, session) {
               options = list(searchHighlight = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
                              lengthChange = FALSE, pageLength = 5),
-              filter = 'top',caption = "Selectable Matches", style = 'bootstrap',
-              selection = list(mode = 'single', selected = c(1)))
+              filter = "top",caption = "Selectable Matches", style = "bootstrap",
+              selection = list(mode = "single", selected = c(1)))
   })
 
   output$costs <- DT::renderDataTable({
     datatable(costs, options = list(searchHighlight = TRUE,
                                     sDom  = '<"top">lrt<"bottom">ip',
                                     lengthChange = FALSE, pageLength = 5),
-              filter = 'top', caption = "Operation Costs", style = 'bootstrap',
-              selection = list(mode = 'single', selected = c(1)))
+              filter = "top", caption = "Operation Costs", style = "bootstrap",
+              selection = list(mode = "single", selected = c(1)))
   })
 
   output$donations <- DT::renderDataTable({
@@ -338,8 +337,10 @@ server <- shinyServer(function(input, output, session) {
                        "Other Information" = other_information
                 ) %>%
                 select_if(function(x){!all(x == "" | is.na(x))}), escape = FALSE,
-              options = list(dom = 't', bSort = F, lengthChange = FALSE, rownames = FALSE, info = FALSE),
-              style = 'bootstrap', caption = "Selection Metadata", selection = list(mode = 'none'))
+              options = list(dom = 't', bSort = F, lengthChange = FALSE,
+                             rownames = FALSE, info = FALSE),
+              style = 'bootstrap', caption = "Selection Metadata",
+              selection = list(mode = 'none'))
   })
 
   #Display matches based on table selection ----
@@ -363,11 +364,17 @@ server <- shinyServer(function(input, output, session) {
         mutate(spectrum_identity = "Spectrum to Analyze")
 
       plot_ly(TopTens, x = ~wavenumber, y = ~Intensity) %>%
-        add_lines(data = TopTens, x = ~wavenumber, y = ~intensity, color = ~factor(spectrum_identity), colors = "#FF0000")%>% #viridisLite::plasma(7, begin = 0.2, end = 0.8)
-        add_lines(data = OGData, x = ~wavenumber, y = ~intensity, line = list(color = 'rgba(255,255,255,0.8)'), name = 'Spectrum to Analyze')%>%
-        layout(yaxis = list(title = "Absorbance Intensity"), xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0, 73)', paper_bgcolor='black', font = list(color = '#FFFFFF'))
+        add_lines(data = TopTens, x = ~wavenumber, y = ~intensity,
+                  color = ~factor(spectrum_identity), colors = "#FF0000") %>%
+        # viridisLite::plasma(7, begin = 0.2, end = 0.8)
+        add_lines(data = OGData, x = ~wavenumber, y = ~intensity,
+                  line = list(color = "rgba(255,255,255,0.8)"),
+                  name = "Spectrum to Analyze") %>%
+        layout(yaxis = list(title = "Absorbance Intensity"),
+               xaxis = list(title = "Wavenumber (1/cm)"),
+               plot_bgcolor = "rgb(17,0, 73)", paper_bgcolor = "black",
+               font = list(color = "#FFFFFF"))
     }})
-
 
   # Data Download options
   output$downloadData5 <- downloadHandler(
@@ -395,15 +402,15 @@ server <- shinyServer(function(input, output, session) {
     content = function(file) {fwrite(testdata, file)}
   )
 
-  ## Download their own data.----
+  ## Download their own data ----
   output$downloadData <- downloadHandler(
     filename = function() {paste('data-', human_timestamp(), '.csv', sep='')},
     content = function(file) {fwrite(baseline_data(), file)}
   )
 
-  #Hide functions which shouldn't exist when there is no internet or when the API token doesnt exist ----
+  # Hide functions which shouldn't exist when there is no internet or when the API token doesnt exist ----
   observe({
-    if(droptoken & curl::has_internet()){
+    if(droptoken & curl::has_internet()) {
       show("ShareDecision")
       show("btn")
       show("helper1")
