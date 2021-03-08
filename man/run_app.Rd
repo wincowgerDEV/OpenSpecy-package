@@ -4,16 +4,10 @@
 \alias{run_app}
 \title{Run Open Specy app}
 \usage{
-run_app(
-  app_dir = system.file("shiny", package = "OpenSpecy"),
-  remote = FALSE,
-  ...
-)
+run_app(app_dir = system.file("shiny", package = "OpenSpecy"), ...)
 }
 \arguments{
-\item{app_dir}{the app to run; see \code{\link[shiny]{runApp}()}.}
-
-\item{remote}{logical; does the app run remotely?}
+\item{app_dir}{the app to run.}
 
 \item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
 }
