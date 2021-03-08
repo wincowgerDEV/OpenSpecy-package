@@ -1,6 +1,7 @@
 test_that("smooth_intensity() works as expected", {
   expect_silent(smt <- smooth_intensity(raman_hdpe, p = 3))
-  expect_identical(smt, smooth_intensity(raman_hdpe$wavenumber, raman_hdpe$intensity))
+  expect_identical(smt, smooth_intensity(raman_hdpe$wavenumber,
+                                         raman_hdpe$intensity))
   expect_identical(smt, smooth_intensity(intensity ~ wavenumber, raman_hdpe))
   expect_equal(as.numeric(
     round(cor(smt[2], smooth_intensity(raman_hdpe, p = 1)[2]), 4)
