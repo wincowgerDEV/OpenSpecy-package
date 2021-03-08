@@ -66,8 +66,12 @@ ui <- fluidPage(
                        fluidRow(
                          column(3),
                          column(6,
-                                shiny::HTML("<br><br><center> <h1>OVERVIEW</h1> </center><br>"),
-                                shiny::HTML("<h5>More than 800 people from around the world have used Open Specy to analyze, share, process, and identify their Raman and IR spectra.</h5>")
+                                shiny::HTML("<br><br><center> <h1>OVERVIEW</h1> ",
+                                            "</center><br>"),
+                                shiny::HTML("<h5>More than 800 people from around ",
+                                            "the world have used Open Specy to ",
+                                            "analyze, share, process, and identify ",
+                                            "their Raman and IR spectra.</h5>")
                          ),
                          column(3)
                        ),
@@ -107,7 +111,10 @@ ui <- fluidPage(
                          column(3),
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Download Open Data</h1> </center><br>"),
-                                shiny::HTML("<h5>Reference spectra was sourced from open access resources online, peer reviewed publications, and corporate donations. In the future, spectra that is uploaded to the tool will be incorporated to the reference library to make it even better.</h5>")
+                                shiny::HTML("<h5>Reference spectra was sourced from open access resources ",
+                                "online, peer reviewed publications, and corporate donations. In the future, ",
+                                "spectra that is uploaded to the tool will be incorporated to the reference ",
+                                "library to make it even better.</h5>")
                          ),
                          column(3)
                        ),
@@ -137,7 +144,12 @@ ui <- fluidPage(
                          column(3),
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Tool Validation</h1> </center><br>"),
-                                shiny::HTML("<h5>All parameters in this tool are tested to validate that the tool is functioning as best as possible and determine the best default parameters to use. Our current validation proceedure includes correcting duplicated entries in the reference libraries, checking for spectra in metadata that isn't in the spectral library, and ensuring the the default parameters provide over 80% accuracy in the first match.</h5>"),
+                                shiny::HTML("<h5>All parameters in this tool are tested to validate that ",
+                                "the tool is functioning as best as possible and determine the best default ",
+                                "parameters to use. Our current validation proceedure includes correcting ",
+                                "duplicated entries in the reference libraries, checking for spectra in ",
+                                "metadata that isn't in the spectral library, and ensuring the the default ",
+                                "parameters provide over 80% accuracy in the first match.</h5>"),
                                 tags$div(align = "center",
                                          tags$a("Detailed Validation Procedure",
                                                 onclick = "window.open('https://docs.google.com/document/d/1Zd2GY4bWIwegGeE4JpX8O0S5l_IYju0sLDl1ddTTMxU/edit?usp=sharing', '_blank')",
@@ -177,7 +189,13 @@ ui <- fluidPage(
                          column(3),
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Contribute spectra</h1> </center><br>"),
-                                shiny::HTML("<h5>To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community Data Warehouse on Open Science Framework. To add additional metadata, fill in the avaliable metadata fields and click -Share Data-. The spectra file that you uploaded along with your responses will be copied to the a -With Metadata- subfolder at the link below. All shared data holds a Creative Commons Attribution License 4.0.</h5>")
+                                shiny::HTML("<h5>To share spectra upload a file to the upload file tab. ",
+                                "If you selected Share a copy of your spectra will be sent to the Community ",
+                                "Data Warehouse on Open Science Framework. To add additional metadata, ",
+                                "fill in the avaliable metadata fields and click -Share Data-. The ",
+                                "spectra file that you uploaded along with your responses will be copied ",
+                                "to the a -With Metadata- subfolder at the link below. All shared data holds ",
+                                "a Creative Commons Attribution License 4.0.</h5>")
                          ),
                          column(3)
                        ),
@@ -265,7 +283,7 @@ ui <- fluidPage(
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Useful Links</h1> </center>
                                   <br>"),
-                                tags$a(align = "center", href="https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software"),
+                                tags$a(align = "center", href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software"),
                                 tags$p(),
                                 tags$a(align = "center", href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher"),
                                 tags$p(),
@@ -391,14 +409,25 @@ ui <- fluidPage(
                                               "Transmittance" = "Transmittance", "Reflectance" = "Reflectance")) %>%
                                   helper(type = "inline",
                                          title = "Share Help",
-                                         content = c("If the uploaded spectrum is not in absorbance units, use this input to specify the units to convert from.Open Specy can adjust reflectance or transmittance spectra to Absorbance units using this drop down in the upload file tab. All of the preceding tabs assume that the data is in absorbance units so you should make the correction before continuing if needed. The transmittance adjustment uses the log10(1/T) calculation which does not correct for system and particle characteristics. The reflectance adjustment uses the Kubelka-Munk equation (1-R)2/(2*R). If none is selected, Open Specy assumes that the uploaded data is an absorbance spectrum."),
+                                         content = c("If the uploaded spectrum is not in absorbance units, ",
+                                         "use this input to specify the units to convert from.Open Specy can ",
+                                         "adjust reflectance or transmittance spectra to Absorbance units using ",
+                                         "this drop down in the upload file tab. All of the preceding tabs ",
+                                         "assume that the data is in absorbance units so you should make the ",
+                                         "correction before continuing if needed. The transmittance adjustment ",
+                                         "uses the log10(1/T) calculation which does not correct for system ",
+                                         "and particle characteristics. The reflectance adjustment uses the ",
+                                         "Kubelka-Munk equation (1-R)2/(2*R). ",
+                                         "If none is selected, Open Specy assumes that the uploaded data is ",
+                                         "an absorbance spectrum."),
                                          size = "m")
 
                          )),
                        fluidRow(
                          align="center",
                          hr(),
-                         tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
+                         "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
                        )),
 
 
@@ -519,7 +548,7 @@ ui <- fluidPage(
                                 tags$h3("You can help with a direct donation. Donate here."),
                                 actionButton(inputId='ab1', label="Donate", width = "100%",
                                              icon = icon("donate"),
-                                             onclick ="window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')"),
+                                             onclick = "window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')"),
                                 tags$h3("Or by purchasing some Open Specy merchandise here."),
                                 actionButton(inputId='ab2', label="Swag Shop", width = "100%",
                                              icon = icon("shopping-cart"),
