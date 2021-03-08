@@ -377,57 +377,34 @@ server <- shinyServer(function(input, output, session) {
 
 # Data Download options
   output$downloadData5 <- downloadHandler(
-    filename = function() {
-      paste(deparse(substitute(FTIRLibrary)), '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(FTIRLibrary, file)
-    }
+    filename = function() {"ftir_library.csv"},
+    content = function(file) {fwrite(spec_lib[["ftir"]][["library"]], file)}
   )
 
   output$downloadData6 <- downloadHandler(
-    filename = function() {
-      paste(deparse(substitute(RamanLibrary)), '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(RamanLibrary, file)
-    }
+    filename = function() {"raman_library.csv"},
+    content = function(file) {fwrite(spec_lib[["raman"]][["library"]], file)}
   )
 
   output$downloadData4 <- downloadHandler(
-    filename = function() {
-      paste(deparse(substitute(RamanLibraryMetadata)), '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(RamanLibraryMetadata, file)
-    }
+    filename = function() {"raman_metadata.csv"},
+    content = function(file) {fwrite(spec_lib[["raman"]][["metadata"]], file)}
   )
+
   output$downloadData3 <- downloadHandler(
-    filename = function() {
-      paste(deparse(substitute(FTIRLibraryMetadata)), '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(FTIRLibraryMetadata, file)
-    }
+    filename = function() {"raman_metadata.csv"},
+    content = function(file) {fwrite(spec_lib[["ftir"]][["metadata"]], file)}
   )
 
   output$downloadData7 <- downloadHandler(
-    filename = function() {
-      paste('testdata', '.csv', sep='')
-    },
-    content = function(file) {
-      fwrite(testdata, file)
-    }
+    filename = function() {"testdata.csv"},
+    content = function(file) {fwrite(testdata, file)}
   )
 
-  ##Download their own data.----
+  ## Download their own data.----
   output$downloadData <- downloadHandler(
-    filename = function() {
-      paste('data-', human_timestamp(), '.csv', sep='')
-    },
-    content = function(file) {
-      write.csv(baseline_data(), file)
-    }
+    filename = function() {paste('data-', human_timestamp(), '.csv', sep='')},
+    content = function(file) {write.csv(baseline_data(), file)}
   )
 
   #Hide functions which shouldn't exist when there is no internet or when the API token doesnt exist ----
@@ -471,7 +448,6 @@ server <- shinyServer(function(input, output, session) {
     toggle("Description of Identification")
     toggle("Other Information")
     toggle("submit")
-
   })
 
 output$translate <- renderUI({
