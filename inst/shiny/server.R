@@ -19,9 +19,10 @@ library(curl)
 
 # Required Data ----
 dir <- system.file("shiny", "data", package = "OpenSpecy")
-load(file.path(dir, "Costs.RData"))
-load(file.path(dir, "Donations.RData"))
-load(file.path(dir, "testdata.RData"))
+
+costs <- fread(file.path(dir, "costs.csv"))
+donations <- fread(file.path(dir, "donations.csv"))
+testdata <- raman_hdpe
 
 # Check if spectral library is present ----
 lib <- class(tryCatch(check_lib(), warning = function(w) {w}))
@@ -294,7 +295,7 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$costs <- DT::renderDataTable({
-    datatable(Costs, options = list(searchHighlight = TRUE,
+    datatable(costs, options = list(searchHighlight = TRUE,
                                     sDom  = '<"top">lrt<"bottom">ip',
                                     lengthChange = FALSE, pageLength = 5),
               filter = 'top', caption = "Operation Costs", style = 'bootstrap',
@@ -302,7 +303,7 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$donations <- DT::renderDataTable({
-    datatable(Donations, options = list(searchHighlight = TRUE,
+    datatable(donations, options = list(searchHighlight = TRUE,
                                         sDom  = '<"top">lrt<"bottom">ip',
                                         lengthChange = FALSE, pageLength = 5),
               filter = 'top', caption = "Donations", style = 'bootstrap',

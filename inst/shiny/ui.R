@@ -309,7 +309,7 @@ ui <- fluidPage(
                column(6,
                       shiny::HTML("<br><br><center> <h1>Privacy Policy</h1> </center>
                                   <br>"),
-                      pre(includeText("data/PrivacyPolicy.txt"))
+                      pre(includeText("data/privacy_policy.txt"))
                       ),
                column(3)
              ),
