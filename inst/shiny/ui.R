@@ -60,7 +60,7 @@ ui <- fluidPage(
                        fluidRow(
                          column(2),
                          column(8, align = "center",
-                                img(src = "GraphicalAbstract.png", width = "100%")),
+                                img(src = "graphical_abstract.png", width = "100%")),
                          column(2)
                        ),
                        fluidRow(
@@ -305,7 +305,7 @@ ui <- fluidPage(
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Terms And Conditions</h1> </center>
                                   <br>"),
-                                pre(includeText("data/TOS.txt"))
+                                pre(includeText("www/TOS.txt"))
                          ),
                          column(3)
                        ),
@@ -319,7 +319,7 @@ ui <- fluidPage(
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Privacy Policy</h1> </center>
                                   <br>"),
-                                pre(includeText("data/privacy_policy.txt"))
+                                pre(includeText("www/privacy_policy.txt"))
                          ),
                          column(3)
                        ),

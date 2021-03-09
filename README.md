@@ -10,7 +10,7 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 [![Twitter Follow](https://img.shields.io/twitter/follow/OpenSpecy)](https://twitter.com/OpenSpecy)
 <!-- badges: end -->
 
-![Graphical Abstract](https://github.com/wincowgerDEV/OpenSpecy/blob/main/inst/shiny/www/GraphicalAbstract.png?raw=true)
+![Graphical Abstract](https://github.com/wincowgerDEV/OpenSpecy/blob/main/inst/shiny/www/graphical_abstract.png?raw=true)
 
 ## :warning: This R package is currently under active development and not intended for productive use; visit [openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/) for a stable version!
 

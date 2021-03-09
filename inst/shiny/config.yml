@@ -1,0 +1,7 @@
+default:
+  dirs:
+    library: !expr system.file("extdata", package = "OpenSpecy")
+
+shinyapps:
+  dirs:
+    library: 'data/'

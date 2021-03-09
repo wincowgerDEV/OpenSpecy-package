@@ -16,19 +16,22 @@ library(DT)
 library(digest)
 library(rdrop2)
 library(curl)
+library(config)
+library(OpenSpecy)
 
 # Required Data ----
-dir <- system.file("shiny", "data", package = "OpenSpecy")
+dirs <- config::get("dirs", file = "inst/shiny/config.yml")
 
-costs <- fread(file.path(dir, "costs.csv"))
-donations <- fread(file.path(dir, "donations.csv"))
+costs <- fread("data/costs.csv")
+donations <- fread("data/donations.csv")
 testdata <- raman_hdpe
 
 # Check if spectral library is present and load ----
-lib <- class(tryCatch(check_lib(), warning = function(w) {w}))
-if(any(lib == "warning")) get_lib()
+test_lib <- class(tryCatch(check_lib(location = dirs$library),
+                           warning = function(w) {w}))
+if(any(test_lib == "warning")) get_lib(location = dirs$library)
 
-spec_lib <- load_lib()
+spec_lib <- load_lib(location = dirs$library)
 
 # Check for Auth Tokens and setup ----
 droptoken <- file.exists("data/droptoken.rds")
