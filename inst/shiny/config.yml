@@ -5,5 +5,5 @@ default:
 
 shinyapps:
   dirs:
-    library: 'data/'
+    library: 'osf/'
     appdata: 'data/'
