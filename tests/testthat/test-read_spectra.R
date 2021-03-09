@@ -18,16 +18,15 @@ test_that("read_asp() gives expected output", {
   expect_equal(round(range(asp[2]), 4), c(0.0010, 0.5182))
 })
 
-## Keeps failing on windows
-# test_that("read_spa() gives expected output", {
-#   expect_silent(spa <- read_spa(read_extdata("ftir_polyethylene_reflectance_adjustment_not_working.spa")))
-#   expect_error(read_spa(read_extdata("raman_hdpe.csv")))
-#   expect_s3_class(spa, "data.frame")
-#   expect_equal(names(spa), c("wavenumber", "intensity"))
-#   expect_equal(nrow(spa), 1738)
-#   expect_equal(round(range(spa[1]), 1), c(649.9, 3999.8))
-#   expect_equal(round(range(spa[2]), 2), c(61.51, 102.88))
-# })
+test_that("read_spa() gives expected output", {
+  expect_silent(spa <- read_spa(read_extdata("ftir_polyethylene_reflectance_adjustment_not_working.spa")))
+  expect_error(read_spa(read_extdata("raman_hdpe.csv")))
+  expect_s3_class(spa, "data.frame")
+  expect_equal(names(spa), c("wavenumber", "intensity"))
+  expect_equal(nrow(spa), 1738)
+  expect_equal(round(range(spa[1]), 1), c(649.9, 3999.8))
+  expect_equal(round(range(spa[2]), 2), c(61.51, 102.88))
+})
 
 test_that("read_jdx() gives expected output", {
   expect_match(capture_messages(

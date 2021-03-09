@@ -47,16 +47,14 @@ read_asp <- function(file = ".", ...) {
 read_spa <- function(file = ".", ...) {
   if (!grepl("\\.spa$", ignore.case = T, file)) stop("file type should be 'spa'")
 
-  trr <- file.path(file) %>% file(...)
-  lns <- trr %>% readLines(n = 10, warn = FALSE)
-  close(trr)
-
-  mgn <- lns[grepl("Resolution", lns, useBytes = T)]
-
-  start <- strsplit(mgn, " ")[[1]][5] %>% as.numeric()
-  end <- strsplit(mgn, " ")[[1]][7] %>% as.numeric()
-
   trb <- file.path(file) %>% file(open = "rb", ...)
+
+  hdr <- trb %>% readLines(n = 10, skipNul = TRUE)
+
+  res <- hdr[grepl("Resolution", hdr, useBytes = T)]
+
+  start <- strsplit(res, " ")[[1]][5] %>% as.numeric()
+  end <- strsplit(res, " ")[[1]][7] %>% as.numeric()
 
   # Read the start offset
   seek(trb, 386, origin = "start")
@@ -69,7 +67,7 @@ read_spa <- function(file = ".", ...) {
   seek(trb, startOffset, origin = "start")
 
   # we'll read four byte chunks
-  floatCount <- readLength/4
+  floatCount <- readLength / 4
 
   # read all our floats
   floatData <- c(readBin(trb, "double", floatCount, size = 4))
