@@ -22,8 +22,8 @@ library(OpenSpecy)
 # Required Data ----
 dirs <- config::get("dirs", file = "inst/shiny/config.yml")
 
-costs <- fread(file.path(dirs$appdata, "costs.csv"))
-donations <- fread(file.path(dirs$appdata, "donations.csv"))
+costs <- fread("data/costs.csv")
+donations <- fread("data/donations.csv")
 testdata <- raman_hdpe
 
 # Check if spectral library is present and load ----

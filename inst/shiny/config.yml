@@ -1,9 +1,7 @@
 default:
   dirs:
     library: !expr system.file("extdata", package = "OpenSpecy")
-    appdata: !expr system.file("shiny", "data", package = "OpenSpecy")
 
 shinyapps:
   dirs:
-    library: 'osf/'
-    appdata: 'data/'
+    library: 'data/'
