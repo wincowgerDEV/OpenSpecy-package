@@ -34,7 +34,7 @@ result from some spectral instruments.
 }
 \examples{
 adjust_negative(c(-1000, -1, 0, 1, 10))
-make_relative(c(-2:10))
+make_relative(c(-1000, -1, 0, 1, 10))
 
 }
 \seealso{
