@@ -69,7 +69,7 @@ get_lib <- function(which = c("ftir", "raman"),
 
   cat("Fetching data from OSF ... \n\n")
   for (w in which) {
-    osf %>% subset(grepl(paste0(w, "*"), osf$name)) %>%
+    osf %>% subset(grepl(paste0("^", w, "_.*"), osf$name)) %>%
       osf_download(path = location, conflicts = conflicts, progress = TRUE, ...)
   }
   cat("Done\n\n")
