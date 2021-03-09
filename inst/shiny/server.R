@@ -19,19 +19,18 @@ library(curl)
 library(config)
 
 # Required Data ----
-lib_dir <- config::get("library")$dir
-ext_dir <- system.file("shiny", "data", package = "OpenSpecy")
+dirs <- config::get("dirs", file = "inst/shiny/config.yml")
 
-costs <- fread(file.path(ext_dir, "costs.csv"))
-donations <- fread(file.path(ext_dir, "donations.csv"))
+costs <- fread(file.path(dirs$appdata, "costs.csv"))
+donations <- fread(file.path(dirs$appdata, "donations.csv"))
 testdata <- raman_hdpe
 
 # Check if spectral library is present and load ----
-test_lib <- class(tryCatch(check_lib(location = lib_dir),
+test_lib <- class(tryCatch(check_lib(location = dirs$library),
                            warning = function(w) {w}))
-if(any(test_lib == "warning")) get_lib(location = lib_dir)
+if(any(test_lib == "warning")) get_lib(location = dirs$library)
 
-spec_lib <- load_lib(location = lib_dir)
+spec_lib <- load_lib(location = dirs$library)
 
 # Check for Auth Tokens and setup ----
 droptoken <- file.exists("data/droptoken.rds")
