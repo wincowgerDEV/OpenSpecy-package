@@ -33,6 +33,7 @@ test_that("read_jdx() gives expected output", {
     suppressWarnings(jdx <- read_jdx(read_extdata("fitr_nitrocellulose.jdx")))
     ), "JDX file inconsistency.*"
   )
+  expect_error(read_jdx(read_extdata("throws_error_raman_1000002.jdx")))
   expect_error(read_jdx(read_extdata("raman_hdpe.csv")))
   expect_s3_class(jdx, "data.frame")
   expect_equal(names(jdx), c("wavenumber", "intensity"))
