@@ -17,6 +17,7 @@ library(digest)
 library(rdrop2)
 library(curl)
 library(config)
+library(OpenSpecy)
 
 # Required Data ----
 dirs <- config::get("dirs", file = "inst/shiny/config.yml")
