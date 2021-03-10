@@ -19,8 +19,10 @@
 #'
 #' @param which a character string specifying which library to use,
 #' \code{"raman"} or \code{"ftir"}.
-#' @param node the OSF node to be retrieved. Should be \code{"x7dpz"}.
-#' @param location where to save or look for library files.
+#' @param types library types to check/retrieve; defaults to
+#' \code{c("metadata", "library", "peaks")}.
+#' @param node the OSF node to be retrieved; should be \code{"x7dpz"}.
+#' @param path where to save or look for local library files.
 #' @param conflicts determines what happens when a file with the same name
 #' exists at the specified destination. Can be one of the following (see
 #' \code{\link[osfr]{osf_download}()} for details):
@@ -48,9 +50,10 @@
 #'
 #' @export
 check_lib <- function(which = c("ftir", "raman"),
-                      location = system.file("extdata", package = "OpenSpecy"),
+                      types = c("metadata", "library", "peaks"),
+                      path = system.file("extdata", package = "OpenSpecy"),
                       condition = "warning") {
-  sapply(which, .chkf, location = location, condition = condition)
+  sapply(which, .chkf, types = types, path = path, condition = condition)
 
   invisible()
 }
@@ -62,15 +65,18 @@ check_lib <- function(which = c("ftir", "raman"),
 #'
 #' @export
 get_lib <- function(which = c("ftir", "raman"),
-                    location = system.file("extdata", package = "OpenSpecy"),
+                    types = c("metadata", "library", "peaks"),
+                    path = system.file("extdata", package = "OpenSpecy"),
                     node = "x7dpz", conflicts = "overwrite", ...) {
   osf <- osf_retrieve_node(node) %>%
     osf_ls_files(pattern = ".rds", n_max = Inf)
 
-  cat("Fetching data from OSF ... \n\n")
+  cat("Fetching Open Specy reference libraries from OSF ... \n\n")
   for (w in which) {
-    osf %>% subset(grepl(paste0("^", w, "_.*"), osf$name)) %>%
-      osf_download(path = location, conflicts = conflicts, progress = TRUE, ...)
+    osf %>% subset(grepl(
+      paste0("^", w, "_(", paste(types, collapse = "|"), ").rds"),
+      osf$name)) %>%
+      osf_download(path = path, conflicts = conflicts, progress = TRUE, ...)
   }
   cat("Done\n\n")
 
@@ -81,11 +87,12 @@ get_lib <- function(which = c("ftir", "raman"),
 #'
 #' @export
 load_lib <- function(which = c("ftir", "raman"),
-                     location = system.file("extdata", package = "OpenSpecy")) {
-  chk <- lapply(which, .chkf, location = location, condition = "stop")
+                     types = c("metadata", "library", "peaks"),
+                     path = system.file("extdata", package = "OpenSpecy")) {
+  chk <- lapply(which, .chkf, types = types, path = path, condition = "stop")
 
   res <- lapply(chk, function(x) {
-    fls <- file.path(location, paste0(x[[2L]], "_", names(x[[1L]]), ".rds"))
+    fls <- file.path(path, paste0(x[[2L]], "_", names(x[[1L]]), ".rds"))
 
     rrds <- lapply(fls, readRDS)
     names(rrds) <- names(x[[1L]])
@@ -98,12 +105,12 @@ load_lib <- function(which = c("ftir", "raman"),
 }
 
 # Auxiliary function for library checks
-.chkf <- function(which, types = c("metadata", "peaks", "library"),
-                  location = system.file("extdata", package = "OpenSpecy"),
+.chkf <- function(which, types = c("metadata", "library", "peaks"),
+                  path = system.file("extdata", package = "OpenSpecy"),
                   condition = "warning") {
   fn <- paste0(which, "_", types, ".rds")
 
-  chk <- file.path(location, fn) %>% file.exists()
+  chk <- file.path(path, fn) %>% file.exists()
   names(chk) <- types
 
   out <- switch (which,
