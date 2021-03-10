@@ -10,9 +10,9 @@
 #' functionality running on their desktop.
 #'
 #' @details
-#' \code{check_lib()} checks to see if the Open Specy library already exists
-#' on the users computer.
-#' \code{get_lib()} will download the Open Specy Library from OSF
+#' \code{check_lib()} checks to see if the Open Specy reference library
+#' already exists on the users computer.
+#' \code{get_lib()} downloads the Open Specy library from OSF
 #' (\url{https://osf.io/x7dpz/}).
 #' \code{load_lib()} will load the library into the global environment for use
 #' with the Open Specy functions.
