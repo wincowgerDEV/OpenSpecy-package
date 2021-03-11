@@ -28,7 +28,6 @@ appCSS <-
 # UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
-  tags$head(uiOutput("translate")), # Google translate tab.
   tags$head(uiOutput("analytics")), # Google analytics.
   theme = shinytheme("cyborg"), # Change this for other themes
   tags$head( #This is for the error messages.
@@ -53,8 +52,13 @@ ui <- fluidPage(
   ),
   shinyjs::inlineCSS(appCSS),
 
-  # About Tab----
-  titlePanel("Open Specy"),
+  # About Tab ----
+  titlePanel(
+    fluidRow(
+      column(9, "Open Specy"),
+      column(3, align = "right", uiOutput("translate")) # Google Translate
+    )
+  ),
   tabsetPanel(id = "tabs",
               tabPanel("About", value = "about",
                        fluidRow(
