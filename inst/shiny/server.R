@@ -241,11 +241,6 @@ server <- shinyServer(function(input, output, session) {
     spec_lib[[tolower(input$Spectra)]][[ifelse(l == "full", "library", l)]]
   })
 
-  # React to metadata library to library type choice ----
-  Metadata <- reactive({
-    spec_lib[[tolower(input$Spectra)]][["metadata"]]
-  })
-
   # Identify Spectra function ----
   # Joins their spectrum to the internal database and computes correlation.
   MatchSpectra <- reactive ({
