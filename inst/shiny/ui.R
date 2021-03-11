@@ -28,7 +28,6 @@ appCSS <-
 # UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
-  tags$head(uiOutput("translate")), # Google translate tab.
   tags$head(uiOutput("analytics")), # Google analytics.
   theme = shinytheme("cyborg"), # Change this for other themes
   tags$head( #This is for the error messages.
@@ -53,8 +52,13 @@ ui <- fluidPage(
   ),
   shinyjs::inlineCSS(appCSS),
 
-  # About Tab----
-  titlePanel("Open Specy"),
+  # About Tab ----
+  titlePanel(
+    fluidRow(
+      column(9, "Open Specy"),
+      column(3, align = "right", uiOutput("translate")) # Google Translate
+    ), windowTitle = "Open Specy"
+  ),
   tabsetPanel(id = "tabs",
               tabPanel("About", value = "about",
                        fluidRow(
@@ -85,8 +89,8 @@ ui <- fluidPage(
                          column(3),
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Instructions</h1> </center><br>"),
-                                shiny::HTML("<h5>In Brief: To use the tool upload a csv, jdx, spc, or spa file to the upload file tab.
-                                  If csv, one column should be named -Wavelength- (in units of 1/cm) and another named -Absorbance-.
+                                shiny::HTML("<h5>In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
                                   uploaded or processed data will be presented in an interactive plot and table.</h5>"),
@@ -335,15 +339,16 @@ ui <- fluidPage(
                        titlePanel(tags$h4("Upload. View and Share Spectra Files")),
                        fluidRow(
                          column(2,
-                                fileInput('file1', 'Choose .csv (preferred), .jdx, .spc, .spa, or .0 File',
+                                fileInput('file1', 'Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 file',
                                           accept=c('text/csv',
                                                    'text/comma-separated-values,text/plain',
-                                                   '.csv', ".spc", ".jdx", ".spa", ".0"))%>%
+                                                   '.csv', ".asp", ".spc", ".jdx", ".spa", ".0"))%>%
                                   helper(type = "inline",
                                          title = "Upload Help",
-                                         content = c("Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled Wavelength in units of (1/cm) and another column labeled Absorbance in absorbance units.
-                                            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavelength in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.",
-                                                     "<a href=https://drive.google.com/file/d/1T7Zm3MmMaQ9bd_6f1cV_NGRduaCYLhz5/view?usp=sharing> Example Dataset (HDPE,Raman)"),
+                                         content = c("Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+                                            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.",
+                                                     "",
+                                            "Hit the 'Test Data' button to download a sample Raman spectrum."),
                                          size = "m"),
                                 tags$div(downloadButton('downloadData7', 'Test Data')),
                                 tags$br(),
