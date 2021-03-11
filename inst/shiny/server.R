@@ -455,8 +455,8 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$translate <- renderUI({
-    if(file.exists("data/googletranslate.html") & curl::has_internet()){
-      includeHTML("data/googletranslate.html")
+    if(file.exists("www/googletranslate.html") & curl::has_internet()){
+      includeHTML("www/googletranslate.html")
     }
     else{
       NULL
