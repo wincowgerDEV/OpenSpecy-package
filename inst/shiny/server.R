@@ -154,18 +154,7 @@ server <- shinyServer(function(input, output, session) {
                                 "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
 
     if(grepl("\\.csv$", ignore.case = T, filename)) {
-      csv <- data.frame(fread(inFile$datapath))
-
-      # Try to guess column names
-      col_names <- c(
-        names(csv)[grep("wav*", ignore.case = T, names(csv))][1L],
-        names(csv)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)",
-                        ignore.case = T, names(csv))][1L]
-      )
-      out <- csv[col_names]
-      names(out) <- c("wavenumber", "intensity")
-
-      out
+      read_text(inFile$datapath, method = "fread")
     }
     else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
       read_0(inFile$datapath)

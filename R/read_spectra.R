@@ -14,6 +14,10 @@
 #' spectral file formats so there may be bugs in the file conversion. Please contact us if you identify any.
 #'
 #' @param file file you to from.
+#' @param cols character vector of \code{length = 2} indicating the colum names
+#' for the wavenumber and intensity; if \code{NULL} columns are guessed.
+#' @param method submethod to be used for reading text files; defaults to
+#' \link[utils]{read.csv} but \link[data.table]{fread} works as well.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @seealso
@@ -21,11 +25,33 @@
 #' \code{\link[hexView]{readRaw}()}
 #'
 #' @examples
-#' ftir_ldpe_soil <- read_asp(read_extdata("ftir_ldpe_soil.asp"))
-#'
-#' ftir_ps <- read_0(read_extdata("ftir_ps.0"))
+#' read_text(read_extdata("raman_hdpe.csv"))
+#' read_asp(read_extdata("ftir_ldpe_soil.asp"))
+#' read_0(read_extdata("ftir_ps.0"))
 #'
 #' @importFrom magrittr %>%
+#' @export
+read_text <- function(file = ".", cols = NULL, method = "read.csv", ...) {
+  fi <- do.call(method, list(file, ...)) %>%
+    data.frame()
+  if (all(grepl("^X[0-9]*", names(fi)))) stop("missing header; ",
+                                              "use 'header = FALSE' or an alternative ",
+                                              "read method")
+
+  # Try to guess column names
+  if (is.null(cols)) {
+    cols <- c(names(fi)[grep("(wav*)|(^V1$)", ignore.case = T, names(fi))][1L],
+              names(fi)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)|(^V2$)",
+                             ignore.case = T, names(fi))][1L])
+  }
+  fi <- fi[cols]
+  names(fi) <- c("wavenumber", "intensity")
+
+  return(fi)
+}
+
+#' @rdname read_spectra
+#'
 #' @export
 read_asp <- function(file = ".", ...) {
   if (!grepl("\\.asp$", ignore.case = T, file)) stop("file type should be 'asp'")
