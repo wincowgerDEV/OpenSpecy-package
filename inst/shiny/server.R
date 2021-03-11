@@ -42,6 +42,36 @@ if(droptoken){
   drop_auth(rdstoken = "data/droptoken.rds")
 }
 
+# Name keys for human readable column names ----
+namekey <- c(spectrum_identity = "Material",
+             material_form = "Material Form",
+             material_producer = "Material Producer",
+             material_purity = "Material Purity",
+             material_quality = "Material Quality",
+             material_color = "Material Color",
+             material_other = "Other Material Form Description",
+             cas_number = "CAS",
+             organization = "Organization",
+             contact_info = "Contact Info",
+             spectrum_type = "Spectrum Type",
+             sample_name = "Sample Name",
+             rsq = "Pearson's r",
+             instrument_used = "Instrument Used",
+             instrument_accessories = "Instrument Accessories",
+             instrument_mode = "Instrument Mode",
+             spectral_resolution = "Spectral Resolution",
+             laser_light_used = "Laser or Light Used",
+             total_acquisition_time_s = "Total Acquisition Time",
+             number_of_accumulations = "Number of Accumulations",
+             data_processing_procedure = "Data Processing Procedure",
+             level_of_confidence_in_identification = "Level of Confidence in Identification",
+             other_information = "Other Information",
+             "User Name", "Affiliation", "Data Citation", "smoother", "baseline",
+             "range" # small bug, range is getting replaced with the datetime somehow
+)
+# Keep here for now
+fieldsAll <- unname(namekey)
+
 # This is the actual server functions, all functions before this point are not reactive
 server <- shinyServer(function(input, output, session) {
 
@@ -64,36 +94,6 @@ server <- shinyServer(function(input, output, session) {
       })
     }
   })
-
-  # Metadata fields we want to save
-  fieldsAll <- c("User Name",
-                 "Contact Info",
-                 "Affiliation",
-                 "Data Citation",
-                 "Spectrum Identity",
-                 "Spectrum Type",
-                 "Color",
-                 "CAS Number",
-                 "Material Producer",
-                 "Material Phase",
-                 "Material Form",
-                 "Other Material Form Description",
-                 "Material Purity",
-                 "Material Quality",
-                 "Instrument Used",
-                 "Instrument Accessories",
-                 "Instrument Mode",
-                 "Spectral Resolution",
-                 "LaserLight Used",
-                 "Number of Accumulations",
-                 "Total Acquisition Time",
-                 "Data Processing Procedure",
-                 "Level of Confidence in Identification",
-                 "Description of Identification",
-                 "Other Information",
-                 "smoother",
-                 "baseline",
-                 "range") #Small bug, range is getting replaced with the datetime somehow.
 
   #Save data to cloud
   saveData <- function(data, UniqueID) {
@@ -296,39 +296,17 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$eventmetadata <- DT::renderDataTable({
-    datatable(Metadata() %>%
-                select(spectrum_identity, organization, contact_info, spectrum_type,
-                       instrument_used, instrument_accessories, instrument_mode,
-                       laser_light_used, total_acquisition_time_s,
-                       number_of_accumulations, level_of_confidence_in_identification,
-                       cas_number, material_producer, material_purity,
-                       material_form, material_quality, spectral_resolution,
-                       data_processing_procedure, other_information, sample_name) %>%
-                inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE] %>%
-                             select(-organization, -spectrum_identity), by = "sample_name") %>%
-                rename("Material" = spectrum_identity,
-                       "Material Form" = material_form,
-                       "Material Producer" = material_producer,
-                       "Material Purity" = material_purity,
-                       "Material Quality" = material_quality,
-                       "CAS" = cas_number,
-                       "Organization" = organization,
-                       "Contact Information" = contact_info,
-                       "Spectrum Type" = spectrum_type,
-                       "Sample Name" = sample_name,
-                       "Pearson's r" = rsq,
-                       "Instrument Type" = instrument_used,
-                       "Instrument Accessories" = instrument_accessories,
-                       "Instrument Mode" = instrument_mode,
-                       "Spectral Resolution" = spectral_resolution,
-                       "Laser or Light Used" = laser_light_used,
-                       "Total Acquisition Time" = total_acquisition_time_s,
-                       "Number of Accumulations" = number_of_accumulations,
-                       "Data Processing Procedure" = data_processing_procedure,
-                       "Level of Confidence in Identification" = level_of_confidence_in_identification,
-                       "Other Information" = other_information
-                ) %>%
-                select_if(function(x){!all(x == "" | is.na(x))}), escape = FALSE,
+    # Default to first row if not yet clicked
+    sn <- ifelse(is.null(input$event_rows_selected),
+                 1,
+                 MatchSpectra()[[input$event_rows_selected, "sample_name"]])
+    # Get data from find_spectrum
+    fs <- find_spectrum(spec_lib, which = tolower(input$Spectra),
+                        sample_name == sn)
+    names(fs) <- namekey[names(fs)]
+
+    datatable(fs,
+              escape = FALSE, rownames = F,
               options = list(dom = 't', bSort = F, lengthChange = FALSE,
                              rownames = FALSE, info = FALSE),
               style = 'bootstrap', caption = "Selection Metadata",
