@@ -8,6 +8,17 @@ test_that("extdata files are present", {
   expect_true(any(grepl("\\.spc$", ed)))
 })
 
+test_that("read_text() gives expected output", {
+  expect_silent(txt <- read_text(read_extdata("raman_hdpe.csv")))
+  expect_error(read_text(read_extdata("ftir_pva_without_header.csv")))
+  expect_silent(read_text(read_extdata("ftir_pva_without_header.csv"), header = F))
+  expect_s3_class(txt, "data.frame")
+  expect_equal(names(txt), c("wavenumber", "intensity"))
+  expect_equal(nrow(txt), 1095)
+  expect_equal(round(range(txt[1]), 1), c(150.9, 2998.5))
+  expect_equal(round(range(txt[2]), 1), c(3264.2, 41238.9))
+})
+
 test_that("read_asp() gives expected output", {
   expect_silent(asp <- read_asp(read_extdata("ftir_ldpe_soil.asp")))
   expect_error(read_asp(read_extdata("raman_hdpe.csv")))
