@@ -57,7 +57,7 @@ ui <- fluidPage(
     fluidRow(
       column(9, "Open Specy"),
       column(3, align = "right", uiOutput("translate")) # Google Translate
-    )
+    ), windowTitle = "Open Specy"
   ),
   tabsetPanel(id = "tabs",
               tabPanel("About", value = "about",
