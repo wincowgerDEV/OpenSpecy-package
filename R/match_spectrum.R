@@ -53,7 +53,9 @@
 #' get_lib("raman")
 #' spec_lib <- load_lib("raman")
 #'
-#' match_spectrum(raman_hdpe, spec_lib, "raman", "full")
+#' match_spectrum(raman_proc, library = spec_lib, which = "raman")
+#'
+#' find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
 #' }
 #'
 #' @importFrom magrittr %>%
@@ -129,7 +131,7 @@ match_spectrum.default <- function(x, y, library, which = NULL, type = "full",
 #' @rdname match_spectrum
 #'
 #' @export
-find_spectrum <- function(library, which = NULL, subset, type = "metadata",
+find_spectrum <- function(subset, library, which = NULL, type = "metadata",
                           cols = c("spectrum_identity", "organization",
                                    "contact_info", "spectrum_type",
                                    "instrument_used", "instrument_accessories",
@@ -144,11 +146,14 @@ find_spectrum <- function(library, which = NULL, subset, type = "metadata",
                                    "other_information", "sample_name",
                                    "wavenumber", "intensity", "group"),
                           ...) {
+
   if(type == "full") type <- "library"
 
   df <- data.frame(library[[which]][[type]])
-
   e <- substitute(subset)
+
+  if (!is.call(e)) stop("subset needs to be a logical expression")
+
   r <- eval(e, df, parent.frame())
   c <- cols[cols %in% names(df)]
   out <- df[r, c]

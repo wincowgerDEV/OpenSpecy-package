@@ -69,9 +69,7 @@ raman_proc <- raman_adj %>%
   subtract_background()
 
 # Match spectrum with library and retrieve meta data
-match_spectrum(raman_proc, library = spec_lib, which = "raman", type = "full")
-
-find_spectrum(library = spec_lib, which = "raman",
-              sample_name == 5381)
+match_spectrum(raman_proc, library = spec_lib, which = "raman")
+find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
 ```
 
