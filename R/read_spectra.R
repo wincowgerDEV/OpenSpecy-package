@@ -18,6 +18,8 @@
 #' for the wavenumber and intensity; if \code{NULL} columns are guessed.
 #' @param method submethod to be used for reading text files; defaults to
 #' \link[utils]{read.csv} but \link[data.table]{fread} works as well.
+#' @param share defaults to \code{NULL}; needed to share spectra with the
+#' Open Specy community
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @seealso
@@ -31,29 +33,33 @@
 #'
 #' @importFrom magrittr %>%
 #' @export
-read_text <- function(file = ".", cols = NULL, method = "read.csv", ...) {
-  fi <- do.call(method, list(file, ...)) %>%
+read_text <- function(file = ".", cols = NULL, method = "read.csv",
+                      share = NULL, ...) {
+  df <- do.call(method, list(file, ...)) %>%
     data.frame()
-  if (all(grepl("^X[0-9]*", names(fi)))) stop("missing header; ",
+
+  if (all(grepl("^X[0-9]*", names(df)))) stop("missing header; ",
                                               "use 'header = FALSE' or an alternative ",
                                               "read method")
 
   # Try to guess column names
   if (is.null(cols)) {
-    cols <- c(names(fi)[grep("(wav*)|(^V1$)", ignore.case = T, names(fi))][1L],
-              names(fi)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)|(^V2$)",
-                             ignore.case = T, names(fi))][1L])
+    cols <- c(names(df)[grep("(wav*)|(^V1$)", ignore.case = T, names(df))][1L],
+              names(df)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)|(^V2$)",
+                             ignore.case = T, names(df))][1L])
   }
-  fi <- fi[cols]
-  names(fi) <- c("wavenumber", "intensity")
+  df <- df[cols]
+  names(df) <- c("wavenumber", "intensity")
 
-  return(fi)
+  if (!is.null(share)) .share_spectrum(df, share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @export
-read_asp <- function(file = ".", ...) {
+read_asp <- function(file = ".", share = NULL, ...) {
   if (!grepl("\\.asp$", ignore.case = T, file)) stop("file type should be 'asp'")
 
   tr <- file.path(file) %>% file(...)
@@ -63,14 +69,18 @@ read_asp <- function(file = ".", ...) {
   y <- lns[-c(1:6)]
   x <- seq(lns[2], lns[3], length.out = lns[1])
 
-  data.frame(wavenumber = x, intensity = y)
+  df <- data.frame(wavenumber = x, intensity = y)
+
+  if (!is.null(share)) .share_spectrum(df, share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @importFrom utils read.table
 #' @export
-read_spa <- function(file = ".", ...) {
+read_spa <- function(file = ".", share = NULL, ...) {
   if (!grepl("\\.spa$", ignore.case = T, file)) stop("file type should be 'spa'")
 
   trb <- file.path(file) %>% file(open = "rb", ...)
@@ -100,37 +110,49 @@ read_spa <- function(file = ".", ...) {
 
   close(trb)
 
-  data.frame(wavenumber = seq(end, start, length = length(floatData)),
-             intensity = floatData)
+  df <- data.frame(wavenumber = seq(end, start, length = length(floatData)),
+                   intensity = floatData)
+
+  if (!is.null(share)) .share_spectrum(df, share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @importFrom hyperSpec read.jdx
 #' @export
-read_jdx <- function(file = ".", ...) {
+read_jdx <- function(file = ".", share = NULL, ...) {
   jdx <- read.jdx(file, ...)
 
-  data.frame(wavenumber = jdx@wavelength,
-             intensity = as.numeric(unname(jdx@data$spc[1,])))
+  df <- data.frame(wavenumber = jdx@wavelength,
+                   intensity = as.numeric(unname(jdx@data$spc[1,])))
+
+  if (!is.null(share)) .share_spectrum(df, share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @importFrom hyperSpec read.spc
 #' @export
-read_spc <- function(file = ".", ...) {
+read_spc <- function(file = ".", share = NULL, ...) {
   spc <- read.spc(file)
 
-  data.frame(wavenumber = spc@wavelength,
-             intensity = as.numeric(unname(spc@data$spc[1,])))
+  df <- data.frame(wavenumber = spc@wavelength,
+                   intensity = as.numeric(unname(spc@data$spc[1,])))
+
+  if (!is.null(share)) .share_spectrum(df, share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @importFrom hexView readRaw blockString
 #' @export
-read_0 <- function(file = ".", ...) {
+read_0 <- function(file = ".", share = NULL, ...) {
   if (!grepl("\\.[0-999]$", ignore.case = T, file)) stop("file type should be '0'")
 
   pa <- readRaw(file, offset = 0, nbytes = file.info(file)$size, human = "char",
@@ -188,7 +210,11 @@ read_0 <- function(file = ".", ...) {
                     nbytes = nbytes.f, human = "real", size = 4, endian = "little")
   y <- opus.p[[5]]
 
-  data.frame(wavenumber = x, intensity = y)
+  df <- data.frame(wavenumber = x, intensity = y)
+
+  if (!is.null(share)) .share_spectrum(df, share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
@@ -201,4 +227,39 @@ read_extdata <- function(file = NULL) {
   else {
     system.file("extdata", file, package = "OpenSpecy", mustWork = TRUE)
   }
+}
+
+#' @importFrom digest digest
+#' @importFrom utils write.csv
+.share_spectrum <- function(data, share) {
+  id <- digest(data, algo = "md5")
+  fn <- paste0(paste(human_timestamp(), id, sep = "_"), ".csv")
+
+  ty <- "thank you for sharing"
+
+  if (share == "system") {
+    pkg <- system.file("extdata", package = "OpenSpecy")
+    dir.create(file.path(pkg, "user_spectra"), showWarnings = F)
+
+    fw <- file.path(pkg, "user_spectra", fn)
+    write.csv(data, fw, row.names = FALSE, quote = TRUE)
+
+    message(ty, ", use 'share_metadata()' to send us more information")
+  } else if (share == "dropbox") {
+    if (!requireNamespace("rdrop2"))
+      stop("share = 'dropbox' requires package 'rdrop2'")
+
+    fw <- file.path(tempdir(), fn)
+    write.csv(data, fw, row.names = FALSE, quote = TRUE)
+
+    rdrop2::drop_upload(fw, path = "Spectra")
+  } else {
+    if (!dir.exists(share)) dir.create(share, showWarnings = F)
+    fw <- file.path(share, fn)
+    write.csv(data, fw, row.names = FALSE, quote = TRUE)
+
+    message(ty, "; please e-mail your spectra to Win Cowger <wincowger@gmail.com>")
+  }
+
+  invisible()
 }

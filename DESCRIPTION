@@ -49,6 +49,7 @@ Imports:
     osfr,
     hyperSpec,
     hexView,
+    digest,
     signal,
     shiny,
     mathjaxr
@@ -63,7 +64,6 @@ Suggests:
     plotly,
     data.table,
     DT,
-    digest,
     curl,
     rdrop2
 RoxygenNote: 7.1.1

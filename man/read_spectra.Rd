@@ -10,17 +10,17 @@
 \alias{read_extdata}
 \title{Read spectral data}
 \usage{
-read_text(file = ".", cols = NULL, method = "read.csv", ...)
+read_text(file = ".", cols = NULL, method = "read.csv", share = NULL, ...)
 
-read_asp(file = ".", ...)
+read_asp(file = ".", share = NULL, ...)
 
-read_spa(file = ".", ...)
+read_spa(file = ".", share = NULL, ...)
 
-read_jdx(file = ".", ...)
+read_jdx(file = ".", share = NULL, ...)
 
-read_spc(file = ".", ...)
+read_spc(file = ".", share = NULL, ...)
 
-read_0(file = ".", ...)
+read_0(file = ".", share = NULL, ...)
 
 read_extdata(file = NULL)
 }
@@ -32,6 +32,9 @@ for the wavenumber and intensity; if \code{NULL} columns are guessed.}
 
 \item{method}{submethod to be used for reading text files; defaults to
 \link[utils]{read.csv} but \link[data.table]{fread} works as well.}
+
+\item{share}{defaults to \code{NULL}; needed to share spectra with the
+Open Specy community}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
