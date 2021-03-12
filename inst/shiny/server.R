@@ -20,18 +20,18 @@ library(config)
 library(OpenSpecy)
 
 # Required Data ----
-dirs <- config::get("dirs")
+conf <- config::get()
 
 costs <- fread("data/costs.csv")
 donations <- fread("data/donations.csv")
 testdata <- raman_hdpe
 
 # Check if spectral library is present and load ----
-test_lib <- class(tryCatch(check_lib(path = dirs$library),
+test_lib <- class(tryCatch(check_lib(path = ),
                            warning = function(w) {w}))
-if(any(test_lib == "warning")) get_lib(path = dirs$library)
+if(any(test_lib == "warning")) get_lib(path = conf$library_path)
 
-spec_lib <- load_lib(path = dirs$library)
+spec_lib <- load_lib(path = conf$library_path)
 
 # Check for Auth Tokens and setup ----
 droptoken <- file.exists("data/droptoken.rds")
