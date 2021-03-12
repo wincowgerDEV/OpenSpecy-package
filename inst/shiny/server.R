@@ -292,15 +292,15 @@ server <- shinyServer(function(input, output, session) {
 
   output$eventmetadata <- DT::renderDataTable({
     # Default to first row if not yet clicked
-    sn <- ifelse(is.null(input$event_rows_selected),
-                 1,
-                 MatchSpectra()[[input$event_rows_selected, "sample_name"]])
+    id_select <- ifelse(is.null(input$event_rows_selected),
+                        1,
+                        MatchSpectra()[[input$event_rows_selected, "sample_name"]])
     # Get data from find_spectrum
-    fs <- find_spectrum(spec_lib, which = tolower(input$Spectra),
-                        sample_name == sn)
-    names(fs) <- namekey[names(fs)]
+    current_meta <- find_spectrum(sample_name == id_select,
+                                  spec_lib, which = tolower(input$Spectra))
+    names(current_meta) <- namekey[names(current_meta)]
 
-    datatable(fs,
+    datatable(current_meta,
               escape = FALSE, rownames = F,
               options = list(dom = 't', bSort = F, lengthChange = FALSE,
                              rownames = FALSE, info = FALSE),
@@ -308,7 +308,7 @@ server <- shinyServer(function(input, output, session) {
               selection = list(mode = 'none'))
   })
 
-  #Display matches based on table selection ----
+  # Display matches based on table selection ----
   output$MyPlotC <- renderPlotly({
     if(!length(input$event_rows_selected)) {
       plot_ly(DataR()) %>%
@@ -319,7 +319,16 @@ server <- shinyServer(function(input, output, session) {
                paper_bgcolor='black', font = list(color = '#FFFFFF'))
     }
     else if(length(input$event_rows_selected)) {
-      TopTens <- Library() %>%
+      # Default to first row if not yet clicked
+      id_select <- ifelse(is.null(input$event_rows_selected),
+                          1,
+                          MatchSpectra()[[input$event_rows_selected, "sample_name"]])
+      # Get data from find_spectrum
+      current_spectrum <- find_spectrum(sample_name == id_select,
+                                        spec_lib, which = tolower(input$Spectra),
+                                        type = tolower(input$Library))
+
+      TopTens <- current_spectrum %>%
         inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE],
                    by = "sample_name") %>%
         select(wavenumber, intensity, spectrum_identity)
