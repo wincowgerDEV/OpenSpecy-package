@@ -410,8 +410,8 @@ ui <- fluidPage(
                          column(2,
 
                                 selectInput("IntensityCorr", "Intensity Adjustment",
-                                            c("None" = "None",
-                                              "Transmittance" = "Transmittance", "Reflectance" = "Reflectance")) %>%
+                                            c("None" = "none",
+                                              "Transmittance" = "transmittance", "Reflectance" = "reflectance")) %>%
                                   helper(type = "inline",
                                          title = "Share Help",
                                          content = c("If the uploaded spectrum is not in absorbance units, ",
@@ -504,8 +504,8 @@ ui <- fluidPage(
                        fluidRow(
                          column(2,
                                 selectInput("Spectra", "Spectrum Type:",
-                                            c("Raman" = "Raman",
-                                              "FTIR" = "FTIR")) %>%
+                                            c("Raman" = "raman",
+                                              "FTIR" = "ftir")) %>%
                                   helper(type = "inline",
                                          title = "Spectrum Type Help",
                                          content = c("This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded."),
@@ -519,8 +519,8 @@ ui <- fluidPage(
                                          content = c("This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match."),
                                          size = "m"),
                                 selectInput("Library", "Region To Match:",
-                                            c("Full Spectrum" = "Full",
-                                              "Peaks Only" = "Peaks"))%>%
+                                            c("Full Spectrum" = "full",
+                                              "Peaks Only" = "peaks"))%>%
                                   helper(type = "inline",
                                          title = "Region To Match Help",
                                          content = c("This selection will determine whether the the library you are matching to consists of the full spectrum or only spectrum peaks."),

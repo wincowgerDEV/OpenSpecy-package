@@ -168,7 +168,7 @@ server <- shinyServer(function(input, output, session) {
 
   # Corrects spectral intensity units using the user specified correction
   data <- reactive({
-    adjust_intensity(preprocessed_data(), type = tolower(input$IntensityCorr))
+    adjust_intensity(preprocessed_data(), type = input$IntensityCorr)
   })
 
   # Compute spectral resolution
@@ -245,8 +245,8 @@ server <- shinyServer(function(input, output, session) {
       incProgress(1/3, detail = "Finding Match")
 
       Lib <- match_spectrum(DataR(),
-                            library = spec_lib, which = tolower(input$Spectra),
-                            type = tolower(input$Library), top_n = 100)
+                            library = spec_lib, which = input$Spectra,
+                            type = input$Library, top_n = 100)
 
       incProgress(1/3, detail = "Making Plot")
 
@@ -291,7 +291,7 @@ server <- shinyServer(function(input, output, session) {
                         MatchSpectra()[[input$event_rows_selected, "sample_name"]])
     # Get data from find_spectrum
     current_meta <- find_spectrum(sample_name == id_select,
-                                  spec_lib, which = tolower(input$Spectra))
+                                  spec_lib, which = input$Spectra)
     names(current_meta) <- namekey[names(current_meta)]
 
     datatable(current_meta,
@@ -319,8 +319,8 @@ server <- shinyServer(function(input, output, session) {
                           MatchSpectra()[[input$event_rows_selected, "sample_name"]])
       # Get data from find_spectrum
       current_spectrum <- find_spectrum(sample_name == id_select,
-                                        spec_lib, which = tolower(input$Spectra),
-                                        type = tolower(input$Library))
+                                        spec_lib, which = input$Spectra,
+                                        type = input$Library)
 
       TopTens <- current_spectrum %>%
         inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE],
