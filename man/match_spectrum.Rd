@@ -26,9 +26,9 @@ match_spectrum(x, ...)
 )
 
 find_spectrum(
+  subset,
   library,
   which = NULL,
-  subset,
   type = "metadata",
   cols = c("spectrum_identity", "organization", "contact_info", "spectrum_type",
     "instrument_used", "instrument_accessories", "instrument_mode", "laser_light_used",
@@ -99,7 +99,9 @@ data("raman_hdpe")
 get_lib("raman")
 spec_lib <- load_lib("raman")
 
-match_spectrum(raman_hdpe, spec_lib, "raman", "full")
+match_spectrum(raman_proc, library = spec_lib, which = "raman")
+
+find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
 }
 
 }

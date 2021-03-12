@@ -22,8 +22,9 @@
 #' @param formula an object of class '\code{\link[stats]{formula}}' of the form
 #' \code{intensity ~ wavenumber}.
 #' @param data a data frame containing the variables in \code{formula}.
-#' @param type a character string specifying whether the \code{"full"} spectrum
-#' should be matched or spectrum \code{"peaks"} only.
+#' @param type a character string specifying whether the input spectrum is
+#' in absorbance units (\code{"none"}, default) or needs additional conversion
+#' from \code{"reflectance"} or \code{"transmittance"} data.
 #' @param make_relative logical; if \code{TRUE} spectra are automatically
 #' normalized with \code{\link{make_relative}()}.
 #' @param \ldots further arguments passed to the submethods.
