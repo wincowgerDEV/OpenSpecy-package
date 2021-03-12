@@ -336,13 +336,13 @@ ui <- fluidPage(
 
               #Upload File Tab ----
               tabPanel("Upload File", value = "tab1",
-                       titlePanel(tags$h4("Upload. View and Share Spectra Files")),
+                       titlePanel(tags$h4("Upload, View and Share Spectra Files")),
                        fluidRow(
                          column(2,
                                 fileInput('file1', 'Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 file',
                                           accept=c('text/csv',
                                                    'text/comma-separated-values,text/plain',
-                                                   '.csv', ".asp", ".spc", ".jdx", ".spa", ".0"))%>%
+                                                   '.csv', ".asp", ".spc", ".jdx", ".spa", ".0")) %>%
                                   helper(type = "inline",
                                          title = "Upload Help",
                                          content = c("Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
@@ -363,7 +363,7 @@ ui <- fluidPage(
                                                    "<a href=https://osf.io/rjg3c> Uploaded spectra will appear here."),
                                        size = "m"),
 
-                                actionButton("btn", "Share metadata")%>%
+                                actionButton("btn", "Share metadata") %>%
                                   helper(type = "inline",
                                          title = "Metadata Help",
                                          content = c("We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.",

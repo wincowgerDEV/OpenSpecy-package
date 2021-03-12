@@ -141,7 +141,8 @@ server <- shinyServer(function(input, output, session) {
                                       ignore.case = T, filename),
                                 "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
 
-    if (input$ShareDecision == "Share") share <- conf$share else share <- NULL
+    if (input$ShareDecision == "Share" & curl::has_internet())
+      share <- conf$share else share <- NULL
 
     if(grepl("\\.csv$", ignore.case = T, filename)) {
       read_text(inFile$datapath, method = "fread", share = share)
@@ -368,14 +369,14 @@ server <- shinyServer(function(input, output, session) {
 
   ## Sharing data ----
   # Hide functions which shouldn't exist when there is no internet or
-  # when the API token doesnt exist
+  # when the API token doesn't exist
   observe({
-    if((config::is_active("shinyapps") & droptoken) | curl::has_internet()) {
+    if((conf$share == "dropbox" & droptoken) | curl::has_internet()) {
       show("ShareDecision")
       show("btn")
       show("helper1")
     }
-    else{
+    else {
       hide("ShareDecision")
       hide("btn")
       hide("helper1")
@@ -412,20 +413,14 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$translate <- renderUI({
-    if(file.exists("www/googletranslate.html") & curl::has_internet()){
+    if(file.exists("www/googletranslate.html") & curl::has_internet()) {
       includeHTML("www/googletranslate.html")
-    }
-    else{
-      NULL
     }
   })
 
   output$analytics <- renderUI({
     if(file.exists("data/google-analytics.js") & curl::has_internet()){
       includeScript("data/google-analytics.js")
-    }
-    else{
-      NULL
     }
   })
 
