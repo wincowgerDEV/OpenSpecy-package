@@ -3,3 +3,4 @@
 ^LICENSE\.md$
 ^\.zenodo\.json$
 ^\.github$
+^\.httr-oauth$
