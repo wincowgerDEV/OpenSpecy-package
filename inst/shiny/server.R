@@ -235,12 +235,6 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-  # React Reference library to library type ----
-  Library <- reactive({
-    l <- tolower(input$Library)
-    spec_lib[[tolower(input$Spectra)]][[ifelse(l == "full", "library", l)]]
-  })
-
   # Identify Spectra function ----
   # Joins their spectrum to the internal database and computes correlation.
   MatchSpectra <- reactive ({
