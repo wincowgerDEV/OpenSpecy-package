@@ -83,18 +83,6 @@ server <- shinyServer(function(input, output, session) {
     })
   }
 
-  # File sharing functions ----
-  # Share if share is selected on upload
-  observeEvent(input$file1, {
-    if(input$ShareDecision == "Share" & curl::has_internet() & droptoken){
-      withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
-        inFile <- input$file1
-        UniqueID <- digest::digest(preprocesseddata(), algo = "md5")
-        drop_upload(inFile$datapath, path = paste0(outputDir, "/", UniqueID), mode = "add")
-      })
-    }
-  })
-
   #Save data to cloud
   saveData <- function(data, UniqueID) {
     # Create a unique file name
@@ -129,7 +117,7 @@ server <- shinyServer(function(input, output, session) {
   })
 
   # Save the metadata and data submitted upon pressing the button
-  observeEvent(input$submit,{
+  observeEvent(input$submit, {
     if(curl::has_internet() & droptoken){
       UniqueID <- digest::digest(data(), algo = "md5")
       saveDataForm(formData(), UniqueID)
@@ -153,15 +141,17 @@ server <- shinyServer(function(input, output, session) {
                                       ignore.case = T, filename),
                                 "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
 
+    if (input$ShareDecision == "Share") share <- conf$share else share <- NULL
+
     if(grepl("\\.csv$", ignore.case = T, filename)) {
-      read_text(inFile$datapath, method = "fread")
+      read_text(inFile$datapath, method = "fread", share = share)
     }
     else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
-      read_0(inFile$datapath)
+      read_0(inFile$datapath, share = share)
     }
     else {
       ex <- strsplit(basename(filename), split="\\.")[[1]]
-      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath))
+      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath, share = share))
     }
 
   })
@@ -370,15 +360,17 @@ server <- shinyServer(function(input, output, session) {
     content = function(file) {fwrite(testdata, file)}
   )
 
-  ## Download their own data ----
+  ## Download own data ----
   output$downloadData <- downloadHandler(
     filename = function() {paste('data-', human_timestamp(), '.csv', sep='')},
     content = function(file) {fwrite(baseline_data(), file)}
   )
 
-  # Hide functions which shouldn't exist when there is no internet or when the API token doesnt exist ----
+  ## Sharing data ----
+  # Hide functions which shouldn't exist when there is no internet or
+  # when the API token doesnt exist
   observe({
-    if(droptoken & curl::has_internet()) {
+    if((config::is_active("shinyapps") & droptoken) | curl::has_internet()) {
       show("ShareDecision")
       show("btn")
       show("helper1")
