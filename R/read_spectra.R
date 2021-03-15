@@ -3,15 +3,18 @@
 #' @title Read spectral data
 #'
 #' @description
-#' Functions for reading in spectral data types including asp, jdx, spc, spa, 0, and csv.
+#' Functions for reading in spectral data types including *.asp, *.jdx,
+#' *.spc, *.spa, *.0, and *.csv.
 #'
 #' @details
 #' \code{read_spc()} and \code{read_jdx()} are just a wrapper around the
-#' functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec} package.
+#' functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec}
+#' package.
 #' Other functions have been adapted various online sources.
 #' All functions convert datasets to a 2 column table with one column labeled
 #' "wavenumber" and the other "intensity". There are many unique iterations of
-#' spectral file formats so there may be bugs in the file conversion. Please contact us if you identify any.
+#' spectral file formats so there may be bugs in the file conversion.
+#' Please contact us if you identify any.
 #'
 #' @param file file you to from.
 #' @param cols character vector of \code{length = 2} indicating the colum names
@@ -19,12 +22,12 @@
 #' @param method submethod to be used for reading text files; defaults to
 #' \link[utils]{read.csv} but \link[data.table]{fread} works as well.
 #' @param share defaults to \code{NULL}; needed to share spectra with the
-#' Open Specy community
+#' Open Specy community; see \code{\link{share_spectrum}()} for details.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @seealso
 #' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
-#' \code{\link[hexView]{readRaw}()}
+#' \code{\link[hexView]{readRaw}()}; \code{\link{share_spectrum}()}
 #'
 #' @examples
 #' read_text(read_extdata("raman_hdpe.csv"))
@@ -51,7 +54,7 @@ read_text <- function(file = ".", cols = NULL, method = "read.csv",
   df <- df[cols]
   names(df) <- c("wavenumber", "intensity")
 
-  if (!is.null(share)) .share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share)
 
   return(df)
 }
@@ -71,7 +74,7 @@ read_asp <- function(file = ".", share = NULL, ...) {
 
   df <- data.frame(wavenumber = x, intensity = y)
 
-  if (!is.null(share)) .share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share)
 
   return(df)
 }
@@ -113,7 +116,7 @@ read_spa <- function(file = ".", share = NULL, ...) {
   df <- data.frame(wavenumber = seq(end, start, length = length(floatData)),
                    intensity = floatData)
 
-  if (!is.null(share)) .share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share)
 
   return(df)
 }
@@ -128,7 +131,7 @@ read_jdx <- function(file = ".", share = NULL, ...) {
   df <- data.frame(wavenumber = jdx@wavelength,
                    intensity = as.numeric(unname(jdx@data$spc[1,])))
 
-  if (!is.null(share)) .share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share)
 
   return(df)
 }
@@ -143,7 +146,7 @@ read_spc <- function(file = ".", share = NULL, ...) {
   df <- data.frame(wavenumber = spc@wavelength,
                    intensity = as.numeric(unname(spc@data$spc[1,])))
 
-  if (!is.null(share)) .share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share)
 
   return(df)
 }
@@ -212,7 +215,7 @@ read_0 <- function(file = ".", share = NULL, ...) {
 
   df <- data.frame(wavenumber = x, intensity = y)
 
-  if (!is.null(share)) .share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share)
 
   return(df)
 }
@@ -227,39 +230,4 @@ read_extdata <- function(file = NULL) {
   else {
     system.file("extdata", file, package = "OpenSpecy", mustWork = TRUE)
   }
-}
-
-#' @importFrom digest digest
-#' @importFrom utils write.csv
-.share_spectrum <- function(data, share) {
-  id <- digest(data, algo = "md5")
-  fn <- paste0(paste(human_timestamp(), id, sep = "_"), ".csv")
-
-  ty <- "thank you for sharing"
-
-  if (share == "system") {
-    pkg <- system.file("extdata", package = "OpenSpecy")
-    dir.create(file.path(pkg, "user_spectra"), showWarnings = F)
-
-    fw <- file.path(pkg, "user_spectra", fn)
-    write.csv(data, fw, row.names = FALSE, quote = TRUE)
-
-    message(ty, ", use 'share_metadata()' to send us more information")
-  } else if (share == "dropbox") {
-    if (!requireNamespace("rdrop2"))
-      stop("share = 'dropbox' requires package 'rdrop2'")
-
-    fw <- file.path(tempdir(), fn)
-    write.csv(data, fw, row.names = FALSE, quote = TRUE)
-
-    rdrop2::drop_upload(fw, path = "Spectra")
-  } else {
-    if (!dir.exists(share)) dir.create(share, showWarnings = F)
-    fw <- file.path(share, fn)
-    write.csv(data, fw, row.names = FALSE, quote = TRUE)
-
-    message(ty, "; please e-mail your spectra to Win Cowger <wincowger@gmail.com>")
-  }
-
-  invisible()
 }
