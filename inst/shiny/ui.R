@@ -8,6 +8,7 @@ library(shiny)
 library(shinyjs)
 library(shinythemes)
 library(shinyhelper)
+library(shinyWidgets)
 
 library(dplyr)
 library(plotly)
@@ -336,34 +337,33 @@ ui <- fluidPage(
 
               #Upload File Tab ----
               tabPanel("Upload File", value = "tab1",
-                       titlePanel(tags$h4("Upload, View and Share Spectra Files")),
+                       titlePanel(tags$h4("Upload, View and Share Spectra")),
                        fluidRow(
                          column(2,
-                                fileInput('file1', 'Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 file',
-                                          accept=c('text/csv',
-                                                   'text/comma-separated-values,text/plain',
-                                                   '.csv', ".asp", ".spc", ".jdx", ".spa", ".0")) %>%
+                                tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File") %>%
                                   helper(type = "inline",
                                          title = "Upload Help",
                                          content = c("Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
                                             If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.",
                                                      "",
-                                            "Hit the 'Test Data' button to download a sample Raman spectrum."),
+                                                     "Hit the 'Test Data' button to download a sample Raman spectrum."),
                                          size = "m"),
-                                tags$div(downloadButton('downloadData7', 'Test Data')),
-                                tags$br(),
 
-
-                                helper(selectInput("ShareDecision", "Share uploaded spectra?",
-                                                   c("Share" = "Share",
-                                                     "Not Now" = "Not now")),
-                                       type = "inline",
-                                       title = "Share Help",
-                                       content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
+                                materialSwitch("share_decision",
+                                               label = "Share File?",
+                                               inline = T, value = T) %>%
+                                  helper(type = "inline",
+                                         title = "Share Help",
+                                         content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
                                                    "<a href=https://osf.io/rjg3c> Uploaded spectra will appear here."),
-                                       size = "m"),
+                                         size = "m"),
 
-                                actionButton("btn", "Share metadata") %>%
+                                fileInput('file1', NULL,
+                                          accept=c('text/csv',
+                                                   'text/comma-separated-values,text/plain',
+                                                   '.csv', ".asp", ".spc", ".jdx", ".spa", ".0")),
+
+                                actionButton("share_meta", "Share Metadata") %>%
                                   helper(type = "inline",
                                          title = "Metadata Help",
                                          content = c("We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.",
@@ -397,8 +397,12 @@ ui <- fluidPage(
                                        textInput("Other Information", label = "Other Information"),
 
                                        tags$br(),
-                                       actionButton("submit", "Share Data", class = "btn-primary"))
+                                       actionButton("submit", "Share Metadata", class = "btn-primary")),
 
+                                tags$br(),
+                                tags$br(),
+
+                                tags$div(downloadButton('download_testdata', 'Sample File'))
 
                          ),
 

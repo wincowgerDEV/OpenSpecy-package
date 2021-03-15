@@ -141,7 +141,7 @@ server <- shinyServer(function(input, output, session) {
                                       ignore.case = T, filename),
                                 "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
 
-    if (input$ShareDecision == "Share" & curl::has_internet())
+    if (input$share_decision & curl::has_internet())
       share <- conf$share else share <- NULL
 
     if(grepl("\\.csv$", ignore.case = T, filename)) {
@@ -356,7 +356,7 @@ server <- shinyServer(function(input, output, session) {
     content = function(file) {fwrite(spec_lib[["ftir"]][["metadata"]], file)}
   )
 
-  output$downloadData7 <- downloadHandler(
+  output$download_testdata <- downloadHandler(
     filename = function() {"testdata.csv"},
     content = function(file) {fwrite(testdata, file)}
   )
@@ -372,18 +372,18 @@ server <- shinyServer(function(input, output, session) {
   # when the API token doesn't exist
   observe({
     if((conf$share == "dropbox" & droptoken) | curl::has_internet()) {
-      show("ShareDecision")
-      show("btn")
+      show("share_decision")
+      show("share_meta")
       show("helper1")
     }
     else {
-      hide("ShareDecision")
-      hide("btn")
+      hide("share_decision")
+      hide("share_meta")
       hide("helper1")
     }
   })
 
-  observeEvent(input$btn, {
+  observeEvent(input$share_meta, {
     toggle("User Name")
     toggle("Contact Info")
     toggle("Affiliation")
