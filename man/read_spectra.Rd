@@ -10,17 +10,17 @@
 \alias{read_extdata}
 \title{Read spectral data}
 \usage{
-read_text(file = ".", cols = NULL, method = "read.csv", ...)
+read_text(file = ".", cols = NULL, method = "read.csv", share = NULL, ...)
 
-read_asp(file = ".", ...)
+read_asp(file = ".", share = NULL, ...)
 
-read_spa(file = ".", ...)
+read_spa(file = ".", share = NULL, ...)
 
-read_jdx(file = ".", ...)
+read_jdx(file = ".", share = NULL, ...)
 
-read_spc(file = ".", ...)
+read_spc(file = ".", share = NULL, ...)
 
-read_0(file = ".", ...)
+read_0(file = ".", share = NULL, ...)
 
 read_extdata(file = NULL)
 }
@@ -33,18 +33,24 @@ for the wavenumber and intensity; if \code{NULL} columns are guessed.}
 \item{method}{submethod to be used for reading text files; defaults to
 \link[utils]{read.csv} but \link[data.table]{fread} works as well.}
 
+\item{share}{defaults to \code{NULL}; needed to share spectra with the
+Open Specy community; see \code{\link{share_spectrum}()} for details.}
+
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \description{
-Functions for reading in spectral data types including asp, jdx, spc, spa, 0, and csv.
+Functions for reading in spectral data types including *.asp, *.jdx,
+*.spc, *.spa, *.0, and *.csv.
 }
 \details{
 \code{read_spc()} and \code{read_jdx()} are just a wrapper around the
-functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec} package.
+functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec}
+package.
 Other functions have been adapted various online sources.
 All functions convert datasets to a 2 column table with one column labeled
 "wavenumber" and the other "intensity". There are many unique iterations of
-spectral file formats so there may be bugs in the file conversion. Please contact us if you identify any.
+spectral file formats so there may be bugs in the file conversion.
+Please contact us if you identify any.
 }
 \examples{
 read_text(read_extdata("raman_hdpe.csv"))
@@ -54,5 +60,5 @@ read_0(read_extdata("ftir_ps.0"))
 }
 \seealso{
 \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
-\code{\link[hexView]{readRaw}()}
+\code{\link[hexView]{readRaw}()}; \code{\link{share_spectrum}()}
 }

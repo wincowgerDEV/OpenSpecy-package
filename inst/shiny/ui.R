@@ -8,6 +8,7 @@ library(shiny)
 library(shinyjs)
 library(shinythemes)
 library(shinyhelper)
+library(shinyWidgets)
 
 library(dplyr)
 library(plotly)
@@ -336,69 +337,95 @@ ui <- fluidPage(
 
               #Upload File Tab ----
               tabPanel("Upload File", value = "tab1",
-                       titlePanel(tags$h4("Upload. View and Share Spectra Files")),
+                       titlePanel(tags$h4("Upload, View and Share Spectra")),
                        fluidRow(
                          column(2,
-                                fileInput('file1', 'Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 file',
-                                          accept=c('text/csv',
-                                                   'text/comma-separated-values,text/plain',
-                                                   '.csv', ".asp", ".spc", ".jdx", ".spa", ".0"))%>%
+                                tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File") %>%
                                   helper(type = "inline",
                                          title = "Upload Help",
                                          content = c("Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
                                             If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.",
                                                      "",
-                                            "Hit the 'Test Data' button to download a sample Raman spectrum."),
+                                                     "Hit the 'Test Data' button to download a sample Raman spectrum."),
                                          size = "m"),
-                                tags$div(downloadButton('downloadData7', 'Test Data')),
-                                tags$br(),
 
-
-                                helper(selectInput("ShareDecision", "Share uploaded spectra?",
-                                                   c("Share" = "Share",
-                                                     "Not Now" = "Not now")),
-                                       type = "inline",
-                                       title = "Share Help",
-                                       content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
+                                materialSwitch("share_decision",
+                                               label = "Share File?",
+                                               inline = T, value = T) %>%
+                                  helper(type = "inline",
+                                         title = "Share Help",
+                                         content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
                                                    "<a href=https://osf.io/rjg3c> Uploaded spectra will appear here."),
-                                       size = "m"),
+                                         size = "m"),
 
-                                actionButton("btn", "Share metadata")%>%
+                                fileInput('file1', NULL,
+                                          accept=c('text/csv',
+                                                   'text/comma-separated-values,text/plain',
+                                                   '.csv', ".asp", ".spc", ".jdx", ".spa", ".0")),
+
+                                actionButton("share_meta", "Share Metadata") %>%
                                   helper(type = "inline",
                                          title = "Metadata Help",
                                          content = c("We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.",
                                                      "<a href=https://osf.io/rjg3c> Uploaded spectra and metadata will appear here."),
                                          size = "m"),
 
-                                hidden(textInput("User Name", labelMandatory("User Name"), placeholder = "Win Cowger"),
-                                       textInput("Contact Info", label = "Contact Info", placeholder = "1-513-673-8956, wincowger@gmail.com"),
-                                       textInput("Affiliation", label = "Affiliation", placeholder = "University of California, Riverside"),
-                                       textInput("Data Citation", label = "Data Citation", placeholder = "Primpke, S., Wirth, M., Lorenz, C., & Gerdts, G. (2018). Reference database design for the automated analysis of microplastic samples based on Fourier transform infrared (FTIR) spectroscopy. Analytical and Bioanalytical Chemistry. https://doi.org/10.1007/s00216-018-1156-x"),
-                                       textInput("Spectrum Identity", labelMandatory("Spectrum Identity"), placeholder = "Polystyrene"),
-                                       textInput("Spectrum Type", labelMandatory("Spectrum Type"), placeholder = "Raman or FTIR"),
-                                       textInput("Color", label = "Material Color", placeholder = "E.g. Blue, #0000ff, (0,0,255)"),
-                                       textInput("CAS Number", label = "Material CAS Number(s)", placeholder = "9003-53-6"),
-                                       textInput("Material Producer", label = "Material Producer", placeholder = "Dow"),
-                                       textInput("Material Phase", label = "Material Phase", placeholder = "liquid, gas, solid"),
-                                       textInput("Material Form", label = "Material Form", placeholder = "E.g. rubber band, granular, cup"),
-                                       textInput("Other Material Form Description", label = "Other Material Form Description", placeholder = "E.g. 5 micron diameter fibers, 1 mm spherical particles."),
-                                       textInput("Material Purity", label = "Material Purity", placeholder = "99.98%"),
-                                       textInput("Material Quality", label = "Material Quality", placeholder = "Consumer Material, Manufacturer Material, Scientific Standard, Environmental Material"),
-                                       textInput("Instrument Used", label = "Instrument Used", placeholder = "Horiba LabRam"),
-                                       textInput("Instrument Accessories", label = "Instrument Accesories", placeholder = "Focal Plane Array, CCD"),
-                                       textInput("Instrument Mode", label = "Instrument Mode", placeholder = "transmission, reflectance"),
-                                       textInput("Spectral Resolution", label = "Spectral Resolution", placeholder =  "4/cm-1"),
-                                       textInput("LaserLight Used", label = "Laser/Light Used", placeholder = "785 nm"),
-                                       textInput("Number of Accumulations", label = "Number of Accumulations", placeholder = "5"),
-                                       textInput("Total Acquisition Time", label = "Total Acquisition Time (s)", placeholder = "10 s"),
-                                       textInput("Data Processing Procedure", label = "Data Processing Procedure", placeholder =  "spikefilter, baseline correction, none"),
-                                       textInput("Level of Confidence in Identification", label = "Level of Confidence in Identification", placeholder = "99%"),
-                                       textInput("Description of Identification", label = "Description of Identification", placeholder = "E.g. Spectra were matched with 99% HQI in Know-it-all"),
-                                       textInput("Other Information", label = "Other Information"),
+                                hidden(textInput("user_name", labelMandatory("User Name"),
+                                                 placeholder = "e.g Win Cowger"),
+                                       textInput("contact_info", label = "Contact Info",
+                                                 placeholder = "e.g. 1-513-673-8956, wincowger@gmail.com"),
+                                       textInput("organization", label = "Affiliation",
+                                                 placeholder = "e.g. University of California, Riverside"),
+                                       textInput("citation", label = "Data Citation",
+                                                 placeholder = "e.g. Primpke, S., Wirth, M., Lorenz, C., & Gerdts, G. (2018). Reference database design for the automated analysis of microplastic samples based on Fourier transform infrared (FTIR) spectroscopy. Analytical and Bioanalytical Chemistry. doi: 10.1007/s00216-018-1156-x"),
+                                       textInput("spectrum_type", labelMandatory("Spectrum Type"),
+                                                 placeholder = "Raman or FTIR"),
+                                       textInput("spectrum_identity", labelMandatory("Material/Polymer"),
+                                                 placeholder = "e.g. polystyrene"),
+                                       textInput("material_form", label = "Material Form",
+                                                 placeholder = "e.g. textile fiber, rubber band, sphere, granule"),
+                                       textInput("material_phase", label = "Material Phase",
+                                                 placeholder = "liquid, gas, solid"),
+                                       textInput("material_producer", label = "Material Producer",
+                                                 placeholder = "e.g. Dow" ),
+                                       textInput("material_purity", label = "Material Purity",
+                                                 placeholder = "e.g. 99.98%"),
+                                       textInput("material_quality", label = "Material Quality",
+                                                 placeholder = "consumer product, manufacturer material, analytical standard, environmental sample"),
+                                       textInput("material_color", label = "Material Color",
+                                                 placeholder = "e.g. blue, #0000ff, (0, 0, 255)"),
+                                       textInput("material_other", label = "Other Material Description",
+                                                 placeholder = "e.g. 5 µm diameter fibers, 1 mm spherical particles"),
+                                       textInput("cas_number", label = "CAS number",
+                                                 placeholder = "9003-53-6"),
+                                       textInput("instrument_used", label = "Instrument Used",
+                                                 placeholder = "Horiba LabRam"),
+                                       textInput("instrument_accessories", label = "Instrument Accessories",
+                                                 placeholder = "Focal Plane Array, CCD"),
+                                       textInput("instrument_mode", label = "Instrument Modes/Settings",
+                                                 placeholder = "transmission, reflectance"),
+                                       textInput("spectral_resolution", label = "Spectral Resolution",
+                                                 placeholder = "e.g. 4/cm"),
+                                       textInput("laser_light_used", label = "Wavelength of Laser/Light",
+                                                 placeholder = "e.g. 785 nm" ),
+                                       textInput("number_of_accumulations", label = "Number of Accumulations",
+                                                 placeholder = "e.g. 5"),
+                                       textInput("total_acquisition_time_s", label = "Total Acquisition Time (s)",
+                                                 placeholder = "10 s"),
+                                       textInput("data_processing_procedure", label = "Data Processing Procedure",
+                                                 placeholder = "spikefilter, baseline correction, none"),
+                                       textInput("level_of_confidence_in_identification",
+                                                 label = "Level of Confidence in Identification",
+                                                 placeholder = "e.g. 99%"),
+                                       textInput("other_info", label = "Other information"),
 
                                        tags$br(),
-                                       actionButton("submit", "Share Data", class = "btn-primary"))
+                                       actionButton("submit", "Share Metadata", class = "btn-primary")),
 
+                                tags$br(),
+                                tags$br(),
+
+                                tags$div(downloadButton('download_testdata', 'Sample File'))
 
                          ),
 
@@ -503,24 +530,24 @@ ui <- fluidPage(
                        titlePanel(tags$h4("Identify Spectrum Using the Reference Library")),
                        fluidRow(
                          column(2,
-                                selectInput("Spectra", "Spectrum Type:",
-                                            c("Raman" = "raman",
-                                              "FTIR" = "ftir")) %>%
+                                radioButtons("Spectra", "Spectrum Type",
+                                             c("Raman" = "raman",
+                                               "FTIR" = "ftir")) %>%
                                   helper(type = "inline",
                                          title = "Spectrum Type Help",
                                          content = c("This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded."),
                                          size = "m"),
-                                selectInput("Data", "Spectrum To Analyze:",
+                                selectInput("Data", "Spectrum to Analyze",
                                             c("Processed" = "processed",
                                               "Uploaded" = "uploaded"
-                                            ))%>%
+                                            )) %>%
                                   helper(type = "inline",
-                                         title = "Spectrum To Analyze Help",
+                                         title = "Spectrum to Analyze Help",
                                          content = c("This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match."),
                                          size = "m"),
-                                selectInput("Library", "Region To Match:",
+                                selectInput("Library", "Region to Match",
                                             c("Full Spectrum" = "full",
-                                              "Peaks Only" = "peaks"))%>%
+                                              "Peaks Only" = "peaks")) %>%
                                   helper(type = "inline",
                                          title = "Region To Match Help",
                                          content = c("This selection will determine whether the the library you are matching to consists of the full spectrum or only spectrum peaks."),

@@ -1,3 +1,5 @@
+data("raman_hdpe")
+
 test_that("adjust_intensity() works as expected", {
   expect_silent(adj <- adjust_intensity(raman_hdpe))
   expect_identical(adj, adjust_intensity(raman_hdpe$wavenumber,

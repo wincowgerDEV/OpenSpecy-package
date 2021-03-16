@@ -10,6 +10,9 @@ test_that("extdata files are present", {
 
 test_that("read_text() gives expected output", {
   expect_silent(txt <- read_text(read_extdata("raman_hdpe.csv")))
+  expect_message(read_text(read_extdata("raman_hdpe.csv"), share = "system"))
+  expect_message(read_text(read_extdata("raman_hdpe.csv"),
+                           share = tempdir()))
   expect_error(read_text(read_extdata("ftir_pva_without_header.csv")))
   expect_silent(read_text(read_extdata("ftir_pva_without_header.csv"), header = F))
   expect_s3_class(txt, "data.frame")

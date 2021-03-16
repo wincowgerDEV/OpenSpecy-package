@@ -1,5 +1,7 @@
 default:
   library_path: !expr system.file("extdata", package = "OpenSpecy")
+  share: 'system'
 
 shinyapps:
   library_path: 'data/'
+  share: 'dropbox'

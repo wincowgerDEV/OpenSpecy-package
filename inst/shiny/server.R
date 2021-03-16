@@ -38,39 +38,44 @@ droptoken <- file.exists("data/droptoken.rds")
 
 outputDir <- "Spectra"
 
-if(droptoken){
+if(droptoken) {
   drop_auth(rdstoken = "data/droptoken.rds")
 }
 
 # Name keys for human readable column names ----
-namekey <- c(spectrum_identity = "Material",
-             material_form = "Material Form",
-             material_producer = "Material Producer",
-             material_purity = "Material Purity",
-             material_quality = "Material Quality",
-             material_color = "Material Color",
-             material_other = "Other Material Form Description",
-             cas_number = "CAS",
-             organization = "Organization",
-             contact_info = "Contact Info",
-             spectrum_type = "Spectrum Type",
-             sample_name = "Sample Name",
-             rsq = "Pearson's r",
-             instrument_used = "Instrument Used",
-             instrument_accessories = "Instrument Accessories",
-             instrument_mode = "Instrument Mode",
-             spectral_resolution = "Spectral Resolution",
-             laser_light_used = "Laser or Light Used",
-             total_acquisition_time_s = "Total Acquisition Time",
-             number_of_accumulations = "Number of Accumulations",
-             data_processing_procedure = "Data Processing Procedure",
-             level_of_confidence_in_identification = "Level of Confidence in Identification",
-             other_information = "Other Information",
-             "User Name", "Affiliation", "Data Citation", "smoother", "baseline",
-             "range" # small bug, range is getting replaced with the datetime somehow
+namekey <- c(
+  user_name = "User Name",
+  contact_info = "Contact Info",
+  organization = "Affiliation/Organization",
+  citation = "Data Citation",
+  spectrum_type = "Spectrum Type",
+  spectrum_identity = "Material/Polymer",
+  material_form = "Material Form",
+  material_phase = "Material Phase",
+  material_producer = "Material Producer",
+  material_purity = "Material Purity",
+  material_quality = "Material Quality",
+  material_color = "Material Color",
+  material_other = "Other Material Description",
+  cas_number = "CAS number",
+  instrument_used = "Instrument Used",
+  instrument_accessories = "Instrument Accessories",
+  instrument_mode = "Instrument Modes/Settings",
+  spectral_resolution = "Spectral Resolution",
+  laser_light_used = "Wavelength of Laser/Light",
+  number_of_accumulations = "Number of Accumulations",
+  total_acquisition_time_s = "Total Acquisition Time (s)",
+  data_processing_procedure = "Data Processing Procedure",
+  level_of_confidence_in_identification = "Level of Confidence in Identification",
+  other_info = "Other information",
+  other_information = "Other Material Description",
+  color = "Material Color",
+  rsq = "Pearson's r",
+  sample_name = "Sample ID",
+  smoother = "Smoother",
+  baseline = "Basline",
+  range = "Range"
 )
-# Keep here for now
-fieldsAll <- unname(namekey)
 
 # This is the actual server functions, all functions before this point are not reactive
 server <- shinyServer(function(input, output, session) {
@@ -83,59 +88,33 @@ server <- shinyServer(function(input, output, session) {
     })
   }
 
-  # File sharing functions ----
-  # Share if share is selected on upload
-  observeEvent(input$file1, {
-    if(input$ShareDecision == "Share" & curl::has_internet() & droptoken){
-      withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
-        inFile <- input$file1
-        UniqueID <- digest::digest(preprocesseddata(), algo = "md5")
-        drop_upload(inFile$datapath, path = paste0(outputDir, "/", UniqueID), mode = "add")
-      })
-    }
-  })
-
-  #Save data to cloud
-  saveData <- function(data, UniqueID) {
-    # Create a unique file name
-    fileName <- paste0(paste(human_timestamp(), UniqueID, sep = "_"), ".csv")#sprintf("%s_%s.csv", as.integer(Sys.time()), digest(data))
-    # Write the data to a temporary file locally
-    filepath <- file.path(tempdir(), fileName)
-    write.csv(data, filepath, row.names = FALSE, quote = TRUE)
-    # Upload the file to dropbox
-    UniqueID <- digest::digest(preprocesseddata(), algo = "md5")
-    drop_upload(filepath, path = outputDir)
-  }
-
-  # How to save the metadata
-  saveDataForm <- function(data, UniqueID) {
-    data <- data.frame(input = data, variable = c(fieldsAll))
-    # Create a unique file name
-    fileName <- paste0(paste(human_timestamp(), UniqueID, "form", sep = "_"), ".csv")#sprintf("%s_%s.csv", as.integer(Sys.time()), digest(data))
-    # Write the data to a temporary file locally
-    filepath <- file.path(tempdir(), fileName)
-    write.csv(data, filepath, row.names = FALSE, quote = TRUE)
-    # Upload the file to Dropbox
-    drop_upload(filepath, path = outputDir)
-  }
-
-  # Compile metadata input
-  formData <- reactive({
-    data <- sapply(fieldsAll[1:(length(fieldsAll)-1)], function(x) input[[x]])
-    data <- c(data, paste(input[[fieldsAll[length(fieldsAll)]]][1],
-                          input[[fieldsAll[length(fieldsAll)]]][2], sep = "_"),
-              timestamp = human_timestamp())
-    data
-  })
-
   # Save the metadata and data submitted upon pressing the button
-  observeEvent(input$submit,{
-    if(curl::has_internet() & droptoken){
-      UniqueID <- digest::digest(data(), algo = "md5")
-      saveDataForm(formData(), UniqueID)
-      saveData(data(), UniqueID)
-      shinyjs::alert(paste("Thank you for sharing your data! Your data will soon be available @ https://osf.io/stmv4/")) #Your Fortune For Today is:  ", sample(Fortunes$Fortunes, 1), sep = ""))
-    }
+  observeEvent(input$submit, {
+    if (input$share_decision & curl::has_internet())
+      share <- conf$share else share <- NULL
+
+      sout <- tryCatch(share_spectrum(data(),
+                         sapply(names(namekey)[1:24], function(x) input[[x]]),
+                         share = share),
+                       warning = function(w) {w})
+
+      if (inherits(sout, "simpleWarning")) mess <- sout$message
+
+      if (is.null(sout)) {
+        show_alert(
+          title = "Success!!",
+          text = paste("Thank you for sharing your data! Your data will soon ",
+                       "be available at https://osf.io/stmv4/"),
+          type = "success"
+        )
+      } else {
+        show_alert(
+          title = "Something went wrong :-(",
+          text = paste("All mandatory data added? R says:", mess, ".",
+                       "Try again."),
+          type = "warning"
+        )
+      }
   })
 
   # Helper icon requirement
@@ -153,15 +132,18 @@ server <- shinyServer(function(input, output, session) {
                                       ignore.case = T, filename),
                                 "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
 
+    if (input$share_decision & curl::has_internet())
+      share <- conf$share else share <- NULL
+
     if(grepl("\\.csv$", ignore.case = T, filename)) {
-      read_text(inFile$datapath, method = "fread")
+      read_text(inFile$datapath, method = "fread", share = share)
     }
     else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
-      read_0(inFile$datapath)
+      read_0(inFile$datapath, share = share)
     }
     else {
       ex <- strsplit(basename(filename), split="\\.")[[1]]
-      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath))
+      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath, share = share))
     }
 
   })
@@ -365,75 +347,78 @@ server <- shinyServer(function(input, output, session) {
     content = function(file) {fwrite(spec_lib[["ftir"]][["metadata"]], file)}
   )
 
-  output$downloadData7 <- downloadHandler(
+  output$download_testdata <- downloadHandler(
     filename = function() {"testdata.csv"},
     content = function(file) {fwrite(testdata, file)}
   )
 
-  ## Download their own data ----
+  ## Download own data ----
   output$downloadData <- downloadHandler(
     filename = function() {paste('data-', human_timestamp(), '.csv', sep='')},
     content = function(file) {fwrite(baseline_data(), file)}
   )
 
-  # Hide functions which shouldn't exist when there is no internet or when the API token doesnt exist ----
+  ## Sharing data ----
+  # Hide functions which shouldn't exist when there is no internet or
+  # when the API token doesn't exist
   observe({
-    if(droptoken & curl::has_internet()) {
-      show("ShareDecision")
-      show("btn")
+    if((conf$share == "dropbox" & droptoken) | curl::has_internet()) {
+      show("share_decision")
+      show("share_meta")
       show("helper1")
     }
-    else{
-      hide("ShareDecision")
-      hide("btn")
+    else {
+      hide("share_decision")
+      hide("share_meta")
       hide("helper1")
     }
   })
 
-  observeEvent(input$btn, {
-    toggle("User Name")
-    toggle("Contact Info")
-    toggle("Affiliation")
-    toggle("Data Citation")
-    toggle("Spectrum Identity")
-    toggle("Spectrum Type")
-    toggle("Color")
-    toggle("CAS Number")
-    toggle("Material Producer")
-    toggle("Material Phase")
-    toggle("Material Form")
-    toggle("Other Material Form Description")
-    toggle("Material Purity")
-    toggle("Material Quality")
-    toggle("Instrument Used")
-    toggle("Instrument Accessories")
-    toggle("Instrument Mode")
-    toggle("Spectral Resolution")
-    toggle("LaserLight Used")
-    toggle("Number of Accumulations")
-    toggle("Total Acquisition Time")
-    toggle("Data Processing Procedure")
-    toggle("Level of Confidence in Identification")
-    toggle("Description of Identification")
-    toggle("Other Information")
+  observe({
+    if (input$share_decision) {
+      show("share_meta")
+      } else {
+        hide("share_meta")
+      }
+  })
+
+  observeEvent(input$share_meta, {
+    toggle("user_name")
+    toggle("contact_info")
+    toggle("organization")
+    toggle("citation")
+    toggle("spectrum_type")
+    toggle("spectrum_identity")
+    toggle("material_form")
+    toggle("material_phase")
+    toggle("material_producer")
+    toggle("material_purity")
+    toggle("material_quality")
+    toggle("material_color")
+    toggle("material_other")
+    toggle("cas_number")
+    toggle("instrument_used")
+    toggle("instrument_accessories")
+    toggle("instrument_mode")
+    toggle("spectral_resolution")
+    toggle("laser_light_used")
+    toggle("number_of_accumulations")
+    toggle("total_acquisition_time_s")
+    toggle("data_processing_procedure")
+    toggle("level_of_confidence_in_identification")
+    toggle("other_info")
     toggle("submit")
   })
 
   output$translate <- renderUI({
-    if(file.exists("www/googletranslate.html") & curl::has_internet()){
+    if(file.exists("www/googletranslate.html") & curl::has_internet()) {
       includeHTML("www/googletranslate.html")
-    }
-    else{
-      NULL
     }
   })
 
   output$analytics <- renderUI({
     if(file.exists("data/google-analytics.js") & curl::has_internet()){
       includeScript("data/google-analytics.js")
-    }
-    else{
-      NULL
     }
   })
 

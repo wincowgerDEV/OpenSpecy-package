@@ -3,26 +3,31 @@
 #' @title Read spectral data
 #'
 #' @description
-#' Functions for reading in spectral data types including asp, jdx, spc, spa, 0, and csv.
+#' Functions for reading in spectral data types including *.asp, *.jdx,
+#' *.spc, *.spa, *.0, and *.csv.
 #'
 #' @details
 #' \code{read_spc()} and \code{read_jdx()} are just a wrapper around the
-#' functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec} package.
+#' functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec}
+#' package.
 #' Other functions have been adapted various online sources.
 #' All functions convert datasets to a 2 column table with one column labeled
 #' "wavenumber" and the other "intensity". There are many unique iterations of
-#' spectral file formats so there may be bugs in the file conversion. Please contact us if you identify any.
+#' spectral file formats so there may be bugs in the file conversion.
+#' Please contact us if you identify any.
 #'
 #' @param file file you to from.
 #' @param cols character vector of \code{length = 2} indicating the colum names
 #' for the wavenumber and intensity; if \code{NULL} columns are guessed.
 #' @param method submethod to be used for reading text files; defaults to
 #' \link[utils]{read.csv} but \link[data.table]{fread} works as well.
+#' @param share defaults to \code{NULL}; needed to share spectra with the
+#' Open Specy community; see \code{\link{share_spectrum}()} for details.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @seealso
 #' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
-#' \code{\link[hexView]{readRaw}()}
+#' \code{\link[hexView]{readRaw}()}; \code{\link{share_spectrum}()}
 #'
 #' @examples
 #' read_text(read_extdata("raman_hdpe.csv"))
@@ -31,29 +36,33 @@
 #'
 #' @importFrom magrittr %>%
 #' @export
-read_text <- function(file = ".", cols = NULL, method = "read.csv", ...) {
-  fi <- do.call(method, list(file, ...)) %>%
+read_text <- function(file = ".", cols = NULL, method = "read.csv",
+                      share = NULL, ...) {
+  df <- do.call(method, list(file, ...)) %>%
     data.frame()
-  if (all(grepl("^X[0-9]*", names(fi)))) stop("missing header; ",
+
+  if (all(grepl("^X[0-9]*", names(df)))) stop("missing header; ",
                                               "use 'header = FALSE' or an alternative ",
                                               "read method")
 
   # Try to guess column names
   if (is.null(cols)) {
-    cols <- c(names(fi)[grep("(wav*)|(^V1$)", ignore.case = T, names(fi))][1L],
-              names(fi)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)|(^V2$)",
-                             ignore.case = T, names(fi))][1L])
+    cols <- c(names(df)[grep("(wav*)|(^V1$)", ignore.case = T, names(df))][1L],
+              names(df)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)|(^V2$)",
+                             ignore.case = T, names(df))][1L])
   }
-  fi <- fi[cols]
-  names(fi) <- c("wavenumber", "intensity")
+  df <- df[cols]
+  names(df) <- c("wavenumber", "intensity")
 
-  return(fi)
+  if (!is.null(share)) share_spectrum(df, share = share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @export
-read_asp <- function(file = ".", ...) {
+read_asp <- function(file = ".", share = NULL, ...) {
   if (!grepl("\\.asp$", ignore.case = T, file)) stop("file type should be 'asp'")
 
   tr <- file.path(file) %>% file(...)
@@ -63,14 +72,18 @@ read_asp <- function(file = ".", ...) {
   y <- lns[-c(1:6)]
   x <- seq(lns[2], lns[3], length.out = lns[1])
 
-  data.frame(wavenumber = x, intensity = y)
+  df <- data.frame(wavenumber = x, intensity = y)
+
+  if (!is.null(share)) share_spectrum(df, share = share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @importFrom utils read.table
 #' @export
-read_spa <- function(file = ".", ...) {
+read_spa <- function(file = ".", share = NULL, ...) {
   if (!grepl("\\.spa$", ignore.case = T, file)) stop("file type should be 'spa'")
 
   trb <- file.path(file) %>% file(open = "rb", ...)
@@ -100,37 +113,49 @@ read_spa <- function(file = ".", ...) {
 
   close(trb)
 
-  data.frame(wavenumber = seq(end, start, length = length(floatData)),
-             intensity = floatData)
+  df <- data.frame(wavenumber = seq(end, start, length = length(floatData)),
+                   intensity = floatData)
+
+  if (!is.null(share)) share_spectrum(df, share = share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @importFrom hyperSpec read.jdx
 #' @export
-read_jdx <- function(file = ".", ...) {
+read_jdx <- function(file = ".", share = NULL, ...) {
   jdx <- read.jdx(file, ...)
 
-  data.frame(wavenumber = jdx@wavelength,
-             intensity = as.numeric(unname(jdx@data$spc[1,])))
+  df <- data.frame(wavenumber = jdx@wavelength,
+                   intensity = as.numeric(unname(jdx@data$spc[1,])))
+
+  if (!is.null(share)) share_spectrum(df, share = share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @importFrom hyperSpec read.spc
 #' @export
-read_spc <- function(file = ".", ...) {
+read_spc <- function(file = ".", share = NULL, ...) {
   spc <- read.spc(file)
 
-  data.frame(wavenumber = spc@wavelength,
-             intensity = as.numeric(unname(spc@data$spc[1,])))
+  df <- data.frame(wavenumber = spc@wavelength,
+                   intensity = as.numeric(unname(spc@data$spc[1,])))
+
+  if (!is.null(share)) share_spectrum(df, share = share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
 #'
 #' @importFrom hexView readRaw blockString
 #' @export
-read_0 <- function(file = ".", ...) {
+read_0 <- function(file = ".", share = NULL, ...) {
   if (!grepl("\\.[0-999]$", ignore.case = T, file)) stop("file type should be '0'")
 
   pa <- readRaw(file, offset = 0, nbytes = file.info(file)$size, human = "char",
@@ -188,7 +213,11 @@ read_0 <- function(file = ".", ...) {
                     nbytes = nbytes.f, human = "real", size = 4, endian = "little")
   y <- opus.p[[5]]
 
-  data.frame(wavenumber = x, intensity = y)
+  df <- data.frame(wavenumber = x, intensity = y)
+
+  if (!is.null(share)) share_spectrum(df, share = share)
+
+  return(df)
 }
 
 #' @rdname read_spectra
