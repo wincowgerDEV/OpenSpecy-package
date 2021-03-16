@@ -127,8 +127,8 @@ share_spectrum.data.frame <- function(data,
       metadata["user_name"] == "" | metadata["spectrum_type"] == "" |
       metadata["spectrum_identity"] == "") {
     mex <- FALSE
-    message("fields 'user_name', 'spectrum_type', and 'spectrum_identity' ",
-            "must not be empty if you like to share your metadata\n")
+    warning("fields 'user_name', 'spectrum_type', and 'spectrum_identity' ",
+            "must not be empty if you like to share your metadata")
   } else {
     mex <- TRUE
   }

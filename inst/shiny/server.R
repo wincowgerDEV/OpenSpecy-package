@@ -93,16 +93,28 @@ server <- shinyServer(function(input, output, session) {
     if (input$share_decision & curl::has_internet())
       share <- conf$share else share <- NULL
 
-      share_spectrum(data(),
-                     sapply(names(namekey)[1:24], function(x) input[[x]]),
-                     share = share)
+      sout <- tryCatch(share_spectrum(data(),
+                         sapply(names(namekey)[1:24], function(x) input[[x]]),
+                         share = share),
+                       warning = function(w) {w})
 
-      show_alert(
-        title = "Success!!",
-        text = paste("Thank you for sharing your data! Your data will soon ",
-                     "be available at https://osf.io/stmv4/"),
-        type = "success"
-      )
+      if (inherits(sout, "simpleWarning")) mess <- sout$message
+
+      if (is.null(sout)) {
+        show_alert(
+          title = "Success!!",
+          text = paste("Thank you for sharing your data! Your data will soon ",
+                       "be available at https://osf.io/stmv4/"),
+          type = "success"
+        )
+      } else {
+        show_alert(
+          title = "Something went wrong :-(",
+          text = paste("All mandatory data added? R says:", mess, ".",
+                       "Try again."),
+          type = "warning"
+        )
+      }
   })
 
   # Helper icon requirement
