@@ -128,7 +128,7 @@ share_spectrum.data.frame <- function(data,
       metadata["spectrum_identity"] == "") {
     mex <- FALSE
     message("fields 'user_name', 'spectrum_type', and 'spectrum_identity' ",
-            "must not be empty if metadata should be shared\n")
+            "must not be empty if you like to share your metadata\n")
   } else {
     mex <- TRUE
   }
@@ -163,7 +163,7 @@ share_spectrum.data.frame <- function(data,
     if (mex) rdrop2::drop_upload(fm, path = "Spectra", ...)
     }
 
-  message("thanks for your willigness to share your data\n",
-          "if you run Open Specy locally, you may consider to e-mail your ",
-          "spectra to Win Cowger <wincowger@gmail.com>")
+  message("thank you for your willigness to share your data\n",
+          "if you run Open Specy locally, you may consider mailing your ",
+          "files to Win Cowger <wincowger@gmail.com>")
 }
