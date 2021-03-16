@@ -371,7 +371,7 @@ ui <- fluidPage(
                                          size = "m"),
 
                                 hidden(textInput("user_name", labelMandatory("User Name"),
-                                                 placeholder = "e.g Win Cowger"),
+                                                 placeholder = "e.g. Win Cowger"),
                                        textInput("contact_info", label = "Contact Info",
                                                  placeholder = "e.g. 1-513-673-8956, wincowger@gmail.com"),
                                        textInput("organization", label = "Affiliation",

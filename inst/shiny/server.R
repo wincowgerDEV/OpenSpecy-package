@@ -77,7 +77,8 @@ namekey <- c(
   range = "Range"
 )
 
-# This is the actual server functions, all functions before this point are not reactive
+# This is the actual server functions, all functions before this point are not
+# reactive
 server <- shinyServer(function(input, output, session) {
 
   # For desktop version of the app.
@@ -128,9 +129,11 @@ server <- shinyServer(function(input, output, session) {
     inFile <- input$file1
     filename <- as.character(inFile$datapath)
 
-    shiny::validate(shiny::need(grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
-                                      ignore.case = T, filename),
-                                "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
+    shiny::validate(shiny::need(
+      grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
+            ignore.case = T, filename),
+      paste("Uploaded data type is not currently supported please check help ",
+      "icon (?) and About tab for details on data formatting.")))
 
     if (input$share_decision & curl::has_internet())
       share <- conf$share else share <- NULL
@@ -143,7 +146,8 @@ server <- shinyServer(function(input, output, session) {
     }
     else {
       ex <- strsplit(basename(filename), split="\\.")[[1]]
-      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath, share = share))
+      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath,
+                                                     share = share))
     }
 
   })
@@ -153,33 +157,33 @@ server <- shinyServer(function(input, output, session) {
     adjust_intensity(preprocessed_data(), type = input$IntensityCorr)
   })
 
-  # Compute spectral resolution
-  SpectralResolution <- reactive({
-    (max(data()$wavenumber) - min(data()$wavenumber)) /
-      length(data()$wavenumber)
-  })
-
   # All cleaning of the data happens here. Smoothing and Baseline removing
   baseline_data <- reactive({
-    testdata <- data() %>% dplyr::filter(wavenumber > input$MinRange & wavenumber < input$MaxRange)
+    testdata <- data() %>% dplyr::filter(wavenumber > input$MinRange &
+                                           wavenumber < input$MaxRange)
     test <-  nrow(testdata) < 3
     if(test){
       data() %>%
         mutate(intensity = if(input$smoother != 0) {
-          smooth_intensity(.$wavenumber, .$intensity, p = input$smoother)$intensity
+          smooth_intensity(.$wavenumber, .$intensity,
+                           p = input$smoother)$intensity
         } else .$intensity) %>%
         mutate(intensity = if(input$baseline != 0) {
-          subtract_background(.$wavenumber, .$intensity, degree = input$baseline)$intensity }
+          subtract_background(.$wavenumber, .$intensity,
+                              degree = input$baseline)$intensity }
           else .$intensity)
     }
-    else{
+    else {
       data() %>%
-        dplyr::filter(wavenumber > input$MinRange & wavenumber < input$MaxRange) %>%
+        dplyr::filter(wavenumber > input$MinRange &
+                        wavenumber < input$MaxRange) %>%
         mutate(intensity = if(input$smoother != 0) {
-          smooth_intensity(.$wavenumber, .$intensity, p = input$smoother)$intensity
+          smooth_intensity(.$wavenumber, .$intensity,
+                           p = input$smoother)$intensity
         } else .$intensity) %>%
         mutate(intensity = if(input$baseline != 0) {
-          subtract_background(.$wavenumber, .$intensity, degree = input$baseline)$intensity }
+          subtract_background(.$wavenumber, .$intensity,
+                              degree = input$baseline)$intensity }
           else .$intensity)
     }
   })
@@ -189,20 +193,23 @@ server <- shinyServer(function(input, output, session) {
     plot_ly(data(), type = 'scatter', mode = 'lines') %>%
       add_trace(x = ~wavenumber, y = ~intensity, name = 'Uploaded Spectrum',
                 line = list(color = 'rgba(240,236,19, 0.8)')) %>%
-      layout(yaxis = list(title = "Absorbance Intensity"),
-             xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0,73)',
+      layout(yaxis = list(title = "absorbance intensity [-]"),
+             xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
+             plot_bgcolor='rgb(17,0,73)',
              paper_bgcolor='black', font = list(color = '#FFFFFF'))
   })
   output$MyPlotB <- renderPlotly({
     plot_ly(type = 'scatter', mode = 'lines') %>%
       add_trace(data = baseline_data(), x = ~wavenumber, y = ~intensity,
-                name = 'Processed Spectrum', line = list(color = 'rgb(240,19,207)')) %>%
+                name = 'Processed Spectrum',
+                line = list(color = 'rgb(240,19,207)')) %>%
       add_trace(data = data(), x = ~wavenumber, y = ~intensity,
-                name = 'Uploaded Spectrum', line = list(color = 'rgba(240,236,19,0.8)')) %>%
+                name = 'Uploaded Spectrum',
+                line = list(color = 'rgba(240,236,19,0.8)')) %>%
       # Dark blue rgb(63,96,130)
       # https://www.rapidtables.com/web/color/RGB_Color.html https://www.color-hex.com/color-names.html
-      layout(yaxis = list(title = "Absorbance Intensity"),
-             xaxis = list(title = "Wavenumber (1/cm)"),
+      layout(yaxis = list(title = "absorbance intensity [-]"),
+             xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
              plot_bgcolor='rgb(17,0,73)', paper_bgcolor='black',
              font = list(color = '#FFFFFF'))
   })
@@ -246,7 +253,8 @@ server <- shinyServer(function(input, output, session) {
               options = list(searchHighlight = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
                              lengthChange = FALSE, pageLength = 5),
-              filter = "top",caption = "Selectable Matches", style = "bootstrap",
+              filter = "top",caption = "Selectable Matches",
+              style = "bootstrap",
               selection = list(mode = "single", selected = c(1)))
   })
 
@@ -270,7 +278,8 @@ server <- shinyServer(function(input, output, session) {
     # Default to first row if not yet clicked
     id_select <- ifelse(is.null(input$event_rows_selected),
                         1,
-                        MatchSpectra()[[input$event_rows_selected, "sample_name"]])
+                        MatchSpectra()[[input$event_rows_selected,
+                                        "sample_name"]])
     # Get data from find_spectrum
     current_meta <- find_spectrum(sample_name == id_select,
                                   spec_lib, which = input$Spectra)
@@ -289,16 +298,18 @@ server <- shinyServer(function(input, output, session) {
     if(!length(input$event_rows_selected)) {
       plot_ly(DataR()) %>%
         add_lines(x = ~wavenumber, y = ~intensity,
-                  line = list(color = 'rgba(255,255,255,0.8)'))%>%
-        layout(yaxis = list(title = "Absorbance Intensity"),
-               xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0, 73)',
+                  line = list(color = 'rgba(255,255,255,0.8)')) %>%
+        layout(yaxis = list(title = "absorbance intensity [-]"),
+               xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
+               plot_bgcolor='rgb(17,0, 73)',
                paper_bgcolor='black', font = list(color = '#FFFFFF'))
     }
     else if(length(input$event_rows_selected)) {
       # Default to first row if not yet clicked
       id_select <- ifelse(is.null(input$event_rows_selected),
                           1,
-                          MatchSpectra()[[input$event_rows_selected, "sample_name"]])
+                          MatchSpectra()[[input$event_rows_selected,
+                                          "sample_name"]])
       # Get data from find_spectrum
       current_spectrum <- find_spectrum(sample_name == id_select,
                                         spec_lib, which = input$Spectra,
@@ -320,8 +331,8 @@ server <- shinyServer(function(input, output, session) {
         add_lines(data = OGData, x = ~wavenumber, y = ~intensity,
                   line = list(color = "rgba(255,255,255,0.8)"),
                   name = "Spectrum to Analyze") %>%
-        layout(yaxis = list(title = "Absorbance Intensity"),
-               xaxis = list(title = "Wavenumber (1/cm)"),
+        layout(yaxis = list(title = "absorbance intensity [-]"),
+               xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
                plot_bgcolor = "rgb(17,0, 73)", paper_bgcolor = "black",
                font = list(color = "#FFFFFF"))
     }})
@@ -365,12 +376,10 @@ server <- shinyServer(function(input, output, session) {
     if((conf$share == "dropbox" & droptoken) | curl::has_internet()) {
       show("share_decision")
       show("share_meta")
-      show("helper1")
     }
     else {
       hide("share_decision")
       hide("share_meta")
-      hide("helper1")
     }
   })
 
