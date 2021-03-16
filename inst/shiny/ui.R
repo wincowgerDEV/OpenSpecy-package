@@ -349,9 +349,9 @@ ui <- fluidPage(
                                                      "Hit the 'Test Data' button to download a sample Raman spectrum."),
                                          size = "m"),
 
-                                materialSwitch("share_decision",
-                                               label = "Share File?",
-                                               inline = T, value = T) %>%
+                                prettySwitch("share_decision",
+                                             label = "Share File?",
+                                             inline = T, value = T) %>%
                                   helper(type = "inline",
                                          title = "Share Help",
                                          content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
@@ -370,7 +370,7 @@ ui <- fluidPage(
                                                      "<a href=https://osf.io/rjg3c> Uploaded spectra and metadata will appear here."),
                                          size = "m"),
 
-                                hidden(textInput("user_name", labelMandatory("User Name"),
+                                hidden(textInput(names(namekey)[1], labelMandatory(namekey[1]),
                                                  placeholder = "e.g. Win Cowger"),
                                        textInput("contact_info", label = "Contact Info",
                                                  placeholder = "e.g. 1-513-673-8956, wincowger@gmail.com"),
@@ -565,7 +565,7 @@ ui <- fluidPage(
 
 
                        fluidRow(
-                         align="center",
+                         align = "center",
                          hr(),
                          tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
                        )),
@@ -578,11 +578,11 @@ ui <- fluidPage(
                          column(10,
                                 tags$h2("We are trying to make this project financially sustainable. It currently costs the developers about a 1000$ each year and no one is paid for their time. See expenses and donations below."),
                                 tags$h3("You can help with a direct donation. Donate here."),
-                                actionButton(inputId='ab1', label="Donate", width = "100%",
+                                actionButton(inputId = 'ab1', label = "Donate", width = "100%",
                                              icon = icon("donate"),
                                              onclick = "window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')"),
                                 tags$h3("Or by purchasing some Open Specy merchandise here."),
-                                actionButton(inputId='ab2', label="Swag Shop", width = "100%",
+                                actionButton(inputId = 'ab2', label = "Swag Shop", width = "100%",
                                              icon = icon("shopping-cart"),
                                              onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")#,
                          ),
@@ -599,7 +599,7 @@ ui <- fluidPage(
                        ),
 
                        fluidRow(
-                         align="center",
+                         align = "center",
                          hr(),
                          tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
                        ))

@@ -97,22 +97,23 @@ server <- shinyServer(function(input, output, session) {
       sout <- tryCatch(share_spectrum(data(),
                          sapply(names(namekey)[1:24], function(x) input[[x]]),
                          share = share),
-                       warning = function(w) {w})
+                       warning = function(w) {w}, error = function(e) {e})
 
-      if (inherits(sout, "simpleWarning")) mess <- sout$message
+      if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
+        mess <- sout$message
 
       if (is.null(sout)) {
         show_alert(
-          title = "Success!!",
-          text = paste("Thank you for sharing your data! Your data will soon ",
-                       "be available at https://osf.io/stmv4/"),
+          title = "Thank you for sharing your data!",
+          text = "Your data will soon be available at https://osf.io/stmv4/",
           type = "success"
         )
+        input$share_decision <- FALSE
       } else {
         show_alert(
           title = "Something went wrong :-(",
-          text = paste("All mandatory data added? R says:", mess, ".",
-                       "Try again."),
+          text = paste0("All mandatory data added? R says: ", mess, ". ",
+                        "Try again."),
           type = "warning"
         )
       }
@@ -392,30 +393,7 @@ server <- shinyServer(function(input, output, session) {
   })
 
   observeEvent(input$share_meta, {
-    toggle("user_name")
-    toggle("contact_info")
-    toggle("organization")
-    toggle("citation")
-    toggle("spectrum_type")
-    toggle("spectrum_identity")
-    toggle("material_form")
-    toggle("material_phase")
-    toggle("material_producer")
-    toggle("material_purity")
-    toggle("material_quality")
-    toggle("material_color")
-    toggle("material_other")
-    toggle("cas_number")
-    toggle("instrument_used")
-    toggle("instrument_accessories")
-    toggle("instrument_mode")
-    toggle("spectral_resolution")
-    toggle("laser_light_used")
-    toggle("number_of_accumulations")
-    toggle("total_acquisition_time_s")
-    toggle("data_processing_procedure")
-    toggle("level_of_confidence_in_identification")
-    toggle("other_info")
+    sapply(names(namekey)[1:24], function(x) toggle(x))
     toggle("submit")
   })
 
