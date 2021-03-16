@@ -36,8 +36,6 @@ spec_lib <- load_lib(path = conf$library_path)
 # Check for Auth Tokens and setup ----
 droptoken <- file.exists("data/droptoken.rds")
 
-outputDir <- "Spectra"
-
 if(droptoken) {
   drop_auth(rdstoken = "data/droptoken.rds")
 }

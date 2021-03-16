@@ -456,7 +456,7 @@ ui <- fluidPage(
 
                          )),
                        fluidRow(
-                         align="center",
+                         align = "center",
                          hr(),
                          tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
                          "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
@@ -591,7 +591,7 @@ ui <- fluidPage(
                        ),
                        fluidRow(
                          column(1),
-                         column(5,
+                         column(4,
                                 DT::dataTableOutput('donations')),
                          column(5,
                                 DT::dataTableOutput('costs')),
