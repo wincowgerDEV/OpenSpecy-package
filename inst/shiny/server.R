@@ -18,7 +18,7 @@ library(rdrop2)
 library(curl)
 library(config)
 library(OpenSpecy)
-
+#devtools::install_github("wincowgerDEV/OpenSpecy")
 # Required Data ----
 conf <- config::get()
 
