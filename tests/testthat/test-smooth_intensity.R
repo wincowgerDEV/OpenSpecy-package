@@ -1,3 +1,5 @@
+data("raman_hdpe")
+
 test_that("smooth_intensity() works as expected", {
   expect_silent(smt <- smooth_intensity(raman_hdpe, p = 3))
   expect_identical(smt, smooth_intensity(raman_hdpe$wavenumber,
