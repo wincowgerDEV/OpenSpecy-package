@@ -54,7 +54,7 @@ read_text <- function(file = ".", cols = NULL, method = "read.csv",
   df <- df[cols]
   names(df) <- c("wavenumber", "intensity")
 
-  if (!is.null(share)) share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share = share)
 
   return(df)
 }
@@ -74,7 +74,7 @@ read_asp <- function(file = ".", share = NULL, ...) {
 
   df <- data.frame(wavenumber = x, intensity = y)
 
-  if (!is.null(share)) share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share = share)
 
   return(df)
 }
@@ -116,7 +116,7 @@ read_spa <- function(file = ".", share = NULL, ...) {
   df <- data.frame(wavenumber = seq(end, start, length = length(floatData)),
                    intensity = floatData)
 
-  if (!is.null(share)) share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share = share)
 
   return(df)
 }
@@ -131,7 +131,7 @@ read_jdx <- function(file = ".", share = NULL, ...) {
   df <- data.frame(wavenumber = jdx@wavelength,
                    intensity = as.numeric(unname(jdx@data$spc[1,])))
 
-  if (!is.null(share)) share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share = share)
 
   return(df)
 }
@@ -146,7 +146,7 @@ read_spc <- function(file = ".", share = NULL, ...) {
   df <- data.frame(wavenumber = spc@wavelength,
                    intensity = as.numeric(unname(spc@data$spc[1,])))
 
-  if (!is.null(share)) share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share = share)
 
   return(df)
 }
@@ -215,7 +215,7 @@ read_0 <- function(file = ".", share = NULL, ...) {
 
   df <- data.frame(wavenumber = x, intensity = y)
 
-  if (!is.null(share)) share_spectrum(df, share)
+  if (!is.null(share)) share_spectrum(df, share = share)
 
   return(df)
 }

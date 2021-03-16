@@ -123,41 +123,47 @@ share_spectrum.data.frame <- function(data,
                                                    other_info = ""),
                                       share = "system", ...) {
   if (is.null(names(metadata))) stop("'metadata' needs to be a named vector")
-  if (!all(metadata == "") & (metadata["user_name"] == "" |
-                              metadata["spectrum_type"] == "" |
-                              metadata["spectrum_identity"] == ""))
-    stop("fields 'user_name', 'spectrum_type', and 'spectrum_identity' must ",
-         "not be empty if metadata are supplied")
+  if (any(is.na(metadata[c("user_name", "spectrum_type", "spectrum_identity")])) |
+      metadata["user_name"] == "" | metadata["spectrum_type"] == "" |
+      metadata["spectrum_identity"] == "") {
+    mex <- FALSE
+    message("fields 'user_name', 'spectrum_type', and 'spectrum_identity' ",
+            "must not be empty if metadata should be shared\n")
+  } else {
+    mex <- TRUE
+  }
 
-  id <- digest(data, algo = "md5")
-  fn <- paste0(paste(human_timestamp(), id, sep = "_"), ".csv")
+  id <- paste(human_timestamp(), digest(data, algo = "md5"), sep = "_")
 
-  ty <- "thank you for sharing"
+  mdata <- data.frame(variable = names(metadata), input = metadata,
+                      row.names = NULL)
 
   if (share == "system") {
     pkg <- system.file("extdata", package = "OpenSpecy")
     dir.create(file.path(pkg, "user_spectra"), showWarnings = F)
-
-    fw <- file.path(pkg, "user_spectra", fn)
-    write.csv(data, fw, row.names = FALSE, quote = TRUE)
-
-    message(ty, ", use 'share_metadata()' to send us more information")
+    fp <- file.path(pkg, "user_spectra")
   } else if (share == "dropbox") {
     if (!requireNamespace("rdrop2"))
       stop("share = 'dropbox' requires package 'rdrop2'")
-
-    fw <- file.path(tempdir(), fn)
-    write.csv(data, fw, row.names = FALSE, quote = TRUE)
-
-    rdrop2::drop_upload(fw, path = "Spectra", ...)
+    fp <- file.path(tempdir())
   } else {
     if (!dir.exists(share)) dir.create(share, showWarnings = F)
-    fw <- file.path(share, fn)
-    write.csv(data, fw, row.names = FALSE, quote = TRUE, ...)
-
-    message(ty, "; please e-mail your spectra to Win Cowger ",
-            "<wincowger@gmail.com>")
+    fp <- file.path(share)
   }
 
-  invisible()
+  fd <- file.path(fp, paste0(id, ".csv"))
+  fm <- file.path(fp, paste0(id, "_form", ".csv"))
+
+  write.csv(data, fd, row.names = FALSE, quote = TRUE)
+
+  if (mex) write.csv(mdata, fm, row.names = FALSE, quote = TRUE)
+
+  if (share == "dropbox") {
+    rdrop2::drop_upload(fd, path = "Spectra", ...)
+    if (mex) rdrop2::drop_upload(fm, path = "Spectra", ...)
+    }
+
+  message("thanks for your willigness to share your data\n",
+          "if you run Open Specy locally, you may consider to e-mail your ",
+          "spectra to Win Cowger <wincowger@gmail.com>")
 }
