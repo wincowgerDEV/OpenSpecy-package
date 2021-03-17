@@ -1,10 +1,7 @@
-raman_metadata.rds
-ftir_metadata.rds
-augmented_ftir.rds
-augmented_raman.rds
-subset_ftir_library.RDS
-subset_ftir_metadata.RDS
-subset_raman_library.RDS
-subset_raman_metadata.RDS
-test_library.RDS
-test_metadata.RDS
+raman_*.rds
+ftir_*.rds
+test_*.rds
+augmented_*.rds
+augmented_*.rds
+subset_*.RDS
+test_*.RDS

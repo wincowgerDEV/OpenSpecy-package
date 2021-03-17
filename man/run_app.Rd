@@ -7,7 +7,8 @@
 run_app(app_dir = system.file("shiny", package = "OpenSpecy"), ...)
 }
 \arguments{
-\item{app_dir}{the app to run.}
+\item{app_dir}{the app to run; defaults to
+\code{system.file("shiny", package = "OpenSpecy")}.}
 
 \item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
 }
