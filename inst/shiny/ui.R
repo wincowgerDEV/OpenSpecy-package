@@ -27,7 +27,19 @@ labelMandatory <- function(label) {
 
 # CSS for star
 appCSS <-
-  ".mandatory_star { color: red; }"
+  ".mandatory_star { color: red; }
+    #loading_overlay {
+    position: absolute;
+    margin-top: 30%;
+    background: #000000;
+    opacity: 0.9;
+    z-index: 100;
+    left: 0;
+    right: 0;
+    height: 100%;
+    text-align: center;
+    color: #FFFFFF;
+    }"
 
 # UI ----
 ui <- fluidPage(
@@ -55,6 +67,20 @@ ui <- fluidPage(
                         ')))
   ),
   shinyjs::inlineCSS(appCSS),
+
+  div(
+    id = "loading_overlay",
+    h2("Loading Open Specy"),
+    br(),
+    tags$div(
+      style="margin-bottom:20%;",
+    ),
+    h4(icon("spinner", class = "btn-loading-indicator fa-spin")),
+    br(),
+    h6("If you start Open Specy for the first time, this may take a while ...")
+  ),
+
+  hidden(div(id = "app_content",
 
   # About Tab ----
   titlePanel(
@@ -608,3 +634,4 @@ ui <- fluidPage(
                        ))
   )
 )
+))

@@ -23,30 +23,39 @@ library(OpenSpecy)
 # Required Data ----
 conf <- config::get()
 
-costs <- fread("data/costs.csv")
-donations <- fread("data/donations.csv")
-testdata <- raman_hdpe
+# Load all data ----
+load_data <- function() {
+  costs <- fread("data/costs.csv")
+  donations <- fread("data/donations.csv")
+  testdata <- raman_hdpe
 
-# Check if spectral library is present and load ----
-test_lib <- class(tryCatch(check_lib(path = ),
-                           warning = function(w) {w}))
-if(any(test_lib == "warning")) get_lib(path = conf$library_path)
+  # Check if spectral library is present and load
+  test_lib <- class(tryCatch(check_lib(path = conf$library_path),
+                             warning = function(w) {w}))
+  if(any(test_lib == "warning")) get_lib(path = conf$library_path)
 
-spec_lib <- load_lib(path = conf$library_path)
+  spec_lib <- load_lib(path = conf$library_path)
 
-# Check for Auth Tokens and setup ----
-droptoken <- file.exists("data/droptoken.rds")
+  # Check for Auth Tokens and setup
+  droptoken <- file.exists("data/droptoken.rds")
 
-if(droptoken) {
-  drop_auth(rdstoken = "data/droptoken.rds")
+  if(droptoken) {
+    drop_auth(rdstoken = "data/droptoken.rds")
+  }
+
+  # Name keys for human readable column names
+  load("data/namekey.RData")
+
+  # Inject variables into the parent
+  invisible(list2env(as.list(environment()), parent.frame()))
 }
-
-# Name keys for human readable column names ----
-load("data/namekey.RData")
 
 # This is the actual server functions, all functions before this point are not
 # reactive
 server <- shinyServer(function(input, output, session) {
+  load_data()
+  hide(id = "loading_overlay", anim = TRUE, animType = "fade")
+  show("app_content")
 
   # For desktop version of the app.
   if (!interactive()) {
