@@ -1,2 +1,7 @@
-*.rds
-*.RDS
+raman_*.rds
+ftir_*.rds
+test_*.rds
+augmented_*.rds
+augmented_*.rds
+subset_*.RDS
+test_*.RDS
