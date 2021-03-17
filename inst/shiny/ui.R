@@ -30,7 +30,7 @@ appCSS <-
   ".mandatory_star { color: red; }
     #loading_overlay {
     position: absolute;
-    margin-top: 30%;
+    margin-top: 10%;
     background: #000000;
     opacity: 0.9;
     z-index: 100;
