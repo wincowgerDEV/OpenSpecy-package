@@ -53,6 +53,7 @@ load_data <- function() {
 # This is the actual server functions, all functions before this point are not
 # reactive
 server <- shinyServer(function(input, output, session) {
+  # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
   show("app_content")
