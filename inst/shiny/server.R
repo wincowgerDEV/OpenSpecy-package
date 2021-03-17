@@ -17,8 +17,8 @@ library(digest)
 library(rdrop2)
 library(curl)
 library(config)
-library(OpenSpecy)
 # devtools::install_github("wincowgerDEV/OpenSpecy")
+library(OpenSpecy)
 
 # Required Data ----
 conf <- config::get()
@@ -42,39 +42,7 @@ if(droptoken) {
 }
 
 # Name keys for human readable column names ----
-namekey <- c(
-  user_name = "User Name",
-  contact_info = "Contact Info",
-  organization = "Affiliation/Organization",
-  citation = "Data Citation",
-  spectrum_type = "Spectrum Type",
-  spectrum_identity = "Material/Polymer",
-  material_form = "Material Form",
-  material_phase = "Material Phase",
-  material_producer = "Material Producer",
-  material_purity = "Material Purity",
-  material_quality = "Material Quality",
-  material_color = "Material Color",
-  material_other = "Other Material Description",
-  cas_number = "CAS number",
-  instrument_used = "Instrument Used",
-  instrument_accessories = "Instrument Accessories",
-  instrument_mode = "Instrument Modes/Settings",
-  spectral_resolution = "Spectral Resolution",
-  laser_light_used = "Wavelength of Laser/Light",
-  number_of_accumulations = "Number of Accumulations",
-  total_acquisition_time_s = "Total Acquisition Time (s)",
-  data_processing_procedure = "Data Processing Procedure",
-  level_of_confidence_in_identification = "Level of Confidence in Identification",
-  other_info = "Other information",
-  other_information = "Other Material Description",
-  color = "Material Color",
-  rsq = "Pearson's r",
-  sample_name = "Sample ID",
-  smoother = "Smoother",
-  baseline = "Basline",
-  range = "Range"
-)
+load("data/namekey.RData")
 
 # This is the actual server functions, all functions before this point are not
 # reactive

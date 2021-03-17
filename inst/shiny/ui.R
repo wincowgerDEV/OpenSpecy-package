@@ -14,6 +14,9 @@ library(dplyr)
 library(plotly)
 library(DT)
 
+# Name keys for human readable column names ----
+load("data/namekey.RData")
+
 # Functions ----
 labelMandatory <- function(label) {
   tagList(
