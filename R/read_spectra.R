@@ -3,7 +3,7 @@
 #' @title Read spectral data
 #'
 #' @description
-#' Functions for reading in spectral data types including *.asp, *.jdx,
+#' Functions for reading spectral data types including *.asp, *.jdx,
 #' *.spc, *.spa, *.0, and *.csv.
 #'
 #' @details

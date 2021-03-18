@@ -39,7 +39,7 @@ Open Specy community; see \code{\link{share_spectrum}()} for details.}
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \description{
-Functions for reading in spectral data types including *.asp, *.jdx,
+Functions for reading spectral data types including *.asp, *.jdx,
 *.spc, *.spa, *.0, and *.csv.
 }
 \details{

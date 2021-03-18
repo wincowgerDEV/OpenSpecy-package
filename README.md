@@ -12,8 +12,16 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 
 ![Graphical Abstract](https://github.com/wincowgerDEV/OpenSpecy/blob/main/inst/shiny/www/graphical_abstract.png?raw=true)
 
-## :warning: This R package is currently under active development and not intended for productive use; visit [openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/) for a stable version!
+## :warning: This R package is currently under active development and not intended for productive use; visit [http://www.openspecy.org](http://www.openspecy.org) for a stable version!
 
+Raman and (FT)IR spectral analysis tool for microplastics and other
+environmental samples. Supported features include reading spectral data files
+(*.asp, *.csv, *.jdx, *.spc, *.spa, *.0), smoothing spectral intensities with
+`smooth_intensity()`, correcting background scatter with 
+`subtract_background()`, and identifying spectra using an onboard reference
+library. Analyzed spectra can be shared with the Open Specy community.
+A Shiny app is available via `run_app()` or online at
+[http://www.openspecy.org](http://www.openspecy.org).
 
 ## Installation
 
