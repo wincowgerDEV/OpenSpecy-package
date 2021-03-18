@@ -9,6 +9,7 @@ library(shinyjs)
 library(shinythemes)
 library(shinyhelper)
 library(shinyWidgets)
+library(shinyBS)
 library(dplyr)
 library(plotly)
 library(DT)
@@ -379,7 +380,10 @@ ui <- fluidPage(
 
                                 prettySwitch("share_decision",
                                              label = "Share File?",
-                                             inline = T, value = T) %>%
+                                             inline = T, 
+                                             value = T,
+                                             status = "success",
+                                             fill = T) %>%
                                   helper(type = "inline",
                                          title = "Share Help",
                                          content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
@@ -519,52 +523,100 @@ ui <- fluidPage(
                        titlePanel(tags$h4("Smooth, Baseline Correct, and Download Processed Spectra")),
                        fluidRow(
                          column(2,
-                                sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3) %>%
-                                  helper(type = "inline",
-                                         title = "Smoother Help",
-                                         content = c("This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified."),
-                                         size = "m"),
-                                sliderInput("baseline", "Baseline Correction Polynomial", min = 0, max = 20, value = 8)%>%
-                                  helper(type = "inline",
-                                         title = "Baseline Correction Help",
-                                         content = c("This baseline correction routine utilizes the imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra."),
-                                         size = "m"),
-
-                                numericInput(
-                                  "MinRange",
-                                  "Minimum Spectral Range",
-                                  value = 0,
-                                  min = NA,
-                                  max = NA,
-                                  step = NA,
-                                  width = NULL
-                                ) %>%
-                                  helper(type = "inline",
-                                         title = "Spectral Range Help",
-                                         content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
-                                         size = "m"),
-                                numericInput(
-                                  "MaxRange",
-                                  "Maximum Spectral Range",
-                                  value = 6000,
-                                  min = NA,
-                                  max = NA,
-                                  step = NA,
-                                  width = NULL
-                                ) %>%
-                                  helper(type = "inline",
-                                         title = "Spectral Range Help",
-                                         content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
-                                         size = "m"),
-
                                 downloadButton('downloadData', 'Download (recommended)') %>%
                                   helper(type = "inline",
                                          title = "Download Help",
                                          content = c("Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file."),
-                                         size = "m")
-
-
-                         ),
+                                         size = "m"),
+                                tags$br(),
+                                fluidRow(
+                                  column(6, 
+                                         prettySwitch("smooth_decision",
+                                             label = "Smoothing",
+                                             inline = T, 
+                                             value = T,
+                                             status = "success",
+                                             fill = T) %>%
+                                          helper(type = "inline",
+                                                 title = "Smoother Help",
+                                                 content = c("This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified."),
+                                                 size = "m")
+                                         ),
+                                  column(6, 
+                                         dropdownButton(inputId = "smooth_tools",
+                                            sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3),
+                                            icon = icon("gear"),
+                                            status = "danger", 
+                                            width = "300px", 
+                                            circle = TRUE)
+                                         )
+                                ),
+                                
+                                fluidRow(
+                                  column(6, 
+                                  prettySwitch("baseline_decision",
+                                             label = "Baseline Correction",
+                                             inline = T, 
+                                             value = T,
+                                             status = "success",
+                                             fill = T) %>%
+                                  helper(type = "inline",
+                                           title = "Baseline Correction Help",
+                                           content = c("This baseline correction routine utilizes the imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra."),
+                                           size = "m") 
+                                         ), 
+                                  column(6,
+                                   dropdownButton(inputId = "baseline_tools",
+                                    sliderInput("baseline", "Baseline Correction Polynomial", min = 0, max = 20, value = 8),
+                                    icon = icon("gear"),
+                                    status = "danger", 
+                                    width = "300px", 
+                                    circle = TRUE
+                                                )
+                                         )
+                                  
+                                ),
+                                fluidRow(
+                                  column(6, 
+                                         prettySwitch("range_decision",
+                                             label = "Range Selection",
+                                             inline = T, 
+                                             value = T,
+                                             status = "success",
+                                             fill = T) %>%
+                                          helper(type = "inline",
+                                                 title = "Spectral Range Help",
+                                                 content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
+                                                 size = "m")
+                                         ),
+                                  column(6, 
+                                         dropdownButton(inputId = "range_tools",
+                                            numericInput(
+                                              "MinRange",
+                                              "Minimum Spectral Range",
+                                              value = 0,
+                                              min = NA,
+                                              max = NA,
+                                              step = NA,
+                                              width = NULL
+                                            ),
+                                            numericInput(
+                                              "MaxRange",
+                                              "Maximum Spectral Range",
+                                              value = 6000,
+                                              min = NA,
+                                              max = NA,
+                                              step = NA,
+                                              width = NULL
+                                              ),
+                                            icon = icon("gear"),
+                                            status = "danger", 
+                                            width = "300px", 
+                                            circle = TRUE
+                                            )
+                                       )
+                                )
+                            ),
 
                          column(10,
                                 plotlyOutput('MyPlotB')
