@@ -17,6 +17,7 @@ library(curl)
 library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
+#library(bslib)
 
 # Required Data ----
 conf <- config::get()
@@ -51,6 +52,10 @@ load_data <- function() {
 # This is the actual server functions, all functions before this point are not
 # reactive
 server <- shinyServer(function(input, output, session) {
+  #For theming
+  #bs_themer()
+  
+  
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")

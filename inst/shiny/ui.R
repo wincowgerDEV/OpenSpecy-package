@@ -12,6 +12,7 @@ library(shinyBS)
 library(dplyr)
 library(plotly)
 library(DT)
+#library(bslib)
 
 # Name keys for human readable column names ----
 load("data/namekey.RData")
@@ -23,6 +24,10 @@ labelMandatory <- function(label) {
     span("*", class = "mandatory_star")
   )
 }
+
+css <- HTML(" body {
+    color: #fff;
+}")
 
 # CSS for star
 appCSS <-
@@ -43,7 +48,10 @@ appCSS <-
 # UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
+  
+  tags$head(tags$style(css)),
   tags$head(uiOutput("analytics")), # Google analytics.
+  #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
   theme = shinytheme("cyborg"), # Change this for other themes
   tags$head( #This is for the error messages.
     tags$style(HTML("
@@ -520,11 +528,15 @@ ui <- fluidPage(
                                   trigger = "hover"
                                 )
                          )),
+                       hr(),
                        fluidRow(
-                         align = "center",
-                         hr(),
+                         column(3),
+                         column(6,  align = "center",
                          tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
                          "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                                ),
+                         column(3)
+                        
                        )),
 
 
@@ -654,9 +666,13 @@ ui <- fluidPage(
 
                          )),
                        fluidRow(
-                         align="center",
-                         hr(),
-                         tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         column(3),
+                         column(6,  align = "center",
+                                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
+                                       "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         ),
+                         column(3)
+                         
                        )),
 
               #Match Spectrum Tab ----
@@ -709,9 +725,13 @@ ui <- fluidPage(
 
 
                        fluidRow(
-                         align = "center",
-                         hr(),
-                         tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         column(3),
+                         column(6,  align = "center",
+                                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
+                                       "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         ),
+                         column(3)
+                         
                        )),
 
 
@@ -743,9 +763,13 @@ ui <- fluidPage(
                        ),
 
                        fluidRow(
-                         align = "center",
-                         hr(),
-                         tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         column(3),
+                         column(6,  align = "center",
+                                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
+                                       "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         ),
+                         column(3)
+                         
                        ))
   )
 )
