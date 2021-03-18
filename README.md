@@ -59,6 +59,14 @@ spec_lib <- load_lib()
 # Sample spectrum
 data("raman_hdpe")
 
+# Share your spectrum with the Open Spey community
+share_spectrum(raman_hdpe,
+               metadata = c(user_name = "Win Cowger",
+                            contact_info = "wincowger@gmail.com",
+                            spectrum_type = "Raman",
+                            spectrum_identity = "HDPE")
+               )
+
 # Adjust spectral intensity
 raman_adj <- raman_hdpe %>%
   adjust_intensity()
