@@ -6,8 +6,6 @@
 # Libraries ----
 library(shiny)
 library(shinyjs)
-library(shinyhelper)
-
 library(dplyr)
 library(plotly)
 # library(viridis)
@@ -96,10 +94,6 @@ server <- shinyServer(function(input, output, session) {
       }
   })
 
-  # Helper icon requirement
-  # Needs to run to add the little helper icons to the data
-  observe_helpers(withMathJax = TRUE)
-
 
   # Read in data when uploaded based on the file type
   preprocessed_data <- reactive({
@@ -134,7 +128,8 @@ server <- shinyServer(function(input, output, session) {
   data <- reactive({
     adjust_intensity(preprocessed_data(), type = input$IntensityCorr)
   })
-
+  
+  #Preprocess Spectra ----
   # All cleaning of the data happens here. Smoothing and Baseline removing
   baseline_data <- reactive({
     testdata <- data() %>% dplyr::filter(wavenumber > input$MinRange &
@@ -142,24 +137,24 @@ server <- shinyServer(function(input, output, session) {
     test <-  nrow(testdata) < 3
     if(test){
       data() %>%
-        mutate(intensity = if(input$smoother != 0) {
+        mutate(intensity = if(input$smooth_decision) {
           smooth_intensity(.$wavenumber, .$intensity,
                            p = input$smoother)$intensity
         } else .$intensity) %>%
-        mutate(intensity = if(input$baseline != 0) {
+        mutate(intensity = if(input$baseline_decision) {
           subtract_background(.$wavenumber, .$intensity,
                               degree = input$baseline)$intensity }
           else .$intensity)
     }
     else {
       data() %>%
-        dplyr::filter(wavenumber > input$MinRange &
-                        wavenumber < input$MaxRange) %>%
-        mutate(intensity = if(input$smoother != 0) {
+        dplyr::filter(if(input$range_decision) {wavenumber > input$MinRange &
+                        wavenumber < input$MaxRange} else{wavenumber == wavenumber}) %>%
+        mutate(intensity = if(input$smooth_decision) {
           smooth_intensity(.$wavenumber, .$intensity,
                            p = input$smoother)$intensity
         } else .$intensity) %>%
-        mutate(intensity = if(input$baseline != 0) {
+        mutate(intensity = if(input$baseline_decision) {
           subtract_background(.$wavenumber, .$intensity,
                               degree = input$baseline)$intensity }
           else .$intensity)
@@ -368,7 +363,31 @@ server <- shinyServer(function(input, output, session) {
         hide("share_meta")
       }
   })
+  
+  observe({
+    if (input$smooth_decision) {
+      show("smooth_tools")
+    } else {
+      hide("smooth_tools")
+    }
+  })
+  
+  observe({
+    if (input$baseline_decision) {
+      show("baseline_tools")
+    } else {
+      hide("baseline_tools")
+    }
+  })
 
+  observe({
+    if (input$range_decision) {
+      show("range_tools")
+    } else {
+      hide("range_tools")
+    }
+  })
+  #This toggles the hidden metadata input layers.
   observeEvent(input$share_meta, {
     sapply(names(namekey)[1:24], function(x) toggle(x))
     toggle("submit")
