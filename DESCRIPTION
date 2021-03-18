@@ -24,7 +24,6 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut"),
     person("Sebastian", "Primpke", role = c("ctb", "dtc"),
       comment = c(ORCID = "0000-0001-7633-8524")),
     person("Orestis", "Herodotou", role = c("ctb", "dtc")))
-Maintainer: Win Cowger <wincowger@gmail.com>
 Description: Raman and (FT)IR spectral analysis tool for plastic particles and
     other environmental samples. Supported features include reading spectral
     data files (*.asp, *.csv, *.jdx, *.spc, *.spa, *.0), smoothing spectral
