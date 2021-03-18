@@ -60,7 +60,7 @@ Suggests:
     config,
     shinyjs,
     shinythemes,
-    shinyhelper,
+    shinyBS,
     shinyWidgets,
     plotly,
     data.table,
