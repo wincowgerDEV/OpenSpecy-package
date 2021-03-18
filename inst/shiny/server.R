@@ -6,8 +6,6 @@
 # Libraries ----
 library(shiny)
 library(shinyjs)
-library(shinyhelper)
-
 library(dplyr)
 library(plotly)
 # library(viridis)
@@ -95,10 +93,6 @@ server <- shinyServer(function(input, output, session) {
         )
       }
   })
-
-  # Helper icon requirement
-  # Needs to run to add the little helper icons to the data
-  observe_helpers(withMathJax = TRUE)
 
 
   # Read in data when uploaded based on the file type

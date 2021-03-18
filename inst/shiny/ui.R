@@ -7,7 +7,6 @@
 library(shiny)
 library(shinyjs)
 library(shinythemes)
-library(shinyhelper)
 library(shinyWidgets)
 library(shinyBS)
 library(dplyr)
