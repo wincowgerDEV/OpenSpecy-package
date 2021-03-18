@@ -4,3 +4,5 @@
 ^\.zenodo\.json$
 ^\.github$
 ^\.httr-oauth$
+^doc$
+^Meta$
