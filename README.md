@@ -14,7 +14,7 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 
 ## :warning: This R package is currently under active development and not intended for productive use; visit [http://www.openspecy.org](http://www.openspecy.org) for a stable version!
 
-Raman and (FT)IR spectral analysis tool for microplastics and other
+Raman and (FT)IR spectral analysis tool for plastic particles and other
 environmental samples. Supported features include reading spectral data files
 (\*.asp, \*.csv, \*.jdx, \*.spc, \*.spa, \*.0), smoothing spectral intensities
 with `smooth_intensity()`, correcting background scatter with 

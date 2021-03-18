@@ -6,14 +6,14 @@
 \alias{OpenSpecy-package}
 \title{OpenSpecy: Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra}
 \description{
-Raman and (FT)IR spectral analysis tool for microplastics and other
-  environmental samples. Supported features include reading spectral data files
-  (*.asp, *.csv, *.jdx, *.spc, *.spa, *.0), smoothing spectral intensities with
-  `smooth_intensity()`, correcting background scatter with
-  `subtract_background()`, and identifying spectra using an onboard reference
-  library. Analyzed spectra can be shared with the Open Specy community.
-  A Shiny app is available via `run_app()` or online at
-  <http://www.openspecy.org>.
+Raman and (FT)IR spectral analysis tool for plastic particles and
+    other environmental samples. Supported features include reading spectral
+    data files (*.asp, *.csv, *.jdx, *.spc, *.spa, *.0), smoothing spectral
+    intensities with `smooth_intensity()`, correcting background scatter with 
+    `subtract_background()`, and identifying spectra using an onboard reference
+    library. Analyzed spectra can be shared with the Open Specy community.
+    A Shiny app is available via `run_app()` or online at
+    <http://www.openspecy.org>.
 }
 \seealso{
 Useful links:
