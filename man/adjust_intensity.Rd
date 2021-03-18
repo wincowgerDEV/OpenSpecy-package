@@ -45,11 +45,10 @@ absorbance units. For example, see \code{\link{match_spectrum}()} and
 \code{\link{subtract_background}()}.
 To run those functions properly, you will need to first convert any spectra
 from transmittance or reflectance to absorbance using this function.
-The transmittance adjustment uses the log10(1/T) calculation which does not
-correct for system and particle characteristics.
-\loadmathjax
+The transmittance adjustment uses the \eqn{log10(1 / T)}
+calculation which does not correct for system and particle characteristics.
 The reflectance adjustment uses the Kubelka-Munk equation
-\mjeqn{\frac{(1 - R)^2}{2R}}{(1 - R)2 / (2 * R)}.
+\eqn{(1 - R)^2 / 2R}.
 }
 \examples{
 data("raman_hdpe")

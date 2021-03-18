@@ -50,8 +50,7 @@ Imports:
     hexView,
     digest,
     signal,
-    shiny,
-    mathjaxr
+    shiny
 Suggests:
     knitr,
     rmarkdown,
@@ -68,4 +67,3 @@ Suggests:
     rdrop2
 RoxygenNote: 7.1.1
 Config/testthat/edition: 3
-RdMacros: mathjaxr
