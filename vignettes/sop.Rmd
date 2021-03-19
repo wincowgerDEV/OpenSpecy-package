@@ -1,11 +1,18 @@
 ---
 title: "Standard Operating Procedure"
 author: >
-  Jessica Meyers, Jeremy Conkle, Win Cowger, Andrew Gray, Chelsea Rochman
-  Sebastian Primpke, Jennifer Lynch, Hannah Hapich, Hannah De Frond, Keenan
-  Munno, Bridget O’Donnell
+  Jessica Meyers, Jeremy Conkle, Win Cowger, Zacharias Steinmetz, Andrew Gray,
+  Chelsea Rochman, Sebastian Primpke, Jennifer Lynch, Hannah Hapich,
+  Hannah De Frond, Keenan Munno, Bridget O’Donnell
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: yes
+    fig_caption: yes
+    code_folding: show
 vignette: >
   %\VignetteIndexEntry{Standard Operating Procedure}
   %\VignetteEngine{knitr::rmarkdown}
@@ -19,7 +26,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Outline
+# Outline
 
 Open Specy is a tool for viewing, processing, sharing, and identifying
 Raman and (FT)IR spectra. This document outlines a common workflow for
@@ -32,13 +39,13 @@ along with this standard operating procedure the first time. Afterward,
 knowledgeable users should be able to thoroughly analyze individual
 spectra at an average speed of 1 per minute.
 
-## Getting started
+# Getting started
 
 ```{r setup}
 library(OpenSpecy)
 ```
 
-## Viewing and Sharing Spectra
+# Viewing and Sharing Spectra
 
 To get started with Open Specy, access
 [www.openspecy.org](http://www.openspecy.org)
@@ -48,114 +55,113 @@ or start the Shiny GUI directly from R typing
 run_app()
 ```
 
-Then click the *Upload File* tab at the top of the page:
-<!-- ![](images/image3.png){style="width: 100%"} -->
+Then click the **Upload File** tab at the top of the page.
+
+<!-- Add Upload tab here -->
 
 ## Download a test dataset
 
-<!-- ## [![](images/image3.png)]{style="width: 175.14px"} -->
-
 If you don't have your own data to use right away, that is ok. You can
 download test data to try out the tool by clicking on the test data
-button. A csv file of HDPE Raman spectrum will download on your
-computer. This file can also be used as a template for formatting CSV
+button. A \*.csv file of HDPE Raman spectrum will download on your
+computer. This file can also be used as a template for formatting \*.csv
 data into an Open Specy accepted format.
 
 ## Choose whether to share your uploaded data or not
 
-<!-- [![](images/image3.png)]{style="width: 241.72px"} -->
-
-[efore uploading, indicate if you would like to share the
-uploaded data or not using the drop down. If "Share" is selected,
+Before uploading, indicate if you would like to share the
+uploaded data or not using the slider. If selected,
 any data uploaded to the tool will automatically be saved in an open
-access drive with a CC-BY 4.0 license and will be available for
+access drive with a [CC-BY 4.0 license](https://creativecommons.org/licenses/by/4.0/)
+and will be available for
 researchers and other ventures to use to improve spectral analysis,
 build machine learning tools, etc. Some users may choose not to share if
-they need to keep their data private. If "Not Now" is selected, none of
+they need to keep their data private. If switched off, none of
 the uploaded data will be stored or shared in Open Specy.
 
 ## Upload data
 
-<!-- [![](images/image3.png)]{style="width: 267.88px"} -->
-
-Open Specy allows for upload of .csv, .jdx, .0, .spc, .spa, and other
-file types. .csv files will always load correctly but the other file
+Open Specy allows for upload of \*.csv, \*.asp, \*.jdx, \*.0, \*.spc, and
+\*.spa files. \*.csv files should always load correctly but the other file
 types are still in beta development, though most of the time these files
-work perfectly. It is best practice to cross check non-.csv files in the
+work perfectly. It is best practice to cross check files in the
 proprietary software they came from and Open Specy before use in Open
 Specy. Due to the complexity of these file types, we haven't been able
 to make them fully compatible yet. If your file is not working, please
 contact the administrator and share the file so that we can get it to
 work.
 
-For the most consistent results, files should be converted to .csv
+For the most consistent results, files should be converted to \*.csv
 format before uploading to Open Specy. The specific steps to converting
-your instrument's native files to .csv can be found in its software
+your instrument's native files to \*.csv can be found in its software
 manual or you can check out
-[[Spectragryph](https://www.google.com/url?q=https://www.effemm2.de/spectragryph/&sa=D&source=editors&ust=1616072638052000&usg=AOvVaw2H-GJzZfEy7EZ79blYTXgR)], which supports many spectral file conversions (see Mini Tutorial
-section: File conversion in Spectragryph to Open Specy accepted
-format).
+[Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
+spectral file conversions (see Mini Tutorial section: File conversion in
+Spectragryph to Open Specy accepted format).
 
-If uploading a csv file, label the column with the wavelengths
-"Wavelength" and name the column with the intensities "Absorbance".
-Wavelength units must be 1/cm. Any other columns are not used by the
-software. If you are uploading a reflectance or transmission spectrum,
-you will still label the intensity units as Absorbance. Always keep a
-copy of the original file before alteration to preserve metadata
-and raw data for your records
+If uploading a \*.csv file, label the column with the wavenumbers
+`wavenumber` and name the column with the intensities `intensity` (Table \@ref(sample-data))).
 
-<!-- [![](images/image19.png)]{style="width: 100.47px"} -->
+```{r sample-data, echo=FALSE}
+knitr::kable(head(raman_hdpe), caption = "Table 1: Sample data `raman_hdpe`")
+```
 
-To upload data, click Browse and choose one of your
+Wavenumber units must be cm^-1^. Any other columns are not used by the
+software. Always keep a copy of the original file before alteration to preserve
+metadata and raw data for your records.
+
+To upload data, click **Browse** and choose one of your
 files to upload, or drag and drop your file into the gray box. At this
 time you can only upload one file at a time. Upon upload and throughout
-the analysis, intensity values are min-max normalized (Equation 1).
+the analysis, intensity values are min-max normalized (Equation \@ref(eq:makerelative)).
 
-Equation 1: Max-Min Normalization <!-- ![](images/image1.png) -->
+\begin{equation}
+\label{eq:makerelative}
+\frac{x - \mathrm{min}(x)}{\mathrm{min}(x) - \mathrm{max}(x)}
+\end{equation}
+$$\frac{x - \mathrm{min}(x)}{\mathrm{min}(x) - \mathrm{max}(x)}$$
+<p style="text-align: center;">Equation 1: Max-Min Normalization</p>
 
-Viewing Spectra Plot
+## Viewing Spectra Plot
 
-<!-- [![](images/image3.png)]{style="width: 415.00px"} -->
-
-After data is uploaded, it will appear in the main window. This plot is
-selectable, zoomable, and provides information on hover. You can also
-save a png file of the plot view using the camera icon at the top when
+After spectral data are uploaded, it will appear in the main window. This plot
+is selectable, zoomable, and provides information on hover. You can also
+save a \*.png file of the plot view using the camera icon at the top right when
 you hover over the plot. This plot will change the view based on updates
-from the Adjusting Intensity Units selection.
+from the "Intensity Adjustment" selection.
 
-## Adjusting Intensity Units 
+## Intensity Adjustment
 
-<!-- [![](images/image3.png)]{style="width: 236.72px"} -->
+<!-- Add Image for intensity dropdown -->
 
 Open Specy assumes that intensity units are in absorbance units but
 Open Specy can adjust reflectance or transmittance spectra to absorbance
 units using this drop down in the upload file tab. The transmittance
-adjustment uses the log10(1/T) calculation which does not correct for
+adjustment uses the $\log_{10} 1/T$ calculation which does not correct for
 system or particle characteristics. The reflectance adjustment
-use s the Kubelka-Munk equation (1-R)2]/(2\*R). If none is selected, Open Specy
-assumes that the uploaded data is an absorbance spectrum and does not
+use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. If none is selected, Open
+Specy assumes that the uploaded data is an absorbance spectrum and does not
 apply an adjustment.
 
 ## Share metadata on known spectra
-<!-- [![](images/image18.png)]{style="width: 137.00px"} -->
+
+<!-- Add metadata image -->
 
 When sharing data, please provide as much metadata as you can. Metadata
 helps make shared data as useful as possible. Metadata inputs each have
 examples provided in the input. The examples disappear when the box is
 clicked and will not be saved if nothing is input by the user.
-Mandatory inputs are marked with a red star. If these inputs are not
+Mandatory inputs are marked with a red asterisk. If these inputs are not
 filled, the data will be considered uninterpretable and will be
 discarded. Inputs left blank will be left blank in the metadata sheet
 and interpreted as "unknown" or "not applicable". To share metadata,
 click the share data button at the bottom of the metadata inputs.
 
-<!-- [![](images/image4.png)]{style="width: 133.00px"} -->
-
-[When the user clicks the share data button their current uploaded data
-and metadata is sent to an [open-access online
-repository](https://www.google.com/url?q=https://www.dropbox.com/sh/vibzoiq1i4o5usp/AAAe50RJhnvt6NoMDAJZ1CY8a?dl%3D0&sa=D&source=editors&ust=1616072638058000&usg=AOvVaw10FaY1OVqJbCMuruQQhErv). All inputs from the metadata (described below) are input to a
-metadata sheet followed by any inputs on the smoother and baseline
-correction page and ending with the date stamp. The metadata sheet is
+When the user clicks the **Share Data** button their current uploaded data
+and metadata is sent to an
+[open-access online repository](https://osf.io/rjg3c/).
+All inputs from the metadata (described below) are input to a
+metadata sheet. The metadata sheet is
 given the same unique name as the data, but it ends with "\_form". The
 exact same data is saved as would be downloaded using the download data
 button (described below). All high quality uploaded data with metadata
@@ -171,21 +177,19 @@ administrator to get a bulk upload sheet for more rapid upload.
 
 After uploading data, you can preprocess the data using baseline
 correction, smoothing, and range selection and save your preprocessed
-data. Go to the Preprocess Spectrum tab to select
+data. Go to the **Preprocess Spectrum** tab to select
 your parameters for processing the spectrum.
 
-<!-- [![](images/image9.png)]{style="width: 624.00px"} -->
+<!-- Add image -->
 
 ## Preprocess Spectra Plot
-
-<!-- [![](images/image9.png)]{style="width: 521.00px"} -->
 
 The preprocess spectra plot shows the uploaded spectra in comparison to
 the processed spectra that has been processed using the processing
 inputs on the page. It will automatically update with any new slider
 inputs. This allows the user to tune the inputs to optimize the signal
 to noise ratio. The goal with preprocessing is to make peak regions have
-high intensities and nonpeak regions should have low intensities.
+high intensities and non-peak regions should have low intensities.
 
 ## Smoothing Polynomial
 
@@ -194,11 +198,11 @@ high intensities and nonpeak regions should have low intensities.
 The first step of the Open Specy preprocessing routing is spectral
 smoothing. The goal of this function is to increase the signal to noise
 ratio (S/N) without distorting the shape or relative size of the peaks.
-The value on the slider is the polynomial order of the Savitzky-Golay
+The value on the slider is the polynomial order of the [Savitzky-Golay
 (SG)
-filter ([[https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter](https://www.google.com/url?q=https://en.wikipedia.org/wiki/Savitzky%25E2%2580%2593Golay_filter&sa=D&source=editors&ust=1616072638060000&usg=AOvVaw1fw5RekZW44iGlJ662zseM), https://pubs.acs.org/doi/abs/10.1021/ac60214a047). 
-The SG
-filter is fit to a moving window of 11 data points where the center
+filter](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter) (see also doi: 
+[10.1021/ac60214a047](https://doi.org/10.1021/ac60214a047)). 
+The SG filter is fit to a moving window of 11 data points where the center
 point in the window is replaced with the polynomial estimate. The
 number of data points in the window is not user adjustable. Higher
 numbers lead to more wiggly fits and thus less smooth, lower numbers
@@ -211,22 +215,21 @@ noise without distortion, but if the spectrum is noisy, decrease
 polynomial order and if it is already smooth, increase the polynomial
 order to the maximum (7). Examples of smoothing below.
 
-<!-- [![](images/image10.png)]{style="width: 291.84px"} -->
+<!-- Add image -->
 
 Cowger et al. 2020
 
 ## Baseline Correction Polynomial
 
-<!-- [![](images/image11.jpg)]{style="width: 304.00px"} -->
+<!-- Add slider image -->
 
 The second step of Open Specy's preprocessing routine is baseline
 correction. The goal of baseline correction is to get all non-peak
-regions of the spectra to 0 Absorbance. The higher the polynomial order,
+regions of the spectra to zero absorbance. The higher the polynomial order,
 the more wiggly the fit to the baseline. If the baseline
 is not very wiggly, a more wiggly fit could remove peaks which is not
 desired. The baseline correction algorithm used in Open Specy is called
-"I-ModPolyfit" ([Zhao et al.
-2007](https://www.google.com/url?q=https://paperpile.com/shared/BdMxHw&sa=D&source=editors&ust=1616072638062000&usg=AOvVaw1TxQwsOEQx3o-RAnIdLAsc)). This algorithm iteratively fits polynomial equations of the
+"I-ModPolyfit" ([Zhao et al. 2007]()). This algorithm iteratively fits polynomial equations of the
 specified order to the whole spectrum. During the first fit iteration,
 peak regions will often be above the baseline fit. The data in the peak
 region is removed from the fit to make sure that the baseline is less
@@ -243,8 +246,6 @@ polypropylene. Cowger et al. 2020.
 
 ## Spectral Range
 
-<!-- [![](images/image9.png)]{style="width: 233.70px"} -->
-
 The final step of preprocessing is restricting the spectral range.
 Sometimes the instrument operates with high noise at the ends of the
 spectrum and sometimes the baseline fit can produce distortions at the
@@ -258,8 +259,6 @@ function allows users to isolate peaks of interest for matching, while
 removing noise and influence from less relevant spectral data.
 
 ## Download Data
-
-<!-- [![](images/image15.jpg)]{style="width: 187.00px"} -->
 
 After you have the preprocessing parameters set, we recommend that you
 download the preprocessed data for your records. The download data
@@ -294,16 +293,12 @@ the Raman library to make the match.
 
 ## Spectrum To Analyze
 
-<!-- [![](images/image5.png)]{style="width: 272.97px"} -->
-
 The spectra to analyze input specifies if the tool will match the
 "Uploaded" spectra (unaltered by the inputs on the Preprocess Spectra
-Tab) or the "Processed" spectra (manipulated by the inputs in the
+Tab) or the **Processed" spectra** (manipulated by the inputs in the
 Preprocess Spectra Tab).
 
 ## Region To Match
-
-<!-- [![](images/image5.png)]{style="width: 220.49px"} -->
 
 The region to match input specifies if the "Full Spectrum" will match
 the entire range of the spectra (including non peak regions) in the
@@ -335,7 +330,8 @@ by clicking the box that says "All" under the Organization column.
 Similarly you can restrict the range of Pearson\'s r values or search
 for specific material types.
 
-Equation 2: Minimum Subtraction <!-- ![](images/image2.png) -->
+$$\mathrm{for~each}~peak~group^{1,n}: x - \mathrm{min}(x)$$
+<p style="text-align: center;">Equation 2: Minimum Subtraction</p>
 
 ## Selection Metadata
 
@@ -406,8 +402,6 @@ materials to identify. In this case, restrict the preprocessing range to
 just the unidentified peak and try to identify it as an additional
 component.
 
-<!-- [![](images/image14.png)]{style="width: 397.50px"} -->
-
 [[https://www.compoundchem.com/2015/02/05/irspectroscopy/](https://www.google.com/url?q=https://www.compoundchem.com/2015/02/05/irspectroscopy/&sa=D&source=editors&ust=1616072638073000&usg=AOvVaw0OB5PjQTf3s2hyIcFnnT-i)
 
 Also, check the match metadata to see if the match makes sense.
@@ -463,7 +457,7 @@ LDPE and HDPE as opposed to generic 'PE'.
 
 One possibility is to place more emphasis (from a computational
 perspective) on the bands that show the most difference (the triplet at
-1450 cm-1) by restricting the range used to match in
+1450 cm^-1^) by restricting the range used to match in
 Open Specy. 
 
 The other, much simpler option is to just match any PE hit to generic
@@ -491,8 +485,8 @@ spectra:
     regions with a higher signal to noise ratio.
 3.  Restrict the spectral range to include or exclude questionable
     peaks or peaks that were not present in the previous matches.
-4.  Restrict the spectral range to exclude things like CO₂ (2200 cm⁻¹)
-    or H₂O (\~1600 cm⁻¹) in spikes in the IR spectrum.
+4.  Restrict the spectral range to exclude things like CO~2~ (2200 cm^-1^)
+    or H~2~O (\~1600 cm^-1^) in spikes in the IR spectrum.
 5.  If nothing above works to determine a quality match, you may need
     to measure the spectrum of your material again or use another
     spectral analysis tool.
@@ -511,7 +505,7 @@ into the console.
 <!-- [![](images/image17.png)]{style="width: 624.00px"} -->
 
 3. Click File, Save/export data, save data as, and save it as an spc
-file. 
+file. ¸
 
 <!-- [![](images/image8.png)]{style="width: 624.00px"} -->
 
@@ -523,7 +517,7 @@ file.
 
 <!-- [![](images/image22.png)]{style="width: 589.35px"} -->
 
-## References:
+# References
 
 Cowger, W., Gray, A., Christiansen, S. H., De Frond, H., Deshpande, A.,
 Hermabessiere, L., Lee, E., Mill, L., Munno, K., Ossmann, B., & Others.
