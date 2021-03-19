@@ -76,10 +76,11 @@ find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
 
 ## Citation
 
-To cite the R package **OpenSpecy** in publications use:
+To cite the R package **OpenSpecy** use:
 
-Win Cowger and Zacharias Steinmetz (2021). OpenSpecy: Analyze, Process, Identify, and Share, Raman and
-(FT)IR Spectra. R package version 0.7.0. [https://github.com/wincowgerDEV/OpenSpecy]()
+Win Cowger and Zacharias Steinmetz (2021). OpenSpecy: Analyze, Process,
+Identify, and Share, Raman and (FT)IR Spectra. R package version 0.8.0.
+[https://github.com/wincowgerDEV/OpenSpecy]()
 
 A BibTeX entry for LaTeX users is
 
@@ -88,7 +89,7 @@ A BibTeX entry for LaTeX users is
   title = {OpenSpecy: Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra},
   author = {Win Cowger and Zacharias Steinmetz},
   year = {2021},
-  note = {R package version 0.7.0},
+  note = {R package version 0.8.0},
   url = {https://github.com/wincowgerDEV/OpenSpecy},
 }
 ```
