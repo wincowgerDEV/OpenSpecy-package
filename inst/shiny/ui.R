@@ -17,6 +17,10 @@ library(DT)
 # Name keys for human readable column names ----
 load("data/namekey.RData")
 
+citation <- paste("W. Cowger, Z. Steinmetz, A. Gray, H. Hapich, C. Rochman,",
+                  "J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou.",
+                  "2020. Open Specy. www.openspecy.org")
+
 # Functions ----
 labelMandatory <- function(label) {
   tagList(
@@ -48,7 +52,7 @@ appCSS <-
 # UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
-  
+
   tags$head(tags$style(css)),
   tags$head(uiOutput("analytics")), # Google analytics.
   #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
@@ -307,7 +311,7 @@ ui <- fluidPage(
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Citation</h1> </center>
                                   <br>"),
-                                shiny::HTML("<h5>W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org</h5>")
+                                shiny::h5(citation)
                          ),
                          column(3)
                        ),
@@ -380,7 +384,7 @@ ui <- fluidPage(
 
                                 prettySwitch("share_decision",
                                              label = "Share File?",
-                                             inline = T, 
+                                             inline = T,
                                              value = T,
                                              status = "success",
                                              fill = T),
@@ -389,7 +393,7 @@ ui <- fluidPage(
                                   title = "Share Help",
                                   content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
                                               "Uploaded spectra will appear here: https://osf.io/rjg3c"),
-                                  placement = "bottom", 
+                                  placement = "bottom",
                                   trigger = "hover"
                                 ),
 
@@ -404,17 +408,17 @@ ui <- fluidPage(
                                             If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.",
                                             "",
                                             "Hit the 'Test Data' button to download a sample Raman spectrum."),
-                                  placement = "bottom", 
+                                  placement = "bottom",
                                   trigger = "hover"
                                 ),
 
                                 actionButton("share_meta", "Share Metadata"),
                                 bsPopover(
-                                  id = "share_meta", 
+                                  id = "share_meta",
                                   title = "Metadata Help",
                                   content = c("We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.",
                                               "Uploaded spectra and metadata will appear here: https://osf.io/rjg3c"),
-                                  placement = "bottom", 
+                                  placement = "bottom",
                                   trigger = "hover"
                                 ),
 
@@ -511,7 +515,7 @@ ui <- fluidPage(
                                             c("None" = "none",
                                               "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
                                 bsPopover(
-                                  id = "IntensityCorr", 
+                                  id = "IntensityCorr",
                                   title = "Intensity Correction Help",
                                   content = c("If the uploaded spectrum is not in absorbance units, ",
                                               "use this input to specify the units to convert from.Open Specy can ",
@@ -524,7 +528,7 @@ ui <- fluidPage(
                                               "Kubelka-Munk equation (1-R)2/(2*R). ",
                                               "If none is selected, Open Specy assumes that the uploaded data is ",
                                               "an absorbance spectrum."),
-                                  placement = "bottom", 
+                                  placement = "bottom",
                                   trigger = "hover"
                                 )
                          )),
@@ -532,11 +536,10 @@ ui <- fluidPage(
                        fluidRow(
                          column(3),
                          column(6,  align = "center",
-                         tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
-                         "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         tags$p("Citation: ", citation)
                                 ),
                          column(3)
-                        
+
                        )),
 
 
@@ -546,30 +549,30 @@ ui <- fluidPage(
                        fluidRow(
                          column(2,
                                 fluidRow(
-                                  column(12, 
+                                  column(12,
                                   downloadButton('downloadData', 'Download (recommended)'),
-                                    bsPopover(id = 'downloadData', 
+                                    bsPopover(id = 'downloadData',
                                               title = "Download Help",
                                               content = c("Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file."),
-                                              placement = "bottom", 
+                                              placement = "bottom",
                                               trigger = "hover")
                                     )
                                 ),
                                 tags$br(),
                                 fluidRow(
-                                  column(2, 
+                                  column(2,
                                          dropdownButton(inputId = "smooth_tools",
                                                         sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3),
                                                         icon = icon("gear"),
                                                         size = "xs",
-                                                        status = "success", 
-                                                        width = "300px", 
+                                                        status = "success",
+                                                        width = "300px",
                                                         circle = TRUE)
                                   ),
-                                  column(10, 
+                                  column(10,
                                          prettySwitch("smooth_decision",
                                              label = "Smoothing",
-                                             inline = T, 
+                                             inline = T,
                                              value = T,
                                              bigger = T,
                                              status = "success",
@@ -578,28 +581,28 @@ ui <- fluidPage(
                                            id = "smooth_decision",
                                            title = "Smoother Help",
                                            content = c("This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified."),
-                                           placement = "bottom", 
+                                           placement = "bottom",
                                            trigger = "hover"
                                            )
                                   )
-                                  
+
                                 ),
-                                
+
                                 fluidRow(
                                   column(2,
                                    dropdownButton(inputId = "baseline_tools",
                                     sliderInput("baseline", "Baseline Correction Polynomial", min = 0, max = 20, value = 8),
                                     icon = icon("gear"),
                                     size = "xs",
-                                    status = "success", 
-                                    width = "300px", 
+                                    status = "success",
+                                    width = "300px",
                                     circle = TRUE
                                                 )
                                          ),
-                                  column(10, 
+                                  column(10,
                                   prettySwitch("baseline_decision",
                                              label = "Baseline Correction",
-                                             inline = T, 
+                                             inline = T,
                                              value = T,
                                              bigger = T,
                                              status = "success",
@@ -608,14 +611,14 @@ ui <- fluidPage(
                                     id = "baseline_decision",
                                     title = "Baseline Correction Help",
                                     content = c("This baseline correction routine utilizes the imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra."),
-                                    placement = "bottom", 
+                                    placement = "bottom",
                                     trigger = "hover"
                                   )
 
                                          )
                                 ),
                                 fluidRow(
-                                  column(2, 
+                                  column(2,
                                          dropdownButton(inputId = "range_tools",
                                                         numericInput(
                                                           "MinRange",
@@ -637,15 +640,15 @@ ui <- fluidPage(
                                                         ),
                                                         icon = icon("gear"),
                                                         size = "xs",
-                                                        status = "success", 
-                                                        width = "300px", 
+                                                        status = "success",
+                                                        width = "300px",
                                                         circle = TRUE
                                          )
                                   ),
-                                  column(10, 
+                                  column(10,
                                          prettySwitch("range_decision",
                                              label = "Range Selection",
-                                             inline = T, 
+                                             inline = T,
                                              value = T,
                                              bigger = T,
                                              status = "success",
@@ -654,7 +657,7 @@ ui <- fluidPage(
                                            id = "range_decision",
                                            title = "Spectral Range Help",
                                            content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
-                                           placement = "bottom", 
+                                           placement = "bottom",
                                            trigger = "hover"
                                          )
                                   )
@@ -668,11 +671,10 @@ ui <- fluidPage(
                        fluidRow(
                          column(3),
                          column(6,  align = "center",
-                                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
-                                       "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                                tags$p("Citation: ", citation)
                          ),
                          column(3)
-                         
+
                        )),
 
               #Match Spectrum Tab ----
@@ -727,11 +729,10 @@ ui <- fluidPage(
                        fluidRow(
                          column(3),
                          column(6,  align = "center",
-                                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
-                                       "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                                tags$p("Citation: ", citation)
                          ),
                          column(3)
-                         
+
                        )),
 
 
@@ -765,11 +766,10 @@ ui <- fluidPage(
                        fluidRow(
                          column(3),
                          column(6,  align = "center",
-                                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
-                                       "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                                tags$p("Citation: ", citation)
                          ),
                          column(3)
-                         
+
                        ))
   )
 )
