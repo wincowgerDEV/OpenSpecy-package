@@ -386,28 +386,28 @@ Equation 2: Minimum Subtraction
 </div>
 <div id="things-to-consider-beyond-correlation" class="section level3" number="4.7.3">
 <h3 number="4.7.3"><span class="header-section-number">4.7.3</span> Things to consider beyond correlation</h3>
-<p>Peak position and height similarities are more important than correlation and need to be assessed manually. Peak position correlates with specific bond types. Peak height correlates to the concentration of a compound. Therefore, peak height and peak position should match as closely as possible to the matched spectrum. When there are peaks that exist in the spectra you are trying to interpret that do not exist in the match, there may be additional materials to identify. In this case, restrict the preprocessing range to just the unidentified peak and try to identify it as an additional component.</p>
-<p>[<a href="https://www.google.com/url?q=https://www.compoundchem.com/2015/02/05/irspectroscopy/&amp;sa=D&amp;source=editors&amp;ust=1616072638073000&amp;usg=AOvVaw0OB5PjQTf3s2hyIcFnnT-i">https://www.compoundchem.com/2015/02/05/irspectroscopy/</a></p>
+<p>Peak position and height similarities are more important than correlation and need to be assessed manually. Peak position correlates with specific bond types. Peak height correlates to the concentration of a compound. Therefore, peak height and peak position should match as closely as possible to the matched spectrum. When there are peaks that exist in the spectra you are trying to interpret that do not exist in the match, there may be additional materials to identify. In this case, restrict the preprocessing range to just the unidentified peak and try to identify it as an additional component (see also <a href="https://www.compoundchem.com/2015/02/05/irspectroscopy/">https://www.compoundchem.com/2015/02/05/irspectroscopy/</a>).</p>
 <p>Also, check the match metadata to see if the match makes sense. Example: A single fiber cannot be a “cotton blend” since there would be no other fibers to make up the rest of the blend. Example: Cellophane does not degrade into fibers, so a match for a fiber to cellophane wouldn’t make sense. Example: You are analyzing a particle at room temperature, but the matched material is liquid at room temperature. The material may be a component of the particle but it cannot be the whole particle.</p>
 </div>
 <div id="how-specific-do-you-need-to-be-in-the-material-type-of-the-match" class="section level3" number="4.7.4">
 <h3 number="4.7.4"><span class="header-section-number">4.7.4</span> How specific do you need to be in the material type of the match?</h3>
 <p>You can choose to be specific about how you classify a substance (e.g. polyester, cellophane) or more general (e.g. synthetic, semi-synthetic, natural, etc.). The choice depends on your research question. Using more general groups can speed up analysis time but will decrease the information you have for interpretation. To identify materials more generally, you can often clump the identities provided by Open Specy to suit your needs. For example, matches to “polyester” and “polypropylene” could be clumped to the category “plastic”.</p>
 </div>
-<div id="how-to-differentiate-between-similar-spectra-figures-courtesy-of-bridget-odonnell-from-horiba-scientific" class="section level3" number="4.7.5">
-<h3 number="4.7.5"><span class="header-section-number">4.7.5</span> How to differentiate between similar spectra? (Figures Courtesy of Bridget O'Donnell from Horiba Scientific)</h3>
-<p>One common challenge is differentiating between LDPE and HDPE. But, even with a low resolution instrument (MacroRAM, 2 cm-1/pixel), you can still see some differences. From a wide view, these low, medium, and high density PE samples all look relatively similar:</p>
-<!-- [![](images/image23.png)]{style="width: 620.60px"} -->
-<p>But, a closer look at the 1450 cm-1 band reveals clear differences:</p>
-<!-- [![](images/image13.png)]{style="width: 616.57px"} -->
+<div id="how-to-differentiate-between-similar-spectra" class="section level3" number="4.7.5">
+<h3 number="4.7.5"><span class="header-section-number">4.7.5</span> How to differentiate between similar spectra?</h3>
+<p>One common challenge is differentiating between LDPE and HDPE. But, even with a low resolution instrument (MacroRAM, 2 cm<sup>-1</sup> pixel<sup>-1</sup>), you can still see some differences. From a wide view, these low, medium, and high density PE samples all look relatively similar (figures courtesy of Bridget O'Donnell, Horiba Scientific):</p>
+<p><img src="sop_files/figure-html/horiba-1.png" /></p>
+<p>But, a closer look at the 1450 cm<sup>-1</sup> band reveals clear differences:</p>
+<p><img src="sop_files/figure-html/horiba-2.png" /></p>
 <p>When you overlay them, you start to see differences in other spectral regions too:</p>
-<!-- [![](images/image12.png)]{style="width: 624.00px"} -->
-<p>[So, the question is, how do we deal with samples that are very similar with only subtle differences? Usually, researchers will use MVA techniques after they’ve collected multiple reference spectra of known samples (LDPE and HDPE in this case). They can then develop models and apply them to distinguish between different types of PE. With a reference database like Open Specy, this is complicated by the fact that researchers are measuring samples on different instruments with correspondingly different spectral responses and spectral resolutions. That makes it even more difficult to accurately match definitively to LDPE and HDPE as opposed to generic ‘PE’.</p>
+<p><img src="sop_files/figure-html/horiba-3.png" /></p>
+<p>So, the question is, how do we deal with samples that are very similar with only subtle differences? Usually, researchers will use MVA techniques after they’ve collected multiple reference spectra of known samples (LDPE and HDPE in this case). They can then develop models and apply them to distinguish between different types of PE. With a reference database like Open Specy, this is complicated by the fact that researchers are measuring samples on different instruments with correspondingly different spectral responses and spectral resolutions. That makes it even more difficult to accurately match definitively to LDPE and HDPE as opposed to generic ‘PE’.</p>
 <p>One possibility is to place more emphasis (from a computational perspective) on the bands that show the most difference (the triplet at 1450 cm<sup>-1</sup>) by restricting the range used to match in Open Specy.</p>
 <p>The other, much simpler option is to just match any PE hit to generic ‘PE’ and not specifically HDPE or LDPE.</p>
-<p>Another challenge is in differentiating between types of nylons. But, Raman has a pretty easy time distinguishing nylons. These spectra were recorded of a series of nylons and the differences are much more distinguishable compared to the PE results above (nylon 6, 6-6, 6-9, 6-10, and 6-12 top to bottom): <!-- [![](images/image21.png)]{style="width: 584.61px"} --></p>
+<p>Another challenge is in differentiating between types of nylons. But, Raman has a pretty easy time distinguishing nylons. These spectra were recorded of a series of nylons and the differences are much more distinguishable compared to the PE results above (nylon 6, 6-6, 6-9, 6-10, and 6-12 top to bottom):</p>
+<p><img src="sop_files/figure-html/horiba-4.png" /></p>
 <p>The differences are even more pronounced when you overlay the spectra:</p>
-<!-- [![](images/image6.png)]{style="width: 542.20px"} -->
+<p><img src="sop_files/figure-html/horiba-5.png" /></p>
 </div>
 <div id="what-to-do-when-matches-arent-making-sense" class="section level3" number="4.7.6">
 <h3 number="4.7.6"><span class="header-section-number">4.7.6</span> What to do when matches aren’t making sense</h3>
@@ -426,17 +426,14 @@ Equation 2: Minimum Subtraction
 <div id="file-conversion-in-spectragryph-to-open-specy-accepted-format" class="section level2" number="5.1">
 <h2 number="5.1"><span class="header-section-number">5.1</span> File Conversion in SpectraGryph to Open Specy accepted format</h2>
 <ol style="list-style-type: decimal">
-<li>Download Spectragryph</li>
+<li><p>Download Spectragryph from <a href="https://www.effemm2.de/spectragryph/down.html">https://www.effemm2.de/spectragryph/down.html</a></p></li>
+<li><p>Open Spectragryph and upload your file by dragging and dropping it into the console.</p></li>
 </ol>
-<p><a href="https://www.google.com/url?q=https://www.effemm2.de/spectragryph/down.html&amp;sa=D&amp;source=editors&amp;ust=1616072638079000&amp;usg=AOvVaw24d2-Do_oAvlvpiJV7mpyL">https://www.effemm2.de/spectragryph/down.html</a></p>
-<ol start="2" style="list-style-type: decimal">
-<li>Open Spectragryph and upload your file by dragging and dropping it into the console.</li>
-</ol>
-<!-- [![](images/image17.png)]{style="width: 624.00px"} -->
+<p><img src="sop_files/figure-html/spectragryph-1.png" /></p>
 <ol start="3" style="list-style-type: decimal">
 <li>Click File, Save/export data, save data as, and save it as an spc file. ¸</li>
 </ol>
-<!-- [![](images/image8.png)]{style="width: 624.00px"} -->
+<p><img src="sop_files/figure-html/spectragryph-2.png" /></p>
 <ol start="4" style="list-style-type: decimal">
 <li>Then upload that SPC file to Open Specy.</li>
 </ol>
@@ -444,7 +441,7 @@ Equation 2: Minimum Subtraction
 </div>
 <div id="conceptual-diagram-of-data-flow-through-open-specy" class="section level2" number="5.2">
 <h2 number="5.2"><span class="header-section-number">5.2</span> Conceptual diagram of data flow through Open Specy</h2>
-<!-- [![](images/image22.png)]{style="width: 589.35px"} -->
+<p><img src="sop_files/figure-html/flowchart.png" style="width:80.0%" /></p>
 </div>
 </div>
 <div id="references" class="section level1" number="6">

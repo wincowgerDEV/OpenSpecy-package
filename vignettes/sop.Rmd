@@ -447,22 +447,21 @@ One common challenge is differentiating between LDPE and HDPE. But,
 even with a low resolution instrument (MacroRAM, 2 cm^-1^ pixel^-1^),
 you can still see some differences. From a wide view,
 these low, medium, and high density PE samples all look relatively
-similar:
+similar (figures courtesy of Bridget O\'Donnell, Horiba Scientific):
 
-<!-- [![](images/image1.png)]{style="width: 620.60px"} -->
-(Figures Courtesy of Bridget O\'Donnell from Horiba Scientific)
+![](sop_files/figure-html/horiba-1.png)
 
 But, a closer look at the 1450 cm^-1^ band reveals
 clear differences:
 
-<!-- [![](images/image2.png)]{style="width: 616.57px"} -->
+![](sop_files/figure-html/horiba-2.png)
 
 When you overlay them, you start to see differences in other spectral
 regions too:
 
-<!-- [![](images/image3.png)]{style="width: 624.00px"} -->
+![](sop_files/figure-html/horiba-3.png)
 
-[So, the question is, how do we deal with samples that are very similar
+So, the question is, how do we deal with samples that are very similar
 with only subtle differences? Usually, researchers will use MVA
 techniques after they've collected multiple reference spectra of known
 samples (LDPE and HDPE in this case). They can then develop models and
@@ -487,13 +486,13 @@ recorded of a series of nylons and the differences are much more
 distinguishable compared to the PE results above (nylon 6, 6-6, 6-9,
 6-10, and 6-12 top to
 bottom):
-<!-- [![](images/image4.png)]{style="width: 584.61px"} -->
 
+![](sop_files/figure-html/horiba-4.png)
 
 The differences are even more pronounced when you overlay the
 spectra:
 
-<!-- [![](images/image5.png)]{style="width: 542.20px"} -->
+![](sop_files/figure-html/horiba-5.png)
 
 ### What to do when matches aren't making sense
 
@@ -513,19 +512,18 @@ spectra:
 
 ## File Conversion in SpectraGryph to Open Specy accepted format
 
-1. Download Spectragryph
-
-[https://www.effemm2.de/spectragryph/down.html](https://www.google.com/url?q=https://www.effemm2.de/spectragryph/down.html&sa=D&source=editors&ust=1616072638079000&usg=AOvVaw24d2-Do_oAvlvpiJV7mpyL)
+1. Download Spectragryph from
+[https://www.effemm2.de/spectragryph/down.html](https://www.effemm2.de/spectragryph/down.html)
 
 2. Open Spectragryph and upload your file by dragging and dropping it
 into the console.
 
-<!-- [![](images/image17.png)]{style="width: 624.00px"} -->
+![](sop_files/figure-html/spectragryph-1.png)
 
 3. Click File, Save/export data, save data as, and save it as an spc
 file. ¸
 
-<!-- [![](images/image8.png)]{style="width: 624.00px"} -->
+![](sop_files/figure-html/spectragryph-2.png)
 
 4. Then upload that SPC file to Open Specy.
 
@@ -533,7 +531,7 @@ file. ¸
 
 ## Conceptual diagram of data flow through Open Specy
 
-<!-- [![](images/image22.png)]{style="width: 589.35px"} -->
+![](sop_files/figure-html/flowchart.png){width=80%}
 
 # References
 
