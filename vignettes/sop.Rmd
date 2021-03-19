@@ -1,22 +1,27 @@
 ---
 title: "Standard Operating Procedure"
 author: >
-  Jessica Meyers, Jeremy Conkle, Win Cowger, Zacharias Steinmetz, Andrew Gray,
-  Chelsea Rochman, Sebastian Primpke, Jennifer Lynch, Hannah Hapich,
-  Hannah De Frond, Keenan Munno, Bridget O’Donnell
+  Jessica Meyers, Jeremy Conkle, Win Cowger, Zacharias Steinmetz,
+  Andrew Gray, Chelsea Rochman, Sebastian Primpke, Jennifer Lynch,
+  Hannah Hapich, Hannah De Frond, Keenan Munno, Bridget O’Donnell
 date: "`r Sys.Date()`"
-output: 
-  html_document: 
-    toc: true
-    toc_depth: 3
-    toc_float: yes
+output:
+  html_document:
+    toc: yes
+    toc_depth: 2
     number_sections: yes
     fig_caption: yes
+    fig_width: 8
+    tab_caption: yes
     code_folding: show
+    self_contained: false
+  pdf_document:
+    toc: yes
+    toc_depth: 2
 vignette: >
   %\VignetteIndexEntry{Standard Operating Procedure}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
 ---
 
 ```{r, include = FALSE}
@@ -98,10 +103,10 @@ spectral file conversions (see Mini Tutorial section: File conversion in
 Spectragryph to Open Specy accepted format).
 
 If uploading a \*.csv file, label the column with the wavenumbers
-`wavenumber` and name the column with the intensities `intensity` (Table \@ref(sample-data))).
+`wavenumber` and name the column with the intensities `intensity`.
 
-```{r sample-data, echo=FALSE}
-knitr::kable(head(raman_hdpe), caption = "Table 1: Sample data `raman_hdpe`")
+```{r sample_data, echo=FALSE}
+knitr::kable(head(raman_hdpe), caption = "Sample data `raman_hdpe`")
 ```
 
 Wavenumber units must be cm^-1^. Any other columns are not used by the
@@ -111,16 +116,11 @@ metadata and raw data for your records.
 To upload data, click **Browse** and choose one of your
 files to upload, or drag and drop your file into the gray box. At this
 time you can only upload one file at a time. Upon upload and throughout
-the analysis, intensity values are min-max normalized (Equation \@ref(eq:makerelative)).
+the analysis, intensity values are min-max normalized:
 
-\begin{equation}
-\label{eq:makerelative}
-\frac{x - \mathrm{min}(x)}{\mathrm{min}(x) - \mathrm{max}(x)}
-\end{equation}
 $$\frac{x - \mathrm{min}(x)}{\mathrm{min}(x) - \mathrm{max}(x)}$$
-<p style="text-align: center;">Equation 1: Max-Min Normalization</p>
 
-## Viewing Spectra Plot
+\end{equation}ctra Plot
 
 After spectral data are uploaded, it will appear in the main window. This plot
 is selectable, zoomable, and provides information on hover. You can also
@@ -213,9 +213,20 @@ noise without distortion, but if the spectrum is noisy, decrease
 polynomial order and if it is already smooth, increase the polynomial
 order to the maximum (7). Examples of smoothing below.
 
-<!-- Add image -->
+```{r smoothing, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials (p) from Cowger et al. (2020).", echo=FALSE}
+library(ggplot2)
+data("raman_hdpe")
 
-Cowger et al. 2020
+compare_smoothing <- rbind(
+  cbind(smoothing = "none", adjust_intensity(raman_hdpe)),
+  cbind(smoothing = "p = 1", smooth_intensity(raman_hdpe, p = 1)),
+  cbind(smoothing = "p = 4", smooth_intensity(raman_hdpe, p = 4))
+)
+
+ggplot(compare_smoothing, aes(wavenumber, intensity)) +
+  geom_line(aes(color = smoothing)) +
+  theme_minimal()
+```
 
 ## Baseline Correction Polynomial
 
@@ -235,12 +246,20 @@ likely to fit to the peaks. The iterative fitting terminates once the
 difference between the new and previous fit is small. An example of a
 good baseline fit below.
 
-<!-- [![](images/image7.png)]{style="width: 249.00px"} -->
+```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", echo=FALSE}
+library(ggplot2)
+data("raman_hdpe")
 
-(a) A Raman spectrum of polypropylene. Note that baseline increases
-gradually toward the high Raman shift. (b) The baseline is fitted with a
-sixth-order polynomial curve. (c) The baseline corrected spectrum of
-polypropylene. Cowger et al. 2020. 
+compare_subtraction <- rbind(
+  cbind(fitting = "none", adjust_intensity(raman_hdpe)),
+  cbind(fitting = "degree = 2", subtract_background(raman_hdpe, degree = 2)),
+  cbind(fitting = "degree = 8", subtract_background(raman_hdpe, degree = 8))
+)
+
+ggplot(compare_subtraction, aes(wavenumber, intensity)) +
+  geom_line(aes(color = fitting)) +
+  theme_minimal()
+```
 
 ## Spectral Range
 
@@ -398,9 +417,8 @@ When there are peaks that exist in the spectra you are trying to
 interpret that do not exist in the match, there may be additional
 materials to identify. In this case, restrict the preprocessing range to
 just the unidentified peak and try to identify it as an additional
-component.
-
-[[https://www.compoundchem.com/2015/02/05/irspectroscopy/](https://www.google.com/url?q=https://www.compoundchem.com/2015/02/05/irspectroscopy/&sa=D&source=editors&ust=1616072638073000&usg=AOvVaw0OB5PjQTf3s2hyIcFnnT-i)
+component (see also
+[https://www.compoundchem.com/2015/02/05/irspectroscopy/](https://www.compoundchem.com/2015/02/05/irspectroscopy/)).
 
 Also, check the match metadata to see if the match makes sense.
 Example: A single fiber cannot be a "cotton blend"
@@ -423,24 +441,26 @@ generally, you can often clump the identities provided by Open Specy to
 suit your needs. For example, matches to "polyester" and "polypropylene"
 could be clumped to the category "plastic".
 
-### How to differentiate between similar spectra? (Figures Courtesy of Bridget O\'Donnell from Horiba Scientific)
+### How to differentiate between similar spectra?
 
 One common challenge is differentiating between LDPE and HDPE. But,
-even with a low resolution instrument (MacroRAM, 2 cm-1/pixel), you can still see some differences. From a wide view,
+even with a low resolution instrument (MacroRAM, 2 cm^-1^ pixel^-1^),
+you can still see some differences. From a wide view,
 these low, medium, and high density PE samples all look relatively
 similar:
 
-<!-- [![](images/image23.png)]{style="width: 620.60px"} -->
+<!-- [![](images/image1.png)]{style="width: 620.60px"} -->
+(Figures Courtesy of Bridget O\'Donnell from Horiba Scientific)
 
-But, a closer look at the 1450 cm-1 band reveals
+But, a closer look at the 1450 cm^-1^ band reveals
 clear differences:
 
-<!-- [![](images/image13.png)]{style="width: 616.57px"} -->
+<!-- [![](images/image2.png)]{style="width: 616.57px"} -->
 
 When you overlay them, you start to see differences in other spectral
 regions too:
 
-<!-- [![](images/image12.png)]{style="width: 624.00px"} -->
+<!-- [![](images/image3.png)]{style="width: 624.00px"} -->
 
 [So, the question is, how do we deal with samples that are very similar
 with only subtle differences? Usually, researchers will use MVA
@@ -467,13 +487,13 @@ recorded of a series of nylons and the differences are much more
 distinguishable compared to the PE results above (nylon 6, 6-6, 6-9,
 6-10, and 6-12 top to
 bottom):
-<!-- [![](images/image21.png)]{style="width: 584.61px"} -->
+<!-- [![](images/image4.png)]{style="width: 584.61px"} -->
 
 
 The differences are even more pronounced when you overlay the
 spectra:
 
-<!-- [![](images/image6.png)]{style="width: 542.20px"} -->
+<!-- [![](images/image5.png)]{style="width: 542.20px"} -->
 
 ### What to do when matches aren't making sense
 

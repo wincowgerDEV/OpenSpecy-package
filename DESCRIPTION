@@ -60,6 +60,7 @@ Suggests:
     shinythemes,
     shinyhelper,
     shinyWidgets,
+    ggplot2,
     plotly,
     data.table,
     DT,
