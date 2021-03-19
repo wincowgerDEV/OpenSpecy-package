@@ -5,8 +5,8 @@ author: >
   Chelsea Rochman, Sebastian Primpke, Jennifer Lynch, Hannah Hapich,
   Hannah De Frond, Keenan Munno, Bridget O’Donnell
 date: "`r Sys.Date()`"
-output:
-  html_document:
+output: 
+  html_document: 
     toc: true
     toc_depth: 3
     toc_float: yes
@@ -25,8 +25,6 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
-
-# Outline
 
 Open Specy is a tool for viewing, processing, sharing, and identifying
 Raman and (FT)IR spectra. This document outlines a common workflow for
