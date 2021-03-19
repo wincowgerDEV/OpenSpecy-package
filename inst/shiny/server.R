@@ -6,8 +6,6 @@
 # Libraries ----
 library(shiny)
 library(shinyjs)
-library(shinyhelper)
-
 library(dplyr)
 library(plotly)
 # library(viridis)
@@ -17,33 +15,51 @@ library(digest)
 library(rdrop2)
 library(curl)
 library(config)
+#devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
+#library(bslib)
 
 # Required Data ----
-dirs <- config::get("dirs", file = "inst/shiny/config.yml")
+conf <- config::get()
 
-costs <- fread("data/costs.csv")
-donations <- fread("data/donations.csv")
-testdata <- raman_hdpe
+# Load all data ----
+load_data <- function() {
+  costs <- fread("data/costs.csv")
+  donations <- fread("data/donations.csv")
+  testdata <- raman_hdpe
 
-# Check if spectral library is present and load ----
-test_lib <- class(tryCatch(check_lib(location = dirs$library),
-                           warning = function(w) {w}))
-if(any(test_lib == "warning")) get_lib(location = dirs$library)
+  # Check if spectral library is present and load
+  test_lib <- class(tryCatch(check_lib(path = conf$library_path),
+                             warning = function(w) {w}))
+  if(any(test_lib == "warning")) get_lib(path = conf$library_path)
 
-spec_lib <- load_lib(location = dirs$library)
+  spec_lib <- load_lib(path = conf$library_path)
 
-# Check for Auth Tokens and setup ----
-droptoken <- file.exists("data/droptoken.rds")
+  # Check for Auth Tokens and setup
+  droptoken <- file.exists("data/droptoken.rds")
 
-outputDir <- "Spectra"
+  if(droptoken) {
+    drop_auth(rdstoken = "data/droptoken.rds")
+  }
 
-if(droptoken){
-  drop_auth(rdstoken = "data/droptoken.rds")
+  # Name keys for human readable column names
+  load("data/namekey.RData")
+
+  # Inject variables into the parent
+  invisible(list2env(as.list(environment()), parent.frame()))
 }
 
-# This is the actual server functions, all functions before this point are not reactive
+# This is the actual server functions, all functions before this point are not
+# reactive
 server <- shinyServer(function(input, output, session) {
+  #For theming
+  #bs_themer()
+  
+  
+  # Loading overlay
+  load_data()
+  hide(id = "loading_overlay", anim = TRUE, animType = "fade")
+  show("app_content")
 
   # For desktop version of the app.
   if (!interactive()) {
@@ -53,94 +69,35 @@ server <- shinyServer(function(input, output, session) {
     })
   }
 
-  # File sharing functions ----
-  # Share if share is selected on upload
-  observeEvent(input$file1, {
-    if(input$ShareDecision == "Share" & curl::has_internet() & droptoken){
-      withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
-        inFile <- input$file1
-        UniqueID <- digest::digest(preprocesseddata(), algo = "md5")
-        drop_upload(inFile$datapath, path = paste0(outputDir, "/", UniqueID), mode = "add")
-      })
-    }
-  })
-
-  # Metadata fields we want to save
-  fieldsAll <- c("User Name",
-                 "Contact Info",
-                 "Affiliation",
-                 "Data Citation",
-                 "Spectrum Identity",
-                 "Spectrum Type",
-                 "Color",
-                 "CAS Number",
-                 "Material Producer",
-                 "Material Phase",
-                 "Material Form",
-                 "Other Material Form Description",
-                 "Material Purity",
-                 "Material Quality",
-                 "Instrument Used",
-                 "Instrument Accessories",
-                 "Instrument Mode",
-                 "Spectral Resolution",
-                 "LaserLight Used",
-                 "Number of Accumulations",
-                 "Total Acquisition Time",
-                 "Data Processing Procedure",
-                 "Level of Confidence in Identification",
-                 "Description of Identification",
-                 "Other Information",
-                 "smoother",
-                 "baseline",
-                 "range") #Small bug, range is getting replaced with the datetime somehow.
-
-  #Save data to cloud
-  saveData <- function(data, UniqueID) {
-    # Create a unique file name
-    fileName <- paste0(paste(human_timestamp(), UniqueID, sep = "_"), ".csv")#sprintf("%s_%s.csv", as.integer(Sys.time()), digest(data))
-    # Write the data to a temporary file locally
-    filepath <- file.path(tempdir(), fileName)
-    write.csv(data, filepath, row.names = FALSE, quote = TRUE)
-    # Upload the file to dropbox
-    UniqueID <- digest::digest(preprocesseddata(), algo = "md5")
-    drop_upload(filepath, path = outputDir)
-  }
-
-  # How to save the metadata
-  saveDataForm <- function(data, UniqueID) {
-    data <- data.frame(input = data, variable = c(fieldsAll))
-    # Create a unique file name
-    fileName <- paste0(paste(human_timestamp(), UniqueID, "form", sep = "_"), ".csv")#sprintf("%s_%s.csv", as.integer(Sys.time()), digest(data))
-    # Write the data to a temporary file locally
-    filepath <- file.path(tempdir(), fileName)
-    write.csv(data, filepath, row.names = FALSE, quote = TRUE)
-    # Upload the file to Dropbox
-    drop_upload(filepath, path = outputDir)
-  }
-
-  # Compile metadata input
-  formData <- reactive({
-    data <- sapply(fieldsAll[1:(length(fieldsAll)-1)], function(x) input[[x]])
-    data <- c(data, paste(input[[fieldsAll[length(fieldsAll)]]][1],
-                          input[[fieldsAll[length(fieldsAll)]]][2], sep = "_"),
-              timestamp = human_timestamp())
-    data
-  })
-
   # Save the metadata and data submitted upon pressing the button
-  observeEvent(input$submit,{
-    if(curl::has_internet() & droptoken){
-      UniqueID <- digest::digest(data(), algo = "md5")
-      saveDataForm(formData(), UniqueID)
-      saveData(data(), UniqueID)
-      shinyjs::alert(paste("Thank you for sharing your data! Your data will soon be available @ https://osf.io/stmv4/")) #Your Fortune For Today is:  ", sample(Fortunes$Fortunes, 1), sep = ""))
-    }
-  })
+  observeEvent(input$submit, {
+    if (input$share_decision & curl::has_internet())
+      share <- conf$share else share <- NULL
 
-  # Helper icon requirement
-  # Needs to run to add the little helper icons to the data
-  observe_helpers(withMathJax = TRUE)
+      sout <- tryCatch(share_spectrum(data(),
+                         sapply(names(namekey)[1:24], function(x) input[[x]]),
+                         share = share),
+                       warning = function(w) {w}, error = function(e) {e})
+
+      if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
+        mess <- sout$message
+
+      if (is.null(sout)) {
+        show_alert(
+          title = "Thank you for sharing your data!",
+          text = "Your data will soon be available at https://osf.io/stmv4/",
+          type = "success"
+        )
+        input$share_decision <- FALSE
+      } else {
+        show_alert(
+          title = "Something went wrong :-(",
+          text = paste0("All mandatory data added? R says: ", mess, ". ",
+                        "Try again."),
+          type = "warning"
+        )
+      }
+  })
 
 
   # Read in data when uploaded based on the file type
@@ -149,66 +106,62 @@ server <- shinyServer(function(input, output, session) {
     inFile <- input$file1
     filename <- as.character(inFile$datapath)
 
-    shiny::validate(shiny::need(grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
-                                      ignore.case = T, filename),
-                                "Uploaded data type is not currently supported please check help icon (?) and About tab for details on data formatting."))
+    shiny::validate(shiny::need(
+      grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
+            ignore.case = T, filename),
+      paste("Uploaded data type is not currently supported please check help ",
+      "icon (?) and About tab for details on data formatting.")))
+
+    if (input$share_decision & curl::has_internet())
+      share <- conf$share else share <- NULL
 
     if(grepl("\\.csv$", ignore.case = T, filename)) {
-      csv <- data.frame(fread(inFile$datapath))
-
-      # Try to guess column names
-      col_names <- c(
-        names(csv)[grep("wav*", ignore.case = T, names(csv))][1L],
-        names(csv)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)",
-                        ignore.case = T, names(csv))][1L]
-      )
-      out <- csv[col_names]
-      names(out) <- c("wavenumber", "intensity")
-
-      out
+      read_text(inFile$datapath, method = "fread", share = share)
     }
     else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
-      read_0(inFile$datapath)
+      read_0(inFile$datapath, share = share)
     }
     else {
       ex <- strsplit(basename(filename), split="\\.")[[1]]
-      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath))
+      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath,
+                                                     share = share))
     }
 
   })
 
   # Corrects spectral intensity units using the user specified correction
   data <- reactive({
-    adjust_intensity(preprocessed_data(), type = tolower(input$IntensityCorr))
+    adjust_intensity(preprocessed_data(), type = input$IntensityCorr)
   })
-
-  # Compute spectral resolution
-  SpectralResolution <- reactive({
-    (max(data()$wavenumber) - min(data()$wavenumber)) /
-      length(data()$wavenumber)
-  })
-
+  
+  #Preprocess Spectra ----
   # All cleaning of the data happens here. Smoothing and Baseline removing
   baseline_data <- reactive({
-    testdata <- data() %>% dplyr::filter(wavenumber > input$MinRange & wavenumber < input$MaxRange)
+    testdata <- data() %>% dplyr::filter(wavenumber > input$MinRange &
+                                           wavenumber < input$MaxRange)
     test <-  nrow(testdata) < 3
     if(test){
       data() %>%
-        mutate(intensity = if(input$smoother != 0) {
-          smooth_intensity(.$wavenumber, .$intensity, p = input$smoother)$intensity
+        mutate(intensity = if(input$smooth_decision) {
+          smooth_intensity(.$wavenumber, .$intensity,
+                           p = input$smoother)$intensity
         } else .$intensity) %>%
-        mutate(intensity = if(input$baseline != 0) {
-          subtract_background(.$wavenumber, .$intensity, degree = input$baseline)$intensity }
+        mutate(intensity = if(input$baseline_decision) {
+          subtract_background(.$wavenumber, .$intensity,
+                              degree = input$baseline)$intensity }
           else .$intensity)
     }
-    else{
+    else {
       data() %>%
-        dplyr::filter(wavenumber > input$MinRange & wavenumber < input$MaxRange) %>%
-        mutate(intensity = if(input$smoother != 0) {
-          smooth_intensity(.$wavenumber, .$intensity, p = input$smoother)$intensity
+        dplyr::filter(if(input$range_decision) {wavenumber > input$MinRange &
+                        wavenumber < input$MaxRange} else{wavenumber == wavenumber}) %>%
+        mutate(intensity = if(input$smooth_decision) {
+          smooth_intensity(.$wavenumber, .$intensity,
+                           p = input$smoother)$intensity
         } else .$intensity) %>%
-        mutate(intensity = if(input$baseline != 0) {
-          subtract_background(.$wavenumber, .$intensity, degree = input$baseline)$intensity }
+        mutate(intensity = if(input$baseline_decision) {
+          subtract_background(.$wavenumber, .$intensity,
+                              degree = input$baseline)$intensity }
           else .$intensity)
     }
   })
@@ -218,20 +171,23 @@ server <- shinyServer(function(input, output, session) {
     plot_ly(data(), type = 'scatter', mode = 'lines') %>%
       add_trace(x = ~wavenumber, y = ~intensity, name = 'Uploaded Spectrum',
                 line = list(color = 'rgba(240,236,19, 0.8)')) %>%
-      layout(yaxis = list(title = "Absorbance Intensity"),
-             xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0,73)',
+      layout(yaxis = list(title = "absorbance intensity [-]"),
+             xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
+             plot_bgcolor='rgb(17,0,73)',
              paper_bgcolor='black', font = list(color = '#FFFFFF'))
   })
   output$MyPlotB <- renderPlotly({
     plot_ly(type = 'scatter', mode = 'lines') %>%
       add_trace(data = baseline_data(), x = ~wavenumber, y = ~intensity,
-                name = 'Processed Spectrum', line = list(color = 'rgb(240,19,207)')) %>%
+                name = 'Processed Spectrum',
+                line = list(color = 'rgb(240,19,207)')) %>%
       add_trace(data = data(), x = ~wavenumber, y = ~intensity,
-                name = 'Uploaded Spectrum', line = list(color = 'rgba(240,236,19,0.8)')) %>%
+                name = 'Uploaded Spectrum',
+                line = list(color = 'rgba(240,236,19,0.8)')) %>%
       # Dark blue rgb(63,96,130)
       # https://www.rapidtables.com/web/color/RGB_Color.html https://www.color-hex.com/color-names.html
-      layout(yaxis = list(title = "Absorbance Intensity"),
-             xaxis = list(title = "Wavenumber (1/cm)"),
+      layout(yaxis = list(title = "absorbance intensity [-]"),
+             xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
              plot_bgcolor='rgb(17,0,73)', paper_bgcolor='black',
              font = list(color = '#FFFFFF'))
   })
@@ -246,17 +202,6 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-  # React Reference library to library type ----
-  Library <- reactive({
-    l <- tolower(input$Library)
-    spec_lib[[tolower(input$Spectra)]][[ifelse(l == "full", "library", l)]]
-  })
-
-  # React to metadata library to library type choice ----
-  Metadata <- reactive({
-    spec_lib[[tolower(input$Spectra)]][["metadata"]]
-  })
-
   # Identify Spectra function ----
   # Joins their spectrum to the internal database and computes correlation.
   MatchSpectra <- reactive ({
@@ -267,8 +212,8 @@ server <- shinyServer(function(input, output, session) {
       incProgress(1/3, detail = "Finding Match")
 
       Lib <- match_spectrum(DataR(),
-                            library = spec_lib, which = tolower(input$Spectra),
-                            type = tolower(input$Library), top_n = 100)
+                            library = spec_lib, which = input$Spectra,
+                            type = input$Library, top_n = 100)
 
       incProgress(1/3, detail = "Making Plot")
 
@@ -286,7 +231,8 @@ server <- shinyServer(function(input, output, session) {
               options = list(searchHighlight = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
                              lengthChange = FALSE, pageLength = 5),
-              filter = "top",caption = "Selectable Matches", style = "bootstrap",
+              filter = "top",caption = "Selectable Matches",
+              style = "bootstrap",
               selection = list(mode = "single", selected = c(1)))
   })
 
@@ -307,57 +253,47 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$eventmetadata <- DT::renderDataTable({
-    datatable(Metadata() %>%
-                select(spectrum_identity, organization, contact_info, spectrum_type,
-                       instrument_used, instrument_accessories, instrument_mode,
-                       laser_light_used, total_acquisition_time_s,
-                       number_of_accumulations, level_of_confidence_in_identification,
-                       cas_number, material_producer, material_purity,
-                       material_form, material_quality, spectral_resolution,
-                       data_processing_procedure, other_information, sample_name) %>%
-                inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE] %>%
-                             select(-organization, -spectrum_identity), by = "sample_name") %>%
-                rename("Material" = spectrum_identity,
-                       "Material Form" = material_form,
-                       "Material Producer" = material_producer,
-                       "Material Purity" = material_purity,
-                       "Material Quality" = material_quality,
-                       "CAS" = cas_number,
-                       "Organization" = organization,
-                       "Contact Information" = contact_info,
-                       "Spectrum Type" = spectrum_type,
-                       "Sample Name" = sample_name,
-                       "Pearson's r" = rsq,
-                       "Instrument Type" = instrument_used,
-                       "Instrument Accessories" = instrument_accessories,
-                       "Instrument Mode" = instrument_mode,
-                       "Spectral Resolution" = spectral_resolution,
-                       "Laser or Light Used" = laser_light_used,
-                       "Total Acquisition Time" = total_acquisition_time_s,
-                       "Number of Accumulations" = number_of_accumulations,
-                       "Data Processing Procedure" = data_processing_procedure,
-                       "Level of Confidence in Identification" = level_of_confidence_in_identification,
-                       "Other Information" = other_information
-                ) %>%
-                select_if(function(x){!all(x == "" | is.na(x))}), escape = FALSE,
+    # Default to first row if not yet clicked
+    id_select <- ifelse(is.null(input$event_rows_selected),
+                        1,
+                        MatchSpectra()[[input$event_rows_selected,
+                                        "sample_name"]])
+    # Get data from find_spectrum
+    current_meta <- find_spectrum(sample_name == id_select,
+                                  spec_lib, which = input$Spectra)
+    names(current_meta) <- namekey[names(current_meta)]
+
+    datatable(current_meta,
+              escape = FALSE, rownames = F,
               options = list(dom = 't', bSort = F, lengthChange = FALSE,
                              rownames = FALSE, info = FALSE),
               style = 'bootstrap', caption = "Selection Metadata",
               selection = list(mode = 'none'))
   })
 
-  #Display matches based on table selection ----
+  # Display matches based on table selection ----
   output$MyPlotC <- renderPlotly({
     if(!length(input$event_rows_selected)) {
       plot_ly(DataR()) %>%
         add_lines(x = ~wavenumber, y = ~intensity,
-                  line = list(color = 'rgba(255,255,255,0.8)'))%>%
-        layout(yaxis = list(title = "Absorbance Intensity"),
-               xaxis = list(title = "Wavenumber (1/cm)"), plot_bgcolor='rgb(17,0, 73)',
+                  line = list(color = 'rgba(255,255,255,0.8)')) %>%
+        layout(yaxis = list(title = "absorbance intensity [-]"),
+               xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
+               plot_bgcolor='rgb(17,0, 73)',
                paper_bgcolor='black', font = list(color = '#FFFFFF'))
     }
     else if(length(input$event_rows_selected)) {
-      TopTens <- Library() %>%
+      # Default to first row if not yet clicked
+      id_select <- ifelse(is.null(input$event_rows_selected),
+                          1,
+                          MatchSpectra()[[input$event_rows_selected,
+                                          "sample_name"]])
+      # Get data from find_spectrum
+      current_spectrum <- find_spectrum(sample_name == id_select,
+                                        spec_lib, which = input$Spectra,
+                                        type = input$Library)
+
+      TopTens <- current_spectrum %>%
         inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE],
                    by = "sample_name") %>%
         select(wavenumber, intensity, spectrum_identity)
@@ -373,8 +309,8 @@ server <- shinyServer(function(input, output, session) {
         add_lines(data = OGData, x = ~wavenumber, y = ~intensity,
                   line = list(color = "rgba(255,255,255,0.8)"),
                   name = "Spectrum to Analyze") %>%
-        layout(yaxis = list(title = "Absorbance Intensity"),
-               xaxis = list(title = "Wavenumber (1/cm)"),
+        layout(yaxis = list(title = "absorbance intensity [-]"),
+               xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
                plot_bgcolor = "rgb(17,0, 73)", paper_bgcolor = "black",
                font = list(color = "#FFFFFF"))
     }})
@@ -400,75 +336,77 @@ server <- shinyServer(function(input, output, session) {
     content = function(file) {fwrite(spec_lib[["ftir"]][["metadata"]], file)}
   )
 
-  output$downloadData7 <- downloadHandler(
+  output$download_testdata <- downloadHandler(
     filename = function() {"testdata.csv"},
     content = function(file) {fwrite(testdata, file)}
   )
 
-  ## Download their own data ----
+  ## Download own data ----
   output$downloadData <- downloadHandler(
     filename = function() {paste('data-', human_timestamp(), '.csv', sep='')},
     content = function(file) {fwrite(baseline_data(), file)}
   )
 
-  # Hide functions which shouldn't exist when there is no internet or when the API token doesnt exist ----
+  ## Sharing data ----
+  # Hide functions which shouldn't exist when there is no internet or
+  # when the API token doesn't exist
   observe({
-    if(droptoken & curl::has_internet()) {
-      show("ShareDecision")
-      show("btn")
-      show("helper1")
+    if((conf$share == "dropbox" & droptoken) | curl::has_internet()) {
+      show("share_decision")
+      show("share_meta")
     }
-    else{
-      hide("ShareDecision")
-      hide("btn")
-      hide("helper1")
+    else {
+      hide("share_decision")
+      hide("share_meta")
     }
   })
 
-  observeEvent(input$btn, {
-    toggle("User Name")
-    toggle("Contact Info")
-    toggle("Affiliation")
-    toggle("Data Citation")
-    toggle("Spectrum Identity")
-    toggle("Spectrum Type")
-    toggle("Color")
-    toggle("CAS Number")
-    toggle("Material Producer")
-    toggle("Material Phase")
-    toggle("Material Form")
-    toggle("Other Material Form Description")
-    toggle("Material Purity")
-    toggle("Material Quality")
-    toggle("Instrument Used")
-    toggle("Instrument Accessories")
-    toggle("Instrument Mode")
-    toggle("Spectral Resolution")
-    toggle("LaserLight Used")
-    toggle("Number of Accumulations")
-    toggle("Total Acquisition Time")
-    toggle("Data Processing Procedure")
-    toggle("Level of Confidence in Identification")
-    toggle("Description of Identification")
-    toggle("Other Information")
+  observe({
+    if (input$share_decision) {
+      show("share_meta")
+      } else {
+        hide("share_meta")
+      }
+  })
+  
+  observe({
+    if (input$smooth_decision) {
+      show("smooth_tools")
+    } else {
+      hide("smooth_tools")
+    }
+  })
+  
+  observe({
+    if (input$baseline_decision) {
+      show("baseline_tools")
+    } else {
+      hide("baseline_tools")
+    }
+  })
+
+  observe({
+    if (input$range_decision) {
+      show("range_tools")
+    } else {
+      hide("range_tools")
+    }
+  })
+  #This toggles the hidden metadata input layers.
+  observeEvent(input$share_meta, {
+    sapply(names(namekey)[1:24], function(x) toggle(x))
     toggle("submit")
   })
 
   output$translate <- renderUI({
-    if(file.exists("data/googletranslate.html") & curl::has_internet()){
-      includeHTML("data/googletranslate.html")
-    }
-    else{
-      NULL
+    if(file.exists("www/googletranslate.html") & curl::has_internet()) {
+      includeHTML("www/googletranslate.html")
     }
   })
 
   output$analytics <- renderUI({
     if(file.exists("data/google-analytics.js") & curl::has_internet()){
       includeScript("data/google-analytics.js")
-    }
-    else{
-      NULL
     }
   })
 

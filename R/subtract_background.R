@@ -42,8 +42,8 @@ subtract_background <- function(x, ...) {
 #'
 #' @export
 subtract_background.formula <- function(formula, data = NULL, ...) {
-  if (missing(formula) || (length(formula) != 3L) || (length(attr(terms(formula[-2L]),
-                                                                  "term.labels")) != 1L))
+  if (missing(formula) || (length(formula) != 3L) ||
+      (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
     stop("'formula' missing or incorrect")
 
   mf <- model.frame(formula, data)
@@ -119,7 +119,8 @@ subtract_background.default <- function(x, y, degree = 8, raw = FALSE,
         unlist() %>%
         unname()
 
-      if (make_relative) yout <- make_relative(yin - ysbg) else yout <- yin - ysbg
+      if (make_relative) yout <- make_relative(yin - ysbg) else
+        yout <- yin - ysbg
 
       return(data.frame(wavenumber = xin, intensity = yout))
     }

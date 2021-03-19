@@ -7,11 +7,15 @@
 library(shiny)
 library(shinyjs)
 library(shinythemes)
-library(shinyhelper)
-
+library(shinyWidgets)
+library(shinyBS)
 library(dplyr)
 library(plotly)
 library(DT)
+#library(bslib)
+
+# Name keys for human readable column names ----
+load("data/namekey.RData")
 
 # Functions ----
 labelMandatory <- function(label) {
@@ -21,15 +25,33 @@ labelMandatory <- function(label) {
   )
 }
 
+css <- HTML(" body {
+    color: #fff;
+}")
+
 # CSS for star
 appCSS <-
-  ".mandatory_star { color: red; }"
+  ".mandatory_star { color: red; }
+    #loading_overlay {
+    position: absolute;
+    margin-top: 10%;
+    background: #000000;
+    opacity: 0.9;
+    z-index: 100;
+    left: 0;
+    right: 0;
+    height: 100%;
+    text-align: center;
+    color: #FFFFFF;
+    }"
 
 # UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
-  tags$head(uiOutput("translate")), # Google translate tab.
+  
+  tags$head(tags$style(css)),
   tags$head(uiOutput("analytics")), # Google analytics.
+  #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
   theme = shinytheme("cyborg"), # Change this for other themes
   tags$head( #This is for the error messages.
     tags$style(HTML("
@@ -53,8 +75,27 @@ ui <- fluidPage(
   ),
   shinyjs::inlineCSS(appCSS),
 
-  # About Tab----
-  titlePanel("Open Specy"),
+  div(
+    id = "loading_overlay",
+    h2("Loading Open Specy"),
+    br(),
+    tags$div(
+      style="margin-bottom:20%;",
+    ),
+    h4(icon("spinner", class = "btn-loading-indicator fa-spin")),
+    br(),
+    h6("If you start Open Specy for the first time, this may take a while ...")
+  ),
+
+  hidden(div(id = "app_content",
+
+  # About Tab ----
+  titlePanel(
+    fluidRow(
+      column(9, "Open Specy"),
+      column(3, align = "right", uiOutput("translate")) # Google Translate
+    ), windowTitle = "Open Specy"
+  ),
   tabsetPanel(id = "tabs",
               tabPanel("About", value = "about",
                        fluidRow(
@@ -85,8 +126,8 @@ ui <- fluidPage(
                          column(3),
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Instructions</h1> </center><br>"),
-                                shiny::HTML("<h5>In Brief: To use the tool upload a csv, jdx, spc, or spa file to the upload file tab.
-                                  If csv, one column should be named -Wavelength- (in units of 1/cm) and another named -Absorbance-.
+                                shiny::HTML("<h5>In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
                                   uploaded or processed data will be presented in an interactive plot and table.</h5>"),
@@ -332,70 +373,132 @@ ui <- fluidPage(
 
               #Upload File Tab ----
               tabPanel("Upload File", value = "tab1",
-                       titlePanel(tags$h4("Upload. View and Share Spectra Files")),
+                       titlePanel(tags$h4("Upload, View and Share Spectra")),
                        fluidRow(
                          column(2,
-                                fileInput('file1', 'Choose .csv (preferred), .jdx, .spc, .spa, or .0 File',
+                                tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File"),
+
+                                prettySwitch("share_decision",
+                                             label = "Share File?",
+                                             inline = T, 
+                                             value = T,
+                                             status = "success",
+                                             fill = T),
+                                bsPopover(
+                                  id = "share_decision",
+                                  title = "Share Help",
+                                  content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
+                                              "Uploaded spectra will appear here: https://osf.io/rjg3c"),
+                                  placement = "bottom", 
+                                  trigger = "hover"
+                                ),
+
+                                fileInput("file1", NULL,
                                           accept=c('text/csv',
                                                    'text/comma-separated-values,text/plain',
-                                                   '.csv', ".spc", ".jdx", ".spa", ".0"))%>%
-                                  helper(type = "inline",
-                                         title = "Upload Help",
-                                         content = c("Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled Wavelength in units of (1/cm) and another column labeled Absorbance in absorbance units.
-                                            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavelength in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.",
-                                                     "<a href=https://drive.google.com/file/d/1T7Zm3MmMaQ9bd_6f1cV_NGRduaCYLhz5/view?usp=sharing> Example Dataset (HDPE,Raman)"),
-                                         size = "m"),
-                                tags$div(downloadButton('downloadData7', 'Test Data')),
+                                                   '.csv', ".asp", ".spc", ".jdx", ".spa", ".0")),
+                                bsPopover(
+                                  id = "file1",
+                                  title = "Upload Help",
+                                  content = c("Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+                                            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.",
+                                            "",
+                                            "Hit the 'Test Data' button to download a sample Raman spectrum."),
+                                  placement = "bottom", 
+                                  trigger = "hover"
+                                ),
+
+                                actionButton("share_meta", "Share Metadata"),
+                                bsPopover(
+                                  id = "share_meta", 
+                                  title = "Metadata Help",
+                                  content = c("We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.",
+                                              "Uploaded spectra and metadata will appear here: https://osf.io/rjg3c"),
+                                  placement = "bottom", 
+                                  trigger = "hover"
+                                ),
+
+                                hidden(
+                                  textInput(names(namekey)[1],
+                                            labelMandatory(namekey[1]),
+                                            placeholder = "e.g. Win Cowger"),
+                                  textInput(names(namekey)[2],
+                                            label = namekey[2],
+                                            placeholder = "e.g. 1-513-673-8956, wincowger@gmail.com"),
+                                  textInput(names(namekey)[3],
+                                            label = namekey[3],
+                                            placeholder = "e.g. University of California, Riverside"),
+                                  textInput(names(namekey)[4],
+                                            label = namekey[4],
+                                            placeholder = "e.g. Primpke, S., Wirth, M., Lorenz, C., & Gerdts, G. (2018). Reference database design for the automated analysis of microplastic samples based on Fourier transform infrared (FTIR) spectroscopy. Analytical and Bioanalytical Chemistry. doi: 10.1007/s00216-018-1156-x"),
+                                  textInput(names(namekey)[5],
+                                            labelMandatory(namekey[5]),
+                                            placeholder = "Raman or FTIR"),
+                                  textInput(names(namekey)[6],
+                                            labelMandatory(namekey[6]),
+                                            placeholder = "e.g. polystyrene"),
+                                  textInput(names(namekey)[7],
+                                            label = namekey[7],
+                                            placeholder = "e.g. textile fiber, rubber band, sphere, granule"),
+                                  textInput(names(namekey)[8],
+                                            label = namekey[8],
+                                            placeholder = "liquid, gas, solid"),
+                                  textInput(names(namekey)[9],
+                                            label = namekey[9],
+                                            placeholder = "e.g. Dow" ),
+                                  textInput(names(namekey)[10],
+                                            label = namekey[10],
+                                            placeholder = "e.g. 99.98%"),
+                                  textInput(names(namekey)[11],
+                                            label = namekey[11],
+                                            placeholder = "consumer product, manufacturer material, analytical standard, environmental sample"),
+                                  textInput(names(namekey)[12],
+                                            label = namekey[12],
+                                            placeholder = "e.g. blue, #0000ff, (0, 0, 255)"),
+                                  textInput(names(namekey)[13],
+                                            label = namekey[13],
+                                            placeholder = "e.g. 5 µm diameter fibers, 1 mm spherical particles"),
+                                  textInput(names(namekey)[14],
+                                            label = namekey[14],
+                                            placeholder = "9003-53-6"),
+                                  textInput(names(namekey)[15],
+                                            label = namekey[15],
+                                            placeholder = "Horiba LabRam"),
+                                  textInput(names(namekey)[16],
+                                            label = namekey[16],
+                                            placeholder = "Focal Plane Array, CCD"),
+                                  textInput(names(namekey)[17],
+                                            label = namekey[17],
+                                            placeholder = "transmission, reflectance"),
+                                  textInput(names(namekey)[18],
+                                            label = namekey[18],
+                                            placeholder = "e.g. 4/cm"),
+                                  textInput(names(namekey)[19],
+                                            label = namekey[19],
+                                            placeholder = "e.g. 785 nm" ),
+                                  textInput(names(namekey)[20],
+                                            label = namekey[20],
+                                            placeholder = "e.g. 5"),
+                                  textInput(names(namekey)[21],
+                                            label = namekey[21],
+                                            placeholder = "10 s"),
+                                  textInput(names(namekey)[22],
+                                            label = namekey[22],
+                                            placeholder = "spikefilter, baseline correction, none"),
+                                  textInput(names(namekey)[23],
+                                            label = namekey[23],
+                                            placeholder = "e.g. 99%"),
+                                  textInput(names(namekey)[24], label = "Other information"),
+
+                                  tags$br(),
+                                  actionButton("submit", "Share Metadata", class = "btn-primary")
+                                ),
+
+                                tags$br(),
                                 tags$br(),
 
-
-                                helper(selectInput("ShareDecision", "Share uploaded spectra?",
-                                                   c("Share" = "Share",
-                                                     "Not Now" = "Not now")),
-                                       type = "inline",
-                                       title = "Share Help",
-                                       content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
-                                                   "<a href=https://osf.io/rjg3c> Uploaded spectra will appear here."),
-                                       size = "m"),
-
-                                actionButton("btn", "Share metadata")%>%
-                                  helper(type = "inline",
-                                         title = "Metadata Help",
-                                         content = c("We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.",
-                                                     "<a href=https://osf.io/rjg3c> Uploaded spectra and metadata will appear here."),
-                                         size = "m"),
-
-                                hidden(textInput("User Name", labelMandatory("User Name"), placeholder = "Win Cowger"),
-                                       textInput("Contact Info", label = "Contact Info", placeholder = "1-513-673-8956, wincowger@gmail.com"),
-                                       textInput("Affiliation", label = "Affiliation", placeholder = "University of California, Riverside"),
-                                       textInput("Data Citation", label = "Data Citation", placeholder = "Primpke, S., Wirth, M., Lorenz, C., & Gerdts, G. (2018). Reference database design for the automated analysis of microplastic samples based on Fourier transform infrared (FTIR) spectroscopy. Analytical and Bioanalytical Chemistry. https://doi.org/10.1007/s00216-018-1156-x"),
-                                       textInput("Spectrum Identity", labelMandatory("Spectrum Identity"), placeholder = "Polystyrene"),
-                                       textInput("Spectrum Type", labelMandatory("Spectrum Type"), placeholder = "Raman or FTIR"),
-                                       textInput("Color", label = "Material Color", placeholder = "E.g. Blue, #0000ff, (0,0,255)"),
-                                       textInput("CAS Number", label = "Material CAS Number(s)", placeholder = "9003-53-6"),
-                                       textInput("Material Producer", label = "Material Producer", placeholder = "Dow"),
-                                       textInput("Material Phase", label = "Material Phase", placeholder = "liquid, gas, solid"),
-                                       textInput("Material Form", label = "Material Form", placeholder = "E.g. rubber band, granular, cup"),
-                                       textInput("Other Material Form Description", label = "Other Material Form Description", placeholder = "E.g. 5 micron diameter fibers, 1 mm spherical particles."),
-                                       textInput("Material Purity", label = "Material Purity", placeholder = "99.98%"),
-                                       textInput("Material Quality", label = "Material Quality", placeholder = "Consumer Material, Manufacturer Material, Scientific Standard, Environmental Material"),
-                                       textInput("Instrument Used", label = "Instrument Used", placeholder = "Horiba LabRam"),
-                                       textInput("Instrument Accessories", label = "Instrument Accesories", placeholder = "Focal Plane Array, CCD"),
-                                       textInput("Instrument Mode", label = "Instrument Mode", placeholder = "transmission, reflectance"),
-                                       textInput("Spectral Resolution", label = "Spectral Resolution", placeholder =  "4/cm-1"),
-                                       textInput("LaserLight Used", label = "Laser/Light Used", placeholder = "785 nm"),
-                                       textInput("Number of Accumulations", label = "Number of Accumulations", placeholder = "5"),
-                                       textInput("Total Acquisition Time", label = "Total Acquisition Time (s)", placeholder = "10 s"),
-                                       textInput("Data Processing Procedure", label = "Data Processing Procedure", placeholder =  "spikefilter, baseline correction, none"),
-                                       textInput("Level of Confidence in Identification", label = "Level of Confidence in Identification", placeholder = "99%"),
-                                       textInput("Description of Identification", label = "Description of Identification", placeholder = "E.g. Spectra were matched with 99% HQI in Know-it-all"),
-                                       textInput("Other Information", label = "Other Information"),
-
-                                       tags$br(),
-                                       actionButton("submit", "Share Data", class = "btn-primary"))
-
-
-                         ),
+                                tags$div(downloadButton('download_testdata', 'Sample File'))
+                                ),
 
 
                          column(8,
@@ -405,29 +508,35 @@ ui <- fluidPage(
                          column(2,
 
                                 selectInput("IntensityCorr", "Intensity Adjustment",
-                                            c("None" = "None",
-                                              "Transmittance" = "Transmittance", "Reflectance" = "Reflectance")) %>%
-                                  helper(type = "inline",
-                                         title = "Share Help",
-                                         content = c("If the uploaded spectrum is not in absorbance units, ",
-                                         "use this input to specify the units to convert from.Open Specy can ",
-                                         "adjust reflectance or transmittance spectra to Absorbance units using ",
-                                         "this drop down in the upload file tab. All of the preceding tabs ",
-                                         "assume that the data is in absorbance units so you should make the ",
-                                         "correction before continuing if needed. The transmittance adjustment ",
-                                         "uses the log10(1/T) calculation which does not correct for system ",
-                                         "and particle characteristics. The reflectance adjustment uses the ",
-                                         "Kubelka-Munk equation (1-R)2/(2*R). ",
-                                         "If none is selected, Open Specy assumes that the uploaded data is ",
-                                         "an absorbance spectrum."),
-                                         size = "m")
-
+                                            c("None" = "none",
+                                              "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
+                                bsPopover(
+                                  id = "IntensityCorr", 
+                                  title = "Intensity Correction Help",
+                                  content = c("If the uploaded spectrum is not in absorbance units, ",
+                                              "use this input to specify the units to convert from.Open Specy can ",
+                                              "adjust reflectance or transmittance spectra to Absorbance units using ",
+                                              "this drop down in the upload file tab. All of the preceding tabs ",
+                                              "assume that the data is in absorbance units so you should make the ",
+                                              "correction before continuing if needed. The transmittance adjustment ",
+                                              "uses the log10(1/T) calculation which does not correct for system ",
+                                              "and particle characteristics. The reflectance adjustment uses the ",
+                                              "Kubelka-Munk equation (1-R)2/(2*R). ",
+                                              "If none is selected, Open Specy assumes that the uploaded data is ",
+                                              "an absorbance spectrum."),
+                                  placement = "bottom", 
+                                  trigger = "hover"
+                                )
                          )),
+                       hr(),
                        fluidRow(
-                         align="center",
-                         hr(),
+                         column(3),
+                         column(6,  align = "center",
                          tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
                          "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                                ),
+                         column(3)
+                        
                        )),
 
 
@@ -436,61 +545,134 @@ ui <- fluidPage(
                        titlePanel(tags$h4("Smooth, Baseline Correct, and Download Processed Spectra")),
                        fluidRow(
                          column(2,
-                                sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3) %>%
-                                  helper(type = "inline",
-                                         title = "Smoother Help",
-                                         content = c("This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified."),
-                                         size = "m"),
-                                sliderInput("baseline", "Baseline Correction Polynomial", min = 0, max = 20, value = 8)%>%
-                                  helper(type = "inline",
-                                         title = "Baseline Correction Help",
-                                         content = c("This baseline correction routine utilizes the imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra."),
-                                         size = "m"),
+                                fluidRow(
+                                  column(12, 
+                                  downloadButton('downloadData', 'Download (recommended)'),
+                                    bsPopover(id = 'downloadData', 
+                                              title = "Download Help",
+                                              content = c("Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file."),
+                                              placement = "bottom", 
+                                              trigger = "hover")
+                                    )
+                                ),
+                                tags$br(),
+                                fluidRow(
+                                  column(2, 
+                                         dropdownButton(inputId = "smooth_tools",
+                                                        sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3),
+                                                        icon = icon("gear"),
+                                                        size = "xs",
+                                                        status = "success", 
+                                                        width = "300px", 
+                                                        circle = TRUE)
+                                  ),
+                                  column(10, 
+                                         prettySwitch("smooth_decision",
+                                             label = "Smoothing",
+                                             inline = T, 
+                                             value = T,
+                                             bigger = T,
+                                             status = "success",
+                                             fill = T),
+                                         bsPopover(
+                                           id = "smooth_decision",
+                                           title = "Smoother Help",
+                                           content = c("This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified."),
+                                           placement = "bottom", 
+                                           trigger = "hover"
+                                           )
+                                  )
+                                  
+                                ),
+                                
+                                fluidRow(
+                                  column(2,
+                                   dropdownButton(inputId = "baseline_tools",
+                                    sliderInput("baseline", "Baseline Correction Polynomial", min = 0, max = 20, value = 8),
+                                    icon = icon("gear"),
+                                    size = "xs",
+                                    status = "success", 
+                                    width = "300px", 
+                                    circle = TRUE
+                                                )
+                                         ),
+                                  column(10, 
+                                  prettySwitch("baseline_decision",
+                                             label = "Baseline Correction",
+                                             inline = T, 
+                                             value = T,
+                                             bigger = T,
+                                             status = "success",
+                                             fill = T),
+                                  bsPopover(
+                                    id = "baseline_decision",
+                                    title = "Baseline Correction Help",
+                                    content = c("This baseline correction routine utilizes the imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra."),
+                                    placement = "bottom", 
+                                    trigger = "hover"
+                                  )
 
-                                numericInput(
-                                  "MinRange",
-                                  "Minimum Spectral Range",
-                                  value = 0,
-                                  min = NA,
-                                  max = NA,
-                                  step = NA,
-                                  width = NULL
-                                ) %>%
-                                  helper(type = "inline",
-                                         title = "Spectral Range Help",
-                                         content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
-                                         size = "m"),
-                                numericInput(
-                                  "MaxRange",
-                                  "Maximum Spectral Range",
-                                  value = 6000,
-                                  min = NA,
-                                  max = NA,
-                                  step = NA,
-                                  width = NULL
-                                ) %>%
-                                  helper(type = "inline",
-                                         title = "Spectral Range Help",
-                                         content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
-                                         size = "m"),
-
-                                downloadButton('downloadData', 'Download (recommended)') %>%
-                                  helper(type = "inline",
-                                         title = "Download Help",
-                                         content = c("Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file."),
-                                         size = "m")
-
-
-                         ),
+                                         )
+                                ),
+                                fluidRow(
+                                  column(2, 
+                                         dropdownButton(inputId = "range_tools",
+                                                        numericInput(
+                                                          "MinRange",
+                                                          "Minimum Spectral Range",
+                                                          value = 0,
+                                                          min = NA,
+                                                          max = NA,
+                                                          step = NA,
+                                                          width = NULL
+                                                        ),
+                                                        numericInput(
+                                                          "MaxRange",
+                                                          "Maximum Spectral Range",
+                                                          value = 6000,
+                                                          min = NA,
+                                                          max = NA,
+                                                          step = NA,
+                                                          width = NULL
+                                                        ),
+                                                        icon = icon("gear"),
+                                                        size = "xs",
+                                                        status = "success", 
+                                                        width = "300px", 
+                                                        circle = TRUE
+                                         )
+                                  ),
+                                  column(10, 
+                                         prettySwitch("range_decision",
+                                             label = "Range Selection",
+                                             inline = T, 
+                                             value = T,
+                                             bigger = T,
+                                             status = "success",
+                                             fill = T),
+                                         bsPopover(
+                                           id = "range_decision",
+                                           title = "Spectral Range Help",
+                                           content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
+                                           placement = "bottom", 
+                                           trigger = "hover"
+                                         )
+                                  )
+                                )
+                            ),
 
                          column(10,
                                 plotlyOutput('MyPlotB')
 
                          )),
                        fluidRow(
-                         align="center",
-                         hr(),
-                         tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         column(3),
+                         column(6,  align = "center",
+                                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
+                                       "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         ),
+                         column(3)
+                         
                        )),
 
               #Match Spectrum Tab ----
@@ -498,28 +680,38 @@ ui <- fluidPage(
                        titlePanel(tags$h4("Identify Spectrum Using the Reference Library")),
                        fluidRow(
                          column(2,
-                                selectInput("Spectra", "Spectrum Type:",
-                                            c("Raman" = "Raman",
-                                              "FTIR" = "FTIR")) %>%
-                                  helper(type = "inline",
-                                         title = "Spectrum Type Help",
-                                         content = c("This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded."),
-                                         size = "m"),
-                                selectInput("Data", "Spectrum To Analyze:",
+                                radioButtons("Spectra", "Spectrum Type",
+                                             c("Raman" = "raman",
+                                               "FTIR" = "ftir")),
+                                bsPopover(
+                                  id = "Spectra",
+                                  title = "Spectrum Type Help",
+                                  content = c("This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded."),
+                                  placement = "bottom",
+                                  trigger = "hover"
+                                ),
+                                selectInput("Data", "Spectrum to Analyze",
                                             c("Processed" = "processed",
                                               "Uploaded" = "uploaded"
-                                            ))%>%
-                                  helper(type = "inline",
-                                         title = "Spectrum To Analyze Help",
-                                         content = c("This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match."),
-                                         size = "m"),
-                                selectInput("Library", "Region To Match:",
-                                            c("Full Spectrum" = "Full",
-                                              "Peaks Only" = "Peaks"))%>%
-                                  helper(type = "inline",
-                                         title = "Region To Match Help",
-                                         content = c("This selection will determine whether the the library you are matching to consists of the full spectrum or only spectrum peaks."),
-                                         size = "m")
+                                            )),
+                                bsPopover(
+                                  id = "Data",
+                                  title = "Spectrum to Analyze Help",
+                                  content = c("This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match."),
+                                  placement = "bottom",
+                                  trigger = "hover"
+                                ),
+                                selectInput("Library", "Region to Match",
+                                            c("Full Spectrum" = "full",
+                                              "Peaks Only" = "peaks")),
+                                bsPopover(
+                                  id = "Library",
+                                  title = "Region To Match Help",
+                                  content = c("This selection will determine whether the the library you are matching to consists of the full spectrum or only spectrum peaks."),
+                                  placement = "bottom",
+                                  trigger = "hover"
+                                )
+
                          ),
 
                          column(7,
@@ -533,9 +725,13 @@ ui <- fluidPage(
 
 
                        fluidRow(
-                         align="center",
-                         hr(),
-                         tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         column(3),
+                         column(6,  align = "center",
+                                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
+                                       "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         ),
+                         column(3)
+                         
                        )),
 
 
@@ -546,11 +742,11 @@ ui <- fluidPage(
                          column(10,
                                 tags$h2("We are trying to make this project financially sustainable. It currently costs the developers about a 1000$ each year and no one is paid for their time. See expenses and donations below."),
                                 tags$h3("You can help with a direct donation. Donate here."),
-                                actionButton(inputId='ab1', label="Donate", width = "100%",
+                                actionButton(inputId = 'ab1', label = "Donate", width = "100%",
                                              icon = icon("donate"),
                                              onclick = "window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')"),
                                 tags$h3("Or by purchasing some Open Specy merchandise here."),
-                                actionButton(inputId='ab2', label="Swag Shop", width = "100%",
+                                actionButton(inputId = 'ab2', label = "Swag Shop", width = "100%",
                                              icon = icon("shopping-cart"),
                                              onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")#,
                          ),
@@ -559,7 +755,7 @@ ui <- fluidPage(
                        ),
                        fluidRow(
                          column(1),
-                         column(5,
+                         column(4,
                                 DT::dataTableOutput('donations')),
                          column(5,
                                 DT::dataTableOutput('costs')),
@@ -567,9 +763,14 @@ ui <- fluidPage(
                        ),
 
                        fluidRow(
-                         align="center",
-                         hr(),
-                         tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         column(3),
+                         column(6,  align = "center",
+                                tags$p("Citation: W. Cowger, A. Gray, H. Hapich, C. Rochman, J. Lynch, S. Primpke, ",
+                                       "K. Munno, H. De Frond, O. Herodotou. 2020. Open Specy. www.openspecy.org")
+                         ),
+                         column(3)
+                         
                        ))
   )
 )
+))

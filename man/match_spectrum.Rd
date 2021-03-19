@@ -5,6 +5,7 @@
 \alias{match_spectrum.formula}
 \alias{match_spectrum.data.frame}
 \alias{match_spectrum.default}
+\alias{find_spectrum}
 \title{Match spectra with reference library}
 \usage{
 match_spectrum(x, ...)
@@ -21,6 +22,21 @@ match_spectrum(x, ...)
   type = "full",
   range = seq(0, 6000, 0.1),
   top_n = 100,
+  ...
+)
+
+find_spectrum(
+  subset,
+  library,
+  which = NULL,
+  type = "metadata",
+  cols = c("spectrum_identity", "organization", "contact_info", "spectrum_type",
+    "instrument_used", "instrument_accessories", "instrument_mode", "laser_light_used",
+    "total_acquisition_time_s", "number_of_accumulations",
+    "level_of_confidence_in_identification", "cas_number", "material_producer",
+    "material_purity", "material_form", "material_quality", "spectral_resolution",
+    "data_processing_procedure", "other_information", "sample_name", "wavenumber",
+    "intensity", "group"),
   ...
 )
 }
@@ -42,19 +58,28 @@ a data frame containing spectral data as \code{"wavenumber"} and
 \code{"raman"} or \code{"ftir"}.}
 
 \item{type}{a character string specifying whether the \code{"full"} spectrum
-should be matched or spectrum \code{"peaks"} only.}
+should be matched or spectrum \code{"peaks"} only. \code{"metadata"} is
+needed to browser spectra with \code{find_spectrum()}.}
 
 \item{range}{this should be all possible wavenumber values from your spectral
 library.}
 
 \item{top_n}{number of top matches that you want to be returned.}
 
+\item{subset}{logical expression indicating elements or rows to search for;
+see \code{\link[base]{subset}()} for details.}
+
+\item{cols}{columns to retrieve from the Open Specy reference library;
+columns containing no or missing values are automatically removed.}
+
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \description{
-This function will compare a spectrum to a spectral library formatted with
-the Open Specy standard and report the best match using the Pearson
-correlation coefficient.
+\code{match_spectrum()} will compare a spectrum to a spectral library
+formatted with the Open Specy standard and report the best match using the
+Pearson correlation coefficient.
+\code{find_spectrum()} makes it easy to retrieve single spectra and metadata
+from the Open Specy reference library.
 }
 \details{
 This routine will match the spectrum you want to identify to the
@@ -74,7 +99,9 @@ data("raman_hdpe")
 get_lib("raman")
 spec_lib <- load_lib("raman")
 
-match_spectrum(raman_hdpe, spec_lib, "raman", "full")
+match_spectrum(raman_proc, library = spec_lib, which = "raman")
+
+find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
 }
 
 }

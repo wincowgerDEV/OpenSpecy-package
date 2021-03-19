@@ -27,8 +27,9 @@ a data frame containing spectral data as \code{"wavenumber"} and
 
 \item{y}{a numeric vector containing the spectral intensities.}
 
-\item{type}{a character string specifying whether the \code{"full"} spectrum
-should be matched or spectrum \code{"peaks"} only.}
+\item{type}{a character string specifying whether the input spectrum is
+in absorbance units (\code{"none"}, default) or needs additional conversion
+from \code{"reflectance"} or \code{"transmittance"} data.}
 
 \item{make_relative}{logical; if \code{TRUE} spectra are automatically
 normalized with \code{\link{make_relative}()}.}

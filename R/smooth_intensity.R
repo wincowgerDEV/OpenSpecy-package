@@ -41,8 +41,8 @@ smooth_intensity <- function(x, ...) {
 #'
 #' @export
 smooth_intensity.formula <- function(formula, data = NULL, ...) {
-  if (missing(formula) || (length(formula) != 3L) || (length(attr(terms(formula[-2L]),
-                                                                  "term.labels")) != 1L))
+  if (missing(formula) || (length(formula) != 3L) ||
+      (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
     stop("'formula' missing or incorrect")
 
   mf <- model.frame(formula, data)

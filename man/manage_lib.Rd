@@ -8,13 +8,15 @@
 \usage{
 check_lib(
   which = c("ftir", "raman"),
-  location = system.file("extdata", package = "OpenSpecy"),
+  types = c("metadata", "library", "peaks"),
+  path = system.file("extdata", package = "OpenSpecy"),
   condition = "warning"
 )
 
 get_lib(
   which = c("ftir", "raman"),
-  location = system.file("extdata", package = "OpenSpecy"),
+  types = c("metadata", "library", "peaks"),
+  path = system.file("extdata", package = "OpenSpecy"),
   node = "x7dpz",
   conflicts = "overwrite",
   ...
@@ -22,19 +24,23 @@ get_lib(
 
 load_lib(
   which = c("ftir", "raman"),
-  location = system.file("extdata", package = "OpenSpecy")
+  types = c("metadata", "library", "peaks"),
+  path = system.file("extdata", package = "OpenSpecy")
 )
 }
 \arguments{
 \item{which}{a character string specifying which library to use,
 \code{"raman"} or \code{"ftir"}.}
 
-\item{location}{where to save or look for library files.}
+\item{types}{library types to check/retrieve; defaults to
+\code{c("metadata", "library", "peaks")}.}
+
+\item{path}{where to save or look for local library files.}
 
 \item{condition}{determines if \code{check_lib()} should warn
 (\code{"warning"}, the default) or throw and error (\code{"error"}).}
 
-\item{node}{the OSF node to be retrieved. Should be \code{"x7dpz"}.}
+\item{node}{the OSF node to be retrieved; should be \code{"x7dpz"}.}
 
 \item{conflicts}{determines what happens when a file with the same name
 exists at the specified destination. Can be one of the following (see
@@ -55,9 +61,9 @@ workaround that we are using to make sure everyone can easily get Open Specy
 functionality running on their desktop.
 }
 \details{
-\code{check_lib()} checks to see if the Open Specy library already exists
-on the users computer.
-\code{get_lib()} will download the Open Specy Library from OSF
+\code{check_lib()} checks to see if the Open Specy reference library
+already exists on the users computer.
+\code{get_lib()} downloads the Open Specy library from OSF
 (\url{https://osf.io/x7dpz/}).
 \code{load_lib()} will load the library into the global environment for use
 with the Open Specy functions.

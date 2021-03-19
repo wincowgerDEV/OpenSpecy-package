@@ -1,3 +1,5 @@
+data("raman_hdpe")
+
 test_that("subtract_background() works as expected", {
   expect_silent(sb <- subtract_background(raman_hdpe, degree = 8))
   expect_identical(sb, subtract_background(raman_hdpe$wavenumber,
