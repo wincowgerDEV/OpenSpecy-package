@@ -162,7 +162,7 @@ from the **Intensity Adjustment** selection.
 
 Open Specy assumes that intensity units are in absorbance units but
 Open Specy can adjust reflectance or transmittance spectra to absorbance
-units using this drop down in the upload file tab. The transmittance
+units using this selection in the upload file tab. The transmittance
 adjustment uses the $\log_{10} 1/T$ calculation which does not correct for
 system or particle characteristics. The reflectance adjustment
 use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. If none is selected, Open
@@ -184,7 +184,7 @@ head(raman_adj)
 
 ![](sop_files/figure-html/metadatainput.jpg)
 
-When sharing data, please provide as much metadata as you can. Metadata
+To share metadata about your spectrum, click the metadata input button. When sharing data, please provide as much metadata as you can. Metadata
 helps make shared data as useful as possible. Metadata inputs each have
 examples provided in the input. The examples disappear when the box is
 clicked and will not be saved if nothing is input by the user.
