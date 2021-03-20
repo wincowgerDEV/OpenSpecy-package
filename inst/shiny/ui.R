@@ -511,7 +511,7 @@ ui <- fluidPage(
                          ),
                          column(2,
 
-                                selectInput("IntensityCorr", "Intensity Adjustment",
+                                radioButtons("IntensityCorr", "Intensity Adjustment",
                                             c("None" = "none",
                                               "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
                                 bsPopover(
@@ -560,21 +560,11 @@ ui <- fluidPage(
                                 ),
                                 tags$br(),
                                 fluidRow(
-                                  column(2,
-                                         dropdownButton(inputId = "smooth_tools",
-                                                        sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3),
-                                                        icon = icon("gear"),
-                                                        size = "xs",
-                                                        status = "success",
-                                                        width = "300px",
-                                                        circle = TRUE)
-                                  ),
                                   column(10,
                                          prettySwitch("smooth_decision",
                                              label = "Smoothing",
                                              inline = T,
                                              value = T,
-                                             bigger = T,
                                              status = "success",
                                              fill = T),
                                          bsPopover(
@@ -584,27 +574,25 @@ ui <- fluidPage(
                                            placement = "bottom",
                                            trigger = "hover"
                                            )
+                                      ),
+                                  column(2,
+                                         dropdownButton(inputId = "smooth_tools",
+                                                        sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3),
+                                                        icon = icon("gear"),
+                                                        size = "xs",
+                                                        status = "success",
+                                                        width = "300px",
+                                                        circle = TRUE)
                                   )
 
                                 ),
 
                                 fluidRow(
-                                  column(2,
-                                   dropdownButton(inputId = "baseline_tools",
-                                    sliderInput("baseline", "Baseline Correction Polynomial", min = 0, max = 20, value = 8),
-                                    icon = icon("gear"),
-                                    size = "xs",
-                                    status = "success",
-                                    width = "300px",
-                                    circle = TRUE
-                                                )
-                                         ),
                                   column(10,
                                   prettySwitch("baseline_decision",
                                              label = "Baseline Correction",
                                              inline = T,
                                              value = T,
-                                             bigger = T,
                                              status = "success",
                                              fill = T),
                                   bsPopover(
@@ -613,11 +601,36 @@ ui <- fluidPage(
                                     content = c("This baseline correction routine utilizes the imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra."),
                                     placement = "bottom",
                                     trigger = "hover"
-                                  )
+                                        )
 
-                                         )
+                                    ),
+                                column(2,
+                                       dropdownButton(inputId = "baseline_tools",
+                                                      sliderInput("baseline", "Baseline Correction Polynomial", min = 0, max = 20, value = 8),
+                                                      icon = icon("gear"),
+                                                      size = "xs",
+                                                      status = "success",
+                                                      width = "300px",
+                                                      circle = TRUE
+                                       )
+                                   )
                                 ),
                                 fluidRow(
+                                  column(10,
+                                         prettySwitch("range_decision",
+                                             label = "Range Selection",
+                                             inline = T,
+                                             value = T,
+                                             status = "success",
+                                             fill = T),
+                                         bsPopover(
+                                           id = "range_decision",
+                                           title = "Spectral Range Help",
+                                           content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
+                                           placement = "bottom",
+                                           trigger = "hover"
+                                         )
+                                  ),
                                   column(2,
                                          dropdownButton(inputId = "range_tools",
                                                         numericInput(
@@ -643,22 +656,6 @@ ui <- fluidPage(
                                                         status = "success",
                                                         width = "300px",
                                                         circle = TRUE
-                                         )
-                                  ),
-                                  column(10,
-                                         prettySwitch("range_decision",
-                                             label = "Range Selection",
-                                             inline = T,
-                                             value = T,
-                                             bigger = T,
-                                             status = "success",
-                                             fill = T),
-                                         bsPopover(
-                                           id = "range_decision",
-                                           title = "Spectral Range Help",
-                                           content = c("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching"),
-                                           placement = "bottom",
-                                           trigger = "hover"
                                          )
                                   )
                                 )
@@ -692,7 +689,7 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
-                                selectInput("Data", "Spectrum to Analyze",
+                                radioButtons("Data", "Spectrum to Analyze",
                                             c("Processed" = "processed",
                                               "Uploaded" = "uploaded"
                                             )),
@@ -703,7 +700,7 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
-                                selectInput("Library", "Region to Match",
+                                radioButtons("Library", "Region to Match",
                                             c("Full Spectrum" = "full",
                                               "Peaks Only" = "peaks")),
                                 bsPopover(
