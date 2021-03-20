@@ -68,7 +68,7 @@ run_app()
 
 Then click the **Upload File** tab at the top of the page.
 
-<!-- Add Upload File tab here -->
+![](sop_files/figure-html/MainPage.jpg)
 
 ## Download a test dataset
 
@@ -93,6 +93,8 @@ researchers and other ventures to use to improve spectral analysis,
 build machine learning tools, etc. Some users may choose not to share if
 they need to keep their data private. If switched off, none of
 the uploaded data will be stored or shared in Open Specy.
+
+![](sop_files/figure-html/uploadfile.jpg)
 
 ## Upload/Read Data
 
@@ -127,11 +129,12 @@ metadata and raw data for your records.
 
 To upload data, click **Browse** and choose one of your
 files to upload, or drag and drop your file into the gray box. At this
-time you can only upload one file at a time. Upon upload and throughout
-the analysis, intensity values are min-max normalized:
+time you can only upload one file at a time. 
+
+Upon upload and throughout the analysis, intensity values are min-max normalized:
 
 $$\frac{x - \mathrm{min}(x)}{\mathrm{min}(x) - \mathrm{max}(x)}$$
-The following R functions will read in spectral data accordingly:
+The following R functions from the Open Specy package will also read in spectral data accordingly:
 
 ```{r, eval=FALSE}
 read_text(".csv")
@@ -149,7 +152,7 @@ from the **Intensity Adjustment** selection.
 
 ## Intensity Adjustment
 
-<!-- Add Image for intensity dropdown -->
+![](sop_files/figure-html/.png)
 
 Open Specy assumes that intensity units are in absorbance units but
 Open Specy can adjust reflectance or transmittance spectra to absorbance
