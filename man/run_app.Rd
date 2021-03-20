@@ -28,3 +28,6 @@ run_app(launch.browser = TRUE)
 \seealso{
 \code{\link[shiny]{runApp}()}
 }
+\author{
+Zacharias Steinmetz
+}

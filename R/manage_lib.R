@@ -35,8 +35,10 @@
 #' (\code{"warning"}, the default) or throw and error (\code{"error"}).
 #' @param \ldots further arguments passed to \code{\link[osfr]{osf_download}()}.
 #'
-#' @seealso
-#' \code{\link{match_spectrum}()}
+#' @return
+#' \code{check_lib()} and \code{get_lib()} return messages only;
+#' \code{load_lib()} returns a list object containing the respective spectral
+#' reference library.
 #'
 #' @examples
 #' \dontrun{
@@ -45,6 +47,12 @@
 #'
 #' spec_lib <- load_lib(which = c("ftir", "raman"))
 #' }
+#'
+#' @author
+#' Zacharias Steinmetz
+#'
+#' @seealso
+#' \code{\link{match_spectrum}()}
 #'
 #' @importFrom magrittr %>%
 #'

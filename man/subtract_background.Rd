@@ -38,20 +38,36 @@ normalized with \code{\link{make_relative}()}.}
 
 \item{\ldots}{further arguments passed to \code{\link[stats]{poly}()}.}
 }
+\value{
+\code{subtract_background()} returns a data frame containing two columns
+named \code{"wavenumber"} and \code{"intensity"}.
+}
 \description{
 This baseline correction routine iteratively finds the baseline of a spectrum
 using a polynomial fitting.
 }
 \details{
-This is an translation of a matlab code written for the imodpolyfit routine
-from Zhao et a. 2007.
+This is a translation of Michael Stephen Chen's MATLAB code written for the
+\code{imodpolyfit} routine from Zhao et al. 2007.
 }
 \examples{
 data("raman_hdpe")
 subtract_background(raman_hdpe)
 
 }
+\references{
+Chen MS (2020). Michaelstchen/ModPolyFit. \emph{MATLAB}.
+Retrieved from \url{https://github.com/michaelstchen/modPolyFit}
+(Original work published July 28, 2015)
+
+Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence
+Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
+\emph{Applied Spectroscopy}, \strong{61}(11), 1225–1232.
+}
 \seealso{
 \code{\link[stats]{poly}()};
 \code{\link{smooth_intensity}()}
+}
+\author{
+Win Cowger, Zacharias Steinmetz
 }

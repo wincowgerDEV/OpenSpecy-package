@@ -39,6 +39,9 @@ the cloud.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
+\value{
+\code{share_spectrum()} returns only messages/warnings
+}
 \description{
 This helper function shares spectral data and metadata with the Open Specy
 community.
@@ -103,4 +106,7 @@ share_spectrum(raman_hdpe)
 }
 \seealso{
 \code{\link{read_text}()}
+}
+\author{
+Zacharias Steinmetz, Win Cowger
 }

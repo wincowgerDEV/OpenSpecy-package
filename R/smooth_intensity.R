@@ -24,12 +24,24 @@
 #' normalized with \code{\link{make_relative}()}.
 #' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}.
 #'
-#' @seealso
-#' \code{\link[signal]{sgolay}()}
+#' @return
+#' \code{smooth_intensity()} returns a data frame containing two columns
+#' named \code{"wavenumber"} and \code{"intensity"}.
 #'
 #' @examples
 #' data("raman_hdpe")
 #' smooth_intensity(raman_hdpe)
+#'
+#' @author
+#' Win Cowger, Zacharias Steinmetz
+#'
+#' @seealso
+#' \code{\link[signal]{sgolay}()}
+#'
+#' @references
+#' Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by
+#' Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
+#' \strong{36}(8), 1627--1639.
 #'
 #' @importFrom magrittr %>%
 #' @export

@@ -28,14 +28,21 @@
 #' normalized with \code{\link{make_relative}()}.
 #' @param \ldots further arguments passed to the submethods.
 #'
-#' @seealso
-#' \code{\link{subtract_background}()} for spectral background correction;
-#' \code{\link{match_spectrum}()} matches spectra with the Open Specy or other
-#' reference libraries
+#' @return
+#' \code{adjust_intensity()} returns a data frame containing two columns
+#' named \code{"wavenumber"} and \code{"intensity"}.
 #'
 #' @examples
 #' data("raman_hdpe")
 #' adjust_intensity(raman_hdpe)
+#'
+#' @author
+#' Win Cowger, Zacharias Steinmetz
+#'
+#' @seealso
+#' \code{\link{subtract_background}()} for spectral background correction;
+#' \code{\link{match_spectrum}()} matches spectra with the Open Specy or other
+#' reference libraries
 #'
 #' @importFrom magrittr %>%
 #' @export

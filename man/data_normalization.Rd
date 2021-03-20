@@ -15,6 +15,10 @@ make_relative(x, na.rm = FALSE)
 
 \item{na.rm}{logical. Should missing values be removed?}
 }
+\value{
+\code{adjust_negative()} and \code{make_relative()} return numeric vectors
+with the normalized data.
+}
 \description{
 \code{adjust_negative()} converts numeric values \code{x} < 1 into values
 >= 1, keeping absolute differences between values by shifting intensity
@@ -26,8 +30,8 @@ computation proceeds.
 }
 \details{
 \code{adjust_negative()} is used in Open Specy to avoid errors that could
-arise from log transforming spectra when using \code{\link{adjust_intensity}()}
-and other functions.
+arise from log transforming spectra when using
+\code{\link{adjust_intensity}()} and other functions.
 \code{make_relative()} is used in Open Specy to retain the relative
 height proportions between spectra while avoiding the large numbers that can
 result from some spectral instruments.
@@ -40,4 +44,7 @@ make_relative(c(-1000, -1, 0, 1, 10))
 \seealso{
 \code{\link[base]{min}()} for the calculation of minima;
 \code{\link{adjust_intensity}()} for log transformation functions
+}
+\author{
+Win Cowger, Zacharias Steinmetz
 }

@@ -36,6 +36,10 @@ normalized with \code{\link{make_relative}()}.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
+\value{
+\code{adjust_intensity()} returns a data frame containing two columns
+named \code{"wavenumber"} and \code{"intensity"}.
+}
 \description{
 Converts reflectance or transmittance intensity units to absorbance units.
 }
@@ -59,4 +63,7 @@ adjust_intensity(raman_hdpe)
 \code{\link{subtract_background}()} for spectral background correction;
 \code{\link{match_spectrum}()} matches spectra with the Open Specy or other
 reference libraries
+}
+\author{
+Win Cowger, Zacharias Steinmetz
 }

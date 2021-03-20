@@ -69,13 +69,19 @@
 #' the cloud.
 #' @param \ldots further arguments passed to the submethods.
 #'
-#' @seealso
-#' \code{\link{read_text}()}
+#' @return
+#' \code{share_spectrum()} returns only messages/warnings
 #'
 #' @examples
 #' data("raman_hdpe")
 #'
 #' share_spectrum(raman_hdpe)
+#'
+#' @author
+#' Zacharias Steinmetz, Win Cowger
+#'
+#' @seealso
+#' \code{\link{read_text}()}
 #'
 #' @importFrom magrittr %>%
 #' @importFrom digest digest

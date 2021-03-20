@@ -74,6 +74,12 @@ columns containing no or missing values are automatically removed.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
+\value{
+\code{match_spectrum()} returns a data frame with the \code{top_n} material
+matches, their Pearson's r value, and the organization they were provided by.
+\code{find_spectrum()} returns a data frame with the spectral raw data or
+metadata of a specific reference spectrum.
+}
 \description{
 \code{match_spectrum()} will compare a spectrum to a spectral library
 formatted with the Open Specy standard and report the best match using the
@@ -110,4 +116,7 @@ find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
 \code{\link{get_lib}()} retrieves the Open Specy reference library;
 \code{\link{load_lib}()} loads the Open Specy reference library into an \R
 object of choice
+}
+\author{
+Win Cowger, Zacharias Steinmetz
 }

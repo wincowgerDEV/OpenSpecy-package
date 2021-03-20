@@ -11,13 +11,16 @@
 #' \code{system.file("shiny", package = "OpenSpecy")}.
 #' @param \dots arguments passed to \code{\link[shiny]{runApp}()}.
 #'
-#' @seealso
-#' \code{\link[shiny]{runApp}()}
-#'
 #' @examples
 #' \dontrun{
 #' run_app(launch.browser = TRUE)
 #' }
+#'
+#' @author
+#' Zacharias Steinmetz
+#'
+#' @seealso
+#' \code{\link[shiny]{runApp}()}
 #'
 #' @importFrom shiny runApp
 #' @export

@@ -40,12 +40,6 @@
 #' columns containing no or missing values are automatically removed.
 #' @param \ldots further arguments passed to the submethods.
 #'
-#' @seealso
-#' \code{\link{adjust_intensity}()} converts spectra;
-#' \code{\link{get_lib}()} retrieves the Open Specy reference library;
-#' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
-#' object of choice
-#'
 #' @examples
 #' \dontrun{
 #' data("raman_hdpe")
@@ -57,6 +51,21 @@
 #'
 #' find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
 #' }
+#'
+#' @return
+#' \code{match_spectrum()} returns a data frame with the \code{top_n} material
+#' matches, their Pearson's r value, and the organization they were provided by.
+#' \code{find_spectrum()} returns a data frame with the spectral raw data or
+#' metadata of a specific reference spectrum.
+#'
+#' @author
+#' Win Cowger, Zacharias Steinmetz
+#'
+#' @seealso
+#' \code{\link{adjust_intensity}()} converts spectra;
+#' \code{\link{get_lib}()} retrieves the Open Specy reference library;
+#' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
+#' object of choice
 #'
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data

@@ -1,20 +1,19 @@
 #' @title Test reference library
 #'
 #' @description
-#' Desc
+#' Reference library of 34 Raman spectra used for internal testing.
 #'
 #' @format
-#' A lsit
+#' A list named \code{"test"} with two elements:
+#'
 #' \tabular{ll}{
-#' wavenumber: \tab \cr
-#' absorbance: \tab \cr
+#' \code{metadata}: \tab metadata of 34 Raman spectra \cr
+#' \code{library}: \tab all reference spectra, \code{sample_name} serves as
+#' identifier \cr
 #' }
 #'
 #' @author
-#' author
-#'
-#' @references
-#' ref
+#' Jennifer Lynch
 #'
 #' @docType data
 #' @keywords data

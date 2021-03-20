@@ -3,8 +3,8 @@
 #' @title Read spectral data
 #'
 #' @description
-#' Functions for reading spectral data types including *.asp, *.jdx,
-#' *.spc, *.spa, *.0, and *.csv.
+#' Functions for reading spectral data types including .asp, .jdx,
+#' .spc, .spa, .0, and .csv.
 #'
 #' @details
 #' \code{read_spc()} and \code{read_jdx()} are just a wrapper around the
@@ -25,14 +25,21 @@
 #' Open Specy community; see \code{\link{share_spectrum}()} for details.
 #' @param \ldots further arguments passed to the submethods.
 #'
-#' @seealso
-#' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
-#' \code{\link[hexView]{readRaw}()}; \code{\link{share_spectrum}()}
+#' @return
+#' All \code{read_*()} functions return data frames containing two columns
+#' named \code{"wavenumber"} and \code{"intensity"}.
 #'
 #' @examples
 #' read_text(read_extdata("raman_hdpe.csv"))
 #' read_asp(read_extdata("ftir_ldpe_soil.asp"))
 #' read_0(read_extdata("ftir_ps.0"))
+#'
+#' @author
+#' Zacharias Steinmetz, Win Cowger
+#'
+#' @seealso
+#' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
+#' \code{\link[hexView]{readRaw}()}; \code{\link{share_spectrum}()}
 #'
 #' @importFrom magrittr %>%
 #' @export

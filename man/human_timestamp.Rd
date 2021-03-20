@@ -6,14 +6,17 @@
 \usage{
 human_timestamp()
 }
+\value{
+\code{human_timestamp()} returns a character value with the respective
+timestamp.
+}
 \description{
 This helper function creates human readable timestamps in the form of
 \code{\%Y\%m\%d-\%H\%M\%OS} at the current time.
 }
 \details{
 Human readable timestamps are appended to file names and fields when metadata
-are shared to the Open Specy data portal at
-\url{https://www.dropbox.com/sh/vibzoiq1i4o5usp/AAAe50RJhnvt6NoMDAJZ1CY8a?dl=0}
+are shared with the Open Specy community.
 }
 \examples{
 human_timestamp()
@@ -21,4 +24,7 @@ human_timestamp()
 }
 \seealso{
 \code{\link[base]{format.Date}} for date conversion functions
+}
+\author{
+Win Cowger
 }

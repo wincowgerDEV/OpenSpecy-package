@@ -6,14 +6,20 @@
 #'
 #' @details
 #' Human readable timestamps are appended to file names and fields when metadata
-#' are shared to the Open Specy data portal at
-#' \url{https://www.dropbox.com/sh/vibzoiq1i4o5usp/AAAe50RJhnvt6NoMDAJZ1CY8a?dl=0}
+#' are shared with the Open Specy community.
 #'
-#' @seealso
-#' \code{\link[base]{format.Date}} for date conversion functions
+#' @return
+#' \code{human_timestamp()} returns a character value with the respective
+#' timestamp.
 #'
 #' @examples
 #' human_timestamp()
+#'
+#' @author
+#' Win Cowger
+#'
+#' @seealso
+#' \code{\link[base]{format.Date}} for date conversion functions
 #'
 #' @importFrom magrittr %>%
 #' @export
