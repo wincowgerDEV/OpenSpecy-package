@@ -412,7 +412,7 @@ ui <- fluidPage(
                                   trigger = "hover"
                                 ),
 
-                                actionButton("share_meta", "Share Metadata"),
+                                actionButton("share_meta", "Metadata Input"),
                                 bsPopover(
                                   id = "share_meta",
                                   title = "Metadata Help",
