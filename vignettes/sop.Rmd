@@ -76,7 +76,7 @@ We added a Google translate plugin to all pages in the app so that you can easil
 
 
 ## Download a test dataset
-![](sop_files/figure-html/samplefile.JPG)
+![](sop_files/figure-html/samplefile.jpg)
 
 If you don't have your own data to use right away, that is ok. You can
 download test data to try out the tool by clicking on the test data
@@ -237,6 +237,8 @@ your parameters for processing the spectrum.
 
 ## Preprocess Spectra Plot
 
+![](sop_files/figure-html/preprocessplot.png)
+
 The preprocess spectra plot shows the uploaded spectra in comparison to
 the processed spectra that has been processed using the processing
 inputs on the page. It will automatically update with any new slider
@@ -250,7 +252,7 @@ high intensities and non-peak regions should have low intensities.
 
 When the slider is green for the tool type, that means that that tool is being used to preprocess the spectrum. If the slider is clicked blank, the cog button to the right will disappear to indicate that the tool is no longer being used. 
 
-![](sop_files/figure-html/deselection.JPG)
+![](sop_files/figure-html/deselection.jpg)
 
 
 If the cog button is clicked, any functions associated with that tool will be displayed and can be manipulated to process the spectrum. 
@@ -293,7 +295,7 @@ ggplot(compare_smoothing, aes(wavenumber, intensity)) +
 
 ## Baseline Correction Polynomial
 
-![](sop_files/figure-html/baslinecorrectionpoly.JPG)
+![](sop_files/figure-html/baslinecorrectionpoly.jpg)
 
 The second step of Open Specy's preprocessing routine is baseline
 correction. The goal of baseline correction is to get all non-peak
@@ -327,7 +329,7 @@ ggplot(compare_subtraction, aes(wavenumber, intensity)) +
 
 ## Spectral Range
 
-![](sop_files/figure-html/rangeselection.JPG)
+![](sop_files/figure-html/rangeselection.jpg)
 
 The final step of preprocessing is restricting the spectral range.
 Sometimes the instrument operates with high noise at the ends of the
@@ -342,7 +344,7 @@ function allows users to isolate peaks of interest for matching, while
 removing noise and influence from less relevant spectral data.
 
 ## Download Data
-![](sop_files/figure-html/Download.JPG)
+![](sop_files/figure-html/Download.jpg)
 
 After you have the preprocessing parameters set, we recommend that you
 download the preprocessed data for your records. The download data
@@ -355,7 +357,7 @@ Savitzky-Golay filter specified by the slider explained above.
 visible on the center plot.
 
 # Matching
-![](sop_files/figure-html/matchtab.JPG)
+![](sop_files/figure-html/matchtab.jpg)
 
 After uploading data and preprocessing it (if desired) you can now
 identify the spectrum. To identify the spectrum go to the **Match
@@ -367,7 +369,7 @@ parameters below.
 
 ## Spectrum Type
 
-![](sop_files/figure-html/spectrumtype.JPG)
+![](sop_files/figure-html/spectrumtype.jpg)
 
 The spectra type input on the "Match spectra" tab specifies the type of
 spectra (Raman or FTIR) that the user has uploaded and wants to match
@@ -376,7 +378,7 @@ the Raman library to make the match.
 
 ## Spectrum To Analyze
 
-![](sop_files/figure-html/spectrumtoanalyze.JPG)
+![](sop_files/figure-html/spectrumtoanalyze.jpg)
 
 The spectra to analyze input specifies if the tool will match the
 **Uploaded** spectra (unaltered by the inputs on the **Preprocess Spectra**
@@ -385,7 +387,7 @@ Preprocess Spectra Tab).
 
 ## Region To Match
 
-![](sop_files/figure-html/regiontomatch.JPG)
+![](sop_files/figure-html/regiontomatch.jpg)
 
 The region to match input specifies if the "Full Spectrum" will match
 the entire range of the spectra (including non peak regions) in the
@@ -399,7 +401,29 @@ interpretation of the match, this is not the best approach.
 
 ## Match Table
 
-![](sop_files/figure-html/matches.JPG)
+![](sop_files/figure-html/matches.jpg)
+
+The same table can be returned using the Open Specy library commands in the R Console. 
+
+```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", echo=FALSE}
+library(ggplot2)
+data("raman_hdpe")
+get_lib()
+
+# Load library into global environment
+spec_lib <- load_lib()
+
+raman_proc <- raman_hdpe %>%
+  adjust_intensity() %>% 
+  smooth_intensity() %>% 
+  subtract_background()
+
+# Match spectrum with library and retrieve meta data
+match_spectrum(raman_proc, library = spec_lib, which = "raman")
+
+find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
+
+```
 
 The selectable table shows the top material matches returned by the
 tool, their Pearson's r value, and the organization they were provided
@@ -422,7 +446,7 @@ $$\mathrm{for~each}~peak~group^{1,n}: x - \mathrm{min}(x)$$
 
 ## Selection Metadata
 
-![](sop_files/figure-html/selectionmetadata.JPG)
+![](sop_files/figure-html/selectionmetadata.jpg)
 
 Whatever match is selected from the match table may have additional
 metadata about it. That metadata will be displayed below the plot. Some
@@ -432,7 +456,7 @@ are analyzing a solid particle, that spectrum may not be the best match.
 
 ## Match Plot
 
-![](sop_files/figure-html/match_plot.JPG)
+![](sop_files/figure-html/match_plot.png)
 
 This plot is dynamically updated by selecting matches from the match
 table. The red spectrum is the spectrum that you selected from the
@@ -596,7 +620,7 @@ file. ¸
 ![](sop_files/figure-html/spectragryph-2.png)
 
 4. Then upload that -spc file to Open Specy.
-![](sop_files/figure-html/uploadfile.JPG)
+![](sop_files/figure-html/uploadfile.jpg)
 <!-- [![](images/image20.png)]{style="width: 624.00px"} -->
 
 ## Conceptual diagram of data flow through Open Specy
