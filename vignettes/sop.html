@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2021-03-19" />
+<meta name="date" content="2021-03-20" />
 
 <title>Standard Operating Procedure</title>
 
@@ -178,7 +178,7 @@ pre code {
 
 <h1 class="title toc-ignore">Standard Operating Procedure</h1>
 <h4 class="author"><p>Jessica Meyers, Jeremy Conkle, Win Cowger, Zacharias Steinmetz, Andrew Gray, Chelsea Rochman, Sebastian Primpke, Jennifer Lynch, Hannah Hapich, Hannah De Frond, Keenan Munno, Bridget O’Donnell</p></h4>
-<h4 class="date">2021-03-19</h4>
+<h4 class="date">2021-03-20</h4>
 
 </div>
 
@@ -233,7 +233,7 @@ pre code {
 <!-- Add Upload tab here -->
 <div id="download-a-test-dataset" class="section level2" number="2.1">
 <h2 number="2.1"><span class="header-section-number">2.1</span> Download a test dataset</h2>
-<p>If you don’t have your own data to use right away, that is ok. You can download test data to try out the tool by clicking on the test data button. A *.csv file of HDPE Raman spectrum will download on your computer. This file can also be used as a template for formatting *.csv data into an Open Specy accepted format.</p>
+<p>If you don’t have your own data to use right away, that is ok. You can download test data to try out the tool by clicking on the test data button. A .csv file of HDPE Raman spectrum will download on your computer. This file can also be used as a template for formatting .csv data into an Open Specy accepted format.</p>
 </div>
 <div id="choose-whether-to-share-your-uploaded-data-or-not" class="section level2" number="2.2">
 <h2 number="2.2"><span class="header-section-number">2.2</span> Choose whether to share your uploaded data or not</h2>
@@ -241,9 +241,9 @@ pre code {
 </div>
 <div id="upload-data" class="section level2" number="2.3">
 <h2 number="2.3"><span class="header-section-number">2.3</span> Upload data</h2>
-<p>Open Specy allows for upload of *.csv, *.asp, *.jdx, *.0, *.spc, and *.spa files. *.csv files should always load correctly but the other file types are still in beta development, though most of the time these files work perfectly. It is best practice to cross check files in the proprietary software they came from and Open Specy before use in Open Specy. Due to the complexity of these file types, we haven’t been able to make them fully compatible yet. If your file is not working, please contact the administrator and share the file so that we can get it to work.</p>
-<p>For the most consistent results, files should be converted to *.csv format before uploading to Open Specy. The specific steps to converting your instrument’s native files to *.csv can be found in its software manual or you can check out <a href="https://www.effemm2.de/spectragryph/">Spectragryph</a>, which supports many spectral file conversions (see Mini Tutorial section: File conversion in Spectragryph to Open Specy accepted format).</p>
-<p>If uploading a *.csv file, label the column with the wavenumbers <code>wavenumber</code> and name the column with the intensities <code>intensity</code>.</p>
+<p>Open Specy allows for upload of .csv, .asp, .jdx, .0, .spc, and .spa files. .csv files should always load correctly but the other file types are still in beta development, though most of the time these files work perfectly. It is best practice to cross check files in the proprietary software they came from and Open Specy before use in Open Specy. Due to the complexity of these file types, we haven’t been able to make them fully compatible yet. If your file is not working, please contact the administrator and share the file so that we can get it to work.</p>
+<p>For the most consistent results, files should be converted to .csv format before uploading to Open Specy. The specific steps to converting your instrument’s native files to .csv can be found in its software manual or you can check out <a href="https://www.effemm2.de/spectragryph/">Spectragryph</a>, which supports many spectral file conversions (see Mini Tutorial section: File conversion in Spectragryph to Open Specy accepted format).</p>
+<p>If uploading a .csv file, label the column with the wavenumbers <code>wavenumber</code> and name the column with the intensities <code>intensity</code>.</p>
 <table>
 <caption>Sample data <code>raman_hdpe</code></caption>
 <thead>
@@ -283,7 +283,7 @@ pre code {
 <p>To upload data, click <strong>Browse</strong> and choose one of your files to upload, or drag and drop your file into the gray box. At this time you can only upload one file at a time. Upon upload and throughout the analysis, intensity values are min-max normalized:</p>
 <p><span class="math display">\[\frac{x - \mathrm{min}(x)}{\mathrm{min}(x) - \mathrm{max}(x)}\]</span></p>
 <p>\end{equation}ctra Plot</p>
-<p>After spectral data are uploaded, it will appear in the main window. This plot is selectable, zoomable, and provides information on hover. You can also save a *.png file of the plot view using the camera icon at the top right when you hover over the plot. This plot will change the view based on updates from the “Intensity Adjustment” selection.</p>
+<p>After spectral data are uploaded, it will appear in the main window. This plot is selectable, zoomable, and provides information on hover. You can also save a .png file of the plot view using the camera icon at the top right when you hover over the plot. This plot will change the view based on updates from the “Intensity Adjustment” selection.</p>
 </div>
 <div id="intensity-adjustment" class="section level2" number="2.4">
 <h2 number="2.4"><span class="header-section-number">2.4</span> Intensity Adjustment</h2>
@@ -338,7 +338,7 @@ Sample <code>raman_hdpe</code> spectrum with different degrees of background sub
 </div>
 <div id="matching" class="section level1" number="4">
 <h1 number="4"><span class="header-section-number">4</span> Matching</h1>
-<p>After uploading data and preprocessing it (if desired) you can now identify the spectrum. To identify the spectrum go to the “Match Spectrum” tab.</p>
+<p>After uploading data and preprocessing it (if desired) you can now identify the spectrum. To identify the spectrum go to the <strong>Match Spectrum</strong> tab.</p>
 <!-- [![](images/image5.png)]{style="width: 624.00px"} -->
 <p>You will see your spectrum and the top matches, but before looking at matches, you need to check the three selectable parameters below.</p>
 <div id="spectrum-type" class="section level2" number="4.1">
@@ -357,7 +357,7 @@ Sample <code>raman_hdpe</code> spectrum with different degrees of background sub
 <div id="match-table" class="section level2" number="4.4">
 <h2 number="4.4"><span class="header-section-number">4.4</span> Match Table</h2>
 <!-- [![](images/image5.png)]{style="width: 231.01px"} -->
-<p>The selectable table shows the top material matches returned by the tool, their Pearson’s r value, and the Organization they were provided by. When rows are selected their spectra are added to the match plot. The spectrum being matched and reference library are determined by the previously mentioned parameters. During the matching process, one final cleaning step happens using a simple minimum subtraction algorithm (Equation 2) which in many cases will allow unprocessed spectra to remove subtle baseline, but will not harm the spectra which has no baseline. Then, these aligned data are tested for correlation using the Pearson’s r. The Pearson’s r is used as a match quality indicator and the spectra from the top 1000 best matches are returned from the library. You can restrict the libraries which are displayed in the table by clicking the box that says “All” under the Organization column. Similarly you can restrict the range of Pearson's r values or search for specific material types.</p>
+<p>The selectable table shows the top material matches returned by the tool, their Pearson’s r value, and the organization they were provided by. When rows are selected their spectra are added to the match plot. The spectrum being matched and reference library are determined by the previously mentioned parameters. During the matching process, one final cleaning step happens using a simple minimum subtraction algorithm (Equation 2) which in many cases will allow unprocessed spectra to remove subtle baseline, but will not harm the spectra which has no baseline. Then, these aligned data are tested for correlation using the Pearson’s r. The Pearson’s r is used as a match quality indicator and the spectra from the top 1000 best matches are returned from the library. You can restrict the libraries which are displayed in the table by clicking the box that says “All” under the Organization column. Similarly you can restrict the range of Pearson's r values or search for specific material types.</p>
 <span class="math display">\[\mathrm{for~each}~peak~group^{1,n}: x - \mathrm{min}(x)\]</span>
 <p style="text-align: center;">
 Equation 2: Minimum Subtraction
@@ -446,11 +446,11 @@ Equation 2: Minimum Subtraction
 </div>
 <div id="references" class="section level1" number="6">
 <h1 number="6"><span class="header-section-number">6</span> References</h1>
-<p>Cowger, W., Gray, A., Christiansen, S. H., De Frond, H., Deshpande, A., Hermabessiere, L., Lee, E., Mill, L., Munno, K., Ossmann, B., &amp; Others. (2020). EXPRESS: Critical Review of Processing and Classification Techniques for Images and Spectra in Microplastic Research. Applied Spectroscopy, 0003702820929064.</p>
-<p>Chabuka, B. K., &amp; Kalivas, J. H. (2020). Application of a Hybrid Fusion Classification Process for Identification of Microplastics Based on Fourier Transform Infrared Spectroscopy. Applied Spectroscopy, 74(9), 1167–1183.</p>
-<p>Primpke, S., Wirth, M., Lorenz, C., &amp; Gerdts, G. (2018). Reference database design for the automated analysis of microplastic samples based on Fourier transform infrared (FTIR) spectroscopy. Analytical and Bioanalytical Chemistry. [<a href="https://www.google.com/url?q=https://doi.org/10.1007/s00216-018-1156-x&amp;sa=D&amp;source=editors&amp;ust=1616072638082000&amp;usg=AOvVaw0TdyCl-hwArATY52caQaZF">https://doi.org/10.1007/s00216-018-1156-x</a></p>
-<p>Savitzky, A., &amp; Golay, M. J. E. (1964). Smoothing and Differentiation of Data by Simplified Least Squares Procedures. Analytical Chemistry, 36(8), 1627–1639.</p>
-<p>Zhao, J., Lui, H., McLean, D. I., &amp; Zeng, H. (2007). Automated autofluorescence background subtraction algorithm for biomedical Raman spectroscopy. Applied Spectroscopy, 61(11), 1225–1232.</p>
+<p>Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification Process for Identification of Microplastics Based on Fourier Transform Infrared Spectroscopy.” <em>Applied Spectroscopy</em>, <strong>74</strong>(9), 1167–1183.</p>
+<p>Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH, De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020). “Critical Review of Processing and Classification Techniques for Images and Spectra in Microplastic Research.” <em>Applied Spectroscopy</em>, <strong>74</strong>(9), 989–1010.</p>
+<p>Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design for the Automated Analysis of Microplastic Samples Based on Fourier Transform Infrared (FTIR) Spectroscopy.” <em>Analytical and Bioanalytical Chemistry</em>, <strong>410</strong>(21), 5131–5141. .</p>
+<p>Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by Simplified Least Squares Procedures.” <em>Analytical Chemistry</em>, <strong>36</strong>(8), 1627–1639.</p>
+<p>Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence Background Subtraction Algorithm for Biomedical Raman Spectroscopy.” <em>Applied Spectroscopy</em>, <strong>61</strong>(11), 1225–1232.</p>
 </div>
 
 

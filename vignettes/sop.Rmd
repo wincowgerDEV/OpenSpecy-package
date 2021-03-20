@@ -66,8 +66,8 @@ Then click the **Upload File** tab at the top of the page.
 
 If you don't have your own data to use right away, that is ok. You can
 download test data to try out the tool by clicking on the test data
-button. A \*.csv file of HDPE Raman spectrum will download on your
-computer. This file can also be used as a template for formatting \*.csv
+button. A .csv file of HDPE Raman spectrum will download on your
+computer. This file can also be used as a template for formatting .csv
 data into an Open Specy accepted format.
 
 ## Choose whether to share your uploaded data or not
@@ -84,8 +84,8 @@ the uploaded data will be stored or shared in Open Specy.
 
 ## Upload data
 
-Open Specy allows for upload of \*.csv, \*.asp, \*.jdx, \*.0, \*.spc, and
-\*.spa files. \*.csv files should always load correctly but the other file
+Open Specy allows for upload of .csv, .asp, .jdx, .0, .spc, and
+.spa files. .csv files should always load correctly but the other file
 types are still in beta development, though most of the time these files
 work perfectly. It is best practice to cross check files in the
 proprietary software they came from and Open Specy before use in Open
@@ -94,15 +94,15 @@ to make them fully compatible yet. If your file is not working, please
 contact the administrator and share the file so that we can get it to
 work.
 
-For the most consistent results, files should be converted to \*.csv
+For the most consistent results, files should be converted to .csv
 format before uploading to Open Specy. The specific steps to converting
-your instrument's native files to \*.csv can be found in its software
+your instrument's native files to .csv can be found in its software
 manual or you can check out
 [Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
 spectral file conversions (see Mini Tutorial section: File conversion in
 Spectragryph to Open Specy accepted format).
 
-If uploading a \*.csv file, label the column with the wavenumbers
+If uploading a .csv file, label the column with the wavenumbers
 `wavenumber` and name the column with the intensities `intensity`.
 
 ```{r sample_data, echo=FALSE}
@@ -124,7 +124,7 @@ $$\frac{x - \mathrm{min}(x)}{\mathrm{min}(x) - \mathrm{max}(x)}$$
 
 After spectral data are uploaded, it will appear in the main window. This plot
 is selectable, zoomable, and provides information on hover. You can also
-save a \*.png file of the plot view using the camera icon at the top right when
+save a .png file of the plot view using the camera icon at the top right when
 you hover over the plot. This plot will change the view based on updates
 from the "Intensity Adjustment" selection.
 
@@ -290,8 +290,8 @@ visible on the center plot.
 # Matching
 
 After uploading data and preprocessing it (if desired) you can now
-identify the spectrum. To identify the spectrum go to the "Match
-Spectrum" tab.
+identify the spectrum. To identify the spectrum go to the **Match
+Spectrum** tab.
 
 <!-- [![](images/image5.png)]{style="width: 624.00px"} -->
 
@@ -332,7 +332,7 @@ interpretation of the match, this is not the best approach.
 <!-- [![](images/image5.png)]{style="width: 231.01px"} -->
 
 The selectable table shows the top material matches returned by the
-tool, their Pearson's r value, and the Organization they were provided
+tool, their Pearson's r value, and the organization they were provided
 by. When rows are selected their spectra are added to the match plot.
 The spectrum being matched and reference library are determined by the
 previously mentioned parameters. During the matching process, one final
@@ -535,27 +535,24 @@ file. ¸
 
 # References
 
-Cowger, W., Gray, A., Christiansen, S. H., De Frond, H., Deshpande, A.,
-Hermabessiere, L., Lee, E., Mill, L., Munno, K., Ossmann, B., & Others.
-(2020). EXPRESS: Critical Review of Processing and Classification
-Techniques for Images and Spectra in Microplastic Research. Applied
-Spectroscopy, 0003702820929064.
+Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
+Process for Identification of Microplastics Based on Fourier Transform Infrared
+Spectroscopy.” *Applied Spectroscopy*, **74**(9), 1167–1183.
 
-Chabuka, B. K., & Kalivas, J. H. (2020). Application of a Hybrid Fusion
-Classification Process for Identification of Microplastics Based on
-Fourier Transform Infrared Spectroscopy. Applied Spectroscopy,
-74(9), 1167--1183.
+Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH, De Frond H,
+Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020). “Critical Review of
+Processing and Classification Techniques for Images and Spectra in Microplastic
+Research.” *Applied Spectroscopy*, **74**(9), 989–1010.
 
-Primpke, S., Wirth, M., Lorenz, C., & Gerdts, G. (2018). Reference
-database design for the automated analysis of microplastic samples based
-on Fourier transform infrared (FTIR) spectroscopy. Analytical and
-Bioanalytical Chemistry.
-[[https://doi.org/10.1007/s00216-018-1156-x](https://www.google.com/url?q=https://doi.org/10.1007/s00216-018-1156-x&sa=D&source=editors&ust=1616072638082000&usg=AOvVaw0TdyCl-hwArATY52caQaZF)
+Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design for
+the Automated Analysis of Microplastic Samples Based on Fourier Transform
+Infrared (FTIR) Spectroscopy.” *Analytical and Bioanalytical Chemistry*,
+**410**(21), 5131–5141. \doi{10.1007/s00216-018-1156-x}.
 
-Savitzky, A., & Golay, M. J. E. (1964). Smoothing and Differentiation of
-Data by Simplified Least Squares Procedures. Analytical
-Chemistry, 36(8), 1627--1639.
+Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by
+Simplified Least Squares Procedures.” *Analytical Chemistry*, **36**(8),
+1627–1639.
 
-Zhao, J., Lui, H., McLean, D. I., & Zeng, H. (2007). Automated
-autofluorescence background subtraction algorithm for biomedical Raman
-spectroscopy. Applied Spectroscopy, 61(11), 1225--1232.
+Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence Background
+Subtraction Algorithm for Biomedical Raman Spectroscopy.”
+*Applied Spectroscopy*, **61**(11), 1225–1232.

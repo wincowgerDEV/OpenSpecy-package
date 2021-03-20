@@ -3,7 +3,7 @@
 ## New Features
 
 - Use external Open Specy libraries from OSF
-- `read_asp()` for reading Agilent \*.asp files
+- `read_asp()` for reading Agilent .asp files
 - CI testing for main functions
 
 ## Minor Improvements
