@@ -31,8 +31,16 @@ knitr::opts_chunk$set(
 )
 ```
 
-Open Specy is a tool for viewing, processing, sharing, and identifying
-Raman and (FT)IR spectra. This document outlines a common workflow for
+Open Specy Raman and (FT)IR spectral analysis tool for plastic particles and
+other environmental samples. Supported features include reading spectral data
+files (.asp, .csv, .jdx, .spc, .spa, .0), smoothing spectral intensities
+with `smooth_intensity()`, correcting background scatter with 
+`subtract_background()`, and identifying spectra using an onboard reference
+library. Analyzed spectra can be shared with the Open Specy community.
+A Shiny app is available via `run_app()` or online at
+[http://www.openspecy.org](http://www.openspecy.org).
+
+This document outlines a common workflow for
 using Open Specy and highlights some topics that users are often
 requesting a tutorial on. If the document is followed sequentially from
 beginning to end, the user will have a better understanding of every
@@ -40,7 +48,7 @@ procedure involved in using Open Specy as a tool for interpreting
 spectra. It takes approximately 45 minutes to read through and follow
 along with this standard operating procedure the first time. Afterward,
 knowledgeable users should be able to thoroughly analyze individual
-spectra at an average speed of 1 per minute.
+spectra at an average speed of 1 min^-1^.
 
 # Getting started
 
@@ -60,7 +68,7 @@ run_app()
 
 Then click the **Upload File** tab at the top of the page.
 
-<!-- Add Upload tab here -->
+<!-- Add Upload File tab here -->
 
 ## Download a test dataset
 
@@ -68,21 +76,25 @@ If you don't have your own data to use right away, that is ok. You can
 download test data to try out the tool by clicking on the test data
 button. A .csv file of HDPE Raman spectrum will download on your
 computer. This file can also be used as a template for formatting .csv
-data into an Open Specy accepted format.
+data into an Open Specy accepted format. The following line of code does the
+same:
+
+```{r eval=FALSE}
+data("raman_hdpe")
+```
 
 ## Choose whether to share your uploaded data or not
 
 Before uploading, indicate if you would like to share the
 uploaded data or not using the slider. If selected,
-any data uploaded to the tool will automatically be saved in an open
-access drive with a [CC-BY 4.0 license](https://creativecommons.org/licenses/by/4.0/)
+any data uploaded to the tool will automatically be shared under [CC-BY 4.0 license](https://creativecommons.org/licenses/by/4.0/)
 and will be available for
 researchers and other ventures to use to improve spectral analysis,
 build machine learning tools, etc. Some users may choose not to share if
 they need to keep their data private. If switched off, none of
 the uploaded data will be stored or shared in Open Specy.
 
-## Upload data
+## Upload/Read Data
 
 Open Specy allows for upload of .csv, .asp, .jdx, .0, .spc, and
 .spa files. .csv files should always load correctly but the other file
@@ -105,7 +117,7 @@ Spectragryph to Open Specy accepted format).
 If uploading a .csv file, label the column with the wavenumbers
 `wavenumber` and name the column with the intensities `intensity`.
 
-```{r sample_data, echo=FALSE}
+```{r sample_data, echo=FALSE, out.width="50%"}
 knitr::kable(head(raman_hdpe), caption = "Sample data `raman_hdpe`")
 ```
 
@@ -119,14 +131,21 @@ time you can only upload one file at a time. Upon upload and throughout
 the analysis, intensity values are min-max normalized:
 
 $$\frac{x - \mathrm{min}(x)}{\mathrm{min}(x) - \mathrm{max}(x)}$$
+The following R functions will read in spectral data accordingly:
 
-\end{equation}ctra Plot
+```{r, eval=FALSE}
+read_text(".csv")
+read_asp(".asp")
+read_0(".0")
+```
+
+## Viewing Spectra Plot
 
 After spectral data are uploaded, it will appear in the main window. This plot
 is selectable, zoomable, and provides information on hover. You can also
 save a .png file of the plot view using the camera icon at the top right when
 you hover over the plot. This plot will change the view based on updates
-from the "Intensity Adjustment" selection.
+from the **Intensity Adjustment** selection.
 
 ## Intensity Adjustment
 
@@ -140,6 +159,17 @@ system or particle characteristics. The reflectance adjustment
 use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. If none is selected, Open
 Specy assumes that the uploaded data is an absorbance spectrum and does not
 apply an adjustment.
+
+This is the respective R code:
+
+```{r}
+library(dplyr)
+
+raman_adj <- raman_hdpe %>%
+  adjust_intensity()
+
+head(raman_adj)
+```
 
 ## Share metadata on known spectra
 
@@ -171,6 +201,19 @@ dataset and change the metadata inputs that are different. If more than
 50 files will be shared at once, you can contact the website
 administrator to get a bulk upload sheet for more rapid upload.
 
+Type
+
+```{r eval=FALSE}
+share_spectrum(raman_hdpe,
+               metadata = c(user_name = "Win Cowger",
+                            contact_info = "wincowger@gmail.com",
+                            spectrum_type = "Raman",
+                            spectrum_identity = "HDPE")
+               )
+```
+
+to share your spectral data from the R console.
+
 # Preprocessing
 
 After uploading data, you can preprocess the data using baseline
@@ -196,10 +239,8 @@ high intensities and non-peak regions should have low intensities.
 The first step of the Open Specy preprocessing routing is spectral
 smoothing. The goal of this function is to increase the signal to noise
 ratio (S/N) without distorting the shape or relative size of the peaks.
-The value on the slider is the polynomial order of the [Savitzky-Golay
-(SG)
-filter](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter) (see also doi: 
-[10.1021/ac60214a047](https://doi.org/10.1021/ac60214a047)). 
+The value on the slider is the polynomial order of the
+[Savitzky-Golay (SG) filter](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter). 
 The SG filter is fit to a moving window of 11 data points where the center
 point in the window is replaced with the polynomial estimate. The
 number of data points in the window is not user adjustable. Higher
@@ -238,7 +279,8 @@ regions of the spectra to zero absorbance. The higher the polynomial order,
 the more wiggly the fit to the baseline. If the baseline
 is not very wiggly, a more wiggly fit could remove peaks which is not
 desired. The baseline correction algorithm used in Open Specy is called
-"I-ModPolyfit" ([Zhao et al. 2007]()). This algorithm iteratively fits polynomial equations of the
+"iModPolyfit" (Zhao et al. 2007). This algorithm iteratively fits polynomial
+equations of the
 specified order to the whole spectrum. During the first fit iteration,
 peak regions will often be above the baseline fit. The data in the peak
 region is removed from the fit to make sure that the baseline is less
@@ -311,8 +353,8 @@ the Raman library to make the match.
 ## Spectrum To Analyze
 
 The spectra to analyze input specifies if the tool will match the
-"Uploaded" spectra (unaltered by the inputs on the Preprocess Spectra
-Tab) or the **Processed" spectra** (manipulated by the inputs in the
+**Uploaded** spectra (unaltered by the inputs on the **Preprocess Spectra**
+tab) or the **Processed" spectra** (manipulated by the inputs in the
 Preprocess Spectra Tab).
 
 ## Region To Match
@@ -320,9 +362,9 @@ Preprocess Spectra Tab).
 The region to match input specifies if the "Full Spectrum" will match
 the entire range of the spectra (including non peak regions) in the
 reference database. This is the most intuitive match. Or should the
-"Peaks Only" match just the peak regions in the reference database. This
-is an advanced feature proposed in [Renner et al.
-2017](https://www.google.com/url?q=https://paperpile.com/shared/2nJXJF&sa=D&source=editors&ust=1616072638066000&usg=AOvVaw0_xARaOY_JGa7KMzmO9qp1) This can be a less intuitive approach but in cases where
+**Peaks Only** match just the peak regions in the reference database. This
+is an advanced feature proposed in Renner et al. (2017).
+This can be a less intuitive approach but in cases where
 there are few peaks and high baseline interference, it could be the best
 option. In cases where non-peak regions are important for the
 interpretation of the match, this is not the best approach.
@@ -510,7 +552,7 @@ spectra:
 
 # Mini Tutorials
 
-## File Conversion in SpectraGryph to Open Specy accepted format
+## File Conversion in SpectraGryph to Open Specy Accepted Format
 
 1. Download Spectragryph from
 [https://www.effemm2.de/spectragryph/down.html](https://www.effemm2.de/spectragryph/down.html)
@@ -525,7 +567,7 @@ file. ¸
 
 ![](sop_files/figure-html/spectragryph-2.png)
 
-4. Then upload that SPC file to Open Specy.
+4. Then upload that -spc file to Open Specy.
 
 <!-- [![](images/image20.png)]{style="width: 624.00px"} -->
 
@@ -547,7 +589,13 @@ Research.” *Applied Spectroscopy*, **74**(9), 989–1010.
 Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design for
 the Automated Analysis of Microplastic Samples Based on Fourier Transform
 Infrared (FTIR) Spectroscopy.” *Analytical and Bioanalytical Chemistry*,
-**410**(21), 5131–5141. \doi{10.1007/s00216-018-1156-x}.
+**410**(21), 5131–5141. doi: 
+[https://doi.org/10.1007/s00216-018-1156-x](10.1007/s00216-018-1156-x).
+
+Renner G, Schmidt TC, Schram J (2017). “A New Chemometric Approach for Automatic
+Identification of Microplastics from Environmental Compartments Based on FT-IR
+Spectroscopy.” *Analytical Chemistry*, **89**(22), 12045–12053. doi: 
+[https://doi.org/10.1021/acs.analchem.7b024720](10.1021/acs.analchem.7b024720).
 
 Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by
 Simplified Least Squares Procedures.” *Analytical Chemistry*, **36**(8),
