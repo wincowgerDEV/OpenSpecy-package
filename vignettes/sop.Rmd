@@ -403,41 +403,9 @@ interpretation of the match, this is not the best approach.
 
 ![](sop_files/figure-html/matches.jpg)
 
-The same table can be returned using the Open Specy library commands in the R Console. 
 
-```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", echo=FALSE}
-library(ggplot2)
-data("raman_hdpe")
-get_lib()
+The selectable table shows the top material matches returned by the tool, their Pearson's r value, and the organization they were provided by. When rows are selected their spectra are added to the match plot. The spectrum being matched and reference library are determined by the previously mentioned parameters. During the matching process, one final cleaning step happens using a simple minimum subtraction algorithm (Equation 2) which in many cases will allow unprocessed spectra to remove subtle baseline, but will not harm the spectra which has no baseline. Then, these aligned data are tested for correlation using the Pearson's r. The Pearson's r is used as a match quality indicator and the spectra from the top 1000 best matches are returned from the library. You can restrict the libraries which are displayed in the table by clicking the box that says "All" under the Organization column.
 
-# Load library into global environment
-spec_lib <- load_lib()
-
-raman_proc <- raman_hdpe %>%
-  adjust_intensity() %>% 
-  smooth_intensity() %>% 
-  subtract_background()
-
-# Match spectrum with library and retrieve meta data
-match_spectrum(raman_proc, library = spec_lib, which = "raman")
-
-find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
-
-```
-
-The selectable table shows the top material matches returned by the
-tool, their Pearson's r value, and the organization they were provided
-by. When rows are selected their spectra are added to the match plot.
-The spectrum being matched and reference library are determined by the
-previously mentioned parameters. During the matching process, one final
-cleaning step happens using a simple minimum subtraction algorithm
-(Equation 2) which in many cases will allow unprocessed spectra to
-remove subtle baseline, but will not harm the spectra which has no
-baseline. Then, these aligned data are tested for correlation using the
-Pearson's r. The Pearson's r is used as a match quality indicator and
-the spectra from the top 1000 best matches are returned from the
-library. You can restrict the libraries which are displayed in the table
-by clicking the box that says "All" under the Organization column.
 Similarly you can restrict the range of Pearson\'s r values or search
 for specific material types.
 
@@ -449,8 +417,7 @@ $$\mathrm{for~each}~peak~group^{1,n}: x - \mathrm{min}(x)$$
 ![](sop_files/figure-html/selectionmetadata.jpg)
 
 Whatever match is selected from the match table may have additional
-metadata about it. That metadata will be displayed below the plot. Some
-of this metadata may assist you in interpreting the spectra. For
+metadata about it. That metadata will be displayed below the plot. Some of this metadata may assist you in interpreting the spectra. For
 example, if the spectra has metadata which says it is a liquid and you
 are analyzing a solid particle, that spectrum may not be the best match.
 
@@ -474,8 +441,7 @@ metrics.
 ### The library source
 
 When you click on a spectrum, all of the metadata that we have in Open
-Specy about that source will be displayed in a metadata window below to
-the matches table. Each library has different methodologies used to
+Specy about that source will be displayed in a metadata window below to the matches table. Each library has different methodologies used to
 develop it. It is useful to read up on the library sources from the
 literature that they came from. E.g. Chabuka et
 al. 2020 focuses on weathered plastics, so matching to it
