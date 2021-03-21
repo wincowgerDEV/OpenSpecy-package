@@ -151,6 +151,49 @@ ftir_proc <- augmented_ftir %>%
     smooth_intensity() %>% 
     subtract_background()
 
+spectrum = raman_subset[100]
+
+#Check that augmentation and cleaning performed as expected. 
+ggplot() +
+    geom_line(data = augmented_raman %>%
+                   filter(sample_name == spectrum), 
+               aes(x = wavenumber, y = intensity)
+                   ) + 
+    geom_line(data = augmented_raman %>% 
+                    filter(sample_name == spectrum) %>%
+                    smooth_intensity(p = 3) %>% 
+                    subtract_background(degree = 8),
+                aes(x = wavenumber, y = intensity))
+
+
+#Check that cleaned match is to something reasonable. 
+augmented_raman %>% 
+    filter(sample_name == spectrum) %>%
+    smooth_intensity(p = 3) %>% 
+    subtract_background(degree = 8) %>%
+    match_spectrum(library = spec_lib, which = "raman")
+
+spectrum
+
+raman_identities <- c()
+for(spectrum in raman_subset){
+    
+    identity <- unlist(spec_lib$raman$metadata[sample_name == spectrum, "spectrum_identity"])
+    
+    topmatch <- augmented_raman %>% 
+        filter(sample_name == spectrum) %>%
+        smooth_intensity(p = 3) %>% 
+        subtract_background(degree = 8) %>%
+        match_spectrum(library = spec_lib, which = "raman", top_n = 1) %>%
+        select(spectrum_identity) %>%
+        unlist()
+    
+    raman_identities <- c(raman_identities, identity == topmatch)
+    
+}
+
+sum(raman_identities)/length(raman_identities)
+
 #Test make sure that the augmentation, cleaning worked. 
 
 raman_proc %>%
