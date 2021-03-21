@@ -1,98 +1,8 @@
-#library(ggplot2)
-#library(dplyr)
-#library(readr)
-#library(data.table)
-#library(stringr)
-#library(dtplyr)
-#library(stringdist)
-#library(signal)
-#library(zoo)
-#library(pals)
-#library(tidyr)
+#Libraries ----
 library(OpenSpecy)
 library(dplyr)
 
-
-
-minmax <- function(x) {
-    (x - min(x))/(max(x)-min(x))
-}
-
-header.true <- function(df) {
-    names(df) <- as.character(unlist(df[2,]))
-    df[-c(1:2),]
-}
-
-#Function is the imodpolyfit function described by Zhao 2007.
-iModPolyFit <- function(x, y, n) {
-    OriginalWavelengths <- x #Need the original wavelengths
-    dev_prev = 0# DEV_PREV is the standard deviation residuals for the last
-    # iteration of polyfit. Set initially to 0.
-    first_iter = TRUE
-    criteria_met = FALSE
-    while (!criteria_met) {
-        
-        #Predict the intensity using the polynomial of specified length.
-        paramVector = lm(y~stats::poly(x,n, raw = TRUE))
-        
-        residual = paramVector$residuals
-        
-        mod_poly = paramVector$fitted.values
-        
-        dev_curr = sd(residual)
-        
-        #Remove peaks.
-        if (first_iter){
-            Peaks <- c()
-            for (i in 1:length(y)) {
-                if (y[i] > mod_poly[i] + dev_curr){
-                    Peaks <- c(Peaks,i)
-                }
-            }
-            y <- y[-Peaks]
-            mod_poly = mod_poly[-Peaks]
-            x <- x[-Peaks]
-            first_iter = FALSE
-        }
-        
-        #Replace data with lower value if polynomial is lower.
-        for(j in 1:length(y)) {
-            if (mod_poly[j] + dev_curr > y[j]){
-                y[j] = y[j]
-            }
-            else {
-                y[j] = mod_poly[j]
-            }
-        }
-        
-        #Test criteria.
-        criteria_met <- abs((dev_curr - dev_prev)/dev_curr) <= 0.05
-        
-        #Approximate the intensity back to the original wavelengths, allows below the peak to be interpolated.
-        if(criteria_met) {
-            return(unname(unlist(approx(x, y, xout = OriginalWavelengths, rule = 2, method = "linear", ties=mean)[2])))
-        }
-        
-        #Update previous residual metric.
-        dev_prev = dev_curr
-    }
-}
-
-#MatchFunctionMany
-MatchSpectraMany <- function(Data, LibraryDF2, MetaDataTable){
-    Data %>%
-        dplyr::inner_join(LibraryDF2, by = "Wavelength") %>%
-        dplyr::group_by(name) %>%
-        dplyr::mutate(Absorbance = Absorbance - min(Absorbance)) %>%
-        dplyr::mutate(Absorbance = minmax(Absorbance)) %>%
-        dplyr::ungroup() %>%
-        dplyr::group_by(SampleName, name) %>%
-        dplyr::summarise(rsq = cor(Intensity, Absorbance), count = n()) %>%
-        dplyr::ungroup() %>%
-        dplyr::inner_join(select(MetaDataTable, -rsq), by = "SampleName") %>%
-        as_tibble()
-} 
-
+#Functions ----
 RandomlyAugmentDataBaseline <- function(Data) {
     order <- sample(1:5, 1)
     valuestosample <- c(-100:-1, 1:100)
@@ -115,6 +25,7 @@ augment_full <- function(Data){
         ungroup()
 }
 
+#Augment the library data ----
 # Fetch current spectral library from https://osf.io/x7dpz/
 get_lib()
 
@@ -175,6 +86,8 @@ augmented_raman %>%
 
 spectrum
 
+
+#Match back to the library using the Open Specy functions to see if we can get back to the correct identity for the top match.
 raman_identities <- c()
 for(spectrum in raman_subset){
     
@@ -192,34 +105,32 @@ for(spectrum in raman_subset){
     
 }
 
+#Needs to be above 80%
 sum(raman_identities)/length(raman_identities)
 
-#Test make sure that the augmentation, cleaning worked. 
 
-raman_proc %>%
-    filter(sample_name == unique(raman_proc$sample_name)[1]) %>%
-    ggplot() +
-    geom_point(aes(x = wavenumber, y = intensity)) + 
-    geom_line(data = augmented_raman %>%
-                  filter(sample_name == unique(raman_proc$sample_name)[1]),
-              aes(x = wavenumber, y = intensity_og))
+#FTIR validation
+ftir_identities <- c()
+for(spectrum in ftir_subset){
+    
+    identity <- unlist(spec_lib$ftir$metadata[sample_name == spectrum, "spectrum_identity"])
+    
+    topmatch <- augmented_ftir %>% 
+        filter(sample_name == spectrum) %>%
+        smooth_intensity(p = 3) %>% 
+        subtract_background(degree = 8) %>%
+        match_spectrum(library = spec_lib, which = "ftir", top_n = 1) %>%
+        select(spectrum_identity) %>%
+        unlist()
+    
+    ftir_identities <- c(ftir_identities, identity == topmatch)
+    
+}
 
-# Match spectrum with library and retrieve meta data
-match_spectrum(raman_proc, library = spec_lib, which = "raman")
+#Needs to be above 80%
+sum(ftir_identities)/length(ftir_identities)
 
 
-augmented_raman %>%
-    dplyr::filter(sample_name == unique(augmented_raman$sample_name)[2]) %>%
-    ggplot() +
-    geom_line(aes(x = wavenumber, y = intensity_og)) +
-    geom_line(aes(x = wavenumber, y = intensity_aug1)) +
-    geom_line(aes(x = wavenumber, y = intensity_aug2))
 
-saveRDS(augmented_ftir, "augmented_ftir.rds")
-saveRDS(augmented_raman, "augmented_raman.rds")
-
-#Jackknife
-raman_subset <- unique(Raman_metadata$sample_name)[sample(1:length(unique(Raman_metadata$sample_name)), 100, replace = F)]
-ftir_subset <- unique(FTIR_metadata$sample_name)[sample(1:length(unique(FTIR_metadata$sample_name)), 100, replace = F)]
 
 
