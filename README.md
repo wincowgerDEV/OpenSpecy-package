@@ -99,7 +99,7 @@ To cite the R package **OpenSpecy** use:
 
 Win Cowger and Zacharias Steinmetz (2021). OpenSpecy: Analyze, Process,
 Identify, and Share, Raman and (FT)IR Spectra. R package version 0.8.0.
-[https://github.com/wincowgerDEV/OpenSpecy]()
+[https://github.com/wincowgerDEV/OpenSpecy](https://github.com/wincowgerDEV/OpenSpecy)
 
 A BibTeX entry for LaTeX users is
 
