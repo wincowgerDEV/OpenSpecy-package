@@ -22,8 +22,8 @@ knitr::opts_chunk$set(
 Open Specy Raman and (FT)IR spectral analysis tool for plastic particles and
 other environmental samples. Supported features include reading spectral data
 files (.asp, .csv, .jdx, .spc, .spa, .0), smoothing spectral intensities
-with `smooth_intensity()`, correcting background with 
-`subtract_background()`, and identifying spectra using an onboard reference
+with `smooth_intens()`, correcting background with 
+`subtr_bg()`, and identifying spectra using an onboard reference
 library. Analyzed spectra can be shared with the Open Specy community.
 A Shiny app is available via `run_app()` or online at
 [http://www.openspecy.org](http://www.openspecy.org).
@@ -183,7 +183,7 @@ This is the respective R code:
 library(dplyr)
 
 raman_adj <- raman_hdpe %>%
-  adjust_intensity()
+  adj_intens()
 
 head(raman_adj)
 ```
@@ -229,12 +229,12 @@ administrator to get a bulk upload sheet for more rapid upload.
 Type
 
 ```{r eval=FALSE}
-share_spectrum(raman_hdpe,
-               metadata = c(user_name = "Win Cowger",
-                            contact_info = "wincowger@gmail.com",
-                            spectrum_type = "Raman",
-                            spectrum_identity = "HDPE")
-               )
+share_spec(raman_hdpe,
+           metadata = c(user_name = "Win Cowger",
+                        contact_info = "wincowger@gmail.com",
+                        spectrum_type = "Raman",
+                        spectrum_identity = "HDPE")
+           )
 ```
 
 to share your spectral data from the R console.
@@ -305,9 +305,9 @@ library(ggplot2)
 data("raman_hdpe")
 
 compare_smoothing <- rbind(
-  cbind(smoothing = "none", adjust_intensity(raman_hdpe)),
-  cbind(smoothing = "p = 1", smooth_intensity(raman_hdpe, p = 1)),
-  cbind(smoothing = "p = 4", smooth_intensity(raman_hdpe, p = 4))
+  cbind(smoothing = "none", adj_intens(raman_hdpe)),
+  cbind(smoothing = "p = 1", smooth_intens(raman_hdpe, p = 1)),
+  cbind(smoothing = "p = 4", smooth_intens(raman_hdpe, p = 4))
 )
 
 ggplot(compare_smoothing, aes(wavenumber, intensity)) +
@@ -318,15 +318,15 @@ ggplot(compare_smoothing, aes(wavenumber, intensity)) +
 The different degrees of smoothing were achieved with the following R commands:
 
 ```{r, eval=FALSE}
-smooth_intensity(raman_hdpe, p = 1)
-smooth_intensity(raman_hdpe, p = 4)
+smooth_intens(raman_hdpe, p = 1)
+smooth_intens(raman_hdpe, p = 4)
 ```
 
 The intensity-adjusted sample spectrum `raman_adj` is smoothed accordingly:
 
 ```{r}
 raman_smooth <- raman_adj %>% 
-  smooth_intensity()
+  smooth_intens()
 
 head(raman_smooth)
 ```
@@ -357,9 +357,9 @@ library(ggplot2)
 data("raman_hdpe")
 
 compare_subtraction <- rbind(
-  cbind(fitting = "none", adjust_intensity(raman_hdpe)),
-  cbind(fitting = "degree = 2", subtract_background(raman_hdpe, degree = 2)),
-  cbind(fitting = "degree = 8", subtract_background(raman_hdpe, degree = 8))
+  cbind(fitting = "none", adj_intens(raman_hdpe)),
+  cbind(fitting = "degree = 2", subtr_bg(raman_hdpe, degree = 2)),
+  cbind(fitting = "degree = 8", subtr_bg(raman_hdpe, degree = 8))
 )
 
 ggplot(compare_subtraction, aes(wavenumber, intensity)) +
@@ -371,7 +371,7 @@ The smoothed sample spectrum `raman_smooth` is background-corrected as follows:
 
 ```{r}
 raman_bgc <- raman_smooth %>% 
-  subtract_background()
+  subtr_bg()
 
 head(raman_bgc)
 ```
@@ -493,7 +493,7 @@ get_lib()
 # Load library into global environment
 spec_lib <- load_lib()
 # Match spectrum with library and retrieve meta data
-match_spectrum(raman_bgc, library = spec_lib, which = "raman")
+match_spec(raman_bgc, library = spec_lib, which = "raman")
 ```
 
 ## Selection Metadata
@@ -512,7 +512,7 @@ The R command for manual metadata selection using `sample_name == 5381` as
 example is:
 
 ```{r, eval=FALSE}
-find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
+find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 ```
 
 ## Match Plot

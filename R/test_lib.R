@@ -12,6 +12,9 @@
 #' identifier \cr
 #' }
 #'
+#' @examples
+#' data("test_lib")
+#'
 #' @author
 #' Jennifer Lynch
 #'

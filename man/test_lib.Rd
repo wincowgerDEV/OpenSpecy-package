@@ -16,6 +16,10 @@ identifier \cr
 \description{
 Reference library of 34 Raman spectra used for internal testing.
 }
+\examples{
+data("test_lib")
+
+}
 \author{
 Jennifer Lynch
 }

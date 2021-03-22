@@ -1,4 +1,5 @@
 #' @keywords internal
+#' @aliases openspecy
 #' @references
 #' Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
 #' Process for Identification of Microplastics Based on Fourier Transform

@@ -16,12 +16,11 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 
 Raman and (FT)IR spectral analysis tool for plastic particles and other
 environmental samples. Supported features include reading spectral data files
-(.asp, .csv, .jdx, .spc, .spa, .0), smoothing spectral intensities
-with `smooth_intensity()`, correcting background scatter with 
-`subtract_background()`, and identifying spectra using an onboard reference
-library. Analyzed spectra can be shared with the Open Specy community.
-A Shiny app is available via `run_app()` or online at
-[http://www.openspecy.org](http://www.openspecy.org).
+(.asp, .csv, .jdx, .spc, .spa, .0), smoothing spectral intensities with
+`smooth_intens()`, correcting background scatter with  `subtr_bg()`, and
+identifying spectra using an onboard reference library. Analyzed spectra can be
+shared with the Open Specy community. A Shiny app is available via `run_app()`
+or online at [http://www.openspecy.org](http://www.openspecy.org).
 
 ## Installation
 
@@ -53,6 +52,10 @@ library(OpenSpecy)
 run_app()
 ```
 
+See
+[package vignette](https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy/blob/main/vignettes/sop.html)
+for a detailed standard operating procedure.
+
 ## Workflow
 
 ```r
@@ -68,26 +71,26 @@ spec_lib <- load_lib()
 data("raman_hdpe")
 
 # Share your spectrum with the Open Spey community
-share_spectrum(raman_hdpe,
-               metadata = c(user_name = "Win Cowger",
-                            contact_info = "wincowger@gmail.com",
-                            spectrum_type = "Raman",
-                            spectrum_identity = "HDPE")
-               )
+share_spec(raman_hdpe,
+           metadata = c(user_name = "Win Cowger",
+                        contact_info = "wincowger@gmail.com",
+                        spectrum_type = "Raman",
+                        spectrum_identity = "HDPE")
+           )
 
 # Adjust spectral intensity
 raman_adj <- raman_hdpe %>%
-  adjust_intensity()
+  adj_intens()
 
 # Smooth and background-correct spectrum
 raman_proc <- raman_adj %>% 
-  smooth_intensity() %>% 
-  subtract_background()
+  smooth_intens() %>% 
+  subtr_bg()
 
 # Match spectrum with library and retrieve meta data
-match_spectrum(raman_proc, library = spec_lib, which = "raman")
+match_spec(raman_proc, library = spec_lib, which = "raman")
 
-find_spectrum(sample_name == 5381, library = spec_lib, which = "raman")
+find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 ```
 
 ## Citation

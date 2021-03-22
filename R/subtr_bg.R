@@ -19,24 +19,25 @@
 #' unique points when raw is \code{FALSE}. Typically a good fit can be
 #' found with a 8th order polynomial.
 #' @param raw if \code{TRUE}, use raw and not orthogonal polynomials.
-#' @param make_relative logical; if \code{TRUE} spectra are automatically
-#' normalized with \code{\link{make_relative}()}.
+#' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
+#' with \code{\link{make_rel}()}.
 #' @param \ldots further arguments passed to \code{\link[stats]{poly}()}.
 #'
 #' @return
-#' \code{subtract_background()} returns a data frame containing two columns
-#' named \code{"wavenumber"} and \code{"intensity"}.
+#' \code{subtr_bg()} returns a data frame containing two columns named
+#' \code{"wavenumber"} and \code{"intensity"}.
 #'
 #' @examples
 #' data("raman_hdpe")
-#' subtract_background(raman_hdpe)
+#'
+#' subtr_bg(raman_hdpe)
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @seealso
 #' \code{\link[stats]{poly}()};
-#' \code{\link{smooth_intensity}()}
+#' \code{\link{smooth_intens}()}
 #'
 #' @references
 #' Chen MS (2020). Michaelstchen/ModPolyFit. \emph{MATLAB}.
@@ -50,14 +51,14 @@
 #' @importFrom magrittr %>%
 #' @importFrom stats terms model.frame sd lm poly approx
 #' @export
-subtract_background <- function(x, ...) {
-  UseMethod("subtract_background")
+subtr_bg <- function(x, ...) {
+  UseMethod("subtr_bg")
 }
 
-#' @rdname subtract_background
+#' @rdname subtr_bg
 #'
 #' @export
-subtract_background.formula <- function(formula, data = NULL, ...) {
+subtr_bg.formula <- function(formula, data = NULL, ...) {
   if (missing(formula) || (length(formula) != 3L) ||
       (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
     stop("'formula' missing or incorrect")
@@ -66,28 +67,28 @@ subtract_background.formula <- function(formula, data = NULL, ...) {
   lst <- as.list(mf)
   names(lst) <- c("y", "x")
 
-  do.call("subtract_background", c(lst, list(...)))
+  do.call("subtr_bg", c(lst, list(...)))
 }
 
-#' @rdname subtract_background
+#' @rdname subtr_bg
 #'
 #' @export
-subtract_background.data.frame <- function(x, ...) {
+subtr_bg.data.frame <- function(x, ...) {
   if (!all(c("wavenumber", "intensity") %in% names(x)))
     stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
 
-  do.call("subtract_background", list(x$wavenumber, x$intensity, ...))
+  do.call("subtr_bg", list(x$wavenumber, x$intensity, ...))
 }
 
-#' @rdname subtract_background
+#' @rdname subtr_bg
 #'
 #' @export
-subtract_background.default <- function(x, y, degree = 8, raw = FALSE,
-                                        make_relative = TRUE, ...) {
+subtr_bg.default <- function(x, y, degree = 8, raw = FALSE,
+                             make_rel = TRUE, ...) {
   xin <- x
   yin <- y
   dev_prev <- 0 # standard deviation residuals for the last iteration of polyfit;
-                # set initially to 0
+  # set initially to 0
   first_iter <- TRUE
   criteria_met <- FALSE
 
@@ -131,11 +132,11 @@ subtract_background.default <- function(x, y, degree = 8, raw = FALSE,
     # the peak to be interpolated
     if(criteria_met) {
       ysbg <- approx(x, y, xout = xin, rule = 2, method = "linear",
-                         ties = mean)[2] %>%
+                     ties = mean)[2] %>%
         unlist() %>%
         unname()
 
-      if (make_relative) yout <- make_relative(yin - ysbg) else
+      if (make_rel) yout <- make_rel(yin - ysbg) else
         yout <- yin - ysbg
 
       return(data.frame(wavenumber = xin, intensity = yout))

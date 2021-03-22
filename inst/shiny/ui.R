@@ -137,7 +137,7 @@ ui <- fluidPage(
                                   uploaded or processed data will be presented in an interactive plot and table.</h5>"),
                                 tags$div(align = "center",
                                          tags$a("Detailed Standard Operating Procedure",
-                                                onclick = "window.open('https://docs.google.com/document/d/1DU9zsqKJqN5eW5yhDZ123BGUmYAdfXJ2KAykjjXIhOg/edit?usp=sharing', '_blank')",
+                                                onclick = "window.open('https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy/blob/main/vignettes/sop.html', '_blank')",
                                                 class="btn btn-primary btn-lg")
 
 
@@ -535,8 +535,8 @@ ui <- fluidPage(
                        hr(),
                        fluidRow(
                          column(3),
-                         column(6,  align = "center",
-                         tags$p("Citation: ", citation)
+                         column(6, align = "center",
+                                tags$p("Citation: ", citation)
                                 ),
                          column(3)
 
@@ -665,9 +665,10 @@ ui <- fluidPage(
                                 plotlyOutput('MyPlotB')
 
                          )),
+                       hr(),
                        fluidRow(
                          column(3),
-                         column(6,  align = "center",
+                         column(6, align = "center",
                                 tags$p("Citation: ", citation)
                          ),
                          column(3)
@@ -722,10 +723,10 @@ ui <- fluidPage(
                          column(3, DT::dataTableOutput('event'))),
 
 
-
+                       hr(),
                        fluidRow(
                          column(3),
-                         column(6,  align = "center",
+                         column(6, align = "center",
                                 tags$p("Citation: ", citation)
                          ),
                          column(3)
@@ -760,9 +761,10 @@ ui <- fluidPage(
                          column(1)
                        ),
 
+                       hr(),
                        fluidRow(
                          column(3),
-                         column(6,  align = "center",
+                         column(6, align = "center",
                                 tags$p("Citation: ", citation)
                          ),
                          column(3)

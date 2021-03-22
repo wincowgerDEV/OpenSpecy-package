@@ -21,7 +21,7 @@ window or in your computer browser.
 }
 \examples{
 \dontrun{
-run_app(launch.browser = TRUE)
+run_app()
 }
 
 }

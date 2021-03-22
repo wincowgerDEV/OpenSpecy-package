@@ -54,8 +54,7 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-  
-  
+
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
@@ -74,10 +73,10 @@ server <- shinyServer(function(input, output, session) {
     if (input$share_decision & curl::has_internet())
       share <- conf$share else share <- NULL
 
-      sout <- tryCatch(share_spectrum(data(),
-                         sapply(names(namekey)[1:24], function(x) input[[x]]),
-                         share = share),
-                       warning = function(w) {w}, error = function(e) {e})
+      sout <- tryCatch(share_spec(
+        data(), sapply(names(namekey)[1:24], function(x) input[[x]]),
+        share = share),
+        warning = function(w) {w}, error = function(e) {e})
 
       if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
         mess <- sout$message
@@ -131,38 +130,35 @@ server <- shinyServer(function(input, output, session) {
 
   # Corrects spectral intensity units using the user specified correction
   data <- reactive({
-    adjust_intensity(preprocessed_data(), type = input$IntensityCorr)
+    adj_intens(preprocessed_data(), type = input$IntensityCorr)
   })
-  
+
   #Preprocess Spectra ----
   # All cleaning of the data happens here. Smoothing and Baseline removing
   baseline_data <- reactive({
     testdata <- data() %>% dplyr::filter(wavenumber > input$MinRange &
                                            wavenumber < input$MaxRange)
     test <-  nrow(testdata) < 3
-    if(test){
+    if (test) {
       data() %>%
         mutate(intensity = if(input$smooth_decision) {
-          smooth_intensity(.$wavenumber, .$intensity,
-                           p = input$smoother)$intensity
+          smooth_intens(.$wavenumber, .$intensity, p = input$smoother)$intensity
         } else .$intensity) %>%
         mutate(intensity = if(input$baseline_decision) {
-          subtract_background(.$wavenumber, .$intensity,
-                              degree = input$baseline)$intensity }
-          else .$intensity)
-    }
-    else {
+          subtr_bg(.$wavenumber, .$intensity, degree = input$baseline)$intensity
+          } else .$intensity)
+    } else {
       data() %>%
-        dplyr::filter(if(input$range_decision) {wavenumber > input$MinRange &
-                        wavenumber < input$MaxRange} else{wavenumber == wavenumber}) %>%
+        dplyr::filter(
+          if(input$range_decision) {wavenumber > input$MinRange &
+              wavenumber < input$MaxRange} else {
+                wavenumber == wavenumber}) %>%
         mutate(intensity = if(input$smooth_decision) {
-          smooth_intensity(.$wavenumber, .$intensity,
-                           p = input$smoother)$intensity
+          smooth_intens(.$wavenumber, .$intensity, p = input$smoother)$intensity
         } else .$intensity) %>%
         mutate(intensity = if(input$baseline_decision) {
-          subtract_background(.$wavenumber, .$intensity,
-                              degree = input$baseline)$intensity }
-          else .$intensity)
+          subtr_bg(.$wavenumber, .$intensity, degree = input$baseline)$intensity
+          } else .$intensity)
     }
   })
 
@@ -211,9 +207,9 @@ server <- shinyServer(function(input, output, session) {
 
       incProgress(1/3, detail = "Finding Match")
 
-      Lib <- match_spectrum(DataR(),
-                            library = spec_lib, which = input$Spectra,
-                            type = input$Library, top_n = 100)
+      Lib <- match_spec(DataR(),
+                        library = spec_lib, which = input$Spectra,
+                        type = input$Library, top_n = 100)
 
       incProgress(1/3, detail = "Making Plot")
 
@@ -258,9 +254,9 @@ server <- shinyServer(function(input, output, session) {
                         1,
                         MatchSpectra()[[input$event_rows_selected,
                                         "sample_name"]])
-    # Get data from find_spectrum
-    current_meta <- find_spectrum(sample_name == id_select,
-                                  spec_lib, which = input$Spectra)
+    # Get data from find_spec
+    current_meta <- find_spec(sample_name == id_select, spec_lib,
+                              which = input$Spectra)
     names(current_meta) <- namekey[names(current_meta)]
 
     datatable(current_meta,
@@ -288,10 +284,10 @@ server <- shinyServer(function(input, output, session) {
                           1,
                           MatchSpectra()[[input$event_rows_selected,
                                           "sample_name"]])
-      # Get data from find_spectrum
-      current_spectrum <- find_spectrum(sample_name == id_select,
-                                        spec_lib, which = input$Spectra,
-                                        type = input$Library)
+      # Get data from find_spec
+      current_spectrum <- find_spec(sample_name == id_select,
+                                    spec_lib, which = input$Spectra,
+                                    type = input$Library)
 
       TopTens <- current_spectrum %>%
         inner_join(MatchSpectra()[input$event_rows_selected,,drop = FALSE],
@@ -343,7 +339,7 @@ server <- shinyServer(function(input, output, session) {
 
   ## Download own data ----
   output$downloadData <- downloadHandler(
-    filename = function() {paste('data-', human_timestamp(), '.csv', sep='')},
+    filename = function() {paste('data-', human_ts(), '.csv', sep='')},
     content = function(file) {fwrite(baseline_data(), file)}
   )
 
@@ -368,7 +364,7 @@ server <- shinyServer(function(input, output, session) {
         hide("share_meta")
       }
   })
-  
+
   observe({
     if (input$smooth_decision) {
       show("smooth_tools")
@@ -376,7 +372,7 @@ server <- shinyServer(function(input, output, session) {
       hide("smooth_tools")
     }
   })
-  
+
   observe({
     if (input$baseline_decision) {
       show("baseline_tools")

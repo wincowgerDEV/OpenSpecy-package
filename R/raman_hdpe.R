@@ -10,6 +10,9 @@
 #' \code{intensity}: \tab absorbance values [-] \cr
 #' }
 #'
+#' @examples
+#' data("raman_hdpe")
+#'
 #' @author
 #' Win Cowger
 #'
