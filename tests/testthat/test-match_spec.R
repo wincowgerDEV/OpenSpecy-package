@@ -4,7 +4,7 @@ data("test_lib")
 test_that("match_spec() gives expected results", {
   expect_message(
     ms <- match_spec(raman_hdpe, test_lib, which = "test")
-    )
+  )
   expect_error(match_spec(raman_hdpe, test_lib))
   expect_length(ms, 4)
   h1 <- c(ms[1,1:3])

@@ -45,7 +45,7 @@ test_that("read_spa() gives expected output", {
 test_that("read_jdx() gives expected output", {
   expect_match(capture_messages(
     suppressWarnings(jdx <- read_jdx(read_extdata("fitr_nitrocellulose.jdx")))
-    ), "JDX file inconsistency.*"
+  ), "JDX file inconsistency.*"
   )
   expect_error(read_jdx(read_extdata("throws_error_raman_1000002.jdx")))
   expect_error(read_jdx(read_extdata("raman_hdpe.csv")))
@@ -75,4 +75,3 @@ test_that("read_0() gives expected output", {
   expect_equal(round(range(f0[1]), 1), c(399.2, 4497.5))
   expect_equal(round(range(f0[2]), 4), c(0.0130, 0.6112))
 })
-

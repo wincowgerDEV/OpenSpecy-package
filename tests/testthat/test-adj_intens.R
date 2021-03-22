@@ -3,7 +3,7 @@ data("raman_hdpe")
 test_that("adj_intens() works as expected", {
   expect_silent(adj <- adj_intens(raman_hdpe))
   expect_identical(adj, adj_intens(raman_hdpe$wavenumber,
-                                         raman_hdpe$intensity))
+                                   raman_hdpe$intensity))
   expect_identical(adj, adj_intens(intensity ~ wavenumber, raman_hdpe))
   expect_equal(as.numeric(
     cor(raman_hdpe[2], adj_intens(raman_hdpe)[2])
