@@ -1,12 +1,12 @@
 data("raman_hdpe")
 
-test_that("subtract_background() works as expected", {
-  expect_silent(sb <- subtract_background(raman_hdpe, degree = 8))
-  expect_identical(sb, subtract_background(raman_hdpe$wavenumber,
+test_that("subtr_bg() works as expected", {
+  expect_silent(sb <- subtr_bg(raman_hdpe, degree = 8))
+  expect_identical(sb, subtr_bg(raman_hdpe$wavenumber,
                                            raman_hdpe$intensity))
-  expect_identical(sb, subtract_background(intensity ~ wavenumber, raman_hdpe))
+  expect_identical(sb, subtr_bg(intensity ~ wavenumber, raman_hdpe))
   expect_equal(as.numeric(
-    round(cor(sb[2], subtract_background(raman_hdpe, degree = 1)[2]), 4)
+    round(cor(sb[2], subtr_bg(raman_hdpe, degree = 1)[2]), 4)
     ), 0.9763, ignore_attr = F)
   expect_s3_class(sb, "data.frame")
   expect_equal(names(sb), c("wavenumber", "intensity"))

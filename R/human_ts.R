@@ -9,11 +9,11 @@
 #' are shared with the Open Specy community.
 #'
 #' @return
-#' \code{human_timestamp()} returns a character value with the respective
+#' \code{human_ts()} returns a character value with the respective
 #' timestamp.
 #'
 #' @examples
-#' human_timestamp()
+#' human_ts()
 #'
 #' @author
 #' Win Cowger
@@ -23,6 +23,6 @@
 #'
 #' @importFrom magrittr %>%
 #' @export
-human_timestamp <- function() {
+human_ts <- function() {
   Sys.time() %>% format("%Y%m%d-%H%M%OS")
 }
