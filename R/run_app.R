@@ -13,7 +13,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' run_app(launch.browser = TRUE)
+#' run_app()
 #' }
 #'
 #' @author
@@ -31,8 +31,8 @@ run_app <- function(app_dir = system.file("shiny", package = "OpenSpecy"),
          call. = FALSE)
   }
 
-  pkg <- c("config", "shinyjs", "shinythemes", "shinyhelper",
-            "shinyWidgets", "plotly", "data.table", "DT", "curl", "rdrop2")
+  pkg <- c("config", "shinyjs", "shinyBS", "shinyhelper",
+           "shinyWidgets", "plotly", "data.table", "DT", "curl", "rdrop2")
   for (p in pkg) {
     if (!requireNamespace(package = p))
       stop(paste0("run_app() requires package '", p, "'"), call. = F)

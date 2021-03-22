@@ -28,8 +28,10 @@
 #' \code{\link[osfr]{osf_download}()} for details):
 #' \itemize{
 #'   \item{"error"}{ throw an error and abort the file transfer operation.}
-#'   \item{"skip"}{ skip the conflicting file(s) and continue transferring the remaining files.}
-#'   \item{"overwrite" (default)}{ replace the existing file with the transferred copy.}
+#'   \item{"skip"}{ skip the conflicting file(s) and continue transferring the
+#'   remaining files.}
+#'   \item{"overwrite" (default)}{ replace the existing file with the
+#'   transferred copy.}
 #' }
 #' @param condition determines if \code{check_lib()} should warn
 #' (\code{"warning"}, the default) or throw and error (\code{"error"}).
@@ -52,7 +54,7 @@
 #' Zacharias Steinmetz
 #'
 #' @seealso
-#' \code{\link{match_spectrum}()}
+#' \code{\link{match_spec}()}
 #'
 #' @importFrom magrittr %>%
 #'
@@ -129,7 +131,8 @@ load_lib <- function(which = c("ftir", "raman"),
   if (!all(chk)) do.call(condition, list(out, " library missing or incomplete; ",
                                          "use 'get_lib()' to download a current version",
                                          call. =  ifelse(condition %in%
-                                           c("message", "packageStartupMessage"),
-                                           "", FALSE)))
+                                                           c("message",
+                                                             "packageStartupMessage"),
+                                                         "", FALSE)))
   list(chk, which, out)
 }

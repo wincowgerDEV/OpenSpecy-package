@@ -100,7 +100,6 @@ identification, e.g. 99\% \cr
 }
 \examples{
 data("raman_hdpe")
-
 share_spec(raman_hdpe)
 
 }

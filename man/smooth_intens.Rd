@@ -31,14 +31,14 @@ a data frame containing spectral data as \code{"wavenumber"} and
 
 \item{n}{number of data points in the window, filter length (must be odd).}
 
-\item{make_rel}{logical; if \code{TRUE} spectra are automatically
-normalized with \code{\link{make_rel}()}.}
+\item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
+with \code{\link{make_rel}()}.}
 
 \item{\ldots}{further arguments passed to \code{\link[signal]{sgolay}()}.}
 }
 \value{
-\code{smooth_intens()} returns a data frame containing two columns
-named \code{"wavenumber"} and \code{"intensity"}.
+\code{smooth_intens()} returns a data frame containing two columns named
+\code{"wavenumber"} and \code{"intensity"}.
 }
 \description{
 This smoother can enhance the signal to noise ratio of the data and uses a
@@ -53,6 +53,7 @@ A typical good smooth can be achieved with 11 data point window and a 3rd or
 }
 \examples{
 data("raman_hdpe")
+
 smooth_intens(raman_hdpe)
 
 }

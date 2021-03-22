@@ -1,5 +1,3 @@
-#' @rdname share_spectra
-#'
 #' @title Share data with the Open Specy community
 #'
 #' @description
@@ -70,12 +68,11 @@
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
-#' \code{share_spectrum()} returns only messages/warnings
+#' \code{share_spec()} returns only messages/warnings
 #'
 #' @examples
 #' data("raman_hdpe")
-#'
-#' share_spectrum(raman_hdpe)
+#' share_spec(raman_hdpe)
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
@@ -88,46 +85,46 @@
 #' @importFrom utils write.csv
 #'
 #' @export
-share_spectrum <- function(data, ...) {
-  UseMethod("share_spectrum")
+share_spec <- function(data, ...) {
+  UseMethod("share_spec")
 }
 
-#' @rdname share_spectra
+#' @rdname share_spec
 #'
 #' @export
-share_spectrum.default <- function(data, ...) {
+share_spec.default <- function(data, ...) {
   stop("object needs to be of class 'data.frame'")
 }
 
-#' @rdname share_spectra
+#' @rdname share_spec
 #'
 #' @export
-share_spectrum.data.frame <- function(data,
-                                      metadata = c(user_name = "",
-                                                   contact_info = "",
-                                                   organization = "",
-                                                   citation = "",
-                                                   spectrum_type = "",
-                                                   spectrum_identity = "",
-                                                   material_form = "",
-                                                   material_phase = "",
-                                                   material_producer = "",
-                                                   material_purity = "",
-                                                   material_quality = "",
-                                                   material_color = "",
-                                                   material_other = "",
-                                                   cas_number = "",
-                                                   instrument_used = "",
-                                                   instrument_accessories = "",
-                                                   instrument_mode = "",
-                                                   spectral_resolution = "",
-                                                   laser_light_used = "",
-                                                   number_of_accumulations = "",
-                                                   total_acquisition_time_s = "",
-                                                   data_processing_procedure = "",
-                                                   level_of_confidence_in_identification = "",
-                                                   other_info = ""),
-                                      share = "system", ...) {
+share_spec.data.frame <- function(data,
+                                  metadata = c(user_name = "",
+                                               contact_info = "",
+                                               organization = "",
+                                               citation = "",
+                                               spectrum_type = "",
+                                               spectrum_identity = "",
+                                               material_form = "",
+                                               material_phase = "",
+                                               material_producer = "",
+                                               material_purity = "",
+                                               material_quality = "",
+                                               material_color = "",
+                                               material_other = "",
+                                               cas_number = "",
+                                               instrument_used = "",
+                                               instrument_accessories = "",
+                                               instrument_mode = "",
+                                               spectral_resolution = "",
+                                               laser_light_used = "",
+                                               number_of_accumulations = "",
+                                               total_acquisition_time_s = "",
+                                               data_processing_procedure = "",
+                                               level_of_confidence_in_identification = "",
+                                               other_info = ""),
+                                  share = "system", ...) {
   if (is.null(names(metadata))) stop("'metadata' needs to be a named vector")
   if (any(is.na(metadata[c("user_name", "spectrum_type", "spectrum_identity")])) |
       metadata["user_name"] == "" | metadata["spectrum_type"] == "" |
@@ -139,7 +136,7 @@ share_spectrum.data.frame <- function(data,
     mex <- TRUE
   }
 
-  id <- paste(human_timestamp(), digest(data, algo = "md5"), sep = "_")
+  id <- paste(human_ts(), digest(data, algo = "md5"), sep = "_")
 
   mdata <- data.frame(variable = names(metadata), input = metadata,
                       row.names = NULL)
@@ -167,7 +164,7 @@ share_spectrum.data.frame <- function(data,
   if (share == "dropbox") {
     rdrop2::drop_upload(fd, path = "Spectra", ...)
     if (mex) rdrop2::drop_upload(fm, path = "Spectra", ...)
-    }
+  }
 
   message("thank you for your willigness to share your data\n",
           "if you run Open Specy locally, you may consider mailing your ",

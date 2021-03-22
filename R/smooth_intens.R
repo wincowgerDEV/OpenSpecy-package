@@ -20,17 +20,18 @@
 #' @param data a data frame containing the variables in \code{formula}.
 #' @param p polynomial order for the filter
 #' @param n number of data points in the window, filter length (must be odd).
-#' @param make_relative logical; if \code{TRUE} spectra are automatically
-#' normalized with \code{\link{make_relative}()}.
+#' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
+#' with \code{\link{make_rel}()}.
 #' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}.
 #'
 #' @return
-#' \code{smooth_intensity()} returns a data frame containing two columns
-#' named \code{"wavenumber"} and \code{"intensity"}.
+#' \code{smooth_intens()} returns a data frame containing two columns named
+#' \code{"wavenumber"} and \code{"intensity"}.
 #'
 #' @examples
 #' data("raman_hdpe")
-#' smooth_intensity(raman_hdpe)
+#'
+#' smooth_intens(raman_hdpe)
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
@@ -45,14 +46,14 @@
 #'
 #' @importFrom magrittr %>%
 #' @export
-smooth_intensity <- function(x, ...) {
-  UseMethod("smooth_intensity")
+smooth_intens <- function(x, ...) {
+  UseMethod("smooth_intens")
 }
 
-#' @rdname smooth_intensity
+#' @rdname smooth_intens
 #'
 #' @export
-smooth_intensity.formula <- function(formula, data = NULL, ...) {
+smooth_intens.formula <- function(formula, data = NULL, ...) {
   if (missing(formula) || (length(formula) != 3L) ||
       (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
     stop("'formula' missing or incorrect")
@@ -61,27 +62,27 @@ smooth_intensity.formula <- function(formula, data = NULL, ...) {
   lst <- as.list(mf)
   names(lst) <- c("y", "x")
 
-  do.call("smooth_intensity", c(lst, list(...)))
+  do.call("smooth_intens", c(lst, list(...)))
 }
 
-#' @rdname smooth_intensity
+#' @rdname smooth_intens
 #'
 #' @export
-smooth_intensity.data.frame <- function(x, ...) {
+smooth_intens.data.frame <- function(x, ...) {
   if (!all(c("wavenumber", "intensity") %in% names(x)))
     stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
 
-  do.call("smooth_intensity", list(x$wavenumber, x$intensity, ...))
+  do.call("smooth_intens", list(x$wavenumber, x$intensity, ...))
 }
 
-#' @rdname smooth_intensity
+#' @rdname smooth_intens
 #' @importFrom signal filter sgolay
 #' @export
-smooth_intensity.default <- function(x, y, p = 3, n = 11, make_relative = TRUE,
-                                     ...) {
+smooth_intens.default <- function(x, y, p = 3, n = 11, make_rel = TRUE,
+                                  ...) {
   yflt <- signal::filter(filt = sgolay(p = p, n = n, ...), x = y)
 
-  if (make_relative) yout <- make_relative(yflt) else yout <- yflt
+  if (make_rel) yout <- make_rel(yflt) else yout <- yflt
 
   data.frame(wavenumber = x, intensity = yout)
 }

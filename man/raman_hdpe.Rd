@@ -14,6 +14,10 @@ A data table containing 964 rows and 2 columns:
 \description{
 Raman spectrum of high-density polyethylene (HDPE).
 }
+\examples{
+data("raman_hdpe")
+
+}
 \references{
 Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
 De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020).

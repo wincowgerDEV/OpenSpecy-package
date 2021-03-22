@@ -48,19 +48,19 @@ augmented_ftir <- augment_full(spec_lib$ftir$library %>%
 #Might consider adding this in at some point. 
 # Adjust spectral intensity
 #raman_adj <- raman_hdpe %>%
-#    adjust_intensity()
+#    adj_intens()
 
 # Smooth and background-correct spectrum
 raman_proc <- augmented_raman %>% 
     group_by(sample_name) %>%
-    smooth_intensity(p = 3) #%>% 
-    subtract_background(degree = 8) %>%
+    smooth_intens(p = 3) #%>% 
+    subtr_bg(degree = 8) %>%
     mutate()
 
 ftir_proc <- augmented_ftir %>% 
     group_by(sample_name) %>%
-    smooth_intensity() %>% 
-    subtract_background()
+    smooth_intens() %>% 
+    subtr_bg()
 
 spectrum = raman_subset[100]
 
@@ -72,17 +72,17 @@ ggplot() +
                    ) + 
     geom_line(data = augmented_raman %>% 
                     filter(sample_name == spectrum) %>%
-                    smooth_intensity(p = 3) %>% 
-                    subtract_background(degree = 8),
+                    smooth_intens(p = 3) %>% 
+                    subtr_bg(degree = 8),
                 aes(x = wavenumber, y = intensity))
 
 
 #Check that cleaned match is to something reasonable. 
 augmented_raman %>% 
     filter(sample_name == spectrum) %>%
-    smooth_intensity(p = 3) %>% 
-    subtract_background(degree = 8) %>%
-    match_spectrum(library = spec_lib, which = "raman")
+    smooth_intens(p = 3) %>% 
+    subtr_bg(degree = 8) %>%
+    match_spec(library = spec_lib, which = "raman")
 
 spectrum
 
@@ -95,9 +95,9 @@ for(spectrum in raman_subset){
     
     topmatch <- augmented_raman %>% 
         filter(sample_name == spectrum) %>%
-        smooth_intensity(p = 3) %>% 
-        subtract_background(degree = 8) %>%
-        match_spectrum(library = spec_lib, which = "raman", top_n = 1) %>%
+        smooth_intens(p = 3) %>% 
+        subtr_bg(degree = 8) %>%
+        match_spec(library = spec_lib, which = "raman", top_n = 1) %>%
         select(spectrum_identity) %>%
         unlist()
     
@@ -117,9 +117,9 @@ for(spectrum in ftir_subset){
     
     topmatch <- augmented_ftir %>% 
         filter(sample_name == spectrum) %>%
-        smooth_intensity(p = 3) %>% 
-        subtract_background(degree = 8) %>%
-        match_spectrum(library = spec_lib, which = "ftir", top_n = 1) %>%
+        smooth_intens(p = 3) %>% 
+        subtr_bg(degree = 8) %>%
+        match_spec(library = spec_lib, which = "ftir", top_n = 1) %>%
         select(spectrum_identity) %>%
         unlist()
     

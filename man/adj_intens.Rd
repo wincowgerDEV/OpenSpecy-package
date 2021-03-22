@@ -31,8 +31,8 @@ a data frame containing spectral data as \code{"wavenumber"} and
 in absorbance units (\code{"none"}, default) or needs additional conversion
 from \code{"reflectance"} or \code{"transmittance"} data.}
 
-\item{make_rel}{logical; if \code{TRUE} spectra are automatically
-normalized with \code{\link{make_rel}()}.}
+\item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
+with \code{\link{make_rel}()}.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
@@ -56,6 +56,7 @@ The reflectance adjustment uses the Kubelka-Munk equation
 }
 \examples{
 data("raman_hdpe")
+
 adj_intens(raman_hdpe)
 
 }

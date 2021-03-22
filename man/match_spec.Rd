@@ -81,16 +81,16 @@ matches, their Pearson's r value, and the organization they were provided by.
 metadata of a specific reference spectrum.
 }
 \description{
-\code{match_spec()} will compare a spectrum to a spectral library
-formatted with the Open Specy standard and report the best match using the
-Pearson correlation coefficient.
+\code{match_spec()} will compare a spectrum to a spectral library formatted
+with the Open Specy standard and report the best match using the Pearson
+correlation coefficient.
 \code{find_spec()} makes it easy to retrieve single spectra and metadata
 from the Open Specy reference library.
 }
 \details{
-This routine will match the spectrum you want to identify to the
-wavenumbers present in the spectral library. Once the spectra are aligned, it
-computes the Pearson correlation coefficient between the spectrum you want to
+This routine will match the spectrum you want to identify to the wavenumbers
+present in the spectral library. Once the spectra are aligned, it computes
+the Pearson correlation coefficient between the spectrum you want to
 identify and all spectra in the library (see \code{\link[stats]{cor}}).
 The function returns a table with the Pearson correlation coefficient values
 and all metadata for the top spectral matches.

@@ -33,14 +33,14 @@ found with a 8th order polynomial.}
 
 \item{raw}{if \code{TRUE}, use raw and not orthogonal polynomials.}
 
-\item{make_rel}{logical; if \code{TRUE} spectra are automatically
-normalized with \code{\link{make_rel}()}.}
+\item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
+with \code{\link{make_rel}()}.}
 
 \item{\ldots}{further arguments passed to \code{\link[stats]{poly}()}.}
 }
 \value{
-\code{subtr_bg()} returns a data frame containing two columns
-named \code{"wavenumber"} and \code{"intensity"}.
+\code{subtr_bg()} returns a data frame containing two columns named
+\code{"wavenumber"} and \code{"intensity"}.
 }
 \description{
 This baseline correction routine iteratively finds the baseline of a spectrum
@@ -52,6 +52,7 @@ This is a translation of Michael Stephen Chen's MATLAB code written for the
 }
 \examples{
 data("raman_hdpe")
+
 subtr_bg(raman_hdpe)
 
 }
