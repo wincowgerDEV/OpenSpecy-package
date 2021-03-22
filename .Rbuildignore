@@ -1,0 +1,8 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^\.zenodo\.json$
+^\.github$
+^\.httr-oauth$
+^doc$
+^Meta$
