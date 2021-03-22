@@ -52,6 +52,10 @@ library(OpenSpecy)
 run_app()
 ```
 
+See
+[package vignette](https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy/blob/main/vignettes/sop.html)
+for a detailed standard operating procedure.
+
 ## Workflow
 
 ```r

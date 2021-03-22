@@ -55,7 +55,6 @@ server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
 
-
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")

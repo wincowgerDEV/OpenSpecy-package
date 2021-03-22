@@ -4,12 +4,12 @@
 
 - Use external Open Specy libraries from OSF
 - `read_asp()` for reading Agilent .asp files
+- GUI overhaul
 - Comprehensive package vignette and function documentation
-- CI testing for main functions
+- Unit testing for main functions
 
 ## Minor Improvements
 
-- GUI improvements (loading screen, toggles)
 - Better error handling
 - Stripped down dependencies
 
