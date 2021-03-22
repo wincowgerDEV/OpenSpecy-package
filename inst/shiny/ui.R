@@ -535,8 +535,8 @@ ui <- fluidPage(
                        hr(),
                        fluidRow(
                          column(3),
-                         column(6,  align = "center",
-                         tags$p("Citation: ", citation)
+                         column(6, align = "center",
+                                tags$p("Citation: ", citation)
                                 ),
                          column(3)
 
@@ -665,9 +665,10 @@ ui <- fluidPage(
                                 plotlyOutput('MyPlotB')
 
                          )),
+                       hr(),
                        fluidRow(
                          column(3),
-                         column(6,  align = "center",
+                         column(6, align = "center",
                                 tags$p("Citation: ", citation)
                          ),
                          column(3)
@@ -722,10 +723,10 @@ ui <- fluidPage(
                          column(3, DT::dataTableOutput('event'))),
 
 
-
+                       hr(),
                        fluidRow(
                          column(3),
-                         column(6,  align = "center",
+                         column(6, align = "center",
                                 tags$p("Citation: ", citation)
                          ),
                          column(3)
@@ -760,9 +761,10 @@ ui <- fluidPage(
                          column(1)
                        ),
 
+                       hr(),
                        fluidRow(
                          column(3),
-                         column(6,  align = "center",
+                         column(6, align = "center",
                                 tags$p("Citation: ", citation)
                          ),
                          column(3)
