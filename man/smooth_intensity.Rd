@@ -36,6 +36,10 @@ normalized with \code{\link{make_relative}()}.}
 
 \item{\ldots}{further arguments passed to \code{\link[signal]{sgolay}()}.}
 }
+\value{
+\code{smooth_intensity()} returns a data frame containing two columns
+named \code{"wavenumber"} and \code{"intensity"}.
+}
 \description{
 This smoother can enhance the signal to noise ratio of the data and uses a
 Savitzky-Golay filter with a running window of data points and the polynomial
@@ -52,6 +56,14 @@ data("raman_hdpe")
 smooth_intensity(raman_hdpe)
 
 }
+\references{
+Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by
+Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
+\strong{36}(8), 1627--1639.
+}
 \seealso{
 \code{\link[signal]{sgolay}()}
+}
+\author{
+Win Cowger, Zacharias Steinmetz
 }

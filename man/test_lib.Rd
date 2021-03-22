@@ -5,19 +5,18 @@
 \alias{test_lib}
 \title{Test reference library}
 \format{
-A lsit
+A list named \code{"test"} with two elements:
+
 \tabular{ll}{
-wavenumber: \tab \cr
-absorbance: \tab \cr
+\code{metadata}: \tab metadata of 34 Raman spectra \cr
+\code{library}: \tab all reference spectra, \code{sample_name} serves as
+identifier \cr
 }
 }
 \description{
-Desc
-}
-\references{
-ref
+Reference library of 34 Raman spectra used for internal testing.
 }
 \author{
-author
+Jennifer Lynch
 }
 \keyword{data}

@@ -1,4 +1,29 @@
 #' @keywords internal
+#' @references
+#' Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
+#' Process for Identification of Microplastics Based on Fourier Transform
+#' Infrared Spectroscopy.” \emph{Applied Spectroscopy}, \strong{74}(9),
+#' 1167–1183.
+#'
+#' Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
+#' De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020).
+#' “Critical Review of Processing and Classification Techniques for Images and
+#' Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
+#' \strong{74}(9), 989–1010.
+#'
+#' Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design
+#' for the Automated Analysis of Microplastic Samples Based on Fourier
+#' Transform Infrared (FTIR) Spectroscopy.” \emph{Analytical and Bioanalytical
+#' Chemistry}, \strong{410}(21), 5131–5141. \doi{10.1007/s00216-018-1156-x}.
+#'
+#' Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by
+#' Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
+#' \strong{36}(8), 1627--1639.
+#'
+#' Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence
+#' Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
+#' \emph{Applied Spectroscopy}, \strong{61}(11), 1225–1232.
+#'
 "_PACKAGE"
 
 # The following block is used by usethis to automatically manage

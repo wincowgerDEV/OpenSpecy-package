@@ -53,6 +53,11 @@ exists at the specified destination. Can be one of the following (see
 
 \item{\ldots}{further arguments passed to \code{\link[osfr]{osf_download}()}.}
 }
+\value{
+\code{check_lib()} and \code{get_lib()} return messages only;
+\code{load_lib()} returns a list object containing the respective spectral
+reference library.
+}
 \description{
 These functions will import the spectral libraries from Open Specy if they
 were not already downloaded.
@@ -79,4 +84,7 @@ spec_lib <- load_lib(which = c("ftir", "raman"))
 }
 \seealso{
 \code{\link{match_spectrum}()}
+}
+\author{
+Zacharias Steinmetz
 }

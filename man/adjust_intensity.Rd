@@ -36,6 +36,10 @@ normalized with \code{\link{make_relative}()}.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
+\value{
+\code{adjust_intensity()} returns a data frame containing two columns
+named \code{"wavenumber"} and \code{"intensity"}.
+}
 \description{
 Converts reflectance or transmittance intensity units to absorbance units.
 }
@@ -45,11 +49,10 @@ absorbance units. For example, see \code{\link{match_spectrum}()} and
 \code{\link{subtract_background}()}.
 To run those functions properly, you will need to first convert any spectra
 from transmittance or reflectance to absorbance using this function.
-The transmittance adjustment uses the log10(1/T) calculation which does not
-correct for system and particle characteristics.
-\loadmathjax
+The transmittance adjustment uses the \eqn{log10(1 / T)}
+calculation which does not correct for system and particle characteristics.
 The reflectance adjustment uses the Kubelka-Munk equation
-\mjeqn{\frac{(1 - R)^2}{2R}}{(1 - R)2 / (2 * R)}.
+\eqn{(1 - R)^2 / 2R}.
 }
 \examples{
 data("raman_hdpe")
@@ -60,4 +63,7 @@ adjust_intensity(raman_hdpe)
 \code{\link{subtract_background}()} for spectral background correction;
 \code{\link{match_spectrum}()} matches spectra with the Open Specy or other
 reference libraries
+}
+\author{
+Win Cowger, Zacharias Steinmetz
 }

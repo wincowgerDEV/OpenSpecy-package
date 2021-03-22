@@ -9,11 +9,10 @@
 #' \code{\link{subtract_background}()}.
 #' To run those functions properly, you will need to first convert any spectra
 #' from transmittance or reflectance to absorbance using this function.
-#' The transmittance adjustment uses the log10(1/T) calculation which does not
-#' correct for system and particle characteristics.
-#' \loadmathjax
+#' The transmittance adjustment uses the \eqn{log10(1 / T)}
+#' calculation which does not correct for system and particle characteristics.
 #' The reflectance adjustment uses the Kubelka-Munk equation
-#' \mjeqn{\frac{(1 - R)^2}{2R}}{(1 - R)2 / (2 * R)}.
+#' \eqn{(1 - R)^2 / 2R}.
 #'
 #' @param x a numeric vector containing the spectral wavenumbers; alternatively
 #' a data frame containing spectral data as \code{"wavenumber"} and
@@ -29,14 +28,21 @@
 #' normalized with \code{\link{make_relative}()}.
 #' @param \ldots further arguments passed to the submethods.
 #'
-#' @seealso
-#' \code{\link{subtract_background}()} for spectral background correction;
-#' \code{\link{match_spectrum}()} matches spectra with the Open Specy or other
-#' reference libraries
+#' @return
+#' \code{adjust_intensity()} returns a data frame containing two columns
+#' named \code{"wavenumber"} and \code{"intensity"}.
 #'
 #' @examples
 #' data("raman_hdpe")
 #' adjust_intensity(raman_hdpe)
+#'
+#' @author
+#' Win Cowger, Zacharias Steinmetz
+#'
+#' @seealso
+#' \code{\link{subtract_background}()} for spectral background correction;
+#' \code{\link{match_spectrum}()} matches spectra with the Open Specy or other
+#' reference libraries
 #'
 #' @importFrom magrittr %>%
 #' @export
