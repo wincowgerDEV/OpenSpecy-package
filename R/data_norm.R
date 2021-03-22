@@ -20,7 +20,7 @@
 #' result from some spectral instruments.
 #'
 #' @param x a numeric vector or an \R object which is coercible to one by
-#' \code{as.vector(x, "numeric")}.
+#' \code{as.vector(x, "numeric")}; \code{x} should be \code{intensity} data.
 #' @param na.rm logical. Should missing values be removed?
 #'
 #' @return
