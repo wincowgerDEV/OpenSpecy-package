@@ -13,7 +13,8 @@ Raman and (FT)IR spectral analysis tool for plastic particles and
     intensities with `smooth_intens()`, correcting background scatter with 
     `subtr_bg()`, and identifying spectra using an onboard reference library.
     Analyzed spectra can be shared with the Open Specy community. A Shiny app is
-    available via `run_app()` or online at <http://www.openspecy.org>.
+    available via `run_app()` or online at
+    <https://wincowger.shinyapps.io/OpenSpecy/>.
 }
 \references{
 Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
