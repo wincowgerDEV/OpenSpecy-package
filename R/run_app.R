@@ -23,6 +23,7 @@
 #' \code{\link[shiny]{runApp}()}
 #'
 #' @importFrom shiny runApp
+#' @importFrom utils installed.packages
 #' @export
 run_app <- function(app_dir = system.file("shiny", package = "OpenSpecy"),
                     ...) {
@@ -33,10 +34,11 @@ run_app <- function(app_dir = system.file("shiny", package = "OpenSpecy"),
 
   pkg <- c("config", "shinyjs", "shinyBS", "shinyhelper",
            "shinyWidgets", "plotly", "data.table", "DT", "curl", "rdrop2")
-  for (p in pkg) {
-    if (!requireNamespace(package = p))
-      stop(paste0("run_app() requires package '", p, "'"), call. = F)
-  }
+  mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
+
+  if(length(mpkg)) stop("run_app() requires the following packages: ",
+                        paste(paste0("'", mpkg, "'"), collapse = ", "),
+                        call. = F)
 
   runApp(app_dir, ...)
 }
