@@ -87,7 +87,6 @@ server <- shinyServer(function(input, output, session) {
           text = "Your data will soon be available at https://osf.io/stmv4/",
           type = "success"
         )
-        input$share_decision <- FALSE
       } else {
         show_alert(
           title = "Something went wrong :-(",
