@@ -58,6 +58,9 @@ read_text <- function(file = ".", cols = NULL, method = "read.csv",
               names(df)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)|(^V2$)",
                              ignore.case = T, names(df))][1L])
   }
+  if (any(is.na(cols))) stop("undefined columns selected; columns should be ",
+                             "named 'wavenumber' and 'intensity'")
+
   df <- df[cols]
   names(df) <- c("wavenumber", "intensity")
 

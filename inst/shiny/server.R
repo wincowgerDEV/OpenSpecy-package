@@ -90,7 +90,7 @@ server <- shinyServer(function(input, output, session) {
       } else {
         show_alert(
           title = "Something went wrong :-(",
-          text = paste0("All mandatory data added? R says: ", mess, ". ",
+          text = paste0("All mandatory data added? R says: '", mess, "'. ",
                         "Try again."),
           type = "warning"
         )
@@ -104,25 +104,48 @@ server <- shinyServer(function(input, output, session) {
     inFile <- input$file1
     filename <- as.character(inFile$datapath)
 
-    shiny::validate(shiny::need(
-      grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
-            ignore.case = T, filename),
-      paste("Uploaded data type is not currently supported please check help ",
-      "icon (?) and About tab for details on data formatting.")))
+    if (!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
+              ignore.case = T, filename)) {
+      show_alert(
+        title = "Data type not supported!",
+        text = paste0("Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details."),
+        type = "warning")
+      stop()
+      }
 
     if (input$share_decision & curl::has_internet())
       share <- conf$share else share <- NULL
 
     if(grepl("\\.csv$", ignore.case = T, filename)) {
-      read_text(inFile$datapath, method = "fread", share = share)
+      rout <- tryCatch(read_text(inFile$datapath, method = "fread",
+                                 share = share),
+                       error = function(e) {e})
     }
     else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
-      read_0(inFile$datapath, share = share)
+      rout <- tryCatch(read_0(inFile$datapath, share = share),
+                       error = function(e) {e})
     }
     else {
       ex <- strsplit(basename(filename), split="\\.")[[1]]
-      do.call(paste0("read_", tolower(ex[-1])), list(inFile$datapath,
-                                                     share = share))
+
+      rout <- tryCatch(do.call(paste0("read_", tolower(ex[-1])),
+                               list(inFile$datapath, share = share)),
+                       error = function(e) {e})
+    }
+
+    if (inherits(rout, "simpleError")) {
+      reset("file1")
+      show_alert(
+        title = "Something went wrong :-(",
+        text = paste0("R says: '", rout$message, "'. ",
+                      "If you uploaded a .csv file, make sure that the columns ",
+                      "are named 'wavenumber' and 'intensity'."),
+        type = "error"
+      )
+      stop()
+    } else {
+      rout
     }
 
   })
@@ -130,7 +153,7 @@ server <- shinyServer(function(input, output, session) {
   # Corrects spectral intensity units using the user specified correction
   data <- reactive({
     adj_intens(preprocessed_data(), type = input$IntensityCorr)
-  })
+    })
 
   #Preprocess Spectra ----
   # All cleaning of the data happens here. Smoothing and Baseline removing
