@@ -8,3 +8,4 @@
 ^Meta$
 google-analytics.js
 droptoken.rds
+^cran-comments\.md$
