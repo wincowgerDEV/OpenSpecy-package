@@ -12,8 +12,12 @@ run_app(app_dir = system.file("shiny", package = "OpenSpecy"), ...)
 
 \item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
 }
+\value{
+This function normally does not return any value, see
+\code{\link[shiny]{runApp}()}.
+}
 \description{
-This function starts the graphical user interface of Open Specy.
+This wrapper function starts the graphical user interface of Open Specy.
 }
 \details{
 After running this function the Open Specy GUI should open in a separate
