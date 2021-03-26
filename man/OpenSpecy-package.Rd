@@ -9,24 +9,28 @@
 \description{
 Raman and (FT)IR spectral analysis tool for plastic particles and
     other environmental samples. Supported features include reading spectral
-    data files (.asp, .csv, .jdx, .spc, .spa, .0), smoothing spectral
-    intensities with `smooth_intens()`, correcting background scatter with 
-    `subtr_bg()`, and identifying spectra using an onboard reference library.
+    data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay smoothing of
+    spectral intensities with smooth_intens(), correcting background noise with
+    subtr_bg() in accordance with Zhao et al. (2007)
+    <doi:10.1366/000370207782597003>, and identifying spectra using an onboard
+    reference library (Cowger et al. 2020, <doi:10.1177/0003702820929064>).
     Analyzed spectra can be shared with the Open Specy community. A Shiny app is
-    available via `run_app()` or online at
+    available via run_app() or online at
     <https://wincowger.shinyapps.io/OpenSpecy/>.
 }
 \references{
 Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
 Process for Identification of Microplastics Based on Fourier Transform
 Infrared Spectroscopy.” \emph{Applied Spectroscopy}, \strong{74}(9),
-1167–1183.
+1167–1183. \doi{10.1177/0003702820923993}.
 
 Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
 De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020).
 “Critical Review of Processing and Classification Techniques for Images and
 Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
-\strong{74}(9), 989–1010.
+\strong{74}(9), 989–1010. \doi{10.1177/0003702820929064}.
+
+Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 
 Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design
 for the Automated Analysis of Microplastic Samples Based on Fourier
@@ -40,6 +44,7 @@ Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
 Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence
 Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
 \emph{Applied Spectroscopy}, \strong{61}(11), 1225–1232.
+\doi{10.1366/000370207782597003}.
 }
 \seealso{
 Useful links:

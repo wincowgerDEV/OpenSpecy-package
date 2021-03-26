@@ -47,6 +47,7 @@
 #' Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence
 #' Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
 #' \emph{Applied Spectroscopy}, \strong{61}(11), 1225–1232.
+#' \doi{10.1366/000370207782597003}.
 #'
 #' @importFrom magrittr %>%
 #' @importFrom stats terms model.frame sd lm poly approx

@@ -12,13 +12,17 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 
 ![Graphical Abstract](https://github.com/wincowgerDEV/OpenSpecy/blob/main/inst/shiny/www/graphical_abstract.png?raw=true)
 
-Raman and (FT)IR spectral analysis tool for plastic particles and other
-environmental samples. Supported features include reading spectral data files
-(.asp, .csv, .jdx, .spc, .spa, .0), smoothing spectral intensities with
-`smooth_intens()`, correcting background scatter with  `subtr_bg()`, and
-identifying spectra using an onboard reference library. Analyzed spectra can be
-shared with the Open Specy community. A Shiny app is available via `run_app()`
-or online at [http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/).
+Raman and (FT)IR spectral analysis tool for plastic particles and
+other environmental samples. Supported features include reading spectral
+data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay smoothing of
+spectral intensities with `smooth_intens()`, correcting background noise with
+`subtr_bg()` in accordance with Zhao et al. (2007, doi: 
+[10.1366/000370207782597003](https://doi.org/10.1366/000370207782597003)),
+and identifying spectra using an onboard reference library (Cowger et al. 2020,
+doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064)).
+Analyzed spectra can be shared with the Open Specy community. A Shiny app is
+available via `run_app()` or online at
+[http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/).
 
 ## Installation
 
