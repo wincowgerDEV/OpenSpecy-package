@@ -90,7 +90,7 @@ get_lib <- function(which = c("ftir", "raman"),
   osf <- osf_retrieve_node(node) %>%
     osf_ls_files(pattern = ".rds", n_max = Inf)
 
-  message("Fetching Open Specy reference libraries from OSF ...´")
+  message("Fetching Open Specy reference libraries from OSF ...")
   for (w in which) {
     osf %>% subset(grepl(
       paste0("^", w, "_(", paste(types, collapse = "|"), ").rds"),
