@@ -6,3 +6,5 @@
 ^\.httr-oauth$
 ^doc$
 ^Meta$
+google-analytics.js
+droptoken.rds

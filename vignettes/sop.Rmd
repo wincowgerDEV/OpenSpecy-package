@@ -26,7 +26,7 @@ with `smooth_intens()`, correcting background with
 `subtr_bg()`, and identifying spectra using an onboard reference
 library. Analyzed spectra can be shared with the Open Specy community.
 A Shiny app is available via `run_app()` or online at
-[http://www.openspecy.org](http://www.openspecy.org).
+[http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/).
 
 This document outlines a common workflow for
 using Open Specy and highlights some topics that users are often
@@ -47,7 +47,7 @@ library(OpenSpecy)
 # Viewing and Sharing Spectra
 
 To get started with the Open Specy user interface, access
-[www.openspecy.org](http://www.openspecy.org)
+[http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/)
 or start the Shiny GUI directly from R typing
 
 ```{r eval=FALSE}
@@ -723,12 +723,12 @@ Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design for
 the Automated Analysis of Microplastic Samples Based on Fourier Transform
 Infrared (FTIR) Spectroscopy.” *Analytical and Bioanalytical Chemistry*,
 **410**(21), 5131–5141. doi: 
-[https://doi.org/10.1007/s00216-018-1156-x](10.1007/s00216-018-1156-x).
+[10.1007/s00216-018-1156-x](https://doi.org/10.1007/s00216-018-1156-x).
 
 Renner G, Schmidt TC, Schram J (2017). “A New Chemometric Approach for Automatic
 Identification of Microplastics from Environmental Compartments Based on FT-IR
 Spectroscopy.” *Analytical Chemistry*, **89**(22), 12045–12053. doi: 
-[https://doi.org/10.1021/acs.analchem.7b024720](10.1021/acs.analchem.7b024720).
+[10.1021/acs.analchem.7b02472](https://doi.org/10.1021/acs.analchem.7b02472).
 
 Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by
 Simplified Least Squares Procedures.” *Analytical Chemistry*, **36**(8),

@@ -31,7 +31,7 @@ run_app <- function(app_dir = system.file("shiny", package = "OpenSpecy"),
          call. = FALSE)
   }
 
-  pkg <- c("config", "shinyjs", "shinyBS", "shinyhelper",
+  pkg <- c("config", "shinyjs", "shinythemes", "shinyBS",
            "shinyWidgets", "plotly", "data.table", "DT", "curl", "rdrop2")
   for (p in pkg) {
     if (!requireNamespace(package = p))

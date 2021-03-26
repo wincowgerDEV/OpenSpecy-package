@@ -6,13 +6,11 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 [![Project Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![R-CMD-check](https://github.com/wincowgerDEV/OpenSpecy/workflows/R-CMD-check/badge.svg)](https://github.com/wincowgerDEV/OpenSpecy/actions)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![Website](https://img.shields.io/badge/web-openspecy.org-white)](http://www.openspecy.org)
+[![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://wincowger.shinyapps.io/OpenSpecy/)
 [![Twitter Follow](https://img.shields.io/twitter/follow/OpenSpecy)](https://twitter.com/OpenSpecy)
 <!-- badges: end -->
 
 ![Graphical Abstract](https://github.com/wincowgerDEV/OpenSpecy/blob/main/inst/shiny/www/graphical_abstract.png?raw=true)
-
-## :warning: This R package is currently under active development and not intended for productive use; visit [http://www.openspecy.org](http://www.openspecy.org) for a stable version!
 
 Raman and (FT)IR spectral analysis tool for plastic particles and other
 environmental samples. Supported features include reading spectral data files
@@ -20,7 +18,7 @@ environmental samples. Supported features include reading spectral data files
 `smooth_intens()`, correcting background scatter with  `subtr_bg()`, and
 identifying spectra using an onboard reference library. Analyzed spectra can be
 shared with the Open Specy community. A Shiny app is available via `run_app()`
-or online at [http://www.openspecy.org](http://www.openspecy.org).
+or online at [http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/).
 
 ## Installation
 
@@ -32,7 +30,7 @@ You can install the released version of **OpenSpecy** from
 [CRAN](https://CRAN.R-project.org) with:
 
 ```r
-install.packages("envalysis")
+install.packages("OpenSpecy")
 ```
 -->
 
@@ -98,8 +96,8 @@ find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 To cite the R package **OpenSpecy** use:
 
 Win Cowger and Zacharias Steinmetz (2021). OpenSpecy: Analyze, Process,
-Identify, and Share, Raman and (FT)IR Spectra. R package version 0.8.0.
-[https://github.com/wincowgerDEV/OpenSpecy]()
+Identify, and Share, Raman and (FT)IR Spectra. R package version 0.8.1.
+[https://github.com/wincowgerDEV/OpenSpecy](https://github.com/wincowgerDEV/OpenSpecy)
 
 A BibTeX entry for LaTeX users is
 
@@ -108,7 +106,7 @@ A BibTeX entry for LaTeX users is
   title = {OpenSpecy: Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra},
   author = {Win Cowger and Zacharias Steinmetz},
   year = {2021},
-  note = {R package version 0.8.0},
+  note = {R package version 0.8.1},
   url = {https://github.com/wincowgerDEV/OpenSpecy},
 }
 ```

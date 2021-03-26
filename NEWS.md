@@ -1,3 +1,10 @@
+# OpenSpecy 0.8.1
+
+## Bug Fixes
+
+- Fix redirecting URLs
+
+
 # OpenSpecy 0.8.0
 
 ## New Features
@@ -12,10 +19,6 @@
 
 - Better error handling
 - Stripped down dependencies
-
-## Bug fixes
-
-## Deprecated Functions
 
 
 # OpenSpecy 0.7.0
