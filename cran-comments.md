@@ -25,7 +25,7 @@ auto-linking.
 Please remove the quotes around function names. e.g.: `smooth_intens()`
 --> smooth_intens()
 
-> references and DOIS were added as suggested
+> references and DOIs were added as suggested
 > quotes were removed
 
 Please add \value to .Rd files regarding exported methods and explain
