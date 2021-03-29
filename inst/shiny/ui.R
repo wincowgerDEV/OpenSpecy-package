@@ -17,9 +17,10 @@ library(DT)
 # Name keys for human readable column names ----
 load("data/namekey.RData")
 
-citation <- paste("W. Cowger, Z. Steinmetz, A. Gray, H. Hapich, C. Rochman,",
-                  "J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou.",
-                  "2020. Open Specy. www.openspecy.org")
+citation <- paste0("W. Cowger, Z. Steinmetz, A. Gray, H. Hapich, C. Rochman, ",
+                   "J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. ",
+                   "2020. Open Specy v", packageVersion("OpenSpecy"),
+                   ". www.openspecy.org")
 
 # Functions ----
 labelMandatory <- function(label) {
