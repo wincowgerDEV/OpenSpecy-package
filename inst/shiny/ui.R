@@ -234,13 +234,11 @@ ui <- fluidPage(
                          column(3),
                          column(6,
                                 shiny::HTML("<br><br><center> <h1>Contribute spectra</h1> </center><br>"),
-                                shiny::HTML("<h5>To share spectra upload a file to the upload file tab. ",
-                                "If you selected Share a copy of your spectra will be sent to the Community ",
+                                shiny::HTML("<h5>To share spectra, upload a file to the upload file tab. ",
+                                "If you selected 'Share File', a copy of your spectra will be sent to the Community ",
                                 "Data Warehouse on Open Science Framework. To add additional metadata, ",
-                                "fill in the avaliable metadata fields and click -Share Data-. The ",
-                                "spectra file that you uploaded along with your responses will be copied ",
-                                "to the a -With Metadata- subfolder at the link below. All shared data holds ",
-                                "a Creative Commons Attribution License 4.0.</h5>")
+                                "fill in the avaliable metadata fields and click 'Share Metadata'. ",
+                                "All shared data holds a Creative Commons license.</h5>")
                          ),
                          column(3)
                        ),
@@ -391,7 +389,8 @@ ui <- fluidPage(
                                 bsPopover(
                                   id = "share_decision",
                                   title = "Share Help",
-                                  content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
+                                  content = c("We share any uploaded spectra with the spectroscopy community if you like.",
+                                              "By default, the data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).",
                                               "Uploaded spectra will appear here: https://osf.io/rjg3c"),
                                   placement = "bottom",
                                   trigger = "hover"
