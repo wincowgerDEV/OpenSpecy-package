@@ -712,12 +712,14 @@ knitr::include_graphics("images/flowchart.png")
 
 Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
 Process for Identification of Microplastics Based on Fourier Transform Infrared
-Spectroscopy.” *Applied Spectroscopy*, **74**(9), 1167–1183.
+Spectroscopy.” *Applied Spectroscopy*, **74**(9), 1167–1183. doi:
+[10.1177/0003702820923993](https://doi.org/10.1177/0003702820923993).
 
 Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH, De Frond H,
 Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020). “Critical Review of
 Processing and Classification Techniques for Images and Spectra in Microplastic
-Research.” *Applied Spectroscopy*, **74**(9), 989–1010.
+Research.” *Applied Spectroscopy*, **74**(9), 989–1010. doi:
+[10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064).
 
 Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design for
 the Automated Analysis of Microplastic Samples Based on Fourier Transform
@@ -736,4 +738,5 @@ Simplified Least Squares Procedures.” *Analytical Chemistry*, **36**(8),
 
 Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence Background
 Subtraction Algorithm for Biomedical Raman Spectroscopy.”
-*Applied Spectroscopy*, **61**(11), 1225–1232.
+*Applied Spectroscopy*, **61**(11), 1225–1232. doi:
+[10.1366/000370207782597003](https://doi.org/10.1366/000370207782597003).

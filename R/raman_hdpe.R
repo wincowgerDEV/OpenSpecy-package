@@ -21,7 +21,7 @@
 #' De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020).
 #' “Critical Review of Processing and Classification Techniques for Images and
 #' Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
-#' \strong{74}(9), 989–1010.
+#' \strong{74}(9), 989–1010. \doi{10.1177/0003702820929064}.
 #'
 #' @docType data
 #' @keywords data

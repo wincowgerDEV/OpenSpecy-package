@@ -13,7 +13,7 @@
 #' \code{check_lib()} checks to see if the Open Specy reference library
 #' already exists on the users computer.
 #' \code{get_lib()} downloads the Open Specy library from OSF
-#' (\url{https://osf.io/x7dpz/}).
+#' (\doi{10.17605/OSF.IO/X7DPZ}).
 #' \code{load_lib()} will load the library into the global environment for use
 #' with the Open Specy functions.
 #'
@@ -56,6 +56,15 @@
 #' @seealso
 #' \code{\link{match_spec}()}
 #'
+#' @references
+#' Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
+#' De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020).
+#' “Critical Review of Processing and Classification Techniques for Images and
+#' Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
+#' \strong{74}(9), 989–1010. \doi{10.1177/0003702820929064}.
+#'
+#' Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
+#'
 #' @importFrom magrittr %>%
 #'
 #' @export
@@ -81,14 +90,13 @@ get_lib <- function(which = c("ftir", "raman"),
   osf <- osf_retrieve_node(node) %>%
     osf_ls_files(pattern = ".rds", n_max = Inf)
 
-  cat("Fetching Open Specy reference libraries from OSF ... \n\n")
+  message("Fetching Open Specy reference libraries from OSF ...")
   for (w in which) {
     osf %>% subset(grepl(
       paste0("^", w, "_(", paste(types, collapse = "|"), ").rds"),
       osf$name)) %>%
       osf_download(path = path, conflicts = conflicts, progress = TRUE, ...)
   }
-  cat("Done\n\n")
 
   message("Use 'load_lib()' to load the library")
 }

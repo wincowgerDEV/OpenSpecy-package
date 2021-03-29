@@ -12,13 +12,16 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 
 ![Graphical Abstract](https://github.com/wincowgerDEV/OpenSpecy/blob/main/inst/shiny/www/graphical_abstract.png?raw=true)
 
-Raman and (FT)IR spectral analysis tool for plastic particles and other
-environmental samples. Supported features include reading spectral data files
-(.asp, .csv, .jdx, .spc, .spa, .0), smoothing spectral intensities with
-`smooth_intens()`, correcting background scatter with  `subtr_bg()`, and
-identifying spectra using an onboard reference library. Analyzed spectra can be
-shared with the Open Specy community. A Shiny app is available via `run_app()`
-or online at [http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/).
+Raman and (FT)IR spectral analysis tool for plastic particles and
+other environmental samples. Supported features include reading spectral
+data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay smoothing of
+spectral intensities with `smooth_intens()`, correcting background noise with
+`subtr_bg()` in accordance with Zhao et al. (2007, doi: 
+[dbhfsj](https://doi.org/dbhfsj)),
+and identifying spectra using an onboard reference library (Cowger et al. 2020,
+doi: [f3sk](https://doi.org/f3sk)). Analyzed spectra can be shared with the Open
+Specy community. A Shiny app is available via `run_app()` or online at
+[http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/).
 
 ## Installation
 
@@ -96,7 +99,7 @@ find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 To cite the R package **OpenSpecy** use:
 
 Win Cowger and Zacharias Steinmetz (2021). OpenSpecy: Analyze, Process,
-Identify, and Share, Raman and (FT)IR Spectra. R package version 0.8.1.
+Identify, and Share, Raman and (FT)IR Spectra. R package version 0.8.2.
 [https://github.com/wincowgerDEV/OpenSpecy](https://github.com/wincowgerDEV/OpenSpecy)
 
 A BibTeX entry for LaTeX users is
@@ -106,7 +109,7 @@ A BibTeX entry for LaTeX users is
   title = {OpenSpecy: Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra},
   author = {Win Cowger and Zacharias Steinmetz},
   year = {2021},
-  note = {R package version 0.8.1},
+  note = {R package version 0.8.2},
   url = {https://github.com/wincowgerDEV/OpenSpecy},
 }
 ```
