@@ -493,6 +493,15 @@ ui <- fluidPage(
                                             label = namekey[23],
                                             placeholder = "e.g. 99%"),
                                   textInput(names(namekey)[24], label = "Other information"),
+                                  selectInput(names(namekey)[32],
+                                              label = namekey[32],
+                                              selected = "CC BY-NC",
+                                              choices = c("CC0", "CC BY",
+                                                          "CC BY-SA",
+                                                          "CC BY-NC",
+                                                          "CC BY-ND",
+                                                          "CC BY-NC-SA",
+                                                          "CC BY-NC-ND")),
 
                                   tags$br(),
                                   actionButton("submit", "Share Metadata", class = "btn-primary")
