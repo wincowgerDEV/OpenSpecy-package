@@ -49,6 +49,17 @@ load_data <- function() {
   invisible(list2env(as.list(environment()), parent.frame()))
 }
 
+#User information saving ----
+read_user_base <- function() {
+    user_base_tbl <<- read_rds(path = "data/user_base_tbl.rds")
+}
+
+update_and_write_user_base <- function(folder, assign_input) {
+    user_base_tbl <<- bind_rows(user_base_tbl , assign_input)
+    write_rds(user_base_tbl, path = "data/user_base_tbl.rds")
+  }
+
+
 # This is the actual server functions, all functions before this point are not
 # reactive
 server <- shinyServer(function(input, output, session) {
