@@ -456,10 +456,17 @@ server <- shinyServer(function(input, output, session) {
   
   # Cookies ----
   observeEvent(input$file1, {
-    msg <- list(
-      name = "name", value = "user"
+    
+    if(is.null(input$cookies$name)){
+      userid <- sample(1:10, 1) # Make this better.
+      msg <- list(
+      name = "name", value = userid
     )
       session$sendCustomMessage("cookie-set", msg)
+      output_dir = paste("data/", userid, sep = "")
+      if (!dir.exists(output_dir)) {dir.create(output_dir)}
+    }
+    
   })
   
   # delete
@@ -471,7 +478,7 @@ server <- shinyServer(function(input, output, session) {
   # output if cookie is specified
   output$name_get <- renderUI({
     if(!is.null(input$cookies$name))
-      h3("Hello,", input$cookies$id)
+      h3("Hello,", input$cookies$name)
     else
       h3("Who are you?")
   })
