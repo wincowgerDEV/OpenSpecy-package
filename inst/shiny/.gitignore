@@ -7,3 +7,4 @@ subset_*.RDS
 test_*.RDS
 google-analytics.js
 droptoken.rds
+rsconnect/

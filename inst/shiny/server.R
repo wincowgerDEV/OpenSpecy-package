@@ -458,7 +458,7 @@ server <- shinyServer(function(input, output, session) {
   observeEvent(input$file1, {
     
     if(is.null(input$cookies$name)){
-      userid <- sample(1:10, 1) # Make this better.
+      userid <- sample(1:10, 1) # Make this better, real random numbers.
       msg <- list(
       name = "name", value = userid
     )
@@ -467,6 +467,8 @@ server <- shinyServer(function(input, output, session) {
       if (!dir.exists(output_dir)) {dir.create(output_dir)}
     }
     
+    
+
   })
   
   # delete
