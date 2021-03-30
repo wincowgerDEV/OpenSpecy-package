@@ -1,3 +1,5 @@
+setwd("G:/My Drive/GrayLab/Projects/Plastics/ActiveProjects/OpenSpecy/Code/Github/inst/shiny")
+
 load("G:/My Drive/GrayLab/Projects/Plastics/ActiveProjects/OpenSpecy/Code/Github/inst/shiny/data/namekey.RData")
 
 data_creation <- function(user_id,
@@ -14,39 +16,52 @@ data_creation <- function(user_id,
                          library,
                          row,
                          time) {
+    
+                    output_dir = paste("data/", user_id, sep = "")
+                    if (!dir.exists(output_dir)) {dir.create(output_dir)}
+    
+    
                     saveRDS(tibble(
-                        "user_id" = character(),
-                        "data_id" = character(),
-                        "smooth_decision" = logical(),
-                        "smoother" = integer(),
-                        "baseline_decision" = logical(),
-                        "baseline" = integer(),
-                        "range_decision" = logical(),
-                        "min_range" = numeric(),
-                        "max_range" = numeric(),
-                        "spectra_type" = character(),
-                        "spectrum_to_analyze" = character(),
-                        "library" = character(),
-                        "row" = integer(),
-                        "time" = character()
-                    ), paste("data/", user_id, time, ".rds"))    
+                        "user_id" = user_id,
+                        "data_id" = data_id,
+                        "smooth_decision" = smooth_decision,
+                        "smoother" = smoother,
+                        "baseline_decision" = baseline_decision,
+                        "baseline" = baseline,
+                        "range_decision" = range_decision,
+                        "min_range" = min_range,
+                        "max_range" = max_range,
+                        "spectra_type" = spectra_type,
+                        "spectrum_to_analyze" = spectrum_to_analyze,
+                        "library" = library,
+                        "row" = row,
+                        "time" = time
+                    ), paste(output_dir, "/", time, ".rds", sep = ""))    
          }
 
+                    data_creation(user_id = 1,
+                                  data_id = 2,
+                                  smooth_decision = TRUE,
+                                  smoother = 5,
+                                  baseline_decision = FALSE,
+                                  baseline = 4,
+                                  range_decision = FALSE,
+                                  min_range = 6,
+                                  max_range = 7,
+                                  spectra_type = "full",
+                                  spectrum_to_analyze = "raman",
+                                  library = "peaks",
+                                  row = 3,
+                                  time = 234)
 
+                    output_dir = paste("data/", user_id, sep = "")
+                    if (!dir.exists(output_dir)) {dir.create(output_dir)}
+                    
+                    
+                    saveRDS(data, paste(output_dir, "/", time, ".rds", sep = ""))
 saveRDS(data, "G:/My Drive/GrayLab/Projects/Plastics/ActiveProjects/OpenSpecy/Code/Github/inst/shiny/data/user_base_tbl.rds")
 
 
-OpenSpecy::human_ts()
-OpenSpecy::
 
-#User information saving ----
-read_user_base <- function() {
-    user_base_tbl <<- read_rds(path = "data/user_base_tbl.rds")
-}
-
-update_and_write_user_base <- function(folder, assign_input) {
-    user_base_tbl <<- assign_input
-    write_rds(user_base_tbl, path = "data/user_base_tbl.rds")
-}
 
 
