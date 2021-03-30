@@ -454,22 +454,26 @@ server <- shinyServer(function(input, output, session) {
     toggle("submit")
   })
   
-  #Save user information whenever they click a trigger
-  observeEvent(req(input$tabs %in% c("tab2","tab3")){
-    data_creation(user_id = 1,
-                  data_id = 2,
-                  smooth_decision = TRUE,
-                  smoother = 5,
-                  baseline_decision = FALSE,
-                  baseline = 4,
-                  range_decision = FALSE,
-                  min_range = 6,
-                  max_range = 7,
-                  spectra_type = "full",
-                  spectrum_to_analyze = "raman",
-                  library = "peaks",
-                  row = 3,
-                  time = 234)
+  # Cookies ----
+  observeEvent(input$file1, {
+    msg <- list(
+      name = "name", value = "user"
+    )
+      session$sendCustomMessage("cookie-set", msg)
+  })
+  
+  # delete
+#  observeEvent(input$remove, {
+#    msg <- list(name = "name")
+#    session$sendCustomMessage("cookie-remove", msg)
+#  })
+  
+  # output if cookie is specified
+  output$name_get <- renderUI({
+    if(!is.null(input$cookies$name))
+      h3("Hello,", input$cookies$id)
+    else
+      h3("Who are you?")
   })
 
   output$translate <- renderUI({

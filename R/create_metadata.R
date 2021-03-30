@@ -61,7 +61,23 @@ data_creation <- function(user_id,
                     saveRDS(data, paste(output_dir, "/", time, ".rds", sep = ""))
 saveRDS(data, "G:/My Drive/GrayLab/Projects/Plastics/ActiveProjects/OpenSpecy/Code/Github/inst/shiny/data/user_base_tbl.rds")
 
-
+#Save user information whenever they click a trigger
+observeEvent(req(input$tabs %in% c("tab2","tab3")){
+    data_creation(user_id = 1,
+                  data_id = 2,
+                  smooth_decision = TRUE,
+                  smoother = 5,
+                  baseline_decision = FALSE,
+                  baseline = 4,
+                  range_decision = FALSE,
+                  min_range = 6,
+                  max_range = 7,
+                  spectra_type = "full",
+                  spectrum_to_analyze = "raman",
+                  library = "peaks",
+                  row = 3,
+                  time = 234)
+})
 
 
 

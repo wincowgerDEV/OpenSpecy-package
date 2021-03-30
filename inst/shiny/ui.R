@@ -54,6 +54,7 @@ ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
 
   tags$head(tags$style(css)),
+  tags$head(uiOutput("name_get")),
   tags$head(uiOutput("analytics")), # Google analytics.
   #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
   theme = shinytheme("cyborg"), # Change this for other themes
@@ -75,7 +76,17 @@ ui <- fluidPage(
                         };
                         }
                         };
-                        ')))
+                        '))),
+    #This is for cookie creation
+    tags$head(
+      tags$script(
+        src = paste0(
+          "https://cdn.jsdelivr.net/npm/js-cookie@rc/",
+          "dist/js.cookie.min.js"
+        )
+      ),
+      tags$script(src = "www/script.js")
+    )
   ),
   shinyjs::inlineCSS(appCSS),
 
