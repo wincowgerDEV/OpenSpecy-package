@@ -101,7 +101,7 @@ ui <- fluidPage(
     ), windowTitle = "Open Specy"
   ),
   tabsetPanel(id = "tabs",
-              tabPanel("About", value = "about",
+              tabPanel("About", value = "tab0",
                        fluidRow(
                          column(2),
                          column(8, align = "center",
