@@ -18,6 +18,7 @@ library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
 library(ids)
+library(future)
 #library(bslib)
 
 # Required Data ----
@@ -421,7 +422,7 @@ server <- shinyServer(function(input, output, session) {
   observeEvent(input$file1, {
     
     if(is.null(input$cookies$name) & input$share_decision){
-      userid <- random_id(n = 1)
+      userid <- random_id(n = 1) # Make this better, real random numbers.
       msg <- list(
       name = "name", value = userid
     )
@@ -435,10 +436,11 @@ server <- shinyServer(function(input, output, session) {
       #Had to do this because the cookie takes a minute to kick in and the first file wasn't writing.
       inFile <- input$file1
       UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-      file.copy(inFile$datapath, paste("data/", userid, "/user_data/", UniqueID, "_", inFile$name, sep = ""))
-      if(curl::has_internet() & droptoken){   
-        drop_upload(location_data, path = paste("data/", input$cookies$name, "/user_data", sep = ""), mode = "add")
-      }
+      location_data <- paste("data/", userid, "/user_data/", UniqueID, "_", inFile$name, sep = "")
+      file.copy(inFile$datapath, location_data)
+      #if(curl::has_internet() & droptoken){   
+      #  drop_upload(location_data, path = paste("data/", userid, "/user_data", sep = ""), mode = "add")
+      #}
     }
     else{
       if(input$share_decision){
@@ -447,9 +449,10 @@ server <- shinyServer(function(input, output, session) {
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
         location_data <- paste("data/", input$cookies$name, "/user_data/", UniqueID, "_", inFile$name, sep = "")
         file.copy(inFile$datapath, location_data)
-        if(curl::has_internet() & droptoken){   
-          drop_upload(location_data, path = paste("data/", input$cookies$name, "/user_data", sep = ""), mode = "add")
-        }
+        #if(curl::has_internet() & droptoken){   
+        #
+        #    drop_upload(location_data, path = paste("data/", input$cookies$name, "/user_data", sep = ""), mode = "add")
+        #}
         })
       }
     }
@@ -466,9 +469,9 @@ server <- shinyServer(function(input, output, session) {
       log <- c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
       location <- paste("data/", input$cookies$name, "/user_log/", human_ts(), ".rds", sep = "")
         saveRDS(log, file = location)
-        if(curl::has_internet() & droptoken){   
-        drop_upload(location, path = paste("data/", input$cookies$name, "/user_log", sep = ""), mode = "add")
-        }
+        #if(curl::has_internet() & droptoken){   
+        #drop_upload(location, path = paste("data/", input$cookies$name, "/user_log", sep = ""), mode = "add")
+        #}
       } 
   })
 
