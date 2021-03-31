@@ -506,16 +506,6 @@ server <- shinyServer(function(input, output, session) {
       includeScript("data/google-analytics.js")
     }
   })
-  #On session end, send files to dropbox. ----
-   onSessionEnded(function() {
-     #Adds in an if to make sure there is no error when there are no files. Wont run loop if no files. 
-    if(length(list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]) > 0) {
-      for(item in list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]){
-          drop_upload(item, path = dirname(item), mode = "add")
-          file.remove(item)
-            }
-          }
-        }
-      )
+
 })
 
