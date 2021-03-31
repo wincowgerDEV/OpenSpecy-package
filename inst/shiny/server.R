@@ -152,7 +152,7 @@ server <- shinyServer(function(input, output, session) {
 
   # Corrects spectral intensity units using the user specified correction
   data <- reactive({
-    adj_intens(preprocessed_data(), type = input$IntensityCorr)
+    adj_intens(preprocessed_data(), type = input$intensity_corr)
     })
 
   #Preprocess Spectra ----
@@ -419,35 +419,48 @@ server <- shinyServer(function(input, output, session) {
   # Cookies ----
   observeEvent(input$file1, {
     
-    if(is.null(input$cookies$name)){
+    if(is.null(input$cookies$name) & input$share_decision){
       userid <- sample(1:10, 1) # Make this better, real random numbers.
       msg <- list(
       name = "name", value = userid
     )
       session$sendCustomMessage("cookie-set", msg)
       output_dir = paste("data/", userid, sep = "")
-      if (!dir.exists(output_dir)) {dir.create(output_dir)}
+      if (!dir.exists(output_dir)) {
+        dir.create(output_dir)
+        dir.create(paste(output_dir, "/user_data", sep = ""))
+        dir.create(paste(output_dir, "/user_log", sep = ""))
+      }
+      #Had to do this because the cookie takes a minute to kick in and the first file wasn't writing.
+      inFile <- input$file1
+      UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
+      file.copy(inFile$datapath, paste("data/", userid, "/user_data/", UniqueID, "_", inFile$name, sep = ""))
     }
-    
-    if(input$share_decision & curl::has_internet() & droptoken){   
-    
-      withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
+    else{
+      if(input$share_decision){
+        withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
-        file.copy(inFile$datapath, paste("data/", input$cookies$name, sep = ""))
-        UniqueID <- digest::digest(preprocessed_data(), algo = "md5")
-        drop_upload(inFile$datapath, path = paste0(outputDir, "/", UniqueID), mode = "add")
-      })
+        UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
+        file.copy(inFile$datapath, paste("data/", input$cookies$name, "/user_data/", UniqueID, "_", inFile$name, sep = ""))
+        })
+      }
     }
   })
+     
+    #if(input$share_decision & curl::has_internet() & droptoken){   
+            #drop_upload(inFile$datapath, path = paste0(input$cookies$name, "/", UniqueID), mode = "add")
+    #}
   
   #Log User choices ----
   toListen <- reactive({
-    list(input$file1,input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library)
+    list(input$file1,input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
   })
   
   observeEvent(toListen(), {
-      req(input$file1) #Makes sure that a file is uploaded before we start tracking data. 
-      saveRDS(c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library), file = paste("data/", input$cookies$name, "/", human_ts(), ".rds", sep = ""))
+      if(is.list(input$file1) & input$share_decision & !is.null(input$cookies$name)){
+        #Makes sure that a file is uploaded before we start tracking data. not working.
+      saveRDS(c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr), file = paste("data/", input$cookies$name, "/user_log/", human_ts(), ".rds", sep = ""))
+      } 
   })
   
   # delete

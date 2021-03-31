@@ -522,7 +522,7 @@ ui <- fluidPage(
                          ),
                          column(2,
 
-                                radioButtons("IntensityCorr", "Intensity Adjustment",
+                                radioButtons("intensity_corr", "Intensity Adjustment",
                                             c("None" = "none",
                                               "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
                                 bsPopover(
