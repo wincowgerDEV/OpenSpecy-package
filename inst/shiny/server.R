@@ -418,34 +418,10 @@ server <- shinyServer(function(input, output, session) {
     toggle("submit")
   })
   
-  # Cookies ----
+  # Session Files ----
   observeEvent(input$file1, {
-    
-    if(is.null(input$cookies$name) & input$share_decision){
-      userid <- random_id(n = 1) # Make this better, real random numbers.
-      msg <- list(
-      name = "name", value = userid
-    )
-      session$sendCustomMessage("cookie-set", msg)
-      output_dir = paste("data/users/", userid, sep = "")
-      if (!dir.exists(output_dir)) {
-        dir.create(output_dir)
-        dir.create(paste(output_dir, "/user_data", sep = ""))
-        dir.create(paste(output_dir, "/user_log", sep = ""))
-      }
-      #Had to do this because the cookie takes a minute to kick in and the first file wasn't writing.
-      inFile <- input$file1
-      UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-      location_data <- paste("data/users/", userid, "/user_data/", UniqueID, "_", inFile$name, sep = "")
-      file.copy(inFile$datapath, location_data)
-      drop_upload(location_data, path = dirname(location_data), mode = "add")
-      #if(curl::has_internet() & droptoken){   
-      #  drop_upload(location_data, path = paste("data/", userid, "/user_data", sep = ""), mode = "add")
-      #}
-    }
-    else{
       if(input$share_decision){
-        output_dir = paste("data/users/", input$cookies$name, sep = "")
+        output_dir = paste("data/users/", sessionid, sep = "")
         if (!dir.exists(output_dir)) {
           dir.create(output_dir)
           dir.create(paste(output_dir, "/user_data", sep = ""))
@@ -454,16 +430,10 @@ server <- shinyServer(function(input, output, session) {
         withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/users/", input$cookies$name, "/user_data/", UniqueID, "_", inFile$name, sep = "")
+        location_data <- paste("data/users/", sessionid, "/user_data/", UniqueID, "_", inFile$name, sep = "")
         file.copy(inFile$datapath, location_data)
         drop_upload(location_data, path = dirname(location_data), mode = "add")
-        #if(curl::has_internet() & droptoken){   
-        #
-        #    drop_upload(location_data, path = paste("data/", input$cookies$name, "/user_data", sep = ""), mode = "add")
-        #}
-        })
-        
-      }
+      })
     }
   })
      
@@ -473,10 +443,10 @@ server <- shinyServer(function(input, output, session) {
   })
   
   observeEvent(toListen(), {
-      if(is.list(input$file1) & input$share_decision & !is.null(input$cookies$name)){
+      if(is.list(input$file1) & input$share_decision){
         #Makes sure that a file is uploaded before we start tracking data. not working.
       log <- c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
-      location <- paste("data/users/", input$cookies$name, "/user_log/", human_ts(), ".rds", sep = "")
+      location <- paste("data/users/", sessionid, "/user_log/", human_ts(), ".rds", sep = "")
         saveRDS(log, file = location)
         drop_upload(location, path = dirname(location), mode = "add")
         
