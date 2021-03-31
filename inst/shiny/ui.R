@@ -572,7 +572,7 @@ ui <- fluidPage(
                                 tags$br(),
                                 fluidRow(
                                   column(10,
-                                         prettySwitch("smooth_decision",
+                                         prettySwitch(inputId = "smooth_decision",
                                              label = "Smoothing",
                                              inline = T,
                                              value = T,

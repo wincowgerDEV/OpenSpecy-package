@@ -49,44 +49,6 @@ load_data <- function() {
   invisible(list2env(as.list(environment()), parent.frame()))
 }
 
-#User information saving ----
-data_creation <- function(user_id,
-                          data_id,
-                          smooth_decision,
-                          smoother,
-                          baseline_decision,
-                          baseline,
-                          range_decision,
-                          min_range,
-                          max_range,
-                          spectra_type,
-                          spectrum_to_analyze,
-                          library,
-                          row,
-                          time) {
-  
-  output_dir = paste("data/", user_id, sep = "")
-  if (!dir.exists(output_dir)) {dir.create(output_dir)}
-  
-  
-  saveRDS(tibble(
-    "user_id" = user_id,
-    "data_id" = data_id,
-    "smooth_decision" = smooth_decision,
-    "smoother" = smoother,
-    "baseline_decision" = baseline_decision,
-    "baseline" = baseline,
-    "range_decision" = range_decision,
-    "min_range" = min_range,
-    "max_range" = max_range,
-    "spectra_type" = spectra_type,
-    "spectrum_to_analyze" = spectrum_to_analyze,
-    "library" = library,
-    "row" = row,
-    "time" = time
-  ), paste(output_dir, "/", time, ".rds", sep = ""))    
-}
-
 # This is the actual server functions, all functions before this point are not
 # reactive
 server <- shinyServer(function(input, output, session) {
@@ -467,8 +429,25 @@ server <- shinyServer(function(input, output, session) {
       if (!dir.exists(output_dir)) {dir.create(output_dir)}
     }
     
+    if(input$share_decision & curl::has_internet() & droptoken){   
     
-
+      withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
+        inFile <- input$file1
+        file.copy(inFile$datapath, paste("data/", input$cookies$name, sep = ""))
+        UniqueID <- digest::digest(preprocessed_data(), algo = "md5")
+        drop_upload(inFile$datapath, path = paste0(outputDir, "/", UniqueID), mode = "add")
+      })
+    }
+  })
+  
+  #Log User choices ----
+  toListen <- reactive({
+    list(input$file1,input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library)
+  })
+  
+  observeEvent(toListen(), {
+      req(input$file1) #Makes sure that a file is uploaded before we start tracking data. 
+      saveRDS(c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library), file = paste("data/", input$cookies$name, "/", human_ts(), ".rds", sep = ""))
   })
   
   # delete
