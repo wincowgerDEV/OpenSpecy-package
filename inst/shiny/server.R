@@ -18,7 +18,7 @@ library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
 library(ids)
-library(future)
+#library(future)
 #library(bslib)
 
 # Required Data ----
@@ -427,7 +427,7 @@ server <- shinyServer(function(input, output, session) {
       name = "name", value = userid
     )
       session$sendCustomMessage("cookie-set", msg)
-      output_dir = paste("data/", userid, sep = "")
+      output_dir = paste("data/users/", userid, sep = "")
       if (!dir.exists(output_dir)) {
         dir.create(output_dir)
         dir.create(paste(output_dir, "/user_data", sep = ""))
@@ -436,7 +436,7 @@ server <- shinyServer(function(input, output, session) {
       #Had to do this because the cookie takes a minute to kick in and the first file wasn't writing.
       inFile <- input$file1
       UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-      location_data <- paste("data/", userid, "/user_data/", UniqueID, "_", inFile$name, sep = "")
+      location_data <- paste("data/users/", userid, "/user_data/", UniqueID, "_", inFile$name, sep = "")
       file.copy(inFile$datapath, location_data)
       #if(curl::has_internet() & droptoken){   
       #  drop_upload(location_data, path = paste("data/", userid, "/user_data", sep = ""), mode = "add")
@@ -447,7 +447,7 @@ server <- shinyServer(function(input, output, session) {
         withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/", input$cookies$name, "/user_data/", UniqueID, "_", inFile$name, sep = "")
+        location_data <- paste("data/users/", input$cookies$name, "/user_data/", UniqueID, "_", inFile$name, sep = "")
         file.copy(inFile$datapath, location_data)
         #if(curl::has_internet() & droptoken){   
         #
@@ -467,13 +467,26 @@ server <- shinyServer(function(input, output, session) {
       if(is.list(input$file1) & input$share_decision & !is.null(input$cookies$name)){
         #Makes sure that a file is uploaded before we start tracking data. not working.
       log <- c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
-      location <- paste("data/", input$cookies$name, "/user_log/", human_ts(), ".rds", sep = "")
+      location <- paste("data/users/", input$cookies$name, "/user_log/", human_ts(), ".rds", sep = "")
         saveRDS(log, file = location)
         #if(curl::has_internet() & droptoken){   
         #drop_upload(location, path = paste("data/", input$cookies$name, "/user_log", sep = ""), mode = "add")
         #}
       } 
   })
+  
+  #On session end, send files to dropbox. ----
+  onStop(function() 
+    #Adds in an if to make sure there is no error when there are no files. Wont run loop if no files. 
+    if(length(list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]) > 0) {
+      for(item in list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]){
+          drop_upload(item, path = dirname(item), mode = "add")
+          file.remove(item)
+        }
+    }
+  
+)
+  
 
   output$translate <- renderUI({
     if(file.exists("www/googletranslate.html") & curl::has_internet()) {
