@@ -74,7 +74,7 @@ server <- shinyServer(function(input, output, session) {
       share <- conf$share else share <- NULL
 
       sout <- tryCatch(share_spec(
-        data(), sapply(names(namekey)[1:24], function(x) input[[x]]),
+        data(), sapply(names(namekey)[c(1:24,32)], function(x) input[[x]]),
         share = share),
         warning = function(w) {w}, error = function(e) {e})
 
@@ -412,7 +412,7 @@ server <- shinyServer(function(input, output, session) {
   })
   #This toggles the hidden metadata input layers.
   observeEvent(input$share_meta, {
-    sapply(names(namekey)[1:24], function(x) toggle(x))
+    sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))
     toggle("submit")
   })
 
