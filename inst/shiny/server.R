@@ -444,6 +444,12 @@ server <- shinyServer(function(input, output, session) {
     }
     else{
       if(input$share_decision){
+        output_dir = paste("data/users/", input$cookies$name, sep = "")
+        if (!dir.exists(output_dir)) {
+          dir.create(output_dir)
+          dir.create(paste(output_dir, "/user_data", sep = ""))
+          dir.create(paste(output_dir, "/user_log", sep = ""))
+        }
         withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
@@ -454,6 +460,7 @@ server <- shinyServer(function(input, output, session) {
         #    drop_upload(location_data, path = paste("data/", input$cookies$name, "/user_data", sep = ""), mode = "add")
         #}
         })
+        
       }
     }
   })
@@ -478,7 +485,7 @@ server <- shinyServer(function(input, output, session) {
   #On session end, send files to dropbox. ----
   onStop(function() 
     #Adds in an if to make sure there is no error when there are no files. Wont run loop if no files. 
-    if(length(list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]) > 0) {
+    if(droptoken & length(list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]) > 0) {
       for(item in list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]){
           drop_upload(item, path = dirname(item), mode = "add")
           file.remove(item)
