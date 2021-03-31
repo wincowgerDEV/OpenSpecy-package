@@ -435,13 +435,20 @@ server <- shinyServer(function(input, output, session) {
       inFile <- input$file1
       UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
       file.copy(inFile$datapath, paste("data/", userid, "/user_data/", UniqueID, "_", inFile$name, sep = ""))
+      if(curl::has_internet() & droptoken){   
+        drop_upload(location_data, path = paste("data/", input$cookies$name, "/user_data", sep = ""), mode = "add")
+      }
     }
     else{
       if(input$share_decision){
         withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        file.copy(inFile$datapath, paste("data/", input$cookies$name, "/user_data/", UniqueID, "_", inFile$name, sep = ""))
+        location_data <- paste("data/", input$cookies$name, "/user_data/", UniqueID, "_", inFile$name, sep = "")
+        file.copy(inFile$datapath, location_data)
+        if(curl::has_internet() & droptoken){   
+          drop_upload(location_data, path = paste("data/", input$cookies$name, "/user_data", sep = ""), mode = "add")
+        }
         })
       }
     }
@@ -459,7 +466,12 @@ server <- shinyServer(function(input, output, session) {
   observeEvent(toListen(), {
       if(is.list(input$file1) & input$share_decision & !is.null(input$cookies$name)){
         #Makes sure that a file is uploaded before we start tracking data. not working.
-      saveRDS(c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr), file = paste("data/", input$cookies$name, "/user_log/", human_ts(), ".rds", sep = ""))
+      log <- c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
+      location <- paste("data/", input$cookies$name, "/user_log/", human_ts(), ".rds", sep = "")
+        saveRDS(log, file = location)
+        if(curl::has_internet() & droptoken){   
+        drop_upload(location, path = paste("data/", input$cookies$name, "/user_log", sep = ""), mode = "add")
+        }
       } 
   })
   
