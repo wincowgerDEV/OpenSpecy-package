@@ -438,6 +438,7 @@ server <- shinyServer(function(input, output, session) {
       UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
       location_data <- paste("data/users/", userid, "/user_data/", UniqueID, "_", inFile$name, sep = "")
       file.copy(inFile$datapath, location_data)
+      drop_upload(location_data, path = dirname(location_data), mode = "add")
       #if(curl::has_internet() & droptoken){   
       #  drop_upload(location_data, path = paste("data/", userid, "/user_data", sep = ""), mode = "add")
       #}
@@ -455,6 +456,7 @@ server <- shinyServer(function(input, output, session) {
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
         location_data <- paste("data/users/", input$cookies$name, "/user_data/", UniqueID, "_", inFile$name, sep = "")
         file.copy(inFile$datapath, location_data)
+        drop_upload(location_data, path = dirname(location_data), mode = "add")
         #if(curl::has_internet() & droptoken){   
         #
         #    drop_upload(location_data, path = paste("data/", input$cookies$name, "/user_data", sep = ""), mode = "add")
@@ -476,23 +478,15 @@ server <- shinyServer(function(input, output, session) {
       log <- c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
       location <- paste("data/users/", input$cookies$name, "/user_log/", human_ts(), ".rds", sep = "")
         saveRDS(log, file = location)
+        drop_upload(location, path = dirname(location), mode = "add")
+        
         #if(curl::has_internet() & droptoken){   
         #drop_upload(location, path = paste("data/", input$cookies$name, "/user_log", sep = ""), mode = "add")
         #}
       } 
   })
   
-  #On session end, send files to dropbox. ----
-  onStop(function() 
-    #Adds in an if to make sure there is no error when there are no files. Wont run loop if no files. 
-    if(droptoken & length(list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]) > 0) {
-      for(item in list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]){
-          drop_upload(item, path = dirname(item), mode = "add")
-          file.remove(item)
-        }
-    }
-  
-)
+
   
 #  output$name_get <- renderUI({
 #    if(!is.null(input$cookies$name))
@@ -512,5 +506,16 @@ server <- shinyServer(function(input, output, session) {
       includeScript("data/google-analytics.js")
     }
   })
-
+  #On session end, send files to dropbox. ----
+   onSessionEnded(function() {
+     #Adds in an if to make sure there is no error when there are no files. Wont run loop if no files. 
+    if(length(list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]) > 0) {
+      for(item in list.files(path = "data/users", recursive = T, full.names = T)[!grepl("desktop.ini", list.files(path = "data/users", recursive = T, full.names = T))]){
+          drop_upload(item, path = dirname(item), mode = "add")
+          file.remove(item)
+            }
+          }
+        }
+      )
 })
+
