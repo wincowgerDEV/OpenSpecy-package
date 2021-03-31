@@ -17,6 +17,7 @@ library(curl)
 library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
+library(ids)
 #library(bslib)
 
 # Required Data ----
@@ -420,7 +421,7 @@ server <- shinyServer(function(input, output, session) {
   observeEvent(input$file1, {
     
     if(is.null(input$cookies$name) & input$share_decision){
-      userid <- sample(1:10, 1) # Make this better, real random numbers.
+      userid <- random_id(n = 1)
       msg <- list(
       name = "name", value = userid
     )
@@ -454,10 +455,6 @@ server <- shinyServer(function(input, output, session) {
     }
   })
      
-    #if(input$share_decision & curl::has_internet() & droptoken){   
-            #drop_upload(inFile$datapath, path = paste0(input$cookies$name, "/", UniqueID), mode = "add")
-    #}
-  
   #Log User choices ----
   toListen <- reactive({
     list(input$file1,input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
@@ -473,20 +470,6 @@ server <- shinyServer(function(input, output, session) {
         drop_upload(location, path = paste("data/", input$cookies$name, "/user_log", sep = ""), mode = "add")
         }
       } 
-  })
-  
-  # delete
-#  observeEvent(input$remove, {
-#    msg <- list(name = "name")
-#    session$sendCustomMessage("cookie-remove", msg)
-#  })
-  
-  # output if cookie is specified
-  output$name_get <- renderUI({
-    if(!is.null(input$cookies$name))
-      h3("Hello,", input$cookies$name)
-    else
-      h3("Who are you?")
   })
 
   output$translate <- renderUI({
