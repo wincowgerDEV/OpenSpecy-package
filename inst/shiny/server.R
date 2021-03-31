@@ -494,6 +494,12 @@ server <- shinyServer(function(input, output, session) {
   
 )
   
+#  output$name_get <- renderUI({
+#    if(!is.null(input$cookies$name))
+#      h3("Hello,", input$cookies$name)
+#    else
+#      h3("Who are you?")
+#  })
 
   output$translate <- renderUI({
     if(file.exists("www/googletranslate.html") & curl::has_internet()) {

@@ -54,7 +54,7 @@ ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
 
   tags$head(tags$style(css)),
-  tags$head(uiOutput("name_get")),
+ # tags$head(uiOutput("name_get")),
   tags$head(uiOutput("analytics")), # Google analytics.
   #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
   theme = shinytheme("cyborg"), # Change this for other themes
