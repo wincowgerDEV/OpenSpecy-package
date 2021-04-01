@@ -3,6 +3,7 @@
 Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 
 <!-- badges: start -->
+[![CRAN version](https://www.r-pkg.org/badges/version/OpenSpecy)](https://CRAN.R-project.org/package=OpenSpecy) 
 [![Project Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![R-CMD-check](https://github.com/wincowgerDEV/OpenSpecy/workflows/R-CMD-check/badge.svg)](https://github.com/wincowgerDEV/OpenSpecy/actions)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
@@ -25,17 +26,16 @@ Specy community. A Shiny app is available via `run_app()` or online at
 
 ## Installation
 
-<!-- **OpenSpecy** is available from CRAN and GitHub.
+**OpenSpecy** is available from CRAN and GitHub.
 
 ### Install from CRAN (stable version)
 
-You can install the released version of **OpenSpecy** from
+You can install the latest release of **OpenSpecy** from
 [CRAN](https://CRAN.R-project.org) with:
 
 ```r
 install.packages("OpenSpecy")
 ```
--->
 
 ### Install from GitHub (development version)
 
@@ -68,8 +68,8 @@ get_lib()
 # Load library into global environment
 spec_lib <- load_lib()
 
-# Sample spectrum
-data("raman_hdpe")
+# Read sample spectrum
+raman_hdpe <- read_text(read_extdata("raman_hdpe.csv"))
 
 # Share your spectrum with the Open Spey community
 share_spec(raman_hdpe,
