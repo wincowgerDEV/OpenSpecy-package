@@ -18,8 +18,14 @@ library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
 library(ids)
+library(shinyEventLogger)
+
 #library(future)
 #library(bslib)
+
+if(file.exists(".db_url")){
+  set_logging(js_console = F, database = T)
+}
 
 # Required Data ----
 conf <- config::get()
@@ -56,7 +62,53 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-
+    sessionid <- random_id(n = 1)
+    
+    #User event logging ----
+    if(file.exists(".db_url")){
+      set_logging_session()
+      log_event(sessionid)
+      observe(
+        log_value(input$intensity_corr)
+      )
+      observe(
+        log_value(digest::digest(preprocessed_data(), algo = "md5"))
+      )   
+      observe(
+        log_value(input$smoother)
+      )
+      observe(
+        log_value(input$baseline)
+      )
+      observe(
+        log_value(input$MinRange)
+      )
+      observe(
+        log_value(input$MaxRange)
+      )
+      observe(
+        log_value(input$event_rows_selected)
+      )
+      observe(
+        log_value(input$smooth_decision)
+      )
+      observe(
+        log_value(input$baseline_decision)
+      )
+      observe(
+        log_value(input$range_decision)
+      )
+      observe(
+        log_value(input$Spectra)
+      )
+      observe(
+        log_value(input$Data)
+      )
+      observe(
+        log_value(input$Library)
+      ) 
+    }
+  
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
@@ -420,7 +472,7 @@ server <- shinyServer(function(input, output, session) {
   
   # Session Files ----
   observeEvent(input$file1, {
-      if(input$share_decision){
+      if(input$share_decision & droptoken){
         output_dir = paste("data/users/", sessionid, sep = "")
         if (!dir.exists(output_dir)) {
           dir.create(output_dir)
@@ -438,25 +490,26 @@ server <- shinyServer(function(input, output, session) {
   })
      
   #Log User choices ----
-  toListen <- reactive({
-    list(input$file1,input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
-  })
+#  toListen <- reactive({
+#    list(input$file1,input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
+#  })
   
-  observeEvent(toListen(), {
-      if(is.list(input$file1) & input$share_decision){
+#  observeEvent(toListen(), {
+#      if(is.list(input$file1) & input$share_decision){
         #Makes sure that a file is uploaded before we start tracking data. not working.
-      log <- c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
-      location <- paste("data/users/", sessionid, "/user_log/", human_ts(), ".rds", sep = "")
-        saveRDS(log, file = location)
-        drop_upload(location, path = dirname(location), mode = "add")
+#      log <- c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
+#      location <- paste("data/users/", sessionid, "/user_log/", human_ts(), ".rds", sep = "")
+#        saveRDS(log, file = location)
+#        drop_upload(location, path = dirname(location), mode = "add")
         
         #if(curl::has_internet() & droptoken){   
         #drop_upload(location, path = paste("data/", input$cookies$name, "/user_log", sep = ""), mode = "add")
         #}
-      } 
-  })
+ #     } 
+#  })
   
-
+  #Log with shiny event logger ----
+ 
   
 #  output$name_get <- renderUI({
 #    if(!is.null(input$cookies$name))

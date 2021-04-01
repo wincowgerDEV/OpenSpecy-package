@@ -52,7 +52,7 @@ appCSS <-
 # UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
-
+  log_init(),
   tags$head(tags$style(css)),
  # tags$head(uiOutput("name_get")),
   tags$head(uiOutput("analytics")), # Google analytics.

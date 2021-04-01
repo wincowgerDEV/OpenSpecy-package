@@ -9,3 +9,4 @@ google-analytics.js
 droptoken.rds
 rsconnect/
 .httr-oauth
+.db_url
