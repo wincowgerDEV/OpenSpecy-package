@@ -69,6 +69,18 @@ appCSS <-
     color: #FFFFFF;
     }"
 
+containerfunction <- function(...){
+  div(
+    style = "padding:8rem",
+    div(class = "jumbotron jumbotron-fluid", 
+        style = "border:solid #f7f7f9",
+        align = "center", ... ))
+}
+
+#linefunction <- function(...){
+#  hr(style = "color:#f7f7f9", ...)
+#}
+
 # UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
@@ -129,86 +141,49 @@ ui <- fluidPage(
   # About Tab ----
   titlePanel(
     fluidRow(
-      column(9, "Open Specy"),
+      column(9, align = "left", img(src = "logo.png", width = 300, height = 75)),
       column(3, align = "right", uiOutput("translate")) # Google Translate
     ), windowTitle = "Open Specy"
   ),
   tabsetPanel(id = "tabs",
-              tabPanel("About", value = "tab0",
-                       fluidRow(
-                         column(2),
-                         column(8, align = "center",
-                                img(src = "graphical_abstract.png", width = "100%")),
-                         column(2)
-                       ),
-                       fluidRow(
-                         column(3),
-                         column(6,
-                                shiny::HTML("<br><br><center> <h1>OVERVIEW</h1> ",
-                                            "</center><br>"),
-                                shiny::HTML("<h5>More than 800 people from around ",
-                                            "the world have used Open Specy to ",
-                                            "analyze, share, process, and identify ",
-                                            "their Raman and IR spectra.</h5>")
-                         ),
-                         column(3)
-                       ),
-
-                       fluidRow(
-                         style = "height:50px;"),
-                       # PAGE BREAK
-                       tags$hr(),
-                       # HOW
-                       fluidRow(
-                         column(3),
-                         column(6,
-                                shiny::HTML("<br><br><center> <h1>Instructions</h1> </center><br>"),
-                                shiny::HTML("<h5>In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+              tabPanel("About", value = "tab0", 
+                       setBackgroundImage("jumbotron.png"),
+                         containerfunction(
+                           h1("Overview"), 
+                             p(class = "lead", "More than 800 people from around ",
+                               "the world have used Open Specy to ",
+                               "analyze, share, process, and identify ",
+                               "their Raman and IR spectra.")
+                            ),
+                         containerfunction(
+                           h1("Videa Tutorial"),
+                                 HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+                              ),
+                       containerfunction(
+                         h1("Instructions"),
+                         p(class = "lead", "In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
                                   If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
-                                  uploaded or processed data will be presented in an interactive plot and table.</h5>"),
-                                tags$div(align = "center",
-                                         tags$a("Detailed Standard Operating Procedure",
-                                                onclick = "window.open('https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy/blob/main/vignettes/sop.html', '_blank')",
-                                                class="btn btn-primary btn-lg")
-
-
-                                )
-                         ),
-                         column(3)
+                                  uploaded or processed data will be presented in an interactive plot and table."),
+                         a("Detailed Standard Operating Procedure",
+                           onclick = "window.open('https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy/blob/main/vignettes/sop.html', '_blank')",
+                           class="btn btn-primary btn-lg")
                        ),
-                       fluidRow(
-
-                         style = "height:50px;"),
-
-                       # PAGE BREAK
-                       tags$hr(),
-
-                       fluidRow(
-                         column(3),
-                         column(6,
-                                shiny::HTML("<br><br><center> <h1>Download Open Data</h1> </center><br>"),
-                                shiny::HTML("<h5>Reference spectra was sourced from open access resources ",
+                       
+                          containerfunction(
+                            h1("Download Open Data"),
+                            p(class = "lead", "Reference spectra was sourced from open access resources ",
                                 "online, peer reviewed publications, and corporate donations. In the future, ",
                                 "spectra that is uploaded to the tool will be incorporated to the reference ",
-                                "library to make it even better.</h5>")
-                         ),
-                         column(3)
-                       ),
-
-                       fluidRow(
-                         column(1),
-                         column(10,
-                                tags$div(align = "center",
+                                "library to make it even better."),
+                            div(align = "center",
                                          downloadButton('downloadData6', 'Raman Reference Library'),
                                          downloadButton('downloadData5', 'FTIR Reference Library'),
                                          downloadButton('downloadData4', 'Raman Reference Library Metadata'),
                                          downloadButton('downloadData3', 'FTIR Reference Library Metadata')
-                                )
-                         ),
-                         column(1)
-                       ),
+                                  )
+                              ),
 
 
                        fluidRow(
