@@ -334,7 +334,20 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
-
+                                
+                                tags$br(),
+                                
+                                tags$div(downloadButton('download_testdata', 'Sample File')), 
+                                bsPopover(
+                                  id = "download_testdata",
+                                  title = "Sample Data Help",
+                                  content = c("This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted."),
+                                  placement = "bottom",
+                                  trigger = "hover"
+                                ),
+                                
+                                tags$br(),
+                                
                                 actionButton("share_meta", "Metadata Input"),
                                 bsPopover(
                                   id = "share_meta",
@@ -419,18 +432,6 @@ ui <- fluidPage(
 
                                   tags$br(),
                                   actionButton("submit", "Share Metadata", class = "btn-primary")
-                                ),
-
-                                tags$br(),
-                                tags$br(),
-
-                                tags$div(downloadButton('download_testdata', 'Sample File')), 
-                                bsPopover(
-                                  id = "download_testdata",
-                                  title = "Sample Data Help",
-                                  content = c("This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted."),
-                                  placement = "bottom",
-                                  trigger = "hover"
                                 )
                                 ),
 

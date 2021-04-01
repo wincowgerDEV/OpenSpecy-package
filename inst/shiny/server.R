@@ -133,8 +133,8 @@ server <- shinyServer(function(input, output, session) {
     if (input$share_decision & droptoken)
       #share <- conf$share else share <- NULL
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/users/", sessionid, "/", UniqueID, "_form.csv", sep = "")
-        write.csv(sapply(names(namekey)[1:24], function(x) input[[x]]), location_data)
+        location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_form.csv", sep = "")
+        write.table(sapply(names(namekey)[1:24], function(x) input[[x]]), file = location_data, col.names = F)
         drop_upload(location_data, path = dirname(location_data), mode = "add")
         
         #      sout <- tryCatch(
@@ -484,15 +484,14 @@ server <- shinyServer(function(input, output, session) {
   # Session Files ----
   observeEvent(input$file1, {
       if(input$share_decision & droptoken){
-        output_dir = paste("data/users/", sessionid, sep = "")
-        if (!dir.exists(output_dir)) {
-          dir.create(output_dir)
-          dir.create(paste(output_dir, sep = ""))
-        }
+        output_dir = paste("data/users/", input$fingerprint, sep = "")
+        dir.create(output_dir)
+        dir.create(paste(output_dir, "/", sessionid, sep = ""))
+        
         withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/users/", sessionid, "/", UniqueID, "_", inFile$name, sep = "")
+        location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_", inFile$name, sep = "")
         file.copy(inFile$datapath, location_data)
         drop_upload(location_data, path = dirname(location_data), mode = "add")
       })
