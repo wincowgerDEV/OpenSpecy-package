@@ -124,7 +124,7 @@ server <- shinyServer(function(input, output, session) {
 
   # Save the metadata and data submitted upon pressing the button
   observeEvent(input$submit, {
-    if (input$share_decision & curl::has_internet())
+    if (input$share_decision)
       share <- conf$share else share <- NULL
 
       sout <- tryCatch(share_spec(
@@ -168,7 +168,7 @@ server <- shinyServer(function(input, output, session) {
       stop()
       }
 
-    if (input$share_decision & curl::has_internet())
+    if (input$share_decision)
       share <- conf$share else share <- NULL
 
     if(grepl("\\.csv$", ignore.case = T, filename)) {
@@ -423,7 +423,7 @@ server <- shinyServer(function(input, output, session) {
   # Hide functions which shouldn't exist when there is no internet or
   # when the API token doesn't exist
   observe({
-    if((conf$share == "dropbox" & droptoken) | curl::has_internet()) {
+    if((conf$share == "dropbox" & droptoken)) {
       show("share_decision")
       show("share_meta")
     }
@@ -489,13 +489,13 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$translate <- renderUI({
-    if(file.exists("www/googletranslate.html") & curl::has_internet()) {
+    if(file.exists("www/googletranslate.html")) {
       includeHTML("www/googletranslate.html")
     }
   })
 
   output$analytics <- renderUI({
-    if(file.exists("data/google-analytics.js") & curl::has_internet()){
+    if(file.exists("data/google-analytics.js")){
       includeScript("data/google-analytics.js")
     }
   })
