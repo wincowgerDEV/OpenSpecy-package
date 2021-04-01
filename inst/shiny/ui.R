@@ -9,6 +9,7 @@ library(shinyjs)
 library(shinythemes)
 library(shinyWidgets)
 library(shinyBS)
+library(shinyEventLogger)
 library(dplyr)
 library(plotly)
 library(DT)
@@ -71,7 +72,7 @@ appCSS <-
 # UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
-  log_init(),
+  shinyEventLogger::log_init(),
   tags$head(tags$style(css)),
   inputIp("ipid"),
   inputUserid("fingerprint"),
