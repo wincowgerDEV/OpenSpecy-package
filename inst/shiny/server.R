@@ -65,7 +65,7 @@ server <- shinyServer(function(input, output, session) {
     sessionid <- random_id(n = 1)
     
     #User event logging ----
-    if(file.exists(".db_url")){
+    if(file.exists(".db_url")){ #Should also allow people to disable these options.
       set_logging_session()
       log_event(sessionid)
       observe(
@@ -476,47 +476,17 @@ server <- shinyServer(function(input, output, session) {
         output_dir = paste("data/users/", sessionid, sep = "")
         if (!dir.exists(output_dir)) {
           dir.create(output_dir)
-          dir.create(paste(output_dir, "/user_data", sep = ""))
-          dir.create(paste(output_dir, "/user_log", sep = ""))
+          dir.create(paste(output_dir, sep = ""))
         }
         withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/users/", sessionid, "/user_data/", UniqueID, "_", inFile$name, sep = "")
+        location_data <- paste("data/users/", sessionid, "/", UniqueID, "_", inFile$name, sep = "")
         file.copy(inFile$datapath, location_data)
         drop_upload(location_data, path = dirname(location_data), mode = "add")
       })
     }
   })
-     
-  #Log User choices ----
-#  toListen <- reactive({
-#    list(input$file1,input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
-#  })
-  
-#  observeEvent(toListen(), {
-#      if(is.list(input$file1) & input$share_decision){
-        #Makes sure that a file is uploaded before we start tracking data. not working.
-#      log <- c(unlist(input$file1),input$smoother, input$baseline, input$MinRange, input$MaxRange, input$event_rows_selected, input$smooth_decision, input$baseline_decision, input$range_decision, input$Spectra, input$Data, input$Library, input$intensity_corr)
-#      location <- paste("data/users/", sessionid, "/user_log/", human_ts(), ".rds", sep = "")
-#        saveRDS(log, file = location)
-#        drop_upload(location, path = dirname(location), mode = "add")
-        
-        #if(curl::has_internet() & droptoken){   
-        #drop_upload(location, path = paste("data/", input$cookies$name, "/user_log", sep = ""), mode = "add")
-        #}
- #     } 
-#  })
-  
-  #Log with shiny event logger ----
- 
-  
-#  output$name_get <- renderUI({
-#    if(!is.null(input$cookies$name))
-#      h3("Hello,", input$cookies$name)
-#    else
-#      h3("Who are you?")
-#  })
 
   output$translate <- renderUI({
     if(file.exists("www/googletranslate.html") & curl::has_internet()) {
