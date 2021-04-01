@@ -129,7 +129,7 @@ server <- shinyServer(function(input, output, session) {
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
         location_data <- paste("data/users/", sessionid, "/", UniqueID, "_form.csv", sep = "")
         write.csv(sapply(names(namekey)[1:24], function(x) input[[x]]), location_data)
-        drop_upload(location_data, path = dirname(location_data), mode = "add"),
+        drop_upload(location_data, path = dirname(location_data), mode = "add")
         
         #      sout <- tryCatch(
         #share_spec(
