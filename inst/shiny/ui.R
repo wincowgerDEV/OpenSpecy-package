@@ -77,6 +77,12 @@ containerfunction <- function(...){
         align = "justify", ... ))
 }
 
+columnformat <- function(){
+  'border: 1px solid #f7f7f9;
+  background-color:secondary;
+  padding: 1rem'  
+}
+
 #linefunction <- function(...){
 #  hr(style = "color:#f7f7f9", ...)
 #}
@@ -270,7 +276,7 @@ ui <- fluidPage(
               tabPanel("Upload File", value = "tab1",
                        titlePanel(h4("Upload, View and Share Spectra")),
                        fluidRow(
-                         column(2,
+                         column(2, style = columnformat(),
                                 tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File"),
 
                                 prettySwitch("share_decision",
@@ -400,7 +406,7 @@ ui <- fluidPage(
                                 plotlyOutput('MyPlot')
 
                          ),
-                         column(2,
+                         column(2, style = columnformat(),
 
                                 radioButtons("intensity_corr", "Intensity Adjustment",
                                             c("None" = "none",
@@ -438,7 +444,7 @@ ui <- fluidPage(
               tabPanel("Preprocess Spectrum", value = "tab2",
                        titlePanel(tags$h4("Smooth, Baseline Correct, and Download Processed Spectra")),
                        fluidRow(
-                         column(2,
+                           column(2, style = columnformat(),
                                 fluidRow(
                                   column(12,
                                   downloadButton('downloadData', 'Download (recommended)'),
@@ -551,6 +557,7 @@ ui <- fluidPage(
                                   )
                                 )
                             ),
+                         
 
                          column(10,
                                 plotlyOutput('MyPlotB')
@@ -570,7 +577,7 @@ ui <- fluidPage(
               tabPanel("Match Spectrum",value = "tab3",
                        titlePanel(tags$h4("Identify Spectrum Using the Reference Library")),
                        fluidRow(
-                         column(2,
+                         column(2, style = columnformat(),
                                 radioButtons("Spectra", "Spectrum Type",
                                              c("Raman" = "raman",
                                                "FTIR" = "ftir")),
