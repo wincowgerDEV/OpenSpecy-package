@@ -106,7 +106,13 @@ server <- shinyServer(function(input, output, session) {
       )
       observe(
         log_value(input$Library)
-      ) 
+      )
+      observe(
+        log_value(input$fingerprint)
+      )
+      observe(
+        log_value(input$ipid)
+      )
     }
   
   # Loading overlay

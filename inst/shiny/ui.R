@@ -29,6 +29,25 @@ labelMandatory <- function(label) {
   )
 }
 
+inputUserid <- function(inputId, value='') {
+  #   print(paste(inputId, "=", value))
+  tagList(
+    singleton(tags$head(tags$script(src = "js/md5.js", type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/shinyBindings.js", type='text/javascript'))),
+    tags$body(onload="setvalues()"),
+    tags$input(id = inputId, class = "userid", value=as.character(value), type="text", style="display:none;")
+  )
+}
+
+inputIp <- function(inputId, value=''){
+  tagList(
+    singleton(tags$head(tags$script(src = "js/md5.js", type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/shinyBindings.js", type='text/javascript'))),
+    tags$body(onload="setvalues()"),
+    tags$input(id = inputId, class = "ipaddr", value=as.character(value), type="text", style="display:none;")
+  )
+}
+
 css <- HTML(" body {
     color: #fff;
 }")
@@ -54,6 +73,8 @@ ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
   log_init(),
   tags$head(tags$style(css)),
+  inputIp("ipid"),
+  inputUserid("fingerprint"),
  # tags$head(uiOutput("name_get")),
   tags$head(uiOutput("analytics")), # Google analytics.
   #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
