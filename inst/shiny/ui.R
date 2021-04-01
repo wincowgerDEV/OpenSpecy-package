@@ -78,8 +78,8 @@ containerfunction <- function(...){
 }
 
 columnformat <- function(){
-  'border: 1px solid #f7f7f9;
-  background-color:secondary;
+  '
+  background-color:#110049;
   padding: 1rem'  
 }
 
@@ -256,8 +256,11 @@ ui <- fluidPage(
                       containerfunction(
                         h1("Useful Links"),
                         a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software"),
+                        p(),
                         a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher"),
+                        p(),
                         a(href = "https://micro.magnet.fsu.edu/primer/", "Free Optical Microscopy Learning Resource from Florida State University"),
+                        p(),
                         a(href = "https://www.effemm2.de/spectragryph/index.html", "Free desktop application for spectral analysis and links to reference databases.")
                       ),
 
@@ -305,6 +308,29 @@ ui <- fluidPage(
                                             If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.",
                                             "",
                                             "Hit the 'Test Data' button to download a sample Raman spectrum."),
+                                  placement = "bottom",
+                                  trigger = "click"
+                                ),
+                                
+                                radioButtons("intensity_corr", "Intensity Adjustment",
+                                             c("None" = "none",
+                                               "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
+                                bsPopover(
+                                  id = "intensity_corr",
+                                  title = "Intensity Correction Help",
+                                  content = c("If the uploaded spectrum is not in absorbance units, ",
+                                              "use this input to specify the units to convert from.Open Specy can ",
+                                              "adjust reflectance or transmittance spectra to Absorbance units using ",
+                                              "this drop down in the upload file tab. All of the preceding tabs ",
+                                              "assume that the data is in absorbance units so you should make the ",
+                                              "correction before continuing if needed. The transmittance adjustment ",
+                                              "uses the log10(1/T) calculation which does not correct for system ",
+                                              "and particle characteristics. The reflectance adjustment uses the ",
+                                              "Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance ",
+                                              "is formatted as a percent from 1-100 and first correct the intensity by dividing by 100",
+                                              "so that it fits the form expected by the equation.",
+                                              "If none is selected, Open Specy assumes that the uploaded data is ",
+                                              "an absorbance spectrum."),
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
@@ -398,39 +424,22 @@ ui <- fluidPage(
                                 tags$br(),
                                 tags$br(),
 
-                                tags$div(downloadButton('download_testdata', 'Sample File'))
-                                ),
-
-
-                         column(8,
-                                plotlyOutput('MyPlot')
-
-                         ),
-                         column(2, style = columnformat(),
-
-                                radioButtons("intensity_corr", "Intensity Adjustment",
-                                            c("None" = "none",
-                                              "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
+                                tags$div(downloadButton('download_testdata', 'Sample File')), 
                                 bsPopover(
-                                  id = "IntensityCorr",
-                                  title = "Intensity Correction Help",
-                                  content = c("If the uploaded spectrum is not in absorbance units, ",
-                                              "use this input to specify the units to convert from.Open Specy can ",
-                                              "adjust reflectance or transmittance spectra to Absorbance units using ",
-                                              "this drop down in the upload file tab. All of the preceding tabs ",
-                                              "assume that the data is in absorbance units so you should make the ",
-                                              "correction before continuing if needed. The transmittance adjustment ",
-                                              "uses the log10(1/T) calculation which does not correct for system ",
-                                              "and particle characteristics. The reflectance adjustment uses the ",
-                                              "Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance ",
-                                              "is formatted as a percent from 1-100 and first correct the intensity by dividing by 100",
-                                              "so that it fits the form expected by the equation.",
-                                              "If none is selected, Open Specy assumes that the uploaded data is ",
-                                              "an absorbance spectrum."),
+                                  id = "download_testdata",
+                                  title = "Sample Data Help",
+                                  content = c("This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted."),
                                   placement = "bottom",
                                   trigger = "hover"
                                 )
-                         )),
+                                ),
+
+
+                         column(10,
+                                plotlyOutput('MyPlot')
+
+                         ),
+                         ),
                        hr(),
                        fluidRow(
                          column(3),
