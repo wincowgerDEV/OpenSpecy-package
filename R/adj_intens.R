@@ -12,7 +12,9 @@
 #' The transmittance adjustment uses the \eqn{log10(1 / T)}
 #' calculation which does not correct for system and particle characteristics.
 #' The reflectance adjustment uses the Kubelka-Munk equation
-#' \eqn{(1 - R)^2 / 2R}.
+#' \eqn{(1 - R)^2 / 2R}. We assume that the reflectance intensity
+#' is a percent from 1-100 and first correct the intensity by dividing by 100
+#' so that it fits the form expected by the equation.
 #'
 #' @param x a numeric vector containing the spectral wavenumbers; alternatively
 #' a data frame containing spectral data as \code{"wavenumber"} and
@@ -82,7 +84,7 @@ adj_intens.data.frame <- function(x, ...) {
 adj_intens.default <- function(x, y, type = "none", make_rel = TRUE,
                                ...) {
   yadj <- switch(type,
-                 "reflectance" = (1 - adj_neg(y))^2 / (2 * adj_neg(y)),
+                 "reflectance" = (1 - y/100)^2 / (2 * y/100),
                  "transmittance" = log10(1/adj_neg(y)),
                  "none" = adj_neg(y)
   )
