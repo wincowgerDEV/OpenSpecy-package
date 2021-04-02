@@ -104,7 +104,7 @@ ui <- fluidPage(
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
                     }
-                    ")),
+                    "))),
     # This will allow us to reference tabs in other tabs and create links
     # see https://stackoverflow.com/questions/36412407/shiny-add-link-to-another-tabpanel-in-another-tabpanel/36426258
     tags$head(
@@ -118,17 +118,8 @@ ui <- fluidPage(
                         }
                         };
                         '))),
-    #This is for cookie creation
-    tags$head(
-      tags$script(
-        src = paste0(
-          "https://cdn.jsdelivr.net/npm/js-cookie@rc/",
-          "dist/js.cookie.min.js"
-        )
-      ),
-      tags$script(src = "www/script.js")
-    )
-  ),
+
+ 
   shinyjs::inlineCSS(appCSS),
 
   div(
