@@ -135,31 +135,25 @@ server <- shinyServer(function(input, output, session) {
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
         location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_form.csv", sep = "")
         write.table(sapply(names(namekey)[1:24], function(x) input[[x]]), file = location_data, col.names = F)
-        drop_upload(location_data, path = dirname(location_data), mode = "add")
-        
-        #      sout <- tryCatch(
-        #share_spec(
-        #data(), sapply(names(namekey)[1:24], function(x) input[[x]]),
-        #share = share),
-        #warning = function(w) {w}, error = function(e) {e})
-
-      #if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
-      #  mess <- sout$message
-
-    #  if (is.null(sout)) {
-    #    show_alert(
-    #      title = "Thank you for sharing your data!",
-    #      text = "Your data will soon be available at https://osf.io/stmv4/",
-    #      type = "success"
-    #    )
-    #  } else {
-    #    show_alert(
-    #      title = "Something went wrong :-(",
-    #      text = paste0("All mandatory data added? R says: '", mess, "'. ",
-    #                    "Try again."),
-    #      type = "warning"
-    #    )
-    #  }
+        sout <- tryCatch(drop_upload(location_data, path = dirname(location_data), mode = "add"), 
+                 warning = function(w) {w}, error = function(e) {e})
+        if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
+            mess <- sout$message
+          
+            if (is.null(sout)) {
+              show_alert(
+                title = "Thank you for sharing your data!",
+                text = "Your data will soon be available at https://osf.io/stmv4/",
+                type = "success"
+              )
+            } else {
+              show_alert(
+                title = "Something went wrong :-(",
+              text = paste0("All mandatory data added? R says: '", mess, "'. ",
+                            "Try again."),
+              type = "warning"
+            )
+          }
   })
 
 
