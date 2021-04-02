@@ -17,7 +17,15 @@ library(curl)
 library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
+library(ids)
+library(shinyEventLogger)
+
+#library(future)
 #library(bslib)
+
+if(file.exists(".db_url")){
+  set_logging(js_console = F, database = T)
+}
 
 # Required Data ----
 conf <- config::get()
@@ -54,7 +62,59 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-
+    sessionid <- random_id(n = 1)
+    
+    #User event logging ----
+    if(file.exists(".db_url")){ #Should also allow people to disable these options.
+      set_logging_session()
+      log_event(sessionid)
+      observe(
+        log_value(input$intensity_corr)
+      )
+      observe(
+        log_value(digest::digest(preprocessed_data(), algo = "md5"))
+      )   
+      observe(
+        log_value(input$smoother)
+      )
+      observe(
+        log_value(input$baseline)
+      )
+      observe(
+        log_value(input$MinRange)
+      )
+      observe(
+        log_value(input$MaxRange)
+      )
+      observe(
+        log_value(input$event_rows_selected)
+      )
+      observe(
+        log_value(input$smooth_decision)
+      )
+      observe(
+        log_value(input$baseline_decision)
+      )
+      observe(
+        log_value(input$range_decision)
+      )
+      observe(
+        log_value(input$Spectra)
+      )
+      observe(
+        log_value(input$Data)
+      )
+      observe(
+        log_value(input$Library)
+      )
+      observe(
+        log_value(input$fingerprint)
+      )
+      observe(
+        log_value(input$ipid)
+      )
+    }
+  
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
@@ -70,31 +130,31 @@ server <- shinyServer(function(input, output, session) {
 
   # Save the metadata and data submitted upon pressing the button
   observeEvent(input$submit, {
-    if (input$share_decision & curl::has_internet())
-      share <- conf$share else share <- NULL
+    if (input$share_decision & droptoken)
+      #share <- conf$share else share <- NULL
+        UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
+        location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_form.csv", sep = "")
+        write.table(sapply(names(namekey)[1:24], function(x) input[[x]]), file = location_data, col.names = F)
+        sout <- tryCatch(drop_upload(location_data, path = dirname(location_data), mode = "add"), 
+                 warning = function(w) {w}, error = function(e) {e})
+        if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
+            mess <- sout$message
+          
+            if (is.null(sout)) {
+              show_alert(
+                title = "Thank you for sharing your data!",
+                text = "Your data will soon be available at https://osf.io/stmv4/",
+                type = "success"
+              )
+            } else {
+              show_alert(
+                title = "Something went wrong :-(",
+              text = paste0("All mandatory data added? R says: '", mess, "'. ",
+                            "Try again."),
+              type = "warning"
+            )
+          }
 
-      sout <- tryCatch(share_spec(
-        data(), sapply(names(namekey)[c(1:24,32)], function(x) input[[x]]),
-        share = share),
-        warning = function(w) {w}, error = function(e) {e})
-
-      if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
-        mess <- sout$message
-
-      if (is.null(sout)) {
-        show_alert(
-          title = "Thank you for sharing your data!",
-          text = "Your data will soon be available at https://osf.io/stmv4/",
-          type = "success"
-        )
-      } else {
-        show_alert(
-          title = "Something went wrong :-(",
-          text = paste0("All mandatory data added? R says: '", mess, "'. ",
-                        "Try again."),
-          type = "warning"
-        )
-      }
   })
 
 
@@ -114,7 +174,7 @@ server <- shinyServer(function(input, output, session) {
       stop()
       }
 
-    if (input$share_decision & curl::has_internet())
+    if (input$share_decision)
       share <- conf$share else share <- NULL
 
     if(grepl("\\.csv$", ignore.case = T, filename)) {
@@ -152,7 +212,7 @@ server <- shinyServer(function(input, output, session) {
 
   # Corrects spectral intensity units using the user specified correction
   data <- reactive({
-    adj_intens(preprocessed_data(), type = input$IntensityCorr)
+    adj_intens(preprocessed_data(), type = input$intensity_corr)
     })
 
   #Preprocess Spectra ----
@@ -373,7 +433,7 @@ server <- shinyServer(function(input, output, session) {
   # Hide functions which shouldn't exist when there is no internet or
   # when the API token doesn't exist
   observe({
-    if((conf$share == "dropbox" & droptoken) | curl::has_internet()) {
+    if(droptoken) {
       show("share_decision")
       show("share_meta")
     }
@@ -419,17 +479,35 @@ server <- shinyServer(function(input, output, session) {
     sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))
     toggle("submit")
   })
+  
+  # Session Files ----
+  observeEvent(input$file1, {
+      if(input$share_decision & droptoken){
+        output_dir = paste("data/users/", input$fingerprint, sep = "")
+        dir.create(output_dir)
+        dir.create(paste(output_dir, "/", sessionid, sep = ""))
+        
+        withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
+        inFile <- input$file1
+        UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
+        location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_", inFile$name, sep = "")
+        file.copy(inFile$datapath, location_data)
+        drop_upload(location_data, path = dirname(location_data), mode = "add")
+      })
+    }
+  })
 
   output$translate <- renderUI({
-    if(file.exists("www/googletranslate.html") & curl::has_internet()) {
+    if(file.exists("www/googletranslate.html")) {
       includeHTML("www/googletranslate.html")
     }
   })
 
   output$analytics <- renderUI({
-    if(file.exists("data/google-analytics.js") & curl::has_internet()){
+    if(file.exists("data/google-analytics.js")){
       includeScript("data/google-analytics.js")
     }
   })
 
 })
+
