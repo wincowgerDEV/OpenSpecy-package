@@ -154,6 +154,7 @@ server <- shinyServer(function(input, output, session) {
               type = "warning"
             )
           }
+
   })
 
 
@@ -249,7 +250,8 @@ server <- shinyServer(function(input, output, session) {
       add_trace(x = ~wavenumber, y = ~intensity, name = 'Uploaded Spectrum',
                 line = list(color = 'rgba(240,236,19, 0.8)')) %>%
       layout(yaxis = list(title = "absorbance intensity [-]"),
-             xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
+             xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
+                          autorange = "reversed"),
              plot_bgcolor='rgb(17,0,73)',
              paper_bgcolor='black', font = list(color = '#FFFFFF'))
   })
@@ -264,7 +266,8 @@ server <- shinyServer(function(input, output, session) {
       # Dark blue rgb(63,96,130)
       # https://www.rapidtables.com/web/color/RGB_Color.html https://www.color-hex.com/color-names.html
       layout(yaxis = list(title = "absorbance intensity [-]"),
-             xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
+             xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
+                          autorange = "reversed"),
              plot_bgcolor='rgb(17,0,73)', paper_bgcolor='black',
              font = list(color = '#FFFFFF'))
   })
@@ -355,7 +358,8 @@ server <- shinyServer(function(input, output, session) {
         add_lines(x = ~wavenumber, y = ~intensity,
                   line = list(color = 'rgba(255,255,255,0.8)')) %>%
         layout(yaxis = list(title = "absorbance intensity [-]"),
-               xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
+               xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
+                            autorange = "reversed"),
                plot_bgcolor='rgb(17,0, 73)',
                paper_bgcolor='black', font = list(color = '#FFFFFF'))
     }
@@ -387,7 +391,8 @@ server <- shinyServer(function(input, output, session) {
                   line = list(color = "rgba(255,255,255,0.8)"),
                   name = "Spectrum to Analyze") %>%
         layout(yaxis = list(title = "absorbance intensity [-]"),
-               xaxis = list(title = "wavenumber [cm<sup>-1</sup>]"),
+               xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
+                            autorange = "reversed"),
                plot_bgcolor = "rgb(17,0, 73)", paper_bgcolor = "black",
                font = list(color = "#FFFFFF"))
     }})
@@ -471,7 +476,7 @@ server <- shinyServer(function(input, output, session) {
   })
   #This toggles the hidden metadata input layers.
   observeEvent(input$share_meta, {
-    sapply(names(namekey)[1:24], function(x) toggle(x))
+    sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))
     toggle("submit")
   })
   

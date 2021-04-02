@@ -19,7 +19,7 @@ share_spec(data, ...)
     instrument_accessories = "", instrument_mode = "", spectral_resolution = "",
     laser_light_used = "", number_of_accumulations = "", total_acquisition_time_s = "",
     data_processing_procedure = "", level_of_confidence_in_identification = "",     
-    other_info = ""),
+    other_info = "", license = "CC BY-NC"),
   share = "system",
   ...
 )
@@ -34,8 +34,8 @@ named \code{"wavenumber"} and \code{"intensity"}.}
 sharing via e-mail to \email{wincowger@gmail.com};
 \code{"system"} (default) uses the Open Specy package directory at
 \code{system.file("extdata", package = "OpenSpecy")};
-if a correct API token exists, "dropbox" shares the spectrum with
-the cloud.}
+if a correct API token exists, \code{"dropbox"} shares the spectrum with the
+cloud.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
@@ -96,6 +96,10 @@ e.g. spikefilter, baseline correction, none \cr
 \code{level_of_confidence_in_identification}: \tab Level of confidence in
 identification, e.g. 99\% \cr
 \code{other_info}: \tab Other information \cr
+\code{license}: \tab The license of the shared spectrum; defaults to
+\code{"CC BY-NC"} (see
+\url{https://creativecommons.org/licenses/by-nc/4.0/} for details). Any other
+creative commons license is allowed, for example, CC0 or CC BY \cr
 }
 }
 \examples{

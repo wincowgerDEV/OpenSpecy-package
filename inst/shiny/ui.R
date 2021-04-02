@@ -18,9 +18,10 @@ library(DT)
 # Name keys for human readable column names ----
 load("data/namekey.RData")
 
-citation <- paste("W. Cowger, Z. Steinmetz, A. Gray, H. Hapich, C. Rochman,",
-                  "J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou.",
-                  "2020. Open Specy. www.openspecy.org")
+citation <- paste0("W. Cowger, Z. Steinmetz, A. Gray, H. Hapich, C. Rochman, ",
+                   "J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. ",
+                   "2020. Open Specy v", packageVersion("OpenSpecy"),
+                   ". www.openspecy.org")
 
 # Functions ----
 labelMandatory <- function(label) {
@@ -207,6 +208,7 @@ ui <- fluidPage(
                               )
                             ),
 
+
                        containerfunction(
                          h1("Updates, Feature Requests, and Bug Reports"),
                          p(class = "lead", "We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub."),
@@ -215,6 +217,7 @@ ui <- fluidPage(
                              onclick = "window.open('https://github.com/wincowgerDEV/OpenSpecy', '_blank')",
                              class="btn btn-primary btn-lg")
                          )
+
                        ),
                                
                       containerfunction(
@@ -291,7 +294,8 @@ ui <- fluidPage(
                                 bsPopover(
                                   id = "share_decision",
                                   title = "Share Help",
-                                  content = c("We share any uploaded spectra with the spectroscopy community if you select share.",
+                                  content = c("We share any uploaded spectra with the spectroscopy community if you like.",
+                                              "By default, the data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).",
                                               "Uploaded spectra will appear here: https://osf.io/rjg3c"),
                                   placement = "bottom",
                                   trigger = "hover"
@@ -429,6 +433,15 @@ ui <- fluidPage(
                                             label = namekey[23],
                                             placeholder = "e.g. 99%"),
                                   textInput(names(namekey)[24], label = "Other information"),
+                                  selectInput(names(namekey)[32],
+                                              label = namekey[32],
+                                              selected = "CC BY-NC",
+                                              choices = c("CC0", "CC BY",
+                                                          "CC BY-SA",
+                                                          "CC BY-NC",
+                                                          "CC BY-ND",
+                                                          "CC BY-NC-SA",
+                                                          "CC BY-NC-ND")),
 
                                   tags$br(),
                                   actionButton("submit", "Share Metadata", class = "btn-primary")
