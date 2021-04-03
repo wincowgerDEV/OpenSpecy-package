@@ -17,22 +17,28 @@ library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
 library(ids)
-if(file.exists(".db_url")){
+if(db){
   library(shinyEventLogger)
 }
-if(file.exists("data/droptoken.rds")){
+if(droptoken){
   library(rdrop2)
 }
 
 #library(future)
 #library(bslib)
 
-if(file.exists(".db_url")){
+if(db){
   set_logging(js_console = F, database = T)
 }
 
 # Required Data ----
 conf <- config::get()
+
+# Check for Auth Tokens and setup, you can change these to test the triggering of functions without removing the files.
+droptoken <- file.exists("data/droptoken.rds")
+db <- file.exists(".db_url")
+analytics <- file.exists("data/google-analytics.js")
+translate <- file.exists("www/googletranslate.html")
 
 # Load all data ----
 load_data <- function() {
@@ -48,8 +54,7 @@ load_data <- function() {
 
   spec_lib <- load_lib(path = conf$library_path)
 
-  # Check for Auth Tokens and setup
-  droptoken <- file.exists("data/droptoken.rds")
+
 
   if(droptoken) {
     drop_auth(rdstoken = "data/droptoken.rds")
@@ -70,7 +75,7 @@ server <- shinyServer(function(input, output, session) {
     sessionid <- random_id(n = 1)
     
     #User event logging ----
-    if(file.exists(".db_url")){ #Should also allow people to disable these options.
+    if(db){ #Should also allow people to disable these options.
       set_logging_session()
       log_event(sessionid)
       observe(
@@ -158,8 +163,7 @@ server <- shinyServer(function(input, output, session) {
                             "Try again."),
               type = "warning"
             )
-          }
-
+        }
   })
 
 
@@ -503,19 +507,19 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$translate <- renderUI({
-    if(file.exists("www/googletranslate.html")) {
+    if(translate) {
       includeHTML("www/googletranslate.html")
     }
   })
 
   output$analytics <- renderUI({
-    if(file.exists("data/google-analytics.js")){
+    if(analytics){
       includeScript("data/google-analytics.js")
     }
   })
   
   output$eventlogger <- renderUI({
-    if(file.exists(".db_url")){
+    if(db){
       shinyEventLogger::log_init()
     }
   })
