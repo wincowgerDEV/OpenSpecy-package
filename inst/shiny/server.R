@@ -12,13 +12,17 @@ library(plotly)
 library(data.table)
 library(DT)
 library(digest)
-library(rdrop2)
 library(curl)
 library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
 library(ids)
-library(shinyEventLogger)
+if(file.exists(".db_url")){
+  library(shinyEventLogger)
+}
+if(file.exists("data/droptoken.rds")){
+  library(rdrop2)
+}
 
 #library(future)
 #library(bslib)
@@ -39,6 +43,7 @@ load_data <- function() {
   # Check if spectral library is present and load
   test_lib <- class(tryCatch(check_lib(path = conf$library_path),
                              warning = function(w) {w}))
+  
   if(any(test_lib == "warning")) get_lib(path = conf$library_path)
 
   spec_lib <- load_lib(path = conf$library_path)
@@ -120,13 +125,13 @@ server <- shinyServer(function(input, output, session) {
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
   show("app_content")
 
-  # For desktop version of the app.
-  if (!interactive()) {
-    session$onSessionEnded(function() {
-      stopApp()
-      q("no")
-    })
-  }
+# For desktop version of the app.
+#  if (!interactive()) {
+#    session$onSessionEnded(function() {
+#      stopApp()
+#      q("no")
+#    })
+#  }
 
   # Save the metadata and data submitted upon pressing the button
   observeEvent(input$submit, {

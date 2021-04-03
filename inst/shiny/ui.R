@@ -92,37 +92,29 @@ columnformat <- function(){
 
 # UI ----
 ui <- fluidPage(
+  
+  #Script for all pages ----
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
-  tags$head(tags$style(css)),
   inputIp("ipid"),
   inputUserid("fingerprint"),
  # tags$head(uiOutput("name_get")),
-  tags$head(uiOutput("analytics")), # Google analytics.
-  #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
-  theme = shinytheme("cyborg"), # Change this for other themes
-  tags$head( #This is for the error messages.
-    tags$style(HTML("
+  tags$head(uiOutput("analytics"), # Google analytics.
+            uiOutput("eventlogger"), #Event logging
+            tags$style(css),
+            tags$style(HTML("
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
                     }
-                    "))),
-    # This will allow us to reference tabs in other tabs and create links
-    # see https://stackoverflow.com/questions/36412407/shiny-add-link-to-another-tabpanel-in-another-tabpanel/36426258
-    tags$head(
-      tags$script(HTML('var fakeClick = function(tabName) {
-                        var dropdownList = document.getElementsByTagName("a");
-                        for (var i = 0; i < dropdownList.length; i++) {
-                        var link = dropdownList[i];
-                        if(link.getAttribute("data-value") == tabName) {
-                        link.click();
-                        };
-                        }
-                        };
-                        '))),
-
+                    "))#This is for the error messages.
+  ), # Google analytics.
+  #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
+  theme = shinytheme("cyborg"), # Change this for other themes
+  
+  setBackgroundImage("jumbotron.png"),
  
   shinyjs::inlineCSS(appCSS),
 
+ #Startup ----
   div(
     id = "loading_overlay",
     h2("Loading Open Specy"),
@@ -146,7 +138,6 @@ ui <- fluidPage(
   ),
   tabsetPanel(id = "tabs",
               tabPanel("About", value = "tab0", 
-                       setBackgroundImage("jumbotron.png"),
                          containerfunction(
                            h1("Overview"), 
                              p(class = "lead", "More than 800 people from around ",
@@ -688,3 +679,7 @@ ui <- fluidPage(
   )
 )
 ))
+
+
+#Ideas
+# see https://stackoverflow.com/questions/36412407/shiny-add-link-to-another-tabpanel-in-another-tabpanel/36426258

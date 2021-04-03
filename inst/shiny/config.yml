@@ -1,5 +1,5 @@
 default:
-  library_path: !expr system.file("extdata", package = "OpenSpecy")
+  library_path: !expr tempdir()
   share: 'system'
 
 shinyapps:
