@@ -3,6 +3,13 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 #'
+#'
+# Check for Auth Tokens and setup, you can change these to test the triggering of functions without removing the files.
+droptoken <- FALSE#file.exists("data/droptoken.rds")
+db <- FALSE#file.exists(".db_url")
+analytics <- FALSE#file.exists("data/google-analytics.js")
+translate <- FALSE#file.exists("www/googletranslate.html")
+
 # Libraries ----
 library(shiny)
 library(shinyjs)
@@ -17,6 +24,8 @@ library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
 library(ids)
+library(shinyFiles)
+library(fs)
 if(db){
   library(shinyEventLogger)
 }
@@ -34,12 +43,6 @@ if(db){
 # Required Data ----
 conf <- config::get()
 
-# Check for Auth Tokens and setup, you can change these to test the triggering of functions without removing the files.
-droptoken <- file.exists("data/droptoken.rds")
-db <- file.exists(".db_url")
-analytics <- file.exists("data/google-analytics.js")
-translate <- file.exists("www/googletranslate.html")
-
 # Load all data ----
 load_data <- function() {
   costs <- fread("data/costs.csv")
@@ -53,8 +56,6 @@ load_data <- function() {
   if(any(test_lib == "warning")) get_lib(path = conf$library_path)
 
   spec_lib <- load_lib(path = conf$library_path)
-
-
 
   if(droptoken) {
     drop_auth(rdstoken = "data/droptoken.rds")
@@ -453,7 +454,7 @@ server <- shinyServer(function(input, output, session) {
   })
 
   observe({
-    if (input$share_decision) {
+    if (input$share_decision & droptoken) {
       show("share_meta")
       } else {
         hide("share_meta")
@@ -521,6 +522,28 @@ server <- shinyServer(function(input, output, session) {
   output$eventlogger <- renderUI({
     if(db){
       shinyEventLogger::log_init()
+    }
+  })
+  
+  #Choose directory
+  volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()())
+  # by setting `allowDirCreate = FALSE` a user will not be able to create a new directory
+  shinyDirChoose(input, "directory", roots = volumes, session = session, restrictions = system.file(package = "base"), allowDirCreate = FALSE)
+  
+  ## print to console to see how the value of the shinyFiles 
+  ## button changes after clicking and selection
+  
+  observe({
+    cat("\ninput$directory value:\n\n")
+    print(input$directory)
+  })
+  
+  
+  output$directorypath <- renderPrint({
+    if (is.integer(input$directory)) {
+      cat("Please select the location of the library files.")
+    } else {
+      parseDirPath(volumes, input$directory)
     }
   })
 

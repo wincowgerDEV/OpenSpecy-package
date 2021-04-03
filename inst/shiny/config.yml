@@ -1,7 +1,7 @@
 default:
-  library_path: !expr tempdir()
+  library_path: 'data/library'
   share: 'system'
 
 shinyapps:
-  library_path: 'data/'
+  library_path: 'data/library'
   share: 'dropbox'
