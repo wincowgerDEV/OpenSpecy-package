@@ -414,7 +414,7 @@ server <- shinyServer(function(input, output, session) {
   )
 
   output$downloadData3 <- downloadHandler(
-    filename = function() {"raman_metadata.csv"},
+    filename = function() {"ftir_metadata.csv"},
     content = function(file) {fwrite(spec_lib[["ftir"]][["metadata"]], file)}
   )
 
@@ -506,6 +506,12 @@ server <- shinyServer(function(input, output, session) {
   output$analytics <- renderUI({
     if(file.exists("data/google-analytics.js")){
       includeScript("data/google-analytics.js")
+    }
+  })
+  
+  output$eventlogger <- renderUI({
+    if(file.exists(".db_url")){
+      shinyEventLogger::log_init()
     }
   })
 

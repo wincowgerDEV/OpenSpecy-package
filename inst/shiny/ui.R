@@ -9,11 +9,13 @@ library(shinyjs)
 library(shinythemes)
 library(shinyWidgets)
 library(shinyBS)
-library(shinyEventLogger)
 library(dplyr)
 library(plotly)
 library(DT)
-#library(bslib)
+
+if(file.exists(".db_url")){
+  library(shinyEventLogger)
+}
 
 # Name keys for human readable column names ----
 load("data/namekey.RData")
@@ -91,7 +93,6 @@ columnformat <- function(){
 # UI ----
 ui <- fluidPage(
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
-  shinyEventLogger::log_init(),
   tags$head(tags$style(css)),
   inputIp("ipid"),
   inputUserid("fingerprint"),
