@@ -82,8 +82,7 @@ containerfunction <- function(...){
 }
 
 columnformat <- function(){
-  '
-  background-color:#110049;
+  'background-color:#110049;
   padding: 1rem'  
 }
 

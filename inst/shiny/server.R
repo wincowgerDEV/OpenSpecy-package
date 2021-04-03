@@ -5,10 +5,10 @@
 #'
 #'
 # Check for Auth Tokens and setup, you can change these to test the triggering of functions without removing the files.
-droptoken <- FALSE#file.exists("data/droptoken.rds")
-db <- FALSE#file.exists(".db_url")
-analytics <- FALSE#file.exists("data/google-analytics.js")
-translate <- FALSE#file.exists("www/googletranslate.html")
+droptoken <- file.exists("data/droptoken.rds")
+db <- file.exists(".db_url")
+analytics <- file.exists("data/google-analytics.js")
+translate <- file.exists("www/googletranslate.html")
 
 # Libraries ----
 library(shiny)
@@ -78,52 +78,52 @@ server <- shinyServer(function(input, output, session) {
     #User event logging ----
     if(db){ #Should also allow people to disable these options.
       set_logging_session()
-      log_event(sessionid)
-      observe(
-        log_value(input$intensity_corr)
-      )
-      observe(
-        log_value(digest::digest(preprocessed_data(), algo = "md5"))
-      )   
-      observe(
-        log_value(input$smoother)
-      )
-      observe(
-        log_value(input$baseline)
-      )
-      observe(
-        log_value(input$MinRange)
-      )
-      observe(
-        log_value(input$MaxRange)
-      )
-      observe(
-        log_value(input$event_rows_selected)
-      )
-      observe(
-        log_value(input$smooth_decision)
-      )
-      observe(
-        log_value(input$baseline_decision)
-      )
-      observe(
-        log_value(input$range_decision)
-      )
-      observe(
-        log_value(input$Spectra)
-      )
-      observe(
-        log_value(input$Data)
-      )
-      observe(
-        log_value(input$Library)
-      )
-      observe(
-        log_value(input$fingerprint)
-      )
-      observe(
-        log_value(input$ipid)
-      )
+          log_event(sessionid)
+          observe(
+            log_value(input$intensity_corr)
+          )
+          observe(
+            log_value(digest::digest(preprocessed_data(), algo = "md5"))
+          )   
+          observe(
+            log_value(input$smoother)
+          )
+          observe(
+            log_value(input$baseline)
+          )
+          observe(
+            log_value(input$MinRange)
+          )
+          observe(
+            log_value(input$MaxRange)
+          )
+          observe(
+            log_value(input$event_rows_selected)
+          )
+          observe(
+            log_value(input$smooth_decision)
+          )
+          observe(
+            log_value(input$baseline_decision)
+          )
+          observe(
+            log_value(input$range_decision)
+          )
+          observe(
+            log_value(input$Spectra)
+          )
+          observe(
+            log_value(input$Data)
+          )
+          observe(
+            log_value(input$Library)
+          )
+          observe(
+            log_value(input$fingerprint)
+          )
+          observe(
+            log_value(input$ipid)
+          )
     }
   
   # Loading overlay
@@ -514,13 +514,13 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$analytics <- renderUI({
-    if(analytics){
+    if(analytics & input$share_decision){
       includeScript("data/google-analytics.js")
     }
   })
   
   output$eventlogger <- renderUI({
-    if(db){
+    if(db & input$share_decision){
       shinyEventLogger::log_init()
     }
   })
