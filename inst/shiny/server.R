@@ -514,13 +514,15 @@ server <- shinyServer(function(input, output, session) {
   })
 
   output$analytics <- renderUI({
-    if(analytics & input$share_decision){
+    if(analytics){
+      req(input$share_decision == T) 
       includeScript("data/google-analytics.js")
     }
   })
   
   output$eventlogger <- renderUI({
-    if(db & input$share_decision){
+    if(db){
+      req(input$share_decision == T) 
       shinyEventLogger::log_init()
     }
   })
