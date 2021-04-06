@@ -1,5 +1,21 @@
 # OpenSpecy 0.8.2
 
+## New Features
+
+- UI overhaul
+
+## Minor Improvements
+
+- Reverse spectral axes to comply with most wavenumber scales
+- Let users select metadata license
+
+## Bug Fixes
+
+- Use tempdir for unit tests and examples
+
+
+# OpenSpecy 0.8.2
+
 ## Minor Improvements
 
 - Compliance with CRAN style guide
