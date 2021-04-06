@@ -12,7 +12,6 @@ library(shinyBS)
 library(dplyr)
 library(plotly)
 library(DT)
-library(shinyFiles)
 
 if(file.exists(".db_url")){
   library(shinyEventLogger)
@@ -586,8 +585,6 @@ ui <- fluidPage(
                        titlePanel(tags$h4("Identify Spectrum Using the Reference Library")),
                        fluidRow(
                          column(2, style = columnformat(),
-                                shinyDirButton("directory", "Folder select", "Please select a folder"),
-                                verbatimTextOutput("directorypath"),
                                 radioButtons("Spectra", "Spectrum Type",
                                              c("Raman" = "raman",
                                                "FTIR" = "ftir")),

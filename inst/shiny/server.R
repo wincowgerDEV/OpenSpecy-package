@@ -24,8 +24,6 @@ library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
 library(ids)
-library(shinyFiles)
-library(fs)
 if(db){
   library(shinyEventLogger)
 }
@@ -527,27 +525,6 @@ server <- shinyServer(function(input, output, session) {
     }
   })
   
-  #Choose directory
-  volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()())
-  # by setting `allowDirCreate = FALSE` a user will not be able to create a new directory
-  shinyDirChoose(input, "directory", roots = volumes, session = session, restrictions = system.file(package = "base"), allowDirCreate = FALSE)
-  
-  ## print to console to see how the value of the shinyFiles 
-  ## button changes after clicking and selection
-  
-  observe({
-    cat("\ninput$directory value:\n\n")
-    print(input$directory)
-  })
-  
-  
-  output$directorypath <- renderPrint({
-    if (is.integer(input$directory)) {
-      cat("Please select the location of the library files.")
-    } else {
-      parseDirPath(volumes, input$directory)
-    }
-  })
 
 })
 
