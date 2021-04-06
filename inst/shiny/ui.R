@@ -12,11 +12,8 @@ library(shinyBS)
 library(dplyr)
 library(plotly)
 library(DT)
-library(shinyFiles)
 
-if(file.exists(".db_url")){
-  library(shinyEventLogger)
-}
+if(file.exists(".db_url")) library(shinyEventLogger)
 
 # Name keys for human readable column names ----
 load("data/namekey.RData")
@@ -40,7 +37,8 @@ inputUserid <- function(inputId, value='') {
     singleton(tags$head(tags$script(src = "js/md5.js", type='text/javascript'))),
     singleton(tags$head(tags$script(src = "js/shinyBindings.js", type='text/javascript'))),
     tags$body(onload="setvalues()"),
-    tags$input(id = inputId, class = "userid", value=as.character(value), type="text", style="display:none;")
+    tags$input(id = inputId, class = "userid", value=as.character(value),
+               type = "text", style = "display:none;")
   )
 }
 
@@ -76,14 +74,14 @@ appCSS <-
 containerfunction <- function(...){
   div(
     style = "padding:8rem",
-    div(class = "jumbotron jumbotron-fluid", 
+    div(class = "jumbotron jumbotron-fluid",
         style = "border:solid #f7f7f9",
         align = "justify", ... ))
 }
 
 columnformat <- function(){
   'background-color:#110049;
-  padding: 1rem'  
+  padding: 1rem'
 }
 
 #linefunction <- function(...){
@@ -92,7 +90,7 @@ columnformat <- function(){
 
 # UI ----
 ui <- fluidPage(
-  
+
   #Script for all pages ----
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
   inputIp("ipid"),
@@ -109,9 +107,9 @@ ui <- fluidPage(
   ), # Google analytics.
   #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
   theme = shinytheme("cyborg"), # Change this for other themes
-  
+
   setBackgroundImage("jumbotron.png"),
- 
+
   shinyjs::inlineCSS(appCSS),
 
  #Startup ----
@@ -137,9 +135,9 @@ ui <- fluidPage(
     ), windowTitle = "Open Specy"
   ),
   tabsetPanel(id = "tabs",
-              tabPanel("About", value = "tab0", 
+              tabPanel("About", value = "tab0",
                          containerfunction(
-                           h1("Overview"), 
+                           h1("Overview"),
                              p(class = "lead", "More than 800 people from around ",
                                "the world have used Open Specy to ",
                                "analyze, share, process, and identify ",
@@ -160,7 +158,7 @@ ui <- fluidPage(
                            onclick = "window.open('https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy/blob/main/vignettes/sop.html', '_blank')",
                            class="btn btn-primary btn-lg")
                        ),
-                       
+
                           containerfunction(
                             h1("Download Open Data"),
                             p(class = "lead", "Reference spectra was sourced from open access resources ",
@@ -183,7 +181,7 @@ ui <- fluidPage(
                                 "duplicated entries in the reference libraries, checking for spectra in ",
                                 "metadata that isn't in the spectral library, and ensuring the the default ",
                                 "parameters provide over 80% accuracy in the first match."
-                                ), 
+                                ),
                               div(
                                 a("Detailed Validation Procedure",
                                          onclick = "window.open('https://docs.google.com/document/d/1Zd2GY4bWIwegGeE4JpX8O0S5l_IYju0sLDl1ddTTMxU/edit?usp=sharing', '_blank')",
@@ -202,7 +200,7 @@ ui <- fluidPage(
                          )
 
                        ),
-                               
+
                       containerfunction(
                         h1("Contribute Spectra"),
                         p(class = "lead", "To share spectra upload a file to the upload file tab. ",
@@ -218,7 +216,7 @@ ui <- fluidPage(
                                                 class="btn btn-primary btn-lg")
                             )
                          ),
-                      
+
                        containerfunction(
                          h1("Contribute time"),
                          p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com</h5>"),
@@ -228,17 +226,17 @@ ui <- fluidPage(
                                                 class="btn btn-primary btn-lg")
                                   )
                                 ),
-                        
+
                       containerfunction(
                         h1("Stay up to date!"),
                         p(class = "lead", "Follow us on Twitter @OpenSpecy. Email wincowger@gmail.com to be added to the mailing list.")
                       ),
-                      
+
                       containerfunction(
-                        h1("Citation"), 
+                        h1("Citation"),
                         p(class = "lead", citation)
                       ),
-                      
+
                       containerfunction(
                         h1("Useful Links"),
                         a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software"),
@@ -254,7 +252,7 @@ ui <- fluidPage(
                          h1("Terms And Conditions"),
                          pre(includeText("www/TOS.txt"))
                        ),
-                        
+
                       containerfunction(
                         h1("Privacy Policy"),
                         pre(includeText("www/privacy_policy.txt"))
@@ -298,7 +296,7 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "click"
                                 ),
-                                
+
                                 radioButtons("intensity_corr", "Intensity Adjustment",
                                              c("None" = "none",
                                                "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
@@ -321,10 +319,10 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
-                                
+
                                 tags$br(),
-                                
-                                tags$div(downloadButton('download_testdata', 'Sample File')), 
+
+                                tags$div(downloadButton('download_testdata', 'Sample File')),
                                 bsPopover(
                                   id = "download_testdata",
                                   title = "Sample Data Help",
@@ -332,9 +330,9 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
-                                
+
                                 tags$br(),
-                                
+
                                 actionButton("share_meta", "Metadata Input"),
                                 bsPopover(
                                   id = "share_meta",
@@ -565,7 +563,7 @@ ui <- fluidPage(
                                   )
                                 )
                             ),
-                         
+
 
                          column(10,
                                 plotlyOutput('MyPlotB')
@@ -586,8 +584,6 @@ ui <- fluidPage(
                        titlePanel(tags$h4("Identify Spectrum Using the Reference Library")),
                        fluidRow(
                          column(2, style = columnformat(),
-                                shinyDirButton("directory", "Folder select", "Please select a folder"),
-                                verbatimTextOutput("directorypath"),
                                 radioButtons("Spectra", "Spectrum Type",
                                              c("Raman" = "raman",
                                                "FTIR" = "ftir")),
