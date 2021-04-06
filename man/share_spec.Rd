@@ -105,7 +105,12 @@ creative commons license is allowed, for example, CC0 or CC BY \cr
 \examples{
 \dontrun{
 data("raman_hdpe")
-share_spec(raman_hdpe, share = tempdir())
+share_spec(raman_hdpe,
+           metadata = c(user_name = "Win Cowger",
+                        spectrum_type = "FTIR",
+                        spectrum_identity = "PE",
+                        license = "CC BY-NC"),
+           share = tempdir())
 }
 
 }
