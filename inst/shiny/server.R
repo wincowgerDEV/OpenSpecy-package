@@ -16,14 +16,14 @@ library(rdrop2)
 library(curl)
 library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
-library(OpenSpecy)
 library(ids)
 library(shinyEventLogger)
+library(OpenSpecy)
 
 #library(future)
 #library(bslib)
 
-if(file.exists(".db_url")){
+if (file.exists(".db_url")) {
   set_logging(js_console = F, database = T)
 }
 
@@ -43,7 +43,7 @@ load_data <- function() {
 
   spec_lib <- load_lib(path = conf$library_path)
 
-  # Check for Auth Tokens and setup
+  # Check for Auth tokens and setup
   droptoken <- file.exists("data/droptoken.rds")
 
   if(droptoken) {
@@ -53,7 +53,7 @@ load_data <- function() {
   # Name keys for human readable column names
   load("data/namekey.RData")
 
-  # Inject variables into the parent
+  # Inject variables into the parent environment
   invisible(list2env(as.list(environment()), parent.frame()))
 }
 
@@ -63,9 +63,9 @@ server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
     sessionid <- random_id(n = 1)
-    
-    #User event logging ----
-    if(file.exists(".db_url")){ #Should also allow people to disable these options.
+
+    # User event logging ----
+    if(file.exists(".db_url")) { #Should also allow people to disable these options.
       set_logging_session()
       log_event(sessionid)
       observe(
@@ -73,7 +73,7 @@ server <- shinyServer(function(input, output, session) {
       )
       observe(
         log_value(digest::digest(preprocessed_data(), algo = "md5"))
-      )   
+      )
       observe(
         log_value(input$smoother)
       )
@@ -114,7 +114,7 @@ server <- shinyServer(function(input, output, session) {
         log_value(input$ipid)
       )
     }
-  
+
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
@@ -132,28 +132,32 @@ server <- shinyServer(function(input, output, session) {
   observeEvent(input$submit, {
     if (input$share_decision & droptoken)
       #share <- conf$share else share <- NULL
-        UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_form.csv", sep = "")
-        write.table(sapply(names(namekey)[1:24], function(x) input[[x]]), file = location_data, col.names = F)
-        sout <- tryCatch(drop_upload(location_data, path = dirname(location_data), mode = "add"), 
-                 warning = function(w) {w}, error = function(e) {e})
-        if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
-            mess <- sout$message
-          
-            if (is.null(sout)) {
-              show_alert(
-                title = "Thank you for sharing your data!",
-                text = "Your data will soon be available at https://osf.io/stmv4/",
-                type = "success"
-              )
-            } else {
-              show_alert(
-                title = "Something went wrong :-(",
-              text = paste0("All mandatory data added? R says: '", mess, "'. ",
-                            "Try again."),
-              type = "warning"
-            )
-          }
+      UniqueID <- digest::digest(preprocessed_data(), algo = "md5")
+      # Gets around the problem of people sharing data that is different but with the same name.
+    location_data <- paste("data/users/", input$fingerprint, "/", sessionid,
+                           "/", UniqueID, "_form.csv", sep = "")
+    write.table(sapply(names(namekey)[1:24], function(x) input[[x]]),
+                file = location_data, col.names = F)
+    sout <- tryCatch(drop_upload(location_data, path = dirname(location_data),
+                                 mode = "add"),
+                     warning = function(w) {w}, error = function(e) {e})
+    if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
+      mess <- sout$message
+
+    if (is.null(sout)) {
+      show_alert(
+        title = "Thank you for sharing your data!",
+        text = "Your data will soon be available at https://osf.io/stmv4/",
+        type = "success"
+      )
+    } else {
+      show_alert(
+        title = "Something went wrong :-(",
+        text = paste0("All mandatory data added? R says: '", mess, "'. ",
+                      "Try again."),
+        type = "warning"
+      )
+    }
 
   })
 
@@ -479,14 +483,14 @@ server <- shinyServer(function(input, output, session) {
     sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))
     toggle("submit")
   })
-  
+
   # Session Files ----
   observeEvent(input$file1, {
       if(input$share_decision & droptoken){
         output_dir = paste("data/users/", input$fingerprint, sep = "")
         dir.create(output_dir)
         dir.create(paste(output_dir, "/", sessionid, sep = ""))
-        
+
         withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
