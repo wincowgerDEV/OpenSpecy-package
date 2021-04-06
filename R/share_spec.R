@@ -75,8 +75,10 @@
 #' \code{share_spec()} returns only messages/warnings
 #'
 #' @examples
+#' \dontrun{
 #' data("raman_hdpe")
-#' share_spec(raman_hdpe)
+#' share_spec(raman_hdpe, share = tempdir())
+#' }
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
@@ -136,7 +138,7 @@ share_spec.data.frame <- function(data,
       metadata["spectrum_identity"] == "") {
     mex <- FALSE
     warning("fields 'user_name', 'spectrum_type', and 'spectrum_identity' ",
-            "must not be empty if you like to share your metadata")
+            "must not be empty if you like to share your metadata", call. = F)
   } else {
     mex <- TRUE
   }
