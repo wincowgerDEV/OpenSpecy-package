@@ -4,7 +4,8 @@
 #' @param output provided by shiny
 #'
 #'
-# Check for Auth Tokens and setup, you can change these to test the triggering of functions without removing the files.
+# Check for Auth Tokens and setup, you can change these to test the triggering
+# of functions without removing the files.
 droptoken <- file.exists("data/droptoken.rds")
 db <- file.exists(".db_url")
 analytics <- file.exists("data/google-analytics.js")
@@ -21,24 +22,17 @@ library(DT)
 library(digest)
 library(curl)
 library(config)
+library(ids)
+if(db) library(shinyEventLogger)
+if(droptoken) library(rdrop2)
+
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
-library(ids)
-library(shinyFiles)
-library(fs)
-if(db){
-  library(shinyEventLogger)
-}
-if(droptoken){
-  library(rdrop2)
-}
 
 #library(future)
 #library(bslib)
 
-if(db){
-  set_logging(js_console = F, database = T)
-}
+if(db) set_logging(js_console = F, database = T)
 
 # Required Data ----
 conf <- config::get()
@@ -52,7 +46,7 @@ load_data <- function() {
   # Check if spectral library is present and load
   test_lib <- class(tryCatch(check_lib(path = conf$library_path),
                              warning = function(w) {w}))
-  
+
   if(any(test_lib == "warning")) get_lib(path = conf$library_path)
 
   spec_lib <- load_lib(path = conf$library_path)
@@ -64,7 +58,7 @@ load_data <- function() {
   # Name keys for human readable column names
   load("data/namekey.RData")
 
-  # Inject variables into the parent
+  # Inject variables into the parent environment
   invisible(list2env(as.list(environment()), parent.frame()))
 }
 
@@ -74,7 +68,7 @@ server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
     sessionid <- random_id(n = 1)
-    
+
     #User event logging ----
     if(db){ #Should also allow people to disable these options.
       set_logging_session()
@@ -84,7 +78,7 @@ server <- shinyServer(function(input, output, session) {
           )
           observe(
             log_value(digest::digest(preprocessed_data(), algo = "md5"))
-          )   
+          )
           observe(
             log_value(input$smoother)
           )
@@ -125,7 +119,7 @@ server <- shinyServer(function(input, output, session) {
             log_value(input$ipid)
           )
     }
-  
+
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
@@ -146,11 +140,11 @@ server <- shinyServer(function(input, output, session) {
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
         location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_form.csv", sep = "")
         write.table(sapply(names(namekey)[1:24], function(x) input[[x]]), file = location_data, col.names = F)
-        sout <- tryCatch(drop_upload(location_data, path = dirname(location_data), mode = "add"), 
+        sout <- tryCatch(drop_upload(location_data, path = dirname(location_data), mode = "add"),
                  warning = function(w) {w}, error = function(e) {e})
         if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
             mess <- sout$message
-          
+
             if (is.null(sout)) {
               show_alert(
                 title = "Thank you for sharing your data!",
@@ -489,14 +483,14 @@ server <- shinyServer(function(input, output, session) {
     sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))
     toggle("submit")
   })
-  
+
   # Session Files ----
   observeEvent(input$file1, {
       if(input$share_decision & droptoken){
         output_dir = paste("data/users/", input$fingerprint, sep = "")
         dir.create(output_dir)
         dir.create(paste(output_dir, "/", sessionid, sep = ""))
-        
+
         withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
@@ -515,32 +509,32 @@ server <- shinyServer(function(input, output, session) {
 
   output$analytics <- renderUI({
     if(analytics){
-      req(input$share_decision == T) 
+      req(input$share_decision == T)
       includeScript("data/google-analytics.js")
     }
   })
-  
+
   output$eventlogger <- renderUI({
     if(db){
-      req(input$share_decision == T) 
+      req(input$share_decision == T)
       shinyEventLogger::log_init()
     }
   })
-  
+
   #Choose directory
   volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()())
   # by setting `allowDirCreate = FALSE` a user will not be able to create a new directory
   shinyDirChoose(input, "directory", roots = volumes, session = session, restrictions = system.file(package = "base"), allowDirCreate = FALSE)
-  
-  ## print to console to see how the value of the shinyFiles 
+
+  ## print to console to see how the value of the shinyFiles
   ## button changes after clicking and selection
-  
+
   observe({
     cat("\ninput$directory value:\n\n")
     print(input$directory)
   })
-  
-  
+
+
   output$directorypath <- renderPrint({
     if (is.integer(input$directory)) {
       cat("Please select the location of the library files.")
