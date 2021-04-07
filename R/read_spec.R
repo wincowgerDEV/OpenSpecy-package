@@ -23,8 +23,8 @@
 #' \link[utils]{read.csv} but \link[data.table]{fread} works as well.
 #' @param share defaults to \code{NULL}; needed to share spectra with the
 #' Open Specy community; see \code{\link{share_spec}()} for details.
-#' @param uid a unique user ID for spectra sharing; defaults to
-#' \code{digest(sessionInfo())}.
+#' @param id a unique user and/or session ID; defaults to
+#' \code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
@@ -46,7 +46,10 @@
 #' @importFrom magrittr %>%
 #' @export
 read_text <- function(file = ".", cols = NULL, method = "read.csv",
-                      share = NULL, uid = digest(sessionInfo()), ...) {
+                      share = NULL, id = paste(digest(Sys.info()),
+                                               digest(sessionInfo()),
+                                               sep = "/"),
+                      ...) {
   df <- do.call(method, list(file, ...)) %>%
     data.frame()
 
@@ -66,7 +69,7 @@ read_text <- function(file = ".", cols = NULL, method = "read.csv",
   df <- df[cols]
   names(df) <- c("wavenumber", "intensity")
 
-  if (!is.null(share)) share_spec(df, file = file, share = share, uid = uid)
+  if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
   return(df)
 }
@@ -74,7 +77,9 @@ read_text <- function(file = ".", cols = NULL, method = "read.csv",
 #' @rdname read_spec
 #'
 #' @export
-read_asp <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
+read_asp <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
+                                                          digest(sessionInfo()),
+                                                          sep = "/"),
                      ...) {
   if (!grepl("\\.asp$", ignore.case = T, file))
     stop("file type should be 'asp'")
@@ -88,7 +93,7 @@ read_asp <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
 
   df <- data.frame(wavenumber = x, intensity = y)
 
-  if (!is.null(share)) share_spec(df, file = file, share = share, uid = uid)
+  if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
   return(df)
 }
@@ -97,7 +102,9 @@ read_asp <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
 #'
 #' @importFrom utils read.table
 #' @export
-read_spa <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
+read_spa <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
+                                                          digest(sessionInfo()),
+                                                          sep = "/"),
                      ...) {
   if (!grepl("\\.spa$", ignore.case = T, file))
     stop("file type should be 'spa'")
@@ -132,7 +139,7 @@ read_spa <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
   df <- data.frame(wavenumber = seq(end, start, length = length(floatData)),
                    intensity = floatData)
 
-  if (!is.null(share)) share_spec(df, file = file, share = share, uid = uid)
+  if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
   return(df)
 }
@@ -141,14 +148,16 @@ read_spa <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
 #'
 #' @importFrom hyperSpec read.jdx
 #' @export
-read_jdx <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
+read_jdx <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
+                                                          digest(sessionInfo()),
+                                                          sep = "/"),
                      ...) {
   jdx <- read.jdx(file, ...)
 
   df <- data.frame(wavenumber = jdx@wavelength,
                    intensity = as.numeric(unname(jdx@data$spc[1,])))
 
-  if (!is.null(share)) share_spec(df, file = file, share = share, uid = uid)
+  if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
   return(df)
 }
@@ -157,14 +166,16 @@ read_jdx <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
 #'
 #' @importFrom hyperSpec read.spc
 #' @export
-read_spc <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
+read_spc <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
+                                                          digest(sessionInfo()),
+                                                          sep = "/"),
                      ...) {
   spc <- read.spc(file)
 
   df <- data.frame(wavenumber = spc@wavelength,
                    intensity = as.numeric(unname(spc@data$spc[1,])))
 
-  if (!is.null(share)) share_spec(df, file = file, share = share, uid = uid)
+  if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
   return(df)
 }
@@ -173,7 +184,9 @@ read_spc <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
 #'
 #' @importFrom hexView readRaw blockString
 #' @export
-read_0 <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
+read_0 <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
+                                                        digest(sessionInfo()),
+                                                        sep = "/"),
                    ...) {
   if (!grepl("\\.[0-999]$", ignore.case = T, file))
     stop("file type should be '0'")
@@ -237,7 +250,7 @@ read_0 <- function(file = ".", share = NULL, uid = digest(sessionInfo()),
 
   df <- data.frame(wavenumber = x, intensity = y)
 
-  if (!is.null(share)) share_spec(df, file = file, share = share, uid = uid)
+  if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
   return(df)
 }

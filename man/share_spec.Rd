@@ -22,7 +22,7 @@ share_spec(data, ...)
     other_info = "", license = "CC BY-NC"),
   file = NULL,
   share = "system",
-  uid = digest(sessionInfo()),
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
   ...
 )
 }
@@ -41,7 +41,8 @@ sharing via e-mail to \email{wincowger@gmail.com};
 if a correct API token exists, \code{"dropbox"} shares the spectrum with the
 cloud.}
 
-\item{uid}{a unique user ID; defaults to \code{digest(sessionInfo())}.}
+\item{id}{a unique user and/or session ID; defaults to
+\code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
@@ -77,7 +78,7 @@ spectroscopy. \emph{Analytical and Bioanalytical Chemistry}.
 "Polystyrene"\cr
 \code{material_form}: \tab Form of the material analyzed, e.g. textile fiber,
 rubber band, sphere, granule \cr
-\code{material_phase}: \tab Phase of the material analyzed (liquid, gas,
+\code{material_phase}: \tab Phase of the material analyzed (liqid, gas,
 solid) \cr
 \code{material_producer}: \tab Producer of the material analyzed,
 e.g. Dow \cr

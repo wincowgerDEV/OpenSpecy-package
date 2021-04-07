@@ -15,19 +15,44 @@ read_text(
   cols = NULL,
   method = "read.csv",
   share = NULL,
-  uid = digest(sessionInfo()),
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
   ...
 )
 
-read_asp(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
+read_asp(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
-read_spa(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
+read_spa(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
-read_jdx(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
+read_jdx(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
-read_spc(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
+read_spc(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
-read_0(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
+read_0(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
 read_extdata(file = NULL)
 }
@@ -43,8 +68,8 @@ for the wavenumber and intensity; if \code{NULL} columns are guessed.}
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
 
-\item{uid}{a unique user ID for spectra sharing; defaults to
-\code{digest(sessionInfo())}.}
+\item{id}{a unique user and/or session ID; defaults to
+\code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }

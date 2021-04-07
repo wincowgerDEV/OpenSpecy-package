@@ -29,7 +29,7 @@
 #' "Polystyrene"\cr
 #' \code{material_form}: \tab Form of the material analyzed, e.g. textile fiber,
 #' rubber band, sphere, granule \cr
-#' \code{material_phase}: \tab Phase of the material analyzed (liquid, gas,
+#' \code{material_phase}: \tab Phase of the material analyzed (liqid, gas,
 #' solid) \cr
 #' \code{material_producer}: \tab Producer of the material analyzed,
 #' e.g. Dow \cr
@@ -75,7 +75,8 @@
 #' \code{system.file("extdata", package = "OpenSpecy")};
 #' if a correct API token exists, \code{"dropbox"} shares the spectrum with the
 #' cloud.
-#' @param uid a unique user ID; defaults to \code{digest(sessionInfo())}.
+#' @param id a unique user and/or session ID; defaults to
+#' \code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
@@ -146,7 +147,9 @@ share_spec.data.frame <- function(data,
                                                license = "CC BY-NC"),
                                   file = NULL,
                                   share = "system",
-                                  uid = digest(sessionInfo()), ...) {
+                                  id = paste(digest(Sys.info()),
+                                             digest(sessionInfo()), sep = "/"),
+                                  ...) {
   if (is.null(names(metadata))) stop("'metadata' needs to be a named vector")
   if (any(is.na(metadata[c("user_name", "spectrum_type", "spectrum_identity")])) |
       metadata["user_name"] == "" | metadata["spectrum_type"] == "" |
@@ -158,27 +161,25 @@ share_spec.data.frame <- function(data,
     mex <- TRUE
   }
 
-  fid <- paste(human_ts(), digest(data), sep = "_")
-
+  fid <- digest(data)
   mdata <- data.frame(variable = names(metadata), input = metadata,
                       row.names = NULL)
 
   if (share == "system") {
     fp <- file.path(system.file("extdata", package = "OpenSpecy"),
-                    "user_spectra", uid)
-    dir.create(fp, showWarnings = F)
+                    "user_spectra", id)
+    dir.create(fp, recursive = T, showWarnings = F)
   } else if (share == "dropbox") {
 
     pkg <- "rdrop2"
     mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
     if (length(mpkg)) stop("share = 'dropbox' requires package 'rdrop2'")
 
-    fp <- file.path(tempdir(), uid)
-    dir.create(fp, showWarnings = F)
+    fp <- file.path(tempdir(), id)
   } else {
-    fp <- file.path(share, uid)
-    dir.create(fp, showWarnings = F)
+    fp <- file.path(share, id)
   }
+  dir.create(fp, recursive = T, showWarnings = F)
 
   fd <- file.path(fp, paste0(fid, ".csv"))
   fm <- file.path(fp, paste0(fid, "_form", ".csv"))
@@ -193,7 +194,7 @@ share_spec.data.frame <- function(data,
 
   if (share == "dropbox") {
     for (lf in list.files(fp, full.names = T)) {
-      rdrop2::drop_upload(lf, path = paste0("data/users/", uid), ...)
+      rdrop2::drop_upload(lf, path = paste0("data/users/", id), ...)
     }
   }
 
