@@ -10,17 +10,24 @@
 \alias{read_extdata}
 \title{Read spectral data}
 \usage{
-read_text(file = ".", cols = NULL, method = "read.csv", share = NULL, ...)
+read_text(
+  file = ".",
+  cols = NULL,
+  method = "read.csv",
+  share = NULL,
+  uid = digest(sessionInfo()),
+  ...
+)
 
-read_asp(file = ".", share = NULL, ...)
+read_asp(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
 
-read_spa(file = ".", share = NULL, ...)
+read_spa(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
 
-read_jdx(file = ".", share = NULL, ...)
+read_jdx(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
 
-read_spc(file = ".", share = NULL, ...)
+read_spc(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
 
-read_0(file = ".", share = NULL, ...)
+read_0(file = ".", share = NULL, uid = digest(sessionInfo()), ...)
 
 read_extdata(file = NULL)
 }
@@ -35,6 +42,9 @@ for the wavenumber and intensity; if \code{NULL} columns are guessed.}
 
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
+
+\item{uid}{a unique user ID for spectra sharing; defaults to
+\code{digest(sessionInfo())}.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
