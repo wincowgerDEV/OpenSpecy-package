@@ -4,6 +4,11 @@
 #' This helper function shares spectral data and metadata with the Open Specy
 #' community.
 #'
+#' \strong{Please note} that \code{share_spec()} only provides basic sharing
+#' functionality if used interactively. This means that files are only formatted
+#' and saved for sharing but are not send automatically. This only works with
+#' hosted instances of Open Specy.
+#'
 #' @details
 #' The \code{metadata} argument may contain a named vector with the following
 #' details (\code{*} = mandatory):
@@ -63,16 +68,18 @@
 #' @param data a data frame containing the spectral data; columns should be
 #' named \code{"wavenumber"} and \code{"intensity"}.
 #' @param metadata a named vector of the metadata to share; see details below.
+#' @param file file to share (optional).
 #' @param share accepts any local directory to save the spectrum for later
 #' sharing via e-mail to \email{wincowger@@gmail.com};
 #' \code{"system"} (default) uses the Open Specy package directory at
 #' \code{system.file("extdata", package = "OpenSpecy")};
 #' if a correct API token exists, \code{"dropbox"} shares the spectrum with the
 #' cloud.
+#' @param uid a unique user ID; defaults to \code{digest(sessionInfo())}.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
-#' \code{share_spec()} returns only messages/warnings
+#' \code{share_spec()} and \code{share_raw()} return only messages/warnings.
 #'
 #' @examples
 #' \dontrun{
@@ -89,11 +96,12 @@
 #' Zacharias Steinmetz, Win Cowger
 #'
 #' @seealso
-#' \code{\link{read_text}()}
+#' \code{\link{read_text}()};
+#' \code{\link[digest]{digest}()}; \code{\link[utils]{sessionInfo}()}
 #'
 #' @importFrom magrittr %>%
 #' @importFrom digest digest
-#' @importFrom utils write.csv
+#' @importFrom utils write.csv sessionInfo
 #'
 #' @export
 share_spec <- function(data, ...) {
@@ -136,7 +144,9 @@ share_spec.data.frame <- function(data,
                                                level_of_confidence_in_identification = "",
                                                other_info = "",
                                                license = "CC BY-NC"),
-                                  share = "system", ...) {
+                                  file = NULL,
+                                  share = "system",
+                                  uid = digest(sessionInfo()), ...) {
   if (is.null(names(metadata))) stop("'metadata' needs to be a named vector")
   if (any(is.na(metadata[c("user_name", "spectrum_type", "spectrum_identity")])) |
       metadata["user_name"] == "" | metadata["spectrum_type"] == "" |
@@ -148,37 +158,49 @@ share_spec.data.frame <- function(data,
     mex <- TRUE
   }
 
-  id <- paste(human_ts(), digest(data, algo = "md5"), sep = "_")
+  fid <- paste(human_ts(), digest(data), sep = "_")
 
   mdata <- data.frame(variable = names(metadata), input = metadata,
                       row.names = NULL)
 
   if (share == "system") {
-    pkg <- system.file("extdata", package = "OpenSpecy")
-    dir.create(file.path(pkg, "user_spectra"), showWarnings = F)
-    fp <- file.path(pkg, "user_spectra")
+    fp <- file.path(system.file("extdata", package = "OpenSpecy"),
+                    "user_spectra", uid)
+    dir.create(fp, showWarnings = F)
   } else if (share == "dropbox") {
-    if (!requireNamespace("rdrop2"))
-      stop("share = 'dropbox' requires package 'rdrop2'")
-    fp <- file.path(tempdir())
+
+    pkg <- "rdrop2"
+    mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
+    if (length(mpkg)) stop("share = 'dropbox' requires package 'rdrop2'")
+
+    fp <- file.path(tempdir(), uid)
+    dir.create(fp, showWarnings = F)
   } else {
-    if (!dir.exists(share)) dir.create(share, showWarnings = F)
-    fp <- file.path(share)
+    fp <- file.path(share, uid)
+    dir.create(fp, showWarnings = F)
   }
 
-  fd <- file.path(fp, paste0(id, ".csv"))
-  fm <- file.path(fp, paste0(id, "_form", ".csv"))
+  fd <- file.path(fp, paste0(fid, ".csv"))
+  fm <- file.path(fp, paste0(fid, "_form", ".csv"))
 
   write.csv(data, fd, row.names = FALSE, quote = TRUE)
 
   if (mex) write.csv(mdata, fm, row.names = FALSE, quote = TRUE)
-
-  if (share == "dropbox") {
-    rdrop2::drop_upload(fd, path = "Spectra", ...)
-    if (mex) rdrop2::drop_upload(fm, path = "Spectra", ...)
+  if (!is.null(file)) {
+    ex <- strsplit(basename(file), split="\\.")[[1]]
+    file.copy(file, file.path(fp, paste0(fid, ".", ex[-1])))
   }
 
-  message("thank you for your willigness to share your data\n",
-          "if you run Open Specy locally, you may consider mailing your ",
-          "files to Win Cowger <wincowger@gmail.com>")
+  if (share == "dropbox") {
+    for (lf in list.files(fp, full.names = T)) {
+      rdrop2::drop_upload(lf, path = paste0("data/users/", uid), ...)
+    }
+  }
+
+  message("thank you for your willigness to share your data; ",
+          "your data has been saved to\n    ",
+          fp, "\n",
+          "if you run Open Specy locally, you may consider e-mailing your ",
+          "files to\n    ",
+          "Win Cowger <wincowger@gmail.com>")
 }

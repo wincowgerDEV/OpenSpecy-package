@@ -16,7 +16,7 @@
 #' spectral file formats so there may be bugs in the file conversion.
 #' Please contact us if you identify any.
 #'
-#' @param file file you to from.
+#' @param file file to be read from.
 #' @param cols character vector of \code{length = 2} indicating the colum names
 #' for the wavenumber and intensity; if \code{NULL} columns are guessed.
 #' @param method submethod to be used for reading text files; defaults to

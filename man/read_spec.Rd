@@ -25,7 +25,7 @@ read_0(file = ".", share = NULL, ...)
 read_extdata(file = NULL)
 }
 \arguments{
-\item{file}{file you to from.}
+\item{file}{file to be read from.}
 
 \item{cols}{character vector of \code{length = 2} indicating the colum names
 for the wavenumber and intensity; if \code{NULL} columns are guessed.}
