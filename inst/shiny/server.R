@@ -92,14 +92,8 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-  
 
-    sessionid <- random_id(n = 1)
-    
-
-    
- #event_logging(sessionid = sessionid, userid = input$fingerprint, x = input$smoother, name = "smoother")
-
+  sessionid <- random_id(n = 1)
     
   # Loading overlay
   load_data()
@@ -498,25 +492,7 @@ server <- shinyServer(function(input, output, session) {
   #Log events ----
   #This workflow could be improved in a function but the reactive values keep producing unexpected results (null and lack of updating) when I try to push them to mongodb.
   
-  toListen <- reactive({
-    list(input$intensity_corr, 
-         input$smoother,
-         input$smooth_decision, 
-         input$baseline, 
-         input$baseline_decision, 
-         input$MinRange, 
-         input$MaxRange, 
-         input$range_decision, 
-         digest::digest(preprocessed_data(), algo = "md5"),
-         input$event_rows_selected, 
-         input$Spectra, 
-         input$Data, 
-         input$Library, 
-         input$fingerprint, 
-         input$ipid)
-  })
-  
-  observeEvent(toListen(), {
+  observe({
     if(db){
       database$insert(data.frame(user_name = input$fingerprint, 
                                  session_name = sessionid, 
@@ -527,12 +503,11 @@ server <- shinyServer(function(input, output, session) {
                                  max_range = input$MinRange, 
                                  min_range = input$MaxRange, 
                                  range_decision = input$range_decision, 
-                                 data_id = digest::digest(preprocessed_data(), algo = "md5"),
-                                 row_selected = input$event_rows_selected, 
+                                 #data_id = digest::digest(preprocessed_data(), algo = "md5"),
+                                 #row_selected = input$event_rows_selected, 
                                  spectra_type = input$Spectra, 
                                  data_type = input$Data, 
                                  library_type = input$Library, 
-                                 fingerprint = input$fingerprint, 
                                  ipid = input$ipid,
                                  time = human_ts()))
     }
@@ -547,17 +522,15 @@ server <- shinyServer(function(input, output, session) {
              max_range = input$MinRange, 
              min_range = input$MaxRange, 
              range_decision = input$range_decision, 
-             data_id = digest::digest(preprocessed_data(), algo = "md5"),
-             row_selected = input$event_rows_selected, 
+             #data_id = digest::digest(preprocessed_data(), algo = "md5"),
+             #row_selected = input$event_rows_selected, 
              spectra_type = input$Spectra, 
              data_type = input$Data, 
              library_type = input$Library, 
-             fingerprint = input$fingerprint, 
              ipid = input$ipid,
              time = human_ts())
     }
   })
   
-
 })
 
