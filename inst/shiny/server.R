@@ -24,9 +24,7 @@ library(config)
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
 library(ids)
-if(db){
-  library(shinyEventLogger)
-}
+library(shinylogs)
 if(droptoken){
   library(rdrop2)
 }
@@ -71,59 +69,12 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
+  
+    track_usage(storage_mode = store_null())
+  
+  
     sessionid <- random_id(n = 1)
     
-    #User event logging ----
-    if(db){ #Should also allow people to disable these options.
-      set_logging_session()
-          log_event(sessionid)
-          observe(
-            log_value(input$intensity_corr)
-          )
-          observe(
-            log_value(digest::digest(preprocessed_data(), algo = "md5"))
-          )   
-          observe(
-            log_value(input$smoother)
-          )
-          observe(
-            log_value(input$baseline)
-          )
-          observe(
-            log_value(input$MinRange)
-          )
-          observe(
-            log_value(input$MaxRange)
-          )
-          observe(
-            log_value(input$event_rows_selected)
-          )
-          observe(
-            log_value(input$smooth_decision)
-          )
-          observe(
-            log_value(input$baseline_decision)
-          )
-          observe(
-            log_value(input$range_decision)
-          )
-          observe(
-            log_value(input$Spectra)
-          )
-          observe(
-            log_value(input$Data)
-          )
-          observe(
-            log_value(input$Library)
-          )
-          observe(
-            log_value(input$fingerprint)
-          )
-          observe(
-            log_value(input$ipid)
-          )
-    }
-  
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
@@ -518,12 +469,6 @@ server <- shinyServer(function(input, output, session) {
     }
   })
   
-  output$eventlogger <- renderUI({
-    if(db){
-      req(input$share_decision == T) 
-      shinyEventLogger::log_init()
-    }
-  })
   
 
 })

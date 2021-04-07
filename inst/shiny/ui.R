@@ -13,10 +13,6 @@ library(dplyr)
 library(plotly)
 library(DT)
 
-if(file.exists(".db_url")){
-  library(shinyEventLogger)
-}
-
 # Name keys for human readable column names ----
 load("data/namekey.RData")
 
