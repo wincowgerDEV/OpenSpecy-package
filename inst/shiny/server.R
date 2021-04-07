@@ -135,7 +135,7 @@ server <- shinyServer(function(input, output, session) {
 
   # Save the metadata and data submitted upon pressing the button
   observeEvent(input$submit, {
-    if (input$share_decision & droptoken)
+    if (input$share_decision & conf$share == "dropbox" & droptoken)
       #share <- conf$share else share <- NULL
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
         location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_form.csv", sep = "")
@@ -486,7 +486,7 @@ server <- shinyServer(function(input, output, session) {
 
   # Session Files ----
   observeEvent(input$file1, {
-      if(input$share_decision & droptoken){
+      if(input$share_decision & conf$share == "dropbox" & droptoken) {
         output_dir = paste("data/users/", input$fingerprint, sep = "")
         dir.create(output_dir)
         dir.create(paste(output_dir, "/", sessionid, sep = ""))
