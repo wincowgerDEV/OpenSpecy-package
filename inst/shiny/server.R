@@ -43,22 +43,6 @@ if(!db){
 }
 
 
-event_logging <- function(sessionid, userid, x, name) {
-  observeEvent(x, {
-    if(db){
-      database$insert(data.frame(user_name = userid, 
-                                 session_name = sessionid, 
-                                 val_name = name, 
-                                 value = x,
-                                 time = human_ts()))
-    }
-    else{
-      loggit("INFO", "trigger", val_name = name, value = x, time = human_ts())
-    }
-  })
-  
-} 
-
 # Required Data ----
 conf <- config::get()
 
@@ -493,7 +477,8 @@ server <- shinyServer(function(input, output, session) {
   #This workflow could be improved in a function but the reactive values keep producing unexpected results (null and lack of updating) when I try to push them to mongodb.
   
   observe({
-    if(db){
+    req(input$file1)
+    if(!db){
       database$insert(data.frame(user_name = input$fingerprint, 
                                  session_name = sessionid, 
                                  smoother = input$smoother,
@@ -503,8 +488,8 @@ server <- shinyServer(function(input, output, session) {
                                  max_range = input$MinRange, 
                                  min_range = input$MaxRange, 
                                  range_decision = input$range_decision, 
-                                 #data_id = digest::digest(preprocessed_data(), algo = "md5"),
-                                 #row_selected = input$event_rows_selected, 
+                                 data_id = digest::digest(preprocessed_data(), algo = "md5"),
+                                 #row_selected = input$event_rows_selected, have to remove because don't want to require. 
                                  spectra_type = input$Spectra, 
                                  data_type = input$Data, 
                                  library_type = input$Library, 
@@ -522,8 +507,49 @@ server <- shinyServer(function(input, output, session) {
              max_range = input$MinRange, 
              min_range = input$MaxRange, 
              range_decision = input$range_decision, 
-             #data_id = digest::digest(preprocessed_data(), algo = "md5"),
+             data_id = digest::digest(preprocessed_data(), algo = "md5"),
              #row_selected = input$event_rows_selected, 
+             spectra_type = input$Spectra, 
+             data_type = input$Data, 
+             library_type = input$Library, 
+             ipid = input$ipid,
+             time = human_ts())
+    }
+  })
+  
+  
+  observeEvent(input$event_rows_selected, {
+    if(!db){
+      database$insert(data.frame(user_name = input$fingerprint, 
+                                 session_name = sessionid, 
+                                 smoother = input$smoother,
+                                 smooth_decision = input$smooth_decision, 
+                                 baseline = input$baseline, 
+                                 baseline_decision = input$baseline_decision, 
+                                 max_range = input$MinRange, 
+                                 min_range = input$MaxRange, 
+                                 range_decision = input$range_decision, 
+                                 data_id = digest::digest(preprocessed_data(), algo = "md5"),
+                                 row_selected = input$event_rows_selected,
+                                 spectra_type = input$Spectra, 
+                                 data_type = input$Data, 
+                                 library_type = input$Library, 
+                                 ipid = input$ipid,
+                                 time = human_ts()))
+    }
+    else{
+      loggit("INFO", "trigger", 
+             user_name = input$fingerprint, 
+             session_name = sessionid, 
+             smoother = input$smoother,
+             smooth_decision = input$smooth_decision, 
+             baseline = input$baseline, 
+             baseline_decision = input$baseline_decision, 
+             max_range = input$MinRange, 
+             min_range = input$MaxRange, 
+             range_decision = input$range_decision, 
+             data_id = digest::digest(preprocessed_data(), algo = "md5"),
+             row_selected = input$event_rows_selected, 
              spectra_type = input$Spectra, 
              data_type = input$Data, 
              library_type = input$Library, 
