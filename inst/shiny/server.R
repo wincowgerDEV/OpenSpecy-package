@@ -22,7 +22,6 @@ library(DT)
 library(digest)
 library(curl)
 library(config)
-library(ids)
 if(db) library(shinyEventLogger)
 if(droptoken) library(rdrop2)
 
@@ -67,7 +66,7 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-    sessionid <- random_id(n = 1)
+    sessionid <- digest(runif(10))
 
     #User event logging ----
     if(db){ #Should also allow people to disable these options.

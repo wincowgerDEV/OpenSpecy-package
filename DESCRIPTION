@@ -62,7 +62,6 @@ Suggests:
     shinythemes,
     shinyBS,
     shinyWidgets,
-    ids,
     ggplot2,
     plotly,
     data.table,
