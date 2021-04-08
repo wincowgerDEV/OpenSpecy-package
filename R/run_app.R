@@ -9,6 +9,7 @@
 #'
 #' @param app_dir the app to run; defaults to
 #' \code{system.file("shiny", package = "OpenSpecy")}.
+#' @param path where to look for the local library files.
 #' @param \dots arguments passed to \code{\link[shiny]{runApp}()}.
 #'
 #' @return
@@ -26,10 +27,11 @@
 #' @seealso
 #' \code{\link[shiny]{runApp}()}
 #'
-#' @importFrom shiny runApp
+#' @importFrom shiny runApp shinyOptions
 #' @importFrom utils installed.packages
 #' @export
 run_app <- function(app_dir = system.file("shiny", package = "OpenSpecy"),
+                    path = system.file("extdata", package = "OpenSpecy"),
                     ...) {
   if (app_dir == "") stop("Could not find app directory. ",
                           "Try reinstalling OpenSpecy.", call. = FALSE)
@@ -42,6 +44,8 @@ run_app <- function(app_dir = system.file("shiny", package = "OpenSpecy"),
   if(length(mpkg)) stop("run_app() requires the following packages: ",
                         paste(paste0("'", mpkg, "'"), collapse = ", "),
                         call. = F)
+
+  shinyOptions(library_path = path)
 
   runApp(app_dir, ...)
 }

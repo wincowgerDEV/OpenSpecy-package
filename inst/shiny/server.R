@@ -43,6 +43,12 @@ if(!db){
 
 # Global config ----
 conf <- config::get()
+library_preset <- getShinyOption("library_path", NULL)
+
+if (config::is_active("default") & !is.null(library_preset)) {
+  conf$library_path <- library_preset
+  conf$share <- file.path(library_preset, "user_spectra")
+}
 
 # Load all data ----
 load_data <- function() {

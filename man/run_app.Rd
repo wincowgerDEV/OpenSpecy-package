@@ -4,11 +4,17 @@
 \alias{run_app}
 \title{Run Open Specy app}
 \usage{
-run_app(app_dir = system.file("shiny", package = "OpenSpecy"), ...)
+run_app(
+  app_dir = system.file("shiny", package = "OpenSpecy"),
+  path = system.file("extdata", package = "OpenSpecy"),
+  ...
+)
 }
 \arguments{
 \item{app_dir}{the app to run; defaults to
 \code{system.file("shiny", package = "OpenSpecy")}.}
+
+\item{path}{where to look for the local library files.}
 
 \item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
 }
