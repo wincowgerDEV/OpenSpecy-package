@@ -276,8 +276,9 @@ server <- shinyServer(function(input, output, session) {
       layout(yaxis = list(title = "absorbance intensity [-]"),
              xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                           autorange = "reversed"),
-             plot_bgcolor='rgb(17,0,73)',
-             paper_bgcolor='black', font = list(color = '#FFFFFF'))
+             plot_bgcolor = 'rgb(17,0,73)',
+             paper_bgcolor = 'transparent',
+             font = list(color = '#FFFFFF'))
   })
   output$MyPlotB <- renderPlotly({
     plot_ly(type = 'scatter', mode = 'lines') %>%
@@ -292,7 +293,8 @@ server <- shinyServer(function(input, output, session) {
       layout(yaxis = list(title = "absorbance intensity [-]"),
              xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                           autorange = "reversed"),
-             plot_bgcolor='rgb(17,0,73)', paper_bgcolor='black',
+             plot_bgcolor = 'rgb(17,0,73)',
+             paper_bgcolor = 'transparent',
              font = list(color = '#FFFFFF'))
   })
 
@@ -335,7 +337,7 @@ server <- shinyServer(function(input, output, session) {
               options = list(searchHighlight = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
                              lengthChange = FALSE, pageLength = 5),
-              filter = "top",caption = "Selectable Matches",
+              filter = "top", caption = "Selectable Matches",
               style = "bootstrap",
               selection = list(mode = "single", selected = c(1)))
   })
@@ -385,7 +387,8 @@ server <- shinyServer(function(input, output, session) {
                xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                             autorange = "reversed"),
                plot_bgcolor='rgb(17,0, 73)',
-               paper_bgcolor='black', font = list(color = '#FFFFFF'))
+               paper_bgcolor='transparent',
+               font = list(color = '#FFFFFF'))
     }
     else if(length(input$event_rows_selected)) {
       # Default to first row if not yet clicked
@@ -417,7 +420,8 @@ server <- shinyServer(function(input, output, session) {
         layout(yaxis = list(title = "absorbance intensity [-]"),
                xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                             autorange = "reversed"),
-               plot_bgcolor = "rgb(17,0, 73)", paper_bgcolor = "black",
+               plot_bgcolor = "rgb(17,0, 73)",
+               paper_bgcolor = "transparent",
                font = list(color = "#FFFFFF"))
     }})
 

@@ -34,8 +34,10 @@ labelMandatory <- function(label) {
 inputUserid <- function(inputId, value='') {
   #   print(paste(inputId, "=", value))
   tagList(
-    singleton(tags$head(tags$script(src = "js/md5.js", type='text/javascript'))),
-    singleton(tags$head(tags$script(src = "js/shinyBindings.js", type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/md5.js",
+                                    type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/shinyBindings.js",
+                                    type='text/javascript'))),
     tags$body(onload="setvalues()"),
     tags$input(id = inputId, class = "userid", value=as.character(value),
                type = "text", style = "display:none;")
@@ -44,10 +46,13 @@ inputUserid <- function(inputId, value='') {
 
 inputIp <- function(inputId, value=''){
   tagList(
-    singleton(tags$head(tags$script(src = "js/md5.js", type='text/javascript'))),
-    singleton(tags$head(tags$script(src = "js/shinyBindings.js", type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/md5.js",
+                                    type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/shinyBindings.js",
+                                    type='text/javascript'))),
     tags$body(onload="setvalues()"),
-    tags$input(id = inputId, class = "ipaddr", value=as.character(value), type="text", style="display:none;")
+    tags$input(id = inputId, class = "ipaddr", value=as.character(value),
+               type = "text", style = "display:none;")
   )
 }
 
@@ -68,7 +73,7 @@ appCSS <-
     right: 0;
     height: 100%;
     text-align: center;
-    color: #FFFFFF;
+    color: #f7f7f9;
     }"
 
 containerfunction <- function(...){
@@ -80,8 +85,8 @@ containerfunction <- function(...){
 }
 
 columnformat <- function(){
-  'background-color:#110049;
-  padding: 1rem'
+  'background-color:rgba(0, 0, 0, 0.5);
+  padding-bottom: 2rem'
 }
 
 #linefunction <- function(...){
@@ -137,18 +142,18 @@ ui <- fluidPage(
   tabsetPanel(id = "tabs",
               tabPanel("About", value = "tab0",
                          containerfunction(
-                           h1("Overview"),
+                           h2("Overview"),
                              p(class = "lead", "More than 800 people from around ",
                                "the world have used Open Specy to ",
                                "analyze, share, process, and identify ",
                                "their Raman and IR spectra.")
                             ),
                          containerfunction(
-                           h1("Video Tutorial"),
+                           h2("Video Tutorial"),
                                  HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                               ),
                        containerfunction(
-                         h1("Instructions"),
+                         h2("Instructions"),
                          p(class = "lead", "In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
                                   If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
@@ -160,7 +165,7 @@ ui <- fluidPage(
                        ),
 
                           containerfunction(
-                            h1("Download Open Data"),
+                            h2("Download Open Data"),
                             p(class = "lead", "Reference spectra was sourced from open access resources ",
                                 "online, peer reviewed publications, and corporate donations. In the future, ",
                                 "spectra that is uploaded to the tool will be incorporated to the reference ",
@@ -174,7 +179,7 @@ ui <- fluidPage(
                               ),
 
                             containerfunction(
-                              h1("Tool Validation"),
+                              h2("Tool Validation"),
                               p(class = "lead", "All parameters in this tool are tested to validate that ",
                                 "the tool is functioning as best as possible and determine the best default ",
                                 "parameters to use. Our current validation proceedure includes correcting ",
@@ -191,7 +196,7 @@ ui <- fluidPage(
 
 
                        containerfunction(
-                         h1("Updates, Feature Requests, and Bug Reports"),
+                         h2("Updates, Feature Requests, and Bug Reports"),
                          p(class = "lead", "We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub."),
                          div(
                            a("Updates, Feature Requests, Bug Reports",
@@ -202,7 +207,7 @@ ui <- fluidPage(
                        ),
 
                       containerfunction(
-                        h1("Contribute Spectra"),
+                        h2("Contribute Spectra"),
                         p(class = "lead", "To share spectra upload a file to the upload file tab. ",
                           "If you selected Share a copy of your spectra will be sent to the Community ",
                           "Data Warehouse on Open Science Framework. To add additional metadata, ",
@@ -218,7 +223,7 @@ ui <- fluidPage(
                          ),
 
                        containerfunction(
-                         h1("Contribute time"),
+                         h2("Contribute time"),
                          p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com</h5>"),
                                 div(
                                      a("Community Contribution Guidelines",
@@ -228,17 +233,17 @@ ui <- fluidPage(
                                 ),
 
                       containerfunction(
-                        h1("Stay up to date!"),
+                        h2("Stay up to date!"),
                         p(class = "lead", "Follow us on Twitter @OpenSpecy. Email wincowger@gmail.com to be added to the mailing list.")
                       ),
 
                       containerfunction(
-                        h1("Citation"),
+                        h2("Citation"),
                         p(class = "lead", citation)
                       ),
 
                       containerfunction(
-                        h1("Useful Links"),
+                        h2("Useful Links"),
                         a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software"),
                         p(),
                         a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher"),
@@ -249,12 +254,12 @@ ui <- fluidPage(
                       ),
 
                        containerfunction(
-                         h1("Terms And Conditions"),
+                         h2("Terms And Conditions"),
                          pre(includeText("www/TOS.txt"))
                        ),
 
                       containerfunction(
-                        h1("Privacy Policy"),
+                        h2("Privacy Policy"),
                         pre(includeText("www/privacy_policy.txt"))
                       ),
               ),
@@ -431,7 +436,8 @@ ui <- fluidPage(
 
 
                          column(10,
-                                plotlyOutput('MyPlot')
+                                plotlyOutput('MyPlot'),
+                                style = 'background-color:rgba(0, 0, 0, 0.5)'
 
                          ),
                          ),
@@ -566,7 +572,8 @@ ui <- fluidPage(
 
 
                          column(10,
-                                plotlyOutput('MyPlotB')
+                                plotlyOutput('MyPlotB'),
+                                style = 'background-color:rgba(0, 0, 0, 0.5)'
 
                          )),
                        hr(),
@@ -621,10 +628,12 @@ ui <- fluidPage(
                          column(7,
 
                                 plotlyOutput('MyPlotC'),
-                                DT::dataTableOutput('eventmetadata')
+                                DT::dataTableOutput('eventmetadata'),
+                                style = 'background-color:rgba(0, 0, 0, 0.5)'
 
                          ),
-                         column(3, DT::dataTableOutput('event'))),
+                         column(3, DT::dataTableOutput('event'),
+                                style = 'background-color:rgba(0, 0, 0, 0.5)')),
 
 
                        hr(),
