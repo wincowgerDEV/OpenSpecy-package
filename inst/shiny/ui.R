@@ -281,7 +281,7 @@ ui <- fluidPage(
                                 tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File"),
 
                                 prettySwitch("share_decision",
-                                             label = "Share File?",
+                                             label = "Share Your Data?",
                                              inline = T,
                                              value = T,
                                              status = "success",
@@ -289,8 +289,8 @@ ui <- fluidPage(
                                 bsPopover(
                                   id = "share_decision",
                                   title = "Share Help",
-                                  content = c("We share any uploaded spectra with the spectroscopy community if you like.",
-                                              "By default, the data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).",
+                                  content = c("If you lile, we share your uploaded spectra and settings with the spectroscopy community.",
+                                              "By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).",
                                               "Uploaded spectra will appear here: https://osf.io/rjg3c"),
                                   placement = "bottom",
                                   trigger = "hover"

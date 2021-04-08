@@ -478,7 +478,7 @@ server <- shinyServer(function(input, output, session) {
     req(input$share_decision)
     if(db){
       database$insert(data.frame(user_name = input$fingerprint,
-                                 session_name = sessionid,
+                                 session_name = session_id,
                                  intensity_adj = input$intensity_corr,
                                  smoother = input$smoother,
                                  smooth_decision = input$smooth_decision,
@@ -498,7 +498,7 @@ server <- shinyServer(function(input, output, session) {
     else{
       loggit("INFO", "trigger",
              user_name = input$fingerprint,
-             session_name = sessionid,
+             session_name = session_id,
              intensity_adj = input$intensity_corr,
              smoother = input$smoother,
              smooth_decision = input$smooth_decision,

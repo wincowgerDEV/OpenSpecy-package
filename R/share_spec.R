@@ -168,7 +168,6 @@ share_spec.data.frame <- function(data,
   if (share == "system") {
     fp <- file.path(system.file("extdata", package = "OpenSpecy"),
                     "user_spectra", id)
-    dir.create(fp, recursive = T, showWarnings = F)
   } else if (share == "dropbox") {
 
     pkg <- "rdrop2"
