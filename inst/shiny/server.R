@@ -38,7 +38,7 @@ if(db){
   )
 }
 if(!db){
-  set_logfile("loggit.log")
+  set_logfile(file.path(tempdir(), "OpenSpecy.log"))
 }
 
 
@@ -54,7 +54,7 @@ load_data <- function() {
   # Check if spectral library is present and load
   test_lib <- class(tryCatch(check_lib(path = conf$library_path),
                              warning = function(w) {w}))
-  
+
   if(any(test_lib == "warning")) get_lib(path = conf$library_path)
 
   spec_lib <- load_lib(path = conf$library_path)
@@ -77,7 +77,7 @@ server <- shinyServer(function(input, output, session) {
   #bs_themer()
 
   sessionid <- random_id(n = 1)
-    
+
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
@@ -98,11 +98,11 @@ server <- shinyServer(function(input, output, session) {
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
         location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_form.csv", sep = "")
         write.table(sapply(names(namekey)[1:24], function(x) input[[x]]), file = location_data, col.names = F)
-        sout <- tryCatch(drop_upload(location_data, path = dirname(location_data), mode = "add"), 
+        sout <- tryCatch(drop_upload(location_data, path = dirname(location_data), mode = "add"),
                  warning = function(w) {w}, error = function(e) {e})
         if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
             mess <- sout$message
-          
+
             if (is.null(sout)) {
               show_alert(
                 title = "Thank you for sharing your data!",
@@ -441,14 +441,14 @@ server <- shinyServer(function(input, output, session) {
     sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))
     toggle("submit")
   })
-  
+
   # Session Files ----
   observeEvent(input$file1, {
       if(input$share_decision & droptoken){
         output_dir = paste("data/users/", input$fingerprint, sep = "")
         dir.create(output_dir)
         dir.create(paste(output_dir, "/", sessionid, sep = ""))
-        
+
         withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
         inFile <- input$file1
         UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
@@ -464,51 +464,51 @@ server <- shinyServer(function(input, output, session) {
       includeHTML("www/googletranslate.html")
     }
   })
-  
+
   #Log events ----
 
   observe({
     req(input$file1)
     req(input$share_decision)
     if(db){
-      database$insert(data.frame(user_name = input$fingerprint, 
-                                 session_name = sessionid, 
+      database$insert(data.frame(user_name = input$fingerprint,
+                                 session_name = sessionid,
                                  intensity_adj = input$intensity_corr,
                                  smoother = input$smoother,
-                                 smooth_decision = input$smooth_decision, 
-                                 baseline = input$baseline, 
-                                 baseline_decision = input$baseline_decision, 
-                                 max_range = input$MinRange, 
-                                 min_range = input$MaxRange, 
-                                 range_decision = input$range_decision, 
+                                 smooth_decision = input$smooth_decision,
+                                 baseline = input$baseline,
+                                 baseline_decision = input$baseline_decision,
+                                 max_range = input$MinRange,
+                                 min_range = input$MaxRange,
+                                 range_decision = input$range_decision,
                                  data_id = digest::digest(preprocessed_data(), algo = "md5"),
-                                 #row_selected = input$event_rows_selected, have to remove because don't want to require. 
-                                 spectra_type = input$Spectra, 
-                                 analyze_type = input$Data, 
-                                 region_type = input$Library, 
+                                 #row_selected = input$event_rows_selected, have to remove because don't want to require.
+                                 spectra_type = input$Spectra,
+                                 analyze_type = input$Data,
+                                 region_type = input$Library,
                                  ipid = input$ipid,
                                  time = human_ts()))
     }
     else{
-      loggit("INFO", "trigger", 
-             user_name = input$fingerprint, 
-             session_name = sessionid, 
+      loggit("INFO", "trigger",
+             user_name = input$fingerprint,
+             session_name = sessionid,
              intensity_adj = input$intensity_corr,
              smoother = input$smoother,
-             smooth_decision = input$smooth_decision, 
-             baseline = input$baseline, 
-             baseline_decision = input$baseline_decision, 
-             max_range = input$MinRange, 
-             min_range = input$MaxRange, 
-             range_decision = input$range_decision, 
+             smooth_decision = input$smooth_decision,
+             baseline = input$baseline,
+             baseline_decision = input$baseline_decision,
+             max_range = input$MinRange,
+             min_range = input$MaxRange,
+             range_decision = input$range_decision,
              data_id = digest::digest(preprocessed_data(), algo = "md5"),
-             spectra_type = input$Spectra, 
-             analyze_type = input$Data, 
-             region_type = input$Library, 
+             spectra_type = input$Spectra,
+             analyze_type = input$Data,
+             region_type = input$Library,
              ipid = input$ipid,
              time = human_ts())
     }
   })
-  
+
 })
 
