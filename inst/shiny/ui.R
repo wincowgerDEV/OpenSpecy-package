@@ -136,12 +136,11 @@ ui <- fluidPage(
                              p(class = "lead", "More than 800 people from around ",
                                "the world have used Open Specy to ",
                                "analyze, share, process, and identify ",
-                               "their Raman and IR spectra.")
+                               "their Raman and IR spectra."),
+                              a("Video Tutorial",
+                                 onclick = "window.open('https://youtu.be/w55WGtV2Dz4', '_blank')",
+                                 class="btn btn-primary btn-lg")
                             ),
-                         containerfunction(
-                           h1("Video Tutorial"),
-                                 HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
-                              ),
                        containerfunction(
                          h1("Instructions"),
                          p(class = "lead", "In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
