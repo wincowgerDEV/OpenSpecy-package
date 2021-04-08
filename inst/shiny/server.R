@@ -468,19 +468,28 @@ server <- shinyServer(function(input, output, session) {
 
   output$analytics <- renderUI({
     if(analytics){
-      req(input$share_decision == T) 
+      req(input$share_decision) 
       includeScript("data/google-analytics.js")
     }
   })
   
-  #Log events ----
-  #This workflow could be improved in a function but the reactive values keep producing unexpected results (null and lack of updating) when I try to push them to mongodb.
+  observe({
+    if (!input$share_decision) {
+      shinyjs::disable("analytics")
+    } else {
+      shinyjs::enable("analytics")
+    }
+  })
   
+  #Log events ----
+
   observe({
     req(input$file1)
-    if(!db){
+    req(input$share_decision)
+    if(db){
       database$insert(data.frame(user_name = input$fingerprint, 
                                  session_name = sessionid, 
+                                 intensity_adj = input$intensity_corr,
                                  smoother = input$smoother,
                                  smooth_decision = input$smooth_decision, 
                                  baseline = input$baseline, 
@@ -491,8 +500,8 @@ server <- shinyServer(function(input, output, session) {
                                  data_id = digest::digest(preprocessed_data(), algo = "md5"),
                                  #row_selected = input$event_rows_selected, have to remove because don't want to require. 
                                  spectra_type = input$Spectra, 
-                                 data_type = input$Data, 
-                                 library_type = input$Library, 
+                                 analyze_type = input$Data, 
+                                 region_type = input$Library, 
                                  ipid = input$ipid,
                                  time = human_ts()))
     }
@@ -500,6 +509,7 @@ server <- shinyServer(function(input, output, session) {
       loggit("INFO", "trigger", 
              user_name = input$fingerprint, 
              session_name = sessionid, 
+             intensity_adj = input$intensity_corr,
              smoother = input$smoother,
              smooth_decision = input$smooth_decision, 
              baseline = input$baseline, 
@@ -508,51 +518,9 @@ server <- shinyServer(function(input, output, session) {
              min_range = input$MaxRange, 
              range_decision = input$range_decision, 
              data_id = digest::digest(preprocessed_data(), algo = "md5"),
-             #row_selected = input$event_rows_selected, 
              spectra_type = input$Spectra, 
-             data_type = input$Data, 
-             library_type = input$Library, 
-             ipid = input$ipid,
-             time = human_ts())
-    }
-  })
-  
-  
-  observeEvent(input$event_rows_selected, {
-    if(!db){
-      database$insert(data.frame(user_name = input$fingerprint, 
-                                 session_name = sessionid, 
-                                 smoother = input$smoother,
-                                 smooth_decision = input$smooth_decision, 
-                                 baseline = input$baseline, 
-                                 baseline_decision = input$baseline_decision, 
-                                 max_range = input$MinRange, 
-                                 min_range = input$MaxRange, 
-                                 range_decision = input$range_decision, 
-                                 data_id = digest::digest(preprocessed_data(), algo = "md5"),
-                                 row_selected = input$event_rows_selected,
-                                 spectra_type = input$Spectra, 
-                                 data_type = input$Data, 
-                                 library_type = input$Library, 
-                                 ipid = input$ipid,
-                                 time = human_ts()))
-    }
-    else{
-      loggit("INFO", "trigger", 
-             user_name = input$fingerprint, 
-             session_name = sessionid, 
-             smoother = input$smoother,
-             smooth_decision = input$smooth_decision, 
-             baseline = input$baseline, 
-             baseline_decision = input$baseline_decision, 
-             max_range = input$MinRange, 
-             min_range = input$MaxRange, 
-             range_decision = input$range_decision, 
-             data_id = digest::digest(preprocessed_data(), algo = "md5"),
-             row_selected = input$event_rows_selected, 
-             spectra_type = input$Spectra, 
-             data_type = input$Data, 
-             library_type = input$Library, 
+             analyze_type = input$Data, 
+             region_type = input$Library, 
              ipid = input$ipid,
              time = human_ts())
     }
