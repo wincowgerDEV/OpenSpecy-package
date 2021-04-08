@@ -58,10 +58,10 @@ css <- HTML(
   "body {
     color: #fff;
   }
-  .nav-tabs > li[class=active] > a {
-    background-color: #000;
-  }
-  .nav-tabs > li[class=active] > a:focus {
+  .nav-tabs > li[class=active] > a,
+  .nav-tabs > li[class=active] > a:focus,
+  .nav-tabs > li[class=active] > a:hover
+  {
     background-color: #000;
   }"
   )

@@ -433,6 +433,8 @@ server <- shinyServer(function(input, output, session) {
       show("share_meta")
       } else {
         hide("share_meta")
+        sapply(names(namekey)[c(1:24,32)], function(x) hide(x))
+        hide("submit")
       }
   })
 
