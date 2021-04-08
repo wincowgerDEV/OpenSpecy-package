@@ -193,7 +193,7 @@ share_spec.data.frame <- function(data,
   }
 
   if (share == "dropbox") {
-    for (lf in list.files(fp, full.names = T)) {
+    for (lf in list.files(fp, pattern = fid, full.names = T)) {
       rdrop2::drop_upload(lf, path = paste0("data/users/", id), ...)
     }
   }

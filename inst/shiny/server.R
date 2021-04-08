@@ -22,6 +22,7 @@ library(DT)
 library(digest)
 library(curl)
 library(config)
+
 if(db) library(shinyEventLogger)
 if(droptoken) library(rdrop2)
 
@@ -33,7 +34,7 @@ library(OpenSpecy)
 
 if(db) set_logging(js_console = F, database = T)
 
-# Required Data ----
+# Global config ----
 conf <- config::get()
 
 # Load all data ----
@@ -66,12 +67,12 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-    sessionid <- digest(runif(10))
+    session_id <- digest(runif(10))
 
     #User event logging ----
     if(db){ #Should also allow people to disable these options.
       set_logging_session()
-          log_event(sessionid)
+          log_event(session_id)
           observe(
             log_value(input$intensity_corr)
           )
@@ -132,40 +133,53 @@ server <- shinyServer(function(input, output, session) {
 #    })
 #  }
 
-  # Save the metadata and data submitted upon pressing the button
-  observeEvent(input$submit, {
-    if (input$share_decision & conf$share == "dropbox" & droptoken)
-      #share <- conf$share else share <- NULL
-        UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_form.csv", sep = "")
-        write.table(sapply(names(namekey)[1:24], function(x) input[[x]]), file = location_data, col.names = F)
-        sout <- tryCatch(drop_upload(location_data, path = dirname(location_data), mode = "add"),
-                 warning = function(w) {w}, error = function(e) {e})
-        if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
-            mess <- sout$message
-
-            if (is.null(sout)) {
-              show_alert(
-                title = "Thank you for sharing your data!",
-                text = "Your data will soon be available at https://osf.io/stmv4/",
-                type = "success"
-              )
-            } else {
-              show_alert(
-                title = "Something went wrong :-(",
-              text = paste0("All mandatory data added? R says: '", mess, "'. ",
-                            "Try again."),
-              type = "warning"
-            )
-        }
+  # Sharing ID
+  id <- reactive({
+    if (!is.null(input$fingerprint)) {
+      paste(input$fingerprint, session_id, sep = "/")
+    } else {
+      paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")
+    }
   })
 
+  # Save the metadata and data submitted upon pressing the button
+  observeEvent(input$submit, {
+    if (input$share_decision & !is.null(data()) & curl::has_internet()) {
+      withProgress(message = "Sharing Metadata",
+                   value = 3/3, {
+        sout <- tryCatch(share_spec(
+          data = preprocessed_data(),
+          metadata = sapply(names(namekey)[c(1:24,32)], function(x) input[[x]]),
+          share = conf$share,
+          id = id()),
+          warning = function(w) {w}, error = function(e) {e})
+
+        if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
+          mess <- sout$message
+
+        if (is.null(sout)) {
+          show_alert(
+            title = "Thank you for sharing your data!",
+            text = "Your data will soon be available at https://osf.io/stmv4/",
+            type = "success"
+          )
+        } else {
+          show_alert(
+            title = "Something went wrong :-(",
+            text = paste0("All mandatory data added? R says: '", mess, "'. ",
+                          "Try again."),
+            type = "warning"
+          )
+        }
+      })
+    }
+  })
 
   # Read in data when uploaded based on the file type
   preprocessed_data <- reactive({
     req(input$file1)
-    inFile <- input$file1
-    filename <- as.character(inFile$datapath)
+    file <- input$file1
+    filename <- as.character(file$datapath)
 
     if (!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
               ignore.case = T, filename)) {
@@ -177,40 +191,47 @@ server <- shinyServer(function(input, output, session) {
       stop()
       }
 
-    if (input$share_decision)
-      share <- conf$share else share <- NULL
+    if (input$share_decision & curl::has_internet()) {
+      share <- conf$share
+      progm <- "Sharing Spectrum to Community Library"
+      } else {
+        share <- NULL
+        progm <- "Reading Spectrum"
+      }
 
-    if(grepl("\\.csv$", ignore.case = T, filename)) {
-      rout <- tryCatch(read_text(inFile$datapath, method = "fread",
-                                 share = share),
-                       error = function(e) {e})
-    }
-    else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
-      rout <- tryCatch(read_0(inFile$datapath, share = share),
-                       error = function(e) {e})
-    }
-    else {
-      ex <- strsplit(basename(filename), split="\\.")[[1]]
+    withProgress(message = progm, value = 3/3, {
+      if(grepl("\\.csv$", ignore.case = T, filename)) {
+        rout <- tryCatch(read_text(filename, method = "fread",
+                                   share = share,
+                                   id = id()),
+                         error = function(e) {e})
+      }
+      else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
+        rout <- tryCatch(read_0(filename, share = share, id = id()),
+                         error = function(e) {e})
+      }
+      else {
+        ex <- strsplit(basename(filename), split="\\.")[[1]]
 
-      rout <- tryCatch(do.call(paste0("read_", tolower(ex[-1])),
-                               list(inFile$datapath, share = share)),
-                       error = function(e) {e})
-    }
+        rout <- tryCatch(do.call(paste0("read_", tolower(ex[-1])),
+                                 list(filename, share = share, id = id())),
+                         error = function(e) {e})
+      }
 
-    if (inherits(rout, "simpleError")) {
-      reset("file1")
-      show_alert(
-        title = "Something went wrong :-(",
-        text = paste0("R says: '", rout$message, "'. ",
-                      "If you uploaded a .csv file, make sure that the columns ",
-                      "are named 'wavenumber' and 'intensity'."),
-        type = "error"
-      )
-      stop()
-    } else {
-      rout
-    }
-
+      if (inherits(rout, "simpleError")) {
+        reset("file1")
+        show_alert(
+          title = "Something went wrong :-(",
+          text = paste0("R says: '", rout$message, "'. ",
+                        "If you uploaded a .csv file, make sure that the ",
+                        "columns are named 'wavenumber' and 'intensity'."),
+          type = "error"
+        )
+        stop()
+      } else {
+        rout
+      }
+    })
   })
 
   # Corrects spectral intensity units using the user specified correction
@@ -436,7 +457,7 @@ server <- shinyServer(function(input, output, session) {
   # Hide functions which shouldn't exist when there is no internet or
   # when the API token doesn't exist
   observe({
-    if(droptoken) {
+    if((conf$share == "dropbox" & droptoken) | curl::has_internet()) {
       show("share_decision")
       show("share_meta")
     }
@@ -447,7 +468,7 @@ server <- shinyServer(function(input, output, session) {
   })
 
   observe({
-    if (input$share_decision & droptoken) {
+    if (input$share_decision) {
       show("share_meta")
       } else {
         hide("share_meta")
@@ -483,25 +504,8 @@ server <- shinyServer(function(input, output, session) {
     toggle("submit")
   })
 
-  # Session Files ----
-  observeEvent(input$file1, {
-      if(input$share_decision & conf$share == "dropbox" & droptoken) {
-        output_dir = paste("data/users/", input$fingerprint, sep = "")
-        dir.create(output_dir)
-        dir.create(paste(output_dir, "/", sessionid, sep = ""))
-
-        withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
-        inFile <- input$file1
-        UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_", inFile$name, sep = "")
-        file.copy(inFile$datapath, location_data)
-        drop_upload(location_data, path = dirname(location_data), mode = "add")
-      })
-    }
-  })
-
   output$translate <- renderUI({
-    if(translate) {
+    if(translate & curl::has_internet()) {
       includeHTML("www/googletranslate.html")
     }
   })
