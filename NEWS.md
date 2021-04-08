@@ -8,6 +8,8 @@
 
 - Reverse spectral axes to comply with most wavenumber scales
 - Let users select metadata license
+- Improved data sharing and logging capabilities
+- Google Analytics removed
 
 ## Bug Fixes
 
