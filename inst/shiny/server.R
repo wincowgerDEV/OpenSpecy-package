@@ -7,7 +7,6 @@
 # Check for Auth Tokens and setup, you can change these to test the triggering of functions without removing the files.
 droptoken <- file.exists("data/droptoken.rds")
 db <- file.exists(".db_url")
-analytics <- file.exists("data/google-analytics.js")
 translate <- file.exists("www/googletranslate.html")
 
 # Libraries ----
@@ -463,21 +462,6 @@ server <- shinyServer(function(input, output, session) {
   output$translate <- renderUI({
     if(translate) {
       includeHTML("www/googletranslate.html")
-    }
-  })
-
-  output$analytics <- renderUI({
-    if(analytics){
-      req(input$share_decision) 
-      includeScript("data/google-analytics.js")
-    }
-  })
-  
-  observe({
-    if (!input$share_decision) {
-      shinyjs::disable("analytics")
-    } else {
-      shinyjs::enable("analytics")
     }
   })
   
