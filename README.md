@@ -11,8 +11,6 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 [![Twitter Follow](https://img.shields.io/twitter/follow/OpenSpecy)](https://twitter.com/OpenSpecy)
 <!-- badges: end -->
 
-![Graphical Abstract](https://github.com/wincowgerDEV/OpenSpecy/blob/main/inst/shiny/www/graphical_abstract.png?raw=true)
-
 Raman and (FT)IR spectral analysis tool for plastic particles and
 other environmental samples. Supported features include reading spectral
 data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay smoothing of
