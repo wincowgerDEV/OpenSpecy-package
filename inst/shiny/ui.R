@@ -76,17 +76,22 @@ appCSS <-
     color: #f7f7f9;
     }"
 
-containerfunction <- function(...){
+containerfunction <- function(...) {
   div(
     style = "padding:8rem",
     div(class = "jumbotron jumbotron-fluid",
-        style = "border:solid #f7f7f9",
+        style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5)",
         align = "justify", ... ))
 }
 
-columnformat <- function(){
-  'background-color:rgba(0, 0, 0, 0.5);
-  padding-bottom: 2rem'
+columnformat <- function() {
+  # 'background-color:rgba(0, 0, 0, 0.5);
+  # padding-bottom: 2rem'
+}
+
+bodyformat <- function() {
+  # 'background-color:rgba(0, 0, 0, 0.5);
+  # padding-bottom: 2rem'
 }
 
 #linefunction <- function(...){
@@ -437,7 +442,7 @@ ui <- fluidPage(
 
                          column(10,
                                 plotlyOutput('MyPlot'),
-                                style = 'background-color:rgba(0, 0, 0, 0.5)'
+                                style = bodyformat()
 
                          ),
                          ),
@@ -573,7 +578,7 @@ ui <- fluidPage(
 
                          column(10,
                                 plotlyOutput('MyPlotB'),
-                                style = 'background-color:rgba(0, 0, 0, 0.5)'
+                                style = bodyformat()
 
                          )),
                        hr(),
@@ -629,11 +634,12 @@ ui <- fluidPage(
 
                                 plotlyOutput('MyPlotC'),
                                 DT::dataTableOutput('eventmetadata'),
-                                style = 'background-color:rgba(0, 0, 0, 0.5)'
+                                style = bodyformat()
 
                          ),
                          column(3, DT::dataTableOutput('event'),
-                                style = 'background-color:rgba(0, 0, 0, 0.5)')),
+                                style = bodyformat()
+                                )),
 
 
                        hr(),
