@@ -47,7 +47,7 @@ cloud.}
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-\code{share_spec()} and \code{share_raw()} return only messages/warnings.
+\code{share_spec()} returns only messages/warnings.
 }
 \description{
 This helper function shares spectral data and metadata with the Open Specy
@@ -78,7 +78,7 @@ spectroscopy. \emph{Analytical and Bioanalytical Chemistry}.
 "Polystyrene"\cr
 \code{material_form}: \tab Form of the material analyzed, e.g. textile fiber,
 rubber band, sphere, granule \cr
-\code{material_phase}: \tab Phase of the material analyzed (liqid, gas,
+\code{material_phase}: \tab Phase of the material analyzed (liquid, gas,
 solid) \cr
 \code{material_producer}: \tab Producer of the material analyzed,
 e.g. Dow \cr

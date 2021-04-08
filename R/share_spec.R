@@ -29,7 +29,7 @@
 #' "Polystyrene"\cr
 #' \code{material_form}: \tab Form of the material analyzed, e.g. textile fiber,
 #' rubber band, sphere, granule \cr
-#' \code{material_phase}: \tab Phase of the material analyzed (liqid, gas,
+#' \code{material_phase}: \tab Phase of the material analyzed (liquid, gas,
 #' solid) \cr
 #' \code{material_producer}: \tab Producer of the material analyzed,
 #' e.g. Dow \cr
@@ -80,7 +80,7 @@
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
-#' \code{share_spec()} and \code{share_raw()} return only messages/warnings.
+#' \code{share_spec()} returns only messages/warnings.
 #'
 #' @examples
 #' \dontrun{

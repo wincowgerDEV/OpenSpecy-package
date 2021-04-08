@@ -24,7 +24,6 @@ library(config)
 library(mongolite)
 library(loggit)
 
-if(db) library(shinyEventLogger)
 if(droptoken) library(rdrop2)
 
 #devtools::install_github("wincowgerDEV/OpenSpecy")
