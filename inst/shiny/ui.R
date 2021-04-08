@@ -56,24 +56,32 @@ inputIp <- function(inputId, value=''){
   )
 }
 
-css <- HTML(" body {
+css <- HTML(
+  "body {
     color: #fff;
-}")
+  }
+  .nav-tabs > li[class=active] > a {
+    background-color: #000;
+  }
+  .nav-tabs > li[class=active] > a:focus {
+    background-color: #000;
+  }"
+  )
 
 # CSS for star
 appCSS <-
   ".mandatory_star { color: red; }
     #loading_overlay {
-    position: absolute;
-    margin-top: 10%;
-    background: #000000;
-    opacity: 0.9;
-    z-index: 100;
-    left: 0;
-    right: 0;
-    height: 100%;
-    text-align: center;
-    color: #f7f7f9;
+      position: absolute;
+      margin-top: 10%;
+      background: #000000;
+      opacity: 0.9;
+      z-index: 100;
+      left: 0;
+      right: 0;
+      height: 100%;
+      text-align: center;
+      color: #f7f7f9;
     }"
 
 containerfunction <- function(...) {
