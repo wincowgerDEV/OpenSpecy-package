@@ -8,7 +8,6 @@
 # of functions without removing the files.
 droptoken <- file.exists("data/droptoken.rds")
 db <- file.exists(".db_url")
-analytics <- file.exists("data/google-analytics.js")
 translate <- file.exists("www/googletranslate.html")
 
 # Libraries ----
@@ -22,6 +21,8 @@ library(DT)
 library(digest)
 library(curl)
 library(config)
+library(mongolite)
+library(loggit)
 
 if(db) library(shinyEventLogger)
 if(droptoken) library(rdrop2)
@@ -32,7 +33,14 @@ library(OpenSpecy)
 #library(future)
 #library(bslib)
 
-if(db) set_logging(js_console = F, database = T)
+if(db){
+  database <- mongo(
+    url = readLines(".db_url")
+  )
+}
+if(!db){
+  set_logfile(file.path(tempdir(), "OpenSpecy.log"))
+}
 
 # Global config ----
 conf <- config::get()
@@ -67,58 +75,8 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-    session_id <- digest(runif(10))
 
-    #User event logging ----
-    if(db){ #Should also allow people to disable these options.
-      set_logging_session()
-          log_event(session_id)
-          observe(
-            log_value(input$intensity_corr)
-          )
-          observe(
-            log_value(digest::digest(preprocessed_data(), algo = "md5"))
-          )
-          observe(
-            log_value(input$smoother)
-          )
-          observe(
-            log_value(input$baseline)
-          )
-          observe(
-            log_value(input$MinRange)
-          )
-          observe(
-            log_value(input$MaxRange)
-          )
-          observe(
-            log_value(input$event_rows_selected)
-          )
-          observe(
-            log_value(input$smooth_decision)
-          )
-          observe(
-            log_value(input$baseline_decision)
-          )
-          observe(
-            log_value(input$range_decision)
-          )
-          observe(
-            log_value(input$Spectra)
-          )
-          observe(
-            log_value(input$Data)
-          )
-          observe(
-            log_value(input$Library)
-          )
-          observe(
-            log_value(input$fingerprint)
-          )
-          observe(
-            log_value(input$ipid)
-          )
-    }
+  session_id <- digest(runif(10))
 
   # Loading overlay
   load_data()
@@ -514,18 +472,50 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-  output$analytics <- renderUI({
-    if(analytics){
-      req(input$share_decision == T)
-      includeScript("data/google-analytics.js")
-    }
-  })
+  #Log events ----
 
-  output$eventlogger <- renderUI({
+  observe({
+    req(input$file1)
+    req(input$share_decision)
     if(db){
-      req(input$share_decision == T)
-      shinyEventLogger::log_init()
+      database$insert(data.frame(user_name = input$fingerprint,
+                                 session_name = sessionid,
+                                 intensity_adj = input$intensity_corr,
+                                 smoother = input$smoother,
+                                 smooth_decision = input$smooth_decision,
+                                 baseline = input$baseline,
+                                 baseline_decision = input$baseline_decision,
+                                 max_range = input$MinRange,
+                                 min_range = input$MaxRange,
+                                 range_decision = input$range_decision,
+                                 data_id = digest::digest(preprocessed_data(), algo = "md5"),
+                                 #row_selected = input$event_rows_selected, have to remove because don't want to require.
+                                 spectra_type = input$Spectra,
+                                 analyze_type = input$Data,
+                                 region_type = input$Library,
+                                 ipid = input$ipid,
+                                 time = human_ts()))
     }
+    else{
+      loggit("INFO", "trigger",
+             user_name = input$fingerprint,
+             session_name = sessionid,
+             intensity_adj = input$intensity_corr,
+             smoother = input$smoother,
+             smooth_decision = input$smooth_decision,
+             baseline = input$baseline,
+             baseline_decision = input$baseline_decision,
+             max_range = input$MinRange,
+             min_range = input$MaxRange,
+             range_decision = input$range_decision,
+             data_id = digest::digest(preprocessed_data(), algo = "md5"),
+             spectra_type = input$Spectra,
+             analyze_type = input$Data,
+             region_type = input$Library,
+             ipid = input$ipid,
+             time = human_ts())
+    }
+
   })
 
 })

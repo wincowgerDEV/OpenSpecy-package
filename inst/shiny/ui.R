@@ -13,8 +13,6 @@ library(dplyr)
 library(plotly)
 library(DT)
 
-if(file.exists(".db_url")) library(shinyEventLogger)
-
 # Name keys for human readable column names ----
 load("data/namekey.RData")
 
@@ -114,9 +112,7 @@ ui <- fluidPage(
   inputIp("ipid"),
   inputUserid("fingerprint"),
  # tags$head(uiOutput("name_get")),
-  tags$head(uiOutput("analytics"), # Google analytics.
-            uiOutput("eventlogger"), #Event logging
-            tags$style(css),
+  tags$head(tags$style(css),
             tags$style(HTML("
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;

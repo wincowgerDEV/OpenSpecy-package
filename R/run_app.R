@@ -35,7 +35,8 @@ run_app <- function(app_dir = system.file("shiny", package = "OpenSpecy"),
                           "Try reinstalling OpenSpecy.", call. = FALSE)
 
   pkg <- c("config", "shinyjs", "shinythemes", "shinyBS", "shinyWidgets",
-           "plotly", "data.table", "DT", "curl", "rdrop2")
+           "plotly", "data.table", "DT", "curl", "rdrop2", "mongolite",
+           "loggit")
   mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
 
   if(length(mpkg)) stop("run_app() requires the following packages: ",
