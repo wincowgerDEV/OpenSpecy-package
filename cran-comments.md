@@ -1,6 +1,6 @@
 ## Test environments
 
-* local Arch/Manjaro 21.0, R-4.0.4
+* local Linux/5.10.23-1-MANJARO, R-4.0.4
 * ubuntu 20.04 (via GitHub Actions), R-release
 * ubuntu 20.04 (via GitHub Actions), R-devel
 * windows latest (via GitHub Actions), R-release
