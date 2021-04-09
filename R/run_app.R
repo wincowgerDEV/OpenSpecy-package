@@ -7,9 +7,12 @@
 #' After running this function the Open Specy GUI should open in a separate
 #' window or in your computer browser.
 #'
-#' @param app_dir the app to run; defaults to
+#' @param app_dir the app to run; defaults to \code{"system"} pointing to
 #' \code{system.file("shiny", package = "OpenSpecy")}.
-#' @param path where to look for the local library files.
+#' @param path where to look for the local library files; defaults to
+#' \code{"system"} pointing to
+#' \code{system.file("extdata", package = "OpenSpecy")}.
+#' @param log logical; enables/disables logging to \code{\link[base]{tempdir}()}
 #' @param \dots arguments passed to \code{\link[shiny]{runApp}()}.
 #'
 #' @return
@@ -30,11 +33,10 @@
 #' @importFrom shiny runApp shinyOptions
 #' @importFrom utils installed.packages
 #' @export
-run_app <- function(app_dir = system.file("shiny", package = "OpenSpecy"),
-                    path = system.file("extdata", package = "OpenSpecy"),
-                    ...) {
-  if (app_dir == "") stop("Could not find app directory. ",
-                          "Try reinstalling OpenSpecy.", call. = FALSE)
+run_app <- function(app_dir = "system", path = "system", log = TRUE, ...) {
+  if (is.null(app_dir) || app_dir == "")
+    stop("Could not find app directory. Try reinstalling OpenSpecy.",
+         call. = FALSE)
 
   pkg <- c("config", "shinyjs", "shinythemes", "shinyBS", "shinyWidgets",
            "plotly", "data.table", "DT", "curl", "rdrop2", "mongolite",
@@ -45,7 +47,15 @@ run_app <- function(app_dir = system.file("shiny", package = "OpenSpecy"),
                         paste(paste0("'", mpkg, "'"), collapse = ", "),
                         call. = F)
 
-  shinyOptions(library_path = path)
+  ad <- ifelse(app_dir == "system",
+               system.file("shiny", package = "OpenSpecy"),
+               app_dir)
+  wd <- ifelse(path == "system",
+               system.file("extdata", package = "OpenSpecy"),
+               path)
 
-  runApp(app_dir, ...)
+  Sys.setenv(R_CONFIG_ACTIVE = "run_app")
+
+  shinyOptions(library_path = wd, log = log)
+  runApp(ad, ...)
 }

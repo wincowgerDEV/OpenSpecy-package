@@ -32,22 +32,16 @@ library(OpenSpecy)
 #library(future)
 #library(bslib)
 
-if(db){
-  database <- mongo(
-    url = readLines(".db_url")
-  )
-}
-if(!db){
-  set_logfile(file.path(tempdir(), "OpenSpecy.log"))
-}
-
 # Global config ----
 conf <- config::get()
-library_preset <- getShinyOption("library_path", NULL)
 
-if (config::is_active("default") & !is.null(library_preset)) {
-  conf$library_path <- library_preset
-  conf$share <- file.path(library_preset, "user_spectra")
+# Logging ----
+if(conf$log) {
+  if(db) {
+    database <- mongo(url = readLines(".db_url"))
+  } else {
+    set_logfile(file.path(tempdir(), "OpenSpecy.log"))
+  }
 }
 
 # Load all data ----
@@ -479,48 +473,49 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-  #Log events ----
+  # Log events ----
 
   observe({
     req(input$file1)
     req(input$share_decision)
-    if(db){
-      database$insert(data.frame(user_name = input$fingerprint,
-                                 session_name = session_id,
-                                 intensity_adj = input$intensity_corr,
-                                 smoother = input$smoother,
-                                 smooth_decision = input$smooth_decision,
-                                 baseline = input$baseline,
-                                 baseline_decision = input$baseline_decision,
-                                 max_range = input$MinRange,
-                                 min_range = input$MaxRange,
-                                 range_decision = input$range_decision,
-                                 data_id = digest::digest(preprocessed_data(), algo = "md5"),
-                                 #row_selected = input$event_rows_selected, have to remove because don't want to require.
-                                 spectra_type = input$Spectra,
-                                 analyze_type = input$Data,
-                                 region_type = input$Library,
-                                 ipid = input$ipid,
-                                 time = human_ts()))
-    }
-    else{
-      loggit("INFO", "trigger",
-             user_name = input$fingerprint,
-             session_name = session_id,
-             intensity_adj = input$intensity_corr,
-             smoother = input$smoother,
-             smooth_decision = input$smooth_decision,
-             baseline = input$baseline,
-             baseline_decision = input$baseline_decision,
-             max_range = input$MinRange,
-             min_range = input$MaxRange,
-             range_decision = input$range_decision,
-             data_id = digest::digest(preprocessed_data(), algo = "md5"),
-             spectra_type = input$Spectra,
-             analyze_type = input$Data,
-             region_type = input$Library,
-             ipid = input$ipid,
-             time = human_ts())
+    if(conf$log) {
+      if(db & conf$log) {
+        database$insert(data.frame(user_name = input$fingerprint,
+                                   session_name = session_id,
+                                   intensity_adj = input$intensity_corr,
+                                   smoother = input$smoother,
+                                   smooth_decision = input$smooth_decision,
+                                   baseline = input$baseline,
+                                   baseline_decision = input$baseline_decision,
+                                   max_range = input$MinRange,
+                                   min_range = input$MaxRange,
+                                   range_decision = input$range_decision,
+                                   data_id = digest::digest(preprocessed_data(),
+                                                            algo = "md5"),
+                                   spectra_type = input$Spectra,
+                                   analyze_type = input$Data,
+                                   region_type = input$Library,
+                                   ipid = input$ipid,
+                                   time = human_ts()))
+      } else {
+        loggit("INFO", "trigger",
+               user_name = input$fingerprint,
+               session_name = session_id,
+               intensity_adj = input$intensity_corr,
+               smoother = input$smoother,
+               smooth_decision = input$smooth_decision,
+               baseline = input$baseline,
+               baseline_decision = input$baseline_decision,
+               max_range = input$MinRange,
+               min_range = input$MaxRange,
+               range_decision = input$range_decision,
+               data_id = digest::digest(preprocessed_data(), algo = "md5"),
+               spectra_type = input$Spectra,
+               analyze_type = input$Data,
+               region_type = input$Library,
+               ipid = input$ipid,
+               time = human_ts())
+      }
     }
 
   })
