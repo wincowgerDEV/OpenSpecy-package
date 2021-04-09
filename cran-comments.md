@@ -35,5 +35,6 @@ Please correct before 2021-04-16 to safely retain your package on CRAN.
 -k
 
 > Fixed. Package functions only write to the local file system if prompted by
-> the user. Functions called for CI testing and examples now write to tempdir()
+> the user. All functions allow for changing paths to write to.
+> Functions called for CI testing and examples now write to tempdir()
 > which is tidied up after use.
