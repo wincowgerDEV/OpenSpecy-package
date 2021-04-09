@@ -1,7 +1,7 @@
 data("test_lib")
 
 # Create temp dir for testthat
-tmp <- file.path(tempdir(), "testthat")
+tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
 
 test_that("get_lib() downloads test library", {
