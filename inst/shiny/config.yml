@@ -1,7 +1,14 @@
 default:
-  library_path: !expr system.file("extdata", package = "OpenSpecy")
+  library_path: 'system'
   share: 'system'
+  log: TRUE
+
+run_app:
+  library_path: !expr shiny::getShinyOption("library_path")
+  share: !expr file.path(shiny::getShinyOption("library_path"), "user_spectra")
+  log: !expr shiny::getShinyOption("log")
 
 shinyapps:
-  library_path: 'data/'
+  library_path: 'data/library'
   share: 'dropbox'
+  log: TRUE

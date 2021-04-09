@@ -1,3 +1,7 @@
+# Create temp dir for testthat
+tmp <- file.path(tempdir(), "testthat")
+dir.create(tmp, showWarnings = F)
+
 test_that("extdata files are present", {
   ed <- read_extdata()
   expect_true(any(grepl("\\.asp$", ed)))
@@ -10,9 +14,9 @@ test_that("extdata files are present", {
 
 test_that("read_text() gives expected output", {
   expect_silent(txt <- read_text(read_extdata("raman_hdpe.csv")))
-  expect_message(read_text(read_extdata("raman_hdpe.csv"), share = "system"))
-  expect_message(read_text(read_extdata("raman_hdpe.csv"),
-                           share = tempdir()))
+  expect_warning(
+    expect_message(read_text(read_extdata("raman_hdpe.csv"), share = tmp))
+  )
   expect_error(read_text(read_extdata("ftir_pva_without_header.csv")))
   expect_silent(read_text(read_extdata("ftir_pva_without_header.csv"), header = F))
   expect_s3_class(txt, "data.frame")
@@ -75,3 +79,6 @@ test_that("read_0() gives expected output", {
   expect_equal(round(range(f0[1]), 1), c(399.2, 4497.5))
   expect_equal(round(range(f0[2]), 4), c(0.0130, 0.6112))
 })
+
+# Tidy up
+unlink(tmp, recursive = T)

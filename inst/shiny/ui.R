@@ -9,11 +9,9 @@ library(shinyjs)
 library(shinythemes)
 library(shinyWidgets)
 library(shinyBS)
-library(shinyEventLogger)
 library(dplyr)
 library(plotly)
 library(DT)
-#library(bslib)
 
 # Name keys for human readable column names ----
 load("data/namekey.RData")
@@ -34,54 +32,72 @@ labelMandatory <- function(label) {
 inputUserid <- function(inputId, value='') {
   #   print(paste(inputId, "=", value))
   tagList(
-    singleton(tags$head(tags$script(src = "js/md5.js", type='text/javascript'))),
-    singleton(tags$head(tags$script(src = "js/shinyBindings.js", type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/md5.js",
+                                    type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/shinyBindings.js",
+                                    type='text/javascript'))),
     tags$body(onload="setvalues()"),
-    tags$input(id = inputId, class = "userid", value=as.character(value), type="text", style="display:none;")
+    tags$input(id = inputId, class = "userid", value=as.character(value),
+               type = "text", style = "display:none;")
   )
 }
 
 inputIp <- function(inputId, value=''){
   tagList(
-    singleton(tags$head(tags$script(src = "js/md5.js", type='text/javascript'))),
-    singleton(tags$head(tags$script(src = "js/shinyBindings.js", type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/md5.js",
+                                    type='text/javascript'))),
+    singleton(tags$head(tags$script(src = "js/shinyBindings.js",
+                                    type='text/javascript'))),
     tags$body(onload="setvalues()"),
-    tags$input(id = inputId, class = "ipaddr", value=as.character(value), type="text", style="display:none;")
+    tags$input(id = inputId, class = "ipaddr", value=as.character(value),
+               type = "text", style = "display:none;")
   )
 }
 
-css <- HTML(" body {
+css <- HTML(
+  "body {
     color: #fff;
-}")
+  }
+  .nav-tabs > li[class=active] > a,
+  .nav-tabs > li[class=active] > a:focus,
+  .nav-tabs > li[class=active] > a:hover
+  {
+    background-color: #000;
+  }"
+  )
 
 # CSS for star
 appCSS <-
   ".mandatory_star { color: red; }
     #loading_overlay {
-    position: absolute;
-    margin-top: 10%;
-    background: #000000;
-    opacity: 0.9;
-    z-index: 100;
-    left: 0;
-    right: 0;
-    height: 100%;
-    text-align: center;
-    color: #FFFFFF;
+      position: absolute;
+      margin-top: 10%;
+      background: #000000;
+      opacity: 0.9;
+      z-index: 100;
+      left: 0;
+      right: 0;
+      height: 100%;
+      text-align: center;
+      color: #f7f7f9;
     }"
 
-containerfunction <- function(...){
+containerfunction <- function(...) {
   div(
     style = "padding:8rem",
-    div(class = "jumbotron jumbotron-fluid", 
-        style = "border:solid #f7f7f9",
+    div(class = "jumbotron jumbotron-fluid",
+        style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5)",
         align = "justify", ... ))
 }
 
-columnformat <- function(){
-  '
-  background-color:#110049;
-  padding: 1rem'  
+columnformat <- function() {
+  # 'background-color:rgba(0, 0, 0, 0.5);
+  # padding-bottom: 2rem'
+}
+
+bodyformat <- function() {
+  # 'background-color:rgba(0, 0, 0, 0.5);
+  # padding-bottom: 2rem'
 }
 
 #linefunction <- function(...){
@@ -90,38 +106,27 @@ columnformat <- function(){
 
 # UI ----
 ui <- fluidPage(
+
+  #Script for all pages ----
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
-  shinyEventLogger::log_init(),
-  tags$head(tags$style(css)),
   inputIp("ipid"),
   inputUserid("fingerprint"),
  # tags$head(uiOutput("name_get")),
-  tags$head(uiOutput("analytics")), # Google analytics.
-  #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
-  theme = shinytheme("cyborg"), # Change this for other themes
-  tags$head( #This is for the error messages.
-    tags$style(HTML("
+  tags$head(tags$style(css),
+            tags$style(HTML("
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
                     }
-                    "))),
-    # This will allow us to reference tabs in other tabs and create links
-    # see https://stackoverflow.com/questions/36412407/shiny-add-link-to-another-tabpanel-in-another-tabpanel/36426258
-    tags$head(
-      tags$script(HTML('var fakeClick = function(tabName) {
-                        var dropdownList = document.getElementsByTagName("a");
-                        for (var i = 0; i < dropdownList.length; i++) {
-                        var link = dropdownList[i];
-                        if(link.getAttribute("data-value") == tabName) {
-                        link.click();
-                        };
-                        }
-                        };
-                        '))),
+                    "))#This is for the error messages.
+  ), # Google analytics.
+  #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
+  theme = shinytheme("cyborg"), # Change this for other themes
 
- 
+  setBackgroundImage("jumbotron.png"),
+
   shinyjs::inlineCSS(appCSS),
 
+ #Startup ----
   div(
     id = "loading_overlay",
     h2("Loading Open Specy"),
@@ -144,21 +149,20 @@ ui <- fluidPage(
     ), windowTitle = "Open Specy"
   ),
   tabsetPanel(id = "tabs",
-              tabPanel("About", value = "tab0", 
-                       setBackgroundImage("jumbotron.png"),
+              tabPanel("About", value = "tab0",
                          containerfunction(
-                           h1("Overview"), 
+                           h2("Overview"),
                              p(class = "lead", "More than 800 people from around ",
                                "the world have used Open Specy to ",
                                "analyze, share, process, and identify ",
                                "their Raman and IR spectra.")
                             ),
                          containerfunction(
-                           h1("Video Tutorial"),
-                                 HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+                           h2("Video Tutorial"),
+                                 HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                               ),
                        containerfunction(
-                         h1("Instructions"),
+                         h2("Instructions"),
                          p(class = "lead", "In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
                                   If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
@@ -168,9 +172,9 @@ ui <- fluidPage(
                            onclick = "window.open('https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy/blob/main/vignettes/sop.html', '_blank')",
                            class="btn btn-primary btn-lg")
                        ),
-                       
+
                           containerfunction(
-                            h1("Download Open Data"),
+                            h2("Download Open Data"),
                             p(class = "lead", "Reference spectra was sourced from open access resources ",
                                 "online, peer reviewed publications, and corporate donations. In the future, ",
                                 "spectra that is uploaded to the tool will be incorporated to the reference ",
@@ -184,14 +188,14 @@ ui <- fluidPage(
                               ),
 
                             containerfunction(
-                              h1("Tool Validation"),
+                              h2("Tool Validation"),
                               p(class = "lead", "All parameters in this tool are tested to validate that ",
                                 "the tool is functioning as best as possible and determine the best default ",
                                 "parameters to use. Our current validation proceedure includes correcting ",
                                 "duplicated entries in the reference libraries, checking for spectra in ",
                                 "metadata that isn't in the spectral library, and ensuring the the default ",
                                 "parameters provide over 80% accuracy in the first match."
-                                ), 
+                                ),
                               div(
                                 a("Detailed Validation Procedure",
                                          onclick = "window.open('https://docs.google.com/document/d/1Zd2GY4bWIwegGeE4JpX8O0S5l_IYju0sLDl1ddTTMxU/edit?usp=sharing', '_blank')",
@@ -201,7 +205,7 @@ ui <- fluidPage(
 
 
                        containerfunction(
-                         h1("Updates, Feature Requests, and Bug Reports"),
+                         h2("Updates, Feature Requests, and Bug Reports"),
                          p(class = "lead", "We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub."),
                          div(
                            a("Updates, Feature Requests, Bug Reports",
@@ -210,9 +214,9 @@ ui <- fluidPage(
                          )
 
                        ),
-                               
+
                       containerfunction(
-                        h1("Contribute Spectra"),
+                        h2("Contribute Spectra"),
                         p(class = "lead", "To share spectra upload a file to the upload file tab. ",
                           "If you selected Share a copy of your spectra will be sent to the Community ",
                           "Data Warehouse on Open Science Framework. To add additional metadata, ",
@@ -226,9 +230,9 @@ ui <- fluidPage(
                                                 class="btn btn-primary btn-lg")
                             )
                          ),
-                      
+
                        containerfunction(
-                         h1("Contribute time"),
+                         h2("Contribute time"),
                          p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com</h5>"),
                                 div(
                                      a("Community Contribution Guidelines",
@@ -236,19 +240,19 @@ ui <- fluidPage(
                                                 class="btn btn-primary btn-lg")
                                   )
                                 ),
-                        
+
                       containerfunction(
-                        h1("Stay up to date!"),
+                        h2("Stay up to date!"),
                         p(class = "lead", "Follow us on Twitter @OpenSpecy. Email wincowger@gmail.com to be added to the mailing list.")
                       ),
-                      
+
                       containerfunction(
-                        h1("Citation"), 
+                        h2("Citation"),
                         p(class = "lead", citation)
                       ),
-                      
+
                       containerfunction(
-                        h1("Useful Links"),
+                        h2("Useful Links"),
                         a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software"),
                         p(),
                         a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher"),
@@ -259,12 +263,12 @@ ui <- fluidPage(
                       ),
 
                        containerfunction(
-                         h1("Terms And Conditions"),
+                         h2("Terms And Conditions"),
                          pre(includeText("www/TOS.txt"))
                        ),
-                        
+
                       containerfunction(
-                        h1("Privacy Policy"),
+                        h2("Privacy Policy"),
                         pre(includeText("www/privacy_policy.txt"))
                       ),
               ),
@@ -277,7 +281,7 @@ ui <- fluidPage(
                                 tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File"),
 
                                 prettySwitch("share_decision",
-                                             label = "Share File?",
+                                             label = "Share Your Data?",
                                              inline = T,
                                              value = T,
                                              status = "success",
@@ -285,8 +289,8 @@ ui <- fluidPage(
                                 bsPopover(
                                   id = "share_decision",
                                   title = "Share Help",
-                                  content = c("We share any uploaded spectra with the spectroscopy community if you like.",
-                                              "By default, the data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).",
+                                  content = c("If you lile, we share your uploaded spectra and settings with the spectroscopy community.",
+                                              "By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).",
                                               "Uploaded spectra will appear here: https://osf.io/rjg3c"),
                                   placement = "bottom",
                                   trigger = "hover"
@@ -306,7 +310,7 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "click"
                                 ),
-                                
+
                                 radioButtons("intensity_corr", "Intensity Adjustment",
                                              c("None" = "none",
                                                "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
@@ -329,10 +333,10 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
-                                
+
                                 tags$br(),
-                                
-                                tags$div(downloadButton('download_testdata', 'Sample File')), 
+
+                                tags$div(downloadButton('download_testdata', 'Sample File')),
                                 bsPopover(
                                   id = "download_testdata",
                                   title = "Sample Data Help",
@@ -340,9 +344,9 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
-                                
+
                                 tags$br(),
-                                
+
                                 actionButton("share_meta", "Metadata Input"),
                                 bsPopover(
                                   id = "share_meta",
@@ -441,7 +445,8 @@ ui <- fluidPage(
 
 
                          column(10,
-                                plotlyOutput('MyPlot')
+                                plotlyOutput('MyPlot'),
+                                style = bodyformat()
 
                          ),
                          ),
@@ -573,10 +578,11 @@ ui <- fluidPage(
                                   )
                                 )
                             ),
-                         
+
 
                          column(10,
-                                plotlyOutput('MyPlotB')
+                                plotlyOutput('MyPlotB'),
+                                style = bodyformat()
 
                          )),
                        hr(),
@@ -631,10 +637,13 @@ ui <- fluidPage(
                          column(7,
 
                                 plotlyOutput('MyPlotC'),
-                                DT::dataTableOutput('eventmetadata')
+                                DT::dataTableOutput('eventmetadata'),
+                                style = bodyformat()
 
                          ),
-                         column(3, DT::dataTableOutput('event'))),
+                         column(3, DT::dataTableOutput('event'),
+                                style = bodyformat()
+                                )),
 
 
                        hr(),
@@ -687,3 +696,7 @@ ui <- fluidPage(
   )
 )
 ))
+
+
+#Ideas
+# see https://stackoverflow.com/questions/36412407/shiny-add-link-to-another-tabpanel-in-another-tabpanel/36426258

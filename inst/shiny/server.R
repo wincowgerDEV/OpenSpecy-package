@@ -3,6 +3,13 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 #'
+#'
+# Check for Auth Tokens and setup, you can change these to test the triggering
+# of functions without removing the files.
+droptoken <- file.exists("data/droptoken.rds")
+db <- file.exists(".db_url")
+translate <- file.exists("www/googletranslate.html")
+
 # Libraries ----
 library(shiny)
 library(shinyjs)
@@ -12,23 +19,30 @@ library(plotly)
 library(data.table)
 library(DT)
 library(digest)
-library(rdrop2)
 library(curl)
 library(config)
+library(mongolite)
+library(loggit)
+
+if(droptoken) library(rdrop2)
+
 #devtools::install_github("wincowgerDEV/OpenSpecy")
 library(OpenSpecy)
-library(ids)
-library(shinyEventLogger)
 
 #library(future)
 #library(bslib)
 
-if(file.exists(".db_url")){
-  set_logging(js_console = F, database = T)
-}
-
-# Required Data ----
+# Global config ----
 conf <- config::get()
+
+# Logging ----
+if(conf$log) {
+  if(db) {
+    database <- mongo(url = readLines(".db_url"))
+  } else {
+    set_logfile(file.path(tempdir(), "OpenSpecy.log"))
+  }
+}
 
 # Load all data ----
 load_data <- function() {
@@ -39,12 +53,10 @@ load_data <- function() {
   # Check if spectral library is present and load
   test_lib <- class(tryCatch(check_lib(path = conf$library_path),
                              warning = function(w) {w}))
+
   if(any(test_lib == "warning")) get_lib(path = conf$library_path)
 
   spec_lib <- load_lib(path = conf$library_path)
-
-  # Check for Auth Tokens and setup
-  droptoken <- file.exists("data/droptoken.rds")
 
   if(droptoken) {
     drop_auth(rdstoken = "data/droptoken.rds")
@@ -53,7 +65,7 @@ load_data <- function() {
   # Name keys for human readable column names
   load("data/namekey.RData")
 
-  # Inject variables into the parent
+  # Inject variables into the parent environment
   invisible(list2env(as.list(environment()), parent.frame()))
 }
 
@@ -62,107 +74,69 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-    sessionid <- random_id(n = 1)
-    
-    #User event logging ----
-    if(file.exists(".db_url")){ #Should also allow people to disable these options.
-      set_logging_session()
-      log_event(sessionid)
-      observe(
-        log_value(input$intensity_corr)
-      )
-      observe(
-        log_value(digest::digest(preprocessed_data(), algo = "md5"))
-      )   
-      observe(
-        log_value(input$smoother)
-      )
-      observe(
-        log_value(input$baseline)
-      )
-      observe(
-        log_value(input$MinRange)
-      )
-      observe(
-        log_value(input$MaxRange)
-      )
-      observe(
-        log_value(input$event_rows_selected)
-      )
-      observe(
-        log_value(input$smooth_decision)
-      )
-      observe(
-        log_value(input$baseline_decision)
-      )
-      observe(
-        log_value(input$range_decision)
-      )
-      observe(
-        log_value(input$Spectra)
-      )
-      observe(
-        log_value(input$Data)
-      )
-      observe(
-        log_value(input$Library)
-      )
-      observe(
-        log_value(input$fingerprint)
-      )
-      observe(
-        log_value(input$ipid)
-      )
-    }
-  
+
+  session_id <- digest(runif(10))
+
   # Loading overlay
   load_data()
   hide(id = "loading_overlay", anim = TRUE, animType = "fade")
   show("app_content")
 
-  # For desktop version of the app.
-  if (!interactive()) {
-    session$onSessionEnded(function() {
-      stopApp()
-      q("no")
-    })
-  }
+# For desktop version of the app.
+#  if (!interactive()) {
+#    session$onSessionEnded(function() {
+#      stopApp()
+#      q("no")
+#    })
+#  }
+
+  # Sharing ID
+  id <- reactive({
+    if (!is.null(input$fingerprint)) {
+      paste(input$fingerprint, session_id, sep = "/")
+    } else {
+      paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")
+    }
+  })
 
   # Save the metadata and data submitted upon pressing the button
   observeEvent(input$submit, {
-    if (input$share_decision & droptoken)
-      #share <- conf$share else share <- NULL
-        UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_form.csv", sep = "")
-        write.table(sapply(names(namekey)[1:24], function(x) input[[x]]), file = location_data, col.names = F)
-        sout <- tryCatch(drop_upload(location_data, path = dirname(location_data), mode = "add"), 
-                 warning = function(w) {w}, error = function(e) {e})
+    if (input$share_decision & !is.null(data()) & curl::has_internet()) {
+      withProgress(message = "Sharing Metadata",
+                   value = 3/3, {
+        sout <- tryCatch(share_spec(
+          data = preprocessed_data(),
+          metadata = sapply(names(namekey)[c(1:24,32)], function(x) input[[x]]),
+          share = conf$share,
+          id = id()),
+          warning = function(w) {w}, error = function(e) {e})
+
         if (inherits(sout, "simpleWarning") | inherits(sout, "simpleError"))
-            mess <- sout$message
-          
-            if (is.null(sout)) {
-              show_alert(
-                title = "Thank you for sharing your data!",
-                text = "Your data will soon be available at https://osf.io/stmv4/",
-                type = "success"
-              )
-            } else {
-              show_alert(
-                title = "Something went wrong :-(",
-              text = paste0("All mandatory data added? R says: '", mess, "'. ",
-                            "Try again."),
-              type = "warning"
-            )
-          }
+          mess <- sout$message
 
+        if (is.null(sout)) {
+          show_alert(
+            title = "Thank you for sharing your data!",
+            text = "Your data will soon be available at https://osf.io/stmv4/",
+            type = "success"
+          )
+        } else {
+          show_alert(
+            title = "Something went wrong :-(",
+            text = paste0("All mandatory data added? R says: '", mess, "'. ",
+                          "Try again."),
+            type = "warning"
+          )
+        }
+      })
+    }
   })
-
 
   # Read in data when uploaded based on the file type
   preprocessed_data <- reactive({
     req(input$file1)
-    inFile <- input$file1
-    filename <- as.character(inFile$datapath)
+    file <- input$file1
+    filename <- as.character(file$datapath)
 
     if (!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.[0-9]$)",
               ignore.case = T, filename)) {
@@ -174,40 +148,47 @@ server <- shinyServer(function(input, output, session) {
       stop()
       }
 
-    if (input$share_decision)
-      share <- conf$share else share <- NULL
+    if (input$share_decision & curl::has_internet()) {
+      share <- conf$share
+      progm <- "Sharing Spectrum to Community Library"
+      } else {
+        share <- NULL
+        progm <- "Reading Spectrum"
+      }
 
-    if(grepl("\\.csv$", ignore.case = T, filename)) {
-      rout <- tryCatch(read_text(inFile$datapath, method = "fread",
-                                 share = share),
-                       error = function(e) {e})
-    }
-    else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
-      rout <- tryCatch(read_0(inFile$datapath, share = share),
-                       error = function(e) {e})
-    }
-    else {
-      ex <- strsplit(basename(filename), split="\\.")[[1]]
+    withProgress(message = progm, value = 3/3, {
+      if(grepl("\\.csv$", ignore.case = T, filename)) {
+        rout <- tryCatch(read_text(filename, method = "fread",
+                                   share = share,
+                                   id = id()),
+                         error = function(e) {e})
+      }
+      else if(grepl("\\.[0-9]$", ignore.case = T, filename)) {
+        rout <- tryCatch(read_0(filename, share = share, id = id()),
+                         error = function(e) {e})
+      }
+      else {
+        ex <- strsplit(basename(filename), split="\\.")[[1]]
 
-      rout <- tryCatch(do.call(paste0("read_", tolower(ex[-1])),
-                               list(inFile$datapath, share = share)),
-                       error = function(e) {e})
-    }
+        rout <- tryCatch(do.call(paste0("read_", tolower(ex[-1])),
+                                 list(filename, share = share, id = id())),
+                         error = function(e) {e})
+      }
 
-    if (inherits(rout, "simpleError")) {
-      reset("file1")
-      show_alert(
-        title = "Something went wrong :-(",
-        text = paste0("R says: '", rout$message, "'. ",
-                      "If you uploaded a .csv file, make sure that the columns ",
-                      "are named 'wavenumber' and 'intensity'."),
-        type = "error"
-      )
-      stop()
-    } else {
-      rout
-    }
-
+      if (inherits(rout, "simpleError")) {
+        reset("file1")
+        show_alert(
+          title = "Something went wrong :-(",
+          text = paste0("R says: '", rout$message, "'. ",
+                        "If you uploaded a .csv file, make sure that the ",
+                        "columns are named 'wavenumber' and 'intensity'."),
+          type = "error"
+        )
+        stop()
+      } else {
+        rout
+      }
+    })
   })
 
   # Corrects spectral intensity units using the user specified correction
@@ -252,8 +233,9 @@ server <- shinyServer(function(input, output, session) {
       layout(yaxis = list(title = "absorbance intensity [-]"),
              xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                           autorange = "reversed"),
-             plot_bgcolor='rgb(17,0,73)',
-             paper_bgcolor='black', font = list(color = '#FFFFFF'))
+             plot_bgcolor = 'rgb(17,0,73)',
+             paper_bgcolor = 'transparent',
+             font = list(color = '#FFFFFF'))
   })
   output$MyPlotB <- renderPlotly({
     plot_ly(type = 'scatter', mode = 'lines') %>%
@@ -268,7 +250,8 @@ server <- shinyServer(function(input, output, session) {
       layout(yaxis = list(title = "absorbance intensity [-]"),
              xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                           autorange = "reversed"),
-             plot_bgcolor='rgb(17,0,73)', paper_bgcolor='black',
+             plot_bgcolor = 'rgb(17,0,73)',
+             paper_bgcolor = 'transparent',
              font = list(color = '#FFFFFF'))
   })
 
@@ -311,7 +294,7 @@ server <- shinyServer(function(input, output, session) {
               options = list(searchHighlight = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
                              lengthChange = FALSE, pageLength = 5),
-              filter = "top",caption = "Selectable Matches",
+              filter = "top", caption = "Selectable Matches",
               style = "bootstrap",
               selection = list(mode = "single", selected = c(1)))
   })
@@ -361,7 +344,8 @@ server <- shinyServer(function(input, output, session) {
                xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                             autorange = "reversed"),
                plot_bgcolor='rgb(17,0, 73)',
-               paper_bgcolor='black', font = list(color = '#FFFFFF'))
+               paper_bgcolor='transparent',
+               font = list(color = '#FFFFFF'))
     }
     else if(length(input$event_rows_selected)) {
       # Default to first row if not yet clicked
@@ -393,7 +377,8 @@ server <- shinyServer(function(input, output, session) {
         layout(yaxis = list(title = "absorbance intensity [-]"),
                xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                             autorange = "reversed"),
-               plot_bgcolor = "rgb(17,0, 73)", paper_bgcolor = "black",
+               plot_bgcolor = "rgb(17,0, 73)",
+               paper_bgcolor = "transparent",
                font = list(color = "#FFFFFF"))
     }})
 
@@ -414,7 +399,7 @@ server <- shinyServer(function(input, output, session) {
   )
 
   output$downloadData3 <- downloadHandler(
-    filename = function() {"raman_metadata.csv"},
+    filename = function() {"ftir_metadata.csv"},
     content = function(file) {fwrite(spec_lib[["ftir"]][["metadata"]], file)}
   )
 
@@ -433,7 +418,7 @@ server <- shinyServer(function(input, output, session) {
   # Hide functions which shouldn't exist when there is no internet or
   # when the API token doesn't exist
   observe({
-    if(droptoken) {
+    if((conf$share == "dropbox" & droptoken) | curl::has_internet()) {
       show("share_decision")
       show("share_meta")
     }
@@ -448,6 +433,8 @@ server <- shinyServer(function(input, output, session) {
       show("share_meta")
       } else {
         hide("share_meta")
+        sapply(names(namekey)[c(1:24,32)], function(x) hide(x))
+        hide("submit")
       }
   })
 
@@ -479,34 +466,58 @@ server <- shinyServer(function(input, output, session) {
     sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))
     toggle("submit")
   })
-  
-  # Session Files ----
-  observeEvent(input$file1, {
-      if(input$share_decision & droptoken){
-        output_dir = paste("data/users/", input$fingerprint, sep = "")
-        dir.create(output_dir)
-        dir.create(paste(output_dir, "/", sessionid, sep = ""))
-        
-        withProgress(message = 'Sharing Spectrum to Community Library', value = 3/3, {
-        inFile <- input$file1
-        UniqueID <- digest::digest(preprocessed_data(), algo = "md5") #Gets around the problem of people sharing data that is different but with the same name.
-        location_data <- paste("data/users/", input$fingerprint, "/", sessionid, "/", UniqueID, "_", inFile$name, sep = "")
-        file.copy(inFile$datapath, location_data)
-        drop_upload(location_data, path = dirname(location_data), mode = "add")
-      })
-    }
-  })
 
   output$translate <- renderUI({
-    if(file.exists("www/googletranslate.html")) {
+    if(translate & curl::has_internet()) {
       includeHTML("www/googletranslate.html")
     }
   })
 
-  output$analytics <- renderUI({
-    if(file.exists("data/google-analytics.js")){
-      includeScript("data/google-analytics.js")
+  # Log events ----
+
+  observe({
+    req(input$file1)
+    req(input$share_decision)
+    if(conf$log) {
+      if(db) {
+        database$insert(data.frame(user_name = input$fingerprint,
+                                   session_name = session_id,
+                                   intensity_adj = input$intensity_corr,
+                                   smoother = input$smoother,
+                                   smooth_decision = input$smooth_decision,
+                                   baseline = input$baseline,
+                                   baseline_decision = input$baseline_decision,
+                                   max_range = input$MinRange,
+                                   min_range = input$MaxRange,
+                                   range_decision = input$range_decision,
+                                   data_id = digest::digest(preprocessed_data(),
+                                                            algo = "md5"),
+                                   spectra_type = input$Spectra,
+                                   analyze_type = input$Data,
+                                   region_type = input$Library,
+                                   ipid = input$ipid,
+                                   time = human_ts()))
+      } else {
+        loggit("INFO", "trigger",
+               user_name = input$fingerprint,
+               session_name = session_id,
+               intensity_adj = input$intensity_corr,
+               smoother = input$smoother,
+               smooth_decision = input$smooth_decision,
+               baseline = input$baseline,
+               baseline_decision = input$baseline_decision,
+               max_range = input$MinRange,
+               min_range = input$MaxRange,
+               range_decision = input$range_decision,
+               data_id = digest::digest(preprocessed_data(), algo = "md5"),
+               spectra_type = input$Spectra,
+               analyze_type = input$Data,
+               region_type = input$Library,
+               ipid = input$ipid,
+               time = human_ts())
+      }
     }
+
   })
 
 })

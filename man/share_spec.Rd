@@ -20,7 +20,9 @@ share_spec(data, ...)
     laser_light_used = "", number_of_accumulations = "", total_acquisition_time_s = "",
     data_processing_procedure = "", level_of_confidence_in_identification = "",     
     other_info = "", license = "CC BY-NC"),
+  file = NULL,
   share = "system",
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
   ...
 )
 }
@@ -30,6 +32,8 @@ named \code{"wavenumber"} and \code{"intensity"}.}
 
 \item{metadata}{a named vector of the metadata to share; see details below.}
 
+\item{file}{file to share (optional).}
+
 \item{share}{accepts any local directory to save the spectrum for later
 sharing via e-mail to \email{wincowger@gmail.com};
 \code{"system"} (default) uses the Open Specy package directory at
@@ -37,14 +41,22 @@ sharing via e-mail to \email{wincowger@gmail.com};
 if a correct API token exists, \code{"dropbox"} shares the spectrum with the
 cloud.}
 
+\item{id}{a unique user and/or session ID; defaults to
+\code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}.}
+
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-\code{share_spec()} returns only messages/warnings
+\code{share_spec()} returns only messages/warnings.
 }
 \description{
 This helper function shares spectral data and metadata with the Open Specy
 community.
+
+\strong{Please note} that \code{share_spec()} only provides basic sharing
+functionality if used interactively. This means that files are only formatted
+and saved for sharing but are not send automatically. This only works with
+hosted instances of Open Specy.
 }
 \details{
 The \code{metadata} argument may contain a named vector with the following
@@ -103,12 +115,20 @@ creative commons license is allowed, for example, CC0 or CC BY \cr
 }
 }
 \examples{
+\dontrun{
 data("raman_hdpe")
-share_spec(raman_hdpe)
+share_spec(raman_hdpe,
+           metadata = c(user_name = "Win Cowger",
+                        spectrum_type = "FTIR",
+                        spectrum_identity = "PE",
+                        license = "CC BY-NC"),
+           share = tempdir())
+}
 
 }
 \seealso{
-\code{\link{read_text}()}
+\code{\link{read_text}()};
+\code{\link[digest]{digest}()}; \code{\link[utils]{sessionInfo}()}
 }
 \author{
 Zacharias Steinmetz, Win Cowger
