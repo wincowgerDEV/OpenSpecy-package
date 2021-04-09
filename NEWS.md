@@ -1,3 +1,22 @@
+# OpenSpecy 0.9.0
+
+## New Features
+
+- UI overhaul
+- Give more control to the user when starting via `run_app()`
+
+## Minor Improvements
+
+- Reverse spectral axes to comply with most wavenumber scales
+- Let users select metadata license
+- Improved data sharing and logging capabilities
+- Google Analytics removed
+
+## Bug Fixes
+
+- Use tempdir for unit tests and examples
+
+
 # OpenSpecy 0.8.2
 
 ## Minor Improvements

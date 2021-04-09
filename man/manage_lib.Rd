@@ -9,14 +9,14 @@
 check_lib(
   which = c("ftir", "raman"),
   types = c("metadata", "library", "peaks"),
-  path = system.file("extdata", package = "OpenSpecy"),
+  path = "system",
   condition = "warning"
 )
 
 get_lib(
   which = c("ftir", "raman"),
   types = c("metadata", "library", "peaks"),
-  path = system.file("extdata", package = "OpenSpecy"),
+  path = "system",
   node = "x7dpz",
   conflicts = "overwrite",
   ...
@@ -25,7 +25,7 @@ get_lib(
 load_lib(
   which = c("ftir", "raman"),
   types = c("metadata", "library", "peaks"),
-  path = system.file("extdata", package = "OpenSpecy")
+  path = "system"
 )
 }
 \arguments{
@@ -35,7 +35,9 @@ load_lib(
 \item{types}{library types to check/retrieve; defaults to
 \code{c("metadata", "library", "peaks")}.}
 
-\item{path}{where to save or look for local library files.}
+\item{path}{where to save or look for local library files; defaults to
+\code{"system"} pointing to
+\code{system.file("extdata", package = "OpenSpecy")}.}
 
 \item{condition}{determines if \code{check_lib()} should warn
 (\code{"warning"}, the default) or throw and error (\code{"error"}).}

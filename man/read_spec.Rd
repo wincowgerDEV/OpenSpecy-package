@@ -10,22 +10,54 @@
 \alias{read_extdata}
 \title{Read spectral data}
 \usage{
-read_text(file = ".", cols = NULL, method = "read.csv", share = NULL, ...)
+read_text(
+  file = ".",
+  cols = NULL,
+  method = "read.csv",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
-read_asp(file = ".", share = NULL, ...)
+read_asp(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
-read_spa(file = ".", share = NULL, ...)
+read_spa(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
-read_jdx(file = ".", share = NULL, ...)
+read_jdx(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
-read_spc(file = ".", share = NULL, ...)
+read_spc(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
-read_0(file = ".", share = NULL, ...)
+read_0(
+  file = ".",
+  share = NULL,
+  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  ...
+)
 
 read_extdata(file = NULL)
 }
 \arguments{
-\item{file}{file you to from.}
+\item{file}{file to be read from.}
 
 \item{cols}{character vector of \code{length = 2} indicating the colum names
 for the wavenumber and intensity; if \code{NULL} columns are guessed.}
@@ -35,6 +67,9 @@ for the wavenumber and intensity; if \code{NULL} columns are guessed.}
 
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
+
+\item{id}{a unique user and/or session ID; defaults to
+\code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
