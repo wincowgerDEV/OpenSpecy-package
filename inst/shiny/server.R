@@ -479,7 +479,7 @@ server <- shinyServer(function(input, output, session) {
     req(input$file1)
     req(input$share_decision)
     if(conf$log) {
-      if(db & conf$log) {
+      if(db) {
         database$insert(data.frame(user_name = input$fingerprint,
                                    session_name = session_id,
                                    intensity_adj = input$intensity_corr,
