@@ -289,7 +289,7 @@ ui <- fluidPage(
                                 bsPopover(
                                   id = "share_decision",
                                   title = "Share Help",
-                                  content = c("If you lile, we share your uploaded spectra and settings with the spectroscopy community.",
+                                  content = c("If you like, we share your uploaded spectra and settings with the spectroscopy community.",
                                               "By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).",
                                               "Uploaded spectra will appear here: https://osf.io/rjg3c"),
                                   placement = "bottom",
