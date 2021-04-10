@@ -4,6 +4,14 @@ data("test_lib")
 tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
 
+test_that("stop if OSF not reachable", {
+  skip_if_not(is.null(curl::nslookup("osf.io", error = F)),
+              message = "OSF is online")
+
+  expect_error(load_lib(which = "test", type = c("metadata", "library"),
+                        path = tmp))
+})
+
 test_that("get_lib() downloads test library", {
   skip_if_offline(host = "osf.io")
 
