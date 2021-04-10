@@ -8,33 +8,28 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 note
+0 errors | 0 warnings | 1 note
+
+* Days since last update: 1
 
 
 ## Reviewer comments
 
 Dear maintainer,
 
-Pls see
-<https://cran.r-project.org/web/checks/check_results_OpenSpecy.html>
+Please see the problems shown on
+<https://cran.r-project.org/web/checks/check_results_OpenSpecy.html>.
 
-The check problems on the Debian systems are caused by attempts to write
-to the user library to which all packages get installed before checking
-(and which now is remounted read-only for checking).
+Please correct before 2021-04-23 to safely retain your package on CRAN.
 
-Having package code which is run as part of the checks and attempts to
-write to the user library violates the CRAN Policy's
+It seems we need to remind you of the CRAN policy:
 
-  Packages should not write in the user’s home filespace (including
-  clipboards), nor anywhere else on the file system apart from the R
-  session’s temporary directory (or during installation in the location
-  pointed to by TMPDIR: and such usage should be cleaned up).
+'Packages which use Internet resources should fail gracefully with an informative message
+if the resource is not available or has changed (and not give a check warning nor error).'
 
-Please correct before 2021-04-16 to safely retain your package on CRAN.
+This needs correction whether or not the resource recovers.
 
--k
+The CRAN Team
 
-> Fixed. Package functions only write to the local file system if prompted by
-> the user. All functions allow for changing paths to write to.
-> Functions called for CI testing and examples now write to tempdir()
-> which is tidied up after use.
+> Sorry for the inconvenience. We reviewed CRAN's policy on source packages once
+> more and fixed our checking routines accordingly.
