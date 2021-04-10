@@ -1,3 +1,11 @@
+# OpenSpecy 0.9.1
+
+## Bug Fixes
+
+- Checks fail gracefully if api.osf.io is not reachable
+- Adjust UI selectors to comply with inverse axis and not exceed ranges
+
+
 # OpenSpecy 0.9.0
 
 ## New Features
