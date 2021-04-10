@@ -626,8 +626,8 @@ ui <- fluidPage(
                                               "Peaks Only" = "peaks")),
                                 bsPopover(
                                   id = "Library",
-                                  title = "Region To Match Help",
-                                  content = c("This selection will determine whether the the library you are matching to consists of the full spectrum or only spectrum peaks."),
+                                  title = "Region to Match Help",
+                                  content = c("This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks."),
                                   placement = "bottom",
                                   trigger = "hover"
                                 )
