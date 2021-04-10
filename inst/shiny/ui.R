@@ -169,7 +169,7 @@ ui <- fluidPage(
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
                                   uploaded or processed data will be presented in an interactive plot and table."),
                          a("Detailed Standard Operating Procedure",
-                           onclick = "window.open('https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy/blob/main/vignettes/sop.html', '_blank')",
+                           onclick = "window.open('https://cran.r-project.org/web/packages/OpenSpecy/vignettes/sop.html', '_blank')",
                            class="btn btn-primary btn-lg")
                        ),
 
