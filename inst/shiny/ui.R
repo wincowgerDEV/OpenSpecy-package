@@ -233,7 +233,7 @@ ui <- fluidPage(
 
                        containerfunction(
                          h2("Contribute time"),
-                         p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com</h5>"),
+                         p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com"),
                                 div(
                                      a("Community Contribution Guidelines",
                                                 onclick = "window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')",
@@ -243,7 +243,7 @@ ui <- fluidPage(
 
                       containerfunction(
                         h2("Stay up to date!"),
-                        p(class = "lead", "Follow us on Twitter @OpenSpecy. Email wincowger@gmail.com to be added to the mailing list.")
+                        p(class = "lead", "Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.")
                       ),
 
                       containerfunction(
@@ -253,13 +253,13 @@ ui <- fluidPage(
 
                       containerfunction(
                         h2("Useful Links"),
-                        a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software"),
+                        a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software", class = "lead"),
                         p(),
-                        a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher"),
+                        a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher", class = "lead"),
                         p(),
-                        a(href = "https://micro.magnet.fsu.edu/primer/", "Free Optical Microscopy Learning Resource from Florida State University"),
+                        a(href = "https://micro.magnet.fsu.edu/primer/", "Free Optical Microscopy Learning Resource from Florida State University", class = "lead"),
                         p(),
-                        a(href = "https://www.effemm2.de/spectragryph/index.html", "Free desktop application for spectral analysis and links to reference databases.")
+                        a(href = "https://www.effemm2.de/spectragryph/index.html", "Free desktop application for spectral analysis and links to reference databases.", class = "lead")
                       ),
 
                        containerfunction(
