@@ -67,10 +67,9 @@
 #' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
 #' object of choice
 #'
-#' @importFrom magrittr %>%
 #' @importFrom rlang .data
 #' @importFrom stats approx cor
-#' @importFrom dplyr inner_join rename group_by mutate group_by ungroup summarize select arrange desc top_n
+#' @importFrom dplyr %>% inner_join mutate group_by ungroup summarize select arrange desc top_n
 #'
 #' @export
 match_spec <- function(x, ...) {
@@ -113,19 +112,19 @@ match_spec.default <- function(x, y, library, which = NULL, type = "full",
   meta <- library[[which]][["metadata"]]
 
   wls <- range[range >= min(x) & range <= max(x)]
+  aprx <- approx(x, y, xout = wls, rule = 2, method = "linear", ties = mean) %>%
+    data.frame()
+  names(aprx) <- c("wavenumber", "baseline_remove")
 
   m <- lib %>%
-    inner_join(dplyr::rename(data.frame(approx(x, y, xout = wls, rule = 2,
-                                               method = "linear", ties = mean)),
-                             "wavenumber" = .data$x), by = "wavenumber") %>%
-    dplyr::rename("baseline_remove" = .data$y) %>%
+    inner_join(aprx, by = "wavenumber") %>%
     group_by(.data$group, .data$sample_name) %>%
     mutate(baseline_remove = .data$baseline_remove -
              min(.data$baseline_remove)) %>%
     ungroup() %>%
     mutate(baseline_remove = make_rel(.data$baseline_remove)) %>%
     group_by(.data$sample_name) %>%
-    dplyr::summarize(rsq = cor(.data$intensity, .data$baseline_remove)) %>%
+    summarize(rsq = cor(.data$intensity, .data$baseline_remove)) %>%
     top_n(top_n, .data$rsq) %>%
     inner_join(select(meta, -.data$rsq), by = "sample_name") %>%
     select(.data$sample_name, .data$spectrum_identity, .data$rsq,
