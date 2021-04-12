@@ -22,7 +22,7 @@
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
-#' @importFrom magrittr %>%
+#' @importFrom dplyr %>%
 #' @export
 spec_res <- function(x) {
   (max(x) - min(x)) / length(x)
