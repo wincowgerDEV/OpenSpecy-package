@@ -100,7 +100,7 @@
 #' \code{\link{read_text}()};
 #' \code{\link[digest]{digest}()}; \code{\link[utils]{sessionInfo}()}
 #'
-#' @importFrom magrittr %>%
+#' @importFrom dplyr %>%
 #' @importFrom digest digest
 #' @importFrom utils write.csv sessionInfo
 #'

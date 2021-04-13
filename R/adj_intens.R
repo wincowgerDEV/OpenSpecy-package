@@ -47,7 +47,7 @@
 #' \code{\link{match_spec}()} matches spectra with the Open Specy or other
 #' reference libraries
 #'
-#' @importFrom magrittr %>%
+#' @importFrom dplyr %>%
 #' @export
 adj_intens <- function(x, ...) {
   UseMethod("adj_intens")

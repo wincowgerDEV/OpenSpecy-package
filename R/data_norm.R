@@ -38,7 +38,7 @@
 #' \code{\link[base]{min}()} for the calculation of minima;
 #' \code{\link{adj_intens}()} for log transformation functions
 #'
-#' @importFrom magrittr %>%
+#' @importFrom dplyr %>%
 #' @export
 adj_neg <- function(x, na.rm = FALSE) {
   if (min(x, na.rm = na.rm) < 1) {

@@ -44,9 +44,8 @@ VignetteBuilder: knitr
 Depends:
     R (>= 4.0.0)
 Imports:
-    magrittr,
-    rlang,
     dplyr,
+    rlang,
     osfr,
     hyperSpec,
     hexView,

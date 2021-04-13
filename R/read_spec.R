@@ -43,7 +43,7 @@
 #' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
 #' \code{\link[hexView]{readRaw}()}; \code{\link{share_spec}()}
 #'
-#' @importFrom magrittr %>%
+#' @importFrom dplyr %>%
 #' @export
 read_text <- function(file = ".", cols = NULL, method = "read.csv",
                       share = NULL, id = paste(digest(Sys.info()),
