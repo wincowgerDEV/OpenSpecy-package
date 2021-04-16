@@ -16,10 +16,14 @@ library(DT)
 # Name keys for human readable column names ----
 load("data/namekey.RData")
 
-citation <- paste0("W. Cowger, Z. Steinmetz, A. Gray, H. Hapich, C. Rochman, ",
-                   "J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. ",
-                   "2020. Open Specy v", packageVersion("OpenSpecy"),
-                   ". www.openspecy.org")
+pkgdesc <- packageDescription("OpenSpecy")
+citation <- paste(paste(
+  format(as.personList(utils:::.read_authors_at_R_field(pkgdesc$`Authors@R`)),
+  include = c("given", "family")), collapse = ", "),
+  paste0("(", format(as.Date(pkgdesc$Date), "%Y"), ")."),
+  "Open Specy",
+  paste0("v", pkgdesc$Version, "."),
+  "www.openspecy.org")
 
 # Functions ----
 labelMandatory <- function(label) {
