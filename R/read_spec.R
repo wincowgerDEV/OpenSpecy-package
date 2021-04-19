@@ -53,15 +53,22 @@ read_text <- function(file = ".", cols = NULL, method = "read.csv",
   df <- do.call(method, list(file, ...)) %>%
     data.frame()
 
-  if (all(grepl("^X[0-9]*", names(df)))) stop("missing header; ",
+  if (all(grepl("^X[0-9]*", names(df)))) stop("missing header: ",
                                               "use 'header = FALSE' or an ",
                                               "alternative read method")
 
   # Try to guess column names
   if (is.null(cols)) {
-    cols <- c(names(df)[grep("(wav*)|(^V1$)", ignore.case = T, names(df))][1L],
-              names(df)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)|(^V2$)",
-                             ignore.case = T, names(df))][1L])
+    if (all(grepl("^V[0-9]*", names(df)))) {
+      cols <- 1:2
+      warning("missing header: guessing 'wavenumber' and 'intensity' data ",
+              "from the first two columns; use 'cols' to supply user-defined ",
+              "columns")
+    } else {
+      cols <- c(names(df)[grep("(wav*)", ignore.case = T, names(df))][1L],
+                names(df)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)",
+                               ignore.case = T, names(df))][1L])
+    }
   }
   if (any(is.na(cols))) stop("undefined columns selected; columns should be ",
                              "named 'wavenumber' and 'intensity'")

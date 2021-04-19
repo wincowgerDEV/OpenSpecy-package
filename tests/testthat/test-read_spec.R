@@ -2,6 +2,8 @@
 tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
 
+library(data.table)
+
 test_that("extdata files are present", {
   ed <- read_extdata()
   expect_true(any(grepl("\\.asp$", ed)))
@@ -13,17 +15,25 @@ test_that("extdata files are present", {
 })
 
 test_that("read_text() gives expected output", {
-  expect_silent(txt <- read_text(read_extdata("raman_hdpe.csv")))
+  expect_silent(csv <- read_text(read_extdata("raman_hdpe.csv")))
   expect_warning(
     expect_message(read_text(read_extdata("raman_hdpe.csv"), share = tmp))
   )
+  expect_silent(
+    dtf <- read_text(read_extdata("raman_hdpe.csv"), method = "fread")
+  )
   expect_error(read_text(read_extdata("ftir_pva_without_header.csv")))
-  expect_silent(read_text(read_extdata("ftir_pva_without_header.csv"), header = F))
-  expect_s3_class(txt, "data.frame")
-  expect_equal(names(txt), c("wavenumber", "intensity"))
-  expect_equal(nrow(txt), 1095)
-  expect_equal(round(range(txt[1]), 1), c(150.9, 2998.5))
-  expect_equal(round(range(txt[2]), 1), c(3264.2, 41238.9))
+  expect_warning(read_text(read_extdata("ftir_pva_without_header.csv"),
+                           header = F))
+  expect_warning(
+    read_text(read_extdata("ftir_pva_without_header.csv"), method = "fread")
+  )
+  expect_s3_class(csv, "data.frame")
+  expect_equal(names(csv), c("wavenumber", "intensity"))
+  expect_equal(nrow(csv), 1095)
+  expect_equal(round(range(csv[1]), 1), c(150.9, 2998.5))
+  expect_equal(round(range(csv[2]), 1), c(3264.2, 41238.9))
+  expect_equal(csv, dtf)
 })
 
 test_that("read_asp() gives expected output", {
