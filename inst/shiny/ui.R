@@ -21,8 +21,8 @@ citation <- paste(paste(
   format(as.personList(utils:::.read_authors_at_R_field(pkgdesc$`Authors@R`)),
   include = c("given", "family")), collapse = ", "),
   paste0("(", format(as.Date(pkgdesc$Date), "%Y"), ")."),
-  "Open Specy",
-  paste0("v", pkgdesc$Version, "."),
+  paste0("Open Specy: ", pkgdesc$Title, "."),
+  paste0("Version ", pkgdesc$Version, "."),
   "www.openspecy.org")
 
 # Functions ----
