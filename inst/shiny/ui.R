@@ -16,10 +16,14 @@ library(DT)
 # Name keys for human readable column names ----
 load("data/namekey.RData")
 
-citation <- paste0("W. Cowger, Z. Steinmetz, A. Gray, H. Hapich, C. Rochman, ",
-                   "J. Lynch, S. Primpke, K. Munno, H. De Frond, O. Herodotou. ",
-                   "2020. Open Specy v", packageVersion("OpenSpecy"),
-                   ". www.openspecy.org")
+pkgdesc <- packageDescription("OpenSpecy")
+citation <- paste(paste(
+  format(as.personList(utils:::.read_authors_at_R_field(pkgdesc$`Authors@R`)),
+  include = c("given", "family")), collapse = ", "),
+  paste0("(", format(as.Date(pkgdesc$Date), "%Y"), ")."),
+  paste0("Open Specy: ", pkgdesc$Title, "."),
+  paste0("Version ", pkgdesc$Version, "."),
+  "www.openspecy.org")
 
 # Functions ----
 labelMandatory <- function(label) {
@@ -169,7 +173,7 @@ ui <- fluidPage(
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
                                   uploaded or processed data will be presented in an interactive plot and table."),
                          a("Detailed Standard Operating Procedure",
-                           onclick = "window.open('https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy/blob/main/vignettes/sop.html', '_blank')",
+                           onclick = "window.open('https://cran.r-project.org/web/packages/OpenSpecy/vignettes/sop.html', '_blank')",
                            class="btn btn-primary btn-lg")
                        ),
 
@@ -233,7 +237,7 @@ ui <- fluidPage(
 
                        containerfunction(
                          h2("Contribute time"),
-                         p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com</h5>"),
+                         p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com"),
                                 div(
                                      a("Community Contribution Guidelines",
                                                 onclick = "window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')",
@@ -243,7 +247,7 @@ ui <- fluidPage(
 
                       containerfunction(
                         h2("Stay up to date!"),
-                        p(class = "lead", "Follow us on Twitter @OpenSpecy. Email wincowger@gmail.com to be added to the mailing list.")
+                        p(class = "lead", "Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.")
                       ),
 
                       containerfunction(
@@ -253,13 +257,13 @@ ui <- fluidPage(
 
                       containerfunction(
                         h2("Useful Links"),
-                        a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software"),
+                        a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software", class = "lead"),
                         p(),
-                        a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher"),
+                        a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher", class = "lead"),
                         p(),
-                        a(href = "https://micro.magnet.fsu.edu/primer/", "Free Optical Microscopy Learning Resource from Florida State University"),
+                        a(href = "https://micro.magnet.fsu.edu/primer/", "Free Optical Microscopy Learning Resource from Florida State University", class = "lead"),
                         p(),
-                        a(href = "https://www.effemm2.de/spectragryph/index.html", "Free desktop application for spectral analysis and links to reference databases.")
+                        a(href = "https://www.effemm2.de/spectragryph/index.html", "Free desktop application for spectral analysis and links to reference databases.", class = "lead")
                       ),
 
                        containerfunction(
@@ -626,8 +630,8 @@ ui <- fluidPage(
                                               "Peaks Only" = "peaks")),
                                 bsPopover(
                                   id = "Library",
-                                  title = "Region To Match Help",
-                                  content = c("This selection will determine whether the the library you are matching to consists of the full spectrum or only spectrum peaks."),
+                                  title = "Region to Match Help",
+                                  content = c("This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks."),
                                   placement = "bottom",
                                   trigger = "hover"
                                 )
