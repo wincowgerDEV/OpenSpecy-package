@@ -253,8 +253,15 @@ server <- shinyServer(function(input, output, session) {
              plot_bgcolor = 'rgb(17,0,73)',
              paper_bgcolor = 'transparent',
              font = list(color = '#FFFFFF')) %>%
-      config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape" ) )
+      config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape" ))
   })
+  
+  output$text <- renderText({ 
+    unlist(event_data(event = "plotly_relayout", priority = "input")[[1]][2])[1] == "x"
+    })
+  
+  #This is true whenever a line is created or removed. 
+  #unlist(event_data(event = "plotly_relayout", priority = "input")[[1]][2])[1] == "x"
 
   # Choose which spectrum to use
   DataR <- reactive({

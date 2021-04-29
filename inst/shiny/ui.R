@@ -586,6 +586,7 @@ ui <- fluidPage(
 
                          column(10,
                                 plotlyOutput('MyPlotB'),
+                                verbatimTextOutput(outputId = "text"),
                                 style = bodyformat()
 
                          )),
