@@ -118,12 +118,11 @@ read_spa <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
 
   trb <- file.path(file) %>% file(open = "rb", ...)
 
-  hdr <- trb %>% readLines(n = 10, skipNul = TRUE)
+  seek(trb, 576, origin = "start")
+  spr <- readBin(trb, "numeric", n = 2, size = 4)
 
-  res <- hdr[grepl("Resolution", hdr, useBytes = T)]
-
-  start <- strsplit(res, " ")[[1]][5] %>% as.numeric()
-  end <- strsplit(res, " ")[[1]][7] %>% as.numeric()
+  if (!all(spr >= 0 & spr <= 15000 & spr[1] > spr[2]))
+    stop("unknown spectral range")
 
   # Read the start offset
   seek(trb, 386, origin = "start")
@@ -143,7 +142,7 @@ read_spa <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
 
   close(trb)
 
-  df <- data.frame(wavenumber = seq(end, start, length = length(floatData)),
+  df <- data.frame(wavenumber = seq(spr[1], spr[2], length = length(floatData)),
                    intensity = floatData)
 
   if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
