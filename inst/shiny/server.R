@@ -237,6 +237,7 @@ server <- shinyServer(function(input, output, session) {
              paper_bgcolor = 'transparent',
              font = list(color = '#FFFFFF'))
   })
+  
   output$MyPlotB <- renderPlotly({
     plot_ly(type = 'scatter', mode = 'lines') %>%
       add_trace(data = baseline_data(), x = ~wavenumber, y = ~intensity,
@@ -256,8 +257,21 @@ server <- shinyServer(function(input, output, session) {
       config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape" ))
   })
   
-  output$text <- renderText({ 
-    unlist(event_data(event = "plotly_relayout", priority = "input")[[1]][2])[1] == "x"
+  output$text <- renderPrint({ 
+   nodes <- unlist(strsplit(
+             gsub("(L)|(M)", "_", 
+                  paste(unlist(event_data(event = "plotly_relayout", priority = "input")[[1]][8]), collapse = "")),
+             "(,)|(_)"))
+   nodes = nodes[-1]
+   df <- as.data.frame(matrix(nodes, ncol = 2, byrow = T))
+   names(df) <- c("wavelength", "intensity")
+   range <- seq(0, 6000, by = 0.1)
+   wls <- range[range >= min(baseline_data()$wavenumber) & range <= max(baseline_data()$wavenumber)]
+   aprx <- approx(df$wavelength, df$intensity, xout = wls, rule = 2, method = "linear", ties = mean) %>%
+     data.frame()
+   aprx
+   #dim(nodes) <- c(length(nodes)/2, 2)
+   #as.data.frame(nodes)
     })
   
   #This is true whenever a line is created or removed. 
