@@ -528,6 +528,7 @@ ui <- fluidPage(
                                     ),
                                 column(2,
                                        dropdownButton(inputId = "baseline_tools",
+                                                      selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
                                                       sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
                                                       icon = icon("gear"),
                                                       size = "xs",

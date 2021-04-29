@@ -219,8 +219,11 @@ server <- shinyServer(function(input, output, session) {
         mutate(intensity = if(input$smooth_decision) {
           smooth_intens(.$wavenumber, .$intensity, p = input$smoother)$intensity
         } else .$intensity) %>%
-        mutate(intensity = if(input$baseline_decision) {
+        mutate(intensity = if(input$baseline_decision & input$baseline_selection == "Polynomial") {
           subtr_bg(.$wavenumber, .$intensity, degree = input$baseline)$intensity
+          }
+          else if(input$baseline_decision & input$baseline_selection == "Manual"){
+            .$intensity - approx(trace()$V1, trace()$V2, xout = .$wavenumber, rule = 2, method = "linear", ties = mean)$y
           } else .$intensity)
     }
   })
@@ -257,21 +260,28 @@ server <- shinyServer(function(input, output, session) {
       config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape" ))
   })
   
-  output$text <- renderPrint({ 
+  
+trace <-  reactive({
+  req(!is.null(event_data(event = "plotly_relayout")$shapes$path))
+    pathinfo <- event_data(event = "plotly_relayout")$shapes$path
+    
    nodes <- unlist(strsplit(
              gsub("(L)|(M)", "_", 
-                  paste(unlist(event_data(event = "plotly_relayout", priority = "input")[[1]][8]), collapse = "")),
+                  paste(unlist(pathinfo), collapse = "")),
              "(,)|(_)"))
    nodes = nodes[-1]
    df <- as.data.frame(matrix(nodes, ncol = 2, byrow = T))
-   names(df) <- c("wavelength", "intensity")
-   range <- seq(0, 6000, by = 0.1)
-   wls <- range[range >= min(baseline_data()$wavenumber) & range <= max(baseline_data()$wavenumber)]
-   aprx <- approx(df$wavelength, df$intensity, xout = wls, rule = 2, method = "linear", ties = mean) %>%
-     data.frame()
-   aprx
-   #dim(nodes) <- c(length(nodes)/2, 2)
-   #as.data.frame(nodes)
+   #names(df) <- c("wavelength", "intensity")
+   #range <- seq(0, 6000, by = 0.1)
+   #wls <- range[range >= min(data()$wavenumber) & range <= max(data()$wavenumber)]
+   #aprx <- approx(df$wavelength, df$intensity, xout = wls, rule = 2, method = "linear", ties = mean) %>%
+  #   data.frame()
+  # names(aprx) <- c("wavelength", "intensity")
+   df
+  })
+
+  output$text <- renderPrint({ 
+   trace()
     })
   
   #This is true whenever a line is created or removed. 
