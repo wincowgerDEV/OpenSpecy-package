@@ -252,7 +252,8 @@ server <- shinyServer(function(input, output, session) {
                           autorange = "reversed"),
              plot_bgcolor = 'rgb(17,0,73)',
              paper_bgcolor = 'transparent',
-             font = list(color = '#FFFFFF'))
+             font = list(color = '#FFFFFF')) %>%
+      config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape" ) )
   })
 
   # Choose which spectrum to use
