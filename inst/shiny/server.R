@@ -222,8 +222,8 @@ server <- shinyServer(function(input, output, session) {
         mutate(intensity = if(input$baseline_decision & input$baseline_selection == "Polynomial") {
           subtr_bg(.$wavenumber, .$intensity, degree = input$baseline)$intensity
           }
-          else if(input$baseline_decision & input$baseline_selection == "Manual" & !is.null(trace())){
-            make_rel(.$intensity - approx(trace()$V1, trace()$V2, xout = .$wavenumber, rule = 2, method = "linear", ties = mean)$y)
+          else if(input$baseline_decision & input$baseline_selection == "Manual" & !is.null(trace$data)){
+            make_rel(.$intensity - approx(trace$data$V1, trace$data$V2, xout = .$wavenumber, rule = 2, method = "linear", ties = mean)$y)
           } else .$intensity)
     }
   })
@@ -260,39 +260,26 @@ server <- shinyServer(function(input, output, session) {
       config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape" ))
   })
   
+trace <- reactiveValues(data = NULL)
   
-trace <-  reactive({
-
+observeEvent(input$go, {
   pathinfo <- event_data(event = "plotly_relayout")$shapes$path
-  
-  #req(!is.null(event_data(event = "plotly_relayout")$shapes$path))
-  if (is.null(pathinfo)) NULL
+  if (is.null(pathinfo)) trace$data <- NULL
   else {
-    
    nodes <- unlist(strsplit(
              gsub("(L)|(M)", "_", 
                   paste(unlist(pathinfo), collapse = "")),
              "(,)|(_)"))
    nodes = nodes[-1]
    df <- as.data.frame(matrix(nodes, ncol = 2, byrow = T))
-   #names(df) <- c("wavelength", "intensity")
-   #range <- seq(0, 6000, by = 0.1)
-   #wls <- range[range >= min(data()$wavenumber) & range <= max(data()$wavenumber)]
-   #aprx <- approx(df$wavelength, df$intensity, xout = wls, rule = 2, method = "linear", ties = mean) %>%
-  #   data.frame()
-  # names(aprx) <- c("wavelength", "intensity")
-   df
+   trace$data <- df
   }
-   
-  })
+})
 
-  output$text <- renderPrint({ 
-   trace()
-    })
+#  output$text <- renderPrint({ 
+#   trace$data#
+#    })
   
-  #This is true whenever a line is created or removed. 
-  #unlist(event_data(event = "plotly_relayout", priority = "input")[[1]][2])[1] == "x"
-
   # Choose which spectrum to use
   DataR <- reactive({
     if(input$Data == "uploaded") {
@@ -495,8 +482,10 @@ trace <-  reactive({
   observe({
     if (input$baseline_selection == "Polynomial") {
       show("baseline")
+      hide("go")
     } else {
       hide("baseline")
+      show("go")
     }
   })
   
@@ -521,6 +510,32 @@ trace <-  reactive({
 
   # Log events ----
 
+observeEvent(input$go, {
+  if(conf$log) {
+    if(db) {
+      database$insert(data.frame(user_name = input$fingerprint,
+                                 session_name = session_id,
+                                 wavenumber = trace$data$V1,
+                                 intensity = trace$data$V2,
+                                 data_id = digest::digest(preprocessed_data(),
+                                                          algo = "md5"),
+                                 ipid = input$ipid,
+                                 time = human_ts()))
+      }
+  }
+  else {
+    loggit("INFO", "trigger",
+           user_name = input$fingerprint,
+           session_name = session_id,
+           wavenumber = trace$data$V1,
+           intensity = trace$data$V2,
+           data_id = digest::digest(preprocessed_data(),
+                                    algo = "md5"),
+           ipid = input$ipid,
+           time = human_ts())
+  }
+})
+  
   observe({
     req(input$file1)
     req(input$share_decision)

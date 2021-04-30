@@ -520,7 +520,7 @@ ui <- fluidPage(
                                   bsPopover(
                                     id = "baseline_decision",
                                     title = "Baseline Correction Help",
-                                    content = c("This baseline correction routine utilizes the imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra."),
+                                    content = c("This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline."),
                                     placement = "bottom",
                                     trigger = "hover"
                                         )
@@ -530,6 +530,7 @@ ui <- fluidPage(
                                        dropdownButton(inputId = "baseline_tools",
                                                       selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
                                                       sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
+                                                      actionButton("go", "Correct With Trace"),
                                                       icon = icon("gear"),
                                                       size = "xs",
                                                       status = "success",
@@ -587,7 +588,7 @@ ui <- fluidPage(
 
                          column(10,
                                 plotlyOutput('MyPlotB'),
-                                verbatimTextOutput(outputId = "text"),
+                                #verbatimTextOutput(outputId = "text"),
                                 style = bodyformat()
 
                          )),
