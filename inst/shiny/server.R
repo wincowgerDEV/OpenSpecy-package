@@ -266,7 +266,7 @@ trace <-  reactive({
   pathinfo <- event_data(event = "plotly_relayout")$shapes$path
   
   #req(!is.null(event_data(event = "plotly_relayout")$shapes$path))
-  if (is.null(pathinfo)) return(NULL)
+  if (is.null(pathinfo)) NULL
   else {
     
    nodes <- unlist(strsplit(
@@ -492,6 +492,14 @@ trace <-  reactive({
     }
   })
 
+  observe({
+    if (input$baseline_selection == "Polynomial") {
+      show("baseline")
+    } else {
+      hide("baseline")
+    }
+  })
+  
   observe({
     if (input$range_decision) {
       show("range_tools")
