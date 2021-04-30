@@ -222,8 +222,8 @@ server <- shinyServer(function(input, output, session) {
         mutate(intensity = if(input$baseline_decision & input$baseline_selection == "Polynomial") {
           subtr_bg(.$wavenumber, .$intensity, degree = input$baseline)$intensity
           }
-          else if(input$baseline_decision & input$baseline_selection == "Manual"){
-            .$intensity - approx(trace()$V1, trace()$V2, xout = .$wavenumber, rule = 2, method = "linear", ties = mean)$y
+          else if(input$baseline_decision & input$baseline_selection == "Manual" & !is.null(trace())){
+            make_rel(.$intensity - approx(trace()$V1, trace()$V2, xout = .$wavenumber, rule = 2, method = "linear", ties = mean)$y)
           } else .$intensity)
     }
   })
@@ -262,8 +262,12 @@ server <- shinyServer(function(input, output, session) {
   
   
 trace <-  reactive({
-  req(!is.null(event_data(event = "plotly_relayout")$shapes$path))
-    pathinfo <- event_data(event = "plotly_relayout")$shapes$path
+
+  pathinfo <- event_data(event = "plotly_relayout")$shapes$path
+  
+  #req(!is.null(event_data(event = "plotly_relayout")$shapes$path))
+  if (is.null(pathinfo)) return(NULL)
+  else {
     
    nodes <- unlist(strsplit(
              gsub("(L)|(M)", "_", 
@@ -278,6 +282,8 @@ trace <-  reactive({
   #   data.frame()
   # names(aprx) <- c("wavelength", "intensity")
    df
+  }
+   
   })
 
   output$text <- renderPrint({ 
