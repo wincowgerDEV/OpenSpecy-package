@@ -523,17 +523,6 @@ observeEvent(input$go, {
                                  time = human_ts()))
       }
   }
-  else {
-    loggit("INFO", "trigger",
-           user_name = input$fingerprint,
-           session_name = session_id,
-           wavenumber = trace$data$V1,
-           intensity = trace$data$V2,
-           data_id = digest::digest(preprocessed_data(),
-                                    algo = "md5"),
-           ipid = input$ipid,
-           time = human_ts())
-  }
 })
   
   observe({
