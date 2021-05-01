@@ -96,9 +96,9 @@ containerfunction <- function(...) {
 
 plotcontainerfunction <- function(...) {
   div(
-    #style = "padding:5rem",
+    #style = "padding:0.1rem",
     div(class = "front",
-        style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5)",
+        style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5);padding:1rem",
         align = "justify", 
         ...)
     )
@@ -613,7 +613,7 @@ ui <- fluidPage(
                        )),
 
               #Match Spectrum Tab ----
-              tabPanel("Match Spectrum",value = "tab3",
+              tabPanel("Identify Spectrum",value = "tab3",
                        titlePanel(h4("Identify Spectrum Using the Reference Library", align = "center")),
                        fluidRow(
                          column(3, style = columnformat(),
@@ -656,7 +656,7 @@ ui <- fluidPage(
                                        
                                     )
                                 ),
-                                fluidRow(
+                                fluidRow(style = "padding:1rem",
                                    DT::dataTableOutput('event')
                                 )
                          ),

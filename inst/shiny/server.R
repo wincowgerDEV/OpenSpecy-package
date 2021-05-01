@@ -404,7 +404,7 @@ observeEvent(input$go, {
                xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                             autorange = "reversed"),
                plot_bgcolor = "rgb(17,0, 73)",
-               paper_bgcolor = "transparent",
+               paper_bgcolor = 'rgba(0,0,0,0.5)',
                font = list(color = "#FFFFFF"))
     }})
 
