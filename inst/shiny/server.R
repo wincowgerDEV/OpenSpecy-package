@@ -223,7 +223,7 @@ server <- shinyServer(function(input, output, session) {
           subtr_bg(.$wavenumber, .$intensity, degree = input$baseline)$intensity
           }
           else if(input$baseline_decision & input$baseline_selection == "Manual" & !is.null(trace$data)){
-            make_rel(.$intensity - approx(trace$data$V1, trace$data$V2, xout = .$wavenumber, rule = 2, method = "linear", ties = mean)$y)
+            make_rel(.$intensity - approx(trace$data$wavenumber, trace$data$intensity, xout = .$wavenumber, rule = 2, method = "linear", ties = mean)$y)
           } else .$intensity)
     }
   })
@@ -272,6 +272,7 @@ observeEvent(input$go, {
              "(,)|(_)"))
    nodes = nodes[-1]
    df <- as.data.frame(matrix(nodes, ncol = 2, byrow = T))
+   names(df) <- c("wavenumber", "intensity")
    trace$data <- df
   }
 })
@@ -515,8 +516,8 @@ observeEvent(input$go, {
     if(db) {
       database$insert(data.frame(user_name = input$fingerprint,
                                  session_name = session_id,
-                                 wavenumber = trace$data$V1,
-                                 intensity = trace$data$V2,
+                                 wavenumber = trace$data$wavenumber,
+                                 intensity = trace$data$intensity,
                                  data_id = digest::digest(preprocessed_data(),
                                                           algo = "md5"),
                                  ipid = input$ipid,
