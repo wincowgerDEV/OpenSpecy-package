@@ -88,10 +88,20 @@ appCSS <-
 
 containerfunction <- function(...) {
   div(
-    style = "padding:8rem",
+    style = "padding:5rem",
     div(class = "jumbotron jumbotron-fluid",
         style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5)",
         align = "justify", ... ))
+}
+
+plotcontainerfunction <- function(...) {
+  div(
+    #style = "padding:5rem",
+    div(class = "front",
+        style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5)",
+        align = "justify", 
+        ...)
+    )
 }
 
 columnformat <- function() {
@@ -279,9 +289,9 @@ ui <- fluidPage(
 
               #Upload File Tab ----
               tabPanel("Upload File", value = "tab1",
-                       titlePanel(h4("Upload, View and Share Spectra")),
+                       titlePanel(h4("Upload, View and Share Spectra", align = "center")),
                        fluidRow(
-                         column(2, style = columnformat(),
+                         column(3, style = columnformat(),
                                 tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File"),
 
                                 prettySwitch("share_decision",
@@ -448,8 +458,8 @@ ui <- fluidPage(
                                 ),
 
 
-                         column(10,
-                                plotlyOutput('MyPlot'),
+                         column(9,
+                                plotcontainerfunction(plotlyOutput('MyPlot')),
                                 style = bodyformat()
 
                          ),
@@ -467,9 +477,9 @@ ui <- fluidPage(
 
               #Preprocess Spectrum Tab ----
               tabPanel("Preprocess Spectrum", value = "tab2",
-                       titlePanel(tags$h4("Smooth, Baseline Correct, and Download Processed Spectra")),
+                       titlePanel(h4("Smooth, Baseline Correct, and Download Processed Spectra", align = "center")),
                        fluidRow(
-                           column(2, style = columnformat(),
+                           column(3, style = columnformat(),
                                 fluidRow(
                                   column(12,
                                   downloadButton('downloadData', 'Download (recommended)'),
@@ -586,8 +596,8 @@ ui <- fluidPage(
                             ),
 
 
-                         column(10,
-                                plotlyOutput('MyPlotB'),
+                         column(9,
+                                plotcontainerfunction(plotlyOutput('MyPlotB')),
                                 #verbatimTextOutput(outputId = "text"),
                                 style = bodyformat()
 
@@ -604,9 +614,9 @@ ui <- fluidPage(
 
               #Match Spectrum Tab ----
               tabPanel("Match Spectrum",value = "tab3",
-                       titlePanel(tags$h4("Identify Spectrum Using the Reference Library")),
+                       titlePanel(h4("Identify Spectrum Using the Reference Library", align = "center")),
                        fluidRow(
-                         column(2, style = columnformat(),
+                         column(3, style = columnformat(),
                                 radioButtons("Spectra", "Spectrum Type",
                                              c("Raman" = "raman",
                                                "FTIR" = "ftir")),
@@ -637,20 +647,18 @@ ui <- fluidPage(
                                   content = c("This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks."),
                                   placement = "bottom",
                                   trigger = "hover"
-                                )
+                                ),
+                                DT::dataTableOutput('event')
 
                          ),
 
-                         column(7,
-
-                                plotlyOutput('MyPlotC'),
-                                DT::dataTableOutput('eventmetadata'),
+                         column(9,
+                                plotcontainerfunction(plotlyOutput('MyPlotC'),
+                                                      DT::dataTableOutput('eventmetadata')),
                                 style = bodyformat()
 
+                         )
                          ),
-                         column(3, DT::dataTableOutput('event'),
-                                style = bodyformat()
-                                )),
 
 
                        hr(),
