@@ -617,7 +617,9 @@ ui <- fluidPage(
                        titlePanel(h4("Identify Spectrum Using the Reference Library", align = "center")),
                        fluidRow(
                          column(3, style = columnformat(),
-                                radioButtons("Spectra", "Spectrum Type",
+                                fluidRow(
+                                  column(4, 
+                                          radioButtons("Spectra", "Type",
                                              c("Raman" = "raman",
                                                "FTIR" = "ftir")),
                                 bsPopover(
@@ -626,8 +628,9 @@ ui <- fluidPage(
                                   content = c("This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded."),
                                   placement = "bottom",
                                   trigger = "hover"
-                                ),
-                                radioButtons("Data", "Spectrum to Analyze",
+                                )),
+                                column(4, 
+                                       radioButtons("Data", "Analysis",
                                             c("Processed" = "processed",
                                               "Uploaded" = "uploaded"
                                             )),
@@ -638,18 +641,24 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
-                                radioButtons("Library", "Region to Match",
-                                            c("Full Spectrum" = "full",
-                                              "Peaks Only" = "peaks")),
+                                       ),
+                                column(4,
+                                       radioButtons("Library", "Region",
+                                            c("Full" = "full",
+                                              "Peaks" = "peaks")),
                                 bsPopover(
                                   id = "Library",
                                   title = "Region to Match Help",
                                   content = c("This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks."),
                                   placement = "bottom",
                                   trigger = "hover"
+                                )
+                                       
+                                    )
                                 ),
-                                DT::dataTableOutput('event')
-
+                                fluidRow(
+                                   DT::dataTableOutput('event')
+                                )
                          ),
 
                          column(9,
