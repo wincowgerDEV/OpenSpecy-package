@@ -97,7 +97,7 @@ containerfunction <- function(...) {
 plotcontainerfunction <- function(...) {
   div(
     #style = "padding:0.1rem",
-    div(class = "front",
+    div(class = "jumbotron jumbotron-fluid",
         style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5);padding:1rem",
         align = "justify", 
         ...)
