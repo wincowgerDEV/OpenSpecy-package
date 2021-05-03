@@ -237,7 +237,7 @@ server <- shinyServer(function(input, output, session) {
              xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                           autorange = "reversed"),
              plot_bgcolor = 'rgb(17,0,73)',
-             paper_bgcolor = 'transparent',
+             paper_bgcolor = 'rgba(0,0,0,0.5)',
              font = list(color = '#FFFFFF'))
   })
   
@@ -255,7 +255,7 @@ server <- shinyServer(function(input, output, session) {
              xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                           autorange = "reversed"),
              plot_bgcolor = 'rgb(17,0,73)',
-             paper_bgcolor = 'transparent',
+             paper_bgcolor = 'rgba(0,0,0,0.5)',
              font = list(color = '#FFFFFF')) %>%
       config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape" ))
   })
@@ -376,7 +376,7 @@ observeEvent(input$reset, {
                xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                             autorange = "reversed"),
                plot_bgcolor='rgb(17,0, 73)',
-               paper_bgcolor='transparent',
+               paper_bgcolor= 'rgba(0,0,0,0.5)',
                font = list(color = '#FFFFFF'))
     }
     else if(length(input$event_rows_selected)) {
@@ -410,7 +410,7 @@ observeEvent(input$reset, {
                xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                             autorange = "reversed"),
                plot_bgcolor = "rgb(17,0, 73)",
-               paper_bgcolor = "transparent",
+               paper_bgcolor = 'rgba(0,0,0,0.5)',
                font = list(color = "#FFFFFF"))
     }})
 
@@ -505,6 +505,19 @@ observeEvent(input$reset, {
       hide("range_tools")
     }
   })
+  
+  observe({
+    if (is.null(data())) {
+      show("placeholder1")
+      show("placeholder2")
+      show("placeholder3")
+    } else {
+      hide("placeholder1")
+      hide("placeholder2")
+      hide("placeholder3")
+    }
+  })
+  
   #This toggles the hidden metadata input layers.
   observeEvent(input$share_meta, {
     sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))
