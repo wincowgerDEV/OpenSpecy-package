@@ -497,6 +497,19 @@ observeEvent(input$go, {
       hide("range_tools")
     }
   })
+  
+  observe({
+    if (is.null(data())) {
+      show("placeholder1")
+      show("placeholder2")
+      show("placeholder3")
+    } else {
+      hide("placeholder1")
+      hide("placeholder2")
+      hide("placeholder3")
+    }
+  })
+  
   #This toggles the hidden metadata input layers.
   observeEvent(input$share_meta, {
     sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))

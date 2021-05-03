@@ -289,7 +289,8 @@ ui <- fluidPage(
 
               #Upload File Tab ----
               tabPanel("Upload File", value = "tab1",
-                       titlePanel(h4("Upload, View and Share Spectra", align = "center")),
+                       titlePanel(h4("Upload, View, and Share Spectra")),
+                       br(),
                        fluidRow(
                          column(3, style = columnformat(),
                                 tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File"),
@@ -459,7 +460,7 @@ ui <- fluidPage(
 
 
                          column(9,
-                                plotcontainerfunction(plotlyOutput('MyPlot')),
+                                plotcontainerfunction(h4(id = "placeholder1", "Upload some data to get started..."), plotlyOutput('MyPlot')),
                                 style = bodyformat()
 
                          ),
@@ -477,7 +478,8 @@ ui <- fluidPage(
 
               #Preprocess Spectrum Tab ----
               tabPanel("Preprocess Spectrum", value = "tab2",
-                       titlePanel(h4("Smooth, Baseline Correct, and Download Processed Spectra", align = "center")),
+                       titlePanel(h4("Smooth, Baseline Correct, and Download Processed Spectra")),
+                       br(),
                        fluidRow(
                            column(3, style = columnformat(),
                                 fluidRow(
@@ -597,7 +599,7 @@ ui <- fluidPage(
 
 
                          column(9,
-                                plotcontainerfunction(plotlyOutput('MyPlotB')),
+                                plotcontainerfunction(h4(id = "placeholder2", "Upload some data to get started..."), plotlyOutput('MyPlotB')),
                                 #verbatimTextOutput(outputId = "text"),
                                 style = bodyformat()
 
@@ -614,7 +616,8 @@ ui <- fluidPage(
 
               #Match Spectrum Tab ----
               tabPanel("Identify Spectrum",value = "tab3",
-                       titlePanel(h4("Identify Spectrum Using the Reference Library", align = "center")),
+                       titlePanel(h4("Identify Spectrum Using the Reference Library")),
+                       br(),
                        fluidRow(
                          column(3, style = columnformat(),
                                 fluidRow(
@@ -662,7 +665,7 @@ ui <- fluidPage(
                          ),
 
                          column(9,
-                                plotcontainerfunction(plotlyOutput('MyPlotC'),
+                                plotcontainerfunction(h4(id = "placeholder3", "Upload some data to get started..."), plotlyOutput('MyPlotC'),
                                                       DT::dataTableOutput('eventmetadata')),
                                 style = bodyformat()
 
