@@ -242,7 +242,7 @@ server <- shinyServer(function(input, output, session) {
   })
   
   output$MyPlotB <- renderPlotly({
-    plot_ly(type = 'scatter', mode = 'lines') %>%
+    plot_ly(type = 'scatter', mode = 'lines', source = "B") %>%
       add_trace(data = baseline_data(), x = ~wavenumber, y = ~intensity,
                 name = 'Processed Spectrum',
                 line = list(color = 'rgb(240,19,207)')) %>%
@@ -263,7 +263,7 @@ server <- shinyServer(function(input, output, session) {
 trace <- reactiveValues(data = NULL)
   
 observeEvent(input$go, {
-  pathinfo <- event_data(event = "plotly_relayout")$shapes$path
+  pathinfo <- event_data(event = "plotly_relayout", source = "B")$shapes$path
   if (is.null(pathinfo)) trace$data <- NULL
   else {
    nodes <- unlist(strsplit(
@@ -275,6 +275,12 @@ observeEvent(input$go, {
    names(df) <- c("wavenumber", "intensity")
    trace$data <- df
   }
+})
+
+observeEvent(input$reset, {
+  #js$resetClick()
+  #runjs("Shiny.setInputValue('plotly_selected-B', null);")
+  trace$data <- NULL
 })
 
 #  output$text <- renderPrint({ 
@@ -484,9 +490,11 @@ observeEvent(input$go, {
     if (input$baseline_selection == "Polynomial") {
       show("baseline")
       hide("go")
+      hide("reset")
     } else {
       hide("baseline")
       show("go")
+      show("reset")
     }
   })
   

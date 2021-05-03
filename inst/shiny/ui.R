@@ -113,6 +113,7 @@ ui <- fluidPage(
 
   #Script for all pages ----
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
+  #extendShinyjs(text = "shinyjs.resetClick = function() { Shiny.onInputChange('.clientValue-plotly_click-A', 'null'); }", functions = "resetClick"),
   inputIp("ipid"),
   inputUserid("fingerprint"),
  # tags$head(uiOutput("name_get")),
@@ -530,7 +531,14 @@ ui <- fluidPage(
                                        dropdownButton(inputId = "baseline_tools",
                                                       selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
                                                       sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
-                                                      actionButton("go", "Correct With Trace"),
+                                                      fluidRow(
+                                                        column(6,                                                       
+                                                               actionButton("go", "Correct With Trace"),
+                                                               ), 
+                                                        column(6, 
+                                                               actionButton("reset", "Reset"),
+                                                               )
+                                                      ),
                                                       icon = icon("gear"),
                                                       size = "xs",
                                                       status = "success",
