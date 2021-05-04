@@ -219,8 +219,11 @@ server <- shinyServer(function(input, output, session) {
         mutate(intensity = if(input$smooth_decision) {
           smooth_intens(.$wavenumber, .$intensity, p = input$smoother)$intensity
         } else .$intensity) %>%
-        mutate(intensity = if(input$baseline_decision) {
+        mutate(intensity = if(input$baseline_decision & input$baseline_selection == "Polynomial") {
           subtr_bg(.$wavenumber, .$intensity, degree = input$baseline)$intensity
+          }
+          else if(input$baseline_decision & input$baseline_selection == "Manual" & !is.null(trace$data)){
+            make_rel(.$intensity - approx(trace$data$wavenumber, trace$data$intensity, xout = .$wavenumber, rule = 2, method = "linear", ties = mean)$y)
           } else .$intensity)
     }
   })
@@ -234,11 +237,12 @@ server <- shinyServer(function(input, output, session) {
              xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                           autorange = "reversed"),
              plot_bgcolor = 'rgb(17,0,73)',
-             paper_bgcolor = 'transparent',
+             paper_bgcolor = 'rgba(0,0,0,0.5)',
              font = list(color = '#FFFFFF'))
   })
+  
   output$MyPlotB <- renderPlotly({
-    plot_ly(type = 'scatter', mode = 'lines') %>%
+    plot_ly(type = 'scatter', mode = 'lines', source = "B") %>%
       add_trace(data = baseline_data(), x = ~wavenumber, y = ~intensity,
                 name = 'Processed Spectrum',
                 line = list(color = 'rgb(240,19,207)')) %>%
@@ -251,10 +255,38 @@ server <- shinyServer(function(input, output, session) {
              xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                           autorange = "reversed"),
              plot_bgcolor = 'rgb(17,0,73)',
-             paper_bgcolor = 'transparent',
-             font = list(color = '#FFFFFF'))
+             paper_bgcolor = 'rgba(0,0,0,0.5)',
+             font = list(color = '#FFFFFF')) %>%
+      config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape" ))
   })
+  
+trace <- reactiveValues(data = NULL)
+  
+observeEvent(input$go, {
+  pathinfo <- event_data(event = "plotly_relayout", source = "B")$shapes$path
+  if (is.null(pathinfo)) trace$data <- NULL
+  else {
+   nodes <- unlist(strsplit(
+             gsub("(L)|(M)", "_", 
+                  paste(unlist(pathinfo), collapse = "")),
+             "(,)|(_)"))
+   nodes = nodes[-1]
+   df <- as.data.frame(matrix(nodes, ncol = 2, byrow = T))
+   names(df) <- c("wavenumber", "intensity")
+   trace$data <- df
+  }
+})
 
+observeEvent(input$reset, {
+  #js$resetClick()
+  #runjs("Shiny.setInputValue('plotly_selected-B', null);")
+  trace$data <- NULL
+})
+
+#  output$text <- renderPrint({ 
+#   trace$data#
+#    })
+  
   # Choose which spectrum to use
   DataR <- reactive({
     if(input$Data == "uploaded") {
@@ -344,7 +376,7 @@ server <- shinyServer(function(input, output, session) {
                xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                             autorange = "reversed"),
                plot_bgcolor='rgb(17,0, 73)',
-               paper_bgcolor='transparent',
+               paper_bgcolor= 'rgba(0,0,0,0.5)',
                font = list(color = '#FFFFFF'))
     }
     else if(length(input$event_rows_selected)) {
@@ -378,7 +410,7 @@ server <- shinyServer(function(input, output, session) {
                xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                             autorange = "reversed"),
                plot_bgcolor = "rgb(17,0, 73)",
-               paper_bgcolor = "transparent",
+               paper_bgcolor = 'rgba(0,0,0,0.5)',
                font = list(color = "#FFFFFF"))
     }})
 
@@ -455,12 +487,37 @@ server <- shinyServer(function(input, output, session) {
   })
 
   observe({
+    if (input$baseline_selection == "Polynomial") {
+      show("baseline")
+      hide("go")
+      hide("reset")
+    } else {
+      hide("baseline")
+      show("go")
+      show("reset")
+    }
+  })
+  
+  observe({
     if (input$range_decision) {
       show("range_tools")
     } else {
       hide("range_tools")
     }
   })
+  
+  observe({
+    if (is.null(data())) {
+      show("placeholder1")
+      show("placeholder2")
+      show("placeholder3")
+    } else {
+      hide("placeholder1")
+      hide("placeholder2")
+      hide("placeholder3")
+    }
+  })
+  
   #This toggles the hidden metadata input layers.
   observeEvent(input$share_meta, {
     sapply(names(namekey)[c(1:24,32)], function(x) toggle(x))
@@ -475,6 +532,21 @@ server <- shinyServer(function(input, output, session) {
 
   # Log events ----
 
+observeEvent(input$go, {
+  if(conf$log) {
+    if(db) {
+      database$insert(data.frame(user_name = input$fingerprint,
+                                 session_name = session_id,
+                                 wavenumber = trace$data$wavenumber,
+                                 intensity = trace$data$intensity,
+                                 data_id = digest::digest(preprocessed_data(),
+                                                          algo = "md5"),
+                                 ipid = input$ipid,
+                                 time = human_ts()))
+      }
+  }
+})
+  
   observe({
     req(input$file1)
     req(input$share_decision)

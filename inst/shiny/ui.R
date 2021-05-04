@@ -88,10 +88,20 @@ appCSS <-
 
 containerfunction <- function(...) {
   div(
-    style = "padding:8rem",
+    style = "padding:5rem",
     div(class = "jumbotron jumbotron-fluid",
         style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5)",
         align = "justify", ... ))
+}
+
+plotcontainerfunction <- function(...) {
+  div(
+    #style = "padding:0.1rem",
+    div(class = "jumbotron jumbotron-fluid",
+        style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5);padding:1rem",
+        align = "justify", 
+        ...)
+    )
 }
 
 columnformat <- function() {
@@ -113,6 +123,7 @@ ui <- fluidPage(
 
   #Script for all pages ----
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
+  #extendShinyjs(text = "shinyjs.resetClick = function() { Shiny.onInputChange('.clientValue-plotly_click-A', 'null'); }", functions = "resetClick"),
   inputIp("ipid"),
   inputUserid("fingerprint"),
  # tags$head(uiOutput("name_get")),
@@ -279,9 +290,10 @@ ui <- fluidPage(
 
               #Upload File Tab ----
               tabPanel("Upload File", value = "tab1",
-                       titlePanel(h4("Upload, View and Share Spectra")),
+                       titlePanel(h4("Upload, View, and Share Spectra")),
+                       br(),
                        fluidRow(
-                         column(2, style = columnformat(),
+                         column(3, style = columnformat(),
                                 tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File"),
 
                                 prettySwitch("share_decision",
@@ -448,8 +460,8 @@ ui <- fluidPage(
                                 ),
 
 
-                         column(10,
-                                plotlyOutput('MyPlot'),
+                         column(9,
+                                plotcontainerfunction(h4(id = "placeholder1", "Upload some data to get started..."), plotlyOutput('MyPlot')),
                                 style = bodyformat()
 
                          ),
@@ -467,9 +479,10 @@ ui <- fluidPage(
 
               #Preprocess Spectrum Tab ----
               tabPanel("Preprocess Spectrum", value = "tab2",
-                       titlePanel(tags$h4("Smooth, Baseline Correct, and Download Processed Spectra")),
+                       titlePanel(h4("Smooth, Baseline Correct, and Download Processed Spectra")),
+                       br(),
                        fluidRow(
-                           column(2, style = columnformat(),
+                           column(3, style = columnformat(),
                                 fluidRow(
                                   column(12,
                                   downloadButton('downloadData', 'Download (recommended)'),
@@ -520,7 +533,7 @@ ui <- fluidPage(
                                   bsPopover(
                                     id = "baseline_decision",
                                     title = "Baseline Correction Help",
-                                    content = c("This baseline correction routine utilizes the imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra."),
+                                    content = c("This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline."),
                                     placement = "bottom",
                                     trigger = "hover"
                                         )
@@ -528,7 +541,16 @@ ui <- fluidPage(
                                     ),
                                 column(2,
                                        dropdownButton(inputId = "baseline_tools",
+                                                      selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
                                                       sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
+                                                      fluidRow(
+                                                        column(6,                                                       
+                                                               actionButton("go", "Correct With Trace"),
+                                                               ), 
+                                                        column(6, 
+                                                               actionButton("reset", "Reset"),
+                                                               )
+                                                      ),
                                                       icon = icon("gear"),
                                                       size = "xs",
                                                       status = "success",
@@ -584,8 +606,9 @@ ui <- fluidPage(
                             ),
 
 
-                         column(10,
-                                plotlyOutput('MyPlotB'),
+                         column(9,
+                                plotcontainerfunction(h4(id = "placeholder2", "Upload some data to get started..."), plotlyOutput('MyPlotB')),
+                                #verbatimTextOutput(outputId = "text"),
                                 style = bodyformat()
 
                          )),
@@ -600,11 +623,14 @@ ui <- fluidPage(
                        )),
 
               #Match Spectrum Tab ----
-              tabPanel("Match Spectrum",value = "tab3",
-                       titlePanel(tags$h4("Identify Spectrum Using the Reference Library")),
+              tabPanel("Identify Spectrum",value = "tab3",
+                       titlePanel(h4("Identify Spectrum Using the Reference Library")),
+                       br(),
                        fluidRow(
-                         column(2, style = columnformat(),
-                                radioButtons("Spectra", "Spectrum Type",
+                         column(3, style = columnformat(),
+                                fluidRow(
+                                  column(4, 
+                                          radioButtons("Spectra", "Type",
                                              c("Raman" = "raman",
                                                "FTIR" = "ftir")),
                                 bsPopover(
@@ -613,8 +639,9 @@ ui <- fluidPage(
                                   content = c("This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded."),
                                   placement = "bottom",
                                   trigger = "hover"
-                                ),
-                                radioButtons("Data", "Spectrum to Analyze",
+                                )),
+                                column(4, 
+                                       radioButtons("Data", "Analysis",
                                             c("Processed" = "processed",
                                               "Uploaded" = "uploaded"
                                             )),
@@ -625,9 +652,11 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
-                                radioButtons("Library", "Region to Match",
-                                            c("Full Spectrum" = "full",
-                                              "Peaks Only" = "peaks")),
+                                       ),
+                                column(4,
+                                       radioButtons("Library", "Region",
+                                            c("Full" = "full",
+                                              "Peaks" = "peaks")),
                                 bsPopover(
                                   id = "Library",
                                   title = "Region to Match Help",
@@ -635,19 +664,21 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 )
-
+                                       
+                                    )
+                                ),
+                                fluidRow(style = "padding:1rem",
+                                   DT::dataTableOutput('event')
+                                )
                          ),
 
-                         column(7,
-
-                                plotlyOutput('MyPlotC'),
-                                DT::dataTableOutput('eventmetadata'),
+                         column(9,
+                                plotcontainerfunction(h4(id = "placeholder3", "Upload some data to get started..."), plotlyOutput('MyPlotC'),
+                                                      DT::dataTableOutput('eventmetadata')),
                                 style = bodyformat()
 
+                         )
                          ),
-                         column(3, DT::dataTableOutput('event'),
-                                style = bodyformat()
-                                )),
 
 
                        hr(),

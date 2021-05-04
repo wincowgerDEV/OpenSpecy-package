@@ -230,7 +230,7 @@ read_0 <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
 
   ## Get number of data points for each spectra data block
   NPT0 <- readRaw(file, offset = npt0, nbytes = 12, human = "int", size = 4)[[5]][2]
-  NPT1 <- readRaw(file, offset=npt1, nbytes=4, human = "int", size = 4)[[5]][1]
+  NPT1 <- readRaw(file, offset = npt1, nbytes = 4, human = "int", size = 4)[[5]][1]
   fxv <- readRaw(file, offset = fx, nbytes = 16, human = "real", size = 8)[[5]][1] ## fxv = frequency of first point
   lxv <- readRaw(file, offset = lx, nbytes = 16, human = "real", size = 8)[[5]][1] ## lxv = frequency of last point
   x <- rev(seq(lxv, fxv, (fxv - lxv) / (NPT1 - 1)))
