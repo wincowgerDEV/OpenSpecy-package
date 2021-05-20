@@ -72,8 +72,17 @@ read_text <- function(file = ".", cols = NULL, method = "read.csv",
   }
   if (any(is.na(cols))) stop("undefined columns selected; columns should be ",
                              "named 'wavenumber' and 'intensity'")
+  if (cols[1] == cols[2])
+    stop("inconsistent input format; ",
+         "please ensure that your text file is formatted correctly")
 
   df <- df[cols]
+
+  # Check if columns are numeric
+  if (!all(sapply(df, is.numeric)))
+    stop("input not numeric; ",
+         "please ensure that your text file is formatted correctly")
+
   names(df) <- c("wavenumber", "intensity")
 
   if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
