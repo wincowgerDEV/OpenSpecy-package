@@ -1,3 +1,20 @@
+# OpenSpecy 0.9.2
+
+## New Features
+
+- Manual baseline corrections
+- Citable technical note
+
+## Minor Improvements
+
+- More generic .spa file reading
+- Added funding
+
+## Bug Fixes
+
+- UI improvements
+
+
 # OpenSpecy 0.9.1
 
 ## Bug Fixes

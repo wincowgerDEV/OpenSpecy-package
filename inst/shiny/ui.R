@@ -16,14 +16,13 @@ library(DT)
 # Name keys for human readable column names ----
 load("data/namekey.RData")
 
-pkgdesc <- packageDescription("OpenSpecy")
-citation <- paste(paste(
-  format(as.personList(utils:::.read_authors_at_R_field(pkgdesc$`Authors@R`)),
-  include = c("given", "family")), collapse = ", "),
-  paste0("(", format(as.Date(pkgdesc$Date), "%Y"), ")."),
-  paste0("Open Specy: ", pkgdesc$Title, "."),
-  paste0("Version ", pkgdesc$Version, "."),
-  "www.openspecy.org")
+version <- paste0("Open Specy v", packageVersion("OpenSpecy"))
+citation <- paste(
+  "Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S, De",
+  "Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral",
+  "Classification Needs an Open Source Community: Open Specy to the Rescue!”",
+  "Analytical Chemistry. https://doi.org/10.1021/acs.analchem.1c00123."
+)
 
 # Functions ----
 labelMandatory <- function(label) {
@@ -99,7 +98,7 @@ plotcontainerfunction <- function(...) {
     #style = "padding:0.1rem",
     div(class = "jumbotron jumbotron-fluid",
         style = "border:solid #f7f7f9;background-color:rgba(0, 0, 0, 0.5);padding:1rem",
-        align = "justify", 
+        align = "justify",
         ...)
     )
 }
@@ -470,7 +469,8 @@ ui <- fluidPage(
                        fluidRow(
                          column(3),
                          column(6, align = "center",
-                                tags$p("Citation: ", citation)
+                                tags$p(citation),
+                                tags$p(version)
                                 ),
                          column(3)
 
@@ -544,10 +544,10 @@ ui <- fluidPage(
                                                       selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
                                                       sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
                                                       fluidRow(
-                                                        column(6,                                                       
+                                                        column(6,
                                                                actionButton("go", "Correct With Trace"),
-                                                               ), 
-                                                        column(6, 
+                                                               ),
+                                                        column(6,
                                                                actionButton("reset", "Reset"),
                                                                )
                                                       ),
@@ -616,7 +616,8 @@ ui <- fluidPage(
                        fluidRow(
                          column(3),
                          column(6, align = "center",
-                                tags$p("Citation: ", citation)
+                                tags$p(citation),
+                                tags$p(version)
                          ),
                          column(3)
 
@@ -629,7 +630,7 @@ ui <- fluidPage(
                        fluidRow(
                          column(3, style = columnformat(),
                                 fluidRow(
-                                  column(4, 
+                                  column(4,
                                           radioButtons("Spectra", "Type",
                                              c("Raman" = "raman",
                                                "FTIR" = "ftir")),
@@ -640,7 +641,7 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 )),
-                                column(4, 
+                                column(4,
                                        radioButtons("Data", "Analysis",
                                             c("Processed" = "processed",
                                               "Uploaded" = "uploaded"
@@ -664,7 +665,7 @@ ui <- fluidPage(
                                   placement = "bottom",
                                   trigger = "hover"
                                 )
-                                       
+
                                     )
                                 ),
                                 fluidRow(style = "padding:1rem",
@@ -685,7 +686,8 @@ ui <- fluidPage(
                        fluidRow(
                          column(3),
                          column(6, align = "center",
-                                tags$p("Citation: ", citation)
+                                tags$p(citation),
+                                tags$p(version)
                          ),
                          column(3)
 
@@ -723,7 +725,8 @@ ui <- fluidPage(
                        fluidRow(
                          column(3),
                          column(6, align = "center",
-                                tags$p("Citation: ", citation)
+                                tags$p(citation),
+                                tags$p(version)
                          ),
                          column(3)
 
