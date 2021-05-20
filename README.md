@@ -7,19 +7,21 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 [![Project Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![R-CMD-check](https://github.com/wincowgerDEV/OpenSpecy/workflows/R-CMD-check/badge.svg)](https://github.com/wincowgerDEV/OpenSpecy/actions)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![DOI](https://img.shields.io/badge/shortDOI-10/gj4fm2-blue.svg)](https://doi.org/gj4fm2)
 [![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://wincowger.shinyapps.io/OpenSpecy/)
 [![Twitter Follow](https://img.shields.io/twitter/follow/OpenSpecy)](https://twitter.com/OpenSpecy)
 <!-- badges: end -->
 
 Raman and (FT)IR spectral analysis tool for plastic particles and
-other environmental samples. Supported features include reading spectral
-data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay smoothing of
-spectral intensities with `smooth_intens()`, correcting background noise with
+other environmental samples (Cowger et al. 2021, doi: 
+[10/gj4fm2](https://doi.org/gj4fm2)). Supported features include reading
+spectral data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay smoothing
+of spectral intensities with `smooth_intens()`, correcting background noise with
 `subtr_bg()` in accordance with Zhao et al. (2007, doi: 
-[dbhfsj](https://doi.org/dbhfsj)),
-and identifying spectra using an onboard reference library (Cowger et al. 2020,
-doi: [f3sk](https://doi.org/f3sk)). Analyzed spectra can be shared with the Open
-Specy community. A Shiny app is available via `run_app()` or online at
+[10/dbhfsj](https://doi.org/dbhfsj)), and identifying spectra using an onboard
+reference library (Cowger et al. 2020, doi: [10/f3sk](https://doi.org/f3sk)).
+Analyzed spectra can be shared with the Open Specy community. A Shiny app is
+available via `run_app()` or online at
 [http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/).
 
 ## Installation
@@ -92,22 +94,14 @@ match_spec(raman_proc, library = spec_lib, which = "raman")
 find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 ```
 
-## Citation
+## Citations
 
-To cite the R package **OpenSpecy** use:
+Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,
+De Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral Classification
+Needs an Open Source Community: Open Specy to the Rescue!”
+*Analytical Chemistry*. doi:
+[10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
-Win Cowger and Zacharias Steinmetz (2021). OpenSpecy: Analyze, Process,
-Identify, and Share, Raman and (FT)IR Spectra. R package version 0.9.1.
+Cowger W, Steinmetz Z (2021). “OpenSpecy: Analyze, Process,
+Identify, and Share, Raman and (FT)IR Spectra.” *R package version 0.9.2*.
 [https://github.com/wincowgerDEV/OpenSpecy](https://github.com/wincowgerDEV/OpenSpecy)
-
-A BibTeX entry for LaTeX users is
-
-```latex
-@Manual{,
-  title = {OpenSpecy: Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra},
-  author = {Win Cowger and Zacharias Steinmetz},
-  year = {2021},
-  note = {R package version 0.9.1},
-  url = {https://github.com/wincowgerDEV/OpenSpecy},
-}
-```
