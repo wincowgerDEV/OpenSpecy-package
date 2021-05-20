@@ -7,19 +7,20 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 [![Project Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![R-CMD-check](https://github.com/wincowgerDEV/OpenSpecy/workflows/R-CMD-check/badge.svg)](https://github.com/wincowgerDEV/OpenSpecy/actions)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![DOI](https://img.shields.io/badge/shortDOI-10/gj4fm2-blue.svg)](https://doi.org/gj4fm2)
+[![DOI](https://img.shields.io/badge/DOI-10.1021/acs.analchem.1c00123-blue.svg)](https://doi.org/10.1021/acs.analchem.1c00123)
 [![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://wincowger.shinyapps.io/OpenSpecy/)
 [![Twitter Follow](https://img.shields.io/twitter/follow/OpenSpecy)](https://twitter.com/OpenSpecy)
 <!-- badges: end -->
 
 Raman and (FT)IR spectral analysis tool for plastic particles and
 other environmental samples (Cowger et al. 2021, doi: 
-[10/gj4fm2](https://doi.org/gj4fm2)). Supported features include reading
-spectral data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay smoothing
-of spectral intensities with `smooth_intens()`, correcting background noise with
-`subtr_bg()` in accordance with Zhao et al. (2007, doi: 
-[10/dbhfsj](https://doi.org/dbhfsj)), and identifying spectra using an onboard
-reference library (Cowger et al. 2020, doi: [10/f3sk](https://doi.org/f3sk)).
+[10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123)).
+Supported features include reading spectral data files (.asp, .csv, .jdx, .spc,
+.spa, .0), Savitzky-Golay smoothing of spectral intensities with
+`smooth_intens()`, correcting background noise with `subtr_bg()` in accordance
+with Zhao et al. (2007, doi: 
+[10.1366/000370207782597003](https://doi.org/10.1366/000370207782597003)), and
+identifying spectra using an onboard reference library (Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064)).
 Analyzed spectra can be shared with the Open Specy community. A Shiny app is
 available via `run_app()` or online at
 [http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/).
