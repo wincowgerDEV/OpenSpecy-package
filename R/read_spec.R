@@ -72,16 +72,12 @@ read_text <- function(file = ".", cols = NULL, method = "read.csv",
   }
   if (any(is.na(cols))) stop("undefined columns selected; columns should be ",
                              "named 'wavenumber' and 'intensity'")
-  if (cols[1] == cols[2])
-    stop("inconsistent input format; ",
-         "please ensure that your text file is formatted correctly")
+  if (cols[1] == cols[2]) stop("inconsistent input format")
 
   df <- df[cols]
 
   # Check if columns are numeric
-  if (!all(sapply(df, is.numeric)))
-    stop("input not numeric; ",
-         "please ensure that your text file is formatted correctly")
+  if (!all(sapply(df, is.numeric))) stop("input not numeric")
 
   names(df) <- c("wavenumber", "intensity")
 

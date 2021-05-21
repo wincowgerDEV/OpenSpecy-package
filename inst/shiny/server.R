@@ -180,8 +180,9 @@ server <- shinyServer(function(input, output, session) {
         show_alert(
           title = "Something went wrong :-(",
           text = paste0("R says: '", rout$message, "'. ",
-                        "If you uploaded a .csv file, make sure that the ",
-                        "columns are named 'wavenumber' and 'intensity'."),
+                        "If you uploaded a text/csv file, make sure that the ",
+                        "columns are numeric and named 'wavenumber' and ",
+                        "'intensity'."),
           type = "error"
         )
         return(NULL)
