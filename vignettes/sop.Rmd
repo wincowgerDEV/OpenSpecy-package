@@ -724,7 +724,7 @@ Research.” *Applied Spectroscopy*, **74**(9), 989–1010. doi:
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,
 De Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral Classification
 Needs an Open Source Community: Open Specy to the Rescue!”
-*Analytical Chemistry*. doi:
+*Analytical Chemistry*, **93**(21), 7543–7548. doi:
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
 Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design for
