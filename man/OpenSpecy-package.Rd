@@ -36,7 +36,8 @@ Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,
 De Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral
 Classification Needs an Open Source Community: Open Specy to the Rescue!”
-\emph{Analytical Chemistry}. \doi{10.1021/acs.analchem.1c00123}.
+\emph{Analytical Chemistry}, \strong{93}(21), 7543–7548.
+\doi{10.1021/acs.analchem.1c00123}.
 
 Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design
 for the Automated Analysis of Microplastic Samples Based on Fourier

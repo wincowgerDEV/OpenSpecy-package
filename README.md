@@ -100,9 +100,9 @@ find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,
 De Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral Classification
 Needs an Open Source Community: Open Specy to the Rescue!”
-*Analytical Chemistry*. doi:
+*Analytical Chemistry*, **93**(21), 7543–7548. doi:
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
 Cowger W, Steinmetz Z (2021). “OpenSpecy: Analyze, Process,
-Identify, and Share, Raman and (FT)IR Spectra.” *R package version 0.9.2*.
-[https://github.com/wincowgerDEV/OpenSpecy](https://github.com/wincowgerDEV/OpenSpecy)
+Identify, and Share, Raman and (FT)IR Spectra.” *R package*, **0.9.2**.
+[https://github.com/wincowgerDEV/OpenSpecy](https://github.com/wincowgerDEV/OpenSpecy).
