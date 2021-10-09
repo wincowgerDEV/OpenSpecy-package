@@ -215,7 +215,23 @@ ui <- fluidPage(
                                          downloadButton('downloadData3', 'FTIR Reference Library Metadata')
                                   )
                               ),
-
+                       
+                         containerfunction(
+                           h2("Contribute Spectra"),
+                           p(class = "lead", "To share spectra upload a file to the upload file tab. ",
+                             "If you selected Share a copy of your spectra will be sent to the Community ",
+                             "Data Warehouse on Open Science Framework. To add additional metadata, ",
+                             "fill in the avaliable metadata fields and click -Share Data-. The ",
+                             "spectra file that you uploaded along with your responses will be copied ",
+                             "to the a -With Metadata- subfolder at the link below. All shared data holds ",
+                             "a Creative Commons Attribution License 4.0."),
+                           div(
+                             a("Community Data Warehouse",
+                               onclick = "window.open('https://osf.io/rjg3c/', '_blank')",
+                               class="btn btn-primary btn-lg")
+                           )
+                         ),
+                       
                             containerfunction(
                               h2("Tool Validation"),
                               p(class = "lead", "All parameters in this tool are tested to validate that ",
@@ -243,32 +259,6 @@ ui <- fluidPage(
                          )
 
                        ),
-
-                      containerfunction(
-                        h2("Contribute Spectra"),
-                        p(class = "lead", "To share spectra upload a file to the upload file tab. ",
-                          "If you selected Share a copy of your spectra will be sent to the Community ",
-                          "Data Warehouse on Open Science Framework. To add additional metadata, ",
-                          "fill in the avaliable metadata fields and click -Share Data-. The ",
-                          "spectra file that you uploaded along with your responses will be copied ",
-                          "to the a -With Metadata- subfolder at the link below. All shared data holds ",
-                          "a Creative Commons Attribution License 4.0."),
-                        div(
-                            a("Community Data Warehouse",
-                                                onclick = "window.open('https://osf.io/rjg3c/', '_blank')",
-                                                class="btn btn-primary btn-lg")
-                            )
-                         ),
-
-                       containerfunction(
-                         h2("Contribute time"),
-                         p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com"),
-                                div(
-                                     a("Community Contribution Guidelines",
-                                                onclick = "window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')",
-                                                class="btn btn-primary btn-lg")
-                                  )
-                                ),
 
                       containerfunction(
                         h2("Stay up to date!"),
@@ -709,12 +699,15 @@ ui <- fluidPage(
                        )),
 
 
-              #Support us tab ----
-              tabPanel("Support Us",
+              #Partner With Us tab ----
+              tabPanel("Partner With Us",
                        fluidRow(
                          column(1),
                          column(10,
-                                tags$h2("We are trying to make this project financially sustainable. It currently costs the developers about a 1000$ each year and no one is paid for their time. See expenses and donations below."),
+                                tags$h1("Help us reach our goals by supporting us financially or with your time."),
+                               
+                                containerfunction(
+                                tags$h2("Financial Partnership Options"),
                                 tags$h3("You can help with a direct donation. Donate here."),
                                 actionButton(inputId = 'ab1', label = "Donate", width = "100%",
                                              icon = icon("donate"),
@@ -722,20 +715,24 @@ ui <- fluidPage(
                                 tags$h3("Or by purchasing some Open Specy merchandise here."),
                                 actionButton(inputId = 'ab2', label = "Swag Shop", width = "100%",
                                              icon = icon("shopping-cart"),
-                                             onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")#,
+                                             onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')"),
+
+                                ),
+                                
+                                containerfunction(
+                                  h2("Contribute time"),
+                                  p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com"),
+                                  div(
+                                    a("Community Contribution Guidelines",
+                                      onclick = "window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')",
+                                      class="btn btn-primary btn-lg")
+                                  )
+                                ),
+                                #,
                          ),
                          column(1)
 
                        ),
-                       fluidRow(
-                         column(1),
-                         column(4,
-                                DT::dataTableOutput('donations')),
-                         column(5,
-                                DT::dataTableOutput('costs')),
-                         column(1)
-                       ),
-
                        hr(),
                        fluidRow(
                          column(3),
