@@ -175,7 +175,7 @@ ui <- fluidPage(
                                "their Raman and IR spectra.")
                             ),
                          containerfunction(
-                           h2("Video Tutorial"),
+                           h2("Quick Video Tutorial"),
                                  HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                               ),
                        containerfunction(
@@ -184,10 +184,14 @@ ui <- fluidPage(
                                   If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
-                                  uploaded or processed data will be presented in an interactive plot and table."),
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video."),
                          a("Detailed Standard Operating Procedure",
                            onclick = "window.open('https://cran.r-project.org/web/packages/OpenSpecy/vignettes/sop.html', '_blank')",
-                           class="btn btn-primary btn-lg")
+                           class="btn btn-primary btn-lg"),
+                         br(),
+                         HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/JjhCdhjdcRY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+                         
                        ),
 
                           containerfunction(
