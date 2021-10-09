@@ -177,9 +177,10 @@ ui <- fluidPage(
                            img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", width = 100),
                            img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", width = 100),
                            img(src = "https://www.uni-koblenz-landau.de/logo.png", width = 100),
+                           img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", width = 100),
                            img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", width = 100),
-                           p(class = "lead", "With special thanks to these individuals who have contributed finacially and/or with their time:
-                                              Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
+                           h5(class = "lead", "With special thanks to these individuals who also contributed finacially and/or with their time:
+                                              Jennifer Gadd, Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI), Mcpike Zima Charitable Foundation")
                             ),
                          containerfunction(
                            h2("Quick Video Tutorial"),
