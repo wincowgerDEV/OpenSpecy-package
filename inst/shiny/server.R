@@ -51,16 +51,16 @@ load_data <- function() {
   testdata <- raman_hdpe
 
   goals <- tibble(
-    Status =      c("Revolutionizing the field", 
+    Status =      c("Revolutionizing", 
                     "Thriving", 
-                    "Doing alright", 
-                    "Life Support", 
-                    "Dying"),
-    Description = c("A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click.",
+                    "Maintaining", 
+                    "Supporting", 
+                    "Saving"),
+    Description = c("A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click",
                     "A single paid staff person working to update and build the community and the tool",
                     "Maintenance costs and minor ad-hoc updates and bug fixes",
                     "Keeping the app online and essential maintenance",
-                    "Online hosting and maintenance ending"),
+                    "Long term storage only"),
     'Annual Need'  = c("100,000-1,000,000$", 
                      "10,000 - 100,000$", 
                      "1,000-10,000$", 

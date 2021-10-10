@@ -168,19 +168,39 @@ ui <- fluidPage(
   tabsetPanel(id = "tabs",
               tabPanel("About", value = "tab0",
                          containerfunction(
-                           h2("Overview"),
-                             p(class = "lead", "Hundreds of researchers from around ",
-                               "the world are using Open Specy to ",
-                               "analyze, share, process, and identify ",
+                           h2("Welcome"),
+                             p(class = "lead", "Join the hundreds of researchers from around ",
+                               "the world who are part of the Open Specy community by ",
+                               "analyzing, sharing, processing, and identifying ",
                                "their Raman and IR spectra. These services are 
-                               free of charge thanks to our partners:"), 
-                           img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = 100),
-                           img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", width = 100),
-                           img(src = "https://www.uni-koblenz-landau.de/logo.png", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)",  width = 100),
-                           img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = 100),
-                           img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = 100),
-                           h5(class = "lead", "With special thanks to these individuals who also contributed finacially and/or with their time:
-                                              Jennifer Gadd, Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI), Mcpike Zima Charitable Foundation")
+                               free and open source thanks to our partners:"), 
+                          div(style = "background-color:rgb(255, 215, 0)",
+                            h3("Revolutionizing (100k-1Mill)")
+                          ),
+                           div(style = "background-color:rgb(205, 127, 50)",
+                             h3("Thriving (10k-100k)"), 
+                             img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem", width = 200),
+                             h4("Mcpike Zima Charitable Foundation")  
+                           ),
+                           div(style = "background-color:rgb(3, 252, 15)",
+                             h3("Maintaining (1k-10k)"), 
+                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem", width = 100),
+                             img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "padding:1rem", width = 100),
+                             img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "padding:1rem",  width = 100),
+                             img(src = "https://www.hpu.edu/_global/images/header-logo.png", style = "padding:1rem",  width = 100),
+                             img(src = "https://www.nist.gov/libraries/nist-component-library/dist/img/logo/nist_logo_sidestack_rev.svg", style = "padding:1rem",  width = 100),
+                             img(src = "https://www.utoronto.ca/sites/all/themes/uoft_stark/img/U-of-T-logo.svg", style = "padding:1rem",  width = 100),
+                             img(src = "https://www.uni-koblenz-landau.de/logo.png", style = "padding:1rem",  width = 100),
+                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", style = "padding:1rem", width = 100)
+                           ),
+                           div(style = "background-color:rgb(0, 0, 255)",
+                             h3("Supporting (100 - 1k)"), 
+                             h5( "Jennifer Gadd")
+                           ),
+                           div(style = "background-color:rgb(128, 0, 128)",
+                               h3("Saving (1-100)"), 
+                               h6( "Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")  
+                           )
                             ),
                          containerfunction(
                            h2("Quick Video Tutorial"),
@@ -701,11 +721,13 @@ ui <- fluidPage(
 
               #Partner With Us tab ----
               tabPanel("Partner With Us",
-                       titlePanel(h4("Help us reach our goal of creating a new status quo for spectroscopy.")),
+                       titlePanel(h4("Help us reach our goal of revolutionizing spectroscopy.")),
                        fluidRow(
                          column(1),
                          column(9,
-                                DT::dataTableOutput('event_goals')
+                                div(style = "font-size:150%",
+                                  DT::dataTableOutput('event_goals') 
+                                ),
                                 ),
                          column(2)
                        ),
