@@ -175,30 +175,30 @@ ui <- fluidPage(
                                "their Raman and IR spectra. These services are 
                                free and open source thanks to our partners:"), 
                           div(style = "background-color:rgb(255, 215, 0)",
-                            h3("Revolutionizing (100k-1Mill)")
+                            h3("Revolutionizing (>100,000$)")
                           ),
                            div(style = "background-color:rgb(205, 127, 50)",
-                             h3("Thriving (10k-100k)"), 
-                             img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem", width = 200),
+                             h3("Thriving (10,000–100,000$)"), 
+                             img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem", height = 100),
                              h4("Mcpike Zima Charitable Foundation")  
                            ),
                            div(style = "background-color:rgb(3, 252, 15)",
-                             h3("Maintaining (1k-10k)"), 
-                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem", width = 100),
-                             img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "padding:1rem", width = 100),
-                             img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "padding:1rem",  width = 100),
-                             img(src = "https://www.hpu.edu/_global/images/header-logo.png", style = "padding:1rem",  width = 100),
-                             img(src = "https://www.nist.gov/libraries/nist-component-library/dist/img/logo/nist_logo_sidestack_rev.svg", style = "padding:1rem",  width = 100),
-                             img(src = "https://www.utoronto.ca/sites/all/themes/uoft_stark/img/U-of-T-logo.svg", style = "padding:1rem",  width = 100),
-                             img(src = "https://www.uni-koblenz-landau.de/logo.png", style = "padding:1rem",  width = 100),
-                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", style = "padding:1rem", width = 100)
+                             h3("Maintaining (1,000–10,000$)"), 
+                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem", height = 50),
+                             img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "padding:1rem", height = 50),
+                             img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "padding:1rem",  height = 50),
+                             img(src = "https://www.hpu.edu/_global/images/header-logo.png", style = "padding:1rem",  height = 50),
+                             img(src = "https://www.nist.gov/libraries/nist-component-library/dist/img/logo/nist_logo_sidestack_rev.svg", style = "padding:1rem",  height = 50),
+                             img(src = "https://www.utoronto.ca/sites/all/themes/uoft_stark/img/U-of-T-logo.svg", style = "padding:1rem",  height = 50),
+                             img(src = "https://www.uni-koblenz-landau.de/logo.png", style = "padding:1rem",  height = 50),
+                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", style = "padding:1rem", height = 50)
                            ),
                            div(style = "background-color:rgb(0, 0, 255)",
-                             h3("Supporting (100 - 1k)"), 
+                             h3("Supporting (100–1,000$)"), 
                              h5( "Jennifer Gadd")
                            ),
                            div(style = "background-color:rgb(128, 0, 128)",
-                               h3("Saving (1-100)"), 
+                               h3("Saving (<100$)"), 
                                h6( "Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")  
                            )
                             ),
@@ -217,6 +217,7 @@ ui <- fluidPage(
                          a("Detailed Standard Operating Procedure",
                            onclick = "window.open('https://cran.r-project.org/web/packages/OpenSpecy/vignettes/sop.html', '_blank')",
                            class="btn btn-primary btn-lg"),
+                         br(),
                          br(),
                          HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/JjhCdhjdcRY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                          
@@ -726,7 +727,8 @@ ui <- fluidPage(
                          column(1),
                          column(9,
                                 div(style = "font-size:150%",
-                                  DT::dataTableOutput('event_goals') 
+                                  DT::dataTableOutput('event_goals'), 
+                                  br()
                                 ),
                                 ),
                          column(2)

@@ -61,11 +61,11 @@ load_data <- function() {
                     "Maintenance costs and minor ad-hoc updates and bug fixes",
                     "Keeping the app online and essential maintenance",
                     "Long term storage only"),
-    'Annual Need'  = c("100,000-1,000,000$", 
-                     "10,000 - 100,000$", 
-                     "1,000-10,000$", 
-                     "100-1,000$",
-                     "0-100$")
+    'Annual Need'  = c(">100,000$",
+                       "10,000–100,000$",
+                       "1,000–10,000$",
+                       "100–1,000$",
+                       "<100$")
   )
   # Check if spectral library is present and load
   test_lib <- class(tryCatch(check_lib(path = conf$library_path),
