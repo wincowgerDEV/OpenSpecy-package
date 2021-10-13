@@ -168,14 +168,57 @@ ui <- fluidPage(
   tabsetPanel(id = "tabs",
               tabPanel("About", value = "tab0",
                          containerfunction(
-                           h2("Overview"),
-                             p(class = "lead", "More than 800 people from around ",
-                               "the world have used Open Specy to ",
-                               "analyze, share, process, and identify ",
-                               "their Raman and IR spectra.")
+                           h2("Welcome"),
+                             p(class = "lead", "Join the hundreds of researchers from around ",
+                               "the world who are part of the Open Specy community by ",
+                               "analyzing, sharing, processing, and identifying ",
+                               "their Raman and IR spectra. These services are
+                               free and open source thanks to our partners:"),
+                          div(class = "jumbotron",
+                              style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                              background-color:rgb(255, 215, 0, 0.5)",
+                            h3("Revolutionizing (>100,000$)")
+                          ),
+                           div(class = "jumbotron",
+                               style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(205, 127, 50, 0.5)",
+                             h3("Thriving (10,000–100,000$)"),
+                             img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem", height = 100),
+                             h4("Mcpike Zima Charitable Foundation")
+                           ),
+                           div(class = "jumbotron",
+                               style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(3, 252, 15, 0.5)",
+                             h3("Maintaining (1,000–10,000$)"),
+                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem", height = 50),
+                             img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "padding:1rem", height = 50),
+                             img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "padding:1rem",  height = 50),
+                             img(src = "https://www.hpu.edu/_global/images/header-logo.png", style = "padding:1rem",  height = 50),
+                             img(src = "https://www.nist.gov/libraries/nist-component-library/dist/img/logo/nist_logo_sidestack_rev.svg", style = "padding:1rem",  height = 50),
+                             img(src = "https://www.utoronto.ca/sites/all/themes/uoft_stark/img/U-of-T-logo.svg", style = "padding:1rem",  height = 50),
+                             img(src = "https://www.uni-koblenz-landau.de/logo.png", style = "padding:1rem",  height = 50),
+                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", style = "padding:1rem", height = 50)
+                           ),
+                           div(class = "jumbotron",
+                               style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(0, 0, 255, 0.5)",
+                             h3("Supporting (100–1,000$)"),
+                             h5( "Jennifer Gadd")
+                           ),
+                           div(class = "jumbotron",
+                               style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(128, 0, 128, 0.5)",
+                               h3("Saving (<100$)"),
+                               h6( "Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
+                           )
                             ),
                          containerfunction(
-                           h2("Video Tutorial"),
+                           h2("Quick Video Tutorial"),
                                  HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                               ),
                        containerfunction(
@@ -184,10 +227,15 @@ ui <- fluidPage(
                                   If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
-                                  uploaded or processed data will be presented in an interactive plot and table."),
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video."),
                          a("Detailed Standard Operating Procedure",
                            onclick = "window.open('https://cran.r-project.org/web/packages/OpenSpecy/vignettes/sop.html', '_blank')",
-                           class="btn btn-primary btn-lg")
+                           class="btn btn-primary btn-lg"),
+                         br(),
+                         br(),
+                         HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/JjhCdhjdcRY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+
                        ),
 
                           containerfunction(
@@ -203,6 +251,22 @@ ui <- fluidPage(
                                          downloadButton('downloadData3', 'FTIR Reference Library Metadata')
                                   )
                               ),
+
+                         containerfunction(
+                           h2("Contribute Spectra"),
+                           p(class = "lead", "To share spectra upload a file to the upload file tab. ",
+                             "If you selected Share a copy of your spectra will be sent to the Community ",
+                             "Data Warehouse on Open Science Framework. To add additional metadata, ",
+                             "fill in the avaliable metadata fields and click -Share Data-. The ",
+                             "spectra file that you uploaded along with your responses will be copied ",
+                             "to the a -With Metadata- subfolder at the link below. All shared data holds ",
+                             "a Creative Commons Attribution License 4.0."),
+                           div(
+                             a("Community Data Warehouse",
+                               onclick = "window.open('https://osf.io/rjg3c/', '_blank')",
+                               class="btn btn-primary btn-lg")
+                           )
+                         ),
 
                             containerfunction(
                               h2("Tool Validation"),
@@ -231,32 +295,6 @@ ui <- fluidPage(
                          )
 
                        ),
-
-                      containerfunction(
-                        h2("Contribute Spectra"),
-                        p(class = "lead", "To share spectra upload a file to the upload file tab. ",
-                          "If you selected Share a copy of your spectra will be sent to the Community ",
-                          "Data Warehouse on Open Science Framework. To add additional metadata, ",
-                          "fill in the avaliable metadata fields and click -Share Data-. The ",
-                          "spectra file that you uploaded along with your responses will be copied ",
-                          "to the a -With Metadata- subfolder at the link below. All shared data holds ",
-                          "a Creative Commons Attribution License 4.0."),
-                        div(
-                            a("Community Data Warehouse",
-                                                onclick = "window.open('https://osf.io/rjg3c/', '_blank')",
-                                                class="btn btn-primary btn-lg")
-                            )
-                         ),
-
-                       containerfunction(
-                         h2("Contribute time"),
-                         p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com"),
-                                div(
-                                     a("Community Contribution Guidelines",
-                                                onclick = "window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')",
-                                                class="btn btn-primary btn-lg")
-                                  )
-                                ),
 
                       containerfunction(
                         h2("Stay up to date!"),
@@ -697,33 +735,49 @@ ui <- fluidPage(
                        )),
 
 
-              #Support us tab ----
-              tabPanel("Support Us",
+              #Partner With Us tab ----
+              tabPanel("Partner With Us",
+                       titlePanel(h4("Help us reach our goal of revolutionizing spectroscopy.")),
                        fluidRow(
                          column(1),
-                         column(10,
-                                tags$h2("We are trying to make this project financially sustainable. It currently costs the developers about a 1000$ each year and no one is paid for their time. See expenses and donations below."),
-                                tags$h3("You can help with a direct donation. Donate here."),
-                                actionButton(inputId = 'ab1', label = "Donate", width = "100%",
-                                             icon = icon("donate"),
-                                             onclick = "window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')"),
-                                tags$h3("Or by purchasing some Open Specy merchandise here."),
-                                actionButton(inputId = 'ab2', label = "Swag Shop", width = "100%",
-                                             icon = icon("shopping-cart"),
-                                             onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")#,
-                         ),
-                         column(1)
-
+                         column(9,
+                                div(style = "font-size:150%",
+                                  DT::dataTableOutput('event_goals'),
+                                  br()
+                                ),
+                                ),
+                         column(2)
                        ),
                        fluidRow(
                          column(1),
-                         column(4,
-                                DT::dataTableOutput('donations')),
-                         column(5,
-                                DT::dataTableOutput('costs')),
-                         column(1)
-                       ),
-
+                                  column(3,
+                                         plotcontainerfunction(
+                                         tags$h3("Donate Cash"),
+                                         icon = icon("shopping-cart"),
+                                         img(src = "https://p.turbosquid.com/ts-thumb/rX/Wm1eqB/t5/currencysymbolsgoldensetc4dmodel000/jpg/1613802168/300x300/sharp_fit_q85/a31625492ce9c8009ab3e4281ad752006e1163ec/currencysymbolsgoldensetc4dmodel000.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
+                                         actionButton(inputId = 'ab1', label = "Donate", style='padding:4px; font-size:200%', width = "100%",
+                                                      icon = icon("donate"),
+                                                      onclick = "window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')")
+                                         )),
+                                  column(3,
+                                         plotcontainerfunction(tags$h3("Buy From Swag Store"),
+                                         img(src = "https://image.spreadshirtmedia.com/image-server/v1/products/T813A823PA3132PT17X42Y46D1038541132FS4033/views/1,width=650,height=650,appearanceId=823/updated-logo-for-open-specy-designed-by-alex-mcgoran.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
+                                         actionButton(inputId = 'ab2', label = "Shop", style='padding:4px; font-size:200%', width = "100%",
+                                                      icon = icon("shopping-cart"),
+                                                      onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")
+                                         )),
+                                  column(3,
+                                         plotcontainerfunction(
+                                           h2("Contribute time"),
+                                           #p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com"),
+                                           img(src = "https://health.sunnybrook.ca/wp-content/uploads/2020/02/healthy-hands-810x424.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
+                                           actionButton(inputId = 'ab3', label = "Guidelines", style='padding:4px; font-size:200%', width = "100%",
+                                                        icon = icon("clock"),
+                                                        onclick ="window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')")
+                                         )
+                                         ),
+                        column(2)
+                                ),
                        hr(),
                        fluidRow(
                          column(3),

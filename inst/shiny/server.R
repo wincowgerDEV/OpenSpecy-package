@@ -50,6 +50,23 @@ load_data <- function() {
   donations <- fread("data/donations.csv")
   testdata <- raman_hdpe
 
+  goals <- tibble(
+    Status =      c("Revolutionizing", 
+                    "Thriving", 
+                    "Maintaining", 
+                    "Supporting", 
+                    "Saving"),
+    Description = c("A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click",
+                    "A single paid staff person working to update and build the community and the tool",
+                    "Maintenance costs and minor ad-hoc updates and bug fixes",
+                    "Keeping the app online and essential maintenance",
+                    "Long term storage only"),
+    'Annual Need'  = c(">100,000$",
+                       "10,000–100,000$",
+                       "1,000–10,000$",
+                       "100–1,000$",
+                       "<100$")
+  )
   # Check if spectral library is present and load
   test_lib <- class(tryCatch(check_lib(path = conf$library_path),
                              warning = function(w) {w}))
@@ -89,7 +106,30 @@ server <- shinyServer(function(input, output, session) {
 #      q("no")
 #    })
 #  }
-
+  
+  #brks <- seq(5, 320000, 1000)
+  clrs <- colorRampPalette(c("white", "#6baed6"))(5 + 1)
+  
+  output$event_goals <- DT::renderDataTable({
+    datatable(goals,
+              options = list(
+                             dom = "t",
+                             ordering = FALSE,
+                             paging = FALSE,
+                             searching = FALSE
+                             #sDom  = '<"top">lrt<"bottom">ip',
+                             
+                             ),
+              caption = "Progress (current staus selected)",
+              style = "bootstrap",
+              class = 'row-border',
+              escape = FALSE,
+              rownames = FALSE,
+              #formatStyle(c("Annual Need"), backgroundColor = styleColorBar(color = clrs)),
+              selection = list(mode = "single", selected = c(2)))
+  })
+  
+  #Reading Data and Startup ----
   # Sharing ID
   id <- reactive({
     if (!is.null(input$fingerprint)) {
