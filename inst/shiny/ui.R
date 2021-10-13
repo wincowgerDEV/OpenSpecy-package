@@ -172,18 +172,27 @@ ui <- fluidPage(
                              p(class = "lead", "Join the hundreds of researchers from around ",
                                "the world who are part of the Open Specy community by ",
                                "analyzing, sharing, processing, and identifying ",
-                               "their Raman and IR spectra. These services are 
-                               free and open source thanks to our partners:"), 
-                          div(style = "background-color:rgb(255, 215, 0)",
+                               "their Raman and IR spectra. These services are
+                               free and open source thanks to our partners:"),
+                          div(class = "jumbotron",
+                              style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                              background-color:rgb(255, 215, 0, 0.5)",
                             h3("Revolutionizing (>100,000$)")
                           ),
-                           div(style = "background-color:rgb(205, 127, 50)",
-                             h3("Thriving (10,000–100,000$)"), 
+                           div(class = "jumbotron",
+                               style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(205, 127, 50, 0.5)",
+                             h3("Thriving (10,000–100,000$)"),
                              img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem", height = 100),
-                             h4("Mcpike Zima Charitable Foundation")  
+                             h4("Mcpike Zima Charitable Foundation")
                            ),
-                           div(style = "background-color:rgb(3, 252, 15)",
-                             h3("Maintaining (1,000–10,000$)"), 
+                           div(class = "jumbotron",
+                               style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(3, 252, 15, 0.5)",
+                             h3("Maintaining (1,000–10,000$)"),
                              img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem", height = 50),
                              img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "padding:1rem", height = 50),
                              img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "padding:1rem",  height = 50),
@@ -193,13 +202,19 @@ ui <- fluidPage(
                              img(src = "https://www.uni-koblenz-landau.de/logo.png", style = "padding:1rem",  height = 50),
                              img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", style = "padding:1rem", height = 50)
                            ),
-                           div(style = "background-color:rgb(0, 0, 255)",
-                             h3("Supporting (100–1,000$)"), 
+                           div(class = "jumbotron",
+                               style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(0, 0, 255, 0.5)",
+                             h3("Supporting (100–1,000$)"),
                              h5( "Jennifer Gadd")
                            ),
-                           div(style = "background-color:rgb(128, 0, 128)",
-                               h3("Saving (<100$)"), 
-                               h6( "Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")  
+                           div(class = "jumbotron",
+                               style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(128, 0, 128, 0.5)",
+                               h3("Saving (<100$)"),
+                               h6( "Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
                            )
                             ),
                          containerfunction(
@@ -220,7 +235,7 @@ ui <- fluidPage(
                          br(),
                          br(),
                          HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/JjhCdhjdcRY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
-                         
+
                        ),
 
                           containerfunction(
@@ -236,7 +251,7 @@ ui <- fluidPage(
                                          downloadButton('downloadData3', 'FTIR Reference Library Metadata')
                                   )
                               ),
-                       
+
                          containerfunction(
                            h2("Contribute Spectra"),
                            p(class = "lead", "To share spectra upload a file to the upload file tab. ",
@@ -252,7 +267,7 @@ ui <- fluidPage(
                                class="btn btn-primary btn-lg")
                            )
                          ),
-                       
+
                             containerfunction(
                               h2("Tool Validation"),
                               p(class = "lead", "All parameters in this tool are tested to validate that ",
@@ -727,7 +742,7 @@ ui <- fluidPage(
                          column(1),
                          column(9,
                                 div(style = "font-size:150%",
-                                  DT::dataTableOutput('event_goals'), 
+                                  DT::dataTableOutput('event_goals'),
                                   br()
                                 ),
                                 ),
@@ -744,14 +759,14 @@ ui <- fluidPage(
                                                       icon = icon("donate"),
                                                       onclick = "window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')")
                                          )),
-                                  column(3, 
+                                  column(3,
                                          plotcontainerfunction(tags$h3("Buy From Swag Store"),
                                          img(src = "https://image.spreadshirtmedia.com/image-server/v1/products/T813A823PA3132PT17X42Y46D1038541132FS4033/views/1,width=650,height=650,appearanceId=823/updated-logo-for-open-specy-designed-by-alex-mcgoran.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
                                          actionButton(inputId = 'ab2', label = "Shop", style='padding:4px; font-size:200%', width = "100%",
                                                       icon = icon("shopping-cart"),
                                                       onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")
                                          )),
-                                  column(3, 
+                                  column(3,
                                          plotcontainerfunction(
                                            h2("Contribute time"),
                                            #p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com"),
