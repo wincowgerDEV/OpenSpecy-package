@@ -1,3 +1,17 @@
+# OpenSpecy 0.9.3
+
+## Minor Improvements
+
+- Better error handling for .csv formats
+- Add funders and goals
+- Updated package citation
+- CI testing for Mac
+
+## Bug Fixes
+
+- Fixed testthat routines occasionally failing CRAN checks
+
+
 # OpenSpecy 0.9.2
 
 ## New Features
