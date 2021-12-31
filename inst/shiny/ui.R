@@ -196,10 +196,10 @@ ui <- fluidPage(
               tabPanel(i18n$t("About"), value = "tab0",
                          containerfunction(
                            h2(i18n$t("Welcome")),
-                             p(class = "lead", "Join the hundreds of researchers from around ",
-                               "the world who are part of the Open Specy community by ",
-                               "analyzing, sharing, processing, and identifying ",
-                               "their Raman and IR spectra. These services are
+                             p(class = "lead", "Join the hundreds of researchers from around 
+                               the world who are part of the Open Specy community by 
+                               analyzing, sharing, processing, and identifying 
+                               their Raman and IR spectra. These services are
                                free and open source thanks to our partners:"),
                           fluidRow(
                             column(6, img(src = "dancing.jpg", width = "100%")
@@ -316,10 +316,10 @@ ui <- fluidPage(
 
                           containerfunction(
                             h2("Download Open Data"),
-                            p(class = "lead", "Reference spectra was sourced from open access resources ",
-                                "online, peer reviewed publications, and corporate donations. In the future, ",
-                                "spectra that is uploaded to the tool will be incorporated to the reference ",
-                                "library to make it even better."),
+                            p(class = "lead", "Reference spectra was sourced from open access resources 
+                                online, peer reviewed publications, and corporate donations. In the future, 
+                                spectra that is uploaded to the tool will be incorporated to the reference 
+                                library to make it even better."),
                             div(
                                          downloadButton("downloadData6", "Raman Reference Library", style = "background-color: #2a9fd6;"),
                                          downloadButton("downloadData5", "FTIR Reference Library", style = "background-color: #2a9fd6;"),
@@ -330,13 +330,13 @@ ui <- fluidPage(
 
                          containerfunction(
                            h2("Contribute Spectra"),
-                           p(class = "lead", "To share spectra upload a file to the upload file tab. ",
-                             "If you selected Share a copy of your spectra will be sent to the Community ",
-                             "Data Warehouse on Open Science Framework. To add additional metadata, ",
-                             "fill in the avaliable metadata fields and click -Share Data-. The ",
-                             "spectra file that you uploaded along with your responses will be copied ",
-                             "to the a -With Metadata- subfolder at the link below. All shared data holds ",
-                             "a Creative Commons Attribution License 4.0."),
+                           p(class = "lead", "To share spectra upload a file to the upload file tab. 
+                             If you selected Share a copy of your spectra will be sent to the Community 
+                             Data Warehouse on Open Science Framework. To add additional metadata, 
+                             fill in the avaliable metadata fields and click -Share Data-. The 
+                             spectra file that you uploaded along with your responses will be copied 
+                             to the a -With Metadata- subfolder at the link below. All shared data holds 
+                             a Creative Commons Attribution License 4.0."),
                            div(
                              a("Community Data Warehouse",
                                onclick = "window.open('https://osf.io/rjg3c/', '_blank')",
@@ -346,12 +346,12 @@ ui <- fluidPage(
 
                             containerfunction(
                               h2("Tool Validation"),
-                              p(class = "lead", "All parameters in this tool are tested to validate that ",
-                                "the tool is functioning as best as possible and determine the best default ",
-                                "parameters to use. Our current validation proceedure includes correcting ",
-                                "duplicated entries in the reference libraries, checking for spectra in ",
-                                "metadata that isn't in the spectral library, and ensuring the the default ",
-                                "parameters provide over 80% accuracy in the first match."
+                              p(class = "lead", "All parameters in this tool are tested to validate that 
+                                the tool is functioning as best as possible and determine the best default 
+                                parameters to use. Our current validation proceedure includes correcting 
+                                duplicated entries in the reference libraries, checking for spectra in 
+                                metadata that isn't in the spectral library, and ensuring the the default 
+                                parameters provide over 80% accuracy in the first match."
                                 ),
                               div(
                                 a("Detailed Validation Procedure",
@@ -421,9 +421,9 @@ ui <- fluidPage(
                                 bsPopover(
                                   id = "share_decision",
                                   title = "Share Help",
-                                  content = c("If you like, we share your uploaded spectra and settings with the spectroscopy community.",
-                                              "By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).",
-                                              "Uploaded spectra will appear here: https://osf.io/rjg3c"),
+                                  content = c("If you like, we share your uploaded spectra and settings with the spectroscopy community.
+                                              By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+                                              Uploaded spectra will appear here: https://osf.io/rjg3c"),
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
@@ -438,7 +438,7 @@ ui <- fluidPage(
                                   title = "Upload Help",
                                   content = c("Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
                                             If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.",
-                                            "",
+                                            
                                             "Hit the 'Test Data' button to download a sample Raman spectrum."),
                                   placement = "bottom",
                                   trigger = "click"
@@ -450,19 +450,19 @@ ui <- fluidPage(
                                 bsPopover(
                                   id = "intensity_corr",
                                   title = "Intensity Correction Help",
-                                  content = c("If the uploaded spectrum is not in absorbance units, ",
-                                              "use this input to specify the units to convert from.Open Specy can ",
-                                              "adjust reflectance or transmittance spectra to Absorbance units using ",
-                                              "this drop down in the upload file tab. All of the preceding tabs ",
-                                              "assume that the data is in absorbance units so you should make the ",
-                                              "correction before continuing if needed. The transmittance adjustment ",
-                                              "uses the log10(1/T) calculation which does not correct for system ",
-                                              "and particle characteristics. The reflectance adjustment uses the ",
-                                              "Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance ",
-                                              "is formatted as a percent from 1-100 and first correct the intensity by dividing by 100",
-                                              "so that it fits the form expected by the equation.",
-                                              "If none is selected, Open Specy assumes that the uploaded data is ",
-                                              "an absorbance spectrum."),
+                                  content = c("If the uploaded spectrum is not in absorbance units, 
+                                              use this input to specify the units to convert from.Open Specy can 
+                                              adjust reflectance or transmittance spectra to Absorbance units using 
+                                              this drop down in the upload file tab. All of the preceding tabs 
+                                              assume that the data is in absorbance units so you should make the 
+                                              correction before continuing if needed. The transmittance adjustment 
+                                              uses the log10(1/T) calculation which does not correct for system 
+                                              and particle characteristics. The reflectance adjustment uses the 
+                                              Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+                                              is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+                                              so that it fits the form expected by the equation.
+                                              If none is selected, Open Specy assumes that the uploaded data is 
+                                              an absorbance spectrum."),
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
@@ -484,8 +484,8 @@ ui <- fluidPage(
                                 bsPopover(
                                   id = "share_meta",
                                   title = "Metadata Help",
-                                  content = c("We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.",
-                                              "Uploaded spectra and metadata will appear here: https://osf.io/rjg3c"),
+                                  content = c("We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+                                              Uploaded spectra and metadata will appear here: https://osf.io/rjg3c"),
                                   placement = "bottom",
                                   trigger = "hover"
                                 ),
