@@ -7,7 +7,7 @@
 # Check for Auth Tokens and setup, you can change these to test the triggering
 # of functions without removing the files.
 droptoken <- file.exists("data/droptoken.rds")
-db <- file.exists(".db_url")
+db <- FALSE#file.exists(".db_url") #reminder, this will break if you login to a new wifi network even with the token.
 translate <- file.exists("www/googletranslate.html")
 
 # Libraries ----
@@ -23,6 +23,8 @@ library(curl)
 library(config)
 library(mongolite)
 library(loggit)
+library(shiny.i18n)
+
 
 if(droptoken) library(rdrop2)
 
@@ -574,6 +576,11 @@ observeEvent(input$reset, {
     }
   })
 
+  # Translate page ----
+  observeEvent(input$selected_language, {
+    update_lang(session, input$selected_language)
+  })
+  
   # Log events ----
 
 observeEvent(input$go, {

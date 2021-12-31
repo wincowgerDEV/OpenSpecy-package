@@ -12,6 +12,8 @@ library(shinyBS)
 library(dplyr)
 library(plotly)
 library(DT)
+library(shiny.i18n)
+
 
 # Name keys for human readable column names ----
 load("data/namekey.RData")
@@ -26,6 +28,10 @@ citation <- HTML(
   "<a href='https://doi.org/10.1021/acs.analchem.1c00123'>10.1021/acs.analchem.1c00123</a>."
   )
 )
+
+# Commands for translator
+i18n <- Translator$new(translation_json_path = "languages/json_translation.json")
+i18n$set_translation_language('en')
 
 # Functions ----
 labelMandatory <- function(label) {
@@ -124,6 +130,7 @@ bodyformat <- function() {
 ui <- fluidPage(
 
   #Script for all pages ----
+  shiny.i18n::usei18n(i18n),
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
   #extendShinyjs(text = "shinyjs.resetClick = function() { Shiny.onInputChange('.clientValue-plotly_click-A', 'null'); }", functions = "resetClick"),
   inputIp("ipid"),
@@ -159,23 +166,43 @@ ui <- fluidPage(
 
   hidden(div(id = "app_content",
 
-  # About Tab ----
+             #Title Panel ----
   titlePanel(
     fluidRow(
-      column(9, align = "left", img(src = "logo.png", width = 300, height = 75)),
-      column(3, align = "right", uiOutput("translate")) # Google Translate
+      column(10, align = "left", img(src = "logo.png", width = 300, height = 75)),
+      column(2, align = "right", 
+             div(style = "width: 90%;
+                            padding: 15px;
+                            font-size: 14pt;
+                            border-radius: 0;
+                            outline: none;
+                            border: none;
+                            text-align:left !important;",
+                  selectInput(
+                 inputId='selected_language',
+                 label=i18n$t('Change language'),
+                 choices = i18n$get_languages(),
+                 selected = i18n$get_key_translation(),
+                 width = '200px'
+               )
+             )
+             )#uiOutput("translate")) # Google Translate
     ), windowTitle = "Open Specy"
-  ),
+  ), 
+  # About Tab ----
   tabsetPanel(id = "tabs",
-              tabPanel("About", value = "tab0",
+              tabPanel(i18n$t("About"), value = "tab0",
                          containerfunction(
-                           h2("Welcome"),
+                           h2(i18n$t("Welcome")),
                              p(class = "lead", "Join the hundreds of researchers from around ",
                                "the world who are part of the Open Specy community by ",
                                "analyzing, sharing, processing, and identifying ",
                                "their Raman and IR spectra. These services are
                                free and open source thanks to our partners:"),
-                          div(class = "jumbotron",
+                          fluidRow(
+                            column(6,                            
+                                   h3("Financial Partners"),
+                               div(class = "jumbotron",
                               style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                               background-color:rgb(255, 215, 0, 0.5)",
@@ -217,7 +244,39 @@ ui <- fluidPage(
                                h3("Saving (<100$)"),
                                h6( "Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
                            )
-                            ),
+                        ),
+                          column(6,
+                                 h3("Effort Partners"),
+                                 div(class = "jumbotron",
+                                     style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                              background-color:rgb(255, 215, 0, 0.5)",
+                              h3("Revolutionizing (>100,000$)")
+                                 ),
+                              div(class = "jumbotron",
+                                  style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(205, 127, 50, 0.5)",
+                               h3("Thriving (10,000–100,000$)"),
+                               h4("Win Cowger, Zacharias Steinmetz")
+                              ),
+                              div(class = "jumbotron",
+                                  style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(3, 252, 15, 0.5)",
+                               h3("Maintaining (1,000–10,000$)"),
+                               h5("Sebastian Primpke, Andrew Gray, Chelsea Rochman, Orestis Herodotu, Hannah De Frond, Keenan Munno, Hannah Hapich, Jennifer Lynch")
+                              ),
+                              div(class = "jumbotron",
+                                  style = "padding:0rem 1rem 0rem;
+                               border:solid #f7f7f9;
+                               background-color:rgb(0, 0, 255, 0.5)",
+                               h3("Supporting (100–1,000$)"),
+                               h6( "Shreyas Patankar, Andrea Faltynkova, Alexandre Dehaut, Gabriel Erni Cassola, Aline Carvalho")
+                              )
+                          )
+                                 )
+                          ),
                          containerfunction(
                            h2("Quick Video Tutorial"),
                                  HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')

@@ -2,9 +2,11 @@
 library(googleLanguageR)
 library(dplyr)
 library(data.table)
+library(jsonlite)
 
 #Functions ----
 not_all_na <- function(x) any(!is.na(x))
+fread_encoding <- function(x) fread(x, encoding = "UTF-8")
 
 
 #Dataset ----
@@ -206,9 +208,8 @@ df_2 <- df %>%
 for(column in 2:ncol(df_2)){
   fwrite(df_2[,c(1,column)], paste0("D:/openspecy_languages/translation_", names(df_2)[column], ".csv"), row.names = F)
 }
-fread_encoding <- function(x) fread(x, encoding = "UTF-8")
-file <- fread(list.files("D:/openspecy_languages", ".csv", recursive = T, full.names = T)[2], encoding = "UTF-8")
 
+#Convert to JSON ----
 files <- list.files("D:/openspecy_languages", ".csv", recursive = T, full.names = T)
 language_key <- gsub(".csv", "", gsub(".{1,}_", "", files))
 json_file <- fromJSON("D:/input.json")
@@ -222,8 +223,6 @@ df_json <- df_json %>%
   mutate(en = list_files[[1]]$en) %>%
   select(en, everything())
 
-#file <- list_files[[1]][["af"]]
-
 for(language in 1:length(language_key)) {
   df_json[,language_key[language]] <- list_files[[language]][[language_key[language]]]
 }
@@ -231,4 +230,4 @@ for(language in 1:length(language_key)) {
 json_file$languages <- c("en", language_key)
 json_file$translation <- df_json
 
-write_json(json_file, "D:/json_test.json")
+write_json(json_file, "inst/shiny/languages/json_translation.json")
