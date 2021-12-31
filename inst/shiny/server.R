@@ -575,6 +575,45 @@ observeEvent(input$reset, {
       includeHTML("www/googletranslate.html")
     }
   })
+  #https://twitter.com/OpenSpecy/status/1472361269093023744
+  #https://twitter.com/EnviroMichaela/status/1471622640183959555
+  render_tweet <- function(x){renderUI({
+    div(style = "width: 100%",
+        
+      tagList(
+        tags$blockquote(class = "twitter-tweet", 
+                        tags$a(href = x)),
+        tags$script('twttr.widgets.load(document.getElementById("tweet"));')
+      )
+    )
+  })
+  }
+  
+  tweets <- c("https://twitter.com/EnviroMichaela/status/1471622640183959555",
+              "https://twitter.com/OpenSpecy/status/1472361269093023744",
+              "https://twitter.com/DSemensatto/status/1461038613903380484",
+              "https://twitter.com/SETAC_plastics/status/1460738878101356544",
+              "https://twitter.com/AliciaMateos_/status/1460197329760313344",
+              "https://twitter.com/Irreverent_KUP/status/1454418069036568578",
+              "https://twitter.com/PeterPuskic/status/1454267818166210561",
+              "https://twitter.com/JannesJegminat/status/1427257468384681985",
+              "https://twitter.com/pnwmicroplastic/status/1415730821730734080",
+              "https://twitter.com/OpenSpecy/status/1408391168745000961",
+              "https://twitter.com/ToMExApp/status/1399859256615079936",
+              "https://twitter.com/kat_lasdin/status/1399576094622175241",
+              "https://twitter.com/an_chem/status/1397621113421803521",
+              "https://twitter.com/WarrierAnish/status/1395245636967014401",
+              "https://twitter.com/EnviroMichaela/status/1395199312645300233",
+              "https://twitter.com/SocAppSpec/status/1392883693027430400",
+              "https://twitter.com/zsteinmetz_/status/1387677422028480512",
+              "https://twitter.com/OpenSpecy/status/1382820319635775488",
+              "https://twitter.com/zsteinmetz_/status/1377222029250822146",
+              "https://twitter.com/OpenSpecy/status/1318214558549372928",
+              "https://twitter.com/YokotaLimnoLab/status/1311069417892184065")
+              
+  output$tweets <- renderUI({
+    map(tweets, ~ render_tweet(.x))
+  })
 
   # Translate page ----
   observeEvent(input$selected_language, {

@@ -13,6 +13,7 @@ library(dplyr)
 library(plotly)
 library(DT)
 library(shiny.i18n)
+library(purrr)
 
 
 # Name keys for human readable column names ----
@@ -137,6 +138,7 @@ ui <- fluidPage(
   inputUserid("fingerprint"),
  # tags$head(uiOutput("name_get")),
   tags$head(tags$style(css),
+            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js"),
             tags$style(HTML("
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
@@ -200,8 +202,12 @@ ui <- fluidPage(
                                "their Raman and IR spectra. These services are
                                free and open source thanks to our partners:"),
                           fluidRow(
+                            column(6, img(src = "dancing.jpg", width = "100%")
+                            ),
                             column(6,                            
                                    h3("Financial Partners"),
+                                   panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
+                                         
                                div(class = "jumbotron",
                               style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
@@ -244,15 +250,15 @@ ui <- fluidPage(
                                h3("Saving (<100$)"),
                                h6( "Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
                            )
-                        ),
-                          column(6,
-                                 h3("Effort Partners"),
-                                 div(class = "jumbotron",
-                                     style = "padding:0rem 1rem 0rem;
+                          ),
+                          h3("Effort Partners"),
+                          panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
+                                div(class = "jumbotron",
+                                    style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                               background-color:rgb(255, 215, 0, 0.5)",
                               h3("Revolutionizing (>100,000$)")
-                                 ),
+                                ),
                               div(class = "jumbotron",
                                   style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
@@ -275,8 +281,18 @@ ui <- fluidPage(
                                h6( "Shreyas Patankar, Andrea Faltynkova, Alexandre Dehaut, Gabriel Erni Cassola, Aline Carvalho")
                               )
                           )
-                                 )
+                        )
+                          
+                           )
                           ),
+                       containerfunction(
+                         h2("Testimonials"),#
+                        panel(style = "overflow-y:scroll; max-height: 400px;  align: centre",
+                              uiOutput("tweets")#,
+
+                        )
+                            
+                       ),
                          containerfunction(
                            h2("Quick Video Tutorial"),
                                  HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
