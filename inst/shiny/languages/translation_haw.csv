@@ -1,0 +1,212 @@
+en,haw
+About,E pili ana
+Welcome,Welina
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","E hui pū me nā haneli o nā mea noiʻi mai nā wahi a puni
+           ka honua i ʻāpana o ke kaiāulu Open Specy e
+           ka nānā ʻana, kaʻana like, ka hana ʻana, a me ka ʻike
+           ko lākou Raman a me IR spectra. He manuahi a wehe ʻia kēia mau lawelawe i kā mākou mau hoa."
+Quick Video Tutorial,Aʻoaʻo wikiō wikiwiki
+Instructions,Nā kuhikuhi
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","I ka pōkole: No ka hoʻohana ʻana i ka mea hana e hoʻouka i kahi faila csv, asp, jdx, spc, a i ʻole spa i ka pā faila hoʻouka.
+                                  Inā csv, pono e kapa ʻia kekahi kolamu 'helu hawewe' (ma nā ʻāpana o 1/cm) a i kapa ʻia kekahi kolamu 'intensity'.
+                                  Hiki iā ʻoe ke hoʻomaʻemaʻe i kāu ʻikepili me ka hoʻohana ʻana i kahi kānana SG, hoʻoponopono i kāu ʻikepili me ka hoʻohana ʻana i ka polynomial order o iModPolyFit, a hoʻopaʻa i ka laulā hawewe no ka pāʻani.
+                                  E hoʻohālikelike ʻia ka hopena me kahi waihona Raman kūloko a i ʻole FTIR spectra waihona. ʻO nā pāʻani 1000 ikaika loa me kāu
+                                  e hōʻike ʻia nā ʻikepili i hoʻoili ʻia a i ʻole i hoʻoili ʻia ma kahi pākaukau a me ka papa. No ka ʻike hou aku e kaomi i ke pihi ma lalo
+                                  a i ʻole e nānā i ke wikiō aʻo kikoʻī."
+Detailed Standard Operating Procedure,Ke kaʻina hana maʻamau kikoʻī
+Download Open Data,Hoʻoiho i ka ʻikepili wehe
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Loaʻa ʻia ka ʻike kikoʻī mai nā kumuwaiwai wehe
+           ma ka pūnaewele, nā puke i nānā ʻia e nā hoa, a me nā haʻawina hui. I ka wā e hiki mai ana
+           E hoʻokomo ʻia ka spectra i hoʻoili ʻia i ka hāmeʻa i ka kuhikuhi
+           hale waihona puke e hoʻomaikaʻi ai."
+Raman Reference Library,Raman Reference Library
+FTIR Reference Library,FTIR Reference Library
+Raman Reference Library Metadata,ʻO ka metadata o ka waihona waihona ʻōlelo Raman
+FTIR Reference Library Metadata,FTIR Reference Library Metadata
+Contribute Spectra,Hāʻawi i ka Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","No ka kaʻana like ʻana i ka spectra e hoʻouka i kahi faila i ka pā faila hoʻouka. Inā ʻoe i koho Kaʻana like e hoʻouna ʻia kahi kope o kāu spectra i ke Kaiāulu
+           Hale Waihona ʻIkepili ma Open Science Framework. No ka hoʻohui ʻana i nā metadata hou,
+           hoʻopiha i nā kahua metadata hiki ke kaomi -Share Data-. ʻO ka
+           E kope ʻia ka faila spectra āu i hoʻouka ai me kāu mau pane
+           i ka -Me Metadata- subfolder ma ka loulou ma lalo nei. Loaʻa nā ʻikepili like ʻole a pau
+           a Creative Commons Attribution License 4.0."
+Community Data Warehouse,Hale Waihona ʻIke Kaiaulu
+Tool Validation,Mea Hooia
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Hoʻāʻo ʻia nā ʻāpana āpau i kēia hāmeʻa e hōʻoia i kēlā
+           ke hana nei ka mea hana e like me ka mea hiki loa a hoʻoholo i ka paʻamau maikaʻi loa
+           nā ʻāpana e hoʻohana ai. ʻO kā mākou hana hōʻoia o kēia manawa e pili ana i ka hoʻoponopono
+           hoʻokomo kope ʻia i loko o nā hale waihona puke, e nānā ana i ka spectra in
+           metadata ʻaʻole i loko o ka hale waihona spectral, a me ka hōʻoia i ka paʻamau
+           Hāʻawi nā ʻāpana ma luna o 80% pololei i ka pāʻani mua."
+Detailed Validation Procedure,Ke kaʻina hana hōʻoia kikoʻī
+"Updates, Feature Requests, and Bug Reports","Nā mea hou, nā noi hiʻohiʻona, a me nā hōʻike Bug"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Mālama mākou i nā mea hou a pau me ka hoʻohana ʻana i ka mana mana ma kā mākou code. Hiki ke noi ʻia nā hiʻohiʻona a hōʻike ʻia ka bug ma GitHub.
+Stay up to date!,E noho hou i kēia lā!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,E hahai mai iā mākou ma Twitter @OpenSpecy. E-mail wincowger@gmail.com e hoʻohui ʻia i ka papa inoa leka.
+Citation,Kuhikuhi
+Useful Links,Nā loulou pono
+Free FTIR Software: siMPle microplastic IR spectral identification software,Pūnaehana FTIR manuahi: polokalamu ʻike kikoʻī IR microplastic siMPle
+Free Spectroscopy Learning Academy from ThermoFisher,Hāʻawi ʻia ʻo Spectroscopy Learning Academy mai ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,ʻO ke kumu aʻo ʻo Optical Microscopy manuahi mai Florida State University
+Free desktop application for spectral analysis and links to reference databases.,No ka hoʻohana ʻana i ka papa kuhikuhi manuahi a me nā loulou i nā ʻikepili kuhikuhi.
+Terms And Conditions,Nā ʻŌlelo a me nā Kūlana
+Privacy Policy,Kulekele pilikino
+Upload File,Hoʻouka i ka faila
+"Upload, View, and Share Spectra","Hoʻouka, Nānā, a kaʻana like i ka Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","E koho iā .csv (makemake), .asp, .jdx, .spc, .spa, a i ʻole .0 File"
+Share Your Data?,Kaʻana like i kāu ʻikepili?
+Share Help,Kaʻana kōkua
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Inā makemake ʻoe, kaʻana like mākou i kāu kikoʻī a me nā hoʻonohonoho i hoʻoili ʻia me ke kaiāulu spectroscopy.
+           Ma ka paʻamau, e laikini ʻia nā ʻikepili āpau ma lalo o Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           E ʻike ʻia nā kikoʻī i hoʻouka ʻia ma aneʻi: https://osf.io/rjg3c"
+Upload Help,Hoʻouka Kōkua
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Hoʻouka i nā faila kikoʻī Raman a i ʻole FTIR ma ke ʻano he csv, jdx, spc, a i ʻole spa. Makemake ʻia kahi faila csv. Inā he csv, pono ka waihona i hoʻokahi kolamu i kapa ʻia ʻo 'wavennumber' ma nā ʻāpana o (1/cm) a me kekahi kolamu i kapa ʻia ʻo 'intensity' i nā ʻāpana absorbance.
+            Inā ʻo jdx, spc, spa, a i ʻole 0 pono ka faila i hoʻokahi kiko kikoʻī me ka helu hawewe ma (1/cm). ʻAʻole e hana maikaʻi kēia mau faila no ka mea paʻakikī lākou e heluhelu no laila e nānā pālua iā lākou ma kahi polokalamu ʻē aʻe.
+            E kaomi i ke pihi 'Test Data' e hoʻoiho i kahi laʻana Raman spectrum."
+Intensity Adjustment,Hoʻoponopono ikaika
+None,ʻAʻohe
+Transmittance,Ka hoʻouna ʻana
+Reflectance,Hoʻomanaʻo
+Intensity Correction Help,Kokua Hooponopono Intensity
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Inā ʻaʻole i loko o nā ʻāpana absorbance ka spectrum i hoʻouka ʻia,
+           e hoʻohana i kēia hoʻokomo e kuhikuhi i nā ʻāpana e hoʻololi mai. Hiki iā Open Specy
+           hoʻololi i ka reflectance a i ʻole transmittance spectra i nā ʻāpana Absorbance me ka hoʻohana ʻana
+           kēia hāʻule i lalo i ka pā faila hoʻoili. ʻO nā papa mua a pau
+           manaʻo ʻoe aia ka ʻikepili i nā ʻāpana absorbance no laila pono ʻoe e hana i ka
+           hoʻoponopono ma mua o ka hoʻomau inā pono. ʻO ka hoʻoponopono transmittance
+           hoʻohana i ka helu log10(1/T) i pololei ʻole no ka ʻōnaehana
+           a me nā ʻano ʻāpana. Hoʻohana ka hoʻoponopono reflectance i ka
+           Ka hoohalike Kubelka-Munk (1-R)2/(2*R). Manaʻo mākou ʻo ka reflectance
+           Hoʻopili ʻia ma ke ʻano he pākēneka mai 1-100 a hoʻoponopono mua i ka ikaika ma ka puʻunaue ʻana me 100
+           i kūpono i ke ʻano i manaʻo ʻia e ka hoohalike.
+           Inā ʻaʻohe mea i koho ʻia, manaʻo ʻo Open Specy ʻo ka ʻikepili i hoʻoili ʻia
+           he spectrum absorbance."
+Sample File,Waihona Laʻana
+Sample Data Help,Kōkua ʻikepili Laʻana
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,He laʻana spectrum kēia i hiki ke hoʻouka ʻia i ka mea paahana no ka hoʻāʻo ʻana a me ka hoʻomaopopo ʻana i ke ʻano o nā faila csv.
+Metadata Input,Hoʻokomo ʻikepili metadata
+Metadata Help,Kokua metadata
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Kaʻana like mākou i nā spectra a me nā metadata i hoʻouka ʻia me ke kaiāulu spectroscopy inā ʻoe e hoʻopiha i ka metadata ma aneʻi a koho i kaʻana.
+           E ʻike ʻia ka spectra a me ka metadata i hoʻouka ʻia ma aneʻi: https://osf.io/rjg3c"
+Share Metadata,Kaʻana i ka ʻikepili Metadata
+Upload some data to get started...,Hoʻouka i kekahi ʻikepili e hoʻomaka ai...
+Preprocess Spectrum,Preprocess Spectrum
+"Smooth, Baseline Correct, and Download Processed Spectra","Smooth, Baseline Pololei, a hoʻoiho i ka Spectra i hana ʻia"
+Download (recommended),Hoʻoiho (koi ʻia)
+Download Help,Hoʻoiho i ke kōkua
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Makemake paha kekahi mau mea hoʻohana e mālama i kope o kā lākou spectrum i hana ʻia. Hoʻoiho kēia pihi i ka spectrum i hana ʻia ma ke ʻano he faila csv.
+Smoothing,Hoʻomaʻamaʻa
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Hiki i kēia mea maʻalahi ke hoʻonui i ka hōʻailona noise ratio o ka ʻikepili a hoʻohana i kahi kānana Savitzky-Golay me 12 mau helu data holo a me ka polynomial i kuhikuhi ʻia.
+Smoothing Polynomial,Polinomial Smoothing
+Baseline Correction,Hoʻoponopono Kumu
+Baseline Correction Help,Kōkua Hoʻoponopono Baseline
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","ʻElua mau koho no ka hoʻoponopono ʻana i ka papa kuhikuhi kumu, 1) ke kaʻina hana polynomial imodpolyfit e ʻike maʻalahi i ke kumu o ka spectrum me ka hoʻohana ʻana i ka polynomial kūpono i ka ʻāpana holoʻokoʻa o ka spectra. 2) hiki ke kaha kiʻi ʻia nā laina lima me ka hoʻohana ʻana i ka mea hana laina ma ka ʻāpana a e hoʻohana ke pihi pololei i nā laina e unuhi i ka palena."
+Baseline Correction Polynomial,Polynomial hoʻoponopono kumu
+Technique,ʻenehana
+Polynomial,Polinomial
+Manual,Manual
+Correct With Trace,Pololei Me ka Trace
+Reset,Hoʻoponopono hou
+Range Selection,Koho Lahi
+Spectral Range Help,Kokua Lae Spectral
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Hiki i ke kaohi ʻana i ka laulā kikoʻī ke hoʻoneʻe i nā wahi o ka spectrum kahi i loaʻa ʻole ai nā piko a hoʻomaikaʻi i ka hoʻohālikelike ʻana
+Maximum Spectral Range,Kiʻekiʻe Spectral Range
+Minimum Spectral Range,Palena Spectral liʻiliʻi
+Identify Spectrum,E ʻike i ka Spectrum
+Identify Spectrum Using the Reference Library,E ʻike i ka Spectrum me ka hoʻohana ʻana i ka waihona Reference
+Raman,Ramana
+FTIR,FTIR
+Spectra,Spectra
+Type,ʻAno
+Spectrum Type Help,Kōkua ʻAno Spectrum
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Na kēia koho e hoʻoholo inā hoʻohana ʻia ka waihona pili FTIR a i ʻole Raman. E koho i ke ʻano spectrum i hoʻoili ʻia.
+Analysis,Kānāwai
+Processed,Hana ʻia
+Uploaded,Hoʻouka ʻia
+Spectrum to Analyze Help,E nānā i ke kōkua
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Na kēia koho e hoʻoholo inā hoʻohana ʻia ka spectrum i hoʻoili ʻia (ʻaʻole i hoʻoponopono ʻia) a i ʻole ka spectrum i hoʻohana ʻia me ka pā hana i hoʻohana ʻia i ka pāʻani kikoʻī.
+Region,Māhele
+Full,Piha
+Peaks,Nā piko
+Region to Match Help,ʻĀpana e hoʻohālikelike i ke kōkua
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Na kēia koho e hoʻoholo inā ʻo ka waihona āu e hoʻohālikelike nei me nā kiko kiko piha a i ʻole nā piko kikoʻī wale nō.
+Partner With Us,Hoahui me makou
+Help us reach our goal of revolutionizing spectroscopy.,E kōkua iā mākou e hoʻokō i kā mākou pahuhopu e hoʻololi i ka spectroscopy.
+Donate Cash,Hāʻawi kālā
+Buy From Swag Store,Kūʻai mai ka hale kūʻai ʻo Swag
+Contribute time,Hāʻawi manawa
+Revolutionizing,Hoʻololi
+Thriving,E ulu ana
+Maintaining,Ka mālama ʻana
+Supporting,Kākoʻo
+Saving,Mālama
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,ʻO kahi hui uku e koi ana iā Open Specy kokoke i ka pahuhopu hope loa o 100% pololei spectral identification a hohonu spectral diagnostics me hoʻokahi kaomi.
+A single paid staff person working to update and build the community and the tool,ʻO kahi limahana uku hoʻokahi e hana ana e hoʻonui a kūkulu i ke kaiāulu a me ka mea hana
+Maintenance costs and minor ad-hoc updates and bug fixes,ʻO nā kumukūʻai mālama a me nā mea hou ad-hoc liʻiliʻi a me nā hoʻoponopono bug
+Keeping the app online and essential maintenance,E mālama i ka polokalamu ma ka pūnaewele a me ka mālama pono
+Long term storage only,ʻO kahi mālama lōʻihi wale nō
+Sharing Metadata,Kaʻana ʻana i ka ʻikepili Metadata
+Thank you for sharing your data!,Mahalo iā ʻoe no ka hāʻawi ʻana i kāu ʻikepili!
+Your data will soon be available at https://osf.io/stmv4/,E loaʻa koke kāu ʻikepili ma https://osf.io/stmv4/
+Something went wrong :-(,Ua hewa kekahi mea :-(
+Data type not supported!,ʻAʻole kākoʻo ʻia ke ʻano ʻikepili!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","ʻAʻole kākoʻo ʻia ke ʻano ʻikepili i hoʻouka ʻia i kēia manawa; e 'oluʻolu
+                      e nānā i nā mea hana a me ka 'About' tab no nā kikoʻī."
+Sharing Spectrum to Community Library,Kaʻana like Spectrum i ka Hale Waihona Puke Kaiaulu
+Reading Spectrum,Heluhelu Spectrum
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Inā hoʻouka ʻoe i kahi faila kikokikona/csv, e hōʻoia i ka
+           He helu nā kolamu a ua kapa ʻia ʻo 'wavennumber' a
+           'ikaika'."
+absorbance intensity [-],ka ikaika o ka absorbance [-]
+wavenumber [cm<sup>-1</sup>],helu nalu [cm<sup>-1</sup>]
+Analyzing Spectrum,Ke kālailai Spectrum
+Finding Match,ʻImi Pilikino
+Making Plot,Hana ʻana i ka pā
+Material,Mea waiwai
+Pearson's r,ʻO kā Pearson r
+Organization,Huihui
+Selectable Matches,Hiki ke koho
+Donations,Hāʻawi
+Operation Costs,Na koina hana
+Selection Metadata,Koho Metadata

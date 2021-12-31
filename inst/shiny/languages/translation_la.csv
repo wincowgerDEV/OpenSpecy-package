@@ -1,0 +1,212 @@
+en,la
+About,De
+Welcome,Grata
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Coniunge centum inquisitores e circuitu
+           mundus qui pars est Open Specy community by
+           dividendo, communicando, dispensando, cognoscendo
+           Raman et IR spectris eorum. Haec officia gratuita sunt et aperta fonte gratiae sociis nostris:"
+Quick Video Tutorial,Quick Video Tutorial
+Instructions,Instructiones
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","In summa: Uti instrumento imposito csv, asp, jdx, spc, vel spa fasciculi ad fasciculi fasciculi tab.
+                                  Si csv, una columna nominetur 'fluctus' (per turmas 1/cm) et alia 'intensitas'.
+                                  Datam tuam colum SG utendo, baseline datam tuam corrige utentem ordinem polynomiae iModPolyFit, ac necem ad certamen coarctare potes.
+                                  Eventus comparabitur bibliothecae spectris Raman vel FTIR internae. Fortissimum 1000 par una cum tuis
+                                  uploaded or processit data will be presented in an interactive plot and table. Pro magis details preme ipsum infra
+                                  aut singula instructoriam spectare video."
+Detailed Standard Operating Procedure,Detailed Standard Operating De modo procedendi
+Download Open Data,Download Open Data
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Respectu spectris oriundus erat ex aperto accessu facultates
+           online, pervideas publicationes recensuit et donationes corporatum. In futuro
+           spectra quae ad instrumentum impositi sunt et ad relationem incorporentur
+           bibliothecam facere meliorem."
+Raman Reference Library,Raman Reference Library
+FTIR Reference Library,FTIR Reference Library
+Raman Reference Library Metadata,Raman Reference Library Metadata
+FTIR Reference Library Metadata,FTIR Reference Library Metadata
+Contribute Spectra,Contribuere Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Ut spectra participem fasciculi imposuisti ad tab fasciculi fasciculi. Si delegisti Exemplar spectris tui ad Communitatem mittetur
+           Data CELLA in Open Science Framework. Ad metadata additional;
+           imple in agros metadata avaliable et click -Share Data-. The
+           spectra fasciculi, quem uploaded cum tuis responsionibus transcribendum erit
+           ad -With Metadata- subfolder infra nexum . Omnia communia data tenet
+           a Creative Commons Attribution License 4.0."
+Community Data Warehouse,Data CELLA Community
+Tool Validation,Instrumentum Validation
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Omnes parametri in hoc instrumento probantur ad id convalidandum
+           instrumentum exercet quam optime ac optime defaltam
+           parametris uti. Nostri current sanatio proceedure includit correctionem
+           duplicata entries in bibliothecarum referentiarum, inspiciendo pro spectris in
+           metadata quae non est in bibliotheca spectrali, et pro defectu
+           parametri super 80% accurationem in prima match praebent."
+Detailed Validation Procedure,Detailed De modo procedendi Validation
+"Updates, Feature Requests, and Bug Reports","Renovationes, Feature Requests, et Renuntiationes Bug"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Vestigia omnium updates versionis in nostro codice retinemus. Features peti possunt et cimex nuntiata in GitHub.
+Stay up to date!,Manete ad date!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Sequere nos in Twitter @OpenSpecy. E-mail wincowger@gmail.com adiciendum ad indicem electronicarum.
+Citation,Citation
+Useful Links,Vincula utilia
+Free FTIR Software: siMPle microplastic IR spectral identification software,Free FIR Software: simplex microplastic IR identificatio spectris software
+Free Spectroscopy Learning Academy from ThermoFisher,Free Spectroscopia Doctrinae Academiae ex ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Free Optical Microscopia Learning Resource from Florida State University
+Free desktop application for spectral analysis and links to reference databases.,Liberum applicationis desktop ad analysis spectris et nexus ad databases referendum.
+Terms And Conditions,Terms and Conditions
+Privacy Policy,Privacy policy
+Upload File,Fasciculus Index
+"Upload, View, and Share Spectra","Index, Vide, et Partis Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Elige .csv (malle), .asp, .jdx, .spc, .spa, vel .0 File"
+Share Your Data?,Share Your Data?
+Share Help,Share Auxilium
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Si libet, spectra et occasus cum spectroscopio communitatis communicamus.
+           Defalta omnia data licentiae erunt sub Communia Creative Attribution-NonCommercial 4.0 Internationalis (CC BY-NC 4.0).
+           Imagines fasciculi hic apparent: https://osf.io/rjg3c"
+Upload Help,Index Auxilium
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Raman seu FTIR spectrum fasciculi ut csv, jdx, spc, vel spa. Scapus csv praefertur. Si csv, tabella unam columnam intitulatum ""wavenumber"" continere debet in unitatibus (1/cm) et alia columna ""intensionis"" in unitates absorbance intitulatae.
+            Si jdx, spc, spa, vel 0 tabella erit spectrum unicum cum fluctu numero in (1/cm). Hae fasciculi non semper perfecte operantur quia captiosae sunt ut eas in alio programmate tam duplices coerceant.
+            Percute ""Test Data"" puga pyga ut spectrum Raman exempli causa capias."
+Intensity Adjustment,Intensio De revolutionibus
+None,Nullus
+Transmittance,Transmittance
+Reflectance,Reflexio
+Intensity Correction Help,Intensio correptio Auxilium
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Si spectrum uploaded non est in unitates absorbance;
+           hoc initus utere ut specificare unitates convertendi from.Open Specy can
+           adjust reflectance seu transmissione spectris ad Absorbance unitates utens
+           Hoc gutta in in fasciculi onerati tab. Omnes antecedentes tabs
+           id quod data est in absorbance unitates ut faciamus
+           correctionem prius quam si opus fuerit. Transmissio commensuratio
+           utitur log10(I/T) ratio, quae non corrigere pro ratio
+           et particulae proprietates. Reflexio temperatio utitur ad
+           Kubelka-Munk aequatio (1-R)2/(2*R). Ponamus quod reflectance
+           formatae ut percent ex 1-100 ac primum corrigere intensio dividendo per 100
+           ita ut formae ab aequatione expectatae congruat.
+           Si nemo electus est, Open Specy supponit quod data est uploaded
+           absorbance spectrum."
+Sample File,Sample File
+Sample Data Help,Sample Data Auxilium
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Specimen hoc est spectrum quod in instrumento adhiberi potest ad probandum illum et ad intellegendum quomodo tabulae csv formandae sint.
+Metadata Input,Metadata Input
+Metadata Help,Metadata Help
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Quamlibet spectram uploadatam et metadatam cum spectroscopio communitatis communicamus, si metadatam hic imples et portionem selectam.
+           Imagines fasciculatae et metadata hic patebunt: https://osf.io/rjg3c"
+Share Metadata,Share Metadata
+Upload some data to get started...,Upload aliqua notitia ut incipiat ...
+Preprocess Spectrum,Preprocessus Imaginis
+"Smooth, Baseline Correct, and Download Processed Spectra","Smooth, Baseline correct, and Download Spectra Processed"
+Download (recommended),Download (suadetur)
+Download Help,Download Help
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Nonnulli utentes exemplar spectri sui processus servare possunt. Haec deprimendo conjunctionem spectrum processum tamquam fasciculum csv downloads.
+Smoothing,delenimenta
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Hoc levius potest augere signum ad crepitum proportio notitiarum et colum Savitzky-Golay utitur cum punctis 12 currentibus et notis polynomialibus.
+Smoothing Polynomial,Polynomial politio
+Baseline Correction,Baseline Correctio
+Baseline Correction Help,Baseline Correctio Auxilium
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Haec versio baseline correctio duas optiones habet ad correctionem collocandam, 1) processum polynomiale imodpolyfitum ad iterandum inveniat basin spectri utens polynomiae aptum ad totam spectris regionem. 2) Lineae manuales trahi possunt utentes linea instrumenti in argumento et ad rectam conjunctionem lineas ad baseline detrahendas utetur."
+Baseline Correction Polynomial,De correctione baseline Polynomial
+Technique,Ars
+Polynomial,Polynomial
+Manual,Manual
+Correct With Trace,Recta Cum Trace
+Reset,Reset
+Range Selection,Range Electio
+Spectral Range Help,Auxilium spectralis dolor
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Restrictio range spectris removere potest regiones spectri ubi nullae apices existunt et meliores matching
+Maximum Spectral Range,Maxime Spectral Range
+Minimum Spectral Range,Minimum Spectral Range
+Identify Spectrum,COGNOSCO Imaginis
+Identify Spectrum Using the Reference Library,COGNOSCO Spectrum Using the Reference Library
+Raman,Raman
+FTIR,FTIR
+Spectra,Spectra
+Type,Type
+Spectrum Type Help,Spectrum Type Auxilium
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Haec delectu decernet utrum bibliotheca FTIR an Raman adaptans adhibeatur. Elige spectrum genus quod erat uploaded.
+Analysis,Analysis
+Processed,Processionaliter
+Uploaded,Fasciculi
+Spectrum to Analyze Help,Imaginum ad Duis Auxilium
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Haec lectio decernet utrum spectrum uploaded (non processit) spectrum an spectrum processui utens tab processui in spectro par adhibeatur.
+Region,Region
+Full,Plenus
+Peaks,Culmina
+Region to Match Help,Regionem ad par Auxilium
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Haec lectio decernet utrum bibliotheca tibi congruens spectri pleno an tantum spectri cacumina consistat.
+Partner With Us,Socium Us
+Help us reach our goal of revolutionizing spectroscopy.,Adiuva nos propositum nostrum spectroscopiae revolutionis.
+Donate Cash,Donate Cash
+Buy From Swag Store,Buy de Swag Store
+Contribute time,Contribuere tempus
+Revolutionizing,Revolutionizing
+Thriving,Valentis
+Maintaining,maintaining
+Supporting,Supporting
+Saving,Salvis
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Turma solvenda quae Open Specy inpellit propius ad ultimum finem 100% accurate identitatis spectris et diagnostica spectris profundi cum uno strepita
+A single paid staff person working to update and build the community and the tool,Solus unus homo baculo laborat ad renovandum et aedificandum communitatem et instrumentum
+Maintenance costs and minor ad-hoc updates and bug fixes,Sumptibus sustentationem ac minora updates ad hoc updates et bug fixes
+Keeping the app online and essential maintenance,Custodiens app online et essentialis sustentationem
+Long term storage only,Long terminus repono only
+Sharing Metadata,Socius Metadata
+Thank you for sharing your data!,Gratias ago tibi pro notitia tua sharing!
+Your data will soon be available at https://osf.io/stmv4/,Data tua mox praesto erunt apud https://osf.io/stmv4/
+Something went wrong :-(,Aliquid abiit iniuriam :-(
+Data type not supported!,Data genus non valet!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Genus non est currently uploaded notitia sustentatur; quaeso
+                      check tooltips and 'About' tab for details."
+Sharing Spectrum to Community Library,Socius Imaginis ad Bibliothecam Community
+Reading Spectrum,Lectio Imaginum
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Si textum / csv fasciculum imposuisti, fac ut
+           columnae numerorum sunt et nominantur wavenumber and
+           'intension'."
+absorbance intensity [-],absorbance intensio [-]
+wavenumber [cm<sup>-1</sup>],wavenumber [cm<sup>-1</s>]
+Analyzing Spectrum,Analysing Imaginum
+Finding Match,Inventio par
+Making Plot,faciens Plot
+Material,Materia
+Pearson's r,Kessinger Publishing 's r *
+Organization,Organization
+Selectable Matches,Selectable Matches
+Donations,donations
+Operation Costs,Operatio Sumptibus
+Selection Metadata,Electio Metadata

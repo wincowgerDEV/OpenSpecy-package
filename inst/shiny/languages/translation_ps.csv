@@ -1,0 +1,212 @@
+en,ps
+About,په اړه
+Welcome,ښه راغلاست
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","له شاوخوا څخه د سلګونو څیړونکو سره یوځای شئ
+           نړۍ چې د خلاص نسل ټولنې برخه ده
+           تحلیل، شریکول، پروسس کول، او پیژندل
+           د دوی رامان او IR سپیکٹرا. دا خدمتونه وړیا او خلاصې سرچینې دي زموږ د شریکانو څخه مننه:"
+Quick Video Tutorial,ګړندی ویډیو لارښود
+Instructions,لارښوونې
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","په لنډه توګه: د وسیلې کارولو لپاره د اپلوډ فایل ټب ته csv، asp، jdx، spc، یا سپا فایل اپلوډ کړئ.
+                                  که csv وي، یو کالم باید د ویینمبر په نوم (د 1/cm په واحدونو کې) او بل ته د شدت په نوم نومول شي.
+                                  تاسو کولی شئ د SG فلټر په کارولو سره خپل ډیټا اسانه کړئ ، د iModPolyFit پولینومیل ترتیب په کارولو سره خپل ډاټا بیس لاین سم کړئ ، او د میچ لپاره د طول موج حد محدود کړئ.
+                                  پایله به د داخلي رامان یا FTIR سپیکٹرا کتابتون سره پرتله شي. ستاسو سره تر ټولو قوي 1000 میچونه
+                                  اپلوډ شوي یا پروسس شوي ډاټا به په یو متقابل پلاټ او میز کې وړاندې شي. د نورو جزیاتو لپاره لاندې تڼۍ کلیک وکړئ
+                                  یا تفصیلي لارښوونې ویډیو وګورئ."
+Detailed Standard Operating Procedure,تفصیلي معیاري عملیاتي پروسیجر
+Download Open Data,خلاص ډاټا ډاونلوډ کړئ
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","د حوالې سپیکٹرا د خلاص لاسرسي سرچینو څخه سرچینه شوې
+           آنلاین، د ملګرو بیاکتنې خپرونې، او د شرکتونو مرستې. په راتلونکي کښي
+           سپیکٹرا چې وسیلې ته اپلوډ شوی به په حوالې کې شامل شي
+           کتابتون به لا ښه شي."
+Raman Reference Library,د رامان حواله کتابتون
+FTIR Reference Library,د FTIR حواله کتابتون
+Raman Reference Library Metadata,د رامان حواله کتابتون میټاډاټا
+FTIR Reference Library Metadata,د FTIR حوالې کتابتون میټاډاټا
+Contribute Spectra,سپیکٹرا مرسته وکړئ
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","د سپیکٹرا شریکولو لپاره د اپلوډ فایل ټب ته فایل اپلوډ کړئ. که تاسو وټاکئ شریک کړئ ستاسو د سپیکٹرا یوه کاپي به ټولنې ته واستول شي
+           د خلاص ساینس چوکاټ په اړه د معلوماتو ګدام. د اضافي میټاډاټا اضافه کولو لپاره،
+           د موجود میټاډاټا ساحې ډک کړئ او د معلوماتو شریکولو کلیک وکړئ. د
+           د سپیکٹرا فایل چې تاسو د خپلو ځوابونو سره اپلوډ کړی وي به کاپي شي
+           په لاندې لینک کې د میټاډاټا سره فرعي فولډر ته. ټول شریک شوي معلومات لري
+           د کریټیو کامنز انتساب جواز 4.0."
+Community Data Warehouse,د ټولنې ډیټا ګدام
+Tool Validation,د وسیلې اعتبار
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","پدې وسیلې کې ټول پیرامیټونه د دې تصدیق کولو لپاره ازمول شوي
+           وسیله د امکان تر حده غوره فعالیت کوي او غوره ډیفالټ ټاکي
+           د کارولو لپاره پیرامیټونه. زموږ د اعتبار اوسنۍ کړنلاره کې سمون شامل دی
+           د حوالې کتابتونونو کې نقل شوي ننوتنې، د سپیکٹرا لپاره چک کول
+           میټاډاټا چې په سپیکٹرل کتابتون کې نه وي، او د ډیفالټ ډاډ ترلاسه کوي
+           پیرامیټونه په لومړۍ لوبه کې له 80٪ څخه ډیر دقت چمتو کوي."
+Detailed Validation Procedure,د تصدیق کولو تفصیلي کړنلاره
+"Updates, Feature Requests, and Bug Reports",تازه معلومات، د فیچر غوښتنې، او د بګ راپورونه
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,موږ زموږ په کوډ کې د نسخې کنټرول په کارولو سره د ټولو تازه معلوماتو تعقیب ساتو. د ځانګړتیاوو غوښتنه کیدی شي او په GitHub کې بګ راپور شوي.
+Stay up to date!,تازه اوسئ!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,موږ په ټویټر @OpenSpecy کې تعقیب کړئ. بریښنالیک wincowger@gmail.com د بریښنالیک لیست کې اضافه کولو لپاره.
+Citation,اقتباس
+Useful Links,ګټورې اړیکې
+Free FTIR Software: siMPle microplastic IR spectral identification software,وړیا FTIR سافټویر: د ساده مایکرو پلاسټیک IR سپیکٹرل پیژندنې سافټویر
+Free Spectroscopy Learning Academy from ThermoFisher,د ThermoFisher څخه وړیا سپیکٹروسکوپي زده کړې اکاډمۍ
+Free Optical Microscopy Learning Resource from Florida State University,د فلوریډا ایالت پوهنتون څخه وړیا آپټیکل مایکروسکوپي زده کړې سرچینه
+Free desktop application for spectral analysis and links to reference databases.,د سپیکٹرل تحلیلونو او حوالې ډیټابیسونو لینکونو لپاره وړیا ډیسټاپ غوښتنلیک.
+Terms And Conditions,شرایط او شرایط
+Privacy Policy,د پټتیا تګلاره
+Upload File,فایل پورته کړئ
+"Upload, View, and Share Spectra",سپیکٹرا اپلوډ کړئ، وګورئ او شریک کړئ
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",.csv (غوره شوی)، .asp، .jdx، .spc، .spa، یا .0 فایل غوره کړئ
+Share Your Data?,ستاسو معلومات شریک کړئ؟
+Share Help,مرسته شریک کړئ
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","که تاسو غواړئ، موږ ستاسو اپلوډ شوي سپیکٹرا او ترتیبات د سپیکٹروسکوپي ټولنې سره شریکوو.
+           په ډیفالټ ډول، ټول معلومات به د Creative Commons Attribution-Non Commercial 4.0 International (CC BY-NC 4.0) لاندې جواز ولري.
+           اپلوډ شوی سپیکٹرا به دلته ښکاره شي: https://osf.io/rjg3c"
+Upload Help,د پورته کولو مرسته
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","رامان یا FTIR سپیکٹرم فایلونه د csv، jdx، spc، یا سپا په توګه اپلوډ کړئ. د csv فایل غوره دی. که csv وي، فایل باید د (1/cm) په واحدونو کې د 'wavenumber' لیبل یو کالم ولري او د جذب په واحدونو کې د 'شدت' لیبل بل کالم ولري.
+            که چیرې jdx، spc، spa، یا 0 فایل باید یو واحد جاذب طیف وي چې د ویونمبر سره په (1/cm) کې وي. دا فایلونه به تل په سمه توګه کار ونکړي ځکه چې دوی لوستل ګران دي نو په بل سافټویر کې یې دوه ځله چیک کړئ.
+            د رامان سپیکٹرم نمونې ډاونلوډ کولو لپاره د 'ټیسټ ډیټا' تڼۍ کېکاږئ."
+Intensity Adjustment,د شدت تنظیم کول
+None,هیڅ نه
+Transmittance,لیږد
+Reflectance,انعکاس
+Intensity Correction Help,د شدت سمون مرسته
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","که اپلوډ شوی سپیکٹرم د جذب واحدونو کې نه وي،
+           دا آخذه وکاروئ ترڅو واحدونه مشخص کړئ چې د خلاص ډول څخه بدل شي
+           په کارولو سره د جذب واحدونو ته د انعکاس یا لیږد سپیکٹرا تنظیم کړئ
+           دا د اپلوډ فایل ټب کې ښکته کړئ. ټول مخکینی ټبونه
+           فرض کړئ چې ډاټا د جذب واحدونو کې دي نو تاسو باید جوړ کړئ
+           د اړتیا په صورت کې د دوام ورکولو دمخه سمون. د لیږد تنظیم کول
+           د log10(1/T) محاسبه کاروي کوم چې د سیسټم لپاره سم نه دی
+           او د ذراتو ځانګړتیاوې. د انعکاس تنظیم کول کاروي
+           د کوبیلکا-منک معادل (1-R)2/(2*R). موږ فرض کوو چې انعکاس
+           له 1-100 څخه د سلنې په توګه فارمیټ شوی او لومړی د 100 په ویشلو سره شدت سم کړئ
+           د دې لپاره چې دا د معادلې لخوا تمه شوي فارم سره سمون خوري.
+           که چیرې هیڅ نه وي غوره شوی، Open Specy ګومان کوي چې اپلوډ شوی ډاټا ده
+           د جذب طیف."
+Sample File,د نمونې فایل
+Sample Data Help,د نمونې ډاټا مرسته
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,دا د نمونې سپیکٹرم دی چې د ازموینې لپاره وسیلې ته اپلوډ کیدی شي او پوه شي چې څنګه د csv فایلونه باید فارمیټ شي.
+Metadata Input,د میټاډاټا داخلول
+Metadata Help,د میټاډاټا مرسته
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","موږ هر ډول اپلوډ شوي سپیکٹرا او میټاډاټا د سپیکٹروسکوپي ټولنې سره شریکوو که تاسو دلته میټاډاټا ډک کړئ او شریک یې غوره کړئ.
+           اپلوډ شوي سپیکٹرا او میټاډاټا به دلته ښکاره شي: https://osf.io/rjg3c"
+Share Metadata,میټاډاټا شریک کړئ
+Upload some data to get started...,د پیل کولو لپاره ځینې ډاټا اپلوډ کړئ ...
+Preprocess Spectrum,د پری پروسس سپیکٹرم
+"Smooth, Baseline Correct, and Download Processed Spectra",نرم، اساسی کرښه سمه، او پروسس شوی سپیکٹرا ډاونلوډ کړئ
+Download (recommended),ډاونلوډ (وړاندیز شوی)
+Download Help,مرسته ډاونلوډ کړئ
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,ځینې کاروونکي ممکن د دوی د پروسس شوي سپیکٹرم یوه کاپي خوندي کړي. دا تڼۍ پروسس شوي سپیکٹرم د csv فایل په توګه ډاونلوډ کوي.
+Smoothing,سمول
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,دا سموټر کولی شي د ډیټا شور تناسب ته سیګنال ته وده ورکړي او د 12 چلولو ډیټا پوائنټونو او ټاکل شوي پولینومیل سره د Savitzky-Golay فلټر کاروي.
+Smoothing Polynomial,smoothing Polynomial
+Baseline Correction,اساسی سمون
+Baseline Correction Help,د بنسټیز سمون مرسته
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.",دا د بیس لاین اصلاح کولو معمول د بیس لاین سمون لپاره دوه اختیارونه لري، 1) د پولینومیل اموډپولیفټ کړنلاره په تکراري ډول د سپیکٹرم اساسی کرښه د سپیکٹرا ټولې سیمې ته د پولینیم فټ په کارولو سره موندل. 2) لاسي کرښې په پلاټ کې د لاین وسیلې په کارولو سره رسم کیدی شي او سمه تڼۍ به د بیس لاین کمولو لپاره لینونه وکاروي.
+Baseline Correction Polynomial,د اساسی کرښو تصحیح پولینیومیال
+Technique,تخنیک
+Polynomial,پولینومیال
+Manual,لارښود
+Correct With Trace,د ټریس سره سم
+Reset,بیا تنظیم کړئ
+Range Selection,د سلسلې انتخاب
+Spectral Range Help,د سپیکٹرل رینج مرسته
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,د سپیکٹرل سلسلې محدودول کولی شي د سپیکٹرم سیمې لرې کړي چیرې چې هیڅ څوکه شتون نلري او مطابقت ښه کړي
+Maximum Spectral Range,اعظمي طیف رینج
+Minimum Spectral Range,لږ تر لږه سپیکٹرل سلسله
+Identify Spectrum,سپیکٹرم وپیژني
+Identify Spectrum Using the Reference Library,د حوالې کتابتون په کارولو سره سپیکٹرم وپیژنئ
+Raman,رامان
+FTIR,FTIR
+Spectra,سپیکٹرا
+Type,ډول
+Spectrum Type Help,د سپیکٹرم ډول مرسته
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,دا انتخاب به وټاکي چې آیا د FTIR یا رامان سره سمون لرونکي کتابتون کارول کیږي. د سپیکٹرم ډول غوره کړئ چې اپلوډ شوی و.
+Analysis,تحلیل
+Processed,پروسس شوی
+Uploaded,پورته شوی
+Spectrum to Analyze Help,د مرستې تحلیل لپاره سپیکٹرم
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,دا انتخاب به وټاکي چې ایا اپلوډ شوی (نه پروسس شوی) سپیکٹرم یا د پروسس کولو ټب په کارولو سره پروسس شوی سپیکٹرم د سپیکٹرم میچ کې کارول کیږي.
+Region,سیمه
+Full,ډک
+Peaks,چوټي
+Region to Match Help,د مرستې سره د سمون لپاره سیمه
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,دا انتخاب به وټاکي چې ایا هغه کتابتون چې تاسو ورته ورته یاست د بشپړ سپیکٹرم یا یوازې سپیکٹرم چوټیو څخه جوړ دی.
+Partner With Us,له موږ سره شریک کړئ
+Help us reach our goal of revolutionizing spectroscopy.,د سپیکٹروسکوپي انقلاب کولو زموږ هدف ته رسیدو کې مرسته وکړئ.
+Donate Cash,نغدي مرسته وکړئ
+Buy From Swag Store,د سویګ پلورنځي څخه پیرود وکړئ
+Contribute time,د وخت ونډه
+Revolutionizing,انقلاب کول
+Thriving,وده کوي
+Maintaining,ساتل
+Supporting,ملاتړ کوي
+Saving,خوندي کول
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,یو تادیه شوی ټیم چې په یو کلیک سره د 100٪ دقیق سپیکٹرل پیژندنې او ژور سپیکٹرل تشخیص وروستي هدف ته نږدې خلاص سپیسي فشار راوړي
+A single paid staff person working to update and build the community and the tool,یو واحد معاش ورکونکی شخص چې د ټولنې او وسیلې تازه کولو او جوړولو لپاره کار کوي
+Maintenance costs and minor ad-hoc updates and bug fixes,د ساتنې لګښتونه او کوچني اډ-هاک تازه معلومات او بګ اصلاحات
+Keeping the app online and essential maintenance,د اپلیکیشن آنلاین ساتل او اړین ساتنه
+Long term storage only,یوازې د اوږدې مودې ذخیره کول
+Sharing Metadata,د میټاډاټا شریکول
+Thank you for sharing your data!,ستاسو د معلوماتو شریکولو لپاره مننه!
+Your data will soon be available at https://osf.io/stmv4/,ستاسو معلومات به ډیر ژر په https://osf.io/stmv4/ کې شتون ولري
+Something went wrong :-(,کومه تیروتنه وشوه :-(
+Data type not supported!,د معلوماتو ډول نه ملاتړ کیږي!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","د اپلوډ شوي ډاټا ډول اوس مهال ملاتړ نه کوي؛ مهرباني وکړه
+                      د جزیاتو لپاره اوزار لارښوونې او 'په اړه' ټب وګورئ."
+Sharing Spectrum to Community Library,د ټولنې کتابتون ته د سپیکٹرم شریکول
+Reading Spectrum,د لوستلو سپیکٹرم
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","که تاسو د متن/csv فایل اپلوډ کړی، ډاډ ترلاسه کړئ چې د
+           کالمونه عددي دي او نومول شوي 'wavenumber' او
+           'شدت'"
+absorbance intensity [-],د جذب شدت [-]
+wavenumber [cm<sup>-1</sup>],د موج شمیره [cm<sup>-1</sup>]
+Analyzing Spectrum,د سپیکٹرم تحلیل
+Finding Match,د میچ موندنه
+Making Plot,پلاټ جوړول
+Material,مواد
+Pearson's r,د پییرسن آر
+Organization,سازمان
+Selectable Matches,د انتخاب وړ میچونه
+Donations,بسپنه
+Operation Costs,د عملیاتو لګښتونه
+Selection Metadata,انتخاب میټاډاټا

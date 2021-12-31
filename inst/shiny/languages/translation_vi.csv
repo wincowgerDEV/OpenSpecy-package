@@ -1,0 +1,212 @@
+en,vi
+About,Về
+Welcome,Chào mừng
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Tham gia cùng hàng trăm nhà nghiên cứu từ khắp nơi
+           thế giới là một phần của cộng đồng Open Specy bởi
+           phân tích, chia sẻ, xử lý và xác định
+           phổ Raman và IR của chúng. Các dịch vụ này miễn phí và có nguồn mở nhờ các đối tác của chúng tôi:"
+Quick Video Tutorial,Video hướng dẫn nhanh
+Instructions,Hướng dẫn
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Tóm tắt: Để sử dụng công cụ, hãy tải tệp csv, asp, jdx, spc hoặc spa lên tab tệp tải lên.
+                                  Nếu là csv, một cột phải được đặt tên là 'wavenumber' (theo đơn vị 1 / cm) và một cột khác được đặt tên là 'cường độ'.
+                                  Bạn có thể làm mịn dữ liệu của mình bằng cách sử dụng bộ lọc SG, chỉnh sửa đường cơ sở dữ liệu của bạn bằng cách sử dụng thứ tự đa thức của iModPolyFit và hạn chế phạm vi bước sóng cho đối sánh.
+                                  Kết quả sẽ được so sánh với thư viện phổ Raman hoặc FTIR bên trong. 1000 trận đấu mạnh nhất cùng với
+                                  dữ liệu được tải lên hoặc đã xử lý sẽ được trình bày trong một bảng và biểu đồ tương tác. Để biết thêm chi tiết, hãy nhấp vào nút bên dưới
+                                  hoặc xem video hướng dẫn chi tiết."
+Detailed Standard Operating Procedure,Quy trình vận hành tiêu chuẩn chi tiết
+Download Open Data,Tải xuống dữ liệu mở
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Phổ tham chiếu được lấy từ các nguồn truy cập mở
+           trực tuyến, các ấn phẩm được đánh giá ngang hàng, và các khoản đóng góp của công ty. Trong tương lai
+           quang phổ được tải lên công cụ sẽ được kết hợp với tài liệu tham khảo
+           thư viện để làm cho nó tốt hơn."
+Raman Reference Library,Thư viện tham khảo Raman
+FTIR Reference Library,Thư viện tham khảo FTIR
+Raman Reference Library Metadata,Siêu dữ liệu thư viện tham khảo Raman
+FTIR Reference Library Metadata,Siêu dữ liệu thư viện tham chiếu FTIR
+Contribute Spectra,Đóng góp Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Để chia sẻ quang phổ, hãy tải một tệp lên tab tệp tải lên. Nếu bạn chọn Chia sẻ, một bản sao phổ của bạn sẽ được gửi đến Cộng đồng
+           Kho dữ liệu trên Khung Khoa học Mở. Để thêm siêu dữ liệu bổ sung,
+           điền vào các trường siêu dữ liệu có sẵn và nhấp vào -Chia sẻ dữ liệu-. Các
+           tệp phổ mà bạn đã tải lên cùng với các câu trả lời của bạn sẽ được sao chép
+           vào thư mục con -With Metadata- tại liên kết bên dưới. Tất cả dữ liệu được chia sẻ lưu giữ
+           Giấy phép Ghi công Creative Commons 4.0."
+Community Data Warehouse,Kho dữ liệu cộng đồng
+Tool Validation,Xác thực công cụ
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Tất cả các tham số trong công cụ này đều được kiểm tra để xác nhận rằng
+           công cụ đang hoạt động tốt nhất có thể và xác định giá trị mặc định tốt nhất
+           các tham số sử dụng. Quy trình xác thực hiện tại của chúng tôi bao gồm sửa chữa
+           các mục nhập trùng lặp trong thư viện tham khảo, kiểm tra phổ trong
+           siêu dữ liệu không có trong thư viện quang phổ và đảm bảo giá trị mặc định
+           thông số cung cấp độ chính xác trên 80% trong trận đấu đầu tiên."
+Detailed Validation Procedure,Thủ tục xác thực chi tiết
+"Updates, Feature Requests, and Bug Reports","Cập nhật, yêu cầu tính năng và báo cáo lỗi"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Chúng tôi theo dõi tất cả các bản cập nhật bằng cách sử dụng kiểm soát phiên bản trên mã của chúng tôi. Các tính năng có thể được yêu cầu và báo cáo lỗi trên GitHub.
+Stay up to date!,Ở lại đến ngày!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Theo dõi chúng tôi trên Twitter @OpenSpecy. E-mail wincowger@gmail.com sẽ được thêm vào danh sách gửi thư.
+Citation,Trích dẫn
+Useful Links,Liên kết hữu ích
+Free FTIR Software: siMPle microplastic IR spectral identification software,Phần mềm FTIR miễn phí: phần mềm nhận dạng quang phổ IR vi nhựa siMPle
+Free Spectroscopy Learning Academy from ThermoFisher,Học viện học về quang phổ miễn phí từ ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Tài nguyên Học tập về Kính hiển vi Quang học Miễn phí từ Đại học Bang Florida
+Free desktop application for spectral analysis and links to reference databases.,Ứng dụng máy tính để bàn miễn phí để phân tích quang phổ và liên kết đến cơ sở dữ liệu tham khảo.
+Terms And Conditions,Các điều khoản và điều kiện
+Privacy Policy,Chính sách bảo mật
+Upload File,Cập nhật dử liệu
+"Upload, View, and Share Spectra","Tải lên, xem và chia sẻ Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Chọn .csv (được ưu tiên), .asp, .jdx, .spc, .spa hoặc .0 Tệp"
+Share Your Data?,Chia sẻ dữ liệu của bạn?
+Share Help,Chia sẻ trợ giúp
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Nếu bạn thích, chúng tôi chia sẻ quang phổ đã tải lên và cài đặt của bạn với cộng đồng quang phổ.
+           Theo mặc định, tất cả dữ liệu sẽ được cấp phép theo Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Các phổ được tải lên sẽ xuất hiện tại đây: https://osf.io/rjg3c"
+Upload Help,Tải lên Trợ giúp
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Tải lên các tệp phổ Raman hoặc FTIR dưới dạng csv, jdx, spc hoặc spa. Tệp csv được ưu tiên. Nếu là csv, tệp phải chứa một cột có nhãn 'wavenumber' tính bằng đơn vị (1 / cm) và một cột khác có nhãn 'cường độ' tính theo đơn vị độ hấp thụ.
+            Nếu jdx, spc, spa hoặc 0, tệp phải là một phổ hấp thụ đơn với số sóng trong (1 / cm). Các tệp này không phải lúc nào cũng hoạt động hoàn hảo vì chúng rất khó đọc, vì vậy hãy kiểm tra kỹ chúng trong một phần mềm khác.
+            Nhấn nút 'Dữ liệu Kiểm tra' để tải xuống phổ Raman mẫu."
+Intensity Adjustment,Điều chỉnh cường độ
+None,Không có
+Transmittance,Chuyển tiền
+Reflectance,Sự phản ánh
+Intensity Correction Help,Trợ giúp điều chỉnh cường độ
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Nếu phổ được tải lên không tính theo đơn vị độ hấp thụ,
+           sử dụng đầu vào này để chỉ định các đơn vị để chuyển đổi từ đó. Open Specy có thể
+           điều chỉnh độ phản xạ hoặc quang phổ truyền qua các đơn vị Độ hấp thụ bằng cách sử dụng
+           này thả xuống trong tab tệp tải lên. Tất cả các tab trước
+           giả sử rằng dữ liệu ở đơn vị độ hấp thụ, vì vậy bạn nên thực hiện
+           chỉnh sửa trước khi tiếp tục nếu cần. Điều chỉnh độ truyền
+           sử dụng phép tính log10 (1 / T) không đúng với hệ thống
+           và đặc điểm của hạt. Việc điều chỉnh độ phản xạ sử dụng
+           Phương trình Kubelka-Munk (1-R) 2 / (2 * R). Chúng tôi giả định rằng hệ số phản xạ
+           được định dạng phần trăm từ 1-100 và trước tiên hãy sửa cường độ bằng cách chia cho 100
+           để nó phù hợp với dạng mong đợi của phương trình.
+           Nếu không có lựa chọn nào được chọn, Open Specy giả định rằng dữ liệu được tải lên là
+           một phổ hấp thụ."
+Sample File,Tệp mẫu
+Sample Data Help,Trợ giúp về Dữ liệu Mẫu
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Đây là phổ mẫu có thể được tải lên công cụ để kiểm tra và hiểu cách định dạng tệp csv.
+Metadata Input,Nhập siêu dữ liệu
+Metadata Help,Trợ giúp về siêu dữ liệu
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Chúng tôi chia sẻ mọi quang phổ và siêu dữ liệu đã tải lên với cộng đồng quang phổ nếu bạn điền vào siêu dữ liệu tại đây và chọn chia sẻ.
+           Siêu dữ liệu và quang phổ đã tải lên sẽ xuất hiện tại đây: https://osf.io/rjg3c"
+Share Metadata,Chia sẻ siêu dữ liệu
+Upload some data to get started...,Tải lên một số dữ liệu để bắt đầu ...
+Preprocess Spectrum,Phổ tiền xử lý
+"Smooth, Baseline Correct, and Download Processed Spectra","Mượt, chính xác đường cơ sở và tải xuống phổ đã xử lý"
+Download (recommended),Tải xuống (khuyến nghị)
+Download Help,Tải xuống Trợ giúp
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Một số người dùng có thể muốn lưu một bản sao của phổ đã xử lý của họ. Nút này tải xuống phổ đã xử lý dưới dạng tệp csv.
+Smoothing,Làm mịn
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Sự mượt mà này có thể nâng cao tỷ lệ tín hiệu trên nhiễu của dữ liệu và sử dụng bộ lọc Savitzky-Golay với 12 điểm dữ liệu đang chạy và đa thức được chỉ định.
+Smoothing Polynomial,Làm mịn đa thức
+Baseline Correction,Chỉnh sửa đường cơ sở
+Baseline Correction Help,Trợ giúp Chỉnh sửa Đường cơ sở
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Quy trình hiệu chỉnh đường cơ sở này có hai tùy chọn để hiệu chỉnh đường cơ sở, 1) quy trình imodpolyfit đa thức để tự tìm đường cơ sở của phổ bằng cách sử dụng đa thức phù hợp với toàn bộ vùng của phổ. 2) Các đường thủ công có thể được vẽ bằng cách sử dụng công cụ đường trên đồ thị và nút chính xác sẽ sử dụng các đường để trừ đường cơ sở."
+Baseline Correction Polynomial,Đa thức hiệu chỉnh đường cơ sở
+Technique,Kĩ thuật
+Polynomial,Đa thức
+Manual,Thủ công
+Correct With Trace,Chính xác với dấu vết
+Reset,Cài lại
+Range Selection,Lựa chọn phạm vi
+Spectral Range Help,Trợ giúp về phạm vi quang phổ
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Việc hạn chế phạm vi quang phổ có thể loại bỏ các vùng quang phổ mà không có đỉnh nào tồn tại và cải thiện sự phù hợp
+Maximum Spectral Range,Dải phổ tối đa
+Minimum Spectral Range,Dải phổ tối thiểu
+Identify Spectrum,Xác định quang phổ
+Identify Spectrum Using the Reference Library,Xác định phổ bằng cách sử dụng thư viện tham khảo
+Raman,Raman
+FTIR,FTIR
+Spectra,Spectra
+Type,Loại
+Spectrum Type Help,Trợ giúp về loại phổ
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Lựa chọn này sẽ xác định xem thư viện đối sánh FTIR hoặc Raman có được sử dụng hay không. Chọn loại phổ đã được tải lên.
+Analysis,Phân tích
+Processed,Xử lý
+Uploaded,Đã tải lên
+Spectrum to Analyze Help,Quang phổ để phân tích trợ giúp
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Lựa chọn này sẽ xác định xem phổ được tải lên (chưa xử lý) hoặc phổ được xử lý bằng tab xử lý có được sử dụng trong đối sánh phổ hay không.
+Region,Khu vực
+Full,Đầy
+Peaks,Đỉnh
+Region to Match Help,Vùng phù hợp với Trợ giúp
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Việc lựa chọn này sẽ xác định xem thư viện bạn đang đối sánh có chứa các đỉnh phổ đầy đủ hay chỉ các đỉnh phổ.
+Partner With Us,Hợp tác với chúng tôi
+Help us reach our goal of revolutionizing spectroscopy.,Giúp chúng tôi đạt được mục tiêu cách mạng hóa quang phổ học.
+Donate Cash,Quyên góp tiền mặt
+Buy From Swag Store,Mua từ Swag Store
+Contribute time,Thời gian đóng góp
+Revolutionizing,Cách mạng hóa
+Thriving,Phát triển mạnh
+Maintaining,Duy trì
+Supporting,Hỗ trợ
+Saving,Tiết kiệm
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Một nhóm trả phí đang đẩy Open Specy đến gần hơn với mục tiêu cuối cùng là nhận dạng quang phổ chính xác 100% và chẩn đoán quang phổ sâu chỉ với một cú nhấp chuột
+A single paid staff person working to update and build the community and the tool,Một nhân viên được trả lương duy nhất làm việc để cập nhật và xây dựng cộng đồng cũng như công cụ
+Maintenance costs and minor ad-hoc updates and bug fixes,Chi phí bảo trì và các bản cập nhật đột xuất và sửa lỗi nhỏ
+Keeping the app online and essential maintenance,Giữ ứng dụng trực tuyến và bảo trì cần thiết
+Long term storage only,Chỉ lưu trữ lâu dài
+Sharing Metadata,Chia sẻ siêu dữ liệu
+Thank you for sharing your data!,Cảm ơn bạn đã chia sẻ dữ liệu của bạn!
+Your data will soon be available at https://osf.io/stmv4/,Dữ liệu của bạn sẽ sớm có tại https://osf.io/stmv4/
+Something went wrong :-(,Đã xảy ra lỗi :-(
+Data type not supported!,Loại dữ liệu không được hỗ trợ!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Loại dữ liệu đã tải lên hiện không được hỗ trợ; Xin vui lòng
+                      kiểm tra chú giải công cụ và tab 'Giới thiệu' để biết chi tiết."
+Sharing Spectrum to Community Library,Chia sẻ Spectrum với Thư viện Cộng đồng
+Reading Spectrum,Quang phổ đọc
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Nếu bạn đã tải lên tệp văn bản / csv, hãy đảm bảo rằng
+           các cột là số và được đặt tên là 'wavenumber' và
+           'cường độ'."
+absorbance intensity [-],cường độ hấp thụ [-]
+wavenumber [cm<sup>-1</sup>],wavenumber [cm <sup> -1 </sup>]
+Analyzing Spectrum,Phân tích phổ
+Finding Match,Tìm kiếm trận đấu
+Making Plot,Lập âm mưu
+Material,Vật tư
+Pearson's r,Pearson's r
+Organization,Tổ chức
+Selectable Matches,Các trận đấu có thể lựa chọn
+Donations,Quyên góp
+Operation Costs,Chi phí vận hành
+Selection Metadata,Siêu dữ liệu lựa chọn

@@ -1,0 +1,212 @@
+en,is
+About,Um
+Welcome,Velkominn
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Gakktu til liðs við hundruð vísindamanna víðsvegar að
+           heiminum sem eru hluti af Open Specy samfélaginu af
+           greina, deila, vinna úr og bera kennsl á
+           Raman og IR litróf þeirra. Þessi þjónusta er ókeypis og opinn uppspretta þökk sé samstarfsaðilum okkar:"
+Quick Video Tutorial,Fljótleg kennslumyndbönd
+Instructions,Leiðbeiningar
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Í stuttu máli: Til að nota tólið skaltu hlaða upp csv, asp, jdx, spc eða spa skrá á upphleðsluskráarflipann.
+                                  Ef csv ætti einn dálkur að heita 'bylgjutala' (í einingum 1/cm) og annar nefndur 'styrkleiki'.
+                                  Þú getur slétt gögnin þín með því að nota SG síu, grunnlínu leiðrétt gögnin þín með því að nota margliðunarröð iModPolyFit og takmarka bylgjulengdarsviðið fyrir samsvörun.
+                                  Niðurstaðan verður borin saman við innra Raman eða FTIR litrófssafn. Sterkustu 1000 leikirnir ásamt þínum
+                                  hlaðið upp eða unnið gögn verða kynnt í gagnvirkri söguþræði og töflu. Fyrir frekari upplýsingar smelltu á hnappinn hér að neðan
+                                  eða horfðu á ítarlegt kennslumyndband."
+Detailed Standard Operating Procedure,Ítarlegar staðlaðar verklagsreglur
+Download Open Data,Sækja opin gögn
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Tilvísunarróf voru fengin frá opnum aðgangsauðlindum
+           á netinu, ritrýndar útgáfur og framlög fyrirtækja. Í framtíðinni
+           litróf sem hlaðið er upp í tólið verður fellt inn í tilvísunina
+           bókasafn til að gera það enn betra."
+Raman Reference Library,Raman tilvísunarbókasafn
+FTIR Reference Library,FTIR tilvísunarsafn
+Raman Reference Library Metadata,Raman Reference Library Lýsigögn
+FTIR Reference Library Metadata,Lýsigögn FTIR tilvísunarsafns
+Contribute Spectra,Leggðu til Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Til að deila litróf skaltu hlaða upp skrá á upphleðsluskráarflipann. Ef þú valdir Deila verður afrit af litrófinu þínu sent til samfélagsins
+           Data Warehouse on Open Science Framework. Til að bæta við viðbótar lýsigögnum,
+           fylltu út tiltæka lýsigagnareitina og smelltu á -Deila gögnum-. The
+           spectra skrá sem þú hlóðst upp ásamt svörum þínum verður afrituð
+           í -With Metadata- undirmöppuna á hlekknum hér að neðan. Öll sameiginleg gögn geyma
+           a Creative Commons Attribution License 4.0."
+Community Data Warehouse,Gagnahús samfélagsins
+Tool Validation,Staðfesting verkfæra
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Allar breytur í þessu tóli eru prófaðar til að sannreyna það
+           tólið virkar eins vel og hægt er og ákvarðar besta sjálfgefið
+           færibreytur til að nota. Núverandi staðfestingarferli okkar felur í sér leiðréttingu
+           afritaðar færslur í tilvísunarsöfnunum, athuga með litróf í
+           lýsigögn sem eru ekki í litrófssafninu og tryggja sjálfgefið
+           færibreytur veita yfir 80% nákvæmni í fyrstu samsvörun."
+Detailed Validation Procedure,Nákvæmt löggildingarferli
+"Updates, Feature Requests, and Bug Reports","Uppfærslur, eiginleikabeiðnir og villuskýrslur"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Við höldum utan um allar uppfærslur með útgáfustýringu á kóðanum okkar. Hægt er að biðja um eiginleika og tilkynna villu á GitHub.
+Stay up to date!,Vertu uppfærður!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Fylgdu okkur á Twitter @OpenSpecy. Tölvupóstur wincowger@gmail.com til að bætast á póstlistann.
+Citation,Tilvitnun
+Useful Links,Gagnlegar hlekkir
+Free FTIR Software: siMPle microplastic IR spectral identification software,Ókeypis FTIR hugbúnaður: einfaldur örplast IR litrófsgreiningarhugbúnaður
+Free Spectroscopy Learning Academy from ThermoFisher,Ókeypis Spectroscopy Learning Academy frá ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Ókeypis námsefni í sjónsmásjá frá Florida State University
+Free desktop application for spectral analysis and links to reference databases.,Ókeypis skrifborðsforrit fyrir litrófsgreiningu og tengla á tilvísunargagnagrunna.
+Terms And Conditions,Skilmálar og skilyrði
+Privacy Policy,Friðhelgisstefna
+Upload File,Hladdu upp skrá
+"Upload, View, and Share Spectra","Hladdu upp, skoðaðu og deildu Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Veldu .csv (valið), .asp, .jdx, .spc, .spa eða .0 skrá"
+Share Your Data?,Deila gögnunum þínum?
+Share Help,Deila hjálp
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Ef þú vilt, deilum við upphlöðnu litrófinu þínu og stillingum með litrófsgreiningarsamfélaginu.
+           Sjálfgefið er að öll gögn fá leyfi samkvæmt Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Upphlaðið litróf mun birtast hér: https://osf.io/rjg3c"
+Upload Help,Hlaða upp hjálp
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Hladdu upp Raman eða FTIR litrófsskrám sem csv, jdx, spc eða spa. Csv skrá er æskileg. Ef csv er, verður skráin að innihalda einn dálk merktan 'bylgjutala' í einingum (1/cm) og annan dálk merktan 'styrkleiki' í gleypnieiningum.
+            Ef jdx, spc, spa eða 0 ætti skráin að vera eitt gleypnisvið með bylgjutölu í (1/cm). Þessar skrár munu ekki alltaf virka fullkomlega vegna þess að þær eru erfiðar að lesa svo athugaðu þær í öðrum hugbúnaði.
+            Smelltu á 'Test Data' hnappinn til að hlaða niður sýnishorni af Raman litrófinu."
+Intensity Adjustment,Styrkleikastilling
+None,Enginn
+Transmittance,Sending
+Reflectance,Hugleiðing
+Intensity Correction Help,Hjálp fyrir styrkleikaleiðréttingu
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Ef litrófið sem hlaðið er upp er ekki í gleypnieiningum,
+           notaðu þetta inntak til að tilgreina einingarnar sem á að breyta úr. Open Specy dós
+           stilla endurspeglun eða flutningsróf að gleypnieiningar með því að nota
+           þennan fellilista í upphleðsluskráarflipanum. Allir flipar á undan
+           gerðu ráð fyrir að gögnin séu í gleypnieiningum svo þú ættir að gera
+           leiðréttingu áður en haldið er áfram ef þörf krefur. Sendingarstillingin
+           notar log10(1/T) útreikninginn sem leiðréttir ekki fyrir kerfið
+           og eiginleika agna. Endurvarpsstillingin notar
+           Kubelka-Munk jafna (1-R)2/(2*R). Við gerum ráð fyrir að endurskin
+           er sniðið sem prósenta frá 1-100 og leiðréttu fyrst styrkinn með því að deila með 100
+           þannig að það passi við formið sem jöfnan gerir ráð fyrir.
+           Ef ekkert er valið gerir Open Specy ráð fyrir að gögnin sem hlaðið er upp sé það
+           gleypnisvið."
+Sample File,Sýnisskrá
+Sample Data Help,Dæmi um gagnahjálp
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Þetta er sýnishorn sem hægt er að hlaða upp í tólið til að prófa það og skilja hvernig csv skrárnar ættu að vera sniðnar.
+Metadata Input,Inntak lýsigagna
+Metadata Help,Hjálp með lýsigögn
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Við deilum hvaða litróf sem er hlaðið upp og lýsigögnum með litrófsgreiningarsamfélaginu ef þú fyllir út lýsigögnin hér og velur deila.
+           Upphlaðið litróf og lýsigögn munu birtast hér: https://osf.io/rjg3c"
+Share Metadata,Deildu lýsigögnum
+Upload some data to get started...,Hladdu upp gögnum til að byrja...
+Preprocess Spectrum,Forvinnsluróf
+"Smooth, Baseline Correct, and Download Processed Spectra","Slétt, grunnlína rétt og niðurhalað unnin litróf"
+Download (recommended),Sækja (mælt með)
+Download Help,Sækja hjálp
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Sumir notendur gætu viljað vista afrit af unnu litrófinu sínu. Þessi hnappur hleður niður unnu litrófinu sem csv skrá.
+Smoothing,Sléttun
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Þessi sléttari getur aukið merki til hávaða hlutfalls gagnanna og notar Savitzky-Golay síu með 12 hlaupandi gagnapunktum og margliðunni sem tilgreind er.
+Smoothing Polynomial,Mýkjandi margliða
+Baseline Correction,Grunnlínuleiðrétting
+Baseline Correction Help,Hjálp við grunnlínuleiðréttingu
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Þessi grunnlínuleiðréttingarrútína hefur tvo möguleika fyrir grunnlínuleiðréttingu, 1) margliðu imodpolyfit aðferð til að finna grunnlínu litrófsins með margliða passa við allt svæði litrófsins. 2) Hægt er að teikna handvirkar línur með línuverkfærinu á lóðinni og réttur hnappur mun nota línurnar til að draga grunnlínuna frá."
+Baseline Correction Polynomial,Grunnlínuleiðréttingar margliða
+Technique,Tækni
+Polynomial,Margliða
+Manual,Handbók
+Correct With Trace,Leiðrétta með spori
+Reset,Endurstilla
+Range Selection,Sviðsval
+Spectral Range Help,Spectral Range Hjálp
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Takmörkun á litrófsviðinu getur fjarlægt litrófssvæði þar sem engir toppar eru til og bætt samsvörun
+Maximum Spectral Range,Hámarks litrófssvið
+Minimum Spectral Range,Lágmarks litrófssvið
+Identify Spectrum,Þekkja litróf
+Identify Spectrum Using the Reference Library,Þekkja litróf með því að nota tilvísunarsafnið
+Raman,Raman
+FTIR,FTIR
+Spectra,Litróf
+Type,Tegund
+Spectrum Type Help,Litrófsgerð Hjálp
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Þetta val mun ákvarða hvort FTIR eða Raman samsvörunarsafnið er notað. Veldu litrófsgerðina sem var hlaðið upp.
+Analysis,Greining
+Processed,Unnið
+Uploaded,Hlaðið upp
+Spectrum to Analyze Help,Litróf til að greina hjálp
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Þetta val mun ákvarða hvort hlaðið (ekki unnið) litrófið eða litrófið sem unnið er með vinnsluflipanum er notað í litrófssamsvöruninni.
+Region,Svæði
+Full,Fullt
+Peaks,Toppar
+Region to Match Help,Hjálp til að passa við svæði
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Þetta val mun ákvarða hvort safnið sem þú ert að passa saman við samanstendur af öllu litrófinu eða aðeins litrófstoppum.
+Partner With Us,Samstarf við okkur
+Help us reach our goal of revolutionizing spectroscopy.,Hjálpaðu okkur að ná markmiði okkar um að gjörbylta litrófsgreiningu.
+Donate Cash,Gefðu reiðufé
+Buy From Swag Store,Kaupa frá Swag Store
+Contribute time,Leggðu til tíma
+Revolutionizing,Byltingarkennd
+Thriving,Þrífst
+Maintaining,Viðhald
+Supporting,Stuðningur
+Saving,Sparnaður
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Greitt lið sem ýtir Open Specy nær lokamarkmiðinu um 100% nákvæma litrófsgreiningu og djúpa litrófsgreiningu með einum smelli
+A single paid staff person working to update and build the community and the tool,Einn launaður starfsmaður sem vinnur að því að uppfæra og byggja upp samfélagið og tólið
+Maintenance costs and minor ad-hoc updates and bug fixes,Viðhaldskostnaður og minniháttar ad-hoc uppfærslur og villuleiðréttingar
+Keeping the app online and essential maintenance,Halda appinu á netinu og nauðsynlegt viðhald
+Long term storage only,Aðeins langtímageymsla
+Sharing Metadata,Að deila lýsigögnum
+Thank you for sharing your data!,Þakka þér fyrir að deila gögnunum þínum!
+Your data will soon be available at https://osf.io/stmv4/,Gögnin þín verða fljótlega aðgengileg á https://osf.io/stmv4/
+Something went wrong :-(,Eitthvað fór úrskeiðis :-(
+Data type not supported!,Gagnategund ekki studd!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Upphlaðið gagnategund er ekki studd eins og er; vinsamlegast
+                      athugaðu verkfæraleiðbeiningar og 'Um' flipann fyrir frekari upplýsingar."
+Sharing Spectrum to Community Library,Að deila litrófinu með samfélagsbókasafni
+Reading Spectrum,Reading Spectrum
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Ef þú hlóðst upp texta/csv skrá skaltu ganga úr skugga um að
+           dálkar eru tölulegar og heita 'bylgjunúmer' og
+           'styrkur'."
+absorbance intensity [-],gleypnistyrkur [-]
+wavenumber [cm<sup>-1</sup>],bylgjutala [cm<sup>-1</sup>]
+Analyzing Spectrum,Að greina litróf
+Finding Match,Að finna samsvörun
+Making Plot,Að gera söguþræði
+Material,Efni
+Pearson's r,Pearson's r
+Organization,Skipulag
+Selectable Matches,Valanleg samsvörun
+Donations,Framlög
+Operation Costs,Rekstrarkostnaður
+Selection Metadata,Val Lýsigögn

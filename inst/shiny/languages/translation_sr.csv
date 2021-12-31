@@ -1,0 +1,212 @@
+en,sr
+About,О томе
+Welcome,Добродошли
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Придружите се стотинама истраживача из околине
+           света који су део заједнице Опен Специ би
+           анализирање, дељење, обрада и идентификовање
+           њихов Раман и ИР спектар. Ове услуге су бесплатне и отвореног кода захваљујући нашим партнерима:"
+Quick Video Tutorial,Брзи видео водич
+Instructions,Упутства
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Укратко: Да бисте користили алат, отпремите цсв, асп, јдк, спц или спа датотеку на картицу за отпремање.
+                                  Ако је цсв, једна колона треба да носи назив „таласни број“ (у јединицама од 1/цм), а друга „интензитет“.
+                                  Можете да изгладите своје податке помоћу СГ филтера, да исправите своје податке користећи полиномски ред иМодПолиФит и ограничите опсег таласних дужина за подударање.
+                                  Резултат ће бити упоређен са интерном библиотеком Раман или ФТИР спектра. Најјачих 1000 утакмица заједно са вашим
+                                  учитани или обрађени подаци биће представљени у интерактивном приказу и табели. За више детаља кликните на дугме испод
+                                  или погледајте видео са детаљним упутствима."
+Detailed Standard Operating Procedure,Детаљна стандардна оперативна процедура
+Download Open Data,Преузмите отворене податке
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Референтни спектри су добијени из извора отвореног приступа
+           онлајн, рецензиране публикације и корпоративне донације. Убудуће
+           спектри који су учитани у алат ће бити укључени у референцу
+           библиотеку да буде још боље."
+Raman Reference Library,Раманова референтна библиотека
+FTIR Reference Library,Референтна библиотека ФТИР
+Raman Reference Library Metadata,Метаподаци Раманове референтне библиотеке
+FTIR Reference Library Metadata,Метаподаци референтне библиотеке ФТИР
+Contribute Spectra,Допринесите Спецтра
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Да бисте делили спектре, отпремите датотеку на картицу за отпремање. Ако изаберете Подели, копија ваших спектра ће бити послата заједници
+           Складиште података на Опен Сциенце Фрамеворк. Да бисте додали додатне метаподатке,
+           попуните доступна поља метаподатака и кликните на -Дели податке-. Тхе
+           спецтра датотека коју сте отпремили заједно са својим одговорима биће копирана
+           у потфасциклу а -Са метаподацима- на линку испод. Чувају се сви заједнички подаци
+           а Цреативе Цоммонс Аттрибутион Лиценсе 4.0."
+Community Data Warehouse,Складиште података заједнице
+Tool Validation,Валидација алата
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Сви параметри у овом алату су тестирани да би се то потврдило
+           алат функционише најбоље могуће и одреди најбољу подразумевану вредност
+           параметри које треба користити. Наш тренутни поступак валидације укључује исправљање
+           дуплирани уноси у референтним библиотекама, провера спектра у
+           метаподатке који се не налазе у спектралној библиотеци и обезбеђивање подразумеване вредности
+           параметри обезбеђују преко 80% тачности у првом мечу."
+Detailed Validation Procedure,Детаљна процедура валидације
+"Updates, Feature Requests, and Bug Reports","Ажурирања, захтеви за функције и извештаји о грешкама"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Пратимо сва ажурирања користећи контролу верзија нашег кода. Функције се могу затражити и пријавити грешке на ГитХуб-у.
+Stay up to date!,Остану у току!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Пратите нас на Твиттер-у @ОпенСпеци. Пошаљите е-пошту винцовгер@гмаил.цом да бисте били додани на мејлинг листу.
+Citation,Цитирање
+Useful Links,Корисни линкови
+Free FTIR Software: siMPle microplastic IR spectral identification software,Бесплатни ФТИР софтвер: једноставан софтвер за ИЦ спектралну идентификацију микропластике
+Free Spectroscopy Learning Academy from ThermoFisher,Бесплатна академија за учење спектроскопије компаније ТхермоФисхер
+Free Optical Microscopy Learning Resource from Florida State University,Бесплатан ресурс за учење оптичке микроскопије са Државног универзитета Флориде
+Free desktop application for spectral analysis and links to reference databases.,Бесплатна десктоп апликација за спектралну анализу и везе до референтних база података.
+Terms And Conditions,Услови
+Privacy Policy,Правила о приватности
+Upload File,Отпреми датотеку
+"Upload, View, and Share Spectra","Отпремите, прегледајте и делите Спецтра"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Одаберите .цсв (пожељно), .асп, .јдк, .спц, .спа или .0 датотеку"
+Share Your Data?,Делите своје податке?
+Share Help,Делите помоћ
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Ако желите, делимо ваше отпремљене спектре и подешавања са заједницом спектроскопије.
+           Подразумевано, сви подаци ће бити лиценцирани под Цреативе Цоммонс Аттрибутион-НонЦоммерциал 4.0 Интернатионал (ЦЦ БИ-НЦ 4.0).
+           Отпремљени спектри ће се појавити овде: хттпс://осф.ио/рјг3ц"
+Upload Help,Уплоад Хелп
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Отпремите датотеке Раман или ФТИР спектра као цсв, јдк, спц или спа. Пожељна је цсв датотека. Ако је цсв, датотека мора да садржи једну колону са ознаком „таласни број“ у јединицама (1/цм) и другу колону са ознаком „интензитет“ у јединицама апсорпције.
+            Ако је јдк, спц, спа или 0, датотека треба да буде један спектар апсорпције са таласним бројем у (1/цм). Ове датотеке неће увек радити савршено јер их је тешко прочитати, па их проверите у другом софтверу.
+            Притисните дугме 'Тест Дата' да бисте преузели узорак Рамановог спектра."
+Intensity Adjustment,Подешавање интензитета
+None,Ниједан
+Transmittance,Трансмиттанце
+Reflectance,Рефлексија
+Intensity Correction Help,Помоћ за корекцију интензитета
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Ако отпремљени спектар није у јединицама апсорпције,
+           користите овај улаз да одредите јединице из којих ће се конвертовати.Опен Специ може
+           прилагодите спектре рефлексије или пропустљивости јединицама апсорпције користећи
+           ово падајући мени на картици за отпремање датотека. Све претходне картице
+           претпоставимо да су подаци у јединицама апсорпције тако да би требало да направите
+           исправку пре наставка ако је потребно. Подешавање пропусности
+           користи прорачун лог10(1/Т) који није исправан за систем
+           и карактеристике честица. Подешавање рефлексије користи
+           Кубелка-Мунк једначина (1-Р)2/(2*Р). Претпостављамо да је рефлексија
+           је форматиран као проценат од 1-100 и прво исправите интензитет дељењем са 100
+           тако да одговара облику који се очекује по једначини.
+           Ако није изабран ниједан, Опен Специ претпоставља да су отпремљени подаци
+           спектар апсорпције."
+Sample File,Сампле Филе
+Sample Data Help,Помоћ за узорке података
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Ово је пример спектра који се може учитати у алатку за тестирање и разумевање како треба форматирати цсв датотеке.
+Metadata Input,Унос метаподатака
+Metadata Help,Помоћ за метаподатке
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Све отпремљене спектре и метаподатке делимо са заједницом спектроскопије ако овде попуните метаподатке и изаберете дељење.
+           Отпремљени спектри и метаподаци ће се појавити овде: хттпс://осф.ио/рјг3ц"
+Share Metadata,Делите метаподатке
+Upload some data to get started...,Отпремите неке податке да бисте започели...
+Preprocess Spectrum,Препроцесс Спецтрум
+"Smooth, Baseline Correct, and Download Processed Spectra","Глатко, исправна основна линија и преузимање обрађених спектра"
+Download (recommended),Преузми (препоручено)
+Download Help,Преузмите помоћ
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Неки корисници ће можда желети да сачувају копију свог обрађеног спектра. Ово дугме преузима обрађени спектар као цсв датотеку.
+Smoothing,Смоотхинг
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Овај углађивач може побољшати однос сигнала и шума података и користи Савицки-Голаи филтер са 12 текућих тачака података и наведеним полиномом.
+Smoothing Polynomial,Смоотхинг Полиномиал
+Baseline Correction,Баселине Цоррецтион
+Baseline Correction Help,Помоћ за корекцију основне линије
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Ова рутина корекције основне линије има две опције за корекцију основне линије, 1) полиномску процедуру имодполифит за итеративно проналажење основне линије спектра користећи полиномско уклапање у цео регион спектра. 2) ручне линије се могу нацртати помоћу алата за линије на графикону и исправно дугме ће користити линије да одузме основну линију."
+Baseline Correction Polynomial,Полином корекције основне линије
+Technique,Техника
+Polynomial,Полином
+Manual,Упутство
+Correct With Trace,Исправно са трагом
+Reset,Ресетовати
+Range Selection,Избор опсега
+Spectral Range Help,Помоћ за спектрални опсег
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Ограничавање спектралног опсега може уклонити регионе спектра у којима не постоје пикови и побољшати подударање
+Maximum Spectral Range,Максимални спектрални опсег
+Minimum Spectral Range,Минимални спектрални опсег
+Identify Spectrum,Идентификујте Спецтрум
+Identify Spectrum Using the Reference Library,Идентификујте спектар користећи референтну библиотеку
+Raman,Раман
+FTIR,ФТИР
+Spectra,Спецтра
+Type,Тип
+Spectrum Type Help,Помоћ за тип спектра
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Овај избор ће одредити да ли се користи ФТИР или Раман библиотека подударања. Изаберите тип спектра који је отпремљен.
+Analysis,Анализа
+Processed,Обрађено
+Uploaded,Отпремљено
+Spectrum to Analyze Help,Помоћ за анализу спектра
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Овај избор ће одредити да ли се отпремљени (необрађени) спектар или спектар обрађен помоћу картице за обраду користи у подударању спектра.
+Region,Регион
+Full,Пун
+Peaks,Врхови
+Region to Match Help,Помоћ за регион за подударање
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Овај избор ће одредити да ли се библиотека са којом се подударате састоји од целог спектра или само од врхова спектра.
+Partner With Us,Партнер са нама
+Help us reach our goal of revolutionizing spectroscopy.,Помозите нам да постигнемо наш циљ револуционисања спектроскопије.
+Donate Cash,Донирајте готовину
+Buy From Swag Store,Купујте у Сваг продавници
+Contribute time,Допринесите време
+Revolutionizing,Револуционишући
+Thriving,Успешан
+Maintaining,Одржавање
+Supporting,Подршка
+Saving,Уштеда
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Плаћени тим који гура Опен Специ ближе крајњем циљу 100% тачне спектралне идентификације и дубоке спектралне дијагностике једним кликом
+A single paid staff person working to update and build the community and the tool,Једно плаћено особље ради на ажурирању и изградњи заједнице и алата
+Maintenance costs and minor ad-hoc updates and bug fixes,Трошкови одржавања и мања ад-хоц ажурирања и исправке грешака
+Keeping the app online and essential maintenance,Одржавање апликације на мрежи и неопходно одржавање
+Long term storage only,Само дуготрајно складиштење
+Sharing Metadata,Дељење метаподатака
+Thank you for sharing your data!,Хвала вам што делите своје податке!
+Your data will soon be available at https://osf.io/stmv4/,Ваши подаци ће ускоро бити доступни на хттпс://осф.ио/стмв4/
+Something went wrong :-(,Нешто је кренуло наопако :-(
+Data type not supported!,Тип података није подржан!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Отпремљени тип података тренутно није подржан; Молимо вас
+                      проверите описе алата и картицу „О“ за детаље."
+Sharing Spectrum to Community Library,Дељење спектра у библиотеку заједнице
+Reading Spectrum,Реадинг Спецтрум
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Ако сте отпремили текстуалну/цсв датотеку, уверите се да је
+           колоне су нумеричке и називају се „таласни број“ и
+           'интензитет'."
+absorbance intensity [-],интензитет апсорпције [-]
+wavenumber [cm<sup>-1</sup>],таласни број [цм<суп>-1</суп>]
+Analyzing Spectrum,Анализирање спектра
+Finding Match,Финдинг Матцх
+Making Plot,Макинг Плот
+Material,Материјал
+Pearson's r,Пеарсон'с р
+Organization,Организација
+Selectable Matches,Подударања која се могу изабрати
+Donations,Донације
+Operation Costs,Оперативни трошкови
+Selection Metadata,Метаподаци избора

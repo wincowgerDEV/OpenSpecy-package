@@ -1,0 +1,212 @@
+en,sq
+About,Rreth
+Welcome,Mirë se vini
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Bashkohuni me qindra studiues nga përreth
+           bota që janë pjesë e komunitetit Open Specy nga
+           duke analizuar, ndarë, përpunuar dhe identifikuar
+           spektrat e tyre Raman dhe IR. Këto shërbime janë falas dhe me burim të hapur falë partnerëve tanë:"
+Quick Video Tutorial,Video tutorial i shpejtë
+Instructions,udhëzime
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Shkurtimisht: Për të përdorur mjetin ngarkoni një skedar csv, asp, jdx, spc ose spa në skedën e skedarit të ngarkimit.
+                                  Nëse csv, një kolonë duhet të quhet 'numër vale' (në njësi prej 1/cm) dhe një tjetër me emrin 'intensitet'.
+                                  Mund të zbutni të dhënat tuaja duke përdorur një filtër SG, të korrigjoni bazën duke përdorur rendin polinomial të iModPolyFit dhe të kufizoni diapazonin e gjatësisë së valës për përputhjen.
+                                  Rezultati do të krahasohet me një bibliotekë të brendshme të spektrit Raman ose FTIR. 1000 ndeshjet më të forta së bashku me tuajin
+                                  të dhënat e ngarkuara ose të përpunuara do të paraqiten në një grafik dhe tabelë interaktive. Për më shumë detaje klikoni butonin më poshtë
+                                  ose shikoni videon e detajuar udhëzuese."
+Detailed Standard Operating Procedure,Procedura standarde e detajuar e funksionimit
+Download Open Data,Shkarkoni Open Data
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Spektrat e referencës u morën nga burimet me akses të hapur
+           në internet, botime të rishikuara nga kolegët dhe donacione të korporatave. Në të ardhmen
+           spektrat që ngarkohen në mjet do të inkorporohen në referencë
+           bibliotekë për ta bërë atë edhe më të mirë."
+Raman Reference Library,Biblioteka e Referencave Raman
+FTIR Reference Library,Biblioteka e Referencave FTIR
+Raman Reference Library Metadata,Metadatat e bibliotekës së referencës Raman
+FTIR Reference Library Metadata,Metadatat e bibliotekës së referencës FTIR
+Contribute Spectra,Kontribuoni Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Për të ndarë spektrat, ngarkoni një skedar në skedën e skedarit të ngarkimit. Nëse keni zgjedhur Ndani, një kopje e spektrit tuaj do t'i dërgohet Komunitetit
+           Magazina e të Dhënave në Kornizën e Hapur të Shkencës. Për të shtuar meta të dhëna shtesë,
+           plotësoni fushat e disponueshme të meta të dhënave dhe klikoni -Share Data-. Të
+           Skedari i spektrit që keni ngarkuar së bashku me përgjigjet tuaja do të kopjohen
+           në një nënfolder -With Metadata- në lidhjen më poshtë. Mban të gjitha të dhënat e përbashkëta
+           një licencë Creative Commons Attribution 4.0."
+Community Data Warehouse,Magazina e të Dhënave të Komunitetit
+Tool Validation,Vleresimi i mjetit
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Të gjithë parametrat në këtë mjet janë testuar për ta vërtetuar atë
+           mjeti funksionon sa më mirë që të jetë e mundur dhe përcakton parazgjedhjen më të mirë
+           parametrat për t'u përdorur. Procedura jonë aktuale e vërtetimit përfshin korrigjimin
+           hyrjet e dyfishuara në bibliotekat e referencës, duke kontrolluar për spektra brenda
+           meta të dhënat që nuk janë në bibliotekën spektrale dhe duke siguruar parazgjedhjen
+           parametrat ofrojnë mbi 80% saktësi në ndeshjen e parë."
+Detailed Validation Procedure,Procedura e Detajuar e Validimit
+"Updates, Feature Requests, and Bug Reports","Përditësimet, kërkesat për veçori dhe raportet e gabimeve"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Ne mbajmë gjurmët e të gjitha përditësimeve duke përdorur kontrollin e versionit në kodin tonë. Veçoritë mund të kërkohen dhe të raportohen gabimet në GitHub.
+Stay up to date!,Qëndroni të përditësuar!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Na ndiqni në Twitter @OpenSpecy. E-mail wincowger@gmail.com për t'u shtuar në listën e postimeve.
+Citation,Citim
+Useful Links,Lidhje të dobishme
+Free FTIR Software: siMPle microplastic IR spectral identification software,Softuer falas FTIR: Softuer i thjeshtë mikroplastik i identifikimit spektral IR
+Free Spectroscopy Learning Academy from ThermoFisher,Akademia e Mësimit Falas për Spektroskopinë nga ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Burim falas për mësimin e mikroskopisë optike nga Universiteti Shtetëror i Floridës
+Free desktop application for spectral analysis and links to reference databases.,Aplikacion pa pagesë për desktop për analiza spektrale dhe lidhje me bazat e të dhënave të referencës.
+Terms And Conditions,Termat dhe Kushtet
+Privacy Policy,Politika e privatësisë
+Upload File,Ngarko skedarin
+"Upload, View, and Share Spectra","Ngarkoni, shikoni dhe ndani Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Zgjidhni .csv (e preferuar), .asp, .jdx, .spc, .spa, ose .0 File"
+Share Your Data?,Ndani të dhënat tuaja?
+Share Help,Ndani Ndihmën
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Nëse dëshironi, ne ndajmë spektrat dhe cilësimet tuaja të ngarkuara me komunitetin e spektroskopisë.
+           Si parazgjedhje, të gjitha të dhënat do të licencohen sipas Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Spektrat e ngarkuar do të shfaqen këtu: https://osf.io/rjg3c"
+Upload Help,Ngarkoni Ndihmë
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Ngarko skedarët e spektrit Raman ose FTIR si csv, jdx, spc ose spa. Preferohet një skedar csv. Nëse është një csv, skedari duhet të përmbajë një kolonë të etiketuar 'numër vale' në njësi prej (1/cm) dhe një kolonë tjetër të etiketuar 'intensitet' në njësi absorbimi.
+            Nëse jdx, spc, spa ose 0 skedari duhet të jetë një spektër i vetëm absorbimi me numër vale në (1/cm). Këta skedarë nuk do të funksionojnë gjithmonë në mënyrë të përsosur, sepse janë të ndërlikuar për t'u lexuar, kështu që kontrolloni dy herë në një softuer tjetër.
+            Shtypni butonin ""Test Data"" për të shkarkuar një mostër të spektrit Raman."
+Intensity Adjustment,Rregullimi i intensitetit
+None,Asnje
+Transmittance,Transmetimi
+Reflectance,Reflektenca
+Intensity Correction Help,Ndihmë për korrigjimin e intensitetit
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Nëse spektri i ngarkuar nuk është në njësi absorbimi,
+           përdorni këtë hyrje për të specifikuar njësitë nga të cilat do të konvertohen.Open Specy mund
+           rregulloni spektrin e reflektimit ose të transmisionit në njësitë e absorbimit duke përdorur
+           kjo rënie në skedën e skedarit të ngarkimit. Të gjitha skedat e mëparshme
+           supozoni se të dhënat janë në njësi absorbimi, kështu që ju duhet të bëni
+           korrigjimi përpara se të vazhdoni nëse është e nevojshme. Rregullimi i transmetimit
+           përdor llogaritjen log10(1/T), e cila nuk korrigjon për sistemin
+           dhe karakteristikat e grimcave. Rregullimi i reflektimit përdor
+           Ekuacioni Kubelka-Munk (1-R)2/(2*R). Supozojmë se reflektimi
+           formatohet si përqindje nga 1-100 dhe së pari korrigjoni intensitetin duke e pjesëtuar me 100
+           në mënyrë që të përshtatet me formën e pritur nga ekuacioni.
+           Nëse nuk zgjidhet asnjë, Open Specy supozon se të dhënat e ngarkuara janë
+           një spektër absorbimi."
+Sample File,Skedari mostër
+Sample Data Help,Shembull i ndihmës së të dhënave
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Ky është një spektër mostër që mund të ngarkohet në mjet për ta testuar atë dhe për të kuptuar se si duhet të formatohen skedarët csv.
+Metadata Input,Hyrja e meta të dhënave
+Metadata Help,Ndihmë metadata
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Ne ndajmë çdo spektër dhe meta të dhëna të ngarkuar me komunitetin e spektroskopisë nëse plotësoni meta të dhënat këtu dhe zgjidhni ndarjen.
+           Spektrat dhe meta të dhënat e ngarkuara do të shfaqen këtu: https://osf.io/rjg3c"
+Share Metadata,Ndani të dhënat meta
+Upload some data to get started...,Ngarko disa të dhëna për të filluar...
+Preprocess Spectrum,Spektri i parapërpunimit
+"Smooth, Baseline Correct, and Download Processed Spectra","Smooth, Baseline Correct, dhe Shkarko Spectra të përpunuara"
+Download (recommended),Shkarko (rekomandohet)
+Download Help,Shkarko Ndihmën
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Disa përdorues mund të dëshirojnë të ruajnë një kopje të spektrit të tyre të përpunuar. Ky buton shkarkon spektrin e përpunuar si një skedar csv.
+Smoothing,Zbutja
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Ky zbutës mund të përmirësojë raportin e sinjalit ndaj zhurmës së të dhënave dhe përdor një filtër Savitzky-Golay me 12 pika të të dhënave të funksionimit dhe polinomin e specifikuar.
+Smoothing Polynomial,Polinom zbutës
+Baseline Correction,Korrigjimi bazë
+Baseline Correction Help,Ndihmë për korrigjimin bazë
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Kjo rutinë e korrigjimit bazë ka dy opsione për korrigjimin e vijës bazë, 1) procedurën e polinomit të shumëfishtë për të gjetur në mënyrë të përsëritur vijën bazë të spektrit duke përdorur një përshtatje polinomi në të gjithë rajonin e spektrit. 2) linjat manuale mund të vizatohen duke përdorur mjetin e linjës në grafik dhe butoni i saktë do të përdorë linjat për të zbritur vijën bazë."
+Baseline Correction Polynomial,Polinomi i korrigjimit bazë
+Technique,Teknika
+Polynomial,Polinom
+Manual,Manual
+Correct With Trace,Korrigjo me gjurmë
+Reset,Rivendos
+Range Selection,Zgjedhja e diapazonit
+Spectral Range Help,Ndihmë e diapazonit spektral
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Kufizimi i diapazonit spektral mund të heqë rajonet e spektrit ku nuk ekzistojnë maja dhe të përmirësojë përputhjen
+Maximum Spectral Range,Gama maksimale e spektrit
+Minimum Spectral Range,Gama minimale e spektrit
+Identify Spectrum,Identifikoni spektrin
+Identify Spectrum Using the Reference Library,Identifikoni spektrin duke përdorur bibliotekën e referencës
+Raman,Raman
+FTIR,FTIR
+Spectra,Spektrat
+Type,Lloji
+Spectrum Type Help,Ndihmë e llojit të spektrit
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Kjo përzgjedhje do të përcaktojë nëse përdoret biblioteka e përputhjes FTIR ose Raman. Zgjidhni llojin e spektrit që u ngarkua.
+Analysis,Analiza
+Processed,Të përpunuara
+Uploaded,Ngarkuar
+Spectrum to Analyze Help,Ndihmë për të analizuar spektrin
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Kjo përzgjedhje do të përcaktojë nëse spektri i ngarkuar (i pa përpunuar) ose spektri i përpunuar duke përdorur skedën e përpunimit përdoret në përputhjen e spektrit.
+Region,Rajon
+Full,Plot
+Peaks,Majat
+Region to Match Help,Ndihma e rajonit për të përputhur
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Kjo përzgjedhje do të përcaktojë nëse biblioteka me të cilën po përputheni përbëhet nga spektri i plotë ose vetëm nga majat e spektrit.
+Partner With Us,Partner Me Ne
+Help us reach our goal of revolutionizing spectroscopy.,Na ndihmoni të arrijmë qëllimin tonë për të revolucionarizuar spektroskopinë.
+Donate Cash,Dhuroni para të gatshme
+Buy From Swag Store,Blini nga dyqani Swag
+Contribute time,Kontribuoni kohë
+Revolutionizing,Revolucionare
+Thriving,Të lulëzuar
+Maintaining,Ruajtja
+Supporting,Mbështetëse
+Saving,Duke kursyer
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Një ekip me pagesë që po e shtyn Open Specy më afër qëllimit përfundimtar të identifikimit 100% të saktë spektral dhe diagnostikimit të thellë spektral me një klik të vetëm
+A single paid staff person working to update and build the community and the tool,Një person i vetëm me pagesë që punon për të përditësuar dhe ndërtuar komunitetin dhe mjetin
+Maintenance costs and minor ad-hoc updates and bug fixes,Kostot e mirëmbajtjes dhe përditësimet e vogla ad-hoc dhe rregullimet e gabimeve
+Keeping the app online and essential maintenance,Mbajtja e aplikacionit në internet dhe mirëmbajtja thelbësore
+Long term storage only,Vetëm ruajtje afatgjatë
+Sharing Metadata,Ndarja e meta të dhënave
+Thank you for sharing your data!,Faleminderit për ndarjen e të dhënave tuaja!
+Your data will soon be available at https://osf.io/stmv4/,Të dhënat tuaja së shpejti do të jenë të disponueshme në https://osf.io/stmv4/
+Something went wrong :-(,Dicka shkoi keq :-(
+Data type not supported!,Lloji i të dhënave nuk mbështetet!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Lloji i të dhënave të ngarkuara nuk mbështetet aktualisht; ju lutem
+                      kontrolloni këshillat e veglave dhe skedën 'Rreth' për detaje."
+Sharing Spectrum to Community Library,Ndarja e spektrit me bibliotekën e komunitetit
+Reading Spectrum,Spektri i leximit
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Nëse keni ngarkuar një skedar teksti/csv, sigurohuni që
+           kolonat janë numerike dhe emërtohen 'number vale' dhe
+           'intensitet'."
+absorbance intensity [-],intensiteti i absorbimit [-]
+wavenumber [cm<sup>-1</sup>],numri i valës [cm<sup>-1</sup>]
+Analyzing Spectrum,Duke analizuar spektrin
+Finding Match,Gjetja e ndeshjes
+Making Plot,Bërja e Komplotit
+Material,Materiali
+Pearson's r,Pearson's r
+Organization,Organizimi
+Selectable Matches,Ndeshje të përzgjedhshme
+Donations,Donacionet
+Operation Costs,Kostot e operimit
+Selection Metadata,Metadatat e përzgjedhjes

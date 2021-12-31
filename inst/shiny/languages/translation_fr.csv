@@ -1,0 +1,212 @@
+en,fr
+About,Sur
+Welcome,Bienvenue
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Rejoignez les centaines de chercheurs du monde entier
+           le monde qui font partie de la communauté Open Specy en
+           analyser, partager, traiter et identifier
+           leurs spectres Raman et IR. Ces services sont gratuits et open source grâce à nos partenaires :"
+Quick Video Tutorial,Tutoriel vidéo rapide
+Instructions,Instructions
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","En bref : pour utiliser l'outil, téléchargez un fichier csv, asp, jdx, spc ou spa dans l'onglet de téléchargement de fichier.
+                                  Si csv, une colonne doit être nommée 'wavenumber' (en unités de 1/cm) et une autre nommée 'intensity'.
+                                  Vous pouvez lisser vos données à l'aide d'un filtre SG, corriger la ligne de base de vos données à l'aide de l'ordre polynomial d'iModPolyFit et restreindre la plage de longueurs d'onde pour la correspondance.
+                                  Le résultat sera comparé à une bibliothèque interne de spectres Raman ou FTIR. Les 1000 matchs les plus forts avec votre
+                                  les données téléchargées ou traitées seront présentées dans un graphique et un tableau interactifs. Pour plus de détails cliquez sur le bouton ci-dessous
+                                  ou regardez la vidéo d'instructions détaillée."
+Detailed Standard Operating Procedure,Procédure d'exploitation standard détaillée
+Download Open Data,Télécharger les données ouvertes
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Les spectres de référence proviennent de ressources en libre accès
+           en ligne, des publications évaluées par des pairs et des dons d'entreprise. À l'avenir
+           les spectres téléchargés dans l'outil seront incorporés à la référence
+           bibliothèque pour le rendre encore meilleur."
+Raman Reference Library,Bibliothèque de référence Raman
+FTIR Reference Library,Bibliothèque de référence FTIR
+Raman Reference Library Metadata,Métadonnées de la bibliothèque de référence Raman
+FTIR Reference Library Metadata,Métadonnées de la bibliothèque de référence FTIR
+Contribute Spectra,Contribuer aux spectres
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Pour partager des spectres, téléchargez un fichier dans l'onglet de fichier de téléchargement. Si vous avez sélectionné Partager, une copie de vos spectres sera envoyée à la communauté
+           Entrepôt de données sur Open Science Framework. Pour ajouter des métadonnées supplémentaires,
+           remplissez les champs de métadonnées disponibles et cliquez sur -Partager les données-. le
+           le fichier de spectres que vous avez téléchargé avec vos réponses sera copié
+           dans le sous-dossier a -With Metadata- sur le lien ci-dessous. Toutes les données partagées sont conservées
+           une licence d'attribution Creative Commons 4.0."
+Community Data Warehouse,Entrepôt de données communautaire
+Tool Validation,Validation de l'outil
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Tous les paramètres de cet outil sont testés pour valider que
+           l'outil fonctionne le mieux possible et détermine le meilleur défaut
+           paramètres à utiliser. Notre procédure de validation actuelle comprend la correction
+           entrées dupliquées dans les bibliothèques de référence, vérification des spectres dans
+           métadonnées qui ne se trouvent pas dans la bibliothèque spectrale, et en veillant à ce que la valeur par défaut
+           les paramètres fournissent plus de 80% de précision dans le premier match."
+Detailed Validation Procedure,Procédure de validation détaillée
+"Updates, Feature Requests, and Bug Reports","Mises à jour, demandes de fonctionnalités et rapports de bogues"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Nous gardons une trace de toutes les mises à jour en utilisant le contrôle de version sur notre code. Des fonctionnalités peuvent être demandées et des bogues signalés sur GitHub.
+Stay up to date!,Tiens-toi à jour!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Suivez-nous sur Twitter @OpenSpecy. E-mail wincowger@gmail.com pour être ajouté à la liste de diffusion.
+Citation,Citation
+Useful Links,Liens utiles
+Free FTIR Software: siMPle microplastic IR spectral identification software,Logiciel FTIR gratuit : logiciel d'identification spectrale IR microplastique simple
+Free Spectroscopy Learning Academy from ThermoFisher,Académie d'apprentissage gratuite de la spectroscopie de ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Ressource d'apprentissage gratuite sur la microscopie optique de la Florida State University
+Free desktop application for spectral analysis and links to reference databases.,Application de bureau gratuite pour l'analyse spectrale et des liens vers des bases de données de référence.
+Terms And Conditions,Termes et conditions
+Privacy Policy,Politique de confidentialité
+Upload File,Téléverser un fichier
+"Upload, View, and Share Spectra","Télécharger, afficher et partager des spectres"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Choisissez .csv (préféré), .asp, .jdx, .spc, .spa ou fichier .0"
+Share Your Data?,Partager vos données ?
+Share Help,Partager l'aide
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Si vous le souhaitez, nous partageons vos spectres et paramètres téléchargés avec la communauté de la spectroscopie.
+           Par défaut, toutes les données seront sous licence Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Les spectres téléchargés apparaîtront ici : https://osf.io/rjg3c"
+Upload Help,Aide au téléchargement
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Téléchargez des fichiers de spectre Raman ou FTIR au format csv, jdx, spc ou spa. Un fichier csv est préférable. S'il s'agit d'un fichier csv, le fichier doit contenir une colonne intitulée « nombre d'onde » en unités de (1/cm) et une autre colonne intitulée « intensité » en unités d'absorbance.
+            Si jdx, spc, spa ou 0, le fichier doit être un spectre d'absorbance unique avec le numéro d'onde en (1/cm). Ces fichiers ne fonctionneront pas toujours parfaitement car ils sont difficiles à lire, alors vérifiez-les dans un autre logiciel.
+            Appuyez sur le bouton « Données de test » pour télécharger un échantillon de spectre Raman."
+Intensity Adjustment,Réglage de l'intensité
+None,Rien
+Transmittance,Transmission
+Reflectance,Réflectance
+Intensity Correction Help,Aide à la correction d'intensité
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Si le spectre téléchargé n'est pas en unités d'absorbance,
+           utilisez cette entrée pour spécifier les unités à partir desquelles convertir.Open Specy peut
+           ajuster les spectres de réflectance ou de transmittance aux unités d'absorbance en utilisant
+           cette liste déroulante dans l'onglet de fichier de téléchargement. Tous les onglets précédents
+           supposez que les données sont en unités d'absorbance, vous devez donc faire le
+           correction avant de continuer si nécessaire. Le réglage de la transmission
+           utilise le calcul log10(1/T) qui ne corrige pas pour le système
+           et les caractéristiques des particules. Le réglage de la réflectance utilise le
+           Équation de Kubelka-Munk (1-R)2/(2*R). On suppose que la réflectance
+           est formaté en pourcentage de 1 à 100 et corrige d'abord l'intensité en divisant par 100
+           de sorte qu'il s'adapte à la forme attendue par l'équation.
+           Si aucune n'est sélectionnée, Open Specy suppose que les données téléchargées sont
+           un spectre d'absorbance."
+Sample File,Exemple de fichier
+Sample Data Help,Exemple d'aide sur les données
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Il s'agit d'un exemple de spectre qui peut être téléchargé sur l'outil pour le tester et comprendre comment les fichiers csv doivent être formatés.
+Metadata Input,Entrée de métadonnées
+Metadata Help,Aide sur les métadonnées
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Nous partageons tous les spectres et métadonnées téléchargés avec la communauté de spectroscopie si vous remplissez les métadonnées ici et sélectionnez partager.
+           Les spectres et métadonnées téléchargés apparaîtront ici : https://osf.io/rjg3c"
+Share Metadata,Partager des métadonnées
+Upload some data to get started...,Téléchargez des données pour commencer...
+Preprocess Spectrum,Spectre de prétraitement
+"Smooth, Baseline Correct, and Download Processed Spectra","Lisser, corriger la ligne de base et télécharger les spectres traités"
+Download (recommended),Télécharger (recommandé)
+Download Help,Télécharger l'aide
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Certains utilisateurs peuvent souhaiter enregistrer une copie de leur spectre traité. Ce bouton télécharge le spectre traité sous forme de fichier csv.
+Smoothing,Lissage
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Ce lisseur peut améliorer le rapport signal sur bruit des données et utilise un filtre Savitzky-Golay avec 12 points de données en cours et le polynôme spécifié.
+Smoothing Polynomial,Polynôme de lissage
+Baseline Correction,Correction de la ligne de base
+Baseline Correction Help,Aide à la correction de la ligne de base
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Cette routine de correction de ligne de base a deux options pour la correction de ligne de base, 1) la procédure polynomiale imodpolyfit pour trouver de manière itérative la ligne de base du spectre en utilisant un ajustement polynomial à la région entière des spectres. 2) des lignes manuelles peuvent être tracées à l'aide de l'outil de ligne sur le tracé et le bouton approprié utilisera les lignes pour soustraire la ligne de base."
+Baseline Correction Polynomial,Polynôme de correction de ligne de base
+Technique,Technique
+Polynomial,Polynôme
+Manual,Manuel
+Correct With Trace,Corriger avec trace
+Reset,Réinitialiser
+Range Selection,Sélection de la plage
+Spectral Range Help,Aide sur la plage spectrale
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,La restriction de la plage spectrale peut supprimer des régions du spectre où aucun pic n'existe et améliorer la correspondance
+Maximum Spectral Range,Portée spectrale maximale
+Minimum Spectral Range,Portée spectrale minimale
+Identify Spectrum,Identifier le spectre
+Identify Spectrum Using the Reference Library,Identifier le spectre à l'aide de la bibliothèque de référence
+Raman,Raman
+FTIR,FTIR
+Spectra,Spectres
+Type,Taper
+Spectrum Type Help,Aide sur le type de spectre
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Cette sélection déterminera si la bibliothèque de correspondance FTIR ou Raman est utilisée. Choisissez le type de spectre qui a été téléchargé.
+Analysis,Analyse
+Processed,Traité
+Uploaded,Téléchargé
+Spectrum to Analyze Help,Spectre à analyser Aide
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Cette sélection déterminera si le spectre téléchargé (non traité) ou le spectre traité à l'aide de l'onglet de traitement est utilisé dans la correspondance de spectre.
+Region,Région
+Full,Complet
+Peaks,Pics
+Region to Match Help,Aide de la région à faire correspondre
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Cette sélection déterminera si la bibliothèque à laquelle vous faites correspondre se compose du spectre complet ou uniquement des pics de spectre.
+Partner With Us,Partenaire avec nous
+Help us reach our goal of revolutionizing spectroscopy.,Aidez-nous à atteindre notre objectif de révolutionner la spectroscopie.
+Donate Cash,Faire un don en espèces
+Buy From Swag Store,Acheter dans le magasin Swag
+Contribute time,Temps de contribution
+Revolutionizing,Révolutionner
+Thriving,Prospère
+Maintaining,Maintenir
+Supporting,Justificatif
+Saving,Économie
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Une équipe rémunérée qui rapproche Open Specy de l'objectif ultime d'une identification spectrale précise à 100 % et de diagnostics spectraux approfondis en un seul clic
+A single paid staff person working to update and build the community and the tool,Un seul membre du personnel rémunéré travaillant à la mise à jour et à la construction de la communauté et de l'outil
+Maintenance costs and minor ad-hoc updates and bug fixes,Coûts de maintenance et mises à jour ad-hoc mineures et corrections de bugs
+Keeping the app online and essential maintenance,Maintien de l'application en ligne et maintenance essentielle
+Long term storage only,Stockage à long terme uniquement
+Sharing Metadata,Partage de métadonnées
+Thank you for sharing your data!,Merci d'avoir partagé vos données !
+Your data will soon be available at https://osf.io/stmv4/,Vos données seront bientôt disponibles sur https://osf.io/stmv4/
+Something went wrong :-(,Quelque chose s'est mal passé :-(
+Data type not supported!,Type de données non pris en charge !
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Le type de données téléchargé n'est actuellement pas pris en charge ; s'il te plaît
+                      consultez les info-bulles et l'onglet « À propos » pour plus de détails."
+Sharing Spectrum to Community Library,Partage du spectre avec la bibliothèque communautaire
+Reading Spectrum,Spectre de lecture
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Si vous avez téléchargé un fichier texte/csv, assurez-vous que le
+           les colonnes sont numériques et nommées 'wavenumber' et
+           'intensité'."
+absorbance intensity [-],intensité d'absorbance [-]
+wavenumber [cm<sup>-1</sup>],nombre d'onde [cm<sup>-1</sup>]
+Analyzing Spectrum,Analyse du spectre
+Finding Match,Trouver une correspondance
+Making Plot,Faire l'intrigue
+Material,Matériel
+Pearson's r,le r de Pearson
+Organization,Organisation
+Selectable Matches,Correspondances sélectionnables
+Donations,Des dons
+Operation Costs,Coûts d'exploitation
+Selection Metadata,Métadonnées de sélection

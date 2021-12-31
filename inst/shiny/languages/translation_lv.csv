@@ -1,0 +1,212 @@
+en,lv
+About,Par
+Welcome,Laipni lūdzam
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Pievienojieties simtiem pētnieku no visas pasaules
+           pasaule, kas ir daļa no Open Specy kopienas
+           analizējot, kopīgojot, apstrādājot un identificējot
+           to Ramana un IR spektri. Šie pakalpojumi ir bezmaksas un atvērtā koda, pateicoties mūsu partneriem:"
+Quick Video Tutorial,Ātra video apmācība
+Instructions,Instrukcijas
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Īsumā: lai izmantotu rīku, augšupielādējiet faila augšupielādes cilnē CSV, ASP, jdx, spc vai spa failu.
+                                  Ja ir csv, vienai kolonnai jābūt nosauktai “viļņu numurs” (vienībās 1/cm), bet otrai – “intensitāte”.
+                                  Varat izlīdzināt savus datus, izmantojot SG filtru, bāzes līniju koriģēt datus, izmantojot iModPolyFit polinoma secību, un ierobežot atbilstības viļņa garuma diapazonu.
+                                  Rezultāts tiks salīdzināts ar iekšējo Ramana vai FTIR spektru bibliotēku. 1000 spēcīgākās spēles kopā ar jūsu
+                                  augšupielādētie vai apstrādātie dati tiks parādīti interaktīvā diagrammā un tabulā. Lai iegūtu sīkāku informāciju, noklikšķiniet uz zemāk esošās pogas
+                                  vai noskatieties detalizēto mācību video."
+Detailed Standard Operating Procedure,Detalizēta standarta darbības procedūra
+Download Open Data,Lejupielādējiet atvērtos datus
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Atsauces spektri tika iegūti no brīvpiekļuves resursiem
+           tiešsaistē, recenzētas publikācijas un korporatīvie ziedojumi. Nākotnē
+           spektri, kas ir augšupielādēti rīkā, tiks iekļauti atsaucē
+           bibliotēku, lai padarītu to vēl labāku."
+Raman Reference Library,Ramana uzziņu bibliotēka
+FTIR Reference Library,FTIR uzziņu bibliotēka
+Raman Reference Library Metadata,Ramana uzziņu bibliotēkas metadati
+FTIR Reference Library Metadata,FTIR uzziņu bibliotēkas metadati
+Contribute Spectra,Piedalieties Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Lai kopīgotu spektrus, augšupielādējiet failu augšupielādes faila cilnē. Ja atlasījāt Kopīgot, jūsu spektra kopija tiks nosūtīta kopienai
+           Datu noliktava par atvērto zinātnes sistēmu. Lai pievienotu papildu metadatus,
+           aizpildiet pieejamos metadatu laukus un noklikšķiniet uz -Koplietot datus-. The
+           spektra fails, ko augšupielādējāt kopā ar atbildēm, tiks kopēts
+           uz apakšmapi a -With Metadata- tālāk norādītajā saitē. Visi koplietotie dati glabājas
+           Creative Commons Attribution License 4.0."
+Community Data Warehouse,Kopienas datu noliktava
+Tool Validation,Rīka apstiprināšana
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Visi šī rīka parametri tiek pārbaudīti, lai to apstiprinātu
+           rīks darbojas pēc iespējas labāk un nosaka labāko noklusējuma iestatījumu
+           izmantojamie parametri. Mūsu pašreizējā apstiprināšanas procedūra ietver labošanu
+           dublēti ieraksti atsauces bibliotēkās, pārbaudot spektrus iekšā
+           metadatus, kas nav spektrālo bibliotēkā, un nodrošina noklusējuma iestatījumus
+           parametri nodrošina vairāk nekā 80% precizitāti pirmajā mačā."
+Detailed Validation Procedure,Detalizēta apstiprināšanas procedūra
+"Updates, Feature Requests, and Bug Reports","Atjauninājumi, funkciju pieprasījumi un kļūdu ziņojumi"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,"Mēs sekojam līdzi visiem atjauninājumiem, izmantojot mūsu koda versiju kontroli. Funkcijas var pieprasīt un ziņot par kļūdām vietnē GitHub."
+Stay up to date!,Esiet lietas kursā!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,"Sekojiet mums Twitter @OpenSpecy. E-pasts wincowger@gmail.com, lai to pievienotu adresātu sarakstam."
+Citation,Citāts
+Useful Links,Noderīgas saites
+Free FTIR Software: siMPle microplastic IR spectral identification software,Bezmaksas FTIR programmatūra: vienkārša mikroplastmasas IR spektrālās identifikācijas programmatūra
+Free Spectroscopy Learning Academy from ThermoFisher,ThermoFisher bezmaksas spektroskopijas mācību akadēmija
+Free Optical Microscopy Learning Resource from Florida State University,Bezmaksas optiskās mikroskopijas mācību resurss no Floridas štata universitātes
+Free desktop application for spectral analysis and links to reference databases.,Bezmaksas darbvirsmas lietojumprogramma spektrālās analīzes veikšanai un saitēm uz atsauces datu bāzēm.
+Terms And Conditions,Noteikumi un nosacījumi
+Privacy Policy,Privātuma politika
+Upload File,Augšupielādēt failu
+"Upload, View, and Share Spectra","Augšupielādējiet, skatiet un kopīgojiet spektrus"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Izvēlieties .csv (vēlams), .asp, .jdx, .spc, .spa vai .0 failu"
+Share Your Data?,Vai kopīgot savus datus?
+Share Help,Kopīgojiet palīdzību
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Ja vēlaties, mēs kopīgojam jūsu augšupielādētos spektrus un iestatījumus ar spektroskopijas kopienu.
+           Pēc noklusējuma visi dati tiks licencēti saskaņā ar Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Augšupielādētie spektri parādīsies šeit: https://osf.io/rjg3c"
+Upload Help,Augšupielādēt palīdzību
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Augšupielādējiet Raman vai FTIR spektra failus kā csv, jdx, spc vai spa. Priekšroka tiek dota csv failam. Ja fails ir csv, failā jābūt vienai kolonnai ar apzīmējumu “viļņu skaits” vienībās (1/cm) un citai kolonnai ar apzīmējumu “intensitāte” absorbcijas vienībās.
+            Ja jdx, spc, spa vai 0, failam ir jābūt vienam absorbcijas spektram ar viļņu skaitu collās (1/cm). Šie faili ne vienmēr darbosies perfekti, jo tos ir grūti lasīt, tāpēc vēlreiz pārbaudiet tos citā programmatūrā.
+            Nospiediet pogu Pārbaudīt datus, lai lejupielādētu Ramana spektra paraugu."
+Intensity Adjustment,Intensitātes regulēšana
+None,Nav
+Transmittance,Caurlaidība
+Reflectance,Atspīdums
+Intensity Correction Help,Palīdzība intensitātes korekcijai
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Ja augšupielādētais spektrs nav absorbcijas vienībās,
+           izmantojiet šo ievadi, lai norādītu vienības, no kurām konvertēt.Open Specy var
+           pielāgojiet atstarošanas vai caurlaidības spektrus absorbcijas vienībām, izmantojot
+           šo nolaižamo izvēlni augšupielādes faila cilnē. Visas iepriekšējās cilnes
+           pieņemsim, ka dati ir absorbcijas vienībās, tāpēc jums vajadzētu izveidot
+           pirms turpināt, ja nepieciešams, labojiet. Caurlaidības regulēšana
+           izmanto log10(1/T) aprēķinu, kas nav pareizi sistēmai
+           un daļiņu īpašības. Atstarošanas regulēšana izmanto
+           Kubelka-Munk vienādojums (1-R)2/(2*R). Mēs pieņemam, ka atstarošana
+           ir formatēts procentos no 1 līdz 100 un vispirms izlabojiet intensitāti, dalot ar 100
+           lai tas atbilstu vienādojuma sagaidāmajai formai.
+           Ja neviens nav atlasīts, Open Specy pieņem, ka augšupielādētie dati ir
+           absorbcijas spektrs."
+Sample File,Faila paraugs
+Sample Data Help,Datu parauga palīdzība
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,"Šis ir spektra paraugs, ko var augšupielādēt rīkā, lai to pārbaudītu un saprastu, kā jāformatē csv faili."
+Metadata Input,Metadatu ievade
+Metadata Help,Metadatu palīdzība
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Mēs kopīgojam visus augšupielādētos spektrus un metadatus ar spektroskopijas kopienu, ja aizpildāt metadatus šeit un atlasāt kopīgot.
+           Augšupielādētie spektri un metadati parādīsies šeit: https://osf.io/rjg3c"
+Share Metadata,Kopīgojiet metadatus
+Upload some data to get started...,"Augšupielādējiet dažus datus, lai sāktu..."
+Preprocess Spectrum,Priekšapstrādes spektrs
+"Smooth, Baseline Correct, and Download Processed Spectra","Gluda, bāzes līnijas korekcija un apstrādāto spektru lejupielāde"
+Download (recommended),Lejupielādēt (ieteicams)
+Download Help,Lejupielādēt palīdzību
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Daži lietotāji var vēlēties saglabāt sava apstrādātā spektra kopiju. Šī poga lejupielādē apstrādāto spektru kā csv failu.
+Smoothing,Izlīdzināšana
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Šis gludinātājs var uzlabot datu signāla un trokšņa attiecību un izmanto Savitzky-Golay filtru ar 12 darbības datu punktiem un norādīto polinomu.
+Smoothing Polynomial,Izlīdzinošs polinoms
+Baseline Correction,Bāzes stāvokļa korekcija
+Baseline Correction Help,Bāzes stāvokļa korekcijas palīdzība
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Šai bāzes līnijas korekcijas rutīnai ir divas bāzes līnijas korekcijas iespējas: 1) polinoma imodpolyfit procedūra, lai iteratīvi atrastu spektra bāzes līniju, izmantojot polinomu, kas atbilst visam spektra apgabalam. 2) manuālas līnijas var uzzīmēt, izmantojot diagrammas līniju rīku, un pareizā poga izmantos līnijas, lai atņemtu bāzes līniju."
+Baseline Correction Polynomial,Bāzes līnijas korekcijas polinoms
+Technique,Tehnika
+Polynomial,Polinoms
+Manual,Rokasgrāmata
+Correct With Trace,Pareizi ar Trace
+Reset,Atiestatīt
+Range Selection,Diapazona izvēle
+Spectral Range Help,Spektrālā diapazona palīdzība
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,"Spektrālā diapazona ierobežošana var noņemt spektra apgabalus, kuros nav pīķu, un uzlabot saskaņošanu"
+Maximum Spectral Range,Maksimālais spektrālais diapazons
+Minimum Spectral Range,Minimālais spektrālais diapazons
+Identify Spectrum,Identificējiet spektru
+Identify Spectrum Using the Reference Library,"Identificējiet spektru, izmantojot uzziņu bibliotēku"
+Raman,Ramans
+FTIR,FTIR
+Spectra,Spektri
+Type,Tips
+Spectrum Type Help,Spektra veida palīdzība
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,"Šī atlase noteiks, vai tiek izmantota FTIR vai Ramana atbilstības bibliotēka. Izvēlieties augšupielādētā spektra veidu."
+Analysis,Analīze
+Processed,Apstrādāts
+Uploaded,Augšupielādēts
+Spectrum to Analyze Help,"Spektrs, lai analizētu palīdzību"
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,"Šī atlase noteiks, vai spektra atbilstībā tiek izmantots augšupielādētais (neapstrādātais) spektrs vai spektrs, kas apstrādāts, izmantojot apstrādes cilni."
+Region,Novads
+Full,Pilns
+Peaks,Virsotnes
+Region to Match Help,Reģions atbilstošā palīdzība
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,"Šī atlase noteiks, vai bibliotēka, kurai veicat atbilstību, sastāv no pilna spektra vai tikai spektra maksimumiem."
+Partner With Us,Sadarbojieties ar mums
+Help us reach our goal of revolutionizing spectroscopy.,Palīdziet mums sasniegt mūsu mērķi revolucionizēt spektroskopiju.
+Donate Cash,Ziedot skaidru naudu
+Buy From Swag Store,Pērciet Swag veikalā
+Contribute time,Ieguldiet laiku
+Revolutionizing,Revolucionizējošs
+Thriving,Plaukstošs
+Maintaining,Uzturēšana
+Supporting,Atbalstot
+Saving,Saglabā
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,"Apmaksāta komanda, kas virza Open Specy tuvāk galīgajam mērķim - 100% precīzai spektrālajai identifikācijai un dziļai spektrālai diagnostikai ar vienu klikšķi"
+A single paid staff person working to update and build the community and the tool,"Viens apmaksāts darbinieks, kas strādā, lai atjauninātu un izveidotu kopienu un rīku"
+Maintenance costs and minor ad-hoc updates and bug fixes,Uzturēšanas izmaksas un nelieli ad-hoc atjauninājumi un kļūdu labojumi
+Keeping the app online and essential maintenance,Lietotnes uzturēšana tiešsaistē un būtiska apkope
+Long term storage only,Tikai ilgstoša uzglabāšana
+Sharing Metadata,Metadatu koplietošana
+Thank you for sharing your data!,"Paldies, ka kopīgojāt savus datus!"
+Your data will soon be available at https://osf.io/stmv4/,Jūsu dati drīzumā būs pieejami vietnē https://osf.io/stmv4/
+Something went wrong :-(,Kaut kas nogāja greizi :-(
+Data type not supported!,Datu tips netiek atbalstīts!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Augšupielādēto datu tips pašlaik netiek atbalstīts; lūdzu
+                      Sīkāku informāciju skatiet rīka padomos un cilnē Par."
+Sharing Spectrum to Community Library,Spektra koplietošana kopienas bibliotēkā
+Reading Spectrum,Lasīšanas spektrs
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Ja augšupielādējāt teksta/csv failu, pārliecinieties, vai
+           kolonnas ir ciparu un nosauktas ""viļņu numurs"" un
+           'intensitāte'."
+absorbance intensity [-],absorbcijas intensitāte [-]
+wavenumber [cm<sup>-1</sup>],viļņu skaitlis [cm<sup>-1</sup>]
+Analyzing Spectrum,Spektra analīze
+Finding Match,Atbilstības atrašana
+Making Plot,Zemes gabala veidošana
+Material,Materiāls
+Pearson's r,Pīrsona r
+Organization,Organizācija
+Selectable Matches,Atlasāmi sērkociņi
+Donations,Ziedojumi
+Operation Costs,Ekspluatācijas izmaksas
+Selection Metadata,Atlases metadati

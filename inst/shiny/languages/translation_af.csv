@@ -1,0 +1,212 @@
+en,af
+About,Oor
+Welcome,Welkom
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Sluit aan by die honderde navorsers van regoor
+           die wêreld wat deel is van die Open Specy-gemeenskap deur
+           ontleding, deel, verwerking en identifisering
+           hul Raman- en IR-spektra. Hierdie dienste is gratis en oopbron danksy ons vennote:"
+Quick Video Tutorial,Vinnige video-tutoriaal
+Instructions,Instruksies
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Kortliks: Om die instrument te gebruik, laai 'n csv-, asp-, jdx-, spc- of spa-lêer op na die oplaai-lêer-oortjie.
+                                  Indien csv, moet een kolom 'golfnommer' (in eenhede van 1/cm) genoem word en 'n ander 'intensiteit'.
+                                  Jy kan jou data glad maak met behulp van 'n SG-filter, basislyn jou data regstel deur die polinoomvolgorde van iModPolyFit te gebruik, en die golflengtereeks vir die wedstryd beperk.
+                                  Die resultaat sal vergelyk word met 'n interne Raman- of FTIR-spektrabiblioteek. Die sterkste 1000 wedstryde saam met jou
+                                  opgelaaide of verwerkte data sal in 'n interaktiewe plot en tabel aangebied word. Klik op die knoppie hieronder vir meer besonderhede
+                                  of kyk na die gedetailleerde instruksievideo."
+Detailed Standard Operating Procedure,Gedetailleerde Standaard Bedryfsprosedure
+Download Open Data,Laai oop data af
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Verwysingsspektra is verkry van ooptoegangsbronne
+           aanlyn, eweknie-geëvalueerde publikasies en korporatiewe skenkings. In die toekoms
+           spektra wat na die instrument opgelaai word, sal by die verwysing ingesluit word
+           biblioteek om dit nog beter te maak."
+Raman Reference Library,Raman-verwysingsbiblioteek
+FTIR Reference Library,FTIR-verwysingsbiblioteek
+Raman Reference Library Metadata,Raman Reference Library Metadata
+FTIR Reference Library Metadata,FTIR-verwysingsbiblioteek-metadata
+Contribute Spectra,Dra Spectra by
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Om spektra te deel, laai 'n lêer op na die oplaai lêer-oortjie. As jy Deel gekies het, sal 'n kopie van jou spektra aan die gemeenskap gestuur word
+           Datapakhuis oor Oop Wetenskapraamwerk. Om bykomende metadata by te voeg,
+           vul die beskikbare metadata-velde in en klik -Deel data-. Die
+           spectra-lêer wat jy saam met jou antwoorde opgelaai het, sal gekopieer word
+           na die 'n -Met Metadata- subvouer by die skakel hieronder. Alle gedeelde data hou
+           'n Creative Commons Erkenningslisensie 4.0."
+Community Data Warehouse,Gemeenskapsdatapakhuis
+Tool Validation,Gereedskap validering
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Alle parameters in hierdie instrument word getoets om dit te valideer
+           die instrument werk so goed as moontlik en bepaal die beste verstek
+           parameters om te gebruik. Ons huidige valideringsprosedure sluit regstelling in
+           gedupliseerde inskrywings in die verwysingsbiblioteke, kyk vir spektra in
+           metadata wat nie in die spektrale biblioteek is nie, en verseker die verstek
+           parameters bied meer as 80% akkuraatheid in die eerste wedstryd."
+Detailed Validation Procedure,Gedetailleerde bekragtigingsprosedure
+"Updates, Feature Requests, and Bug Reports","Opdaterings, kenmerkversoeke en foutverslae"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Ons hou rekord van alle opdaterings deur weergawebeheer op ons kode te gebruik. Kenmerke kan aangevra word en fout aangemeld word op GitHub.
+Stay up to date!,Bly op hoogte!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Volg ons op Twitter @OpenSpecy. E-pos wincowger@gmail.com om by die poslys gevoeg te word.
+Citation,Aanhaling
+Useful Links,nuttige skakels
+Free FTIR Software: siMPle microplastic IR spectral identification software,Gratis FTIR-sagteware: eenvoudige mikroplastiese IR-spektrale identifikasie-sagteware
+Free Spectroscopy Learning Academy from ThermoFisher,Gratis Spectroscopy Learning Academy van ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Gratis Optiese Mikroskopie Leerhulpbron van Florida State University
+Free desktop application for spectral analysis and links to reference databases.,Gratis lessenaartoepassing vir spektrale analise en skakels na verwysingsdatabasisse.
+Terms And Conditions,Bepalings En Voorwaardes
+Privacy Policy,Privaatheidsbeleid
+Upload File,Laai leêr op
+"Upload, View, and Share Spectra","Laai spektra op, bekyk en deel"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Kies .csv (voorkeur), .asp, .jdx, .spc, .spa of .0-lêer"
+Share Your Data?,Deel jou data?
+Share Help,Deel hulp
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","As jy wil, deel ons jou opgelaaide spektra en instellings met die spektroskopie-gemeenskap.
+           By verstek sal alle data onder Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) gelisensieer word.
+           Opgelaaide spektra sal hier verskyn: https://osf.io/rjg3c"
+Upload Help,Laai hulp op
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Laai Raman- of FTIR-spektrumlêers op as 'n csv, jdx, spc of spa. 'n Csv-lêer word verkies. Indien 'n csv, moet die lêer een kolom gemerk 'wavenumber' in eenhede van (1/cm) en 'n ander kolom gemerk 'intensity' in absorbansie-eenhede bevat.
+            As jdx, spc, spa of 0 moet die lêer 'n enkele absorpsiespektrum wees met golfgetal in (1/cm). Hierdie lêers sal nie altyd perfek werk nie, want dit is moeilik om te lees, so dubbelkontroleer dit in 'n ander sagteware.
+            Klik op die 'Toets Data'-knoppie om 'n voorbeeld Raman-spektrum af te laai."
+Intensity Adjustment,Intensiteit aanpassing
+None,Geen
+Transmittance,Oordrag
+Reflectance,Refleksie
+Intensity Correction Help,Intensiteit Korreksie Hulp
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","As die opgelaaide spektrum nie in absorpsie-eenhede is nie,
+           gebruik hierdie invoer om die eenhede te spesifiseer om van om te skakel. Open Specy kan
+           pas reflektansie of transmissie spektra aan Absorbansie eenhede met behulp van
+           hierdie aftreklys in die oplaai lêer-oortjie. Al die voorafgaande oortjies
+           aanvaar dat die data in absorpsie-eenhede is, so jy moet die maak
+           regstelling voordat u voortgaan indien nodig. Die oordrag aanpassing
+           gebruik die log10(1/T)-berekening wat nie vir stelsel korrek is nie
+           en partikel eienskappe. Die reflektansie aanpassing gebruik die
+           Kubelka-Munk-vergelyking (1-R)2/(2*R). Ons neem aan dat die weerkaatsing
+           word as 'n persentasie van 1-100 geformateer en korrigeer eers die intensiteit deur deur 100 te deel
+           sodat dit pas by die vorm wat deur die vergelyking verwag word.
+           As niemand gekies word nie, neem Open Specy aan dat die opgelaaide data is
+           'n absorpsiespektrum."
+Sample File,Voorbeeld lêer
+Sample Data Help,Voorbeeld Data Hulp
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Dit is 'n voorbeeldspektrum wat na die instrument opgelaai kan word om dit uit te toets en te verstaan hoe die csv-lêers geformateer moet word.
+Metadata Input,Metadata-invoer
+Metadata Help,Metadata-hulp
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Ons deel enige opgelaaide spektra en metadata met die spektroskopie-gemeenskap as jy die metadata hier invul en deel kies.
+           Opgelaaide spektra en metadata sal hier verskyn: https://osf.io/rjg3c"
+Share Metadata,Deel metadata
+Upload some data to get started...,Laai 'n paar data op om te begin...
+Preprocess Spectrum,Voorverwerk Spektrum
+"Smooth, Baseline Correct, and Download Processed Spectra","Glad, basislyn korrek, en laai verwerkte spektra af"
+Download (recommended),Laai af (aanbeveel)
+Download Help,Laai Hulp af
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Sommige gebruikers wil dalk 'n kopie van hul verwerkte spektrum stoor. Hierdie knoppie laai die verwerkte spektrum af as 'n csv-lêer.
+Smoothing,Gladmaak
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Hierdie gladder kan die sein-tot-geraas-verhouding van die data verbeter en gebruik 'n Savitzky-Golay-filter met 12 lopende datapunte en die gespesifiseerde polinoom.
+Smoothing Polynomial,Gladmakende polinoom
+Baseline Correction,Basislynregstelling
+Baseline Correction Help,Hulp vir basislynregstelling
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Hierdie basislynkorreksie roetine het twee opsies vir basislynkorreksie, 1) die polinoom imodpolyfit-prosedure om iteratief die basislyn van die spektrum te vind deur 'n polinoompassing by die hele gebied van die spektra te gebruik. 2) handlyne kan geteken word met die lyninstrument op die plot en die korrekte knoppie sal die lyne gebruik om die basislyn af te trek."
+Baseline Correction Polynomial,Basislyn Korreksie Polinoom
+Technique,Tegniek
+Polynomial,Polinoom
+Manual,Handleiding
+Correct With Trace,Reg met Trace
+Reset,Stel terug
+Range Selection,Reekskeuse
+Spectral Range Help,Spectral Range Hulp
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Beperking van die spektrale reeks kan streke van spektrum verwyder waar geen pieke bestaan nie en passing verbeter
+Maximum Spectral Range,Maksimum spektrale omvang
+Minimum Spectral Range,Minimum spektrale omvang
+Identify Spectrum,Identifiseer Spektrum
+Identify Spectrum Using the Reference Library,Identifiseer Spektrum deur die Verwysingsbiblioteek te gebruik
+Raman,Raman
+FTIR,FTIR
+Spectra,Spektra
+Type,Tik
+Spectrum Type Help,Spektrum Tipe Hulp
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Hierdie keuse sal bepaal of die FTIR- of Raman-passingsbiblioteek gebruik word. Kies die spektrumtipe wat opgelaai is.
+Analysis,Ontleding
+Processed,Verwerk
+Uploaded,opgelaai
+Spectrum to Analyze Help,Spektrum om hulp te ontleed
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,"Hierdie keuse sal bepaal of die opgelaaide (nie verwerkte) spektrum of die spektrum wat met die verwerkingsoortjie verwerk is, in die spektrumpassing gebruik word."
+Region,Streek
+Full,Vol
+Peaks,Pieke
+Region to Match Help,Streek om by te pas Help
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,"Hierdie keuse sal bepaal of die biblioteek waarby jy pas, uit die volle spektrum of slegs spektrumpieke bestaan."
+Partner With Us,Vennoot met ons
+Help us reach our goal of revolutionizing spectroscopy.,Help ons om ons doelwit te bereik om spektroskopie te revolusioneer.
+Donate Cash,Skenk kontant
+Buy From Swag Store,Koop by Swag Winkel
+Contribute time,Dra tyd by
+Revolutionizing,Revolusionerend
+Thriving,Voorspoedig
+Maintaining,Onderhou
+Supporting,Ondersteun
+Saving,Spaar
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,'n Betaalde span wat Open Specy nader stoot aan die uiteindelike doelwit van 100% akkurate spektrale identifikasie en diep spektrale diagnostiek met 'n enkele klik
+A single paid staff person working to update and build the community and the tool,'n Enkele betaalde personeellid wat werk om die gemeenskap en die instrument op te dateer en op te bou
+Maintenance costs and minor ad-hoc updates and bug fixes,Onderhoudskoste en geringe ad-hoc-opdaterings en foutoplossings
+Keeping the app online and essential maintenance,Hou die toepassing aanlyn en noodsaaklike instandhouding
+Long term storage only,Slegs langtermynberging
+Sharing Metadata,Deel metadata
+Thank you for sharing your data!,Dankie dat jy jou data deel!
+Your data will soon be available at https://osf.io/stmv4/,Jou data sal binnekort beskikbaar wees by https://osf.io/stmv4/
+Something went wrong :-(,Iets het verkeerd geloop :-(
+Data type not supported!,Datatipe word nie ondersteun nie!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Opgelaaide datatipe word nie tans ondersteun nie; asseblief
+                      kyk na gereedskapwenke en 'About'-oortjie vir besonderhede."
+Sharing Spectrum to Community Library,Deel spektrum na gemeenskapsbiblioteek
+Reading Spectrum,Leesspektrum
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","As jy 'n teks-/csv-lêer opgelaai het, maak seker dat die
+           kolomme is numeries en word 'golfnommer' genoem en
+           'intensiteit'."
+absorbance intensity [-],absorpsie intensiteit [-]
+wavenumber [cm<sup>-1</sup>],golfnommer [cm<sup>-1</sup>]
+Analyzing Spectrum,Spektrum te ontleed
+Finding Match,Pasmaat vind
+Making Plot,Maak Plot
+Material,Materiaal
+Pearson's r,Pearson se r
+Organization,Organisasie
+Selectable Matches,Kiesbare wedstryde
+Donations,Skenkings
+Operation Costs,Bedryfskoste
+Selection Metadata,Seleksie Metadata

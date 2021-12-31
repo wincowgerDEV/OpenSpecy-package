@@ -1,0 +1,212 @@
+en,my
+About,အကြောင်း
+Welcome,ကြိုဆိုပါတယ်။
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","ရာနှင့်ချီသော သုတေသီများနှင့် ပူးပေါင်းပါ။
+           Open Specy အသိုက်အဝန်း၏တစ်စိတ်တစ်ပိုင်းဖြစ်သောကမ္ဘာ
+           ခွဲခြမ်းစိတ်ဖြာခြင်း၊ မျှဝေခြင်း၊ လုပ်ဆောင်ခြင်းနှင့် ခွဲခြားသတ်မှတ်ခြင်း။
+           ၎င်းတို့၏ Raman နှင့် IR ရောင်စဉ်။ ဤဝန်ဆောင်မှုများသည် ကျွန်ုပ်တို့၏လုပ်ဖော်ကိုင်ဖက်များ၏ ကျေးဇူးကြောင့် အခမဲ့ဖြစ်ပြီး open source ဖြစ်ပါသည်-"
+Quick Video Tutorial,အမြန်ဗီဒီယိုကျူတိုရီရယ်
+Instructions,ညွှန်ကြားချက်များ
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","အတိုချုပ်အားဖြင့်- ကိရိယာကိုအသုံးပြုရန် csv၊ asp၊ jdx၊ spc၊ သို့မဟုတ် spa ဖိုင်တစ်ခုကို အပ်လုဒ်ဖိုင်တက်ဘ်သို့ အပ်လုဒ်လုပ်ပါ။
+                                  csv ဖြစ်ပါက၊ ကော်လံတစ်ခုအား 'wavenumber' (1/cm ယူနစ်ဖြင့်) နှင့် နောက်တစ်ခုအား 'ပြင်းထန်မှု' ဟု အမည်ပေးရပါမည်။
+                                  iModPolyFit ၏ polynomial အစီအစဥ်ကို အသုံးပြု၍ သင့်ဒေတာကို SG စစ်ထုတ်မှုဖြင့် ချောမွေ့အောင်ပြုလုပ်နိုင်ပြီး၊ ကိုက်ညီမှုအတွက် လှိုင်းအလျားကို ကန့်သတ်နိုင်သည်။
+                                  ရလဒ်အား အတွင်းပိုင်း Raman သို့မဟုတ် FTIR spectra စာကြည့်တိုက်နှင့် နှိုင်းယှဉ်ပါမည်။ သင့်နှင့်အတူ အပြင်းထန်ဆုံး 1000 ပွဲများ
+                                  အပ်လုဒ်လုပ်ထားသော သို့မဟုတ် လုပ်ဆောင်ပြီးသောဒေတာကို အပြန်အလှန်အကျိုးပြုသော ကွက်ကွက်နှင့် ဇယားတွင် တင်ပြပါမည်။ အသေးစိတ်အချက်အလက်များအတွက် အောက်ပါခလုတ်ကိုနှိပ်ပါ။
+                                  သို့မဟုတ် အသေးစိတ် သင်ကြားရေး ဗီဒီယိုကို ကြည့်ရှုပါ။"
+Detailed Standard Operating Procedure,အသေးစိတ် Standard Operating Procedure
+Download Open Data,Open Data ကိုဒေါင်းလုဒ်လုပ်ပါ။
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","အကိုးအကား Spectra ကို open access အရင်းအမြစ်များမှ ရင်းမြစ်ဖြစ်သည်။
+           အွန်လိုင်း၊ ရွယ်တူချင်း သုံးသပ်ထားသော စာစောင်များနှင့် စုပေါင်းလှူဒါန်းမှုများ။ အနာဂတ်မှာ
+           ကိရိယာသို့ အပ်လုဒ်လုပ်ထားသော spectra ကို ကိုးကားချက်တွင် ထည့်သွင်းပါမည်။
+           စာကြည့်တိုက်ကို ပိုကောင်းအောင်လုပ်ပါ။"
+Raman Reference Library,Raman ရည်ညွှန်းစာကြည့်တိုက်
+FTIR Reference Library,FTIR ရည်ညွှန်းစာကြည့်တိုက်
+Raman Reference Library Metadata,Raman ရည်ညွှန်းစာကြည့်တိုက် မက်တာဒေတာ
+FTIR Reference Library Metadata,FTIR ရည်ညွှန်းစာကြည့်တိုက် မက်တာဒေတာ
+Contribute Spectra,Spectra ကို ပံ့ပိုးကူညီပါ။
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Spectra ကိုမျှဝေရန် ဖိုင်တစ်ဖိုင်ကို အပ်လုဒ်ဖိုင်တက်ဘ်သို့ အပ်လုဒ်လုပ်ပါ။ သင်ရွေးချယ်ပါက Share ပါ သင်၏ Spectra မိတ္တူကို ကွန်မြူနတီသို့ ပေးပို့ပါမည်။
+           Open Science Framework ရှိ ဒေတာသိုလှောင်ရုံ။ နောက်ထပ် မက်တာဒေတာထည့်ရန်၊
+           ရနိုင်သော metadata အကွက်များကိုဖြည့်ပြီး -Share Data- ကိုနှိပ်ပါ။ ဟိ
+           သင်၏တုံ့ပြန်မှုများနှင့်အတူ သင်အပ်လုဒ်လုပ်ထားသော spectra ဖိုင်ကို ကူးယူမည်ဖြစ်သည်။
+           အောက်ပါလင့်ခ်ရှိ -With Metadata- ဖိုင်တွဲခွဲတစ်ခုသို့။ မျှဝေထားသောဒေတာအားလုံးကို သိမ်းဆည်းထားသည်။
+           Creative Commons Attribution License 4.0 တစ်ခု။"
+Community Data Warehouse,Community Data Warehouse
+Tool Validation,ကိရိယာအတည်ပြုခြင်း။
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","၎င်းကိုအတည်ပြုရန် ဤကိရိယာရှိ ဘောင်များအားလုံးကို စမ်းသပ်ထားသည်။
+           ကိရိယာသည် တတ်နိုင်သမျှ အကောင်းဆုံး လုပ်ဆောင်နေပြီး အကောင်းဆုံး ပုံသေကို ဆုံးဖြတ်ပါ။
+           အသုံးပြုရန်ဘောင်များ။ ကျွန်ုပ်တို့၏ လက်ရှိ တရားဝင်လုပ်ဆောင်မှုတွင် ပြုပြင်ခြင်း ပါဝင်သည်။
+           အကိုးအကား စာကြည့်တိုက်များရှိ မိတ္တူပွားထားသော စာသားများကို စစ်ဆေးခြင်း၊
+           ရောင်စဉ်တန်းဒစ်ဂျစ်တိုက်တွင်မရှိသော မက်တာဒေတာနှင့် ပုံသေကို သေချာစေပါ။
+           ကန့်သတ်ချက်များသည် ပထမပွဲစဉ်တွင် 80% တိကျမှုကို ပေးစွမ်းသည်။"
+Detailed Validation Procedure,အသေးစိတ်စစ်ဆေးခြင်းလုပ်ထုံးလုပ်နည်း
+"Updates, Feature Requests, and Bug Reports",အပ်ဒိတ်များ၊ အင်္ဂါရပ်တောင်းဆိုမှုများနှင့် ချွတ်ယွင်းချက်အစီရင်ခံစာများ
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,ကျွန်ုပ်တို့သည် ကျွန်ုပ်တို့၏ကုဒ်ရှိ ဗားရှင်းထိန်းချုပ်မှုကို အသုံးပြု၍ အပ်ဒိတ်အားလုံးကို ခြေရာခံပါသည်။ အင်္ဂါရပ်များကို တောင်းဆိုနိုင်ပြီး GitHub တွင် bug အစီရင်ခံနိုင်သည်။
+Stay up to date!,နောက်ဆုံးပေါ်နေပါ။
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Twitter @OpenSpecy တွင် ကျွန်ုပ်တို့ကို လိုက်နာပါ။ အီးမေးလ်စာရင်းတွင် wincowger@gmail.com ကိုထည့်ပါ။
+Citation,ကိုးကား
+Useful Links,အသုံးဝင်သောလင့်များ
+Free FTIR Software: siMPle microplastic IR spectral identification software,အခမဲ့ FTIR ဆော့ဖ်ဝဲလ်- ရိုးရှင်းသော မိုက်ခရိုပလပ်စတစ် IR ရောင်စဉ်တန်း သတ်မှတ်ခြင်း ဆော့ဖ်ဝဲ
+Free Spectroscopy Learning Academy from ThermoFisher,ThermoFisher မှ အခမဲ့ Spectroscopy Learning Academy
+Free Optical Microscopy Learning Resource from Florida State University,Florida State University မှ အခမဲ့ Optical Microscopy သင်ယူမှုအရင်းအမြစ်
+Free desktop application for spectral analysis and links to reference databases.,ရောင်စဉ်တန်းခွဲခြမ်းစိတ်ဖြာမှုနှင့် ကိုးကားဒေတာဘေ့စ်များသို့ လင့်ခ်များအတွက် အခမဲ့ desktop အပလီကေးရှင်း။
+Terms And Conditions,စည်းကမ်းနှင့်သတ်မှတ်ချက်များ
+Privacy Policy,ကိုယ်ရေးအချက်အလက်မူဝါဒ
+Upload File,ဖိုင်ကို တင်ပါ။
+"Upload, View, and Share Spectra",Spectra ကို အပ်လုဒ်လုပ်ခြင်း၊ ကြည့်ရှုခြင်းနှင့် မျှဝေပါ။
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",.csv (နှစ်သက်ရာ)၊ .asp၊ .jdx၊ .spc၊ .spa၊ သို့မဟုတ် .0 ဖိုင်ကို ရွေးပါ
+Share Your Data?,သင့်ဒေတာကို မျှဝေမလား။
+Share Help,ကူညီမျှဝေပါ။
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","သင်နှစ်သက်ပါက၊ ကျွန်ုပ်တို့သည် သင်၏ အပ်လုဒ်လုပ်ထားသော ရောင်စုံနှင့် ဆက်တင်များကို spectroscopy အသိုင်းအဝိုင်းနှင့် မျှဝေပါသည်။
+           မူရင်းအားဖြင့်၊ ဒေတာအားလုံးကို Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) အောက်တွင် လိုင်စင်ရမည်ဖြစ်ပါသည်။
+           အပ်လုဒ်လုပ်ထားသော Spectra ကို ဤနေရာတွင် ပေါ်လာပါမည်- https://osf.io/rjg3c"
+Upload Help,အကူအညီကို တင်ပါ။
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Raman သို့မဟုတ် FTIR ရောင်စဉ်ဖိုင်များကို csv၊ jdx၊ spc သို့မဟုတ် spa အဖြစ် အပ်လုဒ်လုပ်ပါ။ csv ဖိုင်ကို ပိုနှစ်သက်သည်။ csv တစ်ခုလျှင်၊ ဖိုင်တွင် (1/cm) ယူနစ်တွင် 'wavenumber' တံဆိပ်တပ်ထားသော ကော်လံတစ်ခုနှင့် absorbance ယူနစ်တွင် 'ပြင်းထန်မှု' တံဆိပ်တပ်ထားသော အခြားကော်လံတစ်ခု ပါဝင်ရပါမည်။
+            jdx၊ spc၊ spa၊ သို့မဟုတ် 0 ဖြစ်ပါက ဖိုင်သည် (1/cm) တွင် wavenumber ပါရှိသည့် စုပ်ယူမှုရောင်စဉ်တစ်ခု ဖြစ်သင့်သည်။ ဤဖိုင်များသည် အမြဲတမ်းဖတ်ရန် ခက်ခဲသောကြောင့် ပြီးပြည့်စုံစွာ အလုပ်မဖြစ်နိုင်သောကြောင့် ၎င်းတို့ကို အခြားဆော့ဖ်ဝဲတစ်ခုတွင် နှစ်ခါစစ်ဆေးပါ။
+            Raman spectrum နမူနာကို ဒေါင်းလုဒ်လုပ်ရန် 'Test Data' ခလုတ်ကို နှိပ်ပါ။"
+Intensity Adjustment,ပြင်းထန်မှု ချိန်ညှိမှု
+None,တစ်ခုမှ
+Transmittance,ပို့လွှတ်ခြင်း။
+Reflectance,ရောင်ပြန်ဟပ်မှု
+Intensity Correction Help,ပြင်းထန်မှု အမှားပြင်ဆင်ခြင်း အကူအညီ
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","လွှင့်တင်ထားသော ရောင်စဉ်များသည် စုပ်ယူနစ်တွင် မရှိပါက၊
+           မှပြောင်းရန် ယူနစ်များကို သတ်မှတ်ရန် ဤထည့်သွင်းမှုကို အသုံးပြုပါ။Open Specy လုပ်နိုင်ပါသည်။
+           Absorbance ယူနစ်များကို အသုံးပြု၍ အလင်းပြန်မှု သို့မဟုတ် ထုတ်လွှင့်မှု ရောင်ပြန်စဥ်ကို ချိန်ညှိပါ။
+           အပ်လုဒ်ဖိုင်တက်ဘ်တွင် ဤစက်ချလိုက်ပါ။ ရှေ့တက်ဘ်များအားလုံး
+           ဒေတာသည် စုပ်ယူနစ်တွင် ရှိနေသည်ဟု ယူဆသောကြောင့် ၎င်းကို ပြုလုပ်သင့်သည်။
+           လိုအပ်ပါက ဆက်လက်မလုပ်ဆောင်မီ ပြင်ဆင်ပါ။ transmittance ကို ထိန်းညှိပေးသည်။
+           စနစ်အတွက် မမှန်ကန်သော log10(1/T) တွက်ချက်မှုကို အသုံးပြုသည်။
+           အမှုန်အမွှားလက္ခဏာများ။ အလင်းပြန်မှု ချိန်ညှိမှု ကို အသုံးပြုသည်။
+           Kubelka-Munk ညီမျှခြင်း (1-R)2/(2*R)။ ရောင်ပြန်ဟပ်တယ်လို့ ယူဆတယ်။
+           1-100 မှ ရာခိုင်နှုန်းတစ်ခုအဖြစ် ဖော်မတ်ထားပြီး ပြင်းထန်မှုကို 100 ဖြင့် ပိုင်းခြားပြီး ပထမဦးစွာ ပြင်ဆင်ပါ။
+           ထို့ကြောင့် ညီမျှခြင်းမှမျှော်မှန်းထားသောပုံစံနှင့် ကိုက်ညီမှုရှိစေရန်။
+           မည်သည့်အရာကိုမျှ မရွေးချယ်ပါက၊ Open Specy သည် အပ်လုဒ်လုပ်ထားသောဒေတာဖြစ်သည်ဟု ယူဆသည်။
+           absorbance spectrum တစ်ခု။"
+Sample File,နမူနာဖိုင်
+Sample Data Help,နမူနာဒေတာအကူအညီ
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,၎င်းသည် ၎င်းကိုစမ်းသပ်ရန်နှင့် csv ဖိုင်များကို ဖော်မတ်လုပ်နည်းကို နားလည်ရန် ကိရိယာသို့ အပ်လုဒ်လုပ်နိုင်သည့် နမူနာရောင်စဉ်တစ်ခုဖြစ်သည်။
+Metadata Input,မက်တာဒေတာ ထည့်သွင်းမှု
+Metadata Help,မက်တာဒေတာ အကူအညီ
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","သင်သည် ဤနေရာတွင် မက်တာဒေတာကိုဖြည့်ပြီး မျှဝေမှုကို ရွေးချယ်ပါက အပ်လုဒ်လုပ်ထားသော ရောင်စုံနှင့် မက်တာဒေတာကို spectroscopy အသိုင်းအဝိုင်းနှင့် မျှဝေပါသည်။
+           အပ်လုဒ်လုပ်ထားသော spectra နှင့် metadata သည် ဤနေရာတွင်ပေါ်လာပါမည်- https://osf.io/rjg3c"
+Share Metadata,မက်တာဒေတာကို မျှဝေပါ။
+Upload some data to get started...,စတင်ရန် ဒေတာအချို့ကို အပ်လုဒ်လုပ်ပါ...
+Preprocess Spectrum,Preprocess Spectrum
+"Smooth, Baseline Correct, and Download Processed Spectra",ချောမွေ့၊ အခြေခံ မှန်ကန်ပြီး စီမံဆောင်ရွက်ထားသော Spectra ကို ဒေါင်းလုဒ်လုပ်ပါ။
+Download (recommended),ဒေါင်းလုဒ်လုပ်ရန် (အကြံပြုထားသည်)
+Download Help,အကူအညီကို ဒေါင်းလုဒ်လုပ်ပါ။
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,အချို့သောအသုံးပြုသူများသည် ၎င်းတို့၏လုပ်ဆောင်ပြီးသား spectrum ၏မိတ္တူကို သိမ်းဆည်းလိုပေမည်။ ဤခလုတ်သည် လုပ်ဆောင်ပြီးသား spectrum ကို csv ဖိုင်အဖြစ် ဒေါင်းလုဒ်လုပ်သည်။
+Smoothing,ချောချောမောမော
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,ဤချောမွေ့မှုသည် ဒေတာ၏ signal to noise ratio ကို မြှင့်တင်နိုင်ပြီး ပြေးနေသော data point 12 ခုနှင့် polynomial သတ်မှတ်ထားသော Savitzky-Golay filter ကို အသုံးပြုသည်။
+Smoothing Polynomial,ချောချောမွေ့မွေ့ Polynomial
+Baseline Correction,အခြေခံတည့်မတ်ခြင်း။
+Baseline Correction Help,အခြေခံပြင်ဆင်မှု အကူအညီ
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.",ဤအခြေခံလိုင်း အမှားပြင်ဆင်မှုလုပ်ရိုးလုပ်စဉ်တွင် အခြေခံလိုင်းပြင်ဆင်ခြင်းအတွက် ရွေးချယ်စရာ နှစ်ခုရှိသည်၊ 1) မျဉ်းကြောင်းတစ်ခုလုံးနှင့် ဧရိယာတစ်ခုလုံးနှင့် ကိုက်ညီမှုရှိသော ဧရိယာတစ်ခုလုံးကို ပေါလီnomial ကို အသုံးပြု၍ ရောင်စဉ်၏ အခြေခံမျဉ်းကြောင်းကို အဖန်ဖန်ရှာဖွေရန် ပေါလီnomial imodpolyfit လုပ်ထုံးလုပ်နည်း။ 2) ကွက်ကွက်ပေါ်ရှိ လိုင်းတူးလ်ကို အသုံးပြု၍ လက်စွဲစာကြောင်းများကို ရေးဆွဲနိုင်ပြီး မှန်ကန်သောခလုတ်သည် အခြေခံမျဉ်းကြောင်းကို နုတ်ရန် လိုင်းများကို အသုံးပြုမည်ဖြစ်သည်။
+Baseline Correction Polynomial,အခြေခံ အမှားပြင်မှု ပေါ်လီnomial
+Technique,နည်းပညာ
+Polynomial,သာဓုအမည်
+Manual,လူကိုယ်တိုင်
+Correct With Trace,Trace ဖြင့် ပြုပြင်ပါ။
+Reset,ပြန်လည်သတ်မှတ်ပါ။
+Range Selection,အပိုင်းရွေးချယ်မှု
+Spectral Range Help,Spectral Range အကူအညီ
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,ရောင်စဉ်တန်းအကွာအဝေးကို ကန့်သတ်ခြင်းသည် အထွတ်အထိပ်မရှိသော ရောင်စဉ်တန်းဒေသများကို ဖယ်ရှားနိုင်ပြီး ကိုက်ညီမှုကို တိုးတက်စေနိုင်သည်။
+Maximum Spectral Range,အများဆုံး Spectral Range
+Minimum Spectral Range,အနည်းဆုံး Spectral Range
+Identify Spectrum,Spectrum ကိုခွဲခြားသတ်မှတ်ပါ။
+Identify Spectrum Using the Reference Library,ရည်ညွှန်းစာကြည့်တိုက်ကို အသုံးပြု၍ Spectrum ကို ခွဲခြားသတ်မှတ်ပါ။
+Raman,ရာမန်
+FTIR,FTIR
+Spectra,Spectra
+Type,ရိုက်ပါ။
+Spectrum Type Help,Spectrum အမျိုးအစား အကူအညီ
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,ဤရွေးချယ်မှုသည် FTIR သို့မဟုတ် Raman ကိုက်ညီသောစာကြည့်တိုက်ကို အသုံးပြုခြင်းရှိမရှိ ဆုံးဖြတ်ပေးမည်ဖြစ်သည်။ အပ်လုဒ်လုပ်ထားသော ရောင်စဉ်အမျိုးအစားကို ရွေးပါ။
+Analysis,ခွဲခြမ်းစိတ်ဖြာခြင်း
+Processed,ဆောင်ရွက်ပြီး
+Uploaded,တင်ပြီး
+Spectrum to Analyze Help,ပိုင်းခြားစိတ်ဖြာရန် Spectrum အကူအညီ
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,ဤရွေးချယ်မှုသည် အပ်လုဒ်လုပ်ထားသော (မလုပ်ဆောင်ရသေးသော) ရောင်စဉ် သို့မဟုတ် စီမံဆောင်ရွက်ဆဲတဘ်ကို အသုံးပြုထားသည့် ရောင်စဉ်တန်းကိုက်ညီမှုတွင် အသုံးပြုခြင်းရှိမရှိ ဆုံးဖြတ်ပေးမည်ဖြစ်သည်။
+Region,တိုင်းဒေသကြီး
+Full,အပြည့်
+Peaks,ဆင်းပြီး၊
+Region to Match Help,ကိုက်ညီရန် ဒေသအကူအညီ
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,ဤရွေးချယ်မှုသည် သင်နှင့်ကိုက်ညီသော စာကြည့်တိုက်တွင် spectrum အပြည့်ပါဝင်သည် သို့မဟုတ် spectrum peaks များသာရှိမရှိ ဆုံးဖြတ်ပေးမည်ဖြစ်သည်။
+Partner With Us,ကျွန်ုပ်တို့နှင့် ပူးပေါင်းပါ။
+Help us reach our goal of revolutionizing spectroscopy.,ကျွန်ုပ်တို့၏ spectroscopy ကို တော်လှန်ရန် ကျွန်ုပ်တို့၏ပန်းတိုင်သို့ ရောက်ရှိရန် ကူညီပေးပါ။
+Donate Cash,ငွေသားလှူပါ။
+Buy From Swag Store,Swag Store မှဝယ်ယူပါ။
+Contribute time,အချိန်ပေးကူညီပါ။
+Revolutionizing,တော်လှန်ခြင်း။
+Thriving,ထွန်းကားသည်။
+Maintaining,စောင့်ထိန်းခြင်း။
+Supporting,ပံ့ပိုးပေးခြင်း
+Saving,သိမ်းဆည်းခြင်း။
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,တစ်ချက်နှိပ်ရုံဖြင့် Open Specy ကို 100% တိကျသောရောင်စဉ်တန်းခွဲခြားသတ်မှတ်ခြင်းနှင့် နက်နဲသောရောင်စဉ်တန်းရှာဖွေခြင်း၏အဆုံးစွန်ပန်းတိုင်ဆီသို့ တွန်းအားပေးနေသည့် အခပေးအဖွဲ့တစ်ဖွဲ့
+A single paid staff person working to update and build the community and the tool,အသိုက်အဝန်းနှင့် ကိရိယာတန်ဆာပလာကို အဆင့်မြှင့်တင်ရန်နှင့် တည်ဆောက်ရန် လုပ်ဆောင်နေသည့် လစာတစ်ခုတည်းသော ဝန်ထမ်းတစ်ဦး
+Maintenance costs and minor ad-hoc updates and bug fixes,ပြုပြင်ထိန်းသိမ်းမှုကုန်ကျစရိတ်နှင့် အသေးအဖွဲ ad-hoc အပ်ဒိတ်များနှင့် ချွတ်ယွင်းချက်ပြင်ဆင်မှုများ
+Keeping the app online and essential maintenance,အက်ပ်ကို အွန်လိုင်းတွင် ထားရှိခြင်းနှင့် မရှိမဖြစ်လိုအပ်သော ပြုပြင်ထိန်းသိမ်းမှု
+Long term storage only,ရေရှည်သိုလှောင်ရုံသာ
+Sharing Metadata,မက်တာဒေတာမျှဝေခြင်း။
+Thank you for sharing your data!,သင့်ဒေတာကို မျှဝေသည့်အတွက် ကျေးဇူးတင်ပါသည်။
+Your data will soon be available at https://osf.io/stmv4/,သင့်ဒေတာကို မကြာမီ https://osf.io/stmv4/ တွင် ရနိုင်ပါမည်
+Something went wrong :-(,တစ်ခုခုမှားနေပြီ :-(
+Data type not supported!,ဒေတာအမျိုးအစားကို မပံ့ပိုးပါ။
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","အပ်လုဒ်လုပ်ထားသော ဒေတာအမျိုးအစားကို လောလောဆယ် ပံ့ပိုးမထားပါ။ ကျေးဇူးပြု
+                      အသေးစိတ်အတွက် tooltips နှင့် 'About' တက်ဘ်ကို စစ်ဆေးပါ။"
+Sharing Spectrum to Community Library,Spectrum ကို ကွန်မြူနတီစာကြည့်တိုက်သို့ မျှဝေခြင်း။
+Reading Spectrum,Reading Spectrum
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","အကယ်၍ သင်သည် text/csv ဖိုင်တစ်ခုကို အပ်လုဒ်လုပ်ပါက၊ သေချာပါစေ။
+           ကော်လံများကို ဂဏန်းများဖြင့် 'wavenumber' ဟူ၍ လည်းကောင်း၊
+           'ပြင်းထန်မှု'။"
+absorbance intensity [-],စုပ်ယူမှုပြင်းထန်မှု [-]
+wavenumber [cm<sup>-1</sup>],လှိုင်းနံပါတ် [cm<sup>-1</sup>]
+Analyzing Spectrum,Spectrum ကို ခွဲခြမ်းစိတ်ဖြာခြင်း။
+Finding Match,ကိုက်ညီမှုရှာဖွေခြင်း။
+Making Plot,Plot လုပ်ခြင်း။
+Material,ပစ္စည်း
+Pearson's r,Pearson ၏ r
+Organization,အဖွဲ
+Selectable Matches,ရွေးချယ်နိုင်သော ပွဲစဉ်များ
+Donations,အလှူငွေ
+Operation Costs,လည်ပတ်မှုကုန်ကျစရိတ်
+Selection Metadata,ရွေးချယ်မှု မက်တာဒေတာ

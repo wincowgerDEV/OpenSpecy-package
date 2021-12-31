@@ -1,0 +1,212 @@
+en,ha
+About,Game da
+Welcome,Barka da zuwa
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Haɗa ɗaruruwan masu bincike daga ko'ina
+           Duniyar da ke cikin ƙungiyar Open Specy ta
+           nazari, rabawa, sarrafawa, da ganowa
+           su Raman da IR bakan. Waɗannan sabis ɗin kyauta ne kuma buɗe tushen godiya ga abokan aikinmu:"
+Quick Video Tutorial,Koyarwar Bidiyo mai sauri
+Instructions,Umarni
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","A Takaice: Don amfani da kayan aikin loda csv, asp, jdx, spc, ko fayil ɗin spa zuwa shafin fayil ɗin lodawa.
+                                  Idan csv, ɗayan ginshiƙi ya kamata a sanya masa suna 'lambar kaɗa' (a cikin raka'a 1/cm) da wani mai suna 'ƙarfin'.
+                                  Kuna iya sassauta bayananku ta amfani da matatar SG, tushen tushe gyara bayananku ta amfani da odar iModPolyFit mai yawa, kuma ta taƙaita kewayon tsayin wasan.
+                                  Za a kwatanta sakamakon da ɗakin karatu na Raman ko FTIR na ciki. Mafi ƙarfi 1000 matches tare da naku
+                                  za a gabatar da bayanan da aka ɗora ko sarrafa su a cikin maƙalli da tebur mai ma'amala. Don ƙarin bayani danna maɓallin da ke ƙasa
+                                  ko kalli cikakken bidiyon koyarwa."
+Detailed Standard Operating Procedure,Cikakken Tsarin Tsarin Aiki
+Download Open Data,Zazzage Buɗe Data
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","An samo nau'ikan nau'ikan bayanai daga albarkatun samun damar buɗewa
+           kan layi, wallafe-wallafen da aka yi bitar takwarorinsu, da gudummawar kamfanoni. Zuwa gaba
+           spectra da aka ɗora zuwa kayan aiki za a haɗa shi zuwa ga ma'anar
+           laburare don inganta shi."
+Raman Reference Library,Raman Reference Library
+FTIR Reference Library,FTIR Reference Library
+Raman Reference Library Metadata,Raman Reference Library metadata
+FTIR Reference Library Metadata,Bayanan Bayani na Laburaren FTIR
+Contribute Spectra,Taimakawa Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Don raba spectra loda fayil zuwa shafin fayil ɗin lodawa. Idan kun zaɓi Raba kwafin sikirin za a aika zuwa ga Al'umma
+           Ma'ajiyar Bayanai akan Buɗe Tsarin Kimiyya. Don ƙara ƙarin metadata,
+           cika filayen metadata da ake da su kuma danna -Share Data-. The
+           spectra fayil ɗin da kuka ɗorawa tare da martaninku za a kwafi
+           zuwa babban fayil na -With Metadata a mahaɗin da ke ƙasa. Duk bayanan da aka raba suna riƙe
+           Lasisin Halayen Ƙirƙirar Commons 4.0."
+Community Data Warehouse,Ma'ajiyar Bayanan Al'umma
+Tool Validation,Tabbatar da Kayan aiki
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Ana gwada duk sigogin da ke cikin wannan kayan aikin don tabbatar da hakan
+           kayan aiki yana aiki kamar yadda zai yiwu kuma ƙayyade mafi kyawun tsoho
+           sigogi don amfani. Tsarin tabbatar da mu na yanzu ya haɗa da gyarawa
+           shigarwar da aka kwafi a cikin dakunan karatu na tunani, duba don shiga ciki
+           metadata wanda ba a cikin ɗakin karatu ba, da kuma tabbatar da tsoho
+           sigogi suna ba da daidaito sama da 80% a wasan farko."
+Detailed Validation Procedure,Cikakken Tsarin Tabbatarwa
+"Updates, Feature Requests, and Bug Reports","Sabuntawa, Buƙatun fasali, da Rahoton Bug"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Muna ci gaba da lura da duk sabuntawa ta amfani da sarrafa sigar akan lambar mu. Ana iya buƙatar fasali da rahoton bug akan GitHub.
+Stay up to date!,Ci gaba da sabuntawa!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Bi mu akan Twitter @OpenSpecy. E-mail wincowger@gmail.com don ƙara zuwa jerin aikawasiku.
+Citation,ambato
+Useful Links,Hanyoyin haɗi masu amfani
+Free FTIR Software: siMPle microplastic IR spectral identification software,Software na FTIR kyauta: siMPle microplastic IR spectral ganewa software
+Free Spectroscopy Learning Academy from ThermoFisher,Kwalejin Koyon Spectroscopy kyauta daga ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Albarkatun Koyon gani na gani na gani kyauta daga Jami'ar Jihar Florida
+Free desktop application for spectral analysis and links to reference databases.,Aikace-aikacen tebur na kyauta don bincike na gani da hanyoyin haɗi zuwa bayanan bayanai.
+Terms And Conditions,Sharuɗɗa Da Sharuɗɗa
+Privacy Policy,takardar kebantawa
+Upload File,Loda fayil
+"Upload, View, and Share Spectra","Loda, Duba, da Raba Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Zaɓi .csv (wanda aka fi so), .asp, .jdx, .spc, .spa, ko .0 Fayil"
+Share Your Data?,Raba Bayananku?
+Share Help,Raba Taimako
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Idan kuna so, muna raba bakan da aka ɗora muku da saituna tare da jama'ar spectroscopy.
+           Ta hanyar tsohuwa, duk bayanan za su sami lasisi a ƙarƙashin Ƙarƙashin Ƙirƙirar Commons-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Abubuwan da aka ɗora za su bayyana a nan: https://osf.io/rjg3c"
+Upload Help,Sanya Taimako
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Loda fayilolin bakan Raman ko FTIR azaman csv, jdx, spc, ko spa. An fi son fayil csv. Idan csv, fayil ɗin dole ne ya ƙunshi ginshiƙi ɗaya mai lakabin 'wavenumber' a cikin raka'a na (1/cm) da wani ginshiƙi mai lakabin 'ƙarfin' a cikin raka'o'in sha.
+            Idan jdx, spc, spa, ko 0 fayil ɗin ya kamata ya zama bakan abin sha guda ɗaya tare da lambobi a cikin (1/cm). Waɗannan fayilolin ba koyaushe za su yi aiki daidai ba saboda suna da wayo don karanta don haka sau biyu duba su a cikin wata software.
+            Danna maɓallin 'Test Data' don zazzage samfurin Raman spectrum."
+Intensity Adjustment,Daidaita Ƙarfi
+None,Babu
+Transmittance,watsawa
+Reflectance,Tunani
+Intensity Correction Help,Taimakon Gyara Ƙarfi
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Idan bakan da aka ɗora ba a cikin raka'o'in sha,
+           Yi amfani da wannan shigarwar don tantance raka'a don canzawa daga.Open Specy iya
+           daidaita tunani ko watsa bakan zuwa raka'a Absorbance ta amfani da
+           wannan sauke saukar a cikin upload fayil tab. Duk shafukan da suka gabata
+           ɗauka cewa bayanai ne a cikin absorbance raka'a don haka ya kamata ka yi da
+           gyara kafin a ci gaba idan an buƙata. Daidaita watsawa
+           yana amfani da lissafin log10 (1/T) wanda baya daidaita tsarin
+           da halayen barbashi. Daidaitawar tunani yana amfani da
+           Kubelka-Munk equation (1-R)2/(2*R). Muna ɗauka cewa tunani
+           an tsara shi azaman kashi 1-100 kuma da farko gyara ƙarfin ta hanyar rarrabawa da 100
+           ta yadda ya dace da fom da ake tsammani ta lissafin.
+           Idan ba a zaɓi ɗaya ba, Open Specy yana ɗauka cewa bayanan da aka ɗora shine
+           abin sha bakan."
+Sample File,Misalin Fayil
+Sample Data Help,Misalin Taimakon Bayanai
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Wannan samfurin bakan ne wanda za'a iya loda shi zuwa kayan aiki don gwada shi da fahimtar yadda ya kamata a tsara fayilolin csv.
+Metadata Input,Shigar da metadata
+Metadata Help,Taimakon Metadata
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Muna raba kowane sikeli da metadata da aka ɗora tare da al'ummar spectroscopy idan kun cika metadata anan kuma zaɓi raba.
+           Abubuwan da aka ɗorawa da metadata za su bayyana a nan: https://osf.io/rjg3c"
+Share Metadata,Raba metadata
+Upload some data to get started...,Loda wasu bayanai don farawa...
+Preprocess Spectrum,Preprocess Spectrum
+"Smooth, Baseline Correct, and Download Processed Spectra","Smooth, Baseline Daidai, da Zazzage Spectra Sarrafa"
+Download (recommended),Sauke (an bada shawarar)
+Download Help,Zazzage Taimako
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Wasu masu amfani na iya son ajiye kwafin bakan su da aka sarrafa. Wannan maɓallin yana zazzage nau'in bakan da aka sarrafa azaman fayil csv.
+Smoothing,Lallashi
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Wannan mai santsi zai iya haɓaka sigina zuwa rabon amo na bayanan kuma yana amfani da matatar Savitzky-Golay tare da maki 12 masu gudana da bayanai da aka ƙayyade.
+Smoothing Polynomial,Polynomial mai laushi
+Baseline Correction,Gyaran tushe
+Baseline Correction Help,Taimakon Gyaran Baseline
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Wannan gyare-gyare na yau da kullun yana da zaɓuɓɓuka guda biyu don gyaran tushe, 1) Hanyar imodpolyfit na yawan ɗabi'a don nemo tushen bakan ta hanyar amfani da nau'in nau'in nau'in nau'in nau'in nau'in nau'in nau'in nau'in nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i nau'i). 2) Za a iya zana layukan hannu ta amfani da kayan aikin layi akan makircin kuma maɓallin madaidaicin zai yi amfani da layin don cire tushen tushe."
+Baseline Correction Polynomial,Ƙididdigar Ƙididdigar Ƙirar Ƙarfafawa
+Technique,Dabaru
+Polynomial,Polynomial
+Manual,Manual
+Correct With Trace,Daidai Tare Da Trace
+Reset,Sake saitin
+Range Selection,Zaɓin Rage
+Spectral Range Help,Taimakon kewayon Spectral
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Ƙuntata kewayon bakan na iya cire yankuna na bakan inda babu kololuwa da inganta daidaitawa
+Maximum Spectral Range,Matsakaicin Ragewar Spectral
+Minimum Spectral Range,Mafi qarancin kewayon Spectral
+Identify Spectrum,Gane Spectrum
+Identify Spectrum Using the Reference Library,Gano Spectrum Amfani da Laburaren Magana
+Raman,Raman
+FTIR,FTIR
+Spectra,Spectra
+Type,Nau'in
+Spectrum Type Help,Taimakon Nau'in Spectrum
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Wannan zaɓin zai ƙayyade ko an yi amfani da ɗakin karatu na FTIR ko Raman. Zaɓi nau'in bakan da aka ɗora.
+Analysis,Nazari
+Processed,An sarrafa
+Uploaded,An ɗora
+Spectrum to Analyze Help,Spectrum don Binciken Taimako
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Wannan zaɓin zai ƙayyade ko an yi amfani da bakan da aka ɗora (ba a sarrafa shi) ko kuma sarrafa bakan da aka sarrafa ta amfani da shafin sarrafawa a cikin wasan bakan.
+Region,Yanki
+Full,Cikakkun
+Peaks,Kololuwa
+Region to Match Help,Yanki don Daidaita Taimako
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Wannan zaɓin zai ƙayyade ko ɗakin karatu da kuke daidaitawa ya ƙunshi cikakken bakan ko kololuwar bakan kawai.
+Partner With Us,Abokin Hulɗa Da Mu
+Help us reach our goal of revolutionizing spectroscopy.,Taimaka mana cimma burin mu na juyin juya hali.
+Donate Cash,Ba da Kuɗi
+Buy From Swag Store,Sayi Daga Shagon Swag
+Contribute time,Ba da gudummawa lokaci
+Revolutionizing,Juyin juya hali
+Thriving,Bugawa
+Maintaining,Kulawa
+Supporting,Taimakawa
+Saving,Ajiye
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Tawagar da aka biya wacce ke tura Open Specy kusa da manufa ta ƙarshe na 100% ingantacciyar ganewar sifofi da zurfin bincike mai zurfi tare da dannawa ɗaya.
+A single paid staff person working to update and build the community and the tool,Ma'aikaci ɗaya mai biyan kuɗi yana aiki don sabuntawa da gina al'umma da kayan aiki
+Maintenance costs and minor ad-hoc updates and bug fixes,Kudin kulawa da ƙananan sabuntawar ad-hoc da gyaran kwaro
+Keeping the app online and essential maintenance,Tsayar da ƙa'idar akan layi da mahimmancin kulawa
+Long term storage only,Adana dogon lokaci kawai
+Sharing Metadata,Raba metadata
+Thank you for sharing your data!,Na gode don raba bayanan ku!
+Your data will soon be available at https://osf.io/stmv4/,Ba da daɗewa ba za a sami bayanan ku a https://osf.io/stmv4/
+Something went wrong :-(,Wani abu ya faru:-(
+Data type not supported!,Ba a tallafawa nau'in bayanai!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Nau'in bayanan da aka ɗora ba a tallafawa a halin yanzu; Don Allah
+                      duba Tooltips da 'Game da' tab don cikakkun bayanai."
+Sharing Spectrum to Community Library,Raba Spectrum zuwa Laburaren Al'umma
+Reading Spectrum,Karatun Spectrum
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Idan kun ɗora fayil ɗin rubutu/csv, tabbatar da cewa
+           ginshiƙai na lamba ne kuma masu suna 'wavenumber' da
+           'tsanani'."
+absorbance intensity [-],tsananin sha [-]
+wavenumber [cm<sup>-1</sup>],lambar igiyar ruwa [cm<sup>-1</sup>]
+Analyzing Spectrum,Nazarin Spectrum
+Finding Match,Neman Daidaitawa
+Making Plot,Yin makirci
+Material,Kayan abu
+Pearson's r,Pearson r
+Organization,Ƙungiya
+Selectable Matches,Matches Zaɓuɓɓuka
+Donations,Kyauta
+Operation Costs,Farashin Aiki
+Selection Metadata,Zabi Metadata

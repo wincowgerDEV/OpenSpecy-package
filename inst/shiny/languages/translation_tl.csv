@@ -1,0 +1,212 @@
+en,tl
+About,Tungkol sa
+Welcome,Maligayang pagdating
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Sumali sa daan-daang mga mananaliksik mula sa paligid
+           ang mundo na bahagi ng Open Specy community sa pamamagitan ng
+           pagsusuri, pagbabahagi, pagproseso, at pagtukoy
+           kanilang Raman at IR spectra. Ang mga serbisyong ito ay libre at open source salamat sa aming mga kasosyo:"
+Quick Video Tutorial,Mabilis na Tutorial sa Video
+Instructions,Mga tagubilin
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Sa madaling sabi: Upang magamit ang tool, mag-upload ng csv, asp, jdx, spc, o spa file sa tab ng upload file.
+                                  Kung csv, ang isang column ay dapat na pinangalanang 'wavenumber' (sa mga unit na 1/cm) at isa pang pinangalanang 'intensity'.
+                                  Maaari mong pakinisin ang iyong data gamit ang isang SG filter, itama ng baseline ang iyong data gamit ang polynomial order ng iModPolyFit, at paghigpitan ang hanay ng wavelength para sa tugma.
+                                  Ang resulta ay ihahambing sa isang panloob na Raman o FTIR spectra library. Ang pinakamalakas na 1000 tugma kasama ng iyong
+                                  ang na-upload o naprosesong data ay ipapakita sa isang interactive na plot at talahanayan. Para sa higit pang mga detalye i-click ang button sa ibaba
+                                  o panoorin ang detalyadong pagtuturong video."
+Detailed Standard Operating Procedure,Detalyadong Standard Operating Procedure
+Download Open Data,I-download ang Open Data
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Ang reference spectra ay nagmula sa mga open access na mapagkukunan
+           online, mga publikasyong sinuri ng mga kasamahan, at mga donasyon ng kumpanya. Sa hinaharap
+           Ang spectra na na-upload sa tool ay isasama sa reference
+           silid-aklatan upang mapaganda pa ito."
+Raman Reference Library,Raman Reference Library
+FTIR Reference Library,FTIR Reference Library
+Raman Reference Library Metadata,Metadata ng Raman Reference Library
+FTIR Reference Library Metadata,Metadata ng FTIR Reference Library
+Contribute Spectra,Mag-ambag ng Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Upang magbahagi ng spectra, mag-upload ng file sa tab na mag-upload ng file. Kung pinili mo ang Ibahagi ang isang kopya ng iyong spectra ay ipapadala sa Komunidad
+           Data Warehouse sa Open Science Framework. Upang magdagdag ng karagdagang metadata,
+           punan ang magagamit na mga patlang ng metadata at i-click ang -Ibahagi ang Data-. Ang
+           Ang spectra file na iyong na-upload kasama ng iyong mga tugon ay makokopya
+           sa a -With Metadata- subfolder sa link sa ibaba. Lahat ng nakabahaging data hold
+           isang Creative Commons Attribution License 4.0."
+Community Data Warehouse,Warehouse ng Data ng Komunidad
+Tool Validation,Pagpapatunay ng Tool
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Ang lahat ng mga parameter sa tool na ito ay sinubukan upang patunayan iyon
+           gumagana ang tool hangga't maaari at tinutukoy ang pinakamahusay na default
+           mga parameter na gagamitin. Kasama sa aming kasalukuyang proseso ng pagpapatunay ang pagwawasto
+           nadobleng mga entry sa mga sangguniang aklatan, sinusuri ang spectra
+           metadata na wala sa spectral library, at tinitiyak ang default
+           nagbibigay ang mga parameter ng higit sa 80% katumpakan sa unang tugma."
+Detailed Validation Procedure,Detalyadong Pamamaraan sa Pagpapatunay
+"Updates, Feature Requests, and Bug Reports","Mga Update, Mga Kahilingan sa Feature, at Mga Ulat sa Bug"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Sinusubaybayan namin ang lahat ng update gamit ang version control sa aming code. Maaaring hilingin ang mga feature at iulat ang bug sa GitHub.
+Stay up to date!,Manatiling up to date!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Sundan kami sa Twitter @OpenSpecy. E-mail wincowger@gmail.com para maidagdag sa mailing list.
+Citation,Sipi
+Useful Links,Mga Kapaki-pakinabang na Link
+Free FTIR Software: siMPle microplastic IR spectral identification software,Libreng FTIR Software: simpleng microplastic IR spectral identification software
+Free Spectroscopy Learning Academy from ThermoFisher,Libreng Spectroscopy Learning Academy mula sa ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Libreng Optical Microscopy Learning Resource mula sa Florida State University
+Free desktop application for spectral analysis and links to reference databases.,Libreng desktop application para sa spectral analysis at mga link sa reference database.
+Terms And Conditions,Mga Tuntunin at Kundisyon
+Privacy Policy,Patakaran sa Privacy
+Upload File,Mag-upload ng File
+"Upload, View, and Share Spectra","Mag-upload, Tingnan, at Ibahagi ang Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Piliin ang .csv (ginustong), .asp, .jdx, .spc, .spa, o .0 File"
+Share Your Data?,Ibahagi ang Iyong Data?
+Share Help,Ibahagi ang Tulong
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Kung gusto mo, ibinabahagi namin ang iyong na-upload na spectra at mga setting sa komunidad ng spectroscopy.
+           Bilang default, ang lahat ng data ay magiging lisensyado sa ilalim ng Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Lalabas dito ang na-upload na spectra: https://osf.io/rjg3c"
+Upload Help,Mag-upload ng Tulong
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Mag-upload ng Raman o FTIR spectrum file bilang csv, jdx, spc, o spa. Mas gusto ang isang csv file. Kung csv, ang file ay dapat maglaman ng isang column na may label na 'wavenumber' sa mga unit na (1/cm) at isa pang column na may label na 'intensity' sa absorbance unit.
+            Kung jdx, spc, spa, o 0 ang file ay dapat isang solong absorbance spectrum na may wavenumber sa (1/cm). Ang mga file na ito ay hindi palaging gagana nang perpekto dahil nakakalito silang basahin kaya i-double check ang mga ito sa ibang software.
+            Pindutin ang pindutan ng 'Test Data' upang mag-download ng sample ng Raman spectrum."
+Intensity Adjustment,Pagsasaayos ng Intensity
+None,wala
+Transmittance,Transmittance
+Reflectance,Pagninilay
+Intensity Correction Help,Tulong sa Pagwawasto ng Intensity
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Kung ang na-upload na spectrum ay wala sa absorbance unit,
+           gamitin ang input na ito upang tukuyin ang mga unit na iko-convert mula sa.Open Specy can
+           ayusin ang reflectance o transmittance spectra sa Absorbance unit gamit
+           drop down na ito sa tab na mag-upload ng file. Lahat ng mga naunang tab
+           ipagpalagay na ang data ay nasa absorbance units kaya dapat mong gawin ang
+           pagwawasto bago magpatuloy kung kinakailangan. Ang pagsasaayos ng transmittance
+           gumagamit ng pagkalkula ng log10(1/T) na hindi tama para sa system
+           at mga katangian ng butil. Ang pagsasaayos ng reflectance ay gumagamit ng
+           Kubelka-Munk equation (1-R)2/(2*R). Ipinapalagay namin na ang reflectance
+           ay naka-format bilang porsyento mula 1-100 at itama muna ang intensity sa pamamagitan ng paghahati sa 100
+           upang ito ay magkasya sa anyo na inaasahan ng equation.
+           Kung walang napili, ipagpalagay ng Open Specy na ang na-upload na data ay
+           isang absorbance spectrum."
+Sample File,Halimbawang File
+Sample Data Help,Tulong sa Sample ng Data
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Isa itong sample spectrum na maaaring i-upload sa tool para sa pagsubok nito at pag-unawa kung paano dapat i-format ang mga csv file.
+Metadata Input,Input ng Metadata
+Metadata Help,Tulong sa Metadata
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Ibinabahagi namin ang anumang na-upload na spectra at metadata sa komunidad ng spectroscopy kung pupunan mo ang metadata dito at pipiliin ang ibahagi.
+           Lalabas dito ang na-upload na spectra at metadata: https://osf.io/rjg3c"
+Share Metadata,Ibahagi ang Metadata
+Upload some data to get started...,Mag-upload ng ilang data para makapagsimula...
+Preprocess Spectrum,Preprocess Spectrum
+"Smooth, Baseline Correct, and Download Processed Spectra","Smooth, Baseline Tama, at I-download ang Naprosesong Spectra"
+Download (recommended),I-download (inirerekomenda)
+Download Help,I-download ang Tulong
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Maaaring naisin ng ilang user na mag-save ng kopya ng kanilang naprosesong spectrum. Dina-download ng button na ito ang naprosesong spectrum bilang isang csv file.
+Smoothing,Nagpapakinis
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Mapapahusay ng mas makinis na ito ang ratio ng signal sa ingay ng data at gumagamit ng Savitzky-Golay na filter na may 12 tumatakbong data point at tinukoy ang polynomial.
+Smoothing Polynomial,Smoothing Polynomial
+Baseline Correction,Pagwawasto ng Baseline
+Baseline Correction Help,Tulong sa Pagwawasto ng Baseline
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Ang gawain sa pagwawasto ng baseline na ito ay may dalawang opsyon para sa pagwawasto ng baseline, 1) ang pamamaraang polynomial imodpolyfit upang paulit-ulit na mahanap ang baseline ng spectrum gamit ang polynomial fit sa buong rehiyon ng spectra. 2) ang mga manu-manong linya ay maaaring iguhit gamit ang line tool sa plot at ang tamang button ay gagamit ng mga linya upang ibawas ang baseline."
+Baseline Correction Polynomial,Baseline Correction Polynomial
+Technique,Pamamaraan
+Polynomial,Polinomyal
+Manual,Manwal
+Correct With Trace,Tamang May Trace
+Reset,I-reset
+Range Selection,Pagpili ng Saklaw
+Spectral Range Help,Tulong sa Spectral Range
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Ang paghihigpit sa spectral range ay maaaring mag-alis ng mga rehiyon ng spectrum kung saan walang peak ang umiiral at mapabuti ang pagtutugma
+Maximum Spectral Range,Pinakamataas na Saklaw ng Spectral
+Minimum Spectral Range,Pinakamababang Saklaw ng Spectral
+Identify Spectrum,Kilalanin ang Spectrum
+Identify Spectrum Using the Reference Library,Kilalanin ang Spectrum Gamit ang Reference Library
+Raman,Raman
+FTIR,FTIR
+Spectra,Spectra
+Type,Uri
+Spectrum Type Help,Tulong sa Uri ng Spectrum
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Tutukuyin ng pagpipiliang ito kung ginagamit ang FTIR o Raman na tumutugmang library. Piliin ang uri ng spectrum na na-upload.
+Analysis,Pagsusuri
+Processed,Naproseso
+Uploaded,Na-upload
+Spectrum to Analyze Help,Spectrum para Pag-aralan ang Tulong
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Tutukuyin ng pagpipiliang ito kung ang na-upload (hindi naproseso) na spectrum o ang spectrum na naproseso gamit ang tab sa pagpoproseso ay ginagamit sa pagtutugma ng spectrum.
+Region,Rehiyon
+Full,Puno
+Peaks,Mga taluktok
+Region to Match Help,Tulong sa Rehiyon sa Tugma
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Tutukuyin ng pagpipiliang ito kung ang library na itinutugma mo ay binubuo ng buong spectrum o mga spectrum peak lang.
+Partner With Us,Kasosyo sa Amin
+Help us reach our goal of revolutionizing spectroscopy.,Tulungan kaming maabot ang aming layunin na baguhin ang spectroscopy.
+Donate Cash,Mag-donate ng Cash
+Buy From Swag Store,Bumili sa Swag Store
+Contribute time,Mag-ambag ng oras
+Revolutionizing,Nagrerebolusyonaryo
+Thriving,Umuunlad
+Maintaining,Pagpapanatili
+Supporting,Pagsuporta
+Saving,Nagtitipid
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Isang binabayarang team na nagtutulak sa Open Specy na palapit sa sukdulang layunin ng 100% tumpak na spectral identification at deep spectral diagnostics sa isang click
+A single paid staff person working to update and build the community and the tool,Isang nag-iisang may bayad na kawani na nagtatrabaho upang i-update at itayo ang komunidad at ang tool
+Maintenance costs and minor ad-hoc updates and bug fixes,Mga gastos sa pagpapanatili at menor de edad na ad-hoc update at pag-aayos ng bug
+Keeping the app online and essential maintenance,Pagpapanatiling online ang app at mahalagang pagpapanatili
+Long term storage only,Pangmatagalang imbakan lamang
+Sharing Metadata,Pagbabahagi ng Metadata
+Thank you for sharing your data!,Salamat sa pagbabahagi ng iyong data!
+Your data will soon be available at https://osf.io/stmv4/,Malapit nang maging available ang iyong data sa https://osf.io/stmv4/
+Something went wrong :-(,May nangyaring mali :-(
+Data type not supported!,Hindi sinusuportahan ang uri ng data!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Kasalukuyang hindi sinusuportahan ang na-upload na uri ng data; pakiusap
+                      tingnan ang mga tooltip at tab na 'Tungkol sa' para sa mga detalye."
+Sharing Spectrum to Community Library,Pagbabahagi ng Spectrum sa Community Library
+Reading Spectrum,Reading Spectrum
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Kung nag-upload ka ng text/csv file, tiyaking ang
+           ang mga column ay numeric at pinangalanang 'wavenumber' at
+           'intensity'."
+absorbance intensity [-],intensity ng absorbance [-]
+wavenumber [cm<sup>-1</sup>],wavenumber [cm<sup>-1</sup>]
+Analyzing Spectrum,Pagsusuri ng Spectrum
+Finding Match,Paghahanap ng Tugma
+Making Plot,Paggawa ng Plot
+Material,materyal
+Pearson's r,Pearson's r
+Organization,Organisasyon
+Selectable Matches,Mga Mapipiling Tugma
+Donations,Mga donasyon
+Operation Costs,Mga Gastos sa Operasyon
+Selection Metadata,Metadata ng Pagpili

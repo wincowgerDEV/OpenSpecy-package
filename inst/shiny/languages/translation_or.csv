@@ -1,0 +1,212 @@
+en,or
+About,ବିଷୟରେ
+Welcome,ସ୍ Welcome ାଗତ
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","ଆଖପାଖରୁ ଶହ ଶହ ଗବେଷକ ଯୋଗ ଦିଅନ୍ତୁ |
+           ବିଶ୍ the ଯେଉଁମାନେ ଓପନ୍ ସ୍ପେସି ସମ୍ପ୍ରଦାୟର ଅଂଶ ଅଟନ୍ତି |
+           ବିଶ୍ଳେଷଣ, ଅଂଶୀଦାର, ପ୍ରକ୍ରିୟାକରଣ ଏବଂ ଚିହ୍ନଟ |
+           ସେମାନଙ୍କର ରମଣ ଏବଂ ଆଇଆର ସ୍ପେକ୍ଟ୍ରା | ଏହି ସେବାଗୁଡିକ ଆମର ଅଂଶୀଦାରମାନଙ୍କୁ ଧନ୍ୟବାଦ ଏବଂ ମୁକ୍ତ ଉତ୍ସ ଅଟେ:"
+Quick Video Tutorial,ଦ୍ରୁତ ଭିଡିଓ ଟ୍ୟୁଟୋରିଆଲ୍ |
+Instructions,ନିର୍ଦ୍ଦେଶାବଳୀ
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","ସଂକ୍ଷେପରେ: ଟୁଲ୍ ବ୍ୟବହାର କରିବାକୁ ଏକ csv, asp, jdx, spc, କିମ୍ବା ସ୍ପା ଫାଇଲ୍ ଅପଲୋଡ୍ ଫାଇଲ୍ ଟ୍ୟାବ୍ ରେ ଅପଲୋଡ୍ କରନ୍ତୁ |
+                                  ଯଦି csv, ଗୋଟିଏ ସ୍ତମ୍ଭର ନାମ 'ୱେଭେମ୍ବର' (1 / ସେମି ୟୁନିଟରେ) ଏବଂ ଅନ୍ୟଟିର ନାମ 'ତୀବ୍ରତା' ରଖାଯିବା ଉଚିତ |
+                                  ଆପଣ ଏକ SG ଫିଲ୍ଟର୍ ବ୍ୟବହାର କରି ଆପଣଙ୍କର ତଥ୍ୟକୁ ମସୃଣ କରିପାରିବେ, iModPolyFit ର ବହୁଭୂତ କ୍ରମ ବ୍ୟବହାର କରି ଆପଣଙ୍କର ତଥ୍ୟକୁ ବେସ୍ ଲାଇନ୍ ସଠିକ୍ କରିପାରିବେ ଏବଂ ମ୍ୟାଚ୍ ପାଇଁ ତରଙ୍ଗଦ eng ର୍ଘ୍ୟ ସୀମାକୁ ସୀମିତ କରିପାରିବେ |
+                                  ଫଳାଫଳକୁ ଏକ ଆଭ୍ୟନ୍ତରୀଣ ରମଣ କିମ୍ବା FTIR ସ୍ପେକ୍ଟ୍ରା ଲାଇବ୍ରେରୀ ସହିତ ତୁଳନା କରାଯିବ | ଆପଣଙ୍କ ସହିତ ଶକ୍ତିଶାଳୀ 1000 ମ୍ୟାଚ୍ |
+                                  ଅପଲୋଡ୍ କିମ୍ବା ପ୍ରକ୍ରିୟାକୃତ ତଥ୍ୟ ଏକ ଇଣ୍ଟରାକ୍ଟିଭ୍ ପ୍ଲଟ୍ ଏବଂ ଟେବୁଲରେ ଉପସ୍ଥାପିତ ହେବ | ଅଧିକ ବିବରଣୀ ପାଇଁ ନିମ୍ନରେ ଥିବା ବଟନ୍ କ୍ଲିକ୍ କରନ୍ତୁ |
+                                  କିମ୍ବା ବିସ୍ତୃତ ନିର୍ଦ୍ଦେଶନାମା ଭିଡିଓ ଦେଖନ୍ତୁ |"
+Detailed Standard Operating Procedure,ବିସ୍ତୃତ ମାନକ ଅପରେଟିଂ ପ୍ରଣାଳୀ |
+Download Open Data,ଖୋଲା ଡାଟା ଡାଉନଲୋଡ୍ କରନ୍ତୁ |
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","ଖୋଲା ଆକ୍ସେସ୍ ଉତ୍ସରୁ ରେଫରେନ୍ସ ସ୍ପେକ୍ଟ୍ରା ସୋର୍ସ କରାଯାଇଥିଲା |
+           ଅନଲାଇନ୍, ସାଥି ସମୀକ୍ଷା ପ୍ରକାଶନ, ଏବଂ କର୍ପୋରେଟ୍ ଦାନ | ଭବିଷ୍ୟତରେ
+           ଟୁଲ୍କୁ ଅପଲୋଡ୍ ହୋଇଥିବା ସ୍ପେକ୍ଟ୍ରା ରେଫରେନ୍ସରେ ଅନ୍ତର୍ଭୂକ୍ତ ହେବ |
+           ଏହାକୁ ଆହୁରି ଉନ୍ନତ କରିବା ପାଇଁ ଲାଇବ୍ରେରୀ |"
+Raman Reference Library,ରମଣ ରେଫରେନ୍ସ ଲାଇବ୍ରେରୀ |
+FTIR Reference Library,FTIR ରେଫରେନ୍ସ ଲାଇବ୍ରେରୀ |
+Raman Reference Library Metadata,ରମଣ ରେଫରେନ୍ସ ଲାଇବ୍ରେରୀ ମେଟାଡାଟା |
+FTIR Reference Library Metadata,FTIR ରେଫରେନ୍ସ ଲାଇବ୍ରେରୀ ମେଟାଡାଟା |
+Contribute Spectra,ସ୍ପେକ୍ଟ୍ରା ଯୋଗଦାନ କରନ୍ତୁ |
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","ସ୍ପେକ୍ଟ୍ରା ଅଂଶୀଦାର କରିବାକୁ ଅପଲୋଡ୍ ଫାଇଲ୍ ଟ୍ୟାବ୍ ରେ ଏକ ଫାଇଲ୍ ଅପଲୋଡ୍ କରନ୍ତୁ | ଯଦି ଆପଣ ଚୟନ କରିଛନ୍ତି ତେବେ ଆପଣଙ୍କର ସ୍ପେକ୍ଟ୍ରାର ଏକ କପି ସମ୍ପ୍ରଦାୟକୁ ପଠାଯିବ |
+           ଖୋଲା ବିଜ୍ଞାନ ଫ୍ରେମୱାର୍କରେ ଡାଟା ଗୋଦାମ | ଅତିରିକ୍ତ ମେଟାଡାଟା ଯୋଡିବାକୁ,
+           ଉପଲବ୍ଧ ମେଟାଡାଟା ଫିଲ୍ଡଗୁଡିକ ପୁରଣ କରନ୍ତୁ ଏବଂ -Share Data- କ୍ଲିକ୍ କରନ୍ତୁ | The
+           ସ୍ପେକ୍ଟ୍ରା ଫାଇଲ୍ ଯାହା ତୁମେ ତୁମର ପ୍ରତିକ୍ରିୟା ସହିତ ଅପଲୋଡ୍ କରିଛ |
+           ନିମ୍ନ ଲିଙ୍କରେ ଥିବା-ମେଟାଡାଟା- ସବ୍ଫୋଲ୍ଡର୍ ସହିତ | ସମସ୍ତ ଅଂଶୀଦାର ତଥ୍ୟ ଧାରଣ କରେ |
+           ଏକ କ୍ରିଏଟିଭ କମନ୍ସ ଆଟ୍ରିବୁସନ ଲାଇସେନ୍ସ 4.0।"
+Community Data Warehouse,ସମ୍ପ୍ରଦାୟ ତଥ୍ୟ ଗୋଦାମ |
+Tool Validation,ସାଧନ ବ id ଧତା |
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","ଏହାକୁ ବ valid ଧ କରିବା ପାଇଁ ଏହି ଉପକରଣର ସମସ୍ତ ପାରାମିଟରଗୁଡିକ ପରୀକ୍ଷା କରାଯାଏ |
+           ସାଧନଟି ଯଥାସମ୍ଭବ କାର୍ଯ୍ୟ କରୁଛି ଏବଂ ସର୍ବୋତ୍ତମ ଡିଫଲ୍ଟ ନିର୍ଣ୍ଣୟ କରନ୍ତୁ |
+           ବ୍ୟବହାର କରିବାକୁ ପାରାମିଟରଗୁଡିକ ଆମର ସାମ୍ପ୍ରତିକ ବ valid ଧତା ପ୍ରକ୍ରିୟାରେ ସଂଶୋଧନ ଅନ୍ତର୍ଭୁକ୍ତ |
+           ରେଫରେନ୍ସ ଲାଇବ୍ରେରୀଗୁଡ଼ିକରେ ନକଲ ପ୍ରବିଷ୍ଟ, ସ୍ପେକ୍ଟ୍ରା ପାଇଁ ଯାଞ୍ଚ |
+           ମେଟାଡାଟା ଯାହା ସ୍ପେକ୍ଟ୍ରାଲ୍ ଲାଇବ୍ରେରୀରେ ନାହିଁ, ଏବଂ ଡିଫଲ୍ଟ ନିଶ୍ଚିତ କରେ |
+           ପ୍ରଥମ ମ୍ୟାଚରେ ପାରାମିଟରଗୁଡିକ 80% ରୁ ଅଧିକ ସଠିକତା ପ୍ରଦାନ କରିଥାଏ |"
+Detailed Validation Procedure,ବିସ୍ତୃତ ବ id ଧତା ପ୍ରକ୍ରିୟା |
+"Updates, Feature Requests, and Bug Reports","ଅଦ୍ୟତନ, ବ ature ଶିଷ୍ଟ୍ୟ ଅନୁରୋଧ, ଏବଂ ବଗ୍ ରିପୋର୍ଟଗୁଡିକ |"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,ଆମେ ଆମର କୋଡ୍ ଉପରେ ଭର୍ସନ୍ କଣ୍ଟ୍ରୋଲ୍ ବ୍ୟବହାର କରି ସମସ୍ତ ଅପଡେଟ୍ ଉପରେ ଟ୍ରାକ୍ ରଖୁ | ବ Features ଶିଷ୍ଟ୍ୟଗୁଡିକ ଅନୁରୋଧ କରାଯାଇପାରେ ଏବଂ GitHub ରେ ବଗ୍ ରିପୋର୍ଟ କରାଯାଇପାରେ |
+Stay up to date!,ଅଦ୍ୟତନ ରୁହନ୍ତୁ!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,ଟ୍ୱିଟର @ ଓପେନ ସ୍ପେସିରେ ଆମକୁ ଅନୁସରଣ କରନ୍ତୁ | ମେଲିଂ ତାଲିକାରେ ଯୋଡିବାକୁ wincowger@gmail.com ଇ-ମେଲ୍ କରନ୍ତୁ |
+Citation,ଉଦ୍ଧୃତ
+Useful Links,ଉପଯୋଗୀ ଲିଙ୍କ୍ |
+Free FTIR Software: siMPle microplastic IR spectral identification software,ମାଗଣା FTIR ସଫ୍ଟୱେର୍: siMPle ମାଇକ୍ରୋପ୍ଲାଷ୍ଟିକ୍ IR ସ୍ପେକ୍ଟ୍ରାଲ୍ ଆଇଡେଣ୍ଟିଫିକେସନ୍ ସଫ୍ଟୱେର୍ |
+Free Spectroscopy Learning Academy from ThermoFisher,ଥର୍ମୋ ଫିସରରୁ ମାଗଣା ସ୍ପେକ୍ଟ୍ରସ୍କୋପି ଲର୍ଣ୍ଣିଂ ଏକାଡେମୀ |
+Free Optical Microscopy Learning Resource from Florida State University,ଫ୍ଲୋରିଡା ଷ୍ଟେଟ ୟୁନିଭରସିଟିରୁ ମାଗଣା ଅପ୍ଟିକାଲ ମାଇକ୍ରୋସ୍କୋପି ଲର୍ନିଂ ଉତ୍ସ |
+Free desktop application for spectral analysis and links to reference databases.,ସ୍ପେକ୍ଟ୍ରାଲ୍ ଆନାଲିସିସ୍ ପାଇଁ ମାଗଣା ଡେସ୍କଟପ୍ ପ୍ରୟୋଗ ଏବଂ ରେଫରେନ୍ସ ଡାଟାବେସ୍ ସହିତ ଲିଙ୍କ୍ |
+Terms And Conditions,ସର୍ତ୍ତାବଳୀ
+Privacy Policy,ଗୋପନୀୟତା ନୀତି
+Upload File,ଫାଇଲ୍ ଅପଲୋଡ୍ କରନ୍ତୁ |
+"Upload, View, and Share Spectra","ସ୍ପେକ୍ଟ୍ରା ଅପଲୋଡ୍, ଦର୍ଶନ ଏବଂ ସେୟାର କରନ୍ତୁ |"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",".Csv (ପସନ୍ଦିତ), .asp, .jdx, .spc, .spa, କିମ୍ବା .0 ଫାଇଲ୍ ବାଛନ୍ତୁ |"
+Share Your Data?,ଆପଣଙ୍କର ତଥ୍ୟ ଅଂଶୀଦାର କରନ୍ତୁ?
+Share Help,ସହାୟତା ଅଂଶୀଦାର କରନ୍ତୁ |
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","ଯଦି ଆପଣ ପସନ୍ଦ କରନ୍ତି, ଆମେ ଆପଣଙ୍କର ଅପଲୋଡ୍ ହୋଇଥିବା ସ୍ପେକ୍ଟ୍ରା ଏବଂ ସେଟିଂସମୂହକୁ ସ୍ପେକ୍ଟ୍ରସ୍କୋପି ସମ୍ପ୍ରଦାୟ ସହିତ ଅଂଶୀଦାର କରୁ |
+           ଡିଫଲ୍ଟ ଭାବରେ, ସମସ୍ତ ତଥ୍ୟ କ୍ରିଏଟିଭ କମନ୍ସ ଆଟ୍ରିବ୍ୟୁସନ-ଅଣ କମର୍ସିଆଲ୍ 4.0 ଆନ୍ତର୍ଜାତୀୟ (CC BY-NC 4.0) ଅଧୀନରେ ଲାଇସେନ୍ସପ୍ରାପ୍ତ ହେବ |
+           ଅପଲୋଡ୍ ହୋଇଥିବା ସ୍ପେକ୍ଟ୍ରା ଏଠାରେ ଦେଖାଯିବ: https://osf.io/rjg3c |"
+Upload Help,ସହାୟତା ଅପଲୋଡ୍ କରନ୍ତୁ |
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","ରମନ୍ କିମ୍ବା FTIR ସ୍ପେକ୍ଟ୍ରମ୍ ଫାଇଲଗୁଡ଼ିକୁ ଏକ csv, jdx, spc, କିମ୍ବା ସ୍ପା ଭାବରେ ଅପଲୋଡ୍ କରନ୍ତୁ | ଏକ csv ଫାଇଲ୍ ପସନ୍ଦ କରାଯାଏ | ଯଦି ଏକ csv, ଫାଇଲ୍ ନିଶ୍ଚିତ ଭାବରେ (1 / ସେମି) ୟୁନିଟ୍ ଗୁଡିକରେ 'ୱେଭେନ୍ମ୍ବର' ନାମକ ଏକ ସ୍ତମ୍ଭ ଏବଂ ଅବଶୋଷଣ ୟୁନିଟ୍ ଗୁଡିକରେ 'ତୀବ୍ରତା' ନାମକ ଅନ୍ୟ ସ୍ତମ୍ଭ ଧାରଣ କରିବା ଆବଶ୍ୟକ |
+            ଯଦି jdx, spc, spa, କିମ୍ବା 0 ଫାଇଲଟି (1 / cm) ରେ ୱେଭେନମ୍ବର ସହିତ ଏକକ ଅବଶୋଷଣ ସ୍ପେକ୍ଟ୍ରମ ହେବା ଉଚିତ | ଏହି ଫାଇଲଗୁଡ଼ିକ ସର୍ବଦା ସଂପୂର୍ଣ୍ଣ ରୂପେ କାମ କରିବ ନାହିଁ କାରଣ ସେଗୁଡିକ ପ read ିବା କଷ୍ଟକର ତେଣୁ ଅନ୍ୟ ସଫ୍ଟୱେୟାରରେ ସେମାନଙ୍କୁ ଦୁଇଥର ଯାଞ୍ଚ କରନ୍ତୁ |
+            ଏକ ନମୁନା ରମଣ ସ୍ପେକ୍ଟ୍ରମ୍ ଡାଉନଲୋଡ୍ କରିବାକୁ 'ଟେଷ୍ଟ୍ ଡାଟା' ବଟନ୍ ଦବାନ୍ତୁ |"
+Intensity Adjustment,ତୀବ୍ରତା ଆଡଜଷ୍ଟମେଣ୍ଟ୍ |
+None,କିଛି ନୁହେଁ |
+Transmittance,ଟ୍ରାନ୍ସମିଟାନ୍ସ
+Reflectance,ପ୍ରତିଫଳନ
+Intensity Correction Help,ତୀବ୍ରତା ସଂଶୋଧନ ସହାୟତା |
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","ଯଦି ଅପଲୋଡ୍ ହୋଇଥିବା ସ୍ପେକ୍ଟ୍ରମ୍ ଅବଶୋଷଣ ୟୁନିଟରେ ନାହିଁ,
+           ରୁ ରୂପାନ୍ତର କରିବାକୁ ୟୁନିଟ୍ ନିର୍ଦ୍ଦିଷ୍ଟ କରିବାକୁ ଏହି ଇନପୁଟ୍ ବ୍ୟବହାର କରନ୍ତୁ | Specy can ଖୋଲନ୍ତୁ |
+           ବ୍ୟବହାର କରୁଥିବା ଅବଶୋଷଣ ୟୁନିଟ୍ ସହିତ ପ୍ରତିଫଳନ କିମ୍ବା ଟ୍ରାନ୍ସମିଟାନ୍ସ ସ୍ପେକ୍ଟ୍ରା ଆଡଜଷ୍ଟ କରନ୍ତୁ |
+           ଅପଲୋଡ୍ ଫାଇଲ୍ ଟ୍ୟାବ୍ ରେ ଏହି ଡ୍ରପ୍ ଡାଉନ୍ | ସମସ୍ତ ପୂର୍ବ ଟ୍ୟାବଗୁଡ଼ିକ |
+           ମନେକର ଯେ ତଥ୍ୟ ଅବଶୋଷଣ ୟୁନିଟରେ ଅଛି ତେଣୁ ତୁମେ ଏହାକୁ କରିବା ଉଚିତ |
+           ଆବଶ୍ୟକ ହେଲେ ଜାରି ରଖିବା ପୂର୍ବରୁ ସଂଶୋଧନ | ଟ୍ରାନ୍ସମିଟାନ୍ସ ଆଡଜଷ୍ଟମେଣ୍ଟ୍ |
+           log10 (1 / T) ଗଣନା ବ୍ୟବହାର କରେ ଯାହା ସିଷ୍ଟମ୍ ପାଇଁ ସଠିକ୍ ନୁହେଁ |
+           ଏବଂ କଣିକା ଗୁଣ ପ୍ରତିଫଳନ ଆଡଜଷ୍ଟମେଣ୍ଟ୍
+           କୁବେଲ୍କା-ମୁଙ୍କ ସମୀକରଣ (1-R) 2 / (2 * R) | ଆମେ ଅନୁମାନ କରୁ ଯେ ପ୍ରତିଫଳନ |
+           1-100 ରୁ ଶତକଡ଼ା ଭାବରେ ଫର୍ମାଟ୍ ହୋଇଛି ଏବଂ ପ୍ରଥମେ 100 କୁ ବିଭକ୍ତ କରି ତୀବ୍ରତାକୁ ସଂଶୋଧନ କର |
+           ଯାହାଫଳରେ ଏହା ସମୀକରଣ ଦ୍ୱାରା ଆଶା କରାଯାଉଥିବା ଫର୍ମକୁ ଫିଟ୍ କରେ |
+           ଯଦି କ none ଣସିଟି ମନୋନୀତ ହୋଇନଥାଏ, ଓପନ୍ ସ୍ପେସି ଅନୁମାନ କରେ ଯେ ଅପଲୋଡ୍ ହୋଇଥିବା ତଥ୍ୟ ହେଉଛି |
+           ଏକ ଅବଶୋଷଣ ସ୍ପେକ୍ଟ୍ରମ୍ |"
+Sample File,ନମୁନା ଫାଇଲ୍ |
+Sample Data Help,ନମୁନା ତଥ୍ୟ ସହାୟତା |
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,ଏହା ଏକ ନମୁନା ସ୍ପେକ୍ଟ୍ରମ୍ ଯାହା ଏହାକୁ ପରୀକ୍ଷା କରିବା ଏବଂ csv ଫାଇଲଗୁଡ଼ିକୁ କିପରି ଫର୍ମାଟ୍ କରାଯିବା ଉଚିତ ତାହା ବୁ understanding ିବା ପାଇଁ ଉପକରଣରେ ଅପଲୋଡ୍ ହୋଇପାରିବ |
+Metadata Input,ମେଟାଡାଟା ଇନପୁଟ୍ |
+Metadata Help,ମେଟାଡାଟା ସହାୟତା |
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","ଯଦି ଆପଣ ଏଠାରେ ମେଟାଡାଟା ପୂରଣ କରନ୍ତି ଏବଂ ସେୟାର ଚୟନ କରନ୍ତି ତେବେ ଆମେ ସ୍ପେକ୍ଟ୍ରସ୍କୋପି ସମ୍ପ୍ରଦାୟ ସହିତ ଯେକ any ଣସି ଅପଲୋଡ୍ ହୋଇଥିବା ସ୍ପେକ୍ଟ୍ରା ଏବଂ ମେଟାଡାଟା ଅଂଶୀଦାର କରୁ |
+           ଅପଲୋଡ୍ ହୋଇଥିବା ସ୍ପେକ୍ଟ୍ରା ଏବଂ ମେଟାଡାଟା ଏଠାରେ ଦେଖାଯିବ: https://osf.io/rjg3c |"
+Share Metadata,ମେଟାଡାଟା ଅଂଶୀଦାର କରନ୍ତୁ |
+Upload some data to get started...,ଆରମ୍ଭ କରିବାକୁ କିଛି ତଥ୍ୟ ଅପଲୋଡ୍ କରନ୍ତୁ ...
+Preprocess Spectrum,ପ୍ରିପ୍ରୋସେସ୍ ସ୍ପେକ୍ଟ୍ରମ୍ |
+"Smooth, Baseline Correct, and Download Processed Spectra","ମସୃଣ, ବେସଲାଇନ୍ ସଠିକ୍, ଏବଂ ପ୍ରକ୍ରିୟାକୃତ ସ୍ପେକ୍ଟ୍ରା ଡାଉନଲୋଡ୍ କରନ୍ତୁ |"
+Download (recommended),ଡାଉନଲୋଡ୍ (ସୁପାରିଶ)
+Download Help,ସହାୟତା ଡାଉନଲୋଡ୍ କରନ୍ତୁ |
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,କିଛି ଉପଭୋକ୍ତା ସେମାନଙ୍କର ପ୍ରକ୍ରିୟାକୃତ ସ୍ପେକ୍ଟ୍ରମର ଏକ କପି ସଞ୍ଚୟ କରିବାକୁ ଇଚ୍ଛା କରିପାରନ୍ତି | ଏହି ବଟନ୍ ପ୍ରକ୍ରିୟାକୃତ ସ୍ପେକ୍ଟ୍ରମକୁ csv ଫାଇଲ୍ ଭାବରେ ଡାଉନଲୋଡ୍ କରେ |
+Smoothing,ମସୃଣ
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,ଏହି ଚିକ୍କଣ ତଥ୍ୟର ଶବ୍ଦ ଅନୁପାତରେ ସଙ୍କେତକୁ ବ enhance ାଇପାରେ ଏବଂ 12 ଟି ଚାଲୁଥିବା ଡାଟା ପଏଣ୍ଟ ଏବଂ ନିର୍ଦ୍ଦିଷ୍ଟ ବହୁଭାଷୀ ସହିତ ଏକ ସାଭିଜ୍କି-ଗୋଲା ଫିଲ୍ଟର ବ୍ୟବହାର କରେ |
+Smoothing Polynomial,ବହୁମୂଲ୍ୟ
+Baseline Correction,ବେସଲାଇନ୍ ସଂଶୋଧନ |
+Baseline Correction Help,ବେସ୍ ଲାଇନ୍ ସଂଶୋଧନ ସହାୟତା |
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","ବେସ୍ ଲାଇନ୍ ସଂଶୋଧନ ପାଇଁ ଏହି ବେସ୍ ଲାଇନ୍ ସଂଶୋଧନ ରୁଟିନ୍ ର ଦୁଇଟି ବିକଳ୍ପ ଅଛି, 1) ସ୍ପେକ୍ଟ୍ରାର ସମଗ୍ର ଅଞ୍ଚଳରେ ଏକ ପଲିନୋମିଆଲ୍ ଫିଟ୍ ବ୍ୟବହାର କରି ସ୍ପେକ୍ଟ୍ରମର ବେସ୍ ଲାଇନ୍ ଖୋଜିବା ପାଇଁ ପଲିନୋମିଆଲ୍ ଇମୋଡପୋଲିଫିଟ୍ ପ୍ରଣାଳୀ | )) ପ୍ଲଟରେ ଲାଇନ୍ ଟୁଲ୍ ବ୍ୟବହାର କରି ମାନୁଆଲ୍ ଲାଇନ୍ ଅଙ୍କାଯାଇପାରିବ ଏବଂ ସଠିକ୍ ବଟନ୍ ବେସ୍ ଲାଇନ୍ ବାହାର କରିବା ପାଇଁ ରେଖା ବ୍ୟବହାର କରିବ |"
+Baseline Correction Polynomial,ବେସଲାଇନ୍ ସଂଶୋଧନ ପଲିନୋମିଆଲ୍ |
+Technique,କ Techn ଶଳ |
+Polynomial,ବହୁଜନ
+Manual,ମାନୁଆଲ୍ |
+Correct With Trace,ଟ୍ରେସ ସହିତ ସଠିକ୍ |
+Reset,ପୁନ et ସେଟ୍ କରନ୍ତୁ |
+Range Selection,ପରିସର ଚୟନ |
+Spectral Range Help,ସ୍ପେକ୍ଟ୍ରାଲ୍ ରେଞ୍ଜ୍ ସହାୟତା |
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,ସ୍ପେକ୍ଟ୍ରାଲ୍ ପରିସରକୁ ପ୍ରତିବନ୍ଧିତ କରିବା ସ୍ପେକ୍ଟ୍ରମ୍ ର ଅଞ୍ଚଳଗୁଡିକୁ ଅପସାରଣ କରିପାରିବ ଯେଉଁଠାରେ କ pe ଣସି ଶିଖର ନାହିଁ ଏବଂ ମେଳଣରେ ଉନ୍ନତି ଆଣିବ |
+Maximum Spectral Range,ସର୍ବାଧିକ ସ୍ପେକ୍ଟ୍ରାଲ୍ ପରିସର |
+Minimum Spectral Range,ସର୍ବନିମ୍ନ ସ୍ପେକ୍ଟ୍ରାଲ୍ ପରିସର |
+Identify Spectrum,ସ୍ପେକ୍ଟ୍ରମ୍ ଚିହ୍ନଟ କରନ୍ତୁ |
+Identify Spectrum Using the Reference Library,ରେଫରେନ୍ସ ଲାଇବ୍ରେରୀ ବ୍ୟବହାର କରି ସ୍ପେକ୍ଟ୍ରମ୍ ଚିହ୍ନଟ କରନ୍ତୁ |
+Raman,ରମଣ |
+FTIR,FTIR |
+Spectra,ସ୍ପେକ୍ଟ୍ରା
+Type,ଟାଇପ୍ କରନ୍ତୁ |
+Spectrum Type Help,ସ୍ପେକ୍ଟ୍ରମ୍ ପ୍ରକାର ସହାୟତା |
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,ଏହି ଚୟନ FTIR କିମ୍ବା ରମଣ ମେଳଣ ଲାଇବ୍ରେରୀ ବ୍ୟବହୃତ ହୋଇଛି କି ନାହିଁ ତାହା ସ୍ଥିର କରିବ | ଅପଲୋଡ୍ ହୋଇଥିବା ସ୍ପେକ୍ଟ୍ରମ୍ ପ୍ରକାର ବାଛନ୍ତୁ |
+Analysis,ବିଶ୍ଳେଷଣ |
+Processed,ପ୍ରକ୍ରିୟାକରଣ
+Uploaded,ଅପଲୋଡ୍ ହୋଇଛି |
+Spectrum to Analyze Help,ସହାୟତା ବିଶ୍ଳେଷଣ କରିବାକୁ ସ୍ପେକ୍ଟ୍ରମ୍ |
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,ଅପଲୋଡ୍ ହୋଇଥିବା (ପ୍ରକ୍ରିୟାକୃତ ନୁହେଁ) ସ୍ପେକ୍ଟ୍ରମ୍ କିମ୍ବା ପ୍ରକ୍ରିୟାକରଣ ଟ୍ୟାବ୍ ବ୍ୟବହାର କରି ପ୍ରକ୍ରିୟାକୃତ ସ୍ପେକ୍ଟ୍ରମ୍ ସ୍ପେକ୍ଟ୍ରମ୍ ମ୍ୟାଚ୍ ରେ ବ୍ୟବହୃତ ହୋଇଛି କି ନାହିଁ ଏହି ଚୟନ ନିର୍ଣ୍ଣୟ କରିବ |
+Region,ଅଞ୍ଚଳ
+Full,ପୂର୍ଣ୍ଣ
+Peaks,ଶିଖର
+Region to Match Help,ସହାୟତା ମେଳ କରିବାକୁ ଅଞ୍ଚଳ |
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,ଆପଣ ଚୟନ କରୁଥିବା ଲାଇବ୍ରେରୀଟି ସମ୍ପୂର୍ଣ୍ଣ ସ୍ପେକ୍ଟ୍ରମ୍ କିମ୍ବା କେବଳ ସ୍ପେକ୍ଟ୍ରମ୍ ଶିଖରକୁ ନେଇ ଏହି ଚୟନ ନିର୍ଣ୍ଣୟ କରିବ |
+Partner With Us,ଆମ ସହିତ ସହଭାଗୀ |
+Help us reach our goal of revolutionizing spectroscopy.,ସ୍ପେକ୍ଟ୍ରସ୍କୋପିରେ ପରିବର୍ତ୍ତନ ଆଣିବା ପାଇଁ ଆମର ଲକ୍ଷ୍ୟରେ ପହଞ୍ଚିବାରେ ସାହାଯ୍ୟ କରନ୍ତୁ |
+Donate Cash,ନଗଦ ଦାନ କରନ୍ତୁ |
+Buy From Swag Store,ସ୍ ag ାଗ୍ ଷ୍ଟୋରରୁ କିଣ |
+Contribute time,ସମୟ ଯୋଗଦାନ କରନ୍ତୁ |
+Revolutionizing,ବିପ୍ଳବ
+Thriving,ଉନ୍ନତି
+Maintaining,ରକ୍ଷଣାବେକ୍ଷଣ
+Supporting,ସମର୍ଥନ
+Saving,ସଞ୍ଚୟ
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,ଏକ ଦେୟଯୁକ୍ତ ଦଳ ଯାହା ଓପନ୍ ସ୍ପେସିକୁ ଏକ କ୍ଲିକ୍ ସହିତ 100% ସଠିକ୍ ସ୍ପେକ୍ଟ୍ରାଲ୍ ଆଇଡେଣ୍ଟିଫିକେସନ୍ ଏବଂ ଗଭୀର ସ୍ପେକ୍ଟ୍ରାଲ୍ ଡାଇଗ୍ନୋଷ୍ଟିକ୍ସର ମୂଳ ଲକ୍ଷ୍ୟର ନିକଟତର କରୁଛି |
+A single paid staff person working to update and build the community and the tool,ସମ୍ପ୍ରଦାୟ ଏବଂ ଉପକରଣକୁ ଅଦ୍ୟତନ ଏବଂ ନିର୍ମାଣ କରିବା ପାଇଁ କାର୍ଯ୍ୟ କରୁଥିବା ଏକକ ବେତନ ପ୍ରାପ୍ତ କର୍ମଚାରୀ |
+Maintenance costs and minor ad-hoc updates and bug fixes,ରକ୍ଷଣାବେକ୍ଷଣ ଖର୍ଚ୍ଚ ଏବଂ ଛୋଟ ଆଡ-ହକ୍ ଅପଡେଟ୍ ଏବଂ ବଗ୍ ଫିକ୍ସ |
+Keeping the app online and essential maintenance,ଆପକୁ ଅନଲାଇନ୍ ରଖିବା ଏବଂ ଅତ୍ୟାବଶ୍ୟକ ରକ୍ଷଣାବେକ୍ଷଣ |
+Long term storage only,କେବଳ ଦୀର୍ଘକାଳୀନ ସଂରକ୍ଷଣ |
+Sharing Metadata,ମେଟାଡାଟା ଅଂଶୀଦାର |
+Thank you for sharing your data!,ଆପଣଙ୍କର ତଥ୍ୟ ଅଂଶୀଦାର କରିଥିବାରୁ ଧନ୍ୟବାଦ!
+Your data will soon be available at https://osf.io/stmv4/,ଆପଣଙ୍କର ତଥ୍ୟ ଶୀଘ୍ର https://osf.io/stmv4/ ରେ ଉପଲବ୍ଧ ହେବ |
+Something went wrong :-(,କିଛି ଭୁଲ ହୋଇ ଗଲା :-(
+Data type not supported!,ଡାଟା ପ୍ରକାର ସମର୍ଥିତ ନୁହେଁ!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","ଅପଲୋଡ୍ ହୋଇଥିବା ଡାଟା ପ୍ରକାର ସମ୍ପ୍ରତି ସମର୍ଥିତ ନୁହେଁ; ଦୟାକରି
+                      ସବିଶେଷ ତଥ୍ୟ ପାଇଁ ଟୁଲ୍ ଟିପ୍ସ ଏବଂ 'ବିଷୟରେ' ଟ୍ୟାବ୍ ଯାଞ୍ଚ କରନ୍ତୁ |"
+Sharing Spectrum to Community Library,କମ୍ୟୁନିଟି ଲାଇବ୍ରେରୀରେ ସ୍ପେକ୍ଟ୍ରମ୍ ଅଂଶୀଦାର |
+Reading Spectrum,ସ୍ପେକ୍ଟ୍ରମ୍ ପ Reading ିବା |
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","ଯଦି ଆପଣ ଏକ ଟେକ୍ସଟ୍ / csv ଫାଇଲ୍ ଅପଲୋଡ୍ କରନ୍ତି, ନିଶ୍ଚିତ କରନ୍ତୁ ଯେ
+           ସ୍ତମ୍ଭଗୁଡ଼ିକ ସାଂଖ୍ୟିକ ଏବଂ ଏହାର ନାମ 'ୱେଭେମ୍ବର' ଏବଂ |
+           'ତୀବ୍ରତା'"
+absorbance intensity [-],ଅବଶୋଷଣର ତୀବ୍ରତା [-]
+wavenumber [cm<sup>-1</sup>],wavenumber [cm <sup> -1 </sup>]
+Analyzing Spectrum,ସ୍ପେକ୍ଟ୍ରମ୍ ବିଶ୍ଳେଷଣ କରିବା |
+Finding Match,ମ୍ୟାଚ୍ ଖୋଜିବା
+Making Plot,ପ୍ଲଟ୍ ତିଆରି କରିବା |
+Material,ସାମଗ୍ରୀ
+Pearson's r,ପିଆରସନଙ୍କ r
+Organization,ସଂଗଠନ |
+Selectable Matches,ଚୟନ ଯୋଗ୍ୟ ମେଳ |
+Donations,ଦାନ
+Operation Costs,ଅପରେସନ୍ ଖର୍ଚ୍ଚ
+Selection Metadata,ଚୟନ ମେଟାଡାଟା |

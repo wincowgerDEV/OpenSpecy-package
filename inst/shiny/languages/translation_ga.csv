@@ -1,0 +1,212 @@
+en,ga
+About,Faoi
+Welcome,Fáilte
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Bí ar na céadta taighdeoirí ó gach cearn
+           an domhan atá mar chuid den phobal Open Specy le
+           anailís, comhroinnt, próiseáil, agus aithint
+           a speictrim Raman agus IR. Tá na seirbhísí seo saor in aisce agus foinse oscailte a bhuíochas lenár gcomhpháirtithe:"
+Quick Video Tutorial,Ceacht Físe Tapa
+Instructions,Treoracha
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Go hachomair: Chun an uirlis a úsáid uaslódáil comhad csv, asp, jdx, spc, nó Spa ar an táb comhad uaslódáil.
+                                  Más csv é, ba chóir colún amháin a ainmniú mar ‘wavenumber’ (in aonaid 1 / cm) agus ceann eile darb ainm ‘déine’.
+                                  Is féidir leat do chuid sonraí a rianú trí scagaire SG a úsáid, do bhunlíne a cheartú trí úsáid a bhaint as ord ilpholaimiúil iModPolyFit, agus an raon tonnfhaid don chluiche a shrianadh.
+                                  Cuirfear an toradh i gcomparáid le leabharlann inmheánach speictrim Raman nó FTIR. Na 1000 cluiche is láidre in éineacht le do
+                                  cuirfear sonraí uaslódáilte nó próiseáilte i láthair i bplota agus i dtábla idirghníomhach. Le haghaidh tuilleadh sonraí cliceáil ar an gcnaipe thíos
+                                  nó féachaint ar an bhfíseán mionsonraithe teagaisc."
+Detailed Standard Operating Procedure,Nós Imeachta Oibriúcháin Caighdeánach mionsonraithe
+Download Open Data,Íoslódáil Sonraí Oscailte
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Fuarthas speictrim tagartha ó acmhainní rochtana oscailte
+           foilseacháin ar líne, piarmheasúnaithe, agus síntiúis chorparáideacha. Sa todhchaí
+           ionchorprófar speictrim a uaslódáiltear leis an uirlis sa tagairt
+           leabharlann chun é a dhéanamh níos fearr fós."
+Raman Reference Library,Leabharlann Tagartha Raman
+FTIR Reference Library,Leabharlann Tagartha FTIR
+Raman Reference Library Metadata,Meiteashonraí Leabharlainne Tagartha Raman
+FTIR Reference Library Metadata,Meiteashonraí Leabharlainne Tagartha FTIR
+Contribute Spectra,Tabhair Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Chun speictrim a roinnt uaslódáil comhad ar an táb comhad uaslódáil. Má roghnaigh tú Comhroinn seolfar cóip de do speictrim chuig an bPobal
+           Trádstóras Sonraí ar Chreat Eolaíochta Oscailte. Le meiteashonraí breise a chur leis,
+           líon isteach na réimsí meiteashonraí inúsáidte agus cliceáil -Share Data-. An
+           Cóipeálfar comhad speictrim a uaslódáil tú in éineacht le do chuid freagraí
+           chuig an bhfo-fhillteán -With Meiteashonraí ag an nasc thíos. Coinníonn na sonraí roinnte go léir
+           Ceadúnas Attribution Creative Commons 4.0."
+Community Data Warehouse,Trádstóras Sonraí Pobail
+Tool Validation,Bailíochtú Uirlisí
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Déantar tástáil ar gach paraiméadar san uirlis seo chun é sin a bhailíochtú
+           tá an uirlis ag feidhmiú chomh maith agus is féidir agus an réamhshocrú is fearr á chinneadh
+           paraiméadair le húsáid. Cuimsíonn ár n-imeacht bailíochtaithe reatha ceartú
+           iontrálacha dúblacha sna leabharlanna tagartha, ag seiceáil le haghaidh speictrim i
+           meiteashonraí nach bhfuil sa leabharlann speictrim, agus an réamhshocrú á chinntiú
+           soláthraíonn paraiméadair cruinneas os cionn 80% sa chéad mheaitseáil."
+Detailed Validation Procedure,Nós Imeachta Bailíochtaithe Mionsonraithe
+"Updates, Feature Requests, and Bug Reports","Nuashonruithe, Iarrataí Gné, agus Tuarascálacha Bug"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Coinnímid súil ar gach nuashonrú ag úsáid rialú leaganacha ar ár gcód. Is féidir gnéithe a iarraidh agus fabht a thuairisciú ar GitHub.
+Stay up to date!,Fan suas chun dáta!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Lean muid ar Twitter @OpenSpecy. Seol r-phost chuig wincowger@gmail.com le cur leis an liosta postála.
+Citation,Lua
+Useful Links,Naisc Úsáideacha
+Free FTIR Software: siMPle microplastic IR spectral identification software,Bogearraí FTIR saor in aisce: bogearraí aitheantais speictrim IR microplaisteacha siMPle
+Free Spectroscopy Learning Academy from ThermoFisher,Acadamh Foghlama Speictreascópachta Saor in Aisce ó ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Acmhainn Foghlama Micreascóp Optúil Saor in Aisce ó Ollscoil Stáit Florida
+Free desktop application for spectral analysis and links to reference databases.,Feidhmchlár deisce saor in aisce le haghaidh anailíse speictrim agus naisc chuig bunachair sonraí tagartha.
+Terms And Conditions,Téarmaí agus Coinníollacha
+Privacy Policy,Beartas Príobháideachais
+Upload File,Uaslódáil Comhad
+"Upload, View, and Share Spectra","Speictrim a Uaslódáil, a Amharc, agus a Chomhroinnt"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Roghnaigh .csv (is fearr), .asp, .jdx, .spc, .spa, nó .0 Comhad"
+Share Your Data?,Comhroinn Do Shonraí?
+Share Help,Comhroinn Cabhair
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Más mian leat, roinnimid do speictrim agus do shuíomhanna uaslódáilte leis an bpobal speictreascópachta.
+           De réir réamhshocraithe, ceadófar na sonraí go léir faoi Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Beidh speictrim uaslódáilte le feiceáil anseo: https://osf.io/rjg3c"
+Upload Help,Uaslódáil Cabhair
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Uaslódáil comhaid speictrim Raman nó FTIR mar csv, jdx, spc, nó Spa. Is fearr comhad csv. Más csv é, caithfidh colún amháin a bheith ar an lipéad ‘wavenumber’ in aonaid (1 / cm) agus colún eile ar a bhfuil an lipéad ‘déine’ in aonaid ionsúcháin.
+            Más jdx, spc, Spa, nó 0 ba chóir go mbeadh an comhad ina speictream ionsúcháin amháin le Wavenumber i (1 / cm). Ní oibreoidh na comhaid seo go foirfe i gcónaí toisc go bhfuil siad deacair iad a léamh agus mar sin déan iad a sheiceáil faoi dhó i mbogearra eile.
+            Buail an cnaipe 'Sonraí Tástála' chun speictream samplach Raman a íoslódáil."
+Intensity Adjustment,Coigeartú Déine
+None,Dada
+Transmittance,Transmittance
+Reflectance,Machnamh
+Intensity Correction Help,Cabhair Ceartú Déine
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Mura bhfuil an speictream uaslódáilte in aonaid ionsúcháin,
+           bain úsáid as an ionchur seo chun na haonaid a shonrú le tiontú ó.Open Specy can
+           speictrim frithchaithimh nó tarchuradóireachta a choigeartú d'aonaid ionsúcháin ag úsáid
+           seo anuas sa chluaisín uaslódáil comhad. Gach ceann de na cluaisíní roimhe seo
+           glacadh leis go bhfuil na sonraí in aonaid ionsúcháin mar sin ba chóir duit an
+           ceartú sula leantar ar aghaidh más gá. An coigeartú tarchuradóireachta
+           úsáideann an ríomh log10 (1 / T) nach ceart don chóras
+           agus tréithe cáithníní. Úsáideann an coigeartú frithchaithimh an
+           Cothromóid Kubelka-Munk (1-R) 2 / (2 * R). Glacaimid leis go bhfuil an frithchaitheamh
+           formáidítear é mar chéatadán ó 1-100 agus ceartaigh an déine ar dtús trí roinnt ar 100
+           ionas go n-oireann sé don fhoirm a bhfuil súil leis ag an gcothromóid.
+           Mura roghnaítear aon cheann, glacann Open Specy leis go bhfuil na sonraí uaslódáilte
+           speictream ionsúcháin."
+Sample File,Comhad Samplach
+Sample Data Help,Cabhair Sonraí Samplacha
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Is speictream samplach é seo is féidir a uaslódáil chuig an uirlis chun é a thástáil agus chun tuiscint a fháil ar an gcaoi ar chóir na comhaid csv a fhormáidiú.
+Metadata Input,Ionchur Meiteashonraí
+Metadata Help,Cabhair Meiteashonraí
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Roinnimid aon speictrim agus meiteashonraí uaslódáilte leis an bpobal speictreascópachta má líonann tú na meiteashonraí anseo agus má roghnaíonn tú sciar.
+           Beidh speictrim agus meiteashonraí uaslódáilte le feiceáil anseo: https://osf.io/rjg3c"
+Share Metadata,Comhroinn Meiteashonraí
+Upload some data to get started...,Uaslódáil roinnt sonraí chun tosú ...
+Preprocess Spectrum,Speictrim Preprocess
+"Smooth, Baseline Correct, and Download Processed Spectra","Smaointe Próiseáilte Smooth, Bunlíne, agus Íoslódáil"
+Download (recommended),Íoslódáil (moltar)
+Download Help,Íoslódáil Cabhair
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,B’fhéidir gur mhaith le roinnt úsáideoirí cóip dá speictream próiseáilte a shábháil. Déanann an cnaipe seo an speictream próiseáilte a íoslódáil mar chomhad csv.
+Smoothing,Smoothing
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Féadann an smoother seo cóimheas comhartha go torann na sonraí a fheabhsú agus úsáideann scagaire Savitzky-Golay le 12 phointe sonraí reatha agus an polynomial sonraithe.
+Smoothing Polynomial,Polynomial Smoothing
+Baseline Correction,Ceartú Bunlíne
+Baseline Correction Help,Cabhair Ceartú Bunlíne
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Tá dhá rogha ag an ngnáthamh ceartaithe bunlíne seo maidir le ceartú bunlíne, 1) an nós imeachta imodpolyfit polynomial chun bunlíne an speictrim a fháil trí úsáid a bhaint as feistiú ilpholaimiúil do réigiún iomlán an speictrim. 2) is féidir línte láimhe a tharraingt ag baint úsáide as an uirlis líne ar an plota agus úsáidfidh an cnaipe ceart na línte chun an bhunlíne a dhealú."
+Baseline Correction Polynomial,Ceartú Bunlíne Polynomial
+Technique,Teicníc
+Polynomial,Polynomial
+Manual,Lámhleabhar
+Correct With Trace,Ceart le Rian
+Reset,Athshocraigh
+Range Selection,Roghnú Raon
+Spectral Range Help,Cabhair Raon Speictrim
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Is féidir le srianadh an raon speictrim réigiúin speictrim a bhaint nach bhfuil beanna iontu agus meaitseáil a fheabhsú
+Maximum Spectral Range,Raon Uasta Speictrim
+Minimum Spectral Range,Raon Íosta Speictrim
+Identify Spectrum,Speictrim a aithint
+Identify Spectrum Using the Reference Library,Speictrim a Aithint Ag Úsáid na Leabharlainne Tagartha
+Raman,Raman
+FTIR,FTIR
+Spectra,Spectra
+Type,Cineál
+Spectrum Type Help,Cabhair Cineál Speictrim
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Cinnfidh an roghnú seo an úsáidtear an leabharlann meaitseála FTIR nó Raman. Roghnaigh an cineál speictrim a uaslódáladh.
+Analysis,Anailís
+Processed,Próiseáilte
+Uploaded,Uaslódáilte
+Spectrum to Analyze Help,Speictrim chun Cabhair a Anailísiú
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Cinnfidh an roghnú seo an úsáidtear an speictream uaslódáilte (nár próiseáladh) nó an speictream a próiseáladh agus an cluaisín próiseála á úsáid sa mheaitseáil speictrim.
+Region,Réigiún
+Full,Iomlán
+Peaks,Beanna
+Region to Match Help,Réigiún chun Cabhair a Mheaitseáil
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Cinnfidh an roghnú seo an bhfuil an leabharlann a bhfuil tú ag teacht léi comhdhéanta den speictream iomlán nó de bheanna speictrim amháin.
+Partner With Us,Comhpháirtí Le Linn
+Help us reach our goal of revolutionizing spectroscopy.,Cuidigh linn ár gcuspóir speictreascópacht a athrú.
+Donate Cash,Deonaigh Airgead Tirim
+Buy From Swag Store,Ceannaigh Ó Swag Store
+Contribute time,Tabhair am
+Revolutionizing,Réabhlóideach
+Thriving,Go rathúil
+Maintaining,A chothabháil
+Supporting,Ag tacú
+Saving,Shábháil
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Foireann íoctha atá ag brú Open Specy níos gaire don sprioc deiridh de aithint speictrim cruinn 100% agus diagnóisic speictrim domhain le cliceáil amháin
+A single paid staff person working to update and build the community and the tool,Duine foirne íoctha amháin atá ag obair chun an pobal agus an uirlis a nuashonrú agus a thógáil
+Maintenance costs and minor ad-hoc updates and bug fixes,Costais chothabhála agus mion-nuashonruithe ad-hoc agus socruithe fabht
+Keeping the app online and essential maintenance,An aip a choinneáil ar líne agus cothabháil riachtanach
+Long term storage only,Stóráil fhadtéarmach amháin
+Sharing Metadata,Meiteashonraí a Chomhroinnt
+Thank you for sharing your data!,Go raibh maith agat as do chuid sonraí a roinnt!
+Your data will soon be available at https://osf.io/stmv4/,Beidh do chuid sonraí ar fáil go luath ag https://osf.io/stmv4/
+Something went wrong :-(,Chuaigh rud eigin mícheart :-(
+Data type not supported!,Ní thacaítear leis an gcineál sonraí!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Ní thacaítear le cineál sonraí uaslódáilte faoi láthair; le do thoil
+                      seiceáil leideanna uirlisí agus cluaisín 'About' le haghaidh sonraí."
+Sharing Spectrum to Community Library,Speictrim a Chomhroinnt leis an Leabharlann Pobail
+Reading Spectrum,Speictrim Léitheoireachta
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Má uaslódáil tú comhad téacs / csv, déan cinnte go bhfuil an
+           tá na colúin uimhriúil agus tugtar 'wavenumber' orthu agus
+           'déine'."
+absorbance intensity [-],déine ionsúcháin [-]
+wavenumber [cm<sup>-1</sup>],Wavenumber [cm <sup> -1 </sup>]
+Analyzing Spectrum,Speictrim a Anailísiú
+Finding Match,Meaitseáil Aimsithe
+Making Plot,Plota a Dhéanamh
+Material,Ábhar
+Pearson's r,R Pearson
+Organization,Eagraíocht
+Selectable Matches,Meaitseanna Selectable
+Donations,Síntiúis
+Operation Costs,Costais Oibríochta
+Selection Metadata,Meiteashonraí Roghnúcháin

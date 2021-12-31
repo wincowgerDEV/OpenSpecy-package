@@ -1,0 +1,212 @@
+en,lo
+About,ກ່ຽວກັບ
+Welcome,ຍິນດີຕ້ອນຮັບ
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","ເຂົ້າຮ່ວມກັບນັກຄົ້ນຄວ້າຫຼາຍຮ້ອຍຄົນຈາກອ້ອມຂ້າງ
+           ໂລກຜູ້ທີ່ເປັນສ່ວນຫນຶ່ງຂອງຊຸມຊົນ Open Specy ໂດຍ
+           ການ​ວິ​ເຄາະ​, ການ​ແບ່ງ​ປັນ​, ການ​ປຸງ​ແຕ່ງ​, ແລະ​ການ​ກໍາ​ນົດ​
+           Raman ແລະ IR spectra ຂອງເຂົາເຈົ້າ. ການບໍລິການເຫຼົ່ານີ້ແມ່ນບໍ່ເສຍຄ່າແລະແຫຼ່ງເປີດຂໍຂອບໃຈກັບຄູ່ຮ່ວມງານຂອງພວກເຮົາ:"
+Quick Video Tutorial,ການສອນວິດີໂອດ່ວນ
+Instructions,ຄໍາແນະນໍາ
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","ໂດຍຫຍໍ້: ເພື່ອໃຊ້ເຄື່ອງມືອັບໂຫລດໄຟລ໌ csv, asp, jdx, spc, ຫຼື spa ໄປໃສ່ແຖບໄຟລ໌ອັບໂຫລດ.
+                                  ຖ້າ csv, ຖັນໜຶ່ງຄວນມີຊື່ 'wavenumber' (ໃນຫົວໜ່ວຍ 1/cm) ແລະອີກຖັນໜຶ່ງຊື່ 'ຄວາມເຂັ້ມຂຸ້ນ'.
+                                  ທ່ານສາມາດເຮັດໃຫ້ຂໍ້ມູນຂອງທ່ານລຽບງ່າຍໂດຍໃຊ້ຕົວກອງ SG, ແກ້ໄຂຂໍ້ມູນພື້ນຖານຂອງທ່ານໂດຍໃຊ້ຄໍາສັ່ງ polynomial ຂອງ iModPolyFit, ແລະຈໍາກັດໄລຍະຄວາມຍາວຂອງຄື້ນສໍາລັບການຈັບຄູ່.
+                                  ຜົນໄດ້ຮັບຈະຖືກປຽບທຽບກັບຫ້ອງສະໝຸດ Raman ຫຼື FTIR spectra ພາຍໃນ. ທີ່ເຂັ້ມແຂງທີ່ສຸດ 1000 ກົງກັບຂອງທ່ານ
+                                  ຂໍ້​ມູນ​ທີ່​ອັບ​ໂຫຼດ​ຫຼື​ປະ​ມວນ​ຜົນ​ຈະ​ໄດ້​ຮັບ​ການ​ນໍາ​ສະ​ເຫນີ​ໃນ​ການ​ໂຕ້​ຕອບ​ແລະ​ຕາ​ຕະ​ລາງ​. ສໍາລັບລາຍລະອຽດເພີ່ມເຕີມໃຫ້ຄລິກໃສ່ປຸ່ມຂ້າງລຸ່ມນີ້
+                                  ຫຼືເບິ່ງວິດີໂອການສອນລະອຽດ."
+Detailed Standard Operating Procedure,ລາຍລະອຽດຂັ້ນຕອນການປະຕິບັດມາດຕະຖານ
+Download Open Data,ດາວໂຫລດ Open Data
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","spectra ອ້າງອິງໄດ້ມາຈາກແຫຼ່ງການເຂົ້າເຖິງເປີດ
+           ອອນ​ໄລ​ນ​໌, peer reviewed ສິ່ງພິມ, ແລະການບໍລິຈາກຂອງບໍລິສັດ. ໃນ​ອາ​ນາ​ຄົດ
+           spectra ທີ່ຖືກອັບໂຫລດໃສ່ເຄື່ອງມືຈະຖືກລວມເຂົ້າໃນການອ້າງອີງ
+           ຫ້ອງສະຫມຸດເພື່ອເຮັດໃຫ້ມັນດີກວ່າ."
+Raman Reference Library,ຫໍສະໝຸດ Raman Reference
+FTIR Reference Library,ຫໍສະໝຸດອ້າງອີງ FTIR
+Raman Reference Library Metadata,Raman Reference Library Metadata
+FTIR Reference Library Metadata,FTIR Reference Library Metadata
+Contribute Spectra,ປະກອບສ່ວນ Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","ເພື່ອແບ່ງປັນ spectra ອັບໂຫລດໄຟລ໌ໃສ່ແຖບໄຟລ໌ອັບໂຫລດ. ຖ້າເຈົ້າເລືອກ Share a copy of your spectra will be send to the Community
+           ຄັງເກັບຂໍ້ມູນໃນກອບວິທະຍາສາດເປີດ. ເພື່ອເພີ່ມ metadata ເພີ່ມເຕີມ,
+           ຕື່ມຂໍ້ມູນໃສ່ໃນຊ່ອງຂໍ້ມູນ metadata ທີ່ມີຢູ່ແລະຄລິກ -Share Data-. ໄດ້
+           ໄຟລ໌ spectra ທີ່ທ່ານອັບໂຫລດພ້ອມກັບຄໍາຕອບຂອງທ່ານຈະຖືກຄັດລອກ
+           ໄປທີ່ໂຟເດີຍ່ອຍ - With Metadata- ຢູ່ລິ້ງຂ້າງລຸ່ມນີ້. ຂໍ້​ມູນ​ທີ່​ແບ່ງ​ປັນ​ທັງ​ຫມົດ​ຖື​ໄວ້​
+           ໃບອານຸຍາດ Creative Commons Attribution License 4.0."
+Community Data Warehouse,ສາງຂໍ້ມູນຊຸມຊົນ
+Tool Validation,ການກວດສອບເຄື່ອງມື
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","ຕົວກໍານົດການທັງຫມົດໃນເຄື່ອງມືນີ້ໄດ້ຖືກທົດສອບເພື່ອກວດສອບວ່າ
+           ເຄື່ອງມືແມ່ນເຮັດວຽກທີ່ດີທີ່ສຸດເທົ່າທີ່ເປັນໄປໄດ້ແລະກໍານົດຄ່າເລີ່ມຕົ້ນທີ່ດີທີ່ສຸດ
+           ຕົວກໍານົດການທີ່ຈະນໍາໃຊ້. ຂັ້ນຕອນການກວດສອບໃນປະຈຸບັນຂອງພວກເຮົາລວມມີການແກ້ໄຂ
+           ລາຍການທີ່ຊໍ້າກັນຢູ່ໃນຫ້ອງສະໝຸດອ້າງອີງ, ກວດສອບການສະເປັກໃນ
+           metadata ທີ່ບໍ່ຢູ່ໃນຫ້ອງສະຫມຸດ spectral, ແລະຮັບປະກັນຄ່າເລີ່ມຕົ້ນ
+           ພາລາມິເຕີໃຫ້ຄວາມຖືກຕ້ອງຫຼາຍກວ່າ 80% ໃນການແຂ່ງຂັນຄັ້ງທໍາອິດ."
+Detailed Validation Procedure,ຂັ້ນຕອນການກວດສອບລາຍລະອຽດ
+"Updates, Feature Requests, and Bug Reports","ການອັບເດດ, ການຮ້ອງຂໍຄຸນສົມບັດ, ແລະລາຍງານຂໍ້ຜິດພາດ"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,ພວກເຮົາຕິດຕາມການອັບເດດທັງໝົດໂດຍໃຊ້ການຄວບຄຸມເວີຊັນໃນລະຫັດຂອງພວກເຮົາ. ສາມາດຮ້ອງຂໍຄຸນສົມບັດ ແລະລາຍງານຂໍ້ຜິດພາດໃນ GitHub.
+Stay up to date!,ຕິດຕາມຂ່າວສານ!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,ຕິດຕາມພວກເຮົາໃນ Twitter @OpenSpecy. ອີເມລ wincowger@gmail.com ທີ່ຈະຖືກເພີ່ມໃສ່ບັນຊີລາຍຊື່ທາງໄປສະນີ.
+Citation,ການອ້າງອີງ
+Useful Links,ການເຊື່ອມຕໍ່ທີ່ເປັນປະໂຫຍດ
+Free FTIR Software: siMPle microplastic IR spectral identification software,ຊອບແວ FTIR ຟຣີ: siMple microplastic IR spectral ຊອບແວກໍານົດຕົວຕົນ
+Free Spectroscopy Learning Academy from ThermoFisher,ສະຖາບັນການຮຽນຮູ້ Spectroscopy ຟຣີຈາກ ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,ແຫຼ່ງການຮຽນຮູ້ກ້ອງຈຸລະທັດທາງແສງຟຣີຈາກມະຫາວິທະຍາໄລລັດ Florida
+Free desktop application for spectral analysis and links to reference databases.,ຄໍາຮ້ອງສະຫມັກ desktop ຟຣີສໍາລັບການວິເຄາະ spectral ແລະການເຊື່ອມຕໍ່ກັບຖານຂໍ້ມູນອ້າງອີງ.
+Terms And Conditions,ເງື່ອນໄຂແລະເງື່ອນໄຂ
+Privacy Policy,ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ
+Upload File,ອັບໂຫຼດໄຟລ໌
+"Upload, View, and Share Spectra","ອັບໂຫຼດ, ເບິ່ງ, ແລະແບ່ງປັນ Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","ເລືອກ .csv (ມັກ), .asp, .jdx, .spc, .spa, ຫຼື .0 ໄຟລ໌"
+Share Your Data?,ແບ່ງປັນຂໍ້ມູນຂອງທ່ານບໍ?
+Share Help,ແບ່ງປັນການຊ່ວຍເຫຼືອ
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","ຖ້າທ່ານຕ້ອງການ, ພວກເຮົາແບ່ງປັນ spectra ທີ່ທ່ານອັບໂຫລດແລະການຕັ້ງຄ່າກັບຊຸມຊົນ spectroscopy.
+           ໂດຍຄ່າເລີ່ມຕົ້ນ, ຂໍ້ມູນທັງໝົດຈະຖືກອະນຸຍາດພາຍໃຕ້ Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           spectra ອັບໂຫລດຈະປາກົດຢູ່ນີ້: https://osf.io/rjg3c"
+Upload Help,ອັບໂຫຼດການຊ່ວຍເຫຼືອ
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","ອັບໂຫຼດໄຟລ໌ Raman ຫຼື FTIR spectrum ເປັນ csv, jdx, spc, ຫຼື spa. ໄຟລ໌ csv ເປັນທີ່ຕ້ອງການ. ຖ້າເປັນ csv, ໄຟລ໌ຕ້ອງມີຖັນໜຶ່ງທີ່ມີປ້າຍກຳກັບ 'wavenumber' ໃນຫົວໜ່ວຍ (1/cm) ແລະຖັນອື່ນທີ່ມີປ້າຍກຳກັບ 'ຄວາມເຂັ້ມ' ໃນຫົວໜ່ວຍດູດຊຶມ.
+            ຖ້າ jdx, spc, spa, ຫຼື 0 ໄຟລ໌ຄວນຈະເປັນ spectrum absorbance ດຽວທີ່ມີ wavenumber ໃນ (1/cm). ໄຟລ໌ເຫຼົ່ານີ້ຈະບໍ່ເຮັດວຽກຢ່າງສົມບູນແບບສະເໝີໄປ ເພາະວ່າມັນເປັນເລື່ອງຍາກໃນການອ່ານ ດັ່ງນັ້ນໃຫ້ກວດເບິ່ງພວກມັນໃນຊອບແວອື່ນອີກຄັ້ງ.
+            ກົດປຸ່ມ 'Test Data' ເພື່ອດາວໂຫລດຕົວຢ່າງ Raman spectrum."
+Intensity Adjustment,ການປັບຄວາມເຂັ້ມຂຸ້ນ
+None,ບໍ່ມີ
+Transmittance,ການສົ່ງຜ່ານ
+Reflectance,ການສະທ້ອນ
+Intensity Correction Help,ຄວາມເຂັ້ມຂົ້ນຊ່ວຍແກ້ໄຂ
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","ຖ້າ spectrum ທີ່ອັບໂຫລດບໍ່ໄດ້ຢູ່ໃນຫນ່ວຍດູດຊຶມ,
+           ໃຊ້ວັດສະດຸປ້ອນນີ້ເພື່ອລະບຸຫົວໜ່ວຍທີ່ຈະປ່ຽນຈາກ.Open Specy ສາມາດ
+           ປັບ​ການ​ສະ​ທ້ອນ​ໃຫ້​ເຫັນ​ຫຼື transmittance spectra ກັບ​ຫົວ​ຫນ່ວຍ Absorbance ການ​ນໍາ​ໃຊ້
+           ນີ້ເລື່ອນລົງໃນແຖບໄຟລ໌ອັບໂຫລດ. ແຖບກ່ອນໜ້າທັງໝົດ
+           ສົມມຸດວ່າຂໍ້ມູນແມ່ນຢູ່ໃນຫົວຫນ່ວຍດູດຊຶມດັ່ງນັ້ນທ່ານຄວນເຮັດ
+           ການແກ້ໄຂກ່ອນທີ່ຈະສືບຕໍ່ຖ້າຈໍາເປັນ. ການ​ປັບ​ຄ່າ​ການ​ສົ່ງ​
+           ໃຊ້ການຄິດໄລ່ log10(1/T) ເຊິ່ງບໍ່ຖືກຕ້ອງສໍາລັບລະບົບ
+           ແລະລັກສະນະອະນຸພາກ. ການ​ປັບ​ສະ​ທ້ອນ​ໃຫ້​ເຫັນ​ການ​ນໍາ​ໃຊ້​
+           ສົມຜົນ Kubelka-Munk (1-R)2/(2*R). ພວກເຮົາສົມມຸດວ່າການສະທ້ອນ
+           ຖືກຈັດຮູບແບບເປັນເປີເຊັນຈາກ 1-100 ແລະທໍາອິດແກ້ໄຂຄວາມເຂັ້ມຂຸ້ນໂດຍການແບ່ງດ້ວຍ 100.
+           ດັ່ງນັ້ນມັນເຫມາະກັບຮູບແບບທີ່ຄາດໄວ້ໂດຍສົມຜົນ.
+           ຖ້າບໍ່ເລືອກອັນໃດ, Open Specy ຖືວ່າຂໍ້ມູນທີ່ອັບໂຫລດມາ
+           spectrum ການດູດຊຶມ."
+Sample File,ໄຟລ໌ຕົວຢ່າງ
+Sample Data Help,ການຊ່ວຍເຫຼືອຂໍ້ມູນຕົວຢ່າງ
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,ນີ້ແມ່ນຕົວຢ່າງ spectrum ທີ່ສາມາດຖືກອັບໂຫລດໄປຫາເຄື່ອງມືເພື່ອທົດສອບແລະເຂົ້າໃຈວິທີການຈັດຮູບແບບໄຟລ໌ csv.
+Metadata Input,ການປ້ອນຂໍ້ມູນເມຕາເດຕາ
+Metadata Help,ຊ່ວຍເຫຼືອ Metadata
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","ພວກເຮົາແບ່ງປັນ spectra ແລະ metadata ທີ່ອັບໂຫລດກັບຊຸມຊົນ spectroscopy ຖ້າທ່ານຕື່ມຂໍ້ມູນ metadata ຢູ່ທີ່ນີ້ແລະເລືອກແບ່ງປັນ.
+           spectra ແລະ metadata ທີ່ອັບໂຫລດຈະປາກົດຢູ່ນີ້: https://osf.io/rjg3c"
+Share Metadata,ແບ່ງປັນ Metadata
+Upload some data to get started...,ອັບໂຫຼດຂໍ້ມູນບາງຢ່າງເພື່ອເລີ່ມຕົ້ນ...
+Preprocess Spectrum,Preprocess Spectrum
+"Smooth, Baseline Correct, and Download Processed Spectra","ກ້ຽງ, ພື້ນຖານທີ່ຖືກຕ້ອງ, ແລະດາວໂຫລດ Spectra ປະມວນຜົນ"
+Download (recommended),ດາວໂຫຼດ (ແນະນຳ)
+Download Help,ດາວໂຫຼດການຊ່ວຍເຫຼືອ
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,ຜູ້​ໃຊ້​ບາງ​ຄົນ​ອາດ​ຈະ​ຕ້ອງ​ການ​ທີ່​ຈະ​ຊ່ວຍ​ປະ​ຢັດ​ສໍາ​ເນົາ​ຂອງ​ສະ​ເປກ​ຂອງ​ການ​ປຸງ​ແຕ່ງ​ຂອງ​ເຂົາ​ເຈົ້າ​. ປຸ່ມນີ້ດາວໂຫຼດ spectrum ປະມວນຜົນເປັນໄຟລ໌ csv.
+Smoothing,ກ້ຽງ
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,smoother ນີ້ສາມາດປັບປຸງອັດຕາສ່ວນສັນຍານກັບສິ່ງລົບກວນຂອງຂໍ້ມູນແລະນໍາໃຊ້ການກັ່ນຕອງ Savitzky-Golay ທີ່ມີ 12 ຈຸດຂໍ້ມູນແລ່ນແລະ polynomial ລະບຸໄວ້.
+Smoothing Polynomial,Smoothing Polynomial
+Baseline Correction,ການແກ້ໄຂພື້ນຖານ
+Baseline Correction Help,ການຊ່ວຍເຫຼືອການແກ້ໄຂພື້ນຖານ
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","ຂັ້ນຕອນການແກ້ໄຂພື້ນຖານນີ້ມີສອງທາງເລືອກສໍາລັບການແກ້ໄຂພື້ນຖານ, 1) ຂັ້ນຕອນການ imodpolyfit polynomial ເພື່ອຄົ້ນຫາເສັ້ນພື້ນຖານຂອງ spectrum ໂດຍຫຍໍ້ໂດຍໃຊ້ polynomial ເຫມາະກັບພາກພື້ນທັງຫມົດຂອງ spectra. 2) ເສັ້ນຄູ່ມືສາມາດແຕ້ມໄດ້ໂດຍໃຊ້ເຄື່ອງມືເສັ້ນໃນດິນຕອນແລະປຸ່ມທີ່ຖືກຕ້ອງຈະໃຊ້ເສັ້ນເພື່ອລົບເສັ້ນພື້ນຖານ."
+Baseline Correction Polynomial,Polynomial ການແກ້ໄຂພື້ນຖານ
+Technique,ເຕັກນິກ
+Polynomial,Polynomial
+Manual,ຄູ່ມື
+Correct With Trace,ແກ້ໄຂດ້ວຍການຕິດຕາມ
+Reset,ຣີເຊັດ
+Range Selection,ການເລືອກຊ່ວງ
+Spectral Range Help,ຊ່ວຍເຫຼືອຂອບເຂດ Spectral
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,ການຈໍາກັດຂອບເຂດຂອງສະເປກຕຣາສາມາດເອົາພາກພື້ນຂອງສະເປກຕຣໍາທີ່ບໍ່ມີຈຸດສູງສຸດແລະປັບປຸງການຈັບຄູ່
+Maximum Spectral Range,ຊ່ວງສະເປກສູງສຸດ
+Minimum Spectral Range,ຊ່ວງສະເປກຕ່ຳສຸດ
+Identify Spectrum,ກໍານົດ Spectrum
+Identify Spectrum Using the Reference Library,ກໍານົດ Spectrum ໂດຍໃຊ້ຫໍສະຫມຸດອ້າງອີງ
+Raman,ຣາມານ
+FTIR,FTIR
+Spectra,ສະເປັກ
+Type,ປະເພດ
+Spectrum Type Help,ການຊ່ວຍເຫຼືອປະເພດ Spectrum
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,ການເລືອກນີ້ຈະກຳນົດວ່າຫ້ອງສະໝຸດທີ່ກົງກັນ FTIR ຫຼື Raman ຖືກໃຊ້ຫຼືບໍ່. ເລືອກປະເພດ spectrum ທີ່ຖືກອັບໂຫລດ.
+Analysis,ການວິເຄາະ
+Processed,ປະມວນຜົນແລ້ວ
+Uploaded,ອັບໂຫຼດ
+Spectrum to Analyze Help,Spectrum ເພື່ອວິເຄາະການຊ່ວຍເຫຼືອ
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,ການເລືອກນີ້ຈະກຳນົດວ່າ spectrum ທີ່ຖືກອັບໂຫລດ (ບໍ່ໄດ້ປະມວນຜົນ) ຫຼື spectrum ທີ່ປະມວນຜົນໂດຍໃຊ້ແຖບປະມວນຜົນແມ່ນໃຊ້ໃນການຈັບຄູ່ spectrum.
+Region,ພາກພື້ນ
+Full,ເຕັມ
+Peaks,ສູງສຸດ
+Region to Match Help,ພາກພື້ນທີ່ຈະຈັບຄູ່ການຊ່ວຍເຫຼືອ
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,ການເລືອກນີ້ຈະກໍານົດວ່າຫ້ອງສະຫມຸດທີ່ທ່ານກໍາລັງຈັບຄູ່ກັບປະກອບດ້ວຍ spectrum ເຕັມຫຼືພຽງແຕ່ສູງສຸດ spectrum.
+Partner With Us,ຄູ່ຮ່ວມງານກັບພວກເຮົາ
+Help us reach our goal of revolutionizing spectroscopy.,ຊ່ວຍພວກເຮົາບັນລຸເປົ້າຫມາຍຂອງພວກເຮົາໃນການປະຕິວັດ spectroscopy.
+Donate Cash,ບໍລິຈາກເງິນສົດ
+Buy From Swag Store,ຊື້ຈາກຮ້ານ Swag
+Contribute time,ປະກອບສ່ວນເວລາ
+Revolutionizing,ການປະຕິວັດ
+Thriving,ຈະເລີນຮຸ່ງເຮືອງ
+Maintaining,ການຮັກສາ
+Supporting,ສະຫນັບສະຫນູນ
+Saving,ປະຢັດ
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,ທີມງານທີ່ໄດ້ຮັບຄ່າຈ້າງທີ່ກໍາລັງຊຸກຍູ້ໃຫ້ Open Specy ໃກ້ຊິດກັບເປົ້າຫມາຍສຸດທ້າຍຂອງການກໍານົດ spectral ທີ່ຖືກຕ້ອງ 100% ແລະການວິນິດໄສ spectral ເລິກດ້ວຍການຄລິກດຽວ.
+A single paid staff person working to update and build the community and the tool,ພະນັກງານທີ່ໄດ້ຮັບຄ່າຈ້າງດຽວເຮັດວຽກເພື່ອປັບປຸງແລະສ້າງຊຸມຊົນແລະເຄື່ອງມື
+Maintenance costs and minor ad-hoc updates and bug fixes,ຄ່າ​ບໍາ​ລຸງ​ຮັກ​ສາ​ແລະ​ການ​ປັບ​ປຸງ​ສະ​ເພາະ​ກິດ​ເລັກ​ນ້ອຍ​ແລະ​ການ​ແກ້​ໄຂ​ຂໍ້​ຜິດ​ພາດ​
+Keeping the app online and essential maintenance,ຮັກສາແອັບຯອອນໄລນ໌ ແລະການຮັກສາທີ່ຈຳເປັນ
+Long term storage only,ການເກັບຮັກສາໃນໄລຍະຍາວເທົ່ານັ້ນ
+Sharing Metadata,ການແບ່ງປັນເມຕາເດຕາ
+Thank you for sharing your data!,ຂໍ​ຂອບ​ໃຈ​ທ່ານ​ສໍາ​ລັບ​ການ​ແບ່ງ​ປັນ​ຂໍ້​ມູນ​ຂອງ​ທ່ານ​!
+Your data will soon be available at https://osf.io/stmv4/,ຂໍ້ມູນຂອງທ່ານຈະມີໃຫ້ໃນໄວໆນີ້ທີ່ https://osf.io/stmv4/
+Something went wrong :-(,ມີບາງຢ່າງຜິດພາດ :-(
+Data type not supported!,ບໍ່ຮອງຮັບປະເພດຂໍ້ມູນ!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","ປະເພດຂໍ້ມູນທີ່ອັບໂຫຼດບໍ່ຮອງຮັບໃນປັດຈຸບັນ; ກະລຸນາ
+                      ກວດເບິ່ງຄໍາແນະນໍາເຄື່ອງມືແລະແຖບ 'ກ່ຽວກັບ' ສໍາລັບລາຍລະອຽດ."
+Sharing Spectrum to Community Library,ການ​ແບ່ງ​ປັນ Spectrum ກັບ​ຫ້ອງ​ສະ​ຫມຸດ​ຊຸມ​ຊົນ​
+Reading Spectrum,ການອ່ານ Spectrum
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","ຖ້າທ່ານອັບໂຫລດໄຟລ໌ text/csv, ໃຫ້ແນ່ໃຈວ່າ
+           ຖັນແມ່ນຕົວເລກ ແລະຊື່ 'wenumber' ແລະ
+           'ຄວາມເຂັ້ມຂຸ້ນ'."
+absorbance intensity [-],ຄວາມເຂັ້ມຂອງການດູດຊຶມ [-]
+wavenumber [cm<sup>-1</sup>],ໝາຍເລກຄື້ນ [cm<sup>-1</sup>]
+Analyzing Spectrum,ການວິເຄາະ Spectrum
+Finding Match,ຊອກຫາການຈັບຄູ່
+Making Plot,ການສ້າງແຜນທີ່
+Material,ວັດສະດຸ
+Pearson's r,Pearson ຂອງ r
+Organization,ອົງການຈັດຕັ້ງ
+Selectable Matches,ການແຂ່ງຂັນທີ່ເລືອກໄດ້
+Donations,ການບໍລິຈາກ
+Operation Costs,ຄ່າໃຊ້ຈ່າຍໃນການດໍາເນີນງານ
+Selection Metadata,ການເລືອກເມຕາເດຕາ

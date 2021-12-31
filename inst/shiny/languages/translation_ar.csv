@@ -1,0 +1,212 @@
+en,ar
+About,عن
+Welcome,مرحبا
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","انضم إلى مئات الباحثين من جميع أنحاء
+           العالم الذين هم جزء من مجتمع Open Specy بواسطة
+           التحليل والمشاركة والمعالجة والتعرف
+           أطياف رامان والأشعة تحت الحمراء. هذه الخدمات مجانية ومفتوحة المصدر بفضل شركائنا:"
+Quick Video Tutorial,فيديو تعليمي سريع
+Instructions,تعليمات
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","باختصار: لاستخدام الأداة ، قم بتحميل ملف csv أو asp أو jdx أو spc أو spa إلى علامة تبويب تحميل الملف.
+                                  إذا كان csv ، يجب تسمية عمود ""wavenumber"" (بوحدات من 1 / سم) وآخر يسمى ""كثافة"".
+                                  يمكنك تجانس بياناتك باستخدام مرشح SG ، وتصحيح بياناتك باستخدام الترتيب متعدد الحدود لـ iModPolyFit ، وتقييد نطاق الطول الموجي للمباراة.
+                                  ستتم مقارنة النتيجة بمكتبة Raman أو مكتبة أطياف FTIR الداخلية. أقوى 1000 مباراة جنبا إلى جنب مع الخاص بك
+                                  سيتم تقديم البيانات التي تم تحميلها أو معالجتها في مخطط وجدول تفاعلي. لمزيد من التفاصيل انقر فوق الزر أدناه
+                                  أو شاهد الفيديو التعليمي المفصل."
+Detailed Standard Operating Procedure,إجراءات التشغيل القياسية التفصيلية
+Download Open Data,تنزيل البيانات المفتوحة
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","تم الحصول على الأطياف المرجعية من مصادر الوصول المفتوح
+           المنشورات عبر الإنترنت والمراجعة من قبل الزملاء وتبرعات الشركات. فى المستقبل
+           سيتم دمج الأطياف التي يتم تحميلها على الأداة في المرجع
+           مكتبة لجعلها أفضل."
+Raman Reference Library,مكتبة رامان المرجعية
+FTIR Reference Library,مكتبة مراجع FTIR
+Raman Reference Library Metadata,البيانات الوصفية لمكتبة رامان المرجعية
+FTIR Reference Library Metadata,البيانات الوصفية لمكتبة مرجع FTIR
+Contribute Spectra,المساهمة في الأطياف
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","لمشاركة الأطياف قم بتحميل ملف إلى علامة تبويب تحميل الملف. إذا قمت بتحديد مشاركة ، فسيتم إرسال نسخة من الأطياف الخاصة بك إلى المجتمع
+           مستودع البيانات في إطار عمل العلوم المفتوحة. لإضافة بيانات وصفية إضافية ،
+           املأ حقول البيانات الوصفية المتاحة وانقر فوق -Share Data-. ال
+           سيتم نسخ ملف الأطياف الذي قمت بتحميله مع ردودك
+           إلى المجلد الفرعي a -With Metadata- الموجود على الرابط أدناه. جميع البيانات المشتركة تحمل
+           رخصة إسناد المشاع الإبداعي 4.0."
+Community Data Warehouse,مستودع بيانات المجتمع
+Tool Validation,أداة التحقق من الصحة
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","يتم اختبار جميع المعلمات في هذه الأداة للتحقق من صحة ذلك
+           الأداة تعمل بأفضل شكل ممكن وتحدد أفضل الإعدادات الافتراضية
+           المعلمات لاستخدامها. تتضمن إجراءات التحقق الحالية الخاصة بنا التصحيح
+           إدخالات مكررة في مكتبات المراجع ، والتحقق من الأطياف في
+           البيانات الوصفية غير الموجودة في المكتبة الطيفية ، والتأكد من الإعداد الافتراضي
+           توفر المعلمات دقة تزيد عن 80٪ في المباراة الأولى."
+Detailed Validation Procedure,إجراء التحقق التفصيلي
+"Updates, Feature Requests, and Bug Reports",التحديثات وطلبات الميزات وتقارير الأخطاء
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,نحن نتتبع جميع التحديثات باستخدام التحكم في الإصدار في التعليمات البرمجية الخاصة بنا. يمكن طلب الميزات والإبلاغ عن الخطأ على GitHub.
+Stay up to date!,ابق على اطلاع!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,تابعنا على TwitterOpenSpecy. البريد الإلكتروني wincowger@gmail.com لإضافته إلى القائمة البريدية.
+Citation,الاقتباس
+Useful Links,روابط مفيدة
+Free FTIR Software: siMPle microplastic IR spectral identification software,برنامج FTIR المجاني: برنامج تحديد طيفي الأشعة تحت الحمراء siMPle microplastic
+Free Spectroscopy Learning Academy from ThermoFisher,أكاديمية تعلم التحليل الطيفي المجانية من ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,مصدر تعليمي مجاني بالمجهر الضوئي من جامعة ولاية فلوريدا
+Free desktop application for spectral analysis and links to reference databases.,تطبيق سطح مكتب مجاني للتحليل الطيفي وروابط لقواعد البيانات المرجعية.
+Terms And Conditions,الأحكام والشروط
+Privacy Policy,سياسة الخصوصية
+Upload File,رفع ملف
+"Upload, View, and Share Spectra",تحميل وعرض ومشاركة الأطياف
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",اختر ملف .csv (مفضل) أو .asp أو .jdx أو .spc أو .spa أو .0
+Share Your Data?,مشاركة بياناتك؟
+Share Help,مشاركة التعليمات
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","إذا كنت ترغب في ذلك ، فإننا نشارك أطيافك وإعداداتك التي تم تحميلها مع مجتمع التحليل الطيفي.
+           بشكل افتراضي ، سيتم ترخيص جميع البيانات بموجب Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           ستظهر الأطياف التي تم تحميلها هنا: https://osf.io/rjg3c"
+Upload Help,تحميل تعليمات
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","قم بتحميل ملفات طيف Raman أو FTIR كملف csv أو jdx أو spc أو spa. يُفضل استخدام ملف csv. إذا كان ملف csv ، يجب أن يحتوي الملف على عمود واحد يسمى ""wavenumber"" بوحدات (1 / cm) وعمود آخر يسمى ""كثافة"" في وحدات الامتصاص.
+            إذا كان الملف jdx أو spc أو spa أو 0 ، يجب أن يكون الملف عبارة عن طيف امتصاص واحد مع رقم موجي في (1 / سم). لن تعمل هذه الملفات دائمًا بشكل مثالي نظرًا لصعوبة قراءتها ، لذا تحقق منها مرة أخرى في برنامج آخر.
+            اضغط على زر ""اختبار البيانات"" لتنزيل عينة من طيف رامان."
+Intensity Adjustment,تعديل الشدة
+None,لا أحد
+Transmittance,النفاذية
+Reflectance,انعكاس
+Intensity Correction Help,مساعدة تصحيح الشدة
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","إذا لم يكن الطيف الذي تم تحميله في وحدات الامتصاص ،
+           استخدم هذا الإدخال لتحديد الوحدات المراد التحويل منها. Open Specy can
+           ضبط أطياف الانعكاس أو النفاذية باستخدام وحدات الامتصاص
+           هذه القائمة المنسدلة في علامة التبويب تحميل الملف. كافة علامات التبويب السابقة
+           افترض أن البيانات في وحدات الامتصاص لذا يجب عليك عمل
+           التصحيح قبل المتابعة إذا لزم الأمر. تعديل النفاذية
+           يستخدم حساب log10 (1 / T) الذي لا يصحح للنظام
+           وخصائص الجسيمات. يستخدم تعديل الانعكاس
+           معادلة Kubelka-Munk (1-R) 2 / (2 * R). نحن نفترض أن الانعكاس
+           يتم تنسيقه كنسبة مئوية من 1-100 ويصحح الكثافة أولاً بالقسمة على 100
+           بحيث يتناسب مع الشكل الذي تتوقعه المعادلة.
+           إذا لم يتم تحديد أي شيء ، فستفترض Open Specy أن البيانات التي تم تحميلها هي
+           طيف امتصاص."
+Sample File,ملف عينة
+Sample Data Help,نموذج تعليمات البيانات
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,هذا نموذج من الطيف يمكن تحميله إلى الأداة لاختباره وفهم كيفية تنسيق ملفات csv.
+Metadata Input,إدخال البيانات الوصفية
+Metadata Help,تعليمات البيانات الوصفية
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","نشارك أي أطياف وبيانات وصفية تم تحميلها مع مجتمع التحليل الطيفي إذا قمت بملء البيانات الوصفية هنا واخترت مشاركة.
+           ستظهر الأطياف والبيانات الوصفية التي تم تحميلها هنا: https://osf.io/rjg3c"
+Share Metadata,مشاركة البيانات الوصفية
+Upload some data to get started...,تحميل بعض البيانات للبدء ...
+Preprocess Spectrum,طيف ما قبل العملية
+"Smooth, Baseline Correct, and Download Processed Spectra",سلسة ، وتصحيح خط الأساس ، وتنزيل الأطياف المعالجة
+Download (recommended),تنزيل (موصى به)
+Download Help,تنزيل التعليمات
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,قد يرغب بعض المستخدمين في حفظ نسخة من طيفهم المعالج. يقوم هذا الزر بتنزيل النطاق المعالج كملف csv.
+Smoothing,التنعيم
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,يمكن أن يعزز هذا الأكثر سلاسة الإشارة إلى نسبة الضوضاء للبيانات ويستخدم مرشح Savitzky-Golay مع 12 نقطة بيانات قيد التشغيل ومتعدد الحدود المحدد.
+Smoothing Polynomial,تجانس متعدد الحدود
+Baseline Correction,تصحيح خط الأساس
+Baseline Correction Help,تعليمات تصحيح خط الأساس
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.",يحتوي روتين التصحيح الأساسي هذا على خيارين لتصحيح خط الأساس ، 1) إجراء imodpolyfit متعدد الحدود للعثور بشكل متكرر على خط الأساس للطيف باستخدام تناسب متعدد الحدود لمنطقة كاملة من الأطياف. 2) يمكن رسم الخطوط اليدوية باستخدام أداة الخط على الرسم وسيستخدم الزر الصحيح الخطوط لطرح خط الأساس.
+Baseline Correction Polynomial,متعدد الحدود لتصحيح خط الأساس
+Technique,تقنية
+Polynomial,متعدد الحدود
+Manual,كتيب
+Correct With Trace,الصحيح مع التتبع
+Reset,إعادة ضبط
+Range Selection,اختيار النطاق
+Spectral Range Help,مساعدة المدى الطيفي
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,يمكن أن يؤدي تقييد النطاق الطيفي إلى إزالة مناطق الطيف التي لا توجد بها قمم وتحسين المطابقة
+Maximum Spectral Range,أقصى مدى طيفي
+Minimum Spectral Range,المدى الطيفي الأدنى
+Identify Spectrum,تحديد الطيف
+Identify Spectrum Using the Reference Library,تحديد الطيف باستخدام المكتبة المرجعية
+Raman,رامان
+FTIR,فتير
+Spectra,أطياف
+Type,نوع
+Spectrum Type Help,مساعدة نوع الطيف
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,سيحدد هذا التحديد ما إذا كان سيتم استخدام مكتبة مطابقة FTIR أو Raman. اختر نوع النطاق الذي تم تحميله.
+Analysis,التحليلات
+Processed,معالجتها
+Uploaded,تم الرفع
+Spectrum to Analyze Help,طيف لتحليل المساعدة
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,سيحدد هذا الاختيار ما إذا كان الطيف الذي تم تحميله (غير المعالج) أو الطيف الذي تمت معالجته باستخدام علامة تبويب المعالجة مستخدمًا في تطابق الطيف.
+Region,منطقة
+Full,ممتلئ
+Peaks,القمم
+Region to Match Help,منطقة للمطابقة تعليمات
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,سيحدد هذا الاختيار ما إذا كانت المكتبة التي تتطابق معها تتكون من الطيف الكامل أم فقط قمم الطيف.
+Partner With Us,شريك معنا
+Help us reach our goal of revolutionizing spectroscopy.,ساعدنا في الوصول إلى هدفنا المتمثل في إحداث ثورة في التحليل الطيفي.
+Donate Cash,تبرع نقدا
+Buy From Swag Store,شراء من متجر Swag
+Contribute time,المساهمة بالوقت
+Revolutionizing,ثورة
+Thriving,مزدهرة
+Maintaining,المحافظة
+Supporting,دعم
+Saving,إنقاذ
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,فريق مدفوع الأجر يدفع Open Specy إلى الهدف النهائي المتمثل في تحديد طيفي دقيق بنسبة 100٪ وتشخيصات طيفية عميقة بنقرة واحدة
+A single paid staff person working to update and build the community and the tool,موظف واحد مدفوع الأجر يعمل على تحديث وبناء المجتمع والأداة
+Maintenance costs and minor ad-hoc updates and bug fixes,تكاليف الصيانة والتحديثات الطفيفة المخصصة وإصلاح الأخطاء
+Keeping the app online and essential maintenance,الحفاظ على التطبيق متصل بالإنترنت والصيانة الأساسية
+Long term storage only,تخزين طويل المدى فقط
+Sharing Metadata,تبادل البيانات الوصفية
+Thank you for sharing your data!,شكرا لتقاسم البيانات الخاصة بك!
+Your data will soon be available at https://osf.io/stmv4/,ستتوفر بياناتك قريبًا على https://osf.io/stmv4/
+Something went wrong :-(,هناك خطأ ما :-(
+Data type not supported!,نوع البيانات غير مدعوم!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","نوع البيانات التي تم تحميلها غير مدعوم حاليًا ؛ من فضلك
+                      تحقق من تلميحات الأدوات وعلامة التبويب ""حول"" للحصول على التفاصيل."
+Sharing Spectrum to Community Library,تقاسم الطيف إلى مكتبة المجتمع
+Reading Spectrum,طيف القراءة
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","إذا قمت بتحميل ملف نصي / csv ، فتأكد من أن ملف
+           الأعمدة رقمية وتسمى ""wavenumber"" و
+           'الشدة'."
+absorbance intensity [-],شدة الامتصاص [-]
+wavenumber [cm<sup>-1</sup>],wavenumber [سم <sup> -1 </sup>]
+Analyzing Spectrum,تحليل الطيف
+Finding Match,إيجاد مباراة
+Making Plot,صنع المؤامرة
+Material,مادة
+Pearson's r,ص بيرسون
+Organization,منظمة
+Selectable Matches,التطابقات للاختيار
+Donations,التبرعات
+Operation Costs,تكاليف العملية
+Selection Metadata,تحديد البيانات الوصفية

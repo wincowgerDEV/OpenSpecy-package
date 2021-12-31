@@ -1,0 +1,212 @@
+en,sn
+About,About
+Welcome,Mauya
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Joinha mazana evaongorori vanobva kumativi ese
+           nyika vari chikamu cheOpen Specy nharaunda na
+           kuongorora, kugovera, kugadzirisa, uye kuziva
+           yavo Raman uye IR spectra. Aya masevhisi ndeemahara uye akavhurika sosi tinotenda kune vatinoshanda navo:"
+Quick Video Tutorial,Quick Vhidhiyo Tutorial
+Instructions,Mirayiridzo
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Muchidimbu: Kushandisa chishandiso kurodha csv, asp, jdx, spc, kana spa faira kune yekurodha faira tab.
+                                  Kana csv, imwe koramu inofanira kunzi 'wavenumber' (muzvikamu zve 1/cm) uye imwe inodaidzwa kuti 'kusimba'.
+                                  Iwe unogona kutsvedza data rako uchishandisa SG sefa, yekutanga gadzirisa data rako uchishandisa iyo polynomial odha yeModPolyFit, uye kudzora iyo wavelength renji yemutambo.
+                                  Mhedzisiro yacho inofananidzwa neyemukati Raman kana FTIR spectra raibhurari. Iwo akasimba 1000 machisi pamwe neako
+                                  yakarodha kana yakagadziridzwa data ichaunzwa mune inodyidzana kuronga uye tafura. Kuti uwane rumwe ruzivo tinya bhatani riri pazasi
+                                  kana kuti tarisa vhidhiyo yekuraira yakadzama."
+Detailed Standard Operating Procedure,Detailed Standard Operating Procedure
+Download Open Data,Dhaunirodha Vhura Data
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Reference spectra yakatorwa kubva kune yakavhurika kuwana zviwanikwa
+           online, mabhuku akaongororwa nevezera rake, uye zvipo zvemakambani. Mune ramangwana
+           spectra iyo inokwidzwa kune chishandiso ichabatanidzwa kune referensi
+           raibhurari kuti zviite nani."
+Raman Reference Library,Raman Reference Library
+FTIR Reference Library,FTIR Reference Library
+Raman Reference Library Metadata,Raman Reference Library Metadata
+FTIR Reference Library Metadata,FTIR Reference Library Metadata
+Contribute Spectra,Batsira Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Kugovera spectra rodha faira kune yekurodha faira tebhu. Kana ukasarudza Govera kopi yespectra yako inotumirwa kuNharaunda
+           Data Warehouse paOpen Science Framework. Kuwedzera imwe metadata,
+           zadza minda yemetadata iripo uye tinya -Share Data-. The
+           spectra faira rawakarodha pamwe nemhinduro dzako richakopwa
+           kune -NeMetadata- subfolder pane iyi link pazasi. Yese yakagovaniswa data inobata
+           iyo Creative Commons Attribution Rezinesi 4.0."
+Community Data Warehouse,Community Data Warehouse
+Tool Validation,Tool Validation
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Ese ma parameter muchishandiso ichi anoedzwa kuti asimbise izvozvo
+           chishandiso chiri kushanda zvakanyanya sezvinobvira uye sarudza yakanakisa default
+           parameters yekushandisa. Yedu yazvino yekusimbisa maitiro inosanganisira kugadzirisa
+           zvinyorwa zvakadhindwa mumaraibhurari ereferensi, kutarisa spectra mukati
+           metadata isiri muraibhurari yekuona, uye kuve nechokwadi cheiyo default
+           paramita inopa pamusoro pe80% kunyatsoita mumutambo wekutanga."
+Detailed Validation Procedure,Detailed Validation Procedure
+"Updates, Feature Requests, and Bug Reports","Updates, Feature Applications, uye Bug Reports"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Isu tinochengeta zvese zvinogadziridzwa tichishandisa vhezheni kutonga pane yedu kodhi. Zvimiro zvinogona kukumbirwa uye bug inoshumwa paGitHub.
+Stay up to date!,Gara uchiziva!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Titevere pa Twitter @OpenSpecy. E-mail wincowger@gmail.com kuti iwedzerwe kune iyo tsamba yetsamba.
+Citation,Citation
+Useful Links,Anobatsira Links
+Free FTIR Software: siMPle microplastic IR spectral identification software,Yemahara FTIR Software: siMPle microplastic IR spectral identification software
+Free Spectroscopy Learning Academy from ThermoFisher,Yemahara Spectroscopy Kudzidza Academy kubva kuThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Yemahara Optical Microscopy Kudzidza Resource kubva kuFlorida State University
+Free desktop application for spectral analysis and links to reference databases.,Yemahara desktop application yekutarisa spectral uye zvinongedzo kune referensi dhatabhesi.
+Terms And Conditions,Terms And Conditions
+Privacy Policy,Privacy Policy
+Upload File,Upload File
+"Upload, View, and Share Spectra","Isa, Tarisa, uye Govera Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Sarudza .csv (inofarira), .asp, .jdx, .spc, .spa, kana .0 File"
+Share Your Data?,Govera Mashoko Ako?
+Share Help,Share Help
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Kana uchida, tinogovera yako yakarodha spectra uye marongero nenharaunda yespectroscopy.
+           Nekumisikidza, data rese richapihwa rezinesi pasi peCreative Commons Attribution-NonCommerce 4.0 International (CC BY-NC 4.0).
+           Yakakwidzwa spectra ichaonekwa pano: https://osf.io/rjg3c"
+Upload Help,Upload Rubatsiro
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Isa Raman kana FTIR spectrum mafaera se csv, jdx, spc, kana spa. A csv faira inosarudzwa. Kana iri csv, faira rinofanira kuva nekoramu imwe yakanzi 'wavenumber' mumayuniti e(1/cm) neimwewo column yakanyorwa kuti 'intensity' mumayunitsi ekunwa.
+            Kana jdx, spc, spa, kana 0 faira rinofanira kuva rimwechete rinotora spectrum rine wavenumber mu (1/cm). Aya mafaera haagare achishanda zvakakwana nekuti ane hunyengeri kuverenga saka kaviri tarisa iwo mune imwe software.
+            Dzvanya bhatani re'Test Data' kuti utore sampuli yeRaman spectrum."
+Intensity Adjustment,Kugadziriswa Kwesimba
+None,Hapana
+Transmittance,Transmittance
+Reflectance,Reflectance
+Intensity Correction Help,Kukururamisa Rubatsiro
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Kana iyo yakakwira spectrum isiri mumayuniti ekunwa,
+           shandisa inopinza kutaura mayunitsi ekushandura kubva.Vhura Specy can
+           gadzirisa reflectance kana transmittance spectra kune Absorbance units uchishandisa
+           uku kudonha pasi muiyo upload file tab. Ese ma tabo apfuura
+           fungidzira kuti data iri mumayuniti ekunyudza saka iwe unofanirwa kugadzira iyo
+           kururamisa usati waenderera mberi kana zvichidiwa. Iyo transmittance kugadzirisa
+           inoshandisa iyo log10 (1/T) kuverenga iyo isingagadzirise system
+           uye particle maitiro. Iyo reflectance kugadzirisa inoshandisa iyo
+           Kubelka-Munk equation (1-R)2/(2*R). Isu tinofungidzira kuti kuratidzwa
+           inoumbwa sechikamu kubva pa1-100 uye chotanga kugadzirisa kusimba nekukamura nezana.
+           kuitira kuti ikwane fomu inotarisirwa neiyo equation.
+           Kana pasina yakasarudzwa, Vhura Specy inofunga kuti data rakaiswa ndeye
+           kunyura spectrum."
+Sample File,Muenzaniso File
+Sample Data Help,Sample Data Rubatsiro
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Uyu ndiwo mucherechedzo wemucherechedzo unogona kukwikwidzwa kune chishandiso chekuchiyedza kunze uye kunzwisisa kuti mafaera ecsv anofanira kuumbwa sei.
+Metadata Input,Metadata Input
+Metadata Help,Metadata Rubatsiro
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Isu tinogovera chero yakarodha spectra uye metadata nenharaunda yespectroscopy kana iwe ukazadza metadata pano uye sarudza share.
+           Yakakwidzwa spectra uye metadata ichaonekwa pano: https://osf.io/rjg3c"
+Share Metadata,Govera Metadata
+Upload some data to get started...,Isa imwe data kuti utange...
+Preprocess Spectrum,Preprocess Spectrum
+"Smooth, Baseline Correct, and Download Processed Spectra","Smooth, Baseline Correct, uye Dhawunirodha Yakagadzirwa Spectra"
+Download (recommended),Dhaunirodha (zvinokurudzirwa)
+Download Help,Download Help
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Vamwe vashandisi vangashuvira kuchengetedza kopi yavo yakagadziriswa spectrum. Iri bhatani rinodhawunirodha iyo yakagadziriswa spectrum se csv faira.
+Smoothing,Smoothing
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Iyi yakapfava inogona kuwedzera chiratidzo kune ruzha reshiyo yedata uye inoshandisa Savitzky-Golay sefa ine gumi nemaviri inomhanyisa data mapoinzi uye iyo polynomial yakatsanangurwa.
+Smoothing Polynomial,Smoothing Polynomial
+Baseline Correction,Baseline Correction
+Baseline Correction Help,Baseline Kururamisa Rubatsiro
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Iyi yekutanga kugadzirisa maitiro ine nzira mbiri dzekugadzirisa kwekutanga, 1) iyo polynomial imodpolyfit maitiro ekutsvaga nekutsvaga hwaro hweiyo spectrum uchishandisa polynomial fit kunharaunda yese yechitarisiko. 2) mitsara yemanyorero inogona kudhirowa uchishandisa iyo mutsara chishandiso pachirongwa uye bhatani rakakodzera rinoshandisa mitsetse kubvisa yekutanga."
+Baseline Correction Polynomial,Baseline Correction Polynomial
+Technique,Technique
+Polynomial,Polynomial
+Manual,Manual
+Correct With Trace,Kururamisa NeTrace
+Reset,Reset
+Range Selection,Range Selection
+Spectral Range Help,Spectral Range Rubatsiro
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Kudzikamisa iyo spectral renji kunogona kubvisa matunhu ezviratidziro pasina mapikisi aripo uye kugadzirisa kuenzanirana
+Maximum Spectral Range,Maximum Spectral Range
+Minimum Spectral Range,Minimum Spectral Range
+Identify Spectrum,Ziva Spectrum
+Identify Spectrum Using the Reference Library,Ziva Spectrum Uchishandisa Reference Library
+Raman,Raman
+FTIR,FTIR
+Spectra,Spectra
+Type,Type
+Spectrum Type Help,Spectrum Type Rubatsiro
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Sarudzo iyi inozoona kana raibhurari inofananidzwa neFTIR kana Raman inoshandiswa. Sarudza rudzi rwe spectrum rwakaiswa.
+Analysis,Analysis
+Processed,Yakagadziriswa
+Uploaded,Uploaded
+Spectrum to Analyze Help,Spectrum Kuongorora Rubatsiro
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Iyi sarudzo ichaona kuti iyo yakarodha (isina kugadziridzwa) spectrum kana kuti spectrum yakagadziriswa uchishandisa tebhu yekugadzirisa inoshandiswa mumutambo we spectrum.
+Region,Dunhu
+Full,Full
+Peaks,Peaks
+Region to Match Help,Rubatsiro rweDunhu kuenda kuMatch
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Sarudzo iyi ndiyo inosarudza kana raibhurari yauri kuenzanisa nayo ine yakazara spectrum kana chete spectrum peaks.
+Partner With Us,Shamwaridzana Nesu
+Help us reach our goal of revolutionizing spectroscopy.,Tibatsire kuzadzisa chinangwa chedu chekushandura spectroscopy.
+Donate Cash,Donate Cash
+Buy From Swag Store,Tenga Kubva kuSwag Store
+Contribute time,Shandisa nguva
+Revolutionizing,Revolutionizing
+Thriving,Kubudirira
+Maintaining,Kuchengeta
+Supporting,Kutsigira
+Saving,Saving
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Chikwata chakabhadharwa chiri kusundidzira Open Specy padhuze nechokupedzisira chinangwa che100% chakarurama chekuona chiziviso uye yakadzika spectral diagnostics nekudzvanya kamwe chete.
+A single paid staff person working to update and build the community and the tool,Mushandi mumwe chete anobhadharwa anoshanda kugadzirisa nekuvaka nharaunda uye chishandiso
+Maintenance costs and minor ad-hoc updates and bug fixes,Mari yekuchengetedza uye zvidiki ad-hoc zvigadziriso uye kugadzirisa kwebug
+Keeping the app online and essential maintenance,Kuchengeta iyo app online uye yakakosha kugadzirisa
+Long term storage only,Kuchengetedza kwenguva refu chete
+Sharing Metadata,Kugovera Metadata
+Thank you for sharing your data!,Ndatenda nekugovana data rako!
+Your data will soon be available at https://osf.io/stmv4/,Yako data ichakurumidza kuwanikwa pa https://osf.io/stmv4/
+Something went wrong :-(,Pane chakaipa :-(
+Data type not supported!,Mhando yedata haina kutsigirwa!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Mhando yedata yakakwidzwa haisati yatsigirwa parizvino; Ndapota
+                      tarisa maturusi uye 'About' tebhu yeruzivo."
+Sharing Spectrum to Community Library,Kugovera Spectrum kuCommunity Library
+Reading Spectrum,Kuverenga Spectrum
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Kana iwe wakarodha mameseji/csv faira, ita shuwa kuti iyo
+           makoramu anenhamba uye anonzi 'wavenumber' uye
+           'kusimba'."
+absorbance intensity [-],kunyura zvakanyanya [-]
+wavenumber [cm<sup>-1</sup>],wavenumber [cm<sup>-1</sup>]
+Analyzing Spectrum,Kuongorora Spectrum
+Finding Match,Kutsvaga Match
+Making Plot,Kugadzira Plot
+Material,Material
+Pearson's r,Pearson's r
+Organization,Sangano
+Selectable Matches,Selectable Matches
+Donations,Mipiro
+Operation Costs,Operation Mari
+Selection Metadata,Sarudzo metadata

@@ -1,0 +1,212 @@
+en,et
+About,Umbes
+Welcome,Tere tulemast
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Liituge sadade teadlastega kõikjalt
+           maailm, kes on osa Open Specy kogukonnast
+           analüüsimine, jagamine, töötlemine ja tuvastamine
+           nende Ramani ja IR spektrid. Need teenused on tasuta ja avatud lähtekoodiga tänu meie partneritele:"
+Quick Video Tutorial,Kiire videoõpetus
+Instructions,Juhised
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Lühidalt: tööriista kasutamiseks laadige üleslaadimisfaili vahekaardile üles csv-, asp-, jdx-, spc- või spa-fail.
+                                  CSV puhul peaks ühe veeru nimeks olema „lainearv” (ühikutes 1/cm) ja teise nimega „intensiivsus”.
+                                  Saate oma andmeid SG-filtri abil siluda, andmeid lähtetaseme korrigeerida, kasutades iModPolyFiti polünoomilist järjestust, ja piirata vaste lainepikkuse vahemikku.
+                                  Tulemust võrreldakse sisemise Ramani või FTIR spektriteegiga. 1000 tugevaimat vastet koos teiega
+                                  üleslaaditud või töödeldud andmed esitatakse interaktiivsel joonisel ja tabelis. Lisateabe saamiseks klõpsake alloleval nupul
+                                  või vaadake üksikasjalikku õppevideot."
+Detailed Standard Operating Procedure,Üksikasjalik standardne tööprotseduur
+Download Open Data,Laadige alla avatud andmed
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Võrdlusspektrid saadi avatud juurdepääsu ressurssidest
+           Internetis, eelretsenseeritud väljaanded ja ettevõtete annetused. Tulevikus
+           tööriistale üles laaditud spektrid kaasatakse viitesse
+           raamatukogu, et seda veelgi paremaks muuta."
+Raman Reference Library,Ramani teatmik
+FTIR Reference Library,FTIR teatmik
+Raman Reference Library Metadata,Ramani viiteraamatukogu metaandmed
+FTIR Reference Library Metadata,FTIR viiteraamatukogu metaandmed
+Contribute Spectra,Panusta Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Spektrite jagamiseks laadige fail üles faili üleslaadimise vahekaardile. Kui valisite Jaga, saadetakse teie spektrite koopia kogukonnale
+           Andmeladu avatud teadusraamistikus. Täiendavate metaandmete lisamiseks
+           täitke saadaolevad metaandmete väljad ja klõpsake nuppu -Jaga andmeid-. The
+           spectra fail, mille koos vastustega üles laadisite, kopeeritakse
+           alloleval lingil alamkausta -Metaandmetega. Kõik jagatud andmed säilivad
+           Creative Commonsi omistamislitsents 4.0."
+Community Data Warehouse,Ühenduse andmeladu
+Tool Validation,Tööriista valideerimine
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Selle kinnitamiseks testitakse kõiki selle tööriista parameetreid
+           tööriist töötab nii hästi kui võimalik ja määrake parim vaikeseade
+           kasutatavad parameetrid. Meie praegune valideerimismenetlus hõlmab parandamist
+           dubleeritud kirjed viiteteekides, kontrollides spektrite olemasolu
+           metaandmed, mida spektraalteegis pole, ja tagavad vaikeväärtuse
+           parameetrid tagavad esimeses matšis üle 80% täpsuse."
+Detailed Validation Procedure,Üksikasjalik valideerimisprotseduur
+"Updates, Feature Requests, and Bug Reports","Värskendused, funktsioonitaotlused ja veaaruanded"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,"Jälgime kõiki värskendusi, kasutades oma koodi versioonikontrolli. Funktsioone saab taotleda ja vigadest teatada GitHubis."
+Stay up to date!,Olge kursis!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Jälgi meid Twitteris @OpenSpecy. Meililisti lisamiseks e-kiri wincowger@gmail.com.
+Citation,Tsitaat
+Useful Links,Kasulikud lingid
+Free FTIR Software: siMPle microplastic IR spectral identification software,Tasuta FTIR-tarkvara: lihtne mikroplastist infrapunaspektri tuvastamise tarkvara
+Free Spectroscopy Learning Academy from ThermoFisher,ThermoFisheri tasuta spektroskoopia õppeakadeemia
+Free Optical Microscopy Learning Resource from Florida State University,Florida osariigi ülikooli tasuta optilise mikroskoopia õppematerjal
+Free desktop application for spectral analysis and links to reference databases.,Tasuta töölauarakendus spektraalanalüüsiks ja viiteandmebaasidele.
+Terms And Conditions,Tingimused
+Privacy Policy,Privaatsuspoliitika
+Upload File,Faili üles laadima
+"Upload, View, and Share Spectra","Laadige üles, vaadake ja jagage spektreid"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Valige .csv (eelistatud), .asp, .jdx, .spc, .spa või .0 fail"
+Share Your Data?,Kas jagada oma andmeid?
+Share Help,Jaga abi
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Kui soovite, jagame teie üleslaaditud spektreid ja sätteid spektroskoopia kogukonnaga.
+           Vaikimisi litsentsitakse kõik andmed Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) alusel.
+           Üleslaaditud spektrid ilmuvad siin: https://osf.io/rjg3c"
+Upload Help,Abi üleslaadimine
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Laadige üles Ramani- või FTIR-spektrifailid csv-, jdx-, spc- või spa-vormingus. Eelistatakse csv-faili. CSV-faili puhul peab fail sisaldama ühte veergu, mille tähis on „lainearv” ühikutes (1/cm), ja teist veergu „intensiivsus” neeldumisühikutes.
+            Kui jdx, spc, spa või 0, peaks fail olema üks neeldumisspekter lainearvuga tollides (1/cm). Need failid ei tööta alati ideaalselt, kuna neid on keeruline lugeda, nii et kontrollige neid mõnes muus tarkvaras.
+            Ramani spektri näidise allalaadimiseks vajutage nuppu ""Testi andmed""."
+Intensity Adjustment,Intensiivsuse reguleerimine
+None,Mitte ühtegi
+Transmittance,Läbilaskvus
+Reflectance,Peegeldus
+Intensity Correction Help,Intensiivsuse korrigeerimise abi
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Kui üleslaaditud spekter ei ole neeldumisühikutes,
+           kasutage seda sisendit, et määrata ühikud, millest teisendada.Open Specy saab
+           kohandage peegeldus- või läbilaskvusspektrid neeldumisühikuteks, kasutades
+           see rippmenüü üleslaadimisfaili vahekaardil. Kõik eelnevad vahelehed
+           eeldage, et andmed on neeldumisühikutes, nii et peaksite tegema
+           vajadusel korrigeerida enne jätkamist. Läbilaskvuse reguleerimine
+           kasutab log10(1/T) arvutust, mis süsteemi jaoks ei sobi
+           ja osakeste omadused. Peegelduse reguleerimiseks kasutatakse
+           Kubelka-Munki võrrand (1-R)2/(2*R). Eeldame, et peegeldus
+           on vormindatud protsendina vahemikus 1–100 ja esmalt korrigeerige intensiivsust, jagades 100-ga
+           nii, et see sobiks võrrandiga oodatud vormiga.
+           Kui ühtegi pole valitud, eeldab Open Specy, et üleslaaditud andmed on
+           neeldumisspekter."
+Sample File,Näidisfail
+Sample Data Help,Näidisandmete abi
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,"See on näidisspekter, mille saab tööriista üles laadida, et seda testida ja mõista, kuidas csv-faile tuleks vormindada."
+Metadata Input,Metaandmete sisend
+Metadata Help,Metaandmete abi
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Jagame üleslaaditud spektreid ja metaandmeid spektroskoopia kogukonnaga, kui täidate siin metaandmed ja valite jagamise.
+           Üleslaaditud spektrid ja metaandmed kuvatakse siin: https://osf.io/rjg3c"
+Share Metadata,Jaga metaandmeid
+Upload some data to get started...,Alustamiseks laadige üles mõned andmed...
+Preprocess Spectrum,Eeltöötluse spekter
+"Smooth, Baseline Correct, and Download Processed Spectra","Töödeldud spektrid sujuvaks, algtaseme korrigeerimiseks ja allalaadimiseks"
+Download (recommended),Laadi alla (soovitatav)
+Download Help,Laadige spikker alla
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Mõned kasutajad võivad soovida salvestada oma töödeldud spektri koopia. See nupp laadib töödeldud spektri alla csv-failina.
+Smoothing,Silumine
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,"See siluja võib parandada andmete signaali ja müra suhet ning kasutab Savitzky-Golay filtrit, millel on 12 jooksvat andmepunkti ja määratud polünoomi."
+Smoothing Polynomial,Siluv polünoom
+Baseline Correction,Algtaseme parandus
+Baseline Correction Help,Algtaseme korrigeerimise abi
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Sellel baasjoone korrigeerimise rutiinil on kaks võimalust baasjoone korrigeerimiseks: 1) polünoomi imodpolyfit protseduur spektri algjoone itteratiivseks leidmiseks, kasutades polünoomi sobivust kogu spektri piirkonnaga. 2) joonisel oleva joonetööriista abil saab joonistada käsitsi jooni ja õige nupp kasutab jooni baasjoone lahutamiseks."
+Baseline Correction Polynomial,Algtaseme paranduspolünoom
+Technique,Tehnika
+Polynomial,Polünoom
+Manual,Käsiraamat
+Correct With Trace,Õige Jäljega
+Reset,Lähtesta
+Range Selection,Vahemiku valik
+Spectral Range Help,Spektrivahemiku abi
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,"Spektrivahemiku piiramine võib eemaldada spektripiirkonnad, kus tippe pole, ja parandada sobitamist"
+Maximum Spectral Range,Maksimaalne spektrivahemik
+Minimum Spectral Range,Minimaalne spektrivahemik
+Identify Spectrum,Tuvastage spekter
+Identify Spectrum Using the Reference Library,"Tuvastage spekter, kasutades viiteteeki"
+Raman,Raman
+FTIR,FTIR
+Spectra,Spektrid
+Type,Tüüp
+Spectrum Type Help,Spektri tüübi abi
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,"See valik määrab, kas kasutatakse FTIR-i või Ramani vasteteeki. Valige üleslaaditud spektri tüüp."
+Analysis,Analüüs
+Processed,Töödeldud
+Uploaded,Üles laaditud
+Spectrum to Analyze Help,Spekter analüüsimiseks Abi
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,"See valik määrab, kas spektri vastes kasutatakse üleslaaditud (töötlemata) spektrit või töötlemiskaardi abil töödeldud spektrit."
+Region,Piirkond
+Full,Täis
+Peaks,Tipud
+Region to Match Help,Regioon sobitada Abi
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,"See valik määrab, kas teek, millega sobitate, koosneb kogu spektrist või ainult spektri tippudest."
+Partner With Us,Partner meiega
+Help us reach our goal of revolutionizing spectroscopy.,Aidake meil saavutada eesmärki muuta spektroskoopia revolutsiooniliselt.
+Donate Cash,Anneta sularaha
+Buy From Swag Store,Ostke Swagi poest
+Contribute time,Panusta aega
+Revolutionizing,Revolutsiooniline
+Thriving,Õitseb
+Maintaining,Säilitamine
+Supporting,Toetamine
+Saving,Salvestamine
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,"Tasuline meeskond, kes viib Open Specy ühe klõpsuga lähemale lõppeesmärgile, milleks on 100% täpne spektraalne tuvastamine ja sügav spektraaldiagnostika"
+A single paid staff person working to update and build the community and the tool,"Üks tasustatud töötaja, kes töötab kogukonna ja tööriista värskendamise ja ülesehitamise nimel"
+Maintenance costs and minor ad-hoc updates and bug fixes,Hoolduskulud ja väikesed ad-hoc värskendused ja veaparandused
+Keeping the app online and essential maintenance,Rakenduse võrgus hoidmine ja vajalik hooldus
+Long term storage only,Ainult pikaajaline ladustamine
+Sharing Metadata,Metaandmete jagamine
+Thank you for sharing your data!,"Täname, et jagasite oma andmeid!"
+Your data will soon be available at https://osf.io/stmv4/,Teie andmed on peagi saadaval aadressil https://osf.io/stmv4/
+Something went wrong :-(,Midagi läks valesti :-(
+Data type not supported!,Andmetüüpi ei toetata!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Üleslaaditud andmetüüp ei ole praegu toetatud; palun
+                      vaadake üksikasju tööriistavihjetest ja vahekaardilt Teave."
+Sharing Spectrum to Community Library,Spektri jagamine kogukonna raamatukoguga
+Reading Spectrum,Lugemisspekter
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Kui laadisite üles teksti-/csv-faili, veenduge, et
+           veerud on numbrilised ja nimega ""lainenumber"" ja
+           'intensiivsus'."
+absorbance intensity [-],neeldumise intensiivsus [-]
+wavenumber [cm<sup>-1</sup>],lainearv [cm<sup>-1</sup>]
+Analyzing Spectrum,Spektri analüüsimine
+Finding Match,Sobivuse leidmine
+Making Plot,Krundi tegemine
+Material,Materjal
+Pearson's r,Pearsoni r
+Organization,Organisatsioon
+Selectable Matches,Valitavad vasted
+Donations,Annetused
+Operation Costs,Tegevuskulud
+Selection Metadata,Valik Metaandmed

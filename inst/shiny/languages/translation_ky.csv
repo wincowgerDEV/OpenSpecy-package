@@ -1,0 +1,212 @@
+en,ky
+About,Жөнүндө
+Welcome,Кош келдиңиз
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Айланадагы жүздөгөн изилдөөчүлөргө кошулуңуз
+           тарабынан Open Specy коомчулугунун бир бөлүгү болуп саналат
+           талдоо, бөлүшүү, иштетүү жана аныктоо
+           алардын Раман жана IR спектрлери. Бул кызматтар биздин өнөктөштөр үчүн акысыз жана ачык булак болуп саналат:"
+Quick Video Tutorial,Ыкчам видео үйрөткүч
+Instructions,Instructions
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Кыскача: Куралды колдонуу үчүн csv, asp, jdx, spc же spa файлын жүктөө файл өтмөгүнө жүктөңүз.
+                                  Эгерде csv болсо, бир мамыча ""толкун саны"" (1/см бирдигинде) жана башкасы ""интенсивдүүлүк"" деп аталууга тийиш.
+                                  Сиз SG чыпкасы аркылуу берилиштериңизди жылмакай кылып, iModPolyFit полиномдук тартибин колдонуу менен базалык сызыгыңызды оңдоп, дал келүү үчүн толкун узундуктарынын диапазонун чектей аласыз.
+                                  Натыйжада ички Раман же FTIR спектринин китепканасы менен салыштырылат. Сиздин менен бирге эң күчтүү 1000 матч
+                                  жүктөлгөн же иштетилген маалыматтар интерактивдүү сюжетте жана таблицада көрсөтүлөт. Көбүрөөк маалымат алуу үчүн төмөнкү баскычты басыңыз
+                                  же деталдуу үйрөтүүчү видеону көрүңүз."
+Detailed Standard Operating Procedure,Толук стандарттык операция процедурасы
+Download Open Data,Ачык маалыматтарды жүктөп алыңыз
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Маалымдама спектрлери ачык жеткиликтүү булактардан алынган
+           онлайн, рецензияланган басылмалар жана корпоративдик кайрымдуулуктар. Келечекте
+           куралга жүктөлгөн спектрлер шилтемеге кошулат
+           китепкананы ого бетер жакшыртуу."
+Raman Reference Library,Раман маалымдама китепканасы
+FTIR Reference Library,FTIR маалымдама китепканасы
+Raman Reference Library Metadata,Раман маалымдама китепканасынын метадайындары
+FTIR Reference Library Metadata,FTIR маалымдама китепканасынын метадайындары
+Contribute Spectra,Spectra салым кошуу
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Спектрлерди бөлүшүү үчүн файлды жүктөө файл өтмөгүнө жүктөңүз. Эгер сиз бөлүшүүнү тандасаңыз, спектриңиздин көчүрмөсү Коомчулукка жөнөтүлөт
+           Open Science Framework боюнча маалыматтар кампасы. Кошумча метадайындарды кошуу үчүн,
+           жеткиликтүү метаберилиш талааларын толтуруңуз жана ""Дайындарды бөлүшүү"" баскычын басыңыз. The
+           жоопторуңуз менен кошо жүктөгөн spectra файлы көчүрүлөт
+           төмөнкү шилтеме боюнча -With Metadata- кичи папкасына. Бардык бөлүшүлгөн дайындар сакталат
+           Creative Commons Attribution License 4.0."
+Community Data Warehouse,Коомчулук маалымат кампасы
+Tool Validation,Tool Validation
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Бул куралдын бардык параметрлери аны тастыктоо үчүн сыналган
+           курал мүмкүн болушунча мыкты иштеп жатат жана эң жакшы демейкиди аныктайт
+           колдонуу үчүн параметрлер. Биздин учурдагы текшерүү процедурабыз оңдоону камтыйт
+           маалымдама китепканалардагы кайталанган жазуулар, спектрлерди текшерүү
+           спектралдык китепканада жок метаберилиштер жана демейкиди камсыз кылуу
+           Параметрлер биринчи матчта 80% ашык тактыкты камсыз кылат."
+Detailed Validation Procedure,Деталдаштырылган валидация процедурасы
+"Updates, Feature Requests, and Bug Reports","Жаңыртуулар, Функция сурамдары жана Мүчүлүштүктөр жөнүндө отчеттор"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Биз кодубуздагы версияны көзөмөлдөө аркылуу бардык жаңыртууларга көз салып турабыз. Функцияларды сураса болот жана каталар GitHub'да билдирилет.
+Stay up to date!,Жаңыланып туруңуз!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Twitter @OpenSpecy бизди ээрчи. Почта тизмесине кошулуу үчүн wincowger@gmail.com электрондук почтасы.
+Citation,Цитата
+Useful Links,пайдалуу шилтемелер
+Free FTIR Software: siMPle microplastic IR spectral identification software,Акысыз FTIR программасы: жөнөкөй микропластикалык IR спектралдык идентификациялоо программасы
+Free Spectroscopy Learning Academy from ThermoFisher,ThermoFisher тарабынан акысыз Спектроскопия Окуу Академиясы
+Free Optical Microscopy Learning Resource from Florida State University,Флорида штатынын университетинен акысыз оптикалык микроскопияны үйрөнүү булагы
+Free desktop application for spectral analysis and links to reference databases.,Спектралдык талдоо жана маалымдама базаларына шилтемелер үчүн акысыз рабочий колдонмо.
+Terms And Conditions,Шарттар жана жоболор
+Privacy Policy,Купуялык саясаты
+Upload File,Файлды жүктөө
+"Upload, View, and Share Spectra","Спектрлерди жүктөө, көрүү жана бөлүшүү"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",".csv (артыкчылыктуу), .asp, .jdx, .spc, .spa же .0 Файлды тандаңыз"
+Share Your Data?,Дайындарыңызды бөлүшөсүзбү?
+Share Help,Жардамды бөлүшүү
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Кааласаңыз, сиз жүктөлгөн спектрлерди жана жөндөөлөрдү спектроскопия коомчулугу менен бөлүшөбүз.
+           Демейки боюнча, бардык маалыматтар Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) астында лицензияланат.
+           Жүктөлгөн спектрлер бул жерде пайда болот: https://osf.io/rjg3c"
+Upload Help,Жардам жүктөө
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Raman же FTIR спектр файлдарын csv, jdx, spc же спа катары жүктөңүз. csv файлы артык. Эгерде csv болсо, файлда (1/см) бирдикте ""толкун саны"" деп белгиленген бир тилке жана абсорбенция бирдиктеринде ""интенсивдүүлүк"" деп белгиленген башка тилке болушу керек.
+            Эгерде jdx, spc, spa, же 0 болсо, файл толкун саны (1/см) менен бир сиңирүү спектри болушу керек. Бул файлдар дайыма эле кемчиликсиз иштей бербейт, анткени аларды окуу кыйын, андыктан аларды башка программалык камсыздоодо эки жолу текшериңиз.
+            Раман спектринин үлгүсүн жүктөп алуу үчүн ""Тест маалыматтары"" баскычын басыңыз."
+Intensity Adjustment,Интенсивдүүлүктү жөндөө
+None,Жок
+Transmittance,Өткөрүү
+Reflectance,Рефлексия
+Intensity Correction Help,Интенсивдүүлүктү оңдоо боюнча жардам
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Жүктөлгөн спектр абсорбциялык бирдиктерде болбосо,
+           Бул киргизүүнү from.Open Specy болот конвертациялоо үчүн колдонуңуз
+           аркылуу чагылдыруу же өткөрүмдүүлүк спектрлерин Абсорбция бирдиктерине тууралоо
+           бул жүктөө файл өтмөгүндө ачылуучу ылдый. Бардык мурунку өтмөктөр
+           маалымат абсорбциялык бирдиктерде деп ойлойсуз, андыктан сиз муну жасашыңыз керек
+           зарыл болсо, улантуудан мурун оңдоо. Өткөргүчтү жөнгө салуу
+           системага туура келбеген log10(1/T) эсебин колдонот
+           жана бөлүкчөлөрдүн мүнөздөмөлөрү. чагылдыруу тууралоо колдонот
+           Kubelka-Munk теңдемеси (1-R)2/(2*R). Биз чагылуу деп ойлойбуз
+           1-100 пайыз катары форматталат жана адегенде 100гө бөлүү менен интенсивдүүлүктү оңдошот
+           Ошентип, ал теңдеме күткөн формага туура келет.
+           Эч кимиси тандалбаса, Open Specy жүктөлгөн дайындар деп болжолдойт
+           абсорбциялык спектр."
+Sample File,Үлгү файлы
+Sample Data Help,Үлгү маалымат жардам
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Бул сынап көрүү жана csv файлдарын кантип форматтоо керек экенин түшүнүү үчүн куралга жүктөлө турган үлгү спектри.
+Metadata Input,Метадата киргизүү
+Metadata Help,Метадайындардын Жардамы
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Эгер сиз бул жерде метадайындарды толтуруп, бөлүшүүнү тандасаңыз, жүктөлгөн спектрлерди жана метадайындарды спектроскопия коомчулугу менен бөлүшөбүз.
+           Жүктөлгөн спектрлер жана метадайындар бул жерде көрүнөт: https://osf.io/rjg3c"
+Share Metadata,Метадайындарды бөлүшүү
+Upload some data to get started...,Баштоо үчүн кээ бир дайындарды жүктөп бериңиз...
+Preprocess Spectrum,Preprocess Spectrum
+"Smooth, Baseline Correct, and Download Processed Spectra","Жылмакай, баштапкы туура жана иштетилген спектрлерди жүктөп алыңыз"
+Download (recommended),Жүктөп алуу (сунушталат)
+Download Help,Жүктөп алуу Жардам
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Кээ бир колдонуучулар иштетилген спектринин көчүрмөсүн сактагысы келиши мүмкүн. Бул баскыч иштетилген спектрди csv файлы катары жүктөйт.
+Smoothing,Текшерүү
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Бул жылмакай берүүчү сигналдын ызы-чууга болгон катышын жогорулата алат жана 12 иштеп жаткан маалымат чекиттери жана көрсөтүлгөн полином менен Savitzky-Golay чыпкасын колдонот.
+Smoothing Polynomial,Текшерүүчү Полиномия
+Baseline Correction,Базалык оңдоо
+Baseline Correction Help,Баштапкы оңдоо боюнча жардам
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Бул базалык оңдоо процедурасында базалык оңдоонун эки варианты бар, 1) полиномдук имодполифит процедурасы спектрдин бүт аймагына полиномдук туура келүүнү колдонуу менен спектрдин базалык сызыгын кайталап табуу. 2) сюжеттеги сызык куралын колдонуу менен кол сызыктарын тартса болот жана туура баскыч сызыктарды негизги сызыкты алып салуу үчүн колдонот."
+Baseline Correction Polynomial,Базалык оңдоо полиномиясы
+Technique,Техника
+Polynomial,Полином
+Manual,Кол
+Correct With Trace,Из менен туура
+Reset,Калыбына келтирүү
+Range Selection,Диапазон тандоо
+Spectral Range Help,Spectral Range Жардам
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,"Спектрдик диапазонду чектөө спектрдин чокулары жок аймактарын алып салып, дал келүүнү жакшыртат"
+Maximum Spectral Range,Максималдуу спектралдык диапазон
+Minimum Spectral Range,Минималдуу спектралдык диапазон
+Identify Spectrum,Спектрди аныктоо
+Identify Spectrum Using the Reference Library,Маалыматтык китепкананы колдонуу менен спектрди аныктоо
+Raman,Раман
+FTIR,FTIR
+Spectra,Спектрлер
+Type,Түр
+Spectrum Type Help,Spectrum Type Жардам
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Бул тандоо FTIR же Raman дал келүүчү китепкана колдонуларын аныктайт. Жүктөлүп берилген спектрдин түрүн тандаңыз.
+Analysis,Анализ
+Processed,Иштелген
+Uploaded,Жүктөлгөн
+Spectrum to Analyze Help,Жардамды талдоо үчүн спектр
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Бул тандоо жүктөлүп берилген (иштетилбеген) спектр же иштетүү өтмөгү аркылуу иштетилген спектр спектрге дал келээрин аныктайт.
+Region,Регион
+Full,Толук
+Peaks,Чокулар
+Region to Match Help,Аймакка дал келген жардам
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,"Бул тандоо сиз дал келген китепкана толук спектрден турабы же бир гана спектрдин чокуларынанбы, аныктайт."
+Partner With Us,Биз менен өнөктөш
+Help us reach our goal of revolutionizing spectroscopy.,Бизге спектроскопияны өзгөртүү максатыбызга жетүүгө жардам бериңиз.
+Donate Cash,Cash кайрымдуулук
+Buy From Swag Store,Swag дүкөнүнөн сатып алыңыз
+Contribute time,Убакыт кошуу
+Revolutionizing,Революция кылуу
+Thriving,гүлдөп
+Maintaining,Багуу
+Supporting,Колдоо
+Saving,Сактоо
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Бир чыкылдатуу менен 100% так спектрдик идентификация жана терең спектрдик диагностика боюнча акыркы максатка Open Specyди жакындаткан акы төлөнүүчү команда
+A single paid staff person working to update and build the community and the tool,Коомчулукту жана куралды жаңыртуу жана куруу үчүн иштеген жалгыз акы төлөнүүчү кызматкер
+Maintenance costs and minor ad-hoc updates and bug fixes,Тейлөө чыгымдары жана майда убактылуу жаңыртуулар жана мүчүлүштүктөрдү оңдоо
+Keeping the app online and essential maintenance,Колдонмону онлайн режиминде сактоо жана маанилүү тейлөө
+Long term storage only,Узак мөөнөттүү сактоо гана
+Sharing Metadata,Метадайындарды бөлүшүү
+Thank you for sharing your data!,Дайындарыңызды бөлүшкөнүңүз үчүн рахмат!
+Your data will soon be available at https://osf.io/stmv4/,Дайындарыңыз жакында жеткиликтүү болот https://osf.io/stmv4/
+Something went wrong :-(,Бир жерден ката кетти :-(
+Data type not supported!,Дайындардын түрү колдоого алынбайт!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Жүктөлгөн маалымат түрү учурда колдоого алынбайт; өтүнөмүн
+                      чоо-жайын билүү үчүн кеңештерди жана ""Жөнүндө"" өтмөгүн текшериңиз."
+Sharing Spectrum to Community Library,Спектрди Коомдук китепканага бөлүшүү
+Reading Spectrum,Окуу спектри
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Эгер сиз текст/csv файлын жүктөгөн болсоңуз, анда
+           мамычалар сандык жана ""толкун саны"" жана деп аталат
+           ""интенсивдүүлүк""."
+absorbance intensity [-],жутуу интенсивдүүлүгү [-]
+wavenumber [cm<sup>-1</sup>],толкун саны [cm<sup>-1</sup>]
+Analyzing Spectrum,Спектрди талдоо
+Finding Match,Дал келүү
+Making Plot,Сюжет түзүү
+Material,Материал
+Pearson's r,Пирсондун р
+Organization,Уюштуруу
+Selectable Matches,Тандалган дал келүүлөр
+Donations,Кайрымдуулук
+Operation Costs,Операциялык чыгымдар
+Selection Metadata,Тандоо метадайындары

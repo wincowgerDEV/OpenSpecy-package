@@ -1,0 +1,212 @@
+en,st
+About,About
+Welcome,Rea u amohela
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Eba karolo ea bafuputsi ba makholo ba tsoang libakeng tse ling
+           lefats'e bao e leng karolo ea sechaba sa Open Specy ka
+           ho sekaseka, ho arolelana, ho sebetsa le ho tsebahatsa
+           ponahalo ea bona ea Raman le IR. Litšebeletso tsena ke tsa mahala ebile li fumaneha mohloling o bulehileng ka thuso ea basebetsi-'moho le rona:"
+Quick Video Tutorial,Potlako Video Tutorial
+Instructions,Litaelo
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Ka bokhutšoane: Ho sebelisa sesebelisoa kenya csv, asp, jdx, spc, kapa faele ea spa ho tab ea faele ea upload.
+                                  Haeba csv, kholomo e le 'ngoe e lokela ho bitsoa 'wavenumber' (ka li-unit tsa 1/cm) 'me e 'ngoe e rehe 'intensty'.
+                                  U ka theola lintlha tsa hau u sebelisa filthara ea SG, u lokisa lintlha tsa hau u sebelisa tatellano ea polynomial ea iModPolyFit, 'me u behe moeli oa bolelele ba maqhubu bakeng sa papali.
+                                  Sephetho se tla bapisoa le laeborari ea ka hare ea Raman kapa FTIR. Lipapali tse matla ka ho fetisisa tse 1000 hammoho le tsa hau
+                                  data e kentsoeng kapa e sebetsitsoeng e tla hlahisoa ka morero le tafole e sebetsanang. Bakeng sa lintlha tse ling tobetsa konopo e ka tlase
+                                  kapa shebella video e qaqileng ea litaelo."
+Detailed Standard Operating Procedure,Mokhoa o Kenyellelitsoeng oa Boemo ba Ts'ebetso
+Download Open Data,Khoasolla Open Data
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Reference spectra e nkuoe mehloling e bulehileng ea phihlello
+           inthaneteng, likhatiso tse hlahlobiloeng ke lithaka, le menehelo ea likhoebo. Nakong e tlang
+           spectra e kentsoeng sesebelisoa e tla kenyelletsoa ho referense
+           laebrari ho etsa hore e be betere."
+Raman Reference Library,Raman Reference Library
+FTIR Reference Library,FTIR Reference Library
+Raman Reference Library Metadata,Raman Reference Library Metadata
+FTIR Reference Library Metadata,FTIR Reference Library Metadata
+Contribute Spectra,Nehelana ka Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Ho arolelana spectra kenya faele ho tab ya faele ya upload. Haeba u khethile Share kopi ea spectra ea hau e tla romelloa ho Sechaba
+           Sebaka sa polokelo ea boitsebiso ho Open Science Framework. Ho eketsa metadata e eketsehileng,
+           tlatsa libaka tsa metadata tse fumanehang ebe u tobetsa -Share Data-. The
+           faele ea spectra eo u e kentseng hammoho le likarabo tsa hau e tla kopitsoa
+           ho -With Metadata- sephutheloana se sehokelong se ka tlase. Lintlha tsohle tse arolelanoang li na le
+           laesense ea Creative Commons Attribution 4.0."
+Community Data Warehouse,Sebaka sa polokelo ea Boitsebiso ba Sechaba
+Tool Validation,Ntlafatso ea Lisebelisoa
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Litekanyetso tsohle tsa sesebelisoa sena li lekoa ho netefatsa seo
+           sesebelisoa se sebetsa ka hohle kamoo ho ka khonehang 'me se etsa qeto ea hore na ke efe ea kamehla
+           parameters ho sebelisoa. Ts'ebetso ea rona ea hajoale ea netefatso e kenyelletsa ho lokisa
+           lipehelo tse qotsitsoeng lilaebraring tsa litšupiso, ho hlahloba spectra in
+           metadata e seng ka har'a laeborari ea spectral, le ho netefatsa hore ke ea kamehla
+           liparamente li fana ka ho nepahala ho fetang 80% papaling ea pele."
+Detailed Validation Procedure,Mokhoa o Felletseng oa Tiisetso
+"Updates, Feature Requests, and Bug Reports","Lintlafatso, Likopo tsa Feature, le Litlaleho tsa Bug"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Re boloka tlaleho ea lintlafatso tsohle re sebelisa taolo ea mofuta ho khoutu ea rona. Likarolo li ka kopuoa mme bug e tlalehiloe ho GitHub.
+Stay up to date!,Lula u ntse u tseba!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Re latele ho Twitter @OpenSpecy. E-mail wincowger@gmail.com e tla kenyelletsoa lethathamong la mangolo.
+Citation,Qotsulo
+Useful Links,Lihokelo Tse Molemo
+Free FTIR Software: siMPle microplastic IR spectral identification software,Software ea mahala ea FTIR: software e bonolo ea boitsebahatso ba microplastic IR spectral
+Free Spectroscopy Learning Academy from ThermoFisher,Free Spectroscopy Learning Academy ho tloha ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Sesebelisoa sa mahala sa ho Ithuta sa Optical Microscopy ho tsoa Univesithing ea Florida State
+Free desktop application for spectral analysis and links to reference databases.,Sesebelisoa sa mahala sa komporo bakeng sa tlhahlobo ea spectral le lihokela tsa li-database tsa litšupiso.
+Terms And Conditions,Lipallo le lipehelo
+Privacy Policy,leano la Lekunutu
+Upload File,Kenya Faele
+"Upload, View, and Share Spectra","Kenya, Sheba, 'me U arolelane Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Khetha .csv (e ratoang), .asp, .jdx, .spc, .spa, kapa .0 File"
+Share Your Data?,Abelana Lintlha tsa Hao?
+Share Help,Arolelana Thuso
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Haeba u rata, re arolelana ponahalo le litlhophiso tsa hau tse kentsoeng le sechaba sa spectroscopy.
+           Ka ho sa feleng, lintlha tsohle li tla fuoa tumello tlas'a Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Pono e kentsoeng e tla hlaha mona: https://osf.io/rjg3c"
+Upload Help,Kenya Thuso
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Kenya lifaele tsa spectrum tsa Raman kapa FTIR joalo ka csv, jdx, spc, kapa spa. Ho khethoa faele ea csv. Haeba e le csv, faele e tlameha ho ba le kholomo e le 'ngoe e ngotsoeng 'wavenumber' ka li-unit tsa (1/cm) le kholomo e 'ngoe e ngotsoeng 'intensty' ho li-absorpension units.
+            Haeba jdx, spc, spa, kapa 0 faele e lokela ho ba leqhubu le le leng la ho monya le nomoro ea wave ho (1/cm). Lifaele tsena ha li na ho sebetsa ka mokhoa o phethahetseng kamehla hobane li thata ho li bala, kahoo li hlahlobe habeli ho software e 'ngoe.
+            Tobetsa konopo ea 'Test Data' ho khoasolla mohlala oa Raman spectrum."
+Intensity Adjustment,Phetoho ea Matla
+None,Ha ho letho
+Transmittance,Phetiso
+Reflectance,Reflectance
+Intensity Correction Help,Thuso ea Khalemelo ea Matla
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Haeba spectrum e kentsoeng e se ka har'a likarolo tsa ho monya,
+           sebelisa tlhahiso ena ho hlakisa diyuniti ho fetolela ho tloha.Open Specy can
+           fetola ponahalo kapa ponahalo ea phetiso ho likarolo tsa Absorbance u sebelisa
+           ho theoha hona ho tab ya faele ya ho kenya. Li-tab tsohle tse fetileng
+           nahana hore ya data ke ka diyuniti monya kahoo u lokela ho etsa hore
+           khalemelo pele o tsoela pele ha ho hlokahala. Phetoho ea phetiso
+           e sebelisa lipalo tsa log10(1/T) tse sa lokiseng tsamaiso
+           le litšobotsi tsa phatsa. Phetoho ea reflectance e sebelisa
+           Kubelka-Munk equation (1-R)2/(2*R). Re nka hore reflectance
+           e hlophisitsoe e le peresente ho tloha ho 1-100 'me pele e lokisa matla ka ho arola ka 100.
+           hore e lekane sebopeho se lebelletsoeng ke palo.
+           Haeba ho se e khethiloeng, Open Specy e nka hore data e kentsoeng ke
+           sebopeho sa ho monya."
+Sample File,Mohlala oa Faele
+Sample Data Help,Sample Data Help
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Ona ke mohlala oa spectrum o ka romelloang sesebelisoa bakeng sa ho o leka le ho utloisisa hore na lifaele tsa csv li lokela ho hlophisoa joang.
+Metadata Input,Kenya Metadata
+Metadata Help,Thuso ea Metadata
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Re arolelana litšoantšo le metadata efe kapa efe e kentsoeng le sechaba sa spectroscopy haeba u tlatsa metadata mona ebe u khetha ho arolelana.
+           Pono e kentsoeng le metadata e tla hlaha mona: https://osf.io/rjg3c"
+Share Metadata,Arolelana Metadata
+Upload some data to get started...,Kenya lintlha ho qala...
+Preprocess Spectrum,Preprocess Spectrum
+"Smooth, Baseline Correct, and Download Processed Spectra","Smooth, Baseline Nepahetse, 'me Khoasolla Processed Spectra"
+Download (recommended),Khoasolla (e khothaletsoa)
+Download Help,Khoasolla Thuso
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Basebelisi ba bang ba kanna ba lakatsa ho boloka kopi ea mabone a bona a sebetsitsoeng. Konopo ena e khoasolla spectrum e sebelitsoeng joalo ka faele ea csv.
+Smoothing,Ho thethefatsa
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Sena se boreleli se ka ntlafatsa karo-karolelano ea lerata le lerata la data mme se sebelisa filthara ea Savitzky-Golay e nang le lintlha tse 12 tsa data le polynomial e boletsoeng.
+Smoothing Polynomial,Smoothing Polynomial
+Baseline Correction,Baseline Tokiso
+Baseline Correction Help,Thuso ea Khalemelo ea Baseline
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Mokhoa ona oa tokiso ea motheo o na le mekhoa e 'meli bakeng sa tokiso ea motheo, 1) mokhoa oa polynomial imodpolyfit ho fumana ka mokhoa o fapaneng motheo oa spectrum o sebelisa polynomial fit ho sebaka sohle sa pono. 2) mela ea matsoho e ka huloa ho sebelisoa sesebelisoa sa mohala sepakapakeng mme konopo e nepahetseng e tla sebelisa mela ho tlosa motheo."
+Baseline Correction Polynomial,Baseline Correction Polynomial
+Technique,Theknoloji
+Polynomial,Polynomial
+Manual,Bukana
+Correct With Trace,Nepahetse Ka Trace
+Reset,Seta bocha
+Range Selection,Khetho ea Range
+Spectral Range Help,Spectral Range Thuso
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Ho thibela spectral range ho ka tlosa libaka tsa spectrum moo ho se nang litlhōrō tse teng le ho ntlafatsa ho bapisa
+Maximum Spectral Range,Maximum Spectral Range
+Minimum Spectral Range,Minimum Spectral Range
+Identify Spectrum,Khetholla Spectrum
+Identify Spectrum Using the Reference Library,Lemoha Spectrum U Sebelisa Laeborari ea Litšupiso
+Raman,Raman
+FTIR,FTIR
+Spectra,Spectra
+Type,Mofuta
+Spectrum Type Help,Thuso ea Mofuta oa Spectrum
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Khetho ena e tla etsa qeto ea hore na FTIR kapa laebrari e tšoanang ea Raman ea sebelisoa. Khetha mofuta oa spectrum o kentsoeng.
+Analysis,Tlhahlobo
+Processed,E sebelitsoe
+Uploaded,E kentsoe
+Spectrum to Analyze Help,Spectrum ho Hlahloba Thuso
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Khetho ena e tla etsa qeto ea hore na spectrum e kentsoeng (e sa sebetsoang) kapa spectrum e sebetsitsoeng ho sebelisoa thebo ea ts'ebetso e sebelisoa papaling ea spectrum.
+Region,Sebaka
+Full,E tletse
+Peaks,Litlhōrō
+Region to Match Help,Thuso ea Sebaka ho Match
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Khetho ena e tla etsa qeto ea hore na laeborari eo u e bapisang le eona e na le mabone a felletseng kapa litlhoro tsa mabone feela.
+Partner With Us,Kopana le Rona
+Help us reach our goal of revolutionizing spectroscopy.,Re thuse ho fihlela sepheo sa rona sa ho fetola spectroscopy.
+Donate Cash,Nehelana ka Chelete
+Buy From Swag Store,Reka Ho tloha Lebenkeleng la Swag
+Contribute time,Nehelana ka nako
+Revolutionizing,Phetohelo
+Thriving,Ho atleha
+Maintaining,Ho boloka
+Supporting,Tšehetsa
+Saving,Ho boloka
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Sehlopha se lefuoang se sutumelletsang Open Specy haufi le sepheo sa mantlha sa 100% se nepahetseng sa boitsebahatso le tlhahlobo e tebileng ea mahlo ka ho tobetsa hanngoe feela.
+A single paid staff person working to update and build the community and the tool,Mosebetsi a le mong ea lefuoang ea sebetsang ho nchafatsa le ho aha sechaba le sesebelisoa
+Maintenance costs and minor ad-hoc updates and bug fixes,Litšenyehelo tsa ho lokisa le lintlafatso tse nyane tsa ad-hoc le ho lokisa liphoso
+Keeping the app online and essential maintenance,Ho boloka sesebelisoa inthaneteng le tlhokomelo ea bohlokoa
+Long term storage only,Polokelo ea nako e telele feela
+Sharing Metadata,Ho arolelana Metadata
+Thank you for sharing your data!,Rea leboha ka ho arolelana lintlha tsa hau!
+Your data will soon be available at https://osf.io/stmv4/,Lintlha tsa hau li tla fumaneha haufinyane https://osf.io/stmv4/
+Something went wrong :-(,Ho bile le phoso :-(
+Data type not supported!,Mofuta oa data ha o sebetse!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Mofuta oa data o kentsoeng ha o sebetse hajoale; Ka kopo
+                      sheba lisebelisoa tsa lisebelisoa le tab ea 'About' bakeng sa lintlha."
+Sharing Spectrum to Community Library,Ho arolelana Spectrum ho Laeborari ea Sechaba
+Reading Spectrum,Spectrum ea ho bala
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Haeba u kentse faele ea mongolo / csv, etsa bonnete ba hore faele ea
+           likholomo ke linomoro 'me ba bitsoa 'wavenumber' le
+           'matla'."
+absorbance intensity [-],matla a ho monya [-]
+wavenumber [cm<sup>-1</sup>],nomoro ea maqhubu [cm<sup>-1</sup>]
+Analyzing Spectrum,Ho hlahloba Spectrum
+Finding Match,Ho Fumana Match
+Making Plot,Ho etsa Leano
+Material,Lintho tse bonahalang
+Pearson's r,Setšoantšo sa Pearson
+Organization,Mokhatlo
+Selectable Matches,Metsoalle e Khethollang
+Donations,Menehelo
+Operation Costs,Litšenyehelo tsa Ts'ebetso
+Selection Metadata,Metadata ea khetho

@@ -1,0 +1,212 @@
+en,tk
+About,Hakynda
+Welcome,Hoş geldiňiz
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Daş-töwereginden ýüzlerçe gözlegçä goşulyň
+           tarapyndan “Açyk görnüş” jemgyýetiniň bir bölegi bolan dünýä
+           derňemek, paýlaşmak, gaýtadan işlemek we kesgitlemek
+           olaryň Raman we IR spektrleri. Bu hyzmatlar hyzmatdaşlarymyz üçin mugt we açyk çeşme:"
+Quick Video Tutorial,Çalt wideo gollanmasy
+Instructions,Görkezmeler
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Gysgaça: Gurallary ulanmak üçin csv, asp, jdx, spc ýa-da spa faýly ýüklemek faýly goýmasyna ýükläň.
+                                  Csv bolsa, bir sütüne 'tolkun' (1 / sm birliklerde), beýlekisine 'intensiwlik' diýilýär.
+                                  SG süzgüçini ulanyp maglumatlaryňyzy tekizläp bilersiňiz, iModPolyFit-iň polinomial tertibini ulanyp maglumatlaryňyzy düzedip bilersiňiz we oýun üçin tolkun uzynlygyny çäklendirip bilersiňiz.
+                                  Netije içerki Raman ýa-da FTIR spektrli kitaphana bilen deňeşdiriler. Iň güýçli 1000 oýun siziň bilen bilelikde
+                                  ýüklenen ýa-da gaýtadan işlenen maglumatlar interaktiw sýu plotetde we tablisada görkeziler. Has giňişleýin maglumat üçin aşakdaky düwmä basyň
+                                  ýa-da jikme-jik görkezme wideosyna tomaşa ediň."
+Detailed Standard Operating Procedure,Jikme-jik standart iş tertibi
+Download Open Data,Açyk maglumatlary göçürip alyň
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Salgy spektrleri açyk giriş çeşmelerinden alyndy
+           Onlaýn, deň-duşlar neşirleri we kärhana sadakalaryny gözden geçirdiler. Geljekde
+           gural üçin ýüklenen spektrler salgylanma goşular
+           hasam gowulaşdyrmak üçin kitaphana."
+Raman Reference Library,Raman salgylanma kitaphanasy
+FTIR Reference Library,FTIR salgylanma kitaphanasy
+Raman Reference Library Metadata,Raman salgylanma kitaphanasy Metadata
+FTIR Reference Library Metadata,FTIR salgylanma kitaphanasynyň meta-maglumaty
+Contribute Spectra,Spektra goşant goşuň
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Spektrleri paýlaşmak üçin faýl ýüklemek goýmasyna bir faýl ýükläň. Saýlan bolsaňyz, spektrleriňiziň bir nusgasy Bileleşige iberiler
+           Açyk ylym çarçuwasyndaky maglumatlar ammary. Goşmaça metadata goşmak üçin,
+           elýeterli metadata meýdanlaryny dolduryň we “Maglumatlary paýlaşyň” düwmesine basyň. The
+           Jogaplaryňyz bilen birlikde ýüklän spektr faýlyňyz göçüriler
+           aşakdaky baglanyşykdaky “Metadata” bukjasyna. Paýlaşylan maglumatlaryň hemmesi saklanýar
+           Creative Commons Attribution License 4.0."
+Community Data Warehouse,Jemgyýetçilik maglumatlary ammary
+Tool Validation,Gurallary barlamak
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Muny tassyklamak üçin bu guraldaky ähli parametrler synagdan geçirilýär
+           gural mümkin boldugyça gowy işleýär we iň oňat deslapky kesgitlemäni kesgitleýär
+           ulanmagyň parametrleri. Häzirki tassyklama işimiz düzedişi öz içine alýar
+           spektrleri barlamak üçin salgylanma kitaphanalarynda köpeldilen ýazgylar
+           spektral kitaphanada bolmadyk we deslapky görnüşi üpjün edýän metadata
+           parametrleri ilkinji oýunda 80% -den gowrak takyklygy üpjün edýär."
+Detailed Validation Procedure,Barlamagyň jikme-jik tertibi
+"Updates, Feature Requests, and Bug Reports","Täzelenmeler, aýratynlyk talaplary we ýalňyş hasabatlary"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,"Kodumyzdaky wersiýa gözegçiligini ulanyp, ähli täzelenmeleri yzarlaýarys. Aýratynlyklary sorap bolýar we GitHub-da habar berilýär."
+Stay up to date!,Döwrebap boluň!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Twitterde @OpenSpecy-de yzarlaň. Poçta sanawyna goşmak üçin wincowger@gmail.com e-poçta iberiň.
+Citation,Sitata
+Useful Links,Peýdaly baglanyşyklar
+Free FTIR Software: siMPle microplastic IR spectral identification software,Mugt FTIR programma üpjünçiligi: siMPle mikroplastiki IR spektral kesgitleýji programma üpjünçiligi
+Free Spectroscopy Learning Academy from ThermoFisher,ThermoFisher-den mugt spektroskopiýa okuw akademiýasy
+Free Optical Microscopy Learning Resource from Florida State University,Florida ştat uniwersitetinden mugt optiki mikroskopiýa okuw çeşmesi
+Free desktop application for spectral analysis and links to reference databases.,Spektral derňew üçin mugt iş stoly programmasy we maglumat bazalaryna baglanyşyklar.
+Terms And Conditions,Şertler we şertler
+Privacy Policy,Gizlinlik syýasaty
+Upload File,Faýly ýükläň
+"Upload, View, and Share Spectra","Spektrany ýüklemek, görmek we paýlaşmak"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",".Csv (ileri tutulýan), .asp, .jdx, .spc, .spa ýa-da .0 Faýly saýlaň"
+Share Your Data?,Maglumatlaryňyzy paýlaşyň?
+Share Help,Kömek paýlaşyň
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Isleseňiz, ýüklenen spektrleriňizi we sazlamalaryňyzy spektroskopiýa jemgyýeti bilen paýlaşýarys.
+           Düzgüne görä, Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) laýyklykda ähli maglumatlar ygtyýarlandyrylar.
+           Uploadüklenen spektrler şu ýerde peýda bolar: https://osf.io/rjg3c"
+Upload Help,Kömek ýükläň
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Raman ýa-da FTIR spektr faýllaryny csv, jdx, spc ýa-da spa görnüşinde ýükläň. Csv faýly makul bilner. Eger csv bolsa, faýlda (1 / sm) birliklerde “tolkun” diýlip ýazylan bir sütün, sorujy birliklerde “intensiwlik” diýen sütün bolmaly.
+            Jdx, spc, spa ýa-da 0 bolsa, faýl (1 / sm) tolkunly ýekeje siňdiriş spektri bolmaly. Bu faýllar elmydama birkemsiz işlemez, sebäbi başga bir programma üpjünçiliginde iki gezek barlaň.
+            Raman spektrini göçürip almak üçin 'Synag maglumatlary' düwmesine basyň."
+Intensity Adjustment,Dykyzlygy sazlamak
+None,Hiç biri
+Transmittance,Geçiriş
+Reflectance,Oýlanma
+Intensity Correction Help,Dykyzlygy düzetmek kömek
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Uploadüklenen spektr sorujy birliklerde bolmasa,
+           öwürmek üçin birlikleri kesgitlemek üçin bu girişden peýdalanyň. “Specy” açyp bilersiňiz
+           şöhlelendiriş ýa-da geçiriş spektrini ulanyp, Absorbsiýa bölümlerine sazlaň
+           ýüklemek faýly goýmasynda aşak düşýär. Öňki bellikleriň hemmesi
+           maglumatlaryň sorujy birlikdigini göz öňünde tutuň, şonuň üçin etmeli
+           zerur bolsa dowam etdirmezden ozal düzediş. Geçiriş sazlamasy
+           ulgam üçin düzetmeýän log10 (1 / T) hasaplamasyny ulanýar
+           we bölejikleriň aýratynlyklary. Yzygiderliligi sazlamak
+           Kubelka-Munk deňlemesi (1-R) 2 / (2 * R). Oýlanmagy göz öňünde tutýarys
+           1-100-den göterim hökmünde formatlanýar we ilki bilen 100-e bölmek bilen intensiwligi düzediň
+           deňlemäniň garaşylýan görnüşine laýyk geler ýaly.
+           Hiç biri saýlanmasa, “Open Specy” ýüklenen maglumatlaryň bardygyny çaklaýar
+           siňdiriş spektri."
+Sample File,Mysal faýly
+Sample Data Help,Maglumat kömegi
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Synag we csv faýllarynyň nähili formatlanmalydygyna düşünmek üçin gurallara ýükläp boljak nusga spektr.
+Metadata Input,Metadata giriş
+Metadata Help,Metadata kömek
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Islendik ýüklenen spektri we metadatalary spektroskopiýa jemgyýeti bilen paýlaşýarys, eger bu ýerdäki meta-maglumaty doldursaňyz we paýlaşsaňyz.
+           Uploadüklenen spektrler we metadata şu ýerde peýda bolar: https://osf.io/rjg3c"
+Share Metadata,Metadata paýlaşyň
+Upload some data to get started...,Başlamak üçin käbir maglumatlary ýükläň ...
+Preprocess Spectrum,Öňünden spektr
+"Smooth, Baseline Correct, and Download Processed Spectra",Gaýtadan işlenýän spektrleri tekiz we göçürip alyň
+Download (recommended),Göçürip alyň (maslahat berilýär)
+Download Help,Kömek göçürip alyň
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Käbir ulanyjylar gaýtadan işlenen spektriň göçürmesini saklamak isläp bilerler. Bu düwme gaýtadan işlenen spektri csv faýly hökmünde göçürip alýar.
+Smoothing,Düzeltmek
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,"Bu has ýumşak, signalyň maglumatlaryň ses derejesine bolan gatnaşygyny güýçlendirip biler we 12 işleýän maglumat nokady we görkezilen polinomial bilen Savitzky-Golay süzgüçini ulanýar."
+Smoothing Polynomial,Polinomiýany tekizlemek
+Baseline Correction,Esasy düzediş
+Baseline Correction Help,Esasy düzediş kömegi
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Bu esasy düzediş düzgüniniň esasy düzediş üçin iki warianty bar, 1) spektriň ähli sebtine polinomial laýyklygy ulanyp, spektriň binýadyny yzygiderli tapmak üçin polinomial imodpolyfit prosedurasy. 2) sýu plotetdäki çyzyk guralynyň kömegi bilen el bilen çyzyklar çekilip bilner we dogry düwme esasy setirleri aýyrmak üçin setirleri ulanar."
+Baseline Correction Polynomial,Esasy düzediş polinomiýasy
+Technique,Tehnika
+Polynomial,Köp aýallylyk
+Manual,Gollanma
+Correct With Trace,Yz bilen dogry
+Reset,Täzeden düzmek
+Range Selection,Aralyk saýlamak
+Spectral Range Help,Spektral aralyk kömegi
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,"Spektral diapazony çäklendirmek, pikleriň ýok ýerlerini aýryp, laýyklygy gowulaşdyryp biler"
+Maximum Spectral Range,Iň ýokary spektral diapazon
+Minimum Spectral Range,Iň pes spektral aralygy
+Identify Spectrum,Spektri kesgitläň
+Identify Spectrum Using the Reference Library,Salgy kitaphanasyny ulanyp spektri kesgitläň
+Raman,Raman
+FTIR,FTIR
+Spectra,Spektr
+Type,Görnüşi
+Spectrum Type Help,Spektr görnüşi kömek
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,"Bu saýlaw, FTIR ýa-da Raman gabat gelýän kitaphananyň ulanylandygyny kesgitlär. Edüklenen spektr görnüşini saýlaň."
+Analysis,Derňew
+Processed,Işlenildi
+Uploaded,Edükledi
+Spectrum to Analyze Help,Kömek derňewi üçin spektr
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,"Bu saýlaw, ýüklenen (gaýtadan işlenmedik) spektriň ýa-da gaýtadan işleýiş goýmasynyň kömegi bilen gaýtadan işlenen spektriň spektr oýnunda ulanylýandygyny kesgitlär."
+Region,Sebit
+Full,Doly
+Peaks,Peaks
+Region to Match Help,Kömek üçin sebit
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,"Bu saýlaw, gabat gelýän kitaphananyňyzyň doly spektrden ýa-da diňe spektr piklerinden ybaratdygyny kesgitlär."
+Partner With Us,Biziň bilen hyzmatdaş
+Help us reach our goal of revolutionizing spectroscopy.,Spektroskopiýany rewolýusiýa etmek maksadymyza ýetmäge kömek ediň.
+Donate Cash,Nagt pul beriň
+Buy From Swag Store,Swag dükanyndan satyn alyň
+Contribute time,Wagt goşuň
+Revolutionizing,Ynkylap
+Thriving,Ösüş
+Maintaining,Hyzmat etmek
+Supporting,Goldaw
+Saving,Tygşytlamak
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,“Open Specy” -ni bir gezek basmak bilen 100% takyk spektral kesgitleme we çuň spektral diagnostika esasy maksadyna ýakynlaşdyrýan tölegli topar
+A single paid staff person working to update and build the community and the tool,Jemgyýeti we guraly täzelemek we gurmak üçin işleýän ýekeje tölegli işgär
+Maintenance costs and minor ad-hoc updates and bug fixes,Bejeriş çykdajylary we ownuk mahabat täzelenmeleri we näsazlyklary düzetmek
+Keeping the app online and essential maintenance,Programmany onlaýn ýagdaýda saklamak we zerur tehniki hyzmat
+Long term storage only,Diňe uzak möhletli ammar
+Sharing Metadata,Metadata paýlaşmak
+Thank you for sharing your data!,Maglumatlaryňyzy paýlaşanyňyz üçin sag boluň!
+Your data will soon be available at https://osf.io/stmv4/,Maglumatlaryňyz ýakyn wagtda https://osf.io/stmv4/
+Something went wrong :-(,Bir zat ýalňyşdy :-(
+Data type not supported!,Maglumatlaryň görnüşi goldanylmaýar!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Dataüklenen maglumat görnüşi häzirki wagtda goldanylmaýar; haýyş edýärin
+                      jikme-jiklikler üçin gurallar we 'About' goýmasyny barlaň."
+Sharing Spectrum to Community Library,Jemgyýet kitaphanasyna spektri paýlaşmak
+Reading Spectrum,Spektri okamak
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Tekst / csv faýly ýüklän bolsaňyz, hökman barlaň
+           sütünler san taýdan 'tolkun' we
+           'intensiwlik'."
+absorbance intensity [-],siňdiriş intensiwligi [-]
+wavenumber [cm<sup>-1</sup>],tolkun [cm <sup> -1 </sup>]
+Analyzing Spectrum,Spektri derňemek
+Finding Match,Deňlik tapmak
+Making Plot,Meýilnama düzmek
+Material,Material
+Pearson's r,Pearson r
+Organization,Gurama
+Selectable Matches,Saýlanyp boljak gabat gelýänler
+Donations,Haýyr-sahawat
+Operation Costs,Amal çykdajylary
+Selection Metadata,Saýlaw meta-maglumaty

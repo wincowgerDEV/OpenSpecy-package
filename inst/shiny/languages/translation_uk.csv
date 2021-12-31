@@ -1,0 +1,212 @@
+en,uk
+About,Про
+Welcome,Ласкаво просимо
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Приєднуйтесь до сотень дослідників з усього світу
+           світу, які є частиною спільноти Open Specy by
+           аналіз, обмін, обробка та ідентифікація
+           їх спектри раманівського та ІЧ-спектра. Ці послуги є безкоштовними та відкритими завдяки нашим партнерам:"
+Quick Video Tutorial,Швидкий відеоурок
+Instructions,Інструкції
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Коротко: щоб використовувати інструмент, завантажте файл csv, asp, jdx, spc або spa на вкладку файлу завантаження.
+                                  Якщо csv, один стовпець має називатися «хвильове число» (в одиницях 1/см), а інший — «інтенсивність».
+                                  Ви можете згладити свої дані за допомогою фільтра SG, виправити базову лінію за допомогою поліноміального порядку iModPolyFit та обмежити діапазон довжин хвиль для відповідності.
+                                  Результат буде порівнюватися з внутрішньою бібліотекою спектрів раманівського чи FTIR. 1000 найсильніших матчів разом із вашим
+                                  завантажені або оброблені дані будуть представлені в інтерактивному графіку та таблиці. Щоб дізнатися більше, натисніть кнопку нижче
+                                  або подивіться детальне навчальне відео."
+Detailed Standard Operating Procedure,Детальна стандартна операційна процедура
+Download Open Data,Завантажити відкриті дані
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Довідкові спектри були отримані з ресурсів відкритого доступу
+           онлайн, рецензовані публікації та корпоративні пожертвування. У майбутньому
+           спектри, які завантажуються в інструмент, будуть включені до посилання
+           бібліотека, щоб зробити її ще кращою."
+Raman Reference Library,Довідкова бібліотека Рамана
+FTIR Reference Library,Довідкова бібліотека FTIR
+Raman Reference Library Metadata,Метадані довідкової бібліотеки Рамана
+FTIR Reference Library Metadata,Метадані довідкової бібліотеки FTIR
+Contribute Spectra,Внести свій вклад в Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Щоб поділитися спектрами, завантажте файл на вкладку завантаження файлів. Якщо ви вибрали Поділитися, копія ваших спектрів буде надіслана до спільноти
+           Сховище даних на Open Science Framework. Щоб додати додаткові метадані,
+           заповніть доступні поля метаданих і натисніть -Share Data-. The
+           файл spectra, який ви завантажили разом зі своїми відповідями, буде скопійовано
+           у підтеку a -With Metadata- за посиланням нижче. Усі спільні дані зберігаються
+           а Creative Commons Attribution License 4.0."
+Community Data Warehouse,Сховище даних спільноти
+Tool Validation,Перевірка інструменту
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Усі параметри в цьому інструменті перевіряються, щоб підтвердити це
+           інструмент функціонує якнайкраще і визначає найкраще за замовчуванням
+           параметри для використання. Наша поточна процедура перевірки включає виправлення
+           дубльовані записи в довідкових бібліотеках, перевірка спектрів в
+           метаданих, яких немає у спектральній бібліотеці, і забезпечення значення за замовчуванням
+           параметри забезпечують точність понад 80% у першому матчі."
+Detailed Validation Procedure,Детальна процедура підтвердження
+"Updates, Feature Requests, and Bug Reports","Оновлення, запити на функції та звіти про помилки"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Ми відстежуємо всі оновлення за допомогою контролю версій нашого коду. На GitHub можна запитувати функції та повідомляти про помилку.
+Stay up to date!,Будьте в курсі!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,"Слідкуйте за нами в Twitter @OpenSpecy. Надішліть електронну адресу wincowger@gmail.com, щоб бути доданим до списку розсилки."
+Citation,Цитування
+Useful Links,корисні посилання
+Free FTIR Software: siMPle microplastic IR spectral identification software,Безкоштовне програмне забезпечення FTIR: просте програмне забезпечення для ІЧ-спектральної ідентифікації мікропластику
+Free Spectroscopy Learning Academy from ThermoFisher,Безкоштовна академія навчання спектроскопії від ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Безкоштовний навчальний ресурс з оптичної мікроскопії від Університету штату Флорида
+Free desktop application for spectral analysis and links to reference databases.,Безкоштовна настільна програма для спектрального аналізу та посилань на довідкові бази даних.
+Terms And Conditions,Правила та умови
+Privacy Policy,Політика конфіденційності
+Upload File,Завантажити файл
+"Upload, View, and Share Spectra","Завантажуйте, переглядайте та діліться Spectra"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Виберіть файл .csv (бажано), .asp, .jdx, .spc, .spa або .0"
+Share Your Data?,Поділіться своїми даними?
+Share Help,Поділіться довідкою
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Якщо хочете, ми ділимося вашими завантаженими спектрами та налаштуваннями зі спільнотою спектроскопії.
+           За замовчуванням усі дані будуть ліцензовані відповідно до Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Завантажені спектри з’являться тут: https://osf.io/rjg3c"
+Upload Help,Завантажити довідку
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Завантажте файли спектру раманівського чи FTIR у форматі csv, jdx, spc або spa. Бажано використовувати файл csv. Якщо файл csv, то файл має містити один стовпець із позначкою «хвильове число» в одиницях (1/см) і інший стовпець із позначкою «інтенсивність» в одиницях поглинання.
+            Якщо jdx, spc, spa або 0, файл має бути єдиним спектром поглинання з хвильовим числом (1/см). Ці файли не завжди будуть працювати ідеально, оскільки їх важко читати, тому перевірте їх в іншому програмному забезпеченні.
+            Натисніть кнопку «Тестові дані», щоб завантажити зразок спектру раманівського розповсюдження."
+Intensity Adjustment,Регулювання інтенсивності
+None,Жодного
+Transmittance,Коефіцієнт пропускання
+Reflectance,Відображення
+Intensity Correction Help,Довідка щодо корекції інтенсивності
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Якщо завантажений спектр не в одиницях поглинання,
+           Використовуйте цей вхід, щоб указати одиниці вимірювання для конвертації. Open Specy can
+           налаштувати спектри відбиття або пропускання до одиниць поглинання за допомогою
+           це спадне меню на вкладці завантаження файлу. Усі попередні вкладки
+           припустимо, що дані вказані в одиницях поглинання, тому вам слід зробити
+           виправте, перш ніж продовжити, якщо необхідно. Регулювання коефіцієнта пропускання
+           використовує обчислення log10(1/T), яке не відповідає системі
+           і характеристики частинок. Для регулювання коефіцієнта відбиття використовується
+           Рівняння Кубельки-Мунка (1-R)2/(2*R). Припускаємо, що коефіцієнт відбиття
+           форматується у відсотках від 1-100 і спочатку виправте інтенсивність, розділивши на 100
+           так, щоб він відповідав формі, очікуваній рівнянням.
+           Якщо жодного не вибрано, Open Specy припускає, що завантажені дані є
+           спектр поглинання."
+Sample File,Зразок файлу
+Sample Data Help,Довідка про приклади даних
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,"Це зразок спектру, який можна завантажити в інструмент, щоб перевірити його та зрозуміти, як мають бути відформатовані файли csv."
+Metadata Input,Введення метаданих
+Metadata Help,Довідка щодо метаданих
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Ми ділимося будь-якими завантаженими спектрами та метаданими зі спільнотою спектроскопії, якщо ви заповните метадані тут і виберете поділитися.
+           Завантажені спектри та метадані з’являться тут: https://osf.io/rjg3c"
+Share Metadata,Поділіться метаданими
+Upload some data to get started...,"Завантажте деякі дані, щоб почати..."
+Preprocess Spectrum,Спектр попередньої обробки
+"Smooth, Baseline Correct, and Download Processed Spectra","Гладка, коректна базова лінія та завантаження оброблених спектрів"
+Download (recommended),Завантажити (рекомендовано)
+Download Help,Завантажити довідку
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Деякі користувачі можуть забажати зберегти копію обробленого спектру. Ця кнопка завантажує оброблений спектр у вигляді файлу csv.
+Smoothing,Згладжування
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Цей згладжувач може покращити відношення сигнал/шум даних і використовує фільтр Савіцького-Голея з 12 поточними точками даних і вказаним поліномом.
+Smoothing Polynomial,Згладжуючий поліном
+Baseline Correction,Корекція базової лінії
+Baseline Correction Help,Довідка щодо корекції базової лінії
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Ця програма корекції базової лінії має два варіанти корекції базової лінії: 1) поліноміальну процедуру imodpolyfit для ітераційного пошуку базової лінії спектру з використанням поліноміального пристосування до всієї області спектрів. 2) Лінії вручну можна намалювати за допомогою інструмента «Лінія» на графіку, а правильна кнопка використовуватиме лінії для віднімання базової лінії."
+Baseline Correction Polynomial,Поліном корекції базової лінії
+Technique,Техніка
+Polynomial,Поліном
+Manual,Посібник
+Correct With Trace,Виправити з Trace
+Reset,Скинути
+Range Selection,Вибір діапазону
+Spectral Range Help,Довідка по спектральному діапазону
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,"Обмеження спектрального діапазону може видалити ділянки спектра, де немає піків, і покращити відповідність"
+Maximum Spectral Range,Максимальний спектральний діапазон
+Minimum Spectral Range,Мінімальний спектральний діапазон
+Identify Spectrum,Визначте спектр
+Identify Spectrum Using the Reference Library,Визначте спектр за допомогою довідкової бібліотеки
+Raman,Раман
+FTIR,FTIR
+Spectra,Спектри
+Type,Тип
+Spectrum Type Help,Довідка щодо типу спектру
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,"Цей вибір визначить, чи буде використана бібліотека узгодження FTIR або Raman. Виберіть завантажений тип спектру."
+Analysis,Аналіз
+Processed,Оброблено
+Uploaded,Завантажено
+Spectrum to Analyze Help,Спектр для аналізу Довідка
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,"Цей вибір визначить, чи буде використаний завантажений (не оброблений) спектр чи спектр, оброблений за допомогою вкладки обробки, у відповідності спектру."
+Region,Регіон
+Full,Повний
+Peaks,Піки
+Region to Match Help,Довідка щодо регіону
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,"Цей вибір визначить, чи буде бібліотека, до якої ви підбираєте, складається з повного спектру чи лише з піків спектру."
+Partner With Us,Партнер з нами
+Help us reach our goal of revolutionizing spectroscopy.,Допоможіть нам досягти нашої мети революціонізувати спектроскопію.
+Donate Cash,Пожертвуйте готівкою
+Buy From Swag Store,Купуйте в магазині Swag
+Contribute time,Внести час
+Revolutionizing,Революційно
+Thriving,Процвітаючий
+Maintaining,Підтримка
+Supporting,Підтримуюча
+Saving,Збереження
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,"Оплачувана команда, яка наближає Open Specy до кінцевої мети — 100% точної спектральної ідентифікації та глибокої спектральної діагностики одним кліком."
+A single paid staff person working to update and build the community and the tool,"Одна оплачувана людина, яка працює над оновленням та розбудовою спільноти та інструменту"
+Maintenance costs and minor ad-hoc updates and bug fixes,Витрати на технічне обслуговування та незначні випадкові оновлення та виправлення помилок
+Keeping the app online and essential maintenance,Підтримка програми онлайн та необхідне обслуговування
+Long term storage only,Тільки тривале зберігання
+Sharing Metadata,Спільний доступ до метаданих
+Thank you for sharing your data!,"Дякуємо, що поділилися своїми даними!"
+Your data will soon be available at https://osf.io/stmv4/,Ваші дані незабаром будуть доступні на https://osf.io/stmv4/
+Something went wrong :-(,Щось пішло не так :-(
+Data type not supported!,Тип даних не підтримується!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Тип завантажених даних наразі не підтримується; будь ласка
+                      перевірте підказки та вкладку «Про програму», щоб дізнатися більше."
+Sharing Spectrum to Community Library,Спільний доступ до Spectrum у бібліотеку спільноти
+Reading Spectrum,Спектр читання
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Якщо ви завантажили текстовий/csv-файл, переконайтеся, що
+           стовпці є числовими і мають назву ""wavenumber"" і
+           «інтенсивність»."
+absorbance intensity [-],інтенсивність поглинання [-]
+wavenumber [cm<sup>-1</sup>],хвильове число [см<sup>-1</sup>]
+Analyzing Spectrum,Аналізуючи спектр
+Finding Match,Пошук відповідності
+Making Plot,Оформлення сюжету
+Material,Матеріал
+Pearson's r,Р. Пірсона
+Organization,Організація
+Selectable Matches,"Збіги, які можна вибрати"
+Donations,Пожертвування
+Operation Costs,Витрати на експлуатацію
+Selection Metadata,Вибір метаданих

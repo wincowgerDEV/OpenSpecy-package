@@ -1,0 +1,212 @@
+en,fa
+About,در باره
+Welcome,خوش آمدی
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","به صدها محقق از اطراف بپیوندید
+           جهانی که بخشی از جامعه Open Specy هستند
+           تجزیه و تحلیل، به اشتراک گذاری، پردازش و شناسایی
+           طیف رامان و IR آنها. این خدمات به لطف شرکای ما رایگان و منبع باز هستند:"
+Quick Video Tutorial,آموزش ویدیویی سریع
+Instructions,دستورالعمل ها
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","به طور خلاصه: برای استفاده از ابزار یک فایل csv، asp، jdx، spc یا spa را در برگه فایل آپلود آپلود کنید.
+                                  در صورت csv، یک ستون باید «تعداد موج» (به واحد 1/cm) و دیگری با نام «شدت» نامیده شود.
+                                  می‌توانید داده‌های خود را با استفاده از فیلتر SG صاف کنید، داده‌های خود را با استفاده از ترتیب چند جمله‌ای iModPolyFit، خط مبنا تصحیح کنید، و محدوده طول موج را برای مطابقت محدود کنید.
+                                  نتیجه با یک کتابخانه داخلی رامان یا FTIR مقایسه خواهد شد. قوی ترین 1000 مسابقه همراه با شما
+                                  داده های آپلود شده یا پردازش شده در نمودار و جدول تعاملی ارائه می شود. برای جزئیات بیشتر روی دکمه زیر کلیک کنید
+                                  یا فیلم آموزشی دقیق را تماشا کنید."
+Detailed Standard Operating Procedure,روش عملیات استاندارد دقیق
+Download Open Data,Open Data را دانلود کنید
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","طیف‌های مرجع از منابع دسترسی باز تهیه شده‌اند
+           آنلاین، نشریات بررسی شده، و کمک های مالی شرکتی. در آینده
+           طیف‌هایی که در ابزار آپلود می‌شوند به مرجع ادغام می‌شوند
+           کتابخانه برای بهتر کردن آن."
+Raman Reference Library,کتابخانه مرجع رامان
+FTIR Reference Library,کتابخانه مرجع FTIR
+Raman Reference Library Metadata,فراداده کتابخانه مرجع رامان
+FTIR Reference Library Metadata,فراداده کتابخانه مرجع FTIR
+Contribute Spectra,شرکت Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","برای به اشتراک گذاشتن طیف، یک فایل را در برگه فایل آپلود آپلود کنید. اگر اشتراک گذاری را انتخاب کرده باشید، یک کپی از طیف شما به انجمن ارسال می شود
+           انبار داده در چارچوب علوم باز. برای افزودن متادیتای اضافی،
+           فیلدهای فراداده موجود را پر کنید و روی -Share Data- کلیک کنید. را
+           فایل طیفی که همراه با پاسخ های خود آپلود کرده اید کپی می شود
+           به زیر پوشه -With Metadata- در لینک زیر. همه داده های مشترک نگهداری می شود
+           مجوز Creative Commons Attribution 4.0."
+Community Data Warehouse,انبار داده جامعه
+Tool Validation,اعتبار سنجی ابزار
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","تمام پارامترهای این ابزار برای تایید آن تست می شوند
+           این ابزار به بهترین شکل ممکن کار می کند و بهترین پیش فرض را تعیین می کند
+           پارامترهای مورد استفاده روند تأیید اعتبار فعلی ما شامل اصلاح است
+           ورودی های تکراری در کتابخانه های مرجع، بررسی طیف ها در داخل
+           ابرداده‌ای که در کتابخانه طیفی نیست و از پیش‌فرض بودن اطمینان حاصل می‌کند
+           پارامترها بیش از 80٪ دقت را در اولین مسابقه ارائه می دهند."
+Detailed Validation Procedure,روش دقیق اعتبار سنجی
+"Updates, Feature Requests, and Bug Reports",به روز رسانی ها، درخواست های ویژگی، و گزارش های اشکال
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,ما همه به‌روزرسانی‌ها را با استفاده از کنترل نسخه روی کدمان پیگیری می‌کنیم. ویژگی ها را می توان در GitHub درخواست کرد و باگ را گزارش کرد.
+Stay up to date!,به روز باشید!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,ما را در توییتر @OpenSpecy دنبال کنید. ایمیل wincowger@gmail.com برای اضافه شدن به لیست پستی.
+Citation,نقل قول
+Useful Links,لینک های مفید
+Free FTIR Software: siMPle microplastic IR spectral identification software,نرم افزار FTIR رایگان: نرم افزار ساده شناسایی طیفی IR میکروپلاستیک
+Free Spectroscopy Learning Academy from ThermoFisher,آکادمی آموزش طیف سنجی رایگان از ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,منبع آموزش میکروسکوپ نوری رایگان از دانشگاه ایالتی فلوریدا
+Free desktop application for spectral analysis and links to reference databases.,برنامه دسکتاپ رایگان برای تجزیه و تحلیل طیفی و پیوند به پایگاه های داده مرجع.
+Terms And Conditions,شرایط و ضوابط
+Privacy Policy,سیاست حفظ حریم خصوصی
+Upload File,آپلود فایل
+"Upload, View, and Share Spectra",آپلود، مشاهده و اشتراک گذاری طیف
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",csv. (ترجیحا)، .asp، .jdx، .spc، .spa یا فایل .0 را انتخاب کنید
+Share Your Data?,داده های خود را به اشتراک بگذارید؟
+Share Help,راهنما را به اشتراک بگذارید
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","اگر دوست دارید، طیف ها و تنظیمات آپلود شده شما را با انجمن طیف سنجی به اشتراک می گذاریم.
+           به‌طور پیش‌فرض، همه داده‌ها تحت مجوز Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) خواهند بود.
+           طیف های آپلود شده در اینجا ظاهر می شوند: https://osf.io/rjg3c"
+Upload Help,آپلود راهنما
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","فایل های طیف Raman یا FTIR را به صورت csv، jdx، spc، یا اسپا آپلود کنید. یک فایل csv ترجیح داده می شود. اگر csv باشد، فایل باید دارای یک ستون با برچسب «شماره موج» در واحدهای (1/cm) و ستون دیگری با برچسب «شدت» در واحد جذب باشد.
+            اگر jdx، spc، spa، یا 0 فایل باید یک طیف جذب واحد با عدد موج در (1/cm) باشد. این فایل‌ها همیشه بی‌نقص کار نمی‌کنند، زیرا خواندن آنها دشوار است، بنابراین آنها را در نرم‌افزار دیگری بررسی کنید.
+            برای بارگیری یک نمونه طیف رامان، دکمه «تست داده‌ها» را فشار دهید."
+Intensity Adjustment,تنظیم شدت
+None,هیچ یک
+Transmittance,عبور
+Reflectance,انعکاس
+Intensity Correction Help,کمک تصحیح شدت
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","اگر طیف آپلود شده در واحد جذب نباشد،
+           از این ورودی برای تعیین واحدهای تبدیل استفاده کنید. Open Specy can
+           با استفاده از بازتاب یا طیف عبوری به واحدهای جذب تنظیم کنید
+           این کشویی در تب فایل آپلود. همه برگه های قبلی
+           فرض کنید که داده ها در واحد جذب هستند، بنابراین باید آن را بسازید
+           در صورت نیاز قبل از ادامه اصلاح. تنظیم انتقال
+           از محاسبه log10(1/T) استفاده می کند که برای سیستم درست نیست
+           و خصوصیات ذرات تنظیم بازتاب استفاده می کند
+           معادله Kubelka-Munk (1-R)2/(2*R). ما انعکاس را فرض می کنیم
+           به صورت درصد از 1-100 فرمت می شود و ابتدا شدت را با تقسیم بر 100 تصحیح می کند.
+           به طوری که با فرم مورد انتظار معادله مطابقت داشته باشد.
+           اگر هیچ کدام انتخاب نشد، Open Specy فرض می‌کند که داده‌های آپلود شده هستند
+           یک طیف جذبی"
+Sample File,فایل نمونه
+Sample Data Help,نمونه راهنمای داده
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,این یک طیف نمونه است که می تواند برای آزمایش آن و درک نحوه قالب بندی فایل های csv در ابزار آپلود شود.
+Metadata Input,ورودی فراداده
+Metadata Help,راهنمای فراداده
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","اگر فراداده را در اینجا پر کنید و اشتراک گذاری را انتخاب کنید، ما هر طیف و ابرداده آپلود شده را با انجمن طیف سنجی به اشتراک می گذاریم.
+           طیف ها و ابرداده های آپلود شده در اینجا ظاهر می شوند: https://osf.io/rjg3c"
+Share Metadata,متادیتا را به اشتراک بگذارید
+Upload some data to get started...,برای شروع چند داده آپلود کنید...
+Preprocess Spectrum,طیف پیش پردازش
+"Smooth, Baseline Correct, and Download Processed Spectra",Smooth، Baseline Correct، و دانلود طیف پردازش شده
+Download (recommended),دانلود (توصیه می شود)
+Download Help,راهنما را دانلود کنید
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,برخی از کاربران ممکن است بخواهند یک کپی از طیف پردازش شده خود را ذخیره کنند. این دکمه طیف پردازش شده را به صورت فایل csv دانلود می کند.
+Smoothing,صاف کردن
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,این نرم‌افزار می‌تواند نسبت سیگنال به نویز داده‌ها را افزایش دهد و از فیلتر Savitzky-Golay با 12 نقطه داده در حال اجرا و چند جمله‌ای مشخص شده استفاده می‌کند.
+Smoothing Polynomial,چند جمله ای صاف کننده
+Baseline Correction,تصحیح پایه
+Baseline Correction Help,راهنمای اصلاح خط مبنا
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.",این روال اصلاح خط پایه دو گزینه برای تصحیح خط پایه دارد، 1) روش چند جمله ای imodpolyfit برای یافتن تکراری خط پایه طیف با استفاده از تناسب چند جمله ای برای کل منطقه طیف. 2) خطوط دستی را می توان با استفاده از ابزار خط روی نمودار رسم کرد و دکمه صحیح از خطوط برای تفریق خط مبنا استفاده می کند.
+Baseline Correction Polynomial,چند جمله ای اصلاح خط مبنا
+Technique,تکنیک
+Polynomial,چند جمله ای
+Manual,کتابچه راهنمای
+Correct With Trace,تصحیح با ردیابی
+Reset,بازنشانی کنید
+Range Selection,انتخاب محدوده
+Spectral Range Help,راهنما محدوده طیفی
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,محدود کردن محدوده طیفی می تواند مناطقی از طیف را که در آن قله ای وجود ندارد حذف کند و تطابق را بهبود بخشد
+Maximum Spectral Range,حداکثر برد طیفی
+Minimum Spectral Range,حداقل برد طیفی
+Identify Spectrum,طیف را شناسایی کنید
+Identify Spectrum Using the Reference Library,شناسایی طیف با استفاده از کتابخانه مرجع
+Raman,رامان
+FTIR,FTIR
+Spectra,طیف
+Type,تایپ کنید
+Spectrum Type Help,راهنما نوع طیف
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,این انتخاب تعیین می کند که آیا از کتابخانه تطبیق FTIR یا Raman استفاده می شود. نوع طیفی که آپلود شده است را انتخاب کنید.
+Analysis,تحلیل و بررسی
+Processed,فرآوری شده
+Uploaded,آپلود شد
+Spectrum to Analyze Help,راهنما طیفی برای تجزیه و تحلیل
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,این انتخاب تعیین خواهد کرد که آیا طیف آپلود شده (فرآوری نشده) یا طیف پردازش شده با استفاده از برگه پردازش در مطابقت طیف استفاده می شود.
+Region,منطقه
+Full,پر شده
+Peaks,قله ها
+Region to Match Help,منطقه برای مطابقت راهنما
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,این انتخاب تعیین می‌کند که آیا کتابخانه‌ای که با آن مطابقت می‌دهید شامل طیف کامل است یا فقط قله‌های طیف.
+Partner With Us,با ما شریک شوید
+Help us reach our goal of revolutionizing spectroscopy.,به ما کمک کنید تا به هدف خود که انقلابی در طیف‌سنجی است برسیم.
+Donate Cash,کمک نقدی
+Buy From Swag Store,از فروشگاه Swag خرید کنید
+Contribute time,زمان کمک کنید
+Revolutionizing,انقلابی کردن
+Thriving,پر رونق
+Maintaining,نگهداری
+Supporting,حمایت می کند
+Saving,صرفه جویی در
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,یک تیم پولی که Open Specy را به هدف نهایی یعنی شناسایی 100٪ دقیق طیفی و تشخیص عمیق طیفی با یک کلیک نزدیک می کند.
+A single paid staff person working to update and build the community and the tool,یک پرسنل حقوق بگیر که برای به روز رسانی و ایجاد جامعه و ابزار کار می کند
+Maintenance costs and minor ad-hoc updates and bug fixes,هزینه های تعمیر و نگهداری و به روز رسانی های جزئی موقت و رفع اشکال
+Keeping the app online and essential maintenance,آنلاین نگه داشتن برنامه و نگهداری ضروری
+Long term storage only,فقط ذخیره سازی طولانی مدت
+Sharing Metadata,به اشتراک گذاری متادیتا
+Thank you for sharing your data!,از شما برای به اشتراک گذاری داده های خود متشکرم!
+Your data will soon be available at https://osf.io/stmv4/,اطلاعات شما به زودی در https://osf.io/stmv4/ در دسترس خواهد بود
+Something went wrong :-(,یه مشکلی پیش اومد :-(
+Data type not supported!,نوع داده پشتیبانی نمی شود!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","نوع داده آپلود شده در حال حاضر پشتیبانی نمی شود. لطفا
+                      برای جزئیات، راهنمای ابزار و برگه ""درباره"" را بررسی کنید."
+Sharing Spectrum to Community Library,اشتراک گذاری طیف در کتابخانه انجمن
+Reading Spectrum,طیف خواندن
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","اگر فایل متنی/csv را آپلود کردید، مطمئن شوید که
+           ستون‌ها عددی هستند و به نام عدد موج و
+           'شدت'."
+absorbance intensity [-],شدت جذب [-]
+wavenumber [cm<sup>-1</sup>],عدد موج [cm<sup>-1</sup>]
+Analyzing Spectrum,تجزیه و تحلیل طیف
+Finding Match,پیدا کردن مسابقه
+Making Plot,ساختن طرح
+Material,مواد
+Pearson's r,آر پیرسون
+Organization,سازمان
+Selectable Matches,مسابقات قابل انتخاب
+Donations,کمک های مالی
+Operation Costs,هزینه های عملیات
+Selection Metadata,فراداده انتخابی

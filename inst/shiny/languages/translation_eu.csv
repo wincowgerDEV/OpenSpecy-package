@@ -1,0 +1,212 @@
+en,eu
+About,Buruz
+Welcome,Ongi etorri
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Batu inguruko ehunka ikerlariekin
+           Open Specy komunitatearen parte diren mundua
+           aztertzea, partekatzea, prozesatzea eta identifikatzea
+           haien Raman eta IR espektroak. Zerbitzu hauek doakoak eta kode irekikoak dira gure bazkideei esker:"
+Quick Video Tutorial,Bideo Tutorial Azkarra
+Instructions,Argibideak
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Laburbilduz: Tresna erabiltzeko, kargatu csv, asp, jdx, spc edo spa fitxategi bat kargatu fitxategia fitxara.
+                                  Csv bada, zutabe bati 'uhin-zenbakia' izendatu behar da (1/cm-ko unitateetan) eta beste bat 'intentsitatea'.
+                                  Zure datuak leun ditzakezu SG iragazki bat erabiliz, oinarri-lerroa zure datuak zuzen ditzakezu iModPolyFit-en ordena polinomiala erabiliz eta uhin-luzera mugatu partidarako.
+                                  Emaitza barneko Raman edo FTIR espektro liburutegi batekin alderatuko da. 1000 partidarik indartsuenak zurearekin batera
+                                  igotako edo prozesatutako datuak grafiko eta taula interaktibo batean aurkeztuko dira. Xehetasun gehiago lortzeko, egin klik beheko botoian
+                                  edo ikusi argibide-bideo zehatza."
+Detailed Standard Operating Procedure,Funtzionamendu-prozedura estandar xehatua
+Download Open Data,Deskargatu Open Data
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Erreferentzia-espektroak sarbide irekiko baliabideetatik atera ziren
+           sarean, parekideek aztertutako argitalpenak eta enpresen dohaintzak. Etorkizunean
+           tresnara kargatzen diren espektroak erreferentzian sartuko dira
+           liburutegia are hobea izateko."
+Raman Reference Library,Raman Erreferentzia Liburutegia
+FTIR Reference Library,FTIR Erreferentzia Liburutegia
+Raman Reference Library Metadata,Raman Erreferentzia Liburutegiko Metadatuak
+FTIR Reference Library Metadata,FTIR Erreferentzia Liburutegiko Metadatuak
+Contribute Spectra,Ekarpena Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Espektroak partekatzeko, kargatu fitxategi bat kargatu fitxategia fitxara. Partekatu hautatu baduzu zure espektroen kopia bat komunitatera bidaliko da
+           Data Warehouse on Open Science Framework. Metadatu gehigarriak gehitzeko,
+           bete eskuragarri dauden metadatuen eremuak eta egin klik -Partekatu datuak-. The
+           Zure erantzunekin batera kargatu duzun espektro fitxategia kopiatuko da
+           a -Metadatuekin- azpikarpetera beheko estekan. Partekatutako datu guztiak gordetzen dira
+           Creative Commons Aitortu Lizentzia 4.0."
+Community Data Warehouse,Komunitateko Datu Biltegia
+Tool Validation,Tresnaren baliozkotzea
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Tresna honetako parametro guztiak probatzen dira hori balioztatzeko
+           tresna ahalik eta ondoen funtzionatzen ari da eta lehenetsi onena zehaztu
+           erabili beharreko parametroak. Gure egungo baliozkotze-prozesuak zuzentzea barne hartzen du
+           erreferentzia-liburutegietan sarrera bikoiztuak, espektroak egiaztatzen
+           Liburutegi espektralean ez dauden metadatuak eta lehenetsia bermatuz
+           parametroek %80tik gorako zehaztasuna ematen dute lehen partidan."
+Detailed Validation Procedure,Baliozkotze Prozedura Xehatua
+"Updates, Feature Requests, and Bug Reports","Eguneraketak, eginbideen eskaerak eta akatsen txostenak"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Eguneratze guztien jarraipena egiten dugu gure kodearen bertsio-kontrola erabiliz. Eginbideak eska daitezke eta akatsen berri GitHub-en.
+Stay up to date!,Egon eguneratuta!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Jarrai gaitzazu Twitter-en @OpenSpecy. Posta-zerrendan gehitzeko wincowger@gmail.com e-posta.
+Citation,Aipamena
+Useful Links,Esteka erabilgarriak
+Free FTIR Software: siMPle microplastic IR spectral identification software,Doako FTIR Softwarea: IR mikroplastikozko identifikazio espektralaren software sinplea
+Free Spectroscopy Learning Academy from ThermoFisher,ThermoFisher-en Doako Espektroskopia Ikasteko Akademia
+Free Optical Microscopy Learning Resource from Florida State University,Doako Mikroskopia Optikoko Ikaskuntza Baliabidea Florida State University-tik
+Free desktop application for spectral analysis and links to reference databases.,Doako mahaigaineko aplikazioa analisi espektraletarako eta erreferentzia datu-baseetarako esteketarako.
+Terms And Conditions,Baldintzak eta Baldintzak
+Privacy Policy,Pribatutasun-politika
+Upload File,Kargatu fitxategia
+"Upload, View, and Share Spectra","Kargatu, ikusi eta partekatu espektroak"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Aukeratu .csv (hobe), .asp, .jdx, .spc, .spa edo .0 fitxategia"
+Share Your Data?,Zure datuak partekatu?
+Share Help,Partekatu Laguntza
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Nahi baduzu, kargatutako espektroak eta ezarpenak partekatzen ditugu espektroskopia komunitatearekin.
+           Berez, datu guztiak Creative Commons Aitortu-EzKomertziala 4.0 Nazioarteko lizentziapean egongo dira (CC BY-NC 4.0).
+           Kargatutako espektroak hemen agertuko dira: https://osf.io/rjg3c"
+Upload Help,Kargatu Laguntza
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Kargatu Raman edo FTIR espektro fitxategiak csv, jdx, spc edo spa gisa. Csv fitxategia hobesten da. Csv bat bada, fitxategiak 'uhin-zenbakia' izeneko zutabe bat eduki behar du (1/cm) unitateetan eta 'intentsitatea' izeneko beste zutabe bat absorbantzia-unitateetan.
+            jdx, spc, spa edo 0 bada fitxategiak absorbantzia espektro bakarra izan behar du uhin-zenbakiarekin (1/cm). Fitxategi hauek ez dute beti primeran funtzionatuko, irakurtzeko zailak direlako, beraz, egiaztatu beste software batean.
+            Sakatu 'Proba datuak' botoia Raman espektro lagin bat deskargatzeko."
+Intensity Adjustment,Intentsitatearen doikuntza
+None,Bat ere ez
+Transmittance,Transmisioa
+Reflectance,Erreflektantzia
+Intensity Correction Help,Intentsitatea Zuzentzeko Laguntza
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Igotako espektroa absorbantzia-unitateetan ez badago,
+           erabili sarrera hau zeintzuk diren bihurtzeko unitateak zehazteko.Open Specy can
+           egokitu islapen- edo transmisio-espektroak Xurgapen-unitateetara erabiliz
+           goitibeherako hau igoera fitxategia fitxan. Aurreko fitxa guztiak
+           suposatu datuak absorbantzia-unitateetan daudela, beraz, egin beharko zenuke
+           zuzenketa jarraitu aurretik behar izanez gero. Transmisioaren doikuntza
+           sistemarako zuzentzen ez den log10(1/T) kalkulua erabiltzen du
+           eta partikulen ezaugarriak. Reflectantziaren doikuntzak erabiltzen du
+           Kubelka-Munk ekuazioa (1-R)2/(2*R). Suposatzen dugu isladapena
+           1-100 ehuneko gisa formateatzen da eta lehenik intentsitatea zuzendu 100ez zatituz
+           ekuazioak espero duen formara egokitzeko.
+           Bat ere ez bada hautatzen, Open Specy-k kargatutako datuak direla suposatzen du
+           absorbantzia espektro bat."
+Sample File,Lagin fitxategia
+Sample Data Help,Lagin-datuen laguntza
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Hau probatzeko eta csv fitxategiak nola formateatu behar diren ulertzeko tresnara kargatu daitekeen espektro lagin bat da.
+Metadata Input,Metadatuen sarrera
+Metadata Help,Metadatuen laguntza
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Kargatutako espektro eta metadatuak espektroskopia komunitatearekin partekatzen ditugu metadatuak hemen betetzen badituzu eta partekatu hautatzen baduzu.
+           Kargatutako espektroak eta metadatuak hemen agertuko dira: https://osf.io/rjg3c"
+Share Metadata,Partekatu metadatuak
+Upload some data to get started...,Kargatu datu batzuk hasteko...
+Preprocess Spectrum,Aurreprozesatu Espektroa
+"Smooth, Baseline Correct, and Download Processed Spectra","Leuna, oinarrizko lerroa zuzena eta deskargatu prozesatutako espektroak"
+Download (recommended),Deskargatu (gomendatua)
+Download Help,Deskargatu Laguntza
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Baliteke erabiltzaile batzuek prozesatutako espektroaren kopia bat gorde nahi izatea. Botoi honek prozesatutako espektroa csv fitxategi gisa deskargatzen du.
+Smoothing,Leuntzea
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Leungarri honek datuen seinale eta zarata erlazioa hobetu dezake eta Savitzky-Golay iragazkia erabiltzen du martxan 12 datu-punturekin eta zehaztutako polinomioarekin.
+Smoothing Polynomial,Polinomio leuntzea
+Baseline Correction,Oinarrizko zuzenketa
+Baseline Correction Help,Oinarrizko zuzenketa laguntza
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Oinarrizko zuzenketa-errutina honek oinarrizko lerroa zuzentzeko bi aukera ditu, 1) imodpolyfit prozedura polinomiala espektroaren oinarri-lerroa modu errepikakorrean aurkitzeko, espektroaren eskualde osorako doikuntza polinomiala erabiliz. 2) eskuzko lerroak marraz daitezke lursaileko lerro tresna erabiliz eta botoi zuzenak lerroak erabiliko ditu oinarri-lerroa kentzeko."
+Baseline Correction Polynomial,Oinarrizko zuzenketa polinomioa
+Technique,Teknika
+Polynomial,Polinomioa
+Manual,Eskuliburua
+Correct With Trace,Zuzendu Trazarekin
+Reset,Berrezarri
+Range Selection,Barrutiaren hautaketa
+Spectral Range Help,Espektroaren barrutiaren laguntza
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Espektro-barrutia mugatzeak gailurrik ez dagoen espektro-eskualdeak ken ditzake eta parekatzea hobetu
+Maximum Spectral Range,Gehienezko Gama Espektrala
+Minimum Spectral Range,Gutxieneko Gama Espektrala
+Identify Spectrum,Espektroa identifikatzea
+Identify Spectrum Using the Reference Library,Identifikatu espektroa Erreferentzia Liburutegia erabiliz
+Raman,Raman
+FTIR,FTIR
+Spectra,Espektroak
+Type,Mota
+Spectrum Type Help,Spectrum Moten laguntza
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Hautaketa honek FTIR edo Raman bat datorren liburutegia erabiltzen den zehaztuko du. Aukeratu kargatu den espektro mota.
+Analysis,Analisia
+Processed,Prozesatua
+Uploaded,Kargatu da
+Spectrum to Analyze Help,Laguntza aztertzeko espektroa
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Hautapen honek zehaztuko du kargatutako (ez prozesatu) espektroa edo prozesatzeko fitxa erabiliz prozesatutako espektroa espektroaren partidan erabiltzen den.
+Region,Eskualdea
+Full,Osoa
+Peaks,Gailurrak
+Region to Match Help,Lotu beharreko eskualdea Laguntza
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Hautapen honek zehaztuko du bat egiten ari zaren liburutegia espektro osoa edo espektro gailurrak soilik dituen ala ez.
+Partner With Us,Gurekin Bazkide
+Help us reach our goal of revolutionizing spectroscopy.,Lagundu iezaguzu espektroskopia iraultzeko gure helburua lortzen.
+Donate Cash,Eman Dirua
+Buy From Swag Store,Erosi Swag dendatik
+Contribute time,Ekar ezazu denbora
+Revolutionizing,Iraultzen
+Thriving,Oparoa
+Maintaining,Mantentzea
+Supporting,Laguntzea
+Saving,Gorde
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,Open Specy identifikazio espektralaren % 100 zehatza eta diagnostiko espektral sakona klik bakar batekin azken helburura hurbiltzen ari den ordainpeko taldea.
+A single paid staff person working to update and build the community and the tool,Ordaindutako langile bakarra komunitatea eta tresna eguneratzeko eta eraikitzeko lanean
+Maintenance costs and minor ad-hoc updates and bug fixes,Mantentze-kostuak eta ad-hoc eguneraketa txikiak eta akatsen konponketak
+Keeping the app online and essential maintenance,Aplikazioa sarean mantentzea eta ezinbestekoa mantentzea
+Long term storage only,Epe luzerako biltegiratzea soilik
+Sharing Metadata,Metadatuak partekatzea
+Thank you for sharing your data!,Eskerrik asko zure datuak partekatzeagatik!
+Your data will soon be available at https://osf.io/stmv4/,Zure datuak laster eskuragarri egongo dira https://osf.io/stmv4/ helbidean
+Something went wrong :-(,Zerbait gaizki joan da :-(
+Data type not supported!,Datu mota ez da onartzen!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Kargatutako datu-mota ez da onartzen une honetan; mesedez
+                      xehetasunetarako, begiratu tresna-aholkuak eta 'Hori buruz' fitxa."
+Sharing Spectrum to Community Library,Espektroa komunitateko liburutegiarekin partekatzea
+Reading Spectrum,Irakurketa Espektroa
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Testu/csv fitxategi bat kargatu baduzu, ziurtatu
+           zutabeak zenbakizkoak dira eta 'uhin-zenbakia' izena dute eta
+           'intentsitatea'."
+absorbance intensity [-],xurgapen intentsitatea [-]
+wavenumber [cm<sup>-1</sup>],uhin-zenbakia [cm<sup>-1</sup>]
+Analyzing Spectrum,Espektroa aztertzea
+Finding Match,Partiduaren bila
+Making Plot,Trama egitea
+Material,Materiala
+Pearson's r,Pearsonen r
+Organization,Antolaketa
+Selectable Matches,Hauta daitezkeen partidak
+Donations,Dohaintzak
+Operation Costs,Eragiketa-kostuak
+Selection Metadata,Hautaketa metadatuak

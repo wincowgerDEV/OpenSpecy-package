@@ -1,0 +1,212 @@
+en,pa
+About,ਬਾਰੇ
+Welcome,ਸੁਆਗਤ ਹੈ
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","ਆਲੇ ਦੁਆਲੇ ਦੇ ਸੈਂਕੜੇ ਖੋਜਕਰਤਾਵਾਂ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਵੋ
+           ਦੁਨੀਆ ਜੋ ਓਪਨ ਸਪੀਸੀ ਕਮਿਊਨਿਟੀ ਦਾ ਹਿੱਸਾ ਹਨ
+           ਵਿਸ਼ਲੇਸ਼ਣ ਕਰਨਾ, ਸਾਂਝਾ ਕਰਨਾ, ਪ੍ਰਕਿਰਿਆ ਕਰਨਾ ਅਤੇ ਪਛਾਣ ਕਰਨਾ
+           ਉਹਨਾਂ ਦਾ ਰਮਨ ਅਤੇ IR ਸਪੈਕਟਰਾ। ਇਹ ਸੇਵਾਵਾਂ ਮੁਫ਼ਤ ਅਤੇ ਓਪਨ ਸੋਰਸ ਹਨ ਸਾਡੇ ਭਾਈਵਾਲਾਂ ਦਾ ਧੰਨਵਾਦ:"
+Quick Video Tutorial,ਤੇਜ਼ ਵੀਡੀਓ ਟਿਊਟੋਰਿਅਲ
+Instructions,ਹਦਾਇਤਾਂ
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","ਸੰਖੇਪ ਵਿੱਚ: ਟੂਲ ਦੀ ਵਰਤੋਂ ਕਰਨ ਲਈ ਇੱਕ csv, asp, jdx, spc, ਜਾਂ spa ਫਾਈਲ ਨੂੰ ਅੱਪਲੋਡ ਫਾਈਲ ਟੈਬ ਵਿੱਚ ਅਪਲੋਡ ਕਰੋ।
+                                  ਜੇਕਰ csv ਹੈ, ਤਾਂ ਇੱਕ ਕਾਲਮ ਨੂੰ 'wavenumber' (1/cm ਦੀ ਇਕਾਈਆਂ ਵਿੱਚ) ਅਤੇ ਦੂਜੇ ਨੂੰ 'ਤੀਬਰਤਾ' ਨਾਮ ਦਿੱਤਾ ਜਾਣਾ ਚਾਹੀਦਾ ਹੈ।
+                                  ਤੁਸੀਂ ਇੱਕ SG ਫਿਲਟਰ ਦੀ ਵਰਤੋਂ ਕਰਕੇ ਆਪਣੇ ਡੇਟਾ ਨੂੰ ਨਿਰਵਿਘਨ ਕਰ ਸਕਦੇ ਹੋ, iModPolyFit ਦੇ ਬਹੁਨਾਮੀ ਕ੍ਰਮ ਦੀ ਵਰਤੋਂ ਕਰਕੇ ਆਪਣੇ ਡੇਟਾ ਨੂੰ ਬੇਸਲਾਈਨ ਠੀਕ ਕਰ ਸਕਦੇ ਹੋ, ਅਤੇ ਮੈਚ ਲਈ ਤਰੰਗ-ਲੰਬਾਈ ਸੀਮਾ ਨੂੰ ਸੀਮਤ ਕਰ ਸਕਦੇ ਹੋ।
+                                  ਨਤੀਜੇ ਦੀ ਤੁਲਨਾ ਅੰਦਰੂਨੀ ਰਮਨ ਜਾਂ FTIR ਸਪੈਕਟਰਾ ਲਾਇਬ੍ਰੇਰੀ ਨਾਲ ਕੀਤੀ ਜਾਵੇਗੀ। ਤੁਹਾਡੇ ਨਾਲ ਸਭ ਤੋਂ ਮਜ਼ਬੂਤ 1000 ਮੈਚ
+                                  ਅਪਲੋਡ ਜਾਂ ਪ੍ਰੋਸੈਸਡ ਡੇਟਾ ਇੱਕ ਇੰਟਰਐਕਟਿਵ ਪਲਾਟ ਅਤੇ ਟੇਬਲ ਵਿੱਚ ਪੇਸ਼ ਕੀਤਾ ਜਾਵੇਗਾ। ਹੋਰ ਵੇਰਵਿਆਂ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਬਟਨ 'ਤੇ ਕਲਿੱਕ ਕਰੋ
+                                  ਜਾਂ ਵਿਸਤ੍ਰਿਤ ਹਿਦਾਇਤੀ ਵੀਡੀਓ ਦੇਖੋ।"
+Detailed Standard Operating Procedure,ਵਿਸਤ੍ਰਿਤ ਸਟੈਂਡਰਡ ਓਪਰੇਟਿੰਗ ਪ੍ਰਕਿਰਿਆ
+Download Open Data,ਓਪਨ ਡਾਟਾ ਡਾਊਨਲੋਡ ਕਰੋ
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","ਹਵਾਲਾ ਸਪੈਕਟਰਾ ਓਪਨ ਐਕਸੈਸ ਸਰੋਤਾਂ ਤੋਂ ਪ੍ਰਾਪਤ ਕੀਤਾ ਗਿਆ ਸੀ
+           ਔਨਲਾਈਨ, ਪੀਅਰ ਸਮੀਖਿਆ ਕੀਤੇ ਪ੍ਰਕਾਸ਼ਨਾਂ, ਅਤੇ ਕਾਰਪੋਰੇਟ ਦਾਨ। ਭਵਿੱਖ ਵਿੱਚ
+           ਸਪੈਕਟਰਾ ਜੋ ਕਿ ਟੂਲ 'ਤੇ ਅੱਪਲੋਡ ਕੀਤਾ ਗਿਆ ਹੈ, ਨੂੰ ਸੰਦਰਭ ਵਿੱਚ ਸ਼ਾਮਲ ਕੀਤਾ ਜਾਵੇਗਾ
+           ਇਸ ਨੂੰ ਹੋਰ ਬਿਹਤਰ ਬਣਾਉਣ ਲਈ ਲਾਇਬ੍ਰੇਰੀ।"
+Raman Reference Library,ਰਮਨ ਰੈਫਰੈਂਸ ਲਾਇਬ੍ਰੇਰੀ
+FTIR Reference Library,FTIR ਹਵਾਲਾ ਲਾਇਬ੍ਰੇਰੀ
+Raman Reference Library Metadata,ਰਮਨ ਰੈਫਰੈਂਸ ਲਾਇਬ੍ਰੇਰੀ ਮੈਟਾਡੇਟਾ
+FTIR Reference Library Metadata,FTIR ਹਵਾਲਾ ਲਾਇਬ੍ਰੇਰੀ ਮੈਟਾਡੇਟਾ
+Contribute Spectra,ਸਪੈਕਟਰਾ ਦਾ ਯੋਗਦਾਨ ਦਿਓ
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","ਸਪੈਕਟਰਾ ਨੂੰ ਸਾਂਝਾ ਕਰਨ ਲਈ ਅੱਪਲੋਡ ਫ਼ਾਈਲ ਟੈਬ 'ਤੇ ਇੱਕ ਫ਼ਾਈਲ ਅੱਪਲੋਡ ਕਰੋ। ਜੇਕਰ ਤੁਸੀਂ ਸਾਂਝਾ ਕਰੋ ਚੁਣਿਆ ਹੈ ਤਾਂ ਤੁਹਾਡੇ ਸਪੈਕਟਰਾ ਦੀ ਇੱਕ ਕਾਪੀ ਭਾਈਚਾਰੇ ਨੂੰ ਭੇਜੀ ਜਾਵੇਗੀ
+           ਓਪਨ ਸਾਇੰਸ ਫਰੇਮਵਰਕ 'ਤੇ ਡਾਟਾ ਵੇਅਰਹਾਊਸ। ਵਾਧੂ ਮੈਟਾਡੇਟਾ ਜੋੜਨ ਲਈ,
+           ਉਪਲਬਧ ਮੈਟਾਡੇਟਾ ਖੇਤਰਾਂ ਨੂੰ ਭਰੋ ਅਤੇ -ਸ਼ੇਅਰ ਡੇਟਾ- 'ਤੇ ਕਲਿੱਕ ਕਰੋ। ਦ
+           ਤੁਹਾਡੇ ਜਵਾਬਾਂ ਦੇ ਨਾਲ ਤੁਹਾਡੇ ਦੁਆਰਾ ਅਪਲੋਡ ਕੀਤੀ ਗਈ ਸਪੈਕਟਰਾ ਫਾਈਲ ਦੀ ਨਕਲ ਕੀਤੀ ਜਾਵੇਗੀ
+           ਹੇਠਾਂ ਦਿੱਤੇ ਲਿੰਕ 'ਤੇ ਇੱਕ -ਵਿਦ ਮੈਟਾਡੇਟਾ- ਸਬਫੋਲਡਰ ਲਈ। ਸਾਰਾ ਸਾਂਝਾ ਡੇਟਾ ਰੱਖਦਾ ਹੈ
+           ਇੱਕ ਕਰੀਏਟਿਵ ਕਾਮਨਜ਼ ਐਟਰੀਬਿਊਸ਼ਨ ਲਾਇਸੈਂਸ 4.0."
+Community Data Warehouse,ਕਮਿਊਨਿਟੀ ਡਾਟਾ ਵੇਅਰਹਾਊਸ
+Tool Validation,ਟੂਲ ਪ੍ਰਮਾਣਿਕਤਾ
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","ਇਸ ਟੂਲ ਦੇ ਸਾਰੇ ਮਾਪਦੰਡਾਂ ਨੂੰ ਪ੍ਰਮਾਣਿਤ ਕਰਨ ਲਈ ਟੈਸਟ ਕੀਤਾ ਜਾਂਦਾ ਹੈ
+           ਟੂਲ ਜਿੰਨਾ ਸੰਭਵ ਹੋ ਸਕੇ ਸਭ ਤੋਂ ਵਧੀਆ ਕੰਮ ਕਰ ਰਿਹਾ ਹੈ ਅਤੇ ਸਭ ਤੋਂ ਵਧੀਆ ਡਿਫੌਲਟ ਨਿਰਧਾਰਤ ਕਰਦਾ ਹੈ
+           ਵਰਤਣ ਲਈ ਪੈਰਾਮੀਟਰ. ਸਾਡੀ ਮੌਜੂਦਾ ਪ੍ਰਮਾਣਿਕਤਾ ਪ੍ਰਕਿਰਿਆ ਵਿੱਚ ਸੁਧਾਰ ਕਰਨਾ ਸ਼ਾਮਲ ਹੈ
+           ਹਵਾਲਾ ਲਾਇਬ੍ਰੇਰੀਆਂ ਵਿੱਚ ਡੁਪਲੀਕੇਟ ਐਂਟਰੀਆਂ, ਸਪੈਕਟਰਾ ਇਨ ਦੀ ਜਾਂਚ ਕਰ ਰਿਹਾ ਹੈ
+           ਮੈਟਾਡੇਟਾ ਜੋ ਸਪੈਕਟ੍ਰਲ ਲਾਇਬ੍ਰੇਰੀ ਵਿੱਚ ਨਹੀਂ ਹੈ, ਅਤੇ ਡਿਫੌਲਟ ਨੂੰ ਯਕੀਨੀ ਬਣਾਉਂਦਾ ਹੈ
+           ਮਾਪਦੰਡ ਪਹਿਲੇ ਮੈਚ ਵਿੱਚ 80% ਤੋਂ ਵੱਧ ਸ਼ੁੱਧਤਾ ਪ੍ਰਦਾਨ ਕਰਦੇ ਹਨ।"
+Detailed Validation Procedure,ਵਿਸਤ੍ਰਿਤ ਪ੍ਰਮਾਣਿਕਤਾ ਪ੍ਰਕਿਰਿਆ
+"Updates, Feature Requests, and Bug Reports","ਅੱਪਡੇਟ, ਵਿਸ਼ੇਸ਼ਤਾ ਬੇਨਤੀਆਂ, ਅਤੇ ਬੱਗ ਰਿਪੋਰਟਾਂ"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,ਅਸੀਂ ਆਪਣੇ ਕੋਡ 'ਤੇ ਸੰਸਕਰਣ ਨਿਯੰਤਰਣ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹੋਏ ਸਾਰੇ ਅਪਡੇਟਾਂ ਦਾ ਧਿਆਨ ਰੱਖਦੇ ਹਾਂ। GitHub 'ਤੇ ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ ਦੀ ਬੇਨਤੀ ਕੀਤੀ ਜਾ ਸਕਦੀ ਹੈ ਅਤੇ ਬੱਗ ਦੀ ਰਿਪੋਰਟ ਕੀਤੀ ਜਾ ਸਕਦੀ ਹੈ।
+Stay up to date!,ਅੱਪ ਟੂ ਡੇਟ ਰਹੋ!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,ਟਵਿੱਟਰ @OpenSpecy 'ਤੇ ਸਾਡੇ ਨਾਲ ਪਾਲਣਾ ਕਰੋ। ਈਮੇਲਿੰਗ ਸੂਚੀ ਵਿੱਚ ਸ਼ਾਮਲ ਕਰਨ ਲਈ wincowger@gmail.com ਨੂੰ ਈ-ਮੇਲ ਕਰੋ।
+Citation,ਹਵਾਲਾ
+Useful Links,ਉਪਯੋਗੀ ਲਿੰਕ
+Free FTIR Software: siMPle microplastic IR spectral identification software,ਮੁਫਤ FTIR ਸਾਫਟਵੇਅਰ: ਸਧਾਰਨ ਮਾਈਕ੍ਰੋਪਲਾਸਟਿਕ ਆਈਆਰ ਸਪੈਕਟ੍ਰਲ ਪਛਾਣ ਸਾਫਟਵੇਅਰ
+Free Spectroscopy Learning Academy from ThermoFisher,ਥਰਮੋਫਿਸ਼ਰ ਤੋਂ ਮੁਫਤ ਸਪੈਕਟ੍ਰੋਸਕੋਪੀ ਲਰਨਿੰਗ ਅਕੈਡਮੀ
+Free Optical Microscopy Learning Resource from Florida State University,ਫਲੋਰੀਡਾ ਸਟੇਟ ਯੂਨੀਵਰਸਿਟੀ ਤੋਂ ਮੁਫਤ ਆਪਟੀਕਲ ਮਾਈਕ੍ਰੋਸਕੋਪੀ ਸਿਖਲਾਈ ਸਰੋਤ
+Free desktop application for spectral analysis and links to reference databases.,ਸਪੈਕਟ੍ਰਲ ਵਿਸ਼ਲੇਸ਼ਣ ਅਤੇ ਸੰਦਰਭ ਡੇਟਾਬੇਸ ਦੇ ਲਿੰਕਾਂ ਲਈ ਮੁਫਤ ਡੈਸਕਟੌਪ ਐਪਲੀਕੇਸ਼ਨ।
+Terms And Conditions,ਨਿਬੰਧਨ ਅਤੇ ਸ਼ਰਤਾਂ
+Privacy Policy,ਪਰਾਈਵੇਟ ਨੀਤੀ
+Upload File,ਫਾਈਲ ਅੱਪਲੋਡ ਕਰੋ
+"Upload, View, and Share Spectra","ਸਪੈਕਟਰਾ ਨੂੰ ਅੱਪਲੋਡ ਕਰੋ, ਦੇਖੋ ਅਤੇ ਸਾਂਝਾ ਕਰੋ"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",".csv (ਤਰਜੀਹੀ), .asp, .jdx, .spc, .spa, ਜਾਂ .0 ਫ਼ਾਈਲ ਚੁਣੋ"
+Share Your Data?,ਕੀ ਤੁਹਾਡਾ ਡੇਟਾ ਸਾਂਝਾ ਕਰਨਾ ਹੈ?
+Share Help,ਮਦਦ ਸਾਂਝੀ ਕਰੋ
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","ਜੇਕਰ ਤੁਸੀਂ ਚਾਹੋ, ਤਾਂ ਅਸੀਂ ਤੁਹਾਡੇ ਅੱਪਲੋਡ ਕੀਤੇ ਸਪੈਕਟਰਾ ਅਤੇ ਸੈਟਿੰਗਾਂ ਨੂੰ ਸਪੈਕਟ੍ਰੋਸਕੋਪੀ ਕਮਿਊਨਿਟੀ ਨਾਲ ਸਾਂਝਾ ਕਰਦੇ ਹਾਂ।
+           ਮੂਲ ਰੂਪ ਵਿੱਚ, ਸਾਰਾ ਡੇਟਾ ਕਰੀਏਟਿਵ ਕਾਮਨਜ਼ ਐਟ੍ਰਬਿਊਸ਼ਨ-ਗੈਰ-ਵਪਾਰਕ 4.0 ਇੰਟਰਨੈਸ਼ਨਲ (CC BY-NC 4.0) ਦੇ ਅਧੀਨ ਲਾਇਸੰਸਸ਼ੁਦਾ ਹੋਵੇਗਾ।
+           ਅੱਪਲੋਡ ਕੀਤਾ ਸਪੈਕਟਰਾ ਇੱਥੇ ਦਿਖਾਈ ਦੇਵੇਗਾ: https://osf.io/rjg3c"
+Upload Help,ਮਦਦ ਅੱਪਲੋਡ ਕਰੋ
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","ਰਮਨ ਜਾਂ FTIR ਸਪੈਕਟ੍ਰਮ ਫ਼ਾਈਲਾਂ ਨੂੰ csv, jdx, spc, ਜਾਂ spa ਵਜੋਂ ਅੱਪਲੋਡ ਕਰੋ। ਇੱਕ csv ਫਾਈਲ ਨੂੰ ਤਰਜੀਹ ਦਿੱਤੀ ਜਾਂਦੀ ਹੈ। ਜੇਕਰ ਇੱਕ csv ਹੈ, ਤਾਂ ਫਾਈਲ ਵਿੱਚ (1/ਸੈ.ਮੀ.) ਦੀਆਂ ਇਕਾਈਆਂ ਵਿੱਚ 'ਵੇਵਨੰਬਰ' ਲੇਬਲ ਵਾਲਾ ਇੱਕ ਕਾਲਮ ਅਤੇ ਸੋਖਣ ਯੂਨਿਟਾਂ ਵਿੱਚ 'ਤੀਬਰਤਾ' ਲੇਬਲ ਵਾਲਾ ਇੱਕ ਹੋਰ ਕਾਲਮ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ।
+            ਜੇ jdx, spc, spa, ਜਾਂ 0 ਫਾਈਲ (1/ਸੈ.ਮੀ.) ਵਿੱਚ ਵੇਵਨੰਬਰ ਦੇ ਨਾਲ ਇੱਕ ਸਿੰਗਲ ਸੋਖਣ ਵਾਲਾ ਸਪੈਕਟ੍ਰਮ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ। ਇਹ ਫਾਈਲਾਂ ਹਮੇਸ਼ਾਂ ਪੂਰੀ ਤਰ੍ਹਾਂ ਕੰਮ ਨਹੀਂ ਕਰਨਗੀਆਂ ਕਿਉਂਕਿ ਇਹ ਪੜ੍ਹਨ ਵਿੱਚ ਮੁਸ਼ਕਲ ਹਨ ਇਸਲਈ ਕਿਸੇ ਹੋਰ ਸੌਫਟਵੇਅਰ ਵਿੱਚ ਉਹਨਾਂ ਦੀ ਜਾਂਚ ਕਰੋ।
+            ਨਮੂਨਾ ਰਮਨ ਸਪੈਕਟ੍ਰਮ ਨੂੰ ਡਾਊਨਲੋਡ ਕਰਨ ਲਈ 'ਟੈਸਟ ਡੇਟਾ' ਬਟਨ ਨੂੰ ਦਬਾਓ।"
+Intensity Adjustment,ਤੀਬਰਤਾ ਸਮਾਯੋਜਨ
+None,ਕੋਈ ਨਹੀਂ
+Transmittance,ਸੰਚਾਰ
+Reflectance,ਪ੍ਰਤੀਬਿੰਬ
+Intensity Correction Help,ਤੀਬਰਤਾ ਸੁਧਾਰ ਮਦਦ
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","ਜੇਕਰ ਅੱਪਲੋਡ ਕੀਤਾ ਸਪੈਕਟ੍ਰਮ ਸੋਖਣ ਯੂਨਿਟਾਂ ਵਿੱਚ ਨਹੀਂ ਹੈ,
+           ਓਪਨ ਸਪੀਸੀ ਕੈਨ ਤੋਂ ਕਨਵਰਟ ਕਰਨ ਲਈ ਇਕਾਈਆਂ ਨੂੰ ਨਿਰਧਾਰਤ ਕਰਨ ਲਈ ਇਸ ਇਨਪੁਟ ਦੀ ਵਰਤੋਂ ਕਰੋ
+           ਰਿਫਲੈਕਟੈਂਸ ਜਾਂ ਟ੍ਰਾਂਸਮੀਟੈਂਸ ਸਪੈਕਟਰਾ ਨੂੰ ਅਬਜ਼ੋਰਬੈਂਸ ਯੂਨਿਟਾਂ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹੋਏ ਵਿਵਸਥਿਤ ਕਰੋ
+           ਇਹ ਡ੍ਰੌਪ ਡਾਊਨ ਅੱਪਲੋਡ ਫਾਈਲ ਟੈਬ ਵਿੱਚ ਹੈ। ਪਿਛਲੀਆਂ ਸਾਰੀਆਂ ਟੈਬਾਂ
+           ਮੰਨ ਲਓ ਕਿ ਡੇਟਾ ਸਮਾਈ ਯੂਨਿਟਾਂ ਵਿੱਚ ਹੈ ਇਸ ਲਈ ਤੁਹਾਨੂੰ ਬਣਾਉਣਾ ਚਾਹੀਦਾ ਹੈ
+           ਜੇਕਰ ਲੋੜ ਹੋਵੇ ਤਾਂ ਜਾਰੀ ਰੱਖਣ ਤੋਂ ਪਹਿਲਾਂ ਸੁਧਾਰ। ਸੰਚਾਰ ਵਿਵਸਥਾ
+           log10(1/T) ਗਣਨਾ ਦੀ ਵਰਤੋਂ ਕਰਦਾ ਹੈ ਜੋ ਸਿਸਟਮ ਲਈ ਸਹੀ ਨਹੀਂ ਹੈ
+           ਅਤੇ ਕਣ ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ। ਰਿਫਲੈਕਟੈਂਸ ਐਡਜਸਟਮੈਂਟ ਦੀ ਵਰਤੋਂ ਕਰਦਾ ਹੈ
+           ਕੁਬੇਲਕਾ-ਮੰਕ ਸਮੀਕਰਨ (1-R)2/(2*R)। ਅਸੀਂ ਮੰਨ ਲੈਂਦੇ ਹਾਂ ਕਿ ਪ੍ਰਤੀਬਿੰਬ
+           1-100 ਤੋਂ ਪ੍ਰਤੀਸ਼ਤ ਦੇ ਰੂਪ ਵਿੱਚ ਫਾਰਮੈਟ ਕੀਤਾ ਗਿਆ ਹੈ ਅਤੇ ਪਹਿਲਾਂ 100 ਨਾਲ ਭਾਗ ਕਰਕੇ ਤੀਬਰਤਾ ਨੂੰ ਠੀਕ ਕਰੋ
+           ਤਾਂ ਜੋ ਇਹ ਸਮੀਕਰਨ ਦੁਆਰਾ ਉਮੀਦ ਕੀਤੇ ਫਾਰਮ ਵਿੱਚ ਫਿੱਟ ਹੋਵੇ।
+           ਜੇਕਰ ਕੋਈ ਵੀ ਨਹੀਂ ਚੁਣਿਆ ਗਿਆ ਹੈ, ਤਾਂ ਓਪਨ ਸਪੀਸੀ ਇਹ ਮੰਨਦੀ ਹੈ ਕਿ ਅੱਪਲੋਡ ਕੀਤਾ ਗਿਆ ਡੇਟਾ ਹੈ
+           ਇੱਕ ਸਮਾਈ ਸਪੈਕਟ੍ਰਮ."
+Sample File,ਨਮੂਨਾ ਫਾਈਲ
+Sample Data Help,ਨਮੂਨਾ ਡਾਟਾ ਮਦਦ
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,"ਇਹ ਇੱਕ ਨਮੂਨਾ ਸਪੈਕਟ੍ਰਮ ਹੈ ਜਿਸ ਨੂੰ ਇਸਦੀ ਜਾਂਚ ਕਰਨ ਅਤੇ ਇਹ ਸਮਝਣ ਲਈ ਕਿ csv ਫਾਈਲਾਂ ਨੂੰ ਕਿਵੇਂ ਫਾਰਮੈਟ ਕੀਤਾ ਜਾਣਾ ਚਾਹੀਦਾ ਹੈ, ਲਈ ਟੂਲ 'ਤੇ ਅੱਪਲੋਡ ਕੀਤਾ ਜਾ ਸਕਦਾ ਹੈ।"
+Metadata Input,ਮੈਟਾਡੇਟਾ ਇੰਪੁੱਟ
+Metadata Help,ਮੈਟਾਡੇਟਾ ਮਦਦ
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","ਅਸੀਂ ਸਪੈਕਟ੍ਰੋਸਕੋਪੀ ਕਮਿਊਨਿਟੀ ਨਾਲ ਕੋਈ ਵੀ ਅੱਪਲੋਡ ਕੀਤਾ ਸਪੈਕਟਰਾ ਅਤੇ ਮੈਟਾਡੇਟਾ ਸਾਂਝਾ ਕਰਦੇ ਹਾਂ ਜੇਕਰ ਤੁਸੀਂ ਇੱਥੇ ਮੈਟਾਡੇਟਾ ਭਰਦੇ ਹੋ ਅਤੇ ਸ਼ੇਅਰ ਦੀ ਚੋਣ ਕਰਦੇ ਹੋ।
+           ਅੱਪਲੋਡ ਕੀਤਾ ਸਪੈਕਟਰਾ ਅਤੇ ਮੈਟਾਡੇਟਾ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੇ: https://osf.io/rjg3c"
+Share Metadata,ਮੈਟਾਡੇਟਾ ਸਾਂਝਾ ਕਰੋ
+Upload some data to get started...,ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਕੁਝ ਡੇਟਾ ਅੱਪਲੋਡ ਕਰੋ...
+Preprocess Spectrum,ਪ੍ਰੀਪ੍ਰੋਸੈਸ ਸਪੈਕਟ੍ਰਮ
+"Smooth, Baseline Correct, and Download Processed Spectra","ਨਿਰਵਿਘਨ, ਬੇਸਲਾਈਨ ਸਹੀ, ਅਤੇ ਪ੍ਰੋਸੈਸਡ ਸਪੈਕਟਰਾ ਡਾਊਨਲੋਡ ਕਰੋ"
+Download (recommended),ਡਾਊਨਲੋਡ ਕਰੋ (ਸਿਫ਼ਾਰਸ਼ੀ)
+Download Help,ਮਦਦ ਡਾਊਨਲੋਡ ਕਰੋ
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,ਕੁਝ ਉਪਭੋਗਤਾ ਆਪਣੇ ਪ੍ਰੋਸੈਸਡ ਸਪੈਕਟ੍ਰਮ ਦੀ ਇੱਕ ਕਾਪੀ ਨੂੰ ਸੁਰੱਖਿਅਤ ਕਰਨਾ ਚਾਹ ਸਕਦੇ ਹਨ। ਇਹ ਬਟਨ ਪ੍ਰੋਸੈਸਡ ਸਪੈਕਟ੍ਰਮ ਨੂੰ ਇੱਕ csv ਫਾਈਲ ਦੇ ਰੂਪ ਵਿੱਚ ਡਾਊਨਲੋਡ ਕਰਦਾ ਹੈ।
+Smoothing,ਸਮੂਥਿੰਗ
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,ਇਹ ਮੁਲਾਇਮ ਡੇਟਾ ਦੇ ਸ਼ੋਰ ਅਨੁਪਾਤ ਲਈ ਸਿਗਨਲ ਨੂੰ ਵਧਾ ਸਕਦਾ ਹੈ ਅਤੇ 12 ਚੱਲ ਰਹੇ ਡੇਟਾ ਪੁਆਇੰਟਾਂ ਅਤੇ ਨਿਰਦਿਸ਼ਟ ਬਹੁਨਾਮੀ ਨਾਲ ਇੱਕ Savitzky-Golay ਫਿਲਟਰ ਦੀ ਵਰਤੋਂ ਕਰਦਾ ਹੈ।
+Smoothing Polynomial,ਸਮੂਥਿੰਗ ਬਹੁਪਦ
+Baseline Correction,ਬੇਸਲਾਈਨ ਸੁਧਾਰ
+Baseline Correction Help,ਬੇਸਲਾਈਨ ਸੁਧਾਰ ਮਦਦ
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","ਇਸ ਬੇਸਲਾਈਨ ਸੁਧਾਰ ਰੂਟੀਨ ਵਿੱਚ ਬੇਸਲਾਈਨ ਸੁਧਾਰ ਲਈ ਦੋ ਵਿਕਲਪ ਹਨ, 1) ਸਪੈਕਟਰਾ ਦੇ ਪੂਰੇ ਖੇਤਰ ਵਿੱਚ ਬਹੁਪਦ ਦੀ ਫਿੱਟ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹੋਏ ਸਪੈਕਟ੍ਰਮ ਦੀ ਬੇਸਲਾਈਨ ਨੂੰ ਦੁਹਰਾਉਣ ਲਈ ਬਹੁਪਦਵੀ ਇਮੋਡਪੋਲੀਫਿਟ ਪ੍ਰਕਿਰਿਆ। 2) ਪਲਾਟ 'ਤੇ ਲਾਈਨ ਟੂਲ ਦੀ ਵਰਤੋਂ ਕਰਕੇ ਹੱਥੀਂ ਲਾਈਨਾਂ ਖਿੱਚੀਆਂ ਜਾ ਸਕਦੀਆਂ ਹਨ ਅਤੇ ਸਹੀ ਬਟਨ ਬੇਸਲਾਈਨ ਨੂੰ ਘਟਾਉਣ ਲਈ ਲਾਈਨਾਂ ਦੀ ਵਰਤੋਂ ਕਰੇਗਾ।"
+Baseline Correction Polynomial,ਬੇਸਲਾਈਨ ਸੁਧਾਰ ਬਹੁਪਦ
+Technique,ਤਕਨੀਕ
+Polynomial,ਬਹੁਪਦ
+Manual,ਮੈਨੁਅਲ
+Correct With Trace,ਟਰੇਸ ਨਾਲ ਸਹੀ
+Reset,ਰੀਸੈਟ ਕਰੋ
+Range Selection,ਰੇਂਜ ਦੀ ਚੋਣ
+Spectral Range Help,ਸਪੈਕਟ੍ਰਲ ਰੇਂਜ ਮਦਦ
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,ਸਪੈਕਟ੍ਰਲ ਰੇਂਜ ਨੂੰ ਸੀਮਤ ਕਰਨ ਨਾਲ ਸਪੈਕਟ੍ਰਮ ਦੇ ਉਹਨਾਂ ਖੇਤਰਾਂ ਨੂੰ ਹਟਾ ਦਿੱਤਾ ਜਾ ਸਕਦਾ ਹੈ ਜਿੱਥੇ ਕੋਈ ਵੀ ਚੋਟੀ ਮੌਜੂਦ ਨਹੀਂ ਹੈ ਅਤੇ ਮੇਲ ਖਾਂਦੀ ਹੈ
+Maximum Spectral Range,ਅਧਿਕਤਮ ਸਪੈਕਟ੍ਰਲ ਰੇਂਜ
+Minimum Spectral Range,ਨਿਊਨਤਮ ਸਪੈਕਟ੍ਰਲ ਰੇਂਜ
+Identify Spectrum,ਸਪੈਕਟ੍ਰਮ ਦੀ ਪਛਾਣ ਕਰੋ
+Identify Spectrum Using the Reference Library,ਰੈਫਰੈਂਸ ਲਾਇਬ੍ਰੇਰੀ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹੋਏ ਸਪੈਕਟ੍ਰਮ ਦੀ ਪਛਾਣ ਕਰੋ
+Raman,ਰਮਨ
+FTIR,FTIR
+Spectra,ਸਪੈਕਟਰਾ
+Type,ਟਾਈਪ ਕਰੋ
+Spectrum Type Help,ਸਪੈਕਟ੍ਰਮ ਕਿਸਮ ਮਦਦ
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,ਇਹ ਚੋਣ ਇਹ ਨਿਰਧਾਰਿਤ ਕਰੇਗੀ ਕਿ ਕੀ FTIR ਜਾਂ ਰਮਨ ਮੈਚਿੰਗ ਲਾਇਬ੍ਰੇਰੀ ਦੀ ਵਰਤੋਂ ਕੀਤੀ ਜਾਂਦੀ ਹੈ। ਅਪਲੋਡ ਕੀਤੇ ਗਏ ਸਪੈਕਟ੍ਰਮ ਦੀ ਕਿਸਮ ਚੁਣੋ।
+Analysis,ਵਿਸ਼ਲੇਸ਼ਣ
+Processed,ਪ੍ਰਕਿਰਿਆ ਕੀਤੀ ਗਈ
+Uploaded,ਅੱਪਲੋਡ ਕੀਤਾ
+Spectrum to Analyze Help,ਮਦਦ ਦਾ ਵਿਸ਼ਲੇਸ਼ਣ ਕਰਨ ਲਈ ਸਪੈਕਟ੍ਰਮ
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,ਇਹ ਚੋਣ ਇਹ ਨਿਰਧਾਰਿਤ ਕਰੇਗੀ ਕਿ ਕੀ ਅੱਪਲੋਡ ਕੀਤਾ ਗਿਆ (ਪ੍ਰਕਿਰਿਆ ਨਹੀਂ ਕੀਤਾ ਗਿਆ) ਸਪੈਕਟ੍ਰਮ ਜਾਂ ਪ੍ਰੋਸੈਸਿੰਗ ਟੈਬ ਦੀ ਵਰਤੋਂ ਕਰਕੇ ਪ੍ਰੋਸੈਸ ਕੀਤਾ ਗਿਆ ਸਪੈਕਟ੍ਰਮ ਸਪੈਕਟ੍ਰਮ ਮੈਚ ਵਿੱਚ ਵਰਤਿਆ ਗਿਆ ਹੈ।
+Region,ਖੇਤਰ
+Full,ਪੂਰਾ
+Peaks,ਪੀਕ
+Region to Match Help,ਮਦਦ ਨਾਲ ਮੇਲ ਕਰਨ ਲਈ ਖੇਤਰ
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,"ਇਹ ਚੋਣ ਇਹ ਨਿਰਧਾਰਿਤ ਕਰੇਗੀ ਕਿ ਤੁਸੀਂ ਜਿਸ ਲਾਇਬ੍ਰੇਰੀ ਨਾਲ ਮੇਲ ਕਰ ਰਹੇ ਹੋ, ਉਸ ਵਿੱਚ ਪੂਰਾ ਸਪੈਕਟ੍ਰਮ ਹੈ ਜਾਂ ਸਿਰਫ਼ ਸਪੈਕਟ੍ਰਮ ਦੀਆਂ ਚੋਟੀਆਂ ਹਨ।"
+Partner With Us,ਸਾਡੇ ਨਾਲ ਸਾਥੀ
+Help us reach our goal of revolutionizing spectroscopy.,ਸਪੈਕਟ੍ਰੋਸਕੋਪੀ ਵਿੱਚ ਕ੍ਰਾਂਤੀ ਲਿਆਉਣ ਦੇ ਸਾਡੇ ਟੀਚੇ ਤੱਕ ਪਹੁੰਚਣ ਵਿੱਚ ਸਾਡੀ ਮਦਦ ਕਰੋ।
+Donate Cash,ਨਕਦ ਦਾਨ ਕਰੋ
+Buy From Swag Store,ਸਵੈਗ ਸਟੋਰ ਤੋਂ ਖਰੀਦੋ
+Contribute time,ਸਮੇਂ ਦਾ ਯੋਗਦਾਨ ਦਿਓ
+Revolutionizing,ਕ੍ਰਾਂਤੀਕਾਰੀ
+Thriving,ਸੰਪੰਨ
+Maintaining,ਕਾਇਮ ਰੱਖਣਾ
+Supporting,ਸਪੋਰਟ ਕਰ ਰਿਹਾ ਹੈ
+Saving,ਸੰਭਾਲ ਰਿਹਾ ਹੈ
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,ਇੱਕ ਅਦਾਇਗੀ ਟੀਮ ਜੋ ਓਪਨ ਸਪੀਸੀ ਨੂੰ ਇੱਕ ਸਿੰਗਲ ਕਲਿੱਕ ਨਾਲ 100% ਸਹੀ ਸਪੈਕਟ੍ਰਲ ਪਛਾਣ ਅਤੇ ਡੂੰਘੇ ਸਪੈਕਟ੍ਰਲ ਡਾਇਗਨੌਸਟਿਕਸ ਦੇ ਅੰਤਮ ਟੀਚੇ ਦੇ ਨੇੜੇ ਧੱਕ ਰਹੀ ਹੈ
+A single paid staff person working to update and build the community and the tool,ਕਮਿਊਨਿਟੀ ਅਤੇ ਟੂਲ ਨੂੰ ਅੱਪਡੇਟ ਕਰਨ ਅਤੇ ਬਣਾਉਣ ਲਈ ਕੰਮ ਕਰਨ ਵਾਲਾ ਇੱਕ ਸਿੰਗਲ ਭੁਗਤਾਨ ਕੀਤਾ ਸਟਾਫ ਵਿਅਕਤੀ
+Maintenance costs and minor ad-hoc updates and bug fixes,ਰੱਖ-ਰਖਾਅ ਦੇ ਖਰਚੇ ਅਤੇ ਮਾਮੂਲੀ ਐਡ-ਹਾਕ ਅੱਪਡੇਟ ਅਤੇ ਬੱਗ ਫਿਕਸ
+Keeping the app online and essential maintenance,ਐਪ ਨੂੰ ਔਨਲਾਈਨ ਰੱਖਣਾ ਅਤੇ ਜ਼ਰੂਰੀ ਰੱਖ-ਰਖਾਅ
+Long term storage only,ਸਿਰਫ਼ ਲੰਬੇ ਸਮੇਂ ਦੀ ਸਟੋਰੇਜ
+Sharing Metadata,ਮੈਟਾਡੇਟਾ ਸਾਂਝਾ ਕਰਨਾ
+Thank you for sharing your data!,ਆਪਣਾ ਡੇਟਾ ਸਾਂਝਾ ਕਰਨ ਲਈ ਧੰਨਵਾਦ!
+Your data will soon be available at https://osf.io/stmv4/,ਤੁਹਾਡਾ ਡੇਟਾ ਜਲਦੀ ਹੀ https://osf.io/stmv4/ 'ਤੇ ਉਪਲਬਧ ਹੋਵੇਗਾ
+Something went wrong :-(,ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ :-(
+Data type not supported!,ਡਾਟਾ ਕਿਸਮ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","ਅੱਪਲੋਡ ਕੀਤੀ ਡਾਟਾ ਕਿਸਮ ਵਰਤਮਾਨ ਵਿੱਚ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ; ਕ੍ਰਿਪਾ
+                      ਵੇਰਵਿਆਂ ਲਈ ਟੂਲਟਿਪਸ ਅਤੇ 'ਬਾਰੇ' ਟੈਬ ਦੀ ਜਾਂਚ ਕਰੋ।"
+Sharing Spectrum to Community Library,ਕਮਿਊਨਿਟੀ ਲਾਇਬ੍ਰੇਰੀ ਨਾਲ ਸਪੈਕਟ੍ਰਮ ਸਾਂਝਾ ਕਰਨਾ
+Reading Spectrum,ਰੀਡਿੰਗ ਸਪੈਕਟ੍ਰਮ
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","ਜੇਕਰ ਤੁਸੀਂ ਇੱਕ ਟੈਕਸਟ/ਸੀਐਸਵੀ ਫਾਈਲ ਅਪਲੋਡ ਕੀਤੀ ਹੈ, ਤਾਂ ਯਕੀਨੀ ਬਣਾਓ ਕਿ
+           ਕਾਲਮ ਸੰਖਿਆਤਮਕ ਹਨ ਅਤੇ 'ਵੇਵਨੰਬਰ' ਅਤੇ
+           'ਤੀਬਰਤਾ'।"
+absorbance intensity [-],ਸੋਖਣ ਦੀ ਤੀਬਰਤਾ [-]
+wavenumber [cm<sup>-1</sup>],ਤਰੰਗ ਸੰਖਿਆ [cm<sup>-1</sup>]
+Analyzing Spectrum,ਸਪੈਕਟ੍ਰਮ ਦਾ ਵਿਸ਼ਲੇਸ਼ਣ ਕਰਨਾ
+Finding Match,ਮੇਲ ਲੱਭ ਰਿਹਾ ਹੈ
+Making Plot,ਪਲਾਟ ਬਣਾਉਣਾ
+Material,ਸਮੱਗਰੀ
+Pearson's r,ਪੀਅਰਸਨ ਦੇ ਆਰ
+Organization,ਸੰਗਠਨ
+Selectable Matches,ਚੋਣਯੋਗ ਮੈਚ
+Donations,ਦਾਨ
+Operation Costs,ਓਪਰੇਸ਼ਨ ਦੀ ਲਾਗਤ
+Selection Metadata,ਚੋਣ ਮੈਟਾਡੇਟਾ

@@ -1,0 +1,212 @@
+en,th
+About,เกี่ยวกับ
+Welcome,ยินดีต้อนรับ
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","เข้าร่วมกับนักวิจัยหลายร้อยคนจากทั่วทุกมุม
+           โลกที่เป็นส่วนหนึ่งของชุมชน Open Specy โดย
+           วิเคราะห์ แบ่งปัน ประมวลผล และระบุตัว
+           Raman และ IR spectra ของพวกเขา บริการเหล่านี้ฟรีและโอเพ่นซอร์สต้องขอบคุณพันธมิตรของเรา:"
+Quick Video Tutorial,วิดีโอสอนด่วน
+Instructions,คำแนะนำ
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","โดยย่อ: หากต้องการใช้เครื่องมือให้อัปโหลดไฟล์ csv, asp, jdx, spc หรือ spa ไปยังแท็บไฟล์อัปโหลด
+                                  หากเป็น csv คอลัมน์หนึ่งควรมีชื่อว่า 'wavenumber' (ในหน่วย 1/ซม.) และอีกคอลัมน์หนึ่งมีชื่อว่า 'intensity'
+                                  คุณสามารถทำให้ข้อมูลของคุณราบรื่นขึ้นโดยใช้ตัวกรอง SG แก้ไขข้อมูลพื้นฐานโดยใช้ลำดับพหุนามของ iModPolyFit และจำกัดช่วงความยาวคลื่นสำหรับการจับคู่
+                                  ผลลัพธ์จะถูกนำไปเปรียบเทียบกับไลบรารีสเปกตรัม Raman หรือ FTIR ภายใน แมตช์ที่แข็งแกร่งที่สุด 1,000 แมตช์พร้อมกับคุณ
+                                  ข้อมูลที่อัปโหลดหรือประมวลผลจะแสดงในพล็อตและตารางแบบโต้ตอบ รายละเอียดเพิ่มเติมคลิกที่ปุ่มด้านล่าง
+                                  หรือดูวิดีโอคำแนะนำโดยละเอียด"
+Detailed Standard Operating Procedure,ขั้นตอนการปฏิบัติงานมาตรฐานโดยละเอียด
+Download Open Data,ดาวน์โหลด Open Data
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","สเปกตรัมอ้างอิงมาจากแหล่งข้อมูลการเข้าถึงแบบเปิด
+           ออนไลน์ สิ่งพิมพ์ที่ผ่านการตรวจสอบโดยเพื่อน และการบริจาคขององค์กร ในอนาคต
+           สเปกตรัมที่อัปโหลดไปยังเครื่องมือจะถูกรวมเข้ากับข้อมูลอ้างอิง
+           ห้องสมุดให้ดียิ่งขึ้นไปอีก"
+Raman Reference Library,ห้องสมุดอ้างอิงรามัน
+FTIR Reference Library,ห้องสมุดอ้างอิง FTIR
+Raman Reference Library Metadata,ข้อมูลเมตาของห้องสมุดอ้างอิงรามัน
+FTIR Reference Library Metadata,ข้อมูลเมตาไลบรารีอ้างอิง FTIR
+Contribute Spectra,มีส่วนร่วม Spectra
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","ในการแชร์สเปกตรัมให้อัปโหลดไฟล์ไปที่แท็บไฟล์อัปโหลด หากคุณเลือก แชร์ สำเนาสเปกตรัมของคุณจะถูกส่งไปยังชุมชน
+           คลังข้อมูลบน Open Science Framework หากต้องการเพิ่มข้อมูลเมตา
+           กรอกข้อมูลในฟิลด์ข้อมูลเมตาที่ใช้ได้ และคลิก -แบ่งปันข้อมูล- ดิ
+           ไฟล์สเปกตรัมที่คุณอัปโหลดพร้อมกับคำตอบของคุณจะถูกคัดลอก
+           ไปยังโฟลเดอร์ย่อย -With Metadata- ที่ลิงก์ด้านล่าง ข้อมูลที่ใช้ร่วมกันทั้งหมดถือ
+           ใบอนุญาต Creative Commons Attribution 4.0"
+Community Data Warehouse,คลังข้อมูลชุมชน
+Tool Validation,การตรวจสอบเครื่องมือ
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","พารามิเตอร์ทั้งหมดในเครื่องมือนี้ได้รับการทดสอบเพื่อตรวจสอบว่า
+           เครื่องมือทำงานได้ดีที่สุดและกำหนดค่าเริ่มต้นที่ดีที่สุด
+           พารามิเตอร์ที่จะใช้ กระบวนการตรวจสอบปัจจุบันของเรารวมถึงการแก้ไข
+           รายการที่ซ้ำกันในไลบรารีอ้างอิง ตรวจหาสเปกตรัมใน
+           ข้อมูลเมตาที่ไม่ได้อยู่ในไลบรารีสเปกตรัม และทำให้แน่ใจว่าค่าเริ่มต้น
+           พารามิเตอร์ให้ความแม่นยำมากกว่า 80% ในนัดแรก"
+Detailed Validation Procedure,ขั้นตอนการตรวจสอบโดยละเอียด
+"Updates, Feature Requests, and Bug Reports",การอัปเดต คำขอคุณสมบัติ และรายงานข้อบกพร่อง
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,เราติดตามการอัปเดตทั้งหมดโดยใช้การควบคุมเวอร์ชันในโค้ดของเรา สามารถขอคุณสมบัติและรายงานข้อผิดพลาดบน GitHub
+Stay up to date!,อยู่ถึงวันที่!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,ติดตามเราบน Twitter @OpenSpecy เพิ่มอีเมล wincowger@gmail.com ในรายชื่อผู้รับจดหมาย
+Citation,การอ้างอิง
+Useful Links,ลิงค์ที่เป็นประโยชน์
+Free FTIR Software: siMPle microplastic IR spectral identification software,ซอฟต์แวร์ FTIR ฟรี: ซอฟต์แวร์ระบุสเปกตรัมอินฟราเรดไมโครพลาสติกแบบง่าย
+Free Spectroscopy Learning Academy from ThermoFisher,สถาบันการเรียนรู้สเปกโตรสโกปีฟรีจาก ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,แหล่งข้อมูลการเรียนรู้ด้วยกล้องจุลทรรศน์แบบใช้แสงฟรีจาก Florida State University
+Free desktop application for spectral analysis and links to reference databases.,แอปพลิเคชันเดสก์ท็อปฟรีสำหรับการวิเคราะห์สเปกตรัมและลิงก์ไปยังฐานข้อมูลอ้างอิง
+Terms And Conditions,ข้อกำหนดและเงื่อนไข
+Privacy Policy,นโยบายความเป็นส่วนตัว
+Upload File,อัพโหลดไฟล์
+"Upload, View, and Share Spectra",อัปโหลด ดู และแบ่งปัน Spectra
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","เลือกไฟล์ .csv (แนะนำ), .asp, .jdx, .spc, .spa หรือ .0"
+Share Your Data?,แบ่งปันข้อมูลของคุณ?
+Share Help,แบ่งปันความช่วยเหลือ
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","หากคุณต้องการ เราจะแบ่งปันสเปกตรัมที่อัปโหลดและการตั้งค่าของคุณกับชุมชนสเปกโทรสโกปี
+           โดยค่าเริ่มต้น ข้อมูลทั้งหมดจะได้รับอนุญาตภายใต้ Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
+           สเปกตรัมที่อัปโหลดจะปรากฏที่นี่: https://osf.io/rjg3c"
+Upload Help,อัปโหลดความช่วยเหลือ
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","อัปโหลดไฟล์สเปกตรัม Raman หรือ FTIR เป็น csv, jdx, spc หรือ spa แนะนำให้ใช้ไฟล์ csv หากเป็น csv ไฟล์จะต้องมีคอลัมน์หนึ่งชื่อ 'wavenumber' ในหน่วย (1/cm) และอีกคอลัมน์หนึ่งระบุว่า 'intensity' ในหน่วยการดูดกลืนแสง
+            ถ้า jdx, spc, spa หรือ 0 ไฟล์ควรเป็นสเปกตรัมการดูดกลืนแสงเดี่ยวที่มีจำนวนคลื่น (1/ซม.) ไฟล์เหล่านี้จะทำงานได้ไม่สมบูรณ์แบบเสมอไปเพราะอ่านยาก ดังนั้นให้ตรวจสอบอีกครั้งในซอฟต์แวร์อื่น
+            กดปุ่ม 'ทดสอบข้อมูล' เพื่อดาวน์โหลดตัวอย่างสเปกตรัมรามัน"
+Intensity Adjustment,การปรับความเข้ม
+None,ไม่มี
+Transmittance,การส่งผ่าน
+Reflectance,การสะท้อนแสง
+Intensity Correction Help,ความช่วยเหลือในการแก้ไขความเข้ม
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","หากสเปกตรัมที่อัปโหลดไม่อยู่ในหน่วยการดูดกลืนแสง
+           ใช้อินพุตนี้เพื่อระบุหน่วยที่จะแปลงจาก เปิด Specy can
+           ปรับสเปกตรัมการสะท้อนหรือการส่งผ่านไปยังหน่วยดูดซับโดยใช้
+           ดรอปดาวน์นี้ในแท็บไฟล์อัปโหลด แท็บก่อนหน้าทั้งหมด
+           สมมติว่าข้อมูลอยู่ในหน่วยการดูดกลืนแสง ดังนั้นคุณควรทำ
+           แก้ไขก่อนดำเนินการต่อหากจำเป็น การปรับการส่งผ่าน
+           ใช้การคำนวณ log10(1/T) ซึ่งไม่ถูกต้องสำหรับระบบ
+           และลักษณะของอนุภาค การปรับแสงสะท้อนใช้
+           สมการ Kubelka-Munk (1-R)2/(2*R) เราคิดว่าการสะท้อนแสง
+           จัดรูปแบบเป็นเปอร์เซ็นต์ตั้งแต่ 1-100 และแก้ไขความเข้มก่อนโดยหารด้วย 100
+           เพื่อให้เข้ากับรูปแบบที่สมการคาดไว้
+           หากไม่มีการเลือก Open Specy จะถือว่าข้อมูลที่อัปโหลดคือ
+           สเปกตรัมการดูดกลืนแสง"
+Sample File,ไฟล์ตัวอย่าง
+Sample Data Help,ข้อมูลตัวอย่าง ความช่วยเหลือ
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,นี่คือสเปกตรัมตัวอย่างที่สามารถอัปโหลดไปยังเครื่องมือเพื่อทดสอบและทำความเข้าใจว่าควรจัดรูปแบบไฟล์ csv อย่างไร
+Metadata Input,อินพุตข้อมูลเมตา
+Metadata Help,วิธีใช้ข้อมูลเมตา
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","เราแบ่งปันสเปกตรัมและข้อมูลเมตาที่อัปโหลดกับชุมชนสเปกโตรสโคปีหากคุณกรอกข้อมูลเมตาที่นี่และเลือกแชร์
+           สเปกตรัมที่อัปโหลดและข้อมูลเมตาจะปรากฏที่นี่: https://osf.io/rjg3c"
+Share Metadata,แบ่งปันข้อมูลเมตา
+Upload some data to get started...,อัปโหลดข้อมูลเพื่อเริ่มต้น...
+Preprocess Spectrum,พรีโพรเซสสเปกตรัม
+"Smooth, Baseline Correct, and Download Processed Spectra",ราบรื่น ถูกต้องพื้นฐาน และดาวน์โหลด Spectra ที่ประมวลผลแล้ว
+Download (recommended),ดาวน์โหลด (แนะนำ)
+Download Help,ดาวน์โหลดความช่วยเหลือ
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,ผู้ใช้บางคนอาจต้องการบันทึกสำเนาสเปกตรัมที่ประมวลผลแล้ว ปุ่มนี้ดาวน์โหลดสเปกตรัมที่ประมวลผลเป็นไฟล์ csv
+Smoothing,ปรับให้เรียบ
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,ความนุ่มนวลนี้สามารถปรับปรุงอัตราส่วนสัญญาณต่อสัญญาณรบกวนของข้อมูล และใช้ตัวกรอง Savitzky-Golay ที่มีจุดข้อมูลการทำงาน 12 จุดและพหุนามที่ระบุ
+Smoothing Polynomial,พหุนามปรับให้เรียบ
+Baseline Correction,การแก้ไขพื้นฐาน
+Baseline Correction Help,ความช่วยเหลือในการแก้ไขพื้นฐาน
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.",รูทีนการแก้ไขเส้นฐานนี้มีสองตัวเลือกสำหรับการแก้ไขเส้นฐาน 1) ขั้นตอนพหุนาม imodpolyfit เพื่อค้นหาเส้นพื้นฐานของสเปกตรัมโดยใช้พหุนามที่พอดีกับพื้นที่ทั้งหมดของสเปกตรัม 2) สามารถวาดเส้นด้วยตนเองได้โดยใช้เครื่องมือเส้นบนโครงเรื่อง และปุ่มที่ถูกต้องจะใช้เส้นเพื่อลบเส้นฐาน
+Baseline Correction Polynomial,พหุนามแก้ไขพื้นฐาน
+Technique,เทคนิค
+Polynomial,พหุนาม
+Manual,คู่มือ
+Correct With Trace,แก้ไขด้วยการติดตาม
+Reset,รีเซ็ต
+Range Selection,การเลือกช่วง
+Spectral Range Help,ความช่วยเหลือเกี่ยวกับช่วงสเปกตรัม
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,การจำกัดช่วงสเปกตรัมสามารถลบขอบเขตของสเปกตรัมที่ไม่มีพีคอยู่และปรับปรุงการจับคู่
+Maximum Spectral Range,ช่วงสเปกตรัมสูงสุด
+Minimum Spectral Range,ช่วงสเปกตรัมต่ำสุด
+Identify Spectrum,ระบุสเปกตรัม
+Identify Spectrum Using the Reference Library,ระบุสเปกตรัมโดยใช้ไลบรารีอ้างอิง
+Raman,รามัน
+FTIR,FTIR
+Spectra,Spectra
+Type,พิมพ์
+Spectrum Type Help,ความช่วยเหลือเกี่ยวกับประเภทสเปกตรัม
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,การเลือกนี้จะกำหนดว่ามีการใช้ไลบรารีการจับคู่ FTIR หรือ Raman หรือไม่ เลือกประเภทสเปกตรัมที่อัปโหลด
+Analysis,การวิเคราะห์
+Processed,แปรรูปแล้ว
+Uploaded,อัพโหลดแล้ว
+Spectrum to Analyze Help,สเปกตรัมเพื่อวิเคราะห์ Help
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,การเลือกนี้จะกำหนดว่าสเปกตรัมที่อัปโหลด (ไม่ได้ประมวลผล) หรือสเปกตรัมที่ประมวลผลโดยใช้แท็บการประมวลผลนั้นถูกใช้ในการจับคู่สเปกตรัมหรือไม่
+Region,ภูมิภาค
+Full,เต็ม
+Peaks,พีคส์
+Region to Match Help,ภูมิภาคที่จะจับคู่ช่วยเหลือ
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,การเลือกนี้จะกำหนดว่าไลบรารีที่คุณจับคู่ประกอบด้วยสเปกตรัมเต็มหรือเฉพาะพีคสเปกตรัมเท่านั้น
+Partner With Us,มาเป็นพันธมิตรกับเรา
+Help us reach our goal of revolutionizing spectroscopy.,ช่วยให้เราบรรลุเป้าหมายในการปฏิวัติสเปกโทรสโกปี
+Donate Cash,บริจาคเงินสด
+Buy From Swag Store,ซื้อจากร้าน Swag
+Contribute time,เวลามีส่วนร่วม
+Revolutionizing,ปฏิวัติ
+Thriving,เฟื่องฟู
+Maintaining,การบำรุงรักษา
+Supporting,สนับสนุน
+Saving,ประหยัด
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,ทีมจ่ายเงินที่ผลักดัน Open Specy ให้เข้าใกล้เป้าหมายสูงสุดของการระบุสเปกตรัมที่แม่นยำ 100% และการวินิจฉัยสเปกตรัมในเชิงลึกด้วยการคลิกเพียงครั้งเดียว
+A single paid staff person working to update and build the community and the tool,พนักงานที่ได้รับค่าจ้างเพียงคนเดียวที่ทำงานเพื่ออัปเดตและสร้างชุมชนและเครื่องมือ
+Maintenance costs and minor ad-hoc updates and bug fixes,ค่าบำรุงรักษาและการอัปเดตเฉพาะกิจเล็กน้อยและการแก้ไขข้อบกพร่อง
+Keeping the app online and essential maintenance,ทำให้แอปออนไลน์และการบำรุงรักษาที่จำเป็น
+Long term storage only,การจัดเก็บระยะยาวเท่านั้น
+Sharing Metadata,การแบ่งปันข้อมูลเมตา
+Thank you for sharing your data!,ขอบคุณสำหรับการแบ่งปันข้อมูลของคุณ!
+Your data will soon be available at https://osf.io/stmv4/,ข้อมูลของคุณจะพร้อมใช้งานในไม่ช้าที่ https://osf.io/stmv4/
+Something went wrong :-(,อะไรบางอย่างผิดปกติ :-(
+Data type not supported!,ไม่รองรับประเภทข้อมูล!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","ไม่รองรับประเภทข้อมูลที่อัปโหลดในขณะนี้ โปรด
+                      ตรวจสอบคำแนะนำเครื่องมือและแท็บ ""เกี่ยวกับ"" เพื่อดูรายละเอียด"
+Sharing Spectrum to Community Library,การแบ่งปันสเปกตรัมไปยังห้องสมุดชุมชน
+Reading Spectrum,การอ่านสเปกตรัม
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","หากคุณอัปโหลดไฟล์ข้อความ/csv ตรวจสอบให้แน่ใจว่า
+           คอลัมน์เป็นตัวเลขและตั้งชื่อว่า 'wavenumber' และ
+           'ความเข้ม'"
+absorbance intensity [-],ความเข้มของการดูดกลืนแสง [-]
+wavenumber [cm<sup>-1</sup>],เวฟนัมเบอร์ [ซม.<sup>-1</sup>]
+Analyzing Spectrum,กำลังวิเคราะห์สเปกตรัม
+Finding Match,หาคู่
+Making Plot,การทำโครงเรื่อง
+Material,วัสดุ
+Pearson's r,เพียร์สัน r
+Organization,องค์กร
+Selectable Matches,แมตช์ที่เลือกได้
+Donations,บริจาค
+Operation Costs,ค่าใช้จ่ายในการดำเนินงาน
+Selection Metadata,ข้อมูลเมตาการเลือก

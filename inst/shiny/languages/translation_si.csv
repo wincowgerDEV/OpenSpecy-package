@@ -1,0 +1,212 @@
+en,si
+About,ගැන
+Welcome,සාදරයෙන් පිළිගනිමු
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","අවට සිටින සිය ගණනක් පර්යේෂකයන් හා එක්වන්න
+           විසින් විවෘත විශේෂ ප්‍රජාවේ කොටසක් වන ලෝකය
+           විශ්ලේෂණය, බෙදාගැනීම, සැකසීම සහ හඳුනා ගැනීම
+           ඔවුන්ගේ රමන් සහ IR වර්ණාවලිය. අපගේ හවුල්කරුවන්ට ස්තූතිවන්ත වන පරිදි මෙම සේවාවන් නොමිලේ සහ විවෘත මූලාශ්‍ර වේ:"
+Quick Video Tutorial,ඉක්මන් වීඩියෝ නිබන්ධනය
+Instructions,උපදෙස්
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","කෙටියෙන්: මෙවලම භාවිතා කිරීමට csv, asp, jdx, spc, හෝ spa ගොනුවක් උඩුගත කිරීමේ ගොනු පටිත්ත වෙත උඩුගත කරන්න.
+                                  csv නම්, එක් තීරුවක් 'තරංග අංකය' (1/cm ඒකක වලින්) සහ තවත් තීරුවක් 'තීව්‍රතාවය' ලෙස නම් කළ යුතුය.
+                                  ඔබට SG ෆිල්ටරයක් භාවිතයෙන් ඔබේ දත්ත සුමට කළ හැක, iModPolyFit හි බහුපද අනුපිළිවෙල භාවිතයෙන් ඔබේ දත්ත මූලික වශයෙන් නිවැරදි කළ හැක, සහ ගැලපීම සඳහා තරංග ආයාම පරාසය සීමා කරන්න.
+                                  ප්‍රතිඵලය අභ්‍යන්තර රමන් හෝ FTIR වර්ණාවලි පුස්තකාලයකට සංසන්දනය කරනු ඇත. ඔබගේ සමග ශක්තිමත්ම ගැලපීම් 1000
+                                  උඩුගත කරන ලද හෝ සැකසූ දත්ත අන්තර්ක්‍රියාකාරී කුමන්ත්‍රණයක සහ වගුවක ඉදිරිපත් කෙරේ. වැඩි විස්තර සඳහා පහත බොත්තම ක්ලික් කරන්න
+                                  හෝ සවිස්තරාත්මක උපදෙස් වීඩියෝව බලන්න."
+Detailed Standard Operating Procedure,සවිස්තරාත්මක සම්මත මෙහෙයුම් ක්රියා පටිපාටිය
+Download Open Data,විවෘත දත්ත බාගන්න
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","විමර්ශන වර්ණාවලිය විවෘත ප්‍රවේශ සම්පත් වලින් ලබා ගන්නා ලදී
+           සබැඳිව, සම-සමාලෝචනය කළ ප්‍රකාශන සහ ආයතනික පරිත්‍යාග. අනාගතයේ දි
+           මෙවලම වෙත උඩුගත කරන ලද වර්ණාවලි යොමුව වෙත ඇතුළත් කරනු ලැබේ
+           පුස්තකාලය තවත් හොඳ කිරීමට."
+Raman Reference Library,රාමන් විමර්ශන පුස්තකාලය
+FTIR Reference Library,FTIR විමර්ශන පුස්තකාලය
+Raman Reference Library Metadata,රාමන් යොමු පුස්තකාල පාරදත්ත
+FTIR Reference Library Metadata,FTIR යොමු පුස්තකාල පාරදත්ත
+Contribute Spectra,වර්ණාවලි දායකත්වය
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","වර්ණාවලි බෙදා ගැනීමට ගොනුවක් උඩුගත කිරීමේ පටිත්ත වෙත උඩුගත කරන්න. ඔබ බෙදාගන්න තෝරා ගත්තේ නම් ඔබේ වර්ණාවලියේ පිටපතක් ප්‍රජාවට යවනු ලැබේ
+           විවෘත විද්‍යා රාමුව පිළිබඳ දත්ත ගබඩාව. අමතර පාරදත්ත එකතු කිරීමට,
+           පවතින පාරදත්ත ක්ෂේත්‍ර පුරවා -Share Data- ක්ලික් කරන්න. එම
+           ඔබගේ ප්‍රතිචාර සමඟ ඔබ උඩුගත කළ වර්ණාවලි ගොනුව පිටපත් කරනු ලැබේ
+           පහත සබැඳියේ ඇති -With Metadata- උප ෆෝල්ඩරය වෙත. සියලුම බෙදාගත් දත්ත රඳවා තබා ගනී
+           Creative Commons Attribution බලපත්‍රයක් 4.0."
+Community Data Warehouse,ප්‍රජා දත්ත ගබඩාව
+Tool Validation,මෙවලම් වලංගුකරණය
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","එය වලංගු කිරීම සඳහා මෙම මෙවලමෙහි ඇති සියලුම පරාමිති පරීක්ෂා කරනු ලැබේ
+           මෙවලම හැකි තරම් හොඳින් ක්‍රියාත්මක වන අතර හොඳම පෙරනිමිය තීරණය කරන්න
+           භාවිතා කිරීමට පරාමිතීන්. අපගේ වත්මන් වලංගු කිරීමේ ක්‍රියාවලියට නිවැරදි කිරීම් ඇතුළත් වේ
+           විමර්ශන පුස්තකාලවල අනුපිටපත් ඇතුළත් කිරීම්, වර්ණාවලි සඳහා පරීක්ෂා කිරීම
+           වර්ණාවලි පුස්තකාලයේ නොමැති පාරදත්ත, සහ පෙරනිමිය සහතික කරයි
+           පරාමිති පළමු තරඟයේදී 80% කට වඩා නිරවද්‍යතාවයක් සපයයි."
+Detailed Validation Procedure,සවිස්තරාත්මක වලංගු කිරීමේ ක්රියා පටිපාටිය
+"Updates, Feature Requests, and Bug Reports","යාවත්කාලීන, විශේෂාංග ඉල්ලීම් සහ දෝෂ වාර්තා"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,අපි අපගේ කේතයේ අනුවාද පාලනය භාවිතයෙන් සියලුම යාවත්කාලීනයන් නිරීක්ෂණය කරමු. GitHub හි විශේෂාංග ඉල්ලා සිටිය හැකි අතර දෝෂ වාර්තා කළ හැක.
+Stay up to date!,යාවත්කාලීනව සිටින්න!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Twitter @OpenSpecy හි අපව අනුගමනය කරන්න. තැපැල් ලැයිස්තුවට එකතු කිරීමට wincowger@gmail.com විද්‍යුත් තැපෑල.
+Citation,උපුටා ගැනීම
+Useful Links,ප්රයෝජනවත් සබැඳි
+Free FTIR Software: siMPle microplastic IR spectral identification software,නොමිලේ FTIR මෘදුකාංගය: සරල ක්ෂුද්‍ර ප්ලාස්ටික් IR වර්ණාවලි හඳුනාගැනීමේ මෘදුකාංගය
+Free Spectroscopy Learning Academy from ThermoFisher,ThermoFisher වෙතින් නොමිලේ වර්ණාවලීක්ෂ ඉගෙනුම් ඇකඩමිය
+Free Optical Microscopy Learning Resource from Florida State University,ෆ්ලොරිඩා ප්‍රාන්ත විශ්ව විද්‍යාලයෙන් නොමිලේ දෘශ්‍ය අන්වීක්ෂ ඉගෙනුම් සම්පත
+Free desktop application for spectral analysis and links to reference databases.,වර්ණාවලි විශ්ලේෂණය සඳහා නොමිලේ ඩෙස්ක්ටොප් යෙදුම සහ විමර්ශන දත්ත සමුදායන් වෙත සබැඳි.
+Terms And Conditions,නියම සහ කොන්දේසි
+Privacy Policy,රහස්යතා ප්රතිපත්තිය
+Upload File,ගොනුව උඩුගත කරන්න
+"Upload, View, and Share Spectra","වර්ණාවලිය උඩුගත කරන්න, බලන්න, සහ බෙදාගන්න"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",".csv (වඩාත් කැමති), .asp, .jdx, .spc, .spa, හෝ .0 ගොනුව තෝරන්න"
+Share Your Data?,ඔබේ දත්ත බෙදා ගන්නද?
+Share Help,උදව් බෙදාගන්න
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","ඔබ කැමති නම්, අපි ඔබේ උඩුගත කළ වර්ණාවලි සහ සැකසුම් වර්ණාවලීක්ෂ ප්‍රජාව සමඟ බෙදා ගනිමු.
+           පෙරනිමියෙන්, සියලු දත්ත Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) යටතේ බලපත්‍ර ලබා දෙනු ඇත.
+           උඩුගත කළ වර්ණාවලි මෙහි දිස් වනු ඇත: https://osf.io/rjg3c"
+Upload Help,උඩුගත උදව්
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","රාමන් හෝ FTIR වර්ණාවලි ගොනු csv, jdx, spc, හෝ spa ලෙස උඩුගත කරන්න. csv ගොනුවක් වඩාත් කැමති වේ. csv එකක් නම්, ගොනුවේ (1/cm) ඒකකවල 'wavenumber' ලෙස ලේබල් කර ඇති තීරුවක් සහ අවශෝෂණ ඒකකවල 'තීව්‍රතාව' ලෙස ලේබල් කර ඇති තවත් තීරුවක් අඩංගු විය යුතුය.
+            jdx, spc, spa, හෝ 0 නම් ගොනුව තරංග සංඛ්‍යාව (1/cm) සහිත තනි අවශෝෂණ වර්ණාවලියක් විය යුතුය. මෙම ලිපිගොනු කියවීමට අපහසු නිසා සෑම විටම පරිපූර්ණ ලෙස ක්‍රියා නොකරනු ඇත, එබැවින් වෙනත් මෘදුකාංගයකින් ඒවා දෙවරක් පරීක්ෂා කරන්න.
+            නියැදි රාමන් වර්ණාවලියක් බාගැනීමට 'ටෙස්ට් දත්ත' බොත්තම ඔබන්න."
+Intensity Adjustment,තීව්රතා ගැලපීම
+None,කිසිවක් නැත
+Transmittance,සම්ප්රේෂණය
+Reflectance,පරාවර්තනය
+Intensity Correction Help,තීව්රතා නිවැරදි කිරීමේ උපකාරය
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","උඩුගත කළ වර්ණාවලිය අවශෝෂණ ඒකකවල නොමැති නම්,
+           සිට පරිවර්තනය කිරීමට ඒකක සඳහන් කිරීමට මෙම ආදානය භාවිතා කරන්න.Open Specy can
+           භාවිතා කරමින් අවශෝෂණ ඒකක වෙත පරාවර්තක හෝ සම්ප්‍රේෂණ වර්ණාවලි සකසන්න
+           උඩුගත ගොනු පටිත්තෙහි මෙම පතනය. පෙර ටැබ් සියල්ල
+           දත්ත අවශෝෂණ ඒකකවල ඇති බව උපකල්පනය කරන්න, එබැවින් ඔබ සෑදිය යුතුය
+           අවශ්ය නම් ඉදිරියට යාමට පෙර නිවැරදි කිරීම. සම්ප්රේෂණ ගැලපුම
+           පද්ධතිය සඳහා නිවැරදි නොවන log10(1/T) ගණනය භාවිතා කරයි
+           සහ අංශු ලක්ෂණ. පරාවර්තන ගැලපුම භාවිතා කරයි
+           Kubelka-Munk සමීකරණය (1-R)2/(2*R). පරාවර්තනය යැයි අපි උපකල්පනය කරමු
+           1-100 සිට ප්‍රතිශතයක් ලෙස හැඩගස්වා ඇති අතර පළමුව 100 න් බෙදීමෙන් තීව්‍රතාවය නිවැරදි කරන්න
+           එය සමීකරණයෙන් අපේක්ෂිත ආකෘතියට ගැලපෙන පරිදි.
+           කිසිවක් තෝරා නොමැති නම්, උඩුගත කළ දත්ත බව Open Specy උපකල්පනය කරයි
+           අවශෝෂණ වර්ණාවලියක්."
+Sample File,නියැදි ගොනුව
+Sample Data Help,නියැදි දත්ත උපකාරය
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,මෙය නියැදි වර්ණාවලියක් වන අතර එය පරීක්ෂා කිරීමට සහ csv ගොනු ආකෘතිගත කළ යුතු ආකාරය අවබෝධ කර ගැනීමට මෙවලම වෙත උඩුගත කළ හැක.
+Metadata Input,පාරදත්ත ආදානය
+Metadata Help,පාරදත්ත උදවු
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","ඔබ මෙහි පාර-දත්ත පුරවා බෙදාගැනීම තෝරන්නේ නම්, අපි ඕනෑම උඩුගත කළ වර්ණාවලි සහ පාර-දත්ත වර්ණාවලීක්ෂ ප්‍රජාව සමඟ බෙදා ගනිමු.
+           උඩුගත කළ වර්ණාවලි සහ පාරදත්ත මෙහි දිස් වනු ඇත: https://osf.io/rjg3c"
+Share Metadata,පාරදත්ත බෙදාගන්න
+Upload some data to get started...,ආරම්භ කිරීමට දත්ත කිහිපයක් උඩුගත කරන්න...
+Preprocess Spectrum,පූර්ව සැකසුම් වර්ණාවලිය
+"Smooth, Baseline Correct, and Download Processed Spectra","Smooth, Baseline Correct, and Download Processed Spectra"
+Download (recommended),බාගන්න (නිර්දේශිත)
+Download Help,උදව් බාගන්න
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,සමහර පරිශීලකයන් ඔවුන්ගේ සැකසූ වර්ණාවලියේ පිටපතක් සුරැකීමට කැමති විය හැක. මෙම බොත්තම සකසන ලද වර්ණාවලිය csv ගොනුවක් ලෙස බාගත කරයි.
+Smoothing,සුමට කිරීම
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,මෙම ස්මූටරයට දත්තවල ශබ්දයට සංඥා අනුපාතය වැඩි දියුණු කළ හැකි අතර ධාවන දත්ත ලක්ෂ්‍ය 12ක් සහ නිශ්චිතව දක්වා ඇති බහුපදයක් සහිත Savitzky-Golay ෆිල්ටරයක් භාවිතා කරයි.
+Smoothing Polynomial,සුමට බහුපද
+Baseline Correction,මූලික නිවැරදි කිරීම
+Baseline Correction Help,මූලික නිවැරදි කිරීමේ උපකාරය
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","මෙම මූලික නිවැරදි කිරීමේ ක්‍රියාවලියට මූලික නිවැරදි කිරීම් සඳහා විකල්ප දෙකක් ඇත, 1) වර්ණාවලියේ සම්පූර්ණ කලාපයට බහුපද යෝග්‍යතාවයක් භාවිතා කරමින් වර්ණාවලියේ මූලික රේඛාව පුනරාවර්තන ලෙස සොයා ගැනීමට බහුපද imodpolyfit ක්‍රියා පටිපාටිය. 2) කුමන්ත්‍රණයේ ඇති රේඛා මෙවලම භාවිතයෙන් අතින් රේඛා ඇඳිය හැකි අතර නිවැරදි බොත්තම මූලික රේඛාව අඩු කිරීමට රේඛා භාවිතා කරයි."
+Baseline Correction Polynomial,මූලික නිවැරදි කිරීමේ බහුපද
+Technique,තාක්ෂණය
+Polynomial,බහුපද
+Manual,අත්පොත
+Correct With Trace,Trace සමඟ නිවැරදි කරන්න
+Reset,යළි පිහිටුවන්න
+Range Selection,පරාසය තේරීම
+Spectral Range Help,වර්ණාවලි පරාසය උදව්
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,වර්ණාවලි පරාසය සීමා කිරීමෙන් ශිඛර නොමැති වර්ණාවලියේ කලාප ඉවත් කර ගැලපීම වැඩි දියුණු කළ හැක
+Maximum Spectral Range,උපරිම වර්ණාවලි පරාසය
+Minimum Spectral Range,අවම වර්ණාවලි පරාසය
+Identify Spectrum,වර්ණාවලිය හඳුනා ගන්න
+Identify Spectrum Using the Reference Library,විමර්ශන පුස්තකාලය භාවිතයෙන් වර්ණාවලිය හඳුනා ගන්න
+Raman,රමන්
+FTIR,FTIR
+Spectra,වර්ණාවලි
+Type,ටයිප් කරන්න
+Spectrum Type Help,වර්ණාවලි වර්ගය උදව්
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,මෙම තේරීම FTIR හෝ රමන් ගැළපෙන පුස්තකාලය භාවිතා කරන්නේද යන්න තීරණය කරයි. උඩුගත කරන ලද වර්ණාවලියේ වර්ගය තෝරන්න.
+Analysis,විශ්ලේෂණය
+Processed,සකසන ලදී
+Uploaded,උඩුගත කරන ලදී
+Spectrum to Analyze Help,උපකාරය විශ්ලේෂණය කිරීමට වර්ණාවලිය
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,මෙම තේරීම මඟින් උඩුගත කරන ලද (සැකසී නැත) වර්ණාවලිය හෝ සැකසුම් ටැබය භාවිතයෙන් සකසන ලද වර්ණාවලිය වර්ණාවලිය ගැලපීමේදී භාවිතා කරන්නේද යන්න තීරණය කරනු ඇත.
+Region,කලාපයේ
+Full,පූර්ණ
+Peaks,කඳු මුදුන්
+Region to Match Help,උදව් ගැලපීම සඳහා කලාපය
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,මෙම තේරීම මඟින් ඔබ ගැලපෙන පුස්තකාලය සම්පූර්ණ වර්ණාවලියෙන් සමන්විතද නැතිනම් වර්ණාවලි මුදුන් පමණක්ද යන්න තීරණය කරයි.
+Partner With Us,අප සමඟ හවුල්කරු
+Help us reach our goal of revolutionizing spectroscopy.,වර්ණාවලීක්ෂය විප්ලවීය කිරීමේ අපගේ ඉලක්කය කරා ළඟා වීමට අපට උදවු කරන්න.
+Donate Cash,මුදල් පරිත්‍යාග කරන්න
+Buy From Swag Store,Swag වෙළඳසැලෙන් මිලදී ගන්න
+Contribute time,කාලය දායක වන්න
+Revolutionizing,විප්ලවකාරී
+Thriving,දියුණු වෙනවා
+Maintaining,නඩත්තු කරනවා
+Supporting,සහාය දෙනවා
+Saving,ඉතිරි කිරීම
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,තනි ක්ලික් කිරීමකින් 100% නිවැරදි වර්ණාවලි හඳුනාගැනීමේ සහ ගැඹුරු වර්ණාවලි රෝග විනිශ්චය කිරීමේ අවසාන ඉලක්කය වෙත Open Specy තල්ලු කරන ගෙවන කණ්ඩායමක්
+A single paid staff person working to update and build the community and the tool,ප්‍රජාව සහ මෙවලම යාවත්කාලීන කිරීමට සහ ගොඩනැගීමට වැඩ කරන තනි වැටුප් සහිත කාර්ය මණ්ඩල පුද්ගලයෙකි
+Maintenance costs and minor ad-hoc updates and bug fixes,නඩත්තු වියදම් සහ සුළු තාවකාලික යාවත්කාලීන කිරීම් සහ දෝෂ නිවැරදි කිරීම්
+Keeping the app online and essential maintenance,යෙදුම සබැඳිව තබා ගැනීම සහ අත්‍යවශ්‍ය නඩත්තු කිරීම
+Long term storage only,දිගුකාලීන ගබඩා කිරීම පමණි
+Sharing Metadata,පාරදත්ත බෙදාගැනීම
+Thank you for sharing your data!,ඔබගේ දත්ත බෙදා ගැනීම ගැන ඔබට ස්තුතියි!
+Your data will soon be available at https://osf.io/stmv4/,ඔබගේ දත්ත ඉක්මනින් https://osf.io/stmv4/ හිදී ලබා ගත හැක
+Something went wrong :-(,මොකක්හරි වැරැද්දක් වෙලා :-(
+Data type not supported!,දත්ත වර්ගය සහය නොදක්වයි!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","උඩුගත කළ දත්ත වර්ගය දැනට සහාය නොදක්වයි; කරුණාකර
+                      විස්තර සඳහා මෙවලම් ඉඟි සහ 'ගැන' ටැබය පරීක්ෂා කරන්න."
+Sharing Spectrum to Community Library,ප්‍රජා පුස්තකාලයට වර්ණාවලිය බෙදා ගැනීම
+Reading Spectrum,වර්ණාවලිය කියවීම
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","ඔබ text/csv ගොනුවක් උඩුගත කළේ නම්, එය තහවුරු කර ගන්න
+           තීරු සංඛ්‍යාත්මක වන අතර 'wavenumber' ලෙස නම් කර ඇත
+           'තීව්රතාව'."
+absorbance intensity [-],අවශෝෂණ තීව්‍රතාව [-]
+wavenumber [cm<sup>-1</sup>],තරංග අංකය [cm<sup>-1</sup>]
+Analyzing Spectrum,වර්ණාවලිය විශ්ලේෂණය කිරීම
+Finding Match,ගැළපීම සොයා ගැනීම
+Making Plot,කුමන්ත්රණයක් සෑදීම
+Material,ද්රව්ය
+Pearson's r,පියර්සන්ගේ ආර්
+Organization,සංවිධානය
+Selectable Matches,තෝරාගත හැකි ගැලපීම්
+Donations,පරිත්යාග
+Operation Costs,මෙහෙයුම් පිරිවැය
+Selection Metadata,තේරීම් පාරදත්ත

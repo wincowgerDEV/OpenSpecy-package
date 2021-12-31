@@ -1,0 +1,212 @@
+en,ta
+About,பற்றி
+Welcome,வரவேற்பு
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","சுற்றியுள்ள நூற்றுக்கணக்கான ஆராய்ச்சியாளர்களுடன் சேரவும்
+           திறந்த இன சமூகத்தின் ஒரு பகுதியாக இருக்கும் உலகம்
+           பகுப்பாய்வு செய்தல், பகிர்தல், செயலாக்குதல் மற்றும் அடையாளம் காணுதல்
+           அவர்களின் ராமன் மற்றும் ஐஆர் ஸ்பெக்ட்ரா. இந்த சேவைகள் இலவசம் மற்றும் எங்கள் கூட்டாளர்களுக்கு நன்றி:"
+Quick Video Tutorial,விரைவு வீடியோ டுடோரியல்
+Instructions,வழிமுறைகள்
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","சுருக்கமாக: கருவியைப் பயன்படுத்த, csv, asp, jdx, spc அல்லது spa கோப்பை பதிவேற்ற கோப்பு தாவலில் பதிவேற்றவும்.
+                                  csv எனில், ஒரு நெடுவரிசைக்கு 'அலை எண்' (1/cm அலகுகளில்) என்றும், மற்றொன்றுக்கு 'தீவிரம்' என்றும் பெயரிட வேண்டும்.
+                                  SG வடிப்பானைப் பயன்படுத்தி உங்கள் தரவை மென்மையாக்கலாம், iModPolyFit இன் பல்லுறுப்புக்கோவை வரிசையைப் பயன்படுத்தி உங்கள் தரவை அடிப்படைத் திருத்தம் செய்யலாம் மற்றும் போட்டிக்கான அலைநீள வரம்பைக் கட்டுப்படுத்தலாம்.
+                                  இதன் விளைவாக உள்ளக ராமன் அல்லது FTIR நிறமாலை நூலகத்துடன் ஒப்பிடப்படும். உங்களுடன் இணைந்து வலுவான 1000 போட்டிகள்
+                                  பதிவேற்றிய அல்லது செயலாக்கப்பட்ட தரவு ஒரு ஊடாடும் சதி மற்றும் அட்டவணையில் வழங்கப்படும். மேலும் விவரங்களுக்கு கீழே உள்ள பட்டனை கிளிக் செய்யவும்
+                                  அல்லது விரிவான அறிவுறுத்தல் வீடியோவைப் பார்க்கவும்."
+Detailed Standard Operating Procedure,விரிவான நிலையான செயல்பாட்டு செயல்முறை
+Download Open Data,திறந்த தரவைப் பதிவிறக்கவும்
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","குறிப்பு நிறமாலை திறந்த அணுகல் ஆதாரங்களில் இருந்து பெறப்பட்டது
+           ஆன்லைனில், சக மதிப்பாய்வு செய்யப்பட்ட வெளியீடுகள் மற்றும் பெருநிறுவன நன்கொடைகள். எதிர்காலத்தில்
+           கருவியில் பதிவேற்றப்படும் ஸ்பெக்ட்ரா குறிப்புடன் இணைக்கப்படும்
+           நூலகம் இன்னும் சிறப்பாக செய்ய வேண்டும்."
+Raman Reference Library,ராமன் குறிப்பு நூலகம்
+FTIR Reference Library,FTIR குறிப்பு நூலகம்
+Raman Reference Library Metadata,ராமன் குறிப்பு நூலக மெட்டாடேட்டா
+FTIR Reference Library Metadata,FTIR குறிப்பு நூலக மெட்டாடேட்டா
+Contribute Spectra,ஸ்பெக்ட்ராவை பங்களிக்கவும்
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","ஸ்பெக்ட்ராவைப் பகிர, ஒரு கோப்பை பதிவேற்ற கோப்பு தாவலில் பதிவேற்றவும். பகிர் என்பதைத் தேர்ந்தெடுத்தால், உங்கள் ஸ்பெக்ட்ராவின் நகல் சமூகத்திற்கு அனுப்பப்படும்
+           திறந்த அறிவியல் கட்டமைப்பில் தரவுக் கிடங்கு. கூடுதல் மெட்டாடேட்டாவைச் சேர்க்க,
+           கிடைக்கக்கூடிய மெட்டாடேட்டா புலங்களை நிரப்பி -பகிர்வு தரவு- என்பதைக் கிளிக் செய்யவும். தி
+           உங்கள் பதில்களுடன் நீங்கள் பதிவேற்றிய ஸ்பெக்ட்ரா கோப்பு நகலெடுக்கப்படும்
+           கீழே உள்ள இணைப்பில் ஒரு -வித் மெட்டாடேட்டா- துணைக் கோப்புறைக்கு. அனைத்து பகிரப்பட்ட தரவு வைத்திருக்கும்
+           ஒரு கிரியேட்டிவ் காமன்ஸ் பண்புக்கூறு உரிமம் 4.0."
+Community Data Warehouse,சமூக தரவுக் கிடங்கு
+Tool Validation,கருவி சரிபார்ப்பு
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","இந்தக் கருவியில் உள்ள அனைத்து அளவுருக்களும் அதைச் சரிபார்க்க சோதிக்கப்படுகின்றன
+           கருவி முடிந்தவரை சிறப்பாக செயல்படுகிறது மற்றும் சிறந்த இயல்புநிலையை தீர்மானிக்கிறது
+           பயன்படுத்த வேண்டிய அளவுருக்கள். எங்களின் தற்போதைய சரிபார்ப்பு நடைமுறையில் திருத்தம் அடங்கும்
+           குறிப்பு நூலகங்களில் நகல் உள்ளீடுகள், ஸ்பெக்ட்ரா உள்ளதா எனச் சரிபார்க்கிறது
+           ஸ்பெக்ட்ரல் லைப்ரரியில் இல்லாத மெட்டாடேட்டா மற்றும் இயல்புநிலையை உறுதி செய்கிறது
+           அளவுருக்கள் முதல் போட்டியில் 80% துல்லியத்தை வழங்குகின்றன."
+Detailed Validation Procedure,விரிவான சரிபார்ப்பு செயல்முறை
+"Updates, Feature Requests, and Bug Reports","புதுப்பிப்புகள், அம்சக் கோரிக்கைகள் மற்றும் பிழை அறிக்கைகள்"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,எங்கள் குறியீட்டில் பதிப்புக் கட்டுப்பாட்டைப் பயன்படுத்தி அனைத்து புதுப்பிப்புகளையும் நாங்கள் கண்காணிக்கிறோம். GitHub இல் அம்சங்களைக் கோரலாம் மற்றும் பிழையைப் புகாரளிக்கலாம்.
+Stay up to date!,புதுப்பித்த நிலையில் இருங்கள்!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Twitter @OpenSpecy இல் எங்களைப் பின்தொடரவும். மின்னஞ்சல் பட்டியலில் சேர்க்க wincowger@gmail.com மின்னஞ்சல்.
+Citation,மேற்கோள்
+Useful Links,பயனுள்ள இணைப்புகள்
+Free FTIR Software: siMPle microplastic IR spectral identification software,இலவச FTIR மென்பொருள்: எளிய மைக்ரோபிளாஸ்டிக் ஐஆர் நிறமாலை அடையாள மென்பொருள்
+Free Spectroscopy Learning Academy from ThermoFisher,தெர்மோஃபிஷரிடமிருந்து இலவச ஸ்பெக்ட்ரோஸ்கோபி கற்றல் அகாடமி
+Free Optical Microscopy Learning Resource from Florida State University,புளோரிடா மாநில பல்கலைக்கழகத்தில் இருந்து இலவச ஆப்டிகல் மைக்ரோஸ்கோபி கற்றல் வளம்
+Free desktop application for spectral analysis and links to reference databases.,ஸ்பெக்ட்ரல் பகுப்பாய்வுக்கான இலவச டெஸ்க்டாப் பயன்பாடு மற்றும் குறிப்பு தரவுத்தளங்களுக்கான இணைப்புகள்.
+Terms And Conditions,விதிமுறைகள் மற்றும் நிபந்தனைகள்
+Privacy Policy,தனியுரிமைக் கொள்கை
+Upload File,கோப்பை பதிவேற்றவும்
+"Upload, View, and Share Spectra","ஸ்பெக்ட்ராவைப் பதிவேற்றவும், பார்க்கவும் மற்றும் பகிரவும்"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",".csv (விருப்பம்), .asp, .jdx, .spc, .spa அல்லது .0 கோப்பைத் தேர்வு செய்யவும்"
+Share Your Data?,உங்கள் தரவைப் பகிரவா?
+Share Help,உதவியைப் பகிரவும்
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","நீங்கள் விரும்பினால், உங்கள் பதிவேற்றிய நிறமாலை மற்றும் அமைப்புகளை ஸ்பெக்ட்ரோஸ்கோபி சமூகத்துடன் பகிர்ந்து கொள்கிறோம்.
+           இயல்பாக, எல்லா தரவும் கிரியேட்டிவ் காமன்ஸ் அட்ரிபியூஷன்-வணிகமற்ற 4.0 இன்டர்நேஷனல் (CC BY-NC 4.0) இன் கீழ் உரிமம் பெறும்.
+           பதிவேற்றப்பட்ட ஸ்பெக்ட்ரா இங்கே தோன்றும்: https://osf.io/rjg3c"
+Upload Help,பதிவேற்ற உதவி
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","ராமன் அல்லது FTIR ஸ்பெக்ட்ரம் கோப்புகளை csv, jdx, spc அல்லது spa ஆக பதிவேற்றவும். ஒரு csv கோப்பு விரும்பப்படுகிறது. ஒரு csv எனில், கோப்பு (1/cm) அலகுகளில் 'wavenumber' என்று பெயரிடப்பட்ட ஒரு நெடுவரிசையையும் உறிஞ்சும் அலகுகளில் 'தீவிரம்' என்று பெயரிடப்பட்ட மற்றொரு நெடுவரிசையையும் கொண்டிருக்க வேண்டும்.
+            jdx, spc, spa, அல்லது 0 எனில், கோப்பு (1/cm) அலை எண் கொண்ட ஒற்றை உறிஞ்சும் நிறமாலையாக இருக்க வேண்டும். இந்தக் கோப்புகள் எப்பொழுதும் சரியாக வேலை செய்யாது, ஏனெனில் அவை படிப்பதற்கு தந்திரமானவை, எனவே அவற்றை மற்றொரு மென்பொருளில் இருமுறை சரிபார்க்கவும்.
+            மாதிரி ராமன் ஸ்பெக்ட்ரமைப் பதிவிறக்க, 'டெஸ்ட் டேட்டா' பட்டனை அழுத்தவும்."
+Intensity Adjustment,தீவிரம் சரிசெய்தல்
+None,இல்லை
+Transmittance,கடத்தல்
+Reflectance,பிரதிபலிப்பு
+Intensity Correction Help,தீவிரம் சரிசெய்தல் உதவி
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","பதிவேற்றப்பட்ட ஸ்பெக்ட்ரம் உறிஞ்சும் அலகுகளில் இல்லை என்றால்,
+           இலிருந்து மாற்றுவதற்கான அலகுகளைக் குறிப்பிட இந்த உள்ளீட்டைப் பயன்படுத்தவும்.Open Specy can
+           பிரதிபலிப்பு அல்லது ஒலிபரப்பு நிறமாலையை உறிஞ்சும் அலகுகளுக்குப் பயன்படுத்தி சரிசெய்யவும்
+           பதிவேற்ற கோப்பு தாவலில் இந்த கீழ்தோன்றும். முந்தைய தாவல்கள் அனைத்தும்
+           தரவு உறிஞ்சும் அலகுகளில் உள்ளதால் நீங்கள் அதை உருவாக்க வேண்டும்
+           தேவைப்பட்டால் தொடர்வதற்கு முன் திருத்தம். பரிமாற்ற சரிசெய்தல்
+           கணினிக்கு சரியில்லாத log10(1/T) கணக்கீட்டைப் பயன்படுத்துகிறது
+           மற்றும் துகள் பண்புகள். பிரதிபலிப்பு சரிசெய்தல் பயன்படுத்துகிறது
+           குபெல்கா-மங்க் சமன்பாடு (1-ஆர்)2/(2*ஆர்). பிரதிபலிப்பு என்று கருதுகிறோம்
+           1-100 இலிருந்து ஒரு சதவீதமாக வடிவமைக்கப்பட்டு, முதலில் 100 ஆல் வகுப்பதன் மூலம் தீவிரத்தை சரிசெய்யவும்
+           அதனால் அது சமன்பாட்டால் எதிர்பார்க்கப்படும் வடிவத்திற்கு பொருந்துகிறது.
+           எதுவும் தேர்ந்தெடுக்கப்படவில்லை எனில், பதிவேற்றப்பட்ட தரவு என்று Open Specy கருதுகிறது
+           ஒரு உறிஞ்சும் நிறமாலை."
+Sample File,மாதிரி கோப்பு
+Sample Data Help,மாதிரி தரவு உதவி
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,"இது ஒரு மாதிரி ஸ்பெக்ட்ரம் ஆகும், அதைச் சோதனை செய்வதற்கும் csv கோப்புகள் எப்படி வடிவமைக்கப்பட வேண்டும் என்பதைப் புரிந்துகொள்வதற்கும் கருவியில் பதிவேற்றப்படலாம்."
+Metadata Input,மெட்டாடேட்டா உள்ளீடு
+Metadata Help,மெட்டாடேட்டா உதவி
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","நீங்கள் இங்கே மெட்டாடேட்டாவை நிரப்பி, பகிர்வைத் தேர்ந்தெடுத்தால், பதிவேற்றப்பட்ட ஸ்பெக்ட்ரா மற்றும் மெட்டாடேட்டாவை ஸ்பெக்ட்ரோஸ்கோபி சமூகத்துடன் பகிர்ந்து கொள்கிறோம்.
+           பதிவேற்றப்பட்ட ஸ்பெக்ட்ரா மற்றும் மெட்டாடேட்டா இங்கே தோன்றும்: https://osf.io/rjg3c"
+Share Metadata,மெட்டாடேட்டாவைப் பகிரவும்
+Upload some data to get started...,தொடங்குவதற்கு சில தரவைப் பதிவேற்றவும்...
+Preprocess Spectrum,முன் செயலாக்க ஸ்பெக்ட்ரம்
+"Smooth, Baseline Correct, and Download Processed Spectra","ஸ்மூத், பேஸ்லைன் சரி, மற்றும் பதப்படுத்தப்பட்ட ஸ்பெக்ட்ராவைப் பதிவிறக்கவும்"
+Download (recommended),பதிவிறக்கம் (பரிந்துரைக்கப்படுகிறது)
+Download Help,உதவியைப் பதிவிறக்கவும்
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,சில பயனர்கள் தங்கள் செயலாக்கப்பட்ட ஸ்பெக்ட்ரமின் நகலை சேமிக்க விரும்பலாம். இந்தப் பொத்தான் செயலாக்கப்பட்ட ஸ்பெக்ட்ரத்தை csv கோப்பாகப் பதிவிறக்குகிறது.
+Smoothing,மென்மையாக்கும்
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,"இந்த மிருதுவானது, தரவின் ஒலி விகிதத்திற்கு சிக்னலை மேம்படுத்தலாம் மற்றும் 12 இயங்கும் தரவுப் புள்ளிகள் மற்றும் குறிப்பிடப்பட்ட பல்லுறுப்புக்கோவை கொண்ட Savitzky-Golay வடிப்பானைப் பயன்படுத்துகிறது."
+Smoothing Polynomial,மென்மையாக்கும் பல்லுறுப்புக்கோவை
+Baseline Correction,அடிப்படை திருத்தம்
+Baseline Correction Help,அடிப்படை திருத்த உதவி
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","இந்த அடிப்படைத் திருத்தம் நடைமுறையானது அடிப்படைத் திருத்தத்திற்கான இரண்டு விருப்பங்களைக் கொண்டுள்ளது, 1) ஸ்பெக்ட்ராவின் முழுப் பகுதிக்கும் ஒரு பல்லுறுப்புக்கோவைப் பொருத்தத்தைப் பயன்படுத்தி ஸ்பெக்ட்ரமின் அடிப்படைக் கோட்டை மீண்டும் கண்டறியும் பல்லுறுப்புக்கோவை imodpolyfit செயல்முறை. 2) ப்ளாட்டில் உள்ள கோடு கருவியைப் பயன்படுத்தி கையேடு கோடுகளை வரையலாம், மேலும் சரியான பொத்தான் அடிப்படையை கழிக்க கோடுகளைப் பயன்படுத்தும்."
+Baseline Correction Polynomial,அடிப்படை திருத்தம் பல்லுறுப்புக்கோவை
+Technique,நுட்பம்
+Polynomial,பல்லுறுப்புக்கோவை
+Manual,கையேடு
+Correct With Trace,ட்ரேஸ் உடன் சரி
+Reset,மீட்டமை
+Range Selection,வரம்பு தேர்வு
+Spectral Range Help,நிறமாலை வரம்பு உதவி
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,"ஸ்பெக்ட்ரல் வரம்பைக் கட்டுப்படுத்துவது, சிகரங்கள் இல்லாத ஸ்பெக்ட்ரம் பகுதிகளை அகற்றி, பொருத்தத்தை மேம்படுத்தலாம்"
+Maximum Spectral Range,அதிகபட்ச நிறமாலை வரம்பு
+Minimum Spectral Range,குறைந்தபட்ச நிறமாலை வரம்பு
+Identify Spectrum,ஸ்பெக்ட்ரத்தை அடையாளம் காணவும்
+Identify Spectrum Using the Reference Library,குறிப்பு நூலகத்தைப் பயன்படுத்தி ஸ்பெக்ட்ரத்தை அடையாளம் காணவும்
+Raman,ராமன்
+FTIR,FTIR
+Spectra,நிறமாலை
+Type,வகை
+Spectrum Type Help,ஸ்பெக்ட்ரம் வகை உதவி
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,இந்தத் தேர்வு FTIR அல்லது ராமன் பொருந்தும் நூலகம் பயன்படுத்தப்படுகிறதா என்பதைத் தீர்மானிக்கும். பதிவேற்றப்பட்ட ஸ்பெக்ட்ரம் வகையைத் தேர்வு செய்யவும்.
+Analysis,பகுப்பாய்வு
+Processed,செயலாக்கப்பட்டது
+Uploaded,பதிவேற்றப்பட்டது
+Spectrum to Analyze Help,உதவியை பகுப்பாய்வு செய்ய ஸ்பெக்ட்ரம்
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,ஸ்பெக்ட்ரம் பொருத்தத்தில் பதிவேற்றப்பட்ட (செயல்படுத்தப்படாத) ஸ்பெக்ட்ரம் அல்லது செயலாக்கத் தாவலைப் பயன்படுத்தி செயலாக்கப்பட்ட ஸ்பெக்ட்ரம் பயன்படுத்தப்படுகிறதா என்பதை இந்தத் தேர்வு தீர்மானிக்கும்.
+Region,பிராந்தியம்
+Full,முழு
+Peaks,சிகரங்கள்
+Region to Match Help,பொருந்த வேண்டிய பகுதி உதவி
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,நீங்கள் பொருத்தும் நூலகம் முழு ஸ்பெக்ட்ரம் உள்ளதா அல்லது ஸ்பெக்ட்ரம் உச்சங்களை மட்டும் கொண்டதா என்பதை இந்தத் தேர்வு தீர்மானிக்கும்.
+Partner With Us,எங்களுடன் கூட்டாளர்
+Help us reach our goal of revolutionizing spectroscopy.,ஸ்பெக்ட்ரோஸ்கோபியில் புரட்சியை ஏற்படுத்தும் எங்கள் இலக்கை அடைய எங்களுக்கு உதவுங்கள்.
+Donate Cash,பணத்தை நன்கொடையாக அளியுங்கள்
+Buy From Swag Store,ஸ்வாக் கடையில் இருந்து வாங்கவும்
+Contribute time,நேரத்தை பங்களிக்கவும்
+Revolutionizing,புரட்சியாக்கும்
+Thriving,வெற்றிகரமான
+Maintaining,பராமரித்தல்
+Supporting,ஆதரிக்கிறது
+Saving,சேமிப்பு
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,ஒரே கிளிக்கில் 100% துல்லியமான ஸ்பெக்ட்ரல் அடையாளம் மற்றும் ஆழமான நிறமாலை கண்டறிதல் என்ற இறுதி இலக்கை நோக்கி ஓபன் ஸ்பெசியை நெருங்கி வரும் கட்டணக் குழு
+A single paid staff person working to update and build the community and the tool,சமூகத்தையும் கருவியையும் புதுப்பிக்கவும் உருவாக்கவும் பணிபுரியும் ஒரு ஊதியம் பெறும் பணியாளர்
+Maintenance costs and minor ad-hoc updates and bug fixes,பராமரிப்பு செலவுகள் மற்றும் சிறிய தற்காலிக புதுப்பிப்புகள் மற்றும் பிழை திருத்தங்கள்
+Keeping the app online and essential maintenance,பயன்பாட்டை ஆன்லைனில் வைத்திருத்தல் மற்றும் அத்தியாவசிய பராமரிப்பு
+Long term storage only,நீண்ட கால சேமிப்பு மட்டுமே
+Sharing Metadata,மெட்டாடேட்டாவைப் பகிர்கிறது
+Thank you for sharing your data!,உங்கள் தரவைப் பகிர்ந்தமைக்கு நன்றி!
+Your data will soon be available at https://osf.io/stmv4/,உங்கள் தரவு விரைவில் https://osf.io/stmv4/ இல் கிடைக்கும்
+Something went wrong :-(,ஏதோ தவறு நடந்துவிட்டது :-(
+Data type not supported!,தரவு வகை ஆதரிக்கப்படவில்லை!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","பதிவேற்றப்பட்ட தரவு வகை தற்போது ஆதரிக்கப்படவில்லை; தயவு செய்து
+                      விவரங்களுக்கு உதவிக்குறிப்புகள் மற்றும் 'பற்றி' தாவலைச் சரிபார்க்கவும்."
+Sharing Spectrum to Community Library,சமூக நூலகத்திற்கு ஸ்பெக்ட்ரம் பகிர்தல்
+Reading Spectrum,வாசிப்பு ஸ்பெக்ட்ரம்
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","நீங்கள் ஒரு உரை/சிஎஸ்வி கோப்பைப் பதிவேற்றியிருந்தால், உறுதிசெய்யவும்
+           நெடுவரிசைகள் எண் மற்றும் 'அலை எண்' மற்றும் பெயரிடப்பட்டுள்ளன
+           'தீவிரம்'."
+absorbance intensity [-],உறிஞ்சும் தீவிரம் [-]
+wavenumber [cm<sup>-1</sup>],அலை எண் [cm<sup>-1</sup>]
+Analyzing Spectrum,ஸ்பெக்ட்ரம் பகுப்பாய்வு
+Finding Match,பொருத்தத்தைக் கண்டறிதல்
+Making Plot,சதி செய்தல்
+Material,பொருள்
+Pearson's r,பியர்சனின் ஆர்
+Organization,அமைப்பு
+Selectable Matches,தேர்ந்தெடுக்கக்கூடிய போட்டிகள்
+Donations,நன்கொடைகள்
+Operation Costs,செயல்பாட்டு செலவுகள்
+Selection Metadata,தேர்வு மெட்டாடேட்டா

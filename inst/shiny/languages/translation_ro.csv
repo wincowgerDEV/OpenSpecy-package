@@ -1,0 +1,212 @@
+en,ro
+About,Despre
+Welcome,Bine ati venit
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","Alăturați-vă sutelor de cercetători din jur
+           lumea care fac parte din comunitatea Open Specy de
+           analiza, partajarea, procesarea și identificarea
+           spectrele lor Raman și IR. Aceste servicii sunt gratuite și open source datorită partenerilor noștri:"
+Quick Video Tutorial,Tutorial video rapid
+Instructions,Instrucțiuni
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","Pe scurt: pentru a utiliza instrumentul, încărcați un fișier csv, asp, jdx, spc sau spa în fila fișier de încărcare.
+                                  Dacă csv, o coloană ar trebui să fie numită „numărul de undă” (în unități de 1/cm) și o altă coloană numită „intensitate”.
+                                  Puteți netezi datele utilizând un filtru SG, puteți corecta datele de bază utilizând ordinea polinomială a iModPolyFit și puteți restricționa intervalul de lungimi de undă pentru potrivire.
+                                  Rezultatul va fi comparat cu o bibliotecă internă de spectre Raman sau FTIR. Cele mai puternice 1000 de potriviri împreună cu dvs
+                                  datele încărcate sau prelucrate vor fi prezentate într-un grafic și un tabel interactiv. Pentru mai multe detalii click pe butonul de mai jos
+                                  sau urmăriți videoclipul cu instrucțiuni detaliate."
+Detailed Standard Operating Procedure,Procedură de operare standard detaliată
+Download Open Data,Descărcați date deschise
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","Spectrele de referință au fost obținute din resurse cu acces deschis
+           online, publicații evaluate de colegi și donații corporative. In viitor
+           spectrele care sunt încărcate în instrument vor fi încorporate la referință
+           bibliotecă pentru a o face și mai bună."
+Raman Reference Library,Biblioteca de referință Raman
+FTIR Reference Library,Biblioteca de referință FTIR
+Raman Reference Library Metadata,Metadatele bibliotecii de referință Raman
+FTIR Reference Library Metadata,Metadatele bibliotecii de referință FTIR
+Contribute Spectra,Contribuie la Spectre
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","Pentru a partaja spectre, încărcați un fișier în fila de încărcare a fișierului. Dacă ați selectat Partajare, o copie a spectrelor dvs. va fi trimisă comunității
+           Data Warehouse on Open Science Framework. Pentru a adăuga metadate suplimentare,
+           completați câmpurile de metadate disponibile și faceți clic pe -Share Data-. The
+           fișierul spectra pe care l-ați încărcat împreună cu răspunsurile dvs. va fi copiat
+           în subfolderul a -Cu metadate- de la linkul de mai jos. Toate datele partajate sunt păstrate
+           o licență de atribuire Creative Commons 4.0."
+Community Data Warehouse,Depozitul de date comunitar
+Tool Validation,Validarea instrumentului
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","Toți parametrii din acest instrument sunt testați pentru a valida acest lucru
+           instrumentul funcționează cât mai bine posibil și determină cel mai bun implicit
+           parametrii de utilizat. Procedura noastră actuală de validare include corectarea
+           intrări duplicate în bibliotecile de referință, verificând spectre în
+           metadate care nu se află în biblioteca spectrală și asigurând valoarea implicită
+           parametrii oferă o precizie de peste 80% în primul meci."
+Detailed Validation Procedure,Procedura detaliată de validare
+"Updates, Feature Requests, and Bug Reports","Actualizări, solicitări de funcții și rapoarte de erori"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,Urmărim toate actualizările utilizând controlul versiunilor din codul nostru. Funcțiile pot fi solicitate și pot fi raportate erori pe GitHub.
+Stay up to date!,Sa fii la curent!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Urmărește-ne pe Twitter @OpenSpecy. Trimiteți e-mail la wincowger@gmail.com pentru a fi adăugat la lista de corespondență.
+Citation,Citare
+Useful Links,Link-uri utile
+Free FTIR Software: siMPle microplastic IR spectral identification software,Software FTIR gratuit: software simplu de identificare spectrală IR microplastică
+Free Spectroscopy Learning Academy from ThermoFisher,Academia de învățare gratuită a spectroscopiei de la ThermoFisher
+Free Optical Microscopy Learning Resource from Florida State University,Resursă gratuită de învățare în microscopie optică de la Universitatea de Stat din Florida
+Free desktop application for spectral analysis and links to reference databases.,Aplicație desktop gratuită pentru analiză spectrală și link-uri către baze de date de referință.
+Terms And Conditions,Termeni și condiții
+Privacy Policy,Politica de Confidențialitate
+Upload File,Incarca fisier
+"Upload, View, and Share Spectra","Încărcați, vizualizați și partajați Spectre"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File","Alegeți fișierul .csv (de preferat), .asp, .jdx, .spc, .spa sau .0"
+Share Your Data?,Partajați datele dvs.?
+Share Help,Distribuie Ajutor
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","Dacă doriți, împărtășim comunității de spectroscopie spectrele și setările încărcate.
+           În mod implicit, toate datele vor fi licențiate conform Creative Commons Attribution-NonComercial 4.0 International (CC BY-NC 4.0).
+           Spectrele încărcate vor apărea aici: https://osf.io/rjg3c"
+Upload Help,Încărcați ajutor
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Încărcați fișiere cu spectru Raman sau FTIR ca csv, jdx, spc sau spa. Este de preferat un fișier csv. Dacă este un csv, fișierul trebuie să conțină o coloană etichetată „număr de undă” în unități de (1/cm) și o altă coloană etichetată „intensitate” în unități de absorbanță.
+            Dacă jdx, spc, spa sau 0, fișierul ar trebui să fie un singur spectru de absorbție cu număr de undă în (1/cm). Aceste fișiere nu vor funcționa întotdeauna perfect, deoarece sunt dificil de citit, așa că verificați-le din nou într-un alt software.
+            Apăsați butonul „Test Data” pentru a descărca un eșantion de spectru Raman."
+Intensity Adjustment,Ajustarea intensității
+None,Nici unul
+Transmittance,Transmisie
+Reflectance,Reflectanta
+Intensity Correction Help,Ajutor pentru corectarea intensității
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","Dacă spectrul încărcat nu este în unități de absorbanță,
+           utilizați această intrare pentru a specifica unitățile din care să convertiți.Open Specy can
+           ajustați reflectanța sau spectrele de transmisie la unitățile de absorbție folosind
+           acest meniu drop-down din fila de încărcare a fișierului. Toate filele precedente
+           presupuneți că datele sunt în unități de absorbanță, așa că ar trebui să faceți
+           corectare înainte de a continua dacă este necesar. Reglarea transmisiei
+           utilizează calculul log10(1/T) care nu se corectează pentru sistem
+           și caracteristicile particulelor. Ajustarea reflectanței folosește
+           Ecuația Kubelka-Munk (1-R)2/(2*R). Presupunem că reflectanța
+           este formatat ca procent de la 1-100 și mai întâi corectați intensitatea împărțind la 100
+           astfel încât să se potrivească cu forma așteptată de ecuație.
+           Dacă nu este selectat niciunul, Open Specy presupune că datele încărcate sunt
+           un spectru de absorbanță."
+Sample File,Exemplu de fișier
+Sample Data Help,Ajutor pentru date eșantion
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,Acesta este un spectru de probă care poate fi încărcat în instrument pentru a-l testa și pentru a înțelege cum ar trebui formatate fișierele csv.
+Metadata Input,Introducere metadate
+Metadata Help,Ajutor pentru metadate
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","Distribuim comunității de spectroscopie orice spectre și metadate încărcate dacă completați metadatele aici și selectați Partajare.
+           Spectrele și metadatele încărcate vor apărea aici: https://osf.io/rjg3c"
+Share Metadata,Partajați metadate
+Upload some data to get started...,Încărcați câteva date pentru a începe...
+Preprocess Spectrum,Spectrul de preprocesare
+"Smooth, Baseline Correct, and Download Processed Spectra","Smooth, baza corectă și descărcați spectre procesate"
+Download (recommended),Descărcați (recomandat)
+Download Help,Descărcați Ajutor
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,Unii utilizatori ar putea dori să salveze o copie a spectrului lor procesat. Acest buton descarcă spectrul procesat ca fișier csv.
+Smoothing,Netezire
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,Acest fluid poate îmbunătăți raportul semnal/zgomot al datelor și folosește un filtru Savitzky-Golay cu 12 puncte de date de rulare și polinomul specificat.
+Smoothing Polynomial,Polinom de netezire
+Baseline Correction,Corecția de bază
+Baseline Correction Help,Ajutor pentru corectarea liniei de bază
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.","Această rutină de corecție a liniei de bază are două opțiuni pentru corecția liniei de bază, 1) procedura polinomială imodpolyfit pentru a găsi iterativ linia de bază a spectrului folosind o potrivire polinomială la întreaga regiune a spectrului. 2) liniile manuale pot fi trase folosind instrumentul de linii de pe diagramă, iar butonul corect va folosi liniile pentru a scădea linia de bază."
+Baseline Correction Polynomial,Polinom de corecție de bază
+Technique,Tehnică
+Polynomial,Polinom
+Manual,Manual
+Correct With Trace,Corect cu Urme
+Reset,Resetează
+Range Selection,Selectarea intervalului
+Spectral Range Help,Ajutor pentru intervalul spectral
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,Restricționarea intervalului spectral poate elimina regiunile spectrului în care nu există vârfuri și poate îmbunătăți potrivirea
+Maximum Spectral Range,Interval spectral maxim
+Minimum Spectral Range,Interval spectral minim
+Identify Spectrum,Identificați Spectrul
+Identify Spectrum Using the Reference Library,Identificați spectrul utilizând biblioteca de referință
+Raman,Raman
+FTIR,FTIR
+Spectra,Spectre
+Type,Tip
+Spectrum Type Help,Ajutor pentru tipul de spectru
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,Această selecție va determina dacă este utilizată biblioteca de potrivire FTIR sau Raman. Alegeți tipul de spectru care a fost încărcat.
+Analysis,Analiză
+Processed,Procesat
+Uploaded,Încărcat
+Spectrum to Analyze Help,Ajutor Spectrul pentru a analiza
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,Această selecție va determina dacă spectrul încărcat (neprocesat) sau spectrul procesat folosind fila de procesare este utilizat în potrivirea spectrului.
+Region,Regiune
+Full,Deplin
+Peaks,Vârfurile
+Region to Match Help,Regiunea pentru a se potrivi Ajutor
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,Această selecție va determina dacă biblioteca cu care vă potriviți constă din spectru complet sau numai vârfuri ale spectrului.
+Partner With Us,Colaborați cu noi
+Help us reach our goal of revolutionizing spectroscopy.,Ajutați-ne să ne atingem obiectivul de a revoluționa spectroscopia.
+Donate Cash,Donează numerar
+Buy From Swag Store,Cumpărați din magazinul Swag
+Contribute time,Contribuie timp
+Revolutionizing,Revoluţionare
+Thriving,Înfloritor
+Maintaining,Mentine
+Supporting,De sprijin
+Saving,Economisire
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,O echipă plătită care împinge Open Specy mai aproape de obiectivul final de identificare spectrală 100% precisă și diagnosticare spectrală profundă cu un singur clic
+A single paid staff person working to update and build the community and the tool,Un singur personal plătit care lucrează pentru a actualiza și a construi comunitatea și instrumentul
+Maintenance costs and minor ad-hoc updates and bug fixes,Costuri de întreținere și actualizări ad-hoc minore și remedieri de erori
+Keeping the app online and essential maintenance,Menținerea aplicației online și întreținerea esențială
+Long term storage only,Doar depozitare pe termen lung
+Sharing Metadata,Partajarea metadatelor
+Thank you for sharing your data!,Vă mulțumim pentru împărtășirea datelor dvs.!
+Your data will soon be available at https://osf.io/stmv4/,Datele dvs. vor fi disponibile în curând la https://osf.io/stmv4/
+Something went wrong :-(,Ceva n-a mers bine :-(
+Data type not supported!,Tipul de date nu este acceptat!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","Tipul de date încărcat nu este acceptat în prezent; Vă rog
+                      verificați sfaturile instrumente și fila „Despre” pentru detalii."
+Sharing Spectrum to Community Library,Partajarea spectrului către biblioteca comunitară
+Reading Spectrum,Spectrul de citire
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","Dacă ați încărcat un fișier text/csv, asigurați-vă că
+           coloanele sunt numerice și denumite „numărul de undă” și
+           'intensitate'."
+absorbance intensity [-],intensitatea absorbanței [-]
+wavenumber [cm<sup>-1</sup>],număr de undă [cm<sup>-1</sup>]
+Analyzing Spectrum,Analizând Spectrul
+Finding Match,Găsirea potrivirii
+Making Plot,Făcând un complot
+Material,Material
+Pearson's r,r-ul lui Pearson
+Organization,Organizare
+Selectable Matches,Potriviri selectabile
+Donations,Donații
+Operation Costs,Costuri de operare
+Selection Metadata,Metadatele selecției

@@ -1,0 +1,212 @@
+en,ko
+About,에 대한
+Welcome,어서 오십시오
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","주변의 수백 명의 연구원과 함께하십시오.
+           Open Specy 커뮤니티의 일부인 세계
+           분석, 공유, 처리 및 식별
+           그들의 라만 및 IR 스펙트럼. 이 서비스는 파트너 덕분에 무료이며 오픈 소스입니다."
+Quick Video Tutorial,빠른 비디오 자습서
+Instructions,지침
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","요약: 도구를 사용하려면 csv, asp, jdx, spc 또는 spa 파일을 업로드 파일 탭에 업로드하십시오.
+                                  csv인 경우 한 열의 이름은 '파수'(1/cm 단위)로 지정하고 다른 열의 이름은 '강도'로 지정해야 합니다.
+                                  SG 필터를 사용하여 데이터를 평활화하고, iModPolyFit의 다항식 차수를 사용하여 데이터의 기준선을 수정하고, 일치의 파장 범위를 제한할 수 있습니다.
+                                  결과는 내부 라만 또는 FTIR 스펙트럼 라이브러리와 비교됩니다. 당신과 함께하는 최강의 1000경기
+                                  업로드되거나 처리된 데이터는 대화형 플롯 및 테이블에 표시됩니다. 자세한 내용은 아래 버튼을 클릭하세요
+                                  또는 자세한 교육 비디오를 시청하십시오."
+Detailed Standard Operating Procedure,세부 표준 운영 절차
+Download Open Data,오픈 데이터 다운로드
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","참조 스펙트럼은 오픈 액세스 리소스에서 가져왔습니다.
+           온라인, 동료 검토 간행물 및 기업 기부금. 미래에
+           도구에 업로드된 스펙트럼은 참조에 통합됩니다.
+           라이브러리를 더 좋게 만듭니다."
+Raman Reference Library,라만 참조 라이브러리
+FTIR Reference Library,FTIR 참조 라이브러리
+Raman Reference Library Metadata,라만 참조 라이브러리 메타데이터
+FTIR Reference Library Metadata,FTIR 참조 라이브러리 메타데이터
+Contribute Spectra,스펙트럼 기여
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","스펙트럼을 공유하려면 파일 업로드 탭에 파일을 업로드하십시오. 공유를 선택하면 스펙트럼 사본이 커뮤니티로 전송됩니다.
+           Open Science Framework의 데이터 웨어하우스. 추가 메타데이터를 추가하려면
+           사용 가능한 메타데이터 필드를 채우고 -데이터 공유-를 클릭합니다. 그만큼
+           응답과 함께 업로드한 스펙트럼 파일이 복사됩니다.
+           아래 링크에서 a -With Metadata- 하위 폴더로 이동합니다. 모든 공유 데이터 보유
+           크리에이티브 커먼즈 저작자 표시 라이선스 4.0."
+Community Data Warehouse,커뮤니티 데이터 웨어하우스
+Tool Validation,도구 검증
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","이 도구의 모든 매개변수는 다음을 검증하기 위해 테스트됩니다.
+           도구가 최대한 잘 작동하고 최상의 기본값을 결정합니다.
+           사용할 매개변수. 현재 검증 절차에는 수정이 포함됩니다.
+           참조 라이브러리의 중복 항목, 스펙트럼 확인
+           스펙트럼 라이브러리에 없는 메타데이터 및 기본값 보장
+           매개변수는 첫 번째 경기에서 80% 이상의 정확도를 제공합니다."
+Detailed Validation Procedure,세부 검증 절차
+"Updates, Feature Requests, and Bug Reports","업데이트, 기능 요청 및 버그 보고서"
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,우리는 코드의 버전 제어를 사용하여 모든 업데이트를 추적합니다. 기능을 요청하고 GitHub에서 버그를 보고할 수 있습니다.
+Stay up to date!,최신 정보를 유지하세요!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,Twitter @OpenSpecy에서 팔로우하세요. 메일링 리스트에 추가할 이메일 wincowger@gmail.com.
+Citation,소환
+Useful Links,유용한 링크
+Free FTIR Software: siMPle microplastic IR spectral identification software,무료 FTIR 소프트웨어: 간단한 미세 플라스틱 IR 스펙트럼 식별 소프트웨어
+Free Spectroscopy Learning Academy from ThermoFisher,ThermoFisher의 무료 분광학 학습 아카데미
+Free Optical Microscopy Learning Resource from Florida State University,플로리다 주립 대학의 무료 광학 현미경 학습 리소스
+Free desktop application for spectral analysis and links to reference databases.,스펙트럼 분석 및 참조 데이터베이스에 대한 링크를 위한 무료 데스크톱 응용 프로그램입니다.
+Terms And Conditions,이용약관
+Privacy Policy,개인 정보 정책
+Upload File,파일 업로드
+"Upload, View, and Share Spectra","스펙트럼 업로드, 보기 및 공유"
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",".csv(선호), .asp, .jdx, .spc, .spa 또는 .0 파일 선택"
+Share Your Data?,데이터를 공유하시겠습니까?
+Share Help,도움말 공유
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","원하는 경우 업로드한 스펙트럼 및 설정을 분광기 커뮤니티와 공유합니다.
+           기본적으로 모든 데이터는 Creative Commons Attribution-NonCommercial 4.0 International(CC BY-NC 4.0)에 따라 라이선스가 부여됩니다.
+           업로드된 스펙트럼은 https://osf.io/rjg3c에 표시됩니다."
+Upload Help,도움말 업로드
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","Raman 또는 FTIR 스펙트럼 파일을 csv, jdx, spc 또는 스파로 업로드합니다. csv 파일이 선호됩니다. csv인 경우 파일에는 (1/cm) 단위로 '파수'로 표시된 열과 흡광도 단위로 '강도'로 표시된 다른 열이 있어야 합니다.
+            jdx, spc, spa 또는 0인 경우 파일은 (1/cm) 단위의 파수를 갖는 단일 흡광도 스펙트럼이어야 합니다. 이러한 파일은 읽기가 까다롭기 때문에 항상 완벽하게 작동하는 것은 아니므로 다른 소프트웨어에서 다시 확인하십시오.
+            샘플 라만 스펙트럼을 다운로드하려면 '테스트 데이터' 버튼을 누르십시오."
+Intensity Adjustment,강도 조정
+None,없음
+Transmittance,투과율
+Reflectance,반사율
+Intensity Correction Help,강도 보정 도움말
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","업로드된 스펙트럼이 흡광도 단위가 아닌 경우,
+           이 입력을 사용하여 변환할 단위를 지정하십시오.Open Specy는
+           반사율 또는 투과율 스펙트럼을 다음을 사용하여 흡광도 단위로 조정
+           이 드롭다운은 업로드 파일 탭에 있습니다. 이전의 모든 탭
+           데이터가 흡광도 단위라고 가정하므로
+           필요한 경우 계속하기 전에 수정하십시오. 투과율 조정
+           시스템에 맞지 않는 log10(1/T) 계산을 사용합니다.
+           및 입자 특성. 반사율 조정은
+           Kubelka-Munk 방정식 (1-R)2/(2*R). 우리는 반사율이
+           1-100 사이의 백분율로 형식이 지정되고 먼저 100으로 나누어 강도를 수정합니다.
+           방정식에서 예상하는 형식에 맞도록 합니다.
+           아무 것도 선택하지 않으면 Open Specy는 업로드된 데이터가
+           흡광도 스펙트럼."
+Sample File,샘플 파일
+Sample Data Help,샘플 데이터 도움말
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,이것은 테스트하고 csv 파일의 형식을 이해하기 위해 도구에 업로드할 수 있는 샘플 스펙트럼입니다.
+Metadata Input,메타데이터 입력
+Metadata Help,메타데이터 도움말
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","여기에서 메타데이터를 작성하고 공유를 선택하면 업로드된 스펙트럼 및 메타데이터를 분광기 커뮤니티와 공유합니다.
+           업로드된 스펙트럼 및 메타데이터는 https://osf.io/rjg3c에 표시됩니다."
+Share Metadata,메타데이터 공유
+Upload some data to get started...,시작하려면 데이터를 업로드하세요...
+Preprocess Spectrum,스펙트럼 전처리
+"Smooth, Baseline Correct, and Download Processed Spectra",매끄럽고 기준선 수정 및 처리된 스펙트럼 다운로드
+Download (recommended),다운로드(권장)
+Download Help,도움말 다운로드
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,일부 사용자는 처리된 스펙트럼의 복사본을 저장하고자 할 수 있습니다. 이 버튼은 처리된 스펙트럼을 csv 파일로 다운로드합니다.
+Smoothing,스무딩
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,이 평활기는 데이터의 신호 대 잡음비를 향상시킬 수 있으며 12개의 실행 데이터 포인트와 지정된 다항식이 있는 Savitzky-Golay 필터를 사용합니다.
+Smoothing Polynomial,평활 다항식
+Baseline Correction,기준선 수정
+Baseline Correction Help,기준 수정 도움말
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.",이 기준선 수정 루틴에는 기준선 수정을 위한 두 가지 옵션이 있습니다. 1) 스펙트럼의 전체 영역에 대한 다항식 맞춤을 사용하여 스펙트럼의 기준선을 반복적으로 찾는 다항식 imodpolyfit 절차입니다. 2) 플롯의 선 도구를 사용하여 수동 선을 그릴 수 있으며 올바른 버튼은 선을 사용하여 기준선을 뺍니다.
+Baseline Correction Polynomial,기준선 수정 다항식
+Technique,기술
+Polynomial,다항식
+Manual,수동
+Correct With Trace,추적으로 수정
+Reset,초기화
+Range Selection,범위 선택
+Spectral Range Help,스펙트럼 범위 도움말
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,스펙트럼 범위를 제한하면 피크가 존재하지 않는 스펙트럼 영역을 제거하고 매칭을 개선할 수 있습니다.
+Maximum Spectral Range,최대 스펙트럼 범위
+Minimum Spectral Range,최소 스펙트럼 범위
+Identify Spectrum,스펙트럼 식별
+Identify Spectrum Using the Reference Library,참조 라이브러리를 사용하여 스펙트럼 식별
+Raman,라만
+FTIR,FTIR
+Spectra,스펙트라
+Type,유형
+Spectrum Type Help,스펙트럼 유형 도움말
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,이 선택은 FTIR 또는 라만 일치 라이브러리가 사용되는지 여부를 결정합니다. 업로드된 스펙트럼 유형을 선택합니다.
+Analysis,분석
+Processed,처리됨
+Uploaded,업로드됨
+Spectrum to Analyze Help,도움말 분석을 위한 스펙트럼
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,이 선택은 업로드된(처리되지 않은) 스펙트럼 또는 처리 탭을 사용하여 처리된 스펙트럼이 스펙트럼 일치에 사용되는지 여부를 결정합니다.
+Region,지역
+Full,가득한
+Peaks,봉우리
+Region to Match Help,도움이 될 지역
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,이 선택은 일치하는 라이브러리가 전체 스펙트럼으로 구성되는지 아니면 스펙트럼 피크로만 구성되는지를 결정합니다.
+Partner With Us,우리와 파트너
+Help us reach our goal of revolutionizing spectroscopy.,분광학 혁신이라는 목표를 달성할 수 있도록 도와주세요.
+Donate Cash,현금 기부
+Buy From Swag Store,Swag 스토어에서 구매
+Contribute time,기여 시간
+Revolutionizing,혁명을 일으키다
+Thriving,번성
+Maintaining,유지
+Supporting,지원
+Saving,절약
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,클릭 한 번으로 100% 정확한 스펙트럼 식별 및 심층 스펙트럼 진단이라는 궁극적인 목표에 Open Specy를 더 가까이 밀어붙이는 유료 팀
+A single paid staff person working to update and build the community and the tool,커뮤니티와 도구를 업데이트하고 구축하기 위해 일하는 한 명의 유급 직원
+Maintenance costs and minor ad-hoc updates and bug fixes,유지 관리 비용 및 사소한 임시 업데이트 및 버그 수정
+Keeping the app online and essential maintenance,앱을 온라인 상태로 유지하고 필수 유지 관리
+Long term storage only,장기 보관만 가능
+Sharing Metadata,메타데이터 공유
+Thank you for sharing your data!,데이터를 공유해주셔서 감사합니다!
+Your data will soon be available at https://osf.io/stmv4/,귀하의 데이터는 곧 https://osf.io/stmv4/에서 사용할 수 있습니다.
+Something went wrong :-(,뭔가 잘못되었습니다 :-(
+Data type not supported!,데이터 유형이 지원되지 않습니다!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","업로드된 데이터 유형은 현재 지원되지 않습니다. 제발
+                      자세한 내용은 툴팁 및 '정보' 탭을 확인하세요."
+Sharing Spectrum to Community Library,커뮤니티 라이브러리에 스펙트럼 공유
+Reading Spectrum,스펙트럼 읽기
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","텍스트/csv 파일을 업로드한 경우
+           열은 숫자이고 'wavenumber'로 명명되고
+           '강함'."
+absorbance intensity [-],흡광도 [-]
+wavenumber [cm<sup>-1</sup>],파수 [cm<sup>-1</sup>]
+Analyzing Spectrum,스펙트럼 분석
+Finding Match,일치 찾기
+Making Plot,줄거리 만들기
+Material,재료
+Pearson's r,피어슨의 r
+Organization,조직
+Selectable Matches,선택 가능한 일치
+Donations,기부
+Operation Costs,운영 비용
+Selection Metadata,선택 메타데이터

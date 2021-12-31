@@ -1,0 +1,212 @@
+en,am
+About,ስለ
+Welcome,እንኳን ደህና መጣህ
+"Join the hundreds of researchers from around
+           the world who are part of the Open Specy community by
+           analyzing, sharing, processing, and identifying
+           their Raman and IR spectra. These services are free and open source thanks to our partners:","በዙሪያው ካሉ በመቶዎች የሚቆጠሩ ተመራማሪዎችን ይቀላቀሉ
+           የ Open Specy ማህበረሰብ አካል የሆኑት አለም በ
+           መተንተን፣ ማጋራት፣ ማቀናበር እና መለየት
+           የእነሱ ራማን እና IR ስፔክትራ. እነዚህ አገልግሎቶች ነጻ እና ክፍት ምንጭ ናቸው ለአጋሮቻችን፡"
+Quick Video Tutorial,ፈጣን የቪዲዮ አጋዥ ስልጠና
+Instructions,መመሪያዎች
+"In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                                  If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
+                                  You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
+                                  The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
+                                  uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
+                                  or watch the detailed instructional video.","በአጭሩ፡ መሳሪያውን ለመጠቀም csv፣ asp፣ jdx፣ spc ወይም spa ፋይል ወደ የሰቀላ ፋይል ትር ይስቀሉ።
+                                  csv ከሆነ፣ አንድ አምድ 'የሞገድ ቁጥር' (በ1/ሴሜ አሃዶች) እና ሌላ 'intensity' መሰየም አለበት።
+                                  የSG ማጣሪያን በመጠቀም ውሂብዎን ማለስለስ፣ መነሻ መስመር የ iModPolyFit ባለብዙ ቁጥር ቅደም ተከተል በመጠቀም ውሂብዎን ማረም እና የግጥሚያውን የሞገድ ርዝመት መገደብ ይችላሉ።
+                                  ውጤቱም ከውስጥ ራማን ወይም FTIR ስፔክትራ ቤተ-መጽሐፍት ጋር ይነጻጸራል። ከእርስዎ ጋር በጣም ጠንካራው 1000 ግጥሚያዎች
+                                  የተሰቀለ ወይም የተቀነባበረ መረጃ በይነተገናኝ ሴራ እና ሠንጠረዥ ውስጥ ይቀርባል። ለበለጠ መረጃ ከታች ያለውን ቁልፍ ይጫኑ
+                                  ወይም ዝርዝር መመሪያውን ቪዲዮ ይመልከቱ።"
+Detailed Standard Operating Procedure,ዝርዝር መደበኛ የስራ ሂደት
+Download Open Data,ዳታ ክፈትን ያውርዱ
+"Reference spectra was sourced from open access resources
+           online, peer reviewed publications, and corporate donations. In the future
+           spectra that is uploaded to the tool will be incorporated to the reference
+           library to make it even better.","የማመሳከሪያ እይታ ከክፍት ተደራሽነት ምንጮች የተገኘ ነው።
+           በመስመር ላይ፣ በአቻ የተገመገሙ ህትመቶች እና የድርጅት ልገሳዎች። ወደፊት
+           ወደ መሳሪያው የሚሰቀለው ስፔክትራ በማጣቀሻው ውስጥ ይካተታል
+           ቤተ-መጽሐፍት የበለጠ የተሻለ ለማድረግ."
+Raman Reference Library,ራማን ማጣቀሻ ቤተ መጻሕፍት
+FTIR Reference Library,FTIR የማጣቀሻ ቤተ መጻሕፍት
+Raman Reference Library Metadata,የራማን ማጣቀሻ ቤተ-መጽሐፍት ዲበ ውሂብ
+FTIR Reference Library Metadata,FTIR የማጣቀሻ ቤተ-መጽሐፍት ዲበ ውሂብ
+Contribute Spectra,Spectra አበርክቱ
+"To share spectra upload a file to the upload file tab. If you selected Share a copy of your spectra will be sent to the Community
+           Data Warehouse on Open Science Framework. To add additional metadata, 
+           fill in the avaliable metadata fields and click -Share Data-. The 
+           spectra file that you uploaded along with your responses will be copied 
+           to the a -With Metadata- subfolder at the link below. All shared data holds 
+           a Creative Commons Attribution License 4.0.","spectra ለማጋራት ፋይል ወደ የሰቀላ ፋይል ትር ይስቀሉ። ከመረጡት አጋራ የእይታዎ ቅጂ ወደ ማህበረሰቡ ይላካል
+           የውሂብ ማከማቻ በክፍት የሳይንስ ማዕቀፍ ላይ። ተጨማሪ ሜታዳታ ለመጨመር፣
+           ሊገኙ የሚችሉ የሜታዳታ መስኮችን ይሙሉ እና -አጋራ ውሂብ- ን ጠቅ ያድርጉ። የ
+           የሰቀልከው የስፔክትራ ፋይል ከምላሾችህ ጋር ይገለበጣል
+           ከታች ባለው ማገናኛ ወደ a -With ሜታዳታ- ንዑስ አቃፊ። ሁሉም የተጋራ ውሂብ ይያዛል
+           የጋራ የጋራ ባለቤትነት ፍቃድ 4.0."
+Community Data Warehouse,የማህበረሰብ ውሂብ ማከማቻ
+Tool Validation,የመሳሪያ ማረጋገጫ
+"All parameters in this tool are tested to validate that 
+           the tool is functioning as best as possible and determine the best default 
+           parameters to use. Our current validation proceedure includes correcting 
+           duplicated entries in the reference libraries, checking for spectra in 
+           metadata that isn't in the spectral library, and ensuring the the default 
+           parameters provide over 80% accuracy in the first match.","በዚህ መሣሪያ ውስጥ ያሉት ሁሉም መለኪያዎች ያንን ለማረጋገጥ ይሞከራሉ።
+           መሣሪያው በተቻለ መጠን በተሻለ ሁኔታ እየሰራ ነው እና በጣም ጥሩውን ነባሪ ይወስኑ
+           ለመጠቀም መለኪያዎች. የእኛ የአሁኑ የማረጋገጫ ሂደት እርማትን ያካትታል
+           በማጣቀሻ ቤተ-መጻሕፍት ውስጥ የተባዙ ግቤቶች፣ ስፔክትራ መኖራቸውን በመፈተሽ
+           በስፔክተራል ቤተ-መጽሐፍት ውስጥ ያልሆነ ሜታዳታ፣ እና ነባሪውን ማረጋገጥ
+           መለኪያዎች በመጀመሪያው ግጥሚያ ከ 80% በላይ ትክክለኛነትን ይሰጣሉ።"
+Detailed Validation Procedure,ዝርዝር የማረጋገጫ ሂደት
+"Updates, Feature Requests, and Bug Reports",ዝማኔዎች፣ የባህሪ ጥያቄዎች እና የሳንካ ሪፖርቶች
+We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.,በእኛ ኮድ ላይ የስሪት ቁጥጥርን በመጠቀም ሁሉንም ዝመናዎች እንከታተላለን። ባህሪያት ሊጠየቁ እና በ GitHub ላይ ሳንካ ሪፖርት ማድረግ ይችላሉ።
+Stay up to date!,እንደተዘመኑ ይቆዩ!
+Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.,በ Twitter @OpenSpecy ላይ ይከተሉን። ኢ-ሜል wincowger@gmail.com ወደ የደብዳቤ መላኪያ ዝርዝር ይጨመር።
+Citation,ጥቅስ
+Useful Links,ጠቃሚ አገናኞች
+Free FTIR Software: siMPle microplastic IR spectral identification software,ነጻ FTIR ሶፍትዌር፡ ቀላል የማይክሮፕላስቲክ IR ስፔክትራል መለያ ሶፍትዌር
+Free Spectroscopy Learning Academy from ThermoFisher,ከቴርሞፊሸር ነፃ የስፔክትሮስኮፒ ትምህርት አካዳሚ
+Free Optical Microscopy Learning Resource from Florida State University,ከፍሎሪዳ ስቴት ዩኒቨርሲቲ ነፃ የጨረር ማይክሮስኮፕ የመማሪያ መርጃ
+Free desktop application for spectral analysis and links to reference databases.,ነፃ የዴስክቶፕ መተግበሪያ ለእይታ ትንተና እና ወደ ማጣቀሻ የውሂብ ጎታዎች አገናኞች።
+Terms And Conditions,አተገባበሩና መመሪያው
+Privacy Policy,የ ግል የሆነ
+Upload File,ፋይል ስቀል
+"Upload, View, and Share Spectra",Spectra ይስቀሉ፣ ይመልከቱ እና ያጋሩ
+"Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File",.csv (ተመራጭ)፣ .asp፣ .jdx፣ .spc፣ .spa፣ ወይም .0 ፋይልን ይምረጡ
+Share Your Data?,ውሂብዎን ይጋራሉ?
+Share Help,እገዛን አጋራ
+"If you like, we share your uploaded spectra and settings with the spectroscopy community.
+           By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+           Uploaded spectra will appear here: https://osf.io/rjg3c","ከፈለጋችሁ፣ የተጫኑትን ስፔክትራዎች እና መቼቶች ለስፔክትሮስኮፒ ማህበረሰብ እናጋራለን።
+           በነባሪ፣ ሁሉም መረጃዎች በCreative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) ስር ፍቃድ ይሰጣቸዋል።
+           የተሰቀለው ስፔክትራ እዚህ ይታያል፡ https://osf.io/rjg3c"
+Upload Help,ሰቀላ እገዛ
+"Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+            Hit the 'Test Data' button to download a sample Raman spectrum.","ራማን ወይም FTIR ስፔክትረም ፋይሎችን እንደ csv፣ jdx፣ spc ወይም spa ይስቀሉ። የ csv ፋይል ይመረጣል. csv ከሆነ፣ ፋይሉ አንድ አምድ 'ሞገድ' የሚል ስያሜ በ 1/ሴ.ሜ. እና ሌላ አምድ መያዝ አለበት።
+            jdx፣ spc፣ spa ወይም 0 ከሆነ ፋይሉ ነጠላ የመምጠጥ ስፔክትረም (ሞገድ) በ (1/ሴሜ) ውስጥ መሆን አለበት። እነዚህ ፋይሎች ሁል ጊዜ በትክክል አይሰሩም ምክንያቱም ለማንበብ አስቸጋሪ ስለሆኑ በሌላ ሶፍትዌር ውስጥ በድጋሚ ያረጋግጡ።
+            የራማን ስፔክትረም ናሙና ለማውረድ 'የሙከራ ውሂብ' የሚለውን ቁልፍ ተጫን።"
+Intensity Adjustment,የጥንካሬ ማስተካከያ
+None,ምንም
+Transmittance,ማስተላለፊያ
+Reflectance,ነጸብራቅ
+Intensity Correction Help,የጥንካሬ ማስተካከያ እገዛ
+"If the uploaded spectrum is not in absorbance units, 
+           use this input to specify the units to convert from.Open Specy can 
+           adjust reflectance or transmittance spectra to Absorbance units using 
+           this drop down in the upload file tab. All of the preceding tabs 
+           assume that the data is in absorbance units so you should make the 
+           correction before continuing if needed. The transmittance adjustment 
+           uses the log10(1/T) calculation which does not correct for system 
+           and particle characteristics. The reflectance adjustment uses the 
+           Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+           is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+           so that it fits the form expected by the equation.
+           If none is selected, Open Specy assumes that the uploaded data is 
+           an absorbance spectrum.","የተሰቀለው ስፔክትረም በመምጠጥ አሃዶች ውስጥ ካልሆነ፣
+           ከ የሚቀይሩትን አሃዶች ለመጥቀስ ይህን ግቤት ይጠቀሙ.Open Specy can
+           በመጠቀም አንጸባራቂ ወይም ማስተላለፊያ spectra ወደ Absorbance ክፍሎች ማስተካከል
+           ይህ በሰቀላ ፋይል ትር ውስጥ ይወርዳል። ሁሉም ቀዳሚ ትሮች
+           ውሂቡ በመምጠጥ አሃዶች ውስጥ እንዳለ ያስቡ ስለዚህ እርስዎ ማድረግ አለብዎት
+           አስፈላጊ ከሆነ ከመቀጠልዎ በፊት እርማት. የማስተላለፍ ማስተካከያ
+           ለስርዓቱ የማይስተካከል የሎግ10(1/T) ስሌት ይጠቀማል
+           እና ቅንጣት ባህሪያት. አንጸባራቂው ማስተካከያ በ
+           ኩበልካ-ሙንክ እኩልታ (1-R) 2/ (2 * R). ነጸብራቅ እንደሆነ እንገምታለን።
+           ከ1-100 በመቶኛ የተቀረፀ ሲሆን በመጀመሪያ ጥንካሬውን በ100 በማካፈል ያስተካክሉ።
+           በቀመር ከሚጠበቀው ቅጽ ጋር እንዲገጣጠም.
+           ምንም ካልተመረጠ፣ ክፍት Specy የተሰቀለው ውሂብ እንደሆነ ያስባል
+           የሚስብ ስፔክትረም."
+Sample File,ናሙና ፋይል
+Sample Data Help,የናሙና የውሂብ እገዛ
+This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.,ይህ መሳሪያውን ለመፈተሽ እና የ csv ፋይሎች እንዴት መቅረጽ እንዳለባቸው ለመረዳት ወደ መሳሪያው የሚሰቀል የናሙና ስፔክትረም ነው።
+Metadata Input,ዲበ ውሂብ ግቤት
+Metadata Help,ሜታዳታ እገዛ
+"We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+           Uploaded spectra and metadata will appear here: https://osf.io/rjg3c","ሜታዳታውን እዚህ ከሞሉ እና ማጋራትን ከመረጡ ማንኛውንም የተሰቀሉ ስፔክትራ እና ሜታዳታ ለስፔክትሮስኮፒ ማህበረሰብ እናጋራለን።
+           የተሰቀለው ስፔክትራ እና ሜታዳታ እዚህ ይታያል፡ https://osf.io/rjg3c"
+Share Metadata,ዲበ ውሂብ አጋራ
+Upload some data to get started...,ለመጀመር አንዳንድ ውሂብ ይስቀሉ...
+Preprocess Spectrum,ስፔክትረም ቅድመ ሂደት
+"Smooth, Baseline Correct, and Download Processed Spectra",ለስላሳ፣ የመነሻ መስመር ትክክል እና የማውረድ ሂደት ያለው Spectra
+Download (recommended),አውርድ (የሚመከር)
+Download Help,እገዛ አውርድ
+Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.,አንዳንድ ተጠቃሚዎች የተሰራውን የስፔክትረም ቅጂያቸውን ማስቀመጥ ሊፈልጉ ይችላሉ። ይህ አዝራር የተሰራውን ስፔክትረም እንደ csv ፋይል ያወርዳል።
+Smoothing,ማለስለስ
+This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.,ይህ ለስላሳ የዳታውን ሲግናል ወደ ድምፅ ሬሾ ያሳድጋል እና የSavitzky-Golay ማጣሪያ ባለ 12 አሂድ ዳታ ነጥቦችን እና የተገለጸውን ፖሊኖሚል ይጠቀማል።
+Smoothing Polynomial,ፖሊኖሚል ማለስለስ
+Baseline Correction,የመነሻ መስመር ማስተካከያ
+Baseline Correction Help,የመነሻ መስመር እርማት እገዛ
+"This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.",ይህ የመነሻ እርማት ሂደት ለመሠረታዊ እርማት ሁለት አማራጮች አሉት፣ 1) ፖሊኖሚል imodpolyfit አሰራር ለጠቅላላው የስፔክተራ ክልል ፖሊኖሚል ተስማሚን በመጠቀም የስርዓተ-ፆታ ስርዓቱን በጠቅላላ ለማግኘት። 2) በእጅ መስመሮች በወጥኑ ላይ ያለውን የመስመር መሳሪያ በመጠቀም መሳል ይቻላል እና ትክክለኛው አዝራር መስመሮቹን በመጠቀም የመነሻ መስመሩን ይቀንሳል.
+Baseline Correction Polynomial,የመነሻ መስመር ማስተካከያ ፖሊኖሚል
+Technique,ቴክኒክ
+Polynomial,ፖሊኖሚል
+Manual,መመሪያ
+Correct With Trace,ከትራክ ጋር ትክክል
+Reset,ዳግም አስጀምር
+Range Selection,ክልል ምርጫ
+Spectral Range Help,Spectral Range እገዛ
+Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching,የእይታ ክልልን መገደብ ምንም ከፍታ የሌለባቸውን የስፔክትረም ክልሎችን ያስወግዳል እና ተዛማጅነትን ያሻሽላል
+Maximum Spectral Range,ከፍተኛው የስፔክትራል ክልል
+Minimum Spectral Range,ዝቅተኛው ስፔክትራል ክልል
+Identify Spectrum,Spectrum ን መለየት
+Identify Spectrum Using the Reference Library,የማጣቀሻ ቤተ መፃህፍትን በመጠቀም ስፔክትረምን ይለዩ
+Raman,ራማን
+FTIR,FTIR
+Spectra,Spectra
+Type,ዓይነት
+Spectrum Type Help,የስፔክትረም አይነት እገዛ
+This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.,ይህ ምርጫ FTIR ወይም Raman ተዛማጅ ቤተ-መጽሐፍት ጥቅም ላይ እንደዋለ ይወስናል። የተሰቀለውን የስፔክትረም አይነት ይምረጡ።
+Analysis,ትንተና
+Processed,ተሰራ
+Uploaded,ተጭኗል
+Spectrum to Analyze Help,ስፔክትረም እገዛን ለመተንተን
+This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.,ይህ ምርጫ የተሰቀለው (ያልተሰራ) ስፔክትረም ወይም የማቀነባበሪያ ትርን በመጠቀም የሚሰራው ስፔክትረም በስፔክትረም ግጥሚያ ላይ ጥቅም ላይ መዋሉን ይወስናል።
+Region,ክልል
+Full,ሙሉ
+Peaks,ጫፎች
+Region to Match Help,ክልል እርዳታ ለማዛመድ
+This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.,ይህ ምርጫ እርስዎ የሚያመሳስሉት ቤተ-መጽሐፍት ሙሉ ስፔክትረም ወይም የስፔክትረም ጫፎችን ብቻ ያቀፈ መሆኑን ይወስናል።
+Partner With Us,ከእኛ ጋር አጋር
+Help us reach our goal of revolutionizing spectroscopy.,ስፔክትሮስኮፒን የመቀየር ግባችን ላይ እንድንደርስ እርዳን።
+Donate Cash,ጥሬ ገንዘብ ይለግሱ
+Buy From Swag Store,ከ Swag መደብር ይግዙ
+Contribute time,የአስተዋጽኦ ጊዜ
+Revolutionizing,አብዮት መፍጠር
+Thriving,ማደግ
+Maintaining,ማቆየት።
+Supporting,መደገፍ
+Saving,በማስቀመጥ ላይ
+A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click,ክፍት Specy 100% ትክክለኛ የእይታ መለያ እና ጥልቅ ስፔክትራል ምርመራዎችን በአንድ ጠቅታ ወደ የመጨረሻው ግብ እየገፋ ያለ የሚከፈልበት ቡድን
+A single paid staff person working to update and build the community and the tool,ማህበረሰቡን እና መሳሪያውን ለማዘመን እና ለመገንባት የሚሰራ ነጠላ የሚከፈልበት ሰራተኛ
+Maintenance costs and minor ad-hoc updates and bug fixes,የጥገና ወጪዎች እና አነስተኛ የማስታወቂያ ዝማኔዎች እና የሳንካ ጥገናዎች
+Keeping the app online and essential maintenance,መተግበሪያውን በመስመር ላይ ማቆየት እና አስፈላጊ ጥገና
+Long term storage only,የረጅም ጊዜ ማከማቻ ብቻ
+Sharing Metadata,ሜታዳታ ማጋራት።
+Thank you for sharing your data!,ውሂብዎን ስላጋሩ እናመሰግናለን!
+Your data will soon be available at https://osf.io/stmv4/,የእርስዎ ውሂብ በቅርቡ https://osf.io/stmv4/ ላይ ይገኛል
+Something went wrong :-(,የሆነ ስህተት ተከስቷል :-(
+Data type not supported!,የውሂብ አይነት አይደገፍም!
+"Uploaded data type is not currently supported; please
+                      check tooltips and 'About' tab for details.","የተሰቀለው የውሂብ አይነት በአሁኑ ጊዜ አይደገፍም; እባክህን
+                      ለዝርዝሮች የመሳሪያ ምክሮችን እና 'ስለ' የሚለውን ትር ይመልከቱ።"
+Sharing Spectrum to Community Library,Spectrumን ለማህበረሰብ ቤተ-መጽሐፍት ማጋራት።
+Reading Spectrum,የንባብ ስፔክትረም
+"If you uploaded a text/csv file, make sure that the 
+           columns are numeric and named 'wavenumber' and 
+           'intensity'.","የጽሑፍ/ csv ፋይል ከሰቀሉ፣ የ
+           ዓምዶች ቁጥራዊ ናቸው እና 'wavenumber' እና የተሰየሙ ናቸው።
+           'ጥንካሬ'."
+absorbance intensity [-],የመጠጣት ጥንካሬ [-]
+wavenumber [cm<sup>-1</sup>],የሞገድ ቁጥር [cm<sup>-1</sup>]
+Analyzing Spectrum,Spectrum በመተንተን ላይ
+Finding Match,ተዛማጅ ማግኘት
+Making Plot,ሴራ መስራት
+Material,ቁሳቁስ
+Pearson's r,ፒርሰን አር
+Organization,ድርጅት
+Selectable Matches,ሊመረጡ የሚችሉ ግጥሚያዎች
+Donations,ልገሳ
+Operation Costs,የሥራ ማስኬጃ ወጪዎች
+Selection Metadata,ምርጫ ዲበ ውሂብ
