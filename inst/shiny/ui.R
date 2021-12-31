@@ -32,7 +32,7 @@ citation <- HTML(
 
 # Commands for translator
 i18n <- Translator$new(translation_json_path = "languages/json_translation.json")
-i18n$set_translation_language('en')
+i18n$set_translation_language("en")
 
 # Functions ----
 labelMandatory <- function(label) {
@@ -42,25 +42,25 @@ labelMandatory <- function(label) {
   )
 }
 
-inputUserid <- function(inputId, value='') {
+inputUserid <- function(inputId, value="") {
   #   print(paste(inputId, "=", value))
   tagList(
     singleton(tags$head(tags$script(src = "js/md5.js",
-                                    type='text/javascript'))),
+                                    type="text/javascript"))),
     singleton(tags$head(tags$script(src = "js/shinyBindings.js",
-                                    type='text/javascript'))),
+                                    type="text/javascript"))),
     tags$body(onload="setvalues()"),
     tags$input(id = inputId, class = "userid", value=as.character(value),
                type = "text", style = "display:none;")
   )
 }
 
-inputIp <- function(inputId, value=''){
+inputIp <- function(inputId, value=""){
   tagList(
     singleton(tags$head(tags$script(src = "js/md5.js",
-                                    type='text/javascript'))),
+                                    type="text/javascript"))),
     singleton(tags$head(tags$script(src = "js/shinyBindings.js",
-                                    type='text/javascript'))),
+                                    type="text/javascript"))),
     tags$body(onload="setvalues()"),
     tags$input(id = inputId, class = "ipaddr", value=as.character(value),
                type = "text", style = "display:none;")
@@ -181,11 +181,11 @@ ui <- fluidPage(
                             border: none;
                             text-align:left !important;",
                   selectInput(
-                 inputId='selected_language',
-                 label=i18n$t('Change language'),
+                 inputId="selected_language",
+                 label=i18n$t("Change language"),
                  choices = i18n$get_languages(),
                  selected = i18n$get_key_translation(),
-                 width = '200px'
+                 width = "200px"
                )
              )
              )#uiOutput("translate")) # Google Translate
@@ -295,7 +295,7 @@ ui <- fluidPage(
                        ),
                          containerfunction(
                            h2("Quick Video Tutorial"),
-                                 HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/w55WGtV2Dz4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+                                 HTML("<iframe width='560' height='315' src='https://www.youtube-nocookie.com/embed/w55WGtV2Dz4' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe>")
                               ),
                        containerfunction(
                          h2("Instructions"),
@@ -310,7 +310,7 @@ ui <- fluidPage(
                            class="btn btn-primary btn-lg"),
                          br(),
                          br(),
-                         HTML('<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/JjhCdhjdcRY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+                         HTML("<iframe width='560' height='315' src='https://www.youtube-nocookie.com/embed/JjhCdhjdcRY' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe>")
 
                        ),
 
@@ -321,10 +321,10 @@ ui <- fluidPage(
                                 "spectra that is uploaded to the tool will be incorporated to the reference ",
                                 "library to make it even better."),
                             div(
-                                         downloadButton('downloadData6', 'Raman Reference Library', style = "background-color: #2a9fd6;"),
-                                         downloadButton('downloadData5', 'FTIR Reference Library', style = "background-color: #2a9fd6;"),
-                                         downloadButton('downloadData4', 'Raman Reference Library Metadata', style = "background-color: #2a9fd6;"),
-                                         downloadButton('downloadData3', 'FTIR Reference Library Metadata', style = "background-color: #2a9fd6;")
+                                         downloadButton("downloadData6", "Raman Reference Library", style = "background-color: #2a9fd6;"),
+                                         downloadButton("downloadData5", "FTIR Reference Library", style = "background-color: #2a9fd6;"),
+                                         downloadButton("downloadData4", "Raman Reference Library Metadata", style = "background-color: #2a9fd6;"),
+                                         downloadButton("downloadData3", "FTIR Reference Library Metadata", style = "background-color: #2a9fd6;")
                                   )
                               ),
 
@@ -430,9 +430,9 @@ ui <- fluidPage(
 
                                 fileInput("file1", NULL,
                                           placeholder = ".csv, .asp, .jdx, .spc, .spa, .0",
-                                          accept=c('text/csv',
-                                                   'text/comma-separated-values,text/plain',
-                                                   '.csv', ".asp", ".spc", ".jdx", ".spa", ".0")),
+                                          accept=c("text/csv",
+                                                   "text/comma-separated-values,text/plain",
+                                                   ".csv", ".asp", ".spc", ".jdx", ".spa", ".0")),
                                 bsPopover(
                                   id = "file1",
                                   title = "Upload Help",
@@ -469,7 +469,7 @@ ui <- fluidPage(
 
                                 tags$br(),
 
-                                tags$div(downloadButton('download_testdata', 'Sample File', style = "background-color: #2a9fd6;")),
+                                tags$div(downloadButton("download_testdata", "Sample File", style = "background-color: #2a9fd6;")),
                                 bsPopover(
                                   id = "download_testdata",
                                   title = "Sample Data Help",
@@ -578,7 +578,7 @@ ui <- fluidPage(
 
 
                          column(9,
-                                plotcontainerfunction(h4(id = "placeholder1", "Upload some data to get started..."), plotlyOutput('MyPlot')),
+                                plotcontainerfunction(h4(id = "placeholder1", "Upload some data to get started..."), plotlyOutput("MyPlot")),
                                 style = bodyformat()
 
                          ),
@@ -603,8 +603,8 @@ ui <- fluidPage(
                            column(3, style = columnformat(),
                                 fluidRow(
                                   column(12,
-                                  downloadButton('downloadData', 'Download (recommended)', style = "background-color: #2a9fd6;"),
-                                    bsPopover(id = 'downloadData',
+                                  downloadButton("downloadData", "Download (recommended)", style = "background-color: #2a9fd6;"),
+                                    bsPopover(id = "downloadData",
                                               title = "Download Help",
                                               content = c("Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file."),
                                               placement = "bottom",
@@ -725,7 +725,7 @@ ui <- fluidPage(
 
 
                          column(9,
-                                plotcontainerfunction(h4(id = "placeholder2", "Upload some data to get started..."), plotlyOutput('MyPlotB')),
+                                plotcontainerfunction(h4(id = "placeholder2", "Upload some data to get started..."), plotlyOutput("MyPlotB")),
                                 #verbatimTextOutput(outputId = "text"),
                                 style = bodyformat()
 
@@ -787,13 +787,13 @@ ui <- fluidPage(
                                     )
                                 ),
                                 fluidRow(style = "padding:1rem",
-                                   DT::dataTableOutput('event')
+                                   DT::dataTableOutput("event")
                                 )
                          ),
 
                          column(9,
-                                plotcontainerfunction(h4(id = "placeholder3", "Upload some data to get started..."), plotlyOutput('MyPlotC'),
-                                                      DT::dataTableOutput('eventmetadata')),
+                                plotcontainerfunction(h4(id = "placeholder3", "Upload some data to get started..."), plotlyOutput("MyPlotC"),
+                                                      DT::dataTableOutput("eventmetadata")),
                                 style = bodyformat()
 
                          )
@@ -819,7 +819,7 @@ ui <- fluidPage(
                          column(1),
                          column(9,
                                 div(style = "font-size:150%",
-                                  DT::dataTableOutput('event_goals'),
+                                  DT::dataTableOutput("event_goals"),
                                   br()
                                 ),
                                 ),
@@ -832,14 +832,14 @@ ui <- fluidPage(
                                          tags$h3("Donate Cash"),
                                          icon = icon("shopping-cart"),
                                          img(src = "https://p.turbosquid.com/ts-thumb/rX/Wm1eqB/t5/currencysymbolsgoldensetc4dmodel000/jpg/1613802168/300x300/sharp_fit_q85/a31625492ce9c8009ab3e4281ad752006e1163ec/currencysymbolsgoldensetc4dmodel000.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
-                                         actionButton(inputId = 'ab1', label = "Donate", style='padding:4px; font-size:200%', width = "100%",
+                                         actionButton(inputId = "ab1", label = "Donate", style="padding:4px; font-size:200%", width = "100%",
                                                       icon = icon("donate"),
                                                       onclick = "window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')")
                                          )),
                                   column(3,
                                          plotcontainerfunction(tags$h3("Buy From Swag Store"),
                                          img(src = "https://image.spreadshirtmedia.com/image-server/v1/products/T813A823PA3132PT17X42Y46D1038541132FS4033/views/1,width=650,height=650,appearanceId=823/updated-logo-for-open-specy-designed-by-alex-mcgoran.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
-                                         actionButton(inputId = 'ab2', label = "Shop", style='padding:4px; font-size:200%', width = "100%",
+                                         actionButton(inputId = "ab2", label = "Shop", style="padding:4px; font-size:200%", width = "100%",
                                                       icon = icon("shopping-cart"),
                                                       onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")
                                          )),
@@ -848,7 +848,7 @@ ui <- fluidPage(
                                            h2("Contribute time"),
                                            #p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com"),
                                            img(src = "https://health.sunnybrook.ca/wp-content/uploads/2020/02/healthy-hands-810x424.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
-                                           actionButton(inputId = 'ab3', label = "Guidelines", style='padding:4px; font-size:200%', width = "100%",
+                                           actionButton(inputId = "ab3", label = "Guidelines", style="padding:4px; font-size:200%", width = "100%",
                                                         icon = icon("clock"),
                                                         onclick ="window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')")
                                          )
