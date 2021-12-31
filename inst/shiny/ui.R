@@ -321,10 +321,10 @@ ui <- fluidPage(
                                 "spectra that is uploaded to the tool will be incorporated to the reference ",
                                 "library to make it even better."),
                             div(
-                                         downloadButton('downloadData6', 'Raman Reference Library'),
-                                         downloadButton('downloadData5', 'FTIR Reference Library'),
-                                         downloadButton('downloadData4', 'Raman Reference Library Metadata'),
-                                         downloadButton('downloadData3', 'FTIR Reference Library Metadata')
+                                         downloadButton('downloadData6', 'Raman Reference Library', style = "background-color: #2a9fd6;"),
+                                         downloadButton('downloadData5', 'FTIR Reference Library', style = "background-color: #2a9fd6;"),
+                                         downloadButton('downloadData4', 'Raman Reference Library Metadata', style = "background-color: #2a9fd6;"),
+                                         downloadButton('downloadData3', 'FTIR Reference Library Metadata', style = "background-color: #2a9fd6;")
                                   )
                               ),
 
@@ -429,6 +429,7 @@ ui <- fluidPage(
                                 ),
 
                                 fileInput("file1", NULL,
+                                          placeholder = ".csv, .asp, .jdx, .spc, .spa, .0",
                                           accept=c('text/csv',
                                                    'text/comma-separated-values,text/plain',
                                                    '.csv', ".asp", ".spc", ".jdx", ".spa", ".0")),
@@ -468,7 +469,7 @@ ui <- fluidPage(
 
                                 tags$br(),
 
-                                tags$div(downloadButton('download_testdata', 'Sample File')),
+                                tags$div(downloadButton('download_testdata', 'Sample File', style = "background-color: #2a9fd6;")),
                                 bsPopover(
                                   id = "download_testdata",
                                   title = "Sample Data Help",
@@ -479,7 +480,7 @@ ui <- fluidPage(
 
                                 tags$br(),
 
-                                actionButton("share_meta", "Metadata Input"),
+                                actionButton("share_meta", "Metadata Input", style = "background-color: #2a9fd6;"),
                                 bsPopover(
                                   id = "share_meta",
                                   title = "Metadata Help",
@@ -602,7 +603,7 @@ ui <- fluidPage(
                            column(3, style = columnformat(),
                                 fluidRow(
                                   column(12,
-                                  downloadButton('downloadData', 'Download (recommended)'),
+                                  downloadButton('downloadData', 'Download (recommended)', style = "background-color: #2a9fd6;"),
                                     bsPopover(id = 'downloadData',
                                               title = "Download Help",
                                               content = c("Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file."),
