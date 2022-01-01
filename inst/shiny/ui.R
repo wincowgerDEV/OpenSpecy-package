@@ -624,13 +624,7 @@ ui <- fluidPage(
                                            )
                                       ),
                                   column(2,
-                                         dropdownButton(inputId = "smooth_tools",
-                                                        sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3),
-                                                        icon = icon("gear"),
-                                                        size = "xs",
-                                                        status = "success",
-                                                        width = "300px",
-                                                        circle = TRUE)
+                                         prettyCheckbox("smooth_tools", label = "adv",  icon = icon("gear"), status = "warning", shape = "square"),
                                   )
                                 ),
 
@@ -652,23 +646,7 @@ ui <- fluidPage(
 
                                     ),
                                 column(2,
-                                       dropdownButton(inputId = "baseline_tools",
-                                                      selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
-                                                      sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
-                                                      fluidRow(
-                                                        column(6,
-                                                               actionButton("go", "Correct With Trace"),
-                                                               ),
-                                                        column(6,
-                                                               actionButton("reset", "Reset"),
-                                                               )
-                                                      ),
-                                                      icon = icon("gear"),
-                                                      size = "xs",
-                                                      status = "success",
-                                                      width = "300px",
-                                                      circle = TRUE
-                                       )
+                                       prettyCheckbox("baseline_tools",label = "adv", icon = icon("gear"), status = "warning", shape = "square"),
                                    )
                                 ),
                                 fluidRow(
@@ -688,31 +666,50 @@ ui <- fluidPage(
                                          )
                                   ),
                                   column(2,
-                                         dropdownButton(inputId = "range_tools",
-                                                        numericInput(
-                                                          "MaxRange",
-                                                          "Maximum Spectral Range",
-                                                          value = 6000,
-                                                          min = NA,
-                                                          max = NA,
-                                                          step = NA,
-                                                          width = NULL
-                                                        ),
-                                                        numericInput(
-                                                          "MinRange",
-                                                          "Minimum Spectral Range",
-                                                          value = 0,
-                                                          min = NA,
-                                                          max = NA,
-                                                          step = NA,
-                                                          width = NULL
-                                                        ),
-                                                        icon = icon("gear"),
-                                                        size = "xs",
-                                                        status = "success",
-                                                        width = "300px",
-                                                        circle = TRUE
-                                         )
+                                         prettyCheckbox("range_tools", label = "adv", icon = icon("gear"), status = "warning", shape = "square")
+                                  )
+                                ),
+                                fluidRow(column(12,
+                                              conditionalPanel("input.smooth_tools == true & input.smooth_decision == true",
+                                                   plotcontainerfunction(sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3)
+                                    )),
+                                  conditionalPanel("input.baseline_tools == true & input.baseline_decision == true",
+                                                   plotcontainerfunction(
+                                                     selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
+                                                     sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
+                                                     fluidRow(
+                                                     column(6,
+                                                            actionButton("go", "Correct With Trace"),
+                                                     ),
+                                                     column(6,
+                                                            actionButton("reset", "Reset"),
+                                                     )
+                                                    )
+                                                   )
+                                                   
+                                                   ), 
+                                  conditionalPanel("input.range_tools == true & input.range_decision == true",
+                                                   plotcontainerfunction(
+                                                      numericInput(
+                                                     "MaxRange",
+                                                     "Maximum Spectral Range",
+                                                     value = 6000,
+                                                     min = NA,
+                                                     max = NA,
+                                                     step = NA,
+                                                     width = NULL
+                                                   ),
+                                                   numericInput(
+                                                     "MinRange",
+                                                     "Minimum Spectral Range",
+                                                     value = 0,
+                                                     min = NA,
+                                                     max = NA,
+                                                     step = NA,
+                                                     width = NULL
+                                                   )
+                                                   )
+                                                  )
                                   )
                                 )
                             ),
