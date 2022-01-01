@@ -25,7 +25,6 @@ library(mongolite)
 library(loggit)
 library(shiny.i18n)
 
-
 if(droptoken) library(rdrop2)
 
 #devtools::install_github("wincowgerDEV/OpenSpecy")
@@ -598,25 +597,32 @@ observeEvent(input$reset, {
   observeEvent(input$selected_language, {
     update_lang(session, input$selected_language)
   })
+
   
-observe({
-  addPopover(
-    session,
-    id = "smooth_decision",
-    title = i18n$t("Smoother Help"),
-    content = i18n$t("This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified."),
-    placement = "bottom",
-    trigger = "hover"
-  )
-    addPopover(
-      session,
-      id = "download_testdata",
-      title = i18n$t("Sample Data Help"),
-      content = i18n$t("This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted."),
-      placement = "bottom",
-      trigger = "hover"
-    )
-  })
+# observe({
+  #for(i in 1:length(popover_vals)){
+  #  removePopover(session, popover_vals[[i]][1])
+  #  Sys.sleep(0.1)
+  #  addPopover(
+  #        session,
+  #        id = popover_vals[[i]][1],
+  #        title = i18n$t(popover_vals[[i]][2]),
+  #        content = i18n$t(popover_vals[[i]][3]),
+  #        placement = "bottom",
+  #        trigger = "hover"
+  #      )
+  #}
+  #lapply(popover_vals, popover)
+    #addPopover(
+     # session,
+    #  id = "download_testdata",
+   #   title = i18n$t("Sample Data Help"),
+  #    content = i18n$t("This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted."),
+ #     placement = "bottom",
+#      trigger = "hover"
+#    )
+#  }
+# )
   
   # Log events ----
 

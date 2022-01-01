@@ -15,7 +15,6 @@ library(DT)
 library(shiny.i18n)
 library(purrr)
 
-
 # Name keys for human readable column names ----
 load("data/namekey.RData")
 
@@ -131,14 +130,17 @@ bodyformat <- function() {
 ui <- fluidPage(
 
   #Script for all pages ----
+  #useTippy(),
   shiny.i18n::usei18n(i18n),
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
   #extendShinyjs(text = "shinyjs.resetClick = function() { Shiny.onInputChange('.clientValue-plotly_click-A', 'null'); }", functions = "resetClick"),
   inputIp("ipid"),
   inputUserid("fingerprint"),
- # tags$head(uiOutput("name_get")),
+ # tags$head(uiOutput("name_get")),singleton(tags$head()),
+
   tags$head(tags$style(css),
             tags$script(async = NA, src = "https://platform.twitter.com/widgets.js"),
+            tags$script(src = "pop_patch.js"),
             tags$style(HTML("
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
@@ -170,6 +172,7 @@ ui <- fluidPage(
 
              #Title Panel ----
   titlePanel(
+    
     fluidRow(
       column(10, align = "left", img(src = "logo.png", width = 300, height = 75)),
       column(2, align = "right", 
@@ -194,6 +197,103 @@ ui <- fluidPage(
   # About Tab ----
   tabsetPanel(id = "tabs",
               tabPanel(i18n$t("About"), value = "tab0",
+                       #Tool Tips ----
+                       
+                       bsPopover(
+                         id = "download_testdata",
+                         title = "Sample Data Help",
+                         content = "This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "share_meta",
+                         title = "Metadata Help",
+                         content = "We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
+                                              Uploaded spectra and metadata will appear here: https://osf.io/rjg3c",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(id = "downloadData",
+                                 title = "Download Help",
+                                 content = "Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.",
+                                 placement = "bottom",
+                                 trigger = "hover"),
+                       bsPopover(
+                         id = "smooth_decision",
+                         title = "Smoother Help",
+                         content = "This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "baseline_decision",
+                         title = "Baseline Correction Help",
+                         content = "This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "range_decision",
+                         title = "Spectral Range Help",
+                         content = "Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "Spectra",
+                         title = "Spectrum Type Help",
+                         content = "This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "Data",
+                         title = "Spectrum to Analyze Help",
+                         content = "This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "Library",
+                         title = "Region to Match Help",
+                         content = "This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "share_decision",
+                         title = "Share Help",
+                         content = "If you like, we share your uploaded spectra and settings with the spectroscopy community.
+                                              By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+                                              Uploaded spectra will appear here: https://osf.io/rjg3c",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "file1",
+                         title = "Upload Help",
+                         content = "Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
+                                            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
+                                            Hit the 'Test Data' button to download a sample Raman spectrum.",
+                         placement = "bottom",
+                         trigger = "click"
+                       ),
+                       bsPopover(
+                         id = "intensity_corr",
+                         title = "Intensity Correction Help",
+                         content = "If the uploaded spectrum is not in absorbance units, 
+                                              use this input to specify the units to convert from.The transmittance adjustment 
+                                              uses the log10(1/T) calculation which does not correct for system 
+                                              and particle characteristics. The reflectance adjustment uses the 
+                                              Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+                                              is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
+                                              so that it fits the form expected by the equation.
+                                              If none is selected, Open Specy assumes that the uploaded data is 
+                                              an absorbance spectrum.",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
                          containerfunction(
                            h2(i18n$t("Welcome")),
                              p(class = "lead", i18n$t("Join the hundreds of researchers from around 
@@ -563,14 +663,7 @@ ui <- fluidPage(
                                              inline = T,
                                              value = T,
                                              status = "success",
-                                             fill = T),
-                                         bsPopover(
-                                           id = "smooth_decision",
-                                           title = "Smoother Help",
-                                           content = "This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.",
-                                           placement = "bottom",
-                                           trigger = "hover"
-                                         )
+                                             fill = T)
                                       ),
                                   column(2,
                                          prettyCheckbox("smooth_tools", label = "adv",  icon = icon("gear"), status = "warning", shape = "square"),
@@ -584,7 +677,8 @@ ui <- fluidPage(
                                              inline = T,
                                              value = T,
                                              status = "success",
-                                             fill = T)
+                                             fill = T),
+                                  
                                     ),
                                 column(2,
                                        prettyCheckbox("baseline_tools", label = "adv", icon = icon("gear"), status = "warning", shape = "square"),
@@ -715,8 +809,8 @@ ui <- fluidPage(
                          column(3)
 
                        )),
-
-
+              
+             
               #Partner With Us tab ----
               tabPanel(i18n$t("Partner With Us"),
                        titlePanel(h4(i18n$t("Help us reach our goal of revolutionizing spectroscopy."))),
