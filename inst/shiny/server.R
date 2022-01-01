@@ -122,7 +122,7 @@ server <- shinyServer(function(input, output, session) {
                              #sDom  = '<"top">lrt<"bottom">ip',
                              
                              ),
-              caption = "Progress (current staus selected)",
+              caption = "Progress (current status selected)",
               style = "bootstrap",
               class = 'row-border',
               escape = FALSE,
@@ -619,6 +619,7 @@ observeEvent(input$reset, {
   observeEvent(input$selected_language, {
     update_lang(session, input$selected_language)
   })
+
   
   # Log events ----
 

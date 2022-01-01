@@ -632,7 +632,6 @@ ui <- fluidPage(
                                                         width = "300px",
                                                         circle = TRUE)
                                   )
-
                                 ),
 
                                 fluidRow(
