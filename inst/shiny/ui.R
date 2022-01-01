@@ -212,13 +212,13 @@ ui <- fluidPage(
                               style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                               background-color:rgb(255, 215, 0, 0.5)",
-                            h3("Revolutionizing (>100,000$)")
+                            h3(i18n$t("Revolutionizing (>100,000$)"))
                           ),
                            div(class = "jumbotron",
                                style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(205, 127, 50, 0.5)",
-                             h3("Thriving (10,000–100,000$)"),
+                             h3(i18n$t("Thriving (10,000–100,000$)")),
                              img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem", height = 100),
                              h4("Mcpike Zima Charitable Foundation")
                            ),
@@ -226,7 +226,7 @@ ui <- fluidPage(
                                style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(3, 252, 15, 0.5)",
-                             h3("Maintaining (1,000–10,000$)"),
+                             h3(i18n$t("Maintaining (1,000–10,000$)")),
                              img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem", height = 50),
                              img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "padding:1rem", height = 50),
                              img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "padding:1rem",  height = 50),
@@ -240,15 +240,15 @@ ui <- fluidPage(
                                style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(0, 0, 255, 0.5)",
-                             h3("Supporting (100–1,000$)"),
+                             h3(i18n$t("Supporting (100–1,000$)")),
                              h5( "Jennifer Gadd")
                            ),
                            div(class = "jumbotron",
                                style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(128, 0, 128, 0.5)",
-                               h3("Saving (<100$)"),
-                               h6( "Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
+                               h3(i18n$t("Saving (<100$)")),
+                               h6("Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
                            )
                           ),
                           h3(i18n$t("Effort Partners")),
@@ -257,27 +257,27 @@ ui <- fluidPage(
                                     style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                               background-color:rgb(255, 215, 0, 0.5)",
-                              h3("Revolutionizing (>100,000$)")
+                              h3(i18n$t("Revolutionizing (>100,000$)"))
                                 ),
                               div(class = "jumbotron",
                                   style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(205, 127, 50, 0.5)",
-                               h3("Thriving (10,000–100,000$)"),
+                               h3(i18n$t("Thriving (10,000–100,000$)")),
                                h4("Win Cowger, Zacharias Steinmetz")
                               ),
                               div(class = "jumbotron",
                                   style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(3, 252, 15, 0.5)",
-                               h3("Maintaining (1,000–10,000$)"),
+                               h3(i18n$t("Maintaining (1,000–10,000$)")),
                                h5("Sebastian Primpke, Andrew Gray, Chelsea Rochman, Orestis Herodotu, Hannah De Frond, Keenan Munno, Hannah Hapich, Jennifer Lynch")
                               ),
                               div(class = "jumbotron",
                                   style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(0, 0, 255, 0.5)",
-                               h3("Supporting (100–1,000$)"),
+                               h3(i18n$t("Supporting (100–1,000$)")),
                                h6( "Shreyas Patankar, Andrea Faltynkova, Alexandre Dehaut, Gabriel Erni Cassola, Aline Carvalho")
                               )
                           )
@@ -464,7 +464,7 @@ ui <- fluidPage(
 
                                 tags$br(),
 
-                                tags$div(downloadButton("download_testdata", "Sample File", style = "background-color: #2a9fd6;")),
+                                tags$div(downloadButton("download_testdata", i18n$t("Sample File"), style = "background-color: #2a9fd6;")),
                                 bsPopover(
                                   id = "download_testdata",
                                   title = "Sample Data Help",
@@ -475,7 +475,7 @@ ui <- fluidPage(
 
                                 tags$br(),
 
-                                actionButton("share_meta", "Metadata Input", style = "background-color: #2a9fd6;"),
+                                actionButton("share_meta", i18n$t("Metadata Input"), style = "background-color: #2a9fd6;"),
                                 bsPopover(
                                   id = "share_meta",
                                   title = "Metadata Help",
@@ -573,7 +573,7 @@ ui <- fluidPage(
 
 
                          column(9,
-                                plotcontainerfunction(h4(id = "placeholder1", "Upload some data to get started..."), plotlyOutput("MyPlot")),
+                                plotcontainerfunction(h4(id = "placeholder1", i18n$t("Upload some data to get started...")), plotlyOutput("MyPlot")),
                                 style = bodyformat()
 
                          ),
@@ -591,14 +591,14 @@ ui <- fluidPage(
 
 
               #Preprocess Spectrum Tab ----
-              tabPanel("Preprocess Spectrum", value = "tab2",
-                       titlePanel(h4("Smooth, Baseline Correct, and Download Processed Spectra")),
+              tabPanel(i18n$t("Preprocess Spectrum"), value = "tab2",
+                       titlePanel(h4(i18n$t("Smooth, Baseline Correct, and Download Processed Spectra"))),
                        br(),
                        fluidRow(
                            column(3, style = columnformat(),
                                 fluidRow(
                                   column(12,
-                                  downloadButton("downloadData", "Download (recommended)", style = "background-color: #2a9fd6;"),
+                                  downloadButton("downloadData", i18n$t("Download (recommended)"), style = "background-color: #2a9fd6;"),
                                     bsPopover(id = "downloadData",
                                               title = "Download Help",
                                               content = "Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.",
@@ -610,7 +610,7 @@ ui <- fluidPage(
                                 fluidRow(
                                   column(10,
                                          prettySwitch(inputId = "smooth_decision",
-                                             label = "Smoothing",
+                                             label = i18n$t("Smoothing"),
                                              inline = T,
                                              value = T,
                                              status = "success",
@@ -631,7 +631,7 @@ ui <- fluidPage(
                                 fluidRow(
                                   column(10,
                                   prettySwitch("baseline_decision",
-                                             label = "Baseline Correction",
+                                             label = i18n$t("Baseline Correction"),
                                              inline = T,
                                              value = T,
                                              status = "success",
@@ -646,13 +646,13 @@ ui <- fluidPage(
 
                                     ),
                                 column(2,
-                                       prettyCheckbox("baseline_tools",label = "adv", icon = icon("gear"), status = "warning", shape = "square"),
+                                       prettyCheckbox("baseline_tools", label = "adv", icon = icon("gear"), status = "warning", shape = "square"),
                                    )
                                 ),
                                 fluidRow(
                                   column(10,
                                          prettySwitch("range_decision",
-                                             label = "Range Selection",
+                                             label = i18n$t("Range Selection"),
                                              inline = T,
                                              value = T,
                                              status = "success",
@@ -671,18 +671,18 @@ ui <- fluidPage(
                                 ),
                                 fluidRow(column(12,
                                               conditionalPanel("input.smooth_tools == true & input.smooth_decision == true",
-                                                   plotcontainerfunction(sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3)
+                                                   plotcontainerfunction(sliderInput("smoother", i18n$t("Smoothing Polynomial"), min = 0, max = 7, value = 3)
                                     )),
                                   conditionalPanel("input.baseline_tools == true & input.baseline_decision == true",
                                                    plotcontainerfunction(
-                                                     selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
-                                                     sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
+                                                     selectInput(inputId = "baseline_selection", label = i18n$t("Technique"), choices = c("Polynomial", "Manual")),
+                                                     sliderInput("baseline", i18n$t("Baseline Correction Polynomial"), min = 1, max = 20, value = 8),
                                                      fluidRow(
                                                      column(6,
-                                                            actionButton("go", "Correct With Trace"),
+                                                            actionButton("go", i18n$t("Correct With Trace")),
                                                      ),
                                                      column(6,
-                                                            actionButton("reset", "Reset"),
+                                                            actionButton("reset", i18n$t("Reset")),
                                                      )
                                                     )
                                                    )
@@ -692,7 +692,7 @@ ui <- fluidPage(
                                                    plotcontainerfunction(
                                                       numericInput(
                                                      "MaxRange",
-                                                     "Maximum Spectral Range",
+                                                     i18n$t("Maximum Spectral Range"),
                                                      value = 6000,
                                                      min = NA,
                                                      max = NA,
@@ -701,7 +701,7 @@ ui <- fluidPage(
                                                    ),
                                                    numericInput(
                                                      "MinRange",
-                                                     "Minimum Spectral Range",
+                                                     i18n$t("Minimum Spectral Range"),
                                                      value = 0,
                                                      min = NA,
                                                      max = NA,
@@ -716,7 +716,7 @@ ui <- fluidPage(
 
 
                          column(9,
-                                plotcontainerfunction(h4(id = "placeholder2", "Upload some data to get started..."), plotlyOutput("MyPlotB")),
+                                plotcontainerfunction(h4(id = "placeholder2", i18n$t("Upload some data to get started...")), plotlyOutput("MyPlotB")),
                                 #verbatimTextOutput(outputId = "text"),
                                 style = bodyformat()
 
@@ -733,8 +733,8 @@ ui <- fluidPage(
                        )),
 
               #Match Spectrum Tab ----
-              tabPanel("Identify Spectrum",value = "tab3",
-                       titlePanel(h4("Identify Spectrum Using the Reference Library")),
+              tabPanel(i18n$t("Identify Spectrum"),value = "tab3",
+                       titlePanel(h4(i18n$t("Identify Spectrum Using the Reference Library"))),
                        br(),
                        fluidRow(
                          column(3, style = columnformat(),

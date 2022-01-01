@@ -516,21 +516,6 @@ observeEvent(input$reset, {
       }
   })
 
-  observe({
-    if (input$smooth_decision) {
-      show("smooth_tools")
-    } else {
-      hide("smooth_tools")
-    }
-  })
-
-  observe({
-    if (input$baseline_decision) {
-      show("baseline_tools")
-    } else {
-      hide("baseline_tools")
-    }
-  })
 
   observe({
     if (input$baseline_selection == "Polynomial") {
@@ -544,13 +529,6 @@ observeEvent(input$reset, {
     }
   })
 
-  observe({
-    if (input$range_decision) {
-      show("range_tools")
-    } else {
-      hide("range_tools")
-    }
-  })
 
   observe({
     if (is.null(preprocessed_data())) {
