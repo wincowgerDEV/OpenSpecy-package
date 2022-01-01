@@ -196,16 +196,16 @@ ui <- fluidPage(
               tabPanel(i18n$t("About"), value = "tab0",
                          containerfunction(
                            h2(i18n$t("Welcome")),
-                             p(class = "lead", "Join the hundreds of researchers from around 
+                             p(class = "lead", i18n$t("Join the hundreds of researchers from around 
                                the world who are part of the Open Specy community by 
                                analyzing, sharing, processing, and identifying 
                                their Raman and IR spectra. These services are
-                               free and open source thanks to our partners:"),
+                               free and open source thanks to our partners:")),
                           fluidRow(
                             column(6, img(src = "dancing.jpg", width = "100%")
                             ),
                             column(6,                            
-                                   h3("Financial Partners"),
+                                   h3(i18n$t("Financial Partners")),
                                    panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
                                          
                                div(class = "jumbotron",
@@ -251,7 +251,7 @@ ui <- fluidPage(
                                h6( "Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
                            )
                           ),
-                          h3("Effort Partners"),
+                          h3(i18n$t("Effort Partners")),
                           panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
                                 div(class = "jumbotron",
                                     style = "padding:0rem 1rem 0rem;
@@ -286,7 +286,7 @@ ui <- fluidPage(
                            )
                           ),
                        containerfunction(
-                         h2("Testimonials"),#
+                         h2(i18n$t("Testimonials")),#
                         panel(style = "overflow-y:scroll; max-height: 400px;  align: centre",
                               uiOutput("tweets")#,
 
@@ -294,18 +294,18 @@ ui <- fluidPage(
                             
                        ),
                          containerfunction(
-                           h2("Quick Video Tutorial"),
+                           h2(i18n$t("Quick Video Tutorial")),
                                  HTML("<iframe width='560' height='315' src='https://www.youtube-nocookie.com/embed/w55WGtV2Dz4' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe>")
                               ),
                        containerfunction(
-                         h2("Instructions"),
-                         p(class = "lead", "In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                         h2(i18n$t("Instructions")),
+                         p(class = "lead", i18n$t("In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
                                   If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
                                   uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
-                                  or watch the detailed instructional video."),
-                         a("Detailed Standard Operating Procedure",
+                                  or watch the detailed instructional video.")),
+                         a(i18n$t("Detailed Standard Operating Procedure"),
                            onclick = "window.open('https://cran.r-project.org/web/packages/OpenSpecy/vignettes/sop.html', '_blank')",
                            class="btn btn-primary btn-lg"),
                          br(),
@@ -315,46 +315,46 @@ ui <- fluidPage(
                        ),
 
                           containerfunction(
-                            h2("Download Open Data"),
-                            p(class = "lead", "Reference spectra was sourced from open access resources 
+                            h2(i18n$t("Download Open Data")),
+                            p(class = "lead", i18n$t("Reference spectra was sourced from open access resources 
                                 online, peer reviewed publications, and corporate donations. In the future, 
                                 spectra that is uploaded to the tool will be incorporated to the reference 
-                                library to make it even better."),
+                                library to make it even better.")),
                             div(
-                                         downloadButton("downloadData6", "Raman Reference Library", style = "background-color: #2a9fd6;"),
-                                         downloadButton("downloadData5", "FTIR Reference Library", style = "background-color: #2a9fd6;"),
-                                         downloadButton("downloadData4", "Raman Reference Library Metadata", style = "background-color: #2a9fd6;"),
-                                         downloadButton("downloadData3", "FTIR Reference Library Metadata", style = "background-color: #2a9fd6;")
+                                         downloadButton("downloadData6", i18n$t("Raman Reference Library"), style = "background-color: #2a9fd6;"),
+                                         downloadButton("downloadData5", i18n$t("FTIR Reference Library"), style = "background-color: #2a9fd6;"),
+                                         downloadButton("downloadData4", i18n$t("Raman Reference Library Metadata"), style = "background-color: #2a9fd6;"),
+                                         downloadButton("downloadData3", i18n$t("FTIR Reference Library Metadata"), style = "background-color: #2a9fd6;")
                                   )
                               ),
 
                          containerfunction(
-                           h2("Contribute Spectra"),
-                           p(class = "lead", "To share spectra upload a file to the upload file tab. 
+                           h2(i18n$t("Contribute Spectra")),
+                           p(class = "lead", i18n$t("To share spectra upload a file to the upload file tab. 
                              If you selected Share a copy of your spectra will be sent to the Community 
                              Data Warehouse on Open Science Framework. To add additional metadata, 
                              fill in the avaliable metadata fields and click -Share Data-. The 
                              spectra file that you uploaded along with your responses will be copied 
                              to the a -With Metadata- subfolder at the link below. All shared data holds 
-                             a Creative Commons Attribution License 4.0."),
+                             a Creative Commons Attribution License 4.0.")),
                            div(
-                             a("Community Data Warehouse",
+                             a(i18n$t("Community Data Warehouse"),
                                onclick = "window.open('https://osf.io/rjg3c/', '_blank')",
                                class="btn btn-primary btn-lg")
                            )
                          ),
 
                             containerfunction(
-                              h2("Tool Validation"),
-                              p(class = "lead", "All parameters in this tool are tested to validate that 
+                              h2(i18n$t("Tool Validation")),
+                              p(class = "lead", i18n$t("All parameters in this tool are tested to validate that 
                                 the tool is functioning as best as possible and determine the best default 
                                 parameters to use. Our current validation proceedure includes correcting 
                                 duplicated entries in the reference libraries, checking for spectra in 
                                 metadata that isn't in the spectral library, and ensuring the the default 
-                                parameters provide over 80% accuracy in the first match."
+                                parameters provide over 80% accuracy in the first match.")
                                 ),
                               div(
-                                a("Detailed Validation Procedure",
+                                a(i18n$t("Detailed Validation Procedure"),
                                          onclick = "window.open('https://docs.google.com/document/d/1Zd2GY4bWIwegGeE4JpX8O0S5l_IYju0sLDl1ddTTMxU/edit?usp=sharing', '_blank')",
                                          class="btn btn-primary btn-lg")
                               )
@@ -362,10 +362,10 @@ ui <- fluidPage(
 
 
                        containerfunction(
-                         h2("Updates, Feature Requests, and Bug Reports"),
-                         p(class = "lead", "We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub."),
+                         h2(i18n$t("Updates, Feature Requests, and Bug Reports")),
+                         p(class = "lead", i18n$t("We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.")),
                          div(
-                           a("Updates, Feature Requests, Bug Reports",
+                           a(i18n$t("Updates, Feature Requests, Bug Reports"),
                              onclick = "window.open('https://github.com/wincowgerDEV/OpenSpecy', '_blank')",
                              class="btn btn-primary btn-lg")
                          )
@@ -373,47 +373,47 @@ ui <- fluidPage(
                        ),
 
                       containerfunction(
-                        h2("Stay up to date!"),
-                        p(class = "lead", "Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.")
+                        h2(i18n$t("Stay up to date!")),
+                        p(class = "lead", i18n$t("Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list."))
                       ),
 
                       containerfunction(
-                        h2("Citation"),
+                        h2(i18n$t("Citation")),
                         p(class = "lead", citation)
                       ),
 
                       containerfunction(
                         h2("Useful Links"),
-                        a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software", class = "lead"),
+                        a(href = "https://simple-plastics.eu/", i18n$t("Free FTIR Software: siMPle microplastic IR spectral identification software"), class = "lead"),
                         p(),
-                        a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher", class = "lead"),
+                        a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", i18n$t("Free Spectroscopy Learning Academy from ThermoFisher"), class = "lead"),
                         p(),
-                        a(href = "https://micro.magnet.fsu.edu/primer/", "Free Optical Microscopy Learning Resource from Florida State University", class = "lead"),
+                        a(href = "https://micro.magnet.fsu.edu/primer/", i18n$t("Free Optical Microscopy Learning Resource from Florida State University"), class = "lead"),
                         p(),
-                        a(href = "https://www.effemm2.de/spectragryph/index.html", "Free desktop application for spectral analysis and links to reference databases.", class = "lead")
+                        a(href = "https://www.effemm2.de/spectragryph/index.html", i18n$t("Free desktop application for spectral analysis and links to reference databases."), class = "lead")
                       ),
 
                        containerfunction(
-                         h2("Terms And Conditions"),
+                         h2(i18n$t("Terms And Conditions")),
                          pre(includeText("www/TOS.txt"))
                        ),
 
                       containerfunction(
-                        h2("Privacy Policy"),
+                        h2(i18n$t("Privacy Policy")),
                         pre(includeText("www/privacy_policy.txt"))
                       ),
               ),
 
               #Upload File Tab ----
-              tabPanel("Upload File", value = "tab1",
-                       titlePanel(h4("Upload, View, and Share Spectra")),
+              tabPanel(i18n$t("Upload File"), value = "tab1",
+                       titlePanel(h4(i18n$t("Upload, View, and Share Spectra"))),
                        br(),
                        fluidRow(
                          column(3, style = columnformat(),
-                                tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File"),
+                                tags$label(i18n$t("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File")),
 
                                 prettySwitch("share_decision",
-                                             label = "Share Your Data?",
+                                             label = i18n$t("Share Your Data?"),
                                              inline = T,
                                              value = T,
                                              status = "success",
