@@ -7,7 +7,7 @@
 # Check for Auth Tokens and setup, you can change these to test the triggering
 # of functions without removing the files.
 droptoken <- file.exists("data/droptoken.rds")
-db <- file.exists(".db_url") #reminder, this will break if you login to a new wifi network even with the token.
+db <- FALSE#file.exists(".db_url") #reminder, this will break if you login to a new wifi network even with the token.
 translate <- file.exists("www/googletranslate.html")
 
 # Libraries ----
@@ -52,6 +52,28 @@ load_data <- function() {
   donations <- fread("data/donations.csv")
   testdata <- raman_hdpe
 
+  tweets <- c("https://twitter.com/EnviroMichaela/status/1471622640183959555",
+              "https://twitter.com/OpenSpecy/status/1472361269093023744",
+              "https://twitter.com/DSemensatto/status/1461038613903380484",
+              "https://twitter.com/SETAC_plastics/status/1460738878101356544",
+              "https://twitter.com/AliciaMateos_/status/1460197329760313344",
+              "https://twitter.com/Irreverent_KUP/status/1454418069036568578",
+              "https://twitter.com/PeterPuskic/status/1454267818166210561",
+              "https://twitter.com/JannesJegminat/status/1427257468384681985",
+              "https://twitter.com/pnwmicroplastic/status/1415730821730734080",
+              "https://twitter.com/OpenSpecy/status/1408391168745000961",
+              "https://twitter.com/ToMExApp/status/1399859256615079936",
+              "https://twitter.com/kat_lasdin/status/1399576094622175241",
+              "https://twitter.com/an_chem/status/1397621113421803521",
+              "https://twitter.com/WarrierAnish/status/1395245636967014401",
+              "https://twitter.com/EnviroMichaela/status/1395199312645300233",
+              "https://twitter.com/SocAppSpec/status/1392883693027430400",
+              "https://twitter.com/zsteinmetz_/status/1387677422028480512",
+              "https://twitter.com/OpenSpecy/status/1382820319635775488",
+              "https://twitter.com/zsteinmetz_/status/1377222029250822146",
+              "https://twitter.com/OpenSpecy/status/1318214558549372928",
+              "https://twitter.com/YokotaLimnoLab/status/1311069417892184065")
+  
   goals <- tibble(
     Status =      c("Revolutionizing", 
                     "Thriving", 
@@ -567,27 +589,6 @@ observeEvent(input$reset, {
   })
   }
   
-  tweets <- c("https://twitter.com/EnviroMichaela/status/1471622640183959555",
-              "https://twitter.com/OpenSpecy/status/1472361269093023744",
-              "https://twitter.com/DSemensatto/status/1461038613903380484",
-              "https://twitter.com/SETAC_plastics/status/1460738878101356544",
-              "https://twitter.com/AliciaMateos_/status/1460197329760313344",
-              "https://twitter.com/Irreverent_KUP/status/1454418069036568578",
-              "https://twitter.com/PeterPuskic/status/1454267818166210561",
-              "https://twitter.com/JannesJegminat/status/1427257468384681985",
-              "https://twitter.com/pnwmicroplastic/status/1415730821730734080",
-              "https://twitter.com/OpenSpecy/status/1408391168745000961",
-              "https://twitter.com/ToMExApp/status/1399859256615079936",
-              "https://twitter.com/kat_lasdin/status/1399576094622175241",
-              "https://twitter.com/an_chem/status/1397621113421803521",
-              "https://twitter.com/WarrierAnish/status/1395245636967014401",
-              "https://twitter.com/EnviroMichaela/status/1395199312645300233",
-              "https://twitter.com/SocAppSpec/status/1392883693027430400",
-              "https://twitter.com/zsteinmetz_/status/1387677422028480512",
-              "https://twitter.com/OpenSpecy/status/1382820319635775488",
-              "https://twitter.com/zsteinmetz_/status/1377222029250822146",
-              "https://twitter.com/OpenSpecy/status/1318214558549372928",
-              "https://twitter.com/YokotaLimnoLab/status/1311069417892184065")
               
   output$tweets <- renderUI({
     map(tweets, ~ render_tweet(.x))
@@ -597,7 +598,25 @@ observeEvent(input$reset, {
   observeEvent(input$selected_language, {
     update_lang(session, input$selected_language)
   })
-
+  
+observe({
+  addPopover(
+    session,
+    id = "smooth_decision",
+    title = i18n$t("Smoother Help"),
+    content = i18n$t("This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified."),
+    placement = "bottom",
+    trigger = "hover"
+  )
+    addPopover(
+      session,
+      id = "download_testdata",
+      title = i18n$t("Sample Data Help"),
+      content = i18n$t("This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted."),
+      placement = "bottom",
+      trigger = "hover"
+    )
+  })
   
   # Log events ----
 

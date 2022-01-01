@@ -418,72 +418,25 @@ ui <- fluidPage(
                                              value = T,
                                              status = "success",
                                              fill = T),
-                                bsPopover(
-                                  id = "share_decision",
-                                  title = "Share Help",
-                                  content = "If you like, we share your uploaded spectra and settings with the spectroscopy community.
-                                              By default, all data will be licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
-                                              Uploaded spectra will appear here: https://osf.io/rjg3c",
-                                  placement = "bottom",
-                                  trigger = "hover"
-                                ),
-
                                 fileInput("file1", NULL,
                                           placeholder = ".csv, .asp, .jdx, .spc, .spa, .0",
                                           accept=c("text/csv",
                                                    "text/comma-separated-values,text/plain",
                                                    ".csv", ".asp", ".spc", ".jdx", ".spa", ".0")),
-                                bsPopover(
-                                  id = "file1",
-                                  title = "Upload Help",
-                                  content = "Upload Raman or FTIR spectrum files as a csv, jdx, spc, or spa. A csv file is preferred. If a csv, the file must contain one column labeled 'wavenumber' in units of (1/cm) and another column labeled 'intensity' in absorbance units.
-                                            If jdx, spc, spa, or 0 the file should be a single absorbance spectrum with wavenumber in (1/cm). These files will not always work perfectly because they are tricky to read so double check them in another software.
-                                            Hit the 'Test Data' button to download a sample Raman spectrum.",
-                                  placement = "bottom",
-                                  trigger = "click"
-                                ),
+                               
 
                                 radioButtons("intensity_corr", "Intensity Adjustment",
                                              c("None" = "none",
                                                "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
-                                bsPopover(
-                                  id = "intensity_corr",
-                                  title = "Intensity Correction Help",
-                                  content = "If the uploaded spectrum is not in absorbance units, 
-                                              use this input to specify the units to convert from.The transmittance adjustment 
-                                              uses the log10(1/T) calculation which does not correct for system 
-                                              and particle characteristics. The reflectance adjustment uses the 
-                                              Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
-                                              is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
-                                              so that it fits the form expected by the equation.
-                                              If none is selected, Open Specy assumes that the uploaded data is 
-                                              an absorbance spectrum.",
-                                  placement = "bottom",
-                                  trigger = "hover"
-                                ),
-
                                 tags$br(),
 
                                 tags$div(downloadButton("download_testdata", i18n$t("Sample File"), style = "background-color: #2a9fd6;")),
-                                bsPopover(
-                                  id = "download_testdata",
-                                  title = "Sample Data Help",
-                                  content = "This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted.",
-                                  placement = "bottom",
-                                  trigger = "hover"
-                                ),
+                               
 
                                 tags$br(),
 
                                 actionButton("share_meta", i18n$t("Metadata Input"), style = "background-color: #2a9fd6;"),
-                                bsPopover(
-                                  id = "share_meta",
-                                  title = "Metadata Help",
-                                  content = "We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
-                                              Uploaded spectra and metadata will appear here: https://osf.io/rjg3c",
-                                  placement = "bottom",
-                                  trigger = "hover"
-                                ),
+                                
 
                                 hidden(
                                   textInput(names(namekey)[1],
@@ -598,12 +551,8 @@ ui <- fluidPage(
                            column(3, style = columnformat(),
                                 fluidRow(
                                   column(12,
-                                  downloadButton("downloadData", i18n$t("Download (recommended)"), style = "background-color: #2a9fd6;"),
-                                    bsPopover(id = "downloadData",
-                                              title = "Download Help",
-                                              content = "Some users may wish to save a copy of their processed spectrum. This button downloads the processed spectrum as a csv file.",
-                                              placement = "bottom",
-                                              trigger = "hover")
+                                  downloadButton("downloadData", i18n$t("Download (recommended)"), style = "background-color: #2a9fd6;")
+                                    
                                     )
                                 ),
                                 tags$br(),
@@ -621,7 +570,7 @@ ui <- fluidPage(
                                            content = "This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.",
                                            placement = "bottom",
                                            trigger = "hover"
-                                           )
+                                         )
                                       ),
                                   column(2,
                                          prettyCheckbox("smooth_tools", label = "adv",  icon = icon("gear"), status = "warning", shape = "square"),
@@ -635,15 +584,7 @@ ui <- fluidPage(
                                              inline = T,
                                              value = T,
                                              status = "success",
-                                             fill = T),
-                                  bsPopover(
-                                    id = "baseline_decision",
-                                    title = "Baseline Correction Help",
-                                    content = "This baseline correction routine has two options for baseline correction, 1) the polynomial imodpolyfit procedure to itteratively find the baseline of the spectrum using a polynomial fit to the entire region of the spectra. 2) manual lines can be drawn using the line tool on the plot and the correct button will use the lines to subtract the baseline.",
-                                    placement = "bottom",
-                                    trigger = "hover"
-                                        )
-
+                                             fill = T)
                                     ),
                                 column(2,
                                        prettyCheckbox("baseline_tools", label = "adv", icon = icon("gear"), status = "warning", shape = "square"),
@@ -656,14 +597,7 @@ ui <- fluidPage(
                                              inline = T,
                                              value = T,
                                              status = "success",
-                                             fill = T),
-                                         bsPopover(
-                                           id = "range_decision",
-                                           title = "Spectral Range Help",
-                                           content = "Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching",
-                                           placement = "bottom",
-                                           trigger = "hover"
-                                         )
+                                             fill = T)
                                   ),
                                   column(2,
                                          prettyCheckbox("range_tools", label = "adv", icon = icon("gear"), status = "warning", shape = "square")
@@ -742,38 +676,18 @@ ui <- fluidPage(
                                   column(4,
                                           radioButtons("Spectra", "Type",
                                              c("Raman" = "raman",
-                                               "FTIR" = "ftir")),
-                                bsPopover(
-                                  id = "Spectra",
-                                  title = "Spectrum Type Help",
-                                  content = "This selection will determine whether the FTIR or Raman matching library is used. Choose the spectrum type that was uploaded.",
-                                  placement = "bottom",
-                                  trigger = "hover"
-                                )),
+                                               "FTIR" = "ftir"))
+                                         ),
                                 column(4,
                                        radioButtons("Data", "Analysis",
                                             c("Processed" = "processed",
                                               "Uploaded" = "uploaded"
-                                            )),
-                                bsPopover(
-                                  id = "Data",
-                                  title = "Spectrum to Analyze Help",
-                                  content = "This selection will determine whether the uploaded (not processed) spectrum or the spectrum processed using the processing tab is used in the spectrum match.",
-                                  placement = "bottom",
-                                  trigger = "hover"
-                                ),
+                                            ))
                                        ),
                                 column(4,
                                        radioButtons("Library", "Region",
                                             c("Full" = "full",
-                                              "Peaks" = "peaks")),
-                                bsPopover(
-                                  id = "Library",
-                                  title = "Region to Match Help",
-                                  content = "This selection will determine whether the library you are matching to consists of the full spectrum or only spectrum peaks.",
-                                  placement = "bottom",
-                                  trigger = "hover"
-                                )
+                                              "Peaks" = "peaks"))
 
                                     )
                                 ),
