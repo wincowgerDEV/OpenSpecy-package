@@ -803,7 +803,7 @@ ui <- fluidPage(
              
               #Partner With Us tab ----
               tabPanel("Partner With Us",
-                       titlePanel(h4("Help us reach our goal of revolutionizing spectroscopy.")),
+                       titlePanel(h4("Help us reach our goal to revolutionize spectroscopy.")),
                        fluidRow(
                          column(1),
                          column(9,
