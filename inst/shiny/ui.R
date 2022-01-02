@@ -14,6 +14,7 @@ library(plotly)
 library(DT)
 library(shiny.i18n)
 library(purrr)
+library(shinyhelper)
 
 # Name keys for human readable column names ----
 load("data/namekey.RData")
@@ -197,7 +198,7 @@ ui <- fluidPage(
   # About Tab ----
   tabsetPanel(id = "tabs",
               tabPanel(i18n$t("About"), value = "tab0",
-                       #Tool Tips ----
+                       #Popovers ----
                        
                        bsPopover(
                          id = "download_testdata",
@@ -209,8 +210,7 @@ ui <- fluidPage(
                        bsPopover(
                          id = "share_meta",
                          title = "Metadata Help",
-                         content = "We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share.
-                                              Uploaded spectra and metadata will appear here: https://osf.io/rjg3c",
+                         content = "We share any uploaded spectra and metadata with the spectroscopy community if you fill out the metadata here and select share. Uploaded spectra and metadata will appear here: https://osf.io/rjg3c",
                          placement = "bottom",
                          trigger = "hover"
                        ),
@@ -530,7 +530,9 @@ ui <- fluidPage(
                                                "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
                                 tags$br(),
 
-                                tags$div(downloadButton("download_testdata", i18n$t("Sample File"), style = "background-color: #2a9fd6;")),
+                                tags$div(downloadButton("download_testdata", 
+                                                        i18n$t("Sample File"), 
+                                                        style = "background-color: #2a9fd6;")),
                                
 
                                 tags$br(),

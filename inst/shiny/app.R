@@ -654,7 +654,7 @@ server <- shinyServer(function(input, output, session){
                            )
                        )
                 )#uiOutput("translate")) # Google Translate
-            )
+            ), windowTitle = "Open Specy"
         )
         # About Tab ----
         tabsetPanel(id = "tabs",

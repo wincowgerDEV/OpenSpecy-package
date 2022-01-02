@@ -24,7 +24,7 @@ library(config)
 library(mongolite)
 library(loggit)
 library(shiny.i18n)
-
+library(shinyhelper)
 if(droptoken) library(rdrop2)
 
 #devtools::install_github("wincowgerDEV/OpenSpecy")
@@ -114,7 +114,8 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-
+  observe_helpers()
+  
   session_id <- digest(runif(10))
 
   # Loading overlay
