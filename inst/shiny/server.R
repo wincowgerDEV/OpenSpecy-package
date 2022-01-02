@@ -7,7 +7,7 @@
 # Check for Auth Tokens and setup, you can change these to test the triggering
 # of functions without removing the files.
 droptoken <- file.exists("data/droptoken.rds")
-db <- FALSE#file.exists(".db_url") #reminder, this will break if you login to a new wifi network even with the token.
+db <- file.exists(".db_url") #reminder, this will break if you login to a new wifi network even with the token.
 translate <- file.exists("www/googletranslate.html")
 
 # Libraries ----
