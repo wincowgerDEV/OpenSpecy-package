@@ -134,7 +134,6 @@ ui <- fluidPage(
 
   tags$head(tags$style(css),
             tags$script(async = NA, src = "https://platform.twitter.com/widgets.js"),
-            tags$script(src = "pop_patch.js"),
             tags$style(HTML("
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
@@ -375,12 +374,14 @@ ui <- fluidPage(
                           ),
                        containerfunction(
                          h2("Testimonials"),#
-                        panel(style = "overflow-y:scroll; max-height: 400px;  align: centre",
-                              uiOutput("tweets")#,
-
-                        )
-                            
-                       ),
+                        fluidRow(column(12, style = "height: 400px;
+                                        width: 650px;
+                                        overflow-y:scroll;",
+                                uiOutput("tweets")#,
+                                )
+                            )
+                        ),
+                       
                          containerfunction(
                            h2("Quick Video Tutorial"),
                                  HTML("<iframe width='560' height='315' src='https://www.youtube-nocookie.com/embed/w55WGtV2Dz4' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe>")

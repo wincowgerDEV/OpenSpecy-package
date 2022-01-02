@@ -52,7 +52,7 @@ load_data <- function() {
   testdata <- raman_hdpe
 
   tweets <- c("https://twitter.com/EnviroMichaela/status/1471622640183959555",
-              "https://twitter.com/OpenSpecy/status/1472361269093023744",
+              #"https://twitter.com/OpenSpecy/status/1472361269093023744",
               "https://twitter.com/DSemensatto/status/1461038613903380484",
               "https://twitter.com/SETAC_plastics/status/1460738878101356544",
               "https://twitter.com/AliciaMateos_/status/1460197329760313344",
@@ -60,17 +60,17 @@ load_data <- function() {
               "https://twitter.com/PeterPuskic/status/1454267818166210561",
               "https://twitter.com/JannesJegminat/status/1427257468384681985",
               "https://twitter.com/pnwmicroplastic/status/1415730821730734080",
-              "https://twitter.com/OpenSpecy/status/1408391168745000961",
+              #"https://twitter.com/OpenSpecy/status/1408391168745000961",
               "https://twitter.com/ToMExApp/status/1399859256615079936",
               "https://twitter.com/kat_lasdin/status/1399576094622175241",
               "https://twitter.com/an_chem/status/1397621113421803521",
               "https://twitter.com/WarrierAnish/status/1395245636967014401",
               "https://twitter.com/EnviroMichaela/status/1395199312645300233",
               "https://twitter.com/SocAppSpec/status/1392883693027430400",
-              "https://twitter.com/zsteinmetz_/status/1387677422028480512",
-              "https://twitter.com/OpenSpecy/status/1382820319635775488",
-              "https://twitter.com/zsteinmetz_/status/1377222029250822146",
-              "https://twitter.com/OpenSpecy/status/1318214558549372928",
+              #"https://twitter.com/zsteinmetz_/status/1387677422028480512",
+              #"https://twitter.com/OpenSpecy/status/1382820319635775488",
+              #"https://twitter.com/zsteinmetz_/status/1377222029250822146",
+              #"https://twitter.com/OpenSpecy/status/1318214558549372928",
               "https://twitter.com/YokotaLimnoLab/status/1311069417892184065")
   
   goals <- tibble(
@@ -578,13 +578,12 @@ observeEvent(input$reset, {
   #https://twitter.com/OpenSpecy/status/1472361269093023744
   #https://twitter.com/EnviroMichaela/status/1471622640183959555
   render_tweet <- function(x){renderUI({
-    div(style = "width: 100%",
-        
-      tagList(
+      div(class = "inline-block", 
+          style = "display:inline-block; margin-left:4px;",
         tags$blockquote(class = "twitter-tweet", 
+                        style = "width: 600px; display:inline-block;" ,
                         tags$a(href = x)),
         tags$script('twttr.widgets.load(document.getElementById("tweet"));')
-      )
     )
   })
   }
@@ -599,31 +598,6 @@ observeEvent(input$reset, {
     update_lang(session, input$selected_language)
   })
 
-  
-# observe({
-  #for(i in 1:length(popover_vals)){
-  #  removePopover(session, popover_vals[[i]][1])
-  #  Sys.sleep(0.1)
-  #  addPopover(
-  #        session,
-  #        id = popover_vals[[i]][1],
-  #        title = i18n$t(popover_vals[[i]][2]),
-  #        content = i18n$t(popover_vals[[i]][3]),
-  #        placement = "bottom",
-  #        trigger = "hover"
-  #      )
-  #}
-  #lapply(popover_vals, popover)
-    #addPopover(
-     # session,
-    #  id = "download_testdata",
-   #   title = i18n$t("Sample Data Help"),
-  #    content = i18n$t("This is a sample spectrum that can be uploaded to the tool for testing it out and understanding how the csv files should be formatted."),
- #     placement = "bottom",
-#      trigger = "hover"
-#    )
-#  }
-# )
   
   # Log events ----
 
