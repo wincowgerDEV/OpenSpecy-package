@@ -805,16 +805,7 @@ ui <- fluidPage(
               #Partner With Us tab ----
               tabPanel("Partner With Us",
                        titlePanel(h4("Help us reach our goal to revolutionize spectroscopy.")),
-                       fluidRow(
-                         column(1),
-                         column(9,
-                                div(style = "font-size:150%",
-                                  DT::dataTableOutput("event_goals"),
-                                  br()
-                                ),
-                                ),
-                         column(2)
-                       ),
+                       br(),
                        fluidRow(
                          column(1),
                                   column(3,
@@ -845,6 +836,16 @@ ui <- fluidPage(
                                          ),
                         column(2)
                                 ),
+                       fluidRow(
+                         column(1),
+                         column(9,
+                                div(style = "font-size:150%",
+                                    DT::dataTableOutput("event_goals"),
+                                    br()
+                                ),
+                         ),
+                         column(2)
+                       ),
                        hr(),
                        fluidRow(
                          column(3),

@@ -23,8 +23,6 @@ library(curl)
 library(config)
 library(mongolite)
 library(loggit)
-library(shiny.i18n)
-library(shinyhelper)
 if(droptoken) library(rdrop2)
 
 #devtools::install_github("wincowgerDEV/OpenSpecy")
@@ -47,8 +45,7 @@ if(conf$log) {
 
 # Load all data ----
 load_data <- function() {
-  costs <- fread("data/costs.csv")
-  donations <- fread("data/donations.csv")
+
   testdata <- raman_hdpe
 
   tweets <- c("https://twitter.com/EnviroMichaela/status/1471622640183959555",
@@ -399,21 +396,6 @@ observeEvent(input$reset, {
               selection = list(mode = "single", selected = c(1)))
   })
 
-  output$costs <- DT::renderDataTable({
-    datatable(costs, options = list(searchHighlight = TRUE,
-                                    sDom  = '<"top">lrt<"bottom">ip',
-                                    lengthChange = FALSE, pageLength = 5),
-              filter = "top", caption = "Operation Costs", style = "bootstrap",
-              selection = list(mode = "single", selected = c(1)))
-  })
-
-  output$donations <- DT::renderDataTable({
-    datatable(donations, options = list(searchHighlight = TRUE,
-                                        sDom  = '<"top">lrt<"bottom">ip',
-                                        lengthChange = FALSE, pageLength = 5),
-              filter = 'top', caption = "Donations", style = 'bootstrap',
-              selection = list(mode = 'single', selected = c(1)))
-  })
 
   output$eventmetadata <- DT::renderDataTable({
     # Default to first row if not yet clicked
