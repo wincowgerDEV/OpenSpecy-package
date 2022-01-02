@@ -125,8 +125,8 @@ bodyformat <- function() {
 ui <- fluidPage(
 
   #Script for all pages ----
-  #useTippy(),
-  shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
+  # Required for any of the shinyjs functions.
+  shinyjs::useShinyjs(), 
   #extendShinyjs(text = "shinyjs.resetClick = function() { Shiny.onInputChange('.clientValue-plotly_click-A', 'null'); }", functions = "resetClick"),
   inputIp("ipid"),
   inputUserid("fingerprint"),
@@ -139,11 +139,12 @@ ui <- fluidPage(
                     color: green; font-size: 300%;
                     }
                     ")), 
-                    tags$link(rel = "icon", type = "image/png", href = "favicon.png")#This is for the error messages.
-  ), # Google analytics.
+                    tags$link(rel = "icon", type = "image/png", href = "favicon.png")
+            #This is for the error messages.
+  ), 
   #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
-  theme = shinytheme("cyborg"), # Change this for other themes
-
+  theme = shinytheme("cyborg"), 
+ # Change this for other themes
   setBackgroundImage("jumbotron.png"),
 
   shinyjs::inlineCSS(appCSS),
@@ -176,10 +177,10 @@ ui <- fluidPage(
                             outline: none;
                             border: none;
                             text-align:left !important;",
-                 uiOutput("translate") # Google Translate
-                  
+                 uiOutput("translate")
+                   # Google Translate
              )
-             )#x
+             )
     ), windowTitle = "Open Specy"
   ), 
   # About Tab ----
@@ -373,11 +374,11 @@ ui <- fluidPage(
                            )
                           ),
                        containerfunction(
-                         h2("Testimonials"),#
+                         h2("Testimonials"),
                         fluidRow(column(12, style = "height: 400px;
                                         width: 650px;
                                         overflow-y:scroll;",
-                                uiOutput("tweets")#,
+                                uiOutput("tweets"),
                                 )
                             )
                         ),
