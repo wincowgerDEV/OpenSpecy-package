@@ -12,9 +12,7 @@ library(shinyBS)
 library(dplyr)
 library(plotly)
 library(DT)
-library(shiny.i18n)
 library(purrr)
-library(shinyhelper)
 
 # Name keys for human readable column names ----
 load("data/namekey.RData")
@@ -29,10 +27,6 @@ citation <- HTML(
   "<a href='https://doi.org/10.1021/acs.analchem.1c00123'>10.1021/acs.analchem.1c00123</a>."
   )
 )
-
-# Commands for translator
-i18n <- Translator$new(translation_json_path = "languages/json_translation.json")
-i18n$set_translation_language("en")
 
 # Functions ----
 labelMandatory <- function(label) {
@@ -132,7 +126,6 @@ ui <- fluidPage(
 
   #Script for all pages ----
   #useTippy(),
-  shiny.i18n::usei18n(i18n),
   shinyjs::useShinyjs(), # Required for any of the shinyjs functions.
   #extendShinyjs(text = "shinyjs.resetClick = function() { Shiny.onInputChange('.clientValue-plotly_click-A', 'null'); }", functions = "resetClick"),
   inputIp("ipid"),
@@ -184,20 +177,15 @@ ui <- fluidPage(
                             outline: none;
                             border: none;
                             text-align:left !important;",
-                  selectInput(
-                 inputId="selected_language",
-                 label=i18n$t("Change language"),
-                 choices = i18n$get_languages(),
-                 selected = i18n$get_key_translation(),
-                 width = "200px"
-               )
+                 uiOutput("translate") # Google Translate
+                  
              )
-             )#uiOutput("translate")) # Google Translate
+             )#x
     ), windowTitle = "Open Specy"
   ), 
   # About Tab ----
   tabsetPanel(id = "tabs",
-              tabPanel(i18n$t("About"), value = "tab0",
+              tabPanel("About", value = "tab0",
                        #Popovers ----
                        
                        bsPopover(
@@ -295,30 +283,30 @@ ui <- fluidPage(
                          trigger = "hover"
                        ),
                          containerfunction(
-                           h2(i18n$t("Welcome")),
-                             p(class = "lead", i18n$t("Join the hundreds of researchers from around 
+                           h2("Welcome"),
+                             p(class = "lead", "Join the hundreds of researchers from around 
                                the world who are part of the Open Specy community by 
                                analyzing, sharing, processing, and identifying 
                                their Raman and IR spectra. These services are
-                               free and open source thanks to our partners:")),
+                               free and open source thanks to our partners:"),
                           fluidRow(
                             column(6, img(src = "dancing.jpg", width = "100%")
                             ),
                             column(6,                            
-                                   h3(i18n$t("Monetary Partners")),
+                                   h3("Monetary Partners"),
                                    panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
                                          
                                div(class = "jumbotron",
                               style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                               background-color:rgb(255, 215, 0, 0.5)",
-                            h3(i18n$t("Revolutionizing (>100,000$)"))
+                            h3("Revolutionizing (>100,000$)")
                           ),
                            div(class = "jumbotron",
                                style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(205, 127, 50, 0.5)",
-                             h3(i18n$t("Thriving (10,000–100,000$)")),
+                             h3("Thriving (10,000–100,000$)"),
                              img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem", height = 100),
                              h4("Mcpike Zima Charitable Foundation")
                            ),
@@ -326,7 +314,7 @@ ui <- fluidPage(
                                style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(3, 252, 15, 0.5)",
-                             h3(i18n$t("Maintaining (1,000–10,000$)")),
+                             h3("Maintaining (1,000–10,000$)"),
                              img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem", height = 50),
                              img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "padding:1rem", height = 50),
                              img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "padding:1rem",  height = 50),
@@ -340,44 +328,44 @@ ui <- fluidPage(
                                style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(0, 0, 255, 0.5)",
-                             h3(i18n$t("Supporting (100–1,000$)")),
+                             h3("Supporting (100–1,000$)"),
                              h5( "Jennifer Gadd")
                            ),
                            div(class = "jumbotron",
                                style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(128, 0, 128, 0.5)",
-                               h3(i18n$t("Saving (<100$)")),
+                               h3("Saving (<100$)"),
                                h6("Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
                            )
                           ),
-                          h3(i18n$t("In-Kind Partners")),
+                          h3("In-Kind Partners"),
                           panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
                                 div(class = "jumbotron",
                                     style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                               background-color:rgb(255, 215, 0, 0.5)",
-                              h3(i18n$t("Revolutionizing (>100,000$)"))
+                              h3("Revolutionizing (>100,000$)")
                                 ),
                               div(class = "jumbotron",
                                   style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(205, 127, 50, 0.5)",
-                               h3(i18n$t("Thriving (10,000–100,000$)")),
+                               h3("Thriving (10,000–100,000$)"),
                                h4("Win Cowger, Zacharias Steinmetz")
                               ),
                               div(class = "jumbotron",
                                   style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(3, 252, 15, 0.5)",
-                               h3(i18n$t("Maintaining (1,000–10,000$)")),
+                               h3("Maintaining (1,000–10,000$)"),
                                h5("Sebastian Primpke, Andrew Gray, Chelsea Rochman, Orestis Herodotu, Hannah De Frond, Keenan Munno, Hannah Hapich, Jennifer Lynch")
                               ),
                               div(class = "jumbotron",
                                   style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(0, 0, 255, 0.5)",
-                               h3(i18n$t("Supporting (100–1,000$)")),
+                               h3("Supporting (100–1,000$)"),
                                h6( "Shreyas Patankar, Andrea Faltynkova, Alexandre Dehaut, Gabriel Erni Cassola, Aline Carvalho")
                               )
                           )
@@ -386,7 +374,7 @@ ui <- fluidPage(
                            )
                           ),
                        containerfunction(
-                         h2(i18n$t("Testimonials")),#
+                         h2("Testimonials"),#
                         panel(style = "overflow-y:scroll; max-height: 400px;  align: centre",
                               uiOutput("tweets")#,
 
@@ -394,18 +382,18 @@ ui <- fluidPage(
                             
                        ),
                          containerfunction(
-                           h2(i18n$t("Quick Video Tutorial")),
+                           h2("Quick Video Tutorial"),
                                  HTML("<iframe width='560' height='315' src='https://www.youtube-nocookie.com/embed/w55WGtV2Dz4' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe>")
                               ),
                        containerfunction(
-                         h2(i18n$t("Instructions")),
-                         p(class = "lead", i18n$t("In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                         h2("Instructions"),
+                         p(class = "lead", "In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
                                   If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
                                   uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
-                                  or watch the detailed instructional video.")),
-                         a(i18n$t("Detailed Standard Operating Procedure"),
+                                  or watch the detailed instructional video."),
+                         a("Detailed Standard Operating Procedure",
                            onclick = "window.open('https://cran.r-project.org/web/packages/OpenSpecy/vignettes/sop.html', '_blank')",
                            class="btn btn-primary btn-lg"),
                          br(),
@@ -415,46 +403,46 @@ ui <- fluidPage(
                        ),
 
                           containerfunction(
-                            h2(i18n$t("Download Open Data")),
-                            p(class = "lead", i18n$t("Reference spectra was sourced from open access resources 
+                            h2("Download Open Data"),
+                            p(class = "lead", "Reference spectra was sourced from open access resources 
                                 online, peer reviewed publications, and corporate donations. In the future, 
                                 spectra that is uploaded to the tool will be incorporated to the reference 
-                                library to make it even better.")),
+                                library to make it even better."),
                             div(
-                                         downloadButton("downloadData6", i18n$t("Raman Reference Library"), style = "background-color: #2a9fd6;"),
-                                         downloadButton("downloadData5", i18n$t("FTIR Reference Library"), style = "background-color: #2a9fd6;"),
-                                         downloadButton("downloadData4", i18n$t("Raman Reference Library Metadata"), style = "background-color: #2a9fd6;"),
-                                         downloadButton("downloadData3", i18n$t("FTIR Reference Library Metadata"), style = "background-color: #2a9fd6;")
+                                         downloadButton("downloadData6", "Raman Reference Library", style = "background-color: #2a9fd6;"),
+                                         downloadButton("downloadData5", "FTIR Reference Library", style = "background-color: #2a9fd6;"),
+                                         downloadButton("downloadData4", "Raman Reference Library Metadata", style = "background-color: #2a9fd6;"),
+                                         downloadButton("downloadData3", "FTIR Reference Library Metadata", style = "background-color: #2a9fd6;")
                                   )
                               ),
 
                          containerfunction(
-                           h2(i18n$t("Contribute Spectra")),
-                           p(class = "lead", i18n$t("To share spectra upload a file to the upload file tab. 
+                           h2("Contribute Spectra"),
+                           p(class = "lead", "To share spectra upload a file to the upload file tab. 
                              If you selected Share a copy of your spectra will be sent to the Community 
                              Data Warehouse on Open Science Framework. To add additional metadata, 
                              fill in the avaliable metadata fields and click -Share Data-. The 
                              spectra file that you uploaded along with your responses will be copied 
                              to the a -With Metadata- subfolder at the link below. All shared data holds 
-                             a Creative Commons Attribution License 4.0.")),
+                             a Creative Commons Attribution License 4.0."),
                            div(
-                             a(i18n$t("Community Data Warehouse"),
+                             a("Community Data Warehouse",
                                onclick = "window.open('https://osf.io/rjg3c/', '_blank')",
                                class="btn btn-primary btn-lg")
                            )
                          ),
 
                             containerfunction(
-                              h2(i18n$t("Tool Validation")),
-                              p(class = "lead", i18n$t("All parameters in this tool are tested to validate that 
+                              h2("Tool Validation"),
+                              p(class = "lead", "All parameters in this tool are tested to validate that 
                                 the tool is functioning as best as possible and determine the best default 
                                 parameters to use. Our current validation proceedure includes correcting 
                                 duplicated entries in the reference libraries, checking for spectra in 
                                 metadata that isn't in the spectral library, and ensuring the the default 
-                                parameters provide over 80% accuracy in the first match.")
+                                parameters provide over 80% accuracy in the first match."
                                 ),
                               div(
-                                a(i18n$t("Detailed Validation Procedure"),
+                                a("Detailed Validation Procedure",
                                          onclick = "window.open('https://docs.google.com/document/d/1Zd2GY4bWIwegGeE4JpX8O0S5l_IYju0sLDl1ddTTMxU/edit?usp=sharing', '_blank')",
                                          class="btn btn-primary btn-lg")
                               )
@@ -462,10 +450,10 @@ ui <- fluidPage(
 
 
                        containerfunction(
-                         h2(i18n$t("Updates, Feature Requests, and Bug Reports")),
-                         p(class = "lead", i18n$t("We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub.")),
+                         h2("Updates, Feature Requests, and Bug Reports"),
+                         p(class = "lead", "We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub."),
                          div(
-                           a(i18n$t("Updates, Feature Requests, Bug Reports"),
+                           a("Updates, Feature Requests, Bug Reports",
                              onclick = "window.open('https://github.com/wincowgerDEV/OpenSpecy', '_blank')",
                              class="btn btn-primary btn-lg")
                          )
@@ -473,47 +461,47 @@ ui <- fluidPage(
                        ),
 
                       containerfunction(
-                        h2(i18n$t("Stay up to date!")),
-                        p(class = "lead", i18n$t("Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list."))
+                        h2("Stay up to date!"),
+                        p(class = "lead", "Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.")
                       ),
 
                       containerfunction(
-                        h2(i18n$t("Citation")),
+                        h2("Citation"),
                         p(class = "lead", citation)
                       ),
 
                       containerfunction(
                         h2("Useful Links"),
-                        a(href = "https://simple-plastics.eu/", i18n$t("Free FTIR Software: siMPle microplastic IR spectral identification software"), class = "lead"),
+                        a(href = "https://simple-plastics.eu/", "Free FTIR Software: siMPle microplastic IR spectral identification software", class = "lead"),
                         p(),
-                        a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", i18n$t("Free Spectroscopy Learning Academy from ThermoFisher"), class = "lead"),
+                        a(href = "https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html", "Free Spectroscopy Learning Academy from ThermoFisher", class = "lead"),
                         p(),
-                        a(href = "https://micro.magnet.fsu.edu/primer/", i18n$t("Free Optical Microscopy Learning Resource from Florida State University"), class = "lead"),
+                        a(href = "https://micro.magnet.fsu.edu/primer/", "Free Optical Microscopy Learning Resource from Florida State University", class = "lead"),
                         p(),
-                        a(href = "https://www.effemm2.de/spectragryph/index.html", i18n$t("Free desktop application for spectral analysis and links to reference databases."), class = "lead")
+                        a(href = "https://www.effemm2.de/spectragryph/index.html", "Free desktop application for spectral analysis and links to reference databases.", class = "lead")
                       ),
 
                        containerfunction(
-                         h2(i18n$t("Terms And Conditions")),
+                         h2("Terms And Conditions"),
                          pre(includeText("www/TOS.txt"))
                        ),
 
                       containerfunction(
-                        h2(i18n$t("Privacy Policy")),
+                        h2("Privacy Policy"),
                         pre(includeText("www/privacy_policy.txt"))
                       ),
               ),
 
               #Upload File Tab ----
-              tabPanel(i18n$t("Upload File"), value = "tab1",
-                       titlePanel(h4(i18n$t("Upload, View, and Share Spectra"))),
+              tabPanel("Upload File", value = "tab1",
+                       titlePanel(h4("Upload, View, and Share Spectra")),
                        br(),
                        fluidRow(
                          column(3, style = columnformat(),
-                                tags$label(i18n$t("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File")),
+                                tags$label("Choose .csv (preferred), .asp, .jdx, .spc, .spa, or .0 File"),
 
                                 prettySwitch("share_decision",
-                                             label = i18n$t("Share Your Data?"),
+                                             label = "Share Your Data?",
                                              inline = T,
                                              value = T,
                                              status = "success",
@@ -531,13 +519,13 @@ ui <- fluidPage(
                                 tags$br(),
 
                                 tags$div(downloadButton("download_testdata", 
-                                                        i18n$t("Sample File"), 
+                                                        "Sample File", 
                                                         style = "background-color: #2a9fd6;")),
                                
 
                                 tags$br(),
 
-                                actionButton("share_meta", i18n$t("Metadata Input"), style = "background-color: #2a9fd6;"),
+                                actionButton("share_meta", "Metadata Input", style = "background-color: #2a9fd6;"),
                                 
 
                                 hidden(
@@ -628,7 +616,7 @@ ui <- fluidPage(
 
 
                          column(9,
-                                plotcontainerfunction(h4(id = "placeholder1", i18n$t("Upload some data to get started...")), plotlyOutput("MyPlot")),
+                                plotcontainerfunction(h4(id = "placeholder1", "Upload some data to get started..."), plotlyOutput("MyPlot")),
                                 style = bodyformat()
 
                          ),
@@ -646,14 +634,14 @@ ui <- fluidPage(
 
 
               #Preprocess Spectrum Tab ----
-              tabPanel(i18n$t("Preprocess Spectrum"), value = "tab2",
-                       titlePanel(h4(i18n$t("Smooth, Baseline Correct, and Download Processed Spectra"))),
+              tabPanel("Preprocess Spectrum", value = "tab2",
+                       titlePanel(h4("Smooth, Baseline Correct, and Download Processed Spectra")),
                        br(),
                        fluidRow(
                            column(3, style = columnformat(),
                                 fluidRow(
                                   column(12,
-                                  downloadButton("downloadData", i18n$t("Download (recommended)"), style = "background-color: #2a9fd6;")
+                                  downloadButton("downloadData", "Download (recommended)", style = "background-color: #2a9fd6;")
                                     
                                     )
                                 ),
@@ -661,7 +649,7 @@ ui <- fluidPage(
                                 fluidRow(
                                   column(10,
                                          prettySwitch(inputId = "smooth_decision",
-                                             label = i18n$t("Smoothing"),
+                                             label = "Smoothing",
                                              inline = T,
                                              value = T,
                                              status = "success",
@@ -675,7 +663,7 @@ ui <- fluidPage(
                                 fluidRow(
                                   column(10,
                                   prettySwitch("baseline_decision",
-                                             label = i18n$t("Baseline Correction"),
+                                             label = "Baseline Correction",
                                              inline = T,
                                              value = T,
                                              status = "success",
@@ -689,7 +677,7 @@ ui <- fluidPage(
                                 fluidRow(
                                   column(10,
                                          prettySwitch("range_decision",
-                                             label = i18n$t("Range Selection"),
+                                             label = "Range Selection",
                                              inline = T,
                                              value = T,
                                              status = "success",
@@ -701,18 +689,18 @@ ui <- fluidPage(
                                 ),
                                 fluidRow(column(12,
                                               conditionalPanel("input.smooth_tools == true & input.smooth_decision == true",
-                                                   plotcontainerfunction(sliderInput("smoother", i18n$t("Smoothing Polynomial"), min = 0, max = 7, value = 3)
+                                                   plotcontainerfunction(sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3)
                                     )),
                                   conditionalPanel("input.baseline_tools == true & input.baseline_decision == true",
                                                    plotcontainerfunction(
-                                                     selectInput(inputId = "baseline_selection", label = i18n$t("Technique"), choices = c("Polynomial", "Manual")),
-                                                     sliderInput("baseline", i18n$t("Baseline Correction Polynomial"), min = 1, max = 20, value = 8),
+                                                     selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
+                                                     sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
                                                      fluidRow(
                                                      column(6,
-                                                            actionButton("go", i18n$t("Correct With Trace")),
+                                                            actionButton("go", "Correct With Trace"),
                                                      ),
                                                      column(6,
-                                                            actionButton("reset", i18n$t("Reset")),
+                                                            actionButton("reset", "Reset"),
                                                      )
                                                     )
                                                    )
@@ -722,7 +710,7 @@ ui <- fluidPage(
                                                    plotcontainerfunction(
                                                       numericInput(
                                                      "MaxRange",
-                                                     i18n$t("Maximum Spectral Range"),
+                                                     "Maximum Spectral Range",
                                                      value = 6000,
                                                      min = NA,
                                                      max = NA,
@@ -731,7 +719,7 @@ ui <- fluidPage(
                                                    ),
                                                    numericInput(
                                                      "MinRange",
-                                                     i18n$t("Minimum Spectral Range"),
+                                                     "Minimum Spectral Range",
                                                      value = 0,
                                                      min = NA,
                                                      max = NA,
@@ -746,7 +734,7 @@ ui <- fluidPage(
 
 
                          column(9,
-                                plotcontainerfunction(h4(id = "placeholder2", i18n$t("Upload some data to get started...")), plotlyOutput("MyPlotB")),
+                                plotcontainerfunction(h4(id = "placeholder2", "Upload some data to get started..."), plotlyOutput("MyPlotB")),
                                 #verbatimTextOutput(outputId = "text"),
                                 style = bodyformat()
 
@@ -763,8 +751,8 @@ ui <- fluidPage(
                        )),
 
               #Match Spectrum Tab ----
-              tabPanel(i18n$t("Identify Spectrum"),value = "tab3",
-                       titlePanel(h4(i18n$t("Identify Spectrum Using the Reference Library"))),
+              tabPanel("Identify Spectrum",value = "tab3",
+                       titlePanel(h4("Identify Spectrum Using the Reference Library")),
                        br(),
                        fluidRow(
                          column(3, style = columnformat(),
@@ -793,7 +781,7 @@ ui <- fluidPage(
                          ),
 
                          column(9,
-                                plotcontainerfunction(h4(id = "placeholder3", i18n$t("Upload some data to get started...")), plotlyOutput("MyPlotC"),
+                                plotcontainerfunction(h4(id = "placeholder3", "Upload some data to get started..."), plotlyOutput("MyPlotC"),
                                                       DT::dataTableOutput("eventmetadata")),
                                 style = bodyformat()
 
@@ -814,8 +802,8 @@ ui <- fluidPage(
               
              
               #Partner With Us tab ----
-              tabPanel(i18n$t("Partner With Us"),
-                       titlePanel(h4(i18n$t("Help us reach our goal of revolutionizing spectroscopy."))),
+              tabPanel("Partner With Us",
+                       titlePanel(h4("Help us reach our goal of revolutionizing spectroscopy.")),
                        fluidRow(
                          column(1),
                          column(9,
@@ -830,26 +818,26 @@ ui <- fluidPage(
                          column(1),
                                   column(3,
                                          plotcontainerfunction(
-                                         tags$h3(i18n$t("Donate Cash")),
+                                         tags$h3("Donate Cash"),
                                          icon = icon("shopping-cart"),
                                          img(src = "https://p.turbosquid.com/ts-thumb/rX/Wm1eqB/t5/currencysymbolsgoldensetc4dmodel000/jpg/1613802168/300x300/sharp_fit_q85/a31625492ce9c8009ab3e4281ad752006e1163ec/currencysymbolsgoldensetc4dmodel000.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
-                                         actionButton(inputId = "ab1", label = i18n$t("Donate"), style="padding:4px; background-color: #2a9fd6; font-size:200%", width = "100%",
+                                         actionButton(inputId = "ab1", label = "Donate", style="padding:4px; background-color: #2a9fd6; font-size:200%", width = "100%",
                                                       icon = icon("donate"),
                                                       onclick = "window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')")
                                          )),
                                   column(3,
-                                         plotcontainerfunction(tags$h3(i18n$t("Buy From Swag Store")),
+                                         plotcontainerfunction(tags$h3("Buy From Swag Store"),
                                          img(src = "https://image.spreadshirtmedia.com/image-server/v1/products/T813A823PA3132PT17X42Y46D1038541132FS4033/views/1,width=650,height=650,appearanceId=823/updated-logo-for-open-specy-designed-by-alex-mcgoran.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
-                                         actionButton(inputId = "ab2", label = i18n$t("Shop"), style="padding:4px; background-color: #2a9fd6; font-size:200%", width = "100%",
+                                         actionButton(inputId = "ab2", label = "Shop", style="padding:4px; background-color: #2a9fd6; font-size:200%", width = "100%",
                                                       icon = icon("shopping-cart"),
                                                       onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")
                                          )),
                                   column(3,
                                          plotcontainerfunction(
-                                           h2(i18n$t("Contribute time")),
+                                           h2("Contribute time"),
                                            #p(class = "lead", "We are looking for coders, moderators, spectroscopy experts, microplastic researchers, industry, government, and others to join the Open Specy team. Please contact Win at wincowger@gmail.com"),
                                            img(src = "https://health.sunnybrook.ca/wp-content/uploads/2020/02/healthy-hands-810x424.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
-                                           actionButton(inputId = "ab3", label = i18n$t("Guidelines"), style="padding:4px; background-color: #2a9fd6; font-size:200%", width = "100%",
+                                           actionButton(inputId = "ab3", label = "Guidelines", style="padding:4px; background-color: #2a9fd6; font-size:200%", width = "100%",
                                                         icon = icon("clock"),
                                                         onclick ="window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')")
                                          )
