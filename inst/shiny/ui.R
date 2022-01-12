@@ -134,7 +134,8 @@ ui <- fluidPage(
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
                     }
-                    "))#This is for the error messages.
+                    ")), 
+                    tags$link(rel = "icon", type = "image/png", href = "favicon.png")#This is for the error messages.
   ), # Google analytics.
   #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
   theme = shinytheme("cyborg"), # Change this for other themes
