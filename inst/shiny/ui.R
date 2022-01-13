@@ -12,7 +12,6 @@ library(shinyBS)
 library(dplyr)
 library(plotly)
 library(DT)
-library(purrr)
 
 # Name keys for human readable column names ----
 load("data/namekey.RData")

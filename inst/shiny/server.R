@@ -568,7 +568,7 @@ observeEvent(input$reset, {
   }
 
   output$tweets <- renderUI({
-    map(tweets, ~ render_tweet(.x))
+    lapply(tweets, render_tweet)
   })
 
 
