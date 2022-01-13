@@ -559,7 +559,7 @@ observeEvent(input$reset, {
   render_tweet <- function(x){renderUI({
     div(class = "inline-block",
         style = "display:inline-block; margin-left:4px;",
-        tags$blockquote(class = "twitter-tweet",
+        tags$blockquote(class = "twitter-tweet", `data-theme` = "dark",
                         style = "width: 600px; display:inline-block;" ,
                         tags$a(href = x)),
         tags$script('twttr.widgets.load(document.getElementById("tweet"));')
