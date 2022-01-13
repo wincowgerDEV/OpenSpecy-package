@@ -69,12 +69,12 @@ load_data <- function() {
               #"https://twitter.com/zsteinmetz_/status/1377222029250822146",
               #"https://twitter.com/OpenSpecy/status/1318214558549372928",
               "https://twitter.com/YokotaLimnoLab/status/1311069417892184065")
-  
+
   goals <- tibble(
-    Status =      c("Revolutionizing", 
-                    "Thriving", 
-                    "Maintaining", 
-                    "Supporting", 
+    Status =      c("Revolutionizing",
+                    "Thriving",
+                    "Maintaining",
+                    "Supporting",
                     "Saving"),
     Description = c("A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click",
                     "A single paid staff person working to update and build the community and the tool",
@@ -111,8 +111,6 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-  observe_helpers()
-  
   session_id <- digest(runif(10))
 
   # Loading overlay
@@ -127,10 +125,10 @@ server <- shinyServer(function(input, output, session) {
 #      q("no")
 #    })
 #  }
-  
+
   #brks <- seq(5, 320000, 1000)
   clrs <- colorRampPalette(c("white", "#6baed6"))(5 + 1)
-  
+
   output$event_goals <- DT::renderDataTable({
     datatable(goals,
               options = list(
@@ -139,7 +137,7 @@ server <- shinyServer(function(input, output, session) {
                              paging = FALSE,
                              searching = FALSE
                              #sDom  = '<"top">lrt<"bottom">ip',
-                             
+
                              ),
               caption = "Progress (current status selected)",
               style = "bootstrap",
@@ -149,7 +147,7 @@ server <- shinyServer(function(input, output, session) {
               #formatStyle(c("Annual Need"), backgroundColor = styleColorBar(color = clrs)),
               selection = list(mode = "single", selected = c(2)))
   })
-  
+
   #Reading Data and Startup ----
   # Sharing ID
   id <- reactive({
@@ -557,46 +555,39 @@ observeEvent(input$reset, {
       includeHTML("www/googletranslate.html")
     }
   })
-  #https://twitter.com/OpenSpecy/status/1472361269093023744
-  #https://twitter.com/EnviroMichaela/status/1471622640183959555
+
   render_tweet <- function(x){renderUI({
-      div(class = "inline-block", 
-          style = "display:inline-block; margin-left:4px;",
-        tags$blockquote(class = "twitter-tweet", 
+    div(class = "inline-block",
+        style = "display:inline-block; margin-left:4px;",
+        tags$blockquote(class = "twitter-tweet",
                         style = "width: 600px; display:inline-block;" ,
                         tags$a(href = x)),
         tags$script('twttr.widgets.load(document.getElementById("tweet"));')
     )
   })
   }
-  
-              
+
   output$tweets <- renderUI({
     map(tweets, ~ render_tweet(.x))
   })
 
-  # Translate page ----
-  observeEvent(input$selected_language, {
-    update_lang(session, input$selected_language)
-  })
 
-  
   # Log events ----
 
-observeEvent(input$go, {
-  if(conf$log) {
-    if(db) {
-      database$insert(data.frame(user_name = input$fingerprint,
-                                 session_name = session_id,
-                                 wavenumber = trace$data$wavenumber,
-                                 intensity = trace$data$intensity,
-                                 data_id = digest::digest(preprocessed_data(),
-                                                          algo = "md5"),
-                                 ipid = input$ipid,
-                                 time = human_ts()))
-      }
-  }
-})
+  observeEvent(input$go, {
+    if(conf$log) {
+      if(db) {
+        database$insert(data.frame(user_name = input$fingerprint,
+                                   session_name = session_id,
+                                   wavenumber = trace$data$wavenumber,
+                                   intensity = trace$data$intensity,
+                                   data_id = digest::digest(preprocessed_data(),
+                                                            algo = "md5"),
+                                   ipid = input$ipid,
+                                   time = human_ts()))
+        }
+    }
+  })
 
   observe({
     req(input$file1)

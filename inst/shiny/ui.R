@@ -126,7 +126,7 @@ ui <- fluidPage(
 
   # Script for all pages ----
   # Required for any of the shinyjs functions.
-  shinyjs::useShinyjs(), 
+  shinyjs::useShinyjs(),
   #extendShinyjs(text = "shinyjs.resetClick = function() { Shiny.onInputChange('.clientValue-plotly_click-A', 'null'); }", functions = "resetClick"),
   inputIp("ipid"),
   inputUserid("fingerprint"),
@@ -138,12 +138,12 @@ ui <- fluidPage(
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
                     }
-                    ")), 
+                    ")),
                     tags$link(rel = "icon", type = "image/png", href = "favicon.png")
                     #This is for the error messages.
-  ), 
+  ),
   #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
-  theme = shinytheme("cyborg"), 
+  theme = shinytheme("cyborg"),
   # Change this for other themes
   setBackgroundImage("jumbotron.png"),
 
@@ -166,10 +166,10 @@ ui <- fluidPage(
 
              #Title Panel ----
   titlePanel(
-    
+
     fluidRow(
       column(10, align = "left", img(src = "logo.png", width = 300, height = 75)),
-      column(2, align = "right", 
+      column(2, align = "right",
              div(style = "width: 90%;
                             padding: 15px;
                             font-size: 14pt;
@@ -182,12 +182,12 @@ ui <- fluidPage(
              )
              )
     ), windowTitle = "Open Specy"
-  ), 
+  ),
   # About Tab ----
   tabsetPanel(id = "tabs",
               tabPanel("About", value = "tab0",
                        #Popovers ----
-                       
+
                        bsPopover(
                          id = "download_testdata",
                          title = "Sample Data Help",
@@ -270,32 +270,32 @@ ui <- fluidPage(
                        bsPopover(
                          id = "intensity_corr",
                          title = "Intensity Correction Help",
-                         content = "If the uploaded spectrum is not in absorbance units, 
-                                              use this input to specify the units to convert from.The transmittance adjustment 
-                                              uses the log10(1/T) calculation which does not correct for system 
-                                              and particle characteristics. The reflectance adjustment uses the 
-                                              Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance 
+                         content = "If the uploaded spectrum is not in absorbance units,
+                                              use this input to specify the units to convert from.The transmittance adjustment
+                                              uses the log10(1/T) calculation which does not correct for system
+                                              and particle characteristics. The reflectance adjustment uses the
+                                              Kubelka-Munk equation (1-R)2/(2*R). We assume that the reflectance
                                               is formatted as a percent from 1-100 and first correct the intensity by dividing by 100
                                               so that it fits the form expected by the equation.
-                                              If none is selected, Open Specy assumes that the uploaded data is 
+                                              If none is selected, Open Specy assumes that the uploaded data is
                                               an absorbance spectrum.",
                          placement = "bottom",
                          trigger = "hover"
                        ),
                          containerfunction(
                            h2("Welcome"),
-                             p(class = "lead", "Join the hundreds of researchers from around 
-                               the world who are part of the Open Specy community by 
-                               analyzing, sharing, processing, and identifying 
+                             p(class = "lead", "Join the hundreds of researchers from around
+                               the world who are part of the Open Specy community by
+                               analyzing, sharing, processing, and identifying
                                their Raman and IR spectra. These services are
                                free and open source thanks to our partners:"),
                           fluidRow(
                             column(6, img(src = "dancing.jpg", width = "100%")
                             ),
-                            column(6,                            
+                            column(6,
                                    h3("Monetary Partners"),
                                    panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
-                                         
+
                                div(class = "jumbotron",
                               style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
@@ -370,7 +370,7 @@ ui <- fluidPage(
                               )
                           )
                         )
-                          
+
                            )
                           ),
                        containerfunction(
@@ -382,7 +382,7 @@ ui <- fluidPage(
                                 )
                             )
                         ),
-                       
+
                          containerfunction(
                            h2("Quick Video Tutorial"),
                                  HTML("<iframe width='560' height='315' src='https://www.youtube-nocookie.com/embed/w55WGtV2Dz4' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe>")
@@ -406,9 +406,9 @@ ui <- fluidPage(
 
                           containerfunction(
                             h2("Download Open Data"),
-                            p(class = "lead", "Reference spectra was sourced from open access resources 
-                                online, peer reviewed publications, and corporate donations. In the future, 
-                                spectra that is uploaded to the tool will be incorporated to the reference 
+                            p(class = "lead", "Reference spectra was sourced from open access resources
+                                online, peer reviewed publications, and corporate donations. In the future,
+                                spectra that is uploaded to the tool will be incorporated to the reference
                                 library to make it even better."),
                             div(
                                          downloadButton("downloadData6", "Raman Reference Library", style = "background-color: #2a9fd6;"),
@@ -420,12 +420,12 @@ ui <- fluidPage(
 
                          containerfunction(
                            h2("Contribute Spectra"),
-                           p(class = "lead", "To share spectra upload a file to the upload file tab. 
-                             If you selected Share a copy of your spectra will be sent to the Community 
-                             Data Warehouse on Open Science Framework. To add additional metadata, 
-                             fill in the avaliable metadata fields and click -Share Data-. The 
-                             spectra file that you uploaded along with your responses will be copied 
-                             to the a -With Metadata- subfolder at the link below. All shared data holds 
+                           p(class = "lead", "To share spectra upload a file to the upload file tab.
+                             If you selected Share a copy of your spectra will be sent to the Community
+                             Data Warehouse on Open Science Framework. To add additional metadata,
+                             fill in the avaliable metadata fields and click -Share Data-. The
+                             spectra file that you uploaded along with your responses will be copied
+                             to the a -With Metadata- subfolder at the link below. All shared data holds
                              a Creative Commons Attribution License 4.0."),
                            div(
                              a("Community Data Warehouse",
@@ -436,11 +436,11 @@ ui <- fluidPage(
 
                             containerfunction(
                               h2("Tool Validation"),
-                              p(class = "lead", "All parameters in this tool are tested to validate that 
-                                the tool is functioning as best as possible and determine the best default 
-                                parameters to use. Our current validation proceedure includes correcting 
-                                duplicated entries in the reference libraries, checking for spectra in 
-                                metadata that isn't in the spectral library, and ensuring the the default 
+                              p(class = "lead", "All parameters in this tool are tested to validate that
+                                the tool is functioning as best as possible and determine the best default
+                                parameters to use. Our current validation proceedure includes correcting
+                                duplicated entries in the reference libraries, checking for spectra in
+                                metadata that isn't in the spectral library, and ensuring the the default
                                 parameters provide over 80% accuracy in the first match."
                                 ),
                               div(
@@ -513,22 +513,22 @@ ui <- fluidPage(
                                           accept=c("text/csv",
                                                    "text/comma-separated-values,text/plain",
                                                    ".csv", ".asp", ".spc", ".jdx", ".spa", ".0")),
-                               
+
 
                                 radioButtons("intensity_corr", "Intensity Adjustment",
                                              c("None" = "none",
                                                "Transmittance" = "transmittance", "Reflectance" = "reflectance")),
                                 tags$br(),
 
-                                tags$div(downloadButton("download_testdata", 
-                                                        "Sample File", 
+                                tags$div(downloadButton("download_testdata",
+                                                        "Sample File",
                                                         style = "background-color: #2a9fd6;")),
-                               
+
 
                                 tags$br(),
 
                                 actionButton("share_meta", "Metadata Input", style = "background-color: #2a9fd6;"),
-                                
+
 
                                 hidden(
                                   textInput(names(namekey)[1],
@@ -644,7 +644,7 @@ ui <- fluidPage(
                                 fluidRow(
                                   column(12,
                                   downloadButton("downloadData", "Download (recommended)", style = "background-color: #2a9fd6;")
-                                    
+
                                     )
                                 ),
                                 tags$br(),
@@ -670,7 +670,7 @@ ui <- fluidPage(
                                              value = T,
                                              status = "success",
                                              fill = T),
-                                  
+
                                     ),
                                 column(2,
                                        prettyCheckbox("baseline_tools", label = "adv", icon = icon("gear"), status = "warning", shape = "square"),
@@ -706,8 +706,8 @@ ui <- fluidPage(
                                                      )
                                                     )
                                                    )
-                                                   
-                                                   ), 
+
+                                                   ),
                                   conditionalPanel("input.range_tools == true & input.range_decision == true",
                                                    plotcontainerfunction(
                                                       numericInput(
@@ -801,8 +801,8 @@ ui <- fluidPage(
                          column(3)
 
                        )),
-              
-             
+
+
               #Partner With Us tab ----
               tabPanel("Partner With Us",
                        titlePanel(h4("Help us reach our goal to revolutionize spectroscopy.")),
