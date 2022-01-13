@@ -124,7 +124,7 @@ bodyformat <- function() {
 # UI ----
 ui <- fluidPage(
 
-  #Script for all pages ----
+  # Script for all pages ----
   # Required for any of the shinyjs functions.
   shinyjs::useShinyjs(), 
   #extendShinyjs(text = "shinyjs.resetClick = function() { Shiny.onInputChange('.clientValue-plotly_click-A', 'null'); }", functions = "resetClick"),
@@ -140,16 +140,16 @@ ui <- fluidPage(
                     }
                     ")), 
                     tags$link(rel = "icon", type = "image/png", href = "favicon.png")
-            #This is for the error messages.
+                    #This is for the error messages.
   ), 
   #theme = bs_theme(fg = "#F9FBFA", bootswatch = "cyborg", bg = "#060606"),
   theme = shinytheme("cyborg"), 
- # Change this for other themes
+  # Change this for other themes
   setBackgroundImage("jumbotron.png"),
 
   shinyjs::inlineCSS(appCSS),
 
- #Startup ----
+  # Startup ----
   div(
     id = "loading_overlay",
     h2("Loading Open Specy"),
