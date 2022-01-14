@@ -294,13 +294,6 @@ ui <- fluidPage(
                             column(6,
                                    h3("Monetary Partners"),
                                    panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
-
-                               div(class = "jumbotron",
-                              style = "padding:0rem 1rem 0rem;
-                               border:solid #f7f7f9;
-                              background-color:rgb(255, 215, 0, 0.5)",
-                            h3("Revolutionizing (>100,000$)")
-                          ),
                            div(class = "jumbotron",
                                style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
@@ -340,12 +333,6 @@ ui <- fluidPage(
                           ),
                           h3("In-Kind Partners"),
                           panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
-                                div(class = "jumbotron",
-                                    style = "padding:0rem 1rem 0rem;
-                               border:solid #f7f7f9;
-                              background-color:rgb(255, 215, 0, 0.5)",
-                              h3("Revolutionizing (>100,000$)")
-                                ),
                               div(class = "jumbotron",
                                   style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
