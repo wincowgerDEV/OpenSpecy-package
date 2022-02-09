@@ -68,7 +68,8 @@ load_data <- function() {
               #"https://twitter.com/OpenSpecy/status/1382820319635775488",
               #"https://twitter.com/zsteinmetz_/status/1377222029250822146",
               #"https://twitter.com/OpenSpecy/status/1318214558549372928",
-              "https://twitter.com/YokotaLimnoLab/status/1311069417892184065")
+              "https://twitter.com/YokotaLimnoLab/status/1311069417892184065") %>%
+    sample(2)
 
   goals <- tibble(
     Status =      c("Revolutionizing",
@@ -567,8 +568,12 @@ observeEvent(input$reset, {
   })
   }
 
-  output$tweets <- renderUI({
-    lapply(tweets, render_tweet)
+  output$tweet1 <- renderUI({
+    render_tweet(tweets[1])
+  })
+
+  output$tweet2 <- renderUI({
+    render_tweet(tweets[2])
   })
 
 

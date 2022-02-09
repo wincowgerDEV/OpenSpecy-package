@@ -18,13 +18,11 @@ load("data/namekey.RData")
 
 version <- paste0("Open Specy v", packageVersion("OpenSpecy"))
 citation <- HTML(
-  paste(
-  "Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S, De",
-  "Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral",
-  "Classification Needs an Open Source Community: Open Specy to the Rescue!”",
-  "<i>Analytical Chemistry</i>, <b>93</b>(21), 7543–7548. doi:",
-  "<a href='https://doi.org/10.1021/acs.analchem.1c00123'>10.1021/acs.analchem.1c00123</a>."
-  )
+  "Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S, De
+  Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral
+  Classification Needs an Open Source Community: Open Specy to the Rescue!”
+  <i>Analytical Chemistry</i>, <b>93</b>(21), 7543–7548. doi:
+  <a href='https://doi.org/10.1021/acs.analchem.1c00123'>10.1021/acs.analchem.1c00123</a>."
 )
 
 # Functions ----
@@ -133,6 +131,7 @@ ui <- fluidPage(
 
   tags$head(tags$style(css),
             tags$script(async = NA, src = "https://platform.twitter.com/widgets.js"),
+            tags$script(async = T, src = "https://buttons.github.io/buttons.js"),
             tags$style(HTML("
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
@@ -281,92 +280,126 @@ ui <- fluidPage(
                          placement = "bottom",
                          trigger = "hover"
                        ),
-                         containerfunction(
-                           h2("Welcome"),
-                             p(class = "lead", "Join the hundreds of researchers from around
-                               the world who are part of the Open Specy community by
+                       containerfunction(
+                         h2("Welcome"),
+                         fluidRow(
+                           column(9,
+                                  p(class = "lead", "Join the hundreds of
+                               researchers from around the world who are part of
+                               the Open Specy community by
                                analyzing, sharing, processing, and identifying
-                               their Raman and IR spectra. These services are
-                               free and open source thanks to our partners:"),
-                          fluidRow(
-                            column(6, img(src = "dancing.jpg", width = "100%")
-                            ),
-                            column(6,
-                                   h3("Monetary Partners"),
-                                   panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
-                           div(class = "jumbotron",
-                               style = "padding:0rem 1rem 0rem;
+                               their Raman and IR spectra."),
+                                  p(class = "lead",
+                                      HTML("<span style='position: relative; top:.6ex;'><a
+                                      href='https://twitter.com/OpenSpecy?ref_src=twsrc%5Etfw'
+                                      class='twitter-follow-button' data-size='large' data-dnt='true'
+                                      data-show-count='false'>
+                                      Follow @OpenSpecy</a></span>
+                                      on Twitter")
+                                    ),
+                                  p(class = "lead",
+                                    HTML("<span style='position: relative; top:.8ex;'><a
+                                    class='github-button' href='https://github.com/wincowgerDEV/OpenSpecy/subscription'
+                                    data-color-scheme='no-preference: dark; light: dark; dark: dark;'
+                                    data-size='large' aria-label='Watch wincowgerDEV/OpenSpecy'>Watch</a></span>
+                                    us develop Open Specy on GitHub, file an
+                                    <span style='position: relative; top:.8ex;'><a
+                                    class='github-button'
+                                    href='https://github.com/wincowgerDEV/OpenSpecy/issues'
+                                    data-color-scheme='no-preference: dark; light: dark; dark: dark;'
+                                    data-icon='octicon-issue-opened' data-size='large'
+                                    aria-label='Issue wincowgerDEV/OpenSpecy on GitHub'>Issue</a></span>,
+                                    or request a feature")
+                                  ),
+                                  p(class = "lead",
+                                    HTML("Or just e-mail <a href='mailto:wincowger@gmail.com?subject=Open Specy mailing list'>
+                                          wincowger@gmail.com</a>
+                                          to be added to the Open Specy mailing list"),
+                                  ),
+                                  br(),
+                                  h3("Citation"),
+                                  p(class = "lead", citation),
+                                  br(),br(),
+                                  p(class = "lead", "Open Specy is free and open
+                               source thanks to our partners:")),
+                           column(3, img(src = "dancing.jpg", width = "100%")
+                           )
+                         ),
+                         fluidRow(
+                           column(6,
+                                  h3("Monetary Partners"),
+                                  panel(style = "align: centre",
+                                        div(class = "jumbotron",
+                                            style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(205, 127, 50, 0.5)",
-                             h3("Thriving (10,000–100,000$)"),
-                             img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem", height = 100),
-                             h4("Mcpike Zima Charitable Foundation")
-                           ),
-                           div(class = "jumbotron",
-                               style = "padding:0rem 1rem 0rem;
+                                            h3("Thriving (10,000–100,000$)"),
+                                            img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "padding:1rem", height = 100),
+                                            h4("Mcpike Zima Charitable Foundation")
+                                        ),
+                                        div(class = "jumbotron",
+                                            style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(3, 252, 15, 0.5)",
-                             h3("Maintaining (1,000–10,000$)"),
-                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem", height = 50),
-                             img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "padding:1rem", height = 50),
-                             img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "padding:1rem",  height = 50),
-                             img(src = "https://www.hpu.edu/_global/images/header-logo.png", style = "padding:1rem",  height = 50),
-                             img(src = "https://www.nist.gov/libraries/nist-component-library/dist/img/logo/nist_logo_sidestack_rev.svg", style = "padding:1rem",  height = 50),
-                             img(src = "https://www.utoronto.ca/sites/all/themes/uoft_stark/img/U-of-T-logo.svg", style = "padding:1rem",  height = 50),
-                             img(src = "https://www.uni-koblenz-landau.de/logo.png", style = "padding:1rem",  height = 50),
-                             img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", style = "padding:1rem", height = 50)
-                           ),
-                           div(class = "jumbotron",
-                               style = "padding:0rem 1rem 0rem;
+                                            h3("Maintaining (1,000–10,000$)"),
+                                            img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "padding:1rem", height = 50),
+                                            img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "padding:1rem", height = 50),
+                                            img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "padding:1rem",  height = 50),
+                                            img(src = "https://www.hpu.edu/_global/images/header-logo.png", style = "padding:1rem",  height = 50),
+                                            img(src = "https://www.nist.gov/libraries/nist-component-library/dist/img/logo/nist_logo_sidestack_rev.svg", style = "padding:1rem",  height = 50),
+                                            img(src = "https://www.utoronto.ca/sites/all/themes/uoft_stark/img/U-of-T-logo.svg", style = "padding:1rem",  height = 50),
+                                            img(src = "https://www.uni-koblenz-landau.de/logo.png", style = "padding:1rem",  height = 50),
+                                            img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", style = "padding:1rem", height = 50)
+                                        ),
+                                        div(class = "jumbotron",
+                                            style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(0, 0, 255, 0.5)",
-                             h3("Supporting (100–1,000$)"),
-                             h5( "Jennifer Gadd")
-                           ),
-                           div(class = "jumbotron",
-                               style = "padding:0rem 1rem 0rem;
+                                            h3("Supporting (100–1,000$)"),
+                                            h5( "Jennifer Gadd")
+                                        ),
+                                        div(class = "jumbotron",
+                                            style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(128, 0, 128, 0.5)",
-                               h3("Saving (<100$)"),
-                               h6("Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
-                           )
-                          ),
-                          h3("In-Kind Partners"),
-                          panel(style = "overflow-y:scroll; max-height: 300px;  align: centre",
-                              div(class = "jumbotron",
-                                  style = "padding:0rem 1rem 0rem;
-                               border:solid #f7f7f9;
-                               background-color:rgb(205, 127, 50, 0.5)",
-                               h3("Thriving (10,000–100,000$)"),
-                               h4("Win Cowger, Zacharias Steinmetz")
-                              ),
-                              div(class = "jumbotron",
-                                  style = "padding:0rem 1rem 0rem;
-                               border:solid #f7f7f9;
-                               background-color:rgb(3, 252, 15, 0.5)",
-                               h3("Maintaining (1,000–10,000$)"),
-                               h5("Sebastian Primpke, Andrew Gray, Chelsea Rochman, Orestis Herodotu, Hannah De Frond, Keenan Munno, Hannah Hapich, Jennifer Lynch")
-                              ),
-                              div(class = "jumbotron",
-                                  style = "padding:0rem 1rem 0rem;
-                               border:solid #f7f7f9;
-                               background-color:rgb(0, 0, 255, 0.5)",
-                               h3("Supporting (100–1,000$)"),
-                               h6( "Shreyas Patankar, Andrea Faltynkova, Alexandre Dehaut, Gabriel Erni Cassola, Aline Carvalho")
-                              )
-                          )
-                        )
-
-                           )
-                          ),
+                                            h3("Saving (<100$)"),
+                                            h6("Susanne Brander (Oregon State University), Jeremy Conkle (TEXAS  A&M  UNIVERSITY  CORPUS  CHRISTI)")
+                                        )
+                                  )
+                           ),
+                           column(6,
+                                  h3("In-Kind Partners"),
+                                  panel(style = "align: centre",
+                                        div(class = "jumbotron",
+                                            style = "padding:0rem 1rem 0rem;
+                                    border:solid #f7f7f9;
+                                    background-color:rgb(205, 127, 50, 0.5)",
+                                            h3("Thriving (10,000–100,000$)"),
+                                            h4("Win Cowger, Zacharias Steinmetz")
+                                        ),
+                                        div(class = "jumbotron",
+                                            style = "padding:0rem 1rem 0rem;
+                                    border:solid #f7f7f9;
+                                    background-color:rgb(3, 252, 15, 0.5)",
+                                            h3("Maintaining (1,000–10,000$)"),
+                                            h5("Sebastian Primpke, Andrew Gray, Chelsea Rochman, Orestis Herodotu, Hannah De Frond, Keenan Munno, Hannah Hapich, Jennifer Lynch")
+                                        ),
+                                        div(class = "jumbotron",
+                                            style = "padding:0rem 1rem 0rem;
+                                    border:solid #f7f7f9;
+                                    background-color:rgb(0, 0, 255, 0.5)",
+                                            h3("Supporting (100–1,000$)"),
+                                            h6( "Shreyas Patankar, Andrea Faltynkova, Alexandre Dehaut, Gabriel Erni Cassola, Aline Carvalho")
+                                        )
+                                  ))
+                         )
+                       ),
                        containerfunction(
                          h2("Testimonials"),
-                        fluidRow(column(12, style = "height: 400px;
-                                        width: 650px;
-                                        overflow-y:scroll;",
-                                uiOutput("tweets"),
-                                )
-                            )
+                        fluidRow(
+                          column(6, uiOutput("tweet1")),
+                          column(6, uiOutput("tweet2"))
+                          )
                         ),
 
                          containerfunction(
@@ -375,19 +408,22 @@ ui <- fluidPage(
                               ),
                        containerfunction(
                          h2("Instructions"),
-                         p(class = "lead", "In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
+                         fluidRow(
+                           column(6,
+                                  HTML("<iframe width='560' height='315' src='https://www.youtube-nocookie.com/embed/JjhCdhjdcRY' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe>")
+                                  ),
+                           column(6,
+                                  p(class = "lead", "In Brief: To use the tool upload a csv, asp, jdx, spc, or spa file to the upload file tab.
                                   If csv, one column should be named 'wavenumber' (in units of 1/cm) and another named 'intensity'.
                                   You can smooth your data using an SG filter, baseline correct your data using the polynomial order of iModPolyFit, and restrict the wavelength range for the match.
                                   The result will be compared to an internal Raman or FTIR spectra library. The strongest 1000 matches along with your
                                   uploaded or processed data will be presented in an interactive plot and table. For more details click the button below
                                   or watch the detailed instructional video."),
-                         a("Detailed Standard Operating Procedure",
-                           onclick = "window.open('https://cran.r-project.org/web/packages/OpenSpecy/vignettes/sop.html', '_blank')",
-                           class="btn btn-primary btn-lg"),
-                         br(),
-                         br(),
-                         HTML("<iframe width='560' height='315' src='https://www.youtube-nocookie.com/embed/JjhCdhjdcRY' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe>")
-
+                                  a("Detailed Standard Operating Procedure",
+                                    onclick = "window.open('https://cran.r-project.org/web/packages/OpenSpecy/vignettes/sop.html', '_blank')",
+                                    class="btn btn-primary btn-lg")
+                                  )
+                         )
                        ),
 
                           containerfunction(
@@ -435,28 +471,6 @@ ui <- fluidPage(
                                          class="btn btn-primary btn-lg")
                               )
                             ),
-
-
-                       containerfunction(
-                         h2("Updates, Feature Requests, and Bug Reports"),
-                         p(class = "lead", "We keep track of all updates using version control on our code. Features can be requested and bug reported on GitHub."),
-                         div(
-                           a("Updates, Feature Requests, Bug Reports",
-                             onclick = "window.open('https://github.com/wincowgerDEV/OpenSpecy', '_blank')",
-                             class="btn btn-primary btn-lg")
-                         )
-
-                       ),
-
-                      containerfunction(
-                        h2("Stay up to date!"),
-                        p(class = "lead", "Follow us on Twitter @OpenSpecy. E-mail wincowger@gmail.com to be added to the mailing list.")
-                      ),
-
-                      containerfunction(
-                        h2("Citation"),
-                        p(class = "lead", citation)
-                      ),
 
                       containerfunction(
                         h2("Useful Links"),
