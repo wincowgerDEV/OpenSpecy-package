@@ -207,7 +207,7 @@ ui <- fluidPage(
                                  trigger = "hover"),
                        bsPopover(
                          id = "smooth_decision",
-                         title = "Smoother Help",
+                         title = "Smoothing Help",
                          content = "This smoother can enhance the signal to noise ratio of the data and uses a Savitzky-Golay filter with 12 running data points and the polynomial specified.",
                          placement = "bottom",
                          trigger = "hover"
@@ -223,6 +223,27 @@ ui <- fluidPage(
                          id = "range_decision",
                          title = "Spectral Range Help",
                          content = "Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "smooth_tools",
+                         title = "Smoothing Help",
+                         content = "Toggle advanced smoothing options",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "baseline_tools",
+                         title = "Baseline Correction Help",
+                         content = "Toggle advanced options for baseline corrections",
+                         placement = "bottom",
+                         trigger = "hover"
+                       ),
+                       bsPopover(
+                         id = "range_tools",
+                         title = "Spectral Range Help",
+                         content = "Toggle advanced range selection",
                          placement = "bottom",
                          trigger = "hover"
                        ),
@@ -643,13 +664,19 @@ ui <- fluidPage(
                            column(3, style = columnformat(),
                                 fluidRow(
                                   column(12,
-                                  downloadButton("downloadData", "Download (recommended)", style = "background-color: #2a9fd6;")
+                                  downloadButton("downloadData", "Download (recommended)",
+                                                 style = "background-color: #2a9fd6;")
 
                                     )
                                 ),
-                                tags$br(),
+                                br(),
                                 fluidRow(
-                                  column(10,
+                                  column(9, ""),
+                                  column(3, align = "center", tags$label("Options"))
+                                ),
+                                br(),
+                                fluidRow(
+                                  column(9,
                                          prettySwitch(inputId = "smooth_decision",
                                              label = "Smoothing",
                                              inline = T,
@@ -657,13 +684,21 @@ ui <- fluidPage(
                                              status = "success",
                                              fill = T)
                                       ),
-                                  column(2,
-                                         prettyCheckbox("smooth_tools", label = "adv",  icon = icon("gear"), status = "warning", shape = "square"),
+                                  column(3, align = "center",
+                                         prettyToggle("smooth_tools",
+                                                      icon_on = icon("eye-slash"),
+                                                      icon_off = icon("eye"),
+                                                      label_on = NULL, label_off = NULL,
+                                                      status_on = "danger",
+                                                      status_off = "success",
+                                                      outline = TRUE,
+                                                      plain = TRUE,
+                                                      bigger = T),
                                   )
                                 ),
 
                                 fluidRow(
-                                  column(10,
+                                  column(9,
                                   prettySwitch("baseline_decision",
                                              label = "Baseline Correction",
                                              inline = T,
@@ -672,12 +707,20 @@ ui <- fluidPage(
                                              fill = T),
 
                                     ),
-                                column(2,
-                                       prettyCheckbox("baseline_tools", label = "adv", icon = icon("gear"), status = "warning", shape = "square"),
+                                column(3, align = "center",
+                                       prettyToggle("baseline_tools",
+                                                    icon_on = icon("eye-slash"),
+                                                    icon_off = icon("eye"),
+                                                    label_on = NULL, label_off = NULL,
+                                                    status_on = "danger",
+                                                    status_off = "success",
+                                                    outline = TRUE,
+                                                    plain = TRUE,
+                                                    bigger = T),
                                    )
                                 ),
                                 fluidRow(
-                                  column(10,
+                                  column(9,
                                          prettySwitch("range_decision",
                                              label = "Range Selection",
                                              inline = T,
@@ -685,17 +728,26 @@ ui <- fluidPage(
                                              status = "success",
                                              fill = T)
                                   ),
-                                  column(2,
-                                         prettyCheckbox("range_tools", label = "adv", icon = icon("gear"), status = "warning", shape = "square")
+                                  column(3, align = "center",
+                                         prettyToggle("range_tools",
+                                                      icon_on = icon("eye-slash"),
+                                                      icon_off = icon("eye"),
+                                                      label_on = NULL, label_off = NULL,
+                                                      status_on = "danger",
+                                                      status_off = "success",
+                                                      outline = TRUE,
+                                                      plain = TRUE,
+                                                      bigger = T),
                                   )
                                 ),
+                                br(),
                                 fluidRow(column(12,
                                               conditionalPanel("input.smooth_tools == true & input.smooth_decision == true",
                                                    plotcontainerfunction(sliderInput("smoother", "Smoothing Polynomial", min = 0, max = 7, value = 3)
                                     )),
                                   conditionalPanel("input.baseline_tools == true & input.baseline_decision == true",
                                                    plotcontainerfunction(
-                                                     selectInput(inputId = "baseline_selection", label = "Technique", choices = c("Polynomial", "Manual")),
+                                                     selectInput(inputId = "baseline_selection", label = "Baseline Correction Technique", choices = c("Polynomial", "Manual")),
                                                      sliderInput("baseline", "Baseline Correction Polynomial", min = 1, max = 20, value = 8),
                                                      fluidRow(
                                                      column(6,
