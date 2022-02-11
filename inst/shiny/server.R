@@ -32,7 +32,7 @@ library(OpenSpecy)
 #library(bslib)
 
 # Global config ----
-conf <- config::get()
+conf <- config::get() #Add config = "shinyapps" for ec2 server
 
 # Logging ----
 if(conf$log) {
