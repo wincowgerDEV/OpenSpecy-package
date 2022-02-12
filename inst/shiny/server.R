@@ -7,7 +7,7 @@
 # Check for Auth Tokens and setup, you can change these to test the triggering
 # of functions without removing the files.
 droptoken <- file.exists("data/droptoken.rds")
-db <- file.exists(".db_url")
+db <- file.exists(".db_url") #reminder, this will break if you login to a new wifi network even with the token.
 translate <- file.exists("www/googletranslate.html")
 
 # Libraries ----
@@ -23,7 +23,6 @@ library(curl)
 library(config)
 library(mongolite)
 library(loggit)
-
 if(droptoken) library(rdrop2)
 
 #devtools::install_github("wincowgerDEV/OpenSpecy")
@@ -33,7 +32,7 @@ library(OpenSpecy)
 #library(bslib)
 
 # Global config ----
-conf <- config::get()
+conf <- config::get() #Add config = "shinyapps" for ec2 server
 
 # Logging ----
 if(conf$log) {
@@ -46,15 +45,37 @@ if(conf$log) {
 
 # Load all data ----
 load_data <- function() {
-  costs <- fread("data/costs.csv")
-  donations <- fread("data/donations.csv")
+
   testdata <- raman_hdpe
 
+  tweets <- c("https://twitter.com/EnviroMichaela/status/1471622640183959555",
+              #"https://twitter.com/OpenSpecy/status/1472361269093023744",
+              "https://twitter.com/DSemensatto/status/1461038613903380484",
+              "https://twitter.com/SETAC_plastics/status/1460738878101356544",
+              "https://twitter.com/AliciaMateos_/status/1460197329760313344",
+              "https://twitter.com/Irreverent_KUP/status/1454418069036568578",
+              "https://twitter.com/PeterPuskic/status/1454267818166210561",
+              "https://twitter.com/JannesJegminat/status/1427257468384681985",
+              "https://twitter.com/pnwmicroplastic/status/1415730821730734080",
+              #"https://twitter.com/OpenSpecy/status/1408391168745000961",
+              "https://twitter.com/ToMExApp/status/1399859256615079936",
+              "https://twitter.com/kat_lasdin/status/1399576094622175241",
+              "https://twitter.com/an_chem/status/1397621113421803521",
+              "https://twitter.com/WarrierAnish/status/1395245636967014401",
+              "https://twitter.com/EnviroMichaela/status/1395199312645300233",
+              "https://twitter.com/SocAppSpec/status/1392883693027430400",
+              #"https://twitter.com/zsteinmetz_/status/1387677422028480512",
+              #"https://twitter.com/OpenSpecy/status/1382820319635775488",
+              #"https://twitter.com/zsteinmetz_/status/1377222029250822146",
+              #"https://twitter.com/OpenSpecy/status/1318214558549372928",
+              "https://twitter.com/YokotaLimnoLab/status/1311069417892184065") %>%
+    sample(2)
+
   goals <- tibble(
-    Status =      c("Revolutionizing", 
-                    "Thriving", 
-                    "Maintaining", 
-                    "Supporting", 
+    Status =      c("Revolutionizing",
+                    "Thriving",
+                    "Maintaining",
+                    "Supporting",
                     "Saving"),
     Description = c("A paid team that is pushing Open Specy closer to the ultimate goal of 100% accurate spectral identification and deep spectral diagnostics with a single click",
                     "A single paid staff person working to update and build the community and the tool",
@@ -91,7 +112,6 @@ load_data <- function() {
 server <- shinyServer(function(input, output, session) {
   #For theming
   #bs_themer()
-
   session_id <- digest(runif(10))
 
   # Loading overlay
@@ -106,10 +126,10 @@ server <- shinyServer(function(input, output, session) {
 #      q("no")
 #    })
 #  }
-  
+
   #brks <- seq(5, 320000, 1000)
   clrs <- colorRampPalette(c("white", "#6baed6"))(5 + 1)
-  
+
   output$event_goals <- DT::renderDataTable({
     datatable(goals,
               options = list(
@@ -118,9 +138,9 @@ server <- shinyServer(function(input, output, session) {
                              paging = FALSE,
                              searching = FALSE
                              #sDom  = '<"top">lrt<"bottom">ip',
-                             
+
                              ),
-              caption = "Progress (current staus selected)",
+              caption = "Progress (current status selected)",
               style = "bootstrap",
               class = 'row-border',
               escape = FALSE,
@@ -128,7 +148,7 @@ server <- shinyServer(function(input, output, session) {
               #formatStyle(c("Annual Need"), backgroundColor = styleColorBar(color = clrs)),
               selection = list(mode = "single", selected = c(2)))
   })
-  
+
   #Reading Data and Startup ----
   # Sharing ID
   id <- reactive({
@@ -375,21 +395,6 @@ observeEvent(input$reset, {
               selection = list(mode = "single", selected = c(1)))
   })
 
-  output$costs <- DT::renderDataTable({
-    datatable(costs, options = list(searchHighlight = TRUE,
-                                    sDom  = '<"top">lrt<"bottom">ip',
-                                    lengthChange = FALSE, pageLength = 5),
-              filter = "top", caption = "Operation Costs", style = "bootstrap",
-              selection = list(mode = "single", selected = c(1)))
-  })
-
-  output$donations <- DT::renderDataTable({
-    datatable(donations, options = list(searchHighlight = TRUE,
-                                        sDom  = '<"top">lrt<"bottom">ip',
-                                        lengthChange = FALSE, pageLength = 5),
-              filter = 'top', caption = "Donations", style = 'bootstrap',
-              selection = list(mode = 'single', selected = c(1)))
-  })
 
   output$eventmetadata <- DT::renderDataTable({
     # Default to first row if not yet clicked
@@ -514,21 +519,6 @@ observeEvent(input$reset, {
       }
   })
 
-  observe({
-    if (input$smooth_decision) {
-      show("smooth_tools")
-    } else {
-      hide("smooth_tools")
-    }
-  })
-
-  observe({
-    if (input$baseline_decision) {
-      show("baseline_tools")
-    } else {
-      hide("baseline_tools")
-    }
-  })
 
   observe({
     if (input$baseline_selection == "Polynomial") {
@@ -542,13 +532,6 @@ observeEvent(input$reset, {
     }
   })
 
-  observe({
-    if (input$range_decision) {
-      show("range_tools")
-    } else {
-      hide("range_tools")
-    }
-  })
 
   observe({
     if (is.null(preprocessed_data())) {
@@ -574,22 +557,42 @@ observeEvent(input$reset, {
     }
   })
 
+  render_tweet <- function(x){renderUI({
+    div(class = "inline-block",
+        style = "display:inline-block; margin-left:4px;",
+        tags$blockquote(class = "twitter-tweet", `data-theme` = "dark",
+                        style = "width: 600px; display:inline-block;" ,
+                        tags$a(href = x)),
+        tags$script('twttr.widgets.load(document.getElementById("tweet"));')
+    )
+  })
+  }
+
+  output$tweet1 <- renderUI({
+    render_tweet(tweets[1])
+  })
+
+  output$tweet2 <- renderUI({
+    render_tweet(tweets[2])
+  })
+
+
   # Log events ----
 
-observeEvent(input$go, {
-  if(conf$log) {
-    if(db) {
-      database$insert(data.frame(user_name = input$fingerprint,
-                                 session_name = session_id,
-                                 wavenumber = trace$data$wavenumber,
-                                 intensity = trace$data$intensity,
-                                 data_id = digest::digest(preprocessed_data(),
-                                                          algo = "md5"),
-                                 ipid = input$ipid,
-                                 time = human_ts()))
-      }
-  }
-})
+  observeEvent(input$go, {
+    if(conf$log) {
+      if(db) {
+        database$insert(data.frame(user_name = input$fingerprint,
+                                   session_name = session_id,
+                                   wavenumber = trace$data$wavenumber,
+                                   intensity = trace$data$intensity,
+                                   data_id = digest::digest(preprocessed_data(),
+                                                            algo = "md5"),
+                                   ipid = input$ipid,
+                                   time = human_ts()))
+        }
+    }
+  })
 
   observe({
     req(input$file1)
