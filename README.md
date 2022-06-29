@@ -10,6 +10,7 @@ Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
 [![DOI](https://img.shields.io/badge/DOI-10.1021/acs.analchem.1c00123-blue.svg)](https://doi.org/10.1021/acs.analchem.1c00123)
 [![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://wincowger.shinyapps.io/OpenSpecy/)
 [![Twitter Follow](https://img.shields.io/twitter/follow/OpenSpecy)](https://twitter.com/OpenSpecy)
+[![Gitter](https://badges.gitter.im/Open-Specy/community.svg)](https://gitter.im/Open-Specy/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 <!-- badges: end -->
 
 Raman and (FT)IR spectral analysis tool for plastic particles and
