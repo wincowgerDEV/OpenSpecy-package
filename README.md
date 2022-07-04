@@ -1,6 +1,6 @@
 # Open Specy
 
-Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
+Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 
 <!-- badges: start -->
 [![CRAN version](https://www.r-pkg.org/badges/version/OpenSpecy)](https://CRAN.R-project.org/package=OpenSpecy) 
@@ -105,5 +105,5 @@ Needs an Open Source Community: Open Specy to the Rescue!”
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
 Cowger W, Steinmetz Z (2021). “OpenSpecy: Analyze, Process,
-Identify, and Share, Raman and (FT)IR Spectra.” *R package*, **0.9.4**.
+Identify, and Share Raman and (FT)IR Spectra.” *R package*, **0.9.4**.
 [https://github.com/wincowgerDEV/OpenSpecy](https://github.com/wincowgerDEV/OpenSpecy).
