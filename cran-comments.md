@@ -1,6 +1,6 @@
 ## Test environments
 
-* local Linux/5.14.10-1-MANJARO, R-4.1.1
+* manjaro linux 5.18.6-1 (local), R-4.2.1
 * macOS latest (via GitHub Actions), R-release
 * ubuntu latest (via GitHub Actions), R-devel
 * ubuntu latest (via GitHub Actions), R-release
