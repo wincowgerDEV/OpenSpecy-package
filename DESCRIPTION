@@ -1,8 +1,8 @@
 Package: OpenSpecy
 Type: Package
-Title: Analyze, Process, Identify, and Share, Raman and (FT)IR Spectra
-Version: 0.9.3
-Date: 2021-10-13
+Title: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
+Version: 0.9.4
+Date: 2022-07-04
 Authors@R: c(person("Win", "Cowger", role = c("cre", "aut"),
       email = "wincowger@gmail.com",
       comment = c(ORCID = "0000-0001-9226-3104")),
@@ -70,5 +70,5 @@ Suggests:
     rdrop2, 
     mongolite,
     loggit
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.0
 Config/testthat/edition: 3

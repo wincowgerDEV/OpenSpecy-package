@@ -1,3 +1,15 @@
+# OpenSpecy 0.9.4
+
+## Minor Improvements
+
+- UI improvements
+- Gitter support
+
+## Bug Fixes
+
+- Fixed invalid regex failing CRAN checks 
+
+
 # OpenSpecy 0.9.3
 
 ## Minor Improvements

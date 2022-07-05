@@ -58,7 +58,8 @@ test_that("read_spa() gives expected output", {
 
 test_that("read_jdx() gives expected output", {
   expect_match(capture_messages(
-    suppressWarnings(jdx <- read_jdx(read_extdata("fitr_nitrocellulose.jdx")))
+    suppressWarnings(jdx <- read_jdx(read_extdata("fitr_nitrocellulose.jdx"),
+                                     encoding = "latin1"))
   ), "JDX file inconsistency.*"
   )
   expect_error(read_jdx(read_extdata("throws_error_raman_1000002.jdx")))

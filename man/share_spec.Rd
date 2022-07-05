@@ -18,7 +18,8 @@ share_spec(data, ...)
     "", material_other = "", cas_number = "", instrument_used = "",
     instrument_accessories = "", instrument_mode = "", spectral_resolution = "",
     laser_light_used = "", number_of_accumulations = "", total_acquisition_time_s = "",
-    data_processing_procedure = "", level_of_confidence_in_identification = "",     
+    data_processing_procedure = "", level_of_confidence_in_identification = "", 
+    
     other_info = "", license = "CC BY-NC"),
   file = NULL,
   share = "system",
