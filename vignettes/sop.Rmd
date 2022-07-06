@@ -26,7 +26,7 @@ with `smooth_intens()`, correcting background with
 `subtr_bg()`, and identifying spectra using an onboard reference
 library. Analyzed spectra can be shared with the Open Specy community.
 A Shiny app is available via `run_app()` or online at
-[http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/).
+[https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/).
 
 This document outlines a common workflow for
 using Open Specy and highlights some topics that users are often
@@ -47,7 +47,7 @@ library(OpenSpecy)
 # Viewing and Sharing Spectra
 
 To get started with the Open Specy user interface, access
-[http://www.openspecy.org](https://wincowger.shinyapps.io/OpenSpecy/)
+[https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/)
 or start the Shiny GUI directly from R typing
 
 ```{r eval=FALSE}

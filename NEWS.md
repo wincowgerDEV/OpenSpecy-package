@@ -1,3 +1,10 @@
+# OpenSpecy 0.9.5
+
+## Bug Fixes
+
+- Fixed outdated links and redirects
+
+
 # OpenSpecy 0.9.4
 
 ## Minor Improvements
