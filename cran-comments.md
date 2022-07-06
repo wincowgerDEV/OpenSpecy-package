@@ -10,9 +10,12 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 note
+0 errors | 0 warnings | 1 note
 
 
 ## Comments
 
-See NEWS file
+DOI links do not pass remote checks although they resolve fine using a web
+browser
+
+For further details, see NEWS file

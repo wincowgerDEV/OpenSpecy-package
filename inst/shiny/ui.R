@@ -295,13 +295,13 @@ ui <- fluidPage(
                                ),
                                p(class = "lead",
                                  HTML("<span style='position: relative; top:.8ex;'><a
-                                    class='github-button' href='https://github.com/wincowgerDEV/OpenSpecy/subscription'
+                                    class='github-button' href='https://github.com/wincowgerDEV/OpenSpecy-package/subscription'
                                     data-color-scheme='no-preference: dark; light: dark; dark: dark;'
                                     data-size='large' aria-label='Watch wincowgerDEV/OpenSpecy'>Watch</a></span>
                                     us develop Open Specy on GitHub, file an
                                     <span style='position: relative; top:.8ex;'><a
                                     class='github-button'
-                                    href='https://github.com/wincowgerDEV/OpenSpecy/issues'
+                                    href='https://github.com/wincowgerDEV/OpenSpecy-package/issues'
                                     data-color-scheme='no-preference: dark; light: dark; dark: dark;'
                                     data-icon='octicon-issue-opened' data-size='large'
                                     aria-label='Issue wincowgerDEV/OpenSpecy on GitHub'>Issue</a></span>,
