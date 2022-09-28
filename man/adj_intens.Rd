@@ -13,7 +13,7 @@ adj_intens(x, ...)
 
 \method{adj_intens}{data.frame}(x, ...)
 
-\method{adj_intens}{default}(x, y, type = "none", make_rel = TRUE, ...)
+\method{adj_intens}{default}(x, y, type = "none", make_rel = FALSE, ...)
 }
 \arguments{
 \item{x}{a numeric vector containing the spectral wavenumbers; alternatively
@@ -34,7 +34,7 @@ from \code{"reflectance"} or \code{"transmittance"} data.}
 \item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
 with \code{\link{make_rel}()}.}
 
-\item{\ldots}{further arguments passed to the submethods.}
+\item{\ldots}{further arguments passed to \code{\link{adj_neg}()}.}
 }
 \value{
 \code{adj_intens()} returns a data frame containing two columns

@@ -28,7 +28,7 @@
 #' from \code{"reflectance"} or \code{"transmittance"} data.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
-#' @param \ldots further arguments passed to the submethods.
+#' @param \ldots further arguments passed to \code{\link{adj_neg}()}.
 #'
 #' @return
 #' \code{adj_intens()} returns a data frame containing two columns
@@ -81,12 +81,12 @@ adj_intens.data.frame <- function(x, ...) {
 #' @rdname adj_intens
 #'
 #' @export
-adj_intens.default <- function(x, y, type = "none", make_rel = TRUE,
+adj_intens.default <- function(x, y, type = "none", make_rel = FALSE,
                                ...) {
   yadj <- switch(type,
                  "reflectance" = (1 - y/100)^2 / (2 * y/100),
-                 "transmittance" = log10(1/adj_neg(y)),
-                 "none" = adj_neg(y)
+                 "transmittance" = log10(1/adj_neg(y, ...)),
+                 "none" = adj_neg(y, ...)
   )
   if (make_rel) yout <- make_rel(yadj) else yout <- yadj
 
