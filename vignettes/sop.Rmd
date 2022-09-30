@@ -180,7 +180,7 @@ apply an adjustment.
 This is the respective R code:
 
 ```{r}
-library(dplyr)
+library(magrittr)
 
 raman_adj <- raman_hdpe %>%
   adj_intens()

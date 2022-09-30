@@ -12,8 +12,8 @@
 \usage{
 read_text(
   file = ".",
-  cols = NULL,
-  method = "read.csv",
+  colnames = NULL,
+  method = "fread",
   share = NULL,
   id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
   ...
@@ -59,8 +59,8 @@ read_extdata(file = NULL)
 \arguments{
 \item{file}{file to be read from.}
 
-\item{cols}{character vector of \code{length = 2} indicating the colum names
-for the wavenumber and intensity; if \code{NULL} columns are guessed.}
+\item{colnames}{character vector of \code{length = 2} indicating the colum
+names for the wavenumber and intensity; if \code{NULL} columns are guessed.}
 
 \item{method}{submethod to be used for reading text files; defaults to
 \link[utils]{read.csv} but \link[data.table]{fread} works as well.}

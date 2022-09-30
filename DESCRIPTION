@@ -45,8 +45,10 @@ VignetteBuilder: knitr
 Depends:
     R (>= 4.0.0)
 Imports:
-    dplyr,
     rlang,
+    magrittr,
+    dplyr,
+    data.table,
     osfr,
     hyperSpec,
     hexView,
@@ -64,7 +66,6 @@ Suggests:
     shinyWidgets,
     ggplot2,
     plotly,
-    data.table,
     DT,
     curl,
     rdrop2, 

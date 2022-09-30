@@ -17,8 +17,8 @@
 #' Please contact us if you identify any.
 #'
 #' @param file file to be read from.
-#' @param cols character vector of \code{length = 2} indicating the colum names
-#' for the wavenumber and intensity; if \code{NULL} columns are guessed.
+#' @param colnames character vector of \code{length = 2} indicating the colum
+#' names for the wavenumber and intensity; if \code{NULL} columns are guessed.
 #' @param method submethod to be used for reading text files; defaults to
 #' \link[utils]{read.csv} but \link[data.table]{fread} works as well.
 #' @param share defaults to \code{NULL}; needed to share spectra with the
@@ -43,47 +43,26 @@
 #' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
 #' \code{\link[hexView]{readRaw}()}; \code{\link{share_spec}()}
 #'
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
+#' @importFrom data.table data.table as.data.table fread
 #' @export
-read_text <- function(file = ".", cols = NULL, method = "read.csv",
+read_text <- function(file = ".", colnames = NULL, method = "fread",
                       share = NULL, id = paste(digest(Sys.info()),
                                                digest(sessionInfo()),
                                                sep = "/"),
                       ...) {
-  df <- do.call(method, list(file, ...)) %>%
-    data.frame()
+  dt <- do.call(method, list(file, ...)) %>% as.data.table()
 
-  if (all(grepl("^X[0-9]*", names(df)))) stop("missing header: ",
+  if (all(grepl("^X[0-9]*", names(dt)))) stop("missing header: ",
                                               "use 'header = FALSE' or an ",
                                               "alternative read method")
 
-  # Try to guess column names
-  if (is.null(cols)) {
-    if (all(grepl("^V[0-9]*", names(df)))) {
-      cols <- 1:2
-      warning("missing header: guessing 'wavenumber' and 'intensity' data ",
-              "from the first two columns; use 'cols' to supply user-defined ",
-              "columns")
-    } else {
-      cols <- c(names(df)[grep("(wav*)", ignore.case = T, names(df))][1L],
-                names(df)[grep("(transmit*)|(reflect*)|(abs*)|(intens*)",
-                               ignore.case = T, names(df))][1L])
-    }
-  }
-  if (any(is.na(cols))) stop("undefined columns selected; columns should be ",
-                             "named 'wavenumber' and 'intensity'")
-  if (cols[1] == cols[2]) stop("inconsistent input format")
+  os <- as_OpenSpecy(dt, colnames = colnames, file = basename(file))
 
-  df <- df[cols]
-
-  # Check if columns are numeric
-  if (!all(sapply(df, is.numeric))) stop("input not numeric")
-
-  names(df) <- c("wavenumber", "intensity")
-
+  # TODO: update sharing
   if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
-  return(df)
+  return(os)
 }
 
 #' @rdname read_spec
@@ -103,11 +82,11 @@ read_asp <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
   y <- lns[-c(1:6)]
   x <- seq(lns[2], lns[3], length.out = lns[1])
 
-  df <- data.frame(wavenumber = x, intensity = y)
+  os <- as_OpenSpecy(x, data.table(intensity = y), file = basename(file))
 
   if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
-  return(df)
+  return(os)
 }
 
 #' @rdname read_spec
@@ -147,12 +126,14 @@ read_spa <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
 
   close(trb)
 
-  df <- data.frame(wavenumber = seq(spr[1], spr[2], length = length(floatData)),
-                   intensity = floatData)
+  x <- seq(spr[1], spr[2], length = length(floatData))
+  y <- floatData
+
+  os <- as_OpenSpecy(x, data.table(intensity = y), file = basename(file))
 
   if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
-  return(df)
+  return(os)
 }
 
 #' @rdname read_spec
@@ -165,12 +146,14 @@ read_jdx <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
                      ...) {
   jdx <- read.jdx(file, ...)
 
-  df <- data.frame(wavenumber = jdx@wavelength,
-                   intensity = as.numeric(unname(jdx@data$spc[1,])))
+  x <- jdx@wavelength
+  y <- as.numeric(unname(jdx@data$spc[1,]))
+
+  os <- as_OpenSpecy(x, data.table(intensity = y), file = basename(file))
 
   if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
-  return(df)
+  return(os)
 }
 
 #' @rdname read_spec
@@ -183,12 +166,14 @@ read_spc <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
                      ...) {
   spc <- read.spc(file)
 
-  df <- data.frame(wavenumber = spc@wavelength,
-                   intensity = as.numeric(unname(spc@data$spc[1,])))
+  x <- spc@wavelength
+  y <- as.numeric(unname(spc@data$spc[1,]))
+
+  os <- as_OpenSpecy(x, data.table(intensity = y), file = basename(file))
 
   if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
-  return(df)
+  return(os)
 }
 
 #' @rdname read_spec
@@ -259,11 +244,11 @@ read_0 <- function(file = ".", share = NULL, id = paste(digest(Sys.info()),
                     endian = "little")
   y <- opus.p[[5]]
 
-  df <- data.frame(wavenumber = x, intensity = y)
+  os <- as_OpenSpecy(x, data.table(intensity = y), file = basename(file))
 
   if (!is.null(share)) share_spec(df, file = file, share = share, id = id)
 
-  return(df)
+  return(os)
 }
 
 #' @rdname read_spec
