@@ -15,42 +15,102 @@ read_text(
   colnames = NULL,
   method = "fread",
   share = NULL,
-  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
+    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
+    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
+    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
+    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
+    spectral_resolution = NULL, 
+     laser_light_used = NULL, number_of_accumulations =
+    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+    level_of_confidence_in_identification = NULL, other_info = NULL, license =
+    "CC BY-NC"),
   ...
 )
 
 read_asp(
   file = ".",
   share = NULL,
-  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
+    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
+    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
+    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
+    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
+    spectral_resolution = NULL, 
+     laser_light_used = NULL, number_of_accumulations =
+    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+    level_of_confidence_in_identification = NULL, other_info = NULL, license =
+    "CC BY-NC"),
   ...
 )
 
 read_spa(
   file = ".",
   share = NULL,
-  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
+    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
+    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
+    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
+    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
+    spectral_resolution = NULL, 
+     laser_light_used = NULL, number_of_accumulations =
+    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+    level_of_confidence_in_identification = NULL, other_info = NULL, license =
+    "CC BY-NC"),
   ...
 )
 
 read_jdx(
   file = ".",
   share = NULL,
-  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
+    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
+    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
+    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
+    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
+    spectral_resolution = NULL, 
+     laser_light_used = NULL, number_of_accumulations =
+    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+    level_of_confidence_in_identification = NULL, other_info = NULL, license =
+    "CC BY-NC"),
   ...
 )
 
 read_spc(
   file = ".",
   share = NULL,
-  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
+    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
+    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
+    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
+    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
+    spectral_resolution = NULL, 
+     laser_light_used = NULL, number_of_accumulations =
+    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+    level_of_confidence_in_identification = NULL, other_info = NULL, license =
+    "CC BY-NC"),
   ...
 )
 
 read_0(
   file = ".",
   share = NULL,
-  id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
+    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
+    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
+    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
+    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
+    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
+    spectral_resolution = NULL, 
+     laser_light_used = NULL, number_of_accumulations =
+    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+    level_of_confidence_in_identification = NULL, other_info = NULL, license =
+    "CC BY-NC"),
   ...
 )
 
@@ -68,8 +128,7 @@ names for the wavenumber and intensity; if \code{NULL} columns are guessed.}
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
 
-\item{id}{a unique user and/or session ID; defaults to
-\code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}.}
+\item{metadata}{a named list of the metadata; see details below.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
@@ -90,6 +149,64 @@ All functions convert datasets to a 2 column table with one column labeled
 "wavenumber" and the other "intensity". There are many unique iterations of
 spectral file formats so there may be bugs in the file conversion.
 Please contact us if you identify any.
+The \code{metadata} argument may contain a named list with the following
+details (\code{*} = minimum recommended):
+
+\tabular{ll}{
+\code{id*}: \tab A unique user and/or session ID; defaults to
+\code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}\cr
+\code{file_name*}: \tab The file name, defaults to
+\code{\link[base]{basename}()} if not specified\cr
+\code{user_name*}: \tab User name, e.g. "Win Cowger"\cr
+\code{contact_info}: \tab Contact information, e.g. "1-513-673-8956,
+wincowger@gmail.com"\cr
+\code{organization}: \tab Affiliation, e.g. "University of California,
+Riverside"\cr
+\code{citation}: \tab Data citation, e.g. "Primpke, S., Wirth, M., Lorenz,
+C., & Gerdts, G. (2018). Reference database design for the automated analysis
+of microplastic samples based on Fourier transform infrared (FTIR)
+spectroscopy. \emph{Analytical and Bioanalytical Chemistry}.
+\doi{10.1007/s00216-018-1156-x}"\cr
+\code{spectrum_type*}: \tab Raman or FTIR\cr
+\code{spectrum_identity*}: \tab Material/polymer analyzed, e.g.
+"Polystyrene"\cr
+\code{material_form}: \tab Form of the material analyzed, e.g. textile fiber,
+rubber band, sphere, granule \cr
+\code{material_phase}: \tab Phase of the material analyzed (liquid, gas,
+solid) \cr
+\code{material_producer}: \tab Producer of the material analyzed,
+e.g. Dow \cr
+\code{material_purity}: \tab Purity of the material analyzed, e.g. 99.98\%
+\cr
+\code{material_quality}: \tab Quality of the material analyzed, e.g.
+consumer product, manufacturer material, analytical standard,
+environmental sample \cr
+\code{material_color}: \tab Color of the material analyzed,
+e.g. blue, #0000ff, (0, 0, 255) \cr
+\code{material_other}: \tab Other material description, e.g. 5 µm diameter
+fibers, 1 mm spherical particles \cr
+\code{cas_number}: \tab CAS number, e.g. 9003-53-6 \cr
+\code{instrument_used}: \tab Instrument used, e.g. Horiba LabRam \cr
+\code{instrument_accessories}: \tab Instrument accessories, e.g.
+Focal Plane Array, CCD\cr
+\code{instrument_mode}: \tab Instrument modes/settings, e.g.
+transmission, reflectance \cr
+\code{spectral_resolution}: \tab Spectral resolution, e.g. 4/cm \cr
+\code{laser_light_used}: \tab Wavelength of the laser/light used, e.g.
+785 nm \cr
+\code{number_of_accumulations}: \tab Number of accumulations, e.g 5 \cr
+\code{total_acquisition_time_s}: \tab Total acquisition time (s), e.g. 10 s
+\cr
+\code{data_processing_procedure}: \tab Data processing procedure,
+e.g. spikefilter, baseline correction, none \cr
+\code{level_of_confidence_in_identification}: \tab Level of confidence in
+identification, e.g. 99\% \cr
+\code{other_info}: \tab Other information \cr
+\code{license}: \tab The license of the shared spectrum; defaults to
+\code{"CC BY-NC"} (see
+\url{https://creativecommons.org/licenses/by-nc/4.0/} for details). Any other
+creative commons license is allowed, for example, CC0 or CC BY \cr
+}
 }
 \examples{
 read_text(read_extdata("raman_hdpe.csv"))
