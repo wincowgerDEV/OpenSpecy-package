@@ -49,7 +49,7 @@
 #' \emph{Applied Spectroscopy}, \strong{61}(11), 1225–1232.
 #' \doi{10.1366/000370207782597003}.
 #'
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
 #' @importFrom stats terms model.frame sd lm poly approx
 #' @export
 subtr_bg <- function(x, ...) {

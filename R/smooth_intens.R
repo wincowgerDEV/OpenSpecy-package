@@ -44,7 +44,7 @@
 #' Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
 #' \strong{36}(8), 1627--1639.
 #'
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
 #' @export
 smooth_intens <- function(x, ...) {
   UseMethod("smooth_intens")

@@ -69,8 +69,8 @@
 #'
 #' @importFrom rlang .data
 #' @importFrom stats approx cor
-#' @importFrom dplyr %>% inner_join mutate group_by ungroup summarize select arrange desc top_n
-#'
+#' @importFrom magrittr %>%
+#' @importFrom dplyr inner_join mutate group_by ungroup summarize select arrange desc top_n
 #' @export
 match_spec <- function(x, ...) {
   UseMethod("match_spec")

@@ -49,6 +49,7 @@ Imports:
     magrittr,
     dplyr,
     data.table,
+    yaml,
     osfr,
     hyperSpec,
     hexView,

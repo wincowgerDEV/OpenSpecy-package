@@ -125,7 +125,7 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
   if (length(x) != nrow(spectra))
     stop("'x' and 'spectra' must be of equal length")
 
-  obj <- structure(list(), class = "OpenSpecy")
+  obj <- structure(list(), class = c("list", "OpenSpecy"))
 
   obj$wavenumber <- x
   obj$spectra <- as.data.table(spectra)
@@ -133,16 +133,18 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
   if (inherits(coords, "character")) {
     obj$coords <- do.call(coords, list(ncol(obj$spectra)))
   } else if (inherits(coords, c("data.frame", "list")) &&
-             all(names(coords) == c("x", "y"))) {
+             all(is.element(c("x", "y"), names(coords)))) {
     obj$coords <- as.data.table(coords)
   } else {
-    stop("inconsistent input for 'coord'")
+    stop("inconsistent input for 'coords'")
   }
 
-  if (inherits(metadata, c("data.frame", "list"))) {
-    obj$coords <- cbind(obj$coords, as.data.table(metadata))
-  } else {
-    stop("inconsistent input for 'metadata'")
+  if (!is.null(metadata)) {
+    if (inherits(metadata, c("data.frame", "list"))) {
+      obj$coords <- cbind(obj$coords, as.data.table(metadata))
+    } else {
+      stop("inconsistent input for 'metadata'")
+    }
   }
 
   return(obj)

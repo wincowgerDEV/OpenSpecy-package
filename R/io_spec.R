@@ -1,6 +1,6 @@
-#' @rdname read_spec
+#' @rdname io_spec
 #'
-#' @title Read spectral data
+#' @title Read and write spectral data
 #'
 #' @description
 #' Functions for reading spectral data types including .asp, .jdx,
@@ -75,7 +75,9 @@
 #' creative commons license is allowed, for example, CC0 or CC BY \cr
 #' }
 #'
+#' @param object a list object of class \code{OpenSpecy}.
 #' @param file file to be read from.
+#' @param encoding file encoding; defaults to \code{"UTF-8"}.
 #' @param colnames character vector of \code{length = 2} indicating the colum
 #' names for the wavenumber and intensity; if \code{NULL} columns are guessed.
 #' @param method submethod to be used for reading text files; defaults to
@@ -103,6 +105,48 @@
 #'
 #' @importFrom magrittr %>%
 #' @importFrom data.table data.table as.data.table fread
+#' @export
+write_OpenSpecy <- function(object, ...) {
+  UseMethod("write_OpenSpecy")
+}
+
+#' @rdname io_spec
+#'
+#' @export
+write_OpenSpecy.default <- function(object, ...) {
+  stop("object needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname io_spec
+#'
+#' @importFrom yaml write_yaml
+#' @export
+write_OpenSpecy.OpenSpecy <- function(object, file = ".", encoding = "UTF-8",
+                                      ...) {
+  write_yaml(object, file = file, fileEncoding = encoding)
+}
+
+#' @rdname io_spec
+#'
+#' @importFrom yaml read_yaml
+#' @export
+read_OpenSpecy <- function(file = ".", encoding = "UTF-8", share = NULL,
+                           metadata = NULL, ...) {
+  yml <- read_yaml(file = file, fileEncoding = encoding)
+
+  os <- as_OpenSpecy(yml$wavenumber,
+                     spectra = as.data.table(yml$spectra),
+                     coords = as.data.table(yml$coords),
+                     metadata = metadata, ...)
+
+  # TODO: update sharing
+  # if (!is.null(share)) share_spec(os, file = file, share = share)
+
+  return(os)
+}
+
+#' @rdname io_spec
+#'
 #' @export
 read_text <- function(file = ".", colnames = NULL, method = "fread",
                       share = NULL,
@@ -151,7 +195,7 @@ read_text <- function(file = ".", colnames = NULL, method = "fread",
   return(os)
 }
 
-#' @rdname read_spec
+#' @rdname io_spec
 #'
 #' @export
 read_asp <- function(file = ".", share = NULL,
@@ -203,7 +247,7 @@ read_asp <- function(file = ".", share = NULL,
   return(os)
 }
 
-#' @rdname read_spec
+#' @rdname io_spec
 #'
 #' @importFrom utils read.table
 #' @export
@@ -278,7 +322,7 @@ read_spa <- function(file = ".", share = NULL,
   return(os)
 }
 
-#' @rdname read_spec
+#' @rdname io_spec
 #'
 #' @importFrom hyperSpec read.jdx
 #' @export
@@ -326,7 +370,7 @@ read_jdx <- function(file = ".", share = NULL,
   return(os)
 }
 
-#' @rdname read_spec
+#' @rdname io_spec
 #'
 #' @importFrom hyperSpec read.spc
 #' @export
@@ -374,7 +418,7 @@ read_spc <- function(file = ".", share = NULL,
   return(os)
 }
 
-#' @rdname read_spec
+#' @rdname io_spec
 #'
 #' @importFrom hexView readRaw blockString
 #' @export
@@ -477,7 +521,7 @@ read_0 <- function(file = ".", share = NULL,
   return(os)
 }
 
-#' @rdname read_spec
+#' @rdname io_spec
 #'
 #' @export
 read_extdata <- function(file = NULL) {

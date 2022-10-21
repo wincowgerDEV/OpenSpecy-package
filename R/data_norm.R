@@ -51,7 +51,7 @@
 #' \code{\link[base]{min}()} and \code{\link[base]{round}()};
 #' \code{\link{adj_intens}()} for log transformation functions
 #'
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
 #' @export
 adj_res <- function(x, res = 1, fun = round) {
   fun(x / res) * res
