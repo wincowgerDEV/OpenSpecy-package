@@ -38,6 +38,13 @@ as_OpenSpecy <- function(x, ...) {
 #' @rdname as_OpenSpecy
 #'
 #' @export
+as_OpenSpecy.OpenSpecy <- function(x, ...) {
+  return(x)
+}
+
+#' @rdname as_OpenSpecy
+#'
+#' @export
 as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
                                                        spectra = NULL), ...) {
   x <- as.data.table(x)
@@ -85,9 +92,6 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
 #' @export
 as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
                                  metadata = list(
-                                   id = paste(digest(Sys.info()),
-                                              digest(sessionInfo()),
-                                              sep = "/"),
                                    file_name = NULL,
                                    user_name = NULL,
                                    contact_info = NULL,
@@ -142,6 +146,10 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$coords <- cbind(obj$coords, as.data.table(metadata))
+      obj$coords$session_id <- paste(digest(Sys.info()),
+                                    digest(sessionInfo()),
+                                    sep = "/")
+      obj$coords$file_id = digest(obj[c("wavenumber", "spectra")])
     } else {
       stop("inconsistent input for 'metadata'")
     }

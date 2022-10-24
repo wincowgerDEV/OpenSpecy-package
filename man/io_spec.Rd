@@ -33,15 +33,15 @@ read_text(
   colnames = NULL,
   method = "fread",
   share = NULL,
-  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
-    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
-    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
-    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
-    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
-    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
-    spectral_resolution = NULL, 
-     laser_light_used = NULL, number_of_accumulations =
-    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+  metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
+    organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
+    material_form = NULL, material_phase = NULL, material_producer = NULL,
+    material_purity = NULL, material_quality = NULL, material_color = NULL,
+    material_other = NULL, cas_number = NULL, instrument_used = NULL,
+    instrument_accessories = NULL, instrument_mode = NULL, spectral_resolution = NULL,
+    laser_light_used = NULL, number_of_accumulations = NULL, 
+    
+    total_acquisition_time_s = NULL, data_processing_procedure = NULL,
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
   ...
@@ -50,15 +50,15 @@ read_text(
 read_asp(
   file = ".",
   share = NULL,
-  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
-    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
-    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
-    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
-    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
-    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
-    spectral_resolution = NULL, 
-     laser_light_used = NULL, number_of_accumulations =
-    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+  metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
+    organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
+    material_form = NULL, material_phase = NULL, material_producer = NULL,
+    material_purity = NULL, material_quality = NULL, material_color = NULL,
+    material_other = NULL, cas_number = NULL, instrument_used = NULL,
+    instrument_accessories = NULL, instrument_mode = NULL, spectral_resolution = NULL,
+    laser_light_used = NULL, number_of_accumulations = NULL, 
+    
+    total_acquisition_time_s = NULL, data_processing_procedure = NULL,
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
   ...
@@ -67,15 +67,15 @@ read_asp(
 read_spa(
   file = ".",
   share = NULL,
-  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
-    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
-    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
-    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
-    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
-    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
-    spectral_resolution = NULL, 
-     laser_light_used = NULL, number_of_accumulations =
-    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+  metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
+    organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
+    material_form = NULL, material_phase = NULL, material_producer = NULL,
+    material_purity = NULL, material_quality = NULL, material_color = NULL,
+    material_other = NULL, cas_number = NULL, instrument_used = NULL,
+    instrument_accessories = NULL, instrument_mode = NULL, spectral_resolution = NULL,
+    laser_light_used = NULL, number_of_accumulations = NULL, 
+    
+    total_acquisition_time_s = NULL, data_processing_procedure = NULL,
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
   ...
@@ -84,15 +84,15 @@ read_spa(
 read_jdx(
   file = ".",
   share = NULL,
-  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
-    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
-    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
-    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
-    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
-    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
-    spectral_resolution = NULL, 
-     laser_light_used = NULL, number_of_accumulations =
-    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+  metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
+    organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
+    material_form = NULL, material_phase = NULL, material_producer = NULL,
+    material_purity = NULL, material_quality = NULL, material_color = NULL,
+    material_other = NULL, cas_number = NULL, instrument_used = NULL,
+    instrument_accessories = NULL, instrument_mode = NULL, spectral_resolution = NULL,
+    laser_light_used = NULL, number_of_accumulations = NULL, 
+    
+    total_acquisition_time_s = NULL, data_processing_procedure = NULL,
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
   ...
@@ -101,15 +101,15 @@ read_jdx(
 read_spc(
   file = ".",
   share = NULL,
-  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
-    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
-    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
-    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
-    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
-    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
-    spectral_resolution = NULL, 
-     laser_light_used = NULL, number_of_accumulations =
-    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+  metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
+    organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
+    material_form = NULL, material_phase = NULL, material_producer = NULL,
+    material_purity = NULL, material_quality = NULL, material_color = NULL,
+    material_other = NULL, cas_number = NULL, instrument_used = NULL,
+    instrument_accessories = NULL, instrument_mode = NULL, spectral_resolution = NULL,
+    laser_light_used = NULL, number_of_accumulations = NULL, 
+    
+    total_acquisition_time_s = NULL, data_processing_procedure = NULL,
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
   ...
@@ -118,15 +118,15 @@ read_spc(
 read_0(
   file = ".",
   share = NULL,
-  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
-    file_name = basename(file), user_name = NULL, contact_info = NULL, organization =
-    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
-    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
-    material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
-    NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
-    spectral_resolution = NULL, 
-     laser_light_used = NULL, number_of_accumulations =
-    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+  metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
+    organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
+    material_form = NULL, material_phase = NULL, material_producer = NULL,
+    material_purity = NULL, material_quality = NULL, material_color = NULL,
+    material_other = NULL, cas_number = NULL, instrument_used = NULL,
+    instrument_accessories = NULL, instrument_mode = NULL, spectral_resolution = NULL,
+    laser_light_used = NULL, number_of_accumulations = NULL, 
+    
+    total_acquisition_time_s = NULL, data_processing_procedure = NULL,
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
   ...
@@ -175,8 +175,6 @@ The \code{metadata} argument may contain a named list with the following
 details (\code{*} = minimum recommended):
 
 \tabular{ll}{
-\code{id*}: \tab A unique user and/or session ID; defaults to
-\code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}\cr
 \code{file_name*}: \tab The file name, defaults to
 \code{\link[base]{basename}()} if not specified\cr
 \code{user_name*}: \tab User name, e.g. "Win Cowger"\cr
@@ -228,6 +226,11 @@ identification, e.g. 99\% \cr
 \code{"CC BY-NC"} (see
 \url{https://creativecommons.org/licenses/by-nc/4.0/} for details). Any other
 creative commons license is allowed, for example, CC0 or CC BY \cr
+\code{session_id}: \tab A unique user and session identifier; populated
+automatically with \code{paste(digest(Sys.info()), digest(sessionInfo()),
+sep = "/")}\cr
+\code{file_id}: \tab A unique file identifier; populated automatically
+with \code{digest(object[c("wavenumber", "spectra")])}\cr
 }
 }
 \examples{

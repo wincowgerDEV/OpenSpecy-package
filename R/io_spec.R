@@ -20,8 +20,6 @@
 #' details (\code{*} = minimum recommended):
 #'
 #' \tabular{ll}{
-#' \code{id*}: \tab A unique user and/or session ID; defaults to
-#' \code{paste(digest(Sys.info()), digest(sessionInfo()), sep = "/")}\cr
 #' \code{file_name*}: \tab The file name, defaults to
 #' \code{\link[base]{basename}()} if not specified\cr
 #' \code{user_name*}: \tab User name, e.g. "Win Cowger"\cr
@@ -73,6 +71,11 @@
 #' \code{"CC BY-NC"} (see
 #' \url{https://creativecommons.org/licenses/by-nc/4.0/} for details). Any other
 #' creative commons license is allowed, for example, CC0 or CC BY \cr
+#' \code{session_id}: \tab A unique user and session identifier; populated
+#' automatically with \code{paste(digest(Sys.info()), digest(sessionInfo()),
+#' sep = "/")}\cr
+#' \code{file_id}: \tab A unique file identifier; populated automatically
+#' with \code{digest(object[c("wavenumber", "spectra")])}\cr
 #' }
 #'
 #' @param object a list object of class \code{OpenSpecy}.
@@ -139,8 +142,7 @@ read_OpenSpecy <- function(file = ".", encoding = "UTF-8", share = NULL,
                      coords = as.data.table(yml$coords),
                      metadata = metadata, ...)
 
-  # TODO: update sharing
-  # if (!is.null(share)) share_spec(os, file = file, share = share)
+  if (!is.null(share)) share_spec(os, file = file, share = share)
 
   return(os)
 }
@@ -151,9 +153,6 @@ read_OpenSpecy <- function(file = ".", encoding = "UTF-8", share = NULL,
 read_text <- function(file = ".", colnames = NULL, method = "fread",
                       share = NULL,
                       metadata = list(
-                        id = paste(digest(Sys.info()),
-                                   digest(sessionInfo()),
-                                   sep = "/"),
                         file_name = basename(file),
                         user_name = NULL,
                         contact_info = NULL,
@@ -189,7 +188,6 @@ read_text <- function(file = ".", colnames = NULL, method = "fread",
 
   os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata)
 
-  # TODO: update sharing
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
   return(os)
@@ -200,9 +198,6 @@ read_text <- function(file = ".", colnames = NULL, method = "fread",
 #' @export
 read_asp <- function(file = ".", share = NULL,
                      metadata = list(
-                       id = paste(digest(Sys.info()),
-                                  digest(sessionInfo()),
-                                  sep = "/"),
                        file_name = basename(file),
                        user_name = NULL,
                        contact_info = NULL,
@@ -253,9 +248,6 @@ read_asp <- function(file = ".", share = NULL,
 #' @export
 read_spa <- function(file = ".", share = NULL,
                      metadata = list(
-                       id = paste(digest(Sys.info()),
-                                  digest(sessionInfo()),
-                                  sep = "/"),
                        file_name = basename(file),
                        user_name = NULL,
                        contact_info = NULL,
@@ -328,9 +320,6 @@ read_spa <- function(file = ".", share = NULL,
 #' @export
 read_jdx <- function(file = ".", share = NULL,
                      metadata = list(
-                       id = paste(digest(Sys.info()),
-                                  digest(sessionInfo()),
-                                  sep = "/"),
                        file_name = basename(file),
                        user_name = NULL,
                        contact_info = NULL,
@@ -376,9 +365,6 @@ read_jdx <- function(file = ".", share = NULL,
 #' @export
 read_spc <- function(file = ".", share = NULL,
                      metadata = list(
-                       id = paste(digest(Sys.info()),
-                                  digest(sessionInfo()),
-                                  sep = "/"),
                        file_name = basename(file),
                        user_name = NULL,
                        contact_info = NULL,
@@ -424,9 +410,6 @@ read_spc <- function(file = ".", share = NULL,
 #' @export
 read_0 <- function(file = ".", share = NULL,
                    metadata = list(
-                     id = paste(digest(Sys.info()),
-                                digest(sessionInfo()),
-                                sep = "/"),
                      file_name = basename(file),
                      user_name = NULL,
                      contact_info = NULL,
