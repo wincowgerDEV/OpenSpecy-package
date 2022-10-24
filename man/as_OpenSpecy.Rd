@@ -2,6 +2,7 @@
 % Please edit documentation in R/as_OpenSpecy.R
 \name{as_OpenSpecy}
 \alias{as_OpenSpecy}
+\alias{as_OpenSpecy.OpenSpecy}
 \alias{as_OpenSpecy.data.frame}
 \alias{as_OpenSpecy.default}
 \alias{is_OpenSpecy}
@@ -11,21 +12,22 @@
 \usage{
 as_OpenSpecy(x, ...)
 
+\method{as_OpenSpecy}{OpenSpecy}(x, ...)
+
 \method{as_OpenSpecy}{data.frame}(x, colnames = list(wavenumber = NULL, spectra = NULL), ...)
 
 \method{as_OpenSpecy}{default}(
   x,
   spectra,
   coords = "gen_grid",
-  metadata = list(id = paste(digest(Sys.info()), digest(sessionInfo()), sep = "/"),
-    file_name = NULL, user_name = NULL, contact_info = NULL, organization = NULL,
-    citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form =
-    NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
+  metadata = list(file_name = NULL, user_name = NULL, contact_info = NULL, organization =
+    NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
+    = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
     material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
     NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
-    spectral_resolution = NULL, 
-     laser_light_used = NULL, number_of_accumulations =
-    NULL, total_acquisition_time_s = NULL, data_processing_procedure = NULL,
+    spectral_resolution = NULL, laser_light_used = NULL, number_of_accumulations = NULL,
+    total_acquisition_time_s = NULL, 
+     data_processing_procedure = NULL,
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
   ...

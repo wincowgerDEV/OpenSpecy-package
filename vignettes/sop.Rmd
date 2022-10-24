@@ -304,10 +304,14 @@ order to the maximum (7). Examples of smoothing below:
 library(ggplot2)
 data("raman_hdpe")
 
+none <- adj_intens(raman_hdpe)
+p1 <- smooth_intens(raman_hdpe, p = 1)
+p4 <- smooth_intens(raman_hdpe, p = 4)
+
 compare_smoothing <- rbind(
-  cbind(smoothing = "none", adj_intens(raman_hdpe)),
-  cbind(smoothing = "p = 1", smooth_intens(raman_hdpe, p = 1)),
-  cbind(smoothing = "p = 4", smooth_intens(raman_hdpe, p = 4))
+  cbind(smoothing = "none", wavenumber = none$wavenumber, none$spectra),
+  cbind(smoothing = "p = 1", wavenumber = p1$wavenumber, p1$spectra),
+  cbind(smoothing = "p = 4", wavenumber = p4$wavenumber, p4$spectra)
 )
 
 ggplot(compare_smoothing, aes(wavenumber, intensity)) +
@@ -356,10 +360,14 @@ good baseline fit below.
 library(ggplot2)
 data("raman_hdpe")
 
+none <- adj_intens(raman_hdpe)
+d2 <- subtr_bg(raman_hdpe, degree = 2)
+d8 <- subtr_bg(raman_hdpe, degree = 8)
+
 compare_subtraction <- rbind(
-  cbind(fitting = "none", adj_intens(raman_hdpe)),
-  cbind(fitting = "degree = 2", subtr_bg(raman_hdpe, degree = 2)),
-  cbind(fitting = "degree = 8", subtr_bg(raman_hdpe, degree = 8))
+  cbind(fitting = "none", wavenumber = none$wavenumber, none$spectra),
+  cbind(fitting = "d = 2", wavenumber = d2$wavenumber, d2$spectra),
+  cbind(fitting = "d = 8", wavenumber = d8$wavenumber, d8$spectra)
 )
 
 ggplot(compare_subtraction, aes(wavenumber, intensity)) +

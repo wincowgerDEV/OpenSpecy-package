@@ -2,30 +2,18 @@
 % Please edit documentation in R/smooth_intens.R
 \name{smooth_intens}
 \alias{smooth_intens}
-\alias{smooth_intens.formula}
-\alias{smooth_intens.data.frame}
 \alias{smooth_intens.default}
+\alias{smooth_intens.OpenSpecy}
 \title{Smooth spectral intensities}
 \usage{
-smooth_intens(x, ...)
+smooth_intens(object, ...)
 
-\method{smooth_intens}{formula}(formula, data = NULL, ...)
+\method{smooth_intens}{default}(object, ...)
 
-\method{smooth_intens}{data.frame}(x, ...)
-
-\method{smooth_intens}{default}(x, y, p = 3, n = 11, make_rel = TRUE, ...)
+\method{smooth_intens}{OpenSpecy}(object, p = 3, n = 11, make_rel = TRUE, ...)
 }
 \arguments{
-\item{x}{a numeric vector containing the spectral wavenumbers; alternatively
-a data frame containing spectral data as \code{"wavenumber"} and
-\code{"intensity"} can be supplied.}
-
-\item{formula}{an object of class '\code{\link[stats]{formula}}' of the form
-\code{intensity ~ wavenumber}.}
-
-\item{data}{a data frame containing the variables in \code{formula}.}
-
-\item{y}{a numeric vector containing the spectral intensities.}
+\item{object}{a list object of class \code{OpenSpecy}.}
 
 \item{p}{polynomial order for the filter}
 
