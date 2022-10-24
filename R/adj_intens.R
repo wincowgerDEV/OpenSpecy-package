@@ -60,7 +60,7 @@ adj_intens.default <- function(object, ...) {
 #' @rdname adj_intens
 #'
 #' @export
-adj_intens.OpenSpecy <- function(object, type = "none", make_rel = FALSE, ...) {
+adj_intens.OpenSpecy <- function(object, type = "none", make_rel = TRUE, ...) {
   spec <- object$spectra
 
   adj <- switch(type,
@@ -90,7 +90,7 @@ conform_spec.default <- function(object, ...) {
 #' @rdname adj_intens
 #'
 #' @export
-conform_spec.OpenSpecy <- function(object, type = "none", make_rel = FALSE, ...) {
+conform_spec.OpenSpecy <- function(object, type = "none", make_rel = TRUE, ...) {
   wn <- conform_res(object$wavenumber, ...)
 
   spec <- object$spectra[, lapply(.SD, .clean_spec,
