@@ -351,8 +351,15 @@ read_jdx <- function(file = ".", share = NULL,
 
   x <- jdx@wavelength
   y <- as.numeric(unname(jdx@data$spc[1,]))
+  
+  file <- readLines(file)
+  test <- file[grepl("##",file)|grepl("[:alpha:]",file)]
+  values <- ifelse(grepl("##",test), gsub("##.{1,}=", "", test), gsub(".{1,}:", "", test))
+  names <- ifelse(grepl("##",test), gsub("##", "", gsub("=.{1,}", "", test)), gsub(":.{1,}", "", test))
+  df_metadata <- as.data.table(t(values))
+  colnames(df_metadata) <- names
 
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata)
+  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = df_metadata)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
