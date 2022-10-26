@@ -193,5 +193,5 @@ head.OpenSpecy <- function(x, ...) {
 print.OpenSpecy <- function(x, ...) {
   cbind(wavenumber = x$wavenumber, x$spectra) %>% print(...)
   cat("\n$coords\n")
-  print(x$coords)
+  print(x$metadata)
 }

@@ -9,7 +9,7 @@
 #' @details
 #' \code{read_spc()} and \code{read_jdx()} are just a wrapper around the
 #' functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec}
-#' package.
+#' package. \code{read_0()} is a wrapper around opus_reader, https://github.com/pierreroudier/opusreader.
 #' Other functions have been adapted various online sources.
 #' All functions convert datasets to a 2 column table with one column labeled
 #' "wavenumber" and the other "intensity". There are many unique iterations of
@@ -80,6 +80,7 @@
 #'
 #' @param object a list object of class \code{OpenSpecy}.
 #' @param file file to be read from.
+#' @param file_write file name to write.
 #' @param encoding file encoding; defaults to \code{"UTF-8"}.
 #' @param colnames character vector of \code{length = 2} indicating the colum
 #' names for the wavenumber and intensity; if \code{NULL} columns are guessed.
@@ -124,9 +125,14 @@ write_OpenSpecy.default <- function(object, ...) {
 #'
 #' @importFrom yaml write_yaml
 #' @export
-write_OpenSpecy.OpenSpecy <- function(object, file = ".", encoding = "UTF-8",
+write_OpenSpecy.OpenSpecy <- function(object, file_write = ".", encoding = "UTF-8",
                                       ...) {
-  write_yaml(object, file = file, fileEncoding = encoding)
+  if(grepl("\\.yaml$")){
+      write_yaml(object, file = file_write, fileEncoding = encoding)
+  }
+  if(grepl("\\.json$")){
+      write_json(object, file = file_write, dataframe = "columns")
+  }
 }
 
 #' @rdname io_spec
