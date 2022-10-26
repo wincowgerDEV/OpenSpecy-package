@@ -4,6 +4,7 @@
 
 # Desktop drive files
 .ini
+delete.bat
 
 # Session Data files
 .RData
