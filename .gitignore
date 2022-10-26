@@ -52,3 +52,6 @@ docs/
 *.ini
 *.swp
 .DS_Store
+
+#ignore old datasets but don't remove. 
+inst/shiny/
