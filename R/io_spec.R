@@ -134,7 +134,7 @@ write_OpenSpecy.OpenSpecy <- function(object, file_write = ".", encoding = "UTF-
       write_yaml(object, file = file_write, fileEncoding = encoding)
   }
   if(grepl("\\.json$", file_write)){
-      write_json(object, file = file_write, dataframe = "columns")
+      write_json(object, path = file_write, dataframe = "columns", digits = NA) #Might be some loss of percision here, just flagging in case it becomes an issue. see toJSON
   }
   if(grepl("\\.rds$", file_write)){
       saveRDS(object, file_write)
@@ -182,8 +182,48 @@ read_OpenSpecy <- function(file = ".", encoding = "UTF-8", share = NULL,
   return(os)
 }
 
+read_spectrum <- function(file, share = NULL) {
+    if(!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)|(\\.zip$)|(\\.[0-999]$)", file)){
+        stop("File needs to be one of .csv, .asp, .spa, .spc, .jdx, .rds, .qs, .json, .yaml, .zip, or .0-999")
+    }
+        if(grepl("(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)", file)){
+            tryCatch(read_OpenSpecy(file, share = share),
+                     error = function(e) {e} 
+                     )
+        }
+        if(grepl("\\.csv$", ignore.case = T, file)) {
+            tryCatch(read_text(file = file, 
+                                 method = "fread",
+                                 share = share),
+                     error = function(e) {e})
+        }
+        else if(grepl("\\.[0-999]$", ignore.case = T, file)) {
+            tryCatch(read_0(file, share = share, id = id),
+                     error = function(e) {e})
+        }
+        else {
+            ex <- strsplit(basename(file), split="\\.")[[1]]
+            
+            tryCatch(do.call(paste0("read_", tolower(ex[-1])),
+                             list(file, share = share, id = id)),
+                     error = function(e) {e})
+        }
+}
+
+combine_OpenSpecy <- function(...){
+    appended <- c(...)
+    
+    list <- tapply(appended,names(appended),FUN=function(x) unname((x)))
+    
+    as_OpenSpecy(
+        x = list$wavenumber[[1]], #Probably should add a check to make sure all the wavenumbers are aligned before doing this. 
+        spectra = as.data.table(list$spectra),
+        metadata = rbindlist(list$metadata, fill = T)
+    )
+}
+
 #Read spectra functions ----
-read_map <- function(file = ".", share = NULL, metadata = NULL){
+read_zip <- function(file = ".", share = NULL, metadata = NULL){
     files <- unzip(zipfile = file, list = TRUE)
     unzip(file, exdir = tempdir())
     if(nrow(files) == 2 & any(grepl("\\.dat$", ignore.case = T, files$Name)) & any(grepl("\\.hdr$", ignore.case = T, files$Name))){
@@ -193,19 +233,18 @@ read_map <- function(file = ".", share = NULL, metadata = NULL){
         as_OpenSpecy(
             x = hs_envi@wavelength,
             spectra = transpose(as.data.table(hs_envi@data$spc)), 
-            metadata = data.table(x = hs_envi@data$x, y = hs_envi@data$y, filename = gsub(".*/", "", hs_envi@data$filename))
+            metadata = data.table(x = hs_envi@data$x, y = hs_envi@data$y, file = gsub(".*/", "", hs_envi@data$file))
         )
     }
-    else{
-        
-        file <- bind_cols(lapply(paste0(tempdir(), "/", files$Name), read_spectrum, share = F, id = "sdfad"))
-        
-        list(
-            "wavenumber" = file$wavenumber...1,
-            "spectra" = file %>%
-                select(-starts_with("wave")), 
-            "coords" = generate_grid(nrow(files))[,filename := files$Name])
-    }
+    #else{
+    #    file <- bind_cols(lapply(paste0(tempdir(), "/", files$Name), read_spectrum, share = share))
+    #    
+    #    as_OpenSpecy(
+    #        x = file$wavenumber...1,
+    #        spectra = file %>%
+    #            select(-starts_with("wave")), 
+    #        metadata = generate_grid(nrow(files))[,filename := files$Name])
+    #}
 }
 
 #' @rdname io_spec
