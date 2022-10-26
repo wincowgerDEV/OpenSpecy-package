@@ -136,6 +136,12 @@ write_OpenSpecy.OpenSpecy <- function(object, file_write = ".", encoding = "UTF-
   if(grepl("\\.json$", file_write)){
       write_json(object, file = file_write, dataframe = "columns")
   }
+  if(grepl("\\.rds$", file_write)){
+      saveRDS(object, file_write)
+  }
+  if(grepl("\\.qs", file_write)){
+      qsave(object, file_write)
+  }
 }
 
 #' @rdname io_spec
@@ -157,11 +163,49 @@ read_OpenSpecy <- function(file = ".", encoding = "UTF-8", share = NULL,
   if(grepl("\\.json$", file)){
       json <- read_json(file, simplifyVector = T)
       
-      os <- as_OpenSpecy(x = json$wavenumber, spectra = as.data.table(json$spectra), metadata = as.data.table(json$metadata))
-    }
+      os <- as_OpenSpecy(x = json$wavenumber, 
+                         spectra = as.data.table(json$spectra), 
+                         metadata = as.data.table(json$metadata))
+  }
+    
+  if(grepl("\\.rds$", file)){
+      # Restore it under a different name
+      os <- readRDS(file)
+  }
+    
+  if(grepl("\\.qs", file)){
+      os <- qread(file)
+  }
+    
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
   return(os)
+}
+
+#Read spectra functions ----
+read_map <- function(file = ".", share = NULL, metadata = NULL){
+    files <- unzip(zipfile = file, list = TRUE)
+    unzip(file, exdir = tempdir())
+    if(nrow(files) == 2 & any(grepl("\\.dat$", ignore.case = T, files$Name)) & any(grepl("\\.hdr$", ignore.case = T, files$Name))){
+        hs_envi <- hyperSpec::read.ENVI.Nicolet(file = paste0(tempdir(), "/", files$Name[grepl("\\.dat$", ignore.case = T, files$Name)]),
+                                                headerfile = paste0(tempdir(), "/", files$Name[grepl("\\.hdr$", ignore.case = T, files$Name)]))
+        
+        as_OpenSpecy(
+            x = hs_envi@wavelength,
+            spectra = transpose(as.data.table(hs_envi@data$spc)), 
+            metadata = data.table(x = hs_envi@data$x, y = hs_envi@data$y, filename = gsub(".*/", "", hs_envi@data$filename))
+        )
+    }
+    else{
+        
+        file <- bind_cols(lapply(paste0(tempdir(), "/", files$Name), read_spectrum, share = F, id = "sdfad"))
+        
+        list(
+            "wavenumber" = file$wavenumber...1,
+            "spectra" = file %>%
+                select(-starts_with("wave")), 
+            "coords" = generate_grid(nrow(files))[,filename := files$Name])
+    }
 }
 
 #' @rdname io_spec
