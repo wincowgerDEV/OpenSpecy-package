@@ -135,21 +135,21 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
   obj$spectra <- as.data.table(spectra)
 
   if (inherits(coords, "character")) {
-    obj$coords <- do.call(coords, list(ncol(obj$spectra)))
+    obj$metadata <- do.call(coords, list(ncol(obj$spectra)))
   } else if (inherits(coords, c("data.frame", "list")) &&
              all(is.element(c("x", "y"), names(coords)))) {
-    obj$coords <- as.data.table(coords)
+    obj$metadata <- as.data.table(coords)
   } else {
     stop("inconsistent input for 'coords'")
   }
 
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
-      obj$coords <- cbind(obj$coords, as.data.table(metadata))
-      obj$coords$session_id <- paste(digest(Sys.info()),
+      obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
+      obj$metadata$session_id <- paste(digest(Sys.info()),
                                     digest(sessionInfo()),
                                     sep = "/")
-      obj$coords$file_id = digest(obj[c("wavenumber", "spectra")])
+      obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
     } else {
       stop("inconsistent input for 'metadata'")
     }
