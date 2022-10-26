@@ -11,8 +11,11 @@
 #' functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec}
 #' package. \code{read_0()} is a wrapper around opus_reader, https://github.com/pierreroudier/opusreader.
 #' Other functions have been adapted various online sources.
-#' All functions convert datasets to a 2 column table with one column labeled
-#' "wavenumber" and the other "intensity". There are many unique iterations of
+#' All reading functions convert datasets to a 3 part list, one with a vector of the wavenumbers of the spectra, 
+#' the second with a data.table of all spectral intensities ordered as columns, the third item is another data.table 
+#' with any metadata the user provides or is harvested from the files themselves. Currently 
+#' metadata harvesting from jdx and opus files are supported as well as the two Open Specy write
+#' formats (yaml or json). There are many unique iterations of
 #' spectral file formats so there may be bugs in the file conversion.
 #' Please contact us if you identify any.
 
@@ -127,10 +130,10 @@ write_OpenSpecy.default <- function(object, ...) {
 #' @export
 write_OpenSpecy.OpenSpecy <- function(object, file_write = ".", encoding = "UTF-8",
                                       ...) {
-  if(grepl("\\.yaml$")){
+  if(grepl("\\.yaml$", file_write)){
       write_yaml(object, file = file_write, fileEncoding = encoding)
   }
-  if(grepl("\\.json$")){
+  if(grepl("\\.json$", file_write)){
       write_json(object, file = file_write, dataframe = "columns")
   }
 }
@@ -141,13 +144,21 @@ write_OpenSpecy.OpenSpecy <- function(object, file_write = ".", encoding = "UTF-
 #' @export
 read_OpenSpecy <- function(file = ".", encoding = "UTF-8", share = NULL,
                            metadata = NULL, ...) {
+  if(grepl("\\.yaml$", file)){
   yml <- read_yaml(file = file, fileEncoding = encoding)
 
   os <- as_OpenSpecy(yml$wavenumber,
                      spectra = as.data.table(yml$spectra),
                      coords = as.data.table(yml$coords),
                      metadata = metadata, ...)
-
+  
+  
+  }
+  if(grepl("\\.json$", file)){
+      json <- read_json(file, simplifyVector = T)
+      
+      os <- as_OpenSpecy(x = json$wavenumber, spectra = as.data.table(json$spectra), metadata = as.data.table(json$metadata))
+    }
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
   return(os)
