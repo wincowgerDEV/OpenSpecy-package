@@ -67,6 +67,73 @@ conform_res <- function(x, res = 5) {
 #' @rdname data_norm
 #'
 #' @export
+conform_spec <- function(spec, x, xout){
+        c(
+            approx(x = x, y = spec, xout = xout)$y
+        )    
+}
+
+
+#' @rdname data_norm
+#'
+#' @export
+conform_spectra <- function(data, xout){
+    if(is_OpenSpecy(data)){
+        as_OpenSpecy(
+            x = xout,
+            spectra = data$spectra[,lapply(.SD, function(x){
+                conform_spec(x = data$wavenumber, spec = x, xout = xout)})],
+            metadata = data$metadata
+        )
+    }
+}
+
+#' @rdname data_norm
+#'
+#' @export
+combine_OpenSpecy <- function(spectra = ".", wavenumbers = NULL, ...){
+    
+    if(!is.list(spectra)){
+        list_of_files <- lapply(files, read_spectrum)
+    }
+    else{
+        list_of_files <- spectra
+    }
+    
+    if(!is.null(wavenumbers)){
+        if(wavenumbers == "first"){
+            list_of_files <- lapply(list_of_files, function(x) {
+                conform_spectra(data = x, 
+                             xout = list_of_files[[1]]$wavenumber)
+            })
+        }
+        if(wavenumbers == "range"){
+            all = unique(unlist(lapply(list_of_files, function(x) x$wavenumber)))
+            list_of_files <- lapply(list_of_files, function(x) {
+                                        conform_spectra(data = x, 
+                                        xout = conform_res(all))})
+        }
+    }
+    
+    unlisted <- unlist(list_of_files, recursive = F)
+    
+    list <- tapply(unlisted,names(unlisted),FUN=function(x) unname((x)))
+    
+    if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(wavenumbers)){
+        stop("Wavenumbers are not the same between spectra, you need to specify how the wavenumbers should be merged.")
+    }
+    
+    as_OpenSpecy(
+        x = list$wavenumber[[1]], 
+        spectra = rlist::list.cbind(list$spectra),
+        metadata = rbindlist(list$metadata, fill = T)
+    )
+}
+
+
+#' @rdname data_norm
+#'
+#' @export
 adj_neg <- function(y, na.rm = FALSE) {
   if (min(y, na.rm = na.rm) < 1) {
     y + min(y, na.rm = na.rm) %>% abs() + 1

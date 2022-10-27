@@ -210,17 +210,6 @@ read_spectrum <- function(file, share = NULL) {
         }
 }
 
-combine_OpenSpecy <- function(...){
-    appended <- c(...)
-    
-    list <- tapply(appended,names(appended),FUN=function(x) unname((x)))
-    
-    as_OpenSpecy(
-        x = list$wavenumber[[1]], #Probably should add a check to make sure all the wavenumbers are aligned before doing this. 
-        spectra = as.data.table(list$spectra),
-        metadata = rbindlist(list$metadata, fill = T)
-    )
-}
 
 #Read spectra functions ----
 read_zip <- function(file = ".", share = NULL, metadata = NULL){
