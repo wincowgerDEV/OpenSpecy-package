@@ -54,6 +54,13 @@ as_OpenSpecy.OpenSpecy <- function(x, ...) {
 #' @rdname as_OpenSpecy
 #'
 #' @export
+as_OpenSpecy.list <- function(x, ...) {
+  do.call("as_OpenSpecy", unname(x))
+}
+
+#' @rdname as_OpenSpecy
+#'
+#' @export
 as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
                                                        spectra = NULL), ...) {
   x <- as.data.table(x)
@@ -63,12 +70,14 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
     if (any(grepl("wav", ignore.case = T, names(x)))) {
       if (length(grep("wav", ignore.case = T, names(x))) > 1L)
         warning("ambiguous column names: taking 'wavenumber' data from the",
-                " first column; use 'colnames' to supply user-defined columns")
+                " first column; use 'colnames' to supply user-defined columns",
+                call. = F)
       wavenumber <- x[[grep("wav", ignore.case = T, names(x))[1L]]]
       wn <- names(x)[grep("wav", ignore.case = T, names(x))]
     } else {
       warning("ambiguous column names: taking 'wavenumber' data from the",
-              " first column; use 'colnames' to supply user-defined columns")
+              " first column; use 'colnames' to supply user-defined columns",
+              call. = F)
       wavenumber <- x[[1L]]
       wn <- names(x)[1L]
     }
@@ -85,7 +94,7 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
     } else {
       warning("ambiguous column names: taking 'spectra' data from all but the",
               " 'wavenumber' column; use 'colnames' to supply user-defined",
-              " columns")
+              " columns", call. = F)
       spectra <- x[, -wn, with = F]
     }
   } else {
@@ -130,14 +139,15 @@ as_OpenSpecy.default <- function(x, spectra,
                                  coords = "gen_grid",
                                  ...) {
   if (!is.numeric(x) && !is.complex(x) && !is.logical(x))
-    stop("'x' must be numeric or logical")
+    stop("'x' must be numeric or logical", call. = F)
   if (!inherits(spectra, c("data.frame", "matrix")))
-    stop("'spectra' must inherit from data.frame or matrix")
+    stop("'spectra' must inherit from data.frame or matrix", call. = F)
   if (!sapply(spectra, is.numeric)[1L] && !sapply(spectra, is.complex)[1L] &&
       !sapply(spectra, is.logical)[1L])
-    stop("at least the first column of 'spectra' must be numeric or logical")
+    stop("at least the first column of 'spectra' must be numeric or logical",
+         call. = F)
   if (length(x) != nrow(spectra))
-    stop("'x' and 'spectra' must be of equal length")
+    stop("'x' and 'spectra' must be of equal length", call. = F)
 
   obj <- structure(list(), class = c("list", "OpenSpecy"))
 
@@ -153,7 +163,7 @@ as_OpenSpecy.default <- function(x, spectra,
     obj$metadata <- data.table()
   }
   else {
-    stop("inconsistent input for 'coords'")
+    stop("inconsistent input for 'coords'", call. = F)
   }
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
@@ -161,11 +171,11 @@ as_OpenSpecy.default <- function(x, spectra,
       obj$metadata$session_id <- paste(digest(Sys.info()),
                                     digest(sessionInfo()),
                                     sep = "/")
-      if(!c("file_id") %in% names(obj$metadata)){
-          obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
+      if(!c("file_id") %in% names(obj$metadata)) {
+        obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
       }
     } else {
-      stop("inconsistent input for 'metadata'")
+      stop("inconsistent input for 'metadata'", call. = F)
     }
   }
 
@@ -186,7 +196,7 @@ OpenSpecy <- function(x, ...) {
   if (is_OpenSpecy(x)) {
     return(x)
   } else {
-    return(as_OpenSpecy(x, ...))
+    do.call("as_OpenSpecy", list(x, ...))
   }
 }
 
