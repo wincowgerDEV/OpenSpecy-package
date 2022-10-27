@@ -56,9 +56,9 @@ smooth_intens.default <- function(object, ...) {
 #' @importFrom signal filter sgolay
 #' @importFrom data.table .SD
 #' @export
-smooth_intens.OpenSpecy <- function(object, p = 3, n = 11, make_rel = TRUE,
+smooth_intens.OpenSpecy <- function(object, p = 3, n = 11, m = 0, make_rel = TRUE,
                                   ...) {
-  filt <- object$spectra[, lapply(.SD, .sgfilt, p = p, n = n, ...)]
+  filt <- object$spectra[, lapply(.SD, .sgfilt, p = p, n = n, m = m, ...)]
 
   if (make_rel) object$spectra <- make_rel(filt) else object$spectra <- filt
 
