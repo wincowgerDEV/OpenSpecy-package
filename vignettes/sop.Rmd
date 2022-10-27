@@ -151,7 +151,7 @@ data accordingly:
 ```{r, eval=FALSE}
 read_text(".csv")
 read_asp(".asp")
-read_0(".0")
+read_opus(".0")
 ```
 
 ## Viewing Spectra Plot

@@ -21,7 +21,6 @@ as_OpenSpecy(x, ...)
 \method{as_OpenSpecy}{default}(
   x,
   spectra,
-  coords = "gen_grid",
   metadata = list(file_name = NULL, user_name = NULL, contact_info = NULL, organization =
     NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL, material_form
     = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
@@ -32,6 +31,7 @@ as_OpenSpecy(x, ...)
      data_processing_procedure = NULL,
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
+  coords = "gen_grid",
   ...
 )
 
@@ -52,9 +52,9 @@ gen_grid(x)
 
 \item{spectra}{spectra.}
 
-\item{coords}{coords = "gen_grid".}
-
 \item{metadata}{file = NULL.}
+
+\item{coords}{coords = "gen_grid".}
 
 \item{\ldots}{args.}
 }
@@ -66,7 +66,16 @@ Functions to check if an object is an Open Specy spectrum, or coerce it if
 possible.
 }
 \details{
-details
+\code{as_OpenSpecy()} converts spectral datasets to a threepart list,
+one with a vector of the wavenumbers of the spectra,
+the second with a \code{data.table} of all spectral intensities ordered as
+columns,
+the third item is another \code{data.table} with any metadata the user
+provides or is harvested from the files themselves. Currently metadata
+harvesting from jdx and opus files are supported as well as the two
+Open Specy write formats yaml and json. There are many unique iterations of
+spectral file formats so there may be bugs in the file conversion.
+Please contact us if you identify any.
 }
 \examples{
 c()

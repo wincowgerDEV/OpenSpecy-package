@@ -7,12 +7,21 @@
 #' possible.
 #'
 #' @details
-#' details
+#' \code{as_OpenSpecy()} converts spectral datasets to a threepart list,
+#' one with a vector of the wavenumbers of the spectra,
+#' the second with a \code{data.table} of all spectral intensities ordered as
+#' columns,
+#' the third item is another \code{data.table} with any metadata the user
+#' provides or is harvested from the files themselves. Currently metadata
+#' harvesting from jdx and opus files are supported as well as the two
+#' Open Specy write formats yaml and json. There are many unique iterations of
+#' spectral file formats so there may be bugs in the file conversion.
+#' Please contact us if you identify any.
 #'
 #' @param x x.
 #' @param spectra spectra.
-#' @param coords coords = "gen_grid".
 #' @param metadata file = NULL.
+#' @param coords coords = "gen_grid".
 #' @param colnames cols.
 #' @param \ldots args.
 #'
@@ -90,7 +99,7 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
 #' @rdname as_OpenSpecy
 #'
 #' @export
-as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
+as_OpenSpecy.default <- function(x, spectra,
                                  metadata = list(
                                    file_name = NULL,
                                    user_name = NULL,
@@ -118,6 +127,7 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
                                    level_of_confidence_in_identification = NULL,
                                    other_info = NULL,
                                    license = "CC BY-NC"),
+                                 coords = "gen_grid",
                                  ...) {
   if (!is.numeric(x) && !is.complex(x) && !is.logical(x))
     stop("'x' must be numeric or logical")
@@ -165,14 +175,20 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
 #' @rdname as_OpenSpecy
 #'
 #' @export
-is_OpenSpecy <- function (x) {
+is_OpenSpecy <- function(x) {
   inherits(x, "OpenSpecy")
 }
 
 #' @rdname as_OpenSpecy
 #'
 #' @export
-OpenSpecy <- as_OpenSpecy
+OpenSpecy <- function(x, ...) {
+  if (is_OpenSpecy(x)) {
+    return(x)
+  } else {
+    return(as_OpenSpecy(x, ...))
+  }
+}
 
 #' @rdname as_OpenSpecy
 #'
@@ -196,6 +212,6 @@ head.OpenSpecy <- function(x, ...) {
 #' @export
 print.OpenSpecy <- function(x, ...) {
   cbind(wavenumber = x$wavenumber, x$spectra) %>% print(...)
-  cat("\n$coords\n")
+  cat("\n$metadata\n")
   print(x$metadata)
 }

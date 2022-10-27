@@ -61,7 +61,7 @@ share_spec.default <- function(object, ...) {
 #' @export
 share_spec.OpenSpecy <- function(object, file = NULL, share = "system",
                                  ...) {
-  md <- object$coords
+  md <- object$metadata
   if (any(!c("user_name", "spectrum_type", "spectrum_identity") %in%
              names(md)) |
       is.null(md$user_name) | is.null(md$spectrum_type) |
@@ -85,7 +85,7 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system",
 
   fd <- file.path(fp, paste0(md$file_id, ".yml"))
 
-  write_OpenSpecy(object, fd)
+  write_spec(object, fd)
 
   if (!is.null(file)) {
     ex <- strsplit(basename(file), split="\\.")[[1]]
