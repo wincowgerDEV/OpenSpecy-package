@@ -165,6 +165,7 @@ read_OpenSpecy <- function(file = ".", encoding = "UTF-8", share = NULL,
       
       os <- as_OpenSpecy(x = json$wavenumber, 
                          spectra = as.data.table(json$spectra), 
+                         coords = as.data.table(json$coords),
                          metadata = as.data.table(json$metadata))
   }
     
@@ -182,37 +183,40 @@ read_OpenSpecy <- function(file = ".", encoding = "UTF-8", share = NULL,
   return(os)
 }
 
-read_spectrum <- function(file, share = NULL) {
+read_spectrum <- function(file, share = NULL, coords = NULL) {
     if(!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)|(\\.zip$)|(\\.[0-999]$)", file)){
         stop("File needs to be one of .csv, .asp, .spa, .spc, .jdx, .rds, .qs, .json, .yaml, .zip, or .0-999")
     }
         if(grepl("(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)", file)){
-            tryCatch(read_OpenSpecy(file, share = share),
+            tryCatch(read_OpenSpecy(file, share = share, coords = coords),
                      error = function(e) {e} 
                      )
         }
         if(grepl("\\.csv$", ignore.case = T, file)) {
             tryCatch(read_text(file = file, 
                                  method = "fread",
-                                 share = share),
+                                 share = share,
+                                 coords = coords),
                      error = function(e) {e})
         }
         else if(grepl("\\.[0-999]$", ignore.case = T, file)) {
-            tryCatch(read_0(file, share = share, id = id),
+            tryCatch(read_0(file, share = share, id = id,
+                            coords = coords),
                      error = function(e) {e})
         }
         else {
             ex <- strsplit(basename(file), split="\\.")[[1]]
             
             tryCatch(do.call(paste0("read_", tolower(ex[-1])),
-                             list(file, share = share, id = id)),
+                             list(file, share = share, id = id,
+                                  coords = coords)),
                      error = function(e) {e})
         }
 }
 
 
 #Read spectra functions ----
-read_zip <- function(file = ".", share = NULL, metadata = NULL){
+read_zip <- function(file = ".", share = NULL, metadata = NULL, coords = NULL){
     files <- unzip(zipfile = file, list = TRUE)
     unzip(file, exdir = tempdir())
     if(nrow(files) == 2 & any(grepl("\\.dat$", ignore.case = T, files$Name)) & any(grepl("\\.hdr$", ignore.case = T, files$Name))){
@@ -222,7 +226,8 @@ read_zip <- function(file = ".", share = NULL, metadata = NULL){
         as_OpenSpecy(
             x = hs_envi@wavelength,
             spectra = transpose(as.data.table(hs_envi@data$spc)), 
-            metadata = data.table(x = hs_envi@data$x, y = hs_envi@data$y, file = gsub(".*/", "", hs_envi@data$file))
+            metadata = data.table(x = hs_envi@data$x, y = hs_envi@data$y, file = gsub(".*/", "", hs_envi@data$file)), 
+            coords = coords
         )
     }
     #else{
@@ -239,7 +244,7 @@ read_zip <- function(file = ".", share = NULL, metadata = NULL){
 #' @rdname io_spec
 #'
 #' @export
-read_text <- function(file = ".", colnames = NULL, method = "fread",
+read_text <- function(file = ".", colnames = NULL, method = "fread", coords = NULL,
                       share = NULL,
                       metadata = list(
                         file_name = basename(file),
@@ -275,7 +280,7 @@ read_text <- function(file = ".", colnames = NULL, method = "fread",
                                               "use 'header = FALSE' or an ",
                                               "alternative read method")
 
-  os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata)
+  os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata, coords = coords)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
@@ -285,7 +290,7 @@ read_text <- function(file = ".", colnames = NULL, method = "fread",
 #' @rdname io_spec
 #'
 #' @export
-read_asp <- function(file = ".", share = NULL,
+read_asp <- function(file = ".", share = NULL, coords = NULL,
                      metadata = list(
                        file_name = basename(file),
                        user_name = NULL,
@@ -324,7 +329,7 @@ read_asp <- function(file = ".", share = NULL,
   y <- lns[-c(1:6)]
   x <- seq(lns[2], lns[3], length.out = lns[1])
 
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata)
+  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata, coords = coords)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
@@ -335,7 +340,7 @@ read_asp <- function(file = ".", share = NULL,
 #'
 #' @importFrom utils read.table
 #' @export
-read_spa <- function(file = ".", share = NULL,
+read_spa <- function(file = ".", share = NULL, coords = NULL,
                      metadata = list(
                        file_name = basename(file),
                        user_name = NULL,
@@ -396,7 +401,7 @@ read_spa <- function(file = ".", share = NULL,
   x <- seq(spr[1], spr[2], length = length(floatData))
   y <- floatData
 
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata)
+  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata, coords = coords)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
@@ -407,7 +412,7 @@ read_spa <- function(file = ".", share = NULL,
 #'
 #' @importFrom hyperSpec read.jdx
 #' @export
-read_jdx <- function(file = ".", share = NULL,
+read_jdx <- function(file = ".", share = NULL, coords = NULL,
                      metadata = list(
                        file_name = basename(file),
                        user_name = NULL,
@@ -450,7 +455,7 @@ read_jdx <- function(file = ".", share = NULL,
 
   os <- as_OpenSpecy(x, data.table(intensity = y), metadata = df_metadata)
 
-  if (!is.null(share)) share_spec(os, file = file, share = share)
+  if (!is.null(share)) share_spec(os, file = file, share = share, coords = coords)
 
   return(os)
 }
@@ -459,7 +464,7 @@ read_jdx <- function(file = ".", share = NULL,
 #'
 #' @importFrom hyperSpec read.spc
 #' @export
-read_spc <- function(file = ".", share = NULL,
+read_spc <- function(file = ".", share = NULL, coords = NULL,
                      metadata = list(
                        file_name = basename(file),
                        user_name = NULL,
@@ -493,7 +498,7 @@ read_spc <- function(file = ".", share = NULL,
   x <- spc@wavelength
   y <- as.numeric(unname(spc@data$spc[1,]))
 
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata)
+  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata, coords = coords)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
@@ -505,7 +510,7 @@ read_spc <- function(file = ".", share = NULL,
 #' @importFrom hexView readRaw blockString
 #' @export
 read_0 <- function(
-        file = ".", share = NULL,
+        file = ".", share = NULL, coords = NULL,
         metadata = list(
             file_name = basename(file),
             user_name = NULL,
@@ -1599,7 +1604,7 @@ read_0 <- function(
         }
     }
     
-    os <- as_OpenSpecy(x = res$wavenumbers, spectra = data.table(intensity = c(res$spec)), metadata = res$metadata)
+    os <- as_OpenSpecy(x = res$wavenumbers, spectra = data.table(intensity = c(res$spec)), metadata = res$metadata, coords = coords)
     
     if (!is.null(share)) share_spec(os, file = file, share = share)
     

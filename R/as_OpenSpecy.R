@@ -139,16 +139,19 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
   } else if (inherits(coords, c("data.frame", "list")) &&
              all(is.element(c("x", "y"), names(coords)))) {
     obj$metadata <- as.data.table(coords)
-  } else {
+  } else if(is.null(coords)){
+    obj$metadata <- data.table()
+  }
+  else {
     stop("inconsistent input for 'coords'")
   }
-
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
       obj$metadata$session_id <- paste(digest(Sys.info()),
                                     digest(sessionInfo()),
                                     sep = "/")
+      if(!c("file_id") %in% obj$metadata)
       obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
     } else {
       stop("inconsistent input for 'metadata'")

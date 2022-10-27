@@ -77,13 +77,14 @@ conform_spec <- function(spec, x, xout){
 #' @rdname data_norm
 #'
 #' @export
-conform_spectra <- function(data, xout){
+conform_spectra <- function(data, xout, coords = NULL){
     if(is_OpenSpecy(data)){
         as_OpenSpecy(
             x = xout,
             spectra = data$spectra[,lapply(.SD, function(x){
                 conform_spec(x = data$wavenumber, spec = x, xout = xout)})],
-            metadata = data$metadata
+            metadata = data$metadata, 
+            coords = coords
         )
     }
 }
@@ -91,10 +92,10 @@ conform_spectra <- function(data, xout){
 #' @rdname data_norm
 #'
 #' @export
-combine_OpenSpecy <- function(spectra = ".", wavenumbers = NULL, ...){
+combine_OpenSpecy <- function(spectra = ".", wavenumbers = NULL, coords = NULL){
     
     if(!is.list(spectra)){
-        list_of_files <- lapply(files, read_spectrum)
+        list_of_files <- lapply(files, read_spectrum, coords = NULL)
     }
     else{
         list_of_files <- spectra
@@ -104,14 +105,16 @@ combine_OpenSpecy <- function(spectra = ".", wavenumbers = NULL, ...){
         if(wavenumbers == "first"){
             list_of_files <- lapply(list_of_files, function(x) {
                 conform_spectra(data = x, 
-                             xout = list_of_files[[1]]$wavenumber)
+                                xout = list_of_files[[1]]$wavenumber, 
+                                coords = NULL)
             })
         }
         if(wavenumbers == "range"){
             all = unique(unlist(lapply(list_of_files, function(x) x$wavenumber)))
             list_of_files <- lapply(list_of_files, function(x) {
                                         conform_spectra(data = x, 
-                                        xout = conform_res(all))})
+                                        xout = conform_res(all), 
+                                        coords = NULL)})
         }
     }
     
