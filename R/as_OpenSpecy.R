@@ -151,8 +151,9 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
       obj$metadata$session_id <- paste(digest(Sys.info()),
                                     digest(sessionInfo()),
                                     sep = "/")
-      if(!c("file_id") %in% obj$metadata)
-      obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
+      if(!c("file_id") %in% names(obj$metadata)){
+          obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
+      }
     } else {
       stop("inconsistent input for 'metadata'")
     }
