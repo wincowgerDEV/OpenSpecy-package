@@ -88,14 +88,14 @@ test_that("read_spc() gives expected output", {
   expect_equal(round(range(spc$spectra[[1]]), 2), c(0.08, 585.51))
 })
 
-test_that("read_0() gives expected output", {
-  expect_silent(f0 <- read_0(read_extdata("ftir_ps.0")))
-  expect_error(read_0(read_extdata("raman_hdpe.csv")))
-  expect_s3_class(f0, "OpenSpecy")
-  expect_equal(names(f0), c("wavenumber", "spectra", "coords"))
-  expect_equal(length(f0$wavenumber), 2126)
-  expect_equal(round(range(f0$wavenumber), 1), c(399.2, 4497.5))
-  expect_equal(round(range(f0$spectra[[1]]), 4), c(0.0130, 0.6112))
+test_that("read_opus() gives expected output", {
+  expect_silent(opus <- read_opus(read_extdata("ftir_ps.0")))
+  expect_error(read_opus(read_extdata("raman_hdpe.csv")))
+  expect_s3_class(opus, "OpenSpecy")
+  expect_equal(names(opus), c("wavenumber", "spectra", "coords"))
+  expect_equal(length(opus), 2126)
+  expect_equal(round(range(opus$wavenumber), 1), c(399.2, 4497.5))
+  expect_equal(round(range(opus$spectra[[1]]), 4), c(0.0130, 0.6112))
 })
 
 # Tidy up

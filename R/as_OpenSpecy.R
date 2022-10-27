@@ -7,12 +7,21 @@
 #' possible.
 #'
 #' @details
-#' details
+#' \code{as_OpenSpecy()} converts spectral datasets to a threepart list,
+#' one with a vector of the wavenumbers of the spectra,
+#' the second with a \code{data.table} of all spectral intensities ordered as
+#' columns,
+#' the third item is another \code{data.table} with any metadata the user
+#' provides or is harvested from the files themselves. Currently metadata
+#' harvesting from jdx and opus files are supported as well as the two
+#' Open Specy write formats yaml and json. There are many unique iterations of
+#' spectral file formats so there may be bugs in the file conversion.
+#' Please contact us if you identify any.
 #'
 #' @param x x.
 #' @param spectra spectra.
-#' @param coords coords = "gen_grid".
 #' @param metadata file = NULL.
+#' @param coords coords = "gen_grid".
 #' @param colnames cols.
 #' @param \ldots args.
 #'
@@ -45,6 +54,13 @@ as_OpenSpecy.OpenSpecy <- function(x, ...) {
 #' @rdname as_OpenSpecy
 #'
 #' @export
+as_OpenSpecy.list <- function(x, ...) {
+  do.call("as_OpenSpecy", unname(x))
+}
+
+#' @rdname as_OpenSpecy
+#'
+#' @export
 as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
                                                        spectra = NULL), ...) {
   x <- as.data.table(x)
@@ -54,12 +70,14 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
     if (any(grepl("wav", ignore.case = T, names(x)))) {
       if (length(grep("wav", ignore.case = T, names(x))) > 1L)
         warning("ambiguous column names: taking 'wavenumber' data from the",
-                " first column; use 'colnames' to supply user-defined columns")
+                " first column; use 'colnames' to supply user-defined columns",
+                call. = F)
       wavenumber <- x[[grep("wav", ignore.case = T, names(x))[1L]]]
       wn <- names(x)[grep("wav", ignore.case = T, names(x))]
     } else {
       warning("ambiguous column names: taking 'wavenumber' data from the",
-              " first column; use 'colnames' to supply user-defined columns")
+              " first column; use 'colnames' to supply user-defined columns",
+              call. = F)
       wavenumber <- x[[1L]]
       wn <- names(x)[1L]
     }
@@ -76,7 +94,7 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
     } else {
       warning("ambiguous column names: taking 'spectra' data from all but the",
               " 'wavenumber' column; use 'colnames' to supply user-defined",
-              " columns")
+              " columns", call. = F)
       spectra <- x[, -wn, with = F]
     }
   } else {
@@ -90,7 +108,7 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
 #' @rdname as_OpenSpecy
 #'
 #' @export
-as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
+as_OpenSpecy.default <- function(x, spectra,
                                  metadata = list(
                                    file_name = NULL,
                                    user_name = NULL,
@@ -118,16 +136,18 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
                                    level_of_confidence_in_identification = NULL,
                                    other_info = NULL,
                                    license = "CC BY-NC"),
+                                 coords = "gen_grid",
                                  ...) {
   if (!is.numeric(x) && !is.complex(x) && !is.logical(x))
-    stop("'x' must be numeric or logical")
+    stop("'x' must be numeric or logical", call. = F)
   if (!inherits(spectra, c("data.frame", "matrix")))
-    stop("'spectra' must inherit from data.frame or matrix")
+    stop("'spectra' must inherit from data.frame or matrix", call. = F)
   if (!sapply(spectra, is.numeric)[1L] && !sapply(spectra, is.complex)[1L] &&
       !sapply(spectra, is.logical)[1L])
-    stop("at least the first column of 'spectra' must be numeric or logical")
+    stop("at least the first column of 'spectra' must be numeric or logical",
+         call. = F)
   if (length(x) != nrow(spectra))
-    stop("'x' and 'spectra' must be of equal length")
+    stop("'x' and 'spectra' must be of equal length", call. = F)
 
   obj <- structure(list(), class = c("list", "OpenSpecy"))
 
@@ -143,7 +163,7 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
     obj$metadata <- data.table()
   }
   else {
-    stop("inconsistent input for 'coords'")
+    stop("inconsistent input for 'coords'", call. = F)
   }
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
@@ -151,11 +171,11 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
       obj$metadata$session_id <- paste(digest(Sys.info()),
                                     digest(sessionInfo()),
                                     sep = "/")
-      if(!c("file_id") %in% names(obj$metadata)){
-          obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
+      if(!c("file_id") %in% names(obj$metadata)) {
+        obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
       }
     } else {
-      stop("inconsistent input for 'metadata'")
+      stop("inconsistent input for 'metadata'", call. = F)
     }
   }
 
@@ -165,14 +185,20 @@ as_OpenSpecy.default <- function(x, spectra, coords = "gen_grid",
 #' @rdname as_OpenSpecy
 #'
 #' @export
-is_OpenSpecy <- function (x) {
+is_OpenSpecy <- function(x) {
   inherits(x, "OpenSpecy")
 }
 
 #' @rdname as_OpenSpecy
 #'
 #' @export
-OpenSpecy <- as_OpenSpecy
+OpenSpecy <- function(x, ...) {
+  if (is_OpenSpecy(x)) {
+    return(x)
+  } else {
+    do.call("as_OpenSpecy", list(x, ...))
+  }
+}
 
 #' @rdname as_OpenSpecy
 #'
@@ -181,21 +207,4 @@ gen_grid <- function(x) {
   base <- sqrt(x)
   expand.grid(x = 1:ceiling(base), y = 1:ceiling(base))[1:x,] %>%
     as.data.table
-}
-
-#' @rdname as_OpenSpecy
-#'
-#' @importFrom utils head
-#' @export
-head.OpenSpecy <- function(x, ...) {
-  cbind(wavenumber = x$wavenumber, x$spectra) %>% head(...)
-}
-
-#' @rdname as_OpenSpecy
-#'
-#' @export
-print.OpenSpecy <- function(x, ...) {
-  cbind(wavenumber = x$wavenumber, x$spectra) %>% print(...)
-  cat("\n$coords\n")
-  print(x$metadata)
 }

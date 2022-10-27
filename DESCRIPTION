@@ -1,8 +1,8 @@
 Package: OpenSpecy
 Type: Package
 Title: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
-Version: 0.9.5
-Date: 2022-07-06
+Version: 0.10.0
+Date: 2022-10-21
 Authors@R: c(person("Win", "Cowger", role = c("cre", "aut"),
       email = "wincowger@gmail.com",
       comment = c(ORCID = "0000-0001-9226-3104")),
@@ -49,10 +49,10 @@ Imports:
     magrittr,
     dplyr,
     data.table,
+    jsonlite,
     yaml,
     osfr,
     hyperSpec,
-    hexView,
     digest,
     signal,
     shiny
@@ -61,6 +61,7 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0),
     config,
+    qs,
     shinyjs,
     shinythemes,
     shinyBS,

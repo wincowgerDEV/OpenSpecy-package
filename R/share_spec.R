@@ -53,7 +53,7 @@ share_spec <- function(object, ...) {
 #'
 #' @export
 share_spec.default <- function(object, ...) {
-  stop("object needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname share_spec
@@ -61,7 +61,7 @@ share_spec.default <- function(object, ...) {
 #' @export
 share_spec.OpenSpecy <- function(object, file = NULL, share = "system",
                                  ...) {
-  md <- object$coords
+  md <- object$metadata
   if (any(!c("user_name", "spectrum_type", "spectrum_identity") %in%
              names(md)) |
       is.null(md$user_name) | is.null(md$spectrum_type) |
@@ -75,7 +75,8 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system",
   } else if (share == "cloud") {
     pkg <- "rdrop2"
     mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
-    if (length(mpkg)) stop("share = 'cloud' requires package 'rdrop2'")
+    if (length(mpkg)) stop("share = 'cloud' requires package 'rdrop2'",
+                           call. = F)
 
     fp <- file.path(tempdir(), md$session_id)
   } else {
@@ -85,7 +86,7 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system",
 
   fd <- file.path(fp, paste0(md$file_id, ".yml"))
 
-  write_OpenSpecy(object, fd)
+  write_spec(object, fd)
 
   if (!is.null(file)) {
     ex <- strsplit(basename(file), split="\\.")[[1]]
