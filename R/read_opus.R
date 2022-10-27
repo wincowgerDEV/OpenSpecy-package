@@ -54,13 +54,12 @@
 #'     - `wavenumbers`: Numeric vector with wavenumbers of the requested spectra.
 #'     - `spectra`: Matrix with spectra of requested type (see argument `type`).
 #'
-#' @include read_opus_raw.R
 #' @importFrom stats approx
 #' @export
 #'
 #' @author Philipp Baumann, Zacharias Steinmetz, Win Cowger
 #'
-read_opus <- function(file = ".", share = NULL,
+read_opus <- function(file, share = NULL,
                       metadata = list(
                         file_name = basename(file),
                         user_name = NULL,

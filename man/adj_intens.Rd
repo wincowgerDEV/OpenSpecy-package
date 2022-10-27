@@ -15,11 +15,11 @@ adj_intens(object, ...)
 
 \method{adj_intens}{OpenSpecy}(object, type = "none", make_rel = TRUE, ...)
 
-conform_spec(object, ...)
+conform_spec(spec, x, xout)
 
-\method{conform_spec}{default}(object, ...)
+conform_spec.default(object, ...)
 
-\method{conform_spec}{OpenSpecy}(object, type = "none", make_rel = TRUE, ...)
+conform_spec.OpenSpecy(object, type = "none", make_rel = TRUE, ...)
 }
 \arguments{
 \item{object}{a list object of class \code{OpenSpecy}.}

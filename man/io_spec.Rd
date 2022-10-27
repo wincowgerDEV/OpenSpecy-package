@@ -12,9 +12,9 @@ write_spec(x, ...)
 
 \method{write_spec}{default}(x, ...)
 
-\method{write_spec}{OpenSpecy}(x, file = ".", method = NULL, ...)
+\method{write_spec}{OpenSpecy}(x, file, method = NULL, ...)
 
-read_spec(file = ".", share = NULL, method = NULL, ...)
+read_spec(file, share = NULL, method = NULL, ...)
 
 c_spec(...)
 }
@@ -41,8 +41,6 @@ Functions for reading and writing spectral data from Open Specy .yaml, .json,
 or .rds.
 }
 \details{
-All reading functions
-
 The \code{metadata} argument may contain a named list with the following
 details (\code{*} = minimum recommended):
 

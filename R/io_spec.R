@@ -113,7 +113,7 @@ write_spec.default <- function(x, ...) {
 #' @importFrom yaml write_yaml
 #' @importFrom jsonlite write_json
 #' @export
-write_spec.OpenSpecy <- function(x, file = ".", method = NULL, ...) {
+write_spec.OpenSpecy <- function(x, file, method = NULL, ...) {
   if (is.null(method)) {
     if (grepl("(\\.yaml$)|(\\.yml$)", file, ignore.case = T)) {
       write_yaml(x, file = file, ...)
@@ -135,7 +135,7 @@ write_spec.OpenSpecy <- function(x, file = ".", method = NULL, ...) {
 #' @importFrom yaml read_yaml
 #' @importFrom jsonlite read_json
 #' @export
-read_spec <- function(file = ".", share = NULL, method = NULL, ...) {
+read_spec <- function(file, share = NULL, method = NULL, ...) {
   if (is.null(method)) {
     if (grepl("(\\.yaml$)|(\\.yml$)", file, ignore.case = T)) {
       yml <- read_yaml(file = file, ...)
@@ -166,71 +166,6 @@ read_spec <- function(file = ".", share = NULL, method = NULL, ...) {
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
   return(os)
-}
-
-read_spectrum <- function(file, share = NULL) {
-    if(!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)|(\\.zip$)|(\\.[0-999]$)", file)){
-        stop("File needs to be one of .csv, .asp, .spa, .spc, .jdx, .rds, .qs, .json, .yaml, .zip, or .0-999")
-    }
-        if(grepl("(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)", file)){
-            tryCatch(read_OpenSpecy(file, share = share),
-                     error = function(e) {e} 
-                     )
-        }
-        if(grepl("\\.csv$", ignore.case = T, file)) {
-            tryCatch(read_text(file = file, 
-                                 method = "fread",
-                                 share = share),
-                     error = function(e) {e})
-        }
-        else if(grepl("\\.[0-999]$", ignore.case = T, file)) {
-            tryCatch(read_0(file, share = share, id = id),
-                     error = function(e) {e})
-        }
-        else {
-            ex <- strsplit(basename(file), split="\\.")[[1]]
-            
-            tryCatch(do.call(paste0("read_", tolower(ex[-1])),
-                             list(file, share = share, id = id)),
-                     error = function(e) {e})
-        }
-}
-
-combine_OpenSpecy <- function(...){
-    appended <- c(...)
-    
-    list <- tapply(appended,names(appended),FUN=function(x) unname((x)))
-    
-    as_OpenSpecy(
-        x = list$wavenumber[[1]], #Probably should add a check to make sure all the wavenumbers are aligned before doing this. 
-        spectra = as.data.table(list$spectra),
-        metadata = rbindlist(list$metadata, fill = T)
-    )
-}
-
-#Read spectra functions ----
-read_zip <- function(file = ".", share = NULL, metadata = NULL){
-    files <- unzip(zipfile = file, list = TRUE)
-    unzip(file, exdir = tempdir())
-    if(nrow(files) == 2 & any(grepl("\\.dat$", ignore.case = T, files$Name)) & any(grepl("\\.hdr$", ignore.case = T, files$Name))){
-        hs_envi <- hyperSpec::read.ENVI.Nicolet(file = paste0(tempdir(), "/", files$Name[grepl("\\.dat$", ignore.case = T, files$Name)]),
-                                                headerfile = paste0(tempdir(), "/", files$Name[grepl("\\.hdr$", ignore.case = T, files$Name)]))
-        
-        as_OpenSpecy(
-            x = hs_envi@wavelength,
-            spectra = transpose(as.data.table(hs_envi@data$spc)), 
-            metadata = data.table(x = hs_envi@data$x, y = hs_envi@data$y, file = gsub(".*/", "", hs_envi@data$file))
-        )
-    }
-    #else{
-    #    file <- bind_cols(lapply(paste0(tempdir(), "/", files$Name), read_spectrum, share = share))
-    #    
-    #    as_OpenSpecy(
-    #        x = file$wavenumber...1,
-    #        spectra = file %>%
-    #            select(-starts_with("wave")), 
-    #        metadata = generate_grid(nrow(files))[,filename := files$Name])
-    #}
 }
 
 #' @rdname io_spec

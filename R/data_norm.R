@@ -70,7 +70,7 @@ conform_res <- function(x, res = 5) {
 conform_spec <- function(spec, x, xout){
         c(
             approx(x = x, y = spec, xout = xout)$y
-        )    
+        )
 }
 
 
@@ -83,7 +83,7 @@ conform_spectra <- function(data, xout, coords = NULL){
             x = xout,
             spectra = data$spectra[,lapply(.SD, function(x){
                 conform_spec(x = data$wavenumber, spec = x, xout = xout)})],
-            metadata = data$metadata, 
+            metadata = data$metadata,
             coords = coords
         )
     }
@@ -92,47 +92,46 @@ conform_spectra <- function(data, xout, coords = NULL){
 #' @rdname data_norm
 #'
 #' @export
-combine_OpenSpecy <- function(spectra = ".", wavenumbers = NULL, coords = NULL){
-    
-    if(!is.list(spectra)){
-        list_of_files <- lapply(files, read_spectrum, coords = NULL)
+combine_OpenSpecy <- function(files, wavenumbers = NULL, coords = NULL){
+
+    if(!is.list(files)){
+        lof <- lapply(files, read_spec, coords = NULL)
     }
     else{
-        list_of_files <- spectra
+        lof <- files
     }
-    
+
     if(!is.null(wavenumbers)){
         if(wavenumbers == "first"){
-            list_of_files <- lapply(list_of_files, function(x) {
-                conform_spectra(data = x, 
-                                xout = list_of_files[[1]]$wavenumber, 
+            lof <- lapply(lof, function(x) {
+                conform_spectra(data = x,
+                                xout = lof[[1]]$wavenumber,
                                 coords = NULL)
             })
         }
         if(wavenumbers == "range"){
-            all = unique(unlist(lapply(list_of_files, function(x) x$wavenumber)))
-            list_of_files <- lapply(list_of_files, function(x) {
-                                        conform_spectra(data = x, 
-                                        xout = conform_res(all), 
+            all = unique(unlist(lapply(lof, function(x) x$wavenumber)))
+            lof <- lapply(lof, function(x) {
+                                        conform_spectra(data = x,
+                                        xout = conform_res(all),
                                         coords = NULL)})
         }
     }
-    
-    unlisted <- unlist(list_of_files, recursive = F)
-    
-    list <- tapply(unlisted,names(unlisted),FUN=function(x) unname((x)))
-    
+
+    unlisted <- unlist(lof, recursive = F)
+
+    list <- tapply(unlisted, names(unlisted), FUN = function(x) unname((x)))
+
     if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(wavenumbers)){
         stop("Wavenumbers are not the same between spectra, you need to specify how the wavenumbers should be merged.")
     }
-    
+
     as_OpenSpecy(
-        x = list$wavenumber[[1]], 
-        spectra = rlist::list.cbind(list$spectra),
+        x = list$wavenumber[[1]],
+        spectra = as.data.table(list$spectra),
         metadata = rbindlist(list$metadata, fill = T)
     )
 }
-
 
 #' @rdname data_norm
 #'

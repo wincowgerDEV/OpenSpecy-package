@@ -198,20 +198,3 @@ gen_grid <- function(x) {
   expand.grid(x = 1:ceiling(base), y = 1:ceiling(base))[1:x,] %>%
     as.data.table
 }
-
-#' @rdname as_OpenSpecy
-#'
-#' @importFrom utils head
-#' @export
-head.OpenSpecy <- function(x, ...) {
-  cbind(wavenumber = x$wavenumber, x$spectra) %>% head(...)
-}
-
-#' @rdname as_OpenSpecy
-#'
-#' @export
-print.OpenSpecy <- function(x, ...) {
-  cbind(wavenumber = x$wavenumber, x$spectra) %>% print(...)
-  cat("\n$metadata\n")
-  print(x$metadata)
-}

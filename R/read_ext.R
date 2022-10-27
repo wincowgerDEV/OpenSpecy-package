@@ -113,9 +113,8 @@
 #'
 #' @importFrom magrittr %>%
 #' @importFrom data.table data.table as.data.table fread
-read_any <- function(file, share = NULL, ...) {
-  if(!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.rds$)|
-            (\\.qs$)|(\\.json$)|(\\.yaml$)|(\\.zip$)|(\\.[0-999]$)", file)) {
+read_any <- function(file, share = NULL) {
+  if(!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)|(\\.zip$)|(\\.[0-999]$)", file)){
     stop("File needs to be one of .csv, .asp, .spa, .spc, .jdx, .rds, .qs, .json, .yaml, .zip, or .0-999")
   }
   if(grepl("(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)", file)){
@@ -143,35 +142,36 @@ read_any <- function(file, share = NULL, ...) {
 }
 
 #' @importFrom utils unzip
-# Read spectra functions ----
-read_zip <- function(file = ".", share = NULL, metadata = NULL){
-    files <- unzip(zipfile = file, list = TRUE)
-    unzip(file, exdir = tempdir())
-    if(nrow(files) == 2 & any(grepl("\\.dat$", ignore.case = T, files$Name)) & any(grepl("\\.hdr$", ignore.case = T, files$Name))){
-        hs_envi <- hyperSpec::read.ENVI.Nicolet(file = paste0(tempdir(), "/", files$Name[grepl("\\.dat$", ignore.case = T, files$Name)]),
-                                                headerfile = paste0(tempdir(), "/", files$Name[grepl("\\.hdr$", ignore.case = T, files$Name)]))
+#' @importFrom data.table transpose
+#Read spectra functions ----
+read_zip <- function(file, share = NULL, metadata = NULL){
+  files <- unzip(zipfile = file, list = TRUE)
+  unzip(file, exdir = tempdir())
+  if(nrow(files) == 2 & any(grepl("\\.dat$", ignore.case = T, files$Name)) & any(grepl("\\.hdr$", ignore.case = T, files$Name))){
+    hs_envi <- hyperSpec::read.ENVI.Nicolet(file = paste0(tempdir(), "/", files$Name[grepl("\\.dat$", ignore.case = T, files$Name)]),
+                                            headerfile = paste0(tempdir(), "/", files$Name[grepl("\\.hdr$", ignore.case = T, files$Name)]))
 
-        as_OpenSpecy(
-            x = hs_envi@wavelength,
-            spectra = transpose(as.data.table(hs_envi@data$spc)),
-            metadata = data.table(x = hs_envi@data$x, y = hs_envi@data$y, file = gsub(".*/", "", hs_envi@data$file))
-        )
-    }
-    #else{
-    #    file <- bind_cols(lapply(paste0(tempdir(), "/", files$Name), read_spectrum, share = share))
-    #
-    #    as_OpenSpecy(
-    #        x = file$wavenumber...1,
-    #        spectra = file %>%
-    #            select(-starts_with("wave")),
-    #        metadata = generate_grid(nrow(files))[,filename := files$Name])
-    #}
+    as_OpenSpecy(
+      x = hs_envi@wavelength,
+      spectra = transpose(as.data.table(hs_envi@data$spc)),
+      metadata = data.table(x = hs_envi@data$x, y = hs_envi@data$y, file = gsub(".*/", "", hs_envi@data$file))
+    )
+  }
+  #else{
+  #    file <- bind_cols(lapply(paste0(tempdir(), "/", files$Name), read_spectrum, share = share))
+  #
+  #    as_OpenSpecy(
+  #        x = file$wavenumber...1,
+  #        spectra = file %>%
+  #            select(-starts_with("wave")),
+  #        metadata = generate_grid(nrow(files))[,filename := files$Name])
+  #}
 }
 
 #' @rdname read_ext
 #'
 #' @export
-read_text <- function(file = ".", colnames = NULL, method = "fread",
+read_text <- function(file, colnames = NULL, method = "fread",
                       share = NULL,
                       metadata = list(
                         file_name = basename(file),
@@ -217,7 +217,7 @@ read_text <- function(file = ".", colnames = NULL, method = "fread",
 #' @rdname read_ext
 #'
 #' @export
-read_asp <- function(file = ".", share = NULL,
+read_asp <- function(file, share = NULL,
                      metadata = list(
                        file_name = basename(file),
                        user_name = NULL,
@@ -267,7 +267,7 @@ read_asp <- function(file = ".", share = NULL,
 #'
 #' @importFrom utils read.table
 #' @export
-read_spa <- function(file = ".", share = NULL,
+read_spa <- function(file, share = NULL,
                      metadata = list(
                        file_name = basename(file),
                        user_name = NULL,
@@ -339,7 +339,7 @@ read_spa <- function(file = ".", share = NULL,
 #'
 #' @importFrom hyperSpec read.jdx
 #' @export
-read_jdx <- function(file = ".", share = NULL,
+read_jdx <- function(file, share = NULL,
                      metadata = list(
                        file_name = basename(file),
                        user_name = NULL,
@@ -393,7 +393,7 @@ read_jdx <- function(file = ".", share = NULL,
 #'
 #' @importFrom hyperSpec read.spc
 #' @export
-read_spc <- function(file = ".", share = NULL,
+read_spc <- function(file, share = NULL,
                      metadata = list(
                        file_name = basename(file),
                        user_name = NULL,

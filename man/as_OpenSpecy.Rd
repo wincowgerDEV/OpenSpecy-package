@@ -8,8 +8,6 @@
 \alias{is_OpenSpecy}
 \alias{OpenSpecy}
 \alias{gen_grid}
-\alias{head.OpenSpecy}
-\alias{print.OpenSpecy}
 \title{Coerce to Open Specy}
 \usage{
 as_OpenSpecy(x, ...)
@@ -40,10 +38,6 @@ is_OpenSpecy(x)
 OpenSpecy(x, ...)
 
 gen_grid(x)
-
-\method{head}{OpenSpecy}(x, ...)
-
-\method{print}{OpenSpecy}(x, ...)
 }
 \arguments{
 \item{x}{x.}

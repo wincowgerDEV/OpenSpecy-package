@@ -10,10 +10,10 @@
 \alias{read_extdata}
 \title{Read spectral data from external files}
 \usage{
-read_any(file, share = NULL, ...)
+read_any(file, share = NULL)
 
 read_text(
-  file = ".",
+  file,
   colnames = NULL,
   method = "fread",
   share = NULL,
@@ -32,7 +32,7 @@ read_text(
 )
 
 read_asp(
-  file = ".",
+  file,
   share = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
@@ -49,7 +49,7 @@ read_asp(
 )
 
 read_spa(
-  file = ".",
+  file,
   share = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
@@ -66,7 +66,7 @@ read_spa(
 )
 
 read_jdx(
-  file = ".",
+  file,
   share = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
@@ -83,7 +83,7 @@ read_jdx(
 )
 
 read_spc(
-  file = ".",
+  file,
   share = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,

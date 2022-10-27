@@ -5,7 +5,7 @@
 \title{Read spectral data from Bruker OPUS binary files}
 \usage{
 read_opus(
-  file = ".",
+  file,
   share = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
