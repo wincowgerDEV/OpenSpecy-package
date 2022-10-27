@@ -73,7 +73,6 @@ conform_spec <- function(spec, x, xout){
         )
 }
 
-
 #' @rdname data_norm
 #'
 #' @export
@@ -123,7 +122,7 @@ combine_OpenSpecy <- function(files, wavenumbers = NULL, coords = NULL){
     list <- tapply(unlisted, names(unlisted), FUN = function(x) unname((x)))
 
     if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(wavenumbers)){
-        stop("Wavenumbers are not the same between spectra, you need to specify how the wavenumbers should be merged.")
+        stop("Wavenumbers are not the same between spectra, you need to specify how the wavenumbers should be merged.", call. = F)
     }
 
     as_OpenSpecy(

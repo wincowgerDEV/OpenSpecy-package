@@ -129,7 +129,7 @@ Functions for reading spectral data types including .asp, .jdx,
 \details{
 \code{read_spc()} and \code{read_jdx()} are just a wrapper around the
 functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec}
-package. \code{read_0()} is a wrapper around opus_reader
+package. \code{read_opus()} is a wrapper around opus_reader
 \url{https://github.com/pierreroudier/opusreader}.
 Other functions have been adapted various online sources.
 All reading functions convert datasets to a threepart list,
@@ -208,7 +208,7 @@ with \code{digest(object[c("wavenumber", "spectra")])}\cr
 \examples{
 read_text(read_extdata("raman_hdpe.csv"))
 read_asp(read_extdata("ftir_ldpe_soil.asp"))
-read_0(read_extdata("ftir_ps.0"))
+read_opus(read_extdata("ftir_ps.0"))
 
 }
 \seealso{

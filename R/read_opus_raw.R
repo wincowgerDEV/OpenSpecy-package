@@ -58,7 +58,7 @@ read_opus_raw <- function(rw, type = "spec", atm_comp_minus4offset = FALSE) {
   # Sanity check on `type`
   if (!all(type %in% c("spec", "spec_no_atm_comp", "sc_sample", "sc_ref",
                        "ig_sample", "ig_ref"))) {
-    stop("Invalid value for the `type` option.", call. = FALSE)
+    stop("Invalid value for the `type` option.", call. = F)
   }
 
   # Avoid `R CMD check` NOTE: no visible binding for global variable ...
@@ -926,7 +926,7 @@ read_opus_raw <- function(rw, type = "spec", atm_comp_minus4offset = FALSE) {
         if ("spec" %in% names(spc_m)) {
           spc_m[["spec"]]
         } else {
-          warning("No spectra found", call. = FALSE)
+          warning("No spectra found", call. = F)
           NULL
         }
       } else {
@@ -936,7 +936,7 @@ read_opus_raw <- function(rw, type = "spec", atm_comp_minus4offset = FALSE) {
         if ("spec_no_atm_comp" %in% names(spc_m)) {
           spc_m[["spec_no_atm_comp"]]
         } else {
-          warning("No 'spec_no_atm_comp' spectra found", call. = FALSE)
+          warning("No 'spec_no_atm_comp' spectra found", call. = F)
           NULL
         }
     } else {
@@ -946,7 +946,7 @@ read_opus_raw <- function(rw, type = "spec", atm_comp_minus4offset = FALSE) {
         if ("sc_sample" %in% names(spc_m)) {
           spc_m[["sc_sample"]]
         } else {
-          warning("No 'sc_sample' spectra found", call. = FALSE)
+          warning("No 'sc_sample' spectra found", call. = F)
           NULL
         }
     } else {
@@ -956,7 +956,7 @@ read_opus_raw <- function(rw, type = "spec", atm_comp_minus4offset = FALSE) {
         if ("sc_ref" %in% names(spc_m)) {
           spc_m[["sc_ref"]]
         } else {
-          warning("No 'sc_ref' spectra found", call. = FALSE)
+          warning("No 'sc_ref' spectra found", call. = F)
           NULL
         }
     } else {
@@ -966,7 +966,7 @@ read_opus_raw <- function(rw, type = "spec", atm_comp_minus4offset = FALSE) {
         if ("ig_sample" %in% names(spc_m)) {
           spc_m[["ig_sample"]]
         } else {
-          warning("No 'ig_sample' spectra found", call. = FALSE)
+          warning("No 'ig_sample' spectra found", call. = F)
           NULL
         }
     } else {
@@ -976,7 +976,7 @@ read_opus_raw <- function(rw, type = "spec", atm_comp_minus4offset = FALSE) {
         if("ig_ref" %in% names(spc_m)) {
           spc_m[["ig_ref"]]
         } else {
-          warning("No 'ig_ref' spectra found", call. = FALSE)
+          warning("No 'ig_ref' spectra found", call. = F)
           NULL
         }
     } else {

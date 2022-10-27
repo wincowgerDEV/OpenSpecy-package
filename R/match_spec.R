@@ -82,7 +82,7 @@ match_spec <- function(x, ...) {
 match_spec.formula <- function(formula, data = NULL, ...) {
   if (missing(formula) || (length(formula) != 3L) ||
       (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
-    stop("'formula' missing or incorrect")
+    stop("'formula' missing or incorrect", call. = F)
 
   mf <- model.frame(formula, data)
   lst <- as.list(mf)
@@ -96,7 +96,8 @@ match_spec.formula <- function(formula, data = NULL, ...) {
 #' @export
 match_spec.data.frame <- function(x, ...) {
   if (!all(c("wavenumber", "intensity") %in% names(x)))
-    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
+    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'",
+         call. = F)
 
   do.call("match_spec", list(x$wavenumber, x$intensity, ...))
 }
@@ -156,12 +157,12 @@ find_spec <- function(subset, library, which = NULL, type = "metadata",
                                "wavenumber", "intensity", "group"),
                       ...) {
 
-  if(type == "full") type <- "library"
+  if (type == "full") type <- "library"
 
   df <- data.frame(library[[which]][[type]])
   e <- substitute(subset)
 
-  if (!is.call(e)) stop("subset needs to be a logical expression")
+  if (!is.call(e)) stop("subset needs to be a logical expression", call. = F)
 
   r <- eval(e, df, parent.frame())
   c <- cols[cols %in% names(df)]

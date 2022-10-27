@@ -55,7 +55,7 @@ subtr_bg <- function(object, ...) {
 #'
 #' @export
 subtr_bg.default <- function(object, ...) {
-  stop("object needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname subtr_bg

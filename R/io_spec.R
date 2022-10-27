@@ -86,7 +86,7 @@
 #' @examples
 #' read_text(read_extdata("raman_hdpe.csv"))
 #' read_asp(read_extdata("ftir_ldpe_soil.asp"))
-#' read_0(read_extdata("ftir_ps.0"))
+#' read_opus(read_extdata("ftir_ps.0"))
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
@@ -105,7 +105,7 @@ write_spec <- function(x, ...) {
 #'
 #' @export
 write_spec.default <- function(x, ...) {
-  stop("object 'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname io_spec

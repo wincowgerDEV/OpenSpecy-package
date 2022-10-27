@@ -53,7 +53,7 @@ share_spec <- function(object, ...) {
 #'
 #' @export
 share_spec.default <- function(object, ...) {
-  stop("object needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname share_spec
@@ -75,7 +75,8 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system",
   } else if (share == "cloud") {
     pkg <- "rdrop2"
     mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
-    if (length(mpkg)) stop("share = 'cloud' requires package 'rdrop2'")
+    if (length(mpkg)) stop("share = 'cloud' requires package 'rdrop2'",
+                           call. = F)
 
     fp <- file.path(tempdir(), md$session_id)
   } else {

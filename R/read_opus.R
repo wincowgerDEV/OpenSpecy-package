@@ -90,13 +90,14 @@ read_opus <- function(file, share = NULL,
                       type = "spec", simplify = FALSE, wns_digits = 1L,
                       atm_comp_minus4offset = FALSE) {
   if (!grepl("\\.[0-999]$", ignore.case = T, file))
-    stop("file type should be '0'")
+    stop("file type should be '0'", call. = F)
 
   res <- lapply(
       file,
       function(fn) {
 
-        if (!file.exists(fn)) stop(paste0("File '", fn, "' does not exist"))
+        if (!file.exists(fn)) stop(paste0("file '", fn, "' does not exist"),
+                                   call. = F)
 
         # Get raw vector
         rw <- readBin(fn, "raw", n = file.size(fn))
@@ -115,10 +116,10 @@ read_opus <- function(file, share = NULL,
 
       if (length(type) > 1) {
         stop("
-             Simple output is currently only implemented for one value of the `type` option.\n
+             simple output is currently only implemented for one value of the `type` option.\n
              A workaround this limitation is to use the `lapply` function, e.g.:\n\n
              lapply(c('spec', 'sc_ref'), function(x) read_opus(file, type = x, simplify = TRUE))
-             ", call. = FALSE)
+             ", call. = F)
       }
 
       # Fetch wavenumbers
@@ -133,7 +134,7 @@ read_opus <- function(file, share = NULL,
       # Check the wavenumbers have all the same length
       if (length(unique(sapply(wns, length))) > 1) {
         # stop("Spectra can't be combined since they don't all have the same number of wavenumbers.", call. = FALSE)
-        warning("Spectra don't all have the same number of wavenumbers. Interpolation will be used to combine them in a matrix.", call. = FALSE)
+        warning("spectra don't all have the same number of wavenumbers. Interpolation will be used to combine them in a matrix.", call. = F)
       }
 
       specs <- lapply(

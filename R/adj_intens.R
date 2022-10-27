@@ -54,7 +54,7 @@ adj_intens <- function(object, ...) {
 #'
 #' @export
 adj_intens.default <- function(object, ...) {
-  stop("object needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname adj_intens
@@ -84,7 +84,7 @@ conform_spec <- function(object, ...) {
 #'
 #' @export
 conform_spec.default <- function(object, ...) {
-  stop("object needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname adj_intens

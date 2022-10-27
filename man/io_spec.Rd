@@ -106,7 +106,7 @@ with \code{digest(object[c("wavenumber", "spectra")])}\cr
 \examples{
 read_text(read_extdata("raman_hdpe.csv"))
 read_asp(read_extdata("ftir_ldpe_soil.asp"))
-read_0(read_extdata("ftir_ps.0"))
+read_opus(read_extdata("ftir_ps.0"))
 
 }
 \seealso{

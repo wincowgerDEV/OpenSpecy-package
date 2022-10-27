@@ -9,7 +9,7 @@
 #' @details
 #' \code{read_spc()} and \code{read_jdx()} are just a wrapper around the
 #' functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec}
-#' package. \code{read_0()} is a wrapper around opus_reader
+#' package. \code{read_opus()} is a wrapper around opus_reader
 #' \url{https://github.com/pierreroudier/opusreader}.
 #' Other functions have been adapted various online sources.
 #' All reading functions convert datasets to a threepart list,
@@ -103,7 +103,7 @@
 #' @examples
 #' read_text(read_extdata("raman_hdpe.csv"))
 #' read_asp(read_extdata("ftir_ldpe_soil.asp"))
-#' read_0(read_extdata("ftir_ps.0"))
+#' read_opus(read_extdata("ftir_ps.0"))
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
@@ -115,7 +115,7 @@
 #' @importFrom data.table data.table as.data.table fread
 read_any <- function(file, share = NULL) {
   if(!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)|(\\.zip$)|(\\.[0-999]$)", file)){
-    stop("File needs to be one of .csv, .asp, .spa, .spc, .jdx, .rds, .qs, .json, .yaml, .zip, or .0-999")
+    stop("File needs to be one of .csv, .asp, .spa, .spc, .jdx, .rds, .qs, .json, .yaml, .zip, or .0-999", call. = F)
   }
   if(grepl("(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)", file)){
     tryCatch(read_spec(file, share = share),
@@ -205,7 +205,8 @@ read_text <- function(file, colnames = NULL, method = "fread",
 
   if (all(grepl("^X[0-9]*", names(dt)))) stop("missing header: ",
                                               "use 'header = FALSE' or an ",
-                                              "alternative read method")
+                                              "alternative read method",
+                                              call. = F)
 
   os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata)
 
@@ -247,7 +248,7 @@ read_asp <- function(file, share = NULL,
                        license = "CC BY-NC"),
                      ...) {
   if (!grepl("\\.asp$", ignore.case = T, file))
-    stop("file type should be 'asp'")
+    stop("file type should be 'asp'", call. = F)
 
   tr <- file.path(file) %>% file(...)
   lns <- tr %>% readLines() %>% as.numeric()
@@ -297,7 +298,7 @@ read_spa <- function(file, share = NULL,
                        license = "CC BY-NC"),
                      ...) {
   if (!grepl("\\.spa$", ignore.case = T, file))
-    stop("file type should be 'spa'")
+    stop("file type should be 'spa'", call. = F)
 
   trb <- file.path(file) %>% file(open = "rb", ...)
 
@@ -305,7 +306,7 @@ read_spa <- function(file, share = NULL,
   spr <- readBin(trb, "numeric", n = 2, size = 4)
 
   if (!all(spr >= 0 & spr <= 15000 & spr[1] > spr[2]))
-    stop("unknown spectral range")
+    stop("unknown spectral range", call. = F)
 
   # Read the start offset
   seek(trb, 386, origin = "start")
