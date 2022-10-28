@@ -66,6 +66,73 @@
 #' \code{\link{get_lib}()} retrieves the Open Specy reference library;
 #' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
 #' object of choice
+
+correlate_spectra <- function(data, library, ...){
+    prep_data = data$spectra[search_wavenumbers %in% library$wavenumbers,][,lapply(.SD, make_rel, na.rm = T)][,lapply(.SD, mean_replace)]
+    prep_library = library$spectra[std_wavenumbers %in% data$wavenumbers,][,lapply(.SD, make_rel, na.rm = T)][,lapply(.SD, mean_replace)]
+    
+    cor(prep_data, 
+        prep_library,
+        ...)
+}
+
+mean_replace <- function(intensity, na.rm = T){
+    fifelse(is.na(intensity), mean(intensity, na.rm = na.rm), intensity)
+}
+
+get_all_metadata <- function(sample_names, correlation_rsq, metadata) {
+    left_join(data.table(sample_name = sample_names, rsq = correlation_rsq), metadata) %>%
+        filter(!is.na(rsq)) %>%
+        arrange(desc(rsq)) %>%
+        mutate(rsq = round(rsq, 2)) 
+}
+
+single_metadata <- function(all_metadata, selection){
+    all_metadata[selection,] %>%
+        select(where(~!any(is_empty(.))))
+}
+
+is_empty <- function(x, first.only = TRUE, all.na.empty = TRUE) {
+    # do we have a valid vector?
+    if (!is.null(x)) {
+        # if it's a character, check if we have only one element in that vector
+        if (is.character(x)) {
+            # characters may also be of length 0
+            if (length(x) == 0) return(TRUE)
+            # else, check all elements of x
+            zero_len <- nchar(x) == 0
+            # return result for multiple elements of character vector
+            if (first.only) {
+                zero_len <- .is_true(zero_len[1])
+                if (length(x) > 0) x <- x[1]
+            } else {
+                return(unname(zero_len))
+            }
+            # we have a non-character vector here. check for length
+        } else if (is.list(x)) {
+            x <- purrr::compact(x)
+            zero_len <- length(x) == 0
+        } else {
+            zero_len <- length(x) == 0
+        }
+    }
+    
+    any(is.null(x) || zero_len || (all.na.empty && all(is.na(x))))
+}
+
+.is_true <- function(x) {
+    is.logical(x) && length(x) == 1L && !is.na(x) && x
+}
+
+max_cor <- function(correlation_matrix, na.rm = T){
+    round(apply(correlation_matrix, 2, function(x) max(x, na.rm = na.rm)), 2)
+}
+
+max_cor_id <- function(correlation_matrix, library){
+    colnames(library)[apply(correlation_matrix, 2, function(x) which.max(x))]
+}
+
+
 #'
 #' @importFrom rlang .data
 #' @importFrom stats approx cor
