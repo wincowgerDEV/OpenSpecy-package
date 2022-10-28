@@ -37,9 +37,8 @@ plot <- function(raw = NULL, processed = NULL, number = NULL, match = NULL, sele
 }
 
 #Still needs reworking, internet is too slow to download my tiny test file for this. 
-output$heatmap <- renderPlotly({
+heatmap <- renderPlotly({
     req(input$file1)
-    #req(ncol(data()) > 2)
     plot_ly(source = "heat_plot") %>%
         add_trace(
             x = preprocessed$data$coords$x, #Need to update this with the new rout format. 
