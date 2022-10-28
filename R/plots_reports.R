@@ -15,10 +15,10 @@ plot <- function(raw = NULL, processed = NULL, match = NULL, selected = NULL, si
                   line = list(color = 'rgba(240,236,19,0.8)')) %>%
         add_trace(x = if(!is.null(processed)){processed$wavenumber} else{NULL}, 
                   y = if(!is.null(processed)){make_rel(processed$spectra, na.rm = T)} else{NULL},
-                  name = ifelse(selected == "Processed", 'Processed (Identified)', "Processed"),
+                  name = ifelse(is.null(selected), "Processed", ifelse(selected == "Processed", 'Processed (Identified)', NA)),
                   line = list(color = 'rgb(240,19,207)')) %>%
-        add_trace(x = if(!is.null(processed)){processed$wavenumber} else{NULL}, 
-                  y = if(!is.null(processed)){make_rel(processed$spectra, na.rm = T)} else{NULL},
+        add_trace(x = if(!is.null(match)){processed$wavenumber} else{NULL}, 
+                  y = if(!is.null(match)){make_rel(processed$spectra, na.rm = T)} else{NULL},
                   name = 'Matched',
                   line = list(color = 'rgb(125,249,255)')) %>%
         # Dark blue rgb(63,96,130)
