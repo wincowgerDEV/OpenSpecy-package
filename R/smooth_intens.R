@@ -65,6 +65,6 @@ smooth_intens.OpenSpecy <- function(object, p = 3, n = 11, m = 0, make_rel = TRU
   return(object)
 }
 
-.sgfilt <- function(y, p, n, ...) {
-  signal::filter(filt = sgolay(p = p, n = n, ...), x = y)
+.sgfilt <- function(y, p, n, m, ...) {
+  signal::filter(filt = sgolay(p = p, n = n, m = m, ...), x = y)
 }

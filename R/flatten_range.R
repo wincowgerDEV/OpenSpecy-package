@@ -23,10 +23,17 @@
 #' with the normalized intensity data.
 #'
 #' @examples
-#' test_noise = as_OpenSpecy(wavenumber = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
-#' restrict_range(test_noise, min_range = 1000, max_range = 2000)
-#' restrict_range(test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
-#' 
+#' library(ggplot2)
+#' library(data.table)
+#' library(OpenSpecy)
+#' test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
+#'   flattened_intensites <- .flatten_range(wavenumber = test_noise$wavenumber, spectra = test_noise$spectra[[1]], min_range = c(1000, 2000) , max_range = c(1500, 2500))
+#'  ggplot()+
+#'    geom_line(aes(x = test_noise$wavenumber, y = flattened_intensites))
+#' flattened_intensites <- flatten_range.OpenSpecy(object = test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
+#' ggplot()+
+#'    geom_line(aes(x = flattened_intensites$wavenumber, y = flattened_intensites$spectra[[1]]))
+
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
@@ -47,23 +54,32 @@ flatten_range.default <- function(object, ...) {
     stop("object needs to be of class 'OpenSpecy'")
 }
 
-
 flatten_range.OpenSpecy <- function(object, 
-                                     min_range = 0, 
-                                     max_range = 6000, 
-                                     make_rel = TRUE,
-                                     ...) {
-    test <- as.data.table(lapply(1:length(min_range), function(x){
-        object$wavenumber >= min_range[x] & object$wavenumber <= max_range[x]}) 
-    )
+                                    min_range = 0, 
+                                    max_range = 6000, 
+                                    make_rel = TRUE,
+                                    ...) {
+    filt <- object$spectra[,lapply(.SD, function(x){
+        .flatten_range(wavenumber = object$wavenumber, 
+                       spectra = x, 
+                       min_range = min_range, 
+                       max_range = max_range)
+    })]
     
-    vals = rowSums(test) > 0 
-    
-    filt <- object$spectra[vals,]
-    
-    object$wavenumber <- object$wavenumber[vals]
-    
-    if (make_rel) object$spectra <- make_rel(filt) else object$spectra <- filt
+    if (make_rel) object$spectra <- filt[, lapply(.SD, make_rel)] else object$spectra <- filt
     
     return(object)
 }
+
+.flatten_range <- function(wavenumber, spectra, min_range, max_range){
+    
+    for(x in 1:length(min_range)){
+        spectra[wavenumber >= min_range[x] & wavenumber <= max_range[x]] <- mean(spectra[wavenumber >= min_range[x] & wavenumber <= max_range[x]])
+    }
+    
+    return(spectra)
+}
+
+
+
+
