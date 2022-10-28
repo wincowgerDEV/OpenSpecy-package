@@ -58,16 +58,41 @@ subtr_bg.default <- function(object, ...) {
   stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
+.subtr_bg_manual <- function(wavenumber, 
+                                      intensity, 
+                                      wavenumber_fit, 
+                                      intensity_fit, 
+                                      ...) {
+    intensity - approx(wavenumber_fit, intensity_fit, xout = wavenumber, rule = 2, method = "linear", ties = mean)$y
+}
+
 #' @rdname subtr_bg
 #'
 #' @export
-subtr_bg.OpenSpecy <- function(object, degree = 8, raw = FALSE, make_rel = TRUE,
+subtr_bg.OpenSpecy <- function(object, 
+                               degree = 8, 
+                               raw = FALSE, 
+                               make_rel = TRUE,
+                               type = "Polynomial",
                                ...) {
-  sbg <- object$spectra[, lapply(.SD, .subtr_bg, x = object$wavenumber,
-                                 degree = degree, raw = raw,
-                                 make_rel = make_rel, ...)]
-  object$spectra <- sbg
-
+    
+  if(type == "Polynomial"){
+      sbg <- object$spectra[, lapply(.SD, .subtr_bg, x = object$wavenumber,
+                                     degree = degree, raw = raw,
+                                     make_rel = make_rel, ...)]    
+  }
+  
+  if(type == "Manual"){
+      sbg <- object$spectra[, lapply(.SD,  function(x){
+          .subtr_bg_manual(wavenumber = object$wavenumber,
+                           intensity = x, 
+                           wavenumber_fit = wavenumber_fit,
+                           intensity_fit = intensity_fit)
+      })]   
+  }
+  
+  if (make_rel) object$spectra <- make_rel(sbg) else object$spectra <- sbg
+    
   return(object)
 }
 
