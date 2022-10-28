@@ -91,7 +91,7 @@ conform_spectra <- function(data, xout, coords = NULL){
 #' @rdname data_norm
 #'
 #' @export
-combine_OpenSpecy <- function(files, wavenumbers = NULL, coords = NULL){
+combine_OpenSpecy <- function(files, wavenumbers = NULL, res = NULL, coords = NULL){
 
     if(!is.list(files)){
         lof <- lapply(files, read_spec, coords = NULL)
@@ -104,16 +104,31 @@ combine_OpenSpecy <- function(files, wavenumbers = NULL, coords = NULL){
         if(wavenumbers == "first"){
             lof <- lapply(lof, function(x) {
                 conform_spectra(data = x,
-                                xout = lof[[1]]$wavenumber,
+                                xout = {if(!is.null(res)) conform_res(lof[[1]]$wavenumber, res = res) else lof[[1]]$wavenumber},
                                 coords = NULL)
             })
         }
-        if(wavenumbers == "range"){
+        if(wavenumbers == "max_range"){
             all = unique(unlist(lapply(lof, function(x) x$wavenumber)))
             lof <- lapply(lof, function(x) {
                                         conform_spectra(data = x,
-                                        xout = conform_res(all),
+                                        xout = {if(!is.null(res)) conform_res(all, res = res) else all},
                                         coords = NULL)})
+        }
+        if(wavenumbers == "min_range"){
+            smallest_range = which.min(vapply(lof, function(x) length(x$wavenumber), FUN.VALUE = numeric(1)))
+            lof <- lapply(lof, function(x) {
+                conform_spectra(data = x,
+                                xout = {if(!is.null(res)) conform_res(lof[[smallest_range]]$wavenumber, res = res) else lof[[smallest_range]]$wavenumber},
+                                coords = NULL)})
+        }
+        if(wavenumbers == "most_common_range"){
+            wavenumbers = table(unlist(lapply(lof, function(x) x$wavenumber)))
+            common_range = as.numeric(names(wavenumbers)[wavenumbers == max(wavenumbers)])
+            lof <- lapply(lof, function(x) {
+                conform_spectra(data = x,
+                                xout = {if(!is.null(res)) conform_res(lof[[common_range]]$wavenumber, res = res) else lof[[common_range]]$wavenumber},
+                                coords = NULL)})
         }
     }
 

@@ -71,6 +71,8 @@ subtr_bg.default <- function(object, ...) {
 #' @export
 subtr_bg.OpenSpecy <- function(object, 
                                degree = 8, 
+                               wavenumber_fit, 
+                               intensity_fit,
                                raw = FALSE, 
                                make_rel = TRUE,
                                type = "Polynomial",

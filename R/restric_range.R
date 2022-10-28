@@ -41,13 +41,15 @@
 restrict_range <- function(x, ...) {
     UseMethod("restrict_range")
 }
-
+#' @rdname restrict_range
 #' @export
 restrict_range.default <- function(object, ...) {
     stop("object needs to be of class 'OpenSpecy'")
 }
 
-
+#' @rdname restrict_range
+#'
+#' @export
 restrict_range.OpenSpecy <- function(object, 
                                      min_range = 0, 
                                      max_range = 6000, 
