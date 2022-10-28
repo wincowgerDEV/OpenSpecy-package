@@ -74,7 +74,8 @@ flatten_range.OpenSpecy <- function(object,
 .flatten_range <- function(wavenumber, spectra, min_range, max_range){
     
     for(x in 1:length(min_range)){
-        spectra[wavenumber >= min_range[x] & wavenumber <= max_range[x]] <- mean(spectra[wavenumber >= min_range[x] & wavenumber <= max_range[x]])
+        spectra[wavenumber >= min_range[x] & wavenumber <= max_range[x]] <- mean(c(spectra[min(which(wavenumber >= min_range[x]))], 
+                                                                                   spectra[max(which(wavenumber <= max_range[x]))]))
     }
     
     return(spectra)
