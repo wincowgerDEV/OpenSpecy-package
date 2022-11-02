@@ -1,24 +1,34 @@
 
-library(plotly)
 
-plot(raw = test_noise, selected = "Uploaded")
-
-plot_ly(type = 'scatter', mode = 'lines', source = "B") %>%
-    add_trace(x = test_noise$wavenumber, 
-              y = test_noise$spectra$intensity)
-
-plot <- function(raw = NULL, processed = NULL, number = NULL, match = NULL, selected = NULL, signal_to_noise = NULL, correlation = NULL){
+#' @examples
+#' \dontrun{
+#' data("raman_hdpe")
+#' plot_OpenSpecy(raw = raman_hdpe, processed = process_spectra(raman_hdpe), selected = "Processed", match = process_spectra(raman_hdpe))
+#' data("CA_tiny_map")
+#' tiny_map <- read_
+#' }
+#' 
+#' @importFrom magrittr %>%
+#' @import plotly
+#' @export
+#' 
+#' 
+plot_OpenSpecy <- function(raw = NULL, processed = NULL, selected = NULL, selected_number = 1, signal_option = "signal_to_noise", match = NULL, matched_number = 1){ #Could probably add the signal to noise calculations to the open specy metadata and then harvest it from there.
+    raw_or_processed = (if(is.null(selected)){NULL} 
+                        else if(selected == "Processed"){processed} 
+                        else if(selected == "Raw"){raw})
+    
     plot_ly(type = 'scatter', mode = 'lines', source = "B") %>%
         add_trace(x = if(!is.null(raw)) {raw$wavenumber} else{NULL}, 
-                  y = if(!is.null(raw)){make_rel(raw$spectra[[number]], na.rm = T)} else{NULL},
-                  name = ifelse(is.null(selected), "Uploaded", ifelse(selected == "Uploaded", 'Uploaded (Identified)', NA)),
+                  y = if(!is.null(raw)){make_rel(raw$spectra[[selected_number]], na.rm = T)} else{NULL},
+                  name = ifelse(is.null(selected), "Raw", ifelse(selected == "Raw", 'Raw (Identified)', "Raw")),
                   line = list(color = 'rgba(240,236,19,0.8)')) %>%
         add_trace(x = if(!is.null(processed)){processed$wavenumber} else{NULL}, 
-                  y = if(!is.null(processed)){make_rel(processed$spectra[[number]], na.rm = T)} else{NULL},
-                  name = ifelse(is.null(selected), "Processed", ifelse(selected == "Processed", 'Processed (Identified)', NA)),
+                  y = if(!is.null(processed)){make_rel(processed$spectra[[selected_number]], na.rm = T)} else{NULL},
+                  name = ifelse(is.null(selected), "Processed", ifelse(selected == "Processed", 'Processed (Identified)', "Processed")),
                   line = list(color = 'rgb(240,19,207)')) %>%
         add_trace(x = if(!is.null(match)){match$wavenumber} else{NULL}, 
-                  y = if(!is.null(match)){make_rel(match$spectra[[number]], na.rm = T)} else{NULL},
+                  y = if(!is.null(match)){make_rel(match$spectra[[matched_number]], na.rm = T)} else{NULL},
                   name = 'Matched',
                   line = list(color = 'rgb(125,249,255)')) %>%
         # Dark blue rgb(63,96,130)
@@ -29,32 +39,39 @@ plot <- function(raw = NULL, processed = NULL, number = NULL, match = NULL, sele
                plot_bgcolor = 'rgb(17,0,73)',
                paper_bgcolor = 'rgba(0,0,0,1)',
                title = list(
-                   text = if(!is.null(processed)) paste0(paste0("Signal to Noise = ", round(signal_noise, 2)), if(input$active_identification) paste0("; ", "Max Correlation = ", correlation)) else "",
+                   text = if(!is.null(raw_or_processed)) 
+                       paste0(paste0("Signal to Noise = ", 
+                         round(signal_noise(raw_or_processed$wavenumber, 
+                         raw_or_processed$spectra[[selected_number]], return = signal_option), 2)), 
+                         if(!is.null(match)) paste0("; ", "Correlation = ", 
+                         cor(raw_or_processed$spectra[[selected_number]], 
+                         match$spectra[[matched_number]]))) else "",
                    x = 0
                ), 
                font = list(color = '#FFFFFF')) %>%
         config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape"))
 }
 
+map <- read_zip("inst/extdata/CA_tiny_map.zip")
+
+heatmap_OpenSpecy(map)
+heatmap_OpenSpecy(map, signal_noise = vapply(map$spectra, function(x) {signal_noise(wavenumber = map$wavenumber, intensity = x)}, FUN.VALUE = numeric(1)), type = "signal_noise", min_sn = 0.05)
+
 #Still needs reworking, internet is too slow to download my tiny test file for this. 
-heatmap <- renderPlotly({
-    req(input$file1)
+heatmap_OpenSpecy <- function(spectra = NULL, signal_noise = NULL, cors = NULL, type = NULL, min_sn = NULL, min_cors = NULL)({
     plot_ly(source = "heat_plot") %>%
         add_trace(
-            x = preprocessed$data$coords$x, #Need to update this with the new rout format. 
-            y = preprocessed$data$coords$y, 
-            z = if(input$active_identification){ifelse(signal_noise() < input$MinSNR | max_cor() < input$MinCor, NA, max_cor())} else {ifelse(signal_noise() > input$MinSNR, signal_noise(), NA)
-            }, 
+            x = spectra$metadata$x, #Need to update this with the new rout format. 
+            y = spectra$metadata$y, 
+            z = if("signal_noise" %in% type & !is.null(min_sn)) ifelse(signal_noise > min_sn, signal_noise, NA) else if("cors" %in% type & !is.null(min_cors)) ifelse(cors > min_cors, cors, NA) else vapply(spectra$spectra, mean, na.rm = T, FUN.VALUE = numeric(1)), 
             type = "heatmap",
             hoverinfo = 'text',
-            colors = if(input$active_identification){} else {heat.colors(n = sum(signal_noise() > input$MinSNR))
-            },
+            colors = if("signal_noise" %in% type & !is.null(min_sn)){heat.colors(n = sum(signal_noise > min_sn))} else if("cors" %in% type & !is.null(min_cors)) {hcl.colors(n = sum(cors > min_cors), palette = "viridis", alpha = NULL, rev = FALSE, fixup = TRUE)} else{cm.colors(n = length(spectra$metadata$x), rev = FALSE)},
             text = ~paste(
-                "x: ", preprocessed$data$coords$x,
-                "<br>y: ", preprocessed$data$coords$y,
-                "<br>z: ", if(input$active_identification){round(max_cor(), 2)} else{round(signal_noise(), 2) 
-                },
-                "<br>Filename: ", preprocessed$data$coords$filename)) %>%
+                "x: ", spectra$metadata$x,
+                "<br>y: ", spectra$metadata$y,
+                "<br>z: ", if("signal_noise" %in% type){round(signal_noise, 2)} else if("cors" %in% type) {round(cors, 2)} else{round(vapply(spectra$spectra, mean, na.rm = T, FUN.VALUE = numeric(1)), 2)},
+                "<br>Filename: ", spectra$metadata$filename)) %>%
         layout(
             xaxis = list(title = 'x',
                          zeroline = F,
@@ -63,11 +80,13 @@ heatmap <- renderPlotly({
             yaxis = list(title = 'y',
                          zeroline = F,
                          showgrid = F),
-            plot_bgcolor = 'rgba(17,0,73, 0)',
-            paper_bgcolor = 'rgba(0,0,0,0.5)',
+            plot_bgcolor = 'rgb(17,0,73)',
+            paper_bgcolor = 'rgba(0,0,0,1)',
             font = list(color = '#FFFFFF'),
             #legend= list(title=list(text= '<b> Correlation </b>')),
-            title = if(input$active_identification) paste0(round((1 - sum(signal_noise() < input$MinSNR | max_cor() < input$MinCor)/length(signal_noise())), 2) * 100, "% Good ID")  else paste0(round((1 - sum(signal_noise() < input$MinSNR)/length(signal_noise())), 2) * 100, "% Good Signal")) %>%
+            title = (if(!is.null(signal_noise) & !is.null(cors) & !is.null(min_sn) & !is.null(min_cors)) paste0(round((1 - sum(signal_noise < min_sn | cor < min_cors)/length(signal_noise)), 2) * 100, "% Good ID")  
+                     else if (!is.null(signal_noise) & !is.null(min_sn)) paste0(round((1 - sum(signal_noise < min_sn)/length(signal_noise)), 2) * 100, "% Good Signal")
+                     else "Mean Signal")) %>%
         event_register("plotly_click") 
 })
 

@@ -154,7 +154,8 @@ read_zip <- function(file, share = NULL, metadata = NULL){
     as_OpenSpecy(
       x = hs_envi@wavelength,
       spectra = transpose(as.data.table(hs_envi@data$spc)),
-      metadata = data.table(x = hs_envi@data$x, y = hs_envi@data$y, file = gsub(".*/", "", hs_envi@data$file))
+      metadata = data.table(file = gsub(".*/", "", hs_envi@data$file)), 
+      coords = data.table(x = hs_envi@data$x, y = hs_envi@data$y)
     )
   }
   #else{

@@ -43,16 +43,16 @@
 #' \code{\link{match_spec}()} matches spectra with the Open Specy or other
 #' reference libraries
 #'
-#' @importFrom magrittr %>%
-#' @importFrom data.table .SD
-#' @export
-#' 
 #' @examples
 #' test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
 #' test_noise = process_spectra(test_noise, range_decision = T, min_range = 1000, max_range = 3000, carbon_dioxide_decision = T, abs = F)
 #' ggplot() +
 #' geom_line(aes(x = test_noise$wavenumber, y = test_noise$spectra[[1]]))
 
+#' @importFrom magrittr %>%
+#' @importFrom data.table .SD
+#' @export
+#' 
 process_spectra <- function(object, 
                             active_preprocessing = T, 
                             range_decision = F, 
