@@ -2,30 +2,27 @@
 % Please edit documentation in R/adj_intens.R
 \name{adj_intens}
 \alias{adj_intens}
-\alias{adj_intens.formula}
-\alias{adj_intens.data.frame}
 \alias{adj_intens.default}
+\alias{adj_intens.OpenSpecy}
+\alias{conform_spec}
+\alias{conform_spec.default}
+\alias{conform_spec.OpenSpecy}
 \title{Adjust spectral intensities to absorbance units}
 \usage{
-adj_intens(x, ...)
+adj_intens(object, ...)
 
-\method{adj_intens}{formula}(formula, data = NULL, ...)
+\method{adj_intens}{default}(object, ...)
 
-\method{adj_intens}{data.frame}(x, ...)
+\method{adj_intens}{OpenSpecy}(object, type = "none", make_rel = TRUE, ...)
 
-\method{adj_intens}{default}(x, y, type = "none", make_rel = TRUE, ...)
+conform_spec(spec, x, xout)
+
+conform_spec.default(object, ...)
+
+conform_spec.OpenSpecy(object, type = "none", make_rel = TRUE, ...)
 }
 \arguments{
-\item{x}{a numeric vector containing the spectral wavenumbers; alternatively
-a data frame containing spectral data as \code{"wavenumber"} and
-\code{"intensity"} can be supplied.}
-
-\item{formula}{an object of class '\code{\link[stats]{formula}}' of the form
-\code{intensity ~ wavenumber}.}
-
-\item{data}{a data frame containing the variables in \code{formula}.}
-
-\item{y}{a numeric vector containing the spectral intensities.}
+\item{object}{a list object of class \code{OpenSpecy}.}
 
 \item{type}{a character string specifying whether the input spectrum is
 in absorbance units (\code{"none"}, default) or needs additional conversion
@@ -34,7 +31,9 @@ from \code{"reflectance"} or \code{"transmittance"} data.}
 \item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
 with \code{\link{make_rel}()}.}
 
-\item{\ldots}{further arguments passed to the submethods.}
+\item{\ldots}{further arguments passed to submethods; this is
+to \code{\link{adj_neg}()} for \code{adj_intens()} and
+to \code{\link{conform_res}()} for \code{conform_intens()}.}
 }
 \value{
 \code{adj_intens()} returns a data frame containing two columns

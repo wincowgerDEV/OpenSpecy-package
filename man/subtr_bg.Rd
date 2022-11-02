@@ -2,30 +2,18 @@
 % Please edit documentation in R/subtr_bg.R
 \name{subtr_bg}
 \alias{subtr_bg}
-\alias{subtr_bg.formula}
-\alias{subtr_bg.data.frame}
 \alias{subtr_bg.default}
+\alias{subtr_bg.OpenSpecy}
 \title{Automated background subtraction for spectral data}
 \usage{
-subtr_bg(x, ...)
+subtr_bg(object, ...)
 
-\method{subtr_bg}{formula}(formula, data = NULL, ...)
+\method{subtr_bg}{default}(object, ...)
 
-\method{subtr_bg}{data.frame}(x, ...)
-
-\method{subtr_bg}{default}(x, y, degree = 8, raw = FALSE, make_rel = TRUE, ...)
+\method{subtr_bg}{OpenSpecy}(object, degree = 8, raw = FALSE, make_rel = TRUE, ...)
 }
 \arguments{
-\item{x}{a numeric vector containing the spectral wavenumbers; alternatively
-a data frame containing spectral data as \code{"wavenumber"} and
-\code{"intensity"} can be supplied.}
-
-\item{formula}{an object of class '\code{\link[stats]{formula}}' of the form
-\code{intensity ~ wavenumber}.}
-
-\item{data}{a data frame containing the variables in \code{formula}.}
-
-\item{y}{a numeric vector containing the spectral intensities.}
+\item{object}{a list object of class \code{OpenSpecy}.}
 
 \item{degree}{the degree of the polynomial. Must be less than the number of
 unique points when raw is \code{FALSE}. Typically a good fit can be

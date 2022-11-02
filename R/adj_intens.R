@@ -16,19 +16,15 @@
 #' is a percent from 1-100 and first correct the intensity by dividing by 100
 #' so that it fits the form expected by the equation.
 #'
-#' @param x a numeric vector containing the spectral wavenumbers; alternatively
-#' a data frame containing spectral data as \code{"wavenumber"} and
-#' \code{"intensity"} can be supplied.
-#' @param y a numeric vector containing the spectral intensities.
-#' @param formula an object of class '\code{\link[stats]{formula}}' of the form
-#' \code{intensity ~ wavenumber}.
-#' @param data a data frame containing the variables in \code{formula}.
+#' @param object a list object of class \code{OpenSpecy}.
 #' @param type a character string specifying whether the input spectrum is
 #' in absorbance units (\code{"none"}, default) or needs additional conversion
 #' from \code{"reflectance"} or \code{"transmittance"} data.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
-#' @param \ldots further arguments passed to the submethods.
+#' @param \ldots further arguments passed to submethods; this is
+#' to \code{\link{adj_neg}()} for \code{adj_intens()} and
+#' to \code{\link{conform_res}()} for \code{conform_intens()}.
 #'
 #' @return
 #' \code{adj_intens()} returns a data frame containing two columns
@@ -47,48 +43,66 @@
 #' \code{\link{match_spec}()} matches spectra with the Open Specy or other
 #' reference libraries
 #'
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
+#' @importFrom data.table .SD
 #' @export
-adj_intens <- function(x, ...) {
+adj_intens <- function(object, ...) {
   UseMethod("adj_intens")
 }
 
 #' @rdname adj_intens
 #'
 #' @export
-adj_intens.formula <- function(formula, data = NULL, ...) {
-  if (missing(formula) || (length(formula) != 3L) ||
-      (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
-    stop("'formula' missing or incorrect")
-
-  mf <- model.frame(formula, data)
-  lst <- as.list(mf)
-  names(lst) <- c("y", "x")
-
-  do.call("adj_intens", c(lst, list(...)))
+adj_intens.default <- function(object, ...) {
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname adj_intens
 #'
 #' @export
-adj_intens.data.frame <- function(x, ...) {
-  if (!all(c("wavenumber", "intensity") %in% names(x)))
-    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
+adj_intens.OpenSpecy <- function(object, type = "none", make_rel = TRUE, ...) {
+  spec <- object$spectra
 
-  do.call("adj_intens", list(x$wavenumber, x$intensity, ...))
-}
-
-#' @rdname adj_intens
-#'
-#' @export
-adj_intens.default <- function(x, y, type = "none", make_rel = TRUE,
-                               ...) {
-  yadj <- switch(type,
-                 "reflectance" = (1 - y/100)^2 / (2 * y/100),
-                 "transmittance" = log10(1/adj_neg(y)),
-                 "none" = adj_neg(y)
+  adj <- switch(type,
+                "reflectance" = (1 - spec/100)^2 / (2 * spec/100),
+                "transmittance" = log10(1/adj_neg(spec, ...)),
+                "none" = adj_neg(spec, ...)
   )
-  if (make_rel) yout <- make_rel(yadj) else yout <- yadj
+  if (make_rel) object$spectra <- make_rel(adj) else object$spectra <- adj
 
-  data.frame(wavenumber = x, intensity = yout)
+  return(object)
+}
+
+#' @rdname adj_intens
+#'
+#' @export
+conform_spec <- function(object, ...) {
+  UseMethod("conform_spec")
+}
+
+#' @rdname adj_intens
+#'
+#' @export
+conform_spec.default <- function(object, ...) {
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
+}
+
+#' @rdname adj_intens
+#'
+#' @export
+conform_spec.OpenSpecy <- function(object, type = "none", make_rel = TRUE, ...) {
+  wn <- conform_res(object$wavenumber, ...)
+
+  spec <- object$spectra[, lapply(.SD, .clean_spec,
+                                  x = object$wavenumber,
+                                  xout = wn)]
+
+  object$wavenumber <- wn
+  object$spectra <- spec
+
+  adj_intens(object, type = type, make_rel = make_rel, na.rm = T)
+}
+
+.clean_spec <- function(...) {
+  approx(...)$y
 }

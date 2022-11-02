@@ -21,7 +21,7 @@
 #' @seealso
 #' \code{\link[base]{format.Date}} for date conversion functions
 #'
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
 #' @export
 human_ts <- function() {
   Sys.time() %>% format("%Y%m%d-%H%M%OS")

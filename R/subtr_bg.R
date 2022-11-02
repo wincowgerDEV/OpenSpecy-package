@@ -8,13 +8,7 @@
 #' This is a translation of Michael Stephen Chen's MATLAB code written for the
 #' \code{imodpolyfit} routine from Zhao et al. 2007.
 #'
-#' @param x a numeric vector containing the spectral wavenumbers; alternatively
-#' a data frame containing spectral data as \code{"wavenumber"} and
-#' \code{"intensity"} can be supplied.
-#' @param y a numeric vector containing the spectral intensities.
-#' @param formula an object of class '\code{\link[stats]{formula}}' of the form
-#' \code{intensity ~ wavenumber}.
-#' @param data a data frame containing the variables in \code{formula}.
+#' @param object a list object of class \code{OpenSpecy}.
 #' @param degree the degree of the polynomial. Must be less than the number of
 #' unique points when raw is \code{FALSE}. Typically a good fit can be
 #' found with a 8th order polynomial.
@@ -49,44 +43,63 @@
 #' \emph{Applied Spectroscopy}, \strong{61}(11), 1225–1232.
 #' \doi{10.1366/000370207782597003}.
 #'
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
 #' @importFrom stats terms model.frame sd lm poly approx
+#' @importFrom data.table .SD
 #' @export
-subtr_bg <- function(x, ...) {
+subtr_bg <- function(object, ...) {
   UseMethod("subtr_bg")
 }
 
 #' @rdname subtr_bg
 #'
 #' @export
-subtr_bg.formula <- function(formula, data = NULL, ...) {
-  if (missing(formula) || (length(formula) != 3L) ||
-      (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
-    stop("'formula' missing or incorrect")
+subtr_bg.default <- function(object, ...) {
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
+}
 
-  mf <- model.frame(formula, data)
-  lst <- as.list(mf)
-  names(lst) <- c("y", "x")
-
-  do.call("subtr_bg", c(lst, list(...)))
+.subtr_bg_manual <- function(wavenumber, 
+                                      intensity, 
+                                      wavenumber_fit, 
+                                      intensity_fit, 
+                                      ...) {
+    intensity - approx(wavenumber_fit, intensity_fit, xout = wavenumber, rule = 2, method = "linear", ties = mean)$y
 }
 
 #' @rdname subtr_bg
 #'
 #' @export
-subtr_bg.data.frame <- function(x, ...) {
-  if (!all(c("wavenumber", "intensity") %in% names(x)))
-    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
-
-  do.call("subtr_bg", list(x$wavenumber, x$intensity, ...))
+subtr_bg.OpenSpecy <- function(object, 
+                               degree = 8, 
+                               wavenumber_fit, 
+                               intensity_fit,
+                               raw = FALSE, 
+                               make_rel = TRUE,
+                               type = "Polynomial",
+                               ...) {
+    
+  if(type == "Polynomial"){
+      sbg <- object$spectra[, lapply(.SD, .subtr_bg, x = object$wavenumber,
+                                     degree = degree, raw = raw,
+                                     make_rel = make_rel, ...)]    
+  }
+  
+  if(type == "Manual"){
+      sbg <- object$spectra[, lapply(.SD,  function(x){
+          .subtr_bg_manual(wavenumber = object$wavenumber,
+                           intensity = x, 
+                           wavenumber_fit = wavenumber_fit,
+                           intensity_fit = intensity_fit)
+      })]   
+  }
+  
+  if (make_rel) object$spectra <- make_rel(sbg) else object$spectra <- sbg
+    
+  return(object)
 }
 
-#' @rdname subtr_bg
-#'
-#' @export
-subtr_bg.default <- function(x, y, degree = 8, raw = FALSE,
-                             make_rel = TRUE, ...) {
-  xin <- x
+.subtr_bg <- function(y, x, degree, raw, make_rel, ...) {
+  xout <- x
   yin <- y
   dev_prev <- 0 # standard deviation residuals for the last iteration of polyfit;
   # set initially to 0
@@ -132,7 +145,7 @@ subtr_bg.default <- function(x, y, degree = 8, raw = FALSE,
     # Approximate the intensity back to the original wavelengths, allows below
     # the peak to be interpolated
     if(criteria_met) {
-      ysbg <- approx(x, y, xout = xin, rule = 2, method = "linear",
+      ysbg <- approx(x, y, xout = xout, rule = 2, method = "linear",
                      ties = mean)[2] %>%
         unlist() %>%
         unname()
@@ -140,7 +153,7 @@ subtr_bg.default <- function(x, y, degree = 8, raw = FALSE,
       if (make_rel) yout <- make_rel(yin - ysbg) else
         yout <- yin - ysbg
 
-      return(data.frame(wavenumber = xin, intensity = yout))
+      return(yout)
     }
 
     # Update previous residual metric

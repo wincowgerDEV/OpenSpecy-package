@@ -11,13 +11,7 @@
 #' A typical good smooth can be achieved with 11 data point window and a 3rd or
 #' 4th order polynomial.
 #'
-#' @param x a numeric vector containing the spectral wavenumbers; alternatively
-#' a data frame containing spectral data as \code{"wavenumber"} and
-#' \code{"intensity"} can be supplied.
-#' @param y a numeric vector containing the spectral intensities.
-#' @param formula an object of class '\code{\link[stats]{formula}}' of the form
-#' \code{intensity ~ wavenumber}.
-#' @param data a data frame containing the variables in \code{formula}.
+#' @param object a list object of class \code{OpenSpecy}.
 #' @param p polynomial order for the filter
 #' @param n number of data points in the window, filter length (must be odd).
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
@@ -44,45 +38,34 @@
 #' Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
 #' \strong{36}(8), 1627--1639.
 #'
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
 #' @export
-smooth_intens <- function(x, ...) {
+smooth_intens <- function(object, ...) {
   UseMethod("smooth_intens")
 }
 
 #' @rdname smooth_intens
 #'
 #' @export
-smooth_intens.formula <- function(formula, data = NULL, ...) {
-  if (missing(formula) || (length(formula) != 3L) ||
-      (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
-    stop("'formula' missing or incorrect")
-
-  mf <- model.frame(formula, data)
-  lst <- as.list(mf)
-  names(lst) <- c("y", "x")
-
-  do.call("smooth_intens", c(lst, list(...)))
+smooth_intens.default <- function(object, ...) {
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname smooth_intens
 #'
+#' @importFrom signal filter sgolay
+#' @importFrom data.table .SD
 #' @export
-smooth_intens.data.frame <- function(x, ...) {
-  if (!all(c("wavenumber", "intensity") %in% names(x)))
-    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
+smooth_intens.OpenSpecy <- function(object, p = 3, n = 11, m = 0, abs = F, make_rel = TRUE,
+                                  ...) {
+  filt <- object$spectra[, lapply(.SD, .sgfilt, p = p, n = n, m = m, abs = abs, ...)]
 
-  do.call("smooth_intens", list(x$wavenumber, x$intensity, ...))
+  if (make_rel) object$spectra <- make_rel(filt) else object$spectra <- filt
+
+  return(object)
 }
 
-#' @rdname smooth_intens
-#' @importFrom signal filter sgolay
-#' @export
-smooth_intens.default <- function(x, y, p = 3, n = 11, make_rel = TRUE,
-                                  ...) {
-  yflt <- signal::filter(filt = sgolay(p = p, n = n, ...), x = y)
-
-  if (make_rel) yout <- make_rel(yflt) else yout <- yflt
-
-  data.frame(wavenumber = x, intensity = yout)
+.sgfilt <- function(y, p, n, m, abs = F, ...) {
+  signal::filter(filt = sgolay(p = p, n = n, m = m, ...), x = y) %>%
+        {if(abs) abs(.) else .}
 }

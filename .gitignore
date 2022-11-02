@@ -4,6 +4,7 @@
 
 # Desktop drive files
 .ini
+delete.bat
 
 # Session Data files
 .RData
@@ -27,8 +28,8 @@
 # produced PDF vignettes and docs
 vignettes/*.pdf
 inst/doc
-doc
-Meta
+/doc/
+/Meta/
 
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
@@ -51,3 +52,6 @@ docs/
 *.ini
 *.swp
 .DS_Store
+
+# ignore old datasets but don't remove
+inst/shiny/

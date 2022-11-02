@@ -4,19 +4,14 @@ data("raman_hdpe")
 tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
 
+wo_meta <- raman_hdpe
+wo_meta$metadata$spectrum_identity <- NULL
+
 test_that("share_text() gives expected output", {
-  expect_message(share_spec(raman_hdpe,
-                            metadata = c(user_name = "Win Cowger",
-                                         spectrum_type = "FTIR",
-                                         spectrum_identity = "PE",
-                                         license = "CC BY-NC"),
-                            share = tmp
-  ))
+  expect_message(share_spec(raman_hdpe, share = tmp))
   expect_warning(
-    expect_message(share_spec(raman_hdpe, share = tmp))
+    expect_message(share_spec(wo_meta, share = tmp))
   )
-  expect_error(share_spec(raman_hdpe, metadata = c("a", "b", "c"),
-                          share = tmp))
 })
 
 # Tidy up

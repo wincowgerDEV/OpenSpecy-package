@@ -66,11 +66,101 @@
 #' \code{\link{get_lib}()} retrieves the Open Specy reference library;
 #' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
 #' object of choice
+
+correlate_spectra <- function(data, library, ...){
+    prep_data = data$spectra[search_wavenumbers %in% library$wavenumbers,][,lapply(.SD, make_rel, na.rm = T)][,lapply(.SD, mean_replace)]
+    prep_library = library$spectra[std_wavenumbers %in% data$wavenumbers,][,lapply(.SD, make_rel, na.rm = T)][,lapply(.SD, mean_replace)]
+    
+    cor(prep_data, 
+        prep_library,
+        ...)
+}
+
+mean_replace <- function(intensity, na.rm = T){
+    fifelse(is.na(intensity), mean(intensity, na.rm = na.rm), intensity)
+}
+
+get_all_metadata <- function(sample_names, correlation_rsq, metadata) {
+    left_join(data.table(sample_name = sample_names, rsq = correlation_rsq), metadata) %>%
+        filter(!is.na(rsq)) %>%
+        arrange(desc(rsq)) %>%
+        mutate(rsq = round(rsq, 2)) 
+}
+
+single_metadata <- function(all_metadata, selection){
+    all_metadata[selection,] %>%
+        select(where(~!any(is_empty(.))))
+}
+
+is_empty <- function(x, first.only = TRUE, all.na.empty = TRUE) {
+    # do we have a valid vector?
+    if (!is.null(x)) {
+        # if it's a character, check if we have only one element in that vector
+        if (is.character(x)) {
+            # characters may also be of length 0
+            if (length(x) == 0) return(TRUE)
+            # else, check all elements of x
+            zero_len <- nchar(x) == 0
+            # return result for multiple elements of character vector
+            if (first.only) {
+                zero_len <- .is_true(zero_len[1])
+                if (length(x) > 0) x <- x[1]
+            } else {
+                return(unname(zero_len))
+            }
+            # we have a non-character vector here. check for length
+        } else if (is.list(x)) {
+            x <- purrr::compact(x)
+            zero_len <- length(x) == 0
+        } else {
+            zero_len <- length(x) == 0
+        }
+    }
+    
+    any(is.null(x) || zero_len || (all.na.empty && all(is.na(x))))
+}
+
+.is_true <- function(x) {
+    is.logical(x) && length(x) == 1L && !is.na(x) && x
+}
+
+max_cor <- function(correlation_matrix, na.rm = T){
+    round(apply(correlation_matrix, 2, function(x) max(x, na.rm = na.rm)), 2)
+}
+
+max_cor_id <- function(correlation_matrix, library){
+    colnames(library)[apply(correlation_matrix, 2, function(x) which.max(x))]
+}
+
+#Want to figure out how to get this and the one below added as possible options for matching. 
+hellinger <- function(x, y, method = 1, stop_error = F) {
+    fx <- densityfun(x)
+    fy <- densityfun(y)
+    lower = min(c(x,y))
+    upper = max(c(x,y))
+    if (method == 1) {
+        g <- function(z) (fx(z)^0.5 - fy(z)^0.5)^2
+        h2 <- stats::integrate(g, lower, upper, stop.on.error = stop_error)$value/2
+    }
+    else if (method == 2) {
+        g <- function(z) (fx(z) * fy(z))^0.5
+        h2 <- 1 - stats::integrate(g, lower, upper, stop.on.error = stop_error)$value
+    }
+    else {
+        stop("incorrect 'method' argument", call. = FALSE)
+    }
+    sqrt(h2)
+}
+
+earthmovers <- function(x, y, na.rm = na.rm) {
+    sum(abs(sort(y) - sort(x))*1/length(y), na.rm = na.rm)
+}
+
 #'
 #' @importFrom rlang .data
 #' @importFrom stats approx cor
-#' @importFrom dplyr %>% inner_join mutate group_by ungroup summarize select arrange desc top_n
-#'
+#' @importFrom magrittr %>%
+#' @importFrom dplyr inner_join mutate group_by ungroup summarize select arrange desc top_n
 #' @export
 match_spec <- function(x, ...) {
   UseMethod("match_spec")
@@ -82,7 +172,7 @@ match_spec <- function(x, ...) {
 match_spec.formula <- function(formula, data = NULL, ...) {
   if (missing(formula) || (length(formula) != 3L) ||
       (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
-    stop("'formula' missing or incorrect")
+    stop("'formula' missing or incorrect", call. = F)
 
   mf <- model.frame(formula, data)
   lst <- as.list(mf)
@@ -96,7 +186,8 @@ match_spec.formula <- function(formula, data = NULL, ...) {
 #' @export
 match_spec.data.frame <- function(x, ...) {
   if (!all(c("wavenumber", "intensity") %in% names(x)))
-    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
+    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'",
+         call. = F)
 
   do.call("match_spec", list(x$wavenumber, x$intensity, ...))
 }
@@ -156,12 +247,12 @@ find_spec <- function(subset, library, which = NULL, type = "metadata",
                                "wavenumber", "intensity", "group"),
                       ...) {
 
-  if(type == "full") type <- "library"
+  if (type == "full") type <- "library"
 
   df <- data.frame(library[[which]][[type]])
   e <- substitute(subset)
 
-  if (!is.call(e)) stop("subset needs to be a logical expression")
+  if (!is.call(e)) stop("subset needs to be a logical expression", call. = F)
 
   r <- eval(e, df, parent.frame())
   c <- cols[cols %in% names(df)]
