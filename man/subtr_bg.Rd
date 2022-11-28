@@ -10,7 +10,16 @@ subtr_bg(object, ...)
 
 \method{subtr_bg}{default}(object, ...)
 
-\method{subtr_bg}{OpenSpecy}(object, degree = 8, raw = FALSE, make_rel = TRUE, ...)
+\method{subtr_bg}{OpenSpecy}(
+  object,
+  degree = 8,
+  wavenumber_fit,
+  intensity_fit,
+  raw = FALSE,
+  make_rel = TRUE,
+  type = "Polynomial",
+  ...
+)
 }
 \arguments{
 \item{object}{a list object of class \code{OpenSpecy}.}

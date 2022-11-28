@@ -10,7 +10,7 @@ smooth_intens(object, ...)
 
 \method{smooth_intens}{default}(object, ...)
 
-\method{smooth_intens}{OpenSpecy}(object, p = 3, n = 11, make_rel = TRUE, ...)
+\method{smooth_intens}{OpenSpecy}(object, p = 3, n = 11, m = 0, abs = F, make_rel = TRUE, ...)
 }
 \arguments{
 \item{object}{a list object of class \code{OpenSpecy}.}
