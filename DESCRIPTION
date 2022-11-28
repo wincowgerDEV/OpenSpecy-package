@@ -73,5 +73,5 @@ Suggests:
     rdrop2, 
     mongolite,
     loggit
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.2
 Config/testthat/edition: 3
