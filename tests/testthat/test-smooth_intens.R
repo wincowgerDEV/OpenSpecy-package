@@ -7,7 +7,6 @@ test_that("smooth_intens() works as expected", {
               smooth_intens(raman_hdpe, p = 1)$spectra$intensity), 4)
   ), 0.9756, ignore_attr = F)
   expect_s3_class(smt, "OpenSpecy")
-  expect_equal(names(smt), c("wavenumber", "spectra", "coords"))
   expect_equal(nrow(smt$spectra), nrow(raman_hdpe$spectra))
   expect_equal(smt$wavenumber, raman_hdpe$wavenumber)
   expect_equal(range(smt$spectra), c(0, 1))

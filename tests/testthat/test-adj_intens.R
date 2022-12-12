@@ -7,7 +7,6 @@ test_that("adj_intens() works as expected", {
         adj_intens(raman_hdpe)$spectra$intensity) %>% as.numeric(),
     1, ignore_attr = F)
   expect_s3_class(adj, "OpenSpecy")
-  expect_equal(names(adj), c("wavenumber", "spectra", "coords"))
   expect_equal(nrow(adj$spectra), nrow(raman_hdpe$spectra))
   expect_equal(adj$wavenumber, raman_hdpe$wavenumber)
   expect_equal(adj_intens(raman_hdpe, make_rel = T)$spectra %>% range(),
