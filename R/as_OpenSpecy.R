@@ -37,7 +37,6 @@
 #' @seealso
 #' seealso.
 #'
-#' @importFrom magrittr %>%
 #' @importFrom data.table as.data.table
 #' @export
 as_OpenSpecy <- function(x, ...) {
@@ -205,6 +204,6 @@ OpenSpecy <- function(x, ...) {
 #' @export
 gen_grid <- function(x) {
   base <- sqrt(x)
-  expand.grid(x = 1:ceiling(base), y = 1:ceiling(base))[1:x,] %>%
-    as.data.table
+  expand.grid(x = 1:ceiling(base), y = 1:ceiling(base))[1:x,] |>
+    as.data.table()
 }
