@@ -1,17 +1,21 @@
 #' @title Sample Raman spectrum
 #'
 #' @description
-#' Raman spectrum of high-density polyethylene (HDPE).
+#' Raman spectrum of high-density polyethylene (HDPE) provided by
+#' Horiba Scientific.
 #'
 #' @format
-#' A data table containing 964 rows and 2 columns:
+#' An threepart list of class \code{\link{OpenSpecy}} containing:
 #' \tabular{ll}{
-#' \code{wavenumber}: \tab spectral wavenumber [1/cm] \cr
-#' \code{intensity}: \tab absorbance values [-] \cr
+#' \code{wavenumber}: \tab spectral wavenumbers [1/cm] (vector of 964 rows) \cr
+#' \code{spectra}: \tab absorbance values [-]
+#'   (a \code{\link[data.table]{data.table}} with 964 rows and 1 column) \cr
+#' \code{metadata}: \tab spectral metadata \cr
 #' }
 #'
 #' @examples
-#' data("raman_hdpe")
+#' data(raman_hdpe)
+#' print(raman_hdpe)
 #'
 #' @author
 #' Win Cowger
