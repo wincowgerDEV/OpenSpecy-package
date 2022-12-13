@@ -44,8 +44,6 @@
 #' \code{\link[yaml]{write_yaml}()}; \code{\link[yaml]{read_yaml}()};
 #' \code{\link[jsonlite]{write_json}()}; \code{\link[jsonlite]{read_json}()};
 #'
-#' @importFrom magrittr %>%
-#' @importFrom data.table data.table as.data.table fread
 #' @export
 write_spec <- function(x, ...) {
   UseMethod("write_spec")
@@ -86,6 +84,7 @@ write_spec.OpenSpecy <- function(x, file, method = NULL,
 #'
 #' @importFrom yaml read_yaml
 #' @importFrom jsonlite read_json
+#' @importFrom data.table as.data.table
 #' @export
 read_spec <- function(file, share = NULL, method = NULL, ...) {
   if (is.null(method)) {
