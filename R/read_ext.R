@@ -111,65 +111,7 @@
 #' @seealso
 #' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
 #'
-#' @importFrom magrittr %>%
 #' @importFrom data.table data.table as.data.table fread
-read_any <- function(file, share = NULL) {
-  if(!grepl("(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)|(\\.zip$)|(\\.[0-999]$)", file)){
-    stop("File needs to be one of .csv, .asp, .spa, .spc, .jdx, .rds, .qs, .json, .yaml, .zip, or .0-999", call. = F)
-  }
-  if(grepl("(\\.jdx$)|(\\.rds$)|(\\.qs$)|(\\.json$)|(\\.yaml$)", file)){
-    tryCatch(read_spec(file, share = share),
-             error = function(e) {e}
-    )
-  }
-  if(grepl("\\.csv$", ignore.case = T, file)) {
-    tryCatch(read_text(file = file,
-                       method = "fread",
-                       share = share),
-             error = function(e) {e})
-  }
-  else if(grepl("\\.[0-999]$", ignore.case = T, file)) {
-    tryCatch(read_opus(file, share = share),
-             error = function(e) {e})
-  }
-  else {
-    ex <- strsplit(basename(file), split="\\.")[[1]]
-
-    tryCatch(do.call(paste0("read_", tolower(ex[-1])),
-                     list(file, share = share)),
-             error = function(e) {e})
-  }
-}
-
-#' @importFrom utils unzip
-#' @importFrom data.table transpose
-#Read spectra functions ----
-read_zip <- function(file, share = NULL, metadata = NULL){
-  files <- unzip(zipfile = file, list = TRUE)
-  unzip(file, exdir = tempdir())
-  if(nrow(files) == 2 & any(grepl("\\.dat$", ignore.case = T, files$Name)) & any(grepl("\\.hdr$", ignore.case = T, files$Name))){
-    hs_envi <- hyperSpec::read.ENVI.Nicolet(file = paste0(tempdir(), "/", files$Name[grepl("\\.dat$", ignore.case = T, files$Name)]),
-                                            headerfile = paste0(tempdir(), "/", files$Name[grepl("\\.hdr$", ignore.case = T, files$Name)]))
-
-    as_OpenSpecy(
-      x = hs_envi@wavelength,
-      spectra = transpose(as.data.table(hs_envi@data$spc)),
-      metadata = data.table(file = gsub(".*/", "", hs_envi@data$file)), 
-      coords = data.table(x = hs_envi@data$x, y = hs_envi@data$y)
-    )
-  }
-  #else{
-  #    file <- bind_cols(lapply(paste0(tempdir(), "/", files$Name), read_spectrum, share = share))
-  #
-  #    as_OpenSpecy(
-  #        x = file$wavenumber...1,
-  #        spectra = file %>%
-  #            select(-starts_with("wave")),
-  #        metadata = generate_grid(nrow(files))[,filename := files$Name])
-  #}
-}
-
-#' @rdname read_ext
 #'
 #' @export
 read_text <- function(file, colnames = NULL, method = "fread",
@@ -202,7 +144,7 @@ read_text <- function(file, colnames = NULL, method = "fread",
                         other_info = NULL,
                         license = "CC BY-NC"),
                       ...) {
-  dt <- do.call(method, list(file, ...)) %>% as.data.table()
+  dt <- do.call(method, list(file, ...)) |> as.data.table()
 
   if (all(grepl("^X[0-9]*", names(dt)))) stop("missing header: ",
                                               "use 'header = FALSE' or an ",
@@ -251,8 +193,8 @@ read_asp <- function(file, share = NULL,
   if (!grepl("\\.asp$", ignore.case = T, file))
     stop("file type should be 'asp'", call. = F)
 
-  tr <- file.path(file) %>% file(...)
-  lns <- tr %>% readLines() %>% as.numeric()
+  tr <- file.path(file) |> file(...)
+  lns <- tr |> readLines() |> as.numeric()
   close(tr)
 
   y <- lns[-c(1:6)]
@@ -301,7 +243,7 @@ read_spa <- function(file, share = NULL,
   if (!grepl("\\.spa$", ignore.case = T, file))
     stop("file type should be 'spa'", call. = F)
 
-  trb <- file.path(file) %>% file(open = "rb", ...)
+  trb <- file.path(file) |> file(open = "rb", ...)
 
   seek(trb, 576, origin = "start")
   spr <- readBin(trb, "numeric", n = 2, size = 4)
