@@ -1,4 +1,4 @@
-#' @rdname adj_intens
+#' @rdname conform_spec
 #'
 #' @title Adjust spectral intensities to absorbance units
 #'
@@ -48,29 +48,33 @@
 #' @importFrom magrittr %>%
 #' @importFrom data.table .SD
 #' @export
-adj_intens <- function(object, ...) {
-  UseMethod("adj_intens")
+conform_spec <- function(object, ...) {
+  UseMethod("conform_spec")
 }
 
-#' @rdname adj_intens
+#' @rdname conform_spec
 #'
 #' @export
-adj_intens.default <- function(object, ...) {
+conform_spec.default <- function(object, ...) {
   stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
-#' @rdname adj_intens
+#' @rdname conform_spec
 #'
 #' @export
-adj_intens.OpenSpecy <- function(object, type = "none", make_rel = TRUE, ...) {
-  spec <- object$spectra
+conform_spec.OpenSpecy <- function(object, type = "none", make_rel = TRUE, ...) {
+  wn <- conform_res(object$wavenumber, ...)
 
-  adj <- switch(type,
-                "reflectance" = (1 - spec/100)^2 / (2 * spec/100),
-                "transmittance" = log10(1/adj_neg(spec, ...)),
-                "none" = adj_neg(spec, ...)
-  )
-  if (make_rel) object$spectra <- make_rel(adj) else object$spectra <- adj
+  spec <- object$spectra[, lapply(.SD, .clean_spec,
+                                  x = object$wavenumber,
+                                  xout = wn)]
 
-  return(object)
+  object$wavenumber <- wn
+  object$spectra <- spec
+
+  adj_intens(object, type = type, make_rel = make_rel, na.rm = T)
+}
+
+.clean_spec <- function(...) {
+  approx(...)$y
 }
