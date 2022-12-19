@@ -1,32 +1,15 @@
 #' @rdname conform_spec
 #'
-#' @title Adjust spectral intensities to absorbance units
+#' @title Conform spectra
 #'
 #' @description
-#' Converts reflectance or transmittance intensity units to absorbance units.
+#'
 #'
 #' @details
-#' Many of the Open Specy functions will assume that the spectrum is in
-#' absorbance units. For example, see \code{\link{match_spec}()} and
-#' \code{\link{subtr_bg}()}.
-#' To run those functions properly, you will need to first convert any spectra
-#' from transmittance or reflectance to absorbance using this function.
-#' The transmittance adjustment uses the \eqn{log10(1 / T)}
-#' calculation which does not correct for system and particle characteristics.
-#' The reflectance adjustment uses the Kubelka-Munk equation
-#' \eqn{(1 - R)^2 / 2R}. We assume that the reflectance intensity
-#' is a percent from 1-100 and first correct the intensity by dividing by 100
-#' so that it fits the form expected by the equation.
+#' Many of
 #'
-#' @param object a list object of class \code{OpenSpecy}.
-#' @param type a character string specifying whether the input spectrum is
-#' in absorbance units (\code{"none"}, default) or needs additional conversion
-#' from \code{"reflectance"} or \code{"transmittance"} data.
-#' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
-#' with \code{\link{make_rel}()}.
-#' @param \ldots further arguments passed to submethods; this is
-#' to \code{\link{adj_neg}()} for \code{adj_intens()} and
-#' to \code{\link{conform_res}()} for \code{conform_intens()}.
+#' @param x a list object of class \code{OpenSpecy}.
+#' @param res spectral resolution adjusted to.
 #'
 #' @return
 #' \code{adj_intens()} returns a data frame containing two columns
@@ -48,33 +31,33 @@
 #' @importFrom magrittr %>%
 #' @importFrom data.table .SD
 #' @export
-conform_spec <- function(object, ...) {
+conform_spec <- function(x, res = 5) {
   UseMethod("conform_spec")
 }
 
 #' @rdname conform_spec
 #'
 #' @export
-conform_spec.default <- function(object, ...) {
+conform_spec.default <- function(x, res = 5) {
   stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname conform_spec
 #'
 #' @export
-conform_spec.OpenSpecy <- function(object, type = "none", make_rel = TRUE, ...) {
-  wn <- conform_res(object$wavenumber, ...)
+conform_spec.OpenSpecy <- function(x, res = 5) {
+  wn <- conform_res(x$wavenumber, res = res)
 
-  spec <- object$spectra[, lapply(.SD, .clean_spec,
-                                  x = object$wavenumber,
-                                  xout = wn)]
+  spec <- x$spectra[, lapply(.SD, .conform_intens,
+                             x = x$wavenumber,
+                             xout = wn)]
 
-  object$wavenumber <- wn
-  object$spectra <- spec
+  x$wavenumber <- wn
+  x$spectra <- spec
 
-  adj_intens(object, type = type, make_rel = make_rel, na.rm = T)
+  return(x)
 }
 
-.clean_spec <- function(...) {
+.conform_intens <- function(...) {
   approx(...)$y
 }

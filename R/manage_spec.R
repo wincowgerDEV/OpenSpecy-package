@@ -34,36 +34,13 @@
 #' @importFrom data.table data.table as.data.table fread
 #' @export
 
-#' @rdname data_norm
-#'
-#' @export
-conform_spec <- function(spec, x, xout){
-  c(
-    approx(x = x, y = spec, xout = xout)$y
-  )
-}
 
 #' @rdname data_norm
 #'
 #' @export
-conform_spectra <- function(data, xout, coords = NULL){
-  if(is_OpenSpecy(data)){
-    as_OpenSpecy(
-      x = xout,
-      spectra = data$spectra[,lapply(.SD, function(x){
-        conform_spec(x = data$wavenumber, spec = x, xout = xout)})],
-      metadata = data$metadata,
-      coords = coords
-    )
-  }
-}
+c_spec <- function(..., wavenumbers = NULL, res = NULL, coords = NULL){
 
-#' @rdname data_norm
-#'
-#' @export
-combine_OpenSpecy <- function(files, wavenumbers = NULL, res = NULL, coords = NULL){
-
-  if(!is.list(files)){
+  if(!is.list(files)) {
     lof <- lapply(files, read_spec, coords = NULL)
   }
   else{
@@ -122,16 +99,43 @@ combine_OpenSpecy <- function(files, wavenumbers = NULL, res = NULL, coords = NU
 #'
 #' @importFrom data.table rbindlist
 #' @export
+# c_spec <- function(...) {
+#     cin <- c(...)
+#
+#     lst <- tapply(cin, names(cin), FUN = function(x) unname((x)))
+#
+#     as_OpenSpecy(
+#         x = lst$wavenumber[[1]],
+#         # TODO: Probably should add a check to make sure all the wavenumbers are
+#         # aligned before doing this.
+#         spectra = as.data.table(lst$spectra),
+#         metadata = rbindlist(lst$metadata, fill = T)
+#     )
+# }
+
 c_spec <- function(...) {
-    cin <- c(...)
+  UseMethod("conform_spec")
+}
 
-    lst <- tapply(cin, names(cin), FUN = function(x) unname((x)))
+#' @rdname conform_spec
+#'
+#' @export
+conform_spec.default <- function(...) {
+  stop("'...' items need to be of class 'OpenSpecy'", call. = F)
+}
 
-    as_OpenSpecy(
-        x = lst$wavenumber[[1]],
-        # TODO: Probably should add a check to make sure all the wavenumbers are
-        # aligned before doing this.
-        spectra = as.data.table(lst$spectra),
-        metadata = rbindlist(lst$metadata, fill = T)
-    )
+#' @rdname conform_spec
+#'
+#' @export
+conform_spec.list <- function(...) {
+
+}
+
+#' @rdname conform_spec
+#'
+#' @export
+conform_spec.OpenSpecy <- function(...) {
+  lst <- list(...)
+
+  do.call
 }
