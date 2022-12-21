@@ -103,7 +103,14 @@
 #' raman_hdpe$spectra #Look at just the spectral intensities data.table. 
 #' raman_hdpe$metadata $Look at just the metadata of the spectra. 
 #' 
-#' is_OpenSpecy(raman_hdpe) #Test that the spectrum is formatted as an Open Specy object. 
+#' #Demonstrate compatibility in creating an Open Specy from its components.
+#' created_OpenSpecy <- as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])
+#' identical(as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")]), raman_hdpe)
+#' 
+#' #Test that the spectrum is formatted as an Open Specy object.
+#' is_OpenSpecy(raman_hdpe)  
+#' 
+#' #Create an artificial spatial grid
 #' gen_grid(n = 5) #Create a spatial grid for spectra when there isn't one specified by the data.
 #' 
 #'
@@ -209,6 +216,7 @@ as_OpenSpecy.default <- function(x, spectra,
                                    total_acquisition_time_s = NULL,
                                    data_processing_procedure = NULL,
                                    level_of_confidence_in_identification = NULL,
+                                   session_id = NULL,
                                    other_info = NULL,
                                    license = "CC BY-NC"),
                                  coords = "gen_grid",
@@ -243,9 +251,14 @@ as_OpenSpecy.default <- function(x, spectra,
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
-      obj$metadata$session_id <- paste(digest(Sys.info()),
-                                    digest(sessionInfo()),
-                                    sep = "/")
+      if(is.null(metadata$session_id)){
+          obj$metadata$session_id <- paste(digest(Sys.info()),
+                                           digest(sessionInfo()),
+                                           sep = "/")
+      }
+      else{
+          obj$metadata$session_id <- metadata$session_id
+      }
       if(!c("file_id") %in% names(obj$metadata)) {
         obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
       }
