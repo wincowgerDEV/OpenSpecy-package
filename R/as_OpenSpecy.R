@@ -98,21 +98,31 @@
 #' data("raman_hdpe") #Read in an example spectrum for Raman HDPE. 
 #' 
 #' #Inspect the spectra
-#' raman_hdpe #See how Open Specy objects print. 
+#' raman_hdpe #See how OpenSpecy objects print. 
 #' raman_hdpe$wavenumber #Look at just the wavenumbers of the spectra.
 #' raman_hdpe$spectra #Look at just the spectral intensities data.table. 
 #' raman_hdpe$metadata $Look at just the metadata of the spectra. 
 #' 
-#' #Demonstrate compatibility in creating an Open Specy from its components.
-#' created_OpenSpecy <- as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])
-#' identical(as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")]), raman_hdpe)
+#' #Demonstrate compatibility in creating an OpenSpecy from its components.
+#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])$metadata == raman_hdpe$metadata
+#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])$spectra == raman_hdpe$spectra
+#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])$wavenumber == raman_hdpe$wavenumber
+#' 
+#' #Demonstrate creating a list and transforming to OpenSpecy
+#' as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")]))
+#' 
+#' #If you try to produce an OpenSpecy using an OpenSpecy it will just return the same object.
+#' as_OpenSpecy(raman_hdpe)
+#' 
+#' #Method for creating an OpenSpecy from a data.frame
+#' as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra$intensity))
 #' 
 #' #Test that the spectrum is formatted as an Open Specy object.
-#' is_OpenSpecy(raman_hdpe)  
+#' is_OpenSpecy(raman_hdpe)  #should be TRUE
+#' is_OpenSpecy(raman_hdpe$spectra) #should be FALSE
 #' 
 #' #Create an artificial spatial grid
 #' gen_grid(n = 5) #Create a spatial grid for spectra when there isn't one specified by the data.
-#' 
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
