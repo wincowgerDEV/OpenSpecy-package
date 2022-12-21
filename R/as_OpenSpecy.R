@@ -7,15 +7,16 @@
 #' possible.
 #'
 #' @details
-#' \code{as_OpenSpecy()} converts spectral datasets to a threepart list,
-#' one with a vector of the wavenumbers of the spectra,
+#' \code{as_OpenSpecy()} converts spectral datasets to a three part list,
+#' the first with a vector of the wavenumbers of the spectra,
 #' the second with a \code{data.table} of all spectral intensities ordered as
 #' columns,
 #' the third item is another \code{data.table} with any metadata the user
 #' provides or is harvested from the files themselves. Currently metadata
 #' harvesting from jdx and opus files are supported as well as the two
 #' Open Specy write formats yaml and json. There are many unique iterations of
-#' spectral file formats so there may be bugs in the file conversion.
+#' spectral file formats so there may be bugs in the file conversion if using proprietary formats like spa, spc, .0
+#' but we are doing the best we can to prevent them.
 #' Please contact us if you identify any.
 #'
 #' The \code{metadata} argument may contain a named list with the following
@@ -80,18 +81,31 @@
 #' with \code{digest(object[c("wavenumber", "spectra")])}\cr
 #' }
 #'
-#' @param x x.
-#' @param spectra spectra.
-#' @param metadata file = NULL.
-#' @param coords coords = "gen_grid".
+#' @param x depending on the method, a list with all Open Specy parameters, a vector with the wavenumbers for all spectra, or a data.frame with a full spectrum in the classic Open Specy format.
+#' @param spectra spectral intensities formatted as a data.table with one column per spectrum.
+#' @param metadata metadata for each spectrum with one row per spectrum, see details.
+#' @param coords spatial coordinates for the spectra.
 #' @param colnames cols.
+#' @param n number of spectra to generate the spatial coordinate grid with.
 #' @param \ldots args.
 #'
 #' @return
-#' return
-#'
+#' \code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists described in details. 
+#' \code{is_OpenSpecy()} returns TRUE if the object is an OpenSpecy and FALSE if not.
+#' \code{gen_grid()} returns a \code{data.table} with x y coordinates to use for generating a spatial grid for the spectra if one is not specified in the data. 
+#' 
 #' @examples
-#' c()
+#' data("raman_hdpe") #Read in an example spectrum for Raman HDPE. 
+#' 
+#' #Inspect the spectra
+#' raman_hdpe #See how Open Specy objects print. 
+#' raman_hdpe$wavenumber #Look at just the wavenumbers of the spectra.
+#' raman_hdpe$spectra #Look at just the spectral intensities data.table. 
+#' raman_hdpe$metadata $Look at just the metadata of the spectra. 
+#' 
+#' is_OpenSpecy(raman_hdpe) #Test that the spectrum is formatted as an Open Specy object. 
+#' gen_grid(n = 5) #Create a spatial grid for spectra when there isn't one specified by the data.
+#' 
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
@@ -264,8 +278,8 @@ OpenSpecy <- function(x, ...) {
 #' @rdname as_OpenSpecy
 #'
 #' @export
-gen_grid <- function(x) {
-  base <- sqrt(x)
-  expand.grid(x = 1:ceiling(base), y = 1:ceiling(base))[1:x,] |>
+gen_grid <- function(n) {
+  base <- sqrt(n)
+  expand.grid(x = 1:ceiling(base), y = 1:ceiling(base))[1:n,] |>
     as.data.table()
 }

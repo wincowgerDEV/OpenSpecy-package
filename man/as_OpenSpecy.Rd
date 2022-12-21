@@ -40,42 +40,112 @@ is_OpenSpecy(x)
 
 OpenSpecy(x, ...)
 
-gen_grid(x)
+gen_grid(n)
 }
 \arguments{
-\item{x}{x.}
+\item{x}{depending on the method, a list with all Open Specy parameters, a vector with the wavenumbers for all spectra, or a data.frame with a full spectrum in the classic Open Specy format.}
 
 \item{colnames}{cols.}
 
-\item{spectra}{spectra.}
+\item{spectra}{spectral intensities formatted as a data.table with one column per spectrum.}
 
-\item{metadata}{file = NULL.}
+\item{metadata}{metadata for each spectrum with one row per spectrum, see details.}
 
-\item{coords}{coords = "gen_grid".}
+\item{coords}{spatial coordinates for the spectra.}
+
+\item{n}{number of spectra to generate the spatial coordinate grid with.}
 
 \item{\ldots}{args.}
 }
 \value{
-return
+\code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists described in details. 
+\code{is_OpenSpecy()} returns TRUE if the object is an OpenSpecy and FALSE if not.
+\code{gen_grid()} returns a \code{data.table} with x y coordinates to use for generating a spatial grid for the spectra if one is not specified in the data.
 }
 \description{
 Functions to check if an object is an Open Specy spectrum, or coerce it if
 possible.
 }
 \details{
-\code{as_OpenSpecy()} converts spectral datasets to a threepart list,
-one with a vector of the wavenumbers of the spectra,
+\code{as_OpenSpecy()} converts spectral datasets to a three part list,
+the first with a vector of the wavenumbers of the spectra,
 the second with a \code{data.table} of all spectral intensities ordered as
 columns,
 the third item is another \code{data.table} with any metadata the user
 provides or is harvested from the files themselves. Currently metadata
 harvesting from jdx and opus files are supported as well as the two
 Open Specy write formats yaml and json. There are many unique iterations of
-spectral file formats so there may be bugs in the file conversion.
+spectral file formats so there may be bugs in the file conversion if using proprietary formats like spa, spc, .0
+but we are doing the best we can to prevent them.
 Please contact us if you identify any.
+
+The \code{metadata} argument may contain a named list with the following
+details (\code{*} = minimum recommended):
+
+\tabular{ll}{
+\code{file_name*}: \tab The file name, defaults to
+\code{\link[base]{basename}()} if not specified\cr
+\code{user_name*}: \tab User name, e.g. "Win Cowger"\cr
+\code{contact_info}: \tab Contact information, e.g. "1-513-673-8956,
+wincowger@gmail.com"\cr
+\code{organization}: \tab Affiliation, e.g. "University of California,
+Riverside"\cr
+\code{citation}: \tab Data citation, e.g. "Primpke, S., Wirth, M., Lorenz,
+C., & Gerdts, G. (2018). Reference database design for the automated analysis
+of microplastic samples based on Fourier transform infrared (FTIR)
+spectroscopy. \emph{Analytical and Bioanalytical Chemistry}.
+\doi{10.1007/s00216-018-1156-x}"\cr
+\code{spectrum_type*}: \tab Raman or FTIR\cr
+\code{spectrum_identity*}: \tab Material/polymer analyzed, e.g.
+"Polystyrene"\cr
+\code{material_form}: \tab Form of the material analyzed, e.g. textile fiber,
+rubber band, sphere, granule \cr
+\code{material_phase}: \tab Phase of the material analyzed (liquid, gas,
+solid) \cr
+\code{material_producer}: \tab Producer of the material analyzed,
+e.g. Dow \cr
+\code{material_purity}: \tab Purity of the material analyzed, e.g. 99.98\%
+\cr
+\code{material_quality}: \tab Quality of the material analyzed, e.g.
+consumer product, manufacturer material, analytical standard,
+environmental sample \cr
+\code{material_color}: \tab Color of the material analyzed,
+e.g. blue, #0000ff, (0, 0, 255) \cr
+\code{material_other}: \tab Other material description, e.g. 5 µm diameter
+fibers, 1 mm spherical particles \cr
+\code{cas_number}: \tab CAS number, e.g. 9003-53-6 \cr
+\code{instrument_used}: \tab Instrument used, e.g. Horiba LabRam \cr
+\code{instrument_accessories}: \tab Instrument accessories, e.g.
+Focal Plane Array, CCD\cr
+\code{instrument_mode}: \tab Instrument modes/settings, e.g.
+transmission, reflectance \cr
+\code{spectral_resolution}: \tab Spectral resolution, e.g. 4/cm \cr
+\code{laser_light_used}: \tab Wavelength of the laser/light used, e.g.
+785 nm \cr
+\code{number_of_accumulations}: \tab Number of accumulations, e.g 5 \cr
+\code{total_acquisition_time_s}: \tab Total acquisition time (s), e.g. 10 s
+\cr
+\code{data_processing_procedure}: \tab Data processing procedure,
+e.g. spikefilter, baseline correction, none \cr
+\code{level_of_confidence_in_identification}: \tab Level of confidence in
+identification, e.g. 99\% \cr
+\code{other_info}: \tab Other information \cr
+\code{license}: \tab The license of the shared spectrum; defaults to
+\code{"CC BY-NC"} (see
+\url{https://creativecommons.org/licenses/by-nc/4.0/} for details). Any other
+creative commons license is allowed, for example, CC0 or CC BY \cr
+\code{session_id}: \tab A unique user and session identifier; populated
+automatically with \code{paste(digest(Sys.info()), digest(sessionInfo()),
+sep = "/")}\cr
+\code{file_id}: \tab A unique file identifier; populated automatically
+with \code{digest(object[c("wavenumber", "spectra")])}\cr
+}
 }
 \examples{
-c()
+data("raman_hdpe") #Read in an example spectrum for Raman HDPE. 
+raman_hdpe #See how Open Specy objects print. 
+is_OpenSpecy(raman_hdpe) #Test that the spectrum is formatted as an Open Specy object. 
+
 
 }
 \seealso{
