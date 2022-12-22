@@ -9,7 +9,7 @@
 \alias{is_OpenSpecy}
 \alias{OpenSpecy}
 \alias{gen_grid}
-\title{Coerce to Open Specy}
+\title{OpenSpecy object opperations}
 \usage{
 as_OpenSpecy(x, ...)
 
@@ -27,11 +27,11 @@ as_OpenSpecy(x, ...)
     = NULL, material_phase = NULL, material_producer = NULL, material_purity = NULL,
     material_quality = NULL, material_color = NULL, material_other = NULL, cas_number =
     NULL, instrument_used = NULL, instrument_accessories = NULL, instrument_mode = NULL,
-    spectral_resolution = NULL, laser_light_used = NULL, number_of_accumulations = NULL,
-    total_acquisition_time_s = NULL, 
-     data_processing_procedure = NULL,
-    level_of_confidence_in_identification = NULL, other_info = NULL, license =
-    "CC BY-NC"),
+    intensity_units = NULL, spectral_resolution = NULL, laser_light_used = NULL,
+    number_of_accumulations = NULL, 
+     total_acquisition_time_s = NULL,
+    data_processing_procedure = NULL, level_of_confidence_in_identification = NULL,
+    other_info = NULL, license = "CC BY-NC"),
   coords = "gen_grid",
   session_id = F,
   ...
@@ -46,7 +46,7 @@ gen_grid(n)
 \arguments{
 \item{x}{depending on the method, a list with all Open Specy parameters, a vector with the wavenumbers for all spectra, or a data.frame with a full spectrum in the classic Open Specy format.}
 
-\item{colnames}{cols.}
+\item{colnames}{names of the wavenumber column and spectra column, makes assumptions based on column names or placement if NULL.}
 
 \item{spectra}{spectral intensities formatted as a data.table with one column per spectrum.}
 
@@ -54,14 +54,16 @@ gen_grid(n)
 
 \item{coords}{spatial coordinates for the spectra.}
 
+\item{session_id}{TRUE or FALSE whether to add a session ID to the metadata. The session ID is based on current session info so metadata of the same spectra will not return equal if session info changes. Sometimes that is desirable.}
+
 \item{n}{number of spectra to generate the spatial coordinate grid with.}
 
-\item{\ldots}{args.}
+\item{\ldots}{additional arguments.}
 }
 \value{
-\code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists described in details. 
-\code{is_OpenSpecy()} returns TRUE if the object is an OpenSpecy and FALSE if not.
-\code{gen_grid()} returns a \code{data.table} with x y coordinates to use for generating a spatial grid for the spectra if one is not specified in the data.
+\code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists described in details. \cr
+\code{is_OpenSpecy()} returns TRUE if the object is an OpenSpecy and FALSE if not.\cr
+\code{gen_grid()} returns a \code{data.table} with x y coordinates to use for generating a spatial grid for the spectra if one is not specified in the data.\cr
 }
 \description{
 Functions to check if an object is an Open Specy spectrum, or coerce it if
@@ -75,10 +77,7 @@ columns,
 the third item is another \code{data.table} with any metadata the user
 provides or is harvested from the files themselves. Currently metadata
 harvesting from jdx and opus files are supported as well as the two
-Open Specy write formats yaml and json. There are many unique iterations of
-spectral file formats so there may be bugs in the file conversion if using proprietary formats like spa, spc, .0
-but we are doing the best we can to prevent them.
-Please contact us if you identify any.
+Open Specy write formats yaml and json. 
 
 The \code{metadata} argument may contain a named list with the following
 details (\code{*} = minimum recommended):
@@ -120,6 +119,8 @@ fibers, 1 mm spherical particles \cr
 Focal Plane Array, CCD\cr
 \code{instrument_mode}: \tab Instrument modes/settings, e.g.
 transmission, reflectance \cr
+\code{intensity_units*}: \tab Units of the intensity values for the spectrum, options
+transmittance, reflectance, absorbance \cr
 \code{spectral_resolution}: \tab Spectral resolution, e.g. 4/cm \cr
 \code{laser_light_used}: \tab Wavelength of the laser/light used, e.g.
 785 nm \cr
@@ -149,7 +150,7 @@ data("raman_hdpe") #Read in an example spectrum for Raman HDPE.
 raman_hdpe #See how OpenSpecy objects print. 
 raman_hdpe$wavenumber #Look at just the wavenumbers of the spectra.
 raman_hdpe$spectra #Look at just the spectral intensities data.table. 
-raman_hdpe$metadata $Look at just the metadata of the spectra. 
+raman_hdpe$metadata #Look at just the metadata of the spectra. 
 
 #Demonstrate compatibility in creating an OpenSpecy from its components.
 as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$metadata == raman_hdpe$metadata
@@ -170,7 +171,7 @@ is_OpenSpecy(raman_hdpe)  #should be TRUE
 is_OpenSpecy(raman_hdpe$spectra) #should be FALSE
 
 #Create an artificial spatial grid
-gen_grid(n = 5) #Create a spatial grid for spectra when there isn't one specified by the data.
+gen_grid(n = 5)
 
 }
 \seealso{

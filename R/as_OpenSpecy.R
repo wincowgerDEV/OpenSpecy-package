@@ -3,7 +3,7 @@
 #' @title OpenSpecy object opperations
 #'
 #' @description
-#' Functions to check if an object is an Open Specy spectrum, or coerce it if
+#' Functions to check if an object is an OpenSpecy, or coerce it if
 #' possible.
 #'
 #' @details
@@ -14,7 +14,7 @@
 #' the third item is another \code{data.table} with any metadata the user
 #' provides or is harvested from the files themselves. Currently metadata
 #' harvesting from jdx and opus files are supported as well as the two
-#' Open Specy write formats yaml and json. 
+#' OpenSpecy write formats yaml and json. 
 #'
 #' The \code{metadata} argument may contain a named list with the following
 #' details (\code{*} = minimum recommended):
@@ -80,7 +80,7 @@
 #' with \code{digest(object[c("wavenumber", "spectra")])}\cr
 #' }
 #'
-#' @param x depending on the method, a list with all Open Specy parameters, a vector with the wavenumbers for all spectra, or a data.frame with a full spectrum in the classic Open Specy format.
+#' @param x depending on the method, a list with all OpenSpecy parameters, a vector with the wavenumbers for all spectra, or a data.frame with a full spectrum in the classic Open Specy format.
 #' @param spectra spectral intensities formatted as a data.table with one column per spectrum.
 #' @param metadata metadata for each spectrum with one row per spectrum, see details.
 #' @param coords spatial coordinates for the spectra.
@@ -117,7 +117,7 @@
 #' #Method for creating an OpenSpecy from a data.frame
 #' as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra$intensity))
 #' 
-#' #Test that the spectrum is formatted as an Open Specy object.
+#' #Test that the spectrum is formatted as an OpenSpecy object.
 #' is_OpenSpecy(raman_hdpe)  #should be TRUE
 #' is_OpenSpecy(raman_hdpe$spectra) #should be FALSE
 #' 
