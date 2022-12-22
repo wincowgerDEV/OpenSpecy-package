@@ -9,7 +9,7 @@
 \alias{is_OpenSpecy}
 \alias{OpenSpecy}
 \alias{gen_grid}
-\title{OpenSpecy object opperations}
+\title{OpenSpecy object operations}
 \usage{
 as_OpenSpecy(x, ...)
 
