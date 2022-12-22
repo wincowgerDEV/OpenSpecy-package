@@ -18,10 +18,10 @@
 #' print(raman_hdpe)
 #'
 #' @author
-#' Win Cowger
+#' Zacharias Steinmetz, Win Cowger
 #'
 #' @references
-#' Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
+#' Cowger W, Steinmetz Z, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
 #' De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020).
 #' “Critical Review of Processing and Classification Techniques for Images and
 #' Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
