@@ -30,9 +30,10 @@ as_OpenSpecy(x, ...)
     spectral_resolution = NULL, laser_light_used = NULL, number_of_accumulations = NULL,
     total_acquisition_time_s = NULL, 
      data_processing_procedure = NULL,
-    level_of_confidence_in_identification = NULL, session_id = NULL, other_info = NULL,
-    license = "CC BY-NC"),
+    level_of_confidence_in_identification = NULL, other_info = NULL, license =
+    "CC BY-NC"),
   coords = "gen_grid",
+  session_id = F,
   ...
 )
 
@@ -151,9 +152,9 @@ raman_hdpe$spectra #Look at just the spectral intensities data.table.
 raman_hdpe$metadata $Look at just the metadata of the spectra. 
 
 #Demonstrate compatibility in creating an OpenSpecy from its components.
-as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])$metadata == raman_hdpe$metadata
-as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])$spectra == raman_hdpe$spectra
-as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])$wavenumber == raman_hdpe$wavenumber
+as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$metadata == raman_hdpe$metadata
+as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$spectra == raman_hdpe$spectra
+as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$wavenumber == raman_hdpe$wavenumber
 
 #Demonstrate creating a list and transforming to OpenSpecy
 as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")]))
