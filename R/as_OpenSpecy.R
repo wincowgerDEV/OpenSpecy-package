@@ -1,6 +1,6 @@
 #' @rdname as_OpenSpecy
 #'
-#' @title OpenSpecy object opperations
+#' @title OpenSpecy object operations
 #'
 #' @description
 #' Functions to check if an object is an OpenSpecy, or coerce it if
