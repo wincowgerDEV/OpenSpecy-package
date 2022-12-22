@@ -104,9 +104,9 @@
 #' raman_hdpe$metadata $Look at just the metadata of the spectra. 
 #' 
 #' #Demonstrate compatibility in creating an OpenSpecy from its components.
-#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])$metadata == raman_hdpe$metadata
-#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])$spectra == raman_hdpe$spectra
-#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")])$wavenumber == raman_hdpe$wavenumber
+#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$metadata == raman_hdpe$metadata
+#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$spectra == raman_hdpe$spectra
+#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$wavenumber == raman_hdpe$wavenumber
 #' 
 #' #Demonstrate creating a list and transforming to OpenSpecy
 #' as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")]))
@@ -226,10 +226,10 @@ as_OpenSpecy.default <- function(x, spectra,
                                    total_acquisition_time_s = NULL,
                                    data_processing_procedure = NULL,
                                    level_of_confidence_in_identification = NULL,
-                                   session_id = NULL,
                                    other_info = NULL,
                                    license = "CC BY-NC"),
                                  coords = "gen_grid",
+                                 session_id = F,
                                  ...) {
   if (!is.numeric(x) && !is.complex(x) && !is.logical(x))
     stop("'x' must be numeric or logical", call. = F)
@@ -261,13 +261,10 @@ as_OpenSpecy.default <- function(x, spectra,
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
-      if(is.null(metadata$session_id)){
+      if(session_id){
           obj$metadata$session_id <- paste(digest(Sys.info()),
                                            digest(sessionInfo()),
                                            sep = "/")
-      }
-      else{
-          obj$metadata$session_id <- metadata$session_id
       }
       if(!c("file_id") %in% names(obj$metadata)) {
         obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])

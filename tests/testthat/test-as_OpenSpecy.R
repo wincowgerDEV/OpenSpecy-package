@@ -20,6 +20,8 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
 
   expect_equal(OpenSpecy(df), OpenSpecy(osf))
   expect_equal(ost$spectra, osf$spectra)
+  expect_equal(ost$wavenumber, osf$wavenumber)
+  expect_equal(ost$metadata, osf$metadata)
 
   expect_true(is_OpenSpecy(osf))
   expect_true(is_OpenSpecy(ost))
