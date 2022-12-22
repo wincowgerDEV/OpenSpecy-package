@@ -18,7 +18,7 @@ read_spec(file, share = NULL, method = NULL, ...)
 \arguments{
 \item{x}{a list object of class \code{\link{OpenSpecy}}.}
 
-\item{file}{file to be read from or written to.}
+\item{file}{file path to be read from or written to. If writing, files will be written as the type designated in the file name.}
 
 \item{method}{submethod to be used for reading text files; defaults to
 \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
@@ -33,15 +33,19 @@ Open Specy community; see \code{\link{share_spec}()} for details.}
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-\code{read_spec()} returns a list object of class \code{\link{OpenSpecy}()}
+\code{read_spec()} reads data formatted as an OpenSpecy object and returns a list object of class \code{\link{OpenSpecy}()}
+containing spectral data. \cr
+\code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}()}
 containing spectral data.
 }
 \description{
-Functions for reading and writing spectral data from Open Specy .yaml, .json,
-or .rds.
+Functions for reading and writing spectral data to and from OpenSpecy format.
+Currently supported formats are .yaml, .json, or .rds.
 }
 \details{
-reference to qs
+Due to floating point number errors there may be some differences in the precision 
+of the numbers returned if using multiple devices for json and yaml files
+but the numbers should be nearly identical. readRDS should return the exact same object every time.
 }
 \examples{
 read_spec(read_extdata("raman_hdpe.yml"))
@@ -49,6 +53,8 @@ read_spec(read_extdata("raman_hdpe.json"))
 read_spec(read_extdata("raman_hdpe.rds"))
 
 \dontrun{
+data(raman_hdpe)
+#Specify the file type you want to write to using the extension at the end of the file name.
 write_spec(raman_hdpe, "raman_hdpe.yml")
 write_spec(raman_hdpe, "raman_hdpe.json")
 write_spec(raman_hdpe, "raman_hdpe.rds")

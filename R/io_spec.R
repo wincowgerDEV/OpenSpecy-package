@@ -3,14 +3,16 @@
 #' @title Read and write spectral data
 #'
 #' @description
-#' Functions for reading and writing spectral data from Open Specy .yaml, .json,
-#' or .rds.
+#' Functions for reading and writing spectral data to and from OpenSpecy format.
+#' Currently supported formats are .yaml, .json, or .rds.
 #'
 #' @details
-#' reference to qs
+#' Due to floating point number errors there may be some differences in the precision 
+#' of the numbers returned if using multiple devices for json and yaml files
+#' but the numbers should be nearly identical. readRDS should return the exact same object every time. 
 #'
 #' @param x a list object of class \code{\link{OpenSpecy}}.
-#' @param file file to be read from or written to.
+#' @param file file path to be read from or written to. If writing, files will be written as the type designated in the file name.
 #' @param share defaults to \code{NULL}; needed to share spectra with the
 #' Open Specy community; see \code{\link{share_spec}()} for details.
 #' @param method submethod to be used for reading text files; defaults to
@@ -21,15 +23,19 @@
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
-#' \code{read_spec()} returns a list object of class \code{\link{OpenSpecy}()}
+#' \code{read_spec()} reads data formatted as an OpenSpecy object and returns a list object of class \code{\link{OpenSpecy}()}
+#' containing spectral data. \cr
+#' \code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}()}
 #' containing spectral data.
 #'
 #' @examples
 #' read_spec(read_extdata("raman_hdpe.yml"))
 #' read_spec(read_extdata("raman_hdpe.json"))
 #' read_spec(read_extdata("raman_hdpe.rds"))
-#'
+#' 
 #' \dontrun{
+#' data(raman_hdpe)
+#' #Specify the file type you want to write to using the extension at the end of the file name.
 #' write_spec(raman_hdpe, "raman_hdpe.yml")
 #' write_spec(raman_hdpe, "raman_hdpe.json")
 #' write_spec(raman_hdpe, "raman_hdpe.rds")
@@ -72,7 +78,7 @@ write_spec.OpenSpecy <- function(x, file, method = NULL,
     } else if (grepl("\\.rds$", file, ignore.case = T)) {
       saveRDS(x, file = file, ...)
     } else {
-      stop("unknown file type: specify a method to write custom formats",
+      stop("unknown file type: specify a method to write custom formats or provide one of the supported .yml, .json, or .rds formats as the file extension",
            call. = F)
     }
   } else {
@@ -105,7 +111,7 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
     } else if (grepl("\\.rds$", file, ignore.case = T)) {
       os <- readRDS(file, ...)
     } else {
-      stop("unknown file type: specify a method to read custom formats",
+      stop("unknown file type: specify a method to read custom formats or provide files of one of the supported file types .yml, .json, .rds",
            call. = F)
     }
   } else {
