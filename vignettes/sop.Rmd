@@ -57,7 +57,7 @@ run_app()
 Then click the **Upload File** tab at the top of the page.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("images/mainpage.jpg")
+knitr::include_graphics("mainpage.jpg")
 ```
 
 Accessibility is extremely important to us and we are making strives to improve
@@ -69,13 +69,13 @@ easily translate the app. We know that not all languages will be fully supported
 but we will continue to try and improve the translations.  
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/googletranslate.jpg")
+knitr::include_graphics("googletranslate.jpg")
 ```
 
 ## Download a test dataset
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/samplefile.jpg")
+knitr::include_graphics("samplefile.jpg")
 ```
 
 If you don't have your own data to use right away, that is ok. You can
@@ -92,7 +92,7 @@ data("raman_hdpe")
 ## Choose whether to share your uploaded data or not
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/uploadfile.jpg")
+knitr::include_graphics("uploadfile.jpg")
 ```
 
 Before uploading, indicate if you would like to share the
@@ -165,7 +165,7 @@ from the **Intensity Adjustment** selection.
 ## Intensity Adjustment
 
 ```{r, fig.align='center', echo=FALSE}
-knitr::include_graphics("images/intensityadjustment.jpg")
+knitr::include_graphics("intensityadjustment.jpg")
 ```
 
 Open Specy assumes that intensity units are in absorbance units but
@@ -191,7 +191,7 @@ head(raman_adj)
 ## Share metadata on known spectra
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/metadatainput.jpg")
+knitr::include_graphics("metadatainput.jpg")
 ```
 
 To share metadata about your spectrum, click the metadata input button.
@@ -210,7 +210,7 @@ and metadata is sent to an
 [open-access online repository](https://osf.io/rjg3c/).
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/sharemetadata.jpg")
+knitr::include_graphics("sharemetadata.jpg")
 ```
 
 All inputs from the metadata (described below) are input to a
@@ -249,7 +249,7 @@ your parameters for processing the spectrum.
 ## Preprocess Spectra Plot
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/preprocessplot.png")
+knitr::include_graphics("preprocessplot.png")
 ```
 
 The preprocess spectra plot shows the uploaded spectra in comparison to
@@ -262,7 +262,7 @@ high intensities and non-peak regions should have low intensities.
 ## Preprocessing Tools
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/smoothing.jpg")
+knitr::include_graphics("smoothing.jpg")
 ```
 
 When the slider is green for the tool type, that means that that tool is being
@@ -270,7 +270,7 @@ used to preprocess the spectrum. If the slider is clicked blank, the cog button
 to the right will disappear to indicate that the tool is no longer being used. 
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/deselection.jpg")
+knitr::include_graphics("deselection.jpg")
 ```
 
 If the cog button is clicked, any functions associated with that tool will be
@@ -279,7 +279,7 @@ displayed and can be manipulated to process the spectrum.
 ## Smoothing Polynomial
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/smoothingpoly.jpg")
+knitr::include_graphics("smoothingpoly.jpg")
 ```
 
 The first step of the Open Specy preprocessing routing is spectral
@@ -338,7 +338,7 @@ head(raman_smooth)
 ## Baseline Correction Polynomial
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/baselinecorrectionpoly.jpg")
+knitr::include_graphics("baselinecorrectionpoly.jpg")
 ```
 
 The second step of Open Specy's preprocessing routine is baseline
@@ -387,7 +387,7 @@ head(raman_bgc)
 ## Spectral Range
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/rangeselection.jpg")
+knitr::include_graphics("rangeselection.jpg")
 ```
 
 The final step of preprocessing is restricting the spectral range.
@@ -405,7 +405,7 @@ removing noise and influence from less relevant spectral data.
 ## Download Data
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/download.jpg")
+knitr::include_graphics("download.jpg")
 ```
 
 After you have the preprocessing parameters set, we recommend that you
@@ -431,7 +431,7 @@ parameters below.
 ## Spectrum Type
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/spectrumtype.jpg")
+knitr::include_graphics("spectrumtype.jpg")
 ```
 
 The spectra type input on the "Match spectra" tab specifies the type of
@@ -442,7 +442,7 @@ the Raman library to make the match.
 ## Spectrum To Analyze
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/spectrumtoanalyze.jpg")
+knitr::include_graphics("spectrumtoanalyze.jpg")
 ```
 
 The spectra to analyze input specifies if the tool will match the
@@ -453,7 +453,7 @@ Preprocess Spectra Tab).
 ## Region To Match
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/regiontomatch.jpg")
+knitr::include_graphics("regiontomatch.jpg")
 ```
 
 The region to match input specifies if the "Full Spectrum" will match
@@ -469,7 +469,7 @@ interpretation of the match, this is not the best approach.
 ## Match Table
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/matches.jpg")
+knitr::include_graphics("matches.jpg")
 ```
 
 The selectable table shows the top material matches returned by the tool,
@@ -507,7 +507,7 @@ match_spec(raman_bgc, library = spec_lib, which = "raman")
 ## Selection Metadata
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("images/selectionmetadata.jpg")
+knitr::include_graphics("selectionmetadata.jpg")
 ```
 
 Whatever match is selected from the match table may have additional
@@ -526,7 +526,7 @@ find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 ## Match Plot
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/matchplot.png")
+knitr::include_graphics("matchplot.png")
 ```
 
 This plot is dynamically updated by selecting matches from the match
@@ -615,21 +615,21 @@ these low, medium, and high density PE samples all look relatively
 similar (figures courtesy of Bridget O\'Donnell, Horiba Scientific):
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-1.png")
+knitr::include_graphics("horiba-1.png")
 ```
 
 But, a closer look at the 1450 cm^-1^ band reveals
 clear differences:
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-2.png")
+knitr::include_graphics("horiba-2.png")
 ```
 
 When you overlay them, you start to see differences in other spectral
 regions too:
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-3.png")
+knitr::include_graphics("horiba-3.png")
 ```
 
 So, the question is, how do we deal with samples that are very similar
@@ -659,14 +659,14 @@ distinguishable compared to the PE results above (nylon 6, 6-6, 6-9,
 bottom):
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-4.png")
+knitr::include_graphics("horiba-4.png")
 ```
 
 The differences are even more pronounced when you overlay the
 spectra:
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-5.png")
+knitr::include_graphics("horiba-5.png")
 ```
 
 ### What to do when matches aren't making sense
@@ -694,26 +694,26 @@ knitr::include_graphics("images/horiba-5.png")
 into the console.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("images/spectragryph-1.png")
+knitr::include_graphics("spectragryph-1.png")
 ```
 
 3. Click File, Save/export data, save data as, and save it as an spc
 file. ¸
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("images/spectragryph-2.png")
+knitr::include_graphics("spectragryph-2.png")
 ```
 
 4. Then upload that .spc file to Open Specy.
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/uploadfile.jpg")
+knitr::include_graphics("uploadfile.jpg")
 ```
 
 ## Conceptual diagram of data flow through Open Specy
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/flowchart.png")
+knitr::include_graphics("flowchart.png")
 ```
 
 # References
