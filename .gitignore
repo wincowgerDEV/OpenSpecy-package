@@ -55,4 +55,4 @@ docs/
 
 # ignore old datasets but don't remove
 inst/shiny/
-docs
+#docs
