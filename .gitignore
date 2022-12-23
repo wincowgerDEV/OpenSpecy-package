@@ -46,7 +46,7 @@ inst/doc
 .Renviron
 
 # pkgdown site
-docs/
+#docs/
 
 # System files
 *.ini
