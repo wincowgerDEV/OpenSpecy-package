@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Document Overview
+# Document Overview 
 
 Open Specy Raman and (FT)IR spectral analysis tool for plastic particles and
 other environmental samples. Supported features include reading spectral data
