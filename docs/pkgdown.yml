@@ -3,7 +3,7 @@ pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
   sop: sop.html
-last_built: 2022-12-23T14:34Z
+last_built: 2022-12-24T13:06Z
 urls:
   reference: http://wincowger.com/OpenSpecy-package/reference
   article: http://wincowger.com/OpenSpecy-package/articles
