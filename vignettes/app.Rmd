@@ -1,5 +1,5 @@
 ---
-title: "R Package Functions Vignette"
+title: "Web Application User Guide"
 author: >
   Jessica Meyers, Jeremy Conkle, Win Cowger, Zacharias Steinmetz,
   Andrew Gray, Chelsea Rochman, Sebastian Primpke, Jennifer Lynch,
@@ -7,7 +7,7 @@ author: >
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{R Package Functions Vignette}
+  %\VignetteIndexEntry{Web Application User Guide}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 ---
