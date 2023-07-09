@@ -58,5 +58,57 @@ collapse_particles <- function(object, particle_filter = NULL){
 #' @importFrom imager label as.cimg
 #' @importFrom data.table as.data.table
 #' @export
-
+characterize_particles <- function(object, particles) {
+    .characterize_particles <- function(object, binary, name = NULL){
+        # Label connected components in the binary image
+        binary_matrix <- matrix(binary, ncol = max(object$metadata$y)+1, byrow = T)
+        labeled_image <- imager::label(imager::as.cimg(binary_matrix), high_connectivity = T)
+        
+        # Create a dataframe with particle IDs for each true pixel
+        particle_points_df <- data.frame(x = object$metadata$x, 
+                                         y = object$metadata$y, 
+                                         particle_ids = as.character(as.vector(t(ifelse(binary_matrix, labeled_image, -88)))))
+        
+        # Apply the logic to clean components
+        cleaned_components <- ifelse(binary_matrix, labeled_image, -88)
+        
+        areas <- as.data.table(table(cleaned_components))[cleaned_components != "-88",]
+        
+        # Calculate the convex hull for each particle
+        convex_hulls <- lapply(split(as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)), cleaned_components[cleaned_components >= 0]), function(coords) {
+            coords[unique(chull(coords[,2], coords[,1])),]
+        })
+        
+        # Calculate area and Feret max for each particle
+        particles_df <- lapply(1:length(convex_hulls), function(coords) {
+            # Area
+            area <- areas[[coords, "N"]]
+            id <- areas[[coords, "cleaned_components"]]
+            
+            # Calculate Feret dimensions
+            dist_matrix <- as.matrix(dist(convex_hulls[[coords]]))
+            feret_max <- max(dist_matrix) + 1
+            
+            return(data.frame(particle_ids = id, area = area, feret_max = feret_max))
+        }) |> bind_rows() |>
+            filter(!is.na(particle_ids)) |> 
+            inner_join(particle_points_df, by = "particle_ids") |>
+            mutate(particle_ids = ifelse(!is.null(name), paste0(name, "_", particle_ids), particle_ids))
+        
+        return(particles_df)
+    }
+    
+    if(is.logical(particles)){
+        particles_df <- .characterize_particles(object, particles)
+    } else if(is.character(particles)){
+        particles_df <- lapply(particles, function(x){
+            logical_particles <- particles == x
+            .characterize_particles(object, logical_particles)
+        }) |> bind_rows()
+    } else {
+        stop("Particles needs to be a character or logical vector.", call. = F)
+    }
+    # Join object$metadata and particles_df on x and y
+    left_join(object$metadata, particles_df, by = c("x", "y"))
+}
 
