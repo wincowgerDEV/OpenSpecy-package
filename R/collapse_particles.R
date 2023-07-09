@@ -54,11 +54,15 @@ collapse_particles <- function(object, particle_filter = NULL){
 
 # Characterize particles
 #' @param binary_matrix A binary matrix with detected particles
-#' @return A list with area, Feret min, and Feret max for each particle
+#' @return A list with area and Feret max for each particle
 #' @importFrom imager label as.cimg
+#' @importFrom data.table as.data.table
 #' @export
-characterize_particles <- function(binary_matrix) {
+characterize_particles <- function(object, particles) {
+ .characterize_particles <- function(object, binary){
     # Label connected components in the binary image
+    binary_matrix <- matrix(binary, ncol = max(object$metadata$y)+1, byrow = T)
+    
     labeled_image <- imager::label(imager::as.cimg(binary_matrix), high_connectivity = T)
     
     # Apply the logic to clean components
@@ -71,20 +75,30 @@ characterize_particles <- function(binary_matrix) {
         coords[unique(chull(coords[,2], coords[,1])),]
     })
     
-    # Calculate area, Feret min, and Feret max for each particle
-    particle_descriptors <- lapply(1:length(convex_hulls), function(coords) {
+    # Calculate area and Feret max for each particle
+    lapply(1:length(convex_hulls), function(coords) {
         # Area
         area <- areas[[coords, "N"]]
         id <- areas[[coords, "cleaned_components"]]
         # Calculate Feret dimensions
         dist_matrix <- as.matrix(dist(convex_hulls[[coords]]))
-        diag(dist_matrix) <- NA # Set diagonal elements to NA to remove self-distances
-        
-        feret_max <- max(dist_matrix, na.rm = TRUE) + 1
+
+        feret_max <- max(dist_matrix) + 1
         
         return(list(id = id, area = area, feret_max = feret_max))
-    })
-    
-    
-    return(particle_descriptors)
+        }) |> bind_rows()
+ }
+ if(is.logical(particles)){
+     .characterize_particles(object, particles)
+ }
+ else if(is.character(particles)){
+     lapply(particles, function(x){
+         logical_particles <- particles == x
+         .characterize_particles(object, logical_particles) |>
+             mutate(id = paste0(x, "_", id))
+     }) |> bind_rows()
+ }
+ else{
+     stop("Particles needs to be a character or logical vector.", call. = F)
+ }
 }
