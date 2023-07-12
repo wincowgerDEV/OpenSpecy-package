@@ -124,3 +124,17 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
 
   return(os)
 }
+
+
+#' @rdname io_spec
+#' 
+#' @importFrom hyperSpec new
+#' @importFrom data.table transpose
+#' @examples
+#' data(raman_hdpe)
+#' hyperOpenSpecy <- to_hyperspec(raman_hdpe)
+#' 
+#' @export
+to_hyperspec <- function(object) {
+    new("hyperSpec", spc = as.matrix(transpose(object$spectra)), wavelength = object$wavenumber, data, labels)
+}
