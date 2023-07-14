@@ -1,5 +1,5 @@
 ---
-title: "Standard Operating Procedure"
+title: "Open Specy Tutorial"
 author: >
   Jessica Meyers, Jeremy Conkle, Win Cowger, Zacharias Steinmetz,
   Andrew Gray, Chelsea Rochman, Sebastian Primpke, Jennifer Lynch,
@@ -7,7 +7,7 @@ author: >
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Standard Operating Procedure}
+  %\VignetteIndexEntry{Open Specy Tutorial}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 ---
@@ -18,6 +18,8 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
+
+# Document Overview 
 
 Open Specy Raman and (FT)IR spectral analysis tool for plastic particles and
 other environmental samples. Supported features include reading spectral data
@@ -38,13 +40,17 @@ along with this standard operating procedure the first time. Afterward,
 knowledgeable users should be able to thoroughly analyze individual
 spectra at an average speed of 1 min^-1^.
 
-# Getting started
+# Spectroscopy Basics
+
+Here we will describe the basic workflow of spectral analysis in maximum 3 paragraphs. 
+
+# Open Specy Fundamentals
 
 ```{r setup}
 library(OpenSpecy)
 ```
 
-# Viewing and Sharing Spectra
+## Viewing and Sharing Spectra
 
 To get started with the Open Specy user interface, access
 [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/)
@@ -57,7 +63,7 @@ run_app()
 Then click the **Upload File** tab at the top of the page.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("images/mainpage.jpg")
+knitr::include_graphics("mainpage.jpg")
 ```
 
 Accessibility is extremely important to us and we are making strives to improve
@@ -69,13 +75,13 @@ easily translate the app. We know that not all languages will be fully supported
 but we will continue to try and improve the translations.  
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/googletranslate.jpg")
+knitr::include_graphics("googletranslate.jpg")
 ```
 
-## Download a test dataset
+### Download a test dataset
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/samplefile.jpg")
+knitr::include_graphics("samplefile.jpg")
 ```
 
 If you don't have your own data to use right away, that is ok. You can
@@ -89,10 +95,10 @@ same:
 data("raman_hdpe")
 ```
 
-## Choose whether to share your uploaded data or not
+### Choose whether to share your uploaded data or not
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/uploadfile.jpg")
+knitr::include_graphics("uploadfile.jpg")
 ```
 
 Before uploading, indicate if you would like to share the
@@ -104,7 +110,7 @@ build machine learning tools, etc. Some users may choose not to share if
 they need to keep their data private. If switched off, none of
 the uploaded data will be stored or shared in Open Specy.
 
-## Upload/Read Data
+### Upload/Read Data
 
 Open Specy allows for upload of .csv, .asp, .jdx, .0, .spc, and
 .spa files. .csv files should always load correctly but the other file
@@ -154,7 +160,7 @@ read_asp(".asp")
 read_opus(".0")
 ```
 
-## Viewing Spectra Plot
+### Viewing Spectra Plot
 
 After spectral data are uploaded, it will appear in the main window. This plot
 is selectable, zoomable, and provides information on hover. You can also
@@ -162,10 +168,10 @@ save a .png file of the plot view using the camera icon at the top right when
 you hover over the plot. This plot will change the view based on updates
 from the **Intensity Adjustment** selection.
 
-## Intensity Adjustment
+### Intensity Adjustment
 
 ```{r, fig.align='center', echo=FALSE}
-knitr::include_graphics("images/intensityadjustment.jpg")
+knitr::include_graphics("intensityadjustment.jpg")
 ```
 
 Open Specy assumes that intensity units are in absorbance units but
@@ -188,10 +194,10 @@ raman_adj <- raman_hdpe %>%
 head(raman_adj)
 ```
 
-## Share metadata on known spectra
+### Share metadata on known spectra
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/metadatainput.jpg")
+knitr::include_graphics("metadatainput.jpg")
 ```
 
 To share metadata about your spectrum, click the metadata input button.
@@ -210,7 +216,7 @@ and metadata is sent to an
 [open-access online repository](https://osf.io/rjg3c/).
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/sharemetadata.jpg")
+knitr::include_graphics("sharemetadata.jpg")
 ```
 
 All inputs from the metadata (described below) are input to a
@@ -239,17 +245,17 @@ share_spec(raman_hdpe,
 
 to share your spectral data from the R console.
 
-# Preprocessing
+## Processing
 
 After uploading data, you can preprocess the data using baseline
 correction, smoothing, and range selection and save your preprocessed
 data. Go to the **Preprocess Spectrum** tab to select
 your parameters for processing the spectrum.
 
-## Preprocess Spectra Plot
+### Process Spectra Plot
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/preprocessplot.png")
+knitr::include_graphics("preprocessplot.png")
 ```
 
 The preprocess spectra plot shows the uploaded spectra in comparison to
@@ -259,10 +265,10 @@ inputs. This allows the user to tune the inputs to optimize the signal
 to noise ratio. The goal with preprocessing is to make peak regions have
 high intensities and non-peak regions should have low intensities.
 
-## Preprocessing Tools
+### Processing Tools
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/smoothing.jpg")
+knitr::include_graphics("smoothing.jpg")
 ```
 
 When the slider is green for the tool type, that means that that tool is being
@@ -270,16 +276,16 @@ used to preprocess the spectrum. If the slider is clicked blank, the cog button
 to the right will disappear to indicate that the tool is no longer being used. 
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/deselection.jpg")
+knitr::include_graphics("deselection.jpg")
 ```
 
 If the cog button is clicked, any functions associated with that tool will be
 displayed and can be manipulated to process the spectrum. 
 
-## Smoothing Polynomial
+#### Smoothing
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/smoothingpoly.jpg")
+knitr::include_graphics("smoothingpoly.jpg")
 ```
 
 The first step of the Open Specy preprocessing routing is spectral
@@ -335,10 +341,10 @@ raman_smooth <- raman_adj %>%
 head(raman_smooth)
 ```
 
-## Baseline Correction Polynomial
+#### Baseline Correction
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/baselinecorrectionpoly.jpg")
+knitr::include_graphics("baselinecorrectionpoly.jpg")
 ```
 
 The second step of Open Specy's preprocessing routine is baseline
@@ -384,10 +390,10 @@ raman_bgc <- raman_smooth %>%
 head(raman_bgc)
 ```
 
-## Spectral Range
+#### Range Selection
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/rangeselection.jpg")
+knitr::include_graphics("rangeselection.jpg")
 ```
 
 The final step of preprocessing is restricting the spectral range.
@@ -402,10 +408,10 @@ to examine a single peak or a subset of peaks of interests. This
 function allows users to isolate peaks of interest for matching, while
 removing noise and influence from less relevant spectral data.
 
-## Download Data
+### Download Data
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/download.jpg")
+knitr::include_graphics("download.jpg")
 ```
 
 After you have the preprocessing parameters set, we recommend that you
@@ -418,7 +424,7 @@ Savitzky-Golay filter specified by the slider explained above.
 "BaselineRemoved" is the smoothed and baseline corrected value that is
 visible on the center plot.
 
-# Matching
+## Identification
 
 After uploading data and preprocessing it (if desired) you can now
 identify the spectrum. To identify the spectrum go to the **Match
@@ -428,10 +434,10 @@ You will see your spectrum and the top matches, but before looking at
 matches, you need to check the three selectable
 parameters below.
 
-## Spectrum Type
+### Spectrum Type
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/spectrumtype.jpg")
+knitr::include_graphics("spectrumtype.jpg")
 ```
 
 The spectra type input on the "Match spectra" tab specifies the type of
@@ -439,10 +445,10 @@ spectra (Raman or FTIR) that the user has uploaded and wants to match
 to. This input will tell the website whether to use the FTIR library or
 the Raman library to make the match.
 
-## Spectrum To Analyze
+### Spectrum To Analyze
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/spectrumtoanalyze.jpg")
+knitr::include_graphics("spectrumtoanalyze.jpg")
 ```
 
 The spectra to analyze input specifies if the tool will match the
@@ -450,10 +456,10 @@ The spectra to analyze input specifies if the tool will match the
 tab) or the **Processed Spectra** (manipulated by the inputs in the
 Preprocess Spectra Tab).
 
-## Region To Match
+### Region To Match
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/regiontomatch.jpg")
+knitr::include_graphics("regiontomatch.jpg")
 ```
 
 The region to match input specifies if the "Full Spectrum" will match
@@ -466,10 +472,10 @@ there are few peaks and high baseline interference, it could be the best
 option. In cases where non-peak regions are important for the
 interpretation of the match, this is not the best approach.
 
-## Match Table
+### Match Table
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/matches.jpg")
+knitr::include_graphics("matches.jpg")
 ```
 
 The selectable table shows the top material matches returned by the tool,
@@ -504,10 +510,10 @@ spec_lib <- load_lib()
 match_spec(raman_bgc, library = spec_lib, which = "raman")
 ```
 
-## Selection Metadata
+### Selection Metadata
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("images/selectionmetadata.jpg")
+knitr::include_graphics("selectionmetadata.jpg")
 ```
 
 Whatever match is selected from the match table may have additional
@@ -523,10 +529,10 @@ example is:
 find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 ```
 
-## Match Plot
+### Match Plot
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/matchplot.png")
+knitr::include_graphics("matchplot.png")
 ```
 
 This plot is dynamically updated by selecting matches from the match
@@ -536,13 +542,15 @@ trying to identify. Whenever a new dataset is uploaded, the plot and
 data table in this tab will be updated. These plots can be saved as a
 .png by clicking the camera button at the top of the plot.
 
+# Spectroscopy Advanced
+
 ## How to interpret the reported matches
 
 There are several important things to consider when interpreting a
 spectral match including the library source, the Pearson's r, and other
 metrics.
 
-### The library source
+## The library source
 
 When you click on a spectrum, all of the metadata that we have in Open
 Specy about that source will be displayed in a metadata window below to
@@ -558,7 +566,7 @@ The authors were kind enough to make their data open access so that it
 could be used in Open Specy and we should return the favor by citing
 them.
 
-### Pearson's r
+## Pearson's r
 
 Correlation values are used to identify the closest matches available
 in the current Open Specy spectral libraries to improve material
@@ -571,7 +579,7 @@ library. Correlation values are not the only metric you should
 use to assess your spectra's match to a material in the library, matches
 need to make sense.
 
-### Things to consider beyond correlation
+## Things to consider beyond correlation
 
 Peak position and height similarities are more important than
 correlation and need to be assessed manually. Peak position
@@ -595,7 +603,7 @@ at room temperature, but the matched material is liquid at room
 temperature. The material may be a component of the particle but it
 cannot be the whole particle.
 
-### How specific do you need to be in the material type of the match?
+## How specific do you need to be in the material type of the match?
 
 You can choose to be specific about how you classify a substance (e.g.
 polyester, cellophane) or more general (e.g. synthetic, semi-synthetic,
@@ -606,7 +614,7 @@ generally, you can often clump the identities provided by Open Specy to
 suit your needs. For example, matches to "polyester" and "polypropylene"
 could be clumped to the category "plastic".
 
-### How to differentiate between similar spectra?
+## How to differentiate between similar spectra?
 
 One common challenge is differentiating between LDPE and HDPE. But,
 even with a low resolution instrument (MacroRAM, 2 cm^-1^ pixel^-1^),
@@ -615,21 +623,21 @@ these low, medium, and high density PE samples all look relatively
 similar (figures courtesy of Bridget O\'Donnell, Horiba Scientific):
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-1.png")
+knitr::include_graphics("horiba-1.png")
 ```
 
 But, a closer look at the 1450 cm^-1^ band reveals
 clear differences:
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-2.png")
+knitr::include_graphics("horiba-2.png")
 ```
 
 When you overlay them, you start to see differences in other spectral
 regions too:
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-3.png")
+knitr::include_graphics("horiba-3.png")
 ```
 
 So, the question is, how do we deal with samples that are very similar
@@ -659,17 +667,17 @@ distinguishable compared to the PE results above (nylon 6, 6-6, 6-9,
 bottom):
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-4.png")
+knitr::include_graphics("horiba-4.png")
 ```
 
 The differences are even more pronounced when you overlay the
 spectra:
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/horiba-5.png")
+knitr::include_graphics("horiba-5.png")
 ```
 
-### What to do when matches aren't making sense
+## What to do when matches aren't making sense
 
 1.  Double check that the baseline correction and smoothing parameters
     result in the best preprocessing of the data. 
@@ -683,9 +691,9 @@ knitr::include_graphics("images/horiba-5.png")
     to measure the spectrum of your material again or use another
     spectral analysis tool.
 
-# Mini Tutorials
+# Extra Mini Tutorials
 
-## File Conversion in SpectraGryph to Open Specy Accepted Format
+## File conversion in SpectraGryph
 
 1. Download Spectragryph from
 [https://www.effemm2.de/spectragryph/down.html](https://www.effemm2.de/spectragryph/down.html)
@@ -694,26 +702,26 @@ knitr::include_graphics("images/horiba-5.png")
 into the console.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("images/spectragryph-1.png")
+knitr::include_graphics("spectragryph-1.png")
 ```
 
 3. Click File, Save/export data, save data as, and save it as an spc
 file. ¸
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("images/spectragryph-2.png")
+knitr::include_graphics("spectragryph-2.png")
 ```
 
 4. Then upload that .spc file to Open Specy.
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/uploadfile.jpg")
+knitr::include_graphics("uploadfile.jpg")
 ```
 
-## Conceptual diagram of data flow through Open Specy
+## Conceptual diagram of Open Specy
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("images/flowchart.png")
+knitr::include_graphics("flowchart.png")
 ```
 
 # References

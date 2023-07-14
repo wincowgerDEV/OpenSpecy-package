@@ -5,27 +5,30 @@
 \alias{write_spec.default}
 \alias{write_spec.OpenSpecy}
 \alias{read_spec}
-\alias{c_spec}
+\alias{to_hyperspec}
 \title{Read and write spectral data}
 \usage{
 write_spec(x, ...)
 
 \method{write_spec}{default}(x, ...)
 
-\method{write_spec}{OpenSpecy}(x, file, method = NULL, ...)
+\method{write_spec}{OpenSpecy}(x, file, method = NULL, digits = getOption("digits"), ...)
 
 read_spec(file, share = NULL, method = NULL, ...)
 
-c_spec(...)
+to_hyperspec(object)
 }
 \arguments{
-\item{x}{a list object of class \code{OpenSpecy}.}
+\item{x}{a list object of class \code{\link{OpenSpecy}}.}
 
-\item{file}{file to be read from or written to.}
+\item{file}{file path to be read from or written to. If writing, files will be written as the type designated in the file name.}
 
 \item{method}{submethod to be used for reading text files; defaults to
 \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
 as well.}
+
+\item{digits}{number of significant digits to use when formatting numeric
+values; defaults to \code{\link[base]{getOption}("digits")}.}
 
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
@@ -33,84 +36,43 @@ Open Specy community; see \code{\link{share_spec}()} for details.}
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-All \code{read_*()} functions return data frames containing two columns
-named \code{"wavenumber"} and \code{"intensity"}.
+\code{read_spec()} reads data formatted as an OpenSpecy object and returns a list object of class \code{\link{OpenSpecy}()}
+containing spectral data. \cr
+\code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}()}
+containing spectral data.
 }
 \description{
-Functions for reading and writing spectral data from Open Specy .yaml, .json,
-or .rds.
+Functions for reading and writing spectral data to and from OpenSpecy format.
+Currently supported formats are .yaml, .json, or .rds.
 }
 \details{
-The \code{metadata} argument may contain a named list with the following
-details (\code{*} = minimum recommended):
-
-\tabular{ll}{
-\code{file_name*}: \tab The file name, defaults to
-\code{\link[base]{basename}()} if not specified\cr
-\code{user_name*}: \tab User name, e.g. "Win Cowger"\cr
-\code{contact_info}: \tab Contact information, e.g. "1-513-673-8956,
-wincowger@gmail.com"\cr
-\code{organization}: \tab Affiliation, e.g. "University of California,
-Riverside"\cr
-\code{citation}: \tab Data citation, e.g. "Primpke, S., Wirth, M., Lorenz,
-C., & Gerdts, G. (2018). Reference database design for the automated analysis
-of microplastic samples based on Fourier transform infrared (FTIR)
-spectroscopy. \emph{Analytical and Bioanalytical Chemistry}.
-\doi{10.1007/s00216-018-1156-x}"\cr
-\code{spectrum_type*}: \tab Raman or FTIR\cr
-\code{spectrum_identity*}: \tab Material/polymer analyzed, e.g.
-"Polystyrene"\cr
-\code{material_form}: \tab Form of the material analyzed, e.g. textile fiber,
-rubber band, sphere, granule \cr
-\code{material_phase}: \tab Phase of the material analyzed (liquid, gas,
-solid) \cr
-\code{material_producer}: \tab Producer of the material analyzed,
-e.g. Dow \cr
-\code{material_purity}: \tab Purity of the material analyzed, e.g. 99.98\%
-\cr
-\code{material_quality}: \tab Quality of the material analyzed, e.g.
-consumer product, manufacturer material, analytical standard,
-environmental sample \cr
-\code{material_color}: \tab Color of the material analyzed,
-e.g. blue, #0000ff, (0, 0, 255) \cr
-\code{material_other}: \tab Other material description, e.g. 5 µm diameter
-fibers, 1 mm spherical particles \cr
-\code{cas_number}: \tab CAS number, e.g. 9003-53-6 \cr
-\code{instrument_used}: \tab Instrument used, e.g. Horiba LabRam \cr
-\code{instrument_accessories}: \tab Instrument accessories, e.g.
-Focal Plane Array, CCD\cr
-\code{instrument_mode}: \tab Instrument modes/settings, e.g.
-transmission, reflectance \cr
-\code{spectral_resolution}: \tab Spectral resolution, e.g. 4/cm \cr
-\code{laser_light_used}: \tab Wavelength of the laser/light used, e.g.
-785 nm \cr
-\code{number_of_accumulations}: \tab Number of accumulations, e.g 5 \cr
-\code{total_acquisition_time_s}: \tab Total acquisition time (s), e.g. 10 s
-\cr
-\code{data_processing_procedure}: \tab Data processing procedure,
-e.g. spikefilter, baseline correction, none \cr
-\code{level_of_confidence_in_identification}: \tab Level of confidence in
-identification, e.g. 99\% \cr
-\code{other_info}: \tab Other information \cr
-\code{license}: \tab The license of the shared spectrum; defaults to
-\code{"CC BY-NC"} (see
-\url{https://creativecommons.org/licenses/by-nc/4.0/} for details). Any other
-creative commons license is allowed, for example, CC0 or CC BY \cr
-\code{session_id}: \tab A unique user and session identifier; populated
-automatically with \code{paste(digest(Sys.info()), digest(sessionInfo()),
-sep = "/")}\cr
-\code{file_id}: \tab A unique file identifier; populated automatically
-with \code{digest(object[c("wavenumber", "spectra")])}\cr
-}
+Due to floating point number errors there may be some differences in the precision 
+of the numbers returned if using multiple devices for json and yaml files
+but the numbers should be nearly identical. readRDS should return the exact same object every time.
 }
 \examples{
-read_text(read_extdata("raman_hdpe.csv"))
-read_asp(read_extdata("ftir_ldpe_soil.asp"))
-read_opus(read_extdata("ftir_ps.0"))
+read_spec(read_extdata("raman_hdpe.yml"))
+read_spec(read_extdata("raman_hdpe.json"))
+read_spec(read_extdata("raman_hdpe.rds"))
+
+\dontrun{
+data(raman_hdpe)
+#Specify the file type you want to write to using the extension at the end of the file name.
+write_spec(raman_hdpe, "raman_hdpe.yml")
+write_spec(raman_hdpe, "raman_hdpe.json")
+write_spec(raman_hdpe, "raman_hdpe.rds")
+}
+
+library("hyperSpec")
+data(raman_hdpe)
+hyperOpenSpecy <- to_hyperspec(raman_hdpe)
 
 }
 \seealso{
-\code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
+\code{\link{OpenSpecy}()}
+\code{\link[base]{saveRDS}()}; \code{\link[base]{readRDS}()};
+\code{\link[yaml]{write_yaml}()}; \code{\link[yaml]{read_yaml}()};
+\code{\link[jsonlite]{write_json}()}; \code{\link[jsonlite]{read_json}()};
 }
 \author{
 Zacharias Steinmetz, Win Cowger
