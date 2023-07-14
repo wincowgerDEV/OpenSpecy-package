@@ -1,3 +1,5 @@
+#' @rdname adj_intens
+#'
 #' @title Adjust spectral intensities to absorbance units
 #'
 #' @description
@@ -71,38 +73,4 @@ adj_intens.OpenSpecy <- function(object, type = "none", make_rel = TRUE, ...) {
   if (make_rel) object$spectra <- make_rel(adj) else object$spectra <- adj
 
   return(object)
-}
-
-#' @rdname adj_intens
-#'
-#' @export
-conform_spec <- function(object, ...) {
-  UseMethod("conform_spec")
-}
-
-#' @rdname adj_intens
-#'
-#' @export
-conform_spec.default <- function(object, ...) {
-  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
-}
-
-#' @rdname adj_intens
-#'
-#' @export
-conform_spec.OpenSpecy <- function(object, type = "none", make_rel = TRUE, ...) {
-  wn <- conform_res(object$wavenumber, ...)
-
-  spec <- object$spectra[, lapply(.SD, .clean_spec,
-                                  x = object$wavenumber,
-                                  xout = wn)]
-
-  object$wavenumber <- wn
-  object$spectra <- spec
-
-  adj_intens(object, type = type, make_rel = make_rel, na.rm = T)
-}
-
-.clean_spec <- function(...) {
-  approx(...)$y
 }

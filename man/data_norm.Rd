@@ -4,9 +4,6 @@
 \name{adj_res}
 \alias{adj_res}
 \alias{conform_res}
-\alias{conform_spec}
-\alias{conform_spectra}
-\alias{combine_OpenSpecy}
 \alias{adj_neg}
 \alias{make_rel}
 \alias{flatten_range}
@@ -16,12 +13,6 @@
 adj_res(x, res = 1, fun = round)
 
 conform_res(x, res = 5)
-
-conform_spec(spec, x, xout)
-
-conform_spectra(data, xout, coords = NULL)
-
-combine_OpenSpecy(files, wavenumbers = NULL, res = NULL, coords = NULL)
 
 adj_neg(y, na.rm = FALSE)
 
