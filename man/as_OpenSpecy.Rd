@@ -4,6 +4,7 @@
 \alias{as_OpenSpecy}
 \alias{as_OpenSpecy.OpenSpecy}
 \alias{as_OpenSpecy.list}
+\alias{as_OpenSpecy.hyperSpec}
 \alias{as_OpenSpecy.data.frame}
 \alias{as_OpenSpecy.default}
 \alias{is_OpenSpecy}
@@ -16,6 +17,8 @@ as_OpenSpecy(x, ...)
 \method{as_OpenSpecy}{OpenSpecy}(x, ...)
 
 \method{as_OpenSpecy}{list}(x, ...)
+
+\method{as_OpenSpecy}{hyperSpec}(x, ...)
 
 \method{as_OpenSpecy}{data.frame}(x, colnames = list(wavenumber = NULL, spectra = NULL), ...)
 
