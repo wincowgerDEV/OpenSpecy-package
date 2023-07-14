@@ -5,6 +5,7 @@
 \alias{write_spec.default}
 \alias{write_spec.OpenSpecy}
 \alias{read_spec}
+\alias{to_hyperspec}
 \title{Read and write spectral data}
 \usage{
 write_spec(x, ...)
@@ -14,6 +15,8 @@ write_spec(x, ...)
 \method{write_spec}{OpenSpecy}(x, file, method = NULL, digits = getOption("digits"), ...)
 
 read_spec(file, share = NULL, method = NULL, ...)
+
+to_hyperspec(object)
 }
 \arguments{
 \item{x}{a list object of class \code{\link{OpenSpecy}}.}
@@ -59,6 +62,10 @@ write_spec(raman_hdpe, "raman_hdpe.yml")
 write_spec(raman_hdpe, "raman_hdpe.json")
 write_spec(raman_hdpe, "raman_hdpe.rds")
 }
+
+library("hyperSpec")
+data(raman_hdpe)
+hyperOpenSpecy <- to_hyperspec(raman_hdpe)
 
 }
 \seealso{

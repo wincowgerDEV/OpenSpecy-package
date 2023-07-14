@@ -67,3 +67,15 @@ test_that("OpenSpecy objects are read correctly", {
   expect_equal(os$metadata$y, 1)
   expect_equal(os$metadata$license, "CC BY-NC")
 })
+
+
+test_that("OpenSpecy objects are transcribed to and from hyperSpec objects", {
+    os <- as_OpenSpecy(df)
+    hyperOpenSpecy <- to_hyperspec(os)
+    expect_true(is(hyperOpenSpecy, "hyperSpec"))
+    OpenHyper <- as_OpenSpecy(hyperOpenSpecy)
+    expect_true(is_OpenSpecy(OpenHyper))
+    expect_equal(OpenHyper$wavenumber,hyperOpenSpecy@wavelength)
+    expect_equal(unlist(OpenHyper$spectra$V1),unname(t(hyperOpenSpecy$spc)[,1]))
+    
+})
