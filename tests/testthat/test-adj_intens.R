@@ -1,6 +1,9 @@
 data("raman_hdpe")
+raman_hdpe$spectra$intensity2 <- raman_hdpe$spectra$intensity
 
 test_that("adj_intens() works as expected", {
+  expect_silent(adj <- adj_intens(raman_hdpe, type = "reflectance"))
+  expect_silent(adj <- adj_intens(raman_hdpe, type = "transmittance"))
   expect_silent(adj <- adj_intens(raman_hdpe))
   expect_equal(
     cor(raman_hdpe$spectra$intensity,

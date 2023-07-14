@@ -7,7 +7,7 @@
 \usage{
 \method{head}{OpenSpecy}(x, ...)
 
-\method{print}{OpenSpecy}(x, ...)
+print.OpenSpecy(x, ...)
 }
 \arguments{
 \item{x}{x.}
