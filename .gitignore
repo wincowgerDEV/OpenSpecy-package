@@ -46,7 +46,7 @@ inst/doc
 .Renviron
 
 # pkgdown site
-docs/
+#docs/
 
 # System files
 *.ini
@@ -55,3 +55,5 @@ docs/
 
 # ignore old datasets but don't remove
 inst/shiny/
+#docs
+docs

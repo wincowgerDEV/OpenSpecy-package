@@ -4,9 +4,6 @@
 \alias{adj_intens}
 \alias{adj_intens.default}
 \alias{adj_intens.OpenSpecy}
-\alias{conform_spec}
-\alias{conform_spec.default}
-\alias{conform_spec.OpenSpecy}
 \title{Adjust spectral intensities to absorbance units}
 \usage{
 adj_intens(object, ...)
@@ -14,12 +11,6 @@ adj_intens(object, ...)
 \method{adj_intens}{default}(object, ...)
 
 \method{adj_intens}{OpenSpecy}(object, type = "none", make_rel = TRUE, ...)
-
-conform_spec(spec, x, xout)
-
-conform_spec.default(object, ...)
-
-conform_spec.OpenSpecy(object, type = "none", make_rel = TRUE, ...)
 }
 \arguments{
 \item{object}{a list object of class \code{OpenSpecy}.}
