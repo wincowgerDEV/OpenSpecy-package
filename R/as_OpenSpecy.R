@@ -128,7 +128,7 @@
 #' Zacharias Steinmetz, Win Cowger
 #'
 #' @seealso
-#' seealso.
+#' \code{\link{io_spec}()} for reading OpenSpecy objects;
 #'
 #' @importFrom data.table as.data.table
 #' @export
