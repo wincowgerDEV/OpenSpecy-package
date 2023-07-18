@@ -1,12 +1,10 @@
 #' @rdname conform_spec
 #'
-#' @title Conform spectra
+#' @title Conform spectra to a standard wavenumber series
 #'
 #' @description
+#' Spectra can be conformed to a standard suite of wavenumbers to be compared with a reference library or to be merged to other spectra.
 #'
-#'
-#' @details
-#' Many of
 #'
 #' @param x a list object of class \code{OpenSpecy}.
 #' @param new_wavenumbers a vector of new wavenumber values, can be just supplied as a min and max value.
@@ -18,8 +16,7 @@
 #'
 #' @examples
 #' data("raman_hdpe")
-#'
-#' adj_intens(raman_hdpe)
+#' conform_spec(raman_hdpe, c(1000, 2000))
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
@@ -47,6 +44,9 @@ conform_spec.default <- function(x, new_wavenumbers, res = 5) {
 #'
 #' @export
 conform_spec.OpenSpecy <- function(x, new_wavenumbers, res = 5) {
+  if(length(new_wavenumbers) <= 1){
+      stop("Wavenumber conformation requires at least two values in new_wavenumbers")
+  }
   wn <- conform_res(new_wavenumbers, res = res)
 
   spec <- x$spectra[, lapply(.SD, .conform_intens,
