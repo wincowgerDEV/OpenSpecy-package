@@ -15,20 +15,29 @@ read_zip(file, ...)
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-All \code{read_*()} functions return data frames containing two columns
-named \code{"wavenumber"} and \code{"intensity"}.
+All \code{read_*()} functions return OpenSpecy objects
 }
 \description{
-Wrapper functions for reading
+Wrapper functions for reading files in batch.
 }
 \details{
-x
+\code{read_any()} provides a single function to quicly read
+in any of the supported formats, it assumes that the file 
+extension will tell it how to process the spectra.
+\code{read_zip()} provides functionality for reading in
+spectral map files with ENVI file format or as individual files
+in a zip folder. If individual files, spectra are concatenated.
 }
 \examples{
-read_text(read_extdata("raman_hdpe.csv"))
-read_asp(read_extdata("ftir_ldpe_soil.asp"))
-read_opus(read_extdata("ftir_ps.0"))
+read_any(read_extdata("raman_hdpe.csv"))
+read_any(read_extdata("ftir_ldpe_soil.asp"))
+read_any(read_extdata("ftir_ps.0"))
+read_zip(read_extdata("testdata_zipped.zip"))
+read_zip(read_extdata("CA_tiny_map.zip"))
 
+}
+\seealso{
+\code{\link{read_spec}()}
 }
 \author{
 Zacharias Steinmetz, Win Cowger

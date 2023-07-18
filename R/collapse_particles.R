@@ -53,8 +53,9 @@ collapse_particles <- function(object, particle_filter = NULL){
 
 
 # Characterize particles
-#' @param binary_matrix A binary matrix with detected particles
-#' @return A list with area and Feret max for each particle
+#' @param object An OpenSpecy object
+#' @param particles a logical vector describing which of the spectra are of particles TRUE and which are not FALSE.
+#' @return The OpenSpecy object with appended metadata about the particles.
 #' @importFrom imager label as.cimg
 #' @importFrom data.table as.data.table
 #' @export

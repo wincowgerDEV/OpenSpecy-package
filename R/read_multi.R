@@ -3,28 +3,35 @@
 #' @title Read spectral data from multiple files
 #'
 #' @description
-#' Wrapper functions for reading
+#' Wrapper functions for reading files in batch. 
 #'
 #' @details
-#' x
+#' \code{read_any()} provides a single function to quicly read
+#' in any of the supported formats, it assumes that the file 
+#' extension will tell it how to process the spectra.
+#' \code{read_zip()} provides functionality for reading in
+#' spectral map files with ENVI file format or as individual files
+#' in a zip folder. If individual files, spectra are concatenated.
 #'
 #' @param file file to be read from or written to.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
-#' All \code{read_*()} functions return data frames containing two columns
-#' named \code{"wavenumber"} and \code{"intensity"}.
+#' All \code{read_*()} functions return OpenSpecy objects
 #'
 #' @examples
-#' read_text(read_extdata("raman_hdpe.csv"))
-#' read_asp(read_extdata("ftir_ldpe_soil.asp"))
-#' read_opus(read_extdata("ftir_ps.0"))
+#' read_any(read_extdata("raman_hdpe.csv"))
+#' read_any(read_extdata("ftir_ldpe_soil.asp"))
+#' read_any(read_extdata("ftir_ps.0"))
+#' read_zip(read_extdata("testdata_zipped.zip"))
+#' read_zip(read_extdata("CA_tiny_map.zip"))
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
 #'
 #' @seealso
-#'
+#' \code{\link{read_spec}()}
+#' 
 #' @export
 read_any <- function(file, ...) {
   if (grepl("(\\.csv$)|(\\.txt$)", ignore.case = T, file)) {
@@ -47,7 +54,7 @@ read_any <- function(file, ...) {
 #' @rdname read_multi
 #'
 #' @importFrom utils unzip
-#' @importFrom hyperSpec read.ENVI.Nicolet
+#' @importFrom hySpc.read.ENVI read_ENVI_Nicolet
 #' @importFrom data.table transpose
 #' @export
 read_zip <- function(file, ...) {
@@ -62,7 +69,7 @@ read_zip <- function(file, ...) {
       any(grepl("\\.hdr$", ignore.case = T, flst$Name))) {
     dat <- flst$Name[grepl("\\.dat$", ignore.case = T, flst$Name)]
     hdr <- flst$Name[grepl("\\.hdr$", ignore.case = T, flst$Name)]
-    hs_envi <- read.ENVI.Nicolet(file = file.path(tmp, dat),
+    hs_envi <- read_ENVI_Nicolet(file = file.path(tmp, dat),
                                  headerfile = file.path(tmp, hdr), ...)
 
     os <- as_OpenSpecy(x = hs_envi@wavelength,
@@ -74,9 +81,7 @@ read_zip <- function(file, ...) {
   } else {
     lst <- lapply(file.path(tmp, flst$Name), read_any, ...)
 
-    # TODO: list of spectra needs to be concatenated/combined into one OpenSpecy
-    # object
-    os <- lst
+    os <- c_spec(lst)
   }
 
   unlink(tmp, recursive = T)

@@ -4,7 +4,7 @@
 \alias{conform_spec}
 \alias{conform_spec.default}
 \alias{conform_spec.OpenSpecy}
-\title{Conform spectra}
+\title{Conform spectra to a standard wavenumber series}
 \usage{
 conform_spec(x, new_wavenumbers, res = 5)
 
@@ -24,15 +24,11 @@ conform_spec(x, new_wavenumbers, res = 5)
 named \code{"wavenumber"} and \code{"intensity"}.
 }
 \description{
-Conform spectra
-}
-\details{
-Many of
+Spectra can be conformed to a standard suite of wavenumbers to be compared with a reference library or to be merged to other spectra.
 }
 \examples{
 data("raman_hdpe")
-
-adj_intens(raman_hdpe)
+conform_spec(raman_hdpe, c(1000, 2000))
 
 }
 \seealso{
