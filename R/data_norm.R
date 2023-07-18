@@ -33,7 +33,7 @@
 #' @param na.rm logical. Should missing values be removed?
 #'
 #' @return
-#' \code{adj_res()} abd \code{conform_res()} return a numeric vector with
+#' \code{adj_res()} and \code{conform_res()} return a numeric vector with
 #' resolution-conformed wavenumbers.
 #' \code{adj_neg()} and \code{make_rel()} return numeric vectors
 #' with the normalized intensity data.
