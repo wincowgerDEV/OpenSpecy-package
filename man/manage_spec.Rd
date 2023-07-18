@@ -4,25 +4,17 @@
 \alias{c_spec}
 \title{Manage spectral objects}
 \usage{
-c_spec(objects, wavenumbers = NULL, res = NULL, coords = NULL)
+c_spec(objects, wavenumber_transform = NULL, res = 5)
 }
 \arguments{
-\item{x}{a list object of class \code{OpenSpecy}.}
+\item{objects}{a list object of class \code{OpenSpecy}.}
 
-\item{file}{file to be read from or written to.}
+\item{wavenumber_transform}{a numeric if providing your own wavenumbers or character argument of "common_range" depending on how you want to merge the wavenumbers between the spectra, NULL will be interpreted as the spectra are all the same wavenumber range, see details for more information.}
 
-\item{share}{defaults to \code{NULL}; needed to share spectra with the
-Open Specy community; see \code{\link{share_spec}()} for details.}
-
-\item{method}{submethod to be used for reading text files; defaults to
-\code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
-as well.}
-
-\item{\ldots}{further arguments passed to the submethods.}
+\item{res}{defaults to \code{NULL}, the resolution you want the output wavenumbers to be.}
 }
 \value{
-All \code{read_*()} functions return data frames containing two columns
-named \code{"wavenumber"} and \code{"intensity"}.
+A single OpenSpecy object.
 }
 \description{
 Functions for
@@ -31,11 +23,15 @@ Functions for
 details
 }
 \examples{
-c()
+spectra <- lapply(c(read_extdata("raman_hdpe.csv"),  read_extdata("ftir_ldpe_soil.asp")), read_any)
+spectra2 <- c_spec(objects = spectra, wavenumber_transform = "common_range", res = 5)
+spectra3 <- c_spec(objects = spectra, wavenumber_transform = c(1000, 2000), res = 5)
 
 }
 \seealso{
-\code{\link[hyperSpec]{read.jdx}()};
+\code{\link[OpenSpecy]{conform_spec}()};
+\code{\link[OpenSpecy]{conform_res}()};
+\code{\link[OpenSpecy]{as_OpenSpecy}()};
 }
 \author{
 Zacharias Steinmetz, Win Cowger

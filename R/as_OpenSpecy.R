@@ -287,9 +287,22 @@ as_OpenSpecy.default <- function(x, spectra,
 
 #' @rdname as_OpenSpecy
 #'
+#' @importFrom data.table is.data.table
 #' @export
 is_OpenSpecy <- function(x) {
-  inherits(x, "OpenSpecy")
+  all(
+      c(inherits(x, "OpenSpecy"), 
+        is.vector(x$wavenumber),
+        is.data.table(x$spectra), 
+        is.data.table(x$metadata),
+        #!any(duplicated(paste(x$metadata$x, x$metadata$y))), #Could be problematic with duplicated spectra at same location. 
+        identical(names(x), c("wavenumber", "spectra", "metadata")),
+        ncol(x$spectra) == nrow(x$metadata),
+        length(x$wavenumber) == nrow(x$spectra),
+        length(unique(names(x$spectra))) == ncol(x$spectra),
+        length(unique(names(x$metadata))) == ncol(x$metadata)
+        )
+      )
 }
 
 #' @rdname as_OpenSpecy

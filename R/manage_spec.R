@@ -8,27 +8,25 @@
 #' @details
 #' details
 #'
-#' @param x a list object of class \code{OpenSpecy}.
-#' @param file file to be read from or written to.
-#' @param share defaults to \code{NULL}; needed to share spectra with the
-#' Open Specy community; see \code{\link{share_spec}()} for details.
-#' @param method submethod to be used for reading text files; defaults to
-#' \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
-#' as well.
-#' @param \ldots further arguments passed to the submethods.
+#' @param objects a list object of class \code{OpenSpecy}.
+#' @param wavenumber_transform a numeric if providing your own wavenumbers or character argument of "common_range" depending on how you want to merge the wavenumbers between the spectra, NULL will be interpreted as the spectra are all the same wavenumber range, see details for more information.
+#' @param res defaults to \code{NULL}, the resolution you want the output wavenumbers to be.
 #'
 #' @return
-#' All \code{read_*()} functions return data frames containing two columns
-#' named \code{"wavenumber"} and \code{"intensity"}.
+#' A single OpenSpecy object. 
 #'
 #' @examples
-#' c()
-#'
+#' spectra <- lapply(c(read_extdata("raman_hdpe.csv"),  read_extdata("ftir_ldpe_soil.asp")), read_any)
+#' spectra2 <- c_spec(objects = spectra, wavenumber_transform = "common_range", res = 5)
+#' spectra3 <- c_spec(objects = spectra, wavenumber_transform = c(1000, 2000), res = 5)
+#' 
 #' @author
 #' Zacharias Steinmetz, Win Cowger
 #'
 #' @seealso
-#' \code{\link[hyperSpec]{read.jdx}()};
+#' \code{\link[OpenSpecy]{conform_spec}()};
+#' \code{\link[OpenSpecy]{conform_res}()};
+#' \code{\link[OpenSpecy]{as_OpenSpecy}()};
 #'
 #' @importFrom magrittr %>%
 #' @importFrom data.table data.table as.data.table fread rbindlist
@@ -36,49 +34,37 @@
 #' @rdname c_spec
 #'
 #' @export
-c_spec <- function(objects, wavenumbers = NULL, res = NULL, coords = NULL){
+c_spec <- function(objects, wavenumber_transform = NULL, res = 5){
 
     if(!is.list(objects) | !all(vapply(objects, function(x){inherits(x, "OpenSpecy")}, FUN.VALUE = TRUE))){
         stop("Objects you are trying to concatenate must be a list of Open Specy objects")
     }  
     
-    if(!is.null(wavenumbers)){
-    if(wavenumbers == "first"){
-      objects <- lapply(objects, function(x) {
-        conform_spectra(data = x,
-                        xout = {if(!is.null(res)) conform_res(objects[[1]]$wavenumber, res = res) else objects[[1]]$wavenumber},
-                        coords = NULL)
-      })
+    if(!is.null(wavenumber_transform)){
+    if(is.numeric(wavenumber_transform)){
+        new_wavenumbers = wavenumber_transform
     }
-    if(wavenumbers == "max_range"){
-      all = unique(unlist(lapply(objects, function(x) x$wavenumber)))
-      objects <- lapply(objects, function(x) {
-        conform_spectra(data = x,
-                        xout = {if(!is.null(res)) conform_res(all, res = res) else all},
-                        coords = NULL)})
+    else if(wavenumber_transform == "common_range"){
+        possible_min = vapply(objects, function(x) min(x$wavenumber), FUN.VALUE = numeric(1))
+        possible_max = vapply(objects, function(x) max(x$wavenumber), FUN.VALUE = numeric(1))
+        smallest = max(possible_min)
+        largest = min(possible_max)
+        if(any(smallest > possible_max) | any(largest < possible_min)){
+            stop("All data points need to have some overlap in their ranges for the merge to work.")
+        }
+        new_wavenumbers = c(smallest, largest)
     }
-    if(wavenumbers == "min_range"){
-      smallest_range = which.min(vapply(objects, function(x) length(x$wavenumber), FUN.VALUE = numeric(1)))
-      objects <- lapply(objects, function(x) {
-        conform_spectra(data = x,
-                        xout = {if(!is.null(res)) conform_res(objects[[smallest_range]]$wavenumber, res = res) else objects[[smallest_range]]$wavenumber},
-                        coords = NULL)})
+        objects <- lapply(objects, function(x) {
+            conform_spec(x,
+                         new_wavenumbers = new_wavenumbers, 
+                         res = res)})
     }
-    if(wavenumbers == "most_common_range"){
-      wavenumbers = table(unlist(lapply(objects, function(x) x$wavenumber)))
-      common_range = as.numeric(names(wavenumbers)[wavenumbers == max(wavenumbers)])
-      objects <- lapply(objects, function(x) {
-        conform_spectra(data = x,
-                        xout = {if(!is.null(res)) conform_res(objects[[common_range]]$wavenumber, res = res) else objects[[common_range]]$wavenumber},
-                        coords = NULL)})
-    }
-  }
 
   unlisted <- unlist(objects, recursive = F)
 
   list <- tapply(unlisted, names(unlisted), FUN = function(x) unname((x)))
 
-  if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(wavenumbers)){
+  if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(wavenumber_transform)){
     stop("Wavenumbers are not the same between spectra, you need to specify how the wavenumbers should be merged.", call. = F)
   }
 

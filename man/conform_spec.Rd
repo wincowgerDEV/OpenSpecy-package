@@ -6,14 +6,16 @@
 \alias{conform_spec.OpenSpecy}
 \title{Conform spectra}
 \usage{
-conform_spec(x, res = 5)
+conform_spec(x, new_wavenumbers, res = 5)
 
-\method{conform_spec}{default}(x, res = 5)
+\method{conform_spec}{default}(x, new_wavenumbers, res = 5)
 
-\method{conform_spec}{OpenSpecy}(x, res = 5)
+\method{conform_spec}{OpenSpecy}(x, new_wavenumbers, res = 5)
 }
 \arguments{
 \item{x}{a list object of class \code{OpenSpecy}.}
+
+\item{new_wavenumbers}{a vector of new wavenumber values, can be just supplied as a min and max value.}
 
 \item{res}{spectral resolution adjusted to.}
 }

@@ -9,6 +9,7 @@
 #' Many of
 #'
 #' @param x a list object of class \code{OpenSpecy}.
+#' @param new_wavenumbers a vector of new wavenumber values, can be just supplied as a min and max value.
 #' @param res spectral resolution adjusted to.
 #'
 #' @return
@@ -31,22 +32,22 @@
 #' @importFrom magrittr %>%
 #' @importFrom data.table .SD
 #' @export
-conform_spec <- function(x, res = 5) {
+conform_spec <- function(x, new_wavenumbers, res = 5) {
   UseMethod("conform_spec")
 }
 
 #' @rdname conform_spec
 #'
 #' @export
-conform_spec.default <- function(x, res = 5) {
+conform_spec.default <- function(x, new_wavenumbers, res = 5) {
   stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname conform_spec
 #'
 #' @export
-conform_spec.OpenSpecy <- function(x, res = 5) {
-  wn <- conform_res(x$wavenumber, res = res)
+conform_spec.OpenSpecy <- function(x, new_wavenumbers, res = 5) {
+  wn <- conform_res(new_wavenumbers, res = res)
 
   spec <- x$spectra[, lapply(.SD, .conform_intens,
                              x = x$wavenumber,
