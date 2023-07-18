@@ -3,32 +3,66 @@
 \name{head.OpenSpecy}
 \alias{head.OpenSpecy}
 \alias{print.OpenSpecy}
-\title{Generic functions for \code{OpenSpecy} objects}
+\alias{plot.OpenSpecy}
+\alias{sample.OpenSpecy}
+\title{Generic Open Specy Functions}
 \usage{
 \method{head}{OpenSpecy}(x, ...)
 
 print.OpenSpecy(x, ...)
+
+plot.OpenSpecy(x, ...)
+
+sample.OpenSpecy(x, size, replace = FALSE, prob = NULL, ...)
 }
 \arguments{
-\item{x}{x.}
+\item{x}{an OpenSpecy object.}
+
+\item{size}{a positive integer specifying the number of items to select from the spectra. (only for \code{sample.OpenSpecy()})}
+
+\item{replace}{should sampling be done with replacement? (only for \code{sample.OpenSpecy()})}
+
+\item{prob}{a vector of probability weights for obtaining the elements of the spectra being sampled. (only for \code{sample.OpenSpecy()})}
 
 \item{\ldots}{args.}
 }
 \value{
-return
+\code{print.OpenSpecy()} returns a textual representation of an OpenSpecy object.
+\code{head.OpenSpecy()} returns the first few lines of an OpenSpecy object.
+\code{plot.OpenSpecy()} returns a ggplot object representing the spectral data.
+\code{sample.OpenSpecy()} returns an OpenSpecy object with a subset of the spectra.
 }
 \description{
-Functions to
+Functions to manipulate and visualize OpenSpecy objects.
 }
 \details{
-\code{as_OpenSpecy()}
+\code{as_OpenSpecy()} creates an OpenSpecy object.
+\code{print.OpenSpecy()} prints the contents of an OpenSpecy object.
+\code{head.OpenSpecy()} shows the first few lines of an OpenSpecy object.
+\code{plot.OpenSpecy()} visualizes spectral data of an OpenSpecy object.
+\code{sample.OpenSpecy()} samples spectra from an OpenSpecy object.
 }
 \examples{
-c()
+
+# Creating an OpenSpecy object
+sample_OpenSpecy <- read_any(read_extdata("raman_hdpe.csv"))
+
+# Printing the OpenSpecy object
+print.OpenSpecy(sample_OpenSpecy)
+
+# Displaying the first few lines of the OpenSpecy object
+head.OpenSpecy(sample_OpenSpecy)
+
+# Plotting the OpenSpecy object
+plot.OpenSpecy(sample_OpenSpecy)
+
+# Sampling the OpenSpecy object
+sampled_OpenSpecy <- sample.OpenSpecy(sample_OpenSpecy, size = 5)
+print.OpenSpecy(sampled_OpenSpecy)
 
 }
 \seealso{
-seealso.
+Other related functions.
 }
 \author{
 Zacharias Steinmetz, Win Cowger

@@ -7,33 +7,24 @@
 #' Multiple ranges can be specified by inputting the series of max and min values in order.
 #'
 #'
-#' @param x a numeric vector or an \R object which is coercible to one by
-#' \code{as.vector(x, "numeric")}; \code{x} should contain the spectral
-#' wavenumbers.
-#' @param y a numeric vector containing the spectral intensities.
-#' @param res spectral resolution supplied to \code{fun}.
-#' @param fun the function to be applied to each element of \code{x}; defaults
-#' to \code{\link[base]{round}()} to round to a specific resolution \code{res}.
-#' @param na.rm logical. Should missing values be removed?
+#' @param object An OpenSpecy object containing spectral wavenumbers and intensities.
+#' @param min_range A vector of minimum values for the range to be flattened.
+#' @param max_range A vector of maximum values for the range to be flattened.
+#' @param make_rel Logical. Should the output intensities be normalized to the range [0, 1] using make_rel() function?
 #'
-#' @return
-#' \code{adj_res()} abd \code{conform_res()} return a numeric vector with
-#' resolution-conformed wavenumbers.
-#' \code{adj_neg()} and \code{make_rel()} return numeric vectors
-#' with the normalized intensity data.
+#' @return An OpenSpecy object with the spectral intensities within specified ranges flattened.
 #'
 #' @examples
 #' library(ggplot2)
 #' library(data.table)
 #' library(OpenSpecy)
 #' test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
-#'   flattened_intensites <- .flatten_range(wavenumber = test_noise$wavenumber, spectra = test_noise$spectra[[1]], min_range = c(1000, 2000) , max_range = c(1500, 2500))
+#'   flattened_intensites <- flatten_range(test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
 #'  ggplot()+
 #'    geom_line(aes(x = test_noise$wavenumber, y = flattened_intensites))
 #' flattened_intensites <- flatten_range.OpenSpecy(object = test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
 #' ggplot()+
 #'    geom_line(aes(x = flattened_intensites$wavenumber, y = flattened_intensites$spectra[[1]]))
-
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
@@ -43,10 +34,10 @@
 #'
 #'
 #' @importFrom magrittr %>%
-#' @importFrom data.table as.data.table
+#' @importFrom data.table as.data.table .SD
 #' @export
 flatten_range <- function(x, ...) {
-    UseMethod("restrict_range")
+    UseMethod("flatten_range")
 }
 
 #' @export
@@ -54,11 +45,32 @@ flatten_range.default <- function(object, ...) {
     stop("object needs to be of class 'OpenSpecy'")
 }
 
+#' @export
 flatten_range.OpenSpecy <- function(object, 
-                                    min_range = 0, 
-                                    max_range = 6000, 
+                                    min_range = NULL, 
+                                    max_range = NULL, 
                                     make_rel = TRUE,
                                     ...) {
+    .flatten_range <- function(wavenumber, spectra, min_range, max_range){
+        
+        for(x in 1:length(min_range)){
+            spectra[wavenumber >= min_range[x] & wavenumber <= max_range[x]] <- mean(c(spectra[min(which(wavenumber >= min_range[x]))], 
+                                                                                       spectra[max(which(wavenumber <= max_range[x]))]))
+        }
+        
+        return(spectra)
+    }
+    if(is.null(min_range)|is.null(max_range)){
+        stop("You need to specify a min and max range to flatten.")
+    }
+    if(length(min_range) != length(max_range)){
+        stop("min_range and max_range need to be the same length.")
+    }
+    if(any(vapply(1:length(min_range), function(x){
+        min_range[x] > max_range[x]
+    }, FUN.VALUE = logical(1)))){
+        stop("all min_range values must be lower than corresponding max_range")
+    }
     filt <- object$spectra[,lapply(.SD, function(x){
         .flatten_range(wavenumber = object$wavenumber, 
                        spectra = x, 
@@ -71,15 +83,7 @@ flatten_range.OpenSpecy <- function(object,
     return(object)
 }
 
-.flatten_range <- function(wavenumber, spectra, min_range, max_range){
-    
-    for(x in 1:length(min_range)){
-        spectra[wavenumber >= min_range[x] & wavenumber <= max_range[x]] <- mean(c(spectra[min(which(wavenumber >= min_range[x]))], 
-                                                                                   spectra[max(which(wavenumber <= max_range[x]))]))
-    }
-    
-    return(spectra)
-}
+
 
 
 

@@ -35,17 +35,22 @@ to \code{\link[base]{round}()} to round to a specific resolution \code{res}.}
 \item{y}{a numeric vector containing the spectral intensities.}
 
 \item{na.rm}{logical. Should missing values be removed?}
+
+\item{object}{An OpenSpecy object containing spectral wavenumbers and intensities.}
+
+\item{min_range}{A vector of minimum values for the range to be flattened.}
+
+\item{max_range}{A vector of maximum values for the range to be flattened.}
+
+\item{make_rel}{Logical. Should the output intensities be normalized to the range [0, 1] using make_rel() function?}
 }
 \value{
-\code{adj_res()} abd \code{conform_res()} return a numeric vector with
+\code{adj_res()} and \code{conform_res()} return a numeric vector with
 resolution-conformed wavenumbers.
 \code{adj_neg()} and \code{make_rel()} return numeric vectors
 with the normalized intensity data.
 
-\code{adj_res()} abd \code{conform_res()} return a numeric vector with
-resolution-conformed wavenumbers.
-\code{adj_neg()} and \code{make_rel()} return numeric vectors
-with the normalized intensity data.
+An OpenSpecy object with the spectral intensities within specified ranges flattened.
 
 \code{adj_res()} abd \code{conform_res()} return a numeric vector with
 resolution-conformed wavenumbers.
@@ -89,7 +94,7 @@ library(ggplot2)
 library(data.table)
 library(OpenSpecy)
 test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
-  flattened_intensites <- .flatten_range(wavenumber = test_noise$wavenumber, spectra = test_noise$spectra[[1]], min_range = c(1000, 2000) , max_range = c(1500, 2500))
+  flattened_intensites <- flatten_range(test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
  ggplot()+
    geom_line(aes(x = test_noise$wavenumber, y = flattened_intensites))
 flattened_intensites <- flatten_range.OpenSpecy(object = test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
