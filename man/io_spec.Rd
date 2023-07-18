@@ -5,7 +5,7 @@
 \alias{write_spec.default}
 \alias{write_spec.OpenSpecy}
 \alias{read_spec}
-\alias{to_hyperspec}
+\alias{to_hyperSpec}
 \title{Read and write spectral data}
 \usage{
 write_spec(x, ...)
@@ -16,16 +16,14 @@ write_spec(x, ...)
 
 read_spec(file, share = NULL, method = NULL, ...)
 
-to_hyperspec(object)
+to_hyperSpec(x)
 }
 \arguments{
-\item{x}{a list object of class \code{\link{OpenSpecy}}.}
+\item{x}{For `write_spec()`, a list object of class \code{\link{OpenSpecy}}.}
 
-\item{file}{file path to be read from or written to. If writing, files will be written as the type designated in the file name.}
+\item{file}{For `read_spec()`, file path to be read from. For `write_spec()`, file path to be written to. If writing, files will be written as the type designated in the file name.}
 
-\item{method}{submethod to be used for reading text files; defaults to
-\code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
-as well.}
+\item{method}{Optional. A function to be used as a custom reader or writer. Defaults to the appropriate function based on the file extension.}
 
 \item{digits}{number of significant digits to use when formatting numeric
 values; defaults to \code{\link[base]{getOption}("digits")}.}
@@ -36,13 +34,13 @@ Open Specy community; see \code{\link{share_spec}()} for details.}
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-\code{read_spec()} reads data formatted as an OpenSpecy object and returns a list object of class \code{\link{OpenSpecy}()}
-containing spectral data. \cr
-\code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}()}
-containing spectral data.
+\code{read_spec()} reads data formatted as an OpenSpecy object and returns a list object of class \code{\link{OpenSpecy}} containing spectral data. \cr
+\code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}} containing spectral data. \cr
+\code{to_hyperspec()} converts an OpenSpecy object to a hyperSpec object.
 }
 \description{
 Functions for reading and writing spectral data to and from OpenSpecy format.
+OpenSpecy objects are lists with components `wavenumber`, `spectra`, and `metadata`.
 Currently supported formats are .yaml, .json, or .rds.
 }
 \details{
@@ -61,11 +59,10 @@ data(raman_hdpe)
 write_spec(raman_hdpe, "raman_hdpe.yml")
 write_spec(raman_hdpe, "raman_hdpe.json")
 write_spec(raman_hdpe, "raman_hdpe.rds")
-}
 
-library("hyperSpec")
-data(raman_hdpe)
-hyperOpenSpecy <- to_hyperspec(raman_hdpe)
+# Convert an OpenSpecy object to a hyperSpec object
+hyperOpenSpecy <- to_hyperSpec(raman_hdpe)
+}
 
 }
 \seealso{

@@ -13,18 +13,18 @@ print.OpenSpecy(x, ...)
 
 plot.OpenSpecy(x, ...)
 
-sample.OpenSpecy(x, size, replace = FALSE, prob = NULL, ...)
+sample.OpenSpecy(x, size, prob = NULL, ...)
 }
 \arguments{
 \item{x}{an OpenSpecy object.}
 
 \item{size}{a positive integer specifying the number of items to select from the spectra. (only for \code{sample.OpenSpecy()})}
 
-\item{replace}{should sampling be done with replacement? (only for \code{sample.OpenSpecy()})}
-
 \item{prob}{a vector of probability weights for obtaining the elements of the spectra being sampled. (only for \code{sample.OpenSpecy()})}
 
 \item{\ldots}{args.}
+
+\item{replace}{should sampling be done with replacement? (only for \code{sample.OpenSpecy()})}
 }
 \value{
 \code{print.OpenSpecy()} returns a textual representation of an OpenSpecy object.
@@ -51,14 +51,16 @@ sample_OpenSpecy <- read_any(read_extdata("raman_hdpe.csv"))
 print.OpenSpecy(sample_OpenSpecy)
 
 # Displaying the first few lines of the OpenSpecy object
-head.OpenSpecy(sample_OpenSpecy)
+head(sample_OpenSpecy)
 
 # Plotting the OpenSpecy object
 plot.OpenSpecy(sample_OpenSpecy)
 
 # Sampling the OpenSpecy object
+sample_OpenSpecy <- read_any(read_extdata("CA_tiny_map.zip"))
 sampled_OpenSpecy <- sample.OpenSpecy(sample_OpenSpecy, size = 5)
 print.OpenSpecy(sampled_OpenSpecy)
+plot.OpenSpecy(sampled_OpenSpecy)
 
 }
 \seealso{

@@ -97,3 +97,9 @@ sample.OpenSpecy <- function(x, size, prob = NULL, ...) {
         metadata = x$metadata[spectra_to_sample,]
     )
 }
+
+
+#Could be nice to add at some point.
+#summary.OpenSpecy <- function(x, ...) {
+    
+#}

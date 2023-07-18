@@ -1,9 +1,9 @@
 #' @rdname io_spec
-#'
 #' @title Read and write spectral data
 #'
 #' @description
 #' Functions for reading and writing spectral data to and from OpenSpecy format.
+#' OpenSpecy objects are lists with components `wavenumber`, `spectra`, and `metadata`.
 #' Currently supported formats are .yaml, .json, or .rds.
 #'
 #' @details
@@ -11,22 +11,19 @@
 #' of the numbers returned if using multiple devices for json and yaml files
 #' but the numbers should be nearly identical. readRDS should return the exact same object every time. 
 #'
-#' @param x a list object of class \code{\link{OpenSpecy}}.
-#' @param file file path to be read from or written to. If writing, files will be written as the type designated in the file name.
+#' @param x An object of class \code{\link{OpenSpecy}}.
+#' @param file For `read_spec()`, file path to be read from. For `write_spec()`, file path to be written to. If writing, files will be written as the type designated in the file name.
 #' @param share defaults to \code{NULL}; needed to share spectra with the
 #' Open Specy community; see \code{\link{share_spec}()} for details.
-#' @param method submethod to be used for reading text files; defaults to
-#' \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
-#' as well.
+#' @param method Optional. A function to be used as a custom reader or writer. Defaults to the appropriate function based on the file extension.
 #' @param digits number of significant digits to use when formatting numeric
 #' values; defaults to \code{\link[base]{getOption}("digits")}.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
-#' \code{read_spec()} reads data formatted as an OpenSpecy object and returns a list object of class \code{\link{OpenSpecy}()}
-#' containing spectral data. \cr
-#' \code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}()}
-#' containing spectral data.
+#' \code{read_spec()} reads data formatted as an OpenSpecy object and returns a list object of class \code{\link{OpenSpecy}} containing spectral data. \cr
+#' \code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}} containing spectral data. \cr
+#' \code{to_hyperspec()} converts an OpenSpecy object to a hyperSpec object.
 #'
 #' @examples
 #' read_spec(read_extdata("raman_hdpe.yml"))
@@ -39,16 +36,24 @@
 #' write_spec(raman_hdpe, "raman_hdpe.yml")
 #' write_spec(raman_hdpe, "raman_hdpe.json")
 #' write_spec(raman_hdpe, "raman_hdpe.rds")
-#' }
 #'
-#' @author
-#' Zacharias Steinmetz, Win Cowger
+#' # Convert an OpenSpecy object to a hyperSpec object
+#' hyperOpenSpecy <- to_hyperSpec(raman_hdpe)
+#' }
 #'
 #' @seealso
 #' \code{\link{OpenSpecy}()}
 #' \code{\link[base]{saveRDS}()}; \code{\link[base]{readRDS}()};
 #' \code{\link[yaml]{write_yaml}()}; \code{\link[yaml]{read_yaml}()};
 #' \code{\link[jsonlite]{write_json}()}; \code{\link[jsonlite]{read_json}()};
+#'
+#' @importFrom yaml write_yaml
+#' @importFrom jsonlite write_json
+#' @importFrom data.table as.data.table
+#' @import hyperSpec
+#'
+#' @author
+#' Zacharias Steinmetz, Win Cowger
 #'
 #' @export
 write_spec <- function(x, ...) {
@@ -64,8 +69,6 @@ write_spec.default <- function(x, ...) {
 
 #' @rdname io_spec
 #'
-#' @importFrom yaml write_yaml
-#' @importFrom jsonlite write_json
 #' @export
 write_spec.OpenSpecy <- function(x, file, method = NULL,
                                  digits = getOption("digits"),
@@ -88,9 +91,6 @@ write_spec.OpenSpecy <- function(x, file, method = NULL,
 
 #' @rdname io_spec
 #'
-#' @importFrom yaml read_yaml
-#' @importFrom jsonlite read_json
-#' @importFrom data.table as.data.table
 #' @export
 read_spec <- function(file, share = NULL, method = NULL, ...) {
   if (is.null(method)) {
@@ -125,17 +125,9 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
   return(os)
 }
 
-
 #' @rdname io_spec
 #' 
-#' @import hyperSpec
-#' @importFrom data.table transpose
-#' @examples
-#' library("hyperSpec")
-#' data(raman_hdpe)
-#' hyperOpenSpecy <- to_hyperspec(raman_hdpe)
-#' 
 #' @export
-to_hyperspec <- function(object) {
-    new("hyperSpec", spc = as.matrix(transpose(object$spectra)), wavelength = object$wavenumber)
+to_hyperSpec <- function(x) {
+    new("hyperSpec", spc = as.matrix(transpose(x$spectra)), wavelength = x$wavenumber)
 }
