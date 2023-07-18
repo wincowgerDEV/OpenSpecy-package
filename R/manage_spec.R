@@ -38,7 +38,7 @@
 #' @export
 c_spec <- function(objects, wavenumbers = NULL, res = NULL, coords = NULL){
 
-    if(!is.list(objects) | !all(lapply(objects, function(x){inherits(x, "OpenSpecy")}))){
+    if(!is.list(objects) | !all(vapply(objects, function(x){inherits(x, "OpenSpecy")}, FUN.VALUE = TRUE))){
         stop("Objects you are trying to concatenate must be a list of Open Specy objects")
     }  
     
@@ -85,6 +85,6 @@ c_spec <- function(objects, wavenumbers = NULL, res = NULL, coords = NULL){
   as_OpenSpecy(
     x = list$wavenumber[[1]],
     spectra = as.data.table(list$spectra),
-    metadata = rbindlist(list$metadata, fill = T)
+    metadata = rbindlist(list$metadata, fill = T)[,-c("x","y")]
   )
 }
