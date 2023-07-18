@@ -31,10 +31,8 @@
 #' \code{\link[hyperSpec]{read.jdx}()};
 #'
 #' @importFrom magrittr %>%
-#' @importFrom data.table data.table as.data.table fread
+#' @importFrom data.table data.table as.data.table fread rbindlist
 #' @export
-
-
 #' @rdname c_spec
 #'
 #' @export
@@ -46,37 +44,37 @@ c_spec <- function(objects, wavenumbers = NULL, res = NULL, coords = NULL){
     
     if(!is.null(wavenumbers)){
     if(wavenumbers == "first"){
-      lof <- lapply(objects, function(x) {
+      objects <- lapply(objects, function(x) {
         conform_spectra(data = x,
-                        xout = {if(!is.null(res)) conform_res(lof[[1]]$wavenumber, res = res) else lof[[1]]$wavenumber},
+                        xout = {if(!is.null(res)) conform_res(objects[[1]]$wavenumber, res = res) else objects[[1]]$wavenumber},
                         coords = NULL)
       })
     }
     if(wavenumbers == "max_range"){
-      all = unique(unlist(lapply(lof, function(x) x$wavenumber)))
-      lof <- lapply(lof, function(x) {
+      all = unique(unlist(lapply(objects, function(x) x$wavenumber)))
+      objects <- lapply(objects, function(x) {
         conform_spectra(data = x,
                         xout = {if(!is.null(res)) conform_res(all, res = res) else all},
                         coords = NULL)})
     }
     if(wavenumbers == "min_range"){
-      smallest_range = which.min(vapply(lof, function(x) length(x$wavenumber), FUN.VALUE = numeric(1)))
-      lof <- lapply(lof, function(x) {
+      smallest_range = which.min(vapply(objects, function(x) length(x$wavenumber), FUN.VALUE = numeric(1)))
+      objects <- lapply(objects, function(x) {
         conform_spectra(data = x,
-                        xout = {if(!is.null(res)) conform_res(lof[[smallest_range]]$wavenumber, res = res) else lof[[smallest_range]]$wavenumber},
+                        xout = {if(!is.null(res)) conform_res(objects[[smallest_range]]$wavenumber, res = res) else objects[[smallest_range]]$wavenumber},
                         coords = NULL)})
     }
     if(wavenumbers == "most_common_range"){
-      wavenumbers = table(unlist(lapply(lof, function(x) x$wavenumber)))
+      wavenumbers = table(unlist(lapply(objects, function(x) x$wavenumber)))
       common_range = as.numeric(names(wavenumbers)[wavenumbers == max(wavenumbers)])
-      lof <- lapply(lof, function(x) {
+      objects <- lapply(objects, function(x) {
         conform_spectra(data = x,
-                        xout = {if(!is.null(res)) conform_res(lof[[common_range]]$wavenumber, res = res) else lof[[common_range]]$wavenumber},
+                        xout = {if(!is.null(res)) conform_res(objects[[common_range]]$wavenumber, res = res) else objects[[common_range]]$wavenumber},
                         coords = NULL)})
     }
   }
 
-  unlisted <- unlist(lof, recursive = F)
+  unlisted <- unlist(objects, recursive = F)
 
   list <- tapply(unlisted, names(unlisted), FUN = function(x) unname((x)))
 
