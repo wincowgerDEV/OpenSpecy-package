@@ -178,7 +178,7 @@ gen_grid(n = 5)
 
 }
 \seealso{
-seealso.
+\code{\link{io_spec}()} for reading OpenSpecy objects;
 }
 \author{
 Zacharias Steinmetz, Win Cowger

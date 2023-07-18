@@ -35,21 +35,18 @@
 #' @export
 
 
-#' @rdname data_norm
+#' @rdname c_spec
 #'
 #' @export
-c_spec <- function(..., wavenumbers = NULL, res = NULL, coords = NULL){
+c_spec <- function(objects, wavenumbers = NULL, res = NULL, coords = NULL){
 
-  if(!is.list(files)) {
-    lof <- lapply(files, read_spec, coords = NULL)
-  }
-  else{
-    lof <- files
-  }
-
-  if(!is.null(wavenumbers)){
+    if(!is.list(objects) | !all(lapply(objects, function(x){inherits(x, "OpenSpecy")}))){
+        stop("Objects you are trying to concatenate must be a list of Open Specy objects")
+    }  
+    
+    if(!is.null(wavenumbers)){
     if(wavenumbers == "first"){
-      lof <- lapply(lof, function(x) {
+      lof <- lapply(objects, function(x) {
         conform_spectra(data = x,
                         xout = {if(!is.null(res)) conform_res(lof[[1]]$wavenumber, res = res) else lof[[1]]$wavenumber},
                         coords = NULL)
@@ -92,50 +89,4 @@ c_spec <- function(..., wavenumbers = NULL, res = NULL, coords = NULL){
     spectra = as.data.table(list$spectra),
     metadata = rbindlist(list$metadata, fill = T)
   )
-}
-
-
-#' @rdname manage_spec
-#'
-#' @importFrom data.table rbindlist
-#' @export
-# c_spec <- function(...) {
-#     cin <- c(...)
-#
-#     lst <- tapply(cin, names(cin), FUN = function(x) unname((x)))
-#
-#     as_OpenSpecy(
-#         x = lst$wavenumber[[1]],
-#         # TODO: Probably should add a check to make sure all the wavenumbers are
-#         # aligned before doing this.
-#         spectra = as.data.table(lst$spectra),
-#         metadata = rbindlist(lst$metadata, fill = T)
-#     )
-# }
-
-c_spec <- function(...) {
-  UseMethod("conform_spec")
-}
-
-#' @rdname conform_spec
-#'
-#' @export
-conform_spec.default <- function(...) {
-  stop("'...' items need to be of class 'OpenSpecy'", call. = F)
-}
-
-#' @rdname conform_spec
-#'
-#' @export
-conform_spec.list <- function(...) {
-
-}
-
-#' @rdname conform_spec
-#'
-#' @export
-conform_spec.OpenSpecy <- function(...) {
-  lst <- list(...)
-
-  do.call
 }

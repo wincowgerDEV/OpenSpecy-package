@@ -4,9 +4,7 @@
 \alias{c_spec}
 \title{Manage spectral objects}
 \usage{
-c_spec(...)
-
-c_spec(...)
+c_spec(objects, wavenumbers = NULL, res = NULL, coords = NULL)
 }
 \arguments{
 \item{x}{a list object of class \code{OpenSpecy}.}
