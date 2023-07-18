@@ -1,63 +1,55 @@
-#' @title Collapse Particles
+#' @title Characterize Particles
 #'
 #' @description
-#' Converts spectral map oriented OpenSpecy object to particle centroids based on metadata values.
+#' Functions for analyzing particles in spectral map oriented OpenSpecy object.
 #'
 #' @details
-#'
-#' @param object a list object of class \code{OpenSpecy}.
-#' @param type a character string specifying whether the input spectrum is
-#' in absorbance units (\code{"none"}, default) or needs additional conversion
-#' from \code{"reflectance"} or \code{"transmittance"} data.
-#' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
-#' with \code{\link{make_rel}()}.
-#' @param \ldots further arguments passed to submethods; this is
-#' to \code{\link{adj_neg}()} for \code{adj_intens()} and
-#' to \code{\link{conform_res}()} for \code{conform_intens()}.
-#'
+#' `characterize_particles()` accepts an OpenSpecy object and a logical or character vector desribing which pixels correspond to particles.
+#' `collapse_spectra()` takes an OpenSpecy object with particle-specific metadata
+#' (from `characterize_particles()`) and collapses the spectra to median intensities for each unique particle.
+#' It also updates the metadata with centroid coordinates, while preserving the particle information on area and Feret max.
+#' 
 #' @return
-#' \code{adj_intens()} returns a data frame containing two columns
-#' named \code{"wavenumber"} and \code{"intensity"}.
+#' An Open Specy object appended metadata about the particles or collapsed for the particles.
 #'
 #' @examples
-#' data("raman_hdpe")
-#'
-#' adj_intens(raman_hdpe)
+#' #Logical example
+#' map <- read_extdata("CA_tiny_map.zip") |> read_any()
+#' map$metadata$particles <- map$metadata$x == 0
+#' identified_map <- characterize_particles(map, map$metadata$particles)
+#' test_collapsed <- collapse_spectra(identified_map)
+#' 
+#' #Character example
+#' map <- read_extdata("CA_tiny_map.zip") |> read_any()
+#' map$metadata$particles <- ifelse(map$metadata$x == 1, "particle", "not_particle")
+#' identified_map <- characterize_particles(map, map$metadata$particles)
+#' test_collapsed <- collapse_spectra(identified_map)
+#' @param object An OpenSpecy object
+#' @param particles A logical vector or character vector describing which of the spectra are 
+#' of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
+#' represent the different particle types present in the spectra.
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
-#' @seealso
-#' \code{\link{subtr_bg}()} for spectral background correction;
-#' \code{\link{match_spec}()} matches spectra with the Open Specy or other
-#' reference libraries
-#'
-#' @examples
-#' test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
-#' test_noise = process_spectra(test_noise, range_decision = T, min_range = 1000, max_range = 3000, carbon_dioxide_decision = T, abs = F)
-#' ggplot() +
-#' geom_line(aes(x = test_noise$wavenumber, y = test_noise$spectra[[1]]))
-
-#' @importFrom magrittr %>%
-#' @importFrom data.table .SD
+#' @rdname characterize_particles
+#' @importFrom data.table as.data.table setDT rbindlist data.table transpose .SD
+#' @importFrom dplyr distinct
 #' @export
-#' 
-#' 
-collapse_particles <- function(object, particle_filter = NULL){
-    if (!is.null(filter)) {
-        object$metadata <- object$metadata[, particle_id := eval(parse(text=filter))]
-        
-        db$vectors <- db$vectors[, db$metadata$id, with = FALSE]
-    }
+collapse_spectra <- function(object) {
+
+    # Calculate the median spectra for each unique particle_id
+    object$spectra <- transpose(object$spectra)[,id := object$metadata$particle_id][,lapply(.SD, median, na.rm=TRUE), by = id] |>
+        transpose(make.names = "id")
+    
+    object$metadata <- object$metadata |>
+        distinct(particle_ids, area, feret_max, centroid_y, centroid_x)
+    
+    return(object)
 }
-
-
-# Characterize particles
-#' @param object An OpenSpecy object
-#' @param particles a logical vector describing which of the spectra are of particles TRUE and which are not FALSE.
-#' @return The OpenSpecy object with appended metadata about the particles.
+#' @rdname characterize_particles
 #' @importFrom imager label as.cimg
-#' @importFrom data.table as.data.table
+#' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
 characterize_particles <- function(object, particles) {
     .characterize_particles <- function(object, binary, name = NULL){
@@ -99,16 +91,24 @@ characterize_particles <- function(object, particles) {
     }
     
     if(is.logical(particles)){
+        if(all(particles) | all(!particles)){
+            stop("Particles cannot be all TRUE or all FALSE values because that would indicate that there are no distinct particles.")
+        }
         particles_df <- .characterize_particles(object, particles)
     } else if(is.character(particles)){
-        particles_df <- rbindlist(lapply(particles, function(x){
+        if(length(unique(particles)) == 1){
+            stop("Particles cannot all have a single name because that would indicate that there are no distinct particles.")
+        }
+        particles_df <- rbindlist(lapply(unique(particles), function(x){
             logical_particles <- particles == x
             .characterize_particles(object, logical_particles)
         }))
     } else {
         stop("Particles needs to be a character or logical vector.", call. = F)
     }
+
+    object$metadata <- particles_df[setDT(object$metadata), on = .(x, y)][,particle_ids := ifelse(is.na(particle_ids), "-88", particle_ids)][,centroid_x := mean(x), by = "particle_ids"][,centroid_y := mean(y), by = "particle_ids"]
     
-    setDT(object$metadata)[particles_df, on = .(x, y)]
+    return(object)
 }
 
