@@ -67,21 +67,6 @@ print.OpenSpecy <- function(x, ...) {
   print(x$metadata)
 }
 
-#' @rdname gen_OpenSpecy
-#' 
-#' @export
-plot.OpenSpecy <- function(x, ...) {
-
-    dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
-        pivot_longer(cols = -wavenumber, names_to = "id", values_to = "intensity")
-    
-    ggplot(dt, aes(x = wavenumber, y = intensity, color = id)) +
-        geom_line() +
-        theme_minimal(base_size = 15) +
-        labs(x = "Wavenumber", y = "Intensity", title = "Spectral Data") +
-        theme(legend.position = "none")
-}
-
 
 #' @rdname gen_OpenSpecy
 #' 
