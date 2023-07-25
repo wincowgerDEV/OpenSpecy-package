@@ -2,7 +2,7 @@
 % Please edit documentation in R/process_spectra.R
 \name{process_spectra}
 \alias{process_spectra}
-\title{Adjust spectral intensities to absorbance units}
+\title{Preprocess Spectra}
 \usage{
 process_spectra(
   object,
@@ -30,54 +30,79 @@ process_spectra(
 )
 }
 \arguments{
-\item{object}{a list object of class \code{OpenSpecy}.}
+\item{object}{An OpenSpecy object containing metadata and spectral data.}
 
-\item{type}{a character string specifying whether the input spectrum is
-in absorbance units (\code{"none"}, default) or needs additional conversion
-from \code{"reflectance"} or \code{"transmittance"} data.}
+\item{active_preprocessing}{Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.}
 
-\item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
-with \code{\link{make_rel}()}.}
+\item{range_decision}{Logical value indicating whether to restrict the wavenumber range of the spectra.}
 
-\item{\ldots}{further arguments passed to submethods; this is
-to \code{\link{adj_neg}()} for \code{adj_intens()} and
-to \code{\link{conform_res}()} for \code{conform_intens()}.}
+\item{min_range}{Numeric value specifying the minimum wavenumber for range restriction.}
+
+\item{max_range}{Numeric value specifying the maximum wavenumber for range restriction.}
+
+\item{carbon_dioxide_decision}{Logical value indicating whether to flatten the range around the carbon dioxide region.}
+
+\item{carbon_dioxide_min}{Numeric value specifying the minimum wavenumber for the carbon dioxide region.}
+
+\item{carbon_dioxide_max}{Numeric value specifying the maximum wavenumber for the carbon dioxide region.}
+
+\item{smooth_decision}{Logical value indicating whether to apply a smoothing filter to the spectra.}
+
+\item{smooth_polynomial}{Integer value specifying the polynomial order for smoothing.}
+
+\item{smooth_window}{Integer value specifying the window size for smoothing.}
+
+\item{baseline_decision}{Logical value indicating whether to subtract the baseline from the spectra.}
+
+\item{baseline_selection}{Character value specifying the type of baseline subtraction method. Options are "Polynomial", "Linear", "Horizontal", or "Vertical".}
+
+\item{raw_baseline}{Logical value indicating whether to use the raw baseline values for subtraction.}
+
+\item{baseline_polynomial}{Integer value specifying the polynomial order for baseline subtraction.}
+
+\item{wavenumber_fit}{Numeric vector of wavenumbers used for baseline fitting.}
+
+\item{intensity_fit}{Numeric vector of intensities used for baseline fitting.}
+
+\item{derivative_decision}{Logical value indicating whether to apply derivative to the spectra.}
+
+\item{derivative_order}{Integer value specifying the order of the derivative.}
+
+\item{derivative_polynomial}{Integer value specifying the polynomial order for derivative calculation.}
+
+\item{abs}{Logical value indicating whether to calculate the absolute values of the derivative.}
+
+\item{derivative_window}{Integer value specifying the window size for derivative calculation.}
 }
 \value{
-\code{adj_intens()} returns a data frame containing two columns
-named \code{"wavenumber"} and \code{"intensity"}.
+An OpenSpecy object with preprocessed spectra based on the specified parameters.
 }
 \description{
-Converts reflectance or transmittance intensity units to absorbance units.
-}
-\details{
-Many of the Open Specy functions will assume that the spectrum is in
-absorbance units. For example, see \code{\link{match_spec}()} and
-\code{\link{subtr_bg}()}.
-To run those functions properly, you will need to first convert any spectra
-from transmittance or reflectance to absorbance using this function.
-The transmittance adjustment uses the \eqn{log10(1 / T)}
-calculation which does not correct for system and particle characteristics.
-The reflectance adjustment uses the Kubelka-Munk equation
-\eqn{(1 - R)^2 / 2R}. We assume that the reflectance intensity
-is a percent from 1-100 and first correct the intensity by dividing by 100
-so that it fits the form expected by the equation.
+Process spectra data by applying various preprocessing steps. This is a monolithic function for all common preprocessing steps in one place.
 }
 \examples{
-data("raman_hdpe")
 
-adj_intens(raman_hdpe)
+data <- read_any(read_extdata("CA_tiny_map.zip"))
+# Process spectra with range restriction and baseline subtraction
+processed_data <- process_spectra(data, 
+                                  active_preprocessing = TRUE,
+                                  range_decision = TRUE, 
+                                  min_range = 500, 
+                                  max_range = 3000, 
+                                  baseline_decision = TRUE,
+                                  baseline_selection = "Polynomial", 
+                                  baseline_polynomial = 8,
+                                  derivative_decision = FALSE)
 
-test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
-test_noise = process_spectra(test_noise, range_decision = T, min_range = 1000, max_range = 3000, carbon_dioxide_decision = T, abs = F)
-ggplot() +
-geom_line(aes(x = test_noise$wavenumber, y = test_noise$spectra[[1]]))
-}
-\seealso{
-\code{\link{subtr_bg}()} for spectral background correction;
-\code{\link{match_spec}()} matches spectra with the Open Specy or other
-reference libraries
-}
-\author{
-Win Cowger, Zacharias Steinmetz
+# Process spectra with smoothing and derivative
+processed_data <- process_spectra(data, 
+                                  active_preprocessing = TRUE,
+                                  smooth_decision = TRUE, 
+                                  smooth_polynomial = 3, 
+                                  smooth_window = 11,
+                                  derivative_decision = TRUE,
+                                  derivative_order = 1,
+                                  derivative_polynomial = 3,
+                                  derivative_window = 11)
+
 }

@@ -48,7 +48,7 @@ A plotly heatmap object displaying the OpenSpecy data. A subplot containing the 
 These functions generate heatmaps, spectral plots, and interactive plots for OpenSpecy data.
 }
 \examples{
-data1 <- read_any("raman_hdpe.json")
+data1 <- read_any(read_extdata("raman_hdpe.json"))
 data2 <- read_zip("inst/extdata/CA_tiny_map.zip")
 plot_OpenSpecy(data1)
 plot_OpenSpecy(data1, selected_spectrum = 2)
