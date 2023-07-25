@@ -48,12 +48,15 @@
 #'     - `wavenumbers` If `"spec"` or `"spec_no_atm_comp"` was requested in the `type` option, a numeric vector of the wavenumbers of the spectrum of the sample (otherwise set to `NULL`).
 #'     - `wavenumbers_sc_sample` If `"sc_sample"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the sample (otherwise set to `NULL`).
 #'     - `wavenumbers_sc_ref` If `"sc_ref"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the reference (otherwise set to `NULL`).
-
 #'
 #'  - If `simplify = TRUE`, a list of two elements is returned:
 #'     - `wavenumbers`: Numeric vector with wavenumbers of the requested spectra.
 #'     - `spectra`: Matrix with spectra of requested type (see argument `type`).
 #'
+#' @examples
+#' data <- read_opus(read_extdata("ftir_ps.0"))
+#' data2 <- read_opus(read_extdata("ftir_ps_interior.1"))
+#' 
 #' @importFrom stats approx
 #' @export
 #'

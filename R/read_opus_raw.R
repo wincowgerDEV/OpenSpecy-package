@@ -39,6 +39,9 @@
 #'     - `wavenumbers_sc_ref` If `"sc_ref"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the reference (otherwise set to `NULL`).
 #'
 #' @importFrom stats setNames
+#' 
+#' 
+#' 
 #' @export
 #'
 #' @author Philipp Baumann and Pierre Roudier
