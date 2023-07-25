@@ -15,3 +15,4 @@ test_that("adj_intens() works as expected", {
   expect_equal(adj_intens(raman_hdpe, make_rel = T)$spectra %>% range(),
                c(0, 1))
 })
+

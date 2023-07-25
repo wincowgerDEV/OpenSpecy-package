@@ -10,16 +10,15 @@
 #'
 #' @examples
 #' data("raman_hdpe")
-#' signal_noise(os, return = "signal")
-#' signal_noise(os, return = "noise")
-#' signal_noise(os, return = "signal_times_noise")
+#' signal_noise(raman_hdpe, return = "signal")
+#' signal_noise(raman_hdpe, return = "noise")
+#' signal_noise(raman_hdpe, return = "signal_times_noise")
 #'
-#' @importFrom stats mean sd
 #'
 #' @export
  signal_noise <- function(object, return = "signal_over_noise", na.rm = TRUE){
      
-     vapply(object, function(intensity){
+     vapply(object$spectra, function(intensity){
          signal = mean(intensity, na.rm = na.rm)
          noise = sd(intensity, na.rm = na.rm)
          if(return == "signal"){

@@ -21,8 +21,9 @@ This function calculates common signal and noise metrics for Open Specy objects.
 }
 \examples{
 data("raman_hdpe")
-signal_noise(os, return = "signal")
-signal_noise(os, return = "noise")
-signal_noise(os, return = "signal_times_noise")
+signal_noise(raman_hdpe, return = "signal")
+signal_noise(raman_hdpe, return = "noise")
+signal_noise(raman_hdpe, return = "signal_times_noise")
+
 
 }
