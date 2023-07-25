@@ -1,3 +1,5 @@
+#' @rdname spec_res
+#'
 #' @title Spectral resolution
 #'
 #' @description
@@ -9,7 +11,7 @@
 #' frequency difference between two lines in a spectrum that can still be
 #' distinguished.
 #'
-#' @param x a numeric vector or an \R object which is coercible to one by
+#' @param object a numeric vector or an \R object which is coercible to one by
 #' \code{as.vector(x, "numeric")}; \code{x} should be \code{wavenumber} data.
 #'
 #' @return
@@ -18,13 +20,28 @@
 #' @examples
 #' data("raman_hdpe")
 #' spec_res(raman_hdpe$wavenumber)
-#'
+#' spec_res(raman_hdpe)
+#' 
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @importFrom magrittr %>%
 #' @export
-spec_res <- function(x) {
-  (max(x) - min(x)) / length(x)
+spec_res <- function(object, ...) {
+UseMethod("spec_res")
+}
+
+#' @rdname spec_res
+#'
+#' @export
+spec_res.default <- function(object, ...) {
+    (max(object) - min(object)) / length(object)
+}
+
+#' @rdname spec_res
+#'
+#' @export
+spec_res.OpenSpecy <- function(object) {
+  spec_res.default(object$wavenumber)
 }
 
