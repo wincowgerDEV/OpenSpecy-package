@@ -15,7 +15,7 @@
 #'
 #' @details
 #' \code{adj_res()} and \code{conform_res()} are used in Open Specy to
-#' faciliate comparisons of spectra with different resolutions.
+#' facilitate comparisons of spectra with different resolutions.
 #' \code{adj_neg()} is used to avoid errors that could arise from log
 #' transforming spectra when using \code{\link{adj_intens}()} and other
 #' functions.
