@@ -85,6 +85,11 @@ The type of spectra to extract from the file can also use Bruker's OPUS software
 - `IgSm` corresponds to `ig_sample`
 - `IgRf` corresponds to `ig_ref`
 }
+\examples{
+data <- read_opus(read_extdata("ftir_ps.0"))
+data2 <- read_opus(read_extdata("ftir_ps_interior.1"))
+
+}
 \author{
 Philipp Baumann, Zacharias Steinmetz, Win Cowger
 }
