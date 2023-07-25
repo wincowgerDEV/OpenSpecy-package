@@ -1,4 +1,4 @@
-#' @rdname data_norm
+#' @rdname restrict_range
 #'
 #' @title Range Restriction for spectra
 #'
@@ -23,7 +23,7 @@
 #' with the normalized intensity data.
 #'
 #' @examples
-#' test_noise = as_OpenSpecy(wavenumber = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
+#' test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
 #' restrict_range(test_noise, min_range = 1000, max_range = 2000)
 #' restrict_range(test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
 #' 
