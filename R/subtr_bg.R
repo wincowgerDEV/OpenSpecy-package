@@ -2,7 +2,7 @@
 #'
 #' @description
 #' This baseline correction routine iteratively finds the baseline of a spectrum
-#' using a polynomial fitting.
+#' using a polynomial fitting or accepts a manual baseline.
 #'
 #' @details
 #' This is a translation of Michael Stephen Chen's MATLAB code written for the
@@ -12,6 +12,10 @@
 #' @param degree the degree of the polynomial. Must be less than the number of
 #' unique points when raw is \code{FALSE}. Typically a good fit can be
 #' found with a 8th order polynomial.
+#' @param wavenumber_fit manually specified wavenumbers for the baseline. 
+#' @param intensity_fit manually specified intensity values for the baseline. 
+#' @param type one of "Polynomial" or "Manual" depending on whether you want spectra to be corrected with
+#' a manual baseline or with polynomial baseline fitting.
 #' @param raw if \code{TRUE}, use raw and not orthogonal polynomials.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
