@@ -55,5 +55,6 @@ inst/doc
 
 # ignore old datasets but don't remove
 inst/shiny/
+inst/OpenSpecy-shiny-main/
 #docs
 docs
