@@ -14,6 +14,8 @@
 #' @param object a list object of class \code{OpenSpecy}.
 #' @param p polynomial order for the filter
 #' @param n number of data points in the window, filter length (must be odd).
+#' @param m the derivative order if you want to calculate the derivative. Zero (default) is no derivative.
+#' @param abs whether you want to calculate the absolute value of the resulting output, accepts TRUE or FALSE.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
 #' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}.
@@ -39,6 +41,8 @@
 #' \strong{36}(8), 1627--1639.
 #'
 #' @importFrom magrittr %>%
+#' @importFrom signal filter sgolay
+#' @importFrom data.table .SD
 #' @export
 smooth_intens <- function(object, ...) {
   UseMethod("smooth_intens")
@@ -53,8 +57,6 @@ smooth_intens.default <- function(object, ...) {
 
 #' @rdname smooth_intens
 #'
-#' @importFrom signal filter sgolay
-#' @importFrom data.table .SD
 #' @export
 smooth_intens.OpenSpecy <- function(object, p = 3, n = 11, m = 0, abs = F, make_rel = TRUE,
                                   ...) {
