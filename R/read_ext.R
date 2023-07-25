@@ -118,6 +118,7 @@
 #' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()};
 #'
 #' @importFrom data.table data.table as.data.table fread
+#' @importFrom hyperSpec read.jdx read.spc
 #'
 #' @export
 read_text <- function(file, colnames = NULL, method = "fread",

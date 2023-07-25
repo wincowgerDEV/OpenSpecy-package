@@ -47,7 +47,7 @@
 #' \code{\link[yaml]{write_yaml}()}; \code{\link[yaml]{read_yaml}()};
 #' \code{\link[jsonlite]{write_json}()}; \code{\link[jsonlite]{read_json}()};
 #'
-#' @importFrom yaml write_yaml
+#' @importFrom yaml write_yaml read_yaml
 #' @importFrom jsonlite write_json read_json
 #' @importFrom data.table as.data.table
 #' @import hyperSpec
