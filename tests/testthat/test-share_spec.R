@@ -14,5 +14,13 @@ test_that("share_text() gives expected output", {
   )
 })
 
+test_that("check that data will upload", {
+    skip_on_cran()
+    library(config)
+    conf <- config::get()
+    expect_no_error(share_spec(object = raman_hdpe, file = read_extdata("raman_hdpe.csv"), share = "cloud", s3_key_id = conf$s3_key_id, s3_secret_key = conf$s3_secret_key, s3_region = conf$s3_region, s3_bucket = conf$s3_bucket))
+})
+
+
 # Tidy up
 unlink(tmp, recursive = T)

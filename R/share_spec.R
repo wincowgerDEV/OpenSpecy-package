@@ -6,18 +6,21 @@
 #'
 #' \strong{Please note} that \code{share_spec()} only provides basic sharing
 #' functionality if used interactively. This means that files are only formatted
-#' and saved for sharing but are not send automatically. This only works with
+#' and saved for sharing but are not sent automatically. This only works with
 #' hosted instances of Open Specy.
 #'
-#' @param object a list object of class \code{OpenSpecy}.
-#' @param file file to share (optional).
-#' @param share accepts any local directory to save the spectrum for later
-#' sharing via e-mail to \email{wincowger@@gmail.com};
-#' \code{"system"} (default) uses the Open Specy package directory at
-#' \code{system.file("extdata", package = "OpenSpecy")};
-#' if a correct API token exists, \code{"cloud"} shares the spectrum with the
-#' cloud.
-#' @param \ldots further arguments passed to the submethods.
+#' @param object A list object of class \code{OpenSpecy}.
+#' @param file File to share (optional).
+#' @param share Accepts any local directory to save the spectrum for later
+#' sharing via email to \email{wincowger@gmail.com}; \code{"system"} (default)
+#' uses the Open Specy package directory at \code{system.file("extdata",
+#' package = "OpenSpecy")}; if a correct API token exists, \code{"cloud"}
+#' shares the spectrum with the cloud.
+#' @param s3_key_id AWS S3 access key ID (required if \code{share = "cloud"}).
+#' @param s3_secret_key AWS S3 secret access key (required if \code{share = "cloud"}).
+#' @param s3_region AWS S3 region (required if \code{share = "cloud"}).
+#' @param s3_bucket AWS S3 bucket name (required if \code{share = "cloud"}).
+#' @param ... Further arguments passed to the submethods.
 #'
 #' @return
 #' \code{share_spec()} returns only messages/warnings.
@@ -26,10 +29,12 @@
 #' \dontrun{
 #' data("raman_hdpe")
 #' share_spec(raman_hdpe,
-#'            metadata = c(user_name = "Win Cowger",
-#'                         spectrum_type = "FTIR",
-#'                         spectrum_identity = "PE",
-#'                         license = "CC BY-NC"),
+#'            metadata = list(
+#'              user_name = "Win Cowger",
+#'              spectrum_type = "FTIR",
+#'              spectrum_identity = "PE",
+#'              license = "CC BY-NC"
+#'            ),
 #'            share = tempdir())
 #' }
 #'
@@ -43,6 +48,7 @@
 #' @importFrom magrittr %>%
 #' @importFrom digest digest
 #' @importFrom utils write.csv sessionInfo
+#' @importFrom aws.s3 put_object
 #'
 #' @export
 share_spec <- function(object, ...) {
@@ -59,7 +65,7 @@ share_spec.default <- function(object, ...) {
 #' @rdname share_spec
 #'
 #' @export
-share_spec.OpenSpecy <- function(object, file = NULL, share = "system",
+share_spec.OpenSpecy <- function(object, file = NULL, share = "system", s3_key_id = NULL, s3_secret_key = NULL, s3_region = NULL, s3_bucket = NULL, 
                                  ...) {
   md <- object$metadata
   if (any(!c("user_name", "spectrum_type", "spectrum_identity") %in%
@@ -73,10 +79,14 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system",
     fp <- file.path(system.file("extdata", package = "OpenSpecy"),
                     "user_spectra", md$session_id)
   } else if (share == "cloud") {
-    pkg <- "rdrop2"
-    mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
-    if (length(mpkg)) stop("share = 'cloud' requires package 'rdrop2'",
-                           call. = F)
+      if(any(is.null(s3_key_id), is.null(s3_secret_key), is.null(s3_region), is.null(s3_bucket))){
+          stop("Need all s3 inputs to share with the cloud.")
+      }
+      Sys.setenv(
+          "AWS_ACCESS_KEY_ID" = s3_key_id,
+          "AWS_SECRET_ACCESS_KEY" = s3_secret_key,
+          "AWS_DEFAULT_REGION" = s3_region
+      )
 
     fp <- file.path(tempdir(), md$session_id)
   } else {
@@ -95,7 +105,11 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system",
 
   if (share == "cloud") {
     for (lf in list.files(fp, pattern = md$file_id, full.names = T)) {
-      rdrop2::drop_upload(lf, path = paste0("data/users/", md$session_id), ...)
+        put_object(
+            file = lf,
+            #object = paste0(hashed_data, ".zip"),
+            bucket = s3_bucket
+        ) 
     }
   }
 

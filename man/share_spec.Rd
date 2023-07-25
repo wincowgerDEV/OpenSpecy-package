@@ -10,21 +10,37 @@ share_spec(object, ...)
 
 \method{share_spec}{default}(object, ...)
 
-\method{share_spec}{OpenSpecy}(object, file = NULL, share = "system", ...)
+\method{share_spec}{OpenSpecy}(
+  object,
+  file = NULL,
+  share = "system",
+  s3_key_id = NULL,
+  s3_secret_key = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
+  ...
+)
 }
 \arguments{
-\item{object}{a list object of class \code{OpenSpecy}.}
+\item{object}{A list object of class \code{OpenSpecy}.}
 
-\item{file}{file to share (optional).}
+\item{...}{Further arguments passed to the submethods.}
 
-\item{share}{accepts any local directory to save the spectrum for later
-sharing via e-mail to \email{wincowger@gmail.com};
-\code{"system"} (default) uses the Open Specy package directory at
-\code{system.file("extdata", package = "OpenSpecy")};
-if a correct API token exists, \code{"cloud"} shares the spectrum with the
-cloud.}
+\item{file}{File to share (optional).}
 
-\item{\ldots}{further arguments passed to the submethods.}
+\item{share}{Accepts any local directory to save the spectrum for later
+sharing via email to \email{wincowger@gmail.com}; \code{"system"} (default)
+uses the Open Specy package directory at \code{system.file("extdata",
+package = "OpenSpecy")}; if a correct API token exists, \code{"cloud"}
+shares the spectrum with the cloud.}
+
+\item{s3_key_id}{AWS S3 access key ID (required if \code{share = "cloud"}).}
+
+\item{s3_secret_key}{AWS S3 secret access key (required if \code{share = "cloud"}).}
+
+\item{s3_region}{AWS S3 region (required if \code{share = "cloud"}).}
+
+\item{s3_bucket}{AWS S3 bucket name (required if \code{share = "cloud"}).}
 }
 \value{
 \code{share_spec()} returns only messages/warnings.
@@ -35,17 +51,19 @@ community.
 
 \strong{Please note} that \code{share_spec()} only provides basic sharing
 functionality if used interactively. This means that files are only formatted
-and saved for sharing but are not send automatically. This only works with
+and saved for sharing but are not sent automatically. This only works with
 hosted instances of Open Specy.
 }
 \examples{
 \dontrun{
 data("raman_hdpe")
 share_spec(raman_hdpe,
-           metadata = c(user_name = "Win Cowger",
-                        spectrum_type = "FTIR",
-                        spectrum_identity = "PE",
-                        license = "CC BY-NC"),
+           metadata = list(
+             user_name = "Win Cowger",
+             spectrum_type = "FTIR",
+             spectrum_identity = "PE",
+             license = "CC BY-NC"
+           ),
            share = tempdir())
 }
 

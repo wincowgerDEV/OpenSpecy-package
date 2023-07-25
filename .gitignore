@@ -1,60 +1,46 @@
 # History files
 .Rhistory
 .Rapp.history
-
 # Desktop drive files
 .ini
 delete.bat
-
 # Session Data files
 .RData
-
 # User-specific files
 .Ruserdata
-
 # Example code in package build process
 *-Ex.R
-
 # Output files from R CMD build
 /*.tar.gz
-
 # Output files from R CMD check
 /*.Rcheck/
-
 # RStudio files
 .Rproj.user/
 *.Rproj
-
 # produced PDF vignettes and docs
 vignettes/*.pdf
 inst/doc
 /doc/
 /Meta/
-
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
-
 # knitr and R markdown default cache directories
 *_cache/
 /cache/
-
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
-
 # R Environment Variables
 .Renviron
-
 # pkgdown site
 #docs/
-
 # System files
 *.ini
 *.swp
 .DS_Store
-
 # ignore old datasets but don't remove
 inst/shiny/
 inst/OpenSpecy-shiny-main/
 #docs
 docs
+config.yml
