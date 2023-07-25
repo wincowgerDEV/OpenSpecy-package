@@ -48,7 +48,7 @@
 #' \code{\link[jsonlite]{write_json}()}; \code{\link[jsonlite]{read_json}()};
 #'
 #' @importFrom yaml write_yaml
-#' @importFrom jsonlite write_json
+#' @importFrom jsonlite write_json read_json
 #' @importFrom data.table as.data.table
 #' @import hyperSpec
 #'

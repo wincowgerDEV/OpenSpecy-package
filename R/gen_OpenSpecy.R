@@ -8,7 +8,6 @@
 #' \code{as_OpenSpecy()} creates an OpenSpecy object.
 #' \code{print.OpenSpecy()} prints the contents of an OpenSpecy object.
 #' \code{head.OpenSpecy()} shows the first few lines of an OpenSpecy object.
-#' \code{plot.OpenSpecy()} visualizes spectral data of an OpenSpecy object.
 #' \code{sample.OpenSpecy()} samples spectra from an OpenSpecy object.
 #'
 #' @param x an OpenSpecy object.
@@ -20,7 +19,6 @@
 #' @return
 #' \code{print.OpenSpecy()} returns a textual representation of an OpenSpecy object.
 #' \code{head.OpenSpecy()} returns the first few lines of an OpenSpecy object.
-#' \code{plot.OpenSpecy()} returns a ggplot object representing the spectral data.
 #' \code{sample.OpenSpecy()} returns an OpenSpecy object with a subset of the spectra.
 #'
 #' @examples
@@ -34,14 +32,11 @@
 #' # Displaying the first few lines of the OpenSpecy object
 #' head(sample_OpenSpecy)
 #'
-#' # Plotting the OpenSpecy object
-#' plot.OpenSpecy(sample_OpenSpecy)
 #'
 #' # Sampling the OpenSpecy object
 #' sample_OpenSpecy <- read_any(read_extdata("CA_tiny_map.zip"))
 #' sampled_OpenSpecy <- sample.OpenSpecy(sample_OpenSpecy, size = 5)
 #' print.OpenSpecy(sampled_OpenSpecy)
-#' plot.OpenSpecy(sampled_OpenSpecy)
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger

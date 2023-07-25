@@ -19,7 +19,7 @@ read_spec(file, share = NULL, method = NULL, ...)
 to_hyperSpec(x)
 }
 \arguments{
-\item{x}{For `write_spec()`, a list object of class \code{\link{OpenSpecy}}.}
+\item{x}{An object of class \code{\link{OpenSpecy}}.}
 
 \item{file}{For `read_spec()`, file path to be read from. For `write_spec()`, file path to be written to. If writing, files will be written as the type designated in the file name.}
 

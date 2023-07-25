@@ -1,6 +1,7 @@
 #' @rdname plot_OpenSpecy
-#' Plots for Open Specy objects
+#' @title Plots for Open Specy objects
 #'
+#' @description
 #' These functions generate heatmaps, spectral plots, and interactive plots for OpenSpecy data.
 #'
 #' @param object An OpenSpecy object containing metadata and spectral data.
@@ -18,7 +19,7 @@
 #' @return A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the OpenSpecy object(s).
 #'
 #' @examples
-#' data1 <- read_any("raman_hdpe.json")
+#' data1 <- read_any(read_extdata("raman_hdpe.json"))
 #' data2 <- read_zip("inst/extdata/CA_tiny_map.zip")
 #' plot_OpenSpecy(data1)
 #' plot_OpenSpecy(data1, selected_spectrum = 2)
@@ -26,10 +27,14 @@
 #' heatmap_OpenSpecy(data2, z = data2$metadata$y)
 #' interactive_plot(data1, selected_spectrum = 2)
 #' interactive_plot(data2, selected_spectrum = 2, x2 = data1, selected_spectrum2 = 1)
-#'
-#' @export
 #' @author
-#' Win Cowger, Zacharias Steinmetz
+#' Win Cowger, Zacharias Steinmetz#'
+#' 
+#' @importFrom plotly plot_ly add_trace add_markers subplot layout
+#' @importFrom tidyr pivot_longer
+#' @importFrom dplyr %>% 
+#' 
+#' @export
  heatmap_OpenSpecy <- function(object, 
                                z = NULL, 
                                sn = NULL, 
