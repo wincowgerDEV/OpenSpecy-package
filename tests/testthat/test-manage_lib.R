@@ -13,13 +13,14 @@ test_that("stop if OSF not reachable", {
                        path = tmp))
 })
 
+
+
 test_that("get_lib() downloads test library", {
   skip_on_cran()
   skip_if_offline(host = "api.osf.io")
 
   expect_message(
-    expect_output(get_lib(which = "test", type = c("metadata", "library"),
-                          path = tmp))
+    expect_output(get_lib(types = c("derivative", "nobaseline"), path = tmp))
   )
 })
 

@@ -70,8 +70,7 @@
 #' @importFrom magrittr %>%
 #'
 #' @export
-check_lib <- function(which = c("ftir", "raman"),
-                      types = c("metadata", "library", "peaks"),
+check_lib <- function(types = c("raw", "nobaseline", "derivative"),
                       path = "system",
                       condition = "warning") {
 
@@ -79,7 +78,7 @@ check_lib <- function(which = c("ftir", "raman"),
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  sapply(which, .chkf, types = types, path = lp, condition = condition)
+  sapply(.chkf, types = types, path = lp, condition = condition)
 
   invisible()
 }
@@ -90,8 +89,7 @@ check_lib <- function(which = c("ftir", "raman"),
 #' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
 #'
 #' @export
-get_lib <- function(which = c("ftir", "raman"),
-                    types = c("metadata", "library", "peaks"),
+get_lib <- function(types = c("raw", "nobaseline", "derivative"),
                     path = "system",
                     node = "x7dpz", conflicts = "overwrite", ...) {
   lp <- ifelse(path == "system",
@@ -102,12 +100,10 @@ get_lib <- function(which = c("ftir", "raman"),
     osf_ls_files(pattern = ".rds", n_max = Inf)
 
   message("Fetching Open Specy reference libraries from OSF ...")
-  for (w in which) {
     osf %>% subset(grepl(
-      paste0("^", w, "_(", paste(types, collapse = "|"), ").rds"),
+      paste0("^both_(", paste(types, collapse = "|"), ").rds"),
       osf$name)) %>%
       osf_download(path = lp, conflicts = conflicts, progress = TRUE, ...)
-  }
 
   message("Use 'load_lib()' to load the library")
 }
@@ -138,22 +134,20 @@ load_lib <- function(which = c("ftir", "raman"),
 }
 
 # Auxiliary function for library checks
-.chkf <- function(which, types = c("metadata", "library", "peaks"),
+.chkf <- function(types = c("raw", "nobaseline", "derivative"),
                   path = "system",
                   condition = "warning") {
-  fn <- paste0(which, "_", types, ".rds")
+  fn <- paste0("both_", types, ".rds")
 
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
                path)
 
   chk <- file.path(lp, fn) %>% file.exists()
+  
   names(chk) <- types
-
-  out <- switch (which,
-                 "ftir" = "FTIR",
-                 "raman" = "Raman"
-  )
+  
+  out = paste(types[!chk], collapse = ", ")
 
   if (!all(chk)) do.call(condition, list(out, " library missing or incomplete; ",
                                          "use 'get_lib()' to download a current version",
@@ -161,5 +155,5 @@ load_lib <- function(which = c("ftir", "raman"),
                                                            c("message",
                                                              "packageStartupMessage"),
                                                          "", FALSE)))
-  list(chk, which, out)
+  chk
 }
