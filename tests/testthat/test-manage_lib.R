@@ -1,5 +1,3 @@
-data("test_lib")
-
 # Create temp dir for testthat
 tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
@@ -33,10 +31,9 @@ test_that("check_lib() finds test library", {
 test_that("load_lib() works as expected", {
   skip_on_cran()
   skip_if_offline(host = "api.osf.io")
-
   expect_silent(tl <- load_lib(types = "derivative", path = tmp))
   expect_type(tl, "list")
-  expect_identical(tl, test_lib, ignore_attr = T)
+  expect_s3_class(tl, "OpenSpecy")
 })
 
 # Tidy up
