@@ -14,9 +14,9 @@ test_that("head.OpenSpecy returns the first few lines of the OpenSpecy object", 
 })
 
 # Test: plot.OpenSpecy() should return a ggplot object.
-test_that("plot.OpenSpecy returns a ggplot object", {
-    result <- plot.OpenSpecy(test_data)
-    expect_s3_class(result, "ggplot")
+test_that("plot.OpenSpecy returns a plotly object", {
+    result <- plot_OpenSpecy(test_data)
+    expect_s3_class(result, "plotly")
 })
 
 # Test: sample.OpenSpecy() should return an OpenSpecy object with a subset of the spectra.

@@ -14,11 +14,10 @@
 #' package. \code{read_opus()} is a wrapper around opus_reader
 #' \url{https://github.com/pierreroudier/opusreader}.
 #' Other functions have been adapted various online sources.
-#' All reading functions convert datasets to a threepart list,
+#' All reading functions convert datasets to a three-part list,
 #' one with a vector of the wavenumbers of the spectra,
 #' the second with a \code{data.table} of all spectral intensities ordered as
-#' columns,
-#' the third item is another \code{data.table} with any metadata the user
+#' columns,the third item is another \code{data.table} with any metadata the user
 #' provides or is harvested from the files themselves. Currently metadata
 #' harvesting from jdx and opus files are supported as well as the two
 #' Open Specy write formats yaml and json. There are many unique iterations of
@@ -88,7 +87,7 @@
 #' }
 #'
 #' @param file file to be read from or written to.
-#' @param colnames character vector of \code{length = 2} indicating the colum
+#' @param colnames character vector of \code{length = 2} indicating the column
 #' names for the wavenumber and intensity; if \code{NULL} columns are guessed.
 #' @param method submethod to be used for reading text files; defaults to
 #' \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
