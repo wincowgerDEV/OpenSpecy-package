@@ -7,31 +7,22 @@
 \title{Manage spectral libraries}
 \usage{
 check_lib(
-  which = c("ftir", "raman"),
-  types = c("metadata", "library", "peaks"),
+  types = c("raw", "nobaseline", "derivative"),
   path = "system",
   condition = "warning"
 )
 
 get_lib(
-  which = c("ftir", "raman"),
-  types = c("metadata", "library", "peaks"),
+  types = c("raw", "nobaseline", "derivative"),
   path = "system",
   node = "x7dpz",
   conflicts = "overwrite",
   ...
 )
 
-load_lib(
-  which = c("ftir", "raman"),
-  types = c("metadata", "library", "peaks"),
-  path = "system"
-)
+load_lib(types = c("raw", "nobaseline", "derivative"), path = "system")
 }
 \arguments{
-\item{which}{a character string specifying which library to use,
-\code{"raman"} or \code{"ftir"}.}
-
 \item{types}{library types to check/retrieve; defaults to
 \code{c("metadata", "library", "peaks")}.}
 
@@ -54,6 +45,9 @@ exists at the specified destination. Can be one of the following (see
   \item{"overwrite" (default)}{ replace the existing file with the
   transferred copy.}
 }}
+
+\item{which}{a character string specifying which library to use,
+\code{"raman"} or \code{"ftir"}.}
 
 \item{\ldots}{further arguments passed to \code{\link[osfr]{osf_download}()}.}
 }
