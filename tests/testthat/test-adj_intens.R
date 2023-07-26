@@ -16,3 +16,8 @@ test_that("adj_intens() works as expected", {
                c(0, 1))
 })
 
+test_that("adj_intens() runs without error", {
+  expect_no_error(adj_intens(raman_hdpe, type = "reflectance"))
+  expect_no_error(adj_intens(raman_hdpe, type = "transmittance"))
+  expect_no_error(adj_intens(raman_hdpe))
+})
