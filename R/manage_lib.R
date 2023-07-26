@@ -78,7 +78,7 @@ check_lib <- function(types = c("raw", "nobaseline", "derivative"),
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  sapply(.chkf, types = types, path = lp, condition = condition)
+  .chkf(types = types, path = lp, condition = condition)
 
   invisible()
 }
@@ -111,26 +111,16 @@ get_lib <- function(types = c("raw", "nobaseline", "derivative"),
 #' @rdname manage_lib
 #'
 #' @export
-load_lib <- function(which = c("ftir", "raman"),
-                     types = c("metadata", "library", "peaks"),
+load_lib <- function(types = c("raw", "nobaseline", "derivative"),
                      path = "system") {
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  chk <- lapply(which, .chkf, types = types, path = lp, condition = "stop")
-
-  res <- lapply(chk, function(x) {
-    fls <- file.path(lp, paste0(x[[2L]], "_", names(x[[1L]]), ".rds"))
-
-    rrds <- lapply(fls, readRDS)
-    names(rrds) <- names(x[[1L]])
-
-    rrds
-  })
-
-  names(res) <- which
-  return(res)
+  chk <- .chkf(types = types, path = lp, condition = "stop")
+  fp <- file.path(lp, paste0("both_", types, ".rds"))
+  
+  return(readRDS(fp))
 }
 
 # Auxiliary function for library checks

@@ -28,18 +28,15 @@ test_that("check_lib() finds test library", {
   skip_on_cran()
   skip_if_offline(host = "api.osf.io")
 
-  expect_silent(check_lib(which = "test", type = c("metadata", "library"),
-                          path = tmp))
-  expect_warning(check_lib(which = "test", type = c("peaks"),
-                           path = tmp))
+  expect_silent(check_lib(types = c("derivative", "nobaseline"), path = tmp))
+  expect_warning(check_lib(types = c("raw", "derivative", "nobaseline"), path = tmp))
 })
 
 test_that("load_lib() works as expected", {
   skip_on_cran()
   skip_if_offline(host = "api.osf.io")
 
-  expect_silent(tl <- load_lib(which = "test", type = c("metadata", "library"),
-                               path = tmp))
+  expect_silent(tl <- load_lib(types = "derivative", path = tmp))
   expect_type(tl, "list")
   expect_identical(tl, test_lib, ignore_attr = T)
 })
