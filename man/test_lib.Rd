@@ -5,22 +5,16 @@
 \alias{test_lib}
 \title{Test reference library}
 \format{
-A list named \code{"test"} with two elements:
-
-\tabular{ll}{
-\code{metadata}: \tab metadata of 34 Raman spectra \cr
-\code{library}: \tab all reference spectra, \code{sample_name} serves as
-identifier \cr
-}
+An OpenSpecy object. sample_name is the class of the spectra.
 }
 \description{
-Reference library of 34 Raman spectra used for internal testing.
+Reference library of 436 FTIR spectra used for internal testing.
 }
 \examples{
 data("test_lib")
 
 }
 \author{
-Jennifer Lynch
+Win Cowger
 }
 \keyword{data}
