@@ -23,7 +23,7 @@ An Open Specy object appended metadata about the particles or collapsed for the 
 Functions for analyzing particles in spectral map oriented OpenSpecy object.
 }
 \details{
-`characterize_particles()` accepts an OpenSpecy object and a logical or character vector desribing which pixels correspond to particles.
+`characterize_particles()` accepts an OpenSpecy object and a logical or character vector describing which pixels correspond to particles.
 `collapse_spectra()` takes an OpenSpecy object with particle-specific metadata
 (from `characterize_particles()`) and collapses the spectra to median intensities for each unique particle.
 It also updates the metadata with centroid coordinates, while preserving the particle information on area and Feret max.

@@ -30,8 +30,6 @@
 #'
 #' @importFrom magrittr %>%
 #' @importFrom data.table data.table as.data.table fread rbindlist
-#' @export
-#' @rdname c_spec
 #'
 #' @export
 c_spec <- function(objects, wavenumber_transform = NULL, res = 5){

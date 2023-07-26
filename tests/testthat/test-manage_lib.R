@@ -13,8 +13,6 @@ test_that("stop if OSF not reachable", {
                        path = tmp))
 })
 
-
-
 test_that("get_lib() downloads test library", {
   skip_on_cran()
   skip_if_offline(host = "api.osf.io")
