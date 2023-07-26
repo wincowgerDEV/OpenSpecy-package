@@ -71,7 +71,7 @@ test_that("OpenSpecy objects are read correctly", {
 
 test_that("OpenSpecy objects are transcribed to and from hyperSpec objects", {
     os <- as_OpenSpecy(df)
-    hyperOpenSpecy <- to_hyperspec(os)
+    hyperOpenSpecy <- to_hyperSpec(os)
     expect_true(is(hyperOpenSpecy, "hyperSpec"))
     OpenHyper <- as_OpenSpecy(hyperOpenSpecy)
     expect_true(is_OpenSpecy(OpenHyper))
