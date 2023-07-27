@@ -85,23 +85,23 @@
  #'
  #' @export
  plot_OpenSpecy <- function(x, selected_spectrum = 1, x2 = NULL, selected_spectrum2 = 1) {
-     dt <- cbind(wavenumber = x$wavenumber, intensity = x$spectra[, ..selected_spectrum]) |>
+     dt <- cbind(wavenumber = x$wavenumber, x$spectra[, ..selected_spectrum]) |>
          pivot_longer(cols = -wavenumber, names_to = "id", values_to = "intensity")
      
-     p <- plot_ly(dt, x = ~wavenumber, y = ~make_rel(intensity), color = ~id, type = "scatter", mode = "lines") %>%
+     p <- plot_ly(dt, x = ~wavenumber, y = ~make_rel(intensity, na.rm = T), color = ~id, type = "scatter", mode = "lines") %>%
          layout(xaxis = list(title = "Wavenumber", autorange = "reversed"), 
                 yaxis = list(title = "Intensity"),
                 showlegend = FALSE)
      
      if (!is.null(x2)) {
-         dt2 <- cbind(wavenumber = x2$wavenumber, intensity = x2$spectra[, ..selected_spectrum2]) |>
+         dt2 <- cbind(wavenumber = x2$wavenumber, x2$spectra[, ..selected_spectrum2]) |>
              pivot_longer(cols = -wavenumber, names_to = "id", values_to = "intensity")
          
          p <- p %>% 
              add_trace(
                  data = dt2, 
                  x = ~wavenumber, 
-                 y = ~make_rel(intensity), 
+                 y = ~make_rel(intensity, na.rm = T), 
                  color = ~id, 
                  type = "scatter", 
                  mode = "lines",
