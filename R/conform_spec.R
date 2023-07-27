@@ -47,7 +47,7 @@ conform_spec.OpenSpecy <- function(x, new_wavenumbers, res = 5) {
   if(length(new_wavenumbers) <= 1){
       stop("Wavenumber conformation requires at least two values in new_wavenumbers")
   }
-  wn <- conform_res(new_wavenumbers, res = res)
+  wn <- conform_res(x = new_wavenumbers[new_wavenumbers <= max(x$wavenumber) & new_wavenumbers >= min(x$wavenumber)], res = res)
 
   spec <- x$spectra[, lapply(.SD, .conform_intens,
                              x = x$wavenumber,
