@@ -3,13 +3,18 @@
 #' Process spectra data by applying various preprocessing steps. This is a monolithic function for all common preprocessing steps in one place.
 #'
 #' @param object An OpenSpecy object containing metadata and spectral data.
-#' @param active_preprocessing Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.
+#' @param active_processing Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.
+#' @param adj_intensity_decision A Logical describing whether to adjust the intensity units. 
+#' @param type Type of intensity adjustment to use. Can be one of "none", "transmittance", or "reflectance".
+#' @param conform_decision Whether to conform the spectra to a new wavenumber range and resolution.
+#' @param new_wavenumbers A new range to conform to, will use the min and max of all values. 
+#' @param res The resoltion for the conforming the spectra. 
 #' @param range_decision Logical value indicating whether to restrict the wavenumber range of the spectra.
 #' @param min_range Numeric value specifying the minimum wavenumber for range restriction.
 #' @param max_range Numeric value specifying the maximum wavenumber for range restriction.
-#' @param carbon_dioxide_decision Logical value indicating whether to flatten the range around the carbon dioxide region.
-#' @param carbon_dioxide_min Numeric value specifying the minimum wavenumber for the carbon dioxide region.
-#' @param carbon_dioxide_max Numeric value specifying the maximum wavenumber for the carbon dioxide region.
+#' @param flatten_decision Logical value indicating whether to flatten the range around the carbon dioxide region.
+#' @param flatten_min Numeric value specifying the minimum wavenumber for the carbon dioxide region.
+#' @param flatten_max Numeric value specifying the maximum wavenumber for the carbon dioxide region.
 #' @param smooth_decision Logical value indicating whether to apply a smoothing filter to the spectra.
 #' @param smooth_polynomial Integer value specifying the polynomial order for smoothing.
 #' @param smooth_window Integer value specifying the window size for smoothing.
@@ -33,7 +38,7 @@
 #' data <- read_any(read_extdata("CA_tiny_map.zip"))
 #' # Process spectra with range restriction and baseline subtraction
 #' processed_data <- process_spectra(data, 
-#'                                   active_preprocessing = TRUE,
+#'                                   active_processing = TRUE,
 #'                                   range_decision = TRUE, 
 #'                                   min_range = 500, 
 #'                                   max_range = 3000, 
@@ -55,13 +60,18 @@
 #'
 #' @export
 process_spectra <- function(object, 
-                            active_preprocessing = T, 
+                            active_processing = T, 
+                            adj_intensity_decision = F, 
+                            type = "none",
+                            conform_decision = T, 
+                            new_wavenumbers = NULL, 
+                            res = 5,
                             range_decision = F, 
                             min_range = 0, 
                             max_range = 6000, 
-                            carbon_dioxide_decision = F,
-                            carbon_dioxide_min = 2200,
-                            carbon_dioxide_max = 2420,
+                            flatten_decision = F,
+                            flatten_min = 2200,
+                            flatten_max = 2420,
                             smooth_decision = F, 
                             smooth_polynomial = 3, 
                             smooth_window = 11,
@@ -76,22 +86,28 @@ process_spectra <- function(object,
                             derivative_polynomial = 3,
                             abs = T,
                             derivative_window = 11){
-    if(active_preprocessing){
+    if(active_processing){
         object %>% 
-            {if(range_decision) restrict_range.OpenSpecy(., 
+            {if(adj_intensity_decision) adj_intens(., 
+                                                   type = type,
+                                                   make_rel = F) else .} %>%
+            {if(conform_decision) conform_spec(., 
+                                               new_wavenumbers = new_wavenumbers,
+                                               res = res) else .} %>%
+            {if(range_decision) restrict_range(., 
                                                          min_range = min_range, 
                                                          max_range = max_range, 
                                                          make_rel = F) else . } %>%
-            {if(baseline_decision) subtr_bg.OpenSpecy(., 
+            {if(baseline_decision) subtr_bg(., 
                                                       degree = baseline_polynomial, 
                                                       wavenumber_fit = wavenumber_fit, 
                                                       intensity_fit = intensity_fit,
                                                       raw = raw_baseline, 
                                                       make_rel = F,
                                                       type = baseline_selection) else . } %>%
-            {if(carbon_dioxide_decision) flatten_range.OpenSpecy(., 
-                                                                 min_range = 2200,
-                                                                 max_range = 2420,
+            {if(flatten_decision) flatten_range(., 
+                                                                 min_range = flatten_min,
+                                                                 max_range = flatten_max,
                                                                  make_rel = F) else .} %>%
             {if(smooth_decision) smooth_intens(., 
                                                          p = smooth_polynomial,

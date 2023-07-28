@@ -6,13 +6,18 @@
 \usage{
 process_spectra(
   object,
-  active_preprocessing = T,
+  active_processing = T,
+  adj_intensity_decision = F,
+  type = "none",
+  conform_decision = T,
+  new_wavenumbers = c(100, 4000),
+  res = 5,
   range_decision = F,
   min_range = 0,
   max_range = 6000,
-  carbon_dioxide_decision = F,
-  carbon_dioxide_min = 2200,
-  carbon_dioxide_max = 2420,
+  flatten_decision = F,
+  flatten_min = 2200,
+  flatten_max = 2420,
   smooth_decision = F,
   smooth_polynomial = 3,
   smooth_window = 11,
@@ -32,7 +37,17 @@ process_spectra(
 \arguments{
 \item{object}{An OpenSpecy object containing metadata and spectral data.}
 
-\item{active_preprocessing}{Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.}
+\item{active_processing}{Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.}
+
+\item{adj_intensity_decision}{A Logical describing whether to adjust the intensity units.}
+
+\item{type}{Type of intensity adjustment to use. Can be one of "none", "transmittance", or "reflectance".}
+
+\item{conform_decision}{Whether to conform the spectra to a new wavenumber range and resolution.}
+
+\item{new_wavenumbers}{A new range to conform to, will use the min and max of all values.}
+
+\item{res}{The resoltion for the conforming the spectra.}
 
 \item{range_decision}{Logical value indicating whether to restrict the wavenumber range of the spectra.}
 
@@ -40,11 +55,11 @@ process_spectra(
 
 \item{max_range}{Numeric value specifying the maximum wavenumber for range restriction.}
 
-\item{carbon_dioxide_decision}{Logical value indicating whether to flatten the range around the carbon dioxide region.}
+\item{flatten_decision}{Logical value indicating whether to flatten the range around the carbon dioxide region.}
 
-\item{carbon_dioxide_min}{Numeric value specifying the minimum wavenumber for the carbon dioxide region.}
+\item{flatten_min}{Numeric value specifying the minimum wavenumber for the carbon dioxide region.}
 
-\item{carbon_dioxide_max}{Numeric value specifying the maximum wavenumber for the carbon dioxide region.}
+\item{flatten_max}{Numeric value specifying the maximum wavenumber for the carbon dioxide region.}
 
 \item{smooth_decision}{Logical value indicating whether to apply a smoothing filter to the spectra.}
 
