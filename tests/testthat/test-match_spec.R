@@ -9,19 +9,18 @@ test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_clas
 
 # Write the tests for correlate_spectra function
 test_that("correlate_spectra returns a data.table with correct columns", {
-    matches <- correlate_spectra(unknown, test_lib, top_n = 10, add_library_metadata = "sample_name")
-    expect_s3_class(matches, "data.table")
-    expect_true(all(c("object_id", "library_id", "match_val") %in% colnames(matches)))
-})
-
-test_that("correlate_spectra returns correct number of matches with top_n", {
-    matches <- correlate_spectra(unknown, test_lib, top_n = 5)
-    expect_equal(nrow(matches), 5)
-})
-
-test_that("correlate_spectra returns all matches if top_n is larger than library", {
-    matches <- correlate_spectra(unknown, test_lib, top_n = 1000)
-    expect_equal(nrow(matches), ncol(test_lib$spectra))
+    matches <- correlate_spectra(object = unknown,library =  test_lib)
+    expect_true(inherits(matches, "matrix"))
+    expect_identical(dim(matches), c(ncol(test_lib$spectra), ncol(unknown$spectra))) 
+    top_matches <- max_cor_named(cor_matrix = matches, library = test_lib, na.rm = T)
+    expect_true(length(top_matches) == 1)
+    expect_true(ncol(filter_spec(test_lib, logic = names(top_matches))$spectra) == 1)
+    test_lib$metadata$test <- NA
+    test_metadata <- get_metadata(object = test_lib, logic = names(top_matches), remove_empty = T)
+    expect_true(nrow(test_metadata) == 1)
+    expect_true(!"test" %in% names(test_metadata))
+    full_test <- identify_spectra(cor_matrix = matches, object = unknown, library = test_lib, top_n = 5, add_library_metadata = "sample_name")
+    expect_true(nrow(full_test) == 5)
 })
 
 # Write the tests for filter_spec function

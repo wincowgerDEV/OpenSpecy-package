@@ -2,19 +2,14 @@
 % Please edit documentation in R/match_spec.R
 \name{correlate_spectra}
 \alias{correlate_spectra}
-\alias{filter_spec}
 \title{Identify and filter spectra}
 \usage{
 correlate_spectra(object, ...)
-
-filter_spec(object, logic)
 }
 \arguments{
 \item{object}{An OpenSpecy object, typically with unknowns.}
 
 \item{...}{Additional arguments passed to the \code{cor()} function for correlation calculation.}
-
-\item{logic}{a logical vector describing which spectra to keep (TRUE).}
 
 \item{library}{An OpenSpecy object representing the library of spectra to correlate with.}
 
@@ -22,9 +17,15 @@ filter_spec(object, logic)
 
 \item{top_n}{Integer value specifying the number of top matches to return. If NULL (default), all matches will be returned.}
 
+\item{cor_matrix}{A correlation matrix for object and library, can be returned by \code{correlate_spectra()}}
+
 \item{add_library_metadata}{Name of the column in the library metadata containing the column names or NULL if you don't want to join.}
 
 \item{add_object_metadata}{Name of the column in the object metadata containing the column names or NULL if you don't want to join.}
+
+\item{remove_empty}{Whether to remove empty columns in the metadata where there are no values.}
+
+\item{logic}{a logical or numeric vector describing which spectra to keep (TRUE).}
 }
 \value{
 A data table containing correlations between spectra and the library.

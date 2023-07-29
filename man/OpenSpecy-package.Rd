@@ -57,7 +57,7 @@ Useful links:
 
 Authors:
 \itemize{
-  \item Zacharias Steinmetz \email{steinmetz-z@uni-landau.de} (\href{https://orcid.org/0000-0001-6675-5033}{ORCID})
+  \item Zacharias Steinmetz \email{z.steinmetz@rptu.de} (\href{https://orcid.org/0000-0001-6675-5033}{ORCID})
 }
 
 Other contributors:

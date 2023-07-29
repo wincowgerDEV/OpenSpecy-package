@@ -10,7 +10,7 @@ process_spectra(
   adj_intensity_decision = F,
   type = "none",
   conform_decision = T,
-  new_wavenumbers = c(100, 4000),
+  new_wavenumbers = NULL,
   res = 5,
   range_decision = F,
   min_range = 0,
@@ -100,7 +100,7 @@ Process spectra data by applying various preprocessing steps. This is a monolith
 data <- read_any(read_extdata("CA_tiny_map.zip"))
 # Process spectra with range restriction and baseline subtraction
 processed_data <- process_spectra(data, 
-                                  active_preprocessing = TRUE,
+                                  active_processing = TRUE,
                                   range_decision = TRUE, 
                                   min_range = 500, 
                                   max_range = 3000, 
