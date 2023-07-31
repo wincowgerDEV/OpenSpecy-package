@@ -19,8 +19,19 @@
  signal_noise <- function(object, return = "signal_over_noise", na.rm = TRUE){
      
      vapply(object$spectra, function(intensity){
-         signal = mean(intensity, na.rm = na.rm)
-         noise = sd(intensity, na.rm = na.rm)
+         if(length(intensity[!is.na(intensity)]) < 20){
+             stop("Need at least 20 intensity values to calculate the signal or noise values accurately.")
+         }
+         if(return == "run_signal_over_noise"){
+         max  = runMax(intensity[!is.na(intensity)], n = 20)
+         max[(length(max) - 19):length(max)] <- NA
+         signal = max(max, na.rm = T)#/mean(x, na.rm = T)
+         noise = median(max[max != 0], na.rm = T)
+         }
+         else{
+             signal = mean(intensity, na.rm = na.rm)
+             noise = sd(intensity, na.rm = na.rm)     
+         }
          if(return == "signal"){
              return(signal)
          }
@@ -30,11 +41,11 @@
          if(return == "signal_times_noise"){
              return(abs(signal*noise))
          }
-         if(return == "signal_over_noise"){
+         if(return %in% c("signal_over_noise", "run_signal_over_noise")){
              return(abs(signal/noise))
          }
          if(return == "total_signal"){
-             signal*length(intensity)
+             return(sum(exp(intensity)))
          }
     }, FUN.VALUE = numeric(1))}
 
