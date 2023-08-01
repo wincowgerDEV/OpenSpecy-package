@@ -120,15 +120,15 @@ is_empty_vector <- function(v) {
 }
 
 #' @export
-max_cor_named <- function(cor_matrix, library, na.rm = T) {
+max_cor_named <- function(cor_matrix, na.rm = T) {
     # Find the indices of maximum correlations
     max_cor_indices <- apply(cor_matrix, 2, function(x) which.max(x))
     
     # Use indices to get max correlation values
-    max_cor_values <- sapply(max_cor_indices, function(idx) round(cor_matrix[idx], 2))
+    max_cor_values <- vapply(1:length(max_cor_indices), function(idx) cor_matrix[max_cor_indices[idx],idx], FUN.VALUE = numeric(1))
     
     # Use indices to get the corresponding names
-    names(max_cor_values) <- colnames(library$spectra)[max_cor_indices]
+    names(max_cor_values) <- rownames(cor_matrix)[max_cor_indices]
     
     return(max_cor_values)
 }
