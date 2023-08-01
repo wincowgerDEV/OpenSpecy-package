@@ -25,5 +25,4 @@ signal_noise(raman_hdpe, return = "signal")
 signal_noise(raman_hdpe, return = "noise")
 signal_noise(raman_hdpe, return = "signal_times_noise")
 
-
 }

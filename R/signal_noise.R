@@ -14,6 +14,7 @@
 #' signal_noise(raman_hdpe, return = "noise")
 #' signal_noise(raman_hdpe, return = "signal_times_noise")
 #'
+#' @importFrom TTR runMax
 #'
 #' @export
  signal_noise <- function(object, return = "signal_over_noise", na.rm = TRUE){

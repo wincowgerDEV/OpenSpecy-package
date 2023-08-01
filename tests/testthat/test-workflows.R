@@ -10,7 +10,14 @@ test_that("Zip folder Raman batch analysis", {
     plot_OpenSpecy(batch2)
     expect_silent(batch3 <- process_spectra(batch2, baseline_decision = T, derivative_decision = F))
     plot_OpenSpecy(x = batch3, x2 = batch)
-    expect_silent(matches <- correlate_spectra(batch3, library = lib))\
+    expect_silent(matches <- correlate_spectra(batch3, library = lib))
     expect_silent(test_max_cor <- max_cor_named(matches))
-
+    expect_silent(test_sn <- signal_noise(batch3, return = "run_signal_over_noise"))
+    
+    heatmap_OpenSpecy(object = batch3, 
+                      sn = test_sn, 
+                      cor = test_max_cor, 
+                      min_sn = 4,
+                      min_cor = 0.7,
+                      selected_spectrum = 1)
 })

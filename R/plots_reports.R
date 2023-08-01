@@ -102,7 +102,18 @@ heatmap_OpenSpecy <- function(object,
         stop("No data object provided")
     }
     
-    plot_z <- z # default
+    if(!is.null(z)){
+        plot_z <- z # default
+    }
+    else if(!is.null(cor)){
+        plot_z <- cor
+    }
+    else if(!is.null(sn)){
+        plot_z <- sn
+    }
+    else{
+        stop("z, cor, or sn need to be specified to plot the z axis.")
+    }
     if (!is.null(sn) && !is.null(min_sn)) {
         plot_z <- ifelse(sn > min_sn, plot_z, NA)
     }
