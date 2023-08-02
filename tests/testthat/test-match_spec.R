@@ -12,7 +12,7 @@ test_that("correlate_spectra returns a data.table with correct columns", {
     matches <- correlate_spectra(object = unknown,library =  test_lib)
     expect_true(inherits(matches, "matrix"))
     expect_identical(dim(matches), c(ncol(test_lib$spectra), ncol(unknown$spectra))) 
-    top_matches <- max_cor_named(cor_matrix = matches, library = test_lib, na.rm = T)
+    top_matches <- max_cor_named(cor_matrix = matches, na.rm = T)
     expect_true(length(top_matches) == 1)
     expect_true(ncol(filter_spec(test_lib, logic = names(top_matches))$spectra) == 1)
     test_lib$metadata$test <- NA

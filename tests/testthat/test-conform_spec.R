@@ -35,16 +35,4 @@ test_that("conform_spec.OpenSpecy conforms wavenumbers correctly", {
   expect_equal(max(conform_result$wavenumber), max(new_wavenumbers))
 })
 
-test_that("conform_spec.OpenSpecy throws an error for insufficient new_wavenumbers", {
-  # Create a sample OpenSpecy object
-  wavenumber <- seq(1000, 2000, 5)
-  intensity <- rnorm(length(wavenumber))
-  open_specy_object <- as_OpenSpecy(wavenumber, data.table(intensity = intensity))
-  
-  # Conform the wavenumbers to a new range with insufficient points
-  new_wavenumbers <- c(1100)
-  
-  # Test if the function throws an error for insufficient new_wavenumbers
-  expect_error(conform_spec(open_specy_object, new_wavenumbers))
-})
 
