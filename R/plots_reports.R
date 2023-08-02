@@ -121,21 +121,21 @@ heatmap_OpenSpecy <- function(object,
         plot_z <- ifelse(cor > min_cor, plot_z, NA)
     }
     
-    colorscale <- if (!is.null(cor)) {
-        hcl.colors(n = sum(sn > min_sn & cor > min_cor), palette = "viridis")
-    } else {
-        heat.colors(n = sum(sn > min_sn))
-    }
+    #colorscale <- if (!is.null(cor)) {
+    #    hcl.colors(n = sum(sn > min_sn & cor > min_cor), palette = "viridis")
+    #} else {
+    #    heat.colors(n = sum(sn > min_sn))
+    #}
     
     p <- plot_ly(...) %>%
         add_trace(
             x = object$metadata$x,
             y = object$metadata$y,
             z = plot_z,
+            colorscale='Viridis',
             type = "heatmap",
             hoverinfo = 'text',
             showscale = F,
-            colors = colorscale,
             text = ~paste(
                 "row: ", 1:nrow(object$metadata),
                 "<br>x: ", object$metadata$x,", y: ", object$metadata$y, ", z: ", plot_z,
@@ -155,6 +155,7 @@ heatmap_OpenSpecy <- function(object,
     
     if(!is.null(selected_spectrum)){
         p <-  p %>% add_markers(
+            name = "Selected Spectrum",
             x = object$metadata$x[selected_spectrum],
             y = object$metadata$y[selected_spectrum])
     }

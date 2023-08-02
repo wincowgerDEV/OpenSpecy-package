@@ -19,5 +19,6 @@ test_that("Zip folder Raman batch analysis", {
                       cor = test_max_cor, 
                       min_sn = 4,
                       min_cor = 0.7,
-                      selected_spectrum = 1)
+                      selected_spectrum = 1,
+                      source = "heatplot")
 })
