@@ -36,7 +36,7 @@ split.line <- function(x, separator, trim.blank = TRUE) {
 # Helper functions (ENVI-specific) -------------------------------------------
 
 # guesses ENVI header file name
-.find_ENVI_header <- function(file, headerfilename) {
+.find_envi_header <- function(file, headerfilename) {
   if (is.null(headerfilename)) {
     headerfilename <- paste(dirname(file),
       sub("[.][^.]+$", ".*", basename(file)),
@@ -51,7 +51,7 @@ split.line <- function(x, separator, trim.blank = TRUE) {
       headerfilename <- headerfilename[grepl("[.][hH][dD][rR]$", headerfilename)]
 
       if (length(headerfilename == 1L)) {
-        message(".find_ENVI_header: Guessing header file name ", headerfilename)
+        message(".find_envi_header: Guessing header file name ", headerfilename)
       }
     }
 
@@ -191,9 +191,7 @@ split.line <- function(x, separator, trim.blank = TRUE) {
       bil = header$samples * header$bands * block.lines.skip,
       bip = header$bands * header$samples * block.lines.skip,
       bsq = stop(
-        "skipping of band sequential (BSQ) ENVI files not yet supported. ",
-        "Please contact the maintainer (",
-        maintainer(pkg = "hyperSpec"), ")."
+        "skipping of band sequential (BSQ) ENVI files not yet supported."
       ),
       stop(
         "Unknown interleave (", header$interleave, ") - should be one of ",
@@ -392,7 +390,7 @@ read_envi <- function(file = stop("read_envi: file name needed"),
   }
 
   if (is.null(headerfile)) {
-    headerfile <- .find_ENVI_header(file, headerfile)
+    headerfile <- .find_envi_header(file, headerfile)
   }
 
   tmp <- readLines(headerfile)

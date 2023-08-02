@@ -27,7 +27,7 @@ read_envi_nic <- function(file = stop("read_envi: file name needed"),
                               x = NA, y = NA,
                               nicolet.correction = FALSE) {
   # the additional keywords to interpret must be read from headerfile
-  headerfile <- .find_ENVI_header(file, headerfile)
+  headerfile <- .find_envi_header(file, headerfile)
   keys <- readLines(headerfile)
   keys <- .read_envi_split_header(keys)
   keys <- keys[c("description", "z plot titles", "pixel size")]
