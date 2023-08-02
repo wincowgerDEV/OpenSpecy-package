@@ -161,17 +161,40 @@ heatmap_OpenSpecy <- function(object,
     }
     return(p)
 }
-
- 
- #' @rdname plot_OpenSpecy
- #'
- #' @export
- interactive_plot <- function(x, selected_spectrum, x2, selected_spectrum2){
-     heat_map <- heatmap_OpenSpecy(x, z = x$metadata$y, selected_spectrum = selected_spectrum)
-     spectra_plot <- plot_OpenSpecy(x, selected_spectrum, x2, selected_spectrum2)
-     
-     # Add margin to heatmap for separation
-     heat_map <- heat_map %>% layout(autosize = T, margin = list(b = 100))
-     
-     subplot(heat_map, spectra_plot, nrows = 2, heights = c(0.6, 0.4), margin = 0.1)
- }
+#' @rdname plot_OpenSpecy
+#'
+#' @export
+interactive_plot <- function(x, selected_spectrum, x2 = NULL, selected_spectrum2 = NULL) {
+  # Generate the heatmap
+  heat_map <- heatmap_OpenSpecy(x, z = x$metadata$y, selected_spectrum = selected_spectrum)
+  
+  # Generate the spectral plot
+  spectra_plot <- plot_OpenSpecy(x, x2 = x2, selected_spectrum = selected_spectrum, selected_spectrum2 = selected_spectrum2)
+  
+  # Extract intensity and wavenumber for the selected spectrum
+  selected_spectrum_points <- x$metadata %>% filter(row_number() == selected_spectrum)
+  selected_spectrum_intensity <- selected_spectrum_points$intensity
+  selected_spectrum_wavenumber <- x$wavenumber
+  
+  # Add trace for the selected spectrum in the spectral plot
+  selected_spectrum_trace <- list(
+    type = "scatter",
+    mode = "lines",
+    x = selected_spectrum_wavenumber,
+    y = selected_spectrum_intensity,
+    line = list(color = 'red'),  # Set the line color to red
+    name = "Selected Spectrum"
+  )
+  
+  # Update the spectral plot data with the selected spectrum trace
+  spectra_plot$data <- c(spectra_plot$data, selected_spectrum_trace)
+  
+  # Add margin to heatmap for separation
+  heat_map <- heat_map %>% layout(autosize = TRUE, margin = list(b = 100))
+  
+  # Combine both plots using subplot
+  plot_grid <- subplot(heat_map, spectra_plot, nrows = 2, heights = c(0.6, 0.4), margin = 0.1)
+  
+  # Show the interactive plot
+  return(plot_grid)
+}
