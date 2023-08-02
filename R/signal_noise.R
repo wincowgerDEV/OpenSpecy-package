@@ -46,6 +46,9 @@
              return(abs(signal/noise))
          }
          if(return == "total_signal"){
+           return(sum(intensity))
+         }
+         if(return == "log_total_signal"){
              return(sum(exp(intensity)))
          }
     }, FUN.VALUE = numeric(1))}
