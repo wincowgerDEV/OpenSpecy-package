@@ -22,7 +22,7 @@ Wrapper functions for reading files in batch.
 }
 \details{
 \code{read_any()} provides a single function to quickly read
-in any of the supported formats, it assumes that the file 
+in any of the supported formats, it assumes that the file
 extension will tell it how to process the spectra.
 \code{read_zip()} provides functionality for reading in
 spectral map files with ENVI file format or as individual files

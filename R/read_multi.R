@@ -3,11 +3,11 @@
 #' @title Read spectral data from multiple files
 #'
 #' @description
-#' Wrapper functions for reading files in batch. 
+#' Wrapper functions for reading files in batch.
 #'
 #' @details
 #' \code{read_any()} provides a single function to quickly read
-#' in any of the supported formats, it assumes that the file 
+#' in any of the supported formats, it assumes that the file
 #' extension will tell it how to process the spectra.
 #' \code{read_zip()} provides functionality for reading in
 #' spectral map files with ENVI file format or as individual files
@@ -31,7 +31,7 @@
 #'
 #' @seealso
 #' \code{\link{read_spec}()}
-#' 
+#'
 #' @export
 read_any <- function(file, ...) {
   if (grepl("(\\.csv$)|(\\.txt$)", ignore.case = T, file)) {
@@ -54,7 +54,6 @@ read_any <- function(file, ...) {
 #' @rdname read_multi
 #'
 #' @importFrom utils unzip
-#' @importFrom hySpc.read.ENVI read_ENVI_Nicolet
 #' @importFrom data.table transpose
 #' @export
 read_zip <- function(file, ...) {
@@ -69,8 +68,8 @@ read_zip <- function(file, ...) {
       any(grepl("\\.hdr$", ignore.case = T, flst$Name))) {
     dat <- flst$Name[grepl("\\.dat$", ignore.case = T, flst$Name)]
     hdr <- flst$Name[grepl("\\.hdr$", ignore.case = T, flst$Name)]
-    hs_envi <- read_ENVI_Nicolet(file = file.path(tmp, dat),
-                                 headerfile = file.path(tmp, hdr), ...)
+    hs_envi <- read_envi_nic(file = file.path(tmp, dat),
+                             headerfile = file.path(tmp, hdr), ...)
 
     os <- as_OpenSpecy(x = hs_envi@wavelength,
                        spectra = as.data.table(hs_envi@data$spc) |> transpose(),
