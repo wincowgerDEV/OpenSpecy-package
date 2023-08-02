@@ -34,7 +34,7 @@
 #' @export
 run_app <- function(path = "system", log = TRUE, ref = "main", ...) {
   pkg <- c("config", "shinyjs", "shinythemes", "shinyBS", "shinyWidgets",
-           "plotly", "data.table", "DT", "curl", "rdrop2", "mongolite",
+           "plotly", "data.table", "DT", "curl", "aws.s3", "mongolite",
            "loggit")
   mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
 

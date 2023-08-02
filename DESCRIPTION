@@ -73,7 +73,7 @@ Suggests:
     plotly,
     DT,
     curl,
-    rdrop2, 
+    aws.s3, 
     mongolite,
     loggit
 RoxygenNote: 7.2.3

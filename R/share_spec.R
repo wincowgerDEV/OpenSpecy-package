@@ -48,7 +48,6 @@
 #' @importFrom magrittr %>%
 #' @importFrom digest digest
 #' @importFrom utils write.csv sessionInfo
-#' @importFrom aws.s3 put_object
 #'
 #' @export
 share_spec <- function(object, ...) {
@@ -65,7 +64,7 @@ share_spec.default <- function(object, ...) {
 #' @rdname share_spec
 #'
 #' @export
-share_spec.OpenSpecy <- function(object, file = NULL, share = "system", s3_key_id = NULL, s3_secret_key = NULL, s3_region = NULL, s3_bucket = NULL, 
+share_spec.OpenSpecy <- function(object, file = NULL, share = "system", s3_key_id = NULL, s3_secret_key = NULL, s3_region = NULL, s3_bucket = NULL,
                                  ...) {
   md <- object$metadata
   if (any(!c("user_name", "spectrum_type", "spectrum_identity") %in%
@@ -79,7 +78,10 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system", s3_key_i
     fp <- file.path(system.file("extdata", package = "OpenSpecy"),
                     "user_spectra", md$session_id)
   } else if (share == "cloud") {
-      if(any(is.null(s3_key_id), is.null(s3_secret_key), is.null(s3_region), is.null(s3_bucket))){
+    pkg <- "aws.s3"
+    mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
+    if (length(mpkg)) stop("share = 'cloud' requires package 'aws.s3'")
+      if(any(is.null(s3_key_id), is.null(s3_secret_key), is.null(s3_region), is.null(s3_bucket))) {
           stop("Need all s3 inputs to share with the cloud.")
       }
       Sys.setenv(
@@ -105,11 +107,11 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system", s3_key_i
 
   if (share == "cloud") {
     for (lf in list.files(fp, pattern = md$file_id, full.names = T)) {
-        put_object(
+      aws.s3::put_object(
             file = lf,
             #object = paste0(hashed_data, ".zip"),
             bucket = s3_bucket
-        ) 
+        )
     }
   }
 
