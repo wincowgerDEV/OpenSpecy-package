@@ -58,6 +58,7 @@ Useful links:
 Authors:
 \itemize{
   \item Zacharias Steinmetz \email{z.steinmetz@rptu.de} (\href{https://orcid.org/0000-0001-6675-5033}{ORCID})
+  \item Nick Leong (\href{https://orcid.org/0009-0008-3313-4132}{ORCID})
 }
 
 Other contributors:

@@ -2,13 +2,15 @@ Package: OpenSpecy
 Type: Package
 Title: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 Version: 1.0.0
-Date: 2023-07-28
+Date: 2023-08-02
 Authors@R: c(person("Win", "Cowger", role = c("cre", "aut"),
       email = "wincowger@gmail.com",
       comment = c(ORCID = "0000-0001-9226-3104")),
     person("Zacharias", "Steinmetz", role = c("aut"),
       email = "z.steinmetz@rptu.de",
       comment = c(ORCID = "0000-0001-6675-5033")),
+    person("Nick", "Leong", role = c("aut"),
+      comment = c(ORCID = "0009-0008-3313-4132")),
     person("Andrew", "Gray", role = c("ctb"),
       comment = c(ORCID = "0000-0003-2252-7367")), 
     person("Hannah", "Hapich", role = c("ctb"),
