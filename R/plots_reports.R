@@ -142,7 +142,7 @@ heatmap_OpenSpecy <- function(object,
                 if(!is.null(sn)){paste("<br>snr: ", round(sn, 0))} else{""},
                 if(!is.null(cor)){paste("<br>cor: ", round(cor, 1))} else{""})) %>%
         layout(
-            title = paste0(nrow(object$metadata), " Spectra"),
+            #title = paste0(nrow(object$metadata), " Spectra"),
             xaxis = list(title = 'x', zeroline = F, showgrid = F),
             yaxis = list(title = 'y', 
                          scaleanchor = "x",
