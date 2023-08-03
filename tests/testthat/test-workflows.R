@@ -8,6 +8,7 @@ test_that("Zip folder Raman batch analysis", {
                       filter_spec(., .$metadata$SpectrumType == "Raman"))
     expect_silent(batch2 <- conform_spec(batch, new_wavenumbers = lib$wavenumber, res = spec_res(lib$wavenumber)))
     plot_OpenSpecy(batch2)
+    expect_silent(test_sn2 <- signal_noise(batch2, return = "run_signal_over_noise"))
     expect_silent(batch3 <- process_spectra(batch2, baseline_decision = T, derivative_decision = F))
     plot_OpenSpecy(x = batch3, x2 = batch)
     expect_silent(matches <- correlate_spectra(batch3, library = lib))
@@ -19,6 +20,6 @@ test_that("Zip folder Raman batch analysis", {
                       cor = test_max_cor, 
                       min_sn = 4,
                       min_cor = 0.7,
-                      selected_spectrum = 1,
+                      selected_spectrum = 2,
                       source = "heatplot")
 })
