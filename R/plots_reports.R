@@ -25,83 +25,84 @@
 #' heatmap_OpenSpecy(data2, z = data2$metadata$y)
 #' interactive_plot(data1, selected_spectrum = 2)
 #' interactive_plot(data2, selected_spectrum = 2, x2 = data1, selected_spectrum2 = 1)
+#'
 #' @author
-#' Win Cowger, Zacharias Steinmetz#'
-#' 
+#' Win Cowger, Zacharias Steinmetz
+#'
 #' @importFrom plotly plot_ly add_trace add_markers subplot layout
-#' @importFrom tidyr pivot_longer
-#' @importFrom dplyr %>% 
-#' 
+#' @importFrom data.table melt
+#' @importFrom dplyr %>%
+#'
 #' @export
 plot_OpenSpecy <- function(x, x2 = NULL, ...) {
     dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
-        pivot_longer(cols = -wavenumber, names_to = "id", values_to = "intensity")
-    
+      melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
+
     p <- plot_ly(dt, type = "scatter", mode = "lines", ...) %>%
-         add_trace(x = ~wavenumber, 
-                   y = ~make_rel(intensity, na.rm = T), 
-                   color = ~id, 
+         add_trace(x = ~wavenumber,
+                   y = ~make_rel(intensity, na.rm = T),
+                   color = ~id,
                    name = "Your Spectra",
                    line = list(color = 'rgb(255,255,255)'),
                    showlegend = F) %>%
-         layout(xaxis = list(title = "wavenumber [cm<sup>-1</sup>]", autorange = "reversed"), 
+         layout(xaxis = list(title = "wavenumber [cm<sup>-1</sup>]", autorange = "reversed"),
                 yaxis = list(title = "absorbance intensity [-]"),
                 plot_bgcolor = 'rgb(17,0,73)',
                 paper_bgcolor = 'rgb(0,0,0)',
                 legend = list(orientation = 'h', y = 1.1),
                 font = list(color = '#FFFFFF'))
-    
+
     # Add dummy trace for Your Spectra
     p <- p %>%
-         add_trace(x = NULL, 
+         add_trace(x = NULL,
                    y = NULL,
                    line = list(color = 'rgb(255,255,255)'),
                    name = "Your Spectra",
                    showlegend = T)
-    
+
     if (!is.null(x2)) {
         dt2 <- cbind(wavenumber = x2$wavenumber, x2$spectra) |>
-            pivot_longer(cols = -wavenumber, names_to = "id", values_to = "intensity")
-        
-        p <- p %>% 
+          melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
+
+        p <- p %>%
             add_trace(
-                data = dt2, 
-                x = ~wavenumber, 
-                y = ~make_rel(intensity, na.rm = T), 
-                color = ~id, 
-                type = "scatter", 
+                data = dt2,
+                x = ~wavenumber,
+                y = ~make_rel(intensity, na.rm = T),
+                color = ~id,
+                type = "scatter",
                 mode = "lines",
                 name = "Library Spectra",
                 line = list(dash = "dash", color = 'rgb(125,249,255)'),
                 showlegend = F)
-        
+
         # Add dummy trace for Library Spectra
         p <- p %>%
-             add_trace(x = NULL, 
+             add_trace(x = NULL,
                        y = NULL,
                        line = list(dash = "dash", color = 'rgb(125,249,255)'),
                        name = "Library Spectra",
                        showlegend = T)
     }
-    
+
     return(p)
 }
 
 
 # Plot Heatmap
 #' @export
-heatmap_OpenSpecy <- function(object, 
-                              z = NULL, 
-                              sn = NULL, 
-                              cor = NULL, 
-                              min_sn = NULL, 
+heatmap_OpenSpecy <- function(object,
+                              z = NULL,
+                              sn = NULL,
+                              cor = NULL,
+                              min_sn = NULL,
                               min_cor = NULL,
                               selected_spectrum = NULL, ...) {
-    
+
     if(is.null(object)) {
         stop("No data object provided")
     }
-    
+
     if(!is.null(z)){
         plot_z <- z # default
     }
@@ -120,13 +121,13 @@ heatmap_OpenSpecy <- function(object,
     if (!is.null(cor) && !is.null(min_cor)) {
         plot_z <- ifelse(cor > min_cor, plot_z, NA)
     }
-    
+
     #colorscale <- if (!is.null(cor)) {
     #    hcl.colors(n = sum(sn > min_sn & cor > min_cor), palette = "viridis")
     #} else {
     #    heat.colors(n = sum(sn > min_sn))
     #}
-    
+
     p <- plot_ly(...) %>%
         add_trace(
             x = object$metadata$x,
@@ -144,7 +145,7 @@ heatmap_OpenSpecy <- function(object,
         layout(
             #title = paste0(nrow(object$metadata), " Spectra"),
             xaxis = list(title = 'x', zeroline = F, showgrid = F),
-            yaxis = list(title = 'y', 
+            yaxis = list(title = 'y',
                          scaleanchor = "x",
                          scaleratio = 1,
                          zeroline = F, showgrid = F),
@@ -152,7 +153,7 @@ heatmap_OpenSpecy <- function(object,
             paper_bgcolor = 'rgb(0,0,0)',
             showlegend = FALSE,
             font = list(color = '#FFFFFF'))
-    
+
     if(!is.null(selected_spectrum)){
         p <-  p %>% add_markers(
             name = "Selected Spectrum",
@@ -167,15 +168,15 @@ heatmap_OpenSpecy <- function(object,
 interactive_plot <- function(x, selected_spectrum, x2 = NULL, selected_spectrum2 = NULL) {
   # Generate the heatmap
   heat_map <- heatmap_OpenSpecy(x, z = x$metadata$y, selected_spectrum = selected_spectrum)
-  
+
   # Generate the spectral plot
   spectra_plot <- plot_OpenSpecy(x, x2 = x2, selected_spectrum = selected_spectrum, selected_spectrum2 = selected_spectrum2)
-  
+
   # Extract intensity and wavenumber for the selected spectrum
   selected_spectrum_points <- x$metadata %>% filter(row_number() == selected_spectrum)
   selected_spectrum_intensity <- selected_spectrum_points$intensity
   selected_spectrum_wavenumber <- x$wavenumber
-  
+
   # Add trace for the selected spectrum in the spectral plot
   selected_spectrum_trace <- list(
     type = "scatter",
@@ -185,16 +186,16 @@ interactive_plot <- function(x, selected_spectrum, x2 = NULL, selected_spectrum2
     line = list(color = 'red'),  # Set the line color to red
     name = "Selected Spectrum"
   )
-  
+
   # Update the spectral plot data with the selected spectrum trace
   spectra_plot$data <- c(spectra_plot$data, selected_spectrum_trace)
-  
+
   # Add margin to heatmap for separation
   heat_map <- heat_map %>% layout(autosize = TRUE, margin = list(b = 100))
-  
+
   # Combine both plots using subplot
   plot_grid <- subplot(heat_map, spectra_plot, nrows = 2, heights = c(0.6, 0.4), margin = 0.1)
-  
+
   # Show the interactive plot
   return(plot_grid)
 }

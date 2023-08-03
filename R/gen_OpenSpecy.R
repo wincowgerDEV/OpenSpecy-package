@@ -46,8 +46,6 @@
 #'
 #' @importFrom magrittr %>%
 #' @importFrom utils head
-#' @importFrom tidyr pivot_longer
-#' @importFrom ggplot2 ggplot aes geom_line theme_minimal labs
 #' @export
 head.OpenSpecy <- function(x, ...) {
   cbind(wavenumber = x$wavenumber, x$spectra) %>% head(...)

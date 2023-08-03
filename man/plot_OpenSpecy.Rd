@@ -7,7 +7,7 @@
 \usage{
 plot_OpenSpecy(x, x2 = NULL, ...)
 
-interactive_plot(x, selected_spectrum, x2, selected_spectrum2)
+interactive_plot(x, selected_spectrum, x2 = NULL, selected_spectrum2 = NULL)
 }
 \arguments{
 \item{x}{An OpenSpecy object containing metadata and spectral data for the first group.}
@@ -43,7 +43,8 @@ correlation <- correlate_spectra(conform_spec(data1, new_wavenumbers = data2$wav
 heatmap_OpenSpecy(data2, z = data2$metadata$y)
 interactive_plot(data1, selected_spectrum = 2)
 interactive_plot(data2, selected_spectrum = 2, x2 = data1, selected_spectrum2 = 1)
+
 }
 \author{
-Win Cowger, Zacharias Steinmetz#'
+Win Cowger, Zacharias Steinmetz
 }
