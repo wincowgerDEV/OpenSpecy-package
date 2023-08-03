@@ -48,7 +48,6 @@ VignetteBuilder: knitr
 Depends:
     R (>= 4.0.0)
 Imports:
-    rlang,
     magrittr,
     dplyr,
     data.table,

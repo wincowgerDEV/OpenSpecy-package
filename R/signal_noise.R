@@ -14,24 +14,24 @@
 #' signal_noise(raman_hdpe, return = "noise")
 #' signal_noise(raman_hdpe, return = "signal_times_noise")
 #'
-#' @importFrom TTR runMax
+#' @importFrom data.table frollapply
 #'
 #' @export
  signal_noise <- function(object, return = "signal_over_noise", na.rm = TRUE){
-     
+
      vapply(object$spectra, function(intensity){
          if(length(intensity[!is.na(intensity)]) < 20){
              stop("Need at least 20 intensity values to calculate the signal or noise values accurately.")
          }
          if(return == "run_signal_over_noise"){
-         max  = runMax(intensity[!is.na(intensity)], n = 20)
+         max = frollapply(intensity[!is.na(intensity)], 20, max)
          max[(length(max) - 19):length(max)] <- NA
          signal = max(max, na.rm = T)#/mean(x, na.rm = T)
          noise = median(max[max != 0], na.rm = T)
          }
          else{
              signal = mean(intensity, na.rm = na.rm)
-             noise = sd(intensity, na.rm = na.rm)     
+             noise = sd(intensity, na.rm = na.rm)
          }
          if(return == "signal"){
              return(signal)
@@ -53,4 +53,3 @@
          }
     }, FUN.VALUE = numeric(1))}
 
- 
