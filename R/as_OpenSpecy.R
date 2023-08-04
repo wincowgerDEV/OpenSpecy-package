@@ -260,8 +260,16 @@ as_OpenSpecy.default <- function(x, spectra,
   obj <- structure(list(), class = c("list", "OpenSpecy"))
 
   obj$wavenumber <- x
+  
+  if(!(identical(order(x), 1:length(x)) | identical(order(x), length(x):1))){
+      warning("Wavenumbers should be a continuous sequence for all OpenSpecy functions to run smoothly. Consider sorting your wavenumbers and spectral intensities before turning into an OpenSpecy object.")
+  }
+  
   obj$spectra <- as.data.table(spectra)
 
+  if(length(unique(colnames(obj$spectra))) != ncol(obj$spectra)){
+      warning("Column names should be unique in the spectral intensities otherwise some functions may not work. Consider creating new names for the spectral data or collapsing spectra with the same name.")
+  }
   if (inherits(coords, "character")) {
     obj$metadata <- do.call(coords, list(ncol(obj$spectra)))
   } else if (inherits(coords, c("data.frame", "list")) &&
