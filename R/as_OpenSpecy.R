@@ -261,15 +261,8 @@ as_OpenSpecy.default <- function(x, spectra,
 
   obj$wavenumber <- x
   
-  if(!(identical(order(x), 1:length(x)) | identical(order(x), length(x):1))){
-      warning("Wavenumbers should be a continuous sequence for all OpenSpecy functions to run smoothly. Consider sorting your wavenumbers and spectral intensities before turning into an OpenSpecy object.")
-  }
-  
   obj$spectra <- as.data.table(spectra)
 
-  if(length(unique(colnames(obj$spectra))) != ncol(obj$spectra)){
-      warning("Column names should be unique in the spectral intensities otherwise some functions may not work. Consider creating new names for the spectral data or collapsing spectra with the same name.")
-  }
   if (inherits(coords, "character")) {
     obj$metadata <- do.call(coords, list(ncol(obj$spectra)))
   } else if (inherits(coords, c("data.frame", "list")) &&
@@ -304,20 +297,50 @@ as_OpenSpecy.default <- function(x, spectra,
 #'
 #' @importFrom data.table is.data.table
 #' @export
-is_OpenSpecy <- function(x) {
-  all(
-      c(inherits(x, "OpenSpecy"), 
-        is.vector(x$wavenumber),
-        is.data.table(x$spectra), 
-        is.data.table(x$metadata),
-        #!any(duplicated(paste(x$metadata$x, x$metadata$y))), #Could be problematic with duplicated spectra at same location. 
-        identical(names(x), c("wavenumber", "spectra", "metadata")),
-        ncol(x$spectra) == nrow(x$metadata),
-        length(x$wavenumber) == nrow(x$spectra),
-        length(unique(names(x$spectra))) == ncol(x$spectra),
-        length(unique(names(x$metadata))) == ncol(x$metadata)
-        )
-      )
+is_OpenSpecy <- function(x){
+    if(!inherits(x, "OpenSpecy")){
+        message("Object is not of class OpenSpecy.") 
+        return(FALSE)
+    }
+    if(!is.vector(x$wavenumber)){
+        message("Wavenumber is not a vector.")
+        return(FALSE)
+    }
+    if(!is.data.table(x$spectra)){
+        message("Spectra is not a data.table.")
+        return(FALSE)
+    }
+    if(!is.data.table(x$metadata)) {
+        message("Metadata is not a data.table.")
+        return(FALSE)
+    }
+    if(!identical(names(x), c("wavenumber", "spectra", "metadata"))) {
+        message("Names of the object components are incorrect.")
+        return(FALSE)
+    }
+    if(ncol(x$spectra) != nrow(x$metadata)) {
+        message("Number of columns in spectra is not equal to number of rows in metadata.") 
+        return(FALSE)
+    }
+    if(length(x$wavenumber) != nrow(x$spectra)) {
+        message("Length of wavenumber is not equal to number of rows in spectra.") 
+        return(FALSE)
+    }
+    if(length(unique(names(x$spectra))) != ncol(x$spectra)) {
+        message("Column names in spectra are not unique.") 
+        return(FALSE)
+    }
+    if(length(unique(names(x$metadata))) != ncol(x$metadata)) {
+        message("Column names in metadata are not unique.")
+        return(FALSE)
+    }
+    if(!(identical(order(x$wavenumber), 1:length(x$wavenumber)) | identical(order(x$wavenumber), length(x$wavenumber):1))){
+        warning("This is technically an OpenSpecy but wavenumbers should be a continuous sequence for all OpenSpecy functions to run smoothly. Consider sorting your wavenumbers and spectral intensities before turning into an OpenSpecy object.")
+    }
+    if(length(unique(colnames(x$spectra))) != ncol(x$spectra)){
+        warning("This is technically an OpenSpecy but column names should be unique in the spectral intensities otherwise some functions may not work. Consider creating new names for the spectral data or collapsing spectra with the same name.")
+    }
+    return(TRUE)
 }
 
 #' @rdname as_OpenSpecy

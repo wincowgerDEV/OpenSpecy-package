@@ -3,7 +3,7 @@ library(data.table)
 df <- read_extdata("raman_hdpe.csv") |> read.csv()
 
 test_that("as_OpenSpecy() generates OpenSpecy objects", {
-  expect_silent(OpenSpecy(df))
+  expect_silent(as_OpenSpecy(df))
 
   expect_silent(osf <- as_OpenSpecy(df))
   expect_silent(ost <- data.table(df) |> as_OpenSpecy())
@@ -79,3 +79,4 @@ test_that("OpenSpecy objects are transcribed to and from hyperSpec objects", {
     expect_equal(unlist(OpenHyper$spectra$V1),unname(t(hyperOpenSpecy$spc)[,1]))
     
 })
+
