@@ -1,6 +1,5 @@
 test_that("check that opus files are read", {
      expect_silent(data <- read_opus(read_extdata("ftir_ps.0")))
-     expect_silent(data2 <- read_opus(read_extdata("ftir_ps_interior.1")))
      expect_true(is_OpenSpecy(data))
      expect_true(is_OpenSpecy(data2))
      expect_true(ncol(data$spectra) == 1)

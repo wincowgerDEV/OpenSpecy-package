@@ -1,5 +1,5 @@
 test_that("flatten_range.OpenSpecy() function test", {
-    #spectrum <- read_any(read_extdata(file = "ftir_ps_interior.1"))
+    #spectrum <- read_any(read_extdata(file = "ftir_ps.0"))
     test <- as_OpenSpecy(x = 1:10, spectra = data.table(V1 = 1:10))
     flattened_data <- flatten_range(object = test, min_range = c(4, 7), max_range = c(5, 10), make_rel = F)
     expect_equal(flattened_data$spectra$V1[4:5], c(4.5, 4.5))

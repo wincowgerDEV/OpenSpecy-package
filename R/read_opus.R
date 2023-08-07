@@ -55,7 +55,6 @@
 #'
 #' @examples
 #' data <- read_opus(read_extdata("ftir_ps.0"))
-#' data2 <- read_opus(read_extdata("ftir_ps_interior.1"))
 #' 
 #' @importFrom stats approx
 #' @export
