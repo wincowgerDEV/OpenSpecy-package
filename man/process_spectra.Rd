@@ -2,10 +2,11 @@
 % Please edit documentation in R/process_spectra.R
 \name{process_spectra}
 \alias{process_spectra}
+\alias{sample_spec}
 \title{Preprocess Spectra}
 \usage{
 process_spectra(
-  object,
+  x,
   active_processing = T,
   adj_intensity_decision = F,
   type = "none",
@@ -33,9 +34,11 @@ process_spectra(
   abs = T,
   derivative_window = 11
 )
+
+sample_spec(x, ...)
 }
 \arguments{
-\item{object}{An OpenSpecy object containing metadata and spectral data.}
+\item{x}{An OpenSpecy object containing metadata and spectral data.}
 
 \item{active_processing}{Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.}
 
@@ -90,34 +93,44 @@ process_spectra(
 \item{derivative_window}{Integer value specifying the window size for derivative calculation.}
 }
 \value{
-An OpenSpecy object with preprocessed spectra based on the specified parameters.
+\code{process_spectra()} returns an OpenSpecy object with preprocessed
+spectra based on the specified parameters.
+\code{sample_spec()} returns an OpenSpecy object with a subset of the spectra.
 }
 \description{
 Process spectra data by applying various preprocessing steps. This is a monolithic function for all common preprocessing steps in one place.
 }
+\details{
+\code{sample_spec()} samples spectra from an OpenSpecy object.
+}
 \examples{
+tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
 
-data <- read_any(read_extdata("CA_tiny_map.zip"))
 # Process spectra with range restriction and baseline subtraction
-processed_data <- process_spectra(data, 
+processed_data <- process_spectra(tiny_map,
                                   active_processing = TRUE,
-                                  range_decision = TRUE, 
-                                  min_range = 500, 
-                                  max_range = 3000, 
+                                  range_decision = TRUE,
+                                  min_range = 500,
+                                  max_range = 3000,
                                   baseline_decision = TRUE,
-                                  baseline_selection = "Polynomial", 
+                                  baseline_selection = "Polynomial",
                                   baseline_polynomial = 8,
                                   derivative_decision = FALSE)
 
 # Process spectra with smoothing and derivative
-processed_data <- process_spectra(data, 
+processed_data <- process_spectra(tiny_map,
                                   active_preprocessing = TRUE,
-                                  smooth_decision = TRUE, 
-                                  smooth_polynomial = 3, 
+                                  smooth_decision = TRUE,
+                                  smooth_polynomial = 3,
                                   smooth_window = 11,
                                   derivative_decision = TRUE,
                                   derivative_order = 1,
                                   derivative_polynomial = 3,
                                   derivative_window = 11)
+
+# Sampling the OpenSpecy object
+sampled <- sample(processed_data, size = 3)
+print(sampled)
+plot(sampled)
 
 }

@@ -3,15 +3,12 @@
 \name{head.OpenSpecy}
 \alias{head.OpenSpecy}
 \alias{print.OpenSpecy}
-\alias{sample.OpenSpecy}
 \alias{plot.OpenSpecy}
 \title{Generic Open Specy Functions}
 \usage{
 \method{head}{OpenSpecy}(x, ...)
 
 \method{print}{OpenSpecy}(x, ...)
-
-\method{sample}{OpenSpecy}(x, size, ...)
 
 \method{plot}{OpenSpecy}(x, ...)
 }
@@ -27,17 +24,15 @@
 \item{\ldots}{args.}
 }
 \value{
-\code{print.OpenSpecy()} returns a textual representation of an OpenSpecy object.
-\code{head.OpenSpecy()} returns the first few lines of an OpenSpecy object.
-\code{sample.OpenSpecy()} returns an OpenSpecy object with a subset of the spectra.
+\code{print()} returns a textual representation of an OpenSpecy object.
+\code{head()} returns the first few lines of an OpenSpecy object.
 }
 \description{
 Functions to manipulate and visualize OpenSpecy objects.
 }
 \details{
-\code{print.OpenSpecy()} prints the contents of an OpenSpecy object.
-\code{head.OpenSpecy()} shows the first few lines of an OpenSpecy object.
-\code{sample.OpenSpecy()} samples spectra from an OpenSpecy object.
+\code{print()} prints the contents of an OpenSpecy object.
+\code{head()} shows the first few lines of an OpenSpecy object.
 }
 \examples{
 data("raman_hdpe")
@@ -50,12 +45,6 @@ head(raman_hdpe)
 
 # Plotting the spectra
 plot(raman_hdpe)
-
-# Sampling the OpenSpecy object
-tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
-sampled <- sample(tiny_map, size = 3)
-print(sampled)
-plot(sampled)
 
 }
 \seealso{

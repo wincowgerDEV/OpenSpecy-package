@@ -1,14 +1,19 @@
-#' Preprocess Spectra
+#' @title Preprocess Spectra
+#' @rdname process_spectra
 #'
+#' @description
 #' Process spectra data by applying various preprocessing steps. This is a monolithic function for all common preprocessing steps in one place.
 #'
-#' @param object An OpenSpecy object containing metadata and spectral data.
+#' @details
+#' \code{sample_spec()} samples spectra from an OpenSpecy object.
+#'
+#' @param x An OpenSpecy object containing metadata and spectral data.
 #' @param active_processing Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.
-#' @param adj_intensity_decision A Logical describing whether to adjust the intensity units. 
+#' @param adj_intensity_decision A Logical describing whether to adjust the intensity units.
 #' @param type Type of intensity adjustment to use. Can be one of "none", "transmittance", or "reflectance".
 #' @param conform_decision Whether to conform the spectra to a new wavenumber range and resolution.
-#' @param new_wavenumbers A new range to conform to, will use the min and max of all values. 
-#' @param res The resoltion for the conforming the spectra. 
+#' @param new_wavenumbers A new range to conform to, will use the min and max of all values.
+#' @param res The resoltion for the conforming the spectra.
 #' @param range_decision Logical value indicating whether to restrict the wavenumber range of the spectra.
 #' @param min_range Numeric value specifying the minimum wavenumber for range restriction.
 #' @param max_range Numeric value specifying the maximum wavenumber for range restriction.
@@ -30,56 +35,64 @@
 #' @param abs Logical value indicating whether to calculate the absolute values of the derivative.
 #' @param derivative_window Integer value specifying the window size for derivative calculation.
 #'
-#' @return An OpenSpecy object with preprocessed spectra based on the specified parameters.
+#' @return
+#' \code{process_spectra()} returns an OpenSpecy object with preprocessed
+#' spectra based on the specified parameters.
+#' \code{sample_spec()} returns an OpenSpecy object with a subset of the spectra.
 #'
-#' @importFrom magrittr %>%
 #' @examples
-#' 
-#' data <- read_any(read_extdata("CA_tiny_map.zip"))
+#' tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
+#'
 #' # Process spectra with range restriction and baseline subtraction
-#' processed_data <- process_spectra(data, 
+#' processed_data <- process_spectra(tiny_map,
 #'                                   active_processing = TRUE,
-#'                                   range_decision = TRUE, 
-#'                                   min_range = 500, 
-#'                                   max_range = 3000, 
+#'                                   range_decision = TRUE,
+#'                                   min_range = 500,
+#'                                   max_range = 3000,
 #'                                   baseline_decision = TRUE,
-#'                                   baseline_selection = "Polynomial", 
+#'                                   baseline_selection = "Polynomial",
 #'                                   baseline_polynomial = 8,
 #'                                   derivative_decision = FALSE)
 #'
 #' # Process spectra with smoothing and derivative
-#' processed_data <- process_spectra(data, 
+#' processed_data <- process_spectra(tiny_map,
 #'                                   active_preprocessing = TRUE,
-#'                                   smooth_decision = TRUE, 
-#'                                   smooth_polynomial = 3, 
+#'                                   smooth_decision = TRUE,
+#'                                   smooth_polynomial = 3,
 #'                                   smooth_window = 11,
 #'                                   derivative_decision = TRUE,
 #'                                   derivative_order = 1,
 #'                                   derivative_polynomial = 3,
 #'                                   derivative_window = 11)
 #'
+#' # Sampling the OpenSpecy object
+#' sampled <- sample(processed_data, size = 3)
+#' print(sampled)
+#' plot(sampled)
+#'
+#' @importFrom magrittr %>%
 #' @export
-process_spectra <- function(object, 
-                            active_processing = T, 
-                            adj_intensity_decision = F, 
+process_spectra <- function(x,
+                            active_processing = T,
+                            adj_intensity_decision = F,
                             type = "none",
-                            conform_decision = T, 
-                            new_wavenumbers = NULL, 
+                            conform_decision = T,
+                            new_wavenumbers = NULL,
                             res = 5,
-                            range_decision = F, 
-                            min_range = 0, 
-                            max_range = 6000, 
+                            range_decision = F,
+                            min_range = 0,
+                            max_range = 6000,
                             flatten_decision = F,
                             flatten_min = 2200,
                             flatten_max = 2420,
-                            smooth_decision = F, 
-                            smooth_polynomial = 3, 
+                            smooth_decision = F,
+                            smooth_polynomial = 3,
                             smooth_window = 11,
-                            baseline_decision = F, 
-                            baseline_selection = "Polynomial", 
-                            raw_baseline = F, 
-                            baseline_polynomial = 8, 
-                            wavenumber_fit = NULL, 
+                            baseline_decision = F,
+                            baseline_selection = "Polynomial",
+                            raw_baseline = F,
+                            baseline_polynomial = 8,
+                            wavenumber_fit = NULL,
                             intensity_fit = NULL,
                             derivative_decision = T,
                             derivative_order = 1,
@@ -87,44 +100,57 @@ process_spectra <- function(object,
                             abs = T,
                             derivative_window = 11){
     if(active_processing){
-        object %>% 
-            {if(adj_intensity_decision) adj_intens(., 
+        x %>%
+            {if(adj_intensity_decision) adj_intens(.,
                                                    type = type,
                                                    make_rel = F) else .} %>%
-            {if(conform_decision) conform_spec(., 
+            {if(conform_decision) conform_spec(.,
                                                new_wavenumbers = new_wavenumbers,
                                                res = res) else .} %>%
-            {if(range_decision) restrict_range(., 
-                                                         min_range = min_range, 
-                                                         max_range = max_range, 
+            {if(range_decision) restrict_range(.,
+                                                         min_range = min_range,
+                                                         max_range = max_range,
                                                          make_rel = F) else . } %>%
-            {if(baseline_decision) subtr_bg(., 
-                                                      degree = baseline_polynomial, 
-                                                      wavenumber_fit = wavenumber_fit, 
+            {if(baseline_decision) subtr_bg(.,
+                                                      degree = baseline_polynomial,
+                                                      wavenumber_fit = wavenumber_fit,
                                                       intensity_fit = intensity_fit,
-                                                      raw = raw_baseline, 
+                                                      raw = raw_baseline,
                                                       make_rel = F,
                                                       type = baseline_selection) else . } %>%
-            {if(flatten_decision) flatten_range(., 
+            {if(flatten_decision) flatten_range(.,
                                                                  min_range = flatten_min,
                                                                  max_range = flatten_max,
                                                                  make_rel = F) else .} %>%
-            {if(smooth_decision) smooth_intens(., 
+            {if(smooth_decision) smooth_intens(.,
                                                          p = smooth_polynomial,
-                                                         n = smooth_window, 
-                                                         m = 0, 
+                                                         n = smooth_window,
+                                                         m = 0,
                                                          make_rel = F) else .} %>%
-            {if(derivative_decision) smooth_intens(., 
+            {if(derivative_decision) smooth_intens(.,
                                                              p = derivative_polynomial,
-                                                             n = derivative_window, 
-                                                             m = derivative_order, 
+                                                             n = derivative_window,
+                                                             m = derivative_order,
                                                              abs = abs,
                                                              make_rel = F) else .}
-            
+
     }
     else{
-        object
+        x
     }
 }
 
+#' @rdname process_spectra
+#'
+#' @export
+sample_spec <- function(x, ...) {
+  # replace = false is mandatory currently because we don't have a way to
+  # rename and recoordinate duplicates.
+  cols <- sample(1:ncol(x$spectra), ...)
 
+  as_OpenSpecy(
+    x = x$wavenumber,
+    spectra = x$spectra[, ..cols],
+    metadata = x$metadata[cols, ]
+  )
+}

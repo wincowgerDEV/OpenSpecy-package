@@ -18,11 +18,3 @@ test_that("plot.OpenSpecy returns a plotly object", {
     result <- plot_OpenSpecy(test_data)
     expect_s3_class(result, "plotly")
 })
-
-# Test: sample.OpenSpecy() should return an OpenSpecy object with a subset of the spectra.
-test_that("sample.OpenSpecy returns an OpenSpecy object with a subset of the spectra", {
-    sample_OpenSpecy <- read_any(read_extdata("CA_tiny_map.zip"))
-    result <- sample.OpenSpecy(sample_OpenSpecy, size = 5)
-    expect_s3_class(result, "OpenSpecy")
-    expect_equal(ncol(result$spectra), 5)
-})

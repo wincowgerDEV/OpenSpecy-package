@@ -5,7 +5,6 @@
 #' @description
 #' Spectra can be conformed to a standard suite of wavenumbers to be compared with a reference library or to be merged to other spectra.
 #'
-#'
 #' @param x a list object of class \code{OpenSpecy}.
 #' @param new_wavenumbers a vector of new wavenumber values, can be just supplied as a min and max value.
 #' @param res spectral resolution adjusted to.
@@ -47,7 +46,7 @@ conform_spec.OpenSpecy <- function(x, new_wavenumbers, res = 5) {
   if(is.null(new_wavenumbers)){
       new_wavenumbers <- x$wavenumber
   }
-    
+
   wn <- conform_res(x = new_wavenumbers[new_wavenumbers <= max(x$wavenumber) & new_wavenumbers >= min(x$wavenumber)], res = res)
 
   spec <- x$spectra[, lapply(.SD, .conform_intens,
