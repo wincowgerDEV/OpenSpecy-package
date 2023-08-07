@@ -260,9 +260,9 @@ as_OpenSpecy.default <- function(x, spectra,
 
   obj <- structure(list(), class = c("OpenSpecy", "list"))
 
-  obj$wavenumber <- x
+  obj$wavenumber <- x[order(x)]
 
-  obj$spectra <- as.data.table(spectra)
+  obj$spectra <- as.data.table(spectra)[order(x)]
 
   if (inherits(coords, "character")) {
     obj$metadata <- do.call(coords, list(ncol(obj$spectra)))
