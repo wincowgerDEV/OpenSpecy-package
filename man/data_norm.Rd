@@ -59,7 +59,7 @@ value by the minimum intensity.
 If \code{na.rm} is \code{TRUE}, missing values are removed before the
 computation proceeds.
 
-\code{flatten_range()} will flatten ranges of the spectra that should have no peaks. 
+\code{flatten_range()} will flatten ranges of the spectra that should have no peaks.
 Multiple ranges can be specified by inputting the series of max and min values in order.
 }
 \details{
@@ -78,16 +78,14 @@ conform_res(seq(500, 4000, 4))
 adj_neg(c(-1000, -1, 0, 1, 10))
 make_rel(c(-1000, -1, 0, 1, 10))
 
-library(ggplot2)
-library(data.table)
-library(OpenSpecy)
-test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
-  flattened_intensites <- flatten_range(test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
- ggplot()+
-   geom_line(aes(x = test_noise$wavenumber, y = flattened_intensites))
-flattened_intensites <- flatten_range.OpenSpecy(object = test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
-ggplot()+
-   geom_line(aes(x = flattened_intensites$wavenumber, y = flattened_intensites$spectra[[1]]))
+test_noise <- as_OpenSpecy(x = seq(400,4000, by = 10),
+                           spectra = data.frame(intensity = rnorm(361)))
+plot(test_noise)
+
+flattened_intensities <- flatten_range(test_noise, min_range = c(1000, 2000),
+                                       max_range = c(1500, 2500))
+plot(flattened_intensities)
+
 }
 \seealso{
 \code{\link[base]{min}()} and \code{\link[base]{round}()};

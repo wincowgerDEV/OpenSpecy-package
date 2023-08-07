@@ -83,7 +83,7 @@ columns,
 the third item is another \code{data.table} with any metadata the user
 provides or is harvested from the files themselves. Currently metadata
 harvesting from jdx and opus files are supported as well as the two
-OpenSpecy write formats yaml and json. 
+OpenSpecy write formats yaml and json.
 
 The \code{metadata} argument may contain a named list with the following
 details (\code{*} = minimum recommended):
@@ -150,13 +150,13 @@ with \code{digest(object[c("wavenumber", "spectra")])}\cr
 }
 }
 \examples{
-data("raman_hdpe") #Read in an example spectrum for Raman HDPE. 
+data("raman_hdpe") #Read in an example spectrum for Raman HDPE.
 
 #Inspect the spectra
-raman_hdpe #See how OpenSpecy objects print. 
+raman_hdpe #See how OpenSpecy objects print.
 raman_hdpe$wavenumber #Look at just the wavenumbers of the spectra.
-raman_hdpe$spectra #Look at just the spectral intensities data.table. 
-raman_hdpe$metadata #Look at just the metadata of the spectra. 
+raman_hdpe$spectra #Look at just the spectral intensities data.table.
+raman_hdpe$metadata #Look at just the metadata of the spectra.
 
 #Demonstrate compatibility in creating an OpenSpecy from its components.
 as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$metadata == raman_hdpe$metadata

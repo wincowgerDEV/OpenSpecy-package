@@ -4,24 +4,27 @@
 \alias{head.OpenSpecy}
 \alias{print.OpenSpecy}
 \alias{sample.OpenSpecy}
+\alias{plot.OpenSpecy}
 \title{Generic Open Specy Functions}
 \usage{
 \method{head}{OpenSpecy}(x, ...)
 
-print.OpenSpecy(x, ...)
+\method{print}{OpenSpecy}(x, ...)
 
-sample.OpenSpecy(x, size, prob = NULL, ...)
+\method{sample}{OpenSpecy}(x, size, ...)
+
+\method{plot}{OpenSpecy}(x, ...)
 }
 \arguments{
 \item{x}{an OpenSpecy object.}
 
-\item{size}{a positive integer specifying the number of items to select from the spectra. (only for \code{sample.OpenSpecy()})}
+\item{size}{a positive integer specifying the number of items to select from the spectra. (only for \code{sample()})}
 
-\item{prob}{a vector of probability weights for obtaining the elements of the spectra being sampled. (only for \code{sample.OpenSpecy()})}
+\item{replace}{should sampling be done with replacement? (only for \code{sample()})}
+
+\item{prob}{a vector of probability weights for obtaining the elements of the spectra being sampled. (only for \code{sample()})}
 
 \item{\ldots}{args.}
-
-\item{replace}{should sampling be done with replacement? (only for \code{sample.OpenSpecy()})}
 }
 \value{
 \code{print.OpenSpecy()} returns a textual representation of an OpenSpecy object.
@@ -32,27 +35,27 @@ sample.OpenSpecy(x, size, prob = NULL, ...)
 Functions to manipulate and visualize OpenSpecy objects.
 }
 \details{
-\code{as_OpenSpecy()} creates an OpenSpecy object.
 \code{print.OpenSpecy()} prints the contents of an OpenSpecy object.
 \code{head.OpenSpecy()} shows the first few lines of an OpenSpecy object.
 \code{sample.OpenSpecy()} samples spectra from an OpenSpecy object.
 }
 \examples{
-
-# Creating an OpenSpecy object
-sample_OpenSpecy <- read_any(read_extdata("raman_hdpe.csv"))
+data("raman_hdpe")
 
 # Printing the OpenSpecy object
-print.OpenSpecy(sample_OpenSpecy)
+print(raman_hdpe)
 
 # Displaying the first few lines of the OpenSpecy object
-head(sample_OpenSpecy)
+head(raman_hdpe)
 
+# Plotting the spectra
+plot(raman_hdpe)
 
 # Sampling the OpenSpecy object
-sample_OpenSpecy <- read_any(read_extdata("CA_tiny_map.zip"))
-sampled_OpenSpecy <- sample.OpenSpecy(sample_OpenSpecy, size = 5)
-print.OpenSpecy(sampled_OpenSpecy)
+tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
+sampled <- sample(tiny_map, size = 3)
+print(sampled)
+plot(sampled)
 
 }
 \seealso{

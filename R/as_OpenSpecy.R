@@ -14,7 +14,7 @@
 #' the third item is another \code{data.table} with any metadata the user
 #' provides or is harvested from the files themselves. Currently metadata
 #' harvesting from jdx and opus files are supported as well as the two
-#' OpenSpecy write formats yaml and json. 
+#' OpenSpecy write formats yaml and json.
 #'
 #' The \code{metadata} argument may contain a named list with the following
 #' details (\code{*} = minimum recommended):
@@ -93,34 +93,34 @@
 #' \code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists described in details. \cr
 #' \code{is_OpenSpecy()} returns TRUE if the object is an OpenSpecy and FALSE if not.\cr
 #' \code{gen_grid()} returns a \code{data.table} with x y coordinates to use for generating a spatial grid for the spectra if one is not specified in the data.\cr
-#' 
+#'
 #' @examples
-#' data("raman_hdpe") #Read in an example spectrum for Raman HDPE. 
-#' 
+#' data("raman_hdpe") #Read in an example spectrum for Raman HDPE.
+#'
 #' #Inspect the spectra
-#' raman_hdpe #See how OpenSpecy objects print. 
+#' raman_hdpe #See how OpenSpecy objects print.
 #' raman_hdpe$wavenumber #Look at just the wavenumbers of the spectra.
-#' raman_hdpe$spectra #Look at just the spectral intensities data.table. 
-#' raman_hdpe$metadata #Look at just the metadata of the spectra. 
-#' 
+#' raman_hdpe$spectra #Look at just the spectral intensities data.table.
+#' raman_hdpe$metadata #Look at just the metadata of the spectra.
+#'
 #' #Demonstrate compatibility in creating an OpenSpecy from its components.
 #' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$metadata == raman_hdpe$metadata
 #' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$spectra == raman_hdpe$spectra
 #' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$wavenumber == raman_hdpe$wavenumber
-#' 
+#'
 #' #Demonstrate creating a list and transforming to OpenSpecy
 #' as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")]))
-#' 
+#'
 #' #If you try to produce an OpenSpecy using an OpenSpecy it will just return the same object.
 #' as_OpenSpecy(raman_hdpe)
-#' 
+#'
 #' #Method for creating an OpenSpecy from a data.frame
 #' as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra$intensity))
-#' 
+#'
 #' #Test that the spectrum is formatted as an OpenSpecy object.
 #' is_OpenSpecy(raman_hdpe)  #should be TRUE
 #' is_OpenSpecy(raman_hdpe$spectra) #should be FALSE
-#' 
+#'
 #' #Create an artificial spatial grid
 #' gen_grid(n = 5)
 #'
@@ -154,7 +154,8 @@ as_OpenSpecy.list <- function(x, ...) {
 #'
 #' @export
 as_OpenSpecy.hyperSpec <- function(x, ...) {
-    do.call("as_OpenSpecy", list(x = x@wavelength, spectra = as.data.table(t(x$spc)), ...))
+    do.call("as_OpenSpecy", list(x = x@wavelength,
+                                 spectra = as.data.table(t(x$spc)), ...))
 }
 
 #' @rdname as_OpenSpecy
@@ -257,10 +258,10 @@ as_OpenSpecy.default <- function(x, spectra,
   if (length(x) != nrow(spectra))
     stop("'x' and 'spectra' must be of equal length", call. = F)
 
-  obj <- structure(list(), class = c("list", "OpenSpecy"))
+  obj <- structure(list(), class = c("OpenSpecy", "list"))
 
   obj$wavenumber <- x
-  
+
   obj$spectra <- as.data.table(spectra)
 
   if (inherits(coords, "character")) {
@@ -299,7 +300,7 @@ as_OpenSpecy.default <- function(x, spectra,
 #' @export
 is_OpenSpecy <- function(x){
     if(!inherits(x, "OpenSpecy")){
-        message("Object is not of class OpenSpecy.") 
+        message("Object is not of class OpenSpecy.")
         return(FALSE)
     }
     if(!is.vector(x$wavenumber)){
@@ -319,15 +320,15 @@ is_OpenSpecy <- function(x){
         return(FALSE)
     }
     if(ncol(x$spectra) != nrow(x$metadata)) {
-        message("Number of columns in spectra is not equal to number of rows in metadata.") 
+        message("Number of columns in spectra is not equal to number of rows in metadata.")
         return(FALSE)
     }
     if(length(x$wavenumber) != nrow(x$spectra)) {
-        message("Length of wavenumber is not equal to number of rows in spectra.") 
+        message("Length of wavenumber is not equal to number of rows in spectra.")
         return(FALSE)
     }
     if(length(unique(names(x$spectra))) != ncol(x$spectra)) {
-        message("Column names in spectra are not unique.") 
+        message("Column names in spectra are not unique.")
         return(FALSE)
     }
     if(length(unique(names(x$metadata))) != ncol(x$metadata)) {
