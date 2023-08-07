@@ -17,14 +17,18 @@
 #' @return A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the OpenSpecy object(s).
 #'
 #' @examples
-#' data1 <- read_any(read_extdata("raman_hdpe.json"))
-#' data2 <- read_zip(read_extdata("CA_tiny_map.zip"))
-#' plot_OpenSpecy(data1)
-#' plot_OpenSpecy(data1, x2 = data2)
-#' correlation <- correlate_spectra(conform_spec(data1, new_wavenumbers = data2$wavenumber, res = 5), conform_spec(data2, data2$wavenumbers, res = 5))
-#' heatmap_OpenSpecy(data2, z = data2$metadata$y)
-#' interactive_plot(x = data2, selected_spectrum = 5)
-#' interactive_plot(data2, selected_spectrum = 2, x2 = data1, selected_spectrum2 = 1)
+#' data("raman_hdpe")
+#' tiny_map <- read_zip(read_extdata("CA_tiny_map.zip"))
+#' plot_OpenSpecy(raman_hdpe)
+#'
+#' correlation <- correlate_spectra(
+#'   conform_spec(raman_hdpe, new_wavenumbers = raman_hdpe$wavenumber, res = 5),
+#'   conform_spec(tiny_map, tiny_map$wavenumbers, res = 5)
+#' )
+#' heatmap_OpenSpecy(tiny_map, z = tiny_map$metadata$y)
+#'
+#' sample_spec(tiny_map, size = 12) |>
+#'   interactive_plot(selected_spectrum = 2, x2 = raman_hdpe)
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
