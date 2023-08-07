@@ -36,7 +36,7 @@ These functions generate heatmaps, spectral plots, and interactive plots for Ope
 }
 \examples{
 data1 <- read_any(read_extdata("raman_hdpe.json"))
-data2 <- read_zip("inst/extdata/CA_tiny_map.zip")
+data2 <- read_zip(read_extdata("CA_tiny_map.zip"))
 plot_OpenSpecy(data1)
 plot_OpenSpecy(data1, x2 = data2)
 correlation <- correlate_spectra(conform_spec(data1, new_wavenumbers = data2$wavenumber, res = 5), conform_spec(data2, data2$wavenumbers, res = 5))

@@ -3,7 +3,7 @@
 #' @title Range Restriction for spectra
 #'
 #' @description
-#' \code{restrict_range()} restricts wavenumber ranges to user specified values. 
+#' \code{restrict_range()} restricts wavenumber ranges to user specified values.
 #' Multiple ranges can be specified by inputting the series of max and min values in order.
 #'
 #'
@@ -23,10 +23,12 @@
 #' with the normalized intensity data.
 #'
 #' @examples
-#' test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
+#' test_noise <- as_OpenSpecy(x = seq(400,4000, by = 10),
+#'                            spectra = data.frame(intensity = rnorm(361)))
 #' restrict_range(test_noise, min_range = 1000, max_range = 2000)
-#' restrict_range(test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
-#' 
+#' restrict_range(test_noise, min_range = c(1000, 2000),
+#'                max_range = c(1500, 2500))
+#'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
@@ -50,23 +52,23 @@ restrict_range.default <- function(object, ...) {
 #' @rdname restrict_range
 #'
 #' @export
-restrict_range.OpenSpecy <- function(object, 
-                                     min_range = 0, 
-                                     max_range = 6000, 
+restrict_range.OpenSpecy <- function(object,
+                                     min_range = 0,
+                                     max_range = 6000,
                                      make_rel = TRUE,
                                         ...) {
     test <- as.data.table(lapply(1:length(min_range), function(x){
-        object$wavenumber >= min_range[x] & object$wavenumber <= max_range[x]}) 
+        object$wavenumber >= min_range[x] & object$wavenumber <= max_range[x]})
     )
-    
-    vals = rowSums(test) > 0 
-    
+
+    vals = rowSums(test) > 0
+
     filt <- object$spectra[vals,]
-    
+
     object$wavenumber <- object$wavenumber[vals]
-    
+
     if (make_rel) object$spectra <- make_rel(filt) else object$spectra <- filt
-    
+
     return(object)
 }
 

@@ -33,13 +33,15 @@ resolution-conformed wavenumbers.
 with the normalized intensity data.
 }
 \description{
-\code{restrict_range()} restricts wavenumber ranges to user specified values. 
+\code{restrict_range()} restricts wavenumber ranges to user specified values.
 Multiple ranges can be specified by inputting the series of max and min values in order.
 }
 \examples{
-test_noise = as_OpenSpecy(x = seq(400,4000, by = 10), spectra = data.table(intensity = rnorm(361)))
+test_noise <- as_OpenSpecy(x = seq(400,4000, by = 10),
+                           spectra = data.frame(intensity = rnorm(361)))
 restrict_range(test_noise, min_range = 1000, max_range = 2000)
-restrict_range(test_noise, min_range = c(1000, 2000) , max_range = c(1500, 2500))
+restrict_range(test_noise, min_range = c(1000, 2000),
+               max_range = c(1500, 2500))
 
 }
 \seealso{

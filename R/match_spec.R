@@ -27,9 +27,9 @@
 #'
 #' @examples
 #' data("test_lib")
-#' unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) %>%
-#'                       conform_spec(., new_wavenumbers = test_lib$wavenumber, res = spec_res(test_lib)) %>%
-#'                       process_spectra(.)
+#' unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
+#'   conform_spec(new_wavenumbers = test_lib$wavenumber, res = spec_res(test_lib)) |>
+#'   process_spectra()
 #' matches <- correlate_spectra(unknown, test_lib)
 #'
 #' test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_class == "polycarbonates")

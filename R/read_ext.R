@@ -4,9 +4,9 @@
 #'
 #' @description
 #' Functions for reading spectral data types including .asp, .jdx,
-#' .spc, .spa, .0, and .csv. Currently supported reading formats are .0, .asp, .spc, .csv, .spa, .zip, .yaml, .json, and .rds. 
+#' .spc, .spa, .0, and .csv. Currently supported reading formats are .0, .asp, .spc, .csv, .spa, .zip, .yaml, .json, and .rds.
 #' If a zip file, the function supports any of the files listed above or additionally map files in .dat and .hdr format.
-#' Proprietary file formats like .0, .asp, and .spa are poorly supported but will likely still work in most cases. 
+#' Proprietary file formats like .0, .asp, and .spa are poorly supported but will likely still work in most cases.
 #'
 #' @details
 #' \code{read_spc()} and \code{read_jdx()} are just a wrapper around the
@@ -105,7 +105,6 @@
 #' read_any(read_extdata("raman_hdpe.csv"))
 #' read_any(read_extdata("raman_atacamit.spc"))
 #' read_any(read_extdata("CA_tiny_map.zip"))
-#' read_any(read_extdata("ftir_nitrocellulose.jdx"))
 #' read_any(read_extdata("ftir_ldpe_soil.asp"))
 #' read_any(read_extdata("testdata_zipped.zip"))
 #' read_any(read_extdata("ftir_ps.0"))
