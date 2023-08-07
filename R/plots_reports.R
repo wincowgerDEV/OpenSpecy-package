@@ -23,7 +23,7 @@
 #' plot_OpenSpecy(data1, x2 = data2)
 #' correlation <- correlate_spectra(conform_spec(data1, new_wavenumbers = data2$wavenumber, res = 5), conform_spec(data2, data2$wavenumbers, res = 5))
 #' heatmap_OpenSpecy(data2, z = data2$metadata$y)
-#' interactive_plot(data1, selected_spectrum = 2)
+#' interactive_plot(x = data2, selected_spectrum = 5)
 #' interactive_plot(data2, selected_spectrum = 2, x2 = data1, selected_spectrum2 = 1)
 #'
 #' @author
@@ -173,8 +173,8 @@ interactive_plot <- function(x, selected_spectrum, x2 = NULL, selected_spectrum2
   spectra_plot <- plot_OpenSpecy(x, x2 = x2, selected_spectrum = selected_spectrum, selected_spectrum2 = selected_spectrum2)
 
   # Extract intensity and wavenumber for the selected spectrum
-  selected_spectrum_points <- x$metadata %>% filter(row_number() == selected_spectrum)
-  selected_spectrum_intensity <- selected_spectrum_points$intensity
+  selected_spectrum_points <- x$metadata[selected_spectrum, ]
+  selected_spectrum_intensity <- x$spectra[, ..selected_spectrum]
   selected_spectrum_wavenumber <- x$wavenumber
 
   # Add trace for the selected spectrum in the spectral plot

@@ -119,7 +119,7 @@ processed_data <- process_spectra(tiny_map,
 
 # Process spectra with smoothing and derivative
 processed_data <- process_spectra(tiny_map,
-                                  active_preprocessing = TRUE,
+                                  active_processing = TRUE,
                                   smooth_decision = TRUE,
                                   smooth_polynomial = 3,
                                   smooth_window = 11,
@@ -129,7 +129,7 @@ processed_data <- process_spectra(tiny_map,
                                   derivative_window = 11)
 
 # Sampling the OpenSpecy object
-sampled <- sample(processed_data, size = 3)
+sampled <- sample_spec(processed_data, size = 3)
 print(sampled)
 plot(sampled)
 

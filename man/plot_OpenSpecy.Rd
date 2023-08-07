@@ -41,7 +41,7 @@ plot_OpenSpecy(data1)
 plot_OpenSpecy(data1, x2 = data2)
 correlation <- correlate_spectra(conform_spec(data1, new_wavenumbers = data2$wavenumber, res = 5), conform_spec(data2, data2$wavenumbers, res = 5))
 heatmap_OpenSpecy(data2, z = data2$metadata$y)
-interactive_plot(data1, selected_spectrum = 2)
+interactive_plot(x = data2, selected_spectrum = 5)
 interactive_plot(data2, selected_spectrum = 2, x2 = data1, selected_spectrum2 = 1)
 
 }

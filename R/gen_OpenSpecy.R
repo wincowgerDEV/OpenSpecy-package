@@ -9,9 +9,6 @@
 #' \code{head()} shows the first few lines of an OpenSpecy object.
 #'
 #' @param x an OpenSpecy object.
-#' @param size a positive integer specifying the number of items to select from the spectra. (only for \code{sample()})
-#' @param replace should sampling be done with replacement? (only for \code{sample()})
-#' @param prob a vector of probability weights for obtaining the elements of the spectra being sampled. (only for \code{sample()})
 #' @param \ldots args.
 #'
 #' @return

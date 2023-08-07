@@ -9,8 +9,6 @@ correlate_spectra(object, ...)
 \arguments{
 \item{object}{An OpenSpecy object, typically with unknowns.}
 
-\item{...}{Additional arguments passed to the \code{cor()} function for correlation calculation.}
-
 \item{library}{An OpenSpecy object representing the library of spectra to correlate with.}
 
 \item{na.rm}{Logical value indicating whether missing values should be removed when calculating correlations. Default is \code{TRUE}.}
@@ -26,6 +24,8 @@ correlate_spectra(object, ...)
 \item{remove_empty}{Whether to remove empty columns in the metadata where there are no values.}
 
 \item{logic}{a logical or numeric vector describing which spectra to keep (TRUE).}
+
+\item{\ldots}{Additional arguments passed to the \code{cor()} function for correlation calculation.}
 }
 \value{
 A data table containing correlations between spectra and the library.
@@ -43,11 +43,11 @@ data("test_lib")
 unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) \%>\%
                       conform_spec(., new_wavenumbers = test_lib$wavenumber, res = spec_res(test_lib)) \%>\%
                       process_spectra(.)
-matches <- OpenSpecy::correlate_spectra(unknown, test_lib, top_n = 10, add_library_metadata = "sample_name")
+matches <- correlate_spectra(unknown, test_lib)
 
 test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_class == "polycarbonates")
 
-matches2 <- OpenSpecy::correlate_spectra(object = unknown, library = test_lib_extract, top_n = 20, add_library_metadata = "sample_name")
+matches2 <- correlate_spectra(object = unknown, library = test_lib_extract)
 
 }
 \seealso{

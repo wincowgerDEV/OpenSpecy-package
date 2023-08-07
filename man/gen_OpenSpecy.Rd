@@ -15,12 +15,6 @@
 \arguments{
 \item{x}{an OpenSpecy object.}
 
-\item{size}{a positive integer specifying the number of items to select from the spectra. (only for \code{sample()})}
-
-\item{replace}{should sampling be done with replacement? (only for \code{sample()})}
-
-\item{prob}{a vector of probability weights for obtaining the elements of the spectra being sampled. (only for \code{sample()})}
-
 \item{\ldots}{args.}
 }
 \value{
