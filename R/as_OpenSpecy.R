@@ -339,7 +339,7 @@ is_OpenSpecy <- function(x){
         warning("This is technically an OpenSpecy but wavenumbers should be a continuous sequence for all OpenSpecy functions to run smoothly. Consider sorting your wavenumbers and spectral intensities before turning into an OpenSpecy object.")
     }
     if(length(unique(colnames(x$spectra))) != ncol(x$spectra)){
-        warning("This is technically an OpenSpecy but column names should be unique in the spectral intensities otherwise some functions may not work. Consider creating new names for the spectral data or collapsing spectra with the same name.")
+        stop("Column names must be unique in the spectral intensities otherwise some functions may not work. Create new names for the spectral data or collapse spectra with the same name using collapse_spectra.")
     }
     return(TRUE)
 }
