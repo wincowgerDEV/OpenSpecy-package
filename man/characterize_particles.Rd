@@ -40,6 +40,7 @@ map <- read_extdata("CA_tiny_map.zip") |> read_any()
 map$metadata$particles <- ifelse(map$metadata$x == 1, "particle", "not_particle")
 identified_map <- characterize_particles(map, map$metadata$particles)
 test_collapsed <- collapse_spectra(identified_map)
+
 }
 \author{
 Win Cowger, Zacharias Steinmetz
