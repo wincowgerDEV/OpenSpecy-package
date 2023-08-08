@@ -34,7 +34,7 @@
 #' Other related functions.
 #'
 #' @importFrom utils head
-#' @importFrom graphics matplot
+#' @importFrom graphics matplot matlines
 #' @export
 head.OpenSpecy <- function(x, ...) {
   cbind(wavenumber = x$wavenumber, x$spectra) |> head(...)

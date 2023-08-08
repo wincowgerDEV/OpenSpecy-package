@@ -358,9 +358,8 @@ split.line <- function(x, separator, trim.blank = TRUE) {
 #'   Base64, ROC AUC, etc.. R package version 1.9.
 #'
 #' @importFrom utils modifyList
-#'
+#' @importFrom methods new
 #' @export
-#'
 read_envi <- function(file = stop("read_envi: file name needed"),
                       headerfile = NULL,
                       header = list(),

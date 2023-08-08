@@ -77,14 +77,16 @@ characterize_particles <- function(object, particles) {
     return(object)
 }
 
-.characterize_particles <- function(object, binary, name = NULL) {
+#' @importFrom grDevices chull
+#' @importFrom stats dist
+.characterize_particles <- function(x, binary, name = NULL) {
   # Label connected components in the binary image
-  binary_matrix <- matrix(binary, ncol = max(object$metadata$y)+1, byrow = T)
+  binary_matrix <- matrix(binary, ncol = max(x$metadata$y)+1, byrow = T)
   labeled_image <- imager::label(imager::as.cimg(binary_matrix), high_connectivity = T)
 
   # Create a dataframe with particle IDs for each true pixel
-  particle_points_dt <- data.table(x = object$metadata$x,
-                                   y = object$metadata$y,
+  particle_points_dt <- data.table(x = x$metadata$x,
+                                   y = x$metadata$y,
                                    particle_ids = as.character(as.vector(t(ifelse(binary_matrix, labeled_image, -88)))))
 
   # Apply the logic to clean components
@@ -92,8 +94,12 @@ characterize_particles <- function(object, particles) {
 
   # Calculate the convex hull for each particle
   # Calculate the convex hull for each particle
-  convex_hulls <- lapply(split(as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)), cleaned_components[cleaned_components >= 0]), function(coords) {
-    coords[unique(chull(coords[,2], coords[,1])),]
+  convex_hulls <- lapply(
+    split(
+      as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
+      cleaned_components[cleaned_components >= 0]
+      ),
+    function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
   })
 
   # Calculate area, Feret max, and particle IDs for each particle

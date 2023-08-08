@@ -39,9 +39,6 @@
 #'
 #' matches2 <- correlate_spectra(object = unknown, library = test_lib_extract)
 #'
-#' @importFrom magrittr %>%
-#' @importFrom data.table data.table fifelse .SD
-#' @importFrom dplyr left_join
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
@@ -51,6 +48,10 @@
 #' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
 #' object of choice
 #'
+#' @importFrom magrittr %>%
+#' @importFrom stats cor
+#' @importFrom data.table data.table fifelse .SD
+#' @importFrom dplyr left_join
 #' @export
 correlate_spectra <- function(object, ...) {
     UseMethod("correlate_spectra")
