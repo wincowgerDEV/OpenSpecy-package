@@ -1,3 +1,4 @@
+#' @rdname characterize_particles
 #' @title Characterize Particles
 #'
 #' @description
@@ -32,8 +33,7 @@
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
-#' @rdname characterize_particles
-#' @importFrom data.table as.data.table setDT rbindlist data.table transpose .SD unique
+#' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD
 #' @export
 collapse_spectra <- function(object) {
 
