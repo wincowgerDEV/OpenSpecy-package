@@ -4,6 +4,7 @@
 \alias{head.OpenSpecy}
 \alias{print.OpenSpecy}
 \alias{plot.OpenSpecy}
+\alias{lines.OpenSpecy}
 \title{Generic Open Specy Functions}
 \usage{
 \method{head}{OpenSpecy}(x, ...)
@@ -11,6 +12,8 @@
 \method{print}{OpenSpecy}(x, ...)
 
 \method{plot}{OpenSpecy}(x, ...)
+
+\method{lines}{OpenSpecy}(x, ...)
 }
 \arguments{
 \item{x}{an OpenSpecy object.}

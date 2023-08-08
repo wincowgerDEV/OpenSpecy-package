@@ -54,7 +54,7 @@
 #'                 baseline_selection = "Polynomial",
 #'                 baseline_polynomial = 8,
 #'                 derivative_decision = FALSE) |>
-#'   plot()
+#'   lines(col = "darkred")
 #'
 #' # Process spectra with smoothing and derivative
 #' process_spectra(raman_hdpe,
@@ -66,7 +66,7 @@
 #'                 derivative_order = 1,
 #'                 derivative_polynomial = 3,
 #'                 derivative_window = 11) |>
-#'   plot()
+#'   lines(col = "darkgreen")
 #'
 #' # Sampling a spectrum
 #' tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))

@@ -62,6 +62,15 @@ plot.OpenSpecy <- function(x, ...) {
   ...)
 }
 
+#' @rdname gen_OpenSpecy
+#'
+#' @method lines OpenSpecy
+#' @export
+lines.OpenSpecy <- function(x, ...) {
+  matlines(x$wavenumber, x$spectra, type = "l",
+          ...)
+}
+
 #Could be nice to add at some point.
 #summary.OpenSpecy <- function(x, ...) {
 
