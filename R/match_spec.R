@@ -51,7 +51,6 @@
 #' @importFrom magrittr %>%
 #' @importFrom stats cor
 #' @importFrom data.table data.table fifelse .SD
-#' @importFrom dplyr left_join
 #' @export
 correlate_spectra <- function(object, ...) {
     UseMethod("correlate_spectra")
@@ -81,13 +80,21 @@ identify_spectra <- function(cor_matrix, object, library, top_n = NULL,
         message("top_n was larger than the number of spectra in the library, returning all matches")
     }
 
-    data.table(object_id = colnames(object$spectra),
-                                   library_id = rep(colnames(library$spectra),
-                                               each = ncol(object$spectra)),
-                                   match_val = c(cor_matrix)) %>%
-        { if (is.numeric(top_n)) .[order(-match_val), head(.SD, top_n), by = object_id] else .} %>%
-        { if (is.character(add_library_metadata)) left_join(., library$metadata, by = c("library_id" = add_library_metadata)) else . } %>%
-        { if (is.character(add_object_metadata)) left_join(., object$metadata, by = c("object_id" = add_object_metadata)) else . }
+  out <- data.table(object_id = colnames(object$spectra),
+                    library_id = rep(colnames(library$spectra),
+                                     each = ncol(object$spectra)),
+                    match_val = c(cor_matrix))
+
+  if (is.character(add_library_metadata))
+    out <- merge(out, library$metadata,
+                 by.x = "library_id", by.y = add_library_metadata, all.x = T)
+  if (is.character(add_object_metadata))
+    out <- merge(out, object$metadata,
+                 by.x = "object_id", by.y = add_object_metadata, all.x = T)
+  if (is.numeric(top_n))
+    out <- out[order(-match_val), head(.SD, top_n), by = object_id]
+
+  return(out)
 }
 
 #' @export

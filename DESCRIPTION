@@ -50,7 +50,6 @@ Depends:
 Imports:
     methods,
     magrittr,
-    dplyr,
     data.table,
     jsonlite,
     yaml,
@@ -71,6 +70,7 @@ Suggests:
     shinythemes,
     shinyBS,
     shinyWidgets,
+    dplyr,
     ggplot2,
     DT,
     curl,
