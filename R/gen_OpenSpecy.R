@@ -57,7 +57,9 @@ print.OpenSpecy <- function(x, ...) {
 plot.OpenSpecy <- function(x, ...) {
   matplot(x$wavenumber, x$spectra, type = "l",
   xlab = "wavenumber",
-  ylab = "absorbance intensity", ...)
+  ylab = "absorbance intensity",
+  xlim = rev(range(x$wavenumber)),
+  ...)
 }
 
 #Could be nice to add at some point.
