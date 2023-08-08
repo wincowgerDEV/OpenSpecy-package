@@ -46,7 +46,7 @@ LazyLoad: true
 LazyData: true
 VignetteBuilder: knitr
 Depends:
-    R (>= 4.0.0)
+    R (>= 4.1.0)
 Imports:
     magrittr,
     dplyr,
