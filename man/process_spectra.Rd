@@ -104,32 +104,36 @@ Process spectra data by applying various preprocessing steps. This is a monolith
 \code{sample_spec()} samples spectra from an OpenSpecy object.
 }
 \examples{
-tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
+data("raman_hdpe")
+plot(raman_hdpe)
 
 # Process spectra with range restriction and baseline subtraction
-processed_data <- process_spectra(tiny_map,
-                                  active_processing = TRUE,
-                                  range_decision = TRUE,
-                                  min_range = 500,
-                                  max_range = 3000,
-                                  baseline_decision = TRUE,
-                                  baseline_selection = "Polynomial",
-                                  baseline_polynomial = 8,
-                                  derivative_decision = FALSE)
+process_spectra(raman_hdpe,
+                active_processing = TRUE,
+                range_decision = TRUE,
+                min_range = 500,
+                max_range = 3000,
+                baseline_decision = TRUE,
+                baseline_selection = "Polynomial",
+                baseline_polynomial = 8,
+                derivative_decision = FALSE) |>
+  plot()
 
 # Process spectra with smoothing and derivative
-processed_data <- process_spectra(tiny_map,
-                                  active_processing = TRUE,
-                                  smooth_decision = TRUE,
-                                  smooth_polynomial = 3,
-                                  smooth_window = 11,
-                                  derivative_decision = TRUE,
-                                  derivative_order = 1,
-                                  derivative_polynomial = 3,
-                                  derivative_window = 11)
+process_spectra(raman_hdpe,
+                active_processing = TRUE,
+                smooth_decision = TRUE,
+                smooth_polynomial = 3,
+                smooth_window = 11,
+                derivative_decision = TRUE,
+                derivative_order = 1,
+                derivative_polynomial = 3,
+                derivative_window = 11) |>
+  plot()
 
-# Sampling the OpenSpecy object
-sampled <- sample_spec(processed_data, size = 3)
+# Sampling a spectrum
+tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
+sampled <- sample_spec(tiny_map, size = 3)
 print(sampled)
 plot(sampled)
 
