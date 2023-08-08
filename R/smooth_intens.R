@@ -1,3 +1,4 @@
+#' @rdname smooth_intens
 #' @title Smooth spectral intensities
 #'
 #' @description

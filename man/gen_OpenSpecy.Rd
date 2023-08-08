@@ -5,6 +5,7 @@
 \alias{print.OpenSpecy}
 \alias{plot.OpenSpecy}
 \alias{lines.OpenSpecy}
+\alias{summary.OpenSpecy}
 \title{Generic Open Specy Functions}
 \usage{
 \method{head}{OpenSpecy}(x, ...)
@@ -14,9 +15,13 @@
 \method{plot}{OpenSpecy}(x, ...)
 
 \method{lines}{OpenSpecy}(x, ...)
+
+\method{summary}{OpenSpecy}(object, ...)
 }
 \arguments{
 \item{x}{an OpenSpecy object.}
+
+\item{object}{an OpenSpecy object.}
 
 \item{\ldots}{args.}
 }

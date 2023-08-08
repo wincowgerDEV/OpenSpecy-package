@@ -9,6 +9,7 @@
 #' \code{head()} shows the first few lines of an OpenSpecy object.
 #'
 #' @param x an OpenSpecy object.
+#' @param object an OpenSpecy object.
 #' @param \ldots args.
 #'
 #' @return
@@ -71,7 +72,28 @@ lines.OpenSpecy <- function(x, ...) {
           ...)
 }
 
-#Could be nice to add at some point.
-#summary.OpenSpecy <- function(x, ...) {
+#' @rdname gen_OpenSpecy
+#'
+#' @method summary OpenSpecy
+#' @export
+summary.OpenSpecy <- function(object, ...) {
+  cat("$wavenumber\n")
+  wl <- length(object$wavenumber)
+  wr <- range(object$wavenumber)
+  res <- spec_res(object)
+  array(c(wl, wr, res), c(1,4), list("", c("Length", "Min.", "Max.", "Res."))) |>
+    print()
 
-#}
+  cat("\n$spectra\n")
+  sl <- length(object$spectra)
+  sr <- range(object$spectra)
+  array(c(sl, sr), c(1,3), list("", c("Number", "Min. Intensity", "Max. Intensity"))) |>
+    print()
+
+  cat("\n$metadata\n")
+  xr <- range(object$metadata$x)
+  yr <- range(object$metadata$y)
+  t(array(c(xr, yr), c(2,2), list(c("Min.", "Max."), c("x", "y")))) |> print()
+  names(object$metadata) |> print()
+}
+
