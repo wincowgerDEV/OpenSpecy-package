@@ -1,4 +1,4 @@
-#' @rdname change_range
+#' @rdname adj_range
 #' @title Range restriction and flattening for spectra
 #'
 #' @description
@@ -43,14 +43,14 @@ restrict_range <- function(x, ...) {
     UseMethod("restrict_range")
 }
 
-#' @rdname change_range
+#' @rdname adj_range
 #'
 #' @export
 restrict_range.default <- function(x, ...) {
     stop("x needs to be of class 'OpenSpecy'")
 }
 
-#' @rdname change_range
+#' @rdname adj_range
 #'
 #' @export
 restrict_range.OpenSpecy <- function(x,
@@ -73,21 +73,21 @@ restrict_range.OpenSpecy <- function(x,
     return(x)
 }
 
-#' @rdname change_range
+#' @rdname adj_range
 #'
 #' @export
 flatten_range <- function(x, ...) {
   UseMethod("flatten_range")
 }
 
-#' @rdname change_range
+#' @rdname adj_range
 #'
 #' @export
 flatten_range.default <- function(x, ...) {
   stop("x needs to be of class 'OpenSpecy'")
 }
 
-#' @rdname change_range
+#' @rdname adj_range
 #'
 #' @export
 flatten_range.OpenSpecy <- function(x,
