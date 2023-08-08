@@ -12,7 +12,7 @@ characterize_particles(object, particles)
 \arguments{
 \item{object}{An OpenSpecy object}
 
-\item{particles}{A logical vector or character vector describing which of the spectra are 
+\item{particles}{A logical vector or character vector describing which of the spectra are
 of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
 represent the different particle types present in the spectra.}
 }

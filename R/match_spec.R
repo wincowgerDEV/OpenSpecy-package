@@ -69,8 +69,9 @@ correlate_spectra.OpenSpecy <- function(object, library, na.rm = T, ...){
 }
 
 #' @export
-identify_spectra <- function(cor_matrix, object, library, top_n = NULL, add_library_metadata = NULL, add_object_metadata = NULL, ...){
-
+identify_spectra <- function(cor_matrix, object, library, top_n = NULL,
+                             add_library_metadata = NULL,
+                             add_object_metadata = NULL, ...){
     if(is.numeric(top_n) && top_n > ncol(library$spectra)){
         top_n = NULL
         message("top_n was larger than the number of spectra in the library, returning all matches")

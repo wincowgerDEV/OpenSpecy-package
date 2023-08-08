@@ -35,7 +35,7 @@
 #'
 #' @importFrom plotly plot_ly add_trace add_markers subplot layout
 #' @importFrom data.table melt
-#' @importFrom dplyr %>%
+#' @importFrom magrittr %>%
 #'
 #' @export
 plot_OpenSpecy <- function(x, x2 = NULL, ...) {
