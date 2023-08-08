@@ -43,7 +43,7 @@ collapse_spectra <- function(object) {
         transpose(make.names = "id")
 
     object$metadata <- object$metadata |>
-        unique(by = c("particle_ids", "area", "feret_max", "centroid_y",
+        unique(by = c("particle_id", "area", "feret_max", "centroid_y",
                       "centroid_x"))
 
     return(object)
@@ -72,7 +72,7 @@ characterize_particles <- function(object, particles) {
         stop("Particles needs to be a character or logical vector.", call. = F)
     }
 
-    object$metadata <- particles_df[setDT(object$metadata), on = .(x, y)][,particle_ids := ifelse(is.na(particle_ids), "-88", particle_ids)][,centroid_x := mean(x), by = "particle_ids"][,centroid_y := mean(y), by = "particle_ids"]
+    object$metadata <- particles_df[setDT(object$metadata), on = .(x, y)][,particle_id := ifelse(is.na(particle_id), "-88", particle_id)][,centroid_x := mean(x), by = "particle_id"][,centroid_y := mean(y), by = "particle_id"]
 
     return(object)
 }
@@ -81,13 +81,14 @@ characterize_particles <- function(object, particles) {
 #' @importFrom stats dist
 .characterize_particles <- function(x, binary, name = NULL) {
   # Label connected components in the binary image
-  binary_matrix <- matrix(binary, ncol = max(x$metadata$y)+1, byrow = T)
-  labeled_image <- imager::label(imager::as.cimg(binary_matrix), high_connectivity = T)
+  binary_matrix <- matrix(binary, ncol = max(x$metadata$y) + 1, byrow = T)
+  labeled_image <- imager::label(imager::as.cimg(binary_matrix),
+                                 high_connectivity = T)
 
   # Create a dataframe with particle IDs for each true pixel
   particle_points_dt <- data.table(x = x$metadata$x,
                                    y = x$metadata$y,
-                                   particle_ids = as.character(as.vector(t(ifelse(binary_matrix, labeled_image, -88)))))
+                                   particle_id = as.character(as.vector(t(ifelse(binary_matrix, labeled_image, -88)))))
 
   # Apply the logic to clean components
   cleaned_components <- ifelse(binary_matrix, labeled_image, -88)
@@ -114,9 +115,13 @@ characterize_particles <- function(object, particles) {
     # Area
     area <- sum(cleaned_components == as.integer(id))
 
-    data.table(particle_ids = id, area = area, feret_max = feret_max)
-  }), fill = TRUE)
+    data.table(particle_id = id, area = area, feret_max = feret_max)
+  }), fill = T)
 
   # Join with the coordinates from the binary image
-  particle_points_dt[particles_dt[, particle_ids := if (!is.null(name)) paste0(name, "_", particle_ids) else particle_ids], on = "particle_ids"]
+  if (!is.null(name)) {
+    particles_dt$particle_id <- paste0(name, "_", particles_dt$particle_id)
+  }
+
+  particle_points_dt[particles_dt, on = "particle_id"]
 }

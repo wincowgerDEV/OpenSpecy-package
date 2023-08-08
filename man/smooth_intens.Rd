@@ -6,14 +6,14 @@
 \alias{smooth_intens.OpenSpecy}
 \title{Smooth spectral intensities}
 \usage{
-smooth_intens(object, ...)
+smooth_intens(x, ...)
 
-\method{smooth_intens}{default}(object, ...)
+\method{smooth_intens}{default}(x, ...)
 
-\method{smooth_intens}{OpenSpecy}(object, p = 3, n = 11, m = 0, abs = F, make_rel = TRUE, ...)
+\method{smooth_intens}{OpenSpecy}(x, p = 3, n = 11, m = 0, abs = FALSE, make_rel = TRUE, ...)
 }
 \arguments{
-\item{object}{a list object of class \code{OpenSpecy}.}
+\item{x}{an object of class \code{OpenSpecy}.}
 
 \item{p}{polynomial order for the filter}
 

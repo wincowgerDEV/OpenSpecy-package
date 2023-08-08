@@ -11,7 +11,7 @@
 #' A typical good smooth can be achieved with 11 data point window and a 3rd or
 #' 4th order polynomial.
 #'
-#' @param object a list object of class \code{OpenSpecy}.
+#' @param x an object of class \code{OpenSpecy}.
 #' @param p polynomial order for the filter
 #' @param n number of data points in the window, filter length (must be odd).
 #' @param m the derivative order if you want to calculate the derivative. Zero (default) is no derivative.
@@ -40,34 +40,35 @@
 #' Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
 #' \strong{36}(8), 1627--1639.
 #'
-#' @importFrom magrittr %>%
-#' @importFrom signal filter sgolay
 #' @importFrom data.table .SD
 #' @export
-smooth_intens <- function(object, ...) {
+smooth_intens <- function(x, ...) {
   UseMethod("smooth_intens")
 }
 
 #' @rdname smooth_intens
 #'
 #' @export
-smooth_intens.default <- function(object, ...) {
-  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
+smooth_intens.default <- function(x, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname smooth_intens
 #'
 #' @export
-smooth_intens.OpenSpecy <- function(object, p = 3, n = 11, m = 0, abs = F, make_rel = TRUE,
-                                  ...) {
-  filt <- object$spectra[, lapply(.SD, .sgfilt, p = p, n = n, m = m, abs = abs, ...)]
+smooth_intens.OpenSpecy <- function(x, p = 3, n = 11, m = 0, abs = FALSE,
+                                    make_rel = TRUE,
+                                    ...) {
+  filt <- x$spectra[, lapply(.SD, .sgfilt, p = p, n = n, m = m, abs = abs, ...)]
+  if (make_rel) x$spectra <- make_rel(filt) else x$spectra <- filt
 
-  if (make_rel) object$spectra <- make_rel(filt) else object$spectra <- filt
-
-  return(object)
+  return(x)
 }
 
+#' @importFrom signal filter sgolay
 .sgfilt <- function(y, p, n, m, abs = F, ...) {
-  signal::filter(filt = sgolay(p = p, n = n, m = m, ...), x = y) %>%
-        {if(abs) abs(.) else .}
+  out <- signal::filter(filt = sgolay(p = p, n = n, m = m, ...), x = y)
+  if(abs) out <- abs(out)
+
+  return(out)
 }

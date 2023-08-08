@@ -152,15 +152,8 @@ as_OpenSpecy.list <- function(x, ...) {
 #'
 #' @export
 as_OpenSpecy.hyperSpec <- function(x, ...) {
-    do.call("as_OpenSpecy", list(x = x@wavelength,
-                                 spectra = as.data.table(t(x$spc)), ...))
-}
-
-#' @rdname as_OpenSpecy
-#'
-#' @export
-as_OpenSpecy.vector <- function(x, ...) {
-    do.call("as_OpenSpecy", list(x = x, spectra = spectra, ...))
+  do.call("as_OpenSpecy", list(x = x@wavelength,
+                               spectra = as.data.table(t(x$spc)), ...))
 }
 
 #' @rdname as_OpenSpecy

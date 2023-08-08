@@ -4,7 +4,7 @@ test_that("check that particles are identified when given logical", {
     map$metadata$particles <- map$metadata$x == 0
     identified_map <- characterize_particles(map, map$metadata$particles)
     expect_true(is_OpenSpecy(identified_map))
-    expect_true(length(unique(identified_map$metadata$particle_ids)) == 2)
+    expect_true(length(unique(identified_map$metadata$particle_id)) == 2)
     expect_true(max(identified_map$metadata$area, na.rm = T) == 13)
     expect_true(max(identified_map$metadata$feret_max, na.rm = T) == 13)
 })
@@ -14,7 +14,7 @@ test_that("check that particles are identified when given character", {
     map$metadata$particles <- ifelse(map$metadata$x == 1, "particle", "not_particle")
     identified_map <- characterize_particles(map, map$metadata$particles)
     expect_true(is_OpenSpecy(identified_map))
-    expect_true(length(unique(identified_map$metadata$particle_ids)) == 3)
+    expect_true(length(unique(identified_map$metadata$particle_id)) == 3)
     expect_true(max(identified_map$metadata$area, na.rm = T) == 182)
     expect_true(round(max(identified_map$metadata$feret_max, na.rm = T)) == 19)
 })
@@ -61,7 +61,7 @@ identified_map <- characterize_particles(map, particles)
 test_collapsed <- collapse_spectra(identified_map)
 expect_true(is_OpenSpecy(test_collapsed))
 
-expect_equal(c("particle_ids", "area", "feret_max", "centroid_y", "centroid_x"), names(test_collapsed$metadata))
+expect_equal(c("particle_id", "area", "feret_max", "centroid_y", "centroid_x"), names(test_collapsed$metadata))
 
 })
 
