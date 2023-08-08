@@ -89,9 +89,6 @@ Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
 
 Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 }
-\seealso{
-\code{\link{match_spec}()}
-}
 \author{
 Zacharias Steinmetz
 }

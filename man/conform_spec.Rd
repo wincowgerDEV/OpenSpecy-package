@@ -32,9 +32,7 @@ conform_spec(raman_hdpe, c(1000, 2000))
 
 }
 \seealso{
-\code{\link{subtr_bg}()} for spectral background correction;
-\code{\link{match_spec}()} matches spectra with the Open Specy or other
-reference libraries
+\code{\link{subtr_bg}()} for spectral background correction.
 }
 \author{
 Win Cowger, Zacharias Steinmetz

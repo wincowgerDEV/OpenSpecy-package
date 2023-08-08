@@ -32,7 +32,10 @@
 #'   process_spectra()
 #' matches <- correlate_spectra(unknown, test_lib)
 #'
-#' test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_class == "polycarbonates")
+#' test_lib_extract <- filter_spec(
+#'   test_lib,
+#'   logic = test_lib$metadata$polymer_class == "polycarbonates"
+#' )
 #'
 #' matches2 <- correlate_spectra(object = unknown, library = test_lib_extract)
 #'
@@ -144,7 +147,3 @@ filter_spec <- function(object, logic) {
     object$metadata <- object$metadata[logic,]
     object
 }
-
-
-
-

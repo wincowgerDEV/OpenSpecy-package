@@ -21,9 +21,7 @@
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @seealso
-#' \code{\link{subtr_bg}()} for spectral background correction;
-#' \code{\link{match_spec}()} matches spectra with the Open Specy or other
-#' reference libraries
+#' \code{\link{subtr_bg}()} for spectral background correction.
 #'
 #' @importFrom magrittr %>%
 #' @importFrom data.table .SD

@@ -55,9 +55,6 @@
 #' @author
 #' Zacharias Steinmetz
 #'
-#' @seealso
-#' \code{\link{match_spec}()}
-#'
 #' @references
 #' Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
 #' De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020).
@@ -119,7 +116,7 @@ load_lib <- function(types = c("raw", "nobaseline", "derivative"),
 
   chk <- .chkf(types = types, path = lp, condition = "stop")
   fp <- file.path(lp, paste0("both_", types, ".rds"))
-  
+
   return(readRDS(fp))
 }
 
@@ -134,9 +131,9 @@ load_lib <- function(types = c("raw", "nobaseline", "derivative"),
                path)
 
   chk <- file.path(lp, fn) %>% file.exists()
-  
+
   names(chk) <- types
-  
+
   out = paste(types[!chk], collapse = ", ")
 
   if (!all(chk)) do.call(condition, list(out, " library missing or incomplete; ",

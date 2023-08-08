@@ -45,7 +45,10 @@ unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
   process_spectra()
 matches <- correlate_spectra(unknown, test_lib)
 
-test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_class == "polycarbonates")
+test_lib_extract <- filter_spec(
+  test_lib,
+  logic = test_lib$metadata$polymer_class == "polycarbonates"
+)
 
 matches2 <- correlate_spectra(object = unknown, library = test_lib_extract)
 
