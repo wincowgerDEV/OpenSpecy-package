@@ -6,15 +6,16 @@
 \alias{spec_res.OpenSpecy}
 \title{Spectral resolution}
 \usage{
-spec_res(object, ...)
+spec_res(x, ...)
 
-\method{spec_res}{default}(object, ...)
+\method{spec_res}{default}(x, ...)
 
-\method{spec_res}{OpenSpecy}(object)
+\method{spec_res}{OpenSpecy}(x, ...)
 }
 \arguments{
-\item{object}{a numeric vector or an \R object which is coercible to one by
-\code{as.vector(x, "numeric")}; \code{x} should be \code{wavenumber} data.}
+\item{x}{a numeric vector with \code{wavenumber} data or an OpenSpecy object.}
+
+\item{\ldots}{further arguments passed to subfunctions; currently not used.}
 }
 \value{
 \code{spec_res()} returns a single numeric value.
@@ -30,7 +31,6 @@ distinguished.
 }
 \examples{
 data("raman_hdpe")
-spec_res(raman_hdpe$wavenumber)
 spec_res(raman_hdpe)
 
 }
