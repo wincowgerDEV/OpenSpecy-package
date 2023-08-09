@@ -1,20 +1,24 @@
-#' @title Generic Open Specy Functions
+#' @title Generic Open Specy Methods
 #' @rdname gen_OpenSpecy
 #'
 #' @description
-#' Functions to manipulate and visualize OpenSpecy objects.
+#' Methods to visualize OpenSpecy objects.
 #'
 #' @details
-#' \code{print()} prints the contents of an OpenSpecy object.
 #' \code{head()} shows the first few lines of an OpenSpecy object.
+#' \code{print()} prints the contents of an OpenSpecy object.
+#' \code{summary()} produces a result summary of an OpenSpecy object.
+#' \code{plot()} produces a \code{\link[graphics]{matplot}()} of an OpenSpecy
+#' object; \code{lines()} adds new spectra to it.
 #'
 #' @param x an OpenSpecy object.
 #' @param object an OpenSpecy object.
-#' @param \ldots args.
+#' @param \ldots further arguments passed to the respective default method.
 #'
 #' @return
-#' \code{print()} returns a textual representation of an OpenSpecy object.
-#' \code{head()} returns the first few lines of an OpenSpecy object.
+#' \code{head()}, \code{print()}, and \code{summary()} return a textual
+#' representation of an OpenSpecy object.
+#' \code{plot()} and \code{lines()} return a plot.
 #'
 #' @examples
 #' data("raman_hdpe")
@@ -32,7 +36,9 @@
 #' Zacharias Steinmetz, Win Cowger
 #'
 #' @seealso
-#' Other related functions.
+#' \code{\link[utils]{head}()}, \code{\link[base]{print}()},
+#' \code{\link[base]{summary}()}, \code{\link[graphics]{matplot}()}, and
+#' \code{\link[graphics]{matlines}()}
 #'
 #' @importFrom utils head
 #' @importFrom graphics matplot matlines
@@ -81,13 +87,15 @@ summary.OpenSpecy <- function(object, ...) {
   wl <- length(object$wavenumber)
   wr <- range(object$wavenumber)
   res <- spec_res(object)
-  array(c(wl, wr, res), c(1,4), list("", c("Length", "Min.", "Max.", "Res."))) |>
+  array(c(wl, wr, res), c(1,4), list("", c("Length", "Min.", "Max.",
+                                           "Res."))) |>
     print()
 
   cat("\n$spectra\n")
   sl <- length(object$spectra)
   sr <- range(object$spectra)
-  array(c(sl, sr), c(1,3), list("", c("Number", "Min. Intensity", "Max. Intensity"))) |>
+  array(c(sl, sr), c(1,3), list("", c("Number", "Min. Intensity",
+                                      "Max. Intensity"))) |>
     print()
 
   cat("\n$metadata\n")
@@ -96,4 +104,3 @@ summary.OpenSpecy <- function(object, ...) {
   t(array(c(xr, yr), c(2,2), list(c("Min.", "Max."), c("x", "y")))) |> print()
   names(object$metadata) |> print()
 }
-
