@@ -42,7 +42,7 @@ This function correlates two OpenSpecy objects, typically one with knowns and on
 data("test_lib")
 unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
   conform_spec(new_wavenumbers = test_lib$wavenumber, res = spec_res(test_lib)) |>
-  process_spectra()
+  process_spec()
 matches <- cor_spec(unknown, test_lib)
 
 test_lib_extract <- filter_spec(

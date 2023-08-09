@@ -1,5 +1,5 @@
 #' @title Preprocess Spectra
-#' @rdname process_spectra
+#' @rdname process_spec
 #'
 #' @description
 #' Process spectra data by applying various preprocessing steps. This is a monolithic function for all common preprocessing steps in one place.
@@ -36,7 +36,7 @@
 #' @param derivative_window Integer value specifying the window size for derivative calculation.
 #'
 #' @return
-#' \code{process_spectra()} returns an OpenSpecy object with preprocessed
+#' \code{process_spec()} returns an OpenSpecy object with preprocessed
 #' spectra based on the specified parameters.
 #' \code{sample_spec()} returns an OpenSpecy object with a subset of the spectra.
 #'
@@ -45,7 +45,7 @@
 #' plot(raman_hdpe)
 #'
 #' # Process spectra with range restriction and baseline subtraction
-#' process_spectra(raman_hdpe,
+#' process_spec(raman_hdpe,
 #'                 active_processing = TRUE,
 #'                 range_decision = TRUE,
 #'                 min_range = 500,
@@ -57,7 +57,7 @@
 #'   lines(col = "darkred")
 #'
 #' # Process spectra with smoothing and derivative
-#' process_spectra(raman_hdpe,
+#' process_spec(raman_hdpe,
 #'                 active_processing = TRUE,
 #'                 smooth_decision = TRUE,
 #'                 smooth_polynomial = 3,
@@ -76,7 +76,7 @@
 #'
 #' @importFrom magrittr %>%
 #' @export
-process_spectra <- function(x,
+process_spec <- function(x,
                             active_processing = T,
                             adj_intensity_decision = F,
                             type = "none",
@@ -144,7 +144,7 @@ process_spectra <- function(x,
     }
 }
 
-#' @rdname process_spectra
+#' @rdname process_spec
 #'
 #' @export
 sample_spec <- function(x, ...) {

@@ -52,13 +52,13 @@ test_that("check that collapse particles returns expected values", {
 map <- read_extdata("CA_tiny_map.zip") |> read_any()
 particles <- ifelse(map$metadata$x == 1, "particleA", "particleB")
 identified_map <- characterize_particles(map, particles)
-test_collapsed <- collapse_spectra(identified_map)
+test_collapsed <- collapse_spec(identified_map)
 expect_true(is_OpenSpecy(test_collapsed))
 
 map <- read_extdata("CA_tiny_map.zip") |> read_any()
 particles <- map$metadata$x == 1
 identified_map <- characterize_particles(map, particles)
-test_collapsed <- collapse_spectra(identified_map)
+test_collapsed <- collapse_spec(identified_map)
 expect_true(is_OpenSpecy(test_collapsed))
 
 expect_equal(c("particle_id", "area", "feret_max", "centroid_y", "centroid_x"), names(test_collapsed$metadata))

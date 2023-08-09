@@ -6,7 +6,7 @@
 #'
 #' @details
 #' `characterize_particles()` accepts an OpenSpecy object and a logical or character vector describing which pixels correspond to particles.
-#' `collapse_spectra()` takes an OpenSpecy object with particle-specific metadata
+#' `collapse_spec()` takes an OpenSpecy object with particle-specific metadata
 #' (from `characterize_particles()`) and collapses the spectra to median intensities for each unique particle.
 #' It also updates the metadata with centroid coordinates, while preserving the particle information on area and Feret max.
 #'
@@ -18,13 +18,13 @@
 #' map <- read_extdata("CA_tiny_map.zip") |> read_any()
 #' map$metadata$particles <- map$metadata$x == 0
 #' identified_map <- characterize_particles(map, map$metadata$particles)
-#' test_collapsed <- collapse_spectra(identified_map)
+#' test_collapsed <- collapse_spec(identified_map)
 #'
 #' #Character example
 #' map <- read_extdata("CA_tiny_map.zip") |> read_any()
 #' map$metadata$particles <- ifelse(map$metadata$x == 1, "particle", "not_particle")
 #' identified_map <- characterize_particles(map, map$metadata$particles)
-#' test_collapsed <- collapse_spectra(identified_map)
+#' test_collapsed <- collapse_spec(identified_map)
 #'
 #' @param object An OpenSpecy object
 #' @param particles A logical vector or character vector describing which of the spectra are
@@ -36,17 +36,17 @@
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
 #' @export
-collapse_spectra <- function(object) {
+collapse_spec <- function(object) {
 
-    # Calculate the median spectra for each unique particle_id
-    object$spectra <- transpose(object$spectra)[,id := object$metadata$particle_id][,lapply(.SD, median, na.rm=TRUE), by = id] |>
-        transpose(make.names = "id")
+  # Calculate the median spectra for each unique particle_id
+  object$spectra <- transpose(object$spectra)[,id := object$metadata$particle_id][,lapply(.SD, median, na.rm=TRUE), by = id] |>
+    transpose(make.names = "id")
 
-    object$metadata <- object$metadata |>
-        unique(by = c("particle_id", "area", "feret_max", "centroid_y",
-                      "centroid_x"))
+  object$metadata <- object$metadata |>
+    unique(by = c("particle_id", "area", "feret_max", "centroid_y",
+                  "centroid_x"))
 
-    return(object)
+  return(object)
 }
 
 #' @rdname characterize_particles
@@ -55,26 +55,26 @@ collapse_spectra <- function(object) {
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
 characterize_particles <- function(object, particles) {
-    if(is.logical(particles)){
-        if(all(particles) | all(!particles)){
-            stop("Particles cannot be all TRUE or all FALSE values because that would indicate that there are no distinct particles.")
-        }
-        particles_df <- .characterize_particles(object, particles)
-    } else if(is.character(particles)){
-        if(length(unique(particles)) == 1){
-            stop("Particles cannot all have a single name because that would indicate that there are no distinct particles.")
-        }
-        particles_df <- rbindlist(lapply(unique(particles), function(x){
-            logical_particles <- particles == x
-            .characterize_particles(object, logical_particles)
-        }))
-    } else {
-        stop("Particles needs to be a character or logical vector.", call. = F)
+  if(is.logical(particles)){
+    if(all(particles) | all(!particles)){
+      stop("Particles cannot be all TRUE or all FALSE values because that would indicate that there are no distinct particles.")
     }
+    particles_df <- .characterize_particles(object, particles)
+  } else if(is.character(particles)){
+    if(length(unique(particles)) == 1){
+      stop("Particles cannot all have a single name because that would indicate that there are no distinct particles.")
+    }
+    particles_df <- rbindlist(lapply(unique(particles), function(x){
+      logical_particles <- particles == x
+      .characterize_particles(object, logical_particles)
+    }))
+  } else {
+    stop("Particles needs to be a character or logical vector.", call. = F)
+  }
 
-    object$metadata <- particles_df[setDT(object$metadata), on = .(x, y)][,particle_id := ifelse(is.na(particle_id), "-88", particle_id)][,centroid_x := mean(x), by = "particle_id"][,centroid_y := mean(y), by = "particle_id"]
+  object$metadata <- particles_df[setDT(object$metadata), on = .(x, y)][,particle_id := ifelse(is.na(particle_id), "-88", particle_id)][,centroid_x := mean(x), by = "particle_id"][,centroid_y := mean(y), by = "particle_id"]
 
-    return(object)
+  return(object)
 }
 
 #' @importFrom grDevices chull
@@ -99,9 +99,9 @@ characterize_particles <- function(object, particles) {
     split(
       as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
       cleaned_components[cleaned_components >= 0]
-      ),
+    ),
     function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
-  })
+    })
 
   # Calculate area, Feret max, and particle IDs for each particle
   particles_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
