@@ -21,7 +21,7 @@
 #' tiny_map <- read_zip(read_extdata("CA_tiny_map.zip"))
 #' plot_OpenSpecy(raman_hdpe)
 #'
-#' correlation <- correlate_spectra(
+#' correlation <- cor_spec(
 #'   conform_spec(raman_hdpe, new_wavenumbers = raman_hdpe$wavenumber, res = 5),
 #'   conform_spec(tiny_map, tiny_map$wavenumbers, res = 5)
 #' )

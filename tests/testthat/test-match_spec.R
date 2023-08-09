@@ -1,4 +1,4 @@
-# Create test data for correlate_spectra function
+# Create test data for cor_spec function
 data("test_lib")
 unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) %>%
     conform_spec(., new_wavenumbers = test_lib$wavenumber, res = spec_res(test_lib)) %>%
@@ -7,9 +7,9 @@ unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) %>%
 # Create a subset of test_lib for filtering
 test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_class == "polycarbonates")
 
-# Write the tests for correlate_spectra function
-test_that("correlate_spectra returns a data.table with correct columns", {
-    matches <- correlate_spectra(object = unknown,library =  test_lib)
+# Write the tests for cor_spec function
+test_that("cor_spec returns a data.table with correct columns", {
+    matches <- cor_spec(object = unknown,library =  test_lib)
     expect_true(inherits(matches, "matrix"))
     expect_identical(dim(matches), c(ncol(test_lib$spectra), ncol(unknown$spectra))) 
     top_matches <- max_cor_named(cor_matrix = matches, na.rm = T)
@@ -19,7 +19,7 @@ test_that("correlate_spectra returns a data.table with correct columns", {
     test_metadata <- get_metadata(object = test_lib, logic = names(top_matches), remove_empty = T)
     expect_true(nrow(test_metadata) == 1)
     expect_true(!"test" %in% names(test_metadata))
-    full_test <- identify_spectra(cor_matrix = matches, object = unknown, library = test_lib, top_n = 5, add_library_metadata = "sample_name")
+    full_test <- ident_spec(cor_matrix = matches, object = unknown, library = test_lib, top_n = 5, add_library_metadata = "sample_name")
     expect_true(nrow(full_test) == 5)
 })
 
