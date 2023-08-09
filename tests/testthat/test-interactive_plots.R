@@ -1,18 +1,18 @@
 
-test_that("heatmap_OpenSpecy generates the correct heatmap", {
+test_that("heatmap_spec generates the correct heatmap", {
     # Create a test OpenSpecy object
     map <- read_zip(read_extdata("CA_tiny_map.zip"))
-    heat_map <- heatmap_OpenSpecy(map, z = map$metadata$y)
+    heat_map <- heatmap_spec(map, z = map$metadata$y)
     
     # Test whether the heatmap object is a plotly object
     expect_true("plotly" %in% class(heat_map))
     
 })
 
-test_that("plot_OpenSpecy generates the correct spectra plot", {
+test_that("plotly_spec generates the correct spectra plot", {
     # Create a test OpenSpecy object
     data1 <- read_any(read_extdata("raman_hdpe.json"))
-    spectra_plot <- plot_OpenSpecy(data1, selected_spectrum = 1)
+    spectra_plot <- plotly_spec(data1, selected_spectrum = 1)
     
     # Test whether the spectra_plot object is a plotly object
     expect_true("plotly" %in% class(spectra_plot))
