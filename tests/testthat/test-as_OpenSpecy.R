@@ -77,6 +77,5 @@ test_that("OpenSpecy objects are transcribed to and from hyperSpec objects", {
     expect_true(is_OpenSpecy(OpenHyper))
     expect_equal(OpenHyper$wavenumber,hyperOpenSpecy@wavelength)
     expect_equal(unlist(OpenHyper$spectra$V1),unname(t(hyperOpenSpecy$spc)[,1]))
-    
-})
 
+})

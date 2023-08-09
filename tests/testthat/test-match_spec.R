@@ -9,17 +9,17 @@ test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_clas
 
 # Write the tests for cor_spec function
 test_that("cor_spec returns a data.table with correct columns", {
-    matches <- cor_spec(object = unknown,library =  test_lib)
+    matches <- cor_spec(unknown,library =  test_lib)
     expect_true(inherits(matches, "matrix"))
-    expect_identical(dim(matches), c(ncol(test_lib$spectra), ncol(unknown$spectra))) 
+    expect_identical(dim(matches), c(ncol(test_lib$spectra), ncol(unknown$spectra)))
     top_matches <- max_cor_named(cor_matrix = matches, na.rm = T)
     expect_true(length(top_matches) == 1)
     expect_true(ncol(filter_spec(test_lib, logic = names(top_matches))$spectra) == 1)
     test_lib$metadata$test <- NA
-    test_metadata <- get_metadata(object = test_lib, logic = names(top_matches), remove_empty = T)
+    test_metadata <- get_metadata(test_lib, logic = names(top_matches), remove_empty = T)
     expect_true(nrow(test_metadata) == 1)
     expect_true(!"test" %in% names(test_metadata))
-    full_test <- ident_spec(cor_matrix = matches, object = unknown, library = test_lib, top_n = 5, add_library_metadata = "sample_name")
+    full_test <- ident_spec(matches, unknown, library = test_lib, top_n = 5, add_library_metadata = "sample_name")
     expect_true(nrow(full_test) == 5)
 })
 
