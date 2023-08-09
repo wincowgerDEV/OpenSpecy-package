@@ -12,6 +12,8 @@
 #' @param min_sn Optional numeric value specifying the minimum signal-to-noise ratio for inclusion in the heatmap. Regions with SNR below this threshold will be excluded.
 #' @param min_cor Optional numeric value specifying the minimum correlation for inclusion in the heatmap. Regions with correlation below this threshold will be excluded.
 #' @param selected_spectrum Optional index of the selected spectrum to highlight on the heatmap.
+#' @param selected_spectrum2 an optional second index of the selected spectrum to highlight on the heatmap.
+#' @param \ldots further arguments passed to subfunctions.
 #'
 #' @return A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the OpenSpecy object(s).
 #'
@@ -41,11 +43,15 @@ plotly_spec <- function(x, ...) {
   UseMethod("plotly_spec")
 }
 
+#' @rdname interactive_plots
+#'
 #' @export
 plotly_spec.default <- function(x, ...) {
   stop("'x' needs to be of class 'OpenSpecy'")
 }
 
+#' @rdname interactive_plots
+#'
 #' @export
 plotly_spec.OpenSpecy <- function(x, x2 = NULL, ...) {
   dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
@@ -101,16 +107,22 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL, ...) {
   return(p)
 }
 
+#' @rdname interactive_plots
+#'
 #' @export
 heatmap_spec <- function(x, ...) {
   UseMethod("heatmap_spec")
 }
 
+#' @rdname interactive_plots
+#'
 #' @export
 heatmap_spec.default <- function(x, ...) {
   stop("'x' needs to be of class 'OpenSpecy'")
 }
 
+#' @rdname interactive_plots
+#'
 #' @export
 heatmap_spec.OpenSpecy <- function(x,
                                    z = NULL,
@@ -178,6 +190,7 @@ heatmap_spec.OpenSpecy <- function(x,
   }
   return(p)
 }
+
 #' @rdname interactive_plots
 #'
 #' @export
@@ -185,11 +198,15 @@ interactive_plot <- function(x, ...) {
   UseMethod("interactive_plot")
 }
 
+#' @rdname interactive_plots
+#'
 #' @export
 interactive_plot.default <- function(x, ...) {
   stop("'x' needs to be of class 'OpenSpecy'")
 }
 
+#' @rdname interactive_plots
+#'
 #' @export
 interactive_plot.OpenSpecy <- function(x, selected_spectrum, x2 = NULL,
                                        selected_spectrum2 = NULL, ...) {

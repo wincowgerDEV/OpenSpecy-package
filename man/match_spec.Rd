@@ -2,28 +2,66 @@
 % Please edit documentation in R/match_spec.R
 \name{cor_spec}
 \alias{cor_spec}
+\alias{cor_spec.default}
+\alias{cor_spec.OpenSpecy}
+\alias{ident_spec}
+\alias{get_metadata}
+\alias{get_metadata.default}
+\alias{get_metadata.OpenSpecy}
+\alias{max_cor_named}
+\alias{filter_spec}
+\alias{filter_spec.default}
+\alias{filter_spec.OpenSpecy}
 \title{Identify and filter spectra}
 \usage{
-cor_spec(object, ...)
+cor_spec(x, ...)
+
+\method{cor_spec}{default}(x, ...)
+
+\method{cor_spec}{OpenSpecy}(x, library, na.rm = T, ...)
+
+ident_spec(
+  cor_matrix,
+  x,
+  library,
+  top_n = NULL,
+  add_library_metadata = NULL,
+  add_object_metadata = NULL,
+  ...
+)
+
+get_metadata(x, ...)
+
+\method{get_metadata}{default}(x, ...)
+
+\method{get_metadata}{OpenSpecy}(x, logic, remove_empty = T, ...)
+
+max_cor_named(cor_matrix, na.rm = T)
+
+filter_spec(x, ...)
+
+\method{filter_spec}{default}(x, ...)
+
+\method{filter_spec}{OpenSpecy}(x, logic, ...)
 }
 \arguments{
-\item{object}{An OpenSpecy object, typically with unknowns.}
+\item{x}{an OpenSpecy object, typically with unknowns.}
 
 \item{library}{An OpenSpecy object representing the library of spectra to correlate with.}
 
 \item{na.rm}{Logical value indicating whether missing values should be removed when calculating correlations. Default is \code{TRUE}.}
 
-\item{top_n}{Integer value specifying the number of top matches to return. If NULL (default), all matches will be returned.}
-
 \item{cor_matrix}{A correlation matrix for object and library, can be returned by \code{cor_spec()}}
+
+\item{top_n}{Integer value specifying the number of top matches to return. If NULL (default), all matches will be returned.}
 
 \item{add_library_metadata}{Name of the column in the library metadata containing the column names or NULL if you don't want to join.}
 
 \item{add_object_metadata}{Name of the column in the object metadata containing the column names or NULL if you don't want to join.}
 
-\item{remove_empty}{Whether to remove empty columns in the metadata where there are no values.}
-
 \item{logic}{a logical or numeric vector describing which spectra to keep (TRUE).}
+
+\item{remove_empty}{Whether to remove empty columns in the metadata where there are no values.}
 
 \item{\ldots}{Additional arguments passed to the \code{cor()} function for correlation calculation.}
 }
@@ -50,7 +88,7 @@ test_lib_extract <- filter_spec(
   logic = test_lib$metadata$polymer_class == "polycarbonates"
 )
 
-matches2 <- cor_spec(object = unknown, library = test_lib_extract)
+matches2 <- cor_spec(unknown, library = test_lib_extract)
 
 }
 \seealso{

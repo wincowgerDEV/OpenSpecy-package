@@ -2,12 +2,24 @@
 % Please edit documentation in R/collapse_particles.R
 \name{collapse_spec}
 \alias{collapse_spec}
+\alias{collapse_spec.default}
+\alias{collapse_spec.OpenSpecy}
 \alias{characterize_particles}
+\alias{characterize_particles.default}
+\alias{characterize_particles.OpenSpecy}
 \title{Characterize Particles}
 \usage{
-collapse_spec(object)
+collapse_spec(object, ...)
 
-characterize_particles(object, particles)
+\method{collapse_spec}{default}(object, ...)
+
+\method{collapse_spec}{OpenSpecy}(object, ...)
+
+characterize_particles(object, ...)
+
+\method{characterize_particles}{default}(object, ...)
+
+\method{characterize_particles}{OpenSpecy}(object, particles, ...)
 }
 \arguments{
 \item{object}{An OpenSpecy object}
@@ -15,6 +27,8 @@ characterize_particles(object, particles)
 \item{particles}{A logical vector or character vector describing which of the spectra are
 of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
 represent the different particle types present in the spectra.}
+
+\item{\ldots}{additional arguments passed to subfunctions.}
 }
 \value{
 An Open Specy object appended metadata about the particles or collapsed for the particles.

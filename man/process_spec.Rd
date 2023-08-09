@@ -2,10 +2,18 @@
 % Please edit documentation in R/process_spec.R
 \name{process_spec}
 \alias{process_spec}
+\alias{process_spec.default}
+\alias{process_spec.OpenSpecy}
 \alias{sample_spec}
+\alias{sample_spec.default}
+\alias{sample_spec.OpenSpecy}
 \title{Preprocess Spectra}
 \usage{
-process_spec(
+process_spec(x, ...)
+
+\method{process_spec}{default}(x, ...)
+
+\method{process_spec}{OpenSpecy}(
   x,
   active_processing = T,
   adj_intensity_decision = F,
@@ -32,10 +40,15 @@ process_spec(
   derivative_order = 1,
   derivative_polynomial = 3,
   abs = T,
-  derivative_window = 11
+  derivative_window = 11,
+  ...
 )
 
 sample_spec(x, ...)
+
+\method{sample_spec}{default}(x, ...)
+
+\method{sample_spec}{OpenSpecy}(x, ...)
 }
 \arguments{
 \item{x}{An OpenSpecy object containing metadata and spectral data.}
@@ -91,6 +104,8 @@ sample_spec(x, ...)
 \item{abs}{Logical value indicating whether to calculate the absolute values of the derivative.}
 
 \item{derivative_window}{Integer value specifying the window size for derivative calculation.}
+
+\item{\ldots}{further arguments passed to subfunctions.}
 }
 \value{
 \code{process_spec()} returns an OpenSpecy object with preprocessed

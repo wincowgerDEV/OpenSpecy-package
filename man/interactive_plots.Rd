@@ -2,12 +2,48 @@
 % Please edit documentation in R/interactive_plots.R
 \name{plotly_spec}
 \alias{plotly_spec}
+\alias{plotly_spec.default}
+\alias{plotly_spec.OpenSpecy}
+\alias{heatmap_spec}
+\alias{heatmap_spec.default}
+\alias{heatmap_spec.OpenSpecy}
 \alias{interactive_plot}
+\alias{interactive_plot.default}
+\alias{interactive_plot.OpenSpecy}
 \title{Plots for Open Specy objects}
 \usage{
 plotly_spec(x, ...)
 
+\method{plotly_spec}{default}(x, ...)
+
+\method{plotly_spec}{OpenSpecy}(x, x2 = NULL, ...)
+
+heatmap_spec(x, ...)
+
+\method{heatmap_spec}{default}(x, ...)
+
+\method{heatmap_spec}{OpenSpecy}(
+  x,
+  z = NULL,
+  sn = NULL,
+  cor = NULL,
+  min_sn = NULL,
+  min_cor = NULL,
+  selected_spectrum = NULL,
+  ...
+)
+
 interactive_plot(x, ...)
+
+\method{interactive_plot}{default}(x, ...)
+
+\method{interactive_plot}{OpenSpecy}(
+  x,
+  selected_spectrum,
+  x2 = NULL,
+  selected_spectrum2 = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{An OpenSpecy object containing metadata and spectral data for the first group.}
@@ -25,6 +61,10 @@ interactive_plot(x, ...)
 \item{min_cor}{Optional numeric value specifying the minimum correlation for inclusion in the heatmap. Regions with correlation below this threshold will be excluded.}
 
 \item{selected_spectrum}{Optional index of the selected spectrum to highlight on the heatmap.}
+
+\item{selected_spectrum2}{an optional second index of the selected spectrum to highlight on the heatmap.}
+
+\item{\ldots}{further arguments passed to subfunctions.}
 }
 \value{
 A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the OpenSpecy object(s).

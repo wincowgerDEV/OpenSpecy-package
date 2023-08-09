@@ -1,12 +1,11 @@
 #' @rdname match_spec
-#'
 #' @title
 #' Identify and filter spectra
 #'
 #' @description
 #' This function correlates two OpenSpecy objects, typically one with knowns and one with unknowns.
 #'
-#' @param object An OpenSpecy object, typically with unknowns.
+#' @param x an OpenSpecy object, typically with unknowns.
 #' @param library An OpenSpecy object representing the library of spectra to correlate with.
 #' @param na.rm Logical value indicating whether missing values should be removed when calculating correlations. Default is \code{TRUE}.
 #' @param top_n Integer value specifying the number of top matches to return. If NULL (default), all matches will be returned.
@@ -37,7 +36,7 @@
 #'   logic = test_lib$metadata$polymer_class == "polycarbonates"
 #' )
 #'
-#' matches2 <- cor_spec(object = unknown, library = test_lib_extract)
+#' matches2 <- cor_spec(unknown, library = test_lib_extract)
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
@@ -52,27 +51,33 @@
 #' @importFrom stats cor
 #' @importFrom data.table data.table fifelse .SD
 #' @export
-cor_spec <- function(object, ...) {
+cor_spec <- function(x, ...) {
   UseMethod("cor_spec")
 }
 
+#' @rdname match_spec
+#'
 #' @export
-cor_spec.default <- function(object, ...) {
+cor_spec.default <- function(x, ...) {
   stop("'x' needs to be of class 'OpenSpecy'")
 }
 
+#' @rdname match_spec
+#'
 #' @export
-cor_spec.OpenSpecy <- function(object, library, na.rm = T, ...) {
-  if(sum(object$wavenumber %in% library$wavenumber) < 3){
+cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
+  if(sum(x$wavenumber %in% library$wavenumber) < 3){
     stop("There are less than 3 matching wavenumbers in the objects you are trying to correlate, this won't work for correlation analysis. Consider first conforming the spectra to the same wavenumbers.")
   }
-  cor(library$spectra[library$wavenumber %in% object$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
-      object$spectra[object$wavenumber %in% library$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
+  cor(library$spectra[library$wavenumber %in% x$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
+      x$spectra[x$wavenumber %in% library$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
       ...)
 }
 
+#' @rdname match_spec
+#'
 #' @export
-ident_spec <- function(cor_matrix, object, library, top_n = NULL,
+ident_spec <- function(cor_matrix, x, library, top_n = NULL,
                        add_library_metadata = NULL,
                        add_object_metadata = NULL, ...){
   if(is.numeric(top_n) && top_n > ncol(library$spectra)){
@@ -80,16 +85,16 @@ ident_spec <- function(cor_matrix, object, library, top_n = NULL,
     message("top_n was larger than the number of spectra in the library, returning all matches")
   }
 
-  out <- data.table(object_id = colnames(object$spectra),
+  out <- data.table(object_id = colnames(x$spectra),
                     library_id = rep(colnames(library$spectra),
-                                     each = ncol(object$spectra)),
+                                     each = ncol(x$spectra)),
                     match_val = c(cor_matrix))
 
   if (is.character(add_library_metadata))
     out <- merge(out, library$metadata,
                  by.x = "library_id", by.y = add_library_metadata, all.x = T)
   if (is.character(add_object_metadata))
-    out <- merge(out, object$metadata,
+    out <- merge(out, x$metadata,
                  by.x = "object_id", by.y = add_object_metadata, all.x = T)
   if (is.numeric(top_n))
     out <- out[order(-match_val), head(.SD, top_n), by = object_id]
@@ -97,41 +102,33 @@ ident_spec <- function(cor_matrix, object, library, top_n = NULL,
   return(out)
 }
 
+#' @rdname match_spec
+#'
 #' @export
-mean_replace <- function(intensity, na.rm = T){
-  fifelse(is.na(intensity), mean(intensity, na.rm = na.rm), intensity)
+get_metadata <- function(x, ...) {
+  UseMethod("get_metadata")
 }
 
+#' @rdname match_spec
+#'
 #' @export
-get_metadata <- function(object, logic, remove_empty = T){
+get_metadata.default <- function(x, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+get_metadata.OpenSpecy <- function(x, logic, remove_empty = T, ...) {
   if(is.character(logic)){
-    logic = which(names(object$spectra) %in% logic)
+    logic = which(names(x$spectra) %in% logic)
   }
-  object$metadata[logic,] %>%
+  x$metadata[logic,] %>%
     {if(remove_empty){.[, !sapply(., is_empty_vector), with = F]} else{.}}
 }
 
-#' @export
-is_empty_vector <- function(v) {
-  # Check if the vector is NULL or has zero length
-  if (is.null(v) || length(v) == 0) {
-    return(TRUE)
-  }
-
-  # Check if all values are NA or NaN (for numeric vectors)
-  if (is.numeric(v)) {
-    return(all(is.na(v) | is.nan(v)))
-  }
-
-  # Check if all values are NA or empty strings (for character vectors)
-  if (is.character(v)) {
-    return(all(is.na(v) | v == ""))
-  }
-
-  # Check if all values are NA (for other types of vectors)
-  return(all(is.na(v)))
-}
-
+#' @rdname match_spec
+#'
 #' @export
 max_cor_named <- function(cor_matrix, na.rm = T) {
   # Find the indices of maximum correlations
@@ -146,12 +143,29 @@ max_cor_named <- function(cor_matrix, na.rm = T) {
   return(max_cor_values)
 }
 
+#' @rdname match_spec
+#'
 #' @export
-filter_spec <- function(object, logic) {
+filter_spec <- function(x, ...) {
+  UseMethod("filter_spec")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+filter_spec.default <- function(x, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+filter_spec.OpenSpecy <- function(x, logic, ...) {
   if(is.character(logic)){
-    logic = which(names(object$spectra) %in% logic)
+    logic = which(names(x$spectra) %in% logic)
   }
-  object$spectra <- object$spectra[,..logic]
-  object$metadata <- object$metadata[logic,]
-  object
+  x$spectra <- x$spectra[,..logic]
+  x$metadata <- x$metadata[logic,]
+
+  return(x)
 }

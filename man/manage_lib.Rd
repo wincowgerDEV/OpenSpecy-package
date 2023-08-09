@@ -46,9 +46,6 @@ exists at the specified destination. Can be one of the following (see
   transferred copy.}
 }}
 
-\item{which}{a character string specifying which library to use,
-\code{"raman"} or \code{"ftir"}.}
-
 \item{\ldots}{further arguments passed to \code{\link[osfr]{osf_download}()}.}
 }
 \value{

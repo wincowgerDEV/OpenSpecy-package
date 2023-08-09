@@ -81,3 +81,33 @@ adj_neg <- function(y, na.rm = FALSE) {
 make_rel <- function(y, na.rm = FALSE) {
   (y - min(y, na.rm = na.rm)) / (max(y, na.rm = na.rm) - min(y, na.rm = na.rm))
 }
+
+#' @rdname data_norm
+#'
+#' @export
+mean_replace <- function(y, na.rm = TRUE){
+  fifelse(is.na(y), mean(y, na.rm = na.rm), y)
+}
+
+#' @rdname data_norm
+#'
+#' @export
+is_empty_vector <- function(x) {
+  # Check if the vector is NULL or has zero length
+  if (is.null(x) || length(x) == 0) {
+    return(TRUE)
+  }
+
+  # Check if all values are NA or NaN (for numeric vectors)
+  if (is.numeric(x)) {
+    return(all(is.na(x) | is.nan(x)))
+  }
+
+  # Check if all values are NA or empty strings (for character vectors)
+  if (is.character(x)) {
+    return(all(is.na(x) | x == ""))
+  }
+
+  # Check if all values are NA (for other types of vectors)
+  return(all(is.na(x)))
+}

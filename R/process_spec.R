@@ -34,6 +34,7 @@
 #' @param derivative_polynomial Integer value specifying the polynomial order for derivative calculation.
 #' @param abs Logical value indicating whether to calculate the absolute values of the derivative.
 #' @param derivative_window Integer value specifying the window size for derivative calculation.
+#' @param \ldots further arguments passed to subfunctions.
 #'
 #' @return
 #' \code{process_spec()} returns an OpenSpecy object with preprocessed
@@ -76,78 +77,106 @@
 #'
 #' @importFrom magrittr %>%
 #' @export
-process_spec <- function(x,
-                            active_processing = T,
-                            adj_intensity_decision = F,
-                            type = "none",
-                            conform_decision = T,
-                            new_wavenumbers = NULL,
-                            res = 5,
-                            range_decision = F,
-                            min_range = 0,
-                            max_range = 6000,
-                            flatten_decision = F,
-                            flatten_min = 2200,
-                            flatten_max = 2420,
-                            smooth_decision = F,
-                            smooth_polynomial = 3,
-                            smooth_window = 11,
-                            baseline_decision = F,
-                            baseline_selection = "Polynomial",
-                            raw_baseline = F,
-                            baseline_polynomial = 8,
-                            wavenumber_fit = NULL,
-                            intensity_fit = NULL,
-                            derivative_decision = T,
-                            derivative_order = 1,
-                            derivative_polynomial = 3,
-                            abs = T,
-                            derivative_window = 11){
-    if(active_processing){
-        x %>%
-            {if(adj_intensity_decision) adj_intens(.,
-                                                   type = type,
-                                                   make_rel = F) else .} %>%
-            {if(conform_decision) conform_spec(.,
-                                               new_wavenumbers = new_wavenumbers,
-                                               res = res) else .} %>%
-            {if(range_decision) restrict_range(.,
-                                                         min_range = min_range,
-                                                         max_range = max_range,
-                                                         make_rel = F) else . } %>%
-            {if(baseline_decision) subtr_bg(.,
-                                                      degree = baseline_polynomial,
-                                                      wavenumber_fit = wavenumber_fit,
-                                                      intensity_fit = intensity_fit,
-                                                      raw = raw_baseline,
-                                                      make_rel = F,
-                                                      type = baseline_selection) else . } %>%
-            {if(flatten_decision) flatten_range(.,
-                                                                 min_range = flatten_min,
-                                                                 max_range = flatten_max,
-                                                                 make_rel = F) else .} %>%
-            {if(smooth_decision) smooth_intens(.,
-                                                         p = smooth_polynomial,
-                                                         n = smooth_window,
-                                                         m = 0,
-                                                         make_rel = F) else .} %>%
-            {if(derivative_decision) smooth_intens(.,
-                                                             p = derivative_polynomial,
-                                                             n = derivative_window,
-                                                             m = derivative_order,
-                                                             abs = abs,
-                                                             make_rel = F) else .}
+process_spec <- function(x, ...) {
+  UseMethod("process_spec")
+}
 
-    }
-    else{
-        x
-    }
+#' @rdname process_spec
+#'
+#' @export
+process_spec.default <- function(x, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname process_spec
+#'
+#' @export
+process_spec.OpenSpecy <- function(x,
+                                   active_processing = T,
+                                   adj_intensity_decision = F,
+                                   type = "none",
+                                   conform_decision = T,
+                                   new_wavenumbers = NULL,
+                                   res = 5,
+                                   range_decision = F,
+                                   min_range = 0,
+                                   max_range = 6000,
+                                   flatten_decision = F,
+                                   flatten_min = 2200,
+                                   flatten_max = 2420,
+                                   smooth_decision = F,
+                                   smooth_polynomial = 3,
+                                   smooth_window = 11,
+                                   baseline_decision = F,
+                                   baseline_selection = "Polynomial",
+                                   raw_baseline = F,
+                                   baseline_polynomial = 8,
+                                   wavenumber_fit = NULL,
+                                   intensity_fit = NULL,
+                                   derivative_decision = T,
+                                   derivative_order = 1,
+                                   derivative_polynomial = 3,
+                                   abs = T,
+                                   derivative_window = 11, ...) {
+  if(active_processing){
+    x %>%
+      {if(adj_intensity_decision) adj_intens(.,
+                                             type = type,
+                                             make_rel = F) else .} %>%
+      {if(conform_decision) conform_spec(.,
+                                         new_wavenumbers = new_wavenumbers,
+                                         res = res) else .} %>%
+      {if(range_decision) restrict_range(.,
+                                         min_range = min_range,
+                                         max_range = max_range,
+                                         make_rel = F) else . } %>%
+      {if(baseline_decision) subtr_bg(.,
+                                      degree = baseline_polynomial,
+                                      wavenumber_fit = wavenumber_fit,
+                                      intensity_fit = intensity_fit,
+                                      raw = raw_baseline,
+                                      make_rel = F,
+                                      type = baseline_selection) else . } %>%
+      {if(flatten_decision) flatten_range(.,
+                                          min_range = flatten_min,
+                                          max_range = flatten_max,
+                                          make_rel = F) else .} %>%
+      {if(smooth_decision) smooth_intens(.,
+                                         p = smooth_polynomial,
+                                         n = smooth_window,
+                                         m = 0,
+                                         make_rel = F) else .} %>%
+      {if(derivative_decision) smooth_intens(.,
+                                             p = derivative_polynomial,
+                                             n = derivative_window,
+                                             m = derivative_order,
+                                             abs = abs,
+                                             make_rel = F) else .}
+
+  }
+  else{
+    x
+  }
 }
 
 #' @rdname process_spec
 #'
 #' @export
 sample_spec <- function(x, ...) {
+  UseMethod("sample_spec")
+}
+
+#' @rdname process_spec
+#'
+#' @export
+sample_spec.default <- function(x, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname process_spec
+#'
+#' @export
+sample_spec.OpenSpecy <- function(x, ...) {
   # replace = false is mandatory currently because we don't have a way to
   # rename and recoordinate duplicates.
   cols <- sample(1:ncol(x$spectra), ...)

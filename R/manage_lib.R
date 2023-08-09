@@ -17,8 +17,6 @@
 #' \code{load_lib()} will load the library into the global environment for use
 #' with the Open Specy functions.
 #'
-#' @param which a character string specifying which library to use,
-#' \code{"raman"} or \code{"ftir"}.
 #' @param types library types to check/retrieve; defaults to
 #' \code{c("metadata", "library", "peaks")}.
 #' @param node the OSF node to be retrieved; should be \code{"x7dpz"}.

@@ -30,13 +30,28 @@
 #' @param particles A logical vector or character vector describing which of the spectra are
 #' of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
 #' represent the different particle types present in the spectra.
+#' @param \ldots additional arguments passed to subfunctions.
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
 #' @export
-collapse_spec <- function(object) {
+collapse_spec <- function(object, ...) {
+  UseMethod("collapse_spec")
+}
+
+#' @rdname characterize_particles
+#'
+#' @export
+collapse_spec.default <- function(object, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname characterize_particles
+#'
+#' @export
+collapse_spec.OpenSpecy <- function(object, ...) {
 
   # Calculate the median spectra for each unique particle_id
   object$spectra <- transpose(object$spectra)[,id := object$metadata$particle_id][,lapply(.SD, median, na.rm=TRUE), by = id] |>
@@ -51,10 +66,24 @@ collapse_spec <- function(object) {
 
 #' @rdname characterize_particles
 #'
+#' @export
+characterize_particles <- function(object, ...) {
+  UseMethod("characterize_particles")
+}
+
+#' @rdname characterize_particles
+#'
+#' @export
+characterize_particles.default <- function(object, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname characterize_particles
+#'
 #' @importFrom imager label as.cimg
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
-characterize_particles <- function(object, particles) {
+characterize_particles.OpenSpecy <- function(object, particles, ...) {
   if(is.logical(particles)){
     if(all(particles) | all(!particles)){
       stop("Particles cannot be all TRUE or all FALSE values because that would indicate that there are no distinct particles.")
