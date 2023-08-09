@@ -1,13 +1,14 @@
-#' @rdname characterize_particles
-#' @title Characterize Particles
+#' @rdname def_features
+#' @title Define features
 #'
 #' @description
-#' Functions for analyzing particles in spectral map oriented OpenSpecy object.
+#' Functions for analyzing features, like particles, fragments, or fibers, in
+#' spectral map oriented OpenSpecy object.
 #'
 #' @details
-#' `characterize_particles()` accepts an OpenSpecy object and a logical or character vector describing which pixels correspond to particles.
+#' `def_features()` accepts an OpenSpecy object and a logical or character vector describing which pixels correspond to particles.
 #' `collapse_spec()` takes an OpenSpecy object with particle-specific metadata
-#' (from `characterize_particles()`) and collapses the spectra to median intensities for each unique particle.
+#' (from `def_features()`) and collapses the spectra to median intensities for each unique particle.
 #' It also updates the metadata with centroid coordinates, while preserving the particle information on area and Feret max.
 #'
 #' @return
@@ -17,13 +18,13 @@
 #' #Logical example
 #' map <- read_extdata("CA_tiny_map.zip") |> read_any()
 #' map$metadata$particles <- map$metadata$x == 0
-#' identified_map <- characterize_particles(map, map$metadata$particles)
+#' identified_map <- def_features(map, map$metadata$particles)
 #' test_collapsed <- collapse_spec(identified_map)
 #'
 #' #Character example
 #' map <- read_extdata("CA_tiny_map.zip") |> read_any()
 #' map$metadata$particles <- ifelse(map$metadata$x == 1, "particle", "not_particle")
-#' identified_map <- characterize_particles(map, map$metadata$particles)
+#' identified_map <- def_features(map, map$metadata$particles)
 #' test_collapsed <- collapse_spec(identified_map)
 #'
 #' @param object An OpenSpecy object
@@ -41,14 +42,14 @@ collapse_spec <- function(object, ...) {
   UseMethod("collapse_spec")
 }
 
-#' @rdname characterize_particles
+#' @rdname def_features
 #'
 #' @export
 collapse_spec.default <- function(object, ...) {
   stop("'x' needs to be of class 'OpenSpecy'")
 }
 
-#' @rdname characterize_particles
+#' @rdname def_features
 #'
 #' @export
 collapse_spec.OpenSpecy <- function(object, ...) {
@@ -66,40 +67,40 @@ collapse_spec.OpenSpecy <- function(object, ...) {
   return(object)
 }
 
-#' @rdname characterize_particles
+#' @rdname def_features
 #'
 #' @export
-characterize_particles <- function(object, ...) {
-  UseMethod("characterize_particles")
+def_features <- function(object, ...) {
+  UseMethod("def_features")
 }
 
-#' @rdname characterize_particles
+#' @rdname def_features
 #'
 #' @export
-characterize_particles.default <- function(object, ...) {
+def_features.default <- function(object, ...) {
   stop("'x' needs to be of class 'OpenSpecy'")
 }
 
-#' @rdname characterize_particles
+#' @rdname def_features
 #'
 #' @importFrom imager label as.cimg
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
-characterize_particles.OpenSpecy <- function(object, particles, ...) {
+def_features.OpenSpecy <- function(object, particles, ...) {
   if(is.logical(particles)) {
     if(all(particles) | all(!particles)){
       stop("Features cannot be all TRUE or all FALSE values because that ",
-      "would indicate that there are no distinct features")
+           "would indicate that there are no distinct features")
     }
-    particles_df <- .characterize_particles(object, particles)
+    particles_df <- .def_features(object, particles)
   } else if(is.character(particles)) {
     if(length(unique(particles)) == 1) {
       stop("Features cannot all have a single name because that would ",
-      "indicate that there are no distinct features.")
+           "indicate that there are no distinct features.")
     }
     particles_df <- rbindlist(lapply(unique(particles), function(x) {
       logical_particles <- particles == x
-      .characterize_particles(object, logical_particles)
+      .def_features(object, logical_particles)
     }))
   } else {
     stop("Features needs to be a character or logical vector.", call. = F)
@@ -119,7 +120,7 @@ characterize_particles.OpenSpecy <- function(object, particles, ...) {
 
 #' @importFrom grDevices chull
 #' @importFrom stats dist
-.characterize_particles <- function(x, binary, name = NULL) {
+.def_features <- function(x, binary, name = NULL) {
   # Label connected components in the binary image
   binary_matrix <- matrix(binary, ncol = max(x$metadata$y) + 1, byrow = T)
   labeled_image <- imager::label(imager::as.cimg(binary_matrix),
