@@ -12,7 +12,7 @@
 #' @param cor_matrix A correlation matrix for object and library, can be returned by \code{cor_spec()}
 #' @param add_library_metadata Name of the column in the library metadata containing the column names or NULL if you don't want to join.
 #' @param add_object_metadata Name of the column in the object metadata containing the column names or NULL if you don't want to join.
-#' @param remove_empty Whether to remove empty columns in the metadata where there are no values.
+#' @param rm_empty Whether to remove empty columns in the metadata where there are no values.
 #' @param logic a logical or numeric vector describing which spectra to keep (TRUE).
 #' @param \ldots Additional arguments passed to the \code{cor()} function for correlation calculation.
 #'
@@ -49,7 +49,7 @@
 #'
 #' @importFrom magrittr %>%
 #' @importFrom stats cor
-#' @importFrom data.table data.table fifelse .SD
+#' @importFrom data.table data.table setorder fifelse .SD
 #' @export
 cor_spec <- function(x, ...) {
   UseMethod("cor_spec")
@@ -96,8 +96,10 @@ ident_spec <- function(cor_matrix, x, library, top_n = NULL,
   if (is.character(add_object_metadata))
     out <- merge(out, x$metadata,
                  by.x = "object_id", by.y = add_object_metadata, all.x = T)
-  if (is.numeric(top_n))
-    out <- out[order(-match_val), head(.SD, top_n), by = object_id]
+  if (is.numeric(top_n)) {
+    setorder(out, -"match_val")
+    out <- out[, head(.SD, top_n), by = "object_id"]
+  }
 
   return(out)
 }
@@ -119,12 +121,16 @@ get_metadata.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-get_metadata.OpenSpecy <- function(x, logic, remove_empty = T, ...) {
-  if(is.character(logic)){
-    logic = which(names(x$spectra) %in% logic)
-  }
-  x$metadata[logic,] %>%
-    {if(remove_empty){.[, !sapply(., is_empty_vector), with = F]} else{.}}
+get_metadata.OpenSpecy <- function(x, logic, rm_empty = TRUE, ...) {
+  if(is.character(logic))
+    logic <- which(names(x$spectra) %in% logic)
+
+  res <- x$metadata[logic, ]
+
+  if(rm_empty)
+    res <- res[, !sapply(res, is_empty_vector), with = F]
+
+  return(res)
 }
 
 #' @rdname match_spec
@@ -164,7 +170,7 @@ filter_spec.OpenSpecy <- function(x, logic, ...) {
   if(is.character(logic)){
     logic = which(names(x$spectra) %in% logic)
   }
-  x$spectra <- x$spectra[,..logic]
+  x$spectra <- x$spectra[, logic, with = F]
   x$metadata <- x$metadata[logic,]
 
   return(x)

@@ -218,7 +218,7 @@ interactive_plot.OpenSpecy <- function(x, selected_spectrum, x2 = NULL,
 
   # Extract intensity and wavenumber for the selected spectrum
   selected_spectrum_points <- x$metadata[selected_spectrum, ]
-  selected_spectrum_intensity <- x$spectra[, ..selected_spectrum]
+  selected_spectrum_intensity <- x$spectra[, selected_spectrum, with = F]
   selected_spectrum_wavenumber <- x$wavenumber
 
   # Add trace for the selected spectrum in the spectral plot

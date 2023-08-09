@@ -118,45 +118,31 @@ process_spec.OpenSpecy <- function(x,
                                    derivative_polynomial = 3,
                                    abs = T,
                                    derivative_window = 11, ...) {
-  if(active_processing){
-    x %>%
-      {if(adj_intensity_decision) adj_intens(.,
-                                             type = type,
-                                             make_rel = F) else .} %>%
-      {if(conform_decision) conform_spec(.,
-                                         new_wavenumbers = new_wavenumbers,
-                                         res = res) else .} %>%
-      {if(range_decision) restrict_range(.,
-                                         min_range = min_range,
-                                         max_range = max_range,
-                                         make_rel = F) else . } %>%
-      {if(baseline_decision) subtr_bg(.,
-                                      degree = baseline_polynomial,
-                                      wavenumber_fit = wavenumber_fit,
-                                      intensity_fit = intensity_fit,
-                                      raw = raw_baseline,
-                                      make_rel = F,
-                                      type = baseline_selection) else . } %>%
-      {if(flatten_decision) flatten_range(.,
-                                          min_range = flatten_min,
-                                          max_range = flatten_max,
-                                          make_rel = F) else .} %>%
-      {if(smooth_decision) smooth_intens(.,
-                                         p = smooth_polynomial,
-                                         n = smooth_window,
-                                         m = 0,
-                                         make_rel = F) else .} %>%
-      {if(derivative_decision) smooth_intens(.,
-                                             p = derivative_polynomial,
-                                             n = derivative_window,
-                                             m = derivative_order,
-                                             abs = abs,
-                                             make_rel = F) else .}
+  if(active_processing) {
+    if(adj_intensity_decision)
+      x <- adj_intens(x, type = type, make_rel = F)
+    if(conform_decision)
+      x <- conform_spec(x, new_wavenumbers = new_wavenumbers, res = res)
+    if(range_decision)
+      x <- restrict_range(x, min_range = min_range, max_range = max_range,
+                          make_rel = F)
+    if(baseline_decision)
+      x <- subtr_bg(x, degree = baseline_polynomial,
+                    wavenumber_fit = wavenumber_fit,
+                    intensity_fit = intensity_fit, raw = raw_baseline,
+                    make_rel = F, type = baseline_selection)
+    if(flatten_decision)
+      x <- flatten_range(x, min_range = flatten_min, max_range = flatten_max,
+                         make_rel = F)
+    if(smooth_decision)
+      x <- smooth_intens(x, p = smooth_polynomial, n = smooth_window, m = 0,
+                         make_rel = F)
+    if(derivative_decision)
+      x <- smooth_intens(x, p = derivative_polynomial, n = derivative_window,
+                         m = derivative_order, abs = abs, make_rel = F)
+  }
 
-  }
-  else{
-    x
-  }
+  return(x)
 }
 
 #' @rdname process_spec
@@ -183,7 +169,7 @@ sample_spec.OpenSpecy <- function(x, ...) {
 
   as_OpenSpecy(
     x = x$wavenumber,
-    spectra = x$spectra[, ..cols],
+    spectra = x$spectra[, cols, with = F],
     metadata = x$metadata[cols, ]
   )
 }

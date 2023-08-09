@@ -54,7 +54,9 @@ collapse_spec.default <- function(object, ...) {
 collapse_spec.OpenSpecy <- function(object, ...) {
 
   # Calculate the median spectra for each unique particle_id
-  object$spectra <- transpose(object$spectra)[,id := object$metadata$particle_id][,lapply(.SD, median, na.rm=TRUE), by = id] |>
+  ts <- transpose(object$spectra)
+  ts$id <- object$metadata$particle_id
+  object$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
     transpose(make.names = "id")
 
   object$metadata <- object$metadata |>
@@ -84,24 +86,33 @@ characterize_particles.default <- function(object, ...) {
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
 characterize_particles.OpenSpecy <- function(object, particles, ...) {
-  if(is.logical(particles)){
+  if(is.logical(particles)) {
     if(all(particles) | all(!particles)){
-      stop("Particles cannot be all TRUE or all FALSE values because that would indicate that there are no distinct particles.")
+      stop("Features cannot be all TRUE or all FALSE values because that ",
+      "would indicate that there are no distinct features")
     }
     particles_df <- .characterize_particles(object, particles)
-  } else if(is.character(particles)){
-    if(length(unique(particles)) == 1){
-      stop("Particles cannot all have a single name because that would indicate that there are no distinct particles.")
+  } else if(is.character(particles)) {
+    if(length(unique(particles)) == 1) {
+      stop("Features cannot all have a single name because that would ",
+      "indicate that there are no distinct features.")
     }
-    particles_df <- rbindlist(lapply(unique(particles), function(x){
+    particles_df <- rbindlist(lapply(unique(particles), function(x) {
       logical_particles <- particles == x
       .characterize_particles(object, logical_particles)
     }))
   } else {
-    stop("Particles needs to be a character or logical vector.", call. = F)
+    stop("Features needs to be a character or logical vector.", call. = F)
   }
 
-  object$metadata <- particles_df[setDT(object$metadata), on = .(x, y)][,particle_id := ifelse(is.na(particle_id), "-88", particle_id)][,centroid_x := mean(x), by = "particle_id"][,centroid_y := mean(y), by = "particle_id"]
+  x <- y <- centroid_x <- centroid_y <- particle_id <- NULL # work around for
+  # data.table non-standard evaluation
+  md <- particles_df[setDT(object$metadata), on = c("x", "y")]
+  md[, particle_id := ifelse(is.na(particle_id), "-88", particle_id)]
+  md[, centroid_x := mean(x), by = "particle_id"]
+  md[, centroid_y := mean(y), by = "particle_id"]
+
+  object$metadata <- md
 
   return(object)
 }

@@ -34,7 +34,7 @@ get_metadata(x, ...)
 
 \method{get_metadata}{default}(x, ...)
 
-\method{get_metadata}{OpenSpecy}(x, logic, remove_empty = T, ...)
+\method{get_metadata}{OpenSpecy}(x, logic, rm_empty = TRUE, ...)
 
 max_cor_named(cor_matrix, na.rm = T)
 
@@ -61,7 +61,7 @@ filter_spec(x, ...)
 
 \item{logic}{a logical or numeric vector describing which spectra to keep (TRUE).}
 
-\item{remove_empty}{Whether to remove empty columns in the metadata where there are no values.}
+\item{rm_empty}{Whether to remove empty columns in the metadata where there are no values.}
 
 \item{\ldots}{Additional arguments passed to the \code{cor()} function for correlation calculation.}
 }
