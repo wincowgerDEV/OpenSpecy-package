@@ -5,18 +5,14 @@
 \alias{interactive_plot}
 \title{Plots for Open Specy objects}
 \usage{
-plotly_spec(x, x2 = NULL, ...)
+plotly_spec(x, ...)
 
-interactive_plot(x, selected_spectrum, x2 = NULL, selected_spectrum2 = NULL)
+interactive_plot(x, ...)
 }
 \arguments{
 \item{x}{An OpenSpecy object containing metadata and spectral data for the first group.}
 
 \item{x2}{An optional second OpenSpecy object containing metadata and spectral data for the second group.}
-
-\item{selected_spectrum}{Optional index of the selected spectrum to highlight on the heatmap.}
-
-\item{object}{An OpenSpecy object containing metadata and spectral data.}
 
 \item{z}{Optional numeric vector specifying the intensity values for the heatmap. If not provided, the function will use the intensity values from the OpenSpecy object.}
 
@@ -27,6 +23,8 @@ interactive_plot(x, selected_spectrum, x2 = NULL, selected_spectrum2 = NULL)
 \item{min_sn}{Optional numeric value specifying the minimum signal-to-noise ratio for inclusion in the heatmap. Regions with SNR below this threshold will be excluded.}
 
 \item{min_cor}{Optional numeric value specifying the minimum correlation for inclusion in the heatmap. Regions with correlation below this threshold will be excluded.}
+
+\item{selected_spectrum}{Optional index of the selected spectrum to highlight on the heatmap.}
 }
 \value{
 A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the OpenSpecy object(s).

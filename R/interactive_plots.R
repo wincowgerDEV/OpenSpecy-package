@@ -4,15 +4,14 @@
 #' @description
 #' These functions generate heatmaps, spectral plots, and interactive plots for OpenSpecy data.
 #'
-#' @param object An OpenSpecy object containing metadata and spectral data.
+#' @param x An OpenSpecy object containing metadata and spectral data for the first group.
+#' @param x2 An optional second OpenSpecy object containing metadata and spectral data for the second group.
 #' @param z Optional numeric vector specifying the intensity values for the heatmap. If not provided, the function will use the intensity values from the OpenSpecy object.
 #' @param sn Optional numeric value specifying the signal-to-noise ratio threshold. If provided along with \code{min_sn}, regions with SNR below the threshold will be excluded from the heatmap.
 #' @param cor Optional numeric value specifying the correlation threshold. If provided along with \code{min_cor}, regions with correlation below the threshold will be excluded from the heatmap.
 #' @param min_sn Optional numeric value specifying the minimum signal-to-noise ratio for inclusion in the heatmap. Regions with SNR below this threshold will be excluded.
 #' @param min_cor Optional numeric value specifying the minimum correlation for inclusion in the heatmap. Regions with correlation below this threshold will be excluded.
 #' @param selected_spectrum Optional index of the selected spectrum to highlight on the heatmap.
-#' @param x An OpenSpecy object containing metadata and spectral data for the first group.
-#' @param x2 An optional second OpenSpecy object containing metadata and spectral data for the second group.
 #'
 #' @return A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the OpenSpecy object(s).
 #'
@@ -38,7 +37,17 @@
 #' @importFrom magrittr %>%
 #'
 #' @export
-plotly_spec <- function(x, x2 = NULL, ...) {
+plotly_spec <- function(x, ...) {
+  UseMethod("plotly_spec")
+}
+
+#' @export
+plotly_spec.default <- function(x, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @export
+plotly_spec.OpenSpecy <- function(x, x2 = NULL, ...) {
   dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
     melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
@@ -92,21 +101,24 @@ plotly_spec <- function(x, x2 = NULL, ...) {
   return(p)
 }
 
-
-# Plot Heatmap
 #' @export
-heatmap_spec <- function(object,
-                         z = NULL,
-                         sn = NULL,
-                         cor = NULL,
-                         min_sn = NULL,
-                         min_cor = NULL,
-                         selected_spectrum = NULL, ...) {
+heatmap_spec <- function(x, ...) {
+  UseMethod("heatmap_spec")
+}
 
-  if(is.null(object)) {
-    stop("No data object provided")
-  }
+#' @export
+heatmap_spec.default <- function(x, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'")
+}
 
+#' @export
+heatmap_spec.OpenSpecy <- function(x,
+                                   z = NULL,
+                                   sn = NULL,
+                                   cor = NULL,
+                                   min_sn = NULL,
+                                   min_cor = NULL,
+                                   selected_spectrum = NULL, ...) {
   if(!is.null(z)){
     plot_z <- z # default
   }
@@ -134,20 +146,20 @@ heatmap_spec <- function(object,
 
   p <- plot_ly(...) %>%
     add_trace(
-      x = object$metadata$x,
-      y = object$metadata$y,
+      x = x$metadata$x,
+      y = x$metadata$y,
       z = plot_z,
       colorscale='Viridis',
       type = "heatmap",
       hoverinfo = 'text',
       showscale = F,
       text = ~paste(
-        "row: ", 1:nrow(object$metadata),
-        "<br>x: ", object$metadata$x,", y: ", object$metadata$y, ", z: ", plot_z,
+        "row: ", 1:nrow(x$metadata),
+        "<br>x: ", x$metadata$x,", y: ", x$metadata$y, ", z: ", plot_z,
         if(!is.null(sn)){paste("<br>snr: ", round(sn, 0))} else{""},
         if(!is.null(cor)){paste("<br>cor: ", round(cor, 1))} else{""})) %>%
     layout(
-      #title = paste0(nrow(object$metadata), " Spectra"),
+      #title = paste0(nrow(x$metadata), " Spectra"),
       xaxis = list(title = 'x', zeroline = F, showgrid = F),
       yaxis = list(title = 'y',
                    scaleanchor = "x",
@@ -161,15 +173,26 @@ heatmap_spec <- function(object,
   if(!is.null(selected_spectrum)){
     p <-  p %>% add_markers(
       name = "Selected Spectrum",
-      x = object$metadata$x[selected_spectrum],
-      y = object$metadata$y[selected_spectrum])
+      x = x$metadata$x[selected_spectrum],
+      y = x$metadata$y[selected_spectrum])
   }
   return(p)
 }
 #' @rdname interactive_plots
 #'
 #' @export
-interactive_plot <- function(x, selected_spectrum, x2 = NULL, selected_spectrum2 = NULL) {
+interactive_plot <- function(x, ...) {
+  UseMethod("interactive_plot")
+}
+
+#' @export
+interactive_plot.default <- function(x, ...) {
+  stop("'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @export
+interactive_plot.OpenSpecy <- function(x, selected_spectrum, x2 = NULL,
+                                       selected_spectrum2 = NULL, ...) {
   # Generate the heatmap
   heat_map <- heatmap_spec(x, z = x$metadata$y, selected_spectrum = selected_spectrum)
 
