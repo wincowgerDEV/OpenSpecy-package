@@ -8,12 +8,12 @@
 #' This is a translation of Michael Stephen Chen's MATLAB code written for the
 #' \code{imodpolyfit} routine from Zhao et al. 2007.
 #'
-#' @param object a list object of class \code{OpenSpecy}.
+#' @param x a list object of class \code{OpenSpecy}.
 #' @param degree the degree of the polynomial. Must be less than the number of
 #' unique points when raw is \code{FALSE}. Typically a good fit can be
 #' found with a 8th order polynomial.
-#' @param wavenumber_fit manually specified wavenumbers for the baseline. 
-#' @param intensity_fit manually specified intensity values for the baseline. 
+#' @param wavenumber_fit manually specified wavenumbers for the baseline.
+#' @param intensity_fit manually specified intensity values for the baseline.
 #' @param type one of "Polynomial" or "Manual" depending on whether you want spectra to be corrected with
 #' a manual baseline or with polynomial baseline fitting.
 #' @param raw if \code{TRUE}, use raw and not orthogonal polynomials.
@@ -51,55 +51,55 @@
 #' @importFrom stats terms model.frame sd lm poly approx
 #' @importFrom data.table .SD
 #' @export
-subtr_bg <- function(object, ...) {
+subtr_bg <- function(x, ...) {
   UseMethod("subtr_bg")
 }
 
 #' @rdname subtr_bg
 #'
 #' @export
-subtr_bg.default <- function(object, ...) {
+subtr_bg.default <- function(x, ...) {
   stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
-.subtr_bg_manual <- function(wavenumber, 
-                                      intensity, 
-                                      wavenumber_fit, 
-                                      intensity_fit, 
-                                      ...) {
-    intensity - approx(wavenumber_fit, intensity_fit, xout = wavenumber, rule = 2, method = "linear", ties = mean)$y
+.subtr_bg_manual <- function(wavenumber,
+                             intensity,
+                             wavenumber_fit,
+                             intensity_fit,
+                             ...) {
+  intensity - approx(wavenumber_fit, intensity_fit, xout = wavenumber, rule = 2, method = "linear", ties = mean)$y
 }
 
 #' @rdname subtr_bg
 #'
 #' @export
-subtr_bg.OpenSpecy <- function(object, 
-                               degree = 8, 
-                               wavenumber_fit, 
+subtr_bg.OpenSpecy <- function(x,
+                               degree = 8,
+                               wavenumber_fit,
                                intensity_fit,
-                               raw = FALSE, 
+                               raw = FALSE,
                                make_rel = TRUE,
                                type = "Polynomial",
                                ...) {
-    
+
   if(type == "Polynomial"){
-      sbg <- object$spectra[, lapply(.SD, .subtr_bg, x = object$wavenumber,
-                                     degree = degree, raw = raw,
-                                     make_rel = make_rel, ...)]    
+    sbg <- x$spectra[, lapply(.SD, .subtr_bg, x = x$wavenumber,
+                              degree = degree, raw = raw,
+                              make_rel = make_rel, ...)]
   }
-  
+
   if(type == "Manual"){
-      sbg <- object$spectra[, lapply(.SD,  function(x){
-          .subtr_bg_manual(wavenumber = object$wavenumber,
-                           intensity = x, 
-                           wavenumber_fit = wavenumber_fit,
-                           intensity_fit = intensity_fit)
-      })]   
+    sbg <- x$spectra[, lapply(.SD,  function(y){
+      .subtr_bg_manual(wavenumber = x$wavenumber,
+                       intensity = y,
+                       wavenumber_fit = wavenumber_fit,
+                       intensity_fit = intensity_fit)
+    })]
   }
-  
-  if (make_rel) object$spectra <- make_rel(sbg) else object$spectra <- sbg
-    
-  return(object)
+
+  if (make_rel) x$spectra <- make_rel(sbg) else x$spectra <- sbg
+
+  return(x)
 }
 
 .subtr_bg <- function(y, x, degree, raw, make_rel, ...) {

@@ -1,5 +1,5 @@
 #' @rdname adj_intens
-#' @title Adjust spectral intensities to absorbance units
+#' @title Adjust spectral intensities to absorbance units.
 #'
 #' @description
 #' Converts reflectance or transmittance intensity units to absorbance units.

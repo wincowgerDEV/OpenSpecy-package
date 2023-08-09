@@ -6,12 +6,12 @@
 \alias{subtr_bg.OpenSpecy}
 \title{Automated background subtraction for spectral data}
 \usage{
-subtr_bg(object, ...)
+subtr_bg(x, ...)
 
-\method{subtr_bg}{default}(object, ...)
+\method{subtr_bg}{default}(x, ...)
 
 \method{subtr_bg}{OpenSpecy}(
-  object,
+  x,
   degree = 8,
   wavenumber_fit,
   intensity_fit,
@@ -22,7 +22,7 @@ subtr_bg(object, ...)
 )
 }
 \arguments{
-\item{object}{a list object of class \code{OpenSpecy}.}
+\item{x}{a list object of class \code{OpenSpecy}.}
 
 \item{degree}{the degree of the polynomial. Must be less than the number of
 unique points when raw is \code{FALSE}. Typically a good fit can be

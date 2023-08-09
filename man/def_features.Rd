@@ -9,22 +9,22 @@
 \alias{def_features.OpenSpecy}
 \title{Define features}
 \usage{
-collapse_spec(object, ...)
+collapse_spec(x, ...)
 
-\method{collapse_spec}{default}(object, ...)
+\method{collapse_spec}{default}(x, ...)
 
-\method{collapse_spec}{OpenSpecy}(object, ...)
+\method{collapse_spec}{OpenSpecy}(x, ...)
 
-def_features(object, ...)
+def_features(x, ...)
 
-\method{def_features}{default}(object, ...)
+\method{def_features}{default}(x, ...)
 
-\method{def_features}{OpenSpecy}(object, particles, ...)
+\method{def_features}{OpenSpecy}(x, particles, ...)
 }
 \arguments{
-\item{object}{An OpenSpecy object}
+\item{x}{an OpenSpecy object}
 
-\item{particles}{A logical vector or character vector describing which of the spectra are
+\item{particles}{a logical vector or character vector describing which of the spectra are
 of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
 represent the different particle types present in the spectra.}
 

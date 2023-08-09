@@ -4,7 +4,7 @@
 \alias{adj_intens}
 \alias{adj_intens.default}
 \alias{adj_intens.OpenSpecy}
-\title{Adjust spectral intensities to absorbance units}
+\title{Adjust spectral intensities to absorbance units.}
 \usage{
 adj_intens(x, ...)
 

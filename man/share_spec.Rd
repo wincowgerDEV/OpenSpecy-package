@@ -6,12 +6,12 @@
 \alias{share_spec.OpenSpecy}
 \title{Share data with the Open Specy community}
 \usage{
-share_spec(object, ...)
+share_spec(x, ...)
 
-\method{share_spec}{default}(object, ...)
+\method{share_spec}{default}(x, ...)
 
 \method{share_spec}{OpenSpecy}(
-  object,
+  x,
   file = NULL,
   share = "system",
   s3_key_id = NULL,
@@ -22,7 +22,7 @@ share_spec(object, ...)
 )
 }
 \arguments{
-\item{object}{A list object of class \code{OpenSpecy}.}
+\item{x}{a list object of class \code{OpenSpecy}.}
 
 \item{...}{Further arguments passed to the submethods.}
 

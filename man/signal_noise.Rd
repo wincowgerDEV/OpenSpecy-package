@@ -4,10 +4,10 @@
 \alias{signal_noise}
 \title{Calculate signal and noise metrics for Open Specy objects}
 \usage{
-signal_noise(object, return = "signal_over_noise", na.rm = TRUE)
+signal_noise(x, return = "signal_over_noise", na.rm = TRUE)
 }
 \arguments{
-\item{object}{An Open Specy object.}
+\item{x}{an Open Specy object.}
 
 \item{return}{A character specifying the desired metric to calculate. Options include "signal" (mean intensity), "noise" (standard deviation of intensity), "signal_times_noise" (absolute value of signal times noise), "signal_over_noise" (absolute value of signal / noise), or "total_signal" (total signal = signal * number of data points).}
 

@@ -27,8 +27,8 @@
 #' identified_map <- def_features(map, map$metadata$particles)
 #' test_collapsed <- collapse_spec(identified_map)
 #'
-#' @param object An OpenSpecy object
-#' @param particles A logical vector or character vector describing which of the spectra are
+#' @param x an OpenSpecy object
+#' @param particles a logical vector or character vector describing which of the spectra are
 #' of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
 #' represent the different particle types present in the spectra.
 #' @param \ldots additional arguments passed to subfunctions.
@@ -38,46 +38,46 @@
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
 #' @export
-collapse_spec <- function(object, ...) {
+collapse_spec <- function(x, ...) {
   UseMethod("collapse_spec")
 }
 
 #' @rdname def_features
 #'
 #' @export
-collapse_spec.default <- function(object, ...) {
+collapse_spec.default <- function(x, ...) {
   stop("'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname def_features
 #'
 #' @export
-collapse_spec.OpenSpecy <- function(object, ...) {
+collapse_spec.OpenSpecy <- function(x, ...) {
 
   # Calculate the median spectra for each unique particle_id
-  ts <- transpose(object$spectra)
-  ts$id <- object$metadata$particle_id
-  object$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
+  ts <- transpose(x$spectra)
+  ts$id <- x$metadata$particle_id
+  x$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
     transpose(make.names = "id")
 
-  object$metadata <- object$metadata |>
+  x$metadata <- x$metadata |>
     unique(by = c("particle_id", "area", "feret_max", "centroid_y",
                   "centroid_x"))
 
-  return(object)
+  return(x)
 }
 
 #' @rdname def_features
 #'
 #' @export
-def_features <- function(object, ...) {
+def_features <- function(x, ...) {
   UseMethod("def_features")
 }
 
 #' @rdname def_features
 #'
 #' @export
-def_features.default <- function(object, ...) {
+def_features.default <- function(x, ...) {
   stop("'x' needs to be of class 'OpenSpecy'")
 }
 
@@ -86,36 +86,37 @@ def_features.default <- function(object, ...) {
 #' @importFrom imager label as.cimg
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
-def_features.OpenSpecy <- function(object, particles, ...) {
+def_features.OpenSpecy <- function(x, particles, ...) {
   if(is.logical(particles)) {
     if(all(particles) | all(!particles)){
       stop("Features cannot be all TRUE or all FALSE values because that ",
            "would indicate that there are no distinct features")
     }
-    particles_df <- .def_features(object, particles)
+    particles_df <- .def_features(x, particles)
   } else if(is.character(particles)) {
     if(length(unique(particles)) == 1) {
       stop("Features cannot all have a single name because that would ",
            "indicate that there are no distinct features.")
     }
-    particles_df <- rbindlist(lapply(unique(particles), function(x) {
-      logical_particles <- particles == x
-      .def_features(object, logical_particles)
+    particles_df <- rbindlist(lapply(unique(particles), function(y) {
+      logical_particles <- particles == y
+      .def_features(x, logical_particles)
     }))
   } else {
     stop("Features needs to be a character or logical vector.", call. = F)
   }
 
+  obj <- x
   x <- y <- centroid_x <- centroid_y <- particle_id <- NULL # work around for
   # data.table non-standard evaluation
-  md <- particles_df[setDT(object$metadata), on = c("x", "y")]
+  md <- particles_df[setDT(obj$metadata), on = c("x", "y")]
   md[, particle_id := ifelse(is.na(particle_id), "-88", particle_id)]
   md[, centroid_x := mean(x), by = "particle_id"]
   md[, centroid_y := mean(y), by = "particle_id"]
 
-  object$metadata <- md
+  obj$metadata <- md
 
-  return(object)
+  return(obj)
 }
 
 #' @importFrom grDevices chull

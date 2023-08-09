@@ -9,7 +9,7 @@
 #' and saved for sharing but are not sent automatically. This only works with
 #' hosted instances of Open Specy.
 #'
-#' @param object A list object of class \code{OpenSpecy}.
+#' @param x a list object of class \code{OpenSpecy}.
 #' @param file File to share (optional).
 #' @param share Accepts any local directory to save the spectrum for later
 #' sharing via email to \email{wincowger@gmail.com}; \code{"system"} (default)
@@ -50,25 +50,25 @@
 #' @importFrom utils write.csv sessionInfo
 #'
 #' @export
-share_spec <- function(object, ...) {
+share_spec <- function(x, ...) {
   UseMethod("share_spec")
 }
 
 #' @rdname share_spec
 #'
 #' @export
-share_spec.default <- function(object, ...) {
+share_spec.default <- function(x, ...) {
   stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname share_spec
 #'
 #' @export
-share_spec.OpenSpecy <- function(object, file = NULL, share = "system", s3_key_id = NULL, s3_secret_key = NULL, s3_region = NULL, s3_bucket = NULL,
+share_spec.OpenSpecy <- function(x, file = NULL, share = "system", s3_key_id = NULL, s3_secret_key = NULL, s3_region = NULL, s3_bucket = NULL,
                                  ...) {
-  md <- object$metadata
+  md <- x$metadata
   if (any(!c("user_name", "spectrum_type", "spectrum_identity") %in%
-             names(md)) |
+          names(md)) |
       is.null(md$user_name) | is.null(md$spectrum_type) |
       is.null(md$spectrum_identity))
     warning("fields 'user_name', 'spectrum_type', and 'spectrum_identity' ",
@@ -81,14 +81,14 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system", s3_key_i
     pkg <- "aws.s3"
     mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
     if (length(mpkg)) stop("share = 'cloud' requires package 'aws.s3'")
-      if(any(is.null(s3_key_id), is.null(s3_secret_key), is.null(s3_region), is.null(s3_bucket))) {
-          stop("Need all s3 inputs to share with the cloud.")
-      }
-      Sys.setenv(
-          "AWS_ACCESS_KEY_ID" = s3_key_id,
-          "AWS_SECRET_ACCESS_KEY" = s3_secret_key,
-          "AWS_DEFAULT_REGION" = s3_region
-      )
+    if(any(is.null(s3_key_id), is.null(s3_secret_key), is.null(s3_region), is.null(s3_bucket))) {
+      stop("Need all s3 inputs to share with the cloud.")
+    }
+    Sys.setenv(
+      "AWS_ACCESS_KEY_ID" = s3_key_id,
+      "AWS_SECRET_ACCESS_KEY" = s3_secret_key,
+      "AWS_DEFAULT_REGION" = s3_region
+    )
 
     fp <- file.path(tempdir(), md$session_id)
   } else {
@@ -98,7 +98,7 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system", s3_key_i
 
   fd <- file.path(fp, paste0(md$file_id, ".yml"))
 
-  write_spec(object, fd)
+  write_spec(x, fd)
 
   if (!is.null(file)) {
     ex <- strsplit(basename(file), split="\\.")[[1]]
@@ -108,10 +108,10 @@ share_spec.OpenSpecy <- function(object, file = NULL, share = "system", s3_key_i
   if (share == "cloud") {
     for (lf in list.files(fp, pattern = md$file_id, full.names = T)) {
       aws.s3::put_object(
-            file = lf,
-            #object = paste0(hashed_data, ".zip"),
-            bucket = s3_bucket
-        )
+        file = lf,
+        #object = paste0(hashed_data, ".zip"),
+        bucket = s3_bucket
+      )
     }
   }
 
