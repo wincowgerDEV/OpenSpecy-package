@@ -186,9 +186,7 @@ apply an adjustment.
 This is the respective R code:
 
 ```{r}
-library(magrittr)
-
-raman_adj <- raman_hdpe %>%
+raman_adj <- raman_hdpe |> 
   adj_intens()
 
 head(raman_adj)
@@ -335,7 +333,7 @@ smooth_intens(raman_hdpe, p = 4)
 The intensity-adjusted sample spectrum `raman_adj` is smoothed accordingly:
 
 ```{r}
-raman_smooth <- raman_adj %>% 
+raman_smooth <- raman_adj |> 
   smooth_intens()
 
 head(raman_smooth)
@@ -384,7 +382,7 @@ ggplot(compare_subtraction, aes(wavenumber, intensity)) +
 The smoothed sample spectrum `raman_smooth` is background-corrected as follows:
 
 ```{r}
-raman_bgc <- raman_smooth %>% 
+raman_bgc <- raman_smooth |>  
   subtr_bg()
 
 head(raman_bgc)

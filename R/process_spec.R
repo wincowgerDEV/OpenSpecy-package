@@ -75,7 +75,6 @@
 #' print(sampled)
 #' plot(sampled)
 #'
-#' @importFrom magrittr %>%
 #' @export
 process_spec <- function(x, ...) {
   UseMethod("process_spec")

@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 
-<meta name="date" content="2023-08-02" />
+<meta name="date" content="2023-08-10" />
 
 <title>Open Specy Tutorial</title>
 
@@ -342,7 +342,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 Zacharias Steinmetz, Andrew Gray, Chelsea Rochman, Sebastian Primpke,
 Jennifer Lynch, Hannah Hapich, Hannah De Frond, Keenan Munno, Bridget
 O’Donnell</p></h4>
-<h4 class="date">2023-08-02</h4>
+<h4 class="date">2023-08-10</h4>
 
 
 
@@ -508,19 +508,17 @@ equation <span class="math inline">\(\frac{(1-R)^2}{2R}\)</span>. If
 none is selected, Open Specy assumes that the uploaded data is an
 absorbance spectrum and does not apply an adjustment.</p>
 <p>This is the respective R code:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">library</span>(magrittr)</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>raman_adj <span class="ot">&lt;-</span> raman_hdpe <span class="sc">%&gt;%</span></span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="fu">adj_intens</span>()</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="fu">head</span>(raman_adj)</span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;    wavenumber  intensity</span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 1:    301.040 0.00000000</span></span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 2:    304.632 0.03037975</span></span>
-<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; 3:    308.221 0.02784810</span></span>
-<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; 4:    311.810 0.02405063</span></span>
-<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt; 5:    315.398 0.02531646</span></span>
-<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt; 6:    318.983 0.02025316</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>raman_adj <span class="ot">&lt;-</span> raman_hdpe <span class="sc">|&gt;</span> </span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="fu">adj_intens</span>()</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="fu">head</span>(raman_adj)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;    wavenumber  intensity</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 1:    301.040 0.00000000</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 2:    304.632 0.03037975</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 3:    308.221 0.02784810</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 4:    311.810 0.02405063</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; 5:    315.398 0.02531646</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; 6:    318.983 0.02025316</span></span></code></pre></div>
 </div>
 <div id="share-metadata-on-known-spectra" class="section level3">
 <h3>Share metadata on known spectra</h3>
@@ -616,7 +614,7 @@ commands:</p>
 <span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">smooth_intens</span>(raman_hdpe, <span class="at">p =</span> <span class="dv">4</span>)</span></code></pre></div>
 <p>The intensity-adjusted sample spectrum <code>raman_adj</code> is
 smoothed accordingly:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>raman_smooth <span class="ot">&lt;-</span> raman_adj <span class="sc">%&gt;%</span> </span>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>raman_smooth <span class="ot">&lt;-</span> raman_adj <span class="sc">|&gt;</span> </span>
 <span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="fu">smooth_intens</span>()</span>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a></span>
 <span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="fu">head</span>(raman_smooth)</span>
@@ -651,7 +649,7 @@ different degrees of background subtraction (Cowger et al., 2020).</div>
 </div>
 <p>The smoothed sample spectrum <code>raman_smooth</code> is
 background-corrected as follows:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>raman_bgc <span class="ot">&lt;-</span> raman_smooth <span class="sc">%&gt;%</span> </span>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>raman_bgc <span class="ot">&lt;-</span> raman_smooth <span class="sc">|&gt;</span>  </span>
 <span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="fu">subtr_bg</span>()</span>
 <span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a></span>
 <span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="fu">head</span>(raman_bgc)</span>

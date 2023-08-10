@@ -4,8 +4,8 @@ test_that("Zip folder Raman batch analysis", {
     expect_true(is_OpenSpecy(batch))
     expect_no_error(get_lib(types = c("nobaseline")))
     expect_silent(check_lib(types = c("nobaseline")))
-    expect_silent(lib <- load_lib(types = "nobaseline") %>%
-                      filter_spec(., .$metadata$SpectrumType == "Raman"))
+    expect_silent(lib <- load_lib(types = "nobaseline"))
+    expect_silent(filter_spec(lib, lib$metadata$SpectrumType == "Raman"))
     expect_silent(batch2 <- conform_spec(batch, new_wavenumbers = lib$wavenumber, res = spec_res(lib$wavenumber)))
     plotly_spec(batch2)
     expect_silent(test_sn2 <- signal_noise(batch2, return = "run_signal_over_noise"))

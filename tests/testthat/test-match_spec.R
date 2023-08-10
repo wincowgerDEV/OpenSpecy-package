@@ -1,8 +1,8 @@
 # Create test data for cor_spec function
 data("test_lib")
-unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) %>%
-    conform_spec(., new_wavenumbers = test_lib$wavenumber, res = spec_res(test_lib)) %>%
-    process_spec(.)
+unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
+    conform_spec(new_wavenumbers = test_lib$wavenumber, res = spec_res(test_lib)) |>
+    process_spec()
 
 # Create a subset of test_lib for filtering
 test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_class == "polycarbonates")

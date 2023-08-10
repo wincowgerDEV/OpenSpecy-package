@@ -36,7 +36,6 @@
 #'
 #' @importFrom plotly plot_ly add_trace add_markers subplot layout
 #' @importFrom data.table melt
-#' @importFrom magrittr %>%
 #'
 #' @export
 plotly_spec <- function(x, ...) {
@@ -57,13 +56,13 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL, ...) {
   dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
     melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
-  p <- plot_ly(dt, type = "scatter", mode = "lines", ...) %>%
+  p <- plot_ly(dt, type = "scatter", mode = "lines", ...) |>
     add_trace(x = ~wavenumber,
               y = ~make_rel(intensity, na.rm = T),
               color = ~id,
               name = "Your Spectra",
               line = list(color = 'rgb(255,255,255)'),
-              showlegend = F) %>%
+              showlegend = F) |>
     layout(xaxis = list(title = "wavenumber [cm<sup>-1</sup>]", autorange = "reversed"),
            yaxis = list(title = "absorbance intensity [-]"),
            plot_bgcolor = 'rgb(17,0,73)',
@@ -72,7 +71,7 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL, ...) {
            font = list(color = '#FFFFFF'))
 
   # Add dummy trace for Your Spectra
-  p <- p %>%
+  p <- p |>
     add_trace(x = NULL,
               y = NULL,
               line = list(color = 'rgb(255,255,255)'),
@@ -83,7 +82,7 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL, ...) {
     dt2 <- cbind(wavenumber = x2$wavenumber, x2$spectra) |>
       melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
-    p <- p %>%
+    p <- p |>
       add_trace(
         data = dt2,
         x = ~wavenumber,
@@ -96,7 +95,7 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL, ...) {
         showlegend = F)
 
     # Add dummy trace for Library Spectra
-    p <- p %>%
+    p <- p |>
       add_trace(x = NULL,
                 y = NULL,
                 line = list(dash = "dash", color = 'rgb(125,249,255)'),
@@ -156,7 +155,7 @@ heatmap_spec.OpenSpecy <- function(x,
   #    heat.colors(n = sum(sn > min_sn))
   #}
 
-  p <- plot_ly(...) %>%
+  p <- plot_ly(...) |>
     add_trace(
       x = x$metadata$x,
       y = x$metadata$y,
@@ -169,7 +168,7 @@ heatmap_spec.OpenSpecy <- function(x,
         "row: ", 1:nrow(x$metadata),
         "<br>x: ", x$metadata$x,", y: ", x$metadata$y, ", z: ", plot_z,
         if(!is.null(sn)){paste("<br>snr: ", round(sn, 0))} else{""},
-        if(!is.null(cor)){paste("<br>cor: ", round(cor, 1))} else{""})) %>%
+        if(!is.null(cor)){paste("<br>cor: ", round(cor, 1))} else{""})) |>
     layout(
       #title = paste0(nrow(x$metadata), " Spectra"),
       xaxis = list(title = 'x', zeroline = F, showgrid = F),
@@ -183,7 +182,7 @@ heatmap_spec.OpenSpecy <- function(x,
       font = list(color = '#FFFFFF'))
 
   if(!is.null(selected_spectrum)){
-    p <-  p %>% add_markers(
+    p <-  p |> add_markers(
       name = "Selected Spectrum",
       x = x$metadata$x[selected_spectrum],
       y = x$metadata$y[selected_spectrum])
@@ -235,7 +234,7 @@ interactive_plot.OpenSpecy <- function(x, selected_spectrum, x2 = NULL,
   spectra_plot$data <- c(spectra_plot$data, selected_spectrum_trace)
 
   # Add margin to heatmap for separation
-  heat_map <- heat_map %>% layout(autosize = TRUE, margin = list(b = 100))
+  heat_map <- heat_map |> layout(autosize = TRUE, margin = list(b = 100))
 
   # Combine both plots using subplot
   plot_grid <- subplot(heat_map, spectra_plot, nrows = 2, heights = c(0.6, 0.4), margin = 0.1)

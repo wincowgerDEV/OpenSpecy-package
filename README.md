@@ -61,8 +61,6 @@ for a detailed standard operating procedure.
 ## Workflow
 
 ```r
-library(dplyr)
-
 # Fetch current spectral library from https://osf.io/x7dpz/
 get_lib()
 
@@ -81,12 +79,12 @@ share_spec(raman_hdpe,
            )
 
 # Adjust spectral intensity
-raman_adj <- raman_hdpe %>%
+raman_adj <- raman_hdpe |>
   adj_intens()
 
 # Smooth and background-correct spectrum
-raman_proc <- raman_adj %>% 
-  smooth_intens() %>% 
+raman_proc <- raman_adj |>
+  smooth_intens() |>
   subtr_bg()
 
 # Match spectrum with library and retrieve meta data

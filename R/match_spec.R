@@ -47,7 +47,6 @@
 #' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
 #' object of choice
 #'
-#' @importFrom magrittr %>%
 #' @importFrom stats cor
 #' @importFrom data.table data.table setorder fifelse .SD
 #' @export

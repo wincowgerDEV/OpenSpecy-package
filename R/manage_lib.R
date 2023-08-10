@@ -62,8 +62,6 @@
 #'
 #' Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 #'
-#' @importFrom magrittr %>%
-#'
 #' @export
 check_lib <- function(types = c("raw", "nobaseline", "derivative"),
                       path = "system",
@@ -91,13 +89,13 @@ get_lib <- function(types = c("raw", "nobaseline", "derivative"),
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  osf <- osf_retrieve_node(node) %>%
+  osf <- osf_retrieve_node(node) |>
     osf_ls_files(pattern = ".rds", n_max = Inf)
 
   message("Fetching Open Specy reference libraries from OSF ...")
-    osf %>% subset(grepl(
+    osf |>  subset(grepl(
       paste0("^both_(", paste(types, collapse = "|"), ").rds"),
-      osf$name)) %>%
+      osf$name)) |>
       osf_download(path = lp, conflicts = conflicts, progress = TRUE, ...)
 
   message("Use 'load_lib()' to load the library")
@@ -128,7 +126,7 @@ load_lib <- function(types = c("raw", "nobaseline", "derivative"),
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  chk <- file.path(lp, fn) %>% file.exists()
+  chk <- file.path(lp, fn) |> file.exists()
 
   names(chk) <- types
 

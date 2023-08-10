@@ -47,7 +47,6 @@
 #' \emph{Applied Spectroscopy}, \strong{61}(11), 1225–1232.
 #' \doi{10.1366/000370207782597003}.
 #'
-#' @importFrom magrittr %>%
 #' @importFrom stats terms model.frame sd lm poly approx
 #' @importFrom data.table .SD
 #' @export
@@ -150,8 +149,8 @@ subtr_bg.OpenSpecy <- function(x,
     # the peak to be interpolated
     if(criteria_met) {
       ysbg <- approx(x, y, xout = xout, rule = 2, method = "linear",
-                     ties = mean)[2] %>%
-        unlist() %>%
+                   ties = mean)[2] |>
+        unlist() |>
         unname()
 
       if (make_rel) yout <- make_rel(yin - ysbg) else

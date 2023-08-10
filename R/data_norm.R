@@ -51,7 +51,6 @@
 #' \code{\link[base]{min}()} and \code{\link[base]{round}()};
 #' \code{\link{adj_intens}()} for log transformation functions
 #'
-#' @importFrom magrittr %>%
 #' @export
 adj_res <- function(x, res = 1, fun = round) {
   fun(x / res) * res
@@ -69,7 +68,7 @@ conform_res <- function(x, res = 5) {
 #' @export
 adj_neg <- function(y, na.rm = FALSE) {
   if (min(y, na.rm = na.rm) < 1) {
-    y + min(y, na.rm = na.rm) %>% abs() + 1
+    y + min(y, na.rm = na.rm) |> abs() + 1
   } else {
     y
   }

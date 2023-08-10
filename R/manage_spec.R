@@ -28,7 +28,6 @@
 #' \code{\link[OpenSpecy]{conform_res}()};
 #' \code{\link[OpenSpecy]{as_OpenSpecy}()};
 #'
-#' @importFrom magrittr %>%
 #' @importFrom data.table data.table as.data.table fread rbindlist
 #'
 #' @export

@@ -35,8 +35,6 @@
 #' \code{\link[base]{min}()} and \code{\link[base]{round}()};
 #' \code{\link{adj_intens}()} for log transformation functions
 #'
-#'
-#' @importFrom magrittr %>%
 #' @importFrom data.table as.data.table .SD
 #' @export
 restrict_range <- function(x, ...) {

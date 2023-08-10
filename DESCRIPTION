@@ -49,7 +49,6 @@ Depends:
     R (>= 4.1.0)
 Imports:
     methods,
-    magrittr,
     data.table,
     jsonlite,
     yaml,

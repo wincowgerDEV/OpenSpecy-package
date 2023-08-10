@@ -23,7 +23,6 @@
 #' @seealso
 #' \code{\link{subtr_bg}()} for spectral background correction.
 #'
-#' @importFrom magrittr %>%
 #' @importFrom data.table .SD
 #' @export
 conform_spec <- function(x, new_wavenumbers, res = 5) {
