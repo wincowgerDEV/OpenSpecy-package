@@ -14,7 +14,7 @@
 #'
 #' @return
 #' A single OpenSpecy object. 
-#'
+#' 
 #' @examples
 #' spectra <- lapply(c(read_extdata("raman_hdpe.csv"),  read_extdata("ftir_ldpe_soil.asp")), read_any)
 #' spectra2 <- c_spec(objects = spectra, wavenumber_transform = "common_range", res = 5)

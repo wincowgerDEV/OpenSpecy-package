@@ -22,7 +22,8 @@ signal_noise <- function(x, return = "signal_over_noise", na.rm = TRUE) {
 
   vapply(x$spectra, function(intensity){
     if(length(intensity[!is.na(intensity)]) < 20){
-      stop("Need at least 20 intensity values to calculate the signal or noise values accurately.")
+      warning("Need at least 20 intensity values to calculate the signal or noise values accurately. Returning NA.")
+        NA
     }
     if(return == "run_signal_over_noise"){
       max = frollapply(intensity[!is.na(intensity)], 20, max)
