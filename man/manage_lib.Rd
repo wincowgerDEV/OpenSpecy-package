@@ -20,7 +20,7 @@ get_lib(
   ...
 )
 
-load_lib(types = c("raw", "nobaseline", "derivative"), path = "system")
+load_lib(types = "derivative", path = "system")
 }
 \arguments{
 \item{types}{library types to check/retrieve; defaults to
@@ -70,10 +70,10 @@ with the Open Specy functions.
 }
 \examples{
 \dontrun{
-check_lib(which = c("ftir", "raman"))
-get_lib(which = c("ftir", "raman"))
+check_lib()
+get_lib()
 
-spec_lib <- load_lib(which = c("ftir", "raman"))
+spec_lib <- load_lib()
 }
 
 }

@@ -44,10 +44,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' check_lib(which = c("ftir", "raman"))
-#' get_lib(which = c("ftir", "raman"))
+#' check_lib()
+#' get_lib()
 #'
-#' spec_lib <- load_lib(which = c("ftir", "raman"))
+#' spec_lib <- load_lib()
 #' }
 #'
 #' @author
@@ -104,8 +104,7 @@ get_lib <- function(types = c("raw", "nobaseline", "derivative"),
 #' @rdname manage_lib
 #'
 #' @export
-load_lib <- function(types = c("raw", "nobaseline", "derivative"),
-                     path = "system") {
+load_lib <- function(types = "derivative", path = "system") {
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
                path)

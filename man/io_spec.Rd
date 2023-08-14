@@ -55,7 +55,7 @@ read_spec(read_extdata("raman_hdpe.rds"))
 
 \dontrun{
 data(raman_hdpe)
-#Specify the file type you want to write to using the extension at the end of the file name.
+# Specify the file type you want to write to using the extension at the end of the file name.
 write_spec(raman_hdpe, "raman_hdpe.yml")
 write_spec(raman_hdpe, "raman_hdpe.json")
 write_spec(raman_hdpe, "raman_hdpe.rds")

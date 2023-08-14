@@ -1,10 +1,11 @@
 #' @title Test reference library
 #'
 #' @description
-#' Reference library of 436 FTIR spectra used for internal testing.
+#' Reference library with 29 FTIR and 28 Raman spectra used for examples and
+#' internal testing.
 #'
 #' @format
-#' An OpenSpecy object. sample_name is the class of the spectra. 
+#' An OpenSpecy object; \code{sample_name} is the class of the spectra.
 #'
 #' @examples
 #' data("test_lib")

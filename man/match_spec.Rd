@@ -79,13 +79,14 @@ This function correlates two OpenSpecy objects, typically one with knowns and on
 \examples{
 data("test_lib")
 unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
-  conform_spec(new_wavenumbers = test_lib$wavenumber, res = spec_res(test_lib)) |>
+  conform_spec(new_wavenumbers = test_lib$wavenumber,
+               res = spec_res(test_lib)) |>
   process_spec()
 matches <- cor_spec(unknown, test_lib)
 
-test_lib_extract <- filter_spec(
-  test_lib,
-  logic = test_lib$metadata$polymer_class == "polycarbonates"
+test_lib_extract <- filter_spec(test_lib,
+  logic = grepl("polycarbonate", test_lib$metadata$polymer_class,
+                ignore.case = TRUE)
 )
 
 matches2 <- cor_spec(unknown, library = test_lib_extract)
