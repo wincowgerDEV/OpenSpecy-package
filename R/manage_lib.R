@@ -16,10 +16,12 @@
 #' (\doi{10.17605/OSF.IO/X7DPZ}).
 #' \code{load_lib()} will load the library into the global environment for use
 #' with the Open Specy functions.
+#' \code{rm_lib()} removes the libraries from your computer.
 #'
 #' @param type library type to check/retrieve; defaults to
-#' \code{c("raw", "nobaseline", "derivative")}.
-#' @param node the OSF node to be retrieved; should be \code{"x7dpz"}.
+#' \code{c("derivative", "nobaseline", "raw")}.
+#' @param node the OSF node to be retrieved; should be \code{"x7dpz"} unless you
+#' maintain your own OSF node with spectral libraries.
 #' @param path where to save or look for local library files; defaults to
 #' \code{"system"} pointing to
 #' \code{system.file("extdata", package = "OpenSpecy")}.
@@ -39,19 +41,19 @@
 #'
 #' @return
 #' \code{check_lib()} and \code{get_lib()} return messages only;
-#' \code{load_lib()} returns a list object containing the respective spectral
-#' reference library.
+#' \code{load_lib()} returns an \code{OpenSpecy} object containing the
+#' respective spectral reference library.
 #'
 #' @examples
 #' \dontrun{
-#' check_lib()
-#' get_lib()
+#' check_lib("derivative")
+#' get_lib("derivative")
 #'
-#' spec_lib <- load_lib()
+#' spec_lib <- load_lib("derivative")
 #' }
 #'
 #' @author
-#' Zacharias Steinmetz
+#' Zacharias Steinmetz, Win Cowger
 #'
 #' @references
 #' Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
@@ -63,15 +65,14 @@
 #' Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 #'
 #' @export
-check_lib <- function(type = c("raw", "nobaseline", "derivative"),
-                      path = "system",
-                      condition = "warning") {
+check_lib <- function(type = c("derivative", "nobaseline", "raw"),
+                      path = "system", condition = "warning") {
 
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  .chkf(type = type, path = lp, condition = condition)
+  .chkf(type, path = lp, condition = condition)
 
   invisible()
 }
@@ -82,9 +83,9 @@ check_lib <- function(type = c("raw", "nobaseline", "derivative"),
 #' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
 #'
 #' @export
-get_lib <- function(type = c("raw", "nobaseline", "derivative"),
-                    path = "system",
-                    node = "x7dpz", conflicts = "overwrite", ...) {
+get_lib <- function(type = c("derivative", "nobaseline", "raw"),
+                    path = "system", node = "x7dpz", conflicts = "overwrite",
+                    ...) {
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
                path)
@@ -104,20 +105,36 @@ get_lib <- function(type = c("raw", "nobaseline", "derivative"),
 #' @rdname manage_lib
 #'
 #' @export
-load_lib <- function(type = "derivative", path = "system") {
+load_lib <- function(type, path = "system") {
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  chk <- .chkf(type = type, path = lp, condition = "stop")
-  fp <- file.path(lp, paste0("both_", type, ".rds"))
+  chk <- .chkf(type, path = lp, condition = "stop")
 
-  return(readRDS(fp))
+  fp <- file.path(lp, paste0("both_", type, ".rds"))
+  rds <- readRDS(fp)
+
+  return(rds)
+}
+
+#' @rdname manage_lib
+#'
+#' @export
+rm_lib <- function(type = c("derivative", "nobaseline", "raw"),
+                   path = "system") {
+  lp <- ifelse(path == "system",
+               system.file("extdata", package = "OpenSpecy"),
+               path)
+
+  fp <- file.path(lp, paste0("both_", type, ".rds"))
+  file.remove(fp)
+
+  invisible()
 }
 
 # Auxiliary function for library checks
-.chkf <- function(type = c("raw", "nobaseline", "derivative"),
-                  path = "system", condition = "warning") {
+.chkf <- function(type, path = "system", condition = "warning") {
   fn <- paste0("both_", type, ".rds")
 
   lp <- ifelse(path == "system", system.file("extdata", package = "OpenSpecy"),
@@ -130,7 +147,7 @@ load_lib <- function(type = "derivative", path = "system") {
   out <- paste(type[!chk], collapse = ", ")
 
   if (!all(chk))
-    do.call(condition, list(out, " library missing or incomplete; ",
+    do.call(condition, list("library missing or incomplete: ", out, "; ",
                             "use 'get_lib()' to download a current version",
                             call. =  ifelse(condition %in%
                                               c("message",
