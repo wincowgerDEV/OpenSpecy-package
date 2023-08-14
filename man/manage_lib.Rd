@@ -54,8 +54,8 @@ exists at the specified destination. Can be one of the following (see
 }
 \value{
 \code{check_lib()} and \code{get_lib()} return messages only;
-\code{load_lib()} returns a list object containing the respective spectral
-reference library.
+\code{load_lib()} returns an \code{OpenSpecy} object containing the
+respective spectral reference library.
 }
 \description{
 These functions will import the spectral libraries from Open Specy if they
@@ -71,10 +71,11 @@ already exists on the users computer.
 (\doi{10.17605/OSF.IO/X7DPZ}).
 \code{load_lib()} will load the library into the global environment for use
 with the Open Specy functions.
+\code{rm_lib()} removes the libraries from your computer.
 }
 \examples{
 \dontrun{
-check_lib()
+check_lib("derivative")
 get_lib("derivative")
 
 spec_lib <- load_lib("derivative")
@@ -91,5 +92,5 @@ Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
 Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 }
 \author{
-Zacharias Steinmetz
+Zacharias Steinmetz, Win Cowger
 }

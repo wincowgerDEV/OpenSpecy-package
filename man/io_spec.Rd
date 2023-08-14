@@ -5,7 +5,7 @@
 \alias{write_spec.default}
 \alias{write_spec.OpenSpecy}
 \alias{read_spec}
-\alias{to_hyperSpec}
+\alias{as_hyperSpec}
 \title{Read and write spectral data}
 \usage{
 write_spec(x, ...)
@@ -16,7 +16,7 @@ write_spec(x, ...)
 
 read_spec(file, share = NULL, method = NULL, ...)
 
-to_hyperSpec(x)
+as_hyperSpec(x)
 }
 \arguments{
 \item{x}{An object of class \code{\link{OpenSpecy}}.}
@@ -36,7 +36,7 @@ Open Specy community; see \code{\link{share_spec}()} for details.}
 \value{
 \code{read_spec()} reads data formatted as an \code{OpenSpecy} object and returns a list object of class \code{\link{OpenSpecy}} containing spectral data. \cr
 \code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}} containing spectral data. \cr
-\code{to_hyperspec()} converts an \code{OpenSpecy} object to a hyperSpec object.
+\code{as_hyperspec()} converts an \code{OpenSpecy} object to a hyperSpec object.
 }
 \description{
 Functions for reading and writing spectral data to and from OpenSpecy format.
@@ -44,7 +44,7 @@ Functions for reading and writing spectral data to and from OpenSpecy format.
 Currently supported formats are .yaml, .json, or .rds.
 }
 \details{
-Due to floating point number errors there may be some differences in the precision 
+Due to floating point number errors there may be some differences in the precision
 of the numbers returned if using multiple devices for json and yaml files
 but the numbers should be nearly identical. readRDS should return the exact same object every time.
 }
@@ -61,7 +61,7 @@ write_spec(raman_hdpe, "raman_hdpe.json")
 write_spec(raman_hdpe, "raman_hdpe.rds")
 
 # Convert an \code{OpenSpecy} object to a hyperSpec object
-hyperOpenSpecy <- to_hyperSpec(raman_hdpe)
+hyper <- as_hyperSpec(raman_hdpe)
 }
 
 }

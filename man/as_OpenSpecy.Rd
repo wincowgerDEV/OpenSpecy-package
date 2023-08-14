@@ -8,9 +8,10 @@
 \alias{as_OpenSpecy.data.frame}
 \alias{as_OpenSpecy.default}
 \alias{is_OpenSpecy}
+\alias{check_OpenSpecy}
 \alias{OpenSpecy}
 \alias{gen_grid}
-\title{\code{OpenSpecy} object operations}
+\title{Create \code{OpenSpecy} objects}
 \usage{
 as_OpenSpecy(x, ...)
 
@@ -42,31 +43,45 @@ as_OpenSpecy(x, ...)
 
 is_OpenSpecy(x)
 
+check_OpenSpecy(x)
+
 OpenSpecy(x, ...)
 
 gen_grid(n)
 }
 \arguments{
-\item{x}{depending on the method, a list with all OpenSpecy parameters, a vector with the wavenumbers for all spectra, or a data.frame with a full spectrum in the classic Open Specy format.}
+\item{x}{depending on the method, a list with all OpenSpecy parameters,
+a vector with the wavenumbers for all spectra, or a data.frame with a full
+spectrum in the classic Open Specy format.}
 
-\item{colnames}{names of the wavenumber column and spectra column, makes assumptions based on column names or placement if NULL.}
+\item{colnames}{names of the wavenumber column and spectra column, makes
+assumptions based on column names or placement if \code{NULL}.}
 
-\item{spectra}{spectral intensities formatted as a data.table with one column per spectrum.}
+\item{spectra}{spectral intensities formatted as a data.table with one column
+per spectrum.}
 
-\item{metadata}{metadata for each spectrum with one row per spectrum, see details.}
+\item{metadata}{metadata for each spectrum with one row per spectrum,
+see details.}
 
 \item{coords}{spatial coordinates for the spectra.}
 
-\item{session_id}{TRUE or FALSE whether to add a session ID to the metadata. The session ID is based on current session info so metadata of the same spectra will not return equal if session info changes. Sometimes that is desirable.}
+\item{session_id}{logical. Whether to add a session ID to the metadata.
+The session ID is based on current session info so metadata of the same
+spectra will not return equal if session info changes. Sometimes that is
+desirable.}
 
 \item{n}{number of spectra to generate the spatial coordinate grid with.}
 
-\item{\ldots}{additional arguments.}
+\item{\ldots}{additional arguments passed to submethods.}
 }
 \value{
-\code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists described in details. \cr
-\code{is_OpenSpecy()} returns TRUE if the object is an OpenSpecy and FALSE if not.\cr
-\code{gen_grid()} returns a \code{data.table} with x y coordinates to use for generating a spatial grid for the spectra if one is not specified in the data.\cr
+\code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists
+described in details.
+\code{is_OpenSpecy()} returns \code{TRUE} if the object is an OpenSpecy and
+\code{FALSE} if not.
+\code{gen_grid()} returns a \code{data.table} with \code{x} and \code{y}
+coordinates to use for generating a spatial grid for the spectra if one is
+not specified in the data.
 }
 \description{
 Functions to check if an object is an OpenSpecy, or coerce it if
@@ -147,7 +162,7 @@ with \code{digest(object[c("wavenumber", "spectra")])}\cr
 }
 }
 \examples{
-data("raman_hdpe") #Read in an example spectrum for Raman HDPE.
+data("raman_hdpe")
 
 # Inspect the spectra
 raman_hdpe # See how OpenSpecy objects print.
@@ -160,7 +175,8 @@ as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber,
                   spectra = raman_hdpe$spectra,
                   metadata = raman_hdpe$metadata[,-c("x", "y")]))
 
-# If you try to produce an OpenSpecy using an OpenSpecy it will just return the same object.
+# If you try to produce an OpenSpecy using an OpenSpecy it will just return
+# the same object.
 as_OpenSpecy(raman_hdpe)
 
 # Creating an OpenSpecy from a data.frame
@@ -170,9 +186,6 @@ as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber,
 # Test that the spectrum is formatted as an OpenSpecy object.
 is_OpenSpecy(raman_hdpe)  #should be TRUE
 is_OpenSpecy(raman_hdpe$spectra) #should be FALSE
-
-# Create an artificial spatial grid
-gen_grid(n = 5)
 
 }
 \seealso{

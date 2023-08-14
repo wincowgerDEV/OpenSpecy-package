@@ -27,8 +27,8 @@ test_that("Test read_spec and write_spec functions", {
     file.remove(temp_file_rds)
 })
 
-test_that("Test to_hyperspec function", {
-    hyperspec_object <- to_hyperSpec(raman_hdpe)
+test_that("as_hyperspec function", {
+    hyperspec_object <- as_hyperSpec(raman_hdpe)
 
     # Verify the class of the output
     expect_s4_class(hyperspec_object, "hyperSpec")

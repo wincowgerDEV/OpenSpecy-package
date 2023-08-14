@@ -7,9 +7,9 @@
 #' Currently supported formats are .yaml, .json, or .rds.
 #'
 #' @details
-#' Due to floating point number errors there may be some differences in the precision 
+#' Due to floating point number errors there may be some differences in the precision
 #' of the numbers returned if using multiple devices for json and yaml files
-#' but the numbers should be nearly identical. readRDS should return the exact same object every time. 
+#' but the numbers should be nearly identical. readRDS should return the exact same object every time.
 #'
 #' @param x An object of class \code{\link{OpenSpecy}}.
 #' @param file For `read_spec()`, file path to be read from. For `write_spec()`, file path to be written to. If writing, files will be written as the type designated in the file name.
@@ -23,13 +23,13 @@
 #' @return
 #' \code{read_spec()} reads data formatted as an \code{OpenSpecy} object and returns a list object of class \code{\link{OpenSpecy}} containing spectral data. \cr
 #' \code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}} containing spectral data. \cr
-#' \code{to_hyperspec()} converts an \code{OpenSpecy} object to a hyperSpec object.
+#' \code{as_hyperspec()} converts an \code{OpenSpecy} object to a hyperSpec object.
 #'
 #' @examples
 #' read_spec(read_extdata("raman_hdpe.yml"))
 #' read_spec(read_extdata("raman_hdpe.json"))
 #' read_spec(read_extdata("raman_hdpe.rds"))
-#' 
+#'
 #' \dontrun{
 #' data(raman_hdpe)
 #' # Specify the file type you want to write to using the extension at the end of the file name.
@@ -38,7 +38,7 @@
 #' write_spec(raman_hdpe, "raman_hdpe.rds")
 #'
 #' # Convert an \code{OpenSpecy} object to a hyperSpec object
-#' hyperOpenSpecy <- to_hyperSpec(raman_hdpe)
+#' hyper <- as_hyperSpec(raman_hdpe)
 #' }
 #'
 #' @seealso
@@ -126,8 +126,9 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
 }
 
 #' @rdname io_spec
-#' 
+#'
 #' @export
-to_hyperSpec <- function(x) {
-    new("hyperSpec", spc = as.matrix(transpose(x$spectra)), wavelength = x$wavenumber)
+as_hyperSpec <- function(x) {
+    new("hyperSpec", spc = as.matrix(transpose(x$spectra)),
+        wavelength = x$wavenumber)
 }
