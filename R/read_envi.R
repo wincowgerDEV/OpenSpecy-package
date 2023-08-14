@@ -359,6 +359,8 @@ split.line <- function(x, separator, trim.blank = TRUE) {
 #'
 #' @importFrom utils modifyList
 #' @importFrom methods new
+#' @importFrom hyperSpec hy_get_option .spc_io_postprocess_optional
+#'
 #' @export
 read_envi <- function(file = stop("read_envi: file name needed"),
                       headerfile = NULL,

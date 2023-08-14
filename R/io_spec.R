@@ -50,7 +50,6 @@
 #' @importFrom yaml write_yaml read_yaml
 #' @importFrom jsonlite write_json read_json
 #' @importFrom data.table as.data.table
-#' @import hyperSpec
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
