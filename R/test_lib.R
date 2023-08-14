@@ -5,7 +5,7 @@
 #' internal testing.
 #'
 #' @format
-#' An OpenSpecy object; \code{sample_name} is the class of the spectra.
+#' An \code{OpenSpecy} object; \code{sample_name} is the class of the spectra.
 #'
 #' @examples
 #' data("test_lib")

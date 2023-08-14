@@ -51,7 +51,7 @@ smooth_intens <- function(x, ...) {
 #'
 #' @export
 smooth_intens.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'", call. = F)
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname smooth_intens

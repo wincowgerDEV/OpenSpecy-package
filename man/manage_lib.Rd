@@ -7,24 +7,24 @@
 \title{Manage spectral libraries}
 \usage{
 check_lib(
-  types = c("raw", "nobaseline", "derivative"),
+  type = c("raw", "nobaseline", "derivative"),
   path = "system",
   condition = "warning"
 )
 
 get_lib(
-  types = c("raw", "nobaseline", "derivative"),
+  type = c("raw", "nobaseline", "derivative"),
   path = "system",
   node = "x7dpz",
   conflicts = "overwrite",
   ...
 )
 
-load_lib(types = "derivative", path = "system")
+load_lib(type = "derivative", path = "system")
 }
 \arguments{
-\item{types}{library types to check/retrieve; defaults to
-\code{c("metadata", "library", "peaks")}.}
+\item{type}{library type to check/retrieve; defaults to
+\code{c("raw", "nobaseline", "derivative")}.}
 
 \item{path}{where to save or look for local library files; defaults to
 \code{"system"} pointing to

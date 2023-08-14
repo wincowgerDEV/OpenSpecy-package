@@ -3,10 +3,10 @@
 #' Identify and filter spectra
 #'
 #' @description
-#' This function correlates two OpenSpecy objects, typically one with knowns and one with unknowns.
+#' This function correlates two \code{OpenSpecy} objects, typically one with knowns and one with unknowns.
 #'
-#' @param x an OpenSpecy object, typically with unknowns.
-#' @param library An OpenSpecy object representing the library of spectra to correlate with.
+#' @param x an \code{OpenSpecy} object, typically with unknowns.
+#' @param library An \code{OpenSpecy} object representing the library of spectra to correlate with.
 #' @param na.rm Logical value indicating whether missing values should be removed when calculating correlations. Default is \code{TRUE}.
 #' @param top_n Integer value specifying the number of top matches to return. If NULL (default), all matches will be returned.
 #' @param cor_matrix A correlation matrix for object and library, can be returned by \code{cor_spec()}
@@ -59,7 +59,7 @@ cor_spec <- function(x, ...) {
 #'
 #' @export
 cor_spec.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname match_spec
@@ -67,7 +67,7 @@ cor_spec.default <- function(x, ...) {
 #' @export
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
   if(sum(x$wavenumber %in% library$wavenumber) < 3){
-    stop("There are less than 3 matching wavenumbers in the objects you are trying to correlate, this won't work for correlation analysis. Consider first conforming the spectra to the same wavenumbers.")
+    stop("there are less than 3 matching wavenumbers in the objects you are trying to correlate, this won't work for correlation analysis. Consider first conforming the spectra to the same wavenumbers")
   }
   cor(library$spectra[library$wavenumber %in% x$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
       x$spectra[x$wavenumber %in% library$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
@@ -115,7 +115,7 @@ get_metadata <- function(x, ...) {
 #'
 #' @export
 get_metadata.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname match_spec
@@ -160,7 +160,7 @@ filter_spec <- function(x, ...) {
 #'
 #' @export
 filter_spec.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname match_spec

@@ -17,7 +17,7 @@
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
-#' All \code{read_*()} functions return OpenSpecy objects
+#' All \code{read_*()} functions return \code{OpenSpecy} objects
 #'
 #' @examples
 #' read_any(read_extdata("raman_hdpe.csv"))

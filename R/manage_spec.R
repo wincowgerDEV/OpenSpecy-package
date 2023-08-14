@@ -13,7 +13,7 @@
 #' @param res defaults to \code{NULL}, the resolution you want the output wavenumbers to be.
 #'
 #' @return
-#' A single OpenSpecy object. 
+#' A single \code{OpenSpecy} object. 
 #' 
 #' @examples
 #' spectra <- lapply(c(read_extdata("raman_hdpe.csv"),  read_extdata("ftir_ldpe_soil.asp")), read_any)
@@ -34,7 +34,7 @@
 c_spec <- function(objects, wavenumber_transform = NULL, res = 5){
 
     if(!is.list(objects) | !all(vapply(objects, function(x){inherits(x, "OpenSpecy")}, FUN.VALUE = TRUE))){
-        stop("Objects you are trying to concatenate must be a list of Open Specy objects")
+        stop("objects you are trying to concatenate must be a list of 'OpenSpecy' objects")
     }  
     
     if(!is.null(wavenumber_transform)){
@@ -47,7 +47,7 @@ c_spec <- function(objects, wavenumber_transform = NULL, res = 5){
         smallest = max(possible_min)
         largest = min(possible_max)
         if(any(smallest > possible_max) | any(largest < possible_min)){
-            stop("All data points need to have some overlap in their ranges for the merge to work.")
+            stop("Aall data points need to have some overlap in their ranges for the merge to work")
         }
         new_wavenumbers = c(smallest, largest)
     }
@@ -61,8 +61,8 @@ c_spec <- function(objects, wavenumber_transform = NULL, res = 5){
 
   list <- tapply(unlisted, names(unlisted), FUN = function(x) unname((x)))
 
-  if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(wavenumber_transform)){
-    stop("Wavenumbers are not the same between spectra, you need to specify how the wavenumbers should be merged.", call. = F)
+  if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(wavenumber_transform)) {
+    stop("wavenumbers are not the same between spectra, you need to specify how the wavenumbers should be merged", call. = F)
   }
 
   as_OpenSpecy(

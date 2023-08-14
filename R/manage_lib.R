@@ -17,8 +17,8 @@
 #' \code{load_lib()} will load the library into the global environment for use
 #' with the Open Specy functions.
 #'
-#' @param types library types to check/retrieve; defaults to
-#' \code{c("metadata", "library", "peaks")}.
+#' @param type library type to check/retrieve; defaults to
+#' \code{c("raw", "nobaseline", "derivative")}.
 #' @param node the OSF node to be retrieved; should be \code{"x7dpz"}.
 #' @param path where to save or look for local library files; defaults to
 #' \code{"system"} pointing to
@@ -63,7 +63,7 @@
 #' Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 #'
 #' @export
-check_lib <- function(types = c("raw", "nobaseline", "derivative"),
+check_lib <- function(type = c("raw", "nobaseline", "derivative"),
                       path = "system",
                       condition = "warning") {
 
@@ -71,7 +71,7 @@ check_lib <- function(types = c("raw", "nobaseline", "derivative"),
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  .chkf(types = types, path = lp, condition = condition)
+  .chkf(type = type, path = lp, condition = condition)
 
   invisible()
 }
@@ -82,7 +82,7 @@ check_lib <- function(types = c("raw", "nobaseline", "derivative"),
 #' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
 #'
 #' @export
-get_lib <- function(types = c("raw", "nobaseline", "derivative"),
+get_lib <- function(type = c("raw", "nobaseline", "derivative"),
                     path = "system",
                     node = "x7dpz", conflicts = "overwrite", ...) {
   lp <- ifelse(path == "system",
@@ -94,7 +94,7 @@ get_lib <- function(types = c("raw", "nobaseline", "derivative"),
 
   message("Fetching Open Specy reference libraries from OSF ...")
     osf |>  subset(grepl(
-      paste0("^both_(", paste(types, collapse = "|"), ").rds"),
+      paste0("^both_(", paste(type, collapse = "|"), ").rds"),
       osf$name)) |>
       osf_download(path = lp, conflicts = conflicts, progress = TRUE, ...)
 
@@ -104,38 +104,37 @@ get_lib <- function(types = c("raw", "nobaseline", "derivative"),
 #' @rdname manage_lib
 #'
 #' @export
-load_lib <- function(types = "derivative", path = "system") {
+load_lib <- function(type = "derivative", path = "system") {
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  chk <- .chkf(types = types, path = lp, condition = "stop")
-  fp <- file.path(lp, paste0("both_", types, ".rds"))
+  chk <- .chkf(type = type, path = lp, condition = "stop")
+  fp <- file.path(lp, paste0("both_", type, ".rds"))
 
   return(readRDS(fp))
 }
 
 # Auxiliary function for library checks
-.chkf <- function(types = c("raw", "nobaseline", "derivative"),
-                  path = "system",
-                  condition = "warning") {
-  fn <- paste0("both_", types, ".rds")
+.chkf <- function(type = c("raw", "nobaseline", "derivative"),
+                  path = "system", condition = "warning") {
+  fn <- paste0("both_", type, ".rds")
 
-  lp <- ifelse(path == "system",
-               system.file("extdata", package = "OpenSpecy"),
+  lp <- ifelse(path == "system", system.file("extdata", package = "OpenSpecy"),
                path)
 
   chk <- file.path(lp, fn) |> file.exists()
 
-  names(chk) <- types
+  names(chk) <- type
 
-  out = paste(types[!chk], collapse = ", ")
+  out <- paste(type[!chk], collapse = ", ")
 
-  if (!all(chk)) do.call(condition, list(out, " library missing or incomplete; ",
-                                         "use 'get_lib()' to download a current version",
-                                         call. =  ifelse(condition %in%
-                                                           c("message",
-                                                             "packageStartupMessage"),
-                                                         "", FALSE)))
+  if (!all(chk))
+    do.call(condition, list(out, " library missing or incomplete; ",
+                            "use 'get_lib()' to download a current version",
+                            call. =  ifelse(condition %in%
+                                              c("message",
+                                                "packageStartupMessage"),
+                                            "", FALSE)))
   chk
 }

@@ -3,11 +3,11 @@
 #'
 #' @description
 #' Functions for analyzing features, like particles, fragments, or fibers, in
-#' spectral map oriented OpenSpecy object.
+#' spectral map oriented \code{OpenSpecy} object.
 #'
 #' @details
-#' `def_features()` accepts an OpenSpecy object and a logical or character vector describing which pixels correspond to particles.
-#' `collapse_spec()` takes an OpenSpecy object with particle-specific metadata
+#' `def_features()` accepts an \code{OpenSpecy} object and a logical or character vector describing which pixels correspond to particles.
+#' `collapse_spec()` takes an \code{OpenSpecy} object with particle-specific metadata
 #' (from `def_features()`) and collapses the spectra to median intensities for each unique particle.
 #' It also updates the metadata with centroid coordinates, while preserving the particle information on area and Feret max.
 #'
@@ -27,7 +27,7 @@
 #' identified_map <- def_features(map, map$metadata$particles)
 #' test_collapsed <- collapse_spec(identified_map)
 #'
-#' @param x an OpenSpecy object
+#' @param x an \code{OpenSpecy} object
 #' @param particles a logical vector or character vector describing which of the spectra are
 #' of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
 #' represent the different particle types present in the spectra.
@@ -46,7 +46,7 @@ collapse_spec <- function(x, ...) {
 #'
 #' @export
 collapse_spec.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname def_features
@@ -78,7 +78,7 @@ def_features <- function(x, ...) {
 #'
 #' @export
 def_features.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname def_features
@@ -89,13 +89,13 @@ def_features.default <- function(x, ...) {
 def_features.OpenSpecy <- function(x, particles, ...) {
   if(is.logical(particles)) {
     if(all(particles) | all(!particles)){
-      stop("Features cannot be all TRUE or all FALSE values because that ",
+      stop("features cannot be all TRUE or all FALSE values because that ",
            "would indicate that there are no distinct features")
     }
     particles_df <- .def_features(x, particles)
   } else if(is.character(particles)) {
     if(length(unique(particles)) == 1) {
-      stop("Features cannot all have a single name because that would ",
+      stop("features cannot all have a single name because that would ",
            "indicate that there are no distinct features.")
     }
     particles_df <- rbindlist(lapply(unique(particles), function(y) {
@@ -103,7 +103,7 @@ def_features.OpenSpecy <- function(x, particles, ...) {
       .def_features(x, logical_particles)
     }))
   } else {
-    stop("Features needs to be a character or logical vector.", call. = F)
+    stop("features needs to be a character or logical vector.", call. = F)
   }
 
   obj <- x

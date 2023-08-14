@@ -19,28 +19,33 @@ flatten_range(x, ...)
 
 \method{flatten_range}{default}(x, ...)
 
-\method{flatten_range}{OpenSpecy}(x, min_range = NULL, max_range = NULL, make_rel = TRUE, ...)
+\method{flatten_range}{OpenSpecy}(x, min_range, max_range, make_rel = TRUE, ...)
 }
 \arguments{
-\item{x}{an OpenSpecy object containing spectral wavenumbers and intensities.}
+\item{x}{an \code{OpenSpecy} object.}
 
 \item{min_range}{a vector of minimum values for the range to be flattened.}
 
 \item{max_range}{a vector of maximum values for the range to be flattened.}
 
-\item{make_rel}{logical; should the output intensities be normalized to the range [0, 1] using make_rel() function?}
+\item{make_rel}{logical; should the output intensities be normalized to the
+range [0, 1] using make_rel() function?}
 
-\item{\ldots}{additional arguments passed to subfunctions; currently not in use.}
+\item{\ldots}{additional arguments passed to subfunctions; currently not
+in use.}
 }
 \value{
-An OpenSpecy object with the spectral intensities within specified ranges
-restricted or flattened.
+An \code{OpenSpecy} object with the spectral intensities within specified
+ranges restricted or flattened.
 }
 \description{
 \code{restrict_range()} restricts wavenumber ranges to user specified values.
-Multiple ranges can be specified by inputting the series of max and min values in order.
-\code{flatten_range()} will flatten ranges of the spectra that should have no peaks.
-Multiple ranges can be specified by inputting the series of max and min values in order.
+Multiple ranges can be specified by inputting the series of max and min
+values in order.
+\code{flatten_range()} will flatten ranges of the spectra that should have no
+peaks.
+Multiple ranges can be specified by inputting the series of max and min
+values in order.
 }
 \examples{
 test_noise <- as_OpenSpecy(x = seq(400,4000, by = 10),

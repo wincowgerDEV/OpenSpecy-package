@@ -45,9 +45,9 @@ filter_spec(x, ...)
 \method{filter_spec}{OpenSpecy}(x, logic, ...)
 }
 \arguments{
-\item{x}{an OpenSpecy object, typically with unknowns.}
+\item{x}{an \code{OpenSpecy} object, typically with unknowns.}
 
-\item{library}{An OpenSpecy object representing the library of spectra to correlate with.}
+\item{library}{An \code{OpenSpecy} object representing the library of spectra to correlate with.}
 
 \item{na.rm}{Logical value indicating whether missing values should be removed when calculating correlations. Default is \code{TRUE}.}
 
@@ -74,7 +74,7 @@ If \code{add_library_metadata} is \code{is.character}, the library metadata will
 If \code{add_object_metadata} is \code{is.character}, the object metadata will be added to the output.
 }
 \description{
-This function correlates two OpenSpecy objects, typically one with knowns and one with unknowns.
+This function correlates two \code{OpenSpecy} objects, typically one with knowns and one with unknowns.
 }
 \examples{
 data("test_lib")

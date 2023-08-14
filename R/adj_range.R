@@ -3,19 +3,24 @@
 #'
 #' @description
 #' \code{restrict_range()} restricts wavenumber ranges to user specified values.
-#' Multiple ranges can be specified by inputting the series of max and min values in order.
-#' \code{flatten_range()} will flatten ranges of the spectra that should have no peaks.
-#' Multiple ranges can be specified by inputting the series of max and min values in order.
+#' Multiple ranges can be specified by inputting the series of max and min
+#' values in order.
+#' \code{flatten_range()} will flatten ranges of the spectra that should have no
+#' peaks.
+#' Multiple ranges can be specified by inputting the series of max and min
+#' values in order.
 #'
-#' @param x an OpenSpecy object containing spectral wavenumbers and intensities.
+#' @param x an \code{OpenSpecy} object.
 #' @param min_range a vector of minimum values for the range to be flattened.
 #' @param max_range a vector of maximum values for the range to be flattened.
-#' @param make_rel logical; should the output intensities be normalized to the range [0, 1] using make_rel() function?
-#' @param \ldots additional arguments passed to subfunctions; currently not in use.
+#' @param make_rel logical; should the output intensities be normalized to the
+#' range [0, 1] using make_rel() function?
+#' @param \ldots additional arguments passed to subfunctions; currently not
+#' in use.
 #'
 #' @return
-#' An OpenSpecy object with the spectral intensities within specified ranges
-#' restricted or flattened.
+#' An \code{OpenSpecy} object with the spectral intensities within specified
+#' ranges restricted or flattened.
 #'
 #' @examples
 #' test_noise <- as_OpenSpecy(x = seq(400,4000, by = 10),
@@ -45,7 +50,7 @@ restrict_range <- function(x, ...) {
 #'
 #' @export
 restrict_range.default <- function(x, ...) {
-    stop("x needs to be of class 'OpenSpecy'")
+    stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname adj_range
@@ -82,29 +87,23 @@ flatten_range <- function(x, ...) {
 #'
 #' @export
 flatten_range.default <- function(x, ...) {
-  stop("x needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname adj_range
 #'
 #' @export
-flatten_range.OpenSpecy <- function(x,
-                                    min_range = NULL,
-                                    max_range = NULL,
-                                    make_rel = TRUE,
+flatten_range.OpenSpecy <- function(x, min_range, max_range, make_rel = TRUE,
                                     ...) {
-  if(is.null(min_range)|is.null(max_range)){
-    stop("You need to specify a min and max range to flatten.")
+  if(length(min_range) != length(max_range)) {
+    stop("min_range and max_range need to be the same length")
   }
-  if(length(min_range) != length(max_range)){
-    stop("min_range and max_range need to be the same length.")
-  }
-  if(any(vapply(1:length(min_range), function(y){
+  if(any(vapply(1:length(min_range), function(y) {
     min_range[y] > max_range[y]
-  }, FUN.VALUE = logical(1)))){
+  }, FUN.VALUE = logical(1)))) {
     stop("all min_range values must be lower than corresponding max_range")
   }
-  filt <- x$spectra[,lapply(.SD, function(y){
+  filt <- x$spectra[,lapply(.SD, function(y) {
     .flatten_range(wavenumber = x$wavenumber,
                    spectra = y,
                    min_range = min_range,

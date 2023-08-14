@@ -19,24 +19,24 @@
 \method{summary}{OpenSpecy}(object, ...)
 }
 \arguments{
-\item{x}{an OpenSpecy object.}
+\item{x}{an \code{OpenSpecy} object.}
 
-\item{object}{an OpenSpecy object.}
+\item{object}{an \code{OpenSpecy} object.}
 
 \item{\ldots}{further arguments passed to the respective default method.}
 }
 \value{
 \code{head()}, \code{print()}, and \code{summary()} return a textual
-representation of an OpenSpecy object.
+representation of an \code{OpenSpecy} object.
 \code{plot()} and \code{lines()} return a plot.
 }
 \description{
-Methods to visualize OpenSpecy objects.
+Methods to visualize \code{OpenSpecy} objects.
 }
 \details{
-\code{head()} shows the first few lines of an OpenSpecy object.
-\code{print()} prints the contents of an OpenSpecy object.
-\code{summary()} produces a result summary of an OpenSpecy object.
+\code{head()} shows the first few lines of an \code{OpenSpecy} object.
+\code{print()} prints the contents of an \code{OpenSpecy} object.
+\code{summary()} produces a result summary of an \code{OpenSpecy} object.
 \code{plot()} produces a \code{\link[graphics]{matplot}()} of an OpenSpecy
 object; \code{lines()} adds new spectra to it.
 }

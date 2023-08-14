@@ -13,7 +13,7 @@ spec_res(x, ...)
 \method{spec_res}{OpenSpecy}(x, ...)
 }
 \arguments{
-\item{x}{a numeric vector with \code{wavenumber} data or an OpenSpecy object.}
+\item{x}{a numeric vector with \code{wavenumber} data or an \code{OpenSpecy} object.}
 
 \item{\ldots}{further arguments passed to subfunctions; currently not used.}
 }

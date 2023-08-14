@@ -56,7 +56,7 @@ split.line <- function(x, separator, trim.blank = TRUE) {
     }
 
     if (length(headerfilename) != 1L) {
-      stop("Cannot guess header file name")
+      stop("cannot guess header file name")
     }
   }
 
@@ -72,7 +72,7 @@ split.line <- function(x, separator, trim.blank = TRUE) {
 .read_envi_split_header <- function(header, pull.lines = TRUE) {
   # check ENVI at beginning of file
   if (!grepl("ENVI", header[1])) {
-    stop("Not an ENVI header (ENVI keyword missing)")
+    stop("not an ENVI header (ENVI keyword missing)")
   } else {
     header <- header[-1]
   }
@@ -84,11 +84,11 @@ split.line <- function(x, separator, trim.blank = TRUE) {
   r <- grep("\\}", header)
 
   if (length(l) != length(r)) {
-    stop("Error matching curly braces in header (differing numbers).")
+    stop("error matching curly braces in header (differing numbers).")
   }
 
   if (any(r <= l)) {
-    stop("Mismatch of curly braces in header.")
+    stop("mismatch of curly braces in header.")
   }
 
   header[l] <- sub("\\{", "", header[l])
@@ -130,24 +130,24 @@ split.line <- function(x, separator, trim.blank = TRUE) {
   if (any(is.null(header[c("samples", "lines", "bands", "data type")])) ||
     any(    is.na(header[c("samples", "lines", "bands", "data type")]))) {
     stop(
-      "Error in ENVI header (required entry missing or incorrect)\n header: ",
+      "ENVI header (required entry missing or incorrect)\n header: ",
       paste(names(header), " = ", header, collapse = ", ")
     )
   }
 
   if (header$samples <= 0) {
-    stop("Error in ENVI header: incorrect data size (", header$samples, ")")
+    stop("ENVI header: incorrect data size (", header$samples, ")")
   }
   if (header$lines <= 0) {
-    stop("Error in ENVI header: incorrect data size (", header$lines, ")")
+    stop("ENVI header: incorrect data size (", header$lines, ")")
   }
   if (header$bands <= 0) {
-    stop("Error in ENVI header: incorrect data size (", header$bands, ")")
+    stop("ENVI header: incorrect data size (", header$bands, ")")
   }
 
   if (!(header$`data type` %in% c(1:5, 9, 12))) {
     stop(
-      "Error in ENVI header: data type incorrect or unsupported (",
+      "ENVI header: data type incorrect or unsupported (",
       header$`data type`,
       ")"
     )
@@ -174,7 +174,7 @@ split.line <- function(x, separator, trim.blank = TRUE) {
   }
 
   if (!file.exists(file)) {
-    stop("Binary file not found: ", file)
+    stop("binary file not found: ", file)
   }
 
   f <- file(file, "rb")
@@ -374,14 +374,14 @@ read_envi <- function(file = stop("read_envi: file name needed"),
   force(y)
 
   if (!file.exists(file)) {
-    stop("File not found:", file)
+    stop("file not found:", file)
   }
 
   if (!is.list(header)) { # catch a common pitfall
     if (is.character(header)) {
       stop(
-        "Header must be a list of parameters. ",
-        "Did you mean headerfile instead?"
+        "header must be a list of parameters; ",
+        "did you mean headerfile instead?"
       )
     } else {
       stop("header must be a list of parameters.")

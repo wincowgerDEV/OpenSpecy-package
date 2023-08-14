@@ -1,6 +1,6 @@
 #' @rdname as_OpenSpecy
 #'
-#' @title OpenSpecy object operations
+#' @title \code{OpenSpecy} object operations
 #'
 #' @description
 #' Functions to check if an object is an OpenSpecy, or coerce it if
@@ -126,7 +126,7 @@
 #' Zacharias Steinmetz, Win Cowger
 #'
 #' @seealso
-#' \code{\link{read_spec}()} for reading OpenSpecy objects.
+#' \code{\link{read_spec}()} for reading \code{OpenSpecy} objects.
 #'
 #' @importFrom data.table as.data.table
 #' @export
@@ -291,46 +291,54 @@ as_OpenSpecy.default <- function(x, spectra,
 #' @export
 is_OpenSpecy <- function(x){
     if(!inherits(x, "OpenSpecy")){
-        message("Object is not of class OpenSpecy.")
+        message("object 'x' is not of class 'OpenSpecy'")
         return(FALSE)
     }
     if(!is.vector(x$wavenumber)){
-        message("Wavenumber is not a vector.")
+        message("wavenumber is not a vector")
         return(FALSE)
     }
     if(!is.data.table(x$spectra)){
-        message("Spectra is not a data.table.")
+        message("spectra are not of class 'data.table'")
         return(FALSE)
     }
     if(!is.data.table(x$metadata)) {
-        message("Metadata is not a data.table.")
+        message("metadata are not a 'data.table'")
         return(FALSE)
     }
     if(!identical(names(x), c("wavenumber", "spectra", "metadata"))) {
-        message("Names of the object components are incorrect.")
+        message("names of the object components are incorrect")
         return(FALSE)
     }
     if(ncol(x$spectra) != nrow(x$metadata)) {
-        message("Number of columns in spectra is not equal to number of rows in metadata.")
+        message("number of columns in spectra is not equal to number of rows ",
+        "in metadata")
         return(FALSE)
     }
     if(length(x$wavenumber) != nrow(x$spectra)) {
-        message("Length of wavenumber is not equal to number of rows in spectra.")
+        message("length of wavenumber is not equal to number of rows in spectra")
         return(FALSE)
     }
     if(length(unique(names(x$spectra))) != ncol(x$spectra)) {
-        message("Column names in spectra are not unique.")
+        message("column names in spectra are not unique")
         return(FALSE)
     }
     if(length(unique(names(x$metadata))) != ncol(x$metadata)) {
-        message("Column names in metadata are not unique.")
+        message("column names in metadata are not unique")
         return(FALSE)
     }
-    if(!(identical(order(x$wavenumber), 1:length(x$wavenumber)) | identical(order(x$wavenumber), length(x$wavenumber):1))){
-        warning("This is technically an OpenSpecy but wavenumbers should be a continuous sequence for all OpenSpecy functions to run smoothly. Consider sorting your wavenumbers and spectral intensities before turning into an OpenSpecy object.")
+    if(!(identical(order(x$wavenumber), 1:length(x$wavenumber)) |
+         identical(order(x$wavenumber), length(x$wavenumber):1))){
+        warning("this is technically an 'OpenSpecy' object but wavenumbers ",
+        "should be a continuous sequence for all OpenSpecy functions to run ",
+        "smoothly. Consider sorting your wavenumbers and spectral intensities ",
+        "before turning into an OpenSpecy object.")
     }
     if(length(unique(colnames(x$spectra))) != ncol(x$spectra)){
-        stop("Column names must be unique in the spectral intensities otherwise some functions may not work. Create new names for the spectral data or collapse spectra with the same name using collapse_spec.")
+        stop("column names must be unique in the spectral intensities ",
+        "otherwise some functions may not work. Create new names for the ",
+        "spectral data or collapse spectra with the same name using ",
+        "collapse_spec.")
     }
     return(TRUE)
 }

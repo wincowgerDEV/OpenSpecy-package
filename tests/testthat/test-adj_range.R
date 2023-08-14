@@ -16,10 +16,9 @@ test_that("flatten_range() function test", {
     expect_equal(flattened_data$spectra$V1[7:10], c(8.5, 8.5, 8.5, 8.5))
 })
 
-
 test_that("flatten_range() error handling", {
   test <- as_OpenSpecy(x = 1:10, spectra = data.table(V1 = 1:10))
-    expect_error(flatten_range(test), "You need to specify a min and max range to flatten.")
-    expect_error(flatten_range(test, min_range = c(1000), max_range = c(2000, 3000)), "min_range and max_range need to be the same length.")
-    expect_error(flatten_range(test, min_range = c(2000), max_range = c(1000)), "all min_range values must be lower than corresponding max_range")
+    expect_error(flatten_range(test))
+    expect_error(flatten_range(test, min_range = c(1000), max_range = c(2000, 3000)))
+    expect_error(flatten_range(test, min_range = c(2000), max_range = c(1000)))
 })

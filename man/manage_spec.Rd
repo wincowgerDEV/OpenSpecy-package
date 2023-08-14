@@ -14,7 +14,7 @@ c_spec(objects, wavenumber_transform = NULL, res = 5)
 \item{res}{defaults to \code{NULL}, the resolution you want the output wavenumbers to be.}
 }
 \value{
-A single OpenSpecy object.
+A single \code{OpenSpecy} object.
 }
 \description{
 Functions for

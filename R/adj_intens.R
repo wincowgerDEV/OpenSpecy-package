@@ -51,7 +51,7 @@ adj_intens <- function(x, ...) {
 #'
 #' @export
 adj_intens.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'", call. = F)
+  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
 #' @rdname adj_intens

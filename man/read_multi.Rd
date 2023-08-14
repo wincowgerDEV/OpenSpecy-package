@@ -15,7 +15,7 @@ read_zip(file, ...)
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-All \code{read_*()} functions return OpenSpecy objects
+All \code{read_*()} functions return \code{OpenSpecy} objects
 }
 \description{
 Wrapper functions for reading files in batch.

@@ -46,11 +46,11 @@ interactive_plot(x, ...)
 )
 }
 \arguments{
-\item{x}{An OpenSpecy object containing metadata and spectral data for the first group.}
+\item{x}{An \code{OpenSpecy} object containing metadata and spectral data for the first group.}
 
-\item{x2}{An optional second OpenSpecy object containing metadata and spectral data for the second group.}
+\item{x2}{An optional second \code{OpenSpecy} object containing metadata and spectral data for the second group.}
 
-\item{z}{Optional numeric vector specifying the intensity values for the heatmap. If not provided, the function will use the intensity values from the OpenSpecy object.}
+\item{z}{Optional numeric vector specifying the intensity values for the heatmap. If not provided, the function will use the intensity values from the \code{OpenSpecy} object.}
 
 \item{sn}{Optional numeric value specifying the signal-to-noise ratio threshold. If provided along with \code{min_sn}, regions with SNR below the threshold will be excluded from the heatmap.}
 
@@ -67,7 +67,7 @@ interactive_plot(x, ...)
 \item{\ldots}{further arguments passed to subfunctions.}
 }
 \value{
-A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the OpenSpecy object(s).
+A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the \code{OpenSpecy} object(s).
 }
 \description{
 These functions generate heatmaps, spectral plots, and interactive plots for OpenSpecy data.

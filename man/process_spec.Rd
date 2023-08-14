@@ -51,7 +51,7 @@ sample_spec(x, ...)
 \method{sample_spec}{OpenSpecy}(x, ...)
 }
 \arguments{
-\item{x}{An OpenSpecy object containing metadata and spectral data.}
+\item{x}{An \code{OpenSpecy} object containing metadata and spectral data.}
 
 \item{active_processing}{Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.}
 
@@ -108,15 +108,15 @@ sample_spec(x, ...)
 \item{\ldots}{further arguments passed to subfunctions.}
 }
 \value{
-\code{process_spec()} returns an OpenSpecy object with preprocessed
+\code{process_spec()} returns an \code{OpenSpecy} object with preprocessed
 spectra based on the specified parameters.
-\code{sample_spec()} returns an OpenSpecy object with a subset of the spectra.
+\code{sample_spec()} returns an \code{OpenSpecy} object with a subset of the spectra.
 }
 \description{
 Process spectra data by applying various preprocessing steps. This is a monolithic function for all common preprocessing steps in one place.
 }
 \details{
-\code{sample_spec()} samples spectra from an OpenSpecy object.
+\code{sample_spec()} samples spectra from an \code{OpenSpecy} object.
 }
 \examples{
 data("raman_hdpe")

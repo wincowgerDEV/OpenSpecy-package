@@ -22,7 +22,7 @@ def_features(x, ...)
 \method{def_features}{OpenSpecy}(x, particles, ...)
 }
 \arguments{
-\item{x}{an OpenSpecy object}
+\item{x}{an \code{OpenSpecy} object}
 
 \item{particles}{a logical vector or character vector describing which of the spectra are
 of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
@@ -35,11 +35,11 @@ An Open Specy object appended metadata about the particles or collapsed for the 
 }
 \description{
 Functions for analyzing features, like particles, fragments, or fibers, in
-spectral map oriented OpenSpecy object.
+spectral map oriented \code{OpenSpecy} object.
 }
 \details{
-`def_features()` accepts an OpenSpecy object and a logical or character vector describing which pixels correspond to particles.
-`collapse_spec()` takes an OpenSpecy object with particle-specific metadata
+`def_features()` accepts an \code{OpenSpecy} object and a logical or character vector describing which pixels correspond to particles.
+`collapse_spec()` takes an \code{OpenSpecy} object with particle-specific metadata
 (from `def_features()`) and collapses the spectra to median intensities for each unique particle.
 It also updates the metadata with centroid coordinates, while preserving the particle information on area and Feret max.
 }

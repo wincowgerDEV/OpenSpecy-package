@@ -3,7 +3,7 @@
 #'
 #' @description
 #' Functions for reading and writing spectral data to and from OpenSpecy format.
-#' OpenSpecy objects are lists with components `wavenumber`, `spectra`, and `metadata`.
+#' \code{OpenSpecy} objects are lists with components `wavenumber`, `spectra`, and `metadata`.
 #' Currently supported formats are .yaml, .json, or .rds.
 #'
 #' @details
@@ -21,9 +21,9 @@
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
-#' \code{read_spec()} reads data formatted as an OpenSpecy object and returns a list object of class \code{\link{OpenSpecy}} containing spectral data. \cr
+#' \code{read_spec()} reads data formatted as an \code{OpenSpecy} object and returns a list object of class \code{\link{OpenSpecy}} containing spectral data. \cr
 #' \code{write_spec()} writes a file for an object of class \code{\link{OpenSpecy}} containing spectral data. \cr
-#' \code{to_hyperspec()} converts an OpenSpecy object to a hyperSpec object.
+#' \code{to_hyperspec()} converts an \code{OpenSpecy} object to a hyperSpec object.
 #'
 #' @examples
 #' read_spec(read_extdata("raman_hdpe.yml"))
@@ -37,7 +37,7 @@
 #' write_spec(raman_hdpe, "raman_hdpe.json")
 #' write_spec(raman_hdpe, "raman_hdpe.rds")
 #'
-#' # Convert an OpenSpecy object to a hyperSpec object
+#' # Convert an \code{OpenSpecy} object to a hyperSpec object
 #' hyperOpenSpecy <- to_hyperSpec(raman_hdpe)
 #' }
 #'

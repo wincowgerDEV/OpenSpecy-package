@@ -4,9 +4,9 @@
 #' @description
 #' These functions generate heatmaps, spectral plots, and interactive plots for OpenSpecy data.
 #'
-#' @param x An OpenSpecy object containing metadata and spectral data for the first group.
-#' @param x2 An optional second OpenSpecy object containing metadata and spectral data for the second group.
-#' @param z Optional numeric vector specifying the intensity values for the heatmap. If not provided, the function will use the intensity values from the OpenSpecy object.
+#' @param x An \code{OpenSpecy} object containing metadata and spectral data for the first group.
+#' @param x2 An optional second \code{OpenSpecy} object containing metadata and spectral data for the second group.
+#' @param z Optional numeric vector specifying the intensity values for the heatmap. If not provided, the function will use the intensity values from the \code{OpenSpecy} object.
 #' @param sn Optional numeric value specifying the signal-to-noise ratio threshold. If provided along with \code{min_sn}, regions with SNR below the threshold will be excluded from the heatmap.
 #' @param cor Optional numeric value specifying the correlation threshold. If provided along with \code{min_cor}, regions with correlation below the threshold will be excluded from the heatmap.
 #' @param min_sn Optional numeric value specifying the minimum signal-to-noise ratio for inclusion in the heatmap. Regions with SNR below this threshold will be excluded.
@@ -15,7 +15,7 @@
 #' @param selected_spectrum2 an optional second index of the selected spectrum to highlight on the heatmap.
 #' @param \ldots further arguments passed to subfunctions.
 #'
-#' @return A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the OpenSpecy object(s).
+#' @return A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the \code{OpenSpecy} object(s).
 #'
 #' @examples
 #' data("raman_hdpe")
@@ -46,7 +46,7 @@ plotly_spec <- function(x, ...) {
 #'
 #' @export
 plotly_spec.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname interactive_plots
@@ -117,7 +117,7 @@ heatmap_spec <- function(x, ...) {
 #'
 #' @export
 heatmap_spec.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname interactive_plots
@@ -140,7 +140,7 @@ heatmap_spec.OpenSpecy <- function(x,
     plot_z <- sn
   }
   else{
-    stop("z, cor, or sn need to be specified to plot the z axis.")
+    stop("z, cor, or sn need to be specified to plot the z axis")
   }
   if (!is.null(sn) && !is.null(min_sn)) {
     plot_z <- ifelse(sn > min_sn, plot_z, NA)
@@ -201,7 +201,7 @@ interactive_plot <- function(x, ...) {
 #'
 #' @export
 interactive_plot.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname interactive_plots

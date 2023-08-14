@@ -5,9 +5,9 @@
 #' Process spectra data by applying various preprocessing steps. This is a monolithic function for all common preprocessing steps in one place.
 #'
 #' @details
-#' \code{sample_spec()} samples spectra from an OpenSpecy object.
+#' \code{sample_spec()} samples spectra from an \code{OpenSpecy} object.
 #'
-#' @param x An OpenSpecy object containing metadata and spectral data.
+#' @param x An \code{OpenSpecy} object containing metadata and spectral data.
 #' @param active_processing Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.
 #' @param adj_intensity_decision A Logical describing whether to adjust the intensity units.
 #' @param type Type of intensity adjustment to use. Can be one of "none", "transmittance", or "reflectance".
@@ -37,9 +37,9 @@
 #' @param \ldots further arguments passed to subfunctions.
 #'
 #' @return
-#' \code{process_spec()} returns an OpenSpecy object with preprocessed
+#' \code{process_spec()} returns an \code{OpenSpecy} object with preprocessed
 #' spectra based on the specified parameters.
-#' \code{sample_spec()} returns an OpenSpecy object with a subset of the spectra.
+#' \code{sample_spec()} returns an \code{OpenSpecy} object with a subset of the spectra.
 #'
 #' @examples
 #' data("raman_hdpe")
@@ -84,7 +84,7 @@ process_spec <- function(x, ...) {
 #'
 #' @export
 process_spec.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname process_spec
@@ -155,7 +155,7 @@ sample_spec <- function(x, ...) {
 #'
 #' @export
 sample_spec.default <- function(x, ...) {
-  stop("'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname process_spec

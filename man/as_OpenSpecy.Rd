@@ -10,7 +10,7 @@
 \alias{is_OpenSpecy}
 \alias{OpenSpecy}
 \alias{gen_grid}
-\title{OpenSpecy object operations}
+\title{\code{OpenSpecy} object operations}
 \usage{
 as_OpenSpecy(x, ...)
 
@@ -176,7 +176,7 @@ gen_grid(n = 5)
 
 }
 \seealso{
-\code{\link{read_spec}()} for reading OpenSpecy objects.
+\code{\link{read_spec}()} for reading \code{OpenSpecy} objects.
 }
 \author{
 Zacharias Steinmetz, Win Cowger
