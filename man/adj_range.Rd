@@ -13,7 +13,7 @@ restrict_range(x, ...)
 
 \method{restrict_range}{default}(x, ...)
 
-\method{restrict_range}{OpenSpecy}(x, min_range = 0, max_range = 6000, make_rel = TRUE, ...)
+\method{restrict_range}{OpenSpecy}(x, min_range, max_range, make_rel = TRUE, ...)
 
 flatten_range(x, ...)
 
@@ -40,7 +40,7 @@ ranges restricted or flattened.
 }
 \description{
 \code{restrict_range()} restricts wavenumber ranges to user specified values.
-Multiple ranges can be specified by inputting the series of max and min
+Multiple ranges can be specified by inputting a series of max and min
 values in order.
 \code{flatten_range()} will flatten ranges of the spectra that should have no
 peaks.

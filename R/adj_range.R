@@ -3,7 +3,7 @@
 #'
 #' @description
 #' \code{restrict_range()} restricts wavenumber ranges to user specified values.
-#' Multiple ranges can be specified by inputting the series of max and min
+#' Multiple ranges can be specified by inputting a series of max and min
 #' values in order.
 #' \code{flatten_range()} will flatten ranges of the spectra that should have no
 #' peaks.
@@ -56,22 +56,17 @@ restrict_range.default <- function(x, ...) {
 #' @rdname adj_range
 #'
 #' @export
-restrict_range.OpenSpecy <- function(x,
-                                     min_range = 0,
-                                     max_range = 6000,
-                                     make_rel = TRUE,
-                                        ...) {
+restrict_range.OpenSpecy <- function(x, min_range, max_range, make_rel = TRUE,
+                                     ...) {
     test <- as.data.table(lapply(1:length(min_range), function(y){
         x$wavenumber >= min_range[y] & x$wavenumber <= max_range[y]})
     )
 
-    vals = rowSums(test) > 0
-
+    vals <- rowSums(test) > 0
     filt <- x$spectra[vals,]
-
     x$wavenumber <- x$wavenumber[vals]
 
-    if (make_rel) x$spectra <- make_rel(filt) else x$spectra <- filt
+    if (make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
 
     return(x)
 }
@@ -103,23 +98,20 @@ flatten_range.OpenSpecy <- function(x, min_range, max_range, make_rel = TRUE,
   }, FUN.VALUE = logical(1)))) {
     stop("all min_range values must be lower than corresponding max_range")
   }
-  filt <- x$spectra[,lapply(.SD, function(y) {
-    .flatten_range(wavenumber = x$wavenumber,
-                   spectra = y,
-                   min_range = min_range,
-                   max_range = max_range)
-  })]
+  flat <- x$spectra[, lapply(.SD, .flatten_range, x = x$wavenumber,
+                             min_range = min_range, max_range = max_range)]
 
-  if (make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
+  if (make_rel) x$spectra <- flat[, lapply(.SD, make_rel)] else x$spectra <- flat
 
   return(x)
 }
 
-.flatten_range <- function(wavenumber, spectra, min_range, max_range) {
-  for(i in 1:length(min_range)){
-    spectra[wavenumber >= min_range[i] & wavenumber <= max_range[i]] <- mean(c(spectra[min(which(wavenumber >= min_range[i]))],
-                                                                               spectra[max(which(wavenumber <= max_range[i]))]))
+.flatten_range <- function(y, x, min_range, max_range) {
+  for(i in 1:length(min_range)) {
+    y[x >= min_range[i] & x <= max_range[i]] <-
+      mean(c(y[min(which(x >= min_range[i]))],
+             y[max(which(x <= max_range[i]))]))
   }
 
-  return(spectra)
+  return(y)
 }

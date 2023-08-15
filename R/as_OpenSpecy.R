@@ -282,9 +282,9 @@ as_OpenSpecy.default <- function(x, spectra,
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
       if(session_id){
-          obj$metadata$session_id <- paste(digest(Sys.info()),
-                                           digest(sessionInfo()),
-                                           sep = "/")
+        obj$metadata$session_id <- paste(digest(Sys.info()),
+                                         digest(sessionInfo()),
+                                         sep = "/")
       }
       if(!c("file_id") %in% names(obj$metadata)) {
         obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
@@ -357,6 +357,7 @@ OpenSpecy <- function(x, ...) {
 #' @export
 gen_grid <- function(n) {
   base <- sqrt(n)
+
   expand.grid(x = 1:ceiling(base), y = 1:ceiling(base))[1:n,] |>
     as.data.table()
 }

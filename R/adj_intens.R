@@ -65,7 +65,8 @@ adj_intens.OpenSpecy <- function(x, type = "none", make_rel = TRUE, ...) {
                 "transmittance" = log10(1/adj_neg(spec, ...)),
                 "none" = adj_neg(spec, ...)
   )
-  if (make_rel) x$spectra <- make_rel(adj) else x$spectra <- adj
+
+  if (make_rel) x$spectra <- adj[, lapply(.SD, make_rel)] else x$spectra <- adj
 
   return(x)
 }

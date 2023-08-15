@@ -61,14 +61,6 @@ subtr_bg.default <- function(x, ...) {
   stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
-.subtr_bg_manual <- function(wavenumber,
-                             intensity,
-                             wavenumber_fit,
-                             intensity_fit,
-                             ...) {
-  intensity - approx(wavenumber_fit, intensity_fit, xout = wavenumber, rule = 2, method = "linear", ties = mean)$y
-}
-
 #' @rdname subtr_bg
 #'
 #' @export
@@ -96,7 +88,7 @@ subtr_bg.OpenSpecy <- function(x,
     })]
   }
 
-  if (make_rel) x$spectra <- make_rel(sbg) else x$spectra <- sbg
+  if (make_rel) x$spectra <- sbg[, lapply(.SD, make_rel)] else x$spectra <- sbg
 
   return(x)
 }
@@ -162,4 +154,10 @@ subtr_bg.OpenSpecy <- function(x,
     # Update previous residual metric
     dev_prev <- dev_curr
   }
+}
+
+.subtr_bg_manual <- function(wavenumber, intensity, wavenumber_fit,
+                             intensity_fit, ...) {
+  intensity - approx(wavenumber_fit, intensity_fit, xout = wavenumber, rule = 2,
+                     method = "linear", ties = mean)$y
 }
