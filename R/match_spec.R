@@ -27,7 +27,7 @@
 #' @examples
 #' data("test_lib")
 #' unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
-#'   conform_spec(new_wavenumbers = test_lib$wavenumber,
+#'   conform_spec(range = test_lib$wavenumber,
 #'                res = spec_res(test_lib)) |>
 #'   process_spec()
 #' matches <- cor_spec(unknown, test_lib)

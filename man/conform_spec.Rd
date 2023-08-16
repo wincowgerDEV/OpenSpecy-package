@@ -6,25 +6,29 @@
 \alias{conform_spec.OpenSpecy}
 \title{Conform spectra to a standard wavenumber series}
 \usage{
-conform_spec(x, new_wavenumbers, res = 5)
+conform_spec(x, ...)
 
-\method{conform_spec}{default}(x, new_wavenumbers, res = 5)
+\method{conform_spec}{default}(x, ...)
 
-\method{conform_spec}{OpenSpecy}(x, new_wavenumbers, res = 5)
+\method{conform_spec}{OpenSpecy}(x, range = NULL, res = 5, ...)
 }
 \arguments{
 \item{x}{a list object of class \code{OpenSpecy}.}
 
-\item{new_wavenumbers}{a vector of new wavenumber values, can be just supplied as a min and max value.}
+\item{range}{a vector of new wavenumber values, can be just supplied as a
+min and max value.}
 
 \item{res}{spectral resolution adjusted to.}
+
+\item{\ldots}{further arguments passed to \code{\link[stats]{approx}()}}
 }
 \value{
 \code{adj_intens()} returns a data frame containing two columns
-named \code{"wavenumber"} and \code{"intensity"}.
+named \code{"wavenumber"} and \code{"intensity"}
 }
 \description{
-Spectra can be conformed to a standard suite of wavenumbers to be compared with a reference library or to be merged to other spectra.
+Spectra can be conformed to a standard suite of wavenumbers to be compared
+with a reference library or to be merged to other spectra.
 }
 \examples{
 data("raman_hdpe")
@@ -32,7 +36,9 @@ conform_spec(raman_hdpe, c(1000, 2000))
 
 }
 \seealso{
-\code{\link{subtr_bg}()} for spectral background correction.
+\code{\link{restrict_range}()} and  \code{\link{flatten_range}()} for
+adjusting wavenumber ranges;
+\code{\link{subtr_bg}()} for spectral background correction
 }
 \author{
 Win Cowger, Zacharias Steinmetz

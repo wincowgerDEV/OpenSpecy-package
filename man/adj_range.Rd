@@ -60,8 +60,10 @@ plot(flattened_intensities)
 
 }
 \seealso{
-\code{\link[base]{min}()} and \code{\link[base]{round}()};
-\code{\link{adj_intens}()} for log transformation functions
+\code{\link{conform_spec}()} for conforming wavenumbers to be matched with
+a reference library;
+\code{\link{adj_intens}()} for log transformation functions;
+\code{\link[base]{min}()} and \code{\link[base]{round}()}
 }
 \author{
 Win Cowger, Zacharias Steinmetz

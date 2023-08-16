@@ -49,7 +49,9 @@
 #'
 #' @seealso
 #' \code{\link[base]{min}()} and \code{\link[base]{round}()};
-#' \code{\link{adj_intens}()} for log transformation functions
+#' \code{\link{adj_intens}()} for log transformation functions;
+#' \code{\link{conform_spec}()} for conforming wavenumbers of an
+#' \code{OpenSpecy} object to be matched with a reference library
 #'
 #' @export
 adj_res <- function(x, res = 1, fun = round) {

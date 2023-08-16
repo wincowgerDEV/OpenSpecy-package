@@ -16,7 +16,7 @@ test_that("Raman batch analysis with test library", {
   expect_silent(lib <- load_lib(type = "test", path = tmp))
 
   expect_silent(filter_spec(lib, lib$metadata$SpectrumType == "Raman"))
-  expect_silent(batch2 <- conform_spec(batch, new_wavenumbers = lib$wavenumber,
+  expect_silent(batch2 <- conform_spec(batch, lib$wavenumber,
                                        res = spec_res(lib$wavenumber)))
 
   expect_silent(plotly_spec(batch2))
@@ -48,7 +48,7 @@ test_that("Raman batch analysis with complete library", {
   expect_silent(lib <- load_lib(type = "nobaseline", path = tmp))
 
   expect_silent(filter_spec(lib, lib$metadata$SpectrumType == "Raman"))
-  expect_silent(batch2 <- conform_spec(batch, new_wavenumbers = lib$wavenumber,
+  expect_silent(batch2 <- conform_spec(batch, range = lib$wavenumber,
                                        res = spec_res(lib$wavenumber)))
 
   expect_silent(plotly_spec(batch2))

@@ -53,7 +53,7 @@ c_spec <- function(objects, wavenumber_transform = NULL, res = 5){
     }
         objects <- lapply(objects, function(x) {
             conform_spec(x,
-                         new_wavenumbers = new_wavenumbers, 
+                         range = new_wavenumbers, 
                          res = res)})
     }
 

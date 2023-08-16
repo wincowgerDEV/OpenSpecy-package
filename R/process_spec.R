@@ -121,7 +121,7 @@ process_spec.OpenSpecy <- function(x,
     if(adj_intensity_decision)
       x <- adj_intens(x, type = type, make_rel = F)
     if(conform_decision)
-      x <- conform_spec(x, new_wavenumbers = new_wavenumbers, res = res)
+      x <- conform_spec(x, range = new_wavenumbers, res = res)
     if(range_decision)
       x <- restrict_range(x, min_range = min_range, max_range = max_range,
                           make_rel = F)

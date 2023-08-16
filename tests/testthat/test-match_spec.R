@@ -1,7 +1,7 @@
 # Create test data for cor_spec function
 data("test_lib")
 unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
-    conform_spec(new_wavenumbers = test_lib$wavenumber, res = spec_res(test_lib)) |>
+    conform_spec(range= test_lib$wavenumber, res = spec_res(test_lib)) |>
     process_spec()
 
 # Create a subset of test_lib for filtering
