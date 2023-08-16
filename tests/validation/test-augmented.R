@@ -53,13 +53,13 @@ augmented_ftir <- augment_full(spec_lib$ftir$library %>%
 raman_proc <- augmented_raman %>%
     group_by(sample_name) %>%
     smooth_intens(p = 3) #%>%
-    subtr_bg(degree = 8) %>%
+    subtr_baseline(degree = 8) %>%
     mutate()
 
 ftir_proc <- augmented_ftir %>%
     group_by(sample_name) %>%
     smooth_intens() %>%
-    subtr_bg()
+    subtr_baseline()
 
 spectrum = raman_subset[100]
 
@@ -72,7 +72,7 @@ ggplot() +
     geom_line(data = augmented_raman %>%
                     filter(sample_name == spectrum) %>%
                     smooth_intens(p = 3) %>%
-                    subtr_bg(degree = 8),
+                    subtr_baseline(degree = 8),
                 aes(x = wavenumber, y = intensity))
 
 
@@ -80,7 +80,7 @@ ggplot() +
 augmented_raman %>%
     filter(sample_name == spectrum) %>%
     smooth_intens(p = 3) %>%
-    subtr_bg(degree = 8) %>%
+    subtr_baseline(degree = 8) %>%
     match_spec(library = spec_lib, which = "raman")
 
 spectrum
@@ -95,7 +95,7 @@ for(spectrum in raman_subset){
     topmatch <- augmented_raman %>%
         filter(sample_name == spectrum) %>%
         smooth_intens(p = 3) %>%
-        subtr_bg(degree = 8) %>%
+        subtr_baseline(degree = 8) %>%
         match_spec(library = spec_lib, which = "raman", top_n = 1) %>%
         select(spectrum_identity) %>%
         unlist()
@@ -117,7 +117,7 @@ for(spectrum in ftir_subset){
     topmatch <- augmented_ftir %>%
         filter(sample_name == spectrum) %>%
         smooth_intens(p = 3) %>%
-        subtr_bg(degree = 8) %>%
+        subtr_baseline(degree = 8) %>%
         match_spec(library = spec_lib, which = "ftir", top_n = 1) %>%
         select(spectrum_identity) %>%
         unlist()

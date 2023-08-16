@@ -352,7 +352,7 @@ O’Donnell</p></h4>
 particles and other environmental samples. Supported features include
 reading spectral data files (.asp, .csv, .jdx, .spc, .spa, .0),
 smoothing spectral intensities with <code>smooth_intens()</code>,
-correcting background with <code>subtr_bg()</code>, and identifying
+correcting background with <code>subtr_baseline()</code>, and identifying
 spectra using an onboard reference library. Analyzed spectra can be
 shared with the Open Specy community. A Shiny app is available via
 <code>run_app()</code> or online at <a href="https://openanalysis.org/openspecy/">https://openanalysis.org/openspecy/</a>.</p>
@@ -650,7 +650,7 @@ different degrees of background subtraction (Cowger et al., 2020).</div>
 <p>The smoothed sample spectrum <code>raman_smooth</code> is
 background-corrected as follows:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>raman_bgc <span class="ot">&lt;-</span> raman_smooth <span class="sc">|&gt;</span>  </span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="fu">subtr_bg</span>()</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="fu">subtr_baseline</span>()</span>
 <span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a></span>
 <span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="fu">head</span>(raman_bgc)</span>
 <span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt;    wavenumber   intensity</span></span>

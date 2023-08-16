@@ -38,7 +38,7 @@ conform_spec(raman_hdpe, c(1000, 2000))
 \seealso{
 \code{\link{restrict_range}()} and  \code{\link{flatten_range}()} for
 adjusting wavenumber ranges;
-\code{\link{subtr_bg}()} for spectral background correction
+\code{\link{subtr_baseline}()} for spectral background correction
 }
 \author{
 Win Cowger, Zacharias Steinmetz

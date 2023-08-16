@@ -24,11 +24,11 @@
 #' @param smooth_polynomial Integer value specifying the polynomial order for smoothing.
 #' @param smooth_window Integer value specifying the window size for smoothing.
 #' @param baseline_decision Logical value indicating whether to subtract the baseline from the spectra.
-#' @param baseline_selection Character value specifying the type of baseline subtraction method. Options are "Polynomial", "Linear", "Horizontal", or "Vertical".
+#' @param baseline_selection Character value specifying the type of baseline subtraction method. Options are "polynomial" or "manual".
 #' @param raw_baseline Logical value indicating whether to use the raw baseline values for subtraction.
 #' @param baseline_polynomial Integer value specifying the polynomial order for baseline subtraction.
-#' @param wavenumber_fit Numeric vector of wavenumbers used for baseline fitting.
-#' @param intensity_fit Numeric vector of intensities used for baseline fitting.
+#' @param baseline_wavenumber Numeric vector of wavenumbers used for baseline fitting.
+#' @param baseline_intensity Numeric vector of intensities used for baseline fitting.
 #' @param derivative_decision Logical value indicating whether to apply derivative to the spectra.
 #' @param derivative_order Integer value specifying the order of the derivative.
 #' @param derivative_polynomial Integer value specifying the polynomial order for derivative calculation.
@@ -47,26 +47,26 @@
 #'
 #' # Process spectra with range restriction and baseline subtraction
 #' process_spec(raman_hdpe,
-#'                 active_processing = TRUE,
-#'                 range_decision = TRUE,
-#'                 min_range = 500,
-#'                 max_range = 3000,
-#'                 baseline_decision = TRUE,
-#'                 baseline_selection = "Polynomial",
-#'                 baseline_polynomial = 8,
-#'                 derivative_decision = FALSE) |>
+#'              active_processing = TRUE,
+#'              range_decision = TRUE,
+#'              min_range = 500,
+#'              max_range = 3000,
+#'              baseline_decision = TRUE,
+#'              baseline_selection = "polynomial",
+#'              baseline_polynomial = 8,
+#'              derivative_decision = FALSE) |>
 #'   lines(col = "darkred")
 #'
 #' # Process spectra with smoothing and derivative
 #' process_spec(raman_hdpe,
-#'                 active_processing = TRUE,
-#'                 smooth_decision = TRUE,
-#'                 smooth_polynomial = 3,
-#'                 smooth_window = 11,
-#'                 derivative_decision = TRUE,
-#'                 derivative_order = 1,
-#'                 derivative_polynomial = 3,
-#'                 derivative_window = 11) |>
+#'              active_processing = TRUE,
+#'              smooth_decision = TRUE,
+#'              smooth_polynomial = 3,
+#'              smooth_window = 11,
+#'              derivative_decision = TRUE,
+#'              derivative_order = 1,
+#'              derivative_polynomial = 3,
+#'              derivative_window = 11) |>
 #'   lines(col = "darkgreen")
 #'
 #' # Sampling a spectrum
@@ -107,11 +107,11 @@ process_spec.OpenSpecy <- function(x,
                                    smooth_polynomial = 3,
                                    smooth_window = 11,
                                    baseline_decision = F,
-                                   baseline_selection = "Polynomial",
+                                   baseline_selection = "polynomial",
                                    raw_baseline = F,
                                    baseline_polynomial = 8,
-                                   wavenumber_fit = NULL,
-                                   intensity_fit = NULL,
+                                   baseline_wavenumber = NULL,
+                                   baseline_intensity = NULL,
                                    derivative_decision = T,
                                    derivative_order = 1,
                                    derivative_polynomial = 3,
@@ -126,10 +126,10 @@ process_spec.OpenSpecy <- function(x,
       x <- restrict_range(x, min_range = min_range, max_range = max_range,
                           make_rel = F)
     if(baseline_decision)
-      x <- subtr_bg(x, degree = baseline_polynomial,
-                    wavenumber_fit = wavenumber_fit,
-                    intensity_fit = intensity_fit, raw = raw_baseline,
-                    make_rel = F, type = baseline_selection)
+      x <- subtr_baseline(x, degree = baseline_polynomial,
+                          baseline_wavenumber = baseline_wavenumber,
+                          baseline_intensity = baseline_intensity, raw = raw_baseline,
+                          make_rel = F, type = baseline_selection)
     if(flatten_decision)
       x <- flatten_range(x, min_range = flatten_min, max_range = flatten_max,
                          make_rel = F)

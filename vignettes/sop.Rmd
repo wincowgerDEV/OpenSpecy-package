@@ -25,7 +25,7 @@ Open Specy Raman and (FT)IR spectral analysis tool for plastic particles and
 other environmental samples. Supported features include reading spectral data
 files (.asp, .csv, .jdx, .spc, .spa, .0), smoothing spectral intensities
 with `smooth_intens()`, correcting background with 
-`subtr_bg()`, and identifying spectra using an onboard reference
+`subtr_baseline()`, and identifying spectra using an onboard reference
 library. Analyzed spectra can be shared with the Open Specy community.
 A Shiny app is available via `run_app()` or online at
 [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/).
@@ -365,8 +365,8 @@ library(ggplot2)
 data("raman_hdpe")
 
 none <- adj_intens(raman_hdpe)
-d2 <- subtr_bg(raman_hdpe, degree = 2)
-d8 <- subtr_bg(raman_hdpe, degree = 8)
+d2 <- subtr_baseline(raman_hdpe, degree = 2)
+d8 <- subtr_baseline(raman_hdpe, degree = 8)
 
 compare_subtraction <- rbind(
   cbind(fitting = "none", wavenumber = none$wavenumber, none$spectra),
@@ -383,7 +383,7 @@ The smoothed sample spectrum `raman_smooth` is background-corrected as follows:
 
 ```{r}
 raman_bgc <- raman_smooth |>  
-  subtr_bg()
+  subtr_baseline()
 
 head(raman_bgc)
 ```

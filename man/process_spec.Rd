@@ -31,11 +31,11 @@ process_spec(x, ...)
   smooth_polynomial = 3,
   smooth_window = 11,
   baseline_decision = F,
-  baseline_selection = "Polynomial",
+  baseline_selection = "polynomial",
   raw_baseline = F,
   baseline_polynomial = 8,
-  wavenumber_fit = NULL,
-  intensity_fit = NULL,
+  baseline_wavenumber = NULL,
+  baseline_intensity = NULL,
   derivative_decision = T,
   derivative_order = 1,
   derivative_polynomial = 3,
@@ -85,15 +85,15 @@ sample_spec(x, ...)
 
 \item{baseline_decision}{Logical value indicating whether to subtract the baseline from the spectra.}
 
-\item{baseline_selection}{Character value specifying the type of baseline subtraction method. Options are "Polynomial", "Linear", "Horizontal", or "Vertical".}
+\item{baseline_selection}{Character value specifying the type of baseline subtraction method. Options are "polynomial" or "manual".}
 
 \item{raw_baseline}{Logical value indicating whether to use the raw baseline values for subtraction.}
 
 \item{baseline_polynomial}{Integer value specifying the polynomial order for baseline subtraction.}
 
-\item{wavenumber_fit}{Numeric vector of wavenumbers used for baseline fitting.}
+\item{baseline_wavenumber}{Numeric vector of wavenumbers used for baseline fitting.}
 
-\item{intensity_fit}{Numeric vector of intensities used for baseline fitting.}
+\item{baseline_intensity}{Numeric vector of intensities used for baseline fitting.}
 
 \item{derivative_decision}{Logical value indicating whether to apply derivative to the spectra.}
 
@@ -124,26 +124,26 @@ plot(raman_hdpe)
 
 # Process spectra with range restriction and baseline subtraction
 process_spec(raman_hdpe,
-                active_processing = TRUE,
-                range_decision = TRUE,
-                min_range = 500,
-                max_range = 3000,
-                baseline_decision = TRUE,
-                baseline_selection = "Polynomial",
-                baseline_polynomial = 8,
-                derivative_decision = FALSE) |>
+             active_processing = TRUE,
+             range_decision = TRUE,
+             min_range = 500,
+             max_range = 3000,
+             baseline_decision = TRUE,
+             baseline_selection = "polynomial",
+             baseline_polynomial = 8,
+             derivative_decision = FALSE) |>
   lines(col = "darkred")
 
 # Process spectra with smoothing and derivative
 process_spec(raman_hdpe,
-                active_processing = TRUE,
-                smooth_decision = TRUE,
-                smooth_polynomial = 3,
-                smooth_window = 11,
-                derivative_decision = TRUE,
-                derivative_order = 1,
-                derivative_polynomial = 3,
-                derivative_window = 11) |>
+             active_processing = TRUE,
+             smooth_decision = TRUE,
+             smooth_polynomial = 3,
+             smooth_window = 11,
+             derivative_decision = TRUE,
+             derivative_order = 1,
+             derivative_polynomial = 3,
+             derivative_window = 11) |>
   lines(col = "darkgreen")
 
 # Sampling a spectrum

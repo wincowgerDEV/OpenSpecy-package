@@ -6,7 +6,7 @@
 #'
 #' @details
 #' Many of the Open Specy functions will assume that the spectrum is in
-#' absorbance units. For example, see \code{\link{subtr_bg}()}.
+#' absorbance units. For example, see \code{\link{subtr_baseline}()}.
 #' To run those functions properly, you will need to first convert any spectra
 #' from transmittance or reflectance to absorbance using this function.
 #' The transmittance adjustment uses the \eqn{log10(1 / T)}
@@ -39,7 +39,7 @@
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @seealso
-#' \code{\link{subtr_bg}()} for spectral background correction.
+#' \code{\link{subtr_baseline}()} for spectral background correction.
 #'
 #' @importFrom data.table .SD
 #' @export

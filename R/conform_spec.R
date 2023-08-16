@@ -25,7 +25,7 @@
 #' @seealso
 #' \code{\link{restrict_range}()} and  \code{\link{flatten_range}()} for
 #' adjusting wavenumber ranges;
-#' \code{\link{subtr_bg}()} for spectral background correction
+#' \code{\link{subtr_baseline}()} for spectral background correction
 #'
 #' @importFrom data.table .SD
 #' @export

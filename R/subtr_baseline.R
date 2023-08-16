@@ -94,8 +94,11 @@ subtr_baseline.OpenSpecy <- function(x, type = "polynomial",
   while (!criteria_met) {
     # Predict the intensity using the polynomial of specified length
     paramVector <- lm(y ~ stats::poly(x, degree = degree, raw = raw, ...))
+
     residual <- paramVector$residuals
+
     mod_poly <- paramVector$fitted.values
+
     dev_curr <- sd(residual)
 
     # Remove peaks
