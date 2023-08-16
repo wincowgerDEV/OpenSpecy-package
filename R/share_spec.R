@@ -70,7 +70,7 @@ share_spec.OpenSpecy <- function(x, file = NULL, share = "system", s3_key_id = N
           names(md)) |
       is.null(md$user_name) | is.null(md$spectrum_type) |
       is.null(md$spectrum_identity))
-    warning("fields 'user_name', 'spectrum_type', and 'spectrum_identity' ",
+    warning("Fields 'user_name', 'spectrum_type', and 'spectrum_identity' ",
             "should not be empty if you like to share your metadata", call. = F)
 
   if (share == "system") {
@@ -114,7 +114,7 @@ share_spec.OpenSpecy <- function(x, file = NULL, share = "system", s3_key_id = N
     }
   }
 
-  message("thank you for your willigness to share your data; ",
+  message("Thank you for your willigness to share your data; ",
           "your data has been saved to\n    ",
           fp, "\n",
           "if you run Open Specy locally, you may consider e-mailing your ",

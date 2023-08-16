@@ -134,7 +134,7 @@ read_opus <- function(file, share = NULL,
 
       # Check the wavenumbers have all the same length
       if (length(unique(sapply(wns, length))) > 1) {
-        warning("spectra don't all have the same number of wavenumbers; interpolation will be used to combine them in a matrix", call. = F)
+        warning("Spectra don't all have the same number of wavenumbers; interpolation will be used to combine them in a matrix", call. = F)
       }
 
       specs <- lapply(

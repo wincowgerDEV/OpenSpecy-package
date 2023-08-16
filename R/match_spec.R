@@ -67,7 +67,7 @@ cor_spec.default <- function(x, ...) {
 #' @export
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
   if(sum(x$wavenumber %in% library$wavenumber) < 3){
-    stop("there are less than 3 matching wavenumbers in the objects you are trying to correlate, this won't work for correlation analysis. Consider first conforming the spectra to the same wavenumbers")
+    stop("there are less than 3 matching wavenumbers in the objects you are trying to correlate, this won't work for correlation analysis. Consider first conforming the spectra to the same wavenumbers", call. = F)
   }
   cor(library$spectra[library$wavenumber %in% x$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
       x$spectra[x$wavenumber %in% library$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
@@ -82,7 +82,7 @@ ident_spec <- function(cor_matrix, x, library, top_n = NULL,
                        add_object_metadata = NULL, ...){
   if(is.numeric(top_n) && top_n > ncol(library$spectra)){
     top_n = NULL
-    message("top_n was larger than the number of spectra in the library, returning all matches")
+    message("'top_n' was larger than the number of spectra in the library; returning all matches")
   }
 
   out <- data.table(object_id = colnames(x$spectra),

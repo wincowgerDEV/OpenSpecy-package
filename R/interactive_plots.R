@@ -140,7 +140,7 @@ heatmap_spec.OpenSpecy <- function(x,
     plot_z <- sn
   }
   else{
-    stop("z, cor, or sn need to be specified to plot the z axis")
+    stop("z, cor, or sn need to be specified to plot the z axis", call. = F)
   }
   if (!is.null(sn) && !is.null(min_sn)) {
     plot_z <- ifelse(sn > min_sn, plot_z, NA)

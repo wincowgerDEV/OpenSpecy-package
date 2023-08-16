@@ -165,7 +165,7 @@ split.line <- function(x, separator, trim.blank = TRUE) {
     header$`byte order` <- as.numeric(header$`byte order`)
     if (!header$`byte order` %in% 0:1) {
       header$`byte order` <- .Platform$endian
-      warning("byte order incorrect. Guessing '", .Platform$endian, "'")
+      warning("Byte order incorrect. Guessing '", .Platform$endian, "'", call. = F)
     } else if (header$`byte order` == 0) {
       header$`byte order` <- "little"
     } else {

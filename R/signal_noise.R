@@ -22,7 +22,7 @@ signal_noise <- function(x, return = "signal_over_noise", na.rm = TRUE) {
 
   vapply(x$spectra, function(intensity){
     if(length(intensity[!is.na(intensity)]) < 20){
-      warning("Need at least 20 intensity values to calculate the signal or noise values accurately. Returning NA.")
+      warning("Need at least 20 intensity values to calculate the signal or noise values accurately; returning NA", call. = F)
         return(NA)
     }
     if(return == "run_signal_over_noise"){

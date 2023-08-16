@@ -177,13 +177,13 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
   if (is.null(colnames$wavenumber)) {
     if (any(grepl("wav", ignore.case = T, names(x)))) {
       if (length(grep("wav", ignore.case = T, names(x))) > 1L)
-        warning("ambiguous column names: taking 'wavenumber' data from the",
+        warning("Ambiguous column names: taking 'wavenumber' data from the",
                 " first column; use 'colnames' to supply user-defined columns",
                 call. = F)
       wavenumber <- x[[grep("wav", ignore.case = T, names(x))[1L]]]
       wn <- names(x)[grep("wav", ignore.case = T, names(x))]
     } else {
-      warning("ambiguous column names: taking 'wavenumber' data from the",
+      warning("Ambiguous column names: taking 'wavenumber' data from the",
               " first column; use 'colnames' to supply user-defined columns",
               call. = F)
       wavenumber <- x[[1L]]
@@ -200,7 +200,7 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
       spectra <- x[, grepl("(transmit.*)|(reflect.*)|(abs.*)|(intens.*)",
                            ignore.case = T, names(x)), with = F]
     } else {
-      warning("ambiguous column names: taking 'spectra' data from all but the",
+      warning("Ambiguous column names: taking 'spectra' data from all but the",
               " 'wavenumber' column; use 'colnames' to supply user-defined",
               " columns", call. = F)
       spectra <- x[, -wn, with = F]
@@ -315,21 +315,21 @@ check_OpenSpecy <- function(x) {
     stop("names of the object components are incorrect", call. = F)
 
   if(!(cw <- is.vector(x$wavenumber)))
-    warning("wavenumber is not a vector", call. = F)
+    warning("Wavenumber is not a vector", call. = F)
   if(!(cs <- is.data.table(x$spectra)))
-    message("spectra are not of class 'data.table'")
+    message("Spectra are not of class 'data.table'")
   if(!(cm <- is.data.table(x$metadata)))
-    message("metadata are not a 'data.table'")
+    message("Metadata are not a 'data.table'")
   if(!(cr <- ncol(x$spectra) == nrow(x$metadata)))
-    warning("number of columns in spectra is not equal to number of rows ",
+    warning("Number of columns in spectra is not equal to number of rows ",
             "in metadata", call. = F)
   if(!(cl <- length(x$wavenumber) == nrow(x$spectra)))
-    warning("length of wavenumber is not equal to number of rows in spectra",
+    warning("Length of wavenumber is not equal to number of rows in spectra",
             call. = F)
   if(!(cu <- length(unique(names(x$spectra))) == ncol(x$spectra)))
-    warning("column names in spectra are not unique", call. = F)
+    warning("Column names in spectra are not unique", call. = F)
   if(!(cv <- length(unique(names(x$metadata))) == ncol(x$metadata)))
-    message("column names in metadata are not unique")
+    message("Column names in metadata are not unique")
   if(!(co <- identical(order(x$wavenumber), 1:length(x$wavenumber)) |
        identical(order(x$wavenumber), length(x$wavenumber):1)))
     message("This is technically an 'OpenSpecy' object but wavenumbers ",
