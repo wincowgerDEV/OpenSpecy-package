@@ -1,39 +1,73 @@
 # Loading test data
 data(raman_hdpe)
 
-test_that("Test read_spec and write_spec functions", {
-    # First write the test data to temporary files in different formats
-    temp_file_yml <- tempfile(fileext = ".yml")
-    temp_file_json <- tempfile(fileext = ".json")
-    temp_file_rds <- tempfile(fileext = ".rds")
+# Create temp dir for testthat
+tmp <- file.path(tempdir(), "OpenSpecy-testthat")
+dir.create(tmp, showWarnings = F)
 
-    write_spec(raman_hdpe, temp_file_yml)
-    write_spec(raman_hdpe, temp_file_json)
-    write_spec(raman_hdpe, temp_file_rds)
+library(data.table)
 
-    # Now read the data back in and test equality
-    spec_yml <- read_spec(temp_file_yml)
-    spec_json <- read_spec(temp_file_json)
-    spec_rds <- read_spec(temp_file_rds)
+test_that("extdata files are present", {
+  ed <- read_extdata()
+  any(grepl("\\.yml$", ed)) |> expect_true()
+  any(grepl("\\.json$", ed)) |> expect_true()
+  any(grepl("\\.rds$", ed)) |> expect_true()
+})
 
-    # Verify the equality of the original and the read data
-    expect_equal(spec_yml, raman_hdpe)
-    expect_equal(spec_json, raman_hdpe)
-    expect_equal(spec_rds, raman_hdpe)
+test_that("write_spec() works without errors", {
+  write_spec(raman_hdpe, file.path(tmp, "test.yml")) |> expect_silent()
+  write_spec(raman_hdpe, file.path(tmp, "test.json")) |> expect_silent()
+  write_spec(raman_hdpe, file.path(tmp, "test.rds")) |> expect_silent()
 
-    # Clean up temporary files
-    file.remove(temp_file_yml)
-    file.remove(temp_file_json)
-    file.remove(temp_file_rds)
+  write_spec(as.data.frame(raman_hdpe), file.path(tmp, "test.yml")) |>
+    expect_error()
+  write_spec(raman_hdpe, file.path(tmp, "test.csv")) |> expect_error()
+})
+
+test_that("read_spec() gives expected output", {
+  yml <- read_spec(read_extdata("raman_hdpe.yml")) |> expect_silent()
+  jsn <- read_spec(read_extdata("raman_hdpe.json")) |> expect_silent()
+  rds <- read_spec(read_extdata("raman_hdpe.rds")) |> expect_silent()
+
+  read_spec(read_extdata("raman_hdpe.csv")) |> expect_error()
+
+  expect_s3_class(yml, "OpenSpecy")
+  expect_s3_class(jsn, "OpenSpecy")
+  expect_s3_class(rds, "OpenSpecy")
+
+  jsn$metadata$file_name <- yml$metadata$file_name <-
+    rds$metadata$file_name <- NULL
+  expect_equal(jsn, yml)
+  expect_equal(rds, raman_hdpe)
+  expect_equal(jsn[1:2], raman_hdpe[1:2])
+  expect_equal(yml[1:2], raman_hdpe[1:2])
+
+  read_spec(read_extdata("raman_hdpe.yml"), share = tmp) |> expect_message()
+})
+
+test_that("read_spec() and write_spec() work nicely together", {
+  yml <- read_spec(file.path(tmp, "test.yml")) |> expect_silent()
+  jsn <- read_spec(file.path(tmp, "test.json")) |> expect_silent()
+  rds <- read_spec(file.path(tmp, "test.rds")) |> expect_silent()
+
+  jsn$metadata$file_name <- yml$metadata$file_name <-
+    rds$metadata$file_name <- NULL
+  expect_equal(jsn, yml)
+  expect_equal(rds, raman_hdpe)
+  expect_equal(jsn[1:2], raman_hdpe[1:2])
+  expect_equal(yml[1:2], raman_hdpe[1:2])
 })
 
 test_that("as_hyperspec function", {
-    hyperspec_object <- as_hyperSpec(raman_hdpe)
+  hyperspec_object <- as_hyperSpec(raman_hdpe)
 
-    # Verify the class of the output
-    expect_s4_class(hyperspec_object, "hyperSpec")
+  # Verify the class of the output
+  expect_s4_class(hyperspec_object, "hyperSpec")
 
-    # Verify the equality of the content
-    expect_equal(hyperspec_object@wavelength, raman_hdpe$wavenumber)
-    expect_equal(c(hyperspec_object$spc), raman_hdpe$spectra$intensity)
+  # Verify the equality of the content
+  expect_equal(hyperspec_object@wavelength, raman_hdpe$wavenumber)
+  expect_equal(c(hyperspec_object$spc), raman_hdpe$spectra$intensity)
 })
+
+# Tidy up
+unlink(tmp, recursive = T)

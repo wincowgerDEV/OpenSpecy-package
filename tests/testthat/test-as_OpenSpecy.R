@@ -7,7 +7,7 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
 
   expect_silent(osf <- as_OpenSpecy(df))
   expect_silent(ost <- data.table(df) |> as_OpenSpecy())
-  expect_silent(osl <- list(df$Wavelength, df[2]) |> as_OpenSpecy())
+  expect_silent(osl <- list(df$wavenumber, df[2]) |> as_OpenSpecy())
   expect_silent(OpenSpecy(osf))
 
   expect_s3_class(osf, "OpenSpecy")
@@ -30,24 +30,24 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
 })
 
 test_that("as_OpenSpecy() handles errors correctly", {
-  expect_silent(as_OpenSpecy(df$Wavelength, as.data.frame(df$Absorbance)))
-  expect_error(as_OpenSpecy(df$Wavelength, df$Absorbance))
-  expect_error(as_OpenSpecy(df$Wavelength))
-  expect_error(as_OpenSpecy(df$Wavelength, as.data.frame(df$Absorbance[-1])))
-  expect_error(as_OpenSpecy(df$Wavelength,
-                            data.table(intensity = df$Absorbance,
-                                       intensity = df$Absorbance)))
+  expect_silent(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity)))
+  expect_error(as_OpenSpecy(df$wavenumber, df$intensity))
+  expect_error(as_OpenSpecy(df$wavenumber))
+  expect_error(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity[-1])))
+  expect_error(as_OpenSpecy(df$wavenumber,
+                            data.table(intensity = df$intensity,
+                                       intensity = df$intensity)))
 
-  expect_warning(as_OpenSpecy(data.frame(x = df$Wavelength,
-                                         abs = df$Absorbance)))
-  expect_warning(as_OpenSpecy(data.frame(wav = df$Wavelength,
-                                         y = df$Absorbance)))
+  expect_warning(as_OpenSpecy(data.frame(x = df$wavenumber,
+                                         abs = df$intensity)))
+  expect_warning(as_OpenSpecy(data.frame(wav = df$wavenumber,
+                                         y = df$intensity)))
 
-  expect_error(as_OpenSpecy(df$Wavelength, as.data.frame(df$Absorbance),
+  expect_error(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity),
                             coords = ""))
-  expect_error(as_OpenSpecy(df$Wavelength, as.data.frame(df$Absorbance),
+  expect_error(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity),
                             coords = df))
-  expect_error(as_OpenSpecy(df$Wavelength, as.data.frame(df$Absorbance),
+  expect_error(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity),
                             metadata = ""))
 })
 
@@ -80,15 +80,15 @@ test_that("check_OpenSpecy() work as expected", {
 test_that("'OpenSpecy' objects are read correctly", {
   os <- as_OpenSpecy(df)
 
-  expect_equal(range(os$wavenumber) |> round(2), c(150.92, 2998.49))
-  expect_equal(range(os$spectra) |> round(2), c(3264.21, 41238.90))
-  expect_length(os$wavenumber, 1095)
+  expect_equal(range(os$wavenumber) |> round(2), c(301.04, 3198.12))
+  expect_equal(range(os$spectra) |> round(2), c(26, 816))
+  expect_length(os$wavenumber, 964)
   expect_equal(os$metadata$x, 1)
   expect_equal(os$metadata$y, 1)
   expect_equal(os$metadata$license, "CC BY-NC")
 })
 
-test_that("OpenSpecy objects are transcribed to and from hyperSpec objects", {
+test_that("'OpenSpecy' objects are transcribed to and from 'hyperSpec' objects", {
   os <- as_OpenSpecy(df)
   hyper <- as_hyperSpec(os)
   expect_s4_class(hyper, "hyperSpec")

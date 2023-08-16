@@ -98,17 +98,20 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
 
       os <- as_OpenSpecy(yml$wavenumber,
                          spectra = as.data.table(yml$spectra),
-                         metadata = as.data.table(yml$metadata),
+                         metadata = data.table(as.data.table(yml$metadata),
+                                               file_name = basename(file)),
                          coords = NULL)
     } else if (grepl("\\.json$", file, ignore.case = T)) {
       jsn <- read_json(file, simplifyVector = T, ...)
 
       os <- as_OpenSpecy(jsn$wavenumber,
                          spectra = as.data.table(jsn$spectra),
-                         metadata = as.data.table(jsn$metadata),
+                         metadata = data.table(as.data.table(jsn$metadata),
+                                               file_name = basename(file)),
                          coords = NULL)
     } else if (grepl("\\.rds$", file, ignore.case = T)) {
       os <- readRDS(file, ...)
+      os$metadata$file_name <- basename(file)
     } else {
       stop("unknown file type: specify a method to read custom formats or provide files of one of the supported file types .yml, .json, .rds",
            call. = F)
@@ -117,6 +120,7 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
     io <- do.call(method, list(file, ...))
 
     os <- OpenSpecy(io, coords = NULL)
+    os$metadata$file_name <- basename(file)
   }
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
