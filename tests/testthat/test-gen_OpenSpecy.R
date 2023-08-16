@@ -1,20 +1,21 @@
+library(data.table)
+data("raman_hdpe")
 
-# Define a setup before running the tests.
-test_data <- read_any(read_extdata("raman_hdpe.csv"))
-
-# Test: print.OpenSpecy() should print the OpenSpecy object.
-test_that("print.OpenSpecy prints the OpenSpecy object", {
-    expect_output(print.OpenSpecy(test_data))
+test_that("print() and summary() work as expected", {
+  print(raman_hdpe) |> expect_output(
+    paste0("wavenumber.*intensity.*308.221.*",
+           "48.*metadata.*spectrum_identity.*HDPE"))
+  summary(raman_hdpe) |> expect_output("Length.*964.*spectra.*26")
 })
 
-# Test: head.OpenSpecy() should return the first few lines of the OpenSpecy object.
-test_that("head.OpenSpecy returns the first few lines of the OpenSpecy object", {
-    result <- head(test_data)
-    expect_equal(nrow(result), 6)
+test_that("head returns the first few lines of the OpenSpecy object", {
+  head <- head(raman_hdpe)
+
+  nrow(head) |> expect_equal(6)
+  head |> expect_equal(head(data.table(wavenumber = raman_hdpe$wavenumber,
+                                       raman_hdpe$spectra)))
 })
 
-# Test: plot.OpenSpecy() should return a ggplot object.
-test_that("plot.OpenSpecy returns a plotly object", {
-    result <- plotly_spec(test_data)
-    expect_s3_class(result, "plotly")
+test_that("ploting works without errors", {
+  plot(raman_hdpe) |> expect_silent()
 })
