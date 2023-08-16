@@ -10,13 +10,16 @@
 #' frequency difference between two lines in a spectrum that can still be
 #' distinguished.
 #'
-#' @param x a numeric vector with \code{wavenumber} data or an \code{OpenSpecy} object.
+#' @param x a numeric vector with \code{wavenumber} data or an \code{OpenSpecy}
+#' object.
 #' @param \ldots further arguments passed to subfunctions; currently not used.
+#'
 #' @return
 #' \code{spec_res()} returns a single numeric value.
 #'
 #' @examples
 #' data("raman_hdpe")
+#'
 #' spec_res(raman_hdpe)
 #'
 #' @author

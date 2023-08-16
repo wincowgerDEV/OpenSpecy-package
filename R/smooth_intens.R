@@ -15,15 +15,16 @@
 #' @param x an object of class \code{OpenSpecy}.
 #' @param p polynomial order for the filter
 #' @param n number of data points in the window, filter length (must be odd).
-#' @param m the derivative order if you want to calculate the derivative. Zero (default) is no derivative.
-#' @param abs whether you want to calculate the absolute value of the resulting output, accepts TRUE or FALSE.
+#' @param m the derivative order if you want to calculate the derivative. Zero
+#' (default) is no derivative.
+#' @param abs logical; whether you want to calculate the absolute value of the
+#' resulting output.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
 #' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}.
 #'
 #' @return
-#' \code{smooth_intens()} returns a data frame containing two columns named
-#' \code{"wavenumber"} and \code{"intensity"}.
+#' \code{smooth_intens()} returns an \code{OpenSpecy} object.
 #'
 #' @examples
 #' data("raman_hdpe")
@@ -51,7 +52,7 @@ smooth_intens <- function(x, ...) {
 #'
 #' @export
 smooth_intens.default <- function(x, ...) {
-  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname smooth_intens

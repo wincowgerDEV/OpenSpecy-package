@@ -257,7 +257,7 @@ as_OpenSpecy.default <- function(x, spectra,
     stop("at least the first column of 'spectra' must be numeric or logical",
          call. = F)
   if(length(unique(names(spectra))) != ncol(spectra))
-    stop("column names in 'spectra' must be unique")
+    stop("column names in 'spectra' must be unique", call. = F)
   if (length(x) != nrow(spectra))
     stop("'x' and 'spectra' must be of equal length", call. = F)
 

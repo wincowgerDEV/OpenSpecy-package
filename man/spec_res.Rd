@@ -13,7 +13,8 @@ spec_res(x, ...)
 \method{spec_res}{OpenSpecy}(x, ...)
 }
 \arguments{
-\item{x}{a numeric vector with \code{wavenumber} data or an \code{OpenSpecy} object.}
+\item{x}{a numeric vector with \code{wavenumber} data or an \code{OpenSpecy}
+object.}
 
 \item{\ldots}{further arguments passed to subfunctions; currently not used.}
 }
@@ -31,6 +32,7 @@ distinguished.
 }
 \examples{
 data("raman_hdpe")
+
 spec_res(raman_hdpe)
 
 }

@@ -45,14 +45,14 @@
 #' @importFrom data.table as.data.table .SD
 #' @export
 restrict_range <- function(x, ...) {
-    UseMethod("restrict_range")
+  UseMethod("restrict_range")
 }
 
 #' @rdname adj_range
 #'
 #' @export
 restrict_range.default <- function(x, ...) {
-    stop("object 'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname adj_range
@@ -60,17 +60,17 @@ restrict_range.default <- function(x, ...) {
 #' @export
 restrict_range.OpenSpecy <- function(x, min_range, max_range, make_rel = TRUE,
                                      ...) {
-    test <- as.data.table(lapply(1:length(min_range), function(y){
-        x$wavenumber >= min_range[y] & x$wavenumber <= max_range[y]})
-    )
+  test <- as.data.table(lapply(1:length(min_range), function(y){
+    x$wavenumber >= min_range[y] & x$wavenumber <= max_range[y]})
+  )
 
-    vals <- rowSums(test) > 0
-    filt <- x$spectra[vals,]
-    x$wavenumber <- x$wavenumber[vals]
+  vals <- rowSums(test) > 0
+  filt <- x$spectra[vals,]
+  x$wavenumber <- x$wavenumber[vals]
 
-    if (make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
+  if (make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
 
-    return(x)
+  return(x)
 }
 
 #' @rdname adj_range
@@ -93,12 +93,12 @@ flatten_range.default <- function(x, ...) {
 flatten_range.OpenSpecy <- function(x, min_range, max_range, make_rel = TRUE,
                                     ...) {
   if(length(min_range) != length(max_range)) {
-    stop("min_range and max_range need to be the same length")
+    stop("min_range and max_range need to be the same length", call. = F)
   }
   if(any(vapply(1:length(min_range), function(y) {
     min_range[y] > max_range[y]
   }, FUN.VALUE = logical(1)))) {
-    stop("all min_range values must be lower than corresponding max_range")
+    stop("all min_range values must be lower than corresponding max_range", call. = F)
   }
   flat <- x$spectra[, lapply(.SD, .flatten_range, x = x$wavenumber,
                              min_range = min_range, max_range = max_range)]

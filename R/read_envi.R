@@ -56,12 +56,12 @@ split.line <- function(x, separator, trim.blank = TRUE) {
     }
 
     if (length(headerfilename) != 1L) {
-      stop("cannot guess header file name")
+      stop("cannot guess header file name", call. = F)
     }
   }
 
   if (!file.exists(headerfilename)) {
-    stop("ENVI header file: ", headerfilename, " not found.")
+    stop("ENVI header file: ", headerfilename, " not found.", call. = F)
   }
 
   headerfilename
@@ -72,7 +72,7 @@ split.line <- function(x, separator, trim.blank = TRUE) {
 .read_envi_split_header <- function(header, pull.lines = TRUE) {
   # check ENVI at beginning of file
   if (!grepl("ENVI", header[1])) {
-    stop("not an ENVI header (ENVI keyword missing)")
+    stop("not an ENVI header (ENVI keyword missing)", call. = F)
   } else {
     header <- header[-1]
   }
@@ -84,11 +84,11 @@ split.line <- function(x, separator, trim.blank = TRUE) {
   r <- grep("\\}", header)
 
   if (length(l) != length(r)) {
-    stop("error matching curly braces in header (differing numbers).")
+    stop("error matching curly braces in header (differing numbers).", call. = F)
   }
 
   if (any(r <= l)) {
-    stop("mismatch of curly braces in header.")
+    stop("mismatch of curly braces in header.", call. = F)
   }
 
   header[l] <- sub("\\{", "", header[l])
@@ -136,13 +136,13 @@ split.line <- function(x, separator, trim.blank = TRUE) {
   }
 
   if (header$samples <= 0) {
-    stop("ENVI header: incorrect data size (", header$samples, ")")
+    stop("ENVI header: incorrect data size (", header$samples, ")", call. = F)
   }
   if (header$lines <= 0) {
-    stop("ENVI header: incorrect data size (", header$lines, ")")
+    stop("ENVI header: incorrect data size (", header$lines, ")", call. = F)
   }
   if (header$bands <= 0) {
-    stop("ENVI header: incorrect data size (", header$bands, ")")
+    stop("ENVI header: incorrect data size (", header$bands, ")", call. = F)
   }
 
   if (!(header$`data type` %in% c(1:5, 9, 12))) {
@@ -216,12 +216,12 @@ split.line <- function(x, separator, trim.blank = TRUE) {
     spc <- readBin(f, integer(), n = n, size = size, endian = header$`byte order`),
     spc <- readBin(f, double(), n = n, size = size, endian = header$`byte order`),
     spc <- readBin(f, double(), n = n, size = size, endian = header$`byte order`),
-    stop("ENVI data type (", header$`data type`, ") unknown"), # 6 unused
-    stop("ENVI data type (", header$`data type`, ") unknown"), # 7 unused
-    stop("ENVI data type (", header$`data type`, ") unknown"), # 8 unused
+    stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 6 unused
+    stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 7 unused
+    stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 8 unused
     spc <- readBin(f, complex(), n = n, size = size, endian = header$`byte order`),
-    stop("ENVI data type (", header$`data type`, ") unknown"), # 10 unused
-    stop("ENVI data type (", header$`data type`, ") unknown"), # 11 unused
+    stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 10 unused
+    stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 11 unused
     spc <- readBin(f, integer(),
       n = n, size = size, endian = header$`byte order`,
       signed = FALSE
@@ -386,7 +386,7 @@ read_envi <- function(file = stop("read_envi: file name needed"),
         "did you mean headerfile instead?"
       )
     } else {
-      stop("header must be a list of parameters.")
+      stop("header must be a list of parameters.", call. = F)
     }
   }
 

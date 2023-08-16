@@ -19,9 +19,11 @@ smooth_intens(x, ...)
 
 \item{n}{number of data points in the window, filter length (must be odd).}
 
-\item{m}{the derivative order if you want to calculate the derivative. Zero (default) is no derivative.}
+\item{m}{the derivative order if you want to calculate the derivative. Zero
+(default) is no derivative.}
 
-\item{abs}{whether you want to calculate the absolute value of the resulting output, accepts TRUE or FALSE.}
+\item{abs}{logical; whether you want to calculate the absolute value of the
+resulting output.}
 
 \item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
 with \code{\link{make_rel}()}.}
@@ -29,8 +31,7 @@ with \code{\link{make_rel}()}.}
 \item{\ldots}{further arguments passed to \code{\link[signal]{sgolay}()}.}
 }
 \value{
-\code{smooth_intens()} returns a data frame containing two columns named
-\code{"wavenumber"} and \code{"intensity"}.
+\code{smooth_intens()} returns an \code{OpenSpecy} object.
 }
 \description{
 This smoother can enhance the signal to noise ratio of the data and uses a

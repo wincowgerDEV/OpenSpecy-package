@@ -79,9 +79,9 @@ share_spec.OpenSpecy <- function(x, file = NULL, share = "system", s3_key_id = N
   } else if (share == "cloud") {
     pkg <- "aws.s3"
     mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
-    if (length(mpkg)) stop("share = 'cloud' requires package 'aws.s3'")
+    if (length(mpkg)) stop("share = 'cloud' requires package 'aws.s3'", call. = F)
     if(any(is.null(s3_key_id), is.null(s3_secret_key), is.null(s3_region), is.null(s3_bucket))) {
-      stop("need all s3 inputs to share with the cloud")
+      stop("need all s3 inputs to share with the cloud", call. = F)
     }
     Sys.setenv(
       "AWS_ACCESS_KEY_ID" = s3_key_id,
