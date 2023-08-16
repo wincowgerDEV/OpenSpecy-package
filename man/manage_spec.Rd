@@ -2,36 +2,47 @@
 % Please edit documentation in R/manage_spec.R
 \name{c_spec}
 \alias{c_spec}
+\alias{c_spec.default}
+\alias{c_spec.OpenSpecy}
+\alias{c_spec.list}
 \title{Manage spectral objects}
 \usage{
-c_spec(objects, wavenumber_transform = NULL, res = 5)
+c_spec(x, ...)
+
+\method{c_spec}{default}(x, ...)
+
+\method{c_spec}{OpenSpecy}(x, ...)
+
+\method{c_spec}{list}(x, range = NULL, res = 5, ...)
 }
 \arguments{
-\item{objects}{a list object of class \code{OpenSpecy}.}
+\item{x}{a list of \code{OpenSpecy} objects.}
 
-\item{wavenumber_transform}{a numeric if providing your own wavenumbers or character argument of "common_range" depending on how you want to merge the wavenumbers between the spectra, NULL will be interpreted as the spectra are all the same wavenumber range, see details for more information.}
+\item{range}{a numeric providing your own wavenumber ranges or character
+argument called \code{"common"} to let \code{c_spec()} find the common
+wavenumber range of the supplied spectra. \code{NULL} will interpret the
+spectra having all the same wavenumber range.}
 
-\item{res}{defaults to \code{NULL}, the resolution you want the output wavenumbers to be.}
+\item{res}{defaults to \code{NULL}, the resolution you want the output
+wavenumbers to be.}
+
+\item{\ldots}{further arguments passed to submethods.}
 }
 \value{
 A single \code{OpenSpecy} object.
 }
 \description{
-Functions for
-}
-\details{
-details
+Functions for concatenating \code{OpenSpecy} objects.
 }
 \examples{
-spectra <- lapply(c(read_extdata("raman_hdpe.csv"),  read_extdata("ftir_ldpe_soil.asp")), read_any)
-spectra2 <- c_spec(objects = spectra, wavenumber_transform = "common_range", res = 5)
-spectra3 <- c_spec(objects = spectra, wavenumber_transform = c(1000, 2000), res = 5)
+spectra <- lapply(c(read_extdata("raman_hdpe.csv"),
+                    read_extdata("ftir_ldpe_soil.asp")), read_any)
+common <- c_spec(spectra, range = "common", res = 5)
+range <- c_spec(spectra, range = c(1000, 2000), res = 5)
 
 }
 \seealso{
-\code{\link[OpenSpecy]{conform_spec}()};
-\code{\link[OpenSpecy]{conform_res}()};
-\code{\link[OpenSpecy]{as_OpenSpecy}()};
+\code{\link[OpenSpecy]{conform_spec}()} for conforming wavenumbers
 }
 \author{
 Zacharias Steinmetz, Win Cowger
