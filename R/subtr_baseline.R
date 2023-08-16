@@ -1,3 +1,4 @@
+#' @rdname subtr_baseline
 #' @title Automated background subtraction for spectral data
 #'
 #' @description
@@ -9,9 +10,9 @@
 #' \code{imodpolyfit} routine from Zhao et al. 2007.
 #'
 #' @param x a list object of class \code{OpenSpecy}.
-#' @param type one of "polynomial" or "manual" depending on whether you want
-#' spectra to be corrected with a manual baseline or with polynomial baseline
-#' fitting.
+#' @param type one of \code{"polynomial"} or \code{"manual"} depending on
+#' whether you want spectra to be corrected with a manual baseline or with
+#' polynomial baseline fitting.
 #' @param degree the degree of the polynomial. Must be less than the number of
 #' unique points when raw is \code{FALSE}. Typically a good fit can be
 #' found with a 8th order polynomial.

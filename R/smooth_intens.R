@@ -59,8 +59,7 @@ smooth_intens.default <- function(x, ...) {
 #'
 #' @export
 smooth_intens.OpenSpecy <- function(x, p = 3, n = 11, m = 0, abs = FALSE,
-                                    make_rel = TRUE,
-                                    ...) {
+                                    make_rel = TRUE, ...) {
   filt <- x$spectra[, lapply(.SD, .sgfilt, p = p, n = n, m = m, abs = abs, ...)]
 
   if (make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt

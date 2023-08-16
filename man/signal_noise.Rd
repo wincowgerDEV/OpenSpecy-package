@@ -2,27 +2,44 @@
 % Please edit documentation in R/signal_noise.R
 \name{signal_noise}
 \alias{signal_noise}
-\title{Calculate signal and noise metrics for Open Specy objects}
+\alias{signal_noise.default}
+\alias{signal_noise.OpenSpecy}
+\title{Calculate signal and noise metrics for OpenSpecy objects}
 \usage{
-signal_noise(x, return = "signal_over_noise", na.rm = TRUE)
+signal_noise(x, ...)
+
+\method{signal_noise}{default}(x, ...)
+
+\method{signal_noise}{OpenSpecy}(x, metric = "signal_over_noise", na.rm = TRUE, ...)
 }
 \arguments{
-\item{x}{an Open Specy object.}
+\item{x}{an \code{OpenSpecy} object.}
 
-\item{return}{A character specifying the desired metric to calculate. Options include "signal" (mean intensity), "noise" (standard deviation of intensity), "signal_times_noise" (absolute value of signal times noise), "signal_over_noise" (absolute value of signal / noise), or "total_signal" (total signal = signal * number of data points).}
+\item{metric}{character; specifying the desired metric to calculate.
+Options include \code{"signal"} (mean intensity), \code{"noise"} (standard
+deviation of intensity), \code{"signal_times_noise"} (absolute value of
+signal times noise), \code{"signal_over_noise"} (absolute value of signal /
+noise), or \code{"total_signal"} (total signal = signal * number of data
+points).}
 
-\item{na.rm}{Logical value indicating whether missing values should be removed when calculating signal and noise. Default is \code{TRUE}.}
+\item{na.rm}{logical; indicating whether missing values should be removed
+when calculating signal and noise. Default is \code{TRUE}.}
+
+\item{\ldots}{further arguments passed to subfunctions; currently not used.}
 }
 \value{
-A numeric vector containing the calculated metric for each spectrum in the Open Specy object.
+A numeric vector containing the calculated metric for each spectrum in the
+\code{OpenSpecy} object.
 }
 \description{
-This function calculates common signal and noise metrics for Open Specy objects.
+This function calculates common signal and noise metrics for \code{OpenSpecy}
+objects.
 }
 \examples{
 data("raman_hdpe")
-signal_noise(raman_hdpe, return = "signal")
-signal_noise(raman_hdpe, return = "noise")
-signal_noise(raman_hdpe, return = "signal_times_noise")
+
+signal_noise(raman_hdpe, metric = "signal")
+signal_noise(raman_hdpe, metric = "noise")
+signal_noise(raman_hdpe, metric = "signal_times_noise")
 
 }

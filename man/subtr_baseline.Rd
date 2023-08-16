@@ -24,9 +24,9 @@ subtr_baseline(x, ...)
 \arguments{
 \item{x}{a list object of class \code{OpenSpecy}.}
 
-\item{type}{one of "polynomial" or "manual" depending on whether you want
-spectra to be corrected with a manual baseline or with polynomial baseline
-fitting.}
+\item{type}{one of \code{"polynomial"} or \code{"manual"} depending on
+whether you want spectra to be corrected with a manual baseline or with
+polynomial baseline fitting.}
 
 \item{degree}{the degree of the polynomial. Must be less than the number of
 unique points when raw is \code{FALSE}. Typically a good fit can be
