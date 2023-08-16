@@ -3,8 +3,8 @@
 #' @title Normalization and conversion of spectral data
 #'
 #' @description
-#' \code{adj_res()} and \code{conform_res()} are helper functions to conform
-#' wavenumbers to different spectral resolutions.
+#' \code{adj_res()} and \code{conform_res()} are helper functions to align
+#' wavenumbers in terms of their spectral resolution.
 #' \code{adj_neg()} converts numeric intensities \code{y} < 1 into values
 #' >= 1, keeping absolute differences between intensity values by shifting each
 #' value by the minimum intensity.

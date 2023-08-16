@@ -6,31 +6,37 @@
 #' spectral map oriented \code{OpenSpecy} object.
 #'
 #' @details
-#' `def_features()` accepts an \code{OpenSpecy} object and a logical or character vector describing which pixels correspond to particles.
-#' `collapse_spec()` takes an \code{OpenSpecy} object with particle-specific metadata
-#' (from `def_features()`) and collapses the spectra to median intensities for each unique particle.
-#' It also updates the metadata with centroid coordinates, while preserving the particle information on area and Feret max.
+#' `def_features()` accepts an \code{OpenSpecy} object and a logical or
+#' character vector describing which pixels correspond to particles.
+#' `collapse_spec()` takes an \code{OpenSpecy} object with particle-specific
+#' metadata (from `def_features()`) and collapses the spectra to median
+#' intensities for each unique particle.
+#' It also updates the metadata with centroid coordinates, while preserving the
+#' feature information on area and Feret max.
 #'
 #' @return
-#' An Open Specy object appended metadata about the particles or collapsed for the particles.
+#' An \code{OpenSpecy} object appended with metadata about the features or
+#' collapsed for the features.
 #'
 #' @examples
-#' #Logical example
+#' # Logical input
 #' map <- read_extdata("CA_tiny_map.zip") |> read_any()
-#' map$metadata$particles <- map$metadata$x == 0
-#' identified_map <- def_features(map, map$metadata$particles)
+#' map$metadata$features <- map$metadata$x == 0
+#' identified_map <- def_features(map, map$metadata$features)
 #' test_collapsed <- collapse_spec(identified_map)
 #'
-#' #Character example
+#' # Character input
 #' map <- read_extdata("CA_tiny_map.zip") |> read_any()
-#' map$metadata$particles <- ifelse(map$metadata$x == 1, "particle", "not_particle")
-#' identified_map <- def_features(map, map$metadata$particles)
+#' map$metadata$features <- ifelse(map$metadata$x == 1, "particle",
+#'                                 "not_particle")
+#' identified_map <- def_features(map, map$metadata$features)
 #' test_collapsed <- collapse_spec(identified_map)
 #'
 #' @param x an \code{OpenSpecy} object
-#' @param particles a logical vector or character vector describing which of the spectra are
-#' of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
-#' represent the different particle types present in the spectra.
+#' @param features a logical vector or character vector describing which of the
+#' spectra are of features (\code{TRUE}) and which are not (\code{FALSE}).
+#' If a character vector is provided, it should represent the different feature
+#' types present in the spectra.
 #' @param \ldots additional arguments passed to subfunctions.
 #'
 #' @author
@@ -53,15 +59,14 @@ collapse_spec.default <- function(x, ...) {
 #'
 #' @export
 collapse_spec.OpenSpecy <- function(x, ...) {
-
-  # Calculate the median spectra for each unique particle_id
+  # Calculate the median spectra for each unique feature_id
   ts <- transpose(x$spectra)
-  ts$id <- x$metadata$particle_id
+  ts$id <- x$metadata$feature_id
   x$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
     transpose(make.names = "id")
 
   x$metadata <- x$metadata |>
-    unique(by = c("particle_id", "area", "feret_max", "centroid_y",
+    unique(by = c("feature_id", "area", "feret_max", "centroid_y",
                   "centroid_x"))
 
   return(x)
@@ -86,33 +91,32 @@ def_features.default <- function(x, ...) {
 #' @importFrom imager label as.cimg
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
-def_features.OpenSpecy <- function(x, particles, ...) {
-  if(is.logical(particles)) {
-    if(all(particles) | all(!particles)){
-      stop("features cannot be all TRUE or all FALSE values because that ",
-           "would indicate that there are no distinct features")
-    }
-    particles_df <- .def_features(x, particles)
-  } else if(is.character(particles)) {
-    if(length(unique(particles)) == 1) {
+def_features.OpenSpecy <- function(x, features, ...) {
+  if(is.logical(features)) {
+    if(all(features) | all(!features))
+      stop("features cannot be all TRUE or FALSE because that would indicate ",
+           "that there are no distinct features", call. = F)
+
+    features_df <- .def_features(x, features)
+  } else if(is.character(features)) {
+    if(length(unique(features)) == 1)
       stop("features cannot all have a single name because that would ",
-           "indicate that there are no distinct features.")
-    }
-    particles_df <- rbindlist(lapply(unique(particles), function(y) {
-      logical_particles <- particles == y
-      .def_features(x, logical_particles)
-    }))
+           "indicate that there are no distinct features", call. = F)
+
+    features_df <- rbindlist(lapply(unique(features),
+                                    function(y) .def_features(x, features == y))
+    )
   } else {
-    stop("features needs to be a character or logical vector.", call. = F)
+    stop("features needs to be a character or logical vector", call. = F)
   }
 
   obj <- x
-  x <- y <- centroid_x <- centroid_y <- particle_id <- NULL # work around for
+  x <- y <- centroid_x <- centroid_y <- feature_id <- NULL # work around for
   # data.table non-standard evaluation
-  md <- particles_df[setDT(obj$metadata), on = c("x", "y")]
-  md[, particle_id := ifelse(is.na(particle_id), "-88", particle_id)]
-  md[, centroid_x := mean(x), by = "particle_id"]
-  md[, centroid_y := mean(y), by = "particle_id"]
+  md <- features_df[setDT(obj$metadata), on = c("x", "y")]
+  md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
+  md[, centroid_x := mean(x), by = "feature_id"]
+  md[, centroid_y := mean(y), by = "feature_id"]
 
   obj$metadata <- md
 
@@ -127,16 +131,18 @@ def_features.OpenSpecy <- function(x, particles, ...) {
   labeled_image <- imager::label(imager::as.cimg(binary_matrix),
                                  high_connectivity = T)
 
-  # Create a dataframe with particle IDs for each true pixel
-  particle_points_dt <- data.table(x = x$metadata$x,
-                                   y = x$metadata$y,
-                                   particle_id = as.character(as.vector(t(ifelse(binary_matrix, labeled_image, -88)))))
+  # Create a dataframe with feature IDs for each true pixel
+  feature_points_dt <- data.table(x = x$metadata$x,
+                                  y = x$metadata$y,
+                                  feature_id = ifelse(binary_matrix,
+                                                      labeled_image, -88) |>
+                                    t() |> as.vector() |> as.character())
 
   # Apply the logic to clean components
   cleaned_components <- ifelse(binary_matrix, labeled_image, -88)
 
-  # Calculate the convex hull for each particle
-  # Calculate the convex hull for each particle
+  # Calculate the convex hull for each feature
+  # Calculate the convex hull for each feature
   convex_hulls <- lapply(
     split(
       as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
@@ -145,8 +151,8 @@ def_features.OpenSpecy <- function(x, particles, ...) {
     function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
     })
 
-  # Calculate area, Feret max, and particle IDs for each particle
-  particles_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
+  # Calculate area, Feret max, and feature IDs for each feature
+  features_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
     hull <- convex_hulls[[i]]
     id <- names(convex_hulls)[i]
 
@@ -157,13 +163,13 @@ def_features.OpenSpecy <- function(x, particles, ...) {
     # Area
     area <- sum(cleaned_components == as.integer(id))
 
-    data.table(particle_id = id, area = area, feret_max = feret_max)
+    data.table(feature_id = id, area = area, feret_max = feret_max)
   }), fill = T)
 
   # Join with the coordinates from the binary image
   if (!is.null(name)) {
-    particles_dt$particle_id <- paste0(name, "_", particles_dt$particle_id)
+    features_dt$feature_id <- paste0(name, "_", features_dt$feature_id)
   }
 
-  particle_points_dt[particles_dt, on = "particle_id"]
+  feature_points_dt[features_dt, on = "feature_id"]
 }

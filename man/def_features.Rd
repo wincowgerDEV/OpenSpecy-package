@@ -19,41 +19,47 @@ def_features(x, ...)
 
 \method{def_features}{default}(x, ...)
 
-\method{def_features}{OpenSpecy}(x, particles, ...)
+\method{def_features}{OpenSpecy}(x, features, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object}
 
-\item{particles}{a logical vector or character vector describing which of the spectra are
-of particles (TRUE) and which are not (FALSE). If a character vector is provided, it should
-represent the different particle types present in the spectra.}
+\item{features}{a logical vector or character vector describing which of the
+spectra are of features (\code{TRUE}) and which are not (\code{FALSE}).
+If a character vector is provided, it should represent the different feature
+types present in the spectra.}
 
 \item{\ldots}{additional arguments passed to subfunctions.}
 }
 \value{
-An Open Specy object appended metadata about the particles or collapsed for the particles.
+An \code{OpenSpecy} object appended with metadata about the features or
+collapsed for the features.
 }
 \description{
 Functions for analyzing features, like particles, fragments, or fibers, in
 spectral map oriented \code{OpenSpecy} object.
 }
 \details{
-`def_features()` accepts an \code{OpenSpecy} object and a logical or character vector describing which pixels correspond to particles.
-`collapse_spec()` takes an \code{OpenSpecy} object with particle-specific metadata
-(from `def_features()`) and collapses the spectra to median intensities for each unique particle.
-It also updates the metadata with centroid coordinates, while preserving the particle information on area and Feret max.
+`def_features()` accepts an \code{OpenSpecy} object and a logical or
+character vector describing which pixels correspond to particles.
+`collapse_spec()` takes an \code{OpenSpecy} object with particle-specific
+metadata (from `def_features()`) and collapses the spectra to median
+intensities for each unique particle.
+It also updates the metadata with centroid coordinates, while preserving the
+feature information on area and Feret max.
 }
 \examples{
-#Logical example
+# Logical input
 map <- read_extdata("CA_tiny_map.zip") |> read_any()
-map$metadata$particles <- map$metadata$x == 0
-identified_map <- def_features(map, map$metadata$particles)
+map$metadata$features <- map$metadata$x == 0
+identified_map <- def_features(map, map$metadata$features)
 test_collapsed <- collapse_spec(identified_map)
 
-#Character example
+# Character input
 map <- read_extdata("CA_tiny_map.zip") |> read_any()
-map$metadata$particles <- ifelse(map$metadata$x == 1, "particle", "not_particle")
-identified_map <- def_features(map, map$metadata$particles)
+map$metadata$features <- ifelse(map$metadata$x == 1, "particle",
+                                "not_particle")
+identified_map <- def_features(map, map$metadata$features)
 test_collapsed <- collapse_spec(identified_map)
 
 }
