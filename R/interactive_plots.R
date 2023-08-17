@@ -26,8 +26,6 @@
 #' will be excluded.
 #' @param select optional index of the selected spectrum to highlight on the
 #' heatmap.
-#' @param select2 an optional second index of the selected spectrum to highlight
-#' on the heatmap.
 #' @param line list; \code{line} parameter for \code{x}; passed to
 #' \code{\link[plotly]{add_trace}()}.
 #' @param line2 list; \code{line} parameter for \code{x2}; passed to
@@ -208,7 +206,7 @@ interactive_plot.default <- function(x, ...) {
 #' @rdname interactive_plots
 #'
 #' @export
-interactive_plot.OpenSpecy <- function(x, select, x2 = NULL, select2 = NULL,
+interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                                        line = list(color = 'rgb(255, 255, 255)'),
                                        line2 = list(dash = "dash",
                                                     color = 'rgb(125,249,255)'),
@@ -225,7 +223,7 @@ interactive_plot.OpenSpecy <- function(x, select, x2 = NULL, select2 = NULL,
                            colorscale = colorscale)
 
   # Generate the spectral plot
-  spectra_plot <- plotly_spec(x, x2 = x2, select = select, select2 = select2,
+  spectra_plot <- plotly_spec(x, x2 = x2,
                               line = line, line2 = line2, font = font,
                               plot_bgcolor = plot_bgcolor,
                               paper_bgcolor = paper_bgcolor)

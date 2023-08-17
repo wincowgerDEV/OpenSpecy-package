@@ -52,9 +52,8 @@ interactive_plot(x, ...)
 
 \method{interactive_plot}{OpenSpecy}(
   x,
-  select,
   x2 = NULL,
-  select2 = NULL,
+  select = NULL,
   line = list(color = "rgb(255, 255, 255)"),
   line2 = list(dash = "dash", color = "rgb(125,249,255)"),
   line_select = list(color = "red"),
@@ -108,9 +107,6 @@ will be excluded.}
 heatmap.}
 
 \item{colorscale}{colorscale passed to \code{\link[plotly]{add_trace}()}.}
-
-\item{select2}{an optional second index of the selected spectrum to highlight
-on the heatmap.}
 
 \item{line_select}{list; \code{line}; parameter for \code{select}; passed to
 \code{\link[plotly]{add_trace}()}.}
