@@ -1,5 +1,4 @@
 #' @rdname manage_lib
-#'
 #' @title Manage spectral libraries
 #'
 #' @description
