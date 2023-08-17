@@ -63,7 +63,7 @@ test_that("Raman batch analysis with complete library", {
   expect_silent(test_sn <- signal_noise(batch3, metric = "run_signal_over_noise"))
 
   expect_silent(heatmap_spec(batch3, sn = test_sn, cor = test_max_cor,
-                             min_sn = 4, min_cor = 0.7, selected_spectrum = 2,
+                             min_sn = 4, min_cor = 0.7, select = 2,
                              source = "heatplot"))
 })
 

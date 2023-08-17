@@ -60,27 +60,18 @@ signal_noise.OpenSpecy <- function(x, metric = "signal_over_noise",
       signal <- max(max, na.rm = T)#/mean(x, na.rm = T)
       noise <- median(max[max != 0], na.rm = T)
     }
-    else{
+    else {
       signal = mean(y, na.rm = na.rm)
       noise = sd(y, na.rm = na.rm)
     }
-    if(metric == "signal"){
-      return(signal)
-    }
-    if(metric == "noise"){
-      return(noise)
-    }
-    if(metric == "signal_times_noise"){
-      return(abs(signal*noise))
-    }
-    if(metric %in% c("signal_over_noise", "run_signal_over_noise")){
+
+    if(metric == "signal") return(signal)
+    if(metric == "noise") return(noise)
+    if(metric == "signal_times_noise") return(abs(signal*noise))
+
+    if(metric %in% c("signal_over_noise", "run_signal_over_noise"))
       return(abs(signal/noise))
-    }
-    if(metric == "total_signal"){
-      return(sum(y))
-    }
-    if(metric == "log_total_signal"){
-      return(sum(exp(y)))
-    }
+    if(metric == "total_signal") return(sum(y))
+    if(metric == "log_total_signal") return(sum(exp(y)))
   }, FUN.VALUE = numeric(1))
 }

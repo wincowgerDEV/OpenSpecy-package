@@ -10,13 +10,22 @@
 \alias{interactive_plot}
 \alias{interactive_plot.default}
 \alias{interactive_plot.OpenSpecy}
-\title{Plots for Open Specy objects}
+\title{Interactive plots for OpenSpecy objects}
 \usage{
 plotly_spec(x, ...)
 
 \method{plotly_spec}{default}(x, ...)
 
-\method{plotly_spec}{OpenSpecy}(x, x2 = NULL, ...)
+\method{plotly_spec}{OpenSpecy}(
+  x,
+  x2 = NULL,
+  line = list(color = "rgb(255, 255, 255)"),
+  line2 = list(dash = "dash", color = "rgb(125,249,255)"),
+  font = list(color = "#FFFFFF"),
+  plot_bgcolor = "rgb(17, 0, 73)",
+  paper_bgcolor = "rgb(0, 0, 0)",
+  ...
+)
 
 heatmap_spec(x, ...)
 
@@ -29,7 +38,11 @@ heatmap_spec(x, ...)
   cor = NULL,
   min_sn = NULL,
   min_cor = NULL,
-  selected_spectrum = NULL,
+  select = NULL,
+  font = list(color = "#FFFFFF"),
+  plot_bgcolor = "rgba(17, 0, 73, 0)",
+  paper_bgcolor = "rgb(0, 0, 0)",
+  colorscale = "Viridis",
   ...
 )
 
@@ -39,42 +52,83 @@ interactive_plot(x, ...)
 
 \method{interactive_plot}{OpenSpecy}(
   x,
-  selected_spectrum,
+  select,
   x2 = NULL,
-  selected_spectrum2 = NULL,
+  select2 = NULL,
+  line = list(color = "rgb(255, 255, 255)"),
+  line2 = list(dash = "dash", color = "rgb(125,249,255)"),
+  line_select = list(color = "red"),
+  font = list(color = "#FFFFFF"),
+  plot_bgcolor = "rgba(17, 0, 73, 0)",
+  paper_bgcolor = "rgb(0, 0, 0)",
+  colorscale = "Viridis",
   ...
 )
 }
 \arguments{
-\item{x}{An \code{OpenSpecy} object containing metadata and spectral data for the first group.}
+\item{x}{an \code{OpenSpecy} object containing metadata and spectral data for
+the first group.}
 
-\item{x2}{An optional second \code{OpenSpecy} object containing metadata and spectral data for the second group.}
+\item{x2}{an optional second \code{OpenSpecy} object containing metadata and
+spectral data for the second group.}
 
-\item{z}{Optional numeric vector specifying the intensity values for the heatmap. If not provided, the function will use the intensity values from the \code{OpenSpecy} object.}
+\item{line}{list; \code{line} parameter for \code{x}; passed to
+\code{\link[plotly]{add_trace}()}.}
 
-\item{sn}{Optional numeric value specifying the signal-to-noise ratio threshold. If provided along with \code{min_sn}, regions with SNR below the threshold will be excluded from the heatmap.}
+\item{line2}{list; \code{line} parameter for \code{x2}; passed to
+\code{\link[plotly]{add_trace}()}.}
 
-\item{cor}{Optional numeric value specifying the correlation threshold. If provided along with \code{min_cor}, regions with correlation below the threshold will be excluded from the heatmap.}
+\item{font}{list; passed to \code{\link[plotly]{layout}()}.}
 
-\item{min_sn}{Optional numeric value specifying the minimum signal-to-noise ratio for inclusion in the heatmap. Regions with SNR below this threshold will be excluded.}
+\item{plot_bgcolor}{color value; passed to \code{\link[plotly]{layout}()}.}
 
-\item{min_cor}{Optional numeric value specifying the minimum correlation for inclusion in the heatmap. Regions with correlation below this threshold will be excluded.}
+\item{paper_bgcolor}{color value; passed to \code{\link[plotly]{layout}()}.}
 
-\item{selected_spectrum}{Optional index of the selected spectrum to highlight on the heatmap.}
+\item{z}{optional numeric vector specifying the intensity values for the
+heatmap. If not provided, the function will use the intensity values from the
+\code{OpenSpecy} object.}
 
-\item{selected_spectrum2}{an optional second index of the selected spectrum to highlight on the heatmap.}
+\item{sn}{optional numeric value specifying the signal-to-noise ratio
+threshold. If provided along with \code{min_sn}, regions with SNR below the
+threshold will be excluded from the heatmap.}
 
-\item{\ldots}{further arguments passed to subfunctions.}
+\item{cor}{optional numeric value specifying the correlation threshold. If
+provided along with \code{min_cor}, regions with correlation below the
+threshold will be excluded from the heatmap.}
+
+\item{min_sn}{optional numeric value specifying the minimum signal-to-noise
+ratio for inclusion in the heatmap. Regions with SNR below this threshold
+will be excluded.}
+
+\item{min_cor}{optional numeric value specifying the minimum correlation for
+inclusion in the heatmap. Regions with correlation below this threshold
+will be excluded.}
+
+\item{select}{optional index of the selected spectrum to highlight on the
+heatmap.}
+
+\item{colorscale}{colorscale passed to \code{\link[plotly]{add_trace}()}.}
+
+\item{select2}{an optional second index of the selected spectrum to highlight
+on the heatmap.}
+
+\item{line_select}{list; \code{line}; parameter for \code{select}; passed to
+\code{\link[plotly]{add_trace}()}.}
+
+\item{\ldots}{further arguments passed to \code{\link[plotly]{plot_ly}()}.}
 }
 \value{
-A plotly heatmap object displaying the OpenSpecy data. A subplot containing the heatmap and spectra plot. A plotly object displaying the spectra from the \code{OpenSpecy} object(s).
+A plotly heatmap object displaying the OpenSpecy data. A subplot
+containing the heatmap and spectra plot. A plotly object displaying the
+spectra from the \code{OpenSpecy} object(s).
 }
 \description{
-These functions generate heatmaps, spectral plots, and interactive plots for OpenSpecy data.
+These functions generate heatmaps, spectral plots, and interactive plots for
+OpenSpecy data.
 }
 \examples{
 data("raman_hdpe")
-tiny_map <- read_zip(read_extdata("CA_tiny_map.zip"))
+tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
 plotly_spec(raman_hdpe)
 
 correlation <- cor_spec(
@@ -84,7 +138,7 @@ correlation <- cor_spec(
 heatmap_spec(tiny_map, z = tiny_map$metadata$y)
 
 sample_spec(tiny_map, size = 12) |>
-  interactive_plot(selected_spectrum = 2, x2 = raman_hdpe)
+  interactive_plot(select = 2, x2 = raman_hdpe)
 
 }
 \author{
