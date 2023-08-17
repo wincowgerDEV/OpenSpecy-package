@@ -47,34 +47,47 @@ filter_spec(x, ...)
 \arguments{
 \item{x}{an \code{OpenSpecy} object, typically with unknowns.}
 
-\item{library}{An \code{OpenSpecy} object representing the library of spectra to correlate with.}
+\item{library}{sn \code{OpenSpecy} object representing the reference library
+of spectra to correlate with.}
 
-\item{na.rm}{Logical value indicating whether missing values should be removed when calculating correlations. Default is \code{TRUE}.}
+\item{na.rm}{logical; indicating whether missing values should be removed
+when calculating correlations. Default is \code{TRUE}.}
 
-\item{cor_matrix}{A correlation matrix for object and library, can be returned by \code{cor_spec()}}
+\item{cor_matrix}{a correlation matrix for object and library,
+can be returned by \code{cor_spec()}}
 
-\item{top_n}{Integer value specifying the number of top matches to return. If NULL (default), all matches will be returned.}
+\item{top_n}{integer; specifying the number of top matches to return.
+If \code{NULL} (default), all matches will be returned.}
 
-\item{add_library_metadata}{Name of the column in the library metadata containing the column names or NULL if you don't want to join.}
+\item{add_library_metadata}{name of a column in the library metadata to be
+joined; \code{NULL} if you don't want to join.}
 
-\item{add_object_metadata}{Name of the column in the object metadata containing the column names or NULL if you don't want to join.}
+\item{add_object_metadata}{name of a column in the object metadata to be
+joined; \code{NULL} if you don't want to join.}
 
-\item{logic}{a logical or numeric vector describing which spectra to keep (TRUE).}
+\item{logic}{a logical or numeric vector describing which spectra to keep.}
 
-\item{rm_empty}{Whether to remove empty columns in the metadata where there are no values.}
+\item{rm_empty}{logical; whether to remove empty columns in the metadata.}
 
-\item{\ldots}{Additional arguments passed to the \code{cor()} function for correlation calculation.}
+\item{\ldots}{additional arguments passed \code{\link[stats]{cor}()}.}
 }
 \value{
-A data table containing correlations between spectra and the library.
-The table has three columns: \code{object_id}, \code{library_id}, and \code{match_val}.
-Each row represents a unique pairwise correlation between a spectrum in the object and a spectrum in the library.
-If \code{top_n} is specified, only the top \code{top_n} matches for each object spectrum will be returned.
-If \code{add_library_metadata} is \code{is.character}, the library metadata will be added to the output.
-If \code{add_object_metadata} is \code{is.character}, the object metadata will be added to the output.
+A \code{\link[data.table]{data.table-class}()} containing correlations
+between spectra and the library.
+The table has three columns: \code{object_id}, \code{library_id}, and
+\code{match_val}.
+Each row represents a unique pairwise correlation between a spectrum in the
+object and a spectrum in the library.
+If \code{top_n} is specified, only the top \code{top_n} matches for each
+object spectrum will be returned.
+If \code{add_library_metadata} is \code{is.character}, the library metadata
+will be added to the output.
+If \code{add_object_metadata} is \code{is.character}, the object metadata
+will be added to the output.
 }
 \description{
-This function correlates two \code{OpenSpecy} objects, typically one with knowns and one with unknowns.
+\code{cor_spec()} correlate two \code{OpenSpecy} objects, typically one with
+knowns and one with unknowns.
 }
 \examples{
 data("test_lib")

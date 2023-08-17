@@ -1,28 +1,40 @@
 #' @rdname match_spec
-#' @title
-#' Identify and filter spectra
+#' @title Identify and filter spectra
 #'
 #' @description
-#' This function correlates two \code{OpenSpecy} objects, typically one with knowns and one with unknowns.
+#' \code{cor_spec()} correlate two \code{OpenSpecy} objects, typically one with
+#' knowns and one with unknowns.
 #'
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
-#' @param library An \code{OpenSpecy} object representing the library of spectra to correlate with.
-#' @param na.rm Logical value indicating whether missing values should be removed when calculating correlations. Default is \code{TRUE}.
-#' @param top_n Integer value specifying the number of top matches to return. If NULL (default), all matches will be returned.
-#' @param cor_matrix A correlation matrix for object and library, can be returned by \code{cor_spec()}
-#' @param add_library_metadata Name of the column in the library metadata containing the column names or NULL if you don't want to join.
-#' @param add_object_metadata Name of the column in the object metadata containing the column names or NULL if you don't want to join.
-#' @param rm_empty Whether to remove empty columns in the metadata where there are no values.
-#' @param logic a logical or numeric vector describing which spectra to keep (TRUE).
-#' @param \ldots Additional arguments passed to the \code{cor()} function for correlation calculation.
+#' @param library sn \code{OpenSpecy} object representing the reference library
+#' of spectra to correlate with.
+#' @param na.rm logical; indicating whether missing values should be removed
+#' when calculating correlations. Default is \code{TRUE}.
+#' @param top_n integer; specifying the number of top matches to return.
+#' If \code{NULL} (default), all matches will be returned.
+#' @param cor_matrix a correlation matrix for object and library,
+#' can be returned by \code{cor_spec()}
+#' @param add_library_metadata name of a column in the library metadata to be
+#' joined; \code{NULL} if you don't want to join.
+#' @param add_object_metadata name of a column in the object metadata to be
+#' joined; \code{NULL} if you don't want to join.
+#' @param rm_empty logical; whether to remove empty columns in the metadata.
+#' @param logic a logical or numeric vector describing which spectra to keep.
+#' @param \ldots additional arguments passed \code{\link[stats]{cor}()}.
 #'
 #' @return
-#' A data table containing correlations between spectra and the library.
-#' The table has three columns: \code{object_id}, \code{library_id}, and \code{match_val}.
-#' Each row represents a unique pairwise correlation between a spectrum in the object and a spectrum in the library.
-#' If \code{top_n} is specified, only the top \code{top_n} matches for each object spectrum will be returned.
-#' If \code{add_library_metadata} is \code{is.character}, the library metadata will be added to the output.
-#' If \code{add_object_metadata} is \code{is.character}, the object metadata will be added to the output.
+#' A \code{\link[data.table]{data.table-class}()} containing correlations
+#' between spectra and the library.
+#' The table has three columns: \code{object_id}, \code{library_id}, and
+#' \code{match_val}.
+#' Each row represents a unique pairwise correlation between a spectrum in the
+#' object and a spectrum in the library.
+#' If \code{top_n} is specified, only the top \code{top_n} matches for each
+#' object spectrum will be returned.
+#' If \code{add_library_metadata} is \code{is.character}, the library metadata
+#' will be added to the output.
+#' If \code{add_object_metadata} is \code{is.character}, the object metadata
+#' will be added to the output.
 #'
 #' @examples
 #' data("test_lib")
@@ -66,12 +78,21 @@ cor_spec.default <- function(x, ...) {
 #'
 #' @export
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
-  if(sum(x$wavenumber %in% library$wavenumber) < 3){
-    stop("there are less than 3 matching wavenumbers in the objects you are trying to correlate, this won't work for correlation analysis. Consider first conforming the spectra to the same wavenumbers", call. = F)
-  }
-  cor(library$spectra[library$wavenumber %in% x$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
-      x$spectra[x$wavenumber %in% library$wavenumber,][,lapply(.SD, make_rel, na.rm = na.rm)][,lapply(.SD, mean_replace)],
-      ...)
+  if(sum(x$wavenumber %in% library$wavenumber) < 3)
+    stop("there are less than 3 matching wavenumbers in the objects you are ",
+         "trying to correlate; this won't work for correlation analysis. ",
+         "Consider first conforming the spectra to the same wavenumbers.",
+         call. = F)
+
+  lib <- library$spectra[library$wavenumber %in% x$wavenumber, ]
+  lib <- lib[, lapply(.SD, make_rel, na.rm = na.rm)]
+  lib <- lib[, lapply(.SD, mean_replace)]
+
+  spec <- x$spectra[x$wavenumber %in% library$wavenumber,]
+  spec <- spec[,lapply(.SD, make_rel, na.rm = na.rm)]
+  spec <- spec[,lapply(.SD, mean_replace)]
+
+  cor(lib, spec, ...)
 }
 
 #' @rdname match_spec
@@ -82,7 +103,8 @@ ident_spec <- function(cor_matrix, x, library, top_n = NULL,
                        add_object_metadata = NULL, ...){
   if(is.numeric(top_n) && top_n > ncol(library$spectra)){
     top_n = NULL
-    message("'top_n' was larger than the number of spectra in the library; returning all matches")
+    message("'top_n' was larger than the number of spectra in the library; ",
+            "returning all matches")
   }
 
   out <- data.table(object_id = colnames(x$spectra),
@@ -141,7 +163,8 @@ max_cor_named <- function(cor_matrix, na.rm = T) {
   max_cor_indices <- apply(cor_matrix, 2, function(x) which.max(x))
 
   # Use indices to get max correlation values
-  max_cor_values <- vapply(1:length(max_cor_indices), function(idx) cor_matrix[max_cor_indices[idx],idx], FUN.VALUE = numeric(1))
+  max_cor_values <- vapply(1:length(max_cor_indices), function(idx) {
+    cor_matrix[max_cor_indices[idx],idx]}, FUN.VALUE = numeric(1))
 
   # Use indices to get the corresponding names
   names(max_cor_values) <- rownames(cor_matrix)[max_cor_indices]

@@ -80,14 +80,19 @@ adj_neg <- function(y, na.rm = FALSE) {
 #'
 #' @export
 make_rel <- function(y, na.rm = FALSE) {
-  (y - min(y, na.rm = na.rm)) / (max(y, na.rm = na.rm) - min(y, na.rm = na.rm))
+  r <- range(y, na.rm = na.rm)
+
+  (y - r[1]) / (r[2] - r[1])
 }
 
 #' @rdname data_norm
+#' @importFrom data.table fifelse
 #'
 #' @export
-mean_replace <- function(y, na.rm = TRUE){
-  fifelse(is.na(y), mean(y, na.rm = na.rm), y)
+mean_replace <- function(y, na.rm = TRUE) {
+  m <- mean(y, na.rm = na.rm)
+
+  fifelse(is.na(y), m, y)
 }
 
 #' @rdname data_norm
