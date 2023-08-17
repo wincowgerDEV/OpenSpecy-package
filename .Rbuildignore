@@ -13,3 +13,4 @@ droptoken.rds
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+^codecov\.yml$
