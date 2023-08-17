@@ -13,20 +13,20 @@ restrict_range(x, ...)
 
 \method{restrict_range}{default}(x, ...)
 
-\method{restrict_range}{OpenSpecy}(x, min_range, max_range, make_rel = TRUE, ...)
+\method{restrict_range}{OpenSpecy}(x, min, max, make_rel = TRUE, ...)
 
 flatten_range(x, ...)
 
 \method{flatten_range}{default}(x, ...)
 
-\method{flatten_range}{OpenSpecy}(x, min_range, max_range, make_rel = TRUE, ...)
+\method{flatten_range}{OpenSpecy}(x, min, max, make_rel = TRUE, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
 
-\item{min_range}{a vector of minimum values for the range to be flattened.}
+\item{min}{a vector of minimum values for the range to be flattened.}
 
-\item{max_range}{a vector of maximum values for the range to be flattened.}
+\item{max}{a vector of maximum values for the range to be flattened.}
 
 \item{make_rel}{logical; should the output intensities be normalized to the
 range [0, 1] using make_rel() function?}
@@ -52,10 +52,10 @@ test_noise <- as_OpenSpecy(x = seq(400,4000, by = 10),
                            spectra = data.frame(intensity = rnorm(361)))
 plot(test_noise)
 
-restrict_range(test_noise, min_range = 1000, max_range = 2000)
+restrict_range(test_noise, min = 1000, max = 2000)
 
-flattened_intensities <- flatten_range(test_noise, min_range = c(1000, 2000),
-                                       max_range = c(1500, 2500))
+flattened_intensities <- flatten_range(test_noise, min = c(1000, 2000),
+                                       max = c(1500, 2500))
 plot(flattened_intensities)
 
 }

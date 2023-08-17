@@ -23,7 +23,7 @@ test_that("Raman batch analysis with test library", {
 
   expect_silent(test_sn2 <- signal_noise(batch2,
                                          metric = "run_signal_over_noise"))
-  expect_silent(batch3 <- process_spec(batch2, baseline_decision = T,
+  expect_silent(batch3 <- process_spec(batch2, subtr_baseline = T,
                                        derivative_decision = F))
   expect_silent(plotly_spec(x = batch3, x2 = batch))
 
@@ -55,8 +55,7 @@ test_that("Raman batch analysis with complete library", {
 
   expect_silent(test_sn2 <- signal_noise(batch2,
                                          metric = "run_signal_over_noise"))
-  expect_silent(batch3 <- process_spec(batch2, baseline_decision = T,
-                                       derivative_decision = F))
+  expect_silent(batch3 <- process_spec(batch2, subtr_baseline = T))
   expect_silent(plotly_spec(x = batch3, x2 = batch))
 
   expect_silent(matches <- cor_spec(batch3, library = lib))

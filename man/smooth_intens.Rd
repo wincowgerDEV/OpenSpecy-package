@@ -10,17 +10,26 @@ smooth_intens(x, ...)
 
 \method{smooth_intens}{default}(x, ...)
 
-\method{smooth_intens}{OpenSpecy}(x, p = 3, n = 11, m = 0, abs = FALSE, make_rel = TRUE, ...)
+\method{smooth_intens}{OpenSpecy}(
+  x,
+  polynomial = 3,
+  window = 11,
+  derivative = 0,
+  abs = FALSE,
+  make_rel = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{an object of class \code{OpenSpecy}.}
 
-\item{p}{polynomial order for the filter}
+\item{polynomial}{polynomial order for the filter}
 
-\item{n}{number of data points in the window, filter length (must be odd).}
+\item{window}{number of data points in the window, filter length (must be
+odd).}
 
-\item{m}{the derivative order if you want to calculate the derivative. Zero
-(default) is no derivative.}
+\item{derivative}{the derivative order if you want to calculate the
+derivative. Zero (default) is no derivative.}
 
 \item{abs}{logical; whether you want to calculate the absolute value of the
 resulting output.}

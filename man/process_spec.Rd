@@ -15,32 +15,21 @@ process_spec(x, ...)
 
 \method{process_spec}{OpenSpecy}(
   x,
-  active_processing = T,
-  adj_intensity_decision = F,
-  type = "none",
-  conform_decision = T,
-  new_wavenumbers = NULL,
-  res = 5,
-  range_decision = F,
-  min_range = 0,
-  max_range = 6000,
-  flatten_decision = F,
-  flatten_min = 2200,
-  flatten_max = 2420,
-  smooth_decision = F,
-  smooth_polynomial = 3,
-  smooth_window = 11,
-  baseline_decision = F,
-  baseline_selection = "polynomial",
-  raw_baseline = F,
-  baseline_polynomial = 8,
-  baseline_wavenumber = NULL,
-  baseline_intensity = NULL,
-  derivative_decision = T,
-  derivative_order = 1,
-  derivative_polynomial = 3,
-  abs = T,
-  derivative_window = 11,
+  active = TRUE,
+  adj_intens = FALSE,
+  adj_intens_args = list(type = "none"),
+  conform_spec = TRUE,
+  conform_spec_args = list(range = NULL, res = 5),
+  restrict_range = FALSE,
+  restrict_range_args = list(min = 0, max = 6000),
+  flatten_range = FALSE,
+  flatten_range_args = list(min = 2200, max = 2420),
+  subtr_baseline = FALSE,
+  subtr_baseline_args = list(type = "polynomial", degree = 8, raw = FALSE,
+    baseline_wavenumber = NULL, baseline_intensity = NULL),
+  smooth_intens = FALSE,
+  smooth_intens_args = list(polynomial = 3, window = 11, derivative = 0, abs = T),
+  make_rel = F,
   ...
 )
 
@@ -51,71 +40,56 @@ sample_spec(x, ...)
 \method{sample_spec}{OpenSpecy}(x, ...)
 }
 \arguments{
-\item{x}{An \code{OpenSpecy} object containing metadata and spectral data.}
+\item{x}{an \code{OpenSpecy} object.}
 
-\item{active_processing}{Logical value indicating whether to perform preprocessing. If \code{TRUE}, the preprocessing steps will be applied. If \code{FALSE}, the original data will be returned.}
+\item{active}{logical; indicating whether to perform preprocessing.
+If \code{TRUE}, the preprocessing steps will be applied.
+If \code{FALSE}, the original data will be returned.}
 
-\item{adj_intensity_decision}{A Logical describing whether to adjust the intensity units.}
+\item{adj_intens}{logical; describing whether to adjust the intensity units.}
 
-\item{type}{Type of intensity adjustment to use. Can be one of "none", "transmittance", or "reflectance".}
+\item{adj_intens_args}{named list of arguments passed to
+\code{\link{smooth_intens}()}.}
 
-\item{conform_decision}{Whether to conform the spectra to a new wavenumber range and resolution.}
+\item{conform_spec}{Whether to conform the spectra to a new wavenumber range and resolution.}
 
-\item{new_wavenumbers}{A new range to conform to, will use the min and max of all values.}
+\item{conform_spec_args}{named list of arguments passed to
+\code{\link{conform_spec}()}.}
 
-\item{res}{The resoltion for the conforming the spectra.}
+\item{restrict_range}{Logical value indicating whether to restrict the wavenumber range of the spectra.}
 
-\item{range_decision}{Logical value indicating whether to restrict the wavenumber range of the spectra.}
+\item{restrict_range_args}{named list of arguments passed to
+\code{\link{restrict_range}()}.}
 
-\item{min_range}{Numeric value specifying the minimum wavenumber for range restriction.}
+\item{flatten_range}{Logical value indicating whether to flatten the range around the carbon dioxide region.}
 
-\item{max_range}{Numeric value specifying the maximum wavenumber for range restriction.}
+\item{flatten_range_args}{named list of arguments passed to
+\code{\link{flatten_range}()}.}
 
-\item{flatten_decision}{Logical value indicating whether to flatten the range around the carbon dioxide region.}
+\item{subtr_baseline}{Logical value indicating whether to subtract the baseline from the spectra.}
 
-\item{flatten_min}{Numeric value specifying the minimum wavenumber for the carbon dioxide region.}
+\item{subtr_baseline_args}{named list of arguments passed to
+\code{\link{subtr_baseline}()}.}
 
-\item{flatten_max}{Numeric value specifying the maximum wavenumber for the carbon dioxide region.}
+\item{smooth_intens}{Logical value indicating whether to apply a smoothing filter to the spectra.}
 
-\item{smooth_decision}{Logical value indicating whether to apply a smoothing filter to the spectra.}
+\item{smooth_intens_args}{named list of arguments passed to
+\code{\link{smooth_intens}()}.}
 
-\item{smooth_polynomial}{Integer value specifying the polynomial order for smoothing.}
-
-\item{smooth_window}{Integer value specifying the window size for smoothing.}
-
-\item{baseline_decision}{Logical value indicating whether to subtract the baseline from the spectra.}
-
-\item{baseline_selection}{Character value specifying the type of baseline subtraction method. Options are "polynomial" or "manual".}
-
-\item{raw_baseline}{Logical value indicating whether to use the raw baseline values for subtraction.}
-
-\item{baseline_polynomial}{Integer value specifying the polynomial order for baseline subtraction.}
-
-\item{baseline_wavenumber}{Numeric vector of wavenumbers used for baseline fitting.}
-
-\item{baseline_intensity}{Numeric vector of intensities used for baseline fitting.}
-
-\item{derivative_decision}{Logical value indicating whether to apply derivative to the spectra.}
-
-\item{derivative_order}{Integer value specifying the order of the derivative.}
-
-\item{derivative_polynomial}{Integer value specifying the polynomial order for derivative calculation.}
-
-\item{abs}{Logical value indicating whether to calculate the absolute values of the derivative.}
-
-\item{derivative_window}{Integer value specifying the window size for derivative calculation.}
+\item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
+with \code{\link{make_rel}()}.}
 
 \item{\ldots}{further arguments passed to subfunctions.}
 }
 \value{
 \code{process_spec()} returns an \code{OpenSpecy} object with preprocessed
 spectra based on the specified parameters.
-\code{sample_spec()} returns an \code{OpenSpecy} object with a subset of the spectra.
+\code{sample_spec()} returns an \code{OpenSpecy} object with a subset of the
+spectra.
 }
 \description{
-Process spectra data by applying various preprocessing steps. This is a monolithic function for all common preprocessing steps in one place.
-}
-\details{
+\code{process_spec()} is a monolithic wrapper function for all spectral
+preprocessing steps.
 \code{sample_spec()} samples spectra from an \code{OpenSpecy} object.
 }
 \examples{
@@ -124,26 +98,22 @@ plot(raman_hdpe)
 
 # Process spectra with range restriction and baseline subtraction
 process_spec(raman_hdpe,
-             active_processing = TRUE,
-             range_decision = TRUE,
-             min_range = 500,
-             max_range = 3000,
-             baseline_decision = TRUE,
-             baseline_selection = "polynomial",
-             baseline_polynomial = 8,
-             derivative_decision = FALSE) |>
+             restrict_range = TRUE,
+             restrict_range_args = list(min = 500, max = 3000),
+             subtr_baseline = TRUE,
+             subtr_baseline_args = list(type = "polynomial",
+                                        polynomial = 8)) |>
   lines(col = "darkred")
 
 # Process spectra with smoothing and derivative
 process_spec(raman_hdpe,
-             active_processing = TRUE,
-             smooth_decision = TRUE,
-             smooth_polynomial = 3,
-             smooth_window = 11,
-             derivative_decision = TRUE,
-             derivative_order = 1,
-             derivative_polynomial = 3,
-             derivative_window = 11) |>
+             smooth_intens = TRUE,
+             smooth_intens_args = list(
+               polynomial = 3,
+               window = 11,
+               derivative = 1
+               )
+             ) |>
   lines(col = "darkgreen")
 
 # Sampling a spectrum

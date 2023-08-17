@@ -11,8 +11,8 @@
 #' values in order.
 #'
 #' @param x an \code{OpenSpecy} object.
-#' @param min_range a vector of minimum values for the range to be flattened.
-#' @param max_range a vector of maximum values for the range to be flattened.
+#' @param min a vector of minimum values for the range to be flattened.
+#' @param max a vector of maximum values for the range to be flattened.
 #' @param make_rel logical; should the output intensities be normalized to the
 #' range [0, 1] using make_rel() function?
 #' @param \ldots additional arguments passed to subfunctions; currently not
@@ -27,10 +27,10 @@
 #'                            spectra = data.frame(intensity = rnorm(361)))
 #' plot(test_noise)
 #'
-#' restrict_range(test_noise, min_range = 1000, max_range = 2000)
+#' restrict_range(test_noise, min = 1000, max = 2000)
 #'
-#' flattened_intensities <- flatten_range(test_noise, min_range = c(1000, 2000),
-#'                                        max_range = c(1500, 2500))
+#' flattened_intensities <- flatten_range(test_noise, min = c(1000, 2000),
+#'                                        max = c(1500, 2500))
 #' plot(flattened_intensities)
 #'
 #' @author
@@ -58,10 +58,10 @@ restrict_range.default <- function(x, ...) {
 #' @rdname adj_range
 #'
 #' @export
-restrict_range.OpenSpecy <- function(x, min_range, max_range, make_rel = TRUE,
+restrict_range.OpenSpecy <- function(x, min, max, make_rel = TRUE,
                                      ...) {
-  test <- as.data.table(lapply(1:length(min_range), function(y){
-    x$wavenumber >= min_range[y] & x$wavenumber <= max_range[y]})
+  test <- as.data.table(lapply(1:length(min), function(y){
+    x$wavenumber >= min[y] & x$wavenumber <= max[y]})
   )
 
   vals <- rowSums(test) > 0
@@ -90,29 +90,29 @@ flatten_range.default <- function(x, ...) {
 #' @rdname adj_range
 #'
 #' @export
-flatten_range.OpenSpecy <- function(x, min_range, max_range, make_rel = TRUE,
+flatten_range.OpenSpecy <- function(x, min, max, make_rel = TRUE,
                                     ...) {
-  if(length(min_range) != length(max_range)) {
-    stop("min_range and max_range need to be the same length", call. = F)
+  if(length(min) != length(max)) {
+    stop("min and max need to be the same length", call. = F)
   }
-  if(any(vapply(1:length(min_range), function(y) {
-    min_range[y] > max_range[y]
+  if(any(vapply(1:length(min), function(y) {
+    min[y] > max[y]
   }, FUN.VALUE = logical(1)))) {
-    stop("all min_range values must be lower than corresponding max_range", call. = F)
+    stop("all min values must be lower than corresponding max", call. = F)
   }
   flat <- x$spectra[, lapply(.SD, .flatten_range, x = x$wavenumber,
-                             min_range = min_range, max_range = max_range)]
+                             min = min, max = max)]
 
   if (make_rel) x$spectra <- flat[, lapply(.SD, make_rel)] else x$spectra <- flat
 
   return(x)
 }
 
-.flatten_range <- function(y, x, min_range, max_range) {
-  for(i in 1:length(min_range)) {
-    y[x >= min_range[i] & x <= max_range[i]] <-
-      mean(c(y[min(which(x >= min_range[i]))],
-             y[max(which(x <= max_range[i]))]))
+.flatten_range <- function(y, x, min, max) {
+  for(i in 1:length(min)) {
+    y[x >= min[i] & x <= max[i]] <-
+      mean(c(y[min(which(x >= min[i]))],
+             y[max(which(x <= max[i]))]))
   }
 
   return(y)

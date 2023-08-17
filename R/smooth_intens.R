@@ -13,10 +13,11 @@
 #' 4th order polynomial.
 #'
 #' @param x an object of class \code{OpenSpecy}.
-#' @param p polynomial order for the filter
-#' @param n number of data points in the window, filter length (must be odd).
-#' @param m the derivative order if you want to calculate the derivative. Zero
-#' (default) is no derivative.
+#' @param polynomial polynomial order for the filter
+#' @param window number of data points in the window, filter length (must be
+#' odd).
+#' @param derivative the derivative order if you want to calculate the
+#' derivative. Zero (default) is no derivative.
 #' @param abs logical; whether you want to calculate the absolute value of the
 #' resulting output.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
@@ -58,11 +59,13 @@ smooth_intens.default <- function(x, ...) {
 #' @rdname smooth_intens
 #'
 #' @export
-smooth_intens.OpenSpecy <- function(x, p = 3, n = 11, m = 0, abs = FALSE,
+smooth_intens.OpenSpecy <- function(x, polynomial = 3, window = 11,
+                                    derivative = 0, abs = FALSE,
                                     make_rel = TRUE, ...) {
-  filt <- x$spectra[, lapply(.SD, .sgfilt, p = p, n = n, m = m, abs = abs, ...)]
+  filt <- x$spectra[, lapply(.SD, .sgfilt, p = polynomial, n = window,
+                             m = derivative, abs = abs, ...)]
 
-  if (make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
+  if(make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
 
   return(x)
 }
