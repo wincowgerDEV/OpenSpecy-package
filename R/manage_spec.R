@@ -2,7 +2,8 @@
 #' @title Manage spectral objects
 #'
 #' @description
-#' Functions for concatenating \code{OpenSpecy} objects.
+#' \code{c_spec()} concatenates \code{OpenSpecy} objects.
+#' \code{sample_spec()} samples spectra from an \code{OpenSpecy} object.
 #'
 #' @param x a list of \code{OpenSpecy} objects.
 #' @param range a numeric providing your own wavenumber ranges or character
@@ -14,13 +15,18 @@
 #' @param \ldots further arguments passed to submethods.
 #'
 #' @return
-#' A single \code{OpenSpecy} object.
+#' \code{c_spec()} and \code{sample_spec()} return \code{OpenSpecy} objects.
 #'
 #' @examples
+#' # Concatenating spectra
 #' spectra <- lapply(c(read_extdata("raman_hdpe.csv"),
 #'                     read_extdata("ftir_ldpe_soil.asp")), read_any)
 #' common <- c_spec(spectra, range = "common", res = 5)
 #' range <- c_spec(spectra, range = c(1000, 2000), res = 5)
+#'
+#' # Sampling spectra
+#' tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
+#' sampled <- sample_spec(tiny_map, size = 3)
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
@@ -88,5 +94,35 @@ c_spec.list <- function(x, range = NULL, res = 5, ...) {
   as_OpenSpecy(x = list$wavenumber[[1]],
                spectra = as.data.table(list$spectra),
                metadata = rbindlist(list$metadata, fill = T)[,-c("x","y")]
+  )
+}
+
+
+#' @rdname process_spec
+#'
+#' @export
+sample_spec <- function(x, ...) {
+  UseMethod("sample_spec")
+}
+
+#' @rdname process_spec
+#'
+#' @export
+sample_spec.default <- function(x, ...) {
+  stop("object 'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname process_spec
+#'
+#' @export
+sample_spec.OpenSpecy <- function(x, ...) {
+  # replace = false is mandatory currently because we don't have a way to
+  # rename and recoordinate duplicates.
+  cols <- sample(1:ncol(x$spectra), ...)
+
+  as_OpenSpecy(
+    x = x$wavenumber,
+    spectra = x$spectra[, cols, with = F],
+    metadata = x$metadata[cols, ]
   )
 }

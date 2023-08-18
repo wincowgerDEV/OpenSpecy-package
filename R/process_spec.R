@@ -4,7 +4,6 @@
 #' @description
 #' \code{process_spec()} is a monolithic wrapper function for all spectral
 #' preprocessing steps.
-#' \code{sample_spec()} samples spectra from an \code{OpenSpecy} object.
 #'
 #' @param x an \code{OpenSpecy} object.
 #' @param active logical; indicating whether to perform preprocessing.
@@ -35,8 +34,6 @@
 #' @return
 #' \code{process_spec()} returns an \code{OpenSpecy} object with preprocessed
 #' spectra based on the specified parameters.
-#' \code{sample_spec()} returns an \code{OpenSpecy} object with a subset of the
-#' spectra.
 #'
 #' @examples
 #' data("raman_hdpe")
@@ -61,12 +58,6 @@
 #'                )
 #'              ) |>
 #'   lines(col = "darkgreen")
-#'
-#' # Sampling a spectrum
-#' tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
-#' sampled <- sample_spec(tiny_map, size = 3)
-#' print(sampled)
-#' plot(sampled)
 #'
 #' @export
 process_spec <- function(x, ...) {
@@ -137,33 +128,4 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
   }
 
   return(x)
-}
-
-#' @rdname process_spec
-#'
-#' @export
-sample_spec <- function(x, ...) {
-  UseMethod("sample_spec")
-}
-
-#' @rdname process_spec
-#'
-#' @export
-sample_spec.default <- function(x, ...) {
-  stop("object 'x' needs to be of class 'OpenSpecy'")
-}
-
-#' @rdname process_spec
-#'
-#' @export
-sample_spec.OpenSpecy <- function(x, ...) {
-  # replace = false is mandatory currently because we don't have a way to
-  # rename and recoordinate duplicates.
-  cols <- sample(1:ncol(x$spectra), ...)
-
-  as_OpenSpecy(
-    x = x$wavenumber,
-    spectra = x$spectra[, cols, with = F],
-    metadata = x$metadata[cols, ]
-  )
 }
