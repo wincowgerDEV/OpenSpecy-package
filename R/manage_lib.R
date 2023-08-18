@@ -146,7 +146,7 @@ rm_lib <- function(type = c("derivative", "nobaseline", "raw"),
   out <- paste(type[!chk], collapse = ", ")
 
   if (!all(chk))
-    do.call(condition, list("library missing or incomplete: ", out, "; ",
+    do.call(condition, list("Library missing or incomplete: ", out, "; ",
                             "use 'get_lib()' to download a current version",
                             call. =  ifelse(condition %in%
                                               c("message",
