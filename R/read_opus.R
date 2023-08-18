@@ -93,6 +93,7 @@
 #' @author Philipp Baumann, Zacharias Steinmetz, Win Cowger
 #'
 #' @importFrom stats approx
+#' @importFrom data.table data.table
 #' @export
 read_opus <- function(file, share = NULL,
                       metadata = list(

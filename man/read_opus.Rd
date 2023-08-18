@@ -95,9 +95,12 @@ of the reference (otherwise set to \code{NULL}).}
 
 If \code{simplify = TRUE}, a list of two elements is returned:
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{- `wavenumbers`: Numeric vector with wavenumbers of the requested spectra.
-- `spectra`: Matrix with spectra of requested type (see argument `type`).
-}\if{html}{\out{</div>}}
+\describe{
+\item{\code{wavenumbers}}{numeric vector with wavenumbers of the requested
+spectra.}
+\item{\code{spectra}}{matrix with spectra of requested type (see argument
+\code{type}).}
+}
 }
 \description{
 Read file(s) acquired with a Bruker Vertex FTIR Instrument.
