@@ -355,9 +355,7 @@ split.line <- function(x, separator, trim.blank = TRUE) {
 #'
 #' @author Claudia Beleites, testing for the Nicolet files C. Dicko
 #'
-#' @seealso [caTools::read.ENVI()]
-#'
-#' @references This function was adapted from [caTools::read.ENVI()]:
+#' @references This function was adapted from:
 #'
 #' Tuszynski J (2008). "caTools: Tools: moving window statistics, GIF,
 #'   Base64, ROC AUC, etc." \emph{R package} \strong{1.9}.

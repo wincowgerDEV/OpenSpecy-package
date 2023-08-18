@@ -14,7 +14,7 @@
 #' @param min a vector of minimum values for the range to be flattened.
 #' @param max a vector of maximum values for the range to be flattened.
 #' @param make_rel logical; should the output intensities be normalized to the
-#' range [0, 1] using make_rel() function?
+#' range \[0, 1\] using `make_rel()` function?
 #' @param \ldots additional arguments passed to subfunctions; currently not
 #' in use.
 #'

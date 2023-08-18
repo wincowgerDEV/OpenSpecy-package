@@ -55,8 +55,7 @@ of the reference (otherwise set to \code{NULL}).}
 }
 }
 \description{
-Read single binary acquired with an
-Bruker Vertex FTIR Instrument
+Read single binary acquired with an Bruker Vertex FTIR Instrument
 }
 \details{
 The type of spectra returned by the function when using

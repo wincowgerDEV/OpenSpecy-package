@@ -7,7 +7,7 @@
 \format{
 An threepart list of class \code{\link{OpenSpecy}} containing:
 \tabular{ll}{
-\code{wavenumber}: \tab spectral wavenumbers \link{1/cm} (vector of 964 rows) \cr
+\code{wavenumber}: \tab spectral wavenumbers [1/cm] (vector of 964 rows) \cr
 \code{spectra}: \tab absorbance values \link{-}
 (a \code{\link[data.table]{data.table}} with 964 rows and 1 column) \cr
 \code{metadata}: \tab spectral metadata \cr
