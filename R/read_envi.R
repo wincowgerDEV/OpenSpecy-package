@@ -165,7 +165,8 @@ split.line <- function(x, separator, trim.blank = TRUE) {
     header$`byte order` <- as.numeric(header$`byte order`)
     if (!header$`byte order` %in% 0:1) {
       header$`byte order` <- .Platform$endian
-      warning("Byte order incorrect. Guessing '", .Platform$endian, "'", call. = F)
+      warning("Byte order incorrect. Guessing '", .Platform$endian, "'",
+              call. = F)
     } else if (header$`byte order` == 0) {
       header$`byte order` <- "little"
     } else {
@@ -212,14 +213,19 @@ split.line <- function(x, separator, trim.blank = TRUE) {
 
   switch(header$`data type`,
     spc <- readBin(f, integer(), n = n, size = size, signed = FALSE),
-    spc <- readBin(f, integer(), n = n, size = size, endian = header$`byte order`),
-    spc <- readBin(f, integer(), n = n, size = size, endian = header$`byte order`),
-    spc <- readBin(f, double(), n = n, size = size, endian = header$`byte order`),
-    spc <- readBin(f, double(), n = n, size = size, endian = header$`byte order`),
+    spc <- readBin(f, integer(), n = n, size = size,
+                   endian = header$`byte order`),
+    spc <- readBin(f, integer(), n = n, size = size,
+                   endian = header$`byte order`),
+    spc <- readBin(f, double(), n = n, size = size,
+                   endian = header$`byte order`),
+    spc <- readBin(f, double(), n = n, size = size,
+                   endian = header$`byte order`),
     stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 6 unused
     stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 7 unused
     stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 8 unused
-    spc <- readBin(f, complex(), n = n, size = size, endian = header$`byte order`),
+    spc <- readBin(f, complex(), n = n, size = size,
+                   endian = header$`byte order`),
     stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 10 unused
     stop("ENVI data type (", header$`data type`, ") unknown", call. = F), # 11 unused
     spc <- readBin(f, integer(),
@@ -317,7 +323,6 @@ split.line <- function(x, separator, trim.blank = TRUE) {
 #'
 #'
 #' @param file Complete name of the binary file.
-#'
 #' @param headerfile name of the ASCII header file. If `NULL`, the name
 #'        of the header file is guessed by looking for a second file with
 #'        the same basename as `file` but `hdr` or `HDR` suffix.
@@ -348,19 +353,18 @@ split.line <- function(x, separator, trim.blank = TRUE) {
 #'
 #' @return  `hyperSpec` object.
 #'
-#' @author C. Beleites, testing for the Nicolet files C. Dicko
+#' @author Claudia Beleites, testing for the Nicolet files C. Dicko
 #'
 #' @seealso [caTools::read.ENVI()]
 #'
 #' @references This function was adapted from [caTools::read.ENVI()]:
 #'
-#' Jarek Tuszynski (2008). caTools: Tools: moving window statistics, GIF,
-#'   Base64, ROC AUC, etc.. R package version 1.9.
+#' Tuszynski J (2008). "caTools: Tools: moving window statistics, GIF,
+#'   Base64, ROC AUC, etc." \emph{R package} \strong{1.9}.
 #'
 #' @importFrom utils modifyList
 #' @importFrom methods new
 #' @importFrom hyperSpec hy_get_option .spc_io_postprocess_optional
-#'
 #' @export
 read_envi <- function(file = stop("read_envi: file name needed"),
                       headerfile = NULL,
@@ -439,7 +443,8 @@ read_envi <- function(file = stop("read_envi: file name needed"),
   if (hy_get_option("gc")) gc()
 
   # finally put together the hyperSpec object
-  spc <- new("hyperSpec", data = data, spc = spc, wavelength = wavelength, labels = label)
+  spc <- new("hyperSpec", data = data, spc = spc, wavelength = wavelength,
+             labels = label)
 
   # consistent file import behavior across import functions
   .spc_io_postprocess_optional(spc, file)

@@ -80,17 +80,20 @@
 #'
 #' If `simplify = TRUE`, a list of two elements is returned:
 #'
-#'     - `wavenumbers`: Numeric vector with wavenumbers of the requested spectra.
-#'     - `spectra`: Matrix with spectra of requested type (see argument `type`).
+#' \describe{
+#'   \item{`wavenumbers`}{numeric vector with wavenumbers of the requested
+#'   spectra.}
+#'   \item{`spectra`}{matrix with spectra of requested type (see argument
+#'   `type`).}
+#' }
 #'
 #' @examples
 #' data <- read_opus(read_extdata("ftir_ps.0"))
 #'
-#' @importFrom stats approx
-#' @export
-#'
 #' @author Philipp Baumann, Zacharias Steinmetz, Win Cowger
 #'
+#' @importFrom stats approx
+#' @export
 read_opus <- function(file, share = NULL,
                       metadata = list(
                         file_name = basename(file),

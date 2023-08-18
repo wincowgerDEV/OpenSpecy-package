@@ -19,13 +19,10 @@
 #' @param nicolet.correction see details
 #'
 #' @importFrom utils modifyList
-#'
 #' @export
-
 read_envi_nic <- function(file = stop("read_envi: file name needed"),
-                              headerfile = NULL, header = list(), ...,
-                              x = NA, y = NA,
-                              nicolet.correction = FALSE) {
+                          headerfile = NULL, header = list(), ...,
+                          x = NA, y = NA, nicolet.correction = FALSE) {
   # the additional keywords to interpret must be read from headerfile
   headerfile <- .find_envi_header(file, headerfile)
   keys <- readLines(headerfile)
@@ -87,8 +84,8 @@ read_envi_nic <- function(file = stop("read_envi: file name needed"),
   p.pixel.size <- "^[[:blank:]]*([[:digit:].-]+),[[:blank:]]*([[:digit:].-]+).*$"
 
   if (is.na(x) && is.na(y) &&
-    !is.null(header$description) && grepl(p.description, header$description) &&
-    !is.null(header$"pixel size") && grepl(p.pixel.size, header$"pixel size")) {
+      !is.null(header$description) && grepl(p.description, header$description) &&
+      !is.null(header$"pixel size") && grepl(p.pixel.size, header$"pixel size")) {
     x[1] <- as.numeric(sub(p.description, "\\1", header$description))
     y[1] <- as.numeric(sub(p.description, "\\2", header$description))
 
