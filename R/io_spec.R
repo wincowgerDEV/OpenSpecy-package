@@ -136,6 +136,7 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
 }
 
 #' @rdname io_spec
+#' @importFrom methods new
 #'
 #' @export
 as_hyperSpec <- function(x) {

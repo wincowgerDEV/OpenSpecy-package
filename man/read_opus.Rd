@@ -30,7 +30,8 @@ read_opus(
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
 
-\item{metadata}{a named list of the metadata; see details below.}
+\item{metadata}{a named list of the metadata; see \code{\link{read_text}()}
+for details.}
 
 \item{type}{Character vector of spectra types to extract from OPUS binary
 file. Default is \code{"spec"}, which will extract the final spectra, e.g.

@@ -53,6 +53,7 @@ Imports:
     jsonlite,
     yaml,
     osfr,
+    caTools,
     hyperSpec,
     imager,
     plotly,

@@ -63,19 +63,12 @@ read_zip <- function(file, ...) {
 
   unzip(file, exdir = tmp)
 
-  if (nrow(flst) == 2 & any(grepl("\\.dat$", ignore.case = T, flst$Name)) &
+  if(nrow(flst) == 2 & any(grepl("\\.dat$", ignore.case = T, flst$Name)) &
       any(grepl("\\.hdr$", ignore.case = T, flst$Name))) {
     dat <- flst$Name[grepl("\\.dat$", ignore.case = T, flst$Name)]
     hdr <- flst$Name[grepl("\\.hdr$", ignore.case = T, flst$Name)]
-    hs_envi <- read_envi_nic(file = file.path(tmp, dat),
-                             headerfile = file.path(tmp, hdr), ...)
 
-    os <- as_OpenSpecy(x = hs_envi@wavelength,
-                       spectra = as.data.table(hs_envi@data$spc) |> transpose(),
-                       metadata = data.table(file = basename(hs_envi@data$file)),
-                       coords = data.table(x = hs_envi@data$x,
-                                           y = hs_envi@data$y)
-    )
+    os <- read_envi(file.path(tmp, dat), file.path(tmp, hdr), ...)
   } else {
     lst <- lapply(file.path(tmp, flst$Name), read_any, ...)
 
