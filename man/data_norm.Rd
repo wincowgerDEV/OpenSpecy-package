@@ -44,9 +44,9 @@ with the normalized intensity data.
 \description{
 \code{adj_res()} and \code{conform_res()} are helper functions to align
 wavenumbers in terms of their spectral resolution.
-\code{adj_neg()} converts numeric intensities \code{y} < 1 into values
->= 1, keeping absolute differences between intensity values by shifting each
-value by the minimum intensity.
+\code{adj_neg()} converts numeric intensities \code{y} < 1 into values >= 1,
+keeping absolute differences between intensity values by shifting each value
+by the minimum intensity.
 \code{make_rel()} converts intensities \code{y} into relative values between
 0 and 1 using the standard normalization equation.
 If \code{na.rm} is \code{TRUE}, missing values are removed before the

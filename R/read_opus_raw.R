@@ -8,7 +8,9 @@
 #' @param type Character vector of spectra types to extract from OPUS binary
 #' file. Default is `"spec"`, which will extract the final spectra, e.g.
 #' expressed in absorbance (named `AB` in Bruker OPUS programs). Possible
-#' additional values for the character vector supplied to `type` are `"spec_no_atm_comp"` (spectrum of the sample without compensation for atmospheric gases, water vapor and/or carbon dioxide),
+#' additional values for the character vector supplied to `type` are
+#' `"spec_no_atm_comp"` (spectrum of the sample without compensation for
+#' atmospheric gases, water vapor and/or carbon dioxide),
 #' `"sc_sample"` (single channel spectrum of the sample measurement),
 #' `"sc_ref"` (single channel spectrum of the reference measurement),
 #' `"ig_sample"` (interferogram of the sample measurement) and `"ig_ref"`
@@ -17,7 +19,10 @@
 #' compensation are read with an offset of -4 bytes from Bruker OPUS
 #' files. Default is `FALSE`.
 #'
-#' @details The type of spectra returned by the function when using `type = "spec"` depends on the setting of the Bruker instrument: typically, it can be either absorbance or reflectance.
+#' @details
+#' The type of spectra returned by the function when using
+#' `type = "spec"` depends on the setting of the Bruker instrument: typically,
+#' it can be either absorbance or reflectance.
 #'
 #' The type of spectra to extract from the file can also use Bruker's OPUS software naming conventions, as follows:
 #'
@@ -39,9 +44,9 @@
 #'     - `wavenumbers_sc_ref` If `"sc_ref"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the reference (otherwise set to `NULL`).
 #'
 #' @importFrom stats setNames
-#' 
-#' 
-#' 
+#'
+#'
+#'
 #' @export
 #'
 #' @author Philipp Baumann and Pierre Roudier

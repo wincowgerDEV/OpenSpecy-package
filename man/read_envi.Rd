@@ -34,35 +34,35 @@ read_envi_nic(
 \arguments{
 \item{file}{Complete name of the binary file.}
 
-\item{headerfile}{name of the ASCII header file. If `NULL`, the name
+\item{headerfile}{name of the ASCII header file. If \code{NULL}, the name
 of the header file is guessed by looking for a second file with
-the same basename as `file` but `hdr` or `HDR` suffix.}
+the same basename as \code{file} but \code{hdr} or \code{HDR} suffix.}
 
 \item{header}{list with header information, see details. Overwrites
 information extracted from the header file.}
 
 \item{keys.hdr2data}{determines which fields of the header file should be
-       put into the extra data. Defaults to none.
+put into the extra data. Defaults to none.
 
 To specify certain entries, give character vectors containing the lowercase
-  names of the header file entries.}
+names of the header file entries.}
 
 \item{x, y}{vectors of form c(offset, step size) for the position vectors,
 see details.}
 
 \item{wavelength, label}{lists that overwrite the respective information
 from the ENVI header file. These data is then handed to
-[hyperSpec::initialize()]}
+\code{\link[hyperSpec:initialize]{hyperSpec::initialize()}}}
 
 \item{block.lines.skip, block.lines.size}{BIL and BIP ENVI files may be read
-in blocks of lines: skip the first `block.lines.skip` lines, then
-read a block of `block.lines.size` lines. If `block.lines.NULL`, the
+in blocks of lines: skip the first \code{block.lines.skip} lines, then
+read a block of \code{block.lines.size} lines. If \code{block.lines.NULL}, the
 whole file is read.
 Blocks are silently truncated at the end of the file (more precisely:
-to `header$lines`).}
+to \code{header$lines}).}
 
-\item{...}{currently unused by `read_envi()`, `read_envi_nic()` hands
-those arguments over to `read_envi()`.}
+\item{...}{currently unused by \code{read_envi()}, \code{read_envi_nic()} hands
+those arguments over to \code{read_envi()}.}
 
 \item{pull.header.lines}{(internal) flag whether multi-line header entries
 grouped by curly braces should be pulled into one line each.}
@@ -70,13 +70,13 @@ grouped by curly braces should be pulled into one line each.}
 \item{nicolet.correction}{see details}
 }
 \value{
-`hyperSpec` object.
+\code{hyperSpec} object.
 }
 \description{
-This function allows ENVI data import as `hyperSpec` object.
+This function allows ENVI data import as \code{hyperSpec} object.
 
-`read_envi_nic()` should be a good starting point for writing custom
-wrappers for `read_envi()` that take into account your manufacturer's
+\code{read_envi_nic()} should be a good starting point for writing custom
+wrappers for \code{read_envi()} that take into account your manufacturer's
 special entries in the header file.
 }
 \details{
@@ -88,42 +88,41 @@ I experienced missing header files (or rather: header files without any
 contents) produced by Bruker Opus' ENVI export.
 
 In this case the necessary information can be given as a list in parameter
-`header` instead:
+\code{header} instead:
 
 \tabular{lll}{
-`header$`          \tab values        \tab meaning\cr
-`samples`          \tab integer       \tab no of columns / spectra in x direction\cr
-`lines`            \tab integer       \tab no of lines / spectra in y direction\cr
-`bands`            \tab integer       \tab no of wavelengths / data points per spectrum\cr
-``data type``      \tab               \tab format of the binary file\cr
-                   \tab 1             \tab 1 byte unsigned integer \cr
-                   \tab 2             \tab 2 byte signed integer \cr
-                   \tab 3             \tab 4 byte signed integer \cr
-                   \tab 4             \tab 4 byte float \cr
-                   \tab 5             \tab 8 byte double \cr
-                   \tab 9             \tab 16 (2 x 8) byte complex double \cr
-                   \tab 12            \tab 2 byte unsigned integer \cr
- ``header offset`` \tab integer       \tab number of bytes to skip before binary data starts\cr
- `interleave`      \tab               \tab directions of the data cube \cr
-                   \tab "BSQ"         \tab band sequential (indexing: \[sample, line, band\])\cr
-                   \tab "BIL"         \tab band interleave by line (indexing: \[sample, line, band\])\cr
-                   \tab "BIP"         \tab band interleave by pixel (indexing: \[band, line, sample\])\cr
- ``byte order``    \tab 0 or "little" \tab little endian \cr
-                   \tab 1 or "big"    \tab big endian \cr
-                   \tab "swap"        \tab swap byte order
+\verb{header$}          \tab values        \tab meaning\cr
+\code{samples}          \tab integer       \tab no of columns / spectra in x direction\cr
+\code{lines}            \tab integer       \tab no of lines / spectra in y direction\cr
+\code{bands}            \tab integer       \tab no of wavelengths / data points per spectrum\cr
+\verb{data type}      \tab               \tab format of the binary file\cr
+\tab 1             \tab 1 byte unsigned integer \cr
+\tab 2             \tab 2 byte signed integer \cr
+\tab 3             \tab 4 byte signed integer \cr
+\tab 4             \tab 4 byte float \cr
+\tab 5             \tab 8 byte double \cr
+\tab 9             \tab 16 (2 x 8) byte complex double \cr
+\tab 12            \tab 2 byte unsigned integer \cr
+\verb{header offset} \tab integer       \tab number of bytes to skip before binary data starts\cr
+\code{interleave}      \tab               \tab directions of the data cube \cr
+\tab "BSQ"         \tab band sequential (indexing: [sample, line, band])\cr
+\tab "BIL"         \tab band interleave by line (indexing: [sample, line, band])\cr
+\tab "BIP"         \tab band interleave by pixel (indexing: [band, line, sample])\cr
+\verb{byte order}    \tab 0 or "little" \tab little endian \cr
+\tab 1 or "big"    \tab big endian \cr
+\tab "swap"        \tab swap byte order
 }
 
 Some more information that is not provided by the ENVI files may be given:
 
 Wavelength axis and axis labels in the respective parameters. For more
-information, see [hyperSpec::initialize()].
+information, see \code{\link[hyperSpec:initialize]{hyperSpec::initialize()}}.
 
 The spatial information is by default a sequence from 0 to
-`header$samples - 1` and `header$lines - 1`, respectively.
-`x` and `y` give offset of the first spectrum and step size.
+\code{header$samples - 1} and \code{header$lines - 1}, respectively.
+\code{x} and \code{y} give offset of the first spectrum and step size.
 
-Thus, the object's `$x` column is: `(0 : header$samples - 1) * x
-[2] + x [1]`.  The `$y` column is calculated analogously.
+Thus, the object's \verb{$x} column is: \code{(0 : header$samples - 1) * x [2] + x [1]}.  The \verb{$y} column is calculated analogously.
 
 Nicolet uses some more keywords in their header file.
 They are interpreted as follows:
@@ -131,13 +130,13 @@ They are interpreted as follows:
 description   \tab giving the position of the first spectrum \cr
 z plot titles \tab wavelength and intensity axis units, comma separated \cr
 pixel size    \tab interpreted as x and y step size
-                   (specify `x = NA` and `y = NA`)
+(specify \code{x = NA} and \code{y = NA})
 }
 These parameters can be overwritten by giving a list with the respective
-elements in parameter `header`.
+elements in parameter \code{header}.
 
 The values in header line description seem to be microns while the pixel
-size seems to be in microns. If `nicolet.correction` is true, the
+size seems to be in microns. If \code{nicolet.correction} is true, the
 pixel size values (i.e. the step sizes) are multiplied by 1000.
 }
 \section{Functions}{
@@ -146,13 +145,13 @@ pixel size values (i.e. the step sizes) are multiplied by 1000.
 
 }}
 \references{
-This function was adapted from [caTools::read.ENVI()]:
+This function was adapted from \code{\link[caTools:ENVI]{caTools::read.ENVI()}}:
 
 Jarek Tuszynski (2008). caTools: Tools: moving window statistics, GIF,
-  Base64, ROC AUC, etc.. R package version 1.9.
+Base64, ROC AUC, etc.. R package version 1.9.
 }
 \seealso{
-[caTools::read.ENVI()]
+\code{\link[caTools:ENVI]{caTools::read.ENVI()}}
 }
 \author{
 C. Beleites, testing for the Nicolet files C. Dicko

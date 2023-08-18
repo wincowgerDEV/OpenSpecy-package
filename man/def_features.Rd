@@ -40,10 +40,10 @@ Functions for analyzing features, like particles, fragments, or fibers, in
 spectral map oriented \code{OpenSpecy} object.
 }
 \details{
-`def_features()` accepts an \code{OpenSpecy} object and a logical or
+\code{def_features()} accepts an \code{OpenSpecy} object and a logical or
 character vector describing which pixels correspond to particles.
-`collapse_spec()` takes an \code{OpenSpecy} object with particle-specific
-metadata (from `def_features()`) and collapses the spectra to median
+\code{collapse_spec()} takes an \code{OpenSpecy} object with particle-specific
+metadata (from \code{def_features()}) and collapses the spectra to median
 intensities for each unique particle.
 It also updates the metadata with centroid coordinates, while preserving the
 feature information on area and Feret max.

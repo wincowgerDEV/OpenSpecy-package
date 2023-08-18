@@ -122,7 +122,7 @@ rubber band, sphere, granule \cr
 solid) \cr
 \code{material_producer}: \tab Producer of the material analyzed,
 e.g. Dow \cr
-\code{material_purity}: \tab Purity of the material analyzed, e.g. 99.98\%
+\code{material_purity}: \tab Purity of the material analyzed, e.g. 99.98\\%
 \cr
 \code{material_quality}: \tab Quality of the material analyzed, e.g.
 consumer product, manufacturer material, analytical standard,
@@ -148,7 +148,7 @@ transmittance, reflectance, absorbance \cr
 \code{data_processing_procedure}: \tab Data processing procedure,
 e.g. spikefilter, baseline correction, none \cr
 \code{level_of_confidence_in_identification}: \tab Level of confidence in
-identification, e.g. 99\% \cr
+identification, e.g. 99\\% \cr
 \code{other_info}: \tab Other information \cr
 \code{license}: \tab The license of the shared spectrum; defaults to
 \code{"CC BY-NC"} (see

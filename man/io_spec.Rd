@@ -45,8 +45,8 @@ data.
 }
 \description{
 Functions for reading and writing spectral data to and from OpenSpecy format.
-\code{OpenSpecy} objects are lists with components `wavenumber`, `spectra`,
-and `metadata`. Currently supported formats are .yaml, .json, or .rds.
+\code{OpenSpecy} objects are lists with components \code{wavenumber}, \code{spectra},
+and \code{metadata}. Currently supported formats are .yaml, .json, or .rds.
 }
 \details{
 Due to floating point number errors there may be some differences in the

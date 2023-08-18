@@ -29,7 +29,7 @@ flatten_range(x, ...)
 \item{max}{a vector of maximum values for the range to be flattened.}
 
 \item{make_rel}{logical; should the output intensities be normalized to the
-range [0, 1] using make_rel() function?}
+range \link{0, 1} using make_rel() function?}
 
 \item{\ldots}{additional arguments passed to subfunctions; currently not
 in use.}

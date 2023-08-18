@@ -33,57 +33,88 @@ Open Specy community; see \code{\link{share_spec}()} for details.}
 \item{metadata}{a named list of the metadata; see details below.}
 
 \item{type}{Character vector of spectra types to extract from OPUS binary
-file. Default is `"spec"`, which will extract the final spectra, e.g.
-expressed in absorbance (named `AB` in Bruker OPUS programs). Possible
-additional values for the character vector supplied to `type` are `"spec_no_atm_comp"` (spectrum of the sample without compensation for atmospheric gases, water vapor and/or carbon dioxide),
-`"sc_sample"` (single channel spectrum of the sample measurement), `"sc_ref"` (single channel spectrum of the reference measurement),
-`"ig_sample"` (interferogram of the sample measurement) and `"ig_ref"`
+file. Default is \code{"spec"}, which will extract the final spectra, e.g.
+expressed in absorbance (named \code{AB} in Bruker OPUS programs). Possible
+additional values for the character vector supplied to \code{type} are
+\code{"spec_no_atm_comp"} (spectrum of the sample without compensation for
+atmospheric gases, water vapor and/or carbon dioxide),
+\code{"sc_sample"} (single channel spectrum of the sample measurement), \code{"sc_ref"}
+(single channel spectrum of the reference measurement),
+\code{"ig_sample"} (interferogram of the sample measurement) and \code{"ig_ref"}
 (interferogram of the reference measurement).}
 
-\item{simplify}{Logical (defaults to `FALSE`): if set to `TRUE`, returns a flattened list.
-The first element of that list (`wavenumbers`) is the wavenumbers of the first file read.
-The second element (`spectra`) is a matrix of the corresponding spectra. Especially useful when
-passing more than one file to the `file` option, for example to read a suite of spectral file.
-directly into a matrix.
-If the files do not have the same number of wavebands, the wavebands of the very first file passed to `file` is used as a reference for linear interpolation.}
+\item{simplify}{Logical (defaults to \code{FALSE}): if set to \code{TRUE}, returns a
+flattened list.
+The first element of that list (\code{wavenumbers}) is the wavenumbers of the
+first file read.
+The second element (\code{spectra}) is a matrix of the corresponding spectra.
+Especially useful when passing more than one file to the \code{file} option, for
+example to read a suite of spectral file directly into a matrix.
+If the files do not have the same number of wavebands, the wavebands of the
+very first file passed to \code{file} is used as a reference for linear interpolation.}
 
-\item{wns_digits}{Integer that specifies the number of decimal places used to round
-the wavenumbers (values of x-variables) if `simplify = TRUE`.}
+\item{wns_digits}{Integer that specifies the number of decimal places used to
+round the wavenumbers (values of x-variables) if \code{simplify = TRUE}.}
 
-\item{atm_comp_minus4offset}{Logical whether spectra after atmospheric compensation are read with
-an offset of -4 bytes from Bruker OPUS files. Default is `FALSE`.}
+\item{atm_comp_minus4offset}{Logical whether spectra after atmospheric
+compensation are read with an offset of -4 bytes from Bruker OPUS files.
+Default is \code{FALSE}.}
 }
 \value{
-The output of `read_opus()` depends on the value of the `simplify` option used in the function call.
+The output of \code{read_opus()} depends on the value of the \code{simplify}
+option used in the function call.
 
- - If `simplify = FALSE` (default), `read_opus()` returns a list of 10 elements:
-    - `metadata`: a `data.frame` containing metadata from the OPUS file
-    - `spec` If `"spec"` was requested in the `type` option, a matrix of the spectrum of the sample (otherwise set to `NULL`).
-    - `spec_no_atm_comp` If `"spec_no_atm_comp"` was requested in the `type` option, a matrix of the spectrum of the sample without background compensation (otherwise set to `NULL`).
-    - `sc_sample` If `"sc_sample"` was requested in the `type` option, a matrix of the single channel spectrum of the sample (otherwise set to `NULL`).
-    - `sc_ref` If `"sc_ref"` was requested in the `type` option, a matrix of the single channel spectrum of the reference (otherwise set to `NULL`).
-    - `ig_sample` If `"ig_sample"` was requested in the `type` option, a matrix of the interferogram of the sample (otherwise set to `NULL`).
-    - `ig_ref`  If `"ig_ref"` was requested in the `type` option, a matrix of the interferogram of the reference (otherwise set to `NULL`).
-    - `wavenumbers` If `"spec"` or `"spec_no_atm_comp"` was requested in the `type` option, a numeric vector of the wavenumbers of the spectrum of the sample (otherwise set to `NULL`).
-    - `wavenumbers_sc_sample` If `"sc_sample"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the sample (otherwise set to `NULL`).
-    - `wavenumbers_sc_ref` If `"sc_ref"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the reference (otherwise set to `NULL`).
+If \code{simplify = FALSE} (default), \code{read_opus()} returns a list of 10 elements:
 
- - If `simplify = TRUE`, a list of two elements is returned:
-    - `wavenumbers`: Numeric vector with wavenumbers of the requested spectra.
-    - `spectra`: Matrix with spectra of requested type (see argument `type`).
+\describe{
+\item{\code{metadata}}{a \code{data.frame} containing metadata from the OPUS file.}
+\item{\code{spec}}{if \code{"spec"} was requested in the \code{type} option, a matrix of
+the spectrum of the sample (otherwise set to \code{NULL}).}
+\item{\code{spec_no_atm_comp}}{if \code{"spec_no_atm_comp"} was requested in the
+\code{type} option, a matrix of the spectrum of the sample without background
+compensation (otherwise set to \code{NULL}).}
+\item{\code{sc_sample}}{if \code{"sc_sample"} was requested in the \code{type} option,
+a matrix of the single channel spectrum of the sample (otherwise set to
+\code{NULL}).}
+\item{\code{sc_ref}}{if \code{"sc_ref"} was requested in the \code{type} option, a matrix
+of the single channel spectrum of the reference (otherwise set to \code{NULL}).}
+\item{\code{ig_sample}}{if \code{"ig_sample"} was requested in the \code{type} option, a
+matrix of the interferogram of the sample (otherwise set to \code{NULL}).}
+\item{\code{ig_ref}}{if \code{"ig_ref"} was requested in the \code{type} option, a matrix
+of the interferogram of the reference (otherwise set to \code{NULL}).}
+\item{\code{wavenumbers}}{if \code{"spec"} or \code{"spec_no_atm_comp"} was requested in
+the \code{type} option, a numeric vector of the wavenumbers of the spectrum of
+the sample (otherwise set to \code{NULL}).}
+\item{\code{wavenumbers_sc_sample}}{if \code{"sc_sample"} was requested in the \code{type}
+option, a numeric vector of the wavenumbers of the single channel
+spectrum of the sample (otherwise set to \code{NULL}).}
+\item{\code{wavenumbers_sc_ref}}{if \code{"sc_ref"} was requested in the \code{type}
+option, a numeric vector of the wavenumbers of the single channel spectrum
+of the reference (otherwise set to \code{NULL}).}
+}
+
+If \code{simplify = TRUE}, a list of two elements is returned:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{- `wavenumbers`: Numeric vector with wavenumbers of the requested spectra.
+- `spectra`: Matrix with spectra of requested type (see argument `type`).
+}\if{html}{\out{</div>}}
 }
 \description{
 Read file(s) acquired with a Bruker Vertex FTIR Instrument.
 }
 \details{
-The type of spectra returned by the function when using `type = "spec"` depends on the setting of the Bruker instrument: typically, it can be either absorbance or reflectance.
+The type of spectra returned by the function when using
+\code{type = "spec"} depends on the setting of the Bruker instrument: typically,
+it can be either absorbance or reflectance.
 
-The type of spectra to extract from the file can also use Bruker's OPUS software naming conventions, as follows:
-
-- `ScSm` corresponds to `sc_sample`
-- `ScRf` corresponds to `sc_ref`
-- `IgSm` corresponds to `ig_sample`
-- `IgRf` corresponds to `ig_ref`
+The type of spectra to extract from the file can also use Bruker's OPUS
+software naming conventions, as follows:
+\itemize{
+\item \code{ScSm} corresponds to \code{sc_sample}
+\item \code{ScRf} corresponds to \code{sc_ref}
+\item \code{IgSm} corresponds to \code{ig_sample}
+\item \code{IgRf} corresponds to \code{ig_ref}
+}
 }
 \examples{
 data <- read_opus(read_extdata("ftir_ps.0"))

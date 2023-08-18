@@ -43,11 +43,11 @@ maintain your own OSF node with spectral libraries.}
 exists at the specified destination. Can be one of the following (see
 \code{\link[osfr]{osf_download}()} for details):
 \itemize{
-  \item{"error"}{ throw an error and abort the file transfer operation.}
-  \item{"skip"}{ skip the conflicting file(s) and continue transferring the
-  remaining files.}
-  \item{"overwrite" (default)}{ replace the existing file with the
-  transferred copy.}
+\item{"error"}{ throw an error and abort the file transfer operation.}
+\item{"skip"}{ skip the conflicting file(s) and continue transferring the
+remaining files.}
+\item{"overwrite" (default)}{ replace the existing file with the
+transferred copy.}
 }}
 
 \item{\ldots}{further arguments passed to \code{\link[osfr]{osf_download}()}.}
