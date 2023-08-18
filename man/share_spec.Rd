@@ -10,37 +10,23 @@ share_spec(x, ...)
 
 \method{share_spec}{default}(x, ...)
 
-\method{share_spec}{OpenSpecy}(
-  x,
-  file = NULL,
-  share = "system",
-  s3_key_id = NULL,
-  s3_secret_key = NULL,
-  s3_region = NULL,
-  s3_bucket = NULL,
-  ...
-)
+\method{share_spec}{OpenSpecy}(x, file = NULL, share = "system", credentials = NULL, ...)
 }
 \arguments{
 \item{x}{a list object of class \code{OpenSpecy}.}
 
-\item{...}{Further arguments passed to the submethods.}
+\item{file}{file to share (optional).}
 
-\item{file}{File to share (optional).}
-
-\item{share}{Accepts any local directory to save the spectrum for later
+\item{share}{accepts any local directory to save the spectrum for later
 sharing via email to \email{wincowger@gmail.com}; \code{"system"} (default)
 uses the Open Specy package directory at \code{system.file("extdata",
 package = "OpenSpecy")}; if a correct API token exists, \code{"cloud"}
 shares the spectrum with the cloud.}
 
-\item{s3_key_id}{AWS S3 access key ID (required if \code{share = "cloud"}).}
+\item{credentials}{a named list of credentials for cloud sharing; required if
+\code{share = "cloud"}).}
 
-\item{s3_secret_key}{AWS S3 secret access key (required if \code{share = "cloud"}).}
-
-\item{s3_region}{AWS S3 region (required if \code{share = "cloud"}).}
-
-\item{s3_bucket}{AWS S3 bucket name (required if \code{share = "cloud"}).}
+\item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
 \code{share_spec()} returns only messages/warnings.
@@ -49,7 +35,7 @@ shares the spectrum with the cloud.}
 This helper function shares spectral data and metadata with the Open Specy
 community.
 
-\strong{Please note} that \code{share_spec()} only provides basic sharing
+\strong{Please note:} that \code{share_spec()} only provides basic sharing
 functionality if used interactively. This means that files are only formatted
 and saved for sharing but are not sent automatically. This only works with
 hosted instances of Open Specy.
@@ -63,8 +49,7 @@ share_spec(raman_hdpe,
              spectrum_type = "FTIR",
              spectrum_identity = "PE",
              license = "CC BY-NC"
-           ),
-           share = tempdir())
+           ))
 }
 
 }

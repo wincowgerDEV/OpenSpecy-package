@@ -4,23 +4,21 @@
 #' This helper function shares spectral data and metadata with the Open Specy
 #' community.
 #'
-#' \strong{Please note} that \code{share_spec()} only provides basic sharing
+#' \strong{Please note:} that \code{share_spec()} only provides basic sharing
 #' functionality if used interactively. This means that files are only formatted
 #' and saved for sharing but are not sent automatically. This only works with
 #' hosted instances of Open Specy.
 #'
 #' @param x a list object of class \code{OpenSpecy}.
-#' @param file File to share (optional).
-#' @param share Accepts any local directory to save the spectrum for later
+#' @param file file to share (optional).
+#' @param share accepts any local directory to save the spectrum for later
 #' sharing via email to \email{wincowger@gmail.com}; \code{"system"} (default)
 #' uses the Open Specy package directory at \code{system.file("extdata",
 #' package = "OpenSpecy")}; if a correct API token exists, \code{"cloud"}
 #' shares the spectrum with the cloud.
-#' @param s3_key_id AWS S3 access key ID (required if \code{share = "cloud"}).
-#' @param s3_secret_key AWS S3 secret access key (required if \code{share = "cloud"}).
-#' @param s3_region AWS S3 region (required if \code{share = "cloud"}).
-#' @param s3_bucket AWS S3 bucket name (required if \code{share = "cloud"}).
-#' @param ... Further arguments passed to the submethods.
+#' @param credentials a named list of credentials for cloud sharing; required if
+#' \code{share = "cloud"}).
+#' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
 #' \code{share_spec()} returns only messages/warnings.
@@ -34,8 +32,7 @@
 #'              spectrum_type = "FTIR",
 #'              spectrum_identity = "PE",
 #'              license = "CC BY-NC"
-#'            ),
-#'            share = tempdir())
+#'            ))
 #' }
 #'
 #' @author
@@ -63,8 +60,8 @@ share_spec.default <- function(x, ...) {
 #' @rdname share_spec
 #'
 #' @export
-share_spec.OpenSpecy <- function(x, file = NULL, share = "system", s3_key_id = NULL, s3_secret_key = NULL, s3_region = NULL, s3_bucket = NULL,
-                                 ...) {
+share_spec.OpenSpecy <- function(x, file = NULL, share = "system",
+                                 credentials = NULL, ...) {
   md <- x$metadata
   if (any(!c("user_name", "spectrum_type", "spectrum_identity") %in%
           names(md)) |
@@ -79,15 +76,16 @@ share_spec.OpenSpecy <- function(x, file = NULL, share = "system", s3_key_id = N
   } else if (share == "cloud") {
     pkg <- "aws.s3"
     mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
-    if (length(mpkg)) stop("share = 'cloud' requires package 'aws.s3'", call. = F)
-    if(any(is.null(s3_key_id), is.null(s3_secret_key), is.null(s3_region), is.null(s3_bucket))) {
-      stop("need all s3 inputs to share with the cloud", call. = F)
-    }
-    Sys.setenv(
-      "AWS_ACCESS_KEY_ID" = s3_key_id,
-      "AWS_SECRET_ACCESS_KEY" = s3_secret_key,
-      "AWS_DEFAULT_REGION" = s3_region
-    )
+    if(length(mpkg)) stop("share = 'cloud' requires package 'aws.s3'",
+                           call. = F)
+
+    if(is.null(credentials))
+      stop("'credentials' required to share with the cloud", call. = F)
+
+    if(!is.list(credentials) || !(all(c("s3_key", "s3_secret", "s3_region",
+                                        "s3_bucket") %in% names(credentials))))
+      stop("'credentials' needs to be a named list containing the following ",
+           "items: 's3_key', 's3_secret', 's3_region', 's3_bucket'", call. = F)
 
     fp <- file.path(tempdir(), md$session_id)
   } else {
@@ -108,8 +106,9 @@ share_spec.OpenSpecy <- function(x, file = NULL, share = "system", s3_key_id = N
     for (lf in list.files(fp, pattern = md$file_id, full.names = T)) {
       aws.s3::put_object(
         file = lf,
-        #object = paste0(hashed_data, ".zip"),
-        bucket = s3_bucket
+        bucket = credentials$s3_bucket,
+        key = credentials$s3_key, secret = credentials$s3_secret,
+        region = credentials$s3_region
       )
     }
   }
@@ -117,7 +116,7 @@ share_spec.OpenSpecy <- function(x, file = NULL, share = "system", s3_key_id = N
   message("Thank you for your willigness to share your data; ",
           "your data has been saved to\n    ",
           fp, "\n",
-          "if you run Open Specy locally, you may consider e-mailing your ",
+          "If you run Open Specy locally, you may consider e-mailing your ",
           "files to\n    ",
           "Win Cowger <wincowger@gmail.com>")
 }
