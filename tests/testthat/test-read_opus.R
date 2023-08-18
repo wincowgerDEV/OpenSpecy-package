@@ -1,11 +1,19 @@
-test_that("opus files are read", {
-  data <- read_opus(read_extdata("ftir_ps.0")) |>
+test_that("opus files are read corretly", {
+  opus <- read_opus(read_extdata("ftir_ps.0")) |>
     expect_silent()
+  read_extdata("raman_hdpe.csv") |> read_opus() |>
+    expect_error()
 
-  expect_s3_class(data, "OpenSpecy")
-  expect_equal(ncol(data$spectra), 1)
-  expect_length(data$wavenumber, 2126)
-  expect_identical(names(data$metadata), c("x", "y", "unique_id", "sample_id",
+  expect_s3_class(opus, "OpenSpecy")
+
+  expect_equal(names(opus), c("wavenumber", "spectra", "metadata"))
+  expect_length(opus$wavenumber, 2126)
+  range(opus$wavenumber) |> round(1) |>
+    expect_equal(c(399.2, 4497.5))
+  range(opus$spectra) |> round(4) |>
+    expect_equal(c(0.0130, 0.6112))
+
+  expect_identical(names(opus$metadata), c("x", "y", "unique_id", "sample_id",
                                            "date_time_sm", "date_time_rf",
                                            "sample_name", "instr_name_range",
                                            "resolution_wn", "result_spc",

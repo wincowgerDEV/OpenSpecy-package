@@ -4,6 +4,8 @@ dir.create(tmp, showWarnings = F)
 
 library(data.table)
 
+data("raman_hdpe")
+
 test_that("extdata files are present", {
   ed <- read_extdata()
   expect_true(any(grepl("\\.asp$", ed)))
@@ -15,81 +17,90 @@ test_that("extdata files are present", {
 })
 
 test_that("read_text() gives expected output", {
-  expect_silent(csv <- read_text(read_extdata("raman_hdpe.csv")))
+  csv <- read_extdata("raman_hdpe.csv") |> read_text() |>
+    expect_silent()
   # expect_warning(
   #   expect_message(read_text(read_extdata("raman_hdpe.csv"), share = tmp))
   # )
-  expect_silent(
-    dtf <- read_text(read_extdata("raman_hdpe.csv"), method = "fread")
-  )
-  # expect_error(read_text(read_extdata("ftir_pva_without_header.csv")))
-  # expect_warning(read_text(read_extdata("ftir_pva_without_header.csv"),
-  #                          header = F))
-  # expect_warning(
-  #   read_text(read_extdata("ftir_pva_without_header.csv"), method = "fread")
-  # )
-  # expect_s3_class(csv, "data.frame")
-  # expect_equal(names(csv), c("wavenumber", "intensity"))
-  # expect_equal(nrow(csv), 1095)
-  # expect_equal(round(range(csv[1]), 1), c(150.9, 2998.5))
-  # expect_equal(round(range(csv[2]), 1), c(3264.2, 41238.9))
-  # expect_equal(csv, dtf)
+  dtf <- read_extdata("raman_hdpe.csv") |> read_text(method = "fread") |>
+    expect_silent()
+  read_extdata("ftir_pva_without_header.csv") |> read_text() |>
+    expect_warning() |> expect_warning()
+  read_extdata("ftir_pva_without_header.csv") |> read_text(header = F) |>
+    expect_warning() |> expect_warning()
+  read_extdata("ftir_pva_without_header.csv") |> read_text(method = "fread") |>
+    expect_warning() |> expect_warning()
+
+  expect_s3_class(csv, "OpenSpecy")
+  expect_equal(names(csv), c("wavenumber", "spectra", "metadata"))
+  expect_equal(csv$wavenumber, raman_hdpe$wavenumber)
+  expect_equal(csv$spectra, raman_hdpe$spectra)
+  expect_equal(csv, dtf)
 })
 
-# test_that("read_asp() gives expected output", {
-#   expect_silent(asp <- read_asp(read_extdata("ftir_ldpe_soil.asp")))
-#   expect_error(read_asp(read_extdata("raman_hdpe.csv")))
-#   expect_s3_class(asp, "data.frame")
-#   expect_equal(names(asp), c("wavenumber", "intensity"))
-#   expect_equal(nrow(asp), 1798)
-#   expect_equal(round(range(asp[1]), 1), c(650.4, 3999.4))
-#   expect_equal(round(range(asp[2]), 4), c(0.0010, 0.5182))
-# })
-#
-# test_that("read_spa() gives expected output", {
-#   expect_silent(spa <- read_spa(read_extdata("ftir_polyethylene_reflectance_adjustment_not_working.spa")))
-#   expect_error(read_spa(read_extdata("raman_hdpe.csv")))
-#   expect_s3_class(spa, "data.frame")
-#   expect_equal(names(spa), c("wavenumber", "intensity"))
-#   expect_equal(nrow(spa), 1738)
-#   expect_equal(round(range(spa[1]), 1), c(649.9, 3999.8))
-#   expect_equal(round(range(spa[2]), 2), c(61.51, 102.88))
-# })
-#
-# test_that("read_jdx() gives expected output", {
-#   expect_match(capture_messages(
-#     suppressWarnings(jdx <- read_jdx(read_extdata("fitr_nitrocellulose.jdx"),
-#                                      encoding = "latin1"))
-#   ), "JDX file inconsistency.*"
-#   )
-#   expect_error(read_jdx(read_extdata("throws_error_raman_1000002.jdx")))
-#   expect_error(read_jdx(read_extdata("raman_hdpe.csv")))
-#   expect_s3_class(jdx, "data.frame")
-#   expect_equal(names(jdx), c("wavenumber", "intensity"))
-#   expect_equal(nrow(jdx), 7154)
-#   expect_equal(round(range(jdx[1]), 1), c(599.9, 7499.0))
-#   expect_equal(round(range(jdx[2]), 4), c(0.0106, 0.6989))
-# })
-#
-# test_that("read_spc() gives expected output", {
-#   expect_silent(spc <- read_spc(read_extdata("raman_atacamit.spc")))
-#   expect_error(read_spc(read_extdata("raman_hdpe.csv")))
-#   expect_s3_class(spc, "data.frame")
-#   expect_equal(names(spc), c("wavenumber", "intensity"))
-#   expect_equal(nrow(spc), 559)
-#   expect_equal(round(range(spc[1]), 1), c(117.8, 1050.0))
-#   expect_equal(round(range(spc[2]), 2), c(0.08, 585.51))
-# })
-#
-# test_that("read_0() gives expected output", {
-#   expect_silent(f0 <- read_0(read_extdata("ftir_ps.0")))
-#   expect_error(read_0(read_extdata("raman_hdpe.csv")))
-#   expect_s3_class(f0, "data.frame")
-#   expect_equal(names(f0), c("wavenumber", "intensity"))
-#   expect_equal(nrow(f0), 2126)
-#   expect_equal(round(range(f0[1]), 1), c(399.2, 4497.5))
-#   expect_equal(round(range(f0[2]), 4), c(0.0130, 0.6112))
-# })
+test_that("read_asp() gives expected output", {
+  asp <- read_extdata("ftir_ldpe_soil.asp") |> read_asp() |>
+    expect_silent()
+  read_extdata("raman_hdpe.csv") |> read_asp() |>
+    expect_error()
+
+  expect_s3_class(asp, "OpenSpecy")
+  expect_equal(names(asp), c("wavenumber", "spectra", "metadata"))
+  expect_length(asp$wavenumber, 1798)
+  range(asp$wavenumber) |> round(1) |>
+    expect_equal(c(650.4, 3999.4))
+  range(asp$spectra) |> round(4) |>
+    expect_equal(c(0.0010, 0.5182))
+})
+
+test_that("read_spa() gives expected output", {
+  spa <- read_extdata("ftir_polyethylene_reflectance_adjustment_not_working.spa") |>
+    read_spa() |> expect_silent()
+  read_extdata("raman_hdpe.csv") |> read_spa() |>
+    expect_error()
+
+  expect_s3_class(spa, "OpenSpecy")
+  expect_equal(names(spa), c("wavenumber", "spectra", "metadata"))
+  expect_length(spa$wavenumber, 1738)
+  range(spa$wavenumber) |> round(1) |>
+    expect_equal(c(649.9, 3999.8))
+  range(spa$spectra) |> round(2) |>
+    expect_equal(c(61.51, 102.88))
+})
+
+test_that("read_jdx() gives expected output", {
+  suppressWarnings(jdx <- read_jdx(read_extdata("fitr_nitrocellulose.jdx"),
+                                   encoding = "latin1")) |>
+    capture_messages() |>
+    expect_match("JDX file inconsistency.*")
+  read_extdata("throws_error_raman_1000002.jdx") |> read_jdx() |>
+    expect_error()
+  read_extdata("raman_hdpe.csv") |> read_jdx() |>
+    expect_error()
+
+  expect_s3_class(jdx, "OpenSpecy")
+  expect_equal(names(jdx), c("wavenumber", "spectra", "metadata"))
+  expect_length(jdx$wavenumber, 7154)
+  range(jdx$wavenumber) |> round(1) |>
+    expect_equal(c(599.9, 7499.0))
+  range(jdx$spectra) |> round(4) |>
+    expect_equal(c(0.0106, 0.6989))
+})
+
+test_that("read_spc() gives expected output", {
+  spc <- read_extdata("raman_atacamit.spc") |> read_spc() |>
+    expect_silent()
+  read_extdata("raman_hdpe.csv") |> read_spc() |>
+    expect_error()
+
+  expect_s3_class(spc, "OpenSpecy")
+  expect_equal(names(spc), c("wavenumber", "spectra", "metadata"))
+  expect_length(spc$wavenumber, 559)
+  range(spc$wavenumber) |> round(1) |>
+    expect_equal(c(117.8, 1050.0))
+  range(spc$spectra) |> round(2) |>
+    expect_equal(c(0.08, 585.51))
+})
 
 # Tidy up
 unlink(tmp, recursive = T)

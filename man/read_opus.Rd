@@ -120,7 +120,7 @@ software naming conventions, as follows:
 }
 }
 \examples{
-data <- read_opus(read_extdata("ftir_ps.0"))
+read_extdata("ftir_ps.0") |> read_opus()
 
 }
 \author{

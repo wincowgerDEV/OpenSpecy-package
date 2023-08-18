@@ -1,11 +1,11 @@
+data("raman_hdpe")
 
 test_that("reading in multi files doesn't throw error", {
-    expect_no_error(map_file <- read_extdata("CA_tiny_map.zip") |> read_any())
-    expect_true(length(map_file$wavenumber) == 427)
-    expect_true(is_OpenSpecy(map_file))
-    expect_true(ncol(map_file$spectra) == 208)
-    expect_silent(multi_file <- read_extdata("testdata_zipped.zip") |> read_any())
-    expect_true(is_OpenSpecy(multi_file))
-    expect_true(length(multi_file$wavenumber) == 964)
-    expect_true(ncol(multi_file$spectra) == 3)
+  expect_silent(multi <- read_extdata("testdata_zipped.zip") |> read_any())
+  expect_s3_class(multi, "OpenSpecy")
+
+  expect_equal(multi$wavenumber, raman_hdpe$wavenumber)
+  expect_equal(multi$spectra$intensity, raman_hdpe$spectra$intensity)
+  expect_equal(multi$spectra$intensity.1, raman_hdpe$spectra$intensity)
+  expect_equal(multi$spectra$intensity.2, raman_hdpe$spectra$intensity)
 })

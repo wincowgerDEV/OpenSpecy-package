@@ -102,12 +102,11 @@
 #' named \code{"wavenumber"} and \code{"intensity"}.
 #'
 #' @examples
-#' read_any(read_extdata("raman_hdpe.csv"))
-#' read_any(read_extdata("raman_atacamit.spc"))
-#' read_any(read_extdata("CA_tiny_map.zip"))
-#' read_any(read_extdata("ftir_ldpe_soil.asp"))
-#' read_any(read_extdata("testdata_zipped.zip"))
-#' read_any(read_extdata("ftir_ps.0"))
+#' read_extdata("raman_hdpe.csv") |> read_text()
+#' read_extdata("raman_atacamit.spc") |> read_spc()
+#' read_extdata("CA_tiny_map.zip") |> read_any()
+#' read_extdata("ftir_ldpe_soil.asp") |> read_asp()
+#' read_extdata("testdata_zipped.zip") |> read_zip()
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger

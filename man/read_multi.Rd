@@ -21,19 +21,19 @@ All \code{read_*()} functions return \code{OpenSpecy} objects
 Wrapper functions for reading files in batch.
 }
 \details{
-\code{read_any()} provides a single function to quickly read
-in any of the supported formats, it assumes that the file
-extension will tell it how to process the spectra.
-\code{read_zip()} provides functionality for reading in
-spectral map files with ENVI file format or as individual files
-in a zip folder. If individual files, spectra are concatenated.
+\code{read_any()} provides a single function to quickly read in any of the
+supported formats, it assumes that the file extension will tell it how to
+process the spectra.
+\code{read_zip()} provides functionality for reading in spectral map files
+with ENVI file format or as individual files in a zip folder. If individual
+files, spectra are concatenated.
 }
 \examples{
-read_any(read_extdata("raman_hdpe.csv"))
-read_any(read_extdata("ftir_ldpe_soil.asp"))
-read_any(read_extdata("ftir_ps.0"))
-read_zip(read_extdata("testdata_zipped.zip"))
-read_zip(read_extdata("CA_tiny_map.zip"))
+read_extdata("raman_hdpe.csv") |> read_any()
+read_extdata("ftir_ldpe_soil.asp") |> read_any()
+read_extdata("ftir_ps.0") |> read_any()
+read_extdata("testdata_zipped.zip") |> read_zip()
+read_extdata("CA_tiny_map.zip") |> read_zip()
 
 }
 \seealso{
