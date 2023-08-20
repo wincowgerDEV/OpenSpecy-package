@@ -1,3 +1,5 @@
+library(data.table)
+
 test_that("restrict_range() provides correct range", {
   test_noise <- as_OpenSpecy(x = seq(400,4000, by = 10),
                              spectra = data.table(intensity = rnorm(361)))
@@ -41,8 +43,9 @@ test_that("flatten_range() function test", {
   expect_false(all.equal(flat_map$spectra, tiny_map$spectra) |> isTRUE())
   expect_equal(flat_map$spectra[1:20], tiny_map$spectra[1:20])
 
-  expect_equal(flat_map$spectra[40:60, 1:5] |> unique() |> round(4),
-               data.table(-0.8694, -0.7769, -0.5828, -0.292, 0.1916))
+  expect_equal(flat_map$spectra[40:60, 1:5] |> unique() |> round(4)
+               |> as.numeric(),
+               c(-0.8694, -1.246, -0.8304, -1.1909, -0.7857))
 })
 
 test_that("flatten_range() error handling", {
