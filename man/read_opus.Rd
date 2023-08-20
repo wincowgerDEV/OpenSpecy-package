@@ -19,8 +19,7 @@ read_opus(
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
   type = "spec",
-  simplify = FALSE,
-  wns_digits = 1L,
+  digits = 1L,
   atm_comp_minus4offset = FALSE
 )
 }
@@ -44,64 +43,15 @@ atmospheric gases, water vapor and/or carbon dioxide),
 \code{"ig_sample"} (interferogram of the sample measurement) and \code{"ig_ref"}
 (interferogram of the reference measurement).}
 
-\item{simplify}{Logical (defaults to \code{FALSE}): if set to \code{TRUE}, returns a
-flattened list.
-The first element of that list (\code{wavenumbers}) is the wavenumbers of the
-first file read.
-The second element (\code{spectra}) is a matrix of the corresponding spectra.
-Especially useful when passing more than one file to the \code{file} option, for
-example to read a suite of spectral file directly into a matrix.
-If the files do not have the same number of wavebands, the wavebands of the
-very first file passed to \code{file} is used as a reference for linear interpolation.}
-
-\item{wns_digits}{Integer that specifies the number of decimal places used to
-round the wavenumbers (values of x-variables) if \code{simplify = TRUE}.}
+\item{digits}{Integer that specifies the number of decimal places used to
+round the wavenumbers (values of x-variables).}
 
 \item{atm_comp_minus4offset}{Logical whether spectra after atmospheric
 compensation are read with an offset of -4 bytes from Bruker OPUS files.
 Default is \code{FALSE}.}
 }
 \value{
-The output of \code{read_opus()} depends on the value of the \code{simplify}
-option used in the function call.
-
-If \code{simplify = FALSE} (default), \code{read_opus()} returns a list of 10 elements:
-
-\describe{
-\item{\code{metadata}}{a \code{data.frame} containing metadata from the OPUS file.}
-\item{\code{spec}}{if \code{"spec"} was requested in the \code{type} option, a matrix of
-the spectrum of the sample (otherwise set to \code{NULL}).}
-\item{\code{spec_no_atm_comp}}{if \code{"spec_no_atm_comp"} was requested in the
-\code{type} option, a matrix of the spectrum of the sample without background
-compensation (otherwise set to \code{NULL}).}
-\item{\code{sc_sample}}{if \code{"sc_sample"} was requested in the \code{type} option,
-a matrix of the single channel spectrum of the sample (otherwise set to
-\code{NULL}).}
-\item{\code{sc_ref}}{if \code{"sc_ref"} was requested in the \code{type} option, a matrix
-of the single channel spectrum of the reference (otherwise set to \code{NULL}).}
-\item{\code{ig_sample}}{if \code{"ig_sample"} was requested in the \code{type} option, a
-matrix of the interferogram of the sample (otherwise set to \code{NULL}).}
-\item{\code{ig_ref}}{if \code{"ig_ref"} was requested in the \code{type} option, a matrix
-of the interferogram of the reference (otherwise set to \code{NULL}).}
-\item{\code{wavenumbers}}{if \code{"spec"} or \code{"spec_no_atm_comp"} was requested in
-the \code{type} option, a numeric vector of the wavenumbers of the spectrum of
-the sample (otherwise set to \code{NULL}).}
-\item{\code{wavenumbers_sc_sample}}{if \code{"sc_sample"} was requested in the \code{type}
-option, a numeric vector of the wavenumbers of the single channel
-spectrum of the sample (otherwise set to \code{NULL}).}
-\item{\code{wavenumbers_sc_ref}}{if \code{"sc_ref"} was requested in the \code{type}
-option, a numeric vector of the wavenumbers of the single channel spectrum
-of the reference (otherwise set to \code{NULL}).}
-}
-
-If \code{simplify = TRUE}, a list of two elements is returned:
-
-\describe{
-\item{\code{wavenumbers}}{numeric vector with wavenumbers of the requested
-spectra.}
-\item{\code{spectra}}{matrix with spectra of requested type (see argument
-\code{type}).}
-}
+An \code{OpenSpecy} object.
 }
 \description{
 Read file(s) acquired with a Bruker Vertex FTIR Instrument.
