@@ -6,12 +6,14 @@
 #' @details
 #' ENVI data usually consists of two files, an ASCII header and a binary data
 #' file. The header contains all information necessary for correctly reading
-#' the binary file.
+#' the binary file via \code{\link[caTools]{read.ENVI}()}.
 #'
 #' @param file name of the binary file.
 #' @param header name of the ASCII header file. If `NULL`, the name of the
 #' header file is guessed by looking for a second file with the same basename as
 #' `file` but with .hdr extension.
+#' @param share defaults to \code{NULL}; needed to share spectra with the
+#' Open Specy community; see \code{\link{share_spec}()} for details.
 #' @param metadata a named list of the metadata; see \code{\link{read_text}()}
 #' for details.
 #' @param \ldots further arguments passed to the submethods.
@@ -21,11 +23,14 @@
 #'
 #' @author Zacharias Steinmetz, Claudia Beleites
 #'
+#' @seealso
+#' \code{\link[caTools]{read.ENVI}()}
+#'
 #' @importFrom utils modifyList
 #' @importFrom data.table as.data.table dcast
 #' @importFrom caTools read.ENVI
 #' @export
-read_envi <- function(file, header = NULL,
+read_envi <- function(file, header = NULL, share = NULL,
                       metadata = list(
                         file_name = basename(file),
                         user_name = NULL,
@@ -66,8 +71,10 @@ read_envi <- function(file, header = NULL,
 
   os <- as_OpenSpecy(x = hdr$wavelength,
                      spectra = dcast(dt, z ~ x + y)[, -1],
-                     metadata = data.table(file = basename(file)),
+                     metadata = metadata,
                      coords = dt[, 1:2] |> unique())
+
+  if (!is.null(share)) share_spec(os, file = file, share = share)
 
   return(os)
 }

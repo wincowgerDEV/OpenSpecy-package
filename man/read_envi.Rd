@@ -7,6 +7,7 @@
 read_envi(
   file,
   header = NULL,
+  share = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
     material_form = NULL, material_phase = NULL, material_producer = NULL,
@@ -28,6 +29,9 @@ read_envi(
 header file is guessed by looking for a second file with the same basename as
 \code{file} but with .hdr extension.}
 
+\item{share}{defaults to \code{NULL}; needed to share spectra with the
+Open Specy community; see \code{\link{share_spec}()} for details.}
+
 \item{metadata}{a named list of the metadata; see \code{\link{read_text}()}
 for details.}
 
@@ -42,7 +46,10 @@ This function allows ENVI data import.
 \details{
 ENVI data usually consists of two files, an ASCII header and a binary data
 file. The header contains all information necessary for correctly reading
-the binary file.
+the binary file via \code{\link[caTools]{read.ENVI}()}.
+}
+\seealso{
+\code{\link[caTools]{read.ENVI}()}
 }
 \author{
 Zacharias Steinmetz, Claudia Beleites
