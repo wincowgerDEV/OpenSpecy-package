@@ -48,6 +48,12 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
 
+      - name: Populate .Renviron with GitHub Secrets
+        run: |
+          echo AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" >> ~/.Renviron
+          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> ~/.Renviron
+          shell: bash
+
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
