@@ -25,11 +25,15 @@ test_that("write_spec() works without errors", {
 })
 
 test_that("read_spec() gives expected output", {
-  yml <- read_spec(read_extdata("raman_hdpe.yml")) |> expect_silent()
-  jsn <- read_spec(read_extdata("raman_hdpe.json")) |> expect_silent()
-  rds <- read_spec(read_extdata("raman_hdpe.rds")) |> expect_silent()
+  yml <- read_extdata("raman_hdpe.yml") |> read_spec() |> expect_silent()
+  jsn <- read_extdata("raman_hdpe.json") |> read_spec() |> expect_silent()
+  rds <- read_extdata("raman_hdpe.rds") |> read_spec() |> expect_silent()
 
   read_spec(read_extdata("raman_hdpe.csv")) |> expect_error()
+
+  read_extdata("raman_hdpe.yml") |> read_spec(share = tmp) |> expect_message()
+  read_extdata("raman_hdpe.json") |> read_spec(share = tmp) |> expect_message()
+  read_extdata("raman_hdpe.rds") |> read_spec(share = tmp) |> expect_message()
 
   expect_s3_class(yml, "OpenSpecy")
   expect_s3_class(jsn, "OpenSpecy")

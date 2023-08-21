@@ -1,3 +1,7 @@
+# Create temp dir for testthat
+tmp <- file.path(tempdir(), "OpenSpecy-testthat")
+dir.create(tmp, showWarnings = F)
+
 test_that("opus files are read correctly", {
   single <- read_extdata("ftir_ps.0") |> read_opus() |>
     expect_silent()
@@ -5,6 +9,8 @@ test_that("opus files are read correctly", {
     read_opus() |> expect_silent()
   read_extdata("raman_hdpe.csv") |> read_opus() |>
     expect_error()
+  read_extdata("ftir_ps.0") |> read_opus(share = tmp) |> expect_message() |>
+    expect_warning()
 
   expect_s3_class(single, "OpenSpecy")
   expect_s3_class(multi, "OpenSpecy")
@@ -29,3 +35,6 @@ test_that("opus files are read correctly", {
                       "hum_abs_sm", "hum_abs_rf", "file_id"))
   expect_identical(names(multi$metadata), names(single$metadata))
 })
+
+# Tidy up
+unlink(tmp, recursive = T)

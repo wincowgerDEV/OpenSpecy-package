@@ -155,7 +155,8 @@ read_text <- function(file, colnames = NULL, method = "fread",
                                               "alternative read method",
                                               call. = F)
 
-  os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata)
+  os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata,
+                     session_id = T)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
@@ -204,7 +205,8 @@ read_asp <- function(file, share = NULL,
   y <- lns[-c(1:6)]
   x <- seq(lns[2], lns[3], length.out = lns[1])
 
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata)
+  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata,
+                     session_id = T)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
@@ -276,7 +278,8 @@ read_spa <- function(file, share = NULL,
   x <- seq(spr[1], spr[2], length = length(floatData))
   y <- floatData
 
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata)
+  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata,
+                     session_id = T)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
@@ -321,16 +324,17 @@ read_jdx <- function(file, share = NULL,
   x <- jdx@wavelength
   y <- as.numeric(unname(jdx@data$spc[1,]))
 
-  file <- readLines(file)
-  test <- file[grepl("##",file)|grepl("[:alpha:]",file)]
-  values <- ifelse(grepl("##",test), gsub("##.{1,}=", "", test),
+  lns <- readLines(file)
+  test <- lns[grepl("##", lns)|grepl("[:alpha:]", lns)]
+  vals <- ifelse(grepl("##",test), gsub("##.{1,}=", "", test),
                    gsub(".{1,}:", "", test))
   names <- ifelse(grepl("##",test), gsub("##", "", gsub("=.{1,}", "", test)),
                   gsub(":.{1,}", "", test))
-  df_metadata <- as.data.table(t(values))
+  df_metadata <- as.data.table(t(vals))
   colnames(df_metadata) <- names
 
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = df_metadata)
+  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = df_metadata,
+                     session_id = T)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 
@@ -375,7 +379,8 @@ read_spc <- function(file, share = NULL,
   x <- spc@wavelength
   y <- as.numeric(unname(spc@data$spc[1,]))
 
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata)
+  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata,
+                     session_id = T)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 

@@ -73,7 +73,8 @@ read_envi <- function(file, header = NULL, share = NULL,
   os <- as_OpenSpecy(x = hdr$wavelength,
                      spectra = dcast(dt, z ~ x + y)[, -1],
                      metadata = c(metadata, md),
-                     coords = dt[, 1:2] |> unique())
+                     coords = dt[, 1:2] |> unique(),
+                     session_id = T)
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 

@@ -147,7 +147,14 @@ as_OpenSpecy <- function(x, ...) {
 #' @rdname as_OpenSpecy
 #'
 #' @export
-as_OpenSpecy.OpenSpecy <- function(x, ...) {
+as_OpenSpecy.OpenSpecy <- function(x, session_id = FALSE, ...) {
+  if(session_id)
+    x$metadata$session_id <- paste(digest(Sys.info()),
+                                   digest(sessionInfo()),
+                                   sep = "/")
+  if(!c("file_id") %in% names(x$metadata))
+    x$metadata$file_id = digest(x[c("wavenumber", "spectra")])
+
   return(x)
 }
 
@@ -246,7 +253,7 @@ as_OpenSpecy.default <- function(x, spectra,
                                    other_info = NULL,
                                    license = "CC BY-NC"),
                                  coords = "gen_grid",
-                                 session_id = F,
+                                 session_id = FALSE,
                                  ...) {
   if (!is.numeric(x) && !is.complex(x) && !is.vector(x))
     stop("'x' must be numeric vector", call. = F)
@@ -281,14 +288,12 @@ as_OpenSpecy.default <- function(x, spectra,
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
-      if(session_id){
+      if(session_id)
         obj$metadata$session_id <- paste(digest(Sys.info()),
                                          digest(sessionInfo()),
                                          sep = "/")
-      }
-      if(!c("file_id") %in% names(obj$metadata)) {
+      if(!c("file_id") %in% names(obj$metadata))
         obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
-      }
     } else {
       stop("inconsistent input for 'metadata'", call. = F)
     }

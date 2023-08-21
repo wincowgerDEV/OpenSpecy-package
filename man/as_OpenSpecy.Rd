@@ -15,7 +15,7 @@
 \usage{
 as_OpenSpecy(x, ...)
 
-\method{as_OpenSpecy}{OpenSpecy}(x, ...)
+\method{as_OpenSpecy}{OpenSpecy}(x, session_id = FALSE, ...)
 
 \method{as_OpenSpecy}{list}(x, ...)
 
@@ -37,7 +37,7 @@ as_OpenSpecy(x, ...)
     data_processing_procedure = NULL, level_of_confidence_in_identification = NULL,
     other_info = NULL, license = "CC BY-NC"),
   coords = "gen_grid",
-  session_id = F,
+  session_id = FALSE,
   ...
 )
 
@@ -54,6 +54,11 @@ gen_grid(n)
 a vector with the wavenumbers for all spectra, or a data.frame with a full
 spectrum in the classic Open Specy format.}
 
+\item{session_id}{logical. Whether to add a session ID to the metadata.
+The session ID is based on current session info so metadata of the same
+spectra will not return equal if session info changes. Sometimes that is
+desirable.}
+
 \item{colnames}{names of the wavenumber column and spectra column, makes
 assumptions based on column names or placement if \code{NULL}.}
 
@@ -64,11 +69,6 @@ per spectrum.}
 see details.}
 
 \item{coords}{spatial coordinates for the spectra.}
-
-\item{session_id}{logical. Whether to add a session ID to the metadata.
-The session ID is based on current session info so metadata of the same
-spectra will not return equal if session info changes. Sometimes that is
-desirable.}
 
 \item{n}{number of spectra to generate the spatial coordinate grid with.}
 

@@ -19,9 +19,9 @@ test_that("extdata files are present", {
 test_that("read_text() gives expected output", {
   csv <- read_extdata("raman_hdpe.csv") |> read_text() |>
     expect_silent()
-  # expect_warning(
-  #   expect_message(read_text(read_extdata("raman_hdpe.csv"), share = tmp))
-  # )
+  read_extdata("raman_hdpe.csv") |> read_text(share = tmp) |>
+    expect_message() |> expect_warning()
+
   dtf <- read_extdata("raman_hdpe.csv") |> read_text(method = "fread") |>
     expect_silent()
   read_extdata("ftir_pva_without_header.csv") |> read_text() |>
@@ -43,6 +43,8 @@ test_that("read_asp() gives expected output", {
     expect_silent()
   read_extdata("raman_hdpe.csv") |> read_asp() |>
     expect_error()
+  read_extdata("ftir_ldpe_soil.asp") |> read_asp(share = tmp) |>
+    expect_message() |> expect_warning()
 
   expect_s3_class(asp, "OpenSpecy")
   expect_equal(names(asp), c("wavenumber", "spectra", "metadata"))
@@ -58,6 +60,9 @@ test_that("read_spa() gives expected output", {
     read_spa() |> expect_silent()
   read_extdata("raman_hdpe.csv") |> read_spa() |>
     expect_error()
+  read_extdata("ftir_polyethylene_reflectance_adjustment_not_working.spa") |>
+    read_spa(share = tmp) |>
+    expect_message() |> expect_warning()
 
   expect_s3_class(spa, "OpenSpecy")
   expect_equal(names(spa), c("wavenumber", "spectra", "metadata"))
@@ -92,6 +97,8 @@ test_that("read_spc() gives expected output", {
     expect_silent()
   read_extdata("raman_hdpe.csv") |> read_spc() |>
     expect_error()
+  read_extdata("raman_atacamit.spc") |> read_spc(share = tmp) |>
+    expect_message() |> expect_warning()
 
   expect_s3_class(spc, "OpenSpecy")
   expect_equal(names(spc), c("wavenumber", "spectra", "metadata"))

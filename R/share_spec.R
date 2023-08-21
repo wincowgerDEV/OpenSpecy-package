@@ -63,16 +63,20 @@ share_spec.default <- function(x, ...) {
 share_spec.OpenSpecy <- function(x, file = NULL, share = "system",
                                  credentials = NULL, ...) {
   md <- x$metadata
-  if (any(!c("user_name", "spectrum_type", "spectrum_identity") %in%
-          names(md)) |
-      is.null(md$user_name) | is.null(md$spectrum_type) |
-      is.null(md$spectrum_identity))
+  if(any(!c("user_name", "spectrum_type", "spectrum_identity") %in%
+         names(md)) |
+     is.null(md$user_name) | is.null(md$spectrum_type) |
+     is.null(md$spectrum_identity))
     warning("Fields 'user_name', 'spectrum_type', and 'spectrum_identity' ",
             "should not be empty if you like to share your metadata", call. = F)
 
+  if(is.null(md$session_id))
+    stop("'session_id' must not be empty if you like to share your metadata;",
+         "run 'as_OpenSpecy(x, session_id = T)' to add one", call. = F)
+
   if (share == "system") {
     fp <- file.path(system.file("extdata", package = "OpenSpecy"),
-                    "user_spectra", md$session_id)
+                    "user_spectra", md$session_id) |> unique()
   } else if (share == "cloud") {
     pkg <- "aws.s3"
     mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
@@ -87,13 +91,13 @@ share_spec.OpenSpecy <- function(x, file = NULL, share = "system",
       stop("'credentials' needs to be a named list containing the following ",
            "items: 's3_key', 's3_secret', 's3_region', 's3_bucket'", call. = F)
 
-    fp <- file.path(tempdir(), md$session_id)
+    fp <- file.path(tempdir(), md$session_id) |> unique()
   } else {
-    fp <- file.path(share, md$session_id)
+    fp <- file.path(share, md$session_id) |> unique()
   }
   dir.create(fp, recursive = T, showWarnings = F)
 
-  fd <- file.path(fp, paste0(md$file_id, ".yml"))
+  fd <- file.path(fp, paste0(md$file_id, ".yml")) |> unique()
 
   write_spec(x, fd)
 
