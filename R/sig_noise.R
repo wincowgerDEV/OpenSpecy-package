@@ -1,4 +1,4 @@
-#' @rdname signal_noise
+#' @rdname sig_noise
 #' @title Calculate signal and noise metrics for OpenSpecy objects
 #'
 #' @description
@@ -7,10 +7,10 @@
 #'
 #' @param x an \code{OpenSpecy} object.
 #' @param metric character; specifying the desired metric to calculate.
-#' Options include \code{"signal"} (mean intensity), \code{"noise"} (standard
-#' deviation of intensity), \code{"signal_times_noise"} (absolute value of
-#' signal times noise), \code{"signal_over_noise"} (absolute value of signal /
-#' noise), or \code{"total_signal"} (total signal = signal * number of data
+#' Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
+#' deviation of intensity), \code{"sig_times_noise"} (absolute value of
+#' signal times noise), \code{"sig_over_noise"} (absolute value of signal /
+#' noise), or \code{"tot_sig"} (total signal = signal * number of data
 #' points).
 #' @param na.rm logical; indicating whether missing values should be removed
 #' when calculating signal and noise. Default is \code{TRUE}.
@@ -23,30 +23,30 @@
 #' @examples
 #' data("raman_hdpe")
 #'
-#' signal_noise(raman_hdpe, metric = "signal")
-#' signal_noise(raman_hdpe, metric = "noise")
-#' signal_noise(raman_hdpe, metric = "signal_times_noise")
+#' sig_noise(raman_hdpe, metric = "sig")
+#' sig_noise(raman_hdpe, metric = "noise")
+#' sig_noise(raman_hdpe, metric = "sig_times_noise")
 #'
 #' @importFrom stats median
 #' @importFrom data.table frollapply
 #'
 #' @export
-signal_noise <- function(x, ...) {
-  UseMethod("signal_noise")
+sig_noise <- function(x, ...) {
+  UseMethod("sig_noise")
 }
 
-#' @rdname signal_noise
+#' @rdname sig_noise
 #'
 #' @export
-signal_noise.default <- function(x, ...) {
+sig_noise.default <- function(x, ...) {
   stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
 }
 
-#' @rdname signal_noise
+#' @rdname sig_noise
 #'
 #' @export
-signal_noise.OpenSpecy <- function(x, metric = "signal_over_noise",
-                                   na.rm = TRUE, ...) {
+sig_noise.OpenSpecy <- function(x, metric = "sig_over_noise",
+                                na.rm = TRUE, ...) {
   vapply(x$spectra, function(y) {
     if(length(y[!is.na(y)]) < 20) {
       warning("Need at least 20 intensity values to calculate the signal or ",
@@ -54,7 +54,7 @@ signal_noise.OpenSpecy <- function(x, metric = "signal_over_noise",
       return(NA)
     }
 
-    if(metric == "run_signal_over_noise") {
+    if(metric == "run_sig_over_noise") {
       max <- frollapply(y[!is.na(y)], 20, max)
       max[(length(max) - 19):length(max)] <- NA
       signal <- max(max, na.rm = T)#/mean(x, na.rm = T)
@@ -65,13 +65,13 @@ signal_noise.OpenSpecy <- function(x, metric = "signal_over_noise",
       noise = sd(y, na.rm = na.rm)
     }
 
-    if(metric == "signal") return(signal)
+    if(metric == "sig") return(signal)
     if(metric == "noise") return(noise)
-    if(metric == "signal_times_noise") return(abs(signal*noise))
+    if(metric == "sig_times_noise") return(abs(signal * noise))
 
-    if(metric %in% c("signal_over_noise", "run_signal_over_noise"))
+    if(metric %in% c("sig_over_noise", "run_sig_over_noise"))
       return(abs(signal/noise))
-    if(metric == "total_signal") return(sum(y))
-    if(metric == "log_total_signal") return(sum(exp(y)))
+    if(metric == "tot_sig") return(sum(y))
+    if(metric == "log_tot_sig") return(sum(exp(y)))
   }, FUN.VALUE = numeric(1))
 }

@@ -22,14 +22,14 @@ test_that("Raman batch analysis with test library", {
 
   plotly_spec(batch2) |> expect_silent()
 
-  signal_noise(batch2, metric = "run_signal_over_noise") |>
+  sig_noise(batch2, metric = "run_sig_over_noise") |>
     expect_silent()
   batch3 <- process_spec(batch2, subtr_baseline = T) |> expect_silent()
   plotly_spec(x = batch3, x2 = batch) |> expect_silent()
 
   matches <- cor_spec(batch3, library = lib) |> expect_silent()
   test_max_cor <- max_cor_named(matches) |> expect_silent()
-  signal_noise(batch3, metric = "run_signal_over_noise") |>
+  sig_noise(batch3, metric = "run_sig_over_noise") |>
     expect_silent()
 })
 
@@ -55,14 +55,14 @@ test_that("Raman batch analysis with complete library", {
 
   plotly_spec(batch2) |> expect_silent()
 
-  test_sn2 <- signal_noise(batch2, metric = "run_signal_over_noise") |>
+  test_sn2 <- sig_noise(batch2, metric = "run_sig_over_noise") |>
     expect_silent()
   batch3 <- process_spec(batch2, subtr_baseline = T) |> expect_silent()
   plotly_spec(x = batch3, x2 = batch) |> expect_silent()
 
   matches <- cor_spec(batch3, library = lib) |> expect_silent()
   test_max_cor <- max_cor_named(matches) |> expect_silent()
-  test_sn <- signal_noise(batch3, metric = "run_signal_over_noise") |>
+  test_sn <- sig_noise(batch3, metric = "run_sig_over_noise") |>
     expect_silent()
 
   heatmap_spec(batch3, sn = test_sn, cor = test_max_cor, min_sn = 4,
