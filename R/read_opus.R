@@ -171,7 +171,7 @@ read_opus <- function(file, share = NULL,
 
   os <- as_OpenSpecy(x = res$wavenumbers,
                      spectra = res$spec,
-                     metadata = res$metadata)
+                     metadata = cbind(as.data.table(metadata), res$metadata))
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 

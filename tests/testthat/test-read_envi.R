@@ -13,5 +13,7 @@ test_that("ENVI files are read", {
   tiny_map$spectra[c(1,427), c(1,45)] |> round(2) |> unlist() |> as.numeric() |>
     expect_equal(c(-0.86, -0.88, -0.62, -0.64))
 
-  expect_contains(names(tiny_map$metadata), c("x", "y", "file_name", "file_id"))
+  names(tiny_map$metadata) |>
+    expect_contains(c("x", "y", "file_name", "file_id", "description",
+                      "pixel size"))
 })

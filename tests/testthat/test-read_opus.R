@@ -20,15 +20,12 @@ test_that("opus files are read correctly", {
   range(multi$spectra, na.rm = T) |> round(4) |>
     expect_equal(c(0.0130, 0.6103))
 
-  expect_identical(names(single$metadata), c("x", "y", "unique_id", "sample_id",
-                                             "date_time_sm", "date_time_rf",
-                                             "sample_name", "instr_name_range",
-                                             "resolution_wn", "result_spc",
-                                             "beamspl", "laser_wn",
-                                             "spc_in_file",
-                                             "zero_filling", "temp_scanner_sm",
-                                             "temp_scanner_rf", "hum_rel_sm",
-                                             "hum_rel_rf", "hum_abs_sm",
-                                             "hum_abs_rf", "file_id"))
+  names(single$metadata) |>
+    expect_contains(c("x", "y", "unique_id", "sample_id", "date_time_sm",
+                      "date_time_rf", "sample_name", "instr_name_range",
+                      "resolution_wn", "result_spc", "beamspl", "laser_wn",
+                      "spc_in_file", "zero_filling", "temp_scanner_sm",
+                      "temp_scanner_rf", "hum_rel_sm", "hum_rel_rf",
+                      "hum_abs_sm", "hum_abs_rf", "file_id"))
   expect_identical(names(multi$metadata), names(single$metadata))
 })

@@ -66,12 +66,13 @@ read_envi <- function(file, header = NULL, share = NULL,
   hdr <- .read_envi_header(header)
   arr <- read.ENVI(file, header)
   dt <- as.data.table(arr)
+  md <- hdr[names(hdr) != "wavelength"]
   names(dt) <- c("x", "y", "z", "value")
   dt[, 1:2] <- dt[, 1:2] -1
 
   os <- as_OpenSpecy(x = hdr$wavelength,
                      spectra = dcast(dt, z ~ x + y)[, -1],
-                     metadata = metadata,
+                     metadata = c(metadata, md),
                      coords = dt[, 1:2] |> unique())
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
