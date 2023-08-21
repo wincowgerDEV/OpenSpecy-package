@@ -24,7 +24,7 @@ read_opus(
 )
 }
 \arguments{
-\item{file}{Character vector with path to file(s).}
+\item{file}{character vector with path to file(s).}
 
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
@@ -32,7 +32,7 @@ Open Specy community; see \code{\link{share_spec}()} for details.}
 \item{metadata}{a named list of the metadata; see \code{\link{read_text}()}
 for details.}
 
-\item{type}{Character vector of spectra types to extract from OPUS binary
+\item{type}{character vector of spectra types to extract from OPUS binary
 file. Default is \code{"spec"}, which will extract the final spectra, e.g.
 expressed in absorbance (named \code{AB} in Bruker OPUS programs). Possible
 additional values for the character vector supplied to \code{type} are
@@ -47,8 +47,8 @@ atmospheric gases, water vapor and/or carbon dioxide),
 round the wavenumbers (values of x-variables).}
 
 \item{atm_comp_minus4offset}{Logical whether spectra after atmospheric
-compensation are read with an offset of -4 bytes from Bruker OPUS files.
-Default is \code{FALSE}.}
+compensation are read with an offset of -4 bytes from Bruker OPUS files;
+default is \code{FALSE}.}
 }
 \value{
 An \code{OpenSpecy} object.
@@ -73,6 +73,9 @@ software naming conventions, as follows:
 \examples{
 read_extdata("ftir_ps.0") |> read_opus()
 
+}
+\seealso{
+\code{\link{read_opus_raw}()}
 }
 \author{
 Philipp Baumann, Zacharias Steinmetz, Win Cowger

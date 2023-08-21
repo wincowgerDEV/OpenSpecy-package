@@ -9,7 +9,7 @@ read_opus_raw(rw, type = "spec", atm_comp_minus4offset = FALSE)
 \arguments{
 \item{rw}{a raw vector}
 
-\item{type}{Character vector of spectra types to extract from OPUS binary
+\item{type}{character vector of spectra types to extract from OPUS binary
 file. Default is \code{"spec"}, which will extract the final spectra, e.g.
 expressed in absorbance (named \code{AB} in Bruker OPUS programs). Possible
 additional values for the character vector supplied to \code{type} are
@@ -20,12 +20,12 @@ atmospheric gases, water vapor and/or carbon dioxide),
 \code{"ig_sample"} (interferogram of the sample measurement) and \code{"ig_ref"}
 (interferogram of the reference measurement).}
 
-\item{atm_comp_minus4offset}{Logical whether spectra after atmospheric
+\item{atm_comp_minus4offset}{logical; whether spectra after atmospheric
 compensation are read with an offset of -4 bytes from Bruker OPUS
 files. Default is \code{FALSE}.}
 }
 \value{
-a list of 10 elements:
+A list of 10 elements:
 
 \describe{
 \item{\code{metadata}}{a \code{data.frame} containing metadata from the OPUS file.}
@@ -70,6 +70,9 @@ software naming conventions, as follows:
 \item \code{IgSm} corresponds to \code{ig_sample}
 \item \code{IgRf} corresponds to \code{ig_ref}
 }
+}
+\seealso{
+\code{\link{read_opus}()}
 }
 \author{
 Philipp Baumann and Pierre Roudier

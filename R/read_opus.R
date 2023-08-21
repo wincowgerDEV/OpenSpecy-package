@@ -3,12 +3,12 @@
 #' @description
 #' Read file(s) acquired with a Bruker Vertex FTIR Instrument.
 #'
-#' @param file Character vector with path to file(s).
+#' @param file character vector with path to file(s).
 #' @param share defaults to \code{NULL}; needed to share spectra with the
 #' Open Specy community; see \code{\link{share_spec}()} for details.
 #' @param metadata a named list of the metadata; see \code{\link{read_text}()}
 #' for details.
-#' @param type Character vector of spectra types to extract from OPUS binary
+#' @param type character vector of spectra types to extract from OPUS binary
 #' file. Default is `"spec"`, which will extract the final spectra, e.g.
 #' expressed in absorbance (named `AB` in Bruker OPUS programs). Possible
 #' additional values for the character vector supplied to `type` are
@@ -18,14 +18,14 @@
 #' (single channel spectrum of the reference measurement),
 #' `"ig_sample"` (interferogram of the sample measurement) and `"ig_ref"`
 #' (interferogram of the reference measurement).
-#'
 #' @param digits Integer that specifies the number of decimal places used to
 #' round the wavenumbers (values of x-variables).
 #' @param atm_comp_minus4offset Logical whether spectra after atmospheric
-#' compensation are read with an offset of -4 bytes from Bruker OPUS files.
-#' Default is `FALSE`.
+#' compensation are read with an offset of -4 bytes from Bruker OPUS files;
+#' default is `FALSE`.
 #'
-#' @details The type of spectra returned by the function when using
+#' @details
+#' The type of spectra returned by the function when using
 #' `type = "spec"` depends on the setting of the Bruker instrument: typically,
 #' it can be either absorbance or reflectance.
 #'
@@ -44,6 +44,9 @@
 #' read_extdata("ftir_ps.0") |> read_opus()
 #'
 #' @author Philipp Baumann, Zacharias Steinmetz, Win Cowger
+#'
+#' @seealso
+#' \code{\link{read_opus_raw}()}
 #'
 #' @importFrom stats approx
 #' @importFrom data.table as.data.table data.table

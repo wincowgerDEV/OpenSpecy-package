@@ -4,7 +4,7 @@
 #' Read single binary acquired with an Bruker Vertex FTIR Instrument
 #'
 #' @param rw a raw vector
-#' @param type Character vector of spectra types to extract from OPUS binary
+#' @param type character vector of spectra types to extract from OPUS binary
 #' file. Default is `"spec"`, which will extract the final spectra, e.g.
 #' expressed in absorbance (named `AB` in Bruker OPUS programs). Possible
 #' additional values for the character vector supplied to `type` are
@@ -14,7 +14,7 @@
 #' `"sc_ref"` (single channel spectrum of the reference measurement),
 #' `"ig_sample"` (interferogram of the sample measurement) and `"ig_ref"`
 #' (interferogram of the reference measurement).
-#' @param atm_comp_minus4offset Logical whether spectra after atmospheric
+#' @param atm_comp_minus4offset logical; whether spectra after atmospheric
 #' compensation are read with an offset of -4 bytes from Bruker OPUS
 #' files. Default is `FALSE`.
 #'
@@ -31,7 +31,8 @@
 #' - `IgSm` corresponds to `ig_sample`
 #' - `IgRf` corresponds to `ig_ref`
 #'
-#' @return a list of 10 elements:
+#' @return
+#' A list of 10 elements:
 #'
 #' \describe{
 #'   \item{`metadata`}{a `data.frame` containing metadata from the OPUS file.}
@@ -61,6 +62,9 @@
 #' }
 #'
 #' @author Philipp Baumann and Pierre Roudier
+#'
+#' @seealso
+#' \code{\link{read_opus}()}
 #'
 #' @importFrom stats setNames
 #' @export

@@ -1,5 +1,6 @@
 test_that("ENVI files are read", {
-  tiny_map <- read_zip(read_extdata("CA_tiny_map.zip"))
+  tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip() |>
+    expect_silent()
   expect_s3_class(tiny_map, "OpenSpecy")
 
   expect_equal(ncol(tiny_map$spectra), 208)
