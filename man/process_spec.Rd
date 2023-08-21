@@ -31,8 +31,8 @@ process_spec(x, ...)
   flatten_range = FALSE,
   flatten_range_args = list(min = 2200, max = 2420),
   subtr_baseline = FALSE,
-  subtr_baseline_args = list(type = "polynomial", degree = 8, raw = FALSE,
-    baseline_wavenumber = NULL, baseline_intensity = NULL),
+  subtr_baseline_args = list(type = "polynomial", degree = 8, raw = FALSE, baseline =
+    NULL),
   smooth_intens = FALSE,
   smooth_intens_args = list(polynomial = 3, window = 11, derivative = 0, abs = T),
   make_rel = F,

@@ -17,8 +17,8 @@
 #' unique points when raw is \code{FALSE}. Typically a good fit can be
 #' found with a 8th order polynomial.
 #' @param raw if \code{TRUE}, use raw and not orthogonal polynomials.
-#' @param baseline_wavenumber manually specified wavenumbers for the baseline.
-#' @param baseline_intensity manually specified intensity values for the baseline.
+#' @param baseline an \code{OpenSpecy} object containing the baseline data to be
+#' subtracted.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
 #' @param \ldots further arguments passed to \code{\link[stats]{poly}()}.
@@ -68,16 +68,17 @@ subtr_baseline.default <- function(x, ...) {
 #' @export
 subtr_baseline.OpenSpecy <- function(x, type = "polynomial",
                                      degree = 8, raw = FALSE,
-                                     baseline_wavenumber, baseline_intensity,
-                                     make_rel = TRUE, ...) {
-  if(type == "polynomial")
+                                     baseline, make_rel = TRUE, ...) {
+  if(type == "polynomial") {
     sbg <- x$spectra[, lapply(.SD, .subtr_bl_poly, x = x$wavenumber,
                               degree = degree, raw = raw, ...)]
-  else if(type == "manual")
+  } else if(type == "manual") {
+    if(!is_OpenSpecy(baseline))
+      stop("'baseline' needs to be of class 'OpenSpecy'", call. = F)
     sbg <- x$spectra[, lapply(.SD, .subtr_bl_manual, x = x$wavenumber,
-                              bl_y = baseline_intensity,
-                              bl_x = baseline_wavenumber)]
-  else stop("'type' must be either 'polynomial' or 'manual'", call. = F)
+                              bl_y = baseline$spectra[[1]],
+                              bl_x = baseline$wavenumber)]
+  } else stop("'type' must be either 'polynomial' or 'manual'", call. = F)
 
   if (make_rel) x$spectra <- sbg[, lapply(.SD, make_rel)] else x$spectra <- sbg
 

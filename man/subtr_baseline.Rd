@@ -15,8 +15,7 @@ subtr_baseline(x, ...)
   type = "polynomial",
   degree = 8,
   raw = FALSE,
-  baseline_wavenumber,
-  baseline_intensity,
+  baseline,
   make_rel = TRUE,
   ...
 )
@@ -34,9 +33,8 @@ found with a 8th order polynomial.}
 
 \item{raw}{if \code{TRUE}, use raw and not orthogonal polynomials.}
 
-\item{baseline_wavenumber}{manually specified wavenumbers for the baseline.}
-
-\item{baseline_intensity}{manually specified intensity values for the baseline.}
+\item{baseline}{an \code{OpenSpecy} object containing the baseline data to be
+subtracted.}
 
 \item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
 with \code{\link{make_rel}()}.}
