@@ -1,5 +1,9 @@
 comment: false
 
+ignore:
+  - "R/run_app.R"
+  - "tests/testthat/test-run_app.R"
+
 coverage:
   status:
     project:
