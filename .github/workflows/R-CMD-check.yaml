@@ -50,9 +50,8 @@ jobs:
 
       - name: Populate .Renviron with GitHub Secrets
         run: |
-          echo AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" >> ~/.Renviron
-          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> ~/.Renviron
-          shell: bash
+          echo AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" >> ~/.Renviron
+          echo AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ~/.Renviron
 
       - uses: r-lib/actions/check-r-package@v2
         with:
