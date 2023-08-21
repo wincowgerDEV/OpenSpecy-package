@@ -13,13 +13,13 @@ Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 [![Gitter](https://badges.gitter.im/Open-Specy/community.svg)](https://app.gitter.im/#/room/#Open-Specy_community:gitter.im)
 <!-- badges: end -->
 
-Raman and (FT)IR spectral analysis tool for plastic particles and
-other environmental samples (Cowger et al. 2021, doi: 
+Raman and (FT)IR spectral analysis tool for plastic particles and other 
+environmental samples (Cowger et al. 2021, doi: 
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123)).
-Supported features include reading spectral data files (.asp, .csv, .jdx, .spc,
-.spa, .0), Savitzky-Golay smoothing of spectral intensities with
-`smooth_intens()`, correcting background noise with `subtr_baseline()` in accordance
-with Zhao et al. (2007, doi: 
+Supported features include reading spectral data files like 
+.asp, .csv, .jdx, .spc, .spa, and .0, Savitzky-Golay smoothing of spectral
+intensities with `smooth_intens()`, correcting background noise with
+`subtr_baseline()` in accordance with Zhao et al. (2007, doi: 
 [10.1366/000370207782597003](https://doi.org/10.1366/000370207782597003)), and
 identifying spectra using an onboard reference library (Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064)).
 Analyzed spectra can be shared with the Open Specy community. A Shiny app is
