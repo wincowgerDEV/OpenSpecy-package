@@ -28,7 +28,7 @@ test_that("share_text() uploads to the cloud", {
   skip_on_cran()
   skip_if_not(testthat:::on_ci(), "Not on CI")
   skip_if(Sys.getenv("AWS_ACCESS_KEY_ID") == "" ||
-            Sys.getenv("AWS_SECRET_ACCESS_KEY" == ""), "No credentials")
+            Sys.getenv("AWS_SECRET_ACCESS_KEY") == "", "No credentials")
 
   share_spec(raman_hdpe, file = read_extdata("raman_hdpe.csv"), share = "cloud",
              credentials = list(
