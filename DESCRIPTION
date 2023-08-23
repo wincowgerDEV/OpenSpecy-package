@@ -63,7 +63,7 @@ Imports:
 Suggests:
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0),
+    testthat (>= 3.1.9),
     config,
     qs,
     shinyjs,
