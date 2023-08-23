@@ -39,3 +39,4 @@ test_that("sample_spec() returns a subset of the spectra", {
   expect_s3_class(sampled, "OpenSpecy")
   expect_equal(ncol(sampled$spectra), 5)
 })
+

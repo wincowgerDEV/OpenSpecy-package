@@ -19,3 +19,4 @@ test_that("head returns the first few lines of the OpenSpecy object", {
 test_that("ploting works without errors", {
   plot(raman_hdpe) |> expect_silent()
 })
+
