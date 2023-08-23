@@ -88,14 +88,12 @@ Functions to check if an object is an OpenSpecy, or coerce it if
 possible.
 }
 \details{
-\code{as_OpenSpecy()} converts spectral datasets to a three part list,
+\code{as_OpenSpecy()} converts spectral datasets to a three part list;
 the first with a vector of the wavenumbers of the spectra,
 the second with a \code{data.table} of all spectral intensities ordered as
 columns,
 the third item is another \code{data.table} with any metadata the user
-provides or is harvested from the files themselves. Currently metadata
-harvesting from jdx and opus files are supported as well as the two
-OpenSpecy write formats yaml and json.
+provides or is harvested from the files themselves.
 
 The \code{metadata} argument may contain a named list with the following
 details (\code{*} = minimum recommended):

@@ -29,8 +29,8 @@ read_opus(
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
 
-\item{metadata}{a named list of the metadata; see \code{\link{read_text}()}
-for details.}
+\item{metadata}{a named list of the metadata; see
+\code{\link{as_OpenSpecy}()} for details.}
 
 \item{type}{character vector of spectra types to extract from OPUS binary
 file. Default is \code{"spec"}, which will extract the final spectra, e.g.
@@ -54,7 +54,9 @@ default is \code{FALSE}.}
 An \code{OpenSpecy} object.
 }
 \description{
-Read file(s) acquired with a Bruker Vertex FTIR Instrument.
+Read file(s) acquired with a Bruker Vertex FTIR Instrument. This function
+is basically a fork of \code{opus_read()} from
+\url{https://github.com/pierreroudier/opusreader}.
 }
 \details{
 The type of spectra returned by the function when using
@@ -75,7 +77,14 @@ read_extdata("ftir_ps.0") |> read_opus()
 
 }
 \seealso{
-\code{\link{read_opus_raw}()}
+\code{\link{read_spec}()} for reading .y(a)ml, .json, or .rds (OpenSpecy)
+files;
+\code{\link{read_text}()}, \code{\link{read_asp}()}, \code{\link{read_spa}()},
+\code{\link{read_spc}()}, and \code{\link{read_jdx}()} for text files, .asp,
+.spa, .spa, .spc, and .jdx formats, respectively;
+\code{\link{read_text}()} for reading .dat (ENVI) files;
+\code{\link{read_zip}()} and \code{\link{read_any}()} for wrapper functions;
+\code{\link{read_opus_raw}()};
 }
 \author{
 Philipp Baumann, Zacharias Steinmetz, Win Cowger

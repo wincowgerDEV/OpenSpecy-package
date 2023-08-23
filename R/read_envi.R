@@ -3,20 +3,20 @@
 #' @description
 #' This function allows ENVI data import.
 #'
-#' @details
-#' ENVI data usually consists of two files, an ASCII header and a binary data
-#' file. The header contains all information necessary for correctly reading
-#' the binary file via \code{\link[caTools]{read.ENVI}()}.
-#'
 #' @param file name of the binary file.
 #' @param header name of the ASCII header file. If `NULL`, the name of the
 #' header file is guessed by looking for a second file with the same basename as
 #' `file` but with .hdr extension.
 #' @param share defaults to \code{NULL}; needed to share spectra with the
 #' Open Specy community; see \code{\link{share_spec}()} for details.
-#' @param metadata a named list of the metadata; see \code{\link{read_text}()}
-#' for details.
+#' @param metadata a named list of the metadata; see
+#' \code{\link{as_OpenSpecy}()} for details.
 #' @param \ldots further arguments passed to the submethods.
+#'
+#' @details
+#' ENVI data usually consists of two files, an ASCII header and a binary data
+#' file. The header contains all information necessary for correctly reading
+#' the binary file via \code{\link[caTools]{read.ENVI}()}.
 #'
 #' @return
 #' An `OpenSpecy` object.
@@ -24,6 +24,13 @@
 #' @author Zacharias Steinmetz, Claudia Beleites
 #'
 #' @seealso
+#' \code{\link{read_spec}()} for reading .y(a)ml, .json, or .rds (OpenSpecy)
+#' files;
+#' \code{\link{read_text}()}, \code{\link{read_asp}()}, \code{\link{read_spa}()},
+#' \code{\link{read_spc}()}, and \code{\link{read_jdx}()} for text files, .asp,
+#' .spa, .spa, .spc, and .jdx formats, respectively;
+#' \code{\link{read_opus}()} for reading .0 (OPUS) files;
+#' \code{\link{read_zip}()} and \code{\link{read_any}()} for wrapper functions;
 #' \code{\link[caTools]{read.ENVI}()}
 #'
 #' @importFrom utils modifyList

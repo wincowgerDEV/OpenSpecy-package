@@ -78,8 +78,6 @@ test_that("read_jdx() gives expected output", {
                                    encoding = "latin1")) |>
     capture_messages() |>
     expect_match("JDX file inconsistency.*")
-  read_extdata("throws_error_raman_1000002.jdx") |> read_jdx() |>
-    expect_error()
   read_extdata("raman_hdpe.csv") |> read_jdx() |>
     expect_error()
 

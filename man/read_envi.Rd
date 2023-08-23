@@ -32,8 +32,8 @@ header file is guessed by looking for a second file with the same basename as
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
 
-\item{metadata}{a named list of the metadata; see \code{\link{read_text}()}
-for details.}
+\item{metadata}{a named list of the metadata; see
+\code{\link{as_OpenSpecy}()} for details.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
@@ -49,6 +49,13 @@ file. The header contains all information necessary for correctly reading
 the binary file via \code{\link[caTools]{read.ENVI}()}.
 }
 \seealso{
+\code{\link{read_spec}()} for reading .y(a)ml, .json, or .rds (OpenSpecy)
+files;
+\code{\link{read_text}()}, \code{\link{read_asp}()}, \code{\link{read_spa}()},
+\code{\link{read_spc}()}, and \code{\link{read_jdx}()} for text files, .asp,
+.spa, .spa, .spc, and .jdx formats, respectively;
+\code{\link{read_opus}()} for reading .0 (OPUS) files;
+\code{\link{read_zip}()} and \code{\link{read_any}()} for wrapper functions;
 \code{\link[caTools]{read.ENVI}()}
 }
 \author{

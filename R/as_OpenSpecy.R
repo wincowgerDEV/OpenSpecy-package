@@ -6,15 +6,30 @@
 #' Functions to check if an object is an OpenSpecy, or coerce it if
 #' possible.
 #'
+#' @param x depending on the method, a list with all OpenSpecy parameters,
+#' a vector with the wavenumbers for all spectra, or a data.frame with a full
+#' spectrum in the classic Open Specy format.
+#' @param spectra spectral intensities formatted as a data.table with one column
+#' per spectrum.
+#' @param metadata metadata for each spectrum with one row per spectrum,
+#' see details.
+#' @param coords spatial coordinates for the spectra.
+#' @param session_id logical. Whether to add a session ID to the metadata.
+#' The session ID is based on current session info so metadata of the same
+#' spectra will not return equal if session info changes. Sometimes that is
+#' desirable.
+#' @param colnames names of the wavenumber column and spectra column, makes
+#' assumptions based on column names or placement if \code{NULL}.
+#' @param n number of spectra to generate the spatial coordinate grid with.
+#' @param \ldots additional arguments passed to submethods.
+#'
 #' @details
-#' \code{as_OpenSpecy()} converts spectral datasets to a three part list,
+#' \code{as_OpenSpecy()} converts spectral datasets to a three part list;
 #' the first with a vector of the wavenumbers of the spectra,
 #' the second with a \code{data.table} of all spectral intensities ordered as
 #' columns,
 #' the third item is another \code{data.table} with any metadata the user
-#' provides or is harvested from the files themselves. Currently metadata
-#' harvesting from jdx and opus files are supported as well as the two
-#' OpenSpecy write formats yaml and json.
+#' provides or is harvested from the files themselves.
 #'
 #' The \code{metadata} argument may contain a named list with the following
 #' details (\code{*} = minimum recommended):
@@ -79,23 +94,6 @@
 #' \code{file_id}: \tab A unique file identifier; populated automatically
 #' with \code{digest(object[c("wavenumber", "spectra")])}\cr
 #' }
-#'
-#' @param x depending on the method, a list with all OpenSpecy parameters,
-#' a vector with the wavenumbers for all spectra, or a data.frame with a full
-#' spectrum in the classic Open Specy format.
-#' @param spectra spectral intensities formatted as a data.table with one column
-#' per spectrum.
-#' @param metadata metadata for each spectrum with one row per spectrum,
-#' see details.
-#' @param coords spatial coordinates for the spectra.
-#' @param session_id logical. Whether to add a session ID to the metadata.
-#' The session ID is based on current session info so metadata of the same
-#' spectra will not return equal if session info changes. Sometimes that is
-#' desirable.
-#' @param colnames names of the wavenumber column and spectra column, makes
-#' assumptions based on column names or placement if \code{NULL}.
-#' @param n number of spectra to generate the spatial coordinate grid with.
-#' @param \ldots additional arguments passed to submethods.
 #'
 #' @return
 #' \code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists
