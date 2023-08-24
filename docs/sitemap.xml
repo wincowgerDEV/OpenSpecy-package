@@ -34,13 +34,22 @@
     <loc>http://wincowger.com/OpenSpecy-package/reference/adj_intens.html</loc>
   </url>
   <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/adj_range.html</loc>
+  </url>
+  <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/as_OpenSpecy.html</loc>
+  </url>
+  <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/conform_spec.html</loc>
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/correlate_spectra.html</loc>
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/data_norm.html</loc>
+  </url>
+  <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/def_features.html</loc>
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/gen_OpenSpecy.html</loc>
@@ -52,13 +61,25 @@
     <loc>http://wincowger.com/OpenSpecy-package/reference/index.html</loc>
   </url>
   <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/interactive_plots.html</loc>
+  </url>
+  <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/io_spec.html</loc>
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/manage_lib.html</loc>
   </url>
   <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/manage_spec.html</loc>
+  </url>
+  <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/match_spec.html</loc>
+  </url>
+  <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/OpenSpecy-package.html</loc>
+  </url>
+  <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/process_spec.html</loc>
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/process_spectra.html</loc>
@@ -67,7 +88,13 @@
     <loc>http://wincowger.com/OpenSpecy-package/reference/raman_hdpe.html</loc>
   </url>
   <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/read_envi.html</loc>
+  </url>
+  <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/read_ext.html</loc>
+  </url>
+  <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/read_multi.html</loc>
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/read_opus.html</loc>
@@ -82,10 +109,16 @@
     <loc>http://wincowger.com/OpenSpecy-package/reference/share_spec.html</loc>
   </url>
   <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/sig_noise.html</loc>
+  </url>
+  <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/smooth_intens.html</loc>
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/spec_res.html</loc>
+  </url>
+  <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/subtr_baseline.html</loc>
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/subtr_bg.html</loc>

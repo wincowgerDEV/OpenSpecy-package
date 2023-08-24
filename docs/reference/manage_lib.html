@@ -3,7 +3,7 @@
 were not already downloaded.
 The CRAN does not allow for deployment of large datasets so this was a
 workaround that we are using to make sure everyone can easily get Open Specy
-functionality running on their desktop."><title>Manage spectral libraries — check_lib • OpenSpecy</title><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.1.0/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.1.0/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous"><!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Manage spectral libraries — check_lib"><meta property="og:description" content="These functions will import the spectral libraries from Open Specy if they
+functionality running on their desktop."><title>Manage spectral libraries — check_lib • OpenSpecy</title><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.2.2/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.2.2/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous"><!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Manage spectral libraries — check_lib"><meta property="og:description" content="These functions will import the spectral libraries from Open Specy if they
 were not already downloaded.
 The CRAN does not allow for deployment of large datasets so this was a
 workaround that we are using to make sure everyone can easily get Open Specy
@@ -18,7 +18,7 @@ functionality running on their desktop."><!-- mathjax --><script src="https://cd
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,38 +70,29 @@ functionality running on their desktop.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">check_lib</span><span class="op">(</span></span>
-<span>  which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span>,</span>
-<span>  types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"metadata"</span>, <span class="st">"library"</span>, <span class="st">"peaks"</span><span class="op">)</span>,</span>
+<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"derivative"</span>, <span class="st">"nobaseline"</span>, <span class="st">"raw"</span><span class="op">)</span>,</span>
 <span>  path <span class="op">=</span> <span class="st">"system"</span>,</span>
 <span>  condition <span class="op">=</span> <span class="st">"warning"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">get_lib</span><span class="op">(</span></span>
-<span>  which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span>,</span>
-<span>  types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"metadata"</span>, <span class="st">"library"</span>, <span class="st">"peaks"</span><span class="op">)</span>,</span>
+<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"derivative"</span>, <span class="st">"nobaseline"</span>, <span class="st">"raw"</span><span class="op">)</span>,</span>
 <span>  path <span class="op">=</span> <span class="st">"system"</span>,</span>
 <span>  node <span class="op">=</span> <span class="st">"x7dpz"</span>,</span>
 <span>  conflicts <span class="op">=</span> <span class="st">"overwrite"</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">load_lib</span><span class="op">(</span></span>
-<span>  which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span>,</span>
-<span>  types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"metadata"</span>, <span class="st">"library"</span>, <span class="st">"peaks"</span><span class="op">)</span>,</span>
-<span>  path <span class="op">=</span> <span class="st">"system"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">load_lib</span><span class="op">(</span><span class="va">type</span>, path <span class="op">=</span> <span class="st">"system"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">rm_lib</span><span class="op">(</span>type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"derivative"</span>, <span class="st">"nobaseline"</span>, <span class="st">"raw"</span><span class="op">)</span>, path <span class="op">=</span> <span class="st">"system"</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
-    <dl><dt>which</dt>
-<dd><p>a character string specifying which library to use,
-<code>"raman"</code> or <code>"ftir"</code>.</p></dd>
-
-
-<dt>types</dt>
-<dd><p>library types to check/retrieve; defaults to
-<code>c("metadata", "library", "peaks")</code>.</p></dd>
+    <dl><dt>type</dt>
+<dd><p>library type to check/retrieve; defaults to
+<code>c("derivative", "nobaseline", "raw")</code>.</p></dd>
 
 
 <dt>path</dt>
@@ -116,7 +107,8 @@ functionality running on their desktop.</p>
 
 
 <dt>node</dt>
-<dd><p>the OSF node to be retrieved; should be <code>"x7dpz"</code>.</p></dd>
+<dd><p>the OSF node to be retrieved; should be <code>"x7dpz"</code> unless you
+maintain your own OSF node with spectral libraries.</p></dd>
 
 
 <dt>conflicts</dt>
@@ -124,9 +116,9 @@ functionality running on their desktop.</p>
 exists at the specified destination. Can be one of the following (see
 <code><a href="https://docs.ropensci.org/osfr/reference/osf_download.html" class="external-link">osf_download</a>()</code> for details):</p><ul><li><p>"error" throw an error and abort the file transfer operation.</p></li>
 <li><p>"skip" skip the conflicting file(s) and continue transferring the
-  remaining files.</p></li>
+remaining files.</p></li>
 <li><p>"overwrite" (default) replace the existing file with the
-  transferred copy.</p></li>
+transferred copy.</p></li>
 </ul></dd>
 
 
@@ -139,8 +131,8 @@ exists at the specified destination. Can be one of the following (see
     
 
 <p><code>check_lib()</code> and <code>get_lib()</code> return messages only;
-<code>load_lib()</code> returns a list object containing the respective spectral
-reference library.</p>
+<code>load_lib()</code> returns an <code>OpenSpecy</code> object containing the
+respective spectral reference library.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -150,7 +142,8 @@ already exists on the users computer.
 (<a href="https://doi.org/10.17605/OSF.IO/X7DPZ" class="external-link">doi:10.17605/OSF.IO/X7DPZ</a>
 ).
 <code>load_lib()</code> will load the library into the global environment for use
-with the Open Specy functions.</p>
+with the Open Specy functions.
+<code>rm_lib()</code> removes the libraries from your computer.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -164,21 +157,17 @@ Spectra in Microplastic Research.” <em>Applied Spectroscopy</em>,
 .</p>
     </div>
     <div class="section level2">
-    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code>match_spec()</code></p></div>
-    </div>
-    <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
-    <p>Zacharias Steinmetz</p>
+    <p>Zacharias Steinmetz, Win Cowger</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span><span class="fu">check_lib</span><span class="op">(</span>which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">get_lib</span><span class="op">(</span>which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">check_lib</span><span class="op">(</span><span class="st">"derivative"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">get_lib</span><span class="op">(</span><span class="st">"derivative"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">spec_lib</span> <span class="op">&lt;-</span> <span class="fu">load_lib</span><span class="op">(</span>which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">spec_lib</span> <span class="op">&lt;-</span> <span class="fu">load_lib</span><span class="op">(</span><span class="st">"derivative"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
@@ -188,7 +177,7 @@ Spectra in Microplastic Research.” <em>Applied Spectroscopy</em>,
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz.</p>
+  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong.</p>
 </div>
 
 <div class="pkgdown-footer-right">
