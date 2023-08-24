@@ -12,6 +12,7 @@
 #' @param log logical; enables/disables logging to \code{\link[base]{tempdir}()}
 #' @param ref git reference; could be a commit, tag, or branch name. Defaults to
 #' "main". Only change this in case of errors.
+#' @param test_mode logical; for internal testing only.
 #' @param \dots arguments passed to \code{\link[shiny]{runApp}()}.
 #'
 #' @return
@@ -32,14 +33,15 @@
 #' @importFrom shiny runGitHub shinyOptions
 #' @importFrom utils installed.packages
 #' @export
-run_app <- function(path = "system", log = TRUE, ref = "main", ...) {
-  pkg <- c("config", "shinyjs", "shinythemes", "shinyBS", "shinyWidgets",
-           "plotly", "data.table", "DT", "curl", "aws.s3", "mongolite",
-           "loggit")
-  mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
+run_app <- function(path = "system", log = TRUE, ref = "main",
+                    test_mode = FALSE, ...) {
+  pkg <- c("config", "qs", "glmnet", "shinyjs", "shinyWidgets", "bs4Dash",
+           "dplyr", "ggplot2", "DT", "curl", "aws.s3", "mongolite", "loggit")
 
-  if(length(mpkg)) stop("run_app() requires the following packages: ",
-                        paste(paste0("'", mpkg, "'"), collapse = ", "),
+  miss <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
+
+  if(length(miss)) stop("run_app() requires the following packages: ",
+                        paste(paste0("'", miss, "'"), collapse = ", "),
                         call. = F)
 
   dd <- ifelse(path == "system",
@@ -49,5 +51,6 @@ run_app <- function(path = "system", log = TRUE, ref = "main", ...) {
   Sys.setenv(R_CONFIG_ACTIVE = "run_app")
 
   shinyOptions(log = log)
-  runGitHub("OpenSpecy-shiny", "wincowgerDEV", destdir = dd, ref = ref, ...)
+  if(!test_mode)
+    runGitHub("OpenSpecy-shiny", "wincowgerDEV", destdir = dd, ref = ref, ...)
 }
