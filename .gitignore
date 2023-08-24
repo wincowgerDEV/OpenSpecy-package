@@ -49,3 +49,6 @@ docs/
 *.swp
 .DS_Store
 delete.bat
+
+#app
+inst/OpenSpecy-shiny-main/
