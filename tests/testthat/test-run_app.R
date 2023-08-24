@@ -1,3 +1,4 @@
-#doesn't work yet. Need to update the app.
-# run_app()
-# shiny::runGitHub('OpenSpecy-shiny', 'wincowgerDEV')
+
+test_that("Make sure run_app doesn't produce error", {
+    expect_no_error(run_app())
+})

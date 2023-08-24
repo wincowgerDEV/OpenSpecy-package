@@ -80,8 +80,8 @@ plotly_spec.default <- function(x, ...) {
 #' @export
 plotly_spec.OpenSpecy <- function(x, x2 = NULL,
                                   line = list(color = 'rgb(255, 255, 255)'),
-                                  line2 = list(dash = "dash",
-                                               color = 'rgb(125,249,255)'),
+                                  line2 = list(dash = "dot", 
+                                               color = "rgb(255,0,0)"),
                                   font = list(color = '#FFFFFF'),
                                   plot_bgcolor = 'rgb(17, 0, 73)',
                                   paper_bgcolor = 'rgb(0, 0, 0)',
@@ -171,8 +171,8 @@ heatmap_spec.OpenSpecy <- function(x,
               text = ~paste("row: ", 1:nrow(x$metadata),
                             "<br>x: ", x$metadata$x,", y: ", x$metadata$y,
                             ", z: ", plot_z,
-                            if(!is.null(sn)) paste("<br>snr: ", round(sn, 0)) else "",
-                            if(!is.null(cor)) paste("<br>cor: ", round(cor, 1)) else ""
+                            if(!is.null(sn)) paste("<br>snr: ", signif(sn, 2)) else "",
+                            if(!is.null(cor)) paste("<br>cor: ", signif(cor, 2)) else ""
                             )) |>
     layout(
       xaxis = list(title = 'x', zeroline = F, showgrid = F),
@@ -208,8 +208,8 @@ interactive_plot.default <- function(x, ...) {
 #' @export
 interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                                        line = list(color = 'rgb(255, 255, 255)'),
-                                       line2 = list(dash = "dash",
-                                                    color = 'rgb(125,249,255)'),
+                                       line2 = list(dash = "dot", 
+                                                    color = "rgb(255,0,0)"),
                                        line_select = list(color = 'red'),
                                        font = list(color = '#FFFFFF'),
                                        plot_bgcolor = 'rgba(17, 0, 73, 0)',
