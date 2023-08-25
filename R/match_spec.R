@@ -102,6 +102,10 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
          "trying to correlate; this won't work for correlation analysis. ",
          "Consider first conforming the spectra to the same wavenumbers.",
          call. = F)
+    
+    if(!all(x$wavenumber %in% library$wavenumber))
+        warning(paste0("Some wavenumbers in X are not in the library: ", paste(x$wavenumber[x$wavenumber %in% library$wavenumber]), " the function is not using these in the identification routine."),
+             call. = F)
 
   lib <- library$spectra[library$wavenumber %in% x$wavenumber, ]
   lib <- lib[, lapply(.SD, make_rel, na.rm = na.rm)]
