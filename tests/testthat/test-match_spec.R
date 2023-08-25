@@ -7,6 +7,13 @@ unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
 # Create a subset of test_lib for filtering
 test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_class == "polycarbonates")
 
+# Match_spec function
+test_that("match_spec returns correct structure", {
+    matches <- cor_spec(unknown,library =  test_lib)
+    full_test <- ident_spec(matches, unknown, library = test_lib, top_n = 5, add_library_metadata = "sample_name")
+    
+    })
+
 # Write the tests for cor_spec function
 test_that("cor_spec returns a data.table with correct columns", {
     matches <- cor_spec(unknown,library =  test_lib)

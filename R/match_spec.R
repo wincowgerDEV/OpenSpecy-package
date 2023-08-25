@@ -96,6 +96,29 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
 }
 
 #' @rdname match_spec
+#' @export
+match_spec <- function(x, ...) {
+    UseMethod("match_spec")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+match_spec.default <- function(x, ...) {
+    stop("object 'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
+                                 add_library_metadata = NULL,
+                                 add_object_metadata = NULL, ...) {
+    
+    
+}
+
+#' @rdname match_spec
 #'
 #' @export
 ident_spec <- function(cor_matrix, x, library, top_n = NULL,

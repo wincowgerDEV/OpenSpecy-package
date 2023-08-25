@@ -292,6 +292,8 @@ as_OpenSpecy.default <- function(x, spectra,
                                          sep = "/")
       if(!c("file_id") %in% names(obj$metadata))
         obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
+      if(!c("col_id") %in% names(obj$metadata))
+          obj$metadata$col_id = names(obj$spectra)
     } else {
       stop("inconsistent input for 'metadata'", call. = F)
     }
