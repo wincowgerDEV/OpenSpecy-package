@@ -31,6 +31,8 @@
 #' joined; \code{NULL} if you don't want to join.
 #' @param rm_empty logical; whether to remove empty columns in the metadata.
 #' @param logic a logical or numeric vector describing which spectra to keep.
+#' @param fill an \code{OpenSpecy} object with a single spectrum to be used to 
+#' fill missing values for alignment with the AI classification. 
 #' @param \ldots additional arguments passed \code{\link[stats]{cor}()}.
 #'
 #' @return
@@ -137,9 +139,16 @@ match_spec.default <- function(x, ...) {
 #' @export
 match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
                                  add_library_metadata = NULL,
-                                 add_object_metadata = NULL, ...) {
-    cor_spec(x, library =  library) |>
-        ident_spec(x, library = library, top_n = top_n, add_library_metadata = add_library_metadata, add_object_metadata = add_object_metadata)
+                                 add_object_metadata = NULL, fill = NULL, ...) {
+    if(is_OpenSpecy(library)){
+        cor_spec(x, library =  library) |>
+            ident_spec(x, library = library, top_n = top_n, add_library_metadata = add_library_metadata, add_object_metadata = add_object_metadata)        
+    }
+    
+    else{
+        ai_classify(x, library, fill)
+    }
+
 }
 
 #' @rdname match_spec
