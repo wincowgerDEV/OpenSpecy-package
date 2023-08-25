@@ -15,8 +15,8 @@ test_that("match_spec returns correct structure with AI", {
     lib <- load_lib(type = "model")
     fill <- as_OpenSpecy(as.numeric(unique(lib$variables_in)), spectra = data.frame(runif(n = length(unique(lib$variables_in)))))
     matches <- match_spec(x = unknown, library = lib, na.rm = T, fill = fill)
-    expect_true(nrow(matches) == 5)
-    expect_true(all(c("object_id", "library_id", "match_val") %in% names(matches)))
+    expect_true(nrow(matches) == 1)
+    expect_true(all(c("V1", "V2", "V3", "value", "name") %in% names(matches)))
 })
 
 # Match_spec function
