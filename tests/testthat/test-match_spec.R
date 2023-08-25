@@ -2,10 +2,22 @@
 data("test_lib")
 unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
     conform_spec(range= test_lib$wavenumber, res = spec_res(test_lib)) |>
-    process_spec()
+    process_spec(smooth_intens = T, make_rel = T)
 
 # Create a subset of test_lib for filtering
 test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_class == "polycarbonates")
+
+# Match_spec function with AI
+test_that("match_spec returns correct structure with AI", {
+    skip_on_cran()
+    get_lib("model")
+    expect_silent(check_lib("model"))
+    lib <- load_lib(type = "model")
+    fill <- as_OpenSpecy(as.numeric(unique(lib$variables_in)), spectra = data.frame(runif(n = length(unique(lib$variables_in)))))
+    matches <- match_spec(x = unknown, library = lib, na.rm = T, fill = fill)
+    expect_true(nrow(matches) == 5)
+    expect_true(all(c("object_id", "library_id", "match_val") %in% names(matches)))
+})
 
 # Match_spec function
 test_that("match_spec returns correct structure", {

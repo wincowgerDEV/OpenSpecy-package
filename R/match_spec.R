@@ -81,9 +81,10 @@
 #' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
 #' object of choice
 #'
-#' @import dplyr
+#' @importFrom dplyr filter group_by mutate right_join ungroup left_join arrange
 #' @importFrom stats cor
-#' @importFrom data.table data.table setorder fifelse .SD
+#' @importFrom glmnet predict.glmnet
+#' @importFrom data.table data.table setorder fifelse .SD as.data.table rbindlist
 #' @export
 cor_spec <- function(x, ...) {
   UseMethod("cor_spec")
@@ -144,9 +145,8 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
         cor_spec(x, library =  library) |>
             ident_spec(x, library = library, top_n = top_n, add_library_metadata = add_library_metadata, add_object_metadata = add_object_metadata)        
     }
-    
     else{
-        ai_classify(x, library, fill)
+        ai_classify(x, model = library, fill)
     }
 
 }
@@ -286,14 +286,14 @@ ai_classify.OpenSpecy <- function(x, model, fill = NULL){
             newx = spectra_processed, 
             min(model$model$lambda), 
             type = "response") |> 
-        as.data.table() %>%
+        as.data.table() |>
         mutate(V1 = as.integer(V1),
-               V2 = as.integer(V2)) %>%
-        right_join(data.table(V1 = 1:dim(spectra_processed)[1])) %>%
-        group_by(V1) %>%
-        filter(value == max(value, na.rm = T) | is.na(value)) %>%
-        ungroup() %>%
-        left_join(model$dimension_conversion, by = c("V2" = "factor_num")) %>%
+               V2 = as.integer(V2)) |>
+        right_join(data.table(V1 = 1:dim(spectra_processed)[1])) |>
+        group_by(V1) |>
+        dplyr::filter(value == max(value, na.rm = T) | is.na(value)) |>
+        ungroup() |>
+        left_join(model$dimension_conversion, by = c("V2" = "factor_num")) |>
         arrange(V1)
 }
 

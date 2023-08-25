@@ -37,6 +37,7 @@ match_spec(x, ...)
   top_n = NULL,
   add_library_metadata = NULL,
   add_object_metadata = NULL,
+  fill = NULL,
   ...
 )
 
@@ -87,6 +88,9 @@ joined; \code{NULL} if you don't want to join.}
 
 \item{add_object_metadata}{name of a column in the object metadata to be
 joined; \code{NULL} if you don't want to join.}
+
+\item{fill}{an \code{OpenSpecy} object with a single spectrum to be used to
+fill missing values for alignment with the AI classification.}
 
 \item{cor_matrix}{a correlation matrix for object and library,
 can be returned by \code{cor_spec()}}
