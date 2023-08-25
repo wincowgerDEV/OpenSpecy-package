@@ -64,7 +64,8 @@ get_lib("derivative")
 spec_lib <- load_lib("derivative")
 
 # Read sample spectrum
-raman_hdpe <- read_any(read_extdata("raman_hdpe.csv"))
+raman_hdpe <- read_extdata("raman_hdpe.csv") |> 
+                read_any()
 
 # Process the spectra and conform it to the library format. 
 raman_adj <- raman_hdpe |>
@@ -73,6 +74,7 @@ raman_adj <- raman_hdpe |>
 
 cors <- cor_spec(raman_adj, spec_lib) |>
     ident_spec(x = raman_adj, y = spec_lib)
+    
 # Match spectrum with library and retrieve meta data
 match_spec(raman_proc, library = spec_lib, which = "raman")
 
