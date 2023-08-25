@@ -63,7 +63,7 @@ Authors:
 
 Other contributors:
 \itemize{
-  \item Andrew Gray (\href{https://orcid.org/0000-0003-2252-7367}{ORCID}) [contributor]
+  \item Andrew B Gray (\href{https://orcid.org/0000-0003-2252-7367}{ORCID}) [contributor]
   \item Hannah Hapich (\href{https://orcid.org/0000-0003-0000-6632}{ORCID}) [contributor]
   \item Jennifer Lynch (\href{https://orcid.org/0000-0003-3572-8782}{ORCID}) [contributor, data contributor]
   \item Hannah De Frond (\href{https://orcid.org/0000-0003-1199-0727}{ORCID}) [contributor, data contributor]
@@ -71,6 +71,10 @@ Other contributors:
   \item Chelsea Rochman (\href{https://orcid.org/0000-0002-7624-711X}{ORCID}) [contributor, data contributor]
   \item Sebastian Primpke (\href{https://orcid.org/0000-0001-7633-8524}{ORCID}) [contributor, data contributor]
   \item Orestis Herodotou [contributor, data contributor]
+  \item Mary C Norris [contributor, data contributor]
+  \item Christine M Knauss (\href{https://orcid.org/0000-0003-4404-8922}{ORCID}) [contributor, data contributor]
+  \item Aleksandra Karapetrova (\href{https://orcid.org/0000-0002-9856-1644}{ORCID}) [contributor, data contributor]
+  \item Shreyas Patankar [contributor, data contributor]
 }
 
 }

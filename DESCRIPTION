@@ -11,7 +11,7 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut"),
       comment = c(ORCID = "0000-0001-6675-5033")),
     person("Nick", "Leong", role = c("aut"),
       comment = c(ORCID = "0009-0008-3313-4132")),
-    person("Andrew", "Gray", role = c("ctb"),
+    person("Andrew B", "Gray", role = c("ctb"),
       comment = c(ORCID = "0000-0003-2252-7367")), 
     person("Hannah", "Hapich", role = c("ctb"),
       comment = c(ORCID = "0000-0003-0000-6632")),
@@ -25,7 +25,13 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut"),
       comment = c(ORCID = "0000-0002-7624-711X")),
     person("Sebastian", "Primpke", role = c("ctb", "dtc"),
       comment = c(ORCID = "0000-0001-7633-8524")),
-    person("Orestis", "Herodotou", role = c("ctb", "dtc")))
+    person("Orestis", "Herodotou", role = c("ctb", "dtc")),
+    person("Mary C", "Norris", role = c("ctb", "dtc")),
+    person("Christine M", "Knauss", role = c("ctb", "dtc"), 
+      comment = c(ORCID = "0000-0003-4404-8922")), 
+    person("Aleksandra","Karapetrova", role = c("ctb", "dtc"),
+      comment = c(ORCID = "0000-0002-9856-1644")),
+    person("Shreyas","Patankar", role = c("ctb", "dtc")))
 Description: Raman and (FT)IR spectral analysis tool for plastic particles and
     other environmental samples (Cowger et al. 2021,
     <doi:10.1021/acs.analchem.1c00123>). Supported features include reading
