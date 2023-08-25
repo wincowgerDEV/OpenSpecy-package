@@ -17,8 +17,8 @@
 #' \code{filter_spec()} filters an Open Specy object. 
 #' 
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
-#' @param library sn \code{OpenSpecy} object representing the reference library
-#' of spectra to correlate with.
+#' @param library an \code{OpenSpecy} or \code{glmnet} object representing the reference library
+#' of spectra or model to use in identification.
 #' @param na.rm logical; indicating whether missing values should be removed
 #' when calculating correlations. Default is \code{TRUE}.
 #' @param top_n integer; specifying the number of top matches to return.
@@ -146,7 +146,7 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
             ident_spec(x, library = library, top_n = top_n, add_library_metadata = add_library_metadata, add_object_metadata = add_object_metadata)        
     }
     else{
-        ai_classify(x, model = library, fill)
+        ai_classify(x, library, fill)
     }
 
 }
@@ -272,7 +272,7 @@ ai_classify.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-ai_classify.OpenSpecy <- function(x, model, fill = NULL){
+ai_classify.OpenSpecy <- function(x, library, fill = NULL){
     if(!is.null(fill)){
         filled <- .fill_spec(x, fill) 
     }
@@ -282,9 +282,9 @@ ai_classify.OpenSpecy <- function(x, model, fill = NULL){
     spectra_processed <- transpose(filled$spectra[,wavenumber := filled$wavenumber], make.names = "wavenumber") |> 
         as.matrix()
     
-    predict(model$model, 
+    predict(library$model, 
             newx = spectra_processed, 
-            min(model$model$lambda), 
+            min(library$model$lambda), 
             type = "response") |> 
         as.data.table() |>
         mutate(V1 = as.integer(V1),
@@ -293,7 +293,7 @@ ai_classify.OpenSpecy <- function(x, model, fill = NULL){
         group_by(V1) |>
         dplyr::filter(value == max(value, na.rm = T) | is.na(value)) |>
         ungroup() |>
-        left_join(model$dimension_conversion, by = c("V2" = "factor_num")) |>
+        left_join(library$dimension_conversion, by = c("V2" = "factor_num")) |>
         arrange(V1)
 }
 

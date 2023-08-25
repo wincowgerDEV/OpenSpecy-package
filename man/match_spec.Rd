@@ -69,13 +69,13 @@ ai_classify(x, ...)
 
 \method{ai_classify}{default}(x, ...)
 
-\method{ai_classify}{OpenSpecy}(x, model, fill = NULL)
+\method{ai_classify}{OpenSpecy}(x, library, fill = NULL)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object, typically with unknowns.}
 
-\item{library}{sn \code{OpenSpecy} object representing the reference library
-of spectra to correlate with.}
+\item{library}{an \code{OpenSpecy} or \code{glmnet} object representing the reference library
+of spectra or model to use in identification.}
 
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating correlations. Default is \code{TRUE}.}

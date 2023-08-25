@@ -60,18 +60,17 @@ Imports:
     digest,
     signal,
     shiny,
-    dplyr
+    dplyr,
+    glmnet
 Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.1.9),
     config,
     qs,
-    glmnet,
     shinyjs,
     shinyWidgets,
     bs4Dash,
-    dplyr,
     ggplot2,
     DT,
     curl,
