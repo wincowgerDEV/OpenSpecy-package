@@ -59,7 +59,8 @@ Imports:
     plotly,
     digest,
     signal,
-    shiny
+    shiny, 
+    dplyr
 Suggests:
     knitr,
     rmarkdown,

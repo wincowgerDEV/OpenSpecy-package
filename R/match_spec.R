@@ -79,6 +79,7 @@
 #' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
 #' object of choice
 #'
+#' @import dplyr
 #' @importFrom stats cor
 #' @importFrom data.table data.table setorder fifelse .SD
 #' @export
@@ -245,5 +246,21 @@ filter_spec.OpenSpecy <- function(x, logic, ...) {
   return(x)
 }
 
+
+.fill_spec <- function(x, fill){
+    blank_dt <- x$spectra[1,]
+    
+    blank_dt[1,] <- NA
+    
+    test <- rbindlist(lapply(1:length(fill$wavenumber), function(x){blank_dt}))[,lapply(.SD, function(x) {unlist(fill$spectra)})]
+    
+    test[match(x$wavenumber, fill$wavenumber),] <- x$spectra
+    
+    x$spectra <- test
+    
+    x$wavenumber <- fill$wavenumber
+    
+    x
+}
 
 
