@@ -246,6 +246,48 @@ filter_spec.OpenSpecy <- function(x, logic, ...) {
   return(x)
 }
 
+#' @rdname match_spec
+#'
+#' @export
+ai_classify <- function(x, ...) {
+    UseMethod("filter_spec")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+ai_classify.default <- function(x, ...) {
+    stop("object 'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+ai_classify.OpenSpecy <- function(x, model, fill = NULL){
+    if(!is.null(fill)){
+        filled <- .fill_spec(x, fill) 
+    }
+    else{
+        filled <- x
+    }
+    spectra_processed <- transpose(filled$spectra[,wavenumber := filled$wavenumber], make.names = "wavenumber") |> 
+        as.matrix()
+    
+    predict(model$model, 
+            newx = spectra_processed, 
+            min(model$model$lambda), 
+            type = "response") |> 
+        as.data.table() %>%
+        mutate(V1 = as.integer(V1),
+               V2 = as.integer(V2)) %>%
+        right_join(data.table(V1 = 1:dim(spectra_processed)[1])) %>%
+        group_by(V1) %>%
+        filter(value == max(value, na.rm = T) | is.na(value)) %>%
+        ungroup() %>%
+        left_join(model$dimension_conversion, by = c("V2" = "factor_num")) %>%
+        arrange(V1)
+}
+
 
 .fill_spec <- function(x, fill){
     blank_dt <- x$spectra[1,]

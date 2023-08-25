@@ -64,7 +64,7 @@
 #' Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 #'
 #' @export
-check_lib <- function(type = c("derivative", "nobaseline", "raw"),
+check_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod", "model"),
                       path = "system", condition = "warning") {
 
   lp <- ifelse(path == "system",
@@ -82,7 +82,7 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw"),
 #' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
 #'
 #' @export
-get_lib <- function(type = c("derivative", "nobaseline", "raw"),
+get_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod", "model"),
                     path = "system", node = "x7dpz", conflicts = "overwrite",
                     ...) {
   lp <- ifelse(path == "system",
@@ -94,7 +94,7 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw"),
 
   message("Fetching Open Specy reference libraries from OSF ...")
     osf |>  subset(grepl(
-      paste0("^both_(", paste(type, collapse = "|"), ").rds"),
+      paste0("(", paste(type, collapse = "|"), ").rds"),
       osf$name)) |>
       osf_download(path = lp, conflicts = conflicts, progress = TRUE, ...)
 
@@ -111,7 +111,7 @@ load_lib <- function(type, path = "system") {
 
   chk <- .chkf(type, path = lp, condition = "stop")
 
-  fp <- file.path(lp, paste0("both_", type, ".rds"))
+  fp <- file.path(lp, paste0(type, ".rds"))
   rds <- readRDS(fp)
 
   return(rds)
@@ -120,13 +120,13 @@ load_lib <- function(type, path = "system") {
 #' @rdname manage_lib
 #'
 #' @export
-rm_lib <- function(type = c("derivative", "nobaseline", "raw"),
+rm_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod", "model"),
                    path = "system") {
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
                path)
 
-  fp <- file.path(lp, paste0("both_", type, ".rds"))
+  fp <- file.path(lp, paste0(type, ".rds"))
   file.remove(fp)
 
   invisible()
@@ -134,7 +134,7 @@ rm_lib <- function(type = c("derivative", "nobaseline", "raw"),
 
 # Auxiliary function for library checks
 .chkf <- function(type, path = "system", condition = "warning") {
-  fn <- paste0("both_", type, ".rds")
+  fn <- paste0(type, ".rds")
 
   lp <- ifelse(path == "system", system.file("extdata", package = "OpenSpecy"),
                path)
