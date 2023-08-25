@@ -24,8 +24,8 @@
 # produced PDF vignettes and docs
 vignettes/*.pdf
 inst/doc
-/doc/
-/Meta/
+doc/
+Meta/
 
 # Shiny app
 inst/OpenSpecy-shiny-main/
@@ -45,7 +45,7 @@ inst/OpenSpecy-shiny-main/
 .Renviron
 
 # pkgdown site
-/docs/
+docs/
 
 # System files
 .ini
