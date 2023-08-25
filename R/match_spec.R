@@ -259,7 +259,7 @@ filter_spec.OpenSpecy <- function(x, logic, ...) {
 #'
 #' @export
 ai_classify <- function(x, ...) {
-    UseMethod("filter_spec")
+    UseMethod("ai_classify")
 }
 
 #' @rdname match_spec
