@@ -1,4 +1,4 @@
-# Open Specy
+# Open Specy 1.0
 
 Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 
@@ -16,13 +16,8 @@ Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 Raman and (FT)IR spectral analysis tool for plastic particles and other 
 environmental samples (Cowger et al. 2021, doi: 
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123)).
-Supported features include reading spectral data files like 
-.asp, .csv, .jdx, .spc, .spa, and .0, Savitzky-Golay smoothing of spectral
-intensities with `smooth_intens()`, correcting background noise with
-`subtr_baseline()` in accordance with Zhao et al. (2007, doi: 
-[10.1366/000370207782597003](https://doi.org/10.1366/000370207782597003)), and
-identifying spectra using an onboard reference library (Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064)).
-Analyzed spectra can be shared with the Open Specy community. A Shiny app is
+Supported features include reading individual, batch, or map spectral data files like 
+.asp, .csv, .jdx, .spc, .spa, .0, and .zip with a single function `read_any()`. You can conduct common preprocessing like smoothing, baseline correction, range restriction, range flattening, intensity unit conversions, wavenumber alignment, and min-max normalization all with one monolithic function `process_spec()`. You can identify spectra in batch using an onboard reference library (Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064)) with `*_lib()` and `cor_spec()` and `ident_spec()`. Particle analysis for spectral maps can be conducted with `collapse_spec()` and `def_features()`. A Shiny app is
 available via `run_app()` or online at
 [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/).
 
@@ -46,7 +41,7 @@ into your R console (requires **devtools**):
 
 ```r
 if (!require(devtools)) install.packages("devtools")
-devtools::install_github("wincowgerDEV/OpenSpecy")
+devtools::install_github("wincowgerDEV/OpenSpecy-package")
 ```
 
 ## Getting started
@@ -56,38 +51,28 @@ run_app()
 ```
 
 See
-[package vignette](https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/vignettes/sop.html)
+[package vignette](http://wincowger.com/OpenSpecy-package/articles/sop.html)
 for a detailed standard operating procedure.
 
 ## Workflow
 
 ```r
 # Fetch current spectral library from https://osf.io/x7dpz/
-get_lib()
+get_lib("derivative")
 
 # Load library into global environment
-spec_lib <- load_lib()
+spec_lib <- load_lib("derivative")
 
 # Read sample spectrum
-raman_hdpe <- read_text(read_extdata("raman_hdpe.csv"))
+raman_hdpe <- read_any(read_extdata("raman_hdpe.csv"))
 
-# Share your spectrum with the Open Spey community
-share_spec(raman_hdpe,
-           metadata = c(user_name = "Win Cowger",
-                        contact_info = "wincowger@gmail.com",
-                        spectrum_type = "Raman",
-                        spectrum_identity = "HDPE")
-           )
-
-# Adjust spectral intensity
+# Process the spectra and conform it to the library format. 
 raman_adj <- raman_hdpe |>
-  adj_intens()
+  process_spec(conform_spec_args = list(range = spec_lib$wavenumbers), 
+               make_rel = T)
 
-# Smooth and background-correct spectrum
-raman_proc <- raman_adj |>
-  smooth_intens() |>
-  subtr_baseline()
-
+cors <- cor_spec(raman_adj, spec_lib) |>
+    ident_spec(x = raman_adj, y = spec_lib)
 # Match spectrum with library and retrieve meta data
 match_spec(raman_proc, library = spec_lib, which = "raman")
 
