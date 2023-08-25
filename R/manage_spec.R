@@ -98,21 +98,21 @@ c_spec.list <- function(x, range = NULL, res = 5, ...) {
 }
 
 
-#' @rdname process_spec
+#' @rdname manage_spec
 #'
 #' @export
 sample_spec <- function(x, ...) {
   UseMethod("sample_spec")
 }
 
-#' @rdname process_spec
+#' @rdname manage_spec
 #'
 #' @export
 sample_spec.default <- function(x, ...) {
   stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
-#' @rdname process_spec
+#' @rdname manage_spec
 #'
 #' @export
 sample_spec.OpenSpecy <- function(x, ...) {

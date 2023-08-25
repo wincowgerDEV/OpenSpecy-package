@@ -253,7 +253,7 @@ as_OpenSpecy.default <- function(x, spectra,
                                  coords = "gen_grid",
                                  session_id = FALSE,
                                  ...) {
-  if (!is.numeric(x) && !is.complex(x) && !is.vector(x))
+  if (!is.numeric(x) || !is.complex(x) || !is.vector(x))
     stop("'x' must be numeric vector", call. = F)
   if (!inherits(spectra, c("data.frame", "matrix")))
     stop("'spectra' must inherit from data.frame or matrix", call. = F)

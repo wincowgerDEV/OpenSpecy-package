@@ -5,6 +5,9 @@
 \alias{c_spec.default}
 \alias{c_spec.OpenSpecy}
 \alias{c_spec.list}
+\alias{sample_spec}
+\alias{sample_spec.default}
+\alias{sample_spec.OpenSpecy}
 \title{Manage spectral objects}
 \usage{
 c_spec(x, ...)
@@ -14,6 +17,12 @@ c_spec(x, ...)
 \method{c_spec}{OpenSpecy}(x, ...)
 
 \method{c_spec}{list}(x, range = NULL, res = 5, ...)
+
+sample_spec(x, ...)
+
+\method{sample_spec}{default}(x, ...)
+
+\method{sample_spec}{OpenSpecy}(x, ...)
 }
 \arguments{
 \item{x}{a list of \code{OpenSpecy} objects.}
