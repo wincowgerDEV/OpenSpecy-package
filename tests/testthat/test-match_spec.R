@@ -9,10 +9,10 @@ test_lib_extract <- filter_spec(test_lib, logic = test_lib$metadata$polymer_clas
 
 # Match_spec function
 test_that("match_spec returns correct structure", {
-    matches <- cor_spec(unknown,library =  test_lib)
-    full_test <- ident_spec(matches, unknown, library = test_lib, top_n = 5, add_library_metadata = "sample_name")
-    
-    })
+    matches <- match_spec(x = unknown, library = test_lib, na.rm = T, top_n = 5, add_library_metadata = "sample_name", add_object_metadata = "col_id")
+    expect_true(nrow(matches) == 5)
+    expect_true(all(c("object_id", "library_id", "match_val") %in% names(matches)))
+})
 
 # Write the tests for cor_spec function
 test_that("cor_spec returns a data.table with correct columns", {

@@ -2,9 +2,20 @@
 #' @title Identify and filter spectra
 #'
 #' @description
-#' \code{cor_spec()} correlate two \code{OpenSpecy} objects, typically one with
+#' \code{match_spec()} joins two \code{OpenSpecy} objects and their metadata based on similarity. 
+#' 
+#' \code{cor_spec()} correlates two \code{OpenSpecy} objects, typically one with
 #' knowns and one with unknowns.
+#' 
+#' \code{ident_spec()} retrieves the top match values from a correlation matrix and formats them
+#' with metadata. 
+#' 
+#' \code{get_metadata()} retrieves metadata from OpenSpecy objects. 
 #'
+#' \code{max_cor_named()} formats the top correlation values from a correlation matrix as a named vector. 
+#' 
+#' \code{filter_spec()} filters an Open Specy object. 
+#' 
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
 #' @param library sn \code{OpenSpecy} object representing the reference library
 #' of spectra to correlate with.
@@ -23,7 +34,9 @@
 #' @param \ldots additional arguments passed \code{\link[stats]{cor}()}.
 #'
 #' @return
-#' A \code{\link[data.table]{data.table-class}()} containing correlations
+#' 
+#' \code{match_spec()} and \code{ident_spec()} will return
+#' a \code{\link[data.table]{data.table-class}()} containing correlations
 #' between spectra and the library.
 #' The table has three columns: \code{object_id}, \code{library_id}, and
 #' \code{match_val}.
@@ -35,6 +48,12 @@
 #' will be added to the output.
 #' If \code{add_object_metadata} is \code{is.character}, the object metadata
 #' will be added to the output.
+#' 
+#' \code{filter_spec()} returns an \code{OpenSpecy} object. 
+#' 
+#' \code{cor_spec()} returns a correlation matrix. 
+#' 
+#' \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()} with the metadata for columns which have information. 
 #'
 #' @examples
 #' data("test_lib")
@@ -114,8 +133,8 @@ match_spec.default <- function(x, ...) {
 match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
                                  add_library_metadata = NULL,
                                  add_object_metadata = NULL, ...) {
-    
-    
+    cor_spec(x, library =  library) |>
+        ident_spec(x, library = library, top_n = top_n, add_library_metadata = add_library_metadata, add_object_metadata = add_object_metadata)
 }
 
 #' @rdname match_spec

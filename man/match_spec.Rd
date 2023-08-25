@@ -4,6 +4,9 @@
 \alias{cor_spec}
 \alias{cor_spec.default}
 \alias{cor_spec.OpenSpecy}
+\alias{match_spec}
+\alias{match_spec.default}
+\alias{match_spec.OpenSpecy}
 \alias{ident_spec}
 \alias{get_metadata}
 \alias{get_metadata.default}
@@ -19,6 +22,20 @@ cor_spec(x, ...)
 \method{cor_spec}{default}(x, ...)
 
 \method{cor_spec}{OpenSpecy}(x, library, na.rm = T, ...)
+
+match_spec(x, ...)
+
+\method{match_spec}{default}(x, ...)
+
+\method{match_spec}{OpenSpecy}(
+  x,
+  library,
+  na.rm = T,
+  top_n = NULL,
+  add_library_metadata = NULL,
+  add_object_metadata = NULL,
+  ...
+)
 
 ident_spec(
   cor_matrix,
@@ -53,9 +70,6 @@ of spectra to correlate with.}
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating correlations. Default is \code{TRUE}.}
 
-\item{cor_matrix}{a correlation matrix for object and library,
-can be returned by \code{cor_spec()}}
-
 \item{top_n}{integer; specifying the number of top matches to return.
 If \code{NULL} (default), all matches will be returned.}
 
@@ -65,6 +79,9 @@ joined; \code{NULL} if you don't want to join.}
 \item{add_object_metadata}{name of a column in the object metadata to be
 joined; \code{NULL} if you don't want to join.}
 
+\item{cor_matrix}{a correlation matrix for object and library,
+can be returned by \code{cor_spec()}}
+
 \item{logic}{a logical or numeric vector describing which spectra to keep.}
 
 \item{rm_empty}{logical; whether to remove empty columns in the metadata.}
@@ -72,7 +89,8 @@ joined; \code{NULL} if you don't want to join.}
 \item{\ldots}{additional arguments passed \code{\link[stats]{cor}()}.}
 }
 \value{
-A \code{\link[data.table]{data.table-class}()} containing correlations
+\code{match_spec()} and \code{ident_spec()} will return
+a \code{\link[data.table]{data.table-class}()} containing correlations
 between spectra and the library.
 The table has three columns: \code{object_id}, \code{library_id}, and
 \code{match_val}.
@@ -84,10 +102,27 @@ If \code{add_library_metadata} is \code{is.character}, the library metadata
 will be added to the output.
 If \code{add_object_metadata} is \code{is.character}, the object metadata
 will be added to the output.
+
+\code{filter_spec()} returns an \code{OpenSpecy} object.
+
+\code{cor_spec()} returns a correlation matrix.
+
+\code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()} with the metadata for columns which have information.
 }
 \description{
-\code{cor_spec()} correlate two \code{OpenSpecy} objects, typically one with
+\code{match_spec()} joins two \code{OpenSpecy} objects and their metadata based on similarity.
+
+\code{cor_spec()} correlates two \code{OpenSpecy} objects, typically one with
 knowns and one with unknowns.
+
+\code{ident_spec()} retrieves the top match values from a correlation matrix and formats them
+with metadata.
+
+\code{get_metadata()} retrieves metadata from OpenSpecy objects.
+
+\code{max_cor_named()} formats the top correlation values from a correlation matrix as a named vector.
+
+\code{filter_spec()} filters an Open Specy object.
 }
 \examples{
 data("test_lib")
