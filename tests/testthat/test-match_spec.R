@@ -19,8 +19,7 @@ test_that("cor_spec returns a data.table with correct columns", {
     matches <- cor_spec(unknown,library =  test_lib)
     unknown2 <- unknown
     unknown2$wavenumber[1:3] <- unknown2$wavenumber[1:3] +1
-    matches2 <- cor_spec(unknown2,library =  test_lib)
-    
+    expect_warning(matches2 <- cor_spec(unknown2,library =  test_lib))
     expect_true(inherits(matches, "matrix"))
     expect_identical(dim(matches), c(ncol(test_lib$spectra), ncol(unknown$spectra)))
     top_matches <- max_cor_named(cor_matrix = matches, na.rm = T)
