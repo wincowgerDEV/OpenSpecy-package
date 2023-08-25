@@ -15,6 +15,9 @@
 \alias{filter_spec}
 \alias{filter_spec.default}
 \alias{filter_spec.OpenSpecy}
+\alias{ai_classify}
+\alias{ai_classify.default}
+\alias{ai_classify.OpenSpecy}
 \title{Identify and filter spectra}
 \usage{
 cor_spec(x, ...)
@@ -60,6 +63,12 @@ filter_spec(x, ...)
 \method{filter_spec}{default}(x, ...)
 
 \method{filter_spec}{OpenSpecy}(x, logic, ...)
+
+ai_classify(x, ...)
+
+\method{ai_classify}{default}(x, ...)
+
+\method{ai_classify}{OpenSpecy}(x, model, fill = NULL)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object, typically with unknowns.}

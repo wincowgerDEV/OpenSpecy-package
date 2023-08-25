@@ -18,7 +18,7 @@
 #' \code{rm_lib()} removes the libraries from your computer.
 #'
 #' @param type library type to check/retrieve; defaults to
-#' \code{c("derivative", "nobaseline", "raw")}.
+#' \code{c("derivative", "nobaseline", "raw", "mediod", "model")} which reads everything.
 #' @param node the OSF node to be retrieved; should be \code{"x7dpz"} unless you
 #' maintain your own OSF node with spectral libraries.
 #' @param path where to save or look for local library files; defaults to
