@@ -16,10 +16,15 @@ Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 Raman and (FT)IR spectral analysis tool for plastic particles and other 
 environmental samples (Cowger et al. 2021, doi: 
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123)).
-Supported features include reading individual, batch, or map spectral data files like 
-.asp, .csv, .jdx, .spc, .spa, .0, and .zip with a single function `read_any()`. You can conduct common preprocessing like smoothing, baseline correction, range restriction, range flattening, intensity unit conversions, wavenumber alignment, and min-max normalization all with one monolithic function `process_spec()`. You can identify spectra in batch using an onboard reference library (Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064)) with `*_lib()` and `cor_spec()` and `ident_spec()`. Particle analysis for spectral maps can be conducted with `collapse_spec()` and `def_features()`. A Shiny app is
-available via `run_app()` or online at
-[https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/).
+With `read_any()`, Open Specy provides a single function for reading individual,
+batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and
+.zip. `process_spec()` simplifies preprocessing spectra, including smoothing,
+baseline correction, range restriction and flattening, intensity conversions,
+wavenumber alignment, and min-max normalization. 
+Spectra can be identified in batch using an onboard reference library
+(Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064))
+using `match_spec()`. A Shiny app is available via `run_app()`
+or online at [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/).
 
 ## Installation
 

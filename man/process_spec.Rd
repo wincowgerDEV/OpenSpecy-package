@@ -34,7 +34,7 @@ process_spec(x, ...)
   subtr_baseline_args = list(type = "polynomial", degree = 8, raw = FALSE, baseline =
     NULL),
   smooth_intens = FALSE,
-  smooth_intens_args = list(polynomial = 3, window = 11, derivative = 0, abs = T),
+  smooth_intens_args = list(polynomial = 3, window = 11, derivative = 1, abs = T),
   make_rel = F,
   ...
 )
