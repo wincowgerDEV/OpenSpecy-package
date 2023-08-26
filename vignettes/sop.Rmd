@@ -59,10 +59,87 @@ If you have your own data, click the **Upload File** tab at the top of the page.
 knitr::include_graphics("mainpage.jpg")
 ```
 
+### Choose whether to share your uploaded data or not
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("uploadfile.jpg")
+```
+
+Before uploading, indicate if you would like to share the
+uploaded data or not using the slider. If selected,
+any data uploaded to the tool will automatically be shared under [CC-BY 4.0 license](https://creativecommons.org/licenses/by/4.0/)
+and will be available for
+researchers and other ventures to use to improve spectral analysis,
+build machine learning tools, etc. Some users may choose not to share if
+they need to keep their data private. If switched off, none of
+the uploaded data will be stored or shared in Open Specy.
+
+### Upload/Read Data
+
+Open Specy allows for upload of .csv, .asp, .jdx, .0, .spc, and
+.spa files. .csv files should always load correctly but the other file
+types are still in beta development, though most of the time these files
+work perfectly. It is best practice to cross check files in the
+proprietary software they came from and Open Specy before use in Open
+Specy. Due to the complexity of these file types, we haven't been able
+to make them fully compatible yet. If your file is not working, please
+contact the administrator and share the file so that we can get it to
+work.
+
+For the most consistent results, files should be converted to .csv
+format before uploading to Open Specy. The specific steps to converting
+your instrument's native files to .csv can be found in its software
+manual or you can check out
+[Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
+spectral file conversions (see Mini Tutorial section: File conversion in
+Spectragryph to Open Specy accepted format).
+
+If uploading a .csv file, label the column with the wavenumbers
+`wavenumber` and name the column with the intensities `intensity`.
+
+```{r sample_data, echo=FALSE, out.width="50%"}
+knitr::kable(head(raman_hdpe), caption = "Sample data `raman_hdpe`")
+```
+
+Wavenumber units must be cm^-1^. Any other columns are not used by the
+software. Always keep a copy of the original file before alteration to preserve
+metadata and raw data for your records.
+
+To upload data, click **Browse** and choose one of your
+files to upload, or drag and drop your file into the gray box. At this
+time you can only upload one file at a time. 
+
+### Share data
+
+When the user clicks the **Share Data** button their current uploaded data
+and metadata is sent to an
+[open-access online repository](https://osf.io/rjg3c/).
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("sharemetadata.jpg")
+```
+All high quality uploaded data with metadata
+will eventually be reviewed by spectroscopy experts and added to the
+internal library if it passes review. If multiple files are going to be
+uploaded with metadata, the cells will also stay filled with the last
+input after the share data button is clicked. Just upload the next
+dataset and change the metadata inputs that are different. If more than
+50 files will be shared at once, you can contact the website
+administrator to get a bulk upload sheet for more rapid upload.
+
 The following line of code will read in your data when using the package:
 
 ```{r eval=FALSE}
 read_any("path/to/your/data")
+```
+
+The following R functions from the Open Specy package will also read in spectral
+data accordingly if you have a particular format in mind:
+
+```{r, eval=FALSE}
+read_text(".csv")
+read_asp(".asp")
+read_opus(".0")
 ```
 
 Supported formats are .asp, .csv, .jdx, .spc, .spa, .0, .json, .yml, .rds, and .zip. If you use a zip, OpenSpecy will 
@@ -118,6 +195,12 @@ head(scratch_OpenSpecy) #Shows the top wavenumbers and intensities.
 
 ## Visualizing Spectra
 
+In the app after spectral data are uploaded, it will appear in the main window. This plot
+is selectable, zoomable, and provides information on hover. You can also
+save a .png file of the plot view using the camera icon at the top right when
+you hover over the plot. This plot will change the view based on updates
+from the **Intensity Adjustment** selection.
+
 We have two ways to visualize your spectra, one is quick and efficient and the other is interactive. 
 
 ```{r eval=FALSE}
@@ -131,184 +214,17 @@ plotly_spec(scratch_OpenSpecy, rds_example) #interactive comparison.
 ```
 ## Visualizing Spectral Maps
 
-Spectral maps can also be visualized as overlaid spectra but in addition the spatial information can be plotted as a heatmap. 
+Spectral maps can also be visualized as overlaid spectra but in addition the spatial information can be plotted as a heatmap. A similar plot should appear in the app if you upload multiple spectra or a spectral map. It is important to note that when multiple spectra are uploaded in batch they are prescribed xy coordinates, this can be helpful for visualizing summary statistics and navigating vast amounts of data but shouldn't be confused with data which actually has spatial coordinates. 
 
 ```{r eval=FALSE}
 heatmap_spec(spectral_map,
              z = spectral_map$metadata$x) #will show more advanced example later in tutorial.
 
-interactive_plot(spectral_map, select = 1, z = spectral_map$metadata$x)
+interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 
 ```
 
 ## Processing Spectra
-
-## Identifying Spectra 
-
-## Characterizing Particles
-
-## Additional App Features
-Accessibility is extremely important to us and we are making strives to improve
-the accessibility of Open Specy for all spectroscopists. Please reach out if you
-have ideas for improvement.
-
-We added a Google translate plugin to all pages in the app so that you can
-easily translate the app. We know that not all languages will be fully supported
-but we will continue to try and improve the translations.  
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("googletranslate.jpg")
-```
-
-
-### Choose whether to share your uploaded data or not
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("uploadfile.jpg")
-```
-
-Before uploading, indicate if you would like to share the
-uploaded data or not using the slider. If selected,
-any data uploaded to the tool will automatically be shared under [CC-BY 4.0 license](https://creativecommons.org/licenses/by/4.0/)
-and will be available for
-researchers and other ventures to use to improve spectral analysis,
-build machine learning tools, etc. Some users may choose not to share if
-they need to keep their data private. If switched off, none of
-the uploaded data will be stored or shared in Open Specy.
-
-### Upload/Read Data
-
-Open Specy allows for upload of .csv, .asp, .jdx, .0, .spc, and
-.spa files. .csv files should always load correctly but the other file
-types are still in beta development, though most of the time these files
-work perfectly. It is best practice to cross check files in the
-proprietary software they came from and Open Specy before use in Open
-Specy. Due to the complexity of these file types, we haven't been able
-to make them fully compatible yet. If your file is not working, please
-contact the administrator and share the file so that we can get it to
-work.
-
-For the most consistent results, files should be converted to .csv
-format before uploading to Open Specy. The specific steps to converting
-your instrument's native files to .csv can be found in its software
-manual or you can check out
-[Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
-spectral file conversions (see Mini Tutorial section: File conversion in
-Spectragryph to Open Specy accepted format).
-
-If uploading a .csv file, label the column with the wavenumbers
-`wavenumber` and name the column with the intensities `intensity`.
-
-```{r sample_data, echo=FALSE, out.width="50%"}
-knitr::kable(head(raman_hdpe), caption = "Sample data `raman_hdpe`")
-```
-
-Wavenumber units must be cm^-1^. Any other columns are not used by the
-software. Always keep a copy of the original file before alteration to preserve
-metadata and raw data for your records.
-
-To upload data, click **Browse** and choose one of your
-files to upload, or drag and drop your file into the gray box. At this
-time you can only upload one file at a time. 
-
-Upon upload and throughout the analysis, intensity values are min-max normalized
-(Equation 1).
-
-$$\frac{x - \mathrm{min}(x)}{\mathrm{min}(x) - \mathrm{max}(x)}$$
-<p style="text-align: center;">Equation 1: Max-Min Normalization</p>
-
-The following R functions from the Open Specy package will also read in spectral
-data accordingly:
-
-```{r, eval=FALSE}
-read_text(".csv")
-read_asp(".asp")
-read_opus(".0")
-```
-
-### Viewing Spectra Plot
-
-After spectral data are uploaded, it will appear in the main window. This plot
-is selectable, zoomable, and provides information on hover. You can also
-save a .png file of the plot view using the camera icon at the top right when
-you hover over the plot. This plot will change the view based on updates
-from the **Intensity Adjustment** selection.
-
-### Intensity Adjustment
-
-```{r, fig.align='center', echo=FALSE}
-knitr::include_graphics("intensityadjustment.jpg")
-```
-
-Open Specy assumes that intensity units are in absorbance units but
-Open Specy can adjust reflectance or transmittance spectra to absorbance
-units using this selection in the upload file tab. The transmittance
-adjustment uses the $\log_{10} 1/T$ calculation which does not correct for
-system or particle characteristics. The reflectance adjustment
-use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. If none is selected, Open
-Specy assumes that the uploaded data is an absorbance spectrum and does not
-apply an adjustment.
-
-This is the respective R code:
-
-```{r}
-raman_adj <- raman_hdpe |> 
-  adj_intens()
-
-head(raman_adj)
-```
-
-### Share metadata on known spectra
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("metadatainput.jpg")
-```
-
-To share metadata about your spectrum, click the metadata input button.
-When sharing data, please provide as much metadata as you can. Metadata
-helps make shared data as useful as possible. Metadata inputs each have
-examples provided in the input. The examples disappear when the box is
-clicked and will not be saved if nothing is input by the user.
-Mandatory inputs are marked with a red asterisk. If these inputs are not
-filled, the data will be considered uninterpretable and will be
-discarded. Inputs left blank will be left blank in the metadata sheet
-and interpreted as "unknown" or "not applicable". To share metadata,
-click the share data button at the bottom of the metadata inputs.
-
-When the user clicks the **Share Data** button their current uploaded data
-and metadata is sent to an
-[open-access online repository](https://osf.io/rjg3c/).
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sharemetadata.jpg")
-```
-
-All inputs from the metadata (described below) are input to a
-metadata sheet. The metadata sheet is
-given the same unique name as the data, but it ends with "\_form". The
-exact same data is saved as would be downloaded using the download data
-button (described below). All high quality uploaded data with metadata
-will eventually be reviewed by spectroscopy experts and added to the
-internal library if it passes review. If multiple files are going to be
-uploaded with metadata, the cells will also stay filled with the last
-input after the share data button is clicked. Just upload the next
-dataset and change the metadata inputs that are different. If more than
-50 files will be shared at once, you can contact the website
-administrator to get a bulk upload sheet for more rapid upload.
-
-Type
-
-```{r eval=FALSE}
-share_spec(raman_hdpe,
-           metadata = c(user_name = "Win Cowger",
-                        contact_info = "wincowger@gmail.com",
-                        spectrum_type = "Raman",
-                        spectrum_identity = "HDPE")
-           )
-```
-
-to share your spectral data from the R console.
-
 ## Processing
 
 After uploading data, you can preprocess the data using baseline
@@ -322,12 +238,10 @@ your parameters for processing the spectrum.
 knitr::include_graphics("preprocessplot.png")
 ```
 
-The preprocess spectra plot shows the uploaded spectra in comparison to
-the processed spectra that has been processed using the processing
-inputs on the page. It will automatically update with any new slider
+The plot in the app will update on the fly with the processed spectra. If you want to see the unprocessed spectra just deselect processing. It will also automatically update with any new
 inputs. This allows the user to tune the inputs to optimize the signal
 to noise ratio. The goal with preprocessing is to make peak regions have
-high intensities and non-peak regions should have low intensities.
+high intensities and non-peak regions should have low intensities. If preprocessing a spectral map or in batch, we recommend to tune the parameters so that you maximize the number of spectra over your signal to noise ratio before you start identification. Spectra below the signal to noise ratio will show up black. 
 
 ### Processing Tools
 
@@ -472,23 +386,7 @@ to examine a single peak or a subset of peaks of interests. This
 function allows users to isolate peaks of interest for matching, while
 removing noise and influence from less relevant spectral data.
 
-### Download Data
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("download.jpg")
-```
-
-After you have the preprocessing parameters set, we recommend that you
-download the preprocessed data for your records. The download data
-button will append the uploaded data to three columns created by the
-preprocessing parameters. "Wavelength" and "Absorbance" are columns from
-the data uploaded by the user. "NormalizedIntensity" is the max-min
-normalized value (Equation 1) of the "Absorbance". "Smoothed" is the
-Savitzky-Golay filter specified by the slider explained above.
-"BaselineRemoved" is the smoothed and baseline corrected value that is
-visible on the center plot.
-
-## Identification
+## Identifying Spectra 
 
 After uploading data and preprocessing it (if desired) you can now
 identify the spectrum. To identify the spectrum go to the **Match
@@ -605,6 +503,63 @@ reference library and the white spectrum is the spectrum that you are
 trying to identify. Whenever a new dataset is uploaded, the plot and
 data table in this tab will be updated. These plots can be saved as a
 .png by clicking the camera button at the top of the plot.
+
+
+## Characterizing Particles
+
+## Additional App Features
+Accessibility is extremely important to us and we are making strives to improve
+the accessibility of Open Specy for all spectroscopists. Please reach out if you
+have ideas for improvement.
+
+We added a Google translate plugin to all pages in the app so that you can
+easily translate the app. We know that not all languages will be fully supported
+but we will continue to try and improve the translations.  
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("googletranslate.jpg")
+```
+
+### Intensity Adjustment
+
+```{r, fig.align='center', echo=FALSE}
+knitr::include_graphics("intensityadjustment.jpg")
+```
+
+Open Specy assumes that intensity units are in absorbance units but
+Open Specy can adjust reflectance or transmittance spectra to absorbance
+units using this selection in the upload file tab. The transmittance
+adjustment uses the $\log_{10} 1/T$ calculation which does not correct for
+system or particle characteristics. The reflectance adjustment
+use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. If none is selected, Open
+Specy assumes that the uploaded data is an absorbance spectrum and does not
+apply an adjustment.
+
+This is the respective R code:
+
+```{r}
+raman_adj <- raman_hdpe |> 
+  adj_intens()
+
+head(raman_adj)
+```
+
+
+### Download Data
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("download.jpg")
+```
+
+After you have the preprocessing parameters set, we recommend that you
+download the preprocessed data for your records. The download data
+button will append the uploaded data to three columns created by the
+preprocessing parameters. "Wavelength" and "Absorbance" are columns from
+the data uploaded by the user. "NormalizedIntensity" is the max-min
+normalized value (Equation 1) of the "Absorbance". "Smoothed" is the
+Savitzky-Golay filter specified by the slider explained above.
+"BaselineRemoved" is the smoothed and baseline corrected value that is
+visible on the center plot.
 
 # Spectroscopy Advanced
 
