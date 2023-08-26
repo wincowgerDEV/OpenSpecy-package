@@ -228,7 +228,7 @@ interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 
 ## Processing
 
-After uploading data, you can preprocess the data using baseline
+After uploading data, you can preprocess the data using intensity adjustment, baseline
 correction, smoothing, flattening, and range selection and save your preprocessed
 data. Once the process button is selected the default processing will innitiate. This is an absolute derivative transformation, it is kind of magic, it does something similar to smoothing, baseline subtraction, and intensity correction simultaneously and really quickly. 
 
@@ -267,6 +267,30 @@ knitr::include_graphics("deselection.jpg")
 
 If the cog button is clicked, any functions associated with that tool will be
 displayed and can be manipulated to process the spectrum. 
+#### Intensity Adjustment
+
+```{r, fig.align='center', echo=FALSE}
+knitr::include_graphics("intensityadjustment.jpg")
+```
+
+Open Specy assumes that intensity units are in absorbance units but
+Open Specy can adjust reflectance or transmittance spectra to absorbance
+units using this selection in the upload file tab. The transmittance
+adjustment uses the $\log_{10} 1/T$ calculation which does not correct for
+system or particle characteristics. The reflectance adjustment
+use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. If none is selected, Open
+Specy assumes that the uploaded data is an absorbance spectrum and does not
+apply an adjustment.
+
+This is the respective R code:
+
+```{r}
+raman_adj <- raman_hdpe |> 
+  adj_intens()
+
+head(raman_adj)
+```
+
 
 #### Conforming
 
@@ -410,12 +434,14 @@ Sometimes there a peaks that really shouldn't be in your spectra and can distort
 flattened <- flatten_range(asp_example)
 ```
 
+#### Min-Max Normalization
+
+Add in here from the previous edition. 
 
 ## Identifying Spectra 
 
 After uploading data and preprocessing it (if desired) you can now
-identify the spectrum. To identify the spectrum go to the **Match
-Spectrum** tab.
+identify the spectrum. To identify the spectrum go to the **Match Spectrum** tab.
 
 You will see your spectrum and the top matches, but before looking at
 matches, you need to check the three selectable
@@ -505,6 +531,7 @@ data table in this tab will be updated. These plots can be saved as a
 
 ## Characterizing Particles
 ### Thresholding
+### Collapse Spectra
 
 ## Additional App Features
 Accessibility is extremely important to us and we are making strives to improve
@@ -519,29 +546,6 @@ but we will continue to try and improve the translations.
 knitr::include_graphics("googletranslate.jpg")
 ```
 
-### Intensity Adjustment
-
-```{r, fig.align='center', echo=FALSE}
-knitr::include_graphics("intensityadjustment.jpg")
-```
-
-Open Specy assumes that intensity units are in absorbance units but
-Open Specy can adjust reflectance or transmittance spectra to absorbance
-units using this selection in the upload file tab. The transmittance
-adjustment uses the $\log_{10} 1/T$ calculation which does not correct for
-system or particle characteristics. The reflectance adjustment
-use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. If none is selected, Open
-Specy assumes that the uploaded data is an absorbance spectrum and does not
-apply an adjustment.
-
-This is the respective R code:
-
-```{r}
-raman_adj <- raman_hdpe |> 
-  adj_intens()
-
-head(raman_adj)
-```
 
 
 ### Download Data
