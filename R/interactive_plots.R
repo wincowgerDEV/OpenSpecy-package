@@ -29,9 +29,6 @@
 #' @param line list; \code{line} parameter for \code{x}; passed to
 #' \code{\link[plotly]{add_trace}()}.
 #' @param line2 list; \code{line} parameter for \code{x2}; passed to
-#' \code{\link[plotly]{add_trace}()}.
-#' @param line_select list; \code{line}; parameter for \code{select}; passed to
-#' \code{\link[plotly]{add_trace}()}.
 #' @param font list; passed to \code{\link[plotly]{layout}()}.
 #' @param plot_bgcolor color value; passed to \code{\link[plotly]{layout}()}.
 #' @param paper_bgcolor color value; passed to \code{\link[plotly]{layout}()}.
@@ -210,7 +207,6 @@ interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                                        line = list(color = 'rgb(255, 255, 255)'),
                                        line2 = list(dash = "dot", 
                                                     color = "rgb(255,0,0)"),
-                                       line_select = list(color = 'red'),
                                        font = list(color = '#FFFFFF'),
                                        plot_bgcolor = 'rgba(17, 0, 73, 0)',
                                        paper_bgcolor = 'rgb(0, 0, 0)',
@@ -221,26 +217,15 @@ interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                            font = font, plot_bgcolor = plot_bgcolor,
                            paper_bgcolor = paper_bgcolor,
                            colorscale = colorscale)
+  
+  x3 <- filter_spec(x, logic = selected)
 
   # Generate the spectral plot
-  spectra_plot <- plotly_spec(x, x2 = x2,
+  spectra_plot <- plotly_spec(x3, x2 = x2,
                               line = line, line2 = line2, font = font,
                               plot_bgcolor = plot_bgcolor,
                               paper_bgcolor = paper_bgcolor)
 
-  # Extract intensity and wavenumber for the selected spectrum
-  select_points <- x$metadata[select, ]
-  select_intensity <- x$spectra[, select, with = F]
-  select_wavenumber <- x$wavenumber
-
-  # Add trace for the selected spectrum in the spectral plot
-  select_trace <- list(type = "scatter", mode = "lines", x = select_wavenumber,
-                       y = select_intensity, line = line_select,
-                       name = "Selected Spectrum"
-                       )
-
-  # Update the spectral plot data with the selected spectrum trace
-  spectra_plot$data <- c(spectra_plot$data, select_trace)
 
   # Add margin to heatmap for separation
   heat_map <- heat_map |> layout(autosize = TRUE, margin = list(b = 100))

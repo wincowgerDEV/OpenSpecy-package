@@ -21,36 +21,27 @@ knitr::opts_chunk$set(
 
 # Document Overview 
 
-Open Specy Raman and (FT)IR spectral analysis tool for plastic particles and
-other environmental samples. Supported features include reading spectral data
-files (.asp, .csv, .jdx, .spc, .spa, .0), smoothing spectral intensities
-with `smooth_intens()`, correcting background with 
-`subtr_baseline()`, and identifying spectra using an onboard reference
-library. Analyzed spectra can be shared with the Open Specy community.
-A Shiny app is available via `run_app()` or online at
-[https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/).
-
 This document outlines a common workflows for
-using Open Specy and highlights some topics that users are often
+using the Open Specy package and app and highlights some topics that users are often
 requesting a tutorial on. If the document is followed sequentially from
 beginning to end, the user will have a better understanding of every
-procedure involved in using Open Specy as a tool for interpreting
+procedure involved in using Open Specy R package and App as a tool for interpreting
 spectra. It takes approximately 45 minutes to read through and follow
 along with this standard operating procedure the first time. Afterward,
 knowledgeable users should be able to thoroughly analyze individual
 spectra at an average speed of 1 min^-1^.
 
-# Spectroscopy Basics
+# R Package and App
+Here we will describe common workflows of spectral analysis using the OpenSpecy R package and App. 
 
-Here we will describe the basic workflow of spectral analysis in maximum 3 paragraphs. 
+## Installation
 
-# Open Specy Fundamentals
-
+After installing the R package, you just need to read in the library. 
 ```{r setup}
 library(OpenSpecy)
 ```
 
-## Viewing and Sharing Spectra
+## Running the App
 
 To get started with the Open Specy user interface, access
 [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/)
@@ -60,12 +51,103 @@ or start the Shiny GUI directly from R typing
 run_app()
 ```
 
-Then click the **Upload File** tab at the top of the page.
+## Reading Data
+
+If you have your own data, click the **Upload File** tab at the top of the page.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
 knitr::include_graphics("mainpage.jpg")
 ```
 
+The following line of code will read in your data when using the package:
+
+```{r eval=FALSE}
+read_any("path/to/your/data")
+```
+
+Supported formats are .asp, .csv, .jdx, .spc, .spa, .0, .json, .yml, .rds, and .zip. If you use a zip, OpenSpecy will 
+assume that the data are either a suite of spectra as individual files and merge them into one
+OpenSpecy object, or it will assume it is a hyperspectral map in the form of an ENVI file (.hdr and .dat) and read in the map data. 
+
+If you don't have your own data you can use a test dataset.
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("samplefile.jpg")
+```
+
+If you don't have your own data to use right away, that is ok. You can
+download test data to try out the tool by clicking on the test data
+button. A .csv file of HDPE Raman spectrum will download on your
+computer. This file can also be used as a template for formatting .csv
+data into an Open Specy accepted format. The following line of code does the
+same to load the example file into R:
+
+```{r eval=FALSE}
+data("raman_hdpe")
+```
+
+We also have onboard files in common that you can call to test different formats:
+```{r eval=FALSE}
+spectral_map <- read_any(read_extdata("CA_tiny_map.zip")) #preserves some metadata
+asp_example <- read_any(read_extdata("ftir_ldpe_soil.asp")) 
+ps_example <- read_any(read_extdata("ftir_ps.0")) #preserves some metadata
+spc_example <- read_any(read_extdata("raman_atacamit.spc"))
+csv_example <- read_any(read_extdata("raman_hdpe.csv"))
+json_example <- read_any(read_extdata("raman_hdpe.json")) #read in exactly as an OpenSpecy
+rds_example <- read_any(read_extdata("raman_hdpe.rds")) #read in exactly as an OpenSpecy
+yml_example <- read_any(read_extdata("raman_hdpe.yml")) #read in exactly as an OpenSpecy
+batch_example <- read_any(read_extdata("testdata_zipped.zip")) 
+```
+
+You will notice now that the R package reads in files into an object with class OpenSpecy. 
+This is a class we created to optimize the batch analysis and preserving spectral metadata. 
+You can even create these from scratch if you'd like:
+
+```{r eval=FALSE}
+scratch_OpenSpecy <- as_OpenSpecy(x = seq(1000,2000, by = 5), 
+                                  spectra =  data.frame(runif(n = 201)), 
+                                  metadata = list(file_name = "fake_noise")) 
+```
+
+We have some generic functions built for inspecting the spectra:
+```{r eval=FALSE}
+print(scratch_OpenSpecy) #Shows the raw object
+summary(scratch_OpenSpecy) #Summarizes the contents of the spectra. 
+head(scratch_OpenSpecy) #Shows the top wavenumbers and intensities. 
+```
+
+## Visualizing Spectra
+
+We have two ways to visualize your spectra, one is quick and efficient and the other is interactive. 
+
+```{r eval=FALSE}
+
+plot(scratch_OpenSpecy) #quick and efficient
+
+plotly_spec(scratch_OpenSpecy) #interactive
+
+plotly_spec(scratch_OpenSpecy, rds_example) #interactive comparison.
+
+```
+## Visualizing Spectral Maps
+
+Spectral maps can also be visualized as overlaid spectra but in addition the spatial information can be plotted as a heatmap. 
+
+```{r eval=FALSE}
+heatmap_spec(spectral_map,
+             z = spectral_map$metadata$x) #will show more advanced example later in tutorial.
+
+interactive_plot(spectral_map, select = 1, z = spectral_map$metadata$x)
+
+```
+
+## Processing Spectra
+
+## Identifying Spectra 
+
+## Characterizing Particles
+
+## Additional App Features
 Accessibility is extremely important to us and we are making strives to improve
 the accessibility of Open Specy for all spectroscopists. Please reach out if you
 have ideas for improvement.
@@ -78,22 +160,6 @@ but we will continue to try and improve the translations.
 knitr::include_graphics("googletranslate.jpg")
 ```
 
-### Download a test dataset
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("samplefile.jpg")
-```
-
-If you don't have your own data to use right away, that is ok. You can
-download test data to try out the tool by clicking on the test data
-button. A .csv file of HDPE Raman spectrum will download on your
-computer. This file can also be used as a template for formatting .csv
-data into an Open Specy accepted format. The following line of code does the
-same:
-
-```{r eval=FALSE}
-data("raman_hdpe")
-```
 
 ### Choose whether to share your uploaded data or not
 

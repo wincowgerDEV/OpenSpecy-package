@@ -56,7 +56,6 @@ interactive_plot(x, ...)
   select = NULL,
   line = list(color = "rgb(255, 255, 255)"),
   line2 = list(dash = "dot", color = "rgb(255,0,0)"),
-  line_select = list(color = "red"),
   font = list(color = "#FFFFFF"),
   plot_bgcolor = "rgba(17, 0, 73, 0)",
   paper_bgcolor = "rgb(0, 0, 0)",
@@ -74,8 +73,7 @@ spectral data for the second group.}
 \item{line}{list; \code{line} parameter for \code{x}; passed to
 \code{\link[plotly]{add_trace}()}.}
 
-\item{line2}{list; \code{line} parameter for \code{x2}; passed to
-\code{\link[plotly]{add_trace}()}.}
+\item{line2}{list; \code{line} parameter for \code{x2}; passed to}
 
 \item{font}{list; passed to \code{\link[plotly]{layout}()}.}
 
@@ -107,9 +105,6 @@ will be excluded.}
 heatmap.}
 
 \item{colorscale}{colorscale passed to \code{\link[plotly]{add_trace}()}.}
-
-\item{line_select}{list; \code{line}; parameter for \code{select}; passed to
-\code{\link[plotly]{add_trace}()}.}
 
 \item{\ldots}{further arguments passed to \code{\link[plotly]{plot_ly}()}.}
 }
