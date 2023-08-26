@@ -19,7 +19,7 @@ flatten_range(x, ...)
 
 \method{flatten_range}{default}(x, ...)
 
-\method{flatten_range}{OpenSpecy}(x, min, max, make_rel = TRUE, ...)
+\method{flatten_range}{OpenSpecy}(x, min = 2200, max = 2400, make_rel = TRUE, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}

@@ -90,7 +90,7 @@ flatten_range.default <- function(x, ...) {
 #' @rdname adj_range
 #'
 #' @export
-flatten_range.OpenSpecy <- function(x, min, max, make_rel = TRUE,
+flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
                                     ...) {
   if(length(min) != length(max)) {
     stop("min and max need to be the same length", call. = F)

@@ -193,7 +193,9 @@ summary(scratch_OpenSpecy) #Summarizes the contents of the spectra.
 head(scratch_OpenSpecy) #Shows the top wavenumbers and intensities. 
 ```
 
-## Visualizing Spectra
+## Visualization
+
+### Spectra
 
 In the app after spectral data are uploaded, it will appear in the main window. This plot
 is selectable, zoomable, and provides information on hover. You can also
@@ -201,18 +203,18 @@ save a .png file of the plot view using the camera icon at the top right when
 you hover over the plot. This plot will change the view based on updates
 from the **Intensity Adjustment** selection.
 
-We have two ways to visualize your spectra, one is quick and efficient and the other is interactive. 
+We have two ways to visualize your spectra, one is quick and efficient and the other is interactive.
 
 ```{r eval=FALSE}
 
 plot(scratch_OpenSpecy) #quick and efficient
 
-plotly_spec(scratch_OpenSpecy) #interactive
+plotly_spec(scratch_OpenSpecy) #This will min-max normalize your data even if it isn't already but are not changing your underlying data.
 
 plotly_spec(scratch_OpenSpecy, rds_example) #interactive comparison.
 
 ```
-## Visualizing Spectral Maps
+### Maps
 
 Spectral maps can also be visualized as overlaid spectra but in addition the spatial information can be plotted as a heatmap. A similar plot should appear in the app if you upload multiple spectra or a spectral map. It is important to note that when multiple spectra are uploaded in batch they are prescribed xy coordinates, this can be helpful for visualizing summary statistics and navigating vast amounts of data but shouldn't be confused with data which actually has spatial coordinates. 
 
@@ -224,28 +226,20 @@ interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 
 ```
 
-## Processing Spectra
 ## Processing
 
 After uploading data, you can preprocess the data using baseline
-correction, smoothing, and range selection and save your preprocessed
-data. Go to the **Preprocess Spectrum** tab to select
-your parameters for processing the spectrum.
-
-### Process Spectra Plot
+correction, smoothing, flattening, and range selection and save your preprocessed
+data. Once the process button is selected the default processing will innitiate. This is an absolute derivative transformation, it is kind of magic, it does something similar to smoothing, baseline subtraction, and intensity correction simultaneously and really quickly. 
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("preprocessplot.png")
 ```
 
 The plot in the app will update on the fly with the processed spectra. If you want to see the unprocessed spectra just deselect processing. It will also automatically update with any new
-inputs. This allows the user to tune the inputs to optimize the signal
-to noise ratio. The goal with preprocessing is to make peak regions have
-high intensities and non-peak regions should have low intensities. If preprocessing a spectral map or in batch, we recommend to tune the parameters so that you maximize the number of spectra over your signal to noise ratio before you start identification. Spectra below the signal to noise ratio will show up black. There is also a running fill bar that will tell you what percent of your spectra are above the signal to noise ratio. 
+inputs. This allows the user to tune the inputs to optimize the signal to noise ratio. The goal with preprocessing is to make peak regions have high intensities and non-peak regions should have low intensities. If preprocessing a spectral map or in batch, we recommend to tune the parameters so that you maximize the number of spectra over your signal to noise ratio before you start identification. Spectra below the signal to noise ratio will show up black. There is also a running fill bar that will tell you what percent of your spectra are above the signal to noise ratio. 
 
-### Processing Tools
-
-We made a monolithic function for all processing procedures which is optimized by default to result in high signal to noise in most cases. 
+The R function that is the backbone of the app is a monolithic function for all processing procedures which is optimized by default to result in high signal to noise in most cases. 
 
 ```{r eval=FALSE}
 processed <- process_spec(raman_hdpe)
@@ -257,8 +251,7 @@ You can compare the processed and unprocessed data:
 plotly_spec(raman_hdpe, processed)
 ```
 
-We want people to use the process_spec() function for all processing operations because we have optimized the default parameters to result in high signal to noise in most cases. However, we recognize that nesting of functions and order of operations can be useful for users to control so you can also use individual functions for each opperation if you'd like. 
-
+We want people to use the process_spec() function for most processing operations, all processing functions can be tuned using its parameters. However, we recognize that nesting of functions and order of operations can be useful for users to control so you can also use individual functions for each operation if you'd like. 
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("smoothing.jpg")
@@ -274,6 +267,14 @@ knitr::include_graphics("deselection.jpg")
 
 If the cog button is clicked, any functions associated with that tool will be
 displayed and can be manipulated to process the spectrum. 
+
+#### Conforming
+
+Conforming spectra is essential before comparing to a refence library and can be useful for summarizing data when you don't need it to be highly resolved spectrally. We set the default spectral resolution to 5 because this tends to be pretty good for a lot of applications and is in between 4 and 8 which are commonly used wavenumber resolutions.
+
+```{r}
+conformed <- conform_spec(raman_hdpe)
+```
 
 #### Smoothing
 
@@ -389,7 +390,7 @@ head(raman_bgc)
 knitr::include_graphics("rangeselection.jpg")
 ```
 
-The final step of preprocessing is restricting the spectral range.
+The final step of processing is restricting the spectral range.
 Sometimes the instrument operates with high noise at the ends of the
 spectrum and sometimes the baseline fit can produce distortions at the
 ends of the spectrum, both can be removed using this routine. You should
@@ -401,6 +402,15 @@ to examine a single peak or a subset of peaks of interests. This
 function allows users to isolate peaks of interest for matching, while
 removing noise and influence from less relevant spectral data.
 
+#### Flattening Ranges
+
+Sometimes there a peaks that really shouldn't be in your spectra and can distort your interpretation of the spectra. One way to deal with this is to replace the peak values with the mean of the values around the peak. This is the purpose of the flatten_range function. By default it is set to flatten the CO2 region for FTIR spectra because that region often needs to be flattened when atmouspheric artefacts occur in spectra. 
+
+```{r}
+flattened <- flatten_range(asp_example)
+```
+
+
 ## Identifying Spectra 
 
 After uploading data and preprocessing it (if desired) you can now
@@ -411,7 +421,7 @@ You will see your spectrum and the top matches, but before looking at
 matches, you need to check the three selectable
 parameters below.
 
-### Spectrum Type
+### ID Library
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("spectrumtype.jpg")
@@ -421,33 +431,6 @@ The spectra type input on the "Match spectra" tab specifies the type of
 spectra (Raman or FTIR) that the user has uploaded and wants to match
 to. This input will tell the website whether to use the FTIR library or
 the Raman library to make the match.
-
-### Spectrum To Analyze
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("spectrumtoanalyze.jpg")
-```
-
-The spectra to analyze input specifies if the tool will match the
-**Uploaded** spectra (unaltered by the inputs on the **Preprocess Spectra**
-tab) or the **Processed Spectra** (manipulated by the inputs in the
-Preprocess Spectra Tab).
-
-### Region To Match
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("regiontomatch.jpg")
-```
-
-The region to match input specifies if the "Full Spectrum" will match
-the entire range of the spectra (including non peak regions) in the
-reference database. This is the most intuitive match. Or should the
-**Peaks Only** match just the peak regions in the reference database. This
-is an advanced feature proposed in Renner et al. (2017).
-This can be a less intuitive approach but in cases where
-there are few peaks and high baseline interference, it could be the best
-option. In cases where non-peak regions are important for the
-interpretation of the match, this is not the best approach.
 
 ### Match Table
 
@@ -521,6 +504,7 @@ data table in this tab will be updated. These plots can be saved as a
 
 
 ## Characterizing Particles
+### Thresholding
 
 ## Additional App Features
 Accessibility is extremely important to us and we are making strives to improve
