@@ -26,7 +26,7 @@ process_spec(x, ...)
     NULL),
   smooth_intens = TRUE,
   smooth_intens_args = list(polynomial = 3, window = 11, derivative = 1, abs = T),
-  make_rel = F,
+  make_rel = T,
   ...
 )
 }
