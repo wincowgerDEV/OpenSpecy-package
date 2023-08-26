@@ -241,9 +241,24 @@ knitr::include_graphics("preprocessplot.png")
 The plot in the app will update on the fly with the processed spectra. If you want to see the unprocessed spectra just deselect processing. It will also automatically update with any new
 inputs. This allows the user to tune the inputs to optimize the signal
 to noise ratio. The goal with preprocessing is to make peak regions have
-high intensities and non-peak regions should have low intensities. If preprocessing a spectral map or in batch, we recommend to tune the parameters so that you maximize the number of spectra over your signal to noise ratio before you start identification. Spectra below the signal to noise ratio will show up black. 
+high intensities and non-peak regions should have low intensities. If preprocessing a spectral map or in batch, we recommend to tune the parameters so that you maximize the number of spectra over your signal to noise ratio before you start identification. Spectra below the signal to noise ratio will show up black. There is also a running fill bar that will tell you what percent of your spectra are above the signal to noise ratio. 
 
 ### Processing Tools
+
+We made a monolithic function for all processing procedures which is optimized by default to result in high signal to noise in most cases. 
+
+```{r eval=FALSE}
+processed <- process_spec(raman_hdpe)
+```
+
+You can compare the processed and unprocessed data:
+
+```{r eval=FALSE}
+plotly_spec(raman_hdpe, processed)
+```
+
+We want people to use the process_spec() function for all processing operations because we have optimized the default parameters to result in high signal to noise in most cases. However, we recognize that nesting of functions and order of operations can be useful for users to control so you can also use individual functions for each opperation if you'd like. 
+
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("smoothing.jpg")
