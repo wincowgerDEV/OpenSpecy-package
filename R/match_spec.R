@@ -2,23 +2,20 @@
 #' @title Identify and filter spectra
 #'
 #' @description
-#' \code{match_spec()} joins two \code{OpenSpecy} objects and their metadata based on similarity. 
-#' 
+#' \code{match_spec()} joins two \code{OpenSpecy} objects and their metadata
+#' based on similarity.
 #' \code{cor_spec()} correlates two \code{OpenSpecy} objects, typically one with
 #' knowns and one with unknowns.
-#' 
-#' \code{ident_spec()} retrieves the top match values from a correlation matrix and formats them
-#' with metadata. 
-#' 
-#' \code{get_metadata()} retrieves metadata from OpenSpecy objects. 
+#' \code{ident_spec()} retrieves the top match values from a correlation matrix
+#' and formats them with metadata.
+#' \code{get_metadata()} retrieves metadata from OpenSpecy objects.
+#' \code{max_cor_named()} formats the top correlation values from a correlation
+#' matrix as a named vector.
+#' \code{filter_spec()} filters an Open Specy object.
 #'
-#' \code{max_cor_named()} formats the top correlation values from a correlation matrix as a named vector. 
-#' 
-#' \code{filter_spec()} filters an Open Specy object. 
-#' 
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
-#' @param library an \code{OpenSpecy} or \code{glmnet} object representing the reference library
-#' of spectra or model to use in identification.
+#' @param library an \code{OpenSpecy} or \code{glmnet} object representing the
+#' reference library of spectra or model to use in identification.
 #' @param na.rm logical; indicating whether missing values should be removed
 #' when calculating correlations. Default is \code{TRUE}.
 #' @param top_n integer; specifying the number of top matches to return.
@@ -31,12 +28,11 @@
 #' joined; \code{NULL} if you don't want to join.
 #' @param rm_empty logical; whether to remove empty columns in the metadata.
 #' @param logic a logical or numeric vector describing which spectra to keep.
-#' @param fill an \code{OpenSpecy} object with a single spectrum to be used to 
-#' fill missing values for alignment with the AI classification. 
+#' @param fill an \code{OpenSpecy} object with a single spectrum to be used to
+#' fill missing values for alignment with the AI classification.
 #' @param \ldots additional arguments passed \code{\link[stats]{cor}()}.
 #'
 #' @return
-#' 
 #' \code{match_spec()} and \code{ident_spec()} will return
 #' a \code{\link[data.table]{data.table-class}()} containing correlations
 #' between spectra and the library.
@@ -50,16 +46,15 @@
 #' will be added to the output.
 #' If \code{add_object_metadata} is \code{is.character}, the object metadata
 #' will be added to the output.
-#' 
-#' \code{filter_spec()} returns an \code{OpenSpecy} object. 
-#' 
-#' \code{cor_spec()} returns a correlation matrix. 
-#' 
-#' \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()} with the metadata for columns which have information. 
+#' \code{filter_spec()} returns an \code{OpenSpecy} object.
+#' \code{cor_spec()} returns a correlation matrix.
+#' \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()}
+#' with the metadata for columns which have information.
 #'
 #' @examples
 #' data("test_lib")
-#' unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
+#' unknown <- read_extdata("ftir_ldpe_soil.asp") |>
+#'   read_any() |>
 #'   conform_spec(range = test_lib$wavenumber,
 #'                res = spec_res(test_lib)) |>
 #'   process_spec()
@@ -82,7 +77,7 @@
 #' object of choice
 #'
 #' @importFrom dplyr filter group_by mutate right_join ungroup left_join arrange
-#' @importFrom stats cor
+#' @importFrom stats cor predict
 #' @importFrom glmnet predict.glmnet
 #' @importFrom data.table data.table setorder fifelse .SD as.data.table rbindlist
 #' @export
@@ -106,10 +101,13 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
          "trying to correlate; this won't work for correlation analysis. ",
          "Consider first conforming the spectra to the same wavenumbers.",
          call. = F)
-    
-    if(!all(x$wavenumber %in% library$wavenumber))
-        warning(paste0("Some wavenumbers in X are not in the library and the function is not using these in the identification routine: ", paste(x$wavenumber[!x$wavenumber %in% library$wavenumber], collapse = " ")),
-             call. = F)
+
+  if(!all(x$wavenumber %in% library$wavenumber))
+    warning(paste0("Some wavenumbers in 'x' are not in the library and the ",
+                   "function is not using these in the identification routine: ",
+                   paste(x$wavenumber[!x$wavenumber %in% library$wavenumber],
+                         collapse = " ")),
+            call. = F)
 
   lib <- library$spectra[library$wavenumber %in% x$wavenumber, ]
   lib <- lib[, lapply(.SD, make_rel, na.rm = na.rm)]
@@ -125,14 +123,14 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
 #' @rdname match_spec
 #' @export
 match_spec <- function(x, ...) {
-    UseMethod("match_spec")
+  UseMethod("match_spec")
 }
 
 #' @rdname match_spec
 #'
 #' @export
 match_spec.default <- function(x, ...) {
-    stop("object 'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname match_spec
@@ -141,14 +139,14 @@ match_spec.default <- function(x, ...) {
 match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
                                  add_library_metadata = NULL,
                                  add_object_metadata = NULL, fill = NULL, ...) {
-    if(is_OpenSpecy(library)){
-        cor_spec(x, library =  library) |>
-            ident_spec(x, library = library, top_n = top_n, add_library_metadata = add_library_metadata, add_object_metadata = add_object_metadata)        
-    }
-    else{
-        ai_classify(x, library, fill)
-    }
-
+  if(is_OpenSpecy(library)) {
+    cor_spec(x, library =  library) |>
+      ident_spec(x, library = library, top_n = top_n,
+                 add_library_metadata = add_library_metadata,
+                 add_object_metadata = add_object_metadata)
+  } else {
+    ai_classify(x, library, fill)
+  }
 }
 
 #' @rdname match_spec
@@ -259,59 +257,63 @@ filter_spec.OpenSpecy <- function(x, logic, ...) {
 #'
 #' @export
 ai_classify <- function(x, ...) {
-    UseMethod("ai_classify")
+  UseMethod("ai_classify")
 }
 
 #' @rdname match_spec
 #'
 #' @export
 ai_classify.default <- function(x, ...) {
-    stop("object 'x' needs to be of class 'OpenSpecy'")
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname match_spec
 #'
 #' @export
-ai_classify.OpenSpecy <- function(x, library, fill = NULL){
-    if(!is.null(fill)){
-        filled <- .fill_spec(x, fill) 
-    }
-    else{
-        filled <- x
-    }
-    spectra_processed <- transpose(filled$spectra[,wavenumber := filled$wavenumber], make.names = "wavenumber") |> 
-        as.matrix()
-    
-    predict(library$model, 
-            newx = spectra_processed, 
-            min(library$model$lambda), 
-            type = "response") |> 
-        as.data.table() |>
-        mutate(V1 = as.integer(V1),
-               V2 = as.integer(V2)) |>
-        right_join(data.table(V1 = 1:dim(spectra_processed)[1])) |>
-        group_by(V1) |>
-        dplyr::filter(value == max(value, na.rm = T) | is.na(value)) |>
-        ungroup() |>
-        left_join(library$dimension_conversion, by = c("V2" = "factor_num")) |>
-        arrange(V1)
+ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
+  if(!is.null(fill)) {
+    filled <- .fill_spec(x, fill)
+  } else {
+    filled <- x
+  }
+  proc <- transpose(filled$spectra[, wavenumber := filled$wavenumber],
+                    make.names = "wavenumber") |>
+    as.matrix()
+
+  pred <- predict(library$model,
+                  newx = proc,
+                  min(library$model$lambda),
+                  type = "response") |>
+    as.data.table()
+
+  pred |>
+    mutate(V1 = as.integer(V1),
+           V2 = as.integer(V2)) |>
+    right_join(data.table(V1 = 1:dim(proc)[1])) |>
+    group_by(V1) |>
+    dplyr::filter(value == max(value, na.rm = T) | is.na(value)) |>
+    ungroup() |>
+    left_join(library$dimension_conversion, by = c("V2" = "factor_num")) |>
+    arrange(V1)
 }
 
+.fill_spec <- function(x, fill) {
+  blank_dt <- x$spectra[1,]
 
-.fill_spec <- function(x, fill){
-    blank_dt <- x$spectra[1,]
-    
-    blank_dt[1,] <- NA
-    
-    test <- rbindlist(lapply(1:length(fill$wavenumber), function(x){blank_dt}))[,lapply(.SD, function(x) {unlist(fill$spectra)})]
-    
-    test[match(x$wavenumber, fill$wavenumber),] <- x$spectra
-    
-    x$spectra <- test
-    
-    x$wavenumber <- fill$wavenumber
-    
-    x
+  blank_dt[1,] <- NA
+
+  test <- rbindlist(lapply(1:length(fill$wavenumber), function(x) {
+    blank_dt
+  }
+  ))[, lapply(.SD, function(x) {
+    unlist(fill$spectra)
+  })]
+
+  test[match(x$wavenumber, fill$wavenumber),] <- x$spectra
+
+  x$spectra <- test
+
+  x$wavenumber <- fill$wavenumber
+
+  x
 }
-
-

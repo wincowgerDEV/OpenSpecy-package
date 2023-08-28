@@ -69,13 +69,13 @@ ai_classify(x, ...)
 
 \method{ai_classify}{default}(x, ...)
 
-\method{ai_classify}{OpenSpecy}(x, library, fill = NULL)
+\method{ai_classify}{OpenSpecy}(x, library, fill = NULL, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object, typically with unknowns.}
 
-\item{library}{an \code{OpenSpecy} or \code{glmnet} object representing the reference library
-of spectra or model to use in identification.}
+\item{library}{an \code{OpenSpecy} or \code{glmnet} object representing the
+reference library of spectra or model to use in identification.}
 
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating correlations. Default is \code{TRUE}.}
@@ -115,31 +115,27 @@ If \code{add_library_metadata} is \code{is.character}, the library metadata
 will be added to the output.
 If \code{add_object_metadata} is \code{is.character}, the object metadata
 will be added to the output.
-
 \code{filter_spec()} returns an \code{OpenSpecy} object.
-
 \code{cor_spec()} returns a correlation matrix.
-
-\code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()} with the metadata for columns which have information.
+\code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()}
+with the metadata for columns which have information.
 }
 \description{
-\code{match_spec()} joins two \code{OpenSpecy} objects and their metadata based on similarity.
-
+\code{match_spec()} joins two \code{OpenSpecy} objects and their metadata
+based on similarity.
 \code{cor_spec()} correlates two \code{OpenSpecy} objects, typically one with
 knowns and one with unknowns.
-
-\code{ident_spec()} retrieves the top match values from a correlation matrix and formats them
-with metadata.
-
+\code{ident_spec()} retrieves the top match values from a correlation matrix
+and formats them with metadata.
 \code{get_metadata()} retrieves metadata from OpenSpecy objects.
-
-\code{max_cor_named()} formats the top correlation values from a correlation matrix as a named vector.
-
+\code{max_cor_named()} formats the top correlation values from a correlation
+matrix as a named vector.
 \code{filter_spec()} filters an Open Specy object.
 }
 \examples{
 data("test_lib")
-unknown <- read_any(read_extdata("ftir_ldpe_soil.asp")) |>
+unknown <- read_extdata("ftir_ldpe_soil.asp") |>
+  read_any() |>
   conform_spec(range = test_lib$wavenumber,
                res = spec_res(test_lib)) |>
   process_spec()

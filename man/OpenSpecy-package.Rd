@@ -53,12 +53,13 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Win Cowger \email{wincowger@gmail.com} (\href{https://orcid.org/0000-0001-9226-3104}{ORCID})
+\strong{Maintainer}: Win Cowger \email{wincowger@gmail.com} (\href{https://orcid.org/0000-0001-9226-3104}{ORCID}) [data contributor]
 
 Authors:
 \itemize{
   \item Zacharias Steinmetz \email{z.steinmetz@rptu.de} (\href{https://orcid.org/0000-0001-6675-5033}{ORCID})
   \item Nick Leong (\href{https://orcid.org/0009-0008-3313-4132}{ORCID})
+  \item Andrea Faltynkova (\href{https://orcid.org/0000-0003-2523-3137}{ORCID}) [data contributor]
 }
 
 Other contributors:
@@ -70,10 +71,12 @@ Other contributors:
   \item Keenan Munno (\href{https://orcid.org/0000-0003-2916-5944}{ORCID}) [contributor, data contributor]
   \item Chelsea Rochman (\href{https://orcid.org/0000-0002-7624-711X}{ORCID}) [contributor, data contributor]
   \item Sebastian Primpke (\href{https://orcid.org/0000-0001-7633-8524}{ORCID}) [contributor, data contributor]
-  \item Orestis Herodotou [contributor, data contributor]
-  \item Mary C Norris [contributor, data contributor]
-  \item Christine M Knauss (\href{https://orcid.org/0000-0003-4404-8922}{ORCID}) [contributor, data contributor]
-  \item Aleksandra Karapetrova (\href{https://orcid.org/0000-0002-9856-1644}{ORCID}) [contributor, data contributor]
+  \item Orestis Herodotou [contributor]
+  \item Mary C Norris [contributor]
+  \item Christine M Knauss (\href{https://orcid.org/0000-0003-4404-8922}{ORCID}) [contributor]
+  \item Aleksandra Karapetrova (\href{https://orcid.org/0000-0002-9856-1644}{ORCID}) [contributor, data contributor, reviewer]
+  \item Vesna Teofilovic (\href{https://orcid.org/0000-0002-3557-1482}{ORCID}) [contributor]
+  \item Laura A. T. Markley (\href{https://orcid.org/0000-0003-0620-8366}{ORCID}) [contributor]
   \item Shreyas Patankar [contributor, data contributor]
 }
 

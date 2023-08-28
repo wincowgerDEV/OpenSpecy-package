@@ -164,7 +164,8 @@ data("raman_hdpe")
 ```
 
 We also have onboard files in common that you can call to test different formats:
-```{r eval=FALSE}
+
+```{r}
 spectral_map <- read_any(read_extdata("CA_tiny_map.zip")) #preserves some metadata
 asp_example <- read_any(read_extdata("ftir_ldpe_soil.asp")) 
 ps_example <- read_any(read_extdata("ftir_ps.0")) #preserves some metadata
