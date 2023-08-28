@@ -71,9 +71,8 @@ Imports:
     plotly,
     digest,
     signal,
-    shiny,
-    dplyr,
-    glmnet
+    glmnet,
+    shiny
 Suggests:
     knitr,
     rmarkdown,
@@ -83,6 +82,7 @@ Suggests:
     shinyjs,
     shinyWidgets,
     bs4Dash,
+    dplyr,
     ggplot2,
     DT,
     curl,

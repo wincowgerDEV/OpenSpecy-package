@@ -76,7 +76,6 @@
 #' \code{\link{load_lib}()} loads the Open Specy reference library into an \R
 #' object of choice
 #'
-#' @importFrom dplyr filter group_by mutate right_join ungroup left_join arrange
 #' @importFrom stats cor predict
 #' @importFrom glmnet predict.glmnet
 #' @importFrom data.table data.table setorder fifelse .SD as.data.table rbindlist
@@ -276,8 +275,8 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
   } else {
     filled <- x
   }
-  proc <- transpose(filled$spectra[, wavenumber := filled$wavenumber],
-                    make.names = "wavenumber") |>
+  filled$spectra$wavenumber <- filled$wavenumber
+  proc <- transpose(filled$spectra, make.names = "wavenumber") |>
     as.matrix()
 
   pred <- predict(library$model,
@@ -285,16 +284,19 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
                   min(library$model$lambda),
                   type = "response") |>
     as.data.table()
+  names(pred)[1:3] <- c("x", "y", "z")
+  pred$x <- as.integer(pred$x)
+  pred$y <- as.integer(pred$y)
+  pred <- merge(pred, data.table(x = 1:dim(proc)[1]), all.y = T)
 
-  pred |>
-    mutate(V1 = as.integer(V1),
-           V2 = as.integer(V2)) |>
-    right_join(data.table(V1 = 1:dim(proc)[1])) |>
-    group_by(V1) |>
-    dplyr::filter(value == max(value, na.rm = T) | is.na(value)) |>
-    ungroup() |>
-    left_join(library$dimension_conversion, by = c("V2" = "factor_num")) |>
-    arrange(V1)
+  value <- NULL # workaround for data.table non-standard evaluation
+  filt <- pred[, .SD[value == max(value, na.rm = T) | is.na(value)], by = "x"]
+
+  res <- merge(filt, library$dimension_conversion, all.x = T,
+               by.x = "y", by.y = "factor_num")
+  setorder(res, "x")
+
+  return(res)
 }
 
 .fill_spec <- function(x, fill) {
