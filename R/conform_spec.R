@@ -69,9 +69,9 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, type = "interp", ..
   
   if(type == "roll"){
       
-      join <- data.table(wavenumber = wn)
+      join <- data.table("wavenumber" = wn)
       #Rolling join option
-      spec <- x$spectra[,wavenumber := x$wavenumber][join, roll = "nearest", on = "wavenumber"][,-"wavenumber"] 
+      spec <- x$spectra[,"wavenumber" := x$wavenumber][join, roll = "nearest", on = "wavenumber"][,-"wavenumber"] 
   }
 
   
