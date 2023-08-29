@@ -167,20 +167,22 @@ head(scratch_OpenSpecy) # shows the top wavenumbers and intensities
 In the app after spectral data are uploaded, it will appear in the main window.
 This plot is selectable, zoomable, and provides information on hover. You can
 also save a .png file of the plot view using the camera icon at the top right
-when you hover over the plot. This plot will change the view based on updates
-from the **Intensity Adjustment** selection.
+when you hover over the plot. 
 
-We have two ways to visualize your spectra, one is quick and efficient and the
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("spectra_vis.jpg")
+```
+
+In R, we have two ways to visualize your spectra, one is quick and efficient and the
 other is interactive. Here is an example of quick and efficient plotting.
 
 ```{r fig.align="center"}
 plot(scratch_OpenSpecy) # quick and efficient
 ```
 
-
 This is an example of an interactive plot. 
 
-```{r eval=TRUE}
+```{r}
 plotly_spec(scratch_OpenSpecy) # this will min-max normalize your data even
                                # if it isn't already but are not changing your
                                # underlying data
@@ -188,7 +190,7 @@ plotly_spec(scratch_OpenSpecy) # this will min-max normalize your data even
 
 With interactive plots you can also plot two different datasets simultaneously to compare. 
 
-```{r eval=TRUE}
+```{r}
 plotly_spec(scratch_OpenSpecy, rds_example) # interactive comparison
 ```
 
@@ -200,12 +202,21 @@ the app if you upload multiple spectra or a spectral map. It is important to
 note that when multiple spectra are uploaded in batch they are prescribed `x`
 and `y` coordinates, this can be helpful for visualizing summary statistics and
 navigating vast amounts of data but shouldn't be confused with data which
-actually has spatial coordinates.
+actually has spatial coordinates. Hovering over the map will reveal information about the signal and noise and correlation values. Clicking the map will provide the selected spectrum underneath. In the app, the colors of the heatmap are either the signal and noise or the spectral identifications depending on whether the identification is turned on or not. Pixels are black if the spectra does not pass the signal-noise threshold and/or the correlation threshold. 
 
-```{r eval=FALSE}
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("map_vis.jpg")
+```
+
+The same plot can be created in R but the user can control what values form the colors of the heatmap by specifying z.
+```{r}
 heatmap_spec(spectral_map,
-             z = spectral_map$metadata$x) # will show more advanced example
-                                          # later in tutorial
+             z = spectral_map$metadata$x) # will show more advanced example                                  # later in tutorial
+
+```
+
+An interactive plot of the heatmap and spectra overlayed can be generated with the `interactive_plot` function. A user can hover over the heatmap to identify the next row id they are interested in and update the value of select to see that spectrum.  
+```{r}
 
 interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 
