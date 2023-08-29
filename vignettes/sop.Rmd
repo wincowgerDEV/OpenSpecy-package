@@ -71,66 +71,29 @@ stored or shared in Open Specy.
 knitr::include_graphics("uploadfile.jpg")
 ```
 
-### Upload/Read Data
-
 Open Specy allows for upload of native Open Specy .y(a)ml, .json, or .rds files.
-In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip files with ENVI data can
-be imported. Open Specy and .csv files should always load correctly but the
-other file types are still in beta development, though most of the time these
-files work perfectly. It is best practice to cross check files in the
-proprietary software they came from and Open Specy before use in Open Specy. Due
-to the complexity of these file types, we haven't been able to make them fully
-compatible yet. If your file is not working, please contact the administrator
-and share the file so that we can get it to work.
-
-For the most consistent results, files should be converted to .csv
-format before uploading to Open Specy. The specific steps to converting
-your instrument's native files to .csv can be found in its software
-manual or you can check out
-[Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
-spectral file conversions (see Mini Tutorial section: File conversion in
-Spectragryph to Open Specy accepted format).
-
-If uploading a .csv file, label the column with the wavenumbers `wavenumber` and
-name the column with the intensities `intensity`.
+In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip files can
+be imported. .zip  files can either contain multiple files with individual spectra in them of the non-zip formats or it can contain a .hdr and .dat file that form an ENVI file for a spectral map. Open Specy and .csv files should always load correctly but the
+other file types are still in development, though most of the time these
+files work perfectly. If uploading a .csv file, label the column with the wavenumbers `wavenumber` and name the column with the intensities `intensity`. Wavenumber units must be cm^-1^. Any other columns are not used by the software. Always keep a copy of the original file before alteration to preserve metadata and raw data for your records.
 
 ```{r sample_data, echo=FALSE, out.width="50%"}
 knitr::kable(head(raman_hdpe), caption = "Sample data `raman_hdpe`")
 ```
 
-Wavenumber units must be cm^-1^. Any other columns are not used by the software.
-Always keep a copy of the original file before alteration to preserve metadata
-and raw data for your records.
+It is best practice to cross check files in the proprietary software they came from and Open Specy before use in Open Specy. Due to the complexity of some proprietary file types, we haven't been able to make them fully compatible yet. If your file is not working, please contact the administrator and share the file so that we can work on integrating it.
 
-To upload data, click **Browse** and choose one of your files to upload, or drag
-and drop your file into the gray box. At this time you can only upload one file
-at a time.
+The specific steps to converting your instrument's native files to .csv can be found in its software manual or you can check out [Spectragryph](https://www.effemm2.de/spectragryph/), which supports many spectral file conversions (see Mini Tutorial section: File conversion in
+Spectragryph to Open Specy accepted format).
 
-### Share data
-
-When the user clicks the **Share Data** button their current uploaded data and
-metadata is sent to an [open-access online repository](https://osf.io/rjg3c/).
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sharemetadata.jpg")
-```
-
-All high quality uploaded data with metadata will eventually be reviewed by
-spectroscopy experts and added to the internal library if it passes review. If
-multiple files are going to be uploaded with metadata, the cells will also stay
-filled with the last input after the share data button is clicked. Just upload
-the next dataset and change the metadata inputs that are different. If more than
-50 files will be shared at once, you can contact the website administrator to
-get a bulk upload sheet for more rapid upload.
-
-The following line of code will read in your data when using the package:
+The following line of code will read in your data when using the package and interprets which reading function to use based on the file extension.
 
 ```{r, eval=FALSE}
 read_any("path/to/your/data")
 ```
 
-The following R functions from the Open Specy package will also read in spectral
-data accordingly if you have a particular format in mind:
+These file type specific functions will also read in spectral
+data accordingly if you have a particular format in mind.
 
 ```{r, eval=FALSE}
 read_text(".csv")
@@ -138,29 +101,21 @@ read_asp(".asp")
 read_opus(".0")
 ```
 
-Supported formats are .asp, .csv, .jdx, .spc, .spa, .0, .json, .yml, .rds, and
-.zip. If you use a .zip, Open Specy will assume that the data are either a suite
-of spectra as individual files and merge them into one `OpenSpecy` object, or it
-will assume it is a hyperspectral map in the form of an ENVI file (.hdr and
-.dat) and read in the map data. 
-
-If you don't have your own data you can use a test dataset.
+If you don't have your own data, you can use a test dataset.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("samplefile.jpg")
 ```
 
-If you don't have your own data to use right away, that is ok. You can download
-test data to try out the tool by clicking on the test data button. A .csv file
-of HDPE Raman spectrum will download on your computer. This file can also be
-used as a template for formatting .csv data into an Open Specy accepted format.
+A .csv file of an HDPE Raman spectrum will download on your computer. This file can also be used as a template for formatting .csv data into an Open Specy accepted format.
+
 The following line of code does the same to load the example file into R:
 
 ```{r}
 data("raman_hdpe")
 ```
 
-We also have onboard files in common that you can call to test different formats:
+We also have many onboard files that you can call to test different formats:
 
 ```{r}
 spectral_map <- read_extdata("CA_tiny_map.zip") |> 
@@ -183,12 +138,9 @@ batch_example <- read_extdata("testdata_zipped.zip") |>
   read_any()
 ```
 
-You will notice now that the R package reads in files into an object with class
-`OpenSpecy`. This is a class we created to optimize the batch analysis and
-preserving spectral metadata. You can even create these from scratch if you'd
-like:
+You will notice now that the R package reads in files into an object with class `OpenSpecy`. This is a class we created for high throughput spectral analysis which now also preserves spectral metadata. You can even create these from scratch if you'd like:
 
-```{r eval=TRUE}
+```{r}
 scratch_OpenSpecy <- as_OpenSpecy(x = seq(1000,2000, by = 5), 
                                   spectra =  data.frame(runif(n = 201)), 
                                   metadata = list(file_name = "fake_noise")) 
@@ -196,15 +148,15 @@ scratch_OpenSpecy <- as_OpenSpecy(x = seq(1000,2000, by = 5),
 
 We have some generic functions built for inspecting the spectra:
 
-```{r eval=TRUE}
+```{r}
 print(scratch_OpenSpecy) # shows the raw object
 ```
 
-```{r eval=TRUE}
+```{r}
 summary(scratch_OpenSpecy) # summarizes the contents of the spectra
 ```
 
-```{r eval=TRUE}
+```{r}
 head(scratch_OpenSpecy) # shows the top wavenumbers and intensities
 ```
 
@@ -512,6 +464,10 @@ The spectra type input on the "Match spectra" tab specifies the type of
 spectra (Raman or FTIR) that the user has uploaded and wants to match
 to. This input will tell the website whether to use the FTIR library or
 the Raman library to make the match.
+
+### Sharing Reference Data
+If more than 50 files will be shared at once, you can contact the website administrator to
+get a bulk upload sheet for more rapid upload.
 
 ### Match Table
 
