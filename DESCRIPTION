@@ -35,7 +35,8 @@ Description: Raman and (FT)IR spectral analysis tool for plastic particles and
     Analyzed spectra can be shared with the Open Specy community. A Shiny app is
     available via run_app() or online at
     <https://openanalysis.org/openspecy/>.
-URL: https://github.com/wincowgerDEV/OpenSpecy-package/
+URL: https://github.com/wincowgerDEV/OpenSpecy-package/,
+    http://wincowger.com/OpenSpecy-package/
 BugReports: https://github.com/wincowgerDEV/OpenSpecy-package/issues/
 License: CC BY 4.0
 Encoding: UTF-8

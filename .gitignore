@@ -51,3 +51,4 @@ docs/
 *.ini
 *.swp
 .DS_Store
+docs
