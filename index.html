@@ -7,15 +7,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="description" content="Raman and (FT)IR spectral analysis tool for plastic particles and
     other environmental samples (Cowger et al. 2021,
-    &lt;doi:10.1021/acs.analchem.1c00123&gt;). Supported features include reading
-    spectral data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay
-    smoothing of spectral intensities with smooth_intens(), correcting
-    background noise with subtr_bg() in accordance with Zhao et al. (2007)
-    &lt;doi:10.1366/000370207782597003&gt;, and identifying spectra using an onboard
-    reference library (Cowger et al. 2020, &lt;doi:10.1177/0003702820929064&gt;).
-    Analyzed spectra can be shared with the Open Specy community. A Shiny app is
-    available via run_app() or online at
-    &lt;https://openanalysis.org/openspecy/&gt;.">
+    &lt;doi:10.1021/acs.analchem.1c00123&gt;). With read_any(), Open Specy provides a
+    single function for reading individual, batch, or map spectral data files
+    like .asp, .csv, .jdx, .spc, .spa, .0, and .zip. process_spec() simplifies
+    preprocessing spectra, including smoothing, baseline correction,
+    range restriction and flattening, intensity conversions, wavenumber
+    alignment, and min-max normalization. Spectra can be identified in batch
+    using an onboard reference library (Cowger et al. 2020,
+    &lt;doi:10.1177/0003702820929064&gt;) using match_spec(). A Shiny app is available
+    via run_app() or online at &lt;https://openanalysis.org/openspecy/&gt;.">
 <title>Analyze, Process, Identify, and Share Raman and (FT)IR Spectra • OpenSpecy</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.2.2/bootstrap.min.css" rel="stylesheet">
@@ -24,15 +24,15 @@
 <!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Analyze, Process, Identify, and Share Raman and (FT)IR Spectra">
 <meta property="og:description" content="Raman and (FT)IR spectral analysis tool for plastic particles and
     other environmental samples (Cowger et al. 2021,
-    &lt;doi:10.1021/acs.analchem.1c00123&gt;). Supported features include reading
-    spectral data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay
-    smoothing of spectral intensities with smooth_intens(), correcting
-    background noise with subtr_bg() in accordance with Zhao et al. (2007)
-    &lt;doi:10.1366/000370207782597003&gt;, and identifying spectra using an onboard
-    reference library (Cowger et al. 2020, &lt;doi:10.1177/0003702820929064&gt;).
-    Analyzed spectra can be shared with the Open Specy community. A Shiny app is
-    available via run_app() or online at
-    &lt;https://openanalysis.org/openspecy/&gt;.">
+    &lt;doi:10.1021/acs.analchem.1c00123&gt;). With read_any(), Open Specy provides a
+    single function for reading individual, batch, or map spectral data files
+    like .asp, .csv, .jdx, .spc, .spa, .0, and .zip. process_spec() simplifies
+    preprocessing spectra, including smoothing, baseline correction,
+    range restriction and flattening, intensity conversions, wavenumber
+    alignment, and min-max normalization. Spectra can be identified in batch
+    using an onboard reference library (Cowger et al. 2020,
+    &lt;doi:10.1177/0003702820929064&gt;) using match_spec(). A Shiny app is available
+    via run_app() or online at &lt;https://openanalysis.org/openspecy/&gt;.">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
@@ -46,7 +46,7 @@
     
     <a class="navbar-brand me-2" href="index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.9.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,7 +61,7 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="articles/sop.html">Standard Operating Procedure</a>
+    <a class="dropdown-item" href="articles/sop.html">Open Specy Tutorial</a>
   </div>
 </li>
 <li class="nav-item">
@@ -87,12 +87,12 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="open-specy">Open Specy<a class="anchor" aria-label="anchor" href="#open-specy"></a>
+<div class="page-header"><h1 id="open-specy-10">Open Specy 1.0<a class="anchor" aria-label="anchor" href="#open-specy-10"></a>
 </h1></div>
 <p>Analyze, Process, Identify, and Share Raman and (FT)IR Spectra</p>
 <!-- badges: start -->
 
-<p>Raman and (FT)IR spectral analysis tool for plastic particles and other environmental samples (Cowger et al. 2021, doi: <a href="https://doi.org/10.1021/acs.analchem.1c00123" class="external-link">10.1021/acs.analchem.1c00123</a>). Supported features include reading spectral data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay smoothing of spectral intensities with <code><a href="reference/smooth_intens.html">smooth_intens()</a></code>, correcting background noise with <code><a href="reference/subtr_bg.html">subtr_bg()</a></code> in accordance with Zhao et al. (2007, doi: <a href="https://doi.org/10.1366/000370207782597003" class="external-link">10.1366/000370207782597003</a>), and identifying spectra using an onboard reference library (Cowger et al. 2020, doi: <a href="https://doi.org/10.1177/0003702820929064" class="external-link">10.1177/0003702820929064</a>). Analyzed spectra can be shared with the Open Specy community. A Shiny app is available via <code><a href="reference/run_app.html">run_app()</a></code> or online at <a href="https://openanalysis.org/openspecy/" class="external-link">https://openanalysis.org/openspecy/</a>.</p>
+<p>Raman and (FT)IR spectral analysis tool for plastic particles and other environmental samples (Cowger et al. 2021, doi: <a href="https://doi.org/10.1021/acs.analchem.1c00123" class="external-link">10.1021/acs.analchem.1c00123</a>). With <code><a href="reference/read_multi.html">read_any()</a></code>, Open Specy provides a single function for reading individual, batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and .zip. <code><a href="reference/process_spec.html">process_spec()</a></code> simplifies preprocessing spectra, including smoothing, baseline correction, range restriction and flattening, intensity conversions, wavenumber alignment, and min-max normalization. Spectra can be identified in batch using an onboard reference library (Cowger et al. 2020, doi: <a href="https://doi.org/10.1177/0003702820929064" class="external-link">10.1177/0003702820929064</a>) using <code><a href="reference/match_spec.html">match_spec()</a></code>. A Shiny app is available via <code><a href="reference/run_app.html">run_app()</a></code> or online at <a href="https://openanalysis.org/openspecy/" class="external-link">https://openanalysis.org/openspecy/</a>.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -110,7 +110,7 @@
 <p>To install the development version of this package, paste the following code into your R console (requires <strong>devtools</strong>):</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="va"><a href="https://devtools.r-lib.org/" class="external-link">devtools</a></span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"wincowgerDEV/OpenSpecy"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"wincowgerDEV/OpenSpecy-package"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -119,50 +119,52 @@
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/wincowgerDEV/OpenSpecy-package/" class="external-link">OpenSpecy</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>See <a href="https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/vignettes/sop.html" class="external-link">package vignette</a> for a detailed standard operating procedure.</p>
 </div>
 <div class="section level2">
-<h2 id="workflow">Workflow<a class="anchor" aria-label="anchor" href="#workflow"></a>
+<h2 id="see-package-vignette-for-a-detailed-standard-operating-procedure">See <a href="http://wincowger.com/OpenSpecy-package/articles/sop.html">package vignette</a> for a detailed standard operating procedure.<a class="anchor" aria-label="anchor" href="#see-package-vignette-for-a-detailed-standard-operating-procedure"></a>
+</h2>
+</div>
+<div class="section level2">
+<h2 id="simple-workflow-for-single-spectral-identification">Simple workflow for single spectral identification<a class="anchor" aria-label="anchor" href="#simple-workflow-for-single-spectral-identification"></a>
 </h2>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Fetch current spectral library from https://osf.io/x7dpz/</span></span>
-<span><span class="fu"><a href="reference/manage_lib.html">get_lib</a></span><span class="op">(</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Fetch current spectral library from https://osf.io/x7dpz/</span></span>
+<span><span class="fu"><a href="reference/manage_lib.html">get_lib</a></span><span class="op">(</span><span class="st">"derivative"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load library into global environment</span></span>
-<span><span class="va">spec_lib</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/manage_lib.html">load_lib</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">spec_lib</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/manage_lib.html">load_lib</a></span><span class="op">(</span><span class="st">"derivative"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Read sample spectrum</span></span>
-<span><span class="va">raman_hdpe</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_spec.html">read_text</a></span><span class="op">(</span><span class="fu"><a href="reference/read_spec.html">read_extdata</a></span><span class="op">(</span><span class="st">"raman_hdpe.csv"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">raman_hdpe</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"raman_hdpe.csv"</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
+<span>  <span class="fu"><a href="reference/read_multi.html">read_any</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Share your spectrum with the Open Spey community</span></span>
-<span><span class="fu"><a href="reference/share_spec.html">share_spec</a></span><span class="op">(</span><span class="va">raman_hdpe</span>,</span>
-<span>           metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>user_name <span class="op">=</span> <span class="st">"Win Cowger"</span>,</span>
-<span>                        contact_info <span class="op">=</span> <span class="st">"wincowger@gmail.com"</span>,</span>
-<span>                        spectrum_type <span class="op">=</span> <span class="st">"Raman"</span>,</span>
-<span>                        spectrum_identity <span class="op">=</span> <span class="st">"HDPE"</span><span class="op">)</span></span>
-<span>           <span class="op">)</span></span>
+<span><span class="co"># Look at the spectrum</span></span>
+<span><span class="fu"><a href="reference/interactive_plots.html">plotly_spec</a></span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Adjust spectral intensity</span></span>
-<span><span class="va">raman_adj</span> <span class="op">&lt;-</span> <span class="va">raman_hdpe</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="reference/adj_intens.html">adj_intens</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># Process the spectra and conform it to the library format</span></span>
+<span><span class="va">raman_proc</span> <span class="op">&lt;-</span> <span class="va">raman_hdpe</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/process_spec.html">process_spec</a></span><span class="op">(</span>conform_spec_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>range <span class="op">=</span> <span class="va">spec_lib</span><span class="op">$</span><span class="va">wavenumbers</span><span class="op">)</span>, </span>
+<span>               smooth_intens <span class="op">=</span> <span class="cn">T</span>, make_rel <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Smooth and background-correct spectrum</span></span>
-<span><span class="va">raman_proc</span> <span class="op">&lt;-</span> <span class="va">raman_adj</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
-<span>  <span class="fu"><a href="reference/smooth_intens.html">smooth_intens</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
-<span>  <span class="fu"><a href="reference/subtr_bg.html">subtr_bg</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># Compare raw and processed spectra</span></span>
+<span><span class="fu"><a href="reference/interactive_plots.html">plotly_spec</a></span><span class="op">(</span><span class="va">raman_hdpe</span>, <span class="va">raman_proc</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Match spectrum with library and retrieve meta data</span></span>
-<span><span class="fu"><a href="reference/match_spec.html">match_spec</a></span><span class="op">(</span><span class="va">raman_proc</span>, library <span class="op">=</span> <span class="va">spec_lib</span>, which <span class="op">=</span> <span class="st">"raman"</span><span class="op">)</span></span>
+<span><span class="va">top_matches</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/match_spec.html">match_spec</a></span><span class="op">(</span><span class="va">raman_proc</span>, library <span class="op">=</span> <span class="va">spec_lib</span>, na.rm <span class="op">=</span> <span class="cn">T</span>, top_n <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>                          add_library_metadata <span class="op">=</span> <span class="st">"sample_name"</span>,</span>
+<span>                          add_object_metadata <span class="op">=</span> <span class="st">"col_id"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="reference/match_spec.html">find_spec</a></span><span class="op">(</span><span class="va">sample_name</span> <span class="op">==</span> <span class="fl">5381</span>, library <span class="op">=</span> <span class="va">spec_lib</span>, which <span class="op">=</span> <span class="st">"raman"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#Print the top 5 results with relevant metadata</span></span>
+<span><span class="va">top_matches</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"object_id"</span>, <span class="st">"library_id"</span>, <span class="st">"match_val"</span>, <span class="st">"SpectrumType"</span>,</span>
+<span>                <span class="st">"SpectrumIdentity"</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span><span class="co">#Get all metadata for the matches</span></span>
+<span><span class="fu"><a href="reference/match_spec.html">get_metadata</a></span><span class="op">(</span><span class="va">spec_lib</span>, logic <span class="op">=</span> <span class="va">top_matches</span><span class="op">$</span><span class="va">library_id</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="citations">Citations<a class="anchor" aria-label="anchor" href="#citations"></a>
 </h2>
 <p>Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S, De Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral Classification Needs an Open Source Community: Open Specy to the Rescue!” <em>Analytical Chemistry</em>, <strong>93</strong>(21), 7543–7548. doi: <a href="https://doi.org/10.1021/acs.analchem.1c00123" class="external-link">10.1021/acs.analchem.1c00123</a>.</p>
-<p>Cowger W, Steinmetz Z (2021). “OpenSpecy: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra.” <em>R package</em>, <strong>0.9.5</strong>. <a href="https://github.com/wincowgerDEV/OpenSpecy-package" class="external-link">https://github.com/wincowgerDEV/OpenSpecy-package</a>.</p>
+<p>Cowger W, Steinmetz Z (2023). “OpenSpecy: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra.” <em>R package</em>, <strong>1.0.0</strong>. <a href="https://github.com/wincowgerDEV/OpenSpecy-package" class="external-link">https://github.com/wincowgerDEV/OpenSpecy-package</a>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -193,8 +195,10 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Win Cowger <br><small class="roles"> Maintainer, author </small> <a href="https://orcid.org/0000-0001-9226-3104" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li>Win Cowger <br><small class="roles"> Maintainer, author, data contributor </small> <a href="https://orcid.org/0000-0001-9226-3104" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
 <li>Zacharias Steinmetz <br><small class="roles"> Author </small> <a href="https://orcid.org/0000-0001-6675-5033" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li>Nick Leong <br><small class="roles"> Author </small> <a href="https://orcid.org/0009-0008-3313-4132" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li>Andrea Faltynkova <br><small class="roles"> Author, data contributor </small> <a href="https://orcid.org/0000-0003-2523-3137" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
 <li><a href="authors.html">More about authors...</a></li>
 </ul>
 </div>
@@ -207,7 +211,7 @@
 
     <footer><div class="pkgdown-footer-left">
   <p></p>
-<p>Developed by Win Cowger, Zacharias Steinmetz.</p>
+<p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova.</p>
 </div>
 
 <div class="pkgdown-footer-right">

@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.9.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,7 +24,7 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/sop.html">Standard Operating Procedure</a>
+    <a class="dropdown-item" href="../articles/sop.html">Open Specy Tutorial</a>
   </div>
 </li>
 <li class="active nav-item">
@@ -50,6 +50,23 @@
       <small>Source: <a href="https://github.com/wincowgerDEV/OpenSpecy-package/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.0.0" id="openspecy-100">OpenSpecy 1.0.0<a class="anchor" aria-label="anchor" href="#openspecy-100"></a></h2>
+<div class="section level3">
+<h3 id="new-features-1-0-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-1-0-0"></a></h3>
+<ul><li>Complete package, app, and SOP overhaul!</li>
+<li>The Shiny app has been outsourced to an own GitHub repository: <a href="https://github.com/wincowgerDEV/OpenSpecy-shiny" class="external-link uri">https://github.com/wincowgerDEV/OpenSpecy-shiny</a>
+</li>
+<li>Spectra are now stored in dedicated <code>OpenSpecy</code> objects, which can be managed with a set of new functions including <code><a href="../reference/manage_spec.html">c_spec()</a></code> for concatenating spectra</li>
+<li>Various functions have been renamed and improved, for instance, to facilitate reading (and writing) spectral files</li>
+<li>New functions include <code><a href="../reference/def_features.html">def_features()</a></code> to identify microplastics in spectral maps and <code><a href="../reference/match_spec.html">ai_classify()</a></code> to use AI for matching/identifying spectra</li>
+</ul></div>
+<div class="section level3">
+<h3 id="minor-improvements-1-0-0">Minor Improvements<a class="anchor" aria-label="anchor" href="#minor-improvements-1-0-0"></a></h3>
+<ul><li>Added pkgdown documentation</li>
+<li>Added code coverage tests</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.5" id="openspecy-095">OpenSpecy 0.9.5<a class="anchor" aria-label="anchor" href="#openspecy-095"></a></h2><p class="text-muted">CRAN release: 2022-07-06</p>
 <div class="section level3">
@@ -154,7 +171,7 @@
 <h3 id="new-features-0-8-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-8-0"></a></h3>
 <ul><li>Use external Open Specy libraries from OSF</li>
 <li>
-<code><a href="../reference/read_spec.html">read_asp()</a></code> for reading Agilent .asp files</li>
+<code><a href="../reference/read_ext.html">read_asp()</a></code> for reading Agilent .asp files</li>
 <li>GUI overhaul</li>
 <li>Comprehensive package vignette and function documentation</li>
 <li>Unit testing for main functions</li>
@@ -174,7 +191,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz.</p>
+  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova.</p>
 </div>
 
 <div class="pkgdown-footer-right">
