@@ -25,8 +25,8 @@ process_spec(x, ...)
   subtr_baseline_args = list(type = "polynomial", degree = 8, raw = FALSE, baseline =
     NULL),
   smooth_intens = TRUE,
-  smooth_intens_args = list(polynomial = 3, window = 11, derivative = 1, abs = T),
-  make_rel = T,
+  smooth_intens_args = list(polynomial = 3, window = 11, derivative = 1, abs = TRUE),
+  make_rel = TRUE,
   ...
 )
 }
@@ -42,27 +42,32 @@ If \code{FALSE}, the original data will be returned.}
 \item{adj_intens_args}{named list of arguments passed to
 \code{\link{smooth_intens}()}.}
 
-\item{conform_spec}{Whether to conform the spectra to a new wavenumber range and resolution.}
+\item{conform_spec}{logical; whether to conform the spectra to a new
+wavenumber range and resolution.}
 
 \item{conform_spec_args}{named list of arguments passed to
 \code{\link{conform_spec}()}.}
 
-\item{restrict_range}{Logical value indicating whether to restrict the wavenumber range of the spectra.}
+\item{restrict_range}{logical; indicating whether to restrict the wavenumber
+range of the spectra.}
 
 \item{restrict_range_args}{named list of arguments passed to
 \code{\link{restrict_range}()}.}
 
-\item{flatten_range}{Logical value indicating whether to flatten the range around the carbon dioxide region.}
+\item{flatten_range}{logical; indicating whether to flatten the range around
+the carbon dioxide region.}
 
 \item{flatten_range_args}{named list of arguments passed to
 \code{\link{flatten_range}()}.}
 
-\item{subtr_baseline}{Logical value indicating whether to subtract the baseline from the spectra.}
+\item{subtr_baseline}{logical; indicating whether to subtract the baseline
+from the spectra.}
 
 \item{subtr_baseline_args}{named list of arguments passed to
 \code{\link{subtr_baseline}()}.}
 
-\item{smooth_intens}{Logical value indicating whether to apply a smoothing filter to the spectra.}
+\item{smooth_intens}{logical; indicating whether to apply a smoothing filter
+to the spectra.}
 
 \item{smooth_intens_args}{named list of arguments passed to
 \code{\link{smooth_intens}()}.}

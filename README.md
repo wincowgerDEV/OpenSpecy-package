@@ -68,24 +68,26 @@ spec_lib <- load_lib("derivative")
 
 # Read sample spectrum
 raman_hdpe <- read_extdata("raman_hdpe.csv") |> 
-                read_any()
+  read_any()
 
-#Look at the spectrum
+# Look at the spectrum
 plotly_spec(raman_hdpe)
 
-# Process the spectra and conform it to the library format. 
+# Process the spectra and conform it to the library format
 raman_proc <- raman_hdpe |>
   process_spec(conform_spec_args = list(range = spec_lib$wavenumbers), 
-               smooth_intens = T,
-               make_rel = T)
+               smooth_intens = T, make_rel = T)
 
-#Compare raw and processed spectra
+# Compare raw and processed spectra
 plotly_spec(raman_hdpe, raman_proc)
 
-top_matches <- match_spec(raman_proc, library = spec_lib, na.rm = T, top_n = 5, add_library_metadata = "sample_name", add_object_metadata = "col_id")
-    
+top_matches <- match_spec(raman_proc, library = spec_lib, na.rm = T, top_n = 5,
+                          add_library_metadata = "sample_name",
+                          add_object_metadata = "col_id")
+
 #Print the top 5 results with relevant metadata
-top_matches[,c("object_id", "library_id", "match_val", "SpectrumType", "SpectrumIdentity")]
+top_matches[, c("object_id", "library_id", "match_val", "SpectrumType",
+                "SpectrumIdentity")]
 
 #Get all metadata for the matches
 get_metadata(spec_lib, logic = top_matches$library_id)
@@ -99,6 +101,6 @@ Needs an Open Source Community: Open Specy to the Rescue!”
 *Analytical Chemistry*, **93**(21), 7543–7548. doi:
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
-Cowger W, Steinmetz Z (2021). “OpenSpecy: Analyze, Process,
+Cowger W, Steinmetz Z (2023). “OpenSpecy: Analyze, Process,
 Identify, and Share Raman and (FT)IR Spectra.” *R package*, **1.0.0**.
 [https://github.com/wincowgerDEV/OpenSpecy-package](https://github.com/wincowgerDEV/OpenSpecy-package).

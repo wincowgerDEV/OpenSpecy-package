@@ -126,66 +126,64 @@ def_features.OpenSpecy <- function(x, features, ...) {
 #' @importFrom grDevices chull
 #' @importFrom stats dist
 .def_features <- function(x, binary, name = NULL) {
-    # Label connected components in the binary image
-    binary_matrix <- matrix(binary, ncol = max(x$metadata$y) + 1, byrow = T)
-    labeled_image <- imager::label(imager::as.cimg(binary_matrix),
-                                   high_connectivity = T)
-    
-    # Create a dataframe with feature IDs for each true pixel
-    feature_points_dt <- data.table(x = x$metadata$x,
-                                    y = x$metadata$y,
-                                    feature_id = ifelse(binary_matrix,
-                                                        labeled_image, -88) |>
-                                        t() |> as.vector() |> as.character())
-    
-    # Apply the logic to clean components
-    cleaned_components <- ifelse(binary_matrix, labeled_image, -88)
-    
-    # Calculate the convex hull for each feature
-    # Calculate the convex hull for each feature
-    convex_hulls <- lapply(
-        split(
-            as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
-            cleaned_components[cleaned_components >= 0]
-        ),
-        function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
-        })
-    
-    # Calculate area, Feret max, and feature IDs for each feature
-    features_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
-        hull <- convex_hulls[[i]]
-        id <- names(convex_hulls)[i]
-        
-        # Calculate Feret dimensions
-        dist_matrix <- as.matrix(dist(hull))
-        feret_max <- max(dist_matrix) + 1
-        
-        perimeter <- 0
-        cols = 1:nrow(hull)
-        rows = c(2:nrow(hull), 1)
-        for (j in 1:length(cols)) {
-            # Fetch the distance from the distance matrix
-            perimeter <- perimeter + dist_matrix[rows[j], cols[j]]
-        }
-        
-        # Area
-        area <- sum(cleaned_components == as.integer(id))
-        
-        feret_min = area/feret_max #Can probably calculate this better. 
-        
-        data.table(feature_id = id, 
-                   area = area, 
-                   perimeter = perimeter,
-                   feret_min = feret_min,
-                   feret_max = feret_max
-                   )
-    }), fill = T)
-    
-    # Join with the coordinates from the binary image
-    if (!is.null(name)) {
-        features_dt$feature_id <- paste0(name, "_", features_dt$feature_id)
-    }
-    
-    feature_points_dt[features_dt, on = "feature_id"]
-}
+  # Label connected components in the binary image
+  binary_matrix <- matrix(binary, ncol = max(x$metadata$y) + 1, byrow = T)
+  labeled_image <- imager::label(imager::as.cimg(binary_matrix),
+                                 high_connectivity = T)
 
+  # Create a dataframe with feature IDs for each true pixel
+  feature_points_dt <- data.table(x = x$metadata$x,
+                                  y = x$metadata$y,
+                                  feature_id = ifelse(binary_matrix,
+                                                      labeled_image, -88) |>
+                                    t() |> as.vector() |> as.character())
+
+  # Apply the logic to clean components
+  cleaned_components <- ifelse(binary_matrix, labeled_image, -88)
+
+  # Calculate the convex hull for each feature
+  convex_hulls <- lapply(
+    split(
+      as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
+      cleaned_components[cleaned_components >= 0]
+    ),
+    function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
+    })
+
+  # Calculate area, Feret max, and feature IDs for each feature
+  features_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
+    hull <- convex_hulls[[i]]
+    id <- names(convex_hulls)[i]
+
+    # Calculate Feret dimensions
+    dist_matrix <- as.matrix(dist(hull))
+    feret_max <- max(dist_matrix) + 1
+
+    perimeter <- 0
+    cols = 1:nrow(hull)
+    rows = c(2:nrow(hull), 1)
+    for (j in 1:length(cols)) {
+      # Fetch the distance from the distance matrix
+      perimeter <- perimeter + dist_matrix[rows[j], cols[j]]
+    }
+
+    # Area
+    area <- sum(cleaned_components == as.integer(id))
+
+    feret_min = area/feret_max #Can probably calculate this better.
+
+    data.table(feature_id = id,
+               area = area,
+               perimeter = perimeter,
+               feret_min = feret_min,
+               feret_max = feret_max
+    )
+  }), fill = T)
+
+  # Join with the coordinates from the binary image
+  if (!is.null(name)) {
+    features_dt$feature_id <- paste0(name, "_", features_dt$feature_id)
+  }
+
+  feature_points_dt[features_dt, on = "feature_id"]
+}

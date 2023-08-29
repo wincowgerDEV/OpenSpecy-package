@@ -30,7 +30,8 @@ rm_lib(
 }
 \arguments{
 \item{type}{library type to check/retrieve; defaults to
-\code{c("derivative", "nobaseline", "raw", "mediod", "model")} which reads everything.}
+\code{c("derivative", "nobaseline", "raw", "mediod", "model")} which reads
+everything.}
 
 \item{path}{where to save or look for local library files; defaults to
 \code{"system"} pointing to

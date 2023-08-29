@@ -109,9 +109,9 @@ flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
 }
 
 .flatten_range <- function(y, x, min, max) {
-    if(all(min > max(x)) ||  all(max < min(x))){
-        stop("Wavenumber range for flatten_range is out of the wavenumber range of the spectra.")
-    }
+  if(all(min > max(x)) ||  all(max < min(x)))
+    stop("'min' or 'max' out of range")
+
   for(i in 1:length(min)) {
     y[x >= min[i] & x <= max[i]] <-
       mean(c(y[min(which(x >= min[i]))],

@@ -18,7 +18,8 @@
 #' \code{rm_lib()} removes the libraries from your computer.
 #'
 #' @param type library type to check/retrieve; defaults to
-#' \code{c("derivative", "nobaseline", "raw", "mediod", "model")} which reads everything.
+#' \code{c("derivative", "nobaseline", "raw", "mediod", "model")} which reads
+#' everything.
 #' @param node the OSF node to be retrieved; should be \code{"x7dpz"} unless you
 #' maintain your own OSF node with spectral libraries.
 #' @param path where to save or look for local library files; defaults to
@@ -64,7 +65,8 @@
 #' Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 #'
 #' @export
-check_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod", "model"),
+check_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
+                               "model"),
                       path = "system", condition = "warning") {
 
   lp <- ifelse(path == "system",
@@ -82,7 +84,8 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod", "mod
 #' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
 #'
 #' @export
-get_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod", "model"),
+get_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
+                             "model"),
                     path = "system", node = "x7dpz", conflicts = "overwrite",
                     ...) {
   lp <- ifelse(path == "system",
@@ -93,7 +96,7 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod", "model
     osf_ls_files(pattern = ".rds", n_max = Inf)
 
   message("Fetching Open Specy reference libraries from OSF ...")
-    osf |>  subset(grepl(
+    osf |> subset(grepl(
       paste0("(", paste(type, collapse = "|"), ").rds"),
       osf$name)) |>
       osf_download(path = lp, conflicts = conflicts, progress = TRUE, ...)
@@ -120,7 +123,8 @@ load_lib <- function(type, path = "system") {
 #' @rdname manage_lib
 #'
 #' @export
-rm_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod", "model"),
+rm_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
+                            "model"),
                    path = "system") {
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),

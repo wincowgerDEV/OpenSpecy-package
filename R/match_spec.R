@@ -102,7 +102,7 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
          call. = F)
 
   if(!all(x$wavenumber %in% library$wavenumber))
-    warning(paste0("Some wavenumbers in 'x' are not in the library and the ",
+    warning(paste0("some wavenumbers in 'x' are not in the library and the ",
                    "function is not using these in the identification routine: ",
                    paste(x$wavenumber[!x$wavenumber %in% library$wavenumber],
                          collapse = " ")),

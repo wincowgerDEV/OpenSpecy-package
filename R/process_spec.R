@@ -1,5 +1,5 @@
-#' @title Preprocess Spectra
 #' @rdname process_spec
+#' @title Preprocess Spectra
 #'
 #' @description
 #' \code{process_spec()} is a monolithic wrapper function for all spectral
@@ -12,19 +12,24 @@
 #' @param adj_intens logical; describing whether to adjust the intensity units.
 #' @param adj_intens_args named list of arguments passed to
 #' \code{\link{smooth_intens}()}.
-#' @param conform_spec Whether to conform the spectra to a new wavenumber range and resolution.
+#' @param conform_spec logical; whether to conform the spectra to a new
+#' wavenumber range and resolution.
 #' @param conform_spec_args named list of arguments passed to
 #' \code{\link{conform_spec}()}.
-#' @param restrict_range Logical value indicating whether to restrict the wavenumber range of the spectra.
+#' @param restrict_range logical; indicating whether to restrict the wavenumber
+#' range of the spectra.
 #' @param restrict_range_args named list of arguments passed to
 #' \code{\link{restrict_range}()}.
-#' @param flatten_range Logical value indicating whether to flatten the range around the carbon dioxide region.
+#' @param flatten_range logical; indicating whether to flatten the range around
+#' the carbon dioxide region.
 #' @param flatten_range_args named list of arguments passed to
 #' \code{\link{flatten_range}()}.
-#' @param smooth_intens Logical value indicating whether to apply a smoothing filter to the spectra.
+#' @param smooth_intens logical; indicating whether to apply a smoothing filter
+#' to the spectra.
 #' @param smooth_intens_args named list of arguments passed to
 #' \code{\link{smooth_intens}()}.
-#' @param subtr_baseline Logical value indicating whether to subtract the baseline from the spectra.
+#' @param subtr_baseline logical; indicating whether to subtract the baseline
+#' from the spectra.
 #' @param subtr_baseline_args named list of arguments passed to
 #' \code{\link{subtr_baseline}()}.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
@@ -102,8 +107,8 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
                                      polynomial = 3,
                                      window = 11,
                                      derivative = 1,
-                                     abs = T),
-                                   make_rel = T,
+                                     abs = TRUE),
+                                   make_rel = TRUE,
                                    ...) {
   if(active) {
     if(adj_intens)
