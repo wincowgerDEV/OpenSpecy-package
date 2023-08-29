@@ -225,30 +225,20 @@ interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 ## Processing
 
 After uploading data, you can preprocess the data using intensity adjustment,
-baseline correction, smoothing, flattening, and range selection and save your
+baseline subtraction, smoothing, flattening, and range selection and save your
 preprocessed data. Once the process button is selected the default processing
 will initiate. This is an absolute derivative transformation, it is kind of
 magic, it does something similar to smoothing, baseline subtraction, and
-intensity correction simultaneously and really quickly.
+intensity correction simultaneously and really quickly. By clicking preprocessing you should see the spectrum update with the processed spectra. 
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("preprocessplot.png")
+knitr::include_graphics("processing.jpg")
 ```
+To view the raw data again, just deselect preprocessing. Toggling preprocessing on and off can help you to make sure that the spectra are processed correctly. 
 
-The plot in the app will update on the fly with the processed spectra. If you
-want to see the unprocessed spectra just deselect processing. It will also
-automatically update with any new inputs. This allows the user to tune the
-inputs to optimize the signal to noise ratio. The goal with preprocessing is to
-make peak regions have high intensities and non-peak regions should have low
-intensities. If preprocessing a spectral map or in batch, we recommend to tune
-the parameters so that you maximize the number of spectra over your signal to
-noise ratio before you start identification. Spectra below the signal to noise
-ratio will show up black. There is also a running fill bar that will tell you
-what percent of your spectra are above the signal to noise ratio.
-
-The R function that is the backbone of the app is a monolithic function for all
+The `process_spec()` function is a monolithic function for all
 processing procedures which is optimized by default to result in high signal to
-noise in most cases.
+noise in most cases, same as the app.
 
 ```{r eval=FALSE}
 processed <- process_spec(raman_hdpe)
@@ -256,7 +246,7 @@ summary(processed)
 summary(raman_hdpe)
 ```
 
-You can compare the processed and unprocessed data:
+You can compare the processed and unprocessed data in an overlay plot:
 
 ```{r eval=FALSE}
 plotly_spec(raman_hdpe, processed)
@@ -268,20 +258,19 @@ we recognize that nesting of functions and order of operations can be useful for
 users to control so you can also use individual functions for each operation if
 you'd like.
 
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("smoothing.jpg")
-```
+#### Threshold Signal-Noise
 
-When the slider is green for the tool type, that means that that tool is being
-used to preprocess the spectrum. If the slider is clicked blank, the cog button
-to the right will disappear to indicate that the tool is no longer being used. 
+Considering whether you have enough signal to analyze spectra is important. Classical spectroscopy would recommend your highest peak to be at least 10 times the baseline of your processed spectra before you begin analysis. If your spectra is below that threshold, you may want to consider recollecting it. In practice, we are rarely able to collect spectra of that good quality and more often use 5. The Signal Over Noise technique searches your spectra for high and low regions and conducts division on them to derive the signal to noise ratio. Signal Times Noise multiplies the mean signal by the standard deviation of the signal and Total Signal sums the intensities. The latter can be really useful for thresholding spectral maps to identify particles which we will discuss later.
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("deselection.jpg")
+knitr::include_graphics("snr_threshold.jpg")
 ```
 
-If the cog button is clicked, any functions associated with that tool will be
-displayed and can be manipulated to process the spectrum. 
+If analyzing spectra in batch, we recommend looking at the heatmap and optimizing the percent of spectra that are above your signal to noise threshold to determine the correct settings instead of looking through spectra individually. Good Signal tells you what percent of your data are above your signal threshold. 
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("signal_settings.jpg")
+```
 
 #### Intensity Adjustment
 
@@ -291,32 +280,39 @@ knitr::include_graphics("intensityadjustment.jpg")
 
 Open Specy assumes that intensity units are in absorbance units but Open Specy
 can adjust reflectance or transmittance spectra to absorbance units using this
-selection in the upload file tab. The transmittance adjustment uses the
+selection. The transmittance adjustment uses the
 $\log_{10} 1/T$ calculation which does not correct for system or particle
 characteristics. The reflectance adjustment use the Kubelka-Munk equation
 $\frac{(1-R)^2}{2R}$. If none is selected, Open Specy assumes that the uploaded
 data is an absorbance spectrum and does not apply an adjustment.
 
-This is the respective R code:
+This is the respective R code for a scenario where the spectra doesn't need intensity adjustment:
 
 ```{r}
 raman_adj <- raman_hdpe |> 
-  adj_intens()
+  adj_intens(type = "none")
 
-head(raman_adj)
+plot(raman_adj)
 ```
-
 
 #### Conforming
 
 Conforming spectra is essential before comparing to a reference library and can
 be useful for summarizing data when you don't need it to be highly resolved
-spectrally. We set the default spectral resolution to 5 because this tends to be
+spectrally. In the app, conforming happens behind the scenes without any user input to make sure that the spectra the user uploads and the library spectra will be compatible. In code, we set the default spectral resolution to 5 because this tends to be
 pretty good for a lot of applications and is in between 4 and 8 which are
-commonly used wavenumber resolutions.
+commonly used wavenumber resolutions. There are several ways that this is function can be specified. 
 
 ```{r}
-conformed <- conform_spec(raman_hdpe)
+conform_spec(raman_hdpe) |> #default convert res to 5 wavenumbers.
+    summary(conformed)
+
+conform_spec(asp_example, range = ps_example$wavenumber, res = NULL) |> #force one spectrum to have the exact same wavenumbers as another. 
+summary(conformed)
+
+conform_spec(spectral_map, range = ps_example$wavenumber, res = 10, type = "roll") |> #Specify the wavenumber resolution and use a rolling join instead of linear approximation (faster for large datasets). 
+summary(conformed)
+
 ```
 
 #### Smoothing
