@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 
 # Document Overview 
 
-This document outlines a common workflow for using the Open Specy package and
+checkThis document outlines a common workflow for using the Open Specy package and
 app and highlights some topics that users are often requesting a tutorial on. If
 the document is followed sequentially from beginning to end, the user will have
 a better understanding of every procedure involved in using Open Specy R package
