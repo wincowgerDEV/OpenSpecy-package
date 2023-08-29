@@ -8,7 +8,7 @@
 #' @param x a list object of class \code{OpenSpecy}.
 #' @param range a vector of new wavenumber values, can be just supplied as a
 #' min and max value.
-#' @param res spectral resolution adjusted to.
+#' @param res spectral resolution adjusted to or NULL if the raw range should be used.
 #' @param \ldots further arguments passed to \code{\link[stats]{approx}()}
 #'
 #' @return
@@ -45,11 +45,18 @@ conform_spec.default <- function(x, ...) {
 #' @export
 conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, ...) {
   if(is.null(range)) range <- x$wavenumber
-  range <- c(max(min(range), min(x$wavenumber)),
+  
+  if(!is.null(res)){
+      range <- c(max(min(range), min(x$wavenumber)),
              min(max(range), max(x$wavenumber))
-  )
+                )
 
-  wn <- conform_res(range, res = res)
+    wn <- conform_res(range, res = res)
+  }
+  else{
+      wn = range
+  }
+  
 
   spec <- x$spectra[, lapply(.SD, .conform_intens,
                              x = x$wavenumber,
