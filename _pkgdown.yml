@@ -1,5 +1,3 @@
 url: http://wincowger.com/OpenSpecy-package/
 template:
   bootstrap: 5
-development:
-  mode: auto

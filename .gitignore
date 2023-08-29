@@ -52,3 +52,4 @@ docs/
 *.swp
 .DS_Store
 delete.bat
+docs
