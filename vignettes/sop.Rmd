@@ -21,18 +21,19 @@ knitr::opts_chunk$set(
 
 # Document Overview 
 
-This document outlines a common workflows for
-using the Open Specy package and app and highlights some topics that users are often
-requesting a tutorial on. If the document is followed sequentially from
-beginning to end, the user will have a better understanding of every
-procedure involved in using Open Specy R package and App as a tool for interpreting
-spectra. It takes approximately 45 minutes to read through and follow
-along with this standard operating procedure the first time. Afterward,
-knowledgeable users should be able to thoroughly analyze individual
-spectra at an average speed of 1 min^-1^.
+This document outlines a common workflow for using the Open Specy package and
+app and highlights some topics that users are often requesting a tutorial on. If
+the document is followed sequentially from beginning to end, the user will have
+a better understanding of every procedure involved in using Open Specy R package
+and app as a tool for interpreting spectra. It takes approximately 45 minutes to
+read through and follow along with this standard operating procedure the first
+time. Afterward, knowledgeable users should be able to thoroughly analyze
+individual spectra at an average speed of 1 min^-1^.
 
 # R Package and App
-Here we will describe common workflows of spectral analysis using the OpenSpecy R package and App. 
+
+Here we will describe common workflows of spectral analysis using the Open Specy
+R package and App.
 
 ## Installation
 
@@ -65,26 +66,26 @@ knitr::include_graphics("mainpage.jpg")
 knitr::include_graphics("uploadfile.jpg")
 ```
 
-Before uploading, indicate if you would like to share the
-uploaded data or not using the slider. If selected,
-any data uploaded to the tool will automatically be shared under [CC-BY 4.0 license](https://creativecommons.org/licenses/by/4.0/)
-and will be available for
-researchers and other ventures to use to improve spectral analysis,
-build machine learning tools, etc. Some users may choose not to share if
-they need to keep their data private. If switched off, none of
-the uploaded data will be stored or shared in Open Specy.
+Before uploading, indicate if you would like to share the uploaded data or not
+using the slider. If selected, any data uploaded to the tool will automatically
+be shared under [CC-BY 4.0
+license](https://creativecommons.org/licenses/by/4.0/) and will be available for
+researchers and other ventures to use to improve spectral analysis, build
+machine learning tools, etc. Some users may choose not to share if they need to
+keep their data private. If switched off, none of the uploaded data will be
+stored or shared in Open Specy.
 
 ### Upload/Read Data
 
-Open Specy allows for upload of .csv, .asp, .jdx, .0, .spc, and
-.spa files. .csv files should always load correctly but the other file
-types are still in beta development, though most of the time these files
-work perfectly. It is best practice to cross check files in the
-proprietary software they came from and Open Specy before use in Open
-Specy. Due to the complexity of these file types, we haven't been able
-to make them fully compatible yet. If your file is not working, please
-contact the administrator and share the file so that we can get it to
-work.
+Open Specy allows for upload of native Open Specy .y(a)ml, .json, or .rds files.
+In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip files with ENVI data can
+be imported. Open Specy and .csv files should always load correctly but the
+other file types are still in beta development, though most of the time these
+files work perfectly. It is best practice to cross check files in the
+proprietary software they came from and Open Specy before use in Open Specy. Due
+to the complexity of these file types, we haven't been able to make them fully
+compatible yet. If your file is not working, please contact the administrator
+and share the file so that we can get it to work.
 
 For the most consistent results, files should be converted to .csv
 format before uploading to Open Specy. The specific steps to converting
@@ -94,38 +95,37 @@ manual or you can check out
 spectral file conversions (see Mini Tutorial section: File conversion in
 Spectragryph to Open Specy accepted format).
 
-If uploading a .csv file, label the column with the wavenumbers
-`wavenumber` and name the column with the intensities `intensity`.
+If uploading a .csv file, label the column with the wavenumbers `wavenumber` and
+name the column with the intensities `intensity`.
 
 ```{r sample_data, echo=FALSE, out.width="50%"}
 knitr::kable(head(raman_hdpe), caption = "Sample data `raman_hdpe`")
 ```
 
-Wavenumber units must be cm^-1^. Any other columns are not used by the
-software. Always keep a copy of the original file before alteration to preserve
-metadata and raw data for your records.
+Wavenumber units must be cm^-1^. Any other columns are not used by the software.
+Always keep a copy of the original file before alteration to preserve metadata
+and raw data for your records.
 
-To upload data, click **Browse** and choose one of your
-files to upload, or drag and drop your file into the gray box. At this
-time you can only upload one file at a time. 
+To upload data, click **Browse** and choose one of your files to upload, or drag
+and drop your file into the gray box. At this time you can only upload one file
+at a time.
 
 ### Share data
 
-When the user clicks the **Share Data** button their current uploaded data
-and metadata is sent to an
-[open-access online repository](https://osf.io/rjg3c/).
+When the user clicks the **Share Data** button their current uploaded data and
+metadata is sent to an [open-access online repository](https://osf.io/rjg3c/).
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("sharemetadata.jpg")
 ```
-All high quality uploaded data with metadata
-will eventually be reviewed by spectroscopy experts and added to the
-internal library if it passes review. If multiple files are going to be
-uploaded with metadata, the cells will also stay filled with the last
-input after the share data button is clicked. Just upload the next
-dataset and change the metadata inputs that are different. If more than
-50 files will be shared at once, you can contact the website
-administrator to get a bulk upload sheet for more rapid upload.
+
+All high quality uploaded data with metadata will eventually be reviewed by
+spectroscopy experts and added to the internal library if it passes review. If
+multiple files are going to be uploaded with metadata, the cells will also stay
+filled with the last input after the share data button is clicked. Just upload
+the next dataset and change the metadata inputs that are different. If more than
+50 files will be shared at once, you can contact the website administrator to
+get a bulk upload sheet for more rapid upload.
 
 The following line of code will read in your data when using the package:
 
@@ -142,9 +142,11 @@ read_asp(".asp")
 read_opus(".0")
 ```
 
-Supported formats are .asp, .csv, .jdx, .spc, .spa, .0, .json, .yml, .rds, and .zip. If you use a zip, OpenSpecy will 
-assume that the data are either a suite of spectra as individual files and merge them into one
-OpenSpecy object, or it will assume it is a hyperspectral map in the form of an ENVI file (.hdr and .dat) and read in the map data. 
+Supported formats are .asp, .csv, .jdx, .spc, .spa, .0, .json, .yml, .rds, and
+.zip. If you use a .zip, Open Specy will assume that the data are either a suite
+of spectra as individual files and merge them into one `OpenSpecy` object, or it
+will assume it is a hyperspectral map in the form of an ENVI file (.hdr and
+.dat) and read in the map data. 
 
 If you don't have your own data you can use a test dataset.
 
@@ -152,12 +154,11 @@ If you don't have your own data you can use a test dataset.
 knitr::include_graphics("samplefile.jpg")
 ```
 
-If you don't have your own data to use right away, that is ok. You can
-download test data to try out the tool by clicking on the test data
-button. A .csv file of HDPE Raman spectrum will download on your
-computer. This file can also be used as a template for formatting .csv
-data into an Open Specy accepted format. The following line of code does the
-same to load the example file into R:
+If you don't have your own data to use right away, that is ok. You can download
+test data to try out the tool by clicking on the test data button. A .csv file
+of HDPE Raman spectrum will download on your computer. This file can also be
+used as a template for formatting .csv data into an Open Specy accepted format.
+The following line of code does the same to load the example file into R:
 
 ```{r eval=FALSE}
 data("raman_hdpe")
@@ -166,62 +167,90 @@ data("raman_hdpe")
 We also have onboard files in common that you can call to test different formats:
 
 ```{r}
-spectral_map <- read_any(read_extdata("CA_tiny_map.zip")) #preserves some metadata
-asp_example <- read_any(read_extdata("ftir_ldpe_soil.asp")) 
-ps_example <- read_any(read_extdata("ftir_ps.0")) #preserves some metadata
-spc_example <- read_any(read_extdata("raman_atacamit.spc"))
-csv_example <- read_any(read_extdata("raman_hdpe.csv"))
-json_example <- read_any(read_extdata("raman_hdpe.json")) #read in exactly as an OpenSpecy
-rds_example <- read_any(read_extdata("raman_hdpe.rds")) #read in exactly as an OpenSpecy
-yml_example <- read_any(read_extdata("raman_hdpe.yml")) #read in exactly as an OpenSpecy
-batch_example <- read_any(read_extdata("testdata_zipped.zip")) 
+spectral_map <- read_extdata("CA_tiny_map.zip") |> 
+  read_any() # preserves some metadata
+asp_example <- read_extdata("ftir_ldpe_soil.asp") |> 
+  read_any() 
+ps_example <- read_extdata("ftir_ps.0") |> 
+  read_any() # preserves some metadata
+spc_example <- read_extdata("raman_atacamit.spc") |> 
+  read_any()
+csv_example <- read_extdata("raman_hdpe.csv") |> 
+  read_any()
+json_example <- read_extdata("raman_hdpe.json") |> 
+  read_any() # read in exactly as an OpenSpecy object
+rds_example <- read_extdata("raman_hdpe.rds") |> 
+  read_any() # read in exactly as an OpenSpecy object
+yml_example <- read_extdata("raman_hdpe.yml") |> 
+  read_any() # read in exactly as an OpenSpecy object
+batch_example <- read_extdata("testdata_zipped.zip") |> 
+  read_any()
 ```
 
-You will notice now that the R package reads in files into an object with class OpenSpecy. 
-This is a class we created to optimize the batch analysis and preserving spectral metadata. 
-You can even create these from scratch if you'd like:
+You will notice now that the R package reads in files into an object with class
+`OpenSpecy`. This is a class we created to optimize the batch analysis and
+preserving spectral metadata. You can even create these from scratch if you'd
+like:
 
-```{r eval=FALSE}
+```{r eval=TRUE}
 scratch_OpenSpecy <- as_OpenSpecy(x = seq(1000,2000, by = 5), 
                                   spectra =  data.frame(runif(n = 201)), 
                                   metadata = list(file_name = "fake_noise")) 
 ```
 
 We have some generic functions built for inspecting the spectra:
-```{r eval=FALSE}
-print(scratch_OpenSpecy) #Shows the raw object
-summary(scratch_OpenSpecy) #Summarizes the contents of the spectra. 
-head(scratch_OpenSpecy) #Shows the top wavenumbers and intensities. 
+
+```{r eval=TRUE}
+print(scratch_OpenSpecy) # shows the raw object
+```
+
+```{r eval=TRUE}
+summary(scratch_OpenSpecy) # summarizes the contents of the spectra
+```
+
+```{r eval=TRUE}
+head(scratch_OpenSpecy) # shows the top wavenumbers and intensities
 ```
 
 ## Visualization
 
 ### Spectra
 
-In the app after spectral data are uploaded, it will appear in the main window. This plot
-is selectable, zoomable, and provides information on hover. You can also
-save a .png file of the plot view using the camera icon at the top right when
-you hover over the plot. This plot will change the view based on updates
+In the app after spectral data are uploaded, it will appear in the main window.
+This plot is selectable, zoomable, and provides information on hover. You can
+also save a .png file of the plot view using the camera icon at the top right
+when you hover over the plot. This plot will change the view based on updates
 from the **Intensity Adjustment** selection.
 
-We have two ways to visualize your spectra, one is quick and efficient and the other is interactive.
+We have two ways to visualize your spectra, one is quick and efficient and the
+other is interactive.
+
+```{r fig.align="center"}
+plot(scratch_OpenSpecy) # quick and efficient
+```
 
 ```{r eval=FALSE}
+plotly_spec(scratch_OpenSpecy) # this will min-max normalize your data even
+                               # if it isn't already but are not changing your
+                               # underlying data
 
-plot(scratch_OpenSpecy) #quick and efficient
-
-plotly_spec(scratch_OpenSpecy) #This will min-max normalize your data even if it isn't already but are not changing your underlying data.
-
-plotly_spec(scratch_OpenSpecy, rds_example) #interactive comparison.
-
+plotly_spec(scratch_OpenSpecy, rds_example) # interactive comparison
 ```
+
 ### Maps
 
-Spectral maps can also be visualized as overlaid spectra but in addition the spatial information can be plotted as a heatmap. A similar plot should appear in the app if you upload multiple spectra or a spectral map. It is important to note that when multiple spectra are uploaded in batch they are prescribed xy coordinates, this can be helpful for visualizing summary statistics and navigating vast amounts of data but shouldn't be confused with data which actually has spatial coordinates. 
+Spectral maps can also be visualized as overlaid spectra but in addition the
+spatial information can be plotted as a heatmap. A similar plot should appear in
+the app if you upload multiple spectra or a spectral map. It is important to
+note that when multiple spectra are uploaded in batch they are prescribed `x`
+and `y` coordinates, this can be helpful for visualizing summary statistics and
+navigating vast amounts of data but shouldn't be confused with data which
+actually has spatial coordinates.
 
 ```{r eval=FALSE}
 heatmap_spec(spectral_map,
-             z = spectral_map$metadata$x) #will show more advanced example later in tutorial.
+             z = spectral_map$metadata$x) # will show more advanced example
+                                          # later in tutorial
 
 interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 
@@ -229,18 +258,31 @@ interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 
 ## Processing
 
-After uploading data, you can preprocess the data using intensity adjustment, baseline
-correction, smoothing, flattening, and range selection and save your preprocessed
-data. Once the process button is selected the default processing will innitiate. This is an absolute derivative transformation, it is kind of magic, it does something similar to smoothing, baseline subtraction, and intensity correction simultaneously and really quickly. 
+After uploading data, you can preprocess the data using intensity adjustment,
+baseline correction, smoothing, flattening, and range selection and save your
+preprocessed data. Once the process button is selected the default processing
+will initiate. This is an absolute derivative transformation, it is kind of
+magic, it does something similar to smoothing, baseline subtraction, and
+intensity correction simultaneously and really quickly.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("preprocessplot.png")
 ```
 
-The plot in the app will update on the fly with the processed spectra. If you want to see the unprocessed spectra just deselect processing. It will also automatically update with any new
-inputs. This allows the user to tune the inputs to optimize the signal to noise ratio. The goal with preprocessing is to make peak regions have high intensities and non-peak regions should have low intensities. If preprocessing a spectral map or in batch, we recommend to tune the parameters so that you maximize the number of spectra over your signal to noise ratio before you start identification. Spectra below the signal to noise ratio will show up black. There is also a running fill bar that will tell you what percent of your spectra are above the signal to noise ratio. 
+The plot in the app will update on the fly with the processed spectra. If you
+want to see the unprocessed spectra just deselect processing. It will also
+automatically update with any new inputs. This allows the user to tune the
+inputs to optimize the signal to noise ratio. The goal with preprocessing is to
+make peak regions have high intensities and non-peak regions should have low
+intensities. If preprocessing a spectral map or in batch, we recommend to tune
+the parameters so that you maximize the number of spectra over your signal to
+noise ratio before you start identification. Spectra below the signal to noise
+ratio will show up black. There is also a running fill bar that will tell you
+what percent of your spectra are above the signal to noise ratio.
 
-The R function that is the backbone of the app is a monolithic function for all processing procedures which is optimized by default to result in high signal to noise in most cases. 
+The R function that is the backbone of the app is a monolithic function for all
+processing procedures which is optimized by default to result in high signal to
+noise in most cases.
 
 ```{r eval=FALSE}
 processed <- process_spec(raman_hdpe)
@@ -252,7 +294,11 @@ You can compare the processed and unprocessed data:
 plotly_spec(raman_hdpe, processed)
 ```
 
-We want people to use the process_spec() function for most processing operations, all processing functions can be tuned using its parameters. However, we recognize that nesting of functions and order of operations can be useful for users to control so you can also use individual functions for each operation if you'd like. 
+We want people to use the `process_spec()` function for most processing
+operations, all processing functions can be tuned using its parameters. However,
+we recognize that nesting of functions and order of operations can be useful for
+users to control so you can also use individual functions for each operation if
+you'd like.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("smoothing.jpg")
@@ -268,20 +314,20 @@ knitr::include_graphics("deselection.jpg")
 
 If the cog button is clicked, any functions associated with that tool will be
 displayed and can be manipulated to process the spectrum. 
+
 #### Intensity Adjustment
 
 ```{r, fig.align='center', echo=FALSE}
 knitr::include_graphics("intensityadjustment.jpg")
 ```
 
-Open Specy assumes that intensity units are in absorbance units but
-Open Specy can adjust reflectance or transmittance spectra to absorbance
-units using this selection in the upload file tab. The transmittance
-adjustment uses the $\log_{10} 1/T$ calculation which does not correct for
-system or particle characteristics. The reflectance adjustment
-use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. If none is selected, Open
-Specy assumes that the uploaded data is an absorbance spectrum and does not
-apply an adjustment.
+Open Specy assumes that intensity units are in absorbance units but Open Specy
+can adjust reflectance or transmittance spectra to absorbance units using this
+selection in the upload file tab. The transmittance adjustment uses the
+$\log_{10} 1/T$ calculation which does not correct for system or particle
+characteristics. The reflectance adjustment use the Kubelka-Munk equation
+$\frac{(1-R)^2}{2R}$. If none is selected, Open Specy assumes that the uploaded
+data is an absorbance spectrum and does not apply an adjustment.
 
 This is the respective R code:
 
@@ -295,7 +341,11 @@ head(raman_adj)
 
 #### Conforming
 
-Conforming spectra is essential before comparing to a refence library and can be useful for summarizing data when you don't need it to be highly resolved spectrally. We set the default spectral resolution to 5 because this tends to be pretty good for a lot of applications and is in between 4 and 8 which are commonly used wavenumber resolutions.
+Conforming spectra is essential before comparing to a reference library and can
+be useful for summarizing data when you don't need it to be highly resolved
+spectrally. We set the default spectral resolution to 5 because this tends to be
+pretty good for a lot of applications and is in between 4 and 8 which are
+commonly used wavenumber resolutions.
 
 ```{r}
 conformed <- conform_spec(raman_hdpe)
@@ -307,23 +357,21 @@ conformed <- conform_spec(raman_hdpe)
 knitr::include_graphics("smoothingpoly.jpg")
 ```
 
-The first step of the Open Specy preprocessing routing is spectral
-smoothing. The goal of this function is to increase the signal to noise
-ratio (S/N) without distorting the shape or relative size of the peaks.
-The value on the slider is the polynomial order of the
-[Savitzky-Golay (SG) filter](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter). 
-The SG filter is fit to a moving window of 11 data points where the center
-point in the window is replaced with the polynomial estimate. The
-number of data points in the window is not user adjustable. Higher
-numbers lead to more wiggly fits and thus less smooth, lower numbers
-lead to more smooth fits, a 7th order polynomial will make the spectrum
-have almost no smoothing. If smoothing is set to 0 then no smoothing is
-conducted on the spectrum. When smoothing is done well, peak shapes and
-relative heights should not change. Typically a 3rd order
-polynomial (3 on the slider) works to increase the signal to
-noise without distortion, but if the spectrum is noisy, decrease
-polynomial order and if it is already smooth, increase the polynomial
-order to the maximum (7). Examples of smoothing below:
+The first step of the Open Specy preprocessing routing is spectral smoothing.
+The goal of this function is to increase the signal to noise ratio (S/N) without
+distorting the shape or relative size of the peaks. The value on the slider is
+the polynomial order of the [Savitzky-Golay (SG)
+filter](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter). The SG
+filter is fit to a moving window of 11 data points where the center point in the
+window is replaced with the polynomial estimate. The number of data points in
+the window is not user adjustable. Higher numbers lead to more wiggly fits and
+thus less smooth, lower numbers lead to more smooth fits, a 7th order polynomial
+will make the spectrum have almost no smoothing. If smoothing is set to 0 then
+no smoothing is conducted on the spectrum. When smoothing is done well, peak
+shapes and relative heights should not change. Typically a 3rd order polynomial
+(3 on the slider) works to increase the signal to noise without distortion, but
+if the spectrum is noisy, decrease polynomial order and if it is already smooth,
+increase the polynomial order to the maximum (7). Examples of smoothing below:
 
 ```{r smoothing, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials (p) from Cowger et al. (2020).", fig.width=6, echo=FALSE}
 library(ggplot2)
@@ -366,20 +414,18 @@ head(raman_smooth)
 knitr::include_graphics("baselinecorrectionpoly.jpg")
 ```
 
-The second step of Open Specy's preprocessing routine is baseline
-correction. The goal of baseline correction is to get all non-peak
-regions of the spectra to zero absorbance. The higher the polynomial order,
-the more wiggly the fit to the baseline. If the baseline
-is not very wiggly, a more wiggly fit could remove peaks which is not
-desired. The baseline correction algorithm used in Open Specy is called
-"iModPolyfit" (Zhao et al. 2007). This algorithm iteratively fits polynomial
-equations of the
-specified order to the whole spectrum. During the first fit iteration,
-peak regions will often be above the baseline fit. The data in the peak
-region is removed from the fit to make sure that the baseline is less
-likely to fit to the peaks. The iterative fitting terminates once the
-difference between the new and previous fit is small. An example of a
-good baseline fit below.
+The second step of Open Specy's preprocessing routine is baseline correction.
+The goal of baseline correction is to get all non-peak regions of the spectra to
+zero absorbance. The higher the polynomial order, the more wiggly the fit to the
+baseline. If the baseline is not very wiggly, a more wiggly fit could remove
+peaks which is not desired. The baseline correction algorithm used in Open Specy
+is called "iModPolyfit" (Zhao et al. 2007). This algorithm iteratively fits
+polynomial equations of the specified order to the whole spectrum. During the
+first fit iteration, peak regions will often be above the baseline fit. The data
+in the peak region is removed from the fit to make sure that the baseline is
+less likely to fit to the peaks. The iterative fitting terminates once the
+difference between the new and previous fit is small. An example of a good
+baseline fit below.
 
 ```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, echo=FALSE}
 library(ggplot2)
@@ -415,21 +461,25 @@ head(raman_bgc)
 knitr::include_graphics("rangeselection.jpg")
 ```
 
-The final step of processing is restricting the spectral range.
-Sometimes the instrument operates with high noise at the ends of the
-spectrum and sometimes the baseline fit can produce distortions at the
-ends of the spectrum, both can be removed using this routine. You should
-look into the signal to noise ratio of your specific
-instrument by wavelength to determine what wavelength ranges to use.
-Distortions due to baseline fit can be assessed from looking at the
-preprocess spectra plot. Additionally, you can restrict the range
-to examine a single peak or a subset of peaks of interests. This
-function allows users to isolate peaks of interest for matching, while
-removing noise and influence from less relevant spectral data.
+The final step of processing is restricting the spectral range. Sometimes the
+instrument operates with high noise at the ends of the spectrum and sometimes
+the baseline fit can produce distortions at the ends of the spectrum, both can
+be removed using this routine. You should look into the signal to noise ratio of
+your specific instrument by wavelength to determine what wavelength ranges to
+use. Distortions due to baseline fit can be assessed from looking at the
+preprocess spectra plot. Additionally, you can restrict the range to examine a
+single peak or a subset of peaks of interests. This function allows users to
+isolate peaks of interest for matching, while removing noise and influence from
+less relevant spectral data.
 
 #### Flattening Ranges
 
-Sometimes there a peaks that really shouldn't be in your spectra and can distort your interpretation of the spectra. One way to deal with this is to replace the peak values with the mean of the values around the peak. This is the purpose of the flatten_range function. By default it is set to flatten the CO2 region for FTIR spectra because that region often needs to be flattened when atmouspheric artefacts occur in spectra. 
+Sometimes there a peaks that really shouldn't be in your spectra and can distort
+your interpretation of the spectra. One way to deal with this is to replace the
+peak values with the mean of the values around the peak. This is the purpose of
+the flatten_range function. By default it is set to flatten the CO2 region for
+FTIR spectra because that region often needs to be flattened when atmouspheric
+artefacts occur in spectra.
 
 ```{r}
 flattened <- flatten_range(asp_example)
@@ -441,12 +491,11 @@ Add in here from the previous edition.
 
 ## Identifying Spectra 
 
-After uploading data and preprocessing it (if desired) you can now
-identify the spectrum. To identify the spectrum go to the **Match Spectrum** tab.
+After uploading data and preprocessing it (if desired) you can now identify the
+spectrum. To identify the spectrum go to the **Match Spectrum** tab.
 
-You will see your spectrum and the top matches, but before looking at
-matches, you need to check the three selectable
-parameters below.
+You will see your spectrum and the top matches, but before looking at matches,
+you need to check the three selectable parameters below.
 
 ### ID Library
 
@@ -529,12 +578,14 @@ trying to identify. Whenever a new dataset is uploaded, the plot and
 data table in this tab will be updated. These plots can be saved as a
 .png by clicking the camera button at the top of the plot.
 
-
 ## Characterizing Particles
+
 ### Thresholding
+
 ### Collapse Spectra
 
 ## Additional App Features
+
 Accessibility is extremely important to us and we are making strives to improve
 the accessibility of Open Specy for all spectroscopists. Please reach out if you
 have ideas for improvement.
@@ -649,15 +700,14 @@ similar (figures courtesy of Bridget O\'Donnell, Horiba Scientific):
 knitr::include_graphics("horiba-1.png")
 ```
 
-But, a closer look at the 1450 cm^-1^ band reveals
-clear differences:
+But, a closer look at the 1450 cm^-1^ band reveals clear differences:
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("horiba-2.png")
 ```
 
-When you overlay them, you start to see differences in other spectral
-regions too:
+When you overlay them, you start to see differences in other spectral regions
+too:
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("horiba-3.png")
