@@ -2,10 +2,6 @@
 .Rhistory
 .Rapp.history
 
-# Desktop drive files
-.ini
-delete.bat
-
 # Session Data files
 .RData
 
@@ -28,8 +24,11 @@ delete.bat
 # produced PDF vignettes and docs
 vignettes/*.pdf
 inst/doc
-/doc/
-/Meta/
+doc/
+Meta/
+
+# Shiny app
+inst/OpenSpecy-shiny-main/
 
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
@@ -46,14 +45,11 @@ inst/doc
 .Renviron
 
 # pkgdown site
-#docs/
+docs/
 
 # System files
-*.ini
+.ini
 *.swp
 .DS_Store
-
-# ignore old datasets but don't remove
-inst/shiny/
-#docs
+delete.bat
 docs

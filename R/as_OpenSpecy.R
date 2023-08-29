@@ -1,20 +1,35 @@
 #' @rdname as_OpenSpecy
 #'
-#' @title OpenSpecy object operations
+#' @title Create \code{OpenSpecy} objects
 #'
 #' @description
 #' Functions to check if an object is an OpenSpecy, or coerce it if
 #' possible.
 #'
+#' @param x depending on the method, a list with all OpenSpecy parameters,
+#' a vector with the wavenumbers for all spectra, or a data.frame with a full
+#' spectrum in the classic Open Specy format.
+#' @param spectra spectral intensities formatted as a data.table with one column
+#' per spectrum.
+#' @param metadata metadata for each spectrum with one row per spectrum,
+#' see details.
+#' @param coords spatial coordinates for the spectra.
+#' @param session_id logical. Whether to add a session ID to the metadata.
+#' The session ID is based on current session info so metadata of the same
+#' spectra will not return equal if session info changes. Sometimes that is
+#' desirable.
+#' @param colnames names of the wavenumber column and spectra column, makes
+#' assumptions based on column names or placement if \code{NULL}.
+#' @param n number of spectra to generate the spatial coordinate grid with.
+#' @param \ldots additional arguments passed to submethods.
+#'
 #' @details
-#' \code{as_OpenSpecy()} converts spectral datasets to a three part list,
+#' \code{as_OpenSpecy()} converts spectral datasets to a three part list;
 #' the first with a vector of the wavenumbers of the spectra,
 #' the second with a \code{data.table} of all spectral intensities ordered as
 #' columns,
 #' the third item is another \code{data.table} with any metadata the user
-#' provides or is harvested from the files themselves. Currently metadata
-#' harvesting from jdx and opus files are supported as well as the two
-#' OpenSpecy write formats yaml and json. 
+#' provides or is harvested from the files themselves.
 #'
 #' The \code{metadata} argument may contain a named list with the following
 #' details (\code{*} = minimum recommended):
@@ -41,7 +56,7 @@
 #' solid) \cr
 #' \code{material_producer}: \tab Producer of the material analyzed,
 #' e.g. Dow \cr
-#' \code{material_purity}: \tab Purity of the material analyzed, e.g. 99.98\%
+#' \code{material_purity}: \tab Purity of the material analyzed, e.g. 99.98%
 #' \cr
 #' \code{material_quality}: \tab Quality of the material analyzed, e.g.
 #' consumer product, manufacturer material, analytical standard,
@@ -67,7 +82,7 @@
 #' \code{data_processing_procedure}: \tab Data processing procedure,
 #' e.g. spikefilter, baseline correction, none \cr
 #' \code{level_of_confidence_in_identification}: \tab Level of confidence in
-#' identification, e.g. 99\% \cr
+#' identification, e.g. 99% \cr
 #' \code{other_info}: \tab Other information \cr
 #' \code{license}: \tab The license of the shared spectrum; defaults to
 #' \code{"CC BY-NC"} (see
@@ -80,55 +95,46 @@
 #' with \code{digest(object[c("wavenumber", "spectra")])}\cr
 #' }
 #'
-#' @param x depending on the method, a list with all OpenSpecy parameters, a vector with the wavenumbers for all spectra, or a data.frame with a full spectrum in the classic Open Specy format.
-#' @param spectra spectral intensities formatted as a data.table with one column per spectrum.
-#' @param metadata metadata for each spectrum with one row per spectrum, see details.
-#' @param coords spatial coordinates for the spectra.
-#' @param session_id TRUE or FALSE whether to add a session ID to the metadata. The session ID is based on current session info so metadata of the same spectra will not return equal if session info changes. Sometimes that is desirable.
-#' @param colnames names of the wavenumber column and spectra column, makes assumptions based on column names or placement if NULL.
-#' @param n number of spectra to generate the spatial coordinate grid with.
-#' @param \ldots additional arguments.
-#'
 #' @return
-#' \code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists described in details. \cr
-#' \code{is_OpenSpecy()} returns TRUE if the object is an OpenSpecy and FALSE if not.\cr
-#' \code{gen_grid()} returns a \code{data.table} with x y coordinates to use for generating a spatial grid for the spectra if one is not specified in the data.\cr
-#' 
+#' \code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists
+#' described in details.
+#' \code{is_OpenSpecy()} returns \code{TRUE} if the object is an OpenSpecy and
+#' \code{FALSE} if not.
+#' \code{gen_grid()} returns a \code{data.table} with \code{x} and \code{y}
+#' coordinates to use for generating a spatial grid for the spectra if one is
+#' not specified in the data.
+#'
 #' @examples
-#' data("raman_hdpe") #Read in an example spectrum for Raman HDPE. 
-#' 
-#' #Inspect the spectra
-#' raman_hdpe #See how OpenSpecy objects print. 
-#' raman_hdpe$wavenumber #Look at just the wavenumbers of the spectra.
-#' raman_hdpe$spectra #Look at just the spectral intensities data.table. 
-#' raman_hdpe$metadata #Look at just the metadata of the spectra. 
-#' 
-#' #Demonstrate compatibility in creating an OpenSpecy from its components.
-#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$metadata == raman_hdpe$metadata
-#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$spectra == raman_hdpe$spectra
-#' as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$wavenumber == raman_hdpe$wavenumber
-#' 
-#' #Demonstrate creating a list and transforming to OpenSpecy
-#' as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")]))
-#' 
-#' #If you try to produce an OpenSpecy using an OpenSpecy it will just return the same object.
+#' data("raman_hdpe")
+#'
+#' # Inspect the spectra
+#' raman_hdpe # See how OpenSpecy objects print.
+#' raman_hdpe$wavenumber # Look at just the wavenumbers of the spectra.
+#' raman_hdpe$spectra # Look at just the spectral intensities data.table.
+#' raman_hdpe$metadata # Look at just the metadata of the spectra.
+#'
+#' # Creating a list and transforming to OpenSpecy
+#' as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber,
+#'                   spectra = raman_hdpe$spectra,
+#'                   metadata = raman_hdpe$metadata[,-c("x", "y")]))
+#'
+#' # If you try to produce an OpenSpecy using an OpenSpecy it will just return
+#' # the same object.
 #' as_OpenSpecy(raman_hdpe)
-#' 
-#' #Method for creating an OpenSpecy from a data.frame
-#' as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra$intensity))
-#' 
-#' #Test that the spectrum is formatted as an OpenSpecy object.
+#'
+#' # Creating an OpenSpecy from a data.frame
+#' as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber,
+#'                             spectra = raman_hdpe$spectra$intensity))
+#'
+#' # Test that the spectrum is formatted as an OpenSpecy object.
 #' is_OpenSpecy(raman_hdpe)  #should be TRUE
 #' is_OpenSpecy(raman_hdpe$spectra) #should be FALSE
-#' 
-#' #Create an artificial spatial grid
-#' gen_grid(n = 5)
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
 #'
 #' @seealso
-#' seealso.
+#' \code{\link{read_spec}()} for reading \code{OpenSpecy} objects.
 #'
 #' @importFrom data.table as.data.table
 #' @export
@@ -139,7 +145,14 @@ as_OpenSpecy <- function(x, ...) {
 #' @rdname as_OpenSpecy
 #'
 #' @export
-as_OpenSpecy.OpenSpecy <- function(x, ...) {
+as_OpenSpecy.OpenSpecy <- function(x, session_id = FALSE, ...) {
+  if(session_id)
+    x$metadata$session_id <- paste(digest(Sys.info()),
+                                   digest(sessionInfo()),
+                                   sep = "/")
+  if(!c("file_id") %in% names(x$metadata))
+    x$metadata$file_id = digest(x[c("wavenumber", "spectra")])
+
   return(x)
 }
 
@@ -154,7 +167,8 @@ as_OpenSpecy.list <- function(x, ...) {
 #'
 #' @export
 as_OpenSpecy.hyperSpec <- function(x, ...) {
-    do.call("as_OpenSpecy", list(x = x@wavelength, spectra = as.data.table(t(x$spc)), ...))
+  do.call("as_OpenSpecy", list(x = x@wavelength,
+                               spectra = as.data.table(t(x$spc)), ...))
 }
 
 #' @rdname as_OpenSpecy
@@ -168,13 +182,13 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
   if (is.null(colnames$wavenumber)) {
     if (any(grepl("wav", ignore.case = T, names(x)))) {
       if (length(grep("wav", ignore.case = T, names(x))) > 1L)
-        warning("ambiguous column names: taking 'wavenumber' data from the",
+        warning("Ambiguous column names: taking 'wavenumber' data from the",
                 " first column; use 'colnames' to supply user-defined columns",
                 call. = F)
       wavenumber <- x[[grep("wav", ignore.case = T, names(x))[1L]]]
       wn <- names(x)[grep("wav", ignore.case = T, names(x))]
     } else {
-      warning("ambiguous column names: taking 'wavenumber' data from the",
+      warning("Ambiguous column names: taking 'wavenumber' data from the",
               " first column; use 'colnames' to supply user-defined columns",
               call. = F)
       wavenumber <- x[[1L]]
@@ -191,7 +205,7 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
       spectra <- x[, grepl("(transmit.*)|(reflect.*)|(abs.*)|(intens.*)",
                            ignore.case = T, names(x)), with = F]
     } else {
-      warning("ambiguous column names: taking 'spectra' data from all but the",
+      warning("Ambiguous column names: taking 'spectra' data from all but the",
               " 'wavenumber' column; use 'colnames' to supply user-defined",
               " columns", call. = F)
       spectra <- x[, -wn, with = F]
@@ -237,23 +251,26 @@ as_OpenSpecy.default <- function(x, spectra,
                                    other_info = NULL,
                                    license = "CC BY-NC"),
                                  coords = "gen_grid",
-                                 session_id = F,
+                                 session_id = FALSE,
                                  ...) {
-  if (!is.numeric(x) && !is.complex(x) && !is.logical(x))
-    stop("'x' must be numeric or logical", call. = F)
+  if (!is.numeric(x) || !is.vector(x))
+    stop("'x' must be numeric vector", call. = F)
   if (!inherits(spectra, c("data.frame", "matrix")))
     stop("'spectra' must inherit from data.frame or matrix", call. = F)
   if (!sapply(spectra, is.numeric)[1L] && !sapply(spectra, is.complex)[1L] &&
       !sapply(spectra, is.logical)[1L])
     stop("at least the first column of 'spectra' must be numeric or logical",
          call. = F)
+  if(length(unique(names(spectra))) != ncol(spectra))
+    stop("column names in 'spectra' must be unique", call. = F)
   if (length(x) != nrow(spectra))
     stop("'x' and 'spectra' must be of equal length", call. = F)
 
-  obj <- structure(list(), class = c("list", "OpenSpecy"))
+  obj <- structure(list(), class = c("OpenSpecy", "list"))
 
-  obj$wavenumber <- x
-  obj$spectra <- as.data.table(spectra)
+  obj$wavenumber <- x[order(x)]
+
+  obj$spectra <- as.data.table(spectra)[order(x)]
 
   if (inherits(coords, "character")) {
     obj$metadata <- do.call(coords, list(ncol(obj$spectra)))
@@ -269,14 +286,14 @@ as_OpenSpecy.default <- function(x, spectra,
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
-      if(session_id){
-          obj$metadata$session_id <- paste(digest(Sys.info()),
-                                           digest(sessionInfo()),
-                                           sep = "/")
-      }
-      if(!c("file_id") %in% names(obj$metadata)) {
+      if(session_id)
+        obj$metadata$session_id <- paste(digest(Sys.info()),
+                                         digest(sessionInfo()),
+                                         sep = "/")
+      if(!c("file_id") %in% names(obj$metadata))
         obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
-      }
+      if(!c("col_id") %in% names(obj$metadata))
+          obj$metadata$col_id = names(obj$spectra)
     } else {
       stop("inconsistent input for 'metadata'", call. = F)
     }
@@ -290,6 +307,43 @@ as_OpenSpecy.default <- function(x, spectra,
 #' @export
 is_OpenSpecy <- function(x) {
   inherits(x, "OpenSpecy")
+}
+
+#' @rdname as_OpenSpecy
+#'
+#' @importFrom data.table is.data.table
+#' @export
+check_OpenSpecy <- function(x) {
+  if(!(is_OpenSpecy(x)))
+    stop("object 'x' is not of class 'OpenSpecy'", call. = F)
+  if(!identical(names(x), c("wavenumber", "spectra", "metadata")))
+    stop("names of the object components are incorrect", call. = F)
+
+  if(!(cw <- is.vector(x$wavenumber)))
+    warning("Wavenumber is not a vector", call. = F)
+  if(!(cs <- is.data.table(x$spectra)))
+    message("Spectra are not of class 'data.table'")
+  if(!(cm <- is.data.table(x$metadata)))
+    message("Metadata are not a 'data.table'")
+  if(!(cr <- ncol(x$spectra) == nrow(x$metadata)))
+    warning("Number of columns in spectra is not equal to number of rows ",
+            "in metadata", call. = F)
+  if(!(cl <- length(x$wavenumber) == nrow(x$spectra)))
+    warning("Length of wavenumber is not equal to number of rows in spectra",
+            call. = F)
+  if(!(cu <- length(unique(names(x$spectra))) == ncol(x$spectra)))
+    warning("Column names in spectra are not unique", call. = F)
+  if(!(cv <- length(unique(names(x$metadata))) == ncol(x$metadata)))
+    message("Column names in metadata are not unique")
+  if(!(co <- identical(order(x$wavenumber), 1:length(x$wavenumber)) |
+       identical(order(x$wavenumber), length(x$wavenumber):1)))
+    message("This is technically an 'OpenSpecy' object but wavenumbers ",
+            "should be a continuous sequence for all OpenSpecy functions to ",
+            "run smoothly")
+
+  chk <- all(cw, cs, cm, cr, cl, cu, cv, co)
+
+  return(chk)
 }
 
 #' @rdname as_OpenSpecy
@@ -308,6 +362,7 @@ OpenSpecy <- function(x, ...) {
 #' @export
 gen_grid <- function(n) {
   base <- sqrt(n)
+
   expand.grid(x = 1:ceiling(base), y = 1:ceiling(base))[1:n,] |>
     as.data.table()
 }

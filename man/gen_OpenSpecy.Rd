@@ -3,32 +3,60 @@
 \name{head.OpenSpecy}
 \alias{head.OpenSpecy}
 \alias{print.OpenSpecy}
-\title{Generic functions for \code{OpenSpecy} objects}
+\alias{plot.OpenSpecy}
+\alias{lines.OpenSpecy}
+\alias{summary.OpenSpecy}
+\title{Generic Open Specy Methods}
 \usage{
 \method{head}{OpenSpecy}(x, ...)
 
 \method{print}{OpenSpecy}(x, ...)
+
+\method{plot}{OpenSpecy}(x, ...)
+
+\method{lines}{OpenSpecy}(x, ...)
+
+\method{summary}{OpenSpecy}(object, ...)
 }
 \arguments{
-\item{x}{x.}
+\item{x}{an \code{OpenSpecy} object.}
 
-\item{\ldots}{args.}
+\item{object}{an \code{OpenSpecy} object.}
+
+\item{\ldots}{further arguments passed to the respective default method.}
 }
 \value{
-return
+\code{head()}, \code{print()}, and \code{summary()} return a textual
+representation of an \code{OpenSpecy} object.
+\code{plot()} and \code{lines()} return a plot.
 }
 \description{
-Functions to
+Methods to visualize \code{OpenSpecy} objects.
 }
 \details{
-\code{as_OpenSpecy()}
+\code{head()} shows the first few lines of an \code{OpenSpecy} object.
+\code{print()} prints the contents of an \code{OpenSpecy} object.
+\code{summary()} produces a result summary of an \code{OpenSpecy} object.
+\code{plot()} produces a \code{\link[graphics]{matplot}()} of an OpenSpecy
+object; \code{lines()} adds new spectra to it.
 }
 \examples{
-c()
+data("raman_hdpe")
+
+# Printing the OpenSpecy object
+print(raman_hdpe)
+
+# Displaying the first few lines of the OpenSpecy object
+head(raman_hdpe)
+
+# Plotting the spectra
+plot(raman_hdpe)
 
 }
 \seealso{
-seealso.
+\code{\link[utils]{head}()}, \code{\link[base]{print}()},
+\code{\link[base]{summary}()}, \code{\link[graphics]{matplot}()}, and
+\code{\link[graphics]{matlines}()}
 }
 \author{
 Zacharias Steinmetz, Win Cowger

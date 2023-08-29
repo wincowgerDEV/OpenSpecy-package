@@ -16,13 +16,12 @@
 #' human_ts()
 #'
 #' @author
-#' Win Cowger
+#' Win Cowger, Zacharias Steinmetz
 #'
 #' @seealso
 #' \code{\link[base]{format.Date}} for date conversion functions
 #'
-#' @importFrom magrittr %>%
 #' @export
 human_ts <- function() {
-  Sys.time() %>% format("%Y%m%d-%H%M%OS")
+  Sys.time() |> format("%Y%m%d-%H%M%OS")
 }

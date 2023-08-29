@@ -1,48 +1,73 @@
 #' @title Read a Bruker OPUS spectrum binary raw string
 #'
 #' @description
-#' Read single binary acquired with an
-#' Bruker Vertex FTIR Instrument
+#' Read single binary acquired with an Bruker Vertex FTIR Instrument
 #'
 #' @param rw a raw vector
-#' @param type Character vector of spectra types to extract from OPUS binary
+#' @param type character vector of spectra types to extract from OPUS binary
 #' file. Default is `"spec"`, which will extract the final spectra, e.g.
 #' expressed in absorbance (named `AB` in Bruker OPUS programs). Possible
-#' additional values for the character vector supplied to `type` are `"spec_no_atm_comp"` (spectrum of the sample without compensation for atmospheric gases, water vapor and/or carbon dioxide),
+#' additional values for the character vector supplied to `type` are
+#' `"spec_no_atm_comp"` (spectrum of the sample without compensation for
+#' atmospheric gases, water vapor and/or carbon dioxide),
 #' `"sc_sample"` (single channel spectrum of the sample measurement),
 #' `"sc_ref"` (single channel spectrum of the reference measurement),
 #' `"ig_sample"` (interferogram of the sample measurement) and `"ig_ref"`
 #' (interferogram of the reference measurement).
-#' @param atm_comp_minus4offset Logical whether spectra after atmospheric
+#' @param atm_comp_minus4offset logical; whether spectra after atmospheric
 #' compensation are read with an offset of -4 bytes from Bruker OPUS
 #' files. Default is `FALSE`.
 #'
-#' @details The type of spectra returned by the function when using `type = "spec"` depends on the setting of the Bruker instrument: typically, it can be either absorbance or reflectance.
+#' @details
+#' The type of spectra returned by the function when using
+#' `type = "spec"` depends on the setting of the Bruker instrument: typically,
+#' it can be either absorbance or reflectance.
 #'
-#' The type of spectra to extract from the file can also use Bruker's OPUS software naming conventions, as follows:
+#' The type of spectra to extract from the file can also use Bruker's OPUS
+#' software naming conventions, as follows:
 #'
 #' - `ScSm` corresponds to `sc_sample`
 #' - `ScRf` corresponds to `sc_ref`
 #' - `IgSm` corresponds to `ig_sample`
 #' - `IgRf` corresponds to `ig_ref`
 #'
-#' @return a list of 10 elements:
-#'     - `metadata`: a `data.frame` containing metadata from the OPUS file
-#'     - `spec` If `"spec"` was requested in the `type` option, a matrix of the spectrum of the sample (otherwise set to `NULL`).
-#'     - `spec_no_atm_comp` If `"spec_no_atm_comp"` was requested in the `type` option, a matrix of the spectrum of the sample without atmospheric compensation (otherwise set to `NULL`).
-#'     - `sc_sample` If `"sc_sample"` was requested in the `type` option, a matrix of the single channel spectrum of the sample (otherwise set to `NULL`).
-#'     - `sc_ref` If `"sc_ref"` was requested in the `type` option, a matrix of the single channel spectrum of the reference (otherwise set to `NULL`).
-#'     - `ig_sample` If `"ig_sample"` was requested in the `type` option, a matrix of the interferogram of the sample (otherwise set to `NULL`).
-#'     - `ig_ref`  If `"ig_ref"` was requested in the `type` option, a matrix of the interferogram of the reference (otherwise set to `NULL`).
-#'     - `wavenumbers` If `"spec"` or `"spec_no_atm_comp"` was requested in the `type` option, a numeric vector of the wavenumbers of the spectrum of the sample (otherwise set to `NULL`).
-#'     - `wavenumbers_sc_sample` If `"sc_sample"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the sample (otherwise set to `NULL`).
-#'     - `wavenumbers_sc_ref` If `"sc_ref"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the reference (otherwise set to `NULL`).
+#' @return
+#' A list of 10 elements:
 #'
-#' @importFrom stats setNames
-#' @export
+#' \describe{
+#'   \item{`metadata`}{a `data.frame` containing metadata from the OPUS file.}
+#'   \item{`spec`}{if `"spec"` was requested in the `type` option, a matrix of
+#'   the spectrum of the sample (otherwise set to `NULL`).}
+#'   \item{`spec_no_atm_comp`}{if `"spec_no_atm_comp"` was requested in the
+#'   `type` option, a matrix of the spectrum of the sample without atmospheric
+#'   compensation (otherwise set to `NULL`).}
+#'   \item{`sc_sample`}{if `"sc_sample"` was requested in the `type` option, a
+#'   matrix of the single channel spectrum of the sample (otherwise set to
+#'   `NULL`).}
+#'   \item{`sc_ref`}{if `"sc_ref"` was requested in the `type` option, a matrix
+#'   of the single channel spectrum of the reference (otherwise set to `NULL`).}
+#'   \item{`ig_sample`}{if `"ig_sample"` was requested in the `type` option, a
+#'   matrix of the interferogram of the sample (otherwise set to `NULL`).}
+#'   \item{`ig_ref`}{if `"ig_ref"` was requested in the `type` option, a matrix
+#'   of the interferogram of the reference (otherwise set to `NULL`).}
+#'   \item{`wavenumbers`}{if `"spec"` or `"spec_no_atm_comp"` was requested in
+#'   the `type` option, a numeric vector of the wavenumbers of the spectrum of
+#'   the sample (otherwise set to `NULL`).}
+#'   \item{`wavenumbers_sc_sample`}{if `"sc_sample"` was requested in the `type`
+#'   option, a numeric vector of the wavenumbers of the single channel spectrum
+#'   of the sample (otherwise set to `NULL`).}
+#'   \item{`wavenumbers_sc_ref`}{if `"sc_ref"` was requested in the `type`
+#'   option, a numeric vector of the wavenumbers of the single channel spectrum
+#'   of the reference (otherwise set to `NULL`).}
+#' }
 #'
 #' @author Philipp Baumann and Pierre Roudier
 #'
+#' @seealso
+#' \code{\link{read_opus}()}
+#'
+#' @importFrom stats setNames
+#' @export
 read_opus_raw <- function(rw, type = "spec", atm_comp_minus4offset = FALSE) {
   # Silently support and convert the default Bruker values
   type <- switch (type,

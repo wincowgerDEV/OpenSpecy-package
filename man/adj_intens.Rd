@@ -4,25 +4,16 @@
 \alias{adj_intens}
 \alias{adj_intens.default}
 \alias{adj_intens.OpenSpecy}
-\alias{conform_spec}
-\alias{conform_spec.default}
-\alias{conform_spec.OpenSpecy}
-\title{Adjust spectral intensities to absorbance units}
+\title{Adjust spectral intensities to absorbance units.}
 \usage{
-adj_intens(object, ...)
+adj_intens(x, ...)
 
-\method{adj_intens}{default}(object, ...)
+\method{adj_intens}{default}(x, ...)
 
-\method{adj_intens}{OpenSpecy}(object, type = "none", make_rel = TRUE, ...)
-
-conform_spec(spec, x, xout)
-
-conform_spec.default(object, ...)
-
-conform_spec.OpenSpecy(object, type = "none", make_rel = TRUE, ...)
+\method{adj_intens}{OpenSpecy}(x, type = "none", make_rel = TRUE, ...)
 }
 \arguments{
-\item{object}{a list object of class \code{OpenSpecy}.}
+\item{x}{a list object of class \code{OpenSpecy}.}
 
 \item{type}{a character string specifying whether the input spectrum is
 in absorbance units (\code{"none"}, default) or needs additional conversion
@@ -44,8 +35,7 @@ Converts reflectance or transmittance intensity units to absorbance units.
 }
 \details{
 Many of the Open Specy functions will assume that the spectrum is in
-absorbance units. For example, see \code{\link{match_spec}()} and
-\code{\link{subtr_bg}()}.
+absorbance units. For example, see \code{\link{subtr_baseline}()}.
 To run those functions properly, you will need to first convert any spectra
 from transmittance or reflectance to absorbance using this function.
 The transmittance adjustment uses the \eqn{log10(1 / T)}
@@ -62,9 +52,7 @@ adj_intens(raman_hdpe)
 
 }
 \seealso{
-\code{\link{subtr_bg}()} for spectral background correction;
-\code{\link{match_spec}()} matches spectra with the Open Specy or other
-reference libraries
+\code{\link{subtr_baseline}()} for spectral background correction.
 }
 \author{
 Win Cowger, Zacharias Steinmetz

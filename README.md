@@ -1,30 +1,30 @@
-# Open Specy
+# Open Specy 1.0
 
 Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 
 <!-- badges: start -->
 [![CRAN version](https://www.r-pkg.org/badges/version/OpenSpecy)](https://CRAN.R-project.org/package=OpenSpecy) 
 [![Project Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![R-CMD-check](https://github.com/wincowgerDEV/OpenSpecy-package/workflows/R-CMD-check/badge.svg)](https://github.com/wincowgerDEV/OpenSpecy-package/actions)
+[![R-CMD-check](https://github.com/wincowgerDEV/OpenSpecy-package/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wincowgerDEV/OpenSpecy-package/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/wincowgerDEV/OpenSpecy-package/branch/main/graph/badge.svg)](https://app.codecov.io/gh/wincowgerDEV/OpenSpecy-package?branch=main)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![DOI](https://img.shields.io/badge/DOI-10.1021/acs.analchem.1c00123-blue.svg)](https://doi.org/10.1021/acs.analchem.1c00123)
 [![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://wincowger.shinyapps.io/OpenSpecy/)
-[![Twitter Follow](https://img.shields.io/twitter/follow/OpenSpecy)](https://twitter.com/OpenSpecy)
-[![Gitter](https://badges.gitter.im/Open-Specy/community.svg)](https://gitter.im/Open-Specy/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://badges.gitter.im/Open-Specy/community.svg)](https://app.gitter.im/#/room/#Open-Specy_community:gitter.im)
 <!-- badges: end -->
 
-Raman and (FT)IR spectral analysis tool for plastic particles and
-other environmental samples (Cowger et al. 2021, doi: 
+Raman and (FT)IR spectral analysis tool for plastic particles and other 
+environmental samples (Cowger et al. 2021, doi: 
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123)).
-Supported features include reading spectral data files (.asp, .csv, .jdx, .spc,
-.spa, .0), Savitzky-Golay smoothing of spectral intensities with
-`smooth_intens()`, correcting background noise with `subtr_bg()` in accordance
-with Zhao et al. (2007, doi: 
-[10.1366/000370207782597003](https://doi.org/10.1366/000370207782597003)), and
-identifying spectra using an onboard reference library (Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064)).
-Analyzed spectra can be shared with the Open Specy community. A Shiny app is
-available via `run_app()` or online at
-[https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/).
+With `read_any()`, Open Specy provides a single function for reading individual,
+batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and
+.zip. `process_spec()` simplifies preprocessing spectra, including smoothing,
+baseline correction, range restriction and flattening, intensity conversions,
+wavenumber alignment, and min-max normalization. 
+Spectra can be identified in batch using an onboard reference library
+(Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064))
+using `match_spec()`. A Shiny app is available via `run_app()`
+or online at [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/).
 
 ## Installation
 
@@ -46,7 +46,7 @@ into your R console (requires **devtools**):
 
 ```r
 if (!require(devtools)) install.packages("devtools")
-devtools::install_github("wincowgerDEV/OpenSpecy")
+devtools::install_github("wincowgerDEV/OpenSpecy-package")
 ```
 
 ## Getting started
@@ -55,45 +55,42 @@ library(OpenSpecy)
 run_app()
 ```
 
-See
-[package vignette](https://htmlpreview.github.io/?https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/vignettes/sop.html)
-for a detailed standard operating procedure.
+## See [package vignette](http://wincowger.com/OpenSpecy-package/articles/sop.html) for a detailed standard operating procedure.
 
-## Workflow
+## Simple workflow for single spectral identification
 
 ```r
-library(dplyr)
-
 # Fetch current spectral library from https://osf.io/x7dpz/
-get_lib()
+get_lib("derivative")
 
 # Load library into global environment
-spec_lib <- load_lib()
+spec_lib <- load_lib("derivative")
 
 # Read sample spectrum
-raman_hdpe <- read_text(read_extdata("raman_hdpe.csv"))
+raman_hdpe <- read_extdata("raman_hdpe.csv") |> 
+  read_any()
 
-# Share your spectrum with the Open Spey community
-share_spec(raman_hdpe,
-           metadata = c(user_name = "Win Cowger",
-                        contact_info = "wincowger@gmail.com",
-                        spectrum_type = "Raman",
-                        spectrum_identity = "HDPE")
-           )
+# Look at the spectrum
+plotly_spec(raman_hdpe)
 
-# Adjust spectral intensity
-raman_adj <- raman_hdpe %>%
-  adj_intens()
+# Process the spectra and conform it to the library format
+raman_proc <- raman_hdpe |>
+  process_spec(conform_spec_args = list(range = spec_lib$wavenumbers), 
+               smooth_intens = T, make_rel = T)
 
-# Smooth and background-correct spectrum
-raman_proc <- raman_adj %>% 
-  smooth_intens() %>% 
-  subtr_bg()
+# Compare raw and processed spectra
+plotly_spec(raman_hdpe, raman_proc)
 
-# Match spectrum with library and retrieve meta data
-match_spec(raman_proc, library = spec_lib, which = "raman")
+top_matches <- match_spec(raman_proc, library = spec_lib, na.rm = T, top_n = 5,
+                          add_library_metadata = "sample_name",
+                          add_object_metadata = "col_id")
 
-find_spec(sample_name == 5381, library = spec_lib, which = "raman")
+#Print the top 5 results with relevant metadata
+top_matches[, c("object_id", "library_id", "match_val", "SpectrumType",
+                "SpectrumIdentity")]
+
+#Get all metadata for the matches
+get_metadata(spec_lib, logic = top_matches$library_id)
 ```
 
 ## Citations
@@ -104,6 +101,6 @@ Needs an Open Source Community: Open Specy to the Rescue!”
 *Analytical Chemistry*, **93**(21), 7543–7548. doi:
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
-Cowger W, Steinmetz Z (2021). “OpenSpecy: Analyze, Process,
-Identify, and Share Raman and (FT)IR Spectra.” *R package*, **0.9.5**.
+Cowger W, Steinmetz Z (2023). “OpenSpecy: Analyze, Process,
+Identify, and Share Raman and (FT)IR Spectra.” *R package*, **1.0.0**.
 [https://github.com/wincowgerDEV/OpenSpecy-package](https://github.com/wincowgerDEV/OpenSpecy-package).

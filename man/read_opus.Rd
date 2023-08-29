@@ -19,71 +19,72 @@ read_opus(
     level_of_confidence_in_identification = NULL, other_info = NULL, license =
     "CC BY-NC"),
   type = "spec",
-  simplify = FALSE,
-  wns_digits = 1L,
+  digits = 1L,
   atm_comp_minus4offset = FALSE
 )
 }
 \arguments{
-\item{file}{Character vector with path to file(s).}
+\item{file}{character vector with path to file(s).}
 
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
 
-\item{metadata}{a named list of the metadata; see details below.}
+\item{metadata}{a named list of the metadata; see
+\code{\link{as_OpenSpecy}()} for details.}
 
-\item{type}{Character vector of spectra types to extract from OPUS binary
-file. Default is `"spec"`, which will extract the final spectra, e.g.
-expressed in absorbance (named `AB` in Bruker OPUS programs). Possible
-additional values for the character vector supplied to `type` are `"spec_no_atm_comp"` (spectrum of the sample without compensation for atmospheric gases, water vapor and/or carbon dioxide),
-`"sc_sample"` (single channel spectrum of the sample measurement), `"sc_ref"` (single channel spectrum of the reference measurement),
-`"ig_sample"` (interferogram of the sample measurement) and `"ig_ref"`
+\item{type}{character vector of spectra types to extract from OPUS binary
+file. Default is \code{"spec"}, which will extract the final spectra, e.g.
+expressed in absorbance (named \code{AB} in Bruker OPUS programs). Possible
+additional values for the character vector supplied to \code{type} are
+\code{"spec_no_atm_comp"} (spectrum of the sample without compensation for
+atmospheric gases, water vapor and/or carbon dioxide),
+\code{"sc_sample"} (single channel spectrum of the sample measurement), \code{"sc_ref"}
+(single channel spectrum of the reference measurement),
+\code{"ig_sample"} (interferogram of the sample measurement) and \code{"ig_ref"}
 (interferogram of the reference measurement).}
 
-\item{simplify}{Logical (defaults to `FALSE`): if set to `TRUE`, returns a flattened list.
-The first element of that list (`wavenumbers`) is the wavenumbers of the first file read.
-The second element (`spectra`) is a matrix of the corresponding spectra. Especially useful when
-passing more than one file to the `file` option, for example to read a suite of spectral file.
-directly into a matrix.
-If the files do not have the same number of wavebands, the wavebands of the very first file passed to `file` is used as a reference for linear interpolation.}
+\item{digits}{Integer that specifies the number of decimal places used to
+round the wavenumbers (values of x-variables).}
 
-\item{wns_digits}{Integer that specifies the number of decimal places used to round
-the wavenumbers (values of x-variables) if `simplify = TRUE`.}
-
-\item{atm_comp_minus4offset}{Logical whether spectra after atmospheric compensation are read with
-an offset of -4 bytes from Bruker OPUS files. Default is `FALSE`.}
+\item{atm_comp_minus4offset}{Logical whether spectra after atmospheric
+compensation are read with an offset of -4 bytes from Bruker OPUS files;
+default is \code{FALSE}.}
 }
 \value{
-The output of `read_opus()` depends on the value of the `simplify` option used in the function call.
-
- - If `simplify = FALSE` (default), `read_opus()` returns a list of 10 elements:
-    - `metadata`: a `data.frame` containing metadata from the OPUS file
-    - `spec` If `"spec"` was requested in the `type` option, a matrix of the spectrum of the sample (otherwise set to `NULL`).
-    - `spec_no_atm_comp` If `"spec_no_atm_comp"` was requested in the `type` option, a matrix of the spectrum of the sample without background compensation (otherwise set to `NULL`).
-    - `sc_sample` If `"sc_sample"` was requested in the `type` option, a matrix of the single channel spectrum of the sample (otherwise set to `NULL`).
-    - `sc_ref` If `"sc_ref"` was requested in the `type` option, a matrix of the single channel spectrum of the reference (otherwise set to `NULL`).
-    - `ig_sample` If `"ig_sample"` was requested in the `type` option, a matrix of the interferogram of the sample (otherwise set to `NULL`).
-    - `ig_ref`  If `"ig_ref"` was requested in the `type` option, a matrix of the interferogram of the reference (otherwise set to `NULL`).
-    - `wavenumbers` If `"spec"` or `"spec_no_atm_comp"` was requested in the `type` option, a numeric vector of the wavenumbers of the spectrum of the sample (otherwise set to `NULL`).
-    - `wavenumbers_sc_sample` If `"sc_sample"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the sample (otherwise set to `NULL`).
-    - `wavenumbers_sc_ref` If `"sc_ref"` was requested in the `type` option, a numeric vector of the wavenumbers of the single channel spectrum of the reference (otherwise set to `NULL`).
-
- - If `simplify = TRUE`, a list of two elements is returned:
-    - `wavenumbers`: Numeric vector with wavenumbers of the requested spectra.
-    - `spectra`: Matrix with spectra of requested type (see argument `type`).
+An \code{OpenSpecy} object.
 }
 \description{
-Read file(s) acquired with a Bruker Vertex FTIR Instrument.
+Read file(s) acquired with a Bruker Vertex FTIR Instrument. This function
+is basically a fork of \code{opus_read()} from
+\url{https://github.com/pierreroudier/opusreader}.
 }
 \details{
-The type of spectra returned by the function when using `type = "spec"` depends on the setting of the Bruker instrument: typically, it can be either absorbance or reflectance.
+The type of spectra returned by the function when using
+\code{type = "spec"} depends on the setting of the Bruker instrument: typically,
+it can be either absorbance or reflectance.
 
-The type of spectra to extract from the file can also use Bruker's OPUS software naming conventions, as follows:
+The type of spectra to extract from the file can also use Bruker's OPUS
+software naming conventions, as follows:
+\itemize{
+\item \code{ScSm} corresponds to \code{sc_sample}
+\item \code{ScRf} corresponds to \code{sc_ref}
+\item \code{IgSm} corresponds to \code{ig_sample}
+\item \code{IgRf} corresponds to \code{ig_ref}
+}
+}
+\examples{
+read_extdata("ftir_ps.0") |> read_opus()
 
-- `ScSm` corresponds to `sc_sample`
-- `ScRf` corresponds to `sc_ref`
-- `IgSm` corresponds to `ig_sample`
-- `IgRf` corresponds to `ig_ref`
+}
+\seealso{
+\code{\link{read_spec}()} for reading .y(a)ml, .json, or .rds (OpenSpecy)
+files;
+\code{\link{read_text}()}, \code{\link{read_asp}()}, \code{\link{read_spa}()},
+\code{\link{read_spc}()}, and \code{\link{read_jdx}()} for text files, .asp,
+.spa, .spa, .spc, and .jdx formats, respectively;
+\code{\link{read_text}()} for reading .dat (ENVI) files;
+\code{\link{read_zip}()} and \code{\link{read_any}()} for wrapper functions;
+\code{\link{read_opus_raw}()};
 }
 \author{
 Philipp Baumann, Zacharias Steinmetz, Win Cowger

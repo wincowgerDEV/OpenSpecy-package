@@ -4,7 +4,7 @@
 \alias{run_app}
 \title{Run Open Specy app}
 \usage{
-run_app(path = "system", log = TRUE, ref = "main", ...)
+run_app(path = "system", log = TRUE, ref = "main", test_mode = FALSE, ...)
 }
 \arguments{
 \item{path}{to store the downloaded app files; defaults to \code{"system"}
@@ -14,6 +14,8 @@ pointing to \code{system.file(package = "OpenSpecy")}.}
 
 \item{ref}{git reference; could be a commit, tag, or branch name. Defaults to
 "main". Only change this in case of errors.}
+
+\item{test_mode}{logical; for internal testing only.}
 
 \item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
 }

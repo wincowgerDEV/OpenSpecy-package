@@ -8,13 +8,14 @@
 \alias{as_OpenSpecy.data.frame}
 \alias{as_OpenSpecy.default}
 \alias{is_OpenSpecy}
+\alias{check_OpenSpecy}
 \alias{OpenSpecy}
 \alias{gen_grid}
-\title{OpenSpecy object operations}
+\title{Create \code{OpenSpecy} objects}
 \usage{
 as_OpenSpecy(x, ...)
 
-\method{as_OpenSpecy}{OpenSpecy}(x, ...)
+\method{as_OpenSpecy}{OpenSpecy}(x, session_id = FALSE, ...)
 
 \method{as_OpenSpecy}{list}(x, ...)
 
@@ -36,51 +37,63 @@ as_OpenSpecy(x, ...)
     data_processing_procedure = NULL, level_of_confidence_in_identification = NULL,
     other_info = NULL, license = "CC BY-NC"),
   coords = "gen_grid",
-  session_id = F,
+  session_id = FALSE,
   ...
 )
 
 is_OpenSpecy(x)
+
+check_OpenSpecy(x)
 
 OpenSpecy(x, ...)
 
 gen_grid(n)
 }
 \arguments{
-\item{x}{depending on the method, a list with all OpenSpecy parameters, a vector with the wavenumbers for all spectra, or a data.frame with a full spectrum in the classic Open Specy format.}
+\item{x}{depending on the method, a list with all OpenSpecy parameters,
+a vector with the wavenumbers for all spectra, or a data.frame with a full
+spectrum in the classic Open Specy format.}
 
-\item{colnames}{names of the wavenumber column and spectra column, makes assumptions based on column names or placement if NULL.}
+\item{session_id}{logical. Whether to add a session ID to the metadata.
+The session ID is based on current session info so metadata of the same
+spectra will not return equal if session info changes. Sometimes that is
+desirable.}
 
-\item{spectra}{spectral intensities formatted as a data.table with one column per spectrum.}
+\item{colnames}{names of the wavenumber column and spectra column, makes
+assumptions based on column names or placement if \code{NULL}.}
 
-\item{metadata}{metadata for each spectrum with one row per spectrum, see details.}
+\item{spectra}{spectral intensities formatted as a data.table with one column
+per spectrum.}
+
+\item{metadata}{metadata for each spectrum with one row per spectrum,
+see details.}
 
 \item{coords}{spatial coordinates for the spectra.}
 
-\item{session_id}{TRUE or FALSE whether to add a session ID to the metadata. The session ID is based on current session info so metadata of the same spectra will not return equal if session info changes. Sometimes that is desirable.}
-
 \item{n}{number of spectra to generate the spatial coordinate grid with.}
 
-\item{\ldots}{additional arguments.}
+\item{\ldots}{additional arguments passed to submethods.}
 }
 \value{
-\code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists described in details. \cr
-\code{is_OpenSpecy()} returns TRUE if the object is an OpenSpecy and FALSE if not.\cr
-\code{gen_grid()} returns a \code{data.table} with x y coordinates to use for generating a spatial grid for the spectra if one is not specified in the data.\cr
+\code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists
+described in details.
+\code{is_OpenSpecy()} returns \code{TRUE} if the object is an OpenSpecy and
+\code{FALSE} if not.
+\code{gen_grid()} returns a \code{data.table} with \code{x} and \code{y}
+coordinates to use for generating a spatial grid for the spectra if one is
+not specified in the data.
 }
 \description{
 Functions to check if an object is an OpenSpecy, or coerce it if
 possible.
 }
 \details{
-\code{as_OpenSpecy()} converts spectral datasets to a three part list,
+\code{as_OpenSpecy()} converts spectral datasets to a three part list;
 the first with a vector of the wavenumbers of the spectra,
 the second with a \code{data.table} of all spectral intensities ordered as
 columns,
 the third item is another \code{data.table} with any metadata the user
-provides or is harvested from the files themselves. Currently metadata
-harvesting from jdx and opus files are supported as well as the two
-OpenSpecy write formats yaml and json. 
+provides or is harvested from the files themselves.
 
 The \code{metadata} argument may contain a named list with the following
 details (\code{*} = minimum recommended):
@@ -147,38 +160,34 @@ with \code{digest(object[c("wavenumber", "spectra")])}\cr
 }
 }
 \examples{
-data("raman_hdpe") #Read in an example spectrum for Raman HDPE. 
+data("raman_hdpe")
 
-#Inspect the spectra
-raman_hdpe #See how OpenSpecy objects print. 
-raman_hdpe$wavenumber #Look at just the wavenumbers of the spectra.
-raman_hdpe$spectra #Look at just the spectral intensities data.table. 
-raman_hdpe$metadata #Look at just the metadata of the spectra. 
+# Inspect the spectra
+raman_hdpe # See how OpenSpecy objects print.
+raman_hdpe$wavenumber # Look at just the wavenumbers of the spectra.
+raman_hdpe$spectra # Look at just the spectral intensities data.table.
+raman_hdpe$metadata # Look at just the metadata of the spectra.
 
-#Demonstrate compatibility in creating an OpenSpecy from its components.
-as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$metadata == raman_hdpe$metadata
-as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$spectra == raman_hdpe$spectra
-as_OpenSpecy(x = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")], coords = raman_hdpe$metadata[,c("x", "y")])$wavenumber == raman_hdpe$wavenumber
+# Creating a list and transforming to OpenSpecy
+as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber,
+                  spectra = raman_hdpe$spectra,
+                  metadata = raman_hdpe$metadata[,-c("x", "y")]))
 
-#Demonstrate creating a list and transforming to OpenSpecy
-as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra, metadata = raman_hdpe$metadata[,-c("x", "y")]))
-
-#If you try to produce an OpenSpecy using an OpenSpecy it will just return the same object.
+# If you try to produce an OpenSpecy using an OpenSpecy it will just return
+# the same object.
 as_OpenSpecy(raman_hdpe)
 
-#Method for creating an OpenSpecy from a data.frame
-as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber, spectra = raman_hdpe$spectra$intensity))
+# Creating an OpenSpecy from a data.frame
+as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber,
+                            spectra = raman_hdpe$spectra$intensity))
 
-#Test that the spectrum is formatted as an OpenSpecy object.
+# Test that the spectrum is formatted as an OpenSpecy object.
 is_OpenSpecy(raman_hdpe)  #should be TRUE
 is_OpenSpecy(raman_hdpe$spectra) #should be FALSE
 
-#Create an artificial spatial grid
-gen_grid(n = 5)
-
 }
 \seealso{
-seealso.
+\code{\link{read_spec}()} for reading \code{OpenSpecy} objects.
 }
 \author{
 Zacharias Steinmetz, Win Cowger

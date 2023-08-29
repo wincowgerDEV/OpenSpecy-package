@@ -26,5 +26,5 @@ human_ts()
 \code{\link[base]{format.Date}} for date conversion functions
 }
 \author{
-Win Cowger
+Win Cowger, Zacharias Steinmetz
 }

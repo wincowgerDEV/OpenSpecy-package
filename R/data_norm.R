@@ -1,13 +1,12 @@
 #' @rdname data_norm
-#'
 #' @title Normalization and conversion of spectral data
 #'
 #' @description
-#' \code{adj_res()} and \code{conform_res()} are helper functions to conform
-#' wavenumbers to different spectral resolutions.
-#' \code{adj_neg()} converts numeric intensities \code{y} < 1 into values
-#' >= 1, keeping absolute differences between intensity values by shifting each
-#' value by the minimum intensity.
+#' \code{adj_res()} and \code{conform_res()} are helper functions to align
+#' wavenumbers in terms of their spectral resolution.
+#' \code{adj_neg()} converts numeric intensities \code{y} < 1 into values >= 1,
+#' keeping absolute differences between intensity values by shifting each value
+#' by the minimum intensity.
 #' \code{make_rel()} converts intensities \code{y} into relative values between
 #' 0 and 1 using the standard normalization equation.
 #' If \code{na.rm} is \code{TRUE}, missing values are removed before the
@@ -15,7 +14,7 @@
 #'
 #' @details
 #' \code{adj_res()} and \code{conform_res()} are used in Open Specy to
-#' faciliate comparisons of spectra with different resolutions.
+#' facilitate comparisons of spectra with different resolutions.
 #' \code{adj_neg()} is used to avoid errors that could arise from log
 #' transforming spectra when using \code{\link{adj_intens}()} and other
 #' functions.
@@ -33,7 +32,7 @@
 #' @param na.rm logical. Should missing values be removed?
 #'
 #' @return
-#' \code{adj_res()} abd \code{conform_res()} return a numeric vector with
+#' \code{adj_res()} and \code{conform_res()} return a numeric vector with
 #' resolution-conformed wavenumbers.
 #' \code{adj_neg()} and \code{make_rel()} return numeric vectors
 #' with the normalized intensity data.
@@ -49,9 +48,10 @@
 #'
 #' @seealso
 #' \code{\link[base]{min}()} and \code{\link[base]{round}()};
-#' \code{\link{adj_intens}()} for log transformation functions
+#' \code{\link{adj_intens}()} for log transformation functions;
+#' \code{\link{conform_spec}()} for conforming wavenumbers of an
+#' \code{OpenSpecy} object to be matched with a reference library
 #'
-#' @importFrom magrittr %>%
 #' @export
 adj_res <- function(x, res = 1, fun = round) {
   fun(x / res) * res
@@ -67,92 +67,9 @@ conform_res <- function(x, res = 5) {
 #' @rdname data_norm
 #'
 #' @export
-conform_spec <- function(spec, x, xout){
-        c(
-            approx(x = x, y = spec, xout = xout)$y
-        )
-}
-
-#' @rdname data_norm
-#'
-#' @export
-conform_spectra <- function(data, xout, coords = NULL){
-    if(is_OpenSpecy(data)){
-        as_OpenSpecy(
-            x = xout,
-            spectra = data$spectra[,lapply(.SD, function(x){
-                conform_spec(x = data$wavenumber, spec = x, xout = xout)})],
-            metadata = data$metadata,
-            coords = coords
-        )
-    }
-}
-
-#' @rdname data_norm
-#'
-#' @export
-combine_OpenSpecy <- function(files, wavenumbers = NULL, res = NULL, coords = NULL){
-
-    if(!is.list(files)){
-        lof <- lapply(files, read_spec, coords = NULL)
-    }
-    else{
-        lof <- files
-    }
-
-    if(!is.null(wavenumbers)){
-        if(wavenumbers == "first"){
-            lof <- lapply(lof, function(x) {
-                conform_spectra(data = x,
-                                xout = {if(!is.null(res)) conform_res(lof[[1]]$wavenumber, res = res) else lof[[1]]$wavenumber},
-                                coords = NULL)
-            })
-        }
-        if(wavenumbers == "max_range"){
-            all = unique(unlist(lapply(lof, function(x) x$wavenumber)))
-            lof <- lapply(lof, function(x) {
-                                        conform_spectra(data = x,
-                                        xout = {if(!is.null(res)) conform_res(all, res = res) else all},
-                                        coords = NULL)})
-        }
-        if(wavenumbers == "min_range"){
-            smallest_range = which.min(vapply(lof, function(x) length(x$wavenumber), FUN.VALUE = numeric(1)))
-            lof <- lapply(lof, function(x) {
-                conform_spectra(data = x,
-                                xout = {if(!is.null(res)) conform_res(lof[[smallest_range]]$wavenumber, res = res) else lof[[smallest_range]]$wavenumber},
-                                coords = NULL)})
-        }
-        if(wavenumbers == "most_common_range"){
-            wavenumbers = table(unlist(lapply(lof, function(x) x$wavenumber)))
-            common_range = as.numeric(names(wavenumbers)[wavenumbers == max(wavenumbers)])
-            lof <- lapply(lof, function(x) {
-                conform_spectra(data = x,
-                                xout = {if(!is.null(res)) conform_res(lof[[common_range]]$wavenumber, res = res) else lof[[common_range]]$wavenumber},
-                                coords = NULL)})
-        }
-    }
-
-    unlisted <- unlist(lof, recursive = F)
-
-    list <- tapply(unlisted, names(unlisted), FUN = function(x) unname((x)))
-
-    if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(wavenumbers)){
-        stop("Wavenumbers are not the same between spectra, you need to specify how the wavenumbers should be merged.", call. = F)
-    }
-
-    as_OpenSpecy(
-        x = list$wavenumber[[1]],
-        spectra = as.data.table(list$spectra),
-        metadata = rbindlist(list$metadata, fill = T)
-    )
-}
-
-#' @rdname data_norm
-#'
-#' @export
 adj_neg <- function(y, na.rm = FALSE) {
   if (min(y, na.rm = na.rm) < 1) {
-    y + min(y, na.rm = na.rm) %>% abs() + 1
+    y + min(y, na.rm = na.rm) |> abs() + 1
   } else {
     y
   }
@@ -162,5 +79,40 @@ adj_neg <- function(y, na.rm = FALSE) {
 #'
 #' @export
 make_rel <- function(y, na.rm = FALSE) {
-  (y - min(y, na.rm = na.rm)) / (max(y, na.rm = na.rm) - min(y, na.rm = na.rm))
+  r <- range(y, na.rm = na.rm)
+
+  (y - r[1]) / (r[2] - r[1])
+}
+
+#' @rdname data_norm
+#' @importFrom data.table fifelse
+#'
+#' @export
+mean_replace <- function(y, na.rm = TRUE) {
+  m <- mean(y, na.rm = na.rm)
+
+  fifelse(is.na(y), m, y)
+}
+
+#' @rdname data_norm
+#'
+#' @export
+is_empty_vector <- function(x) {
+  # Check if the vector is NULL or has zero length
+  if (is.null(x) || length(x) == 0) {
+    return(TRUE)
+  }
+
+  # Check if all values are NA or NaN (for numeric vectors)
+  if (is.numeric(x)) {
+    return(all(is.na(x) | is.nan(x)))
+  }
+
+  # Check if all values are NA or empty strings (for character vectors)
+  if (is.character(x)) {
+    return(all(is.na(x) | x == ""))
+  }
+
+  # Check if all values are NA (for other types of vectors)
+  return(all(is.na(x)))
 }

@@ -7,7 +7,7 @@
 \alias{openspecy}
 \title{OpenSpecy: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra}
 \description{
-Raman and (FT)IR spectral analysis tool for plastic particles and other environmental samples (Cowger et al. 2021, \doi{10.1021/acs.analchem.1c00123}). Supported features include reading spectral data files (.asp, .csv, .jdx, .spc, .spa, .0), Savitzky-Golay smoothing of spectral intensities with smooth_intens(), correcting background noise with subtr_bg() in accordance with Zhao et al. (2007) \doi{10.1366/000370207782597003}, and identifying spectra using an onboard reference library (Cowger et al. 2020, \doi{10.1177/0003702820929064}). Analyzed spectra can be shared with the Open Specy community. A Shiny app is available via run_app() or online at \url{https://openanalysis.org/openspecy/}.
+Raman and (FT)IR spectral analysis tool for plastic particles and other environmental samples (Cowger et al. 2021, \doi{10.1021/acs.analchem.1c00123}). With read_any(), Open Specy provides a single function for reading individual, batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and .zip. process_spec() simplifies preprocessing spectra, including smoothing, baseline correction, range restriction and flattening, intensity conversions, wavenumber alignment, and min-max normalization. Spectra can be identified in batch using an onboard reference library (Cowger et al. 2020, \doi{10.1177/0003702820929064}) using match_spec(). A Shiny app is available via run_app() or online at \url{https://openanalysis.org/openspecy/}.
 }
 \references{
 Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
@@ -53,23 +53,31 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Win Cowger \email{wincowger@gmail.com} (\href{https://orcid.org/0000-0001-9226-3104}{ORCID})
+\strong{Maintainer}: Win Cowger \email{wincowger@gmail.com} (\href{https://orcid.org/0000-0001-9226-3104}{ORCID}) [data contributor]
 
 Authors:
 \itemize{
-  \item Zacharias Steinmetz \email{steinmetz-z@uni-landau.de} (\href{https://orcid.org/0000-0001-6675-5033}{ORCID})
+  \item Zacharias Steinmetz \email{z.steinmetz@rptu.de} (\href{https://orcid.org/0000-0001-6675-5033}{ORCID})
+  \item Nick Leong (\href{https://orcid.org/0009-0008-3313-4132}{ORCID})
+  \item Andrea Faltynkova (\href{https://orcid.org/0000-0003-2523-3137}{ORCID}) [data contributor]
 }
 
 Other contributors:
 \itemize{
-  \item Andrew Gray (\href{https://orcid.org/0000-0003-2252-7367}{ORCID}) [contributor]
+  \item Andrew B Gray (\href{https://orcid.org/0000-0003-2252-7367}{ORCID}) [contributor]
   \item Hannah Hapich (\href{https://orcid.org/0000-0003-0000-6632}{ORCID}) [contributor]
   \item Jennifer Lynch (\href{https://orcid.org/0000-0003-3572-8782}{ORCID}) [contributor, data contributor]
   \item Hannah De Frond (\href{https://orcid.org/0000-0003-1199-0727}{ORCID}) [contributor, data contributor]
   \item Keenan Munno (\href{https://orcid.org/0000-0003-2916-5944}{ORCID}) [contributor, data contributor]
   \item Chelsea Rochman (\href{https://orcid.org/0000-0002-7624-711X}{ORCID}) [contributor, data contributor]
   \item Sebastian Primpke (\href{https://orcid.org/0000-0001-7633-8524}{ORCID}) [contributor, data contributor]
-  \item Orestis Herodotou [contributor, data contributor]
+  \item Orestis Herodotou [contributor]
+  \item Mary C Norris [contributor]
+  \item Christine M Knauss (\href{https://orcid.org/0000-0003-4404-8922}{ORCID}) [contributor]
+  \item Aleksandra Karapetrova (\href{https://orcid.org/0000-0002-9856-1644}{ORCID}) [contributor, data contributor, reviewer]
+  \item Vesna Teofilovic (\href{https://orcid.org/0000-0002-3557-1482}{ORCID}) [contributor]
+  \item Laura A. T. Markley (\href{https://orcid.org/0000-0003-0620-8366}{ORCID}) [contributor]
+  \item Shreyas Patankar [contributor, data contributor]
 }
 
 }

@@ -1,3 +1,4 @@
+#' @rdname smooth_intens
 #' @title Smooth spectral intensities
 #'
 #' @description
@@ -11,16 +12,20 @@
 #' A typical good smooth can be achieved with 11 data point window and a 3rd or
 #' 4th order polynomial.
 #'
-#' @param object a list object of class \code{OpenSpecy}.
-#' @param p polynomial order for the filter
-#' @param n number of data points in the window, filter length (must be odd).
+#' @param x an object of class \code{OpenSpecy}.
+#' @param polynomial polynomial order for the filter
+#' @param window number of data points in the window, filter length (must be
+#' odd).
+#' @param derivative the derivative order if you want to calculate the
+#' derivative. Zero (default) is no derivative.
+#' @param abs logical; whether you want to calculate the absolute value of the
+#' resulting output.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
 #' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}.
 #'
 #' @return
-#' \code{smooth_intens()} returns a data frame containing two columns named
-#' \code{"wavenumber"} and \code{"intensity"}.
+#' \code{smooth_intens()} returns an \code{OpenSpecy} object.
 #'
 #' @examples
 #' data("raman_hdpe")
@@ -38,34 +43,37 @@
 #' Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
 #' \strong{36}(8), 1627--1639.
 #'
-#' @importFrom magrittr %>%
+#' @importFrom data.table .SD
 #' @export
-smooth_intens <- function(object, ...) {
+smooth_intens <- function(x, ...) {
   UseMethod("smooth_intens")
 }
 
 #' @rdname smooth_intens
 #'
 #' @export
-smooth_intens.default <- function(object, ...) {
-  stop("object 'x' needs to be of class 'OpenSpecy'", call. = F)
+smooth_intens.default <- function(x, ...) {
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname smooth_intens
 #'
-#' @importFrom signal filter sgolay
-#' @importFrom data.table .SD
 #' @export
-smooth_intens.OpenSpecy <- function(object, p = 3, n = 11, m = 0, abs = F, make_rel = TRUE,
-                                  ...) {
-  filt <- object$spectra[, lapply(.SD, .sgfilt, p = p, n = n, m = m, abs = abs, ...)]
+smooth_intens.OpenSpecy <- function(x, polynomial = 3, window = 11,
+                                    derivative = 0, abs = FALSE,
+                                    make_rel = TRUE, ...) {
+  filt <- x$spectra[, lapply(.SD, .sgfilt, p = polynomial, n = window,
+                             m = derivative, abs = abs, ...)]
 
-  if (make_rel) object$spectra <- make_rel(filt) else object$spectra <- filt
+  if(make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
 
-  return(object)
+  return(x)
 }
 
+#' @importFrom signal filter sgolay
 .sgfilt <- function(y, p, n, m, abs = F, ...) {
-  signal::filter(filt = sgolay(p = p, n = n, m = m, ...), x = y) %>%
-        {if(abs) abs(.) else .}
+  out <- signal::filter(filt = sgolay(p = p, n = n, m = m, ...), x = y)
+  if(abs) out <- abs(out)
+
+  return(out)
 }

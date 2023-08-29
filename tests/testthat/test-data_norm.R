@@ -10,3 +10,22 @@ test_that("make_rel() give correct output", {
   expect_equal(round(make_rel(c(965.86, 82.75, -458.28, -0.98, -62.94)), 4),
                c(1.0000, 0.3799, 0.0000, 0.3211, 0.2776))
 })
+
+test_that("adj_res() function test", {
+    expect_equal(adj_res(seq(500, 4000, 4), 5), round(seq(500, 4000, 4)/5)*5)
+})
+
+test_that("conform_res() function test", {
+    x <- seq(500, 4000, 4)
+    expect_equal(conform_res(x, 5), seq(floor(min(x)/5)*5, ceiling(max(x)/5)*5, by=5))
+})
+
+test_that("adj_neg() function test", {
+    expect_equal(adj_neg(c(-1000, -1, 0, 1, 10)), c(1, 1000, 1001, 1002, 1011))
+    expect_equal(adj_neg(c(1, 2, 3)), c(1, 2, 3))
+})
+
+test_that("make_rel() function test", {
+    expect_equal(make_rel(c(1, 2, 3)), c(0, 0.5, 1))
+    expect_equal(make_rel(c(10, 20, 30)), c(0, 0.5, 1))
+})

@@ -6,23 +6,25 @@
 \alias{share_spec.OpenSpecy}
 \title{Share data with the Open Specy community}
 \usage{
-share_spec(object, ...)
+share_spec(x, ...)
 
-\method{share_spec}{default}(object, ...)
+\method{share_spec}{default}(x, ...)
 
-\method{share_spec}{OpenSpecy}(object, file = NULL, share = "system", ...)
+\method{share_spec}{OpenSpecy}(x, file = NULL, share = "system", credentials = NULL, ...)
 }
 \arguments{
-\item{object}{a list object of class \code{OpenSpecy}.}
+\item{x}{a list object of class \code{OpenSpecy}.}
 
 \item{file}{file to share (optional).}
 
 \item{share}{accepts any local directory to save the spectrum for later
-sharing via e-mail to \email{wincowger@gmail.com};
-\code{"system"} (default) uses the Open Specy package directory at
-\code{system.file("extdata", package = "OpenSpecy")};
-if a correct API token exists, \code{"cloud"} shares the spectrum with the
-cloud.}
+sharing via email to \email{wincowger@gmail.com}; \code{"system"} (default)
+uses the Open Specy package directory at \code{system.file("extdata",
+package = "OpenSpecy")}; if a correct API token exists, \code{"cloud"}
+shares the spectrum with the cloud.}
+
+\item{credentials}{a named list of credentials for cloud sharing; required if
+\code{share = "cloud"}).}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
@@ -33,20 +35,21 @@ cloud.}
 This helper function shares spectral data and metadata with the Open Specy
 community.
 
-\strong{Please note} that \code{share_spec()} only provides basic sharing
+\strong{Please note:} that \code{share_spec()} only provides basic sharing
 functionality if used interactively. This means that files are only formatted
-and saved for sharing but are not send automatically. This only works with
+and saved for sharing but are not sent automatically. This only works with
 hosted instances of Open Specy.
 }
 \examples{
 \dontrun{
 data("raman_hdpe")
 share_spec(raman_hdpe,
-           metadata = c(user_name = "Win Cowger",
-                        spectrum_type = "FTIR",
-                        spectrum_identity = "PE",
-                        license = "CC BY-NC"),
-           share = tempdir())
+           metadata = list(
+             user_name = "Win Cowger",
+             spectrum_type = "FTIR",
+             spectrum_identity = "PE",
+             license = "CC BY-NC"
+           ))
 }
 
 }
