@@ -10,7 +10,7 @@ conform_spec(x, ...)
 
 \method{conform_spec}{default}(x, ...)
 
-\method{conform_spec}{OpenSpecy}(x, range = NULL, res = 5, ...)
+\method{conform_spec}{OpenSpecy}(x, range = NULL, res = 5, type = "interp", ...)
 }
 \arguments{
 \item{x}{a list object of class \code{OpenSpecy}.}
@@ -18,7 +18,10 @@ conform_spec(x, ...)
 \item{range}{a vector of new wavenumber values, can be just supplied as a
 min and max value.}
 
-\item{res}{spectral resolution adjusted to.}
+\item{res}{spectral resolution adjusted to or NULL if the raw range should be used.}
+
+\item{type}{the type of wavenumber adjustment to make. interp results in linear
+interpolation while roll conducts a nearest rolling join of the wavenumbers.}
 
 \item{\ldots}{further arguments passed to \code{\link[stats]{approx}()}}
 }
