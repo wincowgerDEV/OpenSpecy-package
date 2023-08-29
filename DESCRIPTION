@@ -2,7 +2,7 @@ Package: OpenSpecy
 Type: Package
 Title: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 Version: 1.0.0
-Date: 2023-08-24
+Date: 2023-08-29
 Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
       email = "wincowger@gmail.com",
       comment = c(ORCID = "0000-0001-9226-3104")),
@@ -40,15 +40,15 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
     person("Shreyas","Patankar", role = c("ctb", "dtc")))
 Description: Raman and (FT)IR spectral analysis tool for plastic particles and
     other environmental samples (Cowger et al. 2021,
-    <doi:10.1021/acs.analchem.1c00123>). Supported features include reading
-    spectral data files like .asp, .csv, .jdx, .spc, .spa, and .0,
-    Savitzky-Golay smoothing of spectral intensities with smooth_intens(),
-    correcting background noise with subtr_baseline() in accordance with
-    Zhao et al. (2007) <doi:10.1366/000370207782597003>, and identifying spectra
+    <doi:10.1021/acs.analchem.1c00123>). With read_any(), Open Specy provides a
+    single function for reading individual, batch, or map spectral data files
+    like .asp, .csv, .jdx, .spc, .spa, .0, and .zip. process_spec() simplifies
+    preprocessing spectra, including smoothing, baseline correction,
+    range restriction and flattening, intensity conversions, wavenumber
+    alignment, and min-max normalization. Spectra can be identified in batch
     using an onboard reference library (Cowger et al. 2020,
-    <doi:10.1177/0003702820929064>). Analyzed spectra can be shared with the
-    Open Specy community. A Shiny app is available via run_app() or online at
-    <https://openanalysis.org/openspecy/>.
+    <doi:10.1177/0003702820929064>) using match_spec(). A Shiny app is available
+    via run_app() or online at <https://openanalysis.org/openspecy/>.
 URL: https://github.com/wincowgerDEV/OpenSpecy-package/,
     http://wincowger.com/OpenSpecy-package/
 BugReports: https://github.com/wincowgerDEV/OpenSpecy-package/issues/

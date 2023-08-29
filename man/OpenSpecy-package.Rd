@@ -7,7 +7,7 @@
 \alias{openspecy}
 \title{OpenSpecy: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra}
 \description{
-Raman and (FT)IR spectral analysis tool for plastic particles and other environmental samples (Cowger et al. 2021, \doi{10.1021/acs.analchem.1c00123}). Supported features include reading spectral data files like .asp, .csv, .jdx, .spc, .spa, and .0, Savitzky-Golay smoothing of spectral intensities with smooth_intens(), correcting background noise with subtr_baseline() in accordance with Zhao et al. (2007) \doi{10.1366/000370207782597003}, and identifying spectra using an onboard reference library (Cowger et al. 2020, \doi{10.1177/0003702820929064}). Analyzed spectra can be shared with the Open Specy community. A Shiny app is available via run_app() or online at \url{https://openanalysis.org/openspecy/}.
+Raman and (FT)IR spectral analysis tool for plastic particles and other environmental samples (Cowger et al. 2021, \doi{10.1021/acs.analchem.1c00123}). With read_any(), Open Specy provides a single function for reading individual, batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and .zip. process_spec() simplifies preprocessing spectra, including smoothing, baseline correction, range restriction and flattening, intensity conversions, wavenumber alignment, and min-max normalization. Spectra can be identified in batch using an onboard reference library (Cowger et al. 2020, \doi{10.1177/0003702820929064}) using match_spec(). A Shiny app is available via run_app() or online at \url{https://openanalysis.org/openspecy/}.
 }
 \references{
 Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
