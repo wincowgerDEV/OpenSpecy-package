@@ -1,3 +1,23 @@
+# OpenSpecy 1.0.0
+
+## New Features
+
+- Complete package, app, and SOP overhaul!
+- The Shiny app has been outsourced to an own GitHub repository:
+  https://github.com/wincowgerDEV/OpenSpecy-shiny
+- Spectra are now stored in dedicated `OpenSpecy` objects, which can be managed
+  with a set of new functions including `c_spec()` for concatenating spectra
+- Various functions have been renamed and improved, for instance, to facilitate
+  reading (and writing) spectral files
+- New functions include `def_features()` to identify microplastics in spectral
+  maps and `ai_classify()` to use AI for matching/identifying spectra
+
+## Minor Improvements
+
+- Added pkgdown documentation
+- Added code coverage tests
+
+
 # OpenSpecy 0.9.5
 
 ## Bug Fixes
