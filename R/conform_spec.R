@@ -9,6 +9,8 @@
 #' @param range a vector of new wavenumber values, can be just supplied as a
 #' min and max value.
 #' @param res spectral resolution adjusted to or NULL if the raw range should be used.
+#' @param type the type of wavenumber adjustment to make. interp results in linear 
+#' interpolation while roll conducts a nearest rolling join of the wavenumbers.
 #' @param \ldots further arguments passed to \code{\link[stats]{approx}()}
 #'
 #' @return
@@ -43,13 +45,14 @@ conform_spec.default <- function(x, ...) {
 #' @rdname conform_spec
 #'
 #' @export
-conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, ...) {
+conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, type = "interp", ...) {
+  if(!any(type %in% c("interp", "roll"))) stop("Type must be either interp or roll")
+ 
   if(is.null(range)) range <- x$wavenumber
   
   if(!is.null(res)){
       range <- c(max(min(range), min(x$wavenumber)),
-             min(max(range), max(x$wavenumber))
-                )
+                 min(max(range), max(x$wavenumber)))
 
     wn <- conform_res(range, res = res)
   }
@@ -58,10 +61,20 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, ...) {
   }
   
 
-  spec <- x$spectra[, lapply(.SD, .conform_intens,
-                             x = x$wavenumber,
-                             xout = wn, ...)]
+  if(type == "interp"){
+      spec <- x$spectra[, lapply(.SD, .conform_intens,
+                                 x = x$wavenumber,
+                                 xout = wn, ...)]      
+  }
+  
+  if(type == "roll"){
+      
+      join <- data.table(wavenumber = wn)
+      #Rolling join option
+      spec <- x$spectra[,wavenumber := x$wavenumber][join, roll = "nearest", on = "wavenumber"][,-"wavenumber"] 
+  }
 
+  
   x$wavenumber <- wn
   x$spectra <- spec
 
@@ -71,3 +84,4 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, ...) {
 .conform_intens <- function(...) {
   approx(...)$y
 }
+
