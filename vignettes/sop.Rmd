@@ -21,19 +21,18 @@ knitr::opts_chunk$set(
 
 # Document Overview 
 
-checkThis document outlines a common workflow for using the Open Specy package and
+This document outlines a common workflow for using the Open Specy package and
 app and highlights some topics that users are often requesting a tutorial on. If
 the document is followed sequentially from beginning to end, the user will have
-a better understanding of every procedure involved in using Open Specy R package
+a better understanding of every procedure involved in using the Open Specy R package
 and app as a tool for interpreting spectra. It takes approximately 45 minutes to
 read through and follow along with this standard operating procedure the first
 time. Afterward, knowledgeable users should be able to thoroughly analyze
-individual spectra at an average speed of 1 min^-1^.
+spectra at an average speed of 1 min^-1^ or faster with the new batch and automated procedures.
 
 # R Package and App
 
-Here we will describe common workflows of spectral analysis using the Open Specy
-R package and App.
+The Open Specy R package is the backbone of the Shiny app. The choice is yours as to which you start with, we use both on a regular basis. The tutorial will talk through the R functions and app features step by step together. 
 
 ## Installation
 
@@ -46,7 +45,7 @@ library(OpenSpecy)
 
 To get started with the Open Specy user interface, access
 [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/)
-or start the Shiny GUI directly from R typing
+or start the Shiny GUI directly from your own computer in R. 
 
 ```{r eval=FALSE}
 run_app()
@@ -54,26 +53,23 @@ run_app()
 
 ## Reading Data
 
-If you have your own data, click the **Upload File** tab at the top of the page.
+If you have your own data, click **Browse** at the top left hand corner of the Analyze Spectra tab.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
 knitr::include_graphics("mainpage.jpg")
 ```
 
-### Choose whether to share your uploaded data or not
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("uploadfile.jpg")
-```
-
 Before uploading, indicate if you would like to share the uploaded data or not
 using the slider. If selected, any data uploaded to the tool will automatically
-be shared under [CC-BY 4.0
-license](https://creativecommons.org/licenses/by/4.0/) and will be available for
+be shared under [CC-BY 4.0 license](https://creativecommons.org/licenses/by/4.0/) and will be available for
 researchers and other ventures to use to improve spectral analysis, build
 machine learning tools, etc. Some users may choose not to share if they need to
 keep their data private. If switched off, none of the uploaded data will be
 stored or shared in Open Specy.
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("uploadfile.jpg")
+```
 
 ### Upload/Read Data
 
@@ -129,7 +125,7 @@ get a bulk upload sheet for more rapid upload.
 
 The following line of code will read in your data when using the package:
 
-```{r eval=FALSE}
+```{r, eval=FALSE}
 read_any("path/to/your/data")
 ```
 
@@ -160,7 +156,7 @@ of HDPE Raman spectrum will download on your computer. This file can also be
 used as a template for formatting .csv data into an Open Specy accepted format.
 The following line of code does the same to load the example file into R:
 
-```{r eval=FALSE}
+```{r}
 data("raman_hdpe")
 ```
 
@@ -223,17 +219,24 @@ when you hover over the plot. This plot will change the view based on updates
 from the **Intensity Adjustment** selection.
 
 We have two ways to visualize your spectra, one is quick and efficient and the
-other is interactive.
+other is interactive. Here is an example of quick and efficient plotting.
 
 ```{r fig.align="center"}
 plot(scratch_OpenSpecy) # quick and efficient
 ```
 
-```{r eval=FALSE}
+
+This is an example of an interactive plot. 
+
+```{r eval=TRUE}
 plotly_spec(scratch_OpenSpecy) # this will min-max normalize your data even
                                # if it isn't already but are not changing your
                                # underlying data
+```
 
+With interactive plots you can also plot two different datasets simultaneously to compare. 
+
+```{r eval=TRUE}
 plotly_spec(scratch_OpenSpecy, rds_example) # interactive comparison
 ```
 
@@ -286,6 +289,8 @@ noise in most cases.
 
 ```{r eval=FALSE}
 processed <- process_spec(raman_hdpe)
+summary(processed)
+summary(raman_hdpe)
 ```
 
 You can compare the processed and unprocessed data:
