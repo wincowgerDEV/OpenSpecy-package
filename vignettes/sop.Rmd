@@ -325,51 +325,39 @@ The first step of the Open Specy preprocessing routing is spectral smoothing.
 The goal of this function is to increase the signal to noise ratio (S/N) without
 distorting the shape or relative size of the peaks. The value on the slider is
 the polynomial order of the [Savitzky-Golay (SG)
-filter](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter). The SG
-filter is fit to a moving window of 11 data points where the center point in the
-window is replaced with the polynomial estimate. The number of data points in
-the window is not user adjustable. Higher numbers lead to more wiggly fits and
-thus less smooth, lower numbers lead to more smooth fits, a 7th order polynomial
-will make the spectrum have almost no smoothing. If smoothing is set to 0 then
-no smoothing is conducted on the spectrum. When smoothing is done well, peak
-shapes and relative heights should not change. Typically a 3rd order polynomial
-(3 on the slider) works to increase the signal to noise without distortion, but
-if the spectrum is noisy, decrease polynomial order and if it is already smooth,
-increase the polynomial order to the maximum (7). Examples of smoothing below:
+filter](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter). Higher numbers lead to more wiggly fits and
+thus less smooth, lower numbers lead to more smooth fits. The SG
+filter is fit to a moving window of 11 data points by default where the center point in the
+window is replaced with the polynomial estimate. Larger windows will produce smoother fits. The derivative order is set to 1 by default which transforms the spectra to their first derivative. A zero order derivative will have no derivative transformation. When smoothing is done well, peak
+shapes and relative heights should not change. The absolute value is primarily useful for first derivative spectra where the absolute value results in an absorbance-like spectrum which is why we set it as the default. 
+
+Examples of smoothing with the R package:
 
 ```{r smoothing, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials (p) from Cowger et al. (2020).", fig.width=6, echo=FALSE}
 library(ggplot2)
 data("raman_hdpe")
 
-none <- adj_intens(raman_hdpe)
-p1 <- smooth_intens(raman_hdpe, p = 1)
-p4 <- smooth_intens(raman_hdpe, p = 4)
+none <- adj_intens(raman_hdpe, make_rel = T)
+p1 <- smooth_intens(raman_hdpe, polynomial = 1)
+p4 <- smooth_intens(raman_hdpe, polynomial = 4)
 
-compare_smoothing <- rbind(
-  cbind(smoothing = "none", wavenumber = none$wavenumber, none$spectra),
-  cbind(smoothing = "p = 1", wavenumber = p1$wavenumber, p1$spectra),
-  cbind(smoothing = "p = 4", wavenumber = p4$wavenumber, p4$spectra)
-)
-
-ggplot(compare_smoothing, aes(wavenumber, intensity)) +
-  geom_line(aes(color = smoothing)) +
-  theme_minimal()
+compare_derivative <- c_spec(list(none, p1, p4))
+    
+plot(compare_derivative)
 ```
 
-The different degrees of smoothing were achieved with the following R commands:
-
-```{r, eval=FALSE}
-smooth_intens(raman_hdpe, p = 1)
-smooth_intens(raman_hdpe, p = 4)
-```
-
-The intensity-adjusted sample spectrum `raman_adj` is smoothed accordingly:
+Derivative transformation can happen with the same function. You'll notice a new function we are using `c_spec()` which is used to combine spectral objects into one OpenSpecy object.
 
 ```{r}
-raman_smooth <- raman_adj |> 
-  smooth_intens()
 
-head(raman_smooth)
+none <- adj_intens(raman_hdpe, make_rel = T)
+d1 <- smooth_intens(raman_hdpe, derivative = 1, abs = T)
+d2 <- smooth_intens(raman_hdpe, derivative = 2)
+
+compare_derivative <- c_spec(list(none, d1, d2))
+    
+plot(compare_derivative)
+
 ```
 
 #### Baseline Correction
@@ -389,34 +377,18 @@ first fit iteration, peak regions will often be above the baseline fit. The data
 in the peak region is removed from the fit to make sure that the baseline is
 less likely to fit to the peaks. The iterative fitting terminates once the
 difference between the new and previous fit is small. An example of a good
-baseline fit below.
+baseline fit below. For those who have been with OpenSpecy a while, you will notice the app no longer supports manual baseline correction, it was a hard choice but it just didn't make sense to keep it now that we are moving toward high throughput automated methods. It does still exist in the R function though. 
 
 ```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, echo=FALSE}
-library(ggplot2)
 data("raman_hdpe")
 
 none <- adj_intens(raman_hdpe)
 d2 <- subtr_baseline(raman_hdpe, degree = 2)
 d8 <- subtr_baseline(raman_hdpe, degree = 8)
 
-compare_subtraction <- rbind(
-  cbind(fitting = "none", wavenumber = none$wavenumber, none$spectra),
-  cbind(fitting = "d = 2", wavenumber = d2$wavenumber, d2$spectra),
-  cbind(fitting = "d = 8", wavenumber = d8$wavenumber, d8$spectra)
-)
+compare_subtraction <- c_spec(list(none, d2, d8))
 
-ggplot(compare_subtraction, aes(wavenumber, intensity)) +
-  geom_line(aes(color = fitting)) +
-  theme_minimal()
-```
-
-The smoothed sample spectrum `raman_smooth` is background-corrected as follows:
-
-```{r}
-raman_bgc <- raman_smooth |>  
-  subtr_baseline()
-
-head(raman_bgc)
+plot(compare_subtraction)
 ```
 
 #### Range Selection
@@ -424,34 +396,58 @@ head(raman_bgc)
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("rangeselection.jpg")
 ```
-
-The final step of processing is restricting the spectral range. Sometimes the
-instrument operates with high noise at the ends of the spectrum and sometimes
-the baseline fit can produce distortions at the ends of the spectrum, both can
-be removed using this routine. You should look into the signal to noise ratio of
-your specific instrument by wavelength to determine what wavelength ranges to
+Sometimes an instrument operates with high noise at the ends of the spectrum and, a baseline fit produces distortions, or there are regions of interest for analysis. Range selection accomplishes those goals. You should look into the signal to noise ratio of your specific instrument by wavelength to determine what wavelength ranges to
 use. Distortions due to baseline fit can be assessed from looking at the
-preprocess spectra plot. Additionally, you can restrict the range to examine a
-single peak or a subset of peaks of interests. This function allows users to
-isolate peaks of interest for matching, while removing noise and influence from
-less relevant spectral data.
+preprocess spectra. Additionally, you can restrict the range to examine a
+single peak or a subset of peaks of interests. The maximum and minimum wavenumbers will specify the range to keep in the app. In the R function, multiple ranges can be specified simultaneously. 
+
+```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, echo=FALSE}
+data("raman_hdpe")
+
+none <- adj_intens(raman_hdpe)
+r1 <- restrict_range(raman_hdpe, min = 1000, max = 2000)
+r2 <- restrict_range(raman_hdpe, min = c(1000, 1800), max = c(1200, 2000))
+
+compare_ranges <- c_spec(list(none, r1, r2), range = "common") #Common argument crops the ranges to the most common range between the spectra when joining. 
+
+plot(compare_ranges)
+```
 
 #### Flattening Ranges
 
-Sometimes there a peaks that really shouldn't be in your spectra and can distort
-your interpretation of the spectra. One way to deal with this is to replace the
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("flattten_example.jpg")
+```
+Sometimes there are peaks that really shouldn't be in your spectra and can distort
+your interpretation of the spectra but you don't necessarily want to remove the regions from the analysis because you believe those regions should be flat instead of having a peak. One way to deal with this is to replace the
 peak values with the mean of the values around the peak. This is the purpose of
-the flatten_range function. By default it is set to flatten the CO2 region for
+the `flatten_range` function. By default it is set to flatten the CO2 region for
 FTIR spectra because that region often needs to be flattened when atmouspheric
-artefacts occur in spectra.
+artefacts occur in spectra. Like `restrict_range`, the R function can accept multiple ranges.
 
-```{r}
-flattened <- flatten_range(asp_example)
+```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, echo=FALSE}
+single <- filter_spec(spectral_map, 120) #Function to filter spectra by index number or name or a logical vector. 
+none <- adj_intens(single)
+f1 <- flatten_range(single)
+f2 <- flatten_range(single, min = c(1000, 2500), max = c(1200, 3000))
+
+compare_flats <- c_spec(list(none, f1, f2))
+
+plot(compare_flats)
 ```
 
 #### Min-Max Normalization
 
-Add in here from the previous edition. 
+Min-Max normalization is used throughout the app but is not one of the options the user can specify. Often we regard spectral intensities as arbitrary and min-max normalization allows us to view spectra on the same scale without drastically distorting their shapes or relative peak intensities. In the app, it is primarily used for plotting and as a processing step before correlation analysis. In the package, most of the processing functions will min-max transform your spectra relative by default if you do not specify otherwise. This plot shows the two spectra on such different scales that one looks like a straight line. 
+
+```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, echo=FALSE}
+none <- adj_intens(raman_hdpe, make_rel = F)
+relative <- adj_intens(raman_hdpe, make_rel = T)
+
+compare_rel <- c_spec(list(none, relative))
+
+plot(compare_rel)
+```
 
 ## Identifying Spectra 
 
