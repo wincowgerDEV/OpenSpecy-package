@@ -171,13 +171,14 @@ def_features.OpenSpecy <- function(x, features, ...) {
         # Area
         area <- sum(cleaned_components == as.integer(id))
         
-        feret_min = 2*area/feret_max #Can probably calculate this better. 
+        feret_min = area/feret_max #Can probably calculate this better. 
         
         data.table(feature_id = id, 
                    area = area, 
                    perimeter = perimeter,
-                   feret_max = feret_max,
-                   feret_min = feret_min)
+                   feret_min = feret_min,
+                   feret_max = feret_max
+                   )
     }), fill = T)
     
     # Join with the coordinates from the binary image

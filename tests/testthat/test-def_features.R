@@ -6,6 +6,8 @@ test_that("features are identified when given logical", {
   expect_length(unique(id_map$metadata$feature_id), 2)
   expect_equal(max(id_map$metadata$area, na.rm = T), 13)
   expect_equal(max(id_map$metadata$feret_max, na.rm = T), 13)
+  expect_equal(max(id_map$metadata$feret_min, na.rm = T), 1)
+  expect_equal(max(id_map$metadata$perimeter, na.rm = T), 24)
 })
 
 test_that("particles are identified when given character", {
