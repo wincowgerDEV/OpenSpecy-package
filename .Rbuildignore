@@ -12,3 +12,5 @@
 ^docs$
 ^pkgdown$
 ^codecov\.yml$
+^vignettes/spectragryph.*
+^vignettes/advanced.*
