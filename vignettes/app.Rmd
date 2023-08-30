@@ -1,11 +1,11 @@
 ---
-title: "Open Specy Package Tutorial"
+title: "Open Specy App Tutorial"
 author: >
   Win Cowger, Zacharias Steinmetz
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Open Specy Package Tutorial}
+  %\VignetteIndexEntry{Open Specy App Tutorial}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 ---
@@ -20,20 +20,23 @@ knitr::opts_chunk$set(
 
 # Document Overview 
 
-This document outlines a common workflow for using the Open Specy package and highlights some topics that users are often requesting a tutorial on. If
+This document outlines a common workflow for using the Open Specy package and
+app and highlights some topics that users are often requesting a tutorial on. If
 the document is followed sequentially from beginning to end, the user will have
 a better understanding of every procedure involved in using the Open Specy R
-package as a tool for interpreting spectra. It takes approximately 45
+package and app as a tool for interpreting spectra. It takes approximately 45
 minutes to read through and follow along with this standard operating procedure
 the first time. Afterward, knowledgeable users should be able to thoroughly
 analyze spectra at an average speed of 1 min^-1^ or faster with the new batch
 and automated procedures.
 
+# R Package and App
+
 The Open Specy R package is the backbone of the Shiny app. The choice is yours
 as to which you start with, we use both on a regular basis. The tutorial will
-talk through the R functions you can use to programatically analyze spectra. If you are looking for a tutorial about how to use the app see [this tutorial](http://wincowger.com/OpenSpecy-package/articles/app.html). 
+talk through the R functions and app features step by step together.
 
-# Installation
+## Installation
 
 After installing the R package, you just need to read in the library.
 
@@ -41,17 +44,65 @@ After installing the R package, you just need to read in the library.
 library(OpenSpecy)
 ```
 
-# Running the App
+## Running the App
 
 To get started with the Open Specy user interface, access
 [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/)
-or start the Shiny GUI directly from your own computer in R. If you are looking for a tutorial about how to use the app see [this tutorial](http://wincowger.com/OpenSpecy-package/articles/app.html). 
+or start the Shiny GUI directly from your own computer in R. 
 
 ```{r eval=FALSE}
 run_app()
 ```
 
-# Read Data
+## Reading Data
+
+If you have your own data, click **Browse** at the top left hand corner of the
+Analyze Spectra tab.
+
+```{r, fig.align="center", out.width="98%", echo=FALSE}
+knitr::include_graphics("sop/mainpage.jpg")
+```
+
+Before uploading, indicate if you would like to share the uploaded data or not
+using the slider. If selected, any data uploaded to the tool will automatically
+be shared under [CC-BY 4.0
+license](https://creativecommons.org/licenses/by/4.0/) and will be available for
+researchers and other ventures to use to improve spectral analysis, build
+machine learning tools, etc. Some users may choose not to share if they need to
+keep their data private. If switched off, none of the uploaded data will be
+stored or shared in Open Specy.
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("sop/uploadfile.jpg")
+```
+
+Open Specy allows for upload of native Open Specy .y(a)ml, .json, or .rds files.
+In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip files can be imported.
+.zip  files can either contain multiple files with individual spectra in them of
+the non-zip formats or it can contain a .hdr and .dat file that form an ENVI
+file for a spectral map. Open Specy and .csv files should always load correctly
+but the other file types are still in development, though most of the time these
+files work perfectly. If uploading a .csv file, label the column with the
+wavenumbers `wavenumber` and name the column with the intensities `intensity`.
+Wavenumber units must be cm^-1^. Any other columns are not used by the software.
+Always keep a copy of the original file before alteration to preserve metadata
+and raw data for your records.
+
+```{r sample_data, echo=FALSE, out.width="50%"}
+knitr::kable(head(raman_hdpe), caption = "Sample data `raman_hdpe`")
+```
+
+It is best practice to cross check files in the proprietary software they came
+from and Open Specy before use in Open Specy. Due to the complexity of some
+proprietary file types, we haven't been able to make them fully compatible yet.
+If your file is not working, please contact the administrator and share the file
+so that we can work on integrating it.
+
+The specific steps to converting your instrument's native files to .csv can be
+found in its software manual or you can check out
+[Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
+spectral file conversions (see Mini Tutorial section: File conversion in
+Spectragryph to Open Specy accepted format).
 
 The following line of code will read in your data when using the package and
 interprets which reading function to use based on the file extension.
@@ -69,30 +120,17 @@ read_asp(".asp")
 read_opus(".0")
 ```
 
-Open Specy allows for upload of native Open Specy .y(a)ml, .json, or .rds files.
-In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip files can be imported.
-.zip  files can either contain multiple files with individual spectra in them of
-the non-zip formats or it can contain a .hdr and .dat file that form an ENVI
-file for a spectral map. Open Specy and .csv files should always load correctly
-but the other file types are still in development, though most of the time these
-files work perfectly. If uploading a .csv file, label the column with the
-wavenumbers `wavenumber` and name the column with the intensities `intensity`.
-Wavenumber units must be cm^-1^. Any other columns are not used by the software.
-Always keep a copy of the original file before alteration to preserve metadata
-and raw data for your records.
-
-It is best practice to cross check files in the proprietary software they came
-from and Open Specy before use in Open Specy. Due to the complexity of some
-proprietary file types, we haven't been able to make them fully compatible yet.
-If your file is not working, please contact the administrator and share the file
-so that we can work on integrating it.
-
-The specific steps to converting your instrument's native files to .csv can be
-found in its software manual or you can check out
-[Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
-spectral file conversions. For instructions, see [Spectragryph Tutorial](http://wincowger.com/OpenSpecy-package/articles/spectragryph.html).
-
 If you don't have your own data, you can use a test dataset.
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("sop/samplefile.jpg")
+```
+
+A .csv file of an HDPE Raman spectrum will download on your computer. This file
+can also be used as a template for formatting .csv data into an Open Specy
+accepted format.
+
+The following line of code does the same to load the example file into R:
 
 ```{r}
 data("raman_hdpe")
@@ -124,35 +162,12 @@ batch_example <- read_extdata("testdata_zipped.zip") |>
 You will notice now that the R package reads in files into an object with class
 `OpenSpecy`. This is a class we created for high throughput spectral analysis
 which now also preserves spectral metadata. You can even create these from
-scratch if you'd like.
+scratch if you'd like:
 
 ```{r}
 scratch_OpenSpecy <- as_OpenSpecy(x = seq(1000,2000, by = 5), 
                                   spectra =  data.frame(runif(n = 201)), 
                                   metadata = list(file_name = "fake_noise")) 
-```
-
-Open Specy objects are lists with three components, `wavenumber` is a vector of the wavenumber values for the spectra and corresponds to the rows in `spectra` which is a `data.table` where each column is a set of spectral intensities. `metadata` is a data.table which holds additional information about the spectra. Each row corresponds to a column in `spectra`.
-
-```{r}
-#access the wavenumbers
-scratch_OpenSpecy$wavenumber
-```
-
-```{r}
-#access the spectra
-scratch_OpenSpecy$spectra
-```
-
-```{r}
-#access the metadata
-scratch_OpenSpecy$metadata
-```
-
-```{r}
-check_OpenSpecy(scratch_OpenSpecy) #Performs many checks to ensure that OpenSpecy files are adhering to our standards. Returns TRUE if it passes. 
-
-is_OpenSpecy(scratch_OpenSpecy) #Checks only the object type to make sure it has OpenSpecy type. 
 ```
 
 We have some generic functions built for inspecting the spectra:
@@ -169,37 +184,18 @@ summary(scratch_OpenSpecy) # summarizes the contents of the spectra
 head(scratch_OpenSpecy) # shows the top wavenumbers and intensities
 ```
 
+## Visualization
 
-# Save Data
+### Spectra
 
-Open Specy objects can be saved most accurately as .rds, .yml, or .json files. .rds will be the most reproducible as it is a native R file format and floating point errors can happen with .json or .yml. 
+In the app after spectral data are uploaded, it will appear in the main window.
+This plot is selectable, zoomable, and provides information on hover. You can
+also save a .png file of the plot view using the camera icon at the top right
+when you hover over the plot. 
 
-```{r, eval=F}
-write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.rds")
-write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.yml", digits = 5)
-write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.json", digits = 5)
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("sop/spectra_vis.jpg")
 ```
-
-# Format Conversions
-
-Another great spectroscopy R package is [hyperSpec](https://cran.r-project.org/web/packages/hyperSpec/index.html). We actually depend on their functions for several of ours. They are currently making some awesome new features and we want to integrate well with them so that both packages can be easily used together. That is why we created the `as_hyperSpec` function and made sure that `as_OpenSpecy` can convert from hyperSpec objects. 
-
-```{r eval=F}
-hyperspecy <- as_hyperSpec(scratch_OpenSpecy)
-
-identical(as_OpenSpecy(hyperspecy)$wavenumber, scratch_OpenSpecy$wavenumber)
-
-#There are some challenges with reproducing the names and floating point numbers but the underlying data is preserved. 
-identical(unname(unlist(signif(as_OpenSpecy(hyperspecy)$spectra, 2))), unname(unlist(signif(scratch_OpenSpecy$spectra, 2))))
-
-#Metadata is not perfectly preserved yet.
-identical(as_OpenSpecy(hyperspecy)$metadata, scratch_OpenSpecy$metadata)
-
-```
-
-# Visualization
-
-## Spectra
 
 In R, we have two ways to visualize your spectra, one is quick and efficient and
 the other is interactive. Here is an example of quick and efficient plotting.
@@ -223,10 +219,11 @@ to compare.
 plotly_spec(scratch_OpenSpecy, rds_example) # interactive comparison
 ```
 
-## Maps
+### Maps
 
 Spectral maps can also be visualized as overlaid spectra but in addition the
-spatial information can be plotted as a heatmap. It is important to
+spatial information can be plotted as a heatmap. A similar plot should appear in
+the app if you upload multiple spectra or a spectral map. It is important to
 note that when multiple spectra are uploaded in batch they are prescribed `x`
 and `y` coordinates, this can be helpful for visualizing summary statistics and
 navigating vast amounts of data but shouldn't be confused with data which
@@ -259,7 +256,7 @@ that spectrum.
 interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 ```
 
-# Processing
+## Processing
 
 After uploading data, you can preprocess the data using intensity adjustment,
 baseline subtraction, smoothing, flattening, and range selection and save your
@@ -298,7 +295,7 @@ we recognize that nesting of functions and order of operations can be useful for
 users to control so you can also use individual functions for each operation if
 you'd like.
 
-## Threshold Signal-Noise
+#### Threshold Signal-Noise
 
 Considering whether you have enough signal to analyze spectra is important.
 Classical spectroscopy would recommend your highest peak to be at least 10 times
@@ -326,7 +323,7 @@ signal threshold.
 knitr::include_graphics("sop/signal_settings.jpg")
 ```
 
-## Intensity Adjustment
+#### Intensity Adjustment
 
 ```{r, fig.align='center', echo=FALSE}
 knitr::include_graphics("sop/intensityadjustment.jpg")
@@ -350,7 +347,7 @@ raman_adj <- raman_hdpe |>
 plot(raman_adj)
 ```
 
-## Conforming
+#### Conforming
 
 Conforming spectra is essential before comparing to a reference library and can
 be useful for summarizing data when you don't need it to be highly resolved
@@ -376,7 +373,7 @@ conform_spec(spectral_map, range = ps_example$wavenumber, res = 10,
   summary()
 ```
 
-## Smoothing
+#### Smoothing
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("sop/smoothingpoly.jpg")
@@ -427,7 +424,7 @@ compare_derivative <- c_spec(list(none, d1, d2))
 plot(compare_derivative)
 ```
 
-## Baseline Correction
+#### Baseline Correction
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("sop/baselinecorrectionpoly.jpg")
@@ -461,7 +458,7 @@ compare_subtraction <- c_spec(list(none, d2, d8))
 plot(compare_subtraction)
 ```
 
-## Range Selection
+#### Range Selection
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("sop/rangeselection.jpg")
@@ -491,7 +488,7 @@ compare_ranges <- c_spec(list(none, r1, r2), range = "common")
 plot(compare_ranges)
 ```
 
-## Flattening Ranges
+#### Flattening Ranges
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("sop/flattten_example.jpg")
@@ -519,7 +516,7 @@ compare_flats <- c_spec(list(none, f1, f2))
 plot(compare_flats)
 ```
 
-## Min-Max Normalization
+#### Min-Max Normalization
 
 Min-Max normalization is used throughout the app but is not one of the options
 the user can specify. Often we regard spectral intensities as arbitrary and
@@ -540,7 +537,7 @@ compare_rel <- c_spec(list(none, relative))
 plot(compare_rel)
 ```
 
-# Identifying Spectra 
+## Identifying Spectra 
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("sop/identification.jpg")
@@ -551,7 +548,7 @@ spectrum. To identify the spectrum go to the **Identification** box. Pro tip: if
 you select *Identification** without uploading data to the app, you'll be able
 to explore the library by itself.
 
-## Reading Libraries
+### Reading Libraries
 
 These options define the strategy for identification. The ID Library will inform
 which library is used. Both (default) will search both FTIR and Raman libraries.
@@ -571,7 +568,7 @@ get_lib() #will load all libraries unless specified otherwise.
 lib <- load_lib(type = "derivative")
 ```
 
-## Matches
+### Matches
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("sop/matches.jpg")
@@ -597,7 +594,7 @@ test <- match_spec(processed, test_lib, add_object_metadata = "col_id",
                    add_library_metadata = "sample_name")
 ```
 
-## Selection Metadata
+### Selection Metadata
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
 knitr::include_graphics("sop/selectionmetadata.jpg")
@@ -616,7 +613,7 @@ example is:
 find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 ```
 
-## Match Plot
+### Match Plot
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("sop/matchplot.png")
@@ -629,17 +626,48 @@ new dataset is uploaded, the plot and data table in this tab will be updated.
 These plots can be saved as a .png by clicking the camera button at the top of
 the plot.
 
-## Sharing Reference Data
+### Sharing Reference Data
 
 If you have reference data or AI models that you think would be useful for
 sharing with the spectroscopy community through OpenSpecy please contact the
 website administrator to discuss options for collaborating.
 
-# Characterizing Particles
+## Characterizing Particles
 
-## Thresholding
+### Thresholding
 
-## Collapse Spectra
+### Collapse Spectra
+
+## Additional App Features
+
+Accessibility is extremely important to us and we are making strives to improve
+the accessibility of Open Specy for all spectroscopists. Please reach out if you
+have ideas for improvement.
+
+We added a Google translate plugin to all pages in the app so that you can
+easily translate the app. We know that not all languages will be fully supported
+but we will continue to try and improve the translations.
+
+### Download Data
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("sop/download.jpg")
+```
+
+After you have the preprocessing parameters set, we recommend that you download
+the preprocessed data for your records. The download data button will append the
+uploaded data to three columns created by the preprocessing parameters.
+"Wavelength" and "Absorbance" are columns from the data uploaded by the user.
+"NormalizedIntensity" is the max-min normalized value (Equation 1) of the
+"Absorbance". "Smoothed" is the Savitzky-Golay filter specified by the slider
+explained above. "BaselineRemoved" is the smoothed and baseline corrected value
+that is visible on the center plot.
+
+## Conceptual diagram of Open Specy
+
+```{r, fig.align="center", echo=FALSE}
+knitr::include_graphics("sop/flowchart.png")
+```
 
 # References
 

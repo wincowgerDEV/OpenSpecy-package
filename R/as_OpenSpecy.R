@@ -318,7 +318,6 @@ check_OpenSpecy <- function(x) {
     stop("object 'x' is not of class 'OpenSpecy'", call. = F)
   if(!identical(names(x), c("wavenumber", "spectra", "metadata")))
     stop("names of the object components are incorrect", call. = F)
-
   if(!(cw <- is.vector(x$wavenumber)))
     warning("Wavenumber is not a vector", call. = F)
   if(!(cs <- is.data.table(x$spectra)))
