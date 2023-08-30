@@ -608,6 +608,17 @@ Before attempting to use a reference library to identify spectra it is really im
 data("test_lib")
 data("raman_hdpe")
 
+test <- conform_spec(x = raman_hdpe, 
+             range = test_lib$wavenumber, 
+             res = NULL,
+             type = "interp") #|>
+test_smoothed <- smooth_intens(test)
+
+plot(test)
+
+smooth_intens(raman_hdpe) |>
+    plot()
+
 processed <- process_spec(x = raman_hdpe, 
                           conform_spec_args = list(range = test_lib$wavenumber, 
                                                    res = NULL,
