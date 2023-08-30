@@ -251,7 +251,8 @@ interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 
 # Processing
 
-After loading data, you can preprocess the data using intensity adjustment,
+The goal of this all processing is to increase the signal to noise ratio (S/N) of the spectra without
+distorting the shape, position, or relative size of the peaks. After loading data, you can preprocess the data using intensity adjustment,
 baseline subtraction, smoothing, flattening, and range selection. The default settings is an absolute derivative transformation, it is kind of
 magic, it does something similar to smoothing, baseline subtraction, and
 intensity correction simultaneously and really quickly.
@@ -340,6 +341,7 @@ This is the respective R code for a scenario where the spectra doesn't need
 intensity adjustment:
 
 ```{r, fig.align="center", fig.width=6}
+data("raman_hdpe")
 trans_raman_hdpe <- raman_hdpe
 trans_raman_hdpe$spectra <- 2 - trans_raman_hdpe$spectra^2
     
@@ -353,12 +355,9 @@ plotly_spec(trans_raman_hdpe, rev_trans_raman_hdpe)
 
 Conforming spectra is essential before comparing to a reference library and can
 be useful for summarizing data when you don't need it to be highly resolved
-spectrally. In the app, conforming happens behind the scenes without any user
-input to make sure that the spectra the user uploads and the library spectra
-will be compatible. In code, we set the default spectral resolution to 5 because
+spectrally. We set the default spectral resolution to 5 because
 this tends to be pretty good for a lot of applications and is in between 4 and 8
-which are commonly used wavenumber resolutions. There are several ways that this
-is function can be specified.
+which are commonly used wavenumber resolutions. There are several ways that this function can be specified.
 
 ```{r}
 conform_spec(raman_hdpe) |> # default convert res to 5 wavenumbers.
@@ -377,16 +376,8 @@ conform_spec(spectral_map, range = ps_example$wavenumber, res = 10,
 
 ## Smoothing
 
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/smoothingpoly.jpg")
-```
-
-The first step of the Open Specy preprocessing routing is spectral smoothing.
-The goal of this function is to increase the signal to noise ratio (S/N) without
-distorting the shape or relative size of the peaks. The value on the slider is
-the polynomial order of the [Savitzky-Golay (SG)
-filter](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter). Higher
-numbers lead to more wiggly fits and thus less smooth, lower numbers lead to
+The [Savitzky-Golay filter](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter) is used for smoothing. Higher polynomial
+numbers lead to more wiggly fits and thus less smoothing, lower numbers lead to
 more smooth fits. The SG filter is fit to a moving window of 11 data points by
 default where the center point in the window is replaced with the polynomial
 estimate. Larger windows will produce smoother fits. The derivative order is set
@@ -396,15 +387,14 @@ well, peak shapes and relative heights should not change. The absolute value is
 primarily useful for first derivative spectra where the absolute value results
 in an absorbance-like spectrum which is why we set it as the default.
 
-Examples of smoothing with the R package:
+Examples of smoothing:
 
 ```{r smooth_intens, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials from Cowger et al. (2020).", fig.width=6, fig.align="center"}
-library(ggplot2)
 data("raman_hdpe")
 
 none <- adj_intens(raman_hdpe, make_rel = T)
-p1 <- smooth_intens(raman_hdpe, polynomial = 1)
-p4 <- smooth_intens(raman_hdpe, polynomial = 4)
+p1 <- smooth_intens(raman_hdpe, polynomial = 1, derivative = 0)
+p4 <- smooth_intens(raman_hdpe, polynomial = 4, derivative = 0)
 
 compare_derivative <- c_spec(list(none, p1, p4))
     
