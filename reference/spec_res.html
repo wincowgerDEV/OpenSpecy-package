@@ -12,7 +12,7 @@ wavenumber data."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.9.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -26,7 +26,9 @@ wavenumber data."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/sop.html">Standard Operating Procedure</a>
+    <a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a>
+    <a class="dropdown-item" href="../articles/sop.html">Open Specy Tutorial</a>
+    <a class="dropdown-item" href="../articles/spectragryph.html">File conversion in SpectraGryph</a>
   </div>
 </li>
 <li class="nav-item">
@@ -60,14 +62,24 @@ wavenumber data."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">spec_res</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">spec_res</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for default</span></span>
+<span><span class="fu">spec_res</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for OpenSpecy</span></span>
+<span><span class="fu">spec_res</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>x</dt>
-<dd><p>a numeric vector or an <span style="R">R</span> object which is coercible to one by
-<code>as.vector(x, "numeric")</code>; <code>x</code> should be <code>wavenumber</code> data.</p></dd>
+<dd><p>a numeric vector with <code>wavenumber</code> data or an <code>OpenSpecy</code>
+object.</p></dd>
+
+
+<dt>...</dt>
+<dd><p>further arguments passed to subfunctions; currently not used.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -90,8 +102,9 @@ distinguished.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"raman_hdpe"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">spec_res</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">wavenumber</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 3.00527</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu">spec_res</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 2.54</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
@@ -100,7 +113,7 @@ distinguished.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz.</p>
+  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova.</p>
 </div>
 
 <div class="pkgdown-footer-right">
