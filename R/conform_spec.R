@@ -60,7 +60,7 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, type = "interp",
 
     wn <- conform_res(range, res = res)
   } else {
-    wn <- range
+    wn <- range[range >= min(x$wavenumber) & range <= max(x$wavenumber)]
   }
 
   if(type == "interp")

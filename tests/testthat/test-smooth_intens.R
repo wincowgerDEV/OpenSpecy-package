@@ -12,3 +12,4 @@ test_that("smooth_intens() works as expected", {
   expect_equal(smt$wavenumber, raman_hdpe$wavenumber)
   expect_equal(range(smt$spectra), c(0, 1))
 })
+

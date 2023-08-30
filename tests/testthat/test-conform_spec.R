@@ -30,10 +30,13 @@ test_that("conform_spec() conforms wavenumbers correctly", {
   sam <- as_OpenSpecy(wn <- seq(1000, 2000, 5),
                       data.table(intensity = rnorm(length(wn))))
   new_wavenumbers <- c(1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900)
+  wider_wavenumbers <- seq(800, 2500, by = 100)
   conf_new <- conform_spec(sam, new_wavenumbers) |>
     expect_silent()
   conf_roll <- conform_spec(sam, new_wavenumbers,res = NULL, type = "roll") |>
     expect_silent()
+  conf_wider <- conform_spec(sam, wider_wavenumbers, res = NULL) |>
+      expect_silent()
 
   expect_equal(length(conf_new$wavenumber), length(conf_new$spectra[[1]]))
   expect_equal(range(conf_new$wavenumber), range(new_wavenumbers))
@@ -46,4 +49,8 @@ test_that("conform_spec() conforms wavenumbers correctly", {
   conform_spec(raman_hdpe)$spectra$intensity[c(63, 143, 283, 325, 402)] |>
     round(2) |>
     expect_equal(c(78.84, 65.00, 105.73, 109.41, 116.00))
+  
+  expect_true(all(conf_wider$wavenumber <= max(sam$wavenumber)) & all(conf_wider$wavenumber >= min(sam$wavenumber)))
+  
+  
 })
