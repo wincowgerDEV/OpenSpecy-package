@@ -98,16 +98,12 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
                                      ),
                                    subtr_baseline = FALSE,
                                    subtr_baseline_args = list(
-                                     type = "polynomial",
-                                     degree = 8,
-                                     raw = FALSE,
-                                     baseline = NULL),
+                                     type = "polynomial", degree = 8,
+                                     raw = FALSE, baseline = NULL),
                                    smooth_intens = TRUE,
                                    smooth_intens_args = list(
-                                     polynomial = 3,
-                                     window = 11,
-                                     derivative = 1,
-                                     abs = TRUE),
+                                     polynomial = 3, window = 11,
+                                     derivative = 1, abs = TRUE),
                                    make_rel = TRUE,
                                    ...) {
   if(active) {

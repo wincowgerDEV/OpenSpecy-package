@@ -18,10 +18,12 @@ conform_spec(x, ...)
 \item{range}{a vector of new wavenumber values, can be just supplied as a
 min and max value.}
 
-\item{res}{spectral resolution adjusted to or NULL if the raw range should be used.}
+\item{res}{spectral resolution adjusted to or \code{NULL} if the raw range
+should be used.}
 
-\item{type}{the type of wavenumber adjustment to make. interp results in linear
-interpolation while roll conducts a nearest rolling join of the wavenumbers.}
+\item{type}{the type of wavenumber adjustment to make. \code{"interp"}
+results in linear interpolation while \code{"roll"} conducts a nearest
+rolling join of the wavenumbers.}
 
 \item{\ldots}{further arguments passed to \code{\link[stats]{approx}()}}
 }

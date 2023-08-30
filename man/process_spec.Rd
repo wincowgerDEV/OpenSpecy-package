@@ -16,7 +16,7 @@ process_spec(x, ...)
   adj_intens = FALSE,
   adj_intens_args = list(type = "none"),
   conform_spec = TRUE,
-  conform_spec_args = list(range = NULL, res = 5),
+  conform_spec_args = list(range = NULL, res = 5, type = "interp"),
   restrict_range = FALSE,
   restrict_range_args = list(min = 0, max = 6000),
   flatten_range = FALSE,

@@ -111,12 +111,12 @@ def_features.OpenSpecy <- function(x, features, ...) {
   }
 
   obj <- x
-  x <- y <- centroid_x <- centroid_y <- feature_id <- NULL # work around for
-  # data.table non-standard evaluation
+  x <- y <- feature_id <- NULL # workaround for data.table non-standard
+                               # evaluation
   md <- features_df[setDT(obj$metadata), on = c("x", "y")]
   md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
-  md[, centroid_x := mean(x), by = "feature_id"]
-  md[, centroid_y := mean(y), by = "feature_id"]
+  md[, "centroid_x" := mean(x), by = "feature_id"]
+  md[, "centroid_y" := mean(y), by = "feature_id"]
 
   obj$metadata <- md
 
