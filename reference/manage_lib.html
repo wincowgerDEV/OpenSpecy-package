@@ -18,7 +18,7 @@ functionality running on their desktop."><!-- mathjax --><script src="https://cd
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.9.5</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,7 +32,7 @@ functionality running on their desktop."><!-- mathjax --><script src="https://cd
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/sop.html">Open Specy Tutorial</a>
+    <a class="dropdown-item" href="../articles/sop.html">Standard Operating Procedure</a>
   </div>
 </li>
 <li class="nav-item">
@@ -70,33 +70,38 @@ functionality running on their desktop.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">check_lib</span><span class="op">(</span></span>
-<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"derivative"</span>, <span class="st">"nobaseline"</span>, <span class="st">"raw"</span>, <span class="st">"mediod"</span>, <span class="st">"model"</span><span class="op">)</span>,</span>
+<span>  which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span>,</span>
+<span>  types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"metadata"</span>, <span class="st">"library"</span>, <span class="st">"peaks"</span><span class="op">)</span>,</span>
 <span>  path <span class="op">=</span> <span class="st">"system"</span>,</span>
 <span>  condition <span class="op">=</span> <span class="st">"warning"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">get_lib</span><span class="op">(</span></span>
-<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"derivative"</span>, <span class="st">"nobaseline"</span>, <span class="st">"raw"</span>, <span class="st">"mediod"</span>, <span class="st">"model"</span><span class="op">)</span>,</span>
+<span>  which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span>,</span>
+<span>  types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"metadata"</span>, <span class="st">"library"</span>, <span class="st">"peaks"</span><span class="op">)</span>,</span>
 <span>  path <span class="op">=</span> <span class="st">"system"</span>,</span>
 <span>  node <span class="op">=</span> <span class="st">"x7dpz"</span>,</span>
 <span>  conflicts <span class="op">=</span> <span class="st">"overwrite"</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">load_lib</span><span class="op">(</span><span class="va">type</span>, path <span class="op">=</span> <span class="st">"system"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">rm_lib</span><span class="op">(</span></span>
-<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"derivative"</span>, <span class="st">"nobaseline"</span>, <span class="st">"raw"</span>, <span class="st">"mediod"</span>, <span class="st">"model"</span><span class="op">)</span>,</span>
+<span><span class="fu">load_lib</span><span class="op">(</span></span>
+<span>  which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span>,</span>
+<span>  types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"metadata"</span>, <span class="st">"library"</span>, <span class="st">"peaks"</span><span class="op">)</span>,</span>
 <span>  path <span class="op">=</span> <span class="st">"system"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
-    <dl><dt>type</dt>
-<dd><p>library type to check/retrieve; defaults to
-<code>c("derivative", "nobaseline", "raw", "mediod", "model")</code> which reads
-everything.</p></dd>
+    <dl><dt>which</dt>
+<dd><p>a character string specifying which library to use,
+<code>"raman"</code> or <code>"ftir"</code>.</p></dd>
+
+
+<dt>types</dt>
+<dd><p>library types to check/retrieve; defaults to
+<code>c("metadata", "library", "peaks")</code>.</p></dd>
 
 
 <dt>path</dt>
@@ -111,8 +116,7 @@ everything.</p></dd>
 
 
 <dt>node</dt>
-<dd><p>the OSF node to be retrieved; should be <code>"x7dpz"</code> unless you
-maintain your own OSF node with spectral libraries.</p></dd>
+<dd><p>the OSF node to be retrieved; should be <code>"x7dpz"</code>.</p></dd>
 
 
 <dt>conflicts</dt>
@@ -120,9 +124,9 @@ maintain your own OSF node with spectral libraries.</p></dd>
 exists at the specified destination. Can be one of the following (see
 <code><a href="https://docs.ropensci.org/osfr/reference/osf_download.html" class="external-link">osf_download</a>()</code> for details):</p><ul><li><p>"error" throw an error and abort the file transfer operation.</p></li>
 <li><p>"skip" skip the conflicting file(s) and continue transferring the
-remaining files.</p></li>
+  remaining files.</p></li>
 <li><p>"overwrite" (default) replace the existing file with the
-transferred copy.</p></li>
+  transferred copy.</p></li>
 </ul></dd>
 
 
@@ -135,8 +139,8 @@ transferred copy.</p></li>
     
 
 <p><code>check_lib()</code> and <code>get_lib()</code> return messages only;
-<code>load_lib()</code> returns an <code>OpenSpecy</code> object containing the
-respective spectral reference library.</p>
+<code>load_lib()</code> returns a list object containing the respective spectral
+reference library.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -146,8 +150,7 @@ already exists on the users computer.
 (<a href="https://doi.org/10.17605/OSF.IO/X7DPZ" class="external-link">doi:10.17605/OSF.IO/X7DPZ</a>
 ).
 <code>load_lib()</code> will load the library into the global environment for use
-with the Open Specy functions.
-<code>rm_lib()</code> removes the libraries from your computer.</p>
+with the Open Specy functions.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -161,17 +164,21 @@ Spectra in Microplastic Research.” <em>Applied Spectroscopy</em>,
 .</p>
     </div>
     <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="match_spec.html">match_spec</a>()</code></p></div>
+    </div>
+    <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
-    <p>Zacharias Steinmetz, Win Cowger</p>
+    <p>Zacharias Steinmetz</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span><span class="fu">check_lib</span><span class="op">(</span><span class="st">"derivative"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">get_lib</span><span class="op">(</span><span class="st">"derivative"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">check_lib</span><span class="op">(</span>which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">get_lib</span><span class="op">(</span>which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">spec_lib</span> <span class="op">&lt;-</span> <span class="fu">load_lib</span><span class="op">(</span><span class="st">"derivative"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">spec_lib</span> <span class="op">&lt;-</span> <span class="fu">load_lib</span><span class="op">(</span>which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ftir"</span>, <span class="st">"raman"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
@@ -181,7 +188,7 @@ Spectra in Microplastic Research.” <em>Applied Spectroscopy</em>,
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova.</p>
+  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz.</p>
 </div>
 
 <div class="pkgdown-footer-right">
