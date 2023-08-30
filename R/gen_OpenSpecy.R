@@ -93,7 +93,7 @@ summary.OpenSpecy <- function(object, ...) {
 
   cat("\n$spectra\n")
   sl <- length(object$spectra)
-  sr <- range(object$spectra)
+  sr <- range(object$spectra, na.rm = T)
   array(c(sl, sr), c(1,3), list("", c("Number", "Min. Intensity",
                                       "Max. Intensity"))) |>
     print()
