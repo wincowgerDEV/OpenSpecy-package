@@ -9,7 +9,7 @@
 #' absorbance units. For example, see \code{\link{subtr_baseline}()}.
 #' To run those functions properly, you will need to first convert any spectra
 #' from transmittance or reflectance to absorbance using this function.
-#' The transmittance adjustment uses the \eqn{log10(1 / T)}
+#' The transmittance adjustment uses the \eqn{log(1 / T)}
 #' calculation which does not correct for system and particle characteristics.
 #' The reflectance adjustment uses the Kubelka-Munk equation
 #' \eqn{(1 - R)^2 / 2R}. We assume that the reflectance intensity
@@ -62,7 +62,7 @@ adj_intens.OpenSpecy <- function(x, type = "none", make_rel = TRUE, ...) {
 
   adj <- switch(type,
                 "reflectance" = (1 - spec/100)^2 / (2 * spec/100),
-                "transmittance" = log10(1/adj_neg(spec, ...)),
+                "transmittance" = log(1/adj_neg(spec, ...)),
                 "none" = adj_neg(spec, ...)
   )
 

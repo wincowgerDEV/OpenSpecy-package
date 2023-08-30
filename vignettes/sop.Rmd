@@ -300,50 +300,53 @@ Classical spectroscopy would recommend your highest peak to be at least 10 times
 the baseline of your processed spectra before you begin analysis. If your
 spectra is below that threshold, you may want to consider recollecting it. In
 practice, we are rarely able to collect spectra of that good quality and more
-often use 5. The Signal Over Noise technique searches your spectra for high and
+often use 5. The Run Signal Over Noise technique searches your spectra for high and
 low regions and conducts division on them to derive the signal to noise ratio.
+This is a good way to automatically calculate the signal to noise ratio. In the 
+example below you can see that our signal to noise ratio is increased by the processing, the goal of processing is generally to maximize this. 
 Signal Times Noise multiplies the mean signal by the standard deviation of the
 signal and Total Signal sums the intensities. The latter can be really useful
 for thresholding spectral maps to identify particles which we will discuss
 later.
 
 ```{r}
-sig_noise(raman_hdpe)
-sig_noise(processed)
+sig_noise(processed, metric = "run_sig_over_noise") > sig_noise(raman_hdpe, metric = "run_sig_over_noise")
+
 ```
 
 If analyzing spectra in batch, we recommend looking at the heatmap and
 optimizing the percent of spectra that are above your signal to noise threshold
 to determine the correct settings instead of looking through spectra
-individually. Good Signal tells you what percent of your data are above your
-signal threshold.
+individually. Setting the `min_sn` will threshold the heatmap image to only color spectra which have a `sn` value over the threshold. 
 
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/signal_settings.jpg")
+```{r}
+spectral_map_p <- spectral_map |>
+    process_spec(flatten_range = T)
+
+spectral_map_p$metadata$sig_noise <- sig_noise(spectral_map_p)
+
+heatmap_spec(spectral_map_p, sn = spectral_map_p$metadata$sig_noise, min_sn = 5)
+
 ```
 
 ## Intensity Adjustment
 
-```{r, fig.align='center', echo=FALSE}
-knitr::include_graphics("sop/intensityadjustment.jpg")
-```
-
 Open Specy assumes that intensity units are in absorbance units but Open Specy
-can adjust reflectance or transmittance spectra to absorbance units using this
-selection. The transmittance adjustment uses the $\log_{10} 1/T$ calculation
+can adjust reflectance or transmittance spectra to absorbance units. The transmittance adjustment uses the $\log_{10} 1/T$ calculation
 which does not correct for system or particle characteristics. The reflectance
-adjustment use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. If none is
-selected, Open Specy assumes that the uploaded data is an absorbance spectrum
-and does not apply an adjustment.
+adjustment use the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$. 
 
 This is the respective R code for a scenario where the spectra doesn't need
 intensity adjustment:
 
 ```{r, fig.align="center", fig.width=6}
-raman_adj <- raman_hdpe |> 
-  adj_intens(type = "none")
+trans_raman_hdpe <- raman_hdpe
+trans_raman_hdpe$spectra <- 2 - trans_raman_hdpe$spectra^2
+    
+rev_trans_raman_hdpe <- trans_raman_hdpe |> 
+                            adj_intens(type = "transmittance")
 
-plot(raman_adj)
+plotly_spec(trans_raman_hdpe, rev_trans_raman_hdpe)
 ```
 
 ## Conforming
