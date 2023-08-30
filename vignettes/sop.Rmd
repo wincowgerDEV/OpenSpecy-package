@@ -169,7 +169,6 @@ summary(scratch_OpenSpecy) # summarizes the contents of the spectra
 head(scratch_OpenSpecy) # shows the top wavenumbers and intensities
 ```
 
-
 # Save Data
 
 Open Specy objects can be saved most accurately as .rds, .yml, or .json files. .rds will be the most reproducible as it is a native R file format and floating point errors can happen with .json or .yml. 
@@ -230,19 +229,10 @@ spatial information can be plotted as a heatmap. It is important to
 note that when multiple spectra are uploaded in batch they are prescribed `x`
 and `y` coordinates, this can be helpful for visualizing summary statistics and
 navigating vast amounts of data but shouldn't be confused with data which
-actually has spatial coordinates. Hovering over the map will reveal information
-about the signal and noise and correlation values. Clicking the map will provide
-the selected spectrum underneath. In the app, the colors of the heatmap are
-either the signal and noise or the spectral identifications depending on whether
-the identification is turned on or not. Pixels are black if the spectra does not
-pass the signal-noise threshold and/or the correlation threshold.
+actually has spatial coordinates.
 
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/map_vis.jpg")
-```
-
-The same plot can be created in R but the user can control what values form the
-colors of the heatmap by specifying `z`.
+In R the user can control what values form the
+colors of the heatmap by specifying `z`, it is handy to put the information you want in the metadata for this reason. This example just shows the x values of the spectra.
 
 ```{r, fig.align="center", out.width="98%"}
 heatmap_spec(spectral_map,
@@ -261,42 +251,47 @@ interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 
 # Processing
 
-After uploading data, you can preprocess the data using intensity adjustment,
-baseline subtraction, smoothing, flattening, and range selection and save your
-preprocessed data. Once the process button is selected the default processing
-will initiate. This is an absolute derivative transformation, it is kind of
+After loading data, you can preprocess the data using intensity adjustment,
+baseline subtraction, smoothing, flattening, and range selection. The default settings is an absolute derivative transformation, it is kind of
 magic, it does something similar to smoothing, baseline subtraction, and
-intensity correction simultaneously and really quickly. By clicking
-preprocessing you should see the spectrum update with the processed spectra.
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/processing.jpg")
-```
-
-To view the raw data again, just deselect preprocessing. Toggling preprocessing
-on and off can help you to make sure that the spectra are processed correctly.
+intensity correction simultaneously and really quickly.
 
 The `process_spec()` function is a monolithic function for all
 processing procedures which is optimized by default to result in high signal to
 noise in most cases, same as the app.
 
 ```{r}
-processed <- process_spec(raman_hdpe)
+processed <- process_spec(raman_hdpe,
+                          active = TRUE,
+                          adj_intens = FALSE,
+                          adj_intens_args = list(type = "none"),
+                          conform_spec = TRUE,
+                          conform_spec_args = list(range = NULL, res = 5, type = "interp"),
+                          restrict_range = FALSE,
+                          restrict_range_args = list(min = 0, max = 6000),
+                          flatten_range = FALSE,
+                          flatten_range_args = list(min = 2200, max = 2420),
+                          subtr_baseline = FALSE,
+                          subtr_baseline_args = list(type = "polynomial", degree = 8, raw = FALSE, baseline =
+                            NULL),
+                          smooth_intens = TRUE,
+                          smooth_intens_args = list(polynomial = 3, window = 11, derivative = 1, abs = TRUE),
+                          make_rel = TRUE)
 summary(processed)
 summary(raman_hdpe)
 ```
 
-You can compare the processed and unprocessed data in an overlay plot:
+You can compare the processed and unprocessed data in an overlay plot.
 
 ```{r eval=FALSE}
 plotly_spec(raman_hdpe, processed)
 ```
 
 We want people to use the `process_spec()` function for most processing
-operations, all processing functions can be tuned using its parameters. However,
+operations. All other processing functions can be tuned using its parameters in the single function and we have set defaults and nested the processing functions in a way that provides typically quality results. However,
 we recognize that nesting of functions and order of operations can be useful for
 users to control so you can also use individual functions for each operation if
-you'd like.
+you'd like. See explanations of each processing sub-function below. 
 
 ## Threshold Signal-Noise
 
@@ -312,8 +307,9 @@ signal and Total Signal sums the intensities. The latter can be really useful
 for thresholding spectral maps to identify particles which we will discuss
 later.
 
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/snr_threshold.jpg")
+```{r}
+sig_noise(raman_hdpe)
+sig_noise(processed)
 ```
 
 If analyzing spectra in batch, we recommend looking at the heatmap and

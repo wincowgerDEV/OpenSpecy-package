@@ -10,7 +10,7 @@ sig_noise(x, ...)
 
 \method{sig_noise}{default}(x, ...)
 
-\method{sig_noise}{OpenSpecy}(x, metric = "sig_over_noise", na.rm = TRUE, ...)
+\method{sig_noise}{OpenSpecy}(x, metric = "run_sig_over_noise", na.rm = TRUE, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
@@ -19,8 +19,11 @@ sig_noise(x, ...)
 Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
 deviation of intensity), \code{"sig_times_noise"} (absolute value of
 signal times noise), \code{"sig_over_noise"} (absolute value of signal /
-noise), or \code{"tot_sig"} (total signal = signal * number of data
-points).}
+noise), \code{"run_sig_over_noise"} (absolute value of signal /
+noise where signal is estimated as the max intensity and noise is
+estimated as the height of a low intensity region.),
+\code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
+or \code{"tot_sig"} (sum of intensities).}
 
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating signal and noise. Default is \code{TRUE}.}
