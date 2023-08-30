@@ -379,7 +379,7 @@ less likely to fit to the peaks. The iterative fitting terminates once the
 difference between the new and previous fit is small. An example of a good
 baseline fit below. For those who have been with OpenSpecy a while, you will notice the app no longer supports manual baseline correction, it was a hard choice but it just didn't make sense to keep it now that we are moving toward high throughput automated methods. It does still exist in the R function though. 
 
-```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, echo=FALSE}
+```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6}
 data("raman_hdpe")
 
 none <- adj_intens(raman_hdpe)
@@ -401,7 +401,7 @@ use. Distortions due to baseline fit can be assessed from looking at the
 preprocess spectra. Additionally, you can restrict the range to examine a
 single peak or a subset of peaks of interests. The maximum and minimum wavenumbers will specify the range to keep in the app. In the R function, multiple ranges can be specified simultaneously. 
 
-```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, echo=FALSE}
+```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6}
 data("raman_hdpe")
 
 none <- adj_intens(raman_hdpe)
@@ -425,7 +425,7 @@ the `flatten_range` function. By default it is set to flatten the CO2 region for
 FTIR spectra because that region often needs to be flattened when atmouspheric
 artefacts occur in spectra. Like `restrict_range`, the R function can accept multiple ranges.
 
-```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, echo=FALSE}
+```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6}
 single <- filter_spec(spectral_map, 120) #Function to filter spectra by index number or name or a logical vector. 
 none <- adj_intens(single)
 f1 <- flatten_range(single)
@@ -440,7 +440,7 @@ plot(compare_flats)
 
 Min-Max normalization is used throughout the app but is not one of the options the user can specify. Often we regard spectral intensities as arbitrary and min-max normalization allows us to view spectra on the same scale without drastically distorting their shapes or relative peak intensities. In the app, it is primarily used for plotting and as a processing step before correlation analysis. In the package, most of the processing functions will min-max transform your spectra relative by default if you do not specify otherwise. This plot shows the two spectra on such different scales that one looks like a straight line. 
 
-```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, echo=FALSE}
+```{r subtraction, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6}
 none <- adj_intens(raman_hdpe, make_rel = F)
 relative <- adj_intens(raman_hdpe, make_rel = T)
 
@@ -451,63 +451,42 @@ plot(compare_rel)
 
 ## Identifying Spectra 
 
-After uploading data and preprocessing it (if desired) you can now identify the
-spectrum. To identify the spectrum go to the **Match Spectrum** tab.
-
-You will see your spectrum and the top matches, but before looking at matches,
-you need to check the three selectable parameters below.
-
-### ID Library
-
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("spectrumtype.jpg")
+knitr::include_graphics("identification.jpg")
 ```
 
-The spectra type input on the "Match spectra" tab specifies the type of
-spectra (Raman or FTIR) that the user has uploaded and wants to match
-to. This input will tell the website whether to use the FTIR library or
-the Raman library to make the match.
+After uploading data and preprocessing it (if desired) you can now identify the
+spectrum. To identify the spectrum go to the **Identification** box. PRO TIP: If you select Identification without uploading data to the app, you'll be able to explore the library by itself. 
 
-### Sharing Reference Data
-If more than 50 files will be shared at once, you can contact the website administrator to
-get a bulk upload sheet for more rapid upload.
+### Reading Libraries
 
-### Match Table
+These options define the strategy for identification. The ID Library will inform which library is used. Both (default) will search both FTIR and Raman libraries. Deriv will search against a derivative transformed library. No Baseline will search against a baseline corrected library. This should be in line with how you choose to process your spectra. Cor options use a simple Pearson correlation search algorithm. AI is currently experimental and uses either a multinomial model or correlation on mediod spectra from the library. Correlation thresholding will set the minimum value from matching to use as a 'positive identification'
+
+In the R package, you'll download and load the libraries into your working environment. 
+
+```{r eval=F}
+get_lib() #will load all libraries unless specified otherwise. 
+lib <- load_lib(type = "derivative")
+```
+
+### Matches
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("matches.jpg")
 ```
-
-The selectable table shows the top material matches returned by the tool,
-their Pearson's r value, and the organization they were provided by.
-When rows are selected their spectra are added to the match plot.
-The spectrum being matched and reference library are determined by
-the previously mentioned parameters. During the matching process, one
-final cleaning step happens using a simple minimum subtraction
-algorithm (Equation 2) which in many cases will allow unprocessed
-spectra to remove subtle baseline, but will not harm the spectra which
-has no baseline. Then, these aligned data are tested for correlation
-using the Pearson's r. The Pearson's r is used as a match quality
-indicator and the spectra from the top 1000 best matches are returned
-from the library. You can restrict the libraries which are displayed
-in the table by clicking the box that says **All** under the Organization column.
-
-Similarly you can restrict the range of Pearson\'s r values or search
+Top matches in the app can be assessed by clicking the cog in the right hand corner of the Spectra box. This will open a side window with the matches sorted from most to least similar. Clicking on rows in the table will add the selected match to the spectra viewer. Using the table's filter options, you can restrict the range of Pearson\'s r values or search
 for specific material types.
 
-$$\mathrm{for~each}~peak~group^{1,n}: x - \mathrm{min}(x)$$
-<p style="text-align: center;">Equation 2: Minimum Subtraction</p>
+The same table can be returned using the OpenSpecy package commands in the R console.
 
-The same table can be returned using the Open Specy library commands in
-the R console.
+```{r}
+data("test_lib")
 
-```{r eval=FALSE}
-# Fetch current spectral library from https://osf.io/x7dpz/
-get_lib()
-# Load library into global environment
-spec_lib <- load_lib()
-# Match spectrum with library and retrieve meta data
-match_spec(raman_bgc, library = spec_lib, which = "raman")
+processed <- process_spec(ps_example, 
+                        conform_spec_args = list(range = test_lib$wavenumber, 
+                                                 res = NULL))
+
+test <- match_spec(processed, test_lib, add_object_metadata = "col_id", add_library_metadata = "sample_name")
 ```
 
 ### Selection Metadata
@@ -541,6 +520,9 @@ reference library and the white spectrum is the spectrum that you are
 trying to identify. Whenever a new dataset is uploaded, the plot and
 data table in this tab will be updated. These plots can be saved as a
 .png by clicking the camera button at the top of the plot.
+
+### Sharing Reference Data
+If you have reference data or AI models that you think would be useful for sharing with the spectroscopy community through OpenSpecy please contact the website administrator to discuss options for collaborating. 
 
 ## Characterizing Particles
 

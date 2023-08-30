@@ -86,7 +86,7 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
                                      ),
                                    conform_spec = TRUE,
                                    conform_spec_args = list(
-                                     range = NULL, res = 5
+                                     range = NULL, res = 5, type = "interp"
                                      ),
                                    restrict_range = FALSE,
                                    restrict_range_args = list(
