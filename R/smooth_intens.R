@@ -1,3 +1,4 @@
+#' @rdname smooth_intens
 #' @title Smooth spectral intensities
 #'
 #' @description
@@ -11,22 +12,20 @@
 #' A typical good smooth can be achieved with 11 data point window and a 3rd or
 #' 4th order polynomial.
 #'
-#' @param x a numeric vector containing the spectral wavenumbers; alternatively
-#' a data frame containing spectral data as \code{"wavenumber"} and
-#' \code{"intensity"} can be supplied.
-#' @param y a numeric vector containing the spectral intensities.
-#' @param formula an object of class '\code{\link[stats]{formula}}' of the form
-#' \code{intensity ~ wavenumber}.
-#' @param data a data frame containing the variables in \code{formula}.
-#' @param p polynomial order for the filter
-#' @param n number of data points in the window, filter length (must be odd).
+#' @param x an object of class \code{OpenSpecy}.
+#' @param polynomial polynomial order for the filter
+#' @param window number of data points in the window, filter length (must be
+#' odd).
+#' @param derivative the derivative order if you want to calculate the
+#' derivative. Zero (default) is no derivative.
+#' @param abs logical; whether you want to calculate the absolute value of the
+#' resulting output.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
 #' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}.
 #'
 #' @return
-#' \code{smooth_intens()} returns a data frame containing two columns named
-#' \code{"wavenumber"} and \code{"intensity"}.
+#' \code{smooth_intens()} returns an \code{OpenSpecy} object.
 #'
 #' @examples
 #' data("raman_hdpe")
@@ -44,7 +43,7 @@
 #' Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
 #' \strong{36}(8), 1627--1639.
 #'
-#' @importFrom dplyr %>%
+#' @importFrom data.table .SD
 #' @export
 smooth_intens <- function(x, ...) {
   UseMethod("smooth_intens")
@@ -53,36 +52,28 @@ smooth_intens <- function(x, ...) {
 #' @rdname smooth_intens
 #'
 #' @export
-smooth_intens.formula <- function(formula, data = NULL, ...) {
-  if (missing(formula) || (length(formula) != 3L) ||
-      (length(attr(terms(formula[-2L]), "term.labels")) != 1L))
-    stop("'formula' missing or incorrect")
-
-  mf <- model.frame(formula, data)
-  lst <- as.list(mf)
-  names(lst) <- c("y", "x")
-
-  do.call("smooth_intens", c(lst, list(...)))
+smooth_intens.default <- function(x, ...) {
+  stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
 #' @rdname smooth_intens
 #'
 #' @export
-smooth_intens.data.frame <- function(x, ...) {
-  if (!all(c("wavenumber", "intensity") %in% names(x)))
-    stop("'data' must contain 2 columns named 'wavenumber' and 'intensity'")
+smooth_intens.OpenSpecy <- function(x, polynomial = 3, window = 11,
+                                    derivative = 0, abs = FALSE,
+                                    make_rel = TRUE, ...) {
+  filt <- x$spectra[, lapply(.SD, .sgfilt, p = polynomial, n = window,
+                             m = derivative, abs = abs, ...)]
 
-  do.call("smooth_intens", list(x$wavenumber, x$intensity, ...))
+  if(make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
+
+  return(x)
 }
 
-#' @rdname smooth_intens
 #' @importFrom signal filter sgolay
-#' @export
-smooth_intens.default <- function(x, y, p = 3, n = 11, make_rel = TRUE,
-                                  ...) {
-  yflt <- signal::filter(filt = sgolay(p = p, n = n, ...), x = y)
+.sgfilt <- function(y, p, n, m, abs = F, ...) {
+  out <- signal::filter(filt = sgolay(p = p, n = n, m = m, ...), x = y)
+  if(abs) out <- abs(out)
 
-  if (make_rel) yout <- make_rel(yflt) else yout <- yflt
-
-  data.frame(wavenumber = x, intensity = yout)
+  return(out)
 }

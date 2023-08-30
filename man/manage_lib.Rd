@@ -4,36 +4,34 @@
 \alias{check_lib}
 \alias{get_lib}
 \alias{load_lib}
+\alias{rm_lib}
 \title{Manage spectral libraries}
 \usage{
 check_lib(
-  which = c("ftir", "raman"),
-  types = c("metadata", "library", "peaks"),
+  type = c("derivative", "nobaseline", "raw", "mediod", "model"),
   path = "system",
   condition = "warning"
 )
 
 get_lib(
-  which = c("ftir", "raman"),
-  types = c("metadata", "library", "peaks"),
+  type = c("derivative", "nobaseline", "raw", "mediod", "model"),
   path = "system",
   node = "x7dpz",
   conflicts = "overwrite",
   ...
 )
 
-load_lib(
-  which = c("ftir", "raman"),
-  types = c("metadata", "library", "peaks"),
+load_lib(type, path = "system")
+
+rm_lib(
+  type = c("derivative", "nobaseline", "raw", "mediod", "model"),
   path = "system"
 )
 }
 \arguments{
-\item{which}{a character string specifying which library to use,
-\code{"raman"} or \code{"ftir"}.}
-
-\item{types}{library types to check/retrieve; defaults to
-\code{c("metadata", "library", "peaks")}.}
+\item{type}{library type to check/retrieve; defaults to
+\code{c("derivative", "nobaseline", "raw", "mediod", "model")} which reads
+everything.}
 
 \item{path}{where to save or look for local library files; defaults to
 \code{"system"} pointing to
@@ -42,25 +40,26 @@ load_lib(
 \item{condition}{determines if \code{check_lib()} should warn
 (\code{"warning"}, the default) or throw and error (\code{"error"}).}
 
-\item{node}{the OSF node to be retrieved; should be \code{"x7dpz"}.}
+\item{node}{the OSF node to be retrieved; should be \code{"x7dpz"} unless you
+maintain your own OSF node with spectral libraries.}
 
 \item{conflicts}{determines what happens when a file with the same name
 exists at the specified destination. Can be one of the following (see
 \code{\link[osfr]{osf_download}()} for details):
 \itemize{
-  \item{"error"}{ throw an error and abort the file transfer operation.}
-  \item{"skip"}{ skip the conflicting file(s) and continue transferring the
-  remaining files.}
-  \item{"overwrite" (default)}{ replace the existing file with the
-  transferred copy.}
+\item{"error"}{ throw an error and abort the file transfer operation.}
+\item{"skip"}{ skip the conflicting file(s) and continue transferring the
+remaining files.}
+\item{"overwrite" (default)}{ replace the existing file with the
+transferred copy.}
 }}
 
 \item{\ldots}{further arguments passed to \code{\link[osfr]{osf_download}()}.}
 }
 \value{
 \code{check_lib()} and \code{get_lib()} return messages only;
-\code{load_lib()} returns a list object containing the respective spectral
-reference library.
+\code{load_lib()} returns an \code{OpenSpecy} object containing the
+respective spectral reference library.
 }
 \description{
 These functions will import the spectral libraries from Open Specy if they
@@ -76,13 +75,14 @@ already exists on the users computer.
 (\doi{10.17605/OSF.IO/X7DPZ}).
 \code{load_lib()} will load the library into the global environment for use
 with the Open Specy functions.
+\code{rm_lib()} removes the libraries from your computer.
 }
 \examples{
 \dontrun{
-check_lib(which = c("ftir", "raman"))
-get_lib(which = c("ftir", "raman"))
+check_lib("derivative")
+get_lib("derivative")
 
-spec_lib <- load_lib(which = c("ftir", "raman"))
+spec_lib <- load_lib("derivative")
 }
 
 }
@@ -95,9 +95,6 @@ Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
 
 Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 }
-\seealso{
-\code{\link{match_spec}()}
-}
 \author{
-Zacharias Steinmetz
+Zacharias Steinmetz, Win Cowger
 }

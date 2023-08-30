@@ -4,23 +4,24 @@
 \alias{run_app}
 \title{Run Open Specy app}
 \usage{
-run_app(app_dir = "system", path = "system", log = TRUE, ...)
+run_app(path = "system", log = TRUE, ref = "main", test_mode = FALSE, ...)
 }
 \arguments{
-\item{app_dir}{the app to run; defaults to \code{"system"} pointing to
-\code{system.file("shiny", package = "OpenSpecy")}.}
-
-\item{path}{where to look for the local library files; defaults to
-\code{"system"} pointing to
-\code{system.file("extdata", package = "OpenSpecy")}.}
+\item{path}{to store the downloaded app files; defaults to \code{"system"}
+pointing to \code{system.file(package = "OpenSpecy")}.}
 
 \item{log}{logical; enables/disables logging to \code{\link[base]{tempdir}()}}
+
+\item{ref}{git reference; could be a commit, tag, or branch name. Defaults to
+"main". Only change this in case of errors.}
+
+\item{test_mode}{logical; for internal testing only.}
 
 \item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
 }
 \value{
 This function normally does not return any value, see
-\code{\link[shiny]{runApp}()}.
+\code{\link[shiny]{runGitHub}()}.
 }
 \description{
 This wrapper function starts the graphical user interface of Open Specy.
@@ -36,7 +37,7 @@ run_app()
 
 }
 \seealso{
-\code{\link[shiny]{runApp}()}
+\code{\link[shiny]{runGitHub}()}
 }
 \author{
 Zacharias Steinmetz

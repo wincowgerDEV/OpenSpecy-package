@@ -2,9 +2,6 @@
 .Rhistory
 .Rapp.history
 
-# Desktop drive files
-.ini
-
 # Session Data files
 .RData
 
@@ -27,8 +24,11 @@
 # produced PDF vignettes and docs
 vignettes/*.pdf
 inst/doc
-doc
-Meta
+doc/
+Meta/
+
+# Shiny app
+inst/OpenSpecy-shiny-main/
 
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
@@ -48,7 +48,7 @@ Meta
 docs/
 
 # System files
-*.ini
+.ini
 *.swp
 .DS_Store
-docs
+delete.bat

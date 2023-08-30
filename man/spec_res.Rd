@@ -2,13 +2,21 @@
 % Please edit documentation in R/spec_res.R
 \name{spec_res}
 \alias{spec_res}
+\alias{spec_res.default}
+\alias{spec_res.OpenSpecy}
 \title{Spectral resolution}
 \usage{
-spec_res(x)
+spec_res(x, ...)
+
+\method{spec_res}{default}(x, ...)
+
+\method{spec_res}{OpenSpecy}(x, ...)
 }
 \arguments{
-\item{x}{a numeric vector or an \R object which is coercible to one by
-\code{as.vector(x, "numeric")}; \code{x} should be \code{wavenumber} data.}
+\item{x}{a numeric vector with \code{wavenumber} data or an \code{OpenSpecy}
+object.}
+
+\item{\ldots}{further arguments passed to subfunctions; currently not used.}
 }
 \value{
 \code{spec_res()} returns a single numeric value.
@@ -24,7 +32,8 @@ distinguished.
 }
 \examples{
 data("raman_hdpe")
-spec_res(raman_hdpe$wavenumber)
+
+spec_res(raman_hdpe)
 
 }
 \author{

@@ -1,16 +1,20 @@
 data("raman_hdpe")
+raman_hdpe$spectra$intensity2 <- raman_hdpe$spectra$intensity * 2
 
 test_that("adj_intens() works as expected", {
   expect_silent(adj <- adj_intens(raman_hdpe))
-  expect_identical(adj, adj_intens(raman_hdpe$wavenumber,
-                                   raman_hdpe$intensity))
-  expect_identical(adj, adj_intens(intensity ~ wavenumber, raman_hdpe))
-  expect_equal(as.numeric(
-    cor(raman_hdpe[2], adj_intens(raman_hdpe)[2])
-  ), 1, ignore_attr = F)
-  expect_s3_class(adj, "data.frame")
-  expect_equal(names(adj), c("wavenumber", "intensity"))
-  expect_equal(nrow(adj), nrow(raman_hdpe))
-  expect_equal(adj[1], raman_hdpe[1])
-  expect_equal(range(adj[2]), c(0, 1))
+  expect_silent(adj_intens(raman_hdpe, type = "reflectance"))
+  expect_silent(adj_intens(raman_hdpe, type = "transmittance"))
+  expect_equal(
+    cor(raman_hdpe$spectra$intensity, adj$spectra$intensity), 1,
+    ignore_attr = F)
+  expect_equal(
+    cor(raman_hdpe$spectra$intensity, adj$spectra$intensity2), 1,
+    ignore_attr = F)
+
+  expect_s3_class(adj, "OpenSpecy")
+
+  expect_equal(nrow(adj$spectra), nrow(raman_hdpe$spectra))
+  expect_equal(adj$wavenumber, raman_hdpe$wavenumber)
+  expect_equal(adj$spectra |> range(), c(0, 1))
 })

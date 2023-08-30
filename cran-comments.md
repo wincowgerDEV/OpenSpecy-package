@@ -1,6 +1,6 @@
 ## Test environments
 
-* manjaro linux 5.18.6-1 (local), R-4.2.1
+* manjaro linux 6.3.13-2 (local), R-4.3.1
 * macOS latest (via GitHub Actions), R-release
 * ubuntu latest (via GitHub Actions), R-devel
 * ubuntu latest (via GitHub Actions), R-release
@@ -10,12 +10,22 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 2 notes
 
 
 ## Comments
 
-DOI links do not pass remote checks although they resolve fine using a web
-browser
+    Possibly misspelled words in DESCRIPTION:
+      preprocessing (46:5)
+      wavenumber (47:62)
 
-For further details, see NEWS file
+Both words are spelled correctly.
+
+    installed size is  6.5Mb
+    sub-directories of 1Mb or more:
+      doc   4.9Mb
+
+We tried to reduce the vignette size as much as possible but would like to keep
+the current number of screenshots for better comprehensibility.
+
+For further details, see NEWS.md

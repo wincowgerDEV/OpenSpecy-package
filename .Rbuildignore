@@ -6,10 +6,11 @@
 ^\.httr-oauth$
 ^doc$
 ^Meta$
-google-analytics.js
-droptoken.rds
 ^cran-comments\.md$
 ^CRAN-RELEASE$
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+^codecov\.yml$
+^vignettes/spectragryph.*
+^vignettes/advanced.*

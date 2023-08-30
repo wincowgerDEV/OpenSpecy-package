@@ -7,17 +7,17 @@
 #' After running this function the Open Specy GUI should open in a separate
 #' window or in your computer browser.
 #'
-#' @param app_dir the app to run; defaults to \code{"system"} pointing to
-#' \code{system.file("shiny", package = "OpenSpecy")}.
-#' @param path where to look for the local library files; defaults to
-#' \code{"system"} pointing to
-#' \code{system.file("extdata", package = "OpenSpecy")}.
+#' @param path to store the downloaded app files; defaults to \code{"system"}
+#' pointing to \code{system.file(package = "OpenSpecy")}.
 #' @param log logical; enables/disables logging to \code{\link[base]{tempdir}()}
+#' @param ref git reference; could be a commit, tag, or branch name. Defaults to
+#' "main". Only change this in case of errors.
+#' @param test_mode logical; for internal testing only.
 #' @param \dots arguments passed to \code{\link[shiny]{runApp}()}.
 #'
 #' @return
 #' This function normally does not return any value, see
-#' \code{\link[shiny]{runApp}()}.
+#' \code{\link[shiny]{runGitHub}()}.
 #'
 #' @examples
 #' \dontrun{
@@ -28,34 +28,29 @@
 #' Zacharias Steinmetz
 #'
 #' @seealso
-#' \code{\link[shiny]{runApp}()}
+#' \code{\link[shiny]{runGitHub}()}
 #'
-#' @importFrom shiny runApp shinyOptions
+#' @importFrom shiny runGitHub shinyOptions
 #' @importFrom utils installed.packages
 #' @export
-run_app <- function(app_dir = "system", path = "system", log = TRUE, ...) {
-  if (is.null(app_dir) || app_dir == "")
-    stop("Could not find app directory. Try reinstalling OpenSpecy.",
-         call. = FALSE)
+run_app <- function(path = "system", log = TRUE, ref = "main",
+                    test_mode = FALSE, ...) {
+  pkg <- c("config", "qs", "shinyjs", "shinyWidgets", "bs4Dash",
+           "dplyr", "ggplot2", "DT", "curl", "aws.s3", "mongolite", "loggit")
 
-  pkg <- c("config", "shinyjs", "shinythemes", "shinyBS", "shinyWidgets",
-           "plotly", "data.table", "DT", "curl", "rdrop2", "mongolite",
-           "loggit")
-  mpkg <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
+  miss <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
 
-  if(length(mpkg)) stop("run_app() requires the following packages: ",
-                        paste(paste0("'", mpkg, "'"), collapse = ", "),
+  if(length(miss)) stop("run_app() requires the following packages: ",
+                        paste(paste0("'", miss, "'"), collapse = ", "),
                         call. = F)
 
-  ad <- ifelse(app_dir == "system",
-               system.file("shiny", package = "OpenSpecy"),
-               app_dir)
-  wd <- ifelse(path == "system",
-               system.file("extdata", package = "OpenSpecy"),
+  dd <- ifelse(path == "system",
+               system.file(package = "OpenSpecy"),
                path)
 
   Sys.setenv(R_CONFIG_ACTIVE = "run_app")
 
-  shinyOptions(library_path = wd, log = log)
-  runApp(ad, ...)
+  shinyOptions(log = log)
+  if(!test_mode)
+    runGitHub("OpenSpecy-shiny", "wincowgerDEV", destdir = dd, ref = ref, ...)
 }
