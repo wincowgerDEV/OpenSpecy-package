@@ -34,6 +34,7 @@
 #' \code{\link{subtr_baseline}()}.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
+#' @param na.rm Whether to allow NA or set all NA values to 
 #' @param \ldots further arguments passed to subfunctions.
 #'
 #' @return
@@ -105,6 +106,8 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
                                      polynomial = 3, window = 11,
                                      derivative = 1, abs = TRUE),
                                    make_rel = TRUE,
+                                   make_rel_args = list(
+                                       na.rm = TRUE),
                                    ...) {
   if(active) {
     if(adj_intens)
@@ -124,7 +127,8 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
       x <- do.call("smooth_intens", c(list(x, make_rel = F),
                                       smooth_intens_args))
     if(make_rel)
-      x$spectra <- x$spectra[, lapply(.SD, make_rel)]
+      x <- do.call("make_rel", c(list(x),
+                                      make_rel_args))
   }
 
   return(x)

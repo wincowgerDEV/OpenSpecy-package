@@ -22,7 +22,7 @@ sample_spec(x, ...)
 
 \method{sample_spec}{default}(x, ...)
 
-\method{sample_spec}{OpenSpecy}(x, ...)
+\method{sample_spec}{OpenSpecy}(x, size = 1, prob = NULL, ...)
 }
 \arguments{
 \item{x}{a list of \code{OpenSpecy} objects.}
@@ -34,6 +34,10 @@ spectra having all the same wavenumber range.}
 
 \item{res}{defaults to \code{NULL}, the resolution you want the output
 wavenumbers to be.}
+
+\item{size}{the number of spectra to sample.}
+
+\item{probs}{probabilities to use for the sampling.}
 
 \item{\ldots}{further arguments passed to submethods.}
 }

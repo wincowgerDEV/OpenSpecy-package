@@ -12,6 +12,8 @@
 #' spectra having all the same wavenumber range.
 #' @param res defaults to \code{NULL}, the resolution you want the output
 #' wavenumbers to be.
+#' @param size the number of spectra to sample. 
+#' @param probs probabilities to use for the sampling.
 #' @param \ldots further arguments passed to submethods.
 #'
 #' @return
@@ -115,14 +117,10 @@ sample_spec.default <- function(x, ...) {
 #' @rdname manage_spec
 #'
 #' @export
-sample_spec.OpenSpecy <- function(x, ...) {
+sample_spec.OpenSpecy <- function(x, size = 1, prob = NULL, ...) {
   # replace = false is mandatory currently because we don't have a way to
   # rename and recoordinate duplicates.
-  cols <- sample(1:ncol(x$spectra), ...)
+  cols <- sample(1:ncol(x$spectra), size = size, replace = FALSE, prob = prob, ...)
 
-  as_OpenSpecy(
-    x = x$wavenumber,
-    spectra = x$spectra[, cols, with = F],
-    metadata = x$metadata[cols, ]
-  )
+  filter_spec(x, cols)
 }

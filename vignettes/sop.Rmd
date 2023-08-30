@@ -249,6 +249,81 @@ that spectrum.
 interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 ```
 
+
+# Combining OpenSpecy Objects
+
+Sometimes you have several OpenSpecy objects that you want to combine into one. The easiest way to do that is by having spectra which all are in the same exact format with the same series of wavenumbers. The default settings of `c_spec` assume that is the case. 
+
+```{r}
+#Same range example. 
+data("raman_hdpe")
+raman_hdpe1 <- raman_hdpe
+raman_hdpe2 <- raman_hdpe
+
+raman_hdpe1$spectra <- raman_hdpe1$spectra - 100 
+
+raman_hdpe2$spectra <- raman_hdpe2$spectra - 200 
+
+combined_spectra <- c_spec(list(raman_hdpe, raman_hdpe1, raman_hdpe2))
+
+plot(combined_spectra)
+
+```
+
+If you have different wavenumber ranges for the spectra you want to combibne, you can set  `range = "common"` and `res` equal to the wavenumber resolution you want and the function will collapse all the spectra to whatever their common range is using linear interpolation. 
+
+```{r}
+asp_example <- read_extdata("ftir_ldpe_soil.asp") |> 
+  read_any() 
+ps_example <- read_extdata("ftir_ps.0") |> 
+  read_any() # preserves some metadata
+
+combined <- c_spec(list(asp_example, ps_example), range = "common", res = 5)
+
+plot(combined)
+
+```
+
+
+# Filtering OpenSpecy Objects
+
+OpenSpecy objects can have any number of spectra in them. To create an OpenSpecy with a subset of the spectra that is in an Open Specy object you can use the `filter_spec` function. Filtering is allowed by index number, name, or using a logical vector. Filtering will update the `spectra` and `metadata` items of the `OpenSpecy` but not the `wavenumber`. 
+
+```{r}
+
+spectral_map <- read_extdata("CA_tiny_map.zip") |> 
+  read_any() # preserves some metadata
+
+filter_spec(spectral_map, 150) |>
+    plot() #extracts the 150th spectrum. 
+
+```
+
+```{r}
+filter_spec(spectral_map, "8_5") |>
+    plot() #extracts the spectrum with column name "8_5". 
+
+```
+
+```{r}
+filter_spec(spectral_map, names(spectral_map$spectra) %in% c("8_5", "10_3", "12_10")) |>
+    plot() #extracts the spectra with column names "8_5", "10_3", or "12_10" using a logical argument based on the spectra column names.
+```
+
+```{r}
+filter_spec(spectral_map, spectral_map$metadata$y == 1) |>
+    plot() #extracts the spectra with y values of 1 for their metadata. 
+```
+
+# Sampling OpenSpecy Objects
+Sometimes you have a large suite of examples of spectra of the same material and you want to reduce the number of spectra you run through the analysis for simplicity or you are running simulations or other proceedures that require you to first sample from the spectra contained in your OpenSpecy objects before doing analysis. the `sample_spec` function serves this purpose. 
+
+```{r}
+spectral_map <- read_any(read_extdata("CA_tiny_map.zip"))
+sample_spec(spectral_map,size = 10) |>
+    plot()
+```
+
 # Processing
 
 The goal of this all processing is to increase the signal to noise ratio (S/N) of the spectra without
@@ -391,10 +466,10 @@ one OpenSpecy object.
 
 Examples of smoothing:
 
-```{r smooth_intens, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials from Cowger et al. (2020).", fig.width=6, fig.align="center"}
+```{r smooth_intens, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials.", fig.width=6, fig.align="center"}
 data("raman_hdpe")
 
-none <- process_spec(raman_hdpe,adj_intens = F, conform_spec = F, restrict_range = F,flatten_range = F,subtr_baseline = F,smooth_intens = F, make_rel = T)
+none <- make_rel(raman_hdpe)
 p1 <- smooth_intens(raman_hdpe, polynomial = 1, derivative = 0, abs = F)
 p4 <- smooth_intens(raman_hdpe, polynomial = 4, derivative = 0, abs = F)
 
@@ -405,9 +480,9 @@ plot(compare_derivative)
 
 Derivative transformation can happen with the same function. 
 
-```{r compare_derivative, fig.cap = "Sample `raman_hdpe` spectrum with different derivatives from Cowger et al. (2020).", fig.width=6, fig.align="center"}
+```{r compare_derivative, fig.cap = "Sample `raman_hdpe` spectrum with different derivatives.", fig.width=6, fig.align="center"}
 
-none <- process_spec(raman_hdpe,adj_intens = F, conform_spec = F, restrict_range = F,flatten_range = F,subtr_baseline = F,smooth_intens = F, make_rel = T)
+none <- make_rel(raman_hdpe)
 d1 <- smooth_intens(raman_hdpe, derivative = 1, abs = T)
 d2 <- smooth_intens(raman_hdpe, derivative = 2, abs = T)
 
@@ -435,7 +510,7 @@ data("raman_hdpe")
 
 alternative_baseline <- smooth_intens(raman_hdpe, polynomial = 1, window = 51, derivative = 0, abs = F, make_rel = F) |> flatten_range(min = 2700, max = 3200, make_rel = F)
 
-none <- process_spec(raman_hdpe,adj_intens = F, conform_spec = F, restrict_range = F,flatten_range = F,subtr_baseline = F,smooth_intens = F, make_rel = T)
+none <- make_rel(raman_hdpe)
 d2 <- subtr_baseline(raman_hdpe, type = "manual", baseline = alternative_baseline)
 d8 <- subtr_baseline(raman_hdpe, degree = 8)
 
@@ -454,10 +529,10 @@ what wavelength ranges to use. Distortions due to baseline fit can be assessed
 from looking at the preprocess spectra. Additionally, you can restrict the range
 to examine a single peak or a subset of peaks of interests. Multiple ranges can be specified simultaneously.
 
-```{r restrict_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, fig.align="center"}
+```{r restrict_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of range restriction.", fig.width=6, fig.align="center"}
 data("raman_hdpe")
 
-none <- process_spec(raman_hdpe,adj_intens = F, conform_spec = F, restrict_range = F,flatten_range = F,subtr_baseline = F,smooth_intens = F, make_rel = T)
+none <- make_rel(raman_hdpe)
 r1 <- restrict_range(raman_hdpe, min = 1000, max = 2000)
 r2 <- restrict_range(raman_hdpe, min = c(1000, 1800), max = c(1200, 2000))
 
@@ -483,7 +558,7 @@ multiple ranges.
 ```{r flatten_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, fig.align="center"}
 single <- filter_spec(spectral_map, 120) # Function to filter spectra by index
                                          # number or name or a logical vector. 
-none <- process_spec(single,adj_intens = F, conform_spec = F, restrict_range = F,flatten_range = F,subtr_baseline = F,smooth_intens = F, make_rel = T)
+none <- make_rel(single)
 f1 <- flatten_range(single) #default flattening the CO2 region. 
 f2 <- flatten_range(single, min = c(1000, 2500), max = c(1200, 3000))
 
@@ -496,71 +571,53 @@ plot(compare_flats)
 
 Often we regard spectral intensities as arbitrary and
 min-max normalization allows us to view spectra on the same scale without
-drastically distorting their shapes or relative peak intensities. In the app, it
-is primarily used for plotting and as a processing step before correlation
-analysis. In the package, most of the processing functions will min-max
-transform your spectra relative by default if you do not specify otherwise. This
-plot shows the two spectra on such different scales that one looks like a
-straight line.
+drastically distorting their shapes or relative peak intensities. In the package, most of the processing functions will min-max
+transform your spectra by default if you do not specify otherwise. This
+plot shows two plots that are nearly identical except for the min-max transformed spectrum has a y axis that ranges from 0-1. 
 
-```{r adj_intens, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, fig.align="center"}
+```{r make_rel, fig.cap = "Sample `raman_hdpe` spectrum with one being relative and the other untransformed.", fig.width=6, fig.align="center"}
 none <- raman_hdpe
-relative <- process_spec(raman_hdpe,adj_intens = F, conform_spec = F, restrict_range = F,flatten_range = F,subtr_baseline = F,smooth_intens = F, make_rel = T)
+relative <- make_rel(raman_hdpe)
+plot(none)
+plot(relative)
 
-compare_rel <- c_spec(list(none, relative))
-
-plot(compare_rel)
 ```
 
 # Identifying Spectra 
 
-After uploading data and preprocessing it (if desired) you can now identify the
-spectrum. To identify the spectrum go to the **Identification** box. Pro tip: if
-you select *Identification** without uploading data to the app, you'll be able
-to explore the library by itself.
-
 ## Reading Libraries
 
-These options define the strategy for identification. The ID Library will inform
-which library is used. Both (default) will search both FTIR and Raman libraries.
-Deriv will search against a derivative transformed library. No Baseline will
-search against a baseline corrected library. This should be in line with how you
-choose to process your spectra. Cor options use a simple Pearson correlation
-search algorithm. AI is currently experimental and uses either a multinomial
-model or correlation on mediod spectra from the library. Correlation
-thresholding will set the minimum value from matching to use as a 'positive
-identification'
-
-In the R package, you'll download and load the libraries into your working
-environment.
+Reference libraries are spectra with known identities. The Open Specy library now has over 10,000 spectra in it an is getting so large that we cannot fit it within the R package size limit of 5 MB. We host the reference libraries on [OSF](https://osf.io/x7dpz/) and have a function to pull the libraries down automatically. Running get_lib by itself will download all libraries to your package director or you can specify which libraries you want and where you want them. 
 
 ```{r eval=F}
-get_lib() #will load all libraries unless specified otherwise. 
+get_lib() 
+get_lib(type = "derivative", path = "test")
+```
+
+After download the libraries you can load them into your active environment. You should load them one at a time. Libraries are also `OpenSpecy` objects so you can use any Open Specy object as a library. 
+
+```{r eval=F}
 lib <- load_lib(type = "derivative")
 ```
 
 ## Matches
 
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/matches.jpg")
-```
-
-Top matches in the app can be assessed by clicking the cog in the right hand
-corner of the Spectra box. This will open a side window with the matches sorted
-from most to least similar. Clicking on rows in the table will add the selected
-match to the spectra viewer. Using the table's filter options, you can restrict
-the range of Pearson\'s r values or search for specific material types.
-
-The same table can be returned using the OpenSpecy package commands in the R
-console.
+Before attempting to use a reference library to identify spectra it is really important to understand what format the reference library is in. All the OpenSpecy reference libraries are in Absorbance units. `derivative` has been absolute first derivative transformed, `nobaseline` has been baseline corrected, `raw` is the rawest form of the reference spectra (not recommended except for advanced uses). The previously mentioned libraries all have Raman and FTIR spectra in them. `mediod` is the mediod compressed library version of the absolute first derivative for FTIR, `model` is an exception because it is a multinomial regression approach for FTIR to identification of absolute derivative spectra. All of the libraries have wavenumbers at 5 cm^-1 resolution. Whichever library you choose, you first need to get your spectra into a similar enough format to use for comparison. That means conforming the wavenumbers to the same range and processing the spectra using the same processing procedures. In this example we use the `data("test_lib")` which is a subsampled version of the absolute derivative library and `data("raman_hdpe")` which is an unprocessed Raman spectrum in absorbance units of HDPE plastic. With single spectra it is easy to look at the spectra but when doing in batch, also refer to the Thresholding Signal-Noise section for guidance on making sure your batch spectra are processed to quality specs.
 
 ```{r}
 data("test_lib")
+data("raman_hdpe")
 
-processed <- process_spec(ps_example, 
-                        conform_spec_args = list(range = test_lib$wavenumber, 
-                                                 res = NULL))
+processed <- process_spec(x = raman_hdpe, 
+                          conform_spec_args = list(range = test_lib$wavenumber, 
+                                                   res = NULL,
+                                                   type = "interp"
+                                                   ))
 
+plotly_spec(raman_hdpe, processed)
+```
+
+```{r}
 test <- match_spec(processed, test_lib, add_object_metadata = "col_id",
                    add_library_metadata = "sample_name")
 ```
