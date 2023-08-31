@@ -630,7 +630,7 @@ print(matches[,c("object_id", "library_id", "match_val", "SpectrumType", "Spectr
 The libraries we have created have over 100 variables of metadata in them and this can be onerous to read through especially given that many of the variables are `NA` values. We created `get_metadata()` to remedy this by removing columns from the metadata which are all blank values. The function below will return the metadata for the top match in `matches`. Remember, similar `filter_spec()`, you can specify `logic` for more than one thing at a time. 
 
 ```{r}
-get_metadata(x = lib, logic = matches[[1,"library_id"]], rm_empty = T)
+get_metadata(x = test_lib, logic = matches[[1,"library_id"]], rm_empty = T)
 ```
 
 ## Plot Matches
@@ -638,7 +638,7 @@ get_metadata(x = lib, logic = matches[[1,"library_id"]], rm_empty = T)
 Overlaying unknown spectra and the best matches can be extremely useful to identify peaks that don't fit to the reference library which may need further investigation. The example below shows great correspondence between the best match and the unknown spectrum. All major peaks are accounted for and the correct relative height. There are two small peaks in the unknown spectrum near 500 that are not accounted for which could be investigated further but we would call this a positive id to HDPE. 
 
 ```{r}
-plotly_spec(processed, filter_spec(lib, logic = matches[[1,"library_id"]]))
+plotly_spec(processed, filter_spec(test_lib, logic = matches[[1,"library_id"]]))
 ```
 
 ## Sharing Reference Data

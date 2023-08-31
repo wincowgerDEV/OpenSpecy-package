@@ -14,7 +14,8 @@
 #'
 #' @param x a numeric vector or an \R OpenSpecy object
 #' @param na.rm logical. Should missing values be removed?
-#'
+#' @param \ldots further arguments passed to \code{make_rel()}.
+#' 
 #' @return
 #' \code{make_rel()} return numeric vectors (if vector provided) or OpenSpecy object with the normalized intensity data.
 #'
@@ -48,7 +49,7 @@ make_rel.default <- function(x, na.rm = FALSE, ...) {
 #' @rdname make_rel
 #'
 #' @export
-make_rel.OpenSpecy <- function(x, na.rm = FALSE) {
+make_rel.OpenSpecy <- function(x, na.rm = FALSE, ...) {
     x$spectra <- x$spectra[, lapply(.SD, function(y) do.call("make_rel", list(x = y, na.rm = na.rm)))]
     x
 }

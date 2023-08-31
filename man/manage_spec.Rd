@@ -37,7 +37,7 @@ wavenumbers to be.}
 
 \item{size}{the number of spectra to sample.}
 
-\item{probs}{probabilities to use for the sampling.}
+\item{prob}{probabilities to use for the sampling.}
 
 \item{\ldots}{further arguments passed to submethods.}
 }

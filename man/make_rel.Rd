@@ -10,12 +10,14 @@ make_rel(x, ...)
 
 \method{make_rel}{default}(x, na.rm = FALSE, ...)
 
-\method{make_rel}{OpenSpecy}(x, na.rm = FALSE)
+\method{make_rel}{OpenSpecy}(x, na.rm = FALSE, ...)
 }
 \arguments{
 \item{x}{a numeric vector or an \R OpenSpecy object}
 
 \item{na.rm}{logical. Should missing values be removed?}
+
+\item{\ldots}{further arguments passed to \code{make_rel()}.}
 }
 \value{
 \code{make_rel()} return numeric vectors (if vector provided) or OpenSpecy object with the normalized intensity data.

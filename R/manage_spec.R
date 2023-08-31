@@ -13,7 +13,7 @@
 #' @param res defaults to \code{NULL}, the resolution you want the output
 #' wavenumbers to be.
 #' @param size the number of spectra to sample. 
-#' @param probs probabilities to use for the sampling.
+#' @param prob probabilities to use for the sampling.
 #' @param \ldots further arguments passed to submethods.
 #'
 #' @return

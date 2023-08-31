@@ -76,6 +76,9 @@ to the spectra.}
 \item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
 with \code{\link{make_rel}()}.}
 
+\item{make_rel_args}{named list of arguments passed to
+\code{\link{make_rel}()}.}
+
 \item{na.rm}{Whether to allow NA or set all NA values to}
 
 \item{\ldots}{further arguments passed to subfunctions.}

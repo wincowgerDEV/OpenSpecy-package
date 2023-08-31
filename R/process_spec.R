@@ -34,6 +34,8 @@
 #' \code{\link{subtr_baseline}()}.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
+#' @param make_rel_args named list of arguments passed to
+#' \code{\link{make_rel}()}.
 #' @param na.rm Whether to allow NA or set all NA values to 
 #' @param \ldots further arguments passed to subfunctions.
 #'

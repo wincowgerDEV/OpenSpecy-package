@@ -37,7 +37,9 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
       comment = c(ORCID = "0000-0002-3557-1482")),
     person("Laura A. T.","Markley", role = c("ctb"),
       comment = c(ORCID = "0000-0003-0620-8366")),
-    person("Shreyas","Patankar", role = c("ctb", "dtc")))
+    person("Shreyas","Patankar", role = c("ctb", "dtc")),
+    person("National Renewable Energy Laboratory", role = c("fnd")), 
+    person("Possibility Lab", role = c("fnd")))
 Description: Raman and (FT)IR spectral analysis tool for plastic particles and
     other environmental samples (Cowger et al. 2021,
     <doi:10.1021/acs.analchem.1c00123>). With read_any(), Open Specy provides a

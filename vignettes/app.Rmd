@@ -60,7 +60,7 @@ If you have your own data, click **Browse** at the top left hand corner of the
 Analyze Spectra tab.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("sop/mainpage.jpg")
+knitr::include_graphics("app/mainpage.jpg")
 ```
 
 Before uploading, indicate if you would like to share the uploaded data or not
@@ -73,7 +73,7 @@ keep their data private. If switched off, none of the uploaded data will be
 stored or shared in Open Specy.
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/uploadfile.jpg")
+knitr::include_graphics("app/uploadfile.jpg")
 ```
 
 Open Specy allows for upload of native Open Specy .y(a)ml, .json, or .rds files.
@@ -123,7 +123,7 @@ read_opus(".0")
 If you don't have your own data, you can use a test dataset.
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/samplefile.jpg")
+knitr::include_graphics("app/samplefile.jpg")
 ```
 
 A .csv file of an HDPE Raman spectrum will download on your computer. This file
@@ -194,7 +194,7 @@ also save a .png file of the plot view using the camera icon at the top right
 when you hover over the plot. 
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/spectra_vis.jpg")
+knitr::include_graphics("app/spectra_vis.jpg")
 ```
 
 In R, we have two ways to visualize your spectra, one is quick and efficient and
@@ -235,7 +235,7 @@ the identification is turned on or not. Pixels are black if the spectra does not
 pass the signal-noise threshold and/or the correlation threshold.
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/map_vis.jpg")
+knitr::include_graphics("app/map_vis.jpg")
 ```
 
 The same plot can be created in R but the user can control what values form the
@@ -267,7 +267,7 @@ intensity correction simultaneously and really quickly. By clicking
 preprocessing you should see the spectrum update with the processed spectra.
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/processing.jpg")
+knitr::include_graphics("app/processing.jpg")
 ```
 
 To view the raw data again, just deselect preprocessing. Toggling preprocessing
@@ -310,7 +310,7 @@ for thresholding spectral maps to identify particles which we will discuss
 later.
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/snr_threshold.jpg")
+knitr::include_graphics("app/snr_threshold.jpg")
 ```
 
 If analyzing spectra in batch, we recommend looking at the heatmap and
@@ -320,13 +320,13 @@ individually. Good Signal tells you what percent of your data are above your
 signal threshold.
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/signal_settings.jpg")
+knitr::include_graphics("app/signal_settings.jpg")
 ```
 
 #### Intensity Adjustment
 
 ```{r, fig.align='center', echo=FALSE}
-knitr::include_graphics("sop/intensityadjustment.jpg")
+knitr::include_graphics("app/intensityadjustment.jpg")
 ```
 
 Open Specy assumes that intensity units are in absorbance units but Open Specy
@@ -376,7 +376,7 @@ conform_spec(spectral_map, range = ps_example$wavenumber, res = 10,
 #### Smoothing
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/smoothingpoly.jpg")
+knitr::include_graphics("app/smoothingpoly.jpg")
 ```
 
 The first step of the Open Specy preprocessing routing is spectral smoothing.
@@ -427,7 +427,7 @@ plot(compare_derivative)
 #### Baseline Correction
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/baselinecorrectionpoly.jpg")
+knitr::include_graphics("app/baselinecorrectionpoly.jpg")
 ```
 
 The second step of Open Specy's preprocessing routine is baseline correction.
@@ -461,7 +461,7 @@ plot(compare_subtraction)
 #### Range Selection
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/rangeselection.jpg")
+knitr::include_graphics("app/rangeselection.jpg")
 ```
 
 Sometimes an instrument operates with high noise at the ends of the spectrum
@@ -491,7 +491,7 @@ plot(compare_ranges)
 #### Flattening Ranges
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/flattten_example.jpg")
+knitr::include_graphics("app/flattten_example.jpg")
 ```
 
 Sometimes there are peaks that really shouldn't be in your spectra and can
@@ -540,7 +540,7 @@ plot(compare_rel)
 ## Identifying Spectra 
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/identification.jpg")
+knitr::include_graphics("app/identification.jpg")
 ```
 
 After uploading data and preprocessing it (if desired) you can now identify the
@@ -571,7 +571,7 @@ lib <- load_lib(type = "derivative")
 ### Matches
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/matches.jpg")
+knitr::include_graphics("app/matches.jpg")
 ```
 
 Top matches in the app can be assessed by clicking the cog in the right hand
@@ -597,7 +597,7 @@ test <- match_spec(processed, test_lib, add_object_metadata = "col_id",
 ### Selection Metadata
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("sop/selectionmetadata.jpg")
+knitr::include_graphics("app/selectionmetadata.jpg")
 ```
 
 Whatever match is selected from the match table may have additional metadata
@@ -616,7 +616,7 @@ find_spec(sample_name == 5381, library = spec_lib, which = "raman")
 ### Match Plot
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/matchplot.png")
+knitr::include_graphics("app/matchplot.png")
 ```
 
 This plot is dynamically updated by selecting matches from the match table. The
@@ -651,7 +651,7 @@ but we will continue to try and improve the translations.
 ### Download Data
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/download.jpg")
+knitr::include_graphics("app/download.jpg")
 ```
 
 After you have the preprocessing parameters set, we recommend that you download
@@ -666,7 +666,7 @@ that is visible on the center plot.
 ## Conceptual diagram of Open Specy
 
 ```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/flowchart.png")
+knitr::include_graphics("app/flowchart.png")
 ```
 
 # References

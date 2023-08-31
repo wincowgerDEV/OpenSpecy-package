@@ -31,7 +31,7 @@ knitr::include_graphics("spectragryph/spectragryph-1.png")
 ```
 
 3. Click File, Save/export data, save data as, and save it as an spc
-file. ¸
+file.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
 knitr::include_graphics("spectragryph/spectragryph-2.png")
@@ -39,6 +39,3 @@ knitr::include_graphics("spectragryph/spectragryph-2.png")
 
 4. Then upload that .spc file to Open Specy.
 
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/uploadfile.jpg")
-```
