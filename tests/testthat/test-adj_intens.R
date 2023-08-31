@@ -1,5 +1,7 @@
 data("raman_hdpe")
+
 raman_hdpe$spectra$intensity2 <- raman_hdpe$spectra$intensity * 2
+raman_hdpe$metadata <- rbind(raman_hdpe$metadata, raman_hdpe$metadata)
 
 test_that("adj_intens() works as expected", {
   expect_silent(adj <- adj_intens(raman_hdpe))
@@ -17,4 +19,6 @@ test_that("adj_intens() works as expected", {
   expect_equal(nrow(adj$spectra), nrow(raman_hdpe$spectra))
   expect_equal(adj$wavenumber, raman_hdpe$wavenumber)
   expect_equal(adj$spectra |> range(), c(0, 1))
+  
+  expect_true(check_OpenSpecy(adj))
 })
