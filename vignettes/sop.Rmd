@@ -649,9 +649,53 @@ package administrator to discuss options for collaborating.
 
 # Characterizing Particles
 
-## Thresholding
+Sometimes the spectroscopy task we want to perform is to identify particles in a spectral map. This is especially common for microplastic analysis where a spectral map is used to image a sample and spectral information is used to differentiate microplastic particles from nonplastic particles. In addition to the material id, one often wants to measure the shape and size of the particles. In a brute force technique, one could first identify every spectrum in the map, then use thresholding and image analysis to measure the particles. However, more often than not, particles are well separated on the image surface and background spectra is quite different from particle spectra and therefore we can use thresholding a priori to identify and measure the particles, then pass an exemplary spectrum for each particle to the identification routine. It is important to note here that this is at the bleeding edge of theory and technique so we may be updating these functions in the near future. 
 
-## Collapse Spectra
+## Brute Force
+
+```{r eval = F}
+data("test_lib")
+test_map <- read_any(read_extdata("CA_tiny_map.zip"))
+
+test_map_processed <- process_spec(test_map, conform_spec_args = list(range = test_lib$wavenumber, res = NULL))
+
+identities <- match_spec(test_map_processed, test_lib, add_library_metadata = "sample_name", top_n = 1)[order(factor(object_id, levels = colnames(test_map$spectra)))]#Should integrate this sorting into match_spec, tried but couldn't get it. 
+
+features <- ifelse(identities$match_val > 0.7, tolower(identities$polymer_class), "unknown")
+
+id_map <- def_features(x = test_map_processed, features = features)
+
+id_map$metadata$identities <- features #also should probably be implemented automatically in the function when a character value is provided. 
+
+test_collapsed <- collapse_spec(id_map) #Collapses spectra to their median for each particle. 
+
+```
+
+## A Priori Particle Thresholding
+
+```{r eval = F}
+data("test_lib")
+test_map <- read_any(read_extdata("CA_tiny_map.zip"))
+
+snr <- sig_noise(test_map,metric = "log_tot_sig") #Characterize the total signal as a threshold value. 
+
+heatmap_spec(test_map, z = snr) #Use this to find your particles and the sig_noise value to use for thresholding. 
+
+id_map <- def_features(x = test_map, features = snr > 400) #Set define the feature regions based on the threshold. 400 appeared to be where I suspected my particle to be in the previous heatmap. 
+
+heatmap_spec(id_map, z = id_map$metadata$feature_id) #Check that the thresholding worked as expected. 
+
+collapsed_id_map <- id_map |>
+    collapse_spec() #Collapse the spectra to their medians based on the threshold. Important to note here that the particles with id -88 are anything from the FALSE values so they should be your background. 
+
+id_map_processed <- process_spec(
+collapsed_id_map, conform_spec_args = list(range = test_lib$wavenumber, res = NULL)) #Process the collapsed spectra. 
+
+plot(id_map_processed) #check the spectra. 
+
+matches <- match_spec(id_map_processed, test_lib, add_library_metadata = "sample_name", top_n = 1) #Get the matches of the collapsed spectra for the particles. 
+
+```
 
 # References
 
