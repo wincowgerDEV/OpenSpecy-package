@@ -15,6 +15,10 @@ test_that("restrict_range() provides correct range", {
   expect_identical(single_range$wavenumber, seq(1000,2000, by = 10))
   expect_identical(double_range$wavenumber, c(seq(1000,1500, by = 10),
                                               seq(2000,2500, by = 10)))
+  expect_true(check_OpenSpecy(single_range))
+  expect_true(check_OpenSpecy(double_range))
+  
+  
 })
 
 test_that("flatten_range() function test", {
@@ -23,6 +27,8 @@ test_that("flatten_range() function test", {
                              make_rel = F) |>
     expect_silent()
 
+  expect_true(check_OpenSpecy(flat_sam))
+  
   expect_equal(flat_sam$spectra$V1[4:5], c(4.5, 4.5))
   expect_equal(flat_sam$spectra$V1[7:10], c(8.5, 8.5, 8.5, 8.5))
 
@@ -30,6 +36,8 @@ test_that("flatten_range() function test", {
   flat_hdpe <- flatten_range(raman_hdpe, min = c(500, 1000),
                              max = c(700, 1500)) |>
     expect_silent()
+  expect_true(check_OpenSpecy(flat_hdpe))
+  
   expect_equal(flat_hdpe$spectra$intensity[1:50],
                make_rel(raman_hdpe$spectra$intensity)[1:50])
   expect_equal(flat_hdpe$spectra$intensity[60:100] |> unique() |> round(6),
@@ -39,7 +47,8 @@ test_that("flatten_range() function test", {
   flat_map <- flatten_range(tiny_map, min = c(1000, 2000),
                             max = c(1200, 2400), make_rel = F) |>
     expect_silent()
-
+  expect_true(check_OpenSpecy(flat_map))
+  
   expect_false(all.equal(flat_map$spectra, tiny_map$spectra) |> isTRUE())
   expect_equal(flat_map$spectra[1:20], tiny_map$spectra[1:20])
 
@@ -51,6 +60,8 @@ test_that("flatten_range() function test", {
 test_that("flatten_range() error handling", {
   test <- as_OpenSpecy(x = 1:10, spectra = data.table(V1 = 1:10))
 
+  expect_true(check_OpenSpecy(test))
+  
   expect_error(flatten_range(test))
   expect_error(flatten_range(test, min = c(1000),
                              max = c(2000, 3000)))

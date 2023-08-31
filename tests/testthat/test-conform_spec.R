@@ -27,16 +27,26 @@ test_that("conform_spec() handles errors correctly", {
 })
 
 test_that("conform_spec() conforms wavenumbers correctly", {
-  sam <- as_OpenSpecy(wn <- seq(1000, 2000, 5),
+  wn <- seq(1000, 2000, 5)
+  sam <- as_OpenSpecy(x = wn,
                       data.table(intensity = rnorm(length(wn))))
+  expect_true(check_OpenSpecy(sam))
+  
   new_wavenumbers <- c(1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900)
   wider_wavenumbers <- seq(800, 2500, by = 100)
   conf_new <- conform_spec(sam, new_wavenumbers) |>
     expect_silent()
+  expect_true(check_OpenSpecy(conf_new))
+  
   conf_roll <- conform_spec(sam, new_wavenumbers,res = NULL, type = "roll") |>
     expect_silent()
-  conf_wider <- conform_spec(sam, wider_wavenumbers, res = NULL) |>
+  expect_true(check_OpenSpecy(conf_roll))
+  
+  conf_wider <- conform_spec(x = sam,range = wider_wavenumbers, res = NULL) |>
       expect_silent()
+  
+  expect_true(check_OpenSpecy(conf_wider))
+  
 
   expect_equal(length(conf_new$wavenumber), length(conf_new$spectra[[1]]))
   expect_equal(range(conf_new$wavenumber), range(new_wavenumbers))
