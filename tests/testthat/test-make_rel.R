@@ -14,6 +14,7 @@ test_that("make_rel() give correct output with OpenSpecy objects", {
     data("raman_hdpe")
     expect_silent(rel <- make_rel(raman_hdpe))
     expect_s3_class(rel, "OpenSpecy")
+    expect_true(check_OpenSpecy(rel))
     expect_equal(range(rel$spectra), c(0, 1))
     expect_true(check_OpenSpecy(rel))
 })

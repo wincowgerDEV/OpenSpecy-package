@@ -303,7 +303,7 @@ read_jdx <- function(file, share = NULL,
                        other_info = NULL,
                        license = "CC BY-NC"),
                      ...) {
-  jdx <- read.jdx(file, ...)
+  jdx <- read.jdx(file, encoding = 'latin1')
 
   x <- jdx@wavelength
   y <- as.numeric(unname(jdx@data$spc[1,]))

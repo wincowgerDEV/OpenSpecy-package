@@ -9,6 +9,7 @@ test_that("ENVI files are read", {
     expect_message() |> expect_warning()
 
   expect_s3_class(tiny_map, "OpenSpecy")
+  expect_true(check_OpenSpecy(tiny_map))
 
   expect_equal(ncol(tiny_map$spectra), 208)
   expect_length(tiny_map$wavenumber, 427)

@@ -38,6 +38,10 @@ test_that("read_spec() gives expected output", {
   expect_s3_class(yml, "OpenSpecy")
   expect_s3_class(jsn, "OpenSpecy")
   expect_s3_class(rds, "OpenSpecy")
+  expect_true(check_OpenSpecy(yml))
+  expect_true(check_OpenSpecy(jsn))
+  expect_true(check_OpenSpecy(rds))
+  
 
   jsn$metadata$file_name <- yml$metadata$file_name <-
     rds$metadata$file_name <- NULL

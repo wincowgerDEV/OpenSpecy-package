@@ -56,6 +56,7 @@ test_that("load_lib() works as expected", {
 
   tl <- load_lib(type = "test", path = tmp) |>
     expect_silent()
+  expect_true(check_OpenSpecy(tl))
   expect_type(tl, "list")
   expect_s3_class(tl, "OpenSpecy")
   expect_identical(tl, test_lib, ignore_attr = T)
