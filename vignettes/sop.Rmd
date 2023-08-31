@@ -591,7 +591,7 @@ Reference libraries are spectra with known identities. The Open Specy library no
 
 ```{r eval=F}
 get_lib() 
-get_lib(type = "derivative", path = "test")
+get_lib(type = "derivative", path = "your/path")
 ```
 
 After download the libraries you can load them into your active environment. You should load them one at a time. Libraries are also `OpenSpecy` objects so you can use any Open Specy object as a library. 
@@ -614,51 +614,38 @@ processed <- process_spec(x = raman_hdpe,
                                                    type = "interp"
                                                    ))
 
+print(sig_noise(processed) > 10) #Check to make sure that the signal to noise ratio of the processed spectra is greater than 10.
 plotly_spec(raman_hdpe, processed)
 ```
+After your spectra is processed similarly to the library specifications, you can identify the spectra using `match_spec()`. The `add_library_metadata` and `add_object_metadata` options specify the column name in the metadata that you want to add metadata from and `top_n` specifies how many matches you want. In this example we just identified a single spectrum with the library but you can also send an OpenSpecy object with multiple spectra. The output `matches` is a data.table with at least 3 columns, `object_id` tells you the column names of the spectra in `x`, `library_id` tells you the column names from the library that it matched to. `match_val` is the value of the Pearson correlation coefficient (default) or other correlation if specified in `...` or if using the model identification option `match_val` will be the model confidence. The output in this example returned the correct material type, HDPE, as the top match. If using Pearson correlation, 0.7 is a good threshold to use for a positive ID. In this example, only our top match is greater than the threshold so we would disregard the other matches. If no matches were above our threshold, we would proclaim that the spectrum is of an unknown identity. You'll also notice in this example that we matched to a library with both Raman and FTIR spectra but the Raman spectra had the highest hits, this is the rationale for lazily matching to a library with both. If you want to just match to a library with FTIR or Raman spectra, you can first filter the library using `filter_spec()` using `SpectrumType`. 
 
 ```{r}
-test <- match_spec(processed, test_lib, add_object_metadata = "col_id",
-                   add_library_metadata = "sample_name")
+matches <- match_spec(x = processed, library = test_lib,
+                   add_library_metadata = "sample_name", top_n = 5)
+print(matches[,c("object_id", "library_id", "match_val", "SpectrumType", "SpectrumIdentity")])
 ```
 
-## Selection Metadata
+## Library Metadata
 
-```{r, fig.align="center", out.width="98%", echo=FALSE}
-knitr::include_graphics("sop/selectionmetadata.jpg")
+The libraries we have created have over 100 variables of metadata in them and this can be onerous to read through especially given that many of the variables are `NA` values. We created `get_metadata()` to remedy this by removing columns from the metadata which are all blank values. The function below will return the metadata for the top match in `matches`. Remember, similar `filter_spec()`, you can specify `logic` for more than one thing at a time. 
+
+```{r}
+get_metadata(x = lib, logic = matches[[1,"library_id"]], rm_empty = T)
 ```
 
-Whatever match is selected from the match table may have additional metadata
-about it. That metadata will be displayed below the plot. Some of this metadata
-may assist you in interpreting the spectra. For example, if the spectra has
-metadata which says it is a liquid and you are analyzing a solid particle, that
-spectrum may not be the best match.
+## Plot Matches
 
-The R command for manual metadata selection using `sample_name == 5381` as
-example is:
+Overlaying unknown spectra and the best matches can be extremely useful to identify peaks that don't fit to the reference library which may need further investigation. The example below shows great correspondence between the best match and the unknown spectrum. All major peaks are accounted for and the correct relative height. There are two small peaks in the unknown spectrum near 500 that are not accounted for which could be investigated further but we would call this a positive id to HDPE. 
 
-```{r, eval=FALSE}
-find_spec(sample_name == 5381, library = spec_lib, which = "raman")
+```{r}
+plotly_spec(processed, filter_spec(lib, logic = matches[[1,"library_id"]]))
 ```
-
-## Match Plot
-
-```{r, fig.align="center", echo=FALSE}
-knitr::include_graphics("sop/matchplot.png")
-```
-
-This plot is dynamically updated by selecting matches from the match table. The
-red spectrum is the spectrum that you selected from the reference library and
-the white spectrum is the spectrum that you are trying to identify. Whenever a
-new dataset is uploaded, the plot and data table in this tab will be updated.
-These plots can be saved as a .png by clicking the camera button at the top of
-the plot.
 
 ## Sharing Reference Data
 
 If you have reference data or AI models that you think would be useful for
 sharing with the spectroscopy community through OpenSpecy please contact the
-website administrator to discuss options for collaborating.
+package administrator to discuss options for collaborating.
 
 # Characterizing Particles
 
