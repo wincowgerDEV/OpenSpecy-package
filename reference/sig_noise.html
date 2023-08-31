@@ -27,7 +27,8 @@ objects."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/ma
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a>
-    <a class="dropdown-item" href="../articles/sop.html">Open Specy Tutorial</a>
+    <a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a>
+    <a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a>
     <a class="dropdown-item" href="../articles/spectragryph.html">File conversion in SpectraGryph</a>
   </div>
 </li>
@@ -68,7 +69,7 @@ objects.</p>
 <span><span class="fu">sig_noise</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for OpenSpecy</span></span>
-<span><span class="fu">sig_noise</span><span class="op">(</span><span class="va">x</span>, metric <span class="op">=</span> <span class="st">"sig_over_noise"</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">sig_noise</span><span class="op">(</span><span class="va">x</span>, metric <span class="op">=</span> <span class="st">"run_sig_over_noise"</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -82,8 +83,11 @@ objects.</p>
 Options include <code>"sig"</code> (mean intensity), <code>"noise"</code> (standard
 deviation of intensity), <code>"sig_times_noise"</code> (absolute value of
 signal times noise), <code>"sig_over_noise"</code> (absolute value of signal /
-noise), or <code>"tot_sig"</code> (total signal = signal * number of data
-points).</p></dd>
+noise), <code>"run_sig_over_noise"</code> (absolute value of signal /
+noise where signal is estimated as the max intensity and noise is
+estimated as the height of a low intensity region.),
+<code>"log_tot_sig"</code> (sum of the inverse log intensities, useful for spectra  in log units),
+or <code>"tot_sig"</code> (sum of intensities).</p></dd>
 
 
 <dt>na.rm</dt>
@@ -124,7 +128,7 @@ when calculating signal and noise. Default is <code>TRUE</code>.</p></dd>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova.</p>
+  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova, National Renewable Energy Laboratory, Possibility Lab.</p>
 </div>
 
 <div class="pkgdown-footer-right">

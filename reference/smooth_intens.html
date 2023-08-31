@@ -29,7 +29,8 @@ specified."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a>
-    <a class="dropdown-item" href="../articles/sop.html">Open Specy Tutorial</a>
+    <a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a>
+    <a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a>
     <a class="dropdown-item" href="../articles/spectragryph.html">File conversion in SpectraGryph</a>
   </div>
 </li>
@@ -75,8 +76,8 @@ specified.</p>
 <span>  <span class="va">x</span>,</span>
 <span>  polynomial <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  window <span class="op">=</span> <span class="fl">11</span>,</span>
-<span>  derivative <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  abs <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  derivative <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  abs <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  make_rel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -109,7 +110,7 @@ resulting output.</p></dd>
 
 <dt>make_rel</dt>
 <dd><p>logical; if <code>TRUE</code> spectra are automatically normalized
-with <code><a href="data_norm.html">make_rel</a>()</code>.</p></dd>
+with <code><a href="make_rel.html">make_rel</a>()</code>.</p></dd>
 
 
 <dt>...</dt>
@@ -149,18 +150,18 @@ Simplified Least Squares Procedures.” <em>Analytical Chemistry</em>,
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"raman_hdpe"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">smooth_intens</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber  intensity</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040 0.00000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632 0.01568318</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221 0.02461353</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4:    311.810 0.02828915</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5:    315.398 0.02820811</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 960:   3187.990 0.07476313</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 961:   3190.520 0.07397773</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 962:   3193.060 0.07257314</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 963:   3195.590 0.07030003</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120 0.06690908</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber   intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040 0.102500885</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632 0.063171177</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221 0.031695428</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4:    311.810 0.008073638</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5:    315.398 0.007614310</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 960:   3187.990 0.002890315</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 961:   3190.520 0.005482884</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 962:   3193.060 0.009382631</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 963:   3195.590 0.014589555</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120 0.021103657</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    x y  user_name spectrum_type spectrum_identity      organization  license</span>
@@ -177,7 +178,7 @@ Simplified Least Squares Procedures.” <em>Analytical Chemistry</em>,
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova.</p>
+  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova, National Renewable Energy Laboratory, Possibility Lab.</p>
 </div>
 
 <div class="pkgdown-footer-right">

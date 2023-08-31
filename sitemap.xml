@@ -10,6 +10,9 @@
     <loc>http://wincowger.com/OpenSpecy-package/articles/advanced.html</loc>
   </url>
   <url>
+    <loc>http://wincowger.com/OpenSpecy-package/articles/app.html</loc>
+  </url>
+  <url>
     <loc>http://wincowger.com/OpenSpecy-package/articles/index.html</loc>
   </url>
   <url>
@@ -62,6 +65,9 @@
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/io_spec.html</loc>
+  </url>
+  <url>
+    <loc>http://wincowger.com/OpenSpecy-package/reference/make_rel.html</loc>
   </url>
   <url>
     <loc>http://wincowger.com/OpenSpecy-package/reference/manage_lib.html</loc>

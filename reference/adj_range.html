@@ -37,7 +37,8 @@ values in order."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a>
-    <a class="dropdown-item" href="../articles/sop.html">Open Specy Tutorial</a>
+    <a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a>
+    <a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a>
     <a class="dropdown-item" href="../articles/spectragryph.html">File conversion in SpectraGryph</a>
   </div>
 </li>
@@ -110,7 +111,7 @@ values in order.</p>
 
 <dt>make_rel</dt>
 <dd><p>logical; should the output intensities be normalized to the
-range [0, 1] using <code><a href="data_norm.html">make_rel()</a></code> function?</p></dd>
+range [0, 1] using <code><a href="make_rel.html">make_rel()</a></code> function?</p></dd>
 
 
 <dt>...</dt>
@@ -146,21 +147,21 @@ a reference library;
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">restrict_range</span><span class="op">(</span><span class="va">test_noise</span>, min <span class="op">=</span> <span class="fl">1000</span>, max <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1:       1000 0.6805164</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2:       1010 0.3225405</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3:       1020 0.5251319</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4:       1030 0.5137247</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5:       1040 0.2542153</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1:       1000 0.2896889</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2:       1010 0.2864103</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3:       1020 0.1748792</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4:       1030 0.3833335</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5:       1040 0.3475808</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  ---                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  97:       1960 0.4621810</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  98:       1970 0.4069814</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  99:       1980 0.2023462</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 100:       1990 0.5381650</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 101:       2000 0.6345220</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  97:       1960 0.2122285</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  98:       1970 0.5972370</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  99:       1980 0.7174401</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 100:       1990 0.4900982</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 101:       2000 0.0000000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    x y  license                          file_id    col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 CC BY-NC 36201570c642b179539d1dd0f4ab12c4 intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 CC BY-NC 80a08efca019bfd62ae41ff366e936fc intensity</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">flattened_intensities</span> <span class="op">&lt;-</span> <span class="fu">flatten_range</span><span class="op">(</span><span class="va">test_noise</span>, min <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">2000</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                                       max <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1500</span>, <span class="fl">2500</span><span class="op">)</span><span class="op">)</span></span></span>
@@ -174,7 +175,7 @@ a reference library;
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova.</p>
+  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova, National Renewable Energy Laboratory, Possibility Lab.</p>
 </div>
 
 <div class="pkgdown-footer-right">

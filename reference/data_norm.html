@@ -41,7 +41,8 @@ computation proceeds."><!-- mathjax --><script src="https://cdnjs.cloudflare.com
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a>
-    <a class="dropdown-item" href="../articles/sop.html">Open Specy Tutorial</a>
+    <a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a>
+    <a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a>
     <a class="dropdown-item" href="../articles/spectragryph.html">File conversion in SpectraGryph</a>
   </div>
 </li>
@@ -75,7 +76,7 @@ wavenumbers in terms of their spectral resolution.
 <code>adj_neg()</code> converts numeric intensities <code>y</code> &lt; 1 into values &gt;= 1,
 keeping absolute differences between intensity values by shifting each value
 by the minimum intensity.
-<code>make_rel()</code> converts intensities <code>y</code> into relative values between
+<code><a href="make_rel.html">make_rel()</a></code> converts intensities <code>y</code> into relative values between
 0 and 1 using the standard normalization equation.
 If <code>na.rm</code> is <code>TRUE</code>, missing values are removed before the
 computation proceeds.</p>
@@ -88,8 +89,6 @@ computation proceeds.</p>
 <span><span class="fu">conform_res</span><span class="op">(</span><span class="va">x</span>, res <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">adj_neg</span><span class="op">(</span><span class="va">y</span>, na.rm <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">make_rel</span><span class="op">(</span><span class="va">y</span>, na.rm <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">mean_replace</span><span class="op">(</span><span class="va">y</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
@@ -127,7 +126,7 @@ to <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">round
 
 <p><code>adj_res()</code> and <code>conform_res()</code> return a numeric vector with
 resolution-conformed wavenumbers.
-<code>adj_neg()</code> and <code>make_rel()</code> return numeric vectors
+<code>adj_neg()</code> and <code><a href="make_rel.html">make_rel()</a></code> return numeric vectors
 with the normalized intensity data.</p>
     </div>
     <div class="section level2">
@@ -137,7 +136,7 @@ facilitate comparisons of spectra with different resolutions.
 <code>adj_neg()</code> is used to avoid errors that could arise from log
 transforming spectra when using <code><a href="adj_intens.html">adj_intens</a>()</code> and other
 functions.
-<code>make_rel()</code> is used to retain the relative height proportions between
+<code><a href="make_rel.html">make_rel()</a></code> is used to retain the relative height proportions between
 spectra while avoiding the large numbers that can result from some spectral
 instruments.</p>
     </div>
@@ -265,7 +264,7 @@ instruments.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [691] 3950 3955 3960 3965 3970 3975 3980 3985 3990 3995 4000</span>
 <span class="r-in"><span><span class="fu">adj_neg</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1000</span>, <span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1]    1 1000 1001 1002 1011</span>
-<span class="r-in"><span><span class="fu">make_rel</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1000</span>, <span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="make_rel.html">make_rel</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1000</span>, <span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.0000000 0.9891089 0.9900990 0.9910891 1.0000000</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
@@ -275,7 +274,7 @@ instruments.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova.</p>
+  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova, National Renewable Energy Laboratory, Possibility Lab.</p>
 </div>
 
 <div class="pkgdown-footer-right">

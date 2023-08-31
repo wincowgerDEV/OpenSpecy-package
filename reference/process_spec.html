@@ -27,7 +27,8 @@ preprocessing steps."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a>
-    <a class="dropdown-item" href="../articles/sop.html">Open Specy Tutorial</a>
+    <a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a>
+    <a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a>
     <a class="dropdown-item" href="../articles/spectragryph.html">File conversion in SpectraGryph</a>
   </div>
 </li>
@@ -85,6 +86,7 @@ preprocessing steps.</p>
 <span>  smooth_intens <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  smooth_intens_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>polynomial <span class="op">=</span> <span class="fl">3</span>, window <span class="op">=</span> <span class="fl">11</span>, derivative <span class="op">=</span> <span class="fl">1</span>, abs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  make_rel <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  make_rel_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -162,7 +164,16 @@ to the spectra.</p></dd>
 
 <dt>make_rel</dt>
 <dd><p>logical; if <code>TRUE</code> spectra are automatically normalized
-with <code><a href="data_norm.html">make_rel</a>()</code>.</p></dd>
+with <code><a href="make_rel.html">make_rel</a>()</code>.</p></dd>
+
+
+<dt>make_rel_args</dt>
+<dd><p>named list of arguments passed to
+<code><a href="make_rel.html">make_rel</a>()</code>.</p></dd>
+
+
+<dt>na.rm</dt>
+<dd><p>Whether to allow NA or set all NA values to</p></dd>
 
 
 <dt>...</dt>
@@ -210,7 +221,7 @@ spectra based on the specified parameters.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova.</p>
+  <p></p><p>Developed by Win Cowger, Zacharias Steinmetz, Nick Leong, Andrea Faltynkova, National Renewable Energy Laboratory, Possibility Lab.</p>
 </div>
 
 <div class="pkgdown-footer-right">
