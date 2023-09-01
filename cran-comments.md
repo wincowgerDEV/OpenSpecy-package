@@ -16,14 +16,13 @@
 ## Comments
 
     Possibly misspelled words in DESCRIPTION:
-      preprocessing (46:5)
-      wavenumber (47:62)
+      wavenumber (50:62)
 
 Both words are spelled correctly.
 
      installed size is  6.1Mb
      sub-directories of 1Mb or more:
-       doc   4.6Mb
+       doc   4.5Mb
 
 We tried to reduce the vignette size as much as possible but would like to keep
 the current number of figures for better comprehensibility.
