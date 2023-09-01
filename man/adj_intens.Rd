@@ -38,7 +38,7 @@ Many of the Open Specy functions will assume that the spectrum is in
 absorbance units. For example, see \code{\link{subtr_baseline}()}.
 To run those functions properly, you will need to first convert any spectra
 from transmittance or reflectance to absorbance using this function.
-The transmittance adjustment uses the \eqn{log10(1 / T)}
+The transmittance adjustment uses the \eqn{log(1 / T)}
 calculation which does not correct for system and particle characteristics.
 The reflectance adjustment uses the Kubelka-Munk equation
 \eqn{(1 - R)^2 / 2R}. We assume that the reflectance intensity

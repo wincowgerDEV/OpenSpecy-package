@@ -92,7 +92,7 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
               y = ~intensity,
               split = ~id, 
               line = line,
-              name = "Your Spectra", 
+              name = "x1", 
               showlegend = F) |>
     layout(xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                         autorange = "reversed"),
@@ -105,7 +105,7 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
   # Add dummy trace for Your Spectra
   p <- p |>
     add_trace(x = NULL, y = NULL,
-              line = line, name = "Your Spectra", showlegend = T)
+              line = line, name = "x1", showlegend = T)
 
   if (!is.null(x2)) {
     x2 <- make_rel(x2, na.rm = T)
@@ -115,14 +115,14 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
     p <- p |>
       add_trace(data = dt2, x = ~wavenumber, y = ~intensity,
                 split = ~id, type = "scatter", mode = "lines",
-                name = "Library Spectra",
+                name = "x2",
                 line = line2, showlegend = F)
 
     # Add dummy trace for Library Spectra
     p <- p |>
       add_trace(x = NULL, y = NULL,
                 line = line2,
-                name = "Library Spectra", showlegend = T)
+                name = "x2", showlegend = T)
   }
 
   return(p)

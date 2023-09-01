@@ -76,15 +76,6 @@ adj_neg <- function(y, na.rm = FALSE) {
 }
 
 #' @rdname data_norm
-#'
-#' @export
-make_rel <- function(y, na.rm = FALSE) {
-  r <- range(y, na.rm = na.rm)
-
-  (y - r[1]) / (r[2] - r[1])
-}
-
-#' @rdname data_norm
 #' @importFrom data.table fifelse
 #'
 #' @export

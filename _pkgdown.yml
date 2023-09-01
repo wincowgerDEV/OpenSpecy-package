@@ -3,3 +3,11 @@ template:
   bootstrap: 5
 development:
   mode: auto
+articles:
+- title: Articles
+  navbar: ~
+  contents:
+  - app
+  - sop
+  - advanced
+  - spectragryph

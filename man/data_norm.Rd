@@ -4,7 +4,6 @@
 \alias{adj_res}
 \alias{conform_res}
 \alias{adj_neg}
-\alias{make_rel}
 \alias{mean_replace}
 \alias{is_empty_vector}
 \title{Normalization and conversion of spectral data}
@@ -14,8 +13,6 @@ adj_res(x, res = 1, fun = round)
 conform_res(x, res = 5)
 
 adj_neg(y, na.rm = FALSE)
-
-make_rel(y, na.rm = FALSE)
 
 mean_replace(y, na.rm = TRUE)
 

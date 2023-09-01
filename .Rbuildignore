@@ -8,9 +8,11 @@
 ^Meta$
 ^cran-comments\.md$
 ^CRAN-RELEASE$
+^CRAN-SUBMISSION$
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
 ^codecov\.yml$
-^vignettes/spectragryph.*
 ^vignettes/advanced.*
+^vignettes/app.*
+^vignettes/spectragryph.*

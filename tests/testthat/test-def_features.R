@@ -1,8 +1,17 @@
 map <- read_extdata("CA_tiny_map.zip") |> read_any()
 
+test_that("def_features() handles input errors correctly", {
+  def_features(1:1000) |> expect_error()
+})
+
+test_that("collapse_spec() handles input errors correctly", {
+  collapse_spec(1:1000) |> expect_error()
+})
+
 test_that("features are identified when given logical", {
   map$metadata$particles <- map$metadata$y == 0
   id_map <- def_features(map, map$metadata$particles)
+  expect_true(check_OpenSpecy(id_map))
   expect_length(unique(id_map$metadata$feature_id), 2)
   expect_equal(max(id_map$metadata$area, na.rm = T), 13)
   expect_equal(max(id_map$metadata$feret_max, na.rm = T), 13)
@@ -13,6 +22,7 @@ test_that("features are identified when given logical", {
 test_that("particles are identified when given character", {
   map$metadata$particles <- ifelse(map$metadata$y == 1, "particle", "not_particle")
   id_map <- def_features(map, map$metadata$particles)
+  expect_true(check_OpenSpecy(id_map))
   expect_length(unique(id_map$metadata$feature_id), 3)
   expect_equal(max(id_map$metadata$area, na.rm = T), 182)
   expect_equal(round(max(id_map$metadata$feret_max, na.rm = T)), 19)
@@ -38,6 +48,8 @@ test_that("the original spectrum remains unmodified and metadata is amended", {
   id_map <- def_features(map,ifelse(map$metadata$x == 1,
                                     "particle", "not_particle"))
 
+  expect_true(check_OpenSpecy(id_map))
+
   expect_equal(id_map$wavenumber, map$wavenumber)
   expect_equal(id_map$spectra, map$spectra)
   expect_contains(id_map$metadata, map$metadata)
@@ -50,7 +62,11 @@ test_that("the original spectrum remains unmodified and metadata is amended", {
 test_that("collapse particles returns expected values", {
   particles <- ifelse(map$metadata$y == 1, "particleA", "particleB")
   id_map <- def_features(map, particles)
+  expect_true(check_OpenSpecy(id_map))
+
   test_collapsed <- collapse_spec(id_map)
+
+  expect_true(check_OpenSpecy(test_collapsed))
 
   expect_equal(test_collapsed$metadata |> nrow(), 3)
   expect_equal(test_collapsed$metadata$feret_max |> round(2), c(13, 13, 18.69))
@@ -58,7 +74,10 @@ test_that("collapse particles returns expected values", {
 
   particles <- map$metadata$y == 1
   id_map <- def_features(map, particles)
+  expect_true(check_OpenSpecy(id_map))
+
   test_collapsed <- collapse_spec(id_map)
+  expect_true(check_OpenSpecy(test_collapsed))
 
   expect_equal(test_collapsed$metadata |> nrow(), 2)
   expect_equal(test_collapsed$metadata$feret_max |> round(2), c(NA, 13))

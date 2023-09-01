@@ -5,8 +5,10 @@ dir.create(tmp, showWarnings = F)
 test_that("opus files are read correctly", {
   single <- read_extdata("ftir_ps.0") |> read_opus() |>
     expect_silent()
+
   multi <- c(read_extdata("ftir_ps.0"), read_extdata("ftir_ps.0")) |>
     read_opus() |> expect_silent()
+
   read_extdata("raman_hdpe.csv") |> read_opus() |>
     expect_error()
   read_extdata("ftir_ps.0") |> read_opus(share = tmp) |> expect_message() |>
@@ -14,6 +16,8 @@ test_that("opus files are read correctly", {
 
   expect_s3_class(single, "OpenSpecy")
   expect_s3_class(multi, "OpenSpecy")
+  expect_true(check_OpenSpecy(single))
+  expect_true(check_OpenSpecy(multi))
 
   expect_equal(names(single), c("wavenumber", "spectra", "metadata"))
   expect_equal(names(multi), c("wavenumber", "spectra", "metadata"))

@@ -60,7 +60,7 @@ smooth_intens.default <- function(x, ...) {
 #'
 #' @export
 smooth_intens.OpenSpecy <- function(x, polynomial = 3, window = 11,
-                                    derivative = 0, abs = FALSE,
+                                    derivative = 1, abs = TRUE,
                                     make_rel = TRUE, ...) {
   filt <- x$spectra[, lapply(.SD, .sgfilt, p = polynomial, n = window,
                              m = derivative, abs = abs, ...)]
