@@ -296,7 +296,7 @@ plot(combined_spectra)
 
 ```
 
-If you have different wavenumber ranges for the spectra you want to combibne,
+If you have different wavenumber ranges for the spectra you want to combine,
 you can set  `range = "common"` and `res` equal to the wavenumber resolution you
 want and the function will collapse all the spectra to whatever their common
 range is using linear interpolation.

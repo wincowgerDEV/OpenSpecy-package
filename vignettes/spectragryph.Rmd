@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 ```
 
 [Spectragryph](https://www.effemm2.de/spectragryph/) supports many spectral file
-conversions which faciliate data import to Open Specy.
+conversions which facilitate data import to Open Specy.
 
 1. Download Spectragryph from
 [https://www.effemm2.de/spectragryph/down.html](https://www.effemm2.de/spectragryph/down.html)

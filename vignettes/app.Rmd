@@ -273,8 +273,8 @@ remove the regions from the analysis because you believe those regions should be
 flat instead of having a peak. One way to deal with this is to replace the peak
 values with the mean of the values around the peak. This is the purpose of the
 Flatten Range. By default it is set to flatten the CO2 region for
-FTIR spectra because that region often needs to be flattened when atmouspheric
-artefacts occur in spectra. 
+FTIR spectra because that region often needs to be flattened when atmospheric
+artifacts occur in spectra. 
 
 ## Min-Max Normalization
 
@@ -287,7 +287,9 @@ analysis.
 
 ## Downloading Processed Data
 
-You can download a csv file of your processed data using the Your Spectra option with download. This will download a version of your spectra with whatever processing options you have selected at the time. 
+You can download a csv file of your processed data using the Your Spectra option
+with download. This will download a version of your spectra with whatever
+processing options you have selected at the time.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download_yourspec.jpg")
@@ -306,15 +308,16 @@ to explore the library by itself.
 
 ## Reading Libraries
 
-These options define the strategy for identification. The **ID Library** will inform
-which library is used. Both (default) will search both FTIR and Raman libraries.
-Deriv will search against a derivative transformed library. No Baseline will
-search against a baseline corrected library. This should be in line with how you
-choose to process your spectra. Cor options use a simple Pearson correlation
-search algorithm. AI is currently experimental and uses either a multinomial
-model or correlation on mediod spectra from the library. Correlation
-thresholding will set the minimum value from matching to use as a 'positive
-identification' this will black out pixels in a spectral map view if they are lower than the threshold. 
+These options define the strategy for identification. The **ID Library** will
+inform which library is used. Both (default) will search both FTIR and Raman
+libraries. Deriv will search against a derivative transformed library. No
+Baseline will search against a baseline corrected library. This should be in
+line with how you choose to process your spectra. Cor options use a simple
+Pearson correlation search algorithm. AI is currently experimental and uses
+either a multinomial model or correlation on mediod spectra from the library.
+Correlation thresholding will set the minimum value from matching to use as a
+'positive identification' this will black out pixels in a spectral map view if
+they are lower than the threshold.
 
 ## Matches
 
@@ -372,7 +375,13 @@ knitr::include_graphics("app/download.jpg")
 knitr::include_graphics("app/download_threshold.jpg")
 ```
 
-Thresholding only works and shouldn't be used for single particles. You can threshold spectral maps using the signal-noise values and/or the correlation threshold. Whatever selection you have active will inform how your spectra is thresholded. It should get thresholded in coincidence with what you see on the spectral map. Pro tip: The file that gets downloaded is an OpenSpecy with median spectra for each of your thresholded particles. You can upload that back to the app and analyze that independently. 
+Thresholding only works and shouldn't be used for single particles. You can
+threshold spectral maps using the signal-noise values and/or the correlation
+threshold. Whatever selection you have active will inform how your spectra is
+thresholded. It should get thresholded in coincidence with what you see on the
+spectral map. Pro tip: The file that gets downloaded is an OpenSpecy with median
+spectra for each of your thresholded particles. You can upload that back to the
+app and analyze that independently.
 
 ## Additional App Features
 
