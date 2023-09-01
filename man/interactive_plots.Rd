@@ -22,7 +22,7 @@ plotly_spec(x, ...)
   line = list(color = "rgb(255, 255, 255)"),
   line2 = list(dash = "dot", color = "rgb(255,0,0)"),
   font = list(color = "#FFFFFF"),
-  plot_bgcolor = "rgb(17, 0, 73)",
+  plot_bgcolor = "rgba(17, 0, 73, 0)",
   paper_bgcolor = "rgb(0, 0, 0)",
   ...
 )
