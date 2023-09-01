@@ -80,8 +80,9 @@ test_that("cor_spec() returns a data.table with correct columns", {
   preproc2 <- preproc
   preproc2$wavenumber[1:3] <- preproc2$wavenumber[1:3] + 1
 
-  matches2 <- cor_spec(preproc2, library =  test_lib) |>
+  cor_spec(preproc2, library =  test_lib) |>
     expect_warning()
+
   inherits(matches, "matrix") |> expect_true()
   expect_identical(dim(matches), c(ncol(test_lib$spectra),
                                    ncol(preproc$spectra)))

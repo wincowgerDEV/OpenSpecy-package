@@ -122,10 +122,6 @@ data("raman_hdpe")
 tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
 plotly_spec(raman_hdpe)
 
-correlation <- cor_spec(
-  conform_spec(raman_hdpe, range = raman_hdpe$wavenumber, res = 5),
-  conform_spec(tiny_map, tiny_map$wavenumbers, res = 5)
-)
 heatmap_spec(tiny_map, z = tiny_map$metadata$y)
 
 sample_spec(tiny_map, size = 12) |>

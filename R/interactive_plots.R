@@ -45,10 +45,6 @@
 #' tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
 #' plotly_spec(raman_hdpe)
 #'
-#' correlation <- cor_spec(
-#'   conform_spec(raman_hdpe, range = raman_hdpe$wavenumber, res = 5),
-#'   conform_spec(tiny_map, tiny_map$wavenumbers, res = 5)
-#' )
 #' heatmap_spec(tiny_map, z = tiny_map$metadata$y)
 #'
 #' sample_spec(tiny_map, size = 12) |>
@@ -77,7 +73,7 @@ plotly_spec.default <- function(x, ...) {
 #' @export
 plotly_spec.OpenSpecy <- function(x, x2 = NULL,
                                   line = list(color = 'rgb(255, 255, 255)'),
-                                  line2 = list(dash = "dot", 
+                                  line2 = list(dash = "dot",
                                                color = "rgb(255,0,0)"),
                                   font = list(color = '#FFFFFF'),
                                   plot_bgcolor = 'rgb(17, 0, 73)',
@@ -205,7 +201,7 @@ interactive_plot.default <- function(x, ...) {
 #' @export
 interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                                        line = list(color = 'rgb(255, 255, 255)'),
-                                       line2 = list(dash = "dot", 
+                                       line2 = list(dash = "dot",
                                                     color = "rgb(255,0,0)"),
                                        font = list(color = '#FFFFFF'),
                                        plot_bgcolor = 'rgba(17, 0, 73, 0)',
@@ -217,7 +213,7 @@ interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                            font = font, plot_bgcolor = plot_bgcolor,
                            paper_bgcolor = paper_bgcolor,
                            colorscale = colorscale)
-  
+
   x3 <- filter_spec(x, logic = select)
 
   # Generate the spectral plot

@@ -49,18 +49,9 @@ It also updates the metadata with centroid coordinates, while preserving the
 feature information on area and Feret max.
 }
 \examples{
-# Logical input
-map <- read_extdata("CA_tiny_map.zip") |> read_any()
-map$metadata$features <- map$metadata$x == 0
-identified_map <- def_features(map, map$metadata$features)
-test_collapsed <- collapse_spec(identified_map)
-
-# Character input
-map <- read_extdata("CA_tiny_map.zip") |> read_any()
-map$metadata$features <- ifelse(map$metadata$x == 1, "particle",
-                                "not_particle")
-identified_map <- def_features(map, map$metadata$features)
-test_collapsed <- collapse_spec(identified_map)
+tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()
+identified_map <- def_features(tiny_map, tiny_map$metadata$x == 0)
+collapse_spec(identified_map)
 
 }
 \author{
