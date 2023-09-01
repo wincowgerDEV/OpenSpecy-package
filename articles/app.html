@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.1</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -231,17 +231,17 @@ signal-noise threshold and/or the correlation threshold.</p>
 </h2>
 <p>The goal of this processing is to increase the signal to noise ratio
 (S/N) without distorting the shape or relative size of the peaks. After
-uploading data, you can preprocess the data using intensity adjustment,
+uploading data, you can process the data using intensity adjustment,
 baseline subtraction, smoothing, flattening, and range selection and
-save your preprocessed data. Once the process button is selected the
+save your processed data. Once the process button is selected the
 default processing will initiate. This is an absolute derivative
 transformation, it is kind of magic, it does something similar to
 smoothing, baseline subtraction, and intensity correction simultaneously
-and really quickly. By clicking preprocessing you should see the
-spectrum update with the processed spectra.</p>
-<p><img src="app/processing.jpg" width="210" style="display: block; margin: auto;">
-To view the raw data again, just deselect preprocessing. Toggling
-preprocessing on and off can help you to make sure that the spectra are
+and really quickly. By clicking processing you should see the spectrum
+update with the processed spectra.</p>
+<p><img src="app/processing.jpg" width="210" style="display: block; margin: auto;"></p>
+<p>To view the raw data again, just deselect processing. Toggling
+processing on and off can help you to make sure that the spectra are
 processed correctly.</p>
 <div class="section level3">
 <h3 id="threshold-signal-noise">Threshold Signal-Noise<a class="anchor" aria-label="anchor" href="#threshold-signal-noise"></a>
@@ -337,10 +337,10 @@ spectrum and, a baseline fit produces distortions, or there are regions
 of interest for analysis. Range selection accomplishes those goals. You
 should look into the signal to noise ratio of your specific instrument
 by wavelength to determine what wavelength ranges to use. Distortions
-due to baseline fit can be assessed from looking at the preprocess
-spectra. Additionally, you can restrict the range to examine a single
-peak or a subset of peaks of interests. The maximum and minimum
-wavenumbers will specify the range to keep in the app.</p>
+due to baseline fit can be assessed from looking at the process spectra.
+Additionally, you can restrict the range to examine a single peak or a
+subset of peaks of interests. The maximum and minimum wavenumbers will
+specify the range to keep in the app.</p>
 </div>
 <div class="section level3">
 <h3 id="flattening-ranges">Flattening Ranges<a class="anchor" aria-label="anchor" href="#flattening-ranges"></a>
@@ -380,7 +380,7 @@ time.</p>
 <h2 id="identifying-spectra">Identifying Spectra<a class="anchor" aria-label="anchor" href="#identifying-spectra"></a>
 </h2>
 <p><img src="app/identification.jpg" width="210" style="display: block; margin: auto;"></p>
-<p>After uploading data and preprocessing it (if desired) you can now
+<p>After uploading data and processing it (if desired) you can now
 identify the spectrum. To identify the spectrum go to the
 <strong>Identification</strong> box. Pro tip: if you select
 <strong>Identification</strong> without uploading data to the app,
