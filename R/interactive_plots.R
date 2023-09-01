@@ -224,8 +224,7 @@ interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                            paper_bgcolor = paper_bgcolor,
                            colorscale = colorscale)
   
-  x3 <- filter_spec(x, logic = select) |>
-      make_rel()
+  x3 <- filter_spec(x, logic = select)
 
   # Generate the spectral plot
   spectra_plot <- plotly_spec(x3, x2 = x2,
