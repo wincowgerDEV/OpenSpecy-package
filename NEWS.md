@@ -1,3 +1,11 @@
+# OpenSpecy 1.0.1
+
+## Bug Fixes
+
+- Fixed spelling mistakes
+- Reduced test run time for CRAN
+
+
 # OpenSpecy 1.0.0
 
 ## New Features
