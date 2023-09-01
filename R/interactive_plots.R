@@ -167,6 +167,9 @@ heatmap_spec.OpenSpecy <- function(x,
   if (!is.null(cor) && !is.null(min_cor))
     plot_z <- ifelse(cor > min_cor, plot_z, NA)
 
+  if(all(is.na(plot_z)))
+      plot_z = rep(-88, length.out = length(plot_z))
+  
   p <- plot_ly(...) |>
     add_trace(x = x$metadata$x, y = x$metadata$y, z = if(!is.numeric(plot_z)){as.numeric(as.factor(plot_z))} else{plot_z},
               colorscale = colorscale, type = "heatmap", hoverinfo = 'text',
