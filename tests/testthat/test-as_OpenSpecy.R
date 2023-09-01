@@ -1,14 +1,42 @@
 library(data.table)
 
+data("raman_hdpe")
 df <- read_extdata("raman_hdpe.csv") |> read.csv()
 
-test_that("as_OpenSpecy() generates OpenSpecy objects", {
-  expect_silent(as_OpenSpecy(df))
+test_that("as_OpenSpecy() handles errors correctly", {
+  as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity)) |> expect_silent()
+  as_OpenSpecy(df$wavenumber, df$intensity) |> expect_error()
+  as_OpenSpecy(df$wavenumber) |> expect_error()
+  as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity[-1])) |> expect_error()
+  as_OpenSpecy(df$wavenumber, data.table(intensity = df$intensity,
+                                         intensity = df$intensity)) |>
+    expect_error()
 
-  expect_silent(osf <- as_OpenSpecy(df))
-  expect_silent(ost <- data.table(df) |> as_OpenSpecy())
-  expect_silent(osl <- list(df$wavenumber, df[2]) |> as_OpenSpecy())
-  expect_silent(OpenSpecy(osf))
+  as_OpenSpecy(data.frame(x = df$wavenumber, abs = df$intensity)) |>
+    expect_warning()
+  as_OpenSpecy(data.frame(wav = df$wavenumber, y = df$intensity)) |>
+    expect_warning()
+
+  amb <- df
+  names(amb) <- c("a", "b")
+  as_OpenSpecy(amb) |> expect_warning() |> expect_warning()
+
+  as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity), coords = "") |>
+    expect_error()
+  as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity), coords = df) |>
+    expect_error()
+  as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity), metadata = "") |>
+    expect_error()
+})
+
+test_that("as_OpenSpecy() generates OpenSpecy objects", {
+  as_OpenSpecy(df) |> expect_silent()
+  as_OpenSpecy(raman_hdpe, session_id = T) |> expect_silent()
+
+  osf <- as_OpenSpecy(df) |> expect_silent()
+  ost <- data.table(df) |> as_OpenSpecy() |> expect_silent()
+  osl <- list(df$wavenumber, df[2]) |> as_OpenSpecy() |> expect_silent()
+  OpenSpecy(osf) |> expect_silent()
 
   expect_true(check_OpenSpecy(osf))
   expect_true(check_OpenSpecy(ost))
@@ -33,32 +61,9 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
   expect_false(is_OpenSpecy(df))
 })
 
-test_that("as_OpenSpecy() handles errors correctly", {
-  expect_silent(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity)))
-  expect_error(as_OpenSpecy(df$wavenumber, df$intensity))
-  expect_error(as_OpenSpecy(df$wavenumber))
-  expect_error(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity[-1])))
-  expect_error(as_OpenSpecy(df$wavenumber,
-                            data.table(intensity = df$intensity,
-                                       intensity = df$intensity)))
-
-  expect_warning(as_OpenSpecy(data.frame(x = df$wavenumber,
-                                         abs = df$intensity)))
-  expect_warning(as_OpenSpecy(data.frame(wav = df$wavenumber,
-                                         y = df$intensity)))
-
-  expect_error(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity),
-                            coords = ""))
-  expect_error(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity),
-                            coords = df))
-  expect_error(as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity),
-                            metadata = ""))
-})
-
 test_that("check_OpenSpecy() work as expected", {
   os <- as_OpenSpecy(df)
   check_OpenSpecy(os) |> expect_true()
-
   check_OpenSpecy(df) |> expect_error()
 
   osv <- osn <- oss <- ost <- osl <- os

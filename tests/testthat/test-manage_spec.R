@@ -1,7 +1,20 @@
 library(data.table)
 data("raman_hdpe")
 
-test_that("merging identical files without range specification", {
+specs <- lapply(c(read_extdata("raman_hdpe.yml"),
+                  read_extdata("ftir_ldpe_soil.asp")), read_any)
+no_overlap <- specs
+no_overlap[[1]] <- restrict_range(no_overlap[[1]], 300, 500)
+no_overlap[[2]] <- restrict_range(no_overlap[[2]], 700, 1000)
+
+test_that("c_spec() handles input errors correctly", {
+  c_spec(1:1000) |> expect_error()
+  c_spec(list(1:1000, 1000:2000)) |> expect_error()
+  c_spec(raman_hdpe) |> expect_warning()
+  c_spec(no_overlap) |> expect_error()
+})
+
+test_that("c_spec() merges identical files without range specification", {
   specs <- lapply(c(read_extdata("raman_hdpe.yml"),
                     read_extdata("raman_hdpe.yml")), read_spec)
   same <- c_spec(specs) |> expect_silent()
@@ -12,10 +25,7 @@ test_that("merging identical files without range specification", {
   expect_equal(same$spectra$intensity, raman_hdpe$spectra$intensity)
 })
 
-specs <- lapply(c(read_extdata("raman_hdpe.yml"),
-                  read_extdata("ftir_ldpe_soil.asp")), read_any)
-
-test_that("merging different files with common range", {
+test_that("c_spec() merges different files with common range", {
   diff <- c_spec(specs, range = "common", res = 5) |>
     expect_silent()
   expect_true(check_OpenSpecy(diff))
@@ -24,7 +34,7 @@ test_that("merging different files with common range", {
   diff$spectra$intensity.1[1:2] |> round(2) |> expect_equal(c(0.03, 0.03))
 })
 
-test_that("merging different files with specified range", {
+test_that("c_spec() merges different files with specified range", {
   spec <- c_spec(specs, range = c(1000, 2000), res = 5) |>
     expect_silent()
 
