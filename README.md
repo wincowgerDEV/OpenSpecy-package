@@ -18,7 +18,7 @@ environmental samples (Cowger et al. 2021, doi:
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123)).
 With `read_any()`, Open Specy provides a single function for reading individual,
 batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and
-.zip. `process_spec()` simplifies preprocessing spectra, including smoothing,
+.zip. `process_spec()` simplifies processing spectra, including smoothing,
 baseline correction, range restriction and flattening, intensity conversions,
 wavenumber alignment, and min-max normalization. 
 Spectra can be identified in batch using an onboard reference library

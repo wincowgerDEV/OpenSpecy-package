@@ -367,7 +367,7 @@ sample_spec(spectral_map,size = 10) |>
 
 The goal of this all processing is to increase the signal to noise ratio (S/N)
 of the spectra without distorting the shape, position, or relative size of the
-peaks. After loading data, you can preprocess the data using intensity
+peaks. After loading data, you can process the data using intensity
 adjustment, baseline subtraction, smoothing, flattening, and range selection.
 The default settings is an absolute derivative transformation, it is kind of
 magic, it does something similar to smoothing, baseline subtraction, and
@@ -580,7 +580,7 @@ and, a baseline fit produces distortions, or there are regions of interest for
 analysis. Range selection accomplishes those goals. You should look into the
 signal to noise ratio of your specific instrument by wavelength to determine
 what wavelength ranges to use. Distortions due to baseline fit can be assessed
-from looking at the preprocess spectra. Additionally, you can restrict the range
+from looking at the process spectra. Additionally, you can restrict the range
 to examine a single peak or a subset of peaks of interests. Multiple ranges can
 be specified simultaneously.
 

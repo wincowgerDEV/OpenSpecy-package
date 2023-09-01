@@ -1,13 +1,13 @@
 #' @rdname process_spec
-#' @title Preprocess Spectra
+#' @title Process Spectra
 #'
 #' @description
 #' \code{process_spec()} is a monolithic wrapper function for all spectral
-#' preprocessing steps.
+#' processing steps.
 #'
 #' @param x an \code{OpenSpecy} object.
-#' @param active logical; indicating whether to perform preprocessing.
-#' If \code{TRUE}, the preprocessing steps will be applied.
+#' @param active logical; indicating whether to perform processing.
+#' If \code{TRUE}, the processing steps will be applied.
 #' If \code{FALSE}, the original data will be returned.
 #' @param adj_intens logical; describing whether to adjust the intensity units.
 #' @param adj_intens_args named list of arguments passed to
@@ -40,7 +40,7 @@
 #' @param \ldots further arguments passed to subfunctions.
 #'
 #' @return
-#' \code{process_spec()} returns an \code{OpenSpecy} object with preprocessed
+#' \code{process_spec()} returns an \code{OpenSpecy} object with processed
 #' spectra based on the specified parameters.
 #'
 #' @examples
