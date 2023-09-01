@@ -39,7 +39,7 @@ you publish your results. The authors were kind enough to make their data open
 access so that it could be used in Open Specy and we should return the favor by
 citing them.
 
-# Pearson's R
+# Pearson's **r**
 
 Correlation values are used to identify the closest matches available in the
 current Open Specy spectral libraries to improve material identification and

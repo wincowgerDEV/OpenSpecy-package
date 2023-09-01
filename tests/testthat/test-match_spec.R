@@ -4,8 +4,9 @@ dir.create(tmp, showWarnings = F)
 
 data("test_lib")
 
-unknown <- read_extdata("ftir_ldpe_soil.asp") |> read_any() |>
-  conform_spec(range = test_lib$wavenumber, res = spec_res(test_lib)) |>
+unknown <- read_extdata("ftir_ldpe_soil.asp") |> read_any()
+preproc <- conform_spec(unknown, range = test_lib$wavenumber,
+                        res = spec_res(test_lib)) |>
   process_spec(smooth_intens = T, make_rel = T)
 
 # Create a subset of test_lib for filtering
@@ -30,7 +31,7 @@ test_that("match_spec() returns correct structure with AI", {
   rn <- runif(n = length(unique(lib$variables_in)))
   fill <- as_OpenSpecy(as.numeric(unique(lib$variables_in)),
                        spectra = data.frame(rn))
-  matches <- match_spec(x = unknown, library = lib, na.rm = T, fill = fill) |>
+  matches <- match_spec(x = preproc, library = lib, na.rm = T, fill = fill) |>
     expect_silent()
   nrow(matches) |> expect_equal(1)
   names(matches) |> expect_contains(c("x", "y", "z", "value", "name"))
@@ -44,9 +45,15 @@ test_that("match_spec() handles input errors correctly", {
 
 # Match_spec function
 test_that("match_spec() returns correct structure", {
-  matches <- match_spec(x = unknown, library = test_lib, na.rm = T, top_n = 5,
+  matches <- match_spec(x = preproc, library = test_lib, na.rm = T, top_n = 5,
                         add_library_metadata = "sample_name",
                         add_object_metadata = "col_id") |>
+    expect_silent()
+
+  order <- match_spec(x = preproc, library = test_lib, na.rm = T, top_n = 5,
+                      order = unknown,
+                      add_library_metadata = "sample_name",
+                      add_object_metadata = "col_id") |>
     expect_silent()
 
   nrow(matches) |> expect_equal(5)
@@ -56,6 +63,7 @@ test_that("match_spec() returns correct structure", {
     c("poly(ethylene)", "polystyrene", "poly(vinyl chloride)",
       "poly(dimethylsiloxane) (pdms)", NA)
   )
+  expect_equal(matches, order)
 })
 
 test_that("cor_spec() handles input errors correctly", {
@@ -66,17 +74,17 @@ test_that("cor_spec() handles input errors correctly", {
 
 # Write the tests for cor_spec function
 test_that("cor_spec() returns a data.table with correct columns", {
-  matches <- cor_spec(unknown, library = test_lib) |>
+  matches <- cor_spec(preproc, library = test_lib) |>
     expect_silent()
 
-  unknown2 <- unknown
-  unknown2$wavenumber[1:3] <- unknown2$wavenumber[1:3] + 1
+  preproc2 <- preproc
+  preproc2$wavenumber[1:3] <- preproc2$wavenumber[1:3] + 1
 
-  matches2 <- cor_spec(unknown2, library =  test_lib) |>
+  matches2 <- cor_spec(preproc2, library =  test_lib) |>
     expect_warning()
   inherits(matches, "matrix") |> expect_true()
   expect_identical(dim(matches), c(ncol(test_lib$spectra),
-                                   ncol(unknown$spectra)))
+                                   ncol(preproc$spectra)))
 
   top_matches <- max_cor_named(cor_matrix = matches, na.rm = T) |>
     expect_silent()
@@ -93,7 +101,7 @@ test_that("cor_spec() returns a data.table with correct columns", {
     expect_silent()
 
   expect_equal(nrow(test_metadata), 1)
-  full_test <- ident_spec(matches, unknown, library = test_lib, top_n = 5,
+  full_test <- ident_spec(matches, preproc, library = test_lib, top_n = 5,
                           add_library_metadata = "sample_name") |>
     expect_silent()
 
