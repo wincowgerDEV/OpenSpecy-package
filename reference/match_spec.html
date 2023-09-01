@@ -42,10 +42,10 @@ filter_spec() filters an Open Specy object."><!-- mathjax --><script src="https:
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a>
     <a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a>
     <a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a>
-    <a class="dropdown-item" href="../articles/spectragryph.html">File conversion in SpectraGryph</a>
+    <a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a>
+    <a class="dropdown-item" href="../articles/spectragryph.html">File Conversion in SpectraGryph</a>
   </div>
 </li>
 <li class="nav-item">
@@ -106,6 +106,7 @@ matrix as a named vector.
 <span>  <span class="va">library</span>,</span>
 <span>  na.rm <span class="op">=</span> <span class="cn">T</span>,</span>
 <span>  top_n <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  order <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  add_library_metadata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  add_object_metadata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  fill <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -168,6 +169,11 @@ when calculating correlations. Default is <code>TRUE</code>.</p></dd>
 <dt>top_n</dt>
 <dd><p>integer; specifying the number of top matches to return.
 If <code>NULL</code> (default), all matches will be returned.</p></dd>
+
+
+<dt>order</dt>
+<dd><p>an <code>OpenSpecy</code> used for sorting, ideally the unprocessed
+one; <code>NULL</code> skips sorting.</p></dd>
 
 
 <dt>add_library_metadata</dt>
@@ -241,19 +247,150 @@ object of choice</p></div>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"test_lib"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">unknown</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"ftir_ldpe_soil.asp"</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="read_multi.html">read_any</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="conform_spec.html">conform_spec</a></span><span class="op">(</span>range <span class="op">=</span> <span class="va">test_lib</span><span class="op">$</span><span class="va">wavenumber</span>,</span></span>
 <span class="r-in"><span>               res <span class="op">=</span> <span class="fu"><a href="spec_res.html">spec_res</a></span><span class="op">(</span><span class="va">test_lib</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="process_spec.html">process_spec</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">matches</span> <span class="op">&lt;-</span> <span class="fu">cor_spec</span><span class="op">(</span><span class="va">unknown</span>, <span class="va">test_lib</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">cor_spec</span><span class="op">(</span><span class="va">unknown</span>, <span class="va">test_lib</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                     intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 00002e4e3fac430aa1fdfea6e26f85e4  0.569407508</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 00061dd49cbb71549cf3d530b894ba92 -0.052190336</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0008a60c1af45a76ffb91b9cbe1a32e4  0.207979965</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 000902ae526db452960c5782843081b4 -0.056716505</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 00133c1f1531821f815431f72871eae9  0.340306755</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0016677a99407c18717bf5d3eea9a0a2  0.115573415</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 00185609a3205a19225e1530ca98084e -0.007595939</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 001d3eb19976c785442a3e6fa8094bff -0.006349272</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0026eee747d277edf308194c81179cb0 -0.055994097</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0031bb13faea1e04b52ffbeca009e8ab  0.667212394</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 003b2e57d47a4225b8ea041c946cfc0a -0.021394278</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0046ff947759e247f85dc63a2a25e097  0.028093717</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0054792a45a11ccf7158fdf2c8873125  0.086561975</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 005c6a81975d747fe493032cac9dfaa2  0.208633314</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0062d71f901713f2ac7a89c72fb186d4  0.283591721</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 00904e33ccbaa20fb68c1943d8303d82  0.008448131</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 00931a5ccadb549d463293381c974d79 -0.019239797</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 00b9f87c7d7c82675cb945fe4da37917 -0.084062797</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 00f4b09b9823187caf65b781b8be87b9 -0.094082248</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 010bfd4be6c24ced909f6de717c7b04e  0.075922217</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 015e8a21344a60a020226cfef344c584  0.027354156</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 016961c0d7def12f68239756d23a79a6 -0.073087780</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 019b8f3e4839f8fda1441f7d712ff12d -0.008758977</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 01b2fea6718855567e2e468a792b457f  0.052087746</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 02b8194bd714469666151a7c6b90b36c  0.067350361</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 03f1fa06cd6bc468ae5e406ca1d58dbb -0.056403149</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 041771facd71667d6bd6c9269d3701be  0.048507385</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0481958e37c72c71f88d80e4dd69ac59  0.040059596</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 058a9af32053d14e876703a60a37498f -0.017563249</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 05c3cde45098e01cc44da3f72ada913e -0.058071417</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 06a2ed935a9b37b653717ff4a0ea62f7  0.051112510</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 06f7950194c7a42714cec488e378a820  0.104432379</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 087b8dc9fe95b7cab9d037304f0d39c8 -0.007197481</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 09b69fcfcf3c695299dd0f88743cf14a  0.068682329</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0b10e6cc01c8e53f2221647a9c828164  0.547532315</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0b8b5f10d7a9b2bd7d702cd4fdfd8a29  0.019559339</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0e815860f0115ac34e2b46ac91e0c096  0.021717032</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 101b6ae86864958ddd95445d0ab01fe4  0.428785312</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14ee1d85d0b1ee84fab0773329c45bd2 -0.053850428</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1a31cfc8e25332f4771d03e8a862e217  0.025145450</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23069d13c090ee5235874bd632467f9c  0.023152174</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 252b6f9c5fb83ec82246bc041cabd221 -0.016101759</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 263479214867d17e135a0d599b1f8354  0.495372081</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2fa630bec93db824509be188494d79ad  0.099396099</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 35ce7ae774d57362dacb92cacd53b01c  0.006021983</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3d35fd9a2766afaf4c088b615dffc350 -0.001855729</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4762edfa07e6b28a4b90db83594f2b3d -0.001305780</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4f1d701f4080b4c74acdaa04dea52dd1  0.066564239</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5961a72282786fe43d8704780782f459  0.063100625</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 65792c9e80934e4692540a3e0fbfb552  0.046166444</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6e013532253522149a0deb04373b79a2  0.132547463</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7167a50e76f4a34dbb1d354babd674b0  0.038050661</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 76b3af06ab610907cea4dbe3aa4ec67e  0.024080222</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 889adce6238a677669b6523d74635d03  0.125236768</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9f91f6441608ecca35f69d298e5351bd  0.001937168</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> a692fd0b8b3b80b640ce4bbea8105570  0.044361185</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ec69350b1b7de35fd6b8cf65048e5fc0  0.104947519</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">test_lib_extract</span> <span class="op">&lt;-</span> <span class="fu">filter_spec</span><span class="op">(</span><span class="va">test_lib</span>,</span></span>
 <span class="r-in"><span>  logic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"polycarbonate"</span>, <span class="va">test_lib</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">polymer_class</span>,</span></span>
 <span class="r-in"><span>                ignore.case <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">matches2</span> <span class="op">&lt;-</span> <span class="fu">cor_spec</span><span class="op">(</span><span class="va">unknown</span>, library <span class="op">=</span> <span class="va">test_lib_extract</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">cor_spec</span><span class="op">(</span><span class="va">unknown</span>, library <span class="op">=</span> <span class="va">test_lib_extract</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                   intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0016677a99407c18717bf5d3eea9a0a2 0.11557341</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0b8b5f10d7a9b2bd7d702cd4fdfd8a29 0.01955934</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu">match_spec</span><span class="op">(</span><span class="va">unknown</span>, <span class="va">test_lib</span>, add_library_metadata <span class="op">=</span> <span class="st">"sample_name"</span>,</span></span>
+<span class="r-in"><span>           top_n <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    object_id                       library_id match_val  x y</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: intensity 0031bb13faea1e04b52ffbeca009e8ab 0.6672124 37 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         SpectrumID   Organization SpectrumType SpectrumIdentity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: HDPE_Sarah_#18_1s_20ac_10x_25mW J. Lynch, NIST        Raman             HDPE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Polymer.Category LibraryType OWNER SpectralCollectionMode Preprocessing</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:      polyolefins    Polymers  &lt;NA&gt;                   &lt;NA&gt;          &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    InstrumentUsed RRUFFID IDEAL CHEMISTRY LOCALITY SOURCE STATUS  URL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:           &lt;NA&gt;    &lt;NA&gt;            &lt;NA&gt;     &lt;NA&gt;   &lt;NA&gt;   &lt;NA&gt; &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    MEASURED CHEMISTRY OtherInformation JCAMP-DX YFACTOR YUNITS InstrumentMode</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:               &lt;NA&gt;             &lt;NA&gt;     &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;           &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    DELTAX Sponsor Color Cell   ID Comment cell_plate_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:   &lt;NA&gt;    &lt;NA&gt;  &lt;NA&gt; &lt;NA&gt; &lt;NA&gt;    &lt;NA&gt;          &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Form..film..foam.pliable..hard. Brand Item Location Notes Longest.dimension</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                            &lt;NA&gt;  &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;  &lt;NA&gt;              &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Width Depth Particle.mass..mg. Tg..oC. Tm..oC. Onset.... Enthalpy..J.g.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:  &lt;NA&gt;  &lt;NA&gt;               &lt;NA&gt;    &lt;NA&gt;    &lt;NA&gt;      &lt;NA&gt;           &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Substance Form Colour Filename SourceDatabase Method...49 File QA/QC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:      &lt;NA&gt; &lt;NA&gt;   &lt;NA&gt;     &lt;NA&gt;           &lt;NA&gt;        &lt;NA&gt; &lt;NA&gt;  &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Natural /Synthetic Plastic/other framework Abbreviation Source ID</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:               &lt;NA&gt;          &lt;NA&gt;      &lt;NA&gt;         &lt;NA&gt;      &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Method...57 morphology color final_polymer_assignment Citation Plate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        &lt;NA&gt;       &lt;NA&gt;  &lt;NA&gt;                     &lt;NA&gt;     &lt;NA&gt;    NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Itteration SpectralResolution InstrumentAccessories Wavenumber_Range PIN_ID</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:         NA               &lt;NA&gt;                  &lt;NA&gt;             &lt;NA&gt;   &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ORIENTATION ID merged database Database ID WWTP Paper/Kirstie/FLOPPE...70</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        &lt;NA&gt;                 NA                                         NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Database ID WWTP Paper/Kirstie/FLOPPE...71 ID (ESM1) Longest_dimension width</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                         NA        NA                NA    NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Cluster2018/WWTP PRESSURE TEMPERATURE MaterialForm MaterialProducer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:               NA       NA          NA         &lt;NA&gt;             &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    NumberofAccumulations TIME Ratio against background Truncated</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                    NA &lt;NA&gt;                     &lt;NA&gt;      &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ElementMultiply or ElementDivide Collection length Apodization</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                             &lt;NA&gt;              &lt;NA&gt;        &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Bench serial number Subtraction or Addition Baseline Correction Smooth</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                &lt;NA&gt;                    &lt;NA&gt;                &lt;NA&gt;   &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    %Transmittance-&gt;Absorbance Sample gain Number of background scans</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                       &lt;NA&gt;          NA                         NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Background gain Sample spacing Number of scan points Resolution points</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              NA             NA                    NA                NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Number of FFT points ZPD Library ID Shortform Grating Hole size (nm)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                   NA  NA                 &lt;NA&gt;      NA             NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Slit (um) Filter (%) Delay (s) DATE MOLFORM $NIST SOURCE $NIST DOC FILE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        NA         NA        NA &lt;NA&gt;    &lt;NA&gt;         &lt;NA&gt;           &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    $NIST PSD FILE APERTURE BEAMSPLITTER DETECTOR (DIA. DET. PORT IN SPHERE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:           &lt;NA&gt;     &lt;NA&gt;         &lt;NA&gt;                                &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    SPHERE DIAMETER ACQUISITION MODE SCANNER SPEED PHASE CORRECTION ZEROFILLING</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:            &lt;NA&gt;             &lt;NA&gt;          &lt;NA&gt;             &lt;NA&gt;        &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    WAVENUMBER ACCURACY LOW PASS FILTER SWITCH GAIN ON $NIST ID COADDED SCANS</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                &lt;NA&gt;            &lt;NA&gt;           &lt;NA&gt;     &lt;NA&gt;            NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    PHASE RESOLUTION MW ContactInfo CASNumber MaterialQuality LaserLightUsed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:               NA NA        &lt;NA&gt;      &lt;NA&gt;            &lt;NA&gt;           &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    TotalAcquisitionTime_s DataProcessingProcedure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                   &lt;NA&gt;                    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    LevelofConfidenceinIdentification smoother baseline DENSITY new_label</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                              &lt;NA&gt;       NA       NA      NA      &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                polymer_class plastic_or_not</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: Polyolefins (POLYALKENES)        plastic</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                   url_polymer_class</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: https://www.polymerdatabase.com/polymer%20index/polyalkenes.html</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           polymer                                                url_polymer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: POLY(ETHYLENE) https://www.polymerdatabase.com/polymers/polyethylene.html</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                               url_more_info</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: https://www.polymerdatabase.com/polymer%20classes/Polyolefin%20type.html</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    snr_deriv                          file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:  1339.684 77f837c1640910f2879184d61ef1df48</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
