@@ -30,6 +30,18 @@ test_that("check_lib() finds test library", {
     expect_warning()
 })
 
+test_that("load_lib() works with test library", {
+  skip_on_cran()
+  skip_if_offline(host = "api.osf.io")
+
+  tl <- load_lib(type = "test", path = tmp) |>
+    expect_silent()
+  expect_true(check_OpenSpecy(tl))
+  expect_type(tl, "list")
+  expect_s3_class(tl, "OpenSpecy")
+  expect_identical(tl, test_lib, ignore_attr = T)
+})
+
 test_that("get_lib() downloads complete library", {
   skip_on_cran()
   skip_if_offline(host = "api.osf.io")
@@ -50,16 +62,24 @@ test_that("check_lib() finds complete library", {
     expect_warning()
 })
 
-test_that("load_lib() works as expected", {
+test_that("load_lib() works with complete library", {
+  skip_on_cran()
+  skip_if_offline(host = "api.osf.io")
+  skip_if_not(testthat:::on_ci(), "Not on CI")
+
+  tl <- load_lib(type = "derivative", path = tmp) |>
+    expect_silent()
+  expect_type(tl, "list")
+  expect_s3_class(tl, "OpenSpecy")
+  expect_true(check_OpenSpecy(tl))
+})
+
+test_that("rm_lib() works as expected", {
   skip_on_cran()
   skip_if_offline(host = "api.osf.io")
 
-  tl <- load_lib(type = "test", path = tmp) |>
+  rm_lib(type = "test", path = tmp) |>
     expect_silent()
-  expect_true(check_OpenSpecy(tl))
-  expect_type(tl, "list")
-  expect_s3_class(tl, "OpenSpecy")
-  expect_identical(tl, test_lib, ignore_attr = T)
 })
 
 # Tidy up

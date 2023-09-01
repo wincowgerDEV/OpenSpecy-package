@@ -155,13 +155,13 @@ def_features.OpenSpecy <- function(x, features, ...) {
     hull <- convex_hulls[[i]]
     id <- names(convex_hulls)[i]
     if(nrow(hull) == 1)
-        return(data.table(feature_id = id,
-                   area = 1,
-                   perimeter = 4,
-                   feret_min = 1,
-                   feret_max = 1)
-        )
-    
+      return(data.table(feature_id = id,
+                        area = 1,
+                        perimeter = 4,
+                        feret_min = 1,
+                        feret_max = 1)
+      )
+
     # Calculate Feret dimensions
     dist_matrix <- as.matrix(dist(hull))
     feret_max <- max(dist_matrix) + 1

@@ -12,7 +12,6 @@ test_that("Raman batch analysis with test library", {
   plot(batch) |> expect_silent()
   plotly_spec(batch) |> expect_silent()
   expect_true(check_OpenSpecy(batch))
-  
 
   get_lib(type = "test", path = tmp) |> expect_no_error()
   check_lib(type = "test", path = tmp) |> expect_silent()
@@ -23,7 +22,6 @@ test_that("Raman batch analysis with test library", {
     expect_silent()
   
   expect_true(check_OpenSpecy(batch2))
-  
 
   plotly_spec(batch2) |> expect_silent()
 
@@ -69,7 +67,7 @@ test_that("Raman batch analysis with complete library", {
   plotly_spec(x = batch3, x2 = batch) |> expect_silent()
 
   expect_true(check_OpenSpecy(batch3))
-  
+
   matches <- cor_spec(batch3, library = lib) |> expect_silent()
   test_max_cor <- max_cor_named(matches) |> expect_silent()
   test_sn <- sig_noise(batch3, metric = "run_sig_over_noise") |>

@@ -23,7 +23,6 @@ test_that("manual subtr_baseline() works as expected", {
   man <- subtr_baseline(raman_hdpe, type = "manual", baseline = bl) |>
     expect_silent()
   expect_true(check_OpenSpecy(man))
-  
 
   cor(raman_hdpe$spectra$intensity, man$spectra$intensity) |>
     expect_equal(1, ignore_attr = F)

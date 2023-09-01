@@ -44,9 +44,7 @@ test_that("conform_spec() conforms wavenumbers correctly", {
   
   conf_wider <- conform_spec(x = sam,range = wider_wavenumbers, res = NULL) |>
       expect_silent()
-  
   expect_true(check_OpenSpecy(conf_wider))
-  
 
   expect_equal(length(conf_new$wavenumber), length(conf_new$spectra[[1]]))
   expect_equal(range(conf_new$wavenumber), range(new_wavenumbers))

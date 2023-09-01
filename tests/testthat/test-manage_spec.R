@@ -18,7 +18,6 @@ test_that("c_spec() merges identical files without range specification", {
   specs <- lapply(c(read_extdata("raman_hdpe.yml"),
                     read_extdata("raman_hdpe.yml")), read_spec)
   same <- c_spec(specs) |> expect_silent()
-
   expect_true(check_OpenSpecy(same))
   
   expect_equal(same$wavenumber, raman_hdpe$wavenumber)
@@ -29,6 +28,7 @@ test_that("c_spec() merges different files with common range", {
   diff <- c_spec(specs, range = "common", res = 5) |>
     expect_silent()
   expect_true(check_OpenSpecy(diff))
+
   diff$wavenumber[1:2] |> expect_equal(c(655, 660))
   diff$spectra$intensity[1:2] |> round(2) |> expect_equal(c(53.87, 59.00))
   diff$spectra$intensity.1[1:2] |> round(2) |> expect_equal(c(0.03, 0.03))
