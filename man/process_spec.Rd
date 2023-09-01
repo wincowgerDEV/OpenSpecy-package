@@ -27,6 +27,7 @@ process_spec(x, ...)
   smooth_intens = TRUE,
   smooth_intens_args = list(polynomial = 3, window = 11, derivative = 1, abs = TRUE),
   make_rel = TRUE,
+  make_rel_args = list(na.rm = TRUE),
   ...
 )
 }
@@ -74,6 +75,11 @@ to the spectra.}
 
 \item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
 with \code{\link{make_rel}()}.}
+
+\item{make_rel_args}{named list of arguments passed to
+\code{\link{make_rel}()}.}
+
+\item{na.rm}{Whether to allow NA or set all NA values to}
 
 \item{\ldots}{further arguments passed to subfunctions.}
 }

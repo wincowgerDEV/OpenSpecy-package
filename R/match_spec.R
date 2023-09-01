@@ -22,6 +22,8 @@
 #' If \code{NULL} (default), all matches will be returned.
 #' @param cor_matrix a correlation matrix for object and library,
 #' can be returned by \code{cor_spec()}
+#' @param order an \code{OpenSpecy} used for sorting, ideally the unprocessed
+#' one; \code{NULL} skips sorting.
 #' @param add_library_metadata name of a column in the library metadata to be
 #' joined; \code{NULL} if you don't want to join.
 #' @param add_object_metadata name of a column in the object metadata to be
@@ -53,19 +55,23 @@
 #'
 #' @examples
 #' data("test_lib")
+#'
 #' unknown <- read_extdata("ftir_ldpe_soil.asp") |>
 #'   read_any() |>
 #'   conform_spec(range = test_lib$wavenumber,
 #'                res = spec_res(test_lib)) |>
 #'   process_spec()
-#' matches <- cor_spec(unknown, test_lib)
+#' cor_spec(unknown, test_lib)
 #'
 #' test_lib_extract <- filter_spec(test_lib,
 #'   logic = grepl("polycarbonate", test_lib$metadata$polymer_class,
 #'                 ignore.case = TRUE)
 #' )
 #'
-#' matches2 <- cor_spec(unknown, library = test_lib_extract)
+#' cor_spec(unknown, library = test_lib_extract)
+#'
+#' match_spec(unknown, test_lib, add_library_metadata = "sample_name",
+#'            top_n = 1)
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
@@ -136,16 +142,24 @@ match_spec.default <- function(x, ...) {
 #'
 #' @export
 match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
-                                 add_library_metadata = NULL,
+                                 order = NULL, add_library_metadata = NULL,
                                  add_object_metadata = NULL, fill = NULL, ...) {
   if(is_OpenSpecy(library)) {
-    cor_spec(x, library =  library) |>
+    res <- cor_spec(x, library =  library) |>
       ident_spec(x, library = library, top_n = top_n,
                  add_library_metadata = add_library_metadata,
                  add_object_metadata = add_object_metadata)
   } else {
-    ai_classify(x, library, fill)
+    res <- ai_classify(x, library, fill)
   }
+
+  if(!is.null(order)) {
+    .r <- NULL
+    match <- match(colnames(order$spectra), res$object_id)
+    setorder(res[, .r := order(match)], .r)[, .r := NULL]
+  }
+
+  return(res)
 }
 
 #' @rdname match_spec

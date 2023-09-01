@@ -18,16 +18,18 @@ test_that("process_spec() returns expected values", {
                                derivative = 1,
                                abs = T,
                                make_rel = T))
-
+  expect_true(check_OpenSpecy(conf))
+  
   proc <- process_spec(raman_hdpe,
                        smooth_intens = TRUE,
                        smooth_intens_args = list(
                          polynomial = 3,
                          window = 11,
                          derivative = 1
-                       )) |>
-    expect_silent()
-
+                       )) |> expect_silent()
+  
+  expect_true(check_OpenSpecy(proc))
+  
   expect_equal(proc, conform_spec(raman_hdpe) |>
                  smooth_intens(derivative = 1, make_rel = T))
 })

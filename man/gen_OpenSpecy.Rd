@@ -6,6 +6,8 @@
 \alias{plot.OpenSpecy}
 \alias{lines.OpenSpecy}
 \alias{summary.OpenSpecy}
+\alias{as.data.frame.OpenSpecy}
+\alias{as.data.table.OpenSpecy}
 \title{Generic Open Specy Methods}
 \usage{
 \method{head}{OpenSpecy}(x, ...)
@@ -17,6 +19,10 @@
 \method{lines}{OpenSpecy}(x, ...)
 
 \method{summary}{OpenSpecy}(object, ...)
+
+\method{as.data.frame}{OpenSpecy}(x, ...)
+
+\method{as.data.table}{OpenSpecy}(x, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
@@ -29,9 +35,11 @@
 \code{head()}, \code{print()}, and \code{summary()} return a textual
 representation of an \code{OpenSpecy} object.
 \code{plot()} and \code{lines()} return a plot.
+\code{as.data.frame()} and \code{as.data.table()} convert \code{OpenSpecy}
+objects into tabular data.
 }
 \description{
-Methods to visualize \code{OpenSpecy} objects.
+Methods to visualize and convert \code{OpenSpecy} objects.
 }
 \details{
 \code{head()} shows the first few lines of an \code{OpenSpecy} object.
@@ -56,7 +64,9 @@ plot(raman_hdpe)
 \seealso{
 \code{\link[utils]{head}()}, \code{\link[base]{print}()},
 \code{\link[base]{summary}()}, \code{\link[graphics]{matplot}()}, and
-\code{\link[graphics]{matlines}()}
+\code{\link[graphics]{matlines}()},
+\code{\link[base]{as.data.frame}()},
+\code{\link[data.table]{as.data.table}()}
 }
 \author{
 Zacharias Steinmetz, Win Cowger

@@ -42,6 +42,15 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
   expect_s3_class(ost, "OpenSpecy")
   expect_s3_class(osl, "OpenSpecy")
 
+  expect_true(check_OpenSpecy(osf))
+  expect_true(check_OpenSpecy(ost))
+  expect_true(check_OpenSpecy(osl))
+
+  expect_true(is_OpenSpecy(osf))
+  expect_true(is_OpenSpecy(ost))
+  expect_true(is_OpenSpecy(osl))
+  expect_false(is_OpenSpecy(df))
+
   expect_equal(names(osf), c("wavenumber", "spectra", "metadata"))
   expect_equal(names(ost), c("wavenumber", "spectra", "metadata"))
   expect_equal(names(osl), c("wavenumber", "spectra", "metadata"))
@@ -50,11 +59,6 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
   expect_equal(ost$spectra, osf$spectra)
   expect_equal(ost$wavenumber, osf$wavenumber)
   expect_equal(ost$metadata, osf$metadata)
-
-  expect_true(is_OpenSpecy(osf))
-  expect_true(is_OpenSpecy(ost))
-  expect_true(is_OpenSpecy(osl))
-  expect_false(is_OpenSpecy(df))
 })
 
 test_that("check_OpenSpecy() work as expected", {
@@ -85,6 +89,8 @@ test_that("check_OpenSpecy() work as expected", {
 test_that("'OpenSpecy' objects are read correctly", {
   os <- as_OpenSpecy(df)
 
+  expect_true(check_OpenSpecy(os))
+
   expect_equal(range(os$wavenumber) |> round(2), c(301.04, 3198.12))
   expect_equal(range(os$spectra) |> round(2), c(26, 816))
   expect_length(os$wavenumber, 964)
@@ -101,6 +107,8 @@ test_that("'OpenSpecy' objects are transcribed to and from 'hyperSpec' objects",
   openhyper <- as_OpenSpecy(hyper)
 
   expect_true(is_OpenSpecy(openhyper))
+  expect_true(check_OpenSpecy(openhyper))
+
   expect_equal(openhyper$wavenumber, hyper@wavelength)
   expect_equal(unlist(openhyper$spectra$V1),unname(t(hyper$spc)[,1]))
 })
