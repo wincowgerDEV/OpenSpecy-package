@@ -6,7 +6,8 @@
 - The Shiny app has been outsourced to an own GitHub repository:
   https://github.com/wincowgerDEV/OpenSpecy-shiny
 - Spectra are now stored in dedicated `OpenSpecy` objects, which can be managed
-  with a set of new functions including `c_spec()` for concatenating spectra
+  with a set of new functions including `c_spec()` for concatenating spectra or
+  converting them back to tables
 - Various functions have been renamed and improved, for instance, to facilitate
   reading (and writing) spectral files
 - New functions include `def_features()` to identify microplastics in spectral

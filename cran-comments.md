@@ -18,7 +18,7 @@
     Possibly misspelled words in DESCRIPTION:
       wavenumber (50:62)
 
-Both words are spelled correctly.
+The word is spelled correctly.
 
      installed size is  6.1Mb
      sub-directories of 1Mb or more:
