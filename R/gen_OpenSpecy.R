@@ -2,7 +2,7 @@
 #' @rdname gen_OpenSpecy
 #'
 #' @description
-#' Methods to visualize \code{OpenSpecy} objects.
+#' Methods to visualize and convert \code{OpenSpecy} objects.
 #'
 #' @details
 #' \code{head()} shows the first few lines of an \code{OpenSpecy} object.
@@ -19,6 +19,8 @@
 #' \code{head()}, \code{print()}, and \code{summary()} return a textual
 #' representation of an \code{OpenSpecy} object.
 #' \code{plot()} and \code{lines()} return a plot.
+#' \code{as.data.frame()} and \code{as.data.table()} convert \code{OpenSpecy}
+#' objects into tabular data.
 #'
 #' @examples
 #' data("raman_hdpe")
@@ -38,7 +40,9 @@
 #' @seealso
 #' \code{\link[utils]{head}()}, \code{\link[base]{print}()},
 #' \code{\link[base]{summary}()}, \code{\link[graphics]{matplot}()}, and
-#' \code{\link[graphics]{matlines}()}
+#' \code{\link[graphics]{matlines}()},
+#' \code{\link[base]{as.data.frame}()},
+#' \code{\link[data.table]{as.data.table}()}
 #'
 #' @importFrom utils head
 #' @importFrom graphics matplot matlines
@@ -103,4 +107,22 @@ summary.OpenSpecy <- function(object, ...) {
   yr <- range(object$metadata$y)
   t(array(c(xr, yr), c(2,2), list(c("Min.", "Max."), c("x", "y")))) |> print()
   names(object$metadata) |> print()
+}
+
+#' @rdname gen_OpenSpecy
+#'
+#' @method as.data.frame OpenSpecy
+#' @export
+as.data.frame.OpenSpecy <- function(x, ...) {
+  data.frame(wavenumber = x$wavenumber, x$spectra)
+}
+
+#' @rdname gen_OpenSpecy
+#'
+#' @method as.data.table OpenSpecy
+#'
+#' @importFrom data.table data.table
+#' @export
+as.data.table.OpenSpecy <- function(x, ...) {
+  data.table(wavenumber = x$wavenumber, x$spectra)
 }
