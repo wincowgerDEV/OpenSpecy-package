@@ -154,6 +154,7 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
   }
 
   if(!is.null(order)) {
+    .r <- NULL
     match <- match(colnames(order$spectra), res$object_id)
     setorder(res[, .r := order(match)], .r)[, .r := NULL]
   }
