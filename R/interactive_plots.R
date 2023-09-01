@@ -83,12 +83,13 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
                                   plot_bgcolor = 'rgba(17, 0, 73, 0)',
                                   paper_bgcolor = 'rgb(0, 0, 0)',
                                   ...) {
+  x <- make_rel(x, na.rm = T)
   dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
     melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
   p <- plot_ly(dt, type = "scatter", mode = "lines") |>
     add_trace(x = ~wavenumber, 
-              y = ~make_rel(intensity, na.rm = T),
+              y = ~intensity,
               split = ~id, 
               line = line,
               name = "Your Spectra", 
@@ -107,11 +108,12 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
               line = line, name = "Your Spectra", showlegend = T)
 
   if (!is.null(x2)) {
+    x2 <- make_rel(x2, na.rm = T)
     dt2 <- cbind(wavenumber = x2$wavenumber, x2$spectra) |>
       melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
     p <- p |>
-      add_trace(data = dt2, x = ~wavenumber, y = ~make_rel(intensity, na.rm = T),
+      add_trace(data = dt2, x = ~wavenumber, y = ~intensity,
                 split = ~id, type = "scatter", mode = "lines",
                 name = "Library Spectra",
                 line = line2, showlegend = F)
@@ -222,7 +224,8 @@ interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                            paper_bgcolor = paper_bgcolor,
                            colorscale = colorscale)
   
-  x3 <- filter_spec(x, logic = select)
+  x3 <- filter_spec(x, logic = select) |>
+      make_rel()
 
   # Generate the spectral plot
   spectra_plot <- plotly_spec(x3, x2 = x2,
