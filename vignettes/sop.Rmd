@@ -197,7 +197,7 @@ write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.json", digits = 5)
 # Format Conversions
 
 Another great spectroscopy R package is
-[hyperSpec](https://cran.r-project.org/web/packages/hyperSpec/index.html). We
+[hyperSpec](https://CRAN.R-project.org/package=hyperSpec). We
 actually depend on their functions for several of ours. They are currently
 making some awesome new features and we want to integrate well with them so that
 both packages can be easily used together. That is why we created the
