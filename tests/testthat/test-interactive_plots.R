@@ -8,7 +8,7 @@ test_that("heatmap_spec() generates 'plotly' object", {
 })
 
 test_that("plotly_spec() generates 'plotly' object", {
-  plotly_spec(raman_hdpe, x2 = raman_hdpe, select = 1) |>
+  plotly_spec(x = raman_hdpe, x2 = raman_hdpe) |>
     expect_silent() |>
     expect_s3_class("plotly")
 })
