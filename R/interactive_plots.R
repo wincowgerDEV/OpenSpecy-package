@@ -41,6 +41,7 @@
 #' spectra from the \code{OpenSpecy} object(s).
 #'
 #' @examples
+#' \dontrun{
 #' data("raman_hdpe")
 #' tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
 #' plotly_spec(raman_hdpe)
@@ -49,7 +50,8 @@
 #'
 #' sample_spec(tiny_map, size = 12) |>
 #'   interactive_plot(select = 2, x2 = raman_hdpe)
-#'
+#' }
+#' 
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
