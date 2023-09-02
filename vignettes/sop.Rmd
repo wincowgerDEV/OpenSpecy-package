@@ -302,11 +302,6 @@ want and the function will collapse all the spectra to whatever their common
 range is using linear interpolation.
 
 ```{r}
-asp_example <- read_extdata("ftir_ldpe_soil.asp") |> 
-  read_any() 
-ps_example <- read_extdata("ftir_ps.0") |> 
-  read_any() # preserves some metadata
-
 combined <- c_spec(list(asp_example, ps_example), range = "common", res = 5)
 
 plot(combined)
@@ -323,9 +318,6 @@ logical vector. Filtering will update the `spectra` and `metadata` items of the
 `OpenSpecy` but not the `wavenumber`.
 
 ```{r}
-spectral_map <- read_extdata("CA_tiny_map.zip") |> 
-  read_any() # preserves some metadata
-
 # Extract the 150th spectrum. 
 filter_spec(spectral_map, 150) |>
   plot()
@@ -358,7 +350,6 @@ to first sample from the spectra contained in your OpenSpecy objects before
 doing analysis. the `sample_spec` function serves this purpose.
 
 ```{r}
-spectral_map <- read_any(read_extdata("CA_tiny_map.zip"))
 sample_spec(spectral_map,size = 10) |>
   plot()
 ```
@@ -464,7 +455,6 @@ This is the respective R code for a scenario where the spectra doesn't need
 intensity adjustment:
 
 ```{r, fig.align="center", fig.width=6}
-data("raman_hdpe")
 trans_raman_hdpe <- raman_hdpe
 trans_raman_hdpe$spectra <- 2 - trans_raman_hdpe$spectra^2
     
@@ -517,7 +507,6 @@ why we set it as the default. You'll notice a new function we are using
 Examples of smoothing:
 
 ```{r smooth_intens, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials.", fig.width=6, fig.align="center"}
-data("raman_hdpe")
 
 none <- make_rel(raman_hdpe)
 p1 <- smooth_intens(raman_hdpe, polynomial = 1, derivative = 0, abs = F)
@@ -557,7 +546,6 @@ baseline fit below. Manual baseline correction can also be specified by
 providing a baseline `OpenSpecy` object.
 
 ```{r subtr_baseline, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, fig.align="center"}
-data("raman_hdpe")
 
 alternative_baseline <- smooth_intens(raman_hdpe, polynomial = 1, window = 51,
                                       derivative = 0, abs = F, make_rel = F) |>
@@ -585,7 +573,6 @@ to examine a single peak or a subset of peaks of interests. Multiple ranges can
 be specified simultaneously.
 
 ```{r restrict_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of range restriction.", fig.width=6, fig.align="center"}
-data("raman_hdpe")
 
 none <- make_rel(raman_hdpe)
 r1 <- restrict_range(raman_hdpe, min = 1000, max = 2000)
@@ -724,7 +711,7 @@ a library with both. If you want to just match to a library with FTIR or Raman
 spectra, you can first filter the library using `filter_spec()` using
 `SpectrumType`.
 
-```{r}
+```{r eval=FALSE}
 matches <- match_spec(x = processed, library = test_lib,
                       add_library_metadata = "sample_name", top_n = 5)
 print(matches[,c("object_id", "library_id", "match_val", "SpectrumType",
@@ -740,7 +727,7 @@ from the metadata which are all blank values. The function below will return the
 metadata for the top match in `matches`. Remember, similar `filter_spec()`, you
 can specify `logic` for more than one thing at a time.
 
-```{r}
+```{r eval=FALSE}
 get_metadata(x = test_lib, logic = matches[[1,"library_id"]], rm_empty = T)
 ```
 
@@ -754,7 +741,7 @@ correct relative height. There are two small peaks in the unknown spectrum near
 500 that are not accounted for which could be investigated further but we would
 call this a positive id to HDPE.
 
-```{r}
+```{r eval=FALSE}
 plotly_spec(processed, filter_spec(test_lib, logic = matches[[1,"library_id"]]))
 ```
 
