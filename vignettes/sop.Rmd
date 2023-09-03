@@ -52,7 +52,7 @@ start the Shiny GUI directly from your own computer in R. If you are looking for
 a tutorial about how to use the app see [this
 tutorial](http://wincowger.com/OpenSpecy-package/articles/app.html).
 
-```{r eval=FALSE}
+```{r, eval=FALSE}
 run_app()
 ```
 
@@ -113,18 +113,10 @@ asp_example <- read_extdata("ftir_ldpe_soil.asp") |>
   read_any() 
 ps_example <- read_extdata("ftir_ps.0") |> 
   read_any() # preserves some metadata
-spc_example <- read_extdata("raman_atacamit.spc") |> 
-  read_any()
 csv_example <- read_extdata("raman_hdpe.csv") |> 
   read_any()
 json_example <- read_extdata("raman_hdpe.json") |> 
   read_any() # read in exactly as an OpenSpecy object
-rds_example <- read_extdata("raman_hdpe.rds") |> 
-  read_any() # read in exactly as an OpenSpecy object
-yml_example <- read_extdata("raman_hdpe.yml") |> 
-  read_any() # read in exactly as an OpenSpecy object
-batch_example <- read_extdata("testdata_zipped.zip") |> 
-  read_any()
 ```
 
 You will notice now that the R package reads in files into an object with class
@@ -189,7 +181,6 @@ Open Specy objects can be saved most accurately as .rds, .yml, or .json files.
 point errors can happen with .json or .yml.
 
 ```{r, eval=F}
-write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.rds")
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.yml", digits = 5)
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.json", digits = 5)
 ```
@@ -204,18 +195,8 @@ both packages can be easily used together. That is why we created the
 `as_hyperSpec` function and made sure that `as_OpenSpecy` can convert from
 `hyperSpec` objects.
 
-```{r eval=F}
+```{r, eval=F}
 hyperspecy <- as_hyperSpec(scratch_OpenSpecy)
-
-identical(as_OpenSpecy(hyperspecy)$wavenumber, scratch_OpenSpecy$wavenumber)
-
-# There are some challenges with reproducing the names and floating point
-# numbers but the underlying data is preserved. 
-identical(unname(unlist(signif(as_OpenSpecy(hyperspecy)$spectra, 2))),
-          unname(unlist(signif(scratch_OpenSpecy$spectra, 2))))
-
-# Metadata is not perfectly preserved yet.
-identical(as_OpenSpecy(hyperspecy)$metadata, scratch_OpenSpecy$metadata)
 ```
 
 # Visualization
@@ -229,19 +210,13 @@ the other is interactive. Here is an example of quick and efficient plotting.
 plot(scratch_OpenSpecy) # quick and efficient
 ```
 
-This is an example of an interactive plot. 
+This is an example of an interactive plot. You can plot two different datasets
+simultaneously to compare. 
 
 ```{r, fig.align="center", out.width="98%"}
 # This will min-max normalize your data even if it isn't already but are not
 # changing your underlying data
-plotly_spec(scratch_OpenSpecy)
-```
-
-With interactive plots you can also plot two different datasets simultaneously
-to compare. 
-
-```{r, fig.align="center", out.width="98%"}
-plotly_spec(scratch_OpenSpecy, rds_example)
+plotly_spec(scratch_OpenSpecy, json_example)
 ```
 
 ## Maps
@@ -280,34 +255,15 @@ The easiest way to do that is by having spectra which all are in the same exact
 format with the same series of wavenumbers. The default settings of `c_spec`
 assume that is the case.
 
-```{r}
-#Same range example. 
-data("raman_hdpe")
-raman_hdpe1 <- raman_hdpe
-raman_hdpe2 <- raman_hdpe
-
-raman_hdpe1$spectra <- raman_hdpe1$spectra - 100 
-
-raman_hdpe2$spectra <- raman_hdpe2$spectra - 200 
-
-combined_spectra <- c_spec(list(raman_hdpe, raman_hdpe1, raman_hdpe2))
-
-plot(combined_spectra)
-
-```
-
 If you have different wavenumber ranges for the spectra you want to combine,
 you can set  `range = "common"` and `res` equal to the wavenumber resolution you
 want and the function will collapse all the spectra to whatever their common
 range is using linear interpolation.
 
 ```{r}
-combined <- c_spec(list(asp_example, ps_example), range = "common", res = 5)
-
-plot(combined)
-
+c_spec(list(asp_example, ps_example), range = "common", res = 5) |> 
+  plot()
 ```
-
 
 # Filtering OpenSpecy Objects
 
@@ -330,15 +286,9 @@ filter_spec(spectral_map, "8_5") |>
 ```
 
 ```{r}
-# Extract the spectra with column names "8_5", "10_3", or "12_10" using a
-# logical argument based on the spectra column names.
-filter_spec(spectral_map, names(spectral_map$spectra) %in% c("8_5", "10_3", "12_10")) |>
-  plot()
-```
-
-```{r}
+# Extract the spectra with a logical argument based on metadata
 filter_spec(spectral_map, spectral_map$metadata$y == 1) |>
-  plot() #extracts the spectra with y values of 1 for their metadata. 
+  plot()
 ```
 
 # Sampling OpenSpecy Objects
@@ -440,7 +390,6 @@ spectral_map_p <- spectral_map |>
 spectral_map_p$metadata$sig_noise <- sig_noise(spectral_map_p)
 
 heatmap_spec(spectral_map_p, sn = spectral_map_p$metadata$sig_noise, min_sn = 5)
-
 ```
 
 ## Intensity Adjustment
@@ -507,27 +456,23 @@ why we set it as the default. You'll notice a new function we are using
 Examples of smoothing:
 
 ```{r smooth_intens, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials.", fig.width=6, fig.align="center"}
-
 none <- make_rel(raman_hdpe)
 p1 <- smooth_intens(raman_hdpe, polynomial = 1, derivative = 0, abs = F)
 p4 <- smooth_intens(raman_hdpe, polynomial = 4, derivative = 0, abs = F)
 
-compare_derivative <- c_spec(list(none, p1, p4))
-    
-plot(compare_derivative)
+c_spec(list(none, p1, p4)) |> 
+  plot()
 ```
 
 Derivative transformation can happen with the same function. 
 
 ```{r compare_derivative, fig.cap = "Sample `raman_hdpe` spectrum with different derivatives.", fig.width=6, fig.align="center"}
-
 none <- make_rel(raman_hdpe)
 d1 <- smooth_intens(raman_hdpe, derivative = 1, abs = T)
 d2 <- smooth_intens(raman_hdpe, derivative = 2, abs = T)
 
-compare_derivative <- c_spec(list(none, d1, d2))
-    
-plot(compare_derivative)
+c_spec(list(none, d1, d2)) |> 
+  plot()
 ```
 
 ## Baseline Correction
@@ -546,7 +491,6 @@ baseline fit below. Manual baseline correction can also be specified by
 providing a baseline `OpenSpecy` object.
 
 ```{r subtr_baseline, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, fig.align="center"}
-
 alternative_baseline <- smooth_intens(raman_hdpe, polynomial = 1, window = 51,
                                       derivative = 0, abs = F, make_rel = F) |>
   flatten_range(min = 2700, max = 3200, make_rel = F)
@@ -556,9 +500,8 @@ d2 <- subtr_baseline(raman_hdpe, type = "manual",
                      baseline = alternative_baseline)
 d8 <- subtr_baseline(raman_hdpe, degree = 8)
 
-compare_subtraction <- c_spec(list(none, d2, d8))
-
-plot(compare_subtraction)
+c_spec(list(none, d2, d8)) |> 
+  plot()
 ```
 
 ## Range Selection
@@ -573,7 +516,6 @@ to examine a single peak or a subset of peaks of interests. Multiple ranges can
 be specified simultaneously.
 
 ```{r restrict_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of range restriction.", fig.width=6, fig.align="center"}
-
 none <- make_rel(raman_hdpe)
 r1 <- restrict_range(raman_hdpe, min = 1000, max = 2000)
 r2 <- restrict_range(raman_hdpe, min = c(1000, 1800), max = c(1200, 2000))
@@ -622,8 +564,7 @@ min-max transformed spectrum has a y axis that ranges from 0-1.
 none <- raman_hdpe
 relative <- make_rel(raman_hdpe)
 plot(none)
-plot(relative)
-
+lines(relative)
 ```
 
 # Identifying Spectra 
@@ -638,16 +579,15 @@ automatically. Running get_lib by itself will download all libraries to your
 package director or you can specify which libraries you want and where you want
 them.
 
-```{r eval=F}
-get_lib() 
-get_lib(type = "derivative", path = "your/path")
+```{r, eval=F}
+get_lib(type = "derivative")
 ```
 
 After download the libraries you can load them into your active environment. You
 should load them one at a time. Libraries are also `OpenSpecy` objects so you
 can use any Open Specy object as a library.
 
-```{r eval=F}
+```{r, eval=F}
 lib <- load_lib(type = "derivative")
 ```
 
@@ -673,7 +613,7 @@ easy to look at the spectra but when doing in batch, also refer to the
 Thresholding Signal-Noise section for guidance on making sure your batch spectra
 are processed to quality specs.
 
-```{r}
+```{r, eval = F}
 data("test_lib")
 data("raman_hdpe")
 
@@ -769,7 +709,7 @@ so we may be updating these functions in the near future.
 
 ## Brute Force
 
-```{r eval = F}
+```{r, eval = F}
 data("test_lib")
 test_map <- read_any(read_extdata("CA_tiny_map.zip"))
 
@@ -795,7 +735,7 @@ test_collapsed <- collapse_spec(id_map)
 
 ## A Priori Particle Thresholding
 
-```{r eval = F}
+```{r, eval = F}
 data("test_lib")
 test_map <- read_any(read_extdata("CA_tiny_map.zip"))
 
@@ -839,10 +779,10 @@ Process for Identification of Microplastics Based on Fourier Transform Infrared
 Spectroscopy.” *Applied Spectroscopy*, **74**(9), 1167–1183. doi:
 [10.1177/0003702820923993](https://doi.org/10.1177/0003702820923993).
 
-Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH, De Frond H,
-Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020). “Critical Review of
-Processing and Classification Techniques for Images and Spectra in Microplastic
-Research.” *Applied Spectroscopy*, **74**(9), 989–1010. doi:
+Cowger W, Gray A, Christiansen SH, De Frond H, Deshpande AD, Hemabessiere L, Lee
+E, Mill L, et al. (2020). “Critical Review of Processing and Classification
+Techniques for Images and Spectra in Microplastic Research.” *Applied
+Spectroscopy*, **74**(9), 989–1010. doi:
 [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064).
 
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,
