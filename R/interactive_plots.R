@@ -41,7 +41,6 @@
 #' spectra from the \code{OpenSpecy} object(s).
 #'
 #' @examples
-#' \dontrun{
 #' data("raman_hdpe")
 #' tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
 #' plotly_spec(raman_hdpe)
@@ -50,8 +49,7 @@
 #'
 #' sample_spec(tiny_map, size = 12) |>
 #'   interactive_plot(select = 2, x2 = raman_hdpe)
-#' }
-#' 
+#'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
@@ -86,18 +84,18 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
     melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
   p <- plot_ly(dt, type = "scatter", mode = "lines") |>
-    add_trace(x = ~wavenumber, 
+    add_trace(x = ~wavenumber,
               y = ~intensity,
-              split = ~id, 
+              split = ~id,
               line = line,
-              name = "x1", 
+              name = "x1",
               showlegend = F) |>
     layout(xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                         autorange = "reversed"),
            yaxis = list(title = "intensity [-]"),
            plot_bgcolor = plot_bgcolor,
            paper_bgcolor = paper_bgcolor,
-           legend = list(orientation = 'h', y = 1.1), 
+           legend = list(orientation = 'h', y = 1.1),
            font = font)
 
   # Add dummy trace for Your Spectra
@@ -167,7 +165,7 @@ heatmap_spec.OpenSpecy <- function(x,
 
   if(all(is.na(plot_z)))
       plot_z = rep(-88, length.out = length(plot_z))
-  
+
   p <- plot_ly(...) |>
     add_trace(x = x$metadata$x, y = x$metadata$y, z = if(!is.numeric(plot_z)){as.numeric(as.factor(plot_z))} else{plot_z},
               colorscale = colorscale, type = "heatmap", hoverinfo = 'text',

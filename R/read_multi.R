@@ -19,13 +19,11 @@
 #' All \code{read_*()} functions return \code{OpenSpecy} objects
 #'
 #' @examples
-#' \dontrun{
 #' read_extdata("raman_hdpe.csv") |> read_any()
 #' read_extdata("ftir_ldpe_soil.asp") |> read_any()
 #' read_extdata("testdata_zipped.zip") |> read_zip()
 #' read_extdata("CA_tiny_map.zip") |> read_zip()
-#' }
-#' 
+#'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
 #'
