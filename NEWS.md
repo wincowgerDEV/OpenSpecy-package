@@ -1,3 +1,10 @@
+# OpenSpecy 1.0.2
+
+## Bug Fixes
+
+- Further reduced example and test run times for CRAN
+
+
 # OpenSpecy 1.0.1
 
 ## Bug Fixes
