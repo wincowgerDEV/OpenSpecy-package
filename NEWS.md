@@ -3,7 +3,7 @@
 ## Bug Fixes
 
 - Fixed spelling mistakes
-- Reduced example run time for CRAN
+- Reduced example and test run times for CRAN
 
 
 # OpenSpecy 1.0.0
