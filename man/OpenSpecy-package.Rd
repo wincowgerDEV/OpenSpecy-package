@@ -15,11 +15,11 @@ Process for Identification of Microplastics Based on Fourier Transform
 Infrared Spectroscopy.” \emph{Applied Spectroscopy}, \strong{74}(9),
 1167–1183. \doi{10.1177/0003702820923993}.
 
-Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
-De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020).
-“Critical Review of Processing and Classification Techniques for Images and
-Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
-\strong{74}(9), 989–1010. \doi{10.1177/0003702820929064}.
+Cowger W, Gray A, Christiansen SH, De Frond H, Deshpande AD, Hemabessiere L,
+Lee E, Mill L, et al. (2020). “Critical Review of Processing and
+Classification Techniques for Images and Spectra in Microplastic Research.”
+\emph{Applied Spectroscopy}, \strong{74}(9), 989–1010.
+\doi{10.1177/0003702820929064}.
 
 Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 

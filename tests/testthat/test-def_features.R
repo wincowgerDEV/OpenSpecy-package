@@ -43,6 +43,8 @@ test_that("check that particles are identified with all TRUE or FALSE logical ve
 })
 
 test_that("the original spectrum remains unmodified and metadata is amended", {
+  skip_on_cran()
+
   map <- read_extdata("CA_tiny_map.zip") |> read_any()
 
   id_map <- def_features(map,ifelse(map$metadata$x == 1,
@@ -60,6 +62,8 @@ test_that("the original spectrum remains unmodified and metadata is amended", {
 })
 
 test_that("collapse particles returns expected values", {
+  skip_on_cran()
+
   particles <- ifelse(map$metadata$y == 1, "particleA", "particleB")
   id_map <- def_features(map, particles)
   expect_true(check_OpenSpecy(id_map))

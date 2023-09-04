@@ -76,22 +76,27 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
                                   line2 = list(dash = "dot",
                                                color = "rgb(255,0,0)"),
                                   font = list(color = '#FFFFFF'),
-                                  plot_bgcolor = 'rgb(17, 0, 73)',
+                                  plot_bgcolor = 'rgba(17, 0, 73, 0)',
                                   paper_bgcolor = 'rgb(0, 0, 0)',
                                   ...) {
+  x <- make_rel(x, na.rm = T)
   dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
     melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
-  p <- plot_ly(dt, type = "scatter", mode = "lines", ...) |>
-    add_trace(x = ~wavenumber, y = ~make_rel(intensity, na.rm = T),
-              color = ~id, line = line,
-              name = "x1", showlegend = F) |>
+  p <- plot_ly(dt, type = "scatter", mode = "lines") |>
+    add_trace(x = ~wavenumber,
+              y = ~intensity,
+              split = ~id,
+              line = line,
+              name = "x1",
+              showlegend = F) |>
     layout(xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                         autorange = "reversed"),
            yaxis = list(title = "intensity [-]"),
            plot_bgcolor = plot_bgcolor,
            paper_bgcolor = paper_bgcolor,
-           legend = list(orientation = 'h', y = 1.1), font = font)
+           legend = list(orientation = 'h', y = 1.1),
+           font = font)
 
   # Add dummy trace for Your Spectra
   p <- p |>
@@ -99,12 +104,13 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
               line = line, name = "x1", showlegend = T)
 
   if (!is.null(x2)) {
+    x2 <- make_rel(x2, na.rm = T)
     dt2 <- cbind(wavenumber = x2$wavenumber, x2$spectra) |>
       melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
     p <- p |>
-      add_trace(data = dt2, x = ~wavenumber, y = ~make_rel(intensity, na.rm = T),
-                color = ~id, type = "scatter", mode = "lines",
+      add_trace(data = dt2, x = ~wavenumber, y = ~intensity,
+                split = ~id, type = "scatter", mode = "lines",
                 name = "x2",
                 line = line2, showlegend = F)
 
@@ -156,6 +162,9 @@ heatmap_spec.OpenSpecy <- function(x,
 
   if (!is.null(cor) && !is.null(min_cor))
     plot_z <- ifelse(cor > min_cor, plot_z, NA)
+
+  if(all(is.na(plot_z)))
+      plot_z = rep(-88, length.out = length(plot_z))
 
   p <- plot_ly(...) |>
     add_trace(x = x$metadata$x, y = x$metadata$y, z = if(!is.numeric(plot_z)){as.numeric(as.factor(plot_z))} else{plot_z},
