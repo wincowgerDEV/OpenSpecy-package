@@ -41,6 +41,7 @@
 #' spectra from the \code{OpenSpecy} object(s).
 #'
 #' @examples
+#' \dontshow{data.table::setDTthreads(2)}
 #' data("raman_hdpe")
 #' tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
 #' plotly_spec(raman_hdpe)

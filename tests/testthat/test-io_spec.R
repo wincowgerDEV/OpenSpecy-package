@@ -1,11 +1,9 @@
-# Loading test data
-data(raman_hdpe)
-
 # Create temp dir for testthat
 tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
 
-library(data.table)
+# Loading test data
+data(raman_hdpe)
 
 test_that("extdata files are present", {
   ed <- read_extdata()

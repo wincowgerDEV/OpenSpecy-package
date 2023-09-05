@@ -1,4 +1,3 @@
-library(data.table)
 data("raman_hdpe")
 
 specs <- lapply(c(read_extdata("raman_hdpe.yml"),

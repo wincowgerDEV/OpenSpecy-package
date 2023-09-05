@@ -1,5 +1,3 @@
-library(data.table)
-
 test_that("flatten_range() error handling", {
   test <- as_OpenSpecy(x = 1:10, spectra = data.table(V1 = 1:10))
 
