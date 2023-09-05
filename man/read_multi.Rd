@@ -29,7 +29,8 @@ with ENVI file format or as individual files in a zip folder. If individual
 files, spectra are concatenated.
 }
 \examples{
-\dontshow{data.table::setDTthreads(2)}read_extdata("raman_hdpe.csv") |> read_any()
+\dontshow{data.table::setDTthreads(2)}
+read_extdata("raman_hdpe.csv") |> read_any()
 read_extdata("ftir_ldpe_soil.asp") |> read_any()
 read_extdata("testdata_zipped.zip") |> read_zip()
 read_extdata("CA_tiny_map.zip") |> read_zip()
