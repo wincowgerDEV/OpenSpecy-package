@@ -2,7 +2,7 @@
 
 ## Bug Fixes
 
-- Further reduced example and test run times for CRAN
+- Set data.table threads to 2 for (CRAN) checks
 
 
 # OpenSpecy 1.0.1
