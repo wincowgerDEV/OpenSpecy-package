@@ -4,7 +4,7 @@
 \alias{process_spec}
 \alias{process_spec.default}
 \alias{process_spec.OpenSpecy}
-\title{Preprocess Spectra}
+\title{Process Spectra}
 \usage{
 process_spec(x, ...)
 
@@ -34,8 +34,8 @@ process_spec(x, ...)
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
 
-\item{active}{logical; indicating whether to perform preprocessing.
-If \code{TRUE}, the preprocessing steps will be applied.
+\item{active}{logical; indicating whether to perform processing.
+If \code{TRUE}, the processing steps will be applied.
 If \code{FALSE}, the original data will be returned.}
 
 \item{adj_intens}{logical; describing whether to adjust the intensity units.}
@@ -84,12 +84,12 @@ with \code{\link{make_rel}()}.}
 \item{\ldots}{further arguments passed to subfunctions.}
 }
 \value{
-\code{process_spec()} returns an \code{OpenSpecy} object with preprocessed
+\code{process_spec()} returns an \code{OpenSpecy} object with processed
 spectra based on the specified parameters.
 }
 \description{
 \code{process_spec()} is a monolithic wrapper function for all spectral
-preprocessing steps.
+processing steps.
 }
 \examples{
 data("raman_hdpe")

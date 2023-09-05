@@ -63,13 +63,6 @@
 #'   process_spec()
 #' cor_spec(unknown, test_lib)
 #'
-#' test_lib_extract <- filter_spec(test_lib,
-#'   logic = grepl("polycarbonate", test_lib$metadata$polymer_class,
-#'                 ignore.case = TRUE)
-#' )
-#'
-#' cor_spec(unknown, library = test_lib_extract)
-#'
 #' match_spec(unknown, test_lib, add_library_metadata = "sample_name",
 #'            top_n = 1)
 #'
@@ -154,9 +147,9 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
   }
 
   if(!is.null(order)) {
-    .r <- NULL
+    .reorder <- NULL
     match <- match(colnames(order$spectra), res$object_id)
-    setorder(res[, .r := order(match)], .r)[, .r := NULL]
+    setorder(res[, .reorder := order(match)], .reorder)[, .reorder := NULL]
   }
 
   return(res)

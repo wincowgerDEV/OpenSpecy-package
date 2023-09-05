@@ -7,7 +7,7 @@
 \alias{openspecy}
 \title{OpenSpecy: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra}
 \description{
-Raman and (FT)IR spectral analysis tool for plastic particles and other environmental samples (Cowger et al. 2021, \doi{10.1021/acs.analchem.1c00123}). With read_any(), Open Specy provides a single function for reading individual, batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and .zip. process_spec() simplifies preprocessing spectra, including smoothing, baseline correction, range restriction and flattening, intensity conversions, wavenumber alignment, and min-max normalization. Spectra can be identified in batch using an onboard reference library (Cowger et al. 2020, \doi{10.1177/0003702820929064}) using match_spec(). A Shiny app is available via run_app() or online at \url{https://openanalysis.org/openspecy/}.
+Raman and (FT)IR spectral analysis tool for plastic particles and other environmental samples (Cowger et al. 2021, \doi{10.1021/acs.analchem.1c00123}). With read_any(), Open Specy provides a single function for reading individual, batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and .zip. process_spec() simplifies processing spectra, including smoothing, baseline correction, range restriction and flattening, intensity conversions, wavenumber alignment, and min-max normalization. Spectra can be identified in batch using an onboard reference library (Cowger et al. 2020, \doi{10.1177/0003702820929064}) using match_spec(). A Shiny app is available via run_app() or online at \url{https://openanalysis.org/openspecy/}.
 }
 \references{
 Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
@@ -15,11 +15,11 @@ Process for Identification of Microplastics Based on Fourier Transform
 Infrared Spectroscopy.” \emph{Applied Spectroscopy}, \strong{74}(9),
 1167–1183. \doi{10.1177/0003702820923993}.
 
-Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH,
-De Frond H, Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020).
-“Critical Review of Processing and Classification Techniques for Images and
-Spectra in Microplastic Research.” \emph{Applied Spectroscopy},
-\strong{74}(9), 989–1010. \doi{10.1177/0003702820929064}.
+Cowger W, Gray A, Christiansen SH, De Frond H, Deshpande AD, Hemabessiere L,
+Lee E, Mill L, et al. (2020). “Critical Review of Processing and
+Classification Techniques for Images and Spectra in Microplastic Research.”
+\emph{Applied Spectroscopy}, \strong{74}(9), 989–1010.
+\doi{10.1177/0003702820929064}.
 
 Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 

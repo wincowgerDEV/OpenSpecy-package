@@ -7,6 +7,9 @@ data("raman_hdpe")
 wo_meta <- raman_hdpe
 wo_meta$metadata$spectrum_identity <- NULL
 
+wo_sid <- raman_hdpe
+wo_sid$metadata$session_id <- NULL
+
 test_that("share_text() works locally", {
   share_spec(raman_hdpe, file = read_extdata("raman_hdpe.csv"), share = tmp) |>
     expect_message()
@@ -22,6 +25,9 @@ test_that("share_text() works locally", {
   share_spec(wo_meta, share = tmp) |>
     expect_message() |>
     expect_warning()
+
+  share_spec(wo_sid, share = tmp) |>
+    expect_error()
 })
 
 test_that("share_text() uploads to the cloud", {
@@ -36,6 +42,14 @@ test_that("share_text() uploads to the cloud", {
                s3_secret = Sys.getenv("AWS_SECRET_ACCESS_KEY"),
                s3_region = "us-east-2", s3_bucket = "openspecy")) |>
     expect_message()
+
+  share_spec(raman_hdpe, file = read_extdata("raman_hdpe.csv"), share = "cloud",
+             credentials = list(
+               s3_region = "us-east-2", s3_bucket = "openspecy")) |>
+    expect_error()
+
+  share_spec(raman_hdpe, file = read_extdata("raman_hdpe.csv"), share = "cloud") |>
+    expect_error()
 })
 
 # Tidy up

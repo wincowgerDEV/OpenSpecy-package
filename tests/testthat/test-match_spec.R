@@ -9,11 +9,6 @@ preproc <- conform_spec(unknown, range = test_lib$wavenumber,
                         res = spec_res(test_lib)) |>
   process_spec(smooth_intens = T, make_rel = T)
 
-# Create a subset of test_lib for filtering
-test_lib_extract <- filter_spec(
-  test_lib, logic = test_lib$metadata$polymer_class == "polycarbonates"
-  )
-
 test_that("ai_classify() handles input errors correctly", {
   ai_classify(1:1000) |> expect_error()
 })
@@ -43,7 +38,6 @@ test_that("match_spec() handles input errors correctly", {
   match_spec(1:1000) |> expect_error()
 })
 
-# Match_spec function
 test_that("match_spec() returns correct structure", {
   matches <- match_spec(x = preproc, library = test_lib, na.rm = T, top_n = 5,
                         add_library_metadata = "sample_name",
@@ -74,14 +68,17 @@ test_that("cor_spec() handles input errors correctly", {
 
 # Write the tests for cor_spec function
 test_that("cor_spec() returns a data.table with correct columns", {
+  skip_on_cran()
+
   matches <- cor_spec(preproc, library = test_lib) |>
     expect_silent()
 
   preproc2 <- preproc
   preproc2$wavenumber[1:3] <- preproc2$wavenumber[1:3] + 1
 
-  matches2 <- cor_spec(preproc2, library =  test_lib) |>
+  cor_spec(preproc2, library =  test_lib) |>
     expect_warning()
+
   inherits(matches, "matrix") |> expect_true()
   expect_identical(dim(matches), c(ncol(test_lib$spectra),
                                    ncol(preproc$spectra)))

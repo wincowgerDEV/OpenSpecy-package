@@ -1,3 +1,18 @@
+# OpenSpecy 1.0.2
+
+## Bug Fixes
+
+- Set data.table threads to 2 for (CRAN) checks
+
+
+# OpenSpecy 1.0.1
+
+## Bug Fixes
+
+- Fixed spelling mistakes
+- Reduced example and test run times for CRAN
+
+
 # OpenSpecy 1.0.0
 
 ## New Features

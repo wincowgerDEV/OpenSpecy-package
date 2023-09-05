@@ -1,4 +1,3 @@
-library(data.table)
 data("raman_hdpe")
 csv <- read_extdata("raman_hdpe.csv") |> read.csv()
 

@@ -139,18 +139,20 @@ knitr::include_graphics("app/map_vis.jpg")
 # Processing
 
 The goal of this processing is to increase the signal to noise ratio (S/N) without
-distorting the shape or relative size of the peaks. After uploading data, you can preprocess the data using intensity adjustment,
+distorting the shape or relative size of the peaks. After uploading data, you can 
+process the data using intensity adjustment,
 baseline subtraction, smoothing, flattening, and range selection and save your
-preprocessed data. Once the process button is selected the default processing
+processed data. Once the process button is selected the default processing
 will initiate. This is an absolute derivative transformation, it is kind of
 magic, it does something similar to smoothing, baseline subtraction, and
 intensity correction simultaneously and really quickly. By clicking
-preprocessing you should see the spectrum update with the processed spectra.
+processing you should see the spectrum update with the processed spectra.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/processing.jpg")
 ```
-To view the raw data again, just deselect preprocessing. Toggling preprocessing
+
+To view the raw data again, just deselect processing. Toggling processing
 on and off can help you to make sure that the spectra are processed correctly.
 
 
@@ -257,7 +259,7 @@ and, a baseline fit produces distortions, or there are regions of interest for
 analysis. Range selection accomplishes those goals. You should look into the
 signal to noise ratio of your specific instrument by wavelength to determine
 what wavelength ranges to use. Distortions due to baseline fit can be assessed
-from looking at the preprocess spectra. Additionally, you can restrict the range
+from looking at the process spectra. Additionally, you can restrict the range
 to examine a single peak or a subset of peaks of interests. The maximum and
 minimum wavenumbers will specify the range to keep in the app.
 
@@ -301,7 +303,7 @@ knitr::include_graphics("app/download_yourspec.jpg")
 knitr::include_graphics("app/identification.jpg")
 ```
 
-After uploading data and preprocessing it (if desired) you can now identify the
+After uploading data and processing it (if desired) you can now identify the
 spectrum. To identify the spectrum go to the **Identification** box. Pro tip: if
 you select **Identification** without uploading data to the app, you'll be able
 to explore the library by itself.
@@ -404,10 +406,10 @@ Process for Identification of Microplastics Based on Fourier Transform Infrared
 Spectroscopy.” *Applied Spectroscopy*, **74**(9), 1167–1183. doi:
 [10.1177/0003702820923993](https://doi.org/10.1177/0003702820923993).
 
-Cowger W, Gray A, Christiansen SH, Christiansen SH, Christiansen SH, De Frond H,
-Deshpande AD, Hemabessiere L, Lee E, Mill L, et al. (2020). “Critical Review of
-Processing and Classification Techniques for Images and Spectra in Microplastic
-Research.” *Applied Spectroscopy*, **74**(9), 989–1010. doi:
+Cowger W, Gray A, Christiansen SH, De Frond H, Deshpande AD, Hemabessiere L, Lee
+E, Mill L, et al. (2020). “Critical Review of Processing and Classification
+Techniques for Images and Spectra in Microplastic Research.” *Applied
+Spectroscopy*, **74**(9), 989–1010. doi:
 [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064).
 
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,

@@ -41,14 +41,11 @@
 #' spectra from the \code{OpenSpecy} object(s).
 #'
 #' @examples
+#' \dontshow{data.table::setDTthreads(2)}
 #' data("raman_hdpe")
 #' tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
 #' plotly_spec(raman_hdpe)
 #'
-#' correlation <- cor_spec(
-#'   conform_spec(raman_hdpe, range = raman_hdpe$wavenumber, res = 5),
-#'   conform_spec(tiny_map, tiny_map$wavenumbers, res = 5)
-#' )
 #' heatmap_spec(tiny_map, z = tiny_map$metadata$y)
 #'
 #' sample_spec(tiny_map, size = 12) |>
@@ -77,7 +74,7 @@ plotly_spec.default <- function(x, ...) {
 #' @export
 plotly_spec.OpenSpecy <- function(x, x2 = NULL,
                                   line = list(color = 'rgb(255, 255, 255)'),
-                                  line2 = list(dash = "dot", 
+                                  line2 = list(dash = "dot",
                                                color = "rgb(255,0,0)"),
                                   font = list(color = '#FFFFFF'),
                                   plot_bgcolor = 'rgba(17, 0, 73, 0)',
@@ -88,18 +85,30 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
     melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
   p <- plot_ly(dt, type = "scatter", mode = "lines") |>
+<<<<<<< HEAD
     add_trace(x = ~wavenumber, 
               y = ~intensity,
               split = ~id, 
               line = line,
               name = "x1", 
+=======
+    add_trace(x = ~wavenumber,
+              y = ~intensity,
+              split = ~id,
+              line = line,
+              name = "x1",
+>>>>>>> f4c2107b39178e739bb2f29d84a10a9c9f3a6bc4
               showlegend = F) |>
     layout(xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                         autorange = "reversed"),
            yaxis = list(title = "intensity [-]"),
            plot_bgcolor = plot_bgcolor,
            paper_bgcolor = paper_bgcolor,
+<<<<<<< HEAD
            legend = list(orientation = 'h', y = 1.1), 
+=======
+           legend = list(orientation = 'h', y = 1.1),
+>>>>>>> f4c2107b39178e739bb2f29d84a10a9c9f3a6bc4
            font = font)
 
   # Add dummy trace for Your Spectra
@@ -167,6 +176,9 @@ heatmap_spec.OpenSpecy <- function(x,
   if (!is.null(cor) && !is.null(min_cor))
     plot_z <- ifelse(cor > min_cor, plot_z, NA)
 
+  if(all(is.na(plot_z)))
+      plot_z = rep(-88, length.out = length(plot_z))
+
   p <- plot_ly(...) |>
     add_trace(x = x$metadata$x, y = x$metadata$y, z = if(!is.numeric(plot_z)){as.numeric(as.factor(plot_z))} else{plot_z},
               colorscale = colorscale, type = "heatmap", hoverinfo = 'text',
@@ -211,7 +223,7 @@ interactive_plot.default <- function(x, ...) {
 #' @export
 interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                                        line = list(color = 'rgb(255, 255, 255)'),
-                                       line2 = list(dash = "dot", 
+                                       line2 = list(dash = "dot",
                                                     color = "rgb(255,0,0)"),
                                        font = list(color = '#FFFFFF'),
                                        plot_bgcolor = 'rgba(17, 0, 73, 0)',
@@ -223,7 +235,7 @@ interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                            font = font, plot_bgcolor = plot_bgcolor,
                            paper_bgcolor = paper_bgcolor,
                            colorscale = colorscale)
-  
+
   x3 <- filter_spec(x, logic = select)
 
   # Generate the spectral plot

@@ -10,7 +10,7 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 2 notes
+0 errors | 0 warnings | 1 note
 
 
 ## Comments
@@ -18,13 +18,6 @@
     Possibly misspelled words in DESCRIPTION:
       wavenumber (50:62)
 
-The word is spelled correctly.
-
-     installed size is  6.1Mb
-     sub-directories of 1Mb or more:
-       doc   4.5Mb
-
-We tried to reduce the vignette size as much as possible but would like to keep
-the current number of figures for better comprehensibility.
+The word is spelled correctly, see https://en.wikipedia.org/wiki/Wavenumber
 
 For further details, see NEWS.md
