@@ -85,30 +85,18 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
     melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
   p <- plot_ly(dt, type = "scatter", mode = "lines") |>
-<<<<<<< HEAD
-    add_trace(x = ~wavenumber, 
-              y = ~intensity,
-              split = ~id, 
-              line = line,
-              name = "x1", 
-=======
     add_trace(x = ~wavenumber,
               y = ~intensity,
               split = ~id,
               line = line,
               name = "x1",
->>>>>>> f4c2107b39178e739bb2f29d84a10a9c9f3a6bc4
               showlegend = F) |>
     layout(xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                         autorange = "reversed"),
            yaxis = list(title = "intensity [-]"),
            plot_bgcolor = plot_bgcolor,
            paper_bgcolor = paper_bgcolor,
-<<<<<<< HEAD
-           legend = list(orientation = 'h', y = 1.1), 
-=======
            legend = list(orientation = 'h', y = 1.1),
->>>>>>> f4c2107b39178e739bb2f29d84a10a9c9f3a6bc4
            font = font)
 
   # Add dummy trace for Your Spectra
