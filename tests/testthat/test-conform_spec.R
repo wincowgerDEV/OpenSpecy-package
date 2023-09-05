@@ -1,5 +1,3 @@
-library(data.table)
-
 data("raman_hdpe")
 
 test_that("conform_spec() throws an error for non-OpenSpecy objects", {

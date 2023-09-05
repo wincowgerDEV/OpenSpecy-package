@@ -2,8 +2,6 @@
 tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
 
-library(data.table)
-
 data("raman_hdpe")
 
 test_that("extdata files are present", {

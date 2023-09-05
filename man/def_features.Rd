@@ -49,7 +49,7 @@ It also updates the metadata with centroid coordinates, while preserving the
 feature information on area and Feret max.
 }
 \examples{
-tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()
+\dontshow{data.table::setDTthreads(2)}tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()
 identified_map <- def_features(tiny_map, tiny_map$metadata$x == 0)
 collapse_spec(identified_map)
 
