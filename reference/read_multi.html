@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.2</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,7 +101,8 @@ files, spectra are concatenated.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"raman_hdpe.csv"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_any</span><span class="op">(</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/openmp-utils.html" class="external-link">setDTthreads</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"raman_hdpe.csv"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_any</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
@@ -119,7 +120,7 @@ files, spectra are concatenated.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    x y      file_name  license</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 raman_hdpe.csv CC BY-NC</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id    col_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b intensity</span>
 <span class="r-in"><span><span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"ftir_ldpe_soil.asp"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_any</span><span class="op">(</span><span class="op">)</span></span></span>
@@ -140,7 +141,7 @@ files, spectra are concatenated.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    x y          file_name  license</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 ftir_ldpe_soil.asp CC BY-NC</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id    col_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: a33700bad0376ddab156980f473bac92 intensity</span>
 <span class="r-in"><span><span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"testdata_zipped.zip"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_zip</span><span class="op">(</span><span class="op">)</span></span></span>
@@ -163,9 +164,9 @@ files, spectra are concatenated.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2: 2 1     testdata2 - Copy.csv CC BY-NC</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3: 1 2            testdata2.csv CC BY-NC</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id    col_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2: cb06ce2846b119d932fb6696479a445b intensity</span>
@@ -642,17 +643,17 @@ files, spectra are concatenated.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 207: 0.000025000, 0.000025000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 208: 0.000025000, 0.000025000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                             session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  ---                                                                  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 204: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 205: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 206: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 207: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 208: 0e282774c15f63c7b6a0f4f7ebaadcd4/651b7702a502ac75138a73be0a538f95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 204: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 205: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 206: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 207: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 208: b429fe6c7012cc7f7c29220373e5147a/fc0c810ca84ea6bc1b5d81db0fba2fee</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                               file_id col_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1: 215a0fd7e0dc3b1001799214618ce6eb    0_0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2: 215a0fd7e0dc3b1001799214618ce6eb    0_1</span>
