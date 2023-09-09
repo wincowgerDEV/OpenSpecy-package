@@ -331,6 +331,9 @@ check_OpenSpecy <- function(x) {
   if(!(cr <- ncol(x$spectra) == nrow(x$metadata)))
     warning("Number of columns in spectra is not equal to number of rows ",
             "in metadata", call. = F)
+  if(!(csz <- nrow(x$spectra) != 0))
+        warning("There are no spectral intensities in your spectra",
+                call. = F)
   if(!(cl <- length(x$wavenumber) == nrow(x$spectra)))
     warning("Length of wavenumber is not equal to number of rows in spectra",
             call. = F)
@@ -344,7 +347,7 @@ check_OpenSpecy <- function(x) {
             "should be a continuous sequence for all OpenSpecy functions to ",
             "run smoothly")
 
-  chk <- all(cw, cs, cm, cr, cl, cu, cv, co)
+  chk <- all(cw, cs, cm, cr, cl, cu, cv, co, csz)
 
   return(chk)
 }
