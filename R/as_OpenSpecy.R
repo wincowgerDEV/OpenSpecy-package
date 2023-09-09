@@ -314,25 +314,25 @@ is_OpenSpecy <- function(x) {
 #' @importFrom data.table is.data.table
 #' @export
 check_OpenSpecy <- function(x) {
-  if(!(is_OpenSpecy(x)))
-    stop("object 'x' is not of class 'OpenSpecy'", call. = F)
-  if(!identical(names(x), c("wavenumber", "spectra", "metadata")))
-    stop("names of the object components are incorrect", call. = F)
+  if(!(cos <- is_OpenSpecy(x)))
+    warning("object 'x' is not of class 'OpenSpecy'", call. = F)
+  if(!(cln <- identical(names(x), c("wavenumber", "spectra", "metadata"))))
+    warning("names of the object components are incorrect", call. = F)
   if(!(cw <- is.vector(x$wavenumber)))
     warning("Wavenumber is not a vector", call. = F)
-  if(any(is.na(x$wavenumber)))
-    stop("wavenumber values have NA", call. = F)
+  if(!(cwn <- !any(is.na(x$wavenumber))))
+    warning("wavenumber values have NA", call. = F)
   if(!(cs <- is.data.table(x$spectra)))
-    message("Spectra are not of class 'data.table'")
-  if(any(vapply(x$spectra, function(x){all(is.na(x))}, FUN.VALUE = logical(1))))
-    stop("some of the spectra have all NA values", call. = F)
+    warning("Spectra are not of class 'data.table'")
+  if(!(csn <- !any(vapply(x$spectra, function(x){all(is.na(x))}, FUN.VALUE = logical(1)))))
+    warning("some of the spectra have all NA values", call. = F)
   if(!(cm <- is.data.table(x$metadata)))
-    message("Metadata are not a 'data.table'")
+    warning("Metadata are not a 'data.table'")
   if(!(cr <- ncol(x$spectra) == nrow(x$metadata)))
     warning("Number of columns in spectra is not equal to number of rows ",
             "in metadata", call. = F)
   if(!(csz <- nrow(x$spectra) != 0))
-        warning("There are no spectral intensities in your spectra",
+    warning("There are no spectral intensities in your spectra",
                 call. = F)
   if(!(cl <- length(x$wavenumber) == nrow(x$spectra)))
     warning("Length of wavenumber is not equal to number of rows in spectra",
@@ -340,14 +340,14 @@ check_OpenSpecy <- function(x) {
   if(!(cu <- length(unique(names(x$spectra))) == ncol(x$spectra)))
     warning("Column names in spectra are not unique", call. = F)
   if(!(cv <- length(unique(names(x$metadata))) == ncol(x$metadata)))
-    message("Column names in metadata are not unique")
+    warning("Column names in metadata are not unique")
   if(!(co <- identical(order(x$wavenumber), 1:length(x$wavenumber)) |
        identical(order(x$wavenumber), length(x$wavenumber):1)))
-    message("This is technically an 'OpenSpecy' object but wavenumbers ",
+    warning("Wavenumbers ",
             "should be a continuous sequence for all OpenSpecy functions to ",
             "run smoothly")
 
-  chk <- all(cw, cs, cm, cr, cl, cu, cv, co, csz)
+  chk <- all(cw, cs, cm, cr, cl, cu, cv, co, csz, csn, cwn, cln, cos)
 
   return(chk)
 }
