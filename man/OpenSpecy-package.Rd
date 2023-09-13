@@ -78,6 +78,8 @@ Other contributors:
   \item Vesna Teofilovic (\href{https://orcid.org/0000-0002-3557-1482}{ORCID}) [contributor]
   \item Laura A. T. Markley (\href{https://orcid.org/0000-0003-0620-8366}{ORCID}) [contributor]
   \item Shreyas Patankar [contributor, data contributor]
+  \item Rachel Kozloski (\href{https://orcid.org/0000-0003-1211-9351}{ORCID}) [contributor, data contributor]
+  \item Samiksha Singh [contributor]
   \item Katherine Lasdin [contributor]
   \item National Renewable Energy Laboratory [funder]
   \item Possibility Lab [funder]

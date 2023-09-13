@@ -62,7 +62,7 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
 test_that("check_OpenSpecy() work as expected", {
   os <- as_OpenSpecy(df)
   check_OpenSpecy(os) |> expect_true()
-  check_OpenSpecy(df) |> expect_error()
+  check_OpenSpecy(df) |> expect_error() |> expect_warning() |> expect_warning() |> expect_warning() |> expect_warning()
 
   osv <- osn <- oss <- ost <- osl <- os
 
@@ -70,13 +70,13 @@ test_that("check_OpenSpecy() work as expected", {
   check_OpenSpecy(osv) |> expect_false() |> expect_warning()
 
   names(osn) <- 1:3
-  check_OpenSpecy(osn) |> expect_error()
+  check_OpenSpecy(osn) |> expect_error() |> expect_warning() |> expect_warning()|> expect_warning() |> expect_warning()
 
   oss$wavenumber <- sample(oss$wavenumber)
-  check_OpenSpecy(oss) |> expect_false() |> expect_message()
+  check_OpenSpecy(oss) |> expect_false() |> expect_warning()
 
   class(ost$metadata) <- class(ost$spectra) <- "data.frame"
-  check_OpenSpecy(ost) |> expect_false() |> expect_message() |> expect_message()
+  check_OpenSpecy(ost) |> expect_false() |> expect_warning() |> expect_warning()
 
   osl$metadata <- rbind(osl$metadata, osl$metadata)
   osl$spectra <- osl$spectra[-1]
@@ -110,3 +110,4 @@ test_that("'OpenSpecy' objects are transcribed to and from 'hyperSpec' objects",
   expect_equal(openhyper$wavenumber, hyper@wavelength)
   expect_equal(unlist(openhyper$spectra$V1),unname(t(hyper$spc)[,1]))
 })
+

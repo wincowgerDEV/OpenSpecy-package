@@ -55,9 +55,10 @@ library(OpenSpecy)
 run_app()
 ```
 
-## See [package vignette](http://wincowger.com/OpenSpecy-package/articles/sop.html) for a detailed standard operating procedure.
-
 ## Simple workflow for single spectral identification
+
+See [package vignette](http://wincowger.com/OpenSpecy-package/articles/sop.html)
+for a detailed standard operating procedure.
 
 ```r
 # Fetch current spectral library from https://osf.io/x7dpz/
@@ -85,11 +86,11 @@ top_matches <- match_spec(raman_proc, library = spec_lib, na.rm = T, top_n = 5,
                           add_library_metadata = "sample_name",
                           add_object_metadata = "col_id")
 
-#Print the top 5 results with relevant metadata
+# Print the top 5 results with relevant metadata
 top_matches[, c("object_id", "library_id", "match_val", "SpectrumType",
                 "SpectrumIdentity")]
 
-#Get all metadata for the matches
+# Get all metadata for the matches
 get_metadata(spec_lib, logic = top_matches$library_id)
 ```
 
@@ -101,6 +102,6 @@ Needs an Open Source Community: Open Specy to the Rescue!”
 *Analytical Chemistry*, **93**(21), 7543–7548. doi:
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
-Cowger W, Steinmetz Z (2023). “OpenSpecy: Analyze, Process,
-Identify, and Share Raman and (FT)IR Spectra.” *R package*, **1.0.2**.
+Cowger W, Steinmetz Z, Leong N, Faltynkova A (2023). “OpenSpecy: Analyze,
+Process, Identify, and Share Raman and (FT)IR Spectra.” *R package*, **1.0.3**.
 [https://github.com/wincowgerDEV/OpenSpecy-package](https://github.com/wincowgerDEV/OpenSpecy-package).

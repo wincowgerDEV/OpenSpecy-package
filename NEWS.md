@@ -1,3 +1,12 @@
+# OpenSpecy 1.0.3
+
+## Minor Improvements
+
+- Simplify `check_OpenSpecy()`
+- Improve unit tests
+- Improve interactive plots
+
+
 # OpenSpecy 1.0.2
 
 ## Bug Fixes

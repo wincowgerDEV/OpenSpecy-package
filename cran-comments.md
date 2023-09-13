@@ -10,14 +10,9 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 0 notes
 
 
 ## Comments
-
-    Possibly misspelled words in DESCRIPTION:
-      wavenumber (50:62)
-
-The word is spelled correctly, see https://en.wikipedia.org/wiki/Wavenumber
 
 For further details, see NEWS.md

@@ -6,9 +6,14 @@ test_that("plotly_spec() handles input errors correctly", {
 })
 
 test_that("plotly_spec() generates 'plotly' object", {
-  plotly_spec(raman_hdpe) |>
+  plotly_spec(x = raman_hdpe, x2 = raman_hdpe) |>
     expect_silent() |>
     expect_s3_class("plotly")
+})
+
+test_that("interactive_plot() generates 'plotly' object with single or multiple spectra from map", {
+  interactive_plot(map, x2 = raman_hdpe, select = 2:3) |>
+        expect_s3_class("plotly")
 })
 
 test_that("heatmap_spec() handles input errors correctly", {
@@ -21,13 +26,7 @@ test_that("heatmap_spec() generates 'plotly' object", {
     expect_s3_class("plotly")
 })
 
-test_that("heatmap_spec() can handle all NA", {
-  heatmap_spec(map, z = map$metadata$y, sn = map$metadata$y, min_sn = 100) |>
-    expect_silent()
-})
-
 test_that("interactive_plot() generates 'plotly' object", {
-  interactive_plot(map, x2 = raman_hdpe, select = 2:3) |>
-    expect_silent() |>
-    expect_s3_class("plotly")
+  interactive_plot(map, x2 = raman_hdpe, select = 2) |>
+        expect_s3_class("plotly")
 })

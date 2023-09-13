@@ -144,6 +144,6 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
 #'
 #' @export
 as_hyperSpec <- function(x) {
-    new("hyperSpec", spc = as.matrix(transpose(x$spectra)),
-        wavelength = x$wavenumber)
+  new("hyperSpec", spc = as.matrix(transpose(x$spectra)),
+      wavelength = x$wavenumber)
 }
