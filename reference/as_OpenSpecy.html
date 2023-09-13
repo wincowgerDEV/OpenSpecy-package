@@ -12,7 +12,7 @@ possible."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/m
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -189,8 +189,8 @@ environmental sample</td></tr><tr><td><code>material_color</code>:</td><td>Color
 e.g. blue, #0000ff, (0, 0, 255)</td></tr><tr><td><code>material_other</code>:</td><td>Other material description, e.g. 5 µm diameter
 fibers, 1 mm spherical particles</td></tr><tr><td><code>cas_number</code>:</td><td>CAS number, e.g. 9003-53-6</td></tr><tr><td><code>instrument_used</code>:</td><td>Instrument used, e.g. Horiba LabRam</td></tr><tr><td><code>instrument_accessories</code>:</td><td>Instrument accessories, e.g.
 Focal Plane Array, CCD</td></tr><tr><td><code>instrument_mode</code>:</td><td>Instrument modes/settings, e.g.
-transmission, reflectance</td></tr><tr><td><code>intensity_units*</code>:</td><td>Units of the intensity values for the spectrum, options
-transmittance, reflectance, absorbance</td></tr><tr><td><code>spectral_resolution</code>:</td><td>Spectral resolution, e.g. 4/cm</td></tr><tr><td><code>laser_light_used</code>:</td><td>Wavelength of the laser/light used, e.g.
+transmission, reflectance</td></tr><tr><td><code>intensity_units*</code>:</td><td>Units of the intensity values for the spectrum,
+options transmittance, reflectance, absorbance</td></tr><tr><td><code>spectral_resolution</code>:</td><td>Spectral resolution, e.g. 4/cm</td></tr><tr><td><code>laser_light_used</code>:</td><td>Wavelength of the laser/light used, e.g.
 785 nm</td></tr><tr><td><code>number_of_accumulations</code>:</td><td>Number of accumulations, e.g 5</td></tr><tr><td><code>total_acquisition_time_s</code>:</td><td>Total acquisition time (s), e.g. 10 s</td></tr><tr><td><code>data_processing_procedure</code>:</td><td>Data processing procedure,
 e.g. spikefilter, baseline correction, none</td></tr><tr><td><code>level_of_confidence_in_identification</code>:</td><td>Level of confidence in
 identification, e.g. 99%</td></tr><tr><td><code>other_info</code>:</td><td>Other information</td></tr><tr><td><code>license</code>:</td><td>The license of the shared spectrum; defaults to
@@ -214,7 +214,7 @@ with <code>digest(object[c("wavenumber", "spectra")])</code></td></tr></table></
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"raman_hdpe"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Inspect the spectra</span></span></span>
-<span class="r-in"><span><span class="va">raman_hdpe</span> <span class="co"># See how OpenSpecy objects print.</span></span></span>
+<span class="r-in"><span><span class="va">raman_hdpe</span> <span class="co"># see how OpenSpecy objects print.</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
@@ -235,7 +235,7 @@ with <code>digest(object[c("wavenumber", "spectra")])</code></td></tr></table></
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
-<span class="r-in"><span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">wavenumber</span> <span class="co"># Look at just the wavenumbers of the spectra.</span></span></span>
+<span class="r-in"><span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">wavenumber</span> <span class="co"># look at just the wavenumbers of the spectra.</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   [1]  301.040  304.632  308.221  311.810  315.398  318.983  322.566  326.150</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   [9]  329.732  333.311  336.889  340.467  344.042  347.618  351.190  354.760</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [17]  358.332  361.900  365.466  369.031  372.597  376.160  379.721  383.280</span>
@@ -357,7 +357,7 @@ with <code>digest(object[c("wavenumber", "spectra")])</code></td></tr></table></
 <span class="r-out co"><span class="r-pr">#&gt;</span> [945] 3150.960 3153.500 3156.030 3158.570 3161.100 3163.640 3166.170 3168.700</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [953] 3171.230 3173.760 3175.300 3177.840 3180.380 3182.910 3185.450 3187.990</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [961] 3190.520 3193.060 3195.590 3198.120</span>
-<span class="r-in"><span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">spectra</span> <span class="co"># Look at just the spectral intensities data.table.</span></span></span>
+<span class="r-in"><span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">spectra</span> <span class="co"># look at just the spectral intensities data.table.</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:        50</span>
@@ -370,7 +370,7 @@ with <code>digest(object[c("wavenumber", "spectra")])</code></td></tr></table></
 <span class="r-out co"><span class="r-pr">#&gt;</span> 962:        75</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 963:        75</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:        67</span>
-<span class="r-in"><span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">metadata</span> <span class="co"># Look at just the metadata of the spectra.</span></span></span>
+<span class="r-in"><span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">metadata</span> <span class="co"># look at just the metadata of the spectra.</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    x y  user_name spectrum_type spectrum_identity      organization  license</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 Win Cowger         Raman              HDPE Horiba Scientific CC BY-NC</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
@@ -449,9 +449,9 @@ with <code>digest(object[c("wavenumber", "spectra")])</code></td></tr></table></
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 CC BY-NC bf49db07d97b169635b8f8e17311cdbc spectra</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Test that the spectrum is formatted as an OpenSpecy object.</span></span></span>
-<span class="r-in"><span><span class="fu">is_OpenSpecy</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span>  <span class="co">#should be TRUE</span></span></span>
+<span class="r-in"><span><span class="fu">is_OpenSpecy</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
-<span class="r-in"><span><span class="fu">is_OpenSpecy</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">spectra</span><span class="op">)</span> <span class="co">#should be FALSE</span></span></span>
+<span class="r-in"><span><span class="fu">is_OpenSpecy</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">spectra</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
