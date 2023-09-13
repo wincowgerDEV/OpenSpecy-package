@@ -295,7 +295,7 @@ filter_spec(spectral_map, spectral_map$metadata$y == 1) |>
 
 Sometimes you have a large suite of examples of spectra of the same material and
 you want to reduce the number of spectra you run through the analysis for
-simplicity or you are running simulations or other proceedures that require you
+simplicity or you are running simulations or other procedures that require you
 to first sample from the spectra contained in your OpenSpecy objects before
 doing analysis. the `sample_spec` function serves this purpose.
 
@@ -536,7 +536,7 @@ flat instead of having a peak. One way to deal with this is to replace the peak
 values with the mean of the values around the peak. This is the purpose of the
 `flatten_range` function. By default it is set to flatten the CO2 region for
 FTIR spectra because that region often needs to be flattened when atmospheric
-artefacts occur in spectra. Like `restrict_range`, the R function can accept
+artifacts occur in spectra. Like `restrict_range`, the R function can accept
 multiple ranges.
 
 ```{r flatten_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=5, fig.align="center"}
@@ -559,6 +559,7 @@ shapes or relative peak intensities. In the package, most of the processing
 functions will min-max transform your spectra by default if you do not specify
 otherwise. This plot shows two plots that are nearly identical except for the
 min-max transformed spectrum has a y axis that ranges from 0-1.
+
 ```{r make_rel, fig.cap = "Sample `raman_hdpe` spectrum with one being relative and the other untransformed."}
 relative <- make_rel(raman_hdpe)
 ```
