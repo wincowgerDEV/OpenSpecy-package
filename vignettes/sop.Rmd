@@ -208,14 +208,14 @@ hyperspecy <- as_hyperSpec(scratch_OpenSpecy)
 In R, we have two ways to visualize your spectra, one is quick and efficient and
 the other is interactive. Here is an example of quick and efficient plotting.
 
-```{r, fig.align="center", fig.width=6}
+```{r, fig.align="center", fig.width=5}
 plot(scratch_OpenSpecy) # quick and efficient
 ```
 
 This is an example of an interactive plot. You can plot two different datasets
 simultaneously to compare. 
 
-```{r, fig.align="center", out.width="98%"}
+```{r, fig.align="center", out.width="100%"}
 # This will min-max normalize your data even if it isn't already but are not
 # changing your underlying data
 plotly_spec(scratch_OpenSpecy, json_example)
@@ -234,10 +234,9 @@ In R the user can control what values form the colors of the heatmap by
 specifying `z`, it is handy to put the information you want in the metadata for
 this reason. This example just shows the x values of the spectra.
 
-```{r, fig.align="center", out.width="98%"}
+```{r, eval=F}
 heatmap_spec(spectral_map,
-             z = spectral_map$metadata$x) # will show more advanced example 
-                                          # later in tutorial
+             z = spectral_map$metadata$x)
 ```
 
 An interactive plot of the heatmap and spectra overlayed can be generated with
@@ -245,10 +244,10 @@ the `interactive_plot()` function. A user can hover over the heatmap to identify
 the next row id they are interested in and update the value of select to see
 that spectrum.
 
-```{r, fig.align="center", out.width="98%"}
+```{r, fig.align="center", out.width="100%"}
 interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 ```
-
+<br>
 
 # Combining OpenSpecy Objects
 
@@ -262,7 +261,7 @@ you can set  `range = "common"` and `res` equal to the wavenumber resolution you
 want and the function will collapse all the spectra to whatever their common
 range is using linear interpolation.
 
-```{r}
+```{r, fig.align="center", fig.width=5}
 c_spec(list(asp_example, ps_example), range = "common", res = 5) |> 
   plot()
 ```
@@ -277,17 +276,16 @@ logical vector. Filtering will update the `spectra` and `metadata` items of the
 
 ```{r}
 # Extract the 150th spectrum. 
-filter_spec(spectral_map, 150) |>
-  plot()
+filter_spec(spectral_map, 150)
 ```
 
 ```{r}
 # Extract the spectrum with column name "8_5". 
-filter_spec(spectral_map, "8_5") |>
-  plot()
+filter_spec(spectral_map, "8_5") |> 
+  print()
 ```
 
-```{r}
+```{r, fig.align="center", fig.width=5}
 # Extract the spectra with a logical argument based on metadata
 filter_spec(spectral_map, spectral_map$metadata$y == 1) |>
   plot()
@@ -301,8 +299,8 @@ simplicity or you are running simulations or other proceedures that require you
 to first sample from the spectra contained in your OpenSpecy objects before
 doing analysis. the `sample_spec` function serves this purpose.
 
-```{r}
-sample_spec(spectral_map,size = 10) |>
+```{r, fig.align="center", fig.width=5}
+sample_spec(spectral_map, size = 5) |>
   plot()
 ```
 
@@ -374,7 +372,7 @@ Times Noise multiplies the mean signal by the standard deviation of the signal
 and Total Signal sums the intensities. The latter can be really useful for
 thresholding spectral maps to identify particles which we will discuss later.
 
-```{r}
+```{r, eval=F}
 sig_noise(processed, metric = "run_sig_over_noise") > 
   sig_noise(raman_hdpe, metric = "run_sig_over_noise")
 ```
@@ -385,7 +383,7 @@ to determine the correct settings instead of looking through spectra
 individually. Setting the `min_sn` will threshold the heatmap image to only
 color spectra which have a `sn` value over the threshold.
 
-```{r}
+```{r, out.width="100%"}
 spectral_map_p <- spectral_map |>
   process_spec(flatten_range = T)
 
@@ -405,7 +403,7 @@ the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$.
 This is the respective R code for a scenario where the spectra doesn't need
 intensity adjustment:
 
-```{r, fig.align="center", fig.width=6}
+```{r, fig.align="center", out.width="100%"}
 trans_raman_hdpe <- raman_hdpe
 trans_raman_hdpe$spectra <- 2 - trans_raman_hdpe$spectra^2
     
@@ -457,7 +455,7 @@ why we set it as the default. You'll notice a new function we are using
 
 Examples of smoothing:
 
-```{r smooth_intens, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials.", fig.width=6, fig.align="center"}
+```{r smooth_intens, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials.", fig.width=5, fig.align="center"}
 none <- make_rel(raman_hdpe)
 p1 <- smooth_intens(raman_hdpe, polynomial = 1, derivative = 0, abs = F)
 p4 <- smooth_intens(raman_hdpe, polynomial = 4, derivative = 0, abs = F)
@@ -468,7 +466,7 @@ c_spec(list(none, p1, p4)) |>
 
 Derivative transformation can happen with the same function. 
 
-```{r compare_derivative, fig.cap = "Sample `raman_hdpe` spectrum with different derivatives.", fig.width=6, fig.align="center"}
+```{r compare_derivative, fig.cap = "Sample `raman_hdpe` spectrum with different derivatives.", fig.width=5, fig.align="center"}
 none <- make_rel(raman_hdpe)
 d1 <- smooth_intens(raman_hdpe, derivative = 1, abs = T)
 d2 <- smooth_intens(raman_hdpe, derivative = 2, abs = T)
@@ -492,7 +490,7 @@ difference between the new and previous fit is small. An example of a good
 baseline fit below. Manual baseline correction can also be specified by
 providing a baseline `OpenSpecy` object.
 
-```{r subtr_baseline, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, fig.align="center"}
+```{r subtr_baseline, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=5, fig.align="center"}
 alternative_baseline <- smooth_intens(raman_hdpe, polynomial = 1, window = 51,
                                       derivative = 0, abs = F, make_rel = F) |>
   flatten_range(min = 2700, max = 3200, make_rel = F)
@@ -517,7 +515,7 @@ from looking at the process spectra. Additionally, you can restrict the range
 to examine a single peak or a subset of peaks of interests. Multiple ranges can
 be specified simultaneously.
 
-```{r restrict_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of range restriction.", fig.width=6, fig.align="center"}
+```{r restrict_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of range restriction.", fig.width=5, fig.align="center"}
 none <- make_rel(raman_hdpe)
 r1 <- restrict_range(raman_hdpe, min = 1000, max = 2000)
 r2 <- restrict_range(raman_hdpe, min = c(1000, 1800), max = c(1200, 2000))
@@ -541,7 +539,7 @@ FTIR spectra because that region often needs to be flattened when atmospheric
 artefacts occur in spectra. Like `restrict_range`, the R function can accept
 multiple ranges.
 
-```{r flatten_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=6, fig.align="center"}
+```{r flatten_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=5, fig.align="center"}
 single <- filter_spec(spectral_map, 120) # Function to filter spectra by index
                                          # number or name or a logical vector. 
 none <- make_rel(single)
@@ -561,12 +559,8 @@ shapes or relative peak intensities. In the package, most of the processing
 functions will min-max transform your spectra by default if you do not specify
 otherwise. This plot shows two plots that are nearly identical except for the
 min-max transformed spectrum has a y axis that ranges from 0-1.
-
-```{r make_rel, fig.cap = "Sample `raman_hdpe` spectrum with one being relative and the other untransformed.", fig.width=6, fig.align="center"}
-none <- raman_hdpe
+```{r make_rel, fig.cap = "Sample `raman_hdpe` spectrum with one being relative and the other untransformed."}
 relative <- make_rel(raman_hdpe)
-plot(none)
-lines(relative)
 ```
 
 # Identifying Spectra 
