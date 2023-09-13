@@ -71,8 +71,8 @@
 #' Focal Plane Array, CCD\cr
 #' \code{instrument_mode}: \tab Instrument modes/settings, e.g.
 #' transmission, reflectance \cr
-#' \code{intensity_units*}: \tab Units of the intensity values for the spectrum, options
-#' transmittance, reflectance, absorbance \cr
+#' \code{intensity_units*}: \tab Units of the intensity values for the spectrum,
+#' options transmittance, reflectance, absorbance \cr
 #' \code{spectral_resolution}: \tab Spectral resolution, e.g. 4/cm \cr
 #' \code{laser_light_used}: \tab Wavelength of the laser/light used, e.g.
 #' 785 nm \cr
@@ -108,10 +108,10 @@
 #' data("raman_hdpe")
 #'
 #' # Inspect the spectra
-#' raman_hdpe # See how OpenSpecy objects print.
-#' raman_hdpe$wavenumber # Look at just the wavenumbers of the spectra.
-#' raman_hdpe$spectra # Look at just the spectral intensities data.table.
-#' raman_hdpe$metadata # Look at just the metadata of the spectra.
+#' raman_hdpe # see how OpenSpecy objects print.
+#' raman_hdpe$wavenumber # look at just the wavenumbers of the spectra.
+#' raman_hdpe$spectra # look at just the spectral intensities data.table.
+#' raman_hdpe$metadata # look at just the metadata of the spectra.
 #'
 #' # Creating a list and transforming to OpenSpecy
 #' as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber,
@@ -127,8 +127,8 @@
 #'                             spectra = raman_hdpe$spectra$intensity))
 #'
 #' # Test that the spectrum is formatted as an OpenSpecy object.
-#' is_OpenSpecy(raman_hdpe)  #should be TRUE
-#' is_OpenSpecy(raman_hdpe$spectra) #should be FALSE
+#' is_OpenSpecy(raman_hdpe)
+#' is_OpenSpecy(raman_hdpe$spectra)
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
@@ -315,37 +315,36 @@ is_OpenSpecy <- function(x) {
 #' @export
 check_OpenSpecy <- function(x) {
   if(!(cos <- is_OpenSpecy(x)))
-    warning("object 'x' is not of class 'OpenSpecy'", call. = F)
+    warning("Object 'x' is not of class 'OpenSpecy'", call. = F)
   if(!(cln <- identical(names(x), c("wavenumber", "spectra", "metadata"))))
-    warning("names of the object components are incorrect", call. = F)
+    warning("Names of the object components are incorrect", call. = F)
   if(!(cw <- is.vector(x$wavenumber)))
     warning("Wavenumber is not a vector", call. = F)
   if(!(cwn <- !any(is.na(x$wavenumber))))
-    warning("wavenumber values have NA", call. = F)
+    warning("Wavenumber values have NA", call. = F)
   if(!(cs <- is.data.table(x$spectra)))
-    warning("Spectra are not of class 'data.table'")
-  if(!(csn <- !any(vapply(x$spectra, function(x){all(is.na(x))}, FUN.VALUE = logical(1)))))
-    warning("some of the spectra have all NA values", call. = F)
+    warning("Spectra are not of class 'data.table'", call. = F)
+  if(!(csn <- !any(vapply(x$spectra, function(x){all(is.na(x))},
+                          FUN.VALUE = logical(1)))))
+    warning("Some of the spectra have all NA values", call. = F)
   if(!(cm <- is.data.table(x$metadata)))
-    warning("Metadata are not a 'data.table'")
+    warning("Metadata are not a 'data.table'", call. = F)
   if(!(cr <- ncol(x$spectra) == nrow(x$metadata)))
     warning("Number of columns in spectra is not equal to number of rows ",
             "in metadata", call. = F)
   if(!(csz <- nrow(x$spectra) != 0))
-    warning("There are no spectral intensities in your spectra",
-                call. = F)
+    warning("There are no spectral intensities in your spectra", call. = F)
   if(!(cl <- length(x$wavenumber) == nrow(x$spectra)))
     warning("Length of wavenumber is not equal to number of rows in spectra",
             call. = F)
   if(!(cu <- length(unique(names(x$spectra))) == ncol(x$spectra)))
     warning("Column names in spectra are not unique", call. = F)
   if(!(cv <- length(unique(names(x$metadata))) == ncol(x$metadata)))
-    warning("Column names in metadata are not unique")
+    warning("Column names in metadata are not unique", call. = F)
   if(!(co <- identical(order(x$wavenumber), 1:length(x$wavenumber)) |
        identical(order(x$wavenumber), length(x$wavenumber):1)))
-    warning("Wavenumbers ",
-            "should be a continuous sequence for all OpenSpecy functions to ",
-            "run smoothly")
+    warning("Wavenumbers should be a continuous sequence for all OpenSpecy ",
+            "functions to run smoothly", call. = F)
 
   chk <- all(cw, cs, cm, cr, cl, cu, cv, co, csz, csn, cwn, cln, cos)
 
