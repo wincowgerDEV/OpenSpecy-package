@@ -182,13 +182,13 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
   if (is.null(colnames$wavenumber)) {
     if (any(grepl("wav", ignore.case = T, names(x)))) {
       if (length(grep("wav", ignore.case = T, names(x))) > 1L)
-        warning("Ambiguous column names: taking 'wavenumber' data from the",
+        message("Ambiguous column names: taking 'wavenumber' data from the",
                 " first column; use 'colnames' to supply user-defined columns",
                 call. = F)
       wavenumber <- x[[grep("wav", ignore.case = T, names(x))[1L]]]
       wn <- names(x)[grep("wav", ignore.case = T, names(x))]
     } else {
-      warning("Ambiguous column names: taking 'wavenumber' data from the",
+        message("Ambiguous column names: taking 'wavenumber' data from the",
               " first column; use 'colnames' to supply user-defined columns",
               call. = F)
       wavenumber <- x[[1L]]
@@ -205,7 +205,7 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
       spectra <- x[, grepl("(transmit.*)|(reflect.*)|(abs.*)|(intens.*)",
                            ignore.case = T, names(x)), with = F]
     } else {
-      warning("Ambiguous column names: taking 'spectra' data from all but the",
+      message("Ambiguous column names: taking 'spectra' data from all but the",
               " 'wavenumber' column; use 'colnames' to supply user-defined",
               " columns", call. = F)
       spectra <- x[, -wn, with = F]
