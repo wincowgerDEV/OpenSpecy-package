@@ -44,6 +44,8 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
     person("Katherine", "Lasdin", role = c("ctb")),
     person("Cristiane", "Vidal", role = c("ctb"), 
       comment = c(ORCID = "000-0001-6363-9475")),
+    person("Clare", "Murphy-Hagan", role = c("ctb"), 
+      comment = c(ORCID = "0009-0009-9629-2856")),
     person("National Renewable Energy Laboratory", role = c("fnd")), 
     person("Possibility Lab", role = c("fnd")))
 Description: Raman and (FT)IR spectral analysis tool for plastic particles and

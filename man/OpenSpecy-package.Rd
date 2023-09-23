@@ -82,6 +82,7 @@ Other contributors:
   \item Samiksha Singh [contributor]
   \item Katherine Lasdin [contributor]
   \item Cristiane Vidal (\href{https://orcid.org/000-0001-6363-9475}{ORCID}) [contributor]
+  \item Clare Murphy-Hagan (\href{https://orcid.org/0009-0009-9629-2856}{ORCID}) [contributor]
   \item National Renewable Energy Laboratory [funder]
   \item Possibility Lab [funder]
 }
