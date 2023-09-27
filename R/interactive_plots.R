@@ -86,7 +86,7 @@ plotly_spec.OpenSpecy <- function(x, x2 = NULL,
   dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
     melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
 
-  p <- plot_ly(dt, type = "scatter", mode = "lines") |>
+  p <- plot_ly(dt, type = "scatter", mode = "lines", ...) |>
     add_trace(x = ~wavenumber,
               y = ~intensity,
               split = ~id,
