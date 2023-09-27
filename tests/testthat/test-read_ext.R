@@ -23,11 +23,11 @@ test_that("read_text() gives expected output", {
   dtf <- read_extdata("raman_hdpe.csv") |> read_text(method = "fread") |>
     expect_silent()
   read_extdata("ftir_pva_without_header.csv") |> read_text() |>
-    expect_warning() |> expect_warning()
+    expect_message() |> expect_message()
   read_extdata("ftir_pva_without_header.csv") |> read_text(header = F) |>
-    expect_warning() |> expect_warning()
+      expect_message() |> expect_message()
   read_extdata("ftir_pva_without_header.csv") |> read_text(method = "fread") |>
-    expect_warning() |> expect_warning()
+      expect_message() |> expect_message()
 
   expect_s3_class(csv, "OpenSpecy")
   expect_true(check_OpenSpecy(csv))
