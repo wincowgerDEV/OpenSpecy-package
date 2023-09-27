@@ -135,8 +135,8 @@ fibers, 1 mm spherical particles \cr
 Focal Plane Array, CCD\cr
 \code{instrument_mode}: \tab Instrument modes/settings, e.g.
 transmission, reflectance \cr
-\code{intensity_units*}: \tab Units of the intensity values for the spectrum, options
-transmittance, reflectance, absorbance \cr
+\code{intensity_units*}: \tab Units of the intensity values for the spectrum,
+options transmittance, reflectance, absorbance \cr
 \code{spectral_resolution}: \tab Spectral resolution, e.g. 4/cm \cr
 \code{laser_light_used}: \tab Wavelength of the laser/light used, e.g.
 785 nm \cr
@@ -163,10 +163,10 @@ with \code{digest(object[c("wavenumber", "spectra")])}\cr
 data("raman_hdpe")
 
 # Inspect the spectra
-raman_hdpe # See how OpenSpecy objects print.
-raman_hdpe$wavenumber # Look at just the wavenumbers of the spectra.
-raman_hdpe$spectra # Look at just the spectral intensities data.table.
-raman_hdpe$metadata # Look at just the metadata of the spectra.
+raman_hdpe # see how OpenSpecy objects print.
+raman_hdpe$wavenumber # look at just the wavenumbers of the spectra.
+raman_hdpe$spectra # look at just the spectral intensities data.table.
+raman_hdpe$metadata # look at just the metadata of the spectra.
 
 # Creating a list and transforming to OpenSpecy
 as_OpenSpecy(list(wavenumber = raman_hdpe$wavenumber,
@@ -182,8 +182,8 @@ as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber,
                             spectra = raman_hdpe$spectra$intensity))
 
 # Test that the spectrum is formatted as an OpenSpecy object.
-is_OpenSpecy(raman_hdpe)  #should be TRUE
-is_OpenSpecy(raman_hdpe$spectra) #should be FALSE
+is_OpenSpecy(raman_hdpe)
+is_OpenSpecy(raman_hdpe$spectra)
 
 }
 \seealso{
