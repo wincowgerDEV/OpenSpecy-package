@@ -4,6 +4,11 @@ dir.create(tmp, showWarnings = F)
 
 data("test_lib")
 
+tiny_map <- read_extdata("CA_tiny_map.zip") |> 
+    read_any() |>
+    conform_spec(range = test_lib$wavenumber,
+                 res = NULL) |>
+    process_spec(smooth_intens = T, make_rel = T)
 unknown <- read_extdata("ftir_ldpe_soil.asp") |> read_any()
 preproc <- conform_spec(unknown, range = test_lib$wavenumber,
                         res = spec_res(test_lib)) |>
@@ -140,6 +145,15 @@ test_that("filter_spec() returns OpenSpecy object with filtered spectra", {
 test_that("get_metadata() handles input errors correctly", {
   get_metadata(1:1000) |> expect_error()
 })
+
+test_that("cor_spec() routine and match_spec() return same values", {
+    cors <- cor_spec(tiny_map, test_lib)
+    max_correlations <- max_cor_named(cors)
+    names <- max_correlations |> sort(decreasing = T) |> names()
+    top_matches <- match_spec(x = tiny_map, library = test_lib, top_n = 1)
+    expect_identical(names, top_matches$library_id)
+})
+
 
 # Tidy up
 unlink(tmp, recursive = T)

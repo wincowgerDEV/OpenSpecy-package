@@ -77,7 +77,7 @@
 #'
 #' @importFrom stats cor predict
 #' @importFrom glmnet predict.glmnet
-#' @importFrom data.table data.table setorder fifelse .SD as.data.table rbindlist
+#' @importFrom data.table data.table setorder fifelse .SD as.data.table rbindlist melt.data.table
 #' @export
 cor_spec <- function(x, ...) {
   UseMethod("cor_spec")
@@ -138,7 +138,7 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
                                  order = NULL, add_library_metadata = NULL,
                                  add_object_metadata = NULL, fill = NULL, ...) {
   if(is_OpenSpecy(library)) {
-    res <- cor_spec(x, library =  library) |>
+    res <- cor_spec(x, library = library) |>
       ident_spec(x, library = library, top_n = top_n,
                  add_library_metadata = add_library_metadata,
                  add_object_metadata = add_object_metadata)
@@ -167,10 +167,10 @@ ident_spec <- function(cor_matrix, x, library, top_n = NULL,
             "returning all matches")
   }
 
-  out <- data.table(object_id = colnames(x$spectra),
-                    library_id = rep(colnames(library$spectra),
-                                     each = ncol(x$spectra)),
-                    match_val = c(cor_matrix))
+  out <-  as.data.table(cor_matrix, keep.rownames = T) |>
+      melt.data.table(id.vars = "rn")
+  
+  names(out) <- c("library_id", "object_id",  "match_val")
 
   if (is.character(add_library_metadata))
     out <- merge(out, library$metadata,
