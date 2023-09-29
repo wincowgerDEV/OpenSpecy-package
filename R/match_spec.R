@@ -171,17 +171,19 @@ ident_spec <- function(cor_matrix, x, library, top_n = NULL,
       melt.data.table(id.vars = "rn")
   
   names(out) <- c("library_id", "object_id",  "match_val")
-
-  if (is.character(add_library_metadata))
-    out <- merge(out, library$metadata,
-                 by.x = "library_id", by.y = add_library_metadata, all.x = T)
-  if (is.character(add_object_metadata))
-    out <- merge(out, x$metadata,
-                 by.x = "object_id", by.y = add_object_metadata, all.x = T)
+  
   if (is.numeric(top_n)) {
     setorder(out, -"match_val")
-    out <- out[, head(.SD, top_n), by = "object_id"]
+    out <- out[!is.na(match_val), head(.SD, top_n), by = "object_id"]
   }
+  
+  if (is.character(add_library_metadata))
+      out <- merge(out, library$metadata,
+                   by.x = "library_id", by.y = add_library_metadata, all.x = T)
+  
+  if (is.character(add_object_metadata))
+      out <- merge(out, x$metadata,
+                   by.x = "object_id", by.y = add_object_metadata, all.x = T)
 
   return(out)
 }
