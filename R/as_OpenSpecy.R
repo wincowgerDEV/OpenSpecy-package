@@ -337,8 +337,6 @@ check_OpenSpecy <- function(x) {
             call. = F)
   if(!(cu <- length(unique(names(x$spectra))) == ncol(x$spectra)))
     warning("column names in spectra are not unique", call. = F)
-  if(!(cn <- names(x$spectra) == x$metadata$col_id))
-        warning("column names in spectra are not unique", call. = F)
   if(!(cv <- length(unique(names(x$metadata))) == ncol(x$metadata)))
     warning("column names in metadata are not unique", call. = F)
   if(!(co <- identical(order(x$wavenumber), 1:length(x$wavenumber)) |
@@ -346,7 +344,7 @@ check_OpenSpecy <- function(x) {
     warning("wavenumbers should be a continuous sequence for all OpenSpecy ",
             "functions to run smoothly", call. = F)
 
-  chk <- all(cw, cn, cs, cm, cr, cl, cu, cv, co, csz, csn, cwn, cln, cos)
+  chk <- all(cw, cs, cm, cr, cl, cu, cv, co, csz, csn, cwn, cln, cos)
 
   return(chk)
 }
