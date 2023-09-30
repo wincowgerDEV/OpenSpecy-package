@@ -57,6 +57,7 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
   expect_equal(ost$spectra, osf$spectra)
   expect_equal(ost$wavenumber, osf$wavenumber)
   expect_equal(ost$metadata, osf$metadata)
+  expect_equal(osf$metadata$col_id, names(osf$spectra))
 })
 
 test_that("check_OpenSpecy() work as expected", {

@@ -286,19 +286,17 @@ as_OpenSpecy.default <- function(x, spectra,
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
+      obj$metadata$col_id = names(obj$spectra) #Require that col_id is the names of the spectra. 
       if(session_id)
         obj$metadata$session_id <- paste(digest(Sys.info()),
                                          digest(sessionInfo()),
                                          sep = "/")
       if(!c("file_id") %in% names(obj$metadata))
         obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
-      if(!c("col_id") %in% names(obj$metadata))
-          obj$metadata$col_id = names(obj$spectra)
     } else {
       stop("inconsistent input for 'metadata'", call. = F)
     }
   }
-
   return(obj)
 }
 

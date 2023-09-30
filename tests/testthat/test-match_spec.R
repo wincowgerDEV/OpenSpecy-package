@@ -57,10 +57,10 @@ test_that("match_spec() returns correct structure", {
 
   nrow(matches) |> expect_equal(5)
   names(matches) |> expect_contains(c("object_id", "library_id", "match_val"))
-  round(matches$match_val, 2) |> expect_equal(c(0.67, 0.57, 0.55, 0.50, 0.43))
+  round(matches$match_val, 2) |> expect_equal(c(0.57, 0.67, 0.55, 0.43, 0.50))
   tolower(matches$polymer) |> expect_equal(
-    c("poly(ethylene)", "polystyrene", "poly(vinyl chloride)",
-      "poly(dimethylsiloxane) (pdms)", NA)
+    c("polystyrene", "poly(ethylene)", "poly(vinyl chloride)", NA,
+      "poly(dimethylsiloxane) (pdms)")
   )
   expect_equal(matches, order)
 })
@@ -109,15 +109,25 @@ test_that("cor_spec() returns a data.table with correct columns", {
 
   nrow(full_test) |> expect_equal(5)
   names(full_test) |> expect_contains(c("object_id", "library_id", "match_val"))
-  round(full_test$match_val, 2) |> expect_equal(c(0.67, 0.57, 0.55, 0.50, 0.43))
+  round(full_test$match_val, 2) |> expect_equal(c(0.57, 0.67, 0.55, 0.43, 0.50))
   tolower(full_test$polymer) |> expect_equal(
-    c("poly(ethylene)", "polystyrene", "poly(vinyl chloride)",
-      "poly(dimethylsiloxane) (pdms)", NA)
+      c("polystyrene", "poly(ethylene)", "poly(vinyl chloride)", NA,
+        "poly(dimethylsiloxane) (pdms)")
   )
 })
 
 test_that("filter_spec() handles input errors correctly", {
   filter_spec(1:1000) |> expect_error()
+})
+
+test_that("Test that raman hdpe accurately identified", {
+   proc_rhdpe <- process_spec(raman_hdpe,conform_spec = T, conform_spec_args = list(range = test_lib$wavenumber, 
+                                                                            res = NULL, type = "interp"))
+   
+   check <- match_spec(proc_rhdpe, test_lib, top_n = 1, add_library_metadata = "sample_name")
+
+   expect_identical(round(check$match_val, 3), 0.974)
+   expect_identical(check$polymer_class, "Polyolefins (POLYALKENES)")
 })
 
 # Write the tests for filter_spec function
