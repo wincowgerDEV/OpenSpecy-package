@@ -83,7 +83,8 @@ spectral data for the second group.}
 
 \item{paper_bgcolor}{color value; passed to \code{\link[plotly]{layout}()}.}
 
-\item{showlegend}{whether to show the legend passed to \code{\link[plotly]}.}
+\item{showlegend}{whether to show the legend passed to
+\code{\link[plotly]{plot_ly}()}.}
 
 \item{z}{optional numeric vector specifying the intensity values for the
 heatmap. If not provided, the function will use the intensity values from the
@@ -108,7 +109,11 @@ will be excluded.}
 \item{select}{optional index of the selected spectrum to highlight on the
 heatmap.}
 
-\item{colorscale}{colorscale passed to \code{\link[plotly]{add_trace}()} can be an array or one of Blackbody,Bluered,Blues,Cividis,Earth,Electric,Greens,Greys,Hot,Jet,Picnic,Portland,Rainbow,RdBu,Reds,Viridis,YlGnBu,YlOrRd.}
+\item{colorscale}{colorscale passed to \code{\link[plotly]{add_trace}()} can
+be an array or one of \code{"Blackbody"}, \code{"Bluered"}, \code{"Blues"}, \code{"Cividis"},
+\code{"Earth"}, \code{"Electric"}, \code{"Greens"}, \code{"Greys"}, \code{"Hot"}, \code{"Jet"}, \code{"Picnic"},
+\code{"Portland"}, \code{"Rainbow"}, \code{"RdBu"}, \code{"Reds"}, \code{"Viridis"}, \code{"YlGnBu"},
+\code{"YlOrRd"}.}
 
 \item{\ldots}{further arguments passed to \code{\link[plotly]{plot_ly}()}.}
 }

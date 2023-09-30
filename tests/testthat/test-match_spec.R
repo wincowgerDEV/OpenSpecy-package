@@ -4,11 +4,12 @@ dir.create(tmp, showWarnings = F)
 
 data("test_lib")
 
-tiny_map <- read_extdata("CA_tiny_map.zip") |> 
-    read_any() |>
-    conform_spec(range = test_lib$wavenumber,
-                 res = NULL) |>
-    process_spec(smooth_intens = T, make_rel = T)
+tiny_map <- read_extdata("CA_tiny_map.zip") |>
+  read_any() |>
+  conform_spec(range = test_lib$wavenumber,
+               res = NULL) |>
+  process_spec(smooth_intens = T, make_rel = T)
+
 unknown <- read_extdata("ftir_ldpe_soil.asp") |> read_any()
 preproc <- conform_spec(unknown, range = test_lib$wavenumber,
                         res = spec_res(test_lib)) |>
@@ -25,7 +26,9 @@ test_that("match_spec() returns correct structure with AI", {
   get_lib("model", path = tmp)
   lib <- load_lib(type = "model", path = tmp)
 
-  check_OpenSpecy(lib) |> expect_error() |> expect_warning() |> expect_warning() |> expect_warning() |> expect_warning() |> expect_warning()
+  check_OpenSpecy(lib) |>
+    expect_error() |> expect_warning() |> expect_warning() |>
+    expect_warning() |> expect_warning() |> expect_warning()
 
   set.seed(47)
   rn <- runif(n = length(unique(lib$variables_in)))
@@ -111,8 +114,8 @@ test_that("cor_spec() returns a data.table with correct columns", {
   names(full_test) |> expect_contains(c("object_id", "library_id", "match_val"))
   round(full_test$match_val, 2) |> expect_equal(c(0.57, 0.67, 0.55, 0.43, 0.50))
   tolower(full_test$polymer) |> expect_equal(
-      c("polystyrene", "poly(ethylene)", "poly(vinyl chloride)", NA,
-        "poly(dimethylsiloxane) (pdms)")
+    c("polystyrene", "poly(ethylene)", "poly(vinyl chloride)", NA,
+      "poly(dimethylsiloxane) (pdms)")
   )
 })
 
@@ -121,13 +124,16 @@ test_that("filter_spec() handles input errors correctly", {
 })
 
 test_that("Test that raman hdpe accurately identified", {
-   proc_rhdpe <- process_spec(raman_hdpe,conform_spec = T, conform_spec_args = list(range = test_lib$wavenumber, 
-                                                                            res = NULL, type = "interp"))
-   
-   check <- match_spec(proc_rhdpe, test_lib, top_n = 1, add_library_metadata = "sample_name")
+  proc_rhdpe <- process_spec(raman_hdpe,conform_spec = T,
+                             conform_spec_args = list(range = test_lib$wavenumber,
+                                                      res = NULL,
+                                                      type = "interp"))
 
-   expect_identical(round(check$match_val, 3), 0.974)
-   expect_identical(check$polymer_class, "Polyolefins (POLYALKENES)")
+  check <- match_spec(proc_rhdpe, test_lib, top_n = 1,
+                      add_library_metadata = "sample_name")
+
+  expect_identical(round(check$match_val, 3), 0.974)
+  expect_identical(check$polymer_class, "Polyolefins (POLYALKENES)")
 })
 
 # Write the tests for filter_spec function
@@ -157,13 +163,12 @@ test_that("get_metadata() handles input errors correctly", {
 })
 
 test_that("cor_spec() routine and match_spec() return same values", {
-    cors <- cor_spec(tiny_map, test_lib)
-    max_correlations <- max_cor_named(cors)
-    names <- max_correlations |> sort(decreasing = T) |> names()
-    top_matches <- match_spec(x = tiny_map, library = test_lib, top_n = 1)
-    expect_identical(names, top_matches$library_id)
+  cors <- cor_spec(tiny_map, test_lib)
+  max_correlations <- max_cor_named(cors)
+  names <- max_correlations |> sort(decreasing = T) |> names()
+  top_matches <- match_spec(x = tiny_map, library = test_lib, top_n = 1)
+  expect_identical(names, top_matches$library_id)
 })
-
 
 # Tidy up
 unlink(tmp, recursive = T)

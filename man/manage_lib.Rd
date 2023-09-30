@@ -63,12 +63,12 @@ respective spectral reference library.
 }
 \description{
 These functions will import the spectral libraries from Open Specy if they
-were not already downloaded.
-The CRAN does not allow for deployment of large datasets so this was a
-workaround that we are using to make sure everyone can easily get Open Specy
-functionality running on their desktop. Please see the references when using these libraries.
-These libraries are the accumulation of a massive amount of effort from independant groups and
-each should be attributed when you are using their data.
+were not already downloaded. The CRAN does not allow for deployment of large
+datasets so this was a workaround that we are using to make sure everyone can
+easily get Open Specy functionality running on their desktop. Please see the
+references when using these libraries. These libraries are the accumulation
+of a massive amount of effort from independant groups and each should be
+attributed when you are using their data.
 }
 \details{
 \code{check_lib()} checks to see if the Open Specy reference library
@@ -193,14 +193,14 @@ Shiravani, Gholamreza; Wurpts, Andreas; Primpke, Sebastian;
 Gerdts, Gunnar (2021): Abundances of large microplastics
 (L-MP, 500-5000 µm) in surface waters of the Weser estuary and the
 German North Sea (April 2018).
-\emph{PANGAEA}, \doi{https://doi.org/10.1594/PANGAEA.938143}
+\emph{PANGAEA}, \doi{10.1594/PANGAEA.938143}
 
 Lafuente R, Downs RT, Yang H, Stone N.
 (2016). \emph{Highlights in Mineralogical Crystallography}.
-\doi{https://doi.org/10.1515/9783110417104-003}.
+\doi{10.1515/9783110417104-003}.
 
 Cowger W, Roscher L, Chamas A, Maurer B, Gehrke L, Jebens H, Gerdts G, Primpke S.
-(2023). \emph{Preprint}. \doi{https://doi.org/10.26434/chemrxiv-2023-x88ss}.
+(2023). \emph{Preprint}. \doi{10.26434/chemrxiv-2023-x88ss}.
 
 Cowger W, Gray A, Christiansen SH, De Frond H, Deshpande AD, Hemabessiere L,
 Lee E, Mill L, et al. (2020). “Critical Review of Processing and
