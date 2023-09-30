@@ -1,7 +1,7 @@
 ---
 title: "Open Specy Package Tutorial"
 author: >
-  Win Cowger, Zacharias Steinmetz
+  Win Cowger, Zacharias Steinmetz, Rachel Kozloski, Aleksandra Karapetrova
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
