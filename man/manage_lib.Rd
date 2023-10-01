@@ -125,7 +125,7 @@ Cowger W, Roscher L, Chamas A, Maurer B, Gehrke L, Jebens H, Gerdts G,
 Primpke S (2023). “High Throughput FTIR Analysis of Macro and Microplastics
 with Plate Readers.” \emph{ChemRxiv Preprint}. \doi{10.26434/chemrxiv-2023-x88ss}.
 
-De Frond H, Rubinovitz R, Rochman CM (2021). “μATR-FTIR Spectral Libraries of
+De Frond H, Rubinovitz R, Rochman CM (2021). “µATR-FTIR Spectral Libraries of
 Plastic Particles (FLOPP and FLOPP-e) for the Analysis of Microplastics.”
 \emph{Analytical Chemistry} \strong{93}(48), 15878--15885.
 \doi{10.1021/acs.analchem.1c02549}.
@@ -181,16 +181,16 @@ estuary and the German North Sea.” \emph{PANGAEA}. \doi{10.1594/PANGAEA.938143
 \url{http://www.geologie-lyon.fr/Raman/}.
 
 “Scientific Workgroup for the Analysis of Seized Drugs.” (2023).
-\url{https://swgdrug.org/ir.htm}.
+https://swgdrug.org/ir.htm.
 
-\strong{Further sontribution of spectra:}
+\strong{Further contribution of spectra:}
 Suja Sukumaran (Thermo Fisher Scientific),
 Aline Carvalho,
 Jennifer Lynch (NIST),
 Claudia Cella and Dora Mehn (JRC),
 Horiba Scientific,
 USDA Soil Characterization Data
-(\url{https://ncsslabdatamart.sc.egov.usda.gov},
+(\url{https://ncsslabdatamart.sc.egov.usda.gov}),
 Archaeometrielabor,
 and S.B. Engelsen (Royal Vet. and Agricultural University, Denmark).
 Kimmel Center data was collected and provided by Prof. Steven Weiner

@@ -81,7 +81,7 @@ Other contributors:
   \item Rachel Kozloski (\href{https://orcid.org/0000-0003-1211-9351}{ORCID}) [contributor, data contributor]
   \item Samiksha Singh [contributor]
   \item Katherine Lasdin [contributor]
-  \item Cristiane Vidal (\href{https://orcid.org/000-0001-6363-9475}{ORCID}) [contributor]
+  \item Cristiane Vidal (\href{https://orcid.org/0000-0001-6363-9475}{ORCID}) [contributor]
   \item Clare Murphy-Hagan (\href{https://orcid.org/0009-0009-9629-2856}{ORCID}) [contributor]
   \item Philipp Baumann \email{info@spectral-cockpit.space} (\href{https://orcid.org/0000-0002-3194-8975}{ORCID}) [contributor]
   \item Pierre Roudier [contributor]

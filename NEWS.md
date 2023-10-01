@@ -1,3 +1,16 @@
+# OpenSpecy 1.0.4
+
+## Minor Improvements
+
+- More contributors
+- `showlegend` argument for interactive plots
+
+## Bug Fixes
+
+- Fixes a fatal error in `match_spec()` probably causing incorrect
+  identifications
+
+
 # OpenSpecy 1.0.3
 
 ## Minor Improvements
