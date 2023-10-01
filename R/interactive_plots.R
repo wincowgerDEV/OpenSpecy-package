@@ -115,7 +115,7 @@ plotly_spec.OpenSpecy <- function(x,
       font = font
     )
 
-  if (!is.null(x2)) {
+  if(!is.null(x2)) {
     x2 <- make_rel(x2, na.rm = T)
     dt2 <- cbind(wavenumber = x2$wavenumber, x2$spectra) |>
       melt(
@@ -140,7 +140,6 @@ plotly_spec.OpenSpecy <- function(x,
 
   return(p)
 }
-
 
 #' @rdname interactive_plots
 #'
@@ -172,31 +171,31 @@ heatmap_spec.OpenSpecy <- function(x,
                                    colorscale = 'Viridis',
                                    showlegend = FALSE,
                                    ...) {
-  if (!is.null(z))
+  if(!is.null(z))
     plot_z <- z # default
-  else if (!is.null(cor))
+  else if(!is.null(cor))
     plot_z <- cor
-  else if (!is.null(sn))
+  else if(!is.null(sn))
     plot_z <- sn
   else
     stop("z, cor, or sn need to be specified to plot the z axis", call. = F)
 
-  if (!is.null(sn) && !is.null(min_sn))
+  if(!is.null(sn) && !is.null(min_sn))
     plot_z <- ifelse(sn > min_sn, plot_z, NA)
 
-  if (!is.null(cor) && !is.null(min_cor))
+  if(!is.null(cor) && !is.null(min_cor))
     plot_z <- ifelse(cor > min_cor, plot_z, NA)
 
-  if (all(is.na(plot_z)))
+  if(all(is.na(plot_z)))
     plot_z = rep(-88, length.out = length(plot_z))
 
   p <- plot_ly(...) |>
     add_trace(
       x = x$metadata$x,
       y = x$metadata$y,
-      z = if (!is.numeric(plot_z)) {
+      z = if(!is.numeric(plot_z)) {
         as.numeric(as.factor(plot_z))
-      } else{
+      } else {
         plot_z
       },
       colorscale = colorscale,
@@ -212,11 +211,11 @@ heatmap_spec.OpenSpecy <- function(x,
         x$metadata$y,
         ", z: ",
         plot_z,
-        if (!is.null(sn))
+        if(!is.null(sn))
           paste("<br>snr: ", signif(sn, 2))
         else
           "",
-        if (!is.null(cor))
+        if(!is.null(cor))
           paste("<br>cor: ", signif(cor, 2))
         else
           ""
@@ -241,7 +240,7 @@ heatmap_spec.OpenSpecy <- function(x,
       font = font
     )
 
-  if (!is.null(select)) {
+  if(!is.null(select)) {
     p <-
       p |> add_markers(
         x = x$metadata$x[select],
@@ -304,7 +303,6 @@ interactive_plot.OpenSpecy <- function(x,
     plot_bgcolor = plot_bgcolor,
     paper_bgcolor = paper_bgcolor
   )
-
 
   # Add margin to heatmap for separation
   heat_map <-
