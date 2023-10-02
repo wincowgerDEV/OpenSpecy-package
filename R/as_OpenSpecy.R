@@ -182,13 +182,13 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
   if (is.null(colnames$wavenumber)) {
     if (any(grepl("wav", ignore.case = T, names(x)))) {
       if (length(grep("wav", ignore.case = T, names(x))) > 1L)
-        warning("Ambiguous column names: taking 'wavenumber' data from the",
+        message("Ambiguous column names: taking 'wavenumber' data from the",
                 " first column; use 'colnames' to supply user-defined columns",
                 call. = F)
       wavenumber <- x[[grep("wav", ignore.case = T, names(x))[1L]]]
       wn <- names(x)[grep("wav", ignore.case = T, names(x))]
     } else {
-      warning("Ambiguous column names: taking 'wavenumber' data from the",
+      message("Ambiguous column names: taking 'wavenumber' data from the",
               " first column; use 'colnames' to supply user-defined columns",
               call. = F)
       wavenumber <- x[[1L]]
@@ -205,7 +205,7 @@ as_OpenSpecy.data.frame <- function(x, colnames = list(wavenumber = NULL,
       spectra <- x[, grepl("(transmit.*)|(reflect.*)|(abs.*)|(intens.*)",
                            ignore.case = T, names(x)), with = F]
     } else {
-      warning("Ambiguous column names: taking 'spectra' data from all but the",
+      message("Ambiguous column names: taking 'spectra' data from all but the",
               " 'wavenumber' column; use 'colnames' to supply user-defined",
               " columns", call. = F)
       spectra <- x[, -wn, with = F]
@@ -274,7 +274,7 @@ as_OpenSpecy.default <- function(x, spectra,
 
   if (inherits(coords, "character")) {
     obj$metadata <- do.call(coords, list(ncol(obj$spectra)))
-  } else if (inherits(coords, c("data.frame", "list")) &&
+  } else if(inherits(coords, c("data.frame", "list")) &&
              all(is.element(c("x", "y"), names(coords)))) {
     obj$metadata <- as.data.table(coords)
   } else if(is.null(coords)){
@@ -286,14 +286,13 @@ as_OpenSpecy.default <- function(x, spectra,
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
+      obj$metadata$col_id <- names(obj$spectra)
       if(session_id)
         obj$metadata$session_id <- paste(digest(Sys.info()),
                                          digest(sessionInfo()),
                                          sep = "/")
       if(!c("file_id") %in% names(obj$metadata))
-        obj$metadata$file_id = digest(obj[c("wavenumber", "spectra")])
-      if(!c("col_id") %in% names(obj$metadata))
-          obj$metadata$col_id = names(obj$spectra)
+        obj$metadata$file_id <- digest(obj[c("wavenumber", "spectra")])
     } else {
       stop("inconsistent input for 'metadata'", call. = F)
     }

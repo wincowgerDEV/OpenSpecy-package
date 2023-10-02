@@ -11,13 +11,13 @@ test_that("as_OpenSpecy() handles errors correctly", {
     expect_error()
 
   as_OpenSpecy(data.frame(x = df$wavenumber, abs = df$intensity)) |>
-    expect_warning()
+    expect_message()
   as_OpenSpecy(data.frame(wav = df$wavenumber, y = df$intensity)) |>
-    expect_warning()
+    expect_message()
 
   amb <- df
   names(amb) <- c("a", "b")
-  as_OpenSpecy(amb) |> expect_warning() |> expect_warning()
+  as_OpenSpecy(amb) |> expect_message() |> expect_message()
 
   as_OpenSpecy(df$wavenumber, as.data.frame(df$intensity), coords = "") |>
     expect_error()
@@ -57,6 +57,7 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
   expect_equal(ost$spectra, osf$spectra)
   expect_equal(ost$wavenumber, osf$wavenumber)
   expect_equal(ost$metadata, osf$metadata)
+  expect_equal(osf$metadata$col_id, names(osf$spectra))
 })
 
 test_that("check_OpenSpecy() work as expected", {

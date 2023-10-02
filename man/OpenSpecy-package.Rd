@@ -21,7 +21,7 @@ Classification Techniques for Images and Spectra in Microplastic Research.”
 \emph{Applied Spectroscopy}, \strong{74}(9), 989–1010.
 \doi{10.1177/0003702820929064}.
 
-Cowger, W (2021). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
+Cowger, W (2023). “Library data.” \emph{OSF}. \doi{10.17605/OSF.IO/X7DPZ}.
 
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,
 De Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral
@@ -81,6 +81,10 @@ Other contributors:
   \item Rachel Kozloski (\href{https://orcid.org/0000-0003-1211-9351}{ORCID}) [contributor, data contributor]
   \item Samiksha Singh [contributor]
   \item Katherine Lasdin [contributor]
+  \item Cristiane Vidal (\href{https://orcid.org/0000-0001-6363-9475}{ORCID}) [contributor]
+  \item Clare Murphy-Hagan (\href{https://orcid.org/0009-0009-9629-2856}{ORCID}) [contributor]
+  \item Philipp Baumann \email{info@spectral-cockpit.space} (\href{https://orcid.org/0000-0002-3194-8975}{ORCID}) [contributor]
+  \item Pierre Roudier [contributor]
   \item National Renewable Energy Laboratory [funder]
   \item Possibility Lab [funder]
 }

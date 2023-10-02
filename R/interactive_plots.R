@@ -32,7 +32,13 @@
 #' @param font list; passed to \code{\link[plotly]{layout}()}.
 #' @param plot_bgcolor color value; passed to \code{\link[plotly]{layout}()}.
 #' @param paper_bgcolor color value; passed to \code{\link[plotly]{layout}()}.
-#' @param colorscale colorscale passed to \code{\link[plotly]{add_trace}()}.
+#' @param colorscale colorscale passed to \code{\link[plotly]{add_trace}()} can
+#' be an array or one of `"Blackbody"`, `"Bluered"`, `"Blues"`, `"Cividis"`,
+#' `"Earth"`, `"Electric"`, `"Greens"`, `"Greys"`, `"Hot"`, `"Jet"`, `"Picnic"`,
+#' `"Portland"`, `"Rainbow"`, `"RdBu"`, `"Reds"`, `"Viridis"`, `"YlGnBu"`,
+#' `"YlOrRd"`.
+#' @param showlegend whether to show the legend passed to
+#' \code{\link[plotly]{plot_ly}()}.
 #' @param \ldots further arguments passed to \code{\link[plotly]{plot_ly}()}.
 #'
 #' @return
@@ -46,7 +52,7 @@
 #' tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
 #' plotly_spec(raman_hdpe)
 #'
-#' heatmap_spec(tiny_map, z = tiny_map$metadata$y)
+#' heatmap_spec(tiny_map, z = tiny_map$metadata$y, showlegend = TRUE)
 #'
 #' sample_spec(tiny_map, size = 12) |>
 #'   interactive_plot(select = 2, x2 = raman_hdpe)
@@ -72,54 +78,64 @@ plotly_spec.default <- function(x, ...) {
 #' @rdname interactive_plots
 #'
 #' @export
-plotly_spec.OpenSpecy <- function(x, x2 = NULL,
+plotly_spec.OpenSpecy <- function(x,
+                                  x2 = NULL,
                                   line = list(color = 'rgb(255, 255, 255)'),
                                   line2 = list(dash = "dot",
                                                color = "rgb(255,0,0)"),
                                   font = list(color = '#FFFFFF'),
                                   plot_bgcolor = 'rgba(17, 0, 73, 0)',
                                   paper_bgcolor = 'rgb(0, 0, 0)',
+                                  showlegend = FALSE,
                                   ...) {
   x <- make_rel(x, na.rm = T)
   dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
-    melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
+    melt(
+      id.vars = "wavenumber",
+      variable.name = "id",
+      value.name = "intensity"
+    )
 
-  p <- plot_ly(dt, type = "scatter", mode = "lines") |>
-    add_trace(x = ~wavenumber,
-              y = ~intensity,
-              split = ~id,
-              line = line,
-              name = "x1",
-              showlegend = F) |>
-    layout(xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
-                        autorange = "reversed"),
-           yaxis = list(title = "intensity [-]"),
-           plot_bgcolor = plot_bgcolor,
-           paper_bgcolor = paper_bgcolor,
-           legend = list(orientation = 'h', y = 1.1),
-           font = font)
+  p <- plot_ly(dt, type = "scatter", mode = "lines", ...) |>
+    add_trace(
+      x = ~ wavenumber,
+      y = ~ intensity,
+      split = ~ id,
+      line = line,
+      name = "x1",
+      showlegend = showlegend
+    ) |>
+    layout(
+      xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
+                   autorange = "reversed"),
+      yaxis = list(title = "intensity [-]"),
+      plot_bgcolor = plot_bgcolor,
+      paper_bgcolor = paper_bgcolor,
+      legend = list(orientation = 'h', y = 1.1),
+      font = font
+    )
 
-  # Add dummy trace for Your Spectra
-  p <- p |>
-    add_trace(x = NULL, y = NULL,
-              line = line, name = "x1", showlegend = T)
-
-  if (!is.null(x2)) {
+  if(!is.null(x2)) {
     x2 <- make_rel(x2, na.rm = T)
     dt2 <- cbind(wavenumber = x2$wavenumber, x2$spectra) |>
-      melt(id.vars = "wavenumber", variable.name = "id", value.name = "intensity")
+      melt(
+        id.vars = "wavenumber",
+        variable.name = "id",
+        value.name = "intensity"
+      )
 
     p <- p |>
-      add_trace(data = dt2, x = ~wavenumber, y = ~intensity,
-                split = ~id, type = "scatter", mode = "lines",
-                name = "x2",
-                line = line2, showlegend = F)
-
-    # Add dummy trace for Library Spectra
-    p <- p |>
-      add_trace(x = NULL, y = NULL,
-                line = line2,
-                name = "x2", showlegend = T)
+      add_trace(
+        data = dt2,
+        x = ~ wavenumber,
+        y = ~ intensity,
+        split = ~ id,
+        type = "scatter",
+        mode = "lines",
+        name = "x2",
+        line = line2,
+        showlegend = showlegend
+      )
   }
 
   return(p)
@@ -143,12 +159,17 @@ heatmap_spec.default <- function(x, ...) {
 #'
 #' @export
 heatmap_spec.OpenSpecy <- function(x,
-                                   z = NULL, sn = NULL, cor = NULL,
-                                   min_sn = NULL, min_cor = NULL, select = NULL,
+                                   z = NULL,
+                                   sn = NULL,
+                                   cor = NULL,
+                                   min_sn = NULL,
+                                   min_cor = NULL,
+                                   select = NULL,
                                    font = list(color = '#FFFFFF'),
                                    plot_bgcolor = 'rgba(17, 0, 73, 0)',
                                    paper_bgcolor = 'rgb(0, 0, 0)',
                                    colorscale = 'Viridis',
+                                   showlegend = FALSE,
                                    ...) {
   if(!is.null(z))
     plot_z <- z # default
@@ -156,37 +177,76 @@ heatmap_spec.OpenSpecy <- function(x,
     plot_z <- cor
   else if(!is.null(sn))
     plot_z <- sn
-  else stop("z, cor, or sn need to be specified to plot the z axis", call. = F)
+  else
+    stop("z, cor, or sn need to be specified to plot the z axis", call. = F)
 
-  if (!is.null(sn) && !is.null(min_sn))
+  if(!is.null(sn) && !is.null(min_sn))
     plot_z <- ifelse(sn > min_sn, plot_z, NA)
 
-  if (!is.null(cor) && !is.null(min_cor))
+  if(!is.null(cor) && !is.null(min_cor))
     plot_z <- ifelse(cor > min_cor, plot_z, NA)
 
   if(all(is.na(plot_z)))
-      plot_z = rep(-88, length.out = length(plot_z))
+    plot_z = rep(-88, length.out = length(plot_z))
 
   p <- plot_ly(...) |>
-    add_trace(x = x$metadata$x, y = x$metadata$y, z = if(!is.numeric(plot_z)){as.numeric(as.factor(plot_z))} else{plot_z},
-              colorscale = colorscale, type = "heatmap", hoverinfo = 'text',
-              showscale = F,
-              text = ~paste("row: ", 1:nrow(x$metadata),
-                            "<br>x: ", x$metadata$x,", y: ", x$metadata$y,
-                            ", z: ", plot_z,
-                            if(!is.null(sn)) paste("<br>snr: ", signif(sn, 2)) else "",
-                            if(!is.null(cor)) paste("<br>cor: ", signif(cor, 2)) else ""
-                            )) |>
+    add_trace(
+      x = x$metadata$x,
+      y = x$metadata$y,
+      z = if(!is.numeric(plot_z)) {
+        as.numeric(as.factor(plot_z))
+      } else {
+        plot_z
+      },
+      colorscale = colorscale,
+      type = "heatmap",
+      hoverinfo = 'text',
+      showscale = showlegend,
+      text = ~ paste(
+        "row: ",
+        1:nrow(x$metadata),
+        "<br>x: ",
+        x$metadata$x,
+        ", y: ",
+        x$metadata$y,
+        ", z: ",
+        plot_z,
+        if(!is.null(sn))
+          paste("<br>snr: ", signif(sn, 2))
+        else
+          "",
+        if(!is.null(cor))
+          paste("<br>cor: ", signif(cor, 2))
+        else
+          ""
+      )
+    ) |>
     layout(
-      xaxis = list(title = 'x', zeroline = F, showgrid = F),
-      yaxis = list(title = 'y', scaleanchor = "x", scaleratio = 1,
-                   zeroline = F, showgrid = F),
-      plot_bgcolor = plot_bgcolor, paper_bgcolor = paper_bgcolor,
-      showlegend = FALSE, font = font)
+      xaxis = list(
+        title = 'x',
+        zeroline = F,
+        showgrid = F
+      ),
+      yaxis = list(
+        title = 'y',
+        scaleanchor = "x",
+        scaleratio = 1,
+        zeroline = F,
+        showgrid = F
+      ),
+      plot_bgcolor = plot_bgcolor,
+      paper_bgcolor = paper_bgcolor,
+      showlegend = showlegend,
+      font = font
+    )
 
-  if(!is.null(select)){
-    p <-  p |> add_markers(x = x$metadata$x[select], y = x$metadata$y[select],
-                           name = "Selected Spectrum")
+  if(!is.null(select)) {
+    p <-
+      p |> add_markers(
+        x = x$metadata$x[select],
+        y = x$metadata$y[select],
+        name = "Selected Spectrum"
+      )
   }
 
   return(p)
@@ -209,7 +269,9 @@ interactive_plot.default <- function(x, ...) {
 #' @rdname interactive_plots
 #'
 #' @export
-interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
+interactive_plot.OpenSpecy <- function(x,
+                                       x2 = NULL,
+                                       select = NULL,
                                        line = list(color = 'rgb(255, 255, 255)'),
                                        line2 = list(dash = "dot",
                                                     color = "rgb(255,0,0)"),
@@ -219,26 +281,42 @@ interactive_plot.OpenSpecy <- function(x, x2 = NULL, select = NULL,
                                        colorscale = 'Viridis',
                                        ...) {
   # Generate the heatmap
-  heat_map <- heatmap_spec(x, z = x$metadata$y, select = select,
-                           font = font, plot_bgcolor = plot_bgcolor,
-                           paper_bgcolor = paper_bgcolor,
-                           colorscale = colorscale)
+  heat_map <- heatmap_spec(
+    x,
+    z = x$metadata$y,
+    select = select,
+    font = font,
+    plot_bgcolor = plot_bgcolor,
+    paper_bgcolor = paper_bgcolor,
+    colorscale = colorscale
+  )
 
   x3 <- filter_spec(x, logic = select)
 
   # Generate the spectral plot
-  spectra_plot <- plotly_spec(x3, x2 = x2,
-                              line = line, line2 = line2, font = font,
-                              plot_bgcolor = plot_bgcolor,
-                              paper_bgcolor = paper_bgcolor)
-
+  spectra_plot <- plotly_spec(
+    x3,
+    x2 = x2,
+    line = line,
+    line2 = line2,
+    font = font,
+    plot_bgcolor = plot_bgcolor,
+    paper_bgcolor = paper_bgcolor
+  )
 
   # Add margin to heatmap for separation
-  heat_map <- heat_map |> layout(autosize = TRUE, margin = list(b = 100))
+  heat_map <-
+    heat_map |> layout(autosize = TRUE, margin = list(b = 100))
 
   # Combine both plots using subplot
-  plot_grid <- subplot(heat_map, spectra_plot, nrows = 2, heights = c(0.6, 0.4),
-                       margin = 0.1)
+  plot_grid <-
+    subplot(
+      heat_map,
+      spectra_plot,
+      nrows = 2,
+      heights = c(0.6, 0.4),
+      margin = 0.1
+    )
 
   # Show the interactive plot
   return(plot_grid)

@@ -46,7 +46,7 @@ current Open Specy spectral libraries to improve material identification and
 reduce sample processing times. Pearson's r values range from 0 - 1 with 0 being
 a completely different spectrum and 1 being an exact match. Some general
 guidelines that we have observed from using Open Specy. If no matches are \>
-\~0.3 the material may require additional processing or may not exist in the
+\~0.6 the material may require additional processing or may not exist in the
 Open Specy library. Correlation values are not the only metric you should use to
 assess your spectra's match to a material in the library, matches need to make
 sense.

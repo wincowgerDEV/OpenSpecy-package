@@ -1,8 +1,8 @@
 Package: OpenSpecy
 Type: Package
 Title: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
-Version: 1.0.3
-Date: 2023-09-13
+Version: 1.0.4
+Date: 2023-10-01
 Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
       email = "wincowger@gmail.com",
       comment = c(ORCID = "0000-0001-9226-3104")),
@@ -11,13 +11,13 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
       comment = c(ORCID = "0000-0001-6675-5033")),
     person("Nick", "Leong", role = c("aut"),
       comment = c(ORCID = "0009-0008-3313-4132")),
-    person("Andrea","Faltynkova", role = c("aut", "dtc"),
+    person("Andrea", "Faltynkova", role = c("aut", "dtc"),
       comment = c(ORCID = "0000-0003-2523-3137")),
     person("Andrew B", "Gray", role = c("ctb"),
       comment = c(ORCID = "0000-0003-2252-7367")), 
     person("Hannah", "Hapich", role = c("ctb"),
       comment = c(ORCID = "0000-0003-0000-6632")),
-    person("Jennifer", "Lynch", role = c("ctb","dtc"),
+    person("Jennifer", "Lynch", role = c("ctb", "dtc"),
       comment = c(ORCID = "0000-0003-3572-8782")),
     person("Hannah", "De Frond", role = c("ctb", "dtc"),
       comment = c(ORCID = "0000-0003-1199-0727")),
@@ -42,6 +42,14 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
       comment = c(ORCID = "0000-0003-1211-9351")),
     person("Samiksha", "Singh", role = c("ctb")),
     person("Katherine", "Lasdin", role = c("ctb")),
+    person("Cristiane", "Vidal", role = c("ctb"), 
+      comment = c(ORCID = "0000-0001-6363-9475")),
+    person("Clare", "Murphy-Hagan", role = c("ctb"), 
+      comment = c(ORCID = "0009-0009-9629-2856")),
+    person("Philipp", "Baumann", role = c("ctb"),
+      email = "info@spectral-cockpit.space",
+      comment = c(ORCID = "0000-0002-3194-8975")),
+    person("Pierre", "Roudier", role = c("ctb")),
     person("National Renewable Energy Laboratory", role = c("fnd")), 
     person("Possibility Lab", role = c("fnd")))
 Description: Raman and (FT)IR spectral analysis tool for plastic particles and

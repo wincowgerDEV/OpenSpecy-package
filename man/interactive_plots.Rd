@@ -24,6 +24,7 @@ plotly_spec(x, ...)
   font = list(color = "#FFFFFF"),
   plot_bgcolor = "rgba(17, 0, 73, 0)",
   paper_bgcolor = "rgb(0, 0, 0)",
+  showlegend = FALSE,
   ...
 )
 
@@ -43,6 +44,7 @@ heatmap_spec(x, ...)
   plot_bgcolor = "rgba(17, 0, 73, 0)",
   paper_bgcolor = "rgb(0, 0, 0)",
   colorscale = "Viridis",
+  showlegend = FALSE,
   ...
 )
 
@@ -81,6 +83,9 @@ spectral data for the second group.}
 
 \item{paper_bgcolor}{color value; passed to \code{\link[plotly]{layout}()}.}
 
+\item{showlegend}{whether to show the legend passed to
+\code{\link[plotly]{plot_ly}()}.}
+
 \item{z}{optional numeric vector specifying the intensity values for the
 heatmap. If not provided, the function will use the intensity values from the
 \code{OpenSpecy} object.}
@@ -104,7 +109,11 @@ will be excluded.}
 \item{select}{optional index of the selected spectrum to highlight on the
 heatmap.}
 
-\item{colorscale}{colorscale passed to \code{\link[plotly]{add_trace}()}.}
+\item{colorscale}{colorscale passed to \code{\link[plotly]{add_trace}()} can
+be an array or one of \code{"Blackbody"}, \code{"Bluered"}, \code{"Blues"}, \code{"Cividis"},
+\code{"Earth"}, \code{"Electric"}, \code{"Greens"}, \code{"Greys"}, \code{"Hot"}, \code{"Jet"}, \code{"Picnic"},
+\code{"Portland"}, \code{"Rainbow"}, \code{"RdBu"}, \code{"Reds"}, \code{"Viridis"}, \code{"YlGnBu"},
+\code{"YlOrRd"}.}
 
 \item{\ldots}{further arguments passed to \code{\link[plotly]{plot_ly}()}.}
 }
@@ -123,7 +132,7 @@ data("raman_hdpe")
 tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
 plotly_spec(raman_hdpe)
 
-heatmap_spec(tiny_map, z = tiny_map$metadata$y)
+heatmap_spec(tiny_map, z = tiny_map$metadata$y, showlegend = TRUE)
 
 sample_spec(tiny_map, size = 12) |>
   interactive_plot(select = 2, x2 = raman_hdpe)

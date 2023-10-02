@@ -23,15 +23,15 @@ test_that("read_text() gives expected output", {
   dtf <- read_extdata("raman_hdpe.csv") |> read_text(method = "fread") |>
     expect_silent()
   read_extdata("ftir_pva_without_header.csv") |> read_text() |>
-    expect_warning() |> expect_warning()
+    expect_message() |> expect_message()
   read_extdata("ftir_pva_without_header.csv") |> read_text(header = F) |>
-    expect_warning() |> expect_warning()
+    expect_message() |> expect_message()
   read_extdata("ftir_pva_without_header.csv") |> read_text(method = "fread") |>
-    expect_warning() |> expect_warning()
+    expect_message() |> expect_message()
 
   expect_s3_class(csv, "OpenSpecy")
   expect_true(check_OpenSpecy(csv))
-  
+
   expect_equal(names(csv), c("wavenumber", "spectra", "metadata"))
   expect_equal(csv$wavenumber, raman_hdpe$wavenumber)
   expect_equal(csv$spectra, raman_hdpe$spectra)
@@ -48,7 +48,7 @@ test_that("read_asp() gives expected output", {
 
   expect_s3_class(asp, "OpenSpecy")
   expect_true(check_OpenSpecy(asp))
-  
+
   expect_equal(names(asp), c("wavenumber", "spectra", "metadata"))
   expect_length(asp$wavenumber, 1798)
   range(asp$wavenumber) |> round(1) |>
@@ -68,7 +68,7 @@ test_that("read_spa() gives expected output", {
 
   expect_s3_class(spa, "OpenSpecy")
   expect_true(check_OpenSpecy(spa))
-  
+
   expect_equal(names(spa), c("wavenumber", "spectra", "metadata"))
   expect_length(spa$wavenumber, 1738)
   range(spa$wavenumber) |> round(1) |>
@@ -87,7 +87,7 @@ test_that("read_jdx() gives expected output", {
 
   expect_s3_class(jdx, "OpenSpecy")
   expect_true(check_OpenSpecy(jdx))
-  
+
   expect_equal(names(jdx), c("wavenumber", "spectra", "metadata"))
   expect_length(jdx$wavenumber, 7154)
   range(jdx$wavenumber) |> round(1) |>
@@ -106,7 +106,7 @@ test_that("read_spc() gives expected output", {
 
   expect_s3_class(spc, "OpenSpecy")
   expect_true(check_OpenSpecy(spc))
-  
+
   expect_equal(names(spc), c("wavenumber", "spectra", "metadata"))
   expect_length(spc$wavenumber, 559)
   range(spc$wavenumber) |> round(1) |>

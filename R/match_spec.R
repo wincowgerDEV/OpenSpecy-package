@@ -138,7 +138,7 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
                                  order = NULL, add_library_metadata = NULL,
                                  add_object_metadata = NULL, fill = NULL, ...) {
   if(is_OpenSpecy(library)) {
-    res <- cor_spec(x, library =  library) |>
+    res <- cor_spec(x, library = library) |>
       ident_spec(x, library = library, top_n = top_n,
                  add_library_metadata = add_library_metadata,
                  add_object_metadata = add_object_metadata)
@@ -163,25 +163,28 @@ ident_spec <- function(cor_matrix, x, library, top_n = NULL,
                        add_object_metadata = NULL, ...){
   if(is.numeric(top_n) && top_n > ncol(library$spectra)){
     top_n = NULL
-    message("'top_n' was larger than the number of spectra in the library; ",
+    message("'top_n' larger than the number of spectra in the library; ",
             "returning all matches")
   }
 
-  out <- data.table(object_id = colnames(x$spectra),
-                    library_id = rep(colnames(library$spectra),
-                                     each = ncol(x$spectra)),
-                    match_val = c(cor_matrix))
+  out <-  as.data.table(cor_matrix, keep.rownames = T) |> melt(id.vars = "rn")
 
-  if (is.character(add_library_metadata))
+  names(out) <- c("library_id", "object_id", "match_val")
+
+  if(is.numeric(top_n)) {
+    match_val <- NULL # workaround for data.table non-standard evaluation
+    setorder(out, -match_val)
+    out <- out[!is.na(match_val), head(.SD, top_n), by = "object_id"]
+  }
+
+  if(is.character(add_library_metadata))
     out <- merge(out, library$metadata,
                  by.x = "library_id", by.y = add_library_metadata, all.x = T)
-  if (is.character(add_object_metadata))
+
+  if(is.character(add_object_metadata))
+
     out <- merge(out, x$metadata,
                  by.x = "object_id", by.y = add_object_metadata, all.x = T)
-  if (is.numeric(top_n)) {
-    setorder(out, -"match_val")
-    out <- out[, head(.SD, top_n), by = "object_id"]
-  }
 
   return(out)
 }
