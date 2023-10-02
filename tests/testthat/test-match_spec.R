@@ -168,6 +168,8 @@ test_that("cor_spec() routine and match_spec() return same values", {
   names <- max_correlations |> sort(decreasing = T) |> names()
   top_matches <- match_spec(x = tiny_map, library = test_lib, top_n = 1)
   expect_identical(names, top_matches$library_id)
+  top_matches_2 <- match_spec(x = tiny_map, library = test_lib, top_n = 2)[, head(.SD, 1), by = "object_id"]
+  expect_identical(names, top_matches$library_id)
 })
 
 # Tidy up
