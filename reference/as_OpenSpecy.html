@@ -12,7 +12,7 @@ possible."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/m
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.4</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -430,7 +430,7 @@ with <code>digest(object[c("wavenumber", "spectra")])</code></td></tr></table></
 <span class="r-in"><span><span class="co"># Creating an OpenSpecy from a data.frame</span></span></span>
 <span class="r-in"><span><span class="fu">as_OpenSpecy</span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>wavenumber <span class="op">=</span> <span class="va">raman_hdpe</span><span class="op">$</span><span class="va">wavenumber</span>,</span></span>
 <span class="r-in"><span>                            spectra <span class="op">=</span> <span class="va">raman_hdpe</span><span class="op">$</span><span class="va">spectra</span><span class="op">$</span><span class="va">intensity</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Ambiguous column names: taking 'spectra' data from all but the 'wavenumber' column; use 'colnames' to supply user-defined columns</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Ambiguous column names: taking 'spectra' data from all but the 'wavenumber' column; use 'colnames' to supply user-defined columnsFALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber spectra</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040      26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632      50</span>
@@ -445,8 +445,8 @@ with <code>digest(object[c("wavenumber", "spectra")])</code></td></tr></table></
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120      67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y  license                          file_id  col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 CC BY-NC bf49db07d97b169635b8f8e17311cdbc spectra</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    x y  license  col_id                          file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 CC BY-NC spectra bf49db07d97b169635b8f8e17311cdbc</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Test that the spectrum is formatted as an OpenSpecy object.</span></span></span>
 <span class="r-in"><span><span class="fu">is_OpenSpecy</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>
