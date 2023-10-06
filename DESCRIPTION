@@ -49,6 +49,8 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
     person("Philipp", "Baumann", role = c("ctb"),
       email = "info@spectral-cockpit.space",
       comment = c(ORCID = "0000-0002-3194-8975")),
+    person("Monica", "Arienzo", role = c("ctb"),
+      comment = c(ORCID = "0000-0003-3444-9810")),
     person("Pierre", "Roudier", role = c("ctb")),
     person("National Renewable Energy Laboratory", role = c("fnd")), 
     person("Possibility Lab", role = c("fnd")))
