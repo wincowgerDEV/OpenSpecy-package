@@ -55,26 +55,42 @@ read_any <- function(file, ...) {
 #' @importFrom utils unzip
 #' @importFrom data.table transpose
 #' @export
-read_zip <- function(file, ...) {
-  flst <- unzip(zipfile = file, list = T)
-
-  tmp <- file.path(tempdir(), "OpenSpecy-unzip")
-  dir.create(tmp, showWarnings = F)
-
-  unzip(file, exdir = tmp)
-
-  if(nrow(flst) == 2 & any(grepl("\\.dat$", ignore.case = T, flst$Name)) &
-      any(grepl("\\.hdr$", ignore.case = T, flst$Name))) {
-    dat <- flst$Name[grepl("\\.dat$", ignore.case = T, flst$Name)]
-    hdr <- flst$Name[grepl("\\.hdr$", ignore.case = T, flst$Name)]
-
-    os <- read_envi(file.path(tmp, dat), file.path(tmp, hdr), ...)
-  } else {
-    lst <- lapply(file.path(tmp, flst$Name), read_any, ...)
-
-    os <- c_spec(lst)
-  }
-
-  unlink(tmp, recursive = T)
-  return(os)
+read_zip <- function(file, c_spec = T, ...) {
+    flst <- unzip(zipfile = file, list = T)
+    
+    tmp <- file.path(tempdir(), "OpenSpecy-unzip")
+    dir.create(tmp, showWarnings = F)
+    
+    unzip(file, exdir = tmp)
+    
+    if(nrow(flst) == 2 & any(grepl("\\.dat$", ignore.case = T, flst$Name)) &
+       any(grepl("\\.hdr$", ignore.case = T, flst$Name))) {
+        dat <- flst$Name[grepl("\\.dat$", ignore.case = T, flst$Name)]
+        hdr <- flst$Name[grepl("\\.hdr$", ignore.case = T, flst$Name)]
+        
+        os <- read_envi(file.path(tmp, dat), file.path(tmp, hdr), ...)
+    } else {
+        test <- grepl("(\\.csv$)|(\\.txt$)|(\\.[0-999]$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)", flst$Name)
+        
+        if(!all(test)) warning("Not all files in zip can be read, skipping those that cannot.") 
+        
+        os <- lapply(file.path(tmp, flst$Name)[test], function(x) {
+            tryCatch(
+                { 
+                    read_any(x)
+                },
+                error = function(e) {
+                    message("Error processing file, skipping and replacing with NULL: ", x, ". Error message: ", e$message)
+                    return(NULL)  # You can choose to return NULL or any other default value in case of error
+                }
+            )
+        })
+        
+        if(c_spec){
+            os <- c_spec(os, ...)
+        }
+    }
+    
+    unlink(tmp, recursive = T)
+    return(os)
 }
