@@ -33,7 +33,7 @@
 #'
 #' @export
 read_any <- function(file, ...) {
-  if (grepl("(\\.csv$)|(\\.txt$)", ignore.case = T, file)) {
+  if (grepl("(\\.csv$)|(\\.tsv$)|(\\.txt$)", ignore.case = T, file)) {
     os <- read_text(file = file, ...)
   } else if (grepl("\\.[0-999]$", ignore.case = T, file)) {
     os <- read_opus(file = file, ...)
