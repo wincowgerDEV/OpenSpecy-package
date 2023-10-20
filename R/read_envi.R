@@ -74,7 +74,7 @@ read_envi <- function(file, header = NULL, share = NULL,
   arr <- read.ENVI(file, header)
   dt <- as.data.table(arr)
   md <- hdr[names(hdr) != "wavelength"]
-  names(dt) <- c("x", "y", "z", "value")
+  names(dt) <- c("y", "x", "z", "value")
   dt[, 1:2] <- dt[, 1:2] -1
 
   os <- as_OpenSpecy(x = hdr$wavelength,
