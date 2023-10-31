@@ -125,38 +125,134 @@ feature information on area and Feret max.</p>
 <span class="r-in"><span><span class="va">tiny_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"CA_tiny_map.zip"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="read_multi.html">read_any</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">identified_map</span> <span class="op">&lt;-</span> <span class="fu">def_features</span><span class="op">(</span><span class="va">tiny_map</span>, <span class="va">tiny_map</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">x</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">collapse_spec</span><span class="op">(</span><span class="va">identified_map</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber          0        -88</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1:     717.42 -0.8664638 -0.0980255</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2:     725.13 -0.8660646 -0.1262099</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3:     732.85 -0.8680449 -0.1549966</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4:     740.56 -0.8705378 -0.1842670</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5:     748.28 -0.8745655 -0.1974232</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber          0        -88          4          7         10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1:     717.42 -0.8599975 -0.1846190 -0.7817467 -0.6341125 -0.3957456</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2:     725.13 -0.8629220 -0.2030258 -0.7875991 -0.6482702 -0.4134940</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3:     732.85 -0.8684751 -0.2236059 -0.7965024 -0.6606091 -0.4314153</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4:     740.56 -0.8713333 -0.2380186 -0.8020197 -0.6671489 -0.4433241</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5:     748.28 -0.8721815 -0.2436821 -0.8036770 -0.6697885 -0.4486529</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                                                                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 423:    3972.81 -0.8804550 -0.3092059 -0.8022860 -0.6340107 -0.4140871</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 424:    3980.52 -0.8789783 -0.3107601 -0.8013673 -0.6315157 -0.4108835</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 425:    3988.24 -0.8772697 -0.3180229 -0.8017516 -0.6310282 -0.4105957</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 426:    3995.95 -0.8773139 -0.3195935 -0.8025478 -0.6334830 -0.4125072</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 427:    4003.67 -0.8778735 -0.3126730 -0.8019281 -0.6349432 -0.4132366</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               13          3          6          9           12          2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1: -0.06994937 0.11460015 0.18089953 0.17514743  0.087934248 -0.1404191</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2: -0.09679992 0.08463844 0.15293343 0.14219251  0.071245745 -0.1482290</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3: -0.12339281 0.05434874 0.12460253 0.11172757  0.051149037 -0.1594115</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4: -0.14147647 0.03276557 0.10344046 0.09271412  0.036638767 -0.1682616</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5: -0.15012543 0.02154485 0.08880223 0.08287866  0.032449901 -0.1715885</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                                                                     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 423: -0.10772412 0.03843024 0.13000481 0.14231284  0.003167340 -0.2771131</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 424: -0.10918775 0.03988123 0.13281861 0.14542726  0.006487147 -0.2751649</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 425: -0.10935027 0.03883109 0.13485433 0.14393683  0.006562222 -0.2740324</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 426: -0.11035092 0.03590450 0.13375901 0.14145134  0.002249188 -0.2760093</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 427: -0.11206047 0.03426958 0.13073599 0.14077842 -0.003012084 -0.2802055</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               5          8         11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1: -0.3454294 -0.4089794 -0.5889121</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2: -0.3505079 -0.4128581 -0.5879138</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3: -0.3595735 -0.4174158 -0.5898755</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4: -0.3662870 -0.4215689 -0.5909628</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5: -0.3689005 -0.4243726 -0.5905932</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  ---                                 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 423:    3972.81 -0.8819645 -0.2872929</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 424:    3980.52 -0.8800994 -0.2865480</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 425:    3988.24 -0.8788538 -0.2937347</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 426:    3995.95 -0.8799234 -0.2973755</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 427:    4003.67 -0.8808389 -0.2950034</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 423: -0.4831747 -0.5125267 -0.6319057</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 424: -0.4809514 -0.5105906 -0.6320986</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 425: -0.4795221 -0.5097994 -0.6328617</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 426: -0.4812161 -0.5112385 -0.6342685</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 427: -0.4826814 -0.5125880 -0.6346731</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y feature_id area perimeter feret_min feret_max       file_name  license</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 0 0          0   16        30         1        16 CA small UF.dat CC BY-NC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 1 0        -88   NA        NA        NA        NA CA small UF.dat CC BY-NC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                     description samples lines</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    bands header offset data type interleave                  z plot titles</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  pixel size col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 0.000025000, 0.000025000    0_0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 0.000025000, 0.000025000    1_0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 6f7cf7eedcc9fd2a8a6d619ee17907b9/ddce9322d371fa6da4100ae1f3a5b66e</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 6f7cf7eedcc9fd2a8a6d619ee17907b9/ddce9322d371fa6da4100ae1f3a5b66e</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id centroid_x centroid_y</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 215a0fd7e0dc3b1001799214618ce6eb        0.0        7.5</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 215a0fd7e0dc3b1001799214618ce6eb        6.5        7.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     x  y feature_id area perimeter feret_min feret_max       file_name  license</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1: 0  0          0    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2: 1  0        -88   NA        NA        NA        NA CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3: 0  1          4    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4: 0  2          7    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5: 0  3         10    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6: 0  4         13    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7: 0  5          3    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8: 0  6          6    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9: 0  7          9    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10: 0  8         12    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11: 0  9          2    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12: 0 10          5    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13: 0 11          8    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14: 0 12         11    1         4         1         1 CA small UF.dat CC BY-NC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                      description samples lines</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     bands header offset data type interleave                  z plot titles</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14:   427             0         4        bip Wavenumbers (cm-1), Absorbance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   pixel size col_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1: 0.000025000, 0.000025000    0_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2: 0.000025000, 0.000025000    0_1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3: 0.000025000, 0.000025000    1_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4: 0.000025000, 0.000025000    2_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5: 0.000025000, 0.000025000    3_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6: 0.000025000, 0.000025000    4_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7: 0.000025000, 0.000025000    5_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8: 0.000025000, 0.000025000    6_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9: 0.000025000, 0.000025000    7_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10: 0.000025000, 0.000025000    8_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11: 0.000025000, 0.000025000    9_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12: 0.000025000, 0.000025000   10_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13: 0.000025000, 0.000025000   11_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14: 0.000025000, 0.000025000   12_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                            session_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14: 62f68a46c172fd31aa66763a9a0cec65/8cc9fc57efd1938475ff9d2684fb4382</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              file_id centroid_x centroid_y</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1: 215a0fd7e0dc3b1001799214618ce6eb          0          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2: 215a0fd7e0dc3b1001799214618ce6eb          8          6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3: 215a0fd7e0dc3b1001799214618ce6eb          0          1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4: 215a0fd7e0dc3b1001799214618ce6eb          0          2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5: 215a0fd7e0dc3b1001799214618ce6eb          0          3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6: 215a0fd7e0dc3b1001799214618ce6eb          0          4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7: 215a0fd7e0dc3b1001799214618ce6eb          0          5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8: 215a0fd7e0dc3b1001799214618ce6eb          0          6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9: 215a0fd7e0dc3b1001799214618ce6eb          0          7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10: 215a0fd7e0dc3b1001799214618ce6eb          0          8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11: 215a0fd7e0dc3b1001799214618ce6eb          0          9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12: 215a0fd7e0dc3b1001799214618ce6eb          0         10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13: 215a0fd7e0dc3b1001799214618ce6eb          0         11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14: 215a0fd7e0dc3b1001799214618ce6eb          0         12</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
