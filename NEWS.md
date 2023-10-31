@@ -1,3 +1,14 @@
+# OpenSpecy 1.0.5
+
+## Minor Improvements
+
+- Support .tsv files
+
+## Bug Fixes
+
+- Flip xy coordinates in ENVI files
+
+
 # OpenSpecy 1.0.4
 
 ## Minor Improvements
