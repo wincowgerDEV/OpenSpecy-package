@@ -22,7 +22,7 @@ attributed when you are using their data."><!-- mathjax --><script src="https://
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.5</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -127,12 +127,19 @@ maintain your own OSF node with spectral libraries.</p></dd>
 <dt>conflicts</dt>
 <dd><p>determines what happens when a file with the same name
 exists at the specified destination. Can be one of the following (see
-<code><a href="https://docs.ropensci.org/osfr/reference/osf_download.html" class="external-link">osf_download</a>()</code> for details):</p><ul><li><p>"error" throw an error and abort the file transfer operation.</p></li>
-<li><p>"skip" skip the conflicting file(s) and continue transferring the
-remaining files.</p></li>
-<li><p>"overwrite" (default) replace the existing file with the
-transferred copy.</p></li>
-</ul></dd>
+<code><a href="https://docs.ropensci.org/osfr/reference/osf_download.html" class="external-link">osf_download</a>()</code> for details):</p><dl><dt>"error"</dt>
+<dd><p>throw an error and abort the file transfer operation.</p></dd>
+
+<dt>"skip"</dt>
+<dd><p>skip the conflicting file(s) and continue transferring the
+remaining files.</p></dd>
+
+<dt>"overwrite" (default)</dt>
+<dd><p>replace the existing file with the
+transferred copy.</p></dd>
+
+
+</dl></dd>
 
 
 <dt>...</dt>
