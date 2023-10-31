@@ -78,7 +78,7 @@ read_envi <- function(file, header = NULL, share = NULL,
   dt[, 1:2] <- dt[, 1:2] -1
 
   os <- as_OpenSpecy(x = hdr$wavelength,
-                     spectra = dcast(dt, z ~ x + y)[, -1],
+                     spectra = dcast(dt, z ~ y + x)[, -1],
                      metadata = c(metadata, md),
                      coords = dt[, 1:2] |> unique(),
                      session_id = T)
