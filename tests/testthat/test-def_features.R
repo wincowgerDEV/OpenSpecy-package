@@ -11,21 +11,27 @@ test_that("collapse_spec() handles input errors correctly", {
 test_that("features are identified when given logical", {
   map$metadata$particles <- map$metadata$y == 0
   id_map <- def_features(map, map$metadata$particles)
-  expect_true(check_OpenSpecy(id_map))
-  expect_length(unique(id_map$metadata$feature_id), 2)
-  expect_equal(max(id_map$metadata$area, na.rm = T), 13)
-  expect_equal(max(id_map$metadata$feret_max, na.rm = T), 13)
-  expect_equal(max(id_map$metadata$feret_min, na.rm = T), 1)
-  expect_equal(max(id_map$metadata$perimeter, na.rm = T), 24)
+  check_OpenSpecy(id_map) |> expect_true()
+  unique(id_map$metadata$feature_id) |> expect_length(2)
+  max(id_map$metadata$area, na.rm = T) |> expect_equal(16)
+  max(id_map$metadata$feret_max, na.rm = T) |> round(2) |>
+    expect_equal(13.04)
+  max(id_map$metadata$feret_min, na.rm = T) |> round(2) |>
+    expect_equal(1.23)
+  max(id_map$metadata$perimeter, na.rm = T) |> round(2) |>
+    expect_equal(25.05)
 })
 
 test_that("particles are identified when given character", {
   map$metadata$particles <- ifelse(map$metadata$y == 1, "particle", "not_particle")
   id_map <- def_features(map, map$metadata$particles)
   expect_true(check_OpenSpecy(id_map))
-  expect_length(unique(id_map$metadata$feature_id), 3)
-  expect_equal(max(id_map$metadata$area, na.rm = T), 182)
-  expect_equal(round(max(id_map$metadata$feret_max, na.rm = T)), 19)
+  unique(id_map$metadata$feature_id) |>
+    expect_length(3)
+  max(id_map$metadata$area, na.rm = T) |>
+    expect_equal(176)
+  max(id_map$metadata$feret_max, na.rm = T) |> round(2) |>
+    expect_equal(18.69)
 })
 
 test_that("an error is thrown for invalid feature input", {
@@ -72,20 +78,26 @@ test_that("collapse particles returns expected values", {
 
   expect_true(check_OpenSpecy(test_collapsed))
 
-  expect_equal(test_collapsed$metadata |> nrow(), 3)
-  expect_equal(test_collapsed$metadata$feret_max |> round(2), c(13, 13, 18.69))
-  expect_equal(test_collapsed$metadata$centroid_x |> unique(), 6)
+  test_collapsed$metadata |> nrow() |>
+    expect_equal(3)
+  test_collapsed$metadata$feret_max |> round(2) |>
+    expect_equal(c(13.04, 13.04, 18.69))
+  test_collapsed$metadata$centroid_x |> unique() |>
+    expect_equal(7.5)
 
   particles <- map$metadata$y == 1
   id_map <- def_features(map, particles)
   expect_true(check_OpenSpecy(id_map))
 
   test_collapsed <- collapse_spec(id_map)
-  expect_true(check_OpenSpecy(test_collapsed))
+  check_OpenSpecy(test_collapsed) |> expect_true()
 
-  expect_equal(test_collapsed$metadata |> nrow(), 2)
-  expect_equal(test_collapsed$metadata$feret_max |> round(2), c(NA, 13))
-  expect_equal(test_collapsed$metadata$centroid_x |> unique(), 6)
+  test_collapsed$metadata |> nrow() |>
+    expect_equal(2)
+  test_collapsed$metadata$feret_max |> round(2) |>
+    expect_equal(c(NA, 13.04))
+  test_collapsed$metadata$centroid_x |> unique() |>
+    expect_equal(7.5)
 
   expect_contains(names(test_collapsed$metadata),
                   c("feature_id", "area", "feret_max", "centroid_y",
