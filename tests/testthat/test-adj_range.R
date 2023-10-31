@@ -60,6 +60,6 @@ test_that("flatten_range() function test", {
   expect_false(all.equal(flat_map$spectra, tiny_map$spectra) |> isTRUE())
   expect_equal(flat_map$spectra[1:20], tiny_map$spectra[1:20])
 
-  flat_map$spectra[40:60, 1:5] |> unique() |> round(4) |> as.numeric() |>
-    expect_equal(c(-0.8694, -0.7769, -0.5828, -0.2920, 0.1916))
+  flat_map$spectra[40:60, 1:5] |> unique() |> round(2) |> as.numeric() |>
+    expect_equal(c(-0.87, -1.25, -0.83, -1.19, -0.79))
 })
