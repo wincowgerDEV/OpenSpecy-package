@@ -168,6 +168,27 @@ test_that("cor_spec() routine and match_spec() return same values", {
   names <- max_correlations |> sort(decreasing = T) |> names()
   top_matches <- match_spec(x = tiny_map, library = test_lib, top_n = 1)
   expect_identical(names, top_matches$library_id)
+  top_matches_2 <- match_spec(x = tiny_map, library = test_lib, top_n = 2)[, head(.SD, 1), by = "object_id"]
+  expect_identical(names, top_matches$library_id)
+})
+
+test_that("cor_spec() routine with preprocessing returns same values as setting conform = T", {
+    
+    tiny_map2 <- read_extdata("CA_tiny_map.zip") |>
+        read_any() |>
+        process_spec(smooth_intens = T, conform_spec = F, make_rel = T)
+    
+    tiny_map3 <- tiny_map2 |>
+        conform_spec(range = test_lib$wavenumber, res = NULL, type = "roll")
+    
+    cors <- cor_spec(tiny_map3, test_lib)
+    cors2 <- cor_spec(tiny_map2, test_lib, conform = T, type = "roll")
+    max_correlations <- max_cor_named(cors)
+    names <- max_correlations |> sort(decreasing = T) |> names()
+    top_matches <- match_spec(x = tiny_map, library = test_lib, top_n = 1)
+    expect_identical(names, top_matches$library_id)
+    top_matches_2 <- match_spec(x = tiny_map, library = test_lib, top_n = 2)[, head(.SD, 1), by = "object_id"]
+    expect_identical(names, top_matches$library_id)
 })
 
 # Tidy up

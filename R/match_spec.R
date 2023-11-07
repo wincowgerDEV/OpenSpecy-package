@@ -97,7 +97,7 @@ cor_spec.default <- function(x, ...) {
 #' @export
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F, type = "roll", ...) {
   if(conform){
-        x <- conform_spec(x, library, res = NULL, type = type)    
+        x <- conform_spec(x, library, res = NULL, type)    
   }
     
   if(sum(x$wavenumber %in% library$wavenumber) < 3)
