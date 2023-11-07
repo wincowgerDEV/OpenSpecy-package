@@ -265,6 +265,9 @@ filter_spec.OpenSpecy <- function(x, logic, ...) {
   x$spectra <- x$spectra[, logic, with = F]
   x$metadata <- x$metadata[logic,]
 
+  if(ncol(x$spectra) == 0 | ncol(x$metadata) == 0)
+      stop("The OpenSpecy object created contains zero spectra, this is not well supported, if you have specific scenarios where this is required please share it with the developers and we can make a workaround.")
+  
   return(x)
 }
 

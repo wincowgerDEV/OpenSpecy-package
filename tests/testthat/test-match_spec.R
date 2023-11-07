@@ -137,12 +137,9 @@ test_that("Test that raman hdpe accurately identified", {
 })
 
 # Write the tests for filter_spec function
-test_that("filter_spec() returns erroneous OpenSpecy object when removing all spectra", {
+test_that("filter_spec() does not allow for OpenSpecy object without spectra", {
   os_filtered <- filter_spec(test_lib, logic = rep(F, ncol(test_lib$spectra))) |>
-    expect_silent()
-  check_OpenSpecy(os_filtered) |> expect_warning() |> expect_warning()
-  expect_equal(ncol(os_filtered$spectra), 0)
-  expect_equal(nrow(os_filtered$metadata), 0)
+    expect_error()
 })
 
 # Write the tests for filter_spec function
@@ -153,7 +150,6 @@ test_that("filter_spec() returns OpenSpecy object with filtered spectra", {
   os_filtered <- filter_spec(test_lib, logic = logic) |>
     expect_silent()
   expect_true(check_OpenSpecy(os_filtered))
-
   expect_equal(ncol(os_filtered$spectra), 1)
   expect_equal(nrow(os_filtered$metadata), 1)
 })
