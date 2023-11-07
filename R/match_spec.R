@@ -95,7 +95,7 @@ cor_spec.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, type = "roll", ...) {
+cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F, type = "roll", ...) {
   if(conform){
         x <- conform_spec(x, library, res = NULL, type = type)    
   }
@@ -140,7 +140,7 @@ match_spec.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, type = "roll", top_n = NULL,
+match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F, type = "roll", top_n = NULL,
                                  order = NULL, add_library_metadata = NULL,
                                  add_object_metadata = NULL, fill = NULL, ...) {
   if(is_OpenSpecy(library)) {
