@@ -15,6 +15,7 @@
 #'
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
 #' @param conform Whether to conform the spectra to the library wavenumbers or not.
+#' @param type the type of conformation to make returned by \code{conform_spec()}
 #' @param library an \code{OpenSpecy} or \code{glmnet} object representing the
 #' reference library of spectra or model to use in identification.
 #' @param na.rm logical; indicating whether missing values should be removed
@@ -94,9 +95,9 @@ cor_spec.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, ...) {
+cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, type = "roll", ...) {
   if(conform){
-        x <- conform_spec(x, library, res = NULL)    
+        x <- conform_spec(x, library, res = NULL, type = type)    
   }
     
   if(sum(x$wavenumber %in% library$wavenumber) < 3)
@@ -139,11 +140,11 @@ match_spec.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, top_n = NULL,
+match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, type = "roll", top_n = NULL,
                                  order = NULL, add_library_metadata = NULL,
                                  add_object_metadata = NULL, fill = NULL, ...) {
   if(is_OpenSpecy(library)) {
-    res <- cor_spec(x, library = library, conform = conform) |>
+    res <- cor_spec(x, library = library, conform = conform, type = type) |>
       ident_spec(x, library = library, top_n = top_n,
                  add_library_metadata = add_library_metadata,
                  add_object_metadata = add_object_metadata)
