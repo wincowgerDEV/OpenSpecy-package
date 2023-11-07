@@ -139,11 +139,11 @@ match_spec.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-match_spec.OpenSpecy <- function(x, library, na.rm = T, top_n = NULL,
+match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, top_n = NULL,
                                  order = NULL, add_library_metadata = NULL,
                                  add_object_metadata = NULL, fill = NULL, ...) {
   if(is_OpenSpecy(library)) {
-    res <- cor_spec(x, library = library) |>
+    res <- cor_spec(x, library = library, conform = conform) |>
       ident_spec(x, library = library, top_n = top_n,
                  add_library_metadata = add_library_metadata,
                  add_object_metadata = add_object_metadata)
