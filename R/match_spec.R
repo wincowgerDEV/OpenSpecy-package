@@ -14,6 +14,7 @@
 #' \code{filter_spec()} filters an Open Specy object.
 #'
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
+#' @param conform Whether to conform the spectra to the library wavenumbers or not.
 #' @param library an \code{OpenSpecy} or \code{glmnet} object representing the
 #' reference library of spectra or model to use in identification.
 #' @param na.rm logical; indicating whether missing values should be removed
@@ -93,7 +94,7 @@ cor_spec.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
+cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, ...) {
   if(sum(x$wavenumber %in% library$wavenumber) < 3)
     stop("there are less than 3 matching wavenumbers in the objects you are ",
          "trying to correlate; this won't work for correlation analysis. ",
@@ -106,6 +107,10 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, ...) {
                    paste(x$wavenumber[!x$wavenumber %in% library$wavenumber],
                          collapse = " ")),
             call. = F)
+  
+  if(conform){
+    x <- conform_spec(x, library, res = NULL)    
+}
 
   lib <- library$spectra[library$wavenumber %in% x$wavenumber, ]
   lib <- lib[, lapply(.SD, make_rel, na.rm = na.rm)]
