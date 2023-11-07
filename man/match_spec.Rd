@@ -24,7 +24,7 @@ cor_spec(x, ...)
 
 \method{cor_spec}{default}(x, ...)
 
-\method{cor_spec}{OpenSpecy}(x, library, na.rm = T, conform = T, type = "roll", ...)
+\method{cor_spec}{OpenSpecy}(x, library, na.rm = T, conform = F, type = "roll", ...)
 
 match_spec(x, ...)
 
@@ -34,7 +34,7 @@ match_spec(x, ...)
   x,
   library,
   na.rm = T,
-  conform = T,
+  conform = F,
   type = "roll",
   top_n = NULL,
   order = NULL,
