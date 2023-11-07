@@ -19,6 +19,7 @@ sig_noise(x, ...)
   sig_max = NULL,
   noise_min = NULL,
   noise_max = NULL,
+  abs = T,
   ...
 )
 }
@@ -30,15 +31,17 @@ sig_noise(x, ...)
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating signal and noise. Default is \code{TRUE}.}
 
-\item{step}{the step size of the region to look for the run_sig_over_noise option.}
+\item{step}{numeric; the step size of the region to look for the run_sig_over_noise option.}
 
-\item{sig_min}{the minimum wavenumber value for the signal region}
+\item{sig_min}{numeric; the minimum wavenumber value for the signal region}
 
-\item{sig_max}{the maximum wavenumber value for the signal region}
+\item{sig_max}{numeric; the maximum wavenumber value for the signal region}
 
-\item{noise_min}{the minimum wavenumber value for the noise region}
+\item{noise_min}{numeric; the minimum wavenumber value for the noise region}
 
-\item{noise_max}{the maximum wavenumber value for the noise region
+\item{noise_max}{numeric; the maximum wavenumber value for the noise region}
+
+\item{abs}{logical; whether to return the absolute value of the result
 Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
 deviation of intensity), \code{"sig_times_noise"} (absolute value of
 signal times noise), \code{"sig_over_noise"} (absolute value of signal /

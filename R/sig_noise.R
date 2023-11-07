@@ -61,13 +61,13 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
                                 noise_min = NULL, noise_max = NULL, abs = T, ...) {
     
   values <- vapply(x$spectra, function(y) {
-    if(length(y[!is.na(y)]) < step) {
-      warning(paste0("Need at least ", step, " intensity values to calculate the signal or ",
-              "noise values accurately; returning NA"), call. = F)
-      return(NA)
-    }
 
     if(metric == "run_sig_over_noise") {
+        if(length(y[!is.na(y)]) < step) {
+            warning(paste0("Need at least ", step, " intensity values to calculate the signal or ",
+                           "noise values accurately with run_sig_over_noise; returning NA"), call. = F)
+            return(NA)
+        }
       max <- frollapply(y[!is.na(y)], step, max)
       max[(length(max) - (step-1)):length(max)] <- NA
       signal <- max(max, na.rm = T)#/mean(x, na.rm = T)
