@@ -7,6 +7,11 @@
 #'
 #' @param x an \code{OpenSpecy} object.
 #' @param metric character; specifying the desired metric to calculate.
+#' @param step the step size of the region to look for the run_sig_over_noise option.
+#' @param sig_min the minimum wavenumber value for the signal region
+#' @param sig_max the maximum wavenumber value for the signal region
+#' @param noise_min the minimum wavenumber value for the noise region
+#' @param noise_max the maximum wavenumber value for the noise region
 #' Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
 #' deviation of intensity), \code{"sig_times_noise"} (absolute value of
 #' signal times noise), \code{"sig_over_noise"} (absolute value of signal /
@@ -23,6 +28,7 @@
 #' A numeric vector containing the calculated metric for each spectrum in the
 #' \code{OpenSpecy} object.
 #'
+#' @seealso [restrict_range()]
 #' @examples
 #' data("raman_hdpe")
 #'
@@ -49,23 +55,38 @@ sig_noise.default <- function(x, ...) {
 #'
 #' @export
 sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
-                                na.rm = TRUE, ...) {
+                                na.rm = TRUE, step = 20, 
+                                sig_min = NULL, sig_max = NULL, 
+                                noise_min = NULL, noise_max = NULL, ...) {
+    
   vapply(x$spectra, function(y) {
-    if(length(y[!is.na(y)]) < 20) {
-      warning("Need at least 20 intensity values to calculate the signal or ",
-              "noise values accurately; returning NA", call. = F)
+    if(length(y[!is.na(y)]) < step) {
+      warning(paste0("Need at least ", step, " intensity values to calculate the signal or ",
+              "noise values accurately; returning NA"), call. = F)
       return(NA)
     }
 
     if(metric == "run_sig_over_noise") {
-      max <- frollapply(y[!is.na(y)], 20, max)
-      max[(length(max) - 19):length(max)] <- NA
+      max <- frollapply(y[!is.na(y)], step, max)
+      max[(length(max) - (step-1)):length(max)] <- NA
       signal <- max(max, na.rm = T)#/mean(x, na.rm = T)
       noise <- median(max[max != 0], na.rm = T)
     }
     else {
-      signal = mean(y, na.rm = na.rm)
-      noise = sd(y, na.rm = na.rm)
+        if(!is.null(sig_min) & !is.null(sig_max)){
+         sig_intens <- y[x$wavenumber >= sig_min & x$wavenumber <= sig_max]
+        }
+        else{
+            sig_intens <- y
+        }
+        if(!is.null(noise_min) & !is.null(noise_max)){
+            noise_intens <- y[x$wavenumber >= noise_min & x$wavenumber <= noise_max]
+        }
+        else{
+            noise_intens <- y
+        }
+      signal = mean(sig_intens, na.rm = na.rm)
+      noise = sd(noise_intens, na.rm = na.rm)
     }
 
     if(metric == "sig") return(signal)

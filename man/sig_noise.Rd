@@ -10,12 +10,35 @@ sig_noise(x, ...)
 
 \method{sig_noise}{default}(x, ...)
 
-\method{sig_noise}{OpenSpecy}(x, metric = "run_sig_over_noise", na.rm = TRUE, ...)
+\method{sig_noise}{OpenSpecy}(
+  x,
+  metric = "run_sig_over_noise",
+  na.rm = TRUE,
+  step = 20,
+  sig_min = NULL,
+  sig_max = NULL,
+  noise_min = NULL,
+  noise_max = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
 
-\item{metric}{character; specifying the desired metric to calculate.
+\item{metric}{character; specifying the desired metric to calculate.}
+
+\item{na.rm}{logical; indicating whether missing values should be removed
+when calculating signal and noise. Default is \code{TRUE}.}
+
+\item{step}{the step size of the region to look for the run_sig_over_noise option.}
+
+\item{sig_min}{the minimum wavenumber value for the signal region}
+
+\item{sig_max}{the maximum wavenumber value for the signal region}
+
+\item{noise_min}{the minimum wavenumber value for the noise region}
+
+\item{noise_max}{the maximum wavenumber value for the noise region
 Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
 deviation of intensity), \code{"sig_times_noise"} (absolute value of
 signal times noise), \code{"sig_over_noise"} (absolute value of signal /
@@ -24,9 +47,6 @@ noise where signal is estimated as the max intensity and noise is
 estimated as the height of a low intensity region.),
 \code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
 or \code{"tot_sig"} (sum of intensities).}
-
-\item{na.rm}{logical; indicating whether missing values should be removed
-when calculating signal and noise. Default is \code{TRUE}.}
 
 \item{\ldots}{further arguments passed to subfunctions; currently not used.}
 }
@@ -45,4 +65,7 @@ sig_noise(raman_hdpe, metric = "sig")
 sig_noise(raman_hdpe, metric = "noise")
 sig_noise(raman_hdpe, metric = "sig_times_noise")
 
+}
+\seealso{
+\code{\link[=restrict_range]{restrict_range()}}
 }
