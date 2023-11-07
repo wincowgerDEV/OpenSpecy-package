@@ -95,6 +95,10 @@ cor_spec.default <- function(x, ...) {
 #'
 #' @export
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, ...) {
+  if(conform){
+        x <- conform_spec(x, library, res = NULL)    
+  }
+    
   if(sum(x$wavenumber %in% library$wavenumber) < 3)
     stop("there are less than 3 matching wavenumbers in the objects you are ",
          "trying to correlate; this won't work for correlation analysis. ",
@@ -107,10 +111,6 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = T, ...) {
                    paste(x$wavenumber[!x$wavenumber %in% library$wavenumber],
                          collapse = " ")),
             call. = F)
-  
-  if(conform){
-    x <- conform_spec(x, library, res = NULL)    
-}
 
   lib <- library$spectra[library$wavenumber %in% x$wavenumber, ]
   lib <- lib[, lapply(.SD, make_rel, na.rm = na.rm)]
