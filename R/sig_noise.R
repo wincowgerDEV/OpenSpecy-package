@@ -7,11 +7,12 @@
 #'
 #' @param x an \code{OpenSpecy} object.
 #' @param metric character; specifying the desired metric to calculate.
-#' @param step the step size of the region to look for the run_sig_over_noise option.
-#' @param sig_min the minimum wavenumber value for the signal region
-#' @param sig_max the maximum wavenumber value for the signal region
-#' @param noise_min the minimum wavenumber value for the noise region
-#' @param noise_max the maximum wavenumber value for the noise region
+#' @param step numeric; the step size of the region to look for the run_sig_over_noise option.
+#' @param sig_min numeric; the minimum wavenumber value for the signal region
+#' @param sig_max numeric; the maximum wavenumber value for the signal region
+#' @param noise_min numeric; the minimum wavenumber value for the noise region
+#' @param noise_max numeric; the maximum wavenumber value for the noise region
+#' @param abs logical; whether to return the absolute value of the result
 #' Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
 #' deviation of intensity), \code{"sig_times_noise"} (absolute value of
 #' signal times noise), \code{"sig_over_noise"} (absolute value of signal /
@@ -57,9 +58,9 @@ sig_noise.default <- function(x, ...) {
 sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
                                 na.rm = TRUE, step = 20, 
                                 sig_min = NULL, sig_max = NULL, 
-                                noise_min = NULL, noise_max = NULL, ...) {
+                                noise_min = NULL, noise_max = NULL, abs = T, ...) {
     
-  vapply(x$spectra, function(y) {
+  values <- vapply(x$spectra, function(y) {
     if(length(y[!is.na(y)]) < step) {
       warning(paste0("Need at least ", step, " intensity values to calculate the signal or ",
               "noise values accurately; returning NA"), call. = F)
@@ -91,11 +92,18 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
 
     if(metric == "sig") return(signal)
     if(metric == "noise") return(noise)
-    if(metric == "sig_times_noise") return(abs(signal * noise))
+    if(metric == "sig_times_noise") return(signal * noise)
 
     if(metric %in% c("sig_over_noise", "run_sig_over_noise"))
-      return(abs(signal/noise))
+      return(signal/noise)
     if(metric == "tot_sig") return(sum(y))
     if(metric == "log_tot_sig") return(sum(exp(y)))
   }, FUN.VALUE = numeric(1))
+  
+  if(abs){
+      return(abs(values))
+  }
+  else{
+      return(values)
+  }
 }
