@@ -49,7 +49,7 @@ test_that("match_spec() handles input errors correctly", {
 test_that("match_spec() handles attribute issues correctly", {
     preproc_wa <- as_OpenSpecy(preproc$wavenumber, 
                                preproc$spectra, 
-                               preproc_wa$metadata[,-c("x", "y")],
+                               preproc$metadata[,-c("x", "y")],
                                attributes = list(intensity_unit = "absorbance", 
                                                  derivative_order = 1, 
                                                  baseline = "nobaseline", 
