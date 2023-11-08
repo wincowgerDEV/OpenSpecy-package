@@ -36,6 +36,8 @@ as_OpenSpecy(x, ...)
      total_acquisition_time_s = NULL,
     data_processing_procedure = NULL, level_of_confidence_in_identification = NULL,
     other_info = NULL, license = "CC BY-NC"),
+  attributes = list(intensity_unit = NULL, derivative_order = NULL, baseline = NULL,
+    spectra_type = NULL),
   coords = "gen_grid",
   session_id = FALSE,
   ...
@@ -66,6 +68,9 @@ assumptions based on column names or placement if \code{NULL}.}
 per spectrum.}
 
 \item{metadata}{metadata for each spectrum with one row per spectrum,
+see details.}
+
+\item{attributes}{a list of attributes describing critical aspects for interpreting the spectra.
 see details.}
 
 \item{coords}{spatial coordinates for the spectra.}
@@ -157,6 +162,16 @@ automatically with \code{paste(digest(Sys.info()), digest(sessionInfo()),
 sep = "/")}\cr
 \code{file_id}: \tab A unique file identifier; populated automatically
 with \code{digest(object[c("wavenumber", "spectra")])}\cr
+}
+
+The \code{attributes} argument may contain a named list with the following
+details, when set, they will be used to automate transformations and warning messages:
+
+\tabular{ll}{
+\code{intensity_units}: \tab supported options include "absorbance", "transmittance", or "reflectance"\cr
+\code{derivative_order}: \tab supported options include "0", "1", or "2"\cr
+\code{baseline}: \tab supported options include "raw" or "nobaseline"\cr
+\code{spectra_type}: \tab supported options include "ftir" or "raman"\cr
 }
 }
 \examples{

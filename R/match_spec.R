@@ -100,6 +100,18 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F, type = "roll"
         x <- conform_spec(x, library$wavenumber, res = NULL, type)    
   }
     
+  if(attr(x, "intensity_unit") != attr(library,  "intensity_unit"))
+      warning("intensity units between the library and unknown are not the same.")
+    
+  if(attr(x, "derivative_order") != attr(library,  "derivative_order"))
+      warning("derivative orders between the library and unknown are not the same.")
+    
+  if(attr(x, "baseline") != attr(library,  "baseline"))
+      warning("baselines between the library and unknown are not the same.")
+    
+  if(attr(x, "spectra_type") != attr(library,  "spectra_type"))
+      warning("spectra types between the library and unknown are not the same.")
+    
   if(sum(x$wavenumber %in% library$wavenumber) < 3)
     stop("there are less than 3 matching wavenumbers in the objects you are ",
          "trying to correlate; this won't work for correlation analysis. ",
