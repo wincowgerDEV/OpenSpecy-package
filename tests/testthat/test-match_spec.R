@@ -46,6 +46,81 @@ test_that("match_spec() handles input errors correctly", {
   match_spec(1:1000) |> expect_error()
 })
 
+test_that("match_spec() handles attribute issues correctly", {
+    preproc_wa <- as_OpenSpecy(preproc$wavenumber, 
+                               preproc$spectra, 
+                               preproc_wa$metadata[,-c("x", "y")],
+                               attributes = list(intensity_unit = "absorbance", 
+                                                 derivative_order = 1, 
+                                                 baseline = "nobaseline", 
+                                                 spectra_type = "ftir"))
+    
+    test_lib_wa <- as_OpenSpecy(test_lib$wavenumber, 
+                               test_lib$spectra, 
+                               test_lib$metadata[,-c("x", "y")],
+                               attributes = list(intensity_unit = "absorbance", 
+                                                 derivative_order = 1, 
+                                                 baseline = "nobaseline", 
+                                                 spectra_type = "ftir"))
+    
+    match_spec(x = preproc_wa, library = test_lib_wa, na.rm = T, top_n = 5,
+               add_library_metadata = "sample_name",
+               add_object_metadata = "col_id") |>
+        expect_silent()
+    
+    test_lib_wa2 <- as_OpenSpecy(test_lib$wavenumber, 
+                                test_lib$spectra, 
+                                test_lib$metadata[,-c("x", "y")],
+                                attributes = list(intensity_unit = "transmittance", 
+                                                  derivative_order = 1, 
+                                                  baseline = "nobaseline", 
+                                                  spectra_type = "ftir"))
+    
+    match_spec(x = preproc_wa, library = test_lib_wa2, na.rm = T, top_n = 5,
+               add_library_metadata = "sample_name",
+               add_object_metadata = "col_id") |>
+        expect_warning()
+    
+    test_lib_wa3 <- as_OpenSpecy(test_lib$wavenumber, 
+                                test_lib$spectra, 
+                                test_lib$metadata[,-c("x", "y")],
+                                attributes = list(intensity_unit = "absorbance", 
+                                                  derivative_order = 2, 
+                                                  baseline = "nobaseline", 
+                                                  spectra_type = "ftir"))
+    
+    match_spec(x = preproc_wa, library = test_lib_wa3, na.rm = T, top_n = 5,
+               add_library_metadata = "sample_name",
+               add_object_metadata = "col_id") |>
+        expect_warning()
+    
+    test_lib_wa4 <- as_OpenSpecy(test_lib$wavenumber, 
+                                 test_lib$spectra, 
+                                 test_lib$metadata[,-c("x", "y")],
+                                 attributes = list(intensity_unit = "absorbance", 
+                                                   derivative_order = 1, 
+                                                   baseline = "raw", 
+                                                   spectra_type = "ftir"))
+    
+    match_spec(x = preproc_wa, library = test_lib_wa4, na.rm = T, top_n = 5,
+               add_library_metadata = "sample_name",
+               add_object_metadata = "col_id") |>
+        expect_warning()
+    
+    test_lib_wa5 <- as_OpenSpecy(test_lib$wavenumber, 
+                                 test_lib$spectra, 
+                                 test_lib$metadata[,-c("x", "y")],
+                                 attributes = list(intensity_unit = "absorbance", 
+                                                   derivative_order = 1, 
+                                                   baseline = "nobaseline", 
+                                                   spectra_type = "raman"))
+    
+    match_spec(x = preproc_wa, library = test_lib_wa5, na.rm = T, top_n = 5,
+               add_library_metadata = "sample_name",
+               add_object_metadata = "col_id") |>
+        expect_warning()
+})
+
 test_that("match_spec() returns correct structure", {
   matches <- match_spec(x = preproc, library = test_lib, na.rm = T, top_n = 5,
                         add_library_metadata = "sample_name",
