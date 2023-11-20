@@ -119,7 +119,7 @@ def_features.OpenSpecy <- function(x, features, ...) {
 #' @importFrom stats dist
 .def_features <- function(x, binary, name = NULL) {
   # Label connected components in the binary image
-  binary_matrix <- matrix(binary, ncol = max(x$metadata$y) + 1, byrow = T)
+  binary_matrix <- matrix(binary, ncol = max(x$metadata$x) + 1, byrow = T)
   labeled_image <- imager::label(imager::as.cimg(binary_matrix),
                                  high_connectivity = T)
 
