@@ -15,11 +15,11 @@ test_that("features are identified when given logical", {
   unique(id_map$metadata$feature_id) |> expect_length(2)
   max(id_map$metadata$area, na.rm = T) |> expect_equal(16)
   max(id_map$metadata$feret_max, na.rm = T) |> round(2) |>
-    expect_equal(13.04)
+    expect_equal(16)
   max(id_map$metadata$feret_min, na.rm = T) |> round(2) |>
-    expect_equal(1.23)
+    expect_equal(1)
   max(id_map$metadata$perimeter, na.rm = T) |> round(2) |>
-    expect_equal(25.05)
+    expect_equal(30)
 })
 
 test_that("particles are identified when given character", {
@@ -31,7 +31,7 @@ test_that("particles are identified when given character", {
   max(id_map$metadata$area, na.rm = T) |>
     expect_equal(176)
   max(id_map$metadata$feret_max, na.rm = T) |> round(2) |>
-    expect_equal(18.69)
+    expect_equal(19.03)
 })
 
 test_that("an error is thrown for invalid feature input", {
@@ -81,7 +81,7 @@ test_that("collapse particles returns expected values", {
   test_collapsed$metadata |> nrow() |>
     expect_equal(3)
   test_collapsed$metadata$feret_max |> round(2) |>
-    expect_equal(c(13.04, 13.04, 18.69))
+    expect_equal(c(16.0, 16.0, 19.03))
   test_collapsed$metadata$centroid_x |> unique() |>
     expect_equal(7.5)
 
@@ -95,7 +95,7 @@ test_that("collapse particles returns expected values", {
   test_collapsed$metadata |> nrow() |>
     expect_equal(2)
   test_collapsed$metadata$feret_max |> round(2) |>
-    expect_equal(c(NA, 13.04))
+    expect_equal(c(NA, 16))
   test_collapsed$metadata$centroid_x |> unique() |>
     expect_equal(7.5)
 

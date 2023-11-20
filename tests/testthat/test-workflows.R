@@ -78,5 +78,33 @@ test_that("Raman batch analysis with complete library", {
     expect_silent()
 })
 
+test_that("One particle is identified with standard workflow in map", {
+    skip_on_cran()
+    
+    map <- read_extdata("CA_tiny_map.zip") |> read_any()
+    
+    signal_noise <- sig_noise(map, metric = "sig_times_noise", abs = F)
+    
+    heatmap_spec(map, sn = signal_noise, min_sn = 0.01)
+    
+    id_map <- def_features(map,signal_noise > 0.01)
+    
+    unique(id_map$metadata$feature_id) |> length() |> expect_equal(4)
+
+    test_collapsed <- collapse_spec(id_map)
+    
+    test_collapsed$metadata |> nrow() |>
+        expect_equal(4)
+    
+    test_collapsed$metadata$feret_max |> round(2) |>
+        expect_equal(c(NA, 8, 12.31, 4.00))
+    
+    test_collapsed$metadata$centroid_x |> round(2) |>
+        expect_equal(c(7.87, 2.00, 7.9, 0.00))
+    
+})
+
+
+
 # Tidy up
 unlink(tmp, recursive = T)
