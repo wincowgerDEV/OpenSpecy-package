@@ -361,16 +361,19 @@ explanations of each processing sub-function below.
 Considering whether you have enough signal to analyze spectra is important.
 Classical spectroscopy would recommend your highest peak to be at least 10 times
 the baseline of your processed spectra before you begin analysis. If your
-spectra is below that threshold, you may want to consider recollecting it. In
-practice, we are rarely able to collect spectra of that good quality and more
-often use 5. The Run Signal Over Noise technique searches your spectra for high
-and low regions and conducts division on them to derive the signal to noise
-ratio. This is a good way to automatically calculate the signal to noise ratio.
-In the example below you can see that our signal to noise ratio is increased by
-the processing, the goal of processing is generally to maximize this. Signal
-Times Noise multiplies the mean signal by the standard deviation of the signal
-and Total Signal sums the intensities. The latter can be really useful for
-thresholding spectral maps to identify particles which we will discuss later.
+spectra is below that threshold even after processing, you may want to consider
+recollecting it. In practice, we are rarely able to collect spectra of that good
+quality and more often use 5. The "run_sig_over_noise" `metric` searches your
+spectra for high and low regions and conducts division on them to derive the
+signal to noise ratio and `step` specifies the number of intensities to search.
+This is a good way to automatically calculate the signal to noise ratio. In the
+example below you can see that our signal to noise ratio is increased by the
+processing, the goal of processing is generally to maximize this.
+"sig_times_noise" `metric` multiplies the mean signal by the standard deviation
+of the signal and "tot_sig" `metric` sums the intensities. The latter can be
+really useful for thresholding spectral maps to identify particles which we will
+discuss later. If you know where your signal region and noise regions are you
+can specify them with `sig_min`, `sig_max`, `noise_min`, and `noise_max`.
 
 ```{r, eval=F}
 sig_noise(processed, metric = "run_sig_over_noise") > 
@@ -599,10 +602,7 @@ advanced uses). The previously mentioned libraries all have Raman and FTIR
 spectra in them. `mediod` is the mediod compressed library version of the
 absolute first derivative for FTIR, `model` is an exception because it is a
 multinomial regression approach for FTIR to identification of absolute
-derivative spectra. All of the libraries have wavenumbers at 5 cm^-1 resolution.
-Whichever library you choose, you first need to get your spectra into a similar
-enough format to use for comparison. That means conforming the wavenumbers to
-the same range and processing the spectra using the same processing procedures.
+derivative spectra. 
 In this example we use the `data("test_lib")` which is a subsampled version of
 the absolute derivative library and `data("raman_hdpe")` which is an unprocessed
 Raman spectrum in absorbance units of HDPE plastic. With single spectra it is
@@ -615,10 +615,9 @@ data("test_lib")
 data("raman_hdpe")
 
 processed <- process_spec(x = raman_hdpe, 
-                          conform_spec_args = list(range = test_lib$wavenumber, 
-                                                   res = NULL,
-                                                   type = "interp"
-                                                   ))
+                          conform_spec = F, #We will conform during matching. 
+                          smooth_intens = T #Conducts the default derivative transformation. 
+                          )
 
 # Check to make sure that the signal to noise ratio of the processed spectra is
 # greater than 10.
@@ -627,29 +626,33 @@ plotly_spec(raman_hdpe, processed)
 ```
 
 After your spectra is processed similarly to the library specifications, you can
-identify the spectra using `match_spec()`. The `add_library_metadata` and
-`add_object_metadata` options specify the column name in the metadata that you
-want to add metadata from and `top_n` specifies how many matches you want. In
-this example we just identified a single spectrum with the library but you can
-also send an OpenSpecy object with multiple spectra. The output `matches` is a
-data.table with at least 3 columns, `object_id` tells you the column names of
-the spectra in `x`, `library_id` tells you the column names from the library
-that it matched to. `match_val` is the value of the Pearson correlation
-coefficient (default) or other correlation if specified in `...` or if using the
-model identification option `match_val` will be the model confidence. The output
-in this example returned the correct material type, HDPE, as the top match. If
-using Pearson correlation, 0.7 is a good threshold to use for a positive ID. In
-this example, only our top match is greater than the threshold so we would
-disregard the other matches. If no matches were above our threshold, we would
-proclaim that the spectrum is of an unknown identity. You'll also notice in this
-example that we matched to a library with both Raman and FTIR spectra but the
-Raman spectra had the highest hits, this is the rationale for lazily matching to
-a library with both. If you want to just match to a library with FTIR or Raman
-spectra, you can first filter the library using `filter_spec()` using
-`SpectrumType`.
+identify the spectra using `match_spec()`. All of the libraries have wavenumbers
+at 5 cm^-1 resolution. Whichever library you choose, you need to get your
+spectra into a similar enough format to use for comparison. That means
+conforming the wavenumbers to the same values using `conform = T`.
+Alternatively, you could have done the conformation during the processing. The
+`add_library_metadata` and `add_object_metadata` options specify the column name
+in the metadata that you want to add metadata from and `top_n` specifies how
+many matches you want. In this example we just identified a single spectrum with
+the library but you can also send an OpenSpecy object with multiple spectra. The
+output `matches` is a data.table with at least 3 columns, `object_id` tells you
+the column names of the spectra in `x`, `library_id` tells you the column names
+from the library that it matched to. `match_val` is the value of the Pearson
+correlation coefficient (default) or other correlation if specified in `...` or
+if using the model identification option `match_val` will be the model
+confidence. The output in this example returned the correct material type, HDPE,
+as the top match. If using Pearson correlation, 0.7 is a good threshold to use
+for a positive ID. In this example, only our top match is greater than the
+threshold so we would disregard the other matches. If no matches were above our
+threshold, we would proclaim that the spectrum is of an unknown identity. You'll
+also notice in this example that we matched to a library with both Raman and
+FTIR spectra but the Raman spectra had the highest hits, this is the rationale
+for lazily matching to a library with both. If you want to just match to a
+library with FTIR or Raman spectra, you can first filter the library using
+`filter_spec()` using `SpectrumType`.
 
 ```{r eval=FALSE}
-matches <- match_spec(x = processed, library = test_lib,
+matches <- match_spec(x = processed, library = test_lib, conform = T,
                       add_library_metadata = "sample_name", top_n = 5)
 print(matches[,c("object_id", "library_id", "match_val", "SpectrumType",
                  "SpectrumIdentity")])

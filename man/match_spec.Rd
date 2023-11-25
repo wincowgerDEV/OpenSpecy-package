@@ -24,7 +24,7 @@ cor_spec(x, ...)
 
 \method{cor_spec}{default}(x, ...)
 
-\method{cor_spec}{OpenSpecy}(x, library, na.rm = T, ...)
+\method{cor_spec}{OpenSpecy}(x, library, na.rm = T, conform = F, type = "roll", ...)
 
 match_spec(x, ...)
 
@@ -34,6 +34,8 @@ match_spec(x, ...)
   x,
   library,
   na.rm = T,
+  conform = F,
+  type = "roll",
   top_n = NULL,
   order = NULL,
   add_library_metadata = NULL,
@@ -80,6 +82,10 @@ reference library of spectra or model to use in identification.}
 
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating correlations. Default is \code{TRUE}.}
+
+\item{conform}{Whether to conform the spectra to the library wavenumbers or not.}
+
+\item{type}{the type of conformation to make returned by \code{conform_spec()}}
 
 \item{top_n}{integer; specifying the number of top matches to return.
 If \code{NULL} (default), all matches will be returned.}

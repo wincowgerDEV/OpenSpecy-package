@@ -46,6 +46,81 @@ test_that("match_spec() handles input errors correctly", {
   match_spec(1:1000) |> expect_error()
 })
 
+test_that("match_spec() handles attribute issues correctly", {
+  preproc_wa <- as_OpenSpecy(preproc$wavenumber,
+                             preproc$spectra,
+                             preproc$metadata[,-c("x", "y")],
+                             attributes = list(intensity_unit = "absorbance",
+                                               derivative_order = 1,
+                                               baseline = "nobaseline",
+                                               spectra_type = "ftir"))
+
+  test_lib_wa <- as_OpenSpecy(test_lib$wavenumber,
+                              test_lib$spectra,
+                              test_lib$metadata[,-c("x", "y")],
+                              attributes = list(intensity_unit = "absorbance",
+                                                derivative_order = 1,
+                                                baseline = "nobaseline",
+                                                spectra_type = "ftir"))
+
+  match_spec(x = preproc_wa, library = test_lib_wa, na.rm = T, top_n = 5,
+             add_library_metadata = "sample_name",
+             add_object_metadata = "col_id") |>
+    expect_silent()
+
+  test_lib_wa2 <- as_OpenSpecy(test_lib$wavenumber,
+                               test_lib$spectra,
+                               test_lib$metadata[,-c("x", "y")],
+                               attributes = list(intensity_unit = "transmittance",
+                                                 derivative_order = 1,
+                                                 baseline = "nobaseline",
+                                                 spectra_type = "ftir"))
+
+  match_spec(x = preproc_wa, library = test_lib_wa2, na.rm = T, top_n = 5,
+             add_library_metadata = "sample_name",
+             add_object_metadata = "col_id") |>
+    expect_warning()
+
+  test_lib_wa3 <- as_OpenSpecy(test_lib$wavenumber,
+                               test_lib$spectra,
+                               test_lib$metadata[,-c("x", "y")],
+                               attributes = list(intensity_unit = "absorbance",
+                                                 derivative_order = 2,
+                                                 baseline = "nobaseline",
+                                                 spectra_type = "ftir"))
+
+  match_spec(x = preproc_wa, library = test_lib_wa3, na.rm = T, top_n = 5,
+             add_library_metadata = "sample_name",
+             add_object_metadata = "col_id") |>
+    expect_warning()
+
+  test_lib_wa4 <- as_OpenSpecy(test_lib$wavenumber,
+                               test_lib$spectra,
+                               test_lib$metadata[,-c("x", "y")],
+                               attributes = list(intensity_unit = "absorbance",
+                                                 derivative_order = 1,
+                                                 baseline = "raw",
+                                                 spectra_type = "ftir"))
+
+  match_spec(x = preproc_wa, library = test_lib_wa4, na.rm = T, top_n = 5,
+             add_library_metadata = "sample_name",
+             add_object_metadata = "col_id") |>
+    expect_warning()
+
+  test_lib_wa5 <- as_OpenSpecy(test_lib$wavenumber,
+                               test_lib$spectra,
+                               test_lib$metadata[,-c("x", "y")],
+                               attributes = list(intensity_unit = "absorbance",
+                                                 derivative_order = 1,
+                                                 baseline = "nobaseline",
+                                                 spectra_type = "raman"))
+
+  match_spec(x = preproc_wa, library = test_lib_wa5, na.rm = T, top_n = 5,
+             add_library_metadata = "sample_name",
+             add_object_metadata = "col_id") |>
+    expect_warning()
+})
+
 test_that("match_spec() returns correct structure", {
   matches <- match_spec(x = preproc, library = test_lib, na.rm = T, top_n = 5,
                         add_library_metadata = "sample_name",
@@ -137,12 +212,9 @@ test_that("Test that raman hdpe accurately identified", {
 })
 
 # Write the tests for filter_spec function
-test_that("filter_spec() returns erroneous OpenSpecy object when removing all spectra", {
+test_that("filter_spec() does not allow for OpenSpecy object without spectra", {
   os_filtered <- filter_spec(test_lib, logic = rep(F, ncol(test_lib$spectra))) |>
-    expect_silent()
-  check_OpenSpecy(os_filtered) |> expect_warning() |> expect_warning()
-  expect_equal(ncol(os_filtered$spectra), 0)
-  expect_equal(nrow(os_filtered$metadata), 0)
+    expect_error()
 })
 
 # Write the tests for filter_spec function
@@ -153,7 +225,6 @@ test_that("filter_spec() returns OpenSpecy object with filtered spectra", {
   os_filtered <- filter_spec(test_lib, logic = logic) |>
     expect_silent()
   expect_true(check_OpenSpecy(os_filtered))
-
   expect_equal(ncol(os_filtered$spectra), 1)
   expect_equal(nrow(os_filtered$metadata), 1)
 })
@@ -168,6 +239,21 @@ test_that("cor_spec() routine and match_spec() return same values", {
   names <- max_correlations |> sort(decreasing = T) |> names()
   top_matches <- match_spec(x = tiny_map, library = test_lib, top_n = 1)
   expect_identical(names, top_matches$library_id)
+  top_matches_2 <- match_spec(x = tiny_map, library = test_lib, top_n = 2)[, head(.SD, 1), by = "object_id"]
+  expect_identical(names, top_matches$library_id)
+})
+
+test_that("cor_spec() routine with preprocessing returns same values as setting conform = T", {
+  tiny_map2 <- read_extdata("CA_tiny_map.zip") |>
+    read_any() |>
+    process_spec(smooth_intens = T, conform_spec = F, make_rel = T)
+
+  tiny_map3 <- tiny_map2 |>
+    conform_spec(range = test_lib$wavenumber, res = NULL, type = "roll")
+
+  cors <- cor_spec(tiny_map3, test_lib)
+  cors2 <- cor_spec(tiny_map2, test_lib, conform = T, type = "roll")
+  expect_identical(cors, cors2)
 })
 
 # Tidy up

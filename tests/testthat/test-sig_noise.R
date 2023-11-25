@@ -6,6 +6,18 @@ test_that("sig_noise() handles input errors corretly", {
     expect_warning()
 })
 
+test_that("sig_noise() can restrict the range correctly", {
+  big_peak <- sig_noise(raman_hdpe, metric = "sig", sig_max = 3000,
+                        sig_min = 2500)
+  low_region <- sig_noise(raman_hdpe, metric = "sig", sig_max = 1000,
+                          sig_min = 500)
+  expect_true(big_peak > low_region)
+  restric_peak <- restrict_range(raman_hdpe, min = 2500, max = 3000,
+                                 make_rel = F) |>
+    sig_noise(metric = "sig")
+  expect_identical(big_peak, restric_peak)
+})
+
 test_that("sig_noise() returns correct values", {
   sig_noise(raman_hdpe, metric = "sig") |> round(2) |> unname() |>
     expect_equal(101.17)
@@ -22,3 +34,4 @@ test_that("sig_noise() returns correct values", {
   sig_noise(raman_hdpe, metric = "tot_sig") |> round(2) |> unname() |>
     expect_equal(97527)
 })
+
