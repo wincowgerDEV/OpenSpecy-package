@@ -20,21 +20,23 @@ knitr::opts_chunk$set(
 
 # Document Overview 
 
-This document outlines a common workflow for using the Open Specy 
-app and highlights some topics that users are often requesting a tutorial on. If
-the document is followed sequentially from beginning to end, the user will have
-a better understanding of every procedure involved in using the Open Specy R
- app as a tool for interpreting spectra. It takes approximately 45
-minutes to read through and follow along with this standard operating procedure
-the first time. Afterward, knowledgeable users should be able to thoroughly
-analyze spectra at an average speed of 1 min^-1^ or faster with the new batch
-and automated procedures. If you are looking for documentation about the R package please see the [package vignette](http://wincowger.com/OpenSpecy-package/articles/sop.html)
+This document outlines a common workflow for using the Open Specy app and
+highlights some topics that users are often requesting a tutorial on. If the
+document is followed sequentially from beginning to end, the user will have a
+better understanding of every procedure involved in using the Open Specy R app
+as a tool for interpreting spectra. It takes approximately 45 minutes to read
+through and follow along with this standard operating procedure the first time.
+Afterward, knowledgeable users should be able to thoroughly analyze spectra at
+an average speed of 1 min^-1^ or faster with the new batch and automated
+procedures. If you are looking for documentation about the R package please see
+the [package vignette](http://wincowger.com/OpenSpecy-package/articles/sop.html)
 
 # Running the App
+
 To get started with the Open Specy user interface, access
-[https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/)
-or start the Shiny GUI directly from your own computer in R. 
-If using the package, you just need to read in the library and run the command `run_app()`.
+[https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/) or
+start the Shiny GUI directly from your own computer in R. If using the package,
+you just need to read in the library and run the command `run_app()`.
 
 ```{r setup}
 library(OpenSpecy)
@@ -46,8 +48,8 @@ run_app()
 
 # Reading Data
 
-Once the app is open, if you have your own data, click **Browse** at the top left hand corner of the
-Analyze Spectra tab.
+Once the app is open, if you have your own data, click **Browse** at the top
+left hand corner of the Analyze Spectra tab.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
 knitr::include_graphics("app/mainpage.jpg")
@@ -91,7 +93,8 @@ so that we can work on integrating it.
 The specific steps to converting your instrument's native files to .csv can be
 found in its software manual or you can check out
 [Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
-spectral file conversions see [Spectragryph Tutorial](http://wincowger.com/OpenSpecy-package/articles/spectragryph.html).
+spectral file conversions see [Spectragryph
+Tutorial](http://wincowger.com/OpenSpecy-package/articles/spectragryph.html).
 
 If you don't have your own data, you can use a test dataset.
 
@@ -366,7 +369,9 @@ website administrator to discuss options for collaborating.
 
 ## Download Top Matches
 
-To download the top matches and associated metadata, use the top matches download option. 
+To download the top matches and associated metadata, use the top matches
+download option.
+
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download.jpg")
 ```
