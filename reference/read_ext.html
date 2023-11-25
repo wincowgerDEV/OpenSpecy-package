@@ -6,7 +6,7 @@ Additionally, .0 (OPUS) and .dat (ENVI) files are supported via
 read_opus() and read_envi(), respectively.
 read_zip() takes any of the files listed above.
 Note that proprietary file formats like .0, .asp, and .spa are poorly
-supported but will likely still work in most cases."><title>Read spectral data — read_text • OpenSpecy</title><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.2.2/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.2.2/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous"><!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Read spectral data — read_text"><meta property="og:description" content="Functions for reading spectral data from external file types.
+supported but will likely still work in most cases."><title>Read spectral data — read_text • OpenSpecy</title><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous"><!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Read spectral data — read_text"><meta property="og:description" content="Functions for reading spectral data from external file types.
 Currently supported reading formats are .csv and other text files, .asp,
 .spa, .spc, and .jdx.
 Additionally, .0 (OPUS) and .dat (ENVI) files are supported via
@@ -24,7 +24,7 @@ supported but will likely still work in most cases."><!-- mathjax --><script src
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.6</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -252,7 +252,7 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span>    x y      file_name  license    col_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 raman_hdpe.csv CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: d2d4ddda9a707d78586878e8da6f4bd3/09939725100ac016824e0866412d9636</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 14c056ecddc6d2b2645185478f707529/876bd8a665a5e1d0a33a2cd5a8509eec</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-in"><span><span class="fu">read_extdata</span><span class="op">(</span><span class="st">"raman_atacamit.spc"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_spc</span><span class="op">(</span><span class="op">)</span></span></span>
@@ -273,7 +273,7 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span>    x y          file_name  license    col_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 raman_atacamit.spc CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: d2d4ddda9a707d78586878e8da6f4bd3/09939725100ac016824e0866412d9636</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 14c056ecddc6d2b2645185478f707529/876bd8a665a5e1d0a33a2cd5a8509eec</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 2693c0b0295ce36c16b10e1e660241f2</span>
 <span class="r-in"><span><span class="fu">read_extdata</span><span class="op">(</span><span class="st">"ftir_ldpe_soil.asp"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_asp</span><span class="op">(</span><span class="op">)</span></span></span>
@@ -294,7 +294,7 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span>    x y          file_name  license    col_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 ftir_ldpe_soil.asp CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: d2d4ddda9a707d78586878e8da6f4bd3/09939725100ac016824e0866412d9636</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 14c056ecddc6d2b2645185478f707529/876bd8a665a5e1d0a33a2cd5a8509eec</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: a33700bad0376ddab156980f473bac92</span>
 <span class="r-in"><span><span class="fu">read_extdata</span><span class="op">(</span><span class="st">"testdata_zipped.zip"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="read_multi.html">read_zip</a></span><span class="op">(</span><span class="op">)</span></span></span>
@@ -317,9 +317,9 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2: 2 1     testdata2 - Copy.csv CC BY-NC intensity.1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3: 1 2            testdata2.csv CC BY-NC intensity.2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: d2d4ddda9a707d78586878e8da6f4bd3/09939725100ac016824e0866412d9636</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: d2d4ddda9a707d78586878e8da6f4bd3/09939725100ac016824e0866412d9636</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3: d2d4ddda9a707d78586878e8da6f4bd3/09939725100ac016824e0866412d9636</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 14c056ecddc6d2b2645185478f707529/876bd8a665a5e1d0a33a2cd5a8509eec</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 14c056ecddc6d2b2645185478f707529/876bd8a665a5e1d0a33a2cd5a8509eec</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: 14c056ecddc6d2b2645185478f707529/876bd8a665a5e1d0a33a2cd5a8509eec</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2: cb06ce2846b119d932fb6696479a445b</span>

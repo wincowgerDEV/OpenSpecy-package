@@ -5,7 +5,7 @@ values in order.
 flatten_range() will flatten ranges of the spectra that should have no
 peaks.
 Multiple ranges can be specified by inputting the series of max and min
-values in order."><title>Range restriction and flattening for spectra — restrict_range • OpenSpecy</title><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.2.2/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.2.2/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous"><!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Range restriction and flattening for spectra — restrict_range"><meta property="og:description" content="restrict_range() restricts wavenumber ranges to user specified values.
+values in order."><title>Range restriction and flattening for spectra — restrict_range • OpenSpecy</title><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous"><!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Range restriction and flattening for spectra — restrict_range"><meta property="og:description" content="restrict_range() restricts wavenumber ranges to user specified values.
 Multiple ranges can be specified by inputting a series of max and min
 values in order.
 flatten_range() will flatten ranges of the spectra that should have no
@@ -22,7 +22,7 @@ values in order."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.6</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -147,21 +147,21 @@ a reference library;
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">restrict_range</span><span class="op">(</span><span class="va">test_noise</span>, min <span class="op">=</span> <span class="fl">1000</span>, max <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1:       1000 0.4522238</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2:       1010 0.2919699</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3:       1020 0.4554471</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4:       1030 0.5906185</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5:       1040 0.6479524</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1:       1000 0.7872462</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2:       1010 0.5672643</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3:       1020 0.5992052</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4:       1030 0.6780302</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5:       1040 0.7375854</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  ---                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  97:       1960 0.2644709</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  98:       1970 0.2979575</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  99:       1980 0.3391148</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 100:       1990 0.4870987</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 101:       2000 0.2861038</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  97:       1960 0.3847870</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  98:       1970 0.2832650</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  99:       1980 0.4505769</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 100:       1990 0.6330817</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 101:       2000 0.5683404</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    x y  license    col_id                          file_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 CC BY-NC intensity 65e15a0745b787db5a4329ed6950589e</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 CC BY-NC intensity 91bff8cf53fde7d385418404ae730c8c</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">flattened_intensities</span> <span class="op">&lt;-</span> <span class="fu">flatten_range</span><span class="op">(</span><span class="va">test_noise</span>, min <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">2000</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                                       max <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1500</span>, <span class="fl">2500</span><span class="op">)</span><span class="op">)</span></span></span>
