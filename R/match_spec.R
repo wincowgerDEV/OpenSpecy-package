@@ -372,7 +372,7 @@ os_similarity.default <- function(x, ...) {
 #'
 #' @export
 os_similarity.OpenSpecy <- function(x, y, method = "cor_spec", ...) {
-    if(method = "cor_spec"){
+    if(method == "cor_spec"){
         mean(cor_spec(x, y, ...))
     }
 }

@@ -18,6 +18,9 @@
 \alias{ai_classify}
 \alias{ai_classify.default}
 \alias{ai_classify.OpenSpecy}
+\alias{os_similarity}
+\alias{os_similarity.default}
+\alias{os_similarity.OpenSpecy}
 \title{Identify and filter spectra}
 \usage{
 cor_spec(x, ...)
@@ -73,6 +76,12 @@ ai_classify(x, ...)
 \method{ai_classify}{default}(x, ...)
 
 \method{ai_classify}{OpenSpecy}(x, library, fill = NULL, ...)
+
+os_similarity(x, ...)
+
+\method{os_similarity}{default}(x, ...)
+
+\method{os_similarity}{OpenSpecy}(x, y, method = "cor_spec", ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object, typically with unknowns.}
@@ -109,6 +118,8 @@ can be returned by \code{cor_spec()}}
 
 \item{rm_empty}{logical; whether to remove empty columns in the metadata.}
 
+\item{method}{the type of similarity metric to return.}
+
 \item{\ldots}{additional arguments passed \code{\link[stats]{cor}()}.}
 }
 \value{
@@ -129,6 +140,7 @@ will be added to the output.
 \code{cor_spec()} returns a correlation matrix.
 \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()}
 with the metadata for columns which have information.
+\code{os_similarity()} returns a single numeric value representing the type of similarity metric requested.
 }
 \description{
 \code{match_spec()} joins two \code{OpenSpecy} objects and their metadata
@@ -141,6 +153,7 @@ and formats them with metadata.
 \code{max_cor_named()} formats the top correlation values from a correlation
 matrix as a named vector.
 \code{filter_spec()} filters an Open Specy object.
+\code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method.
 }
 \examples{
 data("test_lib")
