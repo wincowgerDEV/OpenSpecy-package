@@ -52,7 +52,11 @@ test_that("os_similarity() handles input errors correctly", {
     distance1 <- unlist(abs(unspectra2 - unspectra2)) |> mean(na.rm = T)
     distance2 <- unlist(abs(unspectra2 - spectra2)) |> mean(na.rm = T)
     distance3 <- unlist(abs(CAspectra2 - unspectra2)) |> mean(na.rm = T)
-
+    test <- abs(CAspectra2 - unspectra2)
+    
+    ggplot() +
+        geom_line(aes(x = seq(0,1, by = 0.1), y = unspectra2[[30]]))
+    
     os_similarity(raman_hdpe, raman_hdpe) |>
         expect_equal(1)
     
