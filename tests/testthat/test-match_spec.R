@@ -15,6 +15,11 @@ preproc <- conform_spec(unknown, range = test_lib$wavenumber,
                         res = spec_res(test_lib)) |>
   process_spec(smooth_intens = T, make_rel = T)
 
+
+test_that("os_similarity() handles input errors correctly", {
+    os_similarity()
+})
+
 test_that("ai_classify() handles input errors correctly", {
   ai_classify(1:1000) |> expect_error()
 })

@@ -12,7 +12,7 @@
 #' \code{max_cor_named()} formats the top correlation values from a correlation
 #' matrix as a named vector.
 #' \code{filter_spec()} filters an Open Specy object.
-#'
+#' \code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method. 
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
 #' @param conform Whether to conform the spectra to the library wavenumbers or not.
 #' @param type the type of conformation to make returned by \code{conform_spec()}
@@ -34,6 +34,7 @@
 #' @param logic a logical or numeric vector describing which spectra to keep.
 #' @param fill an \code{OpenSpecy} object with a single spectrum to be used to
 #' fill missing values for alignment with the AI classification.
+#' @param method the type of similarity metric to return. 
 #' @param \ldots additional arguments passed \code{\link[stats]{cor}()}.
 #'
 #' @return
@@ -54,6 +55,7 @@
 #' \code{cor_spec()} returns a correlation matrix.
 #' \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()}
 #' with the metadata for columns which have information.
+#' \code{os_similarity()} returns a single numeric value representing the type of similarity metric requested.
 #'
 #' @examples
 #' data("test_lib")
