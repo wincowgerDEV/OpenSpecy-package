@@ -52,9 +52,7 @@ test_that("os_similarity() handles input errors correctly", {
     distance1 <- unlist(abs(unspectra2 - unspectra2)) |> mean(na.rm = T)
     distance2 <- unlist(abs(unspectra2 - spectra2)) |> mean(na.rm = T)
     distance3 <- unlist(abs(CAspectra2 - unspectra2)) |> mean(na.rm = T)
-    
-    row <- make_rel(table(unlist(round(tiny_map$spectra[1,],1))))
-    sum(row)
+
     os_similarity(raman_hdpe, raman_hdpe) |>
         expect_equal(1)
     
