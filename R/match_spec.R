@@ -350,3 +350,27 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
 
   x
 }
+
+# OS Similarity
+#' @rdname match_spec
+#'
+#' @export
+os_similarity <- function(x, ...) {
+    UseMethod("os_similarity")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+os_similarity.default <- function(x, ...) {
+    stop("object 'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+os_similarity.OpenSpecy <- function(x, y, method = "cor_spec", ...) {
+    if(method = "cor_spec"){
+        mean(cor_spec(x, y, ...))
+    }
+}
