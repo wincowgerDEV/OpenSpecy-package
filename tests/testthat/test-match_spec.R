@@ -3,6 +3,9 @@ tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
 
 data("test_lib")
+data("raman_hdpe")
+
+CA_test_lib <- filter_spec(test_lib, test_lib$metadata$SpectrumIdentity == "CA" )
 
 tiny_map <- read_extdata("CA_tiny_map.zip") |>
   read_any() |>
@@ -15,9 +18,46 @@ preproc <- conform_spec(unknown, range = test_lib$wavenumber,
                         res = spec_res(test_lib)) |>
   process_spec(smooth_intens = T, make_rel = T)
 
-
 test_that("os_similarity() handles input errors correctly", {
-    os_similarity()
+    expect_true(os_similarity(tiny_map, test_lib) < os_similarity(tiny_map, tiny_map))
+    expect_true(os_similarity(test_lib, test_lib) > os_similarity(tiny_map, test_lib))
+    cor_spec(test_lib, tiny_map) |>
+        median()
+    test_lib2 <- conform_spec(test_lib, tiny_map$wavenumber, res = NULL, type = "roll") 
+    spectra <- transpose(test_lib2$spectra)
+    spectra2 <- spectra[,lapply(.SD, function(x){
+        values <- make_rel(table(round(x,1)))
+        sequence <- seq(0, 1, by = 0.1)
+        empty <- numeric(length = length(sequence))
+        empty[match(names(values), seq(0, 1, by = 0.1))] <- values
+        empty
+        })]
+    CA2 <- conform_spec(CA_test_lib, tiny_map$wavenumber, res = NULL, type = "roll") 
+    CAspectra <- transpose(CA2$spectra)
+    CAspectra2 <- CAspectra[,lapply(.SD, function(x){
+        values <- make_rel(table(round(x,1)))
+        sequence <- seq(0, 1, by = 0.1)
+        empty <- numeric(length = length(sequence))
+        empty[match(names(values), seq(0, 1, by = 0.1))] <- values
+        ifelse(is.nan(empty), 1, empty)
+    })]
+    unspectra <- transpose(tiny_map$spectra)
+    unspectra2 <- unspectra[,lapply(.SD, function(x){
+        values <- make_rel(table(round(x,1)))
+        sequence <- seq(0, 1, by = 0.1)
+        empty <- numeric(length = length(sequence))
+        empty[match(names(values), seq(0, 1, by = 0.1))] <- values
+        empty
+    })]
+    distance1 <- unlist(abs(unspectra2 - unspectra2)) |> mean(na.rm = T)
+    distance2 <- unlist(abs(unspectra2 - spectra2)) |> mean(na.rm = T)
+    distance3 <- unlist(abs(CAspectra2 - unspectra2)) |> mean(na.rm = T)
+    
+    row <- make_rel(table(unlist(round(tiny_map$spectra[1,],1))))
+    sum(row)
+    os_similarity(raman_hdpe, raman_hdpe) |>
+        expect_equal(1)
+    
 })
 
 test_that("ai_classify() handles input errors correctly", {
