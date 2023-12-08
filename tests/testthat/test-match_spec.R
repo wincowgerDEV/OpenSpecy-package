@@ -18,48 +18,28 @@ preproc <- conform_spec(unknown, range = test_lib$wavenumber,
                         res = spec_res(test_lib)) |>
   process_spec(smooth_intens = T, make_rel = T)
 
-test_that("os_similarity() handles input errors correctly", {
-    expect_true(os_similarity(tiny_map, test_lib) < os_similarity(tiny_map, tiny_map))
-    expect_true(os_similarity(test_lib, test_lib) > os_similarity(tiny_map, test_lib))
-    cor_spec(test_lib, tiny_map) |>
-        median()
+test_that("os_similarity() returns correct values", {
+    #The basic definition of similarity for each
+    expect_true(os_similarity(tiny_map, tiny_map, method = "hamming") == 1) 
+    expect_true(os_similarity(tiny_map, tiny_map, method = "pca") == 1) 
+    expect_true(os_similarity(tiny_map, tiny_map, method = "metadata") == 1) 
+    expect_true(os_similarity(tiny_map, tiny_map, method = "wavenumber") == 1) 
+    
+    #Wavenumbers
+    expect_identical(os_similarity(x = tiny_map, y = test_lib, method = "wavenumber") |> round(2), 0.84)
+    expect_identical(os_similarity(x = tiny_map, y = tiny_map, method = "wavenumber") |> round(2), 1)
+    expect_true(os_similarity(x = tiny_map, y = test_lib, method = "wavenumber") > os_similarity(x = unknown, y = test_lib, method = "wavenumber"))
+    
     test_lib2 <- conform_spec(test_lib, tiny_map$wavenumber, res = NULL, type = "roll") 
-    spectra <- transpose(test_lib2$spectra)
-    spectra2 <- spectra[,lapply(.SD, function(x){
-        values <- make_rel(table(round(x,1)))
-        sequence <- seq(0, 1, by = 0.1)
-        empty <- numeric(length = length(sequence))
-        empty[match(names(values), seq(0, 1, by = 0.1))] <- values
-        empty
-        })]
+    
     CA2 <- conform_spec(CA_test_lib, tiny_map$wavenumber, res = NULL, type = "roll") 
-    CAspectra <- transpose(CA2$spectra)
-    CAspectra2 <- CAspectra[,lapply(.SD, function(x){
-        values <- make_rel(table(round(x,1)))
-        sequence <- seq(0, 1, by = 0.1)
-        empty <- numeric(length = length(sequence))
-        empty[match(names(values), seq(0, 1, by = 0.1))] <- values
-        ifelse(is.nan(empty), 1, empty)
-    })]
-    unspectra <- transpose(tiny_map$spectra)
-    unspectra2 <- unspectra[,lapply(.SD, function(x){
-        values <- make_rel(table(round(x,1)))
-        sequence <- seq(0, 1, by = 0.1)
-        empty <- numeric(length = length(sequence))
-        empty[match(names(values), seq(0, 1, by = 0.1))] <- values
-        empty
-    })]
-    distance1 <- unlist(abs(unspectra2 - unspectra2)) |> mean(na.rm = T)
-    distance2 <- unlist(abs(unspectra2 - spectra2)) |> mean(na.rm = T)
-    distance3 <- unlist(abs(CAspectra2 - unspectra2)) |> mean(na.rm = T)
-    test <- abs(CAspectra2 - unspectra2)
     
-    ggplot() +
-        geom_line(aes(x = seq(0,1, by = 0.1), y = unspectra2[[30]]))
+    unknown2 <- conform_spec(unknown, tiny_map$wavenumber, res = NULL, type = "roll") 
     
-    os_similarity(raman_hdpe, raman_hdpe) |>
-        expect_equal(1)
-    
+    expect_true(os_similarity(test_lib2, test_lib2) > os_similarity(tiny_map, test_lib2))
+    expect_true(os_similarity(tiny_map, CA2) > os_similarity(tiny_map, unknown2)) |> expect_warning()
+    expect_true(os_similarity(tiny_map, CA2, method = "pca") > os_similarity(x = tiny_map, y = unknown2, method = "pca")) |> expect_warning()
+    expect_true(os_similarity(tiny_map, raman_hdpe, method = "metadata") == 0.25)
 })
 
 test_that("ai_classify() handles input errors correctly", {

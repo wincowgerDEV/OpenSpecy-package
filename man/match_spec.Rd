@@ -81,7 +81,7 @@ os_similarity(x, ...)
 
 \method{os_similarity}{default}(x, ...)
 
-\method{os_similarity}{OpenSpecy}(x, y, method = "cor_spec", ...)
+\method{os_similarity}{OpenSpecy}(x, y, method = "hamming", na.rm = T, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object, typically with unknowns.}
