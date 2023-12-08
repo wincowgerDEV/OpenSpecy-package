@@ -12,7 +12,7 @@
 #' \code{max_cor_named()} formats the top correlation values from a correlation
 #' matrix as a named vector.
 #' \code{filter_spec()} filters an Open Specy object.
-#' \code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method. 
+#' \code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used. 
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
 #' @param conform Whether to conform the spectra to the library wavenumbers or not.
 #' @param type the type of conformation to make returned by \code{conform_spec()}
@@ -55,7 +55,19 @@
 #' \code{cor_spec()} returns a correlation matrix.
 #' \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()}
 #' with the metadata for columns which have information.
-#' \code{os_similarity()} returns a single numeric value representing the type of similarity metric requested.
+#' \code{os_similarity()} returns a single numeric value representing the type 
+#' of similarity metric requested. 'wavenumber' similarity is based on the 
+#' proportion of wavenumber values that overlap between the two objects, 
+#' 'metadata' is the proportion of metadata column names, 
+#' 'hamming' is something similar to the hamming distance where we discretize 
+#' all spectra in the OpenSpecy object by wavenumber intensity values and then 
+#' relate the wavenumber intensity value distributions by mean difference in 
+#' min-max normalized space. 'pca' tests the distance between the OpenSpecy 
+#' objects in PCA space using the first 4 component values and calculating the 
+#' max-range normalized distance between the mean components. The first two
+#' metrics are pretty straightforward and definitely ready to go, the 'hamming'
+#' and 'pca' metrics are pretty experimental but appear to be working under our
+#' current test cases. 
 #'
 #' @examples
 #' data("test_lib")
@@ -392,6 +404,12 @@ os_similarity.OpenSpecy <- function(x, y, method = "hamming", na.rm = T, ...) {
                                  collapse = " ")),
                     call. = F)
         
+        if(ncol(x$spectra) + ncol(y$spectra) < 8 & method == "pca")
+            stop("There must be at least 8 spectra total combined from the two Open Specy objects",
+                 "to conduct the pca analysis. Consider using the hamming distance if you want a multispectra-metric", 
+                 "with fewer spectra.",
+                 call. = F)
+        
         spec_y <- y$spectra[y$wavenumber %in% x$wavenumber, ]
         spec_y <- spec_y[, lapply(.SD, make_rel, na.rm = na.rm)]
         spec_y <- spec_y[, lapply(.SD, mean_replace)]
@@ -401,6 +419,7 @@ os_similarity.OpenSpecy <- function(x, y, method = "hamming", na.rm = T, ...) {
         
     }
     if(method == "pca"){
+        
         perform_combined_pca <- function(spec_obj1, spec_obj2) {
             # Extract intensities and transpose
             intensities1 <- t(spec_obj1)

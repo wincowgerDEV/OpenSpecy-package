@@ -7,6 +7,8 @@ data("raman_hdpe")
 
 CA_test_lib <- filter_spec(test_lib, test_lib$metadata$SpectrumIdentity == "CA" )
 
+hdpe_test_lib <- filter_spec(test_lib, test_lib$metadata$sample_name == "0031bb13faea1e04b52ffbeca009e8ab")
+
 tiny_map <- read_extdata("CA_tiny_map.zip") |>
   read_any() |>
   conform_spec(range = test_lib$wavenumber,
@@ -34,7 +36,17 @@ test_that("os_similarity() returns correct values", {
     
     CA2 <- conform_spec(CA_test_lib, tiny_map$wavenumber, res = NULL, type = "roll") 
     
+    hdpe2 <- conform_spec(hdpe_test_lib, tiny_map$wavenumber, res = NULL, type = "roll") 
+    
     unknown2 <- conform_spec(unknown, tiny_map$wavenumber, res = NULL, type = "roll") 
+    
+    ramanhdpe2 <- conform_spec(raman_hdpe, tiny_map$wavenumber, res = NULL, type = "roll") |>
+        smooth_intens()
+    
+    #hamming still calculates a value for single spectra comparisons but probably not a great metric. 
+    expect_true(os_similarity(ramanhdpe2, hdpe2) > os_similarity(ramanhdpe2,CA2)) |> expect_warning() |> expect_warning()
+    
+    os_similarity(ramanhdpe2, hdpe2, method = "pca") |> expect_error() |> expect_warning()
     
     expect_true(os_similarity(test_lib2, test_lib2) > os_similarity(tiny_map, test_lib2))
     expect_true(os_similarity(tiny_map, CA2) > os_similarity(tiny_map, unknown2)) |> expect_warning()
