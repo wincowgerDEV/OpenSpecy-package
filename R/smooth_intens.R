@@ -16,6 +16,7 @@
 #' @param polynomial polynomial order for the filter
 #' @param window number of data points in the window, filter length (must be
 #' odd).
+#' @param wavenum_width the width of the window you want in wavenumbers. 
 #' @param derivative the derivative order if you want to calculate the
 #' derivative. Zero (default) is no derivative.
 #' @param abs logical; whether you want to calculate the absolute value of the
@@ -26,11 +27,17 @@
 #'
 #' @return
 #' \code{smooth_intens()} returns an \code{OpenSpecy} object.
-#'
+#' 
+#' \code{calc_window_points()} returns a single numberic vector object of the 
+#' number of points needed to fill the window and can be passed to \code{smooth_intens()}.
+#' For many applications, this is more reusable than specifying a static number of points. 
+#' 
 #' @examples
 #' data("raman_hdpe")
 #'
 #' smooth_intens(raman_hdpe)
+#' 
+#' smooth_intens(raman_hdpe, window = calc_window_points(x = raman_hdpe, wavenum_width = 70))
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
@@ -59,7 +66,8 @@ smooth_intens.default <- function(x, ...) {
 #' @rdname smooth_intens
 #'
 #' @export
-smooth_intens.OpenSpecy <- function(x, polynomial = 3, window = 11,
+smooth_intens.OpenSpecy <- function(x, polynomial = 3, 
+                                    window = 11,
                                     derivative = 1, abs = TRUE,
                                     make_rel = TRUE, ...) {
   filt <- x$spectra[, lapply(.SD, .sgfilt, p = polynomial, n = window,
@@ -69,6 +77,31 @@ smooth_intens.OpenSpecy <- function(x, polynomial = 3, window = 11,
 
   return(x)
 }
+
+#' @export
+calc_window_points <- function(x, ...) {
+    UseMethod("calc_window_points")
+}
+
+#'
+#' @export
+calc_window_points.default <- function(x, ...) {
+    stop("object 'x' needs to be of class 'OpenSpecy'")
+}
+
+#'
+#' @export
+calc_window_points.OpenSpecy <- function(x, wavenum_width = 70){
+    raw_points <- floor(wavenum_width/spec_res(x))
+    if(raw_points %% 2 == 0){
+        raw_points <- raw_points - 1
+    }
+    if(raw_points > length(x$wavenumber)){
+        stop("The wavenum_width must be shorter than the full spectrum.")
+    }
+    return(raw_points)
+}
+
 
 #' @importFrom signal filter sgolay
 .sgfilt <- function(y, p, n, m, abs = F, ...) {

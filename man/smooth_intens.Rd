@@ -37,10 +37,16 @@ resulting output.}
 \item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
 with \code{\link{make_rel}()}.}
 
+\item{wavenum_width}{the width of the window you want in wavenumbers.}
+
 \item{\ldots}{further arguments passed to \code{\link[signal]{sgolay}()}.}
 }
 \value{
 \code{smooth_intens()} returns an \code{OpenSpecy} object.
+
+\code{calc_window_points()} returns a single numberic vector object of the
+number of points needed to fill the window and can be passed to \code{smooth_intens()}.
+For many applications, this is more reusable than specifying a static number of points.
 }
 \description{
 This smoother can enhance the signal to noise ratio of the data and uses a
@@ -57,6 +63,8 @@ A typical good smooth can be achieved with 11 data point window and a 3rd or
 data("raman_hdpe")
 
 smooth_intens(raman_hdpe)
+
+smooth_intens(raman_hdpe, window = calc_window_points(x = raman_hdpe, wavenum_width = 70))
 
 }
 \references{
