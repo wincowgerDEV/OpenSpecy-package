@@ -296,16 +296,14 @@ as_OpenSpecy.default <- function(x, spectra,
 
   obj$spectra <- as.data.table(spectra)[order(x)]
 
-  if (inherits(coords, "character")) {
+  if (inherits(coords, "character") && !any(is.element(c("x", "y"), names(metadata)))) {
     obj$metadata <- do.call(coords, list(ncol(obj$spectra)))
   } else if(inherits(coords, c("data.frame", "list")) &&
              all(is.element(c("x", "y"), names(coords)))) {
     obj$metadata <- as.data.table(coords)
-  } else if(is.null(coords)){
+  } else {
+    if(!all(is.element(c("x", "y"), names(metadata))))  stop("inconsistent input for 'coords'", call. = F)
     obj$metadata <- data.table()
-  }
-  else {
-    stop("inconsistent input for 'coords'", call. = F)
   }
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {

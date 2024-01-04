@@ -10,7 +10,7 @@ test_that("extdata files are present", {
   any(grepl("\\.yml$", ed)) |> expect_true()
   any(grepl("\\.json$", ed)) |> expect_true()
   any(grepl("\\.rds$", ed)) |> expect_true()
-  any(grepl("\\.csv$", ed)) |> expect_true()
+  any(grepl("\\os.csv$", ed)) |> expect_true()
 })
 
 test_that("write_spec() works without errors", {
@@ -28,21 +28,23 @@ test_that("read_spec() gives expected output", {
   yml <- read_extdata("raman_hdpe.yml") |> read_spec() |> expect_silent()
   jsn <- read_extdata("raman_hdpe.json") |> read_spec() |> expect_silent()
   rds <- read_extdata("raman_hdpe.rds") |> read_spec() |> expect_silent()
-
-  read_extdata("raman_hdpe.csv") |> read_spec() |> expect_error()
+  csv <- read_extdata("raman_hdpe_os.csv") |> read_spec() |> expect_silent()
 
   read_extdata("raman_hdpe.yml") |> read_spec(share = tmp) |> expect_message()
   read_extdata("raman_hdpe.json") |> read_spec(share = tmp) |> expect_message()
   read_extdata("raman_hdpe.rds") |> read_spec(share = tmp) |> expect_message()
-
+  read_extdata("raman_hdpe_os.csv") |> read_spec(share = tmp) |> expect_message()
+  
   expect_s3_class(yml, "OpenSpecy")
   expect_s3_class(jsn, "OpenSpecy")
   expect_s3_class(rds, "OpenSpecy")
+  expect_s3_class(csv, "OpenSpecy")
   
   expect_true(check_OpenSpecy(yml))
   expect_true(check_OpenSpecy(jsn))
   expect_true(check_OpenSpecy(rds))
-
+  expect_true(check_OpenSpecy(csv))
+  
   jsn$metadata$file_name <- yml$metadata$file_name <-
     rds$metadata$file_name <- NULL
   expect_equal(jsn, yml)

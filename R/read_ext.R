@@ -100,7 +100,7 @@ read_text <- function(file, colnames = NULL, method = "fread",
       
       metadata <- dt[,..metadata_names]
       
-      os <- as_OpenSpecy(as.numeric(wavenumbers), spectra = spectra, metadata = metadata)
+      os <- as_OpenSpecy(x = as.numeric(wavenumbers), spectra = spectra, metadata = metadata)
   }
   else{
       os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata,
