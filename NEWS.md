@@ -1,3 +1,12 @@
+# OpenSpecy 1.0.6
+
+## Minor Improvements
+
+- Add attributes to `OpenSpecy` objects
+- More flexible `sig_noise()`
+- Simpler matching
+
+
 # OpenSpecy 1.0.5
 
 ## Minor Improvements

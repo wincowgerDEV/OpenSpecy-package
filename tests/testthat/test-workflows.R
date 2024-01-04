@@ -20,7 +20,7 @@ test_that("Raman batch analysis with test library", {
   filter_spec(lib, lib$metadata$SpectrumType == "Raman") |> expect_silent()
   batch2 <- conform_spec(batch, lib$wavenumber, res = spec_res(lib$wavenumber)) |>
     expect_silent()
-  
+
   expect_true(check_OpenSpecy(batch2))
 
   plotly_spec(batch2) |> expect_silent()
@@ -31,7 +31,7 @@ test_that("Raman batch analysis with test library", {
   plotly_spec(x = batch3, x2 = batch) |> expect_silent()
 
   expect_true(check_OpenSpecy(batch3))
-  
+
   matches <- cor_spec(batch3, library = lib) |> expect_silent()
   test_max_cor <- max_cor_named(matches) |> expect_silent()
   sig_noise(batch3, metric = "run_sig_over_noise") |>
@@ -79,32 +79,23 @@ test_that("Raman batch analysis with complete library", {
 })
 
 test_that("One particle is identified with standard workflow in map", {
-    skip_on_cran()
-    
-    map <- read_extdata("CA_tiny_map.zip") |> read_any()
-    
-    signal_noise <- sig_noise(map, metric = "sig_times_noise", abs = F)
-    
-    heatmap_spec(map, sn = signal_noise, min_sn = 0.01)
-    
-    id_map <- def_features(map,signal_noise > 0.01)
-    
-    unique(id_map$metadata$feature_id) |> length() |> expect_equal(4)
+  skip_on_cran()
 
-    test_collapsed <- collapse_spec(id_map)
-    
-    test_collapsed$metadata |> nrow() |>
-        expect_equal(4)
-    
-    test_collapsed$metadata$feret_max |> round(2) |>
-        expect_equal(c(NA, 8, 12.31, 4.00))
-    
-    test_collapsed$metadata$centroid_x |> round(2) |>
-        expect_equal(c(7.87, 2.00, 7.9, 0.00))
-    
+  map <- read_extdata("CA_tiny_map.zip") |> read_any()
+  signal_noise <- sig_noise(map, metric = "sig_times_noise", abs = F)
+
+  id_map <- def_features(map,signal_noise > 0.01)
+  unique(id_map$metadata$feature_id) |> length() |> expect_equal(4)
+
+  test_collapsed <- collapse_spec(id_map)
+
+  test_collapsed$metadata |> nrow() |>
+    expect_equal(4)
+  test_collapsed$metadata$feret_max |> round(2) |>
+    expect_equal(c(NA, 8, 12.31, 4.00))
+  test_collapsed$metadata$centroid_x |> round(2) |>
+    expect_equal(c(7.87, 2.00, 7.9, 0.00))
 })
-
-
 
 # Tidy up
 unlink(tmp, recursive = T)

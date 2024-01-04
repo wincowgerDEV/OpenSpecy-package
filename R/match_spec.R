@@ -109,27 +109,31 @@ cor_spec.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F, type = "roll", ...) {
-  if(conform){
-        x <- conform_spec(x, library$wavenumber, res = NULL, type)    
-  }
-    
-  if(!is.null(attr(x, "intensity_unit")) && attr(x, "intensity_unit") != attr(library,  "intensity_unit"))
-      warning("intensity units between the library and unknown are not the same.")
-    
-  if(!is.null(attr(x, "derivative_order")) && attr(x, "derivative_order") != attr(library,  "derivative_order"))
-      warning("derivative orders between the library and unknown are not the same.")
-    
-  if(!is.null(attr(x, "baseline")) && attr(x, "baseline") != attr(library,  "baseline"))
-      warning("baselines between the library and unknown are not the same.")
-    
-  if(!is.null(attr(x, "spectra_type")) && attr(x, "spectra_type") != attr(library,  "spectra_type"))
-      warning("spectra types between the library and unknown are not the same.")
-    
+
+cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
+                               type = "roll", ...) {
+  if(conform) x <- conform_spec(x, library$wavenumber, res = NULL, type)
+
+  if(!is.null(attr(x, "intensity_unit")) &&
+     attr(x, "intensity_unit") != attr(library,  "intensity_unit"))
+    warning("Intensity units between the library and unknown are not the same")
+
+  if(!is.null(attr(x, "derivative_order")) &&
+     attr(x, "derivative_order") != attr(library,  "derivative_order"))
+    warning("Derivative orders between the library and unknown are not the same")
+
+  if(!is.null(attr(x, "baseline")) &&
+     attr(x, "baseline") != attr(library,  "baseline"))
+    warning("Baselines between the library and unknown are not the same")
+
+  if(!is.null(attr(x, "spectra_type")) &&
+     attr(x, "spectra_type") != attr(library,  "spectra_type"))
+    warning("Spectra types between the library and unknown are not the same")
+
   if(sum(x$wavenumber %in% library$wavenumber) < 3)
     stop("there are less than 3 matching wavenumbers in the objects you are ",
-         "trying to correlate; this won't work for correlation analysis. ",
-         "Consider first conforming the spectra to the same wavenumbers.",
+         "trying to correlate; this won't work for correlation analysis; ",
+         "consider first conforming the spectra to the same wavenumbers",
          call. = F)
 
   if(!all(x$wavenumber %in% library$wavenumber))
@@ -166,8 +170,10 @@ match_spec.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F, type = "roll", top_n = NULL,
-                                 order = NULL, add_library_metadata = NULL,
+
+match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
+                                 type = "roll", top_n = NULL, order = NULL,
+                                 add_library_metadata = NULL,
                                  add_object_metadata = NULL, fill = NULL, ...) {
   if(is_OpenSpecy(library)) {
     res <- cor_spec(x, library = library, conform = conform, type = type) |>
@@ -292,8 +298,11 @@ filter_spec.OpenSpecy <- function(x, logic, ...) {
   x$metadata <- x$metadata[logic,]
 
   if(ncol(x$spectra) == 0 | ncol(x$metadata) == 0)
-      stop("The OpenSpecy object created contains zero spectra, this is not well supported, if you have specific scenarios where this is required please share it with the developers and we can make a workaround.")
-  
+
+    stop("the OpenSpecy object created contains zero spectra, this is not well ",
+         "supported, if you have specific scenarios where this is required ",
+         "please share it with the developers and we can make a workaround")
+
   return(x)
 }
 

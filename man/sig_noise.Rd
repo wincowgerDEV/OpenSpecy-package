@@ -33,13 +33,13 @@ when calculating signal and noise. Default is \code{TRUE}.}
 
 \item{step}{numeric; the step size of the region to look for the run_sig_over_noise option.}
 
-\item{sig_min}{numeric; the minimum wavenumber value for the signal region}
+\item{sig_min}{numeric; the minimum wavenumber value for the signal region.}
 
-\item{sig_max}{numeric; the maximum wavenumber value for the signal region}
+\item{sig_max}{numeric; the maximum wavenumber value for the signal region.}
 
-\item{noise_min}{numeric; the minimum wavenumber value for the noise region}
+\item{noise_min}{numeric; the minimum wavenumber value for the noise region.}
 
-\item{noise_max}{numeric; the maximum wavenumber value for the noise region}
+\item{noise_max}{numeric; the maximum wavenumber value for the noise region.}
 
 \item{abs}{logical; whether to return the absolute value of the result
 Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
