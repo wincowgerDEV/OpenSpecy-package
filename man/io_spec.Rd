@@ -58,6 +58,7 @@ precision of the numbers returned if using multiple devices for .json and
 read_extdata("raman_hdpe.yml") |> read_spec()
 read_extdata("raman_hdpe.json") |> read_spec()
 read_extdata("raman_hdpe.rds") |> read_spec()
+read_extdata("raman_hdpe.csv") |> read_spec()
 
 \dontrun{
 data(raman_hdpe)

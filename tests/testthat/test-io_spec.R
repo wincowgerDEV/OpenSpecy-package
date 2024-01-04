@@ -10,16 +10,18 @@ test_that("extdata files are present", {
   any(grepl("\\.yml$", ed)) |> expect_true()
   any(grepl("\\.json$", ed)) |> expect_true()
   any(grepl("\\.rds$", ed)) |> expect_true()
+  any(grepl("\\.csv$", ed)) |> expect_true()
 })
 
 test_that("write_spec() works without errors", {
   write_spec(raman_hdpe, file.path(tmp, "test.yml")) |> expect_silent()
   write_spec(raman_hdpe, file.path(tmp, "test.json")) |> expect_silent()
   write_spec(raman_hdpe, file.path(tmp, "test.rds")) |> expect_silent()
-
+  write_spec(raman_hdpe, file.path(tmp, "test.csv")) |> expect_silent()
+  
   write_spec(as.data.frame(raman_hdpe), file.path(tmp, "test.yml")) |>
     expect_error()
-  write_spec(raman_hdpe, file.path(tmp, "test.csv")) |> expect_error()
+  write_spec(raman_hdpe, file.path(tmp, "test.flunk")) |> expect_error()
 })
 
 test_that("read_spec() gives expected output", {
