@@ -4,6 +4,9 @@
 \alias{smooth_intens}
 \alias{smooth_intens.default}
 \alias{smooth_intens.OpenSpecy}
+\alias{calc_window_points}
+\alias{calc_window_points.default}
+\alias{calc_window_points.OpenSpecy}
 \title{Smooth spectral intensities}
 \usage{
 smooth_intens(x, ...)
@@ -19,6 +22,12 @@ smooth_intens(x, ...)
   make_rel = TRUE,
   ...
 )
+
+calc_window_points(x, ...)
+
+\method{calc_window_points}{default}(x, ...)
+
+\method{calc_window_points}{OpenSpecy}(x, wavenum_width = 70)
 }
 \arguments{
 \item{x}{an object of class \code{OpenSpecy}.}

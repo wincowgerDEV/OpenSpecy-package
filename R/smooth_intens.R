@@ -78,17 +78,21 @@ smooth_intens.OpenSpecy <- function(x, polynomial = 3,
   return(x)
 }
 
+#' @rdname smooth_intens
+#'
 #' @export
 calc_window_points <- function(x, ...) {
     UseMethod("calc_window_points")
 }
 
+#' @rdname smooth_intens
 #'
 #' @export
 calc_window_points.default <- function(x, ...) {
     stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
+#' @rdname smooth_intens
 #'
 #' @export
 calc_window_points.OpenSpecy <- function(x, wavenum_width = 70){
