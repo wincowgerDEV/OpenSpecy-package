@@ -103,6 +103,9 @@ calc_window_points.OpenSpecy <- function(x, wavenum_width = 70){
     if(raw_points > length(x$wavenumber)){
         stop("The wavenum_width must be shorter than the full spectrum.")
     }
+    if(raw_points <= 3){
+        stop("The wavenum_width must be longer than 3X the spectral resolution.")
+    }
     return(raw_points)
 }
 
