@@ -41,6 +41,7 @@
 #' write_spec(raman_hdpe, "raman_hdpe.yml")
 #' write_spec(raman_hdpe, "raman_hdpe.json")
 #' write_spec(raman_hdpe, "raman_hdpe.rds")
+#' write_spec(raman_hdpe, "raman_hdpe.csv")
 #'
 #' # Convert an OpenSpecy object to a hyperSpec object
 #' hyper <- as_hyperSpec(raman_hdpe)
@@ -61,7 +62,7 @@
 #'
 #' @importFrom yaml write_yaml read_yaml
 #' @importFrom jsonlite write_json read_json
-#' @importFrom data.table as.data.table
+#' @importFrom data.table as.data.table fwrite
 #'
 #' @export
 write_spec <- function(x, ...) {
@@ -88,7 +89,19 @@ write_spec.OpenSpecy <- function(x, file, method = NULL,
       write_json(x, path = file, dataframe = "columns", digits = digits, ...)
     } else if (grepl("\\.rds$", file, ignore.case = T)) {
       saveRDS(x, file = file, ...)
-    } else {
+    }
+      else if (grepl("\\.csv$", file, ignore.case = T)){
+          wave_names <- round(x$wavenumber, 0)
+          
+          spectra <- t(x$spectra)
+          
+          colnames(spectra) <- wave_names
+          
+          flat_specy <- cbind(spectra, x$metadata)
+          
+          fwrite(flat_specy, file = file)
+    }
+      else {
       stop("unknown file type: specify a method to write custom formats or ",
            "provide one of the supported .yml, .json, or .rds formats as ",
            "file extension", call. = F)
