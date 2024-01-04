@@ -4,7 +4,7 @@
 #' @description
 #' Functions for reading and writing spectral data to and from OpenSpecy format.
 #' \code{OpenSpecy} objects are lists with components `wavenumber`, `spectra`,
-#' and `metadata`. Currently supported formats are .y(a)ml, .json, or .rds.
+#' and `metadata`. Currently supported formats are .y(a)ml, .json, .csv, or .rds.
 #'
 #' @param x an object of class \code{\link{OpenSpecy}}.
 #' @param file file path to be read from or written to.

@@ -46,7 +46,7 @@ data.
 \description{
 Functions for reading and writing spectral data to and from OpenSpecy format.
 \code{OpenSpecy} objects are lists with components \code{wavenumber}, \code{spectra},
-and \code{metadata}. Currently supported formats are .y(a)ml, .json, or .rds.
+and \code{metadata}. Currently supported formats are .y(a)ml, .json, .csv, or .rds.
 }
 \details{
 Due to floating point number errors there may be some differences in the
@@ -64,6 +64,7 @@ data(raman_hdpe)
 write_spec(raman_hdpe, "raman_hdpe.yml")
 write_spec(raman_hdpe, "raman_hdpe.json")
 write_spec(raman_hdpe, "raman_hdpe.rds")
+write_spec(raman_hdpe, "raman_hdpe.csv")
 
 # Convert an OpenSpecy object to a hyperSpec object
 hyper <- as_hyperSpec(raman_hdpe)
