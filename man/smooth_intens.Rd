@@ -25,9 +25,9 @@ smooth_intens(x, ...)
 
 calc_window_points(x, ...)
 
-\method{calc_window_points}{default}(x, ...)
+\method{calc_window_points}{default}(x, wavenum_width = 70, ...)
 
-\method{calc_window_points}{OpenSpecy}(x, wavenum_width = 70)
+\method{calc_window_points}{OpenSpecy}(x, wavenum_width = 70, ...)
 }
 \arguments{
 \item{x}{an object of class \code{OpenSpecy}.}
