@@ -11,6 +11,13 @@ test_that("calc_window_points() will return consistent values", {
     calc_window_points(raman_hdpe, 10000) |> expect_error()
 })
 
+test_that("calc_window_points() works with vectors", {
+    calc_window_points(raman_hdpe$wavenumber, 70) |> expect_equal(27)
+    calc_window_points(raman_hdpe$wavenumber, 50) |> expect_equal(19)
+    calc_window_points(raman_hdpe$wavenumber, 140) |> expect_equal(55)
+    calc_window_points(raman_hdpe$wavenumber, 10000) |> expect_error()
+})
+
 test_that("smooth_intens() works as expected", {
   smt <- smooth_intens(raman_hdpe, polynomial = 3) |> expect_silent()
 
