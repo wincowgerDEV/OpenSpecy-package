@@ -88,25 +88,26 @@ calc_window_points <- function(x, ...) {
 #' @rdname smooth_intens
 #'
 #' @export
-calc_window_points.default <- function(x, ...) {
-    stop("object 'x' needs to be of class 'OpenSpecy'")
-}
-
-#' @rdname smooth_intens
-#'
-#' @export
-calc_window_points.OpenSpecy <- function(x, wavenum_width = 70){
+calc_window_points.default <- function(x, wavenum_width = 70, ...) {
     raw_points <- floor(wavenum_width/spec_res(x))
+    
     if(raw_points %% 2 == 0){
         raw_points <- raw_points - 1
     }
-    if(raw_points > length(x$wavenumber)){
+    if(raw_points > length(x)){
         stop("The wavenum_width must be shorter than the full spectrum.")
     }
     if(raw_points <= 3){
         stop("The wavenum_width must be longer than 3X the spectral resolution.")
     }
     return(raw_points)
+}
+
+#' @rdname smooth_intens
+#'
+#' @export
+calc_window_points.OpenSpecy <- function(x, wavenum_width = 70, ...){
+    do.call("calc_window_points", list(x = x$wavenumber, wavenum_width = wavenum_width))
 }
 
 
