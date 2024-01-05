@@ -39,7 +39,7 @@ read_any <- function(file, ...) {
     os <- read_opus(file = file, ...)
   } else if (grepl("(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)",
                    ignore.case = T, file)) {
-    ex <- strsplit(basename(file), split="\\.")[[1]][-1]
+    ex <- gsub(".*\\.", "", file)
     os <- do.call(paste0("read_", tolower(ex)), list(file = file, ...))
   } else if (grepl("(\\.zip$)", ignore.case = T, file)) {
     os <- read_zip(file = file, ...)
