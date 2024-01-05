@@ -94,11 +94,11 @@ read_text <- function(file, colnames = NULL, method = "fread",
   if(sum(grepl("^[0-9]{1,}$",colnames(dt))) > 4){
       wavenumbers <- colnames(dt)[grepl("^[0-9]{1,}$",colnames(dt))]
       
-      spectra <- transpose(dt[,..wavenumbers])
+      spectra <- transpose(dt[,wavenumbers, with = FALSE])
       
       metadata_names <- colnames(dt)[!grepl("^[0-9]{1,}$",colnames(dt))]
       
-      metadata <- dt[,..metadata_names]
+      metadata <- dt[, metadata_names, with = FALSE]
       
       os <- as_OpenSpecy(x = as.numeric(wavenumbers), spectra = spectra, metadata = metadata)
   }

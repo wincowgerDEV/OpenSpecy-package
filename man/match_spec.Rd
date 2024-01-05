@@ -118,6 +118,8 @@ can be returned by \code{cor_spec()}}
 
 \item{rm_empty}{logical; whether to remove empty columns in the metadata.}
 
+\item{y}{an \code{OpenSpecy} object to perform similarity search against x.}
+
 \item{method}{the type of similarity metric to return.}
 
 \item{\ldots}{additional arguments passed \code{\link[stats]{cor}()}.}

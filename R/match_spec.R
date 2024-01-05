@@ -14,6 +14,7 @@
 #' \code{filter_spec()} filters an Open Specy object.
 #' \code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used. 
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
+#' @param y an \code{OpenSpecy} object to perform similarity search against x.
 #' @param conform Whether to conform the spectra to the library wavenumbers or not.
 #' @param type the type of conformation to make returned by \code{conform_spec()}
 #' @param library an \code{OpenSpecy} or \code{glmnet} object representing the
