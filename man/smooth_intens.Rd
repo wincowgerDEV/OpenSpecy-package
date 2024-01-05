@@ -30,7 +30,7 @@ calc_window_points(x, ...)
 \method{calc_window_points}{OpenSpecy}(x, wavenum_width = 70, ...)
 }
 \arguments{
-\item{x}{an object of class \code{OpenSpecy}.}
+\item{x}{an object of class \code{OpenSpecy} or vector for \code{calc_window_points()}.}
 
 \item{polynomial}{polynomial order for the filter}
 

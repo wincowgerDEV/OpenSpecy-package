@@ -12,7 +12,7 @@
 #' A typical good smooth can be achieved with 11 data point window and a 3rd or
 #' 4th order polynomial.
 #'
-#' @param x an object of class \code{OpenSpecy}.
+#' @param x an object of class \code{OpenSpecy} or vector for \code{calc_window_points()}.
 #' @param polynomial polynomial order for the filter
 #' @param window number of data points in the window, filter length (must be
 #' odd).
