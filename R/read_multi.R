@@ -57,6 +57,8 @@ read_any <- function(file, ...) {
 #' @export
 read_zip <- function(file, ...) {
   flst <- unzip(zipfile = file, list = T)
+  
+  flst <- flst[!grepl("_MACOSX", flst$Name), ]
 
   tmp <- file.path(tempdir(), "OpenSpecy-unzip")
   dir.create(tmp, showWarnings = F)
