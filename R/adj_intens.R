@@ -58,6 +58,10 @@ adj_intens.default <- function(x, ...) {
 #'
 #' @export
 adj_intens.OpenSpecy <- function(x, type = "none", make_rel = TRUE, ...) {
+  
+  if(!type %in% c("none", "transmittance", "reflectance")) 
+      stop('type argument must be one of "none", "transmittance", or "reflectance"')
+    
   spec <- x$spectra
 
   adj <- switch(type,
