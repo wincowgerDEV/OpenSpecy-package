@@ -37,7 +37,11 @@ read_any <- function(file, ...) {
     os <- read_text(file = file, ...)
   } else if (grepl("\\.[0-999]$", ignore.case = T, file)) {
     os <- read_opus(file = file, ...)
-  } else if (grepl("(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)",
+  }
+    else if (grepl("(\\.jdx$)|(\\.dx$)", ignore.case = T, file)) {
+        os <- read_jdx(file = file, ...)
+    }
+    else if (grepl("(\\.asp$)|(\\.spa$)|(\\.spc$)",
                    ignore.case = T, file)) {
     ex <- gsub(".*\\.", "", file)
     os <- do.call(paste0("read_", tolower(ex)), list(file = file, ...))
