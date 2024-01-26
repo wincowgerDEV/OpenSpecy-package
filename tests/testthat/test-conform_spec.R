@@ -40,6 +40,10 @@ test_that("conform_spec() conforms wavenumbers correctly", {
     expect_silent()
   expect_true(check_OpenSpecy(conf_roll))
   
+  conf_mean_up <- conform_spec(sam, new_wavenumbers,res = NULL, type = "mean_up") |>
+      expect_silent()
+  expect_true(check_OpenSpecy(conf_mean_up))
+  
   conf_wider <- conform_spec(x = sam,range = wider_wavenumbers, res = NULL) |>
       expect_silent()
   expect_true(check_OpenSpecy(conf_wider))
