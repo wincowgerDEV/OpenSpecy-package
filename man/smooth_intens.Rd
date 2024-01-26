@@ -19,6 +19,10 @@ smooth_intens(x, ...)
   window = 11,
   derivative = 1,
   abs = TRUE,
+  lambda = 1600,
+  d = 2,
+  type = "sg",
+  lag = 2,
   make_rel = TRUE,
   ...
 )
@@ -43,6 +47,14 @@ derivative. Zero (default) is no derivative.}
 \item{abs}{logical; whether you want to calculate the absolute value of the
 resulting output.}
 
+\item{lambda}{smoothing parameter for Whittaker-Henderson smoothing, 50 results in rough smoothing and 10^4 results in a high level of smoothing.}
+
+\item{d}{order of differences to use for Whittaker-Henderson smoothing, typically set to 2.}
+
+\item{type}{the type of smoothing to use "wh" for Whittaker-Henerson or "sg" for Savitzky-Golay.}
+
+\item{lag}{the lag to use for the numeric derivative calculation if using Whittaker-Henderson. Greater values lead to smoother derivatives, 1 or 2 is common.}
+
 \item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
 with \code{\link{make_rel}()}.}
 
@@ -58,15 +70,16 @@ number of points needed to fill the window and can be passed to \code{smooth_int
 For many applications, this is more reusable than specifying a static number of points.
 }
 \description{
-This smoother can enhance the signal to noise ratio of the data and uses a
-Savitzky-Golay filter with a running window of data points and the polynomial
-specified.
+This smoother can enhance the signal to noise ratio of the data useing a
+Savitzky-Golay or Whittaker-Henderson filter.
 }
 \details{
-This is a wrapper around the filter function in the signal package to improve
+For Savitzky-Golay this is a wrapper around the filter function in the signal package to improve
 integration with other Open Specy functions.
 A typical good smooth can be achieved with 11 data point window and a 3rd or
 4th order polynomial.
+For Whittaker-Henderson, the code is largely based off of the whittaker() function in the pracma package.
+In general Whittaker-Henderson is expected to be slower but more robust than Savitzky-Golay.
 }
 \examples{
 data("raman_hdpe")
@@ -74,6 +87,8 @@ data("raman_hdpe")
 smooth_intens(raman_hdpe)
 
 smooth_intens(raman_hdpe, window = calc_window_points(x = raman_hdpe, wavenum_width = 70))
+
+smooth_intens(raman_hdpe, lambda = 1600, d = 2, lag = 2, type = "wh")
 
 }
 \references{
