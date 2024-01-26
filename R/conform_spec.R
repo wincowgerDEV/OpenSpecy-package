@@ -12,7 +12,11 @@
 #' should be used.
 #' @param type the type of wavenumber adjustment to make. \code{"interp"}
 #' results in linear interpolation while \code{"roll"} conducts a nearest
-#' rolling join of the wavenumbers.
+#' rolling join of the wavenumbers. \code{"mean_up"} only works when
+#' Spectra are being aggregated, we take the mean of the intensities within the 
+#' wavenumber specified. This can maintain smaller peaks and make spectra more
+#' similar to it's less resolved relatives. mean_up option is still experimental.
+#' 
 #' @param \ldots further arguments passed to \code{\link[stats]{approx}()}
 #'
 #' @return
@@ -49,8 +53,8 @@ conform_spec.default <- function(x, ...) {
 #' @export
 conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, type = "interp",
                                    ...) {
-  if(!any(type %in% c("interp", "roll")))
-    stop("type must be either interp or roll")
+  if(!any(type %in% c("interp", "roll", "mean_up")))
+    stop("type must be either interp, roll, or mean_up")
 
   if(is.null(range)) range <- x$wavenumber
 
@@ -74,6 +78,11 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, type = "interp",
     spec$wavenumber <- x$wavenumber
     spec <- spec[join, roll = "nearest", on = "wavenumber"]
     spec <- spec[,-"wavenumber"]
+  }
+  
+  if(type == "mean_up"){
+      spec <- x$spectra[,lapply(.SD, mean), 
+                                   by = cut(x = x$wavenumber, breaks = wn)][,-"cut"]
   }
 
   x$wavenumber <- wn
