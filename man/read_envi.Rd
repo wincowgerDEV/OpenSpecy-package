@@ -7,6 +7,8 @@
 read_envi(
   file,
   header = NULL,
+  spectral_smooth = F,
+  sigma = c(1, 1, 1),
   share = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
@@ -29,11 +31,19 @@ read_envi(
 header file is guessed by looking for a second file with the same basename as
 \code{file} but with .hdr extension.}
 
+\item{sigma}{if \code{spectral_smooth} then this option applies the 3d
+standard deviations for the \code{gaussianSmooth} function from the
+\code{mmand} package to describe how spectral smoothing occurs on each dimension.
+The first two dimensions are x and y, the third is the wavenumbers.}
+
 \item{share}{defaults to \code{NULL}; needed to share spectra with the
 Open Specy community; see \code{\link{share_spec}()} for details.}
 
 \item{metadata}{a named list of the metadata; see
 \code{\link{as_OpenSpecy}()} for details.}
+
+\item{spectra_smooth}{logical value determines whether spectral smoothing
+will be performed.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
@@ -57,6 +67,7 @@ files;
 \code{\link{read_opus}()} for reading .0 (OPUS) files;
 \code{\link{read_zip}()} and \code{\link{read_any}()} for wrapper functions;
 \code{\link[caTools]{read.ENVI}()}
+\code{\link[mmand]{gaussianSmooth}()}
 }
 \author{
 Zacharias Steinmetz, Claudia Beleites

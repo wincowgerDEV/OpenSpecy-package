@@ -29,12 +29,16 @@
 #' spectra are of features (\code{TRUE}) and which are not (\code{FALSE}).
 #' If a character vector is provided, it should represent the different feature
 #' types present in the spectra.
+#' @param shape_kernel the width and height of the area in pixels to search for
+#' connecting features, c(3,3) is typically used but larger numbers will smooth
+#' connections between particles more. 
 #' @param \ldots additional arguments passed to subfunctions.
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
+#' @importFrom mmand shapeKernel components
 #' @export
 collapse_spec <- function(x, ...) {
   UseMethod("collapse_spec")
@@ -80,10 +84,9 @@ def_features.default <- function(x, ...) {
 
 #' @rdname def_features
 #'
-#' @importFrom imager label as.cimg
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
-def_features.OpenSpecy <- function(x, features, ...) {
+def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), ...) {
   if(is.logical(features)) {
     if(all(features) | all(!features))
       stop("features cannot be all TRUE or FALSE because that would indicate ",
@@ -96,8 +99,8 @@ def_features.OpenSpecy <- function(x, features, ...) {
            "indicate that there are no distinct features", call. = F)
 
     features_df <- rbindlist(lapply(unique(features),
-                                    function(y) .def_features(x, features == y))
-    )
+                                    function(y) .def_features(x, features == y, name = y))
+    )[!endsWith(feature_id, "-88"),]
   } else {
     stop("features needs to be a character or logical vector", call. = F)
   }
@@ -115,13 +118,15 @@ def_features.OpenSpecy <- function(x, features, ...) {
   return(obj)
 }
 
+
 #' @importFrom grDevices chull
 #' @importFrom stats dist
-.def_features <- function(x, binary, name = NULL) {
+.def_features <- function(x, binary, shape_kernel = c(3,3), name = NULL) {
   # Label connected components in the binary image
   binary_matrix <- matrix(binary, ncol = max(x$metadata$x) + 1, byrow = T)
-  labeled_image <- imager::label(imager::as.cimg(binary_matrix),
-                                 high_connectivity = T)
+  
+  k <- shapeKernel(shape_kernel, type="box")
+  labeled_image <- components(binary_matrix, k)
 
   # Create a dataframe with feature IDs for each true pixel
   feature_points_dt <- data.table(x = x$metadata$x,
@@ -180,9 +185,9 @@ def_features.OpenSpecy <- function(x, features, ...) {
   }), fill = T)
 
   # Join with the coordinates from the binary image
-  if (!is.null(name)) {
-    features_dt$feature_id <- paste0(name, "_", features_dt$feature_id)
-  }
+  #if (!is.null(name)) {
+  #  features_dt$feature_id <- paste0(name, "_", features_dt$feature_id)
+  #}
 
-  feature_points_dt[features_dt, on = "feature_id"]
+  feature_points_dt[features_dt, on = "feature_id"][,feature_id := paste0(name, "_", feature_id)]
 }

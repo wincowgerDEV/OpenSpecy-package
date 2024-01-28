@@ -7,12 +7,6 @@
 #'
 #' @param x an \code{OpenSpecy} object.
 #' @param metric character; specifying the desired metric to calculate.
-#' @param step numeric; the step size of the region to look for the run_sig_over_noise option.
-#' @param sig_min numeric; the minimum wavenumber value for the signal region.
-#' @param sig_max numeric; the maximum wavenumber value for the signal region.
-#' @param noise_min numeric; the minimum wavenumber value for the noise region.
-#' @param noise_max numeric; the maximum wavenumber value for the noise region.
-#' @param abs logical; whether to return the absolute value of the result
 #' Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
 #' deviation of intensity), \code{"sig_times_noise"} (absolute value of
 #' signal times noise), \code{"sig_over_noise"} (absolute value of signal /
@@ -21,13 +15,27 @@
 #' estimated as the height of a low intensity region.),
 #' \code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
 #' or \code{"tot_sig"} (sum of intensities).
+#' @param step numeric; the step size of the region to look for the run_sig_over_noise option.
+#' @param sig_min numeric; the minimum wavenumber value for the signal region.
+#' @param sig_max numeric; the maximum wavenumber value for the signal region.
+#' @param noise_min numeric; the minimum wavenumber value for the noise region.
+#' @param noise_max numeric; the maximum wavenumber value for the noise region.
+#' @param abs logical; whether to return the absolute value of the result
+#' @param spatial_smooth logical; whether to spatially smooth the sig/noise using the xy 
+#' coordinates and a gaussian smoother. 
+#' @param sigma numeric; two value vector describing standard deviation for smoother in
+#' each xy dimension, should be the same for each in most cases. 
+#' @param threshold numeric; if NULL, no threshold is set, otherwise use a numeric value
+#' to set the target threshold which true signal or noise should be above. The
+#' function will return a logical value instead of numeric if a threshold is set. 
 #' @param na.rm logical; indicating whether missing values should be removed
 #' when calculating signal and noise. Default is \code{TRUE}.
 #' @param \ldots further arguments passed to subfunctions; currently not used.
-#'
+#' 
 #' @return
 #' A numeric vector containing the calculated metric for each spectrum in the
-#' \code{OpenSpecy} object.
+#' \code{OpenSpecy} object or logical value if threshold is set describing if 
+#' the numbers where above or equal to (TRUE) the threshold.
 #'
 #' @seealso [restrict_range()]
 #' @examples
@@ -39,7 +47,8 @@
 #'
 #' @importFrom stats median
 #' @importFrom data.table frollapply
-#'
+#' @importFrom mmand gaussianSmooth
+#' 
 #' @export
 sig_noise <- function(x, ...) {
   UseMethod("sig_noise")
@@ -58,8 +67,8 @@ sig_noise.default <- function(x, ...) {
 sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
                                 na.rm = TRUE, step = 20,
                                 sig_min = NULL, sig_max = NULL,
-                                noise_min = NULL, noise_max = NULL, abs = T, ...) {
-
+                                noise_min = NULL, noise_max = NULL, abs = T,
+                                spatial_smooth = F, sigma = c(1,1), threshold = NULL, ...) {
   values <- vapply(x$spectra, function(y) {
     if(metric == "run_sig_over_noise") {
       if(length(y[!is.na(y)]) < step) {
@@ -96,9 +105,18 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
     if(metric == "tot_sig") return(sum(y))
     if(metric == "log_tot_sig") return(sum(exp(y)))
   }, FUN.VALUE = numeric(1))
+  if(spatial_smooth){
+      values <- matrix(values, ncol = max(x$metadata$x) + 1, byrow = T) |>
+                      gaussianSmooth(sigma = sigma) |>
+                      c()
+  }
   if(abs) {
-    return(abs(values))
-  } else {
-    return(values)
+    values <- abs(values)
+  } 
+  if(!is.null(threshold)){
+      return(values >= threshold)
+  }
+  else{
+      return(values)
   }
 }
