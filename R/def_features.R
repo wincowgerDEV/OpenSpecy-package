@@ -185,9 +185,10 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), ...) {
   }), fill = T)
 
   # Join with the coordinates from the binary image
-  #if (!is.null(name)) {
-  #  features_dt$feature_id <- paste0(name, "_", features_dt$feature_id)
-  #}
 
-  feature_points_dt[features_dt, on = "feature_id"][,feature_id := paste0(name, "_", feature_id)]
+  feature_points_dt <- feature_points_dt[features_dt, on = "feature_id"]
+  
+  feature_points_dt$feature_id <- paste0(name, "_", feature_points_dt$feature_id)
+  
+  feature_points_dt
 }

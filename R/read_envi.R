@@ -7,7 +7,7 @@
 #' @param header name of the ASCII header file. If `NULL`, the name of the
 #' header file is guessed by looking for a second file with the same basename as
 #' `file` but with .hdr extension.
-#' @param spectra_smooth logical value determines whether spectral smoothing
+#' @param spectral_smooth logical value determines whether spectral smoothing
 #' will be performed. 
 #' @param sigma if \code{spectral_smooth} then this option applies the 3d 
 #' standard deviations for the \code{gaussianSmooth} function from the

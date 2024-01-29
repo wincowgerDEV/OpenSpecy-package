@@ -31,6 +31,9 @@ read_envi(
 header file is guessed by looking for a second file with the same basename as
 \code{file} but with .hdr extension.}
 
+\item{spectral_smooth}{logical value determines whether spectral smoothing
+will be performed.}
+
 \item{sigma}{if \code{spectral_smooth} then this option applies the 3d
 standard deviations for the \code{gaussianSmooth} function from the
 \code{mmand} package to describe how spectral smoothing occurs on each dimension.
@@ -41,9 +44,6 @@ Open Specy community; see \code{\link{share_spec}()} for details.}
 
 \item{metadata}{a named list of the metadata; see
 \code{\link{as_OpenSpecy}()} for details.}
-
-\item{spectra_smooth}{logical value determines whether spectral smoothing
-will be performed.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
