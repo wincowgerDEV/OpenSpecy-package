@@ -108,7 +108,8 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
   if(spatial_smooth){
       values <- matrix(values, ncol = max(x$metadata$x) + 1, byrow = T) |>
                       gaussianSmooth(sigma = sigma) |>
-                      c()
+                      t() |>
+                      as.vector()
   }
   if(abs) {
     values <- abs(values)
