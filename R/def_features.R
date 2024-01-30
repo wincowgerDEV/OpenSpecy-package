@@ -188,7 +188,9 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), ...) {
 
   feature_points_dt <- feature_points_dt[features_dt, on = "feature_id"]
   
-  feature_points_dt$feature_id <- paste0(name, "_", feature_points_dt$feature_id)
+  if(!is.null(name)){
+      feature_points_dt$feature_id <- paste0(name, "_", feature_points_dt$feature_id)
+  }
   
   feature_points_dt
 }
