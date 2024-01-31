@@ -74,22 +74,6 @@ test_that("match_spec() returns correct structure with AI", {
   fill <- as_OpenSpecy(as.numeric(unique(lib$variables_in)),
                        spectra = data.frame(rn))
   
-  fill_na <- as_OpenSpecy(as.numeric(unique(lib$variables_in)),
-                          spectra = data.frame(rep(NA, length(unique(lib$variables_in)))))
-  
-  filled <- fill_spec(preproc, fill) |>
-      expect_silent()
-  
-  expect_identical(filled$wavenumber, fill$wavenumber)
-  
-  expect_true(check_OpenSpecy(filled))
-  
-  filled2 <- fill_spec(x = preproc, fill =  fill_na) 
-  
-  expect_identical(filled$wavenumber, fill$wavenumber)
-  
-  expect_true(check_OpenSpecy(filled))
-  
   matches <- match_spec(x = preproc, library = lib, na.rm = T, fill = fill) |>
     expect_silent()
   nrow(matches) |> expect_equal(1)

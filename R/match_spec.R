@@ -115,7 +115,7 @@ cor_spec.default <- function(x, ...) {
 
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                                type = "roll", ...) {
-  if(conform) x <- conform_spec(x, library$wavenumber, res = NULL, type)
+  if(conform) x <- conform_spec(x, library$wavenumber, res = NULL, allow_na = F, type)
 
   if(!is.null(attr(x, "intensity_unit")) &&
      attr(x, "intensity_unit") != attr(library,  "intensity_unit"))

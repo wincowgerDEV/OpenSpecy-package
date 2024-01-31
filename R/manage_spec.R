@@ -86,11 +86,10 @@ c_spec.list <- function(x, range = NULL, res = 5, ...) {
       x <- lapply(x, conform_spec, range = wn, res = res)
   }
 
-  unlisted <- unlist(x, recursive = F)
+  unlisted <- unlist(unname(x), recursive = F)
   list <- tapply(unlisted, names(unlisted), unname)
 
-  if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1
-     & is.null(range)) {
+  if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(range)) {
     stop("wavenumbers need to be identical between spectra; specify how; use ",
          "'range' to specify how wavenumbers should be merged", call. = F)
   }
