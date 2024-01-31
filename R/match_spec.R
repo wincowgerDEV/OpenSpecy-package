@@ -12,6 +12,7 @@
 #' \code{max_cor_named()} formats the top correlation values from a correlation
 #' matrix as a named vector.
 #' \code{filter_spec()} filters an Open Specy object.
+#' \code{fill_spec()} adds filler values to an \code{OpenSpecy} object where it doesn't have intensities.
 #' \code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used. 
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
 #' @param y an \code{OpenSpecy} object to perform similarity search against x.
@@ -53,6 +54,7 @@
 #' If \code{add_object_metadata} is \code{is.character}, the object metadata
 #' will be added to the output.
 #' \code{filter_spec()} returns an \code{OpenSpecy} object.
+#' \code{fill_spec()} returns an \code{OpenSpecy} object.
 #' \code{cor_spec()} returns a correlation matrix.
 #' \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()}
 #' with the metadata for columns which have information.
@@ -326,7 +328,7 @@ ai_classify.default <- function(x, ...) {
 #' @export
 ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
   if(!is.null(fill)) {
-    filled <- .fill_spec(x, fill)
+    filled <- fill_spec(x, fill)
   } else {
     filled <- x
   }
@@ -354,17 +356,38 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
   return(res)
 }
 
-.fill_spec <- function(x, fill) {
+#' @rdname match_spec
+#'
+#' @export
+fill_spec <- function(x, ...) {
+    UseMethod("fill_spec")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+fill_spec.default <- function(x, ...) {
+    stop("object 'x' needs to be of class 'OpenSpecy'")
+}
+
+#' @rdname match_spec
+#'
+#' @export
+fill_spec.OpenSpecy <- function(x, fill) {
   blank_dt <- x$spectra[1,]
 
   blank_dt[1,] <- NA
 
-  test <- rbindlist(lapply(1:length(fill$wavenumber), function(x) {
-    blank_dt
-  }
-  ))[, lapply(.SD, function(x) {
-    unlist(fill$spectra)
-  })]
+  test <- rbindlist(
+      lapply(1:length(fill$wavenumber), 
+                           function(x) {
+                            blank_dt
+                          }
+            )
+        )[, lapply(.SD, 
+                   function(x) {
+                    unlist(fill$spectra)
+                    })] 
 
   test[match(x$wavenumber, fill$wavenumber),] <- x$spectra
 

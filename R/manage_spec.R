@@ -80,8 +80,10 @@ c_spec.list <- function(x, range = NULL, res = 5, ...) {
 
       wn <- c(max(pmin), min(pmax))
     }
-
-    x <- lapply(x, conform_spec, range = wn, res = res)
+      else{
+          stop("If range is specified it should be a numeric vector or 'common'", call. = F)
+      }
+      x <- lapply(x, conform_spec, range = wn, res = res)
   }
 
   unlisted <- unlist(x, recursive = F)

@@ -18,6 +18,9 @@
 \alias{ai_classify}
 \alias{ai_classify.default}
 \alias{ai_classify.OpenSpecy}
+\alias{fill_spec}
+\alias{fill_spec.default}
+\alias{fill_spec.OpenSpecy}
 \alias{os_similarity}
 \alias{os_similarity.default}
 \alias{os_similarity.OpenSpecy}
@@ -76,6 +79,12 @@ ai_classify(x, ...)
 \method{ai_classify}{default}(x, ...)
 
 \method{ai_classify}{OpenSpecy}(x, library, fill = NULL, ...)
+
+fill_spec(x, ...)
+
+\method{fill_spec}{default}(x, ...)
+
+\method{fill_spec}{OpenSpecy}(x, fill)
 
 os_similarity(x, ...)
 
@@ -139,6 +148,7 @@ will be added to the output.
 If \code{add_object_metadata} is \code{is.character}, the object metadata
 will be added to the output.
 \code{filter_spec()} returns an \code{OpenSpecy} object.
+\code{fill_spec()} returns an \code{OpenSpecy} object.
 \code{cor_spec()} returns a correlation matrix.
 \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()}
 with the metadata for columns which have information.
@@ -167,6 +177,7 @@ and formats them with metadata.
 \code{max_cor_named()} formats the top correlation values from a correlation
 matrix as a named vector.
 \code{filter_spec()} filters an Open Specy object.
+\code{fill_spec()} adds filler values to an \code{OpenSpecy} object where it doesn't have intensities.
 \code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used.
 }
 \examples{
