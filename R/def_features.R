@@ -63,7 +63,7 @@ collapse_spec.OpenSpecy <- function(x, ...) {
 
   x$metadata <- x$metadata |>
     unique(by = c("feature_id", "area", "feret_max", "centroid_y",
-                  "centroid_x"))
+                  "centroid_x", "first_x", "first_y", "rand_x", "rand_y"))
 
   return(x)
 }
@@ -112,7 +112,11 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), ...) {
   md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
   md[, "centroid_x" := mean(x), by = "feature_id"]
   md[, "centroid_y" := mean(y), by = "feature_id"]
-
+  md[, "first_x" := x[1], by = "feature_id"]
+  md[, "first_y" := y[1], by = "feature_id"]
+  md[, "rand_x" := sample(x,1), by = "feature_id"]
+  md[, "rand_y" := sample(y,1), by = "feature_id"]
+  
   obj$metadata <- md
 
   return(obj)

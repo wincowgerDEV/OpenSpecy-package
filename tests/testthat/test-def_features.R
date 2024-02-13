@@ -64,7 +64,7 @@ test_that("the original spectrum remains unmodified and metadata is amended", {
 
   expect_contains(names(id_map$metadata),
                   c("feature_id", "area", "feret_max", "centroid_y",
-                    "centroid_x"))
+                    "centroid_x", "first_x", "first_y", "rand_x",  "rand_y"))
 })
 
 test_that("collapse particles returns expected values", {
