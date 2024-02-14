@@ -373,7 +373,7 @@ fill_spec.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-fill_spec.OpenSpecy <- function(x, fill) {
+fill_spec.OpenSpecy <- function(x, fill, ...) {
   blank_dt <- x$spectra[1,]
 
   blank_dt[1,] <- NA

@@ -95,8 +95,8 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F, type 
           else{
               filler_range <- range
           }
-          filler = data.table(wavenumber = filler_range)
-          spec <- spec[,wavenumber := wn][filler, on = "wavenumber"][,-"wavenumber"]
+          filler = data.table("wavenumber" = filler_range)
+          spec <- spec[,"wavenumber" := wn][filler, on = "wavenumber"][,-"wavenumber"]
           wn <- filler_range
       }
   }

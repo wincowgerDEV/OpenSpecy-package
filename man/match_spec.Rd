@@ -84,7 +84,7 @@ fill_spec(x, ...)
 
 \method{fill_spec}{default}(x, ...)
 
-\method{fill_spec}{OpenSpecy}(x, fill)
+\method{fill_spec}{OpenSpecy}(x, fill, ...)
 
 os_similarity(x, ...)
 

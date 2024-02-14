@@ -42,7 +42,9 @@ split_spec <- function(x){
         } 
     else {
         lapply(1:ncol(x$spectra), function(y){
-            as_OpenSpecy(x$wavenumber, x$spectra[,..y], x$metadata[y,])
+            as_OpenSpecy(x$wavenumber, 
+                         x$spectra[,y, with = F], 
+                         x$metadata[y,])
             })
         }
     }) |>
