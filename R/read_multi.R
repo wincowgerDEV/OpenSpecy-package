@@ -13,6 +13,8 @@
 #' files, spectra are concatenated.
 #'
 #' @param file file to be read from or written to.
+#' @param range argument passed to \code{c_spec()} when reading multiple files from zip folder.
+#' @param res spectral resolution for merge, argument passed to \code{c_spec()}.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
@@ -59,7 +61,7 @@ read_any <- function(file, ...) {
 #' @importFrom utils unzip
 #' @importFrom data.table transpose
 #' @export
-read_zip <- function(file, ...) {
+read_zip <- function(file, range = NULL, ...) {
   flst <- unzip(zipfile = file, list = T)
   
   flst <- flst[!grepl("_MACOSX", flst$Name), ]
@@ -78,7 +80,7 @@ read_zip <- function(file, ...) {
   } else {
     lst <- lapply(file.path(tmp, flst$Name), read_any, ...)
 
-    os <- c_spec(lst)
+    os <- c_spec(lst, range = range)
   }
 
   unlink(tmp, recursive = T)
