@@ -7,7 +7,7 @@
 \usage{
 read_any(file, ...)
 
-read_zip(file, range = NULL, ...)
+read_zip(file, range = NULL, res = 5, ...)
 }
 \arguments{
 \item{file}{file to be read from or written to.}

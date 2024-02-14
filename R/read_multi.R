@@ -61,7 +61,7 @@ read_any <- function(file, ...) {
 #' @importFrom utils unzip
 #' @importFrom data.table transpose
 #' @export
-read_zip <- function(file, range = NULL, ...) {
+read_zip <- function(file, range = NULL, res = 5, ...) {
   flst <- unzip(zipfile = file, list = T)
   
   flst <- flst[!grepl("_MACOSX", flst$Name), ]
@@ -80,7 +80,7 @@ read_zip <- function(file, range = NULL, ...) {
   } else {
     lst <- lapply(file.path(tmp, flst$Name), read_any, ...)
 
-    os <- c_spec(lst, range = range)
+    os <- c_spec(lst, range = range, res = res)
   }
 
   unlink(tmp, recursive = T)
