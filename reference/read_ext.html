@@ -184,7 +184,7 @@ names for the wavenumber and intensity; if <code>NULL</code> columns are guessed
 
 <dt>method</dt>
 <dd><p>submethod to be used for reading text files; defaults to
-<code><a href="https://Rdatatable.gitlab.io/data.table/reference/fread.html" class="external-link">fread</a>()</code> but <code><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a>()</code> works
+<code><a href="https://rdatatable.gitlab.io/data.table/reference/fread.html" class="external-link">fread</a>()</code> but <code><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a>()</code> works
 as well.</p></dd>
 
 
@@ -236,6 +236,7 @@ files;
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">read_extdata</span><span class="op">(</span><span class="st">"raman_hdpe.csv"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_text</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48</span>
@@ -249,14 +250,18 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y      file_name  license    col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 raman_hdpe.csv CC BY-NC intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y      file_name  license    col_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;         &lt;char&gt;   &lt;char&gt;    &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 raman_hdpe.csv CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 469ef588c67b9fa459d13538f67268f0/62b6c81bf90c6683ba019fd2e3cdfe9f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: e5a50e5d937ae4762b46b56ace64d3f3/6df0eae14cfaba875aa26678b93c5e04</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-in"><span><span class="fu">read_extdata</span><span class="op">(</span><span class="st">"raman_atacamit.spc"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_spc</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:   117.7800  218.7200</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:   119.4506  236.4000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:   121.1213  242.0400</span>
@@ -270,14 +275,18 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 559:  1050.0000   10.8148</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y          file_name  license    col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 raman_atacamit.spc CC BY-NC intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y          file_name  license    col_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;             &lt;char&gt;   &lt;char&gt;    &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 raman_atacamit.spc CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 469ef588c67b9fa459d13538f67268f0/62b6c81bf90c6683ba019fd2e3cdfe9f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: e5a50e5d937ae4762b46b56ace64d3f3/6df0eae14cfaba875aa26678b93c5e04</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 2693c0b0295ce36c16b10e1e660241f2</span>
 <span class="r-in"><span><span class="fu">read_extdata</span><span class="op">(</span><span class="st">"ftir_ldpe_soil.asp"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_asp</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       wavenumber   intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            &lt;num&gt;       &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    1:   650.4205 0.027056019</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    2:   652.2841 0.029133933</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    3:   654.1478 0.032566057</span>
@@ -291,14 +300,18 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1798:  3999.4335 0.005694630</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y          file_name  license    col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 ftir_ldpe_soil.asp CC BY-NC intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y          file_name  license    col_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;             &lt;char&gt;   &lt;char&gt;    &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 ftir_ldpe_soil.asp CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 469ef588c67b9fa459d13538f67268f0/62b6c81bf90c6683ba019fd2e3cdfe9f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: e5a50e5d937ae4762b46b56ace64d3f3/6df0eae14cfaba875aa26678b93c5e04</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: a33700bad0376ddab156980f473bac92</span>
 <span class="r-in"><span><span class="fu">read_extdata</span><span class="op">(</span><span class="st">"testdata_zipped.zip"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="read_multi.html">read_zip</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity intensity.1 intensity.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;       &lt;int&gt;       &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26          26          26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50          50          50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48          48          48</span>
@@ -312,15 +325,18 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67          67          67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y                file_name  license      col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 testdata2 - Copy (2).csv CC BY-NC   intensity</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 2 1     testdata2 - Copy.csv CC BY-NC intensity.1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3: 1 2            testdata2.csv CC BY-NC intensity.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y                file_name  license      col_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;                   &lt;char&gt;   &lt;char&gt;      &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 testdata2 - Copy (2).csv CC BY-NC   intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     2     1     testdata2 - Copy.csv CC BY-NC intensity.1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     1     2            testdata2.csv CC BY-NC intensity.2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 469ef588c67b9fa459d13538f67268f0/62b6c81bf90c6683ba019fd2e3cdfe9f</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 469ef588c67b9fa459d13538f67268f0/62b6c81bf90c6683ba019fd2e3cdfe9f</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3: 469ef588c67b9fa459d13538f67268f0/62b6c81bf90c6683ba019fd2e3cdfe9f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: e5a50e5d937ae4762b46b56ace64d3f3/6df0eae14cfaba875aa26678b93c5e04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: e5a50e5d937ae4762b46b56ace64d3f3/6df0eae14cfaba875aa26678b93c5e04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: e5a50e5d937ae4762b46b56ace64d3f3/6df0eae14cfaba875aa26678b93c5e04</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3: cb06ce2846b119d932fb6696479a445b</span>

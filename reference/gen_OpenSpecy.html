@@ -122,7 +122,7 @@ object; <code><a href="https://rdrr.io/r/graphics/lines.html" class="external-li
 <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a>()</code>, <code><a href="https://rdrr.io/r/graphics/matplot.html" class="external-link">matplot</a>()</code>, and
 <code><a href="https://rdrr.io/r/graphics/matplot.html" class="external-link">matlines</a>()</code>,
 <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a>()</code>,
-<code><a href="https://Rdatatable.gitlab.io/data.table/reference/as.data.table.html" class="external-link">as.data.table</a>()</code></p></div>
+<code><a href="https://rdatatable.gitlab.io/data.table/reference/as.data.table.html" class="external-link">as.data.table</a>()</code></p></div>
     </div>
     <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
@@ -136,6 +136,7 @@ object; <code><a href="https://rdrr.io/r/graphics/lines.html" class="external-li
 <span class="r-in"><span><span class="co"># Printing the OpenSpecy object</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48</span>
@@ -149,16 +150,20 @@ object; <code><a href="https://rdrr.io/r/graphics/lines.html" class="external-li
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y  user_name spectrum_type spectrum_identity      organization  license</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 Win Cowger         Raman              HDPE Horiba Scientific CC BY-NC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y  user_name spectrum_type spectrum_identity      organization</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;     &lt;char&gt;        &lt;char&gt;            &lt;char&gt;            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 Win Cowger         Raman              HDPE Horiba Scientific</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     license                                                        session_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt;                                                            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: CC BY-NC 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Displaying the first few lines of the OpenSpecy object</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    wavenumber intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         &lt;num&gt;     &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:    301.040        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:    304.632        50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:    308.221        48</span>

@@ -163,6 +163,7 @@ files;
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"ftir_ps.0"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_opus</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       wavenumber         V1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            &lt;num&gt;      &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    1:   399.2239 0.01660202</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    2:   401.1525 0.01790014</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    3:   403.0811 0.01831616</span>
@@ -176,19 +177,26 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2126:  4497.5368 0.02361715</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y file_name  license                         unique_id     sample_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 ftir_ps.0 CC BY-NC sample1_PSnew_2020-10-28 14:33:02 sample1_PSnew</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           date_time_sm        date_time_rf   sample_name instr_name_range</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 2020-10-28 14:33:02 2020-10-28 14:23:20 sample1_PSnew    VERTEX 70-MIR</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    resolution_wn result_spc beamspl laser_wn</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:             4         AB     KBr 15799.24</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y file_name  license                         unique_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;    &lt;char&gt;   &lt;char&gt;                            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 ftir_ps.0 CC BY-NC sample1_PSnew_2020-10-28 14:33:02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        sample_id        date_time_sm        date_time_rf   sample_name</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;char&gt;              &lt;POSc&gt;              &lt;POSc&gt;        &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: sample1_PSnew 2020-10-28 14:33:02 2020-10-28 14:23:20 sample1_PSnew</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    instr_name_range resolution_wn result_spc beamspl laser_wn</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              &lt;char&gt;         &lt;int&gt;     &lt;char&gt;  &lt;char&gt;    &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:    VERTEX 70-MIR             4         AB     KBr 15799.24</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                               spc_in_file zero_filling temp_scanner_sm</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                    &lt;char&gt;        &lt;int&gt;           &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: ig_sample;ig_ref;sc_sample;sc_ref;spec            2            27.9</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    temp_scanner_rf hum_rel_sm hum_rel_rf hum_abs_sm hum_abs_rf col_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              &lt;num&gt;      &lt;int&gt;     &lt;lgcl&gt;     &lt;lgcl&gt;     &lt;lgcl&gt; &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:            27.9          2         NA         NA         NA     V1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 469ef588c67b9fa459d13538f67268f0/62b6c81bf90c6683ba019fd2e3cdfe9f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: e5a50e5d937ae4762b46b56ace64d3f3/6df0eae14cfaba875aa26678b93c5e04</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 0e9318d04fdb3beb4cd61145b080ccb6</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

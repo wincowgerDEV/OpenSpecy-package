@@ -8,7 +8,9 @@ and formats them with metadata.
 get_metadata() retrieves metadata from OpenSpecy objects.
 max_cor_named() formats the top correlation values from a correlation
 matrix as a named vector.
-filter_spec() filters an Open Specy object."><title>Identify and filter spectra — cor_spec • OpenSpecy</title><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous"><!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Identify and filter spectra — cor_spec"><meta property="og:description" content="match_spec() joins two OpenSpecy objects and their metadata
+filter_spec() filters an Open Specy object.
+fill_spec() adds filler values to an OpenSpecy object where it doesn't have intensities.
+os_similarity() EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used."><title>Identify and filter spectra — cor_spec • OpenSpecy</title><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous"><!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Identify and filter spectra — cor_spec"><meta property="og:description" content="match_spec() joins two OpenSpecy objects and their metadata
 based on similarity.
 cor_spec() correlates two OpenSpecy objects, typically one with
 knowns and one with unknowns.
@@ -17,7 +19,9 @@ and formats them with metadata.
 get_metadata() retrieves metadata from OpenSpecy objects.
 max_cor_named() formats the top correlation values from a correlation
 matrix as a named vector.
-filter_spec() filters an Open Specy object."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
+filter_spec() filters an Open Specy object.
+fill_spec() adds filler values to an OpenSpecy object where it doesn't have intensities.
+os_similarity() EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 <![endif]--></head><body>
@@ -82,7 +86,9 @@ and formats them with metadata.
 <code>get_metadata()</code> retrieves metadata from OpenSpecy objects.
 <code>max_cor_named()</code> formats the top correlation values from a correlation
 matrix as a named vector.
-<code>filter_spec()</code> filters an Open Specy object.</p>
+<code>filter_spec()</code> filters an Open Specy object.
+<code>fill_spec()</code> adds filler values to an <code>OpenSpecy</code> object where it doesn't have intensities.
+<code>os_similarity()</code> EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used.</p>
     </div>
 
     <div class="section level2">
@@ -149,7 +155,23 @@ matrix as a named vector.
 <span><span class="fu">ai_classify</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for OpenSpecy</span></span>
-<span><span class="fu">ai_classify</span><span class="op">(</span><span class="va">x</span>, <span class="va">library</span>, fill <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">ai_classify</span><span class="op">(</span><span class="va">x</span>, <span class="va">library</span>, fill <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">fill_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for default</span></span>
+<span><span class="fu">fill_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for OpenSpecy</span></span>
+<span><span class="fu">fill_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">fill</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">os_similarity</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for default</span></span>
+<span><span class="fu">os_similarity</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for OpenSpecy</span></span>
+<span><span class="fu">os_similarity</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span>, method <span class="op">=</span> <span class="st">"hamming"</span>, na.rm <span class="op">=</span> <span class="cn">T</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -214,6 +236,14 @@ can be returned by <code>cor_spec()</code></p></dd>
 <dd><p>logical; whether to remove empty columns in the metadata.</p></dd>
 
 
+<dt>y</dt>
+<dd><p>an <code>OpenSpecy</code> object to perform similarity search against x.</p></dd>
+
+
+<dt>method</dt>
+<dd><p>the type of similarity metric to return.</p></dd>
+
+
 <dt>...</dt>
 <dd><p>additional arguments passed <code><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a>()</code>.</p></dd>
 
@@ -223,7 +253,7 @@ can be returned by <code>cor_spec()</code></p></dd>
     
 
 <p><code>match_spec()</code> and <code>ident_spec()</code> will return
-a <code><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table-class.html" class="external-link">data.table-class</a>()</code> containing correlations
+a <code><a href="https://rdatatable.gitlab.io/data.table/reference/data.table-class.html" class="external-link">data.table-class</a>()</code> containing correlations
 between spectra and the library.
 The table has three columns: <code>object_id</code>, <code>library_id</code>, and
 <code>match_val</code>.
@@ -236,11 +266,25 @@ will be added to the output.
 If <code>add_object_metadata</code> is <code>is.character</code>, the object metadata
 will be added to the output.
 <code>filter_spec()</code> returns an <code>OpenSpecy</code> object.
+<code>fill_spec()</code> returns an <code>OpenSpecy</code> object.
 <code>cor_spec()</code> returns a correlation matrix.
-<code>get_metadata()</code> returns a <code><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table-class.html" class="external-link">data.table-class</a>()</code></p>
+<code>get_metadata()</code> returns a <code><a href="https://rdatatable.gitlab.io/data.table/reference/data.table-class.html" class="external-link">data.table-class</a>()</code></p>
 
 
-<p>with the metadata for columns which have information.</p>
+<p>with the metadata for columns which have information.
+<code>os_similarity()</code> returns a single numeric value representing the type
+of similarity metric requested. 'wavenumber' similarity is based on the
+proportion of wavenumber values that overlap between the two objects,
+'metadata' is the proportion of metadata column names,
+'hamming' is something similar to the hamming distance where we discretize
+all spectra in the OpenSpecy object by wavenumber intensity values and then
+relate the wavenumber intensity value distributions by mean difference in
+min-max normalized space. 'pca' tests the distance between the OpenSpecy
+objects in PCA space using the first 4 component values and calculating the
+max-range normalized distance between the mean components. The first two
+metrics are pretty straightforward and definitely ready to go, the 'hamming'
+and 'pca' metrics are pretty experimental but appear to be working under our
+current test cases.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -325,71 +369,108 @@ object of choice</p></div>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">match_spec</span><span class="op">(</span><span class="va">unknown</span>, <span class="va">test_lib</span>, add_library_metadata <span class="op">=</span> <span class="st">"sample_name"</span>,</span></span>
 <span class="r-in"><span>           top_n <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                          library_id object_id match_val  x y</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 0031bb13faea1e04b52ffbeca009e8ab intensity 0.6672124 37 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Key: &lt;library_id&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                          library_id object_id match_val     x     y</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;    &lt;fctr&gt;     &lt;num&gt; &lt;int&gt; &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 0031bb13faea1e04b52ffbeca009e8ab intensity 0.6672124    37     1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                         SpectrumID   Organization SpectrumType SpectrumIdentity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                             &lt;char&gt;         &lt;char&gt;       &lt;char&gt;           &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: HDPE_Sarah_#18_1s_20ac_10x_25mW J. Lynch, NIST        Raman             HDPE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Polymer.Category LibraryType OWNER SpectralCollectionMode Preprocessing</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:      polyolefins    Polymers  &lt;NA&gt;                   &lt;NA&gt;          &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    InstrumentUsed RRUFFID IDEAL CHEMISTRY LOCALITY SOURCE STATUS  URL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:           &lt;NA&gt;    &lt;NA&gt;            &lt;NA&gt;     &lt;NA&gt;   &lt;NA&gt;   &lt;NA&gt; &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Polymer.Category LibraryType  OWNER SpectralCollectionMode Preprocessing</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              &lt;char&gt;      &lt;char&gt; &lt;char&gt;                 &lt;char&gt;        &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:      polyolefins    Polymers   &lt;NA&gt;                   &lt;NA&gt;          &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    InstrumentUsed RRUFFID IDEAL CHEMISTRY LOCALITY SOURCE STATUS    URL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            &lt;char&gt;  &lt;char&gt;          &lt;char&gt;   &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:           &lt;NA&gt;    &lt;NA&gt;            &lt;NA&gt;     &lt;NA&gt;   &lt;NA&gt;   &lt;NA&gt;   &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    MEASURED CHEMISTRY OtherInformation JCAMP-DX YFACTOR YUNITS InstrumentMode</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                &lt;char&gt;           &lt;char&gt;   &lt;char&gt;  &lt;char&gt; &lt;char&gt;         &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:               &lt;NA&gt;             &lt;NA&gt;     &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;           &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    DELTAX Sponsor Color Cell   ID Comment cell_plate_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:   &lt;NA&gt;    &lt;NA&gt;  &lt;NA&gt; &lt;NA&gt; &lt;NA&gt;    &lt;NA&gt;          &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Form..film..foam.pliable..hard. Brand Item Location Notes Longest.dimension</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                            &lt;NA&gt;  &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;  &lt;NA&gt;              &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Width Depth Particle.mass..mg. Tg..oC. Tm..oC. Onset.... Enthalpy..J.g.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:  &lt;NA&gt;  &lt;NA&gt;               &lt;NA&gt;    &lt;NA&gt;    &lt;NA&gt;      &lt;NA&gt;           &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Substance Form Colour Filename SourceDatabase Method...49 File QA/QC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:      &lt;NA&gt; &lt;NA&gt;   &lt;NA&gt;     &lt;NA&gt;           &lt;NA&gt;        &lt;NA&gt; &lt;NA&gt;  &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Natural /Synthetic Plastic/other framework Abbreviation Source ID</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:               &lt;NA&gt;          &lt;NA&gt;      &lt;NA&gt;         &lt;NA&gt;      &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Method...57 morphology color final_polymer_assignment Citation Plate</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        &lt;NA&gt;       &lt;NA&gt;  &lt;NA&gt;                     &lt;NA&gt;     &lt;NA&gt;    NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Itteration SpectralResolution InstrumentAccessories Wavenumber_Range PIN_ID</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:         NA               &lt;NA&gt;                  &lt;NA&gt;             &lt;NA&gt;   &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    ORIENTATION ID merged database Database ID WWTP Paper/Kirstie/FLOPPE...70</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        &lt;NA&gt;                 NA                                         NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    DELTAX Sponsor  Color   Cell     ID Comment cell_plate_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;char&gt;  &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;char&gt;  &lt;char&gt;        &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:   &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   &lt;NA&gt;   &lt;NA&gt;    &lt;NA&gt;          &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Form..film..foam.pliable..hard.  Brand   Item Location  Notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                             &lt;char&gt; &lt;char&gt; &lt;char&gt;   &lt;char&gt; &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                            &lt;NA&gt;   &lt;NA&gt;   &lt;NA&gt;     &lt;NA&gt;   &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Longest.dimension  Width  Depth Particle.mass..mg. Tg..oC. Tm..oC. Onset....</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               &lt;char&gt; &lt;char&gt; &lt;char&gt;             &lt;char&gt;  &lt;char&gt;  &lt;char&gt;    &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              &lt;NA&gt;   &lt;NA&gt;   &lt;NA&gt;               &lt;NA&gt;    &lt;NA&gt;    &lt;NA&gt;      &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Enthalpy..J.g. Substance   Form Colour Filename SourceDatabase Method...49</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            &lt;char&gt;    &lt;char&gt; &lt;char&gt; &lt;char&gt;   &lt;char&gt;         &lt;char&gt;      &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:           &lt;NA&gt;      &lt;NA&gt;   &lt;NA&gt;   &lt;NA&gt;     &lt;NA&gt;           &lt;NA&gt;        &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      File  QA/QC Natural /Synthetic Plastic/other framework Abbreviation</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;char&gt; &lt;char&gt;             &lt;char&gt;        &lt;char&gt;    &lt;char&gt;       &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:   &lt;NA&gt;   &lt;NA&gt;               &lt;NA&gt;          &lt;NA&gt;      &lt;NA&gt;         &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Source ID Method...57 morphology  color final_polymer_assignment Citation</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       &lt;char&gt;      &lt;char&gt;     &lt;char&gt; &lt;char&gt;                   &lt;char&gt;   &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:      &lt;NA&gt;        &lt;NA&gt;       &lt;NA&gt;   &lt;NA&gt;                     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Plate Itteration SpectralResolution InstrumentAccessories Wavenumber_Range</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt;      &lt;int&gt;             &lt;char&gt;                &lt;char&gt;           &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:    NA         NA               &lt;NA&gt;                  &lt;NA&gt;             &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    PIN_ID ORIENTATION ID merged database</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;char&gt;      &lt;char&gt;              &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:   &lt;NA&gt;        &lt;NA&gt;                 NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Database ID WWTP Paper/Kirstie/FLOPPE...70</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                         &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                         NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Database ID WWTP Paper/Kirstie/FLOPPE...71 ID (ESM1) Longest_dimension width</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                         &lt;int&gt;     &lt;int&gt;             &lt;int&gt; &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                         NA        NA                NA    NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Cluster2018/WWTP PRESSURE TEMPERATURE MaterialForm MaterialProducer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               &lt;int&gt;    &lt;int&gt;       &lt;num&gt;       &lt;char&gt;           &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:               NA       NA          NA         &lt;NA&gt;             &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    NumberofAccumulations TIME Ratio against background Truncated</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                    NA &lt;NA&gt;                     &lt;NA&gt;      &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    NumberofAccumulations   TIME Ratio against background Truncated</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    &lt;int&gt; &lt;char&gt;                   &lt;char&gt;    &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                    NA   &lt;NA&gt;                     &lt;NA&gt;      &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    ElementMultiply or ElementDivide Collection length Apodization</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;            &lt;char&gt;      &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:                             &lt;NA&gt;              &lt;NA&gt;        &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Bench serial number Subtraction or Addition Baseline Correction Smooth</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 &lt;char&gt;                  &lt;char&gt;              &lt;char&gt; &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:                &lt;NA&gt;                    &lt;NA&gt;                &lt;NA&gt;   &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    %Transmittance-&gt;Absorbance Sample gain Number of background scans</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                        &lt;char&gt;       &lt;num&gt;                      &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:                       &lt;NA&gt;          NA                         NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Background gain Sample spacing Number of scan points Resolution points</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              &lt;num&gt;          &lt;num&gt;                 &lt;int&gt;             &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:              NA             NA                    NA                NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Number of FFT points ZPD Library ID Shortform Grating Hole size (nm)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                   NA  NA                 &lt;NA&gt;      NA             NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Slit (um) Filter (%) Delay (s) DATE MOLFORM $NIST SOURCE $NIST DOC FILE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        NA         NA        NA &lt;NA&gt;    &lt;NA&gt;         &lt;NA&gt;           &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Number of FFT points   ZPD Library ID Shortform Grating Hole size (nm)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   &lt;int&gt; &lt;int&gt;               &lt;char&gt;   &lt;int&gt;          &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                   NA    NA                 &lt;NA&gt;      NA             NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Slit (um) Filter (%) Delay (s)   DATE MOLFORM $NIST SOURCE $NIST DOC FILE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;int&gt;      &lt;int&gt;     &lt;int&gt; &lt;char&gt;  &lt;char&gt;       &lt;char&gt;         &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        NA         NA        NA   &lt;NA&gt;    &lt;NA&gt;         &lt;NA&gt;           &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    $NIST PSD FILE APERTURE BEAMSPLITTER DETECTOR (DIA. DET. PORT IN SPHERE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            &lt;char&gt;   &lt;char&gt;       &lt;char&gt;                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:           &lt;NA&gt;     &lt;NA&gt;         &lt;NA&gt;                                &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    SPHERE DIAMETER ACQUISITION MODE SCANNER SPEED PHASE CORRECTION ZEROFILLING</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;char&gt;           &lt;char&gt;        &lt;char&gt;           &lt;char&gt;      &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:            &lt;NA&gt;             &lt;NA&gt;          &lt;NA&gt;             &lt;NA&gt;        &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    WAVENUMBER ACCURACY LOW PASS FILTER SWITCH GAIN ON $NIST ID COADDED SCANS</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 &lt;char&gt;          &lt;char&gt;         &lt;char&gt;   &lt;char&gt;         &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:                &lt;NA&gt;            &lt;NA&gt;           &lt;NA&gt;     &lt;NA&gt;            NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    PHASE RESOLUTION MW ContactInfo CASNumber MaterialQuality LaserLightUsed</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:               NA NA        &lt;NA&gt;      &lt;NA&gt;            &lt;NA&gt;           &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    PHASE RESOLUTION    MW ContactInfo CASNumber MaterialQuality LaserLightUsed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               &lt;num&gt; &lt;num&gt;      &lt;char&gt;    &lt;char&gt;          &lt;char&gt;         &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:               NA    NA        &lt;NA&gt;      &lt;NA&gt;            &lt;NA&gt;           &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    TotalAcquisitionTime_s DataProcessingProcedure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    &lt;char&gt;                  &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:                   &lt;NA&gt;                    &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    LevelofConfidenceinIdentification smoother baseline DENSITY new_label</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                               &lt;char&gt;    &lt;int&gt;    &lt;int&gt;   &lt;num&gt;    &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:                              &lt;NA&gt;       NA       NA      NA      &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                polymer_class plastic_or_not</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                       &lt;char&gt;         &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: Polyolefins (POLYALKENES)        plastic</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                   url_polymer_class</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: https://www.polymerdatabase.com/polymer%20index/polyalkenes.html</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>           polymer                                                url_polymer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            &lt;char&gt;                                                     &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: POLY(ETHYLENE) https://www.polymerdatabase.com/polymers/polyethylene.html</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               url_more_info</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                      &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: https://www.polymerdatabase.com/polymer%20classes/Polyolefin%20type.html</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    snr_deriv                          file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;num&gt;                           &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:  1339.684 77f837c1640910f2879184d61ef1df48</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

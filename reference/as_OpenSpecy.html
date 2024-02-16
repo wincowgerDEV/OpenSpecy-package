@@ -309,7 +309,9 @@ details, when set, they will be used to automate transformations and warning mes
 <dd><p>supported options include <code>"ftir"</code> or <code>"raman"</code></p></dd>
 
 
-</dl></div>
+</dl><p>The <code>attributes</code> argument may contain a named list with the following
+details, when set, they will be used to automate transformations and warning messages:</p>
+<table class="table table"><tr><td><code>intensity_units</code>:</td><td>supported options include "absorbance", "transmittance", or "reflectance"</td></tr><tr><td><code>derivative_order</code>:</td><td>supported options include "0", "1", or "2"</td></tr><tr><td><code>baseline</code>:</td><td>supported options include "raw" or "nobaseline"</td></tr><tr><td><code>spectra_type</code>:</td><td>supported options include "ftir" or "raman"</td></tr></table></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="io_spec.html">read_spec</a>()</code> for reading <code>OpenSpecy</code> objects.</p></div>
@@ -326,6 +328,7 @@ details, when set, they will be used to automate transformations and warning mes
 <span class="r-in"><span><span class="co"># Inspect the spectra</span></span></span>
 <span class="r-in"><span><span class="va">raman_hdpe</span> <span class="co"># see how OpenSpecy objects print.</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48</span>
@@ -339,11 +342,14 @@ details, when set, they will be used to automate transformations and warning mes
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y  user_name spectrum_type spectrum_identity      organization  license</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 Win Cowger         Raman              HDPE Horiba Scientific CC BY-NC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y  user_name spectrum_type spectrum_identity      organization</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;     &lt;char&gt;        &lt;char&gt;            &lt;char&gt;            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 Win Cowger         Raman              HDPE Horiba Scientific</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     license                                                        session_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt;                                                            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: CC BY-NC 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-in"><span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">wavenumber</span> <span class="co"># look at just the wavenumbers of the spectra.</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   [1]  301.040  304.632  308.221  311.810  315.398  318.983  322.566  326.150</span>
@@ -469,6 +475,7 @@ details, when set, they will be used to automate transformations and warning mes
 <span class="r-out co"><span class="r-pr">#&gt;</span> [961] 3190.520 3193.060 3195.590 3198.120</span>
 <span class="r-in"><span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">spectra</span> <span class="co"># look at just the spectral intensities data.table.</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:        50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:        48</span>
@@ -481,11 +488,14 @@ details, when set, they will be used to automate transformations and warning mes
 <span class="r-out co"><span class="r-pr">#&gt;</span> 963:        75</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:        67</span>
 <span class="r-in"><span><span class="va">raman_hdpe</span><span class="op">$</span><span class="va">metadata</span> <span class="co"># look at just the metadata of the spectra.</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y  user_name spectrum_type spectrum_identity      organization  license</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 Win Cowger         Raman              HDPE Horiba Scientific CC BY-NC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y  user_name spectrum_type spectrum_identity      organization</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;     &lt;char&gt;        &lt;char&gt;            &lt;char&gt;            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 Win Cowger         Raman              HDPE Horiba Scientific</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     license                                                        session_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt;                                                            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: CC BY-NC 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Creating a list and transforming to OpenSpecy</span></span></span>
@@ -493,6 +503,7 @@ details, when set, they will be used to automate transformations and warning mes
 <span class="r-in"><span>                  spectra <span class="op">=</span> <span class="va">raman_hdpe</span><span class="op">$</span><span class="va">spectra</span>,</span></span>
 <span class="r-in"><span>                  metadata <span class="op">=</span> <span class="va">raman_hdpe</span><span class="op">$</span><span class="va">metadata</span><span class="op">[</span>,<span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48</span>
@@ -506,17 +517,21 @@ details, when set, they will be used to automate transformations and warning mes
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y  user_name spectrum_type spectrum_identity      organization  license</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 Win Cowger         Raman              HDPE Horiba Scientific CC BY-NC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y  user_name spectrum_type spectrum_identity      organization</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;     &lt;char&gt;        &lt;char&gt;            &lt;char&gt;            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 Win Cowger         Raman              HDPE Horiba Scientific</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     license                                                        session_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt;                                                            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: CC BY-NC 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id    col_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;    &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b intensity</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># If you try to produce an OpenSpecy using an OpenSpecy it will just return</span></span></span>
 <span class="r-in"><span><span class="co"># the same object.</span></span></span>
 <span class="r-in"><span><span class="fu">as_OpenSpecy</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48</span>
@@ -530,11 +545,14 @@ details, when set, they will be used to automate transformations and warning mes
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y  user_name spectrum_type spectrum_identity      organization  license</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 Win Cowger         Raman              HDPE Horiba Scientific CC BY-NC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y  user_name spectrum_type spectrum_identity      organization</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;     &lt;char&gt;        &lt;char&gt;            &lt;char&gt;            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 Win Cowger         Raman              HDPE Horiba Scientific</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     license                                                        session_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt;                                                            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: CC BY-NC 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Creating an OpenSpecy from a data.frame</span></span></span>
@@ -542,6 +560,7 @@ details, when set, they will be used to automate transformations and warning mes
 <span class="r-in"><span>                            spectra <span class="op">=</span> <span class="va">raman_hdpe</span><span class="op">$</span><span class="va">spectra</span><span class="op">$</span><span class="va">intensity</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ambiguous column names: taking 'spectra' data from all but the 'wavenumber' column; use 'colnames' to supply user-defined columnsFALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber spectra</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;   &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040      26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632      50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221      48</span>
@@ -555,8 +574,9 @@ details, when set, they will be used to automate transformations and warning mes
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120      67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y  license  col_id                          file_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 CC BY-NC spectra bf49db07d97b169635b8f8e17311cdbc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y  license  col_id                          file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;   &lt;char&gt;  &lt;char&gt;                           &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 CC BY-NC spectra bf49db07d97b169635b8f8e17311cdbc</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Test that the spectrum is formatted as an OpenSpecy object.</span></span></span>
 <span class="r-in"><span><span class="fu">is_OpenSpecy</span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>

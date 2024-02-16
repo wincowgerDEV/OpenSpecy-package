@@ -65,7 +65,7 @@ Horiba Scientific.</p>
     <div class="section level2">
     <h2 id="format">Format<a class="anchor" aria-label="anchor" href="#format"></a></h2>
     <p>An threepart list of class <code><a href="as_OpenSpecy.html">OpenSpecy</a></code> containing:</p><table class="table table"><tr><td><code>wavenumber</code>:</td><td>spectral wavenumbers [1/cm] (vector of 964 rows)</td></tr><tr><td><code>spectra</code>:</td><td>absorbance values <a href="https://rdrr.io/r/base/Arithmetic.html" class="external-link">-</a>
-(a <code><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></code> with 964 rows and 1 column)</td></tr><tr><td><code>metadata</code>:</td><td>spectral metadata</td></tr></table></div>
+(a <code><a href="https://rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></code> with 964 rows and 1 column)</td></tr><tr><td><code>metadata</code>:</td><td>spectral metadata</td></tr></table></div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Cowger W, Gray A, Christiansen SH, De Frond H, Deshpande AD, Hemabessiere L,
@@ -85,6 +85,7 @@ Classification Techniques for Images and Spectra in Microplastic Research.”
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48</span>
@@ -98,11 +99,14 @@ Classification Techniques for Images and Spectra in Microplastic Research.”
 <span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    x y  user_name spectrum_type spectrum_identity      organization  license</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 1 1 Win Cowger         Raman              HDPE Horiba Scientific CC BY-NC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y  user_name spectrum_type spectrum_identity      organization</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;     &lt;char&gt;        &lt;char&gt;            &lt;char&gt;            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 Win Cowger         Raman              HDPE Horiba Scientific</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     license                                                        session_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt;                                                            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: CC BY-NC 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

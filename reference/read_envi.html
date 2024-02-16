@@ -63,6 +63,8 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_envi</span><span class="op">(</span></span>
 <span>  <span class="va">file</span>,</span>
 <span>  header <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spectral_smooth <span class="op">=</span> <span class="cn">F</span>,</span>
+<span>  sigma <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  share <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>file_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span>, user_name <span class="op">=</span> <span class="cn">NULL</span>, contact_info <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>    organization <span class="op">=</span> <span class="cn">NULL</span>, citation <span class="op">=</span> <span class="cn">NULL</span>, spectrum_type <span class="op">=</span> <span class="cn">NULL</span>, spectrum_identity <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -89,6 +91,18 @@
 <dd><p>name of the ASCII header file. If <code>NULL</code>, the name of the
 header file is guessed by looking for a second file with the same basename as
 <code>file</code> but with .hdr extension.</p></dd>
+
+
+<dt>spectral_smooth</dt>
+<dd><p>logical value determines whether spectral smoothing
+will be performed.</p></dd>
+
+
+<dt>sigma</dt>
+<dd><p>if <code>spectral_smooth</code> then this option applies the 3d
+standard deviations for the <code>gaussianSmooth</code> function from the
+<code>mmand</code> package to describe how spectral smoothing occurs on each dimension.
+The first two dimensions are x and y, the third is the wavenumbers.</p></dd>
 
 
 <dt>share</dt>
@@ -126,7 +140,8 @@ files;
 .spa, .spa, .spc, and .jdx formats, respectively;
 <code><a href="read_opus.html">read_opus</a>()</code> for reading .0 (OPUS) files;
 <code><a href="read_multi.html">read_zip</a>()</code> and <code><a href="read_multi.html">read_any</a>()</code> for wrapper functions;
-<code><a href="https://rdrr.io/pkg/caTools/man/ENVI.html" class="external-link">read.ENVI</a>()</code></p></div>
+<code><a href="https://rdrr.io/pkg/caTools/man/ENVI.html" class="external-link">read.ENVI</a>()</code>
+<code><a href="https://rdrr.io/pkg/mmand/man/gaussianSmooth.html" class="external-link">gaussianSmooth</a>()</code></p></div>
     </div>
     <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
