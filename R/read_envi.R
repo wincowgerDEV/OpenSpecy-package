@@ -7,6 +7,12 @@
 #' @param header name of the ASCII header file. If `NULL`, the name of the
 #' header file is guessed by looking for a second file with the same basename as
 #' `file` but with .hdr extension.
+#' @param spectral_smooth logical value determines whether spectral smoothing
+#' will be performed. 
+#' @param sigma if \code{spectral_smooth} then this option applies the 3d 
+#' standard deviations for the \code{gaussianSmooth} function from the
+#' \code{mmand} package to describe how spectral smoothing occurs on each dimension.
+#' The first two dimensions are x and y, the third is the wavenumbers. 
 #' @param share defaults to \code{NULL}; needed to share spectra with the
 #' Open Specy community; see \code{\link{share_spec}()} for details.
 #' @param metadata a named list of the metadata; see
@@ -32,12 +38,14 @@
 #' \code{\link{read_opus}()} for reading .0 (OPUS) files;
 #' \code{\link{read_zip}()} and \code{\link{read_any}()} for wrapper functions;
 #' \code{\link[caTools]{read.ENVI}()}
+#' \code{\link[mmand]{gaussianSmooth}()}
 #'
 #' @importFrom utils modifyList
 #' @importFrom data.table as.data.table dcast
 #' @importFrom caTools read.ENVI
+#' @importFrom mmand gaussianSmooth
 #' @export
-read_envi <- function(file, header = NULL, share = NULL,
+read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1), share = NULL,
                       metadata = list(
                         file_name = basename(file),
                         user_name = NULL,
@@ -71,8 +79,16 @@ read_envi <- function(file, header = NULL, share = NULL,
       paste0(".hdr")
 
   hdr <- .read_envi_header(header)
-  arr <- read.ENVI(file, header)
-  dt <- as.data.table(arr)
+  arr <- read.ENVI(file, header) 
+  
+  if(spectral_smooth){
+     dt <- arr |>
+          gaussianSmooth(sigma) |>
+          as.data.table()
+  }
+  else{
+      dt <- as.data.table(arr)    
+  }
   md <- hdr[names(hdr) != "wavelength"]
   names(dt) <- c("y", "x", "z", "value")
   dt[, 1:2] <- dt[, 1:2] -1

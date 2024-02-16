@@ -20,13 +20,24 @@ sig_noise(x, ...)
   noise_min = NULL,
   noise_max = NULL,
   abs = T,
+  spatial_smooth = F,
+  sigma = c(1, 1),
+  threshold = NULL,
   ...
 )
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
 
-\item{metric}{character; specifying the desired metric to calculate.}
+\item{metric}{character; specifying the desired metric to calculate.
+Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
+deviation of intensity), \code{"sig_times_noise"} (absolute value of
+signal times noise), \code{"sig_over_noise"} (absolute value of signal /
+noise), \code{"run_sig_over_noise"} (absolute value of signal /
+noise where signal is estimated as the max intensity and noise is
+estimated as the height of a low intensity region.),
+\code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
+or \code{"tot_sig"} (sum of intensities).}
 
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating signal and noise. Default is \code{TRUE}.}
@@ -41,21 +52,24 @@ when calculating signal and noise. Default is \code{TRUE}.}
 
 \item{noise_max}{numeric; the maximum wavenumber value for the noise region.}
 
-\item{abs}{logical; whether to return the absolute value of the result
-Options include \code{"sig"} (mean intensity), \code{"noise"} (standard
-deviation of intensity), \code{"sig_times_noise"} (absolute value of
-signal times noise), \code{"sig_over_noise"} (absolute value of signal /
-noise), \code{"run_sig_over_noise"} (absolute value of signal /
-noise where signal is estimated as the max intensity and noise is
-estimated as the height of a low intensity region.),
-\code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
-or \code{"tot_sig"} (sum of intensities).}
+\item{abs}{logical; whether to return the absolute value of the result}
+
+\item{spatial_smooth}{logical; whether to spatially smooth the sig/noise using the xy
+coordinates and a gaussian smoother.}
+
+\item{sigma}{numeric; two value vector describing standard deviation for smoother in
+each xy dimension, should be the same for each in most cases.}
+
+\item{threshold}{numeric; if NULL, no threshold is set, otherwise use a numeric value
+to set the target threshold which true signal or noise should be above. The
+function will return a logical value instead of numeric if a threshold is set.}
 
 \item{\ldots}{further arguments passed to subfunctions; currently not used.}
 }
 \value{
 A numeric vector containing the calculated metric for each spectrum in the
-\code{OpenSpecy} object.
+\code{OpenSpecy} object or logical value if threshold is set describing if
+the numbers where above or equal to (TRUE) the threshold.
 }
 \description{
 This function calculates common signal and noise metrics for \code{OpenSpecy}

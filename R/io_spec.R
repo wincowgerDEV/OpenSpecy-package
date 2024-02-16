@@ -4,7 +4,7 @@
 #' @description
 #' Functions for reading and writing spectral data to and from OpenSpecy format.
 #' \code{OpenSpecy} objects are lists with components `wavenumber`, `spectra`,
-#' and `metadata`. Currently supported formats are .y(a)ml, .json, or .rds.
+#' and `metadata`. Currently supported formats are .y(a)ml, .json, .csv, or .rds.
 #'
 #' @param x an object of class \code{\link{OpenSpecy}}.
 #' @param file file path to be read from or written to.
@@ -35,12 +35,14 @@
 #' read_extdata("raman_hdpe.yml") |> read_spec()
 #' read_extdata("raman_hdpe.json") |> read_spec()
 #' read_extdata("raman_hdpe.rds") |> read_spec()
-#'
+#' read_extdata("raman_hdpe.csv") |> read_spec()
+#' 
 #' \dontrun{
 #' data(raman_hdpe)
 #' write_spec(raman_hdpe, "raman_hdpe.yml")
 #' write_spec(raman_hdpe, "raman_hdpe.json")
 #' write_spec(raman_hdpe, "raman_hdpe.rds")
+#' write_spec(raman_hdpe, "raman_hdpe.csv")
 #'
 #' # Convert an OpenSpecy object to a hyperSpec object
 #' hyper <- as_hyperSpec(raman_hdpe)
@@ -61,7 +63,7 @@
 #'
 #' @importFrom yaml write_yaml read_yaml
 #' @importFrom jsonlite write_json read_json
-#' @importFrom data.table as.data.table
+#' @importFrom data.table as.data.table fwrite
 #'
 #' @export
 write_spec <- function(x, ...) {
@@ -88,7 +90,19 @@ write_spec.OpenSpecy <- function(x, file, method = NULL,
       write_json(x, path = file, dataframe = "columns", digits = digits, ...)
     } else if (grepl("\\.rds$", file, ignore.case = T)) {
       saveRDS(x, file = file, ...)
-    } else {
+    }
+      else if (grepl("\\.csv$", file, ignore.case = T)){
+          wave_names <- round(x$wavenumber, 0)
+          
+          spectra <- t(x$spectra)
+          
+          colnames(spectra) <- wave_names
+          
+          flat_specy <- cbind(spectra, x$metadata)
+          
+          fwrite(flat_specy, file = file)
+    }
+      else {
       stop("unknown file type: specify a method to write custom formats or ",
            "provide one of the supported .yml, .json, or .rds formats as ",
            "file extension", call. = F)
@@ -122,7 +136,12 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
     } else if (grepl("\\.rds$", file, ignore.case = T)) {
       os <- readRDS(file, ...)
       os$metadata$file_name <- basename(file)
-    } else {
+    }
+      else if (grepl("\\.csv$", file, ignore.case = T)) {
+          os <- read_text(file, ...)
+          os$metadata$file_name <- basename(file)
+    }
+      else {
       stop("unknown file type: specify a method to read custom formats or ",
            "provide files of one of the supported file types .yml, .json, .rds",
            call. = F)

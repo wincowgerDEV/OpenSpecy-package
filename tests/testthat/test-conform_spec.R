@@ -40,15 +40,27 @@ test_that("conform_spec() conforms wavenumbers correctly", {
     expect_silent()
   expect_true(check_OpenSpecy(conf_roll))
   
-  conf_wider <- conform_spec(x = sam,range = wider_wavenumbers, res = NULL) |>
+  conf_mean_up <- conform_spec(sam, new_wavenumbers,res = NULL, type = "mean_up") |>
+      expect_silent()
+  expect_true(check_OpenSpecy(conf_mean_up))
+  
+  conf_wider <- conform_spec(x = sam,range = wider_wavenumbers, res = 5) |>
       expect_silent()
   expect_true(check_OpenSpecy(conf_wider))
 
+  conf_wider2 <- conform_spec(x = sam,range = wider_wavenumbers,allow_na = T, res = NULL) |>
+      expect_silent()
+  expect_true(check_OpenSpecy(conf_wider2))
+  
   expect_equal(length(conf_new$wavenumber), length(conf_new$spectra[[1]]))
   expect_equal(range(conf_new$wavenumber), range(new_wavenumbers))
 
   expect_identical(conf_roll$wavenumber, new_wavenumbers)
 
+  expect_identical(conf_wider$wavenumber, conform_res(sam$wavenumber, res = 5))
+  
+  expect_identical(conf_wider2$wavenumber, wider_wavenumbers)
+  
   expect_s3_class(conf_new, "OpenSpecy")
   expect_s3_class(conf_roll, "OpenSpecy")
 

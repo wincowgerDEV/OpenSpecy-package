@@ -14,7 +14,7 @@
 #' @param metadata metadata for each spectrum with one row per spectrum,
 #' see details.
 #' @param attributes a list of attributes describing critical aspects for interpreting the spectra.
-#' see details.
+#' see details. 
 #' @param coords spatial coordinates for the spectra.
 #' @param session_id logical. Whether to add a session ID to the metadata.
 #' The session ID is based on current session info so metadata of the same
@@ -103,6 +103,16 @@
 #'   `"2"`}
 #'   \item{`baseline`}{supported options include `"raw"` or `"nobaseline"`}
 #'   \item{`spectra_type`}{supported options include `"ftir"` or `"raman"`}
+#' }
+#' 
+#' The \code{attributes} argument may contain a named list with the following
+#' details, when set, they will be used to automate transformations and warning messages:
+#'
+#' \tabular{ll}{
+#' \code{intensity_units}: \tab supported options include "absorbance", "transmittance", or "reflectance"\cr
+#' \code{derivative_order}: \tab supported options include "0", "1", or "2"\cr
+#' \code{baseline}: \tab supported options include "raw" or "nobaseline"\cr
+#' \code{spectra_type}: \tab supported options include "ftir" or "raman"\cr
 #' }
 #'
 #' @return
@@ -261,9 +271,9 @@ as_OpenSpecy.default <- function(x, spectra,
                                    other_info = NULL,
                                    license = "CC BY-NC"),
                                  attributes = list(
-                                   intensity_unit = NULL,
-                                   derivative_order = NULL,
-                                   baseline = NULL,
+                                   intensity_unit = NULL, 
+                                   derivative_order = NULL, 
+                                   baseline = NULL, 
                                    spectra_type = NULL
                                  ),
                                  coords = "gen_grid",
@@ -282,28 +292,28 @@ as_OpenSpecy.default <- function(x, spectra,
   if (length(x) != nrow(spectra))
     stop("'x' and 'spectra' must be of equal length", call. = F)
 
-  obj <- structure(list(),
+  obj <- structure(list(), 
+
                    class = c("OpenSpecy", "list"),
                    intensity_unit = attributes$intensity_unit,
                    derivative_order = attributes$derivative_order,
                    baseline = attributes$baseline,
                    spectra_type = attributes$spectra_type
-  )
+                   )
+
 
   obj$wavenumber <- x[order(x)]
 
   obj$spectra <- as.data.table(spectra)[order(x)]
 
-  if (inherits(coords, "character")) {
+  if (inherits(coords, "character") && !any(is.element(c("x", "y"), names(metadata)))) {
     obj$metadata <- do.call(coords, list(ncol(obj$spectra)))
   } else if(inherits(coords, c("data.frame", "list")) &&
              all(is.element(c("x", "y"), names(coords)))) {
     obj$metadata <- as.data.table(coords)
-  } else if(is.null(coords)){
+  } else {
+    if(!all(is.element(c("x", "y"), names(metadata))))  stop("inconsistent input for 'coords'", call. = F)
     obj$metadata <- data.table()
-  }
-  else {
-    stop("inconsistent input for 'coords'", call. = F)
   }
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {

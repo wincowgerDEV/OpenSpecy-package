@@ -53,7 +53,7 @@
 #' \code{\link{read_zip}()} and \code{\link{read_any}()} for wrapper functions;
 #' \code{\link[hyperSpec]{read.jdx}()}; \code{\link[hyperSpec]{read.spc}()}
 #'
-#' @importFrom data.table data.table as.data.table fread
+#' @importFrom data.table data.table as.data.table fread transpose
 #' @export
 read_text <- function(file, colnames = NULL, method = "fread",
                       share = NULL,
@@ -91,9 +91,21 @@ read_text <- function(file, colnames = NULL, method = "fread",
                                               "use 'header = FALSE' or an ",
                                               "alternative read method",
                                               call. = F)
-
-  os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata,
-                     session_id = T)
+  if(sum(grepl("^[0-9]{1,}$",colnames(dt))) > 4){
+      wavenumbers <- colnames(dt)[grepl("^[0-9]{1,}$",colnames(dt))]
+      
+      spectra <- transpose(dt[,wavenumbers, with = FALSE])
+      
+      metadata_names <- colnames(dt)[!grepl("^[0-9]{1,}$",colnames(dt))]
+      
+      metadata <- dt[, metadata_names, with = FALSE]
+      
+      os <- as_OpenSpecy(x = as.numeric(wavenumbers), spectra = spectra, metadata = metadata)
+  }
+  else{
+      os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata,
+                         session_id = T)      
+  }
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
 

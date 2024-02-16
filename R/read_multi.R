@@ -13,6 +13,8 @@
 #' files, spectra are concatenated.
 #'
 #' @param file file to be read from or written to.
+#' @param range argument passed to \code{c_spec()} when reading multiple files from zip folder.
+#' @param res spectral resolution for merge, argument passed to \code{c_spec()}.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
@@ -37,9 +39,13 @@ read_any <- function(file, ...) {
     os <- read_text(file = file, ...)
   } else if (grepl("\\.[0-999]$", ignore.case = T, file)) {
     os <- read_opus(file = file, ...)
-  } else if (grepl("(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)",
+  }
+    else if (grepl("(\\.jdx$)|(\\.dx$)", ignore.case = T, file)) {
+        os <- read_jdx(file = file, ...)
+    }
+    else if (grepl("(\\.asp$)|(\\.spa$)|(\\.spc$)",
                    ignore.case = T, file)) {
-    ex <- strsplit(basename(file), split="\\.")[[1]][-1]
+    ex <- gsub(".*\\.", "", file)
     os <- do.call(paste0("read_", tolower(ex)), list(file = file, ...))
   } else if (grepl("(\\.zip$)", ignore.case = T, file)) {
     os <- read_zip(file = file, ...)
@@ -55,8 +61,10 @@ read_any <- function(file, ...) {
 #' @importFrom utils unzip
 #' @importFrom data.table transpose
 #' @export
-read_zip <- function(file, ...) {
+read_zip <- function(file, range = NULL, res = 5, ...) {
   flst <- unzip(zipfile = file, list = T)
+  
+  flst <- flst[!grepl("_MACOSX", flst$Name), ]
 
   tmp <- file.path(tempdir(), "OpenSpecy-unzip")
   dir.create(tmp, showWarnings = F)
@@ -72,7 +80,7 @@ read_zip <- function(file, ...) {
   } else {
     lst <- lapply(file.path(tmp, flst$Name), read_any, ...)
 
-    os <- c_spec(lst)
+    os <- c_spec(lst, range = range, res = res)
   }
 
   unlink(tmp, recursive = T)

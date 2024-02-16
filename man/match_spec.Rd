@@ -18,6 +18,12 @@
 \alias{ai_classify}
 \alias{ai_classify.default}
 \alias{ai_classify.OpenSpecy}
+\alias{fill_spec}
+\alias{fill_spec.default}
+\alias{fill_spec.OpenSpecy}
+\alias{os_similarity}
+\alias{os_similarity.default}
+\alias{os_similarity.OpenSpecy}
 \title{Identify and filter spectra}
 \usage{
 cor_spec(x, ...)
@@ -73,6 +79,18 @@ ai_classify(x, ...)
 \method{ai_classify}{default}(x, ...)
 
 \method{ai_classify}{OpenSpecy}(x, library, fill = NULL, ...)
+
+fill_spec(x, ...)
+
+\method{fill_spec}{default}(x, ...)
+
+\method{fill_spec}{OpenSpecy}(x, fill, ...)
+
+os_similarity(x, ...)
+
+\method{os_similarity}{default}(x, ...)
+
+\method{os_similarity}{OpenSpecy}(x, y, method = "hamming", na.rm = T, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object, typically with unknowns.}
@@ -109,6 +127,10 @@ can be returned by \code{cor_spec()}}
 
 \item{rm_empty}{logical; whether to remove empty columns in the metadata.}
 
+\item{y}{an \code{OpenSpecy} object to perform similarity search against x.}
+
+\item{method}{the type of similarity metric to return.}
+
 \item{\ldots}{additional arguments passed \code{\link[stats]{cor}()}.}
 }
 \value{
@@ -126,9 +148,23 @@ will be added to the output.
 If \code{add_object_metadata} is \code{is.character}, the object metadata
 will be added to the output.
 \code{filter_spec()} returns an \code{OpenSpecy} object.
+\code{fill_spec()} returns an \code{OpenSpecy} object.
 \code{cor_spec()} returns a correlation matrix.
 \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()}
 with the metadata for columns which have information.
+\code{os_similarity()} returns a single numeric value representing the type
+of similarity metric requested. 'wavenumber' similarity is based on the
+proportion of wavenumber values that overlap between the two objects,
+'metadata' is the proportion of metadata column names,
+'hamming' is something similar to the hamming distance where we discretize
+all spectra in the OpenSpecy object by wavenumber intensity values and then
+relate the wavenumber intensity value distributions by mean difference in
+min-max normalized space. 'pca' tests the distance between the OpenSpecy
+objects in PCA space using the first 4 component values and calculating the
+max-range normalized distance between the mean components. The first two
+metrics are pretty straightforward and definitely ready to go, the 'hamming'
+and 'pca' metrics are pretty experimental but appear to be working under our
+current test cases.
 }
 \description{
 \code{match_spec()} joins two \code{OpenSpecy} objects and their metadata
@@ -141,6 +177,8 @@ and formats them with metadata.
 \code{max_cor_named()} formats the top correlation values from a correlation
 matrix as a named vector.
 \code{filter_spec()} filters an Open Specy object.
+\code{fill_spec()} adds filler values to an \code{OpenSpecy} object where it doesn't have intensities.
+\code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used.
 }
 \examples{
 data("test_lib")

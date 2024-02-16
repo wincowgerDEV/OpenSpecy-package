@@ -10,7 +10,7 @@ conform_spec(x, ...)
 
 \method{conform_spec}{default}(x, ...)
 
-\method{conform_spec}{OpenSpecy}(x, range = NULL, res = 5, type = "interp", ...)
+\method{conform_spec}{OpenSpecy}(x, range = NULL, res = 5, allow_na = F, type = "interp", ...)
 }
 \arguments{
 \item{x}{a list object of class \code{OpenSpecy}.}
@@ -21,9 +21,15 @@ min and max value.}
 \item{res}{spectral resolution adjusted to or \code{NULL} if the raw range
 should be used.}
 
+\item{allow_na}{logical; should NA values in places beyond the wavenumbers
+of the dataset be allowed?}
+
 \item{type}{the type of wavenumber adjustment to make. \code{"interp"}
 results in linear interpolation while \code{"roll"} conducts a nearest
-rolling join of the wavenumbers.}
+rolling join of the wavenumbers. \code{"mean_up"} only works when
+Spectra are being aggregated, we take the mean of the intensities within the
+wavenumber specified. This can maintain smaller peaks and make spectra more
+similar to it's less resolved relatives. mean_up option is still experimental.}
 
 \item{\ldots}{further arguments passed to \code{\link[stats]{approx}()}}
 }

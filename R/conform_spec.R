@@ -10,9 +10,15 @@
 #' min and max value.
 #' @param res spectral resolution adjusted to or \code{NULL} if the raw range
 #' should be used.
+#' @param allow_na logical; should NA values in places beyond the wavenumbers 
+#' of the dataset be allowed?
 #' @param type the type of wavenumber adjustment to make. \code{"interp"}
 #' results in linear interpolation while \code{"roll"} conducts a nearest
-#' rolling join of the wavenumbers.
+#' rolling join of the wavenumbers. \code{"mean_up"} only works when
+#' Spectra are being aggregated, we take the mean of the intensities within the 
+#' wavenumber specified. This can maintain smaller peaks and make spectra more
+#' similar to it's less resolved relatives. mean_up option is still experimental.
+#' 
 #' @param \ldots further arguments passed to \code{\link[stats]{approx}()}
 #'
 #' @return
@@ -47,18 +53,18 @@ conform_spec.default <- function(x, ...) {
 #' @rdname conform_spec
 #'
 #' @export
-conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, type = "interp",
+conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F, type = "interp",
                                    ...) {
-  if(!any(type %in% c("interp", "roll")))
-    stop("type must be either interp or roll")
+  if(!any(type %in% c("interp", "roll", "mean_up")))
+    stop("type must be either interp, roll, or mean_up")
 
   if(is.null(range)) range <- x$wavenumber
 
   if(!is.null(res)) {
-    range <- c(max(min(range), min(x$wavenumber)),
+    range2 <- c(max(min(range), min(x$wavenumber)),
                min(max(range), max(x$wavenumber)))
 
-    wn <- conform_res(range, res = res)
+    wn <- conform_res(range2, res = res)
   } else {
     wn <- range[range >= min(x$wavenumber) & range <= max(x$wavenumber)]
   }
@@ -75,7 +81,26 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, type = "interp",
     spec <- spec[join, roll = "nearest", on = "wavenumber"]
     spec <- spec[,-"wavenumber"]
   }
-
+  
+  if(type == "mean_up"){
+      spec <- x$spectra[,lapply(.SD, mean), 
+                                   by = cut(x = x$wavenumber, breaks = wn)][,-"cut"]
+  }
+  
+  if(allow_na){
+      if(min(range) < min(wn) | max(range) > max(wn)){
+          if(!is.null(res)){
+              filler_range  <- conform_res(range, res = res)
+          }
+          else{
+              filler_range <- range
+          }
+          filler = data.table("wavenumber" = filler_range)
+          spec <- spec[,"wavenumber" := wn][filler, on = "wavenumber"][,-"wavenumber"]
+          wn <- filler_range
+      }
+  }
+  
   x$wavenumber <- wn
   x$spectra <- spec
 

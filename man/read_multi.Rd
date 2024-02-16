@@ -7,10 +7,14 @@
 \usage{
 read_any(file, ...)
 
-read_zip(file, ...)
+read_zip(file, range = NULL, res = 5, ...)
 }
 \arguments{
 \item{file}{file to be read from or written to.}
+
+\item{range}{argument passed to \code{c_spec()} when reading multiple files from zip folder.}
+
+\item{res}{spectral resolution for merge, argument passed to \code{c_spec()}.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }

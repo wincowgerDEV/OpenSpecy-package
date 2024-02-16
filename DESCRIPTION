@@ -81,7 +81,7 @@ Imports:
     osfr,
     caTools,
     hyperSpec,
-    imager,
+    mmand,
     plotly,
     digest,
     signal,

@@ -11,6 +11,8 @@ test_that("adj_intens() works as expected", {
   adj <- adj_intens(raman_hdpe) |> expect_silent()
   adj_intens(raman_hdpe, type = "reflectance") |> expect_silent()
   adj_intens(raman_hdpe, type = "transmittance") |> expect_silent()
+  adj_intens(raman_hdpe, type = "transmission") |> expect_error()
+  
   expect_equal(
     cor(raman_hdpe$spectra$intensity, adj$spectra$intensity), 1,
     ignore_attr = F)

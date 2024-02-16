@@ -3,6 +3,11 @@ tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
 
 data("test_lib")
+data("raman_hdpe")
+
+CA_test_lib <- filter_spec(test_lib, test_lib$metadata$SpectrumIdentity == "CA" )
+
+hdpe_test_lib <- filter_spec(test_lib, test_lib$metadata$sample_name == "0031bb13faea1e04b52ffbeca009e8ab")
 
 tiny_map <- read_extdata("CA_tiny_map.zip") |>
   read_any() |>
@@ -14,6 +19,40 @@ unknown <- read_extdata("ftir_ldpe_soil.asp") |> read_any()
 preproc <- conform_spec(unknown, range = test_lib$wavenumber,
                         res = spec_res(test_lib)) |>
   process_spec(smooth_intens = T, make_rel = T)
+
+test_that("os_similarity() returns correct values", {
+    #The basic definition of similarity for each
+    expect_true(os_similarity(tiny_map, tiny_map, method = "hamming") == 1) 
+    expect_true(os_similarity(tiny_map, tiny_map, method = "pca") == 1) 
+    expect_true(os_similarity(tiny_map, tiny_map, method = "metadata") == 1) 
+    expect_true(os_similarity(tiny_map, tiny_map, method = "wavenumber") == 1) 
+    
+    #Wavenumbers
+    expect_identical(os_similarity(x = tiny_map, y = test_lib, method = "wavenumber") |> round(2), 0.84)
+    expect_identical(os_similarity(x = tiny_map, y = tiny_map, method = "wavenumber") |> round(2), 1)
+    expect_true(os_similarity(x = tiny_map, y = test_lib, method = "wavenumber") > os_similarity(x = unknown, y = test_lib, method = "wavenumber"))
+    
+    test_lib2 <- conform_spec(test_lib, tiny_map$wavenumber, res = NULL, type = "roll") 
+    
+    CA2 <- conform_spec(CA_test_lib, tiny_map$wavenumber, res = NULL, type = "roll") 
+    
+    hdpe2 <- conform_spec(hdpe_test_lib, tiny_map$wavenumber, res = NULL, type = "roll") 
+    
+    unknown2 <- conform_spec(unknown, tiny_map$wavenumber, res = NULL, type = "roll") 
+    
+    ramanhdpe2 <- conform_spec(raman_hdpe, tiny_map$wavenumber, res = NULL, type = "roll") |>
+        smooth_intens()
+    
+    #hamming still calculates a value for single spectra comparisons but probably not a great metric. 
+    expect_true(os_similarity(ramanhdpe2, hdpe2) > os_similarity(ramanhdpe2,CA2)) |> expect_warning() |> expect_warning()
+    
+    os_similarity(ramanhdpe2, hdpe2, method = "pca") |> expect_error() |> expect_warning()
+    
+    expect_true(os_similarity(test_lib2, test_lib2) > os_similarity(tiny_map, test_lib2))
+    expect_true(os_similarity(tiny_map, CA2) > os_similarity(tiny_map, unknown2)) |> expect_warning()
+    expect_true(os_similarity(tiny_map, CA2, method = "pca") > os_similarity(x = tiny_map, y = unknown2, method = "pca")) |> expect_warning()
+    expect_true(os_similarity(tiny_map, raman_hdpe, method = "metadata") == 0.25)
+})
 
 test_that("ai_classify() handles input errors correctly", {
   ai_classify(1:1000) |> expect_error()
@@ -34,6 +73,7 @@ test_that("match_spec() returns correct structure with AI", {
   rn <- runif(n = length(unique(lib$variables_in)))
   fill <- as_OpenSpecy(as.numeric(unique(lib$variables_in)),
                        spectra = data.frame(rn))
+  
   matches <- match_spec(x = preproc, library = lib, na.rm = T, fill = fill) |>
     expect_silent()
   nrow(matches) |> expect_equal(1)

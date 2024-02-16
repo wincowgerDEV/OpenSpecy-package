@@ -64,7 +64,9 @@ test_that("the original spectrum remains unmodified and metadata is amended", {
 
   expect_contains(names(id_map$metadata),
                   c("feature_id", "area", "feret_max", "centroid_y",
-                    "centroid_x"))
+                    "centroid_x", "first_x", "first_y", "rand_x",  "rand_y"))
+  
+  
 })
 
 test_that("collapse particles returns expected values", {
@@ -86,6 +88,7 @@ test_that("collapse particles returns expected values", {
     expect_equal(7.5)
 
   particles <- map$metadata$y == 1
+  set.seed(10)
   id_map <- def_features(map, particles)
   expect_true(check_OpenSpecy(id_map))
 
@@ -98,7 +101,12 @@ test_that("collapse particles returns expected values", {
     expect_equal(c(NA, 16))
   test_collapsed$metadata$centroid_x |> unique() |>
     expect_equal(7.5)
-
+  
+  test_collapsed$metadata$first_x |> unique() |> expect_equal(0)
+  test_collapsed$metadata$first_y |> unique() |> expect_identical(c(0, 1))
+  test_collapsed$metadata$rand_y |> unique() |> expect_identical(c(7, 1))
+  test_collapsed$metadata$rand_x |> unique() |> expect_identical(c(8, 9))
+  
   expect_contains(names(test_collapsed$metadata),
                   c("feature_id", "area", "feret_max", "centroid_y",
                     "centroid_x"))
