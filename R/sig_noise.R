@@ -16,8 +16,8 @@
 #' \code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
 #' \code{"tot_sig"} (sum of intensities), or \code{"entropy"} (Shannon entropy of intensities)..
 #' @param step numeric; the step size of the region to look for the run_sig_over_noise option.
-#' @param prob numeric; the probability to retrieve for the quantile where the noise will be interpreted with the run_sig_over_noise option.
-#' @param breaks the number or positions of the breaks for entropy calculation. Defaults to infer a decent value from the data.
+#' @param prob numeric single value; the probability to retrieve for the quantile where the noise will be interpreted with the run_sig_over_noise option.
+#' @param breaks numeric; the number or positions of the breaks for entropy calculation. Defaults to infer a decent value from the data.
 #' @param sig_min numeric; the minimum wavenumber value for the signal region.
 #' @param sig_max numeric; the maximum wavenumber value for the signal region.
 #' @param noise_min numeric; the minimum wavenumber value for the noise region.
