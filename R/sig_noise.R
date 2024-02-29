@@ -26,7 +26,7 @@
 #' @param spatial_smooth logical; whether to spatially smooth the sig/noise using the xy 
 #' coordinates and a gaussian smoother. 
 #' @param sigma numeric; two value vector describing standard deviation for smoother in
-#' each xy dimension, should be the same for each in most cases. 
+#' each dimension, y is specified first followed by x, should be the same for each in most cases. 
 #' @param threshold numeric; if NULL, no threshold is set, otherwise use a numeric value
 #' to set the target threshold which true signal or noise should be above. The
 #' function will return a logical value instead of numeric if a threshold is set. 

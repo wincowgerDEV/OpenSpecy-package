@@ -66,7 +66,7 @@ when calculating signal and noise. Default is \code{TRUE}.}
 coordinates and a gaussian smoother.}
 
 \item{sigma}{numeric; two value vector describing standard deviation for smoother in
-each xy dimension, should be the same for each in most cases.}
+each dimension, y is specified first followed by x, should be the same for each in most cases.}
 
 \item{threshold}{numeric; if NULL, no threshold is set, otherwise use a numeric value
 to set the target threshold which true signal or noise should be above. The
