@@ -8,7 +8,7 @@
 #' @param x a numeric vector or an \R OpenSpecy object
 #' @param lead_tail_only logical whether to only look at leading adn tailing values. 
 #' @param ig_zero logical, whether to ignore both zeros and NAs
-#' @param fun the name of the function you want run. 
+#' @param fun the name of the function you want run, this is only used if the "ignore" type is chosen.
 #' @param type character of either "ignore" or "remove".
 #' @param \ldots further arguments passed to \code{fun}.
 #'
