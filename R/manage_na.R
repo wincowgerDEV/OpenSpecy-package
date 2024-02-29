@@ -42,6 +42,8 @@ manage_na <- function(x, ...) {
 #' @export
 manage_na.default <- function(x, lead_tail_only = T, ig_zero = F, ...) {
 
+    if(all(is.na(x))) stop("All intensity values are NA, cannot remove or ignore with manage na.")
+    
     if(lead_tail_only){
         na_positions <- logical(length(x))
         if(is.na(x[1])){
@@ -79,8 +81,6 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = T, ig_zero = F, fun, type = 
                                ig_zero = ig_zero)] |>
         rowSums() == 0
     
-    if(sum(consistent) < 3 & type == "ignore") stop("Not enough non NA values, need atleast 3")
-    
     if(type == "ignore"){
         reduced <- as_OpenSpecy(x$wavenumber[consistent], x$spectra[consistent,], x$metadata) |>
             fun(...)
@@ -89,8 +89,6 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = T, ig_zero = F, fun, type = 
         
         x$spectra[consistent,] <- reduced$spectra        
     }
-    
-    if(sum(!consistent) < 3 & type == "remove") stop("Not enough non NA values left, need atleast 3")
     
     if(type == "remove"){
         x <- as_OpenSpecy(x$wavenumber[consistent], x$spectra[consistent,], x$metadata)
