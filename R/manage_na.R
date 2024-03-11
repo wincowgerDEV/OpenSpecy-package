@@ -18,11 +18,11 @@
 #'
 #' @examples
 #' manage_na(c(NA, -1, NA, 1, 10))
-#' manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = F)
-#' manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = F, ig_zero = T)
+#' manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = FALSE)
+#' manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig_zero = TRUE)
 #' data(raman_hdpe)
 #' raman_hdpe$spectra[[1]][1:10] <- NA
-#' manage_na(raman_hdpe, fun = make_rel) #would normally return all NA without na.rm = T but doesn't here. 
+#' manage_na(raman_hdpe, fun = make_rel) #would normally return all NA without na.rm = TRUE but doesn't here. 
 #' manage_na(raman_hdpe, type = "remove") #will remove the first 10 values we set to NA
 #' 
 #' @author
@@ -40,26 +40,26 @@ manage_na <- function(x, ...) {
 
 #' @rdname manage_na
 #' @export
-manage_na.default <- function(x, lead_tail_only = T, ig_zero = F, ...) {
+manage_na.default <- function(x, lead_tail_only = TRUE, ig_zero = FALSE, ...) {
 
     if(all(is.na(x))) stop("All intensity values are NA, cannot remove or ignore with manage na.")
     
     if(lead_tail_only){
         na_positions <- logical(length(x))
         if(is.na(x[1])){
-            criteria = T
+            criteria = TRUE
             y = 1
             while(criteria){
-                if(is.na(x[y])|(ig_zero & x[y] == 0)) na_positions[y] <- T 
+                if(is.na(x[y])|(ig_zero & x[y] == 0)) na_positions[y] <- TRUE 
                 y = y + 1
                 criteria = is.na(x[y])|(ig_zero & x[y] == 0) 
             }
         }
         if(is.na(x[length(x)])){
-            criteria = T
+            criteria = TRUE
             y = length(x)
             while(criteria){
-                if(is.na(x[y])|(ig_zero & x[y] == 0)) na_positions[y] <- T 
+                if(is.na(x[y])|(ig_zero & x[y] == 0)) na_positions[y] <- TRUE 
                 y = y - 1
                 criteria = is.na(x[y])|(ig_zero & x[y] == 0) 
             }
@@ -74,7 +74,7 @@ manage_na.default <- function(x, lead_tail_only = T, ig_zero = F, ...) {
 
 #' @rdname manage_na
 #' @export
-manage_na.OpenSpecy <- function(x, lead_tail_only = T, ig_zero = F, fun, type = "ignore", ...) {
+manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig_zero = FALSE, fun, type = "ignore", ...) {
     
     consistent <- x$spectra[, lapply(.SD, manage_na, 
                                lead_tail_only = lead_tail_only, 

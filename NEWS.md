@@ -1,3 +1,10 @@
+# OpenSpecy 1.0.7
+
+## Minor Improvements
+
+- Modified `manage_na.R`
+- Added to NAMESPACE
+
 # OpenSpecy 1.0.6
 
 ## Minor Improvements

@@ -3,9 +3,9 @@
 test_that("manage_na works as expected", {
     manage_na(c(NA, -1, NA, 1, 10)) |> 
         expect_identical(c(TRUE, FALSE, FALSE, FALSE, FALSE))
-    manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = F) |> 
+    manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = FALSE) |> 
         expect_identical(c(TRUE, FALSE, TRUE, FALSE, FALSE))
-    manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = F, ig_zero = T) |>
+    manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig_zero = TRUE) |>
         expect_identical(c(TRUE, TRUE, TRUE, FALSE, FALSE))
     
     data(raman_hdpe)

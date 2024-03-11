@@ -8,9 +8,9 @@
 \usage{
 manage_na(x, ...)
 
-\method{manage_na}{default}(x, lead_tail_only = T, ig_zero = F, ...)
+\method{manage_na}{default}(x, lead_tail_only = TRUE, ig_zero = FALSE, ...)
 
-\method{manage_na}{OpenSpecy}(x, lead_tail_only = T, ig_zero = F, fun, type = "ignore", ...)
+\method{manage_na}{OpenSpecy}(x, lead_tail_only = TRUE, ig_zero = FALSE, fun, type = "ignore", ...)
 }
 \arguments{
 \item{x}{a numeric vector or an \R OpenSpecy object}
@@ -35,12 +35,14 @@ varying shapes to be analyzed together or maintained in a single Open Specy obje
 }
 \examples{
 manage_na(c(NA, -1, NA, 1, 10))
-manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = F)
-manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = F, ig_zero = T)
+manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = FALSE)
+manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig_zero = TRUE)
 data(raman_hdpe)
 raman_hdpe$spectra[[1]][1:10] <- NA
-manage_na(raman_hdpe, fun = make_rel) #would normally return all NA without na.rm = T but doesn't here. 
-manage_na(raman_hdpe, type = "remove") #will remove the first 10 values we set to NA
+manage_na(raman_hdpe, fun = make_rel) 
+#would normally return all NA without na.rm = TRUE but doesn't here. 
+manage_na(raman_hdpe, type = "remove") 
+#will remove the first 10 values we set to NA
 
 }
 \seealso{
