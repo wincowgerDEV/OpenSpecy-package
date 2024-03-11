@@ -14,7 +14,11 @@ sig_noise(x, ...)
   x,
   metric = "run_sig_over_noise",
   na.rm = TRUE,
+  prob = 0.5,
   step = 20,
+  breaks = seq(min(unlist(x$spectra)), max(unlist(x$spectra)), length =
+    ((nrow(x$spectra)^(1/3)) * (max(unlist(x$spectra)) - min(unlist(x$spectra))))/(2 *
+    IQR(unlist(x$spectra)))),
   sig_min = NULL,
   sig_max = NULL,
   noise_min = NULL,
@@ -37,12 +41,16 @@ noise), \code{"run_sig_over_noise"} (absolute value of signal /
 noise where signal is estimated as the max intensity and noise is
 estimated as the height of a low intensity region.),
 \code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
-or \code{"tot_sig"} (sum of intensities).}
+\code{"tot_sig"} (sum of intensities), or \code{"entropy"} (Shannon entropy of intensities)..}
 
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating signal and noise. Default is \code{TRUE}.}
 
+\item{prob}{numeric single value; the probability to retrieve for the quantile where the noise will be interpreted with the run_sig_over_noise option.}
+
 \item{step}{numeric; the step size of the region to look for the run_sig_over_noise option.}
+
+\item{breaks}{numeric; the number or positions of the breaks for entropy calculation. Defaults to infer a decent value from the data.}
 
 \item{sig_min}{numeric; the minimum wavenumber value for the signal region.}
 
@@ -58,7 +66,7 @@ when calculating signal and noise. Default is \code{TRUE}.}
 coordinates and a gaussian smoother.}
 
 \item{sigma}{numeric; two value vector describing standard deviation for smoother in
-each xy dimension, should be the same for each in most cases.}
+each dimension, y is specified first followed by x, should be the same for each in most cases.}
 
 \item{threshold}{numeric; if NULL, no threshold is set, otherwise use a numeric value
 to set the target threshold which true signal or noise should be above. The
