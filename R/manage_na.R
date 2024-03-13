@@ -7,7 +7,7 @@
 #' 
 #' @param x a numeric vector or an \R OpenSpecy object
 #' @param lead_tail_only logical whether to only look at leading adn tailing values. 
-#' @param ig_zero logical, whether to ignore both zeros and NAs
+#' @param ig character vector, values to ignore
 #' @param fun the name of the function you want run, this is only used if the "ignore" type is chosen.
 #' @param type character of either "ignore" or "remove".
 #' @param \ldots further arguments passed to \code{fun}.
@@ -19,7 +19,7 @@
 #' @examples
 #' manage_na(c(NA, -1, NA, 1, 10))
 #' manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = FALSE)
-#' manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig_zero = TRUE)
+#' manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig = c(NA,0))
 #' data(raman_hdpe)
 #' raman_hdpe$spectra[[1]][1:10] <- NA
 #' manage_na(raman_hdpe, fun = make_rel) #would normally return all NA without na.rm = TRUE but doesn't here. 
@@ -40,33 +40,33 @@ manage_na <- function(x, ...) {
 
 #' @rdname manage_na
 #' @export
-manage_na.default <- function(x, lead_tail_only = TRUE, ig_zero = FALSE, ...) {
+manage_na.default <- function(x, lead_tail_only = TRUE, ig = c(NA), ...) {
 
     if(all(is.na(x))) stop("All intensity values are NA, cannot remove or ignore with manage na.")
     
     if(lead_tail_only){
         na_positions <- logical(length(x))
-        if(is.na(x[1])){
+        if(x[1] %in% ig){
             criteria = TRUE
             y = 1
             while(criteria){
-                if(is.na(x[y])|(ig_zero & x[y] == 0)) na_positions[y] <- TRUE 
+                if(x[y] %in% ig) na_positions[y] <- TRUE 
                 y = y + 1
-                criteria = is.na(x[y])|(ig_zero & x[y] == 0) 
+                criteria = x[y] %in% ig
             }
         }
-        if(is.na(x[length(x)])){
+        if(x[length(x)] %in% ig){
             criteria = TRUE
             y = length(x)
             while(criteria){
-                if(is.na(x[y])|(ig_zero & x[y] == 0)) na_positions[y] <- TRUE 
+                if(x[y] %in% ig) na_positions[y] <- TRUE 
                 y = y - 1
-                criteria = is.na(x[y])|(ig_zero & x[y] == 0) 
+                criteria = x[y] %in% ig
             }
         }
     }
     else{
-        na_positions <- is.na(x)|(ig_zero & x == 0)
+        na_positions <- x %in% ig
     }
     
     return(na_positions)
@@ -74,11 +74,11 @@ manage_na.default <- function(x, lead_tail_only = TRUE, ig_zero = FALSE, ...) {
 
 #' @rdname manage_na
 #' @export
-manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig_zero = FALSE, fun, type = "ignore", ...) {
+manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun, type = "ignore", ...) {
     
     consistent <- x$spectra[, lapply(.SD, manage_na, 
                                lead_tail_only = lead_tail_only, 
-                               ig_zero = ig_zero)] |>
+                               ig = ig)] |>
         rowSums() == 0
     
     if(type == "ignore"){

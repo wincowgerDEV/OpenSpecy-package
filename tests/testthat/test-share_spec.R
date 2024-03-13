@@ -13,7 +13,8 @@ wo_sid$metadata$session_id <- NULL
 test_that("share_text() works locally", {
   share_spec(raman_hdpe, file = read_extdata("raman_hdpe.csv"), share = tmp) |>
     expect_message()
-  read_extdata("testdata_zipped.zip") |> read_zip() |>
+  read_extdata("testdata_zipped.zip") |> read_any() |> 
+      c_spec() |>
     share_spec(share = tmp) |>
     expect_message() |> expect_warning()
 

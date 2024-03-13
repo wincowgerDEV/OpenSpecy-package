@@ -54,7 +54,7 @@ c_spec.default <- function(x, ...) {
 #'
 #' @export
 c_spec.OpenSpecy <- function(x, ...) {
-  warning("object 'x' needs to be a list of 'OpenSpecy' objects; ",
+  message("object 'x' needs to be a list of 'OpenSpecy' objects; ",
           "nothing to concatenate, returning 'x'")
 
   return(x)

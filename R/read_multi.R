@@ -11,31 +11,42 @@
 #' \code{read_zip()} provides functionality for reading in spectral map files
 #' with ENVI file format or as individual files in a zip folder. If individual
 #' files, spectra are concatenated.
+#' \code{read_many()} provides functionality for reading multiple files 
+#' in a character vector and will return a list. 
 #'
 #' @param file file to be read from or written to.
-#' @param range argument passed to \code{c_spec()} when reading multiple files from zip folder.
-#' @param res spectral resolution for merge, argument passed to \code{c_spec()}.
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
-#' All \code{read_*()} functions return \code{OpenSpecy} objects
+#' All \code{read_*()} functions return \code{OpenSpecy} objects if a single
+#' spectrum or map is provided, otherwise the provide a list of \code{OpenSpecy} objects.
 #'
 #' @examples
 #' \dontshow{data.table::setDTthreads(2)}
 #' read_extdata("raman_hdpe.csv") |> read_any()
 #' read_extdata("ftir_ldpe_soil.asp") |> read_any()
-#' read_extdata("testdata_zipped.zip") |> read_zip()
-#' read_extdata("CA_tiny_map.zip") |> read_zip()
+#' read_extdata("testdata_zipped.zip") |> read_many()
+#' read_extdata("CA_tiny_map.zip") |> read_many()
 #'
 #' @author
 #' Zacharias Steinmetz, Win Cowger
 #'
 #' @seealso
-#' \code{\link{read_spec}()}
+#' \code{\link{read_spec}()} for submethods. 
+#' \code{\link{c_spec}()} for combining lists of Open Specys. 
 #'
+#' @importFrom utils unzip
+#' @importFrom data.table transpose
+#' 
 #' @export
 read_any <- function(file, ...) {
-  if (grepl("(\\.csv$)|(\\.tsv$)|(\\.txt$)", ignore.case = T, file)) {
+  if(length(file) > 1){
+          os <- read_many(file = file, ...)
+  }
+    else if (grepl("(\\.zip$)", ignore.case = T, file)) {
+        os <- read_zip(file = file, ...)
+    }
+  else if (grepl("(\\.csv$)|(\\.tsv$)|(\\.txt$)", ignore.case = T, file)) {
     os <- read_text(file = file, ...)
   } else if (grepl("\\.[0-999]$", ignore.case = T, file)) {
     os <- read_opus(file = file, ...)
@@ -47,9 +58,7 @@ read_any <- function(file, ...) {
                    ignore.case = T, file)) {
     ex <- gsub(".*\\.", "", file)
     os <- do.call(paste0("read_", tolower(ex)), list(file = file, ...))
-  } else if (grepl("(\\.zip$)", ignore.case = T, file)) {
-    os <- read_zip(file = file, ...)
-  } else {
+  }  else {
     os <- read_spec(file = file, ...)
   }
 
@@ -58,31 +67,34 @@ read_any <- function(file, ...) {
 
 #' @rdname read_multi
 #'
-#' @importFrom utils unzip
-#' @importFrom data.table transpose
 #' @export
-read_zip <- function(file, range = NULL, res = 5, ...) {
-  flst <- unzip(zipfile = file, list = T)
-  
-  flst <- flst[!grepl("_MACOSX", flst$Name), ]
+read_many <- function(file, ...) {
+         lapply(file, read_any, ...)
+}
 
-  tmp <- file.path(tempdir(), "OpenSpecy-unzip")
-  dir.create(tmp, showWarnings = F)
-
-  unzip(file, exdir = tmp)
-
-  if(nrow(flst) == 2 & any(grepl("\\.dat$", ignore.case = T, flst$Name)) &
-      any(grepl("\\.hdr$", ignore.case = T, flst$Name))) {
-    dat <- flst$Name[grepl("\\.dat$", ignore.case = T, flst$Name)]
-    hdr <- flst$Name[grepl("\\.hdr$", ignore.case = T, flst$Name)]
-
-    os <- read_envi(file.path(tmp, dat), file.path(tmp, hdr), ...)
-  } else {
-    lst <- lapply(file.path(tmp, flst$Name), read_any, ...)
-
-    os <- c_spec(lst, range = range, res = res)
-  }
-
-  unlink(tmp, recursive = T)
-  return(os)
+#' @rdname read_multi
+#' @export
+read_zip <- function(file, ...) {
+        flst <- unzip(zipfile = file, list = T)$Name
+        flst <- flst[!grepl("_MACOSX", flst)]
+        
+        tmp <- file.path(tempdir(), "OpenSpecy-unzip")
+        dir.create(tmp, showWarnings = F)
+        
+        unzip(file, exdir = tmp)
+        
+        flst <- file.path(tmp, flst)
+    
+    if(length(flst) == 2 & any(grepl("\\.dat$", ignore.case = T, flst)) &
+       any(grepl("\\.hdr$", ignore.case = T, flst))) {
+        dat <- flst[grepl("\\.dat$", ignore.case = T, flst)]
+        hdr <- flst[grepl("\\.hdr$", ignore.case = T, flst)]
+        
+        os <- read_envi(dat, hdr, ...)
+    } else {
+        os <- read_many(flst,  ...)
+    }
+    
+    unlink(tmp, recursive = T)
+    return(os)
 }

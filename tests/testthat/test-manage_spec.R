@@ -9,7 +9,7 @@ no_overlap[[2]] <- restrict_range(no_overlap[[2]], 700, 1000)
 test_that("c_spec() handles input errors correctly", {
   c_spec(1:1000) |> expect_error()
   c_spec(list(1:1000, 1000:2000)) |> expect_error()
-  c_spec(raman_hdpe) |> expect_warning()
+  c_spec(raman_hdpe) |> expect_message()
   c_spec(no_overlap) |> expect_error()
 })
 

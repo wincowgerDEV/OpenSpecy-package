@@ -5,7 +5,7 @@ dir.create(tmp, showWarnings = F)
 data("raman_hdpe")
 
 test_that("reading in multi files doesn't throw error", {
-  expect_silent(multi <- read_extdata("testdata_zipped.zip") |> read_any())
+  expect_silent(multi <- read_extdata("testdata_zipped.zip") |> read_any() |> c_spec())
   expect_s3_class(multi, "OpenSpecy")
 
   read_extdata("testdata_zipped.zip") |> read_any(share = tmp) |>

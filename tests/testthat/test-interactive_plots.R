@@ -1,4 +1,4 @@
-map <- read_zip(read_extdata("CA_tiny_map.zip"))
+map <- read_any(read_extdata("CA_tiny_map.zip"))
 data("raman_hdpe")
 
 test_that("plotly_spec() handles input errors correctly", {

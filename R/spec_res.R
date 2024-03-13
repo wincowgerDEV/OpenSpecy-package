@@ -34,8 +34,7 @@ spec_res <- function(x, ...) {
 #'
 #' @export
 spec_res.default <- function(x, ...) {
-  freq <- diff(x) |> table()
-  as.numeric(names(freq)[which.max(freq)])
+    (max(x) - min(x)) / length(x)
 }
 
 #' @rdname spec_res

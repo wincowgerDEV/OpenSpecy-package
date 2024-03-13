@@ -51,7 +51,7 @@ test_that("flatten_range() function test", {
   expect_equal(flat_hdpe$spectra$intensity[60:100] |> unique() |> round(6),
                0.036709)
 
-  tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
+  tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()
   flat_map <- flatten_range(tiny_map, min = c(1000, 2000),
                             max = c(1200, 2400), make_rel = F) |>
     expect_silent()

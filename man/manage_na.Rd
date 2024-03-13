@@ -8,18 +8,18 @@
 \usage{
 manage_na(x, ...)
 
-\method{manage_na}{default}(x, lead_tail_only = TRUE, ig_zero = FALSE, ...)
+\method{manage_na}{default}(x, lead_tail_only = TRUE, ig = c(NA), ...)
 
-\method{manage_na}{OpenSpecy}(x, lead_tail_only = TRUE, ig_zero = FALSE, fun, type = "ignore", ...)
+\method{manage_na}{OpenSpecy}(x, lead_tail_only = TRUE, ig = c(NA), fun, type = "ignore", ...)
 }
 \arguments{
 \item{x}{a numeric vector or an \R OpenSpecy object}
 
 \item{lead_tail_only}{logical whether to only look at leading adn tailing values.}
 
-\item{ig_zero}{logical, whether to ignore both zeros and NAs}
+\item{ig}{character vector, values to ignore}
 
-\item{fun}{the name of the function you want run.}
+\item{fun}{the name of the function you want run, this is only used if the "ignore" type is chosen.}
 
 \item{type}{character of either "ignore" or "remove".}
 
@@ -36,13 +36,11 @@ varying shapes to be analyzed together or maintained in a single Open Specy obje
 \examples{
 manage_na(c(NA, -1, NA, 1, 10))
 manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = FALSE)
-manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig_zero = TRUE)
+manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig = c(NA,0))
 data(raman_hdpe)
 raman_hdpe$spectra[[1]][1:10] <- NA
-manage_na(raman_hdpe, fun = make_rel) 
-#would normally return all NA without na.rm = TRUE but doesn't here. 
-manage_na(raman_hdpe, type = "remove") 
-#will remove the first 10 values we set to NA
+manage_na(raman_hdpe, fun = make_rel) #would normally return all NA without na.rm = TRUE but doesn't here. 
+manage_na(raman_hdpe, type = "remove") #will remove the first 10 values we set to NA
 
 }
 \seealso{

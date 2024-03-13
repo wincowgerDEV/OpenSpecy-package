@@ -5,16 +5,16 @@ test_that("smooth_intens() handles input errors correctly", {
 })
 
 test_that("calc_window_points() will return consistent values", {
-    calc_window_points(raman_hdpe, 70) |> expect_equal(27)
-    calc_window_points(raman_hdpe, 50) |> expect_equal(19)
-    calc_window_points(raman_hdpe, 140) |> expect_equal(55)
+    calc_window_points(raman_hdpe, 70) |> expect_equal(23)
+    calc_window_points(raman_hdpe, 50) |> expect_equal(15)
+    calc_window_points(raman_hdpe, 140) |> expect_equal(45)
     calc_window_points(raman_hdpe, 10000) |> expect_error()
 })
 
 test_that("calc_window_points() works with vectors", {
-    calc_window_points(raman_hdpe$wavenumber, 70) |> expect_equal(27)
-    calc_window_points(raman_hdpe$wavenumber, 50) |> expect_equal(19)
-    calc_window_points(raman_hdpe$wavenumber, 140) |> expect_equal(55)
+    calc_window_points(raman_hdpe$wavenumber, 70) |> expect_equal(23)
+    calc_window_points(raman_hdpe$wavenumber, 50) |> expect_equal(15)
+    calc_window_points(raman_hdpe$wavenumber, 140) |> expect_equal(45)
     calc_window_points(raman_hdpe$wavenumber, 10000) |> expect_error()
 })
 

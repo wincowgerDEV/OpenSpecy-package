@@ -2,24 +2,24 @@
 % Please edit documentation in R/read_multi.R
 \name{read_any}
 \alias{read_any}
+\alias{read_many}
 \alias{read_zip}
 \title{Read spectral data from multiple files}
 \usage{
 read_any(file, ...)
 
-read_zip(file, range = NULL, res = 5, ...)
+read_many(file, ...)
+
+read_zip(file, ...)
 }
 \arguments{
 \item{file}{file to be read from or written to.}
 
-\item{range}{argument passed to \code{c_spec()} when reading multiple files from zip folder.}
-
-\item{res}{spectral resolution for merge, argument passed to \code{c_spec()}.}
-
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-All \code{read_*()} functions return \code{OpenSpecy} objects
+All \code{read_*()} functions return \code{OpenSpecy} objects if a single
+spectrum or map is provided, otherwise the provide a list of \code{OpenSpecy} objects.
 }
 \description{
 Wrapper functions for reading files in batch.
@@ -31,17 +31,20 @@ process the spectra.
 \code{read_zip()} provides functionality for reading in spectral map files
 with ENVI file format or as individual files in a zip folder. If individual
 files, spectra are concatenated.
+\code{read_many()} provides functionality for reading multiple files
+in a character vector and will return a list.
 }
 \examples{
 \dontshow{data.table::setDTthreads(2)}
 read_extdata("raman_hdpe.csv") |> read_any()
 read_extdata("ftir_ldpe_soil.asp") |> read_any()
-read_extdata("testdata_zipped.zip") |> read_zip()
-read_extdata("CA_tiny_map.zip") |> read_zip()
+read_extdata("testdata_zipped.zip") |> read_many()
+read_extdata("CA_tiny_map.zip") |> read_many()
 
 }
 \seealso{
-\code{\link{read_spec}()}
+\code{\link{read_spec}()} for submethods.
+\code{\link{c_spec}()} for combining lists of Open Specys.
 }
 \author{
 Zacharias Steinmetz, Win Cowger
