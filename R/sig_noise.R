@@ -47,7 +47,7 @@
 #' sig_noise(raman_hdpe, metric = "noise")
 #' sig_noise(raman_hdpe, metric = "sig_times_noise")
 #'
-#' @importFrom stats median
+#' @importFrom stats median IQR quantile
 #' @importFrom data.table frollapply
 #' @importFrom mmand gaussianSmooth
 #' 

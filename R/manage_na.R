@@ -22,8 +22,12 @@
 #' manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig = c(NA,0))
 #' data(raman_hdpe)
 #' raman_hdpe$spectra[[1]][1:10] <- NA
-#' manage_na(raman_hdpe, fun = make_rel) #would normally return all NA without na.rm = TRUE but doesn't here. 
-#' manage_na(raman_hdpe, type = "remove") #will remove the first 10 values we set to NA
+#' 
+#' #would normally return all NA without na.rm = TRUE but doesn't here. 
+#' manage_na(raman_hdpe, fun = make_rel) 
+#' 
+#' #will remove the first 10 values we set to NA
+#' manage_na(raman_hdpe, type = "remove") 
 #' 
 #' @author
 #' Win Cowger, Zacharias Steinmetz
