@@ -1,3 +1,9 @@
+# OpenSpecy 1.0.8
+
+## Minor Improvements
+
+- updated `manage_na`, `spec_res`, `read_any` for easier flow with the app
+
 # OpenSpecy 1.0.7
 
 ## Minor Improvements
