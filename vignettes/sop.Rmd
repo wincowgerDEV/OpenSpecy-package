@@ -262,7 +262,7 @@ want and the function will collapse all the spectra to whatever their common
 range is using linear interpolation.
 
 ```{r, fig.align="center", fig.width=5}
-c_spec(list(asp_example, ps_example), range = "common", res = 5) |> 
+c_spec(list(asp_example, ps_example), range = "common", res = 8) |> 
   plot()
 ```
 
@@ -324,7 +324,7 @@ processed <- process_spec(raman_hdpe,
                           adj_intens = FALSE,
                           adj_intens_args = list(type = "none"),
                           conform_spec = TRUE,
-                          conform_spec_args = list(range = NULL, res = 5,
+                          conform_spec_args = list(range = NULL, res = 8,
                                                    type = "interp"),
                           restrict_range = FALSE,
                           restrict_range_args = list(min = 0, max = 6000),
@@ -420,13 +420,13 @@ plotly_spec(trans_raman_hdpe, rev_trans_raman_hdpe)
 
 Conforming spectra is essential before comparing to a reference library and can
 be useful for summarizing data when you don't need it to be highly resolved
-spectrally. We set the default spectral resolution to 5 because this tends to be
+spectrally. We set the default spectral resolution to 8 because this tends to be
 pretty good for a lot of applications and is in between 4 and 8 which are
 commonly used wavenumber resolutions. There are several ways that this function
 can be specified.
 
 ```{r}
-conform_spec(raman_hdpe) |> # default convert res to 5 wavenumbers.
+conform_spec(raman_hdpe, res = 8) |> # convert res to 8 wavenumbers.
   summary()
 
 # Force one spectrum to have the exact same wavenumbers as another
@@ -627,7 +627,7 @@ plotly_spec(raman_hdpe, processed)
 
 After your spectra is processed similarly to the library specifications, you can
 identify the spectra using `match_spec()`. All of the libraries have wavenumbers
-at 5 cm^-1 resolution. Whichever library you choose, you need to get your
+at 8 cm^-1 resolution. Whichever library you choose, you need to get your
 spectra into a similar enough format to use for comparison. That means
 conforming the wavenumbers to the same values using `conform = T`.
 Alternatively, you could have done the conformation during the processing. The
