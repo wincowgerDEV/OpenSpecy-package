@@ -13,7 +13,7 @@
 #' matrix as a named vector.
 #' \code{filter_spec()} filters an Open Specy object.
 #' \code{fill_spec()} adds filler values to an \code{OpenSpecy} object where it doesn't have intensities.
-#' \code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used. 
+#' \code{os_similarity()} EXPERIMENTAL, returns a single similarity metric between two OpenSpecy objects based on the method used.
 #' @param x an \code{OpenSpecy} object, typically with unknowns.
 #' @param y an \code{OpenSpecy} object to perform similarity search against x.
 #' @param conform Whether to conform the spectra to the library wavenumbers or not.
@@ -36,7 +36,7 @@
 #' @param logic a logical or numeric vector describing which spectra to keep.
 #' @param fill an \code{OpenSpecy} object with a single spectrum to be used to
 #' fill missing values for alignment with the AI classification.
-#' @param method the type of similarity metric to return. 
+#' @param method the type of similarity metric to return.
 #' @param \ldots additional arguments passed \code{\link[stats]{cor}()}.
 #'
 #' @return
@@ -58,19 +58,19 @@
 #' \code{cor_spec()} returns a correlation matrix.
 #' \code{get_metadata()} returns a \code{\link[data.table]{data.table-class}()}
 #' with the metadata for columns which have information.
-#' \code{os_similarity()} returns a single numeric value representing the type 
-#' of similarity metric requested. 'wavenumber' similarity is based on the 
-#' proportion of wavenumber values that overlap between the two objects, 
-#' 'metadata' is the proportion of metadata column names, 
-#' 'hamming' is something similar to the hamming distance where we discretize 
-#' all spectra in the OpenSpecy object by wavenumber intensity values and then 
-#' relate the wavenumber intensity value distributions by mean difference in 
-#' min-max normalized space. 'pca' tests the distance between the OpenSpecy 
-#' objects in PCA space using the first 4 component values and calculating the 
+#' \code{os_similarity()} returns a single numeric value representing the type
+#' of similarity metric requested. 'wavenumber' similarity is based on the
+#' proportion of wavenumber values that overlap between the two objects,
+#' 'metadata' is the proportion of metadata column names,
+#' 'hamming' is something similar to the hamming distance where we discretize
+#' all spectra in the OpenSpecy object by wavenumber intensity values and then
+#' relate the wavenumber intensity value distributions by mean difference in
+#' min-max normalized space. 'pca' tests the distance between the OpenSpecy
+#' objects in PCA space using the first 4 component values and calculating the
 #' max-range normalized distance between the mean components. The first two
 #' metrics are pretty straightforward and definitely ready to go, the 'hamming'
 #' and 'pca' metrics are pretty experimental but appear to be working under our
-#' current test cases. 
+#' current test cases.
 #'
 #' @examples
 #' data("test_lib")
@@ -379,23 +379,21 @@ fill_spec.OpenSpecy <- function(x, fill, ...) {
   blank_dt[1,] <- NA
 
   test <- rbindlist(
-      lapply(1:length(fill$wavenumber), 
-                           function(x) {
-                            blank_dt
-                          }
-            )
-        )[, lapply(.SD, 
-                   function(x) {
-                    unlist(fill$spectra)
-                    })] 
-
+    lapply(1:length(fill$wavenumber),
+           function(x) {
+             blank_dt
+           }
+    )
+  )[, lapply(.SD,
+             function(x) {
+               unlist(fill$spectra)
+             })]
   test[match(x$wavenumber, fill$wavenumber),] <- x$spectra
 
   x$spectra <- test
-
   x$wavenumber <- fill$wavenumber
 
-  x
+  return(x)
 }
 
 # OS Similarity
@@ -417,109 +415,109 @@ os_similarity.default <- function(x, ...) {
 #'
 #' @export
 os_similarity.OpenSpecy <- function(x, y, method = "hamming", na.rm = T, ...) {
-    if(method == "wavenumber"){
-        series = c(x$wavenumber, y$wavenumber)
-        return(sum(duplicated(series))/length(unique(series)))
-    }
-    if(method %in% c("pca", "hamming")){
-        if(sum(x$wavenumber %in% y$wavenumber) < 3)
-            stop("there are less than 3 matching wavenumbers in the objects you are ",
-                 "trying to correlate; this won't work for correlation analysis. ",
-                 "Consider first conforming the spectra to the same wavenumbers.",
-                 call. = F)
-        
-        series = c(x$wavenumber, y$wavenumber)
-        
-        if(sum(duplicated(series))/length(unique(series)) != 1)
-            warning(paste0("some wavenumbers in 'x' are not in the 'y' and the ",
-                           "function is not using these in the identification routine: ",
-                           paste(unique(c(x$wavenumber[!x$wavenumber %in% y$wavenumber], y$wavenumber[!y$wavenumber %in% x$wavenumber])),
-                                 collapse = " ")),
-                    call. = F)
-        
-        if(ncol(x$spectra) + ncol(y$spectra) < 8 & method == "pca")
-            stop("There must be at least 8 spectra total combined from the two Open Specy objects",
-                 "to conduct the pca analysis. Consider using the hamming distance if you want a multispectra-metric", 
-                 "with fewer spectra.",
-                 call. = F)
-        
-        spec_y <- y$spectra[y$wavenumber %in% x$wavenumber, ]
-        spec_y <- spec_y[, lapply(.SD, make_rel, na.rm = na.rm)]
-        spec_y <- spec_y[, lapply(.SD, mean_replace)]
-        spec_x <- x$spectra[x$wavenumber %in% y$wavenumber,]
-        spec_x <- spec_x[,lapply(.SD, make_rel, na.rm = na.rm)]
-        spec_x <- spec_x[, lapply(.SD, mean_replace)]
-        
-    }
-    if(method == "pca"){
-        
-        perform_combined_pca <- function(spec_obj1, spec_obj2) {
-            # Extract intensities and transpose
-            intensities1 <- t(spec_obj1)
-            intensities2 <- t(spec_obj2)
-            
-            # Combine the datasets
-            combined_intensities <- rbind(intensities1, intensities2)
-            
-            # Perform PCA
-            pca_result <- prcomp(combined_intensities, scale. = TRUE)
-            
-            # Determine the index range for each dataset
-            index_spec_obj1 <- 1:nrow(intensities1)
-            index_spec_obj2 <- (nrow(intensities1) + 1):(nrow(intensities1) + nrow(intensities2))
-            
-            # Extract PCA results for each dataset
-            pca_spec_obj1 <- pca_result$x[index_spec_obj1, 1:4]
-            pca_spec_obj2 <- pca_result$x[index_spec_obj2, 1:4]
-            
-            # Calculate central locations
+  if(method == "wavenumber"){
+    series = c(x$wavenumber, y$wavenumber)
+    return(sum(duplicated(series)) / length(unique(series)))
+  }
+  if(method %in% c("pca", "hamming")){
+    if(sum(x$wavenumber %in% y$wavenumber) < 3)
+      stop("there are less than 3 matching wavenumbers in the objects you are ",
+           "trying to correlate; this won't work for correlation analysis. ",
+           "Consider first conforming the spectra to the same wavenumbers.",
+           call. = F)
 
-            pca_range <- apply(pca_result$x[,1:4], 2, function(column) abs(max(column) - min(column)))
-            
-            if(is.null(dim(pca_spec_obj1))){
-                central_loc1 <- pca_spec_obj1
-            }
-            else{
-                central_loc1 <- colMeans(pca_spec_obj1)
-            }
-            if(is.null(dim(pca_spec_obj2))){
-                central_loc2 <- pca_spec_obj2
-            }
-            else{
-                central_loc2 <- colMeans(pca_spec_obj2)
-            }
-            
-            return(list(central_loc1, central_loc2, pca_range))
-        }
-        
-        central_locs <- perform_combined_pca(spec_obj1 = spec_x, spec_obj2 = spec_y)
-        return(
-            1-mean(abs(central_locs[[1]] - central_locs[[2]])/central_locs[[3]])
-        )
-        }
-    if(method == "hamming"){
-        spec_y <- transpose(spec_y)
-        spec_y <- spec_y[,lapply(.SD, function(x){
-            values <- make_rel(table(round(x,1)))
-            sequence <- seq(0, 1, by = 0.1)
-            empty <- numeric(length = length(sequence))
-            empty[match(names(values), seq(0, 1, by = 0.1))] <- values
-            ifelse(is.nan(empty), 1, empty)
-        })]
-        
-        spec_x <- transpose(spec_x)
-        spec_x <- spec_x[,lapply(.SD, function(x){
-            values <- make_rel(table(round(x,1)))
-            sequence <- seq(0, 1, by = 0.1)
-            empty <- numeric(length = length(sequence))
-            empty[match(names(values), seq(0, 1, by = 0.1))] <- values
-            ifelse(is.nan(empty), 1, empty)
-        })]
-        
-        return(1 - unlist(abs(spec_x - spec_y)) |> mean(na.rm = T))
+    series = c(x$wavenumber, y$wavenumber)
+
+    if(sum(duplicated(series))/length(unique(series)) != 1)
+      warning(paste0("some wavenumbers in 'x' are not in the 'y' and the ",
+                     "function is not using these in the identification routine: ",
+                     paste(unique(c(x$wavenumber[!x$wavenumber %in% y$wavenumber], y$wavenumber[!y$wavenumber %in% x$wavenumber])),
+                           collapse = " ")),
+              call. = F)
+
+    if(ncol(x$spectra) + ncol(y$spectra) < 8 & method == "pca")
+      stop("There must be at least 8 spectra total combined from the two Open Specy objects",
+           "to conduct the pca analysis. Consider using the hamming distance if you want a multispectra-metric",
+           "with fewer spectra.",
+           call. = F)
+
+    spec_y <- y$spectra[y$wavenumber %in% x$wavenumber, ]
+    spec_y <- spec_y[, lapply(.SD, make_rel, na.rm = na.rm)]
+    spec_y <- spec_y[, lapply(.SD, mean_replace)]
+    spec_x <- x$spectra[x$wavenumber %in% y$wavenumber,]
+    spec_x <- spec_x[,lapply(.SD, make_rel, na.rm = na.rm)]
+    spec_x <- spec_x[, lapply(.SD, mean_replace)]
+
+  }
+  if(method == "pca"){
+
+    perform_combined_pca <- function(spec_obj1, spec_obj2) {
+      # Extract intensities and transpose
+      intensities1 <- t(spec_obj1)
+      intensities2 <- t(spec_obj2)
+
+      # Combine the datasets
+      combined_intensities <- rbind(intensities1, intensities2)
+
+      # Perform PCA
+      pca_result <- prcomp(combined_intensities, scale. = TRUE)
+
+      # Determine the index range for each dataset
+      index_spec_obj1 <- 1:nrow(intensities1)
+      index_spec_obj2 <- (nrow(intensities1) + 1):(nrow(intensities1) + nrow(intensities2))
+
+      # Extract PCA results for each dataset
+      pca_spec_obj1 <- pca_result$x[index_spec_obj1, 1:4]
+      pca_spec_obj2 <- pca_result$x[index_spec_obj2, 1:4]
+
+      # Calculate central locations
+
+      pca_range <- apply(pca_result$x[,1:4], 2, function(column) abs(max(column) - min(column)))
+
+      if(is.null(dim(pca_spec_obj1))){
+        central_loc1 <- pca_spec_obj1
+      }
+      else{
+        central_loc1 <- colMeans(pca_spec_obj1)
+      }
+      if(is.null(dim(pca_spec_obj2))){
+        central_loc2 <- pca_spec_obj2
+      }
+      else{
+        central_loc2 <- colMeans(pca_spec_obj2)
+      }
+
+      return(list(central_loc1, central_loc2, pca_range))
     }
-    if(method == "metadata"){
-        series = c(names(x$metadata), names(y$metadata))
-        return(sum(duplicated(series))/length(unique(series)))
-    }
+
+    central_locs <- perform_combined_pca(spec_obj1 = spec_x, spec_obj2 = spec_y)
+    return(
+      1-mean(abs(central_locs[[1]] - central_locs[[2]])/central_locs[[3]])
+    )
+  }
+  if(method == "hamming"){
+    spec_y <- transpose(spec_y)
+    spec_y <- spec_y[,lapply(.SD, function(x){
+      values <- make_rel(table(round(x,1)))
+      sequence <- seq(0, 1, by = 0.1)
+      empty <- numeric(length = length(sequence))
+      empty[match(names(values), seq(0, 1, by = 0.1))] <- values
+      ifelse(is.nan(empty), 1, empty)
+    })]
+
+    spec_x <- transpose(spec_x)
+    spec_x <- spec_x[,lapply(.SD, function(x){
+      values <- make_rel(table(round(x,1)))
+      sequence <- seq(0, 1, by = 0.1)
+      empty <- numeric(length = length(sequence))
+      empty[match(names(values), seq(0, 1, by = 0.1))] <- values
+      ifelse(is.nan(empty), 1, empty)
+    })]
+
+    return(1 - unlist(abs(spec_x - spec_y)) |> mean(na.rm = T))
+  }
+  if(method == "metadata"){
+    series = c(names(x$metadata), names(y$metadata))
+    return(sum(duplicated(series))/length(unique(series)))
+  }
 }

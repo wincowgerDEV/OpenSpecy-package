@@ -4,7 +4,7 @@
 \alias{manage_na}
 \alias{manage_na.default}
 \alias{manage_na.OpenSpecy}
-\title{Ignore or Remove NA intensities}
+\title{Ignore or remove NA intensities}
 \usage{
 manage_na(x, ...)
 
@@ -13,11 +13,11 @@ manage_na(x, ...)
 \method{manage_na}{OpenSpecy}(x, lead_tail_only = TRUE, ig = c(NA), fun, type = "ignore", ...)
 }
 \arguments{
-\item{x}{a numeric vector or an \R OpenSpecy object}
+\item{x}{a numeric vector or an \R OpenSpecy object.}
 
 \item{lead_tail_only}{logical whether to only look at leading adn tailing values.}
 
-\item{ig}{character vector, values to ignore}
+\item{ig}{character vector, values to ignore.}
 
 \item{fun}{the name of the function you want run, this is only used if the "ignore" type is chosen.}
 
@@ -30,8 +30,9 @@ manage_na(x, ...)
 \code{OpenSpecy} object with ignored or removed NA values.
 }
 \description{
-Sometimes you want to keep or remove NA values in intensities to allow for spectra with
-varying shapes to be analyzed together or maintained in a single Open Specy object.
+Sometimes you want to keep or remove NA values in intensities to allow for
+spectra with varying shapes to be analyzed together or maintained in a single
+Open Specy object.
 }
 \examples{
 manage_na(c(NA, -1, NA, 1, 10))
@@ -40,11 +41,11 @@ manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig = c(NA,0))
 data(raman_hdpe)
 raman_hdpe$spectra[[1]][1:10] <- NA
 
-#would normally return all NA without na.rm = TRUE but doesn't here. 
-manage_na(raman_hdpe, fun = make_rel) 
+#would normally return all NA without na.rm = TRUE but doesn't here.
+manage_na(raman_hdpe, fun = make_rel)
 
 #will remove the first 10 values we set to NA
-manage_na(raman_hdpe, type = "remove") 
+manage_na(raman_hdpe, type = "remove")
 
 }
 \seealso{

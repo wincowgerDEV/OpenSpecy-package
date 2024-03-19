@@ -3,7 +3,6 @@
 \docType{package}
 \name{OpenSpecy-package}
 \alias{OpenSpecy-package}
-\alias{_PACKAGE}
 \alias{openspecy}
 \title{OpenSpecy: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra}
 \description{

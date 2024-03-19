@@ -12,7 +12,7 @@
 #' spectra having all the same wavenumber range.
 #' @param res defaults to \code{NULL}, the resolution you want the output
 #' wavenumbers to be.
-#' @param size the number of spectra to sample. 
+#' @param size the number of spectra to sample.
 #' @param prob probabilities to use for the sampling.
 #' @param \ldots further arguments passed to submethods.
 #'
@@ -79,17 +79,18 @@ c_spec.list <- function(x, range = NULL, res = 5, ...) {
         stop("data points need to overlap in their ranges", call. = F)
 
       wn <- c(max(pmin), min(pmax))
+    } else {
+      stop("If range is specified it should be a numeric vector or 'common'",
+           call. = F)
     }
-      else{
-          stop("If range is specified it should be a numeric vector or 'common'", call. = F)
-      }
-      x <- lapply(x, conform_spec, range = wn, res = res)
+    x <- lapply(x, conform_spec, range = wn, res = res)
   }
 
   unlisted <- unlist(unname(x), recursive = F)
   list <- tapply(unlisted, names(unlisted), unname)
 
-  if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 & is.null(range)) {
+  if(length(unique(vapply(list$wavenumber, length, FUN.VALUE = numeric(1)))) > 1 &
+     is.null(range)) {
     stop("wavenumbers need to be identical between spectra; specify how; use ",
          "'range' to specify how wavenumbers should be merged", call. = F)
   }
