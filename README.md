@@ -103,5 +103,5 @@ Needs an Open Source Community: Open Specy to the Rescue!”
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
 Cowger W, Steinmetz Z, Leong N, Faltynkova A, Sherrod H (2024). “OpenSpecy: Analyze,
-Process, Identify, and Share Raman and (FT)IR Spectra.” *R package*, **1.0.7**.
+Process, Identify, and Share Raman and (FT)IR Spectra.” *R package*, **1.0.8**.
 [https://github.com/wincowgerDEV/OpenSpecy-package](https://github.com/wincowgerDEV/OpenSpecy-package).
