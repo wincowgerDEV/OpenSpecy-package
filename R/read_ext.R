@@ -87,24 +87,21 @@ read_text <- function(file, colnames = NULL, method = "fread",
                       ...) {
   dt <- do.call(method, list(file, ...)) |> as.data.table()
 
-  if (all(grepl("^X[0-9]*", names(dt)))) stop("missing header: ",
-                                              "use 'header = FALSE' or an ",
-                                              "alternative read method",
-                                              call. = F)
-  if(sum(grepl("^[0-9]{1,}$",colnames(dt))) > 4){
-      wavenumbers <- colnames(dt)[grepl("^[0-9]{1,}$",colnames(dt))]
-      
-      spectra <- transpose(dt[,wavenumbers, with = FALSE])
-      
-      metadata_names <- colnames(dt)[!grepl("^[0-9]{1,}$",colnames(dt))]
-      
-      metadata <- dt[, metadata_names, with = FALSE]
-      
-      os <- as_OpenSpecy(x = as.numeric(wavenumbers), spectra = spectra, metadata = metadata)
-  }
-  else{
-      os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata,
-                         session_id = T)      
+  if (all(grepl("^X[0-9]*", names(dt))))
+    stop("missing header: use 'header = FALSE' or an alternative read method",
+         call. = F)
+  if(sum(grepl("^[0-9]{1,}$",colnames(dt))) > 4) {
+    wavenumbers <- colnames(dt)[grepl("^[0-9]{1,}$",colnames(dt))]
+    spectra <- transpose(dt[,wavenumbers, with = FALSE])
+    metadata_names <- colnames(dt)[!grepl("^[0-9]{1,}$",colnames(dt))]
+
+    metadata <- dt[, metadata_names, with = FALSE]
+
+    os <- as_OpenSpecy(x = as.numeric(wavenumbers), spectra = spectra,
+                       metadata = metadata)
+  } else {
+    os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata,
+                       session_id = T)
   }
 
   if (!is.null(share)) share_spec(os, file = file, share = share)
