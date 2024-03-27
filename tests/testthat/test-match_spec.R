@@ -294,6 +294,15 @@ test_that("cor_spec() routine with preprocessing returns same values as setting 
   cors <- cor_spec(tiny_map3, test_lib)
   cors2 <- cor_spec(tiny_map2, test_lib, conform = T, type = "roll")
   expect_identical(cors, cors2)
+  
+  
+  tiny_map3 <- tiny_map2 |>
+      conform_spec(range = test_lib$wavenumber, res = NULL, type = "interp")
+  
+  cors <- cor_spec(tiny_map3, test_lib)
+  cors2 <- cor_spec(tiny_map2, test_lib, conform = T, type = "interp")
+  expect_identical(cors, cors2)
+  
 })
 
 # Tidy up
