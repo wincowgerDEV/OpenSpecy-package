@@ -46,11 +46,13 @@ estimated as the height of a low intensity region.),
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating signal and noise. Default is \code{TRUE}.}
 
-\item{prob}{numeric single value; the probability to retrieve for the quantile where the noise will be interpreted with the run_sig_over_noise option.}
+\item{prob}{numeric single value; the probability to retrieve for the quantile where
+the noise will be interpreted with the run_sig_over_noise option.}
 
 \item{step}{numeric; the step size of the region to look for the run_sig_over_noise option.}
 
-\item{breaks}{numeric; the number or positions of the breaks for entropy calculation. Defaults to infer a decent value from the data.}
+\item{breaks}{numeric; the number or positions of the breaks for entropy calculation.
+Defaults to infer a decent value from the data.}
 
 \item{sig_min}{numeric; the minimum wavenumber value for the signal region.}
 

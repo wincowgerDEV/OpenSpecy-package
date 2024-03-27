@@ -16,27 +16,29 @@
 #' \code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
 #' \code{"tot_sig"} (sum of intensities), or \code{"entropy"} (Shannon entropy of intensities)..
 #' @param step numeric; the step size of the region to look for the run_sig_over_noise option.
-#' @param prob numeric single value; the probability to retrieve for the quantile where the noise will be interpreted with the run_sig_over_noise option.
-#' @param breaks numeric; the number or positions of the breaks for entropy calculation. Defaults to infer a decent value from the data.
+#' @param prob numeric single value; the probability to retrieve for the quantile where
+#' the noise will be interpreted with the run_sig_over_noise option.
+#' @param breaks numeric; the number or positions of the breaks for entropy calculation.
+#' Defaults to infer a decent value from the data.
 #' @param sig_min numeric; the minimum wavenumber value for the signal region.
 #' @param sig_max numeric; the maximum wavenumber value for the signal region.
 #' @param noise_min numeric; the minimum wavenumber value for the noise region.
 #' @param noise_max numeric; the maximum wavenumber value for the noise region.
 #' @param abs logical; whether to return the absolute value of the result
-#' @param spatial_smooth logical; whether to spatially smooth the sig/noise using the xy 
-#' coordinates and a gaussian smoother. 
+#' @param spatial_smooth logical; whether to spatially smooth the sig/noise using the xy
+#' coordinates and a gaussian smoother.
 #' @param sigma numeric; two value vector describing standard deviation for smoother in
-#' each dimension, y is specified first followed by x, should be the same for each in most cases. 
+#' each dimension, y is specified first followed by x, should be the same for each in most cases.
 #' @param threshold numeric; if NULL, no threshold is set, otherwise use a numeric value
 #' to set the target threshold which true signal or noise should be above. The
-#' function will return a logical value instead of numeric if a threshold is set. 
+#' function will return a logical value instead of numeric if a threshold is set.
 #' @param na.rm logical; indicating whether missing values should be removed
 #' when calculating signal and noise. Default is \code{TRUE}.
 #' @param \ldots further arguments passed to subfunctions; currently not used.
-#' 
+#'
 #' @return
 #' A numeric vector containing the calculated metric for each spectrum in the
-#' \code{OpenSpecy} object or logical value if threshold is set describing if 
+#' \code{OpenSpecy} object or logical value if threshold is set describing if
 #' the numbers where above or equal to (TRUE) the threshold.
 #'
 #' @seealso [restrict_range()]
@@ -50,7 +52,7 @@
 #' @importFrom stats median IQR quantile
 #' @importFrom data.table frollapply
 #' @importFrom mmand gaussianSmooth
-#' 
+#'
 #' @export
 sig_noise <- function(x, ...) {
   UseMethod("sig_noise")
@@ -68,10 +70,12 @@ sig_noise.default <- function(x, ...) {
 #' @export
 sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
                                 na.rm = TRUE, prob = 0.5, step = 20,
-                                breaks = seq(min(unlist(x$spectra)), 
-                                             max(unlist(x$spectra)), 
-                                             length = ((nrow(x$spectra)^(1/3))*(max(unlist(x$spectra)) - min(unlist(x$spectra))))/
-                                                      (2*IQR(unlist(x$spectra)))),
+                                breaks = seq(min(unlist(x$spectra)),
+                                             max(unlist(x$spectra)),
+                                             length = ((nrow(x$spectra)^(1/3)) *
+                                                         (max(unlist(x$spectra)) -
+                                                            min(unlist(x$spectra)))) /
+                                               (2*IQR(unlist(x$spectra)))),
                                 sig_min = NULL, sig_max = NULL,
                                 noise_min = NULL, noise_max = NULL, abs = T,
                                 spatial_smooth = F, sigma = c(1,1), threshold = NULL, ...) {
@@ -98,12 +102,12 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
       } else {
         noise_intens <- y
       }
-      if(metric == "entropy"){
-          binarize <- cut(sig_intens, breaks)
-          freq <- table(binarize)/length(binarize)
-          vec <- as.vector(freq)
-          vec <- vec[vec>0]
-          return(-sum(vec * log2(vec)))
+      if(metric == "entropy") {
+        binarize <- cut(sig_intens, breaks)
+        freq <- table(binarize)/length(binarize)
+        vec <- as.vector(freq)
+        vec <- vec[vec>0]
+        return(-sum(vec * log2(vec)))
       }
       signal <- mean(sig_intens, na.rm = na.rm)
       noise <- sd(noise_intens, na.rm = na.rm)
@@ -118,21 +122,21 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
     if(metric == "tot_sig") return(sum(y))
     if(metric == "log_tot_sig") return(sum(exp(y)))
   }, FUN.VALUE = numeric(1))
-  
+
   if(spatial_smooth){
-      values <- matrix(values, ncol = max(x$metadata$x) + 1, byrow = T) |>
-                      gaussianSmooth(sigma = sigma) |>
-                      t() |>
-                      as.vector()
+    values <- matrix(values, ncol = max(x$metadata$x) + 1, byrow = T) |>
+      gaussianSmooth(sigma = sigma) |>
+      t() |>
+      as.vector()
   }
   if(abs) {
     values <- abs(values)
-  } 
-  
-  if(!is.null(threshold)){
-      return(values >= threshold)
   }
-  else{
-      return(values)
+
+  if(!is.null(threshold)) {
+    return(values >= threshold)
+  }
+  else {
+    return(values)
   }
 }

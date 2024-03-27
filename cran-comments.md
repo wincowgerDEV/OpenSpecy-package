@@ -15,9 +15,10 @@
 
 ## Comments
 
-    installed size is  5.8Mb
+    installed size is  6.2Mb
     sub-directories of 1Mb or more:
-      doc   4.3Mb
+      doc       4.3Mb
+      extdata   1.0Mb
 
 We already tried to reduce the vignette size as much as possible but would like
 to keep the current number of figures for better comprehensibility.
