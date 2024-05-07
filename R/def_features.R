@@ -32,6 +32,13 @@
 #' @param shape_kernel the width and height of the area in pixels to search for
 #' connecting features, c(3,3) is typically used but larger numbers will smooth
 #' connections between particles more. 
+#' @param img a file location where a visual image is that corresponds to the spectral image. 
+#' @param bottom_left a two value vector specifying the x,y location in image pixels where
+#' the bottom left of the spectral map begins. y values are from the top down while 
+#' x values are left to right.
+#' @param top_right a two value vector specifying the x,y location in the visual image
+#' pixels where the top right of the spectral map extent is. y values are from 
+#' the top down while x values are left to right. 
 #' @param \ldots additional arguments passed to subfunctions.
 #'
 #' @author
@@ -61,9 +68,20 @@ collapse_spec.OpenSpecy <- function(x, ...) {
   x$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
     transpose(make.names = "id")
 
-  x$metadata <- x$metadata |>
-    unique(by = c("feature_id", "area", "feret_max", "centroid_y",
-                  "centroid_x", "first_x", "first_y", "rand_x", "rand_y"))
+  if(all(c("r", "g", "b") %in% names(x$metadata))){
+      x$metadata[, r := sqrt(mean(r^2)), by = "feature_id"]
+      x$metadata[, g := sqrt(mean(g^2)), by = "feature_id"]
+      x$metadata[, b := sqrt(mean(b^2)), by = "feature_id"]
+      x$metadata <- x$metadata |>
+          unique(by = c("feature_id", "area", "feret_max", "centroid_y",
+                        "centroid_x", "first_x", "first_y", "rand_x", "rand_y",
+                        "r", "g", "b"))
+  }
+  else{
+      x$metadata <- x$metadata |>
+          unique(by = c("feature_id", "area", "feret_max", "centroid_y",
+                        "centroid_x", "first_x", "first_y", "rand_x", "rand_y"))    
+  }
 
   return(x)
 }
@@ -86,20 +104,20 @@ def_features.default <- function(x, ...) {
 #'
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
-def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), ...) {
+def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NULL, bottom_left = NULL, top_right = NULL, ...) {
   if(is.logical(features)) {
     if(all(features) | all(!features))
       stop("features cannot be all TRUE or FALSE because that would indicate ",
            "that there are no distinct features", call. = F)
 
-    features_df <- .def_features(x, features)
+    features_df <- .def_features(x, features, shape_kernel, img, bottom_left, top_right)
   } else if(is.character(features)) {
     if(length(unique(features)) == 1)
       stop("features cannot all have a single name because that would ",
            "indicate that there are no distinct features", call. = F)
 
     features_df <- rbindlist(lapply(unique(features),
-                                    function(y) .def_features(x, features == y, name = y))
+                                    function(y) .def_features(x, features == y, shape_kernel = shape_kernel,  img, bottom_left, top_right, name = y))
     )[!endsWith(feature_id, "-88"),]
   } else {
     stop("features needs to be a character or logical vector", call. = F)
@@ -125,76 +143,98 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), ...) {
 
 #' @importFrom grDevices chull
 #' @importFrom stats dist
-.def_features <- function(x, binary, shape_kernel = c(3,3), name = NULL) {
-  # Label connected components in the binary image
-  binary_matrix <- matrix(binary, ncol = max(x$metadata$x) + 1, byrow = T)
-  
-  k <- shapeKernel(shape_kernel, type="box")
-  labeled_image <- components(binary_matrix, k)
-
-  # Create a dataframe with feature IDs for each true pixel
-  feature_points_dt <- data.table(x = x$metadata$x,
-                                  y = x$metadata$y,
-                                  feature_id = ifelse(binary_matrix,
-                                                      labeled_image, -88) |>
-                                    t() |> as.vector() |> as.character())
-
-  # Apply the logic to clean components
-  cleaned_components <- ifelse(binary_matrix, labeled_image, -88)
-
-  # Calculate the convex hull for each feature
-  convex_hulls <- lapply(
-    split(
-      as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
-      cleaned_components[cleaned_components >= 0]
-    ),
-    function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
-    })
-
-  # Calculate area, Feret max, and feature IDs for each feature
-  features_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
-    hull <- convex_hulls[[i]]
-    id <- names(convex_hulls)[i]
-    if(nrow(hull) == 1)
-      return(data.table(feature_id = id,
-                        area = 1,
-                        perimeter = 4,
-                        feret_min = 1,
-                        feret_max = 1)
-      )
-
-    # Calculate Feret dimensions
-    dist_matrix <- as.matrix(dist(hull))
-    feret_max <- max(dist_matrix) + 1
-
-    perimeter <- 0
-    cols = 1:nrow(hull)
-    rows = c(2:nrow(hull), 1)
-    for (j in 1:length(cols)) {
-      # Fetch the distance from the distance matrix
-      perimeter <- perimeter + dist_matrix[rows[j], cols[j]]
+.def_features <- function(x, binary, shape_kernel = c(3,3), img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
+    # Label connected components in the binary image
+    binary_matrix <- matrix(binary, ncol = max(x$metadata$x) + 1, byrow = T)
+    
+    k <- shapeKernel(shape_kernel, type="box")
+    labeled_image <- components(binary_matrix, k)
+    
+    # Create a dataframe with feature IDs for each true pixel
+    feature_points_dt <- data.table(x = x$metadata$x,
+                                    y = x$metadata$y,
+                                    feature_id = ifelse(binary_matrix,
+                                                        labeled_image, -88) |>
+                                        t() |> as.vector() |> as.character())
+    #Add color extraction here. 
+    if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
+        mosaic <- image_read(img)
+        map_dim <- c(length(unique(x$metadata$x)), 
+                     length(unique(x$metadata$y)))
+        xscale = (top_right[1]-bottom_left[1])/map_dim[1]
+        yscale = (bottom_left[2]-top_right[2])/map_dim[2]
+        #particle_centroid = c(875, 4675)/25
+        
+        x_vals = as.integer(feature_points_dt$x*xscale+bottom_left[1])
+        y_vals = as.integer(bottom_left[2] - feature_points_dt$y*yscale)
+        colors = character(length = length(x_vals))
+        image_raster <- as.raster(mosaic)
+        # Create a matrix of coordinates for indexing
+        coords <- cbind(y_vals, x_vals)
+        # Fetch colors for all coordinates at once
+        colors <- image_raster[coords]
+        rbg_colors <- col2rgb(colors)
+        feature_points_dt$r <- rbg_colors[1,]
+        feature_points_dt$g <- rbg_colors[2,]
+        feature_points_dt$b <- rbg_colors[3,]
     }
-
-    # Area
-    area <- sum(cleaned_components == as.integer(id))
-
-    feret_min = area/feret_max #Can probably calculate this better.
-
-    data.table(feature_id = id,
-               area = area,
-               perimeter = perimeter,
-               feret_min = feret_min,
-               feret_max = feret_max
-    )
-  }), fill = T)
-
-  # Join with the coordinates from the binary image
-
-  feature_points_dt <- feature_points_dt[features_dt, on = "feature_id"]
-  
-  if(!is.null(name)){
-      feature_points_dt$feature_id <- paste0(name, "_", feature_points_dt$feature_id)
-  }
-  
-  feature_points_dt
+    
+    # Apply the logic to clean components
+    cleaned_components <- ifelse(binary_matrix, labeled_image, -88)
+    
+    # Calculate the convex hull for each feature
+    convex_hulls <- lapply(
+        split(
+            as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
+            cleaned_components[cleaned_components >= 0]
+        ),
+        function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
+        })
+    
+    # Calculate area, Feret max, and feature IDs for each feature
+    features_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
+        hull <- convex_hulls[[i]]
+        id <- names(convex_hulls)[i]
+        if(nrow(hull) == 1)
+            return(data.table(feature_id = id,
+                              area = 1,
+                              perimeter = 4,
+                              feret_min = 1,
+                              feret_max = 1)
+            )
+        
+        # Calculate Feret dimensions
+        dist_matrix <- as.matrix(dist(hull))
+        feret_max <- max(dist_matrix) + 1
+        
+        perimeter <- 0
+        cols = 1:nrow(hull)
+        rows = c(2:nrow(hull), 1)
+        for (j in 1:length(cols)) {
+            # Fetch the distance from the distance matrix
+            perimeter <- perimeter + dist_matrix[rows[j], cols[j]]
+        }
+        
+        # Area
+        area <- sum(cleaned_components == as.integer(id))
+        
+        feret_min = area/feret_max #Can probably calculate this better.
+        
+        data.table(feature_id = id,
+                   area = area,
+                   perimeter = perimeter,
+                   feret_min = feret_min,
+                   feret_max = feret_max
+        )
+    }), fill = T)
+    
+    # Join with the coordinates from the binary image
+    
+    feature_points_dt <- feature_points_dt[features_dt, on = "feature_id"]
+    
+    if(!is.null(name)){
+        feature_points_dt$feature_id <- paste0(name, "_", feature_points_dt$feature_id)
+    }
+    
+    feature_points_dt
 }
