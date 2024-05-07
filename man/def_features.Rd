@@ -19,7 +19,15 @@ def_features(x, ...)
 
 \method{def_features}{default}(x, ...)
 
-\method{def_features}{OpenSpecy}(x, features, shape_kernel = c(3, 3), ...)
+\method{def_features}{OpenSpecy}(
+  x,
+  features,
+  shape_kernel = c(3, 3),
+  img = NULL,
+  bottom_left = NULL,
+  top_right = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object}
@@ -32,6 +40,16 @@ types present in the spectra.}
 \item{shape_kernel}{the width and height of the area in pixels to search for
 connecting features, c(3,3) is typically used but larger numbers will smooth
 connections between particles more.}
+
+\item{img}{a file location where a visual image is that corresponds to the spectral image.}
+
+\item{bottom_left}{a two value vector specifying the x,y location in image pixels where
+the bottom left of the spectral map begins. y values are from the top down while
+x values are left to right.}
+
+\item{top_right}{a two value vector specifying the x,y location in the visual image
+pixels where the top right of the spectral map extent is. y values are from
+the top down while x values are left to right.}
 
 \item{\ldots}{additional arguments passed to subfunctions.}
 }

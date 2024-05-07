@@ -46,6 +46,7 @@
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
 #' @importFrom mmand shapeKernel components
+#' 
 #' @export
 collapse_spec <- function(x, ...) {
   UseMethod("collapse_spec")
@@ -69,9 +70,9 @@ collapse_spec.OpenSpecy <- function(x, ...) {
     transpose(make.names = "id")
 
   if(all(c("r", "g", "b") %in% names(x$metadata))){
-      x$metadata[, r := sqrt(mean(r^2)), by = "feature_id"]
-      x$metadata[, g := sqrt(mean(g^2)), by = "feature_id"]
-      x$metadata[, b := sqrt(mean(b^2)), by = "feature_id"]
+      x$metadata[, r := as.integer(sqrt(mean(r^2))), by = "feature_id"]
+      x$metadata[, g := as.integer(sqrt(mean(g^2))), by = "feature_id"]
+      x$metadata[, b := as.integer(sqrt(mean(b^2))), by = "feature_id"]
       x$metadata <- x$metadata |>
           unique(by = c("feature_id", "area", "feret_max", "centroid_y",
                         "centroid_x", "first_x", "first_y", "rand_x", "rand_y",
@@ -141,8 +142,9 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
 }
 
 
-#' @importFrom grDevices chull
+#' @importFrom grDevices chull col2rgb as.raster
 #' @importFrom stats dist
+#' @importFrom jpeg readJPEG
 .def_features <- function(x, binary, shape_kernel = c(3,3), img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
     # Label connected components in the binary image
     binary_matrix <- matrix(binary, ncol = max(x$metadata$x) + 1, byrow = T)
@@ -158,7 +160,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
                                         t() |> as.vector() |> as.character())
     #Add color extraction here. 
     if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
-        mosaic <- image_read(img)
+        mosaic <- readJPEG(img)
         map_dim <- c(length(unique(x$metadata$x)), 
                      length(unique(x$metadata$y)))
         xscale = (top_right[1]-bottom_left[1])/map_dim[1]
