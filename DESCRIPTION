@@ -88,22 +88,22 @@ Imports:
     digest,
     signal,
     glmnet,
-    shiny
+    jpeg,
+    shiny,
+    ggplot2
 Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.1.9),
-    config,
-    qs,
-    shinyjs,
+    aws.s3, 
+    loggit,
+    config, 
+    shinyjs, 
     shinyWidgets,
     bs4Dash,
-    dplyr,
-    ggplot2,
+    dplyr, 
     DT,
-    curl,
-    aws.s3, 
-    mongolite,
+    mongolite, 
     loggit
 RoxygenNote: 7.3.1
 Roxygen: list(markdown = TRUE)
