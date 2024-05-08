@@ -89,8 +89,7 @@ Imports:
     signal,
     glmnet,
     jpeg,
-    shiny,
-    ggplot2
+    shiny
 Suggests:
     knitr,
     rmarkdown,
@@ -104,7 +103,7 @@ Suggests:
     dplyr, 
     DT,
     mongolite, 
-    loggit
+    ggplot2
 RoxygenNote: 7.3.1
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3

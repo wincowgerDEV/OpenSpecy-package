@@ -68,11 +68,13 @@ collapse_spec.OpenSpecy <- function(x, ...) {
   ts$id <- x$metadata$feature_id
   x$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
     transpose(make.names = "id")
-
+  
+  r <- g <- b <- NULL # workaround for data.table non-standard
+  
   if(all(c("r", "g", "b") %in% names(x$metadata))){
-      x$metadata[, r := as.integer(sqrt(mean(r^2))), by = "feature_id"]
-      x$metadata[, g := as.integer(sqrt(mean(g^2))), by = "feature_id"]
-      x$metadata[, b := as.integer(sqrt(mean(b^2))), by = "feature_id"]
+      x$metadata[, "r" := as.integer(sqrt(mean(r^2))), by = "feature_id"]
+      x$metadata[, "g" := as.integer(sqrt(mean(g^2))), by = "feature_id"]
+      x$metadata[, "b" := as.integer(sqrt(mean(b^2))), by = "feature_id"]
       x$metadata <- x$metadata |>
           unique(by = c("feature_id", "area", "feret_max", "centroid_y",
                         "centroid_x", "first_x", "first_y", "rand_x", "rand_y",
