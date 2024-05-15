@@ -46,7 +46,6 @@
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
 #' @importFrom mmand shapeKernel components
-#' 
 #' @export
 collapse_spec <- function(x, ...) {
   UseMethod("collapse_spec")
@@ -68,13 +67,11 @@ collapse_spec.OpenSpecy <- function(x, ...) {
   ts$id <- x$metadata$feature_id
   x$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
     transpose(make.names = "id")
-  
-  r <- g <- b <- NULL # workaround for data.table non-standard
-  
+
   if(all(c("r", "g", "b") %in% names(x$metadata))){
-      x$metadata[, "r" := as.integer(sqrt(mean(r^2))), by = "feature_id"]
-      x$metadata[, "g" := as.integer(sqrt(mean(g^2))), by = "feature_id"]
-      x$metadata[, "b" := as.integer(sqrt(mean(b^2))), by = "feature_id"]
+      x$metadata[, r := as.integer(sqrt(mean(r^2))), by = "feature_id"]
+      x$metadata[, g := as.integer(sqrt(mean(g^2))), by = "feature_id"]
+      x$metadata[, b := as.integer(sqrt(mean(b^2))), by = "feature_id"]
       x$metadata <- x$metadata |>
           unique(by = c("feature_id", "area", "feret_max", "centroid_y",
                         "centroid_x", "first_x", "first_y", "rand_x", "rand_y",
@@ -144,25 +141,42 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
 }
 
 
-#' @importFrom grDevices chull col2rgb as.raster
+#' @importFrom grDevices chull
 #' @importFrom stats dist
-#' @importFrom jpeg readJPEG
 .def_features <- function(x, binary, shape_kernel = c(3,3), img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
     # Label connected components in the binary image
-    binary_matrix <- matrix(binary, ncol = max(x$metadata$x) + 1, byrow = T)
+    # Define the size of the matrix
+    nrow <- max(x$metadata$y) + 1
+    ncol <- max(x$metadata$x) + 1
     
-    k <- shapeKernel(shape_kernel, type="box")
+    # Create an empty matrix filled with NA
+    binary_matrix <- matrix(NA, 
+                            nrow = nrow, 
+                            ncol = ncol)
+    
+    # Populate the matrix with your data
+    x_coords <- x$metadata$x
+    y_coords <- x$metadata$y
+    
+    for (i in 1:length(binary)) {
+        binary_matrix[y_coords[i] + 1, x_coords[i] + 1] <- binary[i]
+    }
+    
+    k <- shapeKernel(c(3,3), type="box")
     labeled_image <- components(binary_matrix, k)
     
-    # Create a dataframe with feature IDs for each true pixel
+    binary_coords <- cbind(y_coords + 1, x_coords + 1)
+    # Fetch colors for all coordinates at once
+    feature_ids <- labeled_image[binary_coords]
+    
     feature_points_dt <- data.table(x = x$metadata$x,
                                     y = x$metadata$y,
-                                    feature_id = ifelse(binary_matrix,
-                                                        labeled_image, -88) |>
-                                        t() |> as.vector() |> as.character())
+                                    feature_id = ifelse(!is.na(feature_ids),
+                                                        feature_ids, -88)|> as.character())
+    
     #Add color extraction here. 
     if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
-        mosaic <- readJPEG(img)
+        mosaic <- image_read(img)
         map_dim <- c(length(unique(x$metadata$x)), 
                      length(unique(x$metadata$y)))
         xscale = (top_right[1]-bottom_left[1])/map_dim[1]
@@ -184,7 +198,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
     }
     
     # Apply the logic to clean components
-    cleaned_components <- ifelse(binary_matrix, labeled_image, -88)
+    cleaned_components <- ifelse(!is.na(labeled_image), labeled_image, -88)
     
     # Calculate the convex hull for each feature
     convex_hulls <- lapply(
