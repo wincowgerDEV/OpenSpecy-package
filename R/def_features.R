@@ -67,11 +67,14 @@ collapse_spec.OpenSpecy <- function(x, ...) {
   ts$id <- x$metadata$feature_id
   x$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
     transpose(make.names = "id")
-
-  if(all(c("r", "g", "b") %in% names(x$metadata))){
-      x$metadata[, r := as.integer(sqrt(mean(r^2))), by = "feature_id"]
-      x$metadata[, g := as.integer(sqrt(mean(g^2))), by = "feature_id"]
-      x$metadata[, b := as.integer(sqrt(mean(b^2))), by = "feature_id"]
+  
+ r <- g <- b <- NULL
+  
+ if(all(c("r", "g", "b") %in% names(x$metadata))){
+      x$metadata[, `:=`(r = as.integer(sqrt(mean(r^2))), 
+                        g = as.integer(sqrt(mean(g^2))), 
+                        b = as.integer(sqrt(mean(b^2)))), by = "feature_id"]
+     
       x$metadata <- x$metadata |>
           unique(by = c("feature_id", "area", "feret_max", "centroid_y",
                         "centroid_x", "first_x", "first_y", "rand_x", "rand_y",
@@ -141,7 +144,8 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
 }
 
 
-#' @importFrom grDevices chull
+#' @importFrom grDevices chull as.raster col2rgb
+#' @importFrom jpeg readJPEG
 #' @importFrom stats dist
 .def_features <- function(x, binary, shape_kernel = c(3,3), img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
     # Label connected components in the binary image
@@ -176,7 +180,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
     
     #Add color extraction here. 
     if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
-        mosaic <- image_read(img)
+        mosaic <- readJPEG(img)
         map_dim <- c(length(unique(x$metadata$x)), 
                      length(unique(x$metadata$y)))
         xscale = (top_right[1]-bottom_left[1])/map_dim[1]
