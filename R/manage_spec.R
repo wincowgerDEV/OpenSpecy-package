@@ -4,8 +4,8 @@
 #' @description
 #' \code{c_spec()} concatenates \code{OpenSpecy} objects.
 #' \code{sample_spec()} samples spectra from an \code{OpenSpecy} object.
-#'
-#' @param x a list of \code{OpenSpecy} objects.
+#' \code{merge_map()} merge two \code{OpenSpecy} objects from spectral maps.
+#' @param x a list of \code{OpenSpecy} objects or of file paths.
 #' @param range a numeric providing your own wavenumber ranges or character
 #' argument called \code{"common"} to let \code{c_spec()} find the common
 #' wavenumber range of the supplied spectra. \code{NULL} will interpret the
@@ -14,6 +14,7 @@
 #' wavenumbers to be.
 #' @param size the number of spectra to sample.
 #' @param prob probabilities to use for the sampling.
+#' @param origins a list with 2 value vectors of x y coordinates for the offsets of each image. 
 #' @param \ldots further arguments passed to submethods.
 #'
 #' @return
@@ -64,6 +65,10 @@ c_spec.OpenSpecy <- function(x, ...) {
 #'
 #' @export
 c_spec.list <- function(x, range = NULL, res = 5, ...) {
+  if(!is_OpenSpecy(x[[1]])){
+     x <- lapply(x, read_any)
+  }
+
   if(!all(vapply(x, function(y) {inherits(y, "OpenSpecy")}, FUN.VALUE = T)))
     stop("object 'x' needs to be a list of 'OpenSpecy' objects", call. = F)
 
@@ -126,3 +131,79 @@ sample_spec.OpenSpecy <- function(x, size = 1, prob = NULL, ...) {
 
   filter_spec(x, cols)
 }
+
+
+#' @rdname manage_spec
+#'
+#' @export
+merge_map <- function(x, ...) {
+    UseMethod("merge_map")
+}
+
+#' @rdname manage_spec
+#'
+#' @export
+merge_map.default <- function(x, ...) {
+    stop("object 'x' needs to be a list of 'OpenSpecy' objects or file paths")
+}
+
+#' @rdname manage_spec
+#'
+#' @export
+merge_map.OpenSpecy <- function(x, ...) {
+    stop("object 'x' needs to be a list of 'OpenSpecy' objects or file paths")
+}
+
+#' @rdname manage_spec
+#'
+#' @export
+merge_map.list <- function(x, origins = NULL, ...) {
+    
+    if(!is_OpenSpecy(x[[1]])){
+        map <- lapply(x, read_any)
+    }
+    
+    else{
+        map <- x
+    }
+    
+    if(is.null(origins)){
+        origin = lapply(map, function(x) unique(x$metadata$description))
+        originx = vapply(origin, function(x) gsub(",.*", "", gsub(".*X=", "",  x)) |> as.numeric(), FUN.VALUE = numeric(1))
+        originy = vapply(origin, function(x) gsub(".*Y=", "",  x) |> as.numeric(), FUN.VALUE = numeric(1))
+        xoffset = as.integer((originx-min(originx))/(as.numeric(gsub("(\\{)|(\\})|(,.*)", "",x$metdata["pixel size"]))*10^5))
+        yoffset = as.integer((originy-min(originy))/(as.numeric(gsub("(\\{)|(\\})|(,.*)", "",x$metdata["pixel size"]))*10^5))
+    }
+    
+    else{
+        if(!is.list(origins)) stop("origins must be a list of 2 value x y vectors or NULL if trying to automate")
+        xoffset = vapply(origins, function(x) x[1], FUN.VALUE = numeric(1))
+        yoffset = vapply(origins, function(x) x[2], FUN.VALUE = numeric(1))
+    }
+    
+    if(!is.numeric(xoffset)) stop("Origin extraction failed, the hdr file must have description metadata or you must provide numeric values in your list.")
+    
+    for(x in 1:length(map)){
+        map[[x]]$metadata$x <- map[[x]]$metadata$x + xoffset[x]
+        map[[x]]$metadata$y <- map[[x]]$metadata$y + yoffset[x]
+    }
+    
+    unlisted <- unlist(unname(map), recursive = F)
+    
+    list <- tapply(unlisted, names(unlisted), unname)
+    
+    map <- as_OpenSpecy(x = list$wavenumber[[1]],
+                        spectra = as.data.table(list$spectra),
+                        metadata = rbindlist(list$metadata, fill = T))
+    
+    ts <- transpose(map$spectra)
+    ts$id <- paste(map$metadata$x, map$metadata$y, sep = ",")
+    map$metadata$sample_name <- paste(map$metadata$x, map$metadata$y, sep = ",")
+    map$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
+        transpose(make.names = "id")
+    map$metadata <- map$metadata |>
+        unique(by = c("sample_name", "x", "y"))
+    map
+}
+
+

@@ -8,6 +8,10 @@
 \alias{sample_spec}
 \alias{sample_spec.default}
 \alias{sample_spec.OpenSpecy}
+\alias{merge_map}
+\alias{merge_map.default}
+\alias{merge_map.OpenSpecy}
+\alias{merge_map.list}
 \title{Manage spectral objects}
 \usage{
 c_spec(x, ...)
@@ -23,9 +27,17 @@ sample_spec(x, ...)
 \method{sample_spec}{default}(x, ...)
 
 \method{sample_spec}{OpenSpecy}(x, size = 1, prob = NULL, ...)
+
+merge_map(x, ...)
+
+\method{merge_map}{default}(x, ...)
+
+\method{merge_map}{OpenSpecy}(x, ...)
+
+\method{merge_map}{list}(x, origins = NULL, ...)
 }
 \arguments{
-\item{x}{a list of \code{OpenSpecy} objects.}
+\item{x}{a list of \code{OpenSpecy} objects or of file paths.}
 
 \item{range}{a numeric providing your own wavenumber ranges or character
 argument called \code{"common"} to let \code{c_spec()} find the common
@@ -39,6 +51,8 @@ wavenumbers to be.}
 
 \item{prob}{probabilities to use for the sampling.}
 
+\item{origins}{a list with 2 value vectors of x y coordinates for the offsets of each image.}
+
 \item{\ldots}{further arguments passed to submethods.}
 }
 \value{
@@ -47,6 +61,7 @@ wavenumbers to be.}
 \description{
 \code{c_spec()} concatenates \code{OpenSpecy} objects.
 \code{sample_spec()} samples spectra from an \code{OpenSpecy} object.
+\code{merge_map()} merge two \code{OpenSpecy} objects from spectral maps.
 }
 \examples{
 # Concatenating spectra

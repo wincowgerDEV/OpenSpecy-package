@@ -54,3 +54,17 @@ test_that("sample_spec() returns a subset of the spectra", {
   expect_equal(ncol(sampled$spectra), 5)
 })
 
+
+test_that("merge_map()", {
+    tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
+    two <- list(tiny_map, tiny_map)
+    origins <- list(c(0,0), c(16,0))
+    merged <- merge_map(two, origins = origins)
+    expect_true(check_OpenSpecy(merged))
+    two_alt <- list(read_extdata("CA_tiny_map.zip"), read_extdata("CA_tiny_map.zip"))
+    merged2 <- merge_map(two_alt, origins = origins)
+    expect_true(check_OpenSpecy(merged2))
+    expect_identical(merged$spectra, merged2$spectra)
+    expect_true(ncol(merged2$spectra) == ncol(tiny_map$spectra) * 2)
+})
+
