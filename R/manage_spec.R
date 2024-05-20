@@ -169,10 +169,12 @@ merge_map.list <- function(x, origins = NULL, ...) {
     
     if(is.null(origins)){
         origin = lapply(map, function(x) unique(x$metadata$description))
+        pix_size = lapply(map, function(x) unique(x$metadata$`pixel size`)) 
+        pixel_size = vapply(pix_size, function(x) as.numeric(gsub("(\\{)|(\\})|(,.*)", "",x))*10^6, FUN.VALUE = numeric(1))
         originx = vapply(origin, function(x) gsub(",.*", "", gsub(".*X=", "",  x)) |> as.numeric(), FUN.VALUE = numeric(1))
         originy = vapply(origin, function(x) gsub(".*Y=", "",  x) |> as.numeric(), FUN.VALUE = numeric(1))
-        xoffset = as.integer((originx-min(originx))/(as.numeric(gsub("(\\{)|(\\})|(,.*)", "",x$metdata["pixel size"]))*10^5))
-        yoffset = as.integer((originy-min(originy))/(as.numeric(gsub("(\\{)|(\\})|(,.*)", "",x$metdata["pixel size"]))*10^5))
+        xoffset = as.integer((originx-min(originx))/pixel_size)
+        yoffset = as.integer((originy-min(originy))/pixel_size)
     }
     
     else{

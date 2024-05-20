@@ -63,8 +63,10 @@ test_that("merge_map()", {
     expect_true(check_OpenSpecy(merged))
     two_alt <- list(read_extdata("CA_tiny_map.zip"), read_extdata("CA_tiny_map.zip"))
     merged2 <- merge_map(two_alt, origins = origins)
+    auto_size <- merge_map(two_alt)
     expect_true(check_OpenSpecy(merged2))
     expect_identical(merged$spectra, merged2$spectra)
     expect_true(ncol(merged2$spectra) == ncol(tiny_map$spectra) * 2)
+    expect_true(ncol(auto_size$spectra) == ncol(tiny_map$spectra))
 })
 
