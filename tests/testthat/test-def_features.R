@@ -1,3 +1,4 @@
+library(jpeg)
 map <- read_extdata("CA_tiny_map.zip") |> read_any()
 
 test_that("def_features() handles input errors correctly", {
@@ -110,4 +111,47 @@ test_that("collapse particles returns expected values", {
   expect_contains(names(test_collapsed$metadata),
                   c("feature_id", "area", "feret_max", "centroid_y",
                     "centroid_x"))
+})
+
+
+# Create a synthetic image and OpenSpecy object for testing
+create_synthetic_data <- function(x_dim, y_dim) {
+    # Create a simple synthetic image with half white and half blue
+    img <- array(0, dim = c(y_dim, x_dim, 3))
+    img[, 1:(x_dim/2), ] <- 1  # White half
+    img[, ((x_dim/2)+1):x_dim, 3] <- 1  # Blue half
+    img_path <- tempfile(fileext = ".jpg")
+    writeJPEG(img, target = img_path)
+    
+    img_path
+}
+
+# Generate synthetic data
+synthetic_data <- create_synthetic_data(x_dim = max(map$metadata$x) +1, y_dim = max(map$metadata$y) +1)
+
+test_that("RGB values are correctly extracted and stored in metadata", {
+    particles <- ifelse(map$metadata$x == 15, TRUE, FALSE)
+    
+    id_map <- def_features(map, particles, img = synthetic_data, bottom_left = c(1, max(map$metadata$y) +1), top_right = c( max(map$metadata$x) +1, 1))
+    expect_true(check_OpenSpecy(id_map))
+    
+    test_collapsed <- collapse_spec(id_map)
+    expect_true(check_OpenSpecy(test_collapsed))
+    
+    expect_contains(names(test_collapsed$metadata), c("r", "g", "b"))
+    
+    test_collapsed$metadata[feature_id == "1", c("r", "g", "b")] |> unlist() |> unname() |> expect_equal(c(1, 0, 254))
+    
+    particles <- ifelse(map$metadata$x == 1, TRUE, FALSE)
+    
+    id_map <- def_features(map, particles, img = synthetic_data, bottom_left = c(1, max(map$metadata$y) +1), top_right = c( max(map$metadata$x) +1, 1))
+    expect_true(check_OpenSpecy(id_map))
+    
+    test_collapsed <- collapse_spec(id_map)
+    expect_true(check_OpenSpecy(test_collapsed))
+    
+    expect_contains(names(test_collapsed$metadata), c("r", "g", "b"))
+    
+    test_collapsed$metadata[feature_id == "1", c("r", "g", "b")] |> unlist() |> unname() |> expect_equal(c(254, 255, 255))
+
 })
