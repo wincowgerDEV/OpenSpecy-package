@@ -40,7 +40,10 @@
 #'
 #' @export
 read_any <- function(file, ...) {
-  if(length(file) > 1){
+  if(length(file) == 2 & any(grepl("(\\.dat$)", ignore.case = T, file)) & any(grepl("(\\.hdr$)", ignore.case = T, file))){
+    os <- read_envi(file = file[grepl("(\\.dat$)", ignore.case = T, file)], header = file[grepl("(\\.hdr$)", ignore.case = T, file)], ...)
+  }
+  else if(length(file) > 1){
     os <- read_many(file = file, ...)
   }
   else if (grepl("(\\.zip$)", ignore.case = T, file)) {
