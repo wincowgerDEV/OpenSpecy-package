@@ -16,7 +16,26 @@
 #'
 #' @return
 #' An \code{OpenSpecy} object appended with metadata about the features or
-#' collapsed for the features.
+#' collapsed for the features. All units are in pixels. Metadata described below.
+#' \describe{
+#'   \item{`x`}{x coordinate of the pixel or centroid if collapsed}
+#'   \item{`y`}{y coordinate of the pixel or centroid if collapsed}
+#'   \item{`feature_id`}{unique identifier of each feature}
+#'   \item{`area`}{area in pixels of the feature}
+#'   \item{`perimeter`}{perimeter of the convex hull of the feature}
+#'   \item{`feret_min`}{feret_max divided by the area}
+#'   \item{`feret_max`}{largest dimension of the convex hull of the feature}
+#'   \item{`convex_hull_area`}{area of the convex hull}
+#'   \item{`centroid_x`}{mean x coordinate of the feature}
+#'   \item{`centroid_y`}{mean y coordinate of the feature}
+#'   \item{`first_x`}{first x coordinate of the feature}
+#'   \item{`first_y`}{first y coordinate of the feature}
+#'   \item{`rand_x`}{random x coordinate from the feature}
+#'   \item{`rand_y`}{random y coordinate from the feature}
+#'   \item{`r`}{if using visual imagery overlay, the red band value at that location or on average for the feature}
+#'   \item{`g`}{if using visual imagery overlay, the green band value at that location or on average for the feature}
+#'   \item{`b`}{if using visual imagery overlay, the blue band value at that location or on average for the feature}
+#' }
 #'
 #' @examples
 #' \dontshow{data.table::setDTthreads(2)}
@@ -213,6 +232,18 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
         function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
         })
     
+    # Helper function to calculate the area using the shoelace formula
+    polygon_area <- function(x, y) {
+        n <- length(x)
+        area <- 0
+        j <- n
+        for (i in 1:n) {
+            area <- area + (x[j] + x[i]) * (y[j] - y[i])
+            j <- i
+        }
+        return(abs(area) / 2)
+    }
+    
     # Calculate area, Feret max, and feature IDs for each feature
     features_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
         hull <- convex_hulls[[i]]
@@ -240,13 +271,17 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
         # Area
         area <- sum(cleaned_components == as.integer(id))
         
+        # Calculate the convex hull area
+        convex_hull_area <- polygon_area(hull[,2], hull[,1])
+        
         feret_min = area/feret_max #Can probably calculate this better.
         
         data.table(feature_id = id,
                    area = area,
                    perimeter = perimeter,
                    feret_min = feret_min,
-                   feret_max = feret_max
+                   feret_max = feret_max,
+                   convex_hull_area = convex_hull_area
         )
     }), fill = T)
     

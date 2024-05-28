@@ -171,16 +171,6 @@ details, when set, they will be used to automate transformations and warning mes
 \item{\code{baseline}}{supported options include \code{"raw"} or \code{"nobaseline"}}
 \item{\code{spectra_type}}{supported options include \code{"ftir"} or \code{"raman"}}
 }
-
-The \code{attributes} argument may contain a named list with the following
-details, when set, they will be used to automate transformations and warning messages:
-
-\tabular{ll}{
-\code{intensity_units}: \tab supported options include "absorbance", "transmittance", or "reflectance"\cr
-\code{derivative_order}: \tab supported options include "0", "1", or "2"\cr
-\code{baseline}: \tab supported options include "raw" or "nobaseline"\cr
-\code{spectra_type}: \tab supported options include "ftir" or "raman"\cr
-}
 }
 \examples{
 data("raman_hdpe")

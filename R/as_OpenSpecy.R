@@ -105,15 +105,6 @@
 #'   \item{`spectra_type`}{supported options include `"ftir"` or `"raman"`}
 #' }
 #'
-#' The \code{attributes} argument may contain a named list with the following
-#' details, when set, they will be used to automate transformations and warning messages:
-#'
-#' \tabular{ll}{
-#' \code{intensity_units}: \tab supported options include "absorbance", "transmittance", or "reflectance"\cr
-#' \code{derivative_order}: \tab supported options include "0", "1", or "2"\cr
-#' \code{baseline}: \tab supported options include "raw" or "nobaseline"\cr
-#' \code{spectra_type}: \tab supported options include "ftir" or "raman"\cr
-#' }
 #'
 #' @return
 #' \code{as_OpenSpecy()} and \code{OpenSpecy()} returns three part lists

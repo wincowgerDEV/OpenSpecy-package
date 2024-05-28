@@ -55,7 +55,26 @@ the top down while x values are left to right.}
 }
 \value{
 An \code{OpenSpecy} object appended with metadata about the features or
-collapsed for the features.
+collapsed for the features. All units are in pixels. Metadata described below.
+\describe{
+\item{\code{x}}{x coordinate of the pixel or centroid if collapsed}
+\item{\code{y}}{y coordinate of the pixel or centroid if collapsed}
+\item{\code{feature_id}}{unique identifier of each feature}
+\item{\code{area}}{area in pixels of the feature}
+\item{\code{perimeter}}{perimeter of the convex hull of the feature}
+\item{\code{feret_min}}{feret_max divided by the area}
+\item{\code{feret_max}}{largest dimension of the convex hull of the feature}
+\item{\code{convex_hull_area}}{area of the convex hull}
+\item{\code{centroid_x}}{mean x coordinate of the feature}
+\item{\code{centroid_y}}{mean y coordinate of the feature}
+\item{\code{first_x}}{first x coordinate of the feature}
+\item{\code{first_y}}{first y coordinate of the feature}
+\item{\code{rand_x}}{random x coordinate from the feature}
+\item{\code{rand_y}}{random y coordinate from the feature}
+\item{\code{r}}{if using visual imagery overlay, the red band value at that location or on average for the feature}
+\item{\code{g}}{if using visual imagery overlay, the green band value at that location or on average for the feature}
+\item{\code{b}}{if using visual imagery overlay, the blue band value at that location or on average for the feature}
+}
 }
 \description{
 Functions for analyzing features, like particles, fragments, or fibers, in
