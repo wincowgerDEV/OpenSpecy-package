@@ -491,6 +491,7 @@ os_similarity.OpenSpecy <- function(x, y, method = "hamming", na.rm = T, ...) {
     }
 
     central_locs <- perform_combined_pca(spec_obj1 = spec_x, spec_obj2 = spec_y)
+    
     return(
       1-mean(abs(central_locs[[1]] - central_locs[[2]])/central_locs[[3]])
     )

@@ -139,7 +139,8 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
            "indicate that there are no distinct features", call. = F)
 
     features_df <- rbindlist(lapply(unique(features),
-                                    function(y) .def_features(x, features == y, shape_kernel = shape_kernel,  img, bottom_left, top_right, name = y))
+                                    function(y) .def_features(x, features == y, shape_kernel = shape_kernel,  img, bottom_left, top_right, name = y)),
+                            fill = T #Allow for flexibility with convex hulls
     )[!endsWith(feature_id, "-88"),]
   } else {
     stop("features needs to be a character or logical vector", call. = F)
@@ -150,6 +151,12 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
                                # evaluation
   md <- features_df[setDT(obj$metadata), on = c("x", "y")]
   md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
+  if("snr" %in% names(md)){
+      md[, "mean_snr" := mean(snr), by = "feature_id"]
+  }
+  if("max_cor_val" %in% names(md)){
+      md[, "mean_cor" := mean(max_cor_val), by = "feature_id"]
+  }
   md[, "centroid_x" := mean(x), by = "feature_id"]
   md[, "centroid_y" := mean(y), by = "feature_id"]
   md[, "first_x" := x[1], by = "feature_id"]
