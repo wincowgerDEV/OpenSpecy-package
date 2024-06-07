@@ -1,4 +1,5 @@
 library(jpeg)
+
 map <- read_extdata("CA_tiny_map.zip") |> read_any()
 
 test_that("def_features() handles input errors correctly", {
@@ -21,6 +22,70 @@ test_that("features are identified when given logical", {
     expect_equal(1)
   max(id_map$metadata$perimeter, na.rm = T) |> round(2) |>
     expect_equal(30)
+})
+
+test_that("features are identified with sig_noise and smoothing with closing", {
+    map$metadata$snr <- sig_noise(map, metric = "noise")
+    #heatmap_spec(map, map$metadata$snr)
+    id_map <- def_features(map, map$metadata$snr > 0.1)
+    check_OpenSpecy(id_map) |> expect_true()
+    unique(id_map$metadata$feature_id) |> expect_length(2)
+    #heatmap_spec(id_map, id_map$metadata$feature_id)
+
+    #Less resolved sig
+    map$metadata$snr <- sig_noise(map, metric = "sig_times_noise")
+    #heatmap_spec(map, map$metadata$snr)
+    id_map <- def_features(map, map$metadata$snr > 0.1, close = T, close_kernel = c(3,3))
+    #heatmap_spec(id_map, id_map$metadata$feature_id)
+    id_map2 <- def_features(map, map$metadata$snr > 0.1, close = F, close_kernel = c(3,3))
+    #heatmap_spec(id_map2, id_map2$metadata$feature_id)
+    expect_false(identical(id_map, id_map2))
+    id_map3 <- def_features(map, map$metadata$snr > 0.1, close = T, close_kernel = c(5,5))
+    #heatmap_spec(id_map3, id_map3$metadata$feature_id)
+    expect_false(identical(id_map, id_map3))
+    id_map4 <- def_features(map, map$metadata$snr > 0.1, close = T, close_kernel = c(6,6))
+    #heatmap_spec(id_map4, id_map4$metadata$feature_id)
+    expect_false(identical(id_map3, id_map4))
+    
+    #Test collapsing on binary
+    test_part_close <- rep_len(F, length.out = ncol(map$spectra))
+    test_part_close[c(69, 101,103)] <- T  
+    #heatmap_spec(id_map4, test_part_close)
+    
+    id_map5 <- def_features(map, test_part_close, close = T, close_kernel = c(3,3))
+    #heatmap_spec(id_map5, id_map5$metadata$feature_id)
+    unique(id_map5$metadata$feature_id) |> expect_length(2)
+    
+    #Test collapsing on character
+    test_part_close <- rep_len("background", length.out = ncol(map$spectra))
+    test_part_close[c(69, 101,103, 104)] <- "particle1"  
+    test_part_close[c(68, 70, 71, 87, 119, 118, 117, 100)] <- "particle2" 
+    
+    #heatmap_spec(map, test_part_close)
+    
+    id_map5 <- def_features(map, test_part_close, close = T, close_kernel = c(3,3))
+    expect_true(nrow(id_map5$metadata) == ncol(id_map5$spectra))
+    
+    #heatmap_spec(id_map5, id_map5$metadata$feature_id)
+    
+    expect_true(is_OpenSpecy(id_map5))
+    unique(id_map5$metadata$feature_id) |> expect_length(3)
+    
+    #Test collapsing on character complete overlap
+    test_part_close <- rep_len("background", length.out = ncol(map$spectra))
+    test_part_close[c(69, 101,103)] <- "particle1"  
+    test_part_close[c(68, 70, 71, 87, 119, 118, 117, 100)] <- "particle2" 
+    
+    #heatmap_spec(map, test_part_close)
+    
+    id_map5 <- def_features(map, test_part_close, close = T, close_kernel = c(3,3))
+    expect_true(nrow(id_map5$metadata) == ncol(id_map5$spectra))
+    
+    #heatmap_spec(id_map5, id_map5$metadata$feature_id)
+    
+    expect_true(is_OpenSpecy(id_map5))
+    unique(id_map5$metadata$feature_id) |> expect_length(2)
+
 })
 
 test_that("particles are identified when given character", {

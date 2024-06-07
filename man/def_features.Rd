@@ -23,6 +23,10 @@ def_features(x, ...)
   x,
   features,
   shape_kernel = c(3, 3),
+  shape_type = "box",
+  close = F,
+  close_kernel = c(4, 4),
+  close_type = "box",
   img = NULL,
   bottom_left = NULL,
   top_right = NULL,
@@ -40,6 +44,15 @@ types present in the spectra.}
 \item{shape_kernel}{the width and height of the area in pixels to search for
 connecting features, c(3,3) is typically used but larger numbers will smooth
 connections between particles more.}
+
+\item{shape_type}{character, options are for the shape used to find connections c("box", "disc", "diamond")}
+
+\item{close}{logical, whether a closing should be performed using the shape kernel before
+estimating components.}
+
+\item{close_kernel}{width and height of the area to close if using the close option.}
+
+\item{close_type}{character, options are for the shape used to find connections c("box", "disc", "diamond")}
 
 \item{img}{a file location where a visual image is that corresponds to the spectral image.}
 
@@ -71,9 +84,9 @@ collapsed for the features. All units are in pixels. Metadata described below.
 \item{\code{first_y}}{first y coordinate of the feature}
 \item{\code{rand_x}}{random x coordinate from the feature}
 \item{\code{rand_y}}{random y coordinate from the feature}
-\item{\code{r}}{if using visual imagery overlay, the red band value at that location or on average for the feature}
-\item{\code{g}}{if using visual imagery overlay, the green band value at that location or on average for the feature}
-\item{\code{b}}{if using visual imagery overlay, the blue band value at that location or on average for the feature}
+\item{\code{r}}{if using visual imagery overlay, the red band value at that location}
+\item{\code{g}}{if using visual imagery overlay, the green band value at that location}
+\item{\code{b}}{if using visual imagery overlay, the blue band value at that location}
 }
 }
 \description{

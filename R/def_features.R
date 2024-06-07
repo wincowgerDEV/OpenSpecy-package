@@ -32,9 +32,9 @@
 #'   \item{`first_y`}{first y coordinate of the feature}
 #'   \item{`rand_x`}{random x coordinate from the feature}
 #'   \item{`rand_y`}{random y coordinate from the feature}
-#'   \item{`r`}{if using visual imagery overlay, the red band value at that location or on average for the feature}
-#'   \item{`g`}{if using visual imagery overlay, the green band value at that location or on average for the feature}
-#'   \item{`b`}{if using visual imagery overlay, the blue band value at that location or on average for the feature}
+#'   \item{`r`}{if using visual imagery overlay, the red band value at that location}
+#'   \item{`g`}{if using visual imagery overlay, the green band value at that location}
+#'   \item{`b`}{if using visual imagery overlay, the blue band value at that location}
 #' }
 #'
 #' @examples
@@ -51,6 +51,11 @@
 #' @param shape_kernel the width and height of the area in pixels to search for
 #' connecting features, c(3,3) is typically used but larger numbers will smooth
 #' connections between particles more. 
+#' @param shape_type character, options are for the shape used to find connections c("box", "disc", "diamond")
+#' @param close logical, whether a closing should be performed using the shape kernel before
+#' estimating components.
+#' @param close_kernel width and height of the area to close if using the close option. 
+#' @param close_type character, options are for the shape used to find connections c("box", "disc", "diamond")
 #' @param img a file location where a visual image is that corresponds to the spectral image. 
 #' @param bottom_left a two value vector specifying the x,y location in image pixels where
 #' the bottom left of the spectral map begins. y values are from the top down while 
@@ -64,7 +69,7 @@
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
-#' @importFrom mmand shapeKernel components
+#' @importFrom mmand shapeKernel components closing
 #' @export
 collapse_spec <- function(x, ...) {
   UseMethod("collapse_spec")
@@ -87,23 +92,9 @@ collapse_spec.OpenSpecy <- function(x, ...) {
   x$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
     transpose(make.names = "id")
   
- r <- g <- b <- NULL
-  
- if(all(c("r", "g", "b") %in% names(x$metadata))){
-      x$metadata[, `:=`(r = as.integer(sqrt(mean(r^2))), 
-                        g = as.integer(sqrt(mean(g^2))), 
-                        b = as.integer(sqrt(mean(b^2)))), by = "feature_id"]
-     
+
       x$metadata <- x$metadata |>
-          unique(by = c("feature_id", "area", "feret_max", "centroid_y",
-                        "centroid_x", "first_x", "first_y", "rand_x", "rand_y",
-                        "r", "g", "b"))
-  }
-  else{
-      x$metadata <- x$metadata |>
-          unique(by = c("feature_id", "area", "feret_max", "centroid_y",
-                        "centroid_x", "first_x", "first_y", "rand_x", "rand_y"))    
-  }
+          unique(by = c("feature_id"))    
 
   return(x)
 }
@@ -126,28 +117,28 @@ def_features.default <- function(x, ...) {
 #'
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
-def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NULL, bottom_left = NULL, top_right = NULL, ...) {
+def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, ...) {
   if(is.logical(features)) {
     if(all(features) | all(!features))
       stop("features cannot be all TRUE or FALSE because that would indicate ",
            "that there are no distinct features", call. = F)
 
-    features_df <- .def_features(x, features, shape_kernel, img, bottom_left, top_right)
+    features_df <- .def_features(x, features, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
   } else if(is.character(features)) {
     if(length(unique(features)) == 1)
       stop("features cannot all have a single name because that would ",
            "indicate that there are no distinct features", call. = F)
 
     features_df <- rbindlist(lapply(unique(features),
-                                    function(y) .def_features(x, features == y, shape_kernel = shape_kernel,  img, bottom_left, top_right, name = y)),
+                                    function(y) .def_features(x, features == y, shape_kernel = shape_kernel, shape_type, close = close, close_kernel, close_type,  img, bottom_left, top_right, name = y)),
                             fill = T #Allow for flexibility with convex hulls
-    )[!endsWith(feature_id, "-88"),]
+    )[,test := fifelse(grepl("(background)|(-88)", feature_id), 0, area)][, .SD[test == max(test)], by = c("x", "y")][, .SD[1], by = c("x", "y")]
   } else {
     stop("features needs to be a character or logical vector", call. = F)
   }
 
   obj <- x
-  x <- y <- feature_id <- NULL # workaround for data.table non-standard
+  x <- y <- feature_id <- area <- b <- g <- max_cor_val <- r <- snr <- test <- NULL # workaround for data.table non-standard
                                # evaluation
   md <- features_df[setDT(obj$metadata), on = c("x", "y")]
   md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
@@ -156,6 +147,11 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
   }
   if("max_cor_val" %in% names(md)){
       md[, "mean_cor" := mean(max_cor_val), by = "feature_id"]
+  }
+  if(all(c("r", "g", "b") %in% names(md))){
+      md[, `:=`(mean_r = as.integer(sqrt(mean(r^2))), 
+                mean_g = as.integer(sqrt(mean(g^2))), 
+                mean_b = as.integer(sqrt(mean(b^2)))), by = "feature_id"]
   }
   md[, "centroid_x" := mean(x), by = "feature_id"]
   md[, "centroid_y" := mean(y), by = "feature_id"]
@@ -173,7 +169,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
 #' @importFrom grDevices chull as.raster col2rgb
 #' @importFrom jpeg readJPEG
 #' @importFrom stats dist
-.def_features <- function(x, binary, shape_kernel = c(3,3), img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
+.def_features <- function(x, binary, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
     # Label connected components in the binary image
     # Define the size of the matrix
     nrow <- max(x$metadata$y) + 1
@@ -192,7 +188,12 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), img = NUL
         binary_matrix[y_coords[i] + 1, x_coords[i] + 1] <- binary[i]
     }
     
-    k <- shapeKernel(c(3,3), type="box")
+    k <- shapeKernel(shape_kernel, type= shape_type)
+    
+    if(close){
+        kc <- shapeKernel(close_kernel, type=close_type)
+        binary_matrix <- closing(binary_matrix, kc)
+    }
     labeled_image <- components(binary_matrix, k)
     
     binary_coords <- cbind(y_coords + 1, x_coords + 1)
