@@ -81,6 +81,10 @@ spectral map oriented <code>OpenSpecy</code> object.</p>
 <span>  <span class="va">x</span>,</span>
 <span>  <span class="va">features</span>,</span>
 <span>  shape_kernel <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  shape_type <span class="op">=</span> <span class="st">"box"</span>,</span>
+<span>  close <span class="op">=</span> <span class="cn">F</span>,</span>
+<span>  close_kernel <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  close_type <span class="op">=</span> <span class="st">"box"</span>,</span>
 <span>  img <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  bottom_left <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  top_right <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -105,6 +109,23 @@ types present in the spectra.</p></dd>
 <dd><p>the width and height of the area in pixels to search for
 connecting features, c(3,3) is typically used but larger numbers will smooth
 connections between particles more.</p></dd>
+
+
+<dt>shape_type</dt>
+<dd><p>character, options are for the shape used to find connections c("box", "disc", "diamond")</p></dd>
+
+
+<dt>close</dt>
+<dd><p>logical, whether a closing should be performed using the shape kernel before
+estimating components.</p></dd>
+
+
+<dt>close_kernel</dt>
+<dd><p>width and height of the area to close if using the close option.</p></dd>
+
+
+<dt>close_type</dt>
+<dd><p>character, options are for the shape used to find connections c("box", "disc", "diamond")</p></dd>
 
 
 <dt>img</dt>
@@ -175,13 +196,13 @@ collapsed for the features. All units are in pixels. Metadata described below.</
 <dd><p>random y coordinate from the feature</p></dd>
 
 <dt><code>r</code></dt>
-<dd><p>if using visual imagery overlay, the red band value at that location or on average for the feature</p></dd>
+<dd><p>if using visual imagery overlay, the red band value at that location</p></dd>
 
 <dt><code>g</code></dt>
-<dd><p>if using visual imagery overlay, the green band value at that location or on average for the feature</p></dd>
+<dd><p>if using visual imagery overlay, the green band value at that location</p></dd>
 
 <dt><code>b</code></dt>
-<dd><p>if using visual imagery overlay, the blue band value at that location or on average for the feature</p></dd>
+<dd><p>if using visual imagery overlay, the blue band value at that location</p></dd>
 
 
 </dl></div>
@@ -243,8 +264,8 @@ feature information on area and Feret max.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2: 0.000025000, 0.000025000    0_1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: dcedd11ee933a05439ccce0bf1abb5a5/93793d4ec07de351c4486e69c999bfaa</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: dcedd11ee933a05439ccce0bf1abb5a5/93793d4ec07de351c4486e69c999bfaa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 5257118a7c0d29919f14369f6b6e2ed7/2fc3449b53c068ddd656085c1497e4c3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 5257118a7c0d29919f14369f6b6e2ed7/2fc3449b53c068ddd656085c1497e4c3</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id centroid_x centroid_y first_x first_y</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;      &lt;num&gt;      &lt;num&gt;   &lt;num&gt;   &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 215a0fd7e0dc3b1001799214618ce6eb          0          6       0       0</span>
