@@ -15,7 +15,7 @@
 
 ## Comments
 
-    installed size is  6.2Mb
+    installed size is  5.9Mb
     sub-directories of 1Mb or more:
       doc       4.3Mb
       extdata   1.0Mb

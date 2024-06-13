@@ -1,3 +1,10 @@
+# OpenSpecy 1.0.9
+
+## Minor Improvements
+
+- more closing and flexibility options
+
+
 # OpenSpecy 1.0.8
 
 ## Minor Improvements
