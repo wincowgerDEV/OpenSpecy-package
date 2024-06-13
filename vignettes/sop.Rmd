@@ -36,7 +36,7 @@ The Open Specy R package is the backbone of the Shiny app. The choice is yours
 as to which you start with, we use both on a regular basis. The tutorial will
 talk through the R functions you can use to programatically analyze spectra. If
 you are looking for a tutorial about how to use the app see [this
-tutorial](http://wincowger.com/OpenSpecy-package/articles/app.html).
+tutorial](https://wincowger.com/OpenSpecy-package/articles/app.html).
 
 # Installation
 
@@ -52,7 +52,7 @@ To get started with the Open Specy user interface, access
 [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/) or
 start the Shiny GUI directly from your own computer in R. If you are looking for
 a tutorial about how to use the app see [this
-tutorial](http://wincowger.com/OpenSpecy-package/articles/app.html).
+tutorial](https://wincowger.com/OpenSpecy-package/articles/app.html).
 
 ```{r, eval=FALSE}
 run_app()
@@ -98,7 +98,7 @@ The specific steps to converting your instrument's native files to .csv can be
 found in its software manual or you can check out
 [Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
 spectral file conversions. For instructions, see [Spectragryph
-Tutorial](http://wincowger.com/OpenSpecy-package/articles/spectragryph.html).
+Tutorial](https://wincowger.com/OpenSpecy-package/articles/spectragryph.html).
 
 If you don't have your own data, you can use a test dataset.
 
