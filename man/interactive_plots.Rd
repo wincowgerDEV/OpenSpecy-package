@@ -45,6 +45,7 @@ heatmap_spec(x, ...)
   paper_bgcolor = "rgb(0, 0, 0)",
   colorscale = "Viridis",
   showlegend = FALSE,
+  type = "interactive",
   ...
 )
 
@@ -83,8 +84,7 @@ spectral data for the second group.}
 
 \item{paper_bgcolor}{color value; passed to \code{\link[plotly]{layout}()}.}
 
-\item{showlegend}{whether to show the legend passed to
-\code{\link[plotly]{plot_ly}()}.}
+\item{showlegend}{whether to show the legend passed to}
 
 \item{z}{optional numeric vector specifying the intensity values for the
 heatmap. If not provided, the function will use the intensity values from the
@@ -114,6 +114,9 @@ be an array or one of \code{"Blackbody"}, \code{"Bluered"}, \code{"Blues"}, \cod
 \code{"Earth"}, \code{"Electric"}, \code{"Greens"}, \code{"Greys"}, \code{"Hot"}, \code{"Jet"}, \code{"Picnic"},
 \code{"Portland"}, \code{"Rainbow"}, \code{"RdBu"}, \code{"Reds"}, \code{"Viridis"}, \code{"YlGnBu"},
 \code{"YlOrRd"}.}
+
+\item{type}{specification for plot type either interactive or static
+\code{\link[plotly]{plot_ly}()}.}
 
 \item{\ldots}{further arguments passed to \code{\link[plotly]{plot_ly}()}.}
 }

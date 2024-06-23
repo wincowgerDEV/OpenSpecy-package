@@ -38,6 +38,7 @@
 #' `"Portland"`, `"Rainbow"`, `"RdBu"`, `"Reds"`, `"Viridis"`, `"YlGnBu"`,
 #' `"YlOrRd"`.
 #' @param showlegend whether to show the legend passed to
+#' @param type specification for plot type either interactive or static
 #' \code{\link[plotly]{plot_ly}()}.
 #' @param \ldots further arguments passed to \code{\link[plotly]{plot_ly}()}.
 #'
@@ -170,6 +171,7 @@ heatmap_spec.OpenSpecy <- function(x,
                                    paper_bgcolor = 'rgb(0, 0, 0)',
                                    colorscale = 'Viridis',
                                    showlegend = FALSE,
+                                   type = "interactive",
                                    ...) {
   if(!is.null(z))
     plot_z <- z # default
@@ -189,64 +191,70 @@ heatmap_spec.OpenSpecy <- function(x,
   if(all(is.na(plot_z)))
     plot_z = rep(-88, length.out = length(plot_z))
 
-  p <- plot_ly(...) |>
-    add_trace(
-      x = x$metadata$x,
-      y = x$metadata$y,
-      z = if(!is.numeric(plot_z)) {
-        as.numeric(as.factor(plot_z))
-      } else {
-        plot_z
-      },
-      colorscale = colorscale,
-      type = "heatmap",
-      hoverinfo = 'text',
-      showscale = showlegend,
-      text = ~ paste(
-        "row: ",
-        1:nrow(x$metadata),
-        "<br>x: ",
-        x$metadata$x,
-        ", y: ",
-        x$metadata$y,
-        ", z: ",
-        plot_z,
-        if(!is.null(sn))
-          paste("<br>snr: ", signif(sn, 2))
-        else
-          "",
-        if(!is.null(cor))
-          paste("<br>cor: ", signif(cor, 2))
-        else
-          ""
-      )
-    ) |>
-    layout(
-      xaxis = list(
-        title = 'x',
-        zeroline = F,
-        showgrid = F
-      ),
-      yaxis = list(
-        title = 'y',
-        scaleanchor = "x",
-        scaleratio = 1,
-        zeroline = F,
-        showgrid = F
-      ),
-      plot_bgcolor = plot_bgcolor,
-      paper_bgcolor = paper_bgcolor,
-      showlegend = showlegend,
-      font = font
-    )
-
-  if(!is.null(select)) {
-    p <-
-      p |> add_markers(
-        x = x$metadata$x[select],
-        y = x$metadata$y[select],
-        name = "Selected Spectrum"
-      )
+  if(type == "interactive"){
+      p <- plot_ly(...) |>
+          add_trace(
+              x = x$metadata$x,
+              y = x$metadata$y,
+              z = if(!is.numeric(plot_z)) {
+                  as.numeric(as.factor(plot_z))
+              } else {
+                  plot_z
+              },
+              colorscale = colorscale,
+              type = "heatmap",
+              hoverinfo = 'text',
+              showscale = showlegend,
+              text = ~ paste(
+                  "row: ",
+                  1:nrow(x$metadata),
+                  "<br>x: ",
+                  x$metadata$x,
+                  ", y: ",
+                  x$metadata$y,
+                  ", z: ",
+                  plot_z,
+                  if(!is.null(sn))
+                      paste("<br>snr: ", signif(sn, 2))
+                  else
+                      "",
+                  if(!is.null(cor))
+                      paste("<br>cor: ", signif(cor, 2))
+                  else
+                      ""
+              )
+          ) |>
+          layout(
+              xaxis = list(
+                  title = 'x',
+                  zeroline = F,
+                  showgrid = F
+              ),
+              yaxis = list(
+                  title = 'y',
+                  scaleanchor = "x",
+                  scaleratio = 1,
+                  zeroline = F,
+                  showgrid = F
+              ),
+              plot_bgcolor = plot_bgcolor,
+              paper_bgcolor = paper_bgcolor,
+              showlegend = showlegend,
+              font = font
+          )
+      
+      if(!is.null(select)) {
+          p <-
+              p |> add_markers(
+                  x = x$metadata$x[select],
+                  y = x$metadata$y[select],
+                  name = "Selected Spectrum"
+              )
+      }
+  }
+  if(type == "static"){
+      mat <- matrix(plot_z, nrow = length(unique(x$metadata$x)), ncol = length(unique(x$metadata$y)))
+      return(image(unique(x$metadata$x), unique(x$metadata$y), mat, col = heat.colors(100), main = "Heatmap", xlab = "X-axis", ylab = "Y-axis", asp = 1))
   }
 
   return(p)

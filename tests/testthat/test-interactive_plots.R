@@ -26,6 +26,11 @@ test_that("heatmap_spec() generates 'plotly' object", {
     expect_s3_class("plotly")
 })
 
+test_that("heatmap_spec() generates static object", {
+    heatmap_spec(map, z = map$metadata$y, type = "static") |>
+        expect_silent() 
+})
+
 test_that("interactive_plot() generates 'plotly' object", {
   interactive_plot(map, x2 = raman_hdpe, select = 2) |>
         expect_s3_class("plotly")
