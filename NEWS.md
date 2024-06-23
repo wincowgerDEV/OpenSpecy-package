@@ -1,3 +1,10 @@
+# OpenSpecy 1.1.0
+
+## Minor Improvements
+
+- updated links
+
+
 # OpenSpecy 1.0.9
 
 ## Minor Improvements
