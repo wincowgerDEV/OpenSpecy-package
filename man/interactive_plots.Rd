@@ -25,6 +25,7 @@ plotly_spec(x, ...)
   plot_bgcolor = "rgba(17, 0, 73, 0)",
   paper_bgcolor = "rgb(0, 0, 0)",
   showlegend = FALSE,
+  make_rel = TRUE,
   ...
 )
 
@@ -85,6 +86,8 @@ spectral data for the second group.}
 \item{paper_bgcolor}{color value; passed to \code{\link[plotly]{layout}()}.}
 
 \item{showlegend}{whether to show the legend passed to}
+
+\item{make_rel}{logical, whether to make the spectra relative or use the raw values}
 
 \item{z}{optional numeric vector specifying the intensity values for the
 heatmap. If not provided, the function will use the intensity values from the
