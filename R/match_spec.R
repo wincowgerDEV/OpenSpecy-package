@@ -336,7 +336,7 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
   proc <- transpose(filled$spectra, make.names = "wavenumber") |>
     as.matrix()
 
-  pred <- predict(library$model,
+  pred <- predict.glmnet(library$model,
                   newx = proc,
                   min(library$model$lambda),
                   type = "response") |>

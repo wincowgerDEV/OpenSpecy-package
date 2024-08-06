@@ -64,6 +64,8 @@
 #'
 #' @importFrom plotly plot_ly add_trace add_markers subplot layout
 #' @importFrom data.table melt
+#' @importFrom graphics image
+#' @importFrom grDevices heat.colors
 #'
 #' @export
 plotly_spec <- function(x, ...) {
