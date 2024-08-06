@@ -13,7 +13,7 @@ collapse_spec(x, ...)
 
 \method{collapse_spec}{default}(x, ...)
 
-\method{collapse_spec}{OpenSpecy}(x, ...)
+\method{collapse_spec}{OpenSpecy}(x, fun = median, column = "feature_id", ...)
 
 def_features(x, ...)
 
@@ -35,6 +35,8 @@ def_features(x, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object}
+
+\item{fun}{function name to collapse by.}
 
 \item{features}{a logical vector or character vector describing which of the
 spectra are of features (\code{TRUE}) and which are not (\code{FALSE}).
@@ -97,7 +99,7 @@ spectral map oriented \code{OpenSpecy} object.
 \code{def_features()} accepts an \code{OpenSpecy} object and a logical or
 character vector describing which pixels correspond to particles.
 \code{collapse_spec()} takes an \code{OpenSpecy} object with particle-specific
-metadata (from \code{def_features()}) and collapses the spectra to median
+metadata (from \code{def_features()}) and collapses the spectra with a function
 intensities for each unique particle.
 It also updates the metadata with centroid coordinates, while preserving the
 feature information on area and Feret max.

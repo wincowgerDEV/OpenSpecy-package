@@ -9,7 +9,7 @@
 #' `def_features()` accepts an \code{OpenSpecy} object and a logical or
 #' character vector describing which pixels correspond to particles.
 #' `collapse_spec()` takes an \code{OpenSpecy} object with particle-specific
-#' metadata (from `def_features()`) and collapses the spectra to median
+#' metadata (from `def_features()`) and collapses the spectra with a function
 #' intensities for each unique particle.
 #' It also updates the metadata with centroid coordinates, while preserving the
 #' feature information on area and Feret max.
@@ -63,6 +63,7 @@
 #' @param top_right a two value vector specifying the x,y location in the visual image
 #' pixels where the top right of the spectral map extent is. y values are from 
 #' the top down while x values are left to right. 
+#' @param fun function name to collapse by. 
 #' @param \ldots additional arguments passed to subfunctions.
 #'
 #' @author
@@ -85,16 +86,16 @@ collapse_spec.default <- function(x, ...) {
 #' @rdname def_features
 #'
 #' @export
-collapse_spec.OpenSpecy <- function(x, ...) {
-  # Calculate the median spectra for each unique feature_id
+collapse_spec.OpenSpecy <- function(x, fun = median, column = "feature_id", ...) {
+  # Calculate the collapsed spectra for each unique feature_id
   ts <- transpose(x$spectra)
-  ts$id <- x$metadata$feature_id
-  x$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
+  ts$id <- x$metadata[[column]]
+  x$spectra <- ts[, lapply(.SD, fun, na.rm = T), by = "id"] |>
     transpose(make.names = "id")
   
 
       x$metadata <- x$metadata |>
-          unique(by = c("feature_id"))    
+          unique(by = c(column))    
 
   return(x)
 }

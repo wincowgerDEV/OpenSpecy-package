@@ -143,7 +143,15 @@ test_that("collapse particles returns expected values", {
   expect_true(check_OpenSpecy(id_map))
 
   test_collapsed <- collapse_spec(id_map)
+  
+  test_param2 <- collapse_spec(id_map, mean) |> expect_silent()
+  
+  check_OpenSpecy(test_param2) |> expect_true()
+  
+  test_param1 <- collapse_spec(id_map, mean, column = "feret_max") |> expect_silent()
 
+  check_OpenSpecy(test_param1) |> expect_true()
+  
   expect_true(check_OpenSpecy(test_collapsed))
 
   test_collapsed$metadata |> nrow() |>
