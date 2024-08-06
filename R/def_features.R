@@ -64,6 +64,7 @@
 #' pixels where the top right of the spectral map extent is. y values are from 
 #' the top down while x values are left to right. 
 #' @param fun function name to collapse by. 
+#' @param column column name in metadata to collapse by. 
 #' @param \ldots additional arguments passed to subfunctions.
 #'
 #' @author

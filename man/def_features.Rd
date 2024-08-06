@@ -38,6 +38,8 @@ def_features(x, ...)
 
 \item{fun}{function name to collapse by.}
 
+\item{column}{column name in metadata to collapse by.}
+
 \item{features}{a logical vector or character vector describing which of the
 spectra are of features (\code{TRUE}) and which are not (\code{FALSE}).
 If a character vector is provided, it should represent the different feature
