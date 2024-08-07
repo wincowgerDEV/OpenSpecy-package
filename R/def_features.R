@@ -91,7 +91,7 @@ collapse_spec.OpenSpecy <- function(x, fun = median, column = "feature_id", ...)
   # Calculate the collapsed spectra for each unique feature_id
   ts <- transpose(x$spectra)
   ts$id <- x$metadata[[column]]
-  x$spectra <- ts[, lapply(.SD, fun, na.rm = T), by = "id"] |>
+  x$spectra <- ts[, lapply(.SD, fun, ...), by = "id"] |>
     transpose(make.names = "id")
   
 
