@@ -70,15 +70,21 @@ test_that("match_spec() returns correct structure with AI", {
     expect_warning() |> expect_warning() |> expect_warning()
 
   set.seed(47)
-  rn <- runif(n = length(unique(lib$variables_in)))
-  fill <- as_OpenSpecy(as.numeric(unique(lib$variables_in)),
+  rn <- runif(n = length(unique(lib$all_variables)))
+  fill <- as_OpenSpecy(as.numeric(unique(lib$all_variables)),
                        spectra = data.frame(rn))
   
-  matches <- match_spec(x = preproc, library = lib, na.rm = T, fill = fill) |>
+  preproc2 <- conform_spec(unknown, range = fill$wavenumber,
+                          res = NULL) |>
+      smooth_intens() %>%
+      restrict_range(min = 900, max = 3000)
+  
+  matches <- match_spec(x = preproc2, library = lib, na.rm = T, fill = fill) |>
     expect_silent()
+  
   nrow(matches) |> expect_equal(1)
   names(matches) |> expect_contains(c("x", "y", "z", "value", "name"))
-  round(matches$value, 2) |> expect_equal(0.53)
+  round(matches$value, 2) |> expect_equal(0.37)
   grepl("polyolefin", matches$name) |> expect_true()
 })
 

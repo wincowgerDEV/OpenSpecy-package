@@ -388,6 +388,7 @@ fill_spec.OpenSpecy <- function(x, fill, ...) {
              function(x) {
                unlist(fill$spectra)
              })]
+  
   test[match(x$wavenumber, fill$wavenumber),] <- x$spectra
 
   x$spectra <- test
