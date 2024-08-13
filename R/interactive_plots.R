@@ -209,9 +209,11 @@ heatmap_spec.OpenSpecy <- function(x,
               type = "heatmap",
               hoverinfo = 'text',
               showscale = showlegend,
-              text = ~ paste(
-                  "row: ",
-                  1:nrow(x$metadata),
+              text = ~ paste0(
+                  if(!"file_name" %in% names(x$metadata)) 
+                        paste0("row: ", 1:nrow(x$metadata))
+                  else 
+                        paste0("file name: ", x$metadata$file_name),
                   "<br>x: ",
                   x$metadata$x,
                   ", y: ",
@@ -219,11 +221,11 @@ heatmap_spec.OpenSpecy <- function(x,
                   ", z: ",
                   plot_z,
                   if(!is.null(sn))
-                      paste("<br>snr: ", signif(sn, 2))
+                      paste0("<br>snr: ", signif(sn, 2))
                   else
                       "",
                   if(!is.null(cor))
-                      paste("<br>cor: ", signif(cor, 2))
+                      paste0("<br>cor: ", signif(cor, 2))
                   else
                       ""
               )
