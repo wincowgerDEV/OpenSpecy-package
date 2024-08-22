@@ -30,11 +30,6 @@ test_that("read_spec() gives expected output", {
   rds <- read_extdata("raman_hdpe.rds") |> read_spec() |> expect_silent()
   csv <- read_extdata("raman_hdpe_os.csv") |> read_spec() |> expect_silent()
 
-  read_extdata("raman_hdpe.yml") |> read_spec(share = tmp) |> expect_message()
-  read_extdata("raman_hdpe.json") |> read_spec(share = tmp) |> expect_message()
-  read_extdata("raman_hdpe.rds") |> read_spec(share = tmp) |> expect_message()
-  read_extdata("raman_hdpe_os.csv") |> read_spec(share = tmp) |> expect_message()
-  
   expect_s3_class(yml, "OpenSpecy")
   expect_s3_class(jsn, "OpenSpecy")
   expect_s3_class(rds, "OpenSpecy")

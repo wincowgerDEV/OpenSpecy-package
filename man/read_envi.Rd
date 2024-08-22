@@ -9,7 +9,6 @@ read_envi(
   header = NULL,
   spectral_smooth = F,
   sigma = c(1, 1, 1),
-  share = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
     material_form = NULL, material_phase = NULL, material_producer = NULL,
@@ -38,9 +37,6 @@ will be performed.}
 standard deviations for the \code{gaussianSmooth} function from the
 \code{mmand} package to describe how spectral smoothing occurs on each dimension.
 The first two dimensions are x and y, the third is the wavenumbers.}
-
-\item{share}{defaults to \code{NULL}; needed to share spectra with the
-Open Specy community; see \code{\link{share_spec}()} for details.}
 
 \item{metadata}{a named list of the metadata; see
 \code{\link{as_OpenSpecy}()} for details.}

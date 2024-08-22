@@ -11,8 +11,6 @@ test_that("opus files are read correctly", {
 
   read_extdata("raman_hdpe.csv") |> read_opus() |>
     expect_error()
-  read_extdata("ftir_ps.0") |> read_opus(share = tmp) |> expect_message() |>
-    expect_warning()
 
   expect_s3_class(single, "OpenSpecy")
   expect_s3_class(multi, "OpenSpecy")

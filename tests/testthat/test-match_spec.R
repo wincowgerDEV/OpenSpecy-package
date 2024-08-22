@@ -58,35 +58,6 @@ test_that("ai_classify() handles input errors correctly", {
   ai_classify(1:1000) |> expect_error()
 })
 
-test_that("match_spec() returns correct structure with AI", {
-  skip_on_cran()
-  skip_if_offline(host = "api.osf.io")
-
-  get_lib("model", path = tmp)
-  lib <- load_lib(type = "model", path = tmp)
-
-  check_OpenSpecy(lib) |>
-    expect_error() |> expect_warning() |> expect_warning() |>
-    expect_warning() |> expect_warning() |> expect_warning()
-
-  set.seed(47)
-  rn <- runif(n = length(unique(lib$all_variables)))
-  fill <- as_OpenSpecy(as.numeric(unique(lib$all_variables)),
-                       spectra = data.frame(rn))
-  
-  preproc2 <- conform_spec(unknown, range = fill$wavenumber,
-                          res = NULL) |>
-      smooth_intens() %>%
-      restrict_range(min = 900, max = 3000)
-  
-  matches <- match_spec(x = preproc2, library = lib, na.rm = T, fill = fill) |>
-    expect_silent()
-  
-  nrow(matches) |> expect_equal(1)
-  names(matches) |> expect_contains(c("x", "y", "z", "value", "name"))
-  round(matches$value, 2) |> expect_equal(0.37)
-  grepl("polyolefin", matches$name) |> expect_true()
-})
 
 test_that("match_spec() handles input errors correctly", {
   match_spec(1:1000) |> expect_error()

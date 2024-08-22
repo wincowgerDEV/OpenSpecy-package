@@ -35,8 +35,8 @@
 #' @export
 run_app <- function(path = "system", log = TRUE, ref = "main",
                     test_mode = FALSE, ...) {
-  pkg <- c("config", "shinyjs", "shinyWidgets", "bs4Dash",
-           "dplyr", "ggplot2", "DT", "aws.s3", "mongolite", "loggit")
+  pkg <- c("shinyjs", "shinyWidgets", "bs4Dash",
+           "dplyr", "ggplot2", "DT")
 
   miss <- pkg[!(pkg %in% installed.packages()[ , "Package"])]
 
