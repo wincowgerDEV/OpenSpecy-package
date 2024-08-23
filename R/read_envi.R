@@ -92,7 +92,9 @@ read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1)
   names(dt) <- c("y", "x", "z", "value")
   dt[, 1:2] <- dt[, 1:2] -1
 
-  os <- as_OpenSpecy(x = hdr$wavelength,
+  if(!"wavelength" %in% names(hdr)) warning("wavenumbers not found, using index values instead")
+  
+  os <- as_OpenSpecy(x = if("wavelength" %in% names(hdr)) hdr$wavelength else 1:dim(arr)[3],
                      spectra = dcast(dt, z ~ y + x)[, -1],
                      metadata = c(metadata, md),
                      coords = dt[, 1:2] |> unique(),
@@ -140,8 +142,10 @@ read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1)
                            "header offset")
   hdr[tmp] <- lapply(hdr[tmp], as.numeric)
 
-  hdr$wavelength <- strsplit(hdr$wavelength, "[,;[:blank:]]+") |> unlist() |>
-    as.numeric()
+  if("wavelength" %in% names(hdr)){
+      hdr$wavelength <- strsplit(hdr$wavelength, "[,;[:blank:]]+") |> unlist() |>
+          as.numeric()        
+  }
 
   return(hdr)
 }
