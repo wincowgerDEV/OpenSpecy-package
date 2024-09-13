@@ -5,7 +5,7 @@
 #' @description
 #' Functions for reading spectral data from external file types.
 #' Currently supported reading formats are .csv and other text files, .asp,
-#' .spa, .spc, and .jdx.
+#' .spa, .spc, .xyz, and .jdx.
 #' Additionally, .0 (OPUS) and .dat (ENVI) files are supported via
 #' \code{\link{read_opus}()} and \code{\link{read_envi}()}, respectively.
 #' \code{\link{read_zip}()} takes any of the files listed above.
@@ -97,6 +97,14 @@ read_text <- function(file, colnames = NULL, method = "fread",
       spectra <- dt[,-"WaveNumber"]
       os <- as_OpenSpecy(x = as.numeric(wavenumbers), spectra = spectra,
                          metadata = metadata)
+  }
+  else if(grepl("\\.xyz$", basename(file), ignore.case = T)){
+      wavenumbers <- as.numeric(dt[1, ])[-c(1:2)]
+      # Remove the first row
+      xy <- dt[-1,1:2]
+      colnames(xy) <- c("x", "y")
+      dt <- transpose(dt[-1, -c(1:2)])
+      os <- as_OpenSpecy(x = wavenumbers, spectra = dt, metadata = xy)
   }
   else if(sum(grepl("^[0-9]{1,}$",colnames(dt))) > 4) {
     wavenumbers <- colnames(dt)[grepl("^[0-9]{1,}$",colnames(dt))]
