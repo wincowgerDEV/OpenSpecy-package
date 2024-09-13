@@ -6,8 +6,6 @@
 #' \url{https://github.com/pierreroudier/opusreader}.
 #'
 #' @param file character vector with path to file(s).
-#' @param share defaults to \code{NULL}; needed to share spectra with the
-#' Open Specy community; see \code{\link{share_spec}()} for details.
 #' @param metadata a named list of the metadata; see
 #' \code{\link{as_OpenSpecy}()} for details.
 #' @param type character vector of spectra types to extract from OPUS binary
@@ -60,7 +58,7 @@
 #' @importFrom stats approx
 #' @importFrom data.table as.data.table data.table
 #' @export
-read_opus <- function(file, share = NULL,
+read_opus <- function(file,
                       metadata = list(
                         file_name = basename(file),
                         user_name = NULL,
@@ -182,8 +180,6 @@ read_opus <- function(file, share = NULL,
                      spectra = res$spec,
                      metadata = cbind(as.data.table(metadata), res$metadata),
                      session_id = T)
-
-  if (!is.null(share)) share_spec(os, file = file, share = share)
 
   return(os)
 }

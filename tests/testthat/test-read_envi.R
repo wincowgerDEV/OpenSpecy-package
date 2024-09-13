@@ -3,10 +3,11 @@ tmp <- file.path(tempdir(), "OpenSpecy-testthat")
 dir.create(tmp, showWarnings = F)
 
 test_that("ENVI files are read", {
-  tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any() |>
+  tiny_map <- read_extdata("CA_tiny_map.zip") |> 
+      read_any() |>
+      expect_silent()
+  read_extdata("CA_tiny_map.zip") |> read_any() |>
     expect_silent()
-  read_extdata("CA_tiny_map.zip") |> read_any(share = tmp) |>
-    expect_message() |> expect_warning()
 
   expect_s3_class(tiny_map, "OpenSpecy")
   expect_true(check_OpenSpecy(tiny_map))

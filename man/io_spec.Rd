@@ -14,7 +14,7 @@ write_spec(x, ...)
 
 \method{write_spec}{OpenSpecy}(x, file, method = NULL, digits = getOption("digits"), ...)
 
-read_spec(file, share = NULL, method = NULL, ...)
+read_spec(file, method = NULL, ...)
 
 as_hyperSpec(x)
 }
@@ -28,9 +28,6 @@ Defaults to the appropriate function based on the file extension.}
 
 \item{digits}{number of significant digits to use when formatting numeric
 values; defaults to \code{\link[base]{getOption}("digits")}.}
-
-\item{share}{defaults to \code{NULL}; needed to share spectra with the
-Open Specy community; see \code{\link{share_spec}()} for details.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }

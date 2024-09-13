@@ -182,32 +182,6 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
 
 #' @rdname manage_lib
 #'
-#' @importFrom utils read.csv
-#' @importFrom osfr osf_retrieve_node osf_ls_files osf_download
-#'
-#' @export
-get_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
-                             "model"),
-                    path = "system", node = "x7dpz", conflicts = "overwrite",
-                    ...) {
-  lp <- ifelse(path == "system",
-               system.file("extdata", package = "OpenSpecy"),
-               path)
-
-  osf <- osf_retrieve_node(node) |>
-    osf_ls_files(pattern = ".rds", n_max = Inf)
-
-  message("Fetching Open Specy reference libraries from OSF ...")
-    osf |> subset(grepl(
-      paste0("(", paste(type, collapse = "|"), ").rds"),
-      osf$name)) |>
-      osf_download(path = lp, conflicts = conflicts, progress = TRUE, ...)
-
-  message("Use 'load_lib()' to load the library")
-}
-
-#' @rdname manage_lib
-#'
 #' @export
 load_lib <- function(type, path = "system") {
   lp <- ifelse(path == "system",

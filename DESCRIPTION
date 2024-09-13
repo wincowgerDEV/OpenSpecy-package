@@ -1,4 +1,4 @@
-Package: OpenSpecy
+Package: OpenSpecyWebr
 Type: Package
 Title: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 Version: 1.1.0
@@ -80,7 +80,6 @@ Imports:
     data.table,
     jsonlite,
     yaml,
-    osfr,
     caTools,
     hyperSpec,
     mmand,
@@ -94,15 +93,11 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.1.9),
-    aws.s3, 
-    loggit,
-    config, 
     shinyjs, 
     shinyWidgets,
     bs4Dash,
     dplyr, 
     DT,
-    mongolite, 
     ggplot2
 RoxygenNote: 7.3.1
 Roxygen: list(markdown = TRUE)

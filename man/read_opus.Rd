@@ -6,7 +6,6 @@
 \usage{
 read_opus(
   file,
-  share = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
     material_form = NULL, material_phase = NULL, material_producer = NULL,
@@ -25,9 +24,6 @@ read_opus(
 }
 \arguments{
 \item{file}{character vector with path to file(s).}
-
-\item{share}{defaults to \code{NULL}; needed to share spectra with the
-Open Specy community; see \code{\link{share_spec}()} for details.}
 
 \item{metadata}{a named list of the metadata; see
 \code{\link{as_OpenSpecy}()} for details.}
