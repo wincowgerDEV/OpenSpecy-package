@@ -13,8 +13,6 @@
 #' standard deviations for the \code{gaussianSmooth} function from the
 #' \code{mmand} package to describe how spectral smoothing occurs on each dimension.
 #' The first two dimensions are x and y, the third is the wavenumbers.
-#' @param share defaults to \code{NULL}; needed to share spectra with the
-#' Open Specy community; see \code{\link{share_spec}()} for details.
 #' @param metadata a named list of the metadata; see
 #' \code{\link{as_OpenSpecy}()} for details.
 #' @param \ldots further arguments passed to the submethods.
@@ -45,7 +43,7 @@
 #' @importFrom caTools read.ENVI
 #' @importFrom mmand gaussianSmooth
 #' @export
-read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1), share = NULL,
+read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1),
                       metadata = list(
                         file_name = basename(file),
                         user_name = NULL,
@@ -117,8 +115,6 @@ read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1)
                      metadata = c(metadata, md),
                      coords = dt[, 1:2] |> unique(),
                      session_id = T)
-
-  if (!is.null(share)) share_spec(os, file = file, share = share)
 
   return(os)
 }

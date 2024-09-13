@@ -8,8 +8,6 @@
 #'
 #' @param x an object of class \code{\link{OpenSpecy}}.
 #' @param file file path to be read from or written to.
-#' @param share defaults to \code{NULL}; needed to share spectra with the
-#' Open Specy community; see \code{\link{share_spec}()} for details.
 #' @param method optional; function to be used as a custom reader or writer.
 #' Defaults to the appropriate function based on the file extension.
 #' @param digits number of significant digits to use when formatting numeric
@@ -110,7 +108,7 @@ write_spec.OpenSpecy <- function(x, file, method = NULL,
 #' @rdname io_spec
 #'
 #' @export
-read_spec <- function(file, share = NULL, method = NULL, ...) {
+read_spec <- function(file, method = NULL, ...) {
   if (is.null(method)) {
     if (grepl("(\\.yaml$)|(\\.yml$)", file, ignore.case = T)) {
       yml <- read_yaml(file = file, ...)
@@ -146,8 +144,6 @@ read_spec <- function(file, share = NULL, method = NULL, ...) {
     os <- OpenSpecy(io, coords = NULL)
     os$metadata$file_name <- basename(file)
   }
-
-  if (!is.null(share)) share_spec(os, file = file, share = share)
 
   return(os)
 }

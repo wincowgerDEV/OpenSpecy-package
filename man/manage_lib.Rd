@@ -2,7 +2,6 @@
 % Please edit documentation in R/manage_lib.R
 \name{check_lib}
 \alias{check_lib}
-\alias{get_lib}
 \alias{load_lib}
 \alias{rm_lib}
 \title{Manage spectral libraries}
@@ -11,14 +10,6 @@ check_lib(
   type = c("derivative", "nobaseline", "raw", "mediod", "model"),
   path = "system",
   condition = "warning"
-)
-
-get_lib(
-  type = c("derivative", "nobaseline", "raw", "mediod", "model"),
-  path = "system",
-  node = "x7dpz",
-  conflicts = "overwrite",
-  ...
 )
 
 load_lib(type, path = "system")

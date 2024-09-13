@@ -58,6 +58,7 @@ test_that("ai_classify() handles input errors correctly", {
   ai_classify(1:1000) |> expect_error()
 })
 
+
 test_that("match_spec() returns correct structure with AI", {
   skip_on_cran()
   skip_if_offline(host = "api.osf.io")

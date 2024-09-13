@@ -8,10 +8,6 @@ test_that("reading in multi files doesn't throw error", {
   expect_silent(multi <- read_extdata("testdata_zipped.zip") |> read_any() |> c_spec())
   expect_s3_class(multi, "OpenSpecy")
 
-  read_extdata("testdata_zipped.zip") |> read_any(share = tmp) |>
-    expect_message() |> expect_message() |> expect_message() |>
-    expect_warning() |> expect_warning() |> expect_warning()
-
   expect_equal(multi$wavenumber, raman_hdpe$wavenumber)
   expect_equal(multi$spectra$intensity, raman_hdpe$spectra$intensity)
   expect_equal(multi$spectra$intensity.1, raman_hdpe$spectra$intensity)
