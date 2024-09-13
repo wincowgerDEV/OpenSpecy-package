@@ -115,7 +115,7 @@ named \code{"wavenumber"} and \code{"intensity"}.
 \description{
 Functions for reading spectral data from external file types.
 Currently supported reading formats are .csv and other text files, .asp,
-.spa, .spc, and .jdx.
+.spa, .spc, .xyz, and .jdx.
 Additionally, .0 (OPUS) and .dat (ENVI) files are supported via
 \code{\link{read_opus}()} and \code{\link{read_envi}()}, respectively.
 \code{\link{read_zip}()} takes any of the files listed above.

@@ -75,6 +75,8 @@ read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1)
   if(is.null(header))
     header <- sub(pattern = "(.*)\\..*$", replacement = "\\1", file) |>
       paste0(".hdr")
+  
+  
 
   hdr <- .read_envi_header(header)
   arr <- read.ENVI(file, header)
@@ -89,8 +91,26 @@ read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1)
   md <- hdr[names(hdr) != "wavelength"]
   names(dt) <- c("y", "x", "z", "value")
   dt[, 1:2] <- dt[, 1:2] -1
+  if("wavelength" %in% names(hdr)){
+      wavenumbers <- hdr$wavelength
+  }
+  else if(grepl("\\.img$", file) & file.exists(gsub("\\.img$", ".parms", file))){
+      metadata <- readLines(gsub("\\.img$", ".parms", file))
+      names <- gsub("=.*", "", metadata)
+      vals <- gsub(".*=", "", metadata)
+      df_metadata <- as.data.table(t(vals))
+      colnames(df_metadata) <- names
+      wavenumbers = seq(to = as.numeric(df_metadata[["LXV"]]), 
+                        from = as.numeric(df_metadata[["FXV"]]), 
+                        length.out = as.numeric(df_metadata[["NPT"]]))
+  }
+  else{
+      wavenumbers = NULL
+  }
 
-  os <- as_OpenSpecy(x = hdr$wavelength,
+  if(is.null(wavenumbers)) warning("wavenumbers not found, using index values instead")
+  
+  os <- as_OpenSpecy(x = if(!is.null(wavenumbers)) wavenumbers else 1:dim(arr)[3],
                      spectra = dcast(dt, z ~ y + x)[, -1],
                      metadata = c(metadata, md),
                      coords = dt[, 1:2] |> unique(),
@@ -136,8 +156,10 @@ read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1)
                            "header offset")
   hdr[tmp] <- lapply(hdr[tmp], as.numeric)
 
-  hdr$wavelength <- strsplit(hdr$wavelength, "[,;[:blank:]]+") |> unlist() |>
-    as.numeric()
+  if("wavelength" %in% names(hdr)){
+      hdr$wavelength <- strsplit(hdr$wavelength, "[,;[:blank:]]+") |> unlist() |>
+          as.numeric()        
+  }
 
   return(hdr)
 }
