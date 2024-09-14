@@ -1,3 +1,21 @@
+# OpenSpecy 1.2.0
+
+## Potentially Breaking
+
+- Removed share data options in all functions. They just weren't useful to users at all and were more of an administrative thing. Keeping them forced us to be incompatible with webR. 
+
+## Major
+
+- added support for siMPle files. 
+- added support for xyz files. 
+- added support for img files. 
+- improved interactive plot popups. 
+- changed how libraries are downloaded to avoid osfr pacakage. 
+- increased support for options when collapsing maps. 
+- avoid forcing min-max relative plots in interactive mode. 
+- create static map option. 
+
+
 # OpenSpecy 1.1.0
 
 ## Minor Improvements
