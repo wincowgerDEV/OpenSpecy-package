@@ -25,16 +25,6 @@
 #' @param path where to save or look for local library files; defaults to
 #' \code{"system"} pointing to
 #' \code{system.file("extdata", package = "OpenSpecy")}.
-#' @param conflicts determines what happens when a file with the same name
-#' exists at the specified destination. Can be one of the following (see
-#' \code{\link[osfr]{osf_download}()} for details):
-#' \describe{
-#'   \item{"error"}{throw an error and abort the file transfer operation.}
-#'   \item{"skip"}{skip the conflicting file(s) and continue transferring the
-#'   remaining files.}
-#'   \item{"overwrite" (default)}{ replace the existing file with the
-#'   transferred copy.}
-#' }
 #' @param condition determines if \code{check_lib()} should warn
 #' (\code{"warning"}, the default) or throw and error (\code{"error"}).
 #' @param \ldots further arguments passed to \code{\link[osfr]{osf_download}()}.
@@ -180,7 +170,7 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
 
 #' @rdname manage_lib
 #'
-#' @importFrom utils read.csv
+#' @importFrom utils read.csv download.file sessionInfo
 #'
 #' @export
 get_lib <- function(type = c("derivative", 
@@ -199,27 +189,27 @@ get_lib <- function(type = c("derivative",
     
     if("derivative" %in% type){
         message("Fetching derivative library...")
-        download.file("https://osf.io/download/2qbkt/", destfile = paste0(lp, "derivative.rds"))
+        download.file("https://osf.io/download/2qbkt/", destfile = paste0(lp, "\\derivative.rds"))
     }
     
     if("nobaseline" %in% type){
         message("Fetching nobaseline library...")
-        download.file("https://osf.io/download/jy7zk/", destfile = paste0(lp, "nobaseline.rds"))
+        download.file("https://osf.io/download/jy7zk/", destfile = paste0(lp, "\\nobaseline.rds"))
     }
     
     if("medoid" %in% type){
         message("Fetching mediod library...")
-        download.file("https://osf.io/download/yzscg/", destfile = paste0(lp, "mediod.rds"))
+        download.file("https://osf.io/download/yzscg/", destfile = paste0(lp, "\\mediod.rds"))
     }
     
     if("model" %in% type){
         message("Fetching model library...")
-        download.file("https://osf.io/download/v2yr3/", destfile = paste0(lp, "model.rds"))
+        download.file("https://osf.io/download/v2yr3/", destfile = paste0(lp, "\\model.rds"))
     }
     
     if("raw" %in% type){
         message("Fetching raw library...")
-        download.file("https://osf.io/download/kzv3n/", destfile = paste0(lp, "raw.rds"))
+        download.file("https://osf.io/download/kzv3n/", destfile = paste0(lp, "\\raw.rds"))
     }
     
     message("Use 'load_lib()' to load the library")
