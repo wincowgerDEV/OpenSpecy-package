@@ -20,10 +20,8 @@
 #' \code{rm_lib()} removes the libraries from your computer.
 #'
 #' @param type library type to check/retrieve; defaults to
-#' \code{c("derivative", "nobaseline", "raw", "mediod", "model")} which reads
+#' \code{c("derivative", "nobaseline", "raw", "medoid", "model")} which reads
 #' everything.
-#' @param node the OSF node to be retrieved; should be \code{"x7dpz"} unless you
-#' maintain your own OSF node with spectral libraries.
 #' @param path where to save or look for local library files; defaults to
 #' \code{"system"} pointing to
 #' \code{system.file("extdata", package = "OpenSpecy")}.
@@ -179,6 +177,54 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
 
   invisible()
 }
+
+#' @rdname manage_lib
+#'
+#' @importFrom utils read.csv
+#'
+#' @export
+get_lib <- function(type = c("derivative", 
+                             "nobaseline", 
+                             "raw", 
+                             "medoid",
+                             "model"),
+                    path = "system",
+                    ...) {
+    
+    lp <- ifelse(path == "system",
+                 system.file("extdata", package = "OpenSpecy"),
+                 path)
+    
+    message("Fetching Open Specy reference libraries from OSF ...")
+    
+    if("derivative" %in% type){
+        message("Fetching derivative library...")
+        download.file("https://osf.io/download/2qbkt/", destfile = paste0(lp, "derivative.rds"))
+    }
+    
+    if("nobaseline" %in% type){
+        message("Fetching nobaseline library...")
+        download.file("https://osf.io/download/jy7zk/", destfile = paste0(lp, "nobaseline.rds"))
+    }
+    
+    if("medoid" %in% type){
+        message("Fetching mediod library...")
+        download.file("https://osf.io/download/yzscg/", destfile = paste0(lp, "mediod.rds"))
+    }
+    
+    if("model" %in% type){
+        message("Fetching model library...")
+        download.file("https://osf.io/download/v2yr3/", destfile = paste0(lp, "model.rds"))
+    }
+    
+    if("raw" %in% type){
+        message("Fetching raw library...")
+        download.file("https://osf.io/download/kzv3n/", destfile = paste0(lp, "raw.rds"))
+    }
+    
+    message("Use 'load_lib()' to load the library")
+}
+
 
 #' @rdname manage_lib
 #'
