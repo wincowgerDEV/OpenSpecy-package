@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,7 +51,6 @@
 <span>  header <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  spectral_smooth <span class="op">=</span> <span class="cn">F</span>,</span>
 <span>  sigma <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  share <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>file_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span>, user_name <span class="op">=</span> <span class="cn">NULL</span>, contact_info <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>    organization <span class="op">=</span> <span class="cn">NULL</span>, citation <span class="op">=</span> <span class="cn">NULL</span>, spectrum_type <span class="op">=</span> <span class="cn">NULL</span>, spectrum_identity <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>    material_form <span class="op">=</span> <span class="cn">NULL</span>, material_phase <span class="op">=</span> <span class="cn">NULL</span>, material_producer <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -91,11 +90,6 @@ will be performed.</p></dd>
 standard deviations for the <code>gaussianSmooth</code> function from the
 <code>mmand</code> package to describe how spectral smoothing occurs on each dimension.
 The first two dimensions are x and y, the third is the wavenumbers.</p></dd>
-
-
-<dt id="arg-share">share<a class="anchor" aria-label="anchor" href="#arg-share"></a></dt>
-<dd><p>defaults to <code>NULL</code>; needed to share spectra with the
-Open Specy community; see <code><a href="share_spec.html">share_spec</a>()</code> for details.</p></dd>
 
 
 <dt id="arg-metadata">metadata<a class="anchor" aria-label="anchor" href="#arg-metadata"></a></dt>

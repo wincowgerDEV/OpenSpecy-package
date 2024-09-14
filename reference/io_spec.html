@@ -11,7 +11,7 @@ and metadata. Currently supported formats are .y(a)ml, .json, .csv, or .rds."></
 
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -60,7 +60,7 @@ and <code>metadata</code>. Currently supported formats are .y(a)ml, .json, .csv,
 <span><span class="co"># S3 method for class 'OpenSpecy'</span></span>
 <span><span class="fu">write_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">file</span>, method <span class="op">=</span> <span class="cn">NULL</span>, digits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"digits"</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">read_spec</span><span class="op">(</span><span class="va">file</span>, share <span class="op">=</span> <span class="cn">NULL</span>, method <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">read_spec</span><span class="op">(</span><span class="va">file</span>, method <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">as_hyperSpec</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -85,11 +85,6 @@ Defaults to the appropriate function based on the file extension.</p></dd>
 <dt id="arg-digits">digits<a class="anchor" aria-label="anchor" href="#arg-digits"></a></dt>
 <dd><p>number of significant digits to use when formatting numeric
 values; defaults to <code><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a>("digits")</code>.</p></dd>
-
-
-<dt id="arg-share">share<a class="anchor" aria-label="anchor" href="#arg-share"></a></dt>
-<dd><p>defaults to <code>NULL</code>; needed to share spectra with the
-Open Specy community; see <code><a href="share_spec.html">share_spec</a>()</code> for details.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -227,7 +222,7 @@ precision of the numbers returned if using multiple devices for .json and
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 raman_hdpe.csv CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: ef70bfc67ad5e0ff5291de99f15cf9ba/2c59d003b09355bcd2a5dfad6a9a0a97</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: f2101f0481ec3a298b7eb8ad30089173/45bb46867eb717d5b89647129c35dd37</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
