@@ -189,27 +189,27 @@ get_lib <- function(type = c("derivative",
     
     if("derivative" %in% type){
         message("Fetching derivative library...")
-        download.file("https://osf.io/download/2qbkt/", destfile = paste0(lp, "\\derivative.rds"))
+        download.file("https://osf.io/download/2qbkt/", destfile = paste0(lp, "\\derivative.rds"), mode = "wb")
     }
     
     if("nobaseline" %in% type){
         message("Fetching nobaseline library...")
-        download.file("https://osf.io/download/jy7zk/", destfile = paste0(lp, "\\nobaseline.rds"))
+        download.file("https://osf.io/download/jy7zk/", destfile = paste0(lp, "\\nobaseline.rds"), mode = "wb")
     }
     
     if("medoid" %in% type){
         message("Fetching mediod library...")
-        download.file("https://osf.io/download/yzscg/", destfile = paste0(lp, "\\mediod.rds"))
+        download.file("https://osf.io/download/yzscg/", destfile = paste0(lp, "\\mediod.rds"), mode = "wb")
     }
     
     if("model" %in% type){
         message("Fetching model library...")
-        download.file("https://osf.io/download/v2yr3/", destfile = paste0(lp, "\\model.rds"))
+        download.file("https://osf.io/download/v2yr3/", destfile = paste0(lp, "\\model.rds"), mode = "wb")
     }
     
     if("raw" %in% type){
         message("Fetching raw library...")
-        download.file("https://osf.io/download/kzv3n/", destfile = paste0(lp, "\\raw.rds"))
+        download.file("https://osf.io/download/kzv3n/", destfile = paste0(lp, "\\raw.rds"), mode = "wb")
     }
     
     message("Use 'load_lib()' to load the library")
