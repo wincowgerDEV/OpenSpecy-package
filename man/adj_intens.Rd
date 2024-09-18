@@ -4,13 +4,13 @@
 \alias{adj_intens}
 \alias{adj_intens.default}
 \alias{adj_intens.OpenSpecy}
-\title{Adjust spectral intensities to absorbance units.}
+\title{Adjust spectral intensities to standard absorbance units.}
 \usage{
 adj_intens(x, ...)
 
-\method{adj_intens}{default}(x, ...)
+\method{adj_intens}{default}(x, type = "none", make_rel = TRUE, log_exp = "none", ...)
 
-\method{adj_intens}{OpenSpecy}(x, type = "none", make_rel = TRUE, ...)
+\method{adj_intens}{OpenSpecy}(x, type = "none", make_rel = TRUE, log_exp = "none", ...)
 }
 \arguments{
 \item{x}{a list object of class \code{OpenSpecy}.}
@@ -22,6 +22,9 @@ from \code{"reflectance"} or \code{"transmittance"} data.}
 \item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
 with \code{\link{make_rel}()}.}
 
+\item{log_exp}{a character string specifying whether the input needs to be log
+transformed \code{"log"}, exp transformed \code{"exp"}, or not (\code{"none"}, default).}
+
 \item{\ldots}{further arguments passed to submethods; this is
 to \code{\link{adj_neg}()} for \code{adj_intens()} and
 to \code{\link{conform_res}()} for \code{conform_intens()}.}
@@ -31,7 +34,8 @@ to \code{\link{conform_res}()} for \code{conform_intens()}.}
 named \code{"wavenumber"} and \code{"intensity"}.
 }
 \description{
-Converts reflectance or transmittance intensity units to absorbance units.
+Converts reflectance or transmittance intensity units to absorbance units and
+adjust log or exp transformed units.
 }
 \details{
 Many of the Open Specy functions will assume that the spectrum is in
