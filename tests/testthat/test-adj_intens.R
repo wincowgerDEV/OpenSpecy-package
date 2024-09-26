@@ -4,7 +4,7 @@ raman_hdpe$spectra$intensity2 <- raman_hdpe$spectra$intensity * 2
 raman_hdpe$metadata <- rbind(raman_hdpe$metadata, raman_hdpe$metadata)
 
 test_that("adj_intens() handles input errors correctly", {
-  adj_intens(1:1000) |> expect_error()
+  adj_intens("abc") |> expect_error()
 })
 
 test_that("adj_intens() works as expected", {
@@ -12,6 +12,9 @@ test_that("adj_intens() works as expected", {
   adj_intens(raman_hdpe, type = "reflectance") |> expect_silent()
   adj_intens(raman_hdpe, type = "transmittance") |> expect_silent()
   adj_intens(raman_hdpe, type = "transmission") |> expect_error()
+  
+  adj_intens(raman_hdpe, type = "reflectance", log_exp = "log") |> expect_silent()
+  adj_intens(raman_hdpe, type = "transmittance", log_exp = "exp") |> expect_silent()
   
   expect_equal(
     cor(raman_hdpe$spectra$intensity, adj$spectra$intensity), 1,
