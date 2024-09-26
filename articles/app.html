@@ -64,7 +64,7 @@
 <p>Win Cowger,
 Zacharias Steinmetz</p>
             
-            <h4 data-toc-skip class="date">2024-09-14</h4>
+            <h4 data-toc-skip class="date">2024-09-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/vignettes/app.Rmd" class="external-link"><code>vignettes/app.Rmd</code></a></small>
       <div class="d-none name"><code>app.Rmd</code></div>
@@ -106,7 +106,7 @@ the package, you just need to read in the library and run the command
 <p>Once the app is open, if you have your own data, click
 <strong>Browse</strong> at the top left hand corner of the Analyze
 Spectra tab.</p>
-<p><img src="app/mainpage.jpg" width="98%" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fmainpage.jpg" width="98%" style="display: block; margin: auto;"></p>
 <p>Before uploading, indicate if you would like to share the uploaded
 data or not using the slider. If selected, any data uploaded to the tool
 will automatically be shared under <a href="https://creativecommons.org/licenses/by/4.0/" class="external-link">CC-BY 4.0
@@ -115,7 +115,7 @@ use to improve spectral analysis, build machine learning tools, etc.
 Some users may choose not to share if they need to keep their data
 private. If switched off, none of the uploaded data will be stored or
 shared in Open Specy.</p>
-<p><img src="app/uploadfile.jpg" width="137" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fuploadfile.jpg" width="137" style="display: block; margin: auto;"></p>
 <p>Open Specy allows for upload of native Open Specy .y(a)ml, .json, or
 .rds files. In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip
 files can be imported. .zip files can either contain multiple files with
@@ -174,7 +174,7 @@ it.</p>
 supports many spectral file conversions see <a href="http://wincowger.com/OpenSpecy-package/articles/spectragryph.html">Spectragryph
 Tutorial</a>.</p>
 <p>If you don’t have your own data, you can use a test dataset.</p>
-<p><img src="app/samplefile.jpg" width="134" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fsamplefile.jpg" width="134" style="display: block; margin: auto;"></p>
 <p>A .csv file of an HDPE Raman spectrum will download on your computer.
 This file can also be used as a template for formatting .csv data into
 an Open Specy accepted format.</p>
@@ -189,7 +189,7 @@ an Open Specy accepted format.</p>
 main window. This plot is selectable, zoomable, and provides information
 on hover. You can also save a .png file of the plot view using the
 camera icon at the top right when you hover over the plot.</p>
-<p><img src="app/spectra_vis.jpg" width="210" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fspectra_vis.jpg" width="210" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level3">
 <h3 id="maps">Maps<a class="anchor" aria-label="anchor" href="#maps"></a>
@@ -208,7 +208,7 @@ app, the colors of the heatmap are either the signal and noise or the
 spectral identifications depending on whether the identification is
 turned on or not. Pixels are black if the spectra does not pass the
 signal-noise threshold and/or the correlation threshold.</p>
-<p><img src="app/map_vis.jpg" width="210" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fmap_vis.jpg" width="210" style="display: block; margin: auto;"></p>
 </div>
 </div>
 <div class="section level2">
@@ -224,7 +224,7 @@ transformation, it is kind of magic, it does something similar to
 smoothing, baseline subtraction, and intensity correction simultaneously
 and really quickly. By clicking processing you should see the spectrum
 update with the processed spectra.</p>
-<p><img src="app/processing.jpg" width="210" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fprocessing.jpg" width="210" style="display: block; margin: auto;"></p>
 <p>To view the raw data again, just deselect processing. Toggling
 processing on and off can help you to make sure that the spectra are
 processed correctly.</p>
@@ -243,18 +243,18 @@ multiplies the mean signal by the standard deviation of the signal and
 Total Signal sums the intensities. The latter can be really useful for
 thresholding spectral maps to identify particles which we will discuss
 later.</p>
-<p><img src="app/snr_threshold.jpg" width="200" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fsnr_threshold.jpg" width="200" style="display: block; margin: auto;"></p>
 <p>If analyzing spectra in batch, we recommend looking at the heatmap
 and optimizing the percent of spectra that are above your signal to
 noise threshold to determine the correct settings instead of looking
 through spectra individually. Good Signal tells you what percent of your
 data are above your signal threshold.</p>
-<p><img src="app/signal_settings.jpg" width="318" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fsignal_settings.jpg" width="318" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level3">
 <h3 id="intensity-adjustment">Intensity Adjustment<a class="anchor" aria-label="anchor" href="#intensity-adjustment"></a>
 </h3>
-<p><img src="app/intensityadjustment.jpg" width="195" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fintensityadjustment.jpg" width="195" style="display: block; margin: auto;"></p>
 <p>Open Specy assumes that intensity units are in absorbance units but
 Open Specy can adjust reflectance or transmittance spectra to absorbance
 units using this selection. The transmittance adjustment uses the
@@ -281,7 +281,7 @@ wavenumber resolutions.</p>
 <div class="section level3">
 <h3 id="smoothing">Smoothing<a class="anchor" aria-label="anchor" href="#smoothing"></a>
 </h3>
-<p><img src="app/smoothingpoly.jpg" width="230" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fsmoothingpoly.jpg" width="230" style="display: block; margin: auto;"></p>
 <p>The value on the slider is the polynomial order of the <a href="https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter" class="external-link">Savitzky-Golay
 (SG) filter</a>. Higher numbers lead to more wiggly fits and thus less
 smooth, lower numbers lead to more smooth fits. The SG filter is fit to
@@ -298,7 +298,7 @@ we set it as the default.</p>
 <div class="section level3">
 <h3 id="baseline-correction">Baseline Correction<a class="anchor" aria-label="anchor" href="#baseline-correction"></a>
 </h3>
-<p><img src="app/baselinecorrectionpoly.jpg" width="200" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fbaselinecorrectionpoly.jpg" width="200" style="display: block; margin: auto;"></p>
 <p>The goal of baseline correction is to get all non-peak regions of the
 spectra to zero absorbance. The higher the polynomial order, the more
 wiggly the fit to the baseline. If the baseline is not very wiggly, a
@@ -319,7 +319,7 @@ exist in the R function though.</p>
 <div class="section level3">
 <h3 id="range-selection">Range Selection<a class="anchor" aria-label="anchor" href="#range-selection"></a>
 </h3>
-<p><img src="app/rangeselection.jpg" width="190" style="display: block; margin: auto;"></p>
+<p><img src="app%2Frangeselection.jpg" width="190" style="display: block; margin: auto;"></p>
 <p>Sometimes an instrument operates with high noise at the ends of the
 spectrum and, a baseline fit produces distortions, or there are regions
 of interest for analysis. Range selection accomplishes those goals. You
@@ -333,7 +333,7 @@ specify the range to keep in the app.</p>
 <div class="section level3">
 <h3 id="flattening-ranges">Flattening Ranges<a class="anchor" aria-label="anchor" href="#flattening-ranges"></a>
 </h3>
-<p><img src="app/flattten_example.jpg" width="195" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fflattten_example.jpg" width="195" style="display: block; margin: auto;"></p>
 <p>Sometimes there are peaks that really shouldn’t be in your spectra
 and can distort your interpretation of the spectra but you don’t
 necessarily want to remove the regions from the analysis because you
@@ -361,13 +361,13 @@ processing step before correlation analysis.</p>
 Spectra option with download. This will download a version of your
 spectra with whatever processing options you have selected at the
 time.</p>
-<p><img src="app/download_yourspec.jpg" width="131" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fdownload_yourspec.jpg" width="131" style="display: block; margin: auto;"></p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="identifying-spectra">Identifying Spectra<a class="anchor" aria-label="anchor" href="#identifying-spectra"></a>
 </h2>
-<p><img src="app/identification.jpg" width="210" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fidentification.jpg" width="210" style="display: block; margin: auto;"></p>
 <p>After uploading data and processing it (if desired) you can now
 identify the spectrum. To identify the spectrum go to the
 <strong>Identification</strong> box. Pro tip: if you select
@@ -391,7 +391,7 @@ map view if they are lower than the threshold.</p>
 <div class="section level3">
 <h3 id="matches">Matches<a class="anchor" aria-label="anchor" href="#matches"></a>
 </h3>
-<p><img src="app/matches.jpg" width="360" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fmatches.jpg" width="360" style="display: block; margin: auto;"></p>
 <p>Top matches in the app can be assessed by clicking the cog in the
 right hand corner of the Spectra box. This will open a side window with
 the matches sorted from most to least similar. Clicking on rows in the
@@ -402,7 +402,7 @@ or search for specific material types.</p>
 <div class="section level3">
 <h3 id="selection-metadata">Selection Metadata<a class="anchor" aria-label="anchor" href="#selection-metadata"></a>
 </h3>
-<p><img src="app/selectionmetadata.jpg" width="98%" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fselectionmetadata.jpg" width="98%" style="display: block; margin: auto;"></p>
 <p>Whatever match is selected from the match table may have additional
 metadata about it. That metadata will be displayed below the plot. Some
 of this metadata may assist you in interpreting the spectra. For
@@ -413,7 +413,7 @@ match.</p>
 <div class="section level3">
 <h3 id="match-plot">Match Plot<a class="anchor" aria-label="anchor" href="#match-plot"></a>
 </h3>
-<p><img src="app/matchplot.jpg" width="318" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fmatchplot.jpg" width="318" style="display: block; margin: auto;"></p>
 <p>This plot is dynamically updated by selecting matches from the match
 table. The red spectrum is the spectrum that you selected from the
 reference library and the white spectrum is the spectrum that you are
@@ -434,13 +434,13 @@ collaborating.</p>
 </h3>
 <p>To download the top matches and associated metadata, use the top
 matches download option.</p>
-<p><img src="app/download.jpg" width="130" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fdownload.jpg" width="130" style="display: block; margin: auto;"></p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="characterizing-particles">Characterizing Particles<a class="anchor" aria-label="anchor" href="#characterizing-particles"></a>
 </h2>
-<p><img src="app/download_threshold.jpg" width="131" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fdownload_threshold.jpg" width="131" style="display: block; margin: auto;"></p>
 <p>Thresholding only works and shouldn’t be used for single particles.
 You can threshold spectral maps using the signal-noise values and/or the
 correlation threshold. Whatever selection you have active will inform
@@ -459,7 +459,7 @@ Please reach out if you have ideas for improvement.</p>
 you can easily translate the app. We know that not all languages will be
 fully supported but we will continue to try and improve the
 translations.</p>
-<p><img src="app/translate.jpg" width="94" style="display: block; margin: auto;"></p>
+<p><img src="app%2Ftranslate.jpg" width="94" style="display: block; margin: auto;"></p>
 </div>
 </div>
 <div class="section level2">
@@ -507,7 +507,7 @@ Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
 </div>
 
     </footer>
