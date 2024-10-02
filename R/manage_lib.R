@@ -173,6 +173,7 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
 #' @importFrom utils read.csv download.file sessionInfo
 #'
 #' @export
+
 get_lib <- function(type = c("derivative", 
                              "nobaseline", 
                              "raw", 
@@ -189,27 +190,27 @@ get_lib <- function(type = c("derivative",
     
     if("derivative" %in% type){
         message("Fetching derivative library...")
-        download.file("https://osf.io/download/2qbkt/", destfile = paste0(lp, "\\derivative.rds"), mode = "wb")
+        download.file("https://osf.io/download/2qbkt/", destfile = file.path(lp, "derivative.rds"), mode = "wb")
     }
     
     if("nobaseline" %in% type){
         message("Fetching nobaseline library...")
-        download.file("https://osf.io/download/jy7zk/", destfile = paste0(lp, "\\nobaseline.rds"), mode = "wb")
+        download.file("https://osf.io/download/jy7zk/", destfile = file.path(lp, "nobaseline.rds"), mode = "wb")
     }
     
     if("medoid" %in% type){
         message("Fetching mediod library...")
-        download.file("https://osf.io/download/yzscg/", destfile = paste0(lp, "\\mediod.rds"), mode = "wb")
+        download.file("https://osf.io/download/yzscg/", destfile = file.path(lp, "mediod.rds"), mode = "wb")
     }
     
     if("model" %in% type){
         message("Fetching model library...")
-        download.file("https://osf.io/download/v2yr3/", destfile = paste0(lp, "\\model.rds"), mode = "wb")
+        download.file("https://osf.io/download/v2yr3/", destfile = file.path(lp, "model.rds"), mode = "wb")
     }
     
     if("raw" %in% type){
         message("Fetching raw library...")
-        download.file("https://osf.io/download/kzv3n/", destfile = paste0(lp, "\\raw.rds"), mode = "wb")
+        download.file("https://osf.io/download/kzv3n/", destfile = file.path(lp, "raw.rds"), mode = "wb")
     }
     
     message("Use 'load_lib()' to load the library")
@@ -227,6 +228,7 @@ load_lib <- function(type, path = "system") {
   chk <- .chkf(type, path = lp, condition = "stop")
 
   fp <- file.path(lp, paste0(type, ".rds"))
+
   rds <- readRDS(fp)
 
   return(rds)
