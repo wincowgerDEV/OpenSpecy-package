@@ -37,6 +37,9 @@ spatial_smooth <- function(x, sigma = c(1, 1, 1), ...) {
         stop("The OpenSpecy object must have 'x', 'y', and 'col_id' columns in its metadata.", call. = FALSE)
     }
     
+    #Avoid data.table notes
+    . <- col_id <- y <- wavenumber <- x_idx <- y_idx <- z_idx <- NULL
+    
     # Extract wavenumbers and spectra
     wavenumbers <- x$wavenumber
     spectra <- x$spectra  # data.table with spectra columns

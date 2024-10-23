@@ -11,7 +11,7 @@
 #' If \code{FALSE}, the original data will be returned.
 #' @param adj_intens logical; describing whether to adjust the intensity units.
 #' @param adj_intens_args named list of arguments passed to
-#' \code{\link{smooth_intens}()}.
+#' \code{\link{adj_intens}()}.
 #' @param conform_spec logical; whether to conform the spectra to a new
 #' wavenumber range and resolution.
 #' @param conform_spec_args named list of arguments passed to

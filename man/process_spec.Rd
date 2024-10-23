@@ -41,7 +41,7 @@ If \code{FALSE}, the original data will be returned.}
 \item{adj_intens}{logical; describing whether to adjust the intensity units.}
 
 \item{adj_intens_args}{named list of arguments passed to
-\code{\link{smooth_intens}()}.}
+\code{\link{adj_intens}()}.}
 
 \item{conform_spec}{logical; whether to conform the spectra to a new
 wavenumber range and resolution.}
