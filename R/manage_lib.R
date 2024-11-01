@@ -155,7 +155,7 @@
 #' Israel).
 #'
 #' @export
-check_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
+check_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid",
                                "model"),
                       path = "system", condition = "warning") {
 
@@ -199,8 +199,8 @@ get_lib <- function(type = c("derivative",
     }
     
     if("medoid" %in% type){
-        message("Fetching mediod library...")
-        download.file("https://osf.io/download/yzscg/", destfile = file.path(lp, "mediod.rds"), mode = "wb")
+        message("Fetching medoid library...")
+        download.file("https://osf.io/download/yzscg/", destfile = file.path(lp, "medoid.rds"), mode = "wb")
     }
     
     if("model" %in% type){
@@ -237,7 +237,7 @@ load_lib <- function(type, path = "system") {
 #' @rdname manage_lib
 #'
 #' @export
-rm_lib <- function(type = c("derivative", "nobaseline", "raw", "mediod",
+rm_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid",
                             "model"),
                    path = "system") {
   lp <- ifelse(path == "system",

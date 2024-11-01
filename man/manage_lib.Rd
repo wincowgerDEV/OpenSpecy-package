@@ -8,7 +8,7 @@
 \title{Manage spectral libraries}
 \usage{
 check_lib(
-  type = c("derivative", "nobaseline", "raw", "mediod", "model"),
+  type = c("derivative", "nobaseline", "raw", "medoid", "model"),
   path = "system",
   condition = "warning"
 )
@@ -22,7 +22,7 @@ get_lib(
 load_lib(type, path = "system")
 
 rm_lib(
-  type = c("derivative", "nobaseline", "raw", "mediod", "model"),
+  type = c("derivative", "nobaseline", "raw", "medoid", "model"),
   path = "system"
 )
 }
