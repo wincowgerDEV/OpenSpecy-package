@@ -57,6 +57,7 @@ Useful links:
 Authors:
 \itemize{
   \item Zacharias Steinmetz \email{z.steinmetz@rptu.de} (\href{https://orcid.org/0000-0001-6675-5033}{ORCID})
+  \item Hazel Vaquero \email{hvaquero98@gmail.com} (\href{https://orcid.org/0009-0001-5468-2049}{ORCID})
   \item Nick Leong (\href{https://orcid.org/0009-0008-3313-4132}{ORCID})
   \item Andrea Faltynkova (\href{https://orcid.org/0000-0003-2523-3137}{ORCID}) [data contributor]
   \item Hannah Sherrod (\href{https://orcid.org/0009-0001-0497-8693}{ORCID})

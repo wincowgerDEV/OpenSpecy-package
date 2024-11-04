@@ -1,3 +1,13 @@
+# OpenSpecy 1.3.0
+
+## Major
+- added 2 new libraries a nobaseline and derivative version of medioid and model
+- Created new function for spatial smooth without reading envi files
+- Allow adj_intens to work on vectors or Open Specy objects
+
+## Minor
+- fixed bug with mac reading libraries
+
 # OpenSpecy 1.2.0
 
 ## Potentially Breaking
