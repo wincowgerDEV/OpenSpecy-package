@@ -8,13 +8,15 @@
 \title{Manage spectral libraries}
 \usage{
 check_lib(
-  type = c("derivative", "nobaseline", "raw", "medoid", "model"),
+  type = c("derivative", "nobaseline", "raw", "medoid_derivative", "medoid_nobaseline",
+    "model_derivative", "model_nobaseline"),
   path = "system",
   condition = "warning"
 )
 
 get_lib(
-  type = c("derivative", "nobaseline", "raw", "medoid", "model"),
+  type = c("derivative", "nobaseline", "raw", "medoid_derivative", "medoid_nobaseline",
+    "model_derivative", "model_nobaseline"),
   path = "system",
   ...
 )
@@ -22,13 +24,14 @@ get_lib(
 load_lib(type, path = "system")
 
 rm_lib(
-  type = c("derivative", "nobaseline", "raw", "medoid", "model"),
+  type = c("derivative", "nobaseline", "raw", "medoid_derivative", "medoid_nobaseline",
+    "model_derivative", "model_nobaseline"),
   path = "system"
 )
 }
 \arguments{
 \item{type}{library type to check/retrieve; defaults to
-\code{c("derivative", "nobaseline", "raw", "medoid", "model")} which reads
+\code{c("derivative", "nobaseline", "raw", "medoid_derivative", "medoid_nobaseline", "model_derivative", "model_nobaseline")} which reads
 everything.}
 
 \item{path}{where to save or look for local library files; defaults to

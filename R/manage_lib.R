@@ -20,7 +20,7 @@
 #' \code{rm_lib()} removes the libraries from your computer.
 #'
 #' @param type library type to check/retrieve; defaults to
-#' \code{c("derivative", "nobaseline", "raw", "medoid", "model")} which reads
+#' \code{c("derivative", "nobaseline", "raw", "medoid_derivative", "medoid_nobaseline", "model_derivative", "model_nobaseline")} which reads
 #' everything.
 #' @param path where to save or look for local library files; defaults to
 #' \code{"system"} pointing to
@@ -155,8 +155,8 @@
 #' Israel).
 #'
 #' @export
-check_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid",
-                               "model"),
+check_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivative",
+                               "medoid_nobaseline", "model_derivative", "model_nobaseline"),
                       path = "system", condition = "warning") {
 
   lp <- ifelse(path == "system",
@@ -174,11 +174,8 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid",
 #'
 #' @export
 
-get_lib <- function(type = c("derivative", 
-                             "nobaseline", 
-                             "raw", 
-                             "medoid",
-                             "model"),
+get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivative",
+                             "medoid_nobaseline", "model_derivative", "model_nobaseline"),
                     path = "system",
                     ...) {
     
@@ -198,14 +195,24 @@ get_lib <- function(type = c("derivative",
         download.file("https://osf.io/download/jy7zk/", destfile = file.path(lp, "nobaseline.rds"), mode = "wb")
     }
     
-    if("medoid" %in% type){
-        message("Fetching medoid library...")
-        download.file("https://osf.io/download/yzscg/", destfile = file.path(lp, "medoid.rds"), mode = "wb")
+    if("medoid_derivative" %in% type){
+        message("Fetching medoid derivative library...")
+        download.file("https://osf.io/download/2dmwu/", destfile = file.path(lp, "medoid_derivative.rds"), mode = "wb")
     }
     
-    if("model" %in% type){
-        message("Fetching model library...")
-        download.file("https://osf.io/download/v2yr3/", destfile = file.path(lp, "model.rds"), mode = "wb")
+    if("medoid_nobaseline" %in% type){
+        message("Fetching medoid nobaseline library...")
+        download.file("https://osf.io/download/8f3sg/", destfile = file.path(lp, "medoid_nobaseline.rds"), mode = "wb")
+    }
+    
+    if("model_derivative" %in% type){
+        message("Fetching model derivative library...")
+        download.file("https://osf.io/download/s5bmh/", destfile = file.path(lp, "model_derivative.rds"), mode = "wb")
+    }
+    
+    if("model_nobaseline" %in% type){
+        message("Fetching model nobaseline library...")
+        download.file("https://osf.io/download/v4abf/", destfile = file.path(lp, "model_nobaseline.rds"), mode = "wb")
     }
     
     if("raw" %in% type){
@@ -237,8 +244,8 @@ load_lib <- function(type, path = "system") {
 #' @rdname manage_lib
 #'
 #' @export
-rm_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid",
-                            "model"),
+rm_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivative",
+                            "medoid_nobaseline", "model_derivative", "model_nobaseline"),
                    path = "system") {
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
