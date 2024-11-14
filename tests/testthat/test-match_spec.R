@@ -77,8 +77,8 @@ test_that("match_spec() returns correct structure with AI", {
   
   preproc2 <- conform_spec(unknown, range = fill$wavenumber,
                           res = NULL) |>
-      smooth_intens() %>%
-      restrict_range(min = 900, max = 3000)
+      smooth_intens() #%>%
+      #restrict_range(min = 900, max = 3000)
   
   matches <- match_spec(x = preproc2, library = lib, na.rm = T, fill = fill) |>
     expect_silent()
