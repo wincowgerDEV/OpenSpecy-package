@@ -10,6 +10,16 @@ test_that("as_OpenSpecy() handles errors correctly", {
                                          intensity = df$intensity)) |>
     expect_error()
 
+  as_OpenSpecy(df, metadata = list(file_name = "test", 
+                                   file_name = "test", 
+                                   fun_val = "t", 
+                                   check = "c",
+                                   check = "a",
+                                   check = "a")) |>
+      check_OpenSpecy() |>
+      expect_true() |>
+      expect_message() 
+  
   as_OpenSpecy(data.frame(x = df$wavenumber, abs = df$intensity)) |>
     expect_message()
   as_OpenSpecy(data.frame(wav = df$wavenumber, y = df$intensity)) |>

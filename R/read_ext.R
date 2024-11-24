@@ -204,36 +204,43 @@ read_spa <- function(file,
   if (!grepl("\\.spa$", ignore.case = T, file))
     stop("file type should be 'spa'", call. = F)
 
-  trb <- file.path(file) |> file(open = "rb", ...)
-
-  seek(trb, 576, origin = "start")
-  spr <- readBin(trb, "numeric", n = 2, size = 4)
-
-  if (!all(spr >= 0 & spr <= 15000 & spr[1] > spr[2]))
-    stop("unknown spectral range", call. = F)
-
-  # Read the start offset
-  seek(trb, 386, origin = "start")
-  startOffset <- readBin(trb, "int", n = 1, size = 2)
-  # Read the length
-  seek(trb, 390, origin = "start")
-  readLength <- readBin(trb, "int", n = 1, size = 2)
-
-  # seek to the start
-  seek(trb, startOffset, origin = "start")
-
-  # we'll read four byte chunks
-  floatCount <- readLength / 4
-
-  # read all our floats
-  floatData <- c(readBin(trb, "double", floatCount, size = 4))
-
-  close(trb)
-
-  x <- seq(spr[1], spr[2], length = length(floatData))
-  y <- floatData
-
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata,
+    # Read a *.spa file
+    # Returns:
+    #   A list containing Spectra, Wavelengths (nm), and Titles
+    # Converted to r from https://github.com/lerkoah/spa-on-python/blob/master/LoadSpectrum.py
+    con <- file(file, "rb", ...) # Open the file in binary mode
+    on.exit(close(con)) # Ensure the file is closed
+    
+    seek(con, where = 564, rw = "r")
+    Spectrum_Pts <- readBin(con, integer(), size = 4, n = 1, endian = "little")
+    
+    seek(con, where = 30, rw = "r")
+    SpectraTitlesRaw <- readBin(con, raw(), n = 255)
+    SpectraTitles <- rawToChar(SpectraTitlesRaw[SpectraTitlesRaw != as.raw(0)])
+    
+    seek(con, where = 576, rw = "r")
+    Max_Wavenum <- readBin(con, numeric(), size = 4, n = 1, endian = "little")
+    Min_Wavenum <- readBin(con, numeric(), size = 4, n = 1, endian = "little")
+    
+    # Generate wavenumbers
+    Wavenumbers <- rev(seq(Min_Wavenum, Max_Wavenum, length.out = Spectrum_Pts))
+    
+    seek(con, where = 288, rw = "r")
+    
+    Flag <- 0
+    while (Flag != 3) {
+        Flag <- readBin(con, integer(), size = 2, n = 1, endian = "little")
+    }
+    
+    DataPosition <- readBin(con, integer(), size = 2, n = 1, endian = "little")
+    seek(con, where = DataPosition, rw = "r")
+    
+    Spectra <- readBin(con, numeric(), size = 4, n = Spectrum_Pts, endian = "little")
+    
+    # Return the results
+    metadata$title <- SpectraTitles
+    
+    os <- as_OpenSpecy(Wavenumbers, data.table(intensity = Spectra), metadata,
                      session_id = T)
 
   return(os)

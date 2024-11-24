@@ -322,7 +322,22 @@ as_OpenSpecy.default <- function(x, spectra,
       stop("inconsistent input for 'metadata'", call. = F)
     }
   }
-
+  
+  if(any(duplicated(names(obj$metadata)))){
+      message("Duplicate column names found, adding a unique numeric ID to the end.")
+      nms <- names(obj$metadata)
+      # Identify all names that are duplicated
+      dups <- duplicated(nms) | duplicated(nms, fromLast = TRUE)
+      # Initialize a vector to hold the counts
+      counts <- rep(NA, length(nms))
+      # For duplicated names, generate sequence numbers starting from 0
+      counts[dups] <- ave(seq_along(nms)[dups], nms[dups], FUN = function(x) seq_along(x) - 0)
+      # Create new names by appending counts to duplicated names
+      new_nms <- nms
+      new_nms[dups] <- paste0(nms[dups], "_", counts[dups] - 1)
+      # Update the names in os$metadata
+      names(obj$metadata) <- new_nms
+  }
   return(obj)
 }
 
