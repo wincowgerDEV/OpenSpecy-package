@@ -12,9 +12,13 @@ subtr_baseline(x, ...)
 
 \method{subtr_baseline}{OpenSpecy}(
   x,
-  type = "polynomial",
+  type = "imodpoly",
   degree = 8,
   raw = FALSE,
+  iteration = 10,
+  peak_width_mult = 3,
+  peak_height_mult = 0.05,
+  degree_part = 2,
   baseline,
   make_rel = TRUE,
   ...
@@ -23,23 +27,31 @@ subtr_baseline(x, ...)
 \arguments{
 \item{x}{a list object of class \code{OpenSpecy}.}
 
-\item{type}{one of \code{"polynomial"} or \code{"manual"} depending on
-whether you want spectra to be corrected with a manual baseline or with
-polynomial baseline fitting.}
+\item{type}{one of \code{"imodpoly"}, \code{"smodpoly"}, or \code{"manual"} depending on
+the desired baseline correction method.}
 
-\item{degree}{the degree of the polynomial. Must be less than the number of
-unique points when raw is \code{FALSE}. Typically a good fit can be
-found with a 8th order polynomial.}
+\item{degree}{the degree of the full spectrum polynomial for \code{"imodpoly"} and \code{"smodpoly"}. Must be less than the number of
+unique points when \code{raw} is \code{FALSE}. Typically, a good fit can be
+found with an 8th order polynomial.}
 
-\item{raw}{if \code{TRUE}, use raw and not orthogonal polynomials.}
+\item{raw}{if \code{TRUE}, use raw and not orthogonal polynomials for \code{"imodpoly"}.}
+
+\item{iteration}{the number of iterations for \code{"smodpoly"} baseline correction.}
+
+\item{peak_width_mult}{scaling factor for the width of peak detection regions in \code{"smodpoly"}.}
+
+\item{peak_height_mult}{scaling factor for the height of peak detection regions in \code{"smodpoly"}.}
+
+\item{degree_part}{the degree of the polynomial for \code{"smodpoly"}. Must be less than the number of
+unique points.}
 
 \item{baseline}{an \code{OpenSpecy} object containing the baseline data to be
-subtracted.}
+subtracted (only for \code{"manual"}).}
 
-\item{make_rel}{logical; if \code{TRUE} spectra are automatically normalized
+\item{make_rel}{logical; if \code{TRUE}, spectra are automatically normalized
 with \code{\link{make_rel}()}.}
 
-\item{\ldots}{further arguments passed to \code{\link[stats]{poly}()}.}
+\item{\ldots}{further arguments passed to \code{\link[stats]{poly}()} or \code{"smodpoly"} parameters.}
 }
 \value{
 \code{subtr_baseline()} returns a data frame containing two columns named
@@ -47,16 +59,28 @@ with \code{\link{make_rel}()}.}
 }
 \description{
 This baseline correction routine iteratively finds the baseline of a spectrum
-using a polynomial fitting or accepts a manual baseline.
+using polynomial fitting methods or accepts a manual baseline.
 }
 \details{
-This is a translation of Michael Stephen Chen's MATLAB code written for the
-\code{imodpolyfit} routine from Zhao et al. 2007.
+This function supports three types of baseline correction:
+\code{"imodpoly"} for iterative polynomial fitting based on Zhao et al. (2007),
+\code{"smodpoly"} for segmented iterative polynomial fitting with enhanced peak detection
+from the S-Modpoly algorithm (\url{https://github.com/jackma123-rgb/S-Modpoly}),
+and \code{"manual"} for applying a user-provided baseline.
 }
 \examples{
 data("raman_hdpe")
 
-subtr_baseline(raman_hdpe)
+# Use imodpoly
+subtr_baseline(raman_hdpe, type = "imodpoly", degree = 8)
+
+# Use smodpoly
+subtr_baseline(raman_hdpe, type = "smodpoly", iteration = 5)
+
+# Use manual
+bl <- raman_hdpe
+bl$spectra$intensity <- bl$spectra$intensity / 2
+subtr_baseline(raman_hdpe, type = "manual", baseline = bl)
 
 }
 \references{
@@ -68,6 +92,9 @@ Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence
 Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
 \emph{Applied Spectroscopy}, \strong{61}(11), 1225–1232.
 \doi{10.1366/000370207782597003}.
+
+Jackma123 (2023). S-Modpoly: Segmented modified polynomial fitting for spectral baseline correction.
+\emph{GitHub Repository}. Retrieved from \url{https://github.com/jackma123-rgb/S-Modpoly}.
 }
 \seealso{
 \code{\link[stats]{poly}()};

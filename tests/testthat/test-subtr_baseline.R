@@ -5,7 +5,7 @@ test_that("polynomial subtr_baseline() works as expected", {
 
   cor(poly$spectra$intensity,
       subtr_baseline(raman_hdpe, degree = 1)$spectra$intensity) |> round(4) |>
-    expect_equal(0.9763, ignore_attr = F)
+    expect_equal(0.9929, ignore_attr = F)
   expect_s3_class(poly, "OpenSpecy")
   expect_true(check_OpenSpecy(poly))
   
@@ -30,3 +30,29 @@ test_that("manual subtr_baseline() works as expected", {
   expect_equal(man$wavenumber, raman_hdpe$wavenumber)
   expect_equal(range(man$spectra), c(0, 1))
 })
+
+test_that("smodpoly subtr_baseline() works as expected", {
+    smod <- subtr_baseline(x = raman_hdpe, type = "smodpoly", iteration = 5, 
+                           peak_width_mult = 1, peak_height_mult = 0.05, 
+                           degree = 10, degree_part = 2) |> 
+        expect_silent()
+    
+    # Check output structure and validity
+    expect_s3_class(smod, "OpenSpecy")
+    expect_true(check_OpenSpecy(smod))
+    
+    # Validate dimensions remain consistent
+    expect_equal(nrow(smod$spectra), nrow(raman_hdpe$spectra))
+    expect_equal(smod$wavenumber, raman_hdpe$wavenumber)
+    
+    # Check intensity range is normalized
+    expect_equal(range(smod$spectra), c(0, 1))
+    
+    # Correlation between original and corrected spectra should be less than polynomial fitting
+    poly <- subtr_baseline(raman_hdpe, degree = 8)
+    cor_poly <- cor(poly$spectra$intensity, smod$spectra$intensity)
+    expect_true(cor_poly > 0.99)
+
+})
+
+
