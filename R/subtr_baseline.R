@@ -17,16 +17,16 @@
 #' @param y a vector of spectral intensities.
 #' @param type one of \code{"polynomial"} or \code{"manual"} depending on
 #' the desired baseline correction method.
-#' @param degree the degree of the full spectrum polynomial for \code{"imodpoly"} and \code{"smodpoly"}. Must be less than the number of
+#' @param degree the degree of the full spectrum polynomial. Must be less than the number of
 #' unique points when \code{raw} is \code{FALSE}. Typically, a good fit can be
 #' found with an 8th order polynomial.
 #' @param degree_part the degree of the polynomial for \code{"smodpoly"}. Must be less than the number of
 #' unique points.
-#' @param iteration the number of iterations for \code{"smodpoly"} baseline correction.
+#' @param iterations the number of iterations for automated baseline correction.
 #' @param peak_width_mult scaling factor for the width of peak detection regions.
 #' @param termination_diff scaling factor for the ratio of difference in residual standard deviation to terminate iterative fitting with.
-#' @param raw if \code{TRUE}, use raw and not orthogonal polynomials for \code{"imodpoly"}.
-#' @param full logical, whether to use the full spectrum or to partition. 
+#' @param raw if \code{TRUE}, use raw and not orthogonal polynomials.
+#' @param full logical, whether to use the full spectrum as in \code{"imodpoly"} or to partition as in \code{"smodpoly"}. 
 #' @param remove_peaks logical, whether to remove peak regions during first iteration. 
 #' @param refit_at_end logical, whether to refit a polynomial to the end result (TRUE) or to use linear approximation.
 #' @param crop_boundaries logical, whether to smartly crop the boundaries to match the spectra based on peak proximity.
@@ -45,11 +45,10 @@
 #' @examples
 #' data("raman_hdpe")
 #'
-#' # Use imodpoly
-#' subtr_baseline(raman_hdpe, type = "imodpoly", degree = 8)
+#' # Use polynomial
+#' subtr_baseline(raman_hdpe, type = "polynomial", degree = 8)
 #'
-#' # Use smodpoly
-#' subtr_baseline(raman_hdpe, type = "smodpoly", iteration = 5)
+#' subtr_baseline(raman_hdpe, type = "polynomial", iterations = 5)
 #'
 #' # Use manual
 #' bl <- raman_hdpe
@@ -96,10 +95,11 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
                                    peak_width_mult = 3,
                                    termination_diff = 0.05,
                                    degree_part = 2, 
-                                   bl_x, bl_y, make_rel = TRUE, ...) {
+                                   bl_x = NULL, bl_y = NULL, make_rel = TRUE, ...) {
     if(type == "polynomial"){
         xout <- x
         yin <- y
+        it = 1
         dev_prev <- 0 # standard deviation residuals for the last iteration of polyfit;
         # set initially to 0
         criteria_met <- FALSE
@@ -108,10 +108,9 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
         paramVector <- lm(y ~ stats::poly(x, degree = degree, raw = raw))
         mod_poly <- paramVector$fitted.values
         dev_curr <- sd(paramVector$residuals)
-        if(!full){
-            # Step 2: Detect intersections
-            left_intersection <- which(diff(mod_poly + dev_curr >= y) == -1)
-            right_intersection <- which(diff(mod_poly + dev_curr <= y) == -1)
+        # Step 2: Detect intersections
+        left_intersection <- which(diff(mod_poly + dev_curr >= y) == -1)
+        right_intersection <- which(diff(mod_poly + dev_curr <= y) == -1)
             
             # Ensure boundaries are handled correctly
             if (length(right_intersection) == 0 || length(left_intersection) == 0) {
@@ -139,7 +138,7 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
             #ipeaks <- y[opeaks] - setarray[opeaks]
             #max height difference
             #mpeaks <- max(ipeaks)
-        }
+            
         if(remove_peaks){
             peaks <- y > mod_poly + dev_curr
             y <- y[!peaks]
@@ -184,7 +183,7 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
                 }
                 
                 # Fit the segment
-                fit_array <- fit_function(start = left_boundary, end = right_boundary, iter = iteration, spectrum = y, order = degree_part)
+                fit_array <- fit_function(start = left_boundary, end = right_boundary, iter = iterations, spectrum = y, order = degree_part)
                 adjusted_spectrum[left_boundary:right_boundary] <- fit_array
                 
                 left_boundary <- right_boundary + 1
@@ -202,21 +201,22 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
                 y <- pmin(mod_poly + dev_curr, y)
                 
                 # Test criteria
-                if(!is.null(iteration)){
-                    criteria_met <- abs((dev_curr - dev_prev) / dev_curr) <= termination_diff | it == iteration
+                if(!is.null(iterations)){
+                    criteria_met <- abs((dev_curr - dev_prev) / dev_curr) <= termination_diff | it == iterations
                 }
                 else{
                     criteria_met <- abs((dev_curr - dev_prev) / dev_curr) <= termination_diff
                 }
                 
                 # Update previous residual metric
+                it = it + 1
                 dev_prev <- dev_curr
             }
         }
         
         # Step 6: Final adjustment and fitting a new polynomial to the baseline to smooth
         if(refit_at_end){
-            final_fit <- lm(y ~ poly(x, degree_full))
+            final_fit <- lm(y ~ poly(x, degree, raw = raw))
             final_baseline <- predict(final_fit, newdata = data.frame(x = xout))            
         }
         else{
@@ -259,9 +259,10 @@ subtr_baseline.OpenSpecy <- function(x, type = "polynomial",
                                      peak_width_mult = 3,
                                      termination_diff = 0.05,
                                      degree_part = 2, 
-                                     baseline, make_rel = TRUE, ...) {
+                                     baseline = list(wavenumber = NULL, spectra = NULL),
+                                     make_rel = TRUE, ...) {
      if (type == "manual" & !is_OpenSpecy(baseline)) stop("'baseline' needs to be of class 'OpenSpecy'", call. = F)
-        sbg <- x$spectra[, lapply(.SD, function(y){
+    x$spectra <- x$spectra[, lapply(.SD, function(y){
             subtr_baseline(x = x$wavenumber,
                            y = y,
                            type = "polynomial",
@@ -277,8 +278,9 @@ subtr_baseline.OpenSpecy <- function(x, type = "polynomial",
                            degree_part = degree_part, 
                            bl_x = baseline$wavenumber, 
                            bl_y = baseline$spectra[[1]], 
-                           make_rel = make_rel, ...)})]
-    return(x)
+                           make_rel = make_rel)})]
+    
+    x
 }
 
 

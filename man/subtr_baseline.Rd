@@ -22,8 +22,8 @@ subtr_baseline(x, ...)
   peak_width_mult = 3,
   termination_diff = 0.05,
   degree_part = 2,
-  bl_x,
-  bl_y,
+  bl_x = NULL,
+  bl_y = NULL,
   make_rel = TRUE,
   ...
 )
@@ -41,7 +41,7 @@ subtr_baseline(x, ...)
   peak_width_mult = 3,
   termination_diff = 0.05,
   degree_part = 2,
-  baseline,
+  baseline = list(wavenumber = NULL, spectra = NULL),
   make_rel = TRUE,
   ...
 )
@@ -54,11 +54,11 @@ subtr_baseline(x, ...)
 \item{type}{one of \code{"polynomial"} or \code{"manual"} depending on
 the desired baseline correction method.}
 
-\item{degree}{the degree of the full spectrum polynomial for \code{"imodpoly"} and \code{"smodpoly"}. Must be less than the number of
+\item{degree}{the degree of the full spectrum polynomial. Must be less than the number of
 unique points when \code{raw} is \code{FALSE}. Typically, a good fit can be
 found with an 8th order polynomial.}
 
-\item{raw}{if \code{TRUE}, use raw and not orthogonal polynomials for \code{"imodpoly"}.}
+\item{raw}{if \code{TRUE}, use raw and not orthogonal polynomials.}
 
 \item{full}{logical, whether to use the full spectrum or to partition.}
 
@@ -67,6 +67,8 @@ found with an 8th order polynomial.}
 \item{refit_at_end}{logical, whether to refit a polynomial to the end result (TRUE) or to use linear approximation.}
 
 \item{crop_boundaries}{logical, whether to smartly crop the boundaries to match the spectra based on peak proximity.}
+
+\item{iterations}{the number of iterations for automated baseline correction.}
 
 \item{peak_width_mult}{scaling factor for the width of peak detection regions.}
 
@@ -84,8 +86,6 @@ with \code{\link{make_rel}()}.}
 
 \item{baseline}{an \code{OpenSpecy} object containing the baseline data to be
 subtracted (only for \code{"manual"}).}
-
-\item{iteration}{the number of iterations for \code{"smodpoly"} baseline correction.}
 
 \item{\ldots}{further arguments passed to \code{\link[stats]{poly}()} or \code{"smodpoly"} parameters.}
 }
@@ -108,11 +108,10 @@ and \code{"manual"} for applying a user-provided baseline.
 \examples{
 data("raman_hdpe")
 
-# Use imodpoly
-subtr_baseline(raman_hdpe, type = "imodpoly", degree = 8)
+# Use polynomial
+subtr_baseline(raman_hdpe, type = "polynomial", degree = 8)
 
-# Use smodpoly
-subtr_baseline(raman_hdpe, type = "smodpoly", iteration = 5)
+subtr_baseline(raman_hdpe, type = "polynomial", iterations = 5)
 
 # Use manual
 bl <- raman_hdpe
