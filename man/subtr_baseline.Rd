@@ -60,7 +60,7 @@ found with an 8th order polynomial.}
 
 \item{raw}{if \code{TRUE}, use raw and not orthogonal polynomials.}
 
-\item{full}{logical, whether to use the full spectrum or to partition.}
+\item{full}{logical, whether to use the full spectrum as in \code{"imodpoly"} or to partition as in \code{"smodpoly"}.}
 
 \item{remove_peaks}{logical, whether to remove peak regions during first iteration.}
 

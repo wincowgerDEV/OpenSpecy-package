@@ -150,6 +150,7 @@
 #' @importFrom data.table as.data.table
 #' @importFrom digest digest
 #' @importFrom utils sessionInfo
+#' @importFrom stats ave
 #' @export
 as_OpenSpecy <- function(x, ...) {
   UseMethod("as_OpenSpecy")
