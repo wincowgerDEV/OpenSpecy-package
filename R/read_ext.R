@@ -112,7 +112,8 @@ read_text <- function(file, colnames = NULL, method = "fread",
 
     os <- as_OpenSpecy(x = as.numeric(wavenumbers), spectra = spectra,
                        metadata = metadata)
-  } else {
+  } 
+  else {
     os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata,
                        session_id = T)
   }
@@ -280,13 +281,33 @@ read_spc <- function(file,
                        other_info = NULL,
                        license = "CC BY-NC"),
                      ...) {
-  spc <- read.spc(file)
+    
+    con <- file(file, "rb")
+    on.exit(close(con))
+    raw_data <- readBin(con, what = "raw", n = 544)
+    fexp = readBin(raw_data[4], "integer", 1, 1, signed = TRUE)
+    
+    if(fexp == -128){
+        fnpts = readBin(raw_data[5:8], "integer", 1, 4)
+        ffirst = readBin(raw_data[9:16], "double", 1, 8)
+        flast = readBin(raw_data[17:24], "double", 1, 8)
 
-  x <- spc@wavelength
-  y <- as.numeric(unname(spc@data$spc[1,]))
-
-  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata,
-                     session_id = T)
+        os <- as_OpenSpecy(seq(from = ffirst, to = flast, length.out = fnpts), 
+                           data.table(intensity = readBin(con, what = "numeric", n = fnpts, size = 4, endian = "little")),
+                           metadata = metadata,
+                           session_id = T) 
+    }
+    else{
+        spc <- read.spc(file)
+        
+        x <- spc@wavelength
+        y <- as.numeric(unname(spc@data$spc[1,]))
+        
+        os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata,
+                           session_id = T)      
+    }
+    
+  
 
   return(os)
 }
