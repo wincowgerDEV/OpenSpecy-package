@@ -96,6 +96,10 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
                                    termination_diff = 0.05,
                                    degree_part = 2, 
                                    bl_x = NULL, bl_y = NULL, make_rel = TRUE, ...) {
+    if(type == "manual"){
+        corrected = y - approx(bl_x, bl_y, xout = x, rule = 2, method = "linear", ties = mean)$y
+    }
+    
     if(type == "polynomial"){
         xout <- x
         yin <- y
@@ -238,9 +242,7 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
         }
         corrected = yin - final_baseline
     }
-        if(type == "manual"){
-            corrected = y - approx(bl_x, bl_y, xout = x, rule = 2, method = "linear", ties = mean)$y
-        }
+
     
     if (make_rel) make_rel(corrected) else corrected
     
@@ -265,7 +267,7 @@ subtr_baseline.OpenSpecy <- function(x, type = "polynomial",
     x$spectra <- x$spectra[, lapply(.SD, function(y){
             subtr_baseline(x = x$wavenumber,
                            y = y,
-                           type = "polynomial",
+                           type = type,
                            degree = degree, 
                            raw = raw,
                            full = full,

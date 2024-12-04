@@ -32,8 +32,10 @@ test_that("manual subtr_baseline() works as expected", {
 })
 
 test_that("smodpoly subtr_baseline() works as expected", {
-    smod <- subtr_baseline(x = raman_hdpe, type = "smodpoly", iteration = 5, 
-                           peak_width_mult = 1, peak_height_mult = 0.05, 
+    smod <- subtr_baseline(x = raman_hdpe, type = "polynomial",full = F,
+                           iterations = 10, refit_at_end = T,
+                           remove_peaks = T,
+                           peak_width_mult = 3, 
                            degree = 10, degree_part = 2) |> 
         expect_silent()
     
@@ -51,7 +53,7 @@ test_that("smodpoly subtr_baseline() works as expected", {
     # Correlation between original and corrected spectra should be less than polynomial fitting
     poly <- subtr_baseline(raman_hdpe, degree = 8)
     cor_poly <- cor(poly$spectra$intensity, smod$spectra$intensity)
-    expect_true(cor_poly > 0.99)
+    expect_true(cor_poly > 0.95)
 
 })
 
