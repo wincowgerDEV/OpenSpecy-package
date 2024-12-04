@@ -8,16 +8,38 @@
 \usage{
 subtr_baseline(x, ...)
 
-\method{subtr_baseline}{default}(x, ...)
+\method{subtr_baseline}{default}(
+  x,
+  y,
+  type = "polynomial",
+  degree = 8,
+  raw = FALSE,
+  full = T,
+  remove_peaks = T,
+  refit_at_end = F,
+  crop_boundaries = F,
+  iterations = 10,
+  peak_width_mult = 3,
+  termination_diff = 0.05,
+  degree_part = 2,
+  bl_x,
+  bl_y,
+  make_rel = TRUE,
+  ...
+)
 
 \method{subtr_baseline}{OpenSpecy}(
   x,
-  type = "imodpoly",
+  type = "polynomial",
   degree = 8,
   raw = FALSE,
-  iteration = 10,
+  full = T,
+  remove_peaks = T,
+  refit_at_end = F,
+  crop_boundaries = F,
+  iterations = 10,
   peak_width_mult = 3,
-  peak_height_mult = 0.05,
+  termination_diff = 0.05,
   degree_part = 2,
   baseline,
   make_rel = TRUE,
@@ -25,9 +47,11 @@ subtr_baseline(x, ...)
 )
 }
 \arguments{
-\item{x}{a list object of class \code{OpenSpecy}.}
+\item{x}{a list object of class \code{OpenSpecy} or a vector of wavenumbers.}
 
-\item{type}{one of \code{"imodpoly"}, \code{"smodpoly"}, or \code{"manual"} depending on
+\item{y}{a vector of spectral intensities.}
+
+\item{type}{one of \code{"polynomial"} or \code{"manual"} depending on
 the desired baseline correction method.}
 
 \item{degree}{the degree of the full spectrum polynomial for \code{"imodpoly"} and \code{"smodpoly"}. Must be less than the number of
@@ -36,20 +60,32 @@ found with an 8th order polynomial.}
 
 \item{raw}{if \code{TRUE}, use raw and not orthogonal polynomials for \code{"imodpoly"}.}
 
-\item{iteration}{the number of iterations for \code{"smodpoly"} baseline correction.}
+\item{full}{logical, whether to use the full spectrum or to partition.}
 
-\item{peak_width_mult}{scaling factor for the width of peak detection regions in \code{"smodpoly"}.}
+\item{remove_peaks}{logical, whether to remove peak regions during first iteration.}
 
-\item{peak_height_mult}{scaling factor for the height of peak detection regions in \code{"smodpoly"}.}
+\item{refit_at_end}{logical, whether to refit a polynomial to the end result (TRUE) or to use linear approximation.}
+
+\item{crop_boundaries}{logical, whether to smartly crop the boundaries to match the spectra based on peak proximity.}
+
+\item{peak_width_mult}{scaling factor for the width of peak detection regions.}
+
+\item{termination_diff}{scaling factor for the ratio of difference in residual standard deviation to terminate iterative fitting with.}
 
 \item{degree_part}{the degree of the polynomial for \code{"smodpoly"}. Must be less than the number of
 unique points.}
 
-\item{baseline}{an \code{OpenSpecy} object containing the baseline data to be
-subtracted (only for \code{"manual"}).}
+\item{bl_x}{a vector of wavenumbers for the baseline.}
+
+\item{bl_y}{a vector of spectral intensities for the baseline.}
 
 \item{make_rel}{logical; if \code{TRUE}, spectra are automatically normalized
 with \code{\link{make_rel}()}.}
+
+\item{baseline}{an \code{OpenSpecy} object containing the baseline data to be
+subtracted (only for \code{"manual"}).}
+
+\item{iteration}{the number of iterations for \code{"smodpoly"} baseline correction.}
 
 \item{\ldots}{further arguments passed to \code{\link[stats]{poly}()} or \code{"smodpoly"} parameters.}
 }
@@ -62,8 +98,9 @@ This baseline correction routine iteratively finds the baseline of a spectrum
 using polynomial fitting methods or accepts a manual baseline.
 }
 \details{
-This function supports three types of baseline correction:
-\code{"imodpoly"} for iterative polynomial fitting based on Zhao et al. (2007),
+This function supports two types of \code{"polynomial"} automated baseline correction with options.
+Default settings are closest to \code{"imodpoly"} for iterative polynomial
+fitting based on Zhao et al. (2007). Additionally options recommended by
 \code{"smodpoly"} for segmented iterative polynomial fitting with enhanced peak detection
 from the S-Modpoly algorithm (\url{https://github.com/jackma123-rgb/S-Modpoly}),
 and \code{"manual"} for applying a user-provided baseline.
