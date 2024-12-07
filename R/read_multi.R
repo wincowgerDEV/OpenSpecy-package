@@ -15,11 +15,14 @@
 #' in a character vector and will return a list.
 #'
 #' @param file file to be read from or written to.
+#' @param c_spec logical, if multiple spectra should be concatenated or not. 
+#' Multiple spectra will return a list if this is false. 
+#' @param c_spec_args list of arguments passed to \code{c_spec()}
 #' @param \ldots further arguments passed to the submethods.
 #'
 #' @return
 #' All \code{read_*()} functions return \code{OpenSpecy} objects if a single
-#' spectrum or map is provided, otherwise the provide a list of \code{OpenSpecy} objects.
+#' spectrum or map is provided, otherwise they provide a list of \code{OpenSpecy} objects.
 #'
 #' @examples
 #' \dontshow{data.table::setDTthreads(2)}
@@ -39,18 +42,25 @@
 #' @importFrom data.table transpose
 #'
 #' @export
-read_any <- function(file, ...) {
+read_any <- function(file, c_spec = T, 
+                     c_spec_args = list(range = NULL, res = NULL), ...) {
   if(length(file) == 2 & any(grepl("(\\.dat$)|(\\.img$)", ignore.case = T, file)) & any(grepl("(\\.hdr$)", ignore.case = T, file))){
     os <- read_envi(file = file[grepl("(\\.dat$)|(\\.img$)", ignore.case = T, file)], header = file[grepl("(\\.hdr$)", ignore.case = T, file)], ...)
   }
   else if(length(file) > 1){
     os <- read_many(file = file, ...)
+    if(c_spec & !is_OpenSpecy(os) & is.list(os)){
+        os <- do.call("c_spec", c(list(os), c_spec_args))
+    }
   }
   else if(any(grepl("(\\.dat$)|(\\.img$)", ignore.case = T, file))){
     os <- read_envi(file = file[grepl("(\\.dat$)|(\\.img$)", ignore.case = T, file)], ...)
   }
   else if (grepl("(\\.zip$)", ignore.case = T, file)) {
     os <- read_zip(file = file, ...)
+    if(c_spec & !is_OpenSpecy(os) & is.list(os)){
+        os <- do.call("c_spec", c(list(os), c_spec_args))
+    }
   }
   else if (grepl("(\\.xyz$)|(\\.csv$)|(\\.tsv$)|(\\.txt$)", ignore.case = T, file)) {
     os <- read_text(file = file, ...)
@@ -67,7 +77,6 @@ read_any <- function(file, ...) {
   }  else {
     os <- read_spec(file = file, ...)
   }
-
   return(os)
 }
 

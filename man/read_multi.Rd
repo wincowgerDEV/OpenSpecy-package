@@ -6,7 +6,7 @@
 \alias{read_zip}
 \title{Read spectral data from multiple files}
 \usage{
-read_any(file, ...)
+read_any(file, c_spec = T, c_spec_args = list(range = NULL, res = NULL), ...)
 
 read_many(file, ...)
 
@@ -15,11 +15,16 @@ read_zip(file, ...)
 \arguments{
 \item{file}{file to be read from or written to.}
 
+\item{c_spec}{logical, if multiple spectra should be concatenated or not.
+Multiple spectra will return a list if this is false.}
+
+\item{c_spec_args}{list of arguments passed to \code{c_spec()}}
+
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
 All \code{read_*()} functions return \code{OpenSpecy} objects if a single
-spectrum or map is provided, otherwise the provide a list of \code{OpenSpecy} objects.
+spectrum or map is provided, otherwise they provide a list of \code{OpenSpecy} objects.
 }
 \description{
 Wrapper functions for reading files in batch.
