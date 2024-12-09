@@ -46,7 +46,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_any</span><span class="op">(</span><span class="va">file</span>, <span class="va">...</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_any</span><span class="op">(</span><span class="va">file</span>, c_spec <span class="op">=</span> <span class="cn">T</span>, c_spec_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>range <span class="op">=</span> <span class="cn">NULL</span>, res <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">read_many</span><span class="op">(</span><span class="va">file</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -61,6 +61,15 @@
 <dd><p>file to be read from or written to.</p></dd>
 
 
+<dt id="arg-c-spec">c_spec<a class="anchor" aria-label="anchor" href="#arg-c-spec"></a></dt>
+<dd><p>logical, if multiple spectra should be concatenated or not.
+Multiple spectra will return a list if this is false.</p></dd>
+
+
+<dt id="arg-c-spec-args">c_spec_args<a class="anchor" aria-label="anchor" href="#arg-c-spec-args"></a></dt>
+<dd><p>list of arguments passed to <code><a href="manage_spec.html">c_spec()</a></code></p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>further arguments passed to the submethods.</p></dd>
 
@@ -68,7 +77,7 @@
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>All <code>read_*()</code> functions return <code>OpenSpecy</code> objects if a single
-spectrum or map is provided, otherwise the provide a list of <code>OpenSpecy</code> objects.</p>
+spectrum or map is provided, otherwise they provide a list of <code>OpenSpecy</code> objects.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -114,7 +123,7 @@ in a character vector and will return a list.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 raman_hdpe.csv CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
@@ -139,90 +148,42 @@ in a character vector and will return a list.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 ftir_ldpe_soil.asp CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: a33700bad0376ddab156980f473bac92</span>
 <span class="r-in"><span><span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"testdata_zipped.zip"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_many</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [[1]]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]][[1]]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4:    311.810        45</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5:    315.398        46</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 960:   3187.990        71</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 961:   3190.520        71</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 962:   3193.060        75</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 963:   3195.590        75</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity intensity.1 intensity.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;       &lt;int&gt;       &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26          26          26</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50          50          50</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48          48          48</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4:    311.810        45          45          45</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5:    315.398        46          46          46</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                                             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 960:   3187.990        71          71          71</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 961:   3190.520        71          71          71</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 962:   3193.060        75          75          75</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 963:   3195.590        75          75          75</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67          67          67</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y                file_name  license    col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;                   &lt;char&gt;   &lt;char&gt;    &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 testdata2 - Copy (2).csv CC BY-NC intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y                file_name  license      col_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;                   &lt;char&gt;   &lt;char&gt;      &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 testdata2 - Copy (2).csv CC BY-NC   intensity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     2     1     testdata2 - Copy.csv CC BY-NC intensity.1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     1     2            testdata2.csv CC BY-NC intensity.2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]][[2]]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4:    311.810        45</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5:    315.398        46</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 960:   3187.990        71</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 961:   3190.520        71</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 962:   3193.060        75</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 963:   3195.590        75</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y            file_name  license    col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;               &lt;char&gt;   &lt;char&gt;    &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 testdata2 - Copy.csv CC BY-NC intensity</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]][[3]]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;int&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1:    301.040        26</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2:    304.632        50</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3:    308.221        48</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4:    311.810        45</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5:    315.398        46</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 960:   3187.990        71</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 961:   3190.520        71</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 962:   3193.060        75</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 963:   3195.590        75</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 964:   3198.120        67</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $metadata</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        x     y     file_name  license    col_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt; &lt;int&gt;        &lt;char&gt;   &lt;char&gt;    &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 testdata2.csv CC BY-NC intensity</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: cb06ce2846b119d932fb6696479a445b</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: cb06ce2846b119d932fb6696479a445b</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"CA_tiny_map.zip"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">read_many</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [[1]]</span>
@@ -737,17 +698,17 @@ in a character vector and will return a list.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 208: 0.000025000, 0.000025000  12_15</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                             session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                                 &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  ---                                                                  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 204: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 205: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 206: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 207: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 208: 749d1b8bba153c8e1dda72cff52fc45f/32f670563d1ae7623d13caf27bccd873</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 204: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 205: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 206: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 207: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 208: e93dbc52d671e8173d7fe08fd57ac28f/e148b7a27b5eb2c00a4d6c7413409e3f</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                               file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1: 215a0fd7e0dc3b1001799214618ce6eb</span>
