@@ -49,6 +49,25 @@ if (!require(devtools)) install.packages("devtools")
 devtools::install_github("wincowgerDEV/OpenSpecy-package")
 ```
 
+### Install on Web Assemply through webr (experimental), you can test here: https://webr.r-wasm.org/latest/
+```r
+library(caTools)
+library(data.table)
+library(jsonlite)
+library(yaml)
+library(hyperSpec)
+library(mmand)
+library(plotly)
+library(digest)
+library(signal)
+library(glmnet)
+library(jpeg)
+library(shiny)
+webr::install("OpenSpecy", repos = "https://wincowger.com/OpenSpecy-package/")
+library(OpenSpecy)
+
+```
+
 ## Getting started
 ```r
 library(OpenSpecy)
@@ -57,7 +76,7 @@ run_app()
 
 ## Simple workflow for single spectral identification
 
-See [package vignette](https://wincowger.com/OpenSpecy-package/articles/sop.html)
+See [package vignette](https://rawcdn.githack.com/wincowgerDEV/OpenSpecy-package/c253d6c3298c7db56fbfdceee6ff0e654a1431cd/articles/sop.html)
 for a detailed standard operating procedure.
 
 ```r
