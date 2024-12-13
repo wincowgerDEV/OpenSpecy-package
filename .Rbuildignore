@@ -16,3 +16,4 @@
 ^vignettes/advanced.*
 ^vignettes/app.*
 ^vignettes/spectragryph.*
+^package$
