@@ -29,21 +29,15 @@ jobs:
         with:
           extra-packages: any::pkgdown, local::.
 
-      - name: Build site
-        run: |
-          # Make sure to specify output directory for pkgdown
-          # Default build_site() puts site in `docs/`
-          # We want `docs/pkgdown`, so set the destination in `_pkgdown.yml` or move it after build.
-          # If pkgdown doesn't natively support subfolders, just build as normal and then move it:
-          pkgdown::build_site()
-          dir.create("docs/pkgdown", showWarnings = FALSE)
-          file.rename("docs/index.html", "docs/pkgdown/index.html")
-          # Move all built site files into docs/pkgdown
-          # This might require adjusting depending on your pkgdown structure:
-          # For example, if pkgdown by default places everything in docs:
-          system("cp -r docs/* docs/pkgdown/")
-          system("rm -rf docs/*")
-          # Now docs/pkgdown contains the pkgdown site
+        - name: Build site
+          run: |
+            pkgdown::build_site()
+            dir.create("docs/pkgdown", showWarnings = FALSE)
+            file.rename("docs/index.html", "docs/pkgdown/index.html")
+            system("cp -r docs/* docs/pkgdown/")
+            system("rm -rf docs/*")
+          shell: Rscript {0}
+
 
       - name: Deploy pkgdown to GitHub Pages 🚀
         if: github.event_name != 'pull_request'

@@ -20,7 +20,3 @@ jobs:
       # For publishing to pages environment
       pages: write
       id-token: write
-    with:
-      # The workflow from r-wasm should produce a CRAN-like repo structure
-      # Make sure it outputs to `docs/` or configure it accordingly.
-      output: docs
