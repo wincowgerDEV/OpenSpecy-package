@@ -36,12 +36,7 @@ jobs:
           needs: website
 
       - name: Build site
-        run: |
-            pkgdown::build_site()
-            dir.create("docs/pkgdown", showWarnings = FALSE)
-            file.rename("docs/index.html", "docs/pkgdown/index.html")
-            system("cp -r docs/* docs/pkgdown/")
-            system("rm -rf docs/*")
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE, dest_dir = "docs/pkgdown")
         shell: Rscript {0}
 
       - name: Deploy pkgdown to GitHub Pages 🚀
