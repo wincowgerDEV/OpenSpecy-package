@@ -1,5 +1,4 @@
-# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+# pkgdown.yaml
 on:
   push:
     branches: [main, master]
@@ -14,7 +13,6 @@ name: pkgdown
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
-    # Only restrict concurrency for non-PR jobs
     concurrency:
       group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
     env:
@@ -23,26 +21,34 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
-
       - uses: r-lib/actions/setup-pandoc@v2
-
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
-
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::pkgdown, local::.
-          needs: website
 
       - name: Build site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
-        shell: Rscript {0}
+        run: |
+          # Make sure to specify output directory for pkgdown
+          # Default build_site() puts site in `docs/`
+          # We want `docs/pkgdown`, so set the destination in `_pkgdown.yml` or move it after build.
+          # If pkgdown doesn't natively support subfolders, just build as normal and then move it:
+          pkgdown::build_site()
+          dir.create("docs/pkgdown", showWarnings = FALSE)
+          file.rename("docs/index.html", "docs/pkgdown/index.html")
+          # Move all built site files into docs/pkgdown
+          # This might require adjusting depending on your pkgdown structure:
+          # For example, if pkgdown by default places everything in docs:
+          system("cp -r docs/* docs/pkgdown/")
+          system("rm -rf docs/*")
+          # Now docs/pkgdown contains the pkgdown site
 
-      - name: Deploy to GitHub pages 🚀
+      - name: Deploy pkgdown to GitHub Pages 🚀
         if: github.event_name != 'pull_request'
         uses: JamesIves/github-pages-deploy-action@v4.4.1
         with:
           clean: false
           branch: gh-pages
-          folder: docs
+          folder: docs/pkgdown
