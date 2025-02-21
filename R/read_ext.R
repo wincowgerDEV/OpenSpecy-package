@@ -15,6 +15,7 @@
 #' @param file file to be read from or written to.
 #' @param colnames character vector of \code{length = 2} indicating the column
 #' names for the wavenumber and intensity; if \code{NULL} columns are guessed.
+#' @param comma_decimal logical(1) whether commas may represent decimals. 
 #' @param method submethod to be used for reading text files; defaults to
 #' \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
 #' as well.
@@ -54,6 +55,7 @@
 #' @importFrom data.table data.table as.data.table fread transpose
 #' @export
 read_text <- function(file, colnames = NULL, method = "fread",
+                      comma_decimal = FALSE,
                       metadata = list(
                         file_name = basename(file),
                         user_name = NULL,
@@ -90,33 +92,43 @@ read_text <- function(file, colnames = NULL, method = "fread",
   #This is for the siMPle csv format. 
   if(sum(c("WaveNumber", "Raw spectrum", "1st derivative", "2nd derivative") %in% names(dt)) > 2){
       dt <- as.data.table(lapply(dt, as.numeric))
-      wavenumbers <- dt[["WaveNumber"]]
+      wavenumbers <- as.numeric(dt[["WaveNumber"]])
       spectra <- dt[,-"WaveNumber"]
-      os <- as_OpenSpecy(x = as.numeric(wavenumbers), spectra = spectra,
-                         metadata = metadata)
   }
   else if(grepl("\\.xyz$", basename(file), ignore.case = T)){
       wavenumbers <- as.numeric(dt[1, ])[-c(1:2)]
       # Remove the first row
-      xy <- dt[-1,1:2]
+      metadata <- dt[-1,1:2]
       colnames(xy) <- c("x", "y")
-      dt <- transpose(dt[-1, -c(1:2)])
-      os <- as_OpenSpecy(x = wavenumbers, spectra = dt, metadata = xy)
+      spectra <- transpose(dt[-1, -c(1:2)])
   }
   else if(sum(grepl("^[0-9]{1,}$",colnames(dt))) > 4) {
     wavenumbers <- colnames(dt)[grepl("^[0-9]{1,}$",colnames(dt))]
     spectra <- transpose(dt[,wavenumbers, with = FALSE])
+    wavenumbers <- as.numeric(wavenumbers)
     metadata_names <- colnames(dt)[!grepl("^[0-9]{1,}$",colnames(dt))]
 
     metadata <- dt[, metadata_names, with = FALSE]
-
-    os <- as_OpenSpecy(x = as.numeric(wavenumbers), spectra = spectra,
-                       metadata = metadata)
   } 
   else {
     os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata,
                        session_id = T)
+    return(os)
   }
+  if(comma_decimal){
+    #Check wavenumbers for comma decimal format
+    if(all(grepl("^[0-9]+,[0-9]+$", wavenumbers))){
+      wavenumbers <- as.numeric(gsub(",",".", wavenumbers))
+    }
+    #Check the spectra for comma decimal. 
+    if(all(vapply(spectra, function(x) {
+      all(grepl(pattern = "^[0-9]+,[0-9]+$", x))}, FUN.VALUE = logical(1)))){
+      spectra[] <- lapply(spectra, function(x){as.numeric(gsub(",", ".", x))})
+    }
+  }
+  
+  os <- as_OpenSpecy(x = wavenumbers, spectra = spectra,
+                     metadata = metadata)
 
   return(os)
 }

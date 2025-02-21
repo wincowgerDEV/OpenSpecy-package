@@ -273,12 +273,6 @@ as_OpenSpecy.default <- function(x, spectra,
                                  coords = "gen_grid",
                                  session_id = FALSE,
                                  ...) {
-  if(all(grepl("^[0-9]+,[0-9]+$", x)))
-      x <- as.numeric(gsub(",",".", x))
-  if(all(vapply(spectra, function(x) {
-      all(grepl(pattern = "^[0-9]+,[0-9]+$", x))}, FUN.VALUE = logical(1))))
-      # Apply the function to each column in the data frame
-      spectra[] <- lapply(spectra, function(x){as.numeric(gsub(",", ".", x))})
   if (!is.numeric(x) || !is.vector(x))
     stop("'x' must be numeric vector", call. = F)
   if (!inherits(spectra, c("data.frame", "matrix")))
