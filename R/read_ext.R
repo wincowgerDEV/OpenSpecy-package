@@ -55,7 +55,7 @@
 #' @importFrom data.table data.table as.data.table fread transpose
 #' @export
 read_text <- function(file, colnames = NULL, method = "fread",
-                      comma_decimal = FALSE,
+                      comma_decimal = TRUE,
                       metadata = list(
                         file_name = basename(file),
                         user_name = NULL,
@@ -111,24 +111,13 @@ read_text <- function(file, colnames = NULL, method = "fread",
     metadata <- dt[, metadata_names, with = FALSE]
   } 
   else {
-    os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata,
+    os <- as_OpenSpecy(dt, colnames = colnames, metadata = metadata, comma_decimal = comma_decimal,
                        session_id = T)
     return(os)
   }
-  if(comma_decimal){
-    #Check wavenumbers for comma decimal format
-    if(all(grepl("^[0-9]+,[0-9]+$", wavenumbers))){
-      wavenumbers <- as.numeric(gsub(",",".", wavenumbers))
-    }
-    #Check the spectra for comma decimal. 
-    if(all(vapply(spectra, function(x) {
-      all(grepl(pattern = "^[0-9]+,[0-9]+$", x))}, FUN.VALUE = logical(1)))){
-      spectra[] <- lapply(spectra, function(x){as.numeric(gsub(",", ".", x))})
-    }
-  }
   
   os <- as_OpenSpecy(x = wavenumbers, spectra = spectra,
-                     metadata = metadata)
+                     metadata = metadata, comma_decimal = comma_decimal)
 
   return(os)
 }

@@ -13,6 +13,7 @@ read_text(
   file,
   colnames = NULL,
   method = "fread",
+  comma_decimal = TRUE,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
     material_form = NULL, material_phase = NULL, material_producer = NULL,
@@ -102,6 +103,8 @@ names for the wavenumber and intensity; if \code{NULL} columns are guessed.}
 \item{method}{submethod to be used for reading text files; defaults to
 \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
 as well.}
+
+\item{comma_decimal}{logical(1) whether commas may represent decimals.}
 
 \item{metadata}{a named list of the metadata; see
 \code{\link{as_OpenSpecy}()} for details.}

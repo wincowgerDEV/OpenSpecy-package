@@ -23,6 +23,7 @@
 #' @param colnames names of the wavenumber column and spectra column, makes
 #' assumptions based on column names or placement if \code{NULL}.
 #' @param n number of spectra to generate the spatial coordinate grid with.
+#' @param comma_decimal logical(1) whether commas may represent decimals. 
 #' @param \ldots additional arguments passed to submethods.
 #'
 #' @details
@@ -272,7 +273,20 @@ as_OpenSpecy.default <- function(x, spectra,
                                  ),
                                  coords = "gen_grid",
                                  session_id = FALSE,
+                                 comma_decimal = FALSE,
                                  ...) {
+    
+    if(comma_decimal){
+        #Check wavenumbers for comma decimal format
+        if(all(grepl("^[0-9]+,[0-9]+$", x))){
+            x <- as.numeric(gsub(",",".", x))
+        }
+        #Check the spectra for comma decimal. 
+        if(all(vapply(spectra, function(x) {
+            all(grepl(pattern = "^[0-9]+,[0-9]+$", x))}, FUN.VALUE = logical(1)))){
+            spectra[] <- lapply(spectra, function(x){as.numeric(gsub(",", ".", x))})
+        }
+    }
   if (!is.numeric(x) || !is.vector(x))
     stop("'x' must be numeric vector", call. = F)
   if (!inherits(spectra, c("data.frame", "matrix")))

@@ -40,6 +40,7 @@ as_OpenSpecy(x, ...)
     spectra_type = NULL),
   coords = "gen_grid",
   session_id = FALSE,
+  comma_decimal = FALSE,
   ...
 )
 
@@ -74,6 +75,8 @@ see details.}
 see details.}
 
 \item{coords}{spatial coordinates for the spectra.}
+
+\item{comma_decimal}{logical(1) whether commas may represent decimals.}
 
 \item{n}{number of spectra to generate the spatial coordinate grid with.}
 
