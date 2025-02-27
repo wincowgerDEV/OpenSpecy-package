@@ -59,33 +59,35 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F,
   if(!any(type %in% c("interp", "roll", "mean_up")))
     stop("type must be either 'interp', 'roll', or 'mean_up'")
 
-  if(is.null(range)) range <- x$wavenumber
+  raw_wave = x$wavenumber
+    
+  if(is.null(range)) range <- raw_wave
 
   if(!is.null(res)) {
-    range2 <- c(max(min(range), min(x$wavenumber)),
-               min(max(range), max(x$wavenumber)))
+    range2 <- c(max(min(range), min(raw_wave)),
+               min(max(range), max(raw_wave)))
 
     wn <- conform_res(range2, res = res)
   } else {
-    wn <- range[range >= min(x$wavenumber) & range <= max(x$wavenumber)]
+    wn <- range[range >= min(raw_wave) & range <= max(raw_wave)]
   }
 
   if(type == "interp")
-    spec <- x$spectra[, lapply(.SD, .conform_intens, x = x$wavenumber,
-                               xout = wn, ...)]
+    spec <- x$spectra[, lapply(.SD, function(y){.conform_intens(x = raw_wave, y = y,
+                               xout = wn, ...)})]
 
   if(type == "roll") {
     join <- data.table("wavenumber" = wn)
     # Rolling join option
     spec <- x$spectra
-    spec$wavenumber <- x$wavenumber
+    spec$wavenumber <- raw_wave
     spec <- spec[join, roll = "nearest", on = "wavenumber"]
     spec <- spec[,-"wavenumber"]
   }
 
   if(type == "mean_up"){
     spec <- x$spectra[,lapply(.SD, mean),
-                      by = cut(x = x$wavenumber, breaks = wn)][,-"cut"]
+                      by = cut(x = raw_wave, breaks = wn)][,-"cut"]
   }
 
   if(allow_na){

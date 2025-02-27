@@ -378,9 +378,9 @@ check_OpenSpecy <- function(x) {
     warning("Wavenumber values have NA", call. = F)
   if(!(cs <- is.data.table(x$spectra)))
     warning("Spectra are not of class 'data.table'", call. = F)
-  if(!(csn <- !any(vapply(x$spectra, function(x){all(is.na(x))},
+  if(!(csn <- !any(vapply(x$spectra, function(x){sum(!is.na(x)) < 2},
                           FUN.VALUE = logical(1)))))
-    warning("Some of the spectra have all NA values", call. = F)
+    warning("Some of the spectra have one or fewer non NA values", call. = F)
   if(!(cm <- is.data.table(x$metadata)))
     warning("Metadata are not a 'data.table'", call. = F)
   if(!(cr <- ncol(x$spectra) == nrow(x$metadata)))
