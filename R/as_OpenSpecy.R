@@ -399,8 +399,10 @@ check_OpenSpecy <- function(x) {
        identical(order(x$wavenumber), length(x$wavenumber):1)))
     warning("Wavenumbers should be a continuous sequence for all OpenSpecy ",
             "functions to run smoothly", call. = F)
+  if(!(du <- !any(duplicated(x$wavenumber))))
+        warning("Wavenumbers need to be unqiue values.", call. = F)
 
-  chk <- all(cw, cs, cm, cr, cl, cu, cv, co, csz, csn, cwn, cln, cos)
+  chk <- all(cw, cs, cm, cr, cl, cu, cv, co, csz, csn, cwn, cln, cos, du)
 
   return(chk)
 }

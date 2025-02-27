@@ -75,7 +75,7 @@ test_that("check_OpenSpecy() work as expected", {
   check_OpenSpecy(os) |> expect_true()
   check_OpenSpecy(df) |> expect_error() |> expect_warning() |> expect_warning() |> expect_warning() |> expect_warning()
 
-  osv <- osn <- oss <- ost <- osl <- os
+  osd <- osv <- osn <- oss <- ost <- osl <- os
 
   osv$wavenumber <- list(osv$wavenumber)
   check_OpenSpecy(osv) |> expect_false() |> expect_warning()
@@ -93,6 +93,12 @@ test_that("check_OpenSpecy() work as expected", {
   osl$spectra <- osl$spectra[-1]
 
   check_OpenSpecy(osl) |> expect_false() |> expect_warning() |> expect_warning()
+  
+  #dup wavenumbers
+  osd$wavenumber <- rep(300, length.out = length(osd$wavenumber))
+
+  check_OpenSpecy(osd) |> expect_false() |> expect_warning() 
+  
 })
 
 test_that("'OpenSpecy' objects are read correctly", {
