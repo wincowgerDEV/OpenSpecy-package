@@ -102,7 +102,7 @@ process_spec(raman_hdpe,
              subtr_baseline = TRUE,
              subtr_baseline_args = list(type = "polynomial",
                                         polynomial = 8)) |>
-  lines(col = "darkred")
+  plot()
 
 # Process spectra with smoothing and derivative
 process_spec(raman_hdpe,
@@ -113,6 +113,6 @@ process_spec(raman_hdpe,
                derivative = 1
                )
              ) |>
-  lines(col = "darkgreen")
+  plot()
 
 }
