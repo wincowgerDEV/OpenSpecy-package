@@ -3,6 +3,7 @@
 \name{check_lib}
 \alias{check_lib}
 \alias{get_lib}
+\alias{get_lib_slive}
 \alias{load_lib}
 \alias{rm_lib}
 \title{Manage spectral libraries}
@@ -16,6 +17,15 @@ check_lib(
 
 get_lib(
   type = c("derivative", "nobaseline", "raw", "medoid_derivative", "medoid_nobaseline",
+    "model_derivative", "model_nobaseline"),
+  path = "system",
+  revision = NULL,
+  shinylive = FALSE,
+  ...
+)
+
+get_lib_slive(
+  type = c("derivative", "nobaseline", "medoid_derivative", "medoid_nobaseline",
     "model_derivative", "model_nobaseline"),
   path = "system",
   revision = NULL,
