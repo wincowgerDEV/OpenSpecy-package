@@ -19,7 +19,7 @@ get_lib(
     "model_derivative", "model_nobaseline"),
   path = "system",
   revision = NULL,
-  shinylive = FALSE,
+  aws = FALSE,
   ...
 )
 
@@ -46,6 +46,8 @@ everything.}
 \item{revision}{revision number to use for libraries, revision numbers can be found
 at the osf repo (https://osf.io/x7dpz/) by clicking the library then history,
 if NULL defaults to most recent. This allows exact version control.}
+
+\item{aws}{whether to source the files from AWS or OSF, default of FALSE is OSF.}
 
 \item{\ldots}{further arguments passed to \code{\link[osfr]{osf_download}()}.}
 }

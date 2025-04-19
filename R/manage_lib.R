@@ -25,6 +25,7 @@
 #' @param path where to save or look for local library files; defaults to
 #' \code{"system"} pointing to
 #' \code{system.file("extdata", package = "OpenSpecy")}.
+#' @param aws whether to source the files from AWS or OSF, default of FALSE is OSF. 
 #' @param revision revision number to use for libraries, revision numbers can be found 
 #' at the osf repo (https://osf.io/x7dpz/) by clicking the library then history, 
 #' if NULL defaults to most recent. This allows exact version control. 
@@ -181,13 +182,14 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivati
                              "medoid_nobaseline", "model_derivative", "model_nobaseline"),
                     path = "system",
                     revision = NULL,
-                    shinylive = FALSE,
+                    aws = FALSE,
                     ...) {
-  if (shinylive == FALSE) {
+    
     lp <- ifelse(path == "system",
                  system.file("extdata", package = "OpenSpecy"),
                  path)
     
+  if (!aws) {
     message("Fetching Open Specy reference libraries from OSF ...")
     
     # Mapping from types to URLs and filenames
@@ -230,8 +232,7 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivati
     )
     
   } else {
-    lp <- file.path("data")
-    
+      
     message("Fetching Open Specy reference libraries from OSF ...")
     
     # Mapping from types to URLs and filenames
@@ -275,8 +276,11 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivati
       info <- library_info[[t]]
       message(info$msg)
       url <- info$url
-      if (!is.null(revision)) {
+      if (!is.null(revision) & !aws) {
         url <- paste0(url, "?revision=", revision)
+      }
+      if (!is.null(revision) & aws) {
+          url <- paste0(url, "?versionId=", revision)
       }
       destfile <- file.path(lp, info$filename)
       download.file(url, destfile = destfile, ...)
