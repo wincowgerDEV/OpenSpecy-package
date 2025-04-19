@@ -76,7 +76,7 @@ attributed when you are using their data.</p>
 <span>    <span class="st">"model_derivative"</span>, <span class="st">"model_nobaseline"</span><span class="op">)</span>,</span>
 <span>  path <span class="op">=</span> <span class="st">"system"</span>,</span>
 <span>  revision <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  shinylive <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  aws <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -114,6 +114,10 @@ everything.</p></dd>
 <dd><p>revision number to use for libraries, revision numbers can be found
 at the osf repo (https://osf.io/x7dpz/) by clicking the library then history,
 if NULL defaults to most recent. This allows exact version control.</p></dd>
+
+
+<dt id="arg-aws">aws<a class="anchor" aria-label="anchor" href="#arg-aws"></a></dt>
+<dd><p>whether to source the files from AWS or OSF, default of FALSE is OSF.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
