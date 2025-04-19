@@ -25,10 +25,11 @@
 #' @param path where to save or look for local library files; defaults to
 #' \code{"system"} pointing to
 #' \code{system.file("extdata", package = "OpenSpecy")}.
-#' @param aws whether to source the files from AWS or OSF, default of FALSE is OSF. 
+#' @param mode see \code{?download.file} for details on mode.
 #' @param revision revision number to use for libraries, revision numbers can be found 
 #' at the osf repo (https://osf.io/x7dpz/) by clicking the library then history, 
 #' if NULL defaults to most recent. This allows exact version control. 
+#' @param aws whether to source the files from AWS or OSF, default of FALSE is OSF. 
 #' @param condition determines if \code{check_lib()} should warn
 #' (\code{"warning"}, the default) or throw and error (\code{"error"}).
 #' @param \ldots further arguments passed to \code{\link[osfr]{osf_download}()}.
@@ -181,6 +182,7 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_deriva
 get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivative",
                              "medoid_nobaseline", "model_derivative", "model_nobaseline"),
                     path = "system",
+                    mode = "wb",
                     revision = NULL,
                     aws = FALSE,
                     ...) {
@@ -283,7 +285,7 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivati
           url <- paste0(url, "?versionId=", revision)
       }
       destfile <- file.path(lp, info$filename)
-      download.file(url, destfile = destfile, ...)
+      download.file(url, destfile = destfile, mode = mode, ...)
     } else {
       warning("Unknown library type: ", t)
     }

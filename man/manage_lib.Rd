@@ -18,6 +18,7 @@ get_lib(
   type = c("derivative", "nobaseline", "raw", "medoid_derivative", "medoid_nobaseline",
     "model_derivative", "model_nobaseline"),
   path = "system",
+  mode = "wb",
   revision = NULL,
   aws = FALSE,
   ...
@@ -42,6 +43,8 @@ everything.}
 
 \item{condition}{determines if \code{check_lib()} should warn
 (\code{"warning"}, the default) or throw and error (\code{"error"}).}
+
+\item{mode}{see \code{?download.file} for details on mode.}
 
 \item{revision}{revision number to use for libraries, revision numbers can be found
 at the osf repo (https://osf.io/x7dpz/) by clicking the library then history,
