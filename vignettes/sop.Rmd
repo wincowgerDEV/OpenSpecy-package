@@ -52,7 +52,7 @@ To get started with the Open Specy user interface, access
 [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/) or
 start the Shiny GUI directly from your own computer in R. If you are looking for
 a tutorial about how to use the app see [this
-tutorial](https://wincowger.com/OpenSpecy-package/articles/app.html).
+tutorial](https://rawcdn.githack.com/wincowgerDEV/OpenSpecy-package/c253d6c3298c7db56fbfdceee6ff0e654a1431cd/articles/app.html).
 
 ```{r, eval=FALSE}
 run_app()
@@ -64,27 +64,18 @@ The following line of code will read in your data when using the package and
 interprets which reading function to use based on the file extension.
 
 ```{r, eval=FALSE}
-read_any("path/to/your/data")
+spectra <- read_any("path/to/your/data")
 ```
 
-These file type specific functions will also read in spectral
-data accordingly if you have a particular format in mind.
-
-```{r, eval=FALSE}
-read_text(".csv")
-read_asp(".asp")
-read_opus(".0")
-```
-
-Open Specy allows for upload of native Open Specy .y(a)ml, .json, or .rds files.
+Open Specy allows for upload of native Open Specy .csv, .y(a)ml, .json, or .rds files. Open Specy and .csv files should always load correctly
+but the other file types are still in development, though most of the time these
+files work perfectly.
 In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip files can be imported.
 .zip  files can either contain multiple files with individual spectra in them of
 the non-zip formats or it can contain a .hdr and .dat file that form an ENVI
-file for a spectral map. Open Specy and .csv files should always load correctly
-but the other file types are still in development, though most of the time these
-files work perfectly. If uploading a .csv file, label the column with the
-wavenumbers `wavenumber` and name the column with the intensities `intensity`.
-Wavenumber units must be cm^-1^. Any other columns are not used by the software.
+file for a spectral map. If uploading a .csv file, it is ideal to label the column with the
+wavenumbers `wavenumber` and name the column with the intensities `intensity`. Columns besides wavenumber will be interpreted as unique spectra. If any columns are numbers, the csv will be interpreted in wide format with the number columns the wavenumbers and rows containing the unique spectral intensities and metadata contained in non number columns.
+Wavenumber units should be cm^-1^ or use `adj_wave()` to correct from wavelength. 
 Always keep a copy of the original file before alteration to preserve metadata
 and raw data for your records.
 
@@ -98,7 +89,7 @@ The specific steps to converting your instrument's native files to .csv can be
 found in its software manual or you can check out
 [Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
 spectral file conversions. For instructions, see [Spectragryph
-Tutorial](https://wincowger.com/OpenSpecy-package/articles/spectragryph.html).
+Tutorial](https://wincowger.com/OpenSpecy-package/articles/spectragryph.html). Unfortunately the maintainer of Spectragryph passed away and it is unclear how much longer this will be supported.
 
 If you don't have your own data, you can use a test dataset.
 
@@ -136,7 +127,7 @@ Open Specy objects are lists with three components, `wavenumber` is a vector of
 the wavenumber values for the spectra and corresponds to the rows in `spectra`
 which is a `data.table` where each column is a set of spectral intensities.
 `metadata` is a data.table which holds additional information about the spectra.
-Each row corresponds to a column in `spectra`.
+Each row in `metadata` corresponds to a column in `spectra`.
 
 ```{r}
 # Access the wavenumbers
@@ -178,13 +169,14 @@ head(scratch_OpenSpecy) # shows the top wavenumbers and intensities
 
 # Save Data
 
-Open Specy objects can be saved most accurately as .rds, .yml, or .json files.
+Open Specy objects can be saved most accurately as .csv, .rds, .yml, or .json files.
 .rds will be the most reproducible as it is a native R file format and floating
-point errors can happen with .json or .yml.
+point errors can happen with .csv, .json, or .yml.
 
 ```{r, eval=F}
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.yml", digits = 5)
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.json", digits = 5)
+write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.csv", digits = 5)
 ```
 
 # Format Conversions
@@ -262,9 +254,18 @@ want and the function will collapse all the spectra to whatever their common
 range is using linear interpolation.
 
 ```{r, fig.align="center", fig.width=5}
-c_spec(list(asp_example, ps_example), range = "common", res = 8) |> 
+combined <- c_spec(list(asp_example, ps_example), range = "common", res = 8) 
+
+combined |> 
   plot()
 ```
+
+If you want to plot them with standardized offset y values you can do so with the plot variables. 
+
+```{r, fig.align="center", fig.width=5}
+plot(combined |> make_rel(), offset = 3, legend_var = "file_name")
+```
+
 
 # Filtering OpenSpecy Objects
 
@@ -274,21 +275,18 @@ with a subset of the spectra that is in an Open Specy object you can use the
 logical vector. Filtering will update the `spectra` and `metadata` items of the
 `OpenSpecy` but not the `wavenumber`.
 
-```{r}
-# Extract the 150th spectrum. 
+```{r, eval=F}
+# Extract the 150th spectrum by index number. 
 filter_spec(spectral_map, 150)
-```
+# Extract the 150th spectrum by spectrum name. 
+filter_spec(spectral_map, "9_5")
+# Extract the 150th spectrum by logical test. 
+filter_spec(spectral_map, spectral_map$metadata$x == 9 &  spectral_map$metadata$y == 5)
 
-```{r}
-# Extract the spectrum with column name "8_5". 
-filter_spec(spectral_map, "8_5") |> 
-  print()
-```
+#Test that they are the same. 
+identical(filter_spec(spectral_map, 150), filter_spec(spectral_map, "9_5"))
 
-```{r, fig.align="center", fig.width=5}
-# Extract the spectra with a logical argument based on metadata
-filter_spec(spectral_map, spectral_map$metadata$y == 1) |>
-  plot()
+identical(filter_spec(spectral_map, 150), filter_spec(spectral_map, spectral_map$metadata$y == 9 & spectral_map$metadata$x == 5))
 ```
 
 # Sampling OpenSpecy Objects
@@ -297,7 +295,7 @@ Sometimes you have a large suite of examples of spectra of the same material and
 you want to reduce the number of spectra you run through the analysis for
 simplicity or you are running simulations or other procedures that require you
 to first sample from the spectra contained in your OpenSpecy objects before
-doing analysis. the `sample_spec` function serves this purpose.
+doing analysis. The `sample_spec` function serves this purpose.
 
 ```{r, fig.align="center", fig.width=5}
 sample_spec(spectral_map, size = 5) |>
@@ -306,40 +304,19 @@ sample_spec(spectral_map, size = 5) |>
 
 # Processing
 
-The goal of this all processing is to increase the signal to noise ratio (S/N)
-of the spectra without distorting the shape, position, or relative size of the
+The goal of processing is to increase the signal to noise ratio (S/N)
+of the spectra and remove unwanted artifacts without distorting the shape, position, or relative size of the
 peaks. After loading data, you can process the data using intensity
 adjustment, baseline subtraction, smoothing, flattening, and range selection.
-The default settings is an absolute derivative transformation, it is kind of
-magic, it does something similar to smoothing, baseline subtraction, and
+The default settings is an absolute first derivative transformation. It is really powerful for many data issues. It does something similar to smoothing, baseline subtraction, and
 intensity correction simultaneously and really quickly.
 
 The `process_spec()` function is a monolithic function for all
 processing procedures which is optimized by default to result in high signal to
 noise in most cases, same as the app.
 
-```{r}
-processed <- process_spec(raman_hdpe,
-                          active = TRUE,
-                          adj_intens = FALSE,
-                          adj_intens_args = list(type = "none"),
-                          conform_spec = TRUE,
-                          conform_spec_args = list(range = NULL, res = 8,
-                                                   type = "interp"),
-                          restrict_range = FALSE,
-                          restrict_range_args = list(min = 0, max = 6000),
-                          flatten_range = FALSE,
-                          flatten_range_args = list(min = 2200, max = 2420),
-                          subtr_baseline = FALSE,
-                          subtr_baseline_args = list(type = "polynomial",
-                                                     degree = 8, raw = FALSE,
-                                                     baseline = NULL),
-                          smooth_intens = TRUE,
-                          smooth_intens_args = list(polynomial = 3, window = 11,
-                                                    derivative = 1, abs = TRUE),
-                          make_rel = TRUE)
-summary(processed)
-summary(raman_hdpe)
+```{r eval=FALSE}
+processed <- process_spec(raman_hdpe)
 ```
 
 You can compare the processed and unprocessed data in an overlay plot.
@@ -350,34 +327,33 @@ plotly_spec(raman_hdpe, processed)
 
 We want people to use the `process_spec()` function for most processing
 operations. All other processing functions can be tuned using its parameters in
-the single function and we have set defaults and nested the processing functions
-in a way that provides typically quality results. However, we recognize that
+the single function see `?process_spec()` for details. However, we recognize that
 nesting of functions and order of operations can be useful for users to control
 so you can also use individual functions for each operation if you'd like. See
 explanations of each processing sub-function below.
 
-## Threshold Signal-Noise
+## Threshold Signal and Noise
 
-Considering whether you have enough signal to analyze spectra is important.
-Classical spectroscopy would recommend your highest peak to be at least 10 times
-the baseline of your processed spectra before you begin analysis. If your
+Considering whether you have enough signal to analyze spectra in the first place is important, because if you don't have enough signal you should recollect the spectrum.
+Classical spectroscopy would recommend your highest peak to be at least 10 times greater than
+the baseline of your processed spectra before you begin analysis. Setting a threshold can assist in standardized differentiation between low and high quality spectral. If your
 spectra is below that threshold even after processing, you may want to consider
 recollecting it. In practice, we are rarely able to collect spectra of that good
-quality and more often use 5. The "run_sig_over_noise" `metric` searches your
+quality and more often use 4 as a lower bound with anything below 2 being completely unusable. The "run_sig_over_noise" `metric` searches your
 spectra for high and low regions and conducts division on them to derive the
-signal to noise ratio and `step` specifies the number of intensities to search.
-This is a good way to automatically calculate the signal to noise ratio. In the
+signal to noise ratio. In the
 example below you can see that our signal to noise ratio is increased by the
-processing, the goal of processing is generally to maximize this.
-"sig_times_noise" `metric` multiplies the mean signal by the standard deviation
-of the signal and "tot_sig" `metric` sums the intensities. The latter can be
-really useful for thresholding spectral maps to identify particles which we will
-discuss later. If you know where your signal region and noise regions are you
+processing, the goal of processing is generally to maximize the signal to noise ratio. If you know where your signal region and noise regions are, you
 can specify them with `sig_min`, `sig_max`, `noise_min`, and `noise_max`.
 
 ```{r, eval=F}
+# Automatic signal to noise ratio comparison
 sig_noise(processed, metric = "run_sig_over_noise") > 
   sig_noise(raman_hdpe, metric = "run_sig_over_noise")
+
+#Manual signal to noise ratio calculation
+sig_noise(processed, metric = "sig_over_noise", sig_min = 2700, sig_max = 3000, noise_min = 1500, noise_max = 2500) > 
+  sig_noise(raman_hdpe, metric = "sig_over_noise", sig_min = 2700, sig_max = 3000, noise_min = 1500, noise_max = 2500)
 ```
 
 If analyzing spectra in batch, we recommend looking at the heatmap and
@@ -386,27 +362,30 @@ to determine the correct settings instead of looking through spectra
 individually. Setting the `min_sn` will threshold the heatmap image to only
 color spectra which have a `sn` value over the threshold.
 
-```{r, out.width="100%"}
+```{r, eval=FALSE}
+#Remove CO2 region
 spectral_map_p <- spectral_map |>
   process_spec(flatten_range = T)
 
-spectral_map_p$metadata$sig_noise <- sig_noise(spectral_map_p)
+#Calculate signal times noise
+spectral_map_p$metadata$sig_noise <- sig_noise(spectral_map_p, metric = "run_sig_over_noise")
 
+#Plot result
 heatmap_spec(spectral_map_p, sn = spectral_map_p$metadata$sig_noise, min_sn = 5)
 ```
 
 ## Intensity Adjustment
 
-Open Specy assumes that intensity units are in absorbance units but Open Specy
+Most functions in Open Specy assume that intensity units are in absorbance units and Open Specy
 can adjust reflectance or transmittance spectra to absorbance units. The
 transmittance adjustment uses the $\log_{10} 1/T$ calculation which does not
-correct for system or particle characteristics. The reflectance adjustment use
+correct for system or particle characteristics. The reflectance adjustment uses
 the Kubelka-Munk equation $\frac{(1-R)^2}{2R}$.
 
 This is the respective R code for a scenario where the spectra doesn't need
 intensity adjustment:
 
-```{r, fig.align="center", out.width="100%"}
+```{r, eval=FALSE}
 trans_raman_hdpe <- raman_hdpe
 trans_raman_hdpe$spectra <- 2 - trans_raman_hdpe$spectra^2
     
@@ -420,24 +399,18 @@ plotly_spec(trans_raman_hdpe, rev_trans_raman_hdpe)
 
 Conforming spectra is essential before comparing to a reference library and can
 be useful for summarizing data when you don't need it to be highly resolved
-spectrally. We set the default spectral resolution to 8 because this tends to be
+spectrally. We set the default spectral resolution to 5 because this tends to be
 pretty good for a lot of applications and is in between 4 and 8 which are
-commonly used wavenumber resolutions. There are several ways that this function
-can be specified.
+commonly used wavenumber resolutions. 
 
-```{r}
-conform_spec(raman_hdpe, res = 8) |> # convert res to 8 wavenumbers.
+```{r, eval=FALSE}
+conform_spec(raman_hdpe, res = 8) |> # Convert res to 8 wavenumbers.
   summary()
 
 # Force one spectrum to have the exact same wavenumbers as another
 conform_spec(asp_example, range = ps_example$wavenumber, res = NULL) |> 
   summary()
 
-# Specify the wavenumber resolution and use a rolling join instead of linear
-# approximation (faster for large datasets). 
-conform_spec(spectral_map, range = ps_example$wavenumber, res = 10,
-             type = "roll") |> 
-  summary()
 ```
 
 ## Smoothing
@@ -450,11 +423,9 @@ moving window of 11 data points by default where the center point in the window
 is replaced with the polynomial estimate. Larger windows will produce smoother
 fits. The derivative order is set to 1 by default which transforms the spectra
 to their first derivative. A zero order derivative will have no derivative
-transformation. When smoothing is done well, peak shapes and relative heights
+transformation and only apply smoothing. When smoothing is done well, peak shapes and relative heights
 should not change. The absolute value is primarily useful for first derivative
-spectra where the absolute value results in an absorbance-like spectrum which is
-why we set it as the default. You'll notice a new function we are using
-`c_spec()` which is used to combine spectral objects into one OpenSpecy object.
+spectra where the result looks similar to absorbance units and is easy to have intuition about. 
 
 Examples of smoothing:
 
@@ -467,12 +438,13 @@ c_spec(list(none, p1, p4)) |>
   plot()
 ```
 
-Derivative transformation can happen with the same function. 
+Derivative transformation can be done with the same function. 
 
 ```{r compare_derivative, fig.cap = "Sample `raman_hdpe` spectrum with different derivatives.", fig.width=5, fig.align="center"}
 none <- make_rel(raman_hdpe)
-d1 <- smooth_intens(raman_hdpe, derivative = 1, abs = T)
-d2 <- smooth_intens(raman_hdpe, derivative = 2, abs = T)
+window <- calc_window_points(raman_hdpe, 100) #Calculate the number of points needed for a 190 wavenumber window.
+d1 <- smooth_intens(raman_hdpe, derivative = 1, window = window, abs = T)
+d2 <- smooth_intens(raman_hdpe, derivative = 2, window = window, abs = T)
 
 c_spec(list(none, d1, d2)) |> 
   plot()
@@ -491,37 +463,40 @@ in the peak region is removed from the fit to make sure that the baseline is
 less likely to fit to the peaks. The iterative fitting terminates once the
 difference between the new and previous fit is small. An example of a good
 baseline fit below. Manual baseline correction can also be specified by
-providing a baseline `OpenSpecy` object.
+providing a baseline `OpenSpecy` object. There are many fine tuning options that can be chosen, see `?subtr_baseline()` for more details.
 
 ```{r subtr_baseline, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=5, fig.align="center"}
 alternative_baseline <- smooth_intens(raman_hdpe, polynomial = 1, window = 51,
                                       derivative = 0, abs = F, make_rel = F) |>
-  flatten_range(min = 2700, max = 3200, make_rel = F)
+  flatten_range(min = 2700, max = 3200, make_rel = F) #Manual baseline with heavily smoothed spectra
 
-none <- make_rel(raman_hdpe)
-d2 <- subtr_baseline(raman_hdpe, type = "manual",
-                     baseline = alternative_baseline)
-d8 <- subtr_baseline(raman_hdpe, degree = 8)
+none <- make_rel(raman_hdpe) #raw
+d <- subtr_baseline(raman_hdpe, type = "manual",
+                     baseline = alternative_baseline) #manual subtraction
+d8 <- subtr_baseline(raman_hdpe, degree = 8) #standard imodpolyfit
+dr <- subtr_baseline(raman_hdpe, refit_at_end = T) #optionally retain baseline noise with refitting
 
-c_spec(list(none, d2, d8)) |> 
-  plot()
+c_spec(list(none, d, d8, dr)) |> 
+  plot(offset = 0.25)
 ```
 
 ## Range Selection
 
 Sometimes an instrument operates with high noise at the ends of the spectrum
 and, a baseline fit produces distortions, or there are regions of interest for
-analysis. Range selection accomplishes those goals. You should look into the
-signal to noise ratio of your specific instrument by wavelength to determine
-what wavelength ranges to use. Distortions due to baseline fit can be assessed
-from looking at the process spectra. Additionally, you can restrict the range
-to examine a single peak or a subset of peaks of interests. Multiple ranges can
+analysis. Range selection accomplishes those goals. Many of these issues can be resolved during spectral collection by specifying a wavenumber range which is well characterized by the instrument. Multiple ranges can
 be specified simultaneously.
 
 ```{r restrict_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of range restriction.", fig.width=5, fig.align="center"}
 none <- make_rel(raman_hdpe)
-r1 <- restrict_range(raman_hdpe, min = 1000, max = 2000)
-r2 <- restrict_range(raman_hdpe, min = c(1000, 1800), max = c(1200, 2000))
+
+#Specify one range
+r1 <- restrict_range(raman_hdpe, min = 1000, max = 2000) |>
+    conform_spec(range = none$wavenumber, res = NULL, allow_na = T)
+
+#Specify multiple ranges
+r2 <- restrict_range(raman_hdpe, min = c(1000, 1800), max = c(1200, 2000)) |>
+        conform_spec(range = none$wavenumber, res = NULL, allow_na = T)
 
 compare_ranges <- c_spec(list(none, r1, r2), range = "common")
 # Common argument crops the ranges to the most common range between the spectra
@@ -534,7 +509,7 @@ plot(compare_ranges)
 
 Sometimes there are peaks that really shouldn't be in your spectra and can
 distort your interpretation of the spectra but you don't necessarily want to
-remove the regions from the analysis because you believe those regions should be
+remove the regions from the analysis because you believe those regions should exist and be
 flat instead of having a peak. One way to deal with this is to replace the peak
 values with the mean of the values around the peak. This is the purpose of the
 `flatten_range` function. By default it is set to flatten the CO2 region for
@@ -547,11 +522,11 @@ single <- filter_spec(spectral_map, 120) # Function to filter spectra by index
                                          # number or name or a logical vector. 
 none <- make_rel(single)
 f1 <- flatten_range(single) #default flattening the CO2 region. 
-f2 <- flatten_range(single, min = c(1000, 2500), max = c(1200, 3000))
+f2 <- flatten_range(single, min = c(1000, 2500), max = c(1200, 3000)) #multple range example
 
-compare_flats <- c_spec(list(none, f1, f2))
+compare_flats <- c_spec(list(none, f1, f2), range = "common")
 
-plot(compare_flats)
+plot(compare_flats, offset = 0.25)
 ```
 
 ## Min-Max Normalization
@@ -560,11 +535,14 @@ Often we regard spectral intensities as arbitrary and min-max normalization
 allows us to view spectra on the same scale without drastically distorting their
 shapes or relative peak intensities. In the package, most of the processing
 functions will min-max transform your spectra by default if you do not specify
-otherwise. This plot shows two plots that are nearly identical except for the
-min-max transformed spectrum has a y axis that ranges from 0-1.
+otherwise with `make_rel = FALSE`. 
 
-```{r make_rel, fig.cap = "Sample `raman_hdpe` spectrum with one being relative and the other untransformed."}
-relative <- make_rel(raman_hdpe)
+```{r, eval=FALSE}
+
+raman_hdpe |> plot()
+
+make_rel(raman_hdpe) |> plot()
+
 ```
 
 # Identifying Spectra 
@@ -572,20 +550,19 @@ relative <- make_rel(raman_hdpe)
 ## Reading Libraries
 
 Reference libraries are spectra with known identities. The Open Specy library
-now has over 10,000 spectra in it an is getting so large that we cannot fit it
+now has over 30,000 spectra in it and is getting so large that we cannot fit it
 within the R package size limit of 5 MB. We host the reference libraries on
 [OSF](https://osf.io/x7dpz/) and have a function to pull the libraries down
 automatically. Running get_lib by itself will download all libraries to your
-package director or you can specify which libraries you want and where you want
+package directory or you can specify which libraries you want and where you want
 them.
 
 ```{r, eval=F}
 get_lib(type = "derivative")
 ```
 
-After download the libraries you can load them into your active environment. You
-should load them one at a time. Libraries are also `OpenSpecy` objects so you
-can use any Open Specy object as a library.
+After download you can load the libraries into your active environment one at a time as `OpenSpecy` objects. You
+can use any Open Specy object as a library which makes it easy to work with and create libraries because everything we explained earlier applies to them.
 
 ```{r, eval=F}
 lib <- load_lib(type = "derivative")
@@ -599,16 +576,11 @@ OpenSpecy reference libraries are in Absorbance units. `derivative` has been
 absolute first derivative transformed, `nobaseline` has been baseline corrected,
 `raw` is the rawest form of the reference spectra (not recommended except for
 advanced uses). The previously mentioned libraries all have Raman and FTIR
-spectra in them. `mediod` is the mediod compressed library version of the
-absolute first derivative for FTIR, `model` is an exception because it is a
-multinomial regression approach for FTIR to identification of absolute
-derivative spectra. 
+spectra in them. `mediod_{derivative or nobasline}` is the mediod compressed library version of the libraries and has only critical spectra in it, `model{derivative or nobasline}` is an exception because it is a
+multinomial regression approach for identification. 
 In this example we use the `data("test_lib")` which is a subsampled version of
-the absolute derivative library and `data("raman_hdpe")` which is an unprocessed
-Raman spectrum in absorbance units of HDPE plastic. With single spectra it is
-easy to look at the spectra but when doing in batch, also refer to the
-Thresholding Signal-Noise section for guidance on making sure your batch spectra
-are processed to quality specs.
+the `derivative` library and `data("raman_hdpe")` which is an unprocessed
+Raman spectrum in absorbance units of HDPE plastic. 
 
 ```{r, eval = F}
 data("test_lib")
@@ -622,15 +594,14 @@ processed <- process_spec(x = raman_hdpe,
 # Check to make sure that the signal to noise ratio of the processed spectra is
 # greater than 10.
 print(sig_noise(processed) > 10)
+
+#Plot to assess the accuracy of the processing visually
 plotly_spec(raman_hdpe, processed)
 ```
 
 After your spectra is processed similarly to the library specifications, you can
-identify the spectra using `match_spec()`. All of the libraries have wavenumbers
-at 8 cm^-1 resolution. Whichever library you choose, you need to get your
-spectra into a similar enough format to use for comparison. That means
-conforming the wavenumbers to the same values using `conform = T`.
-Alternatively, you could have done the conformation during the processing. The
+identify the spectra using `match_spec()`. Whichever library you choose, you need to get your
+spectra into a similar enough format to use for comparison. The
 `add_library_metadata` and `add_object_metadata` options specify the column name
 in the metadata that you want to add metadata from and `top_n` specifies how
 many matches you want. In this example we just identified a single spectrum with
@@ -653,7 +624,7 @@ library with FTIR or Raman spectra, you can first filter the library using
 
 ```{r eval=FALSE}
 matches <- match_spec(x = processed, library = test_lib, conform = T,
-                      add_library_metadata = "sample_name", top_n = 5)
+                      add_library_metadata = "sample_name", top_n = 5)[order(match_val, decreasing = T)]
 print(matches[,c("object_id", "library_id", "match_val", "SpectrumType",
                  "SpectrumIdentity")])
 ```
@@ -710,47 +681,61 @@ so we may be updating these functions in the near future.
 ## Brute Force
 
 ```{r, eval = F}
+#Test library
 data("test_lib")
+
+#Example hyperspectral image with one cellulose acetate particle in the middle of it. 
 test_map <- read_any(read_extdata("CA_tiny_map.zip"))
 
+#Process the map to conform to the library. 
 test_map_processed <- process_spec(test_map, conform_spec_args = list(
   range = test_lib$wavenumber, res = NULL)
   )
 
+#Identify every spectrum in the map. 
 identities <- match_spec(test_map_processed, test_lib, order = test_map,
                          add_library_metadata = "sample_name", top_n = 1)
 
+#Relabel any spectra with low correlation coefficients. 
 features <- ifelse(identities$match_val > 0.7,
                    tolower(identities$polymer_class), "unknown")
 
+#Use spectra identities to identify particle regions as those that have the same material type and are touching. 
 id_map <- def_features(x = test_map_processed, features = features)
 
 id_map$metadata$identities <- features
 # Also should probably be implemented automatically in the function when a
 # character value is provided. 
+heatmap_spec(id_map, z = id_map$metadata$identities)
 
 # Collapses spectra to their median for each particle
 test_collapsed <- collapse_spec(id_map)
+
+# Plot spectra for each identified particle
+plot(test_collapsed, offset = 1, legend_var = "feature_id")
 ```
 
 ## A Priori Particle Thresholding
 
 ```{r, eval = F}
+# Read in test library
 data("test_lib")
-test_map <- read_any(read_extdata("CA_tiny_map.zip"))
 
-# Characterize the total signal as a threshold value. 
-snr <- sig_noise(test_map,metric = "log_tot_sig")
+# Example dataset with one cellulose acetate particle.Conduct spatial smoothing to average each spectrum using adjacent spectra. 
+test_map <- read_any(read_extdata("CA_tiny_map.zip"),   
+                     spectral_smooth = T,
+                     sigma = c(1, 1, 1))
 
-# Use this to find your particles and the sig_noise value to use for
-# thresholding. 
+# Characterize the signal times noise to determine where particle regions are.  
+snr <- sig_noise(test_map, metric = "sig_times_noise")
+
+# Use this to find your particles and the idal signal times noise value to use for thresholding. 
 heatmap_spec(test_map, z = snr)
 
-# Set define the feature regions based on the threshold. 400 appeared to be
-# where I suspected my particle to be in the previous heatmap. 
-id_map <- def_features(x = test_map, features = snr > 400) 
+# Define the feature regions based on the threshold. Pixels from the background in the heatmap above were below 0.05 while my particle's pixels were above so I set snr > 0.05.  
+id_map <- def_features(x = test_map, features = snr > 0.05) 
 
-# Check that the thresholding worked as expected.
+# Check that the thresholding worked as expected. Here we see a single particle region identified separate from the background. 
 heatmap_spec(id_map, z = id_map$metadata$feature_id)
 
 # Collapse the spectra to their medians based on the threshold. Important to
@@ -759,17 +744,18 @@ heatmap_spec(id_map, z = id_map$metadata$feature_id)
 collapsed_id_map <- id_map |>
   collapse_spec()
 
-# Process the collapsed spectra. 
+# Process the collapsed spectra to have the same transformation and units as the library. 
 id_map_processed <- process_spec(collapsed_id_map, conform_spec_args = list(
   range = test_lib$wavenumber, res = NULL)
   )
 
-# Check the spectra.
-plot(id_map_processed)
+# Check the spectra for the background and particle. Background has considerable signal in it too suggesting double bounce along the edges of the particle. 
+plot(id_map_processed, offset = 1, legend_var = "feature_id")
 
 # Get the matches of the collapsed spectra for the particles.
 matches <- match_spec(id_map_processed, test_lib,
                       add_library_metadata = "sample_name", top_n = 1)
+
 ```
 
 # References
