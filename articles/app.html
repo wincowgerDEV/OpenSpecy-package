@@ -64,7 +64,7 @@
 <p>Win Cowger,
 Zacharias Steinmetz</p>
             
-            <h4 data-toc-skip class="date">2025-04-22</h4>
+            <h4 data-toc-skip class="date">2025-04-23</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/vignettes/app.Rmd" class="external-link"><code>vignettes/app.Rmd</code></a></small>
       <div class="d-none name"><code>app.Rmd</code></div>
@@ -85,7 +85,7 @@ standard operating procedure the first time. Afterward, knowledgeable
 users should be able to thoroughly analyze spectra at an average speed
 of 1 min<sup>-1</sup> or faster with the new batch and automated
 procedures. If you are looking for documentation about the R package
-please see the <a href="http://wincowger.com/OpenSpecy-package/articles/sop.html">package
+please see the <a href="https://rawcdn.githack.com/wincowgerDEV/OpenSpecy-package/c253d6c3298c7db56fbfdceee6ff0e654a1431cd/articles/sop.html" class="external-link">package
 vignette</a></p>
 </div>
 <div class="section level2">
@@ -96,8 +96,10 @@ or start the Shiny GUI directly from your own computer in R. If using
 the package, you just need to read in the library and run the command
 <code><a href="../reference/run_app.html">run_app()</a></code>.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/wincowgerDEV/OpenSpecy-package/" class="external-link">OpenSpecy</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"OpenSpecy"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/wincowgerDEV/OpenSpecy-package/" class="external-link">OpenSpecy</a></span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -107,28 +109,22 @@ the package, you just need to read in the library and run the command
 <strong>Browse</strong> at the top left hand corner of the Analyze
 Spectra tab.</p>
 <p><img src="app%2Fmainpage.jpg" width="98%" style="display: block; margin: auto;"></p>
-<p>Before uploading, indicate if you would like to share the uploaded
-data or not using the slider. If selected, any data uploaded to the tool
-will automatically be shared under <a href="https://creativecommons.org/licenses/by/4.0/" class="external-link">CC-BY 4.0
-license</a> and will be available for researchers and other ventures to
-use to improve spectral analysis, build machine learning tools, etc.
-Some users may choose not to share if they need to keep their data
-private. If switched off, none of the uploaded data will be stored or
-shared in Open Specy.</p>
-<p><img src="app%2Fuploadfile.jpg" width="137" style="display: block; margin: auto;"></p>
 <p>Open Specy allows for upload of native Open Specy .y(a)ml, .json, or
 .rds files. In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip
-files can be imported. .zip files can either contain multiple files with
-individual spectra in them of the non-zip formats or it can contain a
-.hdr and .dat file that form an ENVI file for a spectral map. Open Specy
-and .csv files should always load correctly but the other file types are
-still in development, though most of the time these files work
-perfectly. If uploading a .csv file, label the column with the
-wavenumbers <code>wavenumber</code> and name the column with the
-intensities <code>intensity</code>. Wavenumber units must be
-cm<sup>-1</sup>. Any other columns are not used by the software. Always
-keep a copy of the original file before alteration to preserve metadata
-and raw data for your records.</p>
+files can be imported. To upload many files at once either select all
+the files you want to upload or zip the files together and upload the
+.zip file. Open Specy formats and .csv files should always load
+correctly but the other file types are still in development, though most
+of the time these files work perfectly. If uploading a .csv file, the
+simplest format is to label the column with the wavenumbers
+<code>wavenumber</code> and name the column with the intensities
+<code>intensity</code>. Wavenumber units must be cm<sup>-1</sup>. All
+other columns will be interpreted as additional spectra. Alternatively,
+spectra can be uploaded in wide csv format where some column names are
+in numerical format for the wavenumbers, rows will be interpreted as
+spectra, and any nonnumeric columns will be interpreted as
+metadata.<br>
+Always keep a copy of the original files.</p>
 <table class="table">
 <caption>Sample data <code>raman_hdpe</code>
 </caption>
@@ -171,7 +167,7 @@ the administrator and share the file so that we can work on integrating
 it.</p>
 <p>The specific steps to converting your instrument’s native files to
 .csv can be found in its software manual or you can check out <a href="https://www.effemm2.de/spectragryph/" class="external-link">Spectragryph</a>, which
-supports many spectral file conversions see <a href="http://wincowger.com/OpenSpecy-package/articles/spectragryph.html">Spectragryph
+supports many spectral file conversions see <a href="https://rawcdn.githack.com/wincowgerDEV/OpenSpecy-package/c253d6c3298c7db56fbfdceee6ff0e654a1431cd/articles/spectragryph.html" class="external-link">Spectragryph
 Tutorial</a>.</p>
 <p>If you don’t have your own data, you can use a test dataset.</p>
 <p><img src="app%2Fsamplefile.jpg" width="134" style="display: block; margin: auto;"></p>
@@ -188,42 +184,44 @@ an Open Specy accepted format.</p>
 <p>In the app after spectral data are uploaded, it will appear in the
 main window. This plot is selectable, zoomable, and provides information
 on hover. You can also save a .png file of the plot view using the
-camera icon at the top right when you hover over the plot.</p>
-<p><img src="app%2Fspectra_vis.jpg" width="210" style="display: block; margin: auto;"></p>
+camera icon at the top right when you hover over the plot. Any metadata
+pulled from the file is viewable below the plot.</p>
+<p><img src="app%2Fspectra_vis.jpg" width="759" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level3">
-<h3 id="maps">Maps<a class="anchor" aria-label="anchor" href="#maps"></a>
+<h3 id="batches-and-maps">Batches and Maps<a class="anchor" aria-label="anchor" href="#batches-and-maps"></a>
 </h3>
-<p>Spectral maps can also be visualized as overlaid spectra but in
-addition the spatial information can be plotted as a heatmap. A similar
-plot should appear in the app if you upload multiple spectra or a
-spectral map. It is important to note that when multiple spectra are
-uploaded in batch they are prescribed <code>x</code> and <code>y</code>
-coordinates, this can be helpful for visualizing summary statistics and
-navigating vast amounts of data but shouldn’t be confused with data
+<p>Spectral maps (hyperspectral images) and many spectra at once can
+also be visualized as spatial information can be plotted as a heatmap.
+You can test this functionality using the Test Map from the drop down
+where Test Data is. Batch spectra are artificially projected into a
+spatial image based on their index. It is important to note that when
+multiple spectra are uploaded in batch they are prescribed
+<code>x</code> and <code>y</code> coordinates, this can be helpful for
+visualizing summary statistics and navigating vast amounts of data but
+shouldn’t be confused with map data (for example .hdr and .dat files)
 which actually has spatial coordinates. Hovering over the map will
 reveal information about the signal and noise and correlation values.
-Clicking the map will provide the selected spectrum underneath. In the
-app, the colors of the heatmap are either the signal and noise or the
-spectral identifications depending on whether the identification is
-turned on or not. Pixels are black if the spectra does not pass the
-signal-noise threshold and/or the correlation threshold.</p>
-<p><img src="app%2Fmap_vis.jpg" width="210" style="display: block; margin: auto;"></p>
+Clicking the map will provide the selected spectrum underneath the
+orange dot. In the app, the colors of the heatmap are colored based on
+the selection below map color. Signal/Noise will show the selection in
+Threshold Signal-Noise and other options become available depending on
+the analysis parameters selected. Pixels will appear black if the
+spectra does not pass the signal-noise threshold and/or the correlation
+threshold.</p>
+<p><img src="app%2Fmap_vis.jpg" width="526" style="display: block; margin: auto;"></p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="processing">Processing<a class="anchor" aria-label="anchor" href="#processing"></a>
 </h2>
 <p>The goal of this processing is to increase the signal to noise ratio
-(S/N) without distorting the shape or relative size of the peaks. After
-uploading data, you can process the data using intensity adjustment,
-baseline subtraction, smoothing, flattening, and range selection and
-save your processed data. Once the process button is selected the
-default processing will initiate. This is an absolute derivative
-transformation, it is kind of magic, it does something similar to
-smoothing, baseline subtraction, and intensity correction simultaneously
-and really quickly. By clicking processing you should see the spectrum
-update with the processed spectra.</p>
+(S/N) without distorting the shape or relative size of the peaks. We
+leave this option on by default to avoid accidentally analyzing raw
+spectra which results in poor identification. Once the process button is
+selected the default processing will initiate. The default processing is
+an absolute derivative transformation, does something similar to
+smoothing, baseline subtraction, and intensity correction quickly.</p>
 <p><img src="app%2Fprocessing.jpg" width="210" style="display: block; margin: auto;"></p>
 <p>To view the raw data again, just deselect processing. Toggling
 processing on and off can help you to make sure that the spectra are
@@ -240,16 +238,56 @@ spectra of that good quality and more often use 5. The Signal Over Noise
 technique searches your spectra for high and low regions and conducts
 division on them to derive the signal to noise ratio. Signal Times Noise
 multiplies the mean signal by the standard deviation of the signal and
-Total Signal sums the intensities. The latter can be really useful for
-thresholding spectral maps to identify particles which we will discuss
-later.</p>
-<p><img src="app%2Fsnr_threshold.jpg" width="200" style="display: block; margin: auto;"></p>
+Total Signal sums the intensities. A histogram shows the threshold line
+at the value specified compared to the histogram of that metric for all
+the data.</p>
+<p><img src="app%2Fsnr_threshold.jpg" width="246" style="display: block; margin: auto;"></p>
 <p>If analyzing spectra in batch, we recommend looking at the heatmap
 and optimizing the percent of spectra that are above your signal to
 noise threshold to determine the correct settings instead of looking
-through spectra individually. Good Signal tells you what percent of your
-data are above your signal threshold.</p>
+through spectra individually. This can be found in the Summary tab below
+the spectra. Good Signal tells you what percent of your data are above
+your signal threshold.</p>
 <p><img src="app%2Fsignal_settings.jpg" width="318" style="display: block; margin: auto;"></p>
+</div>
+<div class="section level3">
+<h3 id="min-max-normalize">Min-Max Normalize<a class="anchor" aria-label="anchor" href="#min-max-normalize"></a>
+</h3>
+<p><img src="app%2Fmin_max.jpg" width="206" style="display: block; margin: auto;"></p>
+<p>Min-max normalization is usually desired as it will convert spectral
+intensities to range from 0-1. If raw intensity units are desired,
+deselect this option.</p>
+</div>
+<div class="section level3">
+<h3 id="smoothing">Smoothing<a class="anchor" aria-label="anchor" href="#smoothing"></a>
+</h3>
+<p><img src="app%2Fsmoothingpoly.jpg" width="208" style="display: block; margin: auto;"></p>
+<p>The value on the slider is the polynomial order of the <a href="https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter" class="external-link">Savitzky-Golay
+(SG) filter</a>. Higher numbers lead to more wiggly fits and thus less
+smooth, lower numbers lead to more smooth fits. The SG filter is fit to
+a moving window of 11 data points (~90 wavenumber window) by default
+where the center point in the window is replaced with the polynomial
+estimate. Larger windows will produce smoother fits. The derivative
+order is set to 1 by default which transforms the spectra to their first
+derivative. A zero order derivative will have no derivative
+transformation. When smoothing is done well, peak shapes and relative
+heights should not change. The absolute value is primarily useful for
+first derivative spectra where the absolute value results in an
+absorbance-like spectrum which is why we set it as the default. The
+default settings are needed for best identification results.</p>
+</div>
+<div class="section level3">
+<h3 id="conform-wavenumbers">Conform wavenumbers<a class="anchor" aria-label="anchor" href="#conform-wavenumbers"></a>
+</h3>
+<p><img src="app%2Fconform_wn.jpg" width="208" style="display: block; margin: auto;"></p>
+<p>Conforming spectra is essential before comparing to a reference
+library and can be useful for summarizing data when you don’t need it to
+be highly resolved spectrally. In general if you intend to identify your
+spectra with our library we recommend not changing the wavenumber
+resolution as that can over or undersmooth your spectra relative to the
+library spectra. Linear interpolation is the best strategy for
+conforming wavenumbers but if you need speed nearest is much faster as
+it will just map wavenumbers to their nearest comformed value.</p>
 </div>
 <div class="section level3">
 <h3 id="intensity-adjustment">Intensity Adjustment<a class="anchor" aria-label="anchor" href="#intensity-adjustment"></a>
@@ -267,38 +305,9 @@ If none is selected, Open Specy assumes that the uploaded data is an
 absorbance spectrum and does not apply an adjustment.</p>
 </div>
 <div class="section level3">
-<h3 id="conforming">Conforming<a class="anchor" aria-label="anchor" href="#conforming"></a>
-</h3>
-<p>Conforming spectra is essential before comparing to a reference
-library and can be useful for summarizing data when you don’t need it to
-be highly resolved spectrally. In the app, conforming happens behind the
-scenes without any user input to make sure that the spectra the user
-uploads and the library spectra will be compatible. We set the spectral
-resolution to 8 because this tends to be pretty good for a lot of
-applications and is in between 4 and 8 which are commonly used
-wavenumber resolutions.</p>
-</div>
-<div class="section level3">
-<h3 id="smoothing">Smoothing<a class="anchor" aria-label="anchor" href="#smoothing"></a>
-</h3>
-<p><img src="app%2Fsmoothingpoly.jpg" width="230" style="display: block; margin: auto;"></p>
-<p>The value on the slider is the polynomial order of the <a href="https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter" class="external-link">Savitzky-Golay
-(SG) filter</a>. Higher numbers lead to more wiggly fits and thus less
-smooth, lower numbers lead to more smooth fits. The SG filter is fit to
-a moving window of 11 data points by default where the center point in
-the window is replaced with the polynomial estimate. Larger windows will
-produce smoother fits. The derivative order is set to 1 by default which
-transforms the spectra to their first derivative. A zero order
-derivative will have no derivative transformation. When smoothing is
-done well, peak shapes and relative heights should not change. The
-absolute value is primarily useful for first derivative spectra where
-the absolute value results in an absorbance-like spectrum which is why
-we set it as the default.</p>
-</div>
-<div class="section level3">
 <h3 id="baseline-correction">Baseline Correction<a class="anchor" aria-label="anchor" href="#baseline-correction"></a>
 </h3>
-<p><img src="app%2Fbaselinecorrectionpoly.jpg" width="200" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fbaselinecorrectionpoly.jpg" width="208" style="display: block; margin: auto;"></p>
 <p>The goal of baseline correction is to get all non-peak regions of the
 spectra to zero absorbance. The higher the polynomial order, the more
 wiggly the fit to the baseline. If the baseline is not very wiggly, a
@@ -309,12 +318,12 @@ specified order to the whole spectrum. During the first fit iteration,
 peak regions will often be above the baseline fit. The data in the peak
 region is removed from the fit to make sure that the baseline is less
 likely to fit to the peaks. The iterative fitting terminates once the
-difference between the new and previous fit is small. An example of a
-good baseline fit below. For those who have been with OpenSpecy a while,
-you will notice the app no longer supports manual baseline correction,
-it was a hard choice but it just didn’t make sense to keep it now that
-we are moving toward high throughput automated methods. It does still
-exist in the R function though.</p>
+difference between the new and previous fit is small or when the number
+of iterations has been reached, whichever is faster. If you select refit
+polynomial a final polynomial baseline will be fit to the resulting
+baseline data points. This will better maintain the noise of the
+baseline and may improve performance of baseline subtraction in some
+cases.</p>
 </div>
 <div class="section level3">
 <h3 id="range-selection">Range Selection<a class="anchor" aria-label="anchor" href="#range-selection"></a>
@@ -322,13 +331,10 @@ exist in the R function though.</p>
 <p><img src="app%2Frangeselection.jpg" width="190" style="display: block; margin: auto;"></p>
 <p>Sometimes an instrument operates with high noise at the ends of the
 spectrum and, a baseline fit produces distortions, or there are regions
-of interest for analysis. Range selection accomplishes those goals. You
-should look into the signal to noise ratio of your specific instrument
-by wavelength to determine what wavelength ranges to use. Distortions
-due to baseline fit can be assessed from looking at the process spectra.
+of interest for analysis. Range selection accomplishes those goals.
 Additionally, you can restrict the range to examine a single peak or a
 subset of peaks of interests. The maximum and minimum wavenumbers will
-specify the range to keep in the app.</p>
+specify the range to use.</p>
 </div>
 <div class="section level3">
 <h3 id="flattening-ranges">Flattening Ranges<a class="anchor" aria-label="anchor" href="#flattening-ranges"></a>
@@ -345,14 +351,27 @@ that region often needs to be flattened when atmospheric artifacts occur
 in spectra.</p>
 </div>
 <div class="section level3">
-<h3 id="min-max-normalization">Min-Max Normalization<a class="anchor" aria-label="anchor" href="#min-max-normalization"></a>
+<h3 id="collapse-particle-spectra">Collapse Particle Spectra<a class="anchor" aria-label="anchor" href="#collapse-particle-spectra"></a>
 </h3>
-<p>Min-Max normalization is used throughout the app but is not one of
-the options the user can specify. Often we regard spectral intensities
-as arbitrary and min-max normalization allows us to view spectra on the
-same scale without drastically distorting their shapes or relative peak
-intensities. In the app, it is primarily used for plotting and as a
-processing step before correlation analysis.</p>
+<p>When working with spectral images you can identify particles and get
+their shapes, sizes, and material types automatically. If you select the
+collapse particle spectra option it will enable this feature and you can
+download the collapsed particle spectra (averaged spectra for each
+particle) from the download tab.
+<img src="app%2Fcollapse_spec.jpg" width="206" style="display: block; margin: auto;"></p>
+<p>When the heatmap is thresholded correctly particles will be isolated
+and these regions will be attributed to particles. For example there is
+one particle in the center of this heatmap.</p>
+<p><img src="app%2Fparticle_example.jpg" width="496" style="display: block; margin: auto;"></p>
+<p>Collapsing the particles will also make a particle size plot appear
+in the summary tab.</p>
+<p><img src="app%2Fparticle_size.jpg" width="232" style="display: block; margin: auto;"></p>
+<p>Whatever selection you have active will inform how your spectra is
+thresholded. It should get thresholded in coincidence with what you see
+on the spectral map. Pro tip: The file that gets downloaded is an
+OpenSpecy with median spectra for each of your thresholded particles.
+You can upload that back to the app and analyze that independently.</p>
+<p><img src="app%2Fdownload_threshold.jpg" width="131" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level3">
 <h3 id="downloading-processed-data">Downloading Processed Data<a class="anchor" aria-label="anchor" href="#downloading-processed-data"></a>
@@ -367,59 +386,56 @@ time.</p>
 <div class="section level2">
 <h2 id="identifying-spectra">Identifying Spectra<a class="anchor" aria-label="anchor" href="#identifying-spectra"></a>
 </h2>
-<p><img src="app%2Fidentification.jpg" width="210" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fidentification.jpg" width="236" style="display: block; margin: auto;"></p>
 <p>After uploading data and processing it (if desired) you can now
 identify the spectrum. To identify the spectrum go to the
 <strong>Identification</strong> box. Pro tip: if you select
 <strong>Identification</strong> without uploading data to the app,
 you’ll be able to explore the library by itself.</p>
-<div class="section level3">
-<h3 id="reading-libraries">Reading Libraries<a class="anchor" aria-label="anchor" href="#reading-libraries"></a>
-</h3>
-<p>These options define the strategy for identification. The <strong>ID
-Library</strong> will inform which library is used. Both (default) will
-search both FTIR and Raman libraries. Deriv will search against a
-derivative transformed library. No Baseline will search against a
-baseline corrected library. This should be in line with how you choose
-to process your spectra. Cor options use a simple Pearson correlation
-search algorithm. AI is currently experimental and uses either a
-multinomial model or correlation on mediod spectra from the library.
-Correlation thresholding will set the minimum value from matching to use
-as a ‘positive identification’ this will black out pixels in a spectral
-map view if they are lower than the threshold.</p>
-</div>
+<p>The identification options define the strategy for
+identification.</p>
+<p>The <strong>Spectrum Type</strong> will inform which library is used.
+Both (default) will search both FTIR and Raman libraries.</p>
+<p><strong>Library Transformation</strong> controls the library to
+search based on how the spectra are transformed in the processing tab.
+Derivative will search against a derivative transformed library. No
+Baseline will search against a baseline corrected library.</p>
+<p><strong>Library Type</strong> will determine the library or model to
+use for the identification. Full is all of the spectra we have an
+includes 40k spectra. Medoid is a smaller library of the most important
+4k spectra. Multinomial will use an AI multinomial regression to
+identify the spectra.</p>
+<p><strong>Threshold Correlation</strong> will set the minimum value
+from matching to use as a ‘positive identification’ this will black out
+pixels in a spectral map view if they are lower than the threshold and
+will reset identification values to unknown in downloaded results.</p>
 <div class="section level3">
 <h3 id="matches">Matches<a class="anchor" aria-label="anchor" href="#matches"></a>
 </h3>
-<p><img src="app%2Fmatches.jpg" width="360" style="display: block; margin: auto;"></p>
+<p><img src="app%2Fmatches.jpg" width="766" style="display: block; margin: auto;"></p>
 <p>Top matches in the app can be assessed by clicking the cog in the
 right hand corner of the Spectra box. This will open a side window with
 the matches sorted from most to least similar. Clicking on rows in the
-table will add the selected match to the spectra viewer. Using the
-table’s filter options, you can restrict the range of Pearson's r values
-or search for specific material types.</p>
+table will add the selected match to the spectra viewer. The red
+spectrum is the spectrum that you selected from the reference library
+and the white spectrum is the spectrum that you are trying to identify.
+Using the table’s filter options, you can restrict the range of
+Pearson's r values or search for specific material types. The metadata
+of the selected library match wil be appended to the metadata of the
+file below the plot. Some of this metadata may assist you in
+interpreting the spectra. For example, if the spectra has metadata which
+says it is a liquid and you are analyzing a solid particle, that
+spectrum may not be the best match.</p>
 </div>
 <div class="section level3">
-<h3 id="selection-metadata">Selection Metadata<a class="anchor" aria-label="anchor" href="#selection-metadata"></a>
+<h3 id="download-top-matches">Download Top Matches<a class="anchor" aria-label="anchor" href="#download-top-matches"></a>
 </h3>
-<p><img src="app%2Fselectionmetadata.jpg" width="98%" style="display: block; margin: auto;"></p>
-<p>Whatever match is selected from the match table may have additional
-metadata about it. That metadata will be displayed below the plot. Some
-of this metadata may assist you in interpreting the spectra. For
-example, if the spectra has metadata which says it is a liquid and you
-are analyzing a solid particle, that spectrum may not be the best
-match.</p>
-</div>
-<div class="section level3">
-<h3 id="match-plot">Match Plot<a class="anchor" aria-label="anchor" href="#match-plot"></a>
-</h3>
-<p><img src="app%2Fmatchplot.jpg" width="318" style="display: block; margin: auto;"></p>
-<p>This plot is dynamically updated by selecting matches from the match
-table. The red spectrum is the spectrum that you selected from the
-reference library and the white spectrum is the spectrum that you are
-trying to identify. Whenever a new dataset is uploaded, the plot and
-data table in this tab will be updated. These plots can be saved as a
-.png by clicking the camera button at the top of the plot.</p>
+<p>To download the top matches and associated metadata, use the top
+matches download option. Top N controls the number of top matches to
+provide for each spectrum and Columns to Save will just save the
+simplest metadata for interpretation if set to simple or everything if
+set to all.</p>
+<p><img src="app%2Fdownload.jpg" width="132" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level3">
 <h3 id="sharing-reference-data">Sharing Reference Data<a class="anchor" aria-label="anchor" href="#sharing-reference-data"></a>
@@ -428,38 +444,6 @@ data table in this tab will be updated. These plots can be saved as a
 useful for sharing with the spectroscopy community through OpenSpecy
 please contact the website administrator to discuss options for
 collaborating.</p>
-</div>
-<div class="section level3">
-<h3 id="download-top-matches">Download Top Matches<a class="anchor" aria-label="anchor" href="#download-top-matches"></a>
-</h3>
-<p>To download the top matches and associated metadata, use the top
-matches download option.</p>
-<p><img src="app%2Fdownload.jpg" width="130" style="display: block; margin: auto;"></p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="characterizing-particles">Characterizing Particles<a class="anchor" aria-label="anchor" href="#characterizing-particles"></a>
-</h2>
-<p><img src="app%2Fdownload_threshold.jpg" width="131" style="display: block; margin: auto;"></p>
-<p>Thresholding only works and shouldn’t be used for single particles.
-You can threshold spectral maps using the signal-noise values and/or the
-correlation threshold. Whatever selection you have active will inform
-how your spectra is thresholded. It should get thresholded in
-coincidence with what you see on the spectral map. Pro tip: The file
-that gets downloaded is an OpenSpecy with median spectra for each of
-your thresholded particles. You can upload that back to the app and
-analyze that independently.</p>
-<div class="section level3">
-<h3 id="additional-app-features">Additional App Features<a class="anchor" aria-label="anchor" href="#additional-app-features"></a>
-</h3>
-<p>Accessibility is extremely important to us and we are making strives
-to improve the accessibility of Open Specy for all spectroscopists.
-Please reach out if you have ideas for improvement.</p>
-<p>We added a Google translate plugin to all pages in the app so that
-you can easily translate the app. We know that not all languages will be
-fully supported but we will continue to try and improve the
-translations.</p>
-<p><img src="app%2Ftranslate.jpg" width="94" style="display: block; margin: auto;"></p>
 </div>
 </div>
 <div class="section level2">
