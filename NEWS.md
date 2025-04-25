@@ -1,3 +1,16 @@
+# OpenSpecy 1.5.0
+
+## Major
+- Update to vignettes for new functionality. 
+- Improved plots
+- Improved tests for Open Specy format. 
+- Improved reading of csv files. 
+- Improved reading of spa files. 
+- Extended options for library version downloads. 
+- Simpler function calling
+- Extended baseline fitting options. 
+
+
 # OpenSpecy 1.3.0
 
 ## Major
