@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.2</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -215,23 +215,23 @@ additional information about the spectra. Each row in
 <span><span class="va">scratch_OpenSpecy</span><span class="op">$</span><span class="va">spectra</span></span>
 <span><span class="co">#&gt;      runif.n...201.</span></span>
 <span><span class="co">#&gt;               &lt;num&gt;</span></span>
-<span><span class="co">#&gt;   1:     0.85122923</span></span>
-<span><span class="co">#&gt;   2:     0.76420223</span></span>
-<span><span class="co">#&gt;   3:     0.78799483</span></span>
-<span><span class="co">#&gt;   4:     0.35074094</span></span>
-<span><span class="co">#&gt;   5:     0.68732958</span></span>
+<span><span class="co">#&gt;   1:      0.1691437</span></span>
+<span><span class="co">#&gt;   2:      0.1602094</span></span>
+<span><span class="co">#&gt;   3:      0.4377051</span></span>
+<span><span class="co">#&gt;   4:      0.3746494</span></span>
+<span><span class="co">#&gt;   5:      0.8960039</span></span>
 <span><span class="co">#&gt;  ---               </span></span>
-<span><span class="co">#&gt; 197:     0.60995735</span></span>
-<span><span class="co">#&gt; 198:     0.04510715</span></span>
-<span><span class="co">#&gt; 199:     0.17898586</span></span>
-<span><span class="co">#&gt; 200:     0.41285703</span></span>
-<span><span class="co">#&gt; 201:     0.61031829</span></span></code></pre></div>
+<span><span class="co">#&gt; 197:      0.1462719</span></span>
+<span><span class="co">#&gt; 198:      0.9326703</span></span>
+<span><span class="co">#&gt; 199:      0.3672650</span></span>
+<span><span class="co">#&gt; 200:      0.4533411</span></span>
+<span><span class="co">#&gt; 201:      0.2818356</span></span></code></pre></div>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Access the metadata</span></span>
 <span><span class="va">scratch_OpenSpecy</span><span class="op">$</span><span class="va">metadata</span></span>
 <span><span class="co">#&gt;        x     y  file_name         col_id                          file_id</span></span>
 <span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;     &lt;char&gt;         &lt;char&gt;                           &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. e9215b21a06c29b8f0e468c4760b31c4</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. 327f87466fe087f468b80a7d718e1328</span></span></code></pre></div>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Performs checks to ensure that OpenSpecy objects are adhering to our standards;</span></span>
 <span><span class="co"># returns TRUE if it passes. </span></span>
@@ -246,22 +246,22 @@ additional information about the spectra. Each row in
 <code class="sourceCode R"><span><span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">print</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># shows the raw object</span></span>
 <span><span class="co">#&gt;      wavenumber runif.n...201.</span></span>
 <span><span class="co">#&gt;           &lt;num&gt;          &lt;num&gt;</span></span>
-<span><span class="co">#&gt;   1:       1000     0.85122923</span></span>
-<span><span class="co">#&gt;   2:       1005     0.76420223</span></span>
-<span><span class="co">#&gt;   3:       1010     0.78799483</span></span>
-<span><span class="co">#&gt;   4:       1015     0.35074094</span></span>
-<span><span class="co">#&gt;   5:       1020     0.68732958</span></span>
+<span><span class="co">#&gt;   1:       1000      0.1691437</span></span>
+<span><span class="co">#&gt;   2:       1005      0.1602094</span></span>
+<span><span class="co">#&gt;   3:       1010      0.4377051</span></span>
+<span><span class="co">#&gt;   4:       1015      0.3746494</span></span>
+<span><span class="co">#&gt;   5:       1020      0.8960039</span></span>
 <span><span class="co">#&gt;  ---                          </span></span>
-<span><span class="co">#&gt; 197:       1980     0.60995735</span></span>
-<span><span class="co">#&gt; 198:       1985     0.04510715</span></span>
-<span><span class="co">#&gt; 199:       1990     0.17898586</span></span>
-<span><span class="co">#&gt; 200:       1995     0.41285703</span></span>
-<span><span class="co">#&gt; 201:       2000     0.61031829</span></span>
+<span><span class="co">#&gt; 197:       1980      0.1462719</span></span>
+<span><span class="co">#&gt; 198:       1985      0.9326703</span></span>
+<span><span class="co">#&gt; 199:       1990      0.3672650</span></span>
+<span><span class="co">#&gt; 200:       1995      0.4533411</span></span>
+<span><span class="co">#&gt; 201:       2000      0.2818356</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $metadata</span></span>
 <span><span class="co">#&gt;        x     y  file_name         col_id                          file_id</span></span>
 <span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;     &lt;char&gt;         &lt;char&gt;                           &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. e9215b21a06c29b8f0e468c4760b31c4</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. 327f87466fe087f468b80a7d718e1328</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># summarizes the contents of the spectra</span></span>
 <span><span class="co">#&gt; $wavenumber</span></span>
@@ -270,7 +270,7 @@ additional information about the spectra. Each row in
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $spectra</span></span>
 <span><span class="co">#&gt;  Number Min. Intensity Max. Intensity</span></span>
-<span><span class="co">#&gt;       1     0.01309643      0.9927438</span></span>
+<span><span class="co">#&gt;       1    0.003324728      0.9986788</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $metadata</span></span>
 <span><span class="co">#&gt;   Min. Max.</span></span>
@@ -281,12 +281,12 @@ additional information about the spectra. Each row in
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># shows the top wavenumbers and intensities</span></span>
 <span><span class="co">#&gt;    wavenumber runif.n...201.</span></span>
 <span><span class="co">#&gt;         &lt;num&gt;          &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:       1000      0.8512292</span></span>
-<span><span class="co">#&gt; 2:       1005      0.7642022</span></span>
-<span><span class="co">#&gt; 3:       1010      0.7879948</span></span>
-<span><span class="co">#&gt; 4:       1015      0.3507409</span></span>
-<span><span class="co">#&gt; 5:       1020      0.6873296</span></span>
-<span><span class="co">#&gt; 6:       1025      0.2548241</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:       1000     0.16914372</span></span>
+<span><span class="co">#&gt; 2:       1005     0.16020944</span></span>
+<span><span class="co">#&gt; 3:       1010     0.43770512</span></span>
+<span><span class="co">#&gt; 4:       1015     0.37464945</span></span>
+<span><span class="co">#&gt; 5:       1020     0.89600386</span></span>
+<span><span class="co">#&gt; 6:       1025     0.02755388</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="save-data">Save Data<a class="anchor" aria-label="anchor" href="#save-data"></a>

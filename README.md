@@ -9,7 +9,7 @@ Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 [![Codecov test coverage](https://codecov.io/gh/wincowgerDEV/OpenSpecy-package/branch/main/graph/badge.svg)](https://app.codecov.io/gh/wincowgerDEV/OpenSpecy-package?branch=main)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![DOI](https://img.shields.io/badge/DOI-10.1021/acs.analchem.1c00123-blue.svg)](https://doi.org/10.1021/acs.analchem.1c00123)
-[![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://openanalysis.org/openspecy/)
+[![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://www.openanalysis.org/openspecy/)
 [![Gitter](https://badges.gitter.im/Open-Specy/community.svg)](https://app.gitter.im/#/room/#Open-Specy_community:gitter.im)
 <!-- badges: end -->
 
@@ -24,7 +24,7 @@ wavenumber alignment, and min-max normalization.
 Spectra can be identified in batch using an onboard reference library
 (Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064))
 using `match_spec()`. A Shiny app is available via `run_app()`
-or online at [https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/).
+or online at [https://www.openanalysis.org/openspecy/](https://www.openanalysis.org/openspecy/).
 
 ## Installation
 
