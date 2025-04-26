@@ -349,7 +349,8 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
 
   value <- NULL # workaround for data.table non-standard evaluation
   filt <- pred[, .SD[value == max(value, na.rm = T) | is.na(value)], by = "x"]
-
+  filt <- filt[, head(.SD, 1), by = "x"] #Work around for when many of the same value matching
+  
   res <- merge(filt, library$dimension_conversion, all.x = T,
                by.x = "y", by.y = "factor_num")
   setorder(res, "x")
