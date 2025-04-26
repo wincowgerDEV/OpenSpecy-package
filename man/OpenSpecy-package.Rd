@@ -46,7 +46,7 @@ Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
 Useful links:
 \itemize{
   \item \url{https://github.com/wincowgerDEV/OpenSpecy-package/}
-  \item \url{https://wincowger.com/OpenSpecy-package/}
+  \item \url{https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html}
   \item Report bugs at \url{https://github.com/wincowgerDEV/OpenSpecy-package/issues/}
 }
 
