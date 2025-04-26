@@ -1,8 +1,8 @@
 Package: OpenSpecy
 Type: Package
 Title: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
-Version: 1.5.0
-Date: 2025-04-25
+Version: 1.5.1
+Date: 2025-04-26
 Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
       email = "wincowger@gmail.com",
       comment = c(ORCID = "0000-0001-9226-3104")),
@@ -67,7 +67,7 @@ Description: Raman and (FT)IR spectral analysis tool for plastic particles and
     alignment, and min-max normalization. Spectra can be identified in batch
     using an onboard reference library (Cowger et al. 2020,
     <doi:10.1177/0003702820929064>) using match_spec(). A Shiny app is available
-    via run_app() or online at <https://openanalysis.org/openspecy/>.
+    via run_app() or online at <https://www.openanalysis.org/openspecy/>.
 URL: https://github.com/wincowgerDEV/OpenSpecy-package/,
      https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html
 BugReports: https://github.com/wincowgerDEV/OpenSpecy-package/issues/

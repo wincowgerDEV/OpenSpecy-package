@@ -10,16 +10,8 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
-
+0 errors | 0 warnings | 0 note
 
 ## Comments
-
-    installed size is  5.6Mb
-    sub-directories of 1Mb or more:
-      doc   4.0Mb
-
-We already tried to reduce the vignette size as much as possible but would like
-to keep the current number of figures for better comprehensibility.
 
 For further details, see NEWS.md.

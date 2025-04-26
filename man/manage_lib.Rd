@@ -176,7 +176,6 @@ of large microplastics (L-MP, 500-5000 µm) in surface waters of the Weser
 estuary and the German North Sea.” \emph{PANGAEA}. \doi{10.1594/PANGAEA.938143}.
 
 “Handbook of Raman Spectra for geology” (2023).
-\url{https://www.geologie-lyon.fr/Raman/}.
 
 “Scientific Workgroup for the Analysis of Seized Drugs.” (2023).
 https://swgdrug.org/ir.htm.
