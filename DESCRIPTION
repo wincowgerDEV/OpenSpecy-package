@@ -69,7 +69,7 @@ Description: Raman and (FT)IR spectral analysis tool for plastic particles and
     <doi:10.1177/0003702820929064>) using match_spec(). A Shiny app is available
     via run_app() or online at <https://openanalysis.org/openspecy/>.
 URL: https://github.com/wincowgerDEV/OpenSpecy-package/,
-     https://rawcdn.githack.com/wincowgerDEV/OpenSpecy-package/c253d6c3298c7db56fbfdceee6ff0e654a1431cd/index.html
+     https://wincowger.com/OpenSpecy-package/
 BugReports: https://github.com/wincowgerDEV/OpenSpecy-package/issues/
 License: CC BY 4.0
 Encoding: UTF-8

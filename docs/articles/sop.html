@@ -215,23 +215,23 @@ additional information about the spectra. Each row in
 <span><span class="va">scratch_OpenSpecy</span><span class="op">$</span><span class="va">spectra</span></span>
 <span><span class="co">#&gt;      runif.n...201.</span></span>
 <span><span class="co">#&gt;               &lt;num&gt;</span></span>
-<span><span class="co">#&gt;   1:      0.7313996</span></span>
-<span><span class="co">#&gt;   2:      0.1208419</span></span>
-<span><span class="co">#&gt;   3:      0.6817388</span></span>
-<span><span class="co">#&gt;   4:      0.8401005</span></span>
-<span><span class="co">#&gt;   5:      0.1604760</span></span>
+<span><span class="co">#&gt;   1:   0.0002253209</span></span>
+<span><span class="co">#&gt;   2:   0.8492132660</span></span>
+<span><span class="co">#&gt;   3:   0.9651943110</span></span>
+<span><span class="co">#&gt;   4:   0.2588525871</span></span>
+<span><span class="co">#&gt;   5:   0.6849157822</span></span>
 <span><span class="co">#&gt;  ---               </span></span>
-<span><span class="co">#&gt; 197:      0.7775427</span></span>
-<span><span class="co">#&gt; 198:      0.2903601</span></span>
-<span><span class="co">#&gt; 199:      0.8469439</span></span>
-<span><span class="co">#&gt; 200:      0.2273656</span></span>
-<span><span class="co">#&gt; 201:      0.8179267</span></span></code></pre></div>
+<span><span class="co">#&gt; 197:   0.5781283090</span></span>
+<span><span class="co">#&gt; 198:   0.3669331735</span></span>
+<span><span class="co">#&gt; 199:   0.6704133640</span></span>
+<span><span class="co">#&gt; 200:   0.7351019969</span></span>
+<span><span class="co">#&gt; 201:   0.1142373236</span></span></code></pre></div>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Access the metadata</span></span>
 <span><span class="va">scratch_OpenSpecy</span><span class="op">$</span><span class="va">metadata</span></span>
 <span><span class="co">#&gt;        x     y  file_name         col_id                          file_id</span></span>
 <span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;     &lt;char&gt;         &lt;char&gt;                           &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. 69f4ff7844229ef9a2900ff5bd4d37ea</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. ccdebc42efe9f43eaa819e4d0afb83eb</span></span></code></pre></div>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Performs checks to ensure that OpenSpecy objects are adhering to our standards;</span></span>
 <span><span class="co"># returns TRUE if it passes. </span></span>
@@ -246,22 +246,22 @@ additional information about the spectra. Each row in
 <code class="sourceCode R"><span><span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">print</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># shows the raw object</span></span>
 <span><span class="co">#&gt;      wavenumber runif.n...201.</span></span>
 <span><span class="co">#&gt;           &lt;num&gt;          &lt;num&gt;</span></span>
-<span><span class="co">#&gt;   1:       1000      0.7313996</span></span>
-<span><span class="co">#&gt;   2:       1005      0.1208419</span></span>
-<span><span class="co">#&gt;   3:       1010      0.6817388</span></span>
-<span><span class="co">#&gt;   4:       1015      0.8401005</span></span>
-<span><span class="co">#&gt;   5:       1020      0.1604760</span></span>
+<span><span class="co">#&gt;   1:       1000   0.0002253209</span></span>
+<span><span class="co">#&gt;   2:       1005   0.8492132660</span></span>
+<span><span class="co">#&gt;   3:       1010   0.9651943110</span></span>
+<span><span class="co">#&gt;   4:       1015   0.2588525871</span></span>
+<span><span class="co">#&gt;   5:       1020   0.6849157822</span></span>
 <span><span class="co">#&gt;  ---                          </span></span>
-<span><span class="co">#&gt; 197:       1980      0.7775427</span></span>
-<span><span class="co">#&gt; 198:       1985      0.2903601</span></span>
-<span><span class="co">#&gt; 199:       1990      0.8469439</span></span>
-<span><span class="co">#&gt; 200:       1995      0.2273656</span></span>
-<span><span class="co">#&gt; 201:       2000      0.8179267</span></span>
+<span><span class="co">#&gt; 197:       1980   0.5781283090</span></span>
+<span><span class="co">#&gt; 198:       1985   0.3669331735</span></span>
+<span><span class="co">#&gt; 199:       1990   0.6704133640</span></span>
+<span><span class="co">#&gt; 200:       1995   0.7351019969</span></span>
+<span><span class="co">#&gt; 201:       2000   0.1142373236</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $metadata</span></span>
 <span><span class="co">#&gt;        x     y  file_name         col_id                          file_id</span></span>
 <span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;     &lt;char&gt;         &lt;char&gt;                           &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. 69f4ff7844229ef9a2900ff5bd4d37ea</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. ccdebc42efe9f43eaa819e4d0afb83eb</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># summarizes the contents of the spectra</span></span>
 <span><span class="co">#&gt; $wavenumber</span></span>
@@ -270,7 +270,7 @@ additional information about the spectra. Each row in
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $spectra</span></span>
 <span><span class="co">#&gt;  Number Min. Intensity Max. Intensity</span></span>
-<span><span class="co">#&gt;       1    0.001899274      0.9950253</span></span>
+<span><span class="co">#&gt;       1   0.0002253209      0.9968479</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $metadata</span></span>
 <span><span class="co">#&gt;   Min. Max.</span></span>
@@ -281,12 +281,12 @@ additional information about the spectra. Each row in
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># shows the top wavenumbers and intensities</span></span>
 <span><span class="co">#&gt;    wavenumber runif.n...201.</span></span>
 <span><span class="co">#&gt;         &lt;num&gt;          &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:       1000      0.7313996</span></span>
-<span><span class="co">#&gt; 2:       1005      0.1208419</span></span>
-<span><span class="co">#&gt; 3:       1010      0.6817388</span></span>
-<span><span class="co">#&gt; 4:       1015      0.8401005</span></span>
-<span><span class="co">#&gt; 5:       1020      0.1604760</span></span>
-<span><span class="co">#&gt; 6:       1025      0.2182523</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:       1000   0.0002253209</span></span>
+<span><span class="co">#&gt; 2:       1005   0.8492132660</span></span>
+<span><span class="co">#&gt; 3:       1010   0.9651943110</span></span>
+<span><span class="co">#&gt; 4:       1015   0.2588525871</span></span>
+<span><span class="co">#&gt; 5:       1020   0.6849157822</span></span>
+<span><span class="co">#&gt; 6:       1025   0.3629518694</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="save-data">Save Data<a class="anchor" aria-label="anchor" href="#save-data"></a>
