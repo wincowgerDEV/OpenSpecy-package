@@ -45,7 +45,7 @@ inst/OpenSpecy-shiny-main/
 .Renviron
 
 # pkgdown site
-docs/
+#docs/
 
 # System files
 .ini

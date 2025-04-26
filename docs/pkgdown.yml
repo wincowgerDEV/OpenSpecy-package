@@ -1,0 +1,13 @@
+pandoc: 3.1.11
+pkgdown: 2.0.7
+pkgdown_sha: ~
+articles:
+  advanced: advanced.html
+  app: app.html
+  sop: sop.html
+  spectragryph: spectragryph.html
+last_built: 2025-04-26T00:28Z
+urls:
+  reference: http://wincowger.com/OpenSpecy-package/reference
+  article: http://wincowger.com/OpenSpecy-package/articles
+
