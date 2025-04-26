@@ -14,7 +14,10 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  warning = FALSE
+  warning = FALSE,
+  fig_width = 6,
+  fig_height = 4,
+  dpi = 72
 )
 
 data.table::setDTthreads(2)
@@ -207,7 +210,7 @@ plot(scratch_OpenSpecy) # quick and efficient
 This is an example of an interactive plot. You can plot two different datasets
 simultaneously to compare. 
 
-```{r, fig.align="center", out.width="100%"}
+```{r, eval=F}
 # This will min-max normalize your data even if it isn't already but are not
 # changing your underlying data
 plotly_spec(scratch_OpenSpecy, json_example)
@@ -236,7 +239,7 @@ the `interactive_plot()` function. A user can hover over the heatmap to identify
 the next row id they are interested in and update the value of select to see
 that spectrum.
 
-```{r, fig.align="center", out.width="100%"}
+```{r, eval=F}
 interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 ```
 <br>
@@ -253,7 +256,7 @@ you can set  `range = "common"` and `res` equal to the wavenumber resolution you
 want and the function will collapse all the spectra to whatever their common
 range is using linear interpolation.
 
-```{r, fig.align="center", fig.width=5}
+```{r}
 combined <- c_spec(list(asp_example, ps_example), range = "common", res = 8) 
 
 combined |> 
@@ -262,7 +265,7 @@ combined |>
 
 If you want to plot them with standardized offset y values you can do so with the plot variables. 
 
-```{r, fig.align="center", fig.width=5}
+```{r}
 plot(combined |> make_rel(), offset = 3, legend_var = "file_name")
 ```
 
@@ -297,7 +300,7 @@ simplicity or you are running simulations or other procedures that require you
 to first sample from the spectra contained in your OpenSpecy objects before
 doing analysis. The `sample_spec` function serves this purpose.
 
-```{r, fig.align="center", fig.width=5}
+```{r}
 sample_spec(spectral_map, size = 5) |>
   plot()
 ```
@@ -321,7 +324,7 @@ processed <- process_spec(raman_hdpe)
 
 You can compare the processed and unprocessed data in an overlay plot.
 
-```{r eval=FALSE}
+```{r, eval=FALSE}
 plotly_spec(raman_hdpe, processed)
 ```
 
@@ -429,7 +432,7 @@ spectra where the result looks similar to absorbance units and is easy to have i
 
 Examples of smoothing:
 
-```{r smooth_intens, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials.", fig.width=5, fig.align="center"}
+```{r smooth_intens, fig.cap = "Sample `raman_hdpe` spectrum with different smoothing polynomials."}
 none <- make_rel(raman_hdpe)
 p1 <- smooth_intens(raman_hdpe, polynomial = 1, derivative = 0, abs = F)
 p4 <- smooth_intens(raman_hdpe, polynomial = 4, derivative = 0, abs = F)
@@ -440,7 +443,7 @@ c_spec(list(none, p1, p4)) |>
 
 Derivative transformation can be done with the same function. 
 
-```{r compare_derivative, fig.cap = "Sample `raman_hdpe` spectrum with different derivatives.", fig.width=5, fig.align="center"}
+```{r compare_derivative, fig.cap = "Sample `raman_hdpe` spectrum with different derivatives."}
 none <- make_rel(raman_hdpe)
 window <- calc_window_points(raman_hdpe, 100) #Calculate the number of points needed for a 190 wavenumber window.
 d1 <- smooth_intens(raman_hdpe, derivative = 1, window = window, abs = T)
@@ -465,7 +468,7 @@ difference between the new and previous fit is small. An example of a good
 baseline fit below. Manual baseline correction can also be specified by
 providing a baseline `OpenSpecy` object. There are many fine tuning options that can be chosen, see `?subtr_baseline()` for more details.
 
-```{r subtr_baseline, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=5, fig.align="center"}
+```{r subtr_baseline, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020)."}
 alternative_baseline <- smooth_intens(raman_hdpe, polynomial = 1, window = 51,
                                       derivative = 0, abs = F, make_rel = F) |>
   flatten_range(min = 2700, max = 3200, make_rel = F) #Manual baseline with heavily smoothed spectra
@@ -487,7 +490,7 @@ and, a baseline fit produces distortions, or there are regions of interest for
 analysis. Range selection accomplishes those goals. Many of these issues can be resolved during spectral collection by specifying a wavenumber range which is well characterized by the instrument. Multiple ranges can
 be specified simultaneously.
 
-```{r restrict_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of range restriction.", fig.width=5, fig.align="center"}
+```{r restrict_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of range restriction."}
 none <- make_rel(raman_hdpe)
 
 #Specify one range
@@ -517,7 +520,7 @@ FTIR spectra because that region often needs to be flattened when atmospheric
 artifacts occur in spectra. Like `restrict_range`, the R function can accept
 multiple ranges.
 
-```{r flatten_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020).", fig.width=5, fig.align="center"}
+```{r flatten_range, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020)."}
 single <- filter_spec(spectral_map, 120) # Function to filter spectra by index
                                          # number or name or a logical vector. 
 none <- make_rel(single)
@@ -622,7 +625,7 @@ for lazily matching to a library with both. If you want to just match to a
 library with FTIR or Raman spectra, you can first filter the library using
 `filter_spec()` using `SpectrumType`.
 
-```{r eval=FALSE}
+```{r, eval=FALSE}
 matches <- match_spec(x = processed, library = test_lib, conform = T,
                       add_library_metadata = "sample_name", top_n = 5)[order(match_val, decreasing = T)]
 print(matches[,c("object_id", "library_id", "match_val", "SpectrumType",
@@ -638,7 +641,7 @@ from the metadata which are all blank values. The function below will return the
 metadata for the top match in `matches`. Remember, similar `filter_spec()`, you
 can specify `logic` for more than one thing at a time.
 
-```{r eval=FALSE}
+```{r, eval=FALSE}
 get_metadata(x = test_lib, logic = matches[[1,"library_id"]], rm_empty = T)
 ```
 
@@ -652,7 +655,7 @@ correct relative height. There are two small peaks in the unknown spectrum near
 500 that are not accounted for which could be investigated further but we would
 call this a positive id to HDPE.
 
-```{r eval=FALSE}
+```{r, eval=FALSE}
 plotly_spec(processed, filter_spec(test_lib, logic = matches[[1,"library_id"]]))
 ```
 
