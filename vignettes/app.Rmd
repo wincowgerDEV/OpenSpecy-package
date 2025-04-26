@@ -29,7 +29,7 @@ through and follow along with this standard operating procedure the first time.
 Afterward, knowledgeable users should be able to thoroughly analyze spectra at
 an average speed of 1 min^-1^ or faster with the new batch and automated
 procedures. If you are looking for documentation about the R package please see
-the [package vignette](https://rawcdn.githack.com/wincowgerDEV/OpenSpecy-package/c253d6c3298c7db56fbfdceee6ff0e654a1431cd/articles/sop.html)
+the [package vignette](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/articles/sop.html)
 
 # Running the App
 
@@ -81,7 +81,7 @@ The specific steps to converting your instrument's native files to .csv can be
 found in its software manual or you can check out
 [Spectragryph](https://www.effemm2.de/spectragryph/), which supports many
 spectral file conversions see [Spectragryph
-Tutorial](https://rawcdn.githack.com/wincowgerDEV/OpenSpecy-package/c253d6c3298c7db56fbfdceee6ff0e654a1431cd/articles/spectragryph.html).
+Tutorial](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/articles/spectragryph.html).
 
 If you don't have your own data, you can use a test dataset.
 
