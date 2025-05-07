@@ -64,7 +64,7 @@ test_that("match_spec() returns correct structure with AI", {
   skip_if_offline(host = "api.osf.io")
 
   get_lib("model_derivative", path = tmp)
-  lib <- load_lib(type = "model_derivative", path = tmp)
+  lib <- load_lib(type = "model_derivative", path = tmp)[["both"]]
 
   check_OpenSpecy(lib) |>
     expect_error() |> expect_warning() |> expect_warning() |>

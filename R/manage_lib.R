@@ -41,10 +41,19 @@
 #'
 #' @examples
 #' \dontrun{
+#' #check to see if you have the library already
 #' check_lib("derivative")
+#' 
+#' #get the library stored in your system from online repo
 #' get_lib("derivative")
-#'
+#' 
+#' #load the library into the working environment
 #' spec_lib <- load_lib("derivative")
+#' 
+#' #for models you should choose either both, ftir, or raman as a list item before use
+#' get_lib("model_derivative")
+#' mod_lib <- load_lib("model_derivative")[["ftir"]]
+#' 
 #' }
 #'
 #' @author
