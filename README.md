@@ -113,6 +113,12 @@ top_matches[, c("object_id", "library_id", "match_val", "SpectrumType",
 get_metadata(spec_lib, logic = top_matches$library_id)
 ```
 
+## Related Packages
+### Open Specy on Python
+
+Kris Heath created a Open Specy python package! 
+https://pypi.org/project/openspi/
+
 ## Citations
 
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,
