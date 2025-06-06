@@ -10,7 +10,7 @@ area_under_band(x, ...)
 
 \method{area_under_band}{default}(x, ...)
 
-\method{area_under_band}{OpenSpecy}(x, min, max, na.rm = F)
+\method{area_under_band}{OpenSpecy}(x, min, max, na.rm = F, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
@@ -20,6 +20,8 @@ area_under_band(x, ...)
 \item{max}{a numeric value of the smallest wavenumber to begin calculation.}
 
 \item{na.rm}{a logical value for whether to ignore NA values.}
+
+\item{\ldots}{additional arguments passed to vapply.}
 }
 \value{
 Numeric vector of area under the band calculations for each spectrum in the Open Specy object.
@@ -33,9 +35,9 @@ is typically required prior to calculating these values for accuracy and reprodu
 \examples{
 data("raman_hdpe")
 #Single area calculation
-area_under_band(raman_hdpe, c(1000, 2000))
+area_under_band(raman_hdpe, min = 1000,max = 2000)
 #Ratio of two areas. 
-area_under_band(raman_hdpe, c(1000, 2000))/area_under_band(raman_hdpe, c(500, 700))
+area_under_band(raman_hdpe, min = 1000,max = 2000)/area_under_band(raman_hdpe, min = 500,max = 700)
 }
 \author{
 Win Cowger
