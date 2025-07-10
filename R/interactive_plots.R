@@ -26,6 +26,10 @@
 #' will be excluded.
 #' @param select optional index of the selected spectrum to highlight on the
 #' heatmap.
+#' @param centroids optional \code{OpenSpecy} object containing collapsed
+#'   spectra. If supplied, the centroid locations stored in
+#'   \code{centroid_x} and \code{centroid_y} of its metadata will be
+#'   overlaid on the heatmap as points.
 #' @param line list; \code{line} parameter for \code{x}; passed to
 #' \code{\link[plotly]{add_trace}()}.
 #' @param line2 list; \code{line} parameter for \code{x2}; passed to
@@ -170,6 +174,7 @@ heatmap_spec.OpenSpecy <- function(x,
                                    min_sn = NULL,
                                    min_cor = NULL,
                                    select = NULL,
+                                   centroids = NULL,
                                    font = list(color = '#FFFFFF'),
                                    plot_bgcolor = 'rgba(17, 0, 73, 0)',
                                    paper_bgcolor = 'rgb(0, 0, 0)',
@@ -249,14 +254,46 @@ heatmap_spec.OpenSpecy <- function(x,
               font = font
           )
       
-      if(!is.null(select)) {
-          p <-
-              p |> add_markers(
-                  x = x$metadata$x[select],
-                  y = x$metadata$y[select],
-                  name = "Selected Spectrum"
-              )
-      }
+        if(!is.null(select)) {
+            p <-
+                p |> add_markers(
+                    x = x$metadata$x[select],
+                    y = x$metadata$y[select],
+                    name = "Selected Spectrum"
+                )
+        }
+
+        if(!is.null(centroids)) {
+            cm <- centroids$metadata
+            zname <- sub(".*\\$", "", deparse(substitute(z)))
+            cz <- if(zname %in% names(cm)) cm[[zname]] else NULL
+
+            cent_text <- paste0(
+                if("feature_id" %in% names(cm))
+                    paste0("feature_id: ", cm$feature_id) else "",
+                if("area" %in% names(cm))
+                    paste0("<br>area: ", signif(cm$area, 2)) else "",
+                if("perimeter" %in% names(cm))
+                    paste0("<br>perimeter: ", signif(cm$perimeter, 2)) else "",
+                if("feret_max" %in% names(cm))
+                    paste0("<br>feret_max: ", signif(cm$feret_max, 2)) else "",
+                if(!is.null(cz))
+                    paste0("<br>z: ", signif(cz, 2)) else "",
+                if("sn" %in% names(cm))
+                    paste0("<br>snr: ", signif(cm$sn, 2)) else "",
+                if("cor" %in% names(cm))
+                    paste0("<br>cor: ", signif(cm$cor, 2)) else ""
+            )
+
+            p <- p |> add_markers(
+                x = cm$centroid_x,
+                y = cm$centroid_y,
+                hoverinfo = "text",
+                text = cent_text,
+                marker = list(color = "white", symbol = "circle"),
+                name = "Centroids"
+            )
+        }
   }
   if(type == "static"){
       mat <- matrix(plot_z, nrow = length(unique(x$metadata$x)), ncol = length(unique(x$metadata$y)))

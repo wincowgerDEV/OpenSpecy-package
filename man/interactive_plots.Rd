@@ -41,6 +41,7 @@ heatmap_spec(x, ...)
   min_sn = NULL,
   min_cor = NULL,
   select = NULL,
+  centroids = NULL,
   font = list(color = "#FFFFFF"),
   plot_bgcolor = "rgba(17, 0, 73, 0)",
   paper_bgcolor = "rgb(0, 0, 0)",
@@ -111,6 +112,10 @@ will be excluded.}
 
 \item{select}{optional index of the selected spectrum to highlight on the
 heatmap.}
+
+\item{centroids}{optional \code{OpenSpecy} object containing collapsed spectra
+whose \code{centroid_x} and \code{centroid_y} columns will be displayed as
+points on the heatmap.}
 
 \item{colorscale}{colorscale passed to \code{\link[plotly]{add_trace}()} can
 be an array or one of \code{"Blackbody"}, \code{"Bluered"}, \code{"Blues"}, \code{"Cividis"},
