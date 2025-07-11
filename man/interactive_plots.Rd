@@ -34,7 +34,7 @@ heatmap_spec(x, ...)
 \method{heatmap_spec}{default}(x, ...)
 
 \method{heatmap_spec}{OpenSpecy}(
-  x,
+  x = NULL,
   z = NULL,
   sn = NULL,
   cor = NULL,
@@ -113,9 +113,10 @@ will be excluded.}
 \item{select}{optional index of the selected spectrum to highlight on the
 heatmap.}
 
-\item{centroids}{optional \code{OpenSpecy} object containing collapsed spectra
-whose \code{centroid_x} and \code{centroid_y} columns will be displayed as
-points on the heatmap.}
+\item{centroids}{optional \code{OpenSpecy} object containing collapsed
+spectra. If supplied, the centroid locations stored in
+\code{centroid_x} and \code{centroid_y} of its metadata will be
+overlaid on the heatmap as points.}
 
 \item{colorscale}{colorscale passed to \code{\link[plotly]{add_trace}()} can
 be an array or one of \code{"Blackbody"}, \code{"Bluered"}, \code{"Blues"}, \code{"Cividis"},
