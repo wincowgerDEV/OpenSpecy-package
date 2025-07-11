@@ -18,6 +18,8 @@
 #' @param y an \code{OpenSpecy} object to perform similarity search against x.
 #' @param conform Whether to conform the spectra to the library wavenumbers or not.
 #' @param type the type of conformation to make returned by \code{conform_spec()}
+#' @param cor_strat If "cor" will use the cor function and can have additional variables passed. 
+#' If 'fast' will use a custom fast Pearson correlation coefficient run.
 #' @param library an \code{OpenSpecy} or \code{glmnet} object representing the
 #' reference library of spectra or model to use in identification.
 #' @param na.rm logical; indicating whether missing values should be removed
@@ -114,7 +116,7 @@ cor_spec.default <- function(x, ...) {
 #' @export
 
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
-                               type = "roll", ...) {
+                               type = "roll", cor_strat = "cor", ...) {
   if(conform) x <- conform_spec(x, library$wavenumber, res = NULL, allow_na = F, type)
 
   if(!is.null(attr(x, "intensity_unit")) &&
@@ -154,7 +156,37 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   spec <- spec[,lapply(.SD, make_rel, na.rm = na.rm)]
   spec <- spec[,lapply(.SD, mean_replace)]
 
-  cor(lib, spec, ...)
+  if(cor_strat == "cor"){
+      correlation <- cor(lib, spec, ...)
+  }
+  else if(cor_strat == "fast"){
+      correlation <- .fast_correlation(lib, spec)
+      colnames(correlation) <- colnames(spec)
+      rownames(correlation) <- colnames(lib)
+  }
+  else{
+      stop("cor_strat must be either 'cor' or 'fast'")
+  }
+  return(correlation)
+}
+
+
+.fast_correlation <- function(x, y = NULL) {
+    mat_1 = as.matrix(data.table::transpose(x))
+    # Center
+    mat_1 = mat_1 - rowMeans(mat_1)
+    # Standardize each variable
+    mat_1 = mat_1 / sqrt(rowSums(mat_1^2))
+    if(!is.null(y)){
+        mat_2 = as.matrix(data.table::transpose(y))
+        # Center
+        mat_2 = mat_2 - rowMeans(mat_2)
+        # Standardize each variable
+        mat_2 = mat_2 / sqrt(rowSums(mat_2^2))
+        # Calculate correlations
+        return(tcrossprod(mat_1, mat_2))
+    }
+    return(tcrossprod(mat_1))
 }
 
 #' @rdname match_spec

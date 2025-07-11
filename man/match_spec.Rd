@@ -30,7 +30,15 @@ cor_spec(x, ...)
 
 \method{cor_spec}{default}(x, ...)
 
-\method{cor_spec}{OpenSpecy}(x, library, na.rm = T, conform = F, type = "roll", ...)
+\method{cor_spec}{OpenSpecy}(
+  x,
+  library,
+  na.rm = T,
+  conform = F,
+  type = "roll",
+  cor_strat = "cor",
+  ...
+)
 
 match_spec(x, ...)
 
@@ -104,6 +112,9 @@ when calculating correlations. Default is \code{TRUE}.}
 \item{conform}{Whether to conform the spectra to the library wavenumbers or not.}
 
 \item{type}{the type of conformation to make returned by \code{conform_spec()}}
+
+\item{cor_strat}{If "cor" will use the cor function and can have additional variables passed.
+If 'fast' will use a custom fast Pearson correlation coefficient run.}
 
 \item{top_n}{integer; specifying the number of top matches to return.
 If \code{NULL} (default), all matches will be returned.}
