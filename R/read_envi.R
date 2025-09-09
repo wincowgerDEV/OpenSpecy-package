@@ -87,11 +87,11 @@ read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1)
 
   dims <- dim(arr)
   coords <- data.frame(
-    y = rep(0:(dims[1] - 1), times = dims[2]),
-    x = rep(0:(dims[2] - 1), each = dims[1])
+    y = rep(0:(dims[1] - 1), each = dims[2]),
+    x = rep(0:(dims[2] - 1), times = dims[1])
   )
   spectra <- data.table::as.data.table(
-    matrix(aperm(arr, c(3, 1, 2)), nrow = dims[3])
+    matrix(aperm(arr, c(3, 2, 1)), nrow = dims[3])
   )
   data.table::setnames(spectra, paste(coords$y, coords$x, sep = "_"))
 
