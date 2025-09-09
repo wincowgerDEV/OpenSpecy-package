@@ -87,8 +87,8 @@ read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1)
 
   dims <- dim(arr)
   coords <- data.frame(
-    y = rep(0:(dims[1] - 1), each = dims[2]),
-    x = rep(0:(dims[2] - 1), times = dims[1])
+    y = as.numeric(rep(seq_len(dims[1]) - 1, each = dims[2])),
+    x = as.numeric(rep(seq_len(dims[2]) - 1, times = dims[1]))
   )
   spectra <- data.table::as.data.table(
     matrix(aperm(arr, c(3, 2, 1)), nrow = dims[3])
