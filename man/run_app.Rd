@@ -18,7 +18,8 @@ pointing to \code{system.file(package = "OpenSpecy")}.}
 
 \item{check_local}{logical; when \code{TRUE} a previously downloaded copy of
 the Shiny app located at \code{path} is used instead of downloading a fresh
-copy from GitHub.}
+copy from GitHub. The directory may contain either a single-file \code{app.R}
+application or a \code{server.R}/\code{ui.R} pair.}
 
 \item{test_mode}{logical; for internal testing only.}
 

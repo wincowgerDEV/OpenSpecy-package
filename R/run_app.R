@@ -14,7 +14,8 @@
 #' "main". Only change this in case of errors.
 #' @param check_local logical; when \code{TRUE} a previously downloaded copy of
 #' the Shiny app located at \code{path} is used instead of downloading a fresh
-#' copy from GitHub.
+#' copy from GitHub. The directory may contain either a single-file
+#' \code{app.R} application or a \code{server.R}/\code{ui.R} pair.
 #' @param test_mode logical; for internal testing only.
 #' @param \dots arguments passed to \code{\link[shiny]{runApp}()}.
 #'
@@ -77,12 +78,21 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
 
   find_app_path <- function(dir_path) {
     if(!dir.exists(dir_path)) return(NULL)
-    candidates <- c(dir_path, list.dirs(dir_path, recursive = FALSE, full.names = TRUE))
+    candidates <- unique(c(dir_path, list.dirs(dir_path, recursive = TRUE,
+                                               full.names = TRUE)))
+
     for(candidate in candidates) {
-      if(file.exists(file.path(candidate, "app.R"))) {
+      if(!dir.exists(candidate)) next
+
+      has_app <- file.exists(file.path(candidate, "app.R"))
+      has_server_ui <- file.exists(file.path(candidate, "server.R")) &&
+        file.exists(file.path(candidate, "ui.R"))
+
+      if(has_app || has_server_ui) {
         return(candidate)
       }
     }
+
     NULL
   }
 
@@ -117,7 +127,7 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
   owner <- "wincowgerDEV"
   repo <- "OpenSpecy-shiny"
 
-  if(missing(ref)) {
+  if(missing(ref) || identical(ref, "main")) {
     commits_page <- sprintf("https://github.com/%s/%s/commits/main", owner, repo)
     message("Downloading the OpenSpecy Shiny app from the 'main' branch.")
     message("You can supply the 'ref' argument to download a different branch, tag, or commit.")

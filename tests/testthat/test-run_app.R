@@ -10,7 +10,7 @@ test_that("run_app() wrapper doesn't produce errors", {
 test_that("run_app() uses local copy when requested", {
   local_app <- file.path(tmp, "local_app")
   dir.create(local_app, showWarnings = FALSE, recursive = TRUE)
-  file.create(file.path(local_app, "app.R"))
+  file.create(file.path(local_app, c("server.R", "ui.R")))
 
   run_app(path = tmp, check_local = TRUE, test_mode = T) |>
     expect_message("Running local OpenSpecy Shiny app")
