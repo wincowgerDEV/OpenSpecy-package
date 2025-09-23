@@ -4,7 +4,14 @@
 \alias{run_app}
 \title{Run Open Specy app}
 \usage{
-run_app(path = "system", log = TRUE, ref = "main", test_mode = FALSE, ...)
+run_app(
+  path = "system",
+  log = TRUE,
+  ref = "main",
+  check_local = TRUE,
+  test_mode = FALSE,
+  ...
+)
 }
 \arguments{
 \item{path}{to store the downloaded app files; defaults to \code{"system"}
@@ -15,20 +22,31 @@ pointing to \code{system.file(package = "OpenSpecy")}.}
 \item{ref}{git reference; could be a commit, tag, or branch name. Defaults to
 "main". Only change this in case of errors.}
 
+\item{check_local}{logical; when \code{TRUE} a previously downloaded copy of
+the Shiny app located at \code{path} is used instead of downloading a fresh
+copy from GitHub. The directory may contain either a single-file
+\code{app.R} application or a \code{server.R}/\code{ui.R} pair. Metadata
+about downloaded copies, including the originating commit hash, is stored
+alongside the app and surfaced when the local copy is reused. When a
+specific \code{ref} is requested, matching local copies are preferred and
+unmatched directories are ignored.}
+
 \item{test_mode}{logical; for internal testing only.}
 
 \item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
 }
 \value{
 This function normally does not return any value, see
-\code{\link[shiny]{runGitHub}()}.
+\code{\link[shiny]{runApp}()}.
 }
 \description{
 This wrapper function starts the graphical user interface of Open Specy.
 }
 \details{
 After running this function the Open Specy GUI should open in a separate
-window or in your computer browser.
+window or in your computer browser. When downloads are required, the function
+reports the GitHub commit used and preserves that information for subsequent
+reuse when \code{check_local = TRUE}.
 }
 \examples{
 \dontrun{
@@ -37,7 +55,7 @@ run_app()
 
 }
 \seealso{
-\code{\link[shiny]{runGitHub}()}
+\code{\link[shiny]{runApp}()}
 }
 \author{
 Zacharias Steinmetz
