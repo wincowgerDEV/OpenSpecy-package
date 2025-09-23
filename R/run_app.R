@@ -147,6 +147,56 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
     candidates[[1]]
   }
 
+  parse_download_time <- function(value) {
+    if(is.null(value) || !length(value)) return(-Inf)
+
+    if(inherits(value, "POSIXt")) {
+      parsed <- suppressWarnings(as.numeric(as.POSIXct(value, tz = "UTC")))
+      if(!is.na(parsed)) return(parsed)
+    }
+
+    if(inherits(value, "Date")) {
+      parsed <- suppressWarnings(as.numeric(as.POSIXct(value, tz = "UTC")))
+      if(!is.na(parsed)) return(parsed)
+    }
+
+    if(is.numeric(value)) {
+      numeric_val <- suppressWarnings(as.numeric(value[1]))
+      if(!is.na(numeric_val)) return(numeric_val)
+    }
+
+    if(is.character(value)) {
+      value <- trimws(value[1])
+      if(!nzchar(value)) return(-Inf)
+      try_formats <- c(
+        "%Y-%m-%d %H:%M:%OS %Z",
+        "%Y-%m-%d %H:%M:%OS",
+        "%Y-%m-%dT%H:%M:%OSZ",
+        "%Y-%m-%dT%H:%M:%OS",
+        "%a %b %d %H:%M:%S %Y",
+        "%a %b %d %H:%M:%S %Z %Y",
+        "%m/%d/%Y %H:%M:%OS",
+        "%Y-%m-%d"
+      )
+
+      parsed <- suppressWarnings(
+        as.POSIXct(value, tz = "UTC", tryFormats = try_formats)
+      )
+      if(!is.na(parsed)) {
+        parsed_num <- suppressWarnings(as.numeric(parsed))
+        if(!is.na(parsed_num)) return(parsed_num)
+      }
+
+      parsed_default <- suppressWarnings(as.POSIXct(value, tz = "UTC"))
+      if(!is.na(parsed_default)) {
+        parsed_num <- suppressWarnings(as.numeric(parsed_default))
+        if(!is.na(parsed_num)) return(parsed_num)
+      }
+    }
+
+    -Inf
+  }
+
   select_local_app <- function(dir_path, requested_ref) {
     candidates <- find_app_paths(dir_path)
     if(!length(candidates)) return(NULL)
@@ -185,8 +235,7 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
         match_type <- "metadata"
       }
 
-      downloaded_time <- suppressWarnings(as.numeric(as.POSIXct(downloaded_at, tz = "UTC")))
-      if(is.na(downloaded_time)) downloaded_time <- -Inf
+      downloaded_time <- parse_download_time(downloaded_at)
 
       if(is.null(best_path) || score > best_score ||
          (score == best_score && downloaded_time > best_time)) {
