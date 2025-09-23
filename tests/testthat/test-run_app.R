@@ -26,5 +26,46 @@ test_that("run_app() uses local copy when requested", {
     )
 })
 
+test_that("run_app() selects matching local commit when requested", {
+  commit_one <- "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  commit_two <- "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+  local_old <- file.path(tmp, "local_old")
+  local_new <- file.path(tmp, "local_new")
+
+  dir.create(local_old, showWarnings = FALSE, recursive = TRUE)
+  dir.create(local_new, showWarnings = FALSE, recursive = TRUE)
+
+  file.create(file.path(local_old, c("server.R", "ui.R")))
+  file.create(file.path(local_new, c("server.R", "ui.R")))
+
+  metadata_old <- list(
+    commit = commit_one,
+    ref = substr(commit_one, 1, 12),
+    downloaded_at = "2020-01-01 00:00:00 UTC"
+  )
+  metadata_new <- list(
+    commit = commit_two,
+    ref = substr(commit_two, 1, 12),
+    downloaded_at = "2021-01-01 00:00:00 UTC"
+  )
+
+  saveRDS(metadata_old, file.path(local_old, ".openspecy-shiny-metadata.rds"))
+  saveRDS(metadata_new, file.path(local_new, ".openspecy-shiny-metadata.rds"))
+
+  selected <- expect_message(
+    run_app(
+      path = tmp,
+      check_local = TRUE,
+      ref = substr(commit_one, 1, 10),
+      test_mode = TRUE
+    ),
+    "Local app was downloaded from commit aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa. View commit: https://github.com/wincowgerDEV/OpenSpecy-shiny/commit/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    fixed = TRUE
+  )
+
+  expect_equal(selected, local_old)
+})
+
 # Tidy up
 unlink(tmp, recursive = T)

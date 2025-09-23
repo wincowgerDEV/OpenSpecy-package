@@ -27,7 +27,9 @@ the Shiny app located at \code{path} is used instead of downloading a fresh
 copy from GitHub. The directory may contain either a single-file
 \code{app.R} application or a \code{server.R}/\code{ui.R} pair. Metadata
 about downloaded copies, including the originating commit hash, is stored
-alongside the app and surfaced when the local copy is reused.}
+alongside the app and surfaced when the local copy is reused. When a
+specific \code{ref} is requested, matching local copies are preferred and
+unmatched directories are ignored.}
 
 \item{test_mode}{logical; for internal testing only.}
 
