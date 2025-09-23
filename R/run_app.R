@@ -35,7 +35,7 @@
 #' }
 #'
 #' @author
-#' Zacharias Steinmetz
+#' Win Cowger, Zacharias Steinmetz, Garth Covernton
 #'
 #' @seealso
 #' \code{\link[shiny]{runApp}()}

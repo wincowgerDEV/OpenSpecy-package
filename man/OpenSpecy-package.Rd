@@ -69,6 +69,7 @@ Other contributors:
   \item Hannah Hapich (\href{https://orcid.org/0000-0003-0000-6632}{ORCID}) [contributor]
   \item Jennifer Lynch (\href{https://orcid.org/0000-0003-3572-8782}{ORCID}) [contributor, data contributor]
   \item Hannah De Frond (\href{https://orcid.org/0000-0003-1199-0727}{ORCID}) [contributor, data contributor]
+  \item Garth Covernton (\href{https://orcid.org/0000-0003-3814-4918}{ORCID}) [contributor, data contributor]
   \item Keenan Munno (\href{https://orcid.org/0000-0003-2916-5944}{ORCID}) [contributor, data contributor]
   \item Chelsea Rochman (\href{https://orcid.org/0000-0002-7624-711X}{ORCID}) [contributor, data contributor]
   \item Sebastian Primpke (\href{https://orcid.org/0000-0001-7633-8524}{ORCID}) [contributor, data contributor]

@@ -58,5 +58,5 @@ run_app()
 \code{\link[shiny]{runApp}()}
 }
 \author{
-Zacharias Steinmetz
+Win Cowger, Zacharias Steinmetz, Garth Covernton
 }

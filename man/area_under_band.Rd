@@ -17,7 +17,7 @@ area_under_band(x, ...)
 
 \item{min}{a numeric value of the smallest wavenumber to begin calculation.}
 
-\item{max}{a numeric value of the smallest wavenumber to begin calculation.}
+\item{max}{a numeric value of the largest wavenumber to end calculation.}
 
 \item{na.rm}{a logical value for whether to ignore NA values.}
 
