@@ -25,7 +25,9 @@ pointing to \code{system.file(package = "OpenSpecy")}.}
 \item{check_local}{logical; when \code{TRUE} a previously downloaded copy of
 the Shiny app located at \code{path} is used instead of downloading a fresh
 copy from GitHub. The directory may contain either a single-file
-\code{app.R} application or a \code{server.R}/\code{ui.R} pair.}
+\code{app.R} application or a \code{server.R}/\code{ui.R} pair. Metadata
+about downloaded copies, including the originating commit hash, is stored
+alongside the app and surfaced when the local copy is reused.}
 
 \item{test_mode}{logical; for internal testing only.}
 
@@ -40,7 +42,9 @@ This wrapper function starts the graphical user interface of Open Specy.
 }
 \details{
 After running this function the Open Specy GUI should open in a separate
-window or in your computer browser.
+window or in your computer browser. When downloads are required, the function
+reports the GitHub commit used and preserves that information for subsequent
+reuse when \code{check_local = TRUE}.
 }
 \examples{
 \dontrun{
