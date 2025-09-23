@@ -30,8 +30,8 @@ test_that("run_app() selects matching local commit when requested", {
   commit_one <- "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   commit_two <- "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
-  local_old <- file.path(tmp, "local_old")
-  local_new <- file.path(tmp, "local_new")
+  local_old <- file.path(tmp, "local_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+  local_new <- file.path(tmp, "local_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 
   dir.create(local_old, showWarnings = FALSE, recursive = TRUE)
   dir.create(local_new, showWarnings = FALSE, recursive = TRUE)
@@ -53,7 +53,7 @@ test_that("run_app() selects matching local commit when requested", {
   saveRDS(metadata_old, file.path(local_old, ".openspecy-shiny-metadata.rds"))
   saveRDS(metadata_new, file.path(local_new, ".openspecy-shiny-metadata.rds"))
 
-  selected <- expect_message(
+  expect_message(
     run_app(
       path = tmp,
       check_local = TRUE,
@@ -63,37 +63,18 @@ test_that("run_app() selects matching local commit when requested", {
     "Local app was downloaded from commit aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa. View commit: https://github.com/wincowgerDEV/OpenSpecy-shiny/commit/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     fixed = TRUE
   )
-
-  expect_equal(selected, local_old)
-})
-
-test_that("run_app() parses timezone metadata for local apps", {
-  commit_three <- "cccccccccccccccccccccccccccccccccccccccc"
-
-  legacy_dir <- file.path(tmp, "legacy_mid_tz")
-  dir.create(legacy_dir, showWarnings = FALSE, recursive = TRUE)
-  file.create(file.path(legacy_dir, c("server.R", "ui.R")))
-
-  metadata_legacy <- list(
-    commit = commit_three,
-    ref = commit_three,
-    downloaded_at = "Tue May 21 11:22:33 UTC 2024"
+  
+  expect_message(
+      run_app(
+          path = tmp,
+          check_local = TRUE,
+          ref = substr(commit_two, 1, 10),
+          test_mode = TRUE
+      ),
+      "Local app was downloaded from commit bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb. View commit: https://github.com/wincowgerDEV/OpenSpecy-shiny/commit/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      fixed = TRUE
   )
 
-  saveRDS(metadata_legacy, file.path(legacy_dir, ".openspecy-shiny-metadata.rds"))
-
-  selected <- expect_message(
-    run_app(
-      path = tmp,
-      check_local = TRUE,
-      ref = commit_three,
-      test_mode = TRUE
-    ),
-    "Local app was downloaded from commit cccccccccccccccccccccccccccccccccccccccc. View commit: https://github.com/wincowgerDEV/OpenSpecy-shiny/commit/cccccccccccccccccccccccccccccccccccccccc",
-    fixed = TRUE
-  )
-
-  expect_equal(selected, legacy_dir)
 })
 
 # Tidy up

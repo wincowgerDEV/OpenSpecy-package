@@ -8,7 +8,7 @@ run_app(
   path = "system",
   log = TRUE,
   ref = "main",
-  check_local = FALSE,
+  check_local = TRUE,
   test_mode = FALSE,
   ...
 )

@@ -45,7 +45,7 @@
 #' @importFrom jsonlite fromJSON
 #' @export
 run_app <- function(path = "system", log = TRUE, ref = "main",
-                    check_local = FALSE, test_mode = FALSE, ...) {
+                    check_local = TRUE, test_mode = FALSE, ...) {
   pkg <- c("shinyjs", "shinyWidgets", "bs4Dash",
            "dplyr", "ggplot2", "DT")
 
@@ -146,6 +146,8 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
     if(!length(candidates)) return(NULL)
     candidates[[1]]
   }
+  
+
 
   parse_download_time <- function(value) {
     if(is.null(value) || !length(value)) return(-Inf)
@@ -229,6 +231,7 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
     -Inf
   }
 
+
   select_local_app <- function(dir_path, requested_ref) {
     candidates <- find_app_paths(dir_path)
     if(!length(candidates)) return(NULL)
@@ -255,7 +258,7 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
       match_type <- "none"
 
       if(nzchar(requested_ref_lower) && nzchar(commit_lower) &&
-         startsWith(commit_lower, requested_ref_lower)) {
+         (startsWith(requested_ref_lower, commit_lower)||startsWith(commit_lower, requested_ref_lower))) {
         score <- 3
         match_type <- "commit"
       } else if(nzchar(requested_ref_lower) && nzchar(ref_lower) &&
@@ -302,13 +305,13 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
   shinyOptions(log = log)
 
   if(check_local) {
-    selection <- select_local_app(dd, ref)
+    selection <- select_local_app(dir_path = dd,requested_ref =  ref)
 
     is_commit_ref <- function(x) {
-      if(!is.character(x) || !length(x)) return(FALSE)
-      grepl("^[0-9a-f]{7,40}$", x[1], ignore.case = TRUE)
+        if(!is.character(x) || !length(x)) return(FALSE)
+        grepl("^[0-9a-f]{7,40}$", x[1], ignore.case = TRUE)
     }
-
+    
     require_exact_match <- !ref_missing && !identical(ref, "main")
     require_commit_match <- require_exact_match && is_commit_ref(ref)
 
