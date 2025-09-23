@@ -64,7 +64,7 @@
 <p>Win Cowger,
 Zacharias Steinmetz</p>
             
-            <h4 data-toc-skip class="date">2025-09-09</h4>
+            <h4 data-toc-skip class="date">2025-09-23</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/vignettes/app.Rmd" class="external-link"><code>vignettes/app.Rmd</code></a></small>
       <div class="d-none name"><code>app.Rmd</code></div>
@@ -101,6 +101,27 @@ the package, you just need to read in the library and run the command
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/wincowgerDEV/OpenSpecy-package/" class="external-link">OpenSpecy</a></span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>When the helper launches it now performs a quick dependency check. If
+any of the required Shiny packages are missing, <code><a href="../reference/run_app.html">run_app()</a></code>
+stops early and prints a copy-and-paste <code><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages()</a></code>
+command so you can resolve the issue before trying again. By default the
+function downloads the Shiny app from the <code>main</code> branch of <a href="https://github.com/wincowgerDEV/OpenSpecy-shiny" class="external-link">OpenSpecy-shiny</a>.
+The console output reminds you where the files are coming from, links to
+the commit history, and prints a table with the dates and full hashes of
+the ten most recent commits so you can decide whether to request an
+alternate version.</p>
+<p>To work with a different branch, tag, or commit, supply the desired
+reference via the <code>ref</code> argument, for example
+<code>run_app(ref = "v1.0.0")</code> or pass a full commit hash. Each
+download is cached at the directory given by <code>path</code> (or the
+package installation directory when <code>path = "system"</code>), and
+the Git metadata is stored alongside the Shiny files. If you set
+<code>check_local = TRUE</code>, <code><a href="../reference/run_app.html">run_app()</a></code> reuses the
+cached copy whose commit or reference best matches your request and
+prints the exact commit URL so you can review the source that is
+running. Regardless of whether the helper reuses a local copy or pulls
+fresh files from GitHub, the downloaded tarball is saved in the same
+directory for future reference.</p>
 </div>
 <div class="section level2">
 <h2 id="reading-data">Reading Data<a class="anchor" aria-label="anchor" href="#reading-data"></a>
