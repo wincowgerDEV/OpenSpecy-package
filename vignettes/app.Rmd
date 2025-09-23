@@ -50,6 +50,26 @@ library(OpenSpecy)
 run_app()
 ```
 
+When the helper launches it now performs a quick dependency check. If any of
+the required Shiny packages are missing, `run_app()` stops early and prints a
+copy-and-paste `install.packages()` command so you can resolve the issue before
+trying again. By default the function downloads the Shiny app from the `main`
+branch of [OpenSpecy-shiny](https://github.com/wincowgerDEV/OpenSpecy-shiny).
+The console output reminds you where the files are coming from, links to the
+commit history, and prints a table with the dates and full hashes of the ten
+most recent commits so you can decide whether to request an alternate version.
+
+To work with a different branch, tag, or commit, supply the desired reference
+via the `ref` argument, for example `run_app(ref = "v1.0.0")` or pass a full
+commit hash. Each download is cached at the directory given by `path` (or the
+package installation directory when `path = "system"`), and the Git metadata is
+stored alongside the Shiny files. If you set `check_local = TRUE`, `run_app()`
+reuses the cached copy whose commit or reference best matches your request and
+prints the exact commit URL so you can review the source that is running.
+Regardless of whether the helper reuses a local copy or pulls fresh files from
+GitHub, the downloaded tarball is saved in the same directory for future
+reference.
+
 # Reading Data
 
 Once the app is open, if you have your own data, click **Browse** at the top
