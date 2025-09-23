@@ -19,7 +19,9 @@
 #' copy from GitHub. The directory may contain either a single-file
 #' \code{app.R} application or a \code{server.R}/\code{ui.R} pair. Metadata
 #' about downloaded copies, including the originating commit hash, is stored
-#' alongside the app and surfaced when the local copy is reused.
+#' alongside the app and surfaced when the local copy is reused. When a
+#' specific \code{ref} is requested, matching local copies are preferred and
+#' unmatched directories are ignored.
 #' @param test_mode logical; for internal testing only.
 #' @param \dots arguments passed to \code{\link[shiny]{runApp}()}.
 #'
@@ -50,6 +52,7 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
   owner <- "wincowgerDEV"
   repo <- "OpenSpecy-shiny"
   metadata_filename <- ".openspecy-shiny-metadata.rds"
+  ref_missing <- missing(ref)
 
   miss <- pkg[!(pkg %in% installed.packages()[, "Package"])]
 
@@ -120,24 +123,88 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
     value
   }
 
-  find_app_path <- function(dir_path) {
-    if(!dir.exists(dir_path)) return(NULL)
+  find_app_paths <- function(dir_path) {
+    if(!dir.exists(dir_path)) return(character())
     candidates <- unique(c(dir_path, list.dirs(dir_path, recursive = TRUE,
                                                full.names = TRUE)))
 
-    for(candidate in candidates) {
-      if(!dir.exists(candidate)) next
+    keep <- vapply(candidates, function(candidate) {
+      if(!dir.exists(candidate)) return(FALSE)
 
       has_app <- file.exists(file.path(candidate, "app.R"))
       has_server_ui <- file.exists(file.path(candidate, "server.R")) &&
         file.exists(file.path(candidate, "ui.R"))
 
-      if(has_app || has_server_ui) {
-        return(candidate)
+      has_app || has_server_ui
+    }, logical(1), USE.NAMES = FALSE)
+
+    candidates[keep]
+  }
+
+  find_app_path <- function(dir_path) {
+    candidates <- find_app_paths(dir_path)
+    if(!length(candidates)) return(NULL)
+    candidates[[1]]
+  }
+
+  select_local_app <- function(dir_path, requested_ref) {
+    candidates <- find_app_paths(dir_path)
+    if(!length(candidates)) return(NULL)
+
+    requested_ref_val <- fallback(requested_ref, "")
+    requested_ref_lower <- tolower(requested_ref_val)
+
+    best_path <- NULL
+    best_score <- -Inf
+    best_time <- -Inf
+    best_metadata <- NULL
+    best_match_type <- "none"
+
+    for(candidate in candidates) {
+      metadata <- read_metadata(candidate)
+      commit_val <- fallback(metadata$commit, "")
+      ref_val <- fallback(metadata$ref, "")
+      downloaded_at <- fallback(metadata$downloaded_at, "")
+
+      commit_lower <- tolower(commit_val)
+      ref_lower <- tolower(ref_val)
+
+      score <- 0
+      match_type <- "none"
+
+      if(nzchar(requested_ref_lower) && nzchar(commit_lower) &&
+         startsWith(commit_lower, requested_ref_lower)) {
+        score <- 3
+        match_type <- "commit"
+      } else if(nzchar(requested_ref_lower) && nzchar(ref_lower) &&
+                identical(ref_lower, requested_ref_lower)) {
+        score <- 2
+        match_type <- "ref"
+      } else if(length(metadata)) {
+        score <- 1
+        match_type <- "metadata"
+      }
+
+      downloaded_time <- suppressWarnings(as.numeric(as.POSIXct(downloaded_at, tz = "UTC")))
+      if(is.na(downloaded_time)) downloaded_time <- -Inf
+
+      if(is.null(best_path) || score > best_score ||
+         (score == best_score && downloaded_time > best_time)) {
+        best_path <- candidate
+        best_score <- score
+        best_time <- downloaded_time
+        best_metadata <- metadata
+        best_match_type <- match_type
       }
     }
 
-    NULL
+    if(is.null(best_path)) return(NULL)
+
+    list(
+      path = best_path,
+      metadata = best_metadata,
+      match_type = best_match_type
+    )
   }
 
   dd <- resolve_path(path)
@@ -154,9 +221,22 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
   shinyOptions(log = log)
 
   if(check_local) {
-    local_app <- find_app_path(dd)
-    if(!is.null(local_app)) {
-      metadata <- read_metadata(local_app)
+    selection <- select_local_app(dd, ref)
+
+    is_commit_ref <- function(x) {
+      if(!is.character(x) || !length(x)) return(FALSE)
+      grepl("^[0-9a-f]{7,40}$", x[1], ignore.case = TRUE)
+    }
+
+    require_exact_match <- !ref_missing && !identical(ref, "main")
+    require_commit_match <- require_exact_match && is_commit_ref(ref)
+
+    if(!is.null(selection) &&
+       (!require_exact_match || selection$match_type != "none") &&
+       (!require_commit_match || selection$match_type == "commit")) {
+      local_app <- selection$path
+      metadata <- selection$metadata
+      if(is.null(metadata)) metadata <- list()
       effective_owner <- fallback(metadata$owner, owner)
       effective_repo <- fallback(metadata$repo, repo)
       message("Running local OpenSpecy Shiny app from: ", local_app)
@@ -187,7 +267,7 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
     return(invisible(dd))
   }
 
-  if(missing(ref) || identical(ref, "main")) {
+  if(ref_missing || identical(ref, "main")) {
     commits_page <- sprintf("https://github.com/%s/%s/commits/main", owner, repo)
     message("Downloading the OpenSpecy Shiny app from the 'main' branch.")
     message("You can supply the 'ref' argument to download a different branch, tag, or commit.")
