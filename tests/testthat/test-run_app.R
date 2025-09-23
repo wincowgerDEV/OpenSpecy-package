@@ -67,5 +67,34 @@ test_that("run_app() selects matching local commit when requested", {
   expect_equal(selected, local_old)
 })
 
+test_that("run_app() parses timezone metadata for local apps", {
+  commit_three <- "cccccccccccccccccccccccccccccccccccccccc"
+
+  legacy_dir <- file.path(tmp, "legacy_mid_tz")
+  dir.create(legacy_dir, showWarnings = FALSE, recursive = TRUE)
+  file.create(file.path(legacy_dir, c("server.R", "ui.R")))
+
+  metadata_legacy <- list(
+    commit = commit_three,
+    ref = commit_three,
+    downloaded_at = "Tue May 21 11:22:33 UTC 2024"
+  )
+
+  saveRDS(metadata_legacy, file.path(legacy_dir, ".openspecy-shiny-metadata.rds"))
+
+  selected <- expect_message(
+    run_app(
+      path = tmp,
+      check_local = TRUE,
+      ref = commit_three,
+      test_mode = TRUE
+    ),
+    "Local app was downloaded from commit cccccccccccccccccccccccccccccccccccccccc. View commit: https://github.com/wincowgerDEV/OpenSpecy-shiny/commit/cccccccccccccccccccccccccccccccccccccccc",
+    fixed = TRUE
+  )
+
+  expect_equal(selected, legacy_dir)
+})
+
 # Tidy up
 unlink(tmp, recursive = T)

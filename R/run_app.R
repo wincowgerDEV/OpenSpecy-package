@@ -168,23 +168,55 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
     if(is.character(value)) {
       value <- trimws(value[1])
       if(!nzchar(value)) return(-Inf)
+
+      collapse_ws <- function(txt) {
+        gsub("  +", " ", txt)
+      }
+
+      strip_trailing_tz <- function(txt) {
+        collapse_ws(sub("([[:space:]])([A-Z]{2,5})$", "", txt, perl = TRUE))
+      }
+
+      strip_mid_tz <- function(txt) {
+        collapse_ws(sub("([[:space:]])([A-Z]{2,5})([[:space:]]+[0-9]{4})$", "\\1\\3", txt,
+                              perl = TRUE))
+      }
+
+      candidate_values <- unique(trimws(c(value, strip_trailing_tz(value), strip_mid_tz(value))))
+      candidate_values <- candidate_values[nzchar(candidate_values)]
+
       try_formats <- c(
-        "%Y-%m-%d %H:%M:%OS %Z",
         "%Y-%m-%d %H:%M:%OS",
         "%Y-%m-%dT%H:%M:%OSZ",
         "%Y-%m-%dT%H:%M:%OS",
         "%a %b %d %H:%M:%S %Y",
-        "%a %b %d %H:%M:%S %Z %Y",
         "%m/%d/%Y %H:%M:%OS",
         "%Y-%m-%d"
       )
 
-      parsed <- suppressWarnings(
-        as.POSIXct(value, tz = "UTC", tryFormats = try_formats)
-      )
-      if(!is.na(parsed)) {
-        parsed_num <- suppressWarnings(as.numeric(parsed))
-        if(!is.na(parsed_num)) return(parsed_num)
+      for(candidate in candidate_values) {
+        parsed <- suppressWarnings(
+          as.POSIXct(candidate, tz = "UTC", tryFormats = try_formats)
+        )
+        if(!is.na(parsed)) {
+          parsed_num <- suppressWarnings(as.numeric(parsed))
+          if(!is.na(parsed_num)) return(parsed_num)
+        }
+      }
+
+      offset_candidate <- trimws(gsub("\\b(UTC|GMT)\\b", "+0000", value, ignore.case = TRUE))
+      if(nzchar(offset_candidate) && !identical(offset_candidate, value)) {
+        offset_formats <- c(
+          "%Y-%m-%d %H:%M:%OS %z",
+          "%a %b %d %H:%M:%S %z %Y"
+        )
+        parsed <- suppressWarnings(
+          as.POSIXct(offset_candidate, tz = "UTC", tryFormats = offset_formats)
+        )
+        if(!is.na(parsed)) {
+          parsed_num <- suppressWarnings(as.numeric(parsed))
+          if(!is.na(parsed_num)) return(parsed_num)
+        }
       }
 
       parsed_default <- suppressWarnings(as.POSIXct(value, tz = "UTC"))
