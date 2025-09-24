@@ -26,6 +26,10 @@
 #' will be excluded.
 #' @param select optional index of the selected spectrum to highlight on the
 #' heatmap.
+#' @param centroids optional \code{OpenSpecy} object containing collapsed
+#'   spectra. If supplied, the centroid locations stored in
+#'   \code{centroid_x} and \code{centroid_y} of its metadata will be
+#'   overlaid on the heatmap as points.
 #' @param line list; \code{line} parameter for \code{x}; passed to
 #' \code{\link[plotly]{add_trace}()}.
 #' @param line2 list; \code{line} parameter for \code{x2}; passed to
@@ -163,13 +167,14 @@ heatmap_spec.default <- function(x, ...) {
 #' @rdname interactive_plots
 #'
 #' @export
-heatmap_spec.OpenSpecy <- function(x,
+heatmap_spec.OpenSpecy <- function(x = NULL,
                                    z = NULL,
                                    sn = NULL,
                                    cor = NULL,
                                    min_sn = NULL,
                                    min_cor = NULL,
                                    select = NULL,
+                                   centroids = NULL,
                                    font = list(color = '#FFFFFF'),
                                    plot_bgcolor = 'rgba(17, 0, 73, 0)',
                                    paper_bgcolor = 'rgb(0, 0, 0)',
@@ -177,87 +182,139 @@ heatmap_spec.OpenSpecy <- function(x,
                                    showlegend = FALSE,
                                    type = "interactive",
                                    ...) {
-  if(!is.null(z))
-    plot_z <- z # default
-  else if(!is.null(cor))
-    plot_z <- cor
-  else if(!is.null(sn))
-    plot_z <- sn
-  else
-    stop("z, cor, or sn need to be specified to plot the z axis", call. = F)
-
-  if(!is.null(sn) && !is.null(min_sn))
-    plot_z <- ifelse(sn > min_sn, plot_z, NA)
-
-  if(!is.null(cor) && !is.null(min_cor))
-    plot_z <- ifelse(cor > min_cor, plot_z, NA)
-
-  if(all(is.na(plot_z)))
-    plot_z = rep(-88, length.out = length(plot_z))
-
-  if(type == "interactive"){
-      p <- plot_ly(...) |>
-          add_trace(
-              x = x$metadata$x,
-              y = x$metadata$y,
-              z = if(!is.numeric(plot_z)) {
-                  as.numeric(as.factor(plot_z))
-              } else {
-                  plot_z
-              },
-              colorscale = colorscale,
-              type = "heatmap",
-              hoverinfo = 'text',
-              showscale = showlegend,
-              text = ~ paste0(
-                  if(!"file_name" %in% names(x$metadata)) 
-                        paste0("row: ", 1:nrow(x$metadata))
-                  else 
-                        paste0("file name: ", x$metadata$file_name),
-                  "<br>x: ",
-                  x$metadata$x,
-                  ", y: ",
-                  x$metadata$y,
-                  ", z: ",
-                  plot_z,
-                  if(!is.null(sn))
-                      paste0("<br>snr: ", signif(sn, 2))
-                  else
-                      "",
-                  if(!is.null(cor))
-                      paste0("<br>cor: ", signif(cor, 2))
-                  else
-                      ""
-              )
-          ) |>
-          layout(
-              xaxis = list(
-                  title = 'x',
-                  zeroline = F,
-                  showgrid = F
-              ),
-              yaxis = list(
-                  title = 'y',
-                  scaleanchor = "x",
-                  scaleratio = 1,
-                  zeroline = F,
-                  showgrid = F
-              ),
-              plot_bgcolor = plot_bgcolor,
-              paper_bgcolor = paper_bgcolor,
-              showlegend = showlegend,
-              font = font
-          )
+    
+    if(is.null(x) & is.null(centroids)) stop("x and centroids cannot both be NULL")
+  
+    plotly_layout <- function(...){
+        ... |>
+        layout(
+        xaxis = list(
+            title = 'x',
+            zeroline = F,
+            showgrid = F
+        ),
+        yaxis = list(
+            title = 'y',
+            scaleanchor = "x",
+            scaleratio = 1,
+            zeroline = F,
+            showgrid = F
+        ),
+        plot_bgcolor = plot_bgcolor,
+        paper_bgcolor = paper_bgcolor,
+        showlegend = showlegend,
+        font = font
+    )}
+    
+    if(!is.null(x)){
+      if(!is.null(z))
+          plot_z <- z # default
+      else if(!is.null(cor))
+          plot_z <- cor
+      else if(!is.null(sn))
+          plot_z <- sn
+      else
+          stop("z, cor, or sn need to be specified to plot the z axis", call. = F)
       
-      if(!is.null(select)) {
-          p <-
-              p |> add_markers(
-                  x = x$metadata$x[select],
-                  y = x$metadata$y[select],
-                  name = "Selected Spectrum"
-              )
+      if(!is.null(sn) && !is.null(min_sn))
+          plot_z <- ifelse(sn > min_sn, plot_z, NA)
+      
+      if(!is.null(cor) && !is.null(min_cor))
+          plot_z <- ifelse(cor > min_cor, plot_z, NA)
+      
+      if(all(is.na(plot_z)))
+          plot_z = rep(-88, length.out = length(plot_z))
+      
+      if(type == "interactive"){
+          p <- plot_ly(...) |>
+              add_trace(
+                  x = x$metadata$x,
+                  y = x$metadata$y,
+                  z = if(!is.numeric(plot_z)) {
+                      as.numeric(as.factor(plot_z))
+                  } else {
+                      plot_z
+                  },
+                  colorscale = colorscale,
+                  type = "heatmap",
+                  hoverinfo = 'text',
+                  showscale = showlegend,
+                  text = ~ paste0(
+                      if(!"file_name" %in% names(x$metadata)) 
+                          paste0("row: ", 1:nrow(x$metadata))
+                      else 
+                          paste0("file name: ", x$metadata$file_name),
+                      "<br>x: ",
+                      x$metadata$x,
+                      ", y: ",
+                      x$metadata$y,
+                      ", z: ",
+                      plot_z,
+                      if(!is.null(sn))
+                          paste0("<br>snr: ", signif(sn, 2))
+                      else
+                          "",
+                      if(!is.null(cor))
+                          paste0("<br>cor: ", signif(cor, 2))
+                      else
+                          ""
+                  )
+              ) |>
+              plotly_layout()
+          
+          if(!is.null(select)) {
+              p <-
+                  p |> add_markers(
+                      x = x$metadata$x[select],
+                      y = x$metadata$y[select],
+                      name = "Selected Spectrum"
+                  )
+          }
       }
   }
+  
+
+        if(!is.null(centroids)) {
+            cm <- centroids$metadata
+
+            cent_text <- paste0(
+                if("feature_id" %in% names(cm))
+                    paste0("feature_id: ", cm$feature_id) else "",
+                if("area" %in% names(cm))
+                    paste0("<br>area: ", signif(cm$area, 2)) else "",
+                if("perimeter" %in% names(cm))
+                    paste0("<br>perimeter: ", signif(cm$perimeter, 2)) else "",
+                if("feret_max" %in% names(cm))
+                    paste0("<br>feret_max: ", signif(cm$feret_max, 2)) else "",
+                if("sn" %in% names(cm))
+                    paste0("<br>snr: ", signif(cm$sn, 2)) else "",
+                if("cor" %in% names(cm))
+                    paste0("<br>cor: ", signif(cm$cor, 2)) else ""
+            )
+            
+            if(!is.null(x)){
+                p <- p |> add_markers(
+                    x = cm$centroid_x,
+                    y = cm$centroid_y,
+                    hoverinfo = "text",
+                    text = cent_text,
+                    marker = list(color = "red", symbol = "cross"),
+                    name = "Centroids"
+                )    
+            }
+            
+            else{
+                p <- plot_ly(...) |> add_markers(
+                    x = cm$centroid_x,
+                    y = cm$centroid_y,
+                    hoverinfo = "text",
+                    text = cent_text,
+                    marker = list(color = "red", symbol = "cross"),
+                    name = "Centroids"
+                ) |>
+                    plotly_layout()
+            }
+        }
   if(type == "static"){
       mat <- matrix(plot_z, nrow = length(unique(x$metadata$x)), ncol = length(unique(x$metadata$y)))
       return(image(unique(x$metadata$x), unique(x$metadata$y), mat, col = heat.colors(100), main = "Heatmap", xlab = "X-axis", ylab = "Y-axis", asp = 1))

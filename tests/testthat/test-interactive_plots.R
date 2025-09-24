@@ -1,6 +1,23 @@
 map <- read_any(read_extdata("CA_tiny_map.zip"))
 data("raman_hdpe")
 
+
+test_that("adding centroids no error", {
+
+    map$metadata$snr <- sig_noise(map, metric = "sig_times_noise")
+    
+    id_map <- def_features(map, map$metadata$snr > 0.1)
+    cent <- collapse_spec(id_map)
+    
+    heatmap_spec(centroids = cent)
+    
+    heatmap_spec(map, sn = map$metadata$snr) |> expect_silent()
+    
+    heatmap_spec(map, sn = map$metadata$snr, centroids = cent) |> expect_silent()
+    
+    heatmap_spec(id_map, z = id_map$metadata$feature_id, centroids = cent) |> expect_silent()
+})
+
 test_that("plotly_spec() handles input errors correctly", {
   plotly_spec(1:1000) |> expect_error()
 })

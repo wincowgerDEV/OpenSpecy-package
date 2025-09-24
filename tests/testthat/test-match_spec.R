@@ -20,6 +20,20 @@ preproc <- conform_spec(unknown, range = test_lib$wavenumber,
                         res = spec_res(test_lib)) |>
   process_spec(smooth_intens = T, make_rel = T)
 
+
+test_that("fast cor identical", {
+    
+    data("test_lib")
+    data("raman_hdpe")
+    
+    con_ramn <- conform_spec(raman_hdpe, range = test_lib$wavenumber, res = NULL)
+    check <- cor_spec(con_ramn, test_lib)
+    check2 <- cor_spec(con_ramn, test_lib, cor_strat = "fast")
+    
+    expect_identical(round(check, 2), round(check2, 2))
+})
+
+
 test_that("os_similarity() returns correct values", {
     #The basic definition of similarity for each
     expect_true(os_similarity(tiny_map, tiny_map, method = "hamming") == 1) 
