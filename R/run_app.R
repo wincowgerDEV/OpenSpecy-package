@@ -13,7 +13,8 @@
 #' pointing to \code{system.file(package = "OpenSpecy")}.
 #' @param log logical; enables/disables logging to \code{\link[base]{tempdir}()}
 #' @param ref git reference; could be a commit, tag, or branch name. Defaults to
-#' "main". Only change this in case of errors.
+#' "main". Setting this will ensure you always use the same version of the shiny 
+#' app no matter what system you are on. 
 #' @param check_local logical; when \code{TRUE} a previously downloaded copy of
 #' the Shiny app located at \code{path} is used instead of downloading a fresh
 #' copy from GitHub. The directory may contain either a single-file
@@ -47,7 +48,7 @@
 run_app <- function(path = "system", log = TRUE, ref = "main",
                     check_local = TRUE, test_mode = FALSE, ...) {
   pkg <- c("shinyjs", "shinyWidgets", "bs4Dash",
-           "dplyr", "ggplot2", "DT")
+           "dplyr", "ggplot2", "DT", "reshape2")
 
   owner <- "wincowgerDEV"
   repo <- "OpenSpecy-shiny"

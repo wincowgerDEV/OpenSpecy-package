@@ -1,3 +1,9 @@
+# OpenSpecy 1.7.0
+
+- Improved run_app functionality to allow for version control. 
+- Faster ENVI file reading. 
+- Add area under band calculation. 
+
 # OpenSpecy 1.5.0
 
 ## Major
