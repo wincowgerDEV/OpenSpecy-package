@@ -29,7 +29,7 @@ os_similarity() EXPERIMENTAL, returns a single similarity metric between two Ope
 
     <a class="navbar-brand me-2" href="../index.html">OpenSpecy</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,15 @@ matrix as a named vector.
 <span><span class="fu">cor_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'OpenSpecy'</span></span>
-<span><span class="fu">cor_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">library</span>, na.rm <span class="op">=</span> <span class="cn">T</span>, conform <span class="op">=</span> <span class="cn">F</span>, type <span class="op">=</span> <span class="st">"roll"</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">cor_spec</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  <span class="va">library</span>,</span>
+<span>  na.rm <span class="op">=</span> <span class="cn">T</span>,</span>
+<span>  conform <span class="op">=</span> <span class="cn">F</span>,</span>
+<span>  type <span class="op">=</span> <span class="st">"roll"</span>,</span>
+<span>  compute <span class="op">=</span> <span class="st">"optimized"</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">match_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -103,6 +111,7 @@ matrix as a named vector.
 <span>  order <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  add_library_metadata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  add_object_metadata <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  compute <span class="op">=</span> <span class="st">"optimized"</span>,</span>
 <span>  fill <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
@@ -184,6 +193,12 @@ when calculating correlations. Default is <code>TRUE</code>.</p></dd>
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
 <dd><p>the type of conformation to make returned by <code><a href="conform_spec.html">conform_spec()</a></code></p></dd>
+
+
+<dt id="arg-compute">compute<a class="anchor" aria-label="anchor" href="#arg-compute"></a></dt>
+<dd><p>the compute strategy used for correlation, "optimized" by default
+will use the current most optimized strategy for Pearson correlation, "base"
+will use base R's <code><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor()</a></code></p></dd>
 
 
 <dt id="arg-top-n">top_n<a class="anchor" aria-label="anchor" href="#arg-top-n"></a></dt>
