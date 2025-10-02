@@ -378,3 +378,96 @@ read_extdata <- function(file = NULL) {
     system.file("extdata", file, package = "OpenSpecy", mustWork = TRUE)
   }
 }
+
+#' @rdname read_ext
+#' @import hdf5r 
+#' @export
+read_h5 <- function(file) {
+    
+    h5 <- H5File$new(file, mode = "r")
+    on.exit({
+        try(h5$close_all(), silent = TRUE)
+    }, add = TRUE)
+    
+    if (!h5$exists("/Regions")) {
+        message("X No /Regions group found: ", file)
+        return(invisible(NULL))
+    }
+    
+    regions <- names(h5[["/Regions"]])
+    if (length(regions) == 0) {
+        message("X No Region_* groups found under /Regions: ", file)
+        return(invisible(NULL))
+    }
+    
+    # Spectral axis from file attributes
+    fi <- h5[["/FileInfo"]]
+    min_cm <- fi$attr_open("SpectralRangeStart")$read()
+    max_cm <- fi$attr_open("SpectralRangeEnd")$read()
+    
+    # Read first cube to size things and confirm wavenumber length
+    first_cube <- h5[[paste0("/Regions/", regions[1], "/Dataset")]]$read()
+    dims <- dim(first_cube)
+    if (length(dims) != 3) stop("Expected 3D dataset (ny x nx x N). Got dims: ", paste(dims, collapse = "x"))
+    
+    # Identify which dimension is spectral (the longest, typically N)
+    spec_dim <- which.max(dims)
+    # Reorder to (ny, nx, N)
+    perm <- c(setdiff(1:3, spec_dim), spec_dim)
+    first_cube <- aperm(first_cube, perm)
+    ny <- dim(first_cube)[1]; nx <- dim(first_cube)[2]; N <- dim(first_cube)[3]
+    
+    wavenumbers <- seq(min_cm, max_cm, length.out = N)
+    
+    # Helpers
+    read_cube_std <- function(reg_name) {
+        cube <- h5[[paste0("/Regions/", reg_name, "/Dataset")]]$read()
+        cube <- aperm(cube, perm)          # (ny, nx, N)
+        cube
+    }
+    
+    # Prepare containers
+    df <- data.frame(wavenumber = wavenumbers, 
+                     check.names = FALSE)
+    raw_meta <- list(ids = character(0), particle_id = character(0), 
+                     subpixel = integer(0), row = integer(0),
+                     col = integer(0))
+    
+    for (reg in regions) {
+        cube <- read_cube_std(reg)
+        
+        # Clean region label -> "Region<digits>"
+        id_digits <- gsub("\\D", "", reg)
+        particle_lab <- if (nzchar(id_digits)) paste0("Region", id_digits) else reg
+        
+        k <- 0L
+        for (r in seq_len(ny)) {
+            for (c in seq_len(nx)) {
+                k <- k + 1L
+                colname <- sprintf("%s_r%dc%d", particle_lab, r, c)
+                df[[colname]] <- cube[r, c, ]
+                raw_meta$ids       <- c(raw_meta$ids, colname)
+                raw_meta$particle_id <- c(raw_meta$particle_id, particle_lab)
+                raw_meta$subpixel  <- c(raw_meta$subpixel, k)
+                raw_meta$row       <- c(raw_meta$row, r)
+                raw_meta$col       <- c(raw_meta$col, c)
+            }
+        }
+    }
+    
+    # Convert to OpenSpecy object
+    os <- as_OpenSpecy(df)
+    
+    # Augment metadata so spectra can be grouped by particle
+    os$metadata$file <- basename(file)
+    
+    add_meta <- data.frame(
+        id = raw_meta$ids,
+        particle_id = raw_meta$particle_id,
+        subpixel = raw_meta$subpixel,
+        row = raw_meta$row,
+        col = raw_meta$col,
+        stringsAsFactors = FALSE
+    )
+    os
+}

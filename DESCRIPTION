@@ -1,8 +1,8 @@
 Package: OpenSpecy
 Type: Package
 Title: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
-Version: 1.7.0
-Date: 2025-09-26
+Version: 1.7.1
+Date: 2025-09-29
 Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
       email = "wincowger@gmail.com",
       comment = c(ORCID = "0000-0001-9226-3104")),
@@ -60,15 +60,14 @@ Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
     person("National Renewable Energy Laboratory", role = c("fnd")), 
     person("Possibility Lab", role = c("fnd")))
 Description: Raman and (FT)IR spectral analysis tool for plastic particles and
-    other environmental samples (Cowger et al. 2021,
-    <doi:10.1021/acs.analchem.1c00123>). With read_any(), Open Specy provides a
+    other environmental samples (Cowger et al. 2025,
+    <doi:10.1021/acs.analchem.5c00962>). With read_any(), Open Specy provides a
     single function for reading individual, batch, or map spectral data files
     like .asp, .csv, .jdx, .spc, .spa, .0, and .zip. process_spec() simplifies
     processing spectra, including smoothing, baseline correction,
     range restriction and flattening, intensity conversions, wavenumber
     alignment, and min-max normalization. Spectra can be identified in batch
-    using an onboard reference library (Cowger et al. 2020,
-    <doi:10.1177/0003702820929064>) using match_spec(). A Shiny app is available
+    using an onboard reference library using match_spec(). A Shiny app is available
     via run_app() or online at <https://www.openanalysis.org/openspecy/>.
 URL: https://github.com/wincowgerDEV/OpenSpecy-package/,
      https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html
@@ -93,7 +92,8 @@ Imports:
     signal,
     glmnet,
     jpeg,
-    shiny
+    shiny,
+    hdf5r
 Suggests:
     knitr,
     rmarkdown,
@@ -103,6 +103,7 @@ Suggests:
     bs4Dash,
     dplyr, 
     DT,
+    reshape2,
     ggplot2
 RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)

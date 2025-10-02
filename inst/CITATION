@@ -1,0 +1,13 @@
+citHeader("To cite OpenSpecy in publications, please use:")
+
+bibentry(
+  bibtype  = "Article",
+  title    = "Open Specy 1.0: Automated (Hyper)spectroscopy for Microplastics",
+  author   = "Win Cowger et al.",
+  journal  = "Analytical Chemistry",
+  year     = "2025",
+  volume   = "97",
+  number   = "32",
+  pages    = "17345-17356",
+  doi      = "10.1021/acs.analchem.5c00962"
+)

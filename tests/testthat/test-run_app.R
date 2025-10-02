@@ -8,6 +8,7 @@ test_that("run_app() wrapper doesn't produce errors", {
 })
 
 test_that("run_app() uses local copy when requested", {
+  testthat::skip_on_cran()
   local_app <- file.path(tmp, "local_app")
   dir.create(local_app, showWarnings = FALSE, recursive = TRUE)
   file.create(file.path(local_app, c("server.R", "ui.R")))
@@ -27,6 +28,7 @@ test_that("run_app() uses local copy when requested", {
 })
 
 test_that("run_app() selects matching local commit when requested", {
+  testthat::skip_on_cran()
   commit_one <- "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   commit_two <- "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 

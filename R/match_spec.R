@@ -18,6 +18,9 @@
 #' @param y an \code{OpenSpecy} object to perform similarity search against x.
 #' @param conform Whether to conform the spectra to the library wavenumbers or not.
 #' @param type the type of conformation to make returned by \code{conform_spec()}
+#' @param compute the compute strategy used for correlation, "optimized" by default
+#' will use the current most optimized strategy for Pearson correlation, "base"
+#' will use base R's \code{cor()}
 #' @param library an \code{OpenSpecy} or \code{glmnet} object representing the
 #' reference library of spectra or model to use in identification.
 #' @param na.rm logical; indicating whether missing values should be removed
@@ -114,7 +117,8 @@ cor_spec.default <- function(x, ...) {
 #' @export
 
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
-                               type = "roll", ...) {
+                               type = "roll", compute = "optimized",
+                               ...) {
   if(conform) x <- conform_spec(x, library$wavenumber, res = NULL, allow_na = F, type)
 
   if(!is.null(attr(x, "intensity_unit")) &&
@@ -153,8 +157,36 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   spec <- x$spectra[x$wavenumber %in% library$wavenumber,]
   spec <- spec[,lapply(.SD, make_rel, na.rm = na.rm)]
   spec <- spec[,lapply(.SD, mean_replace)]
-
-  cor(lib, spec, ...)
+  
+  fast_correlation <- function(x, y = NULL) {
+      mat_1 = as.matrix(data.table::transpose(x))
+      # Center
+      mat_1 = mat_1 - rowMeans(mat_1)
+      # Standardize each variable
+      mat_1 = mat_1 / sqrt(rowSums(mat_1^2))
+      if(!is.null(y)){
+          mat_2 = as.matrix(data.table::transpose(y))
+          # Center
+          mat_2 = mat_2 - rowMeans(mat_2)
+          # Standardize each variable
+          mat_2 = mat_2 / sqrt(rowSums(mat_2^2))
+          # Calculate correlations
+          mat_3 <- tcrossprod(mat_1, mat_2)
+          colnames(mat_3) <- colnames(y)
+          rownames(mat_3) <- colnames(x)
+          return(mat_3)
+      }
+      mat_3 <- tcrossprod(mat_1)
+      colnames(mat_3) <- colnames(x)
+      rownames(mat_3) <- colnames(x)
+      return(mat_3)
+  }
+  if(compute == "optimized"){
+      return(fast_correlation(lib, spec, ...))
+  }
+  if(compute == "base"){
+      return(cor(lib, spec, ...))
+  }
 }
 
 #' @rdname match_spec
@@ -177,10 +209,12 @@ match_spec.default <- function(x, ...) {
 match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                                  type = "roll", top_n = NULL, order = NULL,
                                  add_library_metadata = NULL,
-                                 add_object_metadata = NULL, fill = NULL, ...) {
+                                 add_object_metadata = NULL, 
+                                 compute = "optimized",
+                                 fill = NULL, ...) {
   if(is_OpenSpecy(library)) {
-    res <- cor_spec(x, library = library, conform = conform, type = type) |>
-      ident_spec(x, library = library, top_n = top_n,
+    res <- cor_spec(x, library = library, conform = conform, type = type, compute = compute) |>
+      ident_spec(x, library = library, top_n = top_n, 
                  add_library_metadata = add_library_metadata,
                  add_object_metadata = add_object_metadata)
   } else {

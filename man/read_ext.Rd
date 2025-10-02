@@ -7,6 +7,7 @@
 \alias{read_spc}
 \alias{read_jdx}
 \alias{read_extdata}
+\alias{read_h5}
 \title{Read spectral data}
 \usage{
 read_text(
@@ -93,6 +94,8 @@ read_jdx(
 )
 
 read_extdata(file = NULL)
+
+read_h5(file)
 }
 \arguments{
 \item{file}{file to be read from or written to.}

@@ -10,19 +10,17 @@ Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![DOI](https://img.shields.io/badge/DOI-10.1021/acs.analchem.1c00123-blue.svg)](https://doi.org/10.1021/acs.analchem.1c00123)
 [![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://www.openanalysis.org/openspecy/)
-[![Gitter](https://badges.gitter.im/Open-Specy/community.svg)](https://app.gitter.im/#/room/#Open-Specy_community:gitter.im)
 <!-- badges: end -->
 
-Raman and (FT)IR spectral analysis tool for plastic particles and other 
-environmental samples (Cowger et al. 2021, doi: 
-[10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123)).
+Raman and (FT)IR spectral analysis tool for 
+environmental samples with a special focus on microplastics (Cowger et al. 2025, doi: 
+[10.1021/acs.analchem.5c00962](https://doi.org/10.1021/acs.analchem.5c00962)).
 With `read_any()`, Open Specy provides a single function for reading individual,
 batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and
 .zip. `process_spec()` simplifies processing spectra, including smoothing,
 baseline correction, range restriction and flattening, intensity conversions,
 wavenumber alignment, and min-max normalization. 
 Spectra can be identified in batch using an onboard reference library
-(Cowger et al. 2020, doi: [10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064))
 using `match_spec()`. A Shiny app is available via `run_app()`
 or online at [https://www.openanalysis.org/openspecy/](https://www.openanalysis.org/openspecy/).
 

@@ -30,7 +30,15 @@ cor_spec(x, ...)
 
 \method{cor_spec}{default}(x, ...)
 
-\method{cor_spec}{OpenSpecy}(x, library, na.rm = T, conform = F, type = "roll", ...)
+\method{cor_spec}{OpenSpecy}(
+  x,
+  library,
+  na.rm = T,
+  conform = F,
+  type = "roll",
+  compute = "optimized",
+  ...
+)
 
 match_spec(x, ...)
 
@@ -46,6 +54,7 @@ match_spec(x, ...)
   order = NULL,
   add_library_metadata = NULL,
   add_object_metadata = NULL,
+  compute = "optimized",
   fill = NULL,
   ...
 )
@@ -104,6 +113,10 @@ when calculating correlations. Default is \code{TRUE}.}
 \item{conform}{Whether to conform the spectra to the library wavenumbers or not.}
 
 \item{type}{the type of conformation to make returned by \code{conform_spec()}}
+
+\item{compute}{the compute strategy used for correlation, "optimized" by default
+will use the current most optimized strategy for Pearson correlation, "base"
+will use base R's \code{cor()}}
 
 \item{top_n}{integer; specifying the number of top matches to return.
 If \code{NULL} (default), all matches will be returned.}

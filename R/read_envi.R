@@ -42,7 +42,8 @@
 #' @importFrom caTools read.ENVI
 #' @importFrom mmand gaussianSmooth
 #' @export
-read_envi <- function(file, header = NULL, spectral_smooth = F, sigma = c(1,1,1),
+read_envi <- function(file, header = NULL, 
+                      spectral_smooth = F, sigma = c(1,1,1),
                       metadata = list(
                         file_name = basename(file),
                         user_name = NULL,
