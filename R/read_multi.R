@@ -62,6 +62,9 @@ read_any <- function(file, c_spec = T,
         os <- do.call("c_spec", c(list(os), c_spec_args))
     }
   }
+    else if (grepl("(\\.h5$)", ignore.case = T, file)) {
+        os <- read_h5(file = file, ...)
+    }
   else if (grepl("(\\.xyz$)|(\\.csv$)|(\\.tsv$)|(\\.txt$)", ignore.case = T, file)) {
     os <- read_text(file = file, ...)
   } else if (grepl("\\.[0-999]$", ignore.case = T, file)) {

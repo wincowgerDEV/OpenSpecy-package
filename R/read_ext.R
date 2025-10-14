@@ -20,6 +20,7 @@
 #' \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
 #' as well.
 #' @param metadata a named list of the metadata; see
+#' @param collapse whether or not to use \code{\link{collapse_spec}()} by particle_id.
 #' \code{\link{as_OpenSpecy}()} for details.
 #' @param \ldots further arguments passed to the submethods.
 #'
@@ -382,7 +383,7 @@ read_extdata <- function(file = NULL) {
 #' @rdname read_ext
 #' @import hdf5r 
 #' @export
-read_h5 <- function(file) {
+read_h5 <- function(file, collapse = T, ...) {
     
     h5 <- H5File$new(file, mode = "r")
     on.exit({
@@ -461,13 +462,19 @@ read_h5 <- function(file) {
     # Augment metadata so spectra can be grouped by particle
     os$metadata$file <- basename(file)
     
-    add_meta <- data.frame(
+    os$metadata <- cbind(os$metadata, 
+        data.frame(
         id = raw_meta$ids,
         particle_id = raw_meta$particle_id,
         subpixel = raw_meta$subpixel,
         row = raw_meta$row,
         col = raw_meta$col,
         stringsAsFactors = FALSE
-    )
+    ))
+    if(collapse){
+        os <- collapse_spec(os, fun = mean, column = "particle_id", ...)
+        os$metadata <- os$metadata[,-c("x", "y")]
+        os$metadata <- cbind(gen_grid(ncol(os$spectra)), os$metadata)
+    }
     os
 }

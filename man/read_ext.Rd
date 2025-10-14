@@ -95,7 +95,7 @@ read_jdx(
 
 read_extdata(file = NULL)
 
-read_h5(file)
+read_h5(file, collapse = T, ...)
 }
 \arguments{
 \item{file}{file to be read from or written to.}
@@ -109,7 +109,9 @@ as well.}
 
 \item{comma_decimal}{logical(1) whether commas may represent decimals.}
 
-\item{metadata}{a named list of the metadata; see
+\item{metadata}{a named list of the metadata; see}
+
+\item{collapse}{whether or not to use \code{\link{collapse_spec}()} by particle_id.
 \code{\link{as_OpenSpecy}()} for details.}
 
 \item{\ldots}{further arguments passed to the submethods.}
