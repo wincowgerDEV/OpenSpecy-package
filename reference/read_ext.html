@@ -152,7 +152,7 @@ supported but will likely still work in most cases.</p>
 <span></span>
 <span><span class="fu">read_extdata</span><span class="op">(</span>file <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">read_h5</span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">read_h5</span><span class="op">(</span><span class="va">file</span>, collapse <span class="op">=</span> <span class="cn">T</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -179,7 +179,11 @@ as well.</p></dd>
 
 
 <dt id="arg-metadata">metadata<a class="anchor" aria-label="anchor" href="#arg-metadata"></a></dt>
-<dd><p>a named list of the metadata; see
+<dd><p>a named list of the metadata; see</p></dd>
+
+
+<dt id="arg-collapse">collapse<a class="anchor" aria-label="anchor" href="#arg-collapse"></a></dt>
+<dd><p>whether or not to use <code><a href="def_features.html">collapse_spec</a>()</code> by particle_id.
 <code><a href="as_OpenSpecy.html">as_OpenSpecy</a>()</code> for details.</p></dd>
 
 
@@ -238,7 +242,7 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 raman_hdpe.csv CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 68bbf8e226e3a5e37ac71d8afc5e249f/be318dfeb6ac9b618b15de6ed6ce3f07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: acea3c702754a8b1e0be67c4cc0ee85e/6b04fb2ed7f120e48623ea06e94ac55a</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
@@ -263,7 +267,7 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 raman_atacamit.spc CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 68bbf8e226e3a5e37ac71d8afc5e249f/be318dfeb6ac9b618b15de6ed6ce3f07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: acea3c702754a8b1e0be67c4cc0ee85e/6b04fb2ed7f120e48623ea06e94ac55a</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: 2693c0b0295ce36c16b10e1e660241f2</span>
@@ -288,7 +292,7 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 ftir_ldpe_soil.asp CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 68bbf8e226e3a5e37ac71d8afc5e249f/be318dfeb6ac9b618b15de6ed6ce3f07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: acea3c702754a8b1e0be67c4cc0ee85e/6b04fb2ed7f120e48623ea06e94ac55a</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: a33700bad0376ddab156980f473bac92</span>
@@ -314,7 +318,7 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 testdata2 - Copy (2).csv CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 68bbf8e226e3a5e37ac71d8afc5e249f/be318dfeb6ac9b618b15de6ed6ce3f07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: acea3c702754a8b1e0be67c4cc0ee85e/6b04fb2ed7f120e48623ea06e94ac55a</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
@@ -340,7 +344,7 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 testdata2 - Copy.csv CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 68bbf8e226e3a5e37ac71d8afc5e249f/be318dfeb6ac9b618b15de6ed6ce3f07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: acea3c702754a8b1e0be67c4cc0ee85e/6b04fb2ed7f120e48623ea06e94ac55a</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
@@ -366,7 +370,7 @@ files;
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1     1 testdata2.csv CC BY-NC intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                           session_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                               &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 68bbf8e226e3a5e37ac71d8afc5e249f/be318dfeb6ac9b618b15de6ed6ce3f07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: acea3c702754a8b1e0be67c4cc0ee85e/6b04fb2ed7f120e48623ea06e94ac55a</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                             file_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                              &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1: cb06ce2846b119d932fb6696479a445b</span>
