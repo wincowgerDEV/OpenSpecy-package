@@ -236,32 +236,38 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
 ident_spec <- function(cor_matrix, x, library, top_n = NULL,
                        add_library_metadata = NULL,
                        add_object_metadata = NULL, ...){
-  if(is.numeric(top_n) && top_n > ncol(library$spectra)){
-    top_n = NULL
-    message("'top_n' larger than the number of spectra in the library; ",
-            "returning all matches")
-  }
-
-  out <-  as.data.table(cor_matrix, keep.rownames = T) |> melt(id.vars = "rn")
-
-  names(out) <- c("library_id", "object_id", "match_val")
-
-  if(is.numeric(top_n)) {
-    match_val <- NULL # workaround for data.table non-standard evaluation
+    if(is.numeric(top_n) && top_n > ncol(library$spectra)){
+        top_n = nrow(cor_matrix)
+        message("'top_n' larger than the number of spectra in the library; ",
+                "returning all matches")
+    }
+    
+    lib_names <- rownames(cor_matrix)
+    unk_ids   <- colnames(cor_matrix)
+    
+    # For each column, take top_n rows directly (no melt)
+    out <- lapply(seq_len(ncol(cor_matrix)), function(j) {
+        col <- cor_matrix[, j]
+        ord <- head(order(col, decreasing = TRUE), top_n)
+        data.table(
+            object_id  = unk_ids[j],
+            library_id = lib_names[ord],
+            match_val  = col[ord]
+        )
+    }) |> rbindlist()
+    
     setorder(out, -match_val)
-    out <- out[!is.na(match_val), head(.SD, top_n), by = "object_id"]
-  }
-
-  if(is.character(add_library_metadata))
-    out <- merge(out, library$metadata,
-                 by.x = "library_id", by.y = add_library_metadata, all.x = T)
-
-  if(is.character(add_object_metadata))
-
-    out <- merge(out, x$metadata,
-                 by.x = "object_id", by.y = add_object_metadata, all.x = T)
-
-  return(out)
+    
+    if(is.character(add_library_metadata))
+        out <- merge(out, library$metadata,
+                     by.x = "library_id", by.y = add_library_metadata, all.x = T)
+    
+    if(is.character(add_object_metadata))
+        
+        out <- merge(out, x$metadata,
+                     by.x = "object_id", by.y = add_object_metadata, all.x = T)
+    
+    return(out)
 }
 
 #' @rdname match_spec

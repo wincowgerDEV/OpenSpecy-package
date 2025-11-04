@@ -424,6 +424,7 @@ OpenSpecy <- function(x, ...) {
 gen_grid <- function(n) {
   base <- sqrt(n)
 
-  expand.grid(x = 1:ceiling(base), y = 1:ceiling(base))[1:n,] |>
+  expand.grid(x = 1:ceiling(base),
+              y = 1:ceiling(base))[1:n,] |>
     as.data.table()
 }
