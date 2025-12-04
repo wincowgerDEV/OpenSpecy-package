@@ -164,23 +164,29 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
   md <- features_df[setDT(obj$metadata), on = c("x", "y")]
   md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
 
-  md[, `:=`(centroid_x = mean(x),
-            centroid_y = mean(y),
-            first_x = x[1],
-            first_y = y[1],
-            rand_x = sample(x, 1),
-            rand_y = sample(y, 1)), by = "feature_id"]
+  valid_features <- md$feature_id != "-88"
+
+  md[valid_features,
+     `:=`(centroid_x = mean(x),
+          centroid_y = mean(y),
+          first_x = x[1],
+          first_y = y[1],
+          rand_x = sample(x, 1),
+          rand_y = sample(y, 1)),
+     by = "feature_id"]
 
   if("snr" %in% names(md)){
-      md[, mean_snr := mean(snr), by = "feature_id"]
+      md[valid_features, mean_snr := mean(snr), by = "feature_id"]
   }
   if("max_cor_val" %in% names(md)){
-      md[, mean_cor := mean(max_cor_val), by = "feature_id"]
+      md[valid_features, mean_cor := mean(max_cor_val), by = "feature_id"]
   }
   if(all(c("r", "g", "b") %in% names(md))){
-      md[, `:=`(mean_r = as.integer(sqrt(mean(r^2))),
-                mean_g = as.integer(sqrt(mean(g^2))),
-                mean_b = as.integer(sqrt(mean(b^2)))), by = "feature_id"]
+      md[valid_features,
+         `:=`(mean_r = as.integer(sqrt(mean(r^2))),
+               mean_g = as.integer(sqrt(mean(g^2))),
+               mean_b = as.integer(sqrt(mean(b^2)))),
+         by = "feature_id"]
   }
 
   obj$metadata <- md
