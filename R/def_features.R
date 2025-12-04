@@ -71,7 +71,6 @@
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
-#' @importFrom mmand shapeKernel components closing
 #' @export
 collapse_spec <- function(x, ...) {
   UseMethod("collapse_spec")
@@ -118,8 +117,8 @@ def_features.default <- function(x, ...) {
 #' @rdname def_features
 #'
 #' @importFrom data.table as.data.table setDT rbindlist data.table
-#' @importFrom sf st_as_sf st_cast st_convex_hull st_coordinates st_area st_length
-#' @importFrom terra rast ext "crs<-" patches as.polygons cellFromRowCol extract
+#' @importFrom sf st_as_sf st_cast st_convex_hull st_coordinates st_area st_length st_is_empty
+#' @importFrom terra rast ext "crs<-" patches as.polygons cellFromRowCol
 #' @export
 def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, ...) {
   if(is.logical(features)) {
@@ -190,11 +189,6 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     y_coords <- x$metadata$y
     binary_matrix[cbind(y_coords + 1, x_coords + 1)] <- as.integer(binary)
 
-    if(close){
-        kc <- shapeKernel(close_kernel, type = close_type)
-        binary_matrix <- closing(binary_matrix, kc)
-    }
-
     binary_matrix[binary_matrix <= 0] <- NA
     r_mask <- rast(binary_matrix)
     ext(r_mask) <- c(0, ncol, 0, nrow)
@@ -232,7 +226,10 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     }
 
     polygon_sf <- st_as_sf(as.polygons(patches_raster, dissolve = TRUE, na.rm = TRUE))
-    polygon_sf <- st_cast(polygon_sf, "POLYGON")
+    if(nrow(polygon_sf) > 0){
+        polygon_sf <- do.call(rbind, lapply(seq_len(nrow(polygon_sf)), function(i) st_cast(polygon_sf[i, ], "POLYGON")))
+        polygon_sf <- polygon_sf[!st_is_empty(polygon_sf), ]
+    }
 
     if(nrow(polygon_sf) > 0){
         convex_hulls <- st_convex_hull(polygon_sf)
@@ -336,7 +333,10 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     }
 
     polygon_sf <- st_as_sf(as.polygons(patches_raster, dissolve = TRUE, na.rm = TRUE))
-    polygon_sf <- st_cast(polygon_sf, "POLYGON")
+    if(nrow(polygon_sf) > 0){
+        polygon_sf <- do.call(rbind, lapply(seq_len(nrow(polygon_sf)), function(i) st_cast(polygon_sf[i, ], "POLYGON")))
+        polygon_sf <- polygon_sf[!st_is_empty(polygon_sf), ]
+    }
 
     patch_label_map <- data.table(
         patch_id = terra::values(patches_raster)[, 1],
