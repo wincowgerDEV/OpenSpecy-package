@@ -88,13 +88,34 @@ collapse_spec.default <- function(x, ...) {
 #'
 #' @export
 collapse_spec.OpenSpecy <- function(x, fun = median, column = "feature_id", ...) {
-  spectra_dt <- as.data.table(x$spectra)
-  spectra_dt[, id := x$metadata[[column]]]
+  if (!column %in% names(x$metadata)) {
+    stop("Column not found in metadata", call. = FALSE)
+  }
 
-  collapsed <- spectra_dt[, lapply(.SD, fun, ...), by = "id"]
+  spec_matrix <- as.matrix(x$spectra)
+  id <- x$metadata[[column]]
 
-  x$spectra <- transpose(collapsed[, -"id"], make.names = collapsed$id)
-  x$metadata <- unique(x$metadata, by = column)
+  if (length(id) != ncol(spec_matrix)) {
+    stop("Length of grouping column does not match number of spectra", call. = FALSE)
+  }
+
+  unique_ids <- unique(id)
+
+  collapsed <- vapply(
+    unique_ids,
+    function(gid) {
+      apply(spec_matrix[, id == gid, drop = FALSE], 1, fun, ...)
+    },
+    numeric(nrow(spec_matrix))
+  )
+
+  x$spectra <- as.data.table(collapsed)
+  colnames(x$spectra) <- as.character(unique_ids)
+
+  meta_unique <- unique(as.data.table(x$metadata), by = column)
+  meta_unique <- meta_unique[match(unique_ids, meta_unique[[column]]), ]
+
+  x$metadata <- meta_unique
 
   x
 }
@@ -145,8 +166,8 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
 
   md[, `:=`(centroid_x = mean(x),
             centroid_y = mean(y),
-            first_x = first(x),
-            first_y = first(y),
+            first_x = x[1],
+            first_y = y[1],
             rand_x = sample(x, 1),
             rand_y = sample(y, 1)), by = "feature_id"]
 
