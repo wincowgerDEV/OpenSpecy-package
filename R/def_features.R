@@ -169,28 +169,25 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
   md <- features_df[setDT(obj$metadata), on = c("x", "y")]
   md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
 
-  summary_list <- list(
-    centroid_x = mean(x),
-    centroid_y = mean(y),
-    first_x = x[1],
-    first_y = y[1],
-    rand_x = sample(x, 1),
-    rand_y = sample(y, 1)
-  )
+  has_snr <- "snr" %in% names(md)
+  has_cor <- "max_cor_val" %in% names(md)
+  has_rgb <- all(c("r", "g", "b") %in% names(md))
 
-  if ("snr" %in% names(md)) {
-    summary_list$mean_snr <- mean(snr)
-  }
-  if ("max_cor_val" %in% names(md)) {
-    summary_list$mean_cor <- mean(max_cor_val)
-  }
-  if (all(c("r", "g", "b") %in% names(md))) {
-    summary_list$mean_r <- as.integer(sqrt(mean(r^2)))
-    summary_list$mean_g <- as.integer(sqrt(mean(g^2)))
-    summary_list$mean_b <- as.integer(sqrt(mean(b^2)))
-  }
-
-  md_summary <- md[, summary_list, by = "feature_id"]
+  md_summary <- md[, {
+    list(
+      centroid_x = mean(x),
+      centroid_y = mean(y),
+      first_x = x[1],
+      first_y = y[1],
+      rand_x = if (.N) sample(x, 1) else NA_real_,
+      rand_y = if (.N) sample(y, 1) else NA_real_,
+      mean_snr = if (has_snr) mean(snr) else NULL,
+      mean_cor = if (has_cor) mean(max_cor_val) else NULL,
+      mean_r = if (has_rgb) as.integer(sqrt(mean(r^2))) else NULL,
+      mean_g = if (has_rgb) as.integer(sqrt(mean(g^2))) else NULL,
+      mean_b = if (has_rgb) as.integer(sqrt(mean(b^2))) else NULL
+    )
+  }, by = "feature_id"]
   md <- md_summary[md, on = "feature_id"]
 
   obj$metadata <- md
