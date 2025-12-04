@@ -195,8 +195,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     # Keep raster unitless so sf measurements remain in pixel units
     crs(r_mask) <- NA
 
-    directions <- ifelse(shape_type == "diamond" || any(shape_kernel <= 2), 4, 8)
-    patches_raster <- patches(r_mask, directions = directions)
+    patches_raster <- patches(r_mask, directions = 8)
     names(patches_raster) <- "patch_id"
 
     cell_ids <- cellFromRowCol(patches_raster, y_coords + 1, x_coords + 1)
@@ -225,7 +224,8 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
         feature_points_dt$b <- rbg_colors[3,]
     }
 
-    polygon_sf <- st_as_sf(as.polygons(patches_raster, dissolve = TRUE, na.rm = TRUE))
+    patch_vec <- as.polygons(patches_raster, dissolve = TRUE, na.rm = TRUE)
+    polygon_sf <- st_as_sf(patch_vec)
     if(nrow(polygon_sf) > 0){
         polygon_sf <- do.call(rbind, lapply(seq_len(nrow(polygon_sf)), function(i) st_cast(polygon_sf[i, ], "POLYGON")))
         polygon_sf <- polygon_sf[!st_is_empty(polygon_sf), ]
@@ -292,8 +292,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     # Keep raster unitless so sf measurements remain in pixel units
     crs(r_classes) <- NA
 
-    directions <- ifelse(shape_type == "diamond" || any(shape_kernel <= 2), 4, 8)
-    patches_raster <- patches(r_classes, directions = directions)
+    patches_raster <- patches(r_classes, directions = 8)
     names(patches_raster) <- "patch_id"
 
     cell_ids <- cellFromRowCol(patches_raster, y_coords + 1, x_coords + 1)
@@ -332,21 +331,13 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
         feature_points_dt$b <- rbg_colors[3,]
     }
 
-    polygon_sf <- st_as_sf(as.polygons(patches_raster, dissolve = TRUE, na.rm = TRUE))
+    patch_vec <- as.polygons(patches_raster, dissolve = TRUE, na.rm = TRUE)
+    patch_labels <- terra::extract(r_classes, patch_vec, fun = terra::modal, na.rm = TRUE)
+    patch_vec$class_label <- label_levels[patch_labels[[2]]]
+    polygon_sf <- st_as_sf(patch_vec)
     if(nrow(polygon_sf) > 0){
         polygon_sf <- do.call(rbind, lapply(seq_len(nrow(polygon_sf)), function(i) st_cast(polygon_sf[i, ], "POLYGON")))
         polygon_sf <- polygon_sf[!st_is_empty(polygon_sf), ]
-    }
-
-    patch_label_map <- data.table(
-        patch_id = terra::values(patches_raster)[, 1],
-        label_code = terra::values(r_classes)[, 1]
-    )[!is.na(patch_id) & !is.na(label_code)]
-    patch_label_map <- patch_label_map[, .(label_code = label_code[1]), by = patch_id]
-    patch_label_map[, class_label := label_levels[label_code]]
-
-    if(nrow(polygon_sf) > 0 && nrow(patch_label_map) > 0){
-        polygon_sf <- merge(polygon_sf, patch_label_map, by = "patch_id", all.x = TRUE)
         polygon_sf <- polygon_sf[!(polygon_sf$class_label %in% background_labels | is.na(polygon_sf$class_label)), ]
     }
 
