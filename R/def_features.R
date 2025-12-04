@@ -71,7 +71,6 @@
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
-#' @importFrom mmand shapeKernel components closing
 #' @export
 collapse_spec <- function(x, ...) {
   UseMethod("collapse_spec")
@@ -118,6 +117,8 @@ def_features.default <- function(x, ...) {
 #' @rdname def_features
 #'
 #' @importFrom data.table as.data.table setDT rbindlist data.table
+#' @importFrom sf st_as_sf st_cast st_convex_hull st_coordinates st_area st_length st_is_empty
+#' @importFrom terra rast ext "crs<-" as.polygons
 #' @export
 def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, ...) {
   if(is.logical(features)) {
@@ -125,16 +126,24 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
       stop("features cannot be all TRUE or FALSE because that would indicate ",
            "that there are no distinct features", call. = F)
 
-    features_df <- .def_features(x, features, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
+    features_df <- .def_features_spatial(x, features, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
   } else if(is.character(features)) {
     if(length(unique(features)) == 1)
       stop("features cannot all have a single name because that would ",
            "indicate that there are no distinct features", call. = F)
 
-    features_df <- rbindlist(lapply(unique(features),
-                                    function(y) .def_features(x, features == y, shape_kernel = shape_kernel, shape_type, close = close, close_kernel, close_type,  img, bottom_left, top_right, name = y)),
-                            fill = T #Allow for flexibility with convex hulls
-    )[,test := fifelse(grepl("(background)|(-88)", feature_id), 0, area)][, .SD[test == max(test)], by = c("x", "y")][, .SD[1], by = c("x", "y")]
+    features_df <- .def_features_spatial_categorical(
+      x,
+      labels = features,
+      shape_kernel = shape_kernel,
+      shape_type = shape_type,
+      close = close,
+      close_kernel = close_kernel,
+      close_type = close_type,
+      img = img,
+      bottom_left = bottom_left,
+      top_right = top_right
+    )
   } else {
     stop("features needs to be a character or logical vector", call. = F)
   }
@@ -171,137 +180,188 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
 #' @importFrom grDevices chull as.raster col2rgb
 #' @importFrom jpeg readJPEG
 #' @importFrom stats dist
-.def_features <- function(x, binary, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
-    # Label connected components in the binary image
-    # Define the size of the matrix
+.def_features_spatial <- function(x, binary, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, name = NULL, keep_background = TRUE) {
     nrow <- max(x$metadata$y) + 1
     ncol <- max(x$metadata$x) + 1
-    
-    # Create an empty matrix filled with NA
-    binary_matrix <- matrix(NA, 
-                            nrow = nrow, 
-                            ncol = ncol)
-    
-    # Populate the matrix with your data
+
+    binary_matrix <- matrix(0, nrow = nrow, ncol = ncol)
     x_coords <- x$metadata$x
     y_coords <- x$metadata$y
-    
-    for (i in 1:length(binary)) {
-        binary_matrix[y_coords[i] + 1, x_coords[i] + 1] <- binary[i]
-    }
-    
-    k <- shapeKernel(shape_kernel, type= shape_type)
-    
-    if(close){
-        kc <- shapeKernel(close_kernel, type=close_type)
-        binary_matrix <- closing(binary_matrix, kc)
-    }
-    labeled_image <- components(binary_matrix, k)
-    
-    binary_coords <- cbind(y_coords + 1, x_coords + 1)
-    # Fetch colors for all coordinates at once
-    feature_ids <- labeled_image[binary_coords]
-    
-    feature_points_dt <- data.table(x = x$metadata$x,
-                                    y = x$metadata$y,
-                                    feature_id = ifelse(!is.na(feature_ids),
-                                                        feature_ids, -88)|> as.character())
-    
-    #Add color extraction here. 
+    binary_matrix[cbind(y_coords + 1, x_coords + 1)] <- as.integer(binary)
+
+    binary_matrix[binary_matrix <= 0] <- NA
+    r_mask <- rast(binary_matrix)
+    ext(r_mask) <- c(0, ncol, 0, nrow)
+    # Keep raster unitless so sf measurements remain in pixel units
+    crs(r_mask) <- NA
+
+    poly_vec <- as.polygons(r_mask, dissolve = TRUE, na.rm = FALSE)
+    poly_vec$feature_id <- ifelse(is.na(poly_vec[[1]]), "-88", as.character(seq_len(nrow(poly_vec))))
+    extracted_ids <- terra::extract(poly_vec, cbind(x_coords + 0.5, y_coords + 0.5))
+    feature_points_dt <- data.table(
+        x = x_coords,
+        y = y_coords,
+        feature_id = ifelse(is.na(extracted_ids$feature_id), "-88", extracted_ids$feature_id)
+    )
+
     if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
         mosaic <- readJPEG(img)
-        map_dim <- c(length(unique(x$metadata$x)), 
+        map_dim <- c(length(unique(x$metadata$x)),
                      length(unique(x$metadata$y)))
         xscale = (top_right[1]-bottom_left[1])/map_dim[1]
         yscale = (bottom_left[2]-top_right[2])/map_dim[2]
-        #particle_centroid = c(875, 4675)/25
-        
+
         x_vals = as.integer(feature_points_dt$x*xscale+bottom_left[1])
         y_vals = as.integer(bottom_left[2] - feature_points_dt$y*yscale)
-        colors = character(length = length(x_vals))
         image_raster <- as.raster(mosaic)
-        # Create a matrix of coordinates for indexing
         coords <- cbind(y_vals, x_vals)
-        # Fetch colors for all coordinates at once
         colors <- image_raster[coords]
         rbg_colors <- col2rgb(colors)
         feature_points_dt$r <- rbg_colors[1,]
         feature_points_dt$g <- rbg_colors[2,]
         feature_points_dt$b <- rbg_colors[3,]
     }
-    
-    # Apply the logic to clean components
-    cleaned_components <- ifelse(!is.na(labeled_image), labeled_image, -88)
-    
-    # Calculate the convex hull for each feature
-    convex_hulls <- lapply(
-        split(
-            as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
-            cleaned_components[cleaned_components >= 0]
-        ),
-        function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
+
+    polygon_sf <- st_as_sf(poly_vec)
+    if(nrow(polygon_sf) > 0){
+        polygon_sf <- do.call(rbind, lapply(seq_len(nrow(polygon_sf)), function(i) st_cast(polygon_sf[i, ], "POLYGON")))
+        polygon_sf <- polygon_sf[!st_is_empty(polygon_sf), ]
+    }
+
+    if(nrow(polygon_sf) > 0){
+        convex_hulls <- st_convex_hull(polygon_sf)
+        hull_coords <- lapply(st_geometry(convex_hulls), function(g) {
+            coords <- st_coordinates(g)
+            unique(coords[, c("X", "Y"), drop = FALSE])
         })
-    
-    # Helper function to calculate the area using the shoelace formula
-    polygon_area <- function(x, y) {
-        n <- length(x)
-        area <- 0
-        j <- n
-        for (i in 1:n) {
-            area <- area + (x[j] + x[i]) * (y[j] - y[i])
-            j <- i
-        }
-        return(abs(area) / 2)
-    }
-    
-    # Calculate area, Feret max, and feature IDs for each feature
-    features_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
-        hull <- convex_hulls[[i]]
-        id <- names(convex_hulls)[i]
-        if(nrow(hull) == 1)
-            return(data.table(feature_id = id,
-                              area = 1,
-                              perimeter = 4,
-                              feret_min = 1,
-                              feret_max = 1)
-            )
-        
-        # Calculate Feret dimensions
-        dist_matrix <- as.matrix(dist(hull))
-        feret_max <- max(dist_matrix) + 1
-        
-        perimeter <- 0
-        cols = 1:nrow(hull)
-        rows = c(2:nrow(hull), 1)
-        for (j in 1:length(cols)) {
-            # Fetch the distance from the distance matrix
-            perimeter <- perimeter + dist_matrix[rows[j], cols[j]]
-        }
-        
-        # Area
-        area <- sum(cleaned_components == as.integer(id))
-        
-        # Calculate the convex hull area
-        convex_hull_area <- polygon_area(hull[,2], hull[,1])
-        
-        feret_min = area/feret_max #Can probably calculate this better.
-        
-        data.table(feature_id = id,
-                   area = area,
-                   perimeter = perimeter,
-                   feret_min = feret_min,
-                   feret_max = feret_max,
-                   convex_hull_area = convex_hull_area
+        feret_max <- vapply(hull_coords, function(coords){
+            if(nrow(coords) < 2) return(0)
+            max(stats::dist(coords))
+        }, numeric(1))
+        feret_max <- pmax(feret_max, 1)
+        metrics_dt <- data.table(
+            feature_id = as.character(polygon_sf$feature_id),
+            area = as.numeric(st_area(polygon_sf)),
+            perimeter = as.numeric(st_length(st_cast(polygon_sf, "MULTILINESTRING"))),
+            feret_min = as.numeric(st_area(polygon_sf))/feret_max,
+            feret_max = feret_max,
+            convex_hull_area = as.numeric(st_area(convex_hulls))
         )
-    }), fill = T)
-    
-    # Join with the coordinates from the binary image
-    
-    feature_points_dt <- feature_points_dt[features_dt, on = "feature_id"]
-    
-    if(!is.null(name)){
-        feature_points_dt$feature_id <- paste0(name, "_", feature_points_dt$feature_id)
+    } else {
+        metrics_dt <- data.table(
+            feature_id = character(),
+            area = numeric(),
+            perimeter = numeric(),
+            feret_min = numeric(),
+            feret_max = numeric(),
+            convex_hull_area = numeric()
+        )
     }
-    
+
+    if(!is.null(name)){
+        feature_points_dt[feature_id != "-88", feature_id := paste0(name, "_", feature_id)]
+        if(nrow(metrics_dt)) metrics_dt[, feature_id := paste0(name, "_", feature_id)]
+    }
+
+    feature_points_dt <- metrics_dt[feature_points_dt, on = "feature_id"]
+
+    if(!keep_background){
+        feature_points_dt <- feature_points_dt[feature_id != "-88"]
+    }
+
+    feature_points_dt
+}
+
+.def_features_spatial_categorical <- function(x, labels, shape_kernel = c(3,3), shape_type = "box", close = FALSE, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL) {
+    nrow <- max(x$metadata$y) + 1
+    ncol <- max(x$metadata$x) + 1
+
+    labels_factor <- factor(labels, exclude = NULL)
+    label_levels <- levels(labels_factor)
+
+    class_matrix <- matrix(NA_integer_, nrow = nrow, ncol = ncol)
+    x_coords <- x$metadata$x
+    y_coords <- x$metadata$y
+    class_matrix[cbind(y_coords + 1, x_coords + 1)] <- as.integer(labels_factor)
+
+    r_classes <- rast(class_matrix)
+    ext(r_classes) <- c(0, ncol, 0, nrow)
+    # Keep raster unitless so sf measurements remain in pixel units
+    crs(r_classes) <- NA
+
+    poly_vec <- as.polygons(r_classes, dissolve = TRUE, na.rm = FALSE)
+    poly_vec$class_label <- label_levels[poly_vec[[1]]]
+    poly_vec$feature_id <- ifelse(
+        is.na(poly_vec$class_label),
+        NA_character_,
+        paste0(poly_vec$class_label, "_", seq_len(nrow(poly_vec)))
+    )
+
+    extracted_ids <- terra::extract(poly_vec, cbind(x_coords + 0.5, y_coords + 0.5))
+    feature_labels <- extracted_ids$class_label
+    feature_ids <- extracted_ids$feature_id
+
+    feature_points_dt <- data.table(
+        x = x_coords,
+        y = y_coords,
+        class_label = feature_labels,
+        feature_id = feature_ids
+    )
+
+    if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
+        mosaic <- readJPEG(img)
+        map_dim <- c(length(unique(x$metadata$x)),
+                     length(unique(x$metadata$y)))
+        xscale = (top_right[1]-bottom_left[1])/map_dim[1]
+        yscale = (bottom_left[2]-top_right[2])/map_dim[2]
+
+        x_vals = as.integer(feature_points_dt$x*xscale+bottom_left[1])
+        y_vals = as.integer(bottom_left[2] - feature_points_dt$y*yscale)
+        image_raster <- as.raster(mosaic)
+        coords <- cbind(y_vals, x_vals)
+        colors <- image_raster[coords]
+        rbg_colors <- col2rgb(colors)
+        feature_points_dt$r <- rbg_colors[1,]
+        feature_points_dt$g <- rbg_colors[2,]
+        feature_points_dt$b <- rbg_colors[3,]
+    }
+
+    polygon_sf <- st_as_sf(poly_vec)
+    if(nrow(polygon_sf) > 0){
+        polygon_sf <- do.call(rbind, lapply(seq_len(nrow(polygon_sf)), function(i) st_cast(polygon_sf[i, ], "POLYGON")))
+        polygon_sf <- polygon_sf[!st_is_empty(polygon_sf), ]
+    }
+
+    if(nrow(polygon_sf) > 0){
+        convex_hulls <- st_convex_hull(polygon_sf)
+        hull_coords <- lapply(st_geometry(convex_hulls), function(g) {
+            coords <- st_coordinates(g)
+            unique(coords[, c("X", "Y"), drop = FALSE])
+        })
+        feret_max <- vapply(hull_coords, function(coords){
+            if(nrow(coords) < 2) return(0)
+            max(stats::dist(coords))
+        }, numeric(1))
+        feret_max <- pmax(feret_max, 1)
+        metrics_dt <- data.table(
+            feature_id = polygon_sf$feature_id,
+            area = as.numeric(st_area(polygon_sf)),
+            perimeter = as.numeric(st_length(st_cast(polygon_sf, "MULTILINESTRING"))),
+            feret_min = as.numeric(st_area(polygon_sf))/feret_max,
+            feret_max = feret_max,
+            convex_hull_area = as.numeric(st_area(convex_hulls))
+        )
+    } else {
+        metrics_dt <- data.table(
+            feature_id = character(),
+            area = numeric(),
+            perimeter = numeric(),
+            feret_min = numeric(),
+            feret_max = numeric(),
+            convex_hull_area = numeric()
+        )
+    }
+
+    feature_points_dt <- metrics_dt[feature_points_dt, on = "feature_id"]
     feature_points_dt
 }
