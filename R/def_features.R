@@ -275,7 +275,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     feature_points_dt
 }
 
-.def_features_spatial_categorical <- function(x, labels, shape_kernel = c(3,3), shape_type = "box", close = FALSE, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, background_labels = c("-88", "background", "Background"), keep_background = FALSE) {
+.def_features_spatial_categorical <- function(x, labels, shape_kernel = c(3,3), shape_type = "box", close = FALSE, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL) {
     nrow <- max(x$metadata$y) + 1
     ncol <- max(x$metadata$x) + 1
 
@@ -301,8 +301,8 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     feature_labels <- label_levels[label_codes]
 
     feature_ids <- ifelse(
-        is.na(extracted_ids) | feature_labels %in% background_labels,
-        "-88",
+        is.na(extracted_ids),
+        NA_character_,
         paste0(feature_labels, "_", extracted_ids)
     )
 
@@ -338,7 +338,6 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     if(nrow(polygon_sf) > 0){
         polygon_sf <- do.call(rbind, lapply(seq_len(nrow(polygon_sf)), function(i) st_cast(polygon_sf[i, ], "POLYGON")))
         polygon_sf <- polygon_sf[!st_is_empty(polygon_sf), ]
-        polygon_sf <- polygon_sf[!(polygon_sf$class_label %in% background_labels | is.na(polygon_sf$class_label)), ]
     }
 
     if(nrow(polygon_sf) > 0){
@@ -353,7 +352,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
         }, numeric(1))
         feret_max <- pmax(feret_max, 1)
         metrics_dt <- data.table(
-            feature_id = paste0(polygon_sf$class_label, "_", polygon_sf$patch_id),
+            feature_id = ifelse(is.na(polygon_sf$class_label), NA_character_, paste0(polygon_sf$class_label, "_", polygon_sf$patch_id)),
             area = as.numeric(st_area(polygon_sf)),
             perimeter = as.numeric(st_length(st_cast(polygon_sf, "MULTILINESTRING"))),
             feret_min = as.numeric(st_area(polygon_sf))/feret_max,
@@ -372,10 +371,5 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     }
 
     feature_points_dt <- metrics_dt[feature_points_dt, on = "feature_id"]
-
-    if(!keep_background){
-        feature_points_dt <- feature_points_dt[feature_id != "-88"]
-    }
-
     feature_points_dt
 }
