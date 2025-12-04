@@ -100,14 +100,19 @@ collapse_spec.OpenSpecy <- function(x, fun = median, column = "feature_id", ...)
   }
 
   unique_ids <- unique(id)
+  id_factor <- factor(id, levels = unique_ids)
 
-  collapsed <- vapply(
-    unique_ids,
-    function(gid) {
-      apply(spec_matrix[, id == gid, drop = FALSE], 1, fun, ...)
-    },
-    numeric(nrow(spec_matrix))
-  )
+  if (identical(fun, mean) && ...length() == 0) {
+    group_counts <- tabulate(id_factor)
+    collapsed <- t(rowsum(t(spec_matrix), id_factor, reorder = FALSE) / group_counts)
+  } else {
+    group_cols <- split(seq_along(id_factor), id_factor)
+    collapsed <- vapply(
+      group_cols,
+      function(idx) apply(spec_matrix[, idx, drop = FALSE], 1, fun, ...),
+      numeric(nrow(spec_matrix))
+    )
+  }
 
   x$spectra <- as.data.table(collapsed)
   colnames(x$spectra) <- as.character(unique_ids)
@@ -164,26 +169,29 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
   md <- features_df[setDT(obj$metadata), on = c("x", "y")]
   md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
 
-  md[, `:=`(centroid_x = mean(x),
-            centroid_y = mean(y),
-            first_x = x[1],
-            first_y = y[1],
-            rand_x = sample(x, 1),
-            rand_y = sample(y, 1)),
-     by = "feature_id"]
+  summary_list <- list(
+    centroid_x = mean(x),
+    centroid_y = mean(y),
+    first_x = x[1],
+    first_y = y[1],
+    rand_x = sample(x, 1),
+    rand_y = sample(y, 1)
+  )
 
-  if("snr" %in% names(md)){
-      md[, mean_snr := mean(snr), by = "feature_id"]
+  if ("snr" %in% names(md)) {
+    summary_list$mean_snr <- mean(snr)
   }
-  if("max_cor_val" %in% names(md)){
-      md[, mean_cor := mean(max_cor_val), by = "feature_id"]
+  if ("max_cor_val" %in% names(md)) {
+    summary_list$mean_cor <- mean(max_cor_val)
   }
-  if(all(c("r", "g", "b") %in% names(md))){
-      md[, `:=`(mean_r = as.integer(sqrt(mean(r^2))),
-                mean_g = as.integer(sqrt(mean(g^2))),
-                mean_b = as.integer(sqrt(mean(b^2)))),
-         by = "feature_id"]
+  if (all(c("r", "g", "b") %in% names(md))) {
+    summary_list$mean_r <- as.integer(sqrt(mean(r^2)))
+    summary_list$mean_g <- as.integer(sqrt(mean(g^2)))
+    summary_list$mean_b <- as.integer(sqrt(mean(b^2)))
   }
+
+  md_summary <- md[, summary_list, by = "feature_id"]
+  md <- md_summary[md, on = "feature_id"]
 
   obj$metadata <- md
 
