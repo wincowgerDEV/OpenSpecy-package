@@ -132,7 +132,17 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
            "indicate that there are no distinct features", call. = F)
 
     features_df <- rbindlist(lapply(unique(features),
-                                    function(y) .def_features(x, features == y, shape_kernel = shape_kernel, shape_type, close = close, close_kernel, close_type,  img, bottom_left, top_right, name = y)),
+                                    function(y) .def_features(x,
+                                                              binary = features == y, 
+                                                              shape_kernel = shape_kernel,
+                                                              shape_type,
+                                                              close = close,
+                                                              close_kernel,
+                                                              close_type,
+                                                              img,
+                                                              bottom_left,
+                                                              top_right,
+                                                              name = y)),
                             fill = T #Allow for flexibility with convex hulls
     )[,test := fifelse(grepl("(background)|(-88)", feature_id), 0, area)][, .SD[test == max(test)], by = c("x", "y")][, .SD[1], by = c("x", "y")]
   } else {
