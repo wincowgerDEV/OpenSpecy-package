@@ -118,7 +118,7 @@ def_features.default <- function(x, ...) {
 #'
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @importFrom sf st_as_sf st_cast st_convex_hull st_coordinates st_area st_length st_is_empty
-#' @importFrom terra rast ext "crs<-" patches as.polygons cellFromRowCol
+#' @importFrom terra rast ext "crs<-" as.polygons
 #' @export
 def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, ...) {
   if(is.logical(features)) {
@@ -195,15 +195,13 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     # Keep raster unitless so sf measurements remain in pixel units
     crs(r_mask) <- NA
 
-    patches_raster <- patches(r_mask, directions = 8)
-    names(patches_raster) <- "patch_id"
-
-    cell_ids <- cellFromRowCol(patches_raster, y_coords + 1, x_coords + 1)
-    extracted_ids <- terra::values(patches_raster)[cell_ids, 1]
+    poly_vec <- as.polygons(r_mask, dissolve = TRUE, na.rm = FALSE)
+    poly_vec$feature_id <- ifelse(is.na(poly_vec[[1]]), "-88", as.character(seq_len(nrow(poly_vec))))
+    extracted_ids <- terra::extract(poly_vec, cbind(x_coords + 0.5, y_coords + 0.5))
     feature_points_dt <- data.table(
         x = x_coords,
         y = y_coords,
-        feature_id = ifelse(is.na(extracted_ids), "-88", as.character(extracted_ids))
+        feature_id = ifelse(is.na(extracted_ids$feature_id), "-88", extracted_ids$feature_id)
     )
 
     if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
@@ -224,8 +222,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
         feature_points_dt$b <- rbg_colors[3,]
     }
 
-    patch_vec <- as.polygons(patches_raster, dissolve = TRUE, na.rm = TRUE)
-    polygon_sf <- st_as_sf(patch_vec)
+    polygon_sf <- st_as_sf(poly_vec)
     if(nrow(polygon_sf) > 0){
         polygon_sf <- do.call(rbind, lapply(seq_len(nrow(polygon_sf)), function(i) st_cast(polygon_sf[i, ], "POLYGON")))
         polygon_sf <- polygon_sf[!st_is_empty(polygon_sf), ]
@@ -243,7 +240,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
         }, numeric(1))
         feret_max <- pmax(feret_max, 1)
         metrics_dt <- data.table(
-            feature_id = as.character(polygon_sf$patch_id),
+            feature_id = as.character(polygon_sf$feature_id),
             area = as.numeric(st_area(polygon_sf)),
             perimeter = as.numeric(st_length(st_cast(polygon_sf, "MULTILINESTRING"))),
             feret_min = as.numeric(st_area(polygon_sf))/feret_max,
@@ -292,19 +289,17 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     # Keep raster unitless so sf measurements remain in pixel units
     crs(r_classes) <- NA
 
-    patches_raster <- patches(r_classes, directions = 8)
-    names(patches_raster) <- "patch_id"
-
-    cell_ids <- cellFromRowCol(patches_raster, y_coords + 1, x_coords + 1)
-    extracted_ids <- terra::values(patches_raster)[cell_ids, 1]
-    label_codes <- as.integer(labels_factor)
-    feature_labels <- label_levels[label_codes]
-
-    feature_ids <- ifelse(
-        is.na(extracted_ids),
+    poly_vec <- as.polygons(r_classes, dissolve = TRUE, na.rm = FALSE)
+    poly_vec$class_label <- label_levels[poly_vec[[1]]]
+    poly_vec$feature_id <- ifelse(
+        is.na(poly_vec$class_label),
         NA_character_,
-        paste0(feature_labels, "_", extracted_ids)
+        paste0(poly_vec$class_label, "_", seq_len(nrow(poly_vec)))
     )
+
+    extracted_ids <- terra::extract(poly_vec, cbind(x_coords + 0.5, y_coords + 0.5))
+    feature_labels <- extracted_ids$class_label
+    feature_ids <- extracted_ids$feature_id
 
     feature_points_dt <- data.table(
         x = x_coords,
@@ -331,10 +326,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
         feature_points_dt$b <- rbg_colors[3,]
     }
 
-    patch_vec <- as.polygons(patches_raster, dissolve = TRUE, na.rm = TRUE)
-    patch_labels <- terra::extract(r_classes, patch_vec, fun = terra::modal, na.rm = TRUE)
-    patch_vec$class_label <- label_levels[patch_labels[[2]]]
-    polygon_sf <- st_as_sf(patch_vec)
+    polygon_sf <- st_as_sf(poly_vec)
     if(nrow(polygon_sf) > 0){
         polygon_sf <- do.call(rbind, lapply(seq_len(nrow(polygon_sf)), function(i) st_cast(polygon_sf[i, ], "POLYGON")))
         polygon_sf <- polygon_sf[!st_is_empty(polygon_sf), ]
@@ -352,7 +344,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
         }, numeric(1))
         feret_max <- pmax(feret_max, 1)
         metrics_dt <- data.table(
-            feature_id = ifelse(is.na(polygon_sf$class_label), NA_character_, paste0(polygon_sf$class_label, "_", polygon_sf$patch_id)),
+            feature_id = polygon_sf$feature_id,
             area = as.numeric(st_area(polygon_sf)),
             perimeter = as.numeric(st_length(st_cast(polygon_sf, "MULTILINESTRING"))),
             feret_min = as.numeric(st_area(polygon_sf))/feret_max,
