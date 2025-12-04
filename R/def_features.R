@@ -133,25 +133,17 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
       stop("features cannot all have a single name because that would ",
            "indicate that there are no distinct features", call. = F)
 
-    features_df <- rbindlist(
-      lapply(
-        unique(features),
-        function(y) .def_features_spatial(
-          x,
-          binary = features == y,
-          shape_kernel = shape_kernel,
-          shape_type = shape_type,
-          close = close,
-          close_kernel = close_kernel,
-          close_type = close_type,
-          img = img,
-          bottom_left = bottom_left,
-          top_right = top_right,
-          name = y,
-          keep_background = FALSE
-        )
-      ),
-      fill = TRUE
+    features_df <- .def_features_spatial_categorical(
+      x,
+      labels = features,
+      shape_kernel = shape_kernel,
+      shape_type = shape_type,
+      close = close,
+      close_kernel = close_kernel,
+      close_type = close_type,
+      img = img,
+      bottom_left = bottom_left,
+      top_right = top_right
     )
   } else {
     stop("features needs to be a character or logical vector", call. = F)
@@ -274,6 +266,116 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     if(!is.null(name)){
         feature_points_dt[feature_id != "-88", feature_id := paste0(name, "_", feature_id)]
         if(nrow(metrics_dt)) metrics_dt[, feature_id := paste0(name, "_", feature_id)]
+    }
+
+    feature_points_dt <- metrics_dt[feature_points_dt, on = "feature_id"]
+
+    if(!keep_background){
+        feature_points_dt <- feature_points_dt[feature_id != "-88"]
+    }
+
+    feature_points_dt
+}
+
+.def_features_spatial_categorical <- function(x, labels, shape_kernel = c(3,3), shape_type = "box", close = FALSE, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, background_labels = c("-88", "background", "Background"), keep_background = FALSE) {
+    nrow <- max(x$metadata$y) + 1
+    ncol <- max(x$metadata$x) + 1
+
+    labels_factor <- factor(labels, exclude = NULL)
+    label_levels <- levels(labels_factor)
+
+    class_matrix <- matrix(NA_integer_, nrow = nrow, ncol = ncol)
+    x_coords <- x$metadata$x
+    y_coords <- x$metadata$y
+    class_matrix[cbind(y_coords + 1, x_coords + 1)] <- as.integer(labels_factor)
+
+    r_classes <- rast(class_matrix)
+    ext(r_classes) <- c(0, ncol, 0, nrow)
+    crs(r_classes) <- "EPSG:4326"
+
+    directions <- ifelse(shape_type == "diamond" || any(shape_kernel <= 2), 4, 8)
+    patches_raster <- patches(r_classes, directions = directions)
+    names(patches_raster) <- "patch_id"
+
+    cell_ids <- cellFromRowCol(patches_raster, y_coords + 1, x_coords + 1)
+    extracted_ids <- extract(patches_raster, cells = cell_ids, df = TRUE)$patch_id
+    label_codes <- as.integer(labels_factor)
+    feature_labels <- label_levels[label_codes]
+
+    feature_ids <- ifelse(
+        is.na(extracted_ids) | feature_labels %in% background_labels,
+        "-88",
+        paste0(feature_labels, "_", extracted_ids)
+    )
+
+    feature_points_dt <- data.table(
+        x = x_coords,
+        y = y_coords,
+        class_label = feature_labels,
+        feature_id = feature_ids
+    )
+
+    if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
+        mosaic <- readJPEG(img)
+        map_dim <- c(length(unique(x$metadata$x)),
+                     length(unique(x$metadata$y)))
+        xscale = (top_right[1]-bottom_left[1])/map_dim[1]
+        yscale = (bottom_left[2]-top_right[2])/map_dim[2]
+
+        x_vals = as.integer(feature_points_dt$x*xscale+bottom_left[1])
+        y_vals = as.integer(bottom_left[2] - feature_points_dt$y*yscale)
+        image_raster <- as.raster(mosaic)
+        coords <- cbind(y_vals, x_vals)
+        colors <- image_raster[coords]
+        rbg_colors <- col2rgb(colors)
+        feature_points_dt$r <- rbg_colors[1,]
+        feature_points_dt$g <- rbg_colors[2,]
+        feature_points_dt$b <- rbg_colors[3,]
+    }
+
+    polygon_sf <- st_as_sf(as.polygons(patches_raster, dissolve = TRUE, na.rm = TRUE))
+    polygon_sf <- st_cast(polygon_sf, "POLYGON")
+
+    patch_label_map <- data.table(
+        patch_id = terra::values(patches_raster)[, 1],
+        label_code = terra::values(r_classes)[, 1]
+    )[!is.na(patch_id) & !is.na(label_code)]
+    patch_label_map <- patch_label_map[, .(label_code = label_code[1]), by = patch_id]
+    patch_label_map[, class_label := label_levels[label_code]]
+
+    if(nrow(polygon_sf) > 0 && nrow(patch_label_map) > 0){
+        polygon_sf <- merge(polygon_sf, patch_label_map, by = "patch_id", all.x = TRUE)
+        polygon_sf <- polygon_sf[!(polygon_sf$class_label %in% background_labels | is.na(polygon_sf$class_label)), ]
+    }
+
+    if(nrow(polygon_sf) > 0){
+        convex_hulls <- st_convex_hull(polygon_sf)
+        hull_coords <- lapply(st_geometry(convex_hulls), function(g) {
+            coords <- st_coordinates(g)
+            unique(coords[, c("X", "Y"), drop = FALSE])
+        })
+        feret_max <- vapply(hull_coords, function(coords){
+            if(nrow(coords) < 2) return(0)
+            max(stats::dist(coords))
+        }, numeric(1))
+        feret_max <- pmax(feret_max, 1)
+        metrics_dt <- data.table(
+            feature_id = paste0(polygon_sf$class_label, "_", polygon_sf$patch_id),
+            area = as.numeric(st_area(polygon_sf)),
+            perimeter = as.numeric(st_length(st_cast(polygon_sf, "MULTILINESTRING"))),
+            feret_min = as.numeric(st_area(polygon_sf))/feret_max,
+            feret_max = feret_max,
+            convex_hull_area = as.numeric(st_area(convex_hulls))
+        )
+    } else {
+        metrics_dt <- data.table(
+            feature_id = character(),
+            area = numeric(),
+            perimeter = numeric(),
+            feret_min = numeric(),
+            feret_max = numeric(),
+            convex_hull_area = numeric()
+        )
     }
 
     feature_points_dt <- metrics_dt[feature_points_dt, on = "feature_id"]
