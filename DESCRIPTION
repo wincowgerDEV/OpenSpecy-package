@@ -87,6 +87,8 @@ Imports:
     caTools,
     hyperSpec,
     mmand,
+    terra,
+    sf,
     plotly,
     digest,
     signal,
