@@ -236,7 +236,7 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
 ident_spec <- function(cor_matrix, x, library, top_n = NULL,
                        add_library_metadata = NULL,
                        add_object_metadata = NULL, ...){
-    if(is.numeric(top_n) && top_n > ncol(library$spectra)){
+    if(is.null(top_n) || top_n > ncol(library$spectra)){
         top_n = nrow(cor_matrix)
         message("'top_n' larger than the number of spectra in the library; ",
                 "returning all matches")

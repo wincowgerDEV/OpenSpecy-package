@@ -60,6 +60,7 @@ restrict_range.default <- function(x, ...) {
 #' @export
 restrict_range.OpenSpecy <- function(x, min, max, make_rel = TRUE,
                                      ...) {
+  
   test <- as.data.table(lapply(1:length(min), function(y){
     x$wavenumber >= min[y] & x$wavenumber <= max[y]})
   )
@@ -68,7 +69,10 @@ restrict_range.OpenSpecy <- function(x, min, max, make_rel = TRUE,
   filt <- x$spectra[vals,]
   x$wavenumber <- x$wavenumber[vals]
 
-  if (make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
+  if (make_rel) {
+          x$spectra <- apmdt(filt, make_rel)
+  }
+      else x$spectra <- filt
 
   return(x)
 }
@@ -100,10 +104,10 @@ flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
   }, FUN.VALUE = logical(1)))) {
     stop("all min values must be lower than corresponding max", call. = F)
   }
-  flat <- x$spectra[, lapply(.SD, .flatten_range, x = x$wavenumber,
-                             min = min, max = max)]
+  flat <- apmdt(x$spectra, .flatten_range, x = x$wavenumber,
+                             min = min, max = max)
 
-  if (make_rel) x$spectra <- flat[, lapply(.SD, make_rel)] else x$spectra <- flat
+  if (make_rel) x$spectra <- apmdt(flat, make_rel) else x$spectra <- flat
 
   return(x)
 }
@@ -118,4 +122,17 @@ flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
              y[max(which(x <= max[i]))]))
   }
   return(y)
+}
+
+apmdt <- function(spectra,  ...){
+    if(is.data.table(spectra)){
+        return(spectra[, lapply(.SD, ...)]) 
+    }
+    else if(is.matrix(spectra) && length(dim(spectra)) == 2L){
+        return(apply(spectra, 2L, ...))
+    }
+    else{
+        stop("Spectra needs to be either a 2D matrix or a data.table")
+    }
+
 }
