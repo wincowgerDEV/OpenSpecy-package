@@ -181,11 +181,11 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
       first_y = y[1],
       rand_x = if (.N) sample(x, 1) else NA_real_,
       rand_y = if (.N) sample(y, 1) else NA_real_,
-      mean_snr = if (has_snr) mean(snr) else NULL,
-      mean_cor = if (has_cor) mean(max_cor_val) else NULL,
-      mean_r = if (has_rgb) as.integer(sqrt(mean(r^2))) else NULL,
-      mean_g = if (has_rgb) as.integer(sqrt(mean(g^2))) else NULL,
-      mean_b = if (has_rgb) as.integer(sqrt(mean(b^2))) else NULL
+      mean_snr = if (has_snr) mean(snr) else NA_real_,
+      mean_cor = if (has_cor) mean(max_cor_val) else NA_real_,
+      mean_r = if (has_rgb) as.integer(sqrt(mean(r^2))) else NA_integer_,
+      mean_g = if (has_rgb) as.integer(sqrt(mean(g^2))) else NA_integer_,
+      mean_b = if (has_rgb) as.integer(sqrt(mean(b^2))) else NA_integer_
     )
   }, by = "feature_id"]
   md <- md_summary[md, on = "feature_id"]
