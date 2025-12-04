@@ -144,20 +144,30 @@ def_features.default <- function(x, ...) {
 #' @importFrom data.table as.data.table setDT rbindlist data.table
 #' @export
 def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, ...) {
-  if(is.logical(features)) {
+    if(is.logical(features)) {
     if(all(features) | all(!features))
       stop("features cannot be all TRUE or FALSE because that would indicate ",
            "that there are no distinct features", call. = F)
 
-    features_df <- .def_features(x, features, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
+    precomp <- .def_feature_precompute(x, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
+    binary_matrix <- matrix(NA_real_, nrow = precomp$dims[1L], ncol = precomp$dims[2L])
+    binary_matrix[precomp$coords] <- features
+
+    features_df <- .def_features_core(precomp, binary_matrix)
   } else if(is.character(features)) {
     if(length(unique(features)) == 1)
       stop("features cannot all have a single name because that would ",
            "indicate that there are no distinct features", call. = F)
 
-    features_df <- rbindlist(lapply(unique(features),
-                                    function(y) .def_features(x, features == y, shape_kernel = shape_kernel, shape_type, close = close, close_kernel, close_type,  img, bottom_left, top_right, name = y)),
-                            fill = T #Allow for flexibility with convex hulls
+    precomp <- .def_feature_precompute(x, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
+    feature_idx <- split(seq_along(features), features)
+
+    features_df <- rbindlist(lapply(names(feature_idx), function(name) {
+      idx <- feature_idx[[name]]
+      binary_matrix <- matrix(NA_real_, nrow = precomp$dims[1L], ncol = precomp$dims[2L])
+      binary_matrix[precomp$coords[idx, , drop = FALSE]] <- TRUE
+      .def_features_core(precomp, binary_matrix, name)
+    }), fill = TRUE
     )[,test := fifelse(grepl("(background)|(-88)", feature_id), 0, area)][, .SD[test == max(test)], by = c("x", "y")][, .SD[1], by = c("x", "y")]
   } else {
     stop("features needs to be a character or logical vector", call. = F)
@@ -200,75 +210,71 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
 #' @importFrom jpeg readJPEG
 #' @importFrom stats dist
 .def_features <- function(x, binary, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
-    # Label connected components in the binary image
-    # Define the size of the matrix
-    nrow <- max(x$metadata$y) + 1
-    ncol <- max(x$metadata$x) + 1
-    
-    # Create an empty matrix filled with NA and populate it
-    binary_matrix <- matrix(NA,
-                            nrow = nrow,
-                            ncol = ncol)
+    precomp <- .def_feature_precompute(x, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
+    binary_matrix <- matrix(NA_real_, nrow = precomp$dims[1L], ncol = precomp$dims[2L])
+    binary_matrix[precomp$coords] <- binary
+    .def_features_core(precomp, binary_matrix, name)
+}
 
-    # Populate the matrix with your data
+.def_feature_precompute <- function(x, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right) {
     x_coords <- x$metadata$x
     y_coords <- x$metadata$y
-
     coord_index <- cbind(y_coords + 1L, x_coords + 1L)
-    binary_matrix[coord_index] <- binary
-    
-    k <- shapeKernel(shape_kernel, type= shape_type)
-    
-    if(close){
-        kc <- shapeKernel(close_kernel, type=close_type)
-        binary_matrix <- closing(binary_matrix, kc)
+
+    list(
+      dims = c(max(y_coords) + 1L, max(x_coords) + 1L),
+      coords = coord_index,
+      k = shapeKernel(shape_kernel, type = shape_type),
+      kc = if (close) shapeKernel(close_kernel, type = close_type) else NULL,
+      img = img,
+      bottom_left = bottom_left,
+      top_right = top_right,
+      map_dim = c(length(unique(x_coords)), length(unique(y_coords))),
+      x_coords = x_coords,
+      y_coords = y_coords
+    )
+}
+
+.def_features_core <- function(precomp, binary_matrix, name = NULL) {
+    if (!is.null(precomp$kc)) {
+        binary_matrix <- closing(binary_matrix, precomp$kc)
     }
-    labeled_image <- components(binary_matrix, k)
-    
-    binary_coords <- cbind(y_coords + 1L, x_coords + 1L)
-    # Fetch colors for all coordinates at once
-    feature_ids <- labeled_image[binary_coords]
-    
-    feature_points_dt <- data.table(x = x$metadata$x,
-                                    y = x$metadata$y,
+
+    labeled_image <- components(binary_matrix, precomp$k)
+
+    feature_ids <- labeled_image[precomp$coords]
+
+    feature_points_dt <- data.table(x = precomp$x_coords,
+                                    y = precomp$y_coords,
                                     feature_id = ifelse(!is.na(feature_ids),
                                                         feature_ids, -88)|> as.character())
-    
-    #Add color extraction here. 
-    if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
-        mosaic <- readJPEG(img)
-        map_dim <- c(length(unique(x$metadata$x)), 
-                     length(unique(x$metadata$y)))
-        xscale = (top_right[1]-bottom_left[1])/map_dim[1]
-        yscale = (bottom_left[2]-top_right[2])/map_dim[2]
-        #particle_centroid = c(875, 4675)/25
-        
-        x_vals = as.integer(feature_points_dt$x*xscale+bottom_left[1])
-        y_vals = as.integer(bottom_left[2] - feature_points_dt$y*yscale)
+
+    if(!is.null(precomp$img) & !is.null(precomp$bottom_left) & !is.null(precomp$top_right)){
+        mosaic <- readJPEG(precomp$img)
+        xscale = (precomp$top_right[1]-precomp$bottom_left[1])/precomp$map_dim[1]
+        yscale = (precomp$bottom_left[2]-precomp$top_right[2])/precomp$map_dim[2]
+
+        x_vals = as.integer(feature_points_dt$x*xscale+precomp$bottom_left[1])
+        y_vals = as.integer(precomp$bottom_left[2] - feature_points_dt$y*yscale)
         image_raster <- as.raster(mosaic)
-        # Create a matrix of coordinates for indexing
         coords <- cbind(y_vals, x_vals)
-        # Fetch colors for all coordinates at once
         colors <- image_raster[coords]
         rbg_colors <- col2rgb(colors)
         feature_points_dt$r <- rbg_colors[1,]
         feature_points_dt$g <- rbg_colors[2,]
         feature_points_dt$b <- rbg_colors[3,]
     }
-    
-    # Apply the logic to clean components
+
     cleaned_components <- ifelse(!is.na(labeled_image), labeled_image, -88)
-    
+
     valid_ids <- unique(cleaned_components[cleaned_components >= 0])
 
-    # Helper function to calculate the area using the shoelace formula
     polygon_area <- function(x, y) {
         n <- length(x)
         next_idx <- c(2:n, 1)
         abs(sum(x * y[next_idx] - y * x[next_idx])) / 2
     }
 
-    # Calculate area, Feret max, and feature IDs for each feature
     features_dt <- rbindlist(lapply(valid_ids, function(id) {
         coords <- which(cleaned_components == id, arr.ind = TRUE)
         if (nrow(coords) == 1)
@@ -301,14 +307,12 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
                    convex_hull_area = convex_hull_area
         )
     }), fill = TRUE)
-    
-    # Join with the coordinates from the binary image
-    
+
     feature_points_dt <- feature_points_dt[features_dt, on = "feature_id"]
-    
+
     if(!is.null(name)){
         feature_points_dt$feature_id <- paste0(name, "_", feature_points_dt$feature_id)
     }
-    
+
     feature_points_dt
 }
