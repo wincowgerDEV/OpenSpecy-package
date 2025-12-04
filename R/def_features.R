@@ -88,17 +88,15 @@ collapse_spec.default <- function(x, ...) {
 #'
 #' @export
 collapse_spec.OpenSpecy <- function(x, fun = median, column = "feature_id", ...) {
-  # Calculate the collapsed spectra for each unique feature_id
-  ts <- transpose(x$spectra)
-  ts$id <- x$metadata[[column]]
-  x$spectra <- ts[, lapply(.SD, fun, ...), by = "id"] |>
-    transpose(make.names = "id")
-  
+  spectra_dt <- as.data.table(x$spectra)
+  spectra_dt[, id := x$metadata[[column]]]
 
-      x$metadata <- x$metadata |>
-          unique(by = c(column))    
+  collapsed <- spectra_dt[, lapply(.SD, fun, ...), by = "id"]
 
-  return(x)
+  x$spectra <- transpose(collapsed[, -"id"], make.names = collapsed$id)
+  x$metadata <- unique(x$metadata, by = column)
+
+  x
 }
 
 #' @rdname def_features
@@ -144,24 +142,26 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
                                # evaluation
   md <- features_df[setDT(obj$metadata), on = c("x", "y")]
   md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
+
+  md[, `:=`(centroid_x = mean(x),
+            centroid_y = mean(y),
+            first_x = first(x),
+            first_y = first(y),
+            rand_x = sample(x, 1),
+            rand_y = sample(y, 1)), by = "feature_id"]
+
   if("snr" %in% names(md)){
-      md[, "mean_snr" := mean(snr), by = "feature_id"]
+      md[, mean_snr := mean(snr), by = "feature_id"]
   }
   if("max_cor_val" %in% names(md)){
-      md[, "mean_cor" := mean(max_cor_val), by = "feature_id"]
+      md[, mean_cor := mean(max_cor_val), by = "feature_id"]
   }
   if(all(c("r", "g", "b") %in% names(md))){
-      md[, `:=`(mean_r = as.integer(sqrt(mean(r^2))), 
-                mean_g = as.integer(sqrt(mean(g^2))), 
+      md[, `:=`(mean_r = as.integer(sqrt(mean(r^2))),
+                mean_g = as.integer(sqrt(mean(g^2))),
                 mean_b = as.integer(sqrt(mean(b^2)))), by = "feature_id"]
   }
-  md[, "centroid_x" := mean(x), by = "feature_id"]
-  md[, "centroid_y" := mean(y), by = "feature_id"]
-  md[, "first_x" := x[1], by = "feature_id"]
-  md[, "first_y" := y[1], by = "feature_id"]
-  md[, "rand_x" := sample(x,1), by = "feature_id"]
-  md[, "rand_y" := sample(y,1), by = "feature_id"]
-  
+
   obj$metadata <- md
 
   return(obj)
@@ -177,18 +177,17 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     nrow <- max(x$metadata$y) + 1
     ncol <- max(x$metadata$x) + 1
     
-    # Create an empty matrix filled with NA
-    binary_matrix <- matrix(NA, 
-                            nrow = nrow, 
+    # Create an empty matrix filled with NA and populate it
+    binary_matrix <- matrix(NA,
+                            nrow = nrow,
                             ncol = ncol)
-    
+
     # Populate the matrix with your data
     x_coords <- x$metadata$x
     y_coords <- x$metadata$y
-    
-    for (i in 1:length(binary)) {
-        binary_matrix[y_coords[i] + 1, x_coords[i] + 1] <- binary[i]
-    }
+
+    coord_index <- cbind(y_coords + 1L, x_coords + 1L)
+    binary_matrix[coord_index] <- binary
     
     k <- shapeKernel(shape_kernel, type= shape_type)
     
@@ -198,7 +197,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     }
     labeled_image <- components(binary_matrix, k)
     
-    binary_coords <- cbind(y_coords + 1, x_coords + 1)
+    binary_coords <- cbind(y_coords + 1L, x_coords + 1L)
     # Fetch colors for all coordinates at once
     feature_ids <- labeled_image[binary_coords]
     
@@ -218,7 +217,6 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
         
         x_vals = as.integer(feature_points_dt$x*xscale+bottom_left[1])
         y_vals = as.integer(bottom_left[2] - feature_points_dt$y*yscale)
-        colors = character(length = length(x_vals))
         image_raster <- as.raster(mosaic)
         # Create a matrix of coordinates for indexing
         coords <- cbind(y_vals, x_vals)
@@ -233,67 +231,48 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     # Apply the logic to clean components
     cleaned_components <- ifelse(!is.na(labeled_image), labeled_image, -88)
     
-    # Calculate the convex hull for each feature
-    convex_hulls <- lapply(
-        split(
-            as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
-            cleaned_components[cleaned_components >= 0]
-        ),
-        function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
-        })
-    
+    valid_ids <- unique(cleaned_components[cleaned_components >= 0])
+
     # Helper function to calculate the area using the shoelace formula
     polygon_area <- function(x, y) {
         n <- length(x)
-        area <- 0
-        j <- n
-        for (i in 1:n) {
-            area <- area + (x[j] + x[i]) * (y[j] - y[i])
-            j <- i
-        }
-        return(abs(area) / 2)
+        next_idx <- c(2:n, 1)
+        abs(sum(x * y[next_idx] - y * x[next_idx])) / 2
     }
-    
+
     # Calculate area, Feret max, and feature IDs for each feature
-    features_dt <- rbindlist(lapply(seq_along(convex_hulls), function(i) {
-        hull <- convex_hulls[[i]]
-        id <- names(convex_hulls)[i]
-        if(nrow(hull) == 1)
-            return(data.table(feature_id = id,
+    features_dt <- rbindlist(lapply(valid_ids, function(id) {
+        coords <- which(cleaned_components == id, arr.ind = TRUE)
+        if (nrow(coords) == 1)
+            return(data.table(feature_id = as.character(id),
                               area = 1,
                               perimeter = 4,
                               feret_min = 1,
-                              feret_max = 1)
-            )
-        
-        # Calculate Feret dimensions
-        dist_matrix <- as.matrix(dist(hull))
-        feret_max <- max(dist_matrix) + 1
-        
-        perimeter <- 0
-        cols = 1:nrow(hull)
-        rows = c(2:nrow(hull), 1)
-        for (j in 1:length(cols)) {
-            # Fetch the distance from the distance matrix
-            perimeter <- perimeter + dist_matrix[rows[j], cols[j]]
-        }
-        
-        # Area
-        area <- sum(cleaned_components == as.integer(id))
-        
-        # Calculate the convex hull area
-        convex_hull_area <- polygon_area(hull[,2], hull[,1])
-        
-        feret_min = area/feret_max #Can probably calculate this better.
-        
-        data.table(feature_id = id,
+                              feret_max = 1,
+                              convex_hull_area = 1))
+
+        hull_indices <- unique(chull(coords[, 2], coords[, 1]))
+        hull <- coords[hull_indices, , drop = FALSE]
+
+        feret_max <- max(dist(hull)) + 1
+
+        edge_coords <- rbind(hull, hull[1, , drop = FALSE])
+        deltas <- diff(edge_coords)
+        perimeter <- sum(sqrt(rowSums(deltas^2)))
+
+        area <- nrow(coords)
+        convex_hull_area <- polygon_area(hull[, 2], hull[, 1])
+
+        feret_min <- area/feret_max #Can probably calculate this better.
+
+        data.table(feature_id = as.character(id),
                    area = area,
                    perimeter = perimeter,
                    feret_min = feret_min,
                    feret_max = feret_max,
                    convex_hull_area = convex_hull_area
         )
-    }), fill = T)
+    }), fill = TRUE)
     
     # Join with the coordinates from the binary image
     
