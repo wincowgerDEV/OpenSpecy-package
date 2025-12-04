@@ -150,7 +150,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
            "that there are no distinct features", call. = F)
 
     precomp <- .def_feature_precompute(x, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
-    binary_matrix <- matrix(NA_real_, nrow = precomp$dims[1L], ncol = precomp$dims[2L])
+    binary_matrix <- matrix(FALSE, nrow = precomp$dims[1L], ncol = precomp$dims[2L])
     binary_matrix[precomp$coords] <- features
 
     features_df <- .def_features_core(precomp, binary_matrix)
@@ -164,7 +164,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
 
     features_df <- rbindlist(lapply(names(feature_idx), function(name) {
       idx <- feature_idx[[name]]
-      binary_matrix <- matrix(NA_real_, nrow = precomp$dims[1L], ncol = precomp$dims[2L])
+      binary_matrix <- matrix(FALSE, nrow = precomp$dims[1L], ncol = precomp$dims[2L])
       binary_matrix[precomp$coords[idx, , drop = FALSE]] <- TRUE
       .def_features_core(precomp, binary_matrix, name)
     }), fill = TRUE
@@ -211,7 +211,7 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
 #' @importFrom stats dist
 .def_features <- function(x, binary, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
     precomp <- .def_feature_precompute(x, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
-    binary_matrix <- matrix(NA_real_, nrow = precomp$dims[1L], ncol = precomp$dims[2L])
+    binary_matrix <- matrix(FALSE, nrow = precomp$dims[1L], ncol = precomp$dims[2L])
     binary_matrix[precomp$coords] <- binary
     .def_features_core(precomp, binary_matrix, name)
 }
