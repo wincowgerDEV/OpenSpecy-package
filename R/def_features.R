@@ -198,14 +198,15 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     binary_matrix[binary_matrix <= 0] <- NA
     r_mask <- rast(binary_matrix)
     ext(r_mask) <- c(0, ncol, 0, nrow)
-    crs(r_mask) <- "EPSG:4326"
+    # Keep raster unitless so sf measurements remain in pixel units
+    crs(r_mask) <- NA
 
     directions <- ifelse(shape_type == "diamond" || any(shape_kernel <= 2), 4, 8)
     patches_raster <- patches(r_mask, directions = directions)
     names(patches_raster) <- "patch_id"
 
     cell_ids <- cellFromRowCol(patches_raster, y_coords + 1, x_coords + 1)
-    extracted_ids <- extract(patches_raster, cells = cell_ids, df = TRUE)$patch_id
+    extracted_ids <- terra::values(patches_raster)[cell_ids, 1]
     feature_points_dt <- data.table(
         x = x_coords,
         y = y_coords,
@@ -291,14 +292,15 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
 
     r_classes <- rast(class_matrix)
     ext(r_classes) <- c(0, ncol, 0, nrow)
-    crs(r_classes) <- "EPSG:4326"
+    # Keep raster unitless so sf measurements remain in pixel units
+    crs(r_classes) <- NA
 
     directions <- ifelse(shape_type == "diamond" || any(shape_kernel <= 2), 4, 8)
     patches_raster <- patches(r_classes, directions = directions)
     names(patches_raster) <- "patch_id"
 
     cell_ids <- cellFromRowCol(patches_raster, y_coords + 1, x_coords + 1)
-    extracted_ids <- extract(patches_raster, cells = cell_ids, df = TRUE)$patch_id
+    extracted_ids <- terra::values(patches_raster)[cell_ids, 1]
     label_codes <- as.integer(labels_factor)
     feature_labels <- label_levels[label_codes]
 
