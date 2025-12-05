@@ -57,13 +57,13 @@ test_that("features are identified with sig_noise and smoothing with closing", {
     unique(id_map5$metadata$feature_id) |> expect_length(2)
     
     #Test collapsing on character
-    test_part_close <- rep_len("background", length.out = ncol(map$spectra))
+    test_part_close <- rep_len(NA, length.out = ncol(map$spectra))
     test_part_close[c(69, 101,103, 104)] <- "particle1"  
     test_part_close[c(68, 70, 71, 87, 119, 118, 117, 100)] <- "particle2" 
     
     #heatmap_spec(map, test_part_close)
     
-    id_map5 <- def_features(map, test_part_close, close = T, close_kernel = c(3,3))
+    id_map5 <- def_features(x = map,features =  test_part_close, close = T, close_kernel = c(1,1))
     expect_true(nrow(id_map5$metadata) == ncol(id_map5$spectra))
     
     #heatmap_spec(id_map5, id_map5$metadata$feature_id)
@@ -72,7 +72,7 @@ test_that("features are identified with sig_noise and smoothing with closing", {
     unique(id_map5$metadata$feature_id) |> expect_length(3)
     
     #Test collapsing on character complete overlap
-    test_part_close <- rep_len("background", length.out = ncol(map$spectra))
+    test_part_close <- rep_len(NA, length.out = ncol(map$spectra))
     test_part_close[c(69, 101,103)] <- "particle1"  
     test_part_close[c(68, 70, 71, 87, 119, 118, 117, 100)] <- "particle2" 
     

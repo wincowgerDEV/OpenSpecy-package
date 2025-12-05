@@ -89,14 +89,58 @@ collapse_spec.default <- function(x, ...) {
 #' @export
 collapse_spec.OpenSpecy <- function(x, fun = median, column = "feature_id", ...) {
   # Calculate the collapsed spectra for each unique feature_id
-  ts <- transpose(x$spectra)
-  ts$id <- x$metadata[[column]]
-  x$spectra <- ts[, lapply(.SD, fun, ...), by = "id"] |>
-    transpose(make.names = "id")
-  
-
-      x$metadata <- x$metadata |>
-          unique(by = c(column))    
+    # 1. Coerce spectra to a plain numeric matrix for fast row ops
+    #    Rows = wavenumbers, Cols = spectra
+    sp <- as.matrix(x$spectra)
+    ids <- x$metadata[[column]]
+    
+    if (length(ids) != ncol(sp)) {
+        stop("Length of metadata column '", column, 
+             "' (", length(ids), 
+             ") does not match number of spectra (", ncol(sp), ").")
+    }
+    
+    # 2. Unique groups (one output spectrum per unique id)
+    ids <- as.vector(ids)                  # ensure simple vector
+    uids <- unique(ids)
+    n_grp <- length(uids)
+    n_wv  <- nrow(sp)
+    
+    # 3. Allocate result: rows = wavenumbers, cols = unique feature_ids
+    out <- matrix(NA_real_, nrow = n_wv, ncol = n_grp)
+    
+    # Get the actual function object
+    FUN <- match.fun(fun)
+    
+    # 4. Fast paths for common functions
+    for (g in seq_along(uids)) {
+        sel <- ids == uids[g]
+        
+        if (identical(FUN, stats::median)) {
+            # median across spectra for each wavenumber
+            out[, g] <- matrixStats::rowMedians(sp[, sel, drop = FALSE], ...)
+        } else if (identical(FUN, base::mean)) {
+            out[, g] <- rowMeans(sp[, sel, drop = FALSE], ...)
+        } else if (identical(FUN, base::sum)) {
+            out[, g] <- rowSums(sp[, sel, drop = FALSE], ...)
+        } else {
+            # Generic fallback: still much faster than data.table + transpose for big W
+            out[, g] <- apply(sp[, sel, drop = FALSE], 1, FUN, ...)
+        }
+    }
+    
+    # 5. Convert back to data.table, with one column per collapsed feature_id
+    dt_out <- data.table::as.data.table(out)
+    data.table::setnames(dt_out, as.character(uids))
+    x$spectra <- dt_out
+    
+    # 6. Collapse metadata to one row per feature_id, preserving column order to match spectra
+    mdt  <- data.table::as.data.table(x$metadata)
+    # First occurrence of each id in original metadata:
+    idx  <- match(uids, ids)
+    x$metadata <- mdt[idx]
+    
+    x  
 
   return(x)
 }
@@ -117,35 +161,21 @@ def_features.default <- function(x, ...) {
 
 #' @rdname def_features
 #'
-#' @importFrom data.table as.data.table setDT rbindlist data.table
+#' @importFrom data.table as.data.table setDT rbindlist data.table fcoalesce
 #' @export
-def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, ...) {
-  if(is.logical(features)) {
-    if(all(features) | all(!features))
-      stop("features cannot be all TRUE or FALSE because that would indicate ",
-           "that there are no distinct features", call. = F)
-
-    features_df <- .def_features(x, features, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
-  } else if(is.character(features)) {
+def_features.OpenSpecy <- function(x, features, 
+                                   shape_kernel = c(3,3), 
+                                   shape_type = "box", 
+                                   close = F, close_kernel = c(4,4), 
+                                   close_type = "box", img = NULL, 
+                                   bottom_left = NULL, top_right = NULL,
+                                   ...) {
+  if(is.logical(features) || is.character(features)) {
     if(length(unique(features)) == 1)
-      stop("features cannot all have a single name because that would ",
-           "indicate that there are no distinct features", call. = F)
+      stop("features cannot be all one class, e.g. all T or all F or all one category", call. = F)
 
-    features_df <- rbindlist(lapply(unique(features),
-                                    function(y) .def_features(x,
-                                                              binary = features == y, 
-                                                              shape_kernel = shape_kernel,
-                                                              shape_type,
-                                                              close = close,
-                                                              close_kernel,
-                                                              close_type,
-                                                              img,
-                                                              bottom_left,
-                                                              top_right,
-                                                              name = y)),
-                            fill = T #Allow for flexibility with convex hulls
-    )[,test := fifelse(grepl("(background)|(-88)", feature_id), 0, area)][, .SD[test == max(test)], by = c("x", "y")][, .SD[1], by = c("x", "y")]
-  } else {
+    features_df <- .def_features(x, binary =  features, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
+  }  else {
     stop("features needs to be a character or logical vector", call. = F)
   }
 
@@ -181,7 +211,11 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
 #' @importFrom grDevices chull as.raster col2rgb
 #' @importFrom jpeg readJPEG
 #' @importFrom stats dist
-.def_features <- function(x, binary, shape_kernel = c(3,3), shape_type = "box", close = F, close_kernel = c(4,4), close_type = "box", img = NULL, bottom_left = NULL, top_right = NULL, name = NULL) {
+.def_features <- function(x, binary, shape_kernel = c(3,3), 
+                          shape_type = "box", close = F, 
+                          close_kernel = c(4,4), close_type = "box",
+                          img = NULL, bottom_left = NULL, 
+                          top_right = NULL, name = NULL) {
     # Label connected components in the binary image
     # Define the size of the matrix
     nrow <- max(x$metadata$y) + 1
@@ -196,17 +230,44 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
     x_coords <- x$metadata$x
     y_coords <- x$metadata$y
     
-    for (i in 1:length(binary)) {
-        binary_matrix[y_coords[i] + 1, x_coords[i] + 1] <- binary[i]
+    if(is.character(binary)){
+        labeled_image <- lapply(unique(binary), 
+               function(y){
+                   t = binary == y
+                   binary_mat2 = binary_matrix
+                   for (i in 1:length(t)) {
+                       binary_mat2[y_coords[i] + 1, x_coords[i] + 1] <- t[i]
+                   }
+                   
+                   k <- shapeKernel(shape_kernel, type= shape_type)
+                   
+                   if(close){
+                       kc <- shapeKernel(close_kernel, type=close_type)
+                       binary_mat2 <- closing(binary_mat2, kc)
+                   }
+                   comps <- as.character(components(binary_mat2, k))
+                   data.table::fifelse(is.na(comps), comps, paste0(comps, "_", y))
+               })
+        
+        labeled_image <- matrix(fcoalesce(labeled_image), 
+                               nrow = nrow, 
+                               ncol = ncol)
     }
     
-    k <- shapeKernel(shape_kernel, type= shape_type)
-    
-    if(close){
-        kc <- shapeKernel(close_kernel, type=close_type)
-        binary_matrix <- closing(binary_matrix, kc)
+    else{
+        for (i in 1:length(binary)) {
+            binary_matrix[y_coords[i] + 1, x_coords[i] + 1] <- binary[i]
+        }
+        
+        k <- shapeKernel(shape_kernel, type= shape_type)
+        
+        if(close){
+            kc <- shapeKernel(close_kernel, type=close_type)
+            binary_matrix <- closing(binary_matrix, kc)
+        }
+        labeled_image <- components(binary_matrix, k)
     }
-    labeled_image <- components(binary_matrix, k)
+    
     
     binary_coords <- cbind(y_coords + 1, x_coords + 1)
     # Fetch colors for all coordinates at once
@@ -240,17 +301,33 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
         feature_points_dt$b <- rbg_colors[3,]
     }
     
-    # Apply the logic to clean components
-    cleaned_components <- ifelse(!is.na(labeled_image), labeled_image, -88)
+    if(is.logical(binary)){
+        # Apply the logic to clean components
+        cleaned_components <- ifelse(!is.na(labeled_image), labeled_image, -88)
+        
+        # Calculate the convex hull for each feature
+        convex_hulls <- lapply(
+            split(
+                as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
+                cleaned_components[cleaned_components >= 0]
+            ),
+            function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
+            })    
+    }
+    else{
+        # Apply the logic to clean components
+        cleaned_components <- ifelse(!is.na(labeled_image), labeled_image, "-888")
+        
+        # Calculate the convex hull for each feature
+        convex_hulls <- lapply(
+            split(
+                as.data.frame(which(cleaned_components != "-888", arr.ind = TRUE)),
+                cleaned_components[cleaned_components != "-888"]
+            ),
+            function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
+            })
+    }
     
-    # Calculate the convex hull for each feature
-    convex_hulls <- lapply(
-        split(
-            as.data.frame(which(cleaned_components >= 0, arr.ind = TRUE)),
-            cleaned_components[cleaned_components >= 0]
-        ),
-        function(coords) {coords[unique(chull(coords[,2], coords[,1])),]
-        })
     
     # Helper function to calculate the area using the shoelace formula
     polygon_area <- function(x, y) {
@@ -288,8 +365,15 @@ def_features.OpenSpecy <- function(x, features, shape_kernel = c(3,3), shape_typ
             perimeter <- perimeter + dist_matrix[rows[j], cols[j]]
         }
         
-        # Area
-        area <- sum(cleaned_components == as.integer(id))
+        if(is.logical(binary)){
+            # Area
+            area <- sum(cleaned_components == as.integer(id))            
+        }
+
+        else{
+            # Area
+            area <- sum(cleaned_components == id)
+        }
         
         # Calculate the convex hull area
         convex_hull_area <- polygon_area(hull[,2], hull[,1])
