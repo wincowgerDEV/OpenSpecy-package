@@ -1,0 +1,285 @@
+# Open Specy 1.0
+
+Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
+
+Raman and (FT)IR spectral analysis tool for environmental samples with a
+special focus on microplastics (Cowger et al. 2025, doi:
+[10.1021/acs.analchem.5c00962](https://doi.org/10.1021/acs.analchem.5c00962)).
+With
+[`read_any()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_multi.md),
+Open Specy provides a single function for reading individual, batch, or
+map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and .zip.
+[`process_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/process_spec.md)
+simplifies processing spectra, including smoothing, baseline correction,
+range restriction and flattening, intensity conversions, wavenumber
+alignment, and min-max normalization. Spectra can be identified in batch
+using an onboard reference library using
+[`match_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md).
+A Shiny app is available via
+[`run_app()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/run_app.md)
+or online at <https://www.openanalysis.org/openspecy/>.
+
+## Installation
+
+**OpenSpecy** is available from CRAN and GitHub.
+
+### Install from CRAN (stable version)
+
+You can install the latest release of **OpenSpecy** from
+[CRAN](https://CRAN.R-project.org) with:
+
+``` r
+install.packages("OpenSpecy")
+```
+
+### Install from GitHub (development version)
+
+To install the development version of this package, paste the following
+code into your R console (requires **devtools**):
+
+``` r
+if (!require(devtools)) install.packages("devtools")
+devtools::install_github("wincowgerDEV/OpenSpecy-package")
+```
+
+### Install on Web Assemply through webr (experimental), you can test here: <https://webr.r-wasm.org/latest/>
+
+``` r
+library(caTools)
+library(data.table)
+library(jsonlite)
+library(yaml)
+library(hyperSpec)
+library(mmand)
+library(plotly)
+library(digest)
+library(signal)
+library(glmnet)
+library(jpeg)
+library(shiny)
+webr::install("OpenSpecy", repos = "https://wincowger.com/OpenSpecy-package/")
+library(OpenSpecy)
+```
+
+## Getting started
+
+``` r
+library(OpenSpecy)
+run_app()
+```
+
+## Simple workflow for single spectral identification
+
+See [package
+vignette](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/articles/sop.html)
+for a detailed standard operating procedure.
+
+``` r
+# Fetch current spectral library from https://osf.io/x7dpz/
+get_lib("derivative")
+
+# Load library into global environment
+spec_lib <- load_lib("derivative")
+
+# Read sample spectrum
+raman_hdpe <- read_extdata("raman_hdpe.csv") |> 
+  read_any()
+
+# Look at the spectrum
+plotly_spec(raman_hdpe)
+
+# Process the spectra and conform it to the library format
+raman_proc <- raman_hdpe |>
+  process_spec(conform_spec_args = list(range = spec_lib$wavenumbers), 
+               smooth_intens = T, make_rel = T)
+
+# Compare raw and processed spectra
+plotly_spec(raman_hdpe, raman_proc)
+
+top_matches <- match_spec(raman_proc, library = spec_lib, na.rm = T, top_n = 5,
+                          add_library_metadata = "sample_name",
+                          add_object_metadata = "col_id")
+
+# Print the top 5 results with relevant metadata
+top_matches[, c("object_id", "library_id", "match_val", "SpectrumType",
+                "SpectrumIdentity")]
+
+# Get all metadata for the matches
+get_metadata(spec_lib, logic = top_matches$library_id)
+```
+
+## Related Packages
+
+### Open Specy on Python
+
+Kris Heath created a Open Specy python package!
+<https://pypi.org/project/openspi/>
+
+## Citations
+
+Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S, De
+Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral
+Classification Needs an Open Source Community: Open Specy to the
+Rescue!” *Analytical Chemistry*, **93**(21), 7543–7548. doi:
+[10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
+
+Cowger W, Steinmetz Z, Leong N, Faltynkova A, Sherrod H (2024).
+“OpenSpecy: Analyze, Process, Identify, and Share Raman and (FT)IR
+Spectra.” *R package*, **1.0.8**.
+<https://github.com/wincowgerDEV/OpenSpecy-package>.
+
+# Package index
+
+## All functions
+
+- [`adj_intens()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/adj_intens.md)
+  : Adjust spectral intensities to standard absorbance units.
+
+- [`restrict_range()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/adj_range.md)
+  [`flatten_range()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/adj_range.md)
+  : Range restriction and flattening for spectra
+
+- [`adj_wave()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/adj_wave.md)
+  : Adjust wavelength to wavenumbers for Raman
+
+- [`area_under_band()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/area_under_band.md)
+  : Measure the area under band of spectra
+
+- [`as_OpenSpecy()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/as_OpenSpecy.md)
+  [`is_OpenSpecy()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/as_OpenSpecy.md)
+  [`check_OpenSpecy()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/as_OpenSpecy.md)
+  [`OpenSpecy()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/as_OpenSpecy.md)
+  [`gen_grid()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/as_OpenSpecy.md)
+  :
+
+  Create `OpenSpecy` objects
+
+- [`conform_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/conform_spec.md)
+  : Conform spectra to a standard wavenumber series
+
+- [`adj_res()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/data_norm.md)
+  [`conform_res()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/data_norm.md)
+  [`adj_neg()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/data_norm.md)
+  [`mean_replace()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/data_norm.md)
+  [`is_empty_vector()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/data_norm.md)
+  : Normalization and conversion of spectral data
+
+- [`collapse_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/def_features.md)
+  [`def_features()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/def_features.md)
+  : Define features
+
+- [`head(`*`<OpenSpecy>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/gen_OpenSpecy.md)
+  [`print(`*`<OpenSpecy>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/gen_OpenSpecy.md)
+  [`plot(`*`<OpenSpecy>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/gen_OpenSpecy.md)
+  [`summary(`*`<OpenSpecy>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/gen_OpenSpecy.md)
+  [`as.data.frame(`*`<OpenSpecy>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/gen_OpenSpecy.md)
+  [`as.data.table(`*`<OpenSpecy>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/gen_OpenSpecy.md)
+  : Generic Open Specy Methods
+
+- [`human_ts()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/human_ts.md)
+  : Create human readable timestamps
+
+- [`plotly_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/interactive_plots.md)
+  [`heatmap_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/interactive_plots.md)
+  [`interactive_plot()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/interactive_plots.md)
+  : Interactive plots for OpenSpecy objects
+
+- [`write_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.md)
+  [`read_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.md)
+  [`as_hyperSpec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.md)
+  : Read and write spectral data
+
+- [`make_rel()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/make_rel.md)
+  : Make spectral intensities relative
+
+- [`check_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_lib.md)
+  [`get_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_lib.md)
+  [`load_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_lib.md)
+  [`rm_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_lib.md)
+  : Manage spectral libraries
+
+- [`manage_na()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_na.md)
+  : Ignore or remove NA intensities
+
+- [`c_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_spec.md)
+  [`sample_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_spec.md)
+  [`merge_map()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_spec.md)
+  : Manage spectral objects
+
+- [`cor_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  [`match_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  [`ident_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  [`get_metadata()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  [`max_cor_named()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  [`filter_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  [`ai_classify()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  [`fill_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  [`os_similarity()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  : Identify and filter spectra
+
+- [`process_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/process_spec.md)
+  : Process Spectra
+
+- [`raman_hdpe`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/raman_hdpe.md)
+  : Sample Raman spectrum
+
+- [`read_envi()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_envi.md)
+  : Read ENVI data
+
+- [`read_text()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md)
+  [`read_asp()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md)
+  [`read_spa()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md)
+  [`read_spc()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md)
+  [`read_jdx()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md)
+  [`read_extdata()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md)
+  [`read_h5()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md)
+  : Read spectral data
+
+- [`read_any()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_multi.md)
+  [`read_many()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_multi.md)
+  [`read_zip()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_multi.md)
+  : Read spectral data from multiple files
+
+- [`read_opus()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_opus.md)
+  : Read spectral data from Bruker OPUS binary files
+
+- [`read_opus_raw()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_opus_raw.md)
+  : Read a Bruker OPUS spectrum binary raw string
+
+- [`run_app()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/run_app.md)
+  : Run Open Specy app
+
+- [`sig_noise()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/sig_noise.md)
+  : Calculate signal and noise metrics for OpenSpecy objects
+
+- [`smooth_intens()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/smooth_intens.md)
+  [`calc_window_points()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/smooth_intens.md)
+  : Smooth spectral intensities
+
+- [`spatial_smooth()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/spatial_smooth.md)
+  : Spatial Smoothing of OpenSpecy Objects
+
+- [`spec_res()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/spec_res.md)
+  : Spectral resolution
+
+- [`split_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/split_spec.md)
+  : Split Open Specy objects
+
+- [`subtr_baseline()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/subtr_baseline.md)
+  : Automated background subtraction for spectral data
+
+- [`test_lib`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/test_lib.md)
+  : Test reference library
+
+# Articles
+
+### Articles
+
+- [Open Specy App
+  Tutorial](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/app.md):
+- [Open Specy Package
+  Tutorial](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/sop.md):
+- [Spectroscopy
+  Advanced](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/advanced.md):
+- [File Conversion in
+  SpectraGryph](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/spectragryph.md):
