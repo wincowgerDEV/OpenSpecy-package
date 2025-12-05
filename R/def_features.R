@@ -72,6 +72,7 @@
 #'
 #' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
 #' @importFrom mmand shapeKernel components closing
+#' @importFrom matrixStats rowMedians
 #' @export
 collapse_spec <- function(x, ...) {
   UseMethod("collapse_spec")
