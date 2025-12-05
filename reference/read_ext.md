@@ -200,7 +200,7 @@ read_extdata("raman_hdpe.csv") |> read_text()
 #> 1:     1     1 raman_hdpe.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/e0ae8a6c03aabd77378f9d0c367d565c
+#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
 #>                             file_id
 #>                              <char>
 #> 1: cb06ce2846b119d932fb6696479a445b
@@ -225,7 +225,7 @@ read_extdata("raman_atacamit.spc") |> read_spc()
 #> 1:     1     1 raman_atacamit.spc CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/e0ae8a6c03aabd77378f9d0c367d565c
+#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
 #>                             file_id
 #>                              <char>
 #> 1: 2693c0b0295ce36c16b10e1e660241f2
@@ -250,7 +250,7 @@ read_extdata("ftir_ldpe_soil.asp") |> read_asp()
 #> 1:     1     1 ftir_ldpe_soil.asp CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/e0ae8a6c03aabd77378f9d0c367d565c
+#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
 #>                             file_id
 #>                              <char>
 #> 1: a33700bad0376ddab156980f473bac92
@@ -276,7 +276,7 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2 - Copy (2).csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/e0ae8a6c03aabd77378f9d0c367d565c
+#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
 #>                             file_id
 #>                              <char>
 #> 1: cb06ce2846b119d932fb6696479a445b
@@ -302,7 +302,7 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2 - Copy.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/e0ae8a6c03aabd77378f9d0c367d565c
+#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
 #>                             file_id
 #>                              <char>
 #> 1: cb06ce2846b119d932fb6696479a445b
@@ -328,7 +328,7 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/e0ae8a6c03aabd77378f9d0c367d565c
+#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
 #>                             file_id
 #>                              <char>
 #> 1: cb06ce2846b119d932fb6696479a445b

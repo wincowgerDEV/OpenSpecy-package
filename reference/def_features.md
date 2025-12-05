@@ -196,5 +196,51 @@ Win Cowger, Zacharias Steinmetz
 tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()
 identified_map <- def_features(tiny_map, tiny_map$metadata$x == 0)
 collapse_spec(identified_map)
-#> Error in loadNamespace(x): there is no package called ‘matrixStats’
+#>      wavenumber          1        -88
+#>           <num>      <num>      <num>
+#>   1:     717.42 -0.3454294 -0.1846190
+#>   2:     725.13 -0.3505079 -0.2030258
+#>   3:     732.85 -0.3595735 -0.2236059
+#>   4:     740.56 -0.3662870 -0.2380186
+#>   5:     748.28 -0.3689005 -0.2436821
+#>  ---                                 
+#> 423:    3972.81 -0.4140871 -0.3092059
+#> 424:    3980.52 -0.4108835 -0.3107601
+#> 425:    3988.24 -0.4105957 -0.3180229
+#> 426:    3995.95 -0.4125072 -0.3195935
+#> 427:    4003.67 -0.4132366 -0.3126730
+#> 
+#> $metadata
+#>        x     y feature_id  area perimeter feret_min feret_max convex_hull_area
+#>    <num> <num>     <char> <int>     <num>     <num>     <num>            <num>
+#> 1:     0     0          1    13        24         1        13                0
+#> 2:     1     0        -88    NA        NA        NA        NA               NA
+#>          file_name  license
+#>             <char>   <char>
+#> 1: CA small UF.dat CC BY-NC
+#> 2: CA small UF.dat CC BY-NC
+#>                                                     description samples lines
+#>                                                          <char>   <num> <num>
+#> 1: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13
+#> 2: Pixel 15, XPos=12549.72, YPos= 589.82, X=12362.22, Y= 614.82      16    13
+#>    bands header offset data type interleave                  z plot titles
+#>    <num>         <num>     <num>     <char>                         <char>
+#> 1:   427             0         4        bip Wavenumbers (cm-1), Absorbance
+#> 2:   427             0         4        bip Wavenumbers (cm-1), Absorbance
+#>                  pixel size col_id
+#>                      <char> <char>
+#> 1: 0.000025000, 0.000025000    0_0
+#> 2: 0.000025000, 0.000025000    0_1
+#>                                                           session_id
+#>                                                               <char>
+#> 1: d862a750602b537df0489a1dd2b06b60/bd79f81e5644779e6540cc62c262599a
+#> 2: d862a750602b537df0489a1dd2b06b60/bd79f81e5644779e6540cc62c262599a
+#>                             file_id centroid_x centroid_y first_x first_y
+#>                              <char>      <num>      <num>   <num>   <num>
+#> 1: 215a0fd7e0dc3b1001799214618ce6eb          0          6       0       0
+#> 2: 215a0fd7e0dc3b1001799214618ce6eb          8          6       1       0
+#>    rand_x rand_y
+#>     <num>  <num>
+#> 1:      0     10
+#> 2:      4      2
 ```
