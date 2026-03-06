@@ -24,6 +24,7 @@
 #' specific \code{ref} is requested, matching local copies are preferred and
 #' unmatched directories are ignored.
 #' @param test_mode logical; for internal testing only.
+#' @param launch.browser option for runApp, defaults to web browser.
 #' @param \dots arguments passed to \code{\link[shiny]{runApp}()}.
 #'
 #' @return
@@ -46,7 +47,8 @@
 #' @importFrom jsonlite fromJSON
 #' @export
 run_app <- function(path = "system", log = TRUE, ref = "main",
-                    check_local = TRUE, test_mode = FALSE, ...) {
+                    check_local = TRUE, test_mode = FALSE, 
+                    launch.browser = .rs.invokeShinyWindowExternal, ...) {
   pkg <- c("shinyjs", "shinyWidgets", "bs4Dash",
            "dplyr", "ggplot2", "DT", "reshape2")
 
@@ -438,5 +440,5 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
     }
   }
 
-  runApp(app_path, ...)
+  runApp(app_path, launch.browser = .rs.invokeShinyWindowExternal, ...)
 }

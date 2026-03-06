@@ -10,6 +10,7 @@ run_app(
   ref = "main",
   check_local = TRUE,
   test_mode = FALSE,
+  launch.browser = .rs.invokeShinyWindowExternal,
   ...
 )
 }
@@ -33,6 +34,8 @@ specific \code{ref} is requested, matching local copies are preferred and
 unmatched directories are ignored.}
 
 \item{test_mode}{logical; for internal testing only.}
+
+\item{launch.browser}{option for runApp, defaults to web browser.}
 
 \item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
 }
