@@ -190,7 +190,7 @@ os_similarity(x, y, method = "hamming", na.rm = T, ...)
 ## Value
 
 `match_spec()` and `ident_spec()` will return a
-[`data.table-class()`](https://rdatatable.gitlab.io/data.table/reference/data.table-class.html)
+[`data.table-class()`](https://rdrr.io/pkg/data.table/man/data.table-class.html)
 containing correlations between spectra and the library. The table has
 three columns: `object_id`, `library_id`, and `match_val`. Each row
 represents a unique pairwise correlation between a spectrum in the
@@ -201,7 +201,7 @@ added to the output. If `add_object_metadata` is `is.character`, the
 object metadata will be added to the output. `filter_spec()` returns an
 `OpenSpecy` object. `fill_spec()` returns an `OpenSpecy` object.
 `cor_spec()` returns a correlation matrix. `get_metadata()` returns a
-[`data.table-class()`](https://rdatatable.gitlab.io/data.table/reference/data.table-class.html)
+[`data.table-class()`](https://rdrr.io/pkg/data.table/man/data.table-class.html)
 with the metadata for columns which have information. `os_similarity()`
 returns a single numeric value representing the type of similarity
 metric requested. 'wavenumber' similarity is based on the proportion of

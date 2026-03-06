@@ -83,10 +83,10 @@ read_extdata("raman_hdpe.csv") |> read_any()
 #> 1:     1     1 raman_hdpe.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: e7b77116afcf4e5aca15ce58eb3b4721
 read_extdata("ftir_ldpe_soil.asp") |> read_any()
 #>       wavenumber   intensity
 #>            <num>       <num>
@@ -108,10 +108,10 @@ read_extdata("ftir_ldpe_soil.asp") |> read_any()
 #> 1:     1     1 ftir_ldpe_soil.asp CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: a33700bad0376ddab156980f473bac92
+#> 1: f7d0d9348225ecb605be5645353a417c
 read_extdata("testdata_zipped.zip") |> read_many()
 #> [[1]]
 #>      wavenumber intensity intensity.1 intensity.2
@@ -136,14 +136,14 @@ read_extdata("testdata_zipped.zip") |> read_many()
 #> 3:     1     2            testdata2.csv CC BY-NC intensity.2
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#> 2: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#> 3: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#> 2: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#> 3: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
-#> 2: cb06ce2846b119d932fb6696479a445b
-#> 3: cb06ce2846b119d932fb6696479a445b
+#> 1: e7b77116afcf4e5aca15ce58eb3b4721
+#> 2: e7b77116afcf4e5aca15ce58eb3b4721
+#> 3: e7b77116afcf4e5aca15ce58eb3b4721
 #> 
 read_extdata("CA_tiny_map.zip") |> read_many()
 #> [[1]]
@@ -658,29 +658,29 @@ read_extdata("CA_tiny_map.zip") |> read_many()
 #> 208: 0.000025000, 0.000025000  12_15
 #>                                                             session_id
 #>                                                                 <char>
-#>   1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#>   2: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#>   3: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#>   4: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#>   5: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#>   1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#>   2: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#>   3: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#>   4: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#>   5: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>  ---                                                                  
-#> 204: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#> 205: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#> 206: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#> 207: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
-#> 208: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 204: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#> 205: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#> 206: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#> 207: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#> 208: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                               file_id
 #>                                <char>
-#>   1: 215a0fd7e0dc3b1001799214618ce6eb
-#>   2: 215a0fd7e0dc3b1001799214618ce6eb
-#>   3: 215a0fd7e0dc3b1001799214618ce6eb
-#>   4: 215a0fd7e0dc3b1001799214618ce6eb
-#>   5: 215a0fd7e0dc3b1001799214618ce6eb
+#>   1: 4c71a23972aec69c1214d65992793497
+#>   2: 4c71a23972aec69c1214d65992793497
+#>   3: 4c71a23972aec69c1214d65992793497
+#>   4: 4c71a23972aec69c1214d65992793497
+#>   5: 4c71a23972aec69c1214d65992793497
 #>  ---                                 
-#> 204: 215a0fd7e0dc3b1001799214618ce6eb
-#> 205: 215a0fd7e0dc3b1001799214618ce6eb
-#> 206: 215a0fd7e0dc3b1001799214618ce6eb
-#> 207: 215a0fd7e0dc3b1001799214618ce6eb
-#> 208: 215a0fd7e0dc3b1001799214618ce6eb
+#> 204: 4c71a23972aec69c1214d65992793497
+#> 205: 4c71a23972aec69c1214d65992793497
+#> 206: 4c71a23972aec69c1214d65992793497
+#> 207: 4c71a23972aec69c1214d65992793497
+#> 208: 4c71a23972aec69c1214d65992793497
 #> 
 ```

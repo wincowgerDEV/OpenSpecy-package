@@ -84,7 +84,7 @@ return a textual representation of an `OpenSpecy` object.
 [`plot()`](https://rdrr.io/r/base/plot.html) and
 [`lines()`](https://rdrr.io/r/graphics/lines.html) return a plot.
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) and
-[`as.data.table()`](https://rdatatable.gitlab.io/data.table/reference/as.data.table.html)
+[`as.data.table()`](https://rdrr.io/pkg/data.table/man/as.data.table.html)
 convert `OpenSpecy` objects into tabular data.
 
 ## Details
@@ -104,7 +104,7 @@ prints the contents of an `OpenSpecy` object.
 [`matplot()`](https://rdrr.io/r/graphics/matplot.html), and
 [`matlines()`](https://rdrr.io/r/graphics/matplot.html),
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html),
-[`as.data.table()`](https://rdatatable.gitlab.io/data.table/reference/as.data.table.html)
+[`as.data.table()`](https://rdrr.io/pkg/data.table/man/as.data.table.html)
 
 ## Author
 

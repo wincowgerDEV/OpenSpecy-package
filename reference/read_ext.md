@@ -118,9 +118,8 @@ read_h5(file, collapse = T, ...)
 - method:
 
   submethod to be used for reading text files; defaults to
-  [`fread()`](https://rdatatable.gitlab.io/data.table/reference/fread.html)
-  but [`read.csv()`](https://rdrr.io/r/utils/read.table.html) works as
-  well.
+  [`fread()`](https://rdrr.io/pkg/data.table/man/fread.html) but
+  [`read.csv()`](https://rdrr.io/r/utils/read.table.html) works as well.
 
 - comma_decimal:
 
@@ -200,10 +199,10 @@ read_extdata("raman_hdpe.csv") |> read_text()
 #> 1:     1     1 raman_hdpe.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: e7b77116afcf4e5aca15ce58eb3b4721
 read_extdata("raman_atacamit.spc") |> read_spc()
 #>      wavenumber intensity
 #>           <num>     <num>
@@ -225,10 +224,10 @@ read_extdata("raman_atacamit.spc") |> read_spc()
 #> 1:     1     1 raman_atacamit.spc CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: 2693c0b0295ce36c16b10e1e660241f2
+#> 1: 7a530901f91f0a762b5b863675ca9446
 read_extdata("ftir_ldpe_soil.asp") |> read_asp()
 #>       wavenumber   intensity
 #>            <num>       <num>
@@ -250,10 +249,10 @@ read_extdata("ftir_ldpe_soil.asp") |> read_asp()
 #> 1:     1     1 ftir_ldpe_soil.asp CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: a33700bad0376ddab156980f473bac92
+#> 1: f7d0d9348225ecb605be5645353a417c
 read_extdata("testdata_zipped.zip") |> read_zip()
 #> [[1]]
 #>      wavenumber intensity
@@ -276,10 +275,10 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2 - Copy (2).csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: e7b77116afcf4e5aca15ce58eb3b4721
 #> 
 #> [[2]]
 #>      wavenumber intensity
@@ -302,10 +301,10 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2 - Copy.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: e7b77116afcf4e5aca15ce58eb3b4721
 #> 
 #> [[3]]
 #>      wavenumber intensity
@@ -328,9 +327,9 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: e7b77116afcf4e5aca15ce58eb3b4721
 #> 
 ```

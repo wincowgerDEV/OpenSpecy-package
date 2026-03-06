@@ -84,8 +84,8 @@ and
 for wrapper functions;
 [`saveRDS()`](https://rdrr.io/r/base/readRDS.html);
 [`readRDS()`](https://rdrr.io/r/base/readRDS.html);
-[`write_yaml()`](https://rdrr.io/pkg/yaml/man/write_yaml.html);
-[`read_yaml()`](https://rdrr.io/pkg/yaml/man/read_yaml.html);
+[`write_yaml()`](https://yaml.r-lib.org/reference/write_yaml.html);
+[`read_yaml()`](https://yaml.r-lib.org/reference/read_yaml.html);
 [`write_json()`](https://jeroen.r-universe.dev/jsonlite/reference/read_json.html);
 [`read_json()`](https://jeroen.r-universe.dev/jsonlite/reference/read_json.html);
 
@@ -192,10 +192,10 @@ read_extdata("raman_hdpe.csv") |> read_spec()
 #> 1:     1     1 raman_hdpe.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: d862a750602b537df0489a1dd2b06b60/c4a50edae27608b4ccf1a690dc7df0b1
+#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: e7b77116afcf4e5aca15ce58eb3b4721
 
 if (FALSE) { # \dontrun{
 data(raman_hdpe)

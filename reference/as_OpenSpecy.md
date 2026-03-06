@@ -535,7 +535,7 @@ as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber,
 #> $metadata
 #>        x     y  license  col_id                          file_id
 #>    <int> <int>   <char>  <char>                           <char>
-#> 1:     1     1 CC BY-NC spectra bf49db07d97b169635b8f8e17311cdbc
+#> 1:     1     1 CC BY-NC spectra e88b41499250afc9f55d03688fc8f4ce
 
 # Test that the spectrum is formatted as an OpenSpecy object.
 is_OpenSpecy(raman_hdpe)

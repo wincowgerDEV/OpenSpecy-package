@@ -11,6 +11,7 @@ run_app(
   ref = "main",
   check_local = TRUE,
   test_mode = FALSE,
+  launch.browser = .rs.invokeShinyWindowExternal,
   ...
 )
 ```
@@ -47,6 +48,10 @@ run_app(
 - test_mode:
 
   logical; for internal testing only.
+
+- launch.browser:
+
+  option for runApp, defaults to web browser.
 
 - ...:
 
