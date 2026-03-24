@@ -63,13 +63,13 @@ test_that("features are identified with sig_noise and smoothing with closing", {
     
     #heatmap_spec(map, test_part_close)
     
-    id_map5 <- def_features(x = map,features =  test_part_close, close = T, close_kernel = c(1,1))
+    id_map5 <- def_features(x = map,features =  test_part_close, close = T, close_kernel = c(1,1)) |> expect_message()
     expect_true(nrow(id_map5$metadata) == ncol(id_map5$spectra))
     
     #heatmap_spec(id_map5, id_map5$metadata$feature_id)
     
     expect_true(is_OpenSpecy(id_map5))
-    unique(id_map5$metadata$feature_id) |> expect_length(3)
+    unique(id_map5$metadata$feature_id) |> expect_length(7)
     
     #Test collapsing on character complete overlap
     test_part_close <- rep_len(NA, length.out = ncol(map$spectra))
@@ -78,13 +78,13 @@ test_that("features are identified with sig_noise and smoothing with closing", {
     
     #heatmap_spec(map, test_part_close)
     
-    id_map5 <- def_features(map, test_part_close, close = T, close_kernel = c(3,3))
+    id_map5 <- def_features(map, test_part_close, close = T, close_kernel = c(3,3)) |> expect_message()
     expect_true(nrow(id_map5$metadata) == ncol(id_map5$spectra))
     
     #heatmap_spec(id_map5, id_map5$metadata$feature_id)
     
     expect_true(is_OpenSpecy(id_map5))
-    unique(id_map5$metadata$feature_id) |> expect_length(2)
+    unique(id_map5$metadata$feature_id) |> expect_length(3)
 
 })
 

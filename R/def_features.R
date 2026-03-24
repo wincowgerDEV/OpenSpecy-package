@@ -233,32 +233,38 @@ def_features.OpenSpecy <- function(x, features,
                             nrow = nrow, 
                             ncol = ncol)
     
+    labeled_image <- matrix(as.character(NA), 
+                           nrow = nrow, 
+                           ncol = ncol)
+    
     # Populate the matrix with your data
     x_coords <- x$metadata$x
     y_coords <- x$metadata$y
     
     if(is.character(binary)){
-        labeled_image <- lapply(unique(binary), 
-               function(y){
-                   t = binary == y
-                   binary_mat2 = binary_matrix
-                   for (i in 1:length(t)) {
-                       binary_mat2[y_coords[i] + 1, x_coords[i] + 1] <- t[i]
-                   }
+        for(y in unique(binary)){
+            t = binary == y
+            binary_mat2 = binary_matrix
+            for (i in 1:length(t)) {
+                binary_mat2[y_coords[i] + 1, x_coords[i] + 1] <- t[i]
+            }
+            
+            k <- shapeKernel(shape_kernel, type= shape_type)
+            
+            if(close){
+                kc <- shapeKernel(close_kernel, type=close_type)
+                binary_mat2 <- closing(binary_mat2, kc)
+                binary_mat2[is.infinite(binary_mat2)] <- NA
+            }
+            comps <- as.character(components(binary_mat2, k))
+            
+            labeled_image2 <- data.table::fifelse(is.na(comps), comps, paste0(comps, "_", y))
+
+            labeled_image <- matrix(fcoalesce(labeled_image2, labeled_image), 
+                        nrow = nrow, 
+                        ncol = ncol)
+        }
                    
-                   k <- shapeKernel(shape_kernel, type= shape_type)
-                   
-                   if(close){
-                       kc <- shapeKernel(close_kernel, type=close_type)
-                       binary_mat2 <- closing(binary_mat2, kc)
-                   }
-                   comps <- as.character(components(binary_mat2, k))
-                   data.table::fifelse(is.na(comps), comps, paste0(comps, "_", y))
-               })
-        
-        labeled_image <- matrix(fcoalesce(labeled_image), 
-                               nrow = nrow, 
-                               ncol = ncol)
     }
     
     else{
