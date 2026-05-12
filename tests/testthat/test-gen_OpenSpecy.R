@@ -17,6 +17,9 @@ test_that("head() returns the first few lines of the OpenSpecy object", {
 })
 
 test_that("plotting works without errors", {
+  grDevices::pdf(tempfile(fileext = ".pdf"))
+  on.exit(grDevices::dev.off(), add = TRUE)
+
   plot(raman_hdpe) |> expect_silent()
 })
 

@@ -27,8 +27,11 @@ test_that("heatmap_spec() generates 'plotly' object", {
 })
 
 test_that("heatmap_spec() generates static object", {
-    heatmap_spec(map, z = map$metadata$y, type = "static") |>
-        expect_silent() 
+  grDevices::pdf(tempfile(fileext = ".pdf"))
+  on.exit(grDevices::dev.off(), add = TRUE)
+
+  heatmap_spec(map, z = map$metadata$y, type = "static") |>
+    expect_silent()
 })
 
 test_that("interactive_plot() generates 'plotly' object", {
