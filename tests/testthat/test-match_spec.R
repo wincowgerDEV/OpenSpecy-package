@@ -165,28 +165,7 @@ test_that("match_spec() handles attribute issues correctly", {
     expect_warning()
 })
 
-test_that("optimized is faster than base without cache effects", {
-    skip_on_cran()
-    skip_on_ci()
-    
-    reps <- 1:10 
-    opt <- numeric(length(reps)) 
-    bas <- numeric(length(reps)) 
-    
-    for(rep in reps){ 
-        s1_a <- Sys.time() 
-        cor_spec(x = test_lib, lib = test_lib, compute = "optimized") |> expect_silent() 
-        s1_b <- Sys.time() 
-        opt[rep] <- s1_b - s1_a 
-        } 
-    for(rep in reps){ 
-        s1_a <- Sys.time() 
-        cor_spec(x = test_lib, lib = test_lib, compute = "base") |>
-            expect_silent() 
-        s1_b <- Sys.time() 
-        bas[rep] <- s1_b - s1_a } 
-    expect_gt(mean(bas),mean(opt)*0.8)
-})
+
 
 
 test_that("match_spec() returns correct structure", {

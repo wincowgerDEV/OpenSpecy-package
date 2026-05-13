@@ -175,17 +175,14 @@ def_features.OpenSpecy <- function(x, features,
     if(length(unique(features)) == 1)
       stop("features cannot be all one class, e.g. all T or all F or all one category", call. = F)
 
-    features_df <- .def_features(x, binary =  features, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
-  }  else {
+    if(is.character(features) && close)
+      stop("closing is not supported when features is a character vector; convert to logical or use close = FALSE", call. = F)
+
+    features_df <- .def_features(x, binary = features, shape_kernel, shape_type, close, close_kernel, close_type, img, bottom_left, top_right)
+  } else {
     stop("features needs to be a character or logical vector", call. = F)
   }
     
-    if(is.character(features) & close){
-        message("Be careful when combining character feature type and 
-                closings simultaneously, in general they will behave unpredictably
-                when the closed output ends up overlapping between classes.")
-    }
-
   obj <- x
   x <- y <- feature_id <- area <- b <- g <- max_cor_val <- r <- snr <- test <- NULL # workaround for data.table non-standard
                                # evaluation
