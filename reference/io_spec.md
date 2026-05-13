@@ -192,10 +192,10 @@ read_extdata("raman_hdpe.csv") |> read_spec()
 #> 1:     1     1 raman_hdpe.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 181305d9512455816f609316663afc68/0d9d41f6110cd4f05196274295ca6352
+#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/a4e2471336b27f8824dd10f1522cad2a
 #>                             file_id
 #>                              <char>
-#> 1: e7b77116afcf4e5aca15ce58eb3b4721
+#> 1: cb06ce2846b119d932fb6696479a445b
 
 if (FALSE) { # \dontrun{
 data(raman_hdpe)

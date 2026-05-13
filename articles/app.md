@@ -24,14 +24,17 @@ in the library and run the command
 [`run_app()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/run_app.md).
 
 ``` r
+
 install.packages("OpenSpecy")
 ```
 
 ``` r
+
 library(OpenSpecy)
 ```
 
 ``` r
+
 run_app()
 ```
 
@@ -93,7 +96,7 @@ Always keep a copy of the original files.
 |    315.398 |        46 |
 |    318.983 |        42 |
 
-Sample data `raman_hdpe`
+Sample data `raman_hdpe` {.table}
 
 It is best practice to cross check files in the proprietary software
 they came from and Open Specy before use in Open Specy. Due to the
@@ -240,11 +243,11 @@ it will just map wavenumbers to their nearest comformed value.
 Open Specy assumes that intensity units are in absorbance units but Open
 Specy can adjust reflectance or transmittance spectra to absorbance
 units using this selection. The transmittance adjustment uses the
-$\log_{10}1/T$ calculation which does not correct for system or particle
-characteristics. The reflectance adjustment use the Kubelka-Munk
-equation $\frac{(1 - R)^{2}}{2R}$. If none is selected, Open Specy
-assumes that the uploaded data is an absorbance spectrum and does not
-apply an adjustment.
+$`\log_{10} 1/T`$ calculation which does not correct for system or
+particle characteristics. The reflectance adjustment use the
+Kubelka-Munk equation $`\frac{(1-R)^2}{2R}`$. If none is selected, Open
+Specy assumes that the uploaded data is an absorbance spectrum and does
+not apply an adjustment.
 
 ### Baseline Correction
 

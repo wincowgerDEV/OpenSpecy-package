@@ -25,6 +25,7 @@ tutorial](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/artic
 After installing the R package, you just need to read in the library.
 
 ``` r
+
 library(OpenSpecy)
 ```
 
@@ -37,6 +38,7 @@ about how to use the app see [this
 tutorial](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/articles/app.html).
 
 ``` r
+
 run_app()
 ```
 
@@ -47,6 +49,7 @@ and interprets which reading function to use based on the file
 extension.
 
 ``` r
+
 spectra <- read_any("path/to/your/data")
 ```
 
@@ -86,6 +89,7 @@ unclear how much longer this will be supported.
 If you don’t have your own data, you can use a test dataset.
 
 ``` r
+
 data("raman_hdpe")
 ```
 
@@ -93,6 +97,7 @@ We also have many onboard files that you can call to test different
 formats:
 
 ``` r
+
 spectral_map <- read_extdata("CA_tiny_map.zip") |> 
   read_any() # preserves some metadata
 asp_example <- read_extdata("ftir_ldpe_soil.asp") |> 
@@ -111,6 +116,7 @@ spectral analysis which now also preserves spectral metadata. You can
 even create these from scratch if you’d like.
 
 ``` r
+
 scratch_OpenSpecy <- as_OpenSpecy(x = seq(1000,2000, by = 5), 
                                   spectra =  data.frame(runif(n = 201)), 
                                   metadata = list(file_name = "fake_noise")) 
@@ -124,6 +130,7 @@ information about the spectra. Each row in `metadata` corresponds to a
 column in `spectra`.
 
 ``` r
+
 # Access the wavenumbers
 scratch_OpenSpecy$wavenumber
 #>   [1] 1000 1005 1010 1015 1020 1025 1030 1035 1040 1045 1050 1055 1060 1065 1070
@@ -143,6 +150,7 @@ scratch_OpenSpecy$wavenumber
 ```
 
 ``` r
+
 # Access the spectra
 scratch_OpenSpecy$spectra
 #>      runif.n...201.
@@ -161,14 +169,16 @@ scratch_OpenSpecy$spectra
 ```
 
 ``` r
+
 # Access the metadata
 scratch_OpenSpecy$metadata
 #>        x     y  file_name         col_id                          file_id
 #>    <int> <int>     <char>         <char>                           <char>
-#> 1:     1     1 fake_noise runif.n...201. 9bbfe139bb5921047c6b9353c006d333
+#> 1:     1     1 fake_noise runif.n...201. 74944ff090b28e2fe0504f0e85d29ded
 ```
 
 ``` r
+
 # Performs checks to ensure that OpenSpecy objects are adhering to our standards;
 # returns TRUE if it passes. 
 check_OpenSpecy(scratch_OpenSpecy)
@@ -182,6 +192,7 @@ is_OpenSpecy(scratch_OpenSpecy)
 We have some generic functions built for inspecting the spectra:
 
 ``` r
+
 print(scratch_OpenSpecy) # shows the raw object
 #>      wavenumber runif.n...201.
 #>           <num>          <num>
@@ -200,10 +211,11 @@ print(scratch_OpenSpecy) # shows the raw object
 #> $metadata
 #>        x     y  file_name         col_id                          file_id
 #>    <int> <int>     <char>         <char>                           <char>
-#> 1:     1     1 fake_noise runif.n...201. 9bbfe139bb5921047c6b9353c006d333
+#> 1:     1     1 fake_noise runif.n...201. 74944ff090b28e2fe0504f0e85d29ded
 ```
 
 ``` r
+
 summary(scratch_OpenSpecy) # summarizes the contents of the spectra
 #> $wavenumber
 #>  Length Min. Max.     Res.
@@ -221,6 +233,7 @@ summary(scratch_OpenSpecy) # summarizes the contents of the spectra
 ```
 
 ``` r
+
 head(scratch_OpenSpecy) # shows the top wavenumbers and intensities
 #>    wavenumber runif.n...201.
 #>         <num>          <num>
@@ -239,6 +252,7 @@ Open Specy objects can be saved most accurately as .csv, .rds, .yml, or
 format and floating point errors can happen with .csv, .json, or .yml.
 
 ``` r
+
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.yml", digits = 5)
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.json", digits = 5)
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.csv", digits = 5)
@@ -255,6 +269,7 @@ the `as_hyperSpec` function and made sure that `as_OpenSpecy` can
 convert from `hyperSpec` objects.
 
 ``` r
+
 hyperspecy <- as_hyperSpec(scratch_OpenSpecy)
 ```
 
@@ -267,6 +282,7 @@ efficient and the other is interactive. Here is an example of quick and
 efficient plotting.
 
 ``` r
+
 plot(scratch_OpenSpecy) # quick and efficient
 ```
 
@@ -276,6 +292,7 @@ This is an example of an interactive plot. You can plot two different
 datasets simultaneously to compare.
 
 ``` r
+
 # This will min-max normalize your data even if it isn't already but are not
 # changing your underlying data
 plotly_spec(scratch_OpenSpecy, json_example)
@@ -296,6 +313,7 @@ metadata for this reason. This example just shows the x values of the
 spectra.
 
 ``` r
+
 heatmap_spec(spectral_map,
              z = spectral_map$metadata$x)
 ```
@@ -308,6 +326,7 @@ they are interested in and update the value of select to see that
 spectrum.
 
 ``` r
+
 interactive_plot(spectral_map, select = 100, z = spectral_map$metadata$x)
 ```
 
@@ -326,6 +345,7 @@ wavenumber resolution you want and the function will collapse all the
 spectra to whatever their common range is using linear interpolation.
 
 ``` r
+
 combined <- c_spec(list(asp_example, ps_example), range = "common", res = 8) 
 
 combined |> 
@@ -338,6 +358,7 @@ If you want to plot them with standardized offset y values you can do so
 with the plot variables.
 
 ``` r
+
 plot(combined |> make_rel(), offset = 3, legend_var = "file_name")
 ```
 
@@ -353,6 +374,7 @@ number, name, or using a logical vector. Filtering will update the
 `wavenumber`.
 
 ``` r
+
 # Extract the 150th spectrum by index number. 
 filter_spec(spectral_map, 150)
 # Extract the 150th spectrum by spectrum name. 
@@ -376,6 +398,7 @@ in your OpenSpecy objects before doing analysis. The `sample_spec`
 function serves this purpose.
 
 ``` r
+
 sample_spec(spectral_map, size = 5) |>
   plot()
 ```
@@ -400,12 +423,14 @@ optimized by default to result in high signal to noise in most cases,
 same as the app.
 
 ``` r
+
 processed <- process_spec(raman_hdpe)
 ```
 
 You can compare the processed and unprocessed data in an overlay plot.
 
 ``` r
+
 plotly_spec(raman_hdpe, processed)
 ```
 
@@ -439,6 +464,7 @@ and noise regions are, you can specify them with `sig_min`, `sig_max`,
 `noise_min`, and `noise_max`.
 
 ``` r
+
 # Automatic signal to noise ratio comparison
 sig_noise(processed, metric = "run_sig_over_noise") > 
   sig_noise(raman_hdpe, metric = "run_sig_over_noise")
@@ -455,6 +481,7 @@ spectra individually. Setting the `min_sn` will threshold the heatmap
 image to only color spectra which have a `sn` value over the threshold.
 
 ``` r
+
 #Remove CO2 region
 spectral_map_p <- spectral_map |>
   process_spec(flatten_range = T)
@@ -471,14 +498,15 @@ heatmap_spec(spectral_map_p, sn = spectral_map_p$metadata$sig_noise, min_sn = 5)
 Most functions in Open Specy assume that intensity units are in
 absorbance units and Open Specy can adjust reflectance or transmittance
 spectra to absorbance units. The transmittance adjustment uses the
-$\log_{10}1/T$ calculation which does not correct for system or particle
-characteristics. The reflectance adjustment uses the Kubelka-Munk
-equation $\frac{(1 - R)^{2}}{2R}$.
+$`\log_{10} 1/T`$ calculation which does not correct for system or
+particle characteristics. The reflectance adjustment uses the
+Kubelka-Munk equation $`\frac{(1-R)^2}{2R}`$.
 
 This is the respective R code for a scenario where the spectra doesn’t
 need intensity adjustment:
 
 ``` r
+
 trans_raman_hdpe <- raman_hdpe
 trans_raman_hdpe$spectra <- 2 - trans_raman_hdpe$spectra^2
     
@@ -497,6 +525,7 @@ because this tends to be pretty good for a lot of applications and is in
 between 4 and 8 which are commonly used wavenumber resolutions.
 
 ``` r
+
 conform_spec(raman_hdpe, res = 8) |> # Convert res to 8 wavenumbers.
   summary()
 
@@ -524,6 +553,7 @@ units and is easy to have intuition about.
 Examples of smoothing:
 
 ``` r
+
 none <- make_rel(raman_hdpe)
 p1 <- smooth_intens(raman_hdpe, polynomial = 1, derivative = 0, abs = F)
 p4 <- smooth_intens(raman_hdpe, polynomial = 4, derivative = 0, abs = F)
@@ -540,6 +570,7 @@ Sample `raman_hdpe` spectrum with different smoothing polynomials.
 Derivative transformation can be done with the same function.
 
 ``` r
+
 none <- make_rel(raman_hdpe)
 window <- calc_window_points(raman_hdpe, 100) #Calculate the number of points needed for a 190 wavenumber window.
 d1 <- smooth_intens(raman_hdpe, derivative = 1, window = window, abs = T)
@@ -573,6 +604,7 @@ fine tuning options that can be chosen, see `?subtr_baseline()` for more
 details.
 
 ``` r
+
 alternative_baseline <- smooth_intens(raman_hdpe, polynomial = 1, window = 51,
                                       derivative = 0, abs = F, make_rel = F) |>
   flatten_range(min = 2700, max = 3200, make_rel = F) #Manual baseline with heavily smoothed spectra
@@ -604,6 +636,7 @@ a wavenumber range which is well characterized by the instrument.
 Multiple ranges can be specified simultaneously.
 
 ``` r
+
 none <- make_rel(raman_hdpe)
 
 #Specify one range
@@ -641,6 +674,7 @@ in spectra. Like `restrict_range`, the R function can accept multiple
 ranges.
 
 ``` r
+
 single <- filter_spec(spectral_map, 120) # Function to filter spectra by index
                                          # number or name or a logical vector. 
 none <- make_rel(single)
@@ -670,6 +704,7 @@ spectra by default if you do not specify otherwise with
 
 ``` r
 
+
 raman_hdpe |> plot()
 
 make_rel(raman_hdpe) |> plot()
@@ -688,6 +723,7 @@ download all libraries to your package directory or you can specify
 which libraries you want and where you want them.
 
 ``` r
+
 get_lib(type = "derivative")
 ```
 
@@ -697,6 +733,7 @@ as a library which makes it easy to work with and create libraries
 because everything we explained earlier applies to them.
 
 ``` r
+
 lib <- load_lib(type = "derivative")
 ```
 
@@ -718,6 +755,7 @@ use the `data("test_lib")` which is a subsampled version of the
 Raman spectrum in absorbance units of HDPE plastic.
 
 ``` r
+
 data("test_lib")
 data("raman_hdpe")
 
@@ -763,6 +801,7 @@ or Raman spectra, you can first filter the library using
 using `SpectrumType`.
 
 ``` r
+
 matches <- match_spec(x = processed, library = test_lib, conform = T,
                       add_library_metadata = "sample_name", top_n = 5)[order(match_val, decreasing = T)]
 print(matches[,c("object_id", "library_id", "match_val", "SpectrumType",
@@ -782,6 +821,7 @@ values. The function below will return the metadata for the top match in
 you can specify `logic` for more than one thing at a time.
 
 ``` r
+
 get_metadata(x = test_lib, logic = matches[[1,"library_id"]], rm_empty = T)
 ```
 
@@ -796,6 +836,7 @@ in the unknown spectrum near 500 that are not accounted for which could
 be investigated further but we would call this a positive id to HDPE.
 
 ``` r
+
 plotly_spec(processed, filter_spec(test_lib, logic = matches[[1,"library_id"]]))
 ```
 
@@ -826,6 +867,7 @@ functions in the near future.
 ### Brute Force
 
 ``` r
+
 #Test library
 data("test_lib")
 
@@ -863,6 +905,7 @@ plot(test_collapsed, offset = 1, legend_var = "feature_id")
 ### A Priori Particle Thresholding
 
 ``` r
+
 # Read in test library
 data("test_lib")
 

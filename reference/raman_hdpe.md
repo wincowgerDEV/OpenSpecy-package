@@ -9,11 +9,11 @@ An threepart list of class
 [`OpenSpecy`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/as_OpenSpecy.md)
 containing:
 
-|               |                                                                                                                                                                 |
-|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `wavenumber`: | spectral wavenumbers \[1/cm\] (vector of 964 rows)                                                                                                              |
-| `spectra`:    | absorbance values [-](https://rdrr.io/r/base/Arithmetic.html) (a [`data.table`](https://rdrr.io/pkg/data.table/man/data.table.html) with 964 rows and 1 column) |
-| `metadata`:   | spectral metadata                                                                                                                                               |
+|  |  |
+|----|----|
+| `wavenumber`: | spectral wavenumbers \[1/cm\] (vector of 964 rows) |
+| `spectra`: | absorbance values [-](https://rdrr.io/r/base/Arithmetic.html) (a [`data.table`](https://rdrr.io/pkg/data.table/man/data.table.html) with 964 rows and 1 column) |
+| `metadata`: | spectral metadata |
 
 ## References
 

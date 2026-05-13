@@ -64,7 +64,7 @@
 <p>Win Cowger,
 Zacharias Steinmetz, Rachel Kozloski, Aleksandra Karapetrova</p>
             
-            <h4 data-toc-skip class="date">2026-03-06</h4>
+            <h4 data-toc-skip class="date">2026-05-13</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/vignettes/sop.Rmd" class="external-link"><code>vignettes/sop.Rmd</code></a></small>
       <div class="d-none name"><code>sop.Rmd</code></div>
@@ -216,7 +216,7 @@ additional information about the spectra. Each row in
 <span><span class="va">scratch_OpenSpecy</span><span class="op">$</span><span class="va">metadata</span></span>
 <span><span class="co">#&gt;        x     y  file_name         col_id                          file_id</span></span>
 <span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;     &lt;char&gt;         &lt;char&gt;                           &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. 9bbfe139bb5921047c6b9353c006d333</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. 74944ff090b28e2fe0504f0e85d29ded</span></span></code></pre></div>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Performs checks to ensure that OpenSpecy objects are adhering to our standards;</span></span>
 <span><span class="co"># returns TRUE if it passes. </span></span>
@@ -246,7 +246,7 @@ additional information about the spectra. Each row in
 <span><span class="co">#&gt; $metadata</span></span>
 <span><span class="co">#&gt;        x     y  file_name         col_id                          file_id</span></span>
 <span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;     &lt;char&gt;         &lt;char&gt;                           &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. 9bbfe139bb5921047c6b9353c006d333</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. 74944ff090b28e2fe0504f0e85d29ded</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># summarizes the contents of the spectra</span></span>
 <span><span class="co">#&gt; $wavenumber</span></span>
@@ -483,11 +483,11 @@ threshold the heatmap image to only color spectra which have a
 <p>Most functions in Open Specy assume that intensity units are in
 absorbance units and Open Specy can adjust reflectance or transmittance
 spectra to absorbance units. The transmittance adjustment uses the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>log</mo><mn>10</mn></msub><mn>1</mn><mi>/</mi><mi>T</mi></mrow><annotation encoding="application/x-tex">\log_{10} 1/T</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mn>10</mn></msub><mn>1</mn><mi>/</mi><mi>T</mi></mrow><annotation encoding="application/x-tex">\log_{10} 1/T</annotation></semantics></math>
 calculation which does not correct for system or particle
 characteristics. The reflectance adjustment uses the Kubelka-Munk
 equation
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><msup><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>R</mi><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><mrow><mn>2</mn><mi>R</mi></mrow></mfrac><annotation encoding="application/x-tex">\frac{(1-R)^2}{2R}</annotation></semantics></math>.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>R</mi><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow><mrow><mn>2</mn><mi>R</mi></mrow></mfrac><annotation encoding="application/x-tex">\frac{(1-R)^2}{2R}</annotation></semantics></math>.</p>
 <p>This is the respective R code for a scenario where the spectra
 doesn’t need intensity adjustment:</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">

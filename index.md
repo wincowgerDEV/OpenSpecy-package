@@ -29,6 +29,7 @@ You can install the latest release of **OpenSpecy** from
 [CRAN](https://CRAN.R-project.org) with:
 
 ``` r
+
 install.packages("OpenSpecy")
 ```
 
@@ -38,6 +39,7 @@ To install the development version of this package, paste the following
 code into your R console (requires **devtools**):
 
 ``` r
+
 if (!require(devtools)) install.packages("devtools")
 devtools::install_github("wincowgerDEV/OpenSpecy-package")
 ```
@@ -45,6 +47,7 @@ devtools::install_github("wincowgerDEV/OpenSpecy-package")
 ### Install on Web Assemply through webr (experimental), you can test here: <https://webr.r-wasm.org/latest/>
 
 ``` r
+
 library(caTools)
 library(data.table)
 library(jsonlite)
@@ -64,6 +67,7 @@ library(OpenSpecy)
 ## Getting started
 
 ``` r
+
 library(OpenSpecy)
 run_app()
 ```
@@ -75,6 +79,7 @@ vignette](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/artic
 for a detailed standard operating procedure.
 
 ``` r
+
 # Fetch current spectral library from https://osf.io/x7dpz/
 get_lib("derivative")
 
