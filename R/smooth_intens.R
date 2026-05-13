@@ -82,25 +82,26 @@ smooth_intens.OpenSpecy <- function(x, polynomial = 3,
                                     type = "sg",
                                     lag = 2,
                                     make_rel = TRUE, ...) {
+  x <- as_OpenSpecy(x)
+
   if(type == "sg") {
-    filt <- x$spectra[, lapply(.SD, .sgfilt, p = polynomial, n = window,
-                               m = derivative)]
+    filt <- .apply_spectra(x$spectra, .sgfilt, p = polynomial, n = window,
+                           m = derivative, ...)
   } else if(type == "wh") {
-    filt <- x$spectra[, lapply(.SD, function(y){
-      .whittaker(
-        .derivative(y,
-                    res = spec_res(x),
-                    derivative,
-                    lag),
-        d = d,
-        lambda = lambda
-      )})]
+    filt <- .whittaker_matrix(
+      .derivative_matrix(x$spectra,
+                         res = spec_res(x),
+                         derivative = derivative,
+                         lag = lag),
+      d = d,
+      lambda = lambda
+    )
   } else {
     stop("type must be one of 'wh' or 'sg'")
   }
 
   if(abs) filt <- abs(filt)
-  if(make_rel) x$spectra <- filt[, lapply(.SD, make_rel)] else x$spectra <- filt
+  if(make_rel) x$spectra <- .matrix_make_rel(filt) else x$spectra <- filt
 
   return(x)
 }
@@ -160,6 +161,24 @@ calc_window_points.OpenSpecy <- function(x, wavenum_width = 70, ...){
   }
 }
 
+.derivative_matrix <- function(y, res = NULL, derivative = 1, lag = 1) {
+  if(derivative == 0) {
+    return(y)
+  }
+  else if(derivative > 0) {
+    if(is.null(res)) stop("res must be specified for the derivative to work")
+    size <- nrow(y)
+    out <- diff(y, lag = lag, differences = derivative)/(res*lag)
+    fill <- matrix(rep(out[nrow(out), ], each = size - nrow(out)),
+                   nrow = size - nrow(out),
+                   ncol = ncol(out))
+    out <- rbind(out, fill)
+    colnames(out) <- colnames(y)
+    return(out)
+  } else {
+    stop("derivative must be greater than or equal to zero")
+  }
+}
 
 .whittaker <- function(y, lambda = 1600, d = 2) {
   m <- length(y)
@@ -169,6 +188,16 @@ calc_window_points.OpenSpecy <- function(x, wavenum_width = 70, ...){
   z <- solve(B, y)
 
   return(z)
+}
+
+.whittaker_matrix <- function(y, lambda = 1600, d = 2) {
+  m <- nrow(y)
+  E <- .eye(m)
+  D <- diff(E, lag = 1, differences = d)
+  B <- E + (lambda * t(D) %*% D)
+  z <- solve(B, y)
+  colnames(z) <- colnames(y)
+  z
 }
 
 .eye <- function(n, m = n) {

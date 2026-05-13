@@ -37,8 +37,8 @@ test_that("flatten_range() function test", {
 
   expect_true(check_OpenSpecy(flat_sam))
 
-  expect_equal(flat_sam$spectra$V1[4:5], c(4.5, 4.5))
-  expect_equal(flat_sam$spectra$V1[7:10], c(8.5, 8.5, 8.5, 8.5))
+  expect_equal(flat_sam$spectra[4:5, "V1"], c(4.5, 4.5))
+  expect_equal(flat_sam$spectra[7:10, "V1"], c(8.5, 8.5, 8.5, 8.5))
 
   data("raman_hdpe")
   flat_hdpe <- flatten_range(raman_hdpe, min = c(500, 1000),
@@ -46,9 +46,9 @@ test_that("flatten_range() function test", {
     expect_silent()
   expect_true(check_OpenSpecy(flat_hdpe))
 
-  expect_equal(flat_hdpe$spectra$intensity[1:50],
-               make_rel(raman_hdpe$spectra$intensity)[1:50])
-  expect_equal(flat_hdpe$spectra$intensity[60:100] |> unique() |> round(6),
+  expect_equal(flat_hdpe$spectra[1:50, "intensity"],
+               make_rel(raman_hdpe$spectra[, "intensity"])[1:50])
+  expect_equal(flat_hdpe$spectra[60:100, "intensity"] |> unique() |> round(6),
                0.036709)
 
   tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()
@@ -58,7 +58,7 @@ test_that("flatten_range() function test", {
   expect_true(check_OpenSpecy(flat_map))
 
   expect_false(all.equal(flat_map$spectra, tiny_map$spectra) |> isTRUE())
-  expect_equal(flat_map$spectra[1:20], tiny_map$spectra[1:20])
+  expect_equal(flat_map$spectra[1:20, ], tiny_map$spectra[1:20, ])
 
   flat_map$spectra[40:60, 1:5] |> unique() |> round(2) |> as.numeric() |>
     expect_equal(c(-0.87, -1.25, -0.83, -1.19, -0.79))

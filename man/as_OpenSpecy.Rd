@@ -65,7 +65,7 @@ desirable.}
 \item{colnames}{names of the wavenumber column and spectra column, makes
 assumptions based on column names or placement if \code{NULL}.}
 
-\item{spectra}{spectral intensities formatted as a data.table with one column
+\item{spectra}{spectral intensities formatted as a matrix with one column
 per spectrum.}
 
 \item{metadata}{metadata for each spectrum with one row per spectrum,
@@ -98,7 +98,7 @@ possible.
 \details{
 \code{as_OpenSpecy()} converts spectral datasets to a three part list;
 the first with a vector of the wavenumbers of the spectra,
-the second with a \code{data.table} of all spectral intensities ordered as
+the second with a matrix of all spectral intensities ordered as
 columns,
 the third item is another \code{data.table} with any metadata the user
 provides or is harvested from the files themselves.
@@ -181,7 +181,7 @@ data("raman_hdpe")
 # Inspect the spectra
 raman_hdpe # see how OpenSpecy objects print.
 raman_hdpe$wavenumber # look at just the wavenumbers of the spectra.
-raman_hdpe$spectra # look at just the spectral intensities data.table.
+raman_hdpe$spectra # look at just the spectral intensities matrix.
 raman_hdpe$metadata # look at just the metadata of the spectra.
 
 # Creating a list and transforming to OpenSpecy
@@ -195,7 +195,7 @@ as_OpenSpecy(raman_hdpe)
 
 # Creating an OpenSpecy from a data.frame
 as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber,
-                            spectra = raman_hdpe$spectra$intensity))
+                            spectra = raman_hdpe$spectra[, "intensity"]))
 
 # Test that the spectrum is formatted as an OpenSpecy object.
 is_OpenSpecy(raman_hdpe)

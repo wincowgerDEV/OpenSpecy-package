@@ -79,7 +79,10 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
                                 sig_min = NULL, sig_max = NULL,
                                 noise_min = NULL, noise_max = NULL, abs = T,
                                 spatial_smooth = F, sigma = c(1,1), threshold = NULL, ...) {
-  values <- vapply(x$spectra, function(y) {
+  x <- as_OpenSpecy(x)
+
+  values <- vapply(seq_len(ncol(x$spectra)), function(i) {
+    y <- x$spectra[, i]
     if(metric == "run_sig_over_noise") {
       if(length(y[!is.na(y)]) < step) {
         warning(paste0("Need at least ", step, " intensity values to calculate ",
@@ -87,10 +90,10 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
                        "run_sig_over_noise; returning NA"), call. = F)
         return(NA)
       }
-      max <- frollapply(y[!is.na(y)], step, max)
-      max[(length(max) - (step-1)):length(max)] <- NA
-      signal <- max(max, na.rm = na.rm)
-      noise <- quantile(max[max != 0], probs = prob, na.rm = na.rm)
+      rolling_max <- frollapply(y[!is.na(y)], step, max)
+      rolling_max[(length(rolling_max) - (step-1)):length(rolling_max)] <- NA
+      signal <- max(rolling_max, na.rm = na.rm)
+      noise <- quantile(rolling_max[rolling_max != 0], probs = prob, na.rm = na.rm)
     } else {
       if(!is.null(sig_min) & !is.null(sig_max)){
         sig_intens <- y[x$wavenumber >= sig_min & x$wavenumber <= sig_max]

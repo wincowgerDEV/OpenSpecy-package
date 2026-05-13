@@ -3,12 +3,15 @@
 \name{make_rel}
 \alias{make_rel}
 \alias{make_rel.default}
+\alias{make_rel.matrix}
 \alias{make_rel.OpenSpecy}
 \title{Make spectral intensities relative}
 \usage{
 make_rel(x, ...)
 
 \method{make_rel}{default}(x, na.rm = FALSE, ...)
+
+\method{make_rel}{matrix}(x, na.rm = FALSE, ...)
 
 \method{make_rel}{OpenSpecy}(x, na.rm = FALSE, ...)
 }

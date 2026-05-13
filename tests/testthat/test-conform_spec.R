@@ -52,7 +52,7 @@ test_that("conform_spec() conforms wavenumbers correctly", {
       expect_silent()
   expect_true(check_OpenSpecy(conf_wider2))
   
-  expect_equal(length(conf_new$wavenumber), length(conf_new$spectra[[1]]))
+  expect_equal(length(conf_new$wavenumber), nrow(conf_new$spectra))
   expect_equal(range(conf_new$wavenumber), range(new_wavenumbers))
 
   expect_identical(conf_roll$wavenumber, new_wavenumbers)
@@ -64,7 +64,7 @@ test_that("conform_spec() conforms wavenumbers correctly", {
   expect_s3_class(conf_new, "OpenSpecy")
   expect_s3_class(conf_roll, "OpenSpecy")
 
-  conform_spec(raman_hdpe)$spectra$intensity[c(63, 143, 283, 325, 402)] |>
+  conform_spec(raman_hdpe)$spectra[c(63, 143, 283, 325, 402), "intensity"] |>
     round(2) |>
     expect_equal(c(78.84, 65.00, 105.73, 109.41, 116.00))
   

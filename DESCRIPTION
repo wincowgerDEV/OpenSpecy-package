@@ -106,6 +106,6 @@ Suggests:
     DT,
     reshape2,
     ggplot2
-RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0

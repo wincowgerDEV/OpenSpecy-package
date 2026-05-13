@@ -60,17 +60,18 @@ restrict_range.default <- function(x, ...) {
 #' @export
 restrict_range.OpenSpecy <- function(x, min, max, make_rel = TRUE,
                                      ...) {
-  
-  test <- as.data.table(lapply(1:length(min), function(y){
-    x$wavenumber >= min[y] & x$wavenumber <= max[y]})
-  )
+  x <- as_OpenSpecy(x)
+
+  test <- vapply(seq_along(min), function(y) {
+    x$wavenumber >= min[y] & x$wavenumber <= max[y]
+  }, FUN.VALUE = logical(length(x$wavenumber)))
 
   vals <- rowSums(test) > 0
-  filt <- x$spectra[vals,]
+  filt <- x$spectra[vals, , drop = FALSE]
   x$wavenumber <- x$wavenumber[vals]
 
   if (make_rel) {
-          x$spectra <- apmdt(filt, make_rel)
+          x$spectra <- .matrix_make_rel(filt)
   }
       else x$spectra <- filt
 
@@ -96,6 +97,8 @@ flatten_range.default <- function(x, ...) {
 #' @export
 flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
                                     ...) {
+  x <- as_OpenSpecy(x)
+
   if(length(min) != length(max)) {
     stop("min and max need to be the same length", call. = F)
   }
@@ -104,10 +107,22 @@ flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
   }, FUN.VALUE = logical(1)))) {
     stop("all min values must be lower than corresponding max", call. = F)
   }
-  flat <- apmdt(x$spectra, .flatten_range, x = x$wavenumber,
-                             min = min, max = max)
+  if(all(min > max(x$wavenumber)) ||  all(max < min(x$wavenumber)))
+    stop("'min' or 'max' out of range")
 
-  if (make_rel) x$spectra <- apmdt(flat, make_rel) else x$spectra <- flat
+  flat <- x$spectra
+  for(i in seq_along(min)) {
+    rows <- x$wavenumber >= min[i] & x$wavenumber <= max[i]
+    left <- min(which(x$wavenumber >= min[i]))
+    right <- max(which(x$wavenumber <= max[i]))
+    vals <- colMeans(flat[c(left, right), , drop = FALSE])
+    flat[rows, ] <- matrix(rep(vals, each = sum(rows)),
+                           nrow = sum(rows),
+                           ncol = ncol(flat),
+                           dimnames = list(NULL, colnames(flat)))
+  }
+
+  if (make_rel) x$spectra <- .matrix_make_rel(flat) else x$spectra <- flat
 
   return(x)
 }
@@ -126,10 +141,10 @@ flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
 
 apmdt <- function(spectra,  ...){
     if(is.data.table(spectra)){
-        return(spectra[, lapply(.SD, ...)]) 
+        spectra <- .as_spectra_matrix(spectra, message_conversion = TRUE)
     }
-    else if(is.matrix(spectra) && length(dim(spectra)) == 2L){
-        return(apply(spectra, 2L, ...))
+    if(is.matrix(spectra) && length(dim(spectra)) == 2L){
+        return(.apply_spectra(spectra, ...))
     }
     else{
         stop("Spectra needs to be either a 2D matrix or a data.table")

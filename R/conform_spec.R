@@ -56,6 +56,8 @@ conform_spec.default <- function(x, ...) {
 conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F,
                                    type = "interp",
                                    ...) {
+  x <- as_OpenSpecy(x)
+
   if(!any(type %in% c("interp", "roll", "mean_up")))
     stop("type must be either 'interp', 'roll', or 'mean_up'")
 
@@ -73,21 +75,32 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F,
   }
 
   if(type == "interp")
-    spec <- x$spectra[, lapply(.SD, function(y){.conform_intens(x = raw_wave, y = y,
-                               xout = wn, ...)})]
+    spec <- .apply_spectra(x$spectra, function(y) {
+      .conform_intens(x = raw_wave, y = y, xout = wn, ...)
+    }, value_length = length(wn))
 
   if(type == "roll") {
-    join <- data.table("wavenumber" = wn)
-    # Rolling join option
-    spec <- x$spectra
-    spec$wavenumber <- raw_wave
-    spec <- spec[join, roll = "nearest", on = "wavenumber"]
-    spec <- spec[,-"wavenumber"]
+    idx <- findInterval(wn, raw_wave)
+    left <- pmax(idx, 1L)
+    right <- pmin(idx + 1L, length(raw_wave))
+    right[idx == length(raw_wave)] <- length(raw_wave)
+    use_right <- abs(raw_wave[right] - wn) < abs(raw_wave[left] - wn)
+    pick <- left
+    pick[use_right] <- right[use_right]
+    spec <- x$spectra[pick, , drop = FALSE]
   }
 
   if(type == "mean_up"){
-    spec <- x$spectra[,lapply(.SD, mean),
-                      by = cut(x = raw_wave, breaks = wn)][,-"cut"]
+    groups <- cut(x = raw_wave, breaks = wn)
+    group_chr <- as.character(groups)
+    u_groups <- unique(group_chr)
+    spec <- lapply(u_groups, function(g) {
+      rows <- if (is.na(g)) is.na(group_chr) else !is.na(group_chr) & group_chr == g
+      colMeans(x$spectra[rows, , drop = FALSE])
+    }) |>
+      unlist(use.names = FALSE) |>
+      matrix(ncol = ncol(x$spectra), byrow = TRUE)
+    colnames(spec) <- colnames(x$spectra)
   }
 
   if(allow_na){
@@ -98,8 +111,11 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F,
       else{
         filler_range <- range
       }
-      filler = data.table("wavenumber" = filler_range)
-      spec <- spec[,"wavenumber" := wn][filler, on = "wavenumber"][,-"wavenumber"]
+      filler <- matrix(NA_real_, nrow = length(filler_range),
+                       ncol = ncol(spec),
+                       dimnames = list(NULL, colnames(spec)))
+      filler[match(wn, filler_range), ] <- spec
+      spec <- filler
       wn <- filler_range
     }
   }

@@ -99,7 +99,7 @@
 #'
 #' @importFrom stats cor predict prcomp
 #' @importFrom glmnet predict.glmnet
-#' @importFrom data.table data.table setorder fifelse .SD as.data.table rbindlist transpose
+#' @importFrom data.table data.table setorder .SD as.data.table rbindlist
 #' @export
 cor_spec <- function(x, ...) {
   UseMethod("cor_spec")
@@ -119,6 +119,9 @@ cor_spec.default <- function(x, ...) {
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                                type = "roll", compute = "optimized",
                                ...) {
+  x <- as_OpenSpecy(x)
+  if (is_OpenSpecy(library)) library <- as_OpenSpecy(library)
+
   if(conform) x <- conform_spec(x, library$wavenumber, res = NULL, allow_na = F, type)
 
   if(!is.null(attr(x, "intensity_unit")) &&
@@ -150,22 +153,22 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                          collapse = " ")),
             call. = F)
 
-  lib <- library$spectra[library$wavenumber %in% x$wavenumber, ]
-  lib <- lib[, lapply(.SD, make_rel, na.rm = na.rm)]
-  lib <- lib[, lapply(.SD, mean_replace)]
+  lib <- library$spectra[library$wavenumber %in% x$wavenumber, , drop = FALSE]
+  lib <- .matrix_make_rel(lib, na.rm = na.rm)
+  lib <- .matrix_mean_replace(lib)
 
-  spec <- x$spectra[x$wavenumber %in% library$wavenumber,]
-  spec <- spec[,lapply(.SD, make_rel, na.rm = na.rm)]
-  spec <- spec[,lapply(.SD, mean_replace)]
+  spec <- x$spectra[x$wavenumber %in% library$wavenumber, , drop = FALSE]
+  spec <- .matrix_make_rel(spec, na.rm = na.rm)
+  spec <- .matrix_mean_replace(spec)
   
   fast_correlation <- function(x, y = NULL) {
-      mat_1 = as.matrix(data.table::transpose(x))
+      mat_1 = t(x)
       # Center
       mat_1 = mat_1 - rowMeans(mat_1)
       # Standardize each variable
       mat_1 = mat_1 / sqrt(rowSums(mat_1^2))
       if(!is.null(y)){
-          mat_2 = as.matrix(data.table::transpose(y))
+          mat_2 = t(y)
           # Center
           mat_2 = mat_2 - rowMeans(mat_2)
           # Standardize each variable
@@ -244,6 +247,7 @@ ident_spec <- function(cor_matrix, x, library, top_n = NULL,
     
     lib_names <- rownames(cor_matrix)
     unk_ids   <- colnames(cor_matrix)
+    match_val <- NULL
     
     # For each column, take top_n rows directly (no melt)
     out <- lapply(seq_len(ncol(cor_matrix)), function(j) {
@@ -288,8 +292,10 @@ get_metadata.default <- function(x, ...) {
 #'
 #' @export
 get_metadata.OpenSpecy <- function(x, logic, rm_empty = TRUE, ...) {
+  x <- as_OpenSpecy(x)
+
   if(is.character(logic))
-    logic <- which(names(x$spectra) %in% logic)
+    logic <- which(colnames(x$spectra) %in% logic)
 
   res <- x$metadata[logic, ]
 
@@ -334,13 +340,15 @@ filter_spec.default <- function(x, ...) {
 #'
 #' @export
 filter_spec.OpenSpecy <- function(x, logic, ...) {
+  x <- as_OpenSpecy(x)
+
   if(is.character(logic)){
-    logic = which(names(x$spectra) %in% logic)
+    logic = which(colnames(x$spectra) %in% logic)
   }
-  x$spectra <- x$spectra[, logic, with = F]
+  x$spectra <- x$spectra[, logic, drop = FALSE]
   x$metadata <- x$metadata[logic,]
 
-  if(ncol(x$spectra) == 0 | ncol(x$metadata) == 0)
+  if(ncol(x$spectra) == 0 | nrow(x$metadata) == 0)
 
     stop("the OpenSpecy object created contains zero spectra, this is not well ",
          "supported, if you have specific scenarios where this is required ",
@@ -367,14 +375,15 @@ ai_classify.default <- function(x, ...) {
 #'
 #' @export
 ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
+  x <- as_OpenSpecy(x)
+
   if(!is.null(fill)) {
     filled <- fill_spec(x, fill)
   } else {
     filled <- x
   }
-  filled$spectra$wavenumber <- filled$wavenumber
-  proc <- transpose(filled$spectra, make.names = "wavenumber") |>
-    as.matrix()
+  proc <- t(filled$spectra)
+  colnames(proc) <- filled$wavenumber
 
   pred <- predict(library$model,
                   newx = proc,
@@ -416,20 +425,13 @@ fill_spec.default <- function(x, ...) {
 #'
 #' @export
 fill_spec.OpenSpecy <- function(x, fill, ...) {
-  blank_dt <- x$spectra[1,]
+  x <- as_OpenSpecy(x)
+  fill <- as_OpenSpecy(fill)
 
-  blank_dt[1,] <- NA
-
-  test <- rbindlist(
-    lapply(1:length(fill$wavenumber),
-           function(x) {
-             blank_dt
-           }
-    )
-  )[, lapply(.SD,
-             function(x) {
-               unlist(fill$spectra)
-             })]
+  test <- matrix(rep(fill$spectra[, 1L], times = ncol(x$spectra)),
+                 nrow = length(fill$wavenumber),
+                 ncol = ncol(x$spectra),
+                 dimnames = list(NULL, colnames(x$spectra)))
   
   test[match(x$wavenumber, fill$wavenumber),] <- x$spectra
 
@@ -458,6 +460,9 @@ os_similarity.default <- function(x, ...) {
 #'
 #' @export
 os_similarity.OpenSpecy <- function(x, y, method = "hamming", na.rm = T, ...) {
+  x <- as_OpenSpecy(x)
+  y <- as_OpenSpecy(y)
+
   if(method == "wavenumber"){
     series = c(x$wavenumber, y$wavenumber)
     return(sum(duplicated(series)) / length(unique(series)))
@@ -484,12 +489,12 @@ os_similarity.OpenSpecy <- function(x, y, method = "hamming", na.rm = T, ...) {
            "with fewer spectra.",
            call. = F)
 
-    spec_y <- y$spectra[y$wavenumber %in% x$wavenumber, ]
-    spec_y <- spec_y[, lapply(.SD, make_rel, na.rm = na.rm)]
-    spec_y <- spec_y[, lapply(.SD, mean_replace)]
-    spec_x <- x$spectra[x$wavenumber %in% y$wavenumber,]
-    spec_x <- spec_x[,lapply(.SD, make_rel, na.rm = na.rm)]
-    spec_x <- spec_x[, lapply(.SD, mean_replace)]
+    spec_y <- y$spectra[y$wavenumber %in% x$wavenumber, , drop = FALSE]
+    spec_y <- .matrix_make_rel(spec_y, na.rm = na.rm)
+    spec_y <- .matrix_mean_replace(spec_y)
+    spec_x <- x$spectra[x$wavenumber %in% y$wavenumber, , drop = FALSE]
+    spec_x <- .matrix_make_rel(spec_x, na.rm = na.rm)
+    spec_x <- .matrix_mean_replace(spec_x)
 
   }
   if(method == "pca"){
@@ -540,23 +545,20 @@ os_similarity.OpenSpecy <- function(x, y, method = "hamming", na.rm = T, ...) {
     )
   }
   if(method == "hamming"){
-    spec_y <- transpose(spec_y)
-    spec_y <- spec_y[,lapply(.SD, function(x){
+    hamming_profile <- function(spec) {
+      spec <- t(spec)
+      vapply(seq_len(ncol(spec)), function(i) {
+        x <- spec[, i]
       values <- make_rel(table(round(x,1)))
       sequence <- seq(0, 1, by = 0.1)
       empty <- numeric(length = length(sequence))
       empty[match(names(values), seq(0, 1, by = 0.1))] <- values
       ifelse(is.nan(empty), 1, empty)
-    })]
+      }, FUN.VALUE = numeric(11L))
+    }
 
-    spec_x <- transpose(spec_x)
-    spec_x <- spec_x[,lapply(.SD, function(x){
-      values <- make_rel(table(round(x,1)))
-      sequence <- seq(0, 1, by = 0.1)
-      empty <- numeric(length = length(sequence))
-      empty[match(names(values), seq(0, 1, by = 0.1))] <- values
-      ifelse(is.nan(empty), 1, empty)
-    })]
+    spec_y <- hamming_profile(spec_y)
+    spec_x <- hamming_profile(spec_x)
 
     return(1 - unlist(abs(spec_x - spec_y)) |> mean(na.rm = T))
   }

@@ -38,12 +38,13 @@ split_spec <- function(x){
   if(is_OpenSpecy(x)) stop("x must be a list of Open Specy objects")
 
   lapply(x, function(x) {
+    x <- as_OpenSpecy(x)
     if(ncol(x$spectra) == 1){
       return(list(x))
     } else {
       lapply(1:ncol(x$spectra), function(y){
         as_OpenSpecy(x$wavenumber,
-                     x$spectra[,y, with = F],
+                     x$spectra[, y, drop = FALSE],
                      x$metadata[y,])
       })
     }

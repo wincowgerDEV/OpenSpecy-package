@@ -50,8 +50,16 @@ make_rel.default <- function(x, na.rm = FALSE, ...) {
 #' @rdname make_rel
 #'
 #' @export
+make_rel.matrix <- function(x, na.rm = FALSE, ...) {
+  .matrix_make_rel(x, na.rm = na.rm)
+}
+
+#' @rdname make_rel
+#'
+#' @export
 make_rel.OpenSpecy <- function(x, na.rm = FALSE, ...) {
-  x$spectra <- x$spectra[, lapply(.SD, make_rel, na.rm = na.rm, ...)]
+  x <- as_OpenSpecy(x)
+  x$spectra <- .matrix_make_rel(x$spectra, na.rm = na.rm)
 
   return(x)
 }

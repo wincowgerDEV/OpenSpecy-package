@@ -55,7 +55,8 @@
 #' @importFrom grDevices rainbow 
 #' @export
 head.OpenSpecy <- function(x, ...) {
-  cbind(wavenumber = x$wavenumber, x$spectra) |> head(...)
+  x <- as_OpenSpecy(x)
+  as.data.table(x) |> head(...)
 }
 
 #' @rdname gen_OpenSpecy
@@ -63,7 +64,8 @@ head.OpenSpecy <- function(x, ...) {
 #' @method print OpenSpecy
 #' @export
 print.OpenSpecy <- function(x, ...) {
-  cbind(wavenumber = x$wavenumber, x$spectra) |> print(...)
+  x <- as_OpenSpecy(x)
+  as.data.table(x) |> print(...)
   cat("\n$metadata\n")
   print(x$metadata)
 }
@@ -80,10 +82,12 @@ plot.OpenSpecy <- function(x,
                            xlab = "Wavenumber (1/cm)",
                            ylab = "Intensity (a.u.)",
                            ...) {
+    x <- as_OpenSpecy(x)
+
     #-------------------------------------------------------------------
     # Basic input checks
     #-------------------------------------------------------------------
-    num_spectra <- length(x$spectra)
+    num_spectra <- ncol(x$spectra)
     if (num_spectra == 0) {
         stop("No spectra found in the OpenSpecy object.")
     }
@@ -127,7 +131,7 @@ plot.OpenSpecy <- function(x,
     # Establish global plot limits (x- and y-ranges)
     #   Incorporate vertical offset to accommodate stacked spectra
     #-------------------------------------------------------------------
-    all_intensities <- unlist(x$spectra)
+    all_intensities <- as.vector(x$spectra)
     y_min <- min(all_intensities, na.rm = TRUE)
     y_max <- max(all_intensities, na.rm = TRUE) + offset * (num_spectra - 1)
     
@@ -159,13 +163,13 @@ plot.OpenSpecy <- function(x,
         # Add line
         lines(
             wave_nums,
-            x$spectra[[i]] + offset_val,
+            x$spectra[, i] + offset_val,
             col = spectrum_colors[i],
             ...
         )
         if(!is.null(legend_var) && legend_var %in% names(x$metadata)){
             # Coordinates at the "left" end (largest wavenumber) for labeling
-            y_left_side <- x$spectra[[i]][length(wave_nums)] + offset_val - 0.1
+            y_left_side <- x$spectra[length(wave_nums), i] + offset_val - 0.1
             
             # Place text slightly to the right of the data point
             text(
@@ -187,6 +191,8 @@ plot.OpenSpecy <- function(x,
 #' @method summary OpenSpecy
 #' @export
 summary.OpenSpecy <- function(object, ...) {
+  object <- as_OpenSpecy(object)
+
   cat("$wavenumber\n")
   wl <- length(object$wavenumber)
   wr <- range(object$wavenumber)
@@ -196,7 +202,7 @@ summary.OpenSpecy <- function(object, ...) {
     print()
 
   cat("\n$spectra\n")
-  sl <- length(object$spectra)
+  sl <- ncol(object$spectra)
   sr <- range(object$spectra, na.rm = T)
   array(c(sl, sr), c(1,3), list("", c("Number", "Min. Intensity",
                                       "Max. Intensity"))) |>
@@ -214,6 +220,7 @@ summary.OpenSpecy <- function(object, ...) {
 #' @method as.data.frame OpenSpecy
 #' @export
 as.data.frame.OpenSpecy <- function(x, ...) {
+  x <- as_OpenSpecy(x)
   data.frame(wavenumber = x$wavenumber, x$spectra)
 }
 
@@ -224,5 +231,6 @@ as.data.frame.OpenSpecy <- function(x, ...) {
 #' @importFrom data.table data.table
 #' @export
 as.data.table.OpenSpecy <- function(x, ...) {
-  data.table(wavenumber = x$wavenumber, x$spectra)
+  x <- as_OpenSpecy(x)
+  as.data.table(cbind(wavenumber = x$wavenumber, x$spectra))
 }

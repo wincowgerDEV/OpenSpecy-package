@@ -39,6 +39,7 @@ adj_wave.default <- function(x, laser, ...) {
 #'
 #' @export
 adj_wave.OpenSpecy <- function(x, laser, ...) {
+    x <- as_OpenSpecy(x)
     x$wavenumber <- adj_wave(x$wavenumber, laser)
     return(x)
 }

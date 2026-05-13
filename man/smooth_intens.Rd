@@ -70,7 +70,7 @@ number of points needed to fill the window and can be passed to \code{smooth_int
 For many applications, this is more reusable than specifying a static number of points.
 }
 \description{
-This smoother can enhance the signal to noise ratio of the data useing a
+This smoother can enhance the signal to noise ratio of the data using a
 Savitzky-Golay or Whittaker-Henderson filter.
 }
 \details{

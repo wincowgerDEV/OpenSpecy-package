@@ -52,7 +52,7 @@
 #'
 #' # Use manual
 #' bl <- raman_hdpe
-#' bl$spectra$intensity <- bl$spectra$intensity / 2
+#' bl$spectra[, "intensity"] <- bl$spectra[, "intensity"] / 2
 #' subtr_baseline(raman_hdpe, type = "manual", baseline = bl)
 #'
 #' @author
@@ -263,24 +263,30 @@ subtr_baseline.OpenSpecy <- function(x, type = "polynomial",
                                      degree_part = 2, 
                                      baseline = list(wavenumber = NULL, spectra = NULL),
                                      make_rel = TRUE, ...) {
-     if (type == "manual" & !is_OpenSpecy(baseline)) stop("'baseline' needs to be of class 'OpenSpecy'", call. = F)
-    x$spectra <- x$spectra[, lapply(.SD, function(y){
-            subtr_baseline(x = x$wavenumber,
-                           y = y,
-                           type = type,
-                           degree = degree, 
-                           raw = raw,
-                           full = full,
-                           remove_peaks = remove_peaks,
-                           refit_at_end = refit_at_end,
-                           crop_boundaries = crop_boundaries,
-                           iterations = iterations,  
-                           peak_width_mult = peak_width_mult,
-                           termination_diff = termination_diff,
-                           degree_part = degree_part, 
-                           bl_x = baseline$wavenumber, 
-                           bl_y = baseline$spectra[[1]], 
-                           make_rel = make_rel)})]
+    x <- as_OpenSpecy(x)
+    if (type == "manual" & !is_OpenSpecy(baseline)) stop("'baseline' needs to be of class 'OpenSpecy'", call. = F)
+    if (type == "manual") baseline <- as_OpenSpecy(baseline)
+    bl_x <- if (type == "manual") baseline$wavenumber else NULL
+    bl_y <- if (type == "manual") baseline$spectra[, 1L] else NULL
+
+    x$spectra <- .apply_spectra(x$spectra, function(y) {
+        subtr_baseline(x = x$wavenumber,
+                       y = y,
+                       type = type,
+                       degree = degree, 
+                       raw = raw,
+                       full = full,
+                       remove_peaks = remove_peaks,
+                       refit_at_end = refit_at_end,
+                       crop_boundaries = crop_boundaries,
+                       iterations = iterations,  
+                       peak_width_mult = peak_width_mult,
+                       termination_diff = termination_diff,
+                       degree_part = degree_part, 
+                       bl_x = bl_x, 
+                       bl_y = bl_y, 
+                       make_rel = make_rel)
+    })
     
     x
 }

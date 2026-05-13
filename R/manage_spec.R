@@ -69,6 +69,8 @@ c_spec.list <- function(x, range = NULL, res = 5, ...) {
      x <- lapply(x, read_any)
   }
 
+  x <- lapply(x, as_OpenSpecy)
+
   if(!all(vapply(x, function(y) {inherits(y, "OpenSpecy")}, FUN.VALUE = T)))
     stop("object 'x' needs to be a list of 'OpenSpecy' objects", call. = F)
 
@@ -100,8 +102,12 @@ c_spec.list <- function(x, range = NULL, res = 5, ...) {
          "'range' to specify how wavenumbers should be merged", call. = F)
   }
 
+  spectra <- do.call(cbind, list$spectra)
+  colnames(spectra) <- make.unique(unlist(lapply(list$spectra, colnames)),
+                                   sep = ".")
+
   as_OpenSpecy(x = list$wavenumber[[1]],
-               spectra = as.data.table(list$spectra),
+               spectra = spectra,
                metadata = rbindlist(list$metadata, fill = T)[,-c("x","y")]
   )
 }
@@ -125,6 +131,7 @@ sample_spec.default <- function(x, ...) {
 #'
 #' @export
 sample_spec.OpenSpecy <- function(x, size = 1, prob = NULL, ...) {
+  x <- as_OpenSpecy(x)
   # replace = false is mandatory currently because we don't have a way to
   # rename and recoordinate duplicates.
   cols <- sample(1:ncol(x$spectra), size = size, replace = FALSE, prob = prob, ...)
@@ -166,6 +173,8 @@ merge_map.list <- function(x, origins = NULL, ...) {
     else{
         map <- x
     }
+
+    map <- lapply(map, as_OpenSpecy)
     
     if(is.null(origins)){
         origin = lapply(map, function(x) unique(x$metadata$description))
@@ -194,17 +203,28 @@ merge_map.list <- function(x, origins = NULL, ...) {
     
     list <- tapply(unlisted, names(unlisted), unname)
     
+    spectra <- do.call(cbind, list$spectra)
+    colnames(spectra) <- make.unique(unlist(lapply(list$spectra, colnames)),
+                                     sep = ".")
+
     map <- as_OpenSpecy(x = list$wavenumber[[1]],
-                        spectra = as.data.table(list$spectra),
+                        spectra = spectra,
                         metadata = rbindlist(list$metadata, fill = T))
-    
-    ts <- transpose(map$spectra)
-    ts$id <- paste(map$metadata$x, map$metadata$y, sep = ",")
-    map$metadata$sample_name <- paste(map$metadata$x, map$metadata$y, sep = ",")
-    map$spectra <- ts[, lapply(.SD, median, na.rm = T), by = "id"] |>
-        transpose(make.names = "id")
-    map$metadata <- map$metadata |>
-        unique(by = c("sample_name", "x", "y"))
+
+    ids <- paste(map$metadata$x, map$metadata$y, sep = ",")
+    map$metadata$sample_name <- ids
+    uids <- unique(ids)
+    collapsed <- matrix(NA_real_, nrow = nrow(map$spectra), ncol = length(uids),
+                        dimnames = list(NULL, uids))
+    for (i in seq_along(uids)) {
+      collapsed[, i] <- matrixStats::rowMedians(
+        map$spectra[, ids == uids[i], drop = FALSE],
+        na.rm = TRUE
+      )
+    }
+    map$spectra <- collapsed
+    map$metadata <- map$metadata[match(uids, ids)]
+    map$metadata$col_id <- colnames(map$spectra)
     map
 }
 

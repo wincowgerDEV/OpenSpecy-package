@@ -70,7 +70,7 @@
 #' @author
 #' Win Cowger, Zacharias Steinmetz
 #'
-#' @importFrom data.table data.table as.data.table setDT rbindlist transpose .SD :=
+#' @importFrom data.table data.table as.data.table setDT rbindlist :=
 #' @importFrom mmand shapeKernel components closing
 #' @importFrom matrixStats rowMedians
 #' @export
@@ -89,10 +89,12 @@ collapse_spec.default <- function(x, ...) {
 #'
 #' @export
 collapse_spec.OpenSpecy <- function(x, fun = median, column = "feature_id", ...) {
+    x <- as_OpenSpecy(x)
+
   # Calculate the collapsed spectra for each unique feature_id
     # 1. Coerce spectra to a plain numeric matrix for fast row ops
     #    Rows = wavenumbers, Cols = spectra
-    sp <- as.matrix(x$spectra)
+    sp <- x$spectra
     ids <- x$metadata[[column]]
     
     if (length(ids) != ncol(sp)) {
@@ -130,10 +132,9 @@ collapse_spec.OpenSpecy <- function(x, fun = median, column = "feature_id", ...)
         }
     }
     
-    # 5. Convert back to data.table, with one column per collapsed feature_id
-    dt_out <- data.table::as.data.table(out)
-    data.table::setnames(dt_out, as.character(uids))
-    x$spectra <- dt_out
+    # 5. Keep one matrix column per collapsed feature_id
+    colnames(out) <- as.character(uids)
+    x$spectra <- out
     
     # 6. Collapse metadata to one row per feature_id, preserving column order to match spectra
     mdt  <- data.table::as.data.table(x$metadata)
@@ -171,6 +172,8 @@ def_features.OpenSpecy <- function(x, features,
                                    close_type = "box", img = NULL, 
                                    bottom_left = NULL, top_right = NULL,
                                    ...) {
+  x <- as_OpenSpecy(x)
+
   if(is.logical(features) || is.character(features)) {
     if(length(unique(features)) == 1)
       stop("features cannot be all one class, e.g. all T or all F or all one category", call. = F)

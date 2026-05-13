@@ -20,7 +20,7 @@ test_that("c_spec() merges identical files without range specification", {
   expect_true(check_OpenSpecy(same))
   
   expect_equal(same$wavenumber, raman_hdpe$wavenumber)
-  expect_equal(same$spectra$intensity, raman_hdpe$spectra$intensity)
+  expect_equal(same$spectra[, "intensity"], raman_hdpe$spectra[, "intensity"])
 })
 
 test_that("c_spec() merges different files with common range", {
@@ -29,8 +29,8 @@ test_that("c_spec() merges different files with common range", {
   expect_true(check_OpenSpecy(diff))
 
   diff$wavenumber[1:2] |> expect_equal(c(655, 660))
-  diff$spectra$intensity[1:2] |> round(2) |> expect_equal(c(53.87, 59.00))
-  diff$spectra$intensity.1[1:2] |> round(2) |> expect_equal(c(0.03, 0.03))
+  diff$spectra[1:2, "intensity"] |> round(2) |> expect_equal(c(53.87, 59.00))
+  diff$spectra[1:2, "intensity.1"] |> round(2) |> expect_equal(c(0.03, 0.03))
 })
 
 test_that("c_spec() merges different files with specified range", {
@@ -40,9 +40,9 @@ test_that("c_spec() merges different files with specified range", {
   expect_true(check_OpenSpecy(spec))
   
   spec$wavenumber |> expect_equal(seq(1000, 2000, 5))
-  spec$spectra$intensity |>
+  spec$spectra[, "intensity"] |>
     expect_equal(
-      conform_spec(raman_hdpe, c(1000, 2000), res = 5)$spectra$intensity
+      conform_spec(raman_hdpe, c(1000, 2000), res = 5)$spectra[, "intensity"]
       )
 })
 

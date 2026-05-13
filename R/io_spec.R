@@ -81,11 +81,17 @@ write_spec.default <- function(x, ...) {
 write_spec.OpenSpecy <- function(x, file, method = NULL,
                                  digits = getOption("digits"),
                                  ...) {
+  x <- as_OpenSpecy(x)
+
   if (is.null(method)) {
     if (grepl("(\\.yaml$)|(\\.yml$)", file, ignore.case = T)) {
-      write_yaml(x, file = file, precision = digits, ...)
+      io <- x
+      io$spectra <- as.data.frame(x$spectra, check.names = FALSE)
+      write_yaml(io, file = file, precision = digits, ...)
     } else if (grepl("\\.json$", file, ignore.case = T)) {
-      write_json(x, path = file, dataframe = "columns", digits = digits, ...)
+      io <- x
+      io$spectra <- as.data.frame(x$spectra, check.names = FALSE)
+      write_json(io, path = file, dataframe = "columns", digits = digits, ...)
     } else if (grepl("\\.rds$", file, ignore.case = T)) {
       saveRDS(x, file = file, ...)
     } else if (grepl("\\.csv$", file, ignore.case = T)) {
@@ -114,7 +120,8 @@ read_spec <- function(file, method = NULL, ...) {
       yml <- read_yaml(file = file, ...)
 
       os <- as_OpenSpecy(yml$wavenumber,
-                         spectra = as.data.table(yml$spectra),
+                         spectra = as.data.frame(yml$spectra,
+                                                 check.names = FALSE),
                          metadata = data.table(as.data.table(yml$metadata),
                                                file_name = basename(file)),
                          coords = NULL)
@@ -122,12 +129,13 @@ read_spec <- function(file, method = NULL, ...) {
       jsn <- read_json(file, simplifyVector = T, ...)
 
       os <- as_OpenSpecy(jsn$wavenumber,
-                         spectra = as.data.table(jsn$spectra),
+                         spectra = as.data.frame(jsn$spectra,
+                                                 check.names = FALSE),
                          metadata = data.table(as.data.table(jsn$metadata),
                                                file_name = basename(file)),
                          coords = NULL)
     } else if (grepl("\\.rds$", file, ignore.case = T)) {
-      os <- readRDS(file, ...)
+      os <- as_OpenSpecy(readRDS(file, ...))
       os$metadata$file_name <- basename(file)
     }
       else if (grepl("\\.csv$", file, ignore.case = T)) {
@@ -153,6 +161,7 @@ read_spec <- function(file, method = NULL, ...) {
 #'
 #' @export
 as_hyperSpec <- function(x) {
-  new("hyperSpec", spc = as.matrix(transpose(x$spectra)),
+  x <- as_OpenSpecy(x)
+  new("hyperSpec", spc = t(x$spectra),
       wavelength = x$wavenumber)
 }

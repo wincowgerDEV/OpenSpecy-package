@@ -43,7 +43,7 @@ area_under_band.default <- function(x, ...) {
 #'
 #' @export
 area_under_band.OpenSpecy <- function(x, min, max, na.rm = F, ...) {
+    x <- as_OpenSpecy(x)
     logic <- x$wavenumber >= min & x$wavenumber <= max
-    vapply(x$spectra, function(x){sum(x[logic], na.rm = na.rm)}, FUN.VALUE = numeric(1), ...)
+    colSums(x$spectra[logic, , drop = FALSE], na.rm = na.rm)
 }
-

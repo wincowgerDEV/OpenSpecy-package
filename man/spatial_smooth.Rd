@@ -24,7 +24,7 @@ Applies spatial smoothing to an \code{OpenSpecy} object using a Gaussian filter.
 This function performs spatial smoothing on the spectral data in an \code{OpenSpecy} object.
 It assumes that the spatial coordinates are provided in the \code{metadata} element of the object,
 specifically in the \code{x} and \code{y} columns, and that there is a \code{col_id} column in \code{metadata} that
-matches the column names in the \code{spectra} data.table.
+matches the column names in the \code{spectra} matrix.
 }
 \seealso{
 \code{\link{as_OpenSpecy}()}, \code{\link[mmand]{gaussianSmooth}()}

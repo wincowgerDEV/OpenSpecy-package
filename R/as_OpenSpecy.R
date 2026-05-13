@@ -9,7 +9,7 @@
 #' @param x depending on the method, a list with all OpenSpecy parameters,
 #' a vector with the wavenumbers for all spectra, or a data.frame with a full
 #' spectrum in the classic Open Specy format.
-#' @param spectra spectral intensities formatted as a data.table with one column
+#' @param spectra spectral intensities formatted as a matrix with one column
 #' per spectrum.
 #' @param metadata metadata for each spectrum with one row per spectrum,
 #' see details.
@@ -29,7 +29,7 @@
 #' @details
 #' \code{as_OpenSpecy()} converts spectral datasets to a three part list;
 #' the first with a vector of the wavenumbers of the spectra,
-#' the second with a \code{data.table} of all spectral intensities ordered as
+#' the second with a matrix of all spectral intensities ordered as
 #' columns,
 #' the third item is another \code{data.table} with any metadata the user
 #' provides or is harvested from the files themselves.
@@ -122,7 +122,7 @@
 #' # Inspect the spectra
 #' raman_hdpe # see how OpenSpecy objects print.
 #' raman_hdpe$wavenumber # look at just the wavenumbers of the spectra.
-#' raman_hdpe$spectra # look at just the spectral intensities data.table.
+#' raman_hdpe$spectra # look at just the spectral intensities matrix.
 #' raman_hdpe$metadata # look at just the metadata of the spectra.
 #'
 #' # Creating a list and transforming to OpenSpecy
@@ -136,7 +136,7 @@
 #'
 #' # Creating an OpenSpecy from a data.frame
 #' as_OpenSpecy(x = data.frame(wavenumber = raman_hdpe$wavenumber,
-#'                             spectra = raman_hdpe$spectra$intensity))
+#'                             spectra = raman_hdpe$spectra[, "intensity"]))
 #'
 #' # Test that the spectrum is formatted as an OpenSpecy object.
 #' is_OpenSpecy(raman_hdpe)
@@ -148,7 +148,7 @@
 #' @seealso
 #' \code{\link{read_spec}()} for reading \code{OpenSpecy} objects.
 #'
-#' @importFrom data.table as.data.table
+#' @importFrom data.table as.data.table is.data.table
 #' @importFrom digest digest
 #' @importFrom utils sessionInfo
 #' @importFrom stats ave
@@ -157,10 +157,121 @@ as_OpenSpecy <- function(x, ...) {
   UseMethod("as_OpenSpecy")
 }
 
+.spectra_colnames <- function(spectra) {
+  nms <- colnames(spectra)
+  if (is.null(nms)) nms <- names(spectra)
+  if (is.null(nms)) nms <- paste0("V", seq_len(ncol(spectra)))
+  nms
+}
+
+.as_spectra_matrix <- function(spectra, comma_decimal = FALSE,
+                               message_conversion = FALSE) {
+  from_data_table <- is.data.table(spectra)
+
+  if (!inherits(spectra, c("data.frame", "matrix")))
+    stop("'spectra' must inherit from data.frame or matrix", call. = F)
+
+  if (is.null(dim(spectra)) || length(dim(spectra)) != 2L)
+    stop("'spectra' must be a two-dimensional object", call. = F)
+
+  nms <- .spectra_colnames(spectra)
+  if (length(unique(nms)) != ncol(spectra))
+    stop("column names in 'spectra' must be unique", call. = F)
+
+  if (comma_decimal) {
+    comma_number <- "^[0-9]+,[0-9]+$"
+    if (is.matrix(spectra)) {
+      vals <- as.vector(spectra)
+      vals <- vals[!is.na(vals)]
+      if (length(vals) > 0 && all(grepl(comma_number, vals))) {
+        spectra <- matrix(as.numeric(gsub(",", ".", spectra)),
+                          nrow = nrow(spectra),
+                          ncol = ncol(spectra),
+                          dimnames = dimnames(spectra))
+      }
+    } else if (all(vapply(spectra, function(x) {
+      vals <- x[!is.na(x)]
+      length(vals) > 0 && all(grepl(comma_number, vals))
+    }, FUN.VALUE = logical(1)))) {
+      spectra[] <- lapply(spectra, function(x) as.numeric(gsub(",", ".", x)))
+    }
+  }
+
+  if (inherits(spectra, "data.frame")) {
+    numeric_cols <- vapply(spectra, function(x) {
+      is.numeric(x) || is.complex(x) || is.logical(x)
+    }, FUN.VALUE = logical(1))
+
+    if (!all(numeric_cols))
+      stop("all columns of 'spectra' must be numeric, complex, or logical",
+           call. = F)
+
+    spectra <- as.matrix(spectra)
+  } else if (!is.numeric(spectra) && !is.complex(spectra) &&
+             !is.logical(spectra)) {
+    stop("'spectra' matrix must be numeric, complex, or logical", call. = F)
+  }
+
+  if (!is.complex(spectra)) storage.mode(spectra) <- "double"
+  colnames(spectra) <- nms
+  rownames(spectra) <- NULL
+
+  if (from_data_table && message_conversion)
+    message("The OpenSpecy 'spectra' item was stored as a data.table; ",
+            "converting it to the current matrix format with spectra in columns.")
+
+  spectra
+}
+
+.matrix_make_rel <- function(x, na.rm = FALSE) {
+  if (ncol(x) == 0L) return(x)
+
+  r <- matrixStats::colRanges(x, na.rm = na.rm)
+  out <- sweep(x, 2L, r[, 1L], "-")
+  out <- sweep(out, 2L, r[, 2L] - r[, 1L], "/")
+  colnames(out) <- colnames(x)
+  rownames(out) <- rownames(x)
+  out
+}
+
+.matrix_adj_neg <- function(x, na.rm = FALSE) {
+  mins <- matrixStats::colMins(x, na.rm = na.rm)
+  adjust <- mins < 1
+  if (!any(adjust)) return(x)
+
+  out <- x
+  out[, adjust] <- abs(sweep(out[, adjust, drop = FALSE],
+                             2L, mins[adjust], "+")) + 1
+  out
+}
+
+.matrix_mean_replace <- function(x, na.rm = TRUE) {
+  loc <- is.na(x)
+  if (!any(loc)) return(x)
+
+  means <- colMeans(x, na.rm = na.rm)
+  idx <- which(loc, arr.ind = TRUE)
+  x[idx] <- means[idx[, "col"]]
+  x
+}
+
+.apply_spectra <- function(spectra, FUN, ..., value_length = nrow(spectra)) {
+  FUN <- match.fun(FUN)
+  out <- vapply(seq_len(ncol(spectra)), function(i) {
+    as.numeric(FUN(spectra[, i], ...))
+  }, FUN.VALUE = numeric(value_length))
+  colnames(out) <- colnames(spectra)
+  out
+}
+
 #' @rdname as_OpenSpecy
 #'
 #' @export
 as_OpenSpecy.OpenSpecy <- function(x, session_id = FALSE, ...) {
+  if (!is.matrix(x$spectra)) {
+    x$spectra <- .as_spectra_matrix(x$spectra, message_conversion = TRUE)
+  }
+
   if(session_id)
     x$metadata$session_id <- paste(digest(Sys.info()),
                                    digest(sessionInfo()),
@@ -183,7 +294,7 @@ as_OpenSpecy.list <- function(x, ...) {
 #' @export
 as_OpenSpecy.hyperSpec <- function(x, ...) {
   do.call("as_OpenSpecy", list(x = x@wavelength,
-                               spectra = as.data.table(t(x$spc)), ...))
+                               spectra = t(x$spc), ...))
 }
 
 #' @rdname as_OpenSpecy
@@ -275,28 +386,15 @@ as_OpenSpecy.default <- function(x, spectra,
                                  session_id = FALSE,
                                  comma_decimal = FALSE,
                                  ...) {
-    
-    if(comma_decimal){
-        #Check wavenumbers for comma decimal format
-        if(all(grepl("^[0-9]+,[0-9]+$", x))){
-            x <- as.numeric(gsub(",",".", x))
-        }
-        #Check the spectra for comma decimal. 
-        if(all(vapply(spectra, function(x) {
-            all(grepl(pattern = "^[0-9]+,[0-9]+$", x))}, FUN.VALUE = logical(1)))){
-            spectra[] <- lapply(spectra, function(x){as.numeric(gsub(",", ".", x))})
-        }
+  if(comma_decimal){
+    #Check wavenumbers for comma decimal format
+    if(all(grepl("^[0-9]+,[0-9]+$", x))){
+      x <- as.numeric(gsub(",",".", x))
     }
+  }
   if (!is.numeric(x) || !is.vector(x))
     stop("'x' must be numeric vector", call. = F)
-  if (!inherits(spectra, c("data.frame", "matrix")))
-    stop("'spectra' must inherit from data.frame or matrix", call. = F)
-  if (!sapply(spectra, is.numeric)[1L] && !sapply(spectra, is.complex)[1L] &&
-      !sapply(spectra, is.logical)[1L])
-    stop("at least the first column of 'spectra' must be numeric or logical",
-         call. = F)
-  if(length(unique(names(spectra))) != ncol(spectra))
-    stop("column names in 'spectra' must be unique", call. = F)
+  spectra <- .as_spectra_matrix(spectra, comma_decimal = comma_decimal)
   if (length(x) != nrow(spectra))
     stop("'x' and 'spectra' must be of equal length", call. = F)
 
@@ -310,7 +408,7 @@ as_OpenSpecy.default <- function(x, spectra,
 
   obj$wavenumber <- x[order(x)]
 
-  obj$spectra <- as.data.table(spectra)[order(x)]
+  obj$spectra <- spectra[order(x), , drop = FALSE]
 
   if (inherits(coords, "character") && !any(is.element(c("x", "y"),
                                                        names(metadata)))) {
@@ -326,7 +424,7 @@ as_OpenSpecy.default <- function(x, spectra,
   if (!is.null(metadata)) {
     if (inherits(metadata, c("data.frame", "list"))) {
       obj$metadata <- cbind(obj$metadata, as.data.table(metadata))
-      obj$metadata$col_id <- names(obj$spectra)
+      obj$metadata$col_id <- colnames(obj$spectra)
       if(session_id)
         obj$metadata$session_id <- paste(digest(Sys.info()),
                                          digest(sessionInfo()),
@@ -365,7 +463,6 @@ is_OpenSpecy <- function(x) {
 
 #' @rdname as_OpenSpecy
 #'
-#' @importFrom data.table is.data.table
 #' @export
 check_OpenSpecy <- function(x) {
   if(!(cos <- is_OpenSpecy(x)))
@@ -374,32 +471,36 @@ check_OpenSpecy <- function(x) {
     warning("Names of the object components are incorrect", call. = F)
   if(!(cw <- is.vector(x$wavenumber)))
     warning("Wavenumber is not a vector", call. = F)
-  if(!(cwn <- !any(is.na(x$wavenumber))))
+  if(!(cwn <- cw && !any(is.na(x$wavenumber))))
     warning("Wavenumber values have NA", call. = F)
-  if(!(cs <- is.data.table(x$spectra)))
-    warning("Spectra are not of class 'data.table'", call. = F)
-  if(!(csn <- !any(vapply(x$spectra, function(x){sum(!is.na(x)) < 2},
-                          FUN.VALUE = logical(1)))))
+  if(!(cs <- is.matrix(x$spectra) && length(dim(x$spectra)) == 2L))
+    warning("Spectra are not a matrix", call. = F)
+  if(!(csn <- cs && !any(colSums(!is.na(x$spectra)) < 2)))
     warning("Some of the spectra have one or fewer non NA values", call. = F)
   if(!(cm <- is.data.table(x$metadata)))
     warning("Metadata are not a 'data.table'", call. = F)
-  if(!(cr <- ncol(x$spectra) == nrow(x$metadata)))
+  spectra_ncol <- if (cs) ncol(x$spectra) else NA_integer_
+  spectra_nrow <- if (cs) nrow(x$spectra) else NA_integer_
+  metadata_nrow <- if (cm) nrow(x$metadata) else NA_integer_
+  metadata_ncol <- if (cm) ncol(x$metadata) else NA_integer_
+  if(!(cr <- isTRUE(spectra_ncol == metadata_nrow)))
     warning("Number of columns in spectra is not equal to number of rows ",
             "in metadata", call. = F)
-  if(!(csz <- nrow(x$spectra) != 0))
+  if(!(csz <- isTRUE(spectra_nrow != 0)))
     warning("There are no spectral intensities in your spectra", call. = F)
-  if(!(cl <- length(x$wavenumber) == nrow(x$spectra)))
+  if(!(cl <- isTRUE(length(x$wavenumber) == spectra_nrow)))
     warning("Length of wavenumber is not equal to number of rows in spectra",
             call. = F)
-  if(!(cu <- length(unique(names(x$spectra))) == ncol(x$spectra)))
+  if(!(cu <- cs && !is.null(colnames(x$spectra)) &&
+       length(unique(colnames(x$spectra))) == spectra_ncol))
     warning("Column names in spectra are not unique", call. = F)
-  if(!(cv <- length(unique(names(x$metadata))) == ncol(x$metadata)))
+  if(!(cv <- cm && length(unique(names(x$metadata))) == metadata_ncol))
     warning("Column names in metadata are not unique", call. = F)
-  if(!(co <- identical(order(x$wavenumber), 1:length(x$wavenumber)) |
-       identical(order(x$wavenumber), length(x$wavenumber):1)))
+  if(!(co <- cw && (identical(order(x$wavenumber), 1:length(x$wavenumber)) |
+       identical(order(x$wavenumber), length(x$wavenumber):1))))
     warning("Wavenumbers should be a continuous sequence for all OpenSpecy ",
             "functions to run smoothly", call. = F)
-  if(!(du <- !any(duplicated(x$wavenumber))))
+  if(!(du <- cw && !any(duplicated(x$wavenumber))))
         warning("Wavenumbers need to be unqiue values.", call. = F)
 
   chk <- all(cw, cs, cm, cr, cl, cu, cv, co, csz, csn, cwn, cln, cos, du)
@@ -412,7 +513,7 @@ check_OpenSpecy <- function(x) {
 #' @export
 OpenSpecy <- function(x, ...) {
   if (is_OpenSpecy(x)) {
-    return(x)
+    return(as_OpenSpecy(x, ...))
   } else {
     do.call("as_OpenSpecy", list(x, ...))
   }

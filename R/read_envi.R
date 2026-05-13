@@ -91,10 +91,8 @@ read_envi <- function(file, header = NULL,
     y = as.numeric(rep(seq_len(dims[1]) - 1, each = dims[2])),
     x = as.numeric(rep(seq_len(dims[2]) - 1, times = dims[1]))
   )
-  spectra <- data.table::as.data.table(
-    matrix(aperm(arr, c(3, 2, 1)), nrow = dims[3])
-  )
-  data.table::setnames(spectra, paste(coords$y, coords$x, sep = "_"))
+  spectra <- matrix(aperm(arr, c(3, 2, 1)), nrow = dims[3])
+  colnames(spectra) <- paste(coords$y, coords$x, sep = "_")
 
   if("wavelength" %in% names(hdr)) {
       wavenumbers <- hdr$wavelength

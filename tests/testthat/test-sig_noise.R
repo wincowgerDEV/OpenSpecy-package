@@ -45,7 +45,7 @@ test_that("entropy results in accurate info", {
     
     noise <- raman_hdpe
     set.seed(10)
-    noise$spectra[[1]] <- runif(n = length(noise$spectra[[1]]))
+    noise$spectra[, 1] <- runif(n = nrow(noise$spectra))
     
     sig_noise(noise, metric = "entropy",
               breaks = 10) |> 

@@ -67,13 +67,23 @@ test_that("as_OpenSpecy() generates OpenSpecy objects", {
   expect_equal(ost$spectra, osf$spectra)
   expect_equal(ost$wavenumber, osf$wavenumber)
   expect_equal(ost$metadata, osf$metadata)
-  expect_equal(osf$metadata$col_id, names(osf$spectra))
+  expect_equal(osf$metadata$col_id, colnames(osf$spectra))
+})
+
+test_that("as_OpenSpecy() upgrades old data.table spectra", {
+  os <- as_OpenSpecy(df)
+  old <- os
+  old$spectra <- data.table::as.data.table(old$spectra)
+
+  expect_message(upgraded <- as_OpenSpecy(old), "data.table")
+  expect_true(is.matrix(upgraded$spectra))
+  expect_equal(upgraded$spectra, os$spectra)
 })
 
 test_that("check_OpenSpecy() work as expected", {
   os <- as_OpenSpecy(df)
   check_OpenSpecy(os) |> expect_true()
-  check_OpenSpecy(df) |> expect_error() |> expect_warning() |> expect_warning() |> expect_warning() |> expect_warning()
+  expect_warning(expect_false(check_OpenSpecy(df)))
 
   osna <- osd <- osv <- osn <- oss <- ost <- osl <- os
 
@@ -81,12 +91,12 @@ test_that("check_OpenSpecy() work as expected", {
   check_OpenSpecy(osv) |> expect_false() |> expect_warning()
 
   names(osn) <- 1:3
-  check_OpenSpecy(osn) |> expect_error() |> expect_warning() |> expect_warning()|> expect_warning() |> expect_warning()
+  expect_warning(expect_false(check_OpenSpecy(osn)))
 
-  osna$spectra$intensity[2:length(osna$spectra$intensity)] <- NA
+  osna$spectra[2:nrow(osna$spectra), "intensity"] <- NA
   check_OpenSpecy(osna) |> expect_warning() 
   
-  osna$spectra$intensity <- NA
+  osna$spectra[, "intensity"] <- NA
   check_OpenSpecy(osna) |> expect_warning()
   
   oss$wavenumber <- sample(oss$wavenumber)
@@ -131,6 +141,6 @@ test_that("'OpenSpecy' objects are transcribed to and from 'hyperSpec' objects",
   expect_true(check_OpenSpecy(openhyper))
 
   expect_equal(openhyper$wavenumber, hyper@wavelength)
-  expect_equal(unlist(openhyper$spectra$V1),unname(t(hyper$spc)[,1]))
+  expect_equal(openhyper$spectra[, 1], unname(t(hyper$spc)[,1]))
 })
 

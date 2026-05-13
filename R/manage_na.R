@@ -22,7 +22,7 @@
 #' manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = FALSE)
 #' manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig = c(NA,0))
 #' data(raman_hdpe)
-#' raman_hdpe$spectra[[1]][1:10] <- NA
+#' raman_hdpe$spectra[1:10, 1] <- NA
 #'
 #' #would normally return all NA without na.rm = TRUE but doesn't here.
 #' manage_na(raman_hdpe, fun = make_rel)
@@ -82,24 +82,25 @@ manage_na.default <- function(x, lead_tail_only = TRUE, ig = c(NA), ...) {
 #' @export
 manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
                                 type = "ignore", ...) {
+  x <- as_OpenSpecy(x)
 
-  consistent <- x$spectra[, lapply(.SD, manage_na,
-                                   lead_tail_only = lead_tail_only,
-                                   ig = ig)] |>
+  consistent <- .apply_spectra(x$spectra, manage_na,
+                               lead_tail_only = lead_tail_only,
+                               ig = ig) |>
     rowSums() == 0
 
   if(type == "ignore"){
-    reduced <- as_OpenSpecy(x$wavenumber[consistent], x$spectra[consistent,],
+    reduced <- as_OpenSpecy(x$wavenumber[consistent],
+                            x$spectra[consistent, , drop = FALSE],
                             x$metadata) |>
       fun(...)
-
-    x$spectra <- x$spectra[, lapply(.SD, as.numeric)]
 
     x$spectra[consistent,] <- reduced$spectra
   }
 
   if(type == "remove"){
-    x <- as_OpenSpecy(x$wavenumber[consistent], x$spectra[consistent,],
+    x <- as_OpenSpecy(x$wavenumber[consistent],
+                      x$spectra[consistent, , drop = FALSE],
                       x$metadata)
   }
 

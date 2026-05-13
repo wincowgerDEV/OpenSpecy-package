@@ -93,8 +93,9 @@ plotly_spec.OpenSpecy <- function(x,
                                   showlegend = FALSE,
                                   make_rel = TRUE,
                                   ...) {
+  x <- as_OpenSpecy(x)
   if(make_rel)   x <- make_rel(x, na.rm = T)
-  dt <- cbind(wavenumber = x$wavenumber, x$spectra) |>
+  dt <- as.data.table(cbind(wavenumber = x$wavenumber, x$spectra)) |>
     melt(
       id.vars = "wavenumber",
       variable.name = "id",
@@ -121,8 +122,9 @@ plotly_spec.OpenSpecy <- function(x,
     )
 
   if(!is.null(x2)) {
+    x2 <- as_OpenSpecy(x2)
     if(make_rel) x2 <- make_rel(x2, na.rm = T)
-    dt2 <- cbind(wavenumber = x2$wavenumber, x2$spectra) |>
+    dt2 <- as.data.table(cbind(wavenumber = x2$wavenumber, x2$spectra)) |>
       melt(
         id.vars = "wavenumber",
         variable.name = "id",
@@ -177,6 +179,8 @@ heatmap_spec.OpenSpecy <- function(x,
                                    showlegend = FALSE,
                                    type = "interactive",
                                    ...) {
+  x <- as_OpenSpecy(x)
+
   if(!is.null(z))
     plot_z <- z # default
   else if(!is.null(cor))
@@ -294,6 +298,8 @@ interactive_plot.OpenSpecy <- function(x,
                                        paper_bgcolor = 'rgb(0, 0, 0)',
                                        colorscale = 'Viridis',
                                        ...) {
+  x <- as_OpenSpecy(x)
+
   # Generate the heatmap
   heat_map <- heatmap_spec(
     x,

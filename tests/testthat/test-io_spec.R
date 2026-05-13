@@ -27,7 +27,7 @@ test_that("write_spec() works without errors", {
 test_that("read_spec() gives expected output", {
   yml <- read_extdata("raman_hdpe.yml") |> read_spec() |> expect_silent()
   jsn <- read_extdata("raman_hdpe.json") |> read_spec() |> expect_silent()
-  rds <- read_extdata("raman_hdpe.rds") |> read_spec() |> expect_silent()
+  expect_message(rds <- read_extdata("raman_hdpe.rds") |> read_spec())
   csv <- read_extdata("raman_hdpe_os.csv") |> read_spec() |> expect_silent()
 
   expect_s3_class(yml, "OpenSpecy")
@@ -45,7 +45,7 @@ test_that("read_spec() gives expected output", {
   expect_equal(jsn, yml)
   expect_equal(rds, raman_hdpe)
   expect_equal(round(rds$wavenumber, 0), round(csv$wavenumber, 0))
-  expect_equal(rds$spectra[[1]], csv$spectra[[1]])
+  expect_equal(rds$spectra[, 1], csv$spectra[, 1])
   expect_equal(rds$metadata, csv$metadata[,-"col_id"])
   
   expect_equal(jsn[1:2], raman_hdpe[1:2])
@@ -74,7 +74,7 @@ test_that("read_spec() and write_spec() work nicely together using written files
   expect_equal(jsn, yml)
   expect_equal(rds, raman_hdpe)
   expect_equal(round(rds$wavenumber, 0), round(csv$wavenumber, 0))
-  expect_equal(rds$spectra[[1]], csv$spectra[[1]])
+  expect_equal(rds$spectra[, 1], csv$spectra[, 1])
   expect_equal(rds$metadata, csv$metadata[,-"col_id"])
   
   expect_equal(jsn[1:2], raman_hdpe[1:2])
@@ -89,7 +89,7 @@ test_that("as_hyperspec() function works", {
 
   # Verify the equality of the content
   expect_equal(hyperspec_object@wavelength, raman_hdpe$wavenumber)
-  expect_equal(c(hyperspec_object$spc), raman_hdpe$spectra$intensity)
+  expect_equal(c(hyperspec_object$spc), raman_hdpe$spectra[, "intensity"])
 })
 
 # Tidy up

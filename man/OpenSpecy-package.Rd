@@ -56,6 +56,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Win Cowger \email{wincowger@gmail.com} (\href{https://orcid.org/0000-0001-9226-3104}{ORCID}) [data contributor]
   \item Zacharias Steinmetz \email{z.steinmetz@rptu.de} (\href{https://orcid.org/0000-0001-6675-5033}{ORCID})
   \item Hazel Vaquero \email{hvaquero98@gmail.com} (\href{https://orcid.org/0009-0001-5468-2049}{ORCID})
   \item Nick Leong (\href{https://orcid.org/0009-0008-3313-4132}{ORCID})
