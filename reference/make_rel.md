@@ -12,6 +12,9 @@ make_rel(x, ...)
 # Default S3 method
 make_rel(x, na.rm = FALSE, ...)
 
+# S3 method for class 'matrix'
+make_rel(x, na.rm = FALSE, ...)
+
 # S3 method for class 'OpenSpecy'
 make_rel(x, na.rm = FALSE, ...)
 ```

@@ -34,7 +34,7 @@ This function performs spatial smoothing on the spectral data in an
 `OpenSpecy` object. It assumes that the spatial coordinates are provided
 in the `metadata` element of the object, specifically in the `x` and `y`
 columns, and that there is a `col_id` column in `metadata` that matches
-the column names in the `spectra` data.table.
+the column names in the `spectra` matrix.
 
 ## See also
 

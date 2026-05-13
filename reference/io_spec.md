@@ -98,7 +98,7 @@ Zacharias Steinmetz, Win Cowger
 ``` r
 read_extdata("raman_hdpe.yml") |> read_spec()
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48
@@ -123,7 +123,7 @@ read_extdata("raman_hdpe.yml") |> read_spec()
 #> 1: cb06ce2846b119d932fb6696479a445b raman_hdpe.yml intensity
 read_extdata("raman_hdpe.json") |> read_spec()
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48
@@ -147,8 +147,9 @@ read_extdata("raman_hdpe.json") |> read_spec()
 #>                              <char>          <char>    <char>
 #> 1: cb06ce2846b119d932fb6696479a445b raman_hdpe.json intensity
 read_extdata("raman_hdpe.rds") |> read_spec()
+#> The OpenSpecy 'spectra' item was stored as a data.table; converting it to the current matrix format with spectra in columns.
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48
@@ -173,7 +174,7 @@ read_extdata("raman_hdpe.rds") |> read_spec()
 #> 1: cb06ce2846b119d932fb6696479a445b raman_hdpe.rds
 read_extdata("raman_hdpe.csv") |> read_spec()
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48
@@ -192,10 +193,10 @@ read_extdata("raman_hdpe.csv") |> read_spec()
 #> 1:     1     1 raman_hdpe.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/a4e2471336b27f8824dd10f1522cad2a
+#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/09750685c97f12c4b4b5571d1af1864b
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: df52a5cbcf0415c5b3c519308090a3c4
 
 if (FALSE) { # \dontrun{
 data(raman_hdpe)

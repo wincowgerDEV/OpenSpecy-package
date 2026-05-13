@@ -70,7 +70,7 @@ manage_na(c(NA, -1, NA, 1, 10), lead_tail_only = FALSE)
 manage_na(c(NA, 0, NA, 1, 10), lead_tail_only = FALSE, ig = c(NA,0))
 #> [1]  TRUE  TRUE  TRUE FALSE FALSE
 data(raman_hdpe)
-raman_hdpe$spectra[[1]][1:10] <- NA
+raman_hdpe$spectra[1:10, 1] <- NA
 
 #would normally return all NA without na.rm = TRUE but doesn't here.
 manage_na(raman_hdpe, fun = make_rel)
@@ -102,7 +102,7 @@ manage_na(raman_hdpe, fun = make_rel)
 #will remove the first 10 values we set to NA
 manage_na(raman_hdpe, type = "remove")
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    336.889        48
 #>   2:    340.467        44
 #>   3:    344.042        49

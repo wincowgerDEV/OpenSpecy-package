@@ -235,7 +235,7 @@ subtr_baseline(raman_hdpe, type = "polynomial", iterations = 5)
 
 # Use manual
 bl <- raman_hdpe
-bl$spectra$intensity <- bl$spectra$intensity / 2
+bl$spectra[, "intensity"] <- bl$spectra[, "intensity"] / 2
 subtr_baseline(raman_hdpe, type = "manual", baseline = bl)
 #>      wavenumber  intensity
 #>           <num>      <num>

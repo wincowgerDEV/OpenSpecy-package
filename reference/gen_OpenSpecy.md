@@ -118,7 +118,7 @@ data("raman_hdpe")
 # Printing the OpenSpecy object
 print(raman_hdpe)
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48
@@ -145,7 +145,7 @@ print(raman_hdpe)
 # Displaying the first few lines of the OpenSpecy object
 head(raman_hdpe)
 #>    wavenumber intensity
-#>         <num>     <int>
+#>         <num>     <num>
 #> 1:    301.040        26
 #> 2:    304.632        50
 #> 3:    308.221        48

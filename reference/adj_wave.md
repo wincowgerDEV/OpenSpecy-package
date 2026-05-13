@@ -46,7 +46,7 @@ raman_wavelength <- raman_hdpe
 raman_wavelength$wavenumber <- (-1*(raman_wavelength$wavenumber/10^7-1/530))^(-1)
 adj_wave(raman_wavelength, laser = 530)
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48

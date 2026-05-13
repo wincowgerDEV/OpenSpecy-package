@@ -34,7 +34,7 @@ Zacharias Steinmetz, Win Cowger
 data(raman_hdpe)
 print(raman_hdpe)
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48

@@ -1,6 +1,6 @@
 # Smooth spectral intensities
 
-This smoother can enhance the signal to noise ratio of the data useing a
+This smoother can enhance the signal to noise ratio of the data using a
 Savitzky-Golay or Whittaker-Henderson filter.
 
 ## Usage

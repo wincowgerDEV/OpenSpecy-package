@@ -73,6 +73,9 @@ Useful links:
 
 Authors:
 
+- Win Cowger <wincowger@gmail.com>
+  ([ORCID](https://orcid.org/0000-0001-9226-3104)) \[data contributor\]
+
 - Zacharias Steinmetz <z.steinmetz@rptu.de>
   ([ORCID](https://orcid.org/0000-0001-6675-5033))
 

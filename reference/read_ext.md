@@ -180,7 +180,7 @@ Zacharias Steinmetz, Win Cowger
 ``` r
 read_extdata("raman_hdpe.csv") |> read_text()
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48
@@ -199,10 +199,10 @@ read_extdata("raman_hdpe.csv") |> read_text()
 #> 1:     1     1 raman_hdpe.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/a4e2471336b27f8824dd10f1522cad2a
+#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/09750685c97f12c4b4b5571d1af1864b
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: df52a5cbcf0415c5b3c519308090a3c4
 read_extdata("raman_atacamit.spc") |> read_spc()
 #>      wavenumber intensity
 #>           <num>     <num>
@@ -224,10 +224,10 @@ read_extdata("raman_atacamit.spc") |> read_spc()
 #> 1:     1     1 raman_atacamit.spc CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/a4e2471336b27f8824dd10f1522cad2a
+#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/09750685c97f12c4b4b5571d1af1864b
 #>                             file_id
 #>                              <char>
-#> 1: 2693c0b0295ce36c16b10e1e660241f2
+#> 1: ecc0dfcf01cc9a8fbb0f512d451d2cc0
 read_extdata("ftir_ldpe_soil.asp") |> read_asp()
 #>       wavenumber   intensity
 #>            <num>       <num>
@@ -249,14 +249,14 @@ read_extdata("ftir_ldpe_soil.asp") |> read_asp()
 #> 1:     1     1 ftir_ldpe_soil.asp CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/a4e2471336b27f8824dd10f1522cad2a
+#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/09750685c97f12c4b4b5571d1af1864b
 #>                             file_id
 #>                              <char>
-#> 1: a33700bad0376ddab156980f473bac92
+#> 1: 4e640be63b8c6a1dc796e2c9c4ec121d
 read_extdata("testdata_zipped.zip") |> read_zip()
 #> [[1]]
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48
@@ -275,14 +275,14 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2 - Copy (2).csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/a4e2471336b27f8824dd10f1522cad2a
+#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/09750685c97f12c4b4b5571d1af1864b
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: df52a5cbcf0415c5b3c519308090a3c4
 #> 
 #> [[2]]
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48
@@ -301,14 +301,14 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2 - Copy.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/a4e2471336b27f8824dd10f1522cad2a
+#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/09750685c97f12c4b4b5571d1af1864b
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: df52a5cbcf0415c5b3c519308090a3c4
 #> 
 #> [[3]]
 #>      wavenumber intensity
-#>           <num>     <int>
+#>           <num>     <num>
 #>   1:    301.040        26
 #>   2:    304.632        50
 #>   3:    308.221        48
@@ -327,9 +327,9 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/a4e2471336b27f8824dd10f1522cad2a
+#> 1: 66ea042bd51d0cc5e61263bcdd1dd904/09750685c97f12c4b4b5571d1af1864b
 #>                             file_id
 #>                              <char>
-#> 1: cb06ce2846b119d932fb6696479a445b
+#> 1: df52a5cbcf0415c5b3c519308090a3c4
 #> 
 ```
