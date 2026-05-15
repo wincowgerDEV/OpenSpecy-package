@@ -75,9 +75,8 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F,
   }
 
   if(type == "interp")
-    spec <- .apply_spectra(x$spectra, function(y) {
-      .conform_intens(x = raw_wave, y = y, xout = wn, ...)
-    }, value_length = length(wn))
+    spec <- .conform_intens_matrix(x = raw_wave, y = x$spectra, xout = wn,
+                                   ...)
 
   if(type == "roll") {
     idx <- findInterval(wn, raw_wave)
@@ -128,4 +127,40 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F,
 
 .conform_intens <- function(...) {
   approx(...)$y
+}
+
+.conform_intens_matrix <- function(x, y, xout, ...) {
+  dots <- list(...)
+
+  if (length(xout) == 0L) {
+    out <- matrix(numeric(0), nrow = 0L, ncol = ncol(y),
+                  dimnames = list(NULL, colnames(y)))
+    return(out)
+  }
+
+  use_fast <- length(dots) == 0L &&
+    length(x) >= 2L &&
+    isTRUE(all(diff(x) > 0)) &&
+    !anyDuplicated(x) &&
+    !anyNA(x) &&
+    !anyNA(xout) &&
+    !anyNA(y)
+
+  if (!use_fast) {
+    return(.apply_spectra(y, function(intens) {
+      .conform_intens(x = x, y = intens, xout = xout, ...)
+    }, value_length = length(xout)))
+  }
+
+  idx <- findInterval(xout, x)
+  left <- pmax(1L, pmin(idx, length(x) - 1L))
+  right <- left + 1L
+  weight <- (xout - x[left]) / (x[right] - x[left])
+
+  # Precompute the interpolation rows and weights once, then apply them to all
+  # spectra columns together instead of calling approx() for every spectrum.
+  out <- y[left, , drop = FALSE]
+  out <- out + (y[right, , drop = FALSE] - out) * weight
+  colnames(out) <- colnames(y)
+  out
 }

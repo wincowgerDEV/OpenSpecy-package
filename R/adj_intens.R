@@ -110,7 +110,7 @@ adj_intens.OpenSpecy <- function(x,
                 "none" = adj
   )
 
-  if (make_rel) adj <- .matrix_make_rel(adj)
+  if (make_rel) adj <- make_rel(adj)
 
   x$spectra <- adj
 

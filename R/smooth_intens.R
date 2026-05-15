@@ -85,7 +85,7 @@ smooth_intens.OpenSpecy <- function(x, polynomial = 3,
   x <- as_OpenSpecy(x)
 
   if(type == "sg") {
-    filt <- .apply_spectra(x$spectra, .sgfilt, p = polynomial, n = window,
+    filt <- .sgfilt_matrix(x$spectra, p = polynomial, n = window,
                            m = derivative, ...)
   } else if(type == "wh") {
     filt <- .whittaker_matrix(
@@ -101,7 +101,7 @@ smooth_intens.OpenSpecy <- function(x, polynomial = 3,
   }
 
   if(abs) filt <- abs(filt)
-  if(make_rel) x$spectra <- .matrix_make_rel(filt) else x$spectra <- filt
+  if(make_rel) x$spectra <- make_rel(filt) else x$spectra <- filt
 
   return(x)
 }
@@ -146,6 +146,39 @@ calc_window_points.OpenSpecy <- function(x, wavenum_width = 70, ...){
   return(out)
 }
 
+.sgfilt_matrix <- function(y, p, n, m, ...) {
+  filt <- signal::sgolay(p = p, n = n, m = m, ...)
+  len <- nrow(y)
+  n <- nrow(filt)
+  k <- floor(n / 2)
+
+  if (len < n) {
+    stop("'window' must be less than or equal to the number of wavenumbers",
+         call. = FALSE)
+  }
+
+  out <- matrix(NA_real_, nrow = len, ncol = ncol(y),
+                dimnames = list(NULL, colnames(y)))
+  out[seq_len(k), ] <- filt[seq_len(k), , drop = FALSE] %*%
+    y[seq_len(n), , drop = FALSE]
+
+  mid_n <- len - n + 1L
+  mid <- matrix(0, nrow = mid_n, ncol = ncol(y))
+  center <- filt[k + 1L, ]
+
+  # The centered window is the common case; loop over the small filter width
+  # once and update every spectrum column at the same time.
+  for (i in seq_len(n)) {
+    rows <- i:(i + mid_n - 1L)
+    mid <- mid + center[i] * y[rows, , drop = FALSE]
+  }
+  out[(k + 1L):(len - k), ] <- mid
+
+  out[(len - k + 1L):len, ] <- filt[(k + 2L):n, , drop = FALSE] %*%
+    y[(len - n + 1L):len, , drop = FALSE]
+  out
+}
+
 .derivative <- function(y, res = NULL, derivative = 1, lag = 1) {
   if(derivative == 0) {
     return(y)
@@ -168,11 +201,14 @@ calc_window_points.OpenSpecy <- function(x, wavenum_width = 70, ...){
   else if(derivative > 0) {
     if(is.null(res)) stop("res must be specified for the derivative to work")
     size <- nrow(y)
-    out <- diff(y, lag = lag, differences = derivative)/(res*lag)
-    fill <- matrix(rep(out[nrow(out), ], each = size - nrow(out)),
-                   nrow = size - nrow(out),
-                   ncol = ncol(out))
-    out <- rbind(out, fill)
+    diff_y <- diff(y, lag = lag, differences = derivative)/(res*lag)
+    out <- matrix(NA_real_, nrow = size, ncol = ncol(y),
+                  dimnames = list(NULL, colnames(y)))
+    out[seq_len(nrow(diff_y)), ] <- diff_y
+    out[(nrow(diff_y) + 1L):size, ] <-
+      matrix(rep(diff_y[nrow(diff_y), ], each = size - nrow(diff_y)),
+             nrow = size - nrow(diff_y),
+             ncol = ncol(diff_y))
     colnames(out) <- colnames(y)
     return(out)
   } else {

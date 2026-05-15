@@ -71,9 +71,10 @@ restrict_range.OpenSpecy <- function(x, min, max, make_rel = TRUE,
   x$wavenumber <- x$wavenumber[vals]
 
   if (make_rel) {
-          x$spectra <- .matrix_make_rel(filt)
+    x$spectra <- make_rel(filt)
+  } else {
+    x$spectra <- filt
   }
-      else x$spectra <- filt
 
   return(x)
 }
@@ -122,7 +123,7 @@ flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
                            dimnames = list(NULL, colnames(flat)))
   }
 
-  if (make_rel) x$spectra <- .matrix_make_rel(flat) else x$spectra <- flat
+  if (make_rel) x$spectra <- make_rel(flat) else x$spectra <- flat
 
   return(x)
 }

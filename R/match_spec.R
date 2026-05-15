@@ -154,42 +154,42 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
             call. = F)
 
   lib <- library$spectra[library$wavenumber %in% x$wavenumber, , drop = FALSE]
-  lib <- .matrix_make_rel(lib, na.rm = na.rm)
+  lib <- make_rel(lib, na.rm = na.rm)
   lib <- .matrix_mean_replace(lib)
 
   spec <- x$spectra[x$wavenumber %in% library$wavenumber, , drop = FALSE]
-  spec <- .matrix_make_rel(spec, na.rm = na.rm)
+  spec <- make_rel(spec, na.rm = na.rm)
   spec <- .matrix_mean_replace(spec)
-  
-  fast_correlation <- function(x, y = NULL) {
-      mat_1 = t(x)
-      # Center
-      mat_1 = mat_1 - rowMeans(mat_1)
-      # Standardize each variable
-      mat_1 = mat_1 / sqrt(rowSums(mat_1^2))
-      if(!is.null(y)){
-          mat_2 = t(y)
-          # Center
-          mat_2 = mat_2 - rowMeans(mat_2)
-          # Standardize each variable
-          mat_2 = mat_2 / sqrt(rowSums(mat_2^2))
-          # Calculate correlations
-          mat_3 <- tcrossprod(mat_1, mat_2)
-          colnames(mat_3) <- colnames(y)
-          rownames(mat_3) <- colnames(x)
-          return(mat_3)
-      }
-      mat_3 <- tcrossprod(mat_1)
-      colnames(mat_3) <- colnames(x)
-      rownames(mat_3) <- colnames(x)
-      return(mat_3)
-  }
+
   if(compute == "optimized"){
-      return(fast_correlation(lib, spec, ...))
+      return(.fast_correlation(lib, spec, ...))
   }
   if(compute == "base"){
       return(cor(lib, spec, ...))
   }
+}
+
+.fast_correlation <- function(x, y = NULL) {
+  scale_spectra <- function(mat) {
+    mat <- t(mat)
+    mat <- mat - rowMeans(mat)
+    mat / sqrt(rowSums(mat^2))
+  }
+
+  mat_1 <- scale_spectra(x)
+  if(!is.null(y)){
+    mat_2 <- scale_spectra(y)
+    # tcrossprod() keeps the heavy work in BLAS; the transpose is retained here
+    # because benchmarks show it is faster for the spectra-by-wavenumber layout.
+    mat_3 <- tcrossprod(mat_1, mat_2)
+    colnames(mat_3) <- colnames(y)
+    rownames(mat_3) <- colnames(x)
+    return(mat_3)
+  }
+  mat_3 <- tcrossprod(mat_1)
+  colnames(mat_3) <- colnames(x)
+  rownames(mat_3) <- colnames(x)
+  return(mat_3)
 }
 
 #' @rdname match_spec
@@ -239,7 +239,7 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
 ident_spec <- function(cor_matrix, x, library, top_n = NULL,
                        add_library_metadata = NULL,
                        add_object_metadata = NULL, ...){
-    if(is.null(top_n) || top_n > ncol(library$spectra)){
+    if(is.null(top_n) || top_n > nrow(cor_matrix)){
         top_n = nrow(cor_matrix)
         message("'top_n' larger than the number of spectra in the library; ",
                 "returning all matches")
@@ -247,18 +247,21 @@ ident_spec <- function(cor_matrix, x, library, top_n = NULL,
     
     lib_names <- rownames(cor_matrix)
     unk_ids   <- colnames(cor_matrix)
-    match_val <- NULL
+    top_n <- as.integer(top_n)
     
-    # For each column, take top_n rows directly (no melt)
-    out <- lapply(seq_len(ncol(cor_matrix)), function(j) {
-        col <- cor_matrix[, j]
-        ord <- head(order(col, decreasing = TRUE), top_n)
-        data.table(
-            object_id  = unk_ids[j],
-            library_id = lib_names[ord],
-            match_val  = col[ord]
-        )
-    }) |> rbindlist()
+    # Preallocate the result vectors once; this avoids creating and rbinding one
+    # data.table per spectrum for hyperspectral maps.
+    ord <- matrix(NA_integer_, nrow = top_n, ncol = ncol(cor_matrix))
+    for (j in seq_len(ncol(cor_matrix))) {
+        ord[, j] <- head(order(cor_matrix[, j], decreasing = TRUE), top_n)
+    }
+    ord_vec <- as.vector(ord)
+    col_vec <- rep(seq_len(ncol(cor_matrix)), each = top_n)
+    out <- data.table(
+        object_id  = rep(unk_ids, each = top_n),
+        library_id = lib_names[ord_vec],
+        match_val  = cor_matrix[cbind(ord_vec, col_vec)]
+    )
     
     setorder(out, -match_val)
     
@@ -309,14 +312,15 @@ get_metadata.OpenSpecy <- function(x, logic, rm_empty = TRUE, ...) {
 #'
 #' @export
 max_cor_named <- function(cor_matrix, na.rm = T) {
-  # Find the indices of maximum correlations
-  max_cor_indices <- apply(cor_matrix, 2, function(x) which.max(x))
+  cor_no_na <- cor_matrix
+  cor_no_na[is.na(cor_no_na)] <- -Inf
+  max_cor_indices <- max.col(t(cor_no_na), ties.method = "first")
+  all_na <- colSums(!is.na(cor_matrix)) == 0L
+  max_cor_indices[all_na] <- NA_integer_
 
-  # Use indices to get max correlation values
-  max_cor_values <- vapply(1:length(max_cor_indices), function(idx) {
-    cor_matrix[max_cor_indices[idx],idx]}, FUN.VALUE = numeric(1))
-
-  # Use indices to get the corresponding names
+  max_cor_values <- rep(NA_real_, length(max_cor_indices))
+  ok <- !is.na(max_cor_indices)
+  max_cor_values[ok] <- cor_matrix[cbind(max_cor_indices[ok], which(ok))]
   names(max_cor_values) <- rownames(cor_matrix)[max_cor_indices]
 
   return(max_cor_values)
@@ -388,23 +392,67 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
   pred <- predict(library$model,
                   newx = proc,
                   min(library$model$lambda),
-                  type = "response") |>
-    as.data.table()
-  
-  names(pred)[1:3] <- c("x", "y", "z")
-  pred$x <- as.integer(pred$x)
-  pred$y <- as.integer(pred$y)
-  pred <- merge(pred, data.table(x = 1:dim(proc)[1]), all.y = T)
-
-  value <- NULL # workaround for data.table non-standard evaluation
-  filt <- pred[, .SD[value == max(value, na.rm = T) | is.na(value)], by = "x"]
-  filt <- filt[, head(.SD, 1), by = "x"] #Work around for when many of the same value matching
+                  type = "response")
+  filt <- .ai_prediction_table(pred, n = nrow(proc))
   
   res <- merge(filt, library$dimension_conversion, all.x = T,
                by.x = "y", by.y = "factor_num")
   setorder(res, "x")
 
   return(res)
+}
+
+.ai_prediction_table <- function(pred, n) {
+  pred_dim <- dim(pred)
+
+  if (is.null(pred_dim)) {
+    pred <- matrix(pred, nrow = n)
+    pred_dim <- dim(pred)
+  }
+
+  if (length(pred_dim) == 2L) {
+    pred_names <- dimnames(pred)
+    dim(pred) <- c(pred_dim, 1L)
+    dimnames(pred) <- list(pred_names[[1L]], pred_names[[2L]], NULL)
+    pred_dim <- dim(pred)
+  }
+
+  if (length(pred_dim) != 3L) {
+    stop("model predictions must be a vector, matrix, or 3D array",
+         call. = FALSE)
+  }
+
+  if (pred_dim[1L] != n) {
+    stop("number of model predictions does not match number of spectra",
+         call. = FALSE)
+  }
+
+  pred_names <- dimnames(pred)
+  class_id <- pred_names[[2L]]
+  lambda_id <- pred_names[[3L]]
+  if (is.null(class_id)) class_id <- seq_len(pred_dim[2L])
+  if (is.null(lambda_id)) lambda_id <- seq_len(pred_dim[3L])
+
+  vals <- matrix(as.vector(pred), nrow = pred_dim[1L])
+  vals_no_na <- vals
+  vals_no_na[is.na(vals_no_na)] <- -Inf
+  best <- max.col(vals_no_na, ties.method = "first")
+  all_na <- rowSums(!is.na(vals)) == 0L
+  best[all_na] <- NA_integer_
+
+  combo <- expand.grid(y = class_id, z = lambda_id,
+                       KEEP.OUT.ATTRS = FALSE,
+                       stringsAsFactors = FALSE)
+  value <- rep(NA_real_, pred_dim[1L])
+  ok <- !is.na(best)
+  value[ok] <- vals[cbind(which(ok), best[ok])]
+
+  data.table(
+    x = seq_len(pred_dim[1L]),
+    y = as.integer(combo$y[best]),
+    z = combo$z[best],
+    value = value
+  )
 }
 
 #' @rdname match_spec
@@ -490,10 +538,10 @@ os_similarity.OpenSpecy <- function(x, y, method = "hamming", na.rm = T, ...) {
            call. = F)
 
     spec_y <- y$spectra[y$wavenumber %in% x$wavenumber, , drop = FALSE]
-    spec_y <- .matrix_make_rel(spec_y, na.rm = na.rm)
+    spec_y <- make_rel(spec_y, na.rm = na.rm)
     spec_y <- .matrix_mean_replace(spec_y)
     spec_x <- x$spectra[x$wavenumber %in% y$wavenumber, , drop = FALSE]
-    spec_x <- .matrix_make_rel(spec_x, na.rm = na.rm)
+    spec_x <- make_rel(spec_x, na.rm = na.rm)
     spec_x <- .matrix_mean_replace(spec_x)
 
   }

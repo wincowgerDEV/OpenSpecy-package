@@ -223,17 +223,6 @@ as_OpenSpecy <- function(x, ...) {
   spectra
 }
 
-.matrix_make_rel <- function(x, na.rm = FALSE) {
-  if (ncol(x) == 0L) return(x)
-
-  r <- matrixStats::colRanges(x, na.rm = na.rm)
-  out <- sweep(x, 2L, r[, 1L], "-")
-  out <- sweep(out, 2L, r[, 2L] - r[, 1L], "/")
-  colnames(out) <- colnames(x)
-  rownames(out) <- rownames(x)
-  out
-}
-
 .matrix_adj_neg <- function(x, na.rm = FALSE) {
   mins <- matrixStats::colMins(x, na.rm = na.rm)
   adjust <- mins < 1

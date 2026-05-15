@@ -7,6 +7,12 @@ dir.create(tmp, showWarnings = F)
 data("test_lib")
 data("raman_hdpe")
 
+predict.fake_ai_model <- function(object, newx, s, type, ...) {
+  object$pred
+}
+registerS3method("predict", "fake_ai_model", predict.fake_ai_model,
+                 envir = asNamespace("OpenSpecy"))
+
 CA_test_lib <- filter_spec(test_lib, test_lib$metadata$SpectrumIdentity == "CA" )
 
 hdpe_test_lib <- filter_spec(test_lib, test_lib$metadata$sample_name == "0031bb13faea1e04b52ffbeca009e8ab")
@@ -60,6 +66,34 @@ test_that("ai_classify() handles input errors correctly", {
   ai_classify(1:1000) |> expect_error()
 })
 
+test_that("ai_classify() handles array predictions with spectrum IDs", {
+  os <- as_OpenSpecy(
+    x = 1:3,
+    spectra = data.frame(sample_a = c(0.1, 0.2, 0.3),
+                         sample_b = c(0.3, 0.2, 0.1))
+  )
+  pred <- array(
+    c(0.1, 0.8,
+      0.7, 0.1,
+      0.2, 0.1),
+    dim = c(2L, 3L, 1L),
+    dimnames = list(c("sample_a", "sample_b"), c("1", "2", "3"), "s=0.1")
+  )
+  lib <- list(
+    model = structure(list(lambda = 0.1, pred = pred),
+                      class = "fake_ai_model"),
+    dimension_conversion = data.table(factor_num = 1:3,
+                                      name = c("one", "two", "three"))
+  )
+
+  matches <- ai_classify(os, lib) |> expect_silent()
+
+  expect_equal(matches$x, 1:2)
+  expect_equal(matches$y, c(2L, 1L))
+  expect_equal(matches$value, c(0.7, 0.8))
+  expect_equal(matches$name, c("two", "one"))
+})
+
 
 test_that("match_spec() returns correct structure with AI", {
   skip_on_cran()
@@ -69,8 +103,11 @@ test_that("match_spec() returns correct structure with AI", {
   lib <- load_lib(type = "model_derivative", path = tmp)[["both"]]
 
   check_OpenSpecy(lib) |>
-    expect_error() |> expect_warning() |> expect_warning() |>
-    expect_warning() |> expect_warning() |> expect_warning()
+    expect_warning() |> expect_warning() |> expect_warning() |>
+    expect_warning() |> expect_warning() |> expect_warning() |>
+    expect_warning() |> expect_warning() |> expect_warning() |>
+    expect_warning() |> expect_warning() |> expect_warning() |>
+    expect_warning() |> expect_warning()
 
   set.seed(47)
   rn <- runif(n = length(unique(lib$all_variables)))
@@ -88,7 +125,7 @@ test_that("match_spec() returns correct structure with AI", {
   nrow(matches) |> expect_equal(1)
   names(matches) |> expect_contains(c("x", "y", "z", "value", "name"))
   #round(matches$value, 2) |> expect_equal(0.37)
-  #grepl("polyolefin", matches$name) |> expect_true()
+  grepl("ftir_poly\\(ethylene\\)", matches$name) |> expect_true()
 })
 
 test_that("match_spec() handles input errors correctly", {

@@ -269,6 +269,14 @@ subtr_baseline.OpenSpecy <- function(x, type = "polynomial",
     bl_x <- if (type == "manual") baseline$wavenumber else NULL
     bl_y <- if (type == "manual") baseline$spectra[, 1L] else NULL
 
+    if (type == "manual") {
+        baseline_y <- approx(bl_x, bl_y, xout = x$wavenumber, rule = 2,
+                             method = "linear", ties = mean)$y
+        corrected <- x$spectra - baseline_y
+        x$spectra <- if (make_rel) make_rel(corrected) else corrected
+        return(x)
+    }
+
     x$spectra <- .apply_spectra(x$spectra, function(y) {
         subtr_baseline(x = x$wavenumber,
                        y = y,

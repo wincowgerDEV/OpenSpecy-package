@@ -23,8 +23,9 @@ make_rel(x, ...)
 \item{\ldots}{further arguments passed to \code{make_rel()}.}
 }
 \value{
-\code{make_rel()} return numeric vectors (if vector provided) or an
-\code{OpenSpecy} object with the normalized intensity data.
+\code{make_rel()} returns numeric vectors, numeric matrices with each
+spectrum normalized by column, or an \code{OpenSpecy} object with the
+normalized intensity data.
 }
 \description{
 \code{make_rel()} converts intensities \code{x} into relative values between

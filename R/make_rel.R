@@ -17,8 +17,9 @@
 #' @param \ldots further arguments passed to \code{make_rel()}.
 #'
 #' @return
-#' \code{make_rel()} return numeric vectors (if vector provided) or an
-#' \code{OpenSpecy} object with the normalized intensity data.
+#' \code{make_rel()} returns numeric vectors, numeric matrices with each
+#' spectrum normalized by column, or an \code{OpenSpecy} object with the
+#' normalized intensity data.
 #'
 #' @examples
 #' make_rel(c(-1000, -1, 0, 1, 10))
@@ -51,7 +52,17 @@ make_rel.default <- function(x, na.rm = FALSE, ...) {
 #'
 #' @export
 make_rel.matrix <- function(x, na.rm = FALSE, ...) {
-  .matrix_make_rel(x, na.rm = na.rm)
+  if (ncol(x) == 0L) return(x)
+
+  # Column ranges normalize all spectra in one pass and avoid per-spectrum
+  # apply() calls for hyperspectral matrices.
+  mins <- matrixStats::colMins(x, na.rm = na.rm)
+  maxs <- matrixStats::colMaxs(x, na.rm = na.rm)
+  out <- x - rep(mins, each = nrow(x))
+  out <- out / rep(maxs - mins, each = nrow(x))
+  colnames(out) <- colnames(x)
+  rownames(out) <- rownames(x)
+  out
 }
 
 #' @rdname make_rel
@@ -59,7 +70,7 @@ make_rel.matrix <- function(x, na.rm = FALSE, ...) {
 #' @export
 make_rel.OpenSpecy <- function(x, na.rm = FALSE, ...) {
   x <- as_OpenSpecy(x)
-  x$spectra <- .matrix_make_rel(x$spectra, na.rm = na.rm)
+  x$spectra <- make_rel(x$spectra, na.rm = na.rm)
 
   return(x)
 }
