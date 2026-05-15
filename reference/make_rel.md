@@ -35,8 +35,9 @@ make_rel(x, na.rm = FALSE, ...)
 
 ## Value
 
-`make_rel()` return numeric vectors (if vector provided) or an
-`OpenSpecy` object with the normalized intensity data.
+`make_rel()` returns numeric vectors, numeric matrices with each
+spectrum normalized by column, or an `OpenSpecy` object with the
+normalized intensity data.
 
 ## Details
 
