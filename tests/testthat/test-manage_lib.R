@@ -33,7 +33,7 @@ test_that("load_lib() works with complete library", {
     expect_silent()
   expect_type(tl, "list")
   expect_s3_class(tl, "OpenSpecy")
-  expect_true(check_OpenSpecy(tl))
+  expect_true(check_OpenSpecy(as_OpenSpecy(tl)))
 })
 
 # Tidy up
