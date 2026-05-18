@@ -10,10 +10,13 @@ on:
 name: Build and deploy wasm R package repository
 
 jobs:
-  # Reads `./packages` for package references to put
-  # into a CRAN-like repository hosted on GitHub pages
+  # Builds package references into a CRAN-like repository hosted on GitHub Pages.
   deploy-cran-repo:
     uses: r-wasm/actions/.github/workflows/deploy-cran-repo.yml@v2
+    with:
+      # Build the checked-out package source directly. This avoids asking pak
+      # to resolve this same repository through the GitHub API during CI.
+      packages: "local::."
     permissions:
       # To download GitHub Packages within action
       repository-projects: read
