@@ -24,6 +24,9 @@
 
   Create `OpenSpecy` objects
 
+- [`assess_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/assess_spec.md)
+  : Assess common spectral quality issues
+
 - [`conform_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/conform_spec.md)
   : Conform spectra to a standard wavenumber series
 
