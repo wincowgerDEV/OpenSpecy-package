@@ -17,3 +17,7 @@
 ^vignettes/app.*
 ^vignettes/spectragryph.*
 ^packages$
+^AGENTS\.md$
+^\.agents$
+^\.specify$
+^specs$
