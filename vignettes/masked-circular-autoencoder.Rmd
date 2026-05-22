@@ -1,0 +1,70 @@
+---
+title: "Masked Circular Autoencoder"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Masked Circular Autoencoder}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = requireNamespace("torch", quietly = TRUE)
+)
+```
+
+The masked circular autoencoder is an experimental workflow for compressing
+OpenSpecy-style spectra into one circular coordinate. The model uses spectral
+values and observed-value masks only. Polymer names, classes, instruments, or
+other metadata are reserved for post-training diagnostics and plots.
+
+```{r setup}
+library(OpenSpecy)
+```
+
+The package includes `test_lib`, a compact reference library suitable for small
+examples. Larger manual experiments can use `get_lib("derivative")` followed by
+`load_lib("derivative")` outside routine test runs.
+
+```{r data}
+data("test_lib")
+os <- test_lib
+os$spectra <- os$spectra[, seq_len(12)]
+os$metadata <- os$metadata[seq_len(12), ]
+```
+
+Fit a small masked circular model. Missing values are treated as unobserved
+spectral positions, not as zero intensity.
+
+```{r fit}
+model <- fit_masked_circular_ae(
+  os,
+  n_hidden = c(32, 8),
+  min_overlap_points = 20,
+  min_overlap_fraction = 0.1,
+  epochs = 5,
+  batch_size = 4,
+  verbose = FALSE,
+  seed = 1
+)
+```
+
+Encode spectra, reconstruct them on the model grid, and inspect diagnostics.
+
+```{r encode}
+encoded <- encode_masked_circular_ae(model, os)
+reconstructed <- reconstruct_masked_circular_ae(model, x = os)
+diagnostics <- diagnose_masked_circular_ae(model, os, encoded = encoded,
+                                           n_pairs = 100, k = 3)
+head(encoded)
+diagnostics$angular_spread
+```
+
+Metadata can be used after fitting for diagnostics or display.
+
+```{r plot}
+plot_circular_embedding(encoded, color_by = "sample_name",
+                        metadata = os$metadata)
+```

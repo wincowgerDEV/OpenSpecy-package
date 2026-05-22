@@ -50,5 +50,9 @@ inst/OpenSpecy-shiny-main/
 # System files
 .ini
 *.swp
+*.tmp
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
 delete.bat

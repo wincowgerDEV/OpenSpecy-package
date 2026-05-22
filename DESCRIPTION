@@ -94,7 +94,8 @@ Imports:
     jpeg,
     shiny,
     hdf5r,
-    matrixStats
+    matrixStats,
+    torch
 Suggests:
     knitr,
     rmarkdown,
@@ -109,3 +110,4 @@ Suggests:
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0
+RoxygenNote: 7.3.2
