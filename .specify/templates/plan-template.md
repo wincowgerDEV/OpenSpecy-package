@@ -29,11 +29,11 @@
 
 **Project Type**: R package with optional Shiny app, pkgdown site, and vignettes
 
-**Performance Goals**: Spectral workflows remain accurate and computationally efficient for representative individual, batch, and map data
+**Performance Goals**: Spectral workflows remain accurate and computationally efficient for representative individual, batch, and map data; same-output function improvements avoid >10% slowdown in benchmarks
 
 **Constraints**: Preserve scientific meaning, public API compatibility, CRAN checks, generated-doc workflow, and dependency discipline
 
-**Scale/Scope**: Affected functions, classes, tests, vignettes, docs, data files, and release notes
+**Scale/Scope**: Affected functions, OpenSpecy object flows, classes, tests, benchmarks, vignettes, docs, data files, and release notes
 
 ## Constitution Check
 
@@ -41,12 +41,19 @@
 
 - Scientific integrity: plan states how spectral values, wavenumbers, metadata,
   classes, and tolerances are preserved or intentionally changed.
+- OpenSpecy object contract: plan states whether `wavenumber`, `spectra`, and
+  `metadata` structure, alignment, coercion, examples, or `Specs` conversion
+  boundaries are affected.
 - R package contract: affected public APIs, dependencies, `DESCRIPTION`, and
   CRAN/R CMD check impact are identified.
 - Tests: required `tests/testthat/` additions or updates are listed; any
-  untestable area has a written justification.
+  untestable area has a written justification; tests cover current behavior only.
+- Benchmarks: same-output function improvements list required `benchmarks/`
+  additions or updates, retain old implementations there, verify output
+  equivalence, and check for substantial runtime regression (~>10%).
 - Documentation: roxygen, vignettes, README/pkgdown, and `NEWS.md` impact are
-  listed as changed, unchanged, or not applicable.
+  listed as changed, unchanged, or not applicable, with examples centered on
+  `OpenSpecy` objects when relevant.
 - Generated artifacts: `NAMESPACE`, `man/*.Rd`, and pkgdown files are not
   planned for direct edits; required updates are generated from roxygen,
   `DESCRIPTION`, `devtools::document()`, or the pkgdown build process.
@@ -78,7 +85,7 @@ tests/testthat/         # testthat coverage
 vignettes/              # User workflows and long-form examples
 inst/                   # Bundled examples, app assets, and package resources
 data/                   # Datasets loaded with the package that are easily callable
-benchmarks/             # Benchmarking code to ensure updates are computed faster than previous iterations of the code and thus more computationally efficient. Should be run for benchmarking tasks. 
+benchmarks/             # Benchmark old/current implementations for same-output speed work; keep legacy comparison code here, not in tests/
 DESCRIPTION             # Package metadata and dependency declarations
 NEWS.md                 # User-visible release notes
 README.md               # Github viewable introductory information

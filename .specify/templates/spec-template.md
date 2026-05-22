@@ -111,6 +111,8 @@
 -->
 
 - **Tests**: [Required `tests/testthat/` additions or updates, including regression tests]
+- **OpenSpecy object flow**: [How `wavenumber`, `spectra`, and `metadata` structure, alignment, coercion, examples, or `Specs` conversion boundaries are preserved or changed]
+- **Benchmarks**: [Required `benchmarks/` comparison for same-output function improvements, including old implementation retained there, output equivalence check, and ~>10% slowdown guard; or N/A with reason]
 - **Roxygen**: [Affected `R/*.R` roxygen comments and generated help pages]
 - **Vignettes/README/pkgdown**: [Affected workflows, examples, screenshots, or site pages]
 - **DESCRIPTION**: [Dependency, R version, author, URL, config, or metadata changes]

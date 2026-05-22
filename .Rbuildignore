@@ -11,6 +11,7 @@
 ^CRAN-SUBMISSION$
 ^_pkgdown\.yml$
 ^docs$
+^benchmarks$
 ^pkgdown$
 ^codecov\.yml$
 ^vignettes/advanced.*

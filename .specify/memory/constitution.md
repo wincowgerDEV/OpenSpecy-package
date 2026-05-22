@@ -1,17 +1,19 @@
 <!--
 Sync Impact Report
-Version change: template/unratified -> 1.0.0
+Version change: 1.0.0 -> 1.1.0
 Modified principles:
-- Template principle 1 -> Scientific Spectral Integrity
-- Template principle 2 -> R Package API and CRAN Readiness
-- Template principle 3 -> Tests Track Behavior
-- Template principle 4 -> Documentation Is Part of the Change
-- Template principle 5 -> Generated Artifacts Stay Generated
+- Scientific Spectral Integrity: expanded to center the OpenSpecy object contract
+- R Package API and CRAN Readiness: renumbered after new object principle
+- Tests Track Behavior: clarified separation from benchmark-only legacy code
+- Documentation Is Part of the Change: expanded to require OpenSpecy-centered examples
+- Generated Artifacts Stay Generated: renumbered after new principles
+Added principles:
+- OpenSpecy Object Contract
+- Benchmark-Governed Performance Work
 Added sections:
-- R Package Standards
-- Development Workflow and Quality Gates
+- None
 Removed sections:
-- None; template placeholders were replaced.
+- None
 Templates requiring updates:
 - .specify/templates/plan-template.md: updated
 - .specify/templates/spec-template.md: updated
@@ -33,10 +35,32 @@ matching, plotting, and export workflows. Any algorithmic change that can alter
 spectral interpretation MUST document the intended effect, expected numerical
 tolerance, and user-visible consequences before implementation.
 
-Rationale: This package supports spectroscopy workflows where
-small processing or metadata errors can change material identification results and lead to incorrect scientific conclusions.
+Rationale: This package supports spectroscopy workflows where small processing
+or metadata errors can change material identification results and lead to
+incorrect scientific conclusions.
 
-### II. R Package API and CRAN Readiness
+### II. OpenSpecy Object Contract
+The `OpenSpecy` object structure MUST stay central to package design, function
+interfaces, tests, and examples. Canonical `OpenSpecy` objects are three-part
+lists with names `wavenumber`, `spectra`, and `metadata`; `wavenumber` is the
+shared spectral axis, `spectra` is a two-dimensional matrix with one row per
+wavenumber and one column per spectrum, and `metadata` is a `data.table` with
+one row per spectrum. Column names in `spectra` MUST remain unique and aligned
+with rows in `metadata`; function changes MUST preserve or deliberately update
+that alignment through `as_OpenSpecy()`, `OpenSpecy()`, or documented conversion
+helpers.
+
+Examples, vignettes, and public workflows MUST demonstrate use with `OpenSpecy`
+objects unless a lower-level vector, matrix, data frame, `Specs`, or helper
+interface is the explicit subject of the function. Compressed `Specs` workflows
+MUST explain their relationship to `OpenSpecy` conversion, matching, and
+decompression boundaries.
+
+Rationale: The object structure is the spine of package workflows. Centering it
+keeps reading, processing, matching, plotting, app, and documentation behavior
+consistent for users.
+
+### III. R Package API and CRAN Readiness
 The package MUST remain a maintainable R package centered on `R/`,
 `tests/testthat/`, `vignettes/`, `inst/`, `DESCRIPTION`, `NEWS.md`, and generated
 documentation. User-facing APIs MUST remain stable unless a breaking change is
@@ -51,14 +75,17 @@ and multi-platform R CMD check.
 Rationale: OpenSpecy is distributed as an R package and is used through CRAN,
 GitHub, vignettes, examples, and the Shiny app.
 
-### III. Tests Track Behavior
+### IV. Tests Track Current Behavior
 Every behavior change MUST include or update tests in `tests/testthat/` unless
 the plan documents why automated testing is impossible. Tests MUST cover the
 public contract, important edge cases, error handling, and representative
-spectral data paths. Bug fixes MUST add a test that fails without the
-fix. Changes that touch examples, data readers, object methods, processing,
-matching, or Shiny-facing behavior MUST include tests that exercise the affected
-workflow.
+spectral data paths. Bug fixes MUST add a test that fails without the fix.
+Changes that touch examples, data readers, object methods, processing, matching,
+or Shiny-facing behavior MUST include tests that exercise the affected workflow.
+
+`tests/` MUST test current package functionality only. Previous implementations
+kept for comparison MUST live in `benchmarks/`, not in `tests/`, because they
+are not part of the package API or CRAN submission surface.
 
 The expected verification command for local feature work is `devtools::test()`.
 Release-sensitive work MUST also pass `devtools::check()` or equivalent R CMD
@@ -67,7 +94,7 @@ check coverage before release.
 Rationale: The package already has broad testthat coverage, and tests are the
 main protection against silent spectral-processing errors.
 
-### IV. Documentation Is Part of the Change
+### V. Documentation Is Part of the Change
 Every user-visible change MUST update the documentation surface it affects.
 Roxygen comments in `R/*.R` MUST be updated with the code they describe.
 Vignettes in `vignettes/` MUST be updated when workflows, examples, recommended
@@ -77,10 +104,34 @@ installation, getting-started, citation, and workflow guidance. `NEWS.md` MUST
 record user-visible features, fixes, breaking changes, dependency changes, and
 documentation-only updates that matter to users.
 
+Examples and workflow documentation MUST prefer representative `OpenSpecy`
+objects and MUST show how the object structure moves through function flows when
+that helps users understand the API.
+
 Rationale: OpenSpecy users rely on examples, vignettes, help pages, and release
 notes to reproduce scientific workflows.
 
-### V. Generated Artifacts Stay Generated
+### VI. Benchmark-Governed Performance Work
+Performance improvement is a standing priority. Any function update described as
+an improvement, refactor, cleanup, vectorization, memory optimization, or speed
+change that is intended to keep the same output MUST add or update a benchmark
+under `benchmarks/`. The benchmark MUST keep the relevant previous
+implementation in `benchmarks/`, compare it with the current package function on
+representative data, verify identical or tolerance-defined equivalent output,
+and flag a substantial slowdown. A change that keeps the same output MUST NOT be
+accepted when the new implementation is more than approximately 10 percent
+slower on representative benchmark cases unless the plan documents an explicit
+scientific, correctness, or maintainability reason.
+
+Speed improvement recommendations are welcome when they preserve package scope,
+avoid unnecessary dependency growth, and include benchmark evidence. Benchmarks
+MUST remain outside formal package tests and CRAN obligations; they are
+development evidence for comparing old and current implementations.
+
+Rationale: OpenSpecy often works with large spectral datasets. Faster analysis
+matters, but speed work must preserve identical scientific output.
+
+### VII. Generated Artifacts Stay Generated
 `NAMESPACE`, `man/*.Rd`, and other roxygen-generated package artifacts MUST NOT
 be edited directly. Update the source roxygen comments, package metadata, and
 `DESCRIPTION`, then regenerate generated documentation with
@@ -101,6 +152,7 @@ MUST identify the affected package surfaces:
 
 - R source files in `R/`
 - testthat tests in `tests/testthat/`
+- benchmark comparisons in `benchmarks/`
 - vignettes and supporting assets in `vignettes/`
 - package metadata in `DESCRIPTION`
 - release notes in `NEWS.md`
@@ -111,14 +163,16 @@ MUST identify the affected package surfaces:
 Specs and implementation plans MUST call out whether each surface is changed,
 unchanged, or intentionally not applicable. A change that alters public behavior
 without tests, roxygen documentation, and NEWS consideration is non-compliant.
+A same-output function improvement without benchmark consideration is
+non-compliant.
 
 ## Development Workflow and Quality Gates
 
 Feature work MUST start from a Spec Kit specification and plan that state the
-user impact, affected APIs, expected tests, documentation updates, and generated
-artifact strategy. Tasks MUST include explicit work items for tests,
-documentation, `DESCRIPTION`, `NEWS.md`, and `devtools::document()` whenever the
-feature touches those surfaces.
+user impact, affected APIs, expected tests, documentation updates, benchmark
+impact, and generated artifact strategy. Tasks MUST include explicit work items
+for tests, documentation, `DESCRIPTION`, `NEWS.md`, `devtools::document()`, and
+benchmarks whenever the feature touches those surfaces.
 
 Before implementation is complete:
 
@@ -131,10 +185,14 @@ Before implementation is complete:
   change.
 - `NEWS.md` MUST include the change whenever users, downstream packages, or
   maintainers need to know about it.
+- Benchmarks in `benchmarks/` MUST be added or updated for same-output function
+  improvements and reviewed for output equivalence plus runtime regression.
+- OpenSpecy object invariants MUST be checked when a change touches object
+  creation, coercion, processing, matching, plotting, metadata, or examples.
 
 Complexity MUST be justified in the plan when a simpler R package pattern would
 work. New abstractions MUST protect repeated spectral workflows, package API
-clarity, or testability.
+clarity, `OpenSpecy` object consistency, performance, or testability.
 
 ## Governance
 
@@ -152,8 +210,9 @@ versioning:
 - PATCH: Clarifies wording without changing obligations.
 
 Reviewers MUST block changes that directly edit locked generated files, skip
-required tests without justification, or omit required documentation
-updates. Temporary exceptions MUST be documented in the feature plan with the
-reason, risk, and follow-up task.
+required tests without justification, omit required documentation updates,
+ignore `OpenSpecy` object invariants, or omit required benchmarks for
+same-output function improvements. Temporary exceptions MUST be documented in
+the feature plan with the reason, risk, and follow-up task.
 
-**Version**: 1.0.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-05-21
+**Version**: 1.1.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-05-22
