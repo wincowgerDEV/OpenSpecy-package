@@ -2,6 +2,20 @@
 
 ## All functions
 
+- [`Specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`is_Specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`check_Specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`as_Specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`fit_specs_pca()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`decompress_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`write_specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`read_specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`cor_spec(`*`<Specs>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`match_spec(`*`<Specs>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`def_features(`*`<Specs>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`collapse_spec(`*`<Specs>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  : Create compressed Specs objects
+
 - [`adj_intens()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/adj_intens.md)
   : Adjust spectral intensities to standard absorbance units.
 
