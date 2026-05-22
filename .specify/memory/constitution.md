@@ -1,17 +1,14 @@
 <!--
 Sync Impact Report
-Version change: 1.0.0 -> 1.1.0
+Version change: 1.1.0 -> 1.2.0
 Modified principles:
-- Scientific Spectral Integrity: expanded to center the OpenSpecy object contract
-- R Package API and CRAN Readiness: renumbered after new object principle
-- Tests Track Behavior: clarified separation from benchmark-only legacy code
-- Documentation Is Part of the Change: expanded to require OpenSpecy-centered examples
-- Generated Artifacts Stay Generated: renumbered after new principles
-Added principles:
-- OpenSpecy Object Contract
-- Benchmark-Governed Performance Work
+- OpenSpecy Object Contract: expanded to include object attributes via attr()
+- R Package Interface and CRAN Readiness: renamed to avoid package terminology that does not fit R package work
+- Tests Track Current Behavior: added long-running test placement rules
+- Documentation Is Part of the Change: removed terminology that does not fit R package work
+- Benchmark-Governed Performance Work: unchanged in substance
 Added sections:
-- None
+- Shiny Compatibility Boundary
 Removed sections:
 - None
 Templates requiring updates:
@@ -30,10 +27,11 @@ Follow-up TODOs: none
 ### I. Scientific Spectral Integrity
 OpenSpecy changes MUST preserve the scientific meaning of Raman and FTIR spectral
 data. Public functions MUST keep wavenumber axes, intensity values, metadata,
-identifiers, object classes, and units coherent through reading, processing,
-matching, plotting, and export workflows. Any algorithmic change that can alter
-spectral interpretation MUST document the intended effect, expected numerical
-tolerance, and user-visible consequences before implementation.
+identifiers, object classes, object attributes, and units coherent through
+reading, processing, matching, plotting, and export workflows. Any algorithmic
+change that can alter spectral interpretation MUST document the intended effect,
+expected numerical tolerance, and user-visible consequences before
+implementation.
 
 Rationale: This package supports spectroscopy workflows where small processing
 or metadata errors can change material identification results and lead to
@@ -50,6 +48,15 @@ with rows in `metadata`; function changes MUST preserve or deliberately update
 that alignment through `as_OpenSpecy()`, `OpenSpecy()`, or documented conversion
 helpers.
 
+Object attributes attached through `attr()` or constructor attributes MUST be
+treated as part of the long-term object contract. Attributes such as intensity
+unit, derivative order, baseline state, spectra type, processing history, and
+future compatibility fields MUST be preserved when valid, updated when a
+function changes the object's properties, and checked when they can prevent
+misuse. When attributes indicate incompatibility, functions MUST provide helpful
+warnings or errors if users attempt operations that are incompatible with an
+object's format, prior processing, units, or spectral type.
+
 Examples, vignettes, and public workflows MUST demonstrate use with `OpenSpecy`
 objects unless a lower-level vector, matrix, data frame, `Specs`, or helper
 interface is the explicit subject of the function. Compressed `Specs` workflows
@@ -57,14 +64,15 @@ MUST explain their relationship to `OpenSpecy` conversion, matching, and
 decompression boundaries.
 
 Rationale: The object structure is the spine of package workflows. Centering it
-keeps reading, processing, matching, plotting, app, and documentation behavior
-consistent for users.
+keeps reading, processing, matching, plotting, external application
+compatibility, and documentation behavior consistent for users.
 
-### III. R Package API and CRAN Readiness
+### III. R Package Interface and CRAN Readiness
 The package MUST remain a maintainable R package centered on `R/`,
 `tests/testthat/`, `vignettes/`, `inst/`, `DESCRIPTION`, `NEWS.md`, and generated
-documentation. User-facing APIs MUST remain stable unless a breaking change is
-explicitly specified, tested, documented, and recorded in `NEWS.md`.
+documentation. User-facing functions and objects MUST remain stable unless a
+breaking change is explicitly specified, tested, documented, and recorded in
+`NEWS.md`.
 
 New dependencies, R version requirements, authorship changes, URLs, package
 metadata, and roxygen configuration changes MUST be reflected in `DESCRIPTION`.
@@ -73,19 +81,26 @@ testthat edition 3, roxygen markdown, knitr/rmarkdown vignettes, pkgdown docs,
 and multi-platform R CMD check.
 
 Rationale: OpenSpecy is distributed as an R package and is used through CRAN,
-GitHub, vignettes, examples, and the Shiny app.
+GitHub, vignettes, examples, and downstream tools.
 
 ### IV. Tests Track Current Behavior
 Every behavior change MUST include or update tests in `tests/testthat/` unless
 the plan documents why automated testing is impossible. Tests MUST cover the
-public contract, important edge cases, error handling, and representative
-spectral data paths. Bug fixes MUST add a test that fails without the fix.
-Changes that touch examples, data readers, object methods, processing, matching,
-or Shiny-facing behavior MUST include tests that exercise the affected workflow.
+public function contract, important edge cases, error handling, and
+representative spectral data paths. Bug fixes MUST add a test that fails without
+the fix. Changes that touch examples, data readers, object methods, processing,
+matching, external Shiny compatibility, or object attributes MUST include tests
+that exercise the affected workflow.
 
 `tests/` MUST test current package functionality only. Previous implementations
 kept for comparison MUST live in `benchmarks/`, not in `tests/`, because they
-are not part of the package API or CRAN submission surface.
+are not part of the package functions or CRAN submission surface.
+
+Long-running tests MUST be opt-in locally or run through GitHub Actions
+automation. They MUST NOT make routine local `devtools::test()` runs
+substantially slower unless explicitly requested for the current task. Long
+tests that depend on network resources, large libraries, or heavy computation
+MUST use clear testthat skips or CI-only guards.
 
 The expected verification command for local feature work is `devtools::test()`.
 Release-sensitive work MUST also pass `devtools::check()` or equivalent R CMD
@@ -98,15 +113,15 @@ main protection against silent spectral-processing errors.
 Every user-visible change MUST update the documentation surface it affects.
 Roxygen comments in `R/*.R` MUST be updated with the code they describe.
 Vignettes in `vignettes/` MUST be updated when workflows, examples, recommended
-parameters, app behavior, or scientific interpretation change. `README.md` and
-pkgdown-oriented content MUST stay consistent with the package's current
-installation, getting-started, citation, and workflow guidance. `NEWS.md` MUST
-record user-visible features, fixes, breaking changes, dependency changes, and
-documentation-only updates that matter to users.
+parameters, external application compatibility, or scientific interpretation
+change. `README.md` and pkgdown-oriented content MUST stay consistent with the
+package's current installation, getting-started, citation, and workflow
+guidance. `NEWS.md` MUST record user-visible features, fixes, breaking changes,
+dependency changes, and documentation-only updates that matter to users.
 
 Examples and workflow documentation MUST prefer representative `OpenSpecy`
-objects and MUST show how the object structure moves through function flows when
-that helps users understand the API.
+objects and MUST show how the object structure and meaningful attributes move
+through function flows when that helps users understand package behavior.
 
 Rationale: OpenSpecy users rely on examples, vignettes, help pages, and release
 notes to reproduce scientific workflows.
@@ -166,13 +181,24 @@ without tests, roxygen documentation, and NEWS consideration is non-compliant.
 A same-output function improvement without benchmark consideration is
 non-compliant.
 
+## Shiny Compatibility Boundary
+
+The Shiny application MUST NOT be reintroduced into this package repository. It
+lives separately at `https://github.com/wincowgerDEV/OpenSpecy-shiny`.
+Compatibility with that external application MUST be considered when changing
+functions, objects, metadata, examples, or exported behavior, but package
+correctness, scientific integrity, maintainability, and CRAN readiness MUST take
+precedence. The package is the functional foundation for the external Shiny
+application, not a subordinate implementation detail of it.
+
 ## Development Workflow and Quality Gates
 
 Feature work MUST start from a Spec Kit specification and plan that state the
-user impact, affected APIs, expected tests, documentation updates, benchmark
-impact, and generated artifact strategy. Tasks MUST include explicit work items
-for tests, documentation, `DESCRIPTION`, `NEWS.md`, `devtools::document()`, and
-benchmarks whenever the feature touches those surfaces.
+user impact, affected functions and objects, expected tests, documentation
+updates, benchmark impact, and generated artifact strategy. Tasks MUST include
+explicit work items for tests, documentation, `DESCRIPTION`, `NEWS.md`,
+`devtools::document()`, and benchmarks whenever the feature touches those
+surfaces.
 
 Before implementation is complete:
 
@@ -187,12 +213,17 @@ Before implementation is complete:
   maintainers need to know about it.
 - Benchmarks in `benchmarks/` MUST be added or updated for same-output function
   improvements and reviewed for output equivalence plus runtime regression.
-- OpenSpecy object invariants MUST be checked when a change touches object
-  creation, coercion, processing, matching, plotting, metadata, or examples.
+- OpenSpecy object invariants and attributes MUST be checked when a change
+  touches object creation, coercion, processing, matching, plotting, metadata,
+  or examples.
+- Long-running tests MUST be manual or GitHub Actions guarded, not a surprise
+  cost in routine local test runs.
+- External Shiny compatibility MUST be considered when relevant, but package
+  functionality MUST take precedence.
 
 Complexity MUST be justified in the plan when a simpler R package pattern would
-work. New abstractions MUST protect repeated spectral workflows, package API
-clarity, `OpenSpecy` object consistency, performance, or testability.
+work. New abstractions MUST protect repeated spectral workflows, package
+function clarity, `OpenSpecy` object consistency, performance, or testability.
 
 ## Governance
 
@@ -211,8 +242,9 @@ versioning:
 
 Reviewers MUST block changes that directly edit locked generated files, skip
 required tests without justification, omit required documentation updates,
-ignore `OpenSpecy` object invariants, or omit required benchmarks for
+ignore `OpenSpecy` object invariants or attributes, reintroduce Shiny
+application code into this repository, or omit required benchmarks for
 same-output function improvements. Temporary exceptions MUST be documented in
 the feature plan with the reason, risk, and follow-up task.
 
-**Version**: 1.1.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-05-22
+**Version**: 1.2.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-05-22

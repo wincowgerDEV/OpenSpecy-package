@@ -110,14 +110,15 @@
   Use "N/A" only when the reason is obvious and documented.
 -->
 
-- **Tests**: [Required `tests/testthat/` additions or updates, including regression tests]
-- **OpenSpecy object flow**: [How `wavenumber`, `spectra`, and `metadata` structure, alignment, coercion, examples, or `Specs` conversion boundaries are preserved or changed]
+- **Tests**: [Required `tests/testthat/` additions or updates, including regression tests; identify long-running tests as manual or GitHub Actions guarded]
+- **OpenSpecy object flow**: [How `wavenumber`, `spectra`, `metadata`, object attributes via `attr()`, alignment, coercion, examples, or `Specs` conversion boundaries are preserved or changed]
 - **Benchmarks**: [Required `benchmarks/` comparison for same-output function improvements, including old implementation retained there, output equivalence check, and ~>10% slowdown guard; or N/A with reason]
 - **Roxygen**: [Affected `R/*.R` roxygen comments and generated help pages]
 - **Vignettes/README/pkgdown**: [Affected workflows, examples, screenshots, or site pages]
 - **DESCRIPTION**: [Dependency, R version, author, URL, config, or metadata changes]
 - **NEWS.md**: [User-visible release note entry or justification for none]
 - **Generated artifacts**: [Whether `devtools::document()` or pkgdown build is required; never direct edits to `NAMESPACE`, `man/*.Rd`, or generated HTML]
+- **External Shiny compatibility**: [Impact on `wincowgerDEV/OpenSpecy-shiny`; package correctness takes precedence; no Shiny application code belongs in this repository]
 
 ## Success Criteria *(mandatory)*
 
@@ -144,4 +145,4 @@
 - [Assumption about target users, e.g., "Users have stable internet connectivity"]
 - [Assumption about scope boundaries, e.g., "Mobile support is out of scope for v1"]
 - [Assumption about data/environment, e.g., "Existing authentication system will be reused"]
-- [Dependency on existing system/service, e.g., "Requires access to the existing user profile API"]
+- [Dependency on existing system/service, e.g., "Requires access to the existing user profile service"]

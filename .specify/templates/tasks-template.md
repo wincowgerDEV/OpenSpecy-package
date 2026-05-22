@@ -12,7 +12,8 @@ description: "Task list template for OpenSpecy R package feature implementation"
 **Tests**: Tests are REQUIRED for behavior changes. Include `tests/testthat/`
 tasks for each affected user story or document the approved exception in
 plan.md. Tests cover current package behavior only; old implementations used
-for performance comparison belong in `benchmarks/`.
+for performance comparison belong in `benchmarks/`. Long-running tests must be
+manual or GitHub Actions guarded.
 
 **Organization**: Tasks are grouped by user story to enable independent
 implementation, testing, documentation, and validation of each story.
@@ -43,7 +44,7 @@ implementation, testing, documentation, and validation of each story.
   - Package maintenance impact from spec.md
   - Feature requirements from plan.md
   - Entities from data-model.md
-  - Contracts or public API expectations from contracts/
+  - Public function and object expectations from contracts/
 
   Tasks MUST be organized by user story so each story can be:
   - Implemented independently
@@ -63,6 +64,7 @@ implementation, testing, documentation, and validation of each story.
 - [ ] T002 [P] Identify existing tests in `tests/testthat/` that cover the affected behavior
 - [ ] T003 [P] Identify existing benchmarks in `benchmarks/` for affected same-output function improvements
 - [ ] T004 [P] Identify affected roxygen blocks, vignettes, `DESCRIPTION`, and `NEWS.md`
+- [ ] T005 [P] Identify external OpenSpecy-shiny compatibility impact, if any, without adding Shiny application code to this repository
 
 ---
 
@@ -72,12 +74,13 @@ implementation, testing, documentation, and validation of each story.
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 Define scientific/data integrity expectations and numerical tolerances
-- [ ] T006 Define `OpenSpecy` object invariants for this feature: `wavenumber`, `spectra`, `metadata`, alignment, coercion, and examples
-- [ ] T007 Define public API compatibility and migration behavior
-- [ ] T008 Define test data, fixtures, or representative spectra needed for validation
-- [ ] T009 Define benchmark strategy for same-output function improvements, including previous implementation retention in `benchmarks/`
-- [ ] T010 Confirm generated-file strategy: roxygen sources first, then `devtools::document()`
+- [ ] T006 Define scientific/data integrity expectations and numerical tolerances
+- [ ] T007 Define `OpenSpecy` object invariants for this feature: `wavenumber`, `spectra`, `metadata`, object attributes via `attr()`, alignment, coercion, and examples
+- [ ] T008 Define function compatibility and migration behavior
+- [ ] T009 Define test data, fixtures, or representative spectra needed for validation
+- [ ] T010 Identify any long-running tests and decide whether they are manual or GitHub Actions guarded
+- [ ] T011 Define benchmark strategy for same-output function improvements, including previous implementation retention in `benchmarks/`
+- [ ] T012 Confirm generated-file strategy: roxygen sources first, then `devtools::document()`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel.
 
@@ -93,18 +96,20 @@ implementation, testing, documentation, and validation of each story.
 
 > **NOTE: Write or update these tests FIRST and confirm they fail when they are regression tests.**
 
-- [ ] T011 [P] [US1] Add or update testthat coverage in `tests/testthat/test-[topic].R`
-- [ ] T012 [P] [US1] Add regression or edge-case fixture coverage for [scenario]
-- [ ] T013 [P] [US1] Add or update benchmark in `benchmarks/[topic].R` for same-output function improvement, retaining the previous implementation there
+- [ ] T013 [P] [US1] Add or update testthat coverage in `tests/testthat/test-[topic].R`
+- [ ] T014 [P] [US1] Add regression or edge-case fixture coverage for [scenario]
+- [ ] T015 [P] [US1] Add manual or GitHub Actions guard for long-running test coverage, if needed
+- [ ] T016 [P] [US1] Add or update benchmark in `benchmarks/[topic].R` for same-output function improvement, retaining the previous implementation there
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Implement package behavior in `R/[topic].R`
-- [ ] T015 [US1] Preserve or intentionally update `OpenSpecy` object structure and alignment through `as_OpenSpecy()`, `OpenSpecy()`, or documented conversion helpers
-- [ ] T016 [US1] Update roxygen comments in `R/[topic].R`
-- [ ] T017 [US1] Update affected vignette or README examples, centering `OpenSpecy` object flow when relevant
-- [ ] T018 [US1] Update `DESCRIPTION` if dependencies, metadata, or package config change
-- [ ] T019 [US1] Add `NEWS.md` entry for user-visible impact
+- [ ] T017 [US1] Implement package behavior in `R/[topic].R`
+- [ ] T018 [US1] Preserve or intentionally update `OpenSpecy` object structure, attributes, and alignment through `as_OpenSpecy()`, `OpenSpecy()`, or documented conversion helpers
+- [ ] T019 [US1] Preserve package-first behavior while considering external OpenSpecy-shiny compatibility when relevant
+- [ ] T020 [US1] Update roxygen comments in `R/[topic].R`
+- [ ] T021 [US1] Update affected vignette or README examples, centering `OpenSpecy` object flow when relevant
+- [ ] T022 [US1] Update `DESCRIPTION` if dependencies, metadata, or package config change
+- [ ] T023 [US1] Add `NEWS.md` entry for user-visible impact
 
 **Checkpoint**: User Story 1 is functional, tested, documented, and independently verifiable.
 
@@ -118,16 +123,17 @@ implementation, testing, documentation, and validation of each story.
 
 ### Tests for User Story 2
 
-- [ ] T020 [P] [US2] Add or update testthat coverage in `tests/testthat/test-[topic].R`
-- [ ] T021 [P] [US2] Add regression or edge-case fixture coverage for [scenario]
-- [ ] T022 [P] [US2] Add or update benchmark in `benchmarks/[topic].R` for same-output function improvement, retaining the previous implementation there
+- [ ] T024 [P] [US2] Add or update testthat coverage in `tests/testthat/test-[topic].R`
+- [ ] T025 [P] [US2] Add regression or edge-case fixture coverage for [scenario]
+- [ ] T026 [P] [US2] Add manual or GitHub Actions guard for long-running test coverage, if needed
+- [ ] T027 [P] [US2] Add or update benchmark in `benchmarks/[topic].R` for same-output function improvement, retaining the previous implementation there
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Implement package behavior in `R/[topic].R`
-- [ ] T024 [US2] Preserve or intentionally update `OpenSpecy` object structure and alignment
-- [ ] T025 [US2] Update roxygen comments in `R/[topic].R`
-- [ ] T026 [US2] Update vignettes, `DESCRIPTION`, or `NEWS.md` as required by spec.md
+- [ ] T028 [US2] Implement package behavior in `R/[topic].R`
+- [ ] T029 [US2] Preserve or intentionally update `OpenSpecy` object structure, attributes, and alignment
+- [ ] T030 [US2] Update roxygen comments in `R/[topic].R`
+- [ ] T031 [US2] Update vignettes, `DESCRIPTION`, or `NEWS.md` as required by spec.md
 
 **Checkpoint**: User Stories 1 and 2 both work independently.
 
@@ -141,16 +147,17 @@ implementation, testing, documentation, and validation of each story.
 
 ### Tests for User Story 3
 
-- [ ] T027 [P] [US3] Add or update testthat coverage in `tests/testthat/test-[topic].R`
-- [ ] T028 [P] [US3] Add regression or edge-case fixture coverage for [scenario]
-- [ ] T029 [P] [US3] Add or update benchmark in `benchmarks/[topic].R` for same-output function improvement, retaining the previous implementation there
+- [ ] T032 [P] [US3] Add or update testthat coverage in `tests/testthat/test-[topic].R`
+- [ ] T033 [P] [US3] Add regression or edge-case fixture coverage for [scenario]
+- [ ] T034 [P] [US3] Add manual or GitHub Actions guard for long-running test coverage, if needed
+- [ ] T035 [P] [US3] Add or update benchmark in `benchmarks/[topic].R` for same-output function improvement, retaining the previous implementation there
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Implement package behavior in `R/[topic].R`
-- [ ] T031 [US3] Preserve or intentionally update `OpenSpecy` object structure and alignment
-- [ ] T032 [US3] Update roxygen comments in `R/[topic].R`
-- [ ] T033 [US3] Update vignettes, `DESCRIPTION`, or `NEWS.md` as required by spec.md
+- [ ] T036 [US3] Implement package behavior in `R/[topic].R`
+- [ ] T037 [US3] Preserve or intentionally update `OpenSpecy` object structure, attributes, and alignment
+- [ ] T038 [US3] Update roxygen comments in `R/[topic].R`
+- [ ] T039 [US3] Update vignettes, `DESCRIPTION`, or `NEWS.md` as required by spec.md
 
 **Checkpoint**: All user stories are independently functional.
 
@@ -166,8 +173,10 @@ implementation, testing, documentation, and validation of each story.
 
 - [ ] TXXX Run `devtools::document()` after roxygen, export, method, or package documentation changes
 - [ ] TXXX Verify generated `NAMESPACE` and `man/*.Rd` reflect roxygen changes without direct hand edits
-- [ ] TXXX Verify `OpenSpecy` object invariants and examples remain centered in affected function flows
+- [ ] TXXX Verify `OpenSpecy` object invariants, attributes, and examples remain centered in affected function flows
 - [ ] TXXX Run or update `benchmarks/[topic].R` for same-output function improvements; record output equivalence and ensure runtime is not substantially slower (~>10%)
+- [ ] TXXX Verify long-running tests are manual or GitHub Actions guarded
+- [ ] TXXX Verify external OpenSpecy-shiny compatibility was considered when relevant and no Shiny application code was added
 - [ ] TXXX [P] Update or validate vignettes in `vignettes/`
 - [ ] TXXX [P] Update `NEWS.md` for user-visible changes
 - [ ] TXXX [P] Update `DESCRIPTION` for dependency, metadata, R version, or config changes
@@ -197,7 +206,7 @@ implementation, testing, documentation, and validation of each story.
 - Tests before implementation
 - Benchmark scaffold before same-output optimization work
 - R source and roxygen updates together
-- OpenSpecy object invariants before examples and validation
+- OpenSpecy object invariants and attributes before examples and validation
 - Core implementation before vignette or README examples
 - `DESCRIPTION` and `NEWS.md` updates before final validation
 - `devtools::document()` after roxygen/export changes
@@ -240,4 +249,6 @@ implementation, testing, documentation, and validation of each story.
 - Avoid direct edits to `NAMESPACE`, `man/*.Rd`, and generated pkgdown HTML
 - Keep previous implementations for speed comparison in `benchmarks/`, not in `tests/`
 - Center `OpenSpecy` object examples unless a lower-level helper is the explicit subject
+- Keep long-running tests manual or GitHub Actions guarded
+- Do not add Shiny application code to this package repository; consider external compatibility only
 - Avoid vague tasks, same-file conflicts, and hidden documentation work
