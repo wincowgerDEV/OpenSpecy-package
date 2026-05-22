@@ -33,8 +33,8 @@ matching, plotting, and export workflows. Any algorithmic change that can alter
 spectral interpretation MUST document the intended effect, expected numerical
 tolerance, and user-visible consequences before implementation.
 
-Rationale: This package supports environmental spectroscopy workflows where
-small processing or metadata errors can change material identification results.
+Rationale: This package supports spectroscopy workflows where
+small processing or metadata errors can change material identification results and lead to incorrect scientific conclusions.
 
 ### II. R Package API and CRAN Readiness
 The package MUST remain a maintainable R package centered on `R/`,
@@ -55,7 +55,7 @@ GitHub, vignettes, examples, and the Shiny app.
 Every behavior change MUST include or update tests in `tests/testthat/` unless
 the plan documents why automated testing is impossible. Tests MUST cover the
 public contract, important edge cases, error handling, and representative
-spectral data paths. Bug fixes MUST add a regression test that fails without the
+spectral data paths. Bug fixes MUST add a test that fails without the
 fix. Changes that touch examples, data readers, object methods, processing,
 matching, or Shiny-facing behavior MUST include tests that exercise the affected
 workflow.
@@ -65,7 +65,7 @@ Release-sensitive work MUST also pass `devtools::check()` or equivalent R CMD
 check coverage before release.
 
 Rationale: The package already has broad testthat coverage, and tests are the
-main protection against silent spectral-processing regressions.
+main protection against silent spectral-processing errors.
 
 ### IV. Documentation Is Part of the Change
 Every user-visible change MUST update the documentation surface it affects.
@@ -152,7 +152,7 @@ versioning:
 - PATCH: Clarifies wording without changing obligations.
 
 Reviewers MUST block changes that directly edit locked generated files, skip
-required tests without justification, or omit required documentation and NEWS
+required tests without justification, or omit required documentation
 updates. Temporary exceptions MUST be documented in the feature plan with the
 reason, risk, and follow-up task.
 
