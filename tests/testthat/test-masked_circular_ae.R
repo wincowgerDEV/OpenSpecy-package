@@ -188,10 +188,10 @@ test_that("plot_circular_embedding() uses base graphics and returns plot data", 
 })
 
 test_that("tiny R-native model fits, encodes, reconstructs, and diagnoses", {
-  os <- make_masked_circular_test_os(n = 8, p = 40)
+  #os <- make_masked_circular_test_os(n = 8, p = 40)
 
   model <- fit_masked_circular_ae(
-    os,
+    test_lib,
     min_overlap_points = 5,
     min_overlap_fraction = 0.1,
     validation_fraction = 0.25,
@@ -206,26 +206,26 @@ test_that("tiny R-native model fits, encodes, reconstructs, and diagnoses", {
   expect_true(nrow(model$history) >= 1)
   expect_false("polymer" %in% names(model))
 
-  encoded <- encode_masked_circular_ae(model, os)
+  encoded <- encode_masked_circular_ae(model, test_lib)
   expect_true(all(is.finite(encoded$theta)))
   expect_true(all(encoded$theta >= 0 & encoded$theta < 360))
   expect_named(encoded, c("spectrum_id", "theta", "observed_points",
                          "min_wavenumber", "max_wavenumber"))
 
-  specs <- encode_masked_circular_ae(model, os, as_specs = TRUE)
+  specs <- encode_masked_circular_ae(model, test_lib, as_specs = TRUE)
   expect_s3_class(specs, "Specs")
   expect_equal(specs$variables, "theta")
   expect_equal(nrow(specs$values), 1)
 
-  rec <- reconstruct_masked_circular_ae(model, x = os)
+  rec <- reconstruct_masked_circular_ae(model, x = test_lib)
   expect_s3_class(rec, "OpenSpecy")
-  expect_equal(rec$wavenumber, os$wavenumber)
+  expect_equal(rec$wavenumber, test_lib$wavenumber)
 
   rec_theta <- reconstruct_masked_circular_ae(model, theta = encoded$theta)
   expect_s3_class(rec_theta, "OpenSpecy")
   expect_equal(ncol(rec_theta$spectra), nrow(encoded))
 
-  diag <- diagnose_masked_circular_ae(model, os, encoded = encoded,
+  diag <- diagnose_masked_circular_ae(model, test_lib, encoded = encoded,
                                       n_pairs = 10, k = 2)
   expect_named(diag, c("reconstruction", "distance_preservation",
                       "neighbor_preservation", "missingness_range",
