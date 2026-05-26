@@ -10,15 +10,15 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>",
-  eval = requireNamespace("torch", quietly = TRUE)
+  comment = "#>"
 )
 ```
 
-The masked circular autoencoder is an experimental workflow for compressing
-OpenSpecy-style spectra into one circular coordinate. The model uses spectral
-values and observed-value masks only. Polymer names, classes, instruments, or
-other metadata are reserved for post-training diagnostics and plots.
+The masked circular autoencoder is an experimental R-native workflow for
+compressing OpenSpecy-style spectra into one circular coordinate. The model uses
+spectral values and observed-value masks only. Polymer names, classes,
+instruments, or other metadata are reserved for post-training diagnostics and
+plots.
 
 ```{r setup}
 library(OpenSpecy)
@@ -41,11 +41,9 @@ spectral positions, not as zero intensity.
 ```{r fit}
 model <- fit_masked_circular_ae(
   os,
-  n_hidden = c(32, 8),
   min_overlap_points = 20,
   min_overlap_fraction = 0.1,
-  epochs = 5,
-  batch_size = 4,
+  decoder_degree = 2,
   verbose = FALSE,
   seed = 1
 )

@@ -94,8 +94,7 @@ Imports:
     jpeg,
     shiny,
     hdf5r,
-    matrixStats,
-    torch
+    matrixStats
 Suggests:
     knitr,
     rmarkdown,

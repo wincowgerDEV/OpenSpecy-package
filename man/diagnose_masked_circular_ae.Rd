@@ -50,7 +50,8 @@ plot_circular_embedding(
 }
 \value{
 \code{diagnose_masked_circular_ae()} returns a list of diagnostic tables and
-summaries. \code{plot_circular_embedding()} returns a \code{ggplot} object.
+summaries. \code{plot_circular_embedding()} draws a base R circular plot and
+invisibly returns the plotting data.
 }
 \description{
 Post-training diagnostics for a fitted masked circular autoencoder. Metadata
@@ -60,7 +61,7 @@ model or loss history.
 \examples{
 \dontrun{
 data("test_lib")
-model <- fit_masked_circular_ae(test_lib, epochs = 5)
+model <- fit_masked_circular_ae(test_lib, decoder_degree = 2)
 encoded <- encode_masked_circular_ae(model, test_lib)
 diagnose_masked_circular_ae(model, test_lib, encoded = encoded)
 plot_circular_embedding(encoded)

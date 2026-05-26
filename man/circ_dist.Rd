@@ -21,7 +21,7 @@ masked_spectral_distance(
 )
 }
 \arguments{
-\item{theta1, theta2}{Numeric angle vectors in radians.}
+\item{theta1, theta2}{Numeric angle vectors in degrees.}
 
 \item{x}{Numeric matrix with spectra in rows and wavenumbers in columns.}
 
@@ -53,8 +53,8 @@ Helper functions for the masked circular autoencoder workflow. These
 functions do not use labels or metadata.
 }
 \examples{
-circ_dist(0, 2 * pi)
-circ_dist(0, pi)
+circ_dist(0, 360)
+circ_dist(0, 180)
 
 x <- matrix(c(1, 2, NA, 1, 4, 5), nrow = 2, byrow = TRUE)
 mask <- is.finite(x)

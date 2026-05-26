@@ -20,12 +20,13 @@
 #'
 #' @return
 #' `diagnose_masked_circular_ae()` returns a list of diagnostic tables and
-#' summaries. `plot_circular_embedding()` returns a `ggplot` object.
+#' summaries. `plot_circular_embedding()` draws a base R circular plot and
+#' invisibly returns the plotting data.
 #'
 #' @examples
 #' \dontrun{
 #' data("test_lib")
-#' model <- fit_masked_circular_ae(test_lib, epochs = 5)
+#' model <- fit_masked_circular_ae(test_lib, decoder_degree = 2)
 #' encoded <- encode_masked_circular_ae(model, test_lib)
 #' diagnose_masked_circular_ae(model, test_lib, encoded = encoded)
 #' plot_circular_embedding(encoded)
@@ -85,11 +86,6 @@ diagnose_masked_circular_ae <- function(model,
 #' @export
 plot_circular_embedding <- function(encoded, color_by = NULL, label_by = NULL,
                                     metadata = NULL) {
-  if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("plot_circular_embedding() requires the optional 'ggplot2' package",
-         call. = FALSE)
-  }
-
   dt <- .prepare_circular_embedding_plot_data(
     encoded = encoded,
     color_by = color_by,
@@ -97,39 +93,58 @@ plot_circular_embedding <- function(encoded, color_by = NULL, label_by = NULL,
     metadata = metadata
   )
 
-  p <- ggplot2::ggplot(dt, ggplot2::aes_string(x = "z1", y = "z2")) +
-    ggplot2::geom_path(
-      data = data.frame(
-        z1 = cos(seq(0, 2 * pi, length.out = 181)),
-        z2 = sin(seq(0, 2 * pi, length.out = 181))
-      ),
-      ggplot2::aes_string(x = "z1", y = "z2"),
-      inherit.aes = FALSE,
-      color = "grey75"
-    ) +
-    ggplot2::coord_equal() +
-    ggplot2::theme_minimal() +
-    ggplot2::labs(x = "z1", y = "z2")
+  z <- .theta_degrees_to_z(dt$theta)
+  circle_theta <- seq(0, 360, length.out = 181)
+  circle <- .theta_degrees_to_z(circle_theta)
 
+  point_col <- "black"
   if (!is.null(color_by)) {
-    p <- p + ggplot2::geom_point(ggplot2::aes_string(color = color_by))
+    groups <- as.factor(dt[[color_by]])
+    palette <- grDevices::hcl.colors(max(1L, nlevels(groups)), "Dark 3")
+    point_col <- palette[as.integer(groups)]
   } else {
-    p <- p + ggplot2::geom_point()
+    groups <- NULL
+    palette <- NULL
   }
 
+  graphics::plot(
+    circle[, 1],
+    circle[, 2],
+    type = "l",
+    asp = 1,
+    col = "grey75",
+    xlab = "cos(theta)",
+    ylab = "sin(theta)",
+    xlim = c(-1.08, 1.08),
+    ylim = c(-1.08, 1.08)
+  )
+  graphics::points(z[, 1], z[, 2], col = point_col, pch = 19)
+
   if (!is.null(label_by)) {
-    p <- p + ggplot2::geom_text(
-      ggplot2::aes_string(label = label_by),
-      vjust = -0.6,
-      size = 3
+    graphics::text(
+      z[, 1],
+      z[, 2],
+      labels = dt[[label_by]],
+      pos = 3,
+      cex = 0.8
     )
   }
 
-  p
+  if (!is.null(groups)) {
+    graphics::legend(
+      "topright",
+      legend = levels(groups),
+      col = palette,
+      pch = 19,
+      bty = "n"
+    )
+  }
+
+  invisible(dt)
 }
 
 .masked_circular_reconstruction_diagnostics <- function(model, prep, encoded) {
-  recon <- reconstruct_masked_circular_ae(model, z = as.matrix(encoded[, c("z1", "z2")]))
+  recon <- reconstruct_masked_circular_ae(model, theta = encoded$theta)
   x_hat <- t(as.matrix(recon$spectra))
   x <- prep$x
   mask <- prep$mask_observed
@@ -265,12 +280,13 @@ plot_circular_embedding <- function(encoded, color_by = NULL, label_by = NULL,
 }
 
 .masked_circular_angular_spread <- function(encoded) {
-  mean_z1 <- mean(encoded$z1, na.rm = TRUE)
-  mean_z2 <- mean(encoded$z2, na.rm = TRUE)
+  z <- .theta_degrees_to_z(encoded$theta)
+  mean_cos <- mean(z[, 1], na.rm = TRUE)
+  mean_sin <- mean(z[, 2], na.rm = TRUE)
   data.table::data.table(
-    mean_z1 = mean_z1,
-    mean_z2 = mean_z2,
-    mean_resultant_length = sqrt(mean_z1^2 + mean_z2^2)
+    mean_cos = mean_cos,
+    mean_sin = mean_sin,
+    mean_resultant_length = sqrt(mean_cos^2 + mean_sin^2)
   )
 }
 
@@ -278,9 +294,9 @@ plot_circular_embedding <- function(encoded, color_by = NULL, label_by = NULL,
                                                   label_by = NULL,
                                                   metadata = NULL) {
   dt <- data.table::as.data.table(encoded)
-  required <- c("spectrum_id", "theta", "z1", "z2")
+  required <- c("spectrum_id", "theta")
   if (!all(required %in% names(dt)))
-    stop("'encoded' must include spectrum_id, theta, z1, and z2 columns",
+    stop("'encoded' must include spectrum_id and theta columns",
          call. = FALSE)
 
   if (!is.null(metadata)) {

@@ -28,7 +28,7 @@ Internal spectrum-row representation used by fitting and diagnostics.
 
 - `x`: numeric matrix with one row per spectrum and one column per wavenumber.
 - `mask_observed`: logical matrix matching `x`; `TRUE` means the original value is finite and eligible as a target.
-- `x_filled`: numeric matrix matching `x`; missing values are filled only for dense model input.
+- `x_filled`: numeric matrix matching `x`; missing values are filled only for dense fallback calculations.
 - `wavenumber`: numeric vector matching columns of `x`.
 - `spectrum_id`: character vector matching rows of `x`.
 - `metadata`: optional data.table carried for outputs only, not for fitting decisions.
@@ -40,23 +40,6 @@ Internal spectrum-row representation used by fitting and diagnostics.
 - Non-finite observed values are treated as unobserved.
 - Metadata columns are not included in `x`, `x_filled`, validation splitting, or loss calculation.
 
-## Visible Batch Input
-
-Per-batch representation after optional random block masking.
-
-**Fields**
-
-- `x_visible`: normalized and filled numeric matrix visible to the encoder.
-- `mask_visible`: logical matrix visible to the encoder.
-- `mask_observed`: original logical target mask for reconstruction and pairwise target distances.
-- `block_mask_record`: optional record of randomly hidden wavenumber ranges.
-
-**Validation Rules**
-
-- `mask_visible` may only hide positions that were originally observed or already missing; it may not create new target observations.
-- Reconstruction loss uses `mask_observed`, not `mask_visible`.
-- Target distances use `mask_observed`, not `mask_visible`.
-
 ## Fitted Circular Model
 
 Trained model object returned by `fit_masked_circular_ae()`.
@@ -64,20 +47,19 @@ Trained model object returned by `fit_masked_circular_ae()`.
 **Fields**
 
 - `model_type`: `"masked_circular_ae"`.
-- `backend`: training backend name and version information when available.
+- `backend`: R backend name, version information, and method summary.
 - `wavenumber`: numeric model grid.
 - `normalization`: per-wavenumber center, scale, fill value, and observed-count summaries.
-- `hyperparameters`: hidden sizes, loss weights, overlap thresholds, batch size, learning rate, epochs, validation fraction, seed, and verbosity settings.
+- `hyperparameters`: loss weights, overlap thresholds, decoder degree, validation fraction, seed, and verbosity settings.
 - `target_distance`: selected target distance type.
-- `random_block_mask`: block masking settings and whether it was enabled.
-- `state`: backend model state needed for encoding and reconstruction.
-- `history`: training and validation loss by epoch, including component losses when available.
+- `state`: reference spectra/coordinates and periodic decoder state needed for encoding and reconstruction.
+- `history`: training and validation loss summaries, including component losses when available.
 - `preprocessing_assumptions`: statement that spectra were preprocessed before fitting.
 - `model_id`: digest or stable identifier for compatibility checks.
 
 **Validation Rules**
 
-- `wavenumber` must be finite and match the backend state input/output size.
+- `wavenumber` must be finite and match the reference spectra and decoder state.
 - `normalization` vectors must match the wavenumber grid length.
 - `lambda_rec`, `lambda_dist`, and `lambda_uniform` must be finite non-negative numbers, with at least one positive loss weight.
 - Model state must be present before encoding or reconstruction.
@@ -90,9 +72,7 @@ Per-spectrum circular coordinates returned by `encode_masked_circular_ae()`.
 **Fields**
 
 - `spectrum_id`: input spectrum identifier.
-- `theta`: numeric angle in radians.
-- `z1`: cosine coordinate.
-- `z2`: sine coordinate.
+- `theta`: numeric angle in degrees on `[0, 360)`.
 - `observed_points`: number of observed wavenumbers in the encoded input.
 - `min_wavenumber`: lowest observed wavenumber for the spectrum.
 - `max_wavenumber`: highest observed wavenumber for the spectrum.
@@ -100,10 +80,10 @@ Per-spectrum circular coordinates returned by `encode_masked_circular_ae()`.
 
 **Validation Rules**
 
-- `theta`, `z1`, and `z2` must be finite for spectra that meet minimum observation requirements.
-- `sqrt(z1^2 + z2^2)` must equal 1 within numerical tolerance.
+- `theta` must be finite for spectra that meet minimum observation requirements.
+- `theta` must be normalized to `[0, 360)`.
 - Metadata joins must not alter model state or loss history.
-- Optional `Specs` compatibility stores `z1` and `z2` as latent variables and preserves `theta` in metadata.
+- Optional `Specs` compatibility stores exactly one latent variable named `theta`.
 
 ## Reconstruction
 
@@ -113,7 +93,7 @@ Predicted spectra on the model's wavenumber grid.
 
 - `wavenumber`: model grid.
 - `spectra`: reconstructed matrix with one row per wavenumber and one column per requested spectrum or coordinate.
-- `metadata`: source identifiers, theta, z coordinates, and optional source metadata.
+- `metadata`: source identifiers, theta coordinates, and optional source metadata.
 - `attributes`: OpenSpecy-compatible attributes documenting reconstruction and model id.
 
 **Validation Rules**

@@ -4,7 +4,7 @@
 #' Helper functions for the masked circular autoencoder workflow. These
 #' functions do not use labels or metadata.
 #'
-#' @param theta1,theta2 Numeric angle vectors in radians.
+#' @param theta1,theta2 Numeric angle vectors in degrees.
 #' @param x Numeric matrix with spectra in rows and wavenumbers in columns.
 #' @param x_hat Numeric matrix of reconstructed spectra matching `x`.
 #' @param mask Logical matrix matching `x`; `TRUE` marks observed values.
@@ -24,8 +24,8 @@
 #' validity, overlap counts, overlap fractions, and weights.
 #'
 #' @examples
-#' circ_dist(0, 2 * pi)
-#' circ_dist(0, pi)
+#' circ_dist(0, 360)
+#' circ_dist(0, 180)
 #'
 #' x <- matrix(c(1, 2, NA, 1, 4, 5), nrow = 2, byrow = TRUE)
 #' mask <- is.finite(x)
@@ -36,10 +36,31 @@
 #'
 #' @export
 circ_dist <- function(theta1, theta2) {
-  theta1 <- as.numeric(theta1)
-  theta2 <- as.numeric(theta2)
-  delta <- abs((theta1 - theta2 + pi) %% (2 * pi) - pi)
-  delta / pi
+  theta1 <- .normalize_theta_degrees(theta1)
+  theta2 <- .normalize_theta_degrees(theta2)
+  delta <- abs((theta1 - theta2 + 180) %% 360 - 180)
+  delta / 180
+}
+
+.normalize_theta_degrees <- function(theta) {
+  theta <- as.numeric(theta)
+  theta <- theta %% 360
+  theta[theta < 0] <- theta[theta < 0] + 360
+  theta
+}
+
+.theta_degrees_to_radians <- function(theta) {
+  .normalize_theta_degrees(theta) * pi / 180
+}
+
+.theta_degrees_to_z <- function(theta) {
+  theta_rad <- .theta_degrees_to_radians(theta)
+  cbind(cos(theta_rad), sin(theta_rad))
+}
+
+.z_to_theta_degrees <- function(z) {
+  z <- as.matrix(z)
+  .normalize_theta_degrees(atan2(z[, 2], z[, 1]) * 180 / pi)
 }
 
 #' @rdname circ_dist

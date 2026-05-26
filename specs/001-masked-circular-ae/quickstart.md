@@ -45,18 +45,13 @@ for (i in seq_len(ncol(os$spectra))) {
 
 model <- fit_masked_circular_ae(
   os,
-  n_hidden = c(64, 16),
   target_distance = "spectral_angle",
   lambda_rec = 1,
   lambda_dist = 1,
   lambda_uniform = 0.01,
   min_overlap_points = 40,
   min_overlap_fraction = 0.20,
-  random_block_mask = TRUE,
-  block_mask_fraction = 0.10,
-  epochs = 20,
-  batch_size = 16,
-  learning_rate = 1e-3,
+  decoder_degree = 3,
   validation_fraction = 0.2,
   seed = 1
 )
@@ -86,7 +81,7 @@ plot_circular_embedding(
 Expected checks after implementation:
 
 - `model$history` contains training and validation losses.
-- `encoded$theta`, `encoded$z1`, and `encoded$z2` are finite for spectra with enough observed points.
-- `sqrt(encoded$z1^2 + encoded$z2^2)` is approximately 1.
+- `encoded$theta` is finite and on `[0, 360)` for spectra with enough observed points.
+- `encode_masked_circular_ae(..., as_specs = TRUE)` stores a single latent variable named `theta`.
 - Diagnostics report reconstruction error, distance preservation, neighbor preservation, and missingness/range summaries.
 - Changing `metadata$diagnostic_group` before fitting does not change the fitted model when the same seed and spectra are used.

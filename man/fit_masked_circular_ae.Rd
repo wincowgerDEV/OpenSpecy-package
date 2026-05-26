@@ -9,18 +9,13 @@
 fit_masked_circular_ae(
   x,
   wavenumber = NULL,
-  n_hidden = c(512, 128, 32),
   target_distance = c("correlation", "spectral_angle"),
   lambda_rec = 1,
   lambda_dist = 1,
   lambda_uniform = 0.01,
   min_overlap_points = 100,
   min_overlap_fraction = 0.25,
-  random_block_mask = TRUE,
-  block_mask_fraction = 0.15,
-  epochs = 100,
-  batch_size = 128,
-  learning_rate = 0.001,
+  decoder_degree = 3,
   validation_fraction = 0.2,
   seed = 1,
   verbose = TRUE
@@ -31,7 +26,6 @@ encode_masked_circular_ae(model, x, wavenumber = NULL, as_specs = FALSE)
 reconstruct_masked_circular_ae(
   model,
   theta = NULL,
-  z = NULL,
   x = NULL,
   wavenumber = NULL
 )
@@ -42,11 +36,11 @@ in rows and wavenumbers in columns.}
 
 \item{wavenumber}{Optional numeric wavenumber vector for matrix-like inputs.}
 
-\item{n_hidden}{Integer vector of hidden layer widths.}
+\item{target_distance}{Class-free target distance used for circular
+embedding and diagnostics.}
 
-\item{target_distance}{Class-free target distance used during training.}
-
-\item{lambda_rec, lambda_dist, lambda_uniform}{Non-negative loss weights.}
+\item{lambda_rec, lambda_dist, lambda_uniform}{Non-negative diagnostic loss
+weights.}
 
 \item{min_overlap_points}{Minimum shared observed wavenumber count for
 target distances.}
@@ -54,49 +48,42 @@ target distances.}
 \item{min_overlap_fraction}{Minimum shared observed fraction for target
 distances.}
 
-\item{random_block_mask}{Logical; randomly hide contiguous observed
-wavenumber blocks from the encoder during training.}
-
-\item{block_mask_fraction}{Fraction of wavenumber positions to hide in a
-random contiguous block when \code{random_block_mask = TRUE}.}
-
-\item{epochs}{Number of training epochs.}
-
-\item{batch_size}{Mini-batch size.}
-
-\item{learning_rate}{Optimizer learning rate.}
+\item{decoder_degree}{Non-negative integer degree for periodic decoder terms.}
 
 \item{validation_fraction}{Fraction of spectra held out using a seeded,
 label-free random split.}
 
 \item{seed}{Random seed.}
 
-\item{verbose}{Logical; print training progress.}
+\item{verbose}{Logical; print fitting progress.}
 
 \item{model}{A \code{MaskedCircularAEModel} returned by
 \code{fit_masked_circular_ae()}.}
 
 \item{as_specs}{Logical; return encoded coordinates as a \code{Specs} object.}
 
-\item{theta}{Numeric angle vector in radians for reconstruction.}
-
-\item{z}{Numeric matrix/data frame with two unit-circle columns for
-reconstruction.}
+\item{theta}{Numeric angle vector in degrees for reconstruction.}
 }
 \value{
 \code{fit_masked_circular_ae()} returns a \code{MaskedCircularAEModel} object.
-\code{encode_masked_circular_ae()} returns a \code{data.table} of circular coordinates
+\code{encode_masked_circular_ae()} returns a \code{data.table} of circular angles
 or, when \code{as_specs = TRUE}, a \code{Specs} object.
 \code{reconstruct_masked_circular_ae()} returns an \code{OpenSpecy} object on the
 model wavenumber grid.
 }
 \description{
 Fit, encode, and reconstruct spectra with an experimental masked circular
-autoencoder. The model learns one circular coordinate per spectrum using
+workflow. The model learns one circular coordinate per spectrum using
 spectral values and observed-value masks only. Metadata such as polymer
 identity, material class, instrument, or dataset may be used after training
 for diagnostics, but is not used by fitting, validation splitting, encoder
 input, or losses.
+
+The current implementation uses only base R and \code{stats}: it builds a
+mask-aware pairwise distance table, places training spectra on a circle with
+classical multidimensional scaling, encodes each spectrum as one angle in
+degrees from 0 to 360, and reconstructs spectra with periodic least-squares
+decoder terms.
 }
 \examples{
 \dontrun{
@@ -107,10 +94,9 @@ small$metadata <- small$metadata[seq_len(8), ]
 
 model <- fit_masked_circular_ae(
   small,
-  n_hidden = c(32, 8),
   min_overlap_points = 20,
-  epochs = 5,
-  batch_size = 4
+  decoder_degree = 2,
+  validation_fraction = 0.25
 )
 encoded <- encode_masked_circular_ae(model, small)
 reconstructed <- reconstruct_masked_circular_ae(model, x = small)

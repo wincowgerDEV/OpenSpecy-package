@@ -59,9 +59,9 @@ test_that("mask-aware normalization uses only observed values", {
 
 test_that("circ_dist() handles wraparound", {
   expect_equal(circ_dist(0, 0), 0)
-  expect_equal(circ_dist(0, 2 * pi), 0, tolerance = 1e-12)
-  expect_equal(circ_dist(0, pi), 1, tolerance = 1e-12)
-  expect_lt(circ_dist(359 * pi / 180, pi / 180), 0.02)
+  expect_equal(circ_dist(0, 360), 0, tolerance = 1e-12)
+  expect_equal(circ_dist(0, 180), 1, tolerance = 1e-12)
+  expect_lt(circ_dist(359, 1), 0.02)
 })
 
 test_that("masked_reconstruction_loss() ignores masked positions and normalizes rows", {
@@ -130,35 +130,32 @@ test_that("validation split ignores metadata labels", {
   expect_equal(length(a$validation), 3)
 })
 
-test_that("torch runtime is available for neural training", {
-  expect_true(requireNamespace("torch", quietly = TRUE))
-  expect_true(torch::torch_is_installed())
-  expect_equal(as.numeric(torch::torch_tensor(c(1, 2))$sum()$item()), 3)
-})
+test_that("fitting ignores class-like metadata values", {
+  os <- make_masked_circular_test_os(n = 6, p = 30)
+  changed <- os
+  changed$metadata$polymer <- rev(changed$metadata$polymer)
+  changed$metadata$instrument <- paste0("instrument_", seq_len(nrow(changed$metadata)))
 
-test_that("random block masking hides visible blocks but preserves targets", {
-  set.seed(1)
-  x <- matrix(1, nrow = 3, ncol = 20)
-  mask <- matrix(TRUE, nrow = 3, ncol = 20)
-  out <- OpenSpecy:::.apply_random_spectral_block_mask(
-    x, mask,
-    random_block_mask = TRUE,
-    block_mask_fraction = 0.2
+  args <- list(
+    min_overlap_points = 4,
+    min_overlap_fraction = 0.1,
+    validation_fraction = 0,
+    decoder_degree = 1,
+    verbose = FALSE,
+    seed = 2
   )
+  model_a <- do.call(fit_masked_circular_ae, c(list(x = os), args))
+  model_b <- do.call(fit_masked_circular_ae, c(list(x = changed), args))
 
-  expect_equal(dim(out$x_visible), dim(x))
-  expect_equal(dim(out$mask_visible), dim(mask))
-  expect_true(out$masked_count > 0)
-  expect_true(all(mask))
-  expect_true(any(!out$mask_visible))
+  expect_equal(model_a$history, model_b$history)
+  expect_equal(model_a$state$reference_z, model_b$state$reference_z,
+               tolerance = 1e-12)
 })
 
 test_that("plot data preparation joins metadata after training only", {
   encoded <- data.table::data.table(
     spectrum_id = c("a", "b"),
-    theta = c(0, pi),
-    z1 = c(1, -1),
-    z2 = c(0, 0)
+    theta = c(0, 180)
   )
   metadata <- data.frame(sample_name = c("a", "b"), polymer = c("x", "y"))
   dt <- OpenSpecy:::.prepare_circular_embedding_plot_data(
@@ -173,53 +170,60 @@ test_that("plot data preparation joins metadata after training only", {
   )
 })
 
-test_that("plot_circular_embedding() returns a ggplot object", {
-  testthat::skip_if_not_installed("ggplot2")
+test_that("plot_circular_embedding() uses base graphics and returns plot data", {
   encoded <- data.table::data.table(
     spectrum_id = c("a", "b"),
-    theta = c(0, pi),
-    z1 = c(1, -1),
-    z2 = c(0, 0),
+    theta = c(0, 180),
     group = c("x", "y")
   )
+  tmp <- tempfile(fileext = ".pdf")
+  grDevices::pdf(tmp)
+  on.exit({
+    grDevices::dev.off()
+    unlink(tmp)
+  }, add = TRUE)
   p <- plot_circular_embedding(encoded, color_by = "group")
-  expect_s3_class(p, "ggplot")
+  expect_s3_class(p, "data.table")
+  expect_equal(p$theta, encoded$theta)
 })
 
-test_that("tiny torch model fits, encodes, reconstructs, and diagnoses", {
+test_that("tiny R-native model fits, encodes, reconstructs, and diagnoses", {
   os <- make_masked_circular_test_os(n = 8, p = 40)
 
   model <- fit_masked_circular_ae(
     os,
-    n_hidden = c(8),
     min_overlap_points = 5,
     min_overlap_fraction = 0.1,
-    epochs = 1,
-    batch_size = 4,
     validation_fraction = 0.25,
-    random_block_mask = TRUE,
-    block_mask_fraction = 0.1,
+    decoder_degree = 2,
     verbose = FALSE,
     seed = 1
   )
 
   expect_s3_class(model, "MaskedCircularAEModel")
   expect_equal(model$model_type, "masked_circular_ae")
+  expect_equal(model$backend$name, "stats")
   expect_true(nrow(model$history) >= 1)
   expect_false("polymer" %in% names(model))
 
   encoded <- encode_masked_circular_ae(model, os)
   expect_true(all(is.finite(encoded$theta)))
-  expect_equal(sqrt(encoded$z1^2 + encoded$z2^2), rep(1, nrow(encoded)),
-               tolerance = 1e-5)
+  expect_true(all(encoded$theta >= 0 & encoded$theta < 360))
+  expect_named(encoded, c("spectrum_id", "theta", "observed_points",
+                         "min_wavenumber", "max_wavenumber"))
 
   specs <- encode_masked_circular_ae(model, os, as_specs = TRUE)
   expect_s3_class(specs, "Specs")
-  expect_equal(specs$variables, c("z1", "z2"))
+  expect_equal(specs$variables, "theta")
+  expect_equal(nrow(specs$values), 1)
 
   rec <- reconstruct_masked_circular_ae(model, x = os)
   expect_s3_class(rec, "OpenSpecy")
   expect_equal(rec$wavenumber, os$wavenumber)
+
+  rec_theta <- reconstruct_masked_circular_ae(model, theta = encoded$theta)
+  expect_s3_class(rec_theta, "OpenSpecy")
+  expect_equal(ncol(rec_theta$spectra), nrow(encoded))
 
   diag <- diagnose_masked_circular_ae(model, os, encoded = encoded,
                                       n_pairs = 10, k = 2)

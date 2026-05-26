@@ -97,6 +97,10 @@ test_that("ai_classify() handles array predictions with spectrum IDs", {
 
 test_that("match_spec() returns correct structure with AI", {
   skip_on_cran()
+  skip_if_not(
+    identical(Sys.getenv("GITHUB_ACTIONS"), "true"),
+    "OSF model library download test runs only on GitHub Actions"
+  )
   skip_if_offline(host = "api.osf.io")
 
   get_lib("model_derivative", path = tmp)

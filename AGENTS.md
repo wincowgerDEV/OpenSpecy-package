@@ -13,3 +13,12 @@ Actions guarded. The Shiny application lives in `wincowgerDEV/OpenSpecy-shiny`;
 consider compatibility when relevant, but package functionality takes
 precedence and Shiny application code does not belong in this repository.
 <!-- SPECKIT END -->
+
+## Local Windows R Tooling
+
+`Rscript.exe` may not be on `PATH` in this workspace shell. Before running R
+commands, use the known local install path or look it up under `C:\Program
+Files\R`:
+
+- Known working path: `C:\Program Files\R\R-4.3.3\bin\Rscript.exe`
+- Lookup command: `Get-ChildItem -Path 'C:\Program Files\R' -Recurse -Filter Rscript.exe -ErrorAction SilentlyContinue | Select-Object -First 5 -ExpandProperty FullName`

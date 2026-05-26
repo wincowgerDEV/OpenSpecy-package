@@ -3,9 +3,12 @@
 - Added an experimental masked circular autoencoder workflow for class-agnostic
   spectral dimensionality reduction with explicit observed-value masks, masked
   reconstruction scoring, masked spectral distances, encoding, reconstruction,
-  diagnostics, and post-training circular embedding plots. Outputs are designed
-  for package-side use and future external Shiny compatibility without adding
-  Shiny application code to this repository.
+  diagnostics, and post-training circular embedding plots. The implementation
+  now uses an R-native `stats` backend rather than requiring the external
+  `torch` runtime, and encoded outputs store one degree-valued `theta` per
+  spectrum instead of two circular coordinates. Outputs are designed for
+  package-side use and future external Shiny compatibility without adding Shiny
+  application code to this repository.
 
 # OpenSpecy 1.7.0
 

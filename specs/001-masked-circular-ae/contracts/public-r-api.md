@@ -6,18 +6,13 @@
 fit_masked_circular_ae(
   x,
   wavenumber = NULL,
-  n_hidden = c(512, 128, 32),
   target_distance = c("correlation", "spectral_angle"),
   lambda_rec = 1,
   lambda_dist = 1,
   lambda_uniform = 0.01,
   min_overlap_points = 100,
   min_overlap_fraction = 0.25,
-  random_block_mask = TRUE,
-  block_mask_fraction = 0.15,
-  epochs = 100,
-  batch_size = 128,
-  learning_rate = 1e-3,
+  decoder_degree = 3,
   validation_fraction = 0.2,
   seed = 1,
   verbose = TRUE
@@ -31,14 +26,14 @@ fit_masked_circular_ae(
 
 **Returns**
 
-- A `MaskedCircularAEModel` list with model state, wavenumber grid, normalization statistics, hyperparameters, target-distance settings, random masking settings, training history, validation history, and model id.
+- A `MaskedCircularAEModel` list with model state, wavenumber grid, normalization statistics, hyperparameters, target-distance settings, random masking settings retained for compatibility, training history, validation history, and model id.
 
 **Required Behavior**
 
 - Must not require labels or metadata.
 - Must not use polymer identity, class labels, material names, or supervised metadata in fitting, splitting, encoder input, or losses.
 - Must treat missing values as unobserved and use explicit masks.
-- Must fail clearly if the optional neural backend is unavailable.
+- Must use an R-native backend based on `stats` rather than requiring a neural runtime.
 
 ## `encode_masked_circular_ae()`
 
@@ -58,13 +53,14 @@ encode_masked_circular_ae(
 
 **Returns**
 
-- By default, a data.table-like encoded embedding with `spectrum_id`, `theta`, `z1`, `z2`, `observed_points`, `min_wavenumber`, and `max_wavenumber`.
-- If `as_specs = TRUE`, a `Specs` object with latent variables `z1` and `z2`, metadata carrying `theta`, and model metadata attached for compatibility.
+- By default, a data.table-like encoded embedding with `spectrum_id`, `theta`, `observed_points`, `min_wavenumber`, and `max_wavenumber`.
+- `theta` is the single latent value per spectrum and is expressed in degrees on `[0, 360)`.
+- If `as_specs = TRUE`, a `Specs` object with one latent variable, `theta`, and model metadata attached for compatibility.
 
 **Required Behavior**
 
 - Must verify wavenumber compatibility with the model.
-- Must return unit-length `z` coordinates within numerical tolerance.
+- Must return one finite `theta` value per spectrum within `[0, 360)` when sufficient observed data are available.
 - Must not consume metadata labels except to preserve identifiers or optional output joins.
 
 ## `reconstruct_masked_circular_ae()`
@@ -73,7 +69,6 @@ encode_masked_circular_ae(
 reconstruct_masked_circular_ae(
   model,
   theta = NULL,
-  z = NULL,
   x = NULL,
   wavenumber = NULL
 )
@@ -81,7 +76,7 @@ reconstruct_masked_circular_ae(
 
 **Accepts**
 
-- A fitted model plus one of `theta`, `z`, or compatible spectra `x`.
+- A fitted model plus one of `theta` or compatible spectra `x`.
 
 **Returns**
 
@@ -89,8 +84,8 @@ reconstruct_masked_circular_ae(
 
 **Required Behavior**
 
-- Must require exactly one reconstruction source among `theta`, `z`, or `x`.
-- Must normalize supplied `z` coordinates to the unit circle or fail clearly for invalid coordinates.
+- Must require exactly one reconstruction source among `theta` or `x`.
+- Must normalize supplied `theta` values to `[0, 360)`.
 - Must preserve model-grid alignment in the output.
 
 ## `circ_dist()`
@@ -101,7 +96,7 @@ circ_dist(theta1, theta2)
 
 **Accepts**
 
-- Numeric angle vectors in radians.
+- Numeric angle vectors in degrees.
 
 **Returns**
 

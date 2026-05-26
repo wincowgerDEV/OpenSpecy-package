@@ -36,33 +36,27 @@ for (i in seq_len(ncol(os$spectra))) {
   }
 }
 
-if (requireNamespace("torch", quietly = TRUE)) {
-  model <- fit_masked_circular_ae(
-    os,
-    n_hidden = c(32, 8),
-    target_distance = "spectral_angle",
-    min_overlap_points = 25,
-    min_overlap_fraction = 0.2,
-    random_block_mask = TRUE,
-    block_mask_fraction = 0.1,
-    epochs = 5,
-    batch_size = 8,
-    validation_fraction = 0.2,
-    verbose = FALSE,
-    seed = 1
-  )
+model <- fit_masked_circular_ae(
+  os,
+  target_distance = "spectral_angle",
+  min_overlap_points = 25,
+  min_overlap_fraction = 0.2,
+  decoder_degree = 3,
+  validation_fraction = 0.2,
+  verbose = FALSE,
+  seed = 1
+)
 
-  encoded <- encode_masked_circular_ae(model, os)
-  diagnostics <- diagnose_masked_circular_ae(
-    model,
-    os,
-    encoded = encoded,
-    metadata = os$metadata,
-    n_pairs = 100,
-    k = 3,
-    seed = 1
-  )
-  reconstructed <- reconstruct_masked_circular_ae(model, x = os)
-  plot_circular_embedding(encoded, color_by = "diagnostic_group",
-                          metadata = os$metadata)
-}
+encoded <- encode_masked_circular_ae(model, os)
+diagnostics <- diagnose_masked_circular_ae(
+  model,
+  os,
+  encoded = encoded,
+  metadata = os$metadata,
+  n_pairs = 100,
+  k = 3,
+  seed = 1
+)
+reconstructed <- reconstruct_masked_circular_ae(model, x = os)
+plot_circular_embedding(encoded, color_by = "diagnostic_group",
+                        metadata = os$metadata)
