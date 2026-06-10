@@ -2,12 +2,12 @@
   "schema_version": "1.0",
   "workflows": {
     "speckit": {
-      "name": "Full SDD Cycle",
-      "version": "1.0.0",
-      "description": "Runs specify \u2192 plan \u2192 tasks \u2192 implement with review gates",
-      "source": "bundled",
+      "name": "Concise Plan Cycle",
+      "version": "2.0.0",
+      "description": "Runs one concise plan review, then implementation from the embedded checklist",
+      "source": "project-custom",
       "installed_at": "2026-05-21T21:34:48.748182+00:00",
-      "updated_at": "2026-05-21T21:34:48.748182+00:00"
+      "updated_at": "2026-06-10T00:00:00-07:00"
     }
   }
 }

@@ -29,9 +29,9 @@ if ($Help) {
     Write-Host "  -Help               Show this help message"
     Write-Host ""
     Write-Host "Examples:"
-    Write-Host "  ./create-new-feature.ps1 'Add user authentication system' -ShortName 'user-auth'"
-    Write-Host "  ./create-new-feature.ps1 'Implement OAuth2 integration for API'"
-    Write-Host "  ./create-new-feature.ps1 -Timestamp -ShortName 'user-auth' 'Add user authentication'"
+    Write-Host "  ./create-new-feature.ps1 'Add masked circular autoencoder' -ShortName 'masked-circular-ae'"
+    Write-Host "  ./create-new-feature.ps1 'Improve spectral matching performance'"
+    Write-Host "  ./create-new-feature.ps1 -Timestamp -ShortName 'matching-speed' 'Improve matching performance'"
     exit 0
 }
 
@@ -288,7 +288,7 @@ if ($branchName.Length -gt $maxBranchLength) {
 }
 
 $featureDir = Join-Path $specsDir $branchName
-$specFile = Join-Path $featureDir 'spec.md'
+$planFile = Join-Path $featureDir 'plan.md'
 
 if (-not $DryRun) {
     if ($hasGit) {
@@ -347,17 +347,23 @@ if (-not $DryRun) {
 
     New-Item -ItemType Directory -Path $featureDir -Force | Out-Null
 
-    if (-not (Test-Path -PathType Leaf $specFile)) {
-        $template = Resolve-Template -TemplateName 'spec-template' -RepoRoot $repoRoot
+    if (-not (Test-Path -PathType Leaf $planFile)) {
+        $template = Resolve-Template -TemplateName 'plan-template' -RepoRoot $repoRoot
         if ($template -and (Test-Path $template)) {
-            # Read the template content and write it to the spec file with UTF-8 encoding without BOM
+            # Read the template content and write it to the plan file with UTF-8 encoding without BOM
             $content = [System.IO.File]::ReadAllText($template)
             $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-            [System.IO.File]::WriteAllText($specFile, $content, $utf8NoBom)
+            [System.IO.File]::WriteAllText($planFile, $content, $utf8NoBom)
         } else {
-            New-Item -ItemType File -Path $specFile -Force | Out-Null
+            New-Item -ItemType File -Path $planFile -Force | Out-Null
         }
     }
+
+    $featureJson = Join-Path (Join-Path $repoRoot '.specify') 'feature.json'
+    $relativeFeatureDir = "specs/$branchName"
+    [PSCustomObject]@{
+        feature_directory = $relativeFeatureDir
+    } | ConvertTo-Json | Set-Content -LiteralPath $featureJson -Encoding utf8
 
     # Set the SPECIFY_FEATURE environment variable for the current session
     $env:SPECIFY_FEATURE = $branchName
@@ -366,7 +372,8 @@ if (-not $DryRun) {
 if ($Json) {
     $obj = [PSCustomObject]@{
         BRANCH_NAME = $branchName
-        SPEC_FILE = $specFile
+        FEATURE_DIR = $featureDir
+        PLAN_FILE = $planFile
         FEATURE_NUM = $featureNum
         HAS_GIT = $hasGit
     }
@@ -376,7 +383,8 @@ if ($Json) {
     $obj | ConvertTo-Json -Compress
 } else {
     Write-Output "BRANCH_NAME: $branchName"
-    Write-Output "SPEC_FILE: $specFile"
+    Write-Output "FEATURE_DIR: $featureDir"
+    Write-Output "PLAN_FILE: $planFile"
     Write-Output "FEATURE_NUM: $featureNum"
     Write-Output "HAS_GIT: $hasGit"
     if (-not $DryRun) {

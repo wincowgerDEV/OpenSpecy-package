@@ -1,21 +1,21 @@
 <!--
 Sync Impact Report
-Version change: 1.1.0 -> 1.2.0
+Version change: 1.2.0 -> 2.0.0
 Modified principles:
-- OpenSpecy Object Contract: expanded to include object attributes via attr()
-- R Package Interface and CRAN Readiness: renamed to avoid package terminology that does not fit R package work
-- Tests Track Current Behavior: added long-running test placement rules
-- Documentation Is Part of the Change: removed terminology that does not fit R package work
-- Benchmark-Governed Performance Work: unchanged in substance
+- Development Workflow and Quality Gates: replaced mandatory separate specification/plan/tasks artifacts with one concise feature plan
+- Governance: updated compliance language from specs/plans/tasks to concise feature plans
 Added sections:
-- Shiny Compatibility Boundary
-Removed sections:
 - None
+Removed sections:
+- Mandatory separate `spec.md`, `tasks.md`, research, data-model, contract, quickstart, and checklist artifacts
 Templates requiring updates:
 - .specify/templates/plan-template.md: updated
-- .specify/templates/spec-template.md: updated
-- .specify/templates/tasks-template.md: updated
-- .specify/templates/commands/*.md: not present
+- .specify/templates/spec-template.md: removed
+- .specify/templates/tasks-template.md: removed
+- .specify/templates/checklist-template.md: removed
+- .agents/skills/: reduced to constitution, plan, and implement skills
+- .specify/scripts/powershell/: plan-first scripts updated; setup-tasks removed
+- .specify/workflows/: updated
 - AGENTS.md: updated
 Follow-up TODOs: none
 -->
@@ -175,11 +175,11 @@ MUST identify the affected package surfaces:
 - optional pkgdown output from the package website build process
 - bundled data and examples in `inst/` and package data files
 
-Specs and implementation plans MUST call out whether each surface is changed,
-unchanged, or intentionally not applicable. A change that alters public behavior
-without tests, roxygen documentation, and NEWS consideration is non-compliant.
-A same-output function improvement without benchmark consideration is
-non-compliant.
+Concise feature plans and pull requests MUST call out whether each surface is
+changed, unchanged, or intentionally not applicable. A change that alters public
+behavior without tests, roxygen documentation, and NEWS consideration is
+non-compliant. A same-output function improvement without benchmark
+consideration is non-compliant.
 
 ## Shiny Compatibility Boundary
 
@@ -193,12 +193,19 @@ application, not a subordinate implementation detail of it.
 
 ## Development Workflow and Quality Gates
 
-Feature work MUST start from a Spec Kit specification and plan that state the
-user impact, affected functions and objects, expected tests, documentation
-updates, benchmark impact, and generated artifact strategy. Tasks MUST include
-explicit work items for tests, documentation, `DESCRIPTION`, `NEWS.md`,
-`devtools::document()`, and benchmarks whenever the feature touches those
-surfaces.
+Feature work SHOULD start from one concise Spec Kit `plan.md` that combines the
+former specification, planning, and task-review content. The plan MUST be short
+enough for a maintainer to review in about five minutes, with a hard target of
+no more than 100 nonblank lines. It MUST state the user impact, affected
+functions and objects, test expectations, documentation updates, benchmark
+impact, generated artifact strategy, and a short implementation checklist.
+
+Separate `spec.md`, `tasks.md`, research, data-model, contract, quickstart, or
+checklist files MUST NOT be required by default. They MAY be created only when
+the user explicitly asks for a deeper artifact or when the plan documents why a
+separate artifact is necessary for high-risk work. Detail that does not affect
+review or implementation SHOULD live in code, tests, roxygen, vignettes, or
+benchmarks instead of duplicated planning documents.
 
 Before implementation is complete:
 
@@ -224,12 +231,13 @@ Before implementation is complete:
 Complexity MUST be justified in the plan when a simpler R package pattern would
 work. New abstractions MUST protect repeated spectral workflows, package
 function clarity, `OpenSpecy` object consistency, performance, or testability.
+Plans MUST avoid repeating the same requirement in multiple sections.
 
 ## Governance
 
 This constitution supersedes ad hoc practices for Spec Kit feature work in this
-repository. Specs, plans, tasks, code review, and release preparation MUST check
-for compliance with the principles above.
+repository. Concise feature plans, code review, and release preparation MUST
+check for compliance with the principles above.
 
 Amendments require a change to this file, an updated Sync Impact Report, and
 alignment updates to dependent Spec Kit templates. Versioning follows semantic
@@ -247,4 +255,4 @@ application code into this repository, or omit required benchmarks for
 same-output function improvements. Temporary exceptions MUST be documented in
 the feature plan with the reason, risk, and follow-up task.
 
-**Version**: 1.2.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-05-22
+**Version**: 2.0.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-06-10
