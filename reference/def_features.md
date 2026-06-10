@@ -233,8 +233,8 @@ collapse_spec(identified_map)
 #> 2: 0.000025000, 0.000025000    0_1
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 1d1da86b8bae6044435bd76bac0509f0/9e2d61b0c6f97cee6ac4874d23d52948
-#> 2: 1d1da86b8bae6044435bd76bac0509f0/9e2d61b0c6f97cee6ac4874d23d52948
+#> 1: 90fecadb961768c3e5f156a59cfc81b5/e2b3a77e3755d6f6a3e30384e4476a18
+#> 2: 90fecadb961768c3e5f156a59cfc81b5/e2b3a77e3755d6f6a3e30384e4476a18
 #>                             file_id centroid_x centroid_y first_x first_y
 #>                              <char>      <num>      <num>   <num>   <num>
 #> 1: 88d67d9240677f1bdee36866323b1bfa          0          6       0       0
