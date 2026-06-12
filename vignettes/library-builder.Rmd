@@ -1,0 +1,108 @@
+---
+title: "Build a Mini Reference Library"
+author: "Win Cowger"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Build a Mini Reference Library}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE
+)
+
+data.table::setDTthreads(2)
+```
+
+```{r setup}
+library(OpenSpecy)
+```
+
+This example combines a few files bundled with OpenSpecy into a small reference
+library. Real library builds usually need larger lookup tables and more
+curation, but the same helper functions apply.
+
+## Read And Combine Spectra
+
+`read_any()` can read a vector of files and pass them to `c_spec()` when the
+spectra should be combined. Here the spectra are conformed to the common
+wavenumber range so they can share one `OpenSpecy` object.
+
+```{r mini-library-read}
+mini_files <- c(
+  read_extdata("raman_hdpe.csv"),
+  read_extdata("ftir_ldpe_soil.asp"),
+  read_extdata("raman_atacamit.spc")
+)
+
+mini_raw <- read_any(
+  mini_files,
+  c_spec_args = list(range = "common", res = 10)
+)
+
+check_OpenSpecy(mini_raw)
+dim(mini_raw$spectra)
+mini_raw$metadata[, "file_name", with = FALSE]
+```
+
+## Create And Fill A Lookup
+
+Lookup templates help users see which metadata values need curation. When
+`path` is not supplied, the template is returned as a `data.table`; users can
+write it to CSV by supplying `path`.
+
+```{r mini-library-template}
+template <- make_lib_lookup_template(
+  mini_raw,
+  columns = "file_name",
+  add = c("material", "material_type")
+)
+
+template
+```
+
+For this small example, create the lookup table directly in R. The same shape
+could come from a CSV edited outside R.
+
+```{r mini-library-join}
+lookup <- data.table::data.table(
+  file_name = basename(mini_files),
+  material = c("hdpe", "ldpe in soil", "atacamite"),
+  material_type = c("plastic", "plastic", "mineral")
+)
+
+mini_raw <- join_lib_metadata(
+  mini_raw,
+  lookup,
+  by = "file_name",
+  require_complete = TRUE
+)
+
+mini_raw$metadata[, c("file_name", "material", "material_type"), with = FALSE]
+```
+
+## Build A Mini Library
+
+`build_lib()` applies named recipes and returns a named list of libraries. This
+example keeps the raw library and creates a relative-intensity version.
+
+```{r mini-library-build}
+mini_libs <- build_lib(
+  mini_raw,
+  recipes = list(
+    raw = list(),
+    relative = function(x) make_rel(x, na.rm = TRUE)
+  ),
+  dedupe = FALSE
+)
+
+names(mini_libs)
+check_OpenSpecy(mini_libs$raw)
+check_OpenSpecy(mini_libs$relative)
+assess_lib(mini_libs$raw, class_col = "material_type", nearest = FALSE)
+```

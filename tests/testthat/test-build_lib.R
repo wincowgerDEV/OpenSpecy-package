@@ -47,6 +47,8 @@ test_that("join_lib_metadata() reports incomplete and duplicate joins", {
   )
   expect_true(check_OpenSpecy(joined))
   expect_equal(nrow(joined$metadata), ncol(joined$spectra))
+  expect_true("source" %in% names(joined$metadata))
+  expect_false(any(c("source.x", "source.y") %in% names(joined$metadata)))
   expect_true("LibraryType" %in% names(joined$metadata))
   expect_error(
     join_lib_metadata(lib, lookup, by = "source", require_complete = TRUE),
@@ -157,4 +159,27 @@ test_that("build_lib() applies named recipes to merged sources", {
   expect_named(built, c("raw", "relative"))
   expect_true(check_OpenSpecy(built$raw))
   expect_true(check_OpenSpecy(built$relative))
+})
+
+test_that("extdata files combine into a mini library", {
+  mini_files <- c(
+    read_extdata("raman_hdpe.csv"),
+    read_extdata("ftir_ldpe_soil.asp"),
+    read_extdata("raman_atacamit.spc")
+  )
+
+  mini <- read_any(mini_files, c_spec_args = list(range = "common", res = 10))
+  expect_true(check_OpenSpecy(mini))
+  expect_equal(ncol(mini$spectra), 3)
+
+  lookup <- data.table::data.table(
+    file_name = basename(mini_files),
+    material = c("hdpe", "ldpe in soil", "atacamite"),
+    material_type = c("plastic", "plastic", "mineral")
+  )
+  mini <- join_lib_metadata(mini, lookup, by = "file_name",
+                            require_complete = TRUE)
+  built <- build_lib(mini, recipes = list(raw = list()), dedupe = FALSE)
+  expect_true(check_OpenSpecy(built$raw))
+  expect_true(all(c("material", "material_type") %in% names(built$raw$metadata)))
 })

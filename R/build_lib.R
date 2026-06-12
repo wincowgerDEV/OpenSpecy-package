@@ -223,7 +223,9 @@ join_lib_metadata <- function(x, lookup, by, require_complete = FALSE,
                              keys$x)
   .lib_alert_join_report(report, require_complete)
 
-  joined <- .lib_left_join(metadata, lookup, metadata_key, lookup_key, suffixes)
+  lookup_values <- lookup[, setdiff(names(lookup), keys$y), with = FALSE]
+  joined <- .lib_left_join(metadata, lookup_values, metadata_key, lookup_key,
+                           suffixes)
   attr(joined, "join_report") <- report
 
   if (return == "report") return(list(data = joined, report = report))
@@ -351,11 +353,15 @@ reduce_lib <- function(x, group_cols = "material_class", id_col = "sample_name",
     spectra <- make_rel(spectra, na.rm = TRUE)
     spectra <- .matrix_mean_replace(spectra)
   }
+  reduction_obj <- x
+  reduction_obj$wavenumber <- x$wavenumber[use]
+  reduction_obj$spectra <- spectra
 
   groups <- do.call(paste, c(x$metadata[, group_cols, with = FALSE], sep = "_"))
   keep_ids <- unlist(lapply(split(seq_along(groups), groups), function(idx) {
     if (length(idx) <= min_n || length(idx) <= k) return(ids[idx])
-    .pam_group_ids(spectra[, idx, drop = FALSE], ids[idx], k = k, ...)
+    .pam_group_ids(filter_spec(reduction_obj, idx), id_col = id_col, k = k,
+                   ...)
   }), use.names = FALSE)
 
   if (return == "ids") return(keep_ids)
@@ -715,9 +721,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   keep
 }
 
-.pam_group_ids <- function(spectra, ids, k, ...) {
-  if (ncol(spectra) <= k) return(ids)
-  cors <- stats::cor(spectra, use = "pairwise.complete.obs")
+.pam_group_ids <- function(x, id_col, k, ...) {
+  x <- as_OpenSpecy(x)
+  ids <- .lib_ids(x, id_col)
+  if (ncol(x$spectra) <= k) return(ids)
+  cors <- cor_spec(x, x, compute = "optimized")
   cors[is.na(cors)] <- 0
   cors <- pmax(pmin(cors, 1), -1)
   diag(cors) <- 1
