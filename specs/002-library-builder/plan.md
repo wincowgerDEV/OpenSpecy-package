@@ -51,12 +51,12 @@
 
 ## Work Checklist
 
-- [ ] Create `R/build_lib.R` with public builder, lookup-template, metadata-join, hierarchy-join, dedupe, reduction, model, and assessment helpers plus roxygen examples.
-- [ ] Recast logic from `MergeRawFiles.R`, `CleanRawFiles.R`, and `PAM.R` into argument-driven functions using package primitives and no script-only dependencies except new `cluster`.
-- [ ] Add `cluster` to `DESCRIPTION` and roxygen imports only where `cluster::pam()` is used.
-- [ ] Add `tests/testthat/test-build_lib.R` covering object validity, metadata alignment, lookup completeness alerts, template creation, hierarchy joins, exclusions, recipes, medoid selection, model artifact structure, and attribute behavior.
-- [ ] Add `benchmarks/library_builder.R` comparing old workflow snippets against new helpers for same-output steps.
-- [ ] Update `NEWS.md` and any concise vignette/README example, then run documentation generation.
+- [x] Create `R/build_lib.R` with public builder, lookup-template, metadata-join, hierarchy-join, dedupe, reduction, model, and assessment helpers plus roxygen examples.
+- [x] Recast logic from `MergeRawFiles.R`, `CleanRawFiles.R`, and `PAM.R` into argument-driven functions using package primitives and no script-only dependencies except new `cluster`.
+- [x] Add `cluster` to `DESCRIPTION` and roxygen imports only where `cluster::pam()` is used.
+- [x] Add `tests/testthat/test-build_lib.R` covering object validity, metadata alignment, lookup completeness alerts, template creation, hierarchy joins, exclusions, recipes, medoid selection, model artifact structure, and attribute behavior.
+- [x] Add `benchmarks/library_builder.R` comparing old workflow snippets against new helpers for same-output steps.
+- [x] Update `NEWS.md` and any concise vignette/README example, then run documentation generation.
 
 ## Verification
 
@@ -68,9 +68,9 @@
 
 ## Risks And Open Questions
 
-- Confirm final exported function names and whether template helpers write CSV files by default or return tables unless `path` is supplied.
-- Confirm canonical generic hierarchy column names for material metadata, replacing current `polymer`, `polymer_class`, and `plastic_or_not` examples.
-- Decide whether model training should expose seed, class weighting, and lambda-selection controls in the first implementation or keep current defaults.
+- Resolved: template helpers return a data.table when `path = NULL` and write csv only when `path` is supplied.
+- Resolved: hierarchy helpers let users supply related columns and output names rather than hardcoding material taxonomy names.
+- Resolved: model training keeps current defaults while passing `...` through to `glmnet()`.
 
 ## Approval Notes
 

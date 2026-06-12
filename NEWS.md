@@ -3,6 +3,8 @@
 - Improved run_app functionality to allow for version control. 
 - Faster ENVI file reading. 
 - Add area under band calculation. 
+- Added library-builder helpers for creating lookup templates, auditing metadata
+  joins, reducing libraries with PAM medoids, and training model libraries.
 
 # OpenSpecy 1.5.0
 
