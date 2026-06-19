@@ -10,6 +10,9 @@
   hierarchy joins, editable metadata-name cleanup, automatic NA-aware recipes,
   signal-to-noise, processing attributes, and optional `assess_spec()` metadata
   summaries.
+- Exported metadata-name cleaning helpers with automatic underscore and
+  terminal-`s` matching, extensible exact aliases, and ambiguity-checked regular
+  expression rules.
 
 # OpenSpecy 1.5.0
 

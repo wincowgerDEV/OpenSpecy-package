@@ -145,6 +145,69 @@ test_that("build_lib() applies named recipes to merged sources", {
   expect_true(check_OpenSpecy(built$relative))
 })
 
+test_that("metadata name helpers support smart and extensible matching", {
+  expect_equal(
+    lib_clean_name(c(" User Name ", "Laser (%)", "Method...3")),
+    c("user_name", "laser_perc", "method_3")
+  )
+
+  name_lookup <- lib_metadata_name_lookup(
+    campaign_code = "campaign id",
+    project_code = character(),
+    review_note = character(),
+    regex = list(instrument_mode = "^method_[0-9]+$")
+  )
+  expect_false(any(c("username", "samplename", "librarytype") %in%
+                     name_lookup$source_name, na.rm = TRUE))
+
+  metadata <- data.table::data.table(
+    UserName = c("alias_a", NA),
+    user_name = c(NA, "canonical_b"),
+    ProjectCodes = c("p1", "p2"),
+    `Review Notes` = c("check", "keep"),
+    Campaign.ID = c("campaign_a", "campaign_b"),
+    Method.42 = c("ftir", "raman")
+  )
+  cleaned <- lib_clean_metadata(metadata, name_lookup)
+
+  expect_equal(cleaned$user_name, c("alias_a", "canonical_b"))
+  expect_equal(cleaned$project_code, c("p1", "p2"))
+  expect_equal(cleaned$campaign_code, c("campaign_a", "campaign_b"))
+  expect_equal(cleaned$review_note, c("check", "keep"))
+  expect_equal(cleaned$instrument_mode, c("ftir", "raman"))
+  expect_false("campaign_id" %in% names(cleaned))
+
+  strict_lookup <- lib_metadata_name_lookup(
+    project_code = character(),
+    defaults = FALSE,
+    match_without_underscores = FALSE,
+    match_singular_plural = FALSE
+  )
+  strict <- lib_clean_metadata(
+    data.table::data.table(ProjectCodes = "p1"),
+    strict_lookup
+  )
+  expect_named(strict, "projectcodes")
+})
+
+test_that("metadata regex lookup reports overlapping patterns", {
+  name_lookup <- lib_metadata_name_lookup(
+    defaults = FALSE,
+    regex = list(
+      campaign = "^campaign",
+      identifier = "_id$"
+    )
+  )
+
+  expect_error(
+    lib_clean_metadata(
+      data.table::data.table(Campaign.ID = "campaign_a"),
+      name_lookup
+    ),
+    "Multiple metadata name regular expressions.*Campaign.ID"
+  )
+})
+
 test_that("build_lib() cleans and coalesces metadata column names", {
   lib <- tiny_build_lib()
   lib$metadata[["UserName"]] <- c("alias_a", "alias_b", rep(NA, 6))
@@ -155,13 +218,7 @@ test_that("build_lib() cleans and coalesces metadata column names", {
   lib$metadata[["CAS REGISTRY NO"]] <- rep("25038-54-4", 8)
   lib$metadata[["Laser (%)"]] <- rep(75, 8)
 
-  name_lookup <- data.table::rbindlist(list(
-    lib_metadata_name_lookup(),
-    data.table::data.table(
-      canonical_name = "project_code",
-      source_name = "Campaign ID"
-    )
-  ))
+  name_lookup <- lib_metadata_name_lookup(project_code = "Campaign ID")
   lib$metadata[["Campaign.ID"]] <- rep("campaign_a", 8)
 
   built <- build_lib(

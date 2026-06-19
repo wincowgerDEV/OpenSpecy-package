@@ -75,7 +75,7 @@ messy_metadata <- data.table(
   NumberofAccumulations = rep(c(5L, NA_integer_), 5000),
   `Number of sample scans` = rep(c(20L, 30L), 5000)
 )
-clean_metadata <- getFromNamespace(".lib_clean_metadata", "OpenSpecy")
+clean_metadata <- getFromNamespace("lib_clean_metadata", "OpenSpecy")
 name_lookup <- getFromNamespace("lib_metadata_name_lookup", "OpenSpecy")()
 old_cleanup_time <- system.time(
   old_cleaned <- old_metadata_cleanup(messy_metadata)

@@ -94,18 +94,26 @@ applying named recipes. Recipe names become names in the returned list. Empty
 recipes keep the merged spectra unchanged; other recipe lists are passed to
 `process_spec()`. Missing values and processing attributes are handled
 automatically. Metadata column names are also cleaned to lowercase underscore
-names. Known aliases are coalesced using an editable lookup table.
+names. Known aliases are coalesced using an editable lookup table. Variants
+that differ only by underscores or one terminal plural `s` match
+automatically.
 
 ```{r metadata-name-lookup}
-name_lookup <- lib_metadata_name_lookup()
+name_lookup <- lib_metadata_name_lookup(
+  project_code = c("campaign id", "study code"),
+  regex = list(instrument_mode = "^method_[0-9]+$")
+)
 name_lookup[
   canonical_name %in% c("material_color", "number_of_accumulations")
 ]
+lib_clean_name(c("User Name", "Laser (%)", "Method...3"))
 ```
 
-Add rows to `name_lookup` and pass it as `metadata_name_lookup` when a source
-uses another name for the same metadata field. Ordinary and hierarchical joins
-run whenever their corresponding lookup input is non-`NULL`.
+Named arguments add exact aliases to the defaults, while `regex` adds patterns
+evaluated against cleaned names. Overlapping regex patterns produce an error
+that identifies the source column and matching rules. Pass the result as
+`metadata_name_lookup`. Ordinary and hierarchical joins run whenever their
+corresponding lookup input is non-`NULL`.
 
 ```{r mini-library-build}
 mini_libs <- build_lib(

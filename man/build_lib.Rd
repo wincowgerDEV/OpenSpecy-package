@@ -2,7 +2,6 @@
 % Please edit documentation in R/build_lib.R
 \name{build_lib}
 \alias{build_lib}
-\alias{lib_metadata_name_lookup}
 \alias{make_lib_lookup_template}
 \alias{join_lib_metadata}
 \alias{join_material_hierarchy}
@@ -27,8 +26,6 @@ build_lib(
   assess = FALSE,
   ...
 )
-
-lib_metadata_name_lookup()
 
 make_lib_lookup_template(x, columns, add = NULL, path = NULL)
 
@@ -119,9 +116,9 @@ non-\code{NULL}. It is joined with \code{join_material_hierarchy()} using the
 default \code{"material"} metadata key.}
 
 \item{metadata_name_lookup}{a data.frame or data.table with
-\code{canonical_name} and \code{source_name} columns. The default is returned
-by \code{lib_metadata_name_lookup()}; use \code{NULL} to clean names without
-coalescing aliases.}
+\code{canonical_name}, \code{source_name}, and optional \code{regex} columns.
+The default is returned by \code{\link{lib_metadata_name_lookup}()}; use
+\code{NULL} to clean names without coalescing aliases.}
 
 \item{signal_noise}{logical; whether to append the default
 \code{\link{sig_noise}()} result as metadata column \code{sn}.}
@@ -217,10 +214,11 @@ optionally adds ordinary and hierarchical metadata, removes requested
 identifiers, optionally generates stable duplicate IDs, and applies named
 processing recipes. Metadata column names are first converted to lowercase
 underscore names and known aliases are coalesced using
-\code{metadata_name_lookup}. Each recipe is either a named list of arguments
-passed to \code{\link{process_spec}()} or a function accepting one
-\code{OpenSpecy} object. An empty recipe returns an unprocessed copy.
-Signal-to-noise is added by default, and optional
+\code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
+automatic and regular-expression matching. Each recipe is either a named
+list of arguments passed to \code{\link{process_spec}()} or a function
+accepting one \code{OpenSpecy} object. An empty recipe returns an unprocessed
+copy. Signal-to-noise is added by default, and optional
 \code{\link{assess_spec}()} results are summarized into one metadata row per
 spectrum.
 
@@ -231,11 +229,6 @@ added columns in R or write the template to CSV and curate it elsewhere.
 \code{join_lib_metadata()} left-joins lookup columns onto object metadata and
 reports unmatched metadata keys, duplicate lookup keys, and missing joined
 values. Joins are exact; clean or harmonize values before calling this helper.
-
-\code{lib_metadata_name_lookup()} returns the editable default table used to
-coalesce metadata columns that represent the same field. Within each
-canonical name, source names are considered in table order after an existing
-canonical column.
 
 \code{join_material_hierarchy()} joins user-defined hierarchical material
 metadata. The supplied \code{levels} are tried from most-specific to

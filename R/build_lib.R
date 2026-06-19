@@ -13,10 +13,11 @@
 #' identifiers, optionally generates stable duplicate IDs, and applies named
 #' processing recipes. Metadata column names are first converted to lowercase
 #' underscore names and known aliases are coalesced using
-#' \code{metadata_name_lookup}. Each recipe is either a named list of arguments
-#' passed to \code{\link{process_spec}()} or a function accepting one
-#' \code{OpenSpecy} object. An empty recipe returns an unprocessed copy.
-#' Signal-to-noise is added by default, and optional
+#' \code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
+#' automatic and regular-expression matching. Each recipe is either a named
+#' list of arguments passed to \code{\link{process_spec}()} or a function
+#' accepting one \code{OpenSpecy} object. An empty recipe returns an unprocessed
+#' copy. Signal-to-noise is added by default, and optional
 #' \code{\link{assess_spec}()} results are summarized into one metadata row per
 #' spectrum.
 #'
@@ -27,11 +28,6 @@
 #' \code{join_lib_metadata()} left-joins lookup columns onto object metadata and
 #' reports unmatched metadata keys, duplicate lookup keys, and missing joined
 #' values. Joins are exact; clean or harmonize values before calling this helper.
-#'
-#' \code{lib_metadata_name_lookup()} returns the editable default table used to
-#' coalesce metadata columns that represent the same field. Within each
-#' canonical name, source names are considered in table order after an existing
-#' canonical column.
 #'
 #' \code{join_material_hierarchy()} joins user-defined hierarchical material
 #' metadata. The supplied \code{levels} are tried from most-specific to
@@ -92,9 +88,9 @@
 #' non-\code{NULL}. It is joined with \code{join_material_hierarchy()} using the
 #' default \code{"material"} metadata key.
 #' @param metadata_name_lookup a data.frame or data.table with
-#' \code{canonical_name} and \code{source_name} columns. The default is returned
-#' by \code{lib_metadata_name_lookup()}; use \code{NULL} to clean names without
-#' coalescing aliases.
+#' \code{canonical_name}, \code{source_name}, and optional \code{regex} columns.
+#' The default is returned by \code{\link{lib_metadata_name_lookup}()}; use
+#' \code{NULL} to clean names without coalescing aliases.
 #' @param signal_noise logical; whether to append the default
 #' \code{\link{sig_noise}()} result as metadata column \code{sn}.
 #' @param assess logical; whether to run \code{\link{assess_spec}()} on each
@@ -227,7 +223,7 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     }
   }
 
-  lib$metadata <- .lib_clean_metadata(lib$metadata, metadata_name_lookup)
+  lib$metadata <- lib_clean_metadata(lib$metadata, metadata_name_lookup)
 
   if (!is.null(metadata_lookups)) {
     lookups <- if (is.character(metadata_lookups) &&
@@ -241,8 +237,8 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     }
 
     for (lookup in lookups) {
-      lookup_table <- .lib_clean_metadata(.lib_read_lookup(lookup),
-                                          metadata_name_lookup)
+      lookup_table <- lib_clean_metadata(.lib_read_lookup(lookup),
+                                         metadata_name_lookup)
       shared <- intersect(names(lib$metadata), names(lookup_table))
       if (length(shared) != 1L) {
         stop("Each automatic metadata lookup must have exactly one column ",
@@ -254,8 +250,8 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
   }
 
   if (!is.null(material_hierarchy)) {
-    hierarchy <- .lib_clean_metadata(.lib_read_lookup(material_hierarchy),
-                                     metadata_name_lookup)
+    hierarchy <- lib_clean_metadata(.lib_read_lookup(material_hierarchy),
+                                    metadata_name_lookup)
     lib <- join_material_hierarchy(lib, hierarchy)
   }
 
@@ -324,62 +320,196 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
   out
 }
 
-#' @rdname build_lib
+#' Create and apply metadata-name lookup rules
+#'
+#' @description
+#' \code{lib_metadata_name_lookup()} returns the default editable rules used to
+#' merge synonymous metadata columns. \code{lib_clean_name()} converts names to
+#' lowercase underscore form. \code{lib_clean_metadata()} cleans table names and
+#' coalesces columns that map to the same canonical name.
+#'
+#' @details
+#' Exact rules determine a column's target before automatic matching that can
+#' ignore underscores and a single terminal plural \code{s}. When values are
+#' coalesced, canonical and mechanically equivalent canonical names come before
+#' semantic aliases. Regular-expression rules are applied last to names that
+#' remain unmatched. Regex patterns are evaluated against names after
+#' \code{lib_clean_name()} has been applied.
+#'
+#' Matching options selected in \code{lib_metadata_name_lookup()} are stored
+#' with the returned table and used by \code{lib_clean_metadata()}. User rules
+#' supplied through \code{...} are merged with the defaults. Set
+#' \code{defaults = FALSE} to construct a lookup from only user rules.
+#'
+#' @param ... named character vectors of exact aliases, where each argument name
+#' is the canonical name, or data.frame/data.table rule tables with
+#' \code{canonical_name}, \code{source_name}, and optional \code{regex} columns.
+#' @param regex an optional named character vector or named list of regular
+#' expressions. Names identify the canonical metadata names.
+#' @param defaults logical; whether to include OpenSpecy's default semantic
+#' aliases before merging user rules.
+#' @param match_without_underscores logical; whether names that differ only by
+#' underscores should match automatically.
+#' @param match_singular_plural logical; whether names that differ only by one
+#' terminal \code{s} should match automatically.
+#' @param x a character vector of names for \code{lib_clean_name()}, or a
+#' data.frame/data.table for \code{lib_clean_metadata()}.
+#' @param name_lookup a table returned by \code{lib_metadata_name_lookup()} or a
+#' compatible rule table. Use \code{NULL} to clean names without alias merging.
+#'
+#' @return \code{lib_metadata_name_lookup()} returns a data.table of rules.
+#' \code{lib_clean_name()} returns a character vector.
+#' \code{lib_clean_metadata()} returns a data.table with cleaned, coalesced
+#' columns.
+#'
+#' @examples
+#' lib_clean_name(c("User Name", "Laser (%)", "Method...3"))
+#'
+#' name_lookup <- lib_metadata_name_lookup(
+#'   project_code = "campaign name",
+#'   regex = list(instrument_mode = "^method_[0-9]+$")
+#' )
+#' metadata <- data.frame(
+#'   UserName = c("A", NA),
+#'   user_name = c(NA, "B"),
+#'   Campaign.Name = c("one", "two"),
+#'   Method.23 = c("ftir", "raman")
+#' )
+#' lib_clean_metadata(metadata, name_lookup)
+#'
 #' @export
-lib_metadata_name_lookup <- function() {
-  aliases <- list(
-    sample_name = c("samplename"),
-    file_name = c("filename"),
-    library_type = c("librarytype"),
-    contact_info = c("contactinfo"),
+lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
+                                     match_without_underscores = TRUE,
+                                     match_singular_plural = TRUE) {
+  aliases <- if (isTRUE(defaults)) list(
+    sample_name = character(),
+    file_name = character(),
+    library_type = character(),
+    contact_info = character(),
     organization = character(),
     citation = character(),
-    spectrum_identity = c("spectrumidentity", "substance"),
-    spectrum_type = c("spectrumtype"),
-    material_form = c("materialform", "description",
+    spectrum_identity = c("substance"),
+    spectrum_type = character(),
+    material_form = c("description",
                       "form_film_foam_pliable_hard", "form", "state",
                       "morphology"),
-    material_producer = c("materialproducer"),
-    material_quality = c("materialquality", "source_type"),
+    material_producer = character(),
+    material_quality = c("source_type"),
     material_color = c("color", "colour"),
-    cas_number = c("casnumber", "cas_registry_no"),
-    instrument_used = c("instrumentused", "spectrometer_datasystem",
-                        "spectrometer_data_system"),
-    instrument_accessories = c("instrumentaccessories",
-                               "instrumentaccesories",
+    cas_number = c("cas_registry_no"),
+    instrument_used = c("spectrometer_datasystem"),
+    instrument_accessories = c("instrumentaccesories",
                                "external_diffuse_reflectance_accessory"),
-    instrument_mode = c("spectralcollectionmode", "instrumentmode",
-                        "method_3", "method_23"),
-    intensity_units = c("yunits", "y_unit"),
-    spectral_resolution = c("spectralresolution", "resolution"),
-    laser_light_used = c("laserlightused", "laser_nm", "laser_frequency"),
-    number_of_accumulations = c("numberofaccumulations",
-                                "number_of_sample_scans", "coadded_scans"),
-    total_acquisition_time_s = c("totalacquisitiontime_s",
-                                 "collection_length", "acq_time_s"),
-    data_processing_procedure = c("dataprocessingprocedure",
-                                  "preprocessing"),
-    level_of_confidence_in_identification =
-      c("levelofconfidenceinidentification"),
+    instrument_mode = c("spectralcollectionmode", "method_3", "method_23"),
+    intensity_units = c("y_unit"),
+    spectral_resolution = c("resolution"),
+    laser_light_used = c("laser_nm", "laser_frequency"),
+    number_of_accumulations = c("number_of_sample_scans", "coadded_scans"),
+    total_acquisition_time_s = c("collection_length", "acq_time_s"),
+    data_processing_procedure = c("preprocessing"),
+    level_of_confidence_in_identification = character(),
     other_info = c("otherinformation", "comment", "notes"),
     baseline_correction = c("baseline"),
     smoother = c("smooth"),
-    user_name = c("username"),
+    user_name = character(),
     sample_id = character(),
-    longest_dimension = c("longestdimension"),
+    longest_dimension = character(),
     width = character(),
-    source = c("source_database", "sourcedatabase", "origin", "nist_source"),
+    source = c("source_database", "origin", "nist_source"),
     date = c("longdate", "timestamp"),
-    phase_correction = c("phasecorrection"),
+    phase_correction = character(),
     apodization = c("apodization_function")
-  )
+  ) else list()
 
-  data.table::rbindlist(lapply(names(aliases), function(canonical) {
+  rules <- lapply(names(aliases), function(canonical) {
     data.table::data.table(
       canonical_name = canonical,
-      source_name = c(canonical, aliases[[canonical]])
+      source_name = c(canonical, aliases[[canonical]]),
+      regex = NA_character_
     )
-  }))
+  })
+
+  additions <- list(...)
+  addition_names <- names(additions)
+  if (is.null(addition_names)) addition_names <- rep("", length(additions))
+  for (i in seq_along(additions)) {
+    addition <- additions[[i]]
+    if (inherits(addition, c("data.frame", "data.table"))) {
+      addition <- data.table::as.data.table(data.table::copy(addition))
+      .lib_require_cols(addition, "canonical_name", "metadata name rule")
+      if (!"source_name" %in% names(addition)) {
+        addition$source_name <- NA_character_
+      }
+      if (!"regex" %in% names(addition)) addition$regex <- NA_character_
+      rules[[length(rules) + 1L]] <-
+        addition[, c("canonical_name", "source_name", "regex"), with = FALSE]
+    } else {
+      canonical <- addition_names[i]
+      if (is.na(canonical) || canonical == "") {
+        stop("Exact alias additions in '...' must be named or supplied as ",
+             "rule tables", call. = FALSE)
+      }
+      aliases_i <- unlist(addition, use.names = FALSE)
+      if (!is.character(aliases_i)) {
+        stop("Exact alias additions in '...' must be character vectors",
+             call. = FALSE)
+      }
+      rules[[length(rules) + 1L]] <- data.table::data.table(
+        canonical_name = canonical,
+        source_name = c(canonical, aliases_i),
+        regex = NA_character_
+      )
+    }
+  }
+
+  if (!is.null(regex)) {
+    if (!is.list(regex)) regex <- as.list(regex)
+    regex_names <- names(regex)
+    if (is.null(regex_names) || any(is.na(regex_names) | regex_names == "")) {
+      stop("'regex' must be a named character vector or named list",
+           call. = FALSE)
+    }
+    regex_rules <- lapply(seq_along(regex), function(i) {
+      patterns <- unlist(regex[[i]], use.names = FALSE)
+      if (!is.character(patterns)) {
+        stop("Each 'regex' entry must contain character patterns",
+             call. = FALSE)
+      }
+      data.table::data.table(
+        canonical_name = regex_names[i],
+        source_name = NA_character_,
+        regex = patterns
+      )
+    })
+    rules <- c(rules, regex_rules)
+  }
+
+  lookup <- if (length(rules) == 0L) {
+    data.table::data.table(
+      canonical_name = character(),
+      source_name = character(),
+      regex = character()
+    )
+  } else {
+    data.table::rbindlist(rules, use.names = TRUE, fill = TRUE)
+  }
+  lookup$canonical_name <- lib_clean_name(lookup$canonical_name)
+  exact <- !is.na(lookup$source_name)
+  lookup$source_name[exact] <- lib_clean_name(lookup$source_name[exact])
+  empty_regex <- !is.na(lookup$regex) & lookup$regex == ""
+  lookup$regex[empty_regex] <- NA_character_
+  lookup <- unique(lookup)
+
+  has_source <- !is.na(lookup$source_name)
+  has_regex <- !is.na(lookup$regex)
+  if (any(has_source == has_regex)) {
+    stop("Each metadata name rule must contain exactly one of 'source_name' ",
+         "or 'regex'", call. = FALSE)
+  }
+  attr(lookup, "match_without_underscores") <-
+    isTRUE(match_without_underscores)
+  attr(lookup, "match_singular_plural") <- isTRUE(match_singular_plural)
+  lookup
 }
 
 #' @rdname build_lib
@@ -836,7 +966,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   data.table::as.data.table(data.table::copy(x))
 }
 
-.lib_clean_name <- function(x) {
+#' @rdname lib_metadata_name_lookup
+#' @export
+lib_clean_name <- function(x) {
   x <- iconv(as.character(x), to = "ASCII", sub = "")
   x <- tolower(trimws(x))
   x <- gsub("%", "perc", x, fixed = TRUE)
@@ -844,52 +976,179 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   x <- gsub("[^a-z0-9_]+", "_", x)
   x <- gsub("_+", "_", x)
   x <- gsub("^_+|_+$", "", x)
-  x[x == ""] <- "column"
+  x[is.na(x) | x == ""] <- "column"
   x
 }
 
-.lib_clean_metadata <- function(x, name_lookup = NULL) {
+#' @rdname lib_metadata_name_lookup
+#' @export
+lib_clean_metadata <- function(x,
+                               name_lookup = lib_metadata_name_lookup()) {
   metadata <- data.table::as.data.table(data.table::copy(x))
-  cleaned_names <- .lib_clean_name(names(metadata))
+  original_names <- names(metadata)
+  cleaned_names <- lib_clean_name(original_names)
   canonical_names <- cleaned_names
+  rule_priority <- rep(Inf, length(cleaned_names))
   lookup <- NULL
 
   if (!is.null(name_lookup)) {
+    match_without_underscores <-
+      attr(name_lookup, "match_without_underscores", exact = TRUE)
+    match_singular_plural <-
+      attr(name_lookup, "match_singular_plural", exact = TRUE)
+    if (is.null(match_without_underscores)) match_without_underscores <- TRUE
+    if (is.null(match_singular_plural)) match_singular_plural <- TRUE
+
     lookup <- data.table::as.data.table(data.table::copy(name_lookup))
-    .lib_require_cols(lookup, c("canonical_name", "source_name"),
-                      "metadata name lookup")
-    lookup <- lookup[, c("canonical_name", "source_name"), with = FALSE]
-    lookup$canonical_name <- .lib_clean_name(lookup$canonical_name)
-    lookup$source_name <- .lib_clean_name(lookup$source_name)
+    .lib_require_cols(lookup, "canonical_name", "metadata name lookup")
+    if (!"source_name" %in% names(lookup)) {
+      lookup$source_name <- NA_character_
+    }
+    if (!"regex" %in% names(lookup)) lookup$regex <- NA_character_
+    lookup <- lookup[, c("canonical_name", "source_name", "regex"),
+                     with = FALSE]
+    lookup$canonical_name <- lib_clean_name(lookup$canonical_name)
+    exact <- !is.na(lookup$source_name)
+    lookup$source_name[exact] <- lib_clean_name(lookup$source_name[exact])
+    empty_regex <- !is.na(lookup$regex) & lookup$regex == ""
+    lookup$regex[empty_regex] <- NA_character_
     lookup <- unique(lookup)
 
-    source_groups <- split(lookup$canonical_name, lookup$source_name)
+    has_source <- !is.na(lookup$source_name)
+    has_regex <- !is.na(lookup$regex)
+    if (any(has_source == has_regex)) {
+      stop("Each metadata name rule must contain exactly one of ",
+           "'source_name' or 'regex'", call. = FALSE)
+    }
+
+    exact_rules <- lookup[has_source, ]
+    source_groups <- split(exact_rules$canonical_name,
+                           exact_rules$source_name)
     ambiguous <- names(source_groups)[vapply(
       source_groups,
       function(value) length(unique(value)) > 1L,
       logical(1)
     )]
     if (length(ambiguous) > 0) {
-      stop("Metadata name aliases map to multiple canonical names: ",
+      stop("Exact metadata name aliases map to multiple canonical names: ",
            paste(ambiguous, collapse = ", "), call. = FALSE)
     }
 
-    matched <- match(cleaned_names, lookup$source_name)
+    matched <- match(cleaned_names, exact_rules$source_name)
     found <- !is.na(matched)
-    canonical_names[found] <- lookup$canonical_name[matched[found]]
+    canonical_names[found] <- exact_rules$canonical_name[matched[found]]
+    exact_is_canonical <- exact_rules$source_name ==
+      exact_rules$canonical_name
+    rule_priority[found] <- ifelse(
+      exact_is_canonical[matched[found]],
+      matched[found],
+      2L * nrow(exact_rules) + matched[found]
+    )
+
+    smart_key <- function(value) {
+      if (isTRUE(match_without_underscores)) {
+        value <- gsub("_", "", value, fixed = TRUE)
+      }
+      if (isTRUE(match_singular_plural)) value <- sub("s$", "", value)
+      value
+    }
+    unresolved <- !found
+    if (any(unresolved) &&
+        (isTRUE(match_without_underscores) ||
+         isTRUE(match_singular_plural)) &&
+        nrow(exact_rules) > 0L) {
+      rule_keys <- smart_key(exact_rules$source_name)
+      name_keys <- smart_key(cleaned_names)
+      key_groups <- split(exact_rules$canonical_name, rule_keys)
+      ambiguous_keys <- names(key_groups)[vapply(
+        key_groups,
+        function(value) length(unique(value)) > 1L,
+        logical(1)
+      )]
+      conflicting <- which(unresolved & name_keys %in% ambiguous_keys)
+      if (length(conflicting) > 0L) {
+        details <- vapply(conflicting, function(i) {
+          canonical <- unique(key_groups[[name_keys[i]]])
+          paste0("'", original_names[i], "' -> ",
+                 paste(canonical, collapse = ", "))
+        }, character(1))
+        stop("Automatic metadata name matching is ambiguous: ",
+             paste(details, collapse = "; "),
+             ". Add an exact alias or disable the relevant smart matching ",
+             "option.", call. = FALSE)
+      }
+
+      smart_match <- match(name_keys[unresolved], rule_keys)
+      smart_found <- !is.na(smart_match)
+      unresolved_rows <- which(unresolved)
+      rows <- unresolved_rows[smart_found]
+      matched_rules <- smart_match[smart_found]
+      canonical_names[rows] <- exact_rules$canonical_name[matched_rules]
+      rule_priority[rows] <- ifelse(
+        exact_is_canonical[matched_rules],
+        nrow(exact_rules) + matched_rules,
+        3L * nrow(exact_rules) + matched_rules
+      )
+      found[rows] <- TRUE
+    }
+
+    regex_rules <- lookup[has_regex, ]
+    regex_matches <- vector("list", length(cleaned_names))
+    if (nrow(regex_rules) > 0L) {
+      pattern_hits <- lapply(seq_len(nrow(regex_rules)), function(i) {
+        tryCatch(
+          grepl(regex_rules$regex[i], cleaned_names, perl = TRUE),
+          warning = function(w) {
+            stop("Invalid metadata name regex '", regex_rules$regex[i],
+                 "' for '", regex_rules$canonical_name[i], "': ",
+                 conditionMessage(w), call. = FALSE)
+          },
+          error = function(e) {
+            stop("Invalid metadata name regex '", regex_rules$regex[i],
+                 "' for '", regex_rules$canonical_name[i], "': ",
+                 conditionMessage(e), call. = FALSE)
+          }
+        )
+      })
+      for (i in seq_along(cleaned_names)) {
+        regex_matches[[i]] <- which(vapply(
+          pattern_hits,
+          function(hit) isTRUE(hit[i]),
+          logical(1)
+        ))
+      }
+      overlapping <- which(lengths(regex_matches) > 1L)
+      if (length(overlapping) > 0L) {
+        details <- vapply(overlapping, function(i) {
+          rows <- regex_matches[[i]]
+          rules <- paste0(
+            "'", regex_rules$regex[rows], "' -> '",
+            regex_rules$canonical_name[rows], "'"
+          )
+          paste0("'", original_names[i], "' matched ",
+                 paste(rules, collapse = ", "))
+        }, character(1))
+        stop("Multiple metadata name regular expressions matched the same ",
+             "column: ", paste(details, collapse = "; "),
+             ". Make the patterns mutually exclusive.", call. = FALSE)
+      }
+
+      regex_found <- !found & lengths(regex_matches) == 1L
+      for (i in which(regex_found)) {
+        row <- regex_matches[[i]]
+        canonical_names[i] <- regex_rules$canonical_name[row]
+        rule_priority[i] <- 4L * nrow(exact_rules) + row
+      }
+    }
   }
 
   output_names <- unique(canonical_names)
   output <- lapply(output_names, function(canonical) {
     positions <- which(canonical_names == canonical)
     if (!is.null(lookup)) {
-      source_order <- lookup$source_name[
-        lookup$canonical_name == canonical
-      ]
-      priority <- match(cleaned_names[positions],
-                        unique(c(canonical, source_order)))
       positions <- positions[order(
-        ifelse(is.na(priority), Inf, priority),
+        cleaned_names[positions] != canonical,
+        rule_priority[positions],
         positions
       )]
     } else {

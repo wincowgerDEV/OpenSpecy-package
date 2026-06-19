@@ -31,6 +31,7 @@
 - R12. Model training remains a separate helper returning the current `glmnet` model artifact structure.
 - R13. Same-output refactors include benchmarks under `benchmarks/`; long full-library, medoid, model, and correlation checks remain manual or CI guarded.
 - R14. `build_lib()` cleans metadata column names to lowercase underscore names, coalesces known aliases through an editable lookup table, and runs ordinary or hierarchy joins whenever their lookup inputs are non-`NULL`.
+- R15. Metadata-name cleanup is public and extensible: underscore and terminal-`s` variants match automatically, user regex rules are supported with ambiguity errors, and lookup defaults merge with `...` additions.
 
 ## Technical Decisions
 
@@ -39,6 +40,7 @@
 - **Dependencies**: Add `cluster` to `DESCRIPTION` for PAM medoid reduction. Do not add `dplyr`, `tidyr`, `stringr`, `stringdist`, `qs`, `fs`, `fuzzyjoin`, `safejoin`, `factoextra`, `TTR`, `zoo`, or plotting packages.
 - **OpenSpecy contract**: Coerce inputs with `as_OpenSpecy()` before mutation. Outputs retain `wavenumber`, matrix `spectra`, row-aligned `metadata`, selected IDs as spectra column names and `metadata[[id_col]]`, and relevant attributes such as `intensity_unit`, `derivative_order`, `baseline`, and `spectra_type`.
 - **Speed**: Prefer vectorized matrix/data.table operations, existing fast package helpers, and model/reduction workflows that avoid per-spectrum loops when combined-object operations are possible.
+- **Metadata matching**: Validate rules against cleaned column names rather than row values; the small generic validation overhead is accepted for extensibility and useful ambiguity errors.
 - **Generated artifacts**: Update roxygen and package metadata, then regenerate `NAMESPACE` and `man/*.Rd` with `devtools::document()`; do not edit generated files directly.
 
 ## Package Surfaces
@@ -64,6 +66,7 @@
 - [x] Expand `build_lib()` with optional default joins, automatic recipe processing/SNR, and assessment metadata.
 - [x] Update tests, vignette, benchmark, NEWS, generated docs, and package verification for the monolithic workflow.
 - [x] Simplify optional joins to run from non-`NULL` lookup inputs and add editable metadata-name alias cleanup.
+- [x] Export metadata-name cleaners and add extensible smart and regex lookup rules.
 
 ## Verification
 
