@@ -145,24 +145,61 @@ test_that("build_lib() applies named recipes to merged sources", {
   expect_true(check_OpenSpecy(built$relative))
 })
 
+test_that("build_lib() cleans and coalesces metadata column names", {
+  lib <- tiny_build_lib()
+  lib$metadata[["UserName"]] <- c("alias_a", "alias_b", rep(NA, 6))
+  lib$metadata[["user name"]] <- c(NA, "canonical_b", rep(NA, 6))
+  lib$metadata[["NumberofAccumulations"]] <- c(10L, rep(NA_integer_, 7))
+  lib$metadata[["Number of sample scans"]] <- c(20L, 30L,
+                                                rep(NA_integer_, 6))
+  lib$metadata[["CAS REGISTRY NO"]] <- rep("25038-54-4", 8)
+  lib$metadata[["Laser (%)"]] <- rep(75, 8)
+
+  name_lookup <- data.table::rbindlist(list(
+    lib_metadata_name_lookup(),
+    data.table::data.table(
+      canonical_name = "project_code",
+      source_name = "Campaign ID"
+    )
+  ))
+  lib$metadata[["Campaign.ID"]] <- rep("campaign_a", 8)
+
+  built <- build_lib(
+    lib,
+    recipes = list(raw = list()),
+    metadata_name_lookup = name_lookup,
+    dedupe = FALSE,
+    signal_noise = FALSE
+  )$raw
+
+  expect_true(all(grepl("^[a-z0-9]+(?:_[a-z0-9]+)*$",
+                        names(built$metadata))))
+  expect_equal(built$metadata$user_name[1:2],
+               c("alias_a", "canonical_b"))
+  expect_equal(built$metadata$number_of_accumulations[1:2], c(10L, 30L))
+  expect_equal(built$metadata$cas_number, rep("25038-54-4", 8))
+  expect_equal(built$metadata$laser_perc, rep(75, 8))
+  expect_equal(built$metadata$project_code, rep("campaign_a", 8))
+  expect_false(any(c("username", "numberofaccumulations",
+                     "number_of_sample_scans") %in% names(built$metadata)))
+})
+
 test_that("build_lib() runs default joins, processing, SNR, and assessment", {
   lib <- tiny_build_lib()
   lib$spectra[1, 1] <- -1
   source_lookup <- data.table::data.table(
-    source = c("A", "B", "C"),
-    material = c("mat_a", "mat_b", "mat_c")
+    Source = c("A", "B", "C"),
+    Material = c("mat_a", "mat_b", "mat_c")
   )
   hierarchy <- data.table::data.table(
-    material = c("mat_a", "mat_b", "mat_c"),
-    material_class = c("class_a", "class_b", "class_c"),
-    material_type = rep("material", 3)
+    Material = c("mat_a", "mat_b", "mat_c"),
+    `Material Class` = c("class_a", "class_b", "class_c"),
+    `Material Type` = rep("material", 3)
   )
 
   built <- suppressWarnings(build_lib(
     lib,
-    join_metadata = TRUE,
     metadata_lookups = source_lookup,
-    join_hierarchy = TRUE,
     material_hierarchy = hierarchy,
     assess = TRUE,
     dedupe = FALSE

@@ -49,6 +49,47 @@ stopifnot(identical(old_joined$LibraryType, new_joined$LibraryType))
 message("Old metadata join elapsed: ", old_time[["elapsed"]])
 message("New metadata join elapsed: ", new_time[["elapsed"]])
 
+old_metadata_cleanup <- function(metadata) {
+  out <- copy(metadata)
+  cleaned <- tolower(trimws(names(out)))
+  cleaned <- gsub("%", "perc", cleaned, fixed = TRUE)
+  cleaned <- gsub("[^a-z0-9_]+", "_", cleaned)
+  cleaned <- gsub("_+", "_", cleaned)
+  cleaned <- gsub("^_+|_+$", "", cleaned)
+  setnames(out, cleaned)
+  out[, user_name := fcoalesce(user_name, username)]
+  out[, number_of_accumulations := fcoalesce(
+    number_of_accumulations,
+    numberofaccumulations,
+    number_of_sample_scans
+  )]
+  out[, c("username", "numberofaccumulations",
+          "number_of_sample_scans") := NULL]
+  out
+}
+
+messy_metadata <- data.table(
+  `user name` = rep(c(NA_character_, "curated"), 5000),
+  UserName = rep(c("legacy", NA_character_), 5000),
+  `number of accumulations` = rep(c(NA_integer_, 10L), 5000),
+  NumberofAccumulations = rep(c(5L, NA_integer_), 5000),
+  `Number of sample scans` = rep(c(20L, 30L), 5000)
+)
+clean_metadata <- getFromNamespace(".lib_clean_metadata", "OpenSpecy")
+name_lookup <- getFromNamespace("lib_metadata_name_lookup", "OpenSpecy")()
+old_cleanup_time <- system.time(
+  old_cleaned <- old_metadata_cleanup(messy_metadata)
+)
+new_cleanup_time <- system.time(
+  new_cleaned <- clean_metadata(messy_metadata, name_lookup)
+)
+
+stopifnot(identical(old_cleaned$user_name, new_cleaned$user_name))
+stopifnot(identical(old_cleaned$number_of_accumulations,
+                    new_cleaned$number_of_accumulations))
+message("Old metadata cleanup elapsed: ", old_cleanup_time[["elapsed"]])
+message("New metadata cleanup elapsed: ", new_cleanup_time[["elapsed"]])
+
 old_template <- unique(lib$metadata[, .(source)])
 old_template[, LibraryType := NA_character_]
 new_template <- make_lib_lookup_template(lib, columns = "source",

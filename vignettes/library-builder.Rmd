@@ -93,7 +93,19 @@ join_lib_metadata(mini_raw, lookup, by = "file_name",
 applying named recipes. Recipe names become names in the returned list. Empty
 recipes keep the merged spectra unchanged; other recipe lists are passed to
 `process_spec()`. Missing values and processing attributes are handled
-automatically.
+automatically. Metadata column names are also cleaned to lowercase underscore
+names. Known aliases are coalesced using an editable lookup table.
+
+```{r metadata-name-lookup}
+name_lookup <- lib_metadata_name_lookup()
+name_lookup[
+  canonical_name %in% c("material_color", "number_of_accumulations")
+]
+```
+
+Add rows to `name_lookup` and pass it as `metadata_name_lookup` when a source
+uses another name for the same metadata field. Ordinary and hierarchical joins
+run whenever their corresponding lookup input is non-`NULL`.
 
 ```{r mini-library-build}
 mini_libs <- build_lib(
@@ -113,9 +125,7 @@ mini_libs <- build_lib(
       make_rel = TRUE
     )
   ),
-  join_metadata = TRUE,
   metadata_lookups = lookup,
-  join_hierarchy = TRUE,
   material_hierarchy = hierarchy,
   assess = TRUE,
   dedupe = FALSE

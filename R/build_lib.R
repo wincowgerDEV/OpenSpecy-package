@@ -11,11 +11,14 @@
 #' \code{build_lib()} combines sources over their full wavenumber range,
 #' optionally adds ordinary and hierarchical metadata, removes requested
 #' identifiers, optionally generates stable duplicate IDs, and applies named
-#' processing recipes. Each recipe is either a named list of arguments passed to
-#' \code{\link{process_spec}()} or a function accepting one \code{OpenSpecy}
-#' object. An empty recipe returns an unprocessed copy. Signal-to-noise is added
-#' by default, and optional \code{\link{assess_spec}()} results are summarized
-#' into one metadata row per spectrum.
+#' processing recipes. Metadata column names are first converted to lowercase
+#' underscore names and known aliases are coalesced using
+#' \code{metadata_name_lookup}. Each recipe is either a named list of arguments
+#' passed to \code{\link{process_spec}()} or a function accepting one
+#' \code{OpenSpecy} object. An empty recipe returns an unprocessed copy.
+#' Signal-to-noise is added by default, and optional
+#' \code{\link{assess_spec}()} results are summarized into one metadata row per
+#' spectrum.
 #'
 #' \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 #' values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -24,6 +27,11 @@
 #' \code{join_lib_metadata()} left-joins lookup columns onto object metadata and
 #' reports unmatched metadata keys, duplicate lookup keys, and missing joined
 #' values. Joins are exact; clean or harmonize values before calling this helper.
+#'
+#' \code{lib_metadata_name_lookup()} returns the editable default table used to
+#' coalesce metadata columns that represent the same field. Within each
+#' canonical name, source names are considered in table order after an existing
+#' canonical column.
 #'
 #' \code{join_material_hierarchy()} joins user-defined hierarchical material
 #' metadata. The supplied \code{levels} are tried from most-specific to
@@ -76,16 +84,17 @@
 #' spectra in \code{build_lib()}.
 #' @param range,res wavenumber range and resolution passed to \code{c_spec()}
 #' when \code{build_lib()} combines multiple sources.
-#' @param join_metadata logical; whether to apply \code{join_lib_metadata()} to
-#' each table in \code{metadata_lookups}. Each ordinary lookup must have exactly
-#' one column name in common with the current object metadata.
 #' @param metadata_lookups a lookup table, csv path, or list of lookup tables and
-#' paths used when \code{join_metadata = TRUE}.
-#' @param join_hierarchy logical; whether to apply
-#' \code{join_material_hierarchy()} using its default hierarchy settings.
+#' paths. If non-\code{NULL}, each is joined with
+#' \code{join_lib_metadata()}. Each ordinary lookup must have exactly one column
+#' name in common with the current object metadata.
 #' @param material_hierarchy hierarchy table or csv path used when
-#' \code{join_hierarchy = TRUE}. The default workflow matches the
-#' \code{"material"} metadata column.
+#' non-\code{NULL}. It is joined with \code{join_material_hierarchy()} using the
+#' default \code{"material"} metadata key.
+#' @param metadata_name_lookup a data.frame or data.table with
+#' \code{canonical_name} and \code{source_name} columns. The default is returned
+#' by \code{lib_metadata_name_lookup()}; use \code{NULL} to clean names without
+#' coalescing aliases.
 #' @param signal_noise logical; whether to append the default
 #' \code{\link{sig_noise}()} result as metadata column \code{sn}.
 #' @param assess logical; whether to run \code{\link{assess_spec}()} on each
@@ -139,6 +148,9 @@
 #'   )
 #' )
 #'
+#' name_lookup <- lib_metadata_name_lookup()
+#' name_lookup[name_lookup$canonical_name == "material_color", ]
+#'
 #' make_lib_lookup_template(mini, columns = "source", add = "library_type")
 #'
 #' source_lookup <- data.frame(
@@ -171,9 +183,7 @@
 #'       make_rel = TRUE
 #'     )
 #'   ),
-#'   join_metadata = TRUE,
 #'   metadata_lookups = source_lookup,
-#'   join_hierarchy = TRUE,
 #'   material_hierarchy = hierarchy,
 #'   assess = TRUE,
 #'   dedupe = FALSE
@@ -193,10 +203,10 @@
 #' @export
 build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       res = 6, id_col = "sample_name", exclude_ids = NULL,
-                      dedupe = TRUE, join_metadata = FALSE,
-                      metadata_lookups = NULL, join_hierarchy = FALSE,
-                      material_hierarchy = NULL, signal_noise = TRUE,
-                      assess = FALSE, ...) {
+                      dedupe = TRUE, metadata_lookups = NULL,
+                      material_hierarchy = NULL,
+                      metadata_name_lookup = lib_metadata_name_lookup(),
+                      signal_noise = TRUE, assess = FALSE, ...) {
   if (is_OpenSpecy(x)) {
     lib <- as_OpenSpecy(x)
   } else {
@@ -217,11 +227,9 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     }
   }
 
-  if (isTRUE(join_metadata)) {
-    if (is.null(metadata_lookups)) {
-      stop("'metadata_lookups' must be supplied when join_metadata = TRUE",
-           call. = FALSE)
-    }
+  lib$metadata <- .lib_clean_metadata(lib$metadata, metadata_name_lookup)
+
+  if (!is.null(metadata_lookups)) {
     lookups <- if (is.character(metadata_lookups) &&
                    length(metadata_lookups) > 1L) {
       as.list(metadata_lookups)
@@ -233,7 +241,8 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     }
 
     for (lookup in lookups) {
-      lookup_table <- .lib_read_lookup(lookup)
+      lookup_table <- .lib_clean_metadata(.lib_read_lookup(lookup),
+                                          metadata_name_lookup)
       shared <- intersect(names(lib$metadata), names(lookup_table))
       if (length(shared) != 1L) {
         stop("Each automatic metadata lookup must have exactly one column ",
@@ -244,12 +253,10 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     }
   }
 
-  if (isTRUE(join_hierarchy)) {
-    if (is.null(material_hierarchy)) {
-      stop("'material_hierarchy' must be supplied when join_hierarchy = TRUE",
-           call. = FALSE)
-    }
-    lib <- join_material_hierarchy(lib, material_hierarchy)
+  if (!is.null(material_hierarchy)) {
+    hierarchy <- .lib_clean_metadata(.lib_read_lookup(material_hierarchy),
+                                     metadata_name_lookup)
+    lib <- join_material_hierarchy(lib, hierarchy)
   }
 
   if (!is.null(exclude_ids)) {
@@ -315,6 +322,64 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
   out <- lapply(recipes, apply_recipe)
   names(out) <- names(recipes)
   out
+}
+
+#' @rdname build_lib
+#' @export
+lib_metadata_name_lookup <- function() {
+  aliases <- list(
+    sample_name = c("samplename"),
+    file_name = c("filename"),
+    library_type = c("librarytype"),
+    contact_info = c("contactinfo"),
+    organization = character(),
+    citation = character(),
+    spectrum_identity = c("spectrumidentity", "substance"),
+    spectrum_type = c("spectrumtype"),
+    material_form = c("materialform", "description",
+                      "form_film_foam_pliable_hard", "form", "state",
+                      "morphology"),
+    material_producer = c("materialproducer"),
+    material_quality = c("materialquality", "source_type"),
+    material_color = c("color", "colour"),
+    cas_number = c("casnumber", "cas_registry_no"),
+    instrument_used = c("instrumentused", "spectrometer_datasystem",
+                        "spectrometer_data_system"),
+    instrument_accessories = c("instrumentaccessories",
+                               "instrumentaccesories",
+                               "external_diffuse_reflectance_accessory"),
+    instrument_mode = c("spectralcollectionmode", "instrumentmode",
+                        "method_3", "method_23"),
+    intensity_units = c("yunits", "y_unit"),
+    spectral_resolution = c("spectralresolution", "resolution"),
+    laser_light_used = c("laserlightused", "laser_nm", "laser_frequency"),
+    number_of_accumulations = c("numberofaccumulations",
+                                "number_of_sample_scans", "coadded_scans"),
+    total_acquisition_time_s = c("totalacquisitiontime_s",
+                                 "collection_length", "acq_time_s"),
+    data_processing_procedure = c("dataprocessingprocedure",
+                                  "preprocessing"),
+    level_of_confidence_in_identification =
+      c("levelofconfidenceinidentification"),
+    other_info = c("otherinformation", "comment", "notes"),
+    baseline_correction = c("baseline"),
+    smoother = c("smooth"),
+    user_name = c("username"),
+    sample_id = character(),
+    longest_dimension = c("longestdimension"),
+    width = character(),
+    source = c("source_database", "sourcedatabase", "origin", "nist_source"),
+    date = c("longdate", "timestamp"),
+    phase_correction = c("phasecorrection"),
+    apodization = c("apodization_function")
+  )
+
+  data.table::rbindlist(lapply(names(aliases), function(canonical) {
+    data.table::data.table(
+      canonical_name = canonical,
+      source_name = c(canonical, aliases[[canonical]])
+    )
+  }))
 }
 
 #' @rdname build_lib
@@ -769,6 +834,89 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     return(data.table::fread(x))
   }
   data.table::as.data.table(data.table::copy(x))
+}
+
+.lib_clean_name <- function(x) {
+  x <- iconv(as.character(x), to = "ASCII", sub = "")
+  x <- tolower(trimws(x))
+  x <- gsub("%", "perc", x, fixed = TRUE)
+  x <- gsub("->", "_", x, fixed = TRUE)
+  x <- gsub("[^a-z0-9_]+", "_", x)
+  x <- gsub("_+", "_", x)
+  x <- gsub("^_+|_+$", "", x)
+  x[x == ""] <- "column"
+  x
+}
+
+.lib_clean_metadata <- function(x, name_lookup = NULL) {
+  metadata <- data.table::as.data.table(data.table::copy(x))
+  cleaned_names <- .lib_clean_name(names(metadata))
+  canonical_names <- cleaned_names
+  lookup <- NULL
+
+  if (!is.null(name_lookup)) {
+    lookup <- data.table::as.data.table(data.table::copy(name_lookup))
+    .lib_require_cols(lookup, c("canonical_name", "source_name"),
+                      "metadata name lookup")
+    lookup <- lookup[, c("canonical_name", "source_name"), with = FALSE]
+    lookup$canonical_name <- .lib_clean_name(lookup$canonical_name)
+    lookup$source_name <- .lib_clean_name(lookup$source_name)
+    lookup <- unique(lookup)
+
+    source_groups <- split(lookup$canonical_name, lookup$source_name)
+    ambiguous <- names(source_groups)[vapply(
+      source_groups,
+      function(value) length(unique(value)) > 1L,
+      logical(1)
+    )]
+    if (length(ambiguous) > 0) {
+      stop("Metadata name aliases map to multiple canonical names: ",
+           paste(ambiguous, collapse = ", "), call. = FALSE)
+    }
+
+    matched <- match(cleaned_names, lookup$source_name)
+    found <- !is.na(matched)
+    canonical_names[found] <- lookup$canonical_name[matched[found]]
+  }
+
+  output_names <- unique(canonical_names)
+  output <- lapply(output_names, function(canonical) {
+    positions <- which(canonical_names == canonical)
+    if (!is.null(lookup)) {
+      source_order <- lookup$source_name[
+        lookup$canonical_name == canonical
+      ]
+      priority <- match(cleaned_names[positions],
+                        unique(c(canonical, source_order)))
+      positions <- positions[order(
+        ifelse(is.na(priority), Inf, priority),
+        positions
+      )]
+    } else {
+      positions <- positions[order(cleaned_names[positions] != canonical,
+                                   positions)]
+    }
+
+    values <- lapply(positions, function(position) metadata[[position]])
+    signatures <- vapply(values, function(value) {
+      paste(typeof(value), paste(class(value), collapse = "/"), sep = ":")
+    }, character(1))
+    if (length(unique(signatures)) > 1L ||
+        any(vapply(values, is.factor, logical(1)))) {
+      values <- lapply(values, as.character)
+    }
+
+    result <- values[[1]]
+    if (length(values) > 1L) {
+      for (candidate in values[-1L]) {
+        fill <- is.na(result) & !is.na(candidate)
+        result[fill] <- candidate[fill]
+      }
+    }
+    result
+  })
+  names(output) <- output_names
+  data.table::as.data.table(output)
 }
 
 .lib_require_cols <- function(x, cols, label) {

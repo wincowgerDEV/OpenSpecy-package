@@ -2,6 +2,7 @@
 % Please edit documentation in R/build_lib.R
 \name{build_lib}
 \alias{build_lib}
+\alias{lib_metadata_name_lookup}
 \alias{make_lib_lookup_template}
 \alias{join_lib_metadata}
 \alias{join_material_hierarchy}
@@ -19,14 +20,15 @@ build_lib(
   id_col = "sample_name",
   exclude_ids = NULL,
   dedupe = TRUE,
-  join_metadata = FALSE,
   metadata_lookups = NULL,
-  join_hierarchy = FALSE,
   material_hierarchy = NULL,
+  metadata_name_lookup = lib_metadata_name_lookup(),
   signal_noise = TRUE,
   assess = FALSE,
   ...
 )
+
+lib_metadata_name_lookup()
 
 make_lib_lookup_template(x, columns, add = NULL, path = NULL)
 
@@ -107,19 +109,19 @@ when \code{build_lib()} combines multiple sources.}
 \item{dedupe}{logical; whether to generate stable IDs and remove duplicated
 spectra in \code{build_lib()}.}
 
-\item{join_metadata}{logical; whether to apply \code{join_lib_metadata()} to
-each table in \code{metadata_lookups}. Each ordinary lookup must have exactly
-one column name in common with the current object metadata.}
-
 \item{metadata_lookups}{a lookup table, csv path, or list of lookup tables and
-paths used when \code{join_metadata = TRUE}.}
-
-\item{join_hierarchy}{logical; whether to apply
-\code{join_material_hierarchy()} using its default hierarchy settings.}
+paths. If non-\code{NULL}, each is joined with
+\code{join_lib_metadata()}. Each ordinary lookup must have exactly one column
+name in common with the current object metadata.}
 
 \item{material_hierarchy}{hierarchy table or csv path used when
-\code{join_hierarchy = TRUE}. The default workflow matches the
-\code{"material"} metadata column.}
+non-\code{NULL}. It is joined with \code{join_material_hierarchy()} using the
+default \code{"material"} metadata key.}
+
+\item{metadata_name_lookup}{a data.frame or data.table with
+\code{canonical_name} and \code{source_name} columns. The default is returned
+by \code{lib_metadata_name_lookup()}; use \code{NULL} to clean names without
+coalescing aliases.}
 
 \item{signal_noise}{logical; whether to append the default
 \code{\link{sig_noise}()} result as metadata column \code{sn}.}
@@ -213,11 +215,14 @@ advanced composition.
 \code{build_lib()} combines sources over their full wavenumber range,
 optionally adds ordinary and hierarchical metadata, removes requested
 identifiers, optionally generates stable duplicate IDs, and applies named
-processing recipes. Each recipe is either a named list of arguments passed to
-\code{\link{process_spec}()} or a function accepting one \code{OpenSpecy}
-object. An empty recipe returns an unprocessed copy. Signal-to-noise is added
-by default, and optional \code{\link{assess_spec}()} results are summarized
-into one metadata row per spectrum.
+processing recipes. Metadata column names are first converted to lowercase
+underscore names and known aliases are coalesced using
+\code{metadata_name_lookup}. Each recipe is either a named list of arguments
+passed to \code{\link{process_spec}()} or a function accepting one
+\code{OpenSpecy} object. An empty recipe returns an unprocessed copy.
+Signal-to-noise is added by default, and optional
+\code{\link{assess_spec}()} results are summarized into one metadata row per
+spectrum.
 
 \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -226,6 +231,11 @@ added columns in R or write the template to CSV and curate it elsewhere.
 \code{join_lib_metadata()} left-joins lookup columns onto object metadata and
 reports unmatched metadata keys, duplicate lookup keys, and missing joined
 values. Joins are exact; clean or harmonize values before calling this helper.
+
+\code{lib_metadata_name_lookup()} returns the editable default table used to
+coalesce metadata columns that represent the same field. Within each
+canonical name, source names are considered in table order after an existing
+canonical column.
 
 \code{join_material_hierarchy()} joins user-defined hierarchical material
 metadata. The supplied \code{levels} are tried from most-specific to
@@ -266,6 +276,9 @@ mini <- as_OpenSpecy(
   )
 )
 
+name_lookup <- lib_metadata_name_lookup()
+name_lookup[name_lookup$canonical_name == "material_color", ]
+
 make_lib_lookup_template(mini, columns = "source", add = "library_type")
 
 source_lookup <- data.frame(
@@ -298,9 +311,7 @@ libs <- build_lib(
       make_rel = TRUE
     )
   ),
-  join_metadata = TRUE,
   metadata_lookups = source_lookup,
-  join_hierarchy = TRUE,
   material_hierarchy = hierarchy,
   assess = TRUE,
   dedupe = FALSE

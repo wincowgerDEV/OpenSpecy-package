@@ -30,6 +30,7 @@
 - R11. Medoid reduction remains a separate helper using configurable groups, `k`, `min_n`, and OpenSpecy optimized correlation distance.
 - R12. Model training remains a separate helper returning the current `glmnet` model artifact structure.
 - R13. Same-output refactors include benchmarks under `benchmarks/`; long full-library, medoid, model, and correlation checks remain manual or CI guarded.
+- R14. `build_lib()` cleans metadata column names to lowercase underscore names, coalesces known aliases through an editable lookup table, and runs ordinary or hierarchy joins whenever their lookup inputs are non-`NULL`.
 
 ## Technical Decisions
 
@@ -62,6 +63,7 @@
 - [x] Make `process_spec()` automatically use `manage_na()` when needed and update processing attributes.
 - [x] Expand `build_lib()` with optional default joins, automatic recipe processing/SNR, and assessment metadata.
 - [x] Update tests, vignette, benchmark, NEWS, generated docs, and package verification for the monolithic workflow.
+- [x] Simplify optional joins to run from non-`NULL` lookup inputs and add editable metadata-name alias cleanup.
 
 ## Verification
 
