@@ -21,18 +21,18 @@
 - R2. Spectra column names, `metadata` rows, and the chosen ID column remain aligned after merging, filtering, deduplication, processing, reduction, and metadata joins.
 - R3. Hardcoded paths, known-bad IDs, metadata aliases, lookup columns, material labels, intensity-unit rules, range/resolution choices, model settings, reduction settings, and output names are user-supplied arguments with documented defaults.
 - R4. Simple lookup joins behave like left joins from a metadata column to a lookup table, report unmatched metadata keys, duplicate lookup keys, and rows with missing joined values, and can fail when `require_complete = TRUE`.
-- R5. Template helpers create CSV/data.table lookup templates from deduplicated standardized metadata values with blank user-fillable columns, so users can expand class/type lookup files easily.
+- R5. Template helpers create CSV/data.table lookup templates from deduplicated metadata values with blank user-fillable columns, so users can expand class/type lookup files easily.
 - R6. Hierarchical material joins are generic, not polymer-specific: users supply ordered levels such as `material`, `material_class`, and `material_type`; matching proceeds from most-specific to parent levels and reports matched/unmatched values by level.
 - R7. A helper can merge `OpenSpecy` metadata with a data.frame/data.table by metadata key and return either an updated `OpenSpecy` object or the joined table without breaking row/spectra alignment.
 - R8. Processing recipes reuse `as_OpenSpecy()`, `read_any()`, `split_spec()`, `c_spec()`, `filter_spec()`, `manage_na()`, `process_spec()`, `adj_intens()`, `conform_spec()`, `smooth_intens()`, `subtr_baseline()`, `make_rel()`, and `sig_noise()` where applicable.
-- R9. Medoid reduction uses configurable group columns, `k`, `min_n`, excluded wavenumber ranges, and preprocessing; it selects representatives with `cluster::pam()` on correlation distance and returns reduced `OpenSpecy` objects or selected IDs.
+- R9. Medoid reduction uses configurable group columns, `k`, and `min_n`; it selects representatives with `cluster::pam()` on OpenSpecy optimized correlation distance and returns reduced `OpenSpecy` objects or selected IDs.
 - R10. Model-library helpers use existing `glmnet` multinomial functionality and return the current model artifact structure: `model`, `dimension_conversion`, `coefficients`, `confusion`, accuracy summaries, `all_variables`, and selected variables.
 - R11. Same-output script refactors include benchmarks that keep old comparison logic under `benchmarks/` and check output equivalence plus runtime regression.
 - R12. Long-running full-library rebuilds, medoid reduction, model training, and large correlation checks are documented as manual or CI-guarded workflows, not routine unit tests.
 
 ## Technical Decisions
 
-- **Approach**: Add a composable API in `R/build_lib.R`: `build_lib()`, `standardize_lib_metadata()`, `make_lib_lookup_template()`, `join_lib_metadata()`, `join_material_hierarchy()`, `dedupe_spec()`, `reduce_lib()`, `build_model_lib()`, and `assess_lib()` or close names chosen during implementation.
+- **Approach**: Add a composable API in `R/build_lib.R`: `build_lib()`, `make_lib_lookup_template()`, `join_lib_metadata()`, `join_material_hierarchy()`, `dedupe_spec()`, `reduce_lib()`, `build_model_lib()`, and `assess_lib()` or close names chosen during implementation.
 - **Lookup examples**: `classes_reference_2.csv` maps `SpectrumIdentity -> new_label`; `librarytypes2.csv` maps `Organization -> LibraryType`; material hierarchy examples should be expressed generically instead of as polymer-only inputs.
 - **Dependencies**: Add `cluster` to `DESCRIPTION` for PAM medoid reduction. Do not add `dplyr`, `tidyr`, `stringr`, `stringdist`, `qs`, `fs`, `fuzzyjoin`, `safejoin`, `factoextra`, `TTR`, `zoo`, or plotting packages.
 - **OpenSpecy contract**: Coerce inputs with `as_OpenSpecy()` before mutation. Outputs retain `wavenumber`, matrix `spectra`, row-aligned `metadata`, selected IDs as spectra column names and `metadata[[id_col]]`, and relevant attributes such as `intensity_unit`, `derivative_order`, `baseline`, and `spectra_type`.

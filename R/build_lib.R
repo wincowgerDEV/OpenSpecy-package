@@ -2,13 +2,46 @@
 #' @title Build spectral libraries
 #'
 #' @description
-#' Helpers for creating reference libraries from OpenSpecy objects, source
-#' files, and metadata lookup tables. These functions keep spectra columns and
-#' metadata rows aligned while letting users supply their own curation tables,
-#' processing recipes, reduction settings, and model options.
+#' Small, composable helpers for creating reference libraries from OpenSpecy
+#' objects, source files, and metadata lookup tables. The functions keep spectra
+#' columns and metadata rows aligned while users curate metadata, process
+#' spectra, reduce large groups, and train model libraries in separate steps.
 #'
-#' @param x an \code{OpenSpecy} object, a list of \code{OpenSpecy} objects, a
-#' list of file paths, or a metadata table depending on the helper.
+#' @details
+#' \code{build_lib()} combines one or more sources into an \code{OpenSpecy}
+#' object, removes requested identifiers, optionally generates stable duplicate
+#' IDs with \code{dedupe_spec()}, and applies named processing recipes.
+#'
+#' \code{make_lib_lookup_template()} creates a deduplicated table of metadata
+#' values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
+#' added columns in R or write the template to CSV and curate it elsewhere.
+#'
+#' \code{join_lib_metadata()} left-joins lookup columns onto object metadata and
+#' reports unmatched metadata keys, duplicate lookup keys, and missing joined
+#' values. Joins are exact; clean or harmonize values before calling this helper.
+#'
+#' \code{join_material_hierarchy()} joins user-defined hierarchical material
+#' metadata. The supplied \code{levels} are tried from most-specific to
+#' most-general so a material label can match any level in the hierarchy.
+#'
+#' \code{dedupe_spec()} hashes the current spectra and wavenumber axis to create
+#' stable IDs and remove duplicated spectra. Process or conform spectra before
+#' this step when that should affect duplicate detection.
+#'
+#' \code{reduce_lib()} uses PAM medoids to keep representative spectra within
+#' each metadata group. It uses OpenSpecy's optimized correlation routine on
+#' relative, mean-filled spectra.
+#'
+#' \code{build_model_lib()} trains the multinomial \code{glmnet} model structure
+#' used by OpenSpecy model libraries. Filter, smooth, or otherwise preprocess
+#' spectra before calling this helper.
+#'
+#' \code{assess_lib()} returns a compact summary of object validity, library
+#' size, class balance, and optionally nearest-neighbor class consistency.
+#'
+#' @param x an \code{OpenSpecy} or \code{Specs} object for metadata helpers.
+#' \code{build_lib()} also accepts a list of \code{OpenSpecy} objects or file
+#' paths readable by \code{\link{read_any}()}.
 #' @param lookup a data.frame, data.table, or csv file path used as a metadata
 #' lookup table.
 #' @param by named character vector mapping metadata columns to lookup columns,
@@ -27,37 +60,25 @@
 #' table, report list, or selected ids depending on the helper.
 #' @param suffixes suffixes used when joined metadata and lookup tables share
 #' non-key column names.
-#' @param standardize logical; whether to trim, ASCII-convert, and lower-case
-#' join/template values before matching.
-#' @param metadata_aliases named list where each name is a canonical metadata
-#' column and each value is a vector of aliases to coalesce into it.
-#' @param na_values character values that should be treated as missing.
 #' @param id_col metadata column used as the spectrum identifier.
 #' @param exclude_ids identifiers to remove before returning a library.
 #' @param duplicate how duplicated generated identifiers should be handled.
-#' @param conform_args,smooth_args named argument lists passed to
-#' \code{\link{conform_spec}()} and \code{\link{smooth_intens}()} before ID
-#' generation.
 #' @param scale numeric multiplier used before hashing intensity values.
 #' @param algo hash algorithm passed to \code{\link[digest]{digest}()}.
 #' @param recipes named list of processing recipes or functions for
 #' \code{build_lib()}.
 #' @param dedupe logical; whether to generate stable IDs and remove duplicated
 #' spectra in \code{build_lib()}.
-#' @param range,res wavenumber range and resolution passed to \code{c_spec()}.
-#' @param split_sources logical; whether to split sources to one spectrum per
-#' object before concatenating.
+#' @param range,res wavenumber range and resolution passed to \code{c_spec()}
+#' when \code{build_lib()} combines multiple sources.
 #' @param group_cols metadata columns defining groups for reduction.
 #' @param k maximum representatives to keep for groups larger than
 #' \code{min_n}.
 #' @param min_n groups with \code{min_n} or fewer spectra are kept whole.
-#' @param exclude_range numeric vector of length two, or a list of such vectors,
-#' with wavenumbers excluded before reduction or model training.
-#' @param preprocess logical; whether to min-max normalize and mean-fill spectra
-#' before reduction.
 #' @param class_col,type_col metadata columns used for model labels.
-#' @param nearest logical; whether \code{assess_lib()} should estimate nearest
-#' class consistency.
+#' @param nearest logical; if \code{TRUE}, \code{assess_lib()} compares each
+#' spectrum with its highest-correlation neighbor and reports the fraction where
+#' that neighbor has the same \code{class_col} value.
 #' @param alpha alpha value passed to \code{\link[glmnet]{glmnet}()}.
 #' @param seed random seed used before model training.
 #' @param grouped logical; whether multinomial coefficients use grouped
@@ -71,25 +92,67 @@
 #'
 #' @return
 #' \code{build_lib()} returns a named list of \code{OpenSpecy} libraries.
-#' \code{standardize_lib_metadata()}, \code{join_lib_metadata()},
-#' \code{join_material_hierarchy()}, \code{dedupe_spec()}, and
-#' \code{reduce_lib()} return an \code{OpenSpecy} object or data.table depending
-#' on input and \code{return}. \code{make_lib_lookup_template()} returns a
-#' data.table unless \code{path} is supplied, in which case it writes the csv and
-#' invisibly returns the table. \code{build_model_lib()} returns a list suitable
-#' for AI classification with \code{\link{match_spec}()}.
+#' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
+#' \code{dedupe_spec()}, and \code{reduce_lib()} return an updated spectral
+#' object unless \code{return} requests a table, report, or ids.
+#' \code{make_lib_lookup_template()} returns a data.table unless \code{path} is
+#' supplied, in which case it writes the csv and invisibly returns the table.
+#' \code{build_model_lib()} returns a list suitable for AI classification with
+#' \code{\link{match_spec}()}. \code{assess_lib()} returns a data.table summary.
 #'
 #' @examples
-#' data("raman_hdpe")
+#' wavenumber <- seq(100, 700, by = 100)
+#' base_a <- c(1, 2, 4, 8, 4, 2, 1)
+#' base_b <- c(1, 1, 2, 3, 5, 8, 13)
+#' spectra <- cbind(base_a, base_a + 0.1, base_a + 0.2,
+#'                  base_b, base_b + 0.1, base_b + 0.2)
+#' colnames(spectra) <- paste0("s", seq_len(ncol(spectra)))
+#' mini <- as_OpenSpecy(
+#'   wavenumber,
+#'   spectra = spectra,
+#'   metadata = data.table::data.table(
+#'     sample_name = colnames(spectra),
+#'     source = rep(c("A", "B"), each = 3),
+#'     label = c("nylon 6", "polyamides", "nylon 6",
+#'               "pet", "polyesters", "pet"),
+#'     material_class = rep(c("polyamides", "polyesters"), each = 3),
+#'     spectrum_type = rep("ftir", 6)
+#'   )
+#' )
 #'
-#' make_lib_lookup_template(raman_hdpe, columns = "spectrum_identity",
-#'                          add = "material")
+#' make_lib_lookup_template(mini, columns = "source", add = "library_type")
 #'
-#' lookup <- data.frame(spectrum_identity = "hdpe",
-#'                      material = "polyethylene")
-#' joined <- join_lib_metadata(raman_hdpe, lookup,
-#'                             by = c(spectrum_identity = "spectrum_identity"))
-#' check_OpenSpecy(joined)
+#' source_lookup <- data.frame(source = c("A", "B"),
+#'                             library_type = c("lab", "field"))
+#' joined <- join_lib_metadata(mini, source_lookup, by = "source",
+#'                             require_complete = TRUE)
+#'
+#' hierarchy <- data.frame(
+#'   material = c("nylon 6", "pet"),
+#'   material_class = c("polyamides", "polyesters"),
+#'   material_type = c("plastic", "plastic")
+#' )
+#' joined <- join_material_hierarchy(joined, hierarchy, key_col = "label",
+#'                                   require_complete = TRUE)
+#'
+#' deduped <- dedupe_spec(joined)
+#' reduced <- reduce_lib(deduped, group_cols = "material_class",
+#'                       k = 1, min_n = 1)
+#' libs <- build_lib(
+#'   joined,
+#'   recipes = list(
+#'     raw = list(),
+#'     relative = function(x) make_rel(x, na.rm = TRUE),
+#'     rounded = list(round = 2)
+#'   ),
+#'   dedupe = FALSE
+#' )
+#'
+#' model <- suppressWarnings(build_model_lib(
+#'   joined, class_col = "material_class", type_col = NULL, min_n = 2,
+#'   nlambda = 3
+#' ))
+#' assess_lib(libs$raw, class_col = "material_class", nearest = FALSE)
 #'
 #' @author
 #' Win Cowger
@@ -98,10 +161,27 @@
 #' @importFrom cluster pam
 #' @export
 build_lib <- function(x, recipes = .default_lib_recipes(), range = NULL,
-                      res = 5, split_sources = FALSE, id_col = "sample_name",
-                      exclude_ids = NULL, dedupe = TRUE, ...) {
-  lib <- .lib_source_to_OpenSpecy(x, range = range, res = res,
-                                  split_sources = split_sources)
+                      res = 5, id_col = "sample_name", exclude_ids = NULL,
+                      dedupe = TRUE, ...) {
+  if (is_OpenSpecy(x)) {
+    lib <- as_OpenSpecy(x)
+  } else {
+    if (is.character(x)) x <- lapply(x, read_any)
+    if (is.list(x) && all(vapply(x, function(item) {
+      is.character(item) && length(item) == 1
+    }, logical(1)))) {
+      x <- lapply(x, read_any)
+    }
+    if (!is.list(x)) {
+      stop("'x' must be an OpenSpecy object, list, or file path",
+           call. = FALSE)
+    }
+    lib <- if (length(x) == 1 && is_OpenSpecy(x[[1]])) {
+      as_OpenSpecy(x[[1]])
+    } else {
+      c_spec(x, range = range, res = res)
+    }
+  }
 
   if (!is.null(exclude_ids)) {
     ids <- .lib_ids(lib, id_col)
@@ -113,69 +193,46 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = NULL,
     lib <- dedupe_spec(lib, id_col = id_col, ...)
   }
 
-  out <- lapply(recipes, function(recipe) .apply_lib_recipe(lib, recipe))
+  apply_recipe <- function(recipe) {
+    if (is.function(recipe)) return(recipe(lib))
+    out <- lib
+
+    if (!is.null(recipe$manage_na_fun)) {
+      out <- do.call(manage_na, c(list(out, fun = recipe$manage_na_fun),
+                                  recipe$manage_na_args))
+    }
+    if (!is.null(recipe$process_args)) {
+      out <- do.call(process_spec, c(list(out), recipe$process_args))
+    }
+    if (isTRUE(recipe$signal_noise)) {
+      out$metadata$sn <- do.call(sig_noise,
+                                 c(list(out), recipe$signal_noise_args))
+    }
+    if (!is.null(recipe$round)) out$spectra <- round(out$spectra, recipe$round)
+    if (!is.null(recipe$attributes)) {
+      for (nm in names(recipe$attributes)) {
+        attr(out, nm) <- recipe$attributes[[nm]]
+      }
+    }
+
+    out
+  }
+
+  out <- lapply(recipes, apply_recipe)
   names(out) <- names(recipes)
   out
 }
 
 #' @rdname build_lib
 #' @export
-standardize_lib_metadata <- function(x, columns = NULL, metadata_aliases = NULL,
-                                     na_values = c("", "na", "n/a", "null",
-                                                   "not available", "nan"),
-                                     standardize = TRUE) {
-  is_os <- is_OpenSpecy(x)
-  metadata <- .lib_table(if (is_os) x$metadata else x)
-
-  if (is.null(columns)) columns <- names(metadata)
-  missing_cols <- setdiff(columns, names(metadata))
-  if (length(missing_cols) > 0) {
-    stop("Missing metadata columns: ", paste(missing_cols, collapse = ", "),
-         call. = FALSE)
+make_lib_lookup_template <- function(x, columns, add = NULL, path = NULL) {
+  if (!(is_OpenSpecy(x) || is_Specs(x))) {
+    stop("'x' must be an OpenSpecy or Specs object", call. = FALSE)
   }
-
-  if (standardize) {
-    for (col in columns) {
-      if (is.character(metadata[[col]]) || is.factor(metadata[[col]])) {
-        metadata[[col]] <- .lib_standardize_value(metadata[[col]], na_values)
-      }
-    }
-  }
-
-  if (!is.null(metadata_aliases)) {
-    for (target in names(metadata_aliases)) {
-      aliases <- metadata_aliases[[target]]
-      aliases <- aliases[aliases %in% names(metadata)]
-      if (!target %in% names(metadata)) metadata[[target]] <- NA
-      for (alias in aliases) {
-        fill <- is.na(metadata[[target]]) & !is.na(metadata[[alias]])
-        metadata[[target]][fill] <- metadata[[alias]][fill]
-      }
-    }
-  }
-
-  if (is_os) {
-    x$metadata <- metadata
-    return(x)
-  }
-  metadata
-}
-
-#' @rdname build_lib
-#' @export
-make_lib_lookup_template <- function(x, columns, add = NULL, path = NULL,
-                                     standardize = TRUE,
-                                     na_values = c("", "na", "n/a", "null",
-                                                   "not available", "nan")) {
-  metadata <- .lib_table(if (is_OpenSpecy(x)) x$metadata else x)
+  metadata <- data.table::as.data.table(data.table::copy(x$metadata))
   .lib_require_cols(metadata, columns, "metadata")
 
   template <- data.table::as.data.table(metadata[, columns, with = FALSE])
-  if (standardize) {
-    for (col in columns) {
-      template[[col]] <- .lib_standardize_value(template[[col]], na_values)
-    }
-  }
   template <- unique(template)
 
   if (!is.null(add)) {
@@ -195,41 +252,94 @@ make_lib_lookup_template <- function(x, columns, add = NULL, path = NULL,
 #' @export
 join_lib_metadata <- function(x, lookup, by, require_complete = FALSE,
                               return = c("object", "table", "report"),
-                              standardize = TRUE,
-                              na_values = c("", "na", "n/a", "null",
-                                            "not available", "nan"),
                               suffixes = c(".x", ".y")) {
   return <- match.arg(return)
   is_os <- is_OpenSpecy(x)
-  metadata <- .lib_table(if (is_os) x$metadata else x)
+  is_specs <- is_Specs(x)
+  if (!(is_os || is_specs)) {
+    stop("'x' must be an OpenSpecy or Specs object", call. = FALSE)
+  }
+  metadata <- data.table::as.data.table(data.table::copy(x$metadata))
   lookup <- .lib_read_lookup(lookup)
 
-  keys <- .lib_join_keys(by)
+  keys <- if (is.null(names(by)) || all(names(by) == "")) {
+    list(x = unname(by), y = unname(by))
+  } else {
+    list(x = names(by), y = unname(by))
+  }
   .lib_require_cols(metadata, keys$x, "metadata")
   .lib_require_cols(lookup, keys$y, "lookup")
 
-  metadata_key <- .lib_key(metadata, keys$x, standardize, na_values)
-  lookup_key <- .lib_key(lookup, keys$y, standardize, na_values)
+  make_key <- function(tab, cols) {
+    vals <- lapply(cols, function(col) as.character(tab[[col]]))
+    any_na <- Reduce(`|`, lapply(vals, is.na))
+    key <- do.call(paste, c(vals, sep = "\r"))
+    key[any_na] <- NA_character_
+    key
+  }
+
+  metadata_key <- make_key(metadata, keys$x)
+  lookup_key <- make_key(lookup, keys$y)
   value_cols <- setdiff(names(lookup), keys$y)
 
-  dup_report <- .lib_duplicate_report(lookup_key, lookup, keys$y)
+  dups <- duplicated(lookup_key) | duplicated(lookup_key, fromLast = TRUE)
+  dups[is.na(lookup_key)] <- FALSE
+  dup_report <- if (any(dups)) {
+    data.table::data.table(value = lookup_key[dups])[
+      , .(n = .N), by = "value"][
+        , `:=`(problem = "duplicate_lookup_key",
+               column = paste(keys$y, collapse = "|"))][
+                 , .(problem, column, value, n)]
+  } else {
+    data.table::data.table(problem = character(), column = character(),
+                           value = character(), n = integer())
+  }
   if (nrow(dup_report) > 0) {
     attr(dup_report, "data") <- lookup
     stop("Lookup keys must be unique before joining. Duplicate keys: ",
          paste(head(dup_report$value, 10), collapse = ", "), call. = FALSE)
   }
 
-  report <- .lib_join_report(metadata_key, lookup_key, lookup, value_cols,
-                             keys$x)
+  missing_key <- is.na(metadata_key) | !metadata_key %in% lookup_key
+  unmatched <- data.table::data.table(value = metadata_key[missing_key])[
+    !is.na(value), .(n = .N), by = "value"][
+      , `:=`(problem = "unmatched_metadata_key",
+             column = paste(keys$x, collapse = "|"))][
+               , .(problem, column, value, n)]
+
+  missing_values <- data.table::data.table()
+  matched <- match(metadata_key, lookup_key)
+  if (length(value_cols) > 0 && any(!is.na(matched))) {
+    for (col in value_cols) {
+      vals <- lookup[[col]][matched]
+      miss <- !is.na(matched) & is.na(vals)
+      if (any(miss)) {
+        missing_values <- rbind(missing_values, data.table::data.table(
+          problem = "missing_joined_value",
+          column = col,
+          value = metadata_key[miss],
+          n = 1L
+        )[, .(n = .N), by = .(problem, column, value)], fill = TRUE)
+      }
+    }
+  }
+  report <- data.table::rbindlist(list(unmatched, missing_values), fill = TRUE)
   .lib_alert_join_report(report, require_complete)
 
   lookup_values <- lookup[, setdiff(names(lookup), keys$y), with = FALSE]
-  joined <- .lib_left_join(metadata, lookup_values, metadata_key, lookup_key,
-                           suffixes)
+  meta <- data.table::copy(metadata)
+  look <- data.table::copy(lookup_values)
+  meta$..join_key <- metadata_key
+  meta$..row_id <- seq_len(nrow(meta))
+  look$..join_key <- lookup_key
+  joined <- merge(meta, look, by = "..join_key", all.x = TRUE, sort = FALSE,
+                  suffixes = suffixes)
+  data.table::setorder(joined, "..row_id")
+  joined[, c("..join_key", "..row_id") := NULL]
   attr(joined, "join_report") <- report
 
   if (return == "report") return(list(data = joined, report = report))
-  if (return == "table" || !is_os) return(joined)
+  if (return == "table") return(joined)
 
   x$metadata <- joined
   attr(x, "join_report") <- report
@@ -243,21 +353,31 @@ join_material_hierarchy <- function(x, hierarchy, key_col,
                                                "material_type"),
                                     output_names = levels,
                                     require_complete = FALSE,
-                                    return = c("object", "table", "report"),
-                                    standardize = TRUE,
-                                    na_values = c("", "na", "n/a", "null",
-                                                  "not available", "nan")) {
+                                    return = c("object", "table", "report")) {
   return <- match.arg(return)
   is_os <- is_OpenSpecy(x)
-  metadata <- .lib_table(if (is_os) x$metadata else x)
+  is_specs <- is_Specs(x)
+  if (!(is_os || is_specs)) {
+    stop("'x' must be an OpenSpecy or Specs object", call. = FALSE)
+  }
+  metadata <- data.table::as.data.table(data.table::copy(x$metadata))
   hierarchy <- .lib_read_lookup(hierarchy)
-  output_names <- .lib_hierarchy_names(levels, output_names)
+  if (!is.null(names(output_names)) && any(names(output_names) != "")) {
+    missing <- setdiff(levels, names(output_names))
+    if (length(missing) > 0) {
+      stop("'output_names' is missing hierarchy levels: ",
+           paste(missing, collapse = ", "), call. = FALSE)
+    }
+    output_names <- unname(output_names[levels])
+  }
+  if (length(output_names) != length(levels)) {
+    stop("'output_names' must have the same length as 'levels'", call. = FALSE)
+  }
 
   .lib_require_cols(metadata, key_col, "metadata")
   .lib_require_cols(hierarchy, levels, "hierarchy")
 
-  keys <- .lib_standardize_value(metadata[[key_col]], na_values)
-  if (!standardize) keys <- as.character(metadata[[key_col]])
+  keys <- as.character(metadata[[key_col]])
 
   out <- metadata
   for (col in output_names) out[[col]] <- NA_character_
@@ -270,11 +390,7 @@ join_material_hierarchy <- function(x, hierarchy, key_col,
     level <- levels[i]
     cols <- levels[i:length(levels)]
     h <- unique(hierarchy[, cols, with = FALSE])
-    h_key <- if (standardize) {
-      .lib_standardize_value(h[[level]], na_values)
-    } else {
-      as.character(h[[level]])
-    }
+    h_key <- as.character(h[[level]])
 
     dups <- duplicated(h_key) | duplicated(h_key, fromLast = TRUE)
     dups[is.na(h_key)] <- FALSE
@@ -299,12 +415,22 @@ join_material_hierarchy <- function(x, hierarchy, key_col,
     }
   }
 
-  report <- .lib_hierarchy_report(keys, matched_level, duplicate_reports)
+  unmatched <- data.table::data.table(value = keys[is.na(matched_level)])[
+    !is.na(value), .(n = .N), by = "value"][
+      , `:=`(problem = "unmatched_hierarchy_key",
+             column = "hierarchy")][
+               , .(problem, column, value, n)]
+  duplicates <- data.table::rbindlist(duplicate_reports, fill = TRUE)
+  if (nrow(duplicates) > 0) {
+    duplicates[, `:=`(column = level, n = 1L)]
+    duplicates <- duplicates[, .(problem, column, value, n)]
+  }
+  report <- data.table::rbindlist(list(unmatched, duplicates), fill = TRUE)
   .lib_alert_join_report(report, require_complete)
   attr(out, "join_report") <- report
 
   if (return == "report") return(list(data = out, report = report))
-  if (return == "table" || !is_os) return(out)
+  if (return == "table") return(out)
 
   x$metadata <- out
   attr(x, "join_report") <- report
@@ -315,13 +441,15 @@ join_material_hierarchy <- function(x, hierarchy, key_col,
 #' @export
 dedupe_spec <- function(x, id_col = "sample_name", exclude_ids = NULL,
                         duplicate = c("first", "remove_all", "none"),
-                        conform_args = list(res = 8),
-                        smooth_args = list(), scale = 100, algo = "md5") {
+                        scale = 100, algo = "md5") {
   duplicate <- match.arg(duplicate)
   x <- as_OpenSpecy(x)
 
-  ids <- .lib_hash_ids(x, conform_args = conform_args, smooth_args = smooth_args,
-                       scale = scale, algo = algo)
+  ids <- vapply(seq_len(ncol(x$spectra)), function(i) {
+    digest::digest(list(as.integer(x$wavenumber),
+                        as.integer(x$spectra[, i] * scale)),
+                   algo = algo)
+  }, FUN.VALUE = character(1))
   x$metadata[[id_col]] <- ids
   colnames(x$spectra) <- ids
   x$metadata$col_id <- ids
@@ -339,22 +467,15 @@ dedupe_spec <- function(x, id_col = "sample_name", exclude_ids = NULL,
 #' @rdname build_lib
 #' @export
 reduce_lib <- function(x, group_cols = "material_class", id_col = "sample_name",
-                       k = 50, min_n = k, exclude_range = c(2200, 2420),
-                       preprocess = TRUE,
-                       return = c("object", "ids"), ...) {
+                       k = 50, min_n = k, return = c("object", "ids"), ...) {
   return <- match.arg(return)
   x <- as_OpenSpecy(x)
   .lib_require_cols(x$metadata, group_cols, "metadata")
 
   ids <- .lib_ids(x, id_col)
-  use <- .lib_wavenumber_filter(x$wavenumber, exclude_range)
-  spectra <- x$spectra[use, , drop = FALSE]
-  if (preprocess) {
-    spectra <- make_rel(spectra, na.rm = TRUE)
-    spectra <- .matrix_mean_replace(spectra)
-  }
   reduction_obj <- x
-  reduction_obj$wavenumber <- x$wavenumber[use]
+  spectra <- make_rel(x$spectra, na.rm = TRUE)
+  spectra <- .matrix_mean_replace(spectra)
   reduction_obj$spectra <- spectra
 
   groups <- do.call(paste, c(x$metadata[, group_cols, with = FALSE], sep = "_"))
@@ -371,21 +492,16 @@ reduce_lib <- function(x, group_cols = "material_class", id_col = "sample_name",
 #' @rdname build_lib
 #' @export
 build_model_lib <- function(x, class_col = "material_class",
-                            type_col = "spectrum_type",
-                            id_col = "sample_name",
-                            range = c(800, 3200),
-                            exclude_range = c(2200, 2420),
-                            min_n = 10, alpha = 0.1, seed = 123,
+                            type_col = "spectrum_type", min_n = 10,
+                            alpha = 0.1, seed = 123,
                             grouped = TRUE, weights = TRUE,
                             make_relative = TRUE, complete_cases = TRUE,
                             ...) {
   x <- as_OpenSpecy(x)
   .lib_require_cols(x$metadata, class_col, "metadata")
 
-  use <- x$wavenumber >= min(range) & x$wavenumber <= max(range)
-  use <- use & .lib_wavenumber_filter(x$wavenumber, exclude_range)
-  wavenumbers <- x$wavenumber[use]
-  spectra <- x$spectra[use, , drop = FALSE]
+  wavenumbers <- x$wavenumber
+  spectra <- x$spectra
   if (make_relative) spectra <- make_rel(spectra, na.rm = TRUE)
 
   train <- t(spectra)
@@ -398,8 +514,11 @@ build_model_lib <- function(x, class_col = "material_class",
     metadata <- metadata[ok, ]
   }
 
-  labels <- .lib_model_labels(metadata, class_col, type_col)
-  labels <- .lib_standardize_value(labels)
+  labels <- as.character(metadata[[class_col]])
+  if (!is.null(type_col) && type_col %in% names(metadata)) {
+    types <- as.character(metadata[[type_col]])
+    labels <- ifelse(is.na(types), labels, paste(types, labels, sep = "_"))
+  }
   keep <- !is.na(labels)
   tab <- table(labels[keep])
   keep <- keep & labels %in% names(tab)[tab >= min_n]
@@ -431,18 +550,50 @@ build_model_lib <- function(x, class_col = "material_class",
   model <- do.call(glmnet::glmnet, glmnet_args)
   lambda <- min(model$lambda)
   coefficients <- stats::coef(model, s = lambda)
-  coefficients_join <- .lib_model_coefficients(coefficients, outcome, labels)
+
+  dimension_conversion <- unique(data.table::data.table(
+    factor_num = outcome,
+    name = labels
+  ))
+  coef_list <- if (is.list(coefficients)) coefficients else list(coefficients)
+  rows <- lapply(seq_along(coef_list), function(item) {
+    data.table::data.table(
+      dimensions_used = coef_list[[item]]@i,
+      dimension_units = coef_list[[item]]@x,
+      variable = item
+    )
+  })
+  coefficient_values <- data.table::rbindlist(rows)
+  wave <- data.table::data.table(
+    names = coef_list[[1]]@Dimnames[[1]],
+    id = seq_along(coef_list[[1]]@Dimnames[[1]]) - 1L
+  )
+  coefficients_join <- merge(coefficient_values, dimension_conversion,
+                             by.x = "variable", by.y = "factor_num",
+                             all.x = TRUE)
+  coefficients_join <- merge(coefficients_join, wave,
+                             by.x = "dimensions_used", by.y = "id",
+                             all.x = FALSE)
+  coefficients_join$names <- suppressWarnings(as.numeric(ifelse(
+    coefficients_join$names == "(Intercept)", "0", coefficients_join$names
+  )))
+
   predictions <- predict(model, newx = train, s = lambda, type = "response")
-  accuracy <- .lib_model_accuracy(predictions, outcome, labels, nrow(train))
+  pred <- .ai_prediction_table(predictions, n = nrow(train))
+  actual <- data.table::data.table(row_id = seq_along(outcome),
+                                   actual_label = outcome,
+                                   actual_name = labels)
+  accuracy <- merge(pred, actual, by.x = "x", by.y = "row_id", all.x = TRUE)
+  accuracy <- merge(accuracy, dimension_conversion, by.x = "y",
+                    by.y = "factor_num", all.x = TRUE)
+  names(accuracy)[names(accuracy) == "name"] <- "predicted_name"
+  accuracy$correct <- accuracy$actual_name == accuracy$predicted_name
   confusion <- accuracy[, .(label_accuracy = mean(correct),
                             observation_count = .N), by = "actual_name"]
 
   list(
     model = model,
-    dimension_conversion = unique(data.table::data.table(
-      factor_num = outcome,
-      name = labels
-    )),
+    dimension_conversion = dimension_conversion,
     accuracy = accuracy,
     confusion = confusion,
     coefficients = coefficients_join,
@@ -514,48 +665,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
-.apply_lib_recipe <- function(lib, recipe) {
-  if (is.function(recipe)) return(recipe(lib))
-  out <- lib
-
-  if (!is.null(recipe$manage_na_fun)) {
-    out <- do.call(manage_na, c(list(out, fun = recipe$manage_na_fun),
-                                recipe$manage_na_args))
-  }
-  if (!is.null(recipe$process_args)) {
-    out <- do.call(process_spec, c(list(out), recipe$process_args))
-  }
-  if (isTRUE(recipe$signal_noise)) {
-    out$metadata$sn <- do.call(sig_noise, c(list(out), recipe$signal_noise_args))
-  }
-  if (!is.null(recipe$round)) out$spectra <- round(out$spectra, recipe$round)
-  if (!is.null(recipe$attributes)) {
-    for (nm in names(recipe$attributes)) attr(out, nm) <- recipe$attributes[[nm]]
-  }
-
-  out
-}
-
-.lib_source_to_OpenSpecy <- function(x, range = NULL, res = 5,
-                                     split_sources = FALSE) {
-  if (is_OpenSpecy(x)) return(as_OpenSpecy(x))
-  if (is.character(x)) x <- lapply(x, read_any)
-  if (!is.list(x)) stop("'x' must be an OpenSpecy object, list, or file path",
-                        call. = FALSE)
-  if (split_sources) x <- split_spec(x)
-  if (length(x) == 1 && is_OpenSpecy(x[[1]])) return(as_OpenSpecy(x[[1]]))
-  c_spec(x, range = range, res = res)
-}
-
-.lib_table <- function(x) {
-  data.table::as.data.table(data.table::copy(x))
-}
-
 .lib_read_lookup <- function(x) {
   if (is.character(x) && length(x) == 1 && file.exists(x)) {
     return(data.table::fread(x))
   }
-  .lib_table(x)
+  data.table::as.data.table(data.table::copy(x))
 }
 
 .lib_require_cols <- function(x, cols, label) {
@@ -564,89 +678,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     stop("Missing ", label, " columns: ", paste(missing, collapse = ", "),
          call. = FALSE)
   }
-}
-
-.lib_standardize_value <- function(x, na_values = c("", "na", "n/a", "null",
-                                                    "not available", "nan")) {
-  x <- as.character(x)
-  x <- trimws(tolower(iconv(x, to = "ASCII", sub = "")))
-  x[x %in% na_values] <- NA_character_
-  x
-}
-
-.lib_join_keys <- function(by) {
-  if (is.null(names(by)) || all(names(by) == "")) {
-    return(list(x = unname(by), y = unname(by)))
-  }
-  list(x = names(by), y = unname(by))
-}
-
-.lib_key <- function(x, cols, standardize, na_values) {
-  vals <- lapply(cols, function(col) {
-    if (standardize) .lib_standardize_value(x[[col]], na_values)
-    else as.character(x[[col]])
-  })
-  any_na <- Reduce(`|`, lapply(vals, is.na))
-  key <- do.call(paste, c(vals, sep = "\r"))
-  key[any_na] <- NA_character_
-  key
-}
-
-.lib_duplicate_report <- function(keys, lookup, key_cols) {
-  dups <- duplicated(keys) | duplicated(keys, fromLast = TRUE)
-  dups[is.na(keys)] <- FALSE
-  if (!any(dups)) {
-    return(data.table::data.table(problem = character(), column = character(),
-                                  value = character(), n = integer()))
-  }
-  data.table::data.table(value = keys[dups])[
-    , .(n = .N), by = "value"][
-      , `:=`(problem = "duplicate_lookup_key",
-             column = paste(key_cols, collapse = "|"))][
-               , .(problem, column, value, n)]
-}
-
-.lib_join_report <- function(metadata_key, lookup_key, lookup, value_cols,
-                             metadata_cols) {
-  missing_key <- is.na(metadata_key) | !metadata_key %in% lookup_key
-  unmatched <- data.table::data.table(value = metadata_key[missing_key])[
-    !is.na(value), .(n = .N), by = "value"][
-      , `:=`(problem = "unmatched_metadata_key",
-             column = paste(metadata_cols, collapse = "|"))][
-               , .(problem, column, value, n)]
-
-  missing_values <- data.table::data.table()
-  matched <- match(metadata_key, lookup_key)
-  if (length(value_cols) > 0 && any(!is.na(matched))) {
-    for (col in value_cols) {
-      vals <- lookup[[col]][matched]
-      miss <- !is.na(matched) & is.na(vals)
-      if (any(miss)) {
-        missing_values <- rbind(missing_values, data.table::data.table(
-          problem = "missing_joined_value",
-          column = col,
-          value = metadata_key[miss],
-          n = 1L
-        )[, .(n = .N), by = .(problem, column, value)], fill = TRUE)
-      }
-    }
-  }
-
-  data.table::rbindlist(list(unmatched, missing_values), fill = TRUE)
-}
-
-.lib_left_join <- function(metadata, lookup, metadata_key, lookup_key,
-                           suffixes) {
-  meta <- data.table::copy(metadata)
-  look <- data.table::copy(lookup)
-  meta$..join_key <- metadata_key
-  meta$..row_id <- seq_len(nrow(meta))
-  look$..join_key <- lookup_key
-  joined <- merge(meta, look, by = "..join_key", all.x = TRUE, sort = FALSE,
-                  suffixes = suffixes)
-  data.table::setorder(joined, "..row_id")
-  joined[, c("..join_key", "..row_id") := NULL]
-  joined
 }
 
 .lib_alert_join_report <- function(report, require_complete) {
@@ -660,65 +691,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   invisible(NULL)
 }
 
-.lib_hierarchy_names <- function(levels, output_names) {
-  if (!is.null(names(output_names)) && any(names(output_names) != "")) {
-    missing <- setdiff(levels, names(output_names))
-    if (length(missing) > 0) {
-      stop("'output_names' is missing hierarchy levels: ",
-           paste(missing, collapse = ", "), call. = FALSE)
-    }
-    output_names <- unname(output_names[levels])
-  }
-  if (length(output_names) != length(levels)) {
-    stop("'output_names' must have the same length as 'levels'", call. = FALSE)
-  }
-  output_names
-}
-
-.lib_hierarchy_report <- function(keys, matched_level, duplicate_reports) {
-  unmatched <- data.table::data.table(value = keys[is.na(matched_level)])[
-    !is.na(value), .(n = .N), by = "value"][
-      , `:=`(problem = "unmatched_hierarchy_key",
-             column = "hierarchy")][
-               , .(problem, column, value, n)]
-  duplicates <- data.table::rbindlist(duplicate_reports, fill = TRUE)
-  if (nrow(duplicates) > 0) {
-    duplicates[, `:=`(column = level, n = 1L)]
-    duplicates <- duplicates[, .(problem, column, value, n)]
-  }
-  data.table::rbindlist(list(unmatched, duplicates), fill = TRUE)
-}
-
 .lib_ids <- function(x, id_col) {
   if (id_col %in% names(x$metadata)) return(as.character(x$metadata[[id_col]]))
   colnames(x$spectra)
-}
-
-.lib_hash_ids <- function(x, conform_args, smooth_args, scale, algo) {
-  spec <- x
-  if (!is.null(conform_args)) {
-    spec <- do.call(conform_spec, c(list(spec), conform_args))
-  }
-  if (!is.null(smooth_args)) {
-    spec <- do.call(smooth_intens, c(list(spec), smooth_args))
-  }
-  vapply(seq_len(ncol(spec$spectra)), function(i) {
-    digest::digest(list(as.integer(spec$wavenumber),
-                        as.integer(spec$spectra[, i] * scale)),
-                   algo = algo)
-  }, FUN.VALUE = character(1))
-}
-
-.lib_wavenumber_filter <- function(wavenumber, exclude_range) {
-  keep <- rep(TRUE, length(wavenumber))
-  if (is.null(exclude_range)) return(keep)
-  ranges <- if (is.list(exclude_range)) exclude_range else list(exclude_range)
-  for (range in ranges) {
-    if (length(range) != 2) stop("'exclude_range' entries must have length 2",
-                                call. = FALSE)
-    keep <- keep & !(wavenumber >= min(range) & wavenumber <= max(range))
-  }
-  keep
 }
 
 .pam_group_ids <- function(x, id_col, k, ...) {
@@ -736,57 +711,4 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   pam_args[names(user_args)] <- user_args
   res <- do.call(cluster::pam, pam_args)
   ids[res$id.med]
-}
-
-.lib_model_labels <- function(metadata, class_col, type_col) {
-  classes <- as.character(metadata[[class_col]])
-  if (!is.null(type_col) && type_col %in% names(metadata)) {
-    return(paste(as.character(metadata[[type_col]]), classes, sep = "_"))
-  }
-  classes
-}
-
-.lib_model_coefficients <- function(coefficients, outcome, labels) {
-  dimension_conversion <- unique(data.table::data.table(
-    factor_num = outcome,
-    name = labels
-  ))
-
-  coef_list <- if (is.list(coefficients)) coefficients else list(coefficients)
-  rows <- lapply(seq_along(coef_list), function(item) {
-    data.table::data.table(
-      dimensions_used = coef_list[[item]]@i,
-      dimension_units = coef_list[[item]]@x,
-      variable = item
-    )
-  })
-  df <- data.table::rbindlist(rows)
-  wave <- data.table::data.table(
-    names = coef_list[[1]]@Dimnames[[1]],
-    id = seq_along(coef_list[[1]]@Dimnames[[1]]) - 1L
-  )
-  out <- merge(df, dimension_conversion, by.x = "variable",
-               by.y = "factor_num", all.x = TRUE)
-  out <- merge(out, wave, by.x = "dimensions_used", by.y = "id",
-               all.x = FALSE)
-  out$names <- suppressWarnings(as.numeric(ifelse(out$names == "(Intercept)",
-                                                  "0", out$names)))
-  out
-}
-
-.lib_model_accuracy <- function(predictions, outcome, labels, n) {
-  pred <- .ai_prediction_table(predictions, n = n)
-  dimension_conversion <- unique(data.table::data.table(
-    factor_num = outcome,
-    name = labels
-  ))
-  actual <- data.table::data.table(row_id = seq_along(outcome),
-                                   actual_label = outcome,
-                                   actual_name = labels)
-  out <- merge(pred, actual, by.x = "x", by.y = "row_id", all.x = TRUE)
-  out <- merge(out, dimension_conversion, by.x = "y", by.y = "factor_num",
-               all.x = TRUE)
-  names(out)[names(out) == "name"] <- "predicted_name"
-  out$correct <- out$actual_name == out$predicted_name
-  out
 }

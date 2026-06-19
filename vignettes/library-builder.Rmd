@@ -54,7 +54,8 @@ mini_raw$metadata[, "file_name", with = FALSE]
 
 Lookup templates help users see which metadata values need curation. When
 `path` is not supplied, the template is returned as a `data.table`; users can
-write it to CSV by supplying `path`.
+write it to CSV by supplying `path`. Lookup joins use exact values, so edit the
+template until the key column matches the object metadata.
 
 ```{r mini-library-template}
 template <- make_lib_lookup_template(

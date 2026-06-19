@@ -2,7 +2,6 @@
 % Please edit documentation in R/build_lib.R
 \name{build_lib}
 \alias{build_lib}
-\alias{standardize_lib_metadata}
 \alias{make_lib_lookup_template}
 \alias{join_lib_metadata}
 \alias{join_material_hierarchy}
@@ -17,29 +16,13 @@ build_lib(
   recipes = .default_lib_recipes(),
   range = NULL,
   res = 5,
-  split_sources = FALSE,
   id_col = "sample_name",
   exclude_ids = NULL,
   dedupe = TRUE,
   ...
 )
 
-standardize_lib_metadata(
-  x,
-  columns = NULL,
-  metadata_aliases = NULL,
-  na_values = c("", "na", "n/a", "null", "not available", "nan"),
-  standardize = TRUE
-)
-
-make_lib_lookup_template(
-  x,
-  columns,
-  add = NULL,
-  path = NULL,
-  standardize = TRUE,
-  na_values = c("", "na", "n/a", "null", "not available", "nan")
-)
+make_lib_lookup_template(x, columns, add = NULL, path = NULL)
 
 join_lib_metadata(
   x,
@@ -47,8 +30,6 @@ join_lib_metadata(
   by,
   require_complete = FALSE,
   return = c("object", "table", "report"),
-  standardize = TRUE,
-  na_values = c("", "na", "n/a", "null", "not available", "nan"),
   suffixes = c(".x", ".y")
 )
 
@@ -59,9 +40,7 @@ join_material_hierarchy(
   levels = c("material", "material_class", "material_type"),
   output_names = levels,
   require_complete = FALSE,
-  return = c("object", "table", "report"),
-  standardize = TRUE,
-  na_values = c("", "na", "n/a", "null", "not available", "nan")
+  return = c("object", "table", "report")
 )
 
 dedupe_spec(
@@ -69,8 +48,6 @@ dedupe_spec(
   id_col = "sample_name",
   exclude_ids = NULL,
   duplicate = c("first", "remove_all", "none"),
-  conform_args = list(res = 8),
-  smooth_args = list(),
   scale = 100,
   algo = "md5"
 )
@@ -81,8 +58,6 @@ reduce_lib(
   id_col = "sample_name",
   k = 50,
   min_n = k,
-  exclude_range = c(2200, 2420),
-  preprocess = TRUE,
   return = c("object", "ids"),
   ...
 )
@@ -91,9 +66,6 @@ build_model_lib(
   x,
   class_col = "material_class",
   type_col = "spectrum_type",
-  id_col = "sample_name",
-  range = c(800, 3200),
-  exclude_range = c(2200, 2420),
   min_n = 10,
   alpha = 0.1,
   seed = 123,
@@ -112,16 +84,15 @@ assess_lib(
 )
 }
 \arguments{
-\item{x}{an \code{OpenSpecy} object, a list of \code{OpenSpecy} objects, a
-list of file paths, or a metadata table depending on the helper.}
+\item{x}{an \code{OpenSpecy} or \code{Specs} object for metadata helpers.
+\code{build_lib()} also accepts a list of \code{OpenSpecy} objects or file
+paths readable by \code{\link{read_any}()}.}
 
 \item{recipes}{named list of processing recipes or functions for
 \code{build_lib()}.}
 
-\item{range, res}{wavenumber range and resolution passed to \code{c_spec()}.}
-
-\item{split_sources}{logical; whether to split sources to one spectrum per
-object before concatenating.}
+\item{range, res}{wavenumber range and resolution passed to \code{c_spec()}
+when \code{build_lib()} combines multiple sources.}
 
 \item{id_col}{metadata column used as the spectrum identifier.}
 
@@ -131,14 +102,6 @@ object before concatenating.}
 spectra in \code{build_lib()}.}
 
 \item{columns}{metadata columns to deduplicate into a template.}
-
-\item{metadata_aliases}{named list where each name is a canonical metadata
-column and each value is a vector of aliases to coalesce into it.}
-
-\item{na_values}{character values that should be treated as missing.}
-
-\item{standardize}{logical; whether to trim, ASCII-convert, and lower-case
-join/template values before matching.}
 
 \item{add}{blank columns to add to a template.}
 
@@ -170,10 +133,6 @@ material metadata.}
 
 \item{duplicate}{how duplicated generated identifiers should be handled.}
 
-\item{conform_args, smooth_args}{named argument lists passed to
-\code{\link{conform_spec}()} and \code{\link{smooth_intens}()} before ID
-generation.}
-
 \item{scale}{numeric multiplier used before hashing intensity values.}
 
 \item{algo}{hash algorithm passed to \code{\link[digest]{digest}()}.}
@@ -184,12 +143,6 @@ generation.}
 \code{min_n}.}
 
 \item{min_n}{groups with \code{min_n} or fewer spectra are kept whole.}
-
-\item{exclude_range}{numeric vector of length two, or a list of such vectors,
-with wavenumbers excluded before reduction or model training.}
-
-\item{preprocess}{logical; whether to min-max normalize and mean-fill spectra
-before reduction.}
 
 \item{class_col, type_col}{metadata columns used for model labels.}
 
@@ -208,38 +161,113 @@ penalties.}
 \item{complete_cases}{logical; whether to remove spectra with any missing
 training values.}
 
-\item{nearest}{logical; whether \code{assess_lib()} should estimate nearest
-class consistency.}
+\item{nearest}{logical; if \code{TRUE}, \code{assess_lib()} compares each
+spectrum with its highest-correlation neighbor and reports the fraction where
+that neighbor has the same \code{class_col} value.}
 
 \item{\ldots}{further arguments passed to the underlying operation.}
 }
 \value{
 \code{build_lib()} returns a named list of \code{OpenSpecy} libraries.
-\code{standardize_lib_metadata()}, \code{join_lib_metadata()},
-\code{join_material_hierarchy()}, \code{dedupe_spec()}, and
-\code{reduce_lib()} return an \code{OpenSpecy} object or data.table depending
-on input and \code{return}. \code{make_lib_lookup_template()} returns a
-data.table unless \code{path} is supplied, in which case it writes the csv and
-invisibly returns the table. \code{build_model_lib()} returns a list suitable
-for AI classification with \code{\link{match_spec}()}.
+\code{join_lib_metadata()}, \code{join_material_hierarchy()},
+\code{dedupe_spec()}, and \code{reduce_lib()} return an updated spectral
+object unless \code{return} requests a table, report, or ids.
+\code{make_lib_lookup_template()} returns a data.table unless \code{path} is
+supplied, in which case it writes the csv and invisibly returns the table.
+\code{build_model_lib()} returns a list suitable for AI classification with
+\code{\link{match_spec}()}. \code{assess_lib()} returns a data.table summary.
 }
 \description{
-Helpers for creating reference libraries from OpenSpecy objects, source
-files, and metadata lookup tables. These functions keep spectra columns and
-metadata rows aligned while letting users supply their own curation tables,
-processing recipes, reduction settings, and model options.
+Small, composable helpers for creating reference libraries from OpenSpecy
+objects, source files, and metadata lookup tables. The functions keep spectra
+columns and metadata rows aligned while users curate metadata, process
+spectra, reduce large groups, and train model libraries in separate steps.
+}
+\details{
+\code{build_lib()} combines one or more sources into an \code{OpenSpecy}
+object, removes requested identifiers, optionally generates stable duplicate
+IDs with \code{dedupe_spec()}, and applies named processing recipes.
+
+\code{make_lib_lookup_template()} creates a deduplicated table of metadata
+values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
+added columns in R or write the template to CSV and curate it elsewhere.
+
+\code{join_lib_metadata()} left-joins lookup columns onto object metadata and
+reports unmatched metadata keys, duplicate lookup keys, and missing joined
+values. Joins are exact; clean or harmonize values before calling this helper.
+
+\code{join_material_hierarchy()} joins user-defined hierarchical material
+metadata. The supplied \code{levels} are tried from most-specific to
+most-general so a material label can match any level in the hierarchy.
+
+\code{dedupe_spec()} hashes the current spectra and wavenumber axis to create
+stable IDs and remove duplicated spectra. Process or conform spectra before
+this step when that should affect duplicate detection.
+
+\code{reduce_lib()} uses PAM medoids to keep representative spectra within
+each metadata group. It uses OpenSpecy's optimized correlation routine on
+relative, mean-filled spectra.
+
+\code{build_model_lib()} trains the multinomial \code{glmnet} model structure
+used by OpenSpecy model libraries. Filter, smooth, or otherwise preprocess
+spectra before calling this helper.
+
+\code{assess_lib()} returns a compact summary of object validity, library
+size, class balance, and optionally nearest-neighbor class consistency.
 }
 \examples{
-data("raman_hdpe")
+wavenumber <- seq(100, 700, by = 100)
+base_a <- c(1, 2, 4, 8, 4, 2, 1)
+base_b <- c(1, 1, 2, 3, 5, 8, 13)
+spectra <- cbind(base_a, base_a + 0.1, base_a + 0.2,
+                 base_b, base_b + 0.1, base_b + 0.2)
+colnames(spectra) <- paste0("s", seq_len(ncol(spectra)))
+mini <- as_OpenSpecy(
+  wavenumber,
+  spectra = spectra,
+  metadata = data.table::data.table(
+    sample_name = colnames(spectra),
+    source = rep(c("A", "B"), each = 3),
+    label = c("nylon 6", "polyamides", "nylon 6",
+              "pet", "polyesters", "pet"),
+    material_class = rep(c("polyamides", "polyesters"), each = 3),
+    spectrum_type = rep("ftir", 6)
+  )
+)
 
-make_lib_lookup_template(raman_hdpe, columns = "spectrum_identity",
-                         add = "material")
+make_lib_lookup_template(mini, columns = "source", add = "library_type")
 
-lookup <- data.frame(spectrum_identity = "hdpe",
-                     material = "polyethylene")
-joined <- join_lib_metadata(raman_hdpe, lookup,
-                            by = c(spectrum_identity = "spectrum_identity"))
-check_OpenSpecy(joined)
+source_lookup <- data.frame(source = c("A", "B"),
+                            library_type = c("lab", "field"))
+joined <- join_lib_metadata(mini, source_lookup, by = "source",
+                            require_complete = TRUE)
+
+hierarchy <- data.frame(
+  material = c("nylon 6", "pet"),
+  material_class = c("polyamides", "polyesters"),
+  material_type = c("plastic", "plastic")
+)
+joined <- join_material_hierarchy(joined, hierarchy, key_col = "label",
+                                  require_complete = TRUE)
+
+deduped <- dedupe_spec(joined)
+reduced <- reduce_lib(deduped, group_cols = "material_class",
+                      k = 1, min_n = 1)
+libs <- build_lib(
+  joined,
+  recipes = list(
+    raw = list(),
+    relative = function(x) make_rel(x, na.rm = TRUE),
+    rounded = list(round = 2)
+  ),
+  dedupe = FALSE
+)
+
+model <- suppressWarnings(build_model_lib(
+  joined, class_col = "material_class", type_col = NULL, min_n = 2,
+  nlambda = 3
+))
+assess_lib(libs$raw, class_col = "material_class", nearest = FALSE)
 
 }
 \author{

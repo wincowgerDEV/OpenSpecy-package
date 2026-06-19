@@ -26,7 +26,7 @@ test_that("make_lib_lookup_template() returns or writes deduplicated templates",
   template <- make_lib_lookup_template(lib, columns = "source",
                                        add = "LibraryType")
   expect_s3_class(template, "data.table")
-  expect_equal(sort(template$source), c("a", "b", "c"))
+  expect_equal(sort(template$source), c("A", "B", "C"))
   expect_true("LibraryType" %in% names(template))
   expect_true(all(is.na(template$LibraryType)))
 
@@ -38,7 +38,7 @@ test_that("make_lib_lookup_template() returns or writes deduplicated templates",
 
 test_that("join_lib_metadata() reports incomplete and duplicate joins", {
   lib <- tiny_build_lib()
-  lookup <- data.table::data.table(source = c("a", "b"),
+  lookup <- data.table::data.table(source = c("A", "B"),
                                    LibraryType = c("type_a", "type_b"))
 
   expect_warning(
@@ -55,7 +55,7 @@ test_that("join_lib_metadata() reports incomplete and duplicate joins", {
     "unmatched_metadata_key"
   )
 
-  dup_lookup <- data.table::data.table(source = c("a", "a"),
+  dup_lookup <- data.table::data.table(source = c("A", "A"),
                                        LibraryType = c("x", "y"))
   expect_error(join_lib_metadata(lib, dup_lookup, by = "source"),
                "unique")
@@ -89,26 +89,11 @@ test_that("join_material_hierarchy() matches user-specified levels", {
   expect_true(is.na(joined$metadata$joined_type[4]))
 })
 
-test_that("standardize_lib_metadata() coalesces aliases", {
-  lib <- tiny_build_lib()
-  lib$metadata$SourceAlias <- ifelse(is.na(lib$metadata$source), "fallback",
-                                     lib$metadata$source)
-  lib$metadata$source <- NA_character_
-
-  standardized <- standardize_lib_metadata(
-    lib,
-    columns = c("source", "SourceAlias"),
-    metadata_aliases = list(source = "SourceAlias")
-  )
-  expect_true(check_OpenSpecy(standardized))
-  expect_equal(unique(standardized$metadata$source), c("a", "b", "c"))
-})
-
 test_that("dedupe_spec() keeps identifiers aligned", {
   lib <- tiny_build_lib()
   lib$spectra[, 2] <- lib$spectra[, 1]
 
-  deduped <- dedupe_spec(lib, conform_args = NULL, smooth_args = NULL)
+  deduped <- dedupe_spec(lib)
   expect_true(check_OpenSpecy(deduped))
   expect_equal(ncol(deduped$spectra), 7)
   expect_identical(colnames(deduped$spectra),
@@ -120,11 +105,10 @@ test_that("reduce_lib() returns medoid ids or reduced OpenSpecy objects", {
   lib <- tiny_build_lib()
 
   ids <- reduce_lib(lib, group_cols = "material_class", k = 2, min_n = 2,
-                    exclude_range = NULL, return = "ids")
+                    return = "ids")
   expect_equal(length(ids), 4)
 
-  reduced <- reduce_lib(lib, group_cols = "material_class", k = 2, min_n = 2,
-                        exclude_range = NULL)
+  reduced <- reduce_lib(lib, group_cols = "material_class", k = 2, min_n = 2)
   expect_true(check_OpenSpecy(reduced))
   expect_equal(ncol(reduced$spectra), 4)
 })
@@ -134,8 +118,7 @@ test_that("build_model_lib() returns the model library artifact structure", {
   lib <- tiny_build_lib()
 
   model <- suppressWarnings(
-    build_model_lib(lib, type_col = NULL, range = c(100, 700),
-                    exclude_range = NULL, min_n = 2, nlambda = 3)
+    build_model_lib(lib, type_col = NULL, min_n = 2, nlambda = 3)
   )
   expect_named(model, c("model", "dimension_conversion", "accuracy",
                         "confusion", "coefficients", "class_names",
