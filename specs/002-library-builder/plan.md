@@ -1,88 +1,80 @@
-# Feature Plan: Library Builder Functions
+# Feature Plan: Exact Reference Library Workflow
 
-**Feature dir**: `specs/002-library-builder`  
-**Date**: 2026-06-11  
+**Feature dir**: `specs/002-library-builder`
+**Date**: 2026-06-19
 **Review budget**: Keep this file under 100 nonblank lines.
 
 ## Goal
 
-- Add general-purpose package functions for building Open Specy reference libraries, reduced libraries, and model libraries from raw spectra, `OpenSpecy` objects, and metadata lookup tables.
-- Preserve scientific spectral meaning while replacing project paths, literal exclusions, and script-only dependency workflows with explicit inputs and OpenSpecy primitives.
+- Make `build_lib()` reproduce the official Open Specy reference-library cleanup, including automatic conversion of reflectance/transmittance spectra to absorbance.
+- Keep the exact maintainer workflow visible and version controlled without placing machine paths, generated libraries, or Shiny code in the package build.
 
 ## Scope
 
-- **In**: Source merging, lookup-template creation, audited metadata joins, hierarchical material-type joins, stable IDs, duplicate/problem filtering, raw/derivative/nobaseline recipes, PAM medoid reduction, `glmnet` model builders, and library consistency summaries.
-- **Out**: Bundling large generated `.rds` libraries, OSF/AWS publishing automation, Shiny app code, generic fuzzy-matching curation, and one-off curation lists baked into package functions.
-- **Users**: Package users building their own libraries, and maintainers rebuilding official Open Specy libraries from future source batches.
+- **In**: Unit inference/conversion, attribute precedence, reference recipes/default audit, explicit curation, raw/derivative/nobaseline libraries, medoid reductions, model libraries, and a tracked `workflows/OpenSpecy_reference_library.R`.
+- **Out**: Bundling generated `.rds` libraries, publishing to OSF/AWS, generic fuzzy curation, Shiny app code, and hidden organization heuristics in package defaults.
+- **Users**: Maintainers rebuilding official libraries and users building interoperable custom libraries with the same package defaults.
 
 ## Requirements
 
-- R1. Public builders accept `OpenSpecy`, lists of `OpenSpecy`, or file paths read through existing readers, and return valid `OpenSpecy` objects, model-library lists, or metadata join reports.
-- R2. Spectra column names, `metadata` rows, and the chosen ID column remain aligned after merging, filtering, deduplication, processing, reduction, and metadata joins.
-- R3. Hardcoded paths, known-bad IDs, metadata aliases, lookup columns, material labels, intensity-unit rules, range/resolution choices, model settings, reduction settings, and output names are user-supplied arguments with documented defaults.
-- R4. Simple lookup joins behave like left joins from a metadata column to a lookup table, report unmatched metadata keys, duplicate lookup keys, and rows with missing joined values, and can fail when `require_complete = TRUE`.
-- R5. Template helpers create CSV/data.table lookup templates from deduplicated metadata values with blank user-fillable columns, so users can expand class/type lookup files easily.
-- R6. Hierarchical material joins are generic, not polymer-specific: users supply ordered levels such as `material`, `material_class`, and `material_type`; matching proceeds from most-specific to parent levels and reports matched/unmatched values by level.
-- R7. A helper can merge `OpenSpecy` metadata with a data.frame/data.table by metadata key and return either an updated `OpenSpecy` object or the joined table without breaking row/spectra alignment.
-- R8. `build_lib()` is the primary monolithic workflow: merge sources, optionally join lookup and material hierarchy metadata, filter/deduplicate, create named recipe outputs, add signal-to-noise, and optionally append `assess_spec()` summaries.
-- R9. Processing recipes contain `process_spec()` arguments or a custom function; NA-aware dispatch and processing attributes are automatic rather than recipe settings.
-- R10. `c_spec()` defaults to the full union wavenumber range at resolution 6 and fills source-specific out-of-range values with `NA`.
-- R11. Medoid reduction remains a separate helper using configurable groups, `k`, `min_n`, and OpenSpecy optimized correlation distance.
-- R12. Model training remains a separate helper returning the current `glmnet` model artifact structure.
-- R13. Same-output refactors include benchmarks under `benchmarks/`; long full-library, medoid, model, and correlation checks remain manual or CI guarded.
-- R14. `build_lib()` cleans metadata column names to lowercase underscore names, coalesces known aliases through an editable lookup table, and runs ordinary or hierarchy joins whenever their lookup inputs are non-`NULL`.
-- R15. Metadata-name cleanup is public and extensible: underscore and terminal-`s` variants match automatically, user regex rules are supported with ambiguity errors, and lookup defaults merge with `...` additions.
+- R1. `build_lib()` gains `convert_intensity = TRUE`; `FALSE` preserves supplied intensities and unit declarations.
+- R2. For each input source, canonical `attr(x, "intensity_unit")`, when nonempty, is authoritative for every spectrum; otherwise cleaned metadata column `intensity_units` is evaluated per spectrum.
+- R3. Unit matching is case-insensitive and recognizes absorbance, `reflec*`, and `transm*`; reflectance and transmittance use `adj_intens(..., make_rel = FALSE)`, while absorbance is unchanged.
+- R4. Conversion occurs before `c_spec()`, deduplication, recipes, SNR, and assessment so conflicting source attributes are not lost and IDs describe converted spectra.
+- R5. Mixed metadata units are converted column-wise without breaking `wavenumber`, spectra/metadata alignment, names, or unrelated attributes.
+- R6. Converted outputs set `attr(x, "intensity_unit")` and converted metadata values to `"absorbance"`; unknown or missing declarations remain unchanged and produce an actionable warning summary.
+- R7. Attribute/metadata conflicts follow the attribute without double conversion; tests cover absorbance override, reflectance override, mixed metadata, multiple sources, unknown units, and opt-out.
+- R8. `workflows/OpenSpecy_reference_library.R` uses `build_lib()` as the sole full-library builder and package helpers (`reduce_lib()`, `build_model_lib()`, `assess_lib()`, `write_spec()`) for downstream artifacts; it copies no legacy helper implementations.
+- R9. The workflow records source inputs, lookup tables, curated exclusions/corrections, exact range/resolution/recipes, rounding, reduction groups and `k`, model settings, output names, counts, and assessment summaries without hardcoded personal paths.
+- R10. Official outputs cover raw, derivative, nobaseline, medoid derivative/nobaseline, and derivative/nobaseline models for combined, FTIR, and Raman use, guided by `CleanRawFiles.R` and `andrea_ai/PAM.R`.
+- R11. Domain-general official settings become or remain package defaults; source-specific fixes such as NIST scaling, organization exceptions, known-bad IDs, and plate-position exclusions stay explicit in the workflow.
 
 ## Technical Decisions
 
-- **Approach**: Keep standalone helpers for advanced composition, while `build_lib()` provides the standard end-to-end merge, join, processing, SNR, and assessment workflow. `reduce_lib()` and `build_model_lib()` remain separate.
-- **Lookup examples**: `classes_reference_2.csv` maps `SpectrumIdentity -> new_label`; `librarytypes2.csv` maps `Organization -> LibraryType`; material hierarchy examples should be expressed generically instead of as polymer-only inputs.
-- **Dependencies**: Add `cluster` to `DESCRIPTION` for PAM medoid reduction. Do not add `dplyr`, `tidyr`, `stringr`, `stringdist`, `qs`, `fs`, `fuzzyjoin`, `safejoin`, `factoextra`, `TTR`, `zoo`, or plotting packages.
-- **OpenSpecy contract**: Coerce inputs with `as_OpenSpecy()` before mutation. Outputs retain `wavenumber`, matrix `spectra`, row-aligned `metadata`, selected IDs as spectra column names and `metadata[[id_col]]`, and relevant attributes such as `intensity_unit`, `derivative_order`, `baseline`, and `spectra_type`.
-- **Speed**: Prefer vectorized matrix/data.table operations, existing fast package helpers, and model/reduction workflows that avoid per-spectrum loops when combined-object operations are possible.
-- **Metadata matching**: Validate rules against cleaned column names rather than row values; the small generic validation overhead is accepted for extensibility and useful ambiguity errors.
-- **Generated artifacts**: Update roxygen and package metadata, then regenerate `NAMESPACE` and `man/*.Rd` with `devtools::document()`; do not edit generated files directly.
+- **Approach**: Normalize each source's metadata names, resolve its unit vector with attribute-first precedence, transform affected columns through an internal one-caller helper, then merge and continue the existing `build_lib()` pipeline.
+- **Public API**: `convert_intensity` is a meaningful standard-workflow policy and defaults to `TRUE`; unit type is derived state, so no second unit argument or exported helper is added. Advanced manual conversion remains `x |> adj_intens(...)`.
+- **Reference pipeline**: `sources |> build_lib(...)` creates full libraries; returned derivative/nobaseline libraries feed `reduce_lib()`, then `build_model_lib()`. Exact dataset curation remains readable script data.
+- **Defaults**: Preserve full-range/resolution-6 and current named recipes initially; compare against legacy range `c(100, 11994)`, window 15 derivative, baseline, normalization, SNR step 10, excluded 2200-2420 model/reduction region, `k = 50`, minimum class size 10, and model `alpha = 0.1` before resetting any default.
+- **Dependencies**: No new package dependency; workflow development may require external source/lookup files supplied by configured paths.
+- **OpenSpecy contract**: Preserve source order, unique spectra names, row alignment, and valid attributes; conversion deliberately updates intensity units while recipes continue updating derivative/baseline attributes.
+- **Generated artifacts**: Update roxygen and regenerate with configured roxygen2 only after resolving the current configured/installed version mismatch; never edit `NAMESPACE` or `man/*.Rd` directly.
+- **External resources**: Full rebuild is manual; no routine test downloads or publication side effects.
 
 ## Package Surfaces
 
-- `R/`: Add `R/build_lib.R`; add internal helpers to existing files only when broadly reusable.
-- `tests/testthat/`: Add `tests/testthat/test-build_lib.R` with small synthetic `OpenSpecy` fixtures and small lookup tables.
-- `benchmarks/`: Add `benchmarks/library_builder.R` with old-script comparison snippets for same-output helper refactors.
-- `vignettes/README/pkgdown`: Add or update a compact library-building and lookup-template example; defer full official rebuild walkthroughs unless requested.
-- `DESCRIPTION`: Add `cluster` to imports; no other dependency additions.
-- `NEWS.md`: Add a user-visible feature entry.
-- External Shiny compatibility: Existing `load_lib()` outputs and official library filenames remain unchanged; no Shiny code enters this repo.
+- `R/`: Update `R/build_lib.R`; change other processing defaults only when reference-output comparison justifies it.
+- `tests/testthat/`: Extend `tests/testthat/test-build_lib.R` with small numerical unit-precedence and workflow-order tests.
+- `benchmarks/`: Update `benchmarks/library_builder.R` with repeated legacy-loop equivalence and regression checks for auto-conversion.
+- `workflows/`: Add `workflows/OpenSpecy_reference_library.R`; track in git and exclude from package builds.
+- `.Rbuildignore`: Add `^workflows$`; `.gitignore` remains unchanged.
+- `vignettes/README/pkgdown`: Update the library-builder vignette with auto-conversion and link to the GitHub workflow; no direct pkgdown HTML edits.
+- `DESCRIPTION`: Unchanged unless documentation/toolchain metadata must be corrected.
+- `NEWS.md`: Add auto-conversion and reproducible reference-workflow entries.
+- External Shiny compatibility: Keep official artifact structures/names compatible where scientifically valid; no Shiny code enters this repository.
 
 ## Work Checklist
 
-- [x] Create `R/build_lib.R` with public builder, lookup-template, metadata-join, hierarchy-join, dedupe, reduction, model, and assessment helpers plus roxygen examples.
-- [x] Recast logic from `MergeRawFiles.R`, `CleanRawFiles.R`, and `PAM.R` into argument-driven functions using package primitives and no script-only dependencies except new `cluster`.
-- [x] Add `cluster` to `DESCRIPTION` and roxygen imports only where `cluster::pam()` is used.
-- [x] Add `tests/testthat/test-build_lib.R` covering object validity, metadata alignment, lookup completeness alerts, template creation, hierarchy joins, exclusions, recipes, medoid selection, model artifact structure, and attribute behavior.
-- [x] Add `benchmarks/library_builder.R` comparing old workflow snippets against new helpers for same-output steps.
-- [x] Update `NEWS.md` and any concise vignette/README example, then run documentation generation.
-- [x] Make `c_spec()` default to full-range resolution-6 merging with `NA` padding.
-- [x] Make `process_spec()` automatically use `manage_na()` when needed and update processing attributes.
-- [x] Expand `build_lib()` with optional default joins, automatic recipe processing/SNR, and assessment metadata.
-- [x] Update tests, vignette, benchmark, NEWS, generated docs, and package verification for the monolithic workflow.
-- [x] Simplify optional joins to run from non-`NULL` lookup inputs and add editable metadata-name alias cleanup.
-- [x] Export metadata-name cleaners and add extensible smart and regex lookup rules.
+- [ ] Implement attribute-first per-source intensity conversion in `R/build_lib.R`.
+- [ ] Add focused tests and the repeated conversion benchmark.
+- [ ] Add the buildignored, tracked reference workflow and encode current curation/settings through package APIs.
+- [ ] Rebuild a representative subset, compare counts/numerics/attributes with legacy outputs, then decide any default changes.
+- [ ] Update roxygen, vignette, NEWS, and inspect generated diffs.
+- [ ] Run staged package quality gates and the manual full-library workflow.
 
 ## Verification
 
-- `devtools::test()`: required for new focused tests; long medoid/model cases skipped or CI-guarded.
-- `devtools::document()`: required after roxygen/export/import changes.
-- `devtools::check()` or CI/R CMD check: required before release-facing merge.
-- Benchmarks: run `benchmarks/library_builder.R`; confirm equivalent outputs and no material slowdown for same-output refactors.
-- Manual: optional full official-library rebuild from external source files; record library counts, join misses, medoid counts, model accuracy summaries, and known curation exclusions outside package code.
+- Focused: resolved Windows Rscript running `devtools::test(filter = "build_lib")`.
+- Benchmark: run `benchmarks/library_builder.R`; require expected numerical equivalence and no material repeated-timing regression.
+- Workflow: run a small fixture/subset without personal paths, then manually run the full external library rebuild and record counts, misses, exclusions, class balance, medoid counts, model accuracy, and artifact names.
+- Documentation: confirm configured roxygen2 version, run `devtools::document()`, and inspect authorship/aliases/exports immediately.
+- Full: `devtools::test()`, vignette validation, then `devtools::check()` or the GitHub Actions R CMD check matrix.
 
 ## Risks And Open Questions
 
-- Resolved: template helpers return a data.table when `path = NULL` and write csv only when `path` is supplied.
-- Resolved: hierarchy helpers let users supply related columns and output names rather than hardcoding material taxonomy names.
-- Resolved: model training keeps current defaults while passing `...` through to `glmnet()`.
+- Confirm whether legacy source corrections that override declared units should be encoded as workflow-side metadata corrections or a versioned curation table.
+- Decide default changes only after the new workflow reproduces the intended official outputs; dataset-specific policy must not leak into general package behavior.
 
 ## Approval Notes
 
 - Approved by:
-- Follow-up:
+- Follow-up: Use this plan for iterative reference-library cleanup and default tuning.
