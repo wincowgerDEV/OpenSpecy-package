@@ -6,12 +6,12 @@
 #' \code{sample_spec()} samples spectra from an \code{OpenSpecy} object.
 #' \code{merge_map()} merge two \code{OpenSpecy} objects from spectral maps.
 #' @param x a list of \code{OpenSpecy} objects or of file paths.
-#' @param range a numeric providing your own wavenumber ranges or character
-#' argument called \code{"common"} to let \code{c_spec()} find the common
-#' wavenumber range of the supplied spectra. \code{NULL} will interpret the
-#' spectra having all the same wavenumber range.
-#' @param res defaults to \code{NULL}, the resolution you want the output
-#' wavenumbers to be.
+#' @param range a numeric providing your own wavenumber range,
+#' \code{"full"} to use the widest range represented by any supplied spectrum,
+#' or \code{"common"} to use only their overlapping range. \code{NULL} requires
+#' identical wavenumbers. The default is \code{"full"}.
+#' @param res resolution of the output wavenumbers. The default of 6 is intended
+#' for reference-library identification workflows.
 #' @param size the number of spectra to sample.
 #' @param prob probabilities to use for the sampling.
 #' @param origins a list with 2 value vectors of x y coordinates for the offsets of each image. 
@@ -24,8 +24,9 @@
 #' # Concatenating spectra
 #' spectra <- lapply(c(read_extdata("raman_hdpe.csv"),
 #'                     read_extdata("ftir_ldpe_soil.asp")), read_any)
-#' common <- c_spec(spectra, range = "common", res = 5)
-#' range <- c_spec(spectra, range = c(1000, 2000), res = 5)
+#' full <- c_spec(spectra)
+#' common <- c_spec(spectra, range = "common", res = 6)
+#' range <- c_spec(spectra, range = c(1000, 2000), res = 6)
 #'
 #' # Sampling spectra
 #' tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))
@@ -64,7 +65,7 @@ c_spec.OpenSpecy <- function(x, ...) {
 #' @rdname manage_spec
 #'
 #' @export
-c_spec.list <- function(x, range = NULL, res = 5, ...) {
+c_spec.list <- function(x, range = "full", res = 6, ...) {
   if(!is_OpenSpecy(x[[1]])){
      x <- lapply(x, read_any)
   }
@@ -78,19 +79,25 @@ c_spec.list <- function(x, range = NULL, res = 5, ...) {
     if(is.numeric(range)) {
       wn <- range
     }
-    else if(!is.null(range) && range == "common") {
+    else if(length(range) == 1L && range %in% c("common", "full")) {
       pmin <- vapply(x, function(y) min(y$wavenumber), FUN.VALUE = numeric(1))
       pmax <- vapply(x, function(y) max(y$wavenumber), FUN.VALUE = numeric(1))
 
-      if(any(max(pmin) > pmax) | any(min(pmax) < pmin))
+      if(range == "common" &&
+         (any(max(pmin) > pmax) | any(min(pmax) < pmin)))
         stop("data points need to overlap in their ranges", call. = F)
 
-      wn <- c(max(pmin), min(pmax))
+      wn <- if (range == "common") {
+        c(max(pmin), min(pmax))
+      } else {
+        c(min(pmin), max(pmax))
+      }
     } else {
-      stop("If range is specified it should be a numeric vector or 'common'",
-           call. = F)
+      stop("If range is specified it should be numeric, 'full', or 'common'",
+           call. = FALSE)
     }
-    x <- lapply(x, conform_spec, range = wn, res = res)
+    x <- lapply(x, conform_spec, range = wn, res = res,
+                allow_na = identical(range, "full") || is.numeric(range))
   }
 
   unlisted <- unlist(unname(x), recursive = F)
@@ -106,10 +113,24 @@ c_spec.list <- function(x, range = NULL, res = 5, ...) {
   colnames(spectra) <- make.unique(unlist(lapply(list$spectra, colnames)),
                                    sep = ".")
 
+  metadata <- rbindlist(list$metadata, fill = TRUE)
+  metadata <- metadata[, setdiff(names(metadata), c("x", "y")), with = FALSE]
+  attribute_names <- c("intensity_unit", "derivative_order", "baseline",
+                       "spectra_type")
+  object_attributes <- lapply(attribute_names, function(nm) {
+    values <- lapply(x, attr, which = nm)
+    if (all(vapply(values[-1L], identical, logical(1), values[[1L]]))) {
+      values[[1L]]
+    } else {
+      NULL
+    }
+  })
+  names(object_attributes) <- attribute_names
+
   as_OpenSpecy(x = list$wavenumber[[1]],
                spectra = spectra,
-               metadata = rbindlist(list$metadata, fill = T)[,-c("x","y")]
-  )
+               metadata = metadata,
+               attributes = object_attributes)
 }
 
 

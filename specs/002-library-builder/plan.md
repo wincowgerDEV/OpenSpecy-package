@@ -24,15 +24,16 @@
 - R5. Template helpers create CSV/data.table lookup templates from deduplicated metadata values with blank user-fillable columns, so users can expand class/type lookup files easily.
 - R6. Hierarchical material joins are generic, not polymer-specific: users supply ordered levels such as `material`, `material_class`, and `material_type`; matching proceeds from most-specific to parent levels and reports matched/unmatched values by level.
 - R7. A helper can merge `OpenSpecy` metadata with a data.frame/data.table by metadata key and return either an updated `OpenSpecy` object or the joined table without breaking row/spectra alignment.
-- R8. Processing recipes reuse `as_OpenSpecy()`, `read_any()`, `split_spec()`, `c_spec()`, `filter_spec()`, `manage_na()`, `process_spec()`, `adj_intens()`, `conform_spec()`, `smooth_intens()`, `subtr_baseline()`, `make_rel()`, and `sig_noise()` where applicable.
-- R9. Medoid reduction uses configurable group columns, `k`, and `min_n`; it selects representatives with `cluster::pam()` on OpenSpecy optimized correlation distance and returns reduced `OpenSpecy` objects or selected IDs.
-- R10. Model-library helpers use existing `glmnet` multinomial functionality and return the current model artifact structure: `model`, `dimension_conversion`, `coefficients`, `confusion`, accuracy summaries, `all_variables`, and selected variables.
-- R11. Same-output script refactors include benchmarks that keep old comparison logic under `benchmarks/` and check output equivalence plus runtime regression.
-- R12. Long-running full-library rebuilds, medoid reduction, model training, and large correlation checks are documented as manual or CI-guarded workflows, not routine unit tests.
+- R8. `build_lib()` is the primary monolithic workflow: merge sources, optionally join lookup and material hierarchy metadata, filter/deduplicate, create named recipe outputs, add signal-to-noise, and optionally append `assess_spec()` summaries.
+- R9. Processing recipes contain `process_spec()` arguments or a custom function; NA-aware dispatch and processing attributes are automatic rather than recipe settings.
+- R10. `c_spec()` defaults to the full union wavenumber range at resolution 6 and fills source-specific out-of-range values with `NA`.
+- R11. Medoid reduction remains a separate helper using configurable groups, `k`, `min_n`, and OpenSpecy optimized correlation distance.
+- R12. Model training remains a separate helper returning the current `glmnet` model artifact structure.
+- R13. Same-output refactors include benchmarks under `benchmarks/`; long full-library, medoid, model, and correlation checks remain manual or CI guarded.
 
 ## Technical Decisions
 
-- **Approach**: Add a composable API in `R/build_lib.R`: `build_lib()`, `make_lib_lookup_template()`, `join_lib_metadata()`, `join_material_hierarchy()`, `dedupe_spec()`, `reduce_lib()`, `build_model_lib()`, and `assess_lib()` or close names chosen during implementation.
+- **Approach**: Keep standalone helpers for advanced composition, while `build_lib()` provides the standard end-to-end merge, join, processing, SNR, and assessment workflow. `reduce_lib()` and `build_model_lib()` remain separate.
 - **Lookup examples**: `classes_reference_2.csv` maps `SpectrumIdentity -> new_label`; `librarytypes2.csv` maps `Organization -> LibraryType`; material hierarchy examples should be expressed generically instead of as polymer-only inputs.
 - **Dependencies**: Add `cluster` to `DESCRIPTION` for PAM medoid reduction. Do not add `dplyr`, `tidyr`, `stringr`, `stringdist`, `qs`, `fs`, `fuzzyjoin`, `safejoin`, `factoextra`, `TTR`, `zoo`, or plotting packages.
 - **OpenSpecy contract**: Coerce inputs with `as_OpenSpecy()` before mutation. Outputs retain `wavenumber`, matrix `spectra`, row-aligned `metadata`, selected IDs as spectra column names and `metadata[[id_col]]`, and relevant attributes such as `intensity_unit`, `derivative_order`, `baseline`, and `spectra_type`.
@@ -57,6 +58,10 @@
 - [x] Add `tests/testthat/test-build_lib.R` covering object validity, metadata alignment, lookup completeness alerts, template creation, hierarchy joins, exclusions, recipes, medoid selection, model artifact structure, and attribute behavior.
 - [x] Add `benchmarks/library_builder.R` comparing old workflow snippets against new helpers for same-output steps.
 - [x] Update `NEWS.md` and any concise vignette/README example, then run documentation generation.
+- [x] Make `c_spec()` default to full-range resolution-6 merging with `NA` padding.
+- [x] Make `process_spec()` automatically use `manage_na()` when needed and update processing attributes.
+- [x] Expand `build_lib()` with optional default joins, automatic recipe processing/SNR, and assessment metadata.
+- [x] Update tests, vignette, benchmark, NEWS, generated docs, and package verification for the monolithic workflow.
 
 ## Verification
 

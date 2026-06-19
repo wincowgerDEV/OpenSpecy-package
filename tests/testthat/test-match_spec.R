@@ -148,6 +148,8 @@ test_that("match_spec() handles attribute issues correctly", {
                                                 derivative_order = 1,
                                                 baseline = "nobaseline",
                                                 spectra_type = "ftir"))
+
+  cor_spec(preproc_wa, test_lib) |> expect_silent()
   
   test_lib_wa2 <- as_OpenSpecy(test_lib$wavenumber,
                                test_lib$spectra,

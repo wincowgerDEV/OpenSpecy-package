@@ -39,3 +39,28 @@ test_that("manage_na works as expected", {
     manage_na(raman_hdpe, fun = make_rel) |> expect_error()
 })
 
+test_that("manage_na processes different valid ranges and keeps attributes", {
+    data(raman_hdpe)
+    two <- cbind(raman_hdpe$spectra[, 1], raman_hdpe$spectra[, 1])
+    colnames(two) <- c("left", "right")
+    two[1:10, "left"] <- NA
+    two[(nrow(two) - 9):nrow(two), "right"] <- NA
+    os <- as_OpenSpecy(raman_hdpe$wavenumber, two)
+
+    processed <- manage_na(
+        os,
+        fun = function(x) {
+            x$spectra <- x$spectra * 2
+            attr(x, "derivative_order") <- "1"
+            x
+        }
+    )
+
+    expect_true(all(is.na(processed$spectra[1:10, "left"])))
+    expect_true(all(is.na(processed$spectra[
+        (nrow(two) - 9):nrow(two), "right"
+    ])))
+    expect_equal(processed$spectra[11, "left"], two[11, "left"] * 2)
+    expect_equal(processed$spectra[1, "right"], two[1, "right"] * 2)
+    expect_equal(attr(processed, "derivative_order"), "1")
+})

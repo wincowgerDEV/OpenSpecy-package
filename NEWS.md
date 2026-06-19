@@ -5,6 +5,10 @@
 - Add area under band calculation. 
 - Added library-builder helpers for creating lookup templates, auditing metadata
   joins, reducing libraries with PAM medoids, and training model libraries.
+- Expanded `build_lib()` into the standard end-to-end library workflow with
+  full-range resolution-6 merging, optional metadata and material hierarchy
+  joins, automatic NA-aware recipes, signal-to-noise, processing attributes,
+  and optional `assess_spec()` metadata summaries.
 
 # OpenSpecy 1.5.0
 

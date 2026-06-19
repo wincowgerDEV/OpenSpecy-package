@@ -125,19 +125,23 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   if(conform) x <- conform_spec(x, library$wavenumber, res = NULL, allow_na = F, type)
 
   if(!is.null(attr(x, "intensity_unit")) &&
-     attr(x, "intensity_unit") != attr(library,  "intensity_unit"))
+     !is.null(attr(library, "intensity_unit")) &&
+     !identical(attr(x, "intensity_unit"), attr(library, "intensity_unit")))
     warning("Intensity units between the library and unknown are not the same")
 
   if(!is.null(attr(x, "derivative_order")) &&
-     attr(x, "derivative_order") != attr(library,  "derivative_order"))
+     !is.null(attr(library, "derivative_order")) &&
+     !identical(attr(x, "derivative_order"), attr(library, "derivative_order")))
     warning("Derivative orders between the library and unknown are not the same")
 
   if(!is.null(attr(x, "baseline")) &&
-     attr(x, "baseline") != attr(library,  "baseline"))
+     !is.null(attr(library, "baseline")) &&
+     !identical(attr(x, "baseline"), attr(library, "baseline")))
     warning("Baselines between the library and unknown are not the same")
 
   if(!is.null(attr(x, "spectra_type")) &&
-     attr(x, "spectra_type") != attr(library,  "spectra_type"))
+     !is.null(attr(library, "spectra_type")) &&
+     !identical(attr(x, "spectra_type"), attr(library, "spectra_type")))
     warning("Spectra types between the library and unknown are not the same")
 
   if(sum(x$wavenumber %in% library$wavenumber) < 3)

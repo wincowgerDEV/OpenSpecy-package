@@ -1,7 +1,7 @@
 tiny_build_lib <- function() {
-  wavenumber <- seq(100, 700, by = 100)
-  base_a <- c(1, 2, 4, 8, 4, 2, 1)
-  base_b <- c(1, 1, 2, 3, 5, 8, 13)
+  wavenumber <- seq(100, 6100, by = 100)
+  base_a <- dnorm(seq(-3, 3, length.out = length(wavenumber)))
+  base_b <- rev(cumsum(seq_along(wavenumber)) / sum(seq_along(wavenumber)))
   spectra <- sapply(seq_len(8), function(i) {
     if (i <= 4) base_a + i / 20 else base_b + i / 20
   })
@@ -136,12 +136,68 @@ test_that("build_lib() applies named recipes to merged sources", {
     list(lib),
     recipes = list(raw = list(),
                    relative = function(x) make_rel(x, na.rm = TRUE)),
-    dedupe = FALSE
+    dedupe = FALSE,
+    signal_noise = FALSE
   )
 
   expect_named(built, c("raw", "relative"))
   expect_true(check_OpenSpecy(built$raw))
   expect_true(check_OpenSpecy(built$relative))
+})
+
+test_that("build_lib() runs default joins, processing, SNR, and assessment", {
+  lib <- tiny_build_lib()
+  lib$spectra[1, 1] <- -1
+  source_lookup <- data.table::data.table(
+    source = c("A", "B", "C"),
+    material = c("mat_a", "mat_b", "mat_c")
+  )
+  hierarchy <- data.table::data.table(
+    material = c("mat_a", "mat_b", "mat_c"),
+    material_class = c("class_a", "class_b", "class_c"),
+    material_type = rep("material", 3)
+  )
+
+  built <- suppressWarnings(build_lib(
+    lib,
+    join_metadata = TRUE,
+    metadata_lookups = source_lookup,
+    join_hierarchy = TRUE,
+    material_hierarchy = hierarchy,
+    assess = TRUE,
+    dedupe = FALSE
+  ))
+
+  expect_named(built, c("raw", "derivative", "nobaseline"))
+  expect_true(all(vapply(built, check_OpenSpecy, logical(1))))
+  expect_true(all(c("material", "material_class", "material_type", "sn",
+                    "assessment_flag", "assessment_issue_count",
+                    "assessment_checks", "assessment_issues",
+                    "assessment_potential_fixes") %in%
+                  names(built$raw$metadata)))
+  expect_equal(attr(built$derivative, "derivative_order"), "1")
+  expect_equal(attr(built$nobaseline, "baseline"), "nobaseline")
+  expect_true(built$raw$metadata$assessment_flag[1])
+})
+
+test_that("build_lib() preserves full source ranges through NA-aware recipes", {
+  lib <- tiny_build_lib()
+  left <- lib
+  left$wavenumber <- lib$wavenumber[1:40]
+  left$spectra <- lib$spectra[1:40, 1:4, drop = FALSE]
+  left$metadata <- data.table::copy(lib$metadata[1:4])
+  right <- lib
+  right$wavenumber <- lib$wavenumber[22:61]
+  right$spectra <- lib$spectra[22:61, 5:8, drop = FALSE]
+  right$metadata <- data.table::copy(lib$metadata[5:8])
+
+  built <- build_lib(list(left, right), dedupe = FALSE, signal_noise = FALSE)
+
+  expect_true(all(diff(built$raw$wavenumber) == 6))
+  expect_true(anyNA(built$raw$spectra))
+  expect_true(anyNA(built$derivative$spectra))
+  expect_true(any(is.finite(built$derivative$spectra[, 1])))
+  expect_true(any(is.finite(built$nobaseline$spectra[, 8])))
 })
 
 test_that("extdata files combine into a mini library", {
@@ -162,7 +218,8 @@ test_that("extdata files combine into a mini library", {
   )
   mini <- join_lib_metadata(mini, lookup, by = "file_name",
                             require_complete = TRUE)
-  built <- build_lib(mini, recipes = list(raw = list()), dedupe = FALSE)
+  built <- build_lib(mini, recipes = list(raw = list()), dedupe = FALSE,
+                     signal_noise = FALSE)
   expect_true(check_OpenSpecy(built$raw))
   expect_true(all(c("material", "material_type") %in% names(built$raw$metadata)))
 })

@@ -79,8 +79,6 @@ with \code{\link{make_rel}()}.}
 \item{make_rel_args}{named list of arguments passed to
 \code{\link{make_rel}()}.}
 
-\item{na.rm}{Whether to allow NA or set all NA values to}
-
 \item{\ldots}{further arguments passed to subfunctions.}
 }
 \value{
@@ -89,7 +87,10 @@ spectra based on the specified parameters.
 }
 \description{
 \code{process_spec()} is a monolithic wrapper function for all spectral
-processing steps.
+processing steps. Intensity operations automatically use
+\code{\link{manage_na}()} when spectra contain missing values and run the
+underlying functions directly otherwise. Processing attributes are updated
+automatically.
 }
 \examples{
 data("raman_hdpe")

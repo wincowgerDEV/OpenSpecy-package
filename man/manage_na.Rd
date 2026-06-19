@@ -32,7 +32,10 @@ manage_na(x, ...)
 \description{
 Sometimes you want to keep or remove NA values in intensities to allow for
 spectra with varying shapes to be analyzed together or maintained in a single
-Open Specy object.
+Open Specy object. For \code{type = "ignore"}, spectra sharing the same
+missing-value boundaries are processed together, valid source-specific ranges
+are retained, and attributes returned by the processing function are copied
+back to the full object.
 }
 \examples{
 manage_na(c(NA, -1, NA, 1, 10))

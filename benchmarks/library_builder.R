@@ -55,3 +55,35 @@ new_template <- make_lib_lookup_template(lib, columns = "source",
                                          add = "LibraryType")
 
 stopifnot(identical(old_template[order(source)], new_template[order(source)]))
+
+left <- lib
+left$wavenumber <- lib$wavenumber[1:5]
+left$spectra <- lib$spectra[1:5, , drop = FALSE]
+right <- lib
+right$wavenumber <- lib$wavenumber[3:7]
+right$spectra <- lib$spectra[3:7, , drop = FALSE]
+full_range <- c(min(left$wavenumber), max(right$wavenumber))
+
+old_merge_time <- system.time({
+  old_sources <- lapply(
+    list(left, right),
+    conform_spec,
+    range = full_range,
+    res = 6,
+    allow_na = TRUE
+  )
+  old_merged <- c_spec(old_sources, range = NULL)
+})
+new_merge_time <- system.time({
+  new_merged <- build_lib(
+    list(left, right),
+    recipes = list(raw = list()),
+    dedupe = FALSE,
+    signal_noise = FALSE
+  )$raw
+})
+
+stopifnot(identical(old_merged$wavenumber, new_merged$wavenumber))
+stopifnot(isTRUE(all.equal(old_merged$spectra, new_merged$spectra)))
+message("Old full-range merge elapsed: ", old_merge_time[["elapsed"]])
+message("New build_lib merge elapsed: ", new_merge_time[["elapsed"]])

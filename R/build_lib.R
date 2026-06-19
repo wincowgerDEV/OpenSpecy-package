@@ -2,15 +2,20 @@
 #' @title Build spectral libraries
 #'
 #' @description
-#' Small, composable helpers for creating reference libraries from OpenSpecy
-#' objects, source files, and metadata lookup tables. The functions keep spectra
-#' columns and metadata rows aligned while users curate metadata, process
-#' spectra, reduce large groups, and train model libraries in separate steps.
+#' Helpers for creating reference libraries from OpenSpecy objects, source
+#' files, and metadata lookup tables. \code{build_lib()} provides the standard
+#' end-to-end workflow while the supporting functions remain available for
+#' advanced composition.
 #'
 #' @details
-#' \code{build_lib()} combines one or more sources into an \code{OpenSpecy}
-#' object, removes requested identifiers, optionally generates stable duplicate
-#' IDs with \code{dedupe_spec()}, and applies named processing recipes.
+#' \code{build_lib()} combines sources over their full wavenumber range,
+#' optionally adds ordinary and hierarchical metadata, removes requested
+#' identifiers, optionally generates stable duplicate IDs, and applies named
+#' processing recipes. Each recipe is either a named list of arguments passed to
+#' \code{\link{process_spec}()} or a function accepting one \code{OpenSpecy}
+#' object. An empty recipe returns an unprocessed copy. Signal-to-noise is added
+#' by default, and optional \code{\link{assess_spec}()} results are summarized
+#' into one metadata row per spectrum.
 #'
 #' \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 #' values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -65,12 +70,26 @@
 #' @param duplicate how duplicated generated identifiers should be handled.
 #' @param scale numeric multiplier used before hashing intensity values.
 #' @param algo hash algorithm passed to \code{\link[digest]{digest}()}.
-#' @param recipes named list of processing recipes or functions for
-#' \code{build_lib()}.
+#' @param recipes named list of \code{\link{process_spec}()} argument lists or
+#' functions. Names become names of the returned libraries.
 #' @param dedupe logical; whether to generate stable IDs and remove duplicated
 #' spectra in \code{build_lib()}.
 #' @param range,res wavenumber range and resolution passed to \code{c_spec()}
 #' when \code{build_lib()} combines multiple sources.
+#' @param join_metadata logical; whether to apply \code{join_lib_metadata()} to
+#' each table in \code{metadata_lookups}. Each ordinary lookup must have exactly
+#' one column name in common with the current object metadata.
+#' @param metadata_lookups a lookup table, csv path, or list of lookup tables and
+#' paths used when \code{join_metadata = TRUE}.
+#' @param join_hierarchy logical; whether to apply
+#' \code{join_material_hierarchy()} using its default hierarchy settings.
+#' @param material_hierarchy hierarchy table or csv path used when
+#' \code{join_hierarchy = TRUE}. The default workflow matches the
+#' \code{"material"} metadata column.
+#' @param signal_noise logical; whether to append the default
+#' \code{\link{sig_noise}()} result as metadata column \code{sn}.
+#' @param assess logical; whether to run \code{\link{assess_spec}()} on each
+#' output library and append assessment summaries to its metadata.
 #' @param group_cols metadata columns defining groups for reduction.
 #' @param k maximum representatives to keep for groups larger than
 #' \code{min_n}.
@@ -101,9 +120,9 @@
 #' \code{\link{match_spec}()}. \code{assess_lib()} returns a data.table summary.
 #'
 #' @examples
-#' wavenumber <- seq(100, 700, by = 100)
-#' base_a <- c(1, 2, 4, 8, 4, 2, 1)
-#' base_b <- c(1, 1, 2, 3, 5, 8, 13)
+#' wavenumber <- seq(100, 6100, by = 100)
+#' base_a <- dnorm(seq(-3, 3, length.out = length(wavenumber)))
+#' base_b <- rev(cumsum(seq_along(wavenumber)))
 #' spectra <- cbind(base_a, base_a + 0.1, base_a + 0.2,
 #'                  base_b, base_b + 0.1, base_b + 0.2)
 #' colnames(spectra) <- paste0("s", seq_len(ncol(spectra)))
@@ -122,8 +141,11 @@
 #'
 #' make_lib_lookup_template(mini, columns = "source", add = "library_type")
 #'
-#' source_lookup <- data.frame(source = c("A", "B"),
-#'                             library_type = c("lab", "field"))
+#' source_lookup <- data.frame(
+#'   source = c("A", "B"),
+#'   library_type = c("lab", "field"),
+#'   material = c("nylon 6", "pet")
+#' )
 #' joined <- join_lib_metadata(mini, source_lookup, by = "source",
 #'                             require_complete = TRUE)
 #'
@@ -139,12 +161,21 @@
 #' reduced <- reduce_lib(deduped, group_cols = "material_class",
 #'                       k = 1, min_n = 1)
 #' libs <- build_lib(
-#'   joined,
+#'   mini,
 #'   recipes = list(
 #'     raw = list(),
-#'     relative = function(x) make_rel(x, na.rm = TRUE),
-#'     rounded = list(round = 2)
+#'     derivative = list(
+#'       conform_spec = FALSE,
+#'       smooth_intens = TRUE,
+#'       smooth_intens_args = list(window = 15, derivative = 1),
+#'       make_rel = TRUE
+#'     )
 #'   ),
+#'   join_metadata = TRUE,
+#'   metadata_lookups = source_lookup,
+#'   join_hierarchy = TRUE,
+#'   material_hierarchy = hierarchy,
+#'   assess = TRUE,
 #'   dedupe = FALSE
 #' )
 #'
@@ -160,9 +191,12 @@
 #' @importFrom data.table as.data.table data.table fread fwrite rbindlist setorder
 #' @importFrom cluster pam
 #' @export
-build_lib <- function(x, recipes = .default_lib_recipes(), range = NULL,
-                      res = 5, id_col = "sample_name", exclude_ids = NULL,
-                      dedupe = TRUE, ...) {
+build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
+                      res = 6, id_col = "sample_name", exclude_ids = NULL,
+                      dedupe = TRUE, join_metadata = FALSE,
+                      metadata_lookups = NULL, join_hierarchy = FALSE,
+                      material_hierarchy = NULL, signal_noise = TRUE,
+                      assess = FALSE, ...) {
   if (is_OpenSpecy(x)) {
     lib <- as_OpenSpecy(x)
   } else {
@@ -183,6 +217,41 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = NULL,
     }
   }
 
+  if (isTRUE(join_metadata)) {
+    if (is.null(metadata_lookups)) {
+      stop("'metadata_lookups' must be supplied when join_metadata = TRUE",
+           call. = FALSE)
+    }
+    lookups <- if (is.character(metadata_lookups) &&
+                   length(metadata_lookups) > 1L) {
+      as.list(metadata_lookups)
+    } else if (is.list(metadata_lookups) &&
+               !inherits(metadata_lookups, c("data.frame", "data.table"))) {
+      metadata_lookups
+    } else {
+      list(metadata_lookups)
+    }
+
+    for (lookup in lookups) {
+      lookup_table <- .lib_read_lookup(lookup)
+      shared <- intersect(names(lib$metadata), names(lookup_table))
+      if (length(shared) != 1L) {
+        stop("Each automatic metadata lookup must have exactly one column ",
+             "name in common with the object metadata; use ",
+             "join_lib_metadata() directly for advanced joins", call. = FALSE)
+      }
+      lib <- join_lib_metadata(lib, lookup_table, by = shared)
+    }
+  }
+
+  if (isTRUE(join_hierarchy)) {
+    if (is.null(material_hierarchy)) {
+      stop("'material_hierarchy' must be supplied when join_hierarchy = TRUE",
+           call. = FALSE)
+    }
+    lib <- join_material_hierarchy(lib, material_hierarchy)
+  }
+
   if (!is.null(exclude_ids)) {
     ids <- .lib_ids(lib, id_col)
     keep <- !(ids %in% exclude_ids | colnames(lib$spectra) %in% exclude_ids)
@@ -194,30 +263,55 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = NULL,
   }
 
   apply_recipe <- function(recipe) {
-    if (is.function(recipe)) return(recipe(lib))
-    out <- lib
+    out <- if (is.function(recipe)) {
+      recipe(lib)
+    } else if (length(recipe) == 0L) {
+      lib
+    } else {
+      do.call(process_spec, c(list(lib), recipe))
+    }
+    if (!is_OpenSpecy(out)) {
+      stop("Each recipe must return an OpenSpecy object", call. = FALSE)
+    }
 
-    if (!is.null(recipe$manage_na_fun)) {
-      out <- do.call(manage_na, c(list(out, fun = recipe$manage_na_fun),
-                                  recipe$manage_na_args))
+    if (isTRUE(signal_noise)) {
+      out$metadata$sn <- sig_noise(out, step = 10)
     }
-    if (!is.null(recipe$process_args)) {
-      out <- do.call(process_spec, c(list(out), recipe$process_args))
-    }
-    if (isTRUE(recipe$signal_noise)) {
-      out$metadata$sn <- do.call(sig_noise,
-                                 c(list(out), recipe$signal_noise_args))
-    }
-    if (!is.null(recipe$round)) out$spectra <- round(out$spectra, recipe$round)
-    if (!is.null(recipe$attributes)) {
-      for (nm in names(recipe$attributes)) {
-        attr(out, nm) <- recipe$attributes[[nm]]
+
+    if (isTRUE(assess)) {
+      assessment <- assess_spec(out)
+      out$metadata[, `:=`(
+        assessment_flag = FALSE,
+        assessment_issue_count = 0L,
+        assessment_checks = NA_character_,
+        assessment_issues = NA_character_,
+        assessment_potential_fixes = NA_character_
+      )]
+
+      if (nrow(assessment) > 0L) {
+        summary <- assessment[, .(
+          assessment_flag = TRUE,
+          assessment_issue_count = .N,
+          assessment_checks = paste(unique(get("check")), collapse = "; "),
+          assessment_issues = paste(unique(get("issue")), collapse = "; "),
+          assessment_potential_fixes = paste(unique(get("potential_fix")),
+                                             collapse = "; ")
+        ), by = "spectrum_id"]
+        idx <- match(colnames(out$spectra), summary$spectrum_id)
+        found <- !is.na(idx)
+        assessment_cols <- setdiff(names(summary), "spectrum_id")
+        assessment_values <- summary[idx[found], assessment_cols, with = FALSE]
+        out$metadata[found, (assessment_cols) := assessment_values]
       }
     }
 
     out
   }
 
+  if (is.null(names(recipes)) || any(names(recipes) == "") ||
+      anyDuplicated(names(recipes))) {
+    stop("'recipes' must be a uniquely named list", call. = FALSE)
+  }
   out <- lapply(recipes, apply_recipe)
   names(out) <- names(recipes)
   out
@@ -348,7 +442,7 @@ join_lib_metadata <- function(x, lookup, by, require_complete = FALSE,
 
 #' @rdname build_lib
 #' @export
-join_material_hierarchy <- function(x, hierarchy, key_col,
+join_material_hierarchy <- function(x, hierarchy, key_col = "material",
                                     levels = c("material", "material_class",
                                                "material_type"),
                                     output_names = levels,
@@ -387,6 +481,7 @@ join_material_hierarchy <- function(x, hierarchy, key_col,
   duplicate_reports <- list()
 
   for (i in seq_along(levels)) {
+    if (length(remaining) == 0L) break
     level <- levels[i]
     cols <- levels[i:length(levels)]
     h <- unique(hierarchy[, cols, with = FALSE])
@@ -649,18 +744,22 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   list(
     raw = list(),
     derivative = list(
-      manage_na_fun = smooth_intens,
-      manage_na_args = list(lead_tail_only = TRUE, ig = c(NA), window = 15),
-      signal_noise = TRUE,
-      signal_noise_args = list(step = 10),
-      attributes = list(derivative_order = "1")
+      conform_spec = FALSE,
+      smooth_intens = TRUE,
+      smooth_intens_args = list(
+        polynomial = 3,
+        window = 15,
+        derivative = 1,
+        abs = TRUE
+      ),
+      subtr_baseline = FALSE,
+      make_rel = TRUE
     ),
     nobaseline = list(
-      manage_na_fun = subtr_baseline,
-      manage_na_args = list(lead_tail_only = TRUE, ig = c(NA)),
-      signal_noise = TRUE,
-      signal_noise_args = list(step = 10),
-      attributes = list(baseline = "nobaseline")
+      conform_spec = FALSE,
+      smooth_intens = FALSE,
+      subtr_baseline = TRUE,
+      make_rel = TRUE
     )
   )
 }

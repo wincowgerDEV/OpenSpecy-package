@@ -14,11 +14,17 @@
 build_lib(
   x,
   recipes = .default_lib_recipes(),
-  range = NULL,
-  res = 5,
+  range = "full",
+  res = 6,
   id_col = "sample_name",
   exclude_ids = NULL,
   dedupe = TRUE,
+  join_metadata = FALSE,
+  metadata_lookups = NULL,
+  join_hierarchy = FALSE,
+  material_hierarchy = NULL,
+  signal_noise = TRUE,
+  assess = FALSE,
   ...
 )
 
@@ -36,7 +42,7 @@ join_lib_metadata(
 join_material_hierarchy(
   x,
   hierarchy,
-  key_col,
+  key_col = "material",
   levels = c("material", "material_class", "material_type"),
   output_names = levels,
   require_complete = FALSE,
@@ -88,8 +94,8 @@ assess_lib(
 \code{build_lib()} also accepts a list of \code{OpenSpecy} objects or file
 paths readable by \code{\link{read_any}()}.}
 
-\item{recipes}{named list of processing recipes or functions for
-\code{build_lib()}.}
+\item{recipes}{named list of \code{\link{process_spec}()} argument lists or
+functions. Names become names of the returned libraries.}
 
 \item{range, res}{wavenumber range and resolution passed to \code{c_spec()}
 when \code{build_lib()} combines multiple sources.}
@@ -100,6 +106,26 @@ when \code{build_lib()} combines multiple sources.}
 
 \item{dedupe}{logical; whether to generate stable IDs and remove duplicated
 spectra in \code{build_lib()}.}
+
+\item{join_metadata}{logical; whether to apply \code{join_lib_metadata()} to
+each table in \code{metadata_lookups}. Each ordinary lookup must have exactly
+one column name in common with the current object metadata.}
+
+\item{metadata_lookups}{a lookup table, csv path, or list of lookup tables and
+paths used when \code{join_metadata = TRUE}.}
+
+\item{join_hierarchy}{logical; whether to apply
+\code{join_material_hierarchy()} using its default hierarchy settings.}
+
+\item{material_hierarchy}{hierarchy table or csv path used when
+\code{join_hierarchy = TRUE}. The default workflow matches the
+\code{"material"} metadata column.}
+
+\item{signal_noise}{logical; whether to append the default
+\code{\link{sig_noise}()} result as metadata column \code{sn}.}
+
+\item{assess}{logical; whether to run \code{\link{assess_spec}()} on each
+output library and append assessment summaries to its metadata.}
 
 \item{columns}{metadata columns to deduplicate into a template.}
 
@@ -178,15 +204,20 @@ supplied, in which case it writes the csv and invisibly returns the table.
 \code{\link{match_spec}()}. \code{assess_lib()} returns a data.table summary.
 }
 \description{
-Small, composable helpers for creating reference libraries from OpenSpecy
-objects, source files, and metadata lookup tables. The functions keep spectra
-columns and metadata rows aligned while users curate metadata, process
-spectra, reduce large groups, and train model libraries in separate steps.
+Helpers for creating reference libraries from OpenSpecy objects, source
+files, and metadata lookup tables. \code{build_lib()} provides the standard
+end-to-end workflow while the supporting functions remain available for
+advanced composition.
 }
 \details{
-\code{build_lib()} combines one or more sources into an \code{OpenSpecy}
-object, removes requested identifiers, optionally generates stable duplicate
-IDs with \code{dedupe_spec()}, and applies named processing recipes.
+\code{build_lib()} combines sources over their full wavenumber range,
+optionally adds ordinary and hierarchical metadata, removes requested
+identifiers, optionally generates stable duplicate IDs, and applies named
+processing recipes. Each recipe is either a named list of arguments passed to
+\code{\link{process_spec}()} or a function accepting one \code{OpenSpecy}
+object. An empty recipe returns an unprocessed copy. Signal-to-noise is added
+by default, and optional \code{\link{assess_spec}()} results are summarized
+into one metadata row per spectrum.
 
 \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -216,9 +247,9 @@ spectra before calling this helper.
 size, class balance, and optionally nearest-neighbor class consistency.
 }
 \examples{
-wavenumber <- seq(100, 700, by = 100)
-base_a <- c(1, 2, 4, 8, 4, 2, 1)
-base_b <- c(1, 1, 2, 3, 5, 8, 13)
+wavenumber <- seq(100, 6100, by = 100)
+base_a <- dnorm(seq(-3, 3, length.out = length(wavenumber)))
+base_b <- rev(cumsum(seq_along(wavenumber)))
 spectra <- cbind(base_a, base_a + 0.1, base_a + 0.2,
                  base_b, base_b + 0.1, base_b + 0.2)
 colnames(spectra) <- paste0("s", seq_len(ncol(spectra)))
@@ -237,8 +268,11 @@ mini <- as_OpenSpecy(
 
 make_lib_lookup_template(mini, columns = "source", add = "library_type")
 
-source_lookup <- data.frame(source = c("A", "B"),
-                            library_type = c("lab", "field"))
+source_lookup <- data.frame(
+  source = c("A", "B"),
+  library_type = c("lab", "field"),
+  material = c("nylon 6", "pet")
+)
 joined <- join_lib_metadata(mini, source_lookup, by = "source",
                             require_complete = TRUE)
 
@@ -254,12 +288,21 @@ deduped <- dedupe_spec(joined)
 reduced <- reduce_lib(deduped, group_cols = "material_class",
                       k = 1, min_n = 1)
 libs <- build_lib(
-  joined,
+  mini,
   recipes = list(
     raw = list(),
-    relative = function(x) make_rel(x, na.rm = TRUE),
-    rounded = list(round = 2)
+    derivative = list(
+      conform_spec = FALSE,
+      smooth_intens = TRUE,
+      smooth_intens_args = list(window = 15, derivative = 1),
+      make_rel = TRUE
+    )
   ),
+  join_metadata = TRUE,
+  metadata_lookups = source_lookup,
+  join_hierarchy = TRUE,
+  material_hierarchy = hierarchy,
+  assess = TRUE,
   dedupe = FALSE
 )
 

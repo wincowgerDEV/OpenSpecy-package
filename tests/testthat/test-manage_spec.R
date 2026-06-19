@@ -10,17 +10,32 @@ test_that("c_spec() handles input errors correctly", {
   c_spec(1:1000) |> expect_error()
   c_spec(list(1:1000, 1000:2000)) |> expect_error()
   c_spec(raman_hdpe) |> expect_message()
-  c_spec(no_overlap) |> expect_error()
+  c_spec(no_overlap, range = "common") |> expect_error()
 })
 
-test_that("c_spec() merges identical files without range specification", {
+test_that("c_spec() defaults to full range at resolution 6", {
   specs <- lapply(c(read_extdata("raman_hdpe.yml"),
                     read_extdata("raman_hdpe.yml")), read_spec)
   same <- c_spec(specs) |> expect_silent()
   expect_true(check_OpenSpecy(same))
-  
-  expect_equal(same$wavenumber, raman_hdpe$wavenumber)
-  expect_equal(same$spectra[, "intensity"], raman_hdpe$spectra[, "intensity"])
+
+  expected <- conform_spec(raman_hdpe,
+                           range = range(raman_hdpe$wavenumber),
+                           res = 6, allow_na = TRUE)
+  expect_equal(same$wavenumber, expected$wavenumber)
+  expect_equal(same$spectra[, "intensity"],
+               expected$spectra[, "intensity"])
+})
+
+test_that("c_spec() pads non-overlapping full ranges with NA", {
+  full <- c_spec(no_overlap) |> expect_silent()
+
+  expect_true(check_OpenSpecy(full))
+  expect_true(all(diff(full$wavenumber) == 6))
+  expect_true(anyNA(full$spectra[, 1]))
+  expect_true(anyNA(full$spectra[, 2]))
+  expect_lt(min(full$wavenumber), 500)
+  expect_gt(max(full$wavenumber), 700)
 })
 
 test_that("c_spec() merges different files with common range", {

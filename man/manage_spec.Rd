@@ -20,7 +20,7 @@ c_spec(x, ...)
 
 \method{c_spec}{OpenSpecy}(x, ...)
 
-\method{c_spec}{list}(x, range = NULL, res = 5, ...)
+\method{c_spec}{list}(x, range = "full", res = 6, ...)
 
 sample_spec(x, ...)
 
@@ -39,13 +39,13 @@ merge_map(x, ...)
 \arguments{
 \item{x}{a list of \code{OpenSpecy} objects or of file paths.}
 
-\item{range}{a numeric providing your own wavenumber ranges or character
-argument called \code{"common"} to let \code{c_spec()} find the common
-wavenumber range of the supplied spectra. \code{NULL} will interpret the
-spectra having all the same wavenumber range.}
+\item{range}{a numeric providing your own wavenumber range,
+\code{"full"} to use the widest range represented by any supplied spectrum,
+or \code{"common"} to use only their overlapping range. \code{NULL} requires
+identical wavenumbers. The default is \code{"full"}.}
 
-\item{res}{defaults to \code{NULL}, the resolution you want the output
-wavenumbers to be.}
+\item{res}{resolution of the output wavenumbers. The default of 6 is intended
+for reference-library identification workflows.}
 
 \item{size}{the number of spectra to sample.}
 
@@ -67,8 +67,9 @@ wavenumbers to be.}
 # Concatenating spectra
 spectra <- lapply(c(read_extdata("raman_hdpe.csv"),
                     read_extdata("ftir_ldpe_soil.asp")), read_any)
-common <- c_spec(spectra, range = "common", res = 5)
-range <- c_spec(spectra, range = c(1000, 2000), res = 5)
+full <- c_spec(spectra)
+common <- c_spec(spectra, range = "common", res = 6)
+range <- c_spec(spectra, range = c(1000, 2000), res = 6)
 
 # Sampling spectra
 tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))

@@ -12,12 +12,14 @@ test_that("process_spec() returns expected values", {
 
   conf <- process_spec(tiny_map) |> expect_silent()
 
-  expect_equal(conf, conform_spec(tiny_map, range = NULL, res = 5) |>
-                 smooth_intens(polynomial = 3,
-                               window = 11,
-                               derivative = 1,
-                               abs = T,
-                               make_rel = T))
+  expected_conf <- conform_spec(tiny_map, range = NULL, res = 5) |>
+    smooth_intens(polynomial = 3,
+                  window = 11,
+                  derivative = 1,
+                  abs = T,
+                  make_rel = T)
+  attr(expected_conf, "derivative_order") <- "1"
+  expect_equal(conf, expected_conf)
   expect_true(check_OpenSpecy(conf))
   
   proc <- process_spec(raman_hdpe,
@@ -30,6 +32,33 @@ test_that("process_spec() returns expected values", {
   
   expect_true(check_OpenSpecy(proc))
   
-  expect_equal(proc, conform_spec(raman_hdpe) |>
-                 smooth_intens(derivative = 1, make_rel = T))
+  expected_proc <- conform_spec(raman_hdpe) |>
+    smooth_intens(derivative = 1, make_rel = T)
+  attr(expected_proc, "derivative_order") <- "1"
+  expect_equal(proc, expected_proc)
+})
+
+test_that("process_spec() automatically manages NA and updates attributes", {
+  data(raman_hdpe)
+  os <- raman_hdpe
+  os$spectra[1:10, 1] <- NA
+
+  derivative <- process_spec(
+    os,
+    conform_spec = FALSE,
+    smooth_intens_args = list(window = 15, derivative = 1),
+    make_rel = TRUE
+  )
+  expect_true(all(is.na(derivative$spectra[1:10, 1])))
+  expect_true(any(is.finite(derivative$spectra[-(1:10), 1])))
+  expect_equal(attr(derivative, "derivative_order"), "1")
+
+  baseline <- process_spec(
+    os,
+    conform_spec = FALSE,
+    smooth_intens = FALSE,
+    subtr_baseline = TRUE,
+    make_rel = TRUE
+  )
+  expect_equal(attr(baseline, "baseline"), "nobaseline")
 })

@@ -3,7 +3,10 @@
 #'
 #' @description
 #' \code{process_spec()} is a monolithic wrapper function for all spectral
-#' processing steps.
+#' processing steps. Intensity operations automatically use
+#' \code{\link{manage_na}()} when spectra contain missing values and run the
+#' underlying functions directly otherwise. Processing attributes are updated
+#' automatically.
 #'
 #' @param x an \code{OpenSpecy} object.
 #' @param active logical; indicating whether to perform processing.
@@ -36,7 +39,6 @@
 #' with \code{\link{make_rel}()}.
 #' @param make_rel_args named list of arguments passed to
 #' \code{\link{make_rel}()}.
-#' @param na.rm Whether to allow NA or set all NA values to 
 #' @param \ldots further arguments passed to subfunctions.
 #'
 #' @return
@@ -111,26 +113,49 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
                                    make_rel_args = list(
                                        na.rm = TRUE),
                                    ...) {
+  x <- as_OpenSpecy(x)
+
+  apply_intensity_step <- function(x, fun, args = list()) {
+    if (anyNA(x$spectra)) {
+      do.call(manage_na, c(list(x, fun = fun), args))
+    } else {
+      do.call(fun, c(list(x), args))
+    }
+  }
+
   if(active) {
-    if(adj_intens)
-      x <- do.call("adj_intens", c(list(x, make_rel = F), adj_intens_args))
+    if(adj_intens) {
+      args <- utils::modifyList(list(make_rel = FALSE), adj_intens_args)
+      x <- apply_intensity_step(x, "adj_intens", args)
+      intensity_type <- if (is.null(args$type)) "none" else args$type
+      if (!identical(intensity_type, "none")) {
+        attr(x, "intensity_unit") <- "absorbance"
+      }
+    }
     if(conform_spec)
       x <- do.call("conform_spec", c(list(x), conform_spec_args))
     if(restrict_range)
-      x <- do.call("restrict_range", c(list(x, make_rel = F),
-                                       restrict_range_args))
-    if(flatten_range)
-        x <- do.call("flatten_range", c(list(x, make_rel = F),
-                                        flatten_range_args))
-    if(subtr_baseline)
-      x <- do.call("subtr_baseline", c(list(x, make_rel = F),
-                                       subtr_baseline_args))
-    if(smooth_intens)
-      x <- do.call("smooth_intens", c(list(x, make_rel = F),
-                                      smooth_intens_args))
-    if(make_rel)
-      x <- do.call("make_rel", c(list(x),
-                                      make_rel_args))
+      x <- do.call("restrict_range",
+                   c(list(x), utils::modifyList(list(make_rel = FALSE),
+                                                restrict_range_args)))
+    if(flatten_range) {
+      args <- utils::modifyList(list(make_rel = FALSE), flatten_range_args)
+      x <- apply_intensity_step(x, "flatten_range", args)
+    }
+    if(subtr_baseline) {
+      args <- utils::modifyList(list(make_rel = FALSE), subtr_baseline_args)
+      x <- apply_intensity_step(x, "subtr_baseline", args)
+      attr(x, "baseline") <- "nobaseline"
+    }
+    if(smooth_intens) {
+      args <- utils::modifyList(list(make_rel = FALSE), smooth_intens_args)
+      x <- apply_intensity_step(x, "smooth_intens", args)
+      derivative <- if (is.null(args$derivative)) 1 else args$derivative
+      attr(x, "derivative_order") <- as.character(derivative)
+    }
+    if(make_rel) {
+      x <- apply_intensity_step(x, "make_rel", make_rel_args)
+    }
   }
 
   return(x)

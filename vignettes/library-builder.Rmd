@@ -29,9 +29,9 @@ curation, but the same helper functions apply.
 
 ## Read And Combine Spectra
 
-`read_any()` can read a vector of files and pass them to `c_spec()` when the
-spectra should be combined. Here the spectra are conformed to the common
-wavenumber range so they can share one `OpenSpecy` object.
+`c_spec()` and `build_lib()` default to the widest range represented by the
+source spectra at resolution 6. Values outside each source's original range are
+kept as `NA`, so useful spectral regions are not discarded.
 
 ```{r mini-library-read}
 mini_files <- c(
@@ -40,10 +40,8 @@ mini_files <- c(
   read_extdata("raman_atacamit.spc")
 )
 
-mini_raw <- read_any(
-  mini_files,
-  c_spec_args = list(range = "common", res = 10)
-)
+mini_sources <- lapply(mini_files, read_any)
+mini_raw <- c_spec(mini_sources)
 
 check_OpenSpecy(mini_raw)
 dim(mini_raw$spectra)
@@ -73,37 +71,63 @@ could come from a CSV edited outside R.
 ```{r mini-library-join}
 lookup <- data.table::data.table(
   file_name = basename(mini_files),
+  library_type = c("example", "example", "example"),
+  material = c("hdpe", "ldpe in soil", "atacamite")
+)
+
+hierarchy <- data.table::data.table(
   material = c("hdpe", "ldpe in soil", "atacamite"),
+  material_class = c("polyethylene", "polyethylene", "copper mineral"),
   material_type = c("plastic", "plastic", "mineral")
 )
 
-mini_raw <- join_lib_metadata(
-  mini_raw,
-  lookup,
-  by = "file_name",
-  require_complete = TRUE
-)
-
-mini_raw$metadata[, c("file_name", "material", "material_type"), with = FALSE]
+join_lib_metadata(mini_raw, lookup, by = "file_name",
+                  require_complete = TRUE)$metadata[
+  , c("file_name", "library_type", "material"), with = FALSE
+]
 ```
 
 ## Build A Mini Library
 
-`build_lib()` applies named recipes and returns a named list of libraries. This
-example keeps the raw library and creates a relative-intensity version.
+`build_lib()` can run the ordinary lookup and material hierarchy joins before
+applying named recipes. Recipe names become names in the returned list. Empty
+recipes keep the merged spectra unchanged; other recipe lists are passed to
+`process_spec()`. Missing values and processing attributes are handled
+automatically.
 
 ```{r mini-library-build}
 mini_libs <- build_lib(
-  mini_raw,
+  mini_sources,
   recipes = list(
     raw = list(),
-    relative = function(x) make_rel(x, na.rm = TRUE)
+    derivative = list(
+      conform_spec = FALSE,
+      smooth_intens = TRUE,
+      smooth_intens_args = list(window = 15, derivative = 1),
+      make_rel = TRUE
+    ),
+    nobaseline = list(
+      conform_spec = FALSE,
+      smooth_intens = FALSE,
+      subtr_baseline = TRUE,
+      make_rel = TRUE
+    )
   ),
+  join_metadata = TRUE,
+  metadata_lookups = lookup,
+  join_hierarchy = TRUE,
+  material_hierarchy = hierarchy,
+  assess = TRUE,
   dedupe = FALSE
 )
 
 names(mini_libs)
 check_OpenSpecy(mini_libs$raw)
-check_OpenSpecy(mini_libs$relative)
-assess_lib(mini_libs$raw, class_col = "material_type", nearest = FALSE)
+check_OpenSpecy(mini_libs$derivative)
+attr(mini_libs$derivative, "derivative_order")
+attr(mini_libs$nobaseline, "baseline")
+mini_libs$raw$metadata[
+  , .(file_name, material, material_class, material_type, sn,
+      assessment_flag, assessment_checks)
+]
 ```
