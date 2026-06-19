@@ -24,9 +24,11 @@
 ## Technical Decisions
 
 - **Approach**: [Implementation strategy in one short paragraph.]
+- **Public API**: [Why each new argument/export is necessary; what is inferred, internal, or passed through `...`.]
 - **Dependencies**: [Reuse existing dependencies, add guarded optional dependency, or none.]
 - **OpenSpecy contract**: [How `wavenumber`, `spectra`, `metadata`, identifiers, and `attr()` metadata are preserved or intentionally changed.]
-- **Generated artifacts**: [Whether `devtools::document()` or pkgdown build is needed; no direct edits to generated files.]
+- **Generated artifacts**: [Whether documentation generation is needed; required configured tool version; no direct generated-file edits.]
+- **External resources**: [Network hosts, large files, offline guards, or N/A.]
 
 ## Package Surfaces
 
@@ -47,8 +49,10 @@
 
 ## Verification
 
-- `devtools::test()`:
+- Focused tests:
+- Toolchain/version preflight:
 - `devtools::document()`:
+- Full `devtools::test()`:
 - `devtools::check()` or CI/R CMD check:
 - Benchmarks:
 

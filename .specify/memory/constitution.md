@@ -1,23 +1,25 @@
 <!--
 Sync Impact Report
-Version change: 1.2.0 -> 2.0.0
+Version change: 2.0.0 -> 2.1.0
 Modified principles:
-- Development Workflow and Quality Gates: replaced mandatory separate specification/plan/tasks artifacts with one concise feature plan
-- Governance: updated compliance language from specs/plans/tasks to concise feature plans
+- R Package Interface and CRAN Readiness: added configured toolchain-version checks
+- Tests Track Current Behavior: strengthened offline guards for exact external hosts
+- Benchmark-Governed Performance Work: required repeated timing for short benchmarks
+- Generated Artifacts Stay Generated: protected attribution and source-correct regeneration
+- Development Workflow and Quality Gates: added staged verification and deterministic tool resolution
 Added sections:
-- None
+- Public API Restraint and Composability
 Removed sections:
-- Mandatory separate `spec.md`, `tasks.md`, research, data-model, contract, quickstart, and checklist artifacts
+- None
 Templates requiring updates:
-- .specify/templates/plan-template.md: updated
-- .specify/templates/spec-template.md: removed
-- .specify/templates/tasks-template.md: removed
-- .specify/templates/checklist-template.md: removed
-- .agents/skills/: reduced to constitution, plan, and implement skills
-- .specify/scripts/powershell/: plan-first scripts updated; setup-tasks removed
-- .specify/workflows/: updated
-- AGENTS.md: updated
-Follow-up TODOs: none
+- .specify/templates/plan-template.md: add public API, toolchain, and external-resource review
+- .agents/skills/speckit-implement/SKILL.md: use staged quality gates
+- .agents/skills/openspecy-design-public-api/: added
+- .agents/skills/openspecy-run-quality-gates/: added
+- AGENTS.md: summarize API and verification rules
+Follow-up TODOs:
+- Align installed roxygen2 7.3.2 with DESCRIPTION Config/roxygen2/version 8.0.0 before regenerating documentation.
+- Update OSF-dependent tests so offline guards check the actual download host.
 -->
 
 # OpenSpecy Constitution
@@ -80,6 +82,11 @@ Features MUST be compatible with the current package baseline: R >= 4.3.0,
 testthat edition 3, roxygen markdown, knitr/rmarkdown vignettes, pkgdown docs,
 and multi-platform R CMD check.
 
+Commands that generate package artifacts MUST use the tool versions configured
+in `DESCRIPTION`, such as `Config/roxygen2/version`. A version mismatch MUST be
+resolved before regeneration rather than accepted as incidental generated-file
+churn.
+
 Rationale: OpenSpecy is distributed as an R package and is used through CRAN,
 GitHub, vignettes, examples, and downstream tools.
 
@@ -101,6 +108,10 @@ automation. They MUST NOT make routine local `devtools::test()` runs
 substantially slower unless explicitly requested for the current task. Long
 tests that depend on network resources, large libraries, or heavy computation
 MUST use clear testthat skips or CI-only guards.
+
+Network-dependent tests MUST guard the actual host and resource used by the
+download, including redirects when relevant. An offline environment MUST cause
+a clear skip, not a routine test or package-check failure.
 
 The expected verification command for local feature work is `devtools::test()`.
 Release-sensitive work MUST also pass `devtools::check()` or equivalent R CMD
@@ -138,6 +149,11 @@ accepted when the new implementation is more than approximately 10 percent
 slower on representative benchmark cases unless the plan documents an explicit
 scientific, correctness, or maintainability reason.
 
+Benchmarks with subsecond timings MUST use warmup and repeated measurements or
+another stable timing method. Setup, file loading, documentation, and unrelated
+work SHOULD be kept outside the measured expression. Benchmark scripts MUST
+signal material regressions instead of only printing timings.
+
 Speed improvement recommendations are welcome when they preserve package scope,
 avoid unnecessary dependency growth, and include benchmark evidence. Benchmarks
 MUST remain outside formal package tests and CRAN obligations; they are
@@ -157,8 +173,33 @@ Generated files may be inspected and committed when appropriate, but direct hand
 edits are prohibited because they disconnect package behavior from source
 documentation.
 
+Authorship, contributor roles, references, aliases, and exports MUST NOT change
+as incidental generator output. After regeneration, their diffs MUST be
+reviewed. Unexpected changes MUST be corrected in `DESCRIPTION`, roxygen source,
+or the configured toolchain and regenerated; generated files MUST NOT be
+restored or patched as a substitute for fixing the source.
+
 Rationale: Hand-editing generated files makes documentation drift likely and
 breaks the normal R package maintenance workflow.
+
+### VIII. Public API Restraint and Composability
+Public functions MUST expose arguments only for required inputs, demonstrated
+common policy choices, or stable advanced options owned by an underlying
+function. Derived state SHOULD be inferred, and speculative switches MUST NOT be
+added without a current workflow that needs them. Input presence SHOULD trigger
+optional operations when that is unambiguous, rather than pairing the input with
+a second boolean flag.
+
+Standard workflows SHOULD have concise defaults that reproduce the maintainer's
+normal package use. Advanced operations SHOULD remain independently composable
+with base `|>` unless they are integral to the standard workflow. Helpers used by
+one caller SHOULD remain internal until they have a stable, reusable contract;
+broadly reusable helpers SHOULD be exported, documented, and tested directly.
+Public interfaces MUST prefer `OpenSpecy` objects and domain-general terminology
+over table-only pathways or one dataset's taxonomy.
+
+Rationale: Small, evidence-based APIs reduce maintenance burden, documentation
+churn, and repeated breaking redesign while preserving advanced composition.
 
 ## R Package Standards
 
@@ -209,9 +250,14 @@ benchmarks instead of duplicated planning documents.
 
 Before implementation is complete:
 
-- `devtools::test()` MUST pass for relevant tests.
+- Focused tests MUST pass before broader verification begins.
+- Relevant benchmarks MUST run before full tests for same-output changes.
 - `devtools::document()` MUST be run after roxygen, export, S3/S4 method, or
-  package metadata changes that affect help pages or `NAMESPACE`.
+  package metadata changes that affect help pages or `NAMESPACE`, but only
+  after configured generator versions are confirmed.
+- Generated documentation diffs MUST be inspected immediately after
+  regeneration, with attribution and export changes treated as blocking.
+- `devtools::test()` MUST then pass for relevant local tests.
 - `devtools::check()` or the GitHub Actions R CMD check matrix MUST pass before
   release or CRAN-facing work is considered ready.
 - Vignettes MUST build or be validated when their examples or dependencies
@@ -227,6 +273,13 @@ Before implementation is complete:
   cost in routine local test runs.
 - External Shiny compatibility MUST be considered when relevant, but package
   functionality MUST take precedence.
+
+On Windows, maintained project skills or scripts SHOULD resolve real executable
+paths once and reuse them. Process-scoped PowerShell execution-policy bypasses
+MAY be used for repository scripts; machine-wide policy changes and Store-stub
+executables MUST NOT be used as workflow shortcuts. Expensive full tests,
+documentation, and checks SHOULD each run once per final candidate unless a
+failure requires another run.
 
 Complexity MUST be justified in the plan when a simpler R package pattern would
 work. New abstractions MUST protect repeated spectral workflows, package
@@ -255,4 +308,4 @@ application code into this repository, or omit required benchmarks for
 same-output function improvements. Temporary exceptions MUST be documented in
 the feature plan with the reason, risk, and follow-up task.
 
-**Version**: 2.0.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-06-10
+**Version**: 2.1.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-06-19

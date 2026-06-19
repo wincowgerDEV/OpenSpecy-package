@@ -19,16 +19,23 @@ are not required.
 4. Implement checklist items in dependency order. Update the checkbox in
    `plan.md` as each item is completed.
 5. Keep changes scoped to files named or implied by the plan and constitution.
-6. Run the verification listed in the plan where feasible. Report any skipped
-   long-running, optional-backend, or CI-only checks.
+6. For public API changes, apply `openspecy-design-public-api` before editing
+   signatures.
+7. Run staged verification with `openspecy-run-quality-gates`: focused tests,
+   relevant benchmarks, toolchain preflight and documentation, full tests, then
+   package check. Report skipped long-running, external-resource, optional
+   backend, or CI-only checks precisely.
 
 ## Rules
 
 - Tests cover current package behavior; old implementations used for speed
   comparisons belong in `benchmarks/`.
 - Same-output function improvements need a benchmark update or a written reason
-  in the plan.
+  in the plan. Short benchmarks need repeated measurements and must flag
+  material regressions.
 - Do not edit `NAMESPACE`, `man/*.Rd`, or generated pkgdown HTML directly.
+- Do not regenerate documentation with a roxygen2 version that differs from the
+  version configured in `DESCRIPTION`.
 - Preserve `OpenSpecy` object structure, identifiers, metadata alignment, and
   relevant attributes through function flows.
 - Do not add Shiny application code to this package repository.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenSpecy Quality Gates"
+  short_description: "Run staged R package verification safely"
+  default_prompt: "Use $openspecy-run-quality-gates to verify the current OpenSpecy package changes."

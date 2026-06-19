@@ -9,11 +9,19 @@ artifacts unless explicitly requested.
 
 For this R package, do not edit generated `NAMESPACE`, `man/*.Rd`, or pkgdown
 HTML directly; update roxygen or package metadata and regenerate with the
-appropriate R tooling. Center `OpenSpecy` object structure (`wavenumber`,
-`spectra`, `metadata`) and object attributes in function flows and examples.
+configured R tooling version. Inspect generated diffs immediately and treat
+unexpected authorship, reference, alias, or export changes as source/toolchain
+failures. Center `OpenSpecy` object structure (`wavenumber`, `spectra`,
+`metadata`) and object attributes in function flows and examples.
+Review public APIs before implementation: infer derived state, avoid speculative
+flags, prefer input-triggered optional steps, keep one-caller helpers internal,
+and preserve base-pipe composability.
 For same-output function improvements, keep old comparison code in
-`benchmarks/`, add or update a benchmark, and keep `tests/` focused on current
-package behavior. Keep long-running tests manual or GitHub Actions guarded. The
+`benchmarks/`, add or update a repeated benchmark that flags material
+regressions, and keep `tests/` focused on current package behavior. Run focused
+tests before full tests, documentation, and package checks. Network tests must
+guard the actual download host. Keep long-running tests manual or GitHub Actions
+guarded. The
 Shiny application lives in `wincowgerDEV/OpenSpecy-shiny`; consider
 compatibility when relevant, but package functionality takes precedence and
 Shiny application code does not belong in this repository.

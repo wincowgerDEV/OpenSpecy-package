@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenSpecy Public API Design"
+  short_description: "Review public R APIs before implementation"
+  default_prompt: "Use $openspecy-design-public-api to review this proposed OpenSpecy function API before implementation."
