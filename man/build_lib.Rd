@@ -22,6 +22,8 @@ build_lib(
   metadata_lookups = NULL,
   material_hierarchy = NULL,
   metadata_name_lookup = lib_metadata_name_lookup(),
+  convert_intensity = TRUE,
+  restrict_range_args = NULL,
   signal_noise = TRUE,
   assess = FALSE,
   ...
@@ -90,8 +92,9 @@ assess_lib(
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} or \code{Specs} object for metadata helpers.
-\code{build_lib()} also accepts a list of \code{OpenSpecy} objects or file
-paths readable by \code{\link{read_any}()}.}
+For \code{build_lib()}, a nonempty character vector of file paths readable by
+\code{\link{read_any}()}, or a nonempty list containing only
+\code{OpenSpecy} objects. A single \code{OpenSpecy} must be wrapped in a list.}
 
 \item{recipes}{named list of \code{\link{process_spec}()} argument lists or
 functions. Names become names of the returned libraries.}
@@ -119,6 +122,17 @@ default \code{"material"} metadata key.}
 \code{canonical_name}, \code{source_name}, and optional \code{regex} columns.
 The default is returned by \code{\link{lib_metadata_name_lookup}()}; use
 \code{NULL} to clean names without coalescing aliases.}
+
+\item{convert_intensity}{logical; whether to infer reflectance,
+transmittance, or absorbance units from each source and convert known
+non-absorbance spectra with \code{\link{adj_intens}()} before merging.
+Object attribute \code{intensity_unit} is authoritative when supplied;
+otherwise metadata column \code{intensity_units} is evaluated per spectrum.}
+
+\item{restrict_range_args}{optional named list of arguments passed to
+\code{\link{restrict_range}()} after unit conversion and source merging.
+Supplying the list triggers restriction; \code{make_rel = FALSE} is used
+unless explicitly overridden.}
 
 \item{signal_noise}{logical; whether to append the default
 \code{\link{sig_noise}()} result as metadata column \code{sn}.}
@@ -203,10 +217,10 @@ supplied, in which case it writes the csv and invisibly returns the table.
 \code{\link{match_spec}()}. \code{assess_lib()} returns a data.table summary.
 }
 \description{
-Helpers for creating reference libraries from OpenSpecy objects, source
-files, and metadata lookup tables. \code{build_lib()} provides the standard
-end-to-end workflow while the supporting functions remain available for
-advanced composition.
+Helpers for creating reference libraries from source files, lists of
+OpenSpecy objects, and metadata lookup tables. \code{build_lib()} provides
+the standard end-to-end workflow while the supporting functions remain
+available for advanced composition.
 }
 \details{
 \code{build_lib()} combines sources over their full wavenumber range,
@@ -215,8 +229,11 @@ identifiers, optionally generates stable duplicate IDs, and applies named
 processing recipes. Metadata column names are first converted to lowercase
 underscore names and known aliases are coalesced using
 \code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
-automatic and regular-expression matching. Each recipe is either a named
-list of arguments passed to \code{\link{process_spec}()} or a function
+automatic and regular-expression matching. By default, each source is also
+converted to absorbance before merging when its intensity units are known.
+A nonempty \code{intensity_unit} object attribute takes precedence over the
+per-spectrum \code{intensity_units} metadata column. Each recipe is either a
+named list of arguments passed to \code{\link{process_spec}()} or a function
 accepting one \code{OpenSpecy} object. An empty recipe returns an unprocessed
 copy. Signal-to-noise is added by default, and optional
 \code{\link{assess_spec}()} results are summarized into one metadata row per
@@ -265,8 +282,10 @@ mini <- as_OpenSpecy(
     label = c("nylon 6", "polyamides", "nylon 6",
               "pet", "polyesters", "pet"),
     material_class = rep(c("polyamides", "polyesters"), each = 3),
-    spectrum_type = rep("ftir", 6)
-  )
+    spectrum_type = rep("ftir", 6),
+    intensity_units = rep("absorbance", 6)
+  ),
+  attributes = list(intensity_unit = "absorbance")
 )
 
 name_lookup <- lib_metadata_name_lookup()
@@ -294,7 +313,7 @@ deduped <- dedupe_spec(joined)
 reduced <- reduce_lib(deduped, group_cols = "material_class",
                       k = 1, min_n = 1)
 libs <- build_lib(
-  mini,
+  list(mini),
   recipes = list(
     raw = list(),
     derivative = list(
@@ -306,6 +325,7 @@ libs <- build_lib(
   ),
   metadata_lookups = source_lookup,
   material_hierarchy = hierarchy,
+  restrict_range_args = list(min = 100, max = 6000),
   assess = TRUE,
   dedupe = FALSE
 )

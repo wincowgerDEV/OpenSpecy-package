@@ -10,6 +10,20 @@
   hierarchy joins, editable metadata-name cleanup, automatic NA-aware recipes,
   signal-to-noise, processing attributes, and optional `assess_spec()` metadata
   summaries.
+- `build_lib()` now converts declared reflectance and transmittance sources to
+  absorbance before merging. The `intensity_unit` object attribute takes
+  precedence over per-spectrum `intensity_units` metadata, and conversion can
+  be disabled with `convert_intensity = FALSE`.
+- `build_lib()` now uses file path(s) readable by `read_any()` as its primary
+  input and a list of `OpenSpecy` objects as its secondary input. Bare
+  `OpenSpecy` objects must be wrapped in `list()`. It also accepts optional
+  `restrict_range_args` before library recipes.
+- Fixed NA-aware `process_spec()` dispatch so downstream arguments such as
+  baseline or intensity `type` reach the intended processing function.
+- Added a tracked, package-build-excluded
+  `workflows/OpenSpecy_reference_library.R` workflow composed only from
+  existing package operations, with canonical lookup and exclusion CSVs under
+  `workflows/data/`.
 - Exported metadata-name cleaning helpers with automatic underscore and
   terminal-`s` matching, extensible exact aliases, and ambiguity-checked regular
   expression rules.

@@ -120,6 +120,7 @@ new_merge_time <- system.time({
     list(left, right),
     recipes = list(raw = list()),
     dedupe = FALSE,
+    convert_intensity = FALSE,
     signal_noise = FALSE
   )$raw
 })
@@ -128,3 +129,76 @@ stopifnot(identical(old_merged$wavenumber, new_merged$wavenumber))
 stopifnot(isTRUE(all.equal(old_merged$spectra, new_merged$spectra)))
 message("Old full-range merge elapsed: ", old_merge_time[["elapsed"]])
 message("New build_lib merge elapsed: ", new_merge_time[["elapsed"]])
+
+make_intensity_benchmark_lib <- function(n = 400, p = 200) {
+  set.seed(123)
+  units <- rep(c("reflectance", "transmittance"), length.out = n)
+  spectra <- matrix(runif(p * n, min = 0.2, max = 0.9), nrow = p)
+  spectra[, units == "reflectance"] <-
+    spectra[, units == "reflectance", drop = FALSE] * 100
+  colnames(spectra) <- paste0("unit_", seq_len(n))
+  as_OpenSpecy(
+    seq_len(p),
+    spectra = spectra,
+    metadata = data.table(
+      sample_name = colnames(spectra),
+      intensity_units = units
+    )
+  )
+}
+
+old_convert_intensity <- function(x) {
+  units <- x$metadata$intensity_units
+  for (i in seq_len(ncol(x$spectra))) {
+    x$spectra[, i] <- adj_intens(
+      x$spectra[, i],
+      type = units[i],
+      make_rel = FALSE
+    )
+  }
+  x$metadata$intensity_units <- "absorbance"
+  attr(x, "intensity_unit") <- "absorbance"
+  x
+}
+
+median_repeated_time <- function(fun, batches = 5L, iterations = 3L) {
+  fun()
+  median(replicate(batches, {
+    unname(system.time(
+      for (i in seq_len(iterations)) fun()
+    )[["elapsed"]]) / iterations
+  }))
+}
+
+intensity_lib <- make_intensity_benchmark_lib()
+convert_intensity <- getFromNamespace(".lib_convert_intensity", "OpenSpecy")
+old_converted <- old_convert_intensity(intensity_lib)
+new_converted <- convert_intensity(intensity_lib)
+
+stopifnot(isTRUE(all.equal(
+  old_converted$spectra,
+  new_converted$spectra,
+  tolerance = 1e-12
+)))
+stopifnot(identical(
+  old_converted$metadata$intensity_units,
+  new_converted$metadata$intensity_units
+))
+stopifnot(identical(
+  attr(old_converted, "intensity_unit"),
+  attr(new_converted, "intensity_unit")
+))
+
+old_conversion_time <- median_repeated_time(
+  function() old_convert_intensity(intensity_lib)
+)
+new_conversion_time <- median_repeated_time(
+  function() convert_intensity(intensity_lib)
+)
+message("Old per-spectrum intensity conversion median: ",
+        old_conversion_time)
+message("New grouped intensity conversion median: ", new_conversion_time)
+if (new_conversion_time > old_conversion_time * 1.1) {
+  stop("Automatic intensity conversion is more than 10% slower than the ",
+       "legacy per-spectrum loop")
+}

@@ -41,6 +41,11 @@ mini_files <- c(
 )
 
 mini_sources <- lapply(mini_files, read_any)
+mini_sources <- lapply(mini_sources, function(x) {
+  x$metadata$intensity_units <- "absorbance"
+  attr(x, "intensity_unit") <- "absorbance"
+  x
+})
 mini_raw <- c_spec(mini_sources)
 
 check_OpenSpecy(mini_raw)
@@ -98,6 +103,22 @@ names. Known aliases are coalesced using an editable lookup table. Variants
 that differ only by underscores or one terminal plural `s` match
 automatically.
 
+Before sources are merged, `build_lib()` also converts declared reflectance and
+transmittance spectra to absorbance by default. A nonempty
+`attr(x, "intensity_unit")` is the primary truth for the whole object;
+otherwise, `metadata$intensity_units` is evaluated spectrum by spectrum.
+Unknown or missing units are left unchanged with a warning. Use
+`convert_intensity = FALSE` when unit handling has already been completed
+outside the builder.
+
+The normal input is one or more file paths readable by `read_any()`; a list of
+`OpenSpecy` objects supports sources already loaded in memory. A bare
+`OpenSpecy` is intentionally rejected, so use `list(x)` for a one-object list.
+Supplying
+`restrict_range_args` triggers the existing `restrict_range()` operation before
+deduplication and recipes; multiple retained ranges can exclude a known silent
+region without custom workflow code.
+
 ```{r metadata-name-lookup}
 name_lookup <- lib_metadata_name_lookup(
   project_code = c("campaign id", "study code"),
@@ -117,7 +138,7 @@ corresponding lookup input is non-`NULL`.
 
 ```{r mini-library-build}
 mini_libs <- build_lib(
-  mini_sources,
+  mini_files,
   recipes = list(
     raw = list(),
     derivative = list(
@@ -135,6 +156,7 @@ mini_libs <- build_lib(
   ),
   metadata_lookups = lookup,
   material_hierarchy = hierarchy,
+  convert_intensity = FALSE,
   assess = TRUE,
   dedupe = FALSE
 )
@@ -149,3 +171,13 @@ mini_libs$raw$metadata[
       assessment_flag, assessment_checks)
 ]
 ```
+
+## Official Reference-Library Workflow
+
+The version-controlled
+[`workflows/OpenSpecy_reference_library.R`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/workflows/OpenSpecy_reference_library.R)
+script is a straight-line composition of OpenSpecy functions. Canonically named
+class, library-type, material-hierarchy, and known-bad-ID tables live under
+`workflows/data/`. Raw-data corrections are completed externally before this
+workflow runs. The script is excluded from package builds but remains available
+in the GitHub repository so library releases can be reviewed and reproduced.

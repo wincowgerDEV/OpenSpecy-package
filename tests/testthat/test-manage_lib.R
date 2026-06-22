@@ -5,7 +5,7 @@ dir.create(tmp, showWarnings = F)
 
 test_that("check_lib() finds complete library", {
   skip_on_cran()
-  skip_if_offline(host = "api.osf.io")
+  skip_if_offline(host = "osf.io")
   skip_if_not(testthat:::on_ci(), "Not on CI")
   
   get_lib(type = c("derivative"), path = tmp, aws = TRUE, revision = "DtlNCNhOGdtCJqRCN3F8jRs732t_yZLM")
@@ -26,7 +26,7 @@ test_that("check_lib() finds complete library", {
 
 test_that("load_lib() works with complete library", {
   skip_on_cran()
-  skip_if_offline(host = "api.osf.io")
+  skip_if_offline(host = "osf.io")
   skip_if_not(testthat:::on_ci(), "Not on CI")
 
   tl <- load_lib(type = "derivative", path = tmp) |>

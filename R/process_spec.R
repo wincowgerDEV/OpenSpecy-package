@@ -117,7 +117,10 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
 
   apply_intensity_step <- function(x, fun, args = list()) {
     if (anyNA(x$spectra)) {
-      do.call(manage_na, c(list(x, fun = fun), args))
+      step <- function(value) {
+        do.call(fun, c(list(value), args))
+      }
+      manage_na(x, fun = step)
     } else {
       do.call(fun, c(list(x), args))
     }

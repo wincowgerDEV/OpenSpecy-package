@@ -2,10 +2,10 @@
 #' @title Build spectral libraries
 #'
 #' @description
-#' Helpers for creating reference libraries from OpenSpecy objects, source
-#' files, and metadata lookup tables. \code{build_lib()} provides the standard
-#' end-to-end workflow while the supporting functions remain available for
-#' advanced composition.
+#' Helpers for creating reference libraries from source files, lists of
+#' OpenSpecy objects, and metadata lookup tables. \code{build_lib()} provides
+#' the standard end-to-end workflow while the supporting functions remain
+#' available for advanced composition.
 #'
 #' @details
 #' \code{build_lib()} combines sources over their full wavenumber range,
@@ -14,8 +14,11 @@
 #' processing recipes. Metadata column names are first converted to lowercase
 #' underscore names and known aliases are coalesced using
 #' \code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
-#' automatic and regular-expression matching. Each recipe is either a named
-#' list of arguments passed to \code{\link{process_spec}()} or a function
+#' automatic and regular-expression matching. By default, each source is also
+#' converted to absorbance before merging when its intensity units are known.
+#' A nonempty \code{intensity_unit} object attribute takes precedence over the
+#' per-spectrum \code{intensity_units} metadata column. Each recipe is either a
+#' named list of arguments passed to \code{\link{process_spec}()} or a function
 #' accepting one \code{OpenSpecy} object. An empty recipe returns an unprocessed
 #' copy. Signal-to-noise is added by default, and optional
 #' \code{\link{assess_spec}()} results are summarized into one metadata row per
@@ -49,8 +52,9 @@
 #' size, class balance, and optionally nearest-neighbor class consistency.
 #'
 #' @param x an \code{OpenSpecy} or \code{Specs} object for metadata helpers.
-#' \code{build_lib()} also accepts a list of \code{OpenSpecy} objects or file
-#' paths readable by \code{\link{read_any}()}.
+#' For \code{build_lib()}, a nonempty character vector of file paths readable by
+#' \code{\link{read_any}()}, or a nonempty list containing only
+#' \code{OpenSpecy} objects. A single \code{OpenSpecy} must be wrapped in a list.
 #' @param lookup a data.frame, data.table, or csv file path used as a metadata
 #' lookup table.
 #' @param by named character vector mapping metadata columns to lookup columns,
@@ -80,6 +84,10 @@
 #' spectra in \code{build_lib()}.
 #' @param range,res wavenumber range and resolution passed to \code{c_spec()}
 #' when \code{build_lib()} combines multiple sources.
+#' @param restrict_range_args optional named list of arguments passed to
+#' \code{\link{restrict_range}()} after unit conversion and source merging.
+#' Supplying the list triggers restriction; \code{make_rel = FALSE} is used
+#' unless explicitly overridden.
 #' @param metadata_lookups a lookup table, csv path, or list of lookup tables and
 #' paths. If non-\code{NULL}, each is joined with
 #' \code{join_lib_metadata()}. Each ordinary lookup must have exactly one column
@@ -91,6 +99,11 @@
 #' \code{canonical_name}, \code{source_name}, and optional \code{regex} columns.
 #' The default is returned by \code{\link{lib_metadata_name_lookup}()}; use
 #' \code{NULL} to clean names without coalescing aliases.
+#' @param convert_intensity logical; whether to infer reflectance,
+#' transmittance, or absorbance units from each source and convert known
+#' non-absorbance spectra with \code{\link{adj_intens}()} before merging.
+#' Object attribute \code{intensity_unit} is authoritative when supplied;
+#' otherwise metadata column \code{intensity_units} is evaluated per spectrum.
 #' @param signal_noise logical; whether to append the default
 #' \code{\link{sig_noise}()} result as metadata column \code{sn}.
 #' @param assess logical; whether to run \code{\link{assess_spec}()} on each
@@ -140,8 +153,10 @@
 #'     label = c("nylon 6", "polyamides", "nylon 6",
 #'               "pet", "polyesters", "pet"),
 #'     material_class = rep(c("polyamides", "polyesters"), each = 3),
-#'     spectrum_type = rep("ftir", 6)
-#'   )
+#'     spectrum_type = rep("ftir", 6),
+#'     intensity_units = rep("absorbance", 6)
+#'   ),
+#'   attributes = list(intensity_unit = "absorbance")
 #' )
 #'
 #' name_lookup <- lib_metadata_name_lookup()
@@ -169,7 +184,7 @@
 #' reduced <- reduce_lib(deduped, group_cols = "material_class",
 #'                       k = 1, min_n = 1)
 #' libs <- build_lib(
-#'   mini,
+#'   list(mini),
 #'   recipes = list(
 #'     raw = list(),
 #'     derivative = list(
@@ -181,6 +196,7 @@
 #'   ),
 #'   metadata_lookups = source_lookup,
 #'   material_hierarchy = hierarchy,
+#'   restrict_range_args = list(min = 100, max = 6000),
 #'   assess = TRUE,
 #'   dedupe = FALSE
 #' )
@@ -202,28 +218,72 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       dedupe = TRUE, metadata_lookups = NULL,
                       material_hierarchy = NULL,
                       metadata_name_lookup = lib_metadata_name_lookup(),
+                      convert_intensity = TRUE, restrict_range_args = NULL,
                       signal_noise = TRUE, assess = FALSE, ...) {
-  if (is_OpenSpecy(x)) {
-    lib <- as_OpenSpecy(x)
-  } else {
-    if (is.character(x)) x <- lapply(x, read_any)
-    if (is.list(x) && all(vapply(x, function(item) {
-      is.character(item) && length(item) == 1
-    }, logical(1)))) {
-      x <- lapply(x, read_any)
+  prepare_source <- function(source, label) {
+    source <- as_OpenSpecy(source)
+    source$metadata <- lib_clean_metadata(
+      source$metadata,
+      metadata_name_lookup
+    )
+    if (isTRUE(convert_intensity)) {
+      source <- .lib_convert_intensity(
+        source,
+        source_label = label
+      )
     }
-    if (!is.list(x)) {
-      stop("'x' must be an OpenSpecy object, list, or file path",
-           call. = FALSE)
-    }
-    lib <- if (length(x) == 1 && is_OpenSpecy(x[[1]])) {
-      as_OpenSpecy(x[[1]])
-    } else {
-      c_spec(x, range = range, res = res)
-    }
+    source
   }
 
-  lib$metadata <- lib_clean_metadata(lib$metadata, metadata_name_lookup)
+  if (is_OpenSpecy(x)) {
+    stop("A bare OpenSpecy object is not supported; use 'list(x)' to supply ",
+         "a one-object source list", call. = FALSE)
+  }
+
+  if (is.character(x)) {
+    if (length(x) == 0L || anyNA(x) || any(!nzchar(x))) {
+      stop("'x' must contain one or more nonempty file paths", call. = FALSE)
+    }
+    sources <- unlist(lapply(seq_along(x), function(i) {
+      source <- read_any(x[[i]])
+      if (is_OpenSpecy(source)) return(list(source))
+      if (is.list(source) && length(source) > 0L &&
+          all(vapply(source, is_OpenSpecy, logical(1)))) {
+        return(source)
+      }
+      stop("File path ", i, " did not produce an OpenSpecy object or list ",
+           "of OpenSpecy objects", call. = FALSE)
+    }), recursive = FALSE)
+  } else {
+    if (!is.list(x) || length(x) == 0L ||
+        !all(vapply(x, is_OpenSpecy, logical(1)))) {
+      stop("'x' must be file path(s) readable by read_any() or a nonempty ",
+           "list of OpenSpecy objects", call. = FALSE)
+    }
+    sources <- x
+  }
+
+  sources <- lapply(seq_along(sources), function(i) {
+    prepare_source(sources[[i]], paste("source", i))
+  })
+  lib <- if (length(sources) == 1L) {
+    sources[[1L]]
+  } else {
+    c_spec(sources, range = range, res = res)
+  }
+
+  if (!is.null(restrict_range_args)) {
+    if (!is.list(restrict_range_args) ||
+        is.null(names(restrict_range_args)) ||
+        any(names(restrict_range_args) == "")) {
+      stop("'restrict_range_args' must be a named list", call. = FALSE)
+    }
+    args <- utils::modifyList(
+      list(make_rel = FALSE),
+      restrict_range_args
+    )
+    lib <- do.call("restrict_range", c(list(lib), args))
+  }
 
   if (!is.null(metadata_lookups)) {
     lookups <- if (is.character(metadata_lookups) &&
@@ -318,6 +378,80 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
   out <- lapply(recipes, apply_recipe)
   names(out) <- names(recipes)
   out
+}
+
+.lib_canonical_intensity_unit <- function(x) {
+  value <- trimws(tolower(iconv(as.character(x), to = "ASCII", sub = "")))
+  value[is.na(value) | value == ""] <- NA_character_
+  out <- rep(NA_character_, length(value))
+  out[!is.na(value) & grepl("absorb", value)] <- "absorbance"
+  out[!is.na(value) & grepl("reflec", value)] <- "reflectance"
+  out[!is.na(value) & grepl("transm", value)] <- "transmittance"
+  out
+}
+
+.lib_convert_intensity <- function(x, source_label = "source") {
+  x <- as_OpenSpecy(x)
+  object_unit <- attr(x, "intensity_unit", exact = TRUE)
+  object_unit <- as.character(object_unit)
+  object_unit <- object_unit[!is.na(object_unit) & trimws(object_unit) != ""]
+  if (length(object_unit) > 1L) {
+    stop("Object attribute 'intensity_unit' must contain at most one value",
+         call. = FALSE)
+  }
+
+  from_attribute <- length(object_unit) == 1L
+  declared <- if (from_attribute) {
+    rep(object_unit, ncol(x$spectra))
+  } else if ("intensity_units" %in% names(x$metadata)) {
+    as.character(x$metadata$intensity_units)
+  } else {
+    rep(NA_character_, ncol(x$spectra))
+  }
+  canonical <- .lib_canonical_intensity_unit(declared)
+
+  for (type in c("reflectance", "transmittance")) {
+    idx <- which(canonical == type)
+    if (length(idx) > 0L) {
+      converted <- adj_intens(
+        filter_spec(x, idx),
+        type = type,
+        make_rel = FALSE
+      )
+      x$spectra[, idx] <- converted$spectra
+    }
+  }
+
+  resolved <- !is.na(canonical)
+  if (any(resolved)) {
+    if (!"intensity_units" %in% names(x$metadata)) {
+      x$metadata$intensity_units <- NA_character_
+    }
+    x$metadata$intensity_units[resolved] <- "absorbance"
+  }
+
+  if (all(resolved)) {
+    attr(x, "intensity_unit") <- "absorbance"
+  } else if (!from_attribute) {
+    attr(x, "intensity_unit") <- NULL
+  }
+
+  if (any(!resolved)) {
+    unresolved <- trimws(as.character(declared[!resolved]))
+    unresolved[is.na(unresolved) | unresolved == ""] <- "<missing>"
+    counts <- sort(table(unresolved), decreasing = TRUE)
+    details <- paste0(names(counts), " (", as.integer(counts), ")")
+    warning(
+      "Automatic intensity conversion skipped ", sum(!resolved),
+      " spectrum/s in ", source_label, " with unknown units: ",
+      paste(details, collapse = ", "),
+      ". Set attr(x, 'intensity_unit') or metadata$intensity_units to ",
+      "'absorbance', 'reflectance', or 'transmittance'; use ",
+      "convert_intensity = FALSE to preserve units without conversion.",
+      call. = FALSE
+    )
+  }
+  x
 }
 
 #' Create and apply metadata-name lookup rules

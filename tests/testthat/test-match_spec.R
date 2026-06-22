@@ -97,7 +97,23 @@ test_that("ai_classify() handles array predictions with spectrum IDs", {
 
 test_that("match_spec() returns correct structure with AI", {
   skip_on_cran()
-  skip_if_offline(host = "api.osf.io")
+  skip_if_offline(host = "osf.io")
+  resource_available <- function() {
+    old_timeout <- getOption("timeout")
+    on.exit(options(timeout = old_timeout), add = TRUE)
+    options(timeout = min(old_timeout, 10))
+    connection <- NULL
+    tryCatch({
+      connection <- url(
+        "https://osf.io/download/s5bmh/",
+        open = "rb",
+        method = "libcurl"
+      )
+      on.exit(close(connection), add = TRUE)
+      length(readBin(connection, what = "raw", n = 1L)) == 1L
+    }, error = function(error) FALSE, warning = function(warning) FALSE)
+  }
+  skip_if_not(resource_available(), "OSF model resource is unavailable")
 
   get_lib("model_derivative", path = tmp)
   lib <- load_lib(type = "model_derivative", path = tmp)[["both"]]

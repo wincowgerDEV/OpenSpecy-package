@@ -15,8 +15,10 @@ tiny_build_lib <- function() {
       label = c("nylon 6", "polyamides", "plastic", "missing",
                 "pet", "polyesters", "plastic", "missing"),
       material_class = rep(c("class_a", "class_b"), each = 4),
-      spectrum_type = rep("ftir", 8)
-    )
+      spectrum_type = rep("ftir", 8),
+      intensity_units = rep("absorbance", 8)
+    ),
+    attributes = list(intensity_unit = "absorbance")
   )
 }
 
@@ -145,6 +147,150 @@ test_that("build_lib() applies named recipes to merged sources", {
   expect_true(check_OpenSpecy(built$relative))
 })
 
+test_that("build_lib() converts metadata intensity units before recipes", {
+  lib <- tiny_build_lib()
+  lib$spectra <- matrix(
+    rep(c(50, 25, 0.5, 0.25, 2), each = nrow(lib$spectra)),
+    nrow = nrow(lib$spectra),
+    dimnames = list(NULL, paste0("u", 1:5))
+  )
+  lib$metadata <- data.table::data.table(
+    sample_name = colnames(lib$spectra),
+    intensity_units = c(
+      "Reflectance (%)", "transmittance", "absorbance", "mystery", NA
+    )
+  )
+  attr(lib, "intensity_unit") <- NULL
+  original <- lib$spectra
+
+  expect_warning(
+    built <- build_lib(
+      list(lib),
+      recipes = list(raw = list()),
+      dedupe = FALSE,
+      signal_noise = FALSE
+    )$raw,
+    "skipped 2 spectrum/s.*<missing> \\(1\\).*mystery \\(1\\)|skipped 2 spectrum/s.*mystery \\(1\\).*<missing> \\(1\\)"
+  )
+
+  expect_equal(
+    built$spectra[, 1],
+    adj_intens(original[, 1], type = "reflectance", make_rel = FALSE)
+  )
+  expect_equal(
+    built$spectra[, 2],
+    adj_intens(original[, 2], type = "transmittance", make_rel = FALSE)
+  )
+  expect_equal(built$spectra[, 3:5], original[, 3:5])
+  expect_equal(
+    built$metadata$intensity_units,
+    c("absorbance", "absorbance", "absorbance", "mystery", NA)
+  )
+  expect_null(attr(built, "intensity_unit"))
+  expect_true(check_OpenSpecy(built))
+})
+
+test_that("build_lib() treats intensity_unit attribute as primary truth", {
+  lib <- tiny_build_lib()
+  lib$spectra[,] <- 50
+  lib$metadata$intensity_units <- "transmittance"
+  attr(lib, "intensity_unit") <- "reflectance"
+
+  built <- build_lib(
+    list(lib),
+    recipes = list(raw = list()),
+    dedupe = FALSE,
+    signal_noise = FALSE
+  )$raw
+
+  expect_equal(
+    built$spectra,
+    adj_intens(lib$spectra, type = "reflectance", make_rel = FALSE)
+  )
+  expect_equal(built$metadata$intensity_units, rep("absorbance", 8))
+  expect_equal(attr(built, "intensity_unit"), "absorbance")
+
+  attr(lib, "intensity_unit") <- "absorbance"
+  unchanged <- build_lib(
+    list(lib),
+    recipes = list(raw = list()),
+    dedupe = FALSE,
+    signal_noise = FALSE
+  )$raw
+  expect_equal(unchanged$spectra, lib$spectra)
+  expect_equal(unchanged$metadata$intensity_units, rep("absorbance", 8))
+})
+
+test_that("build_lib() can preserve declared intensity units", {
+  lib <- tiny_build_lib()
+  lib$spectra[,] <- 50
+  lib$metadata$intensity_units <- "reflectance"
+  attr(lib, "intensity_unit") <- "reflectance"
+
+  built <- build_lib(
+    list(lib),
+    recipes = list(raw = list()),
+    dedupe = FALSE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE
+  )$raw
+
+  expect_equal(built$spectra, lib$spectra)
+  expect_equal(built$metadata$intensity_units, rep("reflectance", 8))
+  expect_equal(attr(built, "intensity_unit"), "reflectance")
+})
+
+test_that("build_lib() restricts a one-object source list when requested", {
+  lib <- tiny_build_lib()
+  built <- build_lib(
+    list(lib),
+    recipes = list(raw = list()),
+    restrict_range_args = list(
+      min = c(100, 2500),
+      max = c(2000, 4000)
+    ),
+    dedupe = FALSE,
+    signal_noise = FALSE
+  )$raw
+
+  keep <- lib$wavenumber <= 2000 |
+    (lib$wavenumber >= 2500 & lib$wavenumber <= 4000)
+  expect_equal(built$wavenumber, lib$wavenumber[keep])
+  expect_equal(built$spectra, lib$spectra[keep, , drop = FALSE])
+  expect_error(build_lib(lib), "bare OpenSpecy")
+  expect_error(
+    build_lib(list(lib), restrict_range_args = list(c(100, 2000))),
+    "named list"
+  )
+})
+
+test_that("build_lib() converts each source before merging", {
+  left <- filter_spec(tiny_build_lib(), 1:2)
+  right <- filter_spec(tiny_build_lib(), 3:4)
+  left$spectra[,] <- 50
+  right$spectra[,] <- 0.5
+  attr(left, "intensity_unit") <- "reflectance"
+  attr(right, "intensity_unit") <- NULL
+  right$metadata$intensity_units <- "transmittance"
+
+  built <- build_lib(
+    list(left, right),
+    recipes = list(raw = list()),
+    range = NULL,
+    dedupe = FALSE,
+    signal_noise = FALSE
+  )$raw
+
+  expected <- cbind(
+    adj_intens(left$spectra, type = "reflectance", make_rel = FALSE),
+    adj_intens(right$spectra, type = "transmittance", make_rel = FALSE)
+  )
+  colnames(expected) <- colnames(built$spectra)
+  expect_equal(built$spectra, expected)
+  expect_equal(attr(built, "intensity_unit"), "absorbance")
+  expect_equal(built$metadata$intensity_units, rep("absorbance", 4))
+})
+
 test_that("metadata name helpers support smart and extensible matching", {
   expect_equal(
     lib_clean_name(c(" User Name ", "Laser (%)", "Method...3")),
@@ -222,7 +368,7 @@ test_that("build_lib() cleans and coalesces metadata column names", {
   lib$metadata[["Campaign.ID"]] <- rep("campaign_a", 8)
 
   built <- build_lib(
-    lib,
+    list(lib),
     recipes = list(raw = list()),
     metadata_name_lookup = name_lookup,
     dedupe = FALSE,
@@ -255,7 +401,7 @@ test_that("build_lib() runs default joins, processing, SNR, and assessment", {
   )
 
   built <- suppressWarnings(build_lib(
-    lib,
+    list(lib),
     metadata_lookups = source_lookup,
     material_hierarchy = hierarchy,
     assess = TRUE,
@@ -294,6 +440,29 @@ test_that("build_lib() preserves full source ranges through NA-aware recipes", {
   expect_true(any(is.finite(built$nobaseline$spectra[, 8])))
 })
 
+test_that("build_lib() applies baseline recipes across source-specific NA tails", {
+  lib <- filter_spec(tiny_build_lib(), 1:2)
+  lib$spectra[1:5, 1] <- NA_real_
+  lib$spectra[57:61, 2] <- NA_real_
+
+  built <- build_lib(
+    list(lib),
+    recipes = list(nobaseline = list(
+      conform_spec = FALSE,
+      smooth_intens = FALSE,
+      subtr_baseline = TRUE,
+      make_rel = TRUE
+    )),
+    dedupe = FALSE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE
+  )$nobaseline
+  expected <- manage_na(lib, fun = subtr_baseline)
+
+  expect_equal(built$spectra, expected$spectra, tolerance = 1e-12)
+  expect_equal(attr(built, "baseline"), "nobaseline")
+})
+
 test_that("extdata files combine into a mini library", {
   mini_files <- c(
     read_extdata("raman_hdpe.csv"),
@@ -312,8 +481,14 @@ test_that("extdata files combine into a mini library", {
   )
   mini <- join_lib_metadata(mini, lookup, by = "file_name",
                             require_complete = TRUE)
-  built <- build_lib(mini, recipes = list(raw = list()), dedupe = FALSE,
-                     signal_noise = FALSE)
+  built <- build_lib(
+    mini_files,
+    recipes = list(raw = list()),
+    metadata_lookups = lookup,
+    dedupe = FALSE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE
+  )
   expect_true(check_OpenSpecy(built$raw))
   expect_true(all(c("material", "material_type") %in% names(built$raw$metadata)))
 })

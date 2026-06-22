@@ -12,6 +12,7 @@
 ^_pkgdown\.yml$
 ^docs$
 ^benchmarks$
+^workflows$
 ^pkgdown$
 ^codecov\.yml$
 ^vignettes/advanced.*
