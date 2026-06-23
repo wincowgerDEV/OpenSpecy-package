@@ -116,14 +116,7 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
   x <- as_OpenSpecy(x)
 
   apply_intensity_step <- function(x, fun, args = list()) {
-    if (anyNA(x$spectra)) {
-      step <- function(value) {
-        do.call(fun, c(list(value), args))
-      }
-      manage_na(x, fun = step)
-    } else {
-      do.call(fun, c(list(x), args))
-    }
+    .process_intensity_step(x, fun, args)
   }
 
   if(active) {
@@ -162,4 +155,53 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
   }
 
   return(x)
+}
+
+.process_intensity_step <- function(x, fun, args = list()) {
+  na_cols <- colSums(is.na(x$spectra)) > 0L
+  if (!any(na_cols)) {
+    return(do.call(fun, c(list(x), args)))
+  }
+
+  step <- function(value) {
+    do.call(fun, c(list(value), args))
+  }
+  if (all(na_cols)) {
+    return(manage_na(x, fun = step))
+  }
+
+  out <- x
+  complete_cols <- which(!na_cols)
+  missing_cols <- which(na_cols)
+
+  complete <- .subset_open_specy_columns(x, complete_cols)
+  complete <- do.call(fun, c(list(complete), args))
+  .check_intensity_step_shape(complete, x, complete_cols)
+  out$spectra[, complete_cols] <- complete$spectra
+  out <- .copy_open_specy_attributes(out, complete)
+
+  missing <- .subset_open_specy_columns(x, missing_cols)
+  missing <- manage_na(missing, fun = step)
+  .check_intensity_step_shape(missing, x, missing_cols)
+  out$spectra[, missing_cols] <- missing$spectra
+  out <- .copy_open_specy_attributes(out, missing)
+
+  out
+}
+
+.subset_open_specy_columns <- function(x, cols) {
+  out <- x
+  out$spectra <- x$spectra[, cols, drop = FALSE]
+  out$metadata <- data.table::copy(x$metadata[cols, ])
+  out
+}
+
+.check_intensity_step_shape <- function(processed, original, cols) {
+  if (!identical(processed$wavenumber, original$wavenumber) ||
+      !identical(dim(processed$spectra),
+                 c(length(original$wavenumber), length(cols)))) {
+    stop("Intensity processing steps must preserve the wavenumber axis and ",
+         "spectra dimensions", call. = FALSE)
+  }
+  invisible(NULL)
 }

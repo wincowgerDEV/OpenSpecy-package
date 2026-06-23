@@ -2,10 +2,10 @@
 #' @title Build spectral libraries
 #'
 #' @description
-#' Helpers for creating reference libraries from source files, lists of
-#' OpenSpecy objects, and metadata lookup tables. \code{build_lib()} provides
-#' the standard end-to-end workflow while the supporting functions remain
-#' available for advanced composition.
+#' Helpers for creating reference libraries from source files and OpenSpecy
+#' objects with metadata lookup tables. \code{build_lib()} provides the
+#' standard end-to-end workflow while the supporting functions remain available
+#' for advanced composition.
 #'
 #' @details
 #' \code{build_lib()} combines sources over their full wavenumber range,
@@ -14,7 +14,9 @@
 #' processing recipes. Metadata column names are first converted to lowercase
 #' underscore names and known aliases are coalesced using
 #' \code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
-#' automatic and regular-expression matching. By default, each source is also
+#' automatic and regular-expression matching. Metadata values can optionally be
+#' normalized to lowercase trimmed character values before lookup joins. By
+#' default, each source is also
 #' converted to absorbance before merging when its intensity units are known.
 #' A nonempty \code{intensity_unit} object attribute takes precedence over the
 #' per-spectrum \code{intensity_units} metadata column. Each recipe is either a
@@ -23,6 +25,8 @@
 #' copy. Signal-to-noise is added by default, and optional
 #' \code{\link{assess_spec}()} results are summarized into one metadata row per
 #' spectrum.
+#' Progress messages report named stages and elapsed time by default so
+#' long-running builds remain observable.
 #'
 #' \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 #' values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -52,9 +56,12 @@
 #' size, class balance, and optionally nearest-neighbor class consistency.
 #'
 #' @param x an \code{OpenSpecy} or \code{Specs} object for metadata helpers.
-#' For \code{build_lib()}, a nonempty character vector of file paths readable by
-#' \code{\link{read_any}()}, or a nonempty list containing only
-#' \code{OpenSpecy} objects. A single \code{OpenSpecy} must be wrapped in a list.
+#' For \code{build_lib()}, one \code{OpenSpecy}, a nonempty list containing only
+#' \code{OpenSpecy} objects, or a nonempty character vector of file paths.
+#' Each RDS path may store either one \code{OpenSpecy} or a list of them; other
+#' paths are read with \code{\link{read_any}()}.
+#' Large same-axis source lists are prepared in bulk to avoid repeated legacy
+#' object coercion.
 #' @param lookup a data.frame, data.table, or csv file path used as a metadata
 #' lookup table.
 #' @param by named character vector mapping metadata columns to lookup columns,
@@ -90,8 +97,12 @@
 #' unless explicitly overridden.
 #' @param metadata_lookups a lookup table, csv path, or list of lookup tables and
 #' paths. If non-\code{NULL}, each is joined with
-#' \code{join_lib_metadata()}. Each ordinary lookup must have exactly one column
-#' name in common with the current object metadata.
+#' \code{join_lib_metadata()}. Automatic ordinary lookups use the single shared
+#' column that has overlapping values and unique lookup keys. Lookups with no
+#' usable shared key are skipped with a message; lookups with multiple usable
+#' shared keys are considered ambiguous and stop. Lookup values that share
+#' non-key metadata column names are coalesced back into those columns, with
+#' non-missing lookup values taking precedence.
 #' @param material_hierarchy hierarchy table or csv path used when
 #' non-\code{NULL}. It is joined with \code{join_material_hierarchy()} using the
 #' default \code{"material"} metadata key.
@@ -99,6 +110,9 @@
 #' \code{canonical_name}, \code{source_name}, and optional \code{regex} columns.
 #' The default is returned by \code{\link{lib_metadata_name_lookup}()}; use
 #' \code{NULL} to clean names without coalescing aliases.
+#' @param clean_metadata_values logical; whether \code{build_lib()} should also
+#' lowercase, trim, ASCII-normalize, and normalize blank/unknown character
+#' metadata values in source metadata and lookup tables before joining.
 #' @param convert_intensity logical; whether to infer reflectance,
 #' transmittance, or absorbance units from each source and convert known
 #' non-absorbance spectra with \code{\link{adj_intens}()} before merging.
@@ -108,6 +122,8 @@
 #' \code{\link{sig_noise}()} result as metadata column \code{sn}.
 #' @param assess logical; whether to run \code{\link{assess_spec}()} on each
 #' output library and append assessment summaries to its metadata.
+#' @param progress logical; whether \code{build_lib()} reports named processing
+#' stages and elapsed time.
 #' @param group_cols metadata columns defining groups for reduction.
 #' @param k maximum representatives to keep for groups larger than
 #' \code{min_n}.
@@ -184,7 +200,7 @@
 #' reduced <- reduce_lib(deduped, group_cols = "material_class",
 #'                       k = 1, min_n = 1)
 #' libs <- build_lib(
-#'   list(mini),
+#'   mini,
 #'   recipes = list(
 #'     raw = list(),
 #'     derivative = list(
@@ -218,61 +234,81 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       dedupe = TRUE, metadata_lookups = NULL,
                       material_hierarchy = NULL,
                       metadata_name_lookup = lib_metadata_name_lookup(),
+                      clean_metadata_values = FALSE,
                       convert_intensity = TRUE, restrict_range_args = NULL,
-                      signal_noise = TRUE, assess = FALSE, ...) {
-  prepare_source <- function(source, label) {
-    source <- as_OpenSpecy(source)
-    source$metadata <- lib_clean_metadata(
-      source$metadata,
-      metadata_name_lookup
-    )
-    if (isTRUE(convert_intensity)) {
-      source <- .lib_convert_intensity(
-        source,
-        source_label = label
-      )
+                      signal_noise = TRUE, assess = FALSE, progress = TRUE,
+                      ...) {
+  if (!is.logical(progress) || length(progress) != 1L || is.na(progress)) {
+    stop("'progress' must be TRUE or FALSE", call. = FALSE)
+  }
+  if (!is.logical(clean_metadata_values) ||
+      length(clean_metadata_values) != 1L ||
+      is.na(clean_metadata_values)) {
+    stop("'clean_metadata_values' must be TRUE or FALSE", call. = FALSE)
+  }
+  started <- proc.time()[["elapsed"]]
+  report <- function(stage) {
+    if (isTRUE(progress)) {
+      elapsed <- proc.time()[["elapsed"]] - started
+      message(sprintf("build_lib [%.1fs]: %s", elapsed, stage))
     }
-    source
   }
 
+  validate_sources <- function(source, label) {
+    if (is_OpenSpecy(source)) {
+      return(list(source))
+    }
+    if (is.list(source) && length(source) > 0L &&
+        all(vapply(source, is_OpenSpecy, logical(1)))) {
+      return(source)
+    }
+    stop(label, " must contain one OpenSpecy object or a nonempty list of ",
+         "OpenSpecy objects", call. = FALSE)
+  }
+
+  report("starting")
   if (is_OpenSpecy(x)) {
-    stop("A bare OpenSpecy object is not supported; use 'list(x)' to supply ",
-         "a one-object source list", call. = FALSE)
-  }
-
-  if (is.character(x)) {
+    sources <- list(x)
+    report("using one in-memory OpenSpecy source")
+  } else if (is.character(x)) {
     if (length(x) == 0L || anyNA(x) || any(!nzchar(x))) {
       stop("'x' must contain one or more nonempty file paths", call. = FALSE)
     }
     sources <- unlist(lapply(seq_along(x), function(i) {
-      source <- read_any(x[[i]])
-      if (is_OpenSpecy(source)) return(list(source))
-      if (is.list(source) && length(source) > 0L &&
-          all(vapply(source, is_OpenSpecy, logical(1)))) {
-        return(source)
+      report(sprintf(
+        "reading path %d/%d (%s)",
+        i, length(x), basename(x[[i]])
+      ))
+      if (grepl("\\.rds$", x[[i]], ignore.case = TRUE)) {
+        source <- readRDS(x[[i]])
+      } else {
+        source <- read_any(x[[i]])
       }
-      stop("File path ", i, " did not produce an OpenSpecy object or list ",
-           "of OpenSpecy objects", call. = FALSE)
+      validate_sources(source, paste0("File path ", i))
     }), recursive = FALSE)
   } else {
     if (!is.list(x) || length(x) == 0L ||
         !all(vapply(x, is_OpenSpecy, logical(1)))) {
-      stop("'x' must be file path(s) readable by read_any() or a nonempty ",
+      stop("'x' must be one OpenSpecy object, file path(s), or a nonempty ",
            "list of OpenSpecy objects", call. = FALSE)
     }
     sources <- x
+    report(sprintf("using %d in-memory OpenSpecy source(s)", length(sources)))
   }
 
-  sources <- lapply(seq_along(sources), function(i) {
-    prepare_source(sources[[i]], paste("source", i))
-  })
-  lib <- if (length(sources) == 1L) {
-    sources[[1L]]
-  } else {
-    c_spec(sources, range = range, res = res)
-  }
+  report(sprintf("preparing %d source object(s)", length(sources)))
+  lib <- .lib_prepare_sources(
+    sources,
+    range = range,
+    res = res,
+    metadata_name_lookup = metadata_name_lookup,
+    clean_metadata_values = clean_metadata_values,
+    convert_intensity = convert_intensity,
+    report = report
+  )
 
   if (!is.null(restrict_range_args)) {
+    report("restricting the wavenumber range")
     if (!is.list(restrict_range_args) ||
         is.null(names(restrict_range_args)) ||
         any(names(restrict_range_args) == "")) {
@@ -296,36 +332,71 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
       list(metadata_lookups)
     }
 
-    for (lookup in lookups) {
+    for (i in seq_along(lookups)) {
+      report(sprintf("joining metadata lookup %d/%d", i, length(lookups)))
+      lookup <- lookups[[i]]
       lookup_table <- lib_clean_metadata(.lib_read_lookup(lookup),
-                                         metadata_name_lookup)
-      shared <- intersect(names(lib$metadata), names(lookup_table))
-      if (length(shared) != 1L) {
-        stop("Each automatic metadata lookup must have exactly one column ",
-             "name in common with the object metadata; use ",
-             "join_lib_metadata() directly for advanced joins", call. = FALSE)
+                                         metadata_name_lookup,
+                                         clean_values = clean_metadata_values)
+      auto_key <- .lib_auto_lookup_key(lib$metadata, lookup_table)
+      if (length(auto_key$shared) == 0L) {
+        report(sprintf(
+          "skipping metadata lookup %d/%d; no shared metadata column",
+          i, length(lookups)
+        ))
+        next
       }
-      lib <- join_lib_metadata(lib, lookup_table, by = shared)
+      if (length(auto_key$candidates) == 0L) {
+        report(sprintf(
+          "skipping metadata lookup %d/%d; no usable shared key values in: %s",
+          i, length(lookups), paste(auto_key$shared, collapse = ", ")
+        ))
+        next
+      }
+      if (length(auto_key$candidates) > 1L) {
+        stop("Each automatic metadata lookup must have exactly one usable ",
+             "shared key. Candidate columns were: ",
+             paste(auto_key$candidates, collapse = ", "),
+             ". Use join_lib_metadata() directly for advanced joins",
+             call. = FALSE)
+      }
+      coalesce_cols <- intersect(
+        names(lib$metadata),
+        setdiff(names(lookup_table), auto_key$candidates)
+      )
+      lib <- join_lib_metadata(lib, lookup_table, by = auto_key$candidates)
+      lib$metadata <- .lib_coalesce_joined_metadata(
+        lib$metadata,
+        coalesce_cols
+      )
     }
   }
 
   if (!is.null(material_hierarchy)) {
+    report("joining the material hierarchy")
     hierarchy <- lib_clean_metadata(.lib_read_lookup(material_hierarchy),
-                                    metadata_name_lookup)
+                                    metadata_name_lookup,
+                                    clean_values = clean_metadata_values)
     lib <- join_material_hierarchy(lib, hierarchy)
   }
 
   if (!is.null(exclude_ids)) {
+    report("removing excluded identifiers")
     ids <- .lib_ids(lib, id_col)
     keep <- !(ids %in% exclude_ids | colnames(lib$spectra) %in% exclude_ids)
     lib <- filter_spec(lib, keep)
   }
 
   if (dedupe) {
+    report("generating identifiers and removing duplicate spectra")
     lib <- dedupe_spec(lib, id_col = id_col, ...)
   }
 
-  apply_recipe <- function(recipe) {
+  apply_recipe <- function(recipe, recipe_name, recipe_index) {
+    report(sprintf(
+      "processing recipe %d/%d (%s)",
+      recipe_index, length(recipes), recipe_name
+    ))
     out <- if (is.function(recipe)) {
       recipe(lib)
     } else if (length(recipe) == 0L) {
@@ -338,10 +409,12 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     }
 
     if (isTRUE(signal_noise)) {
+      report(sprintf("calculating signal-to-noise (%s)", recipe_name))
       out$metadata$sn <- sig_noise(out, step = 10)
     }
 
     if (isTRUE(assess)) {
+      report(sprintf("assessing spectra (%s)", recipe_name))
       assessment <- assess_spec(out)
       out$metadata[, `:=`(
         assessment_flag = FALSE,
@@ -375,9 +448,312 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
       anyDuplicated(names(recipes))) {
     stop("'recipes' must be a uniquely named list", call. = FALSE)
   }
-  out <- lapply(recipes, apply_recipe)
+  out <- lapply(seq_along(recipes), function(i) {
+    apply_recipe(recipes[[i]], names(recipes)[[i]], i)
+  })
   names(out) <- names(recipes)
+  report("complete")
   out
+}
+
+.lib_prepare_sources <- function(sources, range, res, metadata_name_lookup,
+                                 clean_metadata_values, convert_intensity,
+                                 report) {
+  records <- lapply(seq_along(sources), function(i) {
+    .lib_source_record(sources[[i]], i)
+  })
+  metadata <- .lib_combined_metadata(
+    records,
+    metadata_name_lookup,
+    clean_metadata_values = clean_metadata_values
+  )
+
+  if (isTRUE(convert_intensity)) {
+    converted <- .lib_convert_records_intensity(
+      records,
+      metadata,
+      source_label = "source list"
+    )
+    records <- converted$records
+    metadata <- converted$metadata
+  }
+
+  shared_axis <- .lib_same_wavenumber(records)
+  if (length(records) > 1L) {
+    if (shared_axis) {
+      report(sprintf(
+        "combining %d same-axis source object(s)",
+        length(records)
+      ))
+    } else {
+      report(sprintf(
+        "merging %d source object(s) with c_spec()",
+        length(records)
+      ))
+    }
+  }
+
+  if (length(records) == 1L) {
+    return(.lib_combine_same_axis_records(
+      records,
+      metadata,
+      range = NULL,
+      res = res
+    ))
+  }
+
+  if (shared_axis) {
+    return(.lib_combine_same_axis_records(
+      records,
+      metadata,
+      range = range,
+      res = res
+    ))
+  }
+
+  .lib_combine_variable_axis_records(
+    records,
+    metadata,
+    range = range,
+    res = res
+  )
+}
+
+.lib_source_record <- function(source, index) {
+  if (!is_OpenSpecy(source)) {
+    stop("Source ", index, " must be an OpenSpecy object", call. = FALSE)
+  }
+
+  spectra <- .as_spectra_matrix(source$spectra, message_conversion = FALSE)
+  wavenumber <- source$wavenumber
+  if (!is.numeric(wavenumber) || !is.vector(wavenumber)) {
+    stop("Source ", index, " wavenumber must be a numeric vector",
+         call. = FALSE)
+  }
+  if (length(wavenumber) != nrow(spectra)) {
+    stop("Source ", index, " wavenumber length must match spectra rows",
+         call. = FALSE)
+  }
+  ord <- order(wavenumber)
+  if (!identical(ord, seq_along(wavenumber))) {
+    wavenumber <- wavenumber[ord]
+    spectra <- spectra[ord, , drop = FALSE]
+  }
+
+  metadata <- data.table::as.data.table(data.table::copy(source$metadata))
+  if (nrow(metadata) != ncol(spectra)) {
+    stop("Source ", index, " metadata rows must match spectra columns",
+         call. = FALSE)
+  }
+
+  object_unit <- attr(source, "intensity_unit", exact = TRUE)
+  object_unit <- as.character(object_unit)
+  object_unit <- object_unit[!is.na(object_unit) & trimws(object_unit) != ""]
+  if (length(object_unit) > 1L) {
+    stop("Source ", index,
+         " attribute 'intensity_unit' must contain at most one value",
+         call. = FALSE)
+  }
+
+  attribute_names <- c("intensity_unit", "derivative_order", "baseline",
+                       "spectra_type")
+  attrs <- lapply(attribute_names, attr, x = source)
+  names(attrs) <- attribute_names
+
+  list(
+    wavenumber = wavenumber,
+    spectra = spectra,
+    metadata = metadata,
+    n = ncol(spectra),
+    intensity_attr = if (length(object_unit) == 1L) object_unit else NA_character_,
+    attrs = attrs
+  )
+}
+
+.lib_combined_metadata <- function(records, metadata_name_lookup,
+                                   clean_metadata_values = FALSE) {
+  metadata <- data.table::rbindlist(
+    lapply(records, `[[`, "metadata"),
+    fill = TRUE
+  )
+  metadata <- lib_clean_metadata(
+    metadata,
+    metadata_name_lookup,
+    clean_values = clean_metadata_values
+  )
+  metadata <- metadata[, setdiff(names(metadata), c("x", "y")), with = FALSE]
+  metadata
+}
+
+.lib_same_wavenumber <- function(records) {
+  if (length(records) <= 1L) return(TRUE)
+  first <- records[[1L]]$wavenumber
+  all(vapply(records[-1L], function(record) {
+    identical(record$wavenumber, first)
+  }, logical(1)))
+}
+
+.lib_common_record_attributes <- function(records) {
+  attribute_names <- c("intensity_unit", "derivative_order", "baseline",
+                       "spectra_type")
+  out <- lapply(attribute_names, function(nm) {
+    values <- lapply(records, function(record) record$attrs[[nm]])
+    if (all(vapply(values[-1L], identical, logical(1), values[[1L]]))) {
+      values[[1L]]
+    } else {
+      NULL
+    }
+  })
+  names(out) <- attribute_names
+  out
+}
+
+.lib_make_open_specy <- function(wavenumber, spectra, metadata, attributes) {
+  metadata <- data.table::as.data.table(data.table::copy(metadata))
+  metadata$col_id <- colnames(spectra)
+  structure(
+    list(wavenumber = wavenumber, spectra = spectra, metadata = metadata),
+    class = c("OpenSpecy", "list"),
+    intensity_unit = attributes$intensity_unit,
+    derivative_order = attributes$derivative_order,
+    baseline = attributes$baseline,
+    spectra_type = attributes$spectra_type
+  )
+}
+
+.lib_combine_same_axis_records <- function(records, metadata, range, res) {
+  spectra <- do.call(cbind, lapply(records, `[[`, "spectra"))
+  colnames(spectra) <- make.unique(
+    unlist(lapply(records, function(record) colnames(record$spectra)),
+           use.names = FALSE),
+    sep = "."
+  )
+  attrs <- .lib_common_record_attributes(records)
+  lib <- .lib_make_open_specy(
+    records[[1L]]$wavenumber,
+    spectra,
+    metadata,
+    attrs
+  )
+
+  if (!is.null(range)) {
+    conform_range <- if (is.numeric(range)) {
+      range
+    } else if (length(range) == 1L && range %in% c("common", "full")) {
+      base::range(lib$wavenumber)
+    } else {
+      stop("If range is specified it should be numeric, 'full', or 'common'",
+           call. = FALSE)
+    }
+    lib <- conform_spec(
+      lib,
+      range = conform_range,
+      res = res,
+      allow_na = identical(range, "full") || is.numeric(range)
+    )
+  }
+
+  as_OpenSpecy(lib)
+}
+
+.lib_combine_variable_axis_records <- function(records, metadata, range, res) {
+  idx <- split(seq_len(nrow(metadata)), rep(seq_along(records),
+                                           vapply(records, `[[`, integer(1),
+                                                  "n")))
+  sources <- lapply(seq_along(records), function(i) {
+    .lib_make_open_specy(
+      records[[i]]$wavenumber,
+      records[[i]]$spectra,
+      metadata[idx[[i]], ],
+      records[[i]]$attrs
+    )
+  })
+  if (length(sources) == 1L) {
+    sources[[1L]]
+  } else {
+    c_spec(sources, range = range, res = res)
+  }
+}
+
+.lib_convert_records_intensity <- function(records, metadata,
+                                           source_label = "source") {
+  attr_units <- unlist(lapply(records, function(record) {
+    rep(record$intensity_attr, record$n)
+  }), use.names = FALSE)
+  has_attr_unit <- !is.na(attr_units)
+  if (any(has_attr_unit)) {
+    if (!"intensity_units" %in% names(metadata)) {
+      metadata$intensity_units <- NA_character_
+    }
+    metadata$intensity_units[has_attr_unit] <- attr_units[has_attr_unit]
+  }
+
+  declared <- if ("intensity_units" %in% names(metadata)) {
+    as.character(metadata$intensity_units)
+  } else {
+    rep(NA_character_, nrow(metadata))
+  }
+  canonical <- .lib_canonical_intensity_unit(declared)
+  starts <- cumsum(c(1L, head(vapply(records, `[[`, integer(1), "n"), -1L)))
+
+  for (i in seq_along(records)) {
+    cols <- starts[[i]] + seq_len(records[[i]]$n) - 1L
+    records[[i]]$spectra <- .lib_convert_spectra_matrix(
+      records[[i]]$spectra,
+      canonical[cols]
+    )
+    resolved_i <- !is.na(canonical[cols])
+    if (all(resolved_i)) {
+      records[[i]]$attrs$intensity_unit <- "absorbance"
+    }
+  }
+
+  resolved <- !is.na(canonical)
+  if (any(resolved)) {
+    if (!"intensity_units" %in% names(metadata)) {
+      metadata$intensity_units <- NA_character_
+    }
+    metadata$intensity_units[resolved] <- "absorbance"
+  }
+
+  .lib_warn_unknown_intensity(declared, resolved, source_label)
+  list(records = records, metadata = metadata)
+}
+
+.lib_convert_spectra_matrix <- function(spectra, canonical) {
+  for (type in c("reflectance", "transmittance")) {
+    idx <- which(canonical == type)
+    if (length(idx) > 0L) {
+      spectra[, idx] <- switch(
+        type,
+        reflectance = (1 - spectra[, idx, drop = FALSE] / 100)^2 /
+          (2 * spectra[, idx, drop = FALSE] / 100),
+        transmittance = log(1 / .matrix_adj_neg(
+          spectra[, idx, drop = FALSE]
+        ))
+      )
+    }
+  }
+  spectra
+}
+
+.lib_warn_unknown_intensity <- function(declared, resolved, source_label) {
+  if (!any(!resolved)) return(invisible(NULL))
+
+  unresolved <- trimws(as.character(declared[!resolved]))
+  unresolved[is.na(unresolved) | unresolved == ""] <- "<missing>"
+  counts <- sort(table(unresolved), decreasing = TRUE)
+  details <- paste0(names(counts), " (", as.integer(counts), ")")
+  warning(
+    "Automatic intensity conversion skipped ", sum(!resolved),
+    " spectrum/s in ", source_label, " with unknown units: ",
+    paste(details, collapse = ", "),
+    ". Set attr(x, 'intensity_unit') or metadata$intensity_units to ",
+    "'absorbance', 'reflectance', or 'transmittance'; use ",
+    "convert_intensity = FALSE to preserve units without conversion.",
+    call. = FALSE
+  )
+  invisible(NULL)
 }
 
 .lib_canonical_intensity_unit <- function(x) {
@@ -490,6 +866,9 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
 #' data.frame/data.table for \code{lib_clean_metadata()}.
 #' @param name_lookup a table returned by \code{lib_metadata_name_lookup()} or a
 #' compatible rule table. Use \code{NULL} to clean names without alias merging.
+#' @param clean_values logical; whether \code{lib_clean_metadata()} should also
+#' lowercase, trim, ASCII-normalize, and normalize blank/unknown character or
+#' factor metadata values.
 #'
 #' @return \code{lib_metadata_name_lookup()} returns a data.table of rules.
 #' \code{lib_clean_name()} returns a character vector.
@@ -1093,6 +1472,36 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
+.lib_auto_lookup_key <- function(metadata, lookup_table) {
+  metadata <- data.table::as.data.table(metadata)
+  lookup_table <- data.table::as.data.table(lookup_table)
+  shared <- intersect(names(metadata), names(lookup_table))
+  if (length(shared) == 0L) {
+    return(list(shared = shared, candidates = character()))
+  }
+
+  usable <- vapply(shared, function(col) {
+    metadata_values <- .lib_key_values(metadata[[col]])
+    lookup_values <- .lib_key_values(lookup_table[[col]], unique = FALSE)
+    if (length(metadata_values) == 0L || length(lookup_values) == 0L) {
+      return(FALSE)
+    }
+    has_overlap <- any(metadata_values %in% unique(lookup_values))
+    unique_lookup_keys <- !anyDuplicated(lookup_values)
+    has_overlap && unique_lookup_keys
+  }, logical(1))
+
+  list(shared = shared, candidates = shared[usable])
+}
+
+.lib_key_values <- function(x, unique = TRUE) {
+  values <- as.character(x)
+  values <- values[!is.na(values)]
+  values <- values[nzchar(values, keepNA = FALSE)]
+  if (isTRUE(unique)) values <- unique(values)
+  values
+}
+
 .lib_read_lookup <- function(x) {
   if (is.character(x) && length(x) == 1 && file.exists(x)) {
     return(data.table::fread(x))
@@ -1117,7 +1526,12 @@ lib_clean_name <- function(x) {
 #' @rdname lib_metadata_name_lookup
 #' @export
 lib_clean_metadata <- function(x,
-                               name_lookup = lib_metadata_name_lookup()) {
+                               name_lookup = lib_metadata_name_lookup(),
+                               clean_values = FALSE) {
+  if (!is.logical(clean_values) || length(clean_values) != 1L ||
+      is.na(clean_values)) {
+    stop("'clean_values' must be TRUE or FALSE", call. = FALSE)
+  }
   metadata <- data.table::as.data.table(data.table::copy(x))
   original_names <- names(metadata)
   cleaned_names <- lib_clean_name(original_names)
@@ -1309,7 +1723,43 @@ lib_clean_metadata <- function(x,
     result
   })
   names(output) <- output_names
-  data.table::as.data.table(output)
+  output <- data.table::as.data.table(output)
+  if (isTRUE(clean_values)) output <- .lib_clean_metadata_values(output)
+  output
+}
+
+.lib_clean_metadata_values <- function(x) {
+  out <- data.table::as.data.table(data.table::copy(x))
+  for (col in names(out)) {
+    value <- out[[col]]
+    if (!is.character(value) && !is.factor(value)) next
+    value <- iconv(as.character(value), to = "ASCII", sub = "")
+    value <- tolower(trimws(value))
+    value[value %in% c("", "na", "null", "not available")] <- NA_character_
+    data.table::set(out, j = col, value = value)
+  }
+  out
+}
+
+.lib_coalesce_joined_metadata <- function(metadata, columns,
+                                          suffixes = c(".x", ".y")) {
+  metadata <- data.table::as.data.table(metadata)
+  for (col in columns) {
+    left <- paste0(col, suffixes[[1L]])
+    right <- paste0(col, suffixes[[2L]])
+    if (!all(c(left, right) %in% names(metadata))) next
+    result <- metadata[[left]]
+    replacement <- metadata[[right]]
+    use_replacement <- !is.na(replacement)
+    if (is.character(replacement)) {
+      use_replacement <- use_replacement & nzchar(replacement)
+    }
+    result[use_replacement] <- replacement[use_replacement]
+    data.table::set(metadata, j = left, value = result)
+    data.table::setnames(metadata, left, col)
+    metadata[, (right) := NULL]
+  }
+  metadata
 }
 
 .lib_require_cols <- function(x, cols, label) {

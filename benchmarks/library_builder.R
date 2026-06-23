@@ -121,7 +121,8 @@ new_merge_time <- system.time({
     recipes = list(raw = list()),
     dedupe = FALSE,
     convert_intensity = FALSE,
-    signal_noise = FALSE
+    signal_noise = FALSE,
+    progress = FALSE
   )$raw
 })
 
@@ -129,6 +130,62 @@ stopifnot(identical(old_merged$wavenumber, new_merged$wavenumber))
 stopifnot(isTRUE(all.equal(old_merged$spectra, new_merged$spectra)))
 message("Old full-range merge elapsed: ", old_merge_time[["elapsed"]])
 message("New build_lib merge elapsed: ", new_merge_time[["elapsed"]])
+
+make_legacy_source_list <- function(n = 120, p = 80) {
+  source <- make_benchmark_lib(n)
+  source$wavenumber <- seq_len(p)
+  source$spectra <- matrix(runif(p * n), nrow = p)
+  colnames(source$spectra) <- paste0("legacy_", seq_len(n))
+  source$metadata <- data.table(
+    sample_name = colnames(source$spectra),
+    intensity_units = "absorbance"
+  )
+  lapply(seq_len(n), function(i) {
+    x <- filter_spec(source, i)
+    x$spectra <- as.data.table(x$spectra)
+    x
+  })
+}
+
+legacy_sources <- make_legacy_source_list()
+old_prepare_legacy_sources <- function(sources) {
+  prepared <- lapply(sources, function(source) {
+    source <- as_OpenSpecy(source)
+    source$metadata <- lib_clean_metadata(source$metadata)
+    source
+  })
+  c_spec(prepared, range = NULL)
+}
+new_prepare_legacy_sources <- function(sources) {
+  build_lib(
+    sources,
+    recipes = list(raw = list()),
+    range = NULL,
+    dedupe = FALSE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )$raw
+}
+old_legacy_time <- system.time(
+  old_legacy <- suppressMessages(old_prepare_legacy_sources(legacy_sources))
+)
+new_legacy_time <- system.time(
+  new_legacy <- new_prepare_legacy_sources(legacy_sources)
+)
+
+stopifnot(identical(old_legacy$wavenumber, new_legacy$wavenumber))
+stopifnot(isTRUE(all.equal(old_legacy$spectra, new_legacy$spectra)))
+stopifnot(identical(old_legacy$metadata$sample_name,
+                    new_legacy$metadata$sample_name))
+message("Old legacy source-list preparation elapsed: ",
+        old_legacy_time[["elapsed"]])
+message("New bulk source-list preparation elapsed: ",
+        new_legacy_time[["elapsed"]])
+if (new_legacy_time[["elapsed"]] > old_legacy_time[["elapsed"]] * 1.1) {
+  stop("Bulk source-list preparation is more than 10% slower than the ",
+       "legacy per-source preparation loop")
+}
 
 make_intensity_benchmark_lib <- function(n = 400, p = 200) {
   set.seed(123)
@@ -200,5 +257,116 @@ message("Old per-spectrum intensity conversion median: ",
 message("New grouped intensity conversion median: ", new_conversion_time)
 if (new_conversion_time > old_conversion_time * 1.1) {
   stop("Automatic intensity conversion is more than 10% slower than the ",
+       "legacy per-spectrum loop")
+}
+
+make_na_processing_lib <- function(n = 900, p = 1000) {
+  set.seed(456)
+  spectra <- matrix(runif(p * n), nrow = p)
+  colnames(spectra) <- paste0("na_", seq_len(n))
+  spectra[seq_len(80), seq_len(n / 3)] <- NA_real_
+  spectra[(p - 79):p, (n / 3 + 1):(2 * n / 3)] <- NA_real_
+  as_OpenSpecy(
+    seq_len(p),
+    spectra = spectra,
+    metadata = data.table(sample_name = colnames(spectra))
+  )
+}
+
+old_manage_na_ignore <- function(x, fun) {
+  x <- as_OpenSpecy(x)
+  ignored <- vapply(seq_len(ncol(x$spectra)), function(i) {
+    manage_na(x$spectra[, i])
+  }, FUN.VALUE = logical(nrow(x$spectra)))
+  ignored <- matrix(as.logical(ignored), nrow = nrow(x$spectra))
+  mask_keys <- vapply(seq_len(ncol(ignored)), function(i) {
+    paste(which(ignored[, i]), collapse = ",")
+  }, FUN.VALUE = character(1))
+  for (cols in split(seq_len(ncol(x$spectra)), mask_keys)) {
+    keep <- !ignored[, cols[1L]]
+    reduced <- x
+    reduced$wavenumber <- x$wavenumber[keep]
+    reduced$spectra <- x$spectra[keep, cols, drop = FALSE]
+    reduced$metadata <- data.table::copy(x$metadata[cols])
+    processed <- fun(reduced)
+    x$spectra[keep, cols] <- processed$spectra
+  }
+  x
+}
+
+na_processing_lib <- make_na_processing_lib()
+process_fun <- function(x) {
+  smooth_intens(
+    x,
+    window = 11,
+    derivative = 1,
+    make_rel = TRUE
+  )
+}
+old_processed_na <- old_manage_na_ignore(na_processing_lib, process_fun)
+new_processed_na <- process_spec(
+  na_processing_lib,
+  conform_spec = FALSE,
+  smooth_intens_args = list(window = 11, derivative = 1),
+  make_rel = TRUE
+)
+stopifnot(isTRUE(all.equal(
+  old_processed_na$spectra,
+  new_processed_na$spectra,
+  tolerance = 1e-12
+)))
+
+old_na_processing_time <- median_repeated_time(
+  function() old_manage_na_ignore(na_processing_lib, process_fun),
+  batches = 3L,
+  iterations = 1L
+)
+new_na_processing_time <- median_repeated_time(
+  function() process_spec(
+    na_processing_lib,
+    conform_spec = FALSE,
+    smooth_intens_args = list(window = 11, derivative = 1),
+    make_rel = TRUE
+  ),
+  batches = 3L,
+  iterations = 1L
+)
+message("Old NA-managed processing median: ", old_na_processing_time)
+message("New grouped NA-managed processing median: ", new_na_processing_time)
+if (new_na_processing_time > old_na_processing_time * 1.1) {
+  stop("Grouped NA-managed processing is more than 10% slower than the ",
+       "legacy per-spectrum mask-key path")
+}
+
+old_run_sig_over_noise <- function(x, step = 10, prob = 0.5) {
+  vapply(seq_len(ncol(x$spectra)), function(i) {
+    y <- x$spectra[, i]
+    if(length(y[!is.na(y)]) < step) return(NA_real_)
+    rolling_max <- data.table::frollapply(y[!is.na(y)], step, max)
+    rolling_max[(length(rolling_max) - (step-1)):length(rolling_max)] <- NA
+    max(rolling_max, na.rm = TRUE) /
+      as.numeric(stats::quantile(rolling_max[rolling_max != 0],
+                                 probs = prob, na.rm = TRUE, names = FALSE))
+  }, FUN.VALUE = numeric(1))
+}
+
+old_sn <- old_run_sig_over_noise(na_processing_lib, step = 10)
+new_sn <- sig_noise(na_processing_lib, step = 10)
+stopifnot(isTRUE(all.equal(old_sn, new_sn, tolerance = 1e-12)))
+
+old_sn_time <- median_repeated_time(
+  function() old_run_sig_over_noise(na_processing_lib, step = 10),
+  batches = 3L,
+  iterations = 1L
+)
+new_sn_time <- median_repeated_time(
+  function() sig_noise(na_processing_lib, step = 10),
+  batches = 3L,
+  iterations = 1L
+)
+message("Old run signal-to-noise median: ", old_sn_time)
+message("New matrix run signal-to-noise median: ", new_sn_time)
+if (new_sn_time > old_sn_time * 1.1) {
+  stop("Matrix run signal-to-noise is more than 10% slower than the ",
        "legacy per-spectrum loop")
 }

@@ -238,30 +238,111 @@ test_that("build_lib() can preserve declared intensity units", {
   expect_equal(built$spectra, lib$spectra)
   expect_equal(built$metadata$intensity_units, rep("reflectance", 8))
   expect_equal(attr(built, "intensity_unit"), "reflectance")
+
+  lib$metadata$intensity_units <- "transmittance"
+  preserved <- build_lib(
+    lib,
+    recipes = list(raw = list()),
+    dedupe = FALSE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )$raw
+  expect_equal(preserved$spectra, lib$spectra)
+  expect_equal(preserved$metadata$intensity_units, rep("transmittance", 8))
+  expect_equal(attr(preserved, "intensity_unit"), "reflectance")
 })
 
-test_that("build_lib() restricts a one-object source list when requested", {
+test_that("build_lib() accepts and restricts one OpenSpecy object", {
   lib <- tiny_build_lib()
-  built <- build_lib(
-    list(lib),
-    recipes = list(raw = list()),
-    restrict_range_args = list(
-      min = c(100, 2500),
-      max = c(2000, 4000)
-    ),
-    dedupe = FALSE,
-    signal_noise = FALSE
-  )$raw
+  expect_message(
+    built <- build_lib(
+      lib,
+      recipes = list(raw = list()),
+      restrict_range_args = list(
+        min = c(100, 2500),
+        max = c(2000, 4000)
+      ),
+      dedupe = FALSE,
+      signal_noise = FALSE
+    )$raw,
+    "using one in-memory OpenSpecy source"
+  )
 
   keep <- lib$wavenumber <= 2000 |
     (lib$wavenumber >= 2500 & lib$wavenumber <= 4000)
   expect_equal(built$wavenumber, lib$wavenumber[keep])
   expect_equal(built$spectra, lib$spectra[keep, , drop = FALSE])
-  expect_error(build_lib(lib), "bare OpenSpecy")
+  expect_silent(build_lib(
+    lib,
+    recipes = list(raw = list()),
+    dedupe = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  ))
   expect_error(
     build_lib(list(lib), restrict_range_args = list(c(100, 2000))),
     "named list"
   )
+})
+
+test_that("build_lib() reads one or many OpenSpecy objects from each RDS", {
+  left <- filter_spec(tiny_build_lib(), 1:2)
+  right <- filter_spec(tiny_build_lib(), 3:4)
+  single_file <- tempfile(fileext = ".rds")
+  list_file <- tempfile(fileext = ".RDS")
+  invalid_file <- tempfile(fileext = ".rds")
+  saveRDS(left, single_file)
+  saveRDS(list(left, right), list_file)
+  saveRDS(list(left, "not OpenSpecy"), invalid_file)
+
+  single <- build_lib(
+    single_file,
+    recipes = list(raw = list()),
+    dedupe = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )$raw
+  combined <- build_lib(
+    list_file,
+    recipes = list(raw = list()),
+    range = NULL,
+    dedupe = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )$raw
+
+  expect_equal(single$spectra, left$spectra)
+  expect_equal(ncol(combined$spectra), 4)
+  expect_equal(combined$metadata$sample_name, paste0("s", 1:4))
+  expect_error(
+    build_lib(invalid_file, progress = FALSE),
+    "File path 1 must contain one OpenSpecy object or a nonempty list"
+  )
+})
+
+test_that("build_lib() bulk-prepares legacy same-axis source lists", {
+  lib <- tiny_build_lib()
+  sources <- split_spec(list(lib))
+  sources <- lapply(sources, function(x) {
+    x$spectra <- data.table::as.data.table(x$spectra)
+    x
+  })
+
+  expect_silent(
+    built <- build_lib(
+      sources,
+      recipes = list(raw = list()),
+      range = NULL,
+      dedupe = FALSE,
+      signal_noise = FALSE,
+      progress = FALSE
+    )$raw
+  )
+
+  expect_equal(built$wavenumber, lib$wavenumber)
+  expect_equal(built$spectra, lib$spectra)
+  expect_equal(built$metadata$sample_name, lib$metadata$sample_name)
 })
 
 test_that("build_lib() converts each source before merging", {
@@ -322,6 +403,21 @@ test_that("metadata name helpers support smart and extensible matching", {
   expect_equal(cleaned$review_note, c("check", "keep"))
   expect_equal(cleaned$instrument_mode, c("ftir", "raman"))
   expect_false("campaign_id" %in% names(cleaned))
+
+  cleaned_values <- lib_clean_metadata(
+    data.table::data.table(
+      Organization = c(" Monterey Bay Aquarium Research Institute ", "NULL"),
+      SpectrumType = c("Raman", " not available "),
+      numeric_value = c(1, 2)
+    ),
+    clean_values = TRUE
+  )
+  expect_equal(
+    cleaned_values$organization,
+    c("monterey bay aquarium research institute", NA)
+  )
+  expect_equal(cleaned_values$spectrum_type, c("raman", NA))
+  expect_equal(cleaned_values$numeric_value, c(1, 2))
 
   strict_lookup <- lib_metadata_name_lookup(
     project_code = character(),
@@ -418,6 +514,87 @@ test_that("build_lib() runs default joins, processing, SNR, and assessment", {
   expect_equal(attr(built$derivative, "derivative_order"), "1")
   expect_equal(attr(built$nobaseline, "baseline"), "nobaseline")
   expect_true(built$raw$metadata$assessment_flag[1])
+})
+
+test_that("build_lib() skips metadata lookups with no shared key", {
+  lib <- tiny_build_lib()
+  no_shared <- data.table::data.table(
+    missing_key = "not_present",
+    joined_value = "skipped"
+  )
+  no_overlap <- data.table::data.table(
+    source = "Z",
+    joined_value = "skipped"
+  )
+  output_overlap <- data.table::data.table(
+    source = c("A", "B", "C"),
+    library_type = c("polymers", "polymers", "paints"),
+    spectrum_type = c("ftir", "raman", "ftir")
+  )
+  ambiguous <- data.table::data.table(
+    source = "A",
+    sample_name = "s1",
+    joined_value = "ambiguous"
+  )
+
+  expect_message(
+    built <- build_lib(
+      lib,
+      recipes = list(raw = list()),
+      metadata_lookups = no_shared,
+      dedupe = FALSE,
+      signal_noise = FALSE
+    )$raw,
+    "skipping metadata lookup 1/1"
+  )
+  expect_false("joined_value" %in% names(built$metadata))
+
+  expect_message(
+    built <- build_lib(
+      lib,
+      recipes = list(raw = list()),
+      metadata_lookups = no_overlap,
+      dedupe = FALSE,
+      signal_noise = FALSE
+    )$raw,
+    "no usable shared key values"
+  )
+  expect_false("joined_value" %in% names(built$metadata))
+
+  lib$metadata$library_type <- c("polymers", "paints", "polymers", "paints",
+                                "polymers", "paints", "polymers", "paints")
+  lib$metadata$spectrum_type <- "Raman"
+  bad_utf8 <- rawToChar(as.raw(0xff))
+  Encoding(bad_utf8) <- "UTF-8"
+  lib$metadata$library_type[1] <- bad_utf8
+  built <- build_lib(
+    lib,
+    recipes = list(raw = list()),
+    metadata_lookups = output_overlap,
+    dedupe = FALSE,
+    signal_noise = FALSE,
+    clean_metadata_values = TRUE,
+    progress = FALSE
+  )$raw
+  expect_false(any(c("library_type.x", "library_type.y",
+                     "spectrum_type.x", "spectrum_type.y") %in%
+                     names(built$metadata)))
+  expect_equal(built$metadata$library_type[1:3],
+               c("polymers", "polymers", "paints"))
+  expect_equal(built$metadata$spectrum_type[1:3],
+               c("ftir", "raman", "ftir"))
+
+  expect_error(
+    build_lib(
+      lib,
+      recipes = list(raw = list()),
+      metadata_lookups = ambiguous,
+      dedupe = FALSE,
+      signal_noise = FALSE,
+      progress = FALSE
+    ),
+    "Candidate columns were"
+  )
 })
 
 test_that("build_lib() preserves full source ranges through NA-aware recipes", {

@@ -35,6 +35,28 @@ test_that("sig_noise() returns correct values", {
     expect_equal(97527)
 })
 
+test_that("sig_noise() run signal-to-noise is matrix-equivalent with NA tails", {
+  spectra <- cbind(
+    complete = raman_hdpe$spectra[, 1],
+    leading = raman_hdpe$spectra[, 1],
+    trailing = raman_hdpe$spectra[, 1]
+  )
+  spectra[1:10, "leading"] <- NA
+  spectra[(nrow(spectra) - 9):nrow(spectra), "trailing"] <- NA
+  multi <- as_OpenSpecy(raman_hdpe$wavenumber, spectra)
+
+  legacy <- vapply(seq_len(ncol(spectra)), function(i) {
+    y <- spectra[, i]
+    rolling_max <- data.table::frollapply(y[!is.na(y)], 10, max)
+    rolling_max[(length(rolling_max) - 9):length(rolling_max)] <- NA
+    max(rolling_max, na.rm = TRUE) /
+      as.numeric(stats::quantile(rolling_max[rolling_max != 0],
+                                 probs = 0.5, na.rm = TRUE, names = FALSE))
+  }, FUN.VALUE = numeric(1))
+
+  expect_equal(sig_noise(multi, step = 10), abs(legacy))
+})
+
 test_that("entropy results in accurate info", {
     sig_noise(raman_hdpe, 
               metric = "entropy",

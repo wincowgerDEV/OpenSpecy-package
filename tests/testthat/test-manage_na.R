@@ -28,6 +28,10 @@ test_that("manage_na works with zeros", {
     raman_hdpe$spectra[1:10, 1] <- 0
     remove <- manage_na(raman_hdpe, ig = c(NA, 0), type = "remove") 
     expect_equal(nrow(remove$spectra), nrow(raman_hdpe$spectra) - 10)
+
+    raman_hdpe$spectra[1:10, 1] <- NA
+    keep_na <- manage_na(raman_hdpe, ig = 0, type = "remove")
+    expect_equal(nrow(keep_na$spectra), nrow(raman_hdpe$spectra))
 })
 
 

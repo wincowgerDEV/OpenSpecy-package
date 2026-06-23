@@ -1,32 +1,33 @@
-organization,library_type
-aline carvalho,polymers
-archaeometrielabor,paints
-cabernard et al. 2018,"polymer, minerals, organic materials"
-"carbohydrates, s.b.engelsen",carbohydrates
-chabuka et al. 2020,polymers
-chsos_pigments,pigments
-"claudia cella, jrc",polymers
-"dora mehn, ec joint research centre",polymers
-"flopp, de frond et al. 2021",polymers
-handbook of raman spectra,minerals
-horiba scientific,polymers
-hpu polymer kit 1.0,polymers
-"j. lynch, nist",polymers
-"julia, davidson",polymers
-kimmel_center,"organic materials, minerals, archeology"
-microplastic solution,polymers
-monterey bay aquarium research institute,polymers and organic materials
-moore institute for plastic pollution research,polymers and minerals
-nist chem web book,"polymer, minerals, organic materials"
-pharmaceutical_excipients,drugs
-primpke et al. 2018,"polymer, minerals, organic materials"
-pslc_database,polymers
-rachel kozloski,polymers
-raman open database,crystallography
-rruff,minerals
-"slopp, munno et al. 2020",polymers
-"suja sukumaran, thermo fisher scientific","polymer, minerals, organic materials"
-swgdrug,drugs
-ucl pigment library,pigments
-usda,soil
-win cowger and sebastian primpke,"polymer, minerals, organic materials"
+organization,library_type,spectrum_type
+aline carvalho,polymers,
+archaeometrielabor,paints,
+cabernard et al. 2018,"polymer, minerals, organic materials",
+"carbohydrates, s.b.engelsen",carbohydrates,
+chabuka et al. 2020,polymers,
+chsos_pigments,pigments,
+"claudia cella, jrc",polymers,
+"dora mehn, ec joint research centre",polymers,
+"flopp, de frond et al. 2021",polymers,
+handbook of raman spectra,minerals,
+horiba scientific,polymers,
+hpu polymer kit 1.0,polymers,
+"j. lynch, nist",polymers,
+"julia, davidson",polymers,ftir
+kimmel_center,"organic materials, minerals, archeology",
+microplastic solution,polymers,
+monterey bay aquarium research institute,polymers and organic materials,raman
+moore institute for plastic pollution research,polymers and minerals,ftir
+nist chem web book,"polymer, minerals, organic materials",
+pharmaceutical_excipients,drugs,
+primpke et al. 2018,"polymer, minerals, organic materials",
+pslc_database,polymers,
+rachel kozloski,polymers,
+raman open database,crystallography,
+rruff,minerals,
+"slopp, munno et al. 2020",polymers,
+"suja sukumaran, thermo fisher scientific","polymer, minerals, organic materials",
+swgdrug,drugs,
+ucl pigment library,pigments,
+usda,soil,
+win cowger and sebastian primpke,"polymer, minerals, organic materials",
+national renewable energy laboratory,,ftir

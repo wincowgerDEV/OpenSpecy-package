@@ -22,10 +22,12 @@ build_lib(
   metadata_lookups = NULL,
   material_hierarchy = NULL,
   metadata_name_lookup = lib_metadata_name_lookup(),
+  clean_metadata_values = FALSE,
   convert_intensity = TRUE,
   restrict_range_args = NULL,
   signal_noise = TRUE,
   assess = FALSE,
+  progress = TRUE,
   ...
 )
 
@@ -92,9 +94,12 @@ assess_lib(
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} or \code{Specs} object for metadata helpers.
-For \code{build_lib()}, a nonempty character vector of file paths readable by
-\code{\link{read_any}()}, or a nonempty list containing only
-\code{OpenSpecy} objects. A single \code{OpenSpecy} must be wrapped in a list.}
+For \code{build_lib()}, one \code{OpenSpecy}, a nonempty list containing only
+\code{OpenSpecy} objects, or a nonempty character vector of file paths.
+Each RDS path may store either one \code{OpenSpecy} or a list of them; other
+paths are read with \code{\link{read_any}()}.
+Large same-axis source lists are prepared in bulk to avoid repeated legacy
+object coercion.}
 
 \item{recipes}{named list of \code{\link{process_spec}()} argument lists or
 functions. Names become names of the returned libraries.}
@@ -111,8 +116,12 @@ spectra in \code{build_lib()}.}
 
 \item{metadata_lookups}{a lookup table, csv path, or list of lookup tables and
 paths. If non-\code{NULL}, each is joined with
-\code{join_lib_metadata()}. Each ordinary lookup must have exactly one column
-name in common with the current object metadata.}
+\code{join_lib_metadata()}. Automatic ordinary lookups use the single shared
+column that has overlapping values and unique lookup keys. Lookups with no
+usable shared key are skipped with a message; lookups with multiple usable
+shared keys are considered ambiguous and stop. Lookup values that share
+non-key metadata column names are coalesced back into those columns, with
+non-missing lookup values taking precedence.}
 
 \item{material_hierarchy}{hierarchy table or csv path used when
 non-\code{NULL}. It is joined with \code{join_material_hierarchy()} using the
@@ -122,6 +131,10 @@ default \code{"material"} metadata key.}
 \code{canonical_name}, \code{source_name}, and optional \code{regex} columns.
 The default is returned by \code{\link{lib_metadata_name_lookup}()}; use
 \code{NULL} to clean names without coalescing aliases.}
+
+\item{clean_metadata_values}{logical; whether \code{build_lib()} should also
+lowercase, trim, ASCII-normalize, and normalize blank/unknown character
+metadata values in source metadata and lookup tables before joining.}
 
 \item{convert_intensity}{logical; whether to infer reflectance,
 transmittance, or absorbance units from each source and convert known
@@ -139,6 +152,9 @@ unless explicitly overridden.}
 
 \item{assess}{logical; whether to run \code{\link{assess_spec}()} on each
 output library and append assessment summaries to its metadata.}
+
+\item{progress}{logical; whether \code{build_lib()} reports named processing
+stages and elapsed time.}
 
 \item{columns}{metadata columns to deduplicate into a template.}
 
@@ -217,10 +233,10 @@ supplied, in which case it writes the csv and invisibly returns the table.
 \code{\link{match_spec}()}. \code{assess_lib()} returns a data.table summary.
 }
 \description{
-Helpers for creating reference libraries from source files, lists of
-OpenSpecy objects, and metadata lookup tables. \code{build_lib()} provides
-the standard end-to-end workflow while the supporting functions remain
-available for advanced composition.
+Helpers for creating reference libraries from source files and OpenSpecy
+objects with metadata lookup tables. \code{build_lib()} provides the
+standard end-to-end workflow while the supporting functions remain available
+for advanced composition.
 }
 \details{
 \code{build_lib()} combines sources over their full wavenumber range,
@@ -229,7 +245,9 @@ identifiers, optionally generates stable duplicate IDs, and applies named
 processing recipes. Metadata column names are first converted to lowercase
 underscore names and known aliases are coalesced using
 \code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
-automatic and regular-expression matching. By default, each source is also
+automatic and regular-expression matching. Metadata values can optionally be
+normalized to lowercase trimmed character values before lookup joins. By
+default, each source is also
 converted to absorbance before merging when its intensity units are known.
 A nonempty \code{intensity_unit} object attribute takes precedence over the
 per-spectrum \code{intensity_units} metadata column. Each recipe is either a
@@ -238,6 +256,8 @@ accepting one \code{OpenSpecy} object. An empty recipe returns an unprocessed
 copy. Signal-to-noise is added by default, and optional
 \code{\link{assess_spec}()} results are summarized into one metadata row per
 spectrum.
+Progress messages report named stages and elapsed time by default so
+long-running builds remain observable.
 
 \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -313,7 +333,7 @@ deduped <- dedupe_spec(joined)
 reduced <- reduce_lib(deduped, group_cols = "material_class",
                       k = 1, min_n = 1)
 libs <- build_lib(
-  list(mini),
+  mini,
   recipes = list(
     raw = list(),
     derivative = list(

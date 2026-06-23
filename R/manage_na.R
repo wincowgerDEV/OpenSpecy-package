@@ -87,24 +87,39 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
                                 type = "ignore", ...) {
   x <- as_OpenSpecy(x)
 
-  ignored <- .apply_spectra(x$spectra, manage_na,
-                            lead_tail_only = lead_tail_only,
-                            ig = ig)
-  ignored <- matrix(as.logical(ignored),
-                    nrow = nrow(x$spectra),
-                    ncol = ncol(x$spectra))
+  ignored_info <- .spectra_ignore_info(
+    x$spectra,
+    lead_tail_only = lead_tail_only,
+    ig = ig
+  )
+  ignored <- ignored_info$ignored
 
   if(type == "ignore"){
     if (missing(fun)) {
       stop("'fun' must be supplied when type = 'ignore'", call. = FALSE)
     }
+    if (!any(ignored)) {
+      return(do.call(fun, c(list(x), list(...))))
+    }
+    if (any(!ignored_info$has_valid)) {
+      stop("All intensity values are NA, cannot remove or ignore with manage na.",
+           call. = FALSE)
+    }
 
-    mask_keys <- vapply(seq_len(ncol(ignored)), function(i) {
-      paste(which(ignored[, i]), collapse = ",")
-    }, FUN.VALUE = character(1))
+    if (lead_tail_only) {
+      mask_keys <- paste(ignored_info$first, ignored_info$last, sep = ":")
+    } else {
+      mask_keys <- vapply(seq_len(ncol(ignored)), function(i) {
+        paste(which(ignored[, i]), collapse = ",")
+      }, FUN.VALUE = character(1))
+    }
 
     for (cols in split(seq_len(ncol(x$spectra)), mask_keys)) {
-      keep <- !ignored[, cols[1L]]
+      keep <- if (lead_tail_only) {
+        seq.int(ignored_info$first[cols[1L]], ignored_info$last[cols[1L]])
+      } else {
+        !ignored[, cols[1L]]
+      }
       if (!any(keep)) {
         stop("All intensity values are NA, cannot remove or ignore with manage na.",
              call. = FALSE)
@@ -123,11 +138,7 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
       }
 
       x$spectra[keep, cols] <- processed$spectra
-      updated_attributes <- setdiff(names(attributes(processed)),
-                                    c("names", "class"))
-      for (nm in updated_attributes) {
-        attr(x, nm) <- attr(processed, nm)
-      }
+      x <- .copy_open_specy_attributes(x, processed)
     }
   }
 
@@ -138,4 +149,64 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
   }
 
   return(x)
+}
+
+.spectra_ignore_info <- function(spectra, lead_tail_only = TRUE, ig = c(NA)) {
+  raw_ignored <- .ignored_value_matrix(spectra, ig)
+
+  if (!lead_tail_only) {
+    return(list(
+      ignored = raw_ignored,
+      has_valid = colSums(!raw_ignored) > 0L,
+      first = rep(NA_integer_, ncol(spectra)),
+      last = rep(NA_integer_, ncol(spectra))
+    ))
+  }
+
+  leading <- raw_ignored
+  trailing <- raw_ignored
+  if (nrow(raw_ignored) > 1L) {
+    for (i in 2:nrow(raw_ignored)) {
+      leading[i, ] <- leading[i, ] & leading[i - 1L, ]
+    }
+    for (i in (nrow(raw_ignored) - 1L):1L) {
+      trailing[i, ] <- trailing[i, ] & trailing[i + 1L, ]
+    }
+  }
+
+  has_valid <- colSums(!raw_ignored) > 0L
+  first <- colSums(leading) + 1L
+  last <- nrow(raw_ignored) - colSums(trailing)
+  first[!has_valid] <- NA_integer_
+  last[!has_valid] <- NA_integer_
+
+  list(
+    ignored = leading | trailing,
+    has_valid = has_valid,
+    first = as.integer(first),
+    last = as.integer(last)
+  )
+}
+
+.ignored_value_matrix <- function(spectra, ig = c(NA)) {
+  ignored <- matrix(FALSE, nrow = nrow(spectra), ncol = ncol(spectra))
+  if (anyNA(ig)) ignored <- is.na(spectra)
+
+  values <- ig[!is.na(ig)]
+  if (length(values) > 0L) {
+    for (value in values) {
+      matched <- spectra == value
+      matched[is.na(matched)] <- FALSE
+      ignored <- ignored | matched
+    }
+  }
+  ignored
+}
+
+.copy_open_specy_attributes <- function(x, source) {
+  updated_attributes <- setdiff(names(attributes(source)), c("names", "class"))
+  for (nm in updated_attributes) {
+    attr(x, nm) <- attr(source, nm)
+  }
+  x
 }

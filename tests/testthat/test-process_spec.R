@@ -62,3 +62,44 @@ test_that("process_spec() automatically manages NA and updates attributes", {
   )
   expect_equal(attr(baseline, "baseline"), "nobaseline")
 })
+
+test_that("process_spec() bulk-processes complete columns beside NA columns", {
+  data(raman_hdpe)
+  spectra <- cbind(
+    complete = raman_hdpe$spectra[, 1],
+    missing = raman_hdpe$spectra[, 1]
+  )
+  spectra[1:10, "missing"] <- NA
+  os <- as_OpenSpecy(raman_hdpe$wavenumber, spectra)
+
+  processed <- process_spec(
+    os,
+    conform_spec = FALSE,
+    smooth_intens_args = list(window = 15, derivative = 1),
+    make_rel = TRUE
+  )
+
+  complete_expected <- process_spec(
+    filter_spec(os, "complete"),
+    conform_spec = FALSE,
+    smooth_intens_args = list(window = 15, derivative = 1),
+    make_rel = TRUE
+  )
+  missing_expected <- manage_na(
+    filter_spec(os, "missing"),
+    fun = function(x) {
+      process_spec(
+        x,
+        conform_spec = FALSE,
+        smooth_intens_args = list(window = 15, derivative = 1),
+        make_rel = TRUE
+      )
+    }
+  )
+
+  expect_equal(processed$spectra[, "complete"],
+               complete_expected$spectra[, "complete"])
+  expect_equal(processed$spectra[, "missing"],
+               missing_expected$spectra[, "missing"])
+  expect_equal(attr(processed, "derivative_order"), "1")
+})

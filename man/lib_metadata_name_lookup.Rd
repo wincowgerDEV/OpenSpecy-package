@@ -16,7 +16,11 @@ lib_metadata_name_lookup(
 
 lib_clean_name(x)
 
-lib_clean_metadata(x, name_lookup = lib_metadata_name_lookup())
+lib_clean_metadata(
+  x,
+  name_lookup = lib_metadata_name_lookup(),
+  clean_values = FALSE
+)
 }
 \arguments{
 \item{...}{named character vectors of exact aliases, where each argument name
@@ -40,6 +44,10 @@ data.frame/data.table for \code{lib_clean_metadata()}.}
 
 \item{name_lookup}{a table returned by \code{lib_metadata_name_lookup()} or a
 compatible rule table. Use \code{NULL} to clean names without alias merging.}
+
+\item{clean_values}{logical; whether \code{lib_clean_metadata()} should also
+lowercase, trim, ASCII-normalize, and normalize blank/unknown character or
+factor metadata values.}
 }
 \value{
 \code{lib_metadata_name_lookup()} returns a data.table of rules.

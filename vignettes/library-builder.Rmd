@@ -111,10 +111,13 @@ Unknown or missing units are left unchanged with a warning. Use
 `convert_intensity = FALSE` when unit handling has already been completed
 outside the builder.
 
-The normal input is one or more file paths readable by `read_any()`; a list of
-`OpenSpecy` objects supports sources already loaded in memory. A bare
-`OpenSpecy` is intentionally rejected, so use `list(x)` for a one-object list.
-Supplying
+The normal input is one or more file paths; one `OpenSpecy` or a list of
+`OpenSpecy` objects supports sources already loaded in memory. An RDS path may
+store either one object or a list of objects. Other formats are read with
+`read_any()`. Large same-axis source lists are prepared in bulk, which is much
+faster for legacy RDS files that store many one-spectrum objects. Named stages
+and elapsed time are reported while the library is built; use
+`progress = FALSE` when quiet output is preferred. Supplying
 `restrict_range_args` triggers the existing `restrict_range()` operation before
 deduplication and recipes; multiple retained ranges can exclude a known silent
 region without custom workflow code.
@@ -133,8 +136,16 @@ lib_clean_name(c("User Name", "Laser (%)", "Method...3"))
 Named arguments add exact aliases to the defaults, while `regex` adds patterns
 evaluated against cleaned names. Overlapping regex patterns produce an error
 that identifies the source column and matching rules. Pass the result as
-`metadata_name_lookup`. Ordinary and hierarchical joins run whenever their
-corresponding lookup input is non-`NULL`.
+`metadata_name_lookup`. Set `clean_metadata_values = TRUE` in `build_lib()`
+or `clean_values = TRUE` in `lib_clean_metadata()` to lowercase, trim, and
+ASCII-normalize character metadata values before joins. Ordinary and
+hierarchical joins run whenever their corresponding lookup input is non-`NULL`.
+Automatic ordinary lookups use the single shared column with overlapping values
+and unique lookup keys. Lookups with no usable shared key are skipped with a
+message; lookups with multiple usable shared keys are treated as ambiguous, so
+call `join_lib_metadata()` directly when a custom join is needed. Automatic
+`build_lib()` lookups coalesce curated lookup values back into existing
+metadata columns, so lookup tables can correct fields such as `spectrum_type`.
 
 ```{r mini-library-build}
 mini_libs <- build_lib(
@@ -156,6 +167,7 @@ mini_libs <- build_lib(
   ),
   metadata_lookups = lookup,
   material_hierarchy = hierarchy,
+  clean_metadata_values = TRUE,
   convert_intensity = FALSE,
   assess = TRUE,
   dedupe = FALSE

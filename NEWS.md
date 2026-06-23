@@ -14,16 +14,32 @@
   absorbance before merging. The `intensity_unit` object attribute takes
   precedence over per-spectrum `intensity_units` metadata, and conversion can
   be disabled with `convert_intensity = FALSE`.
-- `build_lib()` now uses file path(s) readable by `read_any()` as its primary
-  input and a list of `OpenSpecy` objects as its secondary input. Bare
-  `OpenSpecy` objects must be wrapped in `list()`. It also accepts optional
-  `restrict_range_args` before library recipes.
+- `build_lib()` now accepts file paths, one `OpenSpecy`, or a list of
+  `OpenSpecy` objects. Each RDS path may contain either one object or a list,
+  while other formats continue through `read_any()`. Named progress stages and
+  elapsed time are reported by default and can be disabled with
+  `progress = FALSE`. It also accepts optional `restrict_range_args` before
+  library recipes. Large same-axis source lists are bulk-prepared to avoid
+  repeated legacy object coercion.
+- Automatic `build_lib()` metadata lookups now infer the single shared column
+  with overlapping values and unique lookup keys, skip lookups with no usable
+  shared key, remain strict when multiple usable keys are ambiguous, and
+  coalesce curated lookup values back into existing metadata columns.
+- Added optional metadata value normalization with
+  `build_lib(clean_metadata_values = TRUE)` and
+  `lib_clean_metadata(clean_values = TRUE)`, used by the reference workflow to
+  trim/lowercase metadata values before joins.
 - Fixed NA-aware `process_spec()` dispatch so downstream arguments such as
-  baseline or intensity `type` reach the intended processing function.
+  baseline or intensity `type` reach the intended processing function. NA-aware
+  processing now groups leading/trailing missing-value ranges and bulk-processes
+  complete spectra where possible.
+- Optimized `sig_noise()` for matrix-native signal/noise summaries, including
+  the default run signal-to-noise calculation used by `build_lib()`.
 - Added a tracked, package-build-excluded
   `workflows/OpenSpecy_reference_library.R` workflow composed only from
   existing package operations, with canonical lookup and exclusion CSVs under
-  `workflows/data/`.
+  `workflows/data/`. Repeated filtering, reduction, assessment, model building,
+  and artifact writing are applied across named library lists.
 - Exported metadata-name cleaning helpers with automatic underscore and
   terminal-`s` matching, extensible exact aliases, and ambiguity-checked regular
   expression rules.

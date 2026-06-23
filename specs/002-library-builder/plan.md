@@ -6,7 +6,7 @@
 
 ## Goal
 
-- Make file path(s) readable by `read_any()` the primary `build_lib()` input and a list of `OpenSpecy` objects the secondary input.
+- Make file path(s), one `OpenSpecy`, or a list of `OpenSpecy` objects convenient `build_lib()` inputs, including RDS files that store either object shape.
 - Keep the official workflow short, declarative, and composed only from existing OpenSpecy functions plus versioned curation CSVs.
 
 ## Scope
@@ -18,7 +18,8 @@
 ## Requirements
 
 - R1. `build_lib()` gains `convert_intensity = TRUE`; `FALSE` preserves supplied intensities and unit declarations.
-- R1a. `x` accepts a nonempty character vector of readable paths or a nonempty list containing only `OpenSpecy` objects; a bare `OpenSpecy` is rejected with guidance to use `list(x)`.
+- R1a. `x` accepts one `OpenSpecy`, a nonempty list containing only `OpenSpecy` objects, or a nonempty character vector of readable paths.
+- R1b. Each `.rds` path is loaded directly and may contain one `OpenSpecy` or a nonempty list of them; other paths continue through `read_any()` without changing that reader.
 - R2. For each source object, canonical `attr(x, "intensity_unit")`, when nonempty, is authoritative for every spectrum; otherwise cleaned metadata column `intensity_units` is evaluated per spectrum.
 - R3. Unit matching is case-insensitive and recognizes absorbance, `reflec*`, and `transm*`; reflectance and transmittance use `adj_intens(..., make_rel = FALSE)`, while absorbance is unchanged.
 - R4. Conversion occurs before optional merging, range restriction, deduplication, recipes, SNR, and assessment so IDs describe converted spectra.
@@ -30,11 +31,16 @@
 - R10. Official outputs cover raw, derivative, nobaseline, medoid derivative/nobaseline, and derivative/nobaseline models for combined, FTIR, and Raman use, guided by `CleanRawFiles.R` and `andrea_ai/PAM.R`.
 - R11. `workflows/data/` stores canonical lowercase/underscore lookup columns plus `known_bad_ids.csv`; organization-based intensity inference is removed and source corrections remain external to this repository.
 - R12. Known-bad IDs remain integrated into `build_lib()`; plate-position and other dataset filters run with `filter_spec()` after the build.
+- R13. `build_lib()` reports elapsed, named progress stages by default, including source loading, preparation, merging, joins, filtering, deduplication, recipes, SNR, assessment, and completion; users can disable messages.
+- R14. Automatic metadata lookups infer the single shared column with overlapping values and unique lookup keys; no-key lookups are skipped with a progress message and multiple usable keys still stop as ambiguous.
+- R15. Large lists of same-axis `OpenSpecy` sources are prepared in bulk: metadata names are cleaned once, legacy data.table spectra are converted silently, source attributes still supply primary intensity units, and conforming runs once on the combined object.
+- R16. Metadata value cleanup is opt-in and normalizes character/factor metadata values before lookup joins; the official workflow enables it.
+- R17. NA-aware processing and signal-to-noise improvements preserve current outputs and are benchmarked against legacy-style loops.
 
 ## Technical Decisions
 
-- **Approach**: Read each supplied path with `read_any()` or validate the supplied `OpenSpecy` list, then normalize units, merge with `c_spec()` when needed, optionally call `restrict_range()`, and continue the builder pipeline.
-- **Public API**: `convert_intensity` is a meaningful standard-workflow policy and defaults to `TRUE`; unit type is derived state, so no second unit argument or exported helper is added. Advanced manual conversion remains `x |> adj_intens(...)`.
+- **Approach**: Normalize direct objects to a source list; inspect `.rds` paths with `readRDS()` and use `read_any()` otherwise; bulk-combine same-axis source lists when possible, then normalize units, merge when needed, and report progress through the builder pipeline.
+- **Public API**: `convert_intensity` and `progress` default to `TRUE`; value cleanup is opt-in via `clean_metadata_values`/`clean_values` because it intentionally mutates labels.
 - **Reference pipeline**: `build_lib(source_file, ...)` reads source paths itself; post-build `filter_spec()` applies dataset exclusions, then existing reduction/model functions operate on explicitly restricted copies.
 - **Defaults**: Preserve full-range/resolution-6 and current named recipes initially; compare against legacy range `c(100, 11994)`, window 15 derivative, baseline, normalization, SNR step 10, excluded 2200-2420 model/reduction region, `k = 50`, minimum class size 10, and model `alpha = 0.1` before resetting any default.
 - **Dependencies**: No new package dependency; workflow development may require external source/lookup files supplied by configured paths.
@@ -46,7 +52,7 @@
 
 - `R/`: Simplify `R/build_lib.R`, add `restrict_range_args`, and retain the NA-aware fix in `R/process_spec.R`.
 - `tests/testthat/`: Extend `tests/testthat/test-build_lib.R` with small numerical unit-precedence and workflow-order tests.
-- `benchmarks/`: Update `benchmarks/library_builder.R` with repeated legacy-loop equivalence and regression checks for auto-conversion.
+- `benchmarks/`: Update `benchmarks/library_builder.R` with repeated legacy-loop equivalence and regression checks for conversion, NA processing, and signal-to-noise.
 - `workflows/`: Replace the script with straight-line calls; add canonical CSVs under `workflows/data/`.
 - `.Rbuildignore`: Add `^workflows$`; `.gitignore` remains unchanged.
 - `vignettes/README/pkgdown`: Update the library-builder vignette with auto-conversion and link to the GitHub workflow; no direct pkgdown HTML edits.
@@ -56,11 +62,16 @@
 
 ## Work Checklist
 
-- [x] Restrict `build_lib()` inputs to path vector or `OpenSpecy` list and update callers.
+- [x] Support direct objects and per-path RDS object/list inspection without changing `read_any()`.
+- [x] Add default-on progress messages with elapsed time and an opt-out.
 - [x] Create canonical workflow lookup CSVs and `known_bad_ids.csv`.
-- [x] Replace the workflow with straight-line OpenSpecy/base calls and post-build filters.
+- [x] Compress repeated workflow stages across named library types with `lapply()`.
+- [x] Infer one usable automatic metadata key, skip no-key lookups, and keep ambiguous lookups strict.
+- [x] Add bulk same-axis source-list preparation to avoid per-source full coercion.
+- [x] Add opt-in metadata value cleanup and curated `spectrum_type` lookup values.
+- [x] Speed up grouped NA-aware processing and matrix signal-to-noise calculations.
 - [x] Update tests, benchmark, roxygen, vignette, NEWS, and generated docs.
-- [x] Run focused tests, representative workflow, full tests, and package check.
+- [x] Run focused tests, benchmark, representative workflow, full tests, and package check.
 
 ## Verification
 

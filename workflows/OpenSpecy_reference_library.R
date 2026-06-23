@@ -37,12 +37,14 @@ known_bad_ids <- data.table::fread(
 libraries <- build_lib(
   source_file,
   restrict_range_args = list(
-    min = c(100, 2420.000001),
-    max = c(2199.999999, 11994)
+    min = c(100, 2420),
+    max = c(2200, 11994)
   ),
   exclude_ids = known_bad_ids$sample_name,
   metadata_lookups = list(classes_reference, library_types),
-  material_hierarchy = material_hierarchy
+  material_hierarchy = material_hierarchy,
+  clean_metadata_values = TRUE,
+  assess = TRUE
 )
 
 keep <- !is.na(libraries$raw$metadata$material_type) &
@@ -56,98 +58,70 @@ keep <- !is.na(libraries$raw$metadata$material_type) &
   )
 keep[is.na(keep)] <- TRUE
 
-raw <- filter_spec(libraries$raw, keep)
-derivative <- filter_spec(libraries$derivative, keep)
-nobaseline <- filter_spec(libraries$nobaseline, keep)
-derivative$spectra <- round(derivative$spectra, 3)
-nobaseline$spectra <- round(nobaseline$spectra, 3)
+libraries <- lapply(libraries, filter_spec, logic = keep)
+processed_types <- c("derivative", "nobaseline")
+libraries[processed_types] <- lapply(libraries[processed_types], \(x) {
+  x$spectra <- round(x$spectra, 3)
+  x
+})
 
-derivative_ids <- reduce_lib(
-  derivative,
+medoid_ids <- lapply(
+  libraries[processed_types],
+  reduce_lib,
   group_cols = c("spectrum_type", "organization", "material_class"),
   k = 50,
   min_n = 50,
   return = "ids"
 )
-nobaseline_ids <- reduce_lib(
-  nobaseline,
-  group_cols = c("spectrum_type", "organization", "material_class"),
-  k = 50,
-  min_n = 50,
-  return = "ids"
+medoid_libraries <- Map(
+  filter_spec,
+  libraries[processed_types],
+  medoid_ids
 )
+names(medoid_libraries) <- paste0("medoid_", names(medoid_libraries))
 
-medoid_derivative <- filter_spec(derivative, derivative_ids)
-medoid_nobaseline <- filter_spec(nobaseline, nobaseline_ids)
-
-model_derivative_input <- restrict_range(
-  medoid_derivative,
+model_inputs <- lapply(
+  medoid_libraries,
+  restrict_range,
   min = 800,
   max = 3200,
   make_rel = FALSE
 )
-model_nobaseline_input <- restrict_range(
-  medoid_nobaseline,
-  min = 800,
-  max = 3200,
-  make_rel = FALSE
-)
-
-model_derivative <- list(
-  both = build_model_lib(model_derivative_input),
-  ftir = build_model_lib(filter_spec(
-    model_derivative_input,
-    model_derivative_input$metadata$spectrum_type == "ftir"
-  )),
-  raman = build_model_lib(filter_spec(
-    model_derivative_input,
-    model_derivative_input$metadata$spectrum_type == "raman"
-  ))
-)
-model_nobaseline <- list(
-  both = build_model_lib(model_nobaseline_input),
-  ftir = build_model_lib(filter_spec(
-    model_nobaseline_input,
-    model_nobaseline_input$metadata$spectrum_type == "ftir"
-  )),
-  raman = build_model_lib(filter_spec(
-    model_nobaseline_input,
-    model_nobaseline_input$metadata$spectrum_type == "raman"
-  ))
-)
-
-assessment <- data.table::rbindlist(list(
-  raw = assess_lib(raw, class_col = "material_class", nearest = FALSE),
-  derivative = assess_lib(
-    derivative, class_col = "material_class", nearest = FALSE
-  ),
-  nobaseline = assess_lib(
-    nobaseline, class_col = "material_class", nearest = FALSE
-  ),
-  medoid_derivative = assess_lib(
-    medoid_derivative, class_col = "material_class", nearest = FALSE
-  ),
-  medoid_nobaseline = assess_lib(
-    medoid_nobaseline, class_col = "material_class", nearest = FALSE
+model_libraries <- lapply(model_inputs, \(x) {
+  model_sources <- list(
+    both = x,
+    ftir = filter_spec(x, x$metadata$spectrum_type == "ftir"),
+    raman = filter_spec(x, x$metadata$spectrum_type == "raman")
   )
-), idcol = "artifact")
+  lapply(model_sources, build_model_lib)
+})
+names(model_libraries) <- sub("^medoid_", "model_", names(model_libraries))
+
+artifacts <- c(libraries, medoid_libraries)
+assessment <- data.table::rbindlist(
+  lapply(
+    artifacts,
+    assess_lib,
+    class_col = "material_class",
+    nearest = FALSE
+  ),
+  idcol = "artifact"
+)
 print(assessment)
 
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-write_spec(raw, file.path(output_dir, "raw.rds"))
-write_spec(derivative, file.path(output_dir, "derivative.rds"))
-write_spec(nobaseline, file.path(output_dir, "nobaseline.rds"))
-write_spec(
-  medoid_derivative,
-  file.path(output_dir, "medoid_derivative.rds")
-)
-write_spec(
-  medoid_nobaseline,
-  file.path(output_dir, "medoid_nobaseline.rds")
-)
-saveRDS(model_derivative, file.path(output_dir, "model_derivative.rds"))
-saveRDS(model_nobaseline, file.path(output_dir, "model_nobaseline.rds"))
+invisible(Map(
+  write_spec,
+  artifacts,
+  file.path(output_dir, paste0(names(artifacts), ".rds"))
+))
+invisible(Map(
+  saveRDS,
+  model_libraries,
+  file.path(output_dir, paste0(names(model_libraries), ".rds"))
+))
 data.table::fwrite(
   assessment,
   file.path(output_dir, "library_assessment.csv")
 )
+
