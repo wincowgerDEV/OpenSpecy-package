@@ -33,18 +33,20 @@ material_hierarchy <- data.table::fread(
 known_bad_ids <- data.table::fread(
   file.path(workflow_data, "known_bad_ids.csv")
 )
+metadata_drop <- data.table::fread(
+  file.path(workflow_data, "metadata_drop_columns.csv")
+)
 
 libraries <- build_lib(
   source_file,
   restrict_range_args = list(
-    min = c(100, 2420),
-    max = c(2200, 11994)
+    min = c(100),
+    max = c(11994)
   ),
   exclude_ids = known_bad_ids$sample_name,
   metadata_lookups = list(classes_reference, library_types),
   material_hierarchy = material_hierarchy,
-  clean_metadata_values = TRUE,
-  assess = TRUE
+  clean_metadata_values = TRUE
 )
 
 keep <- !is.na(libraries$raw$metadata$material_type) &
@@ -59,6 +61,11 @@ keep <- !is.na(libraries$raw$metadata$material_type) &
 keep[is.na(keep)] <- TRUE
 
 libraries <- lapply(libraries, filter_spec, logic = keep)
+libraries <- lapply(libraries, \(x) {
+  drop_cols <- intersect(metadata_drop$metadata_column, names(x$metadata))
+  if (length(drop_cols) > 0) x$metadata[, (drop_cols) := NULL]
+  x
+})
 processed_types <- c("derivative", "nobaseline")
 libraries[processed_types] <- lapply(libraries[processed_types], \(x) {
   x$spectra <- round(x$spectra, 3)
@@ -90,8 +97,14 @@ model_inputs <- lapply(
 model_libraries <- lapply(model_inputs, \(x) {
   model_sources <- list(
     both = x,
-    ftir = filter_spec(x, x$metadata$spectrum_type == "ftir"),
-    raman = filter_spec(x, x$metadata$spectrum_type == "raman")
+    ftir = filter_spec(
+      x,
+      !is.na(x$metadata$spectrum_type) & x$metadata$spectrum_type == "ftir"
+    ),
+    raman = filter_spec(
+      x,
+      !is.na(x$metadata$spectrum_type) & x$metadata$spectrum_type == "raman"
+    )
   )
   lapply(model_sources, build_model_lib)
 })
@@ -125,3 +138,39 @@ data.table::fwrite(
   file.path(output_dir, "library_assessment.csv")
 )
 
+
+#Checks
+#Test script for comparing to old library
+get_lib("derivative")
+
+test_d <- load_lib("derivative")
+
+new_d <- libraries$derivative
+
+#Not finding any of the same sample_name, this is a compatibility issue. 
+any(new_d$metadata$sample_name %in% test_d$metadata$sample_name)
+
+old_samp <- sample_spec(test_d, 1)
+
+new_samp <- filter_spec(new_d, new_d$metadata$sample_name == old_samp$metadata$sample_name)
+
+#sourcelib <- readRDS(source_file)
+
+#c_spec is not allowing this join, says that there is an error in approx and needs at least 2 NA value, this should be an easy join.
+c_spec(list(new_samp, old_samp)) |> plot()
+
+assessments <- assess_spec(new_d)
+
+#Shows what the main issues are
+table(assessments$check)
+
+table(assessments$spectrum_id) |> sort(decreasing = T)
+
+library(dplyr)
+new_d$metadata$spectrum_index = 1:nrow(new_d$metadata)
+check_assessments <- assessments %>% filter(assessments$spectrum_index %in% names(table(assessments$spectrum_index))[table(assessments$spectrum_index) > 3])
+check_bad <- filter_spec(new_d, check_assessments$spectrum_index[[1]])
+
+check_assessments %>% filter(spectrum_index == check_bad$metadata$spectrum_index)
+
+plot(check_bad, offset = 1, legend_var = "spectrum_index")

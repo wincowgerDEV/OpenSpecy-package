@@ -355,6 +355,16 @@ filter_spec.OpenSpecy <- function(x, logic, ...) {
   if(is.character(logic)){
     logic = which(colnames(x$spectra) %in% logic)
   }
+  if (is.logical(logic)) {
+    if (length(logic) != ncol(x$spectra)) {
+      stop("logical filters must have the same length as the number of spectra",
+           call. = FALSE)
+    }
+    logic[is.na(logic)] <- FALSE
+  }
+  if (anyNA(logic)) {
+    stop("filters must not contain NA values", call. = FALSE)
+  }
   x$spectra <- x$spectra[, logic, drop = FALSE]
   x$metadata <- x$metadata[logic,]
 

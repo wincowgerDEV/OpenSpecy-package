@@ -28,6 +28,20 @@ preproc <- conform_spec(unknown, range = test_lib$wavenumber,
                         res = spec_res(test_lib)) |>
   process_spec(smooth_intens = T, make_rel = T)
 
+test_that("filter_spec() treats NA logical filters as FALSE", {
+  lib <- as_OpenSpecy(
+    x = 1:3,
+    spectra = data.frame(a = 1:3, b = 4:6, c = 7:9),
+    metadata = data.frame(sample_name = c("a", "b", "c"))
+  )
+
+  filtered <- filter_spec(lib, c(TRUE, NA, FALSE))
+  expect_equal(colnames(filtered$spectra), "a")
+  expect_equal(filtered$metadata$sample_name, "a")
+  expect_equal(ncol(filtered$spectra), nrow(filtered$metadata))
+  expect_error(filter_spec(lib, c(TRUE, FALSE)), "same length")
+})
+
 test_that("os_similarity() returns correct values", {
     #The basic definition of similarity for each
     expect_true(os_similarity(tiny_map, tiny_map, method = "hamming") == 1) 

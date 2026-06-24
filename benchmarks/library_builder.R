@@ -338,6 +338,60 @@ if (new_na_processing_time > old_na_processing_time * 1.1) {
        "legacy per-spectrum mask-key path")
 }
 
+old_process_intensity_step <- function(x, fun, args = list()) {
+  na_cols <- colSums(is.na(x$spectra)) > 0L
+  if (!any(na_cols)) {
+    return(do.call(fun, c(list(x), args)))
+  }
+  stop("This benchmark path expects spectra without missing values")
+}
+
+old_process_spec_no_na <- function(x) {
+  x <- old_process_intensity_step(
+    x,
+    "smooth_intens",
+    list(window = 11, derivative = 1, make_rel = FALSE)
+  )
+  old_process_intensity_step(x, "make_rel", list(na.rm = TRUE))
+}
+
+no_na_processing_lib <- make_na_processing_lib()
+no_na_processing_lib$spectra[is.na(no_na_processing_lib$spectra)] <- 0
+old_processed_no_na <- old_process_spec_no_na(no_na_processing_lib)
+new_processed_no_na <- process_spec(
+  no_na_processing_lib,
+  conform_spec = FALSE,
+  smooth_intens_args = list(window = 11, derivative = 1),
+  make_rel = TRUE
+)
+stopifnot(isTRUE(all.equal(
+  old_processed_no_na$spectra,
+  new_processed_no_na$spectra,
+  tolerance = 1e-12
+)))
+
+old_no_na_processing_time <- median_repeated_time(
+  function() old_process_spec_no_na(no_na_processing_lib),
+  batches = 3L,
+  iterations = 1L
+)
+new_no_na_processing_time <- median_repeated_time(
+  function() process_spec(
+    no_na_processing_lib,
+    conform_spec = FALSE,
+    smooth_intens_args = list(window = 11, derivative = 1),
+    make_rel = TRUE
+  ),
+  batches = 3L,
+  iterations = 1L
+)
+message("Old no-NA processing median: ", old_no_na_processing_time)
+message("New no-NA fast-path processing median: ", new_no_na_processing_time)
+if (new_no_na_processing_time > old_no_na_processing_time * 1.1) {
+  stop("No-NA processing fast path is more than 10% slower than the ",
+       "previous column-mask path")
+}
+
 old_run_sig_over_noise <- function(x, step = 10, prob = 0.5) {
   vapply(seq_len(ncol(x$spectra)), function(i) {
     y <- x$spectra[, i]

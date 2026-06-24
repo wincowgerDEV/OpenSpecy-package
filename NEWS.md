@@ -35,11 +35,20 @@
   complete spectra where possible.
 - Optimized `sig_noise()` for matrix-native signal/noise summaries, including
   the default run signal-to-noise calculation used by `build_lib()`.
+- `build_lib()` now generates reference-library `sample_name` hashes at the
+  source stage using the legacy cleanup recipe and removes `exclude_ids`
+  against both `sample_name` and `sample_name_old`, preserving compatibility
+  with the curated bad-ID hash list.
+- `filter_spec()` now treats `NA` values in logical filters as `FALSE` and
+  checks logical filter length, preventing spectra/metadata misalignment when
+  filtering metadata columns that contain missing values.
 - Added a tracked, package-build-excluded
   `workflows/OpenSpecy_reference_library.R` workflow composed only from
   existing package operations, with canonical lookup and exclusion CSVs under
   `workflows/data/`. Repeated filtering, reduction, assessment, model building,
   and artifact writing are applied across named library lists.
+- The reference workflow now prunes legacy raw-source technical metadata using
+  a versioned metadata-drop CSV while retaining modern canonical metadata names.
 - Exported metadata-name cleaning helpers with automatic underscore and
   terminal-`s` matching, extensible exact aliases, and ambiguity-checked regular
   expression rules.

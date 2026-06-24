@@ -10,8 +10,15 @@
 #' @details
 #' \code{build_lib()} combines sources over their full wavenumber range,
 #' optionally adds ordinary and hierarchical metadata, removes requested
-#' identifiers, optionally generates stable duplicate IDs, and applies named
-#' processing recipes. Metadata column names are first converted to lowercase
+#' identifiers, optionally generates stable source-stage duplicate IDs, and
+#' applies named processing recipes. Source-stage IDs follow the reference
+#' library's legacy hash recipe: each source spectrum is trimmed with
+#' \code{\link{manage_na}(type = "remove")}, conformed at resolution 8,
+#' smoothed, and hashed from the resulting wavenumber/intensity vectors before
+#' later merging and range restriction. The older 100--4000 cm-1 hash is kept in
+#' \code{sample_name_old} when \code{id_col = "sample_name"} so
+#' \code{exclude_ids} can remove both current and legacy curated bad IDs.
+#' Metadata column names are first converted to lowercase
 #' underscore names and known aliases are coalesced using
 #' \code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
 #' automatic and regular-expression matching. Metadata values can optionally be
@@ -247,6 +254,14 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     stop("'clean_metadata_values' must be TRUE or FALSE", call. = FALSE)
   }
   started <- proc.time()[["elapsed"]]
+  dot_args <- list(...)
+  hash_scale <- if (is.null(dot_args$scale)) 100 else dot_args$scale
+  hash_algo <- if (is.null(dot_args$algo)) "md5" else dot_args$algo
+  dedupe_duplicate <- if (is.null(dot_args$duplicate)) {
+    "first"
+  } else {
+    match.arg(dot_args$duplicate, c("first", "remove_all", "none"))
+  }
   report <- function(stage) {
     if (isTRUE(progress)) {
       elapsed <- proc.time()[["elapsed"]] - started
@@ -304,6 +319,9 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     metadata_name_lookup = metadata_name_lookup,
     clean_metadata_values = clean_metadata_values,
     convert_intensity = convert_intensity,
+    id_col = if (isTRUE(dedupe)) id_col else NULL,
+    hash_scale = hash_scale,
+    hash_algo = hash_algo,
     report = report
   )
 
@@ -382,14 +400,24 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
 
   if (!is.null(exclude_ids)) {
     report("removing excluded identifiers")
-    ids <- .lib_ids(lib, id_col)
-    keep <- !(ids %in% exclude_ids | colnames(lib$spectra) %in% exclude_ids)
-    lib <- filter_spec(lib, keep)
+    lib <- .lib_filter_excluded(lib, exclude_ids, id_col = id_col)
   }
 
   if (dedupe) {
     report("generating identifiers and removing duplicate spectra")
-    lib <- dedupe_spec(lib, id_col = id_col, ...)
+    existing <- .lib_dedupe_existing_ids(
+      lib,
+      id_col = id_col,
+      duplicate = dedupe_duplicate
+    )
+    lib <- if (is.null(existing)) {
+      dedupe_spec(lib, id_col = id_col, ...)
+    } else {
+      existing
+    }
+    if (!is.null(exclude_ids)) {
+      lib <- .lib_filter_excluded(lib, exclude_ids, id_col = id_col)
+    }
   }
 
   apply_recipe <- function(recipe, recipe_name, recipe_index) {
@@ -458,9 +486,15 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
 
 .lib_prepare_sources <- function(sources, range, res, metadata_name_lookup,
                                  clean_metadata_values, convert_intensity,
-                                 report) {
+                                 id_col, hash_scale, hash_algo, report) {
   records <- lapply(seq_along(sources), function(i) {
-    .lib_source_record(sources[[i]], i)
+    .lib_source_record(
+      sources[[i]],
+      i,
+      id_col = id_col,
+      hash_scale = hash_scale,
+      hash_algo = hash_algo
+    )
   })
   metadata <- .lib_combined_metadata(
     records,
@@ -519,7 +553,8 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
   )
 }
 
-.lib_source_record <- function(source, index) {
+.lib_source_record <- function(source, index, id_col = NULL,
+                               hash_scale = 100, hash_algo = "md5") {
   if (!is_OpenSpecy(source)) {
     stop("Source ", index, " must be an OpenSpecy object", call. = FALSE)
   }
@@ -546,6 +581,19 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
          call. = FALSE)
   }
 
+  if (!is.null(id_col)) {
+    source_ids <- .lib_source_hash_ids(
+      wavenumber,
+      spectra,
+      metadata,
+      scale = hash_scale,
+      algo = hash_algo
+    )
+    metadata[[id_col]] <- source_ids$current
+    metadata[[paste0(id_col, "_old")]] <- source_ids$old
+    colnames(spectra) <- source_ids$current
+  }
+
   object_unit <- attr(source, "intensity_unit", exact = TRUE)
   object_unit <- as.character(object_unit)
   object_unit <- object_unit[!is.na(object_unit) & trimws(object_unit) != ""]
@@ -568,6 +616,78 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     intensity_attr = if (length(object_unit) == 1L) object_unit else NA_character_,
     attrs = attrs
   )
+}
+
+.lib_source_hash_ids <- function(wavenumber, spectra, metadata, scale = 100,
+                                 algo = "md5") {
+  ignored_info <- .spectra_ignore_info(spectra, lead_tail_only = TRUE,
+                                       ig = c(NA))
+  if (any(!ignored_info$has_valid)) {
+    stop("All intensity values are NA, cannot remove or ignore with manage na.",
+         call. = FALSE)
+  }
+  keep <- rowSums(ignored_info$ignored) == 0L
+  wavenumber <- wavenumber[keep]
+  spectra <- spectra[keep, , drop = FALSE]
+
+  current <- .lib_hash_processed_matrix(
+    wavenumber,
+    spectra,
+    range = NULL,
+    res = 8,
+    scale = scale,
+    algo = algo
+  )
+  old <- .lib_hash_processed_matrix(
+    wavenumber,
+    spectra,
+    range = c(100, 4000),
+    res = 8,
+    scale = scale,
+    algo = algo,
+    min_rows = 3L,
+    short_value = "new format"
+  )
+
+  list(current = current, old = old)
+}
+
+.lib_hash_processed_matrix <- function(wavenumber, spectra, range = NULL,
+                                       res = 8, scale = 100, algo = "md5",
+                                       min_rows = 1L,
+                                       short_value = NA_character_) {
+  conformed <- .lib_conform_hash_matrix(wavenumber, spectra, range = range,
+                                        res = res)
+  if (nrow(conformed$spectra) < min_rows) {
+    return(rep(short_value, ncol(spectra)))
+  }
+  smoothed <- .sgfilt_matrix(conformed$spectra, p = 3, n = 11, m = 1)
+  smoothed <- make_rel(abs(smoothed))
+  .lib_hash_spectra_columns(conformed$wavenumber, smoothed, scale, algo)
+}
+
+.lib_conform_hash_matrix <- function(wavenumber, spectra, range = NULL,
+                                     res = 8) {
+  if (is.null(range)) range <- wavenumber
+  range2 <- c(max(min(range), min(wavenumber)),
+              min(max(range), max(wavenumber)))
+  wn <- conform_res(range2, res = res)
+  spectra <- .conform_intens_matrix(
+    x = wavenumber,
+    y = spectra,
+    xout = wn
+  )
+  list(wavenumber = wn, spectra = spectra)
+}
+
+.lib_hash_spectra_columns <- function(wavenumber, spectra, scale = 100,
+                                      algo = "md5") {
+  vapply(seq_len(ncol(spectra)), function(i) {
+    digest::digest(
+      list(as.integer(wavenumber), as.integer(spectra[, i] * scale)),
+      algo = algo
+    )
+  }, FUN.VALUE = character(1))
 }
 
 .lib_combined_metadata <- function(records, metadata_name_lookup,
@@ -907,8 +1027,10 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
                       "form_film_foam_pliable_hard", "form", "state",
                       "morphology"),
     material_producer = character(),
+    material_purity = character(),
     material_quality = c("source_type"),
     material_color = c("color", "colour"),
+    material_other = character(),
     cas_number = c("cas_registry_no"),
     instrument_used = c("spectrometer_datasystem"),
     instrument_accessories = c("instrumentaccesories",
@@ -919,9 +1041,11 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
     laser_light_used = c("laser_nm", "laser_frequency"),
     number_of_accumulations = c("number_of_sample_scans", "coadded_scans"),
     total_acquisition_time_s = c("collection_length", "acq_time_s"),
-    data_processing_procedure = c("preprocessing"),
+    data_processing_procedure = c("preprocessing", "data_processing",
+                                  "data_processing_proceedure"),
     level_of_confidence_in_identification = character(),
-    other_info = c("otherinformation", "comment", "notes"),
+    other_info = c("otherinformation", "otherinfo", "comment", "comments",
+                   "notes"),
     baseline_correction = c("baseline"),
     smoother = c("smooth"),
     user_name = character(),
@@ -1784,6 +1908,45 @@ lib_clean_metadata <- function(x,
 .lib_ids <- function(x, id_col) {
   if (id_col %in% names(x$metadata)) return(as.character(x$metadata[[id_col]]))
   colnames(x$spectra)
+}
+
+.lib_filter_excluded <- function(x, exclude_ids, id_col = "sample_name") {
+  exclude_ids <- as.character(exclude_ids)
+  metadata_cols <- intersect(
+    c(id_col, paste0(id_col, "_old"), "col_id"),
+    names(x$metadata)
+  )
+  metadata_hit <- rep(FALSE, nrow(x$metadata))
+  for (col in metadata_cols) {
+    metadata_hit <- metadata_hit |
+      as.character(x$metadata[[col]]) %in% exclude_ids
+  }
+  spectra_hit <- colnames(x$spectra) %in% exclude_ids
+  keep <- !(metadata_hit | spectra_hit)
+  if (!all(keep)) x <- filter_spec(x, keep)
+  x
+}
+
+.lib_dedupe_existing_ids <- function(x, id_col = "sample_name",
+                                     duplicate = "first") {
+  if (!id_col %in% names(x$metadata)) return(NULL)
+  ids <- as.character(x$metadata[[id_col]])
+  if (length(ids) != ncol(x$spectra) ||
+      any(is.na(ids) | !nzchar(ids))) {
+    return(NULL)
+  }
+
+  x$metadata[[id_col]] <- ids
+  colnames(x$spectra) <- ids
+  x$metadata$col_id <- ids
+
+  keep <- rep(TRUE, length(ids))
+  if (duplicate == "first") keep <- keep & !duplicated(ids)
+  if (duplicate == "remove_all") {
+    keep <- keep & !(duplicated(ids) | duplicated(ids, fromLast = TRUE))
+  }
+  if (!all(keep)) x <- filter_spec(x, keep)
+  x
 }
 
 .pam_group_ids <- function(x, id_col, k, ...) {

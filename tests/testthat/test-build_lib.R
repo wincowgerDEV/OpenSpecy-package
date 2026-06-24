@@ -102,6 +102,64 @@ test_that("dedupe_spec() keeps identifiers aligned", {
                    deduped$metadata$sample_name)
 })
 
+test_that("build_lib() uses legacy source-stage hashes for sample_name", {
+  wavenumber <- seq(50, 5000, by = 5)
+  spectra <- cbind(
+    sin(wavenumber / 200) + 2,
+    cos(wavenumber / 250) + 2
+  )
+  colnames(spectra) <- c("raw_a", "raw_b")
+  lib <- as_OpenSpecy(
+    wavenumber,
+    spectra = spectra,
+    metadata = data.table::data.table(sample_name = colnames(spectra)),
+    attributes = list(intensity_unit = "absorbance")
+  )
+
+  legacy_hash <- function(x, range = NULL, short_value = NULL) {
+    x <- manage_na(x, type = "remove")
+    spec <- conform_spec(x, range = range, res = 8)
+    if (!is.null(short_value) && nrow(spec$spectra) < 3) {
+      return(rep(short_value, ncol(x$spectra)))
+    }
+    spec <- smooth_intens(spec)
+    vapply(seq_len(ncol(spec$spectra)), function(i) {
+      digest::digest(
+        list(as.integer(spec$wavenumber),
+             as.integer(spec$spectra[, i] * 100)),
+        algo = "md5"
+      )
+    }, FUN.VALUE = character(1))
+  }
+
+  expected <- legacy_hash(lib)
+  expected_old <- legacy_hash(lib, range = c(100, 4000),
+                              short_value = "new format")
+  built <- build_lib(
+    lib,
+    recipes = list(raw = list()),
+    dedupe = TRUE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )$raw
+
+  expect_equal(built$metadata$sample_name, expected)
+  expect_equal(built$metadata$sample_name_old, expected_old)
+  expect_equal(colnames(built$spectra), expected)
+
+  excluded <- build_lib(
+    lib,
+    recipes = list(raw = list()),
+    exclude_ids = expected_old[1],
+    dedupe = TRUE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )$raw
+  expect_equal(excluded$metadata$sample_name, expected[2])
+})
+
 test_that("reduce_lib() returns medoid ids or reduced OpenSpecy objects", {
   skip_if_not_installed("cluster")
   lib <- tiny_build_lib()

@@ -158,6 +158,10 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
 }
 
 .process_intensity_step <- function(x, fun, args = list()) {
+  if (!anyNA(x$spectra)) {
+    return(do.call(fun, c(list(x), args)))
+  }
+
   na_cols <- colSums(is.na(x$spectra)) > 0L
   if (!any(na_cols)) {
     return(do.call(fun, c(list(x), args)))

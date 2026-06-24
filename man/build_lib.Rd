@@ -241,8 +241,15 @@ for advanced composition.
 \details{
 \code{build_lib()} combines sources over their full wavenumber range,
 optionally adds ordinary and hierarchical metadata, removes requested
-identifiers, optionally generates stable duplicate IDs, and applies named
-processing recipes. Metadata column names are first converted to lowercase
+identifiers, optionally generates stable source-stage duplicate IDs, and
+applies named processing recipes. Source-stage IDs follow the reference
+library's legacy hash recipe: each source spectrum is trimmed with
+\code{\link{manage_na}(type = "remove")}, conformed at resolution 8,
+smoothed, and hashed from the resulting wavenumber/intensity vectors before
+later merging and range restriction. The older 100--4000 cm-1 hash is kept in
+\code{sample_name_old} when \code{id_col = "sample_name"} so
+\code{exclude_ids} can remove both current and legacy curated bad IDs.
+Metadata column names are first converted to lowercase
 underscore names and known aliases are coalesced using
 \code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
 automatic and regular-expression matching. Metadata values can optionally be
