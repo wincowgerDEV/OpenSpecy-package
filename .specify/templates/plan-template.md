@@ -29,12 +29,14 @@
 - **OpenSpecy contract**: [How `wavenumber`, `spectra`, `metadata`, identifiers, and `attr()` metadata are preserved or intentionally changed.]
 - **Generated artifacts**: [Whether documentation generation is needed; required configured tool version; no direct generated-file edits.]
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
+- **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
 
 ## Package Surfaces
 
 - `R/`: [files/functions]
 - `tests/testthat/`: [focused current-behavior tests]
 - `benchmarks/`: [required only for same-output function improvements; otherwise state "N/A - new behavior" or reason]
+- `workflows/`: [changed, unchanged, or N/A]
 - `vignettes/README/pkgdown`: [changed, unchanged, or deferred]
 - `DESCRIPTION`: [changed or unchanged]
 - `NEWS.md`: [entry or reason none]
@@ -55,6 +57,7 @@
 - Full `devtools::test()`:
 - `devtools::check()` or CI/R CMD check:
 - Benchmarks:
+- Reference-library/long workflow staging:
 
 ## Risks And Open Questions
 
