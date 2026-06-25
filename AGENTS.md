@@ -21,7 +21,11 @@ For same-output function improvements, keep old comparison code in
 regressions, and keep `tests/` focused on current package behavior. Run focused
 tests before full tests, documentation, and package checks. Network tests must
 guard the actual download host. Keep long-running tests manual or GitHub Actions
-guarded. The
+guarded. For reference-library or other long-running external workflows, run
+subset probes and staged temp-output/logged rebuilds before a full run; compare
+rebuilt artifacts against available legacy IDs, wavenumber axes, metadata
+counts/names, warnings, and representative `OpenSpecy` joins or matches before
+claiming completion. The
 Shiny application lives in `wincowgerDEV/OpenSpecy-shiny`; consider
 compatibility when relevant, but package functionality takes precedence and
 Shiny application code does not belong in this repository.

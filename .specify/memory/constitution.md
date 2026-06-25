@@ -1,24 +1,19 @@
 <!--
 Sync Impact Report
-Version change: 2.0.0 -> 2.1.0
+Version change: 2.1.0 -> 2.2.0
 Modified principles:
-- R Package Interface and CRAN Readiness: added configured toolchain-version checks
-- Tests Track Current Behavior: strengthened offline guards for exact external hosts
-- Benchmark-Governed Performance Work: required repeated timing for short benchmarks
-- Generated Artifacts Stay Generated: protected attribution and source-correct regeneration
-- Development Workflow and Quality Gates: added staged verification and deterministic tool resolution
+- OpenSpecy Object Contract: clarified filter/join alignment and NA-logical filter expectations
+- Tests Track Current Behavior: added reference-library compatibility comparison expectations
+- Development Workflow and Quality Gates: added staged temp-output verification for long-running external workflows
 Added sections:
-- Public API Restraint and Composability
+- Reference Library and External Workflow Verification
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md: add public API, toolchain, and external-resource review
-- .agents/skills/speckit-implement/SKILL.md: use staged quality gates
-- .agents/skills/openspecy-design-public-api/: added
-- .agents/skills/openspecy-run-quality-gates/: added
-- AGENTS.md: summarize API and verification rules
+- .specify/templates/plan-template.md: add workflows surface and reference-library compatibility verification
+- .agents/skills/speckit-implement/SKILL.md: add long-running workflow staging guidance
+- AGENTS.md: summarize long-running workflow and reference-library comparison rules
 Follow-up TODOs:
-- Align installed roxygen2 7.3.2 with DESCRIPTION Config/roxygen2/version 8.0.0 before regenerating documentation.
 - Update OSF-dependent tests so offline guards check the actual download host.
 -->
 
@@ -49,6 +44,12 @@ one row per spectrum. Column names in `spectra` MUST remain unique and aligned
 with rows in `metadata`; function changes MUST preserve or deliberately update
 that alignment through `as_OpenSpecy()`, `OpenSpecy()`, or documented conversion
 helpers.
+
+Filtering, joining, splitting, reducing, and model-preparation code MUST keep
+`spectra` columns and `metadata` rows in the same order and length. Logical
+filters derived from metadata MUST handle `NA` values deliberately, usually by
+treating them as `FALSE`, and tests MUST cover this path when missing metadata
+values are plausible.
 
 Object attributes attached through `attr()` or constructor attributes MUST be
 treated as part of the long-term object contract. Attributes such as intensity
@@ -209,6 +210,7 @@ MUST identify the affected package surfaces:
 - R source files in `R/`
 - testthat tests in `tests/testthat/`
 - benchmark comparisons in `benchmarks/`
+- reference-library and other reproducible maintenance workflows in `workflows/`
 - vignettes and supporting assets in `vignettes/`
 - package metadata in `DESCRIPTION`
 - release notes in `NEWS.md`
@@ -221,6 +223,32 @@ changed, unchanged, or intentionally not applicable. A change that alters public
 behavior without tests, roxygen documentation, and NEWS consideration is
 non-compliant. A same-output function improvement without benchmark
 consideration is non-compliant.
+
+## Reference Library and External Workflow Verification
+
+The official reference-library workflow and other long-running external-data
+workflows SHOULD be straight-line, version-controlled scripts that use package
+functions and small curated data files. Large source data and generated library
+artifacts SHOULD remain external to the package unless a feature plan explicitly
+scopes them into `inst/`, package data, or release artifacts.
+
+Changes that can affect official library identifiers, wavenumber axes, metadata
+joins, filtering, range restriction, reduction, model libraries, or artifact
+shape MUST include compatibility evidence against the current or legacy library
+artifact when one is available. The evidence SHOULD report spectrum counts,
+shared and missing identifiers, wavenumber-axis compatibility, metadata column
+count/name deltas, important warnings, and at least one representative
+`OpenSpecy` operation such as `c_spec()` or matching across old and new
+artifacts.
+
+Long-running external workflows SHOULD be verified in stages before a full
+rerun: first a small representative or subset probe, then isolated expensive
+stages with logs and temporary outputs, and only then the full workflow. Full
+local rebuilds SHOULD write to a temporary output directory first unless the
+user explicitly authorizes publishing or replacing generated artifacts.
+Successful intermediate artifacts MAY be reused for diagnosis and comparison,
+but temporary diagnostics and generated outputs MUST be cleaned up or clearly
+reported before handoff.
 
 ## Shiny Compatibility Boundary
 
@@ -271,6 +299,9 @@ Before implementation is complete:
   or examples.
 - Long-running tests MUST be manual or GitHub Actions guarded, not a surprise
   cost in routine local test runs.
+- Official reference-library or other long-running external workflow changes
+  MUST use staged subset/temp-output verification and report compatibility
+  counts against available legacy artifacts before being treated as complete.
 - External Shiny compatibility MUST be considered when relevant, but package
   functionality MUST take precedence.
 
@@ -308,4 +339,4 @@ application code into this repository, or omit required benchmarks for
 same-output function improvements. Temporary exceptions MUST be documented in
 the feature plan with the reason, risk, and follow-up task.
 
-**Version**: 2.1.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-06-19
+**Version**: 2.2.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-06-24

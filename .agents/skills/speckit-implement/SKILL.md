@@ -25,6 +25,11 @@ are not required.
    relevant benchmarks, toolchain preflight and documentation, full tests, then
    package check. Report skipped long-running, external-resource, optional
    backend, or CI-only checks precisely.
+8. For reference-library or other long-running external workflows, run a small
+   representative probe first, then isolated expensive stages with logs and
+   temporary outputs before the full workflow. Compare rebuilt artifacts against
+   available legacy identifiers, wavenumber axes, metadata shape, warnings, and
+   representative `OpenSpecy` joins or matches before marking the work complete.
 
 ## Rules
 
@@ -38,4 +43,7 @@ are not required.
   version configured in `DESCRIPTION`.
 - Preserve `OpenSpecy` object structure, identifiers, metadata alignment, and
   relevant attributes through function flows.
+- Treat logical metadata filters with possible `NA` values deliberately and
+  verify spectra/metadata row-column alignment after filters, joins, reductions,
+  and model-preparation steps.
 - Do not add Shiny application code to this package repository.
