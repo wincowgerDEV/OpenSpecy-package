@@ -169,8 +169,14 @@ table(assessments$spectrum_id) |> sort(decreasing = T)
 library(dplyr)
 new_d$metadata$spectrum_index = 1:nrow(new_d$metadata)
 check_assessments <- assessments %>% filter(assessments$spectrum_index %in% names(table(assessments$spectrum_index))[table(assessments$spectrum_index) > 3])
-check_bad <- filter_spec(new_d, check_assessments$spectrum_index[[1]])
+#filter(assessments$spectrum_index %in% assessments$spectrum_index[assessments$check == "high_tail"])
+check_bad <- filter_spec(new_d, check_assessments$spectrum_index[[8]])
 
 check_assessments %>% filter(spectrum_index == check_bad$metadata$spectrum_index)
 
-plot(check_bad, offset = 1, legend_var = "spectrum_index")
+plot(check_bad)
+#%>% restrict_range(min = 400, max = 4000)
+#Check what libraries have the most issues
+table(new_d$metadata$organization[unique(check_assessments$spectrum_index)])
+#Original
+table(new_d$metadata$organization)
