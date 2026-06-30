@@ -4,6 +4,11 @@ cor_spec.Specs <- function(x, library, na.rm = TRUE, compute = "optimized",
                            ...) {
   x <- as_Specs(x)
   library <- as_Specs(library)
+  if (.is_hilbert_specs(x) || .is_hilbert_specs(library)) {
+    stop("Hilbert-encoded Specs objects use distance matching; call ",
+         "match_spec() with compatible Hilbert Specs objects instead",
+         call. = FALSE)
+  }
   .compatible_specs(x, library)
 
   lib <- .specs_values_for_cor(library$values, na.rm = na.rm)
@@ -27,15 +32,77 @@ match_spec.Specs <- function(x, library, top_n = NULL, expand = FALSE,
   x <- as_Specs(x)
   library <- as_Specs(library)
 
-  res <- cor_spec(x, library = library, compute = compute, na.rm = na.rm, ...) |>
-    ident_spec(x, library = library, top_n = top_n,
-               add_library_metadata = add_library_metadata,
-               add_object_metadata = add_object_metadata)
+  if (.is_hilbert_specs(x) || .is_hilbert_specs(library)) {
+    res <- .match_specs_hilbert(
+      x, library = library, top_n = top_n,
+      add_library_metadata = add_library_metadata,
+      add_object_metadata = add_object_metadata
+    )
+  } else {
+    res <- cor_spec(x, library = library, compute = compute, na.rm = na.rm, ...) |>
+      ident_spec(x, library = library, top_n = top_n,
+                 add_library_metadata = add_library_metadata,
+                 add_object_metadata = add_object_metadata)
+  }
 
   if (isTRUE(expand))
     res <- .expand_specs_matches(res, x)
 
   res
+}
+
+.match_specs_hilbert <- function(x, library, top_n = NULL,
+                                 add_library_metadata = NULL,
+                                 add_object_metadata = NULL) {
+  match_distance <- NULL
+
+  .compatible_hilbert_specs(x, library)
+  lib_codes <- .hilbert_code_numeric(library)
+  obj_codes <- .hilbert_code_numeric(x)
+
+  if (is.null(top_n) || top_n > length(lib_codes)) {
+    top_n <- length(lib_codes)
+    message("'top_n' larger than the number of spectra in the library; ",
+            "returning all matches")
+  }
+  top_n <- as.integer(top_n)
+
+  if (top_n == 1L) {
+    best <- vapply(obj_codes, function(code) {
+      which.min(abs(lib_codes - code))
+    }, FUN.VALUE = integer(1L))
+    out <- data.table(
+      object_id = names(obj_codes),
+      library_id = names(lib_codes)[best],
+      match_val = -abs(lib_codes[best] - obj_codes),
+      match_distance = abs(lib_codes[best] - obj_codes)
+    )
+  } else {
+    out <- data.table::rbindlist(lapply(seq_along(obj_codes), function(j) {
+      dist <- abs(lib_codes - obj_codes[j])
+      idx <- head(order(dist), top_n)
+      data.table(
+        object_id = names(obj_codes)[j],
+        library_id = names(lib_codes)[idx],
+        match_val = -dist[idx],
+        match_distance = dist[idx]
+      )
+    }))
+  }
+
+  data.table::setorder(out, match_distance)
+
+  if (is.character(add_library_metadata))
+    out <- merge(out, library$metadata,
+                 by.x = "library_id", by.y = add_library_metadata,
+                 all.x = TRUE)
+
+  if (is.character(add_object_metadata))
+    out <- merge(out, x$metadata,
+                 by.x = "object_id", by.y = add_object_metadata,
+                 all.x = TRUE)
+
+  out
 }
 
 #' @rdname Specs
@@ -162,6 +229,7 @@ collapse_spec.Specs <- function(x, fun = mean, column = "feature_id", ...) {
     attributes = list(
       specs_version = attr(x, "specs_version"),
       variable_model = attr(x, "variable_model"),
+      hilbert_model = attr(x, "hilbert_model"),
       spectrum_compression = compression,
       transformations = attr(x, "transformations")
     )

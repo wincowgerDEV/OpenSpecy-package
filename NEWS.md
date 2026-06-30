@@ -52,6 +52,12 @@
 - Exported metadata-name cleaning helpers with automatic underscore and
   terminal-`s` matching, extensible exact aliases, and ambiguity-checked regular
   expression rules.
+- `as_Specs()` now supports an end-to-end compressed `Specs` workflow. By
+  default it fits PCA and then Hilbert-encodes the scores into exact high/low
+  64-bit code rows; K-means can be placed before, between, or after those steps.
+  Hilbert `Specs` objects can be decoded, decompressed back to approximate
+  `OpenSpecy` spectra, subset-decompressed by numeric index for plotting, and
+  matched with fast Hilbert-code distance.
 
 # OpenSpecy 1.5.0
 

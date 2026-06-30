@@ -111,6 +111,22 @@ top_matches[, c("object_id", "library_id", "match_val", "SpectrumType",
 get_metadata(spec_lib, logic = top_matches$library_id)
 ```
 
+## Compressed Specs workflow
+
+`as_Specs()` can compress map or library spectra for fast approximate matching.
+The default workflow fits PCA and then Hilbert-encodes the PCA scores into exact
+high/low 64-bit code rows.
+
+```r
+model <- fit_specs_pca(spec_lib, n_components = 16)
+library_specs <- as_Specs(spec_lib, model)
+query_specs <- as_Specs(raman_proc, model,
+                        limits = attr(library_specs, "hilbert_model"))
+
+match_spec(query_specs, library_specs, top_n = 5)
+decompress_spec(query_specs, index = 1)
+```
+
 ## Related Packages
 ### Open Specy on Python
 
