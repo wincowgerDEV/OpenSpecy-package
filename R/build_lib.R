@@ -234,7 +234,6 @@
 #' Win Cowger
 #'
 #' @importFrom data.table as.data.table data.table fread fwrite rbindlist setorder
-#' @importFrom cluster pam
 #' @export
 build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       res = 6, id_col = "sample_name", exclude_ids = NULL,
@@ -1949,6 +1948,164 @@ lib_clean_metadata <- function(x,
   x
 }
 
+.pam_distance_matrix <- function(distance) {
+  if (inherits(distance, "dist")) {
+    distance <- as.matrix(distance)
+  } else {
+    distance <- as.matrix(distance)
+  }
+  if (!is.numeric(distance) || nrow(distance) != ncol(distance)) {
+    stop("'distance' must be a square numeric dissimilarity matrix",
+         call. = FALSE)
+  }
+  if (anyNA(distance)) {
+    stop("'distance' must not contain missing values", call. = FALSE)
+  }
+  if (!isTRUE(all.equal(distance, t(distance), tolerance = 1e-12,
+                        check.attributes = FALSE))) {
+    stop("'distance' must be symmetric", call. = FALSE)
+  }
+
+  if (any(distance < 0)) {
+    stop("'distance' must contain non-negative dissimilarities",
+         call. = FALSE)
+  }
+  diag(distance) <- 0
+  storage.mode(distance) <- "double"
+  distance
+}
+
+.pam_validate_k <- function(k, n) {
+  if (!is.numeric(k) || length(k) != 1L || is.na(k) ||
+      k < 1 || k >= n || k != floor(k)) {
+    stop("'k' must be a positive integer smaller than the number of spectra",
+         call. = FALSE)
+  }
+  as.integer(k)
+}
+
+.pam_validate_medoids <- function(medoids, k, n, names = NULL) {
+  if (is.null(medoids)) return(NULL)
+  if (is.character(medoids)) {
+    if (is.null(names)) {
+      stop("Character 'medoids' need named distance rows", call. = FALSE)
+    }
+    medoids <- match(medoids, names)
+  }
+  if (!is.numeric(medoids) || length(medoids) != k ||
+      anyNA(medoids) || any(medoids != floor(medoids)) ||
+      any(medoids < 1 | medoids > n) || anyDuplicated(medoids)) {
+    stop("'medoids' must be unique observation indices of length 'k'",
+         call. = FALSE)
+  }
+  as.integer(medoids)
+}
+
+.pam_assign_info <- function(distance, medoids) {
+  d_med <- distance[, medoids, drop = FALSE]
+  cluster <- max.col(-d_med, ties.method = "last")
+
+  nearest <- d_med[cbind(seq_len(nrow(distance)), cluster)]
+
+  second <- rep(Inf, nrow(distance))
+  if (length(medoids) > 1L) {
+    second_dist <- d_med
+    second_dist[cbind(seq_len(nrow(distance)), cluster)] <- Inf
+    second <- matrixStats::rowMins(second_dist)
+  }
+
+  list(cluster = cluster, nearest = nearest, second = second)
+}
+
+.pam_order_medoids <- function(distance, medoids) {
+  info <- .pam_assign_info(distance, medoids)
+  first_member <- vapply(seq_along(medoids), function(i) {
+    members <- which(info$cluster == i)
+    if (length(members) == 0L) Inf else min(members)
+  }, numeric(1))
+
+  medoids[order(first_member, medoids)]
+}
+
+.pam_build_medoids <- function(distance, k) {
+  n <- nrow(distance)
+  medoids <- integer()
+  nearest <- rep(Inf, n)
+
+  for (step in seq_len(k)) {
+    candidates <- setdiff(seq_len(n), medoids)
+    totals <- vapply(candidates, function(candidate) {
+      sum(pmin(nearest, distance[, candidate]))
+    }, numeric(1))
+    best <- min(totals)
+    candidate <- candidates[max(which(totals <= best))]
+    medoids <- c(medoids, candidate)
+    nearest <- pmin(nearest, distance[, candidate])
+  }
+
+  medoids
+}
+
+.pam_eager_swap <- function(distance, medoids) {
+  n <- nrow(distance)
+  tol <- sqrt(.Machine$double.eps)
+  info <- .pam_assign_info(distance, medoids)
+
+  repeat {
+    changed <- FALSE
+    for (candidate in seq_len(n)) {
+      if (candidate %in% medoids) next
+
+      candidate_distance <- distance[, candidate]
+      new_distance <- pmin(candidate_distance, info$nearest)
+      base_delta <- sum(new_distance - info$nearest)
+      delta <- rep(base_delta, length(medoids))
+      for (medoid_i in seq_along(medoids)) {
+        removed <- info$cluster == medoid_i
+        if (!any(removed)) next
+        delta[medoid_i] <- base_delta +
+          sum(pmin(candidate_distance[removed], info$second[removed]) -
+                new_distance[removed])
+      }
+
+      best_medoid <- which.min(delta)
+      if (delta[best_medoid] < -tol) {
+        medoids[best_medoid] <- candidate
+        info <- .pam_assign_info(distance, medoids)
+        changed <- TRUE
+      }
+    }
+    if (!changed) break
+  }
+
+  medoids
+}
+
+.pam_medoids <- function(distance, k, medoids = NULL, do.swap = TRUE,
+                         pamonce = 6, trace.lev = 0) {
+  if (!is.logical(do.swap) || length(do.swap) != 1L || is.na(do.swap)) {
+    stop("'do.swap' must be TRUE or FALSE", call. = FALSE)
+  }
+  if (!is.numeric(trace.lev) || length(trace.lev) != 1L ||
+      is.na(trace.lev) || trace.lev != 0) {
+    stop("'trace.lev' is not supported by reduce_lib()'s internal PAM",
+         call. = FALSE)
+  }
+  if (!is.numeric(pamonce) || length(pamonce) != 1L ||
+      is.na(pamonce) || pamonce != 6) {
+    stop("reduce_lib()'s internal PAM currently supports pamonce = 6",
+         call. = FALSE)
+  }
+
+  distance <- .pam_distance_matrix(distance)
+  n <- nrow(distance)
+  k <- .pam_validate_k(k, n)
+  medoids <- .pam_validate_medoids(medoids, k, n, rownames(distance))
+  if (is.null(medoids)) medoids <- .pam_build_medoids(distance, k)
+  if (isTRUE(do.swap)) medoids <- .pam_eager_swap(distance, medoids)
+  .pam_order_medoids(distance, medoids)
+}
+
 .pam_group_ids <- function(x, id_col, k, ...) {
   x <- as_OpenSpecy(x)
   ids <- .lib_ids(x, id_col)
@@ -1958,10 +2115,21 @@ lib_clean_metadata <- function(x,
   cors <- pmax(pmin(cors, 1), -1)
   diag(cors) <- 1
   distance <- stats::as.dist(1 - cors)
-  pam_args <- list(x = distance, k = min(k, length(ids) - 1L), diss = TRUE,
-                   pamonce = 6)
   user_args <- list(...)
-  pam_args[names(user_args)] <- user_args
-  res <- do.call(cluster::pam, pam_args)
-  ids[res$id.med]
+  if (length(user_args) > 0L) {
+    if (is.null(names(user_args)) || any(names(user_args) == "")) {
+      stop("PAM arguments passed through '...' must be named",
+           call. = FALSE)
+    }
+    supported <- c("medoids", "do.swap", "pamonce", "trace.lev")
+    unsupported <- setdiff(names(user_args), supported)
+    if (length(unsupported) > 0L) {
+      stop("Unsupported reduce_lib() PAM argument(s): ",
+           paste(unsupported, collapse = ", "), call. = FALSE)
+    }
+  }
+
+  pam_args <- c(list(distance = distance, k = min(k, length(ids) - 1L)),
+                user_args)
+  ids[do.call(.pam_medoids, pam_args)]
 }

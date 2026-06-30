@@ -161,7 +161,6 @@ test_that("build_lib() uses legacy source-stage hashes for sample_name", {
 })
 
 test_that("reduce_lib() returns medoid ids or reduced OpenSpecy objects", {
-  skip_if_not_installed("cluster")
   lib <- tiny_build_lib()
 
   ids <- reduce_lib(lib, group_cols = "material_class", k = 2, min_n = 2,
@@ -171,6 +170,33 @@ test_that("reduce_lib() returns medoid ids or reduced OpenSpecy objects", {
   reduced <- reduce_lib(lib, group_cols = "material_class", k = 2, min_n = 2)
   expect_true(check_OpenSpecy(reduced))
   expect_equal(ncol(reduced$spectra), 4)
+})
+
+test_that("reduce_lib() matches cluster PAM medoids when cluster is installed", {
+  skip_if_not_installed("cluster")
+  lib <- tiny_build_lib()
+  ids <- .lib_ids(lib, "sample_name")
+  reduction_obj <- lib
+  reduction_obj$spectra <- .matrix_mean_replace(
+    make_rel(lib$spectra, na.rm = TRUE)
+  )
+  groups <- do.call(paste, c(lib$metadata[, "material_class", with = FALSE],
+                             sep = "_"))
+
+  expected <- unlist(lapply(split(seq_along(groups), groups), function(idx) {
+    if (length(idx) <= 2L) return(ids[idx])
+    x <- filter_spec(reduction_obj, idx)
+    cors <- cor_spec(x, x, compute = "optimized")
+    cors[is.na(cors)] <- 0
+    cors <- pmax(pmin(cors, 1), -1)
+    diag(cors) <- 1
+    distance <- stats::as.dist(1 - cors)
+    ids[idx][cluster::pam(distance, k = 2, diss = TRUE, pamonce = 6)$id.med]
+  }), use.names = FALSE)
+
+  actual <- reduce_lib(lib, group_cols = "material_class", k = 2, min_n = 2,
+                       return = "ids")
+  expect_equal(actual, expected)
 })
 
 test_that("build_model_lib() returns the model library artifact structure", {

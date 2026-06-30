@@ -15,7 +15,7 @@
 \usage{
 as_OpenSpecy(x, ...)
 
-\method{as_OpenSpecy}{OpenSpecy}(x, session_id = FALSE, ...)
+\method{as_OpenSpecy}{OpenSpecy}(x, session_id = FALSE, compute_file_id = TRUE, ...)
 
 \method{as_OpenSpecy}{list}(x, ...)
 
@@ -37,9 +37,10 @@ as_OpenSpecy(x, ...)
     data_processing_procedure = NULL, level_of_confidence_in_identification = NULL,
     other_info = NULL, license = "CC BY-NC"),
   attributes = list(intensity_unit = NULL, derivative_order = NULL, baseline = NULL,
-    spectra_type = NULL),
+    spectra_type = NULL, visual_image = NULL),
   coords = "gen_grid",
   session_id = FALSE,
+  compute_file_id = TRUE,
   comma_decimal = FALSE,
   ...
 )
@@ -61,6 +62,9 @@ spectrum in the classic Open Specy format.}
 The session ID is based on current session info so metadata of the same
 spectra will not return equal if session info changes. Sometimes that is
 desirable.}
+
+\item{compute_file_id}{logical. Whether to add a file ID hash to metadata
+when one is not already present.}
 
 \item{colnames}{names of the wavenumber column and spectra column, makes
 assumptions based on column names or placement if \code{NULL}.}
@@ -173,6 +177,8 @@ details, when set, they will be used to automate transformations and warning mes
 \code{"2"}}
 \item{\code{baseline}}{supported options include \code{"raw"} or \code{"nobaseline"}}
 \item{\code{spectra_type}}{supported options include \code{"ftir"} or \code{"raman"}}
+\item{\code{visual_image}}{optional visual-image metadata created by
+\code{\link{add_visual_image}()}}
 }
 }
 \examples{

@@ -12,6 +12,8 @@
 \alias{decompress_spec}
 \alias{decompress_spec.default}
 \alias{decompress_spec.Specs}
+\alias{encode_specs_hilbert}
+\alias{decode_specs_hilbert}
 \alias{write_specs}
 \alias{read_specs}
 \alias{cor_spec.Specs}
@@ -32,7 +34,16 @@ as_Specs(x, ...)
 
 \method{as_Specs}{Specs}(x, ...)
 
-\method{as_Specs}{OpenSpecy}(x, model, kmeans = FALSE, centers = NULL, ...)
+\method{as_Specs}{OpenSpecy}(
+  x,
+  model = NULL,
+  steps = c("pca", "hilbert"),
+  n_components = NULL,
+  centers = NULL,
+  bits_per_variable = NULL,
+  limits = NULL,
+  ...
+)
 
 fit_specs_pca(x, n_components, center = TRUE, scale. = FALSE, ...)
 
@@ -40,7 +51,11 @@ decompress_spec(x, ...)
 
 \method{decompress_spec}{default}(x, ...)
 
-\method{decompress_spec}{Specs}(x, expand = TRUE, ...)
+\method{decompress_spec}{Specs}(x, expand = TRUE, index = NULL, ...)
+
+encode_specs_hilbert(x, bits_per_variable = NULL, limits = NULL, ...)
+
+decode_specs_hilbert(x, ...)
 
 write_specs(x, file, compress = "xz", ...)
 
@@ -92,19 +107,35 @@ per column in \code{values}.}
 
 \item{x}{an object to test, convert, decompress, or write.}
 
-\item{model}{a \code{SpecsPCA} model returned by \code{fit_specs_pca()}.}
+\item{model}{optional \code{SpecsPCA} model returned by
+\code{fit_specs_pca()}; if omitted and \code{"pca"} is in \code{steps}, a
+model is fit from \code{x}.}
 
-\item{kmeans}{logical; should spectra be compressed with K-means after PCA?}
-
-\item{centers}{passed to \code{\link[stats]{kmeans}()} when \code{kmeans} is
-\code{TRUE}.}
+\item{steps}{character vector of compression steps. Supported values are
+\code{"pca"}, \code{"kmeans"}, and \code{"hilbert"}. K-means can be placed
+before, between, or after the other steps; PCA cannot be placed after
+Hilbert encoding.}
 
 \item{n_components}{number of PCA components to keep.}
+
+\item{centers}{passed to \code{\link[stats]{kmeans}()} when K-means is used.}
+
+\item{bits_per_variable}{positive whole number of bits used for each
+Hilbert-encoded variable. If \code{NULL}, the value is inferred from the
+number of variables to pack the available 64-bit code space.}
+
+\item{limits}{optional two-column matrix, data frame, or Hilbert model with
+per-variable minimum and maximum values used for quantization.}
 
 \item{center, scale.}{arguments passed to \code{\link[stats]{prcomp}()}.}
 
 \item{expand}{logical; if \code{TRUE}, decompress or match one row per
 original coordinate; if \code{FALSE}, keep active spectra or clusters.}
+
+\item{index}{optional positive integer vector selecting spectra to
+decompress. With \code{expand = TRUE}, indexes refer to rows in
+\code{x$coords}; with \code{expand = FALSE}, indexes refer to columns in
+\code{x$values}.}
 
 \item{file}{file path for reading or writing a Specs object.}
 
@@ -135,7 +166,8 @@ original coordinate; if \code{FALSE}, keep active spectra or clusters.}
 \item{\ldots}{additional arguments passed to submethods.}
 }
 \value{
-\code{Specs()} and \code{as_Specs()} return a \code{Specs} object.
+\code{Specs()}, \code{as_Specs()}, \code{encode_specs_hilbert()}, and
+\code{decode_specs_hilbert()} return a \code{Specs} object.
 \code{fit_specs_pca()} returns a \code{SpecsPCA} model.
 \code{decompress_spec()} returns an approximate \code{OpenSpecy} object.
 \code{read_specs()} returns a \code{Specs} object.
@@ -148,8 +180,7 @@ separately.
 }
 \examples{
 data("raman_hdpe")
-model <- fit_specs_pca(raman_hdpe, n_components = 1)
-specs <- as_Specs(raman_hdpe, model)
+specs <- as_Specs(raman_hdpe, n_components = 1)
 decompress_spec(specs)
 
 }

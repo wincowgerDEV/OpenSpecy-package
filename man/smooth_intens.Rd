@@ -60,7 +60,8 @@ with \code{\link{make_rel}()}.}
 
 \item{wavenum_width}{the width of the window you want in wavenumbers.}
 
-\item{\ldots}{further arguments passed to \code{\link[signal]{sgolay}()}.}
+\item{\ldots}{further arguments passed to the Savitzky-Golay coefficient
+generator, currently including \code{ts}.}
 }
 \value{
 \code{smooth_intens()} returns an \code{OpenSpecy} object.
@@ -74,8 +75,8 @@ This smoother can enhance the signal to noise ratio of the data using a
 Savitzky-Golay or Whittaker-Henderson filter.
 }
 \details{
-For Savitzky-Golay this is a wrapper around the filter function in the signal package to improve
-integration with other Open Specy functions.
+For Savitzky-Golay this uses OpenSpecy's internal matrix filter to improve
+integration with other OpenSpecy functions.
 A typical good smooth can be achieved with 11 data point window and a 3rd or
 4th order polynomial.
 For Whittaker-Henderson, the code is largely based off of the whittaker() function in the pracma package.
@@ -97,7 +98,7 @@ Simplified Least Squares Procedures.” \emph{Analytical Chemistry},
 \strong{36}(8), 1627--1639.
 }
 \seealso{
-\code{\link[signal]{sgolay}()}
+\code{\link{smooth_intens}()}
 }
 \author{
 Win Cowger, Zacharias Steinmetz

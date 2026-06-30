@@ -6,8 +6,8 @@
 #' Savitzky-Golay or Whittaker-Henderson filter.
 #'
 #' @details
-#' For Savitzky-Golay this is a wrapper around the filter function in the signal package to improve
-#' integration with other Open Specy functions.
+#' For Savitzky-Golay this uses OpenSpecy's internal matrix filter to improve
+#' integration with other OpenSpecy functions.
 #' A typical good smooth can be achieved with 11 data point window and a 3rd or
 #' 4th order polynomial.
 #' For Whittaker-Henderson, the code is largely based off of the whittaker() function in the pracma package.
@@ -28,7 +28,8 @@
 #' @param type the type of smoothing to use "wh" for Whittaker-Henerson or "sg" for Savitzky-Golay.
 #' @param make_rel logical; if \code{TRUE} spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
-#' @param \ldots further arguments passed to \code{\link[signal]{sgolay}()}.
+#' @param \ldots further arguments passed to the Savitzky-Golay coefficient
+#' generator, currently including \code{ts}.
 #'
 #' @return
 #' \code{smooth_intens()} returns an \code{OpenSpecy} object.
@@ -50,7 +51,7 @@
 #' Win Cowger, Zacharias Steinmetz
 #'
 #' @seealso
-#' \code{\link[signal]{sgolay}()}
+#' \code{\link{smooth_intens}()}
 #'
 #' @references
 #' Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by
@@ -138,16 +139,12 @@ calc_window_points.OpenSpecy <- function(x, wavenum_width = 70, ...){
   do.call("calc_window_points", list(x = x$wavenumber, wavenum_width = wavenum_width))
 }
 
-
-#' @importFrom signal filter sgolay
 .sgfilt <- function(y, p, n, m, ...) {
-  out <- signal::filter(filt = sgolay(p = p, n = n, m = m, ...), x = y)
-
-  return(out)
+  as.numeric(.sgfilt_matrix(matrix(y, ncol = 1L), p = p, n = n, m = m, ...))
 }
 
 .sgfilt_matrix <- function(y, p, n, m, ...) {
-  filt <- signal::sgolay(p = p, n = n, m = m, ...)
+  filt <- .sgolay_filter(p = p, n = n, m = m, ...)
   len <- nrow(y)
   n <- nrow(filt)
   k <- floor(n / 2)
@@ -177,6 +174,49 @@ calc_window_points.OpenSpecy <- function(x, wavenum_width = 70, ...){
   out[(len - k + 1L):len, ] <- filt[(k + 2L):n, , drop = FALSE] %*%
     y[(len - n + 1L):len, , drop = FALSE]
   out
+}
+
+.sgolay_filter <- function(p, n, m = 0, ts = 1) {
+  if (n %% 2 != 1)
+    stop("sgolay needs an odd filter length n", call. = FALSE)
+  if (p >= n)
+    stop("sgolay needs filter length n larger than polynomial order p",
+         call. = FALSE)
+
+  filter_matrix <- matrix(0, n, n)
+  k <- floor(n / 2)
+  powers <- matrix(rep(0:p, each = n), nrow = n)
+
+  for (row in seq_len(k + 1L)) {
+    centered <- matrix((seq_len(n) - row), nrow = n, ncol = p + 1L)
+    coef_matrix <- centered^powers
+    filter_matrix[row, ] <- .matrix_ginv(coef_matrix,
+                                          tol = .Machine$double.eps)[1L + m, ]
+  }
+
+  filter_matrix[(k + 2L):n, ] <- (-1)^m * filter_matrix[k:1L, n:1L]
+  if (m > 0) filter_matrix <- filter_matrix * prod(seq_len(m)) / (ts^m)
+  class(filter_matrix) <- "sgolayFilter"
+  filter_matrix
+}
+
+.matrix_ginv <- function(x, tol = sqrt(.Machine$double.eps)) {
+  if (length(dim(x)) > 2L || !(is.numeric(x) || is.complex(x)))
+    stop("'x' must be a numeric or complex matrix", call. = FALSE)
+  if (!is.matrix(x)) x <- as.matrix(x)
+
+  x_svd <- svd(x)
+  if (is.complex(x)) x_svd$u <- Conj(x_svd$u)
+  positive <- x_svd$d > max(tol * x_svd$d[1L], 0)
+
+  if (all(positive)) {
+    x_svd$v %*% (1 / x_svd$d * t(x_svd$u))
+  } else if (!any(positive)) {
+    array(0, dim(x)[2L:1L])
+  } else {
+    x_svd$v[, positive, drop = FALSE] %*%
+      ((1 / x_svd$d[positive]) * t(x_svd$u[, positive, drop = FALSE]))
+  }
 }
 
 .derivative <- function(y, res = NULL, derivative = 1, lag = 1) {

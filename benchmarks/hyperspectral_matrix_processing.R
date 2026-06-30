@@ -2,7 +2,9 @@
 # Run after installing/loading OpenSpecy from this checkout:
 #   source("benchmarks/hyperspectral_matrix_processing.R")
 
-if (!requireNamespace("OpenSpecy", quietly = TRUE)) {
+if (requireNamespace("pkgload", quietly = TRUE)) {
+  pkgload::load_all(".", export_all = FALSE)
+} else if (!requireNamespace("OpenSpecy", quietly = TRUE)) {
   stop("Install or load OpenSpecy before running this benchmark.")
 }
 
@@ -29,6 +31,7 @@ lib <- OpenSpecy::as_OpenSpecy(
 unk <- OpenSpecy::conform_spec(os, range = target, res = NULL)
 
 legacy_make_rel <- function(mat) {
+  mat <- as.matrix(mat)
   out <- vapply(seq_len(ncol(mat)), function(i) {
     r <- range(mat[, i])
     (mat[, i] - r[1L]) / (r[2L] - r[1L])
@@ -38,18 +41,20 @@ legacy_make_rel <- function(mat) {
 }
 
 legacy_sg <- function(x) {
-  filt <- signal::sgolay(p = 3, n = 11, m = 1)
-  out <- vapply(seq_len(ncol(x$spectra)), function(i) {
-    as.numeric(signal::filter(filt = filt, x = x$spectra[, i]))
-  }, FUN.VALUE = numeric(nrow(x$spectra)))
-  colnames(out) <- colnames(x$spectra)
-  x$spectra <- out
+  if (!requireNamespace("sgolay", quietly = TRUE)) {
+    stop("Install sgolay to run the legacy Savitzky-Golay benchmark.")
+  }
+  spectra_names <- colnames(x$spectra)
+  x$spectra <- sgolay::sgolayfilt(as.matrix(x$spectra), p = 3, n = 11,
+                                  m = 1)
+  colnames(x$spectra) <- spectra_names
   x
 }
 
 legacy_conform <- function(x) {
+  spectra <- as.matrix(x$spectra)
   out <- vapply(seq_len(ncol(x$spectra)), function(i) {
-    approx(x = x$wavenumber, y = x$spectra[, i], xout = target)$y
+    approx(x = x$wavenumber, y = spectra[, i], xout = target)$y
   }, FUN.VALUE = numeric(length(target)))
   colnames(out) <- colnames(x$spectra)
   x$wavenumber <- target
@@ -58,11 +63,12 @@ legacy_conform <- function(x) {
 }
 
 legacy_manual_baseline <- function(x) {
-  bl <- approx(baseline$wavenumber, baseline$spectra[, 1L],
+  spectra <- as.matrix(x$spectra)
+  bl <- approx(baseline$wavenumber, as.matrix(baseline$spectra)[, 1L],
                xout = x$wavenumber, rule = 2, method = "linear",
                ties = mean)$y
   out <- vapply(seq_len(ncol(x$spectra)), function(i) {
-    x$spectra[, i] - bl
+    spectra[, i] - bl
   }, FUN.VALUE = numeric(nrow(x$spectra)))
   colnames(out) <- colnames(x$spectra)
   x$spectra <- out

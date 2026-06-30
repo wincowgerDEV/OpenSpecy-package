@@ -95,7 +95,14 @@ read_jdx(
 
 read_extdata(file = NULL)
 
-read_h5(file, collapse = T, ...)
+read_h5(
+  file,
+  collapse = FALSE,
+  spectral_smooth = FALSE,
+  sigma = c(1, 1, 1),
+  read_visual = TRUE,
+  ...
+)
 }
 \arguments{
 \item{file}{file to be read from or written to.}
@@ -111,7 +118,17 @@ as well.}
 
 \item{metadata}{a named list of the metadata; see}
 
-\item{collapse}{whether or not to use \code{\link{collapse_spec}()} by particle_id.
+\item{collapse}{whether or not to use \code{\link{collapse_spec}()} by
+particle_id. For \code{read_h5()}, the default is \code{FALSE} so region
+pixels are returned in raw form.}
+
+\item{spectral_smooth}{logical; whether H5 cubes should be smoothed before
+matrix conversion.}
+
+\item{sigma}{numeric vector passed to \code{\link[mmand]{gaussianSmooth}()}.}
+
+\item{read_visual}{logical; whether H5 mosaic images should be attached as
+visual-image attributes when present.
 \code{\link{as_OpenSpecy}()} for details.}
 
 \item{\ldots}{further arguments passed to the submethods.}

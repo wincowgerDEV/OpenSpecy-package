@@ -16,6 +16,8 @@ test_that("make_rel() normalizes matrix spectra by column", {
 })
 
 test_that("Savitzky-Golay smoothing uses the same numerical filter for matrices", {
+  skip_if_not_installed("sgolay")
+
   spec <- cbind(
     raw = raman_hdpe$spectra[, 1L],
     shifted = raman_hdpe$spectra[, 1L] + seq_len(nrow(raman_hdpe$spectra)) / 100
@@ -25,10 +27,7 @@ test_that("Savitzky-Golay smoothing uses the same numerical filter for matrices"
   fast <- smooth_intens(multi, polynomial = 3, window = 11, derivative = 1,
                         abs = FALSE, make_rel = FALSE)
 
-  filt <- signal::sgolay(p = 3, n = 11, m = 1)
-  legacy <- vapply(seq_len(ncol(spec)), function(i) {
-    as.numeric(signal::filter(filt = filt, x = spec[, i]))
-  }, FUN.VALUE = numeric(nrow(spec)))
+  legacy <- sgolay::sgolayfilt(spec, p = 3, n = 11, m = 1)
   colnames(legacy) <- colnames(spec)
 
   expect_equal(fast$spectra, legacy, tolerance = 1e-12)

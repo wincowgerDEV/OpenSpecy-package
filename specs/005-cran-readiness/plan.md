@@ -24,8 +24,8 @@
 - Release metadata is inconsistent: `DESCRIPTION` is `1.7.1` with `Date: 2025-09-29`, `NEWS.md` starts at `1.7.0`, `README.md` title says `Open Specy 1.0`, the README DOI badge differs from the current package DOI, and `cran-comments.md` lists old check environments.
 - Network tests need exact-host guards: `tests/testthat/test-manage_lib.R` skips on `osf.io` even when `get_lib(..., aws = TRUE)` downloads from `d2jrxerjcsjhs7.cloudfront.net`.
 - YAML is isolated to `R/io_spec.R`, `inst/extdata/raman_hdpe.yml`, `tests/testthat/test-io_spec.R`, `tests/testthat/test-manage_spec.R`, and vignettes; remove YAML read/write support, fixture, docs, and dependency.
-- `cluster` is only used for `cluster::pam()` inside `.pam_group_ids()`/`reduce_lib()`; port or replace that medoid selection in-package with tests and a benchmark against current output.
-- `signal` is still used by `.sgfilt()`/`.sgfilt_matrix()` and tests/benchmarks; remove it by replacing Savitzky-Golay coefficient/filter code in-package and benchmark equivalent output.
+- `cluster::pam()` runtime use has been replaced by an internal PAM medoid selector; keep `cluster` only in `Suggests` for optional tests and benchmarks.
+- `signal` runtime use has been replaced by an internal Savitzky-Golay filter; keep `sgolay` only in `Suggests` for optional comparison tests and benchmarks.
 - Roxygen/source doc issues found statically: mojibake references in `R/OpenSpecy-package.R` and `R/manage_lib.R`, README typo `spec_lib$wavenumbers`, `Web Assemply`, old `T`/`F` examples, and unclear low-level helper guidance.
 - Check/probes confirmed code risks: `grDevices::readbitmap()` is missing, `.xyz` reading errors with `object 'xy' not found`, and new code needs imports/globals for `.row_id`, `y`, `tail`, `png`, and `dev.off`.
 
@@ -65,7 +65,7 @@
 
 - [ ] Confirm intended public exports and ensure new particle/image/validation/Specs APIs are generated into `NAMESPACE`.
 - [ ] Remove YAML support and fixture from `R/io_spec.R`, `inst/extdata/`, tests, vignettes, `README.md`, `DESCRIPTION`, and roxygen.
-- [ ] Port `cluster::pam()` reduction and `signal` Savitzky-Golay filtering with tests plus same-output benchmarks.
+- [x] Port `cluster::pam()` reduction and `signal` Savitzky-Golay filtering with tests plus same-output benchmarks.
 - [ ] Fix release-blocking behavior in `R/visual_image.R`, `R/read_ext.R`, `R/automate_particle_analysis.R`, `R/Specs.R`, and `R/zzz.R`.
 - [ ] Refresh roxygen docs, README, included vignettes, NEWS, and cran-comments from source.
 - [ ] Regenerate generated artifacts with the configured roxygen2 version and inspect `NAMESPACE`/`man/*.Rd` diffs immediately.
@@ -80,13 +80,13 @@
 - `devtools::document()`: run once with configured roxygen2; inspect generated diffs for aliases, exports, authors, references, and stale signatures.
 - Full checks: `devtools::test()`, `devtools::build_vignettes()`, `R CMD build`, `R CMD check --as-cran`, and GitHub Actions matrix on Windows/macOS/Linux R release/devel/oldrel.
 - Benchmarks: required for any same-output reader, processor, matcher, or dependency-port change; compare output equivalence and flag >10% slowdown.
+- Dependency-port evidence: focused tests passed; `benchmarks/hyperspectral_matrix_processing.R` reports SG output equivalence; `benchmarks/pam_reduction.R` matches legacy IDs and flags the internal R PAM path as slower than compiled `cluster`.
 - CRAN release checks: inspect package tarball contents/size, URLs/DOIs, examples, vignettes, `cran-comments.md`, reverse dependencies, and no unexpected files.
 
 ## Risks And Open Questions
 
 - Should `Config/roxygen2/version` be changed to the installed/release generator or should roxygen2 8.0.0 be installed before documentation regeneration?
-- What exact compatibility tolerance is acceptable for the in-package Savitzky-Golay replacement compared with current `signal` output?
-- For the PAM port, should the implementation match `cluster::pam(pamonce = 6)` exactly, or is deterministic medoid equivalence on representative library groups sufficient?
+- PAM output now targets `cluster::pam(pamonce = 6)` medoids; the R port is slower than compiled `cluster`, so keep benchmark visibility before CRAN.
 
 ## Approval Notes
 
