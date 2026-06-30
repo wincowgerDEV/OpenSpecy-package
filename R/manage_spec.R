@@ -116,7 +116,7 @@ c_spec.list <- function(x, range = "full", res = 6, ...) {
   metadata <- rbindlist(list$metadata, fill = TRUE)
   metadata <- metadata[, setdiff(names(metadata), c("x", "y")), with = FALSE]
   attribute_names <- c("intensity_unit", "derivative_order", "baseline",
-                       "spectra_type")
+                       "spectra_type", "visual_image")
   object_attributes <- lapply(attribute_names, function(nm) {
     values <- lapply(x, attr, which = nm)
     if (all(vapply(values[-1L], identical, logical(1), values[[1L]]))) {
@@ -228,9 +228,22 @@ merge_map.list <- function(x, origins = NULL, ...) {
     colnames(spectra) <- make.unique(unlist(lapply(list$spectra, colnames)),
                                      sep = ".")
 
+    attribute_names <- c("intensity_unit", "derivative_order", "baseline",
+                         "spectra_type", "visual_image")
+    object_attributes <- lapply(attribute_names, function(nm) {
+        values <- lapply(map, attr, which = nm)
+        if (all(vapply(values[-1L], identical, logical(1), values[[1L]]))) {
+            values[[1L]]
+        } else {
+            NULL
+        }
+    })
+    names(object_attributes) <- attribute_names
+
     map <- as_OpenSpecy(x = list$wavenumber[[1]],
                         spectra = spectra,
-                        metadata = rbindlist(list$metadata, fill = T))
+                        metadata = rbindlist(list$metadata, fill = T),
+                        attributes = object_attributes)
 
     ids <- paste(map$metadata$x, map$metadata$y, sep = ",")
     map$metadata$sample_name <- ids

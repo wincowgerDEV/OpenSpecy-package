@@ -151,6 +151,7 @@ Specs <- function(variables, values, coords = NULL, metadata = NULL,
   attr(obj, "hilbert_model") <- .specs_attr(attributes, "hilbert_model", NULL)
   attr(obj, "spectrum_compression") <- .specs_attr(attributes, "spectrum_compression", NULL)
   attr(obj, "transformations") <- .specs_attr(attributes, "transformations", list())
+  attr(obj, "visual_image") <- .specs_attr(attributes, "visual_image", NULL)
 
   obj
 }
@@ -375,12 +376,15 @@ decompress_spec.Specs <- function(x, expand = TRUE, index = NULL, ...) {
       md[, y := 0L]
   }
 
-  as_OpenSpecy(
+  out <- as_OpenSpecy(
     x = variables,
     spectra = spectra,
     metadata = md,
     coords = NULL
   )
+  if (!is.null(attr(x, "visual_image")))
+    attr(out, "visual_image") <- attr(x, "visual_image")
+  out
 }
 
 #' @rdname Specs
@@ -417,7 +421,8 @@ encode_specs_hilbert <- function(x, bits_per_variable = NULL, limits = NULL,
       variable_model = attr(x, "variable_model"),
       hilbert_model = hilbert$model,
       spectrum_compression = compression,
-      transformations = attr(x, "transformations")
+      transformations = attr(x, "transformations"),
+      visual_image = attr(x, "visual_image")
     )
   )
   .append_specs_transformation(out, list(
@@ -458,7 +463,8 @@ decode_specs_hilbert <- function(x, ...) {
       specs_version = attr(x, "specs_version"),
       variable_model = attr(x, "variable_model"),
       spectrum_compression = compression,
-      transformations = attr(x, "transformations")
+      transformations = attr(x, "transformations"),
+      visual_image = attr(x, "visual_image")
     )
   )
 }
@@ -563,7 +569,8 @@ read_specs <- function(file, ...) {
       variable_model = attr(x, "variable_model"),
       hilbert_model = attr(x, "hilbert_model"),
       spectrum_compression = attr(x, "spectrum_compression"),
-      transformations = attr(x, "transformations")
+      transformations = attr(x, "transformations"),
+      visual_image = attr(x, "visual_image")
     )
   )
 }
@@ -624,7 +631,8 @@ read_specs <- function(file, ...) {
   data.table::setcolorder(metadata,
                           c("value_id", setdiff(names(metadata), "value_id")))
 
-  Specs(x$wavenumber, values, coords = coords, metadata = metadata)
+  Specs(x$wavenumber, values, coords = coords, metadata = metadata,
+        attributes = list(visual_image = attr(x, "visual_image")))
 }
 
 .default_specs_n_components <- function(x, n_components = NULL, steps,
@@ -669,7 +677,8 @@ read_specs <- function(file, ...) {
       specs_version = attr(x, "specs_version"),
       variable_model = .specs_model_metadata(model),
       spectrum_compression = attr(x, "spectrum_compression"),
-      transformations = attr(x, "transformations")
+      transformations = attr(x, "transformations"),
+      visual_image = attr(x, "visual_image")
     )
   )
   .append_specs_transformation(out, list(
@@ -1123,7 +1132,8 @@ read_specs <- function(file, ...) {
     variable_model = attr(x, "variable_model"),
     hilbert_model = attr(x, "hilbert_model"),
     spectrum_compression = compression,
-    transformations = attr(x, "transformations")
+    transformations = attr(x, "transformations"),
+    visual_image = attr(x, "visual_image")
   )
 
   out <- Specs(x$variables, values, coords = coords, metadata = metadata,

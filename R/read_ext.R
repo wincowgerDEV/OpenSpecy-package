@@ -20,7 +20,14 @@
 #' \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
 #' as well.
 #' @param metadata a named list of the metadata; see
-#' @param collapse whether or not to use \code{\link{collapse_spec}()} by particle_id.
+#' @param collapse whether or not to use \code{\link{collapse_spec}()} by
+#' particle_id. For \code{read_h5()}, the default is \code{FALSE} so region
+#' pixels are returned in raw form.
+#' @param spectral_smooth logical; whether H5 cubes should be smoothed before
+#' matrix conversion.
+#' @param sigma numeric vector passed to \code{\link[mmand]{gaussianSmooth}()}.
+#' @param read_visual logical; whether H5 mosaic images should be attached as
+#' visual-image attributes when present.
 #' \code{\link{as_OpenSpecy}()} for details.
 #' @param \ldots further arguments passed to the submethods.
 #'
@@ -383,98 +390,223 @@ read_extdata <- function(file = NULL) {
 #' @rdname read_ext
 #' @import hdf5r 
 #' @export
-read_h5 <- function(file, collapse = T, ...) {
-    
+read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
+                    sigma = c(1, 1, 1), read_visual = TRUE, ...) {
+
     h5 <- H5File$new(file, mode = "r")
     on.exit({
         try(h5$close_all(), silent = TRUE)
     }, add = TRUE)
-    
+
     if (!h5$exists("/Regions")) {
         message("X No /Regions group found: ", file)
         return(invisible(NULL))
     }
-    
+
     regions <- names(h5[["/Regions"]])
     if (length(regions) == 0) {
         message("X No Region_* groups found under /Regions: ", file)
         return(invisible(NULL))
     }
-    
-    # Spectral axis from file attributes
-    fi <- h5[["/FileInfo"]]
-    min_cm <- fi$attr_open("SpectralRangeStart")$read()
-    max_cm <- fi$attr_open("SpectralRangeEnd")$read()
-    
-    # Read first cube to size things and confirm wavenumber length
-    first_cube <- h5[[paste0("/Regions/", regions[1], "/Dataset")]]$read()
-    dims <- dim(first_cube)
-    if (length(dims) != 3) stop("Expected 3D dataset (ny x nx x N). Got dims: ", paste(dims, collapse = "x"))
-    
-    # Identify which dimension is spectral (the longest, typically N)
-    spec_dim <- which.max(dims)
-    # Reorder to (ny, nx, N)
-    perm <- c(setdiff(1:3, spec_dim), spec_dim)
-    first_cube <- aperm(first_cube, perm)
-    ny <- dim(first_cube)[1]; nx <- dim(first_cube)[2]; N <- dim(first_cube)[3]
-    
-    wavenumbers <- seq(min_cm, max_cm, length.out = N)
-    
-    # Helpers
-    read_cube_std <- function(reg_name) {
-        cube <- h5[[paste0("/Regions/", reg_name, "/Dataset")]]$read()
-        cube <- aperm(cube, perm)          # (ny, nx, N)
-        cube
-    }
-    
-    # Prepare containers
-    df <- data.frame(wavenumber = wavenumbers, 
-                     check.names = FALSE)
-    raw_meta <- list(ids = character(0), particle_id = character(0), 
-                     subpixel = integer(0), row = integer(0),
-                     col = integer(0))
-    
-    for (reg in regions) {
-        cube <- read_cube_std(reg)
-        
-        # Clean region label -> "Region<digits>"
+
+    file_meta <- .read_h5_file_metadata(h5)
+    first_dims <- .h5_dataset_dims(h5[[paste0("/Regions/", regions[1],
+                                             "/Dataset")]])
+    if (length(first_dims) != 3L)
+        stop("Expected 3D dataset. Got dims: ",
+             paste(first_dims, collapse = "x"), call. = FALSE)
+    spec_dim <- .h5_spectral_dim(first_dims, file_meta)
+    n_wavenumber <- first_dims[spec_dim]
+    wavenumbers <- .h5_wavenumbers(file_meta, n_wavenumber)
+
+    mats <- vector("list", length(regions))
+    metas <- vector("list", length(regions))
+    ids_all <- vector("list", length(regions))
+
+    for (i in seq_along(regions)) {
+        reg <- regions[i]
+        dset <- h5[[paste0("/Regions/", reg, "/Dataset")]]
+        dims <- .h5_dataset_dims(dset)
+        if (length(dims) != 3L)
+            stop("Expected 3D dataset. Got dims: ",
+                 paste(dims, collapse = "x"), call. = FALSE)
+        spec_dim <- .h5_spectral_dim(dims, file_meta)
+        cube <- dset$read()
+        cube <- aperm(cube, c(spec_dim, setdiff(seq_along(dims), spec_dim)))
+        if (isTRUE(spectral_smooth))
+            cube <- mmand::gaussianSmooth(cube, sigma = sigma)
+
+        n <- dim(cube)[1L]
+        ny <- dim(cube)[2L]
+        nx <- dim(cube)[3L]
+        if (n != length(wavenumbers))
+            wavenumbers <- .h5_wavenumbers(file_meta, n)
+
+        mat <- matrix(cube, nrow = n, ncol = ny * nx)
         id_digits <- gsub("\\D", "", reg)
         particle_lab <- if (nzchar(id_digits)) paste0("Region", id_digits) else reg
-        
-        k <- 0L
-        for (r in seq_len(ny)) {
-            for (c in seq_len(nx)) {
-                k <- k + 1L
-                colname <- sprintf("%s_r%dc%d", particle_lab, r, c)
-                df[[colname]] <- cube[r, c, ]
-                raw_meta$ids       <- c(raw_meta$ids, colname)
-                raw_meta$particle_id <- c(raw_meta$particle_id, particle_lab)
-                raw_meta$subpixel  <- c(raw_meta$subpixel, k)
-                raw_meta$row       <- c(raw_meta$row, r)
-                raw_meta$col       <- c(raw_meta$col, c)
-            }
+        grid <- expand.grid(row = seq_len(ny), col = seq_len(nx))
+        ids <- paste0(particle_lab, "_r", grid$row, "c", grid$col)
+        colnames(mat) <- ids
+
+        mats[[i]] <- mat
+        ids_all[[i]] <- ids
+        metas[[i]] <- data.table(
+            id = ids,
+            file_name = basename(file),
+            region = reg,
+            particle_id = particle_lab,
+            subpixel = seq_len(nrow(grid)),
+            row = grid$row,
+            col = grid$col,
+            x = grid$col - 1L,
+            y = grid$row - 1L
+        )
+        metas[[i]] <- cbind(metas[[i]], .h5_region_metadata(h5, reg))
+    }
+
+    spectra <- do.call(cbind, mats)
+    metadata <- data.table::rbindlist(metas, fill = TRUE)
+    if (length(file_meta)) {
+        scalar_meta <- as.data.table(file_meta)
+        scalar_meta <- scalar_meta[rep(1L, nrow(metadata))]
+        metadata <- cbind(metadata, scalar_meta)
+    }
+    coords <- metadata[, c("x", "y"), with = FALSE]
+    metadata_no_coords <- metadata[, setdiff(names(metadata), c("x", "y")),
+                                   with = FALSE]
+    os <- as_OpenSpecy(wavenumbers, spectra = spectra,
+                       metadata = metadata_no_coords, coords = coords,
+                       session_id = TRUE)
+
+    if (isTRUE(read_visual)) {
+        vi <- .read_h5_visual_image(h5)
+        if (!is.null(vi$image)) {
+            os <- add_visual_image(
+                os, vi$image, source = vi$source,
+                diagnostics = vi$diagnostics
+            )
         }
     }
-    
-    # Convert to OpenSpecy object
-    os <- as_OpenSpecy(df)
-    
-    # Augment metadata so spectra can be grouped by particle
-    os$metadata$file <- basename(file)
-    
-    os$metadata <- cbind(os$metadata, 
-        data.frame(
-        id = raw_meta$ids,
-        particle_id = raw_meta$particle_id,
-        subpixel = raw_meta$subpixel,
-        row = raw_meta$row,
-        col = raw_meta$col,
-        stringsAsFactors = FALSE
-    ))
-    if(collapse){
+
+    if (isTRUE(collapse)) {
+        warning("read_h5(collapse = TRUE) is retained for compatibility; ",
+                "the default is raw-region output. Prefer explicit ",
+                "collapse_spec() after reading.", call. = FALSE)
         os <- collapse_spec(os, fun = mean, column = "particle_id", ...)
-        os$metadata <- os$metadata[,-c("x", "y")]
-        os$metadata <- cbind(gen_grid(ncol(os$spectra)), os$metadata)
     }
     os
+}
+
+.h5_dataset_dims <- function(dset) {
+    dims <- tryCatch(dset$dims, error = function(e) NULL)
+    if (is.null(dims)) dims <- dim(dset$read())
+    as.integer(dims)
+}
+
+.read_h5_file_metadata <- function(h5) {
+    out <- list()
+    if (h5$exists("/FileInfo")) {
+        fi <- h5[["/FileInfo"]]
+        attrs <- tryCatch(fi$attr_names, error = function(e) character())
+        for (a in attrs) {
+            val <- tryCatch(fi$attr_open(a)$read(), error = function(e) NULL)
+            if (!is.null(val) && length(val) == 1L) out[[a]] <- val
+        }
+    }
+    if (h5$exists("/FileInfo/MetaData")) {
+        xml <- .h5_metadata_text(h5[["/FileInfo/MetaData"]]$read())
+        out <- utils::modifyList(out, .h5_xml_scalar_vars(xml))
+    }
+    out
+}
+
+.h5_metadata_text <- function(x) {
+    raw <- as.raw(x)
+    raw <- raw[raw != as.raw(0)]
+    rawToChar(raw, multiple = FALSE)
+}
+
+.h5_xml_scalar_vars <- function(txt) {
+    if (is.null(txt) || !nzchar(txt)) return(list())
+    pattern <- "<VAR[^>]*NAME=\"([^\"]+)\"[^>]*>([^<]*)</VAR>"
+    hits <- regmatches(txt, gregexpr(pattern, txt, perl = TRUE))[[1]]
+    if (!length(hits)) return(list())
+    names <- sub(pattern, "\\1", hits, perl = TRUE)
+    values <- sub(pattern, "\\2", hits, perl = TRUE)
+    keep <- nzchar(names) & nchar(values) <= 120L
+    names <- make.unique(names[keep])
+    values <- values[keep]
+    values <- lapply(values, .h5_scalar_value)
+    names(values) <- names
+    values
+}
+
+.h5_scalar_value <- function(x) {
+    num <- suppressWarnings(as.numeric(x))
+    if (length(num) == 1L && !is.na(num)) return(num)
+    x
+}
+
+.h5_meta_first <- function(meta, keys) {
+    for (key in keys) {
+        if (!is.null(meta[[key]])) return(meta[[key]])
+    }
+    NULL
+}
+
+.h5_spectral_dim <- function(dims, file_meta) {
+    n <- .h5_meta_first(file_meta, c("SpectrumPoints", "m_SpectrumPoints",
+                                    "m_NumberOfPoints", "NPT"))
+    if (!is.null(n)) {
+        idx <- which(dims == as.integer(n))[1L]
+        if (!is.na(idx)) return(idx)
+    }
+    which.max(dims)
+}
+
+.h5_wavenumbers <- function(file_meta, n) {
+    start <- .h5_meta_first(file_meta, c("SpectralRangeStart",
+                                        "m_StartFrequency", "m_StartFreq",
+                                        "m_StartFrequency.1"))
+    end <- .h5_meta_first(file_meta, c("SpectralRangeEnd",
+                                      "m_EndFrequency", "m_EndFreq",
+                                      "m_EndFrequency.1"))
+    if (!is.null(start) && !is.null(end) &&
+        is.finite(as.numeric(start)) && is.finite(as.numeric(end))) {
+        return(seq(as.numeric(start), as.numeric(end), length.out = n))
+    }
+    warning("H5 spectral range not found, using index values instead",
+            call. = FALSE)
+    seq_len(n)
+}
+
+.h5_region_metadata <- function(h5, reg) {
+    path <- paste0("/Regions/", reg, "/-StagePosXYZ")
+    if (!h5$exists(path)) return(data.table())
+    vals <- tryCatch(as.numeric(h5[[path]]$read()), error = function(e) NULL)
+    if (is.null(vals)) return(data.table())
+    out <- as.data.table(as.list(vals))
+    names(out) <- paste0("stage_pos_", seq_along(vals))
+    out
+}
+
+.read_h5_visual_image <- function(h5) {
+    if (!h5$exists("/Mosaic")) return(list(image = NULL))
+    mosaic <- h5[["/Mosaic"]]
+    images <- names(mosaic)[grepl("^Image", names(mosaic))]
+    if (!length(images)) return(list(image = NULL))
+    raw_img <- tryCatch(mosaic[[images[1L]]]$read(), error = function(e) NULL)
+    img <- tryCatch(.read_visual_bmp_bytes(raw_img), error = function(e) NULL)
+    centers <- if (h5$exists("/Mosaic/Centers")) {
+        tryCatch(as.data.table(h5[["/Mosaic/Centers"]]$read()),
+                 error = function(e) NULL)
+    } else {
+        NULL
+    }
+    list(
+        image = img,
+        source = paste0("/Mosaic/", images[1L]),
+        diagnostics = list(images = images, centers = centers)
+    )
 }

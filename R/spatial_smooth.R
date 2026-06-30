@@ -93,6 +93,7 @@ spatial_smooth <- function(x, sigma = c(1, 1, 1), ...) {
         metadata = x$metadata,
         session_id = TRUE
     )
+    x_smoothed <- .copy_open_specy_attributes(x_smoothed, x)
     
     return(x_smoothed)
 }

@@ -173,6 +173,11 @@ def_features.OpenSpecy <- function(x, features,
                                    bottom_left = NULL, top_right = NULL,
                                    ...) {
   x <- as_OpenSpecy(x)
+  vi <- .resolve_visual_image(x, img = img, bottom_left = bottom_left,
+                              top_right = top_right)
+  img <- vi$image
+  bottom_left <- vi$bottom_left
+  top_right <- vi$top_right
 
   if(is.logical(features) || is.character(features)) {
     if(length(unique(features)) == 1)
@@ -292,8 +297,8 @@ def_features.OpenSpecy <- function(x, features,
                                                         feature_ids, -88)|> as.character())
     
     #Add color extraction here. 
-    if(!is.null(img) & !is.null(bottom_left) & !is.null(top_right)){
-        mosaic <- readJPEG(img)
+    if(!is.null(img) && !is.null(bottom_left) && !is.null(top_right)){
+        mosaic <- .read_visual_image(img)
         map_dim <- c(length(unique(x$metadata$x)), 
                      length(unique(x$metadata$y)))
         xscale = (top_right[1]-bottom_left[1])/map_dim[1]
@@ -302,16 +307,21 @@ def_features.OpenSpecy <- function(x, features,
         
         x_vals = as.integer(feature_points_dt$x*xscale+bottom_left[1])
         y_vals = as.integer(bottom_left[2] - feature_points_dt$y*yscale)
-        colors = character(length = length(x_vals))
-        image_raster <- as.raster(mosaic)
+        colors = rep(NA_character_, length(x_vals))
+        image_raster <- .visual_image_raster(mosaic)
         # Create a matrix of coordinates for indexing
         coords <- cbind(y_vals, x_vals)
         # Fetch colors for all coordinates at once
-        colors <- image_raster[coords]
-        rbg_colors <- col2rgb(colors)
-        feature_points_dt$r <- rbg_colors[1,]
-        feature_points_dt$g <- rbg_colors[2,]
-        feature_points_dt$b <- rbg_colors[3,]
+        valid <- coords[, 1L] >= 1L & coords[, 1L] <= nrow(image_raster) &
+            coords[, 2L] >= 1L & coords[, 2L] <= ncol(image_raster)
+        colors[valid] <- image_raster[coords[valid, , drop = FALSE]]
+        rgb_colors <- matrix(NA_integer_, nrow = 3L, ncol = length(colors))
+        if (any(valid)) {
+            rgb_colors[, valid] <- col2rgb(colors[valid])
+        }
+        feature_points_dt$r <- rgb_colors[1,]
+        feature_points_dt$g <- rgb_colors[2,]
+        feature_points_dt$b <- rgb_colors[3,]
     }
     
     if(is.logical(binary)){

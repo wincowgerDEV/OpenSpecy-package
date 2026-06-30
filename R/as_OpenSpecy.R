@@ -20,6 +20,8 @@
 #' The session ID is based on current session info so metadata of the same
 #' spectra will not return equal if session info changes. Sometimes that is
 #' desirable.
+#' @param compute_file_id logical. Whether to add a file ID hash to metadata
+#' when one is not already present.
 #' @param colnames names of the wavenumber column and spectra column, makes
 #' assumptions based on column names or placement if \code{NULL}.
 #' @param n number of spectra to generate the spatial coordinate grid with.
@@ -104,6 +106,8 @@
 #'   `"2"`}
 #'   \item{`baseline`}{supported options include `"raw"` or `"nobaseline"`}
 #'   \item{`spectra_type`}{supported options include `"ftir"` or `"raman"`}
+#'   \item{`visual_image`}{optional visual-image metadata created by
+#'   \code{\link{add_visual_image}()}}
 #' }
 #'
 #'
@@ -256,7 +260,8 @@ as_OpenSpecy <- function(x, ...) {
 #' @rdname as_OpenSpecy
 #'
 #' @export
-as_OpenSpecy.OpenSpecy <- function(x, session_id = FALSE, ...) {
+as_OpenSpecy.OpenSpecy <- function(x, session_id = FALSE,
+                                   compute_file_id = TRUE, ...) {
   if (!is.matrix(x$spectra)) {
     x$spectra <- .as_spectra_matrix(x$spectra, message_conversion = TRUE)
   }
@@ -265,7 +270,7 @@ as_OpenSpecy.OpenSpecy <- function(x, session_id = FALSE, ...) {
     x$metadata$session_id <- paste(digest(Sys.info()),
                                    digest(sessionInfo()),
                                    sep = "/")
-  if(!c("file_id") %in% names(x$metadata))
+  if(isTRUE(compute_file_id) && !c("file_id") %in% names(x$metadata))
     x$metadata$file_id = digest(x[c("wavenumber", "spectra")])
 
   return(x)
@@ -369,10 +374,12 @@ as_OpenSpecy.default <- function(x, spectra,
                                    intensity_unit = NULL,
                                    derivative_order = NULL,
                                    baseline = NULL,
-                                   spectra_type = NULL
+                                   spectra_type = NULL,
+                                   visual_image = NULL
                                  ),
                                  coords = "gen_grid",
                                  session_id = FALSE,
+                                 compute_file_id = TRUE,
                                  comma_decimal = FALSE,
                                  ...) {
   if(comma_decimal){
@@ -395,9 +402,15 @@ as_OpenSpecy.default <- function(x, spectra,
                    spectra_type = attributes$spectra_type
   )
 
-  obj$wavenumber <- x[order(x)]
-
-  obj$spectra <- spectra[order(x), , drop = FALSE]
+  if (is.unsorted(x, strictly = FALSE)) {
+    ord <- order(x)
+    obj$wavenumber <- x[ord]
+    obj$spectra <- spectra[ord, , drop = FALSE]
+  } else {
+    obj$wavenumber <- x
+    obj$spectra <- spectra
+  }
+  attr(obj, "visual_image") <- attributes$visual_image
 
   if (inherits(coords, "character") && !any(is.element(c("x", "y"),
                                                        names(metadata)))) {
@@ -418,7 +431,7 @@ as_OpenSpecy.default <- function(x, spectra,
         obj$metadata$session_id <- paste(digest(Sys.info()),
                                          digest(sessionInfo()),
                                          sep = "/")
-      if(!c("file_id") %in% names(obj$metadata))
+      if(isTRUE(compute_file_id) && !c("file_id") %in% names(obj$metadata))
         obj$metadata$file_id <- digest(obj[c("wavenumber", "spectra")])
     } else {
       stop("inconsistent input for 'metadata'", call. = F)

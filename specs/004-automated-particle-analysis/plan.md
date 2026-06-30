@@ -60,20 +60,20 @@
 
 ## Work Checklist
 
-- [ ] Design final public signatures and error messages in `R/automate_particle_analysis.R`, `R/particle_image.R`, and `R/validation_metrics.R`.
-- [ ] Implement visual-image attributes, red-box origin detection, and base overlay plotting with preservation through `OpenSpecy`/`Specs` flows.
-- [ ] Port the trimmed particle workflow with `Specs`-based partial/nonspatial collapse and no removed script modes.
-- [ ] Rework `read_h5()` metadata/image parsing and default raw-region behavior; bulk-optimize `as_OpenSpecy()` and `read_envi()`.
-- [ ] Add focused tests, roxygen, NEWS, and benchmark scripts before full quality gates.
+- [x] Design final public signatures and error messages in `R/automate_particle_analysis.R`, `R/particle_image.R`, and `R/validation_metrics.R`.
+- [x] Implement visual-image attributes, red-box origin detection, and base overlay plotting with preservation through `OpenSpecy`/`Specs` flows.
+- [x] Port the trimmed particle workflow with `Specs`-based partial/nonspatial collapse and no removed script modes.
+- [x] Rework `read_h5()` metadata/image parsing and default raw-region behavior; bulk-optimize `as_OpenSpecy()` and `read_envi()`.
+- [x] Add focused tests, roxygen source, NEWS, and benchmark scripts before full quality gates.
 
 ## Verification
 
-- Focused tests: `devtools::test(filter = "def_features|Specs|read_envi|read_ext|automate_particle_analysis|particle_image|validation_metrics")`.
-- Toolchain/version preflight: confirm installed roxygen2 matches `Config/roxygen2/version: 8.0.0`.
-- `devtools::document()`: required after roxygen/export changes; inspect generated `NAMESPACE` and `man/*.Rd` diffs immediately.
-- Full `devtools::test()`: required after focused tests pass.
-- `devtools::check()` or CI/R CMD check: required before release-facing merge.
-- Benchmarks: run new reader/constructor benchmark scripts; fail on inequivalent same-output results or material slowdown.
+- Focused tests passed: `devtools::test(filter = "def_features|Specs|read_envi|read_ext|automate_particle_analysis|particle_image|validation_metrics")`.
+- Toolchain/version preflight found installed roxygen2 7.3.2 vs `Config/roxygen2/version: 8.0.0`; generated docs not updated.
+- `devtools::document()`: still required with roxygen2 8.0.0; inspect generated `NAMESPACE` and `man/*.Rd` diffs immediately.
+- Full `devtools::test()` passed with existing expected skips/warnings.
+- `devtools::check()` or CI/R CMD check: still required before release-facing merge.
+- Benchmarks passed via `benchmarks/automated_particle_analysis_readers.R`; external `tinytest.h5` raw-read median was 4.36s.
 - Reference-library/long workflow staging: N/A unless matching/library defaults are changed; H5 full-file benchmark is manual/env-var guarded.
 
 ## Risks And Open Questions

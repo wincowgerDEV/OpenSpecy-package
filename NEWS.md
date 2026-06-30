@@ -1,6 +1,20 @@
 # OpenSpecy 1.7.0
 
 - Improved run_app functionality to allow for version control. 
+- Added `automate_particle_analysis()` for package-native batch particle
+  detection, matching, summaries, and optional file output based on
+  `OpenSpecy`/`Specs` workflows.
+- Added visual-image helpers (`add_visual_image()`, `visual_image()`, and
+  `detect_image_origin()`) so spectral maps can carry aligned visual imagery
+  for feature color extraction and base graphics overlays.
+- Added `particle_image()` for dependency-light particle map plotting with the
+  package material color defaults.
+- Added `crowd_lookup()`, `recovery_rate()`,
+  `minimum_detectable_amount()`, and `batch_detection_limit()` for generalized
+  particle-size crowding, spike recovery, MDA, and single-blank BDL summaries.
+- `read_h5()` now defaults to raw per-region/pixel spectra instead of
+  collapsing by particle, preserves region and stage-position metadata, parses
+  scalar H5 metadata where possible, and attaches mosaic imagery when present.
 - Faster ENVI file reading. 
 - Add area under band calculation. 
 - Added library-builder helpers for creating lookup templates, auditing metadata

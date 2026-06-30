@@ -118,6 +118,11 @@ def_features.Specs <- function(x, features,
                                top_right = NULL,
                                ...) {
   x <- as_Specs(x)
+  vi <- .resolve_visual_image(x, img = img, bottom_left = bottom_left,
+                              top_right = top_right)
+  img <- vi$image
+  bottom_left <- vi$bottom_left
+  top_right <- vi$top_right
 
   if (length(features) != nrow(x$coords))
     stop("'features' must have one value per row in x$coords",
@@ -231,7 +236,8 @@ collapse_spec.Specs <- function(x, fun = mean, column = "feature_id", ...) {
       variable_model = attr(x, "variable_model"),
       hilbert_model = attr(x, "hilbert_model"),
       spectrum_compression = compression,
-      transformations = attr(x, "transformations")
+      transformations = attr(x, "transformations"),
+      visual_image = attr(x, "visual_image")
     )
   )
   .append_specs_transformation(out_obj, list(

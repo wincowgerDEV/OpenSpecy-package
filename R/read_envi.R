@@ -87,11 +87,15 @@ read_envi <- function(file, header = NULL,
   md <- hdr[names(hdr) != "wavelength"]
 
   dims <- dim(arr)
+  ny <- dims[1]
+  nx <- dims[2]
+  n_bands <- dims[3]
   coords <- data.frame(
-    y = as.numeric(rep(seq_len(dims[1]) - 1, each = dims[2])),
-    x = as.numeric(rep(seq_len(dims[2]) - 1, times = dims[1]))
+    y = as.numeric(rep(seq_len(ny) - 1, each = nx)),
+    x = as.numeric(rep(seq_len(nx) - 1, times = ny))
   )
-  spectra <- matrix(aperm(arr, c(3, 2, 1)), nrow = dims[3])
+  spectra <- matrix(aperm(arr, c(3, 2, 1)),
+                    nrow = n_bands, ncol = ny * nx)
   colnames(spectra) <- paste(coords$y, coords$x, sep = "_")
 
   if("wavelength" %in% names(hdr)) {
@@ -109,14 +113,30 @@ read_envi <- function(file, header = NULL,
       wavenumbers <- NULL
   }
 
-  if(is.null(wavenumbers))
+  if(is.null(wavenumbers)) {
     warning("wavenumbers not found, using index values instead")
+    wavenumbers <- seq_len(n_bands)
+  }
 
-  os <- as_OpenSpecy(x = if(!is.null(wavenumbers)) wavenumbers else 1:dims[3],
+  collapse_scalar <- function(x) {
+    if (is.null(x) || length(x) == 0) return(NA)
+    if (is.list(x)) x <- unlist(x, recursive = TRUE, use.names = FALSE)
+    if (length(x) == 1) return(x)
+    paste(x, collapse = ";")
+  }
+
+  if (is.list(metadata))
+    metadata <- metadata[!vapply(metadata, is.null, logical(1))]
+
+  meta <- lapply(c(metadata, md), collapse_scalar)
+  meta <- data.table::as.data.table(meta)[rep(1L, nrow(coords))]
+
+  os <- as_OpenSpecy(x = wavenumbers,
                      spectra = spectra,
-                     metadata = c(metadata, md),
+                     metadata = meta,
                      coords = coords,
-                     session_id = T)
+                     session_id = T,
+                     ...)
 
   return(os)
 }
