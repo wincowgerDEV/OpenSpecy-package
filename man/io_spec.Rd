@@ -43,23 +43,21 @@ data.
 \description{
 Functions for reading and writing spectral data to and from OpenSpecy format.
 \code{OpenSpecy} objects are lists with components \code{wavenumber}, \code{spectra},
-and \code{metadata}. Currently supported formats are .y(a)ml, .json, .csv, or .rds.
+and \code{metadata}. Currently supported formats are .json, .csv, or .rds.
 }
 \details{
 Due to floating point number errors there may be some differences in the
 precision of the numbers returned if using multiple devices for .json and
-.yaml files but the numbers should be nearly identical.
+.csv files but the numbers should be nearly identical.
 \code{\link[base]{readRDS}()} should return the exact same object every time.
 }
 \examples{
-read_extdata("raman_hdpe.yml") |> read_spec()
 read_extdata("raman_hdpe.json") |> read_spec()
 read_extdata("raman_hdpe.rds") |> read_spec()
 read_extdata("raman_hdpe.csv") |> read_spec()
 
 \dontrun{
 data(raman_hdpe)
-write_spec(raman_hdpe, "raman_hdpe.yml")
 write_spec(raman_hdpe, "raman_hdpe.json")
 write_spec(raman_hdpe, "raman_hdpe.rds")
 write_spec(raman_hdpe, "raman_hdpe.csv")
@@ -76,7 +74,6 @@ hyper <- as_hyperSpec(raman_hdpe)
 .spa, .spa, .spc, and .jdx formats, respectively;
 \code{\link{read_zip}()} and \code{\link{read_any}()} for wrapper functions;
 \code{\link[base]{saveRDS}()}; \code{\link[base]{readRDS}()};
-\code{\link[yaml]{write_yaml}()}; \code{\link[yaml]{read_yaml}()};
 \code{\link[jsonlite]{write_json}()}; \code{\link[jsonlite]{read_json}()};
 }
 \author{

@@ -1,6 +1,6 @@
 ## Test environments
 
-* manjaro linux 6.6.1-1 (local), R-4.3.2
+* Windows 11 x64 (local), R-4.3.3
 * macOS latest (via GitHub Actions), R-release
 * ubuntu latest (via GitHub Actions), R-devel
 * ubuntu latest (via GitHub Actions), R-release
@@ -10,8 +10,12 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 note
+0 errors | 0 warnings | 1 note
+
+* checking for future file timestamps ... NOTE
+  unable to verify current time
 
 ## Comments
 
-For further details, see NEWS.md.
+The timestamp note occurred in a local offline/restricted-network check
+environment. For release changes, see NEWS.md.

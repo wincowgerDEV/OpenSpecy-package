@@ -49,28 +49,32 @@
 run_app <- function(path = "system", log = TRUE, ref = "main",
                     check_local = TRUE, test_mode = FALSE, 
                     launch.browser = .rs.invokeShinyWindowExternal, ...) {
-  pkg <- c("shinyjs", "shinyWidgets", "bs4Dash",
-           "dplyr", "ggplot2", "DT", "reshape2")
+  app_packages <- c("shinyjs", "shinyWidgets", "bs4Dash",
+                    "dplyr", "ggplot2", "DT", "reshape2")
 
   owner <- "wincowgerDEV"
   repo <- "OpenSpecy-shiny"
   metadata_filename <- ".openspecy-shiny-metadata.rds"
   ref_missing <- missing(ref)
 
-  miss <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  require_app_packages <- function() {
+    miss <- app_packages[
+      !vapply(app_packages, requireNamespace, logical(1), quietly = TRUE)
+    ]
 
-  if(length(miss)) {
-    install_cmd <- paste0(
-      "install.packages(c(",
-      paste(paste0("\"", miss, "\""), collapse = ", "),
-      "))"
-    )
-    message(
-      "run_app() requires the following packages: ",
-      paste(miss, collapse = ", ")
-    )
-    message("Install the missing packages by running:\n  ", install_cmd)
-    stop("Missing required packages.", call. = FALSE)
+    if(length(miss)) {
+      install_cmd <- paste0(
+        "install.packages(c(",
+        paste(paste0("\"", miss, "\""), collapse = ", "),
+        "))"
+      )
+      message(
+        "run_app() requires the following packages: ",
+        paste(miss, collapse = ", ")
+      )
+      message("Install the missing packages by running:\n  ", install_cmd)
+      stop("Missing required packages.", call. = FALSE)
+    }
   }
 
   resolve_path <- function(x) {
@@ -346,6 +350,7 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
       if(test_mode) {
         return(invisible(local_app))
       }
+      require_app_packages()
       return(runApp(local_app, ...))
     }
   }
@@ -353,6 +358,8 @@ run_app <- function(path = "system", log = TRUE, ref = "main",
   if(test_mode) {
     return(invisible(dd))
   }
+
+  require_app_packages()
 
   if(ref_missing || identical(ref, "main")) {
     commits_page <- sprintf("https://github.com/%s/%s/commits/main", owner, repo)

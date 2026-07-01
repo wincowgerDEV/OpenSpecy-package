@@ -163,7 +163,7 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 
 }
 \seealso{
-\code{\link{read_spec}()} for reading .y(a)ml, .json, or .rds (OpenSpecy)
+\code{\link{read_spec}()} for reading .json, .rds, or .csv (OpenSpecy)
 files;
 \code{\link{read_opus}()} for reading .0 (OPUS) files;
 \code{\link{read_envi}()} for reading .dat (ENVI) files;

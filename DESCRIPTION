@@ -2,7 +2,7 @@ Package: OpenSpecy
 Type: Package
 Title: Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 Version: 1.7.1
-Date: 2025-09-29
+Date: 2026-06-30
 Authors@R: c(person("Win", "Cowger", role = c("cre", "aut", "dtc"),
       email = "wincowger@gmail.com",
       comment = c(ORCID = "0000-0001-9226-3104")),
@@ -83,7 +83,6 @@ Imports:
     methods,
     data.table,
     jsonlite,
-    yaml,
     caTools,
     hyperSpec,
     mmand,
@@ -109,5 +108,5 @@ Suggests:
     ggplot2
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 7.3.2
 RoxygenNote: 7.3.2

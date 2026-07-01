@@ -1,4 +1,4 @@
-# Open Specy 1.0
+# OpenSpecy
 
 Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 
@@ -8,7 +8,7 @@ Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 [![R-CMD-check](https://github.com/wincowgerDEV/OpenSpecy-package/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wincowgerDEV/OpenSpecy-package/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/wincowgerDEV/OpenSpecy-package/branch/main/graph/badge.svg)](https://app.codecov.io/gh/wincowgerDEV/OpenSpecy-package?branch=main)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![DOI](https://img.shields.io/badge/DOI-10.1021/acs.analchem.1c00123-blue.svg)](https://doi.org/10.1021/acs.analchem.1c00123)
+[![DOI](https://img.shields.io/badge/DOI-10.1021/acs.analchem.5c00962-blue.svg)](https://doi.org/10.1021/acs.analchem.5c00962)
 [![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://www.openanalysis.org/openspecy/)
 <!-- badges: end -->
 
@@ -47,17 +47,15 @@ if (!require(devtools)) install.packages("devtools")
 devtools::install_github("wincowgerDEV/OpenSpecy-package")
 ```
 
-### Install on Web Assemply through webr (experimental), you can test here: https://webr.r-wasm.org/latest/
+### Install on Web Assembly through webr (experimental), you can test here: https://webr.r-wasm.org/latest/
 ```r
 library(caTools)
 library(data.table)
 library(jsonlite)
-library(yaml)
 library(hyperSpec)
 library(mmand)
 library(plotly)
 library(digest)
-library(signal)
 library(glmnet)
 library(jpeg)
 library(shiny)

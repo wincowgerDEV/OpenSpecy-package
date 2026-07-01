@@ -63,13 +63,13 @@
 
 ## Work Checklist
 
-- [ ] Confirm intended public exports and ensure new particle/image/validation/Specs APIs are generated into `NAMESPACE`.
-- [ ] Remove YAML support and fixture from `R/io_spec.R`, `inst/extdata/`, tests, vignettes, `README.md`, `DESCRIPTION`, and roxygen.
+- [x] Confirm intended public exports and ensure new particle/image/validation/Specs APIs are generated into `NAMESPACE`.
+- [x] Remove YAML support and fixture from `R/io_spec.R`, `inst/extdata/`, tests, vignettes, `README.md`, `DESCRIPTION`, and roxygen.
 - [x] Port `cluster::pam()` reduction and `signal` Savitzky-Golay filtering with tests plus same-output benchmarks.
-- [ ] Fix release-blocking behavior in `R/visual_image.R`, `R/read_ext.R`, `R/automate_particle_analysis.R`, `R/Specs.R`, and `R/zzz.R`.
-- [ ] Refresh roxygen docs, README, included vignettes, NEWS, and cran-comments from source.
-- [ ] Regenerate generated artifacts with the configured roxygen2 version and inspect `NAMESPACE`/`man/*.Rd` diffs immediately.
-- [ ] Run focused tests, relevant benchmarks, full package tests, vignettes, build/package-size checks, and CRAN checks.
+- [x] Fix release-blocking behavior in `R/visual_image.R`, `R/read_ext.R`, `R/automate_particle_analysis.R`, `R/Specs.R`, and `R/zzz.R`.
+- [x] Refresh roxygen docs, README, included vignettes, NEWS, and cran-comments from source.
+- [x] Regenerate generated artifacts with the configured roxygen2 version and inspect `NAMESPACE`/`man/*.Rd` diffs immediately.
+- [x] Run focused tests, relevant benchmarks, full package tests, vignettes, build/package-size checks, and CRAN checks.
 
 ## Verification
 
@@ -80,13 +80,13 @@
 - `devtools::document()`: run once with configured roxygen2; inspect generated diffs for aliases, exports, authors, references, and stale signatures.
 - Full checks: `devtools::test()`, `devtools::build_vignettes()`, `R CMD build`, `R CMD check --as-cran`, and GitHub Actions matrix on Windows/macOS/Linux R release/devel/oldrel.
 - Benchmarks: required for any same-output reader, processor, matcher, or dependency-port change; compare output equivalence and flag >10% slowdown.
-- Dependency-port evidence: focused tests passed; `benchmarks/hyperspectral_matrix_processing.R` reports SG output equivalence; `benchmarks/pam_reduction.R` matches legacy IDs and flags the internal R PAM path as slower than compiled `cluster`.
+- Dependency-port evidence: focused tests passed; `benchmarks/hyperspectral_matrix_processing.R` reports SG output equivalence with a runtime cost versus `sgolay`; `benchmarks/pam_reduction.R` matches legacy IDs and flags the internal R PAM path as slower than compiled `cluster`.
 - CRAN release checks: inspect package tarball contents/size, URLs/DOIs, examples, vignettes, `cran-comments.md`, reverse dependencies, and no unexpected files.
 
-## Risks And Open Questions
+## Risks And Follow-Up
 
-- Should `Config/roxygen2/version` be changed to the installed/release generator or should roxygen2 8.0.0 be installed before documentation regeneration?
-- PAM output now targets `cluster::pam(pamonce = 6)` medoids; the R port is slower than compiled `cluster`, so keep benchmark visibility before CRAN.
+- `Config/roxygen2/version` is resolved to installed/release generator `7.3.2`, matching `RoxygenNote`, and `devtools::document()` now completes cleanly.
+- PAM output now targets `cluster::pam(pamonce = 6)` medoids; the R port is slower than compiled `cluster`, and SG is slower than `sgolay`, accepted as dependency-removal tradeoffs with benchmark visibility before CRAN.
 
 ## Approval Notes
 

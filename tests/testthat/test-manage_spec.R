@@ -1,6 +1,6 @@
 data("raman_hdpe")
 
-specs <- lapply(c(read_extdata("raman_hdpe.yml"),
+specs <- lapply(c(read_extdata("raman_hdpe.json"),
                   read_extdata("ftir_ldpe_soil.asp")), read_any)
 no_overlap <- specs
 no_overlap[[1]] <- restrict_range(no_overlap[[1]], 300, 500)
@@ -14,8 +14,8 @@ test_that("c_spec() handles input errors correctly", {
 })
 
 test_that("c_spec() defaults to full range at resolution 6", {
-  specs <- lapply(c(read_extdata("raman_hdpe.yml"),
-                    read_extdata("raman_hdpe.yml")), read_spec)
+  specs <- lapply(c(read_extdata("raman_hdpe.json"),
+                    read_extdata("raman_hdpe.json")), read_spec)
   same <- c_spec(specs) |> expect_silent()
   expect_true(check_OpenSpecy(same))
 

@@ -38,7 +38,7 @@
 #'                                top_right = c(10, 1))
 #' visual_image(with_image)$bottom_left
 #'
-#' @importFrom grDevices as.raster col2rgb readbitmap
+#' @importFrom grDevices as.raster col2rgb
 #' @importFrom jpeg readJPEG
 #' @export
 add_visual_image <- function(x, image, bottom_left = NULL, top_right = NULL,
@@ -133,9 +133,9 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
       stop("image file does not exist: ", image, call. = FALSE)
     ext <- tolower(tools::file_ext(image))
     if (ext %in% c("jpg", "jpeg")) return(jpeg::readJPEG(image))
-    if (ext %in% c("bmp", "dib")) return(grDevices::readbitmap(image))
+    if (ext %in% c("bmp", "dib")) return(.read_visual_bmp_file(image))
     return(tryCatch(jpeg::readJPEG(image),
-                    error = function(e) grDevices::readbitmap(image)))
+                    error = function(e) .read_visual_bmp_file(image)))
   }
 
   if (is.raw(image) || (is.numeric(image) && is.null(dim(image)))) {
@@ -145,14 +145,103 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
   image
 }
 
+.read_visual_bmp_file <- function(image) {
+  size <- file.info(image)$size
+  if (is.na(size) || size <= 0) {
+    stop("image file is empty or unreadable: ", image, call. = FALSE)
+  }
+  con <- file(image, open = "rb")
+  on.exit(close(con), add = TRUE)
+  .read_visual_bmp_bytes(readBin(con, what = "raw", n = size))
+}
+
 .read_visual_bmp_bytes <- function(image) {
   raw_bytes <- if (is.raw(image)) image else as.raw(image)
-  tmp <- tempfile(fileext = ".bmp")
-  con <- file(tmp, open = "wb")
-  on.exit(unlink(tmp), add = TRUE)
-  writeBin(raw_bytes, con)
-  close(con)
-  grDevices::readbitmap(tmp)
+  if (length(raw_bytes) < 14L)
+    stop("BMP data are too short", call. = FALSE)
+
+  has_file_header <- identical(rawToChar(raw_bytes[1:2]), "BM")
+  header_start <- if (has_file_header) 15L else 1L
+  if (length(raw_bytes) < header_start + 39L)
+    stop("Unsupported BMP header", call. = FALSE)
+
+  header_size <- .bmp_uint(raw_bytes[header_start:(header_start + 3L)])
+  if (header_size < 40L)
+    stop("Only BITMAPINFOHEADER BMP images are supported", call. = FALSE)
+
+  width <- .bmp_int(raw_bytes[(header_start + 4L):(header_start + 7L)])
+  height <- .bmp_int(raw_bytes[(header_start + 8L):(header_start + 11L)])
+  bits <- .bmp_uint(raw_bytes[(header_start + 14L):(header_start + 15L)])
+  compression <- .bmp_uint(raw_bytes[(header_start + 16L):(header_start + 19L)])
+  colors_used <- .bmp_uint(raw_bytes[(header_start + 32L):(header_start + 35L)])
+
+  if (width <= 0 || height == 0)
+    stop("BMP image dimensions are invalid", call. = FALSE)
+  if (compression != 0L)
+    stop("Only uncompressed BMP images are supported", call. = FALSE)
+  if (!bits %in% c(8L, 24L, 32L))
+    stop("Only 8-bit, 24-bit, and 32-bit BMP images are supported",
+         call. = FALSE)
+
+  height_abs <- abs(height)
+  pixel_offset <- if (has_file_header) {
+    .bmp_uint(raw_bytes[11:14]) + 1L
+  } else {
+    palette_n <- if (bits == 8L) {
+      if (colors_used > 0L) colors_used else 256L
+    } else {
+      0L
+    }
+    header_start + header_size + palette_n * 4L
+  }
+  row_stride <- floor((bits * width + 31L) / 32L) * 4L
+  pixel_end <- pixel_offset + row_stride * height_abs - 1L
+  if (pixel_offset < 1L || pixel_end > length(raw_bytes))
+    stop("BMP pixel data are incomplete", call. = FALSE)
+
+  palette <- NULL
+  if (bits == 8L) {
+    palette_start <- header_start + header_size
+    palette_entries <- floor((pixel_offset - palette_start) / 4L)
+    palette_n <- if (colors_used > 0L) colors_used else palette_entries
+    if (palette_n <= 0L)
+      stop("8-bit BMP image is missing a color palette", call. = FALSE)
+    palette_raw <- as.integer(raw_bytes[
+      palette_start:(palette_start + palette_n * 4L - 1L)
+    ])
+    palette_bgra <- matrix(palette_raw, ncol = 4L, byrow = TRUE)
+    palette <- palette_bgra[, 3:1, drop = FALSE] / 255
+  }
+
+  out <- array(0, dim = c(height_abs, width, 3L))
+  for (file_row in seq_len(height_abs)) {
+    row_start <- pixel_offset + (file_row - 1L) * row_stride
+    image_row <- if (height > 0L) height_abs - file_row + 1L else file_row
+    if (bits == 8L) {
+      idx <- as.integer(raw_bytes[row_start:(row_start + width - 1L)]) + 1L
+      rgb <- palette[idx, , drop = FALSE]
+    } else {
+      bytes_per_pixel <- bits / 8L
+      row_raw <- as.integer(raw_bytes[
+        row_start:(row_start + width * bytes_per_pixel - 1L)
+      ])
+      bgr <- matrix(row_raw, ncol = bytes_per_pixel, byrow = TRUE)
+      rgb <- bgr[, 3:1, drop = FALSE] / 255
+    }
+    for (channel in seq_len(3L)) out[image_row, , channel] <- rgb[, channel]
+  }
+
+  out
+}
+
+.bmp_uint <- function(x) {
+  sum(as.integer(x) * 256^(seq_along(x) - 1L))
+}
+
+.bmp_int <- function(x) {
+  value <- .bmp_uint(x)
+  bits <- length(x) * 8L
+  if (value >= 2^(bits - 1L)) value - 2^bits else value
 }
 
 .image_rgb_array <- function(image) {

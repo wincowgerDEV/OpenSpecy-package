@@ -4,7 +4,7 @@
 #' @description
 #' Functions for reading and writing spectral data to and from OpenSpecy format.
 #' \code{OpenSpecy} objects are lists with components `wavenumber`, `spectra`,
-#' and `metadata`. Currently supported formats are .y(a)ml, .json, .csv, or .rds.
+#' and `metadata`. Currently supported formats are .json, .csv, or .rds.
 #'
 #' @param x an object of class \code{\link{OpenSpecy}}.
 #' @param file file path to be read from or written to.
@@ -17,7 +17,7 @@
 #' @details
 #' Due to floating point number errors there may be some differences in the
 #' precision of the numbers returned if using multiple devices for .json and
-#' .yaml files but the numbers should be nearly identical.
+#' .csv files but the numbers should be nearly identical.
 #' \code{\link[base]{readRDS}()} should return the exact same object every time.
 #'
 #' @return
@@ -30,14 +30,12 @@
 #' \code{\link[hyperSpec]{hyperSpec-class}} object.
 #'
 #' @examples
-#' read_extdata("raman_hdpe.yml") |> read_spec()
 #' read_extdata("raman_hdpe.json") |> read_spec()
 #' read_extdata("raman_hdpe.rds") |> read_spec()
 #' read_extdata("raman_hdpe.csv") |> read_spec()
 #'
 #' \dontrun{
 #' data(raman_hdpe)
-#' write_spec(raman_hdpe, "raman_hdpe.yml")
 #' write_spec(raman_hdpe, "raman_hdpe.json")
 #' write_spec(raman_hdpe, "raman_hdpe.rds")
 #' write_spec(raman_hdpe, "raman_hdpe.csv")
@@ -56,10 +54,8 @@
 #' .spa, .spa, .spc, and .jdx formats, respectively;
 #' \code{\link{read_zip}()} and \code{\link{read_any}()} for wrapper functions;
 #' \code{\link[base]{saveRDS}()}; \code{\link[base]{readRDS}()};
-#' \code{\link[yaml]{write_yaml}()}; \code{\link[yaml]{read_yaml}()};
 #' \code{\link[jsonlite]{write_json}()}; \code{\link[jsonlite]{read_json}()};
 #'
-#' @importFrom yaml write_yaml read_yaml
 #' @importFrom jsonlite write_json read_json
 #' @importFrom data.table as.data.table fwrite
 #'
@@ -84,17 +80,13 @@ write_spec.OpenSpecy <- function(x, file, method = NULL,
   x <- as_OpenSpecy(x)
 
   if (is.null(method)) {
-    if (grepl("(\\.yaml$)|(\\.yml$)", file, ignore.case = T)) {
-      io <- x
-      io$spectra <- as.data.frame(x$spectra, check.names = FALSE)
-      write_yaml(io, file = file, precision = digits, ...)
-    } else if (grepl("\\.json$", file, ignore.case = T)) {
+    if (grepl("\\.json$", file, ignore.case = TRUE)) {
       io <- x
       io$spectra <- as.data.frame(x$spectra, check.names = FALSE)
       write_json(io, path = file, dataframe = "columns", digits = digits, ...)
-    } else if (grepl("\\.rds$", file, ignore.case = T)) {
+    } else if (grepl("\\.rds$", file, ignore.case = TRUE)) {
       saveRDS(x, file = file, ...)
-    } else if (grepl("\\.csv$", file, ignore.case = T)) {
+    } else if (grepl("\\.csv$", file, ignore.case = TRUE)) {
       wave_names <- round(x$wavenumber, 0)
       spectra <- t(x$spectra)
       colnames(spectra) <- wave_names
@@ -103,7 +95,7 @@ write_spec.OpenSpecy <- function(x, file, method = NULL,
     }
     else {
       stop("unknown file type: specify a method to write custom formats or ",
-           "provide one of the supported .yml, .json, or .rds formats as ",
+           "provide one of the supported .json, .rds, or .csv formats as ",
            "file extension", call. = F)
     }
   } else {
@@ -116,16 +108,7 @@ write_spec.OpenSpecy <- function(x, file, method = NULL,
 #' @export
 read_spec <- function(file, method = NULL, ...) {
   if (is.null(method)) {
-    if (grepl("(\\.yaml$)|(\\.yml$)", file, ignore.case = T)) {
-      yml <- read_yaml(file = file, ...)
-
-      os <- as_OpenSpecy(yml$wavenumber,
-                         spectra = as.data.frame(yml$spectra,
-                                                 check.names = FALSE),
-                         metadata = data.table(as.data.table(yml$metadata),
-                                               file_name = basename(file)),
-                         coords = NULL)
-    } else if (grepl("\\.json$", file, ignore.case = T)) {
+    if (grepl("\\.json$", file, ignore.case = TRUE)) {
       jsn <- read_json(file, simplifyVector = T, ...)
 
       os <- as_OpenSpecy(jsn$wavenumber,
@@ -134,16 +117,16 @@ read_spec <- function(file, method = NULL, ...) {
                          metadata = data.table(as.data.table(jsn$metadata),
                                                file_name = basename(file)),
                          coords = NULL)
-    } else if (grepl("\\.rds$", file, ignore.case = T)) {
+    } else if (grepl("\\.rds$", file, ignore.case = TRUE)) {
       os <- as_OpenSpecy(readRDS(file, ...))
       os$metadata$file_name <- basename(file)
     }
-      else if (grepl("\\.csv$", file, ignore.case = T)) {
+      else if (grepl("\\.csv$", file, ignore.case = TRUE)) {
           os <- read_text(file, ...)
           os$metadata$file_name <- basename(file)
     } else {
       stop("unknown file type: specify a method to read custom formats or ",
-           "provide files of one of the supported file types .yml, .json, .rds",
+           "provide files of one of the supported file types .json, .rds, .csv",
            call. = F)
       }
   } else {

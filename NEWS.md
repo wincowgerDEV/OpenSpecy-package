@@ -1,3 +1,13 @@
+# OpenSpecy 1.7.1
+
+- Removed built-in YAML read/write support and the YAML example fixture;
+  `read_spec()` and `write_spec()` now support JSON, RDS, and CSV formats.
+- Removed runtime `signal` and `cluster` dependencies by using internal
+  Savitzky-Golay filtering and PAM medoid selection in package workflows.
+- Fixed visual-image BMP reading without relying on the unavailable
+  `grDevices::readbitmap()` helper.
+- Fixed `.xyz` text-map reading so coordinate metadata and spectra are aligned.
+
 # OpenSpecy 1.7.0
 
 - Improved run_app functionality to allow for version control. 

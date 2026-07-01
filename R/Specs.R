@@ -990,7 +990,7 @@ read_specs <- function(file, ...) {
 .uint64_parts_to_bits <- function(parts, nbits) {
   parts <- .normalize_hilbert_code_values(matrix(parts, nrow = 2L))
   bits <- c(.uint32_to_bits(parts[1L, 1L]), .uint32_to_bits(parts[2L, 1L]))
-  tail(bits, nbits)
+  utils::tail(bits, nbits)
 }
 
 .uint32_to_bits <- function(x) {

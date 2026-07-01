@@ -499,8 +499,9 @@ automate_particle_analysis <- function(
     saveRDS(proc_map, file.path(output_dir, paste0("particles_", sample_name,
                                                    ".rds")))
   if ("particle_image" %in% outputs) {
-    png(file.path(output_dir, paste0("particle_image_", sample_name, ".png")))
-    on.exit(dev.off(), add = TRUE)
+    grDevices::png(file.path(output_dir, paste0("particle_image_",
+                                                sample_name, ".png")))
+    on.exit(grDevices::dev.off(), add = TRUE)
     particle_image(proc_map, material_col = material_col,
                    pixel_length = pixel_length, origin = origin)
   }

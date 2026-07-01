@@ -53,7 +53,7 @@
 #' Zacharias Steinmetz, Win Cowger
 #'
 #' @seealso
-#' \code{\link{read_spec}()} for reading .y(a)ml, .json, or .rds (OpenSpecy)
+#' \code{\link{read_spec}()} for reading .json, .rds, or .csv (OpenSpecy)
 #' files;
 #' \code{\link{read_opus}()} for reading .0 (OPUS) files;
 #' \code{\link{read_envi}()} for reading .dat (ENVI) files;
@@ -103,12 +103,15 @@ read_text <- function(file, colnames = NULL, method = "fread",
       wavenumbers <- as.numeric(dt[["WaveNumber"]])
       spectra <- dt[,-"WaveNumber"]
   }
-  else if(grepl("\\.xyz$", basename(file), ignore.case = T)){
-      wavenumbers <- as.numeric(dt[1, ])[-c(1:2)]
-      # Remove the first row
-      metadata <- dt[-1,1:2]
-      colnames(xy) <- c("x", "y")
-      spectra <- transpose(dt[-1, -c(1:2)])
+  else if(grepl("\\.xyz$", basename(file), ignore.case = TRUE)){
+      wavenumbers <- as.numeric(unlist(dt[1, -c(1:2), with = FALSE],
+                                       use.names = FALSE))
+      metadata <- as.data.table(dt[-1, 1:2, with = FALSE])
+      data.table::setnames(metadata, c("x", "y"))
+      metadata$file_name <- basename(file)
+      spectra <- transpose(dt[-1, -c(1:2), with = FALSE])
+      spectra <- as.data.table(lapply(spectra, as.numeric))
+      colnames(spectra) <- paste(metadata$x, metadata$y, sep = "_")
   }
   else if(sum(grepl("^[0-9]{1,}$",colnames(dt))) > 4) {
     wavenumbers <- colnames(dt)[grepl("^[0-9]{1,}$",colnames(dt))]

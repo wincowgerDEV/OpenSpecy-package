@@ -92,6 +92,10 @@ BDL formulas.}
 
 \item{round}{one of \code{"integer"}, \code{"ceiling"}, or \code{"none"} for detection-limit
 rounding. \code{"integer"} matches the historic workflow's \code{as.integer()}.}
+
+\item{multiplier}{numeric multiplier used by \code{batch_detection_limit()}.}
+
+\item{\ldots}{reserved for future extensions.}
 }
 \value{
 A \code{data.table} containing the requested summary.

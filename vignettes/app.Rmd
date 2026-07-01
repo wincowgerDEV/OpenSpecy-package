@@ -79,7 +79,7 @@ left hand corner of the Analyze Spectra tab.
 knitr::include_graphics("app/mainpage.jpg")
 ```
 
-Open Specy allows for upload of native Open Specy .y(a)ml, .json, or .rds files.
+Open Specy allows for upload of native Open Specy .json, .rds, or .csv files.
 In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip files can be imported. To upload many files at once either select all the files you want to upload or zip the files together and upload the .zip file. Open Specy formats and .csv files should always load correctly
 but the other file types are still in development, though most of the time these
 files work perfectly. If uploading a .csv file, the simplest format is to label the column with the

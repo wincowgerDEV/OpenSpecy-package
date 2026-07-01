@@ -70,7 +70,7 @@ interprets which reading function to use based on the file extension.
 spectra <- read_any("path/to/your/data")
 ```
 
-Open Specy allows for upload of native Open Specy .csv, .y(a)ml, .json, or .rds files. Open Specy and .csv files should always load correctly
+Open Specy allows for upload of native Open Specy .csv, .json, or .rds files. Open Specy and .csv files should always load correctly
 but the other file types are still in development, though most of the time these
 files work perfectly.
 In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip files can be imported.
@@ -172,12 +172,11 @@ head(scratch_OpenSpecy) # shows the top wavenumbers and intensities
 
 # Save Data
 
-Open Specy objects can be saved most accurately as .csv, .rds, .yml, or .json files.
+Open Specy objects can be saved most accurately as .csv, .rds, or .json files.
 .rds will be the most reproducible as it is a native R file format and floating
-point errors can happen with .csv, .json, or .yml.
+point errors can happen with .csv or .json.
 
 ```{r, eval=F}
-write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.yml", digits = 5)
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.json", digits = 5)
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.csv", digits = 5)
 ```

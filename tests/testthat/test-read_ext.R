@@ -37,6 +37,24 @@ test_that("read_text() gives expected output", {
   expect_equal(csv, dtf)
 })
 
+test_that("read_text() reads XYZ maps with coordinate metadata", {
+  xyz <- file.path(tmp, "tiny.xyz")
+  writeLines(c(
+    "0 0 100 200 300",
+    "1 2 10 20 30",
+    "3 4 40 50 60"
+  ), xyz)
+
+  os <- read_text(xyz, header = FALSE) |> expect_silent()
+
+  expect_s3_class(os, "OpenSpecy")
+  expect_true(check_OpenSpecy(os))
+  expect_equal(os$wavenumber, c(100, 200, 300))
+  expect_equal(os$spectra[, 1], c(10, 20, 30))
+  expect_equal(os$metadata$x, c(1, 3))
+  expect_equal(os$metadata$y, c(2, 4))
+})
+
 test_that("read_asp() gives expected output", {
   asp <- read_extdata("ftir_ldpe_soil.asp") |> read_asp() |>
     expect_silent()

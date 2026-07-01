@@ -25,10 +25,12 @@
 #' @param count_col column with blank counts.
 #' @param offset,md_multiplier,bdl_multiplier numeric constants used in MDA and
 #' BDL formulas.
+#' @param multiplier numeric multiplier used by \code{batch_detection_limit()}.
 #' @param spike_replicates number of spike replicates in the MDA formula.
 #' @param round one of `"integer"`, `"ceiling"`, or `"none"` for detection-limit
 #' rounding. `"integer"` matches the historic workflow's `as.integer()`.
 #' @param na.rm logical; remove missing values from summaries?
+#' @param \ldots reserved for future extensions.
 #'
 #' @return A `data.table` containing the requested summary.
 #'

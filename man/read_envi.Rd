@@ -55,7 +55,7 @@ file. The header contains all information necessary for correctly reading
 the binary file via \code{\link[caTools]{read.ENVI}()}.
 }
 \seealso{
-\code{\link{read_spec}()} for reading .y(a)ml, .json, or .rds (OpenSpecy)
+\code{\link{read_spec}()} for reading .json, .rds, or .csv (OpenSpecy)
 files;
 \code{\link{read_text}()}, \code{\link{read_asp}()}, \code{\link{read_spa}()},
 \code{\link{read_spc}()}, and \code{\link{read_jdx}()} for text files, .asp,
