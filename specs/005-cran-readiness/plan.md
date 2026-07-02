@@ -67,6 +67,7 @@
 - [x] Remove YAML support and fixture from `R/io_spec.R`, `inst/extdata/`, tests, vignettes, `README.md`, `DESCRIPTION`, and roxygen.
 - [x] Port `cluster::pam()` reduction and `signal` Savitzky-Golay filtering with tests plus same-output benchmarks.
 - [x] Fix release-blocking behavior in `R/visual_image.R`, `R/read_ext.R`, `R/automate_particle_analysis.R`, `R/Specs.R`, and `R/zzz.R`.
+- [x] Add exact-settings `analyze_features()` export benchmark for `tiny_map`/`test_lib` and align `automate_particle_analysis()` return/export names.
 - [x] Refresh roxygen docs, README, included vignettes, NEWS, and cran-comments from source.
 - [x] Regenerate generated artifacts with the configured roxygen2 version and inspect `NAMESPACE`/`man/*.Rd` diffs immediately.
 - [x] Run focused tests, relevant benchmarks, full package tests, vignettes, build/package-size checks, and CRAN checks.
@@ -81,6 +82,8 @@
 - Full checks: `devtools::test()`, `devtools::build_vignettes()`, `R CMD build`, `R CMD check --as-cran`, and GitHub Actions matrix on Windows/macOS/Linux R release/devel/oldrel.
 - Benchmarks: required for any same-output reader, processor, matcher, or dependency-port change; compare output equivalence and flag >10% slowdown.
 - Dependency-port evidence: focused tests passed; `benchmarks/hyperspectral_matrix_processing.R` reports SG output equivalence with a runtime cost versus `sgolay`; `benchmarks/pam_reduction.R` matches legacy IDs and flags the internal R PAM path as slower than compiled `cluster`.
+- Particle automation evidence: `benchmarks/automate_particle_analysis_legacy_exports.R` loads the live legacy `analyze_features()` source, runs the line-1453 `tiny_map`/FTIR `test_lib` settings with CRAN OpenSpecy 1.5.3, compares shared CSV exports and normalized processed RDS payloads exactly, and checks legacy-only plots plus the current particle image are nonempty.
+- H5/all-cell evidence: focused tests cover H5 mosaic-derived visual coregistration, all-cell coordinate preservation, shifted-axis final matching, particle RGB extraction, image return/export objects, and single-class character feature labels; the external `test_1um.h5` + `medoid_derivative` probe returned 291 detail rows, 25 summary rows, 405 processed wavenumbers, and complete `r/g/b` values before the current escalation limit prevented rerunning that external probe with the new plots.
 - CRAN release checks: inspect package tarball contents/size, URLs/DOIs, examples, vignettes, `cran-comments.md`, reverse dependencies, and no unexpected files.
 
 ## Risks And Follow-Up

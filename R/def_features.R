@@ -180,8 +180,8 @@ def_features.OpenSpecy <- function(x, features,
   top_right <- vi$top_right
 
   if(is.logical(features) || is.character(features)) {
-    if(length(unique(features)) == 1)
-      stop("features cannot be all one class, e.g. all T or all F or all one category", call. = F)
+    if(is.logical(features) && length(unique(features)) == 1)
+      stop("features cannot be all one logical value, e.g. all TRUE or all FALSE", call. = F)
 
     if(is.character(features) && close)
       stop("closing is not supported when features is a character vector; convert to logical or use close = FALSE", call. = F)
@@ -203,9 +203,9 @@ def_features.OpenSpecy <- function(x, features,
       md[, "mean_cor" := mean(max_cor_val), by = "feature_id"]
   }
   if(all(c("r", "g", "b") %in% names(md))){
-      md[, `:=`(mean_r = as.integer(sqrt(mean(r^2))), 
-                mean_g = as.integer(sqrt(mean(g^2))), 
-                mean_b = as.integer(sqrt(mean(b^2)))), by = "feature_id"]
+      md[, `:=`(mean_r = .rms_color_channel(r),
+                mean_g = .rms_color_channel(g),
+                mean_b = .rms_color_channel(b)), by = "feature_id"]
   }
   md[, "centroid_x" := mean(x), by = "feature_id"]
   md[, "centroid_y" := mean(y), by = "feature_id"]
@@ -230,8 +230,19 @@ def_features.OpenSpecy <- function(x, features,
                           top_right = NULL, name = NULL) {
     # Label connected components in the binary image
     # Define the size of the matrix
-    nrow <- max(x$metadata$y) + 1
-    ncol <- max(x$metadata$x) + 1
+    if (!all(c("x", "y") %in% names(x$metadata))) {
+        stop("feature detection requires finite 'x' and 'y' metadata columns",
+             call. = FALSE)
+    }
+    x_coords <- x$metadata$x
+    y_coords <- x$metadata$y
+    if (!length(x_coords) || !length(y_coords) ||
+        any(!is.finite(x_coords)) || any(!is.finite(y_coords))) {
+        stop("feature detection requires finite 'x' and 'y' metadata columns",
+             call. = FALSE)
+    }
+    nrow <- max(y_coords) + 1
+    ncol <- max(x_coords) + 1
     
     # Create an empty matrix filled with NA
     binary_matrix <- matrix(NA, 
@@ -241,10 +252,6 @@ def_features.OpenSpecy <- function(x, features,
     labeled_image <- matrix(as.character(NA), 
                            nrow = nrow, 
                            ncol = ncol)
-    
-    # Populate the matrix with your data
-    x_coords <- x$metadata$x
-    y_coords <- x$metadata$y
     
     if(is.character(binary)){
         for(y in unique(binary)){
@@ -301,19 +308,18 @@ def_features.OpenSpecy <- function(x, features,
         mosaic <- .read_visual_image(img)
         map_dim <- c(length(unique(x$metadata$x)), 
                      length(unique(x$metadata$y)))
-        xscale = (top_right[1]-bottom_left[1])/map_dim[1]
-        yscale = (bottom_left[2]-top_right[2])/map_dim[2]
-        #particle_centroid = c(875, 4675)/25
-        
-        x_vals = as.integer(feature_points_dt$x*xscale+bottom_left[1])
-        y_vals = as.integer(bottom_left[2] - feature_points_dt$y*yscale)
-        colors = rep(NA_character_, length(x_vals))
+        colors = rep(NA_character_, nrow(feature_points_dt))
         image_raster <- .visual_image_raster(mosaic)
-        # Create a matrix of coordinates for indexing
-        coords <- cbind(y_vals, x_vals)
+        xy <- .map_to_image_coords(feature_points_dt$x, feature_points_dt$y,
+                                   map_dim, bottom_left, top_right)
+        coords <- cbind(xy$y, xy$x)
+        clipped <- .clip_image_coords(
+            coords, dim(image_raster),
+            tolerance = .image_edge_tolerance(map_dim, bottom_left, top_right)
+        )
+        coords <- clipped$coords
         # Fetch colors for all coordinates at once
-        valid <- coords[, 1L] >= 1L & coords[, 1L] <= nrow(image_raster) &
-            coords[, 2L] >= 1L & coords[, 2L] <= ncol(image_raster)
+        valid <- clipped$valid
         colors[valid] <- image_raster[coords[valid, , drop = FALSE]]
         rgb_colors <- matrix(NA_integer_, nrow = 3L, ncol = length(colors))
         if (any(valid)) {
@@ -421,4 +427,10 @@ def_features.OpenSpecy <- function(x, features,
     }
     
     feature_points_dt
+}
+
+.rms_color_channel <- function(x) {
+    x <- x[!is.na(x)]
+    if (!length(x)) return(NA_integer_)
+    as.integer(sqrt(mean(x^2)))
 }

@@ -91,7 +91,10 @@ feature detection.}
 \item{collapse_function}{function used by \code{\link{collapse_spec}()}.}
 
 \item{outputs}{character vector containing any of \code{"details"}, \code{"summary"},
-\code{"particle_image"}, \code{"raw"}, \code{"processed"}, or \code{"time"}.}
+\code{"particle_image"}, \code{"particle_heatmap"},
+\code{"particle_heatmap_thresholded"}, \code{"cor_heatmap"}, \code{"raw"},
+\code{"processed"}, or \code{"time"}. Short aliases \code{"heatmap"},
+\code{"thresholded"}, and \code{"correlation"} are also accepted.}
 
 \item{process_args}{optional named list overriding \code{\link{process_spec}()}
 arguments for spectra before matching.}
@@ -102,13 +105,21 @@ strategies.}
 \item{\ldots}{catches removed legacy arguments and otherwise is reserved.}
 }
 \value{
-A list with per-sample results plus combined details and summaries.
+A list with \code{samples}, \code{particle_details_all_csv}, and
+\code{particle_summary_all_csv}. Each per-sample entry uses names matching file
+exports where applicable: \code{particle_details_csv}, \code{particle_summary_csv},
+\code{particles_raw_rds}, \code{particles_rds}, \code{particle_image_png},
+\code{particle_heatmap_png}, \code{particle_heatmap_thresholded_jpg},
+\code{cor_heatmap_png}, and \code{time_rds}. Image entries are recorded base-graphics
+plots that can be replayed with \code{\link[grDevices]{replayPlot}()}.
 }
 \description{
 \code{automate_particle_analysis()} generalizes the batch map workflow used for
 particle detection, spectral matching, particle details, summaries, and
-optional base-graphics particle images. It keeps file output optional and
-returns all results as R objects.
+optional base-graphics particle images. Visual images attached to map objects
+or read from supported H5 mosaics are used for particle color extraction when
+feature definition is requested. It keeps file output optional and returns all
+results as R objects.
 }
 \examples{
 tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()

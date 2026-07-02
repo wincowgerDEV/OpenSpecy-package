@@ -128,7 +128,9 @@ matrix conversion.}
 \item{sigma}{numeric vector passed to \code{\link[mmand]{gaussianSmooth}()}.}
 
 \item{read_visual}{logical; whether H5 mosaic images should be attached as
-visual-image attributes when present.
+visual-image attributes when present. If H5 mosaic center and region stage
+metadata are present, map-to-image corners are inferred for overlays and
+feature color extraction.
 \code{\link{as_OpenSpecy}()} for details.}
 
 \item{\ldots}{further arguments passed to the submethods.}

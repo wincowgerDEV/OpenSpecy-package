@@ -1,4 +1,5 @@
 test_that("particle_image() draws with base graphics", {
+  expect_false(formals(particle_image)$labels)
   particles <- data.frame(
     x = c(0, 1, 0, 1),
     y = c(0, 0, 1, 1),

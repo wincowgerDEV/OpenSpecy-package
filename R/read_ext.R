@@ -27,7 +27,9 @@
 #' matrix conversion.
 #' @param sigma numeric vector passed to \code{\link[mmand]{gaussianSmooth}()}.
 #' @param read_visual logical; whether H5 mosaic images should be attached as
-#' visual-image attributes when present.
+#' visual-image attributes when present. If H5 mosaic center and region stage
+#' metadata are present, map-to-image corners are inferred for overlays and
+#' feature color extraction.
 #' \code{\link{as_OpenSpecy}()} for details.
 #' @param \ldots further arguments passed to the submethods.
 #'
@@ -483,11 +485,12 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
                        session_id = TRUE)
 
     if (isTRUE(read_visual)) {
-        vi <- .read_h5_visual_image(h5)
+        vi <- .read_h5_visual_image(h5, metadata)
         if (!is.null(vi$image)) {
             os <- add_visual_image(
-                os, vi$image, source = vi$source,
-                diagnostics = vi$diagnostics
+                os, vi$image, bottom_left = vi$bottom_left,
+                top_right = vi$top_right, source = vi$source,
+                diagnostics = vi$diagnostics, transform = vi$transform
             )
         }
     }
@@ -594,22 +597,143 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
     out
 }
 
-.read_h5_visual_image <- function(h5) {
+.read_h5_visual_image <- function(h5, metadata = NULL) {
     if (!h5$exists("/Mosaic")) return(list(image = NULL))
     mosaic <- h5[["/Mosaic"]]
-    images <- names(mosaic)[grepl("^Image", names(mosaic))]
+    images <- .h5_mosaic_image_names(mosaic)
     if (!length(images)) return(list(image = NULL))
-    raw_img <- tryCatch(mosaic[[images[1L]]]$read(), error = function(e) NULL)
-    img <- tryCatch(.read_visual_bmp_bytes(raw_img), error = function(e) NULL)
     centers <- if (h5$exists("/Mosaic/Centers")) {
         tryCatch(as.data.table(h5[["/Mosaic/Centers"]]$read()),
                  error = function(e) NULL)
     } else {
         NULL
     }
+    registration <- .h5_visual_coregistration(centers, metadata, length(images))
+    image_index <- if (is.null(registration)) 1L else registration$image_index
+    raw_img <- tryCatch(mosaic[[images[image_index]]]$read(),
+                        error = function(e) NULL)
+    img <- tryCatch(.read_visual_bmp_bytes(raw_img), error = function(e) NULL)
+    if (!is.null(registration) && !is.null(img)) {
+        corners <- .h5_visual_corners(registration, dim(img))
+        registration$bottom_left <- corners$bottom_left
+        registration$top_right <- corners$top_right
+    }
     list(
         image = img,
-        source = paste0("/Mosaic/", images[1L]),
-        diagnostics = list(images = images, centers = centers)
+        bottom_left = if (is.null(registration)) NULL else registration$bottom_left,
+        top_right = if (is.null(registration)) NULL else registration$top_right,
+        source = paste0("/Mosaic/", images[image_index]),
+        transform = if (is.null(registration)) NULL else registration$transform,
+        diagnostics = list(images = images, centers = centers,
+                           registration = registration)
+    )
+}
+
+.h5_mosaic_image_names <- function(mosaic) {
+    images <- names(mosaic)[grepl("^Image[0-9]+$", names(mosaic))]
+    idx <- suppressWarnings(as.integer(sub("^Image", "", images)))
+    images[order(idx)]
+}
+
+.h5_visual_coregistration <- function(centers, metadata, n_images) {
+    extent <- .h5_map_stage_extent(metadata)
+    if (is.null(centers) || is.null(extent)) return(NULL)
+    tiles <- .h5_mosaic_stage_tiles(centers, extent)
+    if (is.null(tiles) || !nrow(tiles)) return(NULL)
+    tiles$overlap <- pmax(0, pmin(tiles[["x_max"]], extent$x_max) -
+                             pmax(tiles[["x_min"]], extent$x_min)) *
+        pmax(0, pmin(tiles[["y_max"]], extent$y_max) -
+               pmax(tiles[["y_min"]], extent$y_min))
+    if (!any(is.finite(tiles[["overlap"]]) & tiles[["overlap"]] > 0)) {
+        tiles$overlap <- -((tiles[["x_center"]] - extent$x_center)^2 +
+                             (tiles[["y_center"]] - extent$y_center)^2)
+    }
+    tile <- tiles[which.max(tiles[["overlap"]])]
+    tile$overlap <- NULL
+    image_index <- max(1L, min(n_images, tile$index))
+    list(
+        image_index = image_index,
+        tile = tile,
+        map_extent = extent,
+        transform = list(method = "h5_mosaic_centers",
+                         image_index = image_index,
+                         source = "/Mosaic/Centers")
+    )
+}
+
+.h5_map_stage_extent <- function(metadata) {
+    if (is.null(metadata)) return(NULL)
+    x_min <- .h5_metadata_number(metadata, c("m_LL_X", "m_LL_X.1"))
+    y_min <- .h5_metadata_number(metadata, c("m_LL_Y", "m_LL_Y.1"))
+    width <- .h5_metadata_number(metadata, c("m_WidthInNM", "m_WidthInNM.1"))
+    height <- .h5_metadata_number(metadata, c("m_HeightInNM", "m_HeightInNM.1"))
+    if (any(vapply(list(x_min, y_min, width, height), is.null, logical(1))))
+        return(NULL)
+    x_max <- x_min + width
+    y_max <- y_min + height
+    list(x_min = min(x_min, x_max), x_max = max(x_min, x_max),
+         y_min = min(y_min, y_max), y_max = max(y_min, y_max),
+         x_center = mean(c(x_min, x_max)), y_center = mean(c(y_min, y_max)))
+}
+
+.h5_metadata_number <- function(metadata, keys) {
+    for (key in keys) {
+        if (!key %in% names(metadata)) next
+        value <- suppressWarnings(as.numeric(metadata[[key]]))
+        value <- value[is.finite(value)]
+        if (length(value)) return(value[1L])
+    }
+    NULL
+}
+
+.h5_mosaic_stage_tiles <- function(centers, extent) {
+    dt <- as.data.table(centers)
+    if (ncol(dt) == 1L && nrow(dt) %% 6L == 0L) {
+        dt <- as.data.table(matrix(dt[[1L]], ncol = 6L, byrow = TRUE))
+    }
+    nums <- dt[, lapply(.SD, function(x) suppressWarnings(as.numeric(x)))]
+    keep <- vapply(nums, function(x) any(is.finite(x)), logical(1))
+    nums <- nums[, keep, with = FALSE]
+    if (ncol(nums) < 6L) return(NULL)
+    med <- vapply(nums, stats::median, numeric(1), na.rm = TRUE)
+    x_cols <- order(abs(med - extent$x_center))[seq_len(3L)]
+    y_pool <- setdiff(seq_along(med), x_cols)
+    if (length(y_pool) < 3L) return(NULL)
+    y_cols <- y_pool[order(abs(med[y_pool] - extent$y_center))[seq_len(3L)]]
+    x_mat <- as.matrix(nums[, x_cols, with = FALSE])
+    y_mat <- as.matrix(nums[, y_cols, with = FALSE])
+    data.table(
+        index = seq_len(nrow(nums)),
+        x_min = apply(x_mat, 1L, min, na.rm = TRUE),
+        x_max = apply(x_mat, 1L, max, na.rm = TRUE),
+        x_center = rowMeans(x_mat, na.rm = TRUE),
+        y_min = apply(y_mat, 1L, min, na.rm = TRUE),
+        y_max = apply(y_mat, 1L, max, na.rm = TRUE),
+        y_center = rowMeans(y_mat, na.rm = TRUE)
+    )
+}
+
+.h5_visual_corners <- function(registration, image_dim) {
+    tile <- registration$tile
+    extent <- registration$map_extent
+    width <- image_dim[2L]
+    height <- image_dim[1L]
+    x_span <- tile$x_max - tile$x_min
+    y_span <- tile$y_max - tile$y_min
+    if (!is.finite(x_span) || !is.finite(y_span) ||
+        x_span == 0 || y_span == 0) {
+        return(list(bottom_left = NULL, top_right = NULL))
+    }
+    stage_x_to_image <- function(x) {
+        1 + (x - tile$x_min) / x_span * (width - 1L)
+    }
+    stage_y_to_image <- function(y) {
+        1 + (tile$y_max - y) / y_span * (height - 1L)
+    }
+    list(
+        bottom_left = c(stage_x_to_image(extent$x_min),
+                        stage_y_to_image(extent$y_min)),
+        top_right = c(stage_x_to_image(extent$x_max),
+                      stage_y_to_image(extent$y_max))
     )
 }

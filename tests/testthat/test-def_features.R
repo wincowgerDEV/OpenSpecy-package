@@ -106,8 +106,16 @@ test_that("check that particles are identified with all TRUE or FALSE logical ve
   def_features(map, map$metadata$particles) |> expect_error()
 
   # All FALSE case
-  map$metadata$particles <- rep("test_FALSE", nrow(map$metadata))
+  map$metadata$particles <- rep(FALSE, nrow(map$metadata))
   def_features(map, map$metadata$particles) |> expect_error()
+})
+
+test_that("single-class character features can define one feature class", {
+  map$metadata$particles <- rep("particle", nrow(map$metadata))
+  id_map <- def_features(map, map$metadata$particles)
+
+  expect_true(check_OpenSpecy(id_map))
+  expect_true(any(id_map$metadata$feature_id != "-88"))
 })
 
 test_that("the original spectrum remains unmodified and metadata is amended", {

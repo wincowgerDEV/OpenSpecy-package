@@ -129,8 +129,8 @@ def_features.Specs <- function(x, features,
          call. = FALSE)
 
   if (is.logical(features) || is.character(features)) {
-    if (length(unique(features)) == 1L)
-      stop("features cannot be all one class, e.g. all TRUE, FALSE, or one category",
+    if (is.logical(features) && length(unique(features)) == 1L)
+      stop("features cannot be all one logical value, e.g. all TRUE or all FALSE",
            call. = FALSE)
     if (is.character(features) && close)
       stop("closing is not supported when features is a character vector; ",

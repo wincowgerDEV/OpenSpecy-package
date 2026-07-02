@@ -62,6 +62,7 @@ add_visual_image <- function(x, image, bottom_left = NULL, top_right = NULL,
   vi$source <- source
   vi$bottom_left <- bottom_left
   vi$top_right <- top_right
+  if (is.null(vi$map_dim)) vi$map_dim <- .infer_visual_map_dim(x)
   vi$transform <- transform
   vi$detection_method <- detection_method
   vi$diagnostics <- diagnostics
@@ -289,7 +290,30 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
     bottom_left <- vi$bottom_left
   if (is.null(top_right) && !is.null(vi$top_right))
     top_right <- vi$top_right
-  list(image = img, bottom_left = bottom_left, top_right = top_right)
+  list(image = img, bottom_left = bottom_left, top_right = top_right,
+       map_dim = vi$map_dim)
+}
+
+.infer_visual_map_dim <- function(x) {
+  md <- NULL
+  if (is_OpenSpecy(x)) md <- as_OpenSpecy(x)$metadata
+  if (is_Specs(x)) md <- as_Specs(x)$coords
+  if (is.null(md) || !all(c("x", "y") %in% names(md))) return(NULL)
+  x_vals <- suppressWarnings(as.numeric(md$x))
+  y_vals <- suppressWarnings(as.numeric(md$y))
+  if (!length(x_vals) || !length(y_vals) ||
+      any(!is.finite(c(x_vals, y_vals)))) {
+    return(NULL)
+  }
+  c(max(x_vals) - min(x_vals) + 1, max(y_vals) - min(y_vals) + 1)
+}
+
+.visual_map_dim <- function(vi, dt) {
+  if (!is.null(vi$map_dim) && length(vi$map_dim) == 2L &&
+      all(is.finite(vi$map_dim)) && all(vi$map_dim > 0)) {
+    return(as.numeric(vi$map_dim))
+  }
+  c(length(unique(dt$x)), length(unique(dt$y)))
 }
 
 .map_to_image_coords <- function(x, y, map_dim, bottom_left, top_right) {
@@ -299,6 +323,26 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
     x = as.integer(x * xscale + bottom_left[1L]),
     y = as.integer(bottom_left[2L] - y * yscale)
   )
+}
+
+.image_edge_tolerance <- function(map_dim, bottom_left, top_right) {
+  xscale <- abs((top_right[1L] - bottom_left[1L]) / map_dim[1L])
+  yscale <- abs((bottom_left[2L] - top_right[2L]) / map_dim[2L])
+  scales <- c(xscale, yscale)
+  scales <- scales[is.finite(scales)]
+  if (!length(scales)) return(0L)
+  as.integer(ceiling(max(scales, 0)))
+}
+
+.clip_image_coords <- function(coords, image_dim, tolerance = 0L) {
+  row <- coords[, 1L]
+  col <- coords[, 2L]
+  valid <- is.finite(row) & is.finite(col) &
+    row >= 1L - tolerance & row <= image_dim[1L] + tolerance &
+    col >= 1L - tolerance & col <= image_dim[2L] + tolerance
+  coords[, 1L] <- pmin(pmax(row, 1L), image_dim[1L])
+  coords[, 2L] <- pmin(pmax(col, 1L), image_dim[2L])
+  list(coords = coords, valid = valid)
 }
 
 .visual_image_raster <- function(image) {

@@ -19,6 +19,7 @@
 #' @param palette named character vector mapping materials to colors.
 #' @param alpha transparency for particle points.
 #' @param labels logical; draw feature labels when feature IDs are present?
+#' The default is `FALSE` because particle maps quickly become cluttered.
 #' @param label_col column used for labels.
 #' @param main,xlab,ylab plot labels.
 #' @param legend logical; draw a base graphics legend?
@@ -40,7 +41,7 @@
 particle_image <- function(x, material_col = "material_class", image = NULL,
                            bottom_left = NULL, top_right = NULL,
                            pixel_length = 1, origin = c(0, 0),
-                           palette = NULL, alpha = 0.8, labels = TRUE,
+                           palette = NULL, alpha = 0.8, labels = FALSE,
                            label_col = "feature_id", main = "Particle Image",
                            xlab = "X", ylab = "Y", legend = FALSE,
                            pch = 15, cex = 1, ...) {
@@ -68,15 +69,22 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
   if (!is.null(vi$image) && !is.null(vi$bottom_left) &&
       !is.null(vi$top_right)) {
     raster <- .visual_image_raster(vi$image)
-    map_dim <- c(length(unique(dt$x)), length(unique(dt$y)))
+    map_dim <- .visual_map_dim(vi, dt)
     xy <- .map_to_image_coords(dt$x, dt$y, map_dim, vi$bottom_left,
                                vi$top_right)
+    clipped <- .clip_image_coords(
+      cbind(xy$y, xy$x), dim(raster),
+      tolerance = .image_edge_tolerance(map_dim, vi$bottom_left, vi$top_right)
+    )
+    valid <- clipped$valid
     plot(NA, NA, xlim = c(1, ncol(raster)), ylim = c(nrow(raster), 1),
          asp = 1, xlab = xlab, ylab = ylab, main = main, ...)
     graphics::rasterImage(raster, 1, nrow(raster), ncol(raster), 1)
-    graphics::points(xy$x, xy$y, col = cols, pch = pch, cex = cex)
-    label_x <- xy$x
-    label_y <- xy$y
+    graphics::points(clipped$coords[valid, 2L], clipped$coords[valid, 1L],
+                     col = cols[valid], pch = pch, cex = cex)
+    label_x <- clipped$coords[valid, 2L]
+    label_y <- clipped$coords[valid, 1L]
+    plot_dt <- dt[valid, ]
   } else {
     xx <- dt$x * pixel_length + origin[1L]
     yy <- dt$y * pixel_length + origin[2L]
@@ -85,17 +93,20 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
     graphics::points(xx, yy, col = cols, pch = pch, cex = cex)
     label_x <- xx
     label_y <- yy
+    plot_dt <- dt
   }
 
   if (isTRUE(labels) && label_col %in% names(dt)) {
-    label_dt <- dt[!duplicated(dt[[label_col]]) &
-                     !is.na(dt[[label_col]]) &
-                     as.character(dt[[label_col]]) != "-88", ]
-    idx <- match(seq_len(nrow(label_dt)), seq_len(nrow(dt)))
+    label_dt <- plot_dt[!duplicated(plot_dt[[label_col]]) &
+                          !is.na(plot_dt[[label_col]]) &
+                          as.character(plot_dt[[label_col]]) != "-88", ]
     if (nrow(label_dt)) {
-      idx <- match(label_dt[[label_col]], dt[[label_col]])
+      idx <- match(label_dt[[label_col]], plot_dt[[label_col]])
+      keep <- !is.na(idx)
+      idx <- idx[keep]
       graphics::text(label_x[idx], label_y[idx],
-                     labels = label_dt[[label_col]], cex = 0.6, pos = 3)
+                     labels = label_dt[[label_col]][keep],
+                     cex = 0.6, pos = 3)
     }
   }
 

@@ -17,10 +17,30 @@ test_that("visual images attach and red box origins are detected", {
   os <- add_visual_image(os, img, bottom_left = origin$bottom_left,
                          top_right = origin$top_right)
   expect_equal(visual_image(os)$bottom_left, c(5, 18))
+  expect_equal(visual_image(os)$map_dim, c(2, 2))
 
   id <- def_features(os, c(TRUE, FALSE, FALSE, FALSE))
   expect_true(check_OpenSpecy(id))
   expect_contains(names(id$metadata), c("r", "g", "b"))
+  collapsed <- collapse_spec(def_features(os, c("a", "a", "b", "b")))
+  expect_equal(visual_image(collapsed)$map_dim, c(2, 2))
+})
+
+test_that("visual color extraction tolerates one map-pixel edge drift", {
+  img <- array(0, dim = c(5, 10, 3))
+  img[, , 1] <- 1
+  os <- as_OpenSpecy(
+    1:3,
+    spectra = matrix(seq_len(6), nrow = 3),
+    metadata = data.frame(x = c(0, 1), y = c(0, 0))
+  )
+  os <- add_visual_image(os, img, bottom_left = c(8, 4),
+                         top_right = c(14, 2))
+
+  id <- def_features(os, c("particle", "particle"))
+
+  expect_true(all(stats::complete.cases(id$metadata[, c("r", "g", "b")])))
+  expect_equal(id$metadata$r, c(255L, 255L))
 })
 
 test_that("visual images read uncompressed BMP bytes without grDevices readbitmap", {

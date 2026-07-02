@@ -14,7 +14,7 @@ particle_image(
   origin = c(0, 0),
   palette = NULL,
   alpha = 0.8,
-  labels = TRUE,
+  labels = FALSE,
   label_col = "feature_id",
   main = "Particle Image",
   xlab = "X",
@@ -45,7 +45,8 @@ used.}
 
 \item{alpha}{transparency for particle points.}
 
-\item{labels}{logical; draw feature labels when feature IDs are present?}
+\item{labels}{logical; draw feature labels when feature IDs are present?
+The default is \code{FALSE} because particle maps quickly become cluttered.}
 
 \item{label_col}{column used for labels.}
 

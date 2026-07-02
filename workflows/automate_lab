@@ -1,0 +1,32 @@
+
+
+get_lib("medoid_derivative")
+lib <- load_lib("medoid_derivative")
+
+test <- automate_particle_analysis(
+  x = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\test_1um.h5",
+  lib,
+  output_dir = "C:\\Users\\winco\\OneDrive\\Documents\\EWG",
+  material_col = "material_class",
+  spectral_smooth = TRUE,
+  close = FALSE,
+  sn_threshold_min = -Inf,
+  sn_threshold_max = Inf,
+  cor_threshold = 0.7,
+  area_threshold = 1,
+  label_unknown = FALSE,
+  remove_materials = NULL,
+  remove_unknown = FALSE,
+  pixel_length = 1,
+  metric = "sig_times_noise",
+  abs = FALSE,
+  particle_id_strategy = "all_cell_id",
+  collapse_function = mean,
+  outputs = c("details", 
+  "summary", 
+  "processed", 
+  "particle_image", "particle_heatmap",
+  "particle_heatmap_thresholded",
+  "cor_heatmap"),
+  origins = list(x = 0, y = 0)
+)

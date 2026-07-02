@@ -4,6 +4,23 @@
   `read_spec()` and `write_spec()` now support JSON, RDS, and CSV formats.
 - Removed runtime `signal` and `cluster` dependencies by using internal
   Savitzky-Golay filtering and PAM medoid selection in package workflows.
+- Aligned `automate_particle_analysis()` collapse exports with legacy
+  `analyze_features()` particle details, summaries, raw maps, and processed
+  particle objects; returned list item names now mirror export filenames and
+  formats.
+- Added `automate_particle_analysis()` image return/export support for particle
+  heatmaps, thresholded particle heatmaps, and correlation heatmaps. Requested
+  image outputs are returned as recorded base-graphics plots, and are written to
+  matching image files when `output_dir` is supplied.
+- Fixed `automate_particle_analysis(particle_id_strategy = "all_cell_id")`
+  so cell-level match joins preserve `x`/`y` map coordinates, collapsed
+  particle spectra are processed to the library wavenumber axis before final
+  matching, H5 mosaic coregistration can drive complete edge-tolerant particle
+  color extraction, and single-class character feature labels define one class
+  instead of erroring.
+- `particle_image()` now leaves particle labels off by default and uses the
+  attached visual image's full map extent when overlaying collapsed particle
+  results.
 - Fixed visual-image BMP reading without relying on the unavailable
   `grDevices::readbitmap()` helper.
 - Fixed `.xyz` text-map reading so coordinate metadata and spectra are aligned.
