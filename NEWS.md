@@ -20,7 +20,11 @@
   instead of erroring.
 - `particle_image()` now leaves particle labels off by default and uses the
   attached visual image's full map extent when overlaying collapsed particle
-  results.
+  results. Particle maps are now drawn as categorical rasters with transparent
+  background cells rather than point markers.
+- Added a signal/noise heatmap legend, enlarged the correlation heatmap legend,
+  and made `automate_particle_analysis(spectral_smooth = TRUE)` smooth
+  already-loaded `OpenSpecy`/`Specs` maps as well as file-backed maps.
 - Fixed visual-image BMP reading without relying on the unavailable
   `grDevices::readbitmap()` helper.
 - Fixed `.xyz` text-map reading so coordinate metadata and spectra are aligned.

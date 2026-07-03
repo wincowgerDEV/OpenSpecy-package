@@ -49,6 +49,22 @@ test_that("automate_particle_analysis() rejects removed legacy arguments", {
   )
 })
 
+test_that("automate_particle_analysis() smooths in-memory maps when requested", {
+  coords <- expand.grid(x = 0:2, y = 0:2)
+  spectra <- matrix(0, nrow = 5, ncol = nrow(coords),
+                    dimnames = list(NULL, paste0("cell_", seq_len(nrow(coords)))))
+  spectra[3, 5] <- 100
+  map <- as_OpenSpecy(1:5, spectra = spectra, metadata = coords)
+
+  raw <- .read_particle_sample(map, spectral_smooth = FALSE,
+                               sigma = c(1, 1, 1))
+  smoothed <- .read_particle_sample(map, spectral_smooth = TRUE,
+                                    sigma = c(1, 1, 1))
+
+  expect_equal(dim(smoothed$spectra), dim(raw$spectra))
+  expect_false(isTRUE(all.equal(smoothed$spectra, raw$spectra)))
+})
+
 test_that("automate_particle_analysis() keeps all-cell coordinates and visual colors", {
   wn <- seq(750, 2200, length.out = 30)
   map_wn <- wn + 0.37

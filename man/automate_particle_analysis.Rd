@@ -64,8 +64,9 @@ outputs.}
 \item{particle_id_strategy}{one of \code{"collapse"}, \code{"partial_collapse"},
 \code{"nonspatial_collapse"}, \code{"all_cell_id"}, or \code{"raw"}.}
 
-\item{spectral_smooth, sigma1}{passed to \code{read_envi()}/\code{read_h5()} where
-supported.}
+\item{spectral_smooth, sigma1}{apply 3D Gaussian smoothing to spectral maps;
+file readers apply this while reading and in-memory maps are smoothed after
+coercion.}
 
 \item{spatial_smooth, sigma2}{passed to \code{\link{sig_noise}()} and
 feature detection.}

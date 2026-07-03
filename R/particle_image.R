@@ -5,7 +5,7 @@
 #' `particle_image()` plots particle classifications from an `OpenSpecy`,
 #' `Specs`, or metadata table. When a visual image is attached with
 #' \code{\link{add_visual_image}()} or supplied directly, particle coordinates
-#' are transformed onto the image and drawn with transparency.
+#' are transformed onto the image and drawn as a transparent categorical raster.
 #'
 #' @param x an `OpenSpecy` object, `Specs` object, or metadata table.
 #' @param material_col column containing material or class labels.
@@ -17,14 +17,14 @@
 #' @param origin numeric length-2 x/y origin offset when no image overlay is
 #' used.
 #' @param palette named character vector mapping materials to colors.
-#' @param alpha transparency for particle points.
+#' @param alpha transparency for particle raster cells.
 #' @param labels logical; draw feature labels when feature IDs are present?
 #' The default is `FALSE` because particle maps quickly become cluttered.
 #' @param label_col column used for labels.
 #' @param main,xlab,ylab plot labels.
 #' @param legend logical; draw a base graphics legend?
-#' @param pch,cex plotting character and size passed to
-#' \code{\link[graphics]{points}()}.
+#' @param pch,cex retained for compatibility; particle cells are drawn as a
+#' raster.
 #' @param \ldots additional arguments passed to \code{\link[graphics]{plot}()}.
 #'
 #' @return Invisibly returns the plotted metadata table.
@@ -35,7 +35,7 @@
 #'                                            "poly(ethylene)", "mineral")
 #' particle_image(tiny_map, legend = TRUE)
 #'
-#' @importFrom graphics legend par plot points rasterImage text
+#' @importFrom graphics box legend par plot rasterImage text
 #' @importFrom grDevices adjustcolor rainbow
 #' @export
 particle_image <- function(x, material_col = "material_class", image = NULL,
@@ -62,9 +62,9 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
   }
 
   material <- as.character(dt[[material_col]])
-  material[is.na(material) | !nzchar(material)] <- "NA"
-  pal <- .resolve_particle_palette(material, palette)
-  cols <- grDevices::adjustcolor(pal[material], alpha.f = alpha)
+  background <- .particle_background_material(material)
+  material[background] <- NA_character_
+  pal <- .resolve_particle_palette(material[!background], palette)
 
   if (!is.null(vi$image) && !is.null(vi$bottom_left) &&
       !is.null(vi$top_right)) {
@@ -80,20 +80,31 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
     plot(NA, NA, xlim = c(1, ncol(raster)), ylim = c(nrow(raster), 1),
          asp = 1, xlab = xlab, ylab = ylab, main = main, ...)
     graphics::rasterImage(raster, 1, nrow(raster), ncol(raster), 1)
-    graphics::points(clipped$coords[valid, 2L], clipped$coords[valid, 1L],
-                     col = cols[valid], pch = pch, cex = cex)
+    grid <- .particle_material_grid(dt, material, background,
+                                    map_dim = map_dim)
+    overlay <- .particle_grid_raster(grid, pal, alpha = alpha)
+    ext <- .clip_particle_overlay_extent(vi$bottom_left, vi$top_right,
+                                         dim(raster))
+    graphics::rasterImage(overlay, ext$xleft, ext$ybottom,
+                          ext$xright, ext$ytop, interpolate = FALSE)
+    valid <- valid & !background
     label_x <- clipped$coords[valid, 2L]
     label_y <- clipped$coords[valid, 1L]
     plot_dt <- dt[valid, ]
   } else {
-    xx <- dt$x * pixel_length + origin[1L]
-    yy <- dt$y * pixel_length + origin[2L]
-    plot(xx, yy, type = "n", asp = 1, xlab = xlab, ylab = ylab,
-         main = main, ...)
-    graphics::points(xx, yy, col = cols, pch = pch, cex = cex)
-    label_x <- xx
-    label_y <- yy
-    plot_dt <- dt
+    map_dim <- if (is_OpenSpecy(x) || is_Specs(x)) .infer_visual_map_dim(x)
+    grid <- .particle_material_grid(dt, material, background,
+                                    map_dim = map_dim,
+                                    pixel_length = pixel_length,
+                                    origin = origin)
+    .plot_particle_material_grid(grid, pal, alpha = alpha, main = main,
+                                 xlab = xlab, ylab = ylab, ...)
+    keep <- !background
+    label_x <- suppressWarnings(as.numeric(dt$x[keep])) * pixel_length +
+      origin[1L]
+    label_y <- suppressWarnings(as.numeric(dt$y[keep])) * pixel_length +
+      origin[2L]
+    plot_dt <- dt[keep, ]
   }
 
   if (isTRUE(labels) && label_col %in% names(dt)) {
@@ -110,9 +121,9 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
     }
   }
 
-  if (isTRUE(legend)) {
+  if (isTRUE(legend) && length(pal)) {
     graphics::legend("topright", legend = names(pal), fill = pal,
-                     cex = 0.7, bty = "n")
+                     cex = 0.8, bty = "n")
   }
 
   invisible(dt)
@@ -139,6 +150,8 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
 }
 
 .resolve_particle_palette <- function(material, palette = NULL) {
+  material <- material[!is.na(material) & nzchar(material)]
+  if (!length(material)) return(character())
   if (is.null(palette)) palette <- .particle_material_palette()
   missing <- setdiff(unique(material), names(palette))
   if (length(missing)) {
@@ -148,6 +161,90 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
     )
   }
   palette[unique(material)]
+}
+
+.particle_background_material <- function(material) {
+  material <- trimws(material)
+  is.na(material) | !nzchar(material) |
+    tolower(material) %in% c("background", "na")
+}
+
+.particle_material_grid <- function(dt, material, background,
+                                    map_dim = NULL, pixel_length = 1,
+                                    origin = c(0, 0)) {
+  x <- suppressWarnings(as.numeric(dt$x))
+  y <- suppressWarnings(as.numeric(dt$y))
+  valid <- is.finite(x) & is.finite(y)
+  if (!any(valid)) {
+    return(list(x = numeric(), y = numeric(),
+                z = matrix(NA_character_, 0L, 0L)))
+  }
+
+  if (!is.null(map_dim) && length(map_dim) == 2L &&
+      all(is.finite(map_dim)) && all(map_dim > 0)) {
+    nx <- as.integer(round(map_dim[1L]))
+    ny <- as.integer(round(map_dim[2L]))
+    x0 <- min(x[valid])
+    y0 <- min(y[valid])
+    x_vals <- x0 + seq_len(nx) - 1L
+    y_vals <- y0 + seq_len(ny) - 1L
+    x_idx <- as.integer(round(x - x0)) + 1L
+    y_idx <- as.integer(round(y - y0)) + 1L
+  } else {
+    x_vals <- sort(unique(x[valid]))
+    y_vals <- sort(unique(y[valid]))
+    x_idx <- match(x, x_vals)
+    y_idx <- match(y, y_vals)
+  }
+
+  valid <- valid & !is.na(x_idx) & !is.na(y_idx) &
+    x_idx >= 1L & x_idx <= length(x_vals) &
+    y_idx >= 1L & y_idx <= length(y_vals)
+  show <- valid & !background & !is.na(material) & nzchar(material)
+
+  z <- matrix(NA_character_, nrow = length(x_vals), ncol = length(y_vals))
+  if (any(show)) z[cbind(x_idx[show], y_idx[show])] <- material[show]
+  list(x = x_vals * pixel_length + origin[1L],
+       y = y_vals * pixel_length + origin[2L],
+       z = z)
+}
+
+.particle_grid_raster <- function(grid, pal, alpha = 0.8) {
+  if (!length(grid$x) || !length(grid$y)) {
+    return(grDevices::as.raster(matrix("#FFFFFF00", 1L, 1L)))
+  }
+  colors <- matrix("#FFFFFF00", nrow = nrow(grid$z), ncol = ncol(grid$z))
+  if (length(pal)) {
+    idx <- match(grid$z, names(pal))
+    fill <- !is.na(idx)
+    colors[fill] <- grDevices::adjustcolor(pal[idx[fill]], alpha.f = alpha)
+  }
+  grDevices::as.raster(t(colors[, rev(seq_len(ncol(colors))), drop = FALSE]))
+}
+
+.plot_particle_material_grid <- function(grid, pal, alpha, main, xlab, ylab,
+                                         ...) {
+  xr <- .particle_cell_range(grid$x)
+  yr <- .particle_cell_range(grid$y)
+  graphics::plot(NA, NA, xlim = xr, ylim = yr, asp = 1, xlab = xlab,
+                 ylab = ylab, main = main, ...)
+  graphics::rasterImage(.particle_grid_raster(grid, pal, alpha = alpha),
+                        xr[1L], yr[1L], xr[2L], yr[2L],
+                        interpolate = FALSE)
+  graphics::box()
+}
+
+.particle_cell_range <- function(x) {
+  if (!length(x)) return(c(0, 1))
+  x <- sort(unique(x))
+  step <- if (length(x) > 1L) min(diff(x)) else 1
+  c(min(x) - step / 2, max(x) + step / 2)
+}
+
+.clip_particle_overlay_extent <- function(bottom_left, top_right, image_dim) {
+  x <- pmin(pmax(c(bottom_left[1L], top_right[1L]), 1), image_dim[2L])
+  y <- pmin(pmax(c(bottom_left[2L], top_right[2L]), 1), image_dim[1L])
+  list(xleft = x[1L], xright = x[2L], ybottom = y[1L], ytop = y[2L])
 }
 
 .particle_material_palette <- function() {

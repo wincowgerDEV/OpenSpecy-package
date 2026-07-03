@@ -43,7 +43,7 @@ used.}
 
 \item{palette}{named character vector mapping materials to colors.}
 
-\item{alpha}{transparency for particle points.}
+\item{alpha}{transparency for particle raster cells.}
 
 \item{labels}{logical; draw feature labels when feature IDs are present?
 The default is \code{FALSE} because particle maps quickly become cluttered.}
@@ -54,8 +54,8 @@ The default is \code{FALSE} because particle maps quickly become cluttered.}
 
 \item{legend}{logical; draw a base graphics legend?}
 
-\item{pch, cex}{plotting character and size passed to
-\code{\link[graphics]{points}()}.}
+\item{pch, cex}{retained for compatibility; particle cells are drawn as a
+raster.}
 
 \item{\ldots}{additional arguments passed to \code{\link[graphics]{plot}()}.}
 }
@@ -66,7 +66,7 @@ Invisibly returns the plotted metadata table.
 \code{particle_image()} plots particle classifications from an \code{OpenSpecy},
 \code{Specs}, or metadata table. When a visual image is attached with
 \code{\link{add_visual_image}()} or supplied directly, particle coordinates
-are transformed onto the image and drawn with transparency.
+are transformed onto the image and drawn as a transparent categorical raster.
 }
 \examples{
 tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()

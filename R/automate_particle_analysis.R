@@ -23,8 +23,9 @@
 #' @param library_id_col library metadata column used to join match metadata.
 #' @param particle_id_strategy one of `"collapse"`, `"partial_collapse"`,
 #' `"nonspatial_collapse"`, `"all_cell_id"`, or `"raw"`.
-#' @param spectral_smooth,sigma1 passed to `read_envi()`/`read_h5()` where
-#' supported.
+#' @param spectral_smooth,sigma1 apply 3D Gaussian smoothing to spectral maps;
+#' file readers apply this while reading and in-memory maps are smoothed after
+#' coercion.
 #' @param spatial_smooth,sigma2 passed to \code{\link{sig_noise}()} and
 #' feature detection.
 #' @param close,close_kernel passed to \code{\link{def_features}()}.
@@ -296,8 +297,12 @@ automate_particle_analysis <- function(
 }
 
 .read_particle_sample <- function(x, spectral_smooth, sigma) {
-  if (is_OpenSpecy(x)) return(as_OpenSpecy(x))
-  if (is_Specs(x)) return(decompress_spec(x))
+  if (is_OpenSpecy(x)) {
+    return(.smooth_particle_sample(as_OpenSpecy(x), spectral_smooth, sigma))
+  }
+  if (is_Specs(x)) {
+    return(.smooth_particle_sample(decompress_spec(x), spectral_smooth, sigma))
+  }
   if (!is.character(x) || length(x) != 1L)
     stop("sample entries must be file paths or spectral objects",
          call. = FALSE)
@@ -308,7 +313,18 @@ automate_particle_analysis <- function(
   if (grepl("\\.(dat|img)$", x, ignore.case = TRUE)) {
     return(read_envi(x, spectral_smooth = spectral_smooth, sigma = sigma))
   }
-  read_any(x)
+  .smooth_particle_sample(read_any(x), spectral_smooth, sigma)
+}
+
+.smooth_particle_sample <- function(x, spectral_smooth, sigma) {
+  x <- as_OpenSpecy(x)
+  if (!isTRUE(spectral_smooth)) return(x)
+  md <- data.table::as.data.table(x$metadata)
+  can_smooth <- all(c("x", "y", "col_id") %in% names(md)) &&
+    !is.null(colnames(x$spectra)) &&
+    all(md$col_id %in% colnames(x$spectra))
+  if (!can_smooth) return(x)
+  spatial_smooth(x, sigma = sigma)
 }
 
 .attach_particle_image <- function(map, images, bottom_left, top_right, i) {
@@ -660,14 +676,7 @@ automate_particle_analysis <- function(
 }
 
 .particle_image_plot_map <- function(map, material_col) {
-  md <- data.table::as.data.table(map$metadata)
-  if (!material_col %in% names(md)) return(map)
-  material <- as.character(md[[material_col]])
-  keep <- !is.na(material) & nzchar(material) &
-    !tolower(material) %in% c("background", "na")
-  keep[is.na(keep)] <- FALSE
-  if (!any(keep)) return(map)
-  filter_spec(map, keep)
+  map
 }
 
 .particle_output_path <- function(output_dir, prefix, sample_name, ext) {
@@ -707,9 +716,11 @@ automate_particle_analysis <- function(
   md <- data.table::as.data.table(map$metadata)
   values <- suppressWarnings(as.numeric(md[[value_col]]))
   grid <- .particle_map_grid(md, values, pixel_length, origin)
-  graphics::image(grid$x, grid$y, grid$z,
-                  col = grDevices::hcl.colors(100, "Viridis"),
+  cols <- grDevices::hcl.colors(100, "Viridis")
+  graphics::image(grid$x, grid$y, grid$z, col = cols,
                   xlab = "X (um)", ylab = "Y (um)", main = main, asp = 1)
+  legend_title <- if (identical(value_col, "snr")) "Signal/noise" else value_col
+  .add_particle_continuous_legend(values, cols, title = legend_title)
   graphics::box()
 }
 
@@ -735,9 +746,30 @@ automate_particle_analysis <- function(
   graphics::image(grid$x, grid$y, grid$z, breaks = seq(0.5, 4.5, by = 1),
                   col = cols, xlab = "X (um)", ylab = "Y (um)",
                   main = "Correlation Heatmap", asp = 1)
-  graphics::legend("top", legend = levels(bins), fill = cols, horiz = TRUE,
-                   cex = 0.65, bty = "n", inset = 0.01)
+  graphics::legend("topright", legend = levels(bins), fill = cols,
+                   title = "Correlation", cex = 1, bty = "n",
+                   inset = 0.01)
   graphics::box()
+}
+
+.add_particle_continuous_legend <- function(values, cols, title) {
+  finite <- values[is.finite(values)]
+  if (!length(finite)) return(invisible(NULL))
+  rng <- range(finite)
+  ticks <- pretty(rng, n = 5)
+  ticks <- ticks[ticks >= rng[1L] & ticks <= rng[2L]]
+  if (!length(ticks)) ticks <- rng
+  if (identical(rng[1L], rng[2L])) {
+    idx <- rep(ceiling(length(cols) / 2), length(ticks))
+  } else {
+    breaks <- seq(rng[1L], rng[2L], length.out = length(cols) + 1L)
+    idx <- findInterval(ticks, breaks, all.inside = TRUE)
+  }
+  graphics::legend("topright",
+                   legend = format(signif(ticks, 3), trim = TRUE),
+                   fill = cols[pmax(1L, pmin(length(cols), idx))],
+                   title = title, cex = 0.9, bty = "n", inset = 0.01)
+  invisible(NULL)
 }
 
 .particle_map_grid <- function(md, values, pixel_length, origin) {
