@@ -1,95 +1,96 @@
-# Feature Plan: CRAN Readiness Review And Cleanup
+# Feature Plan: CRAN Readiness Review, Cleanup, And Bundled Shiny App Port
 
 **Feature dir**: `specs/005-cran-readiness`
-**Date**: 2026-06-30
+**Date**: 2026-07-10
 **Review budget**: Keep this file under 100 nonblank lines.
 
 ## Goal
 
-- Prepare OpenSpecy for a low-risk CRAN submission by resolving release blockers, stale generated artifacts, dependency cleanup, and confusing public surfaces.
-- Preserve spectral integrity, `OpenSpecy`/`Specs` object contracts, current user workflows, and downstream Shiny compatibility while avoiding unnecessary pre-CRAN breaking changes.
+- Prepare OpenSpecy for a low-risk CRAN submission by resolving release blockers, dependency cleanup, generated artifacts, and bundled Shiny app packaging.
+- Preserve spectral integrity, `OpenSpecy`/`Specs` object contracts, current user workflows, CRAN readiness, and a maintainable in-package app.
 
 ## Scope
 
-- **In**: Public API audit, dependency audit, YAML support removal, roxygen/source docs cleanup, release metadata, generated artifact regeneration, focused tests, benchmarks for same-output changes, and full CRAN checks.
-- **Out**: Removing new particle/image/validation/Specs functions from this release, changing `run_app(path = "system")` cache behavior, broad numerical algorithm rewrites without benchmarks, full reference-library rebuild unless touched, pkgdown HTML edits, and Shiny app repository changes.
-- **Users**: CRAN users installing OpenSpecy and analysts using `read_any()`, `process_spec()`, `match_spec()`, map/particle workflows, and library management.
+- **In**: Prior CRAN cleanup, YAML removal, dependency ports, docs/check fixes, and porting `wincowgerDEV/OpenSpecy-shiny` into `inst/shiny/` with optimized assets, tests, and `run_app()` support.
+- **Out**: Removing new particle/image/validation/Specs functions, broad numerical rewrites without benchmarks, full reference-library rebuild unless touched, direct pkgdown HTML edits, or bundling avoidable large/raw/orphaned Shiny assets.
+- **Users**: CRAN users installing OpenSpecy, analysts using spectral workflows, and users launching the bundled app through `run_app()`.
 
 ## Review Findings To Address
 
-- `devtools::document()` was not run: installed roxygen2 is `7.3.2`, but `DESCRIPTION` requires `Config/roxygen2/version: 8.0.0`; resolve the generator version before regenerating docs.
-- `devtools::test()` passed locally on 2026-06-30: 844 pass, 30 warnings from expected warning tests, 3 skips (`manage_lib` CI-only and OSF model unavailable).
-- `devtools::check(document = FALSE)` ran `--as-cran` and failed release criteria with 0 errors, 2 warnings, 3 notes.
-- Generated artifacts are stale: check reports codoc mismatches for `Specs`, `as_OpenSpecy`, and `read_h5`; `NAMESPACE` is missing new roxygen exports from `R/automate_particle_analysis.R`, `R/particle_image.R`, `R/validation_metrics.R`, `R/visual_image.R`, and `R/Specs.R`.
-- Release metadata is inconsistent: `DESCRIPTION` is `1.7.1` with `Date: 2025-09-29`, `NEWS.md` starts at `1.7.0`, `README.md` title says `Open Specy 1.0`, the README DOI badge differs from the current package DOI, and `cran-comments.md` lists old check environments.
-- Network tests need exact-host guards: `tests/testthat/test-manage_lib.R` skips on `osf.io` even when `get_lib(..., aws = TRUE)` downloads from `d2jrxerjcsjhs7.cloudfront.net`.
-- YAML is isolated to `R/io_spec.R`, `inst/extdata/raman_hdpe.yml`, `tests/testthat/test-io_spec.R`, `tests/testthat/test-manage_spec.R`, and vignettes; remove YAML read/write support, fixture, docs, and dependency.
-- `cluster::pam()` runtime use has been replaced by an internal PAM medoid selector; keep `cluster` only in `Suggests` for optional tests and benchmarks.
-- `signal` runtime use has been replaced by an internal Savitzky-Golay filter; keep `sgolay` only in `Suggests` for optional comparison tests and benchmarks.
-- Roxygen/source doc issues found statically: mojibake references in `R/OpenSpecy-package.R` and `R/manage_lib.R`, README typo `spec_lib$wavenumbers`, `Web Assemply`, old `T`/`F` examples, and unclear low-level helper guidance.
-- Check/probes confirmed code risks: `grDevices::readbitmap()` is missing, `.xyz` reading errors with `object 'xy' not found`, and new code needs imports/globals for `.row_id`, `y`, `tail`, `png`, and `dev.off`.
+- Previous CRAN cleanup is mostly implemented: YAML removed, `cluster`/`signal` runtime use ported, new particle/image/validation/Specs exports generated, and package checks recently passed except expected time-verification notes.
+- `run_app(path = "system")` currently resolves to `system.file(package = "OpenSpecy")` and searches recursively for `app.R` or `server.R`/`ui.R`; this can support `inst/shiny/` but should prefer that installed app path explicitly after the port.
+- Upstream app source is `https://github.com/wincowgerDEV/OpenSpecy-shiny`; current repo root exposes `global.R`, `server.R`, `ui.R`, `config.yml`, and a `www/` asset directory.
+- Bundled app assets are the primary CRAN risk: images must be compressed/downsampled/deduplicated, orphaned/raw/generated files removed, and source/installed package size reported.
+- Shiny testing must avoid routine long interactive launches while still checking app helpers, server/module logic where feasible, installed paths, required assets, and a CI/manual smoke test.
 
 ## Requirements
 
-- R1. CRAN-installed package exports must include the new particle, image, validation, and Specs functions intended for this release.
-- R2. Package examples, README, vignettes, and Rd signatures must describe current behavior and use `wavenumber`, `TRUE`/`FALSE`, and runnable primary workflows.
-- R3. Remove YAML as a read/write/package-data format and keep JSON, CSV, and RDS support.
-- R4. Packages explicitly called by package functions stay in `Imports` unless the call is removed or ported; packages used only by examples, tests, vignettes, workflows, or the external Shiny app stay in `Suggests`.
-- R5. API simplification must favor documented primary workflows (`read_any()`, `process_spec()`, `match_spec()`, `automate_particle_analysis()`) while preserving composable helpers needed for this release.
-- R6. Network tests must skip on CRAN/offline and guard the actual host/resource used, including CloudFront/AWS variants.
-- R7. Same-output code changes must include benchmark comparisons under `benchmarks/` with output equivalence and material-regression signaling.
-- R8. Final release candidate must pass focused tests, full tests, documentation regeneration, vignettes, package build checks, and `R CMD check --as-cran` or equivalent CI matrix.
+- R1. CRAN-installed package exports include all new particle/image/validation/Specs functions intended for this release.
+- R2. Package examples, README, vignettes, and Rd signatures describe current behavior and use `wavenumber`, `TRUE`/`FALSE`, and runnable primary workflows.
+- R3. YAML read/write/package-data support remains removed; JSON, CSV, and RDS support remain.
+- R4. Packages explicitly called by package functions stay in `Imports`; app-only packages stay in `Suggests` with clear `run_app()` runtime messaging unless package functions call them directly.
+- R5. `run_app()` launches the bundled installed app by default, still supports explicit local paths for development/testing, and does not silently download during CRAN checks.
+- R6. The Shiny app port preserves app behavior without weakening `OpenSpecy` object contracts or moving app-specific logic into public package APIs without review.
+- R7. Shiny assets bundled under `inst/shiny/` are optimized, deduplicated, and audited so no orphaned, raw source, obsolete generated, or excessive files ship.
+- R8. Shiny changes include focused current-behavior tests: installed path/assets, sourceable helpers, headless server/module tests where feasible, and manual or CI-guarded smoke tests.
+- R9. Network tests/downloads skip on CRAN/offline and guard the actual host/resource used, including CloudFront/AWS/GitHub variants.
+- R10. Same-output code changes include benchmarks under `benchmarks/` with output equivalence and material-regression signaling.
+- R11. Final release candidate passes focused tests, full tests, documentation regeneration, vignettes, package build/package-size checks, Shiny smoke validation, and `R CMD check --as-cran` or equivalent CI.
 
 ## Technical Decisions
 
-- **Approach**: Fix release blockers first, then make conservative dependency/API cleanups only when tests and docs can prove no user workflow is broken.
-- **Public API**: Export all new particle/image/validation/Specs functions intended by roxygen for this release; leave any broader consolidation/deprecation for a post-CRAN lifecycle pass.
-- **Dependency policy**: Remove YAML support entirely; port `cluster::pam()` and `signal` Savitzky-Golay usage; keep explicit package-function calls in `Imports` and non-called support packages in `Suggests`.
-- **OpenSpecy contract**: Any reader, processor, matcher, filter, collapse, image, or `Specs` change must preserve `wavenumber`, `spectra`, `metadata`, column/row alignment, identifiers, and object attributes.
-- **Generated artifacts**: Do not edit `NAMESPACE`, `man/*.Rd`, or `docs/`; resolve roxygen2 version mismatch (`Config/roxygen2/version: 8.0.0` vs `RoxygenNote: 7.3.2`) before `devtools::document()`.
-- **External resources**: OSF, CloudFront, and GitHub downloads must be explicit, guarded, cached outside the package tree, and skipped during CRAN checks.
-- **Reference workflow compatibility**: N/A unless library-building, matching defaults, IDs, or wavenumber axes change; then run staged subset/temp-output comparisons against legacy artifacts.
+- **Approach**: Preserve completed CRAN cleanup, then import the upstream app into `inst/shiny/`, prune/optimize assets, and adapt `run_app()`/tests to prefer installed app files without relying on network download.
+- **Public API**: Keep `run_app()` as the user entrypoint; avoid new Shiny-specific public functions unless helper extraction has package value beyond the app.
+- **Dependency policy**: App-only packages remain `Suggests` checked by `run_app()`; compression tooling is development-only unless already available in package dependencies.
+- **OpenSpecy contract**: App code may call package workflows but must preserve `wavenumber`, `spectra`, `metadata`, identifiers, and object attributes.
+- **Generated artifacts**: Do not edit `NAMESPACE`, `man/*.Rd`, or `docs/`; regenerate only from roxygen/metadata with the configured roxygen2 version and inspect generated diffs.
+- **External resources**: GitHub source import is development-time only; runtime app launch from installed package must work offline except explicitly documented downloads with guards.
+- **Reference workflow compatibility**: N/A unless app port changes library-building, matching defaults, IDs, or wavenumber axes.
+- **Bundled Shiny app**: Use `inst/shiny/`; audit `www/` references, compress/downsample images, remove unused files, record size deltas, and add headless/installed-path/smoke tests.
 
 ## Package Surfaces
 
-- `R/`: Audit exports and docs; likely touch `R/io_spec.R`, `R/build_lib.R`, `R/smooth_intens.R`, `R/visual_image.R`, `R/read_ext.R`, `R/Specs.R`, `R/automate_particle_analysis.R`, `R/zzz.R`, `R/OpenSpecy-package.R`, and primary workflow roxygen pages.
-- `tests/testthat/`: Update YAML tests, add focused tests for exact network skips, generated-export availability, image BMP fallback, `.xyz` reading, SG filtering, PAM/medoid reduction, and check-note globals/imports.
-- `benchmarks/`: Add same-output comparisons for cluster/PAM removal and signal/Savitzky-Golay removal; keep legacy comparison code here, not in `tests/`.
-- `workflows/`: Unchanged unless reference-library functions or IDs change; if changed, run staged compatibility checks.
-- `vignettes/README/pkgdown`: Update README and included vignettes from source; do not patch pkgdown HTML.
-- `DESCRIPTION`: Reconcile `Version`, `Date`, remove `yaml`, remove `cluster`/`signal` after ports, dependency fields, `RoxygenNote`, URLs, and optional dependency classification.
-- `NEWS.md`: Add a `1.7.1`/release entry covering CRAN cleanup, dependency moves, API deprecations, bug fixes, and doc updates.
-- External Shiny compatibility: Keep `run_app()` package-side compatible with the separate `wincowgerDEV/OpenSpecy-shiny`; no Shiny app code in this repo.
+- `R/`: Finalize CRAN fixes and update `R/run_app.R` to prefer `system.file("shiny", package = "OpenSpecy")`, with explicit local/dev path support.
+- `tests/testthat/`: Keep existing CRAN tests; add Shiny installed-path, required-asset, helper, and feasible `shiny::testServer()` tests.
+- `benchmarks/`: Existing PAM/SG and particle legacy benchmarks remain; add only if the Shiny port changes same-output package functions.
+- `workflows/`: Add or update an app asset-audit/compression helper if useful; keep generated assets out of source unless intentionally bundled.
+- `inst/`: Add `inst/shiny/` from `OpenSpecy-shiny`; optimize `www/`; remove orphaned/duplicate/raw/generated files before final checks.
+- `vignettes/README/pkgdown`: Update source docs to describe the bundled app; do not patch pkgdown HTML directly.
+- `DESCRIPTION`: Reconcile app dependencies as `Imports` vs `Suggests`, package metadata, `RoxygenNote`, and release date/version.
+- `NEWS.md`: Add entries for CRAN cleanup, dependency ports, bug fixes, docs, and the bundled Shiny app.
+- Bundled Shiny app: Include asset audit, image compression report, installed-size/source-size impact, headless tests, and manual/CI smoke test.
 
 ## Work Checklist
 
 - [x] Confirm intended public exports and ensure new particle/image/validation/Specs APIs are generated into `NAMESPACE`.
-- [x] Remove YAML support and fixture from `R/io_spec.R`, `inst/extdata/`, tests, vignettes, `README.md`, `DESCRIPTION`, and roxygen.
+- [x] Remove YAML support and fixture from package code, tests, docs, data, and dependencies.
 - [x] Port `cluster::pam()` reduction and `signal` Savitzky-Golay filtering with tests plus same-output benchmarks.
-- [x] Fix release-blocking behavior in `R/visual_image.R`, `R/read_ext.R`, `R/automate_particle_analysis.R`, `R/Specs.R`, and `R/zzz.R`.
+- [x] Fix release-blocking behavior in readers, visual-image helpers, Specs, particle automation, and startup/check code.
 - [x] Add exact-settings `analyze_features()` export benchmark for `tiny_map`/`test_lib` and align `automate_particle_analysis()` return/export names.
-- [x] Refresh roxygen docs, README, included vignettes, NEWS, and cran-comments from source.
-- [x] Regenerate generated artifacts with the configured roxygen2 version and inspect `NAMESPACE`/`man/*.Rd` diffs immediately.
-- [x] Run focused tests, relevant benchmarks, full package tests, vignettes, build/package-size checks, and CRAN checks.
+- [ ] Import `wincowgerDEV/OpenSpecy-shiny` into `inst/shiny/` at a recorded commit; keep top-level app files and `www/` structure installable.
+- [ ] Audit, compress/downsample, deduplicate, and prune Shiny assets; report source tarball and installed package size before/after.
+- [ ] Update `run_app()` and docs so default launch uses bundled `inst/shiny/`, while explicit local paths and guarded remote/dev workflows remain clear.
+- [ ] Add focused Shiny tests for installed app path, required static assets, sourceable helpers, feasible server/module logic, and skipped CI/manual smoke coverage.
+- [ ] Refresh roxygen docs, README, included vignettes, NEWS, and cran-comments from source; regenerate generated artifacts with the configured roxygen2 version and inspect diffs.
+- [ ] Run focused tests, relevant benchmarks, full package tests, vignettes, build/package-size checks, Shiny smoke validation, and CRAN checks.
 
 ## Verification
 
-- Pre-plan evidence: `devtools::test()` passed; `devtools::check(document = FALSE)` found 2 warnings and 3 notes; `.codex-logs/` was a temporary check artifact and should be removed before final checks.
-- Focused tests: `devtools::test(filter = "io_spec|build_lib|smooth_intens|visual_image|read_ext|Specs|automate_particle_analysis|read_multi|process_spec|match_spec")`.
-- Dependency checks: `_R_CHECK_DEPENDS_ONLY_=true`, `_R_CHECK_SUGGESTS_ONLY_=true`, and explicit checks after removing YAML/cluster/signal.
-- Toolchain/version preflight: resolve roxygen2 `8.0.0` vs installed `7.3.2` before regeneration.
+- Focused tests: `devtools::test(filter = "run_app|io_spec|build_lib|smooth_intens|visual_image|read_ext|Specs|automate_particle_analysis|read_multi|process_spec|match_spec")`.
+- Shiny app tests/asset audit/smoke test: installed path via `system.file("shiny", package = "OpenSpecy")`; required `global.R`/`server.R`/`ui.R`/`config.yml`/`www`; orphan reference scan; image size/compression report; `shiny::testServer()` where feasible; manual or CI-guarded app launch.
+- Dependency checks: `_R_CHECK_DEPENDS_ONLY_=true`, `_R_CHECK_SUGGESTS_ONLY_=true`, explicit checks after YAML/cluster/signal removal, and app-only dependency availability messaging.
+- Toolchain/version preflight: confirm installed roxygen2 matches `Config/roxygen2/version` before regeneration.
 - `devtools::document()`: run once with configured roxygen2; inspect generated diffs for aliases, exports, authors, references, and stale signatures.
 - Full checks: `devtools::test()`, `devtools::build_vignettes()`, `R CMD build`, `R CMD check --as-cran`, and GitHub Actions matrix on Windows/macOS/Linux R release/devel/oldrel.
-- Benchmarks: required for any same-output reader, processor, matcher, or dependency-port change; compare output equivalence and flag >10% slowdown.
-- Dependency-port evidence: focused tests passed; `benchmarks/hyperspectral_matrix_processing.R` reports SG output equivalence with a runtime cost versus `sgolay`; `benchmarks/pam_reduction.R` matches legacy IDs and flags the internal R PAM path as slower than compiled `cluster`.
-- Particle automation evidence: `benchmarks/automate_particle_analysis_legacy_exports.R` loads the live legacy `analyze_features()` source, runs the line-1453 `tiny_map`/FTIR `test_lib` settings with CRAN OpenSpecy 1.5.3, compares shared CSV exports and normalized processed RDS payloads exactly, and checks legacy-only plots plus the current particle image are nonempty.
-- H5/all-cell evidence: focused tests cover H5 mosaic-derived visual coregistration, all-cell coordinate preservation, shifted-axis final matching, particle RGB extraction, image return/export objects, and single-class character feature labels; the external `test_1um.h5` + `medoid_derivative` probe returned 291 detail rows, 25 summary rows, 405 processed wavenumbers, and complete `r/g/b` values before the current escalation limit prevented rerunning that external probe with the new plots.
-- CRAN release checks: inspect package tarball contents/size, URLs/DOIs, examples, vignettes, `cran-comments.md`, reverse dependencies, and no unexpected files.
+- Benchmarks: required for same-output reader, processor, matcher, dependency-port, or run_app behavior changes; compare output equivalence and flag >10% slowdown.
+- Reference-library/long workflow staging: N/A unless app port changes library artifacts or core matching/library-generation behavior.
+- CRAN release checks: inspect package tarball contents/size, installed package size, URLs/DOIs, examples, vignettes, `cran-comments.md`, reverse dependencies, and no unexpected files.
 
 ## Risks And Follow-Up
 
-- `Config/roxygen2/version` is resolved to installed/release generator `7.3.2`, matching `RoxygenNote`, and `devtools::document()` now completes cleanly.
-- PAM output now targets `cluster::pam(pamonce = 6)` medoids; the R port is slower than compiled `cluster`, and SG is slower than `sgolay`, accepted as dependency-removal tradeoffs with benchmark visibility before CRAN.
+- Shiny app images may push CRAN package size over acceptable limits; reduce assets first and externalize optional media only with offline-safe behavior.
+- Server code may be hard to test headlessly if it is not modular; extract sourceable helpers only when it improves testability without creating speculative public APIs.
+- Historical app remote-download behavior may still be useful for development, but CRAN default should favor the bundled offline app.
 
 ## Approval Notes
 

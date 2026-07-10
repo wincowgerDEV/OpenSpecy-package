@@ -30,6 +30,11 @@ are not required.
    temporary outputs before the full workflow. Compare rebuilt artifacts against
    available legacy identifiers, wavenumber axes, metadata shape, warnings, and
    representative `OpenSpecy` joins or matches before marking the work complete.
+9. For bundled Shiny app work, keep app code/assets under `inst/`, audit and
+   remove orphaned files, compress or downsample images, report package-size
+   impact, test helpers and server/module logic headlessly where feasible,
+   verify installed app paths/assets, and run a manual or CI-guarded app smoke
+   test when relevant.
 
 ## Rules
 
@@ -46,4 +51,5 @@ are not required.
 - Treat logical metadata filters with possible `NA` values deliberately and
   verify spectra/metadata row-column alignment after filters, joins, reductions,
   and model-preparation steps.
-- Do not add Shiny application code to this package repository.
+- Shiny application code belongs under `inst/`; avoidable large, duplicate, raw,
+  generated, or orphaned Shiny assets must not be bundled.

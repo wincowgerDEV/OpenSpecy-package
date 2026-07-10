@@ -32,7 +32,9 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
 - Technical decisions that matter for implementation.
 - OpenSpecy object flow and object attributes when affected.
 - Package surfaces: `R/`, `tests/testthat/`, `benchmarks/`, docs,
-  `DESCRIPTION`, `NEWS.md`, generated artifacts, and Shiny compatibility.
+  `DESCRIPTION`, `NEWS.md`, generated artifacts, and bundled Shiny app impact
+  when `inst/` app code or assets are affected, including headless module/server
+  tests, installed-asset checks, and manual or CI-guarded smoke tests.
 - A short work checklist with exact paths.
 - Verification commands and any manual or CI-guarded checks.
 - Risks or open questions that can change implementation.

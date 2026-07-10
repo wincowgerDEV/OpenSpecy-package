@@ -25,8 +25,11 @@ guarded. For reference-library or other long-running external workflows, run
 subset probes and staged temp-output/logged rebuilds before a full run; compare
 rebuilt artifacts against available legacy IDs, wavenumber axes, metadata
 counts/names, warnings, and representative `OpenSpecy` joins or matches before
-claiming completion. The
-Shiny application lives in `wincowgerDEV/OpenSpecy-shiny`; consider
-compatibility when relevant, but package functionality takes precedence and
-Shiny application code does not belong in this repository.
+claiming completion. The Shiny application may be bundled in this repository
+under `inst/`; when porting from `wincowgerDEV/OpenSpecy-shiny`, keep app code
+there, compress/downsample images, remove orphaned/duplicate/raw/generated
+assets, report package-size impact, test helpers/server modules headlessly where
+feasible, verify installed app paths/assets, and use manual or CI-guarded app
+smoke tests. Package functionality and CRAN readiness take precedence over app
+convenience.
 <!-- SPECKIT END -->

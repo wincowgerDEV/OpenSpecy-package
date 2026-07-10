@@ -1,20 +1,24 @@
 <!--
 Sync Impact Report
-Version change: 2.1.0 -> 2.2.0
+Version change: 2.2.0 -> 3.0.0
 Modified principles:
-- OpenSpecy Object Contract: clarified filter/join alignment and NA-logical filter expectations
-- Tests Track Current Behavior: added reference-library compatibility comparison expectations
-- Development Workflow and Quality Gates: added staged temp-output verification for long-running external workflows
+- R Package Interface and CRAN Readiness: expanded CRAN-readiness expectations to bundled Shiny assets
+- Tests Track Current Behavior: added bundled Shiny app test expectations for helpers, modules, installed assets, and CI/manual smoke tests
+- R Package Standards: added bundled Shiny application code/assets under `inst/` as a package surface
+- Shiny Compatibility Boundary: replaced external-only boundary with bundled Shiny application governance
+- Development Workflow and Quality Gates: added Shiny app asset audit, build-size, headless test, and smoke-test expectations
 Added sections:
-- Reference Library and External Workflow Verification
+- Bundled Shiny Application Boundary
 Removed sections:
-- None
+- Shiny Compatibility Boundary
 Templates requiring updates:
-- .specify/templates/plan-template.md: add workflows surface and reference-library compatibility verification
-- .agents/skills/speckit-implement/SKILL.md: add long-running workflow staging guidance
-- AGENTS.md: summarize long-running workflow and reference-library comparison rules
+- .specify/templates/plan-template.md: replace external-only Shiny prompt with bundled app/asset audit prompt
+- .agents/skills/speckit-plan/SKILL.md: update required Shiny planning surface
+- .agents/skills/speckit-implement/SKILL.md: replace Shiny prohibition with `inst/` app and asset-audit rules
+- AGENTS.md: summarize bundled Shiny app location, size, compression, and orphan-file rules
 Follow-up TODOs:
 - Update OSF-dependent tests so offline guards check the actual download host.
+- Create a concise feature plan for porting `wincowgerDEV/OpenSpecy-shiny` into `inst/` with an image compression and orphan-file audit.
 -->
 
 # OpenSpecy Constitution
@@ -83,6 +87,12 @@ Features MUST be compatible with the current package baseline: R >= 4.3.0,
 testthat edition 3, roxygen markdown, knitr/rmarkdown vignettes, pkgdown docs,
 and multi-platform R CMD check.
 
+Bundled Shiny application changes MUST preserve CRAN readiness. App code and
+assets under `inst/` MUST be kept small, portable, and installable without
+network access. Large media assets, especially images, MUST be compressed,
+downsampled, deduplicated, or moved out of the package with a documented
+download/cache strategy before they are accepted into the release surface.
+
 Commands that generate package artifacts MUST use the tool versions configured
 in `DESCRIPTION`, such as `Config/roxygen2/version`. A version mismatch MUST be
 resolved before regeneration rather than accepted as incidental generated-file
@@ -113,6 +123,16 @@ MUST use clear testthat skips or CI-only guards.
 Network-dependent tests MUST guard the actual host and resource used by the
 download, including redirects when relevant. An offline environment MUST cause
 a clear skip, not a routine test or package-check failure.
+
+Bundled Shiny app changes MUST include tests proportional to the changed app
+surface. Testable app helpers SHOULD live in package functions or sourceable app
+helper files and be covered by normal `testthat` tests. Shiny module and server
+logic SHOULD use headless tests such as `shiny::testServer()` when feasible.
+Tests that verify installed app paths, static assets, and launchability SHOULD
+load the app through `system.file()` or the same package helper users call, so
+missing `inst/` files are caught before release. Browser, snapshot, or
+long-running end-to-end app tests MUST be manual, optional, or CI-guarded and
+MUST skip clearly when optional test backends or network resources are missing.
 
 The expected verification command for local feature work is `devtools::test()`.
 Release-sensitive work MUST also pass `devtools::check()` or equivalent R CMD
@@ -217,6 +237,8 @@ MUST identify the affected package surfaces:
 - generated roxygen outputs from `devtools::document()`
 - optional pkgdown output from the package website build process
 - bundled data and examples in `inst/` and package data files
+- bundled Shiny application code and optimized assets under `inst/` when
+  affected
 
 Concise feature plans and pull requests MUST call out whether each surface is
 changed, unchanged, or intentionally not applicable. A change that alters public
@@ -250,15 +272,33 @@ Successful intermediate artifacts MAY be reused for diagnosis and comparison,
 but temporary diagnostics and generated outputs MUST be cleaned up or clearly
 reported before handoff.
 
-## Shiny Compatibility Boundary
+## Bundled Shiny Application Boundary
 
-The Shiny application MUST NOT be reintroduced into this package repository. It
-lives separately at `https://github.com/wincowgerDEV/OpenSpecy-shiny`.
-Compatibility with that external application MUST be considered when changing
-functions, objects, metadata, examples, or exported behavior, but package
-correctness, scientific integrity, maintainability, and CRAN readiness MUST take
-precedence. The package is the functional foundation for the external Shiny
-application, not a subordinate implementation detail of it.
+The Shiny application SHOULD be managed in this package repository under
+`inst/` once ported from `https://github.com/wincowgerDEV/OpenSpecy-shiny`.
+During the transition, that repository is the source to import from; after the
+port, the package copy is the canonical application surface unless a feature
+plan explicitly states otherwise.
+
+Shiny application code MUST live under `inst/` and MUST remain separable from
+core package functions. Package correctness, scientific integrity,
+maintainability, and CRAN readiness MUST take precedence over app convenience.
+App code MAY call exported or internal package functions as appropriate, but it
+MUST NOT require weakening `OpenSpecy` object contracts, generated-file policy,
+testing expectations, or public API restraint.
+
+Shiny app updates MUST include an asset audit before release-facing checks:
+remove orphaned files, duplicate assets, raw source images, obsolete generated
+outputs, and unused dependencies; compress or downsample images; and report
+source-package and installed-package size impact when app assets change. Large
+optional assets SHOULD be generated, cached, downloaded with offline guards, or
+kept outside the package rather than bundled.
+
+Routine package tests MUST NOT launch a long-running interactive app. App
+changes SHOULD include focused noninteractive tests for package-side helpers,
+server/module logic, installed paths, and required static assets, plus a manual
+or CI-guarded Shiny smoke test that verifies the bundled app starts, loads
+required assets, and does not rely on files outside the installed package.
 
 ## Development Workflow and Quality Gates
 
@@ -302,8 +342,10 @@ Before implementation is complete:
 - Official reference-library or other long-running external workflow changes
   MUST use staged subset/temp-output verification and report compatibility
   counts against available legacy artifacts before being treated as complete.
-- External Shiny compatibility MUST be considered when relevant, but package
-  functionality MUST take precedence.
+- Bundled Shiny app changes MUST include an `inst/` asset audit, image
+  compression/downsampling review, package-size impact check, focused
+  noninteractive Shiny tests when feasible, and manual or CI-guarded app smoke
+  test when relevant.
 
 On Windows, maintained project skills or scripts SHOULD resolve real executable
 paths once and reuse them. Process-scoped PowerShell execution-policy bypasses
@@ -334,9 +376,10 @@ versioning:
 
 Reviewers MUST block changes that directly edit locked generated files, skip
 required tests without justification, omit required documentation updates,
-ignore `OpenSpecy` object invariants or attributes, reintroduce Shiny
-application code into this repository, or omit required benchmarks for
-same-output function improvements. Temporary exceptions MUST be documented in
-the feature plan with the reason, risk, and follow-up task.
+ignore `OpenSpecy` object invariants or attributes, add Shiny application code
+outside `inst/`, bundle avoidable large or orphaned Shiny assets, or omit
+required benchmarks for same-output function improvements. Temporary exceptions
+MUST be documented in the feature plan with the reason, risk, and follow-up
+task.
 
-**Version**: 2.2.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-06-24
+**Version**: 3.0.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-10

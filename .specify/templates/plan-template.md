@@ -30,6 +30,7 @@
 - **Generated artifacts**: [Whether documentation generation is needed; required configured tool version; no direct generated-file edits.]
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
+- **Bundled Shiny app**: [impact on `inst/` app code/assets, image compression, orphan-file audit, package-size impact, headless app tests, smoke test, or N/A.]
 
 ## Package Surfaces
 
@@ -37,10 +38,11 @@
 - `tests/testthat/`: [focused current-behavior tests]
 - `benchmarks/`: [required only for same-output function improvements; otherwise state "N/A - new behavior" or reason]
 - `workflows/`: [changed, unchanged, or N/A]
+- `inst/`: [bundled Shiny app/assets, examples/data, unchanged, or N/A]
 - `vignettes/README/pkgdown`: [changed, unchanged, or deferred]
 - `DESCRIPTION`: [changed or unchanged]
 - `NEWS.md`: [entry or reason none]
-- External Shiny compatibility: [impact or N/A; no Shiny app code in this repo]
+- Bundled Shiny app: [impact, asset audit, headless tests, smoke test, or N/A]
 
 ## Work Checklist
 
@@ -58,6 +60,7 @@
 - `devtools::check()` or CI/R CMD check:
 - Benchmarks:
 - Reference-library/long workflow staging:
+- Shiny app tests/asset audit/smoke test:
 
 ## Risks And Open Questions
 
