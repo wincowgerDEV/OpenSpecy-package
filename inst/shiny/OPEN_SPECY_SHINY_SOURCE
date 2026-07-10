@@ -1,0 +1,4 @@
+Source: https://github.com/wincowgerDEV/OpenSpecy-shiny
+Commit: 60d1bdefff90affcda3353d7c389ea8f3748ca56
+Imported: 2026-07-10
+Notes: Bundled into the OpenSpecy package under inst/shiny for offline package installs.

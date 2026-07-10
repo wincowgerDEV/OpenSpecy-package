@@ -21,7 +21,7 @@ batch, or map spectral data files like .asp, .csv, .jdx, .spc, .spa, .0, and
 baseline correction, range restriction and flattening, intensity conversions,
 wavenumber alignment, and min-max normalization. 
 Spectra can be identified in batch using an onboard reference library
-using `match_spec()`. A Shiny app is available via `run_app()`
+using `match_spec()`. A bundled Shiny app is available via `run_app()`
 or online at [https://www.openanalysis.org/openspecy/](https://www.openanalysis.org/openspecy/).
 
 ## Installation

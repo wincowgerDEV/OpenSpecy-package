@@ -67,10 +67,10 @@
 - [x] Port `cluster::pam()` reduction and `signal` Savitzky-Golay filtering with tests plus same-output benchmarks.
 - [x] Fix release-blocking behavior in readers, visual-image helpers, Specs, particle automation, and startup/check code.
 - [x] Add exact-settings `analyze_features()` export benchmark for `tiny_map`/`test_lib` and align `automate_particle_analysis()` return/export names.
-- [ ] Import `wincowgerDEV/OpenSpecy-shiny` into `inst/shiny/` at a recorded commit; keep top-level app files and `www/` structure installable.
-- [ ] Audit, compress/downsample, deduplicate, and prune Shiny assets; report source tarball and installed package size before/after.
-- [ ] Update `run_app()` and docs so default launch uses bundled `inst/shiny/`, while explicit local paths and guarded remote/dev workflows remain clear.
-- [ ] Add focused Shiny tests for installed app path, required static assets, sourceable helpers, feasible server/module logic, and skipped CI/manual smoke coverage.
+- [x] Import `wincowgerDEV/OpenSpecy-shiny` into `inst/shiny/` at a recorded commit; keep top-level app files and `www/` structure installable.
+- [x] Audit, compress/downsample, deduplicate, and prune Shiny assets; report source tarball and installed package size before/after.
+- [x] Update `run_app()` and docs so default launch uses bundled `inst/shiny/`, while explicit local paths and guarded remote/dev workflows remain clear.
+- [x] Add focused Shiny tests for installed app path, required static assets, sourceable helpers, feasible server/module logic, and skipped CI/manual smoke coverage.
 - [ ] Refresh roxygen docs, README, included vignettes, NEWS, and cran-comments from source; regenerate generated artifacts with the configured roxygen2 version and inspect diffs.
 - [ ] Run focused tests, relevant benchmarks, full package tests, vignettes, build/package-size checks, Shiny smoke validation, and CRAN checks.
 

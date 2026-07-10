@@ -24,3 +24,5 @@
 ^\.specify$
 ^specs$
 ^\.codex-visual-checks$
+^\.codex-shiny-source$
+^\.codex-shiny-smoke$

@@ -1,5 +1,12 @@
 # OpenSpecy 1.7.1
 
+- Bundled the Shiny app in `inst/shiny/` from
+  `wincowgerDEV/OpenSpecy-shiny` commit
+  `60d1bdefff90affcda3353d7c389ea8f3748ca56`; `run_app()` now launches the
+  installed app by default instead of downloading app files from GitHub.
+- Added bundled-app path, asset, source-parse, YAML-removal, and app helper
+  regression tests; optimized/pruned Shiny app static assets and fixed app
+  sample-data loading for the current matrix-backed `OpenSpecy` spectra format.
 - Removed built-in YAML read/write support and the YAML example fixture;
   `read_spec()` and `write_spec()` now support JSON, RDS, and CSV formats.
 - Removed runtime `signal` and `cluster` dependencies by using internal
