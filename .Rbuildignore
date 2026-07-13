@@ -26,3 +26,10 @@
 ^\.codex-visual-checks$
 ^\.codex-shiny-source$
 ^\.codex-shiny-smoke$
+^\.codex-.*$
+^_wasm$
+^_site$
+^inst/shiny/reference_libraries$
+^inst/shiny/www/reference_libraries$
+^inst/shiny/libraries$
+^inst/extdata/(derivative|nobaseline|raw|medoid_derivative|medoid_nobaseline|model_derivative|model_nobaseline)\.rds$

@@ -30,6 +30,23 @@ Meta/
 # Shiny app
 inst/OpenSpecy-shiny-main/
 
+# Local Shiny/Shinylive smoke-test and build artifacts
+.codex-*/
+_wasm/
+_site/
+inst/shiny/reference_libraries/
+inst/shiny/www/reference_libraries/
+inst/shiny/libraries/
+
+# Downloaded/generated reference libraries; keep small fixture RDS files explicit.
+inst/extdata/derivative.rds
+inst/extdata/nobaseline.rds
+inst/extdata/raw.rds
+inst/extdata/medoid_derivative.rds
+inst/extdata/medoid_nobaseline.rds
+inst/extdata/model_derivative.rds
+inst/extdata/model_nobaseline.rds
+
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
 
