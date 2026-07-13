@@ -33,7 +33,8 @@ feasible, verify installed app paths/assets, and use manual or CI-guarded app
 smoke tests. Package functionality and CRAN readiness take precedence over app
 convenience. The hosted Shinylive/WebAssembly app should be generated from the
 bundled app by GitHub Actions, use the repo's wasm CRAN-like package repository
-from a hardcoded package version/commit pin, stage only the small medoid/model
-libraries with guarded `get_lib()` workflows, and verify startup, assets, and
-library matching without hand-editing generated web artifacts.
+from a hardcoded package version/commit pin plus pinned app dependency closure,
+stage only the small medoid/model libraries with guarded `get_lib()` workflows,
+and verify startup, assets, dependency resolution, and library matching without
+hand-editing generated web artifacts.
 <!-- SPECKIT END -->

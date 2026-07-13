@@ -31,7 +31,7 @@
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
 - **Bundled Shiny app**: [impact on `inst/` app code/assets, image compression, orphan-file audit, package-size impact, headless app tests, smoke test, or N/A.]
-- **Hosted Shinylive/WebAssembly app**: [impact on `.github/workflows/`, wasm package repository, hardcoded package pin, small medoid/model library staging, generated app artifacts, smoke tests, or N/A.]
+- **Hosted Shinylive/WebAssembly app**: [impact on `.github/workflows/`, wasm package repository, hardcoded package/dependency pins, dependency closure, small medoid/model library staging, generated app artifacts, smoke tests, or N/A.]
 
 ## Package Surfaces
 
@@ -45,7 +45,7 @@
 - `DESCRIPTION`: [changed or unchanged]
 - `NEWS.md`: [entry or reason none]
 - Bundled Shiny app: [impact, asset audit, headless tests, smoke test, or N/A]
-- Hosted Shinylive/WebAssembly app: [wasm repo workflow, package pin, library staging, generated output, smoke test, or N/A]
+- Hosted Shinylive/WebAssembly app: [wasm repo workflow, package and dependency pins, dependency closure, library staging, generated output, smoke test, or N/A]
 
 ## Work Checklist
 
@@ -64,7 +64,7 @@
 - Benchmarks:
 - Reference-library/long workflow staging:
 - Shiny app tests/asset audit/smoke test:
-- Shinylive/WebAssembly package repo, pin, libraries, and smoke test:
+- Shinylive/WebAssembly package repo, dependency closure, pins, libraries, and smoke test:
 
 ## Risks And Open Questions
 

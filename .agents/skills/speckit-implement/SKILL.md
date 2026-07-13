@@ -38,10 +38,11 @@ are not required.
 10. For hosted Shinylive/WebAssembly work, treat the bundled `inst/` app and
     package source as canonical, fix and verify the "Build and deploy wasm R
     package repository" workflow when affected, keep the app on a hardcoded
-    package version/commit pin, stage only the small medoid/model libraries
-    with guarded `get_lib()` workflows unless the plan says otherwise, avoid
-    hand-editing generated web artifacts, and run a CI-guarded or manual smoke
-    test that covers startup, assets, and library matching.
+    package version/commit pin plus pinned app dependency closure, stage only
+    the small medoid/model libraries with guarded `get_lib()` workflows unless
+    the plan says otherwise, avoid hand-editing generated web artifacts, and run
+    a CI-guarded or manual smoke test that covers startup, assets, dependency
+    resolution, and library matching.
 
 ## Rules
 
@@ -62,5 +63,5 @@ are not required.
   generated, or orphaned Shiny assets must not be bundled.
 - Hosted Shinylive/WebAssembly app output and wasm package repository contents
   are generated deployment artifacts; update source app code, package code,
-  workflow config, library staging, or pinned metadata instead of editing them
-  directly.
+  workflow config, library staging, dependency closure, or pinned metadata
+  instead of editing them directly.
