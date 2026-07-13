@@ -36,6 +36,7 @@
 <li><a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a></li>
+    <li><a class="dropdown-item" href="../articles/library-builder.html">Build a Mini Reference Library</a></li>
     <li><a class="dropdown-item" href="../articles/spectragryph.html">File Conversion in SpectraGryph</a></li>
   </ul>
 </li>
@@ -64,7 +65,7 @@
 <p>Win Cowger,
 Zacharias Steinmetz, Rachel Kozloski, Aleksandra Karapetrova</p>
             
-            <h4 data-toc-skip class="date">2026-06-10</h4>
+            <h4 data-toc-skip class="date">2026-07-13</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/vignettes/sop.Rmd" class="external-link"><code>vignettes/sop.Rmd</code></a></small>
       <div class="d-none name"><code>sop.Rmd</code></div>
@@ -118,18 +119,18 @@ package and interprets which reading function to use based on the file
 extension.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">spectra</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_multi.html">read_any</a></span><span class="op">(</span><span class="st">"path/to/your/data"</span><span class="op">)</span></span></code></pre></div>
-<p>Open Specy allows for upload of native Open Specy .csv, .y(a)ml,
-.json, or .rds files. Open Specy and .csv files should always load
-correctly but the other file types are still in development, though most
-of the time these files work perfectly. In addition, .csv, .asp, .jdx,
-.0, .spa, .spc, and .zip files can be imported. .zip files can either
-contain multiple files with individual spectra in them of the non-zip
-formats or it can contain a .hdr and .dat file that form an ENVI file
-for a spectral map. If uploading a .csv file, it is ideal to label the
-column with the wavenumbers <code>wavenumber</code> and name the column
-with the intensities <code>intensity</code>. Columns besides wavenumber
-will be interpreted as unique spectra. If any columns are numbers, the
-csv will be interpreted in wide format with the number columns the
+<p>Open Specy allows for upload of native Open Specy .csv, .json, or
+.rds files. Open Specy and .csv files should always load correctly but
+the other file types are still in development, though most of the time
+these files work perfectly. In addition, .csv, .asp, .jdx, .0, .spa,
+.spc, and .zip files can be imported. .zip files can either contain
+multiple files with individual spectra in them of the non-zip formats or
+it can contain a .hdr and .dat file that form an ENVI file for a
+spectral map. If uploading a .csv file, it is ideal to label the column
+with the wavenumbers <code>wavenumber</code> and name the column with
+the intensities <code>intensity</code>. Columns besides wavenumber will
+be interpreted as unique spectra. If any columns are numbers, the csv
+will be interpreted in wide format with the number columns the
 wavenumbers and rows containing the unique spectral intensities and
 metadata contained in non number columns. Wavenumber units should be
 cm<sup>-1</sup> or use <code><a href="../reference/adj_wave.html">adj_wave()</a></code> to correct from
@@ -417,7 +418,7 @@ additional information about the spectra. Each row in
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>We have some generic functions built for inspecting the spectra:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">print</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># shows the raw object</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># shows the raw object</span></span>
 <span><span class="co">#&gt;      wavenumber runif.n...201.</span></span>
 <span><span class="co">#&gt;           &lt;num&gt;          &lt;num&gt;</span></span>
 <span><span class="co">#&gt;   1:       1000    0.080750138</span></span>
@@ -437,7 +438,7 @@ additional information about the spectra. Each row in
 <span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;     &lt;char&gt;         &lt;char&gt;                           &lt;char&gt;</span></span>
 <span><span class="co">#&gt; 1:     1     1 fake_noise runif.n...201. 3dda539bc3fe8fd2aba865b2fed10981</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># summarizes the contents of the spectra</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># summarizes the contents of the spectra</span></span>
 <span><span class="co">#&gt; $wavenumber</span></span>
 <span><span class="co">#&gt;  Length Min. Max.     Res.</span></span>
 <span><span class="co">#&gt;     201 1000 2000 4.975124</span></span>
@@ -465,13 +466,11 @@ additional information about the spectra. Each row in
 <div class="section level2">
 <h2 id="save-data">Save Data<a class="anchor" aria-label="anchor" href="#save-data"></a>
 </h2>
-<p>Open Specy objects can be saved most accurately as .csv, .rds, .yml,
-or .json files. .rds will be the most reproducible as it is a native R
-file format and floating point errors can happen with .csv, .json, or
-.yml.</p>
+<p>Open Specy objects can be saved most accurately as .csv, .rds, or
+.json files. .rds will be the most reproducible as it is a native R file
+format and floating point errors can happen with .csv or .json.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/io_spec.html">write_spec</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span>, <span class="st">"test_scratch_OpenSpecy.yml"</span>, digits <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/io_spec.html">write_spec</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span>, <span class="st">"test_scratch_OpenSpecy.json"</span>, digits <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/io_spec.html">write_spec</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span>, <span class="st">"test_scratch_OpenSpecy.json"</span>, digits <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/io_spec.html">write_spec</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span>, <span class="st">"test_scratch_OpenSpecy.csv"</span>, digits <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -497,7 +496,7 @@ objects.</p>
 efficient and the other is interactive. Here is an example of quick and
 efficient plotting.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># quick and efficient</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">scratch_OpenSpecy</span><span class="op">)</span> <span class="co"># quick and efficient</span></span></code></pre></div>
 <p><img src="sop_files/figure-html/unnamed-chunk-16-1.png" class="r-plt" alt="" width="360" style="display: block; margin: auto;"></p>
 <p>This is an example of an interactive plot. You can plot two different
 datasets simultaneously to compare.</p>
@@ -548,12 +547,12 @@ interpolation.</p>
 <code class="sourceCode R"><span><span class="va">combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/manage_spec.html">c_spec</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">asp_example</span>, <span class="va">ps_example</span><span class="op">)</span>, range <span class="op">=</span> <span class="st">"common"</span>, res <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> </span>
 <span></span>
 <span><span class="va">combined</span> <span class="op">|&gt;</span> </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="sop_files/figure-html/unnamed-chunk-20-1.png" class="r-plt" alt="" width="525"></p>
 <p>If you want to plot them with standardized offset y values you can do
 so with the plot variables.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">combined</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/make_rel.html">make_rel</a></span><span class="op">(</span><span class="op">)</span>, offset <span class="op">=</span> <span class="fl">3</span>, legend_var <span class="op">=</span> <span class="st">"file_name"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">combined</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/make_rel.html">make_rel</a></span><span class="op">(</span><span class="op">)</span>, offset <span class="op">=</span> <span class="fl">3</span>, legend_var <span class="op">=</span> <span class="st">"file_name"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="sop_files/figure-html/unnamed-chunk-21-1.png" class="r-plt" alt="" width="525"></p>
 </div>
 <div class="section level2">
@@ -589,7 +588,7 @@ in your OpenSpecy objects before doing analysis. The
 <code>sample_spec</code> function serves this purpose.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/manage_spec.html">sample_spec</a></span><span class="op">(</span><span class="va">spectral_map</span>, size <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="sop_files/figure-html/unnamed-chunk-23-1.png" class="r-plt" alt="" width="525"></p>
 </div>
 <div class="section level2">
@@ -698,11 +697,11 @@ be highly resolved spectrally. We set the default spectral resolution to
 in between 4 and 8 which are commonly used wavenumber resolutions.</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/conform_spec.html">conform_spec</a></span><span class="op">(</span><span class="va">raman_hdpe</span>, res <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="co"># Convert res to 8 wavenumbers.</span></span>
-<span>  <span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">summary</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Force one spectrum to have the exact same wavenumbers as another</span></span>
 <span><span class="fu"><a href="../reference/conform_spec.html">conform_spec</a></span><span class="op">(</span><span class="va">asp_example</span>, range <span class="op">=</span> <span class="va">ps_example</span><span class="op">$</span><span class="va">wavenumber</span>, res <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
-<span>  <span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">summary</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="smoothing">Smoothing<a class="anchor" aria-label="anchor" href="#smoothing"></a>
@@ -726,7 +725,7 @@ similar to absorbance units and is easy to have intuition about.</p>
 <span><span class="va">p4</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/smooth_intens.html">smooth_intens</a></span><span class="op">(</span><span class="va">raman_hdpe</span>, polynomial <span class="op">=</span> <span class="fl">4</span>, derivative <span class="op">=</span> <span class="fl">0</span>, abs <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/manage_spec.html">c_spec</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">none</span>, <span class="va">p1</span>, <span class="va">p4</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="sop_files/figure-html/smooth_intens-1.png" class="r-plt" alt="Sample `raman_hdpe` spectrum with different smoothing polynomials." width="525"><p class="caption">
 Sample <code>raman_hdpe</code> spectrum with different smoothing
@@ -741,7 +740,7 @@ polynomials.
 <span><span class="va">d2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/smooth_intens.html">smooth_intens</a></span><span class="op">(</span><span class="va">raman_hdpe</span>, derivative <span class="op">=</span> <span class="fl">2</span>, window <span class="op">=</span> <span class="va">window</span>, abs <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/manage_spec.html">c_spec</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">none</span>, <span class="va">d1</span>, <span class="va">d2</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="sop_files/figure-html/compare_derivative-1.png" class="r-plt" alt="Sample `raman_hdpe` spectrum with different derivatives." width="525"><p class="caption">
 Sample <code>raman_hdpe</code> spectrum with different derivatives.
@@ -778,7 +777,7 @@ are many fine tuning options that can be chosen, see
 <span><span class="va">dr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subtr_baseline.html">subtr_baseline</a></span><span class="op">(</span><span class="va">raman_hdpe</span>, refit_at_end <span class="op">=</span> <span class="cn">T</span><span class="op">)</span> <span class="co">#optionally retain baseline noise with refitting</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/manage_spec.html">c_spec</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">none</span>, <span class="va">d</span>, <span class="va">d8</span>, <span class="va">dr</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span>offset <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span>offset <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="sop_files/figure-html/subtr_baseline-1.png" class="r-plt" alt="Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020)." width="525"><p class="caption">
 Sample <code>raman_hdpe</code> spectrum with different degrees of
@@ -810,7 +809,7 @@ Multiple ranges can be specified simultaneously.</p>
 <span><span class="co"># Common argument crops the ranges to the most common range between the spectra</span></span>
 <span><span class="co"># when joining. </span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">compare_ranges</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">compare_ranges</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="sop_files/figure-html/restrict_range-1.png" class="r-plt" alt="Sample `raman_hdpe` spectrum with different degrees of range restriction." width="525"><p class="caption">
 Sample <code>raman_hdpe</code> spectrum with different degrees of range
@@ -841,7 +840,7 @@ ranges.</p>
 <span></span>
 <span><span class="va">compare_flats</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/manage_spec.html">c_spec</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">none</span>, <span class="va">f1</span>, <span class="va">f2</span><span class="op">)</span>, range <span class="op">=</span> <span class="st">"common"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">compare_flats</span>, offset <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">compare_flats</span>, offset <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="sop_files/figure-html/flatten_range-1.png" class="r-plt" alt="Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020)." width="525"><p class="caption">
 Sample <code>raman_hdpe</code> spectrum with different degrees of
@@ -860,9 +859,9 @@ spectra by default if you do not specify otherwise with
 <code>make_rel = FALSE</code>.</p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
-<span><span class="va">raman_hdpe</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">raman_hdpe</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/make_rel.html">make_rel</a></span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/make_rel.html">make_rel</a></span><span class="op">(</span><span class="va">raman_hdpe</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -917,7 +916,7 @@ in absorbance units of HDPE plastic.</p>
 <span></span>
 <span><span class="co"># Check to make sure that the signal to noise ratio of the processed spectra is</span></span>
 <span><span class="co"># greater than 10.</span></span>
-<span><span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="../reference/sig_noise.html">sig_noise</a></span><span class="op">(</span><span class="va">processed</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="../reference/sig_noise.html">sig_noise</a></span><span class="op">(</span><span class="va">processed</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">10</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">#Plot to assess the accuracy of the processing visually</span></span>
 <span><span class="fu"><a href="../reference/interactive_plots.html">plotly_spec</a></span><span class="op">(</span><span class="va">raman_hdpe</span>, <span class="va">processed</span><span class="op">)</span></span></code></pre></div>
@@ -951,7 +950,7 @@ spectra, you can first filter the library using
 <div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">matches</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/match_spec.html">match_spec</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">processed</span>, library <span class="op">=</span> <span class="va">test_lib</span>, conform <span class="op">=</span> <span class="cn">T</span>,</span>
 <span>                      add_library_metadata <span class="op">=</span> <span class="st">"sample_name"</span>, top_n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">match_val</span>, decreasing <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://r-hyperspec.github.io/hyperSpec/reference/show.html" class="external-link">print</a></span><span class="op">(</span><span class="va">matches</span><span class="op">[</span>,<span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"object_id"</span>, <span class="st">"library_id"</span>, <span class="st">"match_val"</span>, <span class="st">"SpectrumType"</span>,</span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">matches</span><span class="op">[</span>,<span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"object_id"</span>, <span class="st">"library_id"</span>, <span class="st">"match_val"</span>, <span class="st">"SpectrumType"</span>,</span>
 <span>                 <span class="st">"SpectrumIdentity"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -1044,7 +1043,7 @@ functions in the near future.</p>
 <span><span class="va">test_collapsed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/def_features.html">collapse_spec</a></span><span class="op">(</span><span class="va">id_map</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Plot spectra for each identified particle</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">test_collapsed</span>, offset <span class="op">=</span> <span class="fl">1</span>, legend_var <span class="op">=</span> <span class="st">"feature_id"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">test_collapsed</span>, offset <span class="op">=</span> <span class="fl">1</span>, legend_var <span class="op">=</span> <span class="st">"feature_id"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="a-priori-particle-thresholding">A Priori Particle Thresholding<a class="anchor" aria-label="anchor" href="#a-priori-particle-thresholding"></a>
@@ -1082,7 +1081,7 @@ functions in the near future.</p>
 <span>  <span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check the spectra for the background and particle. Background has considerable signal in it too suggesting double bounce along the edges of the particle. </span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">id_map_processed</span>, offset <span class="op">=</span> <span class="fl">1</span>, legend_var <span class="op">=</span> <span class="st">"feature_id"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">id_map_processed</span>, offset <span class="op">=</span> <span class="fl">1</span>, legend_var <span class="op">=</span> <span class="st">"feature_id"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Get the matches of the collapsed spectra for the particles.</span></span>
 <span><span class="va">matches</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/match_spec.html">match_spec</a></span><span class="op">(</span><span class="va">id_map_processed</span>, <span class="va">test_lib</span>,</span>
@@ -1134,7 +1133,7 @@ Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

@@ -2,7 +2,10 @@
 
 Sometimes you want to keep or remove NA values in intensities to allow
 for spectra with varying shapes to be analyzed together or maintained in
-a single Open Specy object.
+a single Open Specy object. For `type = "ignore"`, spectra sharing the
+same missing-value boundaries are processed together, valid
+source-specific ranges are retained, and attributes returned by the
+processing function are copied back to the full object.
 
 ## Usage
 
@@ -122,7 +125,7 @@ manage_na(raman_hdpe, type = "remove")
 #>     license                                                        session_id
 #>      <char>                                                            <char>
 #> 1: CC BY-NC 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf
-#>                             file_id    col_id
-#>                              <char>    <char>
-#> 1: cb06ce2846b119d932fb6696479a445b intensity
+#>                             file_id
+#>                              <char>
+#> 1: cb06ce2846b119d932fb6696479a445b
 ```

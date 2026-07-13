@@ -5,6 +5,7 @@
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/advanced.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/app.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/index.html</loc></url>
+<url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/library-builder.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/sop.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/articles/spectragryph.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/authors.html</loc></url>
@@ -18,6 +19,8 @@
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/area_under_band.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/as_OpenSpecy.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/assess_spec.html</loc></url>
+<url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/automate_particle_analysis.html</loc></url>
+<url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/conform_spec.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/data_norm.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/def_features.html</loc></url>
@@ -26,11 +29,13 @@
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/index.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/interactive_plots.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.html</loc></url>
+<url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/lib_metadata_name_lookup.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/make_rel.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_lib.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_na.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_spec.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.html</loc></url>
+<url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/particle_image.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/process_spec.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/raman_hdpe.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_envi.html</loc></url>
@@ -46,5 +51,7 @@
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/split_spec.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/subtr_baseline.html</loc></url>
 <url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/test_lib.html</loc></url>
+<url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/validation_metrics.html</loc></url>
+<url><loc>https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/visual_image.html</loc></url>
 </urlset>
 

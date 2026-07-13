@@ -1,7 +1,10 @@
 # Process Spectra
 
 `process_spec()` is a monolithic wrapper function for all spectral
-processing steps.
+processing steps. Intensity operations automatically use
+[`manage_na()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_na.md)
+when spectra contain missing values and run the underlying functions
+directly otherwise. Processing attributes are updated automatically.
 
 ## Usage
 
@@ -113,10 +116,6 @@ process_spec(
 
   named list of arguments passed to
   [`make_rel()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/make_rel.md).
-
-- na.rm:
-
-  Whether to allow NA or set all NA values to
 
 - ...:
 

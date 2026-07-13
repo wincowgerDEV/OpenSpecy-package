@@ -1,4 +1,4 @@
-# Open Specy 1.0
+# OpenSpecy
 
 Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 
@@ -15,7 +15,7 @@ range restriction and flattening, intensity conversions, wavenumber
 alignment, and min-max normalization. Spectra can be identified in batch
 using an onboard reference library using
 [`match_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md).
-A Shiny app is available via
+A bundled Shiny app is available via
 [`run_app()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/run_app.md)
 or online at <https://www.openanalysis.org/openspecy/>.
 
@@ -44,25 +44,16 @@ if (!require(devtools)) install.packages("devtools")
 devtools::install_github("wincowgerDEV/OpenSpecy-package")
 ```
 
-### Install on Web Assemply through webr (experimental), you can test here: <https://webr.r-wasm.org/latest/>
+### Use the WebAssembly app
 
-``` r
-
-library(caTools)
-library(data.table)
-library(jsonlite)
-library(yaml)
-library(hyperSpec)
-library(mmand)
-library(plotly)
-library(digest)
-library(signal)
-library(glmnet)
-library(jpeg)
-library(shiny)
-webr::install("OpenSpecy", repos = "https://wincowger.com/OpenSpecy-package/")
-library(OpenSpecy)
-```
+The public WebAssembly/Shinylive app is available at
+<https://www.openanalysis.org/openspecy/>. Each hosted app build is
+pinned to the matching OpenSpecy package build and the Shiny app
+dependency closure from this repository. To keep the browser app small
+and reproducible, the WebAssembly app exposes the medoid and multinomial
+model libraries; the local bundled app launched with
+[`run_app()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/run_app.md)
+can still use the full libraries.
 
 ## Getting started
 
@@ -111,6 +102,24 @@ top_matches[, c("object_id", "library_id", "match_val", "SpectrumType",
 
 # Get all metadata for the matches
 get_metadata(spec_lib, logic = top_matches$library_id)
+```
+
+## Compressed Specs workflow
+
+[`as_Specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+can compress map or library spectra for fast approximate matching. The
+default workflow fits PCA and then Hilbert-encodes the PCA scores into
+exact high/low 64-bit code rows.
+
+``` r
+
+model <- fit_specs_pca(spec_lib, n_components = 16)
+library_specs <- as_Specs(spec_lib, model)
+query_specs <- as_Specs(raman_proc, model,
+                        limits = attr(library_specs, "hilbert_model"))
+
+match_spec(query_specs, library_specs, top_n = 5)
+decompress_spec(query_specs, index = 1)
 ```
 
 ## Related Packages

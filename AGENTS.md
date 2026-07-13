@@ -11,12 +11,35 @@ explicitly requested.
 
 For this R package, do not edit generated `NAMESPACE`, `man/*.Rd`, or
 pkgdown HTML directly; update roxygen or package metadata and regenerate
-with the appropriate R tooling. Center `OpenSpecy` object structure
-(`wavenumber`, `spectra`, `metadata`) and object attributes in function
-flows and examples. For same-output function improvements, keep old
-comparison code in `benchmarks/`, add or update a benchmark, and keep
-`tests/` focused on current package behavior. Keep long-running tests
-manual or GitHub Actions guarded. The Shiny application lives in
-`wincowgerDEV/OpenSpecy-shiny`; consider compatibility when relevant,
-but package functionality takes precedence and Shiny application code
-does not belong in this repository.
+with the configured R tooling version. Inspect generated diffs
+immediately and treat unexpected authorship, reference, alias, or export
+changes as source/toolchain failures. Center `OpenSpecy` object
+structure (`wavenumber`, `spectra`, `metadata`) and object attributes in
+function flows and examples. Review public APIs before implementation:
+infer derived state, avoid speculative flags, prefer input-triggered
+optional steps, keep one-caller helpers internal, and preserve base-pipe
+composability. For same-output function improvements, keep old
+comparison code in `benchmarks/`, add or update a repeated benchmark
+that flags material regressions, and keep `tests/` focused on current
+package behavior. Run focused tests before full tests, documentation,
+and package checks. Network tests must guard the actual download host.
+Keep long-running tests manual or GitHub Actions guarded. For
+reference-library or other long-running external workflows, run subset
+probes and staged temp-output/logged rebuilds before a full run; compare
+rebuilt artifacts against available legacy IDs, wavenumber axes,
+metadata counts/names, warnings, and representative `OpenSpecy` joins or
+matches before claiming completion. The Shiny application may be bundled
+in this repository under `inst/`; when porting from
+`wincowgerDEV/OpenSpecy-shiny`, keep app code there, compress/downsample
+images, remove orphaned/duplicate/raw/generated assets, report
+package-size impact, test helpers/server modules headlessly where
+feasible, verify installed app paths/assets, and use manual or
+CI-guarded app smoke tests. Package functionality and CRAN readiness
+take precedence over app convenience. The hosted Shinylive/WebAssembly
+app should be generated from the bundled app by GitHub Actions, use the
+repo’s wasm CRAN-like package repository from a hardcoded package
+version/commit pin plus pinned app dependency closure, stage only the
+small medoid/model libraries with guarded
+[`get_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/manage_lib.md)
+workflows, and verify startup, assets, dependency resolution, and
+library matching without hand-editing generated web artifacts.

@@ -77,23 +77,20 @@ as.data.table(x, ...)
 ## Value
 
 [`head()`](https://rdrr.io/r/utils/head.html),
-[`print()`](https://r-hyperspec.github.io/hyperSpec/reference/show.html),
-and
-[`summary()`](https://r-hyperspec.github.io/hyperSpec/reference/show.html)
-return a textual representation of an `OpenSpecy` object.
-[`plot()`](https://rdrr.io/r/base/plot.html) and
+[`print()`](https://rdrr.io/r/base/print.html), and
+[`summary()`](https://rdrr.io/r/base/summary.html) return a textual
+representation of an `OpenSpecy` object.
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) and
 [`lines()`](https://rdrr.io/r/graphics/lines.html) return a plot.
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) and
-[`as.data.table()`](https://rdrr.io/pkg/data.table/man/as.data.table.html)
-convert `OpenSpecy` objects into tabular data.
+`as.data.table()` convert `OpenSpecy` objects into tabular data.
 
 ## Details
 
 [`head()`](https://rdrr.io/r/utils/head.html) shows the first few lines
-of an `OpenSpecy` object.
-[`print()`](https://r-hyperspec.github.io/hyperSpec/reference/show.html)
+of an `OpenSpecy` object. [`print()`](https://rdrr.io/r/base/print.html)
 prints the contents of an `OpenSpecy` object.
-[`plot()`](https://rdrr.io/r/base/plot.html) produces a
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) produces a
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) of an OpenSpecy
 
 ## See also

@@ -72,7 +72,7 @@ reading the binary file via
 ## See also
 
 [`read_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.md)
-for reading .y(a)ml, .json, or .rds (OpenSpecy) files;
+for reading .json, .rds, or .csv (OpenSpecy) files;
 [`read_text()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md),
 [`read_asp()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md),
 [`read_spa()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md),

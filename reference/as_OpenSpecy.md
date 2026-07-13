@@ -9,7 +9,7 @@ possible.
 as_OpenSpecy(x, ...)
 
 # S3 method for class 'OpenSpecy'
-as_OpenSpecy(x, session_id = FALSE, ...)
+as_OpenSpecy(x, session_id = FALSE, compute_file_id = TRUE, ...)
 
 # S3 method for class 'list'
 as_OpenSpecy(x, ...)
@@ -35,9 +35,10 @@ as_OpenSpecy(
     data_processing_procedure = NULL, level_of_confidence_in_identification = NULL,
     other_info = NULL, license = "CC BY-NC"),
   attributes = list(intensity_unit = NULL, derivative_order = NULL, baseline = NULL,
-    spectra_type = NULL),
+    spectra_type = NULL, visual_image = NULL),
   coords = "gen_grid",
   session_id = FALSE,
+  compute_file_id = TRUE,
   comma_decimal = FALSE,
   ...
 )
@@ -64,6 +65,11 @@ gen_grid(n)
   logical. Whether to add a session ID to the metadata. The session ID
   is based on current session info so metadata of the same spectra will
   not return equal if session info changes. Sometimes that is desirable.
+
+- compute_file_id:
+
+  logical. Whether to add a file ID hash to metadata when one is not
+  already present.
 
 - colnames:
 
@@ -269,6 +275,11 @@ warning messages:
 - `spectra_type`:
 
   supported options include `"ftir"` or `"raman"`
+
+- `visual_image`:
+
+  optional visual-image metadata created by
+  [`add_visual_image()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/visual_image.md)
 
 ## See also
 

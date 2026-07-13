@@ -1,10 +1,175 @@
 # Changelog
 
+## OpenSpecy 1.7.1
+
+- Added source manifests, app configuration, and GitHub Actions for
+  building a hosted Shinylive/WebAssembly app from `inst/shiny/`. The
+  hosted app is pinned to a versioned wasm CRAN-like repository
+  containing `OpenSpecy` and the app dependency closure, stages the
+  small medoid/model libraries, and keeps full library support available
+  in the local bundled app.
+- Bundled the Shiny app in `inst/shiny/` from
+  `wincowgerDEV/OpenSpecy-shiny` commit
+  `60d1bdefff90affcda3353d7c389ea8f3748ca56`;
+  [`run_app()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/run_app.md)
+  now launches the installed app by default instead of downloading app
+  files from GitHub.
+- Added bundled-app path, asset, source-parse, YAML-removal, and app
+  helper regression tests; optimized/pruned Shiny app static assets and
+  fixed app sample-data loading for the current matrix-backed
+  `OpenSpecy` spectra format.
+- Fixed bundled Shiny app smoke-test issues: startup no longer opens a
+  blocking donation modal, bundled UI no longer auto-loads remote image
+  assets, and identification uses existing package/app cached reference
+  libraries before attempting a download.
+- Removed built-in YAML read/write support and the YAML example fixture;
+  [`read_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.md)
+  and
+  [`write_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.md)
+  now support JSON, RDS, and CSV formats.
+- Removed runtime `signal` and `cluster` dependencies by using internal
+  Savitzky-Golay filtering and PAM medoid selection in package
+  workflows.
+- Made internal PAM medoid return order deterministic in tied cases so
+  `reduce_lib(return = "ids")` is stable across platforms.
+- Aligned
+  [`automate_particle_analysis()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/automate_particle_analysis.md)
+  collapse exports with legacy `analyze_features()` particle details,
+  summaries, raw maps, and processed particle objects; returned list
+  item names now mirror export filenames and formats.
+- Added
+  [`automate_particle_analysis()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/automate_particle_analysis.md)
+  image return/export support for particle heatmaps, thresholded
+  particle heatmaps, and correlation heatmaps. Requested image outputs
+  are returned as recorded base-graphics plots, and are written to
+  matching image files when `output_dir` is supplied.
+- Fixed
+  `automate_particle_analysis(particle_id_strategy = "all_cell_id")` so
+  cell-level match joins preserve `x`/`y` map coordinates, collapsed
+  particle spectra are processed to the library wavenumber axis before
+  final matching, H5 mosaic coregistration can drive complete
+  edge-tolerant particle color extraction, and single-class character
+  feature labels define one class instead of erroring.
+- [`particle_image()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/particle_image.md)
+  now leaves particle labels off by default and uses the attached visual
+  image’s full map extent when overlaying collapsed particle results.
+  Particle maps are now drawn as categorical rasters with transparent
+  background cells rather than point markers.
+- Added a signal/noise heatmap legend, enlarged the correlation heatmap
+  legend, and made `automate_particle_analysis(spectral_smooth = TRUE)`
+  smooth already-loaded `OpenSpecy`/`Specs` maps as well as file-backed
+  maps.
+- Fixed visual-image BMP reading without relying on the unavailable
+  `grDevices::readbitmap()` helper.
+- Fixed `.xyz` text-map reading so coordinate metadata and spectra are
+  aligned.
+
 ## OpenSpecy 1.7.0
 
 - Improved run_app functionality to allow for version control.
+- Added
+  [`automate_particle_analysis()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/automate_particle_analysis.md)
+  for package-native batch particle detection, matching, summaries, and
+  optional file output based on `OpenSpecy`/`Specs` workflows.
+- Added visual-image helpers
+  ([`add_visual_image()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/visual_image.md),
+  [`visual_image()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/visual_image.md),
+  and
+  [`detect_image_origin()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/visual_image.md))
+  so spectral maps can carry aligned visual imagery for feature color
+  extraction and base graphics overlays.
+- Added
+  [`particle_image()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/particle_image.md)
+  for dependency-light particle map plotting with the package material
+  color defaults.
+- Added
+  [`crowd_lookup()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/validation_metrics.md),
+  [`recovery_rate()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/validation_metrics.md),
+  [`minimum_detectable_amount()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/validation_metrics.md),
+  and
+  [`batch_detection_limit()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/validation_metrics.md)
+  for generalized particle-size crowding, spike recovery, MDA, and
+  single-blank BDL summaries.
+- [`read_h5()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md)
+  now defaults to raw per-region/pixel spectra instead of collapsing by
+  particle, preserves region and stage-position metadata, parses scalar
+  H5 metadata where possible, and attaches mosaic imagery when present.
 - Faster ENVI file reading.
 - Add area under band calculation.
+- Added library-builder helpers for creating lookup templates, auditing
+  metadata joins, reducing libraries with PAM medoids, and training
+  model libraries.
+- Expanded
+  [`build_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  into the standard end-to-end library workflow with full-range
+  resolution-6 merging, lookup-triggered metadata and material hierarchy
+  joins, editable metadata-name cleanup, automatic NA-aware recipes,
+  signal-to-noise, processing attributes, and optional
+  [`assess_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/assess_spec.md)
+  metadata summaries.
+- [`build_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  now converts declared reflectance and transmittance sources to
+  absorbance before merging. The `intensity_unit` object attribute takes
+  precedence over per-spectrum `intensity_units` metadata, and
+  conversion can be disabled with `convert_intensity = FALSE`.
+- [`build_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  now accepts file paths, one `OpenSpecy`, or a list of `OpenSpecy`
+  objects. Each RDS path may contain either one object or a list, while
+  other formats continue through
+  [`read_any()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_multi.md).
+  Named progress stages and elapsed time are reported by default and can
+  be disabled with `progress = FALSE`. It also accepts optional
+  `restrict_range_args` before library recipes. Large same-axis source
+  lists are bulk-prepared to avoid repeated legacy object coercion.
+- Automatic
+  [`build_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  metadata lookups now infer the single shared column with overlapping
+  values and unique lookup keys, skip lookups with no usable shared key,
+  remain strict when multiple usable keys are ambiguous, and coalesce
+  curated lookup values back into existing metadata columns.
+- Added optional metadata value normalization with
+  `build_lib(clean_metadata_values = TRUE)` and
+  `lib_clean_metadata(clean_values = TRUE)`, used by the reference
+  workflow to trim/lowercase metadata values before joins.
+- Fixed NA-aware
+  [`process_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/process_spec.md)
+  dispatch so downstream arguments such as baseline or intensity `type`
+  reach the intended processing function. NA-aware processing now groups
+  leading/trailing missing-value ranges and bulk-processes complete
+  spectra where possible.
+- Optimized
+  [`sig_noise()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/sig_noise.md)
+  for matrix-native signal/noise summaries, including the default run
+  signal-to-noise calculation used by
+  [`build_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md).
+- [`build_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  now generates reference-library `sample_name` hashes at the source
+  stage using the legacy cleanup recipe and removes `exclude_ids`
+  against both `sample_name` and `sample_name_old`, preserving
+  compatibility with the curated bad-ID hash list.
+- [`filter_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
+  now treats `NA` values in logical filters as `FALSE` and checks
+  logical filter length, preventing spectra/metadata misalignment when
+  filtering metadata columns that contain missing values.
+- Added a tracked, package-build-excluded
+  `workflows/OpenSpecy_reference_library.R` workflow composed only from
+  existing package operations, with canonical lookup and exclusion CSVs
+  under `workflows/data/`. Repeated filtering, reduction, assessment,
+  model building, and artifact writing are applied across named library
+  lists.
+- The reference workflow now prunes legacy raw-source technical metadata
+  using a versioned metadata-drop CSV while retaining modern canonical
+  metadata names.
+- Exported metadata-name cleaning helpers with automatic underscore and
+  terminal-`s` matching, extensible exact aliases, and ambiguity-checked
+  regular expression rules.
+- [`as_Specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  now supports an end-to-end compressed `Specs` workflow. By default it
+  fits PCA and then Hilbert-encodes the scores into exact high/low
+  64-bit code rows; K-means can be placed before, between, or after
+  those steps. Hilbert `Specs` objects can be decoded, decompressed back
+  to approximate `OpenSpecy` spectra, subset-decompressed by numeric
+  index for plotting, and matched with fast Hilbert-code distance.
 
 ## OpenSpecy 1.5.0
 

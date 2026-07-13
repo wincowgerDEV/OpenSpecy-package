@@ -16,7 +16,7 @@ c_spec(x, ...)
 c_spec(x, ...)
 
 # S3 method for class 'list'
-c_spec(x, range = NULL, res = 5, ...)
+c_spec(x, range = "full", res = 6, ...)
 
 sample_spec(x, ...)
 
@@ -46,15 +46,15 @@ merge_map(x, origins = NULL, ...)
 
 - range:
 
-  a numeric providing your own wavenumber ranges or character argument
-  called `"common"` to let `c_spec()` find the common wavenumber range
-  of the supplied spectra. `NULL` will interpret the spectra having all
-  the same wavenumber range.
+  a numeric providing your own wavenumber range, `"full"` to use the
+  widest range represented by any supplied spectrum, or `"common"` to
+  use only their overlapping range. `NULL` requires identical
+  wavenumbers. The default is `"full"`.
 
 - res:
 
-  defaults to `NULL`, the resolution you want the output wavenumbers to
-  be.
+  resolution of the output wavenumbers. The default of 6 is intended for
+  reference-library identification workflows.
 
 - size:
 
@@ -92,8 +92,9 @@ Zacharias Steinmetz, Win Cowger
 # Concatenating spectra
 spectra <- lapply(c(read_extdata("raman_hdpe.csv"),
                     read_extdata("ftir_ldpe_soil.asp")), read_any)
-common <- c_spec(spectra, range = "common", res = 5)
-range <- c_spec(spectra, range = c(1000, 2000), res = 5)
+full <- c_spec(spectra)
+common <- c_spec(spectra, range = "common", res = 6)
+range <- c_spec(spectra, range = c(1000, 2000), res = 6)
 
 # Sampling spectra
 tiny_map <- read_any(read_extdata("CA_tiny_map.zip"))

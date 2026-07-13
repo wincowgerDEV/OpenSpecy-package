@@ -53,20 +53,20 @@ extension.
 spectra <- read_any("path/to/your/data")
 ```
 
-Open Specy allows for upload of native Open Specy .csv, .y(a)ml, .json,
-or .rds files. Open Specy and .csv files should always load correctly
-but the other file types are still in development, though most of the
-time these files work perfectly. In addition, .csv, .asp, .jdx, .0,
-.spa, .spc, and .zip files can be imported. .zip files can either
-contain multiple files with individual spectra in them of the non-zip
-formats or it can contain a .hdr and .dat file that form an ENVI file
-for a spectral map. If uploading a .csv file, it is ideal to label the
-column with the wavenumbers `wavenumber` and name the column with the
-intensities `intensity`. Columns besides wavenumber will be interpreted
-as unique spectra. If any columns are numbers, the csv will be
-interpreted in wide format with the number columns the wavenumbers and
-rows containing the unique spectral intensities and metadata contained
-in non number columns. Wavenumber units should be cm⁻¹ or use
+Open Specy allows for upload of native Open Specy .csv, .json, or .rds
+files. Open Specy and .csv files should always load correctly but the
+other file types are still in development, though most of the time these
+files work perfectly. In addition, .csv, .asp, .jdx, .0, .spa, .spc, and
+.zip files can be imported. .zip files can either contain multiple files
+with individual spectra in them of the non-zip formats or it can contain
+a .hdr and .dat file that form an ENVI file for a spectral map. If
+uploading a .csv file, it is ideal to label the column with the
+wavenumbers `wavenumber` and name the column with the intensities
+`intensity`. Columns besides wavenumber will be interpreted as unique
+spectra. If any columns are numbers, the csv will be interpreted in wide
+format with the number columns the wavenumbers and rows containing the
+unique spectral intensities and metadata contained in non number
+columns. Wavenumber units should be cm⁻¹ or use
 [`adj_wave()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/adj_wave.md)
 to correct from wavelength. Always keep a copy of the original file
 before alteration to preserve metadata and raw data for your records.
@@ -436,13 +436,12 @@ head(scratch_OpenSpecy) # shows the top wavenumbers and intensities
 
 ## Save Data
 
-Open Specy objects can be saved most accurately as .csv, .rds, .yml, or
-.json files. .rds will be the most reproducible as it is a native R file
-format and floating point errors can happen with .csv, .json, or .yml.
+Open Specy objects can be saved most accurately as .csv, .rds, or .json
+files. .rds will be the most reproducible as it is a native R file
+format and floating point errors can happen with .csv or .json.
 
 ``` r
 
-write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.yml", digits = 5)
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.json", digits = 5)
 write_spec(scratch_OpenSpecy, "test_scratch_OpenSpecy.csv", digits = 5)
 ```

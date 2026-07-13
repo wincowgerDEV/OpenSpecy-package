@@ -101,7 +101,14 @@ read_jdx(
 
 read_extdata(file = NULL)
 
-read_h5(file, collapse = T, ...)
+read_h5(
+  file,
+  collapse = FALSE,
+  spectral_smooth = FALSE,
+  sigma = c(1, 1, 1),
+  read_visual = TRUE,
+  ...
+)
 ```
 
 ## Arguments
@@ -133,7 +140,24 @@ read_h5(file, collapse = T, ...)
 
   whether or not to use
   [`collapse_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/def_features.md)
-  by particle_id.
+  by particle_id. For `read_h5()`, the default is `FALSE` so region
+  pixels are returned in raw form.
+
+- spectral_smooth:
+
+  logical; whether H5 cubes should be smoothed before matrix conversion.
+
+- sigma:
+
+  numeric vector passed to
+  [`gaussianSmooth()`](https://rdrr.io/pkg/mmand/man/gaussianSmooth.html).
+
+- read_visual:
+
+  logical; whether H5 mosaic images should be attached as visual-image
+  attributes when present. If H5 mosaic center and region stage metadata
+  are present, map-to-image corners are inferred for overlays and
+  feature color extraction.
   [`as_OpenSpecy()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/as_OpenSpecy.md)
   for details.
 
@@ -159,7 +183,7 @@ if you identify any.
 ## See also
 
 [`read_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.md)
-for reading .y(a)ml, .json, or .rds (OpenSpecy) files;
+for reading .json, .rds, or .csv (OpenSpecy) files;
 [`read_opus()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_opus.md)
 for reading .0 (OPUS) files;
 [`read_envi()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_envi.md)
@@ -199,7 +223,7 @@ read_extdata("raman_hdpe.csv") |> read_text()
 #> 1:     1     1 raman_hdpe.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 90fecadb961768c3e5f156a59cfc81b5/6b2867e1865d2e82a92b5e84a5631741
+#> 1: 925de0db9a41c708c01f3a9d445537e2/07d1298c89ab6efe6e267a0c86b2a0e3
 #>                             file_id
 #>                              <char>
 #> 1: df52a5cbcf0415c5b3c519308090a3c4
@@ -224,7 +248,7 @@ read_extdata("raman_atacamit.spc") |> read_spc()
 #> 1:     1     1 raman_atacamit.spc CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 90fecadb961768c3e5f156a59cfc81b5/6b2867e1865d2e82a92b5e84a5631741
+#> 1: 925de0db9a41c708c01f3a9d445537e2/07d1298c89ab6efe6e267a0c86b2a0e3
 #>                             file_id
 #>                              <char>
 #> 1: ecc0dfcf01cc9a8fbb0f512d451d2cc0
@@ -249,7 +273,7 @@ read_extdata("ftir_ldpe_soil.asp") |> read_asp()
 #> 1:     1     1 ftir_ldpe_soil.asp CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 90fecadb961768c3e5f156a59cfc81b5/6b2867e1865d2e82a92b5e84a5631741
+#> 1: 925de0db9a41c708c01f3a9d445537e2/07d1298c89ab6efe6e267a0c86b2a0e3
 #>                             file_id
 #>                              <char>
 #> 1: 4e640be63b8c6a1dc796e2c9c4ec121d
@@ -275,7 +299,7 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2 - Copy (2).csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 90fecadb961768c3e5f156a59cfc81b5/6b2867e1865d2e82a92b5e84a5631741
+#> 1: 925de0db9a41c708c01f3a9d445537e2/07d1298c89ab6efe6e267a0c86b2a0e3
 #>                             file_id
 #>                              <char>
 #> 1: df52a5cbcf0415c5b3c519308090a3c4
@@ -301,7 +325,7 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2 - Copy.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 90fecadb961768c3e5f156a59cfc81b5/6b2867e1865d2e82a92b5e84a5631741
+#> 1: 925de0db9a41c708c01f3a9d445537e2/07d1298c89ab6efe6e267a0c86b2a0e3
 #>                             file_id
 #>                              <char>
 #> 1: df52a5cbcf0415c5b3c519308090a3c4
@@ -327,7 +351,7 @@ read_extdata("testdata_zipped.zip") |> read_zip()
 #> 1:     1     1 testdata2.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 90fecadb961768c3e5f156a59cfc81b5/6b2867e1865d2e82a92b5e84a5631741
+#> 1: 925de0db9a41c708c01f3a9d445537e2/07d1298c89ab6efe6e267a0c86b2a0e3
 #>                             file_id
 #>                              <char>
 #> 1: df52a5cbcf0415c5b3c519308090a3c4

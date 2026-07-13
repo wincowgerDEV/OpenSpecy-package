@@ -27,6 +27,7 @@ separately."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a></li>
+    <li><a class="dropdown-item" href="../articles/library-builder.html">Build a Mini Reference Library</a></li>
     <li><a class="dropdown-item" href="../articles/spectragryph.html">File Conversion in SpectraGryph</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -70,7 +71,16 @@ separately.</p>
 <span><span class="fu">as_Specs</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'OpenSpecy'</span></span>
-<span><span class="fu">as_Specs</span><span class="op">(</span><span class="va">x</span>, <span class="va">model</span>, kmeans <span class="op">=</span> <span class="cn">FALSE</span>, centers <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">as_Specs</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  model <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  steps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"pca"</span>, <span class="st">"hilbert"</span><span class="op">)</span>,</span>
+<span>  n_components <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  centers <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  bits_per_variable <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  limits <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">fit_specs_pca</span><span class="op">(</span><span class="va">x</span>, <span class="va">n_components</span>, center <span class="op">=</span> <span class="cn">TRUE</span>, scale. <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -80,7 +90,11 @@ separately.</p>
 <span><span class="fu">decompress_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'Specs'</span></span>
-<span><span class="fu">decompress_spec</span><span class="op">(</span><span class="va">x</span>, expand <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">decompress_spec</span><span class="op">(</span><span class="va">x</span>, expand <span class="op">=</span> <span class="cn">TRUE</span>, index <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">encode_specs_hilbert</span><span class="op">(</span><span class="va">x</span>, bits_per_variable <span class="op">=</span> <span class="cn">NULL</span>, limits <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">decode_specs_hilbert</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">write_specs</span><span class="op">(</span><span class="va">x</span>, <span class="va">file</span>, compress <span class="op">=</span> <span class="st">"xz"</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -152,25 +166,36 @@ per column in <code>values</code>.</p></dd>
 <dd><p>an object to test, convert, decompress, or write.</p></dd>
 
 
-<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>additional arguments passed to submethods.</p></dd>
-
-
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
-<dd><p>a <code>SpecsPCA</code> model returned by <code>fit_specs_pca()</code>.</p></dd>
+<dd><p>optional <code>SpecsPCA</code> model returned by
+<code>fit_specs_pca()</code>; if omitted and <code>"pca"</code> is in <code>steps</code>, a
+model is fit from <code>x</code>.</p></dd>
 
 
-<dt id="arg-kmeans">kmeans<a class="anchor" aria-label="anchor" href="#arg-kmeans"></a></dt>
-<dd><p>logical; should spectra be compressed with K-means after PCA?</p></dd>
-
-
-<dt id="arg-centers">centers<a class="anchor" aria-label="anchor" href="#arg-centers"></a></dt>
-<dd><p>passed to <code><a href="https://rdrr.io/r/stats/kmeans.html" class="external-link">kmeans()</a></code> when <code>kmeans</code> is
-<code>TRUE</code>.</p></dd>
+<dt id="arg-steps">steps<a class="anchor" aria-label="anchor" href="#arg-steps"></a></dt>
+<dd><p>character vector of compression steps. Supported values are
+<code>"pca"</code>, <code>"kmeans"</code>, and <code>"hilbert"</code>. K-means can be placed
+before, between, or after the other steps; PCA cannot be placed after
+Hilbert encoding.</p></dd>
 
 
 <dt id="arg-n-components">n_components<a class="anchor" aria-label="anchor" href="#arg-n-components"></a></dt>
 <dd><p>number of PCA components to keep.</p></dd>
+
+
+<dt id="arg-centers">centers<a class="anchor" aria-label="anchor" href="#arg-centers"></a></dt>
+<dd><p>passed to <code><a href="https://rdrr.io/r/stats/kmeans.html" class="external-link">kmeans()</a></code> when K-means is used.</p></dd>
+
+
+<dt id="arg-bits-per-variable">bits_per_variable<a class="anchor" aria-label="anchor" href="#arg-bits-per-variable"></a></dt>
+<dd><p>positive whole number of bits used for each
+Hilbert-encoded variable. If <code>NULL</code>, the value is inferred from the
+number of variables to pack the available 64-bit code space.</p></dd>
+
+
+<dt id="arg-limits">limits<a class="anchor" aria-label="anchor" href="#arg-limits"></a></dt>
+<dd><p>optional two-column matrix, data frame, or Hilbert model with
+per-variable minimum and maximum values used for quantization.</p></dd>
 
 
 <dt id="arg-center-scale-">center, scale.<a class="anchor" aria-label="anchor" href="#arg-center-scale-"></a></dt>
@@ -180,6 +205,13 @@ per column in <code>values</code>.</p></dd>
 <dt id="arg-expand">expand<a class="anchor" aria-label="anchor" href="#arg-expand"></a></dt>
 <dd><p>logical; if <code>TRUE</code>, decompress or match one row per
 original coordinate; if <code>FALSE</code>, keep active spectra or clusters.</p></dd>
+
+
+<dt id="arg-index">index<a class="anchor" aria-label="anchor" href="#arg-index"></a></dt>
+<dd><p>optional positive integer vector selecting spectra to
+decompress. With <code>expand = TRUE</code>, indexes refer to rows in
+<code>x$coords</code>; with <code>expand = FALSE</code>, indexes refer to columns in
+<code>x$values</code>.</p></dd>
 
 
 <dt id="arg-file">file<a class="anchor" aria-label="anchor" href="#arg-file"></a></dt>
@@ -194,6 +226,15 @@ original coordinate; if <code>FALSE</code>, keep active spectra or clusters.</p>
 <dd><p>a <code>Specs</code> object to match against.</p></dd>
 
 
+<dt id="arg-na-rm">na.rm<a class="anchor" aria-label="anchor" href="#arg-na-rm"></a></dt>
+<dd><p>logical; should missing values be removed for latent matching?</p></dd>
+
+
+<dt id="arg-compute">compute<a class="anchor" aria-label="anchor" href="#arg-compute"></a></dt>
+<dd><p>correlation compute strategy, <code>"optimized"</code> or
+<code>"base"</code>.</p></dd>
+
+
 <dt id="arg-top-n">top_n<a class="anchor" aria-label="anchor" href="#arg-top-n"></a></dt>
 <dd><p>integer; number of top latent matches to return.</p></dd>
 
@@ -204,15 +245,6 @@ original coordinate; if <code>FALSE</code>, keep active spectra or clusters.</p>
 
 <dt id="arg-add-object-metadata">add_object_metadata<a class="anchor" aria-label="anchor" href="#arg-add-object-metadata"></a></dt>
 <dd><p>name of an object metadata column to join.</p></dd>
-
-
-<dt id="arg-compute">compute<a class="anchor" aria-label="anchor" href="#arg-compute"></a></dt>
-<dd><p>correlation compute strategy, <code>"optimized"</code> or
-<code>"base"</code>.</p></dd>
-
-
-<dt id="arg-na-rm">na.rm<a class="anchor" aria-label="anchor" href="#arg-na-rm"></a></dt>
-<dd><p>logical; should missing values be removed for latent matching?</p></dd>
 
 
 <dt id="arg-features">features<a class="anchor" aria-label="anchor" href="#arg-features"></a></dt>
@@ -231,20 +263,28 @@ original coordinate; if <code>FALSE</code>, keep active spectra or clusters.</p>
 <dt id="arg-column">column<a class="anchor" aria-label="anchor" href="#arg-column"></a></dt>
 <dd><p>coordinate column used to group spectra for collapse.</p></dd>
 
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>additional arguments passed to submethods.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p><code>Specs()</code> and <code>as_Specs()</code> return a <code>Specs</code> object.
+    <p><code>Specs()</code>, <code>as_Specs()</code>, <code>encode_specs_hilbert()</code>, and
+<code>decode_specs_hilbert()</code> return a <code>Specs</code> object.
 <code>fit_specs_pca()</code> returns a <code>SpecsPCA</code> model.
 <code>decompress_spec()</code> returns an approximate <code>OpenSpecy</code> object.
 <code>read_specs()</code> returns a <code>Specs</code> object.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
+    <p>Win Cowger</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"raman_hdpe"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">fit_specs_pca</span><span class="op">(</span><span class="va">raman_hdpe</span>, n_components <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">specs</span> <span class="op">&lt;-</span> <span class="fu">as_Specs</span><span class="op">(</span><span class="va">raman_hdpe</span>, <span class="va">model</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">specs</span> <span class="op">&lt;-</span> <span class="fu">as_Specs</span><span class="op">(</span><span class="va">raman_hdpe</span>, n_components <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">decompress_spec</span><span class="op">(</span><span class="va">specs</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      wavenumber intensity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;     &lt;num&gt;</span>
@@ -276,7 +316,7 @@ original coordinate; if <code>FALSE</code>, keep active spectra or clusters.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

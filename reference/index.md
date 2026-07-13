@@ -8,6 +8,8 @@
   [`as_Specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
   [`fit_specs_pca()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
   [`decompress_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`encode_specs_hilbert()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
+  [`decode_specs_hilbert()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
   [`write_specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
   [`read_specs()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
   [`cor_spec(`*`<Specs>`*`)`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/Specs.md)
@@ -40,6 +42,19 @@
 
 - [`assess_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/assess_spec.md)
   : Assess common spectral quality issues
+
+- [`automate_particle_analysis()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/automate_particle_analysis.md)
+  : Automate particle analysis for spectral maps
+
+- [`build_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  [`make_lib_lookup_template()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  [`join_lib_metadata()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  [`join_material_hierarchy()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  [`dedupe_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  [`reduce_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  [`build_model_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  [`assess_lib()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/build_lib.md)
+  : Build spectral libraries
 
 - [`conform_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/conform_spec.md)
   : Conform spectra to a standard wavenumber series
@@ -76,6 +91,11 @@
   [`as_hyperSpec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.md)
   : Read and write spectral data
 
+- [`lib_metadata_name_lookup()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/lib_metadata_name_lookup.md)
+  [`lib_clean_name()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/lib_metadata_name_lookup.md)
+  [`lib_clean_metadata()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/lib_metadata_name_lookup.md)
+  : Create and apply metadata-name lookup rules
+
 - [`make_rel()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/make_rel.md)
   : Make spectral intensities relative
 
@@ -103,6 +123,9 @@
   [`fill_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
   [`os_similarity()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/match_spec.md)
   : Identify and filter spectra
+
+- [`particle_image()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/particle_image.md)
+  : Plot particle maps with base graphics
 
 - [`process_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/process_spec.md)
   : Process Spectra
@@ -157,3 +180,14 @@
 
 - [`test_lib`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/test_lib.md)
   : Test reference library
+
+- [`crowd_lookup()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/validation_metrics.md)
+  [`recovery_rate()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/validation_metrics.md)
+  [`minimum_detectable_amount()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/validation_metrics.md)
+  [`batch_detection_limit()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/validation_metrics.md)
+  : Particle analysis validation metrics
+
+- [`add_visual_image()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/visual_image.md)
+  [`visual_image()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/visual_image.md)
+  [`detect_image_origin()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/visual_image.md)
+  : Attach visual images to spectral map objects

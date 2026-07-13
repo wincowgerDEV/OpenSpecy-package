@@ -23,6 +23,7 @@ possible."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a></li>
+    <li><a class="dropdown-item" href="../articles/library-builder.html">Build a Mini Reference Library</a></li>
     <li><a class="dropdown-item" href="../articles/spectragryph.html">File Conversion in SpectraGryph</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -52,7 +53,7 @@ possible.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">as_OpenSpecy</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'OpenSpecy'</span></span>
-<span><span class="fu">as_OpenSpecy</span><span class="op">(</span><span class="va">x</span>, session_id <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">as_OpenSpecy</span><span class="op">(</span><span class="va">x</span>, session_id <span class="op">=</span> <span class="cn">FALSE</span>, compute_file_id <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'list'</span></span>
 <span><span class="fu">as_OpenSpecy</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -78,9 +79,10 @@ possible.</p>
 <span>    data_processing_procedure <span class="op">=</span> <span class="cn">NULL</span>, level_of_confidence_in_identification <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>    other_info <span class="op">=</span> <span class="cn">NULL</span>, license <span class="op">=</span> <span class="st">"CC BY-NC"</span><span class="op">)</span>,</span>
 <span>  attributes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>intensity_unit <span class="op">=</span> <span class="cn">NULL</span>, derivative_order <span class="op">=</span> <span class="cn">NULL</span>, baseline <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    spectra_type <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
+<span>    spectra_type <span class="op">=</span> <span class="cn">NULL</span>, visual_image <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
 <span>  coords <span class="op">=</span> <span class="st">"gen_grid"</span>,</span>
 <span>  session_id <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  compute_file_id <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  comma_decimal <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
@@ -109,6 +111,11 @@ spectrum in the classic Open Specy format.</p></dd>
 The session ID is based on current session info so metadata of the same
 spectra will not return equal if session info changes. Sometimes that is
 desirable.</p></dd>
+
+
+<dt id="arg-compute-file-id">compute_file_id<a class="anchor" aria-label="anchor" href="#arg-compute-file-id"></a></dt>
+<dd><p>logical. Whether to add a file ID hash to metadata
+when one is not already present.</p></dd>
 
 
 <dt id="arg-colnames">colnames<a class="anchor" aria-label="anchor" href="#arg-colnames"></a></dt>
@@ -296,6 +303,10 @@ details, when set, they will be used to automate transformations and warning mes
 
 <dt><code>spectra_type</code></dt>
 <dd><p>supported options include <code>"ftir"</code> or <code>"raman"</code></p></dd>
+
+<dt><code>visual_image</code></dt>
+<dd><p>optional visual-image metadata created by
+<code><a href="visual_image.html">add_visual_image()</a></code></p></dd>
 
 
 </dl></div>
@@ -1534,7 +1545,7 @@ details, when set, they will be used to automate transformations and warning mes
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

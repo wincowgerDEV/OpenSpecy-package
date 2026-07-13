@@ -21,6 +21,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a></li>
+    <li><a class="dropdown-item" href="../articles/library-builder.html">Build a Mini Reference Library</a></li>
     <li><a class="dropdown-item" href="../articles/spectragryph.html">File Conversion in SpectraGryph</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -49,10 +50,10 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">run_app</span><span class="op">(</span></span>
 <span>  path <span class="op">=</span> <span class="st">"system"</span>,</span>
 <span>  log <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  ref <span class="op">=</span> <span class="st">"main"</span>,</span>
+<span>  ref <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  check_local <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  test_mode <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  launch.browser <span class="op">=</span> <span class="va">.rs.invokeShinyWindowExternal</span>,</span>
+<span>  launch.browser <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"shiny.launch.browser"</span>, <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -62,29 +63,21 @@
 
 
 <dl><dt id="arg-path">path<a class="anchor" aria-label="anchor" href="#arg-path"></a></dt>
-<dd><p>to store the downloaded app files; defaults to <code>"system"</code>
-pointing to <code>system.file(package = "OpenSpecy")</code>.</p></dd>
+<dd><p>Shiny app directory, or <code>"system"</code> to launch the bundled app.</p></dd>
 
 
 <dt id="arg-log">log<a class="anchor" aria-label="anchor" href="#arg-log"></a></dt>
-<dd><p>logical; enables/disables logging to <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code></p></dd>
+<dd><p>logical; enables/disables Shiny logging to <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code>.</p></dd>
 
 
 <dt id="arg-ref">ref<a class="anchor" aria-label="anchor" href="#arg-ref"></a></dt>
-<dd><p>git reference; could be a commit, tag, or branch name. Defaults to
-"main". Setting this will ensure you always use the same version of the shiny
-app no matter what system you are on.</p></dd>
+<dd><p>retained for compatibility with older releases; ignored because
+the app is bundled with the package.</p></dd>
 
 
 <dt id="arg-check-local">check_local<a class="anchor" aria-label="anchor" href="#arg-check-local"></a></dt>
-<dd><p>logical; when <code>TRUE</code> a previously downloaded copy of
-the Shiny app located at <code>path</code> is used instead of downloading a fresh
-copy from GitHub. The directory may contain either a single-file
-<code>app.R</code> application or a <code>server.R</code>/<code>ui.R</code> pair. Metadata
-about downloaded copies, including the originating commit hash, is stored
-alongside the app and surfaced when the local copy is reused. When a
-specific <code>ref</code> is requested, matching local copies are preferred and
-unmatched directories are ignored.</p></dd>
+<dd><p>retained for compatibility with older releases; ignored
+because <code>path = "system"</code> always uses the bundled app.</p></dd>
 
 
 <dt id="arg-test-mode">test_mode<a class="anchor" aria-label="anchor" href="#arg-test-mode"></a></dt>
@@ -92,28 +85,29 @@ unmatched directories are ignored.</p></dd>
 
 
 <dt id="arg-launch-browser">launch.browser<a class="anchor" aria-label="anchor" href="#arg-launch-browser"></a></dt>
-<dd><p>option for runApp, defaults to web browser.</p></dd>
+<dd><p>option for <code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">shiny::runApp()</a></code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>arguments passed to <code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp()</a></code>.</p></dd>
+<dd><p>arguments passed to <code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">shiny::runApp()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>This function normally does not return any value, see
-<code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp()</a></code>.</p>
+    <p>This function normally does not return any value, see <code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">shiny::runApp()</a></code>.
+In <code>test_mode</code>, it invisibly returns the resolved app path.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>After running this function the Open Specy GUI should open in a separate
-window or in your computer browser. When downloads are required, the function
-reports the GitHub commit used and preserves that information for subsequent
-reuse when <code>check_local = TRUE</code>.</p>
+    <p>By default, <code>run_app()</code> launches the Shiny app bundled with the installed
+OpenSpecy package at <code>system.file("shiny", package = "OpenSpecy")</code>.
+Historical GitHub download support has been removed so package installs use
+the same app files offline. Set <code>path</code> to an explicit app directory when
+testing a local Shiny app during development.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">shiny::runApp()</a></code></p></div>
     </div>
     <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
@@ -137,7 +131,7 @@ reuse when <code>check_local = TRUE</code>.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

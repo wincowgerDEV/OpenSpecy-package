@@ -38,31 +38,21 @@ library(OpenSpecy)
 run_app()
 ```
 
-When the helper launches it now performs a quick dependency check. If
-any of the required Shiny packages are missing,
+When the helper launches it performs a quick dependency check. If any of
+the required Shiny packages are missing,
 [`run_app()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/run_app.md)
 stops early and prints a copy-and-paste
 [`install.packages()`](https://rdrr.io/r/utils/install.packages.html)
 command so you can resolve the issue before trying again. By default the
-function downloads the Shiny app from the `main` branch of
-[OpenSpecy-shiny](https://github.com/wincowgerDEV/OpenSpecy-shiny). The
-console output reminds you where the files are coming from, links to the
-commit history, and prints a table with the dates and full hashes of the
-ten most recent commits so you can decide whether to request an
-alternate version.
-
-To work with a different branch, tag, or commit, supply the desired
-reference via the `ref` argument, for example `run_app(ref = "v1.0.0")`
-or pass a full commit hash. Each download is cached at the directory
-given by `path` (or the package installation directory when
-`path = "system"`), and the Git metadata is stored alongside the Shiny
-files. If you set `check_local = TRUE`,
-[`run_app()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/run_app.md)
-reuses the cached copy whose commit or reference best matches your
-request and prints the exact commit URL so you can review the source
-that is running. Regardless of whether the helper reuses a local copy or
-pulls fresh files from GitHub, the downloaded tarball is saved in the
-same directory for future reference.
+function launches the Shiny app bundled with the installed OpenSpecy
+package, so app startup no longer depends on downloading files from the
+historical `OpenSpecy-shiny` repository. Developers can still test a
+local app directory by passing that directory to `path`. The hosted
+WebAssembly/Shinylive app is built from the same bundled source and is
+pinned to the matching OpenSpecy package plus Shiny app dependency set
+for that app release. To keep the browser app small, it exposes the
+medoid and multinomial model libraries; the local app can still use the
+full libraries.
 
 ## Reading Data
 
@@ -71,20 +61,20 @@ top left hand corner of the Analyze Spectra tab.
 
 ![](app/mainpage.jpg)
 
-Open Specy allows for upload of native Open Specy .y(a)ml, .json, or
-.rds files. In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip
-files can be imported. To upload many files at once either select all
-the files you want to upload or zip the files together and upload the
-.zip file. Open Specy formats and .csv files should always load
-correctly but the other file types are still in development, though most
-of the time these files work perfectly. If uploading a .csv file, the
-simplest format is to label the column with the wavenumbers `wavenumber`
-and name the column with the intensities `intensity`. Wavenumber units
-must be cm⁻¹. All other columns will be interpreted as additional
-spectra. Alternatively, spectra can be uploaded in wide csv format where
-some column names are in numerical format for the wavenumbers, rows will
-be interpreted as spectra, and any nonnumeric columns will be
-interpreted as metadata.  
+Open Specy allows for upload of native Open Specy .json, .rds, or .csv
+files. In addition, .csv, .asp, .jdx, .0, .spa, .spc, and .zip files can
+be imported. To upload many files at once either select all the files
+you want to upload or zip the files together and upload the .zip file.
+Open Specy formats and .csv files should always load correctly but the
+other file types are still in development, though most of the time these
+files work perfectly. If uploading a .csv file, the simplest format is
+to label the column with the wavenumbers `wavenumber` and name the
+column with the intensities `intensity`. Wavenumber units must be cm⁻¹.
+All other columns will be interpreted as additional spectra.
+Alternatively, spectra can be uploaded in wide csv format where some
+column names are in numerical format for the wavenumbers, rows will be
+interpreted as spectra, and any nonnumeric columns will be interpreted
+as metadata.  
 Always keep a copy of the original files.
 
 | wavenumber | intensity |

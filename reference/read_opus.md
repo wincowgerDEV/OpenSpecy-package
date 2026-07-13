@@ -85,7 +85,7 @@ software naming conventions, as follows:
 ## See also
 
 [`read_spec()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/io_spec.md)
-for reading .y(a)ml, .json, or .rds (OpenSpecy) files;
+for reading .json, .rds, or .csv (OpenSpecy) files;
 [`read_text()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md),
 [`read_asp()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md),
 [`read_spa()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/read_ext.md),
@@ -141,7 +141,7 @@ read_extdata("ftir_ps.0") |> read_opus()
 #> 1:            27.9          2         NA         NA         NA     V1
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 90fecadb961768c3e5f156a59cfc81b5/6b2867e1865d2e82a92b5e84a5631741
+#> 1: 925de0db9a41c708c01f3a9d445537e2/07d1298c89ab6efe6e267a0c86b2a0e3
 #>                             file_id
 #>                              <char>
 #> 1: b6f276e8e066f3d63dded4312421911f

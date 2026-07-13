@@ -2,8 +2,8 @@
 
 Functions for reading and writing spectral data to and from OpenSpecy
 format. `OpenSpecy` objects are lists with components `wavenumber`,
-`spectra`, and `metadata`. Currently supported formats are .y(a)ml,
-.json, .csv, or .rds.
+`spectra`, and `metadata`. Currently supported formats are .json, .csv,
+or .rds.
 
 ## Usage
 
@@ -64,7 +64,7 @@ object.
 
 Due to floating point number errors there may be some differences in the
 precision of the numbers returned if using multiple devices for .json
-and .yaml files but the numbers should be nearly identical.
+and .csv files but the numbers should be nearly identical.
 [`readRDS()`](https://rdrr.io/r/base/readRDS.html) should return the
 exact same object every time.
 
@@ -84,8 +84,6 @@ and
 for wrapper functions;
 [`saveRDS()`](https://rdrr.io/r/base/readRDS.html);
 [`readRDS()`](https://rdrr.io/r/base/readRDS.html);
-[`write_yaml()`](https://yaml.r-lib.org/reference/write_yaml.html);
-[`read_yaml()`](https://yaml.r-lib.org/reference/read_yaml.html);
 [`write_json()`](https://jeroen.r-universe.dev/jsonlite/reference/read_json.html);
 [`read_json()`](https://jeroen.r-universe.dev/jsonlite/reference/read_json.html);
 
@@ -96,31 +94,6 @@ Zacharias Steinmetz, Win Cowger
 ## Examples
 
 ``` r
-read_extdata("raman_hdpe.yml") |> read_spec()
-#>      wavenumber intensity
-#>           <num>     <num>
-#>   1:    301.040        26
-#>   2:    304.632        50
-#>   3:    308.221        48
-#>   4:    311.810        45
-#>   5:    315.398        46
-#>  ---                     
-#> 960:   3187.990        71
-#> 961:   3190.520        71
-#> 962:   3193.060        75
-#> 963:   3195.590        75
-#> 964:   3198.120        67
-#> 
-#> $metadata
-#>        x     y  user_name spectrum_type spectrum_identity      organization
-#>    <int> <int>     <char>        <char>            <char>            <char>
-#> 1:     1     1 Win Cowger         Raman              HDPE Horiba Scientific
-#>     license                                                        session_id
-#>      <char>                                                            <char>
-#> 1: CC BY-NC 5728ddde4f649fd71f6f487fc5ad8d80/dc85257201307a131e71d9ec24aaccbf
-#>                             file_id      file_name    col_id
-#>                              <char>         <char>    <char>
-#> 1: cb06ce2846b119d932fb6696479a445b raman_hdpe.yml intensity
 read_extdata("raman_hdpe.json") |> read_spec()
 #>      wavenumber intensity
 #>           <num>     <num>
@@ -193,14 +166,13 @@ read_extdata("raman_hdpe.csv") |> read_spec()
 #> 1:     1     1 raman_hdpe.csv CC BY-NC intensity
 #>                                                           session_id
 #>                                                               <char>
-#> 1: 90fecadb961768c3e5f156a59cfc81b5/6b2867e1865d2e82a92b5e84a5631741
+#> 1: 925de0db9a41c708c01f3a9d445537e2/07d1298c89ab6efe6e267a0c86b2a0e3
 #>                             file_id
 #>                              <char>
 #> 1: df52a5cbcf0415c5b3c519308090a3c4
 
 if (FALSE) { # \dontrun{
 data(raman_hdpe)
-write_spec(raman_hdpe, "raman_hdpe.yml")
 write_spec(raman_hdpe, "raman_hdpe.json")
 write_spec(raman_hdpe, "raman_hdpe.rds")
 write_spec(raman_hdpe, "raman_hdpe.csv")

@@ -8,10 +8,10 @@ This wrapper function starts the graphical user interface of Open Specy.
 run_app(
   path = "system",
   log = TRUE,
-  ref = "main",
+  ref = NULL,
   check_local = TRUE,
   test_mode = FALSE,
-  launch.browser = .rs.invokeShinyWindowExternal,
+  launch.browser = getOption("shiny.launch.browser", interactive()),
   ...
 )
 ```
@@ -20,30 +20,22 @@ run_app(
 
 - path:
 
-  to store the downloaded app files; defaults to `"system"` pointing to
-  `system.file(package = "OpenSpecy")`.
+  Shiny app directory, or `"system"` to launch the bundled app.
 
 - log:
 
-  logical; enables/disables logging to
-  [`tempdir()`](https://rdrr.io/r/base/tempfile.html)
+  logical; enables/disables Shiny logging to
+  [`tempdir()`](https://rdrr.io/r/base/tempfile.html).
 
 - ref:
 
-  git reference; could be a commit, tag, or branch name. Defaults to
-  "main". Setting this will ensure you always use the same version of
-  the shiny app no matter what system you are on.
+  retained for compatibility with older releases; ignored because the
+  app is bundled with the package.
 
 - check_local:
 
-  logical; when `TRUE` a previously downloaded copy of the Shiny app
-  located at `path` is used instead of downloading a fresh copy from
-  GitHub. The directory may contain either a single-file `app.R`
-  application or a `server.R`/`ui.R` pair. Metadata about downloaded
-  copies, including the originating commit hash, is stored alongside the
-  app and surfaced when the local copy is reused. When a specific `ref`
-  is requested, matching local copies are preferred and unmatched
-  directories are ignored.
+  retained for compatibility with older releases; ignored because
+  `path = "system"` always uses the bundled app.
 
 - test_mode:
 
@@ -51,28 +43,32 @@ run_app(
 
 - launch.browser:
 
-  option for runApp, defaults to web browser.
+  option for
+  [`shiny::runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html).
 
 - ...:
 
   arguments passed to
-  [`runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html).
+  [`shiny::runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html).
 
 ## Value
 
 This function normally does not return any value, see
-[`runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html).
+[`shiny::runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html). In
+`test_mode`, it invisibly returns the resolved app path.
 
 ## Details
 
-After running this function the Open Specy GUI should open in a separate
-window or in your computer browser. When downloads are required, the
-function reports the GitHub commit used and preserves that information
-for subsequent reuse when `check_local = TRUE`.
+By default, `run_app()` launches the Shiny app bundled with the
+installed OpenSpecy package at
+`system.file("shiny", package = "OpenSpecy")`. Historical GitHub
+download support has been removed so package installs use the same app
+files offline. Set `path` to an explicit app directory when testing a
+local Shiny app during development.
 
 ## See also
 
-[`runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html)
+[`shiny::runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html)
 
 ## Author
 

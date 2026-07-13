@@ -9,48 +9,48 @@ individual, batch, or map spectral data files like .asp, .csv, .jdx,
 including smoothing, baseline correction, range restriction and
 flattening, intensity conversions, wavenumber alignment, and min-max
 normalization. Spectra can be identified in batch using an onboard
-reference library using match_spec(). A Shiny app is available via
-run_app() or online at <https://www.openanalysis.org/openspecy/>.
+reference library using match_spec(). A bundled Shiny app is available
+via run_app() or online at <https://www.openanalysis.org/openspecy/>.
 
 ## References
 
-Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion
+Chabuka BK, Kalivas JH (2020). "Application of a Hybrid Fusion
 Classification Process for Identification of Microplastics Based on
-Fourier Transform Infrared Spectroscopy.” *Applied Spectroscopy*,
+Fourier Transform Infrared Spectroscopy." *Applied Spectroscopy*,
 **74**(9), 1167–1183.
 [doi:10.1177/0003702820923993](https://doi.org/10.1177/0003702820923993)
 .
 
 Cowger W, Gray A, Christiansen SH, De Frond H, Deshpande AD,
-Hemabessiere L, Lee E, Mill L, et al. (2020). “Critical Review of
+Hemabessiere L, Lee E, Mill L, et al. (2020). "Critical Review of
 Processing and Classification Techniques for Images and Spectra in
-Microplastic Research.” *Applied Spectroscopy*, **74**(9), 989–1010.
+Microplastic Research." *Applied Spectroscopy*, **74**(9), 989–1010.
 [doi:10.1177/0003702820929064](https://doi.org/10.1177/0003702820929064)
 .
 
-Cowger, W (2023). “Library data.” *OSF*.
+Cowger W (2023). "Library data." *OSF*.
 [doi:10.17605/OSF.IO/X7DPZ](https://doi.org/10.17605/OSF.IO/X7DPZ) .
 
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S, De
-Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral
+Frond H, Rochman C, Herodotou O (2021). "Microplastic Spectral
 Classification Needs an Open Source Community: Open Specy to the
-Rescue!” *Analytical Chemistry*, **93**(21), 7543–7548.
+Rescue!" *Analytical Chemistry*, **93**(21), 7543–7548.
 [doi:10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123)
 .
 
-Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database
+Primpke S, Wirth M, Lorenz C, Gerdts G (2018). "Reference Database
 Design for the Automated Analysis of Microplastic Samples Based on
-Fourier Transform Infrared (FTIR) Spectroscopy.” *Analytical and
+Fourier Transform Infrared (FTIR) Spectroscopy." *Analytical and
 Bioanalytical Chemistry*, **410**(21), 5131–5141.
 [doi:10.1007/s00216-018-1156-x](https://doi.org/10.1007/s00216-018-1156-x)
 .
 
-Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by
-Simplified Least Squares Procedures.” *Analytical Chemistry*, **36**(8),
+Savitzky A, Golay MJ (1964). "Smoothing and Differentiation of Data by
+Simplified Least Squares Procedures." *Analytical Chemistry*, **36**(8),
 1627–1639.
 
-Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence
-Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
+Zhao J, Lui H, McLean DI, Zeng H (2007). "Automated Autofluorescence
+Background Subtraction Algorithm for Biomedical Raman Spectroscopy."
 *Applied Spectroscopy*, **61**(11), 1225–1232.
 [doi:10.1366/000370207782597003](https://doi.org/10.1366/000370207782597003)
 .

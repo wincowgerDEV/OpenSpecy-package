@@ -91,8 +91,8 @@ calc_window_points(x, wavenum_width = 70, ...)
 
 - ...:
 
-  further arguments passed to
-  [`sgolay()`](https://rdrr.io/pkg/signal/man/sgolay.html).
+  further arguments passed to the Savitzky-Golay coefficient generator,
+  currently including `ts`.
 
 ## Value
 
@@ -105,11 +105,11 @@ specifying a static number of points.
 
 ## Details
 
-For Savitzky-Golay this is a wrapper around the filter function in the
-signal package to improve integration with other Open Specy functions. A
-typical good smooth can be achieved with 11 data point window and a 3rd
-or 4th order polynomial. For Whittaker-Henderson, the code is largely
-based off of the whittaker() function in the pracma package. In general
+For Savitzky-Golay this uses OpenSpecy's internal matrix filter to
+improve integration with other OpenSpecy functions. A typical good
+smooth can be achieved with 11 data point window and a 3rd or 4th order
+polynomial. For Whittaker-Henderson, the code is largely based off of
+the whittaker() function in the pracma package. In general
 Whittaker-Henderson is expected to be slower but more robust than
 Savitzky-Golay.
 
@@ -121,7 +121,7 @@ Simplified Least Squares Procedures.” *Analytical Chemistry*, **36**(8),
 
 ## See also
 
-[`sgolay()`](https://rdrr.io/pkg/signal/man/sgolay.html)
+`smooth_intens()`
 
 ## Author
 

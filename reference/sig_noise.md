@@ -130,9 +130,12 @@ if the numbers where above or equal to (TRUE) the threshold.
 data("raman_hdpe")
 
 sig_noise(raman_hdpe, metric = "sig")
-#> [1] 101.1691
+#> intensity 
+#>  101.1691 
 sig_noise(raman_hdpe, metric = "noise")
-#> [1] 61.00777
+#> intensity 
+#>  61.00777 
 sig_noise(raman_hdpe, metric = "sig_times_noise")
-#> [1] 6172.1
+#> intensity 
+#>    6172.1 
 ```

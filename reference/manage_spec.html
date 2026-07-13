@@ -25,6 +25,7 @@ merge_map() merge two OpenSpecy objects from spectral maps."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/app.html">Open Specy App Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/sop.html">Open Specy Package Tutorial</a></li>
     <li><a class="dropdown-item" href="../articles/advanced.html">Spectroscopy Advanced</a></li>
+    <li><a class="dropdown-item" href="../articles/library-builder.html">Build a Mini Reference Library</a></li>
     <li><a class="dropdown-item" href="../articles/spectragryph.html">File Conversion in SpectraGryph</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -61,7 +62,7 @@ merge_map() merge two OpenSpecy objects from spectral maps."></head><body>
 <span><span class="fu">c_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'list'</span></span>
-<span><span class="fu">c_spec</span><span class="op">(</span><span class="va">x</span>, range <span class="op">=</span> <span class="cn">NULL</span>, res <span class="op">=</span> <span class="fl">5</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">c_spec</span><span class="op">(</span><span class="va">x</span>, range <span class="op">=</span> <span class="st">"full"</span>, res <span class="op">=</span> <span class="fl">6</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">sample_spec</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -92,15 +93,15 @@ merge_map() merge two OpenSpecy objects from spectral maps."></head><body>
 
 
 <dt id="arg-range">range<a class="anchor" aria-label="anchor" href="#arg-range"></a></dt>
-<dd><p>a numeric providing your own wavenumber ranges or character
-argument called <code>"common"</code> to let <code>c_spec()</code> find the common
-wavenumber range of the supplied spectra. <code>NULL</code> will interpret the
-spectra having all the same wavenumber range.</p></dd>
+<dd><p>a numeric providing your own wavenumber range,
+<code>"full"</code> to use the widest range represented by any supplied spectrum,
+or <code>"common"</code> to use only their overlapping range. <code>NULL</code> requires
+identical wavenumbers. The default is <code>"full"</code>.</p></dd>
 
 
 <dt id="arg-res">res<a class="anchor" aria-label="anchor" href="#arg-res"></a></dt>
-<dd><p>defaults to <code>NULL</code>, the resolution you want the output
-wavenumbers to be.</p></dd>
+<dd><p>resolution of the output wavenumbers. The default of 6 is intended
+for reference-library identification workflows.</p></dd>
 
 
 <dt id="arg-size">size<a class="anchor" aria-label="anchor" href="#arg-size"></a></dt>
@@ -137,8 +138,9 @@ wavenumbers to be.</p></dd>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Concatenating spectra</span></span></span>
 <span class="r-in"><span><span class="va">spectra</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"raman_hdpe.csv"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                    <span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"ftir_ldpe_soil.asp"</span><span class="op">)</span><span class="op">)</span>, <span class="va">read_any</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">common</span> <span class="op">&lt;-</span> <span class="fu">c_spec</span><span class="op">(</span><span class="va">spectra</span>, range <span class="op">=</span> <span class="st">"common"</span>, res <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">range</span> <span class="op">&lt;-</span> <span class="fu">c_spec</span><span class="op">(</span><span class="va">spectra</span>, range <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">2000</span><span class="op">)</span>, res <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">full</span> <span class="op">&lt;-</span> <span class="fu">c_spec</span><span class="op">(</span><span class="va">spectra</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">common</span> <span class="op">&lt;-</span> <span class="fu">c_spec</span><span class="op">(</span><span class="va">spectra</span>, range <span class="op">=</span> <span class="st">"common"</span>, res <span class="op">=</span> <span class="fl">6</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">range</span> <span class="op">&lt;-</span> <span class="fu">c_spec</span><span class="op">(</span><span class="va">spectra</span>, range <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">2000</span><span class="op">)</span>, res <span class="op">=</span> <span class="fl">6</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Sampling spectra</span></span></span>
 <span class="r-in"><span><span class="va">tiny_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_multi.html">read_any</a></span><span class="op">(</span><span class="fu"><a href="read_ext.html">read_extdata</a></span><span class="op">(</span><span class="st">"CA_tiny_map.zip"</span><span class="op">)</span><span class="op">)</span></span></span>
@@ -155,7 +157,7 @@ wavenumbers to be.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>
