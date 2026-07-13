@@ -1,24 +1,23 @@
 <!--
 Sync Impact Report
-Version change: 2.2.0 -> 3.0.0
+Version change: 3.0.0 -> 3.1.0
 Modified principles:
-- R Package Interface and CRAN Readiness: expanded CRAN-readiness expectations to bundled Shiny assets
-- Tests Track Current Behavior: added bundled Shiny app test expectations for helpers, modules, installed assets, and CI/manual smoke tests
-- R Package Standards: added bundled Shiny application code/assets under `inst/` as a package surface
-- Shiny Compatibility Boundary: replaced external-only boundary with bundled Shiny application governance
-- Development Workflow and Quality Gates: added Shiny app asset audit, build-size, headless test, and smoke-test expectations
+- R Package Interface and CRAN Readiness: expanded release expectations to the hosted Shinylive/WebAssembly layer and pinned wasm package repository
+- Tests Track Current Behavior: added hosted app and wasm package repository verification expectations
+- R Package Standards: added GitHub Actions, generated Shinylive output, and wasm CRAN-like repository surfaces
+- Development Workflow and Quality Gates: added Shinylive build, pinned package, small-library staging, and app smoke-test checks
 Added sections:
-- Bundled Shiny Application Boundary
+- Hosted Shinylive/WebAssembly Application Boundary
 Removed sections:
-- Shiny Compatibility Boundary
+- None
 Templates requiring updates:
-- .specify/templates/plan-template.md: replace external-only Shiny prompt with bundled app/asset audit prompt
-- .agents/skills/speckit-plan/SKILL.md: update required Shiny planning surface
-- .agents/skills/speckit-implement/SKILL.md: replace Shiny prohibition with `inst/` app and asset-audit rules
-- AGENTS.md: summarize bundled Shiny app location, size, compression, and orphan-file rules
+- .specify/templates/plan-template.md: add hosted Shinylive/WebAssembly planning and verification prompts
+- .agents/skills/speckit-plan/SKILL.md: add hosted app and wasm repository surfaces to required planning content
+- .agents/skills/speckit-implement/SKILL.md: add action, pinning, library staging, and app smoke-test implementation rules
+- AGENTS.md: summarize hosted Shinylive/WebAssembly app, pinned package repo, and small-library constraints
 Follow-up TODOs:
 - Update OSF-dependent tests so offline guards check the actual download host.
-- Create a concise feature plan for porting `wincowgerDEV/OpenSpecy-shiny` into `inst/` with an image compression and orphan-file audit.
+- Create a concise feature plan for fixing `.github/workflows/deploy-cran-repo.yml`, generating the Shinylive app, staging small libraries with `get_lib()`, and pinning the hosted app to the package version built for that app release.
 -->
 
 # OpenSpecy Constitution
@@ -93,6 +92,12 @@ network access. Large media assets, especially images, MUST be compressed,
 downsampled, deduplicated, or moved out of the package with a documented
 download/cache strategy before they are accepted into the release surface.
 
+Hosted Shinylive/WebAssembly application work MUST preserve package release
+quality while treating generated web artifacts as deployment output. The source
+package SHOULD NOT carry generated Shinylive build products or wasm package
+repository artifacts unless a feature plan explicitly scopes them into the
+package and accounts for CRAN size, portability, and generated-file review.
+
 Commands that generate package artifacts MUST use the tool versions configured
 in `DESCRIPTION`, such as `Config/roxygen2/version`. A version mismatch MUST be
 resolved before regeneration rather than accepted as incidental generated-file
@@ -133,6 +138,14 @@ load the app through `system.file()` or the same package helper users call, so
 missing `inst/` files are caught before release. Browser, snapshot, or
 long-running end-to-end app tests MUST be manual, optional, or CI-guarded and
 MUST skip clearly when optional test backends or network resources are missing.
+
+Hosted Shinylive/WebAssembly changes MUST verify the generated app and the
+CRAN-like wasm package repository together. Verification SHOULD check that the
+package repository index is produced, the hosted app points to the intended
+pinned package version or commit, required small reference libraries are
+available to the app, and browser smoke tests cover startup plus at least one
+library-matching path. These checks MAY run in GitHub Actions or guarded manual
+smoke tests when local WebAssembly tooling is impractical.
 
 The expected verification command for local feature work is `devtools::test()`.
 Release-sensitive work MUST also pass `devtools::check()` or equivalent R CMD
@@ -236,9 +249,12 @@ MUST identify the affected package surfaces:
 - release notes in `NEWS.md`
 - generated roxygen outputs from `devtools::document()`
 - optional pkgdown output from the package website build process
+- GitHub Actions workflows and deployment metadata under `.github/workflows/`
 - bundled data and examples in `inst/` and package data files
 - bundled Shiny application code and optimized assets under `inst/` when
   affected
+- generated Shinylive application and wasm CRAN-like repository deployment
+  outputs when their source workflows are affected
 
 Concise feature plans and pull requests MUST call out whether each surface is
 changed, unchanged, or intentionally not applicable. A change that alters public
@@ -300,6 +316,51 @@ server/module logic, installed paths, and required static assets, plus a manual
 or CI-guarded Shiny smoke test that verifies the bundled app starts, loads
 required assets, and does not rely on files outside the installed package.
 
+## Hosted Shinylive/WebAssembly Application Boundary
+
+The public WebAssembly app at `https://www.openanalysis.org/openspecy/` SHOULD
+be built and hosted from this package repository once the migration is scoped.
+The bundled Shiny app under `inst/` is the canonical source for the local and
+hosted app experience; the historical
+`Moore-Institute-4-Plastic-Pollution-Res/openspecy` repository SHOULD be treated
+as transition context unless a feature plan states otherwise.
+
+The Shinylive application MUST be generated from package app source by GitHub
+Actions or an equivalent reproducible command. Generated Shinylive site files,
+WebAssembly package repository contents, and other deployment artifacts MUST NOT
+be hand-edited; changes belong in the package source, `inst/` app source,
+library staging code, workflow configuration, or pinned deployment metadata.
+
+The `.github/workflows/deploy-cran-repo.yml` workflow named "Build and deploy
+wasm R package repository" is required infrastructure for the hosted app. It
+MUST build a CRAN-like wasm repository from the checked-out package source and
+remain green before a hosted Shinylive release is treated as ready. If this
+workflow fails, fixing it is part of the hosted-app work rather than optional
+cleanup.
+
+The Shinylive app MUST point to a hardcoded/pinned wasm package repository and
+package version, commit, or equivalent immutable build identifier for the app
+release. The pin SHOULD be refreshed from the most recently pushed package
+source when the app is intentionally rebuilt, but it MUST NOT float to future
+package versions automatically. A package update that affects the app requires
+an explicit Shinylive rebuild or a documented decision to leave the hosted app
+on its previous pin.
+
+Library spectra for the Shinylive app SHOULD be staged by GitHub Actions using
+package functions such as `get_lib()` where feasible, with host guards,
+reproducible cache paths, and size reporting. The WebAssembly app MAY use only
+the smaller medoid and model libraries; the local bundled Shiny app MAY expose
+full libraries as well. This small-library restriction SHOULD be the only major
+functional difference between local and WebAssembly apps unless a plan documents
+the reason, user impact, tests, and documentation update.
+
+Hosted app work MUST include verification proportional to the change: action
+syntax and permissions, wasm package repository index and package availability,
+library artifact availability, pinned package metadata, generated app startup,
+static asset loading, and a browser or CI-guarded smoke path that exercises
+library matching. Size impact and generated output location MUST be reported
+before handoff.
+
 ## Development Workflow and Quality Gates
 
 Feature work SHOULD start from one concise Spec Kit `plan.md` that combines the
@@ -346,6 +407,10 @@ Before implementation is complete:
   compression/downsampling review, package-size impact check, focused
   noninteractive Shiny tests when feasible, and manual or CI-guarded app smoke
   test when relevant.
+- Hosted Shinylive/WebAssembly changes MUST verify the wasm package repository
+  workflow, package pin, small-library staging, generated app startup, asset
+  loading, and at least one library-matching smoke path before release-facing
+  handoff.
 
 On Windows, maintained project skills or scripts SHOULD resolve real executable
 paths once and reuse them. Process-scoped PowerShell execution-policy bypasses
@@ -378,8 +443,11 @@ Reviewers MUST block changes that directly edit locked generated files, skip
 required tests without justification, omit required documentation updates,
 ignore `OpenSpecy` object invariants or attributes, add Shiny application code
 outside `inst/`, bundle avoidable large or orphaned Shiny assets, or omit
-required benchmarks for same-output function improvements. Temporary exceptions
-MUST be documented in the feature plan with the reason, risk, and follow-up
-task.
+required benchmarks for same-output function improvements. Reviewers MUST also
+block hosted Shinylive/WebAssembly changes that float to unpinned package
+versions, bypass the wasm package repository workflow without justification, or
+silently diverge from the local app beyond the documented small-library
+constraint. Temporary exceptions MUST be documented in the feature plan with the
+reason, risk, and follow-up task.
 
-**Version**: 3.0.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-10
+**Version**: 3.1.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-13

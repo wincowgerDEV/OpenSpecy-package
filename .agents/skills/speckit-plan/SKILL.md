@@ -32,9 +32,15 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
 - Technical decisions that matter for implementation.
 - OpenSpecy object flow and object attributes when affected.
 - Package surfaces: `R/`, `tests/testthat/`, `benchmarks/`, docs,
-  `DESCRIPTION`, `NEWS.md`, generated artifacts, and bundled Shiny app impact
-  when `inst/` app code or assets are affected, including headless module/server
-  tests, installed-asset checks, and manual or CI-guarded smoke tests.
+  `DESCRIPTION`, `NEWS.md`, generated artifacts, `.github/workflows/`, bundled
+  Shiny app impact when `inst/` app code or assets are affected, and hosted
+  Shinylive/WebAssembly impact when the wasm package repository, package pin,
+  generated app, or staged medoid/model libraries are affected.
+- Shiny planning must include headless module/server tests, installed-asset
+  checks, and manual or CI-guarded smoke tests when relevant; hosted
+  Shinylive/WebAssembly planning must include action verification, hardcoded
+  package pinning, small-library staging, generated-artifact boundaries, and at
+  least one startup/library-matching smoke path when relevant.
 - A short work checklist with exact paths.
 - Verification commands and any manual or CI-guarded checks.
 - Risks or open questions that can change implementation.
