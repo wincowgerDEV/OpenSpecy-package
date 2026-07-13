@@ -143,8 +143,9 @@ observeEvent(input$file, {
           library <- load_app_library("derivative")
       }
       if(!is.null(preprocessed$data)){
-          library <- restrict_range(library, min = min(DataR()$wavenumber), max = max(DataR()$wavenumber), make_rel = F) %>%
-              filter_spec(!vapply(.$spectra, function(x){all(is.na(x))}, FUN.VALUE = logical(1)))
+          library <- restrict_range(library, min = min(DataR()$wavenumber), max = max(DataR()$wavenumber), make_rel = F)
+          keep_spectra <- !apply(library$spectra, 2, function(x) all(is.na(x)))
+          library <- filter_spec(library, logic = keep_spectra)
       }
       
       if(grepl("^both", input$id_spec_type)) {
@@ -505,17 +506,17 @@ observeEvent(input$file, {
       req(input$active_identification)
       if(is.null(preprocessed$data)){
           library_filtered()$metadata %>%
-              mutate("match_val" = NA,
-                     object_id = names(library_filtered()$spectra))
+               mutate("match_val" = NA,
+                     object_id = colnames(library_filtered()$spectra))
       }
       else if(grepl("^model$", input$lib_type)){
-          data.table(object_id = names(DataR()$spectra),
+          data.table(object_id = colnames(DataR()$spectra),
                      material_class = max_cor_identity(),
                      match_val = ai_output()$value)
       }
       else{
-          data.table(object_id = names(DataR()$spectra)[data_click$plot],
-                     sample_name = names(library_filtered()$spectra),
+          data.table(object_id = colnames(DataR()$spectra)[data_click$plot],
+                     sample_name = colnames(library_filtered()$spectra),
                      match_val = c(correlation()[,data_click$plot]))[order(-match_val),] %>%
               left_join(library_filtered()$metadata, by = c("sample_name")) %>%
               mutate(match_val = signif(match_val, 2)) %>%
@@ -962,8 +963,16 @@ output$progress_bars <- renderUI({
       toggle(id = "placeholder1", condition = !isTruthy(preprocessed$data))
   })
 
-  observeEvent(event_data("plotly_click", source = "heat_plot"), {
-      click <- event_data("plotly_click", source = "heat_plot")
+  heatmap_click <- reactive({
+      req(!is.null(preprocessed$data))
+      req(ncol(preprocessed$data$spectra) > 1)
+      suppressWarnings(
+          event_data("plotly_click", source = "heat_plot", priority = "event")
+      )
+  })
+
+  observeEvent(heatmap_click(), {
+      click <- heatmap_click()
       if (!is.null(click$pointNumber))
           data_click$plot <- click$pointNumber + 1
   }, ignoreNULL = TRUE, ignoreInit = TRUE)

@@ -11,12 +11,8 @@ dashboardPage(dark = T,
                                  style = 'width: 15vw; padding:1rem;'),
                         tags$head(
                             HTML(
-                                '<div class = "dark raised" data-ea-publisher="openanalysisorg" data-ea-type="image" data-ea-style="stickybox" id = "openspecweba"></div>'
+                                '<div class = "dark raised" data-ea-publisher="openanalysisorg" data-ea-type="image" id = "openspecweba"></div>'
                             )
-                        ), 
-                        tags$head(
-                            tags$link(rel = "stylesheet",
-                                      href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css")
                         )
                         ), 
             tags$li(
@@ -67,106 +63,9 @@ dashboardPage(dark = T,
                 # Required for any of the shinyjs functions.
             shinyjs::useShinyjs(),
             
-            # Pop Up window for Donations
-            modalDialog(
-                title = tags$div(
-                    h1("Help Support Us!"),
-                    style = "flex: 1; text-align: center;"),
-                size = "xl",
-                easyClose = TRUE,
-                fluidRow(
-                    column(5,
-                           h4("Thanks to users like you, Open Specy remains free and open!"),
-                           style = "padding-right:0px;",
-                           tags$img(src = "donation.png", style = 'width: 24vw; padding:1rem;')),
-                    column(
-                        7,
-                        style = "padding-left:0px;",
-                        p(
-                            class = "lead",
-                            HTML(
-                                "<br><br>Open Specy is a free and open-source platform dedicated to advancing microplastic research.
-                           We strive to keep our tool accessible to researchers, students, and community scientist worldwide."
-                            ),
-                            style = "font-size:1.4rem;"
-                        ),
-                        p(
-                            class = "lead",
-                            HTML(
-                                "Maintaining Open Specy takes time and resources. By becoming a donor, you are supporting the revolutionization of spectroscopy."
-                            ),
-                            style = "font-size:1.4rem;"
-                        ),
-                        HTML("<br>"),
-                        p(class = "lead",
-                          h3("Donate Today!")),
-                        fluidRow(
-                            column(
-                                4,
-                                actionButton(
-                                    inputId = "donate_25",
-                                    label = "$25",
-                                    style = "padding:4px; background-color: #2a9fd6; font-size:150%",
-                                    width = "100%",
-                                    onclick = "window.open('https://www.paypal.com/donate/?hosted_button_id=F2CAABAZ6JQTJ','_blank')"
-                                )
-                            ),
-                            column(
-                                4,
-                                actionButton(
-                                    inputId = "donate_50",
-                                    label = "$50",
-                                    style = "padding:4px; background-color: #2a9fd6; font-size:150%",
-                                    width = "100%",
-                                    onclick = "window.open('https://www.paypal.com/donate/?hosted_button_id=MW8NUFBH7JX2W','_blank')"
-                                )
-                            ),
-                            column(
-                                4,
-                                actionButton(
-                                    inputId = "donate_75",
-                                    label = "$75",
-                                    style = "padding:4px; background-color: #2a9fd6; font-size:150%",
-                                    width = "100%",
-                                    onclick = "window.open('https://www.paypal.com/donate/?hosted_button_id=M59EWJTJWHZBA','_blank')"
-                                )
-                            )),
-                        HTML("<br>"),
-                        fluidRow(
-                            column(
-                                4,
-                                actionButton(
-                                    inputId = "donate_100",
-                                    label = "$100",
-                                    style = "padding:4px; background-color: #2a9fd6; font-size:150%",
-                                    width = "100%",
-                                    onclick = "window.open('https://www.paypal.com/donate/?hosted_button_id=WZPE5LCF4FSNE','_blank')"
-                                )
-                            ),
-                            column(
-                                4,
-                                actionButton(
-                                    inputId = "donate_1k",
-                                    label = "$1,000",
-                                    style = "padding:4px; background-color: #2a9fd6; font-size:150%",
-                                    width = "100%",
-                                    onclick = "window.open('https://www.paypal.com/donate/?hosted_button_id=MCZ2D4TQGYVKC','_blank')"
-                                )
-                            ),
-                            column(
-                                4,
-                                actionButton(
-                                    inputId = "donate_other",
-                                    label = "Other",
-                                    style = "padding:4px; background-color: #2a9fd6; font-size:150%",
-                                    width = "100%",
-                                    onclick = "window.open('https://www.paypal.com/donate/?hosted_button_id=PZHG44PX5C89C','_blank')"
-                                )
-                            )
-                        )
-                    )
-                )
-            ),
+            # Donation prompts live in the Partner With Us tab so app startup
+            # remains immediately usable.
+            NULL,
 
             tags$head(
                       tags$script(async = T, src = "https://buttons.github.io/buttons.js"),
@@ -705,24 +604,24 @@ dashboardPage(dark = T,
                                border:solid #f7f7f9;
                                background-color:rgb(205, 127, 50, 0.5)",
                                                    h3("Thriving (10,000–100,000$)"),
-                                                   img(src = "https://mooreplasticresearch.org/wp-content/uploads/2021/06/HorizontalLogo-FullName-1.png", style = "width:20vw"),
-                                                   img(src = "https://www.helmholtz-hida.de/typo3conf/ext/hida_site_package/Resources/Public/dest/images/logos/hida-logo.svg", style = "width:20vw"),
-                                                   img(src = "https://infrastructure.der-lab.net/wp-content/uploads/2017/05/logo_nrel_c.jpg", style = "width:20vw"),
-                                                   img(src = "https://mcpzfoundation.org/wp-content/uploads/2021/07/McPZ-Logo-Horizontal-RGB.png", style = "width:20vw")
+                                                   h4("Moore Institute for Plastic Pollution Research"),
+                                                   h4("Helmholtz Information & Data Science Academy"),
+                                                   h4("National Renewable Energy Laboratory"),
+                                                   h4("McPZ Foundation")
                                                ),
                                                div(class = "jumbotron",
                                                    style = "padding:0rem 1rem 0rem;
                                border:solid #f7f7f9;
                                background-color:rgb(3, 252, 15, 0.5)",
                                                    h3("Maintaining (1,000–10,000$)"),
-                                                   img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/UC_Riverside_logo.svg/1024px-UC_Riverside_logo.svg.png", style = "width:10vw"),
-                                                   img(src = "https://upload.wikimedia.org/wikipedia/commons/7/7e/NSF_logo.png", style = "width:10vw"),
-                                                   img(src = "https://www.awi.de/typo3conf/ext/sms_boilerplate/Resources/Public/Images/AWI/awi_logo.svg", style = "width:10vw"),
-                                                   img(src = "https://www.hpu.edu/_global/images/header-logo.png", style = "width:10vw"),
-                                                   img(src = "https://www.nist.gov/libraries/nist-component-library/dist/img/logo/nist_logo_sidestack_rev.svg", style = "width:10vw"),
-                                                   img(src = "https://www.utoronto.ca/sites/all/themes/uoft_stark/img/U-of-T-logo.svg", style = "width:10vw"),
-                                                   img(src = "https://www.uni-koblenz-landau.de/logo.png", style = "width:10vw"),
-                                                   img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Thermo_Fisher_Scientific_logo.svg/2560px-Thermo_Fisher_Scientific_logo.svg.png", style = "width:10vw")
+                                                   h5("University of California, Riverside"),
+                                                   h5("National Science Foundation"),
+                                                   h5("Alfred Wegener Institute"),
+                                                   h5("Hawai'i Pacific University"),
+                                                   h5("National Institute of Standards and Technology"),
+                                                   h5("University of Toronto"),
+                                                   h5("University of Koblenz-Landau"),
+                                                   h5("Thermo Fisher Scientific")
                                                ),
                                                div(class = "jumbotron",
                                                    style = "padding:0rem 1rem 0rem;
@@ -772,7 +671,7 @@ dashboardPage(dark = T,
                               title = "Donate Cash",
                               status = "info",
                               collapsed = TRUE,
-                              #img(src = "https://p.turbosquid.com/ts-thumb/rX/Wm1eqB/t5/currencysymbolsgoldensetc4dmodel000/jpg/1613802168/300x300/sharp_fit_q85/a31625492ce9c8009ab3e4281ad752006e1163ec/currencysymbolsgoldensetc4dmodel000.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
+                              img(src = "donation.png", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
                               actionButton(inputId = "ab1", label = "Donate", style="padding:4px; background-color: #2a9fd6; font-size:200%", width = "100%",
                                            icon = icon("donate"),
                                            onclick = "window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted', '_blank')")
@@ -781,7 +680,7 @@ dashboardPage(dark = T,
                               title = "Buy Merch",
                               status = "info",
                               collapsed = TRUE,
-                              img(src = "https://image.spreadshirtmedia.com/image-server/v1/products/T813A823PA3132PT17X42Y46D1038541132FS4033/views/1,width=650,height=650,appearanceId=823/updated-logo-for-open-specy-designed-by-alex-mcgoran.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
+                              p(class = "lead", "Open Specy merchandise is available through the online shop."),
                               actionButton(inputId = "ab2", label = "Shop", style="padding:4px; background-color: #2a9fd6; font-size:200%", width = "100%",
                                            icon = icon("shopping-cart"),
                                            onclick ="window.open('https://shop.spreadshirt.com/openspecy/all', '_blank')")
@@ -790,7 +689,7 @@ dashboardPage(dark = T,
                               title = "Contribute Time",
                               status = "info",
                               collapsed = T,
-                                  img(src = "https://health.sunnybrook.ca/wp-content/uploads/2020/02/healthy-hands-810x424.jpg", style = "padding:1rem; background-color:rgba(255,255,255, 0.9)", width = "100%"),
+                                  p(class = "lead", "Volunteer time and expertise help keep the app useful for the community."),
                                         actionButton(inputId = "ab3", label = "Guidelines", style="padding:4px; background-color: #2a9fd6; font-size:200%", width = "100%",
                                                      icon = icon("clock"),
                                                      onclick ="window.open('https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing', '_blank')")

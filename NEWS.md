@@ -7,6 +7,10 @@
 - Added bundled-app path, asset, source-parse, YAML-removal, and app helper
   regression tests; optimized/pruned Shiny app static assets and fixed app
   sample-data loading for the current matrix-backed `OpenSpecy` spectra format.
+- Fixed bundled Shiny app smoke-test issues: startup no longer opens a blocking
+  donation modal, bundled UI no longer auto-loads remote image assets, and
+  identification uses existing package/app cached reference libraries before
+  attempting a download.
 - Removed built-in YAML read/write support and the YAML example fixture;
   `read_spec()` and `write_spec()` now support JSON, RDS, and CSV formats.
 - Removed runtime `signal` and `cluster` dependencies by using internal

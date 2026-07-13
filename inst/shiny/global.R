@@ -102,8 +102,18 @@ build_version_display <- function() {
 app_version_display <- build_version_display()
 
 app_library_dir <- function() {
-  dir <- file.path(tools::R_user_dir("OpenSpecy", "cache"),
-                   "reference_libraries")
+  configured <- Sys.getenv("OPENSPECY_SHINY_LIBRARY_PATH", "")
+  if (!nzchar(configured)) {
+    configured <- shiny::getShinyOption("library_path", default = "")
+  }
+
+  dir <- if (nzchar(configured) && !identical(configured, "system")) {
+    configured
+  } else {
+    file.path(tools::R_user_dir("OpenSpecy", "cache"),
+              "reference_libraries")
+  }
+
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   dir
 }
@@ -118,19 +128,44 @@ app_library_revisions <- c(
 )
 
 load_app_library <- function(type) {
-  library_path <- app_library_dir()
-  library_check <- tryCatch(
-    check_lib(type, path = library_path),
-    error = function(e) e,
-    warning = function(w) w
+  installed_library <- tryCatch(
+    load_lib(type),
+    error = function(e) e
   )
 
-  if (inherits(library_check, c("error", "warning"))) {
+  if (!inherits(installed_library, "error")) {
+    return(installed_library)
+  }
+
+  library_path <- app_library_dir()
+  cached_library <- tryCatch(
+    load_lib(type, path = library_path),
+    error = function(e) e
+  )
+
+  if (!inherits(cached_library, "error")) {
+    return(cached_library)
+  }
+
+  download_result <- tryCatch(
     get_lib(
       type,
       path = library_path,
       revision = unname(app_library_revisions[[type]]),
       aws = TRUE
+    ),
+    error = function(e) e,
+    warning = function(w) w
+  )
+
+  if (inherits(download_result, c("error", "warning"))) {
+    stop(
+      "Unable to load the Open Specy reference library '", type,
+      "' from the installed package or app cache, and downloading it failed: ",
+      conditionMessage(download_result),
+      ". Run get_lib(\"", type, "\") before run_app(), or check your ",
+      "network connection.",
+      call. = FALSE
     )
   }
 
