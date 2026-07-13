@@ -20,6 +20,8 @@
   `read_spec()` and `write_spec()` now support JSON, RDS, and CSV formats.
 - Removed runtime `signal` and `cluster` dependencies by using internal
   Savitzky-Golay filtering and PAM medoid selection in package workflows.
+- Made internal PAM medoid return order deterministic in tied cases so
+  `reduce_lib(return = "ids")` is stable across platforms.
 - Aligned `automate_particle_analysis()` collapse exports with legacy
   `analyze_features()` particle details, summaries, raw maps, and processed
   particle objects; returned list item names now mirror export filenames and

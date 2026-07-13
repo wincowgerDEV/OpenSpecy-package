@@ -2018,13 +2018,7 @@ lib_clean_metadata <- function(x,
 }
 
 .pam_order_medoids <- function(distance, medoids) {
-  info <- .pam_assign_info(distance, medoids)
-  first_member <- vapply(seq_along(medoids), function(i) {
-    members <- which(info$cluster == i)
-    if (length(members) == 0L) Inf else min(members)
-  }, numeric(1))
-
-  medoids[order(first_member, medoids)]
+  sort.int(medoids)
 }
 
 .pam_build_medoids <- function(distance, k) {

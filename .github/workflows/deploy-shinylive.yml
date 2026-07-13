@@ -34,7 +34,7 @@ jobs:
       PACKAGE_SHA: ${{ github.event.workflow_run.head_sha || inputs.package_sha || github.sha }}
     steps:
       - name: Checkout package source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || inputs.package_sha || github.sha }}
 
@@ -94,7 +94,7 @@ jobs:
 
       - name: Setup Node for optional browser smoke
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.browser_smoke }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -110,7 +110,7 @@ jobs:
           SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/openspecy/ npx playwright test tools/wasm/shinylive-smoke.spec.js
 
       - name: Upload Shinylive build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: openspecy-shinylive-${{ env.PACKAGE_SHA }}
           path: |
@@ -119,7 +119,7 @@ jobs:
             _wasm/wasm-app-manifest.json
 
       - name: Deploy Shinylive app
-        uses: JamesIves/github-pages-deploy-action@v4.4.1
+        uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           clean: false
           branch: gh-pages

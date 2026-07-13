@@ -32,6 +32,8 @@ curation, but the same helper functions apply.
 `c_spec()` and `build_lib()` default to the widest range represented by the
 source spectra at resolution 6. Values outside each source's original range are
 kept as `NA`, so useful spectral regions are not discarded.
+This compact vignette example uses the shared overlapping range to keep the
+rendered output small.
 
 ```{r mini-library-read}
 mini_files <- c(
@@ -46,7 +48,7 @@ mini_sources <- lapply(mini_sources, function(x) {
   attr(x, "intensity_unit") <- "absorbance"
   x
 })
-mini_raw <- c_spec(mini_sources)
+mini_raw <- c_spec(mini_sources, range = "common", res = 6)
 
 check_OpenSpecy(mini_raw)
 dim(mini_raw$spectra)
