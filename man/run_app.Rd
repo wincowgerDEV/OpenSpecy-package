@@ -7,50 +7,43 @@
 run_app(
   path = "system",
   log = TRUE,
-  ref = "main",
+  ref = NULL,
   check_local = TRUE,
   test_mode = FALSE,
-  launch.browser = .rs.invokeShinyWindowExternal,
+  launch.browser = getOption("shiny.launch.browser", interactive()),
   ...
 )
 }
 \arguments{
-\item{path}{to store the downloaded app files; defaults to \code{"system"}
-pointing to \code{system.file(package = "OpenSpecy")}.}
+\item{path}{Shiny app directory, or \code{"system"} to launch the bundled app.}
 
-\item{log}{logical; enables/disables logging to \code{\link[base]{tempdir}()}}
+\item{log}{logical; enables/disables Shiny logging to \code{tempdir()}.}
 
-\item{ref}{git reference; could be a commit, tag, or branch name. Defaults to
-"main". Setting this will ensure you always use the same version of the shiny
-app no matter what system you are on.}
+\item{ref}{retained for compatibility with older releases; ignored because
+the app is bundled with the package.}
 
-\item{check_local}{logical; when \code{TRUE} a previously downloaded copy of
-the Shiny app located at \code{path} is used instead of downloading a fresh
-copy from GitHub. The directory may contain either a single-file
-\code{app.R} application or a \code{server.R}/\code{ui.R} pair. Metadata
-about downloaded copies, including the originating commit hash, is stored
-alongside the app and surfaced when the local copy is reused. When a
-specific \code{ref} is requested, matching local copies are preferred and
-unmatched directories are ignored.}
+\item{check_local}{retained for compatibility with older releases; ignored
+because \code{path = "system"} always uses the bundled app.}
 
 \item{test_mode}{logical; for internal testing only.}
 
-\item{launch.browser}{option for runApp, defaults to web browser.}
+\item{launch.browser}{option for \code{shiny::runApp()}.}
 
-\item{\dots}{arguments passed to \code{\link[shiny]{runApp}()}.}
+\item{\dots}{arguments passed to \code{shiny::runApp()}.}
 }
 \value{
-This function normally does not return any value, see
-\code{\link[shiny]{runApp}()}.
+This function normally does not return any value, see \code{shiny::runApp()}.
+In \code{test_mode}, it invisibly returns the resolved app path.
 }
 \description{
 This wrapper function starts the graphical user interface of Open Specy.
 }
 \details{
-After running this function the Open Specy GUI should open in a separate
-window or in your computer browser. When downloads are required, the function
-reports the GitHub commit used and preserves that information for subsequent
-reuse when \code{check_local = TRUE}.
+By default, \code{run_app()} launches the Shiny app bundled with the installed
+OpenSpecy package at \code{system.file("shiny", package = "OpenSpecy")}.
+Historical GitHub download support has been removed so package installs use
+the same app files offline. Set \code{path} to an explicit app directory when
+testing a local Shiny app during development.
 }
 \examples{
 \dontrun{
@@ -59,7 +52,7 @@ run_app()
 
 }
 \seealso{
-\code{\link[shiny]{runApp}()}
+\code{shiny::runApp()}
 }
 \author{
 Win Cowger, Zacharias Steinmetz, Garth Covernton

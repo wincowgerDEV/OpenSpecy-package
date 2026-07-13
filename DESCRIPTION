@@ -100,13 +100,15 @@ Suggests:
     testthat (>= 3.1.9),
     cluster,
     sgolay,
+    curl,
     shinyjs, 
     shinyWidgets,
     bs4Dash,
     dplyr, 
     DT,
     reshape2,
-    ggplot2
+    ggplot2,
+    scales
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0

@@ -54,15 +54,15 @@
 
 ## Work Checklist
 
-- [ ] Compare the current Moore-Institute Shinylive repo/public app behavior with `inst/shiny/` and carry over only required source/configuration.
-- [ ] Audit `inst/shiny/` package calls and create a reproducible app dependency manifest including transitive wasm builds.
-- [ ] Fix `.github/workflows/deploy-cran-repo.yml` so it builds `local::.` plus the full app dependency closure and records immutable metadata.
-- [ ] Add a GitHub Actions workflow to stage medoid/model libraries with `get_lib()`, report artifact sizes, and fail clearly on guarded download errors.
-- [ ] Add a Shinylive build/deploy workflow that converts `inst/shiny/` to the hosted app, points at the pinned wasm repo/dependency manifest, and publishes generated output.
-- [ ] Add internal app config so the WebAssembly build exposes only medoid/model libraries while local `run_app()` can still expose full libraries.
-- [ ] Add focused tests or workflow checks for dependency manifest contents, small-library allow-list, staged library files, package repo `PACKAGES`, and pinned metadata.
-- [ ] Add a CI-guarded or manual browser smoke script for startup, static assets, dependency resolution, library loading, upload/sample data, and one identification path.
-- [ ] Update README/vignette source, NEWS, and release notes with the hosted app pinning and local-vs-web library behavior.
+- [x] Compare the current Moore-Institute Shinylive repo/public app behavior with `inst/shiny/` and carry over only required source/configuration.
+- [x] Audit `inst/shiny/` package calls and create a reproducible app dependency manifest including transitive wasm builds.
+- [x] Fix `.github/workflows/deploy-cran-repo.yml` so it builds `local::.` plus the full app dependency closure and records immutable metadata.
+- [x] Add a GitHub Actions workflow to stage medoid/model libraries with `get_lib()`, report artifact sizes, and fail clearly on guarded download errors.
+- [x] Add a Shinylive build/deploy workflow that converts `inst/shiny/` to the hosted app, points at the pinned wasm repo/dependency manifest, and publishes generated output.
+- [x] Add internal app config so the WebAssembly build exposes only medoid/model libraries while local `run_app()` can still expose full libraries.
+- [x] Add focused tests or workflow checks for dependency manifest contents, small-library allow-list, staged library files, package repo `PACKAGES`, and pinned metadata.
+- [x] Add a CI-guarded or manual browser smoke script for startup, static assets, dependency resolution, library loading, upload/sample data, and one identification path.
+- [x] Update README/vignette source, NEWS, and release notes with the hosted app pinning and local-vs-web library behavior.
 
 ## Verification
 

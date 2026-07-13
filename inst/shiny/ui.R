@@ -501,9 +501,7 @@ dashboardPage(dark = T,
                                                                                                         choices =  c("Derivative" = "deriv",
                                                                                                                      "No Baseline" = "nobaseline")),
                                                                                      pickerInput(inputId = "lib_type", label =  "Library Type",
-                                                                                                choices =  c("Full" = "full",
-                                                                                                             "Medoid" = "medoid",
-                                                                                                             "Multinomial" = "model")),
+                                                                                                choices =  app_library_type_choices()),
                                                                                      conditionalPanel(
                                                                                          condition = "input.lib_type != 'model'",
                                                                                          fluidRow(

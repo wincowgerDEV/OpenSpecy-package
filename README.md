@@ -47,22 +47,15 @@ if (!require(devtools)) install.packages("devtools")
 devtools::install_github("wincowgerDEV/OpenSpecy-package")
 ```
 
-### Install on Web Assembly through webr (experimental), you can test here: https://webr.r-wasm.org/latest/
-```r
-library(caTools)
-library(data.table)
-library(jsonlite)
-library(hyperSpec)
-library(mmand)
-library(plotly)
-library(digest)
-library(glmnet)
-library(jpeg)
-library(shiny)
-webr::install("OpenSpecy", repos = "https://wincowger.com/OpenSpecy-package/")
-library(OpenSpecy)
+### Use the WebAssembly app
 
-```
+The public WebAssembly/Shinylive app is available at
+[https://www.openanalysis.org/openspecy/](https://www.openanalysis.org/openspecy/).
+Each hosted app build is pinned to the matching OpenSpecy package build and
+the Shiny app dependency closure from this repository. To keep the browser app
+small and reproducible, the WebAssembly app exposes the medoid and multinomial
+model libraries; the local bundled app launched with `run_app()` can still use
+the full libraries.
 
 ## Getting started
 ```r

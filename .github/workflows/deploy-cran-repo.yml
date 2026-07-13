@@ -1,25 +1,86 @@
-# Workflow derived from https://github.com/r-wasm/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+# Workflow derived from https://github.com/r-wasm/actions/tree/v3/examples
 on:
   push:
-    # Only build on main or master branch
     branches: [main, master]
-  # Or when triggered manually
   workflow_dispatch: {}
 
 name: Build and deploy wasm R package repository
 
+permissions:
+  contents: write
+
+concurrency:
+  group: wasm-cran-repo-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  # Builds package references into a CRAN-like repository hosted on GitHub Pages.
-  deploy-cran-repo:
-    uses: r-wasm/actions/.github/workflows/deploy-cran-repo.yml@v2
-    with:
-      # Build the checked-out package source directly. This avoids asking pak
-      # to resolve this same repository through the GitHub API during CI.
-      packages: "local::."
-    permissions:
-      # To download GitHub Packages within action
-      repository-projects: read
-      # For publishing to pages environment
-      pages: write
-      id-token: write
+  build-deploy:
+    runs-on: ubuntu-latest
+    env:
+      OPENSPECY_WASM_PAGES_BASE_URL: ${{ vars.OPENSPECY_WASM_PAGES_BASE_URL }}
+      PACKAGE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup R for manifest checks
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install manifest dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::jsonlite
+
+      - name: Resolve pinned wasm repository URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          base="${OPENSPECY_WASM_PAGES_BASE_URL:-https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}}"
+          echo "OPENSPECY_WASM_REPO_URL=${base%/}/wasm/${PACKAGE_SHA}/repo" >> "$GITHUB_ENV"
+
+      - name: Read app package roots
+        id: package-roots
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "packages<<EOF"
+            sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' inst/shiny/wasm/app-package-roots.txt
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Record pinned app manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "_site/wasm/${PACKAGE_SHA}/metadata"
+          Rscript tools/wasm/write-app-manifest.R \
+            --repo-url "${OPENSPECY_WASM_REPO_URL}" \
+            --package-sha "${PACKAGE_SHA}" \
+            --out "_site/wasm/${PACKAGE_SHA}/metadata/wasm-app-manifest.json"
+          cp inst/shiny/wasm/app-package-roots.txt "_site/wasm/${PACKAGE_SHA}/metadata/app-package-roots.txt"
+          cp inst/shiny/wasm/library-types.txt "_site/wasm/${PACKAGE_SHA}/metadata/library-types.txt"
+
+      - name: Build wasm package repository
+        uses: r-wasm/actions/build-rwasm@v3
+        with:
+          packages: ${{ steps.package-roots.outputs.packages }}
+          repo-path: _site/wasm/${{ env.PACKAGE_SHA }}/repo
+          image-path: _site/wasm/${{ env.PACKAGE_SHA }}/image
+          strip: demo, doc, examples, help, html, include, tests, vignette
+
+      - name: Check wasm package repository contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript tools/wasm/check-wasm-repo.R "_site/wasm/${PACKAGE_SHA}/repo"
+
+      - name: Deploy versioned wasm repository
+        uses: JamesIves/github-pages-deploy-action@v4.4.1
+        with:
+          clean: false
+          branch: gh-pages
+          folder: _site

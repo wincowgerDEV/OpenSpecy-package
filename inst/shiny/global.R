@@ -2,6 +2,42 @@
 # of functions without removing the files.
 translate <- file.exists("www/googletranslate.html")
 
+if (file.exists("wasm-config.R")) {
+  source("wasm-config.R", local = TRUE)
+}
+
+app_wasm_mode <- function() {
+  env <- tolower(Sys.getenv("OPENSPECY_SHINY_WASM", ""))
+  isTRUE(getOption("openspecy.shiny.wasm", FALSE)) ||
+    env %in% c("1", "true", "yes", "on")
+}
+
+install_wasm_packages <- function() {
+  if (!app_wasm_mode()) return(invisible(FALSE))
+
+  pkgs <- getOption("openspecy.shiny.wasm.packages", character())
+  repo <- getOption("openspecy.shiny.wasm.repo", "")
+  if (!length(pkgs) || !nzchar(repo)) return(invisible(FALSE))
+
+  options(repos = c(OpenSpecyWasm = repo))
+  if (requireNamespace("webr", quietly = TRUE)) {
+    tryCatch(
+      webr::install(pkgs, repos = getOption("repos")),
+      error = function(e) {
+        stop(
+          "Unable to install pinned OpenSpecy WebAssembly packages from ",
+          repo, ": ", conditionMessage(e),
+          call. = FALSE
+        )
+      }
+    )
+  }
+
+  invisible(TRUE)
+}
+
+install_wasm_packages()
+
 #remotes::install_github("wincowgerDEV/OpenSpecy-package@vignettes")
 
 # Libraries ----
@@ -127,7 +163,35 @@ app_library_revisions <- c(
   derivative = "k9DA01hqGk0dNudCu3ddhwQX.whPGrsp"
 )
 
+app_wasm_library_types <- function() {
+  configured <- getOption("openspecy.shiny.wasm.libraries", character())
+  if (length(configured)) return(configured)
+  c("medoid_derivative", "medoid_nobaseline",
+    "model_derivative", "model_nobaseline")
+}
+
+app_library_type_choices <- function() {
+  if (app_wasm_mode()) {
+    return(c("Medoid" = "medoid", "Multinomial" = "model"))
+  }
+
+  c("Full" = "full", "Medoid" = "medoid", "Multinomial" = "model")
+}
+
+app_validate_library_type <- function(type) {
+  if (app_wasm_mode() && !type %in% app_wasm_library_types()) {
+    stop(
+      "The WebAssembly app only includes medoid and model libraries. ",
+      "Requested unsupported library: ", type,
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
 load_app_library <- function(type) {
+  app_validate_library_type(type)
+
   installed_library <- tryCatch(
     load_lib(type),
     error = function(e) e

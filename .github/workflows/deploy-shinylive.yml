@@ -1,0 +1,127 @@
+on:
+  workflow_run:
+    workflows: ["Build and deploy wasm R package repository"]
+    branches: [main, master]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      package_sha:
+        description: Commit SHA whose wasm package repository should be used
+        required: false
+        type: string
+      browser_smoke:
+        description: Run optional Playwright browser startup smoke
+        required: false
+        default: false
+        type: boolean
+
+name: Build and deploy Shinylive app
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: shinylive-${{ github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      OPENSPECY_WASM_PAGES_BASE_URL: ${{ vars.OPENSPECY_WASM_PAGES_BASE_URL }}
+      PACKAGE_SHA: ${{ github.event.workflow_run.head_sha || inputs.package_sha || github.sha }}
+    steps:
+      - name: Checkout package source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || inputs.package_sha || github.sha }}
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install package, app, and Shinylive dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            local::.
+            any::jsonlite
+            any::shinylive
+            any::httpuv
+          needs: website
+
+      - name: Resolve pinned wasm repository URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          base="${OPENSPECY_WASM_PAGES_BASE_URL:-https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}}"
+          echo "OPENSPECY_WASM_REPO_URL=${base%/}/wasm/${PACKAGE_SHA}/repo" >> "$GITHUB_ENV"
+
+      - name: Stage small OpenSpecy libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript tools/wasm/stage-shinylive-libraries.R \
+            --out-dir "_wasm/libraries" \
+            --manifest-out "_wasm/library-manifest.json"
+
+      - name: Smoke test staged libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript tools/wasm/smoke-staged-libraries.R "_wasm/libraries"
+
+      - name: Export pinned Shinylive app
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript tools/wasm/prepare-shinylive-app.R \
+            --repo-url "${OPENSPECY_WASM_REPO_URL}" \
+            --library-dir "_wasm/libraries" \
+            --out-dir "_site/openspecy" \
+            --work-dir "_wasm/app-source" \
+            --manifest-out "_wasm/wasm-app-manifest.json"
+
+      - name: Check Shinylive export
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript tools/wasm/check-shinylive-export.R "_site/openspecy"
+
+      - name: Setup Node for optional browser smoke
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.browser_smoke }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run optional browser smoke
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.browser_smoke }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save @playwright/test http-server
+          npx playwright install chromium
+          npx http-server _site -p 8080 > /tmp/openspecy-http.log 2>&1 &
+          echo "SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/openspecy/" >> "$GITHUB_ENV"
+          SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/openspecy/ npx playwright test tools/wasm/shinylive-smoke.spec.js
+
+      - name: Upload Shinylive build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openspecy-shinylive-${{ env.PACKAGE_SHA }}
+          path: |
+            _site/openspecy
+            _wasm/library-manifest.json
+            _wasm/wasm-app-manifest.json
+
+      - name: Deploy Shinylive app
+        uses: JamesIves/github-pages-deploy-action@v4.4.1
+        with:
+          clean: false
+          branch: gh-pages
+          folder: _site/openspecy
+          target-folder: openspecy

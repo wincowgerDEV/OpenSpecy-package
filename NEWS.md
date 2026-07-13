@@ -1,5 +1,10 @@
 # OpenSpecy 1.7.1
 
+- Added source manifests, app configuration, and GitHub Actions for building a
+  hosted Shinylive/WebAssembly app from `inst/shiny/`. The hosted app is pinned
+  to a versioned wasm CRAN-like repository containing `OpenSpecy` and the app
+  dependency closure, stages the small medoid/model libraries, and keeps full
+  library support available in the local bundled app.
 - Bundled the Shiny app in `inst/shiny/` from
   `wincowgerDEV/OpenSpecy-shiny` commit
   `60d1bdefff90affcda3353d7c389ea8f3748ca56`; `run_app()` now launches the

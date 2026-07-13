@@ -78,7 +78,7 @@ run_app <- function(path = "system", log = TRUE, ref = NULL,
 
 .openspecy_app_packages <- function() {
   c("shinyjs", "shinyWidgets", "bs4Dash", "dplyr", "ggplot2", "DT",
-    "reshape2")
+    "reshape2", "curl", "scales")
 }
 
 .openspecy_require_shiny_packages <- function() {
