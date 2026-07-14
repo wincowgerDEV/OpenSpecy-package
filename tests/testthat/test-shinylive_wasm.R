@@ -58,7 +58,10 @@ test_that("action-built wasm library image is bundled with an exact pin", {
   roots[roots == "local::."] <- desc[["Package"]]
   versions <- rep("1.0.0", length(roots))
   versions[roots == desc[["Package"]]] <- desc[["Version"]]
-  write.dcf(data.frame(Package = roots, Version = versions),
+  imports <- rep(NA_character_, length(roots))
+  imports[roots == "dplyr"] <- "webr"
+  write.dcf(data.frame(Package = roots, Version = versions,
+                       Imports = imports),
             file.path(contrib, "PACKAGES"))
 
   writeBin(as.raw(seq_len(32)), file.path(image_dir, "library.data.gz"))

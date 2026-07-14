@@ -65,7 +65,11 @@ resolve_wasm_package_roots <- function(
 
   closure <- unique(c(requested, hard_dependencies(requested, available,
                                                     recursive = TRUE)))
-  closure <- sort(setdiff(closure, c("R", platform_packages, package_name)))
+  # Shinylive supplies the webr R package with its WebAssembly runtime.
+  closure <- sort(setdiff(
+    closure,
+    c("R", "webr", platform_packages, package_name)
+  ))
   c(if ("local::." %in% roots) "local::.", closure)
 }
 

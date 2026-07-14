@@ -58,8 +58,10 @@ dependencies <- tools::package_dependencies(
   recursive = FALSE
 )
 required_dependencies <- unique(unlist(dependencies, use.names = FALSE))
+# Shinylive supplies the webr R package with its WebAssembly runtime.
 missing_dependencies <- setdiff(required_dependencies,
-                                c("R", platform_packages, packages$Package))
+                                c("R", "webr", platform_packages,
+                                  packages$Package))
 if (length(missing_dependencies)) {
   fail("Wasm repository is missing hard package dependencies: ",
        paste(missing_dependencies, collapse = ", "))
