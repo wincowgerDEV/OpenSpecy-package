@@ -1,0 +1,25 @@
+# Direct package roots for the hosted Shinylive/WebAssembly app.
+# The GitHub Actions workflow builds this set plus its transitive dependency
+# closure into a versioned CRAN-like wasm repository.
+local::.
+shiny
+shinyjs
+shinyWidgets
+bs4Dash
+dplyr
+DT
+ggplot2
+reshape2
+plotly
+curl
+scales
+caTools
+data.table
+jsonlite
+hyperSpec
+mmand
+digest
+glmnet
+jpeg
+hdf5r
+matrixStats
