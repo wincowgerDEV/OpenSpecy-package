@@ -46,12 +46,13 @@ devtools::install_github("wincowgerDEV/OpenSpecy-package")
 
 ### Use the WebAssembly app
 
-The public WebAssembly/Shinylive app is available at
-<https://www.openanalysis.org/openspecy/>. Each hosted app build is
-pinned to the matching OpenSpecy package build and the Shiny app
-dependency closure from this repository. To keep the browser app small
-and reproducible, the WebAssembly app exposes the medoid and multinomial
-model libraries; the local bundled app launched with
+The WebAssembly/Shinylive app built from this repository is available at
+<https://wincowgerdev.github.io/OpenSpecy-package/openspecy/>. Each
+hosted build bundles the WebAssembly library image produced with the
+matching OpenSpecy commit and its pinned dependency closure, so runtime
+package installation does not depend on the floating webR repository. To
+keep the browser app small, it exposes the medoid and multinomial model
+libraries; the local bundled app launched with
 [`run_app()`](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html/reference/run_app.md)
 can still use the full libraries.
 

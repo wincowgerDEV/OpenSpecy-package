@@ -85,7 +85,7 @@
 <div class="section level3">
 <h3 id="use-the-webassembly-app">Use the WebAssembly app<a class="anchor" aria-label="anchor" href="#use-the-webassembly-app"></a>
 </h3>
-<p>The public WebAssembly/Shinylive app is available at <a href="https://www.openanalysis.org/openspecy/" class="external-link">https://www.openanalysis.org/openspecy/</a>. Each hosted app build is pinned to the matching OpenSpecy package build and the Shiny app dependency closure from this repository. To keep the browser app small and reproducible, the WebAssembly app exposes the medoid and multinomial model libraries; the local bundled app launched with <code><a href="reference/run_app.html">run_app()</a></code> can still use the full libraries.</p>
+<p>The WebAssembly/Shinylive app built from this repository is available at <a href="https://wincowgerdev.github.io/OpenSpecy-package/openspecy/" class="external-link">https://wincowgerdev.github.io/OpenSpecy-package/openspecy/</a>. Each hosted build bundles the WebAssembly library image produced with the matching OpenSpecy commit and its pinned dependency closure, so runtime package installation does not depend on the floating webR repository. To keep the browser app small, it exposes the medoid and multinomial model libraries; the local bundled app launched with <code><a href="reference/run_app.html">run_app()</a></code> can still use the full libraries.</p>
 </div>
 </div>
 <div class="section level2">

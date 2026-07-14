@@ -8,6 +8,11 @@
   containing `OpenSpecy` and the app dependency closure, stages the
   small medoid/model libraries, and keeps full library support available
   in the local bundled app.
+- Bundled the action-built, commit-pinned wasm library image into
+  Shinylive so the app loads the package version in `DESCRIPTION`
+  without waiting for the floating webR package repository. Deployment
+  now smoke-tests the package version, upload, identification, download,
+  and public GitHub Pages endpoint.
 - Bundled the Shiny app in `inst/shiny/` from
   `wincowgerDEV/OpenSpecy-shiny` commit
   `60d1bdefff90affcda3353d7c389ea8f3748ca56`;
