@@ -60,7 +60,9 @@ jobs:
           base="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}"
           echo "OPENSPECY_WASM_REPO_URL=${base%/}/wasm/${PACKAGE_SHA}/repo" >> "$GITHUB_ENV"
           echo "OPENSPECY_SHINYLIVE_URL=${base%/}/openspecy/" >> "$GITHUB_ENV"
-          echo "PACKAGE_VERSION=$(awk -F ': *' '$1 == \"Version\" {print $2}' DESCRIPTION)" >> "$GITHUB_ENV"
+          package_version=$(awk -F ': *' '$1 == "Version" {print $2}' DESCRIPTION)
+          test -n "${package_version}"
+          echo "PACKAGE_VERSION=${package_version}" >> "$GITHUB_ENV"
 
       - name: Download pinned wasm build artifact
         uses: actions/download-artifact@v7
