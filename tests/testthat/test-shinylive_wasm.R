@@ -10,6 +10,14 @@ wasm_manifest_path <- function(file) {
   test_path("..", "..", "inst", "shiny", "wasm", file)
 }
 
+source_wasm_tool <- function(file, env) {
+  path <- test_path("..", "..", "tools", "wasm", file)
+  if (!file.exists(path)) {
+    skip("Repository-only wasm deployment tools are not in the package tarball")
+  }
+  sys.source(path, envir = env)
+}
+
 test_that("Shinylive wasm package roots include app runtime packages", {
   roots <- read_wasm_manifest_lines(wasm_manifest_path("app-package-roots.txt"))
 
@@ -30,6 +38,177 @@ test_that("Shinylive wasm library allow-list is intentionally small", {
       "model_derivative", "model_nobaseline")
   )
   expect_false(any(c("derivative", "nobaseline", "raw") %in% library_types))
+})
+
+test_that("action-built wasm library image is bundled with an exact pin", {
+  env <- new.env(parent = globalenv())
+  source_wasm_tool("bundle-wasm-library.R", env)
+
+  tmp <- file.path(tempdir(), "OpenSpecy-testthat-wasm-bundle")
+  on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
+  repo_dir <- file.path(tmp, "repo")
+  image_dir <- file.path(tmp, "image")
+  site_dir <- file.path(tmp, "site")
+  contrib <- file.path(repo_dir, "bin", "emscripten", "contrib", "4.6")
+  dir.create(contrib, recursive = TRUE, showWarnings = FALSE)
+  dir.create(image_dir, recursive = TRUE, showWarnings = FALSE)
+
+  roots <- read_wasm_manifest_lines(wasm_manifest_path("app-package-roots.txt"))
+  desc <- read.dcf(test_path("..", "..", "DESCRIPTION"))[1, ]
+  roots[roots == "local::."] <- desc[["Package"]]
+  versions <- rep("1.0.0", length(roots))
+  versions[roots == desc[["Package"]]] <- desc[["Version"]]
+  write.dcf(data.frame(Package = roots, Version = versions),
+            file.path(contrib, "PACKAGES"))
+
+  writeBin(as.raw(seq_len(32)), file.path(image_dir, "library.data.gz"))
+  jsonlite::write_json(
+    list(files = data.frame(filename = paste0("/", roots, "/DESCRIPTION")),
+         gzip = TRUE),
+    file.path(image_dir, "library.js.metadata"),
+    auto_unbox = TRUE
+  )
+
+  pin <- paste(rep("a", 40), collapse = "")
+  env$bundle_wasm_library(
+    image_dir, repo_dir, site_dir, pin,
+    description_file = test_path("..", "..", "DESCRIPTION"),
+    package_roots_file = wasm_manifest_path("app-package-roots.txt")
+  )
+
+  metadata <- readRDS(file.path(site_dir, "shinylive", "webr", "packages",
+                                "metadata.rds"))
+  expect_length(metadata, 1)
+  expect_identical(metadata[[1]]$version, unname(desc[["Version"]]))
+  expect_match(metadata[[1]]$ref, pin, fixed = TRUE)
+  expect_identical(metadata[[1]]$type, "library")
+  expect_true(all(file.exists(file.path(
+    site_dir, "shinylive", "webr", "packages", metadata[[1]]$name,
+    vapply(metadata[[1]]$assets, `[[`, character(1), "filename")
+  ))))
+
+  manifest <- jsonlite::fromJSON(file.path(site_dir,
+                                            "pinned-wasm-library.json"))
+  expect_identical(manifest$package$version, unname(desc[["Version"]]))
+  expect_identical(manifest$package$commit, pin)
+})
+
+test_that("wasm package resolver includes the transitive hard closure", {
+  env <- new.env(parent = globalenv())
+  source_wasm_tool("resolve-wasm-package-roots.R", env)
+
+  tmp <- file.path(tempdir(), "OpenSpecy-testthat-wasm-resolver")
+  on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
+  dir.create(tmp, recursive = TRUE, showWarnings = FALSE)
+  roots_file <- file.path(tmp, "roots.txt")
+  description_file <- file.path(tmp, "DESCRIPTION")
+  writeLines(c("local::.", "Alpha"), roots_file)
+  write.dcf(
+    data.frame(Package = "LocalPackage", Version = "1.0.0",
+               Imports = "Alpha, methods"),
+    description_file
+  )
+  available <- rbind(
+    Alpha = c(Package = "Alpha", Version = "1.0.0", Depends = NA,
+              Imports = "Beta", LinkingTo = NA),
+    Beta = c(Package = "Beta", Version = "1.0.0", Depends = NA,
+             Imports = "Gamma", LinkingTo = NA),
+    Gamma = c(Package = "Gamma", Version = "1.0.0", Depends = NA,
+              Imports = NA, LinkingTo = NA)
+  )
+
+  resolved <- env$resolve_wasm_package_roots(
+    roots_file,
+    description_file,
+    available = available,
+    platform_packages = "methods"
+  )
+  expect_identical(resolved, c("local::.", "Alpha", "Beta", "Gamma"))
+})
+
+test_that("wasm library bundling rejects an incomplete hard closure", {
+  env <- new.env(parent = globalenv())
+  source_wasm_tool("bundle-wasm-library.R", env)
+
+  tmp <- file.path(tempdir(), "OpenSpecy-testthat-wasm-incomplete")
+  on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
+  repo_dir <- file.path(tmp, "repo")
+  image_dir <- file.path(tmp, "image")
+  contrib <- file.path(repo_dir, "bin", "emscripten", "contrib", "4.6")
+  dir.create(contrib, recursive = TRUE, showWarnings = FALSE)
+  dir.create(image_dir, recursive = TRUE, showWarnings = FALSE)
+
+  roots <- read_wasm_manifest_lines(wasm_manifest_path("app-package-roots.txt"))
+  desc <- read.dcf(test_path("..", "..", "DESCRIPTION"))[1, ]
+  roots[roots == "local::."] <- desc[["Package"]]
+  packages <- data.frame(Package = roots, Version = "1.0.0",
+                         Imports = NA_character_)
+  packages$Version[packages$Package == desc[["Package"]]] <- desc[["Version"]]
+  packages$Imports[packages$Package == "dplyr"] <- "MissingDependency"
+  write.dcf(packages, file.path(contrib, "PACKAGES"))
+  writeBin(as.raw(seq_len(8)), file.path(image_dir, "library.data.gz"))
+  jsonlite::write_json(
+    list(files = data.frame(filename = paste0("/", roots, "/DESCRIPTION"))),
+    file.path(image_dir, "library.js.metadata"),
+    auto_unbox = TRUE
+  )
+
+  expect_error(
+    env$bundle_wasm_library(
+      image_dir, repo_dir, file.path(tmp, "site"), strrep("b", 40),
+      description_file = test_path("..", "..", "DESCRIPTION"),
+      package_roots_file = wasm_manifest_path("app-package-roots.txt")
+    ),
+    "MissingDependency"
+  )
+})
+
+test_that("bundled app has no floating wasm package installer", {
+  app_path <- run_app(test_mode = TRUE)
+  global_source <- readLines(file.path(app_path, "global.R"), warn = FALSE)
+
+  expect_false(any(grepl("webr::install", global_source, fixed = TRUE)))
+  expect_false(any(grepl("install_wasm_packages", global_source,
+                         fixed = TRUE)))
+  expect_true(any(grepl("validate_wasm_package_version", global_source,
+                        fixed = TRUE)))
+})
+
+test_that("bundled app rejects a mismatched wasm package version", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:",
+    paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  old_options <- options(c("openspecy.shiny.wasm",
+                           "openspecy.shiny.wasm.package_version",
+                           "openspecy.shiny.wasm.package_sha"))
+  old_env <- Sys.getenv("OPENSPECY_SHINY_WASM", unset = NA)
+  on.exit(setwd(old_wd), add = TRUE)
+  on.exit(options(old_options), add = TRUE)
+  on.exit({
+    if (is.na(old_env)) Sys.unsetenv("OPENSPECY_SHINY_WASM") else
+      Sys.setenv(OPENSPECY_SHINY_WASM = old_env)
+  }, add = TRUE)
+
+  options(
+    openspecy.shiny.wasm = TRUE,
+    openspecy.shiny.wasm.package_version = "0.0.0",
+    openspecy.shiny.wasm.package_sha = "test-commit"
+  )
+  setwd(app_path)
+
+  expect_error(
+    sys.source(file.path(app_path, "global.R"), envir = env),
+    "pinned build requires 0.0.0"
+  )
 })
 
 test_that("bundled Shiny app exposes medoid/model only in wasm mode", {

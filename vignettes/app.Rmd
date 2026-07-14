@@ -57,10 +57,11 @@ trying again. By default the function launches the Shiny app bundled with the
 installed OpenSpecy package, so app startup no longer depends on downloading
 files from the historical `OpenSpecy-shiny` repository. Developers can still
 test a local app directory by passing that directory to `path`. The hosted
-WebAssembly/Shinylive app is built from the same bundled source and is pinned
-to the matching OpenSpecy package plus Shiny app dependency set for that app
-release. To keep the browser app small, it exposes the medoid and multinomial
-model libraries; the local app can still use the full libraries.
+WebAssembly/Shinylive app is built from the same bundled source and mounts the
+action-built WebAssembly library image for the matching OpenSpecy commit and
+dependency set. It therefore does not wait for a floating webR repository to
+publish the package. To keep the browser app small, it exposes the medoid and
+multinomial model libraries; the local app can still use the full libraries.
 
 # Reading Data
 

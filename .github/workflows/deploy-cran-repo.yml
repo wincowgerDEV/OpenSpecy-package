@@ -17,7 +17,6 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     env:
-      OPENSPECY_WASM_PAGES_BASE_URL: ${{ vars.OPENSPECY_WASM_PAGES_BASE_URL }}
       PACKAGE_SHA: ${{ github.sha }}
     steps:
       - name: Checkout repository
@@ -38,19 +37,25 @@ jobs:
         run: |
           set -euo pipefail
           repo_name="${GITHUB_REPOSITORY#*/}"
-          base="${OPENSPECY_WASM_PAGES_BASE_URL:-https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}}"
+          base="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}"
           echo "OPENSPECY_WASM_REPO_URL=${base%/}/wasm/${PACKAGE_SHA}/repo" >> "$GITHUB_ENV"
 
-      - name: Read app package roots
+      - name: Resolve complete app package closure
         id: package-roots
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p "_site/wasm/${PACKAGE_SHA}/metadata"
+          Rscript tools/wasm/resolve-wasm-package-roots.R \
+            inst/shiny/wasm/app-package-roots.txt \
+            _wasm/resolved-package-roots.txt
           {
             echo "packages<<EOF"
-            sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' inst/shiny/wasm/app-package-roots.txt
+            cat _wasm/resolved-package-roots.txt
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+          cp _wasm/resolved-package-roots.txt \
+            "_site/wasm/${PACKAGE_SHA}/metadata/resolved-package-roots.txt"
 
       - name: Record pinned app manifest
         shell: bash
@@ -76,7 +81,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          Rscript tools/wasm/check-wasm-repo.R "_site/wasm/${PACKAGE_SHA}/repo"
+          Rscript tools/wasm/check-wasm-repo.R \
+            "_site/wasm/${PACKAGE_SHA}/repo" \
+            "_site/wasm/${PACKAGE_SHA}/image" \
+            "_site/wasm/${PACKAGE_SHA}/metadata/resolved-wasm-packages.json"
+
+      - name: Upload pinned wasm build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: openspecy-wasm-${{ env.PACKAGE_SHA }}
+          path: _site/wasm/${{ env.PACKAGE_SHA }}
+          retention-days: 90
+          if-no-files-found: error
 
       - name: Deploy versioned wasm repository
         uses: JamesIves/github-pages-deploy-action@v4.8.0

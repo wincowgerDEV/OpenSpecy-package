@@ -94,6 +94,10 @@ test_that("bundled Shiny app does not block startup or auto-load remote images",
 
   expect_false(any(grepl("modalDialog\\(", ui_source)))
   expect_false(any(grepl("img\\(src = \"https?://", ui_source)))
+  expect_false(any(grepl("<iframe", ui_source, fixed = TRUE)))
+  expect_false(any(grepl("width: 15vw", ui_source, fixed = TRUE)))
+  expect_true(any(grepl("object-fit:contain", ui_source, fixed = TRUE)))
+  expect_true(any(grepl("html.shiny-busy", ui_source, fixed = TRUE)))
 })
 
 test_that("bundled Shiny app prunes imported orphan assets", {

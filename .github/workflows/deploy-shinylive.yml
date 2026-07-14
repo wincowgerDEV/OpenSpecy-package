@@ -7,19 +7,18 @@ on:
     inputs:
       package_sha:
         description: Commit SHA whose wasm package repository should be used
-        required: false
+        required: true
         type: string
-      browser_smoke:
-        description: Run optional Playwright browser startup smoke
-        required: false
-        default: false
-        type: boolean
+      wasm_run_id:
+        description: Successful wasm repository workflow run containing the pinned build artifact
+        required: true
+        type: string
 
 name: Build and deploy Shinylive app
 
 permissions:
-  contents: write
   actions: read
+  contents: write
 
 concurrency:
   group: shinylive-${{ github.event.workflow_run.head_branch || github.ref }}
@@ -30,8 +29,8 @@ jobs:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
-      OPENSPECY_WASM_PAGES_BASE_URL: ${{ vars.OPENSPECY_WASM_PAGES_BASE_URL }}
       PACKAGE_SHA: ${{ github.event.workflow_run.head_sha || inputs.package_sha || github.sha }}
+      WASM_ARTIFACT_RUN_ID: ${{ github.event.workflow_run.id || inputs.wasm_run_id }}
     steps:
       - name: Checkout package source
         uses: actions/checkout@v7
@@ -58,8 +57,27 @@ jobs:
         run: |
           set -euo pipefail
           repo_name="${GITHUB_REPOSITORY#*/}"
-          base="${OPENSPECY_WASM_PAGES_BASE_URL:-https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}}"
+          base="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}"
           echo "OPENSPECY_WASM_REPO_URL=${base%/}/wasm/${PACKAGE_SHA}/repo" >> "$GITHUB_ENV"
+          echo "OPENSPECY_SHINYLIVE_URL=${base%/}/openspecy/" >> "$GITHUB_ENV"
+          echo "PACKAGE_VERSION=$(awk -F ': *' '$1 == \"Version\" {print $2}' DESCRIPTION)" >> "$GITHUB_ENV"
+
+      - name: Download pinned wasm build artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: openspecy-wasm-${{ env.PACKAGE_SHA }}
+          path: _wasm/pinned
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.WASM_ARTIFACT_RUN_ID }}
+
+      - name: Verify pinned wasm build artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f _wasm/pinned/repo/bin/emscripten/contrib/*/PACKAGES
+          test -f _wasm/pinned/image/library.data.gz
+          test -f _wasm/pinned/image/library.js.metadata
 
       - name: Stage small OpenSpecy libraries
         shell: bash
@@ -81,10 +99,21 @@ jobs:
           set -euo pipefail
           Rscript tools/wasm/prepare-shinylive-app.R \
             --repo-url "${OPENSPECY_WASM_REPO_URL}" \
+            --package-sha "${PACKAGE_SHA}" \
             --library-dir "_wasm/libraries" \
             --out-dir "_site/openspecy" \
             --work-dir "_wasm/app-source" \
             --manifest-out "_wasm/wasm-app-manifest.json"
+
+      - name: Bundle pinned wasm package library
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript tools/wasm/bundle-wasm-library.R \
+            --image-dir "_wasm/pinned/image" \
+            --repo-dir "_wasm/pinned/repo" \
+            --site-dir "_site/openspecy" \
+            --package-sha "${PACKAGE_SHA}"
 
       - name: Check Shinylive export
         shell: bash
@@ -92,22 +121,21 @@ jobs:
           set -euo pipefail
           Rscript tools/wasm/check-shinylive-export.R "_site/openspecy"
 
-      - name: Setup Node for optional browser smoke
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.browser_smoke }}
+      - name: Setup Node for browser smoke
         uses: actions/setup-node@v6
         with:
           node-version: 22
 
-      - name: Run optional browser smoke
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.browser_smoke }}
+      - name: Run browser smoke
         shell: bash
         run: |
           set -euo pipefail
           npm install --no-save @playwright/test http-server
           npx playwright install chromium
           npx http-server _site -p 8080 > /tmp/openspecy-http.log 2>&1 &
-          echo "SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/openspecy/" >> "$GITHUB_ENV"
-          SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/openspecy/ npx playwright test tools/wasm/shinylive-smoke.spec.js
+          SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/openspecy/ \
+          OPENSPECY_EXPECTED_VERSION="${PACKAGE_VERSION}" \
+            npx playwright test tools/wasm/shinylive-smoke.spec.js
 
       - name: Upload Shinylive build artifact
         uses: actions/upload-artifact@v7
@@ -117,6 +145,7 @@ jobs:
             _site/openspecy
             _wasm/library-manifest.json
             _wasm/wasm-app-manifest.json
+            _wasm/pinned/metadata/resolved-wasm-packages.json
 
       - name: Deploy Shinylive app
         uses: JamesIves/github-pages-deploy-action@v4.8.0
@@ -125,3 +154,19 @@ jobs:
           branch: gh-pages
           folder: _site/openspecy
           target-folder: openspecy
+
+      - name: Verify public GitHub Pages app
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..24}; do
+            if body=$(curl --fail --silent --show-error "${OPENSPECY_SHINYLIVE_URL}"); then
+              grep -q "runExportedApp" <<< "$body"
+              echo "Verified ${OPENSPECY_SHINYLIVE_URL}"
+              exit 0
+            fi
+            echo "Waiting for GitHub Pages deployment (${attempt}/24)..."
+            sleep 15
+          done
+          echo "GitHub Pages did not publish ${OPENSPECY_SHINYLIVE_URL}" >&2
+          exit 1

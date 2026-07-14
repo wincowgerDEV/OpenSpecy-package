@@ -9,6 +9,7 @@ need_file <- function(path) {
 }
 
 need_file(file.path(site_dir, "index.html"))
+need_file(file.path(site_dir, "pinned-wasm-library.json"))
 
 app_json <- list.files(site_dir, pattern = "app\\.json$", recursive = TRUE,
                        full.names = TRUE)
@@ -26,6 +27,43 @@ if (any(grepl("repo.r-wasm.org", app_text, fixed = TRUE))) {
 }
 if (!any(grepl("OPENSPECY_SHINY_WASM", app_text, fixed = TRUE))) {
   fail("Exported app does not contain wasm mode configuration.")
+}
+if (any(grepl("webr::install", app_text, fixed = TRUE)) ||
+    any(grepl("install_wasm_packages", app_text, fixed = TRUE))) {
+  fail("Exported app still installs packages from a runtime wasm repository.")
+}
+
+desc <- read.dcf("DESCRIPTION")[1, ]
+pin <- jsonlite::fromJSON(file.path(site_dir, "pinned-wasm-library.json"))
+if (!identical(pin$package$name, unname(desc[["Package"]])) ||
+    !identical(pin$package$version, unname(desc[["Version"]])) ||
+    !nzchar(pin$package$commit)) {
+  fail("Pinned wasm library manifest does not match DESCRIPTION.")
+}
+if (!any(grepl(paste0("openspecy.shiny.wasm.package_version = \\\"",
+                      desc[["Version"]], "\\\""), app_text,
+               fixed = TRUE))) {
+  fail("Exported app does not require OpenSpecy ", desc[["Version"]], ".")
+}
+if (!any(grepl(pin$package$commit, app_text, fixed = TRUE))) {
+  fail("Exported app does not contain its pinned package commit.")
+}
+
+metadata_file <- file.path(site_dir, "shinylive", "webr", "packages",
+                           "metadata.rds")
+need_file(metadata_file)
+metadata <- readRDS(metadata_file)
+pinned <- Filter(function(x) {
+  identical(x$type, "library") &&
+    identical(x$version, pin$package$version) &&
+    grepl(pin$package$commit, x$ref, fixed = TRUE)
+}, metadata)
+if (length(pinned) != 1L) {
+  fail("Shinylive metadata does not mount the pinned OpenSpecy library image.")
+}
+for (asset in pinned[[1]]$assets) {
+  need_file(file.path(site_dir, "shinylive", "webr", "packages",
+                      pinned[[1]]$name, asset$filename))
 }
 
 expected <- paste0(c("medoid_derivative", "medoid_nobaseline",

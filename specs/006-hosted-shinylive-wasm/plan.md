@@ -6,7 +6,7 @@
 
 ## Goal
 
-- Build and deploy the public `https://www.openanalysis.org/openspecy/` app from this repo as a reproducible Shinylive/WebAssembly artifact.
+- Build and deploy this repo's public GitHub Pages app as a reproducible Shinylive/WebAssembly artifact; the existing `openanalysis.org` deployment remains separate during migration.
 - Preserve package and app behavior by pinning `OpenSpecy`, app dependencies, small libraries, generated assets, and deployment metadata to the app release.
 
 ## Scope
@@ -63,6 +63,10 @@
 - [x] Add focused tests or workflow checks for dependency manifest contents, small-library allow-list, staged library files, package repo `PACKAGES`, and pinned metadata.
 - [x] Add a CI-guarded or manual browser smoke script for startup, static assets, dependency resolution, library loading, upload/sample data, and one identification path.
 - [x] Update README/vignette source, NEWS, and release notes with the hosted app pinning and local-vs-web library behavior.
+- [ ] Bundle the action-built pinned wasm library image into Shinylive and reject a runtime `OpenSpecy` version mismatch.
+- [ ] Require browser smoke coverage for the pinned version, upload, identification, and download paths.
+- [ ] Verify GitHub Pages publication and the public app endpoint after deployment.
+- [ ] Fix the clipped app header and prevent stale results from reading as current during long processing.
 
 ## Verification
 

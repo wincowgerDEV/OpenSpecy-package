@@ -8,7 +8,10 @@ dashboardPage(dark = T,
             title = tags$a(href="https://www.openanalysis.org", 
                            target="_blank",
                         tags$img(src = "logo.png", 
-                                 style = 'width: 15vw; padding:1rem;'),
+                                 style = paste(
+                                   "display:block; width:100%; height:50px;",
+                                   "object-fit:contain; padding:4px 8px;"
+                                 )),
                         tags$head(
                             HTML(
                                 '<div class = "dark raised" data-ea-publisher="openanalysisorg" data-ea-type="image" id = "openspecweba"></div>'
@@ -73,6 +76,24 @@ dashboardPage(dark = T,
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
                     }
+                    html.shiny-busy .content-wrapper::after {
+                    content: '';
+                    position: fixed;
+                    inset: 60px 0 0 0;
+                    background: rgba(52, 58, 64, 0.72);
+                    z-index: 1030;
+                    pointer-events: all;
+                    }
+                    html.shiny-busy .content-wrapper::before {
+                    content: 'Processing current analysis...';
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    color: white;
+                    font-size: 20px;
+                    z-index: 1031;
+                    }
                     ")),
                      #HTML('<script async src="https://media.ethicalads.io/media/client/ethicalads.min.js"></script>'),
                       tags$link(rel = "icon", type = "image/png", href = "favicon.png")
@@ -130,8 +151,22 @@ dashboardPage(dark = T,
                                source thanks to our partners."),
                                br(),
                                p(class = "lead", "Looking for the classic version of OpenSpecy? Go to wincowger.shinyapps.io/openspecy-classic")),
-                           column(6, HTML("<iframe width='100%' height='100%' src='https://www.youtube-nocookie.com/embed/3RKufDxzriE' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe>")
-                                )
+                           column(
+                             6,
+                             div(
+                               style = paste(
+                                 "display:flex; align-items:center;",
+                                 "justify-content:center; min-height:220px;"
+                               ),
+                               tags$a(
+                                 href = "https://www.youtube.com/watch?v=3RKufDxzriE",
+                                 target = "_blank",
+                                 class = "btn btn-info btn-lg",
+                                 icon("play"),
+                                 "Watch the Open Specy introduction"
+                               )
+                             )
+                           )
                             )
                          )
                        ),
@@ -142,8 +177,24 @@ dashboardPage(dark = T,
                            status = "info",
                            collapsed = TRUE,
                          fluidRow(
-                           column(6,
-                                  HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/videoseries?si=HmRLfamgtrCYg5Gm&amp;list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'),
+                           column(
+                             6,
+                             div(
+                               style = paste(
+                                 "display:flex; align-items:center;",
+                                 "justify-content:center; min-height:220px;"
+                               ),
+                               tags$a(
+                                 href = paste0(
+                                   "https://www.youtube.com/playlist?list=",
+                                   "PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g"
+                                 ),
+                                 target = "_blank",
+                                 class = "btn btn-info btn-lg",
+                                 icon("list"),
+                                 "Watch the Open Specy tutorials"
+                               )
+                             )
                            ),
                            column(6,
                                   tags$ol(

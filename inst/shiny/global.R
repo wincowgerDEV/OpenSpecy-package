@@ -12,31 +12,23 @@ app_wasm_mode <- function() {
     env %in% c("1", "true", "yes", "on")
 }
 
-install_wasm_packages <- function() {
-  if (!app_wasm_mode()) return(invisible(FALSE))
+validate_wasm_package_version <- function() {
+  if (!app_wasm_mode()) return(invisible(TRUE))
 
-  pkgs <- getOption("openspecy.shiny.wasm.packages", character())
-  repo <- getOption("openspecy.shiny.wasm.repo", "")
-  if (!length(pkgs) || !nzchar(repo)) return(invisible(FALSE))
-
-  options(repos = c(OpenSpecyWasm = repo))
-  if (requireNamespace("webr", quietly = TRUE)) {
-    tryCatch(
-      webr::install(pkgs, repos = getOption("repos")),
-      error = function(e) {
-        stop(
-          "Unable to install pinned OpenSpecy WebAssembly packages from ",
-          repo, ": ", conditionMessage(e),
-          call. = FALSE
-        )
-      }
+  expected <- getOption("openspecy.shiny.wasm.package_version", "")
+  actual <- as.character(utils::packageVersion("OpenSpecy"))
+  if (!nzchar(expected) || !identical(actual, expected)) {
+    commit <- getOption("openspecy.shiny.wasm.package_sha", "unknown")
+    stop(
+      "The WebAssembly app loaded OpenSpecy ", actual,
+      " but its pinned build requires ", expected,
+      " from commit ", commit, ".",
+      call. = FALSE
     )
   }
 
   invisible(TRUE)
 }
-
-install_wasm_packages()
 
 #remotes::install_github("wincowgerDEV/OpenSpecy-package@vignettes")
 
@@ -56,6 +48,7 @@ library(ggplot2)
 library(reshape2)
 
 library(OpenSpecy)
+validate_wasm_package_version()
 #library(glmnet)
 
 # App metadata ----
