@@ -1,0 +1,26 @@
+{
+  "package": {
+    "name": "OpenSpecy",
+    "version": "1.7.1",
+    "source": "local::.",
+    "commit": "49e3805638ce20044814e016fd9f46e94fad8020"
+  },
+  "wasm_repo": {
+    "url": "https://wincowgerDEV.github.io/OpenSpecy-package/wasm/49e3805638ce20044814e016fd9f46e94fad8020/repo",
+    "immutable": true
+  },
+  "app": {
+    "source": "inst/shiny",
+    "wasm_mode": true,
+    "library_types": ["medoid_derivative", "medoid_nobaseline", "model_derivative", "model_nobaseline"]
+  },
+  "toolchain": {
+    "r": "4.6.1",
+    "shinylive": "0.5.0",
+    "shinylive_assets": "0.10.12",
+    "webr_r": "4.6.0"
+  },
+  "package_roots": ["local::.", "shiny", "shinyjs", "shinyWidgets", "bs4Dash", "dplyr", "DT", "ggplot2", "reshape2", "plotly", "curl", "scales", "caTools", "data.table", "jsonlite", "hyperSpec", "mmand", "digest", "glmnet", "jpeg", "hdf5r", "matrixStats"],
+  "package_names": ["OpenSpecy", "shiny", "shinyjs", "shinyWidgets", "bs4Dash", "dplyr", "DT", "ggplot2", "reshape2", "plotly", "curl", "scales", "caTools", "data.table", "jsonlite", "hyperSpec", "mmand", "digest", "glmnet", "jpeg", "hdf5r", "matrixStats"],
+  "generated_at": "2026-07-17T01:33:52Z"
+}
