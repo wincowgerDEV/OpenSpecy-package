@@ -1,0 +1,489 @@
+{
+  "package": {
+    "name": "OpenSpecy",
+    "version": "1.7.1",
+    "commit": "49e3805638ce20044814e016fd9f46e94fad8020"
+  },
+  "source": {
+    "type": "r-wasm-library-image",
+    "packages_index": "_wasm/pinned/repo/bin/emscripten/contrib/4.6/PACKAGES"
+  },
+  "packages": [
+    {
+      "Package": "DT",
+      "Version": "0.34.0"
+    },
+    {
+      "Package": "MASS",
+      "Version": "7.3-66"
+    },
+    {
+      "Package": "Matrix",
+      "Version": "1.7-5"
+    },
+    {
+      "Package": "OpenSpecy",
+      "Version": "1.7.1"
+    },
+    {
+      "Package": "R6",
+      "Version": "2.6.1"
+    },
+    {
+      "Package": "RColorBrewer",
+      "Version": "1.1-3"
+    },
+    {
+      "Package": "RcppEigen",
+      "Version": "0.3.4.0.2"
+    },
+    {
+      "Package": "Rcpp",
+      "Version": "1.1.2"
+    },
+    {
+      "Package": "S7",
+      "Version": "0.2.2"
+    },
+    {
+      "Package": "askpass",
+      "Version": "1.2.1"
+    },
+    {
+      "Package": "base64enc",
+      "Version": "0.1-6"
+    },
+    {
+      "Package": "bit64",
+      "Version": "4.8.2"
+    },
+    {
+      "Package": "bit",
+      "Version": "4.6.0"
+    },
+    {
+      "Package": "bitops",
+      "Version": "1.0-9"
+    },
+    {
+      "Package": "brio",
+      "Version": "1.1.5"
+    },
+    {
+      "Package": "bs4Dash",
+      "Version": "2.3.5"
+    },
+    {
+      "Package": "bslib",
+      "Version": "0.11.0"
+    },
+    {
+      "Package": "caTools",
+      "Version": "1.18.3"
+    },
+    {
+      "Package": "cachem",
+      "Version": "1.1.0"
+    },
+    {
+      "Package": "callr",
+      "Version": "3.8.0"
+    },
+    {
+      "Package": "cli",
+      "Version": "3.6.6"
+    },
+    {
+      "Package": "codetools",
+      "Version": "0.2-20"
+    },
+    {
+      "Package": "commonmark",
+      "Version": "2.0.0"
+    },
+    {
+      "Package": "cpp11",
+      "Version": "0.5.5"
+    },
+    {
+      "Package": "crayon",
+      "Version": "1.5.3"
+    },
+    {
+      "Package": "crosstalk",
+      "Version": "1.2.2"
+    },
+    {
+      "Package": "curl",
+      "Version": "7.1.0"
+    },
+    {
+      "Package": "data.table",
+      "Version": "1.18.4"
+    },
+    {
+      "Package": "deldir",
+      "Version": "2.0-4"
+    },
+    {
+      "Package": "desc",
+      "Version": "1.4.3"
+    },
+    {
+      "Package": "diffobj",
+      "Version": "0.3.6"
+    },
+    {
+      "Package": "digest",
+      "Version": "0.6.39"
+    },
+    {
+      "Package": "dplyr",
+      "Version": "1.2.1"
+    },
+    {
+      "Package": "evaluate",
+      "Version": "1.0.5"
+    },
+    {
+      "Package": "farver",
+      "Version": "2.1.2"
+    },
+    {
+      "Package": "fastmap",
+      "Version": "1.2.0"
+    },
+    {
+      "Package": "fontawesome",
+      "Version": "0.5.3"
+    },
+    {
+      "Package": "foreach",
+      "Version": "1.5.2"
+    },
+    {
+      "Package": "fresh",
+      "Version": "0.2.2"
+    },
+    {
+      "Package": "fs",
+      "Version": "2.1.0"
+    },
+    {
+      "Package": "generics",
+      "Version": "0.1.4"
+    },
+    {
+      "Package": "ggplot2",
+      "Version": "4.0.3"
+    },
+    {
+      "Package": "glmnet",
+      "Version": "5.0"
+    },
+    {
+      "Package": "glue",
+      "Version": "1.8.1"
+    },
+    {
+      "Package": "gtable",
+      "Version": "0.3.6"
+    },
+    {
+      "Package": "hdf5r",
+      "Version": "1.3.12"
+    },
+    {
+      "Package": "highr",
+      "Version": "0.12"
+    },
+    {
+      "Package": "htmltools",
+      "Version": "0.5.9"
+    },
+    {
+      "Package": "htmlwidgets",
+      "Version": "1.6.4"
+    },
+    {
+      "Package": "httpuv",
+      "Version": "1.6.6.9000"
+    },
+    {
+      "Package": "httr",
+      "Version": "1.4.8"
+    },
+    {
+      "Package": "hyperSpec",
+      "Version": "0.100.3"
+    },
+    {
+      "Package": "interp",
+      "Version": "1.1-6"
+    },
+    {
+      "Package": "isoband",
+      "Version": "0.3.0"
+    },
+    {
+      "Package": "iterators",
+      "Version": "1.0.14"
+    },
+    {
+      "Package": "jpeg",
+      "Version": "0.1-11"
+    },
+    {
+      "Package": "jquerylib",
+      "Version": "0.1.4"
+    },
+    {
+      "Package": "jsonlite",
+      "Version": "2.0.0"
+    },
+    {
+      "Package": "knitr",
+      "Version": "1.51"
+    },
+    {
+      "Package": "labeling",
+      "Version": "0.4.3"
+    },
+    {
+      "Package": "later",
+      "Version": "1.4.2.9000"
+    },
+    {
+      "Package": "latticeExtra",
+      "Version": "0.6-31"
+    },
+    {
+      "Package": "lattice",
+      "Version": "0.22-9"
+    },
+    {
+      "Package": "lazyeval",
+      "Version": "0.2.3"
+    },
+    {
+      "Package": "lifecycle",
+      "Version": "1.0.5"
+    },
+    {
+      "Package": "magrittr",
+      "Version": "2.0.5"
+    },
+    {
+      "Package": "matrixStats",
+      "Version": "1.5.0"
+    },
+    {
+      "Package": "memoise",
+      "Version": "2.0.1"
+    },
+    {
+      "Package": "mime",
+      "Version": "0.13"
+    },
+    {
+      "Package": "mmand",
+      "Version": "1.7.0"
+    },
+    {
+      "Package": "openssl",
+      "Version": "2.4.2"
+    },
+    {
+      "Package": "otel",
+      "Version": "0.2.0"
+    },
+    {
+      "Package": "pillar",
+      "Version": "1.11.1"
+    },
+    {
+      "Package": "pkgbuild",
+      "Version": "1.4.8"
+    },
+    {
+      "Package": "pkgconfig",
+      "Version": "2.0.3"
+    },
+    {
+      "Package": "pkgload",
+      "Version": "1.5.3"
+    },
+    {
+      "Package": "plotly",
+      "Version": "4.12.0"
+    },
+    {
+      "Package": "plyr",
+      "Version": "1.8.9"
+    },
+    {
+      "Package": "png",
+      "Version": "0.1-8"
+    },
+    {
+      "Package": "praise",
+      "Version": "1.0.0"
+    },
+    {
+      "Package": "processx",
+      "Version": "3.9.0"
+    },
+    {
+      "Package": "promises",
+      "Version": "1.5.0"
+    },
+    {
+      "Package": "ps",
+      "Version": "1.9.3"
+    },
+    {
+      "Package": "purrr",
+      "Version": "1.2.2"
+    },
+    {
+      "Package": "rappdirs",
+      "Version": "0.3.4"
+    },
+    {
+      "Package": "reshape2",
+      "Version": "1.4.5"
+    },
+    {
+      "Package": "rlang",
+      "Version": "1.3.0"
+    },
+    {
+      "Package": "rmarkdown",
+      "Version": "2.31"
+    },
+    {
+      "Package": "rprojroot",
+      "Version": "2.1.1"
+    },
+    {
+      "Package": "rstudioapi",
+      "Version": "0.19.0"
+    },
+    {
+      "Package": "sass",
+      "Version": "0.4.10.9000"
+    },
+    {
+      "Package": "scales",
+      "Version": "1.4.0"
+    },
+    {
+      "Package": "shape",
+      "Version": "1.4.6.1"
+    },
+    {
+      "Package": "shinyWidgets",
+      "Version": "0.9.1"
+    },
+    {
+      "Package": "shiny",
+      "Version": "1.13.0.8000"
+    },
+    {
+      "Package": "shinyjs",
+      "Version": "2.1.1"
+    },
+    {
+      "Package": "sourcetools",
+      "Version": "0.1.7-2"
+    },
+    {
+      "Package": "stringi",
+      "Version": "1.8.7"
+    },
+    {
+      "Package": "stringr",
+      "Version": "1.6.0"
+    },
+    {
+      "Package": "survival",
+      "Version": "3.8-9"
+    },
+    {
+      "Package": "sys",
+      "Version": "3.4.3"
+    },
+    {
+      "Package": "testthat",
+      "Version": "3.3.2"
+    },
+    {
+      "Package": "tibble",
+      "Version": "3.3.1"
+    },
+    {
+      "Package": "tidyr",
+      "Version": "1.3.2"
+    },
+    {
+      "Package": "tidyselect",
+      "Version": "1.2.1"
+    },
+    {
+      "Package": "tinytex",
+      "Version": "0.60"
+    },
+    {
+      "Package": "utf8",
+      "Version": "1.2.6"
+    },
+    {
+      "Package": "vctrs",
+      "Version": "0.7.3"
+    },
+    {
+      "Package": "viridisLite",
+      "Version": "0.4.3"
+    },
+    {
+      "Package": "waiter",
+      "Version": "0.2.5.1"
+    },
+    {
+      "Package": "waldo",
+      "Version": "0.6.2"
+    },
+    {
+      "Package": "withr",
+      "Version": "3.0.3"
+    },
+    {
+      "Package": "xfun",
+      "Version": "0.60"
+    },
+    {
+      "Package": "xml2",
+      "Version": "1.6.0"
+    },
+    {
+      "Package": "xtable",
+      "Version": "1.8-8"
+    },
+    {
+      "Package": "yaml",
+      "Version": "2.3.12"
+    }
+  ],
+  "files": [
+    {
+      "name": "library.data.gz",
+      "size": 61116506,
+      "md5": "1677e73e6dee38e3f82a29f3d46eb4ea"
+    },
+    {
+      "name": "library.js.metadata",
+      "size": 458636,
+      "md5": "07cba1fff9869c5ad2c2c9dafb86398e"
+    }
+  ]
+}
