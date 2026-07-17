@@ -169,6 +169,52 @@ test_that("wasm library bundling rejects an incomplete hard closure", {
   )
 })
 
+test_that("assembled Pages site contains pkgdown and only the bundled app", {
+  env <- new.env(parent = globalenv())
+  source_wasm_tool("check-pages-site.R", env)
+
+  tmp <- file.path(tempdir(), "OpenSpecy-testthat-pages-site")
+  on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
+  dir.create(file.path(tmp, "openspecy"), recursive = TRUE,
+             showWarnings = FALSE)
+  writeLines('<meta name="generator" content="pkgdown">',
+             file.path(tmp, "index.html"))
+  writeLines("runExportedApp({});", file.path(tmp, "openspecy", "index.html"))
+
+  expect_no_error(env$check_pages_site(tmp, max_bytes = 1024^2))
+  dir.create(file.path(tmp, "wasm"))
+  expect_error(env$check_pages_site(tmp, max_bytes = 1024^2),
+               "must not contain a wasm repository")
+})
+
+test_that("only one workflow publishes the combined native Pages site", {
+  workflow_dir <- test_path("..", "..", ".github", "workflows")
+  if (!dir.exists(workflow_dir)) {
+    skip("Repository-only workflow files are not in the package tarball")
+  }
+
+  workflow_files <- list.files(workflow_dir, pattern = "\\.ya?ml$",
+                               full.names = TRUE)
+  workflow_text <- unlist(lapply(workflow_files, readLines, warn = FALSE))
+  shinylive <- readLines(file.path(workflow_dir, "deploy-shinylive.yml"),
+                         warn = FALSE)
+  wasm <- readLines(file.path(workflow_dir, "deploy-cran-repo.yml"),
+                    warn = FALSE)
+
+  expect_false(any(grepl("github-pages-deploy-action", workflow_text,
+                         fixed = TRUE)))
+  expect_equal(sum(grepl("actions/deploy-pages@v4", workflow_text,
+                         fixed = TRUE)), 1L)
+  expect_true(any(grepl("actions/configure-pages@v5", shinylive,
+                        fixed = TRUE)))
+  expect_true(any(grepl("actions/upload-pages-artifact@v4", shinylive,
+                        fixed = TRUE)))
+  expect_true(any(grepl('dest_dir = "_site"', shinylive, fixed = TRUE)))
+  expect_true(any(grepl("_site/openspecy", shinylive, fixed = TRUE)))
+  expect_false(any(grepl("_site/wasm", c(shinylive, wasm), fixed = TRUE)))
+  expect_true(any(grepl("path: _wasm/pinned", wasm, fixed = TRUE)))
+})
+
 test_that("bundled app has no floating wasm package installer", {
   app_path <- run_app(test_mode = TRUE)
   global_source <- readLines(file.path(app_path, "global.R"), warn = FALSE)
@@ -181,6 +227,16 @@ test_that("bundled app has no floating wasm package installer", {
                         fixed = TRUE)))
   expect_true(any(grepl("!app_wasm_mode() && curl::has_internet()",
                         server_source, fixed = TRUE)))
+
+  prepare_path <- test_path("..", "..", "tools", "wasm",
+                            "prepare-shinylive-app.R")
+  if (file.exists(prepare_path)) {
+    prepare_source <- readLines(prepare_path, warn = FALSE)
+    expect_true(any(grepl("openspecy.shiny.wasm.artifact", prepare_source,
+                          fixed = TRUE)))
+    expect_false(any(grepl("openspecy.shiny.wasm.repo", prepare_source,
+                           fixed = TRUE)))
+  }
 })
 
 test_that("bundled app rejects a mismatched wasm package version", {

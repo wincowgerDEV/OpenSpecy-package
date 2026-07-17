@@ -65,7 +65,7 @@ run_app()
 
 ## Simple workflow for single spectral identification
 
-See [package vignette](https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/articles/sop.html)
+See [package vignette](https://wincowgerdev.github.io/OpenSpecy-package/articles/sop.html)
 for a detailed standard operating procedure.
 
 ```r

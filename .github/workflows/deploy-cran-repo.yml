@@ -7,7 +7,7 @@ on:
 name: Build and deploy wasm R package repository
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: wasm-cran-repo-${{ github.ref }}
@@ -32,20 +32,12 @@ jobs:
         with:
           extra-packages: any::jsonlite
 
-      - name: Resolve pinned wasm repository URL
-        shell: bash
-        run: |
-          set -euo pipefail
-          repo_name="${GITHUB_REPOSITORY#*/}"
-          base="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}"
-          echo "OPENSPECY_WASM_REPO_URL=${base%/}/wasm/${PACKAGE_SHA}/repo" >> "$GITHUB_ENV"
-
       - name: Resolve complete app package closure
         id: package-roots
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "_site/wasm/${PACKAGE_SHA}/metadata"
+          mkdir -p "_wasm/pinned/metadata"
           Rscript tools/wasm/resolve-wasm-package-roots.R \
             inst/shiny/wasm/app-package-roots.txt \
             _wasm/resolved-package-roots.txt
@@ -55,26 +47,26 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
           cp _wasm/resolved-package-roots.txt \
-            "_site/wasm/${PACKAGE_SHA}/metadata/resolved-package-roots.txt"
+            "_wasm/pinned/metadata/resolved-package-roots.txt"
 
       - name: Record pinned app manifest
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "_site/wasm/${PACKAGE_SHA}/metadata"
+          mkdir -p "_wasm/pinned/metadata"
           Rscript tools/wasm/write-app-manifest.R \
-            --repo-url "${OPENSPECY_WASM_REPO_URL}" \
+            --artifact-ref "openspecy-wasm-${PACKAGE_SHA}" \
             --package-sha "${PACKAGE_SHA}" \
-            --out "_site/wasm/${PACKAGE_SHA}/metadata/wasm-app-manifest.json"
-          cp inst/shiny/wasm/app-package-roots.txt "_site/wasm/${PACKAGE_SHA}/metadata/app-package-roots.txt"
-          cp inst/shiny/wasm/library-types.txt "_site/wasm/${PACKAGE_SHA}/metadata/library-types.txt"
+            --out "_wasm/pinned/metadata/wasm-app-manifest.json"
+          cp inst/shiny/wasm/app-package-roots.txt "_wasm/pinned/metadata/app-package-roots.txt"
+          cp inst/shiny/wasm/library-types.txt "_wasm/pinned/metadata/library-types.txt"
 
       - name: Build wasm package repository
         uses: r-wasm/actions/build-rwasm@v3
         with:
           packages: ${{ steps.package-roots.outputs.packages }}
-          repo-path: _site/wasm/${{ env.PACKAGE_SHA }}/repo
-          image-path: _site/wasm/${{ env.PACKAGE_SHA }}/image
+          repo-path: _wasm/pinned/repo
+          image-path: _wasm/pinned/image
           strip: demo, doc, examples, help, html, include, tests, vignette
 
       - name: Check wasm package repository contents
@@ -82,21 +74,14 @@ jobs:
         run: |
           set -euo pipefail
           Rscript tools/wasm/check-wasm-repo.R \
-            "_site/wasm/${PACKAGE_SHA}/repo" \
-            "_site/wasm/${PACKAGE_SHA}/image" \
-            "_site/wasm/${PACKAGE_SHA}/metadata/resolved-wasm-packages.json"
+            "_wasm/pinned/repo" \
+            "_wasm/pinned/image" \
+            "_wasm/pinned/metadata/resolved-wasm-packages.json"
 
       - name: Upload pinned wasm build artifact
         uses: actions/upload-artifact@v7
         with:
           name: openspecy-wasm-${{ env.PACKAGE_SHA }}
-          path: _site/wasm/${{ env.PACKAGE_SHA }}
+          path: _wasm/pinned
           retention-days: 90
           if-no-files-found: error
-
-      - name: Deploy versioned wasm repository
-        uses: JamesIves/github-pages-deploy-action@v4.8.0
-        with:
-          clean: false
-          branch: gh-pages
-          folder: _site

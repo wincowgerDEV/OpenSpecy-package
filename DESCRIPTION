@@ -71,7 +71,7 @@ Description: Raman and (FT)IR spectral analysis tool for plastic particles and
     is available via run_app() or online at
     <https://www.openanalysis.org/openspecy/>.
 URL: https://github.com/wincowgerDEV/OpenSpecy-package/,
-     https://raw.githack.com/wincowgerDEV/OpenSpecy-package/main/docs/index.html
+     https://wincowgerdev.github.io/OpenSpecy-package/
 BugReports: https://github.com/wincowgerDEV/OpenSpecy-package/issues/
 License: CC BY 4.0
 Encoding: UTF-8

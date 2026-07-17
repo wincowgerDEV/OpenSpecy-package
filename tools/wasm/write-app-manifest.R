@@ -8,7 +8,10 @@ value_after <- function(flag, default = NULL) {
   args[[hit[[1]] + 1L]]
 }
 
-repo_url <- value_after("--repo-url", Sys.getenv("OPENSPECY_WASM_REPO_URL", ""))
+artifact_ref <- value_after(
+  "--artifact-ref",
+  Sys.getenv("OPENSPECY_WASM_ARTIFACT_REF", "")
+)
 package_sha <- value_after("--package-sha", Sys.getenv("GITHUB_SHA", "local"))
 out <- value_after("--out", "wasm-app-manifest.json")
 package_roots_file <- value_after(
@@ -28,6 +31,10 @@ read_manifest_lines <- function(path) {
 }
 
 desc <- read.dcf("DESCRIPTION")[1, ]
+if (!nzchar(artifact_ref)) {
+  stop("A pinned --artifact-ref or OPENSPECY_WASM_ARTIFACT_REF is required.",
+       call. = FALSE)
+}
 package_roots <- read_manifest_lines(package_roots_file)
 package_names <- package_roots
 package_names[package_names == "local::."] <- desc[["Package"]]
@@ -47,9 +54,10 @@ manifest <- list(
     source = "local::.",
     commit = package_sha
   ),
-  wasm_repo = list(
-    url = repo_url,
-    immutable = TRUE
+  wasm_build = list(
+    artifact = artifact_ref,
+    immutable = TRUE,
+    bundled_into_app = TRUE
   ),
   app = list(
     source = "inst/shiny",

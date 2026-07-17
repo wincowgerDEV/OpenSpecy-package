@@ -10,6 +10,7 @@ param(
   [string]$Libraries = "_wasm/libraries",
   [string]$WorkDir = "_wasm/shinylive-preflight",
   [string]$ToolDir = "_wasm/shinylive-preflight-tools",
+  [string]$NodeDir = "",
   [string]$Rscript = "C:\Program Files\R\R-4.3.3\bin\Rscript.exe",
   [int]$Port = 8087,
   [switch]$StageLibraries,
@@ -50,6 +51,11 @@ if (-not (Test-Path -LiteralPath $Rscript -PathType Leaf)) {
 $rExe = Join-Path (Split-Path $Rscript) "R.exe"
 $work = Resolve-WorkspacePath $WorkDir
 $tools = Resolve-WorkspacePath $ToolDir
+$nodeDir = if ($NodeDir) {
+  Resolve-WorkspacePath $NodeDir
+} else {
+  Join-Path $tools "node"
+}
 $defaultLibrary = & $Rscript -e "cat(.libPaths()[1])"
 
 if (Test-Path -LiteralPath $work) {
@@ -113,10 +119,14 @@ $siteRoot = Join-Path $work "site"
 $site = Join-Path $siteRoot "openspecy"
 $workApp = Join-Path $work "app-source"
 $appManifest = Join-Path $work "wasm-app-manifest.json"
-$repoUrl = "https://wincowgerDEV.github.io/OpenSpecy-package/wasm/$PackageSha/repo"
+$artifactRef = "openspecy-wasm-$PackageSha"
+Invoke-Checked $Rscript @(
+  "-e",
+  "pkgdown::build_site_github_pages(new_process=FALSE, install=FALSE, dest_dir='$((Get-RepoRelative $siteRoot).Replace('\', '/'))')"
+)
 Invoke-Checked $Rscript @(
   "tools/wasm/prepare-shinylive-app.R",
-  "--repo-url", $repoUrl,
+  "--artifact-ref", $artifactRef,
   "--package-sha", $PackageSha,
   "--library-dir", (Get-RepoRelative $libraryPath),
   "--out-dir", (Get-RepoRelative $site),
@@ -134,8 +144,11 @@ Invoke-Checked $Rscript @(
   "tools/wasm/check-shinylive-export.R",
   (Get-RepoRelative $site)
 )
+Invoke-Checked $Rscript @(
+  "tools/wasm/check-pages-site.R",
+  (Get-RepoRelative $siteRoot)
+)
 
-$nodeDir = Join-Path $tools "node"
 $playwright = Join-Path $nodeDir "node_modules/.bin/playwright.cmd"
 if (-not (Test-Path -LiteralPath $playwright)) {
   if (-not $Bootstrap) {
@@ -164,7 +177,8 @@ $server = Start-Process -FilePath "node.exe" -ArgumentList @(
 try {
   Start-Sleep -Seconds 2
   Invoke-Checked $playwright @(
-    "test", "tools/wasm/shinylive-smoke.spec.js"
+    "test", "tools/wasm/shinylive-smoke.spec.js",
+    "--output", (Get-RepoRelative (Join-Path $work "playwright-results"))
   )
 } finally {
   Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue

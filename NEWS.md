@@ -13,6 +13,10 @@
   packages (including `Matrix`, `survival`, and their closure), skipping the
   unavailable Google Translate connectivity probe in WebAssembly mode, and
   exercising the Shinylive iframe/selectize controls in the browser smoke test.
+- Consolidated GitHub Pages publication into one native deployment containing
+  the pkgdown site and the self-contained Shinylive app. The complete wasm
+  package repository is now retained as a pinned Actions build artifact and
+  embedded in the app instead of accumulating public `wasm/<commit>` trees.
 - Bundled the Shiny app in `inst/shiny/` from
   `wincowgerDEV/OpenSpecy-shiny` commit
   `60d1bdefff90affcda3353d7c389ea8f3748ca56`; `run_app()` now launches the

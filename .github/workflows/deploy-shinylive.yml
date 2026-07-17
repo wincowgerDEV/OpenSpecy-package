@@ -18,14 +18,16 @@ name: Build and deploy Shinylive app
 
 permissions:
   actions: read
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: shinylive-${{ github.event.workflow_run.head_branch || github.ref }}
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  build-deploy:
+  build:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
@@ -41,6 +43,9 @@ jobs:
         uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
+
+      - name: Setup Pandoc
+        uses: r-lib/actions/setup-pandoc@v2
 
       - name: Install package, app, and Shinylive dependencies
         uses: r-lib/actions/setup-r-dependencies@v2
@@ -60,17 +65,23 @@ jobs:
               "; assets ", shinylive:::SHINYLIVE_ASSETS_VERSION,
               "; WebR R ", shinylive:::WEBR_R_VERSION, "\n", sep = "")
 
-      - name: Resolve pinned wasm repository URL
+      - name: Resolve pinned build metadata
         shell: bash
         run: |
           set -euo pipefail
-          repo_name="${GITHUB_REPOSITORY#*/}"
-          base="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}"
-          echo "OPENSPECY_WASM_REPO_URL=${base%/}/wasm/${PACKAGE_SHA}/repo" >> "$GITHUB_ENV"
-          echo "OPENSPECY_SHINYLIVE_URL=${base%/}/openspecy/" >> "$GITHUB_ENV"
+          echo "OPENSPECY_WASM_ARTIFACT_REF=openspecy-wasm-${PACKAGE_SHA}" >> "$GITHUB_ENV"
           package_version=$(awk -F ': *' '$1 == "Version" {print $2}' DESCRIPTION)
           test -n "${package_version}"
           echo "PACKAGE_VERSION=${package_version}" >> "$GITHUB_ENV"
+
+      - name: Build pkgdown site
+        shell: Rscript {0}
+        run: |
+          pkgdown::build_site_github_pages(
+            new_process = FALSE,
+            install = FALSE,
+            dest_dir = "_site"
+          )
 
       - name: Download pinned wasm build artifact
         uses: actions/download-artifact@v7
@@ -108,7 +119,7 @@ jobs:
         run: |
           set -euo pipefail
           Rscript tools/wasm/prepare-shinylive-app.R \
-            --repo-url "${OPENSPECY_WASM_REPO_URL}" \
+            --artifact-ref "${OPENSPECY_WASM_ARTIFACT_REF}" \
             --package-sha "${PACKAGE_SHA}" \
             --library-dir "_wasm/libraries" \
             --out-dir "_site/openspecy" \
@@ -145,38 +156,63 @@ jobs:
           npx http-server _site -p 8080 > /tmp/openspecy-http.log 2>&1 &
           SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/openspecy/ \
           OPENSPECY_EXPECTED_VERSION="${PACKAGE_VERSION}" \
-            npx playwright test tools/wasm/shinylive-smoke.spec.js
+            npx playwright test tools/wasm/shinylive-smoke.spec.js \
+              --output _wasm/playwright-results
 
-      - name: Upload Shinylive build artifact
+      - name: Upload combined site build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: openspecy-shinylive-${{ env.PACKAGE_SHA }}
+          name: openspecy-pages-${{ env.PACKAGE_SHA }}
           path: |
-            _site/openspecy
+            _site
             _wasm/library-manifest.json
             _wasm/wasm-app-manifest.json
             _wasm/pinned/metadata/resolved-wasm-packages.json
+          retention-days: 90
+          if-no-files-found: error
 
-      - name: Deploy Shinylive app
-        uses: JamesIves/github-pages-deploy-action@v4.8.0
+      - name: Validate assembled Pages site
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript tools/wasm/check-pages-site.R _site
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          clean: false
-          branch: gh-pages
-          folder: _site/openspecy
-          target-folder: openspecy
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       - name: Verify public GitHub Pages app
         shell: bash
         run: |
           set -euo pipefail
-          for attempt in {1..24}; do
-            if body=$(curl --fail --silent --show-error "${OPENSPECY_SHINYLIVE_URL}"); then
+          pages_url="${{ steps.deployment.outputs.page_url }}"
+          public_url="${pages_url%/}/openspecy/"
+          for attempt in {1..40}; do
+            if body=$(curl --fail --silent --show-error "${public_url}"); then
               grep -q "runExportedApp" <<< "$body"
-              echo "Verified ${OPENSPECY_SHINYLIVE_URL}"
+              echo "Verified ${public_url}"
               exit 0
             fi
-            echo "Waiting for GitHub Pages deployment (${attempt}/24)..."
+            echo "Waiting for GitHub Pages deployment (${attempt}/40)..."
             sleep 15
           done
-          echo "GitHub Pages did not publish ${OPENSPECY_SHINYLIVE_URL}" >&2
+          echo "GitHub Pages did not publish ${public_url}" >&2
           exit 1

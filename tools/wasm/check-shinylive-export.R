@@ -19,8 +19,11 @@ if (!length(app_json)) {
 
 app_text <- unlist(lapply(app_json, readLines, warn = FALSE))
 
-if (!any(grepl("openspecy.shiny.wasm.repo", app_text, fixed = TRUE))) {
-  fail("Exported app does not contain the pinned wasm repo config.")
+if (!any(grepl("openspecy.shiny.wasm.artifact", app_text, fixed = TRUE))) {
+  fail("Exported app does not contain its pinned wasm artifact reference.")
+}
+if (any(grepl("openspecy.shiny.wasm.repo", app_text, fixed = TRUE))) {
+  fail("Exported app still contains a runtime wasm repository setting.")
 }
 if (any(grepl("repo.r-wasm.org", app_text, fixed = TRUE))) {
   fail("Exported app contains a floating repo.r-wasm.org runtime reference.")
@@ -28,7 +31,8 @@ if (any(grepl("repo.r-wasm.org", app_text, fixed = TRUE))) {
 if (!any(grepl("OPENSPECY_SHINY_WASM", app_text, fixed = TRUE))) {
   fail("Exported app does not contain wasm mode configuration.")
 }
-if (any(grepl("webr::install", app_text, fixed = TRUE)) ||
+if (any(grepl("options(repos", app_text, fixed = TRUE)) ||
+    any(grepl("webr::install", app_text, fixed = TRUE)) ||
     any(grepl("install_wasm_packages", app_text, fixed = TRUE))) {
   fail("Exported app still installs packages from a runtime wasm repository.")
 }
