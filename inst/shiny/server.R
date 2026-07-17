@@ -1026,7 +1026,7 @@ output$progress_bars <- renderUI({
 
   #Google translate. 
   output$translate <- renderUI({
-    if(translate & curl::has_internet()) {
+    if (translate && !app_wasm_mode() && curl::has_internet()) {
       includeHTML("www/googletranslate.html")
     }
   })

@@ -38,7 +38,7 @@ if (length(missing)) {
 }
 
 platform_packages <- rownames(installed.packages(
-  priority = c("base", "recommended")
+  priority = "base"
 ))
 dependency_db <- as.matrix(packages)
 dependency_fields <- c("Package", "Depends", "Imports", "LinkingTo")
@@ -58,7 +58,8 @@ dependencies <- tools::package_dependencies(
   recursive = FALSE
 )
 required_dependencies <- unique(unlist(dependencies, use.names = FALSE))
-# Shinylive supplies the webr R package with its WebAssembly runtime.
+# Shinylive supplies base R and the webr package, but recommended packages
+# such as Matrix must be present in the pinned repository and image.
 missing_dependencies <- setdiff(required_dependencies,
                                 c("R", "webr", platform_packages,
                                   packages$Package))

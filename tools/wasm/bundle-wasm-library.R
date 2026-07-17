@@ -59,7 +59,7 @@ bundle_wasm_library <- function(image_dir, repo_dir, site_dir, package_sha,
   }
 
   platform_packages <- rownames(installed.packages(
-    priority = c("base", "recommended")
+    priority = "base"
   ))
   dependency_db <- as.matrix(packages)
   dependency_fields <- c("Package", "Depends", "Imports", "LinkingTo")
@@ -79,7 +79,8 @@ bundle_wasm_library <- function(image_dir, repo_dir, site_dir, package_sha,
     recursive = FALSE
   )
   required_dependencies <- unique(unlist(dependencies, use.names = FALSE))
-  # Shinylive supplies the webr R package with its WebAssembly runtime.
+  # Shinylive supplies base R and the webr package, but recommended packages
+  # such as Matrix must be present in the pinned repository and image.
   missing_dependencies <- setdiff(
     required_dependencies,
     c("R", "webr", platform_packages, packages$Package)

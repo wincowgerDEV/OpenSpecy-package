@@ -108,7 +108,7 @@ test_that("wasm package resolver includes the transitive hard closure", {
   writeLines(c("local::.", "Alpha"), roots_file)
   write.dcf(
     data.frame(Package = "LocalPackage", Version = "1.0.0",
-               Imports = "Alpha, methods"),
+               Imports = "Alpha, Matrix, methods"),
     description_file
   )
   available <- rbind(
@@ -117,7 +117,9 @@ test_that("wasm package resolver includes the transitive hard closure", {
     Beta = c(Package = "Beta", Version = "1.0.0", Depends = NA,
              Imports = "Gamma", LinkingTo = NA),
     Gamma = c(Package = "Gamma", Version = "1.0.0", Depends = NA,
-              Imports = NA, LinkingTo = NA)
+              Imports = NA, LinkingTo = NA),
+    Matrix = c(Package = "Matrix", Version = "1.7.4", Depends = "R",
+               Imports = "methods", LinkingTo = NA)
   )
 
   resolved <- env$resolve_wasm_package_roots(
@@ -126,7 +128,8 @@ test_that("wasm package resolver includes the transitive hard closure", {
     available = available,
     platform_packages = "methods"
   )
-  expect_identical(resolved, c("local::.", "Alpha", "Beta", "Gamma"))
+  expect_identical(resolved,
+                   c("local::.", "Alpha", "Beta", "Gamma", "Matrix"))
 })
 
 test_that("wasm library bundling rejects an incomplete hard closure", {
@@ -147,7 +150,7 @@ test_that("wasm library bundling rejects an incomplete hard closure", {
   packages <- data.frame(Package = roots, Version = "1.0.0",
                          Imports = NA_character_)
   packages$Version[packages$Package == desc[["Package"]]] <- desc[["Version"]]
-  packages$Imports[packages$Package == "dplyr"] <- "MissingDependency"
+  packages$Imports[packages$Package == "dplyr"] <- "Matrix"
   write.dcf(packages, file.path(contrib, "PACKAGES"))
   writeBin(as.raw(seq_len(8)), file.path(image_dir, "library.data.gz"))
   jsonlite::write_json(
@@ -162,19 +165,22 @@ test_that("wasm library bundling rejects an incomplete hard closure", {
       description_file = test_path("..", "..", "DESCRIPTION"),
       package_roots_file = wasm_manifest_path("app-package-roots.txt")
     ),
-    "MissingDependency"
+    "Matrix"
   )
 })
 
 test_that("bundled app has no floating wasm package installer", {
   app_path <- run_app(test_mode = TRUE)
   global_source <- readLines(file.path(app_path, "global.R"), warn = FALSE)
+  server_source <- readLines(file.path(app_path, "server.R"), warn = FALSE)
 
   expect_false(any(grepl("webr::install", global_source, fixed = TRUE)))
   expect_false(any(grepl("install_wasm_packages", global_source,
                          fixed = TRUE)))
   expect_true(any(grepl("validate_wasm_package_version", global_source,
                         fixed = TRUE)))
+  expect_true(any(grepl("!app_wasm_mode() && curl::has_internet()",
+                        server_source, fixed = TRUE)))
 })
 
 test_that("bundled app rejects a mismatched wasm package version", {

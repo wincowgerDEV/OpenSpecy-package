@@ -1,23 +1,17 @@
 <!--
 Sync Impact Report
-Version change: 3.1.0 -> 3.2.0
+Version change: 3.2.0 -> 3.3.0
 Modified principles:
-- R Package Interface and CRAN Readiness: expanded hosted Shinylive/WebAssembly expectations to include the app's pinned wasm dependency closure
-- Tests Track Current Behavior: added dependency-closure verification for the hosted app's CRAN-like wasm package repository
-- R Package Standards: clarified that wasm repository deployment surfaces include pinned app dependencies
-- Development Workflow and Quality Gates: added dependency-closure checks to hosted app verification
+- Development Workflow and Quality Gates: made maintainer-owned remote synchronization the default and required fresh user authorization for agent push/pull operations
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md: add hosted app dependency-closure planning and verification prompts
-- .agents/skills/speckit-plan/SKILL.md: add dependency-closure planning for hosted Shinylive/WebAssembly work
-- .agents/skills/speckit-implement/SKILL.md: add dependency-closure implementation and verification rules
-- AGENTS.md: summarize pinned dependency closure for the hosted app's wasm package repository
+- .agents/skills/speckit-implement/SKILL.md: require explicit current-request authorization for each agent push or pull
+- AGENTS.md: summarize the maintainer-owned remote synchronization rule
 Follow-up TODOs:
-- Update OSF-dependent tests so offline guards check the actual download host.
-- Create a concise feature plan for fixing `.github/workflows/deploy-cran-repo.yml`, generating the Shinylive app, staging small libraries with `get_lib()`, and pinning the hosted app to the package and dependency versions built for that app release.
+- Finish local action-equivalent Shinylive browser verification before the maintainer's next push.
 -->
 
 # OpenSpecy Constitution
@@ -428,6 +422,13 @@ executables MUST NOT be used as workflow shortcuts. Expensive full tests,
 documentation, and checks SHOULD each run once per final candidate unless a
 failure requires another run.
 
+Remote synchronization is maintainer-owned by default. Automated agents MUST
+NOT run `git push`, `git pull`, or `git pull --rebase` unless the user explicitly
+authorizes that specific remote operation in the current request. Earlier or
+standing permission MUST NOT be treated as authorization for a later operation.
+Agents SHOULD leave local changes, commits, and verification results ready for
+maintainer review and synchronization.
+
 Complexity MUST be justified in the plan when a simpler R package pattern would
 work. New abstractions MUST protect repeated spectral workflows, package
 function clarity, `OpenSpecy` object consistency, performance, or testability.
@@ -460,4 +461,4 @@ repositories, or silently diverge from the local app beyond the documented
 small-library constraint. Temporary exceptions MUST be documented in the feature
 plan with the reason, risk, and follow-up task.
 
-**Version**: 3.2.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-13
+**Version**: 3.3.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-16

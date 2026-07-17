@@ -38,7 +38,7 @@ resolve_wasm_package_roots <- function(
     description_file = "DESCRIPTION",
     available = wasm_available_packages(),
     platform_packages = rownames(installed.packages(
-      priority = c("base", "recommended")
+      priority = "base"
     ))) {
   roots <- read_wasm_roots(roots_file)
   desc <- read.dcf(description_file)[1, ]
@@ -65,7 +65,8 @@ resolve_wasm_package_roots <- function(
 
   closure <- unique(c(requested, hard_dependencies(requested, available,
                                                     recursive = TRUE)))
-  # Shinylive supplies the webr R package with its WebAssembly runtime.
+  # Shinylive supplies base R and the webr package, but not every recommended
+  # package (for example Matrix) in its WebAssembly runtime.
   closure <- sort(setdiff(
     closure,
     c("R", "webr", platform_packages, package_name)

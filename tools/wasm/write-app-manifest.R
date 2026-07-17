@@ -32,6 +32,13 @@ package_roots <- read_manifest_lines(package_roots_file)
 package_names <- package_roots
 package_names[package_names == "local::."] <- desc[["Package"]]
 package_names <- unique(package_names)
+has_shinylive <- requireNamespace("shinylive", quietly = TRUE)
+toolchain <- list(r = as.character(getRversion()))
+if (has_shinylive) {
+  toolchain$shinylive <- as.character(utils::packageVersion("shinylive"))
+  toolchain$shinylive_assets <- shinylive:::SHINYLIVE_ASSETS_VERSION
+  toolchain$webr_r <- shinylive:::WEBR_R_VERSION
+}
 
 manifest <- list(
   package = list(
@@ -49,6 +56,7 @@ manifest <- list(
     wasm_mode = TRUE,
     library_types = read_manifest_lines(library_types_file)
   ),
+  toolchain = toolchain,
   package_roots = package_roots,
   package_names = package_names,
   generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")

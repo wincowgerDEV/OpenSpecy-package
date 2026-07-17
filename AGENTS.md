@@ -37,4 +37,8 @@ from a hardcoded package version/commit pin plus pinned app dependency closure,
 stage only the small medoid/model libraries with guarded `get_lib()` workflows,
 and verify startup, assets, dependency resolution, and library matching without
 hand-editing generated web artifacts.
+Remote synchronization is maintainer-owned by default: do not run `git push`,
+`git pull`, or `git pull --rebase` unless the user explicitly authorizes that
+specific operation in the current request. Earlier permission does not carry
+forward to later operations.
 <!-- SPECKIT END -->

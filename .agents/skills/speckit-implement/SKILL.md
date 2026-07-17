@@ -65,3 +65,7 @@ are not required.
   are generated deployment artifacts; update source app code, package code,
   workflow config, library staging, dependency closure, or pinned metadata
   instead of editing them directly.
+- Do not run `git push`, `git pull`, or `git pull --rebase` unless the user
+  explicitly authorizes that specific remote operation in the current request.
+  Prior or standing permission does not carry forward; prepare a local handoff
+  for maintainer synchronization by default.

@@ -48,9 +48,17 @@ jobs:
           extra-packages: |
             local::.
             any::jsonlite
-            any::shinylive
+            shinylive@0.5.0
             any::httpuv
           needs: website
+
+      - name: Verify pinned Shinylive toolchain
+        shell: Rscript {0}
+        run: |
+          stopifnot(as.character(packageVersion("shinylive")) == "0.5.0")
+          cat("Shinylive ", as.character(packageVersion("shinylive")),
+              "; assets ", shinylive:::SHINYLIVE_ASSETS_VERSION,
+              "; WebR R ", shinylive:::WEBR_R_VERSION, "\n", sep = "")
 
       - name: Resolve pinned wasm repository URL
         shell: bash
@@ -132,7 +140,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm install --no-save @playwright/test http-server
+          npm install --no-save @playwright/test@1.61.1 http-server@14.1.1
           npx playwright install chromium
           npx http-server _site -p 8080 > /tmp/openspecy-http.log 2>&1 &
           SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/openspecy/ \

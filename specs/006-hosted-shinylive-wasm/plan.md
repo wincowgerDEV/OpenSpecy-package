@@ -63,10 +63,11 @@
 - [x] Add focused tests or workflow checks for dependency manifest contents, small-library allow-list, staged library files, package repo `PACKAGES`, and pinned metadata.
 - [x] Add a CI-guarded or manual browser smoke script for startup, static assets, dependency resolution, library loading, upload/sample data, and one identification path.
 - [x] Update README/vignette source, NEWS, and release notes with the hosted app pinning and local-vs-web library behavior.
-- [ ] Bundle the action-built pinned wasm library image into Shinylive and reject a runtime `OpenSpecy` version mismatch.
-- [ ] Require browser smoke coverage for the pinned version, upload, identification, and download paths.
+- [x] Bundle the action-built pinned wasm library image into Shinylive and reject a runtime `OpenSpecy` version mismatch.
+- [x] Require browser smoke coverage for the pinned version, upload, identification, and download paths.
+- [ ] Add and pass a local action-equivalent preflight against the exact action-built wasm artifact before maintainer push/pull handoff.
 - [ ] Verify GitHub Pages publication and the public app endpoint after deployment.
-- [ ] Fix the clipped app header and prevent stale results from reading as current during long processing.
+- [x] Fix the clipped app header and prevent stale results from reading as current during long processing.
 
 ## Verification
 

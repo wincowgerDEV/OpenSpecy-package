@@ -34,6 +34,10 @@ inst/OpenSpecy-shiny-main/
 .codex-*/
 _wasm/
 _site/
+debug.log
+node_modules/
+playwright-report/
+test-results/
 inst/shiny/reference_libraries/
 inst/shiny/www/reference_libraries/
 inst/shiny/libraries/
