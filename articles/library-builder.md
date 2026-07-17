@@ -216,13 +216,13 @@ mini_libs <- build_lib(
 #> build_lib [0.1s]: processing recipe 1/3 (raw)
 #> build_lib [0.1s]: calculating signal-to-noise (raw)
 #> build_lib [0.1s]: assessing spectra (raw)
-#> build_lib [0.1s]: processing recipe 2/3 (derivative)
-#> build_lib [0.1s]: calculating signal-to-noise (derivative)
+#> build_lib [0.2s]: processing recipe 2/3 (derivative)
+#> build_lib [0.2s]: calculating signal-to-noise (derivative)
 #> build_lib [0.2s]: assessing spectra (derivative)
 #> build_lib [0.2s]: processing recipe 3/3 (nobaseline)
-#> build_lib [0.2s]: calculating signal-to-noise (nobaseline)
-#> build_lib [0.2s]: assessing spectra (nobaseline)
-#> build_lib [0.2s]: complete
+#> build_lib [0.3s]: calculating signal-to-noise (nobaseline)
+#> build_lib [0.3s]: assessing spectra (nobaseline)
+#> build_lib [0.3s]: complete
 
 names(mini_libs)
 #> [1] "raw"        "derivative" "nobaseline"

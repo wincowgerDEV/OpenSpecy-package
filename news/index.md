@@ -13,6 +13,11 @@
   without waiting for the floating webR package repository. Deployment
   now smoke-tests the package version, upload, identification, download,
   and public GitHub Pages endpoint.
+- Fixed hosted-app startup by including hard dependencies from R’s
+  recommended packages (including `Matrix`, `survival`, and their
+  closure), skipping the unavailable Google Translate connectivity probe
+  in WebAssembly mode, and exercising the Shinylive iframe/selectize
+  controls in the browser smoke test.
 - Bundled the Shiny app in `inst/shiny/` from
   `wincowgerDEV/OpenSpecy-shiny` commit
   `60d1bdefff90affcda3353d7c389ea8f3748ca56`;

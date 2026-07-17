@@ -470,10 +470,10 @@ libs <- build_lib(
 #> build_lib [0.0s]: processing recipe 1/2 (raw)
 #> build_lib [0.0s]: calculating signal-to-noise (raw)
 #> build_lib [0.0s]: assessing spectra (raw)
-#> build_lib [0.0s]: processing recipe 2/2 (derivative)
-#> build_lib [0.0s]: calculating signal-to-noise (derivative)
-#> build_lib [0.0s]: assessing spectra (derivative)
-#> build_lib [0.0s]: complete
+#> build_lib [0.1s]: processing recipe 2/2 (derivative)
+#> build_lib [0.1s]: calculating signal-to-noise (derivative)
+#> build_lib [0.1s]: assessing spectra (derivative)
+#> build_lib [0.1s]: complete
 
 model <- suppressWarnings(build_model_lib(
   joined, class_col = "material_class", type_col = NULL, min_n = 2,
