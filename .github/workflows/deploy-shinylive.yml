@@ -154,7 +154,7 @@ jobs:
           npm install --no-save @playwright/test@1.61.1 http-server@14.1.1
           npx playwright install chromium
           npx http-server _site -p 8080 > /tmp/openspecy-http.log 2>&1 &
-          SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/openspecy/ \
+          SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/ \
           OPENSPECY_EXPECTED_VERSION="${PACKAGE_VERSION}" \
             npx playwright test tools/wasm/shinylive-smoke.spec.js \
               --output _wasm/playwright-results
@@ -204,15 +204,19 @@ jobs:
         run: |
           set -euo pipefail
           pages_url="${{ steps.deployment.outputs.page_url }}"
-          public_url="${pages_url%/}/openspecy/"
+          public_url="${pages_url%/}/"
+          app_url="${public_url}openspecy/"
           for attempt in {1..40}; do
-            if body=$(curl --fail --silent --show-error "${public_url}"); then
-              grep -q "runExportedApp" <<< "$body"
-              echo "Verified ${public_url}"
+            if root_body=$(curl --fail --silent --show-error "${public_url}") && \
+               app_body=$(curl --fail --silent --show-error "${app_url}"); then
+              grep -q "data-openspecy-embed" <<< "$root_body"
+              grep -q 'src="openspecy/"' <<< "$root_body"
+              grep -q "runExportedApp" <<< "$app_body"
+              echo "Verified ${public_url} and ${app_url}"
               exit 0
             fi
             echo "Waiting for GitHub Pages deployment (${attempt}/40)..."
             sleep 15
           done
-          echo "GitHub Pages did not publish ${public_url}" >&2
+          echo "GitHub Pages did not publish the integrated site at ${public_url}" >&2
           exit 1

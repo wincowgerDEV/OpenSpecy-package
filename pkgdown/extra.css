@@ -1,0 +1,183 @@
+.openspecy-app-shell {
+  margin: 1.5rem 0 2rem;
+  overflow: hidden;
+  border: 1px solid var(--bs-border-color, #d7dde3);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(24, 33, 43, 0.08);
+}
+
+.openspecy-app-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 58px;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--bs-border-color, #d7dde3);
+  background: #f7f9fb;
+}
+
+.openspecy-app-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.openspecy-app-heading p,
+.openspecy-app-actions p,
+.openspecy-app-progress p {
+  margin: 0;
+}
+
+.openspecy-app-heading p,
+.openspecy-app-actions p {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.openspecy-app-heading strong {
+  color: #17212b;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+#openspecy-app-status {
+  color: #56616c;
+  font-size: 0.875rem;
+}
+
+.openspecy-app-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.5rem;
+}
+
+.openspecy-app-viewport {
+  position: relative;
+  height: min(74vh, 760px);
+  min-height: 520px;
+  background: #fff;
+}
+
+#openspecy-app-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.openspecy-app-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: #fff;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.openspecy-app-loading-content {
+  width: min(100%, 32rem);
+  color: #56616c;
+  text-align: center;
+}
+
+.openspecy-app-loading-title {
+  margin-bottom: 0.75rem;
+  color: #17212b;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.openspecy-app-progress {
+  position: relative;
+  height: 8px;
+  margin: 0 auto 1rem;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #dce2e7;
+}
+
+.openspecy-app-progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  border-radius: inherit;
+  background: #087f8c;
+  animation: openspecy-app-progress 1.35s ease-in-out infinite;
+}
+
+.openspecy-app-shell.is-ready .openspecy-app-loading {
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.openspecy-app-shell:fullscreen,
+.openspecy-app-shell.is-fullscreen {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  flex-direction: column;
+}
+
+.openspecy-app-shell:fullscreen .openspecy-app-viewport,
+.openspecy-app-shell.is-fullscreen .openspecy-app-viewport {
+  height: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+@keyframes openspecy-app-progress {
+  0% { transform: translateX(-105%); }
+  55% { transform: translateX(165%); }
+  100% { transform: translateX(270%); }
+}
+
+@media (max-width: 575.98px) {
+  .openspecy-app-toolbar,
+  .openspecy-app-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .openspecy-app-toolbar,
+  .openspecy-app-heading {
+    gap: 0.5rem;
+  }
+
+  .openspecy-app-actions p > * {
+    flex: 1 1 0;
+  }
+
+  .openspecy-app-actions p {
+    width: 100%;
+  }
+
+  .openspecy-app-viewport {
+    height: 70vh;
+    min-height: 430px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .openspecy-app-loading {
+    transition: none;
+  }
+
+  .openspecy-app-progress span {
+    width: 100%;
+    animation: none;
+  }
+}

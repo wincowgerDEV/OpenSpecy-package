@@ -177,11 +177,30 @@ test_that("assembled Pages site contains pkgdown and only the bundled app", {
   on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
   dir.create(file.path(tmp, "openspecy"), recursive = TRUE,
              showWarnings = FALSE)
-  writeLines('<meta name="generator" content="pkgdown">',
+  writeLines(c(
+    '<meta name="generator" content="pkgdown">',
+    '<div data-openspecy-embed>',
+    '<iframe id="openspecy-app-frame" src="openspecy/"></iframe>',
+    '</div>'
+  ),
              file.path(tmp, "index.html"))
   writeLines("runExportedApp({});", file.path(tmp, "openspecy", "index.html"))
 
   expect_no_error(env$check_pages_site(tmp, max_bytes = 1024^2))
+  writeLines(c(
+    '<meta name="generator" content="pkgdown">',
+    '<div data-openspecy-embed>',
+    '<div class="sourceCode"><iframe id="openspecy-app-frame"',
+    'src="openspecy/"></iframe></div>'
+  ), file.path(tmp, "index.html"))
+  expect_error(env$check_pages_site(tmp, max_bytes = 1024^2),
+               "rendered as a source-code block")
+  writeLines(c(
+    '<meta name="generator" content="pkgdown">',
+    '<div data-openspecy-embed>',
+    '<iframe id="openspecy-app-frame" src="openspecy/"></iframe>',
+    '</div>'
+  ), file.path(tmp, "index.html"))
   dir.create(file.path(tmp, "wasm"))
   expect_error(env$check_pages_site(tmp, max_bytes = 1024^2),
                "must not contain a wasm repository")
@@ -211,8 +230,44 @@ test_that("only one workflow publishes the combined native Pages site", {
                         fixed = TRUE)))
   expect_true(any(grepl('dest_dir = "_site"', shinylive, fixed = TRUE)))
   expect_true(any(grepl("_site/openspecy", shinylive, fixed = TRUE)))
+  expect_true(any(grepl(
+    "SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/ ",
+    shinylive, fixed = TRUE
+  )))
   expect_false(any(grepl("_site/wasm", c(shinylive, wasm), fixed = TRUE)))
   expect_true(any(grepl("path: _wasm/pinned", wasm, fixed = TRUE)))
+})
+
+test_that("pkgdown homepage and Shiny app provide the embed handshake", {
+  app_path <- run_app(test_mode = TRUE)
+  ui_source <- readLines(file.path(app_path, "ui.R"), warn = FALSE)
+  bridge_path <- file.path(app_path, "www", "parent-frame.js")
+
+  expect_true(file.exists(bridge_path))
+  expect_true(any(grepl("parent-frame.js", ui_source, fixed = TRUE)))
+  bridge <- readLines(bridge_path, warn = FALSE)
+  expect_true(any(grepl("shiny:idle.openspecyParent", bridge,
+                        fixed = TRUE)))
+  expect_true(any(grepl("window.top.postMessage", bridge, fixed = TRUE)))
+  expect_true(any(grepl("openspecy:ready", bridge, fixed = TRUE)))
+
+  readme_path <- test_path("..", "..", "README.md")
+  pkgdown_dir <- test_path("..", "..", "pkgdown")
+  if (!file.exists(readme_path) || !dir.exists(pkgdown_dir)) {
+    skip("Repository-only pkgdown sources are not in the package tarball")
+  }
+
+  readme <- readLines(readme_path, warn = FALSE)
+  script <- readLines(file.path(pkgdown_dir, "extra.js"), warn = FALSE)
+  css <- readLines(file.path(pkgdown_dir, "extra.css"), warn = FALSE)
+  expect_true(any(grepl("data-openspecy-embed", readme, fixed = TRUE)))
+  expect_true(any(grepl('src="openspecy/"', readme, fixed = TRUE)))
+  expect_true(any(grepl("requestFullscreen", script, fixed = TRUE)))
+  expect_true(any(grepl("DOMContentLoaded", script, fixed = TRUE)))
+  expect_true(any(grepl("event.origin !== window.location.origin", script,
+                        fixed = TRUE)))
+  expect_true(any(grepl("openspecy-app-shell:fullscreen", css,
+                        fixed = TRUE)))
 })
 
 test_that("bundled app has no floating wasm package installer", {

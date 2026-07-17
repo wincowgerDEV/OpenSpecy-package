@@ -166,7 +166,7 @@ if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyCon
 }
 
 $env:NODE_PATH = Join-Path $nodeDir "node_modules"
-$env:SHINYLIVE_SMOKE_URL = "http://127.0.0.1:$Port/openspecy/"
+$env:SHINYLIVE_SMOKE_URL = "http://127.0.0.1:$Port/"
 $env:OPENSPECY_EXPECTED_VERSION =
   (& $Rscript -e "cat(read.dcf('DESCRIPTION')[1, 'Version'])")
 $server = Start-Process -FilePath "node.exe" -ArgumentList @(

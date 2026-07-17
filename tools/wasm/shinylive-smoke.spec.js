@@ -2,8 +2,8 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
 
-test("OpenSpecy Shinylive app starts and exposes upload UI", async ({ page }, testInfo) => {
-  const url = process.env.SHINYLIVE_SMOKE_URL || "http://127.0.0.1:8080/openspecy/";
+test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testInfo) => {
+  const url = process.env.SHINYLIVE_SMOKE_URL || "http://127.0.0.1:8080/";
   const expectedVersion = process.env.OPENSPECY_EXPECTED_VERSION;
   const consoleErrors = [];
   const runtimeDiagnostics = [];
@@ -35,7 +35,20 @@ test("OpenSpecy Shinylive app starts and exposes upload UI", async ({ page }, te
   });
 
   await page.goto(url, { waitUntil: "domcontentloaded" });
-  const appFrame = page.frameLocator("iframe.app-frame");
+  const embed = page.locator("[data-openspecy-embed]");
+  await expect(embed).toBeAttached();
+  await expect(page.locator("[data-openspecy-loading]")).toBeVisible();
+  await expect(page.getByRole("progressbar", {
+    name: "Loading the OpenSpecy web application",
+  })).toBeVisible();
+  await expect(page.locator("#openspecy-fullscreen")).toBeDisabled();
+  await embed.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: testInfo.outputPath("pkgdown-app-loading.png"),
+  });
+
+  const shinyliveFrame = page.frameLocator("#openspecy-app-frame");
+  const appFrame = shinyliveFrame.frameLocator("iframe.app-frame");
   try {
     await expect(appFrame.locator("body")).toContainText(`OpenSpecy ${expectedVersion}`, {
       timeout: 180000,
@@ -43,6 +56,11 @@ test("OpenSpecy Shinylive app starts and exposes upload UI", async ({ page }, te
   } catch (error) {
     const rootHtml = await page.locator("#root").innerHTML().catch(() => "<unavailable>");
     runtimeDiagnostics.push(`[root] ${rootHtml}`);
+    const shellHtml = await shinyliveFrame
+      .locator("#root")
+      .innerHTML()
+      .catch(() => "<unavailable>");
+    runtimeDiagnostics.push(`[shinylive-shell] ${shellHtml}`);
     const appBody = await appFrame.locator("body").innerHTML().catch(() => "<unavailable>");
     runtimeDiagnostics.push(`[app-frame-body] ${appBody}`);
     const diagnostics = runtimeDiagnostics.join("\n");
@@ -53,6 +71,10 @@ test("OpenSpecy Shinylive app starts and exposes upload UI", async ({ page }, te
     console.error(`Shinylive runtime diagnostics:\n${diagnostics}`);
     throw error;
   }
+  await expect(embed).toHaveClass(/\bis-ready\b/, { timeout: 120000 });
+  await expect(page.locator("[data-openspecy-loading]")).toBeHidden();
+  await expect(page.locator("#openspecy-app-status")).toHaveText("Ready");
+  await expect(page.locator("#openspecy-fullscreen")).toBeEnabled();
   const fileInput = appFrame.locator("#file, input[type='file']").first();
   await expect(fileInput).toBeAttached({ timeout: 180000 });
 
@@ -103,4 +125,29 @@ test("OpenSpecy Shinylive app starts and exposes upload UI", async ({ page }, te
     /Error in|package .* not found|there is no package|pinned build requires/i.test(text)
   );
   expect(severeErrors).toEqual([]);
+
+  await embed.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: testInfo.outputPath("pkgdown-embedded-app-desktop.png"),
+  });
+
+  const fullscreenButton = page.locator("#openspecy-fullscreen");
+  await fullscreenButton.click();
+  await expect.poll(() => page.evaluate(() =>
+    document.fullscreenElement && document.fullscreenElement.id
+  )).toBe("openspecy-app-shell");
+  await expect(embed).toHaveClass(/\bis-fullscreen\b/);
+  await page.screenshot({
+    path: testInfo.outputPath("openspecy-app-fullscreen.png"),
+  });
+  await fullscreenButton.click();
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement)).toBeNull();
+  await expect(embed).not.toHaveClass(/\bis-fullscreen\b/);
+  await expect(fullscreenButton).toHaveText("Full screen");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await embed.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: testInfo.outputPath("pkgdown-embedded-app-mobile.png"),
+  });
 });

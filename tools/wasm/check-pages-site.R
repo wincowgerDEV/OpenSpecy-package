@@ -19,6 +19,26 @@ check_pages_site <- function(site_dir, max_bytes = 950 * 1024^2) {
   if (!grepl("pkgdown", root_text, fixed = TRUE)) {
     fail("The Pages root does not look like a pkgdown site.")
   }
+  embed_markers <- c(
+    "data-openspecy-embed",
+    "id=\"openspecy-app-frame\"",
+    "src=\"openspecy/\""
+  )
+  missing_markers <- embed_markers[
+    !vapply(embed_markers, grepl, logical(1), x = root_text, fixed = TRUE)
+  ]
+  if (length(missing_markers)) {
+    fail("The pkgdown homepage is missing its embedded app markup: ",
+         paste(missing_markers, collapse = ", "), ".")
+  }
+  embed_pos <- regexpr("data-openspecy-embed", root_text, fixed = TRUE)[[1]]
+  frame_pos <- regexpr("id=\"openspecy-app-frame\"", root_text,
+                       fixed = TRUE)[[1]]
+  source_positions <- gregexpr('class="sourceCode"', root_text,
+                               fixed = TRUE)[[1]]
+  if (any(source_positions > embed_pos & source_positions < frame_pos)) {
+    fail("The embedded app markup was rendered as a source-code block.")
+  }
   app_text <- paste(readLines(app_index, warn = FALSE), collapse = "\n")
   if (!grepl("runExportedApp", app_text, fixed = TRUE)) {
     fail("The /openspecy/ site does not look like a Shinylive export.")

@@ -34,7 +34,7 @@ the [package vignette](https://wincowgerdev.github.io/OpenSpecy-package/articles
 # Running the App
 
 To get started with the Open Specy user interface, access
-[https://openanalysis.org/openspecy/](https://openanalysis.org/openspecy/) or
+[the embedded browser app](https://wincowgerdev.github.io/OpenSpecy-package/) or
 start the Shiny GUI directly from your own computer in R. If using the package,
 you just need to read in the library and run the command `run_app()`.
 

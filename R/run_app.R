@@ -164,6 +164,7 @@ run_app <- function(path = "system", log = TRUE, ref = NULL,
     "www/donation.png",
     "www/favicon.png",
     "www/favicon.ico",
+    "www/parent-frame.js",
     "www/TOS.txt",
     "www/privacy_policy.txt"
   )

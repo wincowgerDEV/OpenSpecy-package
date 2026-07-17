@@ -71,6 +71,7 @@ dashboardPage(dark = T,
             NULL,
 
             tags$head(
+                      tags$script(src = "parent-frame.js"),
                       tags$script(async = T, src = "https://buttons.github.io/buttons.js"),
                       tags$style(HTML("
                     .shiny-output-error-validation {
