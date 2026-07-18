@@ -2,6 +2,8 @@
   "use strict";
 
   var notified = false;
+  var busyTimer = null;
+  var busyDelay = 650;
 
   function notifyReady() {
     if (notified || window.top === window) return;
@@ -15,7 +17,26 @@
       return;
     }
 
-    window.jQuery(document).one("shiny:idle.openspecyParent", notifyReady);
+    var shinyDocument = window.jQuery(document);
+
+    shinyDocument.on("shiny:busy.openspecyBusy", function () {
+      if (document.documentElement.classList.contains(
+        "openspecy-busy-visible"
+      )) return;
+
+      window.clearTimeout(busyTimer);
+      busyTimer = window.setTimeout(function () {
+        document.documentElement.classList.add("openspecy-busy-visible");
+      }, busyDelay);
+    });
+
+    shinyDocument.on("shiny:idle.openspecyBusy", function () {
+      window.clearTimeout(busyTimer);
+      busyTimer = null;
+      document.documentElement.classList.remove("openspecy-busy-visible");
+    });
+
+    shinyDocument.one("shiny:idle.openspecyParent", notifyReady);
   }
 
   if (document.readyState === "loading") {

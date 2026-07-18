@@ -1,5 +1,38 @@
 # OpenSpecy
 
+<div class="openspecy-app-shell" id="openspecy-app-shell" data-openspecy-embed>
+<div class="openspecy-app-toolbar">
+<div class="openspecy-app-heading">
+<strong>OpenSpecy web app</strong>
+<span id="openspecy-app-status" role="status" aria-live="polite">Loading application...</span>
+</div>
+<div class="openspecy-app-actions">
+<a class="btn btn-sm btn-outline-secondary" href="openspecy/" target="_blank" rel="noopener">Open separately</a>
+<button class="btn btn-sm btn-primary" id="openspecy-fullscreen" type="button" aria-controls="openspecy-app-frame" aria-pressed="false" disabled>Full screen</button>
+</div>
+</div>
+<div class="openspecy-app-viewport">
+<div class="openspecy-app-loading" data-openspecy-loading>
+<div class="openspecy-app-loading-content">
+<p class="openspecy-app-loading-title">Loading OpenSpecy</p>
+<div class="openspecy-app-progress" role="progressbar" aria-label="Loading the OpenSpecy web application" aria-valuetext="Loading">
+<span></span>
+</div>
+<p>WebR is starting in your browser. You can keep exploring the documentation while it loads.</p>
+</div>
+</div>
+<iframe id="openspecy-app-frame" title="OpenSpecy spectral analysis application" src="openspecy/" loading="eager"></iframe>
+</div>
+</div>
+
+<noscript>The embedded app requires JavaScript. <a href="openspecy/">Open the OpenSpecy web app directly.</a></noscript>
+
+The browser app is built from the same bundled Shiny source as `run_app()`.
+Each hosted build includes the WebAssembly library image produced for the
+matching OpenSpecy commit and its pinned dependency closure. To keep the
+download practical, the browser app exposes the medoid and multinomial model
+libraries; the local app continues to support the full libraries.
+
 Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 
 <!-- badges: start -->
@@ -23,12 +56,6 @@ wavenumber alignment, and min-max normalization.
 Spectra can be identified in batch using an onboard reference library
 using `match_spec()`. A bundled Shiny app is available via `run_app()`
 or directly on this website.
-
-## Use OpenSpecy online
-
-Use the hosted browser app on the
-[OpenSpecy website](https://wincowgerdev.github.io/OpenSpecy-package/). The
-local app remains available through `run_app()`.
 
 ## Installation
 
@@ -123,11 +150,12 @@ https://pypi.org/project/openspi/
 ## Citations
 
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,
-De Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral Classification
-Needs an Open Source Community: Open Specy to the Rescue!”
-*Analytical Chemistry*, **93**(21), 7543–7548. doi:
+De Frond H, Rochman C, Herodotou O (2021). â€œMicroplastic Spectral Classification
+Needs an Open Source Community: Open Specy to the Rescue!â€
+*Analytical Chemistry*, **93**(21), 7543â€“7548. doi:
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
-Cowger W, Steinmetz Z, Leong N, Faltynkova A, Sherrod H (2024). “OpenSpecy: Analyze,
-Process, Identify, and Share Raman and (FT)IR Spectra.” *R package*, **1.0.8**.
+Cowger W, Steinmetz Z, Leong N, Faltynkova A, Sherrod H (2024). â€œOpenSpecy: Analyze,
+Process, Identify, and Share Raman and (FT)IR Spectra.â€ *R package*, **1.0.8**.
 [https://github.com/wincowgerDEV/OpenSpecy-package](https://github.com/wincowgerDEV/OpenSpecy-package).
+

@@ -250,23 +250,36 @@ test_that("pkgdown homepage and Shiny app provide the embed handshake", {
                         fixed = TRUE)))
   expect_true(any(grepl("window.top.postMessage", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy:ready", bridge, fixed = TRUE)))
+  expect_true(any(grepl("shiny:busy.openspecyBusy", bridge, fixed = TRUE)))
+  expect_true(any(grepl("openspecy-busy-visible", bridge, fixed = TRUE)))
 
   readme_path <- test_path("..", "..", "README.md")
+  homepage_path <- test_path("..", "..", "pkgdown", "index.md")
   pkgdown_dir <- test_path("..", "..", "pkgdown")
-  if (!file.exists(readme_path) || !dir.exists(pkgdown_dir)) {
+  if (!file.exists(readme_path) || !file.exists(homepage_path) ||
+      !dir.exists(pkgdown_dir)) {
     skip("Repository-only pkgdown sources are not in the package tarball")
   }
 
   readme <- readLines(readme_path, warn = FALSE)
+  homepage <- readLines(homepage_path, warn = FALSE)
   script <- readLines(file.path(pkgdown_dir, "extra.js"), warn = FALSE)
   css <- readLines(file.path(pkgdown_dir, "extra.css"), warn = FALSE)
-  expect_true(any(grepl("data-openspecy-embed", readme, fixed = TRUE)))
-  expect_true(any(grepl('src="openspecy/"', readme, fixed = TRUE)))
-  expect_true(any(grepl("requestFullscreen", script, fixed = TRUE)))
+  expect_false(any(grepl("data-openspecy-embed", readme, fixed = TRUE)))
+  expect_false(any(grepl("openspecy-app-frame", readme, fixed = TRUE)))
+  expect_true(any(grepl("data-openspecy-embed", homepage, fixed = TRUE)))
+  expect_true(any(grepl('src="openspecy/"', homepage, fixed = TRUE)))
+  expect_lt(which(grepl("data-openspecy-embed", homepage,
+                        fixed = TRUE))[[1]],
+            which(grepl("Analyze, Process, Identify", homepage,
+                        fixed = TRUE))[[1]])
+  expect_false(any(grepl("requestFullscreen", script, fixed = TRUE)))
+  expect_true(any(grepl("openspecy-app-fullscreen-open", script,
+                        fixed = TRUE)))
   expect_true(any(grepl("DOMContentLoaded", script, fixed = TRUE)))
   expect_true(any(grepl("event.origin !== window.location.origin", script,
                         fixed = TRUE)))
-  expect_true(any(grepl("openspecy-app-shell:fullscreen", css,
+  expect_true(any(grepl("openspecy-app-shell.is-fullscreen", css,
                         fixed = TRUE)))
 })
 

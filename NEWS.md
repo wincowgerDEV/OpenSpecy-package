@@ -1,8 +1,9 @@
 # OpenSpecy 1.7.1
 
-- Embedded the hosted Shinylive app on the pkgdown homepage with real Shiny
-  readiness feedback, a nonblocking loading view, full-screen support, and a
-  direct-app fallback while keeping `/openspecy/` as the generated app route.
+- Embedded the hosted Shinylive app immediately below the pkgdown title with
+  real Shiny readiness feedback and a viewport full-screen mode that persists
+  through upload/download dialogs. GitHub retains a normal README, and brief
+  reactive updates no longer flash the app's processing overlay.
 - Added source manifests, app configuration, and GitHub Actions for building a
   hosted Shinylive/WebAssembly app from `inst/shiny/`. The hosted app is pinned
   to a versioned wasm CRAN-like repository containing `OpenSpecy` and the app

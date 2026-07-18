@@ -77,7 +77,7 @@ dashboardPage(dark = T,
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
                     }
-                    html.shiny-busy .content-wrapper::after {
+                    html.openspecy-busy-visible .content-wrapper::after {
                     content: '';
                     position: fixed;
                     inset: 60px 0 0 0;
@@ -85,7 +85,7 @@ dashboardPage(dark = T,
                     z-index: 1030;
                     pointer-events: all;
                     }
-                    html.shiny-busy .content-wrapper::before {
+                    html.openspecy-busy-visible .content-wrapper::before {
                     content: 'Processing current analysis...';
                     position: fixed;
                     top: 50%;

@@ -121,18 +121,24 @@
   visibility: hidden;
 }
 
-.openspecy-app-shell:fullscreen,
+html.openspecy-app-fullscreen-open,
+html.openspecy-app-fullscreen-open body {
+  overflow: hidden;
+}
+
 .openspecy-app-shell.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
   display: flex;
-  width: 100%;
-  height: 100%;
+  width: auto;
+  height: auto;
   margin: 0;
   border: 0;
   border-radius: 0;
   flex-direction: column;
 }
 
-.openspecy-app-shell:fullscreen .openspecy-app-viewport,
 .openspecy-app-shell.is-fullscreen .openspecy-app-viewport {
   height: auto;
   min-height: 0;

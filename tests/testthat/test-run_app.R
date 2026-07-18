@@ -97,7 +97,12 @@ test_that("bundled Shiny app does not block startup or auto-load remote images",
   expect_false(any(grepl("<iframe", ui_source, fixed = TRUE)))
   expect_false(any(grepl("width: 15vw", ui_source, fixed = TRUE)))
   expect_true(any(grepl("object-fit:contain", ui_source, fixed = TRUE)))
-  expect_true(any(grepl("html.shiny-busy", ui_source, fixed = TRUE)))
+  expect_true(any(grepl("html.openspecy-busy-visible", ui_source,
+                        fixed = TRUE)))
+  bridge <- readLines(file.path(app_path, "www", "parent-frame.js"),
+                      warn = FALSE)
+  expect_true(any(grepl("shiny:busy.openspecyBusy", bridge, fixed = TRUE)))
+  expect_true(any(grepl("busyDelay = 650", bridge, fixed = TRUE)))
 })
 
 test_that("bundled Shiny app prunes imported orphan assets", {
