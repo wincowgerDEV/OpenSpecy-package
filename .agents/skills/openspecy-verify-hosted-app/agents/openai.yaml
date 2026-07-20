@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify OpenSpecy Hosted App"
+  short_description: "Reproduce the hosted app deployment locally"
+  default_prompt: "Use $openspecy-verify-hosted-app to run an action-equivalent local verification of the OpenSpecy Pages and Shinylive deployment."

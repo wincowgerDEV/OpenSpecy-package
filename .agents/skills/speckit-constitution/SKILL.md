@@ -18,7 +18,16 @@ workflow preferences that should survive individual features.
 4. Synchronize dependent guidance only where needed:
    `.specify/templates/plan-template.md`, `.agents/skills/`, workflow metadata,
    and `AGENTS.md`.
-5. Keep the planning workflow concise: one default `plan.md`, under 100
+5. When reviewing an implementation log, separate durable obligations from
+   repeatable procedures. Put obligations in the constitution; update an
+   existing skill or create one concise project skill for commands, failure
+   triage, or interaction patterns. Reuse maintained scripts instead of copying
+   their implementation into skills.
+6. Use the system `skill-creator` workflow for new skills. If its Python
+   initializer is unavailable after executable discovery, create only the
+   required `SKILL.md` and recommended `agents/openai.yaml`, validate their YAML
+   and naming constraints with an available parser, and report the fallback.
+7. Keep the planning workflow concise: one default `plan.md`, under 100
    nonblank lines, with embedded requirements and tasks.
 
 ## Versioning

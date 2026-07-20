@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test OpenSpecy Hosted App"
+  short_description: "Smoke-test nested Shinylive app interactions"
+  default_prompt: "Use $openspecy-test-hosted-app-browser to exercise the embedded OpenSpecy app through upload, identification, download, app mode, and visual checks."

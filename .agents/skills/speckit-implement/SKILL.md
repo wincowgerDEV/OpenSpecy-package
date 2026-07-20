@@ -42,7 +42,9 @@ are not required.
     the small medoid/model libraries with guarded `get_lib()` workflows unless
     the plan says otherwise, avoid hand-editing generated web artifacts, and run
     a CI-guarded or manual smoke test that covers startup, assets, dependency
-    resolution, and library matching.
+    resolution, and library matching. Apply `openspecy-verify-hosted-app` for
+    action-equivalent assembly and `openspecy-test-hosted-app-browser` for
+    pkgdown/Shinylive interaction or presentation changes.
 
 ## Rules
 

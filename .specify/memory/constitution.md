@@ -1,17 +1,23 @@
 <!--
 Sync Impact Report
-Version change: 3.2.0 -> 3.3.0
+Version change: 3.3.0 -> 3.4.0
 Modified principles:
-- Development Workflow and Quality Gates: made maintainer-owned remote synchronization the default and required fresh user authorization for agent push/pull operations
+- Documentation Is Part of the Change: separated GitHub-safe README content from pkgdown-only interactive homepage content
+- Hosted Shinylive/WebAssembly Application Boundary: standardized pkgdown integration, persistent app mode, busy feedback, and action-equivalent browser verification
+- Development Workflow and Quality Gates: added the exact hosted-app preflight and interaction checks required before handoff
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .agents/skills/speckit-implement/SKILL.md: require explicit current-request authorization for each agent push or pull
-- AGENTS.md: summarize the maintainer-owned remote synchronization rule
+- .specify/templates/plan-template.md: distinguish GitHub README, pkgdown embed, and hosted-app interaction verification
+- .agents/skills/speckit-constitution/SKILL.md: route update-log lessons into governance rules versus reusable procedures
+- .agents/skills/speckit-implement/SKILL.md: route hosted app work through reusable preflight and browser-smoke skills
+- .agents/skills/openspecy-verify-hosted-app/: add action-equivalent Pages/Shinylive verification workflow
+- .agents/skills/openspecy-test-hosted-app-browser/: add nested-frame interaction and visual smoke workflow
+- AGENTS.md: summarize hosted homepage ownership and local preflight expectations
 Follow-up TODOs:
-- Finish local action-equivalent Shinylive browser verification before the maintainer's next push.
+- None
 -->
 
 # OpenSpecy Constitution
@@ -160,6 +166,12 @@ change. `README.md` and pkgdown-oriented content MUST stay consistent with the
 package's current installation, getting-started, citation, and workflow
 guidance. `NEWS.md` MUST record user-visible features, fixes, breaking changes,
 dependency changes, and documentation-only updates that matter to users.
+
+`README.md` SHOULD remain directly readable on GitHub and MUST NOT carry the
+hosted app iframe or its interactive controls unless a feature plan explicitly
+reopens that presentation decision. Pkgdown-only homepage markup and behavior
+belong in `pkgdown/index.md`, `pkgdown/extra.css`, and `pkgdown/extra.js`.
+Package prose duplicated across README and pkgdown sources MUST stay aligned.
 
 Examples and workflow documentation MUST prefer representative `OpenSpecy`
 objects and MUST show how the object structure and meaningful attributes move
@@ -315,10 +327,12 @@ required assets, and does not rely on files outside the installed package.
 
 ## Hosted Shinylive/WebAssembly Application Boundary
 
-The public WebAssembly app at `https://www.openanalysis.org/openspecy/` SHOULD
-be built and hosted from this package repository once the migration is scoped.
-The bundled Shiny app under `inst/` is the canonical source for the local and
-hosted app experience; the historical
+The public WebAssembly app SHOULD be generated and published with this
+repository's pkgdown site, with pkgdown at the site root and the standalone app
+at `/openspecy/`. The pkgdown homepage MAY embed that route immediately below
+the OpenSpecy title, while GitHub's README remains a normal document with a link
+to the site. The bundled Shiny app under `inst/` is the canonical source for the
+local and hosted app experience; the historical
 `Moore-Institute-4-Plastic-Pollution-Res/openspecy` repository SHOULD be treated
 as transition context unless a feature plan states otherwise.
 
@@ -357,12 +371,28 @@ full libraries as well. This small-library restriction SHOULD be the only major
 functional difference between local and WebAssembly apps unless a plan documents
 the reason, user impact, tests, and documentation update.
 
+An expanded app view that is expected to survive file pickers, uploads, and
+downloads MUST use page-owned viewport state rather than the browser Fullscreen
+API, which browsers may dismiss for native UI. Browser verification MUST cover
+entry, `Escape`, a file chooser, upload, download, and exit through the app's
+explicit control. Global Shiny busy feedback SHOULD appear only for sustained
+work; brief reactive flushes after results render MUST NOT flash a blocking
+overlay. Shared local/hosted UI code MUST be tested as shared behavior.
+
 Hosted app work MUST include verification proportional to the change: action
 syntax and permissions, wasm package repository index and package availability,
 dependency-closure availability, library artifact availability, pinned package
 and dependency metadata, generated app startup, static asset loading, and a
 browser or CI-guarded smoke path that exercises library matching. Size impact
 and generated output location MUST be reported before handoff.
+
+When a matching action-built wasm artifact is available, local handoff SHOULD
+run `tools/wasm/test-shinylive-action.ps1` with that artifact's exact package
+commit. The preflight MUST assemble pkgdown plus `/openspecy/`, bundle the
+pinned library image, run repository/export checks, and exercise startup,
+upload, identification, download, console diagnostics, and desktop/mobile
+screenshots. `_wasm/` outputs MUST remain ignored and MUST NOT be mistaken for
+source changes.
 
 ## Development Workflow and Quality Gates
 
@@ -414,6 +444,9 @@ Before implementation is complete:
   workflow, package and dependency pins, dependency closure, small-library
   staging, generated app startup, asset loading, and at least one
   library-matching smoke path before release-facing handoff.
+- Hosted homepage or interaction changes MUST use the action-equivalent
+  preflight when a matching wasm artifact is available and MUST verify app-mode
+  persistence plus absence of post-result busy-overlay flashes.
 
 On Windows, maintained project skills or scripts SHOULD resolve real executable
 paths once and reuse them. Process-scoped PowerShell execution-policy bypasses
@@ -458,7 +491,10 @@ block hosted Shinylive/WebAssembly changes that float to unpinned package or
 dependency versions, bypass the wasm package repository workflow without
 justification, resolve required app packages from floating external
 repositories, or silently diverge from the local app beyond the documented
-small-library constraint. Temporary exceptions MUST be documented in the feature
-plan with the reason, risk, and follow-up task.
+small-library constraint. They MUST also block hosted homepage changes that put
+interactive app markup back into GitHub's README, commit generated `_wasm/`
+outputs, or claim browser readiness without the required interaction evidence.
+Temporary exceptions MUST be documented in the feature plan with the reason,
+risk, and follow-up task.
 
-**Version**: 3.3.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-16
+**Version**: 3.4.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-20

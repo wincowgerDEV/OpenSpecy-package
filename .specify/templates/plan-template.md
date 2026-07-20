@@ -31,7 +31,7 @@
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
 - **Bundled Shiny app**: [impact on `inst/` app code/assets, image compression, orphan-file audit, package-size impact, headless app tests, smoke test, or N/A.]
-- **Hosted Shinylive/WebAssembly app**: [impact on `.github/workflows/`, wasm package repository, hardcoded package/dependency pins, dependency closure, small medoid/model library staging, generated app artifacts, smoke tests, or N/A.]
+- **Hosted Shinylive/WebAssembly app**: [impact on `.github/workflows/`, wasm package repository, hardcoded package/dependency pins, dependency closure, small medoid/model library staging, GitHub README vs `pkgdown/index.md`, generated app artifacts, action-equivalent preflight, interaction/visual smoke tests, or N/A.]
 
 ## Package Surfaces
 
@@ -41,7 +41,7 @@
 - `workflows/`: [changed, unchanged, or N/A]
 - `.github/workflows/`: [changed, unchanged, or N/A]
 - `inst/`: [bundled Shiny app/assets, examples/data, unchanged, or N/A]
-- `vignettes/README/pkgdown`: [changed, unchanged, or deferred]
+- `vignettes/README/pkgdown`: [changed, unchanged, or deferred; keep interactive app markup pkgdown-only]
 - `DESCRIPTION`: [changed or unchanged]
 - `NEWS.md`: [entry or reason none]
 - Bundled Shiny app: [impact, asset audit, headless tests, smoke test, or N/A]
@@ -64,7 +64,7 @@
 - Benchmarks:
 - Reference-library/long workflow staging:
 - Shiny app tests/asset audit/smoke test:
-- Shinylive/WebAssembly package repo, dependency closure, pins, libraries, and smoke test:
+- Shinylive/WebAssembly package repo, dependency closure, pins, libraries, action-equivalent preflight, and nested-frame interaction/visual smoke test:
 
 ## Risks And Open Questions
 
