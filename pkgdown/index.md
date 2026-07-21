@@ -7,7 +7,7 @@
 <span id="openspecy-app-status" role="status" aria-live="polite">Loading application...</span>
 </div>
 <div class="openspecy-app-actions">
-<a class="btn btn-sm btn-outline-secondary" href="openspecy/" target="_blank" rel="noopener">Open separately</a>
+<a class="btn btn-sm btn-outline-secondary" href="app/" target="_blank" rel="noopener">Open separately</a>
 <button class="btn btn-sm btn-primary" id="openspecy-fullscreen" type="button" aria-controls="openspecy-app-frame" aria-pressed="false" disabled>Full screen</button>
 </div>
 </div>
@@ -21,11 +21,11 @@
 <p>WebR is starting in your browser. You can keep exploring the documentation while it loads.</p>
 </div>
 </div>
-<iframe id="openspecy-app-frame" title="OpenSpecy spectral analysis application" src="openspecy/" loading="eager"></iframe>
+<iframe id="openspecy-app-frame" title="OpenSpecy spectral analysis application" src="app/" loading="eager"></iframe>
 </div>
 </div>
 
-<noscript>The embedded app requires JavaScript. <a href="openspecy/">Open the OpenSpecy web app directly.</a></noscript>
+<noscript>The embedded app requires JavaScript. <a href="app/">Open the OpenSpecy web app directly.</a></noscript>
 
 The browser app is built from the same bundled Shiny source as `run_app()`.
 Each hosted build includes the WebAssembly library image produced for the
@@ -158,4 +158,3 @@ Needs an Open Source Community: Open Specy to the Rescue!â€
 Cowger W, Steinmetz Z, Leong N, Faltynkova A, Sherrod H (2024). â€œOpenSpecy: Analyze,
 Process, Identify, and Share Raman and (FT)IR Spectra.â€ *R package*, **1.0.8**.
 [https://github.com/wincowgerDEV/OpenSpecy-package](https://github.com/wincowgerDEV/OpenSpecy-package).
-

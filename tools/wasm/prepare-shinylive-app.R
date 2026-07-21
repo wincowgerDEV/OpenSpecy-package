@@ -9,7 +9,7 @@ value_after <- function(flag, default = NULL) {
 }
 
 app_dir <- value_after("--app-dir", file.path("inst", "shiny"))
-out_dir <- value_after("--out-dir", file.path("_site", "openspecy"))
+out_dir <- value_after("--out-dir", file.path("_site", "app"))
 work_dir <- value_after("--work-dir", file.path("_wasm", "app-source"))
 library_dir <- value_after("--library-dir", file.path("_wasm", "libraries"))
 artifact_ref <- value_after(

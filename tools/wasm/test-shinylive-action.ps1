@@ -116,7 +116,7 @@ Invoke-Checked $Rscript @(
 )
 
 $siteRoot = Join-Path $work "site"
-$site = Join-Path $siteRoot "openspecy"
+$site = Join-Path $siteRoot "app"
 $workApp = Join-Path $work "app-source"
 $appManifest = Join-Path $work "wasm-app-manifest.json"
 $artifactRef = "openspecy-wasm-$PackageSha"

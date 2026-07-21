@@ -1,21 +1,18 @@
 <!--
 Sync Impact Report
-Version change: 3.3.0 -> 3.4.0
+Version change: 3.4.0 -> 3.4.1
 Modified principles:
-- Documentation Is Part of the Change: separated GitHub-safe README content from pkgdown-only interactive homepage content
-- Hosted Shinylive/WebAssembly Application Boundary: standardized pkgdown integration, persistent app mode, busy feedback, and action-equivalent browser verification
-- Development Workflow and Quality Gates: added the exact hosted-app preflight and interaction checks required before handoff
+- Hosted Shinylive/WebAssembly Application Boundary: changed the standalone app route to `/app/` and established the Moore Institute `openspecy` fork as the `openanalysis.org/openspecy/` hosting bridge
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md: distinguish GitHub README, pkgdown embed, and hosted-app interaction verification
-- .agents/skills/speckit-constitution/SKILL.md: route update-log lessons into governance rules versus reusable procedures
-- .agents/skills/speckit-implement/SKILL.md: route hosted app work through reusable preflight and browser-smoke skills
-- .agents/skills/openspecy-verify-hosted-app/: add action-equivalent Pages/Shinylive verification workflow
-- .agents/skills/openspecy-test-hosted-app-browser/: add nested-frame interaction and visual smoke workflow
-- AGENTS.md: summarize hosted homepage ownership and local preflight expectations
+- .github/workflows/deploy-shinylive.yml: publish and verify `_site/app`
+- pkgdown/index.md: embed and link the relative `app/` route
+- tools/wasm/ and tests/testthat/test-shinylive_wasm.R: build and enforce the `/app/` contract
+- specs/006-hosted-shinylive-wasm/plan.md: record the final public route and hosting fork
+- .agents/skills/openspecy-verify-hosted-app/ and AGENTS.md: synchronize reusable guidance
 Follow-up TODOs:
 - None
 -->
@@ -329,12 +326,14 @@ required assets, and does not rely on files outside the installed package.
 
 The public WebAssembly app SHOULD be generated and published with this
 repository's pkgdown site, with pkgdown at the site root and the standalone app
-at `/openspecy/`. The pkgdown homepage MAY embed that route immediately below
+at `/app/`. The pkgdown homepage MAY embed that route immediately below
 the OpenSpecy title, while GitHub's README remains a normal document with a link
 to the site. The bundled Shiny app under `inst/` is the canonical source for the
-local and hosted app experience; the historical
-`Moore-Institute-4-Plastic-Pollution-Res/openspecy` repository SHOULD be treated
-as transition context unless a feature plan states otherwise.
+local and hosted app experience. The
+`Moore-Institute-4-Plastic-Pollution-Res/openspecy` repository is the active
+hosting bridge for `openanalysis.org/openspecy/`; deployment workflows MUST
+remain fork-portable and SHOULD consume this package repository's canonical
+source or generated artifact without maintaining a divergent app implementation.
 
 The Shinylive application MUST be generated from package app source by GitHub
 Actions or an equivalent reproducible command. Generated Shinylive site files,
@@ -388,7 +387,7 @@ and generated output location MUST be reported before handoff.
 
 When a matching action-built wasm artifact is available, local handoff SHOULD
 run `tools/wasm/test-shinylive-action.ps1` with that artifact's exact package
-commit. The preflight MUST assemble pkgdown plus `/openspecy/`, bundle the
+commit. The preflight MUST assemble pkgdown plus `/app/`, bundle the
 pinned library image, run repository/export checks, and exercise startup,
 upload, identification, download, console diagnostics, and desktop/mobile
 screenshots. `_wasm/` outputs MUST remain ignored and MUST NOT be mistaken for
@@ -497,4 +496,4 @@ outputs, or claim browser readiness without the required interaction evidence.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.4.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-20
+**Version**: 3.4.1 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-20

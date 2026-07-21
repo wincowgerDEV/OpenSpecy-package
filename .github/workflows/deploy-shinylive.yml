@@ -122,7 +122,7 @@ jobs:
             --artifact-ref "${OPENSPECY_WASM_ARTIFACT_REF}" \
             --package-sha "${PACKAGE_SHA}" \
             --library-dir "_wasm/libraries" \
-            --out-dir "_site/openspecy" \
+            --out-dir "_site/app" \
             --work-dir "_wasm/app-source" \
             --manifest-out "_wasm/wasm-app-manifest.json"
 
@@ -133,14 +133,14 @@ jobs:
           Rscript tools/wasm/bundle-wasm-library.R \
             --image-dir "_wasm/pinned/image" \
             --repo-dir "_wasm/pinned/repo" \
-            --site-dir "_site/openspecy" \
+            --site-dir "_site/app" \
             --package-sha "${PACKAGE_SHA}"
 
       - name: Check Shinylive export
         shell: bash
         run: |
           set -euo pipefail
-          Rscript tools/wasm/check-shinylive-export.R "_site/openspecy"
+          Rscript tools/wasm/check-shinylive-export.R "_site/app"
 
       - name: Setup Node for browser smoke
         uses: actions/setup-node@v6
@@ -205,12 +205,12 @@ jobs:
           set -euo pipefail
           pages_url="${{ steps.deployment.outputs.page_url }}"
           public_url="${pages_url%/}/"
-          app_url="${public_url}openspecy/"
+          app_url="${public_url}app/"
           for attempt in {1..40}; do
             if root_body=$(curl --fail --silent --show-error "${public_url}") && \
                app_body=$(curl --fail --silent --show-error "${app_url}"); then
               grep -q "data-openspecy-embed" <<< "$root_body"
-              grep -q 'src="openspecy/"' <<< "$root_body"
+              grep -q 'src="app/"' <<< "$root_body"
               grep -q "runExportedApp" <<< "$app_body"
               echo "Verified ${public_url} and ${app_url}"
               exit 0

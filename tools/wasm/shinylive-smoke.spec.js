@@ -37,6 +37,10 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
   await page.goto(url, { waitUntil: "domcontentloaded" });
   const embed = page.locator("[data-openspecy-embed]");
   await expect(embed).toBeAttached();
+  await expect(page.locator("#openspecy-app-frame")).toHaveAttribute(
+    "src",
+    "app/"
+  );
   await expect(page.locator("[data-openspecy-loading]")).toBeVisible();
   await expect(page.getByRole("progressbar", {
     name: "Loading the OpenSpecy web application",

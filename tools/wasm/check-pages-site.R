@@ -7,7 +7,7 @@ check_pages_site <- function(site_dir, max_bytes = 950 * 1024^2) {
   }
 
   root_index <- file.path(site_dir, "index.html")
-  app_index <- file.path(site_dir, "openspecy", "index.html")
+  app_index <- file.path(site_dir, "app", "index.html")
   need_file(root_index)
   need_file(app_index)
 
@@ -22,7 +22,7 @@ check_pages_site <- function(site_dir, max_bytes = 950 * 1024^2) {
   embed_markers <- c(
     "data-openspecy-embed",
     "id=\"openspecy-app-frame\"",
-    "src=\"openspecy/\""
+    "src=\"app/\""
   )
   missing_markers <- embed_markers[
     !vapply(embed_markers, grepl, logical(1), x = root_text, fixed = TRUE)
@@ -41,7 +41,7 @@ check_pages_site <- function(site_dir, max_bytes = 950 * 1024^2) {
   }
   app_text <- paste(readLines(app_index, warn = FALSE), collapse = "\n")
   if (!grepl("runExportedApp", app_text, fixed = TRUE)) {
-    fail("The /openspecy/ site does not look like a Shinylive export.")
+    fail("The /app/ site does not look like a Shinylive export.")
   }
 
   files <- list.files(site_dir, recursive = TRUE, full.names = TRUE,

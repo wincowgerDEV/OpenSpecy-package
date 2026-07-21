@@ -103,6 +103,8 @@ test_that("bundled Shiny app does not block startup or auto-load remote images",
                       warn = FALSE)
   expect_true(any(grepl("shiny:busy.openspecyBusy", bridge, fixed = TRUE)))
   expect_true(any(grepl("busyDelay = 650", bridge, fixed = TRUE)))
+  expect_true(any(grepl("shiny:value.openspecyBusy", bridge, fixed = TRUE)))
+  expect_true(any(grepl("resultQuietPeriod = 2000", bridge, fixed = TRUE)))
 })
 
 test_that("bundled Shiny app prunes imported orphan assets", {

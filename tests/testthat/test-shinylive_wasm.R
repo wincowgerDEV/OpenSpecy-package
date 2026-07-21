@@ -175,30 +175,30 @@ test_that("assembled Pages site contains pkgdown and only the bundled app", {
 
   tmp <- file.path(tempdir(), "OpenSpecy-testthat-pages-site")
   on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
-  dir.create(file.path(tmp, "openspecy"), recursive = TRUE,
+  dir.create(file.path(tmp, "app"), recursive = TRUE,
              showWarnings = FALSE)
   writeLines(c(
     '<meta name="generator" content="pkgdown">',
     '<div data-openspecy-embed>',
-    '<iframe id="openspecy-app-frame" src="openspecy/"></iframe>',
+    '<iframe id="openspecy-app-frame" src="app/"></iframe>',
     '</div>'
   ),
              file.path(tmp, "index.html"))
-  writeLines("runExportedApp({});", file.path(tmp, "openspecy", "index.html"))
+  writeLines("runExportedApp({});", file.path(tmp, "app", "index.html"))
 
   expect_no_error(env$check_pages_site(tmp, max_bytes = 1024^2))
   writeLines(c(
     '<meta name="generator" content="pkgdown">',
     '<div data-openspecy-embed>',
     '<div class="sourceCode"><iframe id="openspecy-app-frame"',
-    'src="openspecy/"></iframe></div>'
+    'src="app/"></iframe></div>'
   ), file.path(tmp, "index.html"))
   expect_error(env$check_pages_site(tmp, max_bytes = 1024^2),
                "rendered as a source-code block")
   writeLines(c(
     '<meta name="generator" content="pkgdown">',
     '<div data-openspecy-embed>',
-    '<iframe id="openspecy-app-frame" src="openspecy/"></iframe>',
+    '<iframe id="openspecy-app-frame" src="app/"></iframe>',
     '</div>'
   ), file.path(tmp, "index.html"))
   dir.create(file.path(tmp, "wasm"))
@@ -229,7 +229,12 @@ test_that("only one workflow publishes the combined native Pages site", {
   expect_true(any(grepl("actions/upload-pages-artifact@v4", shinylive,
                         fixed = TRUE)))
   expect_true(any(grepl('dest_dir = "_site"', shinylive, fixed = TRUE)))
-  expect_true(any(grepl("_site/openspecy", shinylive, fixed = TRUE)))
+  expect_true(any(grepl("_site/app", shinylive, fixed = TRUE)))
+  expect_false(any(grepl("_site/openspecy", shinylive, fixed = TRUE)))
+  expect_true(any(grepl('repository: ${{ github.repository }}', shinylive,
+                        fixed = TRUE)))
+  expect_false(any(grepl("wincowgerDEV/OpenSpecy-package", shinylive,
+                         fixed = TRUE)))
   expect_true(any(grepl(
     "SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/ ",
     shinylive, fixed = TRUE
@@ -251,6 +256,7 @@ test_that("pkgdown homepage and Shiny app provide the embed handshake", {
   expect_true(any(grepl("window.top.postMessage", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy:ready", bridge, fixed = TRUE)))
   expect_true(any(grepl("shiny:busy.openspecyBusy", bridge, fixed = TRUE)))
+  expect_true(any(grepl("shiny:value.openspecyBusy", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy-busy-visible", bridge, fixed = TRUE)))
 
   readme_path <- test_path("..", "..", "README.md")
@@ -268,7 +274,8 @@ test_that("pkgdown homepage and Shiny app provide the embed handshake", {
   expect_false(any(grepl("data-openspecy-embed", readme, fixed = TRUE)))
   expect_false(any(grepl("openspecy-app-frame", readme, fixed = TRUE)))
   expect_true(any(grepl("data-openspecy-embed", homepage, fixed = TRUE)))
-  expect_true(any(grepl('src="openspecy/"', homepage, fixed = TRUE)))
+  expect_true(any(grepl('src="app/"', homepage, fixed = TRUE)))
+  expect_false(any(grepl('src="openspecy/"', homepage, fixed = TRUE)))
   expect_lt(which(grepl("data-openspecy-embed", homepage,
                         fixed = TRUE))[[1]],
             which(grepl("Analyze, Process, Identify", homepage,

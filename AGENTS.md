@@ -37,7 +37,10 @@ from a hardcoded package version/commit pin plus pinned app dependency closure,
 stage only the small medoid/model libraries with guarded `get_lib()` workflows,
 and verify startup, assets, dependency resolution, and library matching without
 hand-editing generated web artifacts. Keep GitHub's `README.md` free of the
-interactive embed; pkgdown-only app markup belongs in `pkgdown/index.md`. For
+interactive embed; pkgdown-only app markup belongs in `pkgdown/index.md` and
+must use the relative standalone route `app/`. Treat
+`Moore-Institute-4-Plastic-Pollution-Res/openspecy` as the hosting bridge and
+keep workflows fork-portable while this package remains canonical. For
 hosted UI work, preserve upload/download app mode with page-owned viewport
 state, debounce brief Shiny busy transitions, and run the action-equivalent
 preflight plus nested-frame browser smoke when a matching wasm artifact exists.

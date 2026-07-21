@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 args <- commandArgs(trailingOnly = TRUE)
-site_dir <- if (length(args)) args[[1]] else file.path("_site", "openspecy")
+site_dir <- if (length(args)) args[[1]] else file.path("_site", "app")
 
 fail <- function(...) stop(paste0(...), call. = FALSE)
 need_file <- function(path) {

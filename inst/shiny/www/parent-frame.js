@@ -4,6 +4,8 @@
   var notified = false;
   var busyTimer = null;
   var busyDelay = 650;
+  var suppressBusyUntil = 0;
+  var resultQuietPeriod = 2000;
 
   function notifyReady() {
     if (notified || window.top === window) return;
@@ -20,6 +22,7 @@
     var shinyDocument = window.jQuery(document);
 
     shinyDocument.on("shiny:busy.openspecyBusy", function () {
+      if (Date.now() < suppressBusyUntil) return;
       if (document.documentElement.classList.contains(
         "openspecy-busy-visible"
       )) return;
@@ -31,6 +34,14 @@
     });
 
     shinyDocument.on("shiny:idle.openspecyBusy", function () {
+      window.clearTimeout(busyTimer);
+      busyTimer = null;
+      document.documentElement.classList.remove("openspecy-busy-visible");
+    });
+
+    shinyDocument.on("shiny:value.openspecyBusy", function (event) {
+      if (event.name !== "event") return;
+      suppressBusyUntil = Date.now() + resultQuietPeriod;
       window.clearTimeout(busyTimer);
       busyTimer = null;
       document.documentElement.classList.remove("openspecy-busy-visible");
