@@ -7,7 +7,7 @@
 ## Goal
 
 - Make the Open Specy app open in automation mode, with preprocessing and identification enabled while their advanced controls are hidden by default.
-- Prevent noise-only spectra from false CO2/high-tail flags and automatically correct genuine issues before preprocessing without violating spectral or batch alignment.
+- Prevent noise-only spectra from false CO2/high-tail flags and automatically correct genuine issues in final processed spectra without violating spectral or batch alignment.
 
 ## Scope
 
@@ -17,22 +17,22 @@
 
 ## Requirements
 
-- R1. `assess_spec()` evaluates a transient per-spectrum min-max normalization and flags CO2 or a high tail when `candidate_max / control_max >= 2`; the control excludes both CO2 and tail regions so simultaneous artifacts do not mask each other, and noise-like spectra with similarly sized maxima across regions are not flagged.
+- R1. `assess_spec()` evaluates a transient per-spectrum min-max normalization and flags CO2 or a high tail when `candidate_max / control_max >= 3`; the control excludes both CO2 and tail regions so simultaneous artifacts do not mask each other, and noise-like spectra with similarly sized maxima across regions are not flagged.
 - R2. Comparative checks handle zero/negative control maxima, missing/non-finite values, absent/overlapping regions, ascending/descending axes, short spectra, batches, and ties deterministically; diagnostics report normalized candidate/control maxima, their ratio, and threshold.
 - R3. Existing `silent_region` and non-structural checks retain their current meaning; compatibility of `high_prob` is documented or deprecated deliberately rather than silently ignored.
-- R4. `restrict_range()` gains an automatic-tail mode equivalent to removing one point at a time from each problematic outer edge until every spectrum has `tail_max / control_max < 2`; implementation may precompute candidate depths/maxima and select the first passing shared bounds instead of rebuilding the object iteratively.
-- R5. Cropping is transactional and batch-wide: if the smallest passing shared bounds would remove more than 20% of the original wavenumber span in total, leave the original axis/tails unchanged and return a diagnostic; otherwise crop all spectra to the same passing axis. Never expose per-spectrum cropping on a batched `OpenSpecy`.
+- R4. `restrict_range()` gains an automatic-tail mode equivalent to removing one point at a time from each problematic outer edge until every spectrum has `tail_max / control_max < 3`; implementation may precompute candidate depths/maxima and select the first passing shared bounds instead of rebuilding the object iteratively.
+- R5. Cropping is transactional and batch-wide: if the smallest passing shared bounds would remove more than 20% of the full original wavenumber span, counting both ends together, leave the original axis/tails unchanged and return a diagnostic; otherwise crop all spectra to the same passing axis. Never expose per-spectrum cropping on a batched `OpenSpecy`.
 - R6. Exported `correct_spec()` (final name subject to API review) accepts an `OpenSpecy`, assesses CO2/high-tail issues by default, flattens CO2 and crops tails batch-wide, and returns one valid `OpenSpecy` with preserved spectrum/metadata order, identifiers, valid attributes, and auditable correction diagnostics/history.
 - R7. Corrections are idempotent within numerical tolerance: reassessment of corrected output has no correctable CO2/high-tail findings, and a second correction pass does not further change a passing object.
 - R8. The app defaults automation mode on, preprocessing on, and identification on; automation mode collapses/hides both control panels without disabling their active values, and users can reveal advanced controls or turn either stage off.
-- R9. The app assesses the uploaded/raw batch, applies CO2 flattening and eligible tail cropping to that raw object, runs all other automated preprocessing on the corrected raw object, and reassesses before identification; only passing data proceeds to matching, while unresolved issues (including the 20% guard) leave tails unchanged and produce a concise safe-stop notice.
+- R9. The app preprocesses the batch once, records how many final processed spectra pass both CO2 and tail checks, then makes exactly one correction attempt directly on that processed batch and reassesses without rerunning preprocessing. Keep the corrected output only when strictly more spectra pass both checks; otherwise revert to the original processed output. Never recursively correct.
 - R10. Local Shiny and hosted Shinylive use the same source behavior; no generated web artifact is edited directly and no package/dependency/library pin changes are needed.
 
 ## Technical Decisions
 
-- **Approach**: Min-max normalize temporary assessment values, compare each artifact maximum with the maximum outside both artifact regions at a default ratio of 2, and centralize raw correction in package code. For speed, precompute or scan crop-depth maxima and select the minimal bounds satisfying every column, proving equivalence to a one-point loop in tests.
-- **Public API**: `correct_spec(x, checks = c("co2_region", "high_tail"), ratio = 2, ...)` exposes the reusable correction policy and meaningful threshold; batch behavior and correction order are inferred. Keep normalization, crop-depth search, guards, diagnostics assembly, and app adapters internal; automatic-tail tuning belongs to `restrict_range()` or a named args list rather than duplicate flags.
-- **Primary pipeline**: `x |> correct_spec() |> process_spec(...) |> assess_spec() |> match_spec(library)`; callers wanting independent axes use `split_spec()` before correction.
+- **Approach**: Min-max normalize temporary assessment values, compare each artifact maximum with the maximum outside both artifact regions at a default ratio of 3, and centralize correction of final processed objects in package code. For speed, precompute or scan crop-depth maxima and select the minimal bounds satisfying every column, proving equivalence to a one-point loop in tests.
+- **Public API**: `correct_spec(x, checks = c("co2_region", "high_tail"), ratio = 3, ...)` exposes the reusable correction policy and meaningful threshold; batch behavior and correction order are inferred. Keep normalization, crop-depth search, guards, diagnostics assembly, and app adapters internal; automatic-tail tuning belongs to `restrict_range()` or a named args list rather than duplicate flags.
+- **Primary pipeline**: `x |> process_spec(...) |> correct_spec() |> assess_spec() |> match_spec(library)`; callers wanting independent axes use `split_spec()` before correction.
 - **Dependencies**: None; reuse `matrixStats`, `data.table`, existing processing helpers, and Shiny dependencies.
 - **OpenSpecy contract**: Preserve the shared `wavenumber`, spectra-column/metadata-row alignment, dimnames, class, and compatible attributes; update correction history. Tail restriction changes the shared axis only through `restrict_range()` and must retain enough points/range for identification.
 - **Generated artifacts**: Update roxygen source and regenerate `NAMESPACE`/`man/*.Rd` only with `Config/roxygen2/version`; inspect exports, authorship, aliases, and references immediately.
@@ -48,18 +48,18 @@
 - `workflows/`: Unchanged. `.github/workflows/`: unchanged unless hosted verification exposes a source-contract update.
 - `inst/`: Modify bundled app UI/server only; no new assets. `DESCRIPTION`: unchanged.
 - `vignettes/README/pkgdown`: Add an `OpenSpecy` correction pipeline to relevant help/vignette; keep GitHub README embed-free and rebuild pkgdown rather than editing HTML.
-- `NEWS.md`: Record detector semantics, automatic tail correction/API, 20% guard, batch-only cropping, raw app correction, and default automation mode.
+- `NEWS.md`: Record detector semantics, automatic tail correction/API, 20% guard, batch-only cropping, final-processed app correction, and default automation mode.
 
 ## Work Checklist
 
-- [ ] Implement the normalized ratio-2 detector in `R/assess_spec.R`, including pure-noise, CO2+tail, zero-control, and mixed-batch fixtures.
+- [ ] Implement the normalized ratio-3 detector in `R/assess_spec.R`, including pure-noise, CO2+tail, zero-control, and mixed-batch fixtures.
 - [ ] Implement transactional batch tail cropping and the 20%-span guard in `R/adj_range.R`, plus correction orchestration/history and exact-equivalence benchmark.
-- [ ] Wire raw correction, preprocessing, reassessment, and identification gating into `inst/shiny/server.R`; add the default-on automation control and hidden/collapsed panels in `inst/shiny/ui.R`.
+- [ ] Wire one post-processing correction attempt, reassessment, pass-count comparison, rollback, and identification into `inst/shiny/server.R`; add the default-on automation control and hidden/collapsed panels in `inst/shiny/ui.R`.
 - [ ] Add focused package/headless app tests, roxygen, vignette, NEWS, generated-doc review, and hosted smoke coverage.
 
 ## Verification
 
-- Focused tests: `devtools::test(filter = "assess_spec|adj_range|correct_spec|run_app")` including ratio boundary (`1.999`/`2`), pure noise, simultaneous CO2+tail, both edges, mixed batches, exact minimal crop, 20% pass/fail, no partial crop on guard failure, idempotence, raw-before-processing order, and attributes.
+- Focused tests: `devtools::test(filter = "assess_spec|adj_range|correct_spec|run_app")` including ratio boundary (`2.999`/`3`), pure noise, simultaneous CO2+tail, both edges, mixed batches, exact minimal crop, combined full-span 20% pass/fail, no partial crop on guard failure, idempotence, one retry, strict improvement, rollback on equal/worse results, and attributes.
 - Toolchain/docs: Resolve Windows Rscript, confirm configured roxygen2, run `devtools::document()`, and inspect generated diffs immediately.
 - Full gates: Run the repeated optimized-versus-loop benchmark first, then `devtools::test()` and `devtools::check()`/CI R CMD check; compare representative pre/post correction matching inputs.
 - App: `shiny::testServer()` where feasible, installed app/path/static-asset tests, asset/package-size audit, and manual or CI-guarded local upload-to-identification smoke.
@@ -68,8 +68,7 @@
 ## Risks And Open Questions
 
 - Define zero-control behavior conservatively: a positive candidate with zero control has infinite contrast, but an all-zero/flat spectrum must remain noise/flat rather than an artifact finding.
-- Confirm whether the 20% guard measures total wavenumber span removed across both ends (planned) rather than 20% independently at each end; span is clearer than point count for irregular axes.
-- Post-processing reassessment may detect an issue absent in raw data; the app should safe-stop rather than recursively correct processed spectra, preserving raw-only correction order.
+- App comparison counts a spectrum as passing only when it has neither CO2 nor high-tail findings; this prevents improvement in one check from hiding a new failure in the other, but may reject a partially improved batch.
 
 ## Approval Notes
 
