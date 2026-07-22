@@ -1,7 +1,3 @@
-# Check for Auth Tokens and setup, you can change these to test the triggering
-# of functions without removing the files.
-translate <- file.exists("www/googletranslate.html")
-
 if (file.exists("wasm-config.R")) {
   source("wasm-config.R", local = TRUE)
 }
@@ -65,29 +61,218 @@ app_download_choices <- function(has_upload, identification,
   c(choices, tests)
 }
 
-app_analysis_eta <- function(stage, spectra = 1L, points = 0L,
-                             library_spectra = 0L, bytes = 0) {
-  safe_number <- function(x, fallback = 0) {
-    if(length(x) != 1L || is.na(x) || !is.finite(x)) fallback else as.numeric(x)
+.app_range_assessment <- function(x, check, correction_args = list()) {
+  check <- match.arg(check, c("co2_region", "high_tail"))
+  value_or <- function(name, default) {
+    value <- correction_args[[name]]
+    if(is.null(value)) default else value
   }
-  spectra <- max(1, safe_number(spectra, 1))
-  points <- max(0, safe_number(points))
-  library_spectra <- max(0, safe_number(library_spectra))
-  bytes <- max(0, safe_number(bytes))
 
-  seconds <- switch(
-    stage,
-    read = 2 + bytes / (5 * 1024^2),
-    preprocess = 3 + points * spectra / 2e5,
-    library = 5 + library_spectra / 5000,
-    identify = 5 + points * spectra * library_spectra / 2e6,
-    render = 2 + points * spectra / 5e5,
-    5
+  artifact_ratio <- value_or("artifact_ratio", 3)
+  tail_n <- value_or("tail_n", 5L)
+  co2_region <- if(identical(check, "co2_region")) {
+    min <- value_or("min", 2200)
+    max <- value_or("max", 2400)
+    if(length(min) != 1L || length(max) != 1L) {
+      stop("automatic CO2 correction requires one flattening range",
+           call. = FALSE)
+    }
+    c(min, max)
+  } else {
+    value_or("co2_region", c(2200, 2420))
+  }
+
+  issues <- assess_spec(
+    x,
+    checks = check,
+    artifact_ratio = artifact_ratio,
+    tail_n = tail_n,
+    co2_region = co2_region
   )
+  failures <- length(unique(issues$spectrum_index))
+  total <- ncol(x$spectra)
 
-  lower <- max(2, ceiling(seconds * 0.6))
-  upper <- max(lower + 3, ceiling(seconds * 2.4))
-  as.integer(c(lower, min(upper, 600)))
+  list(
+    issues = issues,
+    failures = failures,
+    passes = total - failures,
+    total = total
+  )
+}
+
+.app_range_candidate_preserves_batch <- function(before, candidate) {
+  if(!inherits(candidate, "OpenSpecy") ||
+     ncol(candidate$spectra) != ncol(before$spectra) ||
+     !identical(colnames(candidate$spectra), colnames(before$spectra)) ||
+     !identical(candidate$metadata, before$metadata)) {
+    return(FALSE)
+  }
+
+  original_attributes <- attributes(before)
+  protected <- setdiff(names(original_attributes), c("names", "class"))
+  all(vapply(protected, function(name) {
+    identical(attr(candidate, name), original_attributes[[name]])
+  }, logical(1)))
+}
+
+.app_range_diagnostic <- function(step, check, enabled, attempted, accepted,
+                                  total, before, after, reason,
+                                  message = "") {
+  data.frame(
+    step = step,
+    check = check,
+    enabled = enabled,
+    attempted = attempted,
+    accepted = accepted,
+    total_spectra = as.integer(total),
+    before_passes = as.integer(before),
+    after_passes = as.integer(after),
+    reason = reason,
+    message = message,
+    stringsAsFactors = FALSE
+  )
+}
+
+.app_attempt_range_automation <- function(x, step, correction_args = list()) {
+  check <- if(identical(step, "flatten_range")) "co2_region" else "high_tail"
+  before <- .app_range_assessment(x, check, correction_args)
+  if(before$failures == 0L) {
+    return(list(
+      data = x,
+      diagnostic = .app_range_diagnostic(
+        step, check, TRUE, FALSE, FALSE, before$total,
+        before$passes, before$passes, "no_failures"
+      )
+    ))
+  }
+
+  correction <- if(identical(step, "flatten_range")) {
+    flatten_range
+  } else {
+    restrict_range
+  }
+  correction_args$x <- NULL
+  correction_args$automate <- TRUE
+  if(is.null(correction_args$make_rel)) correction_args$make_rel <- FALSE
+  candidate <- tryCatch(
+    do.call(correction, c(list(x = x), correction_args)),
+    error = function(e) e
+  )
+  if(inherits(candidate, "error")) {
+    return(list(
+      data = x,
+      diagnostic = .app_range_diagnostic(
+        step, check, TRUE, TRUE, FALSE, before$total,
+        before$passes, before$passes, "correction_error",
+        conditionMessage(candidate)
+      )
+    ))
+  }
+  if(!.app_range_candidate_preserves_batch(x, candidate)) {
+    return(list(
+      data = x,
+      diagnostic = .app_range_diagnostic(
+        step, check, TRUE, TRUE, FALSE, before$total,
+        before$passes, before$passes, "invalid_candidate",
+        "candidate changed spectrum identifiers, metadata, or input attributes"
+      )
+    ))
+  }
+
+  after <- tryCatch(
+    .app_range_assessment(candidate, check, correction_args),
+    error = function(e) e
+  )
+  if(inherits(after, "error")) {
+    return(list(
+      data = x,
+      diagnostic = .app_range_diagnostic(
+        step, check, TRUE, TRUE, FALSE, before$total,
+        before$passes, before$passes, "assessment_error",
+        conditionMessage(after)
+      )
+    ))
+  }
+
+  accepted <- after$passes > before$passes
+  list(
+    data = if(accepted) candidate else x,
+    diagnostic = .app_range_diagnostic(
+      step, check, TRUE, TRUE, accepted, before$total,
+      before$passes, after$passes,
+      if(accepted) "improved" else "not_improved"
+    )
+  )
+}
+
+app_apply_range_automation <- function(x, flatten = TRUE, restrict = TRUE,
+                                       flatten_args = list(),
+                                       restrict_args = list()) {
+  if(!inherits(x, "OpenSpecy")) {
+    stop("'x' must be an OpenSpecy object", call. = FALSE)
+  }
+
+  current <- x
+  diagnostics <- list()
+  steps <- list(
+    list(name = "flatten_range", check = "co2_region", enabled = flatten,
+         args = flatten_args),
+    list(name = "restrict_range", check = "high_tail", enabled = restrict,
+         args = restrict_args)
+  )
+  for(step in steps) {
+    if(!isTRUE(step$enabled)) {
+      total <- ncol(current$spectra)
+      diagnostics[[length(diagnostics) + 1L]] <- .app_range_diagnostic(
+        step$name, step$check, FALSE, FALSE, FALSE, total,
+        NA_integer_, NA_integer_, "disabled"
+      )
+      next
+    }
+
+    result <- .app_attempt_range_automation(
+      current, step$name, correction_args = step$args
+    )
+    current <- result$data
+    diagnostics[[length(diagnostics) + 1L]] <- result$diagnostic
+  }
+
+  list(data = current, diagnostics = do.call(rbind, diagnostics))
+}
+
+app_plot_palette <- list(
+  panel = "#0B1220",
+  grid = "#26364D",
+  axis = "#6F86A3",
+  text = "#E6EDF7",
+  primary = "#67E8F9",
+  reference = "#FB7185"
+)
+
+app_style_plotly <- function(plot) {
+  plotly::layout(
+    plot,
+    plot_bgcolor = app_plot_palette$panel,
+    paper_bgcolor = app_plot_palette$panel,
+    font = list(color = app_plot_palette$text),
+    xaxis = list(
+      gridcolor = app_plot_palette$grid,
+      zerolinecolor = app_plot_palette$grid,
+      linecolor = app_plot_palette$axis,
+      tickcolor = app_plot_palette$axis
+    ),
+    yaxis = list(
+      gridcolor = app_plot_palette$grid,
+      zerolinecolor = app_plot_palette$grid,
+      linecolor = app_plot_palette$axis,
+      tickcolor = app_plot_palette$axis
+    ),
+    hoverlabel = list(
+      bgcolor = "#16243A",
+      bordercolor = app_plot_palette$axis,
+      font = list(color = app_plot_palette$text)
+    )
+  )
 }
 
 app_empty_spectrum_plot <- function() {
@@ -95,11 +280,9 @@ app_empty_spectrum_plot <- function() {
     plotly::layout(
       xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                    range = c(4000, 400)),
-      yaxis = list(title = "intensity [-]", range = c(0, 1)),
-      plot_bgcolor = "rgba(17, 0, 73, 0)",
-      paper_bgcolor = "rgb(0, 0, 0)",
-      font = list(color = "#FFFFFF")
-    )
+      yaxis = list(title = "intensity [-]", range = c(0, 1))
+    ) |>
+    app_style_plotly()
 }
 
 # App metadata ----
@@ -280,30 +463,6 @@ load_app_library <- function(type) {
   load_lib(type, path = library_path)
 }
 
-# Define the custom theme
-  theme_black_minimal <- function(base_size = 11, base_family = "") {
-    theme_minimal(base_size = base_size, base_family = base_family) +
-      theme(
-            plot.background = element_rect(fill = "black", color = NA),
-            panel.background = element_rect(fill = "black", color = NA),
-            panel.grid.major = element_line(color = "white"),
-            panel.grid.minor = element_line(color = "white"),
-            axis.line = element_line(color = "white"),
-            axis.ticks = element_line(color = "white"),
-            axis.text = element_text(color = "white"),
-            axis.title = element_text(color = "white"),
-            plot.title = element_text(color = "white", hjust = 0.5),
-            plot.subtitle = element_text(color = "white", hjust = 0.5),
-            plot.caption = element_text(color = "white"),
-            legend.text = element_text(color = "white"),
-            legend.title = element_text(color = "white"),
-            legend.background = element_rect(fill = "black"),
-            legend.key = element_rect(fill = "black"),
-            strip.background = element_rect(fill = "black", color = NA),
-      strip.text = element_text(color = "white")
-    )
-  }
-
 # Helper to create collapsible footnotes ----
 footnote <- function(summary, ...) {
   tags$details(
@@ -343,33 +502,34 @@ citation <- HTML(
 )
 
 
-# Workaround for Chromium Issue 468227
-downloadButton <- function(...) {
-  tag <- shiny::downloadButton(...)
-  tag$attribs$download <- NULL
-  tag
-}
-
 # Define the custom theme
 theme_black_minimal <- function(base_size = 11, base_family = "") {
   theme_minimal(base_size = base_size, base_family = base_family) +
     theme(
-      plot.background = element_rect(fill = "black", color = NA),
-      panel.background = element_rect(fill = "black", color = NA),
-      panel.grid.major = element_line(color = "white"),
-      panel.grid.minor = element_line(color = "white"),
-      axis.line = element_line(color = "white"),
-      axis.ticks = element_line(color = "white"),
-      axis.text = element_text(color = "white"),
-      axis.title = element_text(color = "white"),
-      plot.title = element_text(color = "white", hjust = 0.5),
-      plot.subtitle = element_text(color = "white", hjust = 0.5),
-      plot.caption = element_text(color = "white"),
-      legend.text = element_text(color = "white"),
-      legend.title = element_text(color = "white"),
-      legend.background = element_rect(fill = "black"),
-      legend.key = element_rect(fill = "black"),
-      strip.background = element_rect(fill = "black", color = NA),
-      strip.text = element_text(color = "white")
+      plot.background = element_rect(fill = app_plot_palette$panel,
+                                     color = app_plot_palette$axis,
+                                     linewidth = 0.6),
+      panel.background = element_rect(fill = app_plot_palette$panel,
+                                      color = NA),
+      panel.border = element_rect(fill = NA, color = app_plot_palette$axis,
+                                  linewidth = 0.5),
+      panel.grid.major = element_line(color = app_plot_palette$grid,
+                                      linewidth = 0.35),
+      panel.grid.minor = element_blank(),
+      axis.line = element_line(color = app_plot_palette$axis),
+      axis.ticks = element_line(color = app_plot_palette$axis),
+      axis.text = element_text(color = app_plot_palette$text),
+      axis.title = element_text(color = app_plot_palette$text),
+      plot.title = element_text(color = app_plot_palette$text, hjust = 0.5),
+      plot.subtitle = element_text(color = app_plot_palette$text, hjust = 0.5),
+      plot.caption = element_text(color = app_plot_palette$text),
+      legend.text = element_text(color = app_plot_palette$text),
+      legend.title = element_text(color = app_plot_palette$text),
+      legend.background = element_rect(fill = app_plot_palette$panel,
+                                       color = NA),
+      legend.key = element_rect(fill = app_plot_palette$panel, color = NA),
+      strip.background = element_rect(fill = "#16243A",
+                                      color = app_plot_palette$axis),
+      strip.text = element_text(color = app_plot_palette$text)
     )
 }

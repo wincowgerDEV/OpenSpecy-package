@@ -57,6 +57,96 @@ Spectra can be identified in batch using an onboard reference library
 using `match_spec()`. A bundled Shiny app is available via `run_app()`
 or directly on this website.
 
+## Community and help
+
+Join the hundreds of researchers around the world who are part of the Open
+Specy community by analyzing, sharing, processing, and identifying Raman and
+infrared spectra. Open Specy is free and open source thanks to its community
+and partners.
+
+- [Follow Win Cowger on LinkedIn](https://www.linkedin.com/in/win-cowger/) for
+  project updates.
+- [Watch OpenSpecy development on GitHub](https://github.com/wincowgerDEV/OpenSpecy-package/subscription),
+  [report an issue](https://github.com/wincowgerDEV/OpenSpecy-package/issues),
+  or request a feature.
+- Email [wincowger@gmail.com](mailto:wincowger@gmail.com?subject=Open%20Specy%20mailing%20list)
+  to join the Open Specy mailing list.
+- [Watch the Open Specy introduction](https://www.youtube.com/watch?v=3RKufDxzriE),
+  explore the [tutorial playlist](https://www.youtube.com/playlist?list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g),
+  or follow the [standard operating procedure](articles/sop.html).
+- The [classic OpenSpecy app](https://wincowger.shinyapps.io/openspecy-classic)
+  remains available for users who need the earlier interface.
+
+### Spectroscopy resources
+
+- [siMPle](https://simple-plastics.eu/) for microplastic FTIR identification.
+- [GEPARD](https://gitlab.ipfdd.de/GEPARD/gepard) for particle-based Raman and
+  FTIR microplastic analysis.
+- [MolView](https://molview.org/) for chemical modeling and spectral queries.
+- [NIST Chemistry WebBook](https://webbook.nist.gov/) for chemical and
+  spectroscopy reference data.
+- [Thermo Fisher molecular spectroscopy learning center](https://www.thermofisher.com/us/en/home/industrial/spectroscopy-elemental-isotope-analysis/spectroscopy-elemental-isotope-analysis-learning-center/molecular-spectroscopy-information.html).
+- [Florida State University optical microscopy primer](https://micro.magnet.fsu.edu/primer/).
+- [Spectragryph](https://www.effemm2.de/spectragryph/index.html) for desktop
+  spectral analysis and reference-database links.
+
+## Partner with us
+
+Help us make open spectroscopy tools and data more useful and accessible.
+
+- [Donate to Open Specy](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=wincowger@gmail.com&lc=US&item_name=Donation+to+Open+Specy&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted).
+- [Buy Open Specy merchandise](https://shop.spreadshirt.com/openspecy/all).
+- Review the [community contribution guidelines](https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing)
+  to volunteer time or expertise.
+- Contribute spectra through the [Community Data Warehouse](https://osf.io/rjg3c/).
+  Shared community data use the Creative Commons Attribution 4.0 license.
+
+### Partners and contributors
+
+We gratefully recognize the organizations and people whose financial or in-kind
+support has sustained Open Specy.
+
+**Monetary partners**
+
+- **Thriving ($10,000–$100,000):** Moore Institute for Plastic Pollution
+  Research; Helmholtz Information & Data Science Academy; National Renewable
+  Energy Laboratory; McPZ Foundation.
+- **Maintaining ($1,000–$10,000):** University of California, Riverside;
+  National Science Foundation; Alfred Wegener Institute; Hawai'i Pacific
+  University; National Institute of Standards and Technology; University of
+  Toronto; University of Koblenz-Landau; Thermo Fisher Scientific.
+- **Supporting ($100–$1,000):** Jennifer Gadd.
+- **Saving (under $100):** Anne Jefferson; Heather Szafranski; Gwendolyn
+  Lattin; Collin Weber; Gregory Gearhart; Anika Ballent; Shelly Moore; Susanne
+  Brander (Oregon State University); Jeremy Conkle (Texas A&M University–Corpus
+  Christi).
+
+**In-kind partners**
+
+- **Thriving ($10,000–$100,000):** Win Cowger; Zacharias Steinmetz.
+- **Maintaining ($1,000–$10,000):** Garth Covernton; Jamie Leonard; Shelly
+  Moore; Rachel Kozloski; Katherine Lasdin; Aleksandra Karapetrova; Laura
+  Markley; Walter Yu; Walter Waldman; Vesna Teofilovic; Monica Arienzo; Mary Fey
+  Long Norris; Cristiane Vidal; Scott Coffin; Charles Moore; Aline Carvalho;
+  Shreyas Patankar; Andrea Faltynkova; Sebastian Primpke; Andrew Gray; Chelsea
+  Rochman; Orestis Herodotu; Hannah De Frond; Keenan Munno; Hannah Hapich;
+  Jennifer Lynch.
+- **Supporting ($100–$1,000):** Alexandre Dehaut; Gabriel Erni Cassola.
+
+## Contract services
+
+Our experienced spectroscopists are available for contract work including:
+
+- adding new OpenSpecy features;
+- creating spectroscopy software;
+- microplastic sample analysis;
+- spectral identification;
+- study design; and
+- related custom spectroscopy projects.
+
+Email [wincowger@gmail.com](mailto:wincowger@gmail.com?subject=Open%20Specy%20contract%20services)
+to discuss a project.
+
 ## Installation
 
 **OpenSpecy** is available from CRAN and GitHub.

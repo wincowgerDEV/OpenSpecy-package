@@ -8,11 +8,10 @@
   var busyDelay = 650;
   var idleGrace = 200;
   var busyStartedAt = null;
-  var phaseStartedAt = null;
   var busyState = {
     message: "Preparing analysis...",
     detail: "Open Specy is preparing the next result.",
-    eta: null
+    progress: 4
   };
 
   function formatSeconds(seconds) {
@@ -28,23 +27,18 @@
     var overlay = document.getElementById("openspecy_busy_overlay");
     if (!overlay) return;
     var elapsed = busyStartedAt === null ? 0 : (Date.now() - busyStartedAt) / 1000;
-    var phaseElapsed = phaseStartedAt === null ? 0 : (Date.now() - phaseStartedAt) / 1000;
     document.getElementById("openspecy_busy_message").textContent = busyState.message;
     document.getElementById("openspecy_busy_detail").textContent = busyState.detail;
     document.getElementById("openspecy_busy_elapsed").textContent =
       "Elapsed: " + formatSeconds(elapsed);
-
-    var eta = document.getElementById("openspecy_busy_eta");
-    if (!Array.isArray(busyState.eta) || busyState.eta.length !== 2) {
-      eta.textContent = "Timing depends on spectrum and library size.";
-    } else if (phaseElapsed > busyState.eta[1]) {
-      eta.textContent = "Taking longer than usual; Open Specy is still working.";
-    } else {
-      var low = Math.max(0, busyState.eta[0] - phaseElapsed);
-      var high = Math.max(low, busyState.eta[1] - phaseElapsed);
-      eta.textContent = "Estimated remaining: " + formatSeconds(low) +
-        " to " + formatSeconds(high) + ".";
+    var progress = Math.max(0, Math.min(100, Number(busyState.progress) || 0));
+    var track = document.getElementById("openspecy_busy_progress");
+    var fill = document.getElementById("openspecy_busy_progress_fill");
+    if (track) {
+      track.setAttribute("aria-valuenow", String(Math.round(progress)));
+      track.setAttribute("aria-valuetext", Math.round(progress) + "% complete");
     }
+    if (fill) fill.style.width = progress + "%";
   }
 
   function showBusy() {
@@ -66,9 +60,12 @@
     idleTimer = null;
     elapsedTimer = null;
     busyStartedAt = null;
-    phaseStartedAt = null;
+    busyState.progress = 4;
     document.documentElement.classList.remove("openspecy-busy-visible");
-    if (overlay) overlay.setAttribute("aria-hidden", "true");
+    if (overlay) {
+      overlay.setAttribute("aria-hidden", "true");
+      renderBusyState();
+    }
   }
 
   function notifyReady() {
@@ -89,9 +86,17 @@
       window.Shiny.addCustomMessageHandler("openspecy-analysis-phase", function (state) {
         busyState.message = state.message || "Processing analysis...";
         busyState.detail = state.detail || "Open Specy is working on the current result.";
-        busyState.eta = Array.isArray(state.eta) ? state.eta : null;
-        if (busyStartedAt === null) busyStartedAt = Date.now();
-        phaseStartedAt = Date.now();
+        if (busyStartedAt === null) {
+          busyStartedAt = Date.now();
+          busyState.progress = 4;
+        }
+        var nextProgress = Number(state.progress);
+        if (Number.isFinite(nextProgress)) {
+          busyState.progress = Math.max(
+            busyState.progress,
+            Math.max(0, Math.min(99, nextProgress))
+          );
+        }
         renderBusyState();
       });
     }
@@ -112,6 +117,10 @@
       window.clearTimeout(busyTimer);
       busyTimer = null;
       window.clearTimeout(idleTimer);
+      if (document.documentElement.classList.contains("openspecy-busy-visible")) {
+        busyState.progress = 100;
+        renderBusyState();
+      }
       idleTimer = window.setTimeout(hideBusy, idleGrace);
     });
 

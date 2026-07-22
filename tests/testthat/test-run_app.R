@@ -103,14 +103,18 @@ test_that("bundled Shiny app does not block startup or auto-load remote images",
                         fixed = TRUE)))
   expect_true(any(grepl('id = "openspecy_busy_elapsed"', ui_source,
                         fixed = TRUE)))
-  expect_true(any(grepl('id = "openspecy_busy_eta"', ui_source,
+  expect_true(any(grepl('id = "openspecy_busy_progress"', ui_source,
                         fixed = TRUE)))
+  expect_false(any(grepl("openspecy_busy_eta", ui_source, fixed = TRUE)))
   bridge <- readLines(file.path(app_path, "www", "parent-frame.js"),
                       warn = FALSE)
   expect_true(any(grepl("shiny:busy.openspecyBusy", bridge, fixed = TRUE)))
   expect_true(any(grepl("busyDelay = 650", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy-analysis-phase", bridge, fixed = TRUE)))
   expect_true(any(grepl("elapsedTimer", bridge, fixed = TRUE)))
+  expect_true(any(grepl("aria-valuenow", bridge, fixed = TRUE)))
+  expect_true(any(grepl("busyState.progress", bridge, fixed = TRUE)))
+  expect_false(any(grepl("Estimated remaining|state.eta", bridge)))
   expect_false(any(grepl("shiny:value.openspecyBusy", bridge, fixed = TRUE)))
 
   server_source <- readLines(file.path(app_path, "server.R"), warn = FALSE)
@@ -124,12 +128,19 @@ test_that("bundled app defaults to automated range processing and identification
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                    warn = FALSE), collapse = "\n")
 
-  expect_match(ui_source, 'inputId = "active_preprocessing"', fixed = TRUE)
-  expect_match(ui_source, 'inputId = "active_identification"', fixed = TRUE)
+  expect_match(ui_source, 'app_section_switch("active_preprocessing"',
+               fixed = TRUE)
+  expect_match(ui_source, 'app_section_switch("active_identification"',
+               fixed = TRUE)
   expect_match(ui_source, '"range_automate"', fixed = TRUE)
   expect_match(ui_source, '"co2_automate"', fixed = TRUE)
-  expect_match(server_source, "restrict_range_args", fixed = TRUE)
-  expect_match(server_source, "flatten_range_args", fixed = TRUE)
+  expect_match(server_source, "restrict_range = FALSE", fixed = TRUE)
+  expect_match(server_source, "flatten_range = FALSE", fixed = TRUE)
+  expect_match(server_source, "app_apply_range_automation", fixed = TRUE)
+  expect_gt(regexpr("process_spec(", server_source, fixed = TRUE)[[1]], 0)
+  expect_gt(regexpr("app_apply_range_automation(", server_source,
+                    fixed = TRUE)[[1]],
+            regexpr("process_spec(", server_source, fixed = TRUE)[[1]])
   expect_match(server_source, "req(!is.null(preprocessed$data))", fixed = TRUE)
   expect_false(grepl("Library Spectra", server_source, fixed = TRUE))
   expect_match(ui_source, 'plotlyOutput("MyPlotC", height = "45vh")',
@@ -153,9 +164,51 @@ test_that("bundled Shiny app prunes imported orphan assets", {
   assets <- list.files(file.path(app_path, "www"), recursive = TRUE)
 
   expect_false(any(grepl(
-    "jumbotron\\.png|dancing\\.jpg|jqfp\\.js|md5\\.js|shinyBindings\\.js",
+    paste0("jumbotron\\.png|dancing\\.jpg|jqfp\\.js|md5\\.js|",
+           "shinyBindings\\.js|googletranslate\\.html"),
     assets
   )))
+})
+
+test_that("bundled app presents one analysis workspace with advanced controls", {
+  app_path <- run_app(test_mode = TRUE)
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+
+  expect_match(ui_source, "dashboardSidebar(disable = TRUE)", fixed = TRUE)
+  expect_false(grepl("sidebarMenu(", ui_source, fixed = TRUE))
+  expect_false(grepl("googletranslate|uiOutput(\"translate\")", ui_source))
+  expect_false(grepl("output$translate", server_source, fixed = TRUE))
+  expect_match(ui_source, 'tabPanel(\n              "Preprocessing"', fixed = TRUE)
+  expect_match(ui_source, 'tabPanel(\n              "Identification"', fixed = TRUE)
+  expect_match(ui_source, 'tabPanel(\n              "Advanced"', fixed = TRUE)
+  expect_true(all(vapply(
+    c("threshold_decision", "cor_threshold_decision", "spatial_decision",
+      "xy_grid", "collapse_decision"),
+    function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
+    logical(1)
+  )))
+  expect_match(server_source, 'tags$summary("Top Match options")', fixed = TRUE)
+})
+
+test_that("bundled app keeps a stable native download link", {
+  app_path <- run_app(test_mode = TRUE)
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  global_source <- paste(readLines(file.path(app_path, "global.R"),
+                                   warn = FALSE), collapse = "\n")
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+
+  expect_match(ui_source, 'shiny::downloadButton(\n              "download_data"',
+               fixed = TRUE)
+  expect_false(grepl("downloadButton <- function", global_source, fixed = TRUE))
+  expect_false(grepl('label = downloadButton("download_data"', server_source,
+                     fixed = TRUE))
+  expect_match(server_source, "overwrite = TRUE", fixed = TRUE)
+  expect_match(server_source, "did not create a nonempty download", fixed = TRUE)
 })
 
 test_that("bundled Shiny app helpers can be sourced when app packages exist", {
@@ -178,16 +231,17 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_true(is.function(env$load_app_library))
   expect_true(is.function(env$app_library_dir))
   expect_true(is.function(env$app_download_choices))
-  expect_true(is.function(env$app_analysis_eta))
+  expect_true(is.function(env$app_apply_range_automation))
+  expect_true(is.function(env$app_style_plotly))
   expect_true(is.function(env$app_empty_spectrum_plot))
   expect_match(env$app_version_display$text, "^OpenSpecy ")
 
   expect_s3_class(env$app_empty_spectrum_plot(), "plotly")
-  expect_lt(env$app_analysis_eta("identify", points = 500,
-                                 library_spectra = 100)[[2]],
-            env$app_analysis_eta("identify", points = 500,
-                                 library_spectra = 10000)[[2]])
-  expect_equal(length(env$app_analysis_eta("read", bytes = NA_real_)), 2L)
+  empty_plot <- plotly::plotly_build(env$app_empty_spectrum_plot())
+  expect_identical(empty_plot$x$layout$paper_bgcolor,
+                   env$app_plot_palette$panel)
+  expect_identical(empty_plot$x$layout$xaxis$gridcolor,
+                   env$app_plot_palette$grid)
 
   local({
     env$load_data()
@@ -195,6 +249,167 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
     expect_true(all(c("wavenumber", "intensity") %in% names(testdata)))
     expect_gt(nrow(testdata), 0)
   })
+})
+
+test_that("bundled app accepts only improving post-processing corrections", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  wavenumber <- seq(1000, 3000, by = 10)
+  spectra <- matrix(
+    0.1,
+    nrow = length(wavenumber), ncol = 3,
+    dimnames = list(NULL, c("co2", "tail", "clean"))
+  )
+  spectra[wavenumber == 1600, ] <- 0.35
+  spectra[wavenumber > 2200 & wavenumber < 2400, "co2"] <- 1
+  spectra[seq_len(5), "tail"] <- 1
+  batch <- as_OpenSpecy(wavenumber, as.data.frame(spectra))
+  batch$metadata$group <- c("a", "b", "c")
+  attr(batch, "source_tag") <- "post-processing fixture"
+
+  real_flatten <- OpenSpecy::flatten_range
+  real_restrict <- OpenSpecy::restrict_range
+
+  clean <- filter_spec(batch, logic = "clean")
+  flatten_calls <- restrict_calls <- 0L
+  env$flatten_range <- function(...) {
+    flatten_calls <<- flatten_calls + 1L
+    stop("clean CO2 spectra must not be corrected")
+  }
+  env$restrict_range <- function(...) {
+    restrict_calls <<- restrict_calls + 1L
+    stop("clean spectral tails must not be corrected")
+  }
+  clean_result <- env$app_apply_range_automation(clean)
+  expect_identical(clean_result$data, clean)
+  expect_identical(c(flatten_calls, restrict_calls), c(0L, 0L))
+  expect_identical(clean_result$diagnostics$reason,
+                   c("no_failures", "no_failures"))
+  expect_false(any(clean_result$diagnostics$attempted))
+
+  co2_only <- filter_spec(batch, logic = "co2")
+  env$flatten_range <- function(x, ...) {
+    flatten_calls <<- flatten_calls + 1L
+    attr(x, "candidate_only") <- TRUE
+    x
+  }
+  rejected <- env$app_apply_range_automation(
+    co2_only, flatten = TRUE, restrict = FALSE
+  )
+  expect_identical(rejected$data, co2_only)
+  expect_identical(rejected$diagnostics$reason,
+                   c("not_improved", "disabled"))
+  expect_true(rejected$diagnostics$attempted[[1]])
+  expect_false(rejected$diagnostics$accepted[[1]])
+  expect_identical(rejected$diagnostics$before_passes[[1]], 0L)
+  expect_identical(rejected$diagnostics$after_passes[[1]], 0L)
+
+  env$flatten_range <- real_flatten
+  flattened <- env$app_apply_range_automation(
+    batch, flatten = TRUE, restrict = FALSE
+  )
+  expect_true(flattened$diagnostics$accepted[[1]])
+  expect_identical(flattened$diagnostics$before_passes[[1]], 2L)
+  expect_identical(flattened$diagnostics$after_passes[[1]], 3L)
+
+  restrict_received_flattened <- FALSE
+  env$restrict_range <- function(x, ...) {
+    restrict_received_flattened <<-
+      !is.null(attr(x, "automatic_flatten"))
+    x
+  }
+  staged <- env$app_apply_range_automation(batch)
+  expect_true(restrict_received_flattened)
+  expect_identical(staged$data, flattened$data)
+  expect_identical(staged$diagnostics$reason,
+                   c("improved", "not_improved"))
+
+  env$restrict_range <- real_restrict
+  corrected <- env$app_apply_range_automation(batch)
+  expect_identical(corrected$diagnostics$reason,
+                   c("improved", "improved"))
+  expect_true(all(corrected$diagnostics$accepted))
+  expect_identical(corrected$diagnostics$before_passes, c(2L, 2L))
+  expect_identical(corrected$diagnostics$after_passes, c(3L, 3L))
+  expect_equal(ncol(corrected$data$spectra), ncol(batch$spectra))
+  expect_identical(colnames(corrected$data$spectra),
+                   colnames(batch$spectra))
+  expect_identical(corrected$data$metadata, batch$metadata)
+  expect_identical(attr(corrected$data, "source_tag"),
+                   attr(batch, "source_tag"))
+  expect_false(is.null(attr(corrected$data, "automatic_flatten")))
+  expect_false(is.null(attr(corrected$data, "automatic_tail")))
+  expect_equal(nrow(assess_spec(
+    corrected$data, checks = c("co2_region", "high_tail")
+  )), 0L)
+})
+
+test_that("bundled Test Map exercises both post-processing corrections", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  test_map <- suppressWarnings(
+    read_any(read_extdata("CA_tiny_map.zip")) |>
+      c_spec(range = "common", res = 6) |>
+      manage_na(ig = c(NA, 0), type = "remove")
+  )
+  processed <- process_spec(
+    test_map,
+    active = TRUE,
+    adj_intens = FALSE,
+    conform_spec = TRUE,
+    conform_spec_args = list(range = NULL, res = 6, type = "interp"),
+    restrict_range = FALSE,
+    flatten_range = FALSE,
+    subtr_baseline = FALSE,
+    smooth_intens = TRUE,
+    smooth_intens_args = list(
+      polynomial = 3,
+      window = calc_window_points(seq(100, 4000, by = 6), 90),
+      derivative = 1,
+      abs = TRUE
+    ),
+    make_rel = TRUE
+  )
+
+  result <- env$app_apply_range_automation(processed)
+  expect_identical(result$diagnostics$step,
+                   c("flatten_range", "restrict_range"))
+  expect_true(all(result$diagnostics$attempted))
+  expect_true(all(result$diagnostics$accepted))
+  expect_true(all(result$diagnostics$after_passes >
+                    result$diagnostics$before_passes))
+  expect_identical(colnames(result$data$spectra),
+                   colnames(processed$spectra))
+  expect_identical(result$data$metadata, processed$metadata)
+  expect_equal(nrow(assess_spec(
+    result$data, checks = c("co2_region", "high_tail")
+  )), 0L)
 })
 
 test_that("bundled app orders downloads from the current analysis state", {

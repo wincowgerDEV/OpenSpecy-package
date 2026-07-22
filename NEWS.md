@@ -4,14 +4,25 @@
   resolve dashboard `box()` calls to `graphics::box()`.
 - Restored the empty spectrum canvas and made uploaded spectra render before
   reference matching completes. Replaced redundant native progress popups with
-  one central status display showing the active phase, elapsed time, and an
-  estimated time range based on the current workload.
+  one central status display showing the active phase, elapsed time, and a
+  staged progress bar without fragile completion-time estimates. Spectral,
+  heatmap, and diagnostic plots now use a cohesive bordered dark theme.
 - Added ratio-based CO2 and high-tail quality checks that avoid flagging
   unstructured noise. `flatten_range()` and `restrict_range()` can now assess
   and correct those issues automatically, with guarded batch-wide tail cropping.
   The bundled app enables both corrections and identification by default, gates
   reference results on an uploaded spectrum, and prioritizes downloads according
-  to the current upload and identification state.
+  to the current upload and identification state. In the app, ordinary
+  preprocessing now runs before range/CO2 assessment, and an automatic
+  correction is retained only when it strictly increases the number of passing
+  spectra; the bundled Test Map exercises both corrections.
+- Fixed Test Data, Test Map, Processed Spectra, and Top Matches downloads by
+  restoring the native Shiny download link and validating every generated
+  payload. Top Match options are collapsed by default.
+- Streamlined the app to one analysis workspace with Preprocessing,
+  Identification, and Advanced tabs; moved independent thresholds and map
+  controls to Advanced, removed Google Translate and the informational sidebar,
+  and moved community, partner, and contract information to the pkgdown source.
 - Embedded the hosted Shinylive app immediately below the pkgdown title with
   real Shiny readiness feedback and a viewport full-screen mode that persists
   through upload/download dialogs. GitHub retains a normal README, and brief

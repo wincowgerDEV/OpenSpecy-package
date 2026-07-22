@@ -27,20 +27,20 @@ function(input, output, session) {
   #create a random session id
   session_id <- digest(runif(10))
 
-  # Loading overlay
+  # Session state
   load_data()
-  hide(id = "loading_overlay", anim = TRUE, animType = "fade")
-  show("app_content")
 
   preprocessed <- reactiveValues(data = NULL)
   data_click <- reactiveValues(plot = NULL, table = NULL)
   meta_cache <- reactiveVal(NULL)
   selected_match_cache <- reactiveVal(NULL)
+  correction_diagnostics <- reactiveVal(data.frame())
 
-  analysis_phase <- function(message, detail, eta = NULL) {
+  analysis_phase <- function(message, detail, progress = 4) {
+    progress <- max(0, min(100, as.numeric(progress)[[1L]]))
     session$sendCustomMessage(
       "openspecy-analysis-phase",
-      list(message = message, detail = detail, eta = unname(eta))
+      list(message = message, detail = detail, progress = progress)
     )
   }
 
@@ -53,13 +53,14 @@ observeEvent(input$file, {
   data_click$table <- 1
   preprocessed$data <- NULL
   selected_match_cache(NULL)
+  correction_diagnostics(data.frame())
 
   if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
              ignore.case = T, as.character(input$file$datapath)))) {
     show_alert(
       title = "Data type not supported!",
       text = paste0("Uploaded data type is not currently supported; please
-                      check tooltips and 'About' tab for details."),
+                      check the upload tooltip and package website for details."),
       type = "warning")
     return(NULL)
   }
@@ -68,7 +69,7 @@ observeEvent(input$file, {
     "Reading uploaded spectra",
     paste0("Reading and validating ", nrow(input$file), " uploaded file",
            if(nrow(input$file) == 1L) "." else "s."),
-    app_analysis_eta("read", bytes = sum(input$file$size, na.rm = TRUE))
+    8
   )
       
       rout <- tryCatch(expr = {
@@ -124,11 +125,7 @@ observeEvent(input$file, {
         analysis_phase(
           "Preparing uploaded spectra",
           "Checking spectral structure and preparing the shared wavenumber axis.",
-          app_analysis_eta(
-            "preprocess",
-            spectra = ncol(rout$spectra),
-            points = nrow(rout$spectra)
-          )
+          15
         )
         preprocessed$data <- rout 
         #print(preprocessed$data)
@@ -145,7 +142,7 @@ observeEvent(input$file, {
           "Loading the selected ", input$lib_type,
           " library. The first use can take longer if it must be downloaded."
         ),
-        app_analysis_eta("library")
+        52
       )
       if (input$id_strategy == "deriv" & input$lib_type == "medoid") {
           library <- load_app_library("medoid_derivative")
@@ -177,7 +174,7 @@ observeEvent(input$file, {
         "Preparing the reference library",
         paste0("Filtering ", format(ncol(library$spectra), big.mark = ","),
                " reference spectra to the uploaded range."),
-        app_analysis_eta("library", library_spectra = ncol(library$spectra))
+        64
       )
       if(!is.null(preprocessed$data)){
           library <- restrict_range(library, min = min(DataR()$wavenumber), max = max(DataR()$wavenumber), make_rel = F)
@@ -228,70 +225,152 @@ observeEvent(input$file, {
           da
     })
 
-  #Preprocess ----
-  
-  # All cleaning of the data happens here. Range selection, Smoothing, and Baseline removing
+  # Preprocess ----
+  # Ordinary preprocessing and independent spatial smoothing run first. Range
+  # restriction and flattening are intentionally staged afterward so their
+  # automatic checks assess the final processed signal.
   baseline_data <- reactive({
     req(!is.null(preprocessed$data))
-    req(input$active_preprocessing)
     uploaded <- data()
-    analysis_phase(
-      "Preprocessing spectra",
-      paste0(
-        "Applying the selected corrections to ",
-        format(ncol(uploaded$spectra), big.mark = ","), " spectrum",
-        if(ncol(uploaded$spectra) == 1L) "." else "s."
-      ),
-      app_analysis_eta(
-        "preprocess",
-        spectra = ncol(uploaded$spectra),
-        points = nrow(uploaded$spectra)
+    processed <- uploaded
+
+    if(isTRUE(input$active_preprocessing)) {
+      analysis_phase(
+        "Preprocessing spectra",
+        paste0(
+          "Applying the selected preprocessing steps to ",
+          format(ncol(uploaded$spectra), big.mark = ","), " spectrum",
+          if(ncol(uploaded$spectra) == 1L) "." else "s."
+        ),
+        26
       )
-    )
-    processed = process_spec(x = uploaded,
-                    active = input$active_preprocessing,
-                    adj_intens = input$intensity_decision, 
-                    adj_intens_args = list(type = input$intensity_corr),
-                    conform_spec = input$conform_decision, 
-                    conform_spec_args = list(range = NULL, 
-                                             res = input$conform_res, 
-                                             type = input$conform_selection),
-                    restrict_range = input$range_decision,
-                    restrict_range_args = if(isTRUE(input$range_automate)) {
-                      list(automate = TRUE)
-                    } else {
-                      list(min = input$MinRange, max = input$MaxRange)
-                    },
-                    flatten_range = input$co2_decision,
-                    flatten_range_args = list(min = input$MinFlat, 
-                                              max = input$MaxFlat,
-                                              automate = isTRUE(input$co2_automate)),
-                    subtr_baseline = input$baseline_decision, 
-                    subtr_baseline_args = list(type = "polynomial", 
-                                               degree = input$baseline, 
-                                               raw = FALSE, 
-                                               refit_at_end = input$refit,
-                                               iterations = input$iterations,
-                                               baseline = NULL),
-                    smooth_intens = input$smooth_decision, 
-                    smooth_intens_args = list(
-                        polynomial = input$smoother,
-                        window = calc_window_points(
-                            if (input$conform_decision) {
-                                seq(100, 4000, by = input$conform_res)
-                            } else {
-                                data()$wavenumber
-                            },
-                            input$smoother_window
-                        ),
-                        derivative = input$derivative_order,
-                        abs = input$derivative_abs
-                    ),
-                    make_rel = input$make_rel_decision)
-    
-    if(input$spatial_decision){
-        processed = spatial_smooth(processed, sigma = c(input$sigma, input$sigma, input$sigma))
+      processed <- process_spec(
+        x = uploaded,
+        active = TRUE,
+        adj_intens = input$intensity_decision,
+        adj_intens_args = list(type = input$intensity_corr),
+        conform_spec = input$conform_decision,
+        conform_spec_args = list(
+          range = NULL,
+          res = input$conform_res,
+          type = input$conform_selection
+        ),
+        restrict_range = FALSE,
+        flatten_range = FALSE,
+        subtr_baseline = input$baseline_decision,
+        subtr_baseline_args = list(
+          type = "polynomial",
+          degree = input$baseline,
+          raw = FALSE,
+          refit_at_end = input$refit,
+          iterations = input$iterations,
+          baseline = NULL
+        ),
+        smooth_intens = input$smooth_decision,
+        smooth_intens_args = list(
+          polynomial = input$smoother,
+          window = calc_window_points(
+            if(input$conform_decision) {
+              seq(100, 4000, by = input$conform_res)
+            } else {
+              data()$wavenumber
+            },
+            input$smoother_window
+          ),
+          derivative = input$derivative_order,
+          abs = input$derivative_abs
+        ),
+        make_rel = input$make_rel_decision
+      )
     }
+
+    if(isTRUE(input$spatial_decision)) {
+      analysis_phase(
+        "Smoothing the spectral map",
+        "Applying the selected spatial smoothing before artifact checks.",
+        34
+      )
+      processed <- spatial_smooth(
+        processed,
+        sigma = c(input$sigma, input$sigma, input$sigma)
+      )
+    }
+
+    diagnostics <- list()
+    if(isTRUE(input$active_preprocessing) && isTRUE(input$co2_decision)) {
+      if(isTRUE(input$co2_automate)) {
+        analysis_phase(
+          "Checking the CO2 region",
+          "Testing the processed spectra and keeping flattening only if more spectra pass.",
+          38
+        )
+        result <- app_apply_range_automation(
+          processed,
+          flatten = TRUE,
+          restrict = FALSE,
+          flatten_args = list(min = input$MinFlat, max = input$MaxFlat)
+        )
+        processed <- result$data
+        diagnostics[[length(diagnostics) + 1L]] <-
+          result$diagnostics[result$diagnostics$enabled, , drop = FALSE]
+      } else {
+        processed <- flatten_range(
+          processed,
+          min = input$MinFlat,
+          max = input$MaxFlat,
+          make_rel = FALSE
+        )
+      }
+    }
+
+    if(isTRUE(input$active_preprocessing) && isTRUE(input$range_decision)) {
+      if(isTRUE(input$range_automate)) {
+        analysis_phase(
+          "Checking spectral tails",
+          "Testing the processed batch and keeping shared-axis cropping only if more spectra pass.",
+          43
+        )
+        result <- app_apply_range_automation(
+          processed,
+          flatten = FALSE,
+          restrict = TRUE
+        )
+        processed <- result$data
+        diagnostics[[length(diagnostics) + 1L]] <-
+          result$diagnostics[result$diagnostics$enabled, , drop = FALSE]
+      } else {
+        processed <- restrict_range(
+          processed,
+          min = input$MinRange,
+          max = input$MaxRange,
+          make_rel = FALSE
+        )
+      }
+    }
+
+    diagnostics <- if(length(diagnostics)) {
+      do.call(rbind, diagnostics)
+    } else {
+      data.frame()
+    }
+    correction_diagnostics(diagnostics)
+    if(nrow(diagnostics)) {
+      accepted <- sum(diagnostics$accepted)
+      skipped <- sum(diagnostics$reason == "no_failures")
+      rejected <- nrow(diagnostics) - accepted - skipped
+      analysis_phase(
+        "Artifact checks complete",
+        paste0(
+          accepted, " automated correction", if(accepted == 1L) " was" else "s were",
+          " retained; ", skipped, " clean check", if(skipped == 1L) " was" else "s were",
+          " left unchanged; ", rejected, " candidate",
+          if(rejected == 1L) " was" else "s were",
+          " rejected because the batch did not improve."
+        ),
+        47
+      )
+    }
+
     processed
   })
 
@@ -299,7 +378,7 @@ observeEvent(input$file, {
   # Choose which spectra to use for matching and plotting. 
   DataR <- reactive({
     req(!is.null(preprocessed$data))
-    if(input$active_preprocessing) baseline_data() else data()
+    baseline_data()
   })
 
   #The data to use in the plot. 
@@ -477,12 +556,7 @@ observeEvent(input$file, {
           " with ", format(ncol(reference$spectra), big.mark = ","),
           " reference spectra."
         ),
-        app_analysis_eta(
-          "identify",
-          spectra = ncol(DataR()$spectra),
-          points = nrow(DataR()$spectra),
-          library_spectra = ncol(reference$spectra)
-        )
+        76
       )
       cor_spec(x = DataR(),
                library = reference,
@@ -499,12 +573,7 @@ observeEvent(input$file, {
         "Classifying spectra",
         paste0("Running the selected model for ", ncol(DataR()$spectra),
                " uploaded spectrum", if(ncol(DataR()$spectra) == 1L) "." else "s."),
-        app_analysis_eta(
-          "identify",
-          spectra = ncol(DataR()$spectra),
-          points = nrow(DataR()$spectra),
-          library_spectra = length(unique(libraryR()$all_variables))
-        )
+        76
       )
       
       #rn <- runif(n = length(unique(libraryR()$all_variables)))
@@ -567,9 +636,11 @@ observeEvent(input$file, {
   output$cor_plot <- renderPlot({
       req(!is.null(preprocessed$data))
       ggplot() +
-          geom_histogram(aes(x = max_cor()), fill = "white") +
+          geom_histogram(aes(x = max_cor()), fill = app_plot_palette$primary,
+                         color = app_plot_palette$panel) +
           scale_x_continuous(trans =  scales::modulus_trans(p = 0, offset = 1)) +
-          geom_vline(xintercept = MinCor(), color = "red") +
+          geom_vline(xintercept = MinCor(), color = app_plot_palette$reference,
+                     linewidth = 0.8) +
           theme_black_minimal() +
           labs(x = "Correlation")
   })
@@ -674,9 +745,12 @@ match_metadata <- reactive({
 output$snr_plot <- renderPlot({
     req(!is.null(preprocessed$data))
     ggplot() +
-        geom_histogram(aes(x = signal_to_noise()), fill = "white") +
+        geom_histogram(aes(x = signal_to_noise()),
+                       fill = app_plot_palette$primary,
+                       color = app_plot_palette$panel) +
         scale_x_continuous(trans =  scales::modulus_trans(p = 0, offset = 1)) +
-        geom_vline(xintercept = MinSNR(), color = "red") +
+        geom_vline(xintercept = MinSNR(), color = app_plot_palette$reference,
+                   linewidth = 0.8) +
         theme_black_minimal() +
         labs(x = "Signal/Noise")
 })
@@ -815,16 +889,19 @@ output$progress_bars <- renderUI({
         } else {
           "Drawing the processed spectrum and selected reference match."
         },
-        app_analysis_eta(
-          "render",
-          spectra = ncol(primary$spectra),
-          points = nrow(primary$spectra)
-        )
+        94
       )
       plotly_spec(x = primary,
                   x2 = reference,
+                  line = list(color = app_plot_palette$primary, width = 2.4),
+                  line2 = list(dash = "dot",
+                               color = app_plot_palette$reference,
+                               width = 2.4),
+                  plot_bgcolor = app_plot_palette$panel,
+                  paper_bgcolor = app_plot_palette$panel,
                   make_rel = input$make_rel_decision,
                   source = "B") %>%
+        app_style_plotly() %>%
         config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape"))
     })
 
@@ -870,6 +947,7 @@ output$progress_bars <- renderUI({
                         min_cor = MinCor(),
                         select = data_click$plot,
                         source = "heat_plot") %>%
+          app_style_plotly() %>%
           event_register(event = "plotly_click")
 
   })
@@ -913,8 +991,9 @@ output$progress_bars <- renderUI({
       req(!is.null(preprocessed$data))
       req(thresholded_particles()$metadata$area)
       ggplot() +
-          geom_histogram(aes(x = sqrt(thresholded_particles()$metadata$area)), 
-                         fill = "white") +
+          geom_histogram(aes(x = sqrt(thresholded_particles()$metadata$area)),
+                         fill = app_plot_palette$primary,
+                         color = app_plot_palette$panel) +
           theme_black_minimal(base_size = 15) +
           labs(x = "Nominal Particle Size (√area)", y = "Count")
   })
@@ -948,27 +1027,27 @@ output$progress_bars <- renderUI({
   # Data Download options ----
   # Progress Bars
   output$download_ui <- renderUI({
-      choice_names <- app_download_choices(
-        has_upload = !is.null(preprocessed$data),
-        identification = !is.null(preprocessed$data) &&
-          isTRUE(input$active_identification),
-        collapse = !is.null(preprocessed$data) &&
-          isTRUE(input$collapse_decision)
+    choice_names <- app_download_choices(
+      has_upload = !is.null(preprocessed$data),
+      identification = !is.null(preprocessed$data) &&
+        isTRUE(input$active_identification),
+      collapse = !is.null(preprocessed$data) &&
+        isTRUE(input$collapse_decision)
+    )
+    tagList(
+      selectInput(
+        inputId = "download_selection",
+        label = "Download contents",
+        choices = choice_names,
+        selected = choice_names[[1L]]
+      ),
+      footnote(
+        "What will be downloaded?",
+        "Test Data is a Raman HDPE CSV and Test Map is a small FTIR ENVI ZIP.",
+        "Processed Spectra contains the current analysis result. Top Matches contains the selected number of identifications.",
+        "Thresholded Particles is available when particle collapse is enabled."
       )
-      tagList(selectInput(inputId = "download_selection",
-                          label = downloadButton("download_data",
-                                                 style = "background-color: rgb(0,0,0); color: rgb(255,255,255);"),
-                          choices = choice_names,
-                          selected = choice_names[[1L]]) %>%
-                  popover(
-                      title = "Options for downloading spectra and metadata from the analysis.
-                                          Test Data is a Raman HDPE spectrum in csv format. Test Map is an FTIR ENVI file of a CA particle.
-                                          Processed Spectra downloads your data with whatever processing options are active. Top Matches downloads the top identifications in the
-                                          active analysis. All Matches will download all identifications with the library. Thresholded Particles will download a version of your spectra using the active
-                                          thresholds selected to infer where particles are in spectral maps, particle spectra are collapsed
-                                          to their medians and locations to their centroids.",
-                      content = "Download Options", placement = "left"
-                  ))
+    )
   })  
   
   output$top_n <- renderUI({
@@ -976,75 +1055,124 @@ output$progress_bars <- renderUI({
       req(input$active_identification)
       req(input$download_selection == "Top Matches")
       req(!grepl("^model$", input$lib_type))
-      tagList(
-          numericInput(
-              "top_n_input",
-              "Top N",
-              value = 1,
-              min = 1,
-              max = ncol(library_filtered()$spectra),
-              step = 1
-          ),
-          selectInput(inputId = "columns_selected",
-                      label = "Columns to save",
-                      choices = c("Simple", "All"))
+      tags$details(
+        class = "openspecy-download-details",
+        tags$summary("Top Match options"),
+        numericInput(
+          "top_n_input",
+          "Top N",
+          value = 1,
+          min = 1,
+          max = ncol(library_filtered()$spectra),
+          step = 1
+        ),
+        selectInput(
+          inputId = "columns_selected",
+          label = "Columns to save",
+          choices = c("Simple", "All")
+        )
       )
   })
   output$download_data <- downloadHandler(
-       filename = function() {if(input$download_selection == "Test Map") {paste0(input$download_selection, human_ts(), ".zip")} else{paste0(input$download_selection, human_ts(), ".csv")}},
-        content = function(file) {
-            if(input$download_selection == "Test Data") {fwrite(testdata, file)}
-            if(input$download_selection == "Test Map") {file.copy(read_extdata("CA_tiny_map.zip"), file)}
-            if(input$download_selection == "Processed Spectra") {
-                your_spec <- DataR()
-                your_spec$metadata$signal_to_noise <- signal_to_noise()
-                write_spec(your_spec, file)}
-            if(input$download_selection == "Top Matches") {
-                if(!grepl("^model$", input$lib_type)){
-                    dataR_metadata <- data.table(match_threshold = MinCor(),
-                                                 signal_to_noise = signal_to_noise(),
-                                                 signal_threshold = MinSNR(),
-                                                 good_signal = signal_to_noise() > MinSNR()) %>%
-                        bind_cols(DataR()$metadata)
+    filename = function() {
+      selection <- input$download_selection
+      extension <- if(identical(selection, "Test Map")) ".zip" else ".csv"
+      paste0(gsub("[^A-Za-z0-9]+", "-", selection), "-", human_ts(), extension)
+    },
+    content = function(file) {
+      selection <- input$download_selection
+      req(length(selection) == 1L)
+      message("OpenSpecy app: creating '", selection, "' download")
 
-                    all_matches <- reshape2::melt(correlation()) %>%
-                        as.data.table() %>%
-                        left_join(
-                            library_filtered()$metadata %>% select(-any_of(c("col_id", "file_name"))),
-                            by = c("Var1" = "sample_name")
-                        ) %>%
-                        left_join(dataR_metadata,
-                                  by = c("Var2" = "col_id")) %>%
-                        rename("sample_name" = "Var1", 
-                               "col_id" = "Var2",
-                               "match_val" = "value") %>%
-                        mutate(good_match_vals = match_val > match_threshold,
-                               good_matches = match_val > match_threshold & signal_to_noise > signal_threshold) %>%
-                        .[, !sapply(., OpenSpecy::is_empty_vector), with = F] %>%
-                        select(file_name, col_id, material_class, spectrum_identity, match_val, signal_to_noise, everything()) %>%
-                        .[order(-match_val), .SD[1:input$top_n_input], by = col_id] %>%
-                        {if(grepl("Simple", input$columns_selected)){select(., file_name, col_id, material_class, match_val, signal_to_noise)} else{.}} %>%
-                        mutate(material_class = ifelse(match_val < MinCor(), rep.int("unknown", nrow(.)), material_class))
-                    
-                    fwrite(all_matches, file) 
-                }
-                else{
-                    result <- bind_cols(DataR()$metadata, matches_to_single())
-                    result$signal_to_noise <- signal_to_noise()
-                    result <- result[, !sapply(result, OpenSpecy::is_empty_vector), with = FALSE] %>%
-                        select(file_name, col_id, material_class, match_val, signal_to_noise, everything()) %>%
-                        mutate(material_class = ifelse(match_val < MinCor(), rep.int("unknown", nrow(.)), material_class))
-                    
-                    fwrite(result, file) 
-                    }
-                }
-            if(input$download_selection == "Thresholded Particles") {write_spec(thresholded_particles(), file = file)}
-            })
+      if(identical(selection, "Test Data")) {
+        fwrite(testdata, file)
+      } else if(identical(selection, "Test Map")) {
+        copied <- file.copy(read_extdata("CA_tiny_map.zip"), file,
+                            overwrite = TRUE)
+        if(!isTRUE(copied)) stop("Unable to copy the bundled Test Map.")
+      } else if(identical(selection, "Processed Spectra")) {
+        your_spec <- DataR()
+        your_spec$metadata$signal_to_noise <- signal_to_noise()
+        write_spec(your_spec, file)
+      } else if(identical(selection, "Top Matches")) {
+        if(!grepl("^model$", input$lib_type)) {
+          top_n <- input$top_n_input
+          if(is.null(top_n) || !is.finite(top_n)) top_n <- 1L
+          top_n <- max(1L, as.integer(top_n))
+          columns_selected <- input$columns_selected
+          if(is.null(columns_selected)) columns_selected <- "Simple"
+
+          dataR_metadata <- data.table(
+            match_threshold = MinCor(),
+            signal_to_noise = signal_to_noise(),
+            signal_threshold = MinSNR(),
+            good_signal = signal_to_noise() > MinSNR()
+          ) %>%
+            bind_cols(DataR()$metadata)
+
+          all_matches <- reshape2::melt(correlation()) %>%
+            as.data.table() %>%
+            left_join(
+              library_filtered()$metadata %>%
+                select(-any_of(c("col_id", "file_name"))),
+              by = c("Var1" = "sample_name")
+            ) %>%
+            left_join(dataR_metadata, by = c("Var2" = "col_id")) %>%
+            rename(
+              "sample_name" = "Var1",
+              "col_id" = "Var2",
+              "match_val" = "value"
+            ) %>%
+            mutate(
+              good_match_vals = match_val > match_threshold,
+              good_matches = match_val > match_threshold &
+                signal_to_noise > signal_threshold
+            ) %>%
+            .[, !sapply(., OpenSpecy::is_empty_vector), with = FALSE] %>%
+            select(file_name, col_id, material_class, spectrum_identity,
+                   match_val, signal_to_noise, everything()) %>%
+            .[order(-match_val), head(.SD, top_n), by = col_id] %>%
+            {if(identical(columns_selected, "Simple")) {
+              select(., file_name, col_id, material_class,
+                     match_val, signal_to_noise)
+            } else .} %>%
+            mutate(
+              material_class = ifelse(match_val < MinCor(), "unknown",
+                                      material_class)
+            )
+          fwrite(all_matches, file)
+        } else {
+          result <- bind_cols(DataR()$metadata, matches_to_single())
+          result$signal_to_noise <- signal_to_noise()
+          result <- result[, !sapply(result, OpenSpecy::is_empty_vector),
+                           with = FALSE] %>%
+            select(file_name, col_id, material_class, match_val,
+                   signal_to_noise, everything()) %>%
+            mutate(
+              material_class = ifelse(match_val < MinCor(), "unknown",
+                                      material_class)
+            )
+          fwrite(result, file)
+        }
+      } else if(identical(selection, "Thresholded Particles")) {
+        write_spec(thresholded_particles(), file = file)
+      } else {
+        stop("Unsupported download selection: ", selection)
+      }
+
+      if(!file.exists(file) || is.na(file.info(file)$size) ||
+         file.info(file)$size <= 0) {
+        stop("The app did not create a nonempty download for '", selection, "'.")
+      }
+      message("OpenSpecy app: completed '", selection, "' download (",
+              file.info(file)$size, " bytes)")
+    }
+  )
 
   # Hide functions or objects when they shouldn't exist.
 
   observe({
-      toggle(id = "heatmapA",
+      toggle(id = "heatmap_frame",
              condition = isTruthy(ncol(preprocessed$data$spectra) > 1))
       toggle(id = "placeholder1", condition = !isTruthy(preprocessed$data))
   })
@@ -1109,13 +1237,6 @@ output$progress_bars <- renderUI({
       }
   })
   outputOptions(output, "nav_buttons", suspendWhenHidden = FALSE)
-
-  #Google translate. 
-  output$translate <- renderUI({
-    if (translate && !app_wasm_mode() && curl::has_internet()) {
-      includeHTML("www/googletranslate.html")
-    }
-  })
 
   # Log events ----
   

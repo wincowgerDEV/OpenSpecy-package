@@ -277,6 +277,11 @@ test_that("pkgdown homepage and Shiny app provide the embed handshake", {
   expect_true(any(grepl("data-openspecy-embed", homepage, fixed = TRUE)))
   expect_true(any(grepl('src="app/"', homepage, fixed = TRUE)))
   expect_false(any(grepl('src="openspecy/"', homepage, fixed = TRUE)))
+  expect_true(all(vapply(
+    c("## Community and help", "## Partner with us", "## Contract services"),
+    function(heading) any(grepl(heading, homepage, fixed = TRUE)),
+    logical(1)
+  )))
   expect_lt(which(grepl("data-openspecy-embed", homepage,
                         fixed = TRUE))[[1]],
             which(grepl("Analyze, Process, Identify", homepage,
@@ -301,8 +306,10 @@ test_that("bundled app has no floating wasm package installer", {
                          fixed = TRUE)))
   expect_true(any(grepl("validate_wasm_package_version", global_source,
                         fixed = TRUE)))
-  expect_true(any(grepl("!app_wasm_mode() && curl::has_internet()",
-                        server_source, fixed = TRUE)))
+  expect_false(any(grepl("curl::has_internet()", server_source,
+                         fixed = TRUE)))
+  expect_false(any(grepl("googletranslate|output\\$translate",
+                         c(global_source, server_source))))
 
   prepare_path <- test_path("..", "..", "tools", "wasm",
                             "prepare-shinylive-app.R")
