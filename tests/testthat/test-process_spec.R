@@ -103,3 +103,27 @@ test_that("process_spec() bulk-processes complete columns beside NA columns", {
                missing_expected$spectra[, "missing"])
   expect_equal(attr(processed, "derivative_order"), "1")
 })
+
+test_that("process_spec() passes automated range policies through", {
+  wavenumber <- seq(1000, 2500, by = 10)
+  values <- rep(0.1, length(wavenumber))
+  values[wavenumber == 1200] <- 1
+  values[seq_len(2L)] <- 4
+  values[wavenumber >= 2200 & wavenumber <= 2400] <- 4
+  os <- as_OpenSpecy(wavenumber, data.frame(sample = values))
+  processed <- process_spec(
+    os,
+    conform_spec = FALSE,
+    restrict_range = TRUE,
+    restrict_range_args = list(automate = TRUE),
+    flatten_range = TRUE,
+    flatten_range_args = list(automate = TRUE),
+    smooth_intens = FALSE,
+    make_rel = FALSE
+  )
+
+  expect_lt(nrow(processed$spectra), nrow(os$spectra))
+  expect_true(attr(processed, "automatic_tail")$applied)
+  expect_true(attr(processed, "automatic_flatten")$applied)
+  expect_true(check_OpenSpecy(processed))
+})

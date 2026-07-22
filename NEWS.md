@@ -1,5 +1,17 @@
 # OpenSpecy 1.7.1
 
+- Fixed bundled Shiny app startup when another attached package caused R to
+  resolve dashboard `box()` calls to `graphics::box()`.
+- Restored the empty spectrum canvas and made uploaded spectra render before
+  reference matching completes. Replaced redundant native progress popups with
+  one central status display showing the active phase, elapsed time, and an
+  estimated time range based on the current workload.
+- Added ratio-based CO2 and high-tail quality checks that avoid flagging
+  unstructured noise. `flatten_range()` and `restrict_range()` can now assess
+  and correct those issues automatically, with guarded batch-wide tail cropping.
+  The bundled app enables both corrections and identification by default, gates
+  reference results on an uploaded spectrum, and prioritizes downloads according
+  to the current upload and identification state.
 - Embedded the hosted Shinylive app immediately below the pkgdown title with
   real Shiny readiness feedback and a viewport full-screen mode that persists
   through upload/download dialogs. GitHub retains a normal README, and brief

@@ -13,13 +13,33 @@ restrict_range(x, ...)
 
 \method{restrict_range}{default}(x, ...)
 
-\method{restrict_range}{OpenSpecy}(x, min, max, make_rel = TRUE, ...)
+\method{restrict_range}{OpenSpecy}(
+  x,
+  min = NULL,
+  max = NULL,
+  make_rel = TRUE,
+  automate = FALSE,
+  artifact_ratio = 3,
+  tail_n = 5L,
+  co2_region = c(2200, 2420),
+  max_crop = 0.2,
+  ...
+)
 
 flatten_range(x, ...)
 
 \method{flatten_range}{default}(x, ...)
 
-\method{flatten_range}{OpenSpecy}(x, min = 2200, max = 2400, make_rel = TRUE, ...)
+\method{flatten_range}{OpenSpecy}(
+  x,
+  min = 2200,
+  max = 2400,
+  make_rel = TRUE,
+  automate = FALSE,
+  artifact_ratio = 3,
+  tail_n = 5L,
+  ...
+)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
@@ -30,6 +50,19 @@ flatten_range(x, ...)
 
 \item{make_rel}{logical; should the output intensities be normalized to the
 range [0, 1] using \code{make_rel()} function?}
+
+\item{automate}{logical; if \code{TRUE}, first assess the relevant artifact and
+only restrict a high tail or flatten a high CO2 region when detected.}
+
+\item{artifact_ratio}{numeric; minimum artifact-to-control maximum ratio.}
+
+\item{tail_n}{integer; number of points defining each spectral tail.}
+
+\item{co2_region}{numeric length two; carbon dioxide exclusion region used
+by automatic tail assessment.}
+
+\item{max_crop}{numeric; maximum fraction of the full wavenumber span that
+automatic tail restriction may remove across both ends.}
 
 \item{\ldots}{additional arguments passed to subfunctions; currently not
 in use.}
@@ -53,6 +86,7 @@ test_noise <- as_OpenSpecy(x = seq(400,4000, by = 10),
 plot(test_noise)
 
 restrict_range(test_noise, min = 1000, max = 2000)
+restrict_range(test_noise, automate = TRUE, make_rel = FALSE)
 
 flattened_intensities <- flatten_range(test_noise, min = c(1000, 2000),
                                        max = c(1500, 2500))

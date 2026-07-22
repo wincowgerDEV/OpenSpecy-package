@@ -99,12 +99,53 @@ test_that("bundled Shiny app does not block startup or auto-load remote images",
   expect_true(any(grepl("object-fit:contain", ui_source, fixed = TRUE)))
   expect_true(any(grepl("html.openspecy-busy-visible", ui_source,
                         fixed = TRUE)))
+  expect_true(any(grepl('id = "openspecy_busy_overlay"', ui_source,
+                        fixed = TRUE)))
+  expect_true(any(grepl('id = "openspecy_busy_elapsed"', ui_source,
+                        fixed = TRUE)))
+  expect_true(any(grepl('id = "openspecy_busy_eta"', ui_source,
+                        fixed = TRUE)))
   bridge <- readLines(file.path(app_path, "www", "parent-frame.js"),
                       warn = FALSE)
   expect_true(any(grepl("shiny:busy.openspecyBusy", bridge, fixed = TRUE)))
   expect_true(any(grepl("busyDelay = 650", bridge, fixed = TRUE)))
-  expect_true(any(grepl("shiny:value.openspecyBusy", bridge, fixed = TRUE)))
-  expect_true(any(grepl("resultQuietPeriod = 2000", bridge, fixed = TRUE)))
+  expect_true(any(grepl("openspecy-analysis-phase", bridge, fixed = TRUE)))
+  expect_true(any(grepl("elapsedTimer", bridge, fixed = TRUE)))
+  expect_false(any(grepl("shiny:value.openspecyBusy", bridge, fixed = TRUE)))
+
+  server_source <- readLines(file.path(app_path, "server.R"), warn = FALSE)
+  expect_false(any(grepl("withProgress\\(", server_source)))
+})
+
+test_that("bundled app defaults to automated range processing and identification", {
+  app_path <- run_app(test_mode = TRUE)
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+
+  expect_match(ui_source, 'inputId = "active_preprocessing"', fixed = TRUE)
+  expect_match(ui_source, 'inputId = "active_identification"', fixed = TRUE)
+  expect_match(ui_source, '"range_automate"', fixed = TRUE)
+  expect_match(ui_source, '"co2_automate"', fixed = TRUE)
+  expect_match(server_source, "restrict_range_args", fixed = TRUE)
+  expect_match(server_source, "flatten_range_args", fixed = TRUE)
+  expect_match(server_source, "req(!is.null(preprocessed$data))", fixed = TRUE)
+  expect_false(grepl("Library Spectra", server_source, fixed = TRUE))
+  expect_match(ui_source, 'plotlyOutput("MyPlotC", height = "45vh")',
+               fixed = TRUE)
+  expect_match(server_source, "app_empty_spectrum_plot()", fixed = TRUE)
+})
+
+test_that("bundled app namespaces dashboard boxes", {
+  app_path <- run_app(test_mode = TRUE)
+  sources <- unlist(lapply(c("ui.R", "server.R"), function(file) {
+    readLines(file.path(app_path, file), warn = FALSE)
+  }))
+
+  expect_true(any(grepl("bs4Dash::box\\(", sources)))
+  expect_false(any(grepl("(?<![:[:alnum:]_])box\\(", sources,
+                         perl = TRUE)))
 })
 
 test_that("bundled Shiny app prunes imported orphan assets", {
@@ -136,7 +177,17 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_error(sys.source(file.path(app_path, "global.R"), envir = env), NA)
   expect_true(is.function(env$load_app_library))
   expect_true(is.function(env$app_library_dir))
+  expect_true(is.function(env$app_download_choices))
+  expect_true(is.function(env$app_analysis_eta))
+  expect_true(is.function(env$app_empty_spectrum_plot))
   expect_match(env$app_version_display$text, "^OpenSpecy ")
+
+  expect_s3_class(env$app_empty_spectrum_plot(), "plotly")
+  expect_lt(env$app_analysis_eta("identify", points = 500,
+                                 library_spectra = 100)[[2]],
+            env$app_analysis_eta("identify", points = 500,
+                                 library_spectra = 10000)[[2]])
+  expect_equal(length(env$app_analysis_eta("read", bytes = NA_real_)), 2L)
 
   local({
     env$load_data()
@@ -144,6 +195,33 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
     expect_true(all(c("wavenumber", "intensity") %in% names(testdata)))
     expect_gt(nrow(testdata), 0)
   })
+})
+
+test_that("bundled app orders downloads from the current analysis state", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  expect_identical(env$app_download_choices(FALSE, TRUE),
+                   c("Test Data", "Test Map"))
+  expect_identical(env$app_download_choices(TRUE, FALSE),
+                   c("Processed Spectra", "Test Data", "Test Map"))
+  expect_identical(env$app_download_choices(TRUE, TRUE),
+                   c("Top Matches", "Processed Spectra", "Test Data", "Test Map"))
+  expect_identical(env$app_download_choices(TRUE, TRUE, collapse = TRUE),
+                   c("Top Matches", "Processed Spectra", "Thresholded Particles",
+                     "Test Data", "Test Map"))
 })
 
 test_that("bundled Shiny app uses package-downloaded libraries before network", {

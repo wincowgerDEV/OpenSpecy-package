@@ -256,7 +256,8 @@ test_that("pkgdown homepage and Shiny app provide the embed handshake", {
   expect_true(any(grepl("window.top.postMessage", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy:ready", bridge, fixed = TRUE)))
   expect_true(any(grepl("shiny:busy.openspecyBusy", bridge, fixed = TRUE)))
-  expect_true(any(grepl("shiny:value.openspecyBusy", bridge, fixed = TRUE)))
+  expect_true(any(grepl("openspecy-analysis-phase", bridge, fixed = TRUE)))
+  expect_false(any(grepl("shiny:value.openspecyBusy", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy-busy-visible", bridge, fixed = TRUE)))
 
   readme_path <- test_path("..", "..", "README.md")

@@ -321,6 +321,24 @@ noise in most cases, same as the app.
 processed <- process_spec(raman_hdpe)
 ```
 
+Processed spectra can be checked and corrected before identification. The
+default CO2 and high-tail checks compare the artifact-region maximum with the
+maximum outside both artifact regions after temporary min-max normalization.
+With `automate = TRUE`, each range function returns spectra unchanged when its
+issue is absent. Otherwise, `flatten_range()` flattens a flagged CO2 region and
+`restrict_range()` crops a shared batch tail only when no more than 20% of the
+full wavenumber span must be removed.
+
+```{r eval=FALSE}
+assessment <- assess_spec(
+  processed,
+  checks = c("co2_region", "high_tail")
+)
+corrected <- processed |>
+  flatten_range(automate = TRUE, make_rel = FALSE) |>
+  restrict_range(automate = TRUE, make_rel = FALSE)
+```
+
 You can compare the processed and unprocessed data in an overlay plot.
 
 ```{r, eval=FALSE}

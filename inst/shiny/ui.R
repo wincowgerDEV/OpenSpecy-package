@@ -77,30 +77,68 @@ dashboardPage(dark = T,
                     .shiny-output-error-validation {
                     color: green; font-size: 300%;
                     }
-                    html.openspecy-busy-visible .content-wrapper::after {
-                    content: '';
+                    #openspecy_busy_overlay {
+                    display: none;
                     position: fixed;
                     inset: 60px 0 0 0;
                     background: rgba(52, 58, 64, 0.72);
                     z-index: 1030;
                     pointer-events: all;
+                    align-items: center;
+                    justify-content: center;
                     }
-                    html.openspecy-busy-visible .content-wrapper::before {
-                    content: 'Processing current analysis...';
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
+                    html.openspecy-busy-visible #openspecy_busy_overlay {
+                    display: flex;
+                    }
+                    .openspecy-busy-card {
+                    width: min(620px, calc(100vw - 40px));
+                    padding: 24px 28px;
+                    border-radius: 8px;
+                    background: rgba(33, 37, 41, 0.96);
                     color: white;
-                    font-size: 20px;
-                    z-index: 1031;
+                    text-align: center;
+                    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+                    }
+                    .openspecy-busy-spinner {
+                    width: 42px;
+                    height: 42px;
+                    margin: 0 auto 16px;
+                    border: 4px solid rgba(255, 255, 255, 0.3);
+                    border-top-color: white;
+                    border-radius: 50%;
+                    animation: openspecy-spin 1s linear infinite;
+                    }
+                    #openspecy_busy_message { margin: 0 0 8px; }
+                    #openspecy_busy_detail { margin: 0 0 12px; color: #e9ecef; }
+                    #openspecy_busy_elapsed,
+                    #openspecy_busy_eta { margin: 4px 0 0; color: #ced4da; }
+                    @keyframes openspecy-spin { to { transform: rotate(360deg); } }
+                    @media (prefers-reduced-motion: reduce) {
+                    .openspecy-busy-spinner { animation: none; }
                     }
                     ")),
                      #HTML('<script async src="https://media.ethicalads.io/media/client/ethicalads.min.js"></script>'),
                       tags$link(rel = "icon", type = "image/png", href = "favicon.png")
                       #This is for the error messages.
             ),
-            tabItems(
+        tags$div(
+          id = "openspecy_busy_overlay",
+          role = "status",
+          `aria-live` = "polite",
+          `aria-atomic` = "true",
+          `aria-hidden` = "true",
+          tags$div(
+            class = "openspecy-busy-card",
+            tags$div(class = "openspecy-busy-spinner", `aria-hidden` = "true"),
+            tags$h3(id = "openspecy_busy_message", "Preparing analysis..."),
+            tags$p(id = "openspecy_busy_detail",
+                   "Open Specy is preparing the next result."),
+            tags$p(id = "openspecy_busy_elapsed", "Elapsed: 0 seconds"),
+            tags$p(id = "openspecy_busy_eta",
+                   "Timing depends on spectrum and library size.")
+          )
+        ),
+        tabItems(
                 # About Tab ----
                 tabItem(
                    tabName = "about",
@@ -263,7 +301,7 @@ dashboardPage(dark = T,
                                                      column(6, 
                                                             ## Preprocessing ----
                                                             fluidRow(
-                                                                box(width = 12,
+                                                                bs4Dash::box(width = 12,
                                                                     collapsed = T,
                                                                     style = "height: 50vh; overflow-y: auto;",
                                                                     footer = footnote("Options for processing the spectra."),
@@ -274,7 +312,7 @@ dashboardPage(dark = T,
                                                                                        status = "success",
                                                                                        fill = T),
                                                                     fluidRow(
-                                                                        box(width = 12,
+                                                                        bs4Dash::box(width = 12,
                                                                             footer = footnote("Signal thresholding technique, value, and histogram threshold plot.",
                                                                                               "If turned on, the threshold will be applied to any batch analysis results and values lower than the minimum will appear blacked out.",
                                                                                               "'Signal Over Noise' divides the highest peak by a low region.",
@@ -307,7 +345,7 @@ dashboardPage(dark = T,
                                                                         )
                                                                     ),
                                                                     fluidRow(
-                                                                        box(width = 12,
+                                                                        bs4Dash::box(width = 12,
                                                                             footer = footnote("Min-Max normalization improves comparability between spectra.",
                                                                                               "Except in cases where raw intensity values are necessary for interpretation.",
                                                                                               "For example raw values can be useful for thresholding.",
@@ -322,7 +360,7 @@ dashboardPage(dark = T,
                                                                         )
                                                                     ),
                                                                     fluidRow(
-                                                                        box(width = 12,
+                                                                        bs4Dash::box(width = 12,
                                                                             collapsed = T,
                                                                             footer = footnote("Smoothing can enhance signal to noise using the SG filter.",
                                                                                               "Derivative transformation uses the order specified.",
@@ -347,7 +385,7 @@ dashboardPage(dark = T,
                                                                                          status = "success",
                                                                                          fill = T))),
                                                                     fluidRow(
-                                                                        box(width = 12,
+                                                                        bs4Dash::box(width = 12,
                                                                             footer = footnote("Options for conforming spectra to a new wavenumber resolution.",
                                                                                               "Conformation technique specifies the strategy for performing the conformation.",
                                                                                               "Nearest will use the nearest value to the wavenumber resolution specified, this is faster but less accurate.",
@@ -370,7 +408,7 @@ dashboardPage(dark = T,
                                                                         )
                                                                     ),
                                                                 fluidRow(
-                                                                    box(
+                                                                    bs4Dash::box(
                                                                     width = 12,
                                                                     collapsed = T,
                                                                     footer = footnote("Open Specy assumes spectra are in Absorbance units.",
@@ -389,7 +427,7 @@ dashboardPage(dark = T,
                                                                                                              c("Absorbance" = "none", "Transmittance" = "transmittance", "Reflectance" = "reflectance"))
                                                                                         )),
                                                                              fluidRow(
-                                                                                 box(width = 12,
+                                                                                 bs4Dash::box(width = 12,
                                                                                      collapsed = T,
                                                                                      footer = footnote("This algorithm automatically fits to the baseline by fitting polynomials of the provided order to the whole spectrum using the iModPolyFit+ algorithm.",
                                                                                                        "New options for the maximum number of iterations while finding the baseline (previously defaulted to 10).",
@@ -412,16 +450,22 @@ dashboardPage(dark = T,
                                                                                                   fill = T)
                                                                              )),
                                                                              fluidRow(
-                                                                                 box(width = 12,
+                                                                                 bs4Dash::box(width = 12,
                                                                                      collapsed = T,
                                                                                      footer = footnote("Restricting the spectral range can remove regions of spectrum where no peaks exist and improve matching.",
                                                                                                        "These options control the maximum and minimum wavenumbers in the range to crop the spectra."),
                                                                                      title =  prettySwitch("range_decision",
                                                                                                      label = "Range Selection",
                                                                                                      inline = T,
-                                                                                                     value = F,
+                                                                                                     value = T,
                                                                                                      status = "success",
                                                                                                      fill = T),
+                                                                                     prettySwitch("range_automate",
+                                                                                                  label = "Automatic High-Tail Correction",
+                                                                                                  inline = T,
+                                                                                                  value = T,
+                                                                                                  status = "success",
+                                                                                                  fill = T),
                                                                                          numericInput(
                                                                                              "MinRange",
                                                                                              "Minimum Wavenumber",
@@ -441,7 +485,7 @@ dashboardPage(dark = T,
                                                                                          width = NULL
                                                                                      ))),
                                                                              fluidRow(
-                                                                                 box(width = 12,
+                                                                                 bs4Dash::box(width = 12,
                                                                                      collapsed = T,
                                                                                      footer = footnote("Sometimes peaks are undesirable.",
                                                                                                        "These options will replace peak regions with the mean of their edges.",
@@ -450,9 +494,15 @@ dashboardPage(dark = T,
                                                                                      title = prettySwitch("co2_decision",
                                                                                                      label = "Flatten Region",
                                                                                                      inline = T,
-                                                                                                     value = F,
+                                                                                                     value = T,
                                                                                                      status = "success",
                                                                                                      fill = T),
+                                                                                     prettySwitch("co2_automate",
+                                                                                                  label = "Automatic CO2 Correction",
+                                                                                                  inline = T,
+                                                                                                  value = T,
+                                                                                                  status = "success",
+                                                                                                  fill = T),
                                                                                      numericInput(
                                                                                          "MinFlat",
                                                                                          "Minimum Wavenumber",
@@ -470,7 +520,7 @@ dashboardPage(dark = T,
                                                                                          step = 1
                                                                                      ))),
                                                                 fluidRow(
-                                                                    box(width = 12,
+                                                                    bs4Dash::box(width = 12,
                                                                         collapsed = T,
                                                                         footer = footnote("Options for showing collapsed versions of identification.",
                                                                                           "This is only useful for hyperspectral image analysis as it will interpret the data as an image of particles and characterize the particles in the summary data by size.",
@@ -492,7 +542,7 @@ dashboardPage(dark = T,
                                                                         
                                                                         )), 
                                                                 fluidRow(
-                                                                    box(width = 12,
+                                                                    bs4Dash::box(width = 12,
                                                                         collapsed = T,
                                                                         footer = footnote("Spatial Gaussian smoothing of hyperspectral images can reduce background noise and improve image analysis.",
                                                                                           "Increasing this parameter will increase how smooth the image is while decreasing it does the opposite."),
@@ -513,7 +563,7 @@ dashboardPage(dark = T,
                                                                         )
                                                                     )),
                                                                 fluidRow(
-                                                                    box(width = 12,
+                                                                    bs4Dash::box(width = 12,
                                                                         collapsed = T,
                                                                         footer = footnote("Check that xy grid is continuous",
                                                                                           "This parameter will force uploadeded data and batch uploads to have a continuous grid no matter what the xy coordinates of the data are."),
@@ -531,7 +581,7 @@ dashboardPage(dark = T,
                                                      ## Identification ----
                                                      column(6, 
                                                                             fluidRow(
-                                                                                box(width = 12,
+                                                                                bs4Dash::box(width = 12,
                                                                                     collapsed = T,
                                                                                     footer = footnote("These options define the strategy for identification.",
                                                                                      "The Spectrum Type will inform which library is used. Both (default) will search both FTIR and Raman libraries while specifying FTIR or Raman will only search the specified library.",
@@ -542,7 +592,7 @@ dashboardPage(dark = T,
                                                                                     title = prettySwitch(inputId = "active_identification",
                                                                                                     label = "Identification",
                                                                                                     inline = T,
-                                                                                                    value = F,
+                                                                                                    value = T,
                                                                                                     status = "success",
                                                                                                     fill = T),
                                                                                     pickerInput(inputId = "id_spec_type", label =  "Spectrum Type",
@@ -557,7 +607,7 @@ dashboardPage(dark = T,
                                                                                      conditionalPanel(
                                                                                          condition = "input.lib_type != 'model'",
                                                                                          fluidRow(
-                                                                                            box(width = 12,
+                                                                                            bs4Dash::box(width = 12,
                                                                                              collapsed = T,
                                                                                              title = prettySwitch(inputId = "filter_lib",
                                                                                                                   label = "Filter Library",
@@ -572,7 +622,7 @@ dashboardPage(dark = T,
                                                                                                     options = list(`actions-box` = TRUE))))
                                                                                      ),
                                                                                     fluidRow(
-                                                                                        box(width = 12,
+                                                                                        bs4Dash::box(width = 12,
                                                                                             collapsed = T,
                                                                                             title = prettySwitch("cor_threshold_decision",
                                                                                                                  label = "Threshold Correlation",
@@ -604,7 +654,7 @@ dashboardPage(dark = T,
                           ## Plot ----
                           fluidRow(
                               #verbatimTextOutput("event_test"),
-                              box(title = HTML(paste0("Spectra")), 
+                              bs4Dash::box(title = HTML(paste0("Spectra")),
                                   maximizable = T,
                                   width = 12,
                                   #background = "black",
@@ -615,7 +665,7 @@ dashboardPage(dark = T,
                                       column(11, plotlyOutput("heatmapA", inline = TRUE)),
                                       column(1, uiOutput("nav_buttons"))
                                   ),
-                                  plotlyOutput("MyPlotC", inline = TRUE),
+                                  plotlyOutput("MyPlotC", height = "45vh"),
                                   div(style = "overflow-x: scroll",
                                       DT::dataTableOutput("eventmetadata")
                                   ),
@@ -624,8 +674,13 @@ dashboardPage(dark = T,
                                       tabsetPanel(
                                           id = "sidebar_tables",
                                           tabPanel("Library Matches",
-                                                   fluidRow(style = "padding:1rem; overflow-x: scroll",
-                                                            DT::dataTableOutput("event"))),
+                                                   conditionalPanel(
+                                                     condition = "input.active_identification",
+                                                     fluidRow(
+                                                       style = "padding:1rem; overflow-x: scroll",
+                                                       DT::dataTableOutput("event")
+                                                     )
+                                                   )),
                                           tabPanel("Uploaded Metadata",
                                                    fluidRow(style = "padding:1rem; overflow-x: scroll",
                                                             DT::dataTableOutput("sidebar_metadata")))

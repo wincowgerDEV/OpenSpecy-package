@@ -35,6 +35,14 @@ function(input, output, session) {
   preprocessed <- reactiveValues(data = NULL)
   data_click <- reactiveValues(plot = NULL, table = NULL)
   meta_cache <- reactiveVal(NULL)
+  selected_match_cache <- reactiveVal(NULL)
+
+  analysis_phase <- function(message, detail, eta = NULL) {
+    session$sendCustomMessage(
+      "openspecy-analysis-phase",
+      list(message = message, detail = detail, eta = unname(eta))
+    )
+  }
 
 
   #Read Data ----
@@ -44,6 +52,7 @@ observeEvent(input$file, {
   data_click$plot <- 1
   data_click$table <- 1
   preprocessed$data <- NULL
+  selected_match_cache(NULL)
 
   if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
              ignore.case = T, as.character(input$file$datapath)))) {
@@ -55,7 +64,12 @@ observeEvent(input$file, {
     return(NULL)
   }
 
-  withProgress(message = "Reading data", value = 2/3, {
+  analysis_phase(
+    "Reading uploaded spectra",
+    paste0("Reading and validating ", nrow(input$file), " uploaded file",
+           if(nrow(input$file) == 1L) "." else "s."),
+    app_analysis_eta("read", bytes = sum(input$file$size, na.rm = TRUE))
+  )
       
       rout <- tryCatch(expr = {
           read_any(file = as.character(input$file$datapath)) |>
@@ -107,15 +121,32 @@ observeEvent(input$file, {
     }
       
     else {
+        analysis_phase(
+          "Preparing uploaded spectra",
+          "Checking spectral structure and preparing the shared wavenumber axis.",
+          app_analysis_eta(
+            "preprocess",
+            spectra = ncol(rout$spectra),
+            points = nrow(rout$spectra)
+          )
+        )
         preprocessed$data <- rout 
         #print(preprocessed$data)
     }
 })
-})
   
   #The matching library to use. 
   libraryR <- reactive({
+      req(!is.null(preprocessed$data))
       req(input$active_identification)
+      analysis_phase(
+        "Loading the reference library",
+        paste0(
+          "Loading the selected ", input$lib_type,
+          " library. The first use can take longer if it must be downloaded."
+        ),
+        app_analysis_eta("library")
+      )
       if (input$id_strategy == "deriv" & input$lib_type == "medoid") {
           library <- load_app_library("medoid_derivative")
           #return(library)
@@ -142,6 +173,12 @@ observeEvent(input$file, {
       else if (grepl("deriv$", input$id_strategy)) {
           library <- load_app_library("derivative")
       }
+      analysis_phase(
+        "Preparing the reference library",
+        paste0("Filtering ", format(ncol(library$spectra), big.mark = ","),
+               " reference spectra to the uploaded range."),
+        app_analysis_eta("library", library_spectra = ncol(library$spectra))
+      )
       if(!is.null(preprocessed$data)){
           library <- restrict_range(library, min = min(DataR()$wavenumber), max = max(DataR()$wavenumber), make_rel = F)
           keep_spectra <- !apply(library$spectra, 2, function(x) all(is.na(x)))
@@ -197,7 +234,21 @@ observeEvent(input$file, {
   baseline_data <- reactive({
     req(!is.null(preprocessed$data))
     req(input$active_preprocessing)
-    processed = process_spec(x = data(),
+    uploaded <- data()
+    analysis_phase(
+      "Preprocessing spectra",
+      paste0(
+        "Applying the selected corrections to ",
+        format(ncol(uploaded$spectra), big.mark = ","), " spectrum",
+        if(ncol(uploaded$spectra) == 1L) "." else "s."
+      ),
+      app_analysis_eta(
+        "preprocess",
+        spectra = ncol(uploaded$spectra),
+        points = nrow(uploaded$spectra)
+      )
+    )
+    processed = process_spec(x = uploaded,
                     active = input$active_preprocessing,
                     adj_intens = input$intensity_decision, 
                     adj_intens_args = list(type = input$intensity_corr),
@@ -206,11 +257,15 @@ observeEvent(input$file, {
                                              res = input$conform_res, 
                                              type = input$conform_selection),
                     restrict_range = input$range_decision,
-                    restrict_range_args = list(min = input$MinRange, 
-                                               max = input$MaxRange),
+                    restrict_range_args = if(isTRUE(input$range_automate)) {
+                      list(automate = TRUE)
+                    } else {
+                      list(min = input$MinRange, max = input$MaxRange)
+                    },
                     flatten_range = input$co2_decision,
                     flatten_range_args = list(min = input$MinFlat, 
-                                              max = input$MaxFlat),
+                                              max = input$MaxFlat,
+                                              automate = isTRUE(input$co2_automate)),
                     subtr_baseline = input$baseline_decision, 
                     subtr_baseline_args = list(type = "polynomial", 
                                                degree = input$baseline, 
@@ -244,12 +299,7 @@ observeEvent(input$file, {
   # Choose which spectra to use for matching and plotting. 
   DataR <- reactive({
     req(!is.null(preprocessed$data))
-    if(input$active_preprocessing) {
-            baseline_data()
-    }
-    else {
-            data()
-    }
+    if(input$active_preprocessing) baseline_data() else data()
   })
 
   #The data to use in the plot. 
@@ -418,12 +468,26 @@ observeEvent(input$file, {
       req(!is.null(preprocessed$data))
       req(input$active_identification)
       req(!grepl("^model$", input$lib_type))
-      withProgress(message = 'Analyzing Spectrum', value = 1/3, {
+      reference <- library_filtered()
+      analysis_phase(
+        "Identifying spectra",
+        paste0(
+          "Comparing ", format(ncol(DataR()$spectra), big.mark = ","),
+          " uploaded spectrum", if(ncol(DataR()$spectra) == 1L) "" else "s",
+          " with ", format(ncol(reference$spectra), big.mark = ","),
+          " reference spectra."
+        ),
+        app_analysis_eta(
+          "identify",
+          spectra = ncol(DataR()$spectra),
+          points = nrow(DataR()$spectra),
+          library_spectra = ncol(reference$spectra)
+        )
+      )
       cor_spec(x = DataR(),
-               library = library_filtered(),
+               library = reference,
                conform = T,
                type = "roll")
-      })
   })
 
   #The output from the AI classification algorithm. 
@@ -431,6 +495,17 @@ observeEvent(input$file, {
       req(!is.null(preprocessed$data))
       req(input$active_identification)
       req(grepl("^model$", input$lib_type))
+      analysis_phase(
+        "Classifying spectra",
+        paste0("Running the selected model for ", ncol(DataR()$spectra),
+               " uploaded spectrum", if(ncol(DataR()$spectra) == 1L) "." else "s."),
+        app_analysis_eta(
+          "identify",
+          spectra = ncol(DataR()$spectra),
+          points = nrow(DataR()$spectra),
+          library_spectra = length(unique(libraryR()$all_variables))
+        )
+      )
       
       #rn <- runif(n = length(unique(libraryR()$all_variables)))
       mean <- rep.int(mean(unlist(DataR()$spectra)), times = length(unique(libraryR()$all_variables)))
@@ -503,13 +578,9 @@ observeEvent(input$file, {
   
   #Metadata for all the matches for a single unknown spectrum
   matches_to_single <- reactive({
+      req(!is.null(preprocessed$data))
       req(input$active_identification)
-      if(is.null(preprocessed$data)){
-          library_filtered()$metadata %>%
-               mutate("match_val" = NA,
-                     object_id = colnames(library_filtered()$spectra))
-      }
-      else if(grepl("^model$", input$lib_type)){
+      if(grepl("^model$", input$lib_type)){
           data.table(object_id = colnames(DataR()$spectra),
                      material_class = max_cor_identity(),
                      match_val = ai_output()$value)
@@ -540,34 +611,35 @@ observeEvent(input$file, {
       }
   })
 
+  observe(priority = -1, {
+      if(is.null(preprocessed$data) || !isTRUE(input$active_identification) ||
+         grepl("^model$", input$lib_type)) {
+          selected_match_cache(NULL)
+          return()
+      }
+      selected_match_cache(NULL)
+      selected_match_cache(
+        tryCatch(
+          match_selected(),
+          shiny.silent.error = function(e) NULL
+        )
+      )
+  })
+
   #All matches table for the current selection
   top_matches <- reactive({
-      #req(input$file)
+      req(!is.null(preprocessed$data))
       req(input$active_identification)
       req(!grepl("^model$", input$lib_type))
-      if(is.null(preprocessed$data)){
-          matches_to_single() %>%
-              dplyr::select("material_class",
-                            "spectrum_identity", 
-                            "organization",
-                            "sample_name")
-      }
-      else{
-          matches_to_single() %>%
-              dplyr::select("match_val",
-                            "material_class",
-                            "spectrum_identity", 
-                            "organization",
-                            "sample_name")
-      }
+      matches_to_single() %>%
+          dplyr::select("match_val", "material_class", "spectrum_identity",
+                        "organization", "sample_name")
   })
 
 #Create the data table that goes below the plot which provides extra metadata.
 match_metadata <- reactive({
-    if (is.null(preprocessed$data) && input$active_identification) {
-        library_filtered()$metadata[data_click$table, ] %>%
-            .[, !sapply(., OpenSpecy::is_empty_vector), with = FALSE]
-    } else if (input$active_identification & !grepl("^model$", input$lib_type)) {
+    req(!is.null(preprocessed$data))
+    if (input$active_identification & !grepl("^model$", input$lib_type)) {
         selected_match <- matches_to_single()[data_click$table, ]
         dataR_metadata <- DataR()$metadata
         dataR_metadata$signal_to_noise <- signal_to_noise()
@@ -702,7 +774,7 @@ output$progress_bars <- renderUI({
     req(ncol(preprocessed$data$spectra) > 1)
     req(input$threshold_decision | (input$cor_threshold_decision & input$active_identification))
     tagList(
-        box(title = "Summary", 
+        bs4Dash::box(title = "Summary",
             maximizable = T,
             width = 12,
             fluidRow(
@@ -729,11 +801,29 @@ output$progress_bars <- renderUI({
 })
 
  output$MyPlotC <- renderPlotly({
-      #req(input$id_strategy == "correlation")
-      #req(preprocessed$data)
-      plotly_spec(x = if(!is.null(preprocessed$data)){DataR_plot()} else{match_selected()},
-                  x2 = if(!is.null(preprocessed$data) & !grepl("^model$", input$lib_type) & input$active_identification) {match_selected()} else{NULL}, 
-                  make_rel = if(!is.null(preprocessed$data)){input$make_rel_decision} else{FALSE},
+      if(is.null(preprocessed$data)) {
+          return(app_empty_spectrum_plot() %>%
+                   config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape")))
+      }
+
+      primary <- DataR_plot()
+      reference <- selected_match_cache()
+      analysis_phase(
+        "Rendering results",
+        if(is.null(reference)) {
+          "Drawing the processed spectrum. A reference overlay will appear when identification finishes."
+        } else {
+          "Drawing the processed spectrum and selected reference match."
+        },
+        app_analysis_eta(
+          "render",
+          spectra = ncol(primary$spectra),
+          points = nrow(primary$spectra)
+        )
+      )
+      plotly_spec(x = primary,
+                  x2 = reference,
+                  make_rel = input$make_rel_decision,
                   source = "B") %>%
         config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape"))
     })
@@ -858,25 +948,22 @@ output$progress_bars <- renderUI({
   # Data Download options ----
   # Progress Bars
   output$download_ui <- renderUI({
-      choice_names = c("Test Data",
-                       "Test Map",
-                       if(isTruthy(ncol(preprocessed$data$spectra) >= 1)) "Your Spectra"
-                       else NA,
-                       if(input$active_identification) c("Library Spectra", "Top Matches")
-                       else NA,
-                       if(input$collapse_decision) "Thresholded Particles"
-                       else NA)
-
-      choice_names = choice_names[!is.na(choice_names)]
+      choice_names <- app_download_choices(
+        has_upload = !is.null(preprocessed$data),
+        identification = !is.null(preprocessed$data) &&
+          isTRUE(input$active_identification),
+        collapse = !is.null(preprocessed$data) &&
+          isTRUE(input$collapse_decision)
+      )
       tagList(selectInput(inputId = "download_selection",
                           label = downloadButton("download_data",
                                                  style = "background-color: rgb(0,0,0); color: rgb(255,255,255);"),
-                          choices = choice_names) %>%
+                          choices = choice_names,
+                          selected = choice_names[[1L]]) %>%
                   popover(
                       title = "Options for downloading spectra and metadata from the analysis.
                                           Test Data is a Raman HDPE spectrum in csv format. Test Map is an FTIR ENVI file of a CA particle.
-                                          Your Spectra will download your data with whatever processing options are active. Library Spectra
-                                          will download the current library selected. Top Matches downloads the top identifications in the
+                                          Processed Spectra downloads your data with whatever processing options are active. Top Matches downloads the top identifications in the
                                           active analysis. All Matches will download all identifications with the library. Thresholded Particles will download a version of your spectra using the active
                                           thresholds selected to infer where particles are in spectral maps, particle spectra are collapsed
                                           to their medians and locations to their centroids.",
@@ -908,11 +995,10 @@ output$progress_bars <- renderUI({
         content = function(file) {
             if(input$download_selection == "Test Data") {fwrite(testdata, file)}
             if(input$download_selection == "Test Map") {file.copy(read_extdata("CA_tiny_map.zip"), file)}
-            if(input$download_selection == "Your Spectra") {
+            if(input$download_selection == "Processed Spectra") {
                 your_spec <- DataR()
                 your_spec$metadata$signal_to_noise <- signal_to_noise()
                 write_spec(your_spec, file)}
-            if(input$download_selection == "Library Spectra") {write_spec(library_filtered(), file)}
             if(input$download_selection == "Top Matches") {
                 if(!grepl("^model$", input$lib_type)){
                     dataR_metadata <- data.table(match_threshold = MinCor(),

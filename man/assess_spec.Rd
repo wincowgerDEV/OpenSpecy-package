@@ -15,6 +15,7 @@ assess_spec(x, ...)
   checks = c("high_tail", "silent_region", "co2_region", "missing_values",
     "flat_spectrum", "negative_intensity", "low_snr"),
   high_prob = 0.9,
+  artifact_ratio = 3,
   tail_n = 5L,
   silent_region = c(1800, 2000),
   co2_region = c(2200, 2420),
@@ -34,7 +35,11 @@ assess_spec(x, ...)
 \code{"negative_intensity"}, and \code{"low_snr"}.}
 
 \item{high_prob}{numeric; spectrum-wide quantile used as the high intensity
-threshold for tail and region checks.}
+threshold for the silent-region check.}
+
+\item{artifact_ratio}{numeric; minimum ratio between the normalized maximum
+in a tail or carbon dioxide region and the normalized maximum outside both
+artifact regions required to flag an issue.}
 
 \item{tail_n}{integer; number of points to check at each end of the spectrum.}
 

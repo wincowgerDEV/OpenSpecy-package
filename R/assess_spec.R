@@ -11,7 +11,10 @@
 #' \code{"missing_values"}, \code{"flat_spectrum"},
 #' \code{"negative_intensity"}, and \code{"low_snr"}.
 #' @param high_prob numeric; spectrum-wide quantile used as the high intensity
-#' threshold for tail and region checks.
+#' threshold for the silent-region check.
+#' @param artifact_ratio numeric; minimum ratio between the normalized maximum
+#' in a tail or carbon dioxide region and the normalized maximum outside both
+#' artifact regions required to flag an issue.
 #' @param tail_n integer; number of points to check at each end of the spectrum.
 #' @param silent_region numeric length two; wavenumber range expected to be
 #' mostly silent.
@@ -62,6 +65,7 @@ assess_spec.OpenSpecy <- function(x,
                                     "negative_intensity", "low_snr"
                                   ),
                                   high_prob = 0.9,
+                                  artifact_ratio = 3,
                                   tail_n = 5L,
                                   silent_region = c(1800, 2000),
                                   co2_region = c(2200, 2420),
@@ -93,6 +97,11 @@ assess_spec.OpenSpecy <- function(x,
     stop("'high_prob' must be a single numeric value between 0 and 1",
          call. = FALSE)
   }
+  if (!is.numeric(artifact_ratio) || length(artifact_ratio) != 1L ||
+      is.na(artifact_ratio) || artifact_ratio <= 1) {
+    stop("'artifact_ratio' must be a single numeric value greater than 1",
+         call. = FALSE)
+  }
   if (!is.numeric(tail_n) || length(tail_n) != 1L ||
       is.na(tail_n) || tail_n < 1) {
     stop("'tail_n' must be a positive integer", call. = FALSE)
@@ -122,6 +131,8 @@ assess_spec.OpenSpecy <- function(x,
       metric = character(),
       value = numeric(),
       threshold = numeric(),
+      candidate_max = numeric(),
+      control_max = numeric(),
       region_min = numeric(),
       region_max = numeric()
     )
@@ -133,6 +144,7 @@ assess_spec.OpenSpecy <- function(x,
 
   .issue_table <- function(check, idx, issue, description, likely_cause,
                            potential_fix, metric, value, threshold,
+                           candidate_max = NA_real_, control_max = NA_real_,
                            region = c(NA_real_, NA_real_)) {
     idx <- as.integer(idx)
     if (length(idx) == 0L) return(NULL)
@@ -148,6 +160,8 @@ assess_spec.OpenSpecy <- function(x,
       metric = metric,
       value = as.numeric(value),
       threshold = as.numeric(threshold),
+      candidate_max = as.numeric(candidate_max),
+      control_max = as.numeric(control_max),
       region_min = as.numeric(region[1L]),
       region_max = as.numeric(region[2L])
     )
@@ -158,7 +172,7 @@ assess_spec.OpenSpecy <- function(x,
   if (any(non_finite))
     finite_spectra[non_finite] <- NA_real_
 
-  need_high <- any(checks %in% c("high_tail", "silent_region", "co2_region"))
+  need_high <- "silent_region" %in% checks
   high_threshold <- NULL
   if (need_high) {
     high_threshold <- matrixStats::colQuantiles(finite_spectra,
@@ -184,23 +198,33 @@ assess_spec.OpenSpecy <- function(x,
 
   issues <- list()
 
+  artifact_metrics <- NULL
+  if (any(checks %in% c("high_tail", "co2_region"))) {
+    artifact_metrics <- .artifact_ratio_metrics(
+      x,
+      tail_n = tail_n,
+      co2_region = co2_region,
+      na.rm = na.rm
+    )
+  }
+
   if ("high_tail" %in% checks) {
-    n_tail <- min(tail_n, nrow(spectra))
-    tail_rows <- unique(c(seq_len(n_tail),
-                          seq.int(nrow(spectra) - n_tail + 1L,
-                                  nrow(spectra))))
-    tail_max <- .col_max(spectra[tail_rows, , drop = FALSE])
-    idx <- which(.high_flags(tail_max))
+    tail_ratio <- artifact_metrics$tail_ratio
+    idx <- which(!is.na(tail_ratio) & tail_ratio >= artifact_ratio)
     issues[[length(issues) + 1L]] <- .issue_table(
       "high_tail", idx,
       "High tail intensity",
-      paste0("One or more of the first or last ", n_tail,
-             " spectrum points is above the spectrum-wide high quantile."),
+      paste0("The normalized maximum in the first or last ",
+             artifact_metrics$tail_n, " spectrum points is at least ",
+             artifact_ratio, " times the maximum outside the tail and CO2 ",
+             "regions."),
       "Instrument artifact, fluorescence, uncorrected or poorly corrected baseline, or a real peak that is being cropped at the edge.",
       "Inspect edge regions, restrict the spectral range, subtract baseline, or rerun the measurement.",
-      "max_tail_intensity",
-      tail_max[idx],
-      high_threshold[idx]
+      "artifact_max_ratio",
+      tail_ratio[idx],
+      artifact_ratio,
+      artifact_metrics$tail_max[idx],
+      artifact_metrics$control_max[idx]
     )
   }
 
@@ -221,7 +245,7 @@ assess_spec.OpenSpecy <- function(x,
       "max_region_intensity",
       region_max[idx],
       high_threshold[idx],
-      region
+      region = region
     )
   }
 
@@ -235,11 +259,22 @@ assess_spec.OpenSpecy <- function(x,
   }
 
   if ("co2_region" %in% checks) {
-    issues[[length(issues) + 1L]] <- .add_high_region(
-      "co2_region", co2_region,
+    co2_ratio <- artifact_metrics$co2_ratio
+    idx <- which(!is.na(co2_ratio) & co2_ratio >= artifact_ratio)
+    issues[[length(issues) + 1L]] <- .issue_table(
+      "co2_region", idx,
       "High intensity in CO2 region (infrared spectra)",
-      "Carbon dioxide present in signal, basline correction issues, or background collection issues.",
-      "Flatten or remove the CO2 region, add instrument's atmouspheric correction, purge the instrument, or rerun the background or spectrum."
+      paste0("The normalized maximum in ", co2_region[1L], "-",
+             co2_region[2L], " is at least ", artifact_ratio,
+             " times the maximum outside the tail and CO2 regions."),
+      "Carbon dioxide present in signal, baseline correction issues, or background collection issues.",
+      "Flatten or remove the CO2 region, add the instrument's atmospheric correction, purge the instrument, or rerun the background or spectrum.",
+      "artifact_max_ratio",
+      co2_ratio[idx],
+      artifact_ratio,
+      artifact_metrics$co2_max[idx],
+      artifact_metrics$control_max[idx],
+      region = co2_region
     )
   }
 
@@ -317,4 +352,70 @@ assess_spec.OpenSpecy <- function(x,
   if (length(issues) == 0L) return(.empty_assessment())
 
   rbindlist(issues, use.names = TRUE)
+}
+
+.artifact_ratio_metrics <- function(x, tail_n = 5L,
+                                    co2_region = c(2200, 2420),
+                                    na.rm = TRUE) {
+  spectra <- x$spectra
+  nr <- nrow(spectra)
+  tail_n <- min(as.integer(tail_n), nr)
+  left_rows <- seq_len(tail_n)
+  right_rows <- seq.int(max(1L, nr - tail_n + 1L), nr)
+  tail_rows <- unique(c(left_rows, right_rows))
+  co2_rows <- x$wavenumber >= co2_region[1L] &
+    x$wavenumber <= co2_region[2L]
+  control_rows <- !(seq_len(nr) %in% tail_rows) & !co2_rows
+
+  normalized <- .normalize_artifact_spectra(spectra)
+  col_max <- function(rows) {
+    if (!any(rows)) return(rep(NA_real_, ncol(spectra)))
+    values <- matrixStats::colMaxs(normalized[rows, , drop = FALSE],
+                                   na.rm = na.rm)
+    values[!is.finite(values)] <- NA_real_
+    as.numeric(values)
+  }
+  ratio <- function(candidate, control) {
+    out <- candidate / control
+    out[candidate > 0 & control == 0] <- Inf
+    out[candidate == 0 & control == 0] <- 1
+    out[is.na(candidate) | is.na(control)] <- NA_real_
+    out
+  }
+
+  left_max <- col_max(seq_len(nr) %in% left_rows)
+  right_max <- col_max(seq_len(nr) %in% right_rows)
+  tail_max <- pmax(left_max, right_max, na.rm = TRUE)
+  tail_max[!is.finite(tail_max)] <- NA_real_
+  co2_max <- col_max(co2_rows)
+  control_max <- col_max(control_rows)
+
+  list(
+    tail_n = tail_n,
+    left_max = left_max,
+    right_max = right_max,
+    tail_max = tail_max,
+    co2_max = co2_max,
+    control_max = control_max,
+    left_ratio = ratio(left_max, control_max),
+    right_ratio = ratio(right_max, control_max),
+    tail_ratio = ratio(tail_max, control_max),
+    co2_ratio = ratio(co2_max, control_max)
+  )
+}
+
+.normalize_artifact_spectra <- function(spectra) {
+  finite <- spectra
+  finite[!is.finite(finite)] <- NA_real_
+  mins <- matrixStats::colMins(finite, na.rm = TRUE)
+  maxs <- matrixStats::colMaxs(finite, na.rm = TRUE)
+  spans <- maxs - mins
+  out <- sweep(finite, 2L, mins, "-")
+  usable <- is.finite(spans) & spans > 0
+  if (any(usable)) {
+    out[, usable] <- sweep(out[, usable, drop = FALSE], 2L,
+                           spans[usable], "/")
+  }
+  if (any(!usable)) out[, !usable] <- 0
+  out
 }

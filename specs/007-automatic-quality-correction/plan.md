@@ -6,69 +6,74 @@
 
 ## Goal
 
-- Make the Open Specy app open in automation mode, with preprocessing and identification enabled while their advanced controls are hidden by default.
-- Prevent noise-only spectra from false CO2/high-tail flags and automatically correct genuine issues in final processed spectra without violating spectral or batch alignment.
+- Make artifact correction an optional capability of `flatten_range()` and `restrict_range()` instead of a separate workflow function.
+- Default the app to automated preprocessing and identification while requiring an uploaded spectrum for identification and prioritizing context-relevant downloads.
 
 ## Scope
 
-- **In**: Ratio-based CO2/high-tail assessment, batch-wide automatic tail restriction, an exported assessment-driven correction function, and shared local/hosted app automation behavior.
-- **Out**: Per-spectrum cropping within a batch (users may explicitly `split_spec()` first), fixes for other `assess_spec()` checks, new quality models/dependencies, reference-library changes, and hand edits to generated docs or Shinylive output.
-- **Users**: R users correcting `OpenSpecy` batches and app users wanting a default hands-off process with optional advanced controls.
+- **In**: Ratio-based CO2/high-tail assessment, function-owned conditional correction, shared-axis guarded tail restriction, app defaults, upload-gated identification, and contextual download ordering.
+- **Out**: `correct_spec()`, global post-processing correction/rollback, per-spectrum batch cropping, reference-library changes, new dependencies, and hand edits to generated docs or Shinylive output.
+- **Users**: R users composing range functions and app users wanting safe automated defaults without irrelevant library/download states.
 
 ## Requirements
 
-- R1. `assess_spec()` evaluates a transient per-spectrum min-max normalization and flags CO2 or a high tail when `candidate_max / control_max >= 3`; the control excludes both CO2 and tail regions so simultaneous artifacts do not mask each other, and noise-like spectra with similarly sized maxima across regions are not flagged.
-- R2. Comparative checks handle zero/negative control maxima, missing/non-finite values, absent/overlapping regions, ascending/descending axes, short spectra, batches, and ties deterministically; diagnostics report normalized candidate/control maxima, their ratio, and threshold.
-- R3. Existing `silent_region` and non-structural checks retain their current meaning; compatibility of `high_prob` is documented or deprecated deliberately rather than silently ignored.
-- R4. `restrict_range()` gains an automatic-tail mode equivalent to removing one point at a time from each problematic outer edge until every spectrum has `tail_max / control_max < 3`; implementation may precompute candidate depths/maxima and select the first passing shared bounds instead of rebuilding the object iteratively.
-- R5. Cropping is transactional and batch-wide: if the smallest passing shared bounds would remove more than 20% of the full original wavenumber span, counting both ends together, leave the original axis/tails unchanged and return a diagnostic; otherwise crop all spectra to the same passing axis. Never expose per-spectrum cropping on a batched `OpenSpecy`.
-- R6. Exported `correct_spec()` (final name subject to API review) accepts an `OpenSpecy`, assesses CO2/high-tail issues by default, flattens CO2 and crops tails batch-wide, and returns one valid `OpenSpecy` with preserved spectrum/metadata order, identifiers, valid attributes, and auditable correction diagnostics/history.
-- R7. Corrections are idempotent within numerical tolerance: reassessment of corrected output has no correctable CO2/high-tail findings, and a second correction pass does not further change a passing object.
-- R8. The app defaults automation mode on, preprocessing on, and identification on; automation mode collapses/hides both control panels without disabling their active values, and users can reveal advanced controls or turn either stage off.
-- R9. The app preprocesses the batch once, records how many final processed spectra pass both CO2 and tail checks, then makes exactly one correction attempt directly on that processed batch and reassesses without rerunning preprocessing. Keep the corrected output only when strictly more spectra pass both checks; otherwise revert to the original processed output. Never recursively correct.
-- R10. Local Shiny and hosted Shinylive use the same source behavior; no generated web artifact is edited directly and no package/dependency/library pin changes are needed.
+- R1. `assess_spec()` uses transient per-spectrum min-max normalization and flags CO2/high-tail artifacts when `candidate_max / control_max >= 3`; the control excludes both regions so simultaneous artifacts do not mask each other and unstructured noise is not flagged.
+- R2. `flatten_range(automate = TRUE)` first runs the CO2 check with its target region and flattens only when at least one spectrum fails; a passing batch returns exactly unchanged. Manual behavior remains the default package API.
+- R3. `restrict_range(automate = TRUE)` first runs the high-tail check and crops shared batch bounds one problematic edge point at a time until every spectrum passes; an equivalent optimized bound search is allowed.
+- R4. Automated cropping is transactional: if combined removal from both ends exceeds 20% of the full original wavenumber span, return the original object unchanged with a diagnostic. Per-spectrum batch cropping is unsupported; users may `split_spec()` explicitly.
+- R5. Both range functions preserve the `OpenSpecy` class, spectra-column/metadata-row alignment, identifiers, compatible attributes, and auditable automation diagnostics when an issue is found.
+- R6. Remove the `correct_spec()` generic, methods, documentation, tests, vignette workflow, namespace entries, and prior app-wide correction helper/notification logic.
+- R7. App preprocessing, identification, range selection, flattening, and each range function's automation option default on; range/flatten controls remain visible so users can disable automation or set manual bounds.
+- R8. With no uploaded spectrum, identification must not load or display a reference library even though its switch defaults on; upload activates normal identification behavior.
+- R9. Download choices are ordered by state: no upload starts with Test Data/Test Map; upload without identification starts with processed spectra; upload with identification starts with Top Matches. Remove Library Spectra and keep other applicable choices after the priority item.
+- R10. Local Shiny and hosted Shinylive share source behavior; generated web artifacts, wasm pins, dependency closure, and staged small libraries remain unchanged.
+- R11. The spectrum panel renders an empty plot before upload, then renders the processed upload independently of match readiness and overlays the selected reference once available.
+- R12. Replace native bottom-right progress notifications with one accessible central status overlay that reports the current phase, elapsed time, and an honest workload-based ETA range until the app becomes idle.
 
 ## Technical Decisions
 
-- **Approach**: Min-max normalize temporary assessment values, compare each artifact maximum with the maximum outside both artifact regions at a default ratio of 3, and centralize correction of final processed objects in package code. For speed, precompute or scan crop-depth maxima and select the minimal bounds satisfying every column, proving equivalence to a one-point loop in tests.
-- **Public API**: `correct_spec(x, checks = c("co2_region", "high_tail"), ratio = 3, ...)` exposes the reusable correction policy and meaningful threshold; batch behavior and correction order are inferred. Keep normalization, crop-depth search, guards, diagnostics assembly, and app adapters internal; automatic-tail tuning belongs to `restrict_range()` or a named args list rather than duplicate flags.
-- **Primary pipeline**: `x |> process_spec(...) |> correct_spec() |> assess_spec() |> match_spec(library)`; callers wanting independent axes use `split_spec()` before correction.
-- **Dependencies**: None; reuse `matrixStats`, `data.table`, existing processing helpers, and Shiny dependencies.
-- **OpenSpecy contract**: Preserve the shared `wavenumber`, spectra-column/metadata-row alignment, dimnames, class, and compatible attributes; update correction history. Tail restriction changes the shared axis only through `restrict_range()` and must retain enough points/range for identification.
-- **Generated artifacts**: Update roxygen source and regenerate `NAMESPACE`/`man/*.Rd` only with `Config/roxygen2/version`; inspect exports, authorship, aliases, and references immediately.
-- **External/reference workflows**: No network/library rebuild. Probe Raman, FTIR, pure-noise, simultaneous CO2+tail, and mixed-quality batches; compare representative matching inputs/results where axes change.
-- **Bundled Shiny app**: Update `inst/shiny/ui.R` and `inst/shiny/server.R`; no asset additions. Add helper/server tests, installed-path/asset checks, package-size confirmation, and a guarded app smoke test.
-- **Hosted Shinylive/WebAssembly app**: Shared app source only; pins, dependency closure, wasm repository workflow, and small-library staging remain unchanged. Validate workflow/preflight and nested-frame startup, upload, correction, identification, download, layout, console, and busy-overlay behavior when a matching artifact exists.
+- **Approach**: Keep `.artifact_ratio_metrics()` internal and reuse it through `assess_spec()`. Add one consistent `automate = FALSE` policy argument to `flatten_range()` and `restrict_range()`; correction state is inferred, and existing parameters own thresholds/regions.
+- **Public API**: No new export. `automate` is a demonstrated policy choice; ratio, tail length, CO2 region, and crop guard are advanced tuning arguments on the owning functions. Remove `correct_spec()` completely.
+- **Primary pipelines**: `x |> flatten_range(automate = TRUE)` and `x |> restrict_range(automate = TRUE)`; the app passes these modes through `process_spec()`.
+- **Dependencies**: None; reuse `matrixStats`, `data.table`, processing helpers, and existing Shiny packages.
+- **OpenSpecy contract**: Flattening preserves the axis; tail restriction changes one shared axis only when all batch spectra can be retained within the 20% guard. Clean automated calls are exact no-ops.
+- **Generated artifacts**: Update roxygen source and regenerate `NAMESPACE`/`man/*.Rd` with configured roxygen2; inspect removal of `correct_spec` and preservation of authorship/aliases.
+- **External/reference workflows**: No network/library rebuild; compare representative matching inputs when automated cropping changes axes.
+- **Bundled Shiny app**: Update `inst/shiny/ui.R`/`server.R`, remove obsolete global helpers, add sourceable download-order helper/tests, verify installed app/assets, and report unchanged asset/package size.
+- **Hosted Shinylive/WebAssembly app**: Shared app source only; run static hosted tests and matching-artifact preflight/browser smoke when available, without changing pins, dependency closure, libraries, or generated output.
 
 ## Package Surfaces
 
-- `R/`: Update `R/assess_spec.R` and `R/adj_range.R`; add `R/correct_spec.R` unless colocation keeps the public contract clearer.
-- `tests/testthat/`: Extend `test-assess_spec.R`, `test-adj_range.R`, add `test-correct_spec.R`, and update app/server and wasm source-contract tests.
-- `benchmarks/`: Add repeated one-point-loop versus optimized shared-bound search covering equivalent bounds/output and flagging a material regression; document intentional detector-result changes separately.
-- `workflows/`: Unchanged. `.github/workflows/`: unchanged unless hosted verification exposes a source-contract update.
-- `inst/`: Modify bundled app UI/server only; no new assets. `DESCRIPTION`: unchanged.
-- `vignettes/README/pkgdown`: Add an `OpenSpecy` correction pipeline to relevant help/vignette; keep GitHub README embed-free and rebuild pkgdown rather than editing HTML.
-- `NEWS.md`: Record detector semantics, automatic tail correction/API, 20% guard, batch-only cropping, final-processed app correction, and default automation mode.
+- `R/`: Keep detector updates in `R/assess_spec.R`; revise `R/adj_range.R`; remove `R/correct_spec.R`; `R/process_spec.R` uses existing named-args pass-through unchanged.
+- `tests/testthat/`: Extend `test-assess_spec.R`/`test-adj_range.R`; remove `test-correct_spec.R`; update `test-process_spec.R` and `test-run_app.R` for defaults, upload gating, and download order.
+- `benchmarks/`: Retain/update repeated literal-loop versus optimized automatic restriction benchmark with equivalent output and regression guard.
+- `workflows/` and `.github/workflows/`: Unchanged unless verification exposes a source contract issue. `DESCRIPTION`: unchanged.
+- `inst/`: App source only; no assets. `vignettes/README/pkgdown`: document function-owned automation and remove `correct_spec()` guidance; no generated HTML edits.
+- `NEWS.md`: Record detector semantics, function automation, removal of the uncommitted correction API, and app identification/download defaults.
 
 ## Work Checklist
 
-- [ ] Implement the normalized ratio-3 detector in `R/assess_spec.R`, including pure-noise, CO2+tail, zero-control, and mixed-batch fixtures.
-- [ ] Implement transactional batch tail cropping and the 20%-span guard in `R/adj_range.R`, plus correction orchestration/history and exact-equivalence benchmark.
-- [ ] Wire one post-processing correction attempt, reassessment, pass-count comparison, rollback, and identification into `inst/shiny/server.R`; add the default-on automation control and hidden/collapsed panels in `inst/shiny/ui.R`.
-- [ ] Add focused package/headless app tests, roxygen, vignette, NEWS, generated-doc review, and hosted smoke coverage.
+- [x] Replace `correct_spec()` with exact-no-op automation in `R/adj_range.R`; update detector/range/process tests and benchmark.
+- [x] Remove prior global app automation; default both processing functions and their automation controls on in `inst/shiny/ui.R`/`server.R`.
+- [x] Gate library/identification behavior on upload and implement/test contextual download ordering without Library Spectra.
+- [x] Update roxygen, vignette, NEWS, generated docs, focused/full tests, package check, size audit, and guarded hosted verification.
+- [x] Namespace dashboard boxes and regression-test startup against package search-path collisions.
+- [x] Restore empty/uploaded/match plot rendering and decouple the primary trace from reference-match readiness.
+- [x] Replace redundant Shiny progress popups with dynamic central phase, elapsed, and ETA feedback.
+- [x] Add headless helper coverage and a real local browser smoke covering initial plot, upload, match overlay/table, progress lifecycle, console errors, and screenshots.
 
 ## Verification
 
-- Focused tests: `devtools::test(filter = "assess_spec|adj_range|correct_spec|run_app")` including ratio boundary (`2.999`/`3`), pure noise, simultaneous CO2+tail, both edges, mixed batches, exact minimal crop, combined full-span 20% pass/fail, no partial crop on guard failure, idempotence, one retry, strict improvement, rollback on equal/worse results, and attributes.
-- Toolchain/docs: Resolve Windows Rscript, confirm configured roxygen2, run `devtools::document()`, and inspect generated diffs immediately.
-- Full gates: Run the repeated optimized-versus-loop benchmark first, then `devtools::test()` and `devtools::check()`/CI R CMD check; compare representative pre/post correction matching inputs.
-- App: `shiny::testServer()` where feasible, installed app/path/static-asset tests, asset/package-size audit, and manual or CI-guarded local upload-to-identification smoke.
-- Hosted: Validate unchanged wasm repo/pins/dependency closure/small libraries; with a matching artifact run `tools/wasm/test-shinylive-action.ps1` plus nested-frame correction/identification/download and console/layout/busy-overlay smoke.
+- Focused tests: `devtools::test(filter = "assess_spec|adj_range|process_spec|run_app")` including clean no-op, ratio boundary, CO2-only flattening, minimal shared crop, 20% rollback, app defaults, upload gating, and all download states.
+- Benchmark: optimized versus literal one-point restriction, repeated with identical bounds/output and >10% regression failure.
+- Toolchain/docs/full gates: Windows Rscript; roxygen2 version preflight; `devtools::document()` and generated diff review; `devtools::test()`; `devtools::check(document = FALSE)`.
+- App/hosted: Source parsing/helper tests, installed paths/assets, size audit, local guarded smoke; static wasm tests and matching-artifact action preflight/nested browser smoke when available.
+- Result: focused app/hosted-source 131 passed; full 1038 passed/3 expected skips; local Playwright smoke passed in 59s with real full-library matching, two traces, progress lifecycle, off/on state, screenshots, and no severe console/server errors. No app assets changed. R CMD check was intentionally not rerun per maintainer direction; matching hosted artifact remains unavailable.
 
 ## Risks And Open Questions
 
-- Define zero-control behavior conservatively: a positive candidate with zero control has infinite contrast, but an all-zero/flat spectrum must remain noise/flat rather than an artifact finding.
-- App comparison counts a spectrum as passing only when it has neither CO2 nor high-tail findings; this prevents improvement in one check from hiding a new failure in the other, but may reject a partially improved batch.
+- An enabled identification switch without upload is inert by design; all library-loading reactives must require uploaded data to avoid hidden startup downloads.
+- Download priority is implemented as both ordering and the initial selected value whenever state changes; preserve a still-valid explicit user selection only if that does not defeat the requested top default.
 
 ## Approval Notes
 

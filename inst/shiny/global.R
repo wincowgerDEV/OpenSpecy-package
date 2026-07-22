@@ -51,6 +51,57 @@ library(OpenSpecy)
 validate_wasm_package_version()
 #library(glmnet)
 
+app_download_choices <- function(has_upload, identification,
+                                 collapse = FALSE) {
+  tests <- c("Test Data", "Test Map")
+  if (!isTRUE(has_upload)) return(tests)
+
+  choices <- if (isTRUE(identification)) {
+    c("Top Matches", "Processed Spectra")
+  } else {
+    "Processed Spectra"
+  }
+  if (isTRUE(collapse)) choices <- c(choices, "Thresholded Particles")
+  c(choices, tests)
+}
+
+app_analysis_eta <- function(stage, spectra = 1L, points = 0L,
+                             library_spectra = 0L, bytes = 0) {
+  safe_number <- function(x, fallback = 0) {
+    if(length(x) != 1L || is.na(x) || !is.finite(x)) fallback else as.numeric(x)
+  }
+  spectra <- max(1, safe_number(spectra, 1))
+  points <- max(0, safe_number(points))
+  library_spectra <- max(0, safe_number(library_spectra))
+  bytes <- max(0, safe_number(bytes))
+
+  seconds <- switch(
+    stage,
+    read = 2 + bytes / (5 * 1024^2),
+    preprocess = 3 + points * spectra / 2e5,
+    library = 5 + library_spectra / 5000,
+    identify = 5 + points * spectra * library_spectra / 2e6,
+    render = 2 + points * spectra / 5e5,
+    5
+  )
+
+  lower <- max(2, ceiling(seconds * 0.6))
+  upper <- max(lower + 3, ceiling(seconds * 2.4))
+  as.integer(c(lower, min(upper, 600)))
+}
+
+app_empty_spectrum_plot <- function() {
+  plotly::plot_ly(type = "scatter", mode = "lines") |>
+    plotly::layout(
+      xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
+                   range = c(4000, 400)),
+      yaxis = list(title = "intensity [-]", range = c(0, 1)),
+      plot_bgcolor = "rgba(17, 0, 73, 0)",
+      paper_bgcolor = "rgb(0, 0, 0)",
+      font = list(color = "#FFFFFF")
+    )
+}
+
 # App metadata ----
 metadata_file <- ".openspecy-shiny-metadata.rds"
 
