@@ -25,11 +25,14 @@ package version is unchanged.
    `.github/workflows/deploy-shinylive.yml`, and the artifact manifest.
    Confirm workflow artifact lookup uses `github.repository` so the same source
    can run in the Moore Institute hosting fork.
-2. Confirm `git status --short`; preserve user changes and keep all generated
+2. If shared `inst/shiny/` source changed, first apply
+   `openspecy-develop-shiny-app` and retain its local state-matrix, download,
+   console, screenshot, and asset evidence. Hosted preflight is additional.
+3. Confirm `git status --short`; preserve user changes and keep all generated
    output under ignored `_wasm/` paths.
-3. Choose a fresh `-WorkDir`, a reusable ignored `-ToolDir`/`-NodeDir`, and a
+4. Choose a fresh `-WorkDir`, a reusable ignored `-ToolDir`/`-NodeDir`, and a
    free port. The script removes `-WorkDir`, so verify that path before running.
-4. Run from the repository root:
+5. Run from the repository root:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File `
@@ -43,11 +46,11 @@ powershell.exe -ExecutionPolicy Bypass -File `
   -Port <free-port>
 ```
 
-5. Use `-StageLibraries` only when the download path is part of the requested
+6. Use `-StageLibraries` only when the download path is part of the requested
    test. Use `-Bootstrap` only with permission for network installs.
-6. Inspect the generated pkgdown root, `/app/`, manifests, package/image
+7. Inspect the generated pkgdown root, `/app/`, manifests, package/image
    checks, Playwright result, and loading/desktop/expanded/mobile screenshots.
-7. Run `git status --short` and `git check-ignore` on representative `_wasm/`
+8. Run `git status --short` and `git check-ignore` on representative `_wasm/`
    outputs before handoff.
 
 ## Failure Triage

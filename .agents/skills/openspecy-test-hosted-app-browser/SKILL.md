@@ -52,9 +52,10 @@ An outer iframe load event alone does not mean Shiny is ready.
 ## Local App Parity
 
 Busy-state and other shared UI fixes belong under `inst/shiny/`, not only in
-the generated Shinylive app. Add focused `testthat` source/asset assertions and,
-when behavior differs by runtime, exercise `run_app()` with the personal
-`openspecy-shiny-interactive-testing` skill as well.
+the generated Shinylive app. Apply `openspecy-develop-shiny-app` first for
+shared-source changes and reuse its no-upload/processed/identified state,
+genuine-download, console, and screenshot evidence before testing nested-frame
+behavior. Runtime-specific differences still require hosted coverage here.
 
 ## Browser Rules
 

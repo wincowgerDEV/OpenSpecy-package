@@ -1,0 +1,4 @@
+interface:
+  display_name: "Develop OpenSpecy Shiny App"
+  short_description: "Build and verify the bundled Shiny app"
+  default_prompt: "Use $openspecy-develop-shiny-app to implement and verify this bundled OpenSpecy Shiny application change."

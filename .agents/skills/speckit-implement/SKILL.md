@@ -22,19 +22,20 @@ are not required.
 6. For public API changes, apply `openspecy-design-public-api` before editing
    signatures.
 7. Run staged verification with `openspecy-run-quality-gates`: focused tests,
-   relevant benchmarks, toolchain preflight and documentation, full tests, then
-   package check. Report skipped long-running, external-resource, optional
-   backend, or CI-only checks precisely.
+   relevant benchmarks, toolchain preflight and documentation, then full tests.
+   Run package check only when the maintainer explicitly requests a full check
+   or the plan is release/CRAN-facing. Report skipped long-running,
+   external-resource, optional-backend, or CI-only checks precisely.
 8. For reference-library or other long-running external workflows, run a small
    representative probe first, then isolated expensive stages with logs and
    temporary outputs before the full workflow. Compare rebuilt artifacts against
    available legacy identifiers, wavenumber axes, metadata shape, warnings, and
    representative `OpenSpecy` joins or matches before marking the work complete.
-9. For bundled Shiny app work, keep app code/assets under `inst/`, audit and
-   remove orphaned files, compress or downsample images, report package-size
-   impact, test helpers and server/module logic headlessly where feasible,
-   verify installed app paths/assets, and run a manual or CI-guarded app smoke
-   test when relevant.
+9. For bundled Shiny app work, apply `openspecy-develop-shiny-app`. Keep one
+   final processed `OpenSpecy` reactive behind plots, summaries, identification,
+   quantification, metadata, and downloads; gate child inputs behind their owner
+   controls; preserve native downloads; and verify the affected app-state matrix
+   with focused tests plus a manual or CI-guarded browser smoke when relevant.
 10. For hosted Shinylive/WebAssembly work, treat the bundled `inst/` app and
     package source as canonical, fix and verify the "Build and deploy wasm R
     package repository" workflow when affected, keep the app on a hardcoded

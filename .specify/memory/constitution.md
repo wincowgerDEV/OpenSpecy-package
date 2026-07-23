@@ -1,18 +1,20 @@
 <!--
 Sync Impact Report
-Version change: 3.4.0 -> 3.4.1
+Version change: 3.4.1 -> 3.5.0
 Modified principles:
-- Hosted Shinylive/WebAssembly Application Boundary: changed the standalone app route to `/app/` and established the Moore Institute `openspecy` fork as the `openanalysis.org/openspecy/` hosting bridge
+- Tests Track Current Behavior: require state-transition, genuine-download, and visual/console evidence proportional to bundled Shiny changes
+- Bundled Shiny Application Boundary: establish one canonical processed-data flow, owner-gated reactivity, native downloads, and explicit progress phases
+- Development Workflow and Quality Gates: add a reusable local-app gate and reserve R CMD check for explicit full-check or release-facing work
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .github/workflows/deploy-shinylive.yml: publish and verify `_site/app`
-- pkgdown/index.md: embed and link the relative `app/` route
-- tools/wasm/ and tests/testthat/test-shinylive_wasm.R: build and enforce the `/app/` contract
-- specs/006-hosted-shinylive-wasm/plan.md: record the final public route and hosting fork
-- .agents/skills/openspecy-verify-hosted-app/ and AGENTS.md: synchronize reusable guidance
+- .specify/templates/plan-template.md and .agents/skills/speckit-plan/: plan canonical app state, owner gating, downloads, and browser evidence
+- .agents/skills/openspecy-develop-shiny-app/: new bundled-app implementation and verification workflow
+- .agents/skills/speckit-implement/ and openspecy-run-quality-gates/: route app work through the staged local browser gate
+- .agents/skills/openspecy-test-hosted-app-browser/ and openspecy-verify-hosted-app/: link local/hosted parity to the new bundled-app skill
+- AGENTS.md: synchronize concise durable guidance
 Follow-up TODOs:
 - None
 -->
@@ -133,9 +135,16 @@ helper files and be covered by normal `testthat` tests. Shiny module and server
 logic SHOULD use headless tests such as `shiny::testServer()` when feasible.
 Tests that verify installed app paths, static assets, and launchability SHOULD
 load the app through `system.file()` or the same package helper users call, so
-missing `inst/` files are caught before release. Browser, snapshot, or
-long-running end-to-end app tests MUST be manual, optional, or CI-guarded and
-MUST skip clearly when optional test backends or network resources are missing.
+missing `inst/` files are caught before release. User-visible interaction work
+MUST exercise the affected transitions among no-upload, uploaded/processed,
+identification-enabled, batch/map, and optional quantification states. Changes
+to downloads MUST create and inspect genuine files; changes to reactivity MUST
+prove muted child settings remain inert; and layout/theme changes MUST include
+visual inspection at representative desktop and mobile sizes. Browser,
+snapshot, or long-running end-to-end app tests MUST be manual, optional, or
+CI-guarded and MUST skip clearly when optional test backends or network
+resources are missing. Browser evidence MUST capture severe console/server
+errors and inspect screenshots rather than relying only on DOM assertions.
 
 Hosted Shinylive/WebAssembly changes MUST verify the generated app and the
 CRAN-like wasm package repository together. Verification SHOULD check that the
@@ -309,6 +318,28 @@ App code MAY call exported or internal package functions as appropriate, but it
 MUST NOT require weakening `OpenSpecy` object contracts, generated-file policy,
 testing expectations, or public API restraint.
 
+For one app analysis state, the visible spectrum, summaries, identification,
+quantification, metadata, and downloads MUST derive from the same final
+processed `OpenSpecy` reactive object unless a deliberately different source is
+named in the interface and plan. Hidden duplicate preprocessing pipelines are
+non-compliant because they make visible and exported results irreproducible.
+Collision-prone UI functions MUST be namespace-qualified, and dynamically
+rendered inputs MUST be handled safely while absent.
+
+Owner controls MUST gate their dependent inputs before server code reads them.
+Changing a disabled, hidden, or otherwise muted child setting MUST NOT
+invalidate analysis, start network or reference-library work, or display the
+analysis overlay. Long-running feedback MUST come from explicit analysis phases
+in one accessible central display with actual elapsed time and staged progress;
+brief reactive flushes and configuration-only changes MUST remain quiet.
+
+Contextual downloads MUST preserve the native Shiny download binding, expose a
+clear current label, validate nonempty server output, and be browser-tested with
+representative file content when changed. Download configuration, plotting,
+tables, sidebars, dialogs, and dynamic controls MUST participate in the same
+theme and reactive state model as the main interface rather than being treated
+as detached features.
+
 Shiny app updates MUST include an asset audit before release-facing checks:
 remove orphaned files, duplicate assets, raw source images, obsolete generated
 outputs, and unused dependencies; compress or downsample images; and report
@@ -421,6 +452,9 @@ Before implementation is complete:
 - `devtools::test()` MUST then pass for relevant local tests.
 - `devtools::check()` or the GitHub Actions R CMD check matrix MUST pass before
   release or CRAN-facing work is considered ready.
+- Routine bundled-app iteration MUST NOT repeat R CMD check. Run it only when
+  the maintainer explicitly requests a full/package check or the active plan is
+  release/CRAN-facing; record intentional deferral in the handoff.
 - Vignettes MUST build or be validated when their examples or dependencies
   change.
 - `NEWS.md` MUST include the change whenever users, downstream packages, or
@@ -435,10 +469,13 @@ Before implementation is complete:
 - Official reference-library or other long-running external workflow changes
   MUST use staged subset/temp-output verification and report compatibility
   counts against available legacy artifacts before being treated as complete.
-- Bundled Shiny app changes MUST include an `inst/` asset audit, image
-  compression/downsampling review, package-size impact check, focused
-  noninteractive Shiny tests when feasible, and manual or CI-guarded app smoke
-  test when relevant.
+- Bundled Shiny app changes MUST apply the
+  `openspecy-develop-shiny-app` workflow: parse the canonical app sources, run
+  focused noninteractive tests, verify the affected app-state matrix, create
+  genuine changed downloads, inspect browser console/screenshots when relevant,
+  and report the `inst/shiny` asset inventory. Perform the full orphan,
+  dependency, compression, and package-size audit when assets change or the work
+  is release-facing.
 - Hosted Shinylive/WebAssembly changes MUST verify the wasm package repository
   workflow, package and dependency pins, dependency closure, small-library
   staging, generated app startup, asset loading, and at least one
@@ -486,6 +523,10 @@ required tests without justification, omit required documentation updates,
 ignore `OpenSpecy` object invariants or attributes, add Shiny application code
 outside `inst/`, bundle avoidable large or orphaned Shiny assets, or omit
 required benchmarks for same-output function improvements. Reviewers MUST also
+block bundled-app changes that split visible and exported results across
+unexplained processing pipelines, let muted controls trigger analysis, replace
+native download bindings without necessity, or claim changed downloads work
+without genuine file evidence. Reviewers MUST also
 block hosted Shinylive/WebAssembly changes that float to unpinned package or
 dependency versions, bypass the wasm package repository workflow without
 justification, resolve required app packages from floating external
@@ -496,4 +537,4 @@ outputs, or claim browser readiness without the required interaction evidence.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.4.1 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-20
+**Version**: 3.5.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-07-23

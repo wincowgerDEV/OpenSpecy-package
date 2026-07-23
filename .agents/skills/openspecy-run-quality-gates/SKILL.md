@@ -1,6 +1,6 @@
 ---
 name: openspecy-run-quality-gates
-description: Run staged OpenSpecy R package verification on Windows. Use after package code, tests, benchmarks, roxygen, DESCRIPTION, NAMESPACE, man pages, vignettes, or network-dependent tests change, and before claiming a feature or release-facing change is complete.
+description: Run staged OpenSpecy R package and bundled Shiny verification on Windows. Use after package code, tests, benchmarks, roxygen, DESCRIPTION, NAMESPACE, man pages, vignettes, app source, browser smoke, or network-dependent tests change, and before claiming a feature or release-facing change is complete.
 ---
 
 # Run OpenSpecy Quality Gates
@@ -11,16 +11,21 @@ Use `scripts/quality-gates.ps1` for repeatable local verification.
 
 1. Inspect `git status --short` and preserve unrelated user changes.
 2. Run the smallest focused test filter first.
-3. Run affected benchmarks before the full suite. Subsecond comparisons need
+3. For bundled app work, add `-BundledAppBrowser` after focused tests pass. The
+   script parses `global.R`, `ui.R`, and `server.R`, checks the Playwright test
+   syntax, reports the app asset inventory, and runs the real local browser
+   smoke with one worker.
+4. Run affected benchmarks before the full suite. Subsecond comparisons need
    repeated timings; equivalent-output regressions over 10 percent must fail or
    be justified in the active plan.
-4. Before `devtools::document()`, compare installed roxygen2 with
+5. Before `devtools::document()`, compare installed roxygen2 with
    `Config/roxygen2/version` in `DESCRIPTION`. Stop on mismatch.
-5. Run documentation once, then inspect generated diffs. Author, contributor,
+6. Run documentation once, then inspect generated diffs. Author, contributor,
    reference, alias, and export changes require corresponding source changes.
    Never repair generated files manually.
-6. Run the full local tests once after focused tests pass.
-7. Run `devtools::check(document = FALSE)` once for release-facing work.
+7. Run the full local tests once after focused and app-browser tests pass.
+8. Add `-Check` only when the maintainer explicitly requests a full package
+   check or the plan is release/CRAN-facing.
 
 ## Windows Rules
 
@@ -29,8 +34,8 @@ Use `scripts/quality-gates.ps1` for repeatable local verification.
 - Run Spec Kit PowerShell scripts with
   `powershell.exe -ExecutionPolicy Bypass -File ...`; do not change the user's
   machine execution policy.
-- Ignore Windows Store executable aliases. Resolve a real executable once and
-  reuse its absolute path.
+- Ignore Windows Store executable aliases. Resolve real executables once and
+  reuse their absolute paths.
 
 ## External Tests
 
@@ -43,9 +48,9 @@ not be part of routine local success criteria. When a full test/check fails:
 4. Report the external blocker precisely; do not describe the full suite as
    passing.
 
-## Script
+## Commands
 
-Run from the repository root:
+Package-focused example:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File `
@@ -53,4 +58,10 @@ powershell.exe -ExecutionPolicy Bypass -File `
   -Filter build_lib -Benchmark benchmarks\library_builder.R -Document
 ```
 
-Add `-FullTests` and `-Check` only after earlier gates pass.
+Final bundled-app candidate without R CMD check:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File `
+  .agents\skills\openspecy-run-quality-gates\scripts\quality-gates.ps1 `
+  -Filter run_app -BundledAppBrowser -FullTests
+```

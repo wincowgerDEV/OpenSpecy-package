@@ -30,7 +30,7 @@
 - **Generated artifacts**: [Whether documentation generation is needed; required configured tool version; no direct generated-file edits.]
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
-- **Bundled Shiny app**: [impact on `inst/` app code/assets, image compression, orphan-file audit, package-size impact, headless app tests, smoke test, or N/A.]
+- **Bundled Shiny app**: [impact on `inst/`; canonical final reactive feeding visible/exported results; owner/child gating; contextual downloads/progress; assets/size; headless and browser tests; or N/A.]
 - **Hosted Shinylive/WebAssembly app**: [impact on `.github/workflows/`, wasm package repository, hardcoded package/dependency pins, dependency closure, small medoid/model library staging, GitHub README vs `pkgdown/index.md`, generated app artifacts, action-equivalent preflight, interaction/visual smoke tests, or N/A.]
 
 ## Package Surfaces
@@ -63,7 +63,7 @@
 - `devtools::check()` or CI/R CMD check:
 - Benchmarks:
 - Reference-library/long workflow staging:
-- Shiny app tests/asset audit/smoke test:
+- Shiny app state matrix: [no-upload, processed, identified, optional batch/quantification, muted controls, genuine downloads, progress, console/screenshots, asset inventory.]
 - Shinylive/WebAssembly package repo, dependency closure, pins, libraries, action-equivalent preflight, and nested-frame interaction/visual smoke test:
 
 ## Risks And Open Questions

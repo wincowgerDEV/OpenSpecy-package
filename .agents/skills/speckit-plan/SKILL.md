@@ -37,11 +37,14 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
   Shinylive/WebAssembly impact when the wasm package repository, package pin,
   app dependency closure, generated app, or staged medoid/model libraries are
   affected.
-- Shiny planning must include headless module/server tests, installed-asset
-  checks, and manual or CI-guarded smoke tests when relevant; hosted
-  Shinylive/WebAssembly planning must include action verification, hardcoded
-  package and dependency pinning, dependency-closure evidence, small-library
-  staging, generated-artifact boundaries, and at least one
+- Bundled Shiny planning must name the canonical final reactive feeding visible
+  and exported results, owner/child input gating, affected no-upload/processed/
+  identified/batch/quantification states, changed genuine downloads, progress,
+  console/screenshot evidence, and asset impact. Apply
+  `openspecy-develop-shiny-app` during implementation.
+- Hosted Shinylive/WebAssembly planning must include action verification,
+  hardcoded package and dependency pinning, dependency-closure evidence,
+  small-library staging, generated-artifact boundaries, and at least one
   startup/library-matching smoke path when relevant.
 - A short work checklist with exact paths.
 - Verification commands and any manual or CI-guarded checks.

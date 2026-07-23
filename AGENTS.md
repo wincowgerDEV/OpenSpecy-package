@@ -30,8 +30,14 @@ under `inst/`; when porting from `wincowgerDEV/OpenSpecy-shiny`, keep app code
 there, compress/downsample images, remove orphaned/duplicate/raw/generated
 assets, report package-size impact, test helpers/server modules headlessly where
 feasible, verify installed app paths/assets, and use manual or CI-guarded app
-smoke tests. Package functionality and CRAN readiness take precedence over app
-convenience. The hosted Shinylive/WebAssembly app should be generated from the
+smoke tests. Apply `openspecy-develop-shiny-app` for local app work: feed plots,
+summaries, identification, quantification, metadata, and downloads from one
+canonical final `OpenSpecy` reactive; gate child inputs behind owner controls;
+preserve native downloads; and verify affected no-upload/processed/identified
+states with genuine files plus console/screenshot review. Routine app iteration
+does not require R CMD check unless explicitly requested or release-facing.
+Package functionality and CRAN readiness take precedence over app convenience.
+The hosted Shinylive/WebAssembly app should be generated from the
 bundled app by GitHub Actions, use the repo's wasm CRAN-like package repository
 from a hardcoded package version/commit pin plus pinned app dependency closure,
 stage only the small medoid/model libraries with guarded `get_lib()` workflows,
