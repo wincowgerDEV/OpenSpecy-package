@@ -271,6 +271,39 @@ Flatten Range. By default it is set to flatten the CO2 region for
 FTIR spectra because that region often needs to be flattened when atmospheric
 artifacts occur in spectra. 
 
+## Quantification
+
+The **Quantification** tab builds user-defined area or point ratios and is off
+by default. Upload spectra, give a ratio a meaningful name, choose **Area
+ratio** or **Peak ratio**, set the numerator and denominator, and click **Add
+Ratio**. The sliders span the shared wavenumber axis in the uploaded data. Add
+as many definitions as needed, or remove a saved definition before exporting.
+
+Area ratios use two wavenumber ranges and divide the area in the numerator band
+by the area in the denominator band. Peak ratios use two points and divide the
+intensities at the nearest measured wavenumbers; they do not search for nearby
+local maxima. For example, a polyethylene carbonyl-area workflow might name a
+ratio `Carbonyl area`, set 1650--1850 cm^-1 as the numerator, and set
+1420--1500 cm^-1 as the denominator. Published bounds and suitable
+preprocessing depend on the material and method, so treat this only as a setup
+example.
+
+Calculations use a separate, non-derivative copy of the uploaded spectra, so
+changing quantification settings does not change the spectra used for
+identification or the displayed processing result. Draft names and sliders do
+not start calculation; only saved definitions are calculated after
+Quantification is enabled.
+
+Choose one quantification treatment: **Fill Peaks baseline corrected
+(recommended)**, **Modified polynomial baseline corrected**, **Min-max
+normalized**, or **Uploaded spectrum (no quantification preprocessing)**. The
+index formulas only define numerator and denominator bands; the selected
+treatment is a separate preprocessing choice and affects comparability. Use the
+same treatment when comparing index values between spectra.
+
+The saved area- and peak-ratio definitions, values, and treatment are added to
+the metadata in both **Processed Spectra** and **Top Matches** downloads.
+
 ## Collapse Particle Spectra
 
 When working with spectral images you can identify particles and get their shapes, sizes, and material types automatically. If you select the collapse particle spectra option it will enable this feature and you can download the collapsed particle spectra (averaged spectra for each particle) from the download tab. 
@@ -301,9 +334,11 @@ knitr::include_graphics("app/download_threshold.jpg")
 
 ## Downloading Processed Data
 
-You can download a csv file of your processed data using the Your Spectra option
-with download. This will download a version of your spectra with whatever
-processing options you have selected at the time.
+You can download a csv file of your processed data using the **Processed
+Spectra** option. This will download a version of your spectra with whatever
+processing options you have selected at the time. When quantification is on,
+the saved ratio definitions, values, and treatment are included in its
+metadata.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download_yourspec.jpg")
@@ -316,9 +351,9 @@ knitr::include_graphics("app/identification.jpg")
 ```
 
 After uploading data and processing it (if desired) you can now identify the
-spectrum. To identify the spectrum go to the **Identification** box. Pro tip: if
-you select **Identification** without uploading data to the app, you'll be able
-to explore the library by itself.
+spectrum. To identify the spectrum go to the **Identification** box. The app
+waits for an uploaded spectrum before loading the reference library or running
+identification.
 
 The identification options define the strategy for identification. 
 
@@ -355,7 +390,7 @@ spectrum may not be the best match.
 ## Download Top Matches
 
 To download the top matches and associated metadata, use the top matches
-download option. Top N controls the number of top matches to provide for each spectrum and Columns to Save will just save the simplest metadata for interpretation if set to simple or everything if set to all. 
+download option. Top N controls the number of top matches to provide for each spectrum and Columns to Save will just save the simplest metadata for interpretation if set to simple or everything if set to all. When quantification is on, the saved area- and peak-ratio definitions, values, and treatment are included with the match metadata.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download.jpg")

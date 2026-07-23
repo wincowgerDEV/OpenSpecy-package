@@ -77,12 +77,32 @@ preprocessing_controls <- tagList(
   ),
   app_control_box(
     "baseline_decision", "Baseline Correction", FALSE,
-    sliderInput("baseline", "Baseline Correction Polynomial",
-                min = 1, max = 20, value = 8),
+    selectInput(
+      "baseline_method", "Baseline Method",
+      choices = c(
+        "Modified Polynomial (iModPolyFit+)" = "polynomial",
+        "Fill Peaks (4S)" = "fill_peaks"
+      )
+    ),
+    conditionalPanel(
+      condition = "input.baseline_method == 'polynomial'",
+      sliderInput("baseline", "Baseline Correction Polynomial",
+                  min = 1, max = 20, value = 8),
+      prettySwitch("refit", "Refit Polynomial", inline = TRUE,
+                   value = FALSE, status = "success", fill = TRUE)
+    ),
+    conditionalPanel(
+      condition = "input.baseline_method == 'fill_peaks'",
+      sliderInput("baseline_lambda", "Primary Smoothing Penalty",
+                  min = 0, max = 12, value = 4, step = 1),
+      numericInput("baseline_hwi", "Local Half-Window (buckets)",
+                   value = 50, min = 1, step = 1)
+    ),
     sliderInput("iterations", "Iterations", min = 1, max = 100, value = 10),
-    prettySwitch("refit", "Refit Polynomial", inline = TRUE,
-                 value = FALSE, status = "success", fill = TRUE),
-    note = "Fits and removes the spectral baseline with iModPolyFit+."
+    note = c(
+      "Modified polynomial fitting estimates a whole-spectrum baseline.",
+      "Fill Peaks iteratively suppresses peaks in local windows and is useful for nonlinear or locally varying baselines."
+    )
   ),
   app_control_box(
     "range_decision", "Range Selection", TRUE,
@@ -195,10 +215,78 @@ advanced_controls <- tagList(
   )
 )
 
+quantification_controls <- tagList(
+  app_section_switch("active_quantification", "Quantification", FALSE),
+  bs4Dash::box(
+    width = 12,
+    title = "Quantification Spectrum",
+    selectInput(
+      "quant_treatment", "Quantification Preprocessing",
+      choices = app_quantification_treatments,
+      selected = "fill_peaks"
+    ),
+    conditionalPanel(
+      condition = "input.quant_treatment == 'fill_peaks'",
+      sliderInput("quant_fill_lambda", "Primary Smoothing Penalty",
+                  min = 0, max = 12, value = 4, step = 1),
+      numericInput("quant_fill_hwi", "Local Half-Window (buckets)",
+                   value = 50, min = 1, step = 1),
+      sliderInput("quant_iterations", "Iterations",
+                  min = 1, max = 100, value = 10)
+    ),
+    conditionalPanel(
+      condition = "input.quant_treatment == 'modpolyfit'",
+      sliderInput("quant_poly_degree", "Polynomial Degree",
+                  min = 1, max = 20, value = 8),
+      sliderInput("quant_poly_iterations", "Iterations",
+                  min = 1, max = 100, value = 10)
+    ),
+    footer = footnote(
+      "How quantification is prepared",
+      "Area and peak ratios are calculated from an independent, non-derivative copy of each uploaded spectrum; identification preprocessing is unchanged.",
+      "The selected treatment is saved with every calculated ratio because differently preprocessed values should not be compared directly.",
+      "Convert transmittance or reflectance in Preprocessing > Intensity Adjustment before interpreting absorbance-based ratios."
+    )
+  ),
+  bs4Dash::box(
+    width = 12,
+    title = "Custom Ratios",
+    textInput(
+      "quant_ratio_name", "Ratio Name",
+      placeholder = "For example: Carbonyl index"
+    ),
+    radioButtons(
+      "quant_ratio_type", "Ratio Type",
+      choices = c("Area ratio" = "area", "Peak ratio" = "peak"),
+      selected = "area",
+      inline = TRUE
+    ),
+    uiOutput("quant_ratio_bounds"),
+    div(
+      class = "openspecy-quant-builder-actions",
+      actionButton(
+        "quant_ratio_add", "Add Ratio",
+        icon = icon("plus"),
+        class = "openspecy-add-ratio-button"
+      )
+    ),
+    div(
+      class = "openspecy-saved-ratios",
+      tags$h5("Saved Ratios"),
+      uiOutput("quant_saved_ratios")
+    ),
+    footer = footnote(
+      "Example setup",
+      "For one polyethylene carbonyl-area scenario, choose Area ratio, name it Carbonyl area, use 1650-1850 cm^-1 as the numerator and 1420-1500 cm^-1 as the denominator, then click Add Ratio.",
+      "Choose Peak ratio when a method compares two individual wavenumbers. Confirm suitable bands and preprocessing for the material, instrument, and method you are following."
+    )
+  )
+)
+
 # UI ----
 dashboardPage(
-  dark = TRUE,
-  help = TRUE,
+  dark = NULL,
+  help = NULL,
   fullscreen = TRUE,
   header = dashboardHeader(
     title = tags$a(
@@ -213,15 +301,26 @@ dashboardPage(
         )
       )
     ),
-    tags$li(
-      class = "dropdown",
-      style = "list-style-type:none;",
-      tags$a(
-        app_version_display$text,
-        href = app_version_display$href,
-        target = "_blank",
-        title = app_version_display$title,
-        style = "font-size:19px;text-decoration:none;"
+    rightUi = tagList(
+      tags$li(
+        class = "dropdown nav-item openspecy-version-item",
+        tags$a(
+          app_version_display$text,
+          class = "nav-link openspecy-version-link",
+          href = app_version_display$href,
+          target = "_blank",
+          title = app_version_display$title
+        )
+      ),
+      tags$li(
+        class = "dropdown nav-item openspecy-support-item",
+        actionButton(
+          "support_openspecy",
+          "Support Open Source Software",
+          icon = icon("donate"),
+          class = "openspecy-support-button",
+          title = "Open donation options for Open Specy"
+        )
       )
     )
   ),
@@ -231,31 +330,81 @@ dashboardPage(
     tags$head(
       tags$script(src = "parent-frame.js"),
       tags$link(rel = "icon", type = "image/png", href = "favicon.png"),
-      tags$style(HTML("
-        :root {
-          --openspecy-panel: #0b1220;
-          --openspecy-panel-2: #111c2f;
-          --openspecy-border: #31506f;
-          --openspecy-accent: #38bdf8;
-          --openspecy-accent-2: #fb7185;
-          --openspecy-text: #e6edf7;
-          --openspecy-muted: #a9b8cb;
+      tags$style(HTML(paste0(
+        app_theme_css(),
+        "
+        html,
+        body,
+        .wrapper,
+        .content-wrapper { background: var(--openspecy-canvas) !important; }
+        body,
+        .content-wrapper,
+        .content-wrapper a:not(.btn) { color: var(--openspecy-text); }
+        .main-header.navbar,
+        .main-header .navbar,
+        .main-footer {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-border) !important;
+          box-shadow: 0 3px 18px rgba(0, 0, 0, .34);
         }
-        .content-wrapper { background: #07101d !important; }
+        .main-header.navbar { border-bottom: 1px solid var(--openspecy-border) !important; }
+        .main-footer { border-top: 1px solid var(--openspecy-border) !important; }
+        .main-header a,
+        .main-footer a { color: var(--openspecy-accent) !important; }
         .content { padding-top: 18px; }
         .openspecy-app-main { max-width: 1800px; margin: 0 auto; }
-        #analysis_settings_box {
+        .card {
           border: 1px solid var(--openspecy-border);
-          background: var(--openspecy-panel);
+          background: var(--openspecy-panel) !important;
+          color: var(--openspecy-text);
           box-shadow: 0 12px 28px rgba(0, 0, 0, .32);
         }
-        #analysis_settings_box .nav-tabs {
-          border-bottom: 1px solid var(--openspecy-border);
+        .card-header,
+        .card-footer {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-grid) !important;
         }
-        #analysis_settings_box .nav-link { color: var(--openspecy-muted); }
+        .card-body { background: var(--openspecy-panel) !important; }
+        .card-title,
+        .card-title a { color: var(--openspecy-text) !important; }
+        .card .btn-tool { color: var(--openspecy-accent) !important; }
+        .card .btn-tool:hover,
+        .card .btn-tool:focus {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+        }
+        #analysis_settings_box,
+        #download_panel_box {
+          width: 100%;
+          margin-bottom: 18px;
+        }
+        #analysis_settings_box > .card-header,
+        #download_panel_box > .card-header {
+          min-height: 52px;
+        }
+        #analysis_settings_box .nav-tabs {
+          border-bottom: 1px solid var(--openspecy-grid);
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          overflow-y: hidden;
+        }
+        #analysis_settings_box .nav-link {
+          color: var(--openspecy-muted);
+          border: 1px solid transparent;
+          border-radius: 6px;
+          white-space: nowrap;
+        }
+        #analysis_settings_box .nav-link:hover,
+        #analysis_settings_box .nav-link:focus {
+          color: var(--openspecy-text);
+          border-color: var(--openspecy-grid);
+          background: var(--openspecy-panel);
+        }
         #analysis_settings_box .nav-link.active {
-          color: #fff;
-          background: #17324d;
+          color: var(--openspecy-text);
+          background: var(--openspecy-panel-2);
           border-color: var(--openspecy-accent);
         }
         .openspecy-tab-scroll {
@@ -276,7 +425,6 @@ dashboardPage(
         }
         .openspecy-section-note { align-items: baseline; color: var(--openspecy-text); }
         .openspecy-section-note span { color: var(--openspecy-muted); }
-        .openspecy-download-panel,
         .openspecy-download-details {
           display: block;
           padding: 12px;
@@ -285,20 +433,269 @@ dashboardPage(
           border-radius: 8px;
           background: var(--openspecy-panel);
         }
-        .openspecy-download-button {
-          display: block;
-          width: 100%;
-          margin-bottom: 10px;
-          color: #06111d !important;
+        .btn.openspecy-download-button {
+          display: inline-flex;
+          align-items: center;
+          gap: .65rem;
+          width: 20rem !important;
+          max-width: calc(100% - 44px) !important;
+          margin: 0;
+          color: var(--openspecy-canvas) !important;
           background: var(--openspecy-accent) !important;
-          border-color: #7dd3fc !important;
+          border-color: var(--openspecy-accent) !important;
           font-weight: 700;
           text-align: center;
+          justify-content: center;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          box-sizing: border-box;
         }
+        #download_panel_box .card-title {
+          max-width: calc(100% - 44px);
+          margin: 0;
+        }
+        #download_panel_box .card-body { padding-top: 14px; }
         .openspecy-download-details summary {
           cursor: pointer;
           color: var(--openspecy-text);
           font-weight: 600;
+        }
+        .openspecy-info-details {
+          margin-top: 4px;
+          color: var(--openspecy-muted);
+        }
+        .openspecy-info-details summary {
+          cursor: pointer;
+          color: var(--openspecy-text);
+          font-weight: 600;
+        }
+        .openspecy-info-details-body { padding-top: 8px; }
+        .openspecy-info-details-body p { margin: 0 0 7px; }
+        .openspecy-info-details-body p:last-child { margin-bottom: 0; }
+        .openspecy-support-item {
+          display: flex;
+          align-items: center;
+          margin-right: 10px;
+        }
+        .openspecy-version-item { display: flex; align-items: center; }
+        .openspecy-version-link {
+          font-size: 19px;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+        .btn.openspecy-support-button {
+          color: var(--openspecy-canvas) !important;
+          background: var(--openspecy-accent) !important;
+          border-color: var(--openspecy-accent) !important;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+        .openspecy-quant-builder-actions {
+          display: flex;
+          justify-content: flex-end;
+          margin: 4px 0 14px;
+        }
+        .btn.openspecy-add-ratio-button {
+          display: inline-flex;
+          align-items: center;
+          gap: .5rem;
+          color: var(--openspecy-canvas) !important;
+          background: var(--openspecy-accent) !important;
+          border-color: var(--openspecy-accent) !important;
+          font-weight: 700;
+        }
+        .openspecy-saved-ratios {
+          padding-top: 12px;
+          border-top: 1px solid var(--openspecy-grid);
+        }
+        .openspecy-saved-ratios h5 { color: var(--openspecy-text); }
+        .modal-content {
+          color: var(--openspecy-text);
+          background: var(--openspecy-panel);
+          border: 1px solid var(--openspecy-border);
+        }
+        .modal-header,
+        .modal-footer { border-color: var(--openspecy-grid); }
+        .modal-header .close { color: var(--openspecy-text); text-shadow: none; }
+        .openspecy-donation-options {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 12px;
+        }
+        .btn.openspecy-donation-link {
+          min-width: 96px;
+          color: var(--openspecy-canvas) !important;
+          background: var(--openspecy-accent) !important;
+          border-color: var(--openspecy-accent) !important;
+          font-weight: 700;
+        }
+        label,
+        .control-label,
+        .radio label,
+        .checkbox label { color: var(--openspecy-text) !important; }
+        .form-control,
+        .custom-select,
+        .custom-file-label,
+        .input-group-text,
+        .selectize-input,
+        .selectize-dropdown,
+        .bootstrap-select > .dropdown-toggle,
+        .bootstrap-select .dropdown-menu,
+        .dropdown-menu {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        .custom-file-label::after,
+        .input-group-text {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        .btn-default,
+        .btn-secondary,
+        .btn-file {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        .btn-default:hover,
+        .btn-default:focus,
+        .btn-secondary:hover,
+        .btn-secondary:focus,
+        .btn-file:hover,
+        .btn-file:focus {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-accent) !important;
+        }
+        .selectize-input input,
+        .selectize-dropdown .option,
+        .dropdown-item,
+        .bootstrap-select .dropdown-item { color: var(--openspecy-text) !important; }
+        .selectize-dropdown .active,
+        .selectize-dropdown .selected,
+        .dropdown-item:hover,
+        .dropdown-item:focus,
+        .bootstrap-select .dropdown-item.active {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+        }
+        .form-control:focus,
+        .custom-select:focus,
+        .selectize-input.focus,
+        .bootstrap-select > .dropdown-toggle:focus {
+          border-color: var(--openspecy-accent) !important;
+          box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2) !important;
+        }
+        .irs--shiny .irs-bar,
+        .irs--shiny .irs-single,
+        .irs--shiny .irs-from,
+        .irs--shiny .irs-to { background: var(--openspecy-accent) !important; }
+        .irs--shiny .irs-line {
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        .irs--shiny .irs-min,
+        .irs--shiny .irs-max {
+          color: var(--openspecy-muted) !important;
+          background: var(--openspecy-panel-2) !important;
+        }
+        .irs--shiny .irs-grid-text { color: var(--openspecy-muted) !important; }
+        .irs--shiny .irs-handle { border-color: var(--openspecy-accent) !important; }
+        .pretty.p-switch .state:before { background: var(--openspecy-panel-2) !important; }
+        .pretty.p-switch input:checked ~ .state:before {
+          background: var(--openspecy-success) !important;
+          border-color: var(--openspecy-success) !important;
+        }
+        .pretty input:checked ~ .state.p-success label::after,
+        .pretty.p-switch input:checked ~ .state.p-success label::after {
+          background: #FFFFFF !important;
+        }
+        .dataTables_wrapper,
+        .dataTables_wrapper label,
+        .dataTables_wrapper .dataTables_info,
+        table.dataTable,
+        table.dataTable caption,
+        .table { color: var(--openspecy-text) !important; }
+        table.dataTable,
+        .table {
+          width: 100% !important;
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        table.dataTable thead th,
+        table.dataTable thead td,
+        .table thead th {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-border) !important;
+        }
+        table.dataTable tbody tr,
+        table.dataTable tbody td,
+        .table tbody tr,
+        .table tbody td {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        table.dataTable tbody tr:hover td,
+        table.dataTable tbody tr.selected td,
+        .table-hover tbody tr:hover td { background: var(--openspecy-panel-2) !important; }
+        .dataTables_wrapper .dataTables_filter input,
+        .dataTables_wrapper .dataTables_length select {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border: 1px solid var(--openspecy-grid) !important;
+        }
+        .dataTables_wrapper .paginate_button,
+        .pagination .page-link {
+          color: var(--openspecy-accent) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        .dataTables_wrapper .paginate_button.current,
+        .dataTables_wrapper .paginate_button:hover,
+        .pagination .page-item.active .page-link {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-accent) !important;
+        }
+        #spectra_box,
+        #analysis_summary_box { width: 100%; }
+        #progress_bars > .col-sm-12 {
+          padding-right: 0;
+          padding-left: 0;
+        }
+        #analysis_summary_box .progress {
+          background: var(--openspecy-canvas) !important;
+          border: 1px solid var(--openspecy-grid);
+        }
+        #analysis_summary_box .progress-bar {
+          color: var(--openspecy-canvas) !important;
+          background: var(--openspecy-accent) !important;
+        }
+        .openspecy-summary-grid {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: stretch;
+          gap: 14px;
+          margin: 0;
+        }
+        .openspecy-summary-grid > .openspecy-summary-panel {
+          flex: 1 1 240px;
+          width: auto;
+          max-width: none;
+          min-width: 0;
+          padding: 0;
+        }
+        .openspecy-summary-panel {
+          padding: 12px !important;
+          border: 1px solid var(--openspecy-grid);
+          border-radius: 8px;
+          background: var(--openspecy-panel-2);
         }
         .openspecy-plot-frame,
         .openspecy-mini-plot {
@@ -311,7 +708,10 @@ dashboardPage(
         }
         .openspecy-plot-frame { padding: 8px; margin: 8px 0 16px; }
         .openspecy-mini-plot { margin-top: 8px; }
-        .shiny-output-error-validation { color: #7dd3fc; font-size: 130%; }
+        .shiny-output-error-validation {
+          color: var(--openspecy-accent);
+          font-size: 130%;
+        }
         #openspecy_busy_overlay {
           display: none;
           position: fixed;
@@ -344,19 +744,26 @@ dashboardPage(
         }
         #openspecy_busy_message { margin: 0 0 8px; }
         #openspecy_busy_detail { margin: 0 0 12px; color: var(--openspecy-muted); }
-        #openspecy_busy_elapsed { margin: 4px 0 10px; color: #d7e4f3; }
+        #openspecy_busy_elapsed {
+          margin: 4px 0 10px;
+          color: var(--openspecy-text);
+        }
         .openspecy-progress-track {
           height: 10px;
           overflow: hidden;
           border: 1px solid var(--openspecy-border);
           border-radius: 999px;
-          background: #050b14;
+          background: var(--openspecy-canvas);
         }
         #openspecy_busy_progress_fill {
           width: 4%;
           height: 100%;
           border-radius: inherit;
-          background: linear-gradient(90deg, #0ea5e9, #67e8f9);
+          background: linear-gradient(
+            90deg,
+            var(--openspecy-accent),
+            var(--openspecy-axis)
+          );
           transition: width .35s ease;
         }
         @keyframes openspecy-spin { to { transform: rotate(360deg); } }
@@ -367,8 +774,15 @@ dashboardPage(
         @media (max-width: 991px) {
           .openspecy-tab-scroll { max-height: none; }
           .openspecy-section-note { align-items: flex-start; flex-direction: column; }
+          .openspecy-upload-column { margin-bottom: 8px; }
+          .openspecy-support-button { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
         }
-      "))
+        @media (max-width: 575px) {
+          .openspecy-summary-grid > .openspecy-summary-panel { flex-basis: 100%; }
+          .main-footer { text-align: left; }
+          .openspecy-support-button { max-width: 52px; }
+        }
+      ")))
     ),
     tags$div(
       id = "openspecy_busy_overlay",
@@ -400,6 +814,7 @@ dashboardPage(
       fluidRow(
         column(
           2,
+          class = "openspecy-upload-column",
           fileInput(
             "file", NULL, multiple = TRUE,
             placeholder = ".csv, .zip, .asp, .jdx, .spc, .spa, ...",
@@ -409,19 +824,17 @@ dashboardPage(
               ".0", ".zip", ".img", ".h5", ".txt", ".json", ".rds",
               ".hdr", ".dat"
             )
-          ) %>%
-            bs4Dash::popover(
-              title = "Upload Raman or FTIR spectra. CSV files should contain wavenumber and intensity columns; ZIP files may contain batches or ENVI maps.",
-              content = "File Upload", placement = "right"
-            )
+          )
         ),
         column(
-          8,
+          5,
           bs4Dash::tabBox(
             id = "analysis_settings",
             selected = "preprocessing",
             width = 12,
             title = NULL,
+            collapsible = TRUE,
+            collapsed = TRUE,
             tabPanel(
               "Preprocessing",
               value = "preprocessing",
@@ -436,26 +849,41 @@ dashboardPage(
               "Advanced",
               value = "advanced",
               div(class = "openspecy-tab-scroll", advanced_controls)
+            ),
+            tabPanel(
+              "Quantification",
+              value = "quantification",
+              div(class = "openspecy-tab-scroll", quantification_controls)
             )
           )
         ),
         column(
-          2,
-          div(
-            class = "openspecy-download-panel",
-            shiny::downloadButton(
+          5,
+          bs4Dash::box(
+            id = "download_panel_box",
+            width = 12,
+            collapsible = TRUE,
+            collapsed = TRUE,
+            title = shiny::downloadButton(
               "download_data",
-              "Download selected",
+              tags$span(
+                class = "openspecy-download-label",
+                "Download Test Data"
+              ),
               class = "openspecy-download-button",
               title = "Download the selected test data or current analysis result"
             ),
-            uiOutput("download_ui")
-          ),
-          uiOutput("top_n")
+            div(
+              class = "openspecy-download-body",
+              uiOutput("download_ui"),
+              uiOutput("top_n")
+            )
+          )
         )
       ),
       fluidRow(
         bs4Dash::box(
+          id = "spectra_box",
           title = "Spectra",
           maximizable = TRUE,
           width = 12,
@@ -506,7 +934,13 @@ dashboardPage(
           )
         )
       ),
-      uiOutput("progress_bars")
+      fluidRow(
+        column(
+          12,
+          class = "openspecy-summary-column",
+          uiOutput("progress_bars")
+        )
+      )
     )
   ),
   footer = dashboardFooter(

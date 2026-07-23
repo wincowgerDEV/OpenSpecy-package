@@ -82,6 +82,7 @@ Depends:
     R (>= 4.3.0)
 Imports:
     methods,
+    baseline,
     data.table,
     jsonlite,
     caTools,

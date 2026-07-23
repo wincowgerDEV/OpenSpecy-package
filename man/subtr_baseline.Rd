@@ -25,6 +25,10 @@ subtr_baseline(x, ...)
   bl_x = NULL,
   bl_y = NULL,
   make_rel = TRUE,
+  lambda = 4,
+  hwi = 50,
+  it = 10,
+  int = NULL,
   ...
 )
 
@@ -43,6 +47,10 @@ subtr_baseline(x, ...)
   degree_part = 2,
   baseline = list(wavenumber = NULL, spectra = NULL),
   make_rel = TRUE,
+  lambda = 4,
+  hwi = 50,
+  it = 10,
+  int = NULL,
   ...
 )
 }
@@ -51,8 +59,8 @@ subtr_baseline(x, ...)
 
 \item{y}{a vector of spectral intensities.}
 
-\item{type}{one of \code{"polynomial"} or \code{"manual"} depending on
-the desired baseline correction method.}
+\item{type}{one of \code{"polynomial"}, \code{"fill_peaks"}, or
+\code{"manual"}, depending on the desired baseline correction method.}
 
 \item{degree}{the degree of the full spectrum polynomial. Must be less than the number of
 unique points when \code{raw} is \code{FALSE}. Typically, a good fit can be
@@ -68,7 +76,9 @@ found with an 8th order polynomial.}
 
 \item{crop_boundaries}{logical, whether to smartly crop the boundaries to match the spectra based on peak proximity.}
 
-\item{iterations}{the number of iterations for automated baseline correction.}
+\item{iterations}{the number of iterations for polynomial baseline
+correction. For \code{type = "fill_peaks"}, this value is used only when
+\code{it} is omitted.}
 
 \item{peak_width_mult}{scaling factor for the width of peak detection regions.}
 
@@ -84,26 +94,43 @@ unique points.}
 \item{make_rel}{logical; if \code{TRUE}, spectra are automatically normalized
 with \code{\link{make_rel}()}.}
 
+\item{lambda}{non-negative numeric scalar controlling the second-derivative
+penalty for initial Fill Peaks smoothing.}
+
+\item{hwi}{positive integer half-width, in subsampled buckets, of the initial
+Fill Peaks suppression window.}
+
+\item{it}{positive integer number of Fill Peaks suppression iterations. When
+omitted, \code{iterations} is used.}
+
+\item{int}{optional integer number of Fill Peaks subsampling buckets. If
+\code{NULL}, it is derived as approximately one tenth of the spectrum length,
+bounded between three and the number of spectral points.}
+
 \item{baseline}{an \code{OpenSpecy} object containing the baseline data to be
 subtracted (only for \code{"manual"}).}
 
-\item{\ldots}{further arguments passed to \code{\link[stats]{poly}()} or \code{"smodpoly"} parameters.}
+\item{\ldots}{further arguments passed to methods.}
 }
 \value{
-\code{subtr_baseline()} returns a data frame containing two columns named
-\code{"wavenumber"} and \code{"intensity"}.
+The \code{OpenSpecy} method returns an \code{OpenSpecy} object with corrected spectra,
+the original shared wavenumber axis, aligned metadata, and existing
+attributes. The default vector method returns a numeric vector of corrected
+intensities.
 }
 \description{
 This baseline correction routine iteratively finds the baseline of a spectrum
-using polynomial fitting methods or accepts a manual baseline.
+using polynomial or Fill Peaks methods, or accepts a manual baseline.
 }
 \details{
-This function supports two types of \code{"polynomial"} automated baseline correction with options.
-Default settings are closest to \code{"imodpoly"} for iterative polynomial
+This function supports \code{"polynomial"} automated baseline correction,
+\code{"fill_peaks"} iterative local-window baseline suppression, and
+\code{"manual"} subtraction of a user-provided baseline. Polynomial default
+settings are closest to \code{"imodpoly"} for iterative polynomial
 fitting based on Zhao et al. (2007). Additionally options recommended by
 \code{"smodpoly"} for segmented iterative polynomial fitting with enhanced peak detection
-from the S-Modpoly algorithm (\url{https://github.com/jackma123-rgb/S-Modpoly}),
-and \code{"manual"} for applying a user-provided baseline.
+from the S-Modpoly algorithm (\url{https://github.com/jackma123-rgb/S-Modpoly}).
+Fill Peaks uses the implementation from the \pkg{baseline} package.
 }
 \examples{
 data("raman_hdpe")
@@ -112,6 +139,10 @@ data("raman_hdpe")
 subtr_baseline(raman_hdpe, type = "polynomial", degree = 8)
 
 subtr_baseline(raman_hdpe, type = "polynomial", iterations = 5)
+
+# Use Fill Peaks with explicit tuning
+subtr_baseline(raman_hdpe, type = "fill_peaks", lambda = 4,
+               hwi = 50, it = 10, make_rel = FALSE)
 
 # Use manual
 bl <- raman_hdpe
@@ -131,6 +162,10 @@ Background Subtraction Algorithm for Biomedical Raman Spectroscopy.”
 
 Jackma123 (2023). S-Modpoly: Segmented modified polynomial fitting for spectral baseline correction.
 \emph{GitHub Repository}. Retrieved from \url{https://github.com/jackma123-rgb/S-Modpoly}.
+
+Liland KH (2015). 4S Peak Filling -- baseline estimation by iterative mean
+suppression. \emph{MethodsX}, \strong{2}, 135--140.
+\doi{10.1016/j.mex.2015.02.009}.
 }
 \seealso{
 \code{\link[stats]{poly}()};

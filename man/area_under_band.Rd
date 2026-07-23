@@ -10,7 +10,7 @@ area_under_band(x, ...)
 
 \method{area_under_band}{default}(x, ...)
 
-\method{area_under_band}{OpenSpecy}(x, min, max, na.rm = F, ...)
+\method{area_under_band}{OpenSpecy}(x, min = NULL, max = NULL, na.rm = FALSE, index = NULL, ...)
 }
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
@@ -21,10 +21,20 @@ area_under_band(x, ...)
 
 \item{na.rm}{a logical value for whether to ignore NA values.}
 
-\item{\ldots}{additional arguments passed to vapply.}
+\item{index}{an optional character scalar naming a predefined area-under-band
+ratio. When supplied, \code{min} and \code{max} must both be omitted. Supported values
+are \code{"carbonyl_index_saub"}, \code{"carbonyl_index_pe"},
+\code{"hydroxyl_index_pe"}, \code{"hydroxyl_index_pp"},
+\code{"carbon_oxygen_index_pe"}, and \code{"carbon_oxygen_index_pp"}.}
+
+\item{\ldots}{additional arguments passed to methods.}
 }
 \value{
-Numeric vector of area under the band calculations for each spectrum in the Open Specy object.
+A named numeric vector with one value per spectrum. Custom \code{min}/\code{max}
+calculations return the inclusive sum of intensities in that band. Named
+indices return the numerator-band sum divided by the denominator-band sum.
+An index is returned as \code{NA} when the shared wavenumber axis does not fully
+cover its required bands or its ratio is not finite.
 }
 \description{
 Area under the band calculations are useful for quantifying spectral features.
@@ -32,12 +42,44 @@ Specialized fields in spectroscopy have different area under the band regions of
 and their ratios that help with understanding differences in materials. Additional processing
 is typically required prior to calculating these values for accuracy and reproducibility.
 }
+\details{
+Named indices define band ratios only; they do not apply baseline correction,
+normalization, or other preprocessing. Compose those steps explicitly before
+calling \code{area_under_band()}. The preset definitions and intended materials
+are:
+\itemize{
+\item \code{carbonyl_index_saub}: 1650--1850 / 1420--1500 cm^-1; specified
+area-under-band carbonyl index used for polyethylene (PE) and
+polypropylene (PP).
+\item \code{carbonyl_index_pe}: 1700--1770 / 1423--1495 cm^-1; PE.
+\item \code{hydroxyl_index_pe}: 3021--3353 / 1467--1504 cm^-1; PE.
+\item \code{hydroxyl_index_pp}: 3300--3400 / 952--986 cm^-1; PP.
+\item \code{carbon_oxygen_index_pe}: 924--1197 / 2866--2987 cm^-1; PE.
+\item \code{carbon_oxygen_index_pp}: 1000--1200 / 2885--2940 cm^-1; PP.
+}
+
+All bounds are inclusive. The function preserves signed intensities and does
+not clip negative values.
+}
 \examples{
 data("raman_hdpe")
 #Single area calculation
 area_under_band(raman_hdpe, min = 1000,max = 2000)
 #Ratio of two areas. 
 area_under_band(raman_hdpe, min = 1000,max = 2000)/area_under_band(raman_hdpe, min = 500,max = 700)
+#A predefined ratio (requires spectra covering both bands)
+area_under_band(raman_hdpe, index = "carbonyl_index_saub")
+}
+\references{
+Almond J, Sugumaar P, Wenzel MN, Hill G, Wallis C (2020). Determination of
+the carbonyl index of polyethylene and polypropylene using specified area
+under band methodology with ATR-FTIR spectroscopy. \emph{e-Polymers}, 20,
+369--381. \doi{10.1515/epoly-2020-0041}.
+
+Campanale C, Savino I, Massarelli C, Uricchio VF (2023). Fourier transform
+infrared spectroscopy to assess the degree of alteration of artificially
+aged and environmentally weathered microplastics. \emph{Polymers}, 15, 911.
+\doi{10.3390/polym15040911}.
 }
 \author{
 Win Cowger

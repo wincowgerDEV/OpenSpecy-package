@@ -61,6 +61,309 @@ app_download_choices <- function(has_upload, identification,
   c(choices, tests)
 }
 
+app_download_label <- function(selection) {
+  labels <- c(
+    "Test Data" = "Download Test Data",
+    "Test Map" = "Download Test Map",
+    "Processed Spectra" = "Download Processed Spectra",
+    "Top Matches" = "Download Top Matches",
+    "Thresholded Particles" = "Download Thresholded Particles"
+  )
+  if(length(selection) != 1L || is.na(selection) ||
+     !selection %in% names(labels)) {
+    return("Download selected")
+  }
+  unname(labels[[selection]])
+}
+
+app_quantification_treatments <- c(
+  "Fill Peaks baseline corrected (recommended)" = "fill_peaks",
+  "Modified polynomial baseline corrected" = "modpolyfit",
+  "Min-max normalized" = "min_max",
+  "Uploaded spectrum (no quantification preprocessing)" = "raw"
+)
+
+app_empty_ratio_definitions <- function() {
+  data.frame(
+    id = integer(),
+    name = character(),
+    column = character(),
+    type = character(),
+    numerator_min = numeric(),
+    numerator_max = numeric(),
+    denominator_min = numeric(),
+    denominator_max = numeric(),
+    stringsAsFactors = FALSE
+  )
+}
+
+app_ratio_column_name <- function(name, type) {
+  if(!is.character(name) || length(name) != 1L || is.na(name) ||
+     !nzchar(trimws(name))) {
+    stop("Enter a nonempty ratio name before adding it.", call. = FALSE)
+  }
+  type <- match.arg(type, c("area", "peak"))
+  plain <- iconv(trimws(name), to = "ASCII//TRANSLIT", sub = "")
+  slug <- tolower(gsub("[^A-Za-z0-9]+", "_", plain))
+  slug <- gsub("^_+|_+$", "", slug)
+  if(is.na(slug) || !nzchar(slug)) {
+    stop("The ratio name must contain at least one letter or number.",
+         call. = FALSE)
+  }
+  paste0(type, "_ratio_", slug)
+}
+
+app_add_ratio_definition <- function(definitions, name, type, numerator,
+                                     denominator, axis) {
+  expected <- names(app_empty_ratio_definitions())
+  if(!is.data.frame(definitions) || !identical(names(definitions), expected)) {
+    stop("Ratio definitions have an unexpected structure.", call. = FALSE)
+  }
+  type <- match.arg(type, c("area", "peak"))
+  name <- trimws(name)
+  column <- app_ratio_column_name(name, type)
+  if(column %in% definitions$column) {
+    stop("A ratio with the same metadata name has already been added.",
+         call. = FALSE)
+  }
+
+  axis <- sort(unique(as.numeric(axis)))
+  axis <- axis[is.finite(axis)]
+  if(!length(axis)) stop("Upload a valid spectrum before adding ratios.",
+                         call. = FALSE)
+  normalize_selection <- function(value, expected_length, label) {
+    if(!is.numeric(value) || length(value) != expected_length ||
+       any(!is.finite(value))) {
+      stop(label, " must contain ", expected_length,
+           " finite wavenumber value", if(expected_length == 1L) "." else "s.",
+           call. = FALSE)
+    }
+    sort(as.numeric(value))
+  }
+
+  if(identical(type, "area")) {
+    numerator <- normalize_selection(numerator, 2L, "Numerator range")
+    denominator <- normalize_selection(denominator, 2L, "Denominator range")
+  } else {
+    numerator <- rep(normalize_selection(numerator, 1L, "Numerator point"), 2L)
+    denominator <- rep(normalize_selection(
+      denominator, 1L, "Denominator point"
+    ), 2L)
+  }
+
+  values <- c(numerator, denominator)
+  if(any(values < axis[[1L]] | values > axis[[length(axis)]])) {
+    stop("Ratio selections must stay within the uploaded wavenumber range.",
+         call. = FALSE)
+  }
+  if(identical(type, "area") &&
+     (!any(axis >= numerator[[1L]] & axis <= numerator[[2L]]) ||
+      !any(axis >= denominator[[1L]] & axis <= denominator[[2L]]))) {
+    stop("Each area range must contain at least one uploaded wavenumber.",
+         call. = FALSE)
+  }
+
+  next_id <- if(nrow(definitions)) max(definitions$id) + 1L else 1L
+  rbind(
+    definitions,
+    data.frame(
+      id = next_id,
+      name = name,
+      column = column,
+      type = type,
+      numerator_min = numerator[[1L]],
+      numerator_max = numerator[[2L]],
+      denominator_min = denominator[[1L]],
+      denominator_max = denominator[[2L]],
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+app_ratio_definition_label <- function(definition) {
+  if(identical(definition$type[[1L]], "area")) {
+    paste0(
+      definition$name[[1L]], " (area: ",
+      format(definition$numerator_min[[1L]]), "-",
+      format(definition$numerator_max[[1L]]), " / ",
+      format(definition$denominator_min[[1L]]), "-",
+      format(definition$denominator_max[[1L]]), " cm^-1)"
+    )
+  } else {
+    paste0(
+      definition$name[[1L]], " (peak: ",
+      format(definition$numerator_min[[1L]]), " / ",
+      format(definition$denominator_min[[1L]]), " cm^-1)"
+    )
+  }
+}
+
+app_ratio_slider_defaults <- function(axis, type = c("area", "peak")) {
+  type <- match.arg(type)
+  axis <- sort(unique(as.numeric(axis)))
+  axis <- axis[is.finite(axis)]
+  if(length(axis) < 2L) {
+    stop("Upload a spectrum with at least two distinct wavenumbers.",
+         call. = FALSE)
+  }
+
+  closest <- function(value) axis[[which.min(abs(axis - value))]]
+  axis_range <- range(axis)
+  positive_steps <- diff(axis)
+  positive_steps <- positive_steps[positive_steps > 0]
+  step <- if(length(positive_steps)) stats::median(positive_steps) else 1
+
+  if(identical(type, "area")) {
+    scenario <- c(1650, 1850, 1420, 1500)
+    if(all(scenario >= axis_range[[1L]] & scenario <= axis_range[[2L]])) {
+      numerator <- sort(vapply(scenario[1:2], closest, numeric(1)))
+      denominator <- sort(vapply(scenario[3:4], closest, numeric(1)))
+    } else {
+      selections <- axis[pmax(
+        1L,
+        pmin(length(axis), round(c(.60, .78, .24, .42) * length(axis)))
+      )]
+      numerator <- sort(selections[1:2])
+      denominator <- sort(selections[3:4])
+    }
+  } else {
+    scenario <- c(1715, 1460)
+    if(all(scenario >= axis_range[[1L]] & scenario <= axis_range[[2L]])) {
+      numerator <- closest(scenario[[1L]])
+      denominator <- closest(scenario[[2L]])
+    } else {
+      numerator <- axis[[max(1L, round(.67 * length(axis)))]]
+      denominator <- axis[[max(1L, round(.33 * length(axis)))]]
+    }
+  }
+
+  list(
+    min = axis_range[[1L]],
+    max = axis_range[[2L]],
+    step = step,
+    numerator = numerator,
+    denominator = denominator
+  )
+}
+
+app_ratio_definitions_text <- function(definitions) {
+  if(!nrow(definitions)) return(character())
+  paste(
+    vapply(seq_len(nrow(definitions)), function(i) {
+      app_ratio_definition_label(definitions[i, , drop = FALSE])
+    }, character(1)),
+    collapse = "; "
+  )
+}
+
+app_ratio_metadata_columns <- function(definitions) {
+  if(!nrow(definitions)) return(character())
+  c("quantification_treatment", "quantification_definitions",
+    definitions$column)
+}
+
+app_prepare_quantification_source <- function(
+    x, treatment = "fill_peaks", intensity_type = "none", lambda = 4,
+    hwi = 50, iterations = 10, degree = 8) {
+  treatment <- match.arg(
+    treatment, unname(app_quantification_treatments)
+  )
+  intensity_type <- match.arg(
+    intensity_type, c("none", "transmittance", "reflectance")
+  )
+  x <- as_OpenSpecy(x)
+
+  if(!identical(intensity_type, "none")) {
+    x <- adj_intens(x, type = intensity_type, make_rel = FALSE)
+  }
+
+  switch(
+    treatment,
+    raw = x,
+    min_max = make_rel(x),
+    fill_peaks = subtr_baseline(
+      x, type = "fill_peaks", lambda = lambda, hwi = hwi,
+      it = iterations, make_rel = FALSE
+    ),
+    modpolyfit = subtr_baseline(
+      x, type = "polynomial", degree = degree, iterations = iterations,
+      make_rel = FALSE
+    )
+  )
+}
+
+app_area_ratio <- function(source, numerator, denominator) {
+  source <- as_OpenSpecy(source)
+  axis <- source$wavenumber
+  named_na <- stats::setNames(
+    rep(NA_real_, ncol(source$spectra)), colnames(source$spectra)
+  )
+  complete <- all(c(numerator, denominator) >= min(axis) &
+                    c(numerator, denominator) <= max(axis)) &&
+    any(axis >= numerator[[1L]] & axis <= numerator[[2L]]) &&
+    any(axis >= denominator[[1L]] & axis <= denominator[[2L]])
+  if(!complete) {
+    warning("The source spectrum does not fully cover this area ratio; returning NA.",
+            call. = FALSE)
+    return(named_na)
+  }
+  numerator_values <- area_under_band(
+    source, min = numerator[[1L]], max = numerator[[2L]]
+  )
+  denominator_values <- area_under_band(
+    source, min = denominator[[1L]], max = denominator[[2L]]
+  )
+  values <- numerator_values / denominator_values
+  invalid <- !is.finite(numerator_values) | !is.finite(denominator_values) |
+    denominator_values == 0 | !is.finite(values)
+  if(any(invalid)) {
+    warning("One or more area ratios had a zero or non-finite value; returning NA for those spectra.",
+            call. = FALSE)
+    values[invalid] <- NA_real_
+  }
+  values
+}
+
+app_attach_quantification <- function(target, source, definitions, treatment) {
+  target <- as_OpenSpecy(target)
+  source <- as_OpenSpecy(source)
+  if(!nrow(definitions)) return(target)
+  if(ncol(target$spectra) != ncol(source$spectra) ||
+     !identical(colnames(target$spectra), colnames(source$spectra)) ||
+     nrow(target$metadata) != ncol(target$spectra)) {
+    stop("Quantification source and processed spectra are not aligned.",
+         call. = FALSE)
+  }
+
+  target$metadata <- data.table::copy(target$metadata)
+  target$metadata$quantification_treatment <- treatment
+  target$metadata$quantification_definitions <-
+    app_ratio_definitions_text(definitions)
+  for(i in seq_len(nrow(definitions))) {
+    definition <- definitions[i, , drop = FALSE]
+    values <- if(identical(definition$type[[1L]], "area")) {
+      app_area_ratio(
+        source,
+        c(definition$numerator_min[[1L]], definition$numerator_max[[1L]]),
+        c(definition$denominator_min[[1L]], definition$denominator_max[[1L]])
+      )
+    } else {
+      peak_ratio(
+        source,
+        numerator = definition$numerator_min[[1L]],
+        denominator = definition$denominator_min[[1L]],
+        method = "nearest"
+      )
+    }
+    if(length(values) != nrow(target$metadata)) {
+      stop("Quantification returned an unexpected number of values for '",
+           definition$name[[1L]], "'.", call. = FALSE)
+    }
+    target$metadata[[definition$column[[1L]]]] <- as.numeric(values)
+  }
+  target
+}
+
 .app_range_assessment <- function(x, check, correction_args = list()) {
   check <- match.arg(check, c("co2_region", "high_tail"))
   value_or <- function(name, default) {
@@ -240,14 +543,76 @@ app_apply_range_automation <- function(x, flatten = TRUE, restrict = TRUE,
   list(data = current, diagnostics = do.call(rbind, diagnostics))
 }
 
-app_plot_palette <- list(
-  panel = "#0B1220",
-  grid = "#26364D",
-  axis = "#6F86A3",
+app_theme <- list(
+  canvas = "#050B14",
+  panel = "#0B1929",
+  panel_2 = "#10243A",
+  border = "#168FC2",
+  accent = "#38BDF8",
+  success = "#22C55E",
   text = "#E6EDF7",
-  primary = "#67E8F9",
-  reference = "#FB7185"
+  muted = "#A9B8CB",
+  grid = "#28536F",
+  axis = "#6F86A3",
+  reference = "#FB7185",
+  spectrum = "#FFFFFF"
 )
+
+app_theme_css <- function(theme = app_theme) {
+  required <- c(
+    "canvas", "panel", "panel_2", "border", "accent", "success",
+    "text", "muted", "grid", "axis", "spectrum"
+  )
+  if(!is.list(theme) || !all(required %in% names(theme))) {
+    stop("The app theme is missing one or more required color tokens.",
+         call. = FALSE)
+  }
+
+  values <- unlist(theme[required], use.names = TRUE)
+  css_names <- gsub("_", "-", names(values), fixed = TRUE)
+  paste0(
+    ":root {\n",
+    paste0("  --openspecy-", css_names, ": ", values, ";",
+           collapse = "\n"),
+    "\n}\n"
+  )
+}
+
+app_plot_palette <- list(
+  panel = app_theme$panel,
+  grid = app_theme$grid,
+  axis = app_theme$axis,
+  text = app_theme$text,
+  primary = app_theme$accent,
+  reference = app_theme$reference,
+  spectrum = app_theme$spectrum
+)
+
+app_summary_row <- function(items) {
+  if(!is.list(items)) {
+    stop("Summary items must be supplied as a list.", call. = FALSE)
+  }
+  items <- Filter(function(item) !is.null(item), items)
+  count <- length(items)
+  if(count == 0L) return(NULL)
+
+  widths <- rep.int(12L %/% count, count)
+  remainder <- 12L %% count
+  if(remainder > 0L) {
+    widths[seq_len(remainder)] <- widths[seq_len(remainder)] + 1L
+  }
+  columns <- Map(
+    function(item, width) {
+      shiny::column(width, class = "openspecy-summary-panel", item)
+    },
+    items,
+    widths
+  )
+  do.call(
+    shiny::fluidRow,
+    c(list(class = "openspecy-summary-grid"), unname(columns))
+  )
+}
 
 app_style_plotly <- function(plot) {
   plotly::layout(
@@ -268,7 +633,7 @@ app_style_plotly <- function(plot) {
       tickcolor = app_plot_palette$axis
     ),
     hoverlabel = list(
-      bgcolor = "#16243A",
+      bgcolor = app_theme$panel_2,
       bordercolor = app_plot_palette$axis,
       font = list(color = app_plot_palette$text)
     )
@@ -465,9 +830,24 @@ load_app_library <- function(type) {
 
 # Helper to create collapsible footnotes ----
 footnote <- function(summary, ...) {
+  content <- list(...)
+  has_content <- length(content) && any(vapply(content, function(item) {
+    text <- trimws(gsub("<[^>]+>", "", paste(as.character(item),
+                                               collapse = " ")))
+    nzchar(text)
+  }, logical(1)))
+  if(!has_content) {
+    stop("Information disclosures require substantive details.",
+         call. = FALSE)
+  }
+
   tags$details(
+    class = "openspecy-info-details",
     tags$summary(summary),
-    tags$small(...)
+    tags$div(
+      class = "openspecy-info-details-body",
+      lapply(content, tags$p)
+    )
   )
 }
 
@@ -528,7 +908,7 @@ theme_black_minimal <- function(base_size = 11, base_family = "") {
       legend.background = element_rect(fill = app_plot_palette$panel,
                                        color = NA),
       legend.key = element_rect(fill = app_plot_palette$panel, color = NA),
-      strip.background = element_rect(fill = "#16243A",
+      strip.background = element_rect(fill = app_theme$panel_2,
                                       color = app_plot_palette$axis),
       strip.text = element_text(color = app_plot_palette$text)
     )

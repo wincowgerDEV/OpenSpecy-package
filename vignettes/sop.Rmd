@@ -473,17 +473,14 @@ c_spec(list(none, d1, d2)) |>
 ## Baseline Correction
 
 The goal of baseline correction is to get all non-peak regions of the spectra to
-zero absorbance. The higher the polynomial order, the more wiggly the fit to the
-baseline. If the baseline is not very wiggly, a more wiggly fit could remove
-peaks which is not desired. The baseline correction algorithm used in Open Specy
-is called "iModPolyfit" (Zhao et al. 2007). This algorithm iteratively fits
-polynomial equations of the specified order to the whole spectrum. During the
-first fit iteration, peak regions will often be above the baseline fit. The data
-in the peak region is removed from the fit to make sure that the baseline is
-less likely to fit to the peaks. The iterative fitting terminates once the
-difference between the new and previous fit is small. An example of a good
-baseline fit below. Manual baseline correction can also be specified by
-providing a baseline `OpenSpecy` object. There are many fine tuning options that can be chosen, see `?subtr_baseline()` for more details.
+zero absorbance. Open Specy provides modified polynomial fitting and 4S Fill
+Peaks (Liland 2015) as automated methods. Fill Peaks uses iterative local-window
+suppression and is useful for nonlinear baselines with local variation. The
+modified polynomial method iteratively fits polynomial equations to the whole
+spectrum; a higher polynomial order produces a more flexible fit but can remove
+peaks when the baseline is not very wiggly. Manual baseline correction can also
+be specified by providing a baseline `OpenSpecy` object. There are many fine
+tuning options that can be chosen, see `?subtr_baseline()` for more details.
 
 ```{r subtr_baseline, fig.cap = "Sample `raman_hdpe` spectrum with different degrees of background subtraction (Cowger et al., 2020)."}
 alternative_baseline <- smooth_intens(raman_hdpe, polynomial = 1, window = 51,
@@ -498,6 +495,17 @@ dr <- subtr_baseline(raman_hdpe, refit_at_end = T) #optionally retain baseline n
 
 c_spec(list(none, d, d8, dr)) |> 
   plot(offset = 0.25)
+```
+
+For example, apply Fill Peaks to the FTIR LDPE spectrum loaded earlier while
+retaining its intensity scale for later quantification.
+
+```{r}
+fill_peaks <- subtr_baseline(
+  asp_example,
+  type = "fill_peaks", lambda = 4, hwi = 50, it = 10,
+  make_rel = FALSE
+)
 ```
 
 ## Range Selection
@@ -563,6 +571,66 @@ raman_hdpe |> plot()
 
 make_rel(raman_hdpe) |> plot()
 
+```
+
+## Area and Point Ratios
+
+For a custom area-over-area ratio, choose the numerator and denominator ranges
+explicitly, calculate each with `area_under_band()`, and divide the returned
+vectors. Bounds are inclusive, and each returned value stays aligned with the
+corresponding spectrum column. The example below uses arbitrary teaching ranges;
+select scientifically appropriate bands and preprocessing for your application.
+
+```{r}
+custom_area_numerator <- area_under_band(
+  fill_peaks, min = 2700, max = 3000
+)
+custom_area_denominator <- area_under_band(
+  fill_peaks, min = 1400, max = 1500
+)
+custom_area_ratio <- custom_area_numerator / custom_area_denominator
+custom_area_ratio[!is.finite(custom_area_ratio)] <- NA_real_
+custom_area_ratio
+```
+
+Named area-under-band ratios select sourced numerator and denominator bands;
+they do not apply baseline correction, normalization, or another preprocessing
+step. Apply the desired treatment first, then calculate the index. For example,
+the specified area-under-band carbonyl index for PE and PP can be calculated
+from the Fill Peaks result created above (Almond et al. 2020).
+
+```{r}
+saub_ci <- area_under_band(
+  fill_peaks,
+  index = "carbonyl_index_saub"
+)
+saub_ci
+```
+
+Additional area-over-area presets are `carbonyl_index_pe`,
+`hydroxyl_index_pe`, `hydroxyl_index_pp`, `carbon_oxygen_index_pe`, and
+`carbon_oxygen_index_pp`. See `?area_under_band` for their sourced band
+definitions and intended materials. Baseline treatment and other preprocessing
+can materially change an index value, so compare spectra only when the same
+treatment was used and keep that treatment with the resulting metadata.
+
+For point ratios, `peak_ratio()` divides the intensity at a numerator
+wavenumber by the intensity at a denominator wavenumber for every spectrum.
+The default `method = "nearest"` uses measured points and resolves an exact
+midpoint tie toward the lower wavenumber. Set `method = "linear"` to interpolate
+only between the adjacent measured points. Neither method extrapolates beyond
+the available wavenumber axis, and the function does not search for a local
+maximum.
+
+```{r}
+nearest_point_ratio <- peak_ratio(
+  fill_peaks, numerator = 2880, denominator = 2840
+)
+linear_point_ratio <- peak_ratio(
+  fill_peaks, numerator = 2880, denominator = 2840, method = "linear"
+)
+nearest_point_ratio
+linear_point_ratio
 ```
 
 # Identifying Spectra 
@@ -780,6 +848,11 @@ matches <- match_spec(id_map_processed, test_lib,
 
 # References
 
+Almond J, Sugumaar P, Wenzel MN, Hill G, Wallis C (2020). “Determination of the
+Carbonyl Index of Polyethylene and Polypropylene Using Specified Area Under Band
+Methodology with ATR-FTIR Spectroscopy.” *e-Polymers*, **20**, 369–381. doi:
+[10.1515/epoly-2020-0041](https://doi.org/10.1515/epoly-2020-0041).
+
 Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
 Process for Identification of Microplastics Based on Fourier Transform Infrared
 Spectroscopy.” *Applied Spectroscopy*, **74**(9), 1167–1183. doi:
@@ -796,6 +869,10 @@ De Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral Classificati
 Needs an Open Source Community: Open Specy to the Rescue!”
 *Analytical Chemistry*, **93**(21), 7543–7548. doi:
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
+
+Liland KH (2015). “4S Peak Filling—Baseline Estimation by Iterative Mean
+Suppression.” *MethodsX*, **2**, 135–140. doi:
+[10.1016/j.mex.2015.02.009](https://doi.org/10.1016/j.mex.2015.02.009).
 
 Primpke S, Wirth M, Lorenz C, Gerdts G (2018). “Reference Database Design for
 the Automated Analysis of Microplastic Samples Based on Fourier Transform

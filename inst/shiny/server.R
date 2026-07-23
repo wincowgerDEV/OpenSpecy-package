@@ -35,6 +35,7 @@ function(input, output, session) {
   meta_cache <- reactiveVal(NULL)
   selected_match_cache <- reactiveVal(NULL)
   correction_diagnostics <- reactiveVal(data.frame())
+  ratio_definitions <- reactiveVal(app_empty_ratio_definitions())
 
   analysis_phase <- function(message, detail, progress = 4) {
     progress <- max(0, min(100, as.numeric(progress)[[1L]]))
@@ -43,6 +44,42 @@ function(input, output, session) {
       list(message = message, detail = detail, progress = progress)
     )
   }
+
+  observeEvent(input$support_openspecy, {
+    donation_links <- c(
+      "$25" = "https://www.paypal.com/donate/?hosted_button_id=F2CAABAZ6JQTJ",
+      "$50" = "https://www.paypal.com/donate/?hosted_button_id=MW8NUFBH7JX2W",
+      "$75" = "https://www.paypal.com/donate/?hosted_button_id=M59EWJTJWHZBA",
+      "$100" = "https://www.paypal.com/donate/?hosted_button_id=WZPE5LCF4FSNE",
+      "$1,000" = "https://www.paypal.com/donate/?hosted_button_id=MCZ2D4TQGYVKC",
+      "Other" = "https://www.paypal.com/donate/?hosted_button_id=PZHG44PX5C89C"
+    )
+    showModal(modalDialog(
+      title = tagList(icon("donate"), "Help Support Us!"),
+      easyClose = TRUE,
+      size = "l",
+      tags$p("Thanks to users like you, Open Specy remains free and open."),
+      tags$p(
+        "Open Specy is a free and open-source platform dedicated to advancing ",
+        "spectroscopy and microplastic research. Maintaining it takes time and ",
+        "resources; donations support continued development and access."
+      ),
+      tags$h4("Donate Today!"),
+      tags$div(
+        class = "openspecy-donation-options",
+        lapply(names(donation_links), function(amount) {
+          tags$a(
+            icon("paypal"), amount,
+            href = unname(donation_links[[amount]]),
+            target = "_blank",
+            rel = "noopener noreferrer",
+            class = "btn btn-primary openspecy-donation-link"
+          )
+        })
+      ),
+      footer = modalButton("Close")
+    ))
+  })
 
 
   #Read Data ----
@@ -54,6 +91,7 @@ observeEvent(input$file, {
   preprocessed$data <- NULL
   selected_match_cache(NULL)
   correction_diagnostics(data.frame())
+  ratio_definitions(app_empty_ratio_definitions())
 
   if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
              ignore.case = T, as.character(input$file$datapath)))) {
@@ -144,21 +182,21 @@ observeEvent(input$file, {
         ),
         52
       )
-      if (input$id_strategy == "deriv" & input$lib_type == "medoid") {
+      if (input$id_strategy == "deriv" && input$lib_type == "medoid") {
           library <- load_app_library("medoid_derivative")
           #return(library)
       }
-      else if (input$id_strategy == "nobaseline" &
+      else if (input$id_strategy == "nobaseline" &&
                input$lib_type == "medoid") {
           library <- load_app_library("medoid_nobaseline")
       }
-      else if (input$id_strategy == "deriv" &
+      else if (input$id_strategy == "deriv" &&
                input$lib_type == "model") {
           library <- load_app_library("model_derivative")
           library <- library[[input$id_spec_type]]
           return(library)
       }
-      else if (input$id_strategy == "nobaseline" &
+      else if (input$id_strategy == "nobaseline" &&
                input$lib_type == "model") {
           library <- load_app_library("model_nobaseline")
           library <- library[[input$id_spec_type]]
@@ -202,12 +240,17 @@ observeEvent(input$file, {
   
 
   library_filtered <- reactive({
-      if (input$lib_type == "model" || is.null(input$filter_lib) || !input$filter_lib) {
-          libraryR()
-      } else {
-          filter_spec(libraryR(),
-                      logic = libraryR()$metadata$organization %in% input$lib_org)
-      }
+      req(isTRUE(input$active_identification))
+      library <- libraryR()
+      library_type <- input$lib_type
+      filter_enabled <- !identical(library_type, "model") &&
+        isTRUE(input$filter_lib)
+      if(!filter_enabled) return(library)
+
+      filter_spec(
+        library,
+        logic = library$metadata$organization %in% input$lib_org
+      )
   })
   # Corrects spectral intensity units using the user specified correction
 
@@ -215,9 +258,9 @@ observeEvent(input$file, {
  data <- reactive({
     req(input$file)
       da <- preprocessed$data
-      if(isTruthy(input$xy_grid) & 
-         (!all(diff(sort(preprocessed$data$metadata$y)) %in% c(0,1)) |
-         !all(diff(sort(preprocessed$data$metadata$x)) %in% c(0,1)))){
+      if(isTruthy(input$xy_grid) &&
+         (!all(diff(sort(preprocessed$data$metadata$y)) %in% c(0,1)) ||
+          !all(diff(sort(preprocessed$data$metadata$x)) %in% c(0,1)))){
           grid <- gen_grid(nrow(preprocessed$data$metadata))
           da$metadata$x <- grid$x
           da$metadata$y <- grid$y
@@ -244,42 +287,79 @@ observeEvent(input$file, {
         ),
         26
       )
-      processed <- process_spec(
-        x = uploaded,
-        active = TRUE,
-        adj_intens = input$intensity_decision,
-        adj_intens_args = list(type = input$intensity_corr),
-        conform_spec = input$conform_decision,
-        conform_spec_args = list(
+      intensity_enabled <- isTRUE(input$intensity_decision)
+      intensity_args <- if(intensity_enabled) {
+        list(type = input$intensity_corr)
+      } else {
+        list()
+      }
+
+      conform_enabled <- isTRUE(input$conform_decision)
+      conform_args <- if(conform_enabled) {
+        list(
           range = NULL,
           res = input$conform_res,
           type = input$conform_selection
-        ),
-        restrict_range = FALSE,
-        flatten_range = FALSE,
-        subtr_baseline = input$baseline_decision,
-        subtr_baseline_args = list(
-          type = "polynomial",
-          degree = input$baseline,
-          raw = FALSE,
-          refit_at_end = input$refit,
-          iterations = input$iterations,
-          baseline = NULL
-        ),
-        smooth_intens = input$smooth_decision,
-        smooth_intens_args = list(
+        )
+      } else {
+        list()
+      }
+
+      baseline_enabled <- isTRUE(input$baseline_decision)
+      baseline_args <- if(baseline_enabled) {
+        if(identical(input$baseline_method, "fill_peaks")) {
+          list(
+            type = "fill_peaks",
+            lambda = input$baseline_lambda,
+            hwi = input$baseline_hwi,
+            it = input$iterations,
+            make_rel = FALSE
+          )
+        } else {
+          list(
+            type = "polynomial",
+            degree = input$baseline,
+            raw = FALSE,
+            refit_at_end = input$refit,
+            iterations = input$iterations,
+            baseline = NULL,
+            make_rel = FALSE
+          )
+        }
+      } else {
+        list()
+      }
+
+      smooth_enabled <- isTRUE(input$smooth_decision)
+      smooth_args <- if(smooth_enabled) {
+        smoothing_axis <- if(conform_enabled) {
+          seq(100, 4000, by = conform_args$res)
+        } else {
+          uploaded$wavenumber
+        }
+        list(
           polynomial = input$smoother,
-          window = calc_window_points(
-            if(input$conform_decision) {
-              seq(100, 4000, by = input$conform_res)
-            } else {
-              data()$wavenumber
-            },
-            input$smoother_window
-          ),
+          window = calc_window_points(smoothing_axis, input$smoother_window),
           derivative = input$derivative_order,
           abs = input$derivative_abs
-        ),
+        )
+      } else {
+        list()
+      }
+
+      processed <- process_spec(
+        x = uploaded,
+        active = TRUE,
+        adj_intens = intensity_enabled,
+        adj_intens_args = intensity_args,
+        conform_spec = conform_enabled,
+        conform_spec_args = conform_args,
+        restrict_range = FALSE,
+        flatten_range = FALSE,
+        subtr_baseline = baseline_enabled,
+        subtr_baseline_args = baseline_args,
+        smooth_intens = smooth_enabled,
+        smooth_intens_args = smooth_args,
         make_rel = input$make_rel_decision
       )
     }
@@ -375,10 +455,197 @@ observeEvent(input$file, {
   })
 
 
-  # Choose which spectra to use for matching and plotting. 
+  output$quant_ratio_bounds <- renderUI({
+    if(is.null(preprocessed$data)) {
+      return(tags$p(
+        class = "text-muted openspecy-quantification-prompt",
+        "Upload spectra to set ratio points and ranges."
+      ))
+    }
+
+    type <- input$quant_ratio_type
+    if(is.null(type)) type <- "area"
+    defaults <- app_ratio_slider_defaults(
+      preprocessed$data$wavenumber,
+      type = type
+    )
+    if(identical(type, "area")) {
+      tagList(
+        sliderInput(
+          "quant_numerator_area", "Numerator area (cm^-1)",
+          min = defaults$min, max = defaults$max,
+          value = defaults$numerator, step = defaults$step
+        ),
+        sliderInput(
+          "quant_denominator_area", "Denominator area (cm^-1)",
+          min = defaults$min, max = defaults$max,
+          value = defaults$denominator, step = defaults$step
+        )
+      )
+    } else {
+      tagList(
+        sliderInput(
+          "quant_numerator_peak", "Numerator point (cm^-1)",
+          min = defaults$min, max = defaults$max,
+          value = defaults$numerator, step = defaults$step
+        ),
+        sliderInput(
+          "quant_denominator_peak", "Denominator point (cm^-1)",
+          min = defaults$min, max = defaults$max,
+          value = defaults$denominator, step = defaults$step
+        )
+      )
+    }
+  })
+  outputOptions(output, "quant_ratio_bounds", suspendWhenHidden = FALSE)
+
+  observeEvent(input$quant_ratio_add, {
+    if(is.null(preprocessed$data)) {
+      show_alert(
+        title = "Upload spectra first",
+        text = "Ratio bounds are set from the shared uploaded wavenumber axis.",
+        type = "warning"
+      )
+      return()
+    }
+
+    result <- tryCatch({
+      type <- isolate(input$quant_ratio_type)
+      if(is.null(type)) type <- "area"
+      defaults <- app_ratio_slider_defaults(
+        preprocessed$data$wavenumber,
+        type = type
+      )
+      numerator <- if(identical(type, "peak")) {
+        isolate(input$quant_numerator_peak)
+      } else {
+        isolate(input$quant_numerator_area)
+      }
+      denominator <- if(identical(type, "peak")) {
+        isolate(input$quant_denominator_peak)
+      } else {
+        isolate(input$quant_denominator_area)
+      }
+      if(is.null(numerator) || !length(numerator)) {
+        numerator <- defaults$numerator
+      }
+      if(is.null(denominator) || !length(denominator)) {
+        denominator <- defaults$denominator
+      }
+      app_add_ratio_definition(
+        ratio_definitions(),
+        name = isolate(input$quant_ratio_name),
+        type = type,
+        numerator = numerator,
+        denominator = denominator,
+        axis = preprocessed$data$wavenumber
+      )
+    }, error = function(error) error)
+
+    if(inherits(result, "error")) {
+      show_alert(
+        title = "Ratio not added",
+        text = conditionMessage(result),
+        type = "warning"
+      )
+      return()
+    }
+    ratio_definitions(result)
+    updateTextInput(session, "quant_ratio_name", value = "")
+  })
+
+  output$quant_saved_ratios <- renderUI({
+    definitions <- ratio_definitions()
+    if(!nrow(definitions)) {
+      return(tags$p(
+        class = "text-muted openspecy-ratio-empty",
+        "No ratios saved yet. Define a name and bounds, then choose Add Ratio."
+      ))
+    }
+    labels <- vapply(seq_len(nrow(definitions)), function(i) {
+      app_ratio_definition_label(definitions[i, , drop = FALSE])
+    }, character(1))
+    tagList(
+      selectInput(
+        "quant_remove_id", "Saved ratios",
+        choices = stats::setNames(as.character(definitions$id), labels),
+        selected = as.character(utils::tail(definitions$id, 1L))
+      ),
+      actionButton(
+        "quant_remove_ratio", "Remove Selected",
+        icon = icon("trash"), class = "btn-outline-danger"
+      )
+    )
+  })
+  outputOptions(output, "quant_saved_ratios", suspendWhenHidden = FALSE)
+
+  observeEvent(input$quant_remove_ratio, {
+    id <- suppressWarnings(as.integer(isolate(input$quant_remove_id)))
+    if(is.na(id)) return()
+    definitions <- ratio_definitions()
+    ratio_definitions(definitions[definitions$id != id, , drop = FALSE])
+  })
+
+  active_ratio_definitions <- reactive({
+    if(!isTRUE(input$active_quantification)) {
+      return(app_empty_ratio_definitions())
+    }
+    ratio_definitions()
+  })
+
+  quantification_source <- reactive({
+    req(!is.null(preprocessed$data))
+    definitions <- active_ratio_definitions()
+    req(nrow(definitions) > 0L)
+
+    treatment <- input$quant_treatment
+    analysis_phase(
+      "Calculating saved ratios",
+      paste0(
+        "Preparing a non-derivative spectrum with the ", treatment,
+        " treatment and calculating ", nrow(definitions), " saved ratio",
+        if(nrow(definitions) == 1L) "." else "s."
+      ),
+      49
+    )
+    intensity_type <- if(isTRUE(input$active_preprocessing) &&
+                         isTRUE(input$intensity_decision)) {
+      input$intensity_corr
+    } else {
+      "none"
+    }
+    arguments <- list(
+      x = data(), treatment = treatment, intensity_type = intensity_type
+    )
+    if(identical(treatment, "fill_peaks")) {
+      arguments$lambda <- input$quant_fill_lambda
+      arguments$hwi <- input$quant_fill_hwi
+      arguments$iterations <- input$quant_iterations
+    } else if(identical(treatment, "modpolyfit")) {
+      arguments$degree <- input$quant_poly_degree
+      arguments$iterations <- input$quant_poly_iterations
+    }
+    do.call(app_prepare_quantification_source, arguments)
+  })
+
+  # Keep analysis spectra independent of ratio-only settings so changing a
+  # definition cannot rerun matching or redraw spectral intensities.
   DataR <- reactive({
     req(!is.null(preprocessed$data))
     baseline_data()
+  })
+
+  quantified_data <- reactive({
+    processed <- DataR()
+    definitions <- active_ratio_definitions()
+    if(!nrow(definitions)) return(processed)
+    treatment <- input$quant_treatment
+    app_attach_quantification(
+      processed,
+      quantification_source(),
+      definitions = definitions,
+      treatment = treatment
+    )
   })
 
   #The data to use in the plot. 
@@ -392,15 +659,25 @@ observeEvent(input$file, {
   })
   
   # SNR ----
+  # Keep the metric control inert until thresholding is enabled. This lets a
+  # user prepare the setting without invalidating the analysis pipeline.
+  effective_signal_selection <- reactive({
+      if(!isTRUE(input$threshold_decision)) return("run_sig_over_noise")
+      input$signal_selection
+  })
+
   #The signal to noise ratio
   signal_to_noise <- reactive({
       req(!is.null(preprocessed$data))
-      sig_noise(x = DataR(), step = 10, metric = input$signal_selection, abs = F)
+      sig_noise(
+        x = DataR(), step = 10,
+        metric = effective_signal_selection(), abs = FALSE
+      )
   })
 
-  observeEvent(list(DataR(), input$signal_selection), {
-      req(isTruthy(DataR()))
-      meta <- DataR()$metadata
+  observeEvent(list(quantified_data(), effective_signal_selection()), {
+      req(isTruthy(quantified_data()))
+      meta <- quantified_data()$metadata
       meta$signal_to_noise <- signal_to_noise()
       meta <- meta[, !sapply(meta, OpenSpecy::is_empty_vector), with = FALSE]
       meta[, coord_key := paste(x, y)]
@@ -420,31 +697,40 @@ observeEvent(input$file, {
   })
   
   particles_logi <- reactive({
-      if(input$collapse_log_type == "Thresholds"){
-          if(input$active_identification & input$threshold_decision & input$cor_threshold_decision){
+      req(isTRUE(input$collapse_decision))
+      collapse_logic <- input$collapse_log_type
+
+      if(identical(collapse_logic, "Thresholds")){
+          if(isTRUE(input$active_identification) &&
+             isTRUE(input$threshold_decision) &&
+             isTRUE(input$cor_threshold_decision)){
               return(signal_to_noise() > MinSNR() & max_cor() > MinCor())
           }
-          if(input$threshold_decision){
+          if(isTRUE(input$threshold_decision)){
               return(signal_to_noise() > MinSNR())
           }
-          if(input$active_identification & input$cor_threshold_decision){
+          if(isTRUE(input$active_identification) &&
+             isTRUE(input$cor_threshold_decision)){
               return(max_cor() > MinCor())
           }          
       }
-      if(input$collapse_log_type == "Identities"){
+      if(identical(collapse_logic, "Identities")){
+          if(!isTRUE(input$active_identification)) return(NULL)
           return(max_cor_identity())
       }
-      if(input$collapse_log_type == "Both"){
+      if(identical(collapse_logic, "Both")){
+          if(!isTRUE(input$active_identification)) return(NULL)
           background_fill <- max_cor_identity()
-          if(input$active_identification & input$threshold_decision & input$cor_threshold_decision){
+          if(isTRUE(input$threshold_decision) &&
+             isTRUE(input$cor_threshold_decision)){
               background_fill[!(signal_to_noise() > MinSNR() & max_cor() > MinCor())] <- "background"
               return(background_fill)
           }
-          if(input$threshold_decision){
+          if(isTRUE(input$threshold_decision)){
               background_fill[!(signal_to_noise() > MinSNR())] <- "background"
               return(background_fill)
           }
-          if(input$active_identification & input$cor_threshold_decision){
+          if(isTRUE(input$cor_threshold_decision)){
               background_fill[!(max_cor() > MinCor())] <- "background"
               return(background_fill)
           }   
@@ -456,90 +742,130 @@ observeEvent(input$file, {
   #Identification ----
   output$correlation_head <- renderUI({
       req(!is.null(preprocessed$data))
-      req((input$threshold_decision | input$cor_threshold_decision))
-      good_cor <- max_cor()[[data_click$plot]] > MinCor() & signal_to_noise()[[data_click$plot]] > MinSNR()
-      good_sig <- signal_to_noise()[[data_click$plot]] > MinSNR()
-      good_match <- good_cor & good_sig
-      
-      boxLabel(text = if(input$cor_threshold_decision & input$threshold_decision & input$active_identification) {"Match"} else if(input$cor_threshold_decision & input$active_identification) {"Cor"} else if (input$threshold_decision){"SNR"} else{""}, 
-               status = if(input$cor_threshold_decision & input$threshold_decision & input$active_identification) {
-                   if(good_match){
-                       "success"
-                       } 
-                   else{
-                       "error"
-                       }
-                   }
-               else if(input$cor_threshold_decision & input$active_identification){
-                   if(good_cor){
-                       "success"
-                   } 
-                   else {
-                       "error"
-                   }
-               }
-               else if(input$threshold_decision){
-                       if(good_sig){
-                           "success"
-                           } 
-                       else{
-                           "error"
-                           }
-                       }
-               else{NULL}, 
-               tooltip = "This tells you whether the signal to noise ratio or the match observed is above or below the thresholds.")
+      signal_enabled <- isTRUE(input$threshold_decision)
+      correlation_enabled <- isTRUE(input$active_identification) &&
+        isTRUE(input$cor_threshold_decision)
+      req(signal_enabled || correlation_enabled)
+
+      good_sig <- if(signal_enabled) {
+        signal_to_noise()[[data_click$plot]] > MinSNR()
+      } else {
+        TRUE
+      }
+      good_cor <- if(correlation_enabled) {
+        max_cor()[[data_click$plot]] > MinCor()
+      } else {
+        TRUE
+      }
+      both_enabled <- signal_enabled && correlation_enabled
+      label <- if(both_enabled) {
+        "Match"
+      } else if(correlation_enabled) {
+        "Cor"
+      } else {
+        "SNR"
+      }
+
+      boxLabel(
+        text = label,
+        status = if(good_sig && good_cor) "success" else "error",
+        tooltip = paste(
+          "This tells you whether the signal to noise ratio or the match",
+          "observed is above or below the thresholds."
+        )
+      )
   })
   
   #Warnings ----
   observe({
-      if (!is.null(preprocessed$data) & input$id_strategy == "deriv" & input$active_identification) {
-          if(!input$active_preprocessing | !input$smooth_decision | input$smoother != 3 | input$derivative_order != 1 | input$smoother_window != 90 | !input$derivative_abs){
+      if(is.null(preprocessed$data)) return()
+
+      identification_enabled <- isTRUE(input$active_identification)
+      if(identification_enabled) {
+          strategy <- input$id_strategy
+          if(identical(strategy, "deriv")) {
+              invalid_derivative_setup <-
+                !isTRUE(input$active_preprocessing) ||
+                !isTRUE(input$smooth_decision) ||
+                input$smoother != 3 ||
+                input$derivative_order != 1 ||
+                input$smoother_window != 90 ||
+                !isTRUE(input$derivative_abs)
+              if(invalid_derivative_setup) {
+                  show_alert(
+                    title = "Best practice not followed!",
+                    text = paste0(
+                      "If you are using the derivative library or model the typical best practice is to preprocess the spectra with ",
+                      "Smoothing/Derivative turned on, the Polynomial set to 3, the Derivative Order set to 1, the Wavenumber Window set to 90 ",
+                      "and the Absolute Value turned on because that is the way the library was created. You could be doing something special like uploading already processed spectra and if so feel free to ignore this warning."
+                    ),
+                    type = "warning"
+                  )
+              }
+          }
+
+          if(identical(strategy, "nobaseline")) {
+              invalid_no_baseline_setup <-
+                !isTRUE(input$active_preprocessing) ||
+                !isTRUE(input$baseline_decision) ||
+                (isTRUE(input$smooth_decision) &&
+                 (input$derivative_order != 0 ||
+                  isTRUE(input$derivative_abs)))
+              if(invalid_no_baseline_setup) {
+                  show_alert(
+                    title = "Best practice not followed!",
+                    text = paste0(
+                      "If you are using the no baseline library or model the typical best practice is to preprocess the spectra with ",
+                      "Baseline Correction turned on and setting Derivative Order to 0 and turning off Absolute Value if using Smoothing/Derivative. ",
+                      "because that is the way the library was created. You could be doing something special like uploading already processed spectra and if so feel free to ignore this warning."
+                    ),
+                    type = "warning"
+                  )
+              }
+          }
+
+          if(identical(input$lib_type, "model") &&
+             sum(preprocessed$data$wavenumber > 800 &
+                 preprocessed$data$wavenumber < 3200) < 100) {
               show_alert(
-              title = "Best practice not followed!",
-              text = paste0("If you are using the derivative library or model the typical best practice is to preprocess the spectra with ",
-                            "Smoothing/Derivative turned on, the Polynomial set to 3, the Derivative Order set to 1, the Wavenumber Window set to 90 ",
-                            "and the Absolute Value turned on because that is the way the library was created. You could be doing something special like uploading already processed spectra and if so feel free to ignore this warning."),
-              type = "warning")
+                title = "Best practice not followed!",
+                text = paste0(
+                  "If you are using the multinomial model it assumes that your data encompasses the range between 800 and 3200 wavenumbers. It can work if your data partially encompasses that range ",
+                  "but won't work at all if you have no data in that range. You won't get this warning if you have more than 100 values in that range but the less data in the range, the worse the model will perform."
+                ),
+                type = "warning"
+              )
           }
       }
-      if (!is.null(preprocessed$data) & input$id_strategy == "nobaseline" & input$active_identification) {
-          if(!input$active_preprocessing | !input$baseline_decision | (input$smooth_decision & (input$derivative_order != 0 | input$derivative_abs))){
-              show_alert(
-                  title = "Best practice not followed!",
-                  text = paste0("If you are using the no baseline library or model the typical best practice is to preprocess the spectra with ",
-                                "Baseline Correction turned on and setting Derivative Order to 0 and turning off Absolute Value if using Smoothing/Derivative. ",
-                                "because that is the way the library was created. You could be doing something special like uploading already processed spectra and if so feel free to ignore this warning."),
-                  type = "warning")
-          }
+
+      signal_failed <- isTRUE(input$threshold_decision) &&
+        all(signal_to_noise() < MinSNR())
+      correlation_failed <- identification_enabled &&
+        isTRUE(input$cor_threshold_decision) &&
+        all(max_cor() < MinCor())
+      if(signal_failed || correlation_failed) {
+          show_alert(
+            title = "No regions passing threshold",
+            text = paste0(
+              "The current threshold settings of the Signal-Noise and/or Correlation returned ",
+              "no regions passing. This often indicates an issue with the threshold settings ",
+              "or data and will return the raw data in the plots."
+            ),
+            type = "warning"
+          )
       }
-      if (!is.null(preprocessed$data) & input$lib_type == "model" & input$active_identification) {
-          if(sum(preprocessed$data$wavenumber > 800 & preprocessed$data$wavenumber < 3200) < 100){
-              show_alert(
-                  title = "Best practice not followed!",
-                  text = paste0("If you are using the multinomial model it assumes that your data encompasses the range between 800 and 3200 wavenumbers. It can work if your data partially encompasses that range
-                                but won't work at all if you have no data in that range. 
-                                You won't get this warning if you have more than 100 values in that range but the less data in the range, the worse the model will perform."),
-                  type = "warning")
-          }
+
+      if(isTRUE(input$collapse_decision) && isTruthy(particles_logi()) &&
+         length(unique(as.character(particles_logi()))) == 1) {
+          show_alert(
+            title = "No or all regions passing threshold",
+            text = paste0(
+              "The current threshold settings of the Signal-Noise and/or Correlation returned either all ",
+              "or no regions passing. This often indicates an issue with the threshold settings or data."
+            ),
+            type = "warning"
+          )
       }
-      if((input$threshold_decision && all(signal_to_noise() < MinSNR())) | (input$active_identification & input$cor_threshold_decision && all(max_cor() < MinCor()))){
-              show_alert(
-                  title = "No regions passing threshold",
-                  text = paste0("The current threshold settings of the Signal-Noise and/or Correlation returned
-                                or no regions passing. This often indicates an issue with the threshold settings 
-                                or data and will return the raw data in the plots."),
-                  type = "warning")
-      }
-      
-      if (input$collapse_decision & isTruthy(particles_logi()) & length(unique(as.character(particles_logi()))) == 1) {
-              show_alert(
-                  title = "No or all regions passing threshold",
-                  text = paste0("The current threshold settings of the Signal-Noise and/or Correlation returned either all
-                                or no regions passing. This often indicates an issue with the threshold settings 
-                                or data."),
-                  type = "warning")
-      }
-      
   })
   
   #The correlation matrix between the unknowns and the library. 
@@ -635,6 +961,8 @@ observeEvent(input$file, {
   
   output$cor_plot <- renderPlot({
       req(!is.null(preprocessed$data))
+      req(isTRUE(input$active_identification))
+      req(isTRUE(input$cor_threshold_decision))
       ggplot() +
           geom_histogram(aes(x = max_cor()), fill = app_plot_palette$primary,
                          color = app_plot_palette$panel) +
@@ -671,15 +999,18 @@ observeEvent(input$file, {
   match_selected <- reactive({# Default to first row if not yet clicked
       #req(input$file)
       #req(input$active_identification)
+      if(!isTRUE(input$active_identification)) {
+          return(as_OpenSpecy(
+            x = numeric(), spectra = data.table(empty = numeric())
+          ))
+      }
       req(!grepl("^model$", input$lib_type))
-      if(!input$active_identification) {
-          as_OpenSpecy(x = numeric(), spectra = data.table(empty = numeric()))
-      }
-      else{
-          # Get data from filter_spec
-          filter_spec(library_filtered(), logic = matches_to_single()[[data_click$table, "sample_name"]])
 
-      }
+      # Get data from filter_spec
+      filter_spec(
+        library_filtered(),
+        logic = matches_to_single()[[data_click$table, "sample_name"]]
+      )
   })
 
   observe(priority = -1, {
@@ -710,9 +1041,18 @@ observeEvent(input$file, {
 #Create the data table that goes below the plot which provides extra metadata.
 match_metadata <- reactive({
     req(!is.null(preprocessed$data))
-    if (input$active_identification & !grepl("^model$", input$lib_type)) {
+    identification_enabled <- isTRUE(input$active_identification)
+    if(!identification_enabled) {
+        return(
+          quantified_data()$metadata[data_click$plot,] %>%
+            .[, !sapply(., OpenSpecy::is_empty_vector), with = FALSE]
+        )
+    }
+
+    model_library <- grepl("^model$", input$lib_type)
+    if (!model_library) {
         selected_match <- matches_to_single()[data_click$table, ]
-        dataR_metadata <- DataR()$metadata
+        dataR_metadata <- quantified_data()$metadata
         dataR_metadata$signal_to_noise <- signal_to_noise()
         if ("material_class" %in% names(dataR_metadata)) {
             dataR_metadata[, material_class := NULL]
@@ -724,18 +1064,16 @@ match_metadata <- reactive({
         result <- result[, !sapply(result, OpenSpecy::is_empty_vector), with = FALSE] %>%
             select(file_name, col_id, material_class, spectrum_identity, match_val, signal_to_noise, everything())
         result
-    } else if (input$active_identification & grepl("^model$", input$lib_type)) {
-        result <- bind_cols(DataR()$metadata[data_click$plot,], matches_to_single()[data_click$plot,])
+    } else {
+        result <- bind_cols(
+          quantified_data()$metadata[data_click$plot,],
+          matches_to_single()[data_click$plot,]
+        )
         result$signal_to_noise <- signal_to_noise()[data_click$plot]
         result <- result[, !sapply(result, OpenSpecy::is_empty_vector), with = FALSE] %>%
             mutate(match_val = signif(match_val, 2)) %>%
             select(file_name, col_id, material_class, match_val, signal_to_noise, everything())
         result
-    } else if (!is.null(preprocessed$data)) {
-        DataR()$metadata[data_click$plot,] %>%
-            .[, !sapply(., OpenSpecy::is_empty_vector), with = FALSE]
-    } else {
-        NULL
     }
 })
 
@@ -744,6 +1082,7 @@ match_metadata <- reactive({
 #Histogram of SNR
 output$snr_plot <- renderPlot({
     req(!is.null(preprocessed$data))
+    req(isTRUE(input$threshold_decision))
     ggplot() +
         geom_histogram(aes(x = signal_to_noise()),
                        fill = app_plot_palette$primary,
@@ -822,17 +1161,17 @@ output$sidebar_metadata <- DT::renderDataTable(server = TRUE, {
 # Progress Bars
 output$choice_names <- renderUI({
     req(ncol(preprocessed$data$spectra) > 1)
-    #req(input$threshold_decision | input$active_identification)
-    choice_names = c(if(input$active_identification) "Match Name"
-                     else NA,
-                    if(input$active_identification & input$lib_type != "model") "Match ID" 
-                    else NA,
-                    if(!is.null(max_cor())) "Match Value"
-                    else NA,
-                    if(!is.null(signal_to_noise())) "Signal/Noise"
-                    else NA,
-                    if(isTruthy(particles_logi()) & input$collapse_decision) "Feature ID"
-                    else NA)
+    identification_enabled <- isTRUE(input$active_identification)
+    collapse_enabled <- isTRUE(input$collapse_decision)
+    choice_names = c(
+      if(identification_enabled) "Match Name" else NA,
+      if(identification_enabled && !identical(input$lib_type, "model")) {
+        "Match ID"
+      } else NA,
+      if(identification_enabled && !is.null(max_cor())) "Match Value" else NA,
+      if(!is.null(signal_to_noise())) "Signal/Noise" else NA,
+      if(collapse_enabled && isTruthy(particles_logi())) "Feature ID" else NA
+    )
     choice_names = choice_names[!is.na(choice_names)]
         tagList(
             fluidRow(
@@ -845,36 +1184,93 @@ output$choice_names <- renderUI({
 })
 
 output$progress_bars <- renderUI({
+    req(!is.null(preprocessed$data))
     req(ncol(preprocessed$data$spectra) > 1)
-    req(input$threshold_decision | (input$cor_threshold_decision & input$active_identification))
-    tagList(
-        bs4Dash::box(title = "Summary",
-            maximizable = T,
-            width = 12,
-            fluidRow(
-                column(4, 
-                       if(input$threshold_decision)
-                           shinyWidgets::progressBar(id = "signal_progress", value = sum(signal_to_noise() > MinSNR())/length(signal_to_noise()) * 100, status = "success", title = "Good Signal", display_pct = TRUE)
-                       else NULL
-                ),
-                column(4,
-                       if(input$cor_threshold_decision & input$active_identification) shinyWidgets::progressBar(id = "correlation_progress", value = sum(max_cor() > MinCor())/length(max_cor()) * 100, status = "success", title = "Good Match Values", display_pct = TRUE)
-                       else NULL
-                ),
-                column(4,
-                       if(input$cor_threshold_decision & input$active_identification & input$threshold_decision)
-                           shinyWidgets::progressBar(id = "match_progress", value = sum(signal_to_noise() > MinSNR() & max_cor() > MinCor())/length(signal_to_noise()) * 100, status = "success", title = "Good Identifications", display_pct = TRUE)
-                       else NULL
-                )
-            ),
-            fluidRow(column(6, 
-                            plotOutput("particle_plot", height = "25vh")),
-                     column(6,
-                            plotOutput("material_plot", height = "25vh"))))    
+
+    percent_true <- function(x) {
+      available <- !is.na(x)
+      if(!any(available)) return(0)
+      sum(x[available]) / sum(available) * 100
+    }
+
+    signal_values <- if(isTRUE(input$threshold_decision)) {
+      signal_to_noise()
+    } else {
+      NULL
+    }
+    correlation_values <- if(isTRUE(input$active_identification) &&
+                              isTRUE(input$cor_threshold_decision)) {
+      max_cor()
+    } else {
+      NULL
+    }
+
+    metric_items <- list()
+    if(!is.null(signal_values)) {
+      metric_items[[length(metric_items) + 1L]] <- div(
+        id = "signal_summary_panel",
+        shinyWidgets::progressBar(
+          id = "signal_progress",
+          value = percent_true(signal_values > MinSNR()),
+          status = "success",
+          title = "Good Signal",
+          display_pct = TRUE
+        )
+      )
+    }
+    if(!is.null(correlation_values)) {
+      metric_items[[length(metric_items) + 1L]] <- div(
+        id = "correlation_summary_panel",
+        shinyWidgets::progressBar(
+          id = "correlation_progress",
+          value = percent_true(correlation_values > MinCor()),
+          status = "success",
+          title = "Good Match Values",
+          display_pct = TRUE
+        )
+      )
+    }
+    if(!is.null(signal_values) && !is.null(correlation_values)) {
+      metric_items[[length(metric_items) + 1L]] <- div(
+        id = "match_summary_panel",
+        shinyWidgets::progressBar(
+          id = "match_progress",
+          value = percent_true(
+            signal_values > MinSNR() & correlation_values > MinCor()
+          ),
+          status = "success",
+          title = "Good Identifications",
+          display_pct = TRUE
+        )
+      )
+    }
+
+    plot_items <- list()
+    if(isTRUE(input$collapse_decision) && isTruthy(particles_logi())) {
+      plot_items[[length(plot_items) + 1L]] <- div(
+        id = "particle_summary_panel",
+        plotOutput("particle_plot", height = "25vh")
+      )
+    }
+    if(isTRUE(input$active_identification)) {
+      plot_items[[length(plot_items) + 1L]] <- div(
+        id = "material_summary_panel",
+        plotOutput("material_plot", height = "25vh")
+      )
+    }
+
+    req(length(metric_items) + length(plot_items) > 0L)
+    bs4Dash::box(
+      id = "analysis_summary_box",
+      title = "Summary",
+      maximizable = TRUE,
+      width = 12,
+      app_summary_row(metric_items),
+      app_summary_row(plot_items)
     )
 })
 
- output$MyPlotC <- renderPlotly({
+  output$MyPlotC <- renderPlotly({
       if(is.null(preprocessed$data)) {
           return(app_empty_spectrum_plot() %>%
                    config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape")))
@@ -893,13 +1289,14 @@ output$progress_bars <- renderUI({
       )
       plotly_spec(x = primary,
                   x2 = reference,
-                  line = list(color = app_plot_palette$primary, width = 2.4),
+                  line = list(color = app_plot_palette$spectrum, width = 2.4),
                   line2 = list(dash = "dot",
                                color = app_plot_palette$reference,
                                width = 2.4),
                   plot_bgcolor = app_plot_palette$panel,
                   paper_bgcolor = app_plot_palette$panel,
-                  make_rel = input$make_rel_decision,
+                  make_rel = isTRUE(input$active_preprocessing) &&
+                    isTRUE(input$make_rel_decision),
                   source = "B") %>%
         app_style_plotly() %>%
         config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape"))
@@ -911,7 +1308,8 @@ output$progress_bars <- renderUI({
       req(!is.null(preprocessed$data))
       req(ncol(preprocessed$data$spectra) > 1)
       #req(input$map_color)
-      if(input$collapse_decision & isTruthy(particles_logi()) & length(unique(as.character(particles_logi()))) > 1){
+      if(isTRUE(input$collapse_decision) && isTruthy(particles_logi()) &&
+         length(unique(as.character(particles_logi()))) > 1){
           test = def_features(DataR(), features = particles_logi())
       }
       else{
@@ -919,25 +1317,27 @@ output$progress_bars <- renderUI({
       }
 
       heatmap_spec(x = test, 
-                        z = if(!is.null(max_cor()) & !isTruthy(input$map_color)){
+                        z = if(!is.null(max_cor()) && !isTruthy(input$map_color)){
                             signif(max_cor(),2)
                         }
-                   else if(!is.null(signal_to_noise()) & !isTruthy(input$map_color)){
+                   else if(!is.null(signal_to_noise()) && !isTruthy(input$map_color)){
                        signif(signal_to_noise(),2)
                    }
-                   else if(!is.null(max_cor()) & input$map_color == "Match ID"){
+                   else if(!is.null(max_cor()) && identical(input$map_color, "Match ID")){
                         names(max_cor())
                    }
-                   else if(!is.null(max_cor()) & input$map_color == "Match Value"){
+                   else if(!is.null(max_cor()) && identical(input$map_color, "Match Value")){
                        signif(max_cor(),2)
                    }
-                   else if(!is.null(signal_to_noise()) & input$map_color == "Signal/Noise"){
+                   else if(!is.null(signal_to_noise()) && identical(input$map_color, "Signal/Noise")){
                        signif(signal_to_noise(),2)
                    }
-                   else if(!is.null(max_cor()) & input$map_color == "Match Name"){
+                   else if(!is.null(max_cor()) && identical(input$map_color, "Match Name")){
                        max_cor_identity()
                    }
-                   else if(isTruthy(particles_logi()) & input$map_color == "Feature ID"){
+                   else if(isTRUE(input$collapse_decision) &&
+                           isTruthy(particles_logi()) &&
+                           identical(input$map_color, "Feature ID")){
                        test$metadata$feature_id
                    }
                    else{NULL},
@@ -953,7 +1353,7 @@ output$progress_bars <- renderUI({
   })
 
   thresholded_particles <- reactive({
-      req(input$collapse_decision)
+      req(isTRUE(input$collapse_decision))
       collapse_fun <- function(x, type = input$collapse_type) {
           switch(type,
                  "Mean" = mean(x),
@@ -989,6 +1389,7 @@ output$progress_bars <- renderUI({
   #Summary Plots ----
   output$particle_plot <- renderPlot({
       req(!is.null(preprocessed$data))
+      req(isTRUE(input$collapse_decision))
       req(thresholded_particles()$metadata$area)
       ggplot() +
           geom_histogram(aes(x = sqrt(thresholded_particles()$metadata$area)),
@@ -1000,6 +1401,7 @@ output$progress_bars <- renderUI({
   
   output$material_plot <- renderPlot({
       req(!is.null(preprocessed$data))
+      req(isTRUE(input$active_identification))
       req(max_cor_identity())
       if(input$collapse_decision){
           if (isTruthy(thresholded_particles()) &&
@@ -1034,21 +1436,26 @@ output$progress_bars <- renderUI({
       collapse = !is.null(preprocessed$data) &&
         isTRUE(input$collapse_decision)
     )
-    tagList(
-      selectInput(
-        inputId = "download_selection",
-        label = "Download contents",
-        choices = choice_names,
-        selected = choice_names[[1L]]
-      ),
-      footnote(
-        "What will be downloaded?",
-        "Test Data is a Raman HDPE CSV and Test Map is a small FTIR ENVI ZIP.",
-        "Processed Spectra contains the current analysis result. Top Matches contains the selected number of identifications.",
-        "Thresholded Particles is available when particle collapse is enabled."
-      )
+    selectInput(
+      inputId = "download_selection",
+      label = "Download contents",
+      choices = choice_names,
+      selected = choice_names[[1L]]
     )
   })  
+  outputOptions(output, "download_ui", suspendWhenHidden = FALSE)
+
+  observeEvent(input$download_selection, {
+    label <- app_download_label(input$download_selection)
+    session$sendCustomMessage(
+      "openspecy-download-label",
+      list(
+        id = "download_data",
+        label = label,
+        title = paste0(label, ". The file contents follow Download contents.")
+      )
+    )
+  }, ignoreNULL = FALSE)
   
   output$top_n <- renderUI({
       req(ncol(preprocessed$data$spectra) >= 1)
@@ -1073,6 +1480,7 @@ output$progress_bars <- renderUI({
         )
       )
   })
+  outputOptions(output, "top_n", suspendWhenHidden = FALSE)
   output$download_data <- downloadHandler(
     filename = function() {
       selection <- input$download_selection
@@ -1091,24 +1499,26 @@ output$progress_bars <- renderUI({
                             overwrite = TRUE)
         if(!isTRUE(copied)) stop("Unable to copy the bundled Test Map.")
       } else if(identical(selection, "Processed Spectra")) {
-        your_spec <- DataR()
+        your_spec <- quantified_data()
         your_spec$metadata$signal_to_noise <- signal_to_noise()
         write_spec(your_spec, file)
       } else if(identical(selection, "Top Matches")) {
+        quant_columns <- app_ratio_metadata_columns(
+          active_ratio_definitions()
+        )
         if(!grepl("^model$", input$lib_type)) {
           top_n <- input$top_n_input
           if(is.null(top_n) || !is.finite(top_n)) top_n <- 1L
           top_n <- max(1L, as.integer(top_n))
           columns_selected <- input$columns_selected
           if(is.null(columns_selected)) columns_selected <- "Simple"
-
           dataR_metadata <- data.table(
             match_threshold = MinCor(),
             signal_to_noise = signal_to_noise(),
             signal_threshold = MinSNR(),
             good_signal = signal_to_noise() > MinSNR()
           ) %>%
-            bind_cols(DataR()$metadata)
+            bind_cols(quantified_data()$metadata)
 
           all_matches <- reshape2::melt(correlation()) %>%
             as.data.table() %>%
@@ -1128,13 +1538,17 @@ output$progress_bars <- renderUI({
               good_matches = match_val > match_threshold &
                 signal_to_noise > signal_threshold
             ) %>%
-            .[, !sapply(., OpenSpecy::is_empty_vector), with = FALSE] %>%
+            {keep <- !sapply(., OpenSpecy::is_empty_vector) |
+              names(.) %in% quant_columns
+             .[, keep, with = FALSE]} %>%
             select(file_name, col_id, material_class, spectrum_identity,
                    match_val, signal_to_noise, everything()) %>%
             .[order(-match_val), head(.SD, top_n), by = col_id] %>%
             {if(identical(columns_selected, "Simple")) {
-              select(., file_name, col_id, material_class,
-                     match_val, signal_to_noise)
+              select(., any_of(c(
+                "file_name", "col_id", "material_class", "match_val",
+                "signal_to_noise", quant_columns
+              )))
             } else .} %>%
             mutate(
               material_class = ifelse(match_val < MinCor(), "unknown",
@@ -1142,10 +1556,11 @@ output$progress_bars <- renderUI({
             )
           fwrite(all_matches, file)
         } else {
-          result <- bind_cols(DataR()$metadata, matches_to_single())
+          result <- bind_cols(quantified_data()$metadata, matches_to_single())
           result$signal_to_noise <- signal_to_noise()
-          result <- result[, !sapply(result, OpenSpecy::is_empty_vector),
-                           with = FALSE] %>%
+          keep <- !sapply(result, OpenSpecy::is_empty_vector) |
+            names(result) %in% quant_columns
+          result <- result[, keep, with = FALSE] %>%
             select(file_name, col_id, material_class, match_val,
                    signal_to_noise, everything()) %>%
             mutate(
@@ -1256,6 +1671,7 @@ output$progress_bars <- renderUI({
              flatten_range_min = input$MinFlat, 
              flatten_range_max = input$MaxFlat,
              baseline_decision = input$baseline_decision, 
+             baseline_method = input$baseline_method,
              subtr_baseline = input$baseline,
              smooth_intens = input$smooth_decision, 
              polynomial = input$smoother, 
@@ -1268,7 +1684,9 @@ output$progress_bars <- renderUI({
              min_cor = input$MinCor,
              threshold_decision = input$threshold_decision, 
              min_sn = input$MinSNR,
-             signal_selection = input$signal_selection
+             signal_selection = input$signal_selection,
+             quantification = input$active_quantification,
+             quantification_treatment = input$quant_treatment
              )
   })
 

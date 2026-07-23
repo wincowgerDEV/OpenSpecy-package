@@ -19,6 +19,24 @@
 - Fixed Test Data, Test Map, Processed Spectra, and Top Matches downloads by
   restoring the native Shiny download link and validating every generated
   payload. Top Match options are collapsed by default.
+- Refined the bundled app workspace with collapsed-by-default settings and
+  download cards, tab-triggered settings expansion, selection-specific download
+  labels, responsive gap-free summary layouts, and one dark navy/cyan theme for
+  the app chrome, cards, controls, tables, progress widgets, and plots.
+- Added named area-under-band ratio indices, explicit custom area-ratio
+  composition, `peak_ratio()` for nearest-point or linearly interpolated point
+  ratios, and 4S Fill Peaks baseline correction. The app's Quantification tab
+  now defaults off and lets users name and save any number of area-band or
+  point-ratio definitions from uploaded-axis sliders. It calculates saved
+  ratios from a separately treated, non-derivative copy and includes exact
+  definitions, values, and treatment provenance in Processed Spectra and Top
+  Matches downloads.
+- Widened the contextual download action, changed uploaded spectrum traces to
+  white, standardized enabled switches to green and white, validated all
+  informational disclosures, and restored the historical donation choices in
+  an on-demand right-side header dialog. Removed the inactive help and dark-mode
+  header toggles, aligned the full-width Spectra and Summary cards, and kept
+  disabled child settings inert until their owning analysis switch is enabled.
 - Streamlined the app to one analysis workspace with Preprocessing,
   Identification, and Advanced tabs; moved independent thresholds and map
   controls to Advanced, removed Google Translate and the informational sidebar,

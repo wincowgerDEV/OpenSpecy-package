@@ -3,26 +3,30 @@
 #'
 #' @description
 #' This baseline correction routine iteratively finds the baseline of a spectrum
-#' using polynomial fitting methods or accepts a manual baseline.
+#' using polynomial or Fill Peaks methods, or accepts a manual baseline.
 #'
 #' @details
-#' This function supports two types of \code{"polynomial"} automated baseline correction with options.
-#' Default settings are closest to \code{"imodpoly"} for iterative polynomial 
+#' This function supports \code{"polynomial"} automated baseline correction,
+#' \code{"fill_peaks"} iterative local-window baseline suppression, and
+#' \code{"manual"} subtraction of a user-provided baseline. Polynomial default
+#' settings are closest to \code{"imodpoly"} for iterative polynomial
 #' fitting based on Zhao et al. (2007). Additionally options recommended by
 #' \code{"smodpoly"} for segmented iterative polynomial fitting with enhanced peak detection
-#' from the S-Modpoly algorithm (\url{https://github.com/jackma123-rgb/S-Modpoly}),
-#' and \code{"manual"} for applying a user-provided baseline.
+#' from the S-Modpoly algorithm (\url{https://github.com/jackma123-rgb/S-Modpoly}).
+#' Fill Peaks uses the implementation from the \pkg{baseline} package.
 #'
 #' @param x a list object of class \code{OpenSpecy} or a vector of wavenumbers.
 #' @param y a vector of spectral intensities.
-#' @param type one of \code{"polynomial"} or \code{"manual"} depending on
-#' the desired baseline correction method.
+#' @param type one of \code{"polynomial"}, \code{"fill_peaks"}, or
+#' \code{"manual"}, depending on the desired baseline correction method.
 #' @param degree the degree of the full spectrum polynomial. Must be less than the number of
 #' unique points when \code{raw} is \code{FALSE}. Typically, a good fit can be
 #' found with an 8th order polynomial.
 #' @param degree_part the degree of the polynomial for \code{"smodpoly"}. Must be less than the number of
 #' unique points.
-#' @param iterations the number of iterations for automated baseline correction.
+#' @param iterations the number of iterations for polynomial baseline
+#' correction. For \code{type = "fill_peaks"}, this value is used only when
+#' `it` is omitted.
 #' @param peak_width_mult scaling factor for the width of peak detection regions.
 #' @param termination_diff scaling factor for the ratio of difference in residual standard deviation to terminate iterative fitting with.
 #' @param raw if \code{TRUE}, use raw and not orthogonal polynomials.
@@ -36,11 +40,22 @@
 #' @param bl_y a vector of spectral intensities for the baseline. 
 #' @param make_rel logical; if \code{TRUE}, spectra are automatically normalized
 #' with \code{\link{make_rel}()}.
-#' @param \ldots further arguments passed to \code{\link[stats]{poly}()} or \code{"smodpoly"} parameters.
+#' @param lambda non-negative numeric scalar controlling the second-derivative
+#' penalty for initial Fill Peaks smoothing.
+#' @param hwi positive integer half-width, in subsampled buckets, of the initial
+#' Fill Peaks suppression window.
+#' @param it positive integer number of Fill Peaks suppression iterations. When
+#' omitted, `iterations` is used.
+#' @param int optional integer number of Fill Peaks subsampling buckets. If
+#' `NULL`, it is derived as approximately one tenth of the spectrum length,
+#' bounded between three and the number of spectral points.
+#' @param \ldots further arguments passed to methods.
 #'
 #' @return
-#' \code{subtr_baseline()} returns a data frame containing two columns named
-#' \code{"wavenumber"} and \code{"intensity"}.
+#' The `OpenSpecy` method returns an `OpenSpecy` object with corrected spectra,
+#' the original shared wavenumber axis, aligned metadata, and existing
+#' attributes. The default vector method returns a numeric vector of corrected
+#' intensities.
 #'
 #' @examples
 #' data("raman_hdpe")
@@ -49,6 +64,10 @@
 #' subtr_baseline(raman_hdpe, type = "polynomial", degree = 8)
 #'
 #' subtr_baseline(raman_hdpe, type = "polynomial", iterations = 5)
+#'
+#' # Use Fill Peaks with explicit tuning
+#' subtr_baseline(raman_hdpe, type = "fill_peaks", lambda = 4,
+#'                hwi = 50, it = 10, make_rel = FALSE)
 #'
 #' # Use manual
 #' bl <- raman_hdpe
@@ -75,11 +94,77 @@
 #' Jackma123 (2023). S-Modpoly: Segmented modified polynomial fitting for spectral baseline correction.
 #' \emph{GitHub Repository}. Retrieved from \url{https://github.com/jackma123-rgb/S-Modpoly}.
 #'
+#' Liland KH (2015). 4S Peak Filling -- baseline estimation by iterative mean
+#' suppression. \emph{MethodsX}, \strong{2}, 135--140.
+#' \doi{10.1016/j.mex.2015.02.009}.
+#'
 #' @importFrom stats terms model.frame sd lm poly approx
 #' @importFrom data.table .SD
 #' @export
 subtr_baseline <- function(x, ...) {
   UseMethod("subtr_baseline")
+}
+
+.fill_peaks_parameters <- function(n_points, lambda, hwi, it, int) {
+    if (!is.numeric(n_points) || length(n_points) != 1L ||
+        !is.finite(n_points) || n_points < 4) {
+        stop("Fill Peaks requires at least four spectral points",
+             call. = FALSE)
+    }
+    n_points <- as.integer(n_points)
+
+    if (!is.numeric(lambda) || length(lambda) != 1L ||
+        !is.finite(lambda) || lambda < 0) {
+        stop("'lambda' must be a non-negative numeric scalar",
+             call. = FALSE)
+    }
+    if (!is.numeric(hwi) || length(hwi) != 1L || !is.finite(hwi) ||
+        hwi < 1 || hwi != as.integer(hwi)) {
+        stop("'hwi' must be a positive integer", call. = FALSE)
+    }
+    if (!is.numeric(it) || length(it) != 1L || !is.finite(it) ||
+        it < 1 || it != as.integer(it)) {
+        stop("'it' must be a positive integer", call. = FALSE)
+    }
+
+    if (is.null(int)) {
+        int <- min(n_points, max(3L, as.integer(round(n_points / 10))))
+    } else if (!is.numeric(int) || length(int) != 1L || !is.finite(int) ||
+               int < 3 || int != as.integer(int) || int > n_points) {
+        stop("'int' must be an integer between three and the number of ",
+             "spectral points", call. = FALSE)
+    }
+
+    list(
+        lambda = as.numeric(lambda),
+        hwi = as.integer(hwi),
+        it = as.integer(it),
+        int = as.integer(int)
+    )
+}
+
+.fill_peaks_matrix <- function(spectra, lambda, hwi, it, int = NULL) {
+    if (!is.matrix(spectra) || !is.numeric(spectra) || is.complex(spectra)) {
+        stop("Fill Peaks requires a real numeric spectra matrix",
+             call. = FALSE)
+    }
+    if (any(!is.finite(spectra))) {
+        stop("Fill Peaks requires finite spectral intensities",
+             call. = FALSE)
+    }
+
+    parameters <- .fill_peaks_parameters(
+        ncol(spectra), lambda = lambda, hwi = hwi, it = it, int = int
+    )
+    corrected <- baseline::baseline.fillPeaks(
+        spectra = spectra,
+        lambda = parameters$lambda,
+        hwi = parameters$hwi,
+        it = parameters$it,
+        int = parameters$int
+    )$corrected
+    dimnames(corrected) <- dimnames(spectra)
+    corrected
 }
 
 #' @rdname subtr_baseline
@@ -95,7 +180,27 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
                                    peak_width_mult = 3,
                                    termination_diff = 0.05,
                                    degree_part = 2, 
-                                   bl_x = NULL, bl_y = NULL, make_rel = TRUE, ...) {
+                                   bl_x = NULL, bl_y = NULL, make_rel = TRUE,
+                                   lambda = 4, hwi = 50, it = 10,
+                                   int = NULL, ...) {
+    fill_it <- if (missing(it)) iterations else it
+    type <- match.arg(type, c("polynomial", "fill_peaks", "manual"))
+
+    if(type == "fill_peaks") {
+        if (missing(y) || !is.numeric(y) || !is.null(dim(y)) ||
+            !is.numeric(x) || !is.null(dim(x)) || length(x) != length(y)) {
+            stop("Fill Peaks default method requires equal-length numeric ",
+                 "vectors 'x' and 'y'", call. = FALSE)
+        }
+        spectra <- matrix(as.numeric(y), nrow = 1L,
+                          dimnames = list(NULL, names(y)))
+        corrected <- .fill_peaks_matrix(
+            spectra, lambda = lambda, hwi = hwi, it = fill_it, int = int
+        )[1L, ]
+        names(corrected) <- names(y)
+        return(if (make_rel) make_rel(corrected) else corrected)
+    }
+
     if(type == "manual"){
         corrected = y - approx(bl_x, bl_y, xout = x, rule = 2, method = "linear", ties = mean)$y
     }
@@ -262,12 +367,28 @@ subtr_baseline.OpenSpecy <- function(x, type = "polynomial",
                                      termination_diff = 0.05,
                                      degree_part = 2, 
                                      baseline = list(wavenumber = NULL, spectra = NULL),
-                                     make_rel = TRUE, ...) {
+                                     make_rel = TRUE,
+                                     lambda = 4, hwi = 50, it = 10,
+                                     int = NULL, ...) {
+    fill_it <- if (missing(it)) iterations else it
+    type <- match.arg(type, c("polynomial", "fill_peaks", "manual"))
     x <- as_OpenSpecy(x)
     if (type == "manual" & !is_OpenSpecy(baseline)) stop("'baseline' needs to be of class 'OpenSpecy'", call. = F)
     if (type == "manual") baseline <- as_OpenSpecy(baseline)
     bl_x <- if (type == "manual") baseline$wavenumber else NULL
     bl_y <- if (type == "manual") baseline$spectra[, 1L] else NULL
+
+    if (type == "fill_peaks") {
+        spectra_names <- colnames(x$spectra)
+        corrected <- .fill_peaks_matrix(
+            t(x$spectra), lambda = lambda, hwi = hwi, it = fill_it,
+            int = int
+        )
+        x$spectra <- t(corrected)
+        colnames(x$spectra) <- spectra_names
+        if (make_rel) x$spectra <- make_rel(x$spectra)
+        return(x)
+    }
 
     if (type == "manual") {
         baseline_y <- approx(bl_x, bl_y, xout = x$wavenumber, rule = 2,

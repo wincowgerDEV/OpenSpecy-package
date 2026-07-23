@@ -8,6 +8,8 @@
   var busyDelay = 650;
   var idleGrace = 200;
   var busyStartedAt = null;
+  var analysisPhaseActive = false;
+  var shinyIsBusy = false;
   var busyState = {
     message: "Preparing analysis...",
     detail: "Open Specy is preparing the next result.",
@@ -42,6 +44,7 @@
   }
 
   function showBusy() {
+    if (!analysisPhaseActive || !shinyIsBusy) return;
     var overlay = document.getElementById("openspecy_busy_overlay");
     if (!overlay) return;
     document.documentElement.classList.add("openspecy-busy-visible");
@@ -49,6 +52,19 @@
     renderBusyState();
     window.clearInterval(elapsedTimer);
     elapsedTimer = window.setInterval(renderBusyState, 1000);
+  }
+
+  function scheduleBusy() {
+    if (!analysisPhaseActive || !shinyIsBusy) return;
+    if (document.documentElement.classList.contains("openspecy-busy-visible")) {
+      renderBusyState();
+      return;
+    }
+    if (busyTimer !== null) return;
+    busyTimer = window.setTimeout(function () {
+      busyTimer = null;
+      showBusy();
+    }, busyDelay);
   }
 
   function hideBusy() {
@@ -60,7 +76,12 @@
     idleTimer = null;
     elapsedTimer = null;
     busyStartedAt = null;
-    busyState.progress = 4;
+    analysisPhaseActive = false;
+    busyState = {
+      message: "Preparing analysis...",
+      detail: "Open Specy is preparing the next result.",
+      progress: 4
+    };
     document.documentElement.classList.remove("openspecy-busy-visible");
     if (overlay) {
       overlay.setAttribute("aria-hidden", "true");
@@ -84,6 +105,9 @@
 
     if (window.Shiny && window.Shiny.addCustomMessageHandler) {
       window.Shiny.addCustomMessageHandler("openspecy-analysis-phase", function (state) {
+        analysisPhaseActive = true;
+        window.clearTimeout(idleTimer);
+        idleTimer = null;
         busyState.message = state.message || "Processing analysis...";
         busyState.detail = state.detail || "Open Specy is working on the current result.";
         if (busyStartedAt === null) {
@@ -98,22 +122,47 @@
           );
         }
         renderBusyState();
+        scheduleBusy();
+      });
+
+      window.Shiny.addCustomMessageHandler("openspecy-download-label", function (state) {
+        var button = document.getElementById(state.id || "download_data");
+        var label = state.label || "Download selected";
+        if (!button) return;
+
+        var icon = button.querySelector("i, svg");
+        var labelNode = document.createElement("span");
+        labelNode.className = "openspecy-download-label";
+        labelNode.textContent = label;
+        button.textContent = "";
+        if (icon) button.appendChild(icon);
+        button.appendChild(labelNode);
+        button.setAttribute("aria-label", label);
+        button.setAttribute("title", state.title || label);
       });
     }
 
+    shinyDocument.on(
+      "click.openspecySettings",
+      "#analysis_settings .nav-link",
+      function () {
+        var settingsBox = this.closest("#analysis_settings_box");
+        if (!settingsBox || !settingsBox.classList.contains("collapsed-card")) return;
+        var collapseControl = settingsBox.querySelector('[data-card-widget="collapse"]');
+        if (collapseControl) collapseControl.click();
+      }
+    );
+
     shinyDocument.on("shiny:busy.openspecyBusy", function () {
+      shinyIsBusy = true;
       window.clearTimeout(idleTimer);
       idleTimer = null;
-      if (document.documentElement.classList.contains(
-        "openspecy-busy-visible"
-      )) return;
-
-      if (busyStartedAt === null) busyStartedAt = Date.now();
-      window.clearTimeout(busyTimer);
-      busyTimer = window.setTimeout(showBusy, busyDelay);
+      scheduleBusy();
     });
 
     shinyDocument.on("shiny:idle.openspecyBusy", function () {
+      shinyIsBusy = false;
+      if (!analysisPhaseActive) return;
       window.clearTimeout(busyTimer);
       busyTimer = null;
       window.clearTimeout(idleTimer);
