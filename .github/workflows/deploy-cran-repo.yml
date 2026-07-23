@@ -31,6 +31,7 @@ jobs:
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::jsonlite
+          pak-version: repo
 
       - name: Resolve complete app package closure
         id: package-roots

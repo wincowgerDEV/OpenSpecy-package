@@ -109,6 +109,7 @@ Suggests:
     DT,
     reshape2,
     ggplot2,
+    htmltools,
     scales
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3

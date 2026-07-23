@@ -72,7 +72,7 @@
 - `tests/testthat/`: Headless helper/source assertions for ordering, strict acceptance/rollback, controls, progress, content migration, downloads, and installed assets.
 - `tools/shiny-local-smoke.spec.js`: Real browser coverage for initial/processed/matched plots, five principal downloads including User Metadata, correction phases, progress, console errors, and desktop/mobile presentation.
 - `pkgdown/index.md` and optional source CSS: Port information and links; `README.md` stays free of the interactive embed. `NEWS.md`: record user-visible fixes.
-- Workflows, pins, and reference/model libraries remain unchanged; `DESCRIPTION` adds the Fill Peaks dependency and the hosted resolver absorbs its transitive closure.
+- Deployment workflows install `pak` from the configured repository; pins and reference/model libraries remain unchanged, and the hosted resolver absorbs the Fill Peaks closure.
 
 ## Work Checklist
 
@@ -96,15 +96,15 @@
 - [x] Unify quantification with displayed processed spectra, use integer sliders, and update export provenance/help/tests.
 - [x] Theme the cog sidebar, add master-row descriptions, and render/test conditional raw/active/match plot legend overlays.
 - [x] Surface detector-ratio controls and correction counts, synchronize accepted automatic tail bounds, and verify CO2 uses visible region inputs.
-- [x] Add the reproducibility metadata download and disable/clarify manual range bounds while full-axis automation owns them; update tests/docs and rerun app gates.
+- [x] Add the metadata download/range-bound safeguards, declare the app-test dependency, harden deployment bootstrap, and rerun app plus strict package gates.
 
 ## Verification
 
 - Focused tests: `devtools::test(filter = "area_under_band|peak_ratio|subtr_baseline|process_spec|run_app|shinylive")`, including legacy sums/presets, explicit area composition/peak ratios, Fill Peaks invariants, muted dependencies, displayed-data quantification, metadata alignment, controls, and download content.
 - App probe: process representative Test Map data, record before/candidate/accepted pass counts for CO2 and tail checks, and verify all `OpenSpecy` invariants.
 - Browser: run local Playwright smoke; require five genuine nonempty downloads including the settings snapshot, disabled automatic/manual range states, themed sidebar, integer ratio sliders, displayed-data quantification, conditional raw/active/match legend, correction counts/bound updates, responsive layouts, and no severe console/server errors.
-- Broader gates: inspect git/generated diffs, run `devtools::test()` once, static hosted-source tests, size/asset audit, and matching-artifact preflight only if available. Do not run R CMD check unless the maintainer explicitly requests it.
-- Result: latest focused app checks passed 318 assertions; the full package suite passed with its existing expected warning assertions and external/CI skips. Local Playwright passed in 109 seconds with five nonempty downloads, the settings snapshot content, disabled/re-enabled automatic-range bounds, and inspected desktop/mobile/range screenshots. Static hosted-source tests passed previously; no artifact can match uncommitted source for action-equivalent preflight. R CMD check was not run.
+- Broader gates: inspect git/generated diffs, run `devtools::test()` once, static hosted-source tests, size/asset audit, matching-artifact preflight only if available, and R CMD check when explicitly requested.
+- Result: focused app/hosted tests passed 383 assertions; full tests passed, local Playwright passed, both workflows parsed, and the live resolver found 118 wasm roots. `R CMD check --as-cran` passed with 0 errors/warnings and only the environment clock NOTE; no artifact can match uncommitted source for action-equivalent preflight.
 
 ## Risks And Open Questions
 
@@ -116,4 +116,4 @@
 ## Approval Notes
 
 - Approved by: maintainer follow-up on 2026-07-22
-- Follow-up: R CMD check intentionally deferred until explicitly requested.
+- Follow-up: Maintainer requested the full check; CI package/deployment failures were repaired and all locally available strict gates passed.
