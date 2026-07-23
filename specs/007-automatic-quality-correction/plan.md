@@ -12,7 +12,7 @@
 
 ## Scope
 
-- **In**: Existing artifact automation, dependable app interaction/downloads, centralized theming, user-defined area/peak ratios, Fill Peaks baseline correction, and exported quantification metadata.
+- **In**: Existing artifact automation, dependable app interaction/downloads, centralized theming, user-defined area/peak ratios, dependency-free Fill Peaks baseline correction, and exported quantification metadata.
 - **Out**: `correct_spec()`, per-spectrum batch cropping, recursive preprocessing, exact completion-time prediction, Google Translate, preloaded ratio catalogs, concentration calibration, settings-snapshot import/reset or compatibility guarantees, and hand edits to generated output.
 - **Users**: R users composing range functions and app users wanting safe automated defaults with clear, reliable interaction feedback.
 
@@ -33,7 +33,7 @@
 - R13. Present Preprocessing, Identification, and Advanced as adjacent analysis tabs; move signal/noise threshold, correlation threshold, spatial smoothing, XY-grid conformity, and particle-spectrum collapse into Advanced.
 - R14. Top Match download options are collapsed by default but expandable; the native Shiny download binding must remain intact.
 - R15. Empty, processed, match-overlay, heatmap, and diagnostic plots use a bordered, cohesive dark palette with readable axes/gridlines and no pasted-on appearance.
-- R16. Local Shiny and hosted Shinylive use the same source behavior; wasm pins, dependency closure, staged libraries, and generated deployment artifacts remain unchanged.
+- R16. Local Shiny and hosted Shinylive use the same source behavior; wasm pins, hard-dependency resolution, staged libraries, and generated deployment artifacts remain action-built rather than hand-edited.
 - R17. The tabbed settings card and a separate equal-width download card start collapsed; settings tabs stay visible and selecting any tab expands the settings card, while the native download action stays usable in the collapsed download header.
 - R18. Keep download configuration to ordinary dropdowns with no popovers. The download action label names the currently selected artifact and follows context-driven default-selection changes without replacing the native Shiny download binding.
 - R19. The Summary card occupies the same full row width as the spectra/identification card. Its active progress bars and plots are conditionally laid out with fluid rows and equal responsive columns, without empty placeholder columns or floating gaps.
@@ -41,7 +41,7 @@
 - R21. The download action is roughly twice its former width without wrapping; uploaded spectra render white, enabled switches render green with white knobs, and every informational disclosure has substantive content.
 - R22. A header action labelled “Support Open Source Software” with a donate icon opens the former donation-link choices on demand and never blocks startup.
 - R23. Build app area ratios compositionally from two explicit `area_under_band()` ranges; validate final processed-axis coverage and return named `NA` values with a diagnostic for invalid denominators. Existing package-only named presets remain compatible but are not surfaced in the app.
-- R24. `subtr_baseline(type = "fill_peaks")` exposes canonical 4S Fill Peaks correction while retaining polynomial/manual defaults and preserving complete `OpenSpecy` alignment.
+- R24. `subtr_baseline(type = "fill_peaks")` exposes canonical base-R 4S Fill Peaks correction without a compiled runtime dependency while retaining polynomial/manual defaults and preserving complete `OpenSpecy` alignment.
 - R25. Export `peak_ratio()` for explicit numerator/denominator spectral positions using a documented deterministic shared-axis lookup and the same named-vector/invalid-value contract as compositional area ratios.
 - R26. Quantification defaults off and provides a name/type builder with integer-valued point/range sliders bounded to the processed axis; users can add/remove unlimited definitions and receive one concrete scenario in the help text.
 - R27. Calculate saved definitions directly from the same final processed spectra shown in the app, with no separate treatment pipeline, and append processing provenance, definitions, and values to processed-spectrum and simple/full top-match exports.
@@ -55,7 +55,7 @@
 
 ## Technical Decisions
 
-- **Package API**: Preserve `area_under_band()` legacy custom sums/presets and add only `peak_ratio()` with explicit positions, nearest/linear lookup policy, and named numeric-vector output. Compose area ratios from two band calls. Keep Fill Peaks backed by CRAN `baseline`.
+- **Package API**: Preserve `area_under_band()` legacy custom sums/presets and add only `peak_ratio()` with explicit positions, nearest/linear lookup policy, and named numeric-vector output. Compose area ratios from two band calls. Implement Fill Peaks internally with base-R bandwidth-two Cholesky smoothing and batch mean suppression.
 - **App pipeline**: Use an app-local, sourceable assessment/acceptance helper. Run ordinary `process_spec()` steps first, then flattening followed by shared-axis restriction; gate automated candidates by the relevant strict pass-count improvement. Explicit manual bounds also run after ordinary preprocessing.
 - **Downloads**: Keep an unnested native `shiny::downloadButton()` in the collapsed card header, update only its visible/accessibility label from a tested choice-to-label helper, retain state-aware choices plus server-side file validation, and export settings as human-readable input-ID columns without implementing import compatibility.
 - **Progress**: Publish fixed stage percentages with phase messages, track real elapsed time in JavaScript, finish at 100%, and reset between runs. Percentages express workflow stage, not a completion-time forecast.
@@ -67,12 +67,12 @@
 
 ## Package Surfaces
 
-- `R/area_under_band.R`, new peak-ratio source, `R/subtr_baseline.R`, `DESCRIPTION`, generated help, benchmarks: Composable area ratios, explicit peak ratios, and canonical Fill Peaks behavior.
+- `R/area_under_band.R`, new peak-ratio source, `R/subtr_baseline.R`, `DESCRIPTION`, generated help, benchmarks: Composable ratios and dependency-free canonical Fill Peaks behavior.
 - `inst/shiny/global.R`, `server.R`, `ui.R`, `www/`: Pipeline helper, download binding, progress protocol, tab/content cleanup, and visual styling; remove orphaned Translate asset if present.
 - `tests/testthat/`: Headless helper/source assertions for ordering, strict acceptance/rollback, controls, progress, content migration, downloads, and installed assets.
 - `tools/shiny-local-smoke.spec.js`: Real browser coverage for initial/processed/matched plots, five principal downloads including User Metadata, correction phases, progress, console errors, and desktop/mobile presentation.
 - `pkgdown/index.md` and optional source CSS: Port information and links; `README.md` stays free of the interactive embed. `NEWS.md`: record user-visible fixes.
-- Deployment workflows install `pak` from the configured repository; pins and reference/model libraries remain unchanged, and the hosted resolver absorbs the Fill Peaks closure.
+- Deployment workflows install `pak` from the configured repository; pins and reference/model libraries remain unchanged, and the hosted resolver verifies only the actual hard runtime closure.
 
 ## Work Checklist
 
@@ -96,7 +96,7 @@
 - [x] Unify quantification with displayed processed spectra, use integer sliders, and update export provenance/help/tests.
 - [x] Theme the cog sidebar, add master-row descriptions, and render/test conditional raw/active/match plot legend overlays.
 - [x] Surface detector-ratio controls and correction counts, synchronize accepted automatic tail bounds, and verify CO2 uses visible region inputs.
-- [x] Add the metadata download/range-bound safeguards, declare the app-test dependency, harden deployment bootstrap, and rerun app plus strict package gates.
+- [x] Remove the compiled Fill Peaks dependency with a tested base-R banded implementation, guard the wasm closure, and rerun focused/full tests plus its benchmark.
 
 ## Verification
 
@@ -104,7 +104,7 @@
 - App probe: process representative Test Map data, record before/candidate/accepted pass counts for CO2 and tail checks, and verify all `OpenSpecy` invariants.
 - Browser: run local Playwright smoke; require five genuine nonempty downloads including the settings snapshot, disabled automatic/manual range states, themed sidebar, integer ratio sliders, displayed-data quantification, conditional raw/active/match legend, correction counts/bound updates, responsive layouts, and no severe console/server errors.
 - Broader gates: inspect git/generated diffs, run `devtools::test()` once, static hosted-source tests, size/asset audit, matching-artifact preflight only if available, and R CMD check when explicitly requested.
-- Result: focused app/hosted tests passed 383 assertions; full tests passed, local Playwright passed, both workflows parsed, and the live resolver found 118 wasm roots. `R CMD check --as-cran` passed with 0 errors/warnings and only the environment clock NOTE; no artifact can match uncommitted source for action-equivalent preflight.
+- Result: the Fill Peaks/hosted focus passed 123 assertions, all 1,371 tests passed, the benchmark improved from 0.17 s to 0.02 s, and the live resolver found 116 wasm roots with no `baseline`; a matching action artifact requires the maintainer to publish this source.
 
 ## Risks And Open Questions
 
@@ -116,4 +116,4 @@
 ## Approval Notes
 
 - Approved by: maintainer follow-up on 2026-07-22
-- Follow-up: Maintainer requested the full check; CI package/deployment failures were repaired and all locally available strict gates passed.
+- Follow-up: The later wasm compile failure was repaired by replacing the compiled `baseline` dependency with one consistent base-R implementation; all locally available gates pass.

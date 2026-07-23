@@ -13,7 +13,8 @@
 #' fitting based on Zhao et al. (2007). Additionally options recommended by
 #' \code{"smodpoly"} for segmented iterative polynomial fitting with enhanced peak detection
 #' from the S-Modpoly algorithm (\url{https://github.com/jackma123-rgb/S-Modpoly}).
-#' Fill Peaks uses the implementation from the \pkg{baseline} package.
+#' Fill Peaks is implemented in base R using a banded solver for the initial
+#' second-derivative smoothing step.
 #'
 #' @param x a list object of class \code{OpenSpecy} or a vector of wavenumbers.
 #' @param y a vector of spectral intensities.
@@ -143,6 +144,134 @@ subtr_baseline <- function(x, ...) {
     )
 }
 
+.fill_peaks_smooth <- function(spectra, lambda) {
+    if (lambda <= 0) return(spectra)
+
+    n_points <- ncol(spectra)
+    penalty <- 10^lambda
+    if (!is.finite(penalty)) {
+        stop("'lambda' is too large for Fill Peaks smoothing", call. = FALSE)
+    }
+
+    # The smoother solves (I + penalty * crossprod(diff(I, 2))) y = x.
+    # Its coefficient matrix is symmetric positive definite with bandwidth two,
+    # so a dedicated Cholesky solve avoids both a dense matrix and compiled
+    # LAPACK/Fortran package dependencies.
+    main <- rep(1 + 6 * penalty, n_points)
+    main[c(1L, n_points)] <- 1 + penalty
+    main[c(2L, n_points - 1L)] <- 1 + 5 * penalty
+    first <- rep(-4 * penalty, n_points - 1L)
+    first[c(1L, n_points - 1L)] <- -2 * penalty
+    second <- rep(penalty, n_points - 2L)
+
+    chol_main <- numeric(n_points)
+    chol_first <- numeric(n_points)
+    chol_second <- numeric(n_points)
+    chol_main[1L] <- sqrt(main[1L])
+    chol_first[2L] <- first[1L] / chol_main[1L]
+    chol_main[2L] <- sqrt(main[2L] - chol_first[2L]^2)
+
+    for (i in 3:n_points) {
+        chol_second[i] <- second[i - 2L] / chol_main[i - 2L]
+        chol_first[i] <- (
+            first[i - 1L] - chol_second[i] * chol_first[i - 1L]
+        ) / chol_main[i - 1L]
+        remainder <- main[i] - chol_first[i]^2 - chol_second[i]^2
+        if (!is.finite(remainder) || remainder <= 0) {
+            stop("Fill Peaks smoothing system could not be solved",
+                 call. = FALSE)
+        }
+        chol_main[i] <- sqrt(remainder)
+    }
+
+    rhs <- t(spectra)
+    forward <- matrix(0, nrow = n_points, ncol = nrow(spectra))
+    forward[1L, ] <- rhs[1L, ] / chol_main[1L]
+    forward[2L, ] <- (
+        rhs[2L, ] - chol_first[2L] * forward[1L, ]
+    ) / chol_main[2L]
+    for (i in 3:n_points) {
+        forward[i, ] <- (
+            rhs[i, ] - chol_first[i] * forward[i - 1L, ] -
+                chol_second[i] * forward[i - 2L, ]
+        ) / chol_main[i]
+    }
+
+    solution <- forward
+    solution[n_points, ] <- forward[n_points, ] / chol_main[n_points]
+    solution[n_points - 1L, ] <- (
+        forward[n_points - 1L, ] -
+            chol_first[n_points] * solution[n_points, ]
+    ) / chol_main[n_points - 1L]
+    for (i in seq.int(n_points - 2L, 1L)) {
+        solution[i, ] <- (
+            forward[i, ] - chol_first[i + 1L] * solution[i + 1L, ] -
+                chol_second[i + 2L] * solution[i + 2L, ]
+        ) / chol_main[i]
+    }
+
+    t(solution)
+}
+
+.fill_peaks_correct <- function(spectra, parameters) {
+    original <- spectra
+    spectra <- .fill_peaks_smooth(spectra, parameters$lambda)
+    n_points <- ncol(spectra)
+
+    widths <- parameters$hwi
+    if (parameters$it != 1L) {
+        start <- log10(parameters$hwi)
+        widths <- ceiling(10^c(
+            start + (0:(parameters$it - 2L)) *
+                (0 - start) / (parameters$it - 1L),
+            0
+        ))
+    }
+
+    limits <- seq(1, n_points, length.out = parameters$int + 1L)
+    left <- ceiling(limits[-(parameters$int + 1L)])
+    right <- floor(limits[-1L])
+    midpoints <- round((left + right) / 2)
+    midpoints[c(1L, parameters$int)] <- c(1L, n_points)
+    estimated <- matrix(0, nrow = nrow(spectra), ncol = n_points)
+
+    bucket_minima <- matrix(
+        vapply(seq_len(parameters$int), function(i) {
+            apply(spectra[, left[i]:right[i], drop = FALSE], 1L, min)
+        }, numeric(nrow(spectra))),
+        nrow = nrow(spectra), ncol = parameters$int
+    )
+
+    # Update all spectra together while retaining the algorithm's sequential
+    # forward and backward updates within each spectrum.
+    for (k in seq_len(parameters$it)) {
+        width <- widths[k]
+        for (i in 2:(parameters$int - 1L)) {
+            radius <- min(i - 1L, width, parameters$int - i)
+            local_mean <- rowMeans(
+                bucket_minima[, (i - radius):(i + radius), drop = FALSE]
+            )
+            bucket_minima[, i] <- pmin(local_mean, bucket_minima[, i])
+        }
+        for (i in 2:(parameters$int - 1L)) {
+            j <- parameters$int - i + 1L
+            radius <- min(i - 1L, width, parameters$int - i)
+            local_mean <- rowMeans(
+                bucket_minima[, (j - radius):(j + radius), drop = FALSE]
+            )
+            bucket_minima[, j] <- pmin(local_mean, bucket_minima[, j])
+        }
+    }
+
+    for (s in seq_len(nrow(spectra))) {
+        estimated[s, ] <- approx(
+            midpoints, bucket_minima[s, ], xout = seq_len(n_points)
+        )$y
+    }
+
+    original - estimated
+}
+
 .fill_peaks_matrix <- function(spectra, lambda, hwi, it, int = NULL) {
     if (!is.matrix(spectra) || !is.numeric(spectra) || is.complex(spectra)) {
         stop("Fill Peaks requires a real numeric spectra matrix",
@@ -156,13 +285,7 @@ subtr_baseline <- function(x, ...) {
     parameters <- .fill_peaks_parameters(
         ncol(spectra), lambda = lambda, hwi = hwi, it = it, int = int
     )
-    corrected <- baseline::baseline.fillPeaks(
-        spectra = spectra,
-        lambda = parameters$lambda,
-        hwi = parameters$hwi,
-        it = parameters$it,
-        int = parameters$int
-    )$corrected
+    corrected <- .fill_peaks_correct(spectra, parameters)
     dimnames(corrected) <- dimnames(spectra)
     corrected
 }

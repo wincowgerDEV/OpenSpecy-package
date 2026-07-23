@@ -34,6 +34,9 @@
   ratios from the exact final processed spectra displayed in the app, uses
   integer wavenumber sliders, and includes exact definitions, values, and
   processed-spectrum provenance in Processed Spectra and Top Matches downloads.
+- Reimplemented 4S Fill Peaks smoothing and suppression in base R, removing the
+  compiled `baseline` runtime dependency so the same correction works in local
+  R and the hosted WebAssembly app.
 - Widened the contextual download action, changed uploaded spectrum traces to
   white, standardized enabled switches to green and white, validated all
   informational disclosures, and restored the historical donation choices in

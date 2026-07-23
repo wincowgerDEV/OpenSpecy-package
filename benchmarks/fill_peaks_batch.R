@@ -7,6 +7,10 @@ if (requireNamespace("pkgload", quietly = TRUE)) {
 } else if (!requireNamespace("OpenSpecy", quietly = TRUE)) {
   stop("Install or load OpenSpecy before running this benchmark.")
 }
+if (!requireNamespace("baseline", quietly = TRUE)) {
+  stop("Install the optional 'baseline' package to run the historical ",
+       "Fill Peaks comparison benchmark.")
+}
 
 set.seed(73)
 n_wavenumber <- 500L

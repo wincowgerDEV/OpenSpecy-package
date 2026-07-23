@@ -130,7 +130,8 @@ settings are closest to \code{"imodpoly"} for iterative polynomial
 fitting based on Zhao et al. (2007). Additionally options recommended by
 \code{"smodpoly"} for segmented iterative polynomial fitting with enhanced peak detection
 from the S-Modpoly algorithm (\url{https://github.com/jackma123-rgb/S-Modpoly}).
-Fill Peaks uses the implementation from the \pkg{baseline} package.
+Fill Peaks is implemented in base R using a banded solver for the initial
+second-derivative smoothing step.
 }
 \examples{
 data("raman_hdpe")

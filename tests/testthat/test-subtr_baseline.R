@@ -75,20 +75,34 @@ fill_peaks_fixture <- function() {
   )
 }
 
-test_that("fill_peaks matches the baseline package batch calculation", {
-  x <- fill_peaks_fixture()
-  expected <- baseline::baseline.fillPeaks(
-    spectra = t(x$spectra), lambda = 4, hwi = 5, it = 3, int = 25
-  )$corrected |>
-    t()
-  colnames(expected) <- colnames(x$spectra)
+test_that("fill_peaks matches a canonical 4S reference calculation", {
+  wavenumber <- seq(500, 1600, length.out = 12)
+  spectra <- cbind(
+    a = sin(wavenumber / 130) + (wavenumber - 900)^2 / 1e6,
+    b = cos(wavenumber / 170) / 2 + seq_along(wavenumber) / 20
+  )
+  expected <- structure(c(
+    -0.231465750716012, -0.673794263693740, -0.535661971932282,
+     0.063067028111824,  0.754425061016937,  1.121347565776030,
+     0.952505336184519,  0.341325906032740, -0.350134404301927,
+    -0.715252015957970, -0.511624447506763,  0.194147922120500,
+    -0.398798703979979, -0.364134192110769, -0.173873081279151,
+     0.110561743185509,  0.396090186077281,  0.575149351492168,
+     0.599452223198640,  0.458619117218035,  0.211969408773336,
+    -0.069211977054000, -0.287844684562732, -0.367874571849971
+  ), dim = c(12L, 2L), dimnames = list(NULL, c("a", "b")))
+  reference <- subtr_baseline(
+    as_OpenSpecy(wavenumber, spectra), type = "fill_peaks", lambda = 4,
+    hwi = 2, it = 3, int = 4, make_rel = FALSE
+  )
+  expect_equal(reference$spectra, expected, tolerance = 1e-10)
 
+  x <- fill_peaks_fixture()
   result <- subtr_baseline(
     x, type = "fill_peaks", lambda = 4, hwi = 5, it = 3, int = 25,
     make_rel = FALSE
   )
 
-  expect_equal(result$spectra, expected, tolerance = 1e-12)
   expect_identical(result$wavenumber, x$wavenumber)
   expect_identical(result$metadata, x$metadata)
   expect_identical(colnames(result$spectra), colnames(x$spectra))
@@ -104,25 +118,41 @@ test_that("fill_peaks derives buckets and supports vector input", {
     nrow(x$spectra),
     max(3L, as.integer(round(nrow(x$spectra) / 10)))
   )
-  expected <- baseline::baseline.fillPeaks(
-    spectra = t(x$spectra), lambda = 4, hwi = 5, it = 2,
-    int = derived_int
-  )$corrected |>
-    t()
+  expected <- subtr_baseline(
+    x, type = "fill_peaks", lambda = 4, hwi = 5, it = 2,
+    int = derived_int, make_rel = FALSE
+  )
 
   result <- subtr_baseline(
     x, type = "fill_peaks", lambda = 4, hwi = 5, it = 2,
     make_rel = FALSE
   )
-  expect_equal(result$spectra, expected, tolerance = 1e-12)
+  expect_equal(result$spectra, expected$spectra, tolerance = 1e-12)
 
   y <- stats::setNames(x$spectra[, 1L], paste0("p", seq_len(nrow(x$spectra))))
   vector_result <- subtr_baseline(
     x$wavenumber, y = y, type = "fill_peaks", lambda = 4, hwi = 5,
     it = 2, int = derived_int, make_rel = FALSE
   )
-  expect_equal(unname(vector_result), expected[, 1L], tolerance = 1e-12)
+  expect_equal(unname(vector_result), expected$spectra[, 1L],
+               tolerance = 1e-12)
   expect_identical(names(vector_result), names(y))
+})
+
+test_that("fill_peaks base R banded smoothing matches a dense solve", {
+  spectra <- rbind(
+    seq(-1, 1, length.out = 40)^2 + sin(seq_len(40) / 3),
+    cos(seq_len(40) / 5) + seq_len(40) / 100
+  )
+  second_difference <- diff(diag(ncol(spectra)), differences = 2)
+  system <- diag(ncol(spectra)) +
+    10^4 * crossprod(second_difference)
+  expected <- t(solve(system, t(spectra)))
+  actual <- OpenSpecy:::.fill_peaks_smooth(spectra, lambda = 4)
+
+  expect_equal(unname(actual), unname(expected), tolerance = 1e-10)
+  expect_identical(OpenSpecy:::.fill_peaks_smooth(spectra, lambda = 0),
+                   spectra)
 })
 
 test_that("fill_peaks iterations fall back without overriding explicit it", {
@@ -142,11 +172,14 @@ test_that("fill_peaks iterations fall back without overriding explicit it", {
 
   expect_equal(from_iterations$spectra, explicit_two$spectra,
                tolerance = 1e-12)
-  expected_three <- baseline::baseline.fillPeaks(
-    spectra = t(x$spectra), lambda = 4, hwi = 5, it = 3, int = 25
-  )$corrected |>
-    t()
-  expect_equal(explicit_three$spectra, expected_three, tolerance = 1e-12)
+  expected_three <- subtr_baseline(
+    x, type = "fill_peaks", lambda = 4, hwi = 5, it = 3,
+    int = 25, make_rel = FALSE
+  )
+  expect_equal(explicit_three$spectra, expected_three$spectra,
+               tolerance = 1e-12)
+  expect_false(isTRUE(all.equal(explicit_two$spectra,
+                                explicit_three$spectra)))
 })
 
 test_that("fill_peaks normalization and process_spec pass-through work", {
@@ -222,6 +255,17 @@ test_that("fill_peaks validates method-specific inputs", {
   )
   expect_length(shortest, 4L)
   expect_true(all(is.finite(shortest)))
+  shortest_smoothed <- subtr_baseline(
+    1:4, y = c(1, 2, 2, 1), type = "fill_peaks", lambda = 4,
+    hwi = 1, it = 1, make_rel = FALSE
+  )
+  expect_length(shortest_smoothed, 4L)
+  expect_true(all(is.finite(shortest_smoothed)))
+  expect_error(
+    subtr_baseline(1:4, y = c(1, 2, 2, 1), type = "fill_peaks",
+                   lambda = 400, hwi = 1, it = 1, make_rel = FALSE),
+    "too large"
+  )
 })
 
 

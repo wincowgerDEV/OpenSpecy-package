@@ -29,6 +29,31 @@ test_that("Shinylive wasm package roots include app runtime packages", {
   expect_true(all(c("curl", "scales") %in% .openspecy_app_packages()))
 })
 
+test_that("Fill Peaks has no compiled baseline runtime dependency", {
+  description_path <- test_path("..", "..", "DESCRIPTION")
+  source_path <- test_path("..", "..", "R", "subtr_baseline.R")
+  if (!file.exists(description_path) || !file.exists(source_path)) {
+    skip("Repository source files are not in the package tarball")
+  }
+
+  description <- read.dcf(description_path)[1, ]
+  hard_fields <- intersect(c("Depends", "Imports", "LinkingTo"),
+                           names(description))
+  hard_dependencies <- paste(description[hard_fields], collapse = ",") |>
+    strsplit(",", fixed = TRUE) |>
+    unlist(use.names = FALSE) |>
+    trimws() |>
+    sub("\\s*\\(.*$", "", x = _)
+  roots <- read_wasm_manifest_lines(wasm_manifest_path(
+    "app-package-roots.txt"
+  ))
+  source <- readLines(source_path, warn = FALSE)
+
+  expect_false("baseline" %in% hard_dependencies)
+  expect_false("baseline" %in% roots)
+  expect_false(any(grepl("baseline::", source, fixed = TRUE)))
+})
+
 test_that("Shinylive wasm library allow-list is intentionally small", {
   library_types <- read_wasm_manifest_lines(wasm_manifest_path("library-types.txt"))
 
