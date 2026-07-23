@@ -1,7 +1,16 @@
 # UI helpers ----
-app_section_switch <- function(input_id, label, value = TRUE) {
+app_section_switch <- function(input_id, label, value = TRUE,
+                               note = character()) {
+  note <- trimws(as.character(note))
+  note <- paste(note[!is.na(note) & nzchar(note)], collapse = " ")
+  has_note <- nzchar(note)
+
   div(
-    class = "openspecy-section-switch",
+    class = if(has_note) {
+      "openspecy-section-switch openspecy-section-switch-with-note"
+    } else {
+      "openspecy-section-switch"
+    },
     prettySwitch(
       inputId = input_id,
       label = label,
@@ -9,7 +18,8 @@ app_section_switch <- function(input_id, label, value = TRUE) {
       value = value,
       status = "success",
       fill = TRUE
-    )
+    ),
+    if(has_note) tags$span(class = "openspecy-section-description", note)
   )
 }
 
@@ -34,7 +44,10 @@ app_control_box <- function(input_id, label, value = FALSE, ...,
 }
 
 preprocessing_controls <- tagList(
-  app_section_switch("active_preprocessing", "Preprocessing", TRUE),
+  app_section_switch(
+    "active_preprocessing", "Preprocessing", TRUE,
+    "Transforms uploaded spectra before artifact checks and identification."
+  ),
   app_control_box(
     "make_rel_decision", "Min-Max Normalize", TRUE,
     note = c(
@@ -108,30 +121,67 @@ preprocessing_controls <- tagList(
     "range_decision", "Range Selection", TRUE,
     prettySwitch("range_automate", "Automatic High-Tail Correction",
                  inline = TRUE, value = TRUE, status = "success", fill = TRUE),
-    numericInput("MinRange", "Minimum Wavenumber", value = 300),
-    numericInput("MaxRange", "Maximum Wavenumber", value = 2000),
+    conditionalPanel(
+      condition = "input.range_automate",
+      numericInput(
+        "range_artifact_ratio", "Artifact Ratio Threshold",
+        value = 3, min = 1.1, step = 0.1
+      ),
+      uiOutput(
+        "range_automation_status",
+        container = function(...) {
+          div(..., class = "openspecy-automation-status")
+        }
+      )
+    ),
+    div(
+      id = "manual_range_bounds",
+      class = "openspecy-manual-range openspecy-inputs-disabled",
+      shinyjs::disabled(
+        numericInput("MinRange", "Manual Minimum Wavenumber", value = 300)
+      ),
+      shinyjs::disabled(
+        numericInput("MaxRange", "Manual Maximum Wavenumber", value = 2000)
+      )
+    ),
     note = c(
-      "Automatic mode checks the fully processed spectra and crops a shared high tail only when the batch improves.",
-      "Manual bounds are used when automatic mode is off."
+      "Automatic mode scans the full processed wavenumber axis and crops a shared high tail only when its artifact ratio exceeds the threshold and the batch improves.",
+      "Manual bounds are ignored and locked while automatic mode is on; turn it off to set the range yourself."
     )
   ),
   app_control_box(
     "co2_decision", "Flatten Region", TRUE,
     prettySwitch("co2_automate", "Automatic CO2 Correction",
                  inline = TRUE, value = TRUE, status = "success", fill = TRUE),
+    conditionalPanel(
+      condition = "input.co2_automate",
+      numericInput(
+        "co2_artifact_ratio", "Artifact Ratio Threshold",
+        value = 3, min = 1.1, step = 0.1
+      ),
+      uiOutput(
+        "co2_automation_status",
+        container = function(...) {
+          div(..., class = "openspecy-automation-status")
+        }
+      )
+    ),
     numericInput("MinFlat", "Minimum Wavenumber", value = 2200,
                  min = 1, max = 6000, step = 1),
     numericInput("MaxFlat", "Maximum Wavenumber", value = 2400,
                  min = 1, max = 6000, step = 1),
     note = c(
-      "Automatic mode checks the fully processed spectra and flattens CO2 only when the batch improves.",
-      "Manual bounds are used when automatic mode is off."
+      "Minimum and Maximum Wavenumber define the CO2 or artifact region tested by automatic mode and flattened when correction is retained.",
+      "Automatic mode corrects that region only when its artifact ratio exceeds the threshold and the batch improves; manual mode uses the same bounds directly."
     )
   )
 )
 
 identification_controls <- tagList(
-  app_section_switch("active_identification", "Identification", TRUE),
+  app_section_switch(
+    "active_identification", "Identification", TRUE,
+    "Matches processed spectra to references and displays the best results."
+  ),
   bs4Dash::box(
     width = 12,
     title = "Identification Strategy",
@@ -167,7 +217,9 @@ advanced_controls <- tagList(
   div(
     class = "openspecy-section-switch openspecy-section-note",
     tags$strong("Advanced"),
-    tags$span("These settings operate independently of the two main switches.")
+    tags$span(
+      "These settings operate independently of both Preprocessing and Identification."
+    )
   ),
   app_control_box(
     "threshold_decision", "Threshold Signal / Noise", FALSE,
@@ -219,37 +271,6 @@ quantification_controls <- tagList(
   app_section_switch("active_quantification", "Quantification", FALSE),
   bs4Dash::box(
     width = 12,
-    title = "Quantification Spectrum",
-    selectInput(
-      "quant_treatment", "Quantification Preprocessing",
-      choices = app_quantification_treatments,
-      selected = "fill_peaks"
-    ),
-    conditionalPanel(
-      condition = "input.quant_treatment == 'fill_peaks'",
-      sliderInput("quant_fill_lambda", "Primary Smoothing Penalty",
-                  min = 0, max = 12, value = 4, step = 1),
-      numericInput("quant_fill_hwi", "Local Half-Window (buckets)",
-                   value = 50, min = 1, step = 1),
-      sliderInput("quant_iterations", "Iterations",
-                  min = 1, max = 100, value = 10)
-    ),
-    conditionalPanel(
-      condition = "input.quant_treatment == 'modpolyfit'",
-      sliderInput("quant_poly_degree", "Polynomial Degree",
-                  min = 1, max = 20, value = 8),
-      sliderInput("quant_poly_iterations", "Iterations",
-                  min = 1, max = 100, value = 10)
-    ),
-    footer = footnote(
-      "How quantification is prepared",
-      "Area and peak ratios are calculated from an independent, non-derivative copy of each uploaded spectrum; identification preprocessing is unchanged.",
-      "The selected treatment is saved with every calculated ratio because differently preprocessed values should not be compared directly.",
-      "Convert transmittance or reflectance in Preprocessing > Intensity Adjustment before interpreting absorbance-based ratios."
-    )
-  ),
-  bs4Dash::box(
-    width = 12,
     title = "Custom Ratios",
     textInput(
       "quant_ratio_name", "Ratio Name",
@@ -276,7 +297,8 @@ quantification_controls <- tagList(
       uiOutput("quant_saved_ratios")
     ),
     footer = footnote(
-      "Example setup",
+      "How ratios are calculated",
+      "Every ratio uses exactly the final processed uploaded spectrum visible as the primary trace in the Spectra plot; reference-match overlays are not used and no separate quantification treatment is applied.",
       "For one polyethylene carbonyl-area scenario, choose Area ratio, name it Carbonyl area, use 1650-1850 cm^-1 as the numerator and 1420-1500 cm^-1 as the denominator, then click Add Ratio.",
       "Choose Peak ratio when a method compares two individual wavenumbers. Confirm suitable bands and preprocessing for the material, instrument, and method you are following."
     )
@@ -425,6 +447,25 @@ dashboardPage(
         }
         .openspecy-section-note { align-items: baseline; color: var(--openspecy-text); }
         .openspecy-section-note span { color: var(--openspecy-muted); }
+        .openspecy-section-description {
+          flex: 1 1 auto;
+          max-width: 72%;
+          color: var(--openspecy-muted);
+          font-size: .92rem;
+          line-height: 1.35;
+          text-align: right;
+        }
+        .openspecy-automation-status {
+          display: block;
+          padding: 9px 11px;
+          margin: 10px 0 4px;
+          color: var(--openspecy-muted);
+          background: var(--openspecy-canvas);
+          border: 1px solid var(--openspecy-grid);
+          border-left: 3px solid var(--openspecy-accent);
+          border-radius: 6px;
+        }
+        .openspecy-automation-status:empty { display: none; }
         .openspecy-download-details {
           display: block;
           padding: 12px;
@@ -590,6 +631,17 @@ dashboardPage(
           border-color: var(--openspecy-accent) !important;
           box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2) !important;
         }
+        .openspecy-manual-range.openspecy-inputs-disabled {
+          opacity: .54;
+        }
+        .openspecy-manual-range.openspecy-inputs-disabled label {
+          color: var(--openspecy-muted) !important;
+        }
+        .openspecy-manual-range.openspecy-inputs-disabled .form-control:disabled {
+          color: var(--openspecy-muted) !important;
+          background: var(--openspecy-panel) !important;
+          cursor: not-allowed;
+        }
         .irs--shiny .irs-bar,
         .irs--shiny .irs-single,
         .irs--shiny .irs-from,
@@ -613,6 +665,83 @@ dashboardPage(
         .pretty input:checked ~ .state.p-success label::after,
         .pretty.p-switch input:checked ~ .state.p-success label::after {
           background: #FFFFFF !important;
+        }
+        #spectra_box .direct-chat-contacts {
+          overflow-y: auto;
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+          border-left: 1px solid var(--openspecy-border);
+          box-shadow: -12px 0 28px rgba(0, 0, 0, .38);
+        }
+        #spectra_box .direct-chat-contacts .contacts-list,
+        #spectra_box .direct-chat-contacts .contacts-list > li,
+        #spectra_box .direct-chat-contacts .tabbable,
+        #spectra_box .direct-chat-contacts .tab-content,
+        #spectra_box .direct-chat-contacts .tab-pane {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+        }
+        #spectra_box .direct-chat-contacts .contacts-list {
+          padding: 0;
+          margin: 0;
+        }
+        #spectra_box .direct-chat-contacts .contacts-list > li {
+          padding: 0 !important;
+          border-bottom: 0 !important;
+        }
+        #sidebar_tables {
+          padding: 10px 10px 0;
+          margin: 0;
+          background: var(--openspecy-panel-2) !important;
+          border-bottom: 1px solid var(--openspecy-grid) !important;
+        }
+        #sidebar_tables > li > a {
+          display: block;
+          padding: .6rem .85rem;
+          color: var(--openspecy-muted) !important;
+          background: var(--openspecy-panel) !important;
+          border: 1px solid transparent !important;
+          border-radius: 6px 6px 0 0;
+        }
+        #sidebar_tables > li > a:hover,
+        #sidebar_tables > li > a:focus {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        #sidebar_tables > li.active > a,
+        #sidebar_tables > li > a.active {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-accent) !important;
+          border-bottom-color: var(--openspecy-panel-2) !important;
+        }
+        #spectra_box .direct-chat-contacts .tab-content {
+          min-height: 100%;
+          padding: 10px;
+        }
+        #spectra_box #mycardsidebar {
+          color: var(--openspecy-accent) !important;
+          background: var(--openspecy-panel) !important;
+          border: 1px solid var(--openspecy-grid) !important;
+          border-radius: 6px;
+        }
+        #spectra_box #mycardsidebar:hover,
+        #spectra_box #mycardsidebar:focus,
+        #spectra_box.direct-chat-contacts-open #mycardsidebar {
+          color: var(--openspecy-canvas) !important;
+          background: var(--openspecy-accent) !important;
+          border-color: var(--openspecy-accent) !important;
+          box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2);
+        }
+        #spectra_box.direct-chat-contacts-open > .card-header {
+          border-bottom-color: var(--openspecy-accent) !important;
+        }
+        #spectra_box .direct-chat-contacts .close,
+        #spectra_box .direct-chat-contacts [data-dismiss] {
+          color: var(--openspecy-accent) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-grid) !important;
         }
         .dataTables_wrapper,
         .dataTables_wrapper label,
@@ -773,7 +902,15 @@ dashboardPage(
         }
         @media (max-width: 991px) {
           .openspecy-tab-scroll { max-height: none; }
-          .openspecy-section-note { align-items: flex-start; flex-direction: column; }
+          .openspecy-section-note,
+          .openspecy-section-switch-with-note {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+          .openspecy-section-description {
+            max-width: none;
+            text-align: left;
+          }
           .openspecy-upload-column { margin-bottom: 8px; }
           .openspecy-support-button { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
         }
@@ -896,6 +1033,7 @@ dashboardPage(
               div(
                 id = "heatmap_frame",
                 class = "openspecy-plot-frame",
+                style = "display:none",
                 plotlyOutput("heatmapA")
               )
             ),

@@ -50,7 +50,8 @@ validate_wasm_package_version()
 app_download_choices <- function(has_upload, identification,
                                  collapse = FALSE) {
   tests <- c("Test Data", "Test Map")
-  if (!isTRUE(has_upload)) return(tests)
+  metadata <- "User Metadata"
+  if (!isTRUE(has_upload)) return(c(tests, metadata))
 
   choices <- if (isTRUE(identification)) {
     c("Top Matches", "Processed Spectra")
@@ -58,7 +59,7 @@ app_download_choices <- function(has_upload, identification,
     "Processed Spectra"
   }
   if (isTRUE(collapse)) choices <- c(choices, "Thresholded Particles")
-  c(choices, tests)
+  c(choices, tests, metadata)
 }
 
 app_download_label <- function(selection) {
@@ -67,7 +68,8 @@ app_download_label <- function(selection) {
     "Test Map" = "Download Test Map",
     "Processed Spectra" = "Download Processed Spectra",
     "Top Matches" = "Download Top Matches",
-    "Thresholded Particles" = "Download Thresholded Particles"
+    "Thresholded Particles" = "Download Thresholded Particles",
+    "User Metadata" = "Download User Metadata"
   )
   if(length(selection) != 1L || is.na(selection) ||
      !selection %in% names(labels)) {
@@ -75,13 +77,6 @@ app_download_label <- function(selection) {
   }
   unname(labels[[selection]])
 }
-
-app_quantification_treatments <- c(
-  "Fill Peaks baseline corrected (recommended)" = "fill_peaks",
-  "Modified polynomial baseline corrected" = "modpolyfit",
-  "Min-max normalized" = "min_max",
-  "Uploaded spectrum (no quantification preprocessing)" = "raw"
-)
 
 app_empty_ratio_definitions <- function() {
   data.frame(
@@ -96,6 +91,133 @@ app_empty_ratio_definitions <- function() {
     stringsAsFactors = FALSE
   )
 }
+
+# Input IDs are kept as the exported column names so the settings snapshot is
+# readable beside the app source without promising a future import contract.
+app_user_metadata_input_ids <- c(
+  # Preprocessing
+  "active_preprocessing", "make_rel_decision", "smooth_decision",
+  "smoother", "derivative_order", "smoother_window", "derivative_abs",
+  "conform_decision", "conform_selection", "conform_res",
+  "intensity_decision", "intensity_corr", "baseline_decision",
+  "baseline_method", "baseline", "refit", "baseline_lambda",
+  "baseline_hwi", "iterations", "range_decision", "range_automate",
+  "range_artifact_ratio", "MinRange", "MaxRange", "co2_decision",
+  "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
+  # Identification
+  "active_identification", "id_spec_type", "id_strategy", "lib_type",
+  "filter_lib", "lib_org",
+  # Advanced
+  "threshold_decision", "MinSNR", "signal_selection",
+  "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
+  "xy_grid", "collapse_decision", "collapse_type", "collapse_log_type",
+  # Quantification builder
+  "active_quantification", "quant_ratio_name", "quant_ratio_type",
+  "quant_numerator_area", "quant_denominator_area",
+  "quant_numerator_peak", "quant_denominator_peak"
+)
+
+app_metadata_scalar <- function(value, separator = " | ") {
+  if(is.null(value) || !length(value)) return(NA_character_)
+  if(inherits(value, "POSIXt")) {
+    value <- format(value, "%Y-%m-%d %H:%M:%S %z")
+  }
+  if(is.factor(value)) value <- as.character(value)
+  if(is.list(value)) value <- unlist(value, recursive = TRUE, use.names = FALSE)
+  if(!length(value)) return(NA_character_)
+  if(length(value) == 1L && is.atomic(value)) return(value[[1L]])
+  paste(as.character(value), collapse = separator)
+}
+
+app_saved_ratio_definitions <- function(definitions) {
+  if(is.null(definitions) || !is.data.frame(definitions) ||
+     !nrow(definitions)) {
+    return(NA_character_)
+  }
+  required <- names(app_empty_ratio_definitions())
+  if(!all(required %in% names(definitions))) {
+    stop("Saved ratio definitions have an unexpected structure.",
+         call. = FALSE)
+  }
+  paste(vapply(seq_len(nrow(definitions)), function(i) {
+    definition <- definitions[i, required, drop = FALSE]
+    paste(
+      paste0("id=", definition$id[[1L]]),
+      paste0("name=", definition$name[[1L]]),
+      paste0("column=", definition$column[[1L]]),
+      paste0("type=", definition$type[[1L]]),
+      paste0("numerator_min=", definition$numerator_min[[1L]]),
+      paste0("numerator_max=", definition$numerator_max[[1L]]),
+      paste0("denominator_min=", definition$denominator_min[[1L]]),
+      paste0("denominator_max=", definition$denominator_max[[1L]]),
+      sep = "; "
+    )
+  }, character(1)), collapse = " || ")
+}
+
+app_user_metadata_snapshot <- function(settings, definitions, recorded_at,
+                                       app_version, session_id,
+                                       source = NULL, file_info = NULL) {
+  if(!is.list(settings)) {
+    stop("App settings must be supplied as a named list.", call. = FALSE)
+  }
+
+  uploaded <- !is.null(source)
+  spectra_count <- if(uploaded) ncol(source$spectra) else NA_integer_
+  wavenumber_count <- if(uploaded) length(source$wavenumber) else NA_integer_
+  wavenumber_min <- if(uploaded && wavenumber_count) {
+    min(source$wavenumber, na.rm = TRUE)
+  } else NA_real_
+  wavenumber_max <- if(uploaded && wavenumber_count) {
+    max(source$wavenumber, na.rm = TRUE)
+  } else NA_real_
+  data_digest <- if(uploaded) {
+    digest::digest(source, algo = "md5")
+  } else NA_character_
+
+  file_value <- function(name) {
+    if(is.null(file_info) || !is.data.frame(file_info) ||
+       !name %in% names(file_info)) return(NA_character_)
+    app_metadata_scalar(file_info[[name]])
+  }
+  settings <- stats::setNames(lapply(app_user_metadata_input_ids, function(id) {
+    app_metadata_scalar(settings[[id]])
+  }), app_user_metadata_input_ids)
+
+  snapshot <- c(
+    list(
+      recorded_at = app_metadata_scalar(recorded_at),
+      app_version = app_metadata_scalar(app_version),
+      session_id = app_metadata_scalar(session_id),
+      data_uploaded = uploaded,
+      data_file_name = file_value("name"),
+      data_file_size_bytes = file_value("size"),
+      data_file_type = file_value("type"),
+      data_file_last_modified = file_value("lastModified"),
+      data_digest_md5 = data_digest,
+      data_spectrum_count = spectra_count,
+      data_wavenumber_count = wavenumber_count,
+      data_wavenumber_min = wavenumber_min,
+      data_wavenumber_max = wavenumber_max
+    ),
+    settings,
+    list(
+      quant_saved_ratio_count = if(is.data.frame(definitions)) {
+        nrow(definitions)
+      } else 0L,
+      quant_saved_ratio_definitions = app_saved_ratio_definitions(definitions)
+    )
+  )
+
+  snapshot <- lapply(snapshot, app_metadata_scalar)
+  if(any(lengths(snapshot) != 1L)) {
+    stop("Every user metadata field must contain exactly one value.",
+         call. = FALSE)
+  }
+  snapshot
+}
+
+app_quantification_source_value <- "displayed_processed_spectra"
 
 app_ratio_column_name <- function(name, type) {
   if(!is.character(name) || length(name) != 1L || is.na(name) ||
@@ -129,8 +251,10 @@ app_add_ratio_definition <- function(definitions, name, type, numerator,
 
   axis <- sort(unique(as.numeric(axis)))
   axis <- axis[is.finite(axis)]
-  if(!length(axis)) stop("Upload a valid spectrum before adding ratios.",
-                         call. = FALSE)
+  if(!length(axis)) {
+    stop("Upload and process a valid spectrum before adding ratios.",
+         call. = FALSE)
+  }
   normalize_selection <- function(value, expected_length, label) {
     if(!is.numeric(value) || length(value) != expected_length ||
        any(!is.finite(value))) {
@@ -153,14 +277,18 @@ app_add_ratio_definition <- function(definitions, name, type, numerator,
 
   values <- c(numerator, denominator)
   if(any(values < axis[[1L]] | values > axis[[length(axis)]])) {
-    stop("Ratio selections must stay within the uploaded wavenumber range.",
-         call. = FALSE)
+    stop(
+      "Ratio selections must stay within the displayed processed wavenumber range.",
+      call. = FALSE
+    )
   }
   if(identical(type, "area") &&
      (!any(axis >= numerator[[1L]] & axis <= numerator[[2L]]) ||
       !any(axis >= denominator[[1L]] & axis <= denominator[[2L]]))) {
-    stop("Each area range must contain at least one uploaded wavenumber.",
-         call. = FALSE)
+    stop(
+      "Each area range must contain at least one displayed processed wavenumber.",
+      call. = FALSE
+    )
   }
 
   next_id <- if(nrow(definitions)) max(definitions$id) + 1L else 1L
@@ -203,43 +331,59 @@ app_ratio_slider_defaults <- function(axis, type = c("area", "peak")) {
   axis <- sort(unique(as.numeric(axis)))
   axis <- axis[is.finite(axis)]
   if(length(axis) < 2L) {
-    stop("Upload a spectrum with at least two distinct wavenumbers.",
+    stop("Process a spectrum with at least two distinct wavenumbers.",
          call. = FALSE)
   }
 
-  closest <- function(value) axis[[which.min(abs(axis - value))]]
-  axis_range <- range(axis)
-  positive_steps <- diff(axis)
-  positive_steps <- positive_steps[positive_steps > 0]
-  step <- if(length(positive_steps)) stats::median(positive_steps) else 1
+  axis_min <- as.integer(ceiling(min(axis)))
+  axis_max <- as.integer(floor(max(axis)))
+  if(axis_min >= axis_max) {
+    stop("The processed wavenumber range must contain at least two integers.",
+         call. = FALSE)
+  }
+  clamp_integer <- function(value) {
+    as.integer(pmax(axis_min, pmin(axis_max, round(value))))
+  }
+  closest_integer <- function(value) {
+    clamp_integer(axis[[which.min(abs(axis - value))]])
+  }
+  # Ratios may use any whole-number boundary or point within the processed
+  # axis; peak lookup resolves a selected point to measured data later.
+  step <- 1L
 
   if(identical(type, "area")) {
     scenario <- c(1650, 1850, 1420, 1500)
-    if(all(scenario >= axis_range[[1L]] & scenario <= axis_range[[2L]])) {
-      numerator <- sort(vapply(scenario[1:2], closest, numeric(1)))
-      denominator <- sort(vapply(scenario[3:4], closest, numeric(1)))
+    if(all(scenario >= axis_min & scenario <= axis_max)) {
+      numerator <- sort(vapply(scenario[1:2], closest_integer, integer(1)))
+      denominator <- sort(vapply(
+        scenario[3:4], closest_integer, integer(1)
+      ))
     } else {
       selections <- axis[pmax(
         1L,
         pmin(length(axis), round(c(.60, .78, .24, .42) * length(axis)))
       )]
-      numerator <- sort(selections[1:2])
-      denominator <- sort(selections[3:4])
+      numerator <- sort(clamp_integer(selections[1:2]))
+      denominator <- sort(clamp_integer(selections[3:4]))
     }
   } else {
     scenario <- c(1715, 1460)
-    if(all(scenario >= axis_range[[1L]] & scenario <= axis_range[[2L]])) {
-      numerator <- closest(scenario[[1L]])
-      denominator <- closest(scenario[[2L]])
+    if(all(scenario >= axis_min & scenario <= axis_max)) {
+      numerator <- closest_integer(scenario[[1L]])
+      denominator <- closest_integer(scenario[[2L]])
     } else {
-      numerator <- axis[[max(1L, round(.67 * length(axis)))]]
-      denominator <- axis[[max(1L, round(.33 * length(axis)))]]
+      numerator <- clamp_integer(
+        axis[[max(1L, round(.67 * length(axis)))]]
+      )
+      denominator <- clamp_integer(
+        axis[[max(1L, round(.33 * length(axis)))]]
+      )
     }
   }
 
   list(
-    min = axis_range[[1L]],
-    max = axis_range[[2L]],
+    min = axis_min,
+    max = axis_max,
     step = step,
     numerator = numerator,
     denominator = denominator
@@ -258,38 +402,8 @@ app_ratio_definitions_text <- function(definitions) {
 
 app_ratio_metadata_columns <- function(definitions) {
   if(!nrow(definitions)) return(character())
-  c("quantification_treatment", "quantification_definitions",
+  c("quantification_source", "quantification_definitions",
     definitions$column)
-}
-
-app_prepare_quantification_source <- function(
-    x, treatment = "fill_peaks", intensity_type = "none", lambda = 4,
-    hwi = 50, iterations = 10, degree = 8) {
-  treatment <- match.arg(
-    treatment, unname(app_quantification_treatments)
-  )
-  intensity_type <- match.arg(
-    intensity_type, c("none", "transmittance", "reflectance")
-  )
-  x <- as_OpenSpecy(x)
-
-  if(!identical(intensity_type, "none")) {
-    x <- adj_intens(x, type = intensity_type, make_rel = FALSE)
-  }
-
-  switch(
-    treatment,
-    raw = x,
-    min_max = make_rel(x),
-    fill_peaks = subtr_baseline(
-      x, type = "fill_peaks", lambda = lambda, hwi = hwi,
-      it = iterations, make_rel = FALSE
-    ),
-    modpolyfit = subtr_baseline(
-      x, type = "polynomial", degree = degree, iterations = iterations,
-      make_rel = FALSE
-    )
-  )
 }
 
 app_area_ratio <- function(source, numerator, denominator) {
@@ -324,44 +438,37 @@ app_area_ratio <- function(source, numerator, denominator) {
   values
 }
 
-app_attach_quantification <- function(target, source, definitions, treatment) {
-  target <- as_OpenSpecy(target)
-  source <- as_OpenSpecy(source)
-  if(!nrow(definitions)) return(target)
-  if(ncol(target$spectra) != ncol(source$spectra) ||
-     !identical(colnames(target$spectra), colnames(source$spectra)) ||
-     nrow(target$metadata) != ncol(target$spectra)) {
-    stop("Quantification source and processed spectra are not aligned.",
-         call. = FALSE)
-  }
+app_attach_quantification <- function(x, definitions) {
+  x <- as_OpenSpecy(x)
+  if(!nrow(definitions)) return(x)
 
-  target$metadata <- data.table::copy(target$metadata)
-  target$metadata$quantification_treatment <- treatment
-  target$metadata$quantification_definitions <-
+  x$metadata <- data.table::copy(x$metadata)
+  x$metadata$quantification_source <- app_quantification_source_value
+  x$metadata$quantification_definitions <-
     app_ratio_definitions_text(definitions)
   for(i in seq_len(nrow(definitions))) {
     definition <- definitions[i, , drop = FALSE]
     values <- if(identical(definition$type[[1L]], "area")) {
       app_area_ratio(
-        source,
+        x,
         c(definition$numerator_min[[1L]], definition$numerator_max[[1L]]),
         c(definition$denominator_min[[1L]], definition$denominator_max[[1L]])
       )
     } else {
       peak_ratio(
-        source,
+        x,
         numerator = definition$numerator_min[[1L]],
         denominator = definition$denominator_min[[1L]],
         method = "nearest"
       )
     }
-    if(length(values) != nrow(target$metadata)) {
+    if(length(values) != nrow(x$metadata)) {
       stop("Quantification returned an unexpected number of values for '",
            definition$name[[1L]], "'.", call. = FALSE)
     }
-    target$metadata[[definition$column[[1L]]]] <- as.numeric(values)
+    x$metadata[[definition$column[[1L]]]] <- as.numeric(values)
   }
-  target
+  x
 }
 
 .app_range_assessment <- function(x, check, correction_args = list()) {
@@ -554,6 +661,7 @@ app_theme <- list(
   muted = "#A9B8CB",
   grid = "#28536F",
   axis = "#6F86A3",
+  raw = "#CBD5E1",
   reference = "#FB7185",
   spectrum = "#FFFFFF"
 )
@@ -561,7 +669,7 @@ app_theme <- list(
 app_theme_css <- function(theme = app_theme) {
   required <- c(
     "canvas", "panel", "panel_2", "border", "accent", "success",
-    "text", "muted", "grid", "axis", "spectrum"
+    "text", "muted", "grid", "axis", "raw", "spectrum"
   )
   if(!is.list(theme) || !all(required %in% names(theme))) {
     stop("The app theme is missing one or more required color tokens.",
@@ -584,6 +692,7 @@ app_plot_palette <- list(
   axis = app_theme$axis,
   text = app_theme$text,
   primary = app_theme$accent,
+  raw = app_theme$raw,
   reference = app_theme$reference,
   spectrum = app_theme$spectrum
 )
@@ -637,6 +746,75 @@ app_style_plotly <- function(plot) {
       bordercolor = app_plot_palette$axis,
       font = list(color = app_plot_palette$text)
     )
+  )
+}
+
+app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
+                              make_rel = FALSE, source = "B") {
+  prepare_trace <- function(x, normalize = FALSE) {
+    if(is.null(x)) return(NULL)
+    x <- as_OpenSpecy(x)
+    if(isTRUE(normalize)) x <- OpenSpecy::make_rel(x, na.rm = TRUE)
+    if(ncol(x$spectra) < 1L) return(NULL)
+    data.frame(
+      wavenumber = x$wavenumber,
+      intensity = as.numeric(as.matrix(x$spectra)[, 1L])
+    )
+  }
+  add_spectrum <- function(plot, values, name, color, width, dash = "solid") {
+    if(is.null(values)) return(plot)
+    plotly::add_trace(
+      plot,
+      data = values,
+      x = ~wavenumber,
+      y = ~intensity,
+      type = "scatter",
+      mode = "lines",
+      name = name,
+      legendgroup = name,
+      showlegend = TRUE,
+      line = list(color = color, width = width, dash = dash),
+      hovertemplate = paste0(
+        name, "<br>%{x:.1f} cm<sup>-1</sup><br>",
+        "%{y:.4g}<extra></extra>"
+      ),
+      inherit = FALSE
+    )
+  }
+
+  plot <- plotly::plot_ly(source = source)
+  plot <- add_spectrum(
+    plot, prepare_trace(raw, normalize = make_rel), "Raw spectrum",
+    "rgba(203, 213, 225, 0.24)", 1.2
+  )
+  plot <- add_spectrum(
+    # Keep the active trace byte-for-byte on the final DataR() scale so that
+    # displayed values and quantification use exactly the same processed data.
+    plot, prepare_trace(active), "Active spectrum",
+    app_plot_palette$spectrum, 2.4
+  )
+  plot <- add_spectrum(
+    plot, prepare_trace(reference, normalize = make_rel),
+    "Identification match",
+    app_plot_palette$reference, 2.2, "dot"
+  )
+  plotly::layout(
+    plot,
+    xaxis = list(
+      title = "wavenumber [cm<sup>-1</sup>]",
+      autorange = "reversed"
+    ),
+    yaxis = list(title = "intensity [-]"),
+    legend = list(
+      orientation = "h",
+      x = 0,
+      y = 1.03,
+      bgcolor = "rgba(11, 25, 41, 0.82)",
+      bordercolor = app_plot_palette$grid,
+      borderwidth = 1,
+      font = list(color = app_plot_palette$text)
+    ),
+    margin = list(t = 58)
   )
 }
 

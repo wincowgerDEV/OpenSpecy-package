@@ -37,6 +37,16 @@ function(input, output, session) {
   correction_diagnostics <- reactiveVal(data.frame())
   ratio_definitions <- reactiveVal(app_empty_ratio_definitions())
 
+  observeEvent(input$range_automate, {
+    manual_range <- !isTRUE(input$range_automate)
+    shinyjs::toggleState("MinRange", condition = manual_range)
+    shinyjs::toggleState("MaxRange", condition = manual_range)
+    shinyjs::toggleClass(
+      "manual_range_bounds", "openspecy-inputs-disabled",
+      condition = !manual_range
+    )
+  }, ignoreInit = FALSE)
+
   analysis_phase <- function(message, detail, progress = 4) {
     progress <- max(0, min(100, as.numeric(progress)[[1L]]))
     session$sendCustomMessage(
@@ -379,6 +389,8 @@ observeEvent(input$file, {
     diagnostics <- list()
     if(isTRUE(input$active_preprocessing) && isTRUE(input$co2_decision)) {
       if(isTRUE(input$co2_automate)) {
+        co2_artifact_ratio <- input$co2_artifact_ratio
+        if(is.null(co2_artifact_ratio)) co2_artifact_ratio <- 3
         analysis_phase(
           "Checking the CO2 region",
           "Testing the processed spectra and keeping flattening only if more spectra pass.",
@@ -388,7 +400,13 @@ observeEvent(input$file, {
           processed,
           flatten = TRUE,
           restrict = FALSE,
-          flatten_args = list(min = input$MinFlat, max = input$MaxFlat)
+          # These bounds define both the assessed CO2 region and the region
+          # flattened by an accepted automatic correction.
+          flatten_args = list(
+            min = input$MinFlat,
+            max = input$MaxFlat,
+            artifact_ratio = co2_artifact_ratio
+          )
         )
         processed <- result$data
         diagnostics[[length(diagnostics) + 1L]] <-
@@ -405,6 +423,8 @@ observeEvent(input$file, {
 
     if(isTRUE(input$active_preprocessing) && isTRUE(input$range_decision)) {
       if(isTRUE(input$range_automate)) {
+        range_artifact_ratio <- input$range_artifact_ratio
+        if(is.null(range_artifact_ratio)) range_artifact_ratio <- 3
         analysis_phase(
           "Checking spectral tails",
           "Testing the processed batch and keeping shared-axis cropping only if more spectra pass.",
@@ -413,9 +433,23 @@ observeEvent(input$file, {
         result <- app_apply_range_automation(
           processed,
           flatten = FALSE,
-          restrict = TRUE
+          restrict = TRUE,
+          restrict_args = list(artifact_ratio = range_artifact_ratio)
         )
         processed <- result$data
+        high_tail_accepted <- any(
+          result$diagnostics$check == "high_tail" &
+            result$diagnostics$accepted
+        )
+        if(isTRUE(high_tail_accepted)) {
+          accepted_bounds <- range(processed$wavenumber, na.rm = TRUE)
+          updateNumericInput(
+            session, "MinRange", value = accepted_bounds[[1L]]
+          )
+          updateNumericInput(
+            session, "MaxRange", value = accepted_bounds[[2L]]
+          )
+        }
         diagnostics[[length(diagnostics) + 1L]] <-
           result$diagnostics[result$diagnostics$enabled, , drop = FALSE]
       } else {
@@ -454,19 +488,110 @@ observeEvent(input$file, {
     processed
   })
 
+  automation_status_ui <- function(check, label) {
+    diagnostics <- correction_diagnostics()
+    row <- diagnostics[diagnostics$check == check, , drop = FALSE]
+    if(!nrow(row)) {
+      return(tags$p(
+        class = "openspecy-automation-status text-muted",
+        paste("Waiting for the", label, "check to run on processed spectra.")
+      ))
+    }
+    row <- row[nrow(row), , drop = FALSE]
+    total <- row$total_spectra[[1L]]
+    before_problems <- total - row$before_passes[[1L]]
+    after_problems <- total - row$after_passes[[1L]]
+    reason <- row$reason[[1L]]
+
+    comparison <- if(identical(reason, "no_failures")) {
+      paste0(
+        "Problematic spectra: ", before_problems, " of ", total,
+        " before correction; ", after_problems, " of ", total,
+        " after correction."
+      )
+    } else {
+      paste0(
+        "Problematic spectra: ", before_problems, " of ", total,
+        " before correction; ", after_problems, " of ", total,
+        " after the candidate correction."
+      )
+    }
+    outcome <- switch(
+      reason,
+      no_failures = "No correction was necessary.",
+      improved = "The correction improved the batch and was retained.",
+      not_improved = paste(
+        "The candidate did not improve the batch, so the original processed",
+        "spectra were retained."
+      ),
+      correction_error = paste(
+        "The correction could not be completed, so the original processed",
+        "spectra were retained."
+      ),
+      invalid_candidate = paste(
+        "The candidate did not preserve the batch, so the original processed",
+        "spectra were retained."
+      ),
+      assessment_error = paste(
+        "The candidate could not be assessed, so the original processed",
+        "spectra were retained."
+      ),
+      "The automatic check completed."
+    )
+
+    tags$div(
+      class = paste(
+        "openspecy-automation-status",
+        paste0("openspecy-automation-status-", reason)
+      ),
+      role = "status",
+      tags$strong(paste0(label, ": ")),
+      tags$span(paste(comparison, outcome))
+    )
+  }
+
+  output$co2_automation_status <- renderUI({
+    if(!isTRUE(input$active_preprocessing)) return(NULL)
+    if(!isTRUE(input$co2_decision)) return(NULL)
+    if(!isTRUE(input$co2_automate)) return(NULL)
+    if(is.null(preprocessed$data)) {
+      return(tags$p(
+        class = "openspecy-automation-status text-muted",
+        "Upload spectra to run the automatic CO2 check."
+      ))
+    }
+    automation_status_ui("co2_region", "CO2 check")
+  })
+  outputOptions(output, "co2_automation_status", suspendWhenHidden = FALSE)
+
+  output$range_automation_status <- renderUI({
+    if(!isTRUE(input$active_preprocessing)) return(NULL)
+    if(!isTRUE(input$range_decision)) return(NULL)
+    if(!isTRUE(input$range_automate)) return(NULL)
+    if(is.null(preprocessed$data)) {
+      return(tags$p(
+        class = "openspecy-automation-status text-muted",
+        "Upload spectra to run the automatic high-tail check."
+      ))
+    }
+    automation_status_ui("high_tail", "High-tail check")
+  })
+  outputOptions(output, "range_automation_status", suspendWhenHidden = FALSE)
+
 
   output$quant_ratio_bounds <- renderUI({
     if(is.null(preprocessed$data)) {
       return(tags$p(
         class = "text-muted openspecy-quantification-prompt",
-        "Upload spectra to set ratio points and ranges."
+        "Upload and process spectra to set ratio points and ranges."
       ))
     }
 
+    processed <- DataR()
     type <- input$quant_ratio_type
     if(is.null(type)) type <- "area"
     defaults <- app_ratio_slider_defaults(
-      preprocessed$data$wavenumber,
+      processed$wavenumber,
       type = type
     )
     if(identical(type, "area")) {
@@ -502,18 +627,22 @@ observeEvent(input$file, {
   observeEvent(input$quant_ratio_add, {
     if(is.null(preprocessed$data)) {
       show_alert(
-        title = "Upload spectra first",
-        text = "Ratio bounds are set from the shared uploaded wavenumber axis.",
+        title = "Process spectra first",
+        text = paste(
+          "Ratio bounds are set from the shared wavenumber axis of the",
+          "displayed processed spectra."
+        ),
         type = "warning"
       )
       return()
     }
 
     result <- tryCatch({
+      processed <- isolate(DataR())
       type <- isolate(input$quant_ratio_type)
       if(is.null(type)) type <- "area"
       defaults <- app_ratio_slider_defaults(
-        preprocessed$data$wavenumber,
+        processed$wavenumber,
         type = type
       )
       numerator <- if(identical(type, "peak")) {
@@ -538,7 +667,7 @@ observeEvent(input$file, {
         type = type,
         numerator = numerator,
         denominator = denominator,
-        axis = preprocessed$data$wavenumber
+        axis = processed$wavenumber
       )
     }, error = function(error) error)
 
@@ -593,41 +722,6 @@ observeEvent(input$file, {
     ratio_definitions()
   })
 
-  quantification_source <- reactive({
-    req(!is.null(preprocessed$data))
-    definitions <- active_ratio_definitions()
-    req(nrow(definitions) > 0L)
-
-    treatment <- input$quant_treatment
-    analysis_phase(
-      "Calculating saved ratios",
-      paste0(
-        "Preparing a non-derivative spectrum with the ", treatment,
-        " treatment and calculating ", nrow(definitions), " saved ratio",
-        if(nrow(definitions) == 1L) "." else "s."
-      ),
-      49
-    )
-    intensity_type <- if(isTRUE(input$active_preprocessing) &&
-                         isTRUE(input$intensity_decision)) {
-      input$intensity_corr
-    } else {
-      "none"
-    }
-    arguments <- list(
-      x = data(), treatment = treatment, intensity_type = intensity_type
-    )
-    if(identical(treatment, "fill_peaks")) {
-      arguments$lambda <- input$quant_fill_lambda
-      arguments$hwi <- input$quant_fill_hwi
-      arguments$iterations <- input$quant_iterations
-    } else if(identical(treatment, "modpolyfit")) {
-      arguments$degree <- input$quant_poly_degree
-      arguments$iterations <- input$quant_poly_iterations
-    }
-    do.call(app_prepare_quantification_source, arguments)
-  })
-
   # Keep analysis spectra independent of ratio-only settings so changing a
   # definition cannot rerun matching or redraw spectral intensities.
   DataR <- reactive({
@@ -639,13 +733,16 @@ observeEvent(input$file, {
     processed <- DataR()
     definitions <- active_ratio_definitions()
     if(!nrow(definitions)) return(processed)
-    treatment <- input$quant_treatment
-    app_attach_quantification(
-      processed,
-      quantification_source(),
-      definitions = definitions,
-      treatment = treatment
+    analysis_phase(
+      "Calculating saved ratios",
+      paste0(
+        "Calculating ", nrow(definitions), " saved ratio",
+        if(nrow(definitions) == 1L) "" else "s",
+        " from the displayed processed spectra."
+      ),
+      49
     )
+    app_attach_quantification(processed, definitions)
   })
 
   #The data to use in the plot. 
@@ -866,6 +963,16 @@ observeEvent(input$file, {
             type = "warning"
           )
       }
+  })
+
+  RawR_plot <- reactive({
+      req(!is.null(preprocessed$data))
+      if(!isTRUE(input$active_preprocessing)) return(NULL)
+      uploaded <- data()
+      filter_spec(
+        uploaded,
+        logic = seq_len(ncol(uploaded$spectra)) == data_click$plot
+      )
   })
   
   #The correlation matrix between the unknowns and the library. 
@@ -1277,27 +1384,29 @@ output$progress_bars <- renderUI({
       }
 
       primary <- DataR_plot()
-      reference <- selected_match_cache()
+      raw <- RawR_plot()
+      reference <- if(isTRUE(input$active_identification)) {
+        selected_match_cache()
+      } else {
+        NULL
+      }
       analysis_phase(
         "Rendering results",
-        if(is.null(reference)) {
-          "Drawing the processed spectrum. A reference overlay will appear when identification finishes."
-        } else {
-          "Drawing the processed spectrum and selected reference match."
-        },
+        paste0(
+          "Drawing the active spectrum",
+          if(is.null(raw)) "" else ", its raw overlay",
+          if(is.null(reference)) "." else ", and the selected identification match."
+        ),
         94
       )
-      plotly_spec(x = primary,
-                  x2 = reference,
-                  line = list(color = app_plot_palette$spectrum, width = 2.4),
-                  line2 = list(dash = "dot",
-                               color = app_plot_palette$reference,
-                               width = 2.4),
-                  plot_bgcolor = app_plot_palette$panel,
-                  paper_bgcolor = app_plot_palette$panel,
-                  make_rel = isTRUE(input$active_preprocessing) &&
-                    isTRUE(input$make_rel_decision),
-                  source = "B") %>%
+      app_spectrum_plot(
+        active = primary,
+        raw = raw,
+        reference = reference,
+        make_rel = isTRUE(input$active_preprocessing) &&
+          isTRUE(input$make_rel_decision),
+        source = "B"
+      ) %>%
         app_style_plotly() %>%
         config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape"))
     })
@@ -1484,6 +1593,9 @@ output$progress_bars <- renderUI({
   output$download_data <- downloadHandler(
     filename = function() {
       selection <- input$download_selection
+      if(identical(selection, "User Metadata")) {
+        return(paste0("os_metadata_", human_ts(), ".csv"))
+      }
       extension <- if(identical(selection, "Test Map")) ".zip" else ".csv"
       paste0(gsub("[^A-Za-z0-9]+", "-", selection), "-", human_ts(), extension)
     },
@@ -1571,6 +1683,8 @@ output$progress_bars <- renderUI({
         }
       } else if(identical(selection, "Thresholded Particles")) {
         write_spec(thresholded_particles(), file = file)
+      } else if(identical(selection, "User Metadata")) {
+        fwrite(data.table::as.data.table(user_metadata()), file)
       } else {
         stop("Unsupported download selection: ", selection)
       }
@@ -1656,38 +1770,22 @@ output$progress_bars <- renderUI({
   # Log events ----
   
   user_metadata <- reactive({
-    list(
-             #user_name = input$fingerprint,
-             time = human_ts(),
-             session_name = session_id,
-             data_id = digest::digest(preprocessed$data, algo = "md5"),
-             active = input$active_preprocessing,
-             adj_intens = input$intensity_decision, 
-             type = input$intensity_corr,
-            restrict_range = input$range_decision,
-             restrict_range_min = input$MinRange,
-             restrict_range_max = input$MaxRange,
-             flatten_range = input$co2_decision,
-             flatten_range_min = input$MinFlat, 
-             flatten_range_max = input$MaxFlat,
-             baseline_decision = input$baseline_decision, 
-             baseline_method = input$baseline_method,
-             subtr_baseline = input$baseline,
-             smooth_intens = input$smooth_decision, 
-             polynomial = input$smoother, 
-             window = input$smoother_window, 
-             derivative = input$derivative_order, 
-             abs = input$derivative_abs,
-             download_selection = input$download_selection,
-             id_strategy = input$id_strategy,
-             cor_threshold_decision = input$cor_threshold_decision,
-             min_cor = input$MinCor,
-             threshold_decision = input$threshold_decision, 
-             min_sn = input$MinSNR,
-             signal_selection = input$signal_selection,
-             quantification = input$active_quantification,
-             quantification_treatment = input$quant_treatment
-             )
+    settings <- stats::setNames(
+      lapply(app_user_metadata_input_ids, function(id) input[[id]]),
+      app_user_metadata_input_ids
+    )
+    app_user_metadata_snapshot(
+      settings = settings,
+      definitions = ratio_definitions(),
+      recorded_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %z"),
+      app_version = tryCatch(
+        as.character(utils::packageVersion("OpenSpecy")),
+        error = function(...) "development"
+      ),
+      session_id = session_id,
+      source = preprocessed$data,
+      file_info = input$file
+    )
   })
 
   # observe({

@@ -54,9 +54,11 @@ function nonemptyTraces(page) {
       Array.isArray(trace.x) && Array.isArray(trace.y) &&
       trace.x.length > 100 && trace.y.length > 100
     ).map((trace) => ({
+      name: trace.name,
       points: trace.x.length,
       dash: trace.line && trace.line.dash,
       color: trace.line && trace.line.color,
+      opacity: trace.opacity,
     }))
   );
 }
@@ -84,7 +86,7 @@ async function expectEnabledSwitchColors(page, inputId) {
 
 async function expectInformationalDetails(page) {
   const disclosures = page.locator("details.openspecy-info-details");
-  expect(await disclosures.count()).toBeGreaterThanOrEqual(16);
+  expect(await disclosures.count()).toBeGreaterThanOrEqual(15);
   const results = await disclosures.evaluateAll((items) => items.map((item) => {
     item.open = true;
     const summary = item.querySelector("summary");
@@ -326,7 +328,37 @@ test("local app renders spectra, matches, and one informative progress overlay",
     await tab.click();
     await expectCardCollapsed(settingsCard, false);
     await expect(tab).toHaveClass(/active/);
-    if (tabName === "Preprocessing") await expect(minMaxControl).toBeVisible();
+    if (tabName === "Preprocessing") {
+      await expect(minMaxControl).toBeVisible();
+      const rangeSwitch = page.locator("#range_automate");
+      const rangeCard = rangeSwitch.locator(
+        "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+      );
+      if (await rangeCard.evaluate((card) => card.classList.contains("collapsed-card"))) {
+        await toggleCard(rangeCard);
+      }
+      const manualBounds = page.locator("#manual_range_bounds");
+      const minRange = page.locator("#MinRange");
+      const maxRange = page.locator("#MaxRange");
+      await expect(minRange).toBeDisabled();
+      await expect(maxRange).toBeDisabled();
+      await expect(manualBounds).toHaveClass(/openspecy-inputs-disabled/);
+      expect(await manualBounds.evaluate((element) =>
+        Number(getComputedStyle(element).opacity)
+      )).toBeLessThan(0.7);
+      await rangeCard.screenshot({
+        path: testInfo.outputPath("local-app-automatic-range-disabled.png"),
+      });
+      await rangeSwitch.uncheck({ force: true });
+      await expect(minRange).toBeEnabled();
+      await expect(maxRange).toBeEnabled();
+      await expect(manualBounds).not.toHaveClass(/openspecy-inputs-disabled/);
+      await rangeSwitch.check({ force: true });
+      await expect(minRange).toBeDisabled();
+      await expect(maxRange).toBeDisabled();
+      await expect(page.locator("#openspecy_busy_overlay")).toBeHidden();
+      await toggleCard(rangeCard);
+    }
     await toggleCard(settingsCard);
     await expectCardCollapsed(settingsCard);
   }
@@ -336,7 +368,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect(page.locator("#active_quantification")).not.toBeChecked();
   await expect(page.locator("#quant_ratio_name")).toBeVisible();
   await expect(page.locator("#quant_ratio_add")).toBeVisible();
-  await expect(page.locator("#quant_ratio_bounds")).toContainText(/Upload spectra/i);
+  await expect(page.locator("#quant_ratio_bounds")).toContainText(/Upload.*spectra/i);
   await expectInformationalDetails(page);
   await expectEnabledSwitchColors(page, "active_preprocessing");
   await toggleCard(settingsCard);
@@ -455,13 +487,31 @@ test("local app renders spectra, matches, and one informative progress overlay",
   const firstMatch = page.locator("#event table tbody tr").first();
   await expect(firstMatch).toContainText(/poly\(ethylene\)/i, { timeout: 240000 });
   await expect(page.locator("#MyPlotC.js-plotly-plot .main-svg").first()).toBeVisible();
-  await expect.poll(() => nonemptyTraces(page), { timeout: 240000 }).toHaveLength(2);
+  await expect.poll(() => nonemptyTraces(page), { timeout: 240000 }).toHaveLength(3);
   const traces = await nonemptyTraces(page);
   expect(traces.every((trace) => trace.points > 100)).toBe(true);
-  expect(traces.some((trace) => trace.dash === "dot")).toBe(true);
-  const processedTrace = traces.find((trace) => trace.dash !== "dot");
+  expect(traces.map((trace) => trace.name)).toEqual([
+    "Raw spectrum", "Active spectrum", "Identification match",
+  ]);
+  const rawTrace = traces.find((trace) => trace.name === "Raw spectrum");
+  const processedTrace = traces.find((trace) => trace.name === "Active spectrum");
+  const referenceTrace = traces.find((trace) => trace.name === "Identification match");
+  expect(rawTrace).toBeDefined();
   expect(processedTrace).toBeDefined();
+  expect(referenceTrace).toBeDefined();
+  expect(String(rawTrace.color)).toMatch(/rgba\(203[, ]+213[, ]+225[, ]+0\.24\)/i);
   expect(String(processedTrace.color).toUpperCase()).toMatch(/#FFF(?:FFF)?|RGB\(255[, ]+255[, ]+255\)/);
+  expect(referenceTrace.dash).toBe("dot");
+  expect(String(referenceTrace.color).toUpperCase()).toMatch(/#FB7185|RGB\(251[, ]+113[, ]+133\)/);
+  await expect(page.locator("#MyPlotC .legendtext")).toHaveText([
+    "Raw spectrum", "Active spectrum", "Identification match",
+  ]);
+  await expect(page.locator("#range_automation_status")).toContainText(
+    /Problematic spectra: \d+ of 2 before/i
+  );
+  await expect(page.locator("#co2_automation_status")).toContainText(
+    /Problematic spectra: \d+ of 2 before/i
+  );
   await expect(page.locator("#eventmetadata table")).toBeVisible();
   await expect(page.locator("#heatmap_frame")).toBeVisible();
   await expect(page.locator("#collapse_decision")).not.toBeChecked();
@@ -505,6 +555,18 @@ test("local app renders spectra, matches, and one informative progress overlay",
   ));
   await expectDarkBlueSurface(page.locator("#download_selection + .selectize-control .selectize-input"));
   await expectDarkBlueSurface(page.locator("#event table tbody td").first());
+  const sidebarToggle = page.locator("#mycardsidebar");
+  await expect(sidebarToggle).toBeVisible();
+  await sidebarToggle.click();
+  await expect(spectraCard).toHaveClass(/direct-chat-contacts-open/);
+  const matchSidebar = spectraCard.locator(".direct-chat-contacts");
+  await expect(matchSidebar).toBeVisible();
+  await expectDarkBlueSurface(matchSidebar);
+  await expect(matchSidebar.locator("#sidebar_tables")).toBeVisible();
+  await expect(matchSidebar).toContainText("Library Matches");
+  await expect(matchSidebar).toContainText("Uploaded Metadata");
+  await sidebarToggle.click();
+  await expect(spectraCard).not.toHaveClass(/direct-chat-contacts-open/);
   await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
   await expect(overlay).toBeHidden({ timeout: 30000 });
   await page.waitForTimeout(2200);
@@ -562,7 +624,20 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await page.getByRole("link", { name: "Quantification", exact: true }).click();
   await expect(page.locator("#active_quantification")).not.toBeChecked();
   await resetProgressProbe(page);
-  await selectizeOption(page, "quant_treatment", "raw");
+  const areaSliderState = await page.evaluate(() => [
+    "quant_numerator_area", "quant_denominator_area",
+  ].map((id) => {
+    const slider = window.jQuery(`#${id}`).data("ionRangeSlider");
+    return {
+      min: slider.options.min,
+      max: slider.options.max,
+      step: slider.options.step,
+      from: slider.result.from,
+      to: slider.result.to,
+    };
+  }));
+  expect(areaSliderState.flatMap((slider) => Object.values(slider))
+    .every(Number.isInteger)).toBe(true);
   await page.locator("#quant_ratio_name").fill("Custom Carbonyl");
   await page.waitForTimeout(350);
   await page.locator("#quant_ratio_add").click();
@@ -628,6 +703,31 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect(page.locator("#download_data")).toHaveText("Download Top Matches");
   await toggleCard(downloadCard);
   await expectCardCollapsed(downloadCard, false);
+  await selectizeOption(page, "download_selection", "User Metadata");
+  await expect(page.locator("#download_data")).toHaveText("Download User Metadata");
+  await toggleCard(downloadCard);
+  await expectCardCollapsed(downloadCard);
+  const metadataDownload = await consumeDownload(page);
+  expect(metadataDownload.filename).toMatch(
+    /^os_metadata_\d{8}-\d{6}(?:\.\d+)?\.csv$/i
+  );
+  const metadataText = metadataDownload.content.toString("utf8");
+  const metadataLines = metadataText.split(/\r?\n/).filter(Boolean);
+  expect(metadataLines).toHaveLength(2);
+  expect(metadataLines[0]).toMatch(
+    /recorded_at.*app_version.*data_digest_md5.*active_preprocessing/i
+  );
+  expect(metadataLines[0]).toMatch(
+    /range_automate.*MinRange.*MaxRange.*active_identification.*id_strategy.*lib_type/i
+  );
+  expect(metadataLines[0]).toMatch(
+    /active_quantification.*quant_saved_ratio_definitions/i
+  );
+  expect(metadataText).toMatch(/Custom Carbonyl/i);
+  expect(metadataText).toMatch(/Custom Peak/i);
+  await toggleCard(downloadCard);
+  await expectCardCollapsed(downloadCard, false);
+  await selectizeOption(page, "download_selection", "Top Matches");
   const topMatchDetails = page.locator("details.openspecy-download-details");
   await expect(topMatchDetails).toBeVisible();
   await expect(topMatchDetails).not.toHaveAttribute("open", "");
@@ -639,7 +739,8 @@ test("local app renders spectra, matches, and one informative progress overlay",
   const topMatchesText = topMatchesDownload.content.toString("utf8");
   const topMatchLines = topMatchesText.split(/\r?\n/).filter(Boolean);
   expect(topMatchLines[0]).toMatch(/file_name.*col_id.*material_class.*match_val.*signal_to_noise/i);
-  expect(topMatchLines[0]).toMatch(/quantification_treatment/i);
+  expect(topMatchLines[0]).toMatch(/quantification_source/i);
+  expect(topMatchesText).toMatch(/displayed_processed_spectra/i);
   expect(topMatchLines[0]).toMatch(/quantification_definitions/i);
   expect(topMatchLines[0]).toMatch(/area_ratio_custom_carbonyl/i);
   expect(topMatchLines[0]).toMatch(/peak_ratio_custom_peak/i);
@@ -651,7 +752,10 @@ test("local app renders spectra, matches, and one informative progress overlay",
 
   await page.getByRole("link", { name: "Identification", exact: true }).click();
   await page.locator("#active_identification").uncheck({ force: true });
-  await expect.poll(() => nonemptyTraces(page), { timeout: 60000 }).toHaveLength(1);
+  await expect.poll(() => nonemptyTraces(page), { timeout: 60000 }).toHaveLength(2);
+  expect((await nonemptyTraces(page)).map((trace) => trace.name)).toEqual([
+    "Raw spectrum", "Active spectrum",
+  ]);
   await expect(page.locator("#event")).toBeHidden();
   await expect(page.locator("#download_selection")).toHaveValue("Processed Spectra");
   await expect(page.locator("#download_data")).toHaveText("Download Processed Spectra");
@@ -659,14 +763,15 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(processedDownload.filename).toMatch(/^Processed-Spectra-.*\.csv$/i);
   const processedText = processedDownload.content.toString("utf8");
   expect(processedText).toMatch(/signal_to_noise/i);
-  expect(processedText).toMatch(/quantification_treatment/i);
+  expect(processedText).toMatch(/quantification_source/i);
+  expect(processedText).toMatch(/displayed_processed_spectra/i);
   expect(processedText).toMatch(/quantification_definitions/i);
   expect(processedText).toMatch(/area_ratio_custom_carbonyl/i);
   expect(processedText).toMatch(/peak_ratio_custom_peak/i);
   expect(processedText).toMatch(/raman_hdpe/i);
   await page.locator("#active_identification").check({ force: true });
   await expect(firstMatch).toContainText(/poly\(ethylene\)/i, { timeout: 240000 });
-  await expect.poll(() => nonemptyTraces(page), { timeout: 240000 }).toHaveLength(2);
+  await expect.poll(() => nonemptyTraces(page), { timeout: 240000 }).toHaveLength(3);
   await expect(overlay).toBeHidden({ timeout: 30000 });
 
   await page.setViewportSize({ width: 390, height: 844 });

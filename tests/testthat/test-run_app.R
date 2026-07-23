@@ -134,9 +134,9 @@ test_that("bundled app defaults artifact automation and identification but not q
                      collapse = "\n")
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                    warn = FALSE), collapse = "\n")
-  expect_match(ui_source, 'app_section_switch("active_preprocessing"',
+  expect_match(ui_source, '"active_preprocessing", "Preprocessing", TRUE',
                fixed = TRUE)
-  expect_match(ui_source, 'app_section_switch("active_identification"',
+  expect_match(ui_source, '"active_identification", "Identification", TRUE',
                fixed = TRUE)
   expect_match(
     ui_source,
@@ -156,10 +156,50 @@ test_that("bundled app defaults artifact automation and identification but not q
   expect_false(grepl("Library Spectra", server_source, fixed = TRUE))
   expect_match(ui_source, 'plotlyOutput("MyPlotC", height = "45vh")',
                fixed = TRUE)
+  expect_match(
+    ui_source,
+    'shinyjs::disabled(\n        numericInput("MinRange"',
+    fixed = TRUE
+  )
+  expect_match(
+    ui_source,
+    'shinyjs::disabled(\n        numericInput("MaxRange"',
+    fixed = TRUE
+  )
+  expect_match(ui_source, "scans the full processed wavenumber axis",
+               fixed = TRUE)
+  expect_match(
+    ui_source,
+    "Manual bounds are ignored and locked while automatic mode is on",
+    fixed = TRUE
+  )
+  expect_match(server_source, "observeEvent(input$range_automate, {",
+               fixed = TRUE)
+  expect_match(server_source,
+               "manual_range <- !isTRUE(input$range_automate)",
+               fixed = TRUE)
+  expect_match(server_source,
+               'shinyjs::toggleState("MinRange", condition = manual_range)',
+               fixed = TRUE)
+  expect_match(server_source,
+               'shinyjs::toggleState("MaxRange", condition = manual_range)',
+               fixed = TRUE)
   expect_match(server_source, "app_empty_spectrum_plot()", fixed = TRUE)
   expect_match(server_source, "active_ratio_definitions", fixed = TRUE)
   expect_match(server_source, "quantified_data", fixed = TRUE)
   expect_match(server_source, "app_attach_quantification", fixed = TRUE)
+  expect_match(server_source, "RawR_plot <- reactive({", fixed = TRUE)
+  expect_match(
+    server_source,
+    "if(!isTRUE(input$active_preprocessing)) return(NULL)",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "reference <- if(isTRUE(input$active_identification))",
+    fixed = TRUE
+  )
+  expect_match(server_source, "app_spectrum_plot(", fixed = TRUE)
 })
 
 test_that("bundled app namespaces dashboard boxes", {
@@ -221,6 +261,41 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_false(grepl("app_quantification_indices", global_source,
                      fixed = TRUE))
   expect_false(grepl("quant_carbonyl_saub", ui_source, fixed = TRUE))
+  expect_match(
+    ui_source,
+    "Transforms uploaded spectra before artifact checks and identification.",
+    fixed = TRUE
+  )
+  expect_match(
+    ui_source,
+    "Matches processed spectra to references and displays the best results.",
+    fixed = TRUE
+  )
+  expect_match(
+    ui_source,
+    "These settings operate independently of both Preprocessing and Identification.",
+    fixed = TRUE
+  )
+  expect_match(ui_source, "openspecy-section-description", fixed = TRUE)
+  expect_true(all(vapply(
+    c("range_artifact_ratio", "range_automation_status",
+      "co2_artifact_ratio", "co2_automation_status"),
+    function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
+    logical(1)
+  )))
+  expect_match(
+    ui_source,
+    "Every ratio uses exactly the final processed uploaded spectrum visible",
+    fixed = TRUE
+  )
+  expect_false(grepl("quant_treatment|quant_fill_|quant_poly_", ui_source))
+  expect_false(grepl("app_prepare_quantification_source", global_source,
+                     fixed = TRUE))
+  expect_false(grepl("quantification_treatment", server_source,
+                     fixed = TRUE))
+  expect_match(server_source,
+               "app_attach_quantification(processed, definitions)",
+               fixed = TRUE)
 })
 
 test_that("bundled app exposes the on-demand historical donation choices", {
@@ -272,14 +347,52 @@ test_that("bundled app uses collapsed responsive panels and one shared theme", {
                fixed = TRUE)
   expect_false(grepl("bs4Dash::popover", ui_source, fixed = TRUE))
   expect_false(grepl('data-toggle="popover"', ui_source, fixed = TRUE))
+  expect_match(ui_source, "#spectra_box .direct-chat-contacts {",
+               fixed = TRUE)
+  expect_match(ui_source, "#sidebar_tables {", fixed = TRUE)
+  expect_match(ui_source, "#spectra_box #mycardsidebar {", fixed = TRUE)
+  expect_match(
+    ui_source,
+    "#spectra_box.direct-chat-contacts-open #mycardsidebar",
+    fixed = TRUE
+  )
+  expect_match(ui_source,
+               "background: var(--openspecy-panel) !important;",
+               fixed = TRUE)
 
   expect_match(server_source, 'id = "analysis_summary_box"', fixed = TRUE)
-  expect_match(server_source, "app_plot_palette$spectrum", fixed = TRUE)
+  expect_match(server_source, "app_spectrum_plot(", fixed = TRUE)
   expect_match(server_source, "app_ratio_metadata_columns",
                fixed = TRUE)
   expect_match(server_source, "quantified_data()$metadata", fixed = TRUE)
   expect_match(server_source, "app_summary_row(metric_items)", fixed = TRUE)
   expect_match(server_source, "app_summary_row(plot_items)", fixed = TRUE)
+  expect_match(server_source, "automation_status_ui <- function", fixed = TRUE)
+  expect_match(server_source, "Problematic spectra:", fixed = TRUE)
+  expect_match(
+    server_source,
+    'outputOptions(output, "range_automation_status", suspendWhenHidden = FALSE)',
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    'outputOptions(output, "co2_automation_status", suspendWhenHidden = FALSE)',
+    fixed = TRUE
+  )
+  expect_match(server_source,
+               "artifact_ratio = co2_artifact_ratio", fixed = TRUE)
+  expect_match(server_source,
+               "artifact_ratio = range_artifact_ratio", fixed = TRUE)
+  expect_match(server_source, "min = input$MinFlat", fixed = TRUE)
+  expect_match(server_source, "max = input$MaxFlat", fixed = TRUE)
+  expect_match(server_source,
+               'updateNumericInput(\n            session, "MinRange"',
+               fixed = TRUE)
+  expect_match(server_source,
+               'updateNumericInput(\n            session, "MaxRange"',
+               fixed = TRUE)
+  expect_match(server_source,
+               'result$diagnostics$check == "high_tail"', fixed = TRUE)
   expect_match(
     server_source,
     'outputOptions(output, "download_ui", suspendWhenHidden = FALSE)',
@@ -323,6 +436,12 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
   expect_match(server_source,
                "processed <- DataR()\n    definitions <- active_ratio_definitions()",
                fixed = TRUE)
+  expect_match(server_source,
+               "defaults <- app_ratio_slider_defaults(\n      processed$wavenumber",
+               fixed = TRUE)
+  expect_match(server_source, "axis = processed$wavenumber", fixed = TRUE)
+  expect_false(grepl("quantification_source <- reactive", server_source,
+                     fixed = TRUE))
   expect_match(bridge_source,
                "if (!analysisPhaseActive || !shinyIsBusy) return;",
                fixed = TRUE)
@@ -343,6 +462,16 @@ test_that("bundled app keeps a stable native download link", {
   expect_false(grepl('label = downloadButton("download_data"', server_source,
                      fixed = TRUE))
   expect_match(server_source, "overwrite = TRUE", fixed = TRUE)
+  expect_match(
+    server_source,
+    'return(paste0("os_metadata_", human_ts(), ".csv"))',
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    'fwrite(data.table::as.data.table(user_metadata()), file)',
+    fixed = TRUE
+  )
   expect_match(server_source, "did not create a nonempty download", fixed = TRUE)
 })
 
@@ -371,12 +500,13 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_true(is.function(env$app_theme_css))
   expect_true(is.function(env$app_summary_row))
   expect_true(is.function(env$app_style_plotly))
+  expect_true(is.function(env$app_spectrum_plot))
   expect_true(is.function(env$app_empty_spectrum_plot))
   expect_match(env$app_version_display$text, "^OpenSpecy ")
 
   expect_true(all(c(
     "canvas", "panel", "panel_2", "border", "accent", "success", "text",
-    "muted", "grid", "axis", "reference", "spectrum"
+    "muted", "grid", "axis", "raw", "reference", "spectrum"
   ) %in% names(env$app_theme)))
   theme_css <- env$app_theme_css()
   expect_match(theme_css, "--openspecy-canvas:", fixed = TRUE)
@@ -384,6 +514,7 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_match(theme_css, "--openspecy-accent:", fixed = TRUE)
   expect_match(theme_css, "--openspecy-success:", fixed = TRUE)
   expect_identical(env$app_plot_palette$primary, env$app_theme$accent)
+  expect_identical(env$app_plot_palette$raw, env$app_theme$raw)
   expect_identical(env$app_plot_palette$reference, env$app_theme$reference)
   expect_identical(env$app_plot_palette$spectrum, "#FFFFFF")
   expect_error(env$app_theme_css(list()), "required color tokens")
@@ -419,6 +550,70 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_identical(empty_plot$x$layout$xaxis$gridcolor,
                    env$app_plot_palette$grid)
 
+  axis <- c(1000, 1100, 1200)
+  active <- as_OpenSpecy(axis, data.frame(active = c(0.2, 0.8, 0.3)))
+  raw <- as_OpenSpecy(axis, data.frame(raw = c(10, 20, 12)))
+  reference <- as_OpenSpecy(axis, data.frame(reference = c(0.1, 0.7, 0.4)))
+  spectrum_plot <- plotly::plotly_build(env$app_spectrum_plot(
+    active = active, raw = raw, reference = reference
+  ))
+  spectrum_traces <- spectrum_plot$x$data
+  expect_identical(
+    vapply(spectrum_traces, `[[`, character(1), "name"),
+    c("Raw spectrum", "Active spectrum", "Identification match")
+  )
+  expect_identical(
+    vapply(spectrum_traces, function(trace) trace$line$color, character(1)),
+    c("rgba(203, 213, 225, 0.24)", env$app_plot_palette$spectrum,
+      env$app_plot_palette$reference)
+  )
+  expect_identical(
+    vapply(spectrum_traces, function(trace) trace$line$dash, character(1)),
+    c("solid", "solid", "dot")
+  )
+  expect_true(all(vapply(
+    spectrum_traces, function(trace) isTRUE(trace$showlegend), logical(1)
+  )))
+  expect_identical(spectrum_plot$x$layout$legend$orientation, "h")
+
+  active_only <- plotly::plotly_build(env$app_spectrum_plot(active))
+  expect_identical(
+    vapply(active_only$x$data, `[[`, character(1), "name"),
+    "Active spectrum"
+  )
+  raw_overlay <- plotly::plotly_build(env$app_spectrum_plot(active, raw = raw))
+  expect_identical(
+    vapply(raw_overlay$x$data, `[[`, character(1), "name"),
+    c("Raw spectrum", "Active spectrum")
+  )
+  reference_overlay <- plotly::plotly_build(env$app_spectrum_plot(
+    active, reference = reference
+  ))
+  expect_identical(
+    vapply(reference_overlay$x$data, `[[`, character(1), "name"),
+    c("Active spectrum", "Identification match")
+  )
+
+  normalized_overlays <- plotly::plotly_build(env$app_spectrum_plot(
+    active, raw = raw, reference = reference, make_rel = TRUE
+  ))
+  expect_equal(
+    as.numeric(normalized_overlays$x$data[[2L]]$y),
+    as.numeric(as.matrix(active$spectra)[, 1L])
+  )
+  expect_equal(range(normalized_overlays$x$data[[1L]]$y), c(0, 1))
+  expect_equal(range(normalized_overlays$x$data[[3L]]$y), c(0, 1))
+
+  data_table_active <- active
+  data_table_active$spectra <- data.table::as.data.table(active$spectra)
+  data_table_plot <- plotly::plotly_build(
+    env$app_spectrum_plot(data_table_active)
+  )
+  expect_identical(
+    as.numeric(data_table_plot$x$data[[1L]]$y),
+    c(0.2, 0.8, 0.3)
+  )
+
   local({
     env$load_data()
     expect_s3_class(testdata, "data.table")
@@ -427,7 +622,7 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   })
 })
 
-test_that("bundled app quantification helpers align metadata without derivatives", {
+test_that("bundled app quantifies the displayed processed spectra", {
   missing <- .openspecy_app_packages()[
     !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
             quietly = TRUE)
@@ -448,14 +643,12 @@ test_that("bundled app quantification helpers align metadata without derivatives
     first = 1 + wavenumber / max(wavenumber),
     second = 2 + wavenumber / max(wavenumber)
   )
-  source <- as_OpenSpecy(wavenumber, as.data.frame(spectra))
-  target <- source
-  target$spectra <- target$spectra^2
-
-  prepared <- env$app_prepare_quantification_source(
-    source, treatment = "raw"
+  processed <- as_OpenSpecy(wavenumber, as.data.frame(spectra))
+  processed$spectra <- processed$spectra^2
+  expect_identical(
+    env$app_quantification_source_value,
+    "displayed_processed_spectra"
   )
-  expect_identical(prepared$spectra, source$spectra)
 
   definitions <- env$app_empty_ratio_definitions()
   expect_identical(
@@ -470,13 +663,29 @@ test_that("bundled app quantification helpers align metadata without derivatives
   area_defaults <- env$app_ratio_slider_defaults(wavenumber, "area")
   expect_equal(area_defaults$min, 900)
   expect_equal(area_defaults$max, 3400)
-  expect_equal(area_defaults$step, 10)
+  expect_equal(area_defaults$step, 1)
   expect_equal(area_defaults$numerator, c(1650, 1850))
   expect_equal(area_defaults$denominator, c(1420, 1500))
+  expect_true(all(vapply(area_defaults, function(value) {
+    is.integer(value)
+  }, logical(1))))
 
   peak_defaults <- env$app_ratio_slider_defaults(wavenumber, "peak")
   expect_equal(peak_defaults$numerator, 1710)
   expect_equal(peak_defaults$denominator, 1460)
+  expect_true(all(vapply(peak_defaults, function(value) {
+    is.integer(value)
+  }, logical(1))))
+
+  fractional_defaults <- env$app_ratio_slider_defaults(
+    seq(900.25, 3400.25, by = 10), "area"
+  )
+  expect_identical(fractional_defaults$min, 901L)
+  expect_identical(fractional_defaults$max, 3400L)
+  expect_identical(fractional_defaults$step, 1L)
+  expect_true(all(vapply(fractional_defaults, function(value) {
+    is.integer(value)
+  }, logical(1))))
 
   definitions <- env$app_add_ratio_definition(
     definitions,
@@ -500,30 +709,33 @@ test_that("bundled app quantification helpers align metadata without derivatives
   )
 
   expected_area <- area_under_band(
-    prepared, min = 1650, max = 1850
+    processed, min = 1650, max = 1850
   ) / area_under_band(
-    prepared, min = 1420, max = 1500
+    processed, min = 1420, max = 1500
   )
   expect_equal(
     env$app_area_ratio(
-      prepared, numerator = c(1650, 1850),
+      processed, numerator = c(1650, 1850),
       denominator = c(1420, 1500)
     ),
     expected_area
   )
   expected_peak <- peak_ratio(
-    prepared, numerator = 1710, denominator = 1460
+    processed, numerator = 1710, denominator = 1460
   )
 
   quantified <- env$app_attach_quantification(
-    target, prepared, definitions, treatment = "raw"
+    processed, definitions
   )
 
   expect_s3_class(quantified, "OpenSpecy")
-  expect_identical(quantified$spectra, target$spectra)
-  expect_false("quantification_treatment" %in% names(target$metadata))
-  expect_identical(quantified$metadata$quantification_treatment,
-                   rep("raw", ncol(target$spectra)))
+  expect_identical(quantified$spectra, processed$spectra)
+  expect_false("quantification_source" %in% names(processed$metadata))
+  expect_false("quantification_treatment" %in% names(quantified$metadata))
+  expect_identical(
+    quantified$metadata$quantification_source,
+    rep("displayed_processed_spectra", ncol(processed$spectra))
+  )
   expect_identical(
     quantified$metadata$quantification_definitions,
     rep(
@@ -531,7 +743,7 @@ test_that("bundled app quantification helpers align metadata without derivatives
         "Custom Carbonyl (area: 1650-1850 / 1420-1500 cm^-1); ",
         "Point Check (peak: 1710 / 1460 cm^-1)"
       ),
-      ncol(target$spectra)
+      ncol(processed$spectra)
     )
   )
   expect_equal(
@@ -544,9 +756,9 @@ test_that("bundled app quantification helpers align metadata without derivatives
   )
   expect_identical(
     env$app_attach_quantification(
-      target, prepared, env$app_empty_ratio_definitions(), "raw"
+      processed, env$app_empty_ratio_definitions()
     ),
-    target
+    processed
   )
 
   expect_error(
@@ -569,24 +781,17 @@ test_that("bundled app quantification helpers align metadata without derivatives
       denominator = c(1420, 1500),
       axis = wavenumber
     ),
-    "within the uploaded wavenumber range"
+    "within the displayed processed wavenumber range"
   )
   expect_warning(
     outside <- env$app_area_ratio(
-      prepared, numerator = c(800, 850),
+      processed, numerator = c(800, 850),
       denominator = c(1420, 1500)
     ),
     "does not fully cover"
   )
   expect_true(all(is.na(outside)))
-  expect_named(outside, colnames(prepared$spectra))
-
-  expect_error(
-    env$app_attach_quantification(
-      filter_spec(target, 1), prepared, definitions, "raw"
-    ),
-    "not aligned"
-  )
+  expect_named(outside, colnames(processed$spectra))
 })
 
 test_that("bundled informational disclosures all contain detail content", {
@@ -612,7 +817,7 @@ test_that("bundled informational disclosures all contain detail content", {
     )
   )[[1]]
 
-  expect_gte(length(blocks), 16L)
+  expect_gte(length(blocks), 15L)
   expect_true(all(grepl("openspecy-info-details-body", blocks,
                         fixed = TRUE)))
   expect_true(all(nchar(trimws(gsub("<[^>]+>", " ", blocks))) > 30L))
@@ -796,21 +1001,24 @@ test_that("bundled app orders downloads from the current analysis state", {
   sys.source(file.path(app_path, "global.R"), envir = env)
 
   expect_identical(env$app_download_choices(FALSE, TRUE),
-                   c("Test Data", "Test Map"))
+                   c("Test Data", "Test Map", "User Metadata"))
   expect_identical(env$app_download_choices(TRUE, FALSE),
-                   c("Processed Spectra", "Test Data", "Test Map"))
+                   c("Processed Spectra", "Test Data", "Test Map",
+                     "User Metadata"))
   expect_identical(env$app_download_choices(TRUE, TRUE),
-                   c("Top Matches", "Processed Spectra", "Test Data", "Test Map"))
+                   c("Top Matches", "Processed Spectra", "Test Data", "Test Map",
+                     "User Metadata"))
   expect_identical(env$app_download_choices(TRUE, TRUE, collapse = TRUE),
                    c("Top Matches", "Processed Spectra", "Thresholded Particles",
-                     "Test Data", "Test Map"))
+                     "Test Data", "Test Map", "User Metadata"))
 
   expected_labels <- c(
     "Test Data" = "Download Test Data",
     "Test Map" = "Download Test Map",
     "Processed Spectra" = "Download Processed Spectra",
     "Top Matches" = "Download Top Matches",
-    "Thresholded Particles" = "Download Thresholded Particles"
+    "Thresholded Particles" = "Download Thresholded Particles",
+    "User Metadata" = "Download User Metadata"
   )
   expect_identical(
     vapply(names(expected_labels), env$app_download_label, character(1)),
@@ -818,6 +1026,83 @@ test_that("bundled app orders downloads from the current analysis state", {
   )
   expect_identical(env$app_download_label(NULL), "Download selected")
   expect_identical(env$app_download_label("unsupported"), "Download selected")
+})
+
+test_that("bundled app exports one-row metadata snapshots without restoring them", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  expected_input_ids <- c(
+    "active_preprocessing", "make_rel_decision", "smooth_decision",
+    "smoother", "derivative_order", "smoother_window", "derivative_abs",
+    "conform_decision", "conform_selection", "conform_res",
+    "intensity_decision", "intensity_corr", "baseline_decision",
+    "baseline_method", "baseline", "refit", "baseline_lambda",
+    "baseline_hwi", "iterations", "range_decision", "range_automate",
+    "range_artifact_ratio", "MinRange", "MaxRange", "co2_decision",
+    "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
+    "active_identification", "id_spec_type", "id_strategy", "lib_type",
+    "filter_lib", "lib_org", "threshold_decision", "MinSNR",
+    "signal_selection", "cor_threshold_decision", "MinCor",
+    "spatial_decision", "sigma", "xy_grid", "collapse_decision",
+    "collapse_type", "collapse_log_type", "active_quantification",
+    "quant_ratio_name", "quant_ratio_type", "quant_numerator_area",
+    "quant_denominator_area", "quant_numerator_peak",
+    "quant_denominator_peak"
+  )
+  expect_identical(env$app_user_metadata_input_ids, expected_input_ids)
+
+  settings <- stats::setNames(as.list(seq_along(expected_input_ids)),
+                              expected_input_ids)
+  settings$lib_org <- c("polymer", "fiber")
+  snapshot <- env$app_user_metadata_snapshot(
+    settings = settings,
+    definitions = env$app_empty_ratio_definitions(),
+    recorded_at = "2026-07-23 12:34:56 -0700",
+    app_version = "1.2.3",
+    session_id = "session-test"
+  )
+  provenance <- c(
+    "recorded_at", "app_version", "session_id", "data_uploaded",
+    "data_file_name", "data_file_size_bytes", "data_file_type",
+    "data_file_last_modified", "data_digest_md5", "data_spectrum_count",
+    "data_wavenumber_count", "data_wavenumber_min", "data_wavenumber_max"
+  )
+  expect_identical(
+    names(snapshot),
+    c(provenance, expected_input_ids, "quant_saved_ratio_count",
+      "quant_saved_ratio_definitions")
+  )
+  expect_true(all(lengths(snapshot) == 1L))
+  expect_false(snapshot$data_uploaded)
+  expect_true(is.na(snapshot$data_digest_md5))
+  expect_identical(snapshot$lib_org, "polymer | fiber")
+  expect_equal(nrow(data.table::as.data.table(snapshot)), 1L)
+
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                  warn = FALSE), collapse = "\n")
+  expect_false(grepl(
+    'fileInput\\s*\\(\\s*["\'](?:user_)?metadata(?:_file|_upload)?',
+    ui_source, ignore.case = TRUE, perl = TRUE
+  ))
+  expect_false(grepl(
+    "observeEvent\\s*\\(\\s*input\\$(?:user_)?metadata(?:_file|_upload)?",
+    server_source, ignore.case = TRUE, perl = TRUE
+  ))
 })
 
 test_that("bundled app updates the native download label without replacing it", {
