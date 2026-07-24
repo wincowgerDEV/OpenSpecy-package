@@ -270,6 +270,31 @@ test_that("only one workflow publishes the combined native Pages site", {
   expect_equal(sum(grepl("pak-version: repo", wasm, fixed = TRUE)), 1L)
 })
 
+test_that("pkgdown installs the checked-out package before rendering", {
+  workflow_path <- test_path("..", "..", ".github", "workflows",
+                             "pkgdown.yaml")
+  if (!file.exists(workflow_path)) {
+    skip("Repository-only workflow files are not in the package tarball")
+  }
+
+  workflow <- readLines(workflow_path, warn = FALSE)
+  install_step <- grep("Install current package source", workflow,
+                       fixed = TRUE)
+  build_step <- grep("- name: Build site", workflow, fixed = TRUE)
+
+  expect_length(install_step, 1L)
+  expect_length(build_step, 1L)
+  expect_lt(install_step, build_step)
+  expect_true(any(grepl(
+    'install.packages(".", repos = NULL, type = "source")',
+    workflow, fixed = TRUE
+  )))
+  expect_true(any(grepl(
+    'exists(".fill_peaks_smooth", namespace, inherits = FALSE)',
+    workflow, fixed = TRUE
+  )))
+})
+
 test_that("pkgdown homepage and Shiny app provide the embed handshake", {
   app_path <- run_app(test_mode = TRUE)
   ui_source <- readLines(file.path(app_path, "ui.R"), warn = FALSE)

@@ -33,6 +33,22 @@ jobs:
           extra-packages: any::pkgdown, local::.
           needs: website
 
+      # The dependency cache is keyed primarily by package metadata. During
+      # same-version development it can therefore restore an older OpenSpecy
+      # installation even though the checkout has newer R code. Force the
+      # website process to use this exact checkout before building articles.
+      - name: Install current package source
+        shell: Rscript {0}
+        run: |
+          install.packages(".", repos = NULL, type = "source")
+          source <- read.dcf("DESCRIPTION", fields = c("Package", "Version"))[1, ]
+          installed <- utils::packageDescription(source[["Package"]])
+          stopifnot(identical(installed[["Version"]], source[["Version"]]))
+          namespace <- asNamespace(source[["Package"]])
+          stopifnot(exists(".fill_peaks_smooth", namespace, inherits = FALSE))
+          cat("Using ", source[["Package"]], " ", installed[["Version"]],
+              " from ", find.package(source[["Package"]]), "\n", sep = "")
+
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE, dest_dir = "docs/pkgdown")
         shell: Rscript {0}
