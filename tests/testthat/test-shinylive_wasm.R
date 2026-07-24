@@ -295,6 +295,42 @@ test_that("pkgdown installs the checked-out package before rendering", {
   )))
 })
 
+test_that("hosted deployment exports the exact current bundled app", {
+  workflow_path <- test_path("..", "..", ".github", "workflows",
+                             "deploy-shinylive.yml")
+  smoke_path <- test_path("..", "..", "tools", "wasm",
+                          "shinylive-smoke.spec.js")
+  if (!file.exists(workflow_path) || !file.exists(smoke_path)) {
+    skip("Repository-only hosted deployment files are not in the package tarball")
+  }
+
+  workflow <- readLines(workflow_path, warn = FALSE)
+  smoke <- readLines(smoke_path, warn = FALSE)
+  install_step <- grep("Install current package and app source", workflow,
+                       fixed = TRUE)
+  build_step <- grep("- name: Build pkgdown site", workflow, fixed = TRUE)
+
+  expect_length(install_step, 1L)
+  expect_length(build_step, 1L)
+  expect_lt(install_step, build_step)
+  expect_true(any(grepl(
+    'install.packages(".", repos = NULL, type = "source")',
+    workflow, fixed = TRUE
+  )))
+  expect_true(any(grepl("tools::md5sum", workflow, fixed = TRUE)))
+  expect_true(any(grepl('--app-dir "inst/shiny"', workflow, fixed = TRUE)))
+  expect_true(any(grepl("for attempt in 1 2", workflow, fixed = TRUE)))
+  expect_true(any(grepl("Upload hosted smoke diagnostics", workflow,
+                        fixed = TRUE)))
+  expect_true(any(grepl("pinned-wasm-library.json", workflow, fixed = TRUE)))
+  expect_true(any(grepl(
+    'grep -q "${PACKAGE_SHA}" <<< "$pin_body"', workflow, fixed = TRUE
+  )))
+  expect_true(any(grepl("test.setTimeout(900000)", smoke, fixed = TRUE)))
+  expect_true(any(grepl("timeout: 600000", smoke, fixed = TRUE)))
+  expect_true(any(grepl("toBeChecked()", smoke, fixed = TRUE)))
+})
+
 test_that("pkgdown homepage and Shiny app provide the embed handshake", {
   app_path <- run_app(test_mode = TRUE)
   ui_source <- readLines(file.path(app_path, "ui.R"), warn = FALSE)

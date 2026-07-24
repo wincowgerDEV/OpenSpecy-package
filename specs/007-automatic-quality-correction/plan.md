@@ -1,7 +1,7 @@
 # Feature Plan: Automatic Spectral Quality Correction
 
 **Feature dir**: `specs/007-automatic-quality-correction`
-**Updated**: 2026-07-23
+**Updated**: 2026-07-24
 **Review budget**: Keep this file under 100 nonblank lines.
 
 ## Goal
@@ -72,7 +72,7 @@
 - `tests/testthat/`: Headless helper/source assertions for ordering, strict acceptance/rollback, controls, progress, content migration, downloads, and installed assets.
 - `tools/shiny-local-smoke.spec.js`: Real browser coverage for initial/processed/matched plots, five principal downloads including User Metadata, correction phases, progress, console errors, and desktop/mobile presentation.
 - `pkgdown/index.md` and optional source CSS: Port information and links; `README.md` stays free of the interactive embed. `NEWS.md`: record user-visible fixes.
-- Deployment workflows install `pak` from the configured repository, force pkgdown to reinstall the exact checkout before rendering, preserve pins/reference libraries, and verify only the actual hard runtime closure.
+- Deployment workflows force pkgdown/Shinylive to install the exact checkout, checksum the bundled app, preserve pins/libraries, retry only transient export, and verify the actual runtime closure.
 
 ## Work Checklist
 
@@ -96,7 +96,7 @@
 - [x] Unify quantification with displayed processed spectra, use integer sliders, and update export provenance/help/tests.
 - [x] Theme the cog sidebar, add master-row descriptions, and render/test conditional raw/active/match plot legend overlays.
 - [x] Surface detector-ratio controls and correction counts, synchronize accepted automatic tail bounds, and verify CO2 uses visible region inputs.
-- [x] Remove the compiled Fill Peaks dependency, guard the wasm closure, and prevent same-version pkgdown caches from rendering a stale installed package.
+- [x] Remove the compiled dependency, guard wasm closure, and ensure pkgdown/Shinylive deploy the exact current checkout despite caches and WebAssembly timing.
 
 ## Verification
 
@@ -104,7 +104,7 @@
 - App probe: process representative Test Map data, record before/candidate/accepted pass counts for CO2 and tail checks, and verify all `OpenSpecy` invariants.
 - Browser: run local Playwright smoke; require five genuine nonempty downloads including the settings snapshot, disabled automatic/manual range states, themed sidebar, integer ratio sliders, displayed-data quantification, conditional raw/active/match legend, correction counts/bound updates, responsive layouts, and no severe console/server errors.
 - Broader gates: inspect git/generated diffs, run `devtools::test()` once, static hosted-source tests, size/asset audit, matching-artifact preflight only if available, and R CMD check when explicitly requested.
-- Result: pkgdown/hosted focus passed 73 assertions and the full suite passed; an isolated exact-checkout install plus full pkgdown build succeeded, the Fill Peaks benchmark improved from 0.17 s to 0.02 s, and the resolver found 116 wasm roots without `baseline`; matching Actions confirmation requires a maintainer push.
+- Result: native browser, hosted focus, and full tests passed; an isolated 13-file checksum and Shinylive 0.5.0 export passed, and deployment now verifies the public pinned commit; confirmation requires a maintainer push.
 
 ## Risks And Open Questions
 

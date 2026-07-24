@@ -8,7 +8,10 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
   const consoleErrors = [];
   const runtimeDiagnostics = [];
 
-  test.setTimeout(420000);
+  // WebAssembly startup, preprocessing, and identification share one browser
+  // thread. Keep the overall budget above the sum of those real phases while
+  // retaining shorter per-action timeouts for selector failures.
+  test.setTimeout(900000);
   expect(expectedVersion).toBeTruthy();
 
   page.on("console", (message) => {
@@ -82,6 +85,9 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
   await expect(fullscreenButton).toBeEnabled();
   const fileInput = appFrame.locator("#file, input[type='file']").first();
   await expect(fileInput).toBeAttached({ timeout: 180000 });
+  const identificationSwitch = appFrame.locator("#active_identification").first();
+  await expect(identificationSwitch).toBeChecked();
+  const firstMatch = appFrame.locator("#event table tbody tr").first();
 
   await embed.scrollIntoViewIfNeeded();
   await page.screenshot({
@@ -105,55 +111,50 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
   const uploadPath =
     process.env.OPENSPECY_SMOKE_UPLOAD ||
     path.resolve("inst", "extdata", "raman_hdpe.csv");
-  if (fs.existsSync(uploadPath)) {
-    await page.evaluate(() => {
-      const chooserProbe = document.createElement("input");
-      chooserProbe.id = "openspecy-file-chooser-probe";
-      chooserProbe.type = "file";
-      chooserProbe.style.position = "fixed";
-      chooserProbe.style.inset = "8px auto auto 8px";
-      chooserProbe.style.zIndex = "3000";
-      document.body.appendChild(chooserProbe);
-    });
-    const chooserPromise = page.waitForEvent("filechooser");
-    await page.locator("#openspecy-file-chooser-probe").click();
-    const chooser = await chooserPromise;
-    await chooser.setFiles(uploadPath);
-    await expect(embed).toHaveClass(/\bis-fullscreen\b/);
-    await page.locator("#openspecy-file-chooser-probe").evaluate((probe) => {
-      probe.remove();
-    });
+  expect(fs.existsSync(uploadPath)).toBe(true);
+  await page.evaluate(() => {
+    const chooserProbe = document.createElement("input");
+    chooserProbe.id = "openspecy-file-chooser-probe";
+    chooserProbe.type = "file";
+    chooserProbe.style.position = "fixed";
+    chooserProbe.style.inset = "8px auto auto 8px";
+    chooserProbe.style.zIndex = "3000";
+    document.body.appendChild(chooserProbe);
+  });
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.locator("#openspecy-file-chooser-probe").click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(uploadPath);
+  await expect(embed).toHaveClass(/\bis-fullscreen\b/);
+  await page.locator("#openspecy-file-chooser-probe").evaluate((probe) => {
+    probe.remove();
+  });
 
-    await fileInput.setInputFiles(uploadPath);
-    await expect(appFrame.locator("body")).toContainText("Upload complete", {
-      timeout: 180000,
+  await appFrame.locator("html").evaluate((html) => {
+    window.__openspecyBusyTransitions = [];
+    window.__openspecyBusyObserver = new MutationObserver(() => {
+      window.__openspecyBusyTransitions.push({
+        at: performance.now(),
+        visible: html.classList.contains("openspecy-busy-visible"),
+      });
     });
-    await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
-      timeout: 240000,
+    window.__openspecyBusyObserver.observe(html, {
+      attributes: true,
+      attributeFilter: ["class"],
     });
-    await expect(embed).toHaveClass(/\bis-fullscreen\b/);
-  }
+  });
 
-  const identificationSwitch = appFrame.locator("#active_identification").first();
+  await fileInput.setInputFiles(uploadPath);
+  await expect(firstMatch).toContainText(/poly\(ethylene\)/i, {
+    timeout: 600000,
+  });
+  await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  await expect(embed).toHaveClass(/\bis-fullscreen\b/);
+  await expect(identificationSwitch).toBeChecked();
+
   if (await identificationSwitch.count()) {
-    await appFrame.locator("html").evaluate((html) => {
-      window.__openspecyBusyTransitions = [];
-      window.__openspecyBusyObserver = new MutationObserver(() => {
-        window.__openspecyBusyTransitions.push({
-          at: performance.now(),
-          visible: html.classList.contains("openspecy-busy-visible"),
-        });
-      });
-      window.__openspecyBusyObserver.observe(html, {
-        attributes: true,
-        attributeFilter: ["class"],
-      });
-    });
-    await identificationSwitch.check({ force: true });
-    const firstMatch = appFrame.locator("#event table tbody tr").first();
-    await expect(firstMatch).toContainText(/poly\(ethylene\)/i, {
-      timeout: 240000,
-    });
     await appFrame.locator("html").evaluate(() => {
       window.__openspecyResultSeenAt = performance.now();
     });

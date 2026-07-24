@@ -58,6 +58,31 @@ jobs:
           needs: website
           pak-version: repo
 
+      # setup-r-dependencies can restore a same-version OpenSpecy installation
+      # from cache. Reinstall this checkout and prove that its bundled app is
+      # byte-for-byte identical to the canonical inst/shiny source.
+      - name: Install current package and app source
+        shell: Rscript {0}
+        run: |
+          install.packages(".", repos = NULL, type = "source")
+          source <- read.dcf("DESCRIPTION", fields = c("Package", "Version"))[1, ]
+          installed <- utils::packageDescription(source[["Package"]])
+          stopifnot(identical(installed[["Version"]], source[["Version"]]))
+          installed_app <- system.file("shiny", package = source[["Package"]])
+          stopifnot(nzchar(installed_app), dir.exists(installed_app))
+          source_files <- list.files("inst/shiny", recursive = TRUE,
+                                     all.files = TRUE, no.. = TRUE)
+          installed_files <- list.files(installed_app, recursive = TRUE,
+                                        all.files = TRUE, no.. = TRUE)
+          stopifnot(identical(source_files, installed_files))
+          source_md5 <- unname(tools::md5sum(file.path("inst/shiny", source_files)))
+          installed_md5 <- unname(tools::md5sum(file.path(installed_app,
+                                                          installed_files)))
+          stopifnot(identical(source_md5, installed_md5))
+          cat("Using current ", source[["Package"]], " ",
+              installed[["Version"]], " with ", length(source_files),
+              " verified app files\n", sep = "")
+
       - name: Verify pinned Shinylive toolchain
         shell: Rscript {0}
         run: |
@@ -119,13 +144,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          Rscript tools/wasm/prepare-shinylive-app.R \
-            --artifact-ref "${OPENSPECY_WASM_ARTIFACT_REF}" \
-            --package-sha "${PACKAGE_SHA}" \
-            --library-dir "_wasm/libraries" \
-            --out-dir "_site/app" \
-            --work-dir "_wasm/app-source" \
-            --manifest-out "_wasm/wasm-app-manifest.json"
+          for attempt in 1 2; do
+            echo "Shinylive export attempt ${attempt}/2"
+            if Rscript tools/wasm/prepare-shinylive-app.R \
+              --app-dir "inst/shiny" \
+              --artifact-ref "${OPENSPECY_WASM_ARTIFACT_REF}" \
+              --package-sha "${PACKAGE_SHA}" \
+              --library-dir "_wasm/libraries" \
+              --out-dir "_site/app" \
+              --work-dir "_wasm/app-source" \
+              --manifest-out "_wasm/wasm-app-manifest.json"; then
+              break
+            fi
+            if [[ "${attempt}" == "2" ]]; then
+              exit 1
+            fi
+          done
 
       - name: Bundle pinned wasm package library
         shell: bash
@@ -155,10 +189,28 @@ jobs:
           npm install --no-save @playwright/test@1.61.1 http-server@14.1.1
           npx playwright install chromium
           npx http-server _site -p 8080 > /tmp/openspecy-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+          set +e
           SHINYLIVE_SMOKE_URL=http://127.0.0.1:8080/ \
           OPENSPECY_EXPECTED_VERSION="${PACKAGE_VERSION}" \
             npx playwright test tools/wasm/shinylive-smoke.spec.js \
               --output _wasm/playwright-results
+          smoke_status=$?
+          set -e
+          cp /tmp/openspecy-http.log _wasm/openspecy-http.log || true
+          exit "${smoke_status}"
+
+      - name: Upload hosted smoke diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: openspecy-hosted-smoke-${{ env.PACKAGE_SHA }}
+          path: |
+            _wasm/playwright-results
+            _wasm/openspecy-http.log
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Upload combined site build artifact
         uses: actions/upload-artifact@v7
@@ -189,6 +241,8 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      PACKAGE_SHA: ${{ github.event.workflow_run.head_sha || inputs.package_sha || github.sha }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -207,14 +261,18 @@ jobs:
           pages_url="${{ steps.deployment.outputs.page_url }}"
           public_url="${pages_url%/}/"
           app_url="${public_url}app/"
+          pin_url="${app_url}pinned-wasm-library.json"
           for attempt in {1..40}; do
             if root_body=$(curl --fail --silent --show-error "${public_url}") && \
-               app_body=$(curl --fail --silent --show-error "${app_url}"); then
+               app_body=$(curl --fail --silent --show-error "${app_url}") && \
+               pin_body=$(curl --fail --silent --show-error "${pin_url}"); then
               grep -q "data-openspecy-embed" <<< "$root_body"
               grep -q 'src="app/"' <<< "$root_body"
               grep -q "runExportedApp" <<< "$app_body"
-              echo "Verified ${public_url} and ${app_url}"
-              exit 0
+              if grep -q "${PACKAGE_SHA}" <<< "$pin_body"; then
+                echo "Verified ${public_url} and current app ${PACKAGE_SHA}"
+                exit 0
+              fi
             fi
             echo "Waiting for GitHub Pages deployment (${attempt}/40)..."
             sleep 15
