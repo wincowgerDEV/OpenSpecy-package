@@ -76,7 +76,8 @@ hyperspectral_pca_kmeans <- function(x, n_components = 10L, k = 100,
   )
 }
 
-result <- hyperspectral_pca_kmeans("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\test_1um.h5", 
+#input file path in console
+result <- hyperspectral_pca_kmeans(file, 
                                   k = 3,
                                   steps = c("kmeans")
                                   )
