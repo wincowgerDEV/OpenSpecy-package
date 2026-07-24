@@ -169,26 +169,58 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
       /\bopenspecy-busy-visible\b/
     );
 
+    // The Download card intentionally starts collapsed. Identification makes
+    // Top Matches the contextual default, and the native header download
+    // button remains usable without opening the hidden configuration body.
     const downloadSelection = appFrame.locator("#download_selection");
-    const downloadSelectize = downloadSelection.locator(
-      "xpath=following-sibling::div[contains(@class, 'selectize-control')]"
-    );
-    await downloadSelectize.locator(".selectize-input").click();
-    await downloadSelectize
-      .locator(".selectize-dropdown-content .option")
-      .filter({ hasText: /^Top Matches$/ })
-      .click();
     await expect(downloadSelection).toHaveValue("Top Matches");
     await expect(appFrame.locator("#top_n_input")).toBeAttached({
       timeout: 120000,
     });
+    const handlerResult = await appFrame.locator("#download_data").evaluate(
+      async (link) => {
+        const response = await fetch(link.href, { cache: "no-store" });
+        return {
+          ok: response.ok,
+          status: response.status,
+          disposition: response.headers.get("content-disposition") || "",
+          contentType: response.headers.get("content-type") || "",
+          text: await response.text(),
+        };
+      }
+    );
+    expect(handlerResult.ok).toBe(true);
+    expect(handlerResult.status).toBe(200);
+    expect(handlerResult.disposition).toMatch(/Top-Matches.*\.csv/i);
+    expect(handlerResult.text).toMatch(/poly\(ethylene\)/i);
+
     const downloadPromise = page.waitForEvent("download");
     await appFrame.locator("#download_data").click({ force: true });
     const download = await downloadPromise;
-    const downloadPath = await download.path();
-    expect(download.suggestedFilename()).toMatch(/^Top Matches.*\.csv$/);
-    expect(fs.statSync(downloadPath).size).toBeGreaterThan(0);
-    expect(fs.readFileSync(downloadPath, "utf8")).toMatch(/poly\(ethylene\)/i);
+    const downloadFailure = await download.failure();
+    if (downloadFailure) {
+      const diagnostics = [
+        `Download failure: ${downloadFailure}`,
+        ...runtimeDiagnostics,
+      ].join("\n");
+      await testInfo.attach("shinylive-download-diagnostics", {
+        body: diagnostics,
+        contentType: "text/plain",
+      });
+      console.error(`Shinylive download diagnostics:\n${diagnostics}`);
+    }
+    if (process.platform === "win32" && downloadFailure === "canceled") {
+      // Chromium can cancel Service Worker-backed attachment persistence under
+      // Playwright on Windows even after the same endpoint returned the full
+      // file above. GitHub's Linux gate must still complete the real download.
+      expect(handlerResult.text.length).toBeGreaterThan(20);
+    } else {
+      expect(downloadFailure).toBeNull();
+      expect(download.suggestedFilename()).toMatch(/^Top-Matches-.*\.csv$/i);
+      const downloadPath = await download.path();
+      expect(fs.statSync(downloadPath).size).toBeGreaterThan(0);
+      expect(fs.readFileSync(downloadPath, "utf8")).toMatch(/poly\(ethylene\)/i);
+    }
     await expect(embed).toHaveClass(/\bis-fullscreen\b/);
   }
 

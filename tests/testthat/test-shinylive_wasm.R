@@ -329,6 +329,15 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_true(any(grepl("test.setTimeout(900000)", smoke, fixed = TRUE)))
   expect_true(any(grepl("timeout: 600000", smoke, fixed = TRUE)))
   expect_true(any(grepl("toBeChecked()", smoke, fixed = TRUE)))
+  expect_true(any(grepl('toHaveValue("Top Matches")', smoke,
+                        fixed = TRUE)))
+  expect_false(any(grepl("downloadSelectize", smoke, fixed = TRUE)))
+  expect_true(any(grepl("shinylive-download-diagnostics", smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('fetch(link.href, { cache: "no-store" })', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('process.platform === "win32"', smoke,
+                        fixed = TRUE)))
 })
 
 test_that("pkgdown homepage and Shiny app provide the embed handshake", {
