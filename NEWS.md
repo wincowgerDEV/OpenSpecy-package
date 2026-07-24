@@ -1,5 +1,7 @@
 # OpenSpecy 1.7.1
 
+- Added a reusable workflow for compressing hyperspectral images with PCA and
+  K-means (`k = 100`) and plotting pixel cluster groups with `heatmap_spec()`.
 - Fixed bundled Shiny app startup when another attached package caused R to
   resolve dashboard `box()` calls to `graphics::box()`.
 - Restored the empty spectrum canvas and made uploaded spectra render before
