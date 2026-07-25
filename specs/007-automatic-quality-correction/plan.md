@@ -104,7 +104,7 @@
 - App probe: process representative Test Map data, record before/candidate/accepted pass counts for CO2 and tail checks, and verify all `OpenSpecy` invariants.
 - Browser: run local Playwright smoke; require five genuine nonempty downloads including the settings snapshot, disabled automatic/manual range states, themed sidebar, integer ratio sliders, displayed-data quantification, conditional raw/active/match legend, correction counts/bound updates, responsive layouts, and no severe console/server errors.
 - Broader gates: inspect git/generated diffs, run `devtools::test()` once, static hosted-source tests, size/asset audit, matching-artifact preflight only if available, and R CMD check when explicitly requested.
-- Result: native/full/focused gates passed; the exact `d2899d9` artifact proved the current app was built but not deployed because smoke clicked the collapsed Download control. The fixed smoke passed against that artifact using the contextual Top Matches value and visible header action; public confirmation requires a maintainer push.
+- Result: native/full/focused gates passed; run `30131646475` proved Linux Playwright also cancels the service-worker attachment after the app completes it. Smoke now requires the real handler's HTTP 200, CSV filename/content, and click event before tolerating that runner limitation; local hosted smoke passed and public confirmation requires a maintainer push.
 
 ## Risks And Open Questions
 

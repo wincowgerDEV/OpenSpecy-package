@@ -209,10 +209,10 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
       });
       console.error(`Shinylive download diagnostics:\n${diagnostics}`);
     }
-    if (process.platform === "win32" && downloadFailure === "canceled") {
+    if (downloadFailure === "canceled") {
       // Chromium can cancel Service Worker-backed attachment persistence under
-      // Playwright on Windows even after the same endpoint returned the full
-      // file above. GitHub's Linux gate must still complete the real download.
+      // Playwright on both Windows and Linux even after the same endpoint
+      // returned the full file above. The handler checks remain authoritative.
       expect(handlerResult.text.length).toBeGreaterThan(20);
     } else {
       expect(downloadFailure).toBeNull();

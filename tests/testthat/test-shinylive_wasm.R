@@ -336,8 +336,10 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl('fetch(link.href, { cache: "no-store" })', smoke,
                         fixed = TRUE)))
-  expect_true(any(grepl('process.platform === "win32"', smoke,
+  expect_true(any(grepl('downloadFailure === "canceled"', smoke,
                         fixed = TRUE)))
+  expect_false(any(grepl('process.platform === "win32"', smoke,
+                         fixed = TRUE)))
 })
 
 test_that("pkgdown homepage and Shiny app provide the embed handshake", {
