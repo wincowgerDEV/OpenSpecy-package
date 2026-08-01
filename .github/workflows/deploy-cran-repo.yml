@@ -33,51 +33,14 @@ jobs:
           extra-packages: any::jsonlite
           pak-version: repo
 
-      - name: Resolve complete app package closure
-        id: package-roots
-        shell: bash
+      # This invokes the same digest-pinned Docker driver as the local
+      # clean-commit pre-push rehearsal, preventing CI/local build drift.
+      - name: Build and verify wasm package repository
+        shell: pwsh
         run: |
-          set -euo pipefail
-          mkdir -p "_wasm/pinned/metadata"
-          Rscript tools/wasm/resolve-wasm-package-roots.R \
-            inst/shiny/wasm/app-package-roots.txt \
-            _wasm/resolved-package-roots.txt
-          {
-            echo "packages<<EOF"
-            cat _wasm/resolved-package-roots.txt
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-          cp _wasm/resolved-package-roots.txt \
-            "_wasm/pinned/metadata/resolved-package-roots.txt"
-
-      - name: Record pinned app manifest
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "_wasm/pinned/metadata"
-          Rscript tools/wasm/write-app-manifest.R \
-            --artifact-ref "openspecy-wasm-${PACKAGE_SHA}" \
-            --package-sha "${PACKAGE_SHA}" \
-            --out "_wasm/pinned/metadata/wasm-app-manifest.json"
-          cp inst/shiny/wasm/app-package-roots.txt "_wasm/pinned/metadata/app-package-roots.txt"
-          cp inst/shiny/wasm/library-types.txt "_wasm/pinned/metadata/library-types.txt"
-
-      - name: Build wasm package repository
-        uses: r-wasm/actions/build-rwasm@v3
-        with:
-          packages: ${{ steps.package-roots.outputs.packages }}
-          repo-path: _wasm/pinned/repo
-          image-path: _wasm/pinned/image
-          strip: demo, doc, examples, help, html, include, tests, vignette
-
-      - name: Check wasm package repository contents
-        shell: bash
-        run: |
-          set -euo pipefail
-          Rscript tools/wasm/check-wasm-repo.R \
-            "_wasm/pinned/repo" \
-            "_wasm/pinned/image" \
-            "_wasm/pinned/metadata/resolved-wasm-packages.json"
+          ./tools/wasm/build-wasm-repo.ps1 `
+            -PackageSha $env:PACKAGE_SHA `
+            -OutDir "_wasm/pinned"
 
       - name: Upload pinned wasm build artifact
         uses: actions/upload-artifact@v7

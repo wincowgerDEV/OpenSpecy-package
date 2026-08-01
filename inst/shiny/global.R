@@ -1076,7 +1076,7 @@ app_category_colorscale <- function(values) {
 
 app_quality_checks <- c(
   "silent_region", "missing_values", "flat_spectrum",
-  "negative_intensity", "low_snr"
+  "negative_intensity"
 )
 
 app_automatic_quality_checks <- c(
@@ -1089,6 +1089,10 @@ app_quality_ui_report <- function(report) {
     stop("Quality reports must include 'status', 'test_id', and 'check'.",
          call. = FALSE)
   }
+  # assess_spec() returns a data.table. Convert before filtering so helper
+  # arguments such as `status` cannot be shadowed by same-named columns in
+  # data.table's non-standard evaluation.
+  report <- as.data.frame(report, stringsAsFactors = FALSE)
   report <- report[!report$check %in% app_automatic_quality_checks, ,
                    drop = FALSE]
   report$status <- ifelse(
@@ -1097,16 +1101,141 @@ app_quality_ui_report <- function(report) {
   report
 }
 
+app_quality_status_report <- function(report, status) {
+  target_status <- match.arg(status, c("warning", "success"))
+  if(is.null(report) || !is.data.frame(report) || !nrow(report)) {
+    return(data.frame())
+  }
+  report <- app_quality_ui_report(report)
+  report[
+    report$status == target_status & !duplicated(report$test_id), ,
+    drop = FALSE
+  ]
+}
+
+app_threshold_quality_report <- function(
+    spectrum_id,
+    snr_value = NULL,
+    snr_threshold = NULL,
+    signal_metric = "run_sig_over_noise",
+    correlation_value = NULL,
+    correlation_threshold = NULL) {
+  empty <- function() {
+    data.frame(
+      status = character(), test_id = character(), check = character(),
+      description = character(), likely_cause = character(),
+      potential_fix = character(), metric = character(), value = numeric(),
+      threshold = numeric(), region_min = numeric(), region_max = numeric(),
+      stringsAsFactors = FALSE
+    )
+  }
+  if(length(spectrum_id) != 1L || is.na(spectrum_id) ||
+     !nzchar(as.character(spectrum_id))) {
+    stop("Threshold quality findings require one spectrum ID.",
+         call. = FALSE)
+  }
+
+  signal_details <- switch(
+    match.arg(signal_metric, c(
+      "run_sig_over_noise", "sig_times_noise", "log_tot_sig"
+    )),
+    run_sig_over_noise = list(
+      label = "Signal-to-noise ratio", metric = "snr"
+    ),
+    sig_times_noise = list(
+      label = "Signal times noise", metric = "signal_times_noise"
+    ),
+    log_tot_sig = list(
+      label = "Total signal", metric = "total_signal"
+    )
+  )
+
+  make_row <- function(check, label, metric, observed, threshold,
+                       warning_cause, warning_fix) {
+    if(is.null(threshold)) return(NULL)
+    if(!is.numeric(threshold) || length(threshold) != 1L ||
+       !is.finite(threshold)) {
+      stop(label, " threshold must be one finite number.", call. = FALSE)
+    }
+    if(!is.numeric(observed) || length(observed) != 1L) {
+      stop(label, " value must be one numeric value.", call. = FALSE)
+    }
+    observed <- as.numeric(observed)
+    threshold <- as.numeric(threshold)
+    # Infinite SNR is a valid result when signal is positive and estimated
+    # noise is zero. Compare infinities normally; only missing/NaN values are
+    # unavailable.
+    evaluable <- !is.na(observed)
+    passed <- evaluable && observed > threshold
+    relation <- if(!evaluable) {
+      "could not be evaluated against"
+    } else if(passed) {
+      "is above"
+    } else if(observed < threshold) {
+      "is below"
+    } else {
+      "is equal to and does not exceed"
+    }
+    observed_text <- if(evaluable) {
+      format(signif(observed, 5), trim = TRUE)
+    } else {
+      "an unavailable value"
+    }
+    data.frame(
+      status = if(passed) "success" else "warning",
+      test_id = paste("app_threshold", spectrum_id, check, sep = ":"),
+      check = check,
+      description = paste(
+        label, observed_text, relation, "the configured threshold",
+        paste0(format(signif(threshold, 5), trim = TRUE), ".")
+      ),
+      likely_cause = if(passed) NA_character_ else if(evaluable) {
+        warning_cause
+      } else {
+        paste(label, "was unavailable for the selected spectrum.")
+      },
+      potential_fix = if(passed) "No action required." else warning_fix,
+      metric = metric,
+      value = observed,
+      threshold = threshold,
+      region_min = NA_real_,
+      region_max = NA_real_,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  rows <- Filter(Negate(is.null), list(
+    make_row(
+      "snr_threshold", signal_details$label, signal_details$metric,
+      snr_value, snr_threshold,
+      "The selected spectrum has less signal separation than requested.",
+      paste(
+        "Review the SNR threshold and acquisition settings; consider",
+        "recollecting the spectrum if the weak signal is unexpected."
+      )
+    ),
+    make_row(
+      "correlation_threshold", "Correlation", "correlation",
+      correlation_value, correlation_threshold,
+      "The selected spectrum's best library match is weaker than requested.",
+      paste(
+        "Review the correlation threshold, preprocessing, and candidate",
+        "matches before interpreting the identification."
+      )
+    )
+  ))
+  if(!length(rows)) return(empty())
+  do.call(rbind, rows)
+}
+
 app_quality_counts <- function(report) {
   statuses <- c("warning", "success")
   if(is.null(report) || !is.data.frame(report) || !nrow(report)) {
     return(stats::setNames(rep.int(0L, length(statuses)), statuses))
   }
-  report <- app_quality_ui_report(report)
-  unique_report <- report[!duplicated(report$test_id), , drop = FALSE]
   stats::setNames(
     vapply(statuses, function(status) {
-      sum(unique_report$status == status, na.rm = TRUE)
+      nrow(app_quality_status_report(report, status))
     }, integer(1)),
     statuses
   )
@@ -1151,12 +1280,13 @@ app_quality_evidence <- function(row) {
 
 app_quality_modal_content <- function(report, status) {
   status <- match.arg(status, c("warning", "success"))
-  if(is.null(report) || !nrow(report)) {
+  if(is.null(report)) {
     return(tags$p("Upload a spectrum to run the quality checks."))
   }
-  report <- app_quality_ui_report(report)
-  rows <- report[report$status == status & !duplicated(report$test_id), ,
-                 drop = FALSE]
+  if(!is.data.frame(report)) {
+    stop("Quality modal content requires a data frame or NULL.", call. = FALSE)
+  }
+  rows <- app_quality_status_report(report, status)
   if(!nrow(rows)) {
     return(tags$p(paste0("No ", status, " findings for this spectrum.")))
   }
@@ -1164,8 +1294,10 @@ app_quality_modal_content <- function(report, status) {
     row <- rows[i, , drop = FALSE]
     tags$section(
       class = paste("openspecy-quality-finding", paste0(
-        "openspecy-quality-finding-", status
+        "openspecy-quality-finding-", row$status[[1L]]
       )),
+      `data-quality-status` = row$status[[1L]],
+      `data-quality-test-id` = row$test_id[[1L]],
       tags$h4(gsub("_", " ", row$check[[1L]], fixed = TRUE)),
       tags$p(tags$strong("Finding: "), row$description[[1L]]),
       tags$p(tags$strong("Evidence: "), app_quality_evidence(row)),

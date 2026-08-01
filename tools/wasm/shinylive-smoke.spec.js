@@ -72,15 +72,57 @@ async function probeDownloadEndpoint(link) {
   }
 }
 
-async function selectDownload(downloadSelection, downloadLink, value) {
+async function selectDownload(
+  downloadSelection,
+  downloadLink,
+  value,
+  { timeout = 300000, stableFor = 0 } = {}
+) {
   await downloadSelection.evaluate((select, nextValue) => {
     if (!select.selectize) {
       throw new Error("Download selection is missing its Selectize controller");
     }
     select.selectize.setValue(nextValue);
   }, value);
-  await expect(downloadSelection).toHaveValue(value);
-  await expect(downloadLink).toContainText(`Download ${value}`);
+  await expect(downloadSelection).toHaveValue(value, { timeout });
+  await expect(downloadLink).toContainText(`Download ${value}`, { timeout });
+  await expect(downloadLink).toHaveAttribute(
+    "aria-label", `Download ${value}`, { timeout }
+  );
+  if (stableFor > 0) {
+    await downloadLink.evaluate((_, delay) => new Promise((resolve) => {
+      setTimeout(resolve, delay);
+    }), stableFor);
+    await expect(downloadSelection).toHaveValue(value);
+    await expect(downloadLink).toContainText(`Download ${value}`);
+  }
+}
+
+async function waitForStableDownloadGeneration(
+  downloadSelection,
+  requiredOption,
+  { timeout = 300000, stableFor = 2000 } = {}
+) {
+  await expect.poll(async () => downloadSelection.evaluate(
+    (select, expected) => {
+      const options = Object.keys(select.selectize ? select.selectize.options : {});
+      if (!options.includes(expected)) return -1;
+      const signature = options.join("\u001f");
+      const now = performance.now();
+      const previous = window.__openspecyDownloadGeneration;
+      if (!previous || previous.node !== select ||
+          previous.signature !== signature) {
+        window.__openspecyDownloadGeneration = {
+          node: select,
+          signature,
+          since: now,
+        };
+        return 0;
+      }
+      return now - previous.since;
+    },
+    requiredOption
+  ), { timeout }).toBeGreaterThanOrEqual(stableFor);
 }
 
 async function setShinyCheckbox(input, checked) {
@@ -475,18 +517,65 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
   }
 
   // Thresholded Particles is contextual to map uploads with collapsing on.
-  // Disable identification and ordinary preprocessing so this final download
-  // exercises only map reading, region inference, collapsing, and export.
+  // Disable identification and ordinary preprocessing, then enable the SNR
+  // threshold that owns the logical feature mask used for collapsing.
   await setShinyCheckbox(identificationSwitch, false);
   await setShinyCheckbox(appFrame.locator("#active_preprocessing"), false);
+  await setShinyCheckbox(appFrame.locator("#threshold_decision"), false);
   await setShinyCheckbox(appFrame.locator("#collapse_decision"), true);
   const mapUploadPath = path.resolve("inst", "extdata", "CA_tiny_map.zip");
   expect(fs.existsSync(mapUploadPath)).toBe(true);
   await fileInput.setInputFiles(mapUploadPath);
+  await expect.poll(async () => fileInput.evaluate((input) =>
+    input.files?.[0]?.name || ""
+  )).toBe("CA_tiny_map.zip");
+  // Wait for a map-owned output and an idle Shiny generation so that stale
+  // Selectize state from the previous Raman upload cannot satisfy this check.
+  await expect(appFrame.locator("#heatmap_frame")).toBeVisible({
+    timeout: 300000,
+  });
+  await expect.poll(async () => appFrame.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((candidate) =>
+      candidate.type === "heatmap" && Array.isArray(candidate.z)
+    );
+    return trace ? trace.z.flat(Infinity).filter(Number.isFinite).length : 0;
+  }), { timeout: 300000 }).toBeGreaterThan(1);
+  const mapSnrThreshold = await appFrame.locator("#heatmapA")
+    .evaluate((plot) => {
+      const trace = (plot.data || []).find((candidate) =>
+        candidate.type === "heatmap" && Array.isArray(candidate.z)
+      );
+      const values = (trace?.z || []).flat(Infinity)
+        .filter(Number.isFinite).sort((left, right) => left - right);
+      return values.length ? values[Math.floor(values.length / 2)] : null;
+    });
+  expect(Number.isFinite(mapSnrThreshold)).toBe(true);
+  await appFrame.locator("#MinSNR").evaluate((input, value) => {
+    input.value = String(value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    window.Shiny?.setInputValue("MinSNR", value, { priority: "event" });
+  }, mapSnrThreshold);
+  await setShinyCheckbox(appFrame.locator("#threshold_decision"), true);
+  await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 300000,
+  });
+  await expect(appFrame.locator("html")).not.toHaveClass(
+    /\bopenspecy-busy-visible\b/, { timeout: 300000 }
+  );
   await expect.poll(async () => downloadSelection.evaluate((select) =>
     Object.keys(select.selectize ? select.selectize.options : {})
   ), { timeout: 300000 }).toContain("Thresholded Particles");
-  await selectDownload(downloadSelection, downloadLink, "Thresholded Particles");
+  await waitForStableDownloadGeneration(
+    downloadSelection,
+    "Thresholded Particles"
+  );
+  await selectDownload(
+    downloadSelection,
+    downloadLink,
+    "Thresholded Particles",
+    { timeout: 300000, stableFor: 1500 }
+  );
   await verifyNativeDownload({
     page,
     link: downloadLink,

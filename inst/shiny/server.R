@@ -40,6 +40,7 @@ function(input, output, session) {
   library_axis_cache <- new.env(parent = emptyenv())
   library_axis_cache$key <- NULL
   library_axis_cache$value <- NULL
+  quality_modal_observers <- new.env(parent = emptyenv())
 
   observeEvent(input$range_automate, {
     manual_range <- !isTRUE(input$range_automate)
@@ -897,7 +898,7 @@ observeEvent(input$file, {
   quality_report <- reactive({
       if(is.null(preprocessed$data)) return(NULL)
       selected <- DataR_plot()
-      report <- tryCatch(
+      assessment <- tryCatch(
         assess_spec(
           selected,
           checks = app_quality_checks,
@@ -922,10 +923,40 @@ observeEvent(input$file, {
           stringsAsFactors = FALSE
         )
       )
+      selected_index <- data_click$plot
+      threshold_report <- app_threshold_quality_report(
+        spectrum_id = colnames(selected$spectra)[[1L]],
+        snr_value = if(isTRUE(input$threshold_decision)) {
+          signal_to_noise()[[selected_index]]
+        } else NULL,
+        snr_threshold = if(isTRUE(input$threshold_decision)) {
+          input$MinSNR
+        } else NULL,
+        signal_metric = effective_signal_selection(),
+        correlation_value = if(isTRUE(input$active_identification) &&
+                               isTRUE(input$cor_threshold_decision)) {
+          max_cor()[[selected_index]]
+        } else NULL,
+        correlation_threshold = if(isTRUE(input$active_identification) &&
+                                   isTRUE(input$cor_threshold_decision)) {
+          input$MinCor
+        } else NULL
+      )
+      report <- data.table::rbindlist(
+        list(assessment, threshold_report), use.names = TRUE, fill = TRUE
+      )
       app_quality_ui_report(report)
   })
 
-  quality_counts <- reactive(app_quality_counts(quality_report()))
+  quality_findings <- reactive({
+      report <- quality_report()
+      stats::setNames(lapply(c("warning", "success"), function(status) {
+        app_quality_status_report(report, status)
+      }), c("warning", "success"))
+  })
+  quality_counts <- reactive(stats::setNames(
+      vapply(quality_findings(), nrow, integer(1)), c("warning", "success")
+  ))
   output$quality_warning_count <- renderText(quality_counts()[["warning"]])
   output$quality_success_count <- renderText(quality_counts()[["success"]])
   outputOptions(output, "quality_warning_count", suspendWhenHidden = FALSE)
@@ -958,15 +989,26 @@ observeEvent(input$file, {
   })
 
   show_quality_modal <- function(status, title, icon_name) {
+      report <- quality_report()
+      content <- if(is.null(report)) {
+        app_quality_modal_content(NULL, status)
+      } else {
+        app_quality_modal_content(quality_findings()[[status]], status)
+      }
       showModal(modalDialog(
         title = tagList(icon(icon_name), title),
-        app_quality_modal_content(quality_report(), status),
+        content,
         easyClose = TRUE,
         size = "l",
         footer = modalButton("Close")
       ))
   }
-  observeEvent(input$quality_automatic_details, {
+  for(observer_name in c("automatic", "warning", "success")) {
+      existing_observer <- quality_modal_observers[[observer_name]]
+      if(!is.null(existing_observer)) existing_observer$destroy()
+  }
+  quality_modal_observers$automatic <- observeEvent(
+    input$quality_automatic_details, {
       showModal(modalDialog(
         title = tagList(icon("magic"), "Automatic corrections made"),
         app_automatic_modal_content(automatic_report()),
@@ -974,17 +1016,22 @@ observeEvent(input$file, {
         size = "l",
         footer = modalButton("Close")
       ))
-  })
-  observeEvent(input$quality_warning_details, {
+    }, ignoreInit = TRUE
+  )
+  quality_modal_observers$warning <- observeEvent(
+    input$quality_warning_details, {
       show_quality_modal(
         "warning", "Spectral quality warnings", "exclamation-triangle"
       )
-  })
-  observeEvent(input$quality_success_details, {
+    }, ignoreInit = TRUE
+  )
+  quality_modal_observers$success <- observeEvent(
+    input$quality_success_details, {
       show_quality_modal(
         "success", "Successful spectral checks", "check-circle"
       )
-  })
+    }, ignoreInit = TRUE
+  )
 
   #The signal to noise ratio
   signal_to_noise <- reactive({
@@ -1015,7 +1062,7 @@ observeEvent(input$file, {
           input$MinSNR
       }
   })
-  
+
   particles_logi <- reactive({
       req(isTRUE(input$collapse_decision))
       collapse_logic <- input$collapse_log_type
@@ -1057,45 +1104,29 @@ observeEvent(input$file, {
       }
       return(NULL)
   })
-  
-  
-  #Identification ----
-  output$correlation_head <- renderUI({
-      req(!is.null(preprocessed$data))
-      signal_enabled <- isTRUE(input$threshold_decision)
-      correlation_enabled <- isTRUE(input$active_identification) &&
-        isTRUE(input$cor_threshold_decision)
-      req(signal_enabled || correlation_enabled)
 
-      good_sig <- if(signal_enabled) {
-        signal_to_noise()[[data_click$plot]] > MinSNR()
-      } else {
-        TRUE
+  collapse_features <- reactive({
+      if(!isTRUE(input$collapse_decision) || is.null(preprocessed$data)) {
+        return(NULL)
       }
-      good_cor <- if(correlation_enabled) {
-        max_cor()[[data_click$plot]] > MinCor()
-      } else {
-        TRUE
-      }
-      both_enabled <- signal_enabled && correlation_enabled
-      label <- if(both_enabled) {
-        "Match"
-      } else if(correlation_enabled) {
-        "Cor"
-      } else {
-        "SNR"
-      }
-
-      boxLabel(
-        text = label,
-        status = if(good_sig && good_cor) "success" else "error",
-        tooltip = paste(
-          "This tells you whether the signal to noise ratio or the match",
-          "observed is above or below the thresholds."
-        )
+      features <- tryCatch(
+        particles_logi(),
+        error = function(error) NULL
       )
+      if(!(is.logical(features) || is.character(features)) ||
+         length(features) != ncol(DataR()$spectra)) {
+        return(NULL)
+      }
+      if(is.logical(features)) {
+        features[is.na(features)] <- FALSE
+        if(!any(features) || all(features)) return(NULL)
+      } else if(!any(!is.na(features) & nzchar(features))) {
+        return(NULL)
+      }
+      features
   })
-  
+
+
   #Warnings ----
   observe({
       if(is.null(preprocessed$data)) return()
@@ -1175,8 +1206,8 @@ observeEvent(input$file, {
           )
       }
 
-      if(isTRUE(input$collapse_decision) && isTruthy(particles_logi()) &&
-         length(unique(as.character(particles_logi()))) == 1) {
+      if(isTRUE(input$collapse_decision) && !is.null(collapse_features()) &&
+         length(unique(as.character(collapse_features()))) == 1) {
           show_alert(
             title = "No or all regions passing threshold",
             text = paste0(
@@ -1494,7 +1525,7 @@ output$choice_names <- renderUI({
       } else NA,
       if(identification_enabled && !is.null(max_cor())) "Match Value" else NA,
       if(!is.null(signal_to_noise())) "Signal/Noise" else NA,
-      if(collapse_enabled && isTruthy(particles_logi())) "Feature ID" else NA
+      if(collapse_enabled && !is.null(collapse_features())) "Feature ID" else NA
     )
     choice_names = choice_names[!is.na(choice_names)]
         tagList(
@@ -1570,7 +1601,7 @@ output$progress_bars <- renderUI({
     }
 
     plot_items <- list()
-    if(isTRUE(input$collapse_decision) && isTruthy(particles_logi())) {
+    if(isTRUE(input$collapse_decision) && !is.null(collapse_features())) {
       plot_items[[length(plot_items) + 1L]] <- div(
         id = "particle_summary_panel",
         plotOutput("particle_plot", height = "25vh")
@@ -1632,10 +1663,9 @@ output$progress_bars <- renderUI({
   heatmap_state <- reactive({
       req(!is.null(preprocessed$data))
       req(ncol(preprocessed$data$spectra) > 1)
-      test <- if(isTRUE(input$collapse_decision) &&
-                 isTruthy(particles_logi()) &&
-                 length(unique(as.character(particles_logi()))) > 1) {
-        def_features(DataR(), features = particles_logi())
+      features <- collapse_features()
+      test <- if(!is.null(features)) {
+        def_features(DataR(), features = features)
       } else {
         DataR()
       }
@@ -1661,7 +1691,7 @@ output$progress_bars <- renderUI({
         categorical <- TRUE
         max_cor_identity()
       } else if(isTRUE(input$collapse_decision) &&
-                isTruthy(particles_logi()) &&
+                !is.null(features) &&
                 identical(map_color, "Feature ID")) {
         categorical <- TRUE
         test$metadata$feature_id
@@ -1713,6 +1743,14 @@ output$progress_bars <- renderUI({
         source = "heat_plot"
       ) %>%
         app_style_plotly()
+      plot <- plotly::style(
+        plot,
+        marker = list(
+          color = "#F59E0B", size = 14, opacity = 1,
+          line = list(color = "#FFF7ED", width = 2)
+        ),
+        traces = 2L
+      )
       if(!state$categorical) {
         plot <- plotly::style(
           plot,
@@ -1749,8 +1787,10 @@ output$progress_bars <- renderUI({
         plotlyProxyInvoke(
           "restyle",
           list(
-            x = list(state$data$metadata$x[[selected]]),
-            y = list(state$data$metadata$y[[selected]])
+            # Plotly.restyle consumes the outer list per trace. Keep each
+            # selected coordinate as a one-point vector inside that wrapper.
+            x = list(list(state$data$metadata$x[[selected]])),
+            y = list(list(state$data$metadata$y[[selected]]))
           ),
           list(1L)
         )
@@ -1770,7 +1810,9 @@ output$progress_bars <- renderUI({
           spec$metadata$material_class <- max_cor_identity()
       }
 
-      spec_feat <- def_features(spec, features = particles_logi())
+      features <- collapse_features()
+      req(!is.null(features))
+      spec_feat <- def_features(spec, features = features)
 
       collapsed <- collapse_spec(spec_feat, fun = collapse_fun) %>%
           filter_spec(., logic = .$metadata$feature_id != "-88")
@@ -1843,7 +1885,7 @@ output$progress_bars <- renderUI({
       identification = !is.null(preprocessed$data) &&
         isTRUE(input$active_identification),
       collapse = !is.null(preprocessed$data) &&
-        isTRUE(input$collapse_decision)
+        isTRUE(input$collapse_decision) && !is.null(collapse_features())
     )
     selectInput(
       inputId = "download_selection",
@@ -2017,9 +2059,49 @@ output$progress_bars <- renderUI({
 
   observeEvent(heatmap_click(), {
       click <- heatmap_click()
-      if (!is.null(click$pointNumber) &&
-          (is.null(click$curveNumber) || click$curveNumber == 0)) {
-          data_click$plot <- click$pointNumber + 1
+      curve_number <- if(length(click$curveNumber)) {
+        suppressWarnings(as.integer(click$curveNumber[[1L]]))
+      } else {
+        0L
+      }
+      if(is.na(curve_number) || curve_number != 0L) return()
+
+      selected <- integer()
+      if(length(click$x) && length(click$y)) {
+        state <- isolate(heatmap_state())
+        metadata <- state$data$metadata
+        click_x <- click$x[[1L]]
+        click_y <- click$y[[1L]]
+        coordinate_match <- function(values, target) {
+          if(is.numeric(values) && is.numeric(target)) {
+            tolerance <- sqrt(.Machine$double.eps) *
+              pmax(1, abs(values), abs(target))
+            !is.na(values) & !is.na(target) &
+              abs(values - target) <= tolerance
+          } else {
+            !is.na(values) & !is.na(target) &
+              as.character(values) == as.character(target)
+          }
+        }
+        selected <- which(
+          coordinate_match(metadata$x, click_x) &
+            coordinate_match(metadata$y, click_y)
+        )
+      }
+      if(!length(selected) && length(click$pointNumber)) {
+        point_number <- suppressWarnings(as.numeric(
+          unlist(click$pointNumber, use.names = FALSE)
+        ))
+        if(length(point_number) == 1L && is.finite(point_number)) {
+          selected <- as.integer(point_number + 1L)
+        }
+      }
+      selected <- selected[
+        !is.na(selected) & selected >= 1L &
+          selected <= ncol(preprocessed$data$spectra)
+      ]
+      if(length(selected)) {
+          data_click$plot <- selected[[1L]]
       }
   }, ignoreNULL = TRUE, ignoreInit = TRUE)
 

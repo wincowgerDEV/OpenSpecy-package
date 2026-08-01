@@ -123,9 +123,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f _wasm/pinned/repo/bin/emscripten/contrib/*/PACKAGES
-          test -f _wasm/pinned/image/library.data.gz
-          test -f _wasm/pinned/image/library.js.metadata
+          Rscript tools/wasm/check-wasm-artifact.R \
+            "_wasm/pinned" "${PACKAGE_SHA}"
+          GITHUB_SHA="${PACKAGE_SHA}" \
+            Rscript tools/wasm/check-wasm-repo.R \
+              "_wasm/pinned/repo" \
+              "_wasm/pinned/image" \
+              "_wasm/verified-wasm-packages.json"
+          Rscript tools/wasm/check-wasm-artifact.R \
+            "_wasm/pinned" "${PACKAGE_SHA}" \
+            "_wasm/verified-wasm-packages.json"
 
       - name: Stage small OpenSpecy libraries
         shell: bash

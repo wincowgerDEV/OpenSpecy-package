@@ -65,6 +65,87 @@ test_that("Shinylive wasm library allow-list is intentionally small", {
   expect_false(any(c("derivative", "nobaseline", "raw") %in% library_types))
 })
 
+test_that("pinned wasm artifacts must match their exact package commit", {
+  env <- new.env(parent = globalenv())
+  source_wasm_tool("check-wasm-artifact.R", env)
+
+  tmp <- file.path(tempdir(), "OpenSpecy-testthat-wasm-artifact")
+  on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
+  metadata <- file.path(tmp, "metadata")
+  image <- file.path(tmp, "image")
+  dir.create(metadata, recursive = TRUE, showWarnings = FALSE)
+  dir.create(image, recursive = TRUE, showWarnings = FALSE)
+  writeBin(charToRaw("library image"), file.path(image, "library.data.gz"))
+  writeBin(charToRaw("library metadata"),
+           file.path(image, "library.js.metadata"))
+
+  desc <- read.dcf(test_path("..", "..", "DESCRIPTION"))[1, ]
+  sha <- strrep("a", 40)
+  artifact <- list(
+    package = list(name = unname(desc[["Package"]]),
+                   version = unname(desc[["Version"]]), commit = sha),
+    wasm_build = list(artifact = paste0("openspecy-wasm-", sha))
+  )
+  resolved <- list(
+    package = artifact$package,
+    packages = list(list(Package = unname(desc[["Package"]]),
+                         Version = unname(desc[["Version"]]))),
+    image = lapply(c("library.data.gz", "library.js.metadata"), function(name) {
+      path <- file.path(image, name)
+      list(name = name, size = unname(file.info(path)$size),
+           md5 = unname(tools::md5sum(path)))
+    })
+  )
+  original_images <- resolved$image
+  artifact_path <- file.path(metadata, "wasm-app-manifest.json")
+  resolved_path <- file.path(metadata, "resolved-wasm-packages.json")
+  jsonlite::write_json(artifact, artifact_path, auto_unbox = TRUE)
+  jsonlite::write_json(resolved, resolved_path, auto_unbox = TRUE)
+
+  expect_no_error(env$check_wasm_artifact(
+    tmp, sha, test_path("..", "..", "DESCRIPTION")
+  ))
+  artifact$package$commit <- strrep("b", 40)
+  jsonlite::write_json(artifact, artifact_path, auto_unbox = TRUE)
+  expect_error(env$check_wasm_artifact(
+    tmp, sha, test_path("..", "..", "DESCRIPTION")
+  ), "artifact package commit mismatch")
+  artifact$package$commit <- sha
+  jsonlite::write_json(artifact, artifact_path, auto_unbox = TRUE)
+  writeBin(charToRaw("library Image"), file.path(image, "library.data.gz"))
+  expect_error(env$check_wasm_artifact(
+    tmp, sha, test_path("..", "..", "DESCRIPTION")
+  ), "MD5 mismatch")
+
+  writeBin(charToRaw("library image"), file.path(image, "library.data.gz"))
+  resolved$image <- original_images[1L]
+  jsonlite::write_json(resolved, resolved_path, auto_unbox = TRUE)
+  expect_error(env$check_wasm_artifact(
+    tmp, sha, test_path("..", "..", "DESCRIPTION")
+  ), "exactly library.data.gz")
+
+  resolved$image <- original_images
+  resolved$image[[1L]]$size <- resolved$image[[1L]]$size + 1
+  jsonlite::write_json(resolved, resolved_path, auto_unbox = TRUE)
+  expect_error(env$check_wasm_artifact(
+    tmp, sha, test_path("..", "..", "DESCRIPTION")
+  ), "size mismatch")
+
+  resolved$image <- original_images
+  jsonlite::write_json(resolved, resolved_path, auto_unbox = TRUE)
+  verified_path <- file.path(tmp, "verified-wasm-packages.json")
+  jsonlite::write_json(resolved, verified_path, auto_unbox = TRUE)
+  expect_no_error(env$check_wasm_artifact(
+    tmp, sha, test_path("..", "..", "DESCRIPTION"), verified_path
+  ))
+  verified <- resolved
+  verified$packages[[1L]]$Version <- "0.0.0"
+  jsonlite::write_json(verified, verified_path, auto_unbox = TRUE)
+  expect_error(env$check_wasm_artifact(
+    tmp, sha, test_path("..", "..", "DESCRIPTION"), verified_path
+  ), "does not match")
+})
+
 test_that("action-built wasm library image is bundled with an exact pin", {
   env <- new.env(parent = globalenv())
   source_wasm_tool("bundle-wasm-library.R", env)
@@ -269,6 +350,81 @@ test_that("only one workflow publishes the combined native Pages site", {
   expect_equal(sum(grepl("pak-version: repo", shinylive, fixed = TRUE)), 1L)
   expect_equal(sum(grepl("pak-version: repo", wasm, fixed = TRUE)), 1L)
   expect_equal(sum(grepl("any::pkgdown", shinylive, fixed = TRUE)), 1L)
+  expect_true(any(grepl("tools/wasm/build-wasm-repo.ps1", wasm,
+                        fixed = TRUE)))
+  expect_false(any(grepl("r-wasm/actions/build-rwasm@v3", wasm,
+                         fixed = TRUE)))
+  expect_gte(sum(grepl("check-wasm-artifact.R", shinylive,
+                       fixed = TRUE)), 2L)
+  expect_true(any(grepl("check-wasm-repo.R", shinylive, fixed = TRUE)))
+
+  driver_path <- test_path("..", "..", "tools", "wasm", "rwasm-build",
+                           "Dockerfile")
+  expect_true(file.exists(driver_path))
+  driver <- readLines(driver_path, warn = FALSE)
+  expect_true(any(grepl(
+    "ghcr.io/r-wasm/webr@sha256:2bd309d7a4ea1daed82b6fdb8e325b0de715fcd8592c5b6f3b3b88366e70cb76",
+    driver, fixed = TRUE
+  )))
+})
+
+test_that("hosted preflight is exact and the full pre-push gate is unskippable", {
+  preflight_path <- test_path("..", "..", "tools", "wasm",
+                              "test-shinylive-action.ps1")
+  prepush_path <- test_path("..", "..", "tools", "wasm",
+                            "test-shinylive-prepush.ps1")
+  build_path <- test_path("..", "..", "tools", "wasm",
+                          "build-wasm-repo.ps1")
+  if (!all(file.exists(c(preflight_path, prepush_path, build_path)))) {
+    skip("Repository-only wasm preflight scripts are not in the package tarball")
+  }
+  preflight <- readLines(preflight_path, warn = FALSE)
+  prepush <- readLines(prepush_path, warn = FALSE)
+  build <- readLines(build_path, warn = FALSE)
+
+  expect_true(any(grepl("git rev-parse HEAD", preflight, fixed = TRUE)))
+  expect_true(any(grepl("check-wasm-artifact.R", preflight, fixed = TRUE)))
+  expect_true(any(grepl("check-wasm-repo.R", preflight, fixed = TRUE)))
+  expect_true(any(grepl('$env:R_LIBS_USER = $tools', preflight,
+                        fixed = TRUE)))
+  expect_true(any(grepl("Remove-Item -LiteralPath $tools", preflight,
+                        fixed = TRUE)))
+  expect_true(any(grepl('Assert-Equal $playwrightVersion "1.61.1"',
+                        preflight, fixed = TRUE)))
+  expect_false(any(grepl("defaultLibrary", preflight, fixed = TRUE)))
+  expect_true(any(grepl("git status --porcelain", prepush, fixed = TRUE)))
+  expect_true(any(grepl("build-wasm-repo.ps1", prepush, fixed = TRUE)))
+  expect_true(any(grepl("test-shinylive-action.ps1", prepush,
+                        fixed = TRUE)))
+  expect_true(any(grepl("-StageLibraries", prepush, fixed = TRUE)))
+  expect_true(any(grepl("-Bootstrap", prepush, fixed = TRUE)))
+  expect_true(any(grepl("FULL SHINYLIVE PRE-PUSH REHEARSAL PASSED", prepush,
+                        fixed = TRUE)))
+  expect_true(any(grepl("tools/wasm/rwasm-build", build, fixed = TRUE)))
+  expect_true(any(grepl("check-wasm-artifact.R", build, fixed = TRUE)))
+  expect_true(any(grepl("git rev-parse HEAD", build, fixed = TRUE)))
+  expect_true(any(grepl("git status --porcelain", build, fixed = TRUE)))
+  expect_true(any(grepl("workspace-path.ps1", c(preflight, build),
+                        fixed = TRUE)))
+})
+
+test_that("wasm workspace path resolver handles absolute Windows paths", {
+  script <- test_path("..", "..", "tools", "wasm",
+                      "test-workspace-path.ps1")
+  if (!file.exists(script)) {
+    skip("Repository-only workspace path contract is not in the package tarball")
+  }
+  powershell <- Sys.which("powershell.exe")
+  if (!nzchar(powershell)) powershell <- Sys.which("pwsh")
+  skip_if(!nzchar(powershell), "PowerShell is unavailable")
+  output <- system2(
+    powershell,
+    c("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", shQuote(script)),
+    stdout = TRUE, stderr = TRUE
+  )
+  expect_null(attr(output, "status"), info = paste(output, collapse = "\n"))
+  expect_true(any(grepl("accepts safe relative/absolute paths", output,
+                        fixed = TRUE)))
 })
 
 test_that("pkgdown installs the checked-out package before rendering", {
@@ -360,6 +516,18 @@ test_that("hosted deployment exports the exact current bundled app", {
   )))
   expect_true(any(grepl('download.path()', smoke, fixed = TRUE)))
   expect_true(any(grepl('fs.readFileSync(downloadPath)', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('locator("#heatmap_frame")', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('candidate.type === "heatmap"', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl("stableFor: 1500", smoke, fixed = TRUE)))
+
+  local_smoke_path <- test_path("..", "..", "tools",
+                                "shiny-local-smoke.spec.js")
+  local_smoke <- readLines(local_smoke_path, warn = FALSE)
+  expect_true(any(grepl("CA_tiny_map.zip", local_smoke, fixed = TRUE)))
+  expect_true(any(grepl("Thresholded Particles", local_smoke,
                         fixed = TRUE)))
 })
 

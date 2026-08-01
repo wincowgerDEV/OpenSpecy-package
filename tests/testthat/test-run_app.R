@@ -97,6 +97,12 @@ test_that("bundled app updates map selection without full heatmap or spectrum re
   expect_match(server_source, 'plotlyProxy("heatmapA", session)', fixed = TRUE)
   expect_match(server_source, 'plotlyProxyInvoke(\n          "restyle"',
                fixed = TRUE)
+  expect_match(
+    server_source,
+    "x = list(list(state$data$metadata$x[[selected]]))",
+    fixed = TRUE
+  )
+  expect_match(server_source, 'color = "#F59E0B", size = 14', fixed = TRUE)
   expect_match(server_source, "selected_match <- reactive({", fixed = TRUE)
   expect_match(server_source, "selected_match()", fixed = TRUE)
   expect_false(grepl("selected_match_cache", server_source, fixed = TRUE))
@@ -243,8 +249,14 @@ test_that("bundled app defaults corrections, identification, but not quantificat
   )
   expect_match(server_source, "app_spectrum_plot(", fixed = TRUE)
   expect_match(server_source, 'report = "all"', fixed = TRUE)
-  expect_match(server_source, "app_quality_counts(quality_report())",
-               fixed = TRUE)
+  expect_match(server_source, "quality_findings <- reactive({", fixed = TRUE)
+  expect_match(server_source, "app_threshold_quality_report(", fixed = TRUE)
+  expect_match(server_source, "collapse_features <- reactive({", fixed = TRUE)
+  expect_match(
+    server_source,
+    "isTRUE(input$collapse_decision) && !is.null(collapse_features())",
+    fixed = TRUE
+  )
   expect_match(server_source, "colorscale = state$colorscale",
                fixed = TRUE)
   expect_match(server_source, "range = target_axis", fixed = TRUE)
@@ -257,6 +269,8 @@ test_that("bundled app defaults corrections, identification, but not quantificat
   expect_match(ui_source, '"quality_success_details"', fixed = TRUE)
   expect_false(grepl('"quality_error_details"', ui_source, fixed = TRUE))
   expect_false(grepl('"quality_pass_details"', ui_source, fixed = TRUE))
+  expect_false(grepl("correlation_head", ui_source, fixed = TRUE))
+  expect_false(grepl("output$correlation_head", server_source, fixed = TRUE))
 })
 
 test_that("bundled app namespaces dashboard boxes", {
@@ -410,6 +424,16 @@ test_that("bundled app uses collapsed responsive panels and one shared theme", {
   expect_match(ui_source, "white-space: nowrap", fixed = TRUE)
   expect_match(ui_source, "background: var(--openspecy-success)",
                fixed = TRUE)
+  expect_match(
+    ui_source,
+    ".btn.openspecy-quality-success {\n          border-color: var(--openspecy-success)",
+    fixed = TRUE
+  )
+  expect_match(
+    ui_source,
+    ".openspecy-quality-icon-success {\n          color: var(--openspecy-success)",
+    fixed = TRUE
+  )
   expect_match(ui_source, "background: #FFFFFF", fixed = TRUE)
   expect_match(ui_source, 'class = "openspecy-summary-column"', fixed = TRUE)
   expect_match(ui_source, '#spectra_box,\n        #analysis_summary_box',
@@ -588,6 +612,8 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_true(is.function(env$app_attach_correction_metadata))
   expect_true(is.function(env$app_conform_axis))
   expect_true(is.function(env$app_quality_ui_report))
+  expect_true(is.function(env$app_quality_status_report))
+  expect_true(is.function(env$app_threshold_quality_report))
   expect_true(is.function(env$app_quality_counts))
   expect_true(is.function(env$app_quality_modal_content))
   expect_true(is.function(env$app_automatic_report))
@@ -810,6 +836,7 @@ test_that("bundled app correction and quality helpers preserve auditable state",
     stringsAsFactors = FALSE
   )
   ui_report <- env$app_quality_ui_report(report)
+  expect_false("low_snr" %in% env$app_quality_checks)
   expect_identical(ui_report$check,
                    c("missing_values", "low_snr", "flat_spectrum"))
   expect_identical(ui_report$status, c("warning", "warning", "success"))
@@ -836,6 +863,73 @@ test_that("bundled app correction and quality helpers preserve auditable state",
   expect_false(grepl("Low signal found", success_html, fixed = TRUE))
   expect_false(grepl("Automatic correction:", warning_html, fixed = TRUE))
   expect_false(grepl("Automatic correction:", success_html, fixed = TRUE))
+
+  empty_warning_html <- paste(as.character(
+    env$app_quality_modal_content(data.frame(), "warning")
+  ), collapse = "")
+  empty_success_html <- paste(as.character(
+    env$app_quality_modal_content(data.frame(), "success")
+  ), collapse = "")
+  expect_match(empty_warning_html, "No warning findings", fixed = TRUE)
+  expect_match(empty_success_html, "No success findings", fixed = TRUE)
+  expect_false(grepl("Upload a spectrum", empty_warning_html, fixed = TRUE))
+  expect_false(grepl("Upload a spectrum", empty_success_html, fixed = TRUE))
+
+  threshold_report <- env$app_threshold_quality_report(
+    "a", snr_value = 5, snr_threshold = 4,
+    correlation_value = 0.7, correlation_threshold = 0.7
+  )
+  expect_identical(threshold_report$check,
+                   c("snr_threshold", "correlation_threshold"))
+  expect_identical(threshold_report$status, c("success", "warning"))
+  expect_match(threshold_report$description[[1L]], "is above", fixed = TRUE)
+  expect_match(threshold_report$description[[2L]], "does not exceed",
+               fixed = TRUE)
+
+  below <- env$app_threshold_quality_report(
+    "a", snr_value = 3, snr_threshold = 4
+  )
+  unavailable <- env$app_threshold_quality_report(
+    "a", correlation_value = NA_real_, correlation_threshold = 0.7
+  )
+  expect_identical(below$status, "warning")
+  expect_match(below$description, "is below", fixed = TRUE)
+  expect_identical(unavailable$status, "warning")
+  expect_match(unavailable$description, "could not be evaluated",
+               fixed = TRUE)
+  infinite_snr <- env$app_threshold_quality_report(
+    "a", snr_value = Inf, snr_threshold = 4
+  )
+  expect_identical(infinite_snr$status, "success")
+  expect_match(infinite_snr$description, "Inf is above", fixed = TRUE)
+  alternate_signal <- env$app_threshold_quality_report(
+    "a", snr_value = 5, snr_threshold = 4,
+    signal_metric = "sig_times_noise"
+  )
+  expect_identical(alternate_signal$metric, "signal_times_noise")
+  expect_match(alternate_signal$description, "Signal times noise",
+               fixed = TRUE)
+  expect_error(
+    env$app_threshold_quality_report(
+      "a", snr_value = 5, snr_threshold = Inf
+    ),
+    "finite number"
+  )
+
+  combined_report <- data.table::rbindlist(
+    list(report, threshold_report), use.names = TRUE, fill = TRUE
+  )
+  warning_rows <- env$app_quality_status_report(combined_report, "warning")
+  success_rows <- env$app_quality_status_report(combined_report, "success")
+  expect_true(nrow(warning_rows) > 0L)
+  expect_true(nrow(success_rows) > 0L)
+  expect_true(all(warning_rows$status == "warning"))
+  expect_true(all(success_rows$status == "success"))
+  expect_length(intersect(warning_rows$test_id, success_rows$test_id), 0L)
+  expect_true("correlation_threshold" %in% warning_rows$check)
+  expect_false("snr_threshold" %in% warning_rows$check)
+  expect_true("snr_threshold" %in% success_rows$check)
+  expect_false("correlation_threshold" %in% success_rows$check)
 
   automatic_source <- saturated
   attr(automatic_source, "automatic_spike") <- list(

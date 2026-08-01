@@ -28,13 +28,14 @@
 - R8. Accepted/rejected saturation operations store detected/excluded/retained ranges, affected spectra, thresholds, loss, counts, reason, and a retained-axis signature; never replace saturated values with NA, means, zeroes, or inferred peaks.
 - R9. Add `sig_noise(metric = "breakpoint_snr")` using exact sorted amplitudes (`sort.int()` plus linear breakpoint evaluation, no histogram bins); let `assess_spec()` select its SNR metric without changing current package-wide defaults before blank/known-spectrum/identification validation.
 - R10. The app enables owner controls for isolated-spike correction and saturated-range removal by default, gates all child controls, and processes raw upload -> spike correction -> saturation detection/shared restriction -> ordinary preprocessing/current CO2/high-tail stages -> identical library-axis restriction -> identification. Rejected saturation stays visible and is exported in processing metadata.
-- R11. Three always-visible controls above the active spectrum show automatic corrections, warnings, and successes. Automatic lists spike, saturation, CO2 flattening, and high-tail outcomes and counts only applied corrections; those checks are excluded from warning/success. Warning and success modals contain only their exact results, with package assessment errors presented as warnings. Use a rainbow automatic icon/outline when any correction applied, yellow warning icon/outline, and red success icon/outline.
+- R11. Three always-visible controls above the active spectrum show automatic corrections, warnings, and successes. Automatic lists spike, saturation, CO2 flattening, and high-tail outcomes and counts only applied corrections; those checks are excluded from warning/success. Warning and success modals contain only their exact failed/passed results, including selected-spectrum SNR and correlation relative to the app thresholds; remove the separate Cor/SNR badge. Use a rainbow automatic icon/outline when any correction applied, yellow warning icon/outline, and green success icon/outline.
 - R12. Every hosted download choice produces its intended suggested filename, MIME/disposition, nonempty bytes, and format signature through a real user click; neither a blank HTML fallback nor a canceled native download may pass because an in-frame `fetch()` succeeds.
 - R13. The dark pkgdown welcome page has a responsive hero, novice/advanced/funder entry paths, site/app navigation, scientific/value explanation, clear calls to action, the full [YouTube tutorial](https://www.youtube.com/watch?v=y2F4Fu6A4aA&list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g), and accessible contrast/motion. Add Pew-Gerstner Fellowship in Ocean Plastics Research and Walking Softer to Thriving monetary partners.
 - R14. Move plot legends outside data regions; numeric heatmaps show a non-overlapping value legend, categorical heatmaps may omit it. Reuse the exact Match Name category-to-color mapping in the material-class summary plot and retain the bright colorblind-accessible palette.
-- R15. A map-cell selection updates only selection-owned outputs and must not rerun preprocessing, identification, or redraw the heatmap twice. Add a browser regression for the returned double-load/blink.
+- R15. A map-cell selection updates only selection-owned outputs, leaves a persistent orange marker at the selected location, and must not rerun preprocessing, identification, or redraw the heatmap twice. Add a browser regression for the marker and returned double-load/blink.
 - R16. Benchmark the default single-spectrum analysis path and its expensive stages with repeated measurements. Cache or reuse correction/quality evidence, remove redundant checks/reactive calls, preserve identical scientific output, and flag a >10% same-output regression.
 - R17. Export a pipe-friendly `point_intensity()` for one nearest or linearly interpolated wavenumber; keep single-region measurement in `area_under_band()`. The app adds an independent Measurements box after Custom Ratios, permits ratios and measurements together, uses numeric inputs rather than sliders for every quantification value, and exports definitions/values from the displayed processed spectra.
+- R18. A push recommendation requires a clean-commit rehearsal that builds the current wasm repository with the same digest-pinned Docker driver as CI, validates both artifact manifests/SHA and image checksums, uses isolated host dependencies plus freshly staged libraries, and passes the complete nested-frame browser workflow including a fresh map generation and six genuine downloads.
 
 ## Technical Decisions
 
@@ -68,6 +69,10 @@
 - [x] Add `point_intensity()`, numeric-only ratio inputs, simultaneous saved point/area Measurements, metadata/download integration, docs, NEWS, tests, and benchmarks.
 - [x] Add an outside numeric heatmap legend and share Match Name colors with the material summary; verify categorical behavior and desktop/mobile layout.
 - [x] Run focused package/app tests and benchmarks, regenerate owned docs, run full tests, and inspect genuine local browser state/download/screenshot/console evidence.
+- [x] Make success green, route configured SNR/correlation thresholds into exact pass/fail modal buckets, replace stale modal observers after each upload, remove the badge, and restore the persistent orange marker from real map clicks.
+- [x] Fix the hosted map-download race by waiting for a fresh multi-spectrum heatmap and stable server-acknowledged selection; add the same thresholded download to native browser coverage.
+- [x] Add exact artifact/repository validation, a shared digest-pinned Docker wasm builder, fresh isolated tools, and a clean-commit pre-push entry point; validate the downloaded current-HEAD action artifact.
+- [ ] On a clean candidate commit with a healthy Docker/WSL engine, run `tools/wasm/test-shinylive-prepush.ps1` and retain its JSON evidence.
 - [ ] After a maintainer commit produces a matching current-SHA wasm artifact, run the canonical upload/identification and six-download hosted smoke.
 
 ## Verification
@@ -81,10 +86,11 @@
 
 - Paper modes were validated primarily on positive Raman cosmic-ray spikes and require enough peaks for the 3.5-SD LoD; calibrate on representative Raman/FTIR, negative-spike, edge, NA, heterogeneous-noise, and narrow-band cases before choosing the app's detector default.
 - This is a large release-facing sequence: implement package detection/reporting contracts before app automation, then hosted/browser and presentation work, so UI does not duplicate unstable scientific policy.
+- The current Windows Docker/WSL engine cannot run the final container rehearsal: diagnostics report a stopped LxssManager service and an ext4 journal error. Repair that host state before treating the clean-commit pre-push gate as passed.
 
 ## Approval Notes
 
 - Approved by: user, 2026-07-31 ("go for it").
 - Minor extension approved by: user, 2026-08-01 (`speckit-implement` request in this chat).
-- Completed evidence: focused/full tests, benchmarks, generated-doc review, local action-equivalent pkgdown, and the 66-second desktop/mobile browser smoke passed; the latest action's missing `pkgdown` dependency is now explicit in the workflow.
-- Follow-up: publish a fresh wasm artifact from the eventual maintainer commit and run the remaining canonical processed/identified/thresholded click-to-disk checks before deployment sign-off.
+- Completed evidence: 477 focused app tests, 146 focused wasm tests, 1,811 full tests, the 1.0-minute native desktop/mobile/download smoke, and exact verification of the current-HEAD 116-package action artifact passed. The latest action failure was a stale Selectize/map-generation race, now covered natively and in the nested-frame smoke.
+- Follow-up: repair Docker/WSL, create a local candidate commit, and run `tools/wasm/test-shinylive-prepush.ps1`; do not recommend pushing until it passes. Public Pages publication remains the only post-push-only check.

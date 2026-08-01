@@ -669,9 +669,13 @@ dashboardPage(
           border-color: var(--openspecy-grid) !important;
         }
         .btn.openspecy-quality-warning { border-color: #FACC15 !important; }
-        .btn.openspecy-quality-success { border-color: #FB7185 !important; }
+        .btn.openspecy-quality-success {
+          border-color: var(--openspecy-success) !important;
+        }
         .openspecy-quality-icon-warning { color: #FACC15 !important; }
-        .openspecy-quality-icon-success { color: #FB7185 !important; }
+        .openspecy-quality-icon-success {
+          color: var(--openspecy-success) !important;
+        }
         .openspecy-quality-automatic.openspecy-automatic-applied {
           border: 2px solid transparent !important;
           background:
@@ -698,7 +702,9 @@ dashboardPage(
         }
         .openspecy-quality-finding-warning { border-color: #FACC15; }
         .openspecy-quality-finding-success,
-        .openspecy-quality-finding-pass { border-color: #FB7185; }
+        .openspecy-quality-finding-pass {
+          border-color: var(--openspecy-success);
+        }
         .openspecy-quality-finding-automatic.openspecy-automatic-applied {
           border: 2px solid transparent;
           background:
@@ -1273,7 +1279,6 @@ dashboardPage(
           title = "Spectra",
           maximizable = TRUE,
           width = 12,
-          label = uiOutput("correlation_head"),
           h4(id = "placeholder1", "Upload some data to get started..."),
           uiOutput("choice_names"),
           fluidRow(
