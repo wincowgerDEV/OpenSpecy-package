@@ -2,6 +2,232 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
 
+function bytePreview(content, limit = 32) {
+  const bytes = content.subarray(0, limit);
+  return {
+    hex: Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" "),
+    text: bytes.toString("utf8").replace(/[^\x20-\x7e]/g, "."),
+  };
+}
+
+function dispositionFilename(disposition) {
+  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1]);
+    } catch (_error) {
+      return encoded[1];
+    }
+  }
+  const plain = disposition.match(/filename="?([^";]+)"?/i);
+  return plain ? plain[1] : "";
+}
+
+async function summarizeResponse(response) {
+  const headers = response.headers();
+  let content = null;
+  let bodyError = null;
+  try {
+    content = await response.body();
+  } catch (error) {
+    bodyError = error.message;
+  }
+  const preview = content ? bytePreview(content) : null;
+  return {
+    requestUrl: response.url(),
+    requestMethod: response.request().method(),
+    status: response.status(),
+    contentType: headers["content-type"] || "",
+    disposition: headers["content-disposition"] || "",
+    length: content ? content.length : null,
+    firstBytesHex: preview ? preview.hex : "",
+    firstBytesText: preview ? preview.text : "",
+    bodyError,
+  };
+}
+
+async function probeDownloadEndpoint(link) {
+  try {
+    return await link.evaluate(async (element) => {
+      const response = await fetch(element.href, { cache: "no-store" });
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      const firstBytes = Array.from(bytes.slice(0, 32));
+      return {
+        requestUrl: element.href,
+        ok: response.ok,
+        status: response.status,
+        contentType: response.headers.get("content-type") || "",
+        disposition: response.headers.get("content-disposition") || "",
+        length: bytes.length,
+        firstBytes,
+        firstBytesHex: firstBytes
+          .map((byte) => byte.toString(16).padStart(2, "0"))
+          .join(" "),
+        firstBytesText: String.fromCharCode(...firstBytes)
+          .replace(/[^\x20-\x7e]/g, "."),
+      };
+    });
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function selectDownload(downloadSelection, downloadLink, value) {
+  await downloadSelection.evaluate((select, nextValue) => {
+    if (!select.selectize) {
+      throw new Error("Download selection is missing its Selectize controller");
+    }
+    select.selectize.setValue(nextValue);
+  }, value);
+  await expect(downloadSelection).toHaveValue(value);
+  await expect(downloadLink).toContainText(`Download ${value}`);
+}
+
+async function setShinyCheckbox(input, checked) {
+  await input.evaluate((element, nextValue) => {
+    if (Boolean(element.checked) !== nextValue) element.click();
+  }, checked);
+  if (checked) {
+    await expect(input).toBeChecked();
+  } else {
+    await expect(input).not.toBeChecked();
+  }
+}
+
+async function verifyNativeDownload({
+  page,
+  link,
+  label,
+  filenamePattern,
+  contentTypePattern,
+  contentPattern,
+  expectedPrefix,
+  testInfo,
+  runtimeDiagnostics,
+}) {
+  await expect(link).toBeVisible();
+  await expect.poll(async () => link.getAttribute("href"), {
+    timeout: 30000,
+  }).toMatch(/(?:^|\/)session\/[^/]+\/download\/download_data/);
+
+  const linkState = await link.evaluate((element) => ({
+    href: element.href,
+    download: element.getAttribute("download"),
+    target: element.getAttribute("target"),
+  }));
+  const clickResponsePromise = page.waitForResponse(
+    (response) => response.url() === linkState.href,
+    { timeout: 30000 }
+  ).then(summarizeResponse).catch((error) => ({ error: error.message }));
+  let download = null;
+  let eventError = null;
+  try {
+    [download] = await Promise.all([
+      page.waitForEvent("download", { timeout: 30000 }),
+      link.click({ force: true }),
+    ]);
+  } catch (error) {
+    eventError = error.message;
+  }
+
+  let failure = null;
+  let suggestedFilename = null;
+  let downloadPath = null;
+  let content = null;
+  let pathError = null;
+  if (download) {
+    failure = await download.failure();
+    suggestedFilename = download.suggestedFilename();
+    if (!failure) {
+      try {
+        downloadPath = await download.path();
+        if (downloadPath) content = fs.readFileSync(downloadPath);
+      } catch (error) {
+        pathError = error.message;
+      }
+    }
+  }
+
+  const clickResponse = await Promise.race([
+    clickResponsePromise,
+    page.waitForTimeout(1000).then(() => ({
+      error: "No matching click response was observed within one second",
+    })),
+  ]);
+
+  // This duplicate GET is diagnostic only. The click-to-disk artifact below
+  // remains authoritative, so a successful fetch can never excuse a canceled
+  // or empty native browser download.
+  const endpoint = await probeDownloadEndpoint(link);
+  const endpointFilename = endpoint.error ? "" :
+    dispositionFilename(endpoint.disposition);
+  const preview = content ? bytePreview(content) : null;
+  const problems = [];
+  if (eventError) problems.push(`download event: ${eventError}`);
+  if (!download) problems.push("no native browser download was captured");
+  if (failure) problems.push(`native download failure: ${failure}`);
+  if (pathError) problems.push(`download path: ${pathError}`);
+  if (!suggestedFilename || !filenamePattern.test(suggestedFilename)) {
+    problems.push(`unexpected filename: ${suggestedFilename || "<none>"}`);
+  }
+  if (!content || content.length === 0) {
+    problems.push("downloaded file is missing or empty");
+  }
+  if (content && contentPattern && !contentPattern.test(content.toString("utf8"))) {
+    problems.push("downloaded file content did not match the expected payload");
+  }
+  if (content && expectedPrefix &&
+      !content.subarray(0, expectedPrefix.length).equals(expectedPrefix)) {
+    problems.push(`downloaded file did not start with ${expectedPrefix.toString("hex")}`);
+  }
+  if (endpoint.error) {
+    problems.push(`endpoint probe: ${endpoint.error}`);
+  } else {
+    if (!endpoint.ok || endpoint.status !== 200) {
+      problems.push(`endpoint status: ${endpoint.status}`);
+    }
+    if (!contentTypePattern.test(endpoint.contentType)) {
+      problems.push(`unexpected MIME type: ${endpoint.contentType || "<none>"}`);
+    }
+    if (!endpointFilename || !filenamePattern.test(endpointFilename)) {
+      problems.push(`unexpected disposition: ${endpoint.disposition || "<none>"}`);
+    }
+    if (endpoint.length === 0) problems.push("endpoint response was empty");
+  }
+
+  const evidence = {
+    label,
+    request: linkState,
+    clickResponse,
+    eventError,
+    failure,
+    suggestedFilename,
+    downloadPath,
+    savedBytes: content ? content.length : 0,
+    savedFirstBytesHex: preview ? preview.hex : "",
+    savedFirstBytesText: preview ? preview.text : "",
+    endpoint,
+    endpointFilename,
+    problems,
+    runtimeDiagnostics: problems.length ? runtimeDiagnostics.slice(-100) : [],
+  };
+  await testInfo.attach(
+    `shinylive-download-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    {
+      body: JSON.stringify(evidence, null, 2),
+      contentType: "application/json",
+    }
+  );
+
+  if (problems.length) {
+    const diagnostics = JSON.stringify(evidence, null, 2);
+    console.error(`Shinylive ${label} download diagnostics:\n${diagnostics}`);
+    throw new Error(`${label} native download failed: ${problems.join("; ")}`);
+  }
+
+  return { content, filename: suggestedFilename, endpoint };
+}
+
 test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testInfo) => {
   const url = process.env.SHINYLIVE_SMOKE_URL || "http://127.0.0.1:8080/";
   const expectedVersion = process.env.OPENSPECY_EXPECTED_VERSION;
@@ -96,7 +322,7 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
 
   await fullscreenButton.click();
   await expect(embed).toHaveClass(/\bis-fullscreen\b/);
-  await expect(fullscreenButton).toHaveText("Exit full screen");
+  await expect(fullscreenButton).toHaveText("Exit expanded view");
   await expect.poll(() => page.evaluate(() =>
     document.documentElement.classList.contains(
       "openspecy-app-fullscreen-open"
@@ -107,6 +333,48 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
   await page.screenshot({
     path: testInfo.outputPath("openspecy-app-fullscreen.png"),
   });
+
+  const downloadSelection = appFrame.locator("#download_selection");
+  const downloadLink = appFrame.locator("#download_data");
+  await expect(downloadSelection).toHaveValue("Test Data");
+  await expect(downloadLink).toContainText("Download Test Data");
+  await verifyNativeDownload({
+    page,
+    link: downloadLink,
+    label: "Test Data",
+    filenamePattern: /^Test-Data-.*\.csv$/i,
+    contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
+    contentPattern: /wavenumber[\s,]+intensity/i,
+    testInfo,
+    runtimeDiagnostics,
+  });
+  await expect(embed).toHaveClass(/\bis-fullscreen\b/);
+
+  await selectDownload(downloadSelection, downloadLink, "Test Map");
+  await verifyNativeDownload({
+    page,
+    link: downloadLink,
+    label: "Test Map",
+    filenamePattern: /^Test-Map-.*\.zip$/i,
+    contentTypePattern: /^application\/(?:octet-stream|(?:x-)?zip(?:-compressed)?)/i,
+    expectedPrefix: Buffer.from("PK", "ascii"),
+    testInfo,
+    runtimeDiagnostics,
+  });
+  await expect(embed).toHaveClass(/\bis-fullscreen\b/);
+
+  await selectDownload(downloadSelection, downloadLink, "User Metadata");
+  await verifyNativeDownload({
+    page,
+    link: downloadLink,
+    label: "User Metadata",
+    filenamePattern: /^os_metadata_.*\.csv$/i,
+    contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
+    contentPattern: /recorded_at[\s,]+app_version[\s,]+session_id/i,
+    testInfo,
+    runtimeDiagnostics,
+  });
+  await expect(embed).toHaveClass(/\bis-fullscreen\b/);
 
   const uploadPath =
     process.env.OPENSPECY_SMOKE_UPLOAD ||
@@ -172,57 +440,64 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
     // The Download card intentionally starts collapsed. Identification makes
     // Top Matches the contextual default, and the native header download
     // button remains usable without opening the hidden configuration body.
-    const downloadSelection = appFrame.locator("#download_selection");
     await expect(downloadSelection).toHaveValue("Top Matches");
     await expect(appFrame.locator("#top_n_input")).toBeAttached({
       timeout: 120000,
     });
-    const handlerResult = await appFrame.locator("#download_data").evaluate(
-      async (link) => {
-        const response = await fetch(link.href, { cache: "no-store" });
-        return {
-          ok: response.ok,
-          status: response.status,
-          disposition: response.headers.get("content-disposition") || "",
-          contentType: response.headers.get("content-type") || "",
-          text: await response.text(),
-        };
-      }
-    );
-    expect(handlerResult.ok).toBe(true);
-    expect(handlerResult.status).toBe(200);
-    expect(handlerResult.disposition).toMatch(/Top-Matches.*\.csv/i);
-    expect(handlerResult.text).toMatch(/poly\(ethylene\)/i);
 
-    const downloadPromise = page.waitForEvent("download");
-    await appFrame.locator("#download_data").click({ force: true });
-    const download = await downloadPromise;
-    const downloadFailure = await download.failure();
-    if (downloadFailure) {
-      const diagnostics = [
-        `Download failure: ${downloadFailure}`,
-        ...runtimeDiagnostics,
-      ].join("\n");
-      await testInfo.attach("shinylive-download-diagnostics", {
-        body: diagnostics,
-        contentType: "text/plain",
-      });
-      console.error(`Shinylive download diagnostics:\n${diagnostics}`);
-    }
-    if (downloadFailure === "canceled") {
-      // Chromium can cancel Service Worker-backed attachment persistence under
-      // Playwright on both Windows and Linux even after the same endpoint
-      // returned the full file above. The handler checks remain authoritative.
-      expect(handlerResult.text.length).toBeGreaterThan(20);
-    } else {
-      expect(downloadFailure).toBeNull();
-      expect(download.suggestedFilename()).toMatch(/^Top-Matches-.*\.csv$/i);
-      const downloadPath = await download.path();
-      expect(fs.statSync(downloadPath).size).toBeGreaterThan(0);
-      expect(fs.readFileSync(downloadPath, "utf8")).toMatch(/poly\(ethylene\)/i);
-    }
+    await selectDownload(downloadSelection, downloadLink, "Processed Spectra");
+    await verifyNativeDownload({
+      page,
+      link: downloadLink,
+      label: "Processed Spectra",
+      filenamePattern: /^Processed-Spectra-.*\.csv$/i,
+      contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
+      contentPattern: /signal_to_noise/i,
+      testInfo,
+      runtimeDiagnostics,
+    });
+
+    await selectDownload(downloadSelection, downloadLink, "Top Matches");
+    await expect(appFrame.locator("#top_n_input")).toBeAttached({
+      timeout: 120000,
+    });
+    await verifyNativeDownload({
+      page,
+      link: downloadLink,
+      label: "Top Matches",
+      filenamePattern: /^Top-Matches-.*\.csv$/i,
+      contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
+      contentPattern: /poly\(ethylene\)/i,
+      testInfo,
+      runtimeDiagnostics,
+    });
     await expect(embed).toHaveClass(/\bis-fullscreen\b/);
   }
+
+  // Thresholded Particles is contextual to map uploads with collapsing on.
+  // Disable identification and ordinary preprocessing so this final download
+  // exercises only map reading, region inference, collapsing, and export.
+  await setShinyCheckbox(identificationSwitch, false);
+  await setShinyCheckbox(appFrame.locator("#active_preprocessing"), false);
+  await setShinyCheckbox(appFrame.locator("#collapse_decision"), true);
+  const mapUploadPath = path.resolve("inst", "extdata", "CA_tiny_map.zip");
+  expect(fs.existsSync(mapUploadPath)).toBe(true);
+  await fileInput.setInputFiles(mapUploadPath);
+  await expect.poll(async () => downloadSelection.evaluate((select) =>
+    Object.keys(select.selectize ? select.selectize.options : {})
+  ), { timeout: 300000 }).toContain("Thresholded Particles");
+  await selectDownload(downloadSelection, downloadLink, "Thresholded Particles");
+  await verifyNativeDownload({
+    page,
+    link: downloadLink,
+    label: "Thresholded Particles",
+    filenamePattern: /^Thresholded-Particles-.*\.csv$/i,
+    contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
+    contentPattern: /wavenumber|feature_id/i,
+    testInfo,
+    runtimeDiagnostics,
+  });
+  await expect(embed).toHaveClass(/\bis-fullscreen\b/);
 
   const severeErrors = consoleErrors.filter((text) =>
     /Error in|package .* not found|there is no package|pinned build requires/i.test(text)
@@ -236,7 +511,7 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
       "openspecy-app-fullscreen-open"
     )
   )).toBe(false);
-  await expect(fullscreenButton).toHaveText("Full screen");
+  await expect(fullscreenButton).toHaveText("Expand app");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await embed.scrollIntoViewIfNeeded();

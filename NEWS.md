@@ -1,5 +1,28 @@
 # OpenSpecy 1.7.1
 
+- Added `correct_spike()` with a conservative wavenumber-aware residual method
+  and the manual and automated prominence/FWHM methods described by Coca-Lopez
+  (2024). Corrections are transactional, preserve the `OpenSpecy` axis and
+  metadata alignment, avoid boundary extrapolation, and retain auditable
+  accepted/rejected-region diagnostics.
+- Added opt-in spike and saturation checks plus `report = "all"` status output
+  to `assess_spec()`, exact sorted-amplitude `breakpoint_snr` support to
+  `sig_noise()`, and optional spike correction at the start of `process_spec()`.
+  `restrict_range()` can now remove one guarded union of hard saturation
+  intervals from a whole batch, with irregular-axis coverage accounting and a
+  conservative rollback when the proposed loss exceeds 70% or leaves too few
+  points.
+- Added default-on app controls for isolated spikes and saturation, cached
+  pass/warning/error details for the active spectrum, an external adaptive
+  spectrum legend, and a bright colorblind-accessible heatmap palette. Hosted
+  WebAssembly downloads now use a same-frame validated Blob handoff while
+  local Shiny retains its native download handler; browser smoke tests require
+  genuine CSV and ZIP files from real clicks.
+- Rebuilt the dark pkgdown homepage as an audience-oriented welcome page with
+  app/site navigation, scientific and funding context, the full video tutorial,
+  and responsive accessible calls to action. Pew-Gerstner Fellowship in Ocean
+  Plastics Research and Walking Softer are now credited as Thriving monetary
+  partners.
 - Added a reusable workflow for compressing hyperspectral images with PCA and
   K-means (`k = 100`) and plotting pixel cluster groups with `heatmap_spec()`.
 - Fixed bundled Shiny app startup when another attached package caused R to

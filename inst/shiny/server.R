@@ -221,11 +221,22 @@ observeEvent(input$file, {
       analysis_phase(
         "Preparing the reference library",
         paste0("Filtering ", format(ncol(library$spectra), big.mark = ","),
-               " reference spectra to the uploaded range."),
+               " reference spectra to the final processed axis."),
         64
       )
       if(!is.null(preprocessed$data)){
-          library <- restrict_range(library, min = min(DataR()$wavenumber), max = max(DataR()$wavenumber), make_rel = F)
+          target_axis <- DataR()$wavenumber
+          library <- conform_spec(
+            library,
+            range = target_axis,
+            res = NULL,
+            allow_na = TRUE,
+            type = "roll"
+          )
+          if(!identical(library$wavenumber, target_axis)) {
+            stop("The reference library did not conform to the displayed shared axis.",
+                 call. = FALSE)
+          }
           keep_spectra <- !apply(library$spectra, 2, function(x) all(is.na(x)))
           library <- filter_spec(library, logic = keep_spectra)
       }
@@ -279,15 +290,78 @@ observeEvent(input$file, {
     })
 
   # Preprocess ----
-  # Ordinary preprocessing and independent spatial smoothing run first. Range
-  # restriction and flattening are intentionally staged afterward so their
-  # automatic checks assess the final processed signal.
+  # Acquisition corrections run on the raw upload first, followed by ordinary
+  # preprocessing and independent spatial smoothing. High-tail restriction and
+  # CO2 flattening stay afterward so their automatic checks assess the final
+  # processed signal.
   baseline_data <- reactive({
     req(!is.null(preprocessed$data))
     uploaded <- data()
     processed <- uploaded
 
     if(isTRUE(input$active_preprocessing)) {
+      spike_enabled <- isTRUE(input$spike_decision)
+      spike_args <- if(spike_enabled) {
+        list(
+          method = "residual",
+          direction = if(is.null(input$spike_direction)) {
+            "both"
+          } else input$spike_direction,
+          residual_threshold = if(is.null(input$spike_residual_threshold)) {
+            8
+          } else input$spike_residual_threshold,
+          residual_window = if(is.null(input$spike_residual_window)) {
+            5L
+          } else as.integer(input$spike_residual_window)
+        )
+      } else {
+        list()
+      }
+      saturation_enabled <- isTRUE(input$saturation_decision)
+      saturation <- if(saturation_enabled) {
+        saturation_mode <- if(is.null(input$saturation_mode)) {
+          "auto"
+        } else input$saturation_mode
+        ceiling <- if(identical(saturation_mode, "threshold")) {
+          input$saturation_ceiling
+        } else {
+          NULL
+        }
+        app_saturation_value(saturation_mode, ceiling)
+      } else {
+        NULL
+      }
+      saturation_args <- if(saturation_enabled) {
+        list(
+          max_saturation_loss = if(is.null(input$saturation_max_loss)) {
+            0.7
+          } else input$saturation_max_loss
+        )
+      } else {
+        list()
+      }
+      if(spike_enabled || saturation_enabled) {
+        correction_steps <- c(
+          if(spike_enabled) "checking isolated spikes",
+          if(saturation_enabled) "checking shared saturated ranges"
+        )
+        analysis_phase(
+          "Correcting acquisition artifacts",
+          paste0(
+            paste(correction_steps, collapse = " and "),
+            " before ordinary preprocessing."
+          ),
+          20
+        )
+        processed <- app_apply_spectral_corrections(
+          processed,
+          spike = spike_enabled,
+          spike_args = spike_args,
+          saturation = saturation,
+          saturation_args = saturation_args
+        )
+      }
+      corrected_source <- processed
       analysis_phase(
         "Preprocessing spectra",
         paste0(
@@ -307,8 +381,8 @@ observeEvent(input$file, {
       conform_enabled <- isTRUE(input$conform_decision)
       conform_args <- if(conform_enabled) {
         list(
-          range = NULL,
-          res = input$conform_res,
+          range = app_conform_axis(processed, input$conform_res),
+          res = NULL,
           type = input$conform_selection
         )
       } else {
@@ -343,9 +417,9 @@ observeEvent(input$file, {
       smooth_enabled <- isTRUE(input$smooth_decision)
       smooth_args <- if(smooth_enabled) {
         smoothing_axis <- if(conform_enabled) {
-          seq(100, 4000, by = conform_args$res)
+          conform_args$range
         } else {
-          uploaded$wavenumber
+          processed$wavenumber
         }
         list(
           polynomial = input$smoother,
@@ -358,7 +432,7 @@ observeEvent(input$file, {
       }
 
       processed <- process_spec(
-        x = uploaded,
+        x = processed,
         active = TRUE,
         adj_intens = intensity_enabled,
         adj_intens_args = intensity_args,
@@ -372,6 +446,7 @@ observeEvent(input$file, {
         smooth_intens_args = smooth_args,
         make_rel = input$make_rel_decision
       )
+      processed <- app_copy_correction_history(corrected_source, processed)
     }
 
     if(isTRUE(input$spatial_decision)) {
@@ -485,7 +560,7 @@ observeEvent(input$file, {
       )
     }
 
-    processed
+    app_attach_correction_metadata(processed)
   })
 
   automation_status_ui <- function(check, label) {
@@ -761,6 +836,81 @@ observeEvent(input$file, {
   effective_signal_selection <- reactive({
       if(!isTRUE(input$threshold_decision)) return("run_sig_over_noise")
       input$signal_selection
+  })
+
+  quality_spike_args <- reactive({
+      if(!isTRUE(input$active_preprocessing) ||
+         !isTRUE(input$spike_decision)) {
+          return(list(method = "residual", direction = "both"))
+      }
+      list(
+        method = "residual",
+        direction = if(is.null(input$spike_direction)) {
+          "both"
+        } else input$spike_direction,
+        residual_threshold = if(is.null(input$spike_residual_threshold)) {
+          8
+        } else input$spike_residual_threshold,
+        residual_window = if(is.null(input$spike_residual_window)) {
+          5L
+        } else as.integer(input$spike_residual_window)
+      )
+  })
+
+  quality_saturation <- reactive({
+      if(!isTRUE(input$active_preprocessing) ||
+         !isTRUE(input$saturation_decision)) return("auto")
+      mode <- if(is.null(input$saturation_mode)) {
+        "auto"
+      } else input$saturation_mode
+      ceiling <- if(identical(mode, "threshold")) {
+        input$saturation_ceiling
+      } else {
+        NULL
+      }
+      app_saturation_value(mode, ceiling)
+  })
+
+  quality_report <- reactive({
+      if(is.null(preprocessed$data)) return(NULL)
+      selected <- DataR_plot()
+      assess_spec(
+        selected,
+        checks = app_quality_checks,
+        report = "all",
+        snr_metric = effective_signal_selection(),
+        spike_args = quality_spike_args(),
+        saturation = quality_saturation()
+      )
+  })
+
+  quality_counts <- reactive(app_quality_counts(quality_report()))
+  output$quality_error_count <- renderText(quality_counts()[["error"]])
+  output$quality_warning_count <- renderText(quality_counts()[["warning"]])
+  output$quality_pass_count <- renderText(quality_counts()[["pass"]])
+  outputOptions(output, "quality_error_count", suspendWhenHidden = FALSE)
+  outputOptions(output, "quality_warning_count", suspendWhenHidden = FALSE)
+  outputOptions(output, "quality_pass_count", suspendWhenHidden = FALSE)
+
+  show_quality_modal <- function(status, title, icon_name) {
+      showModal(modalDialog(
+        title = tagList(icon(icon_name), title),
+        app_quality_modal_content(quality_report(), status),
+        easyClose = TRUE,
+        size = "l",
+        footer = modalButton("Close")
+      ))
+  }
+  observeEvent(input$quality_error_details, {
+      show_quality_modal("error", "Spectral quality errors", "times-circle")
+  })
+  observeEvent(input$quality_warning_details, {
+      show_quality_modal(
+        "warning", "Spectral quality warnings", "exclamation-triangle"
+      )
+  })
+  observeEvent(input$quality_pass_details, {
+      show_quality_modal("pass", "Passed spectral checks", "check-circle")
   })
 
   #The signal to noise ratio
@@ -1405,7 +1555,8 @@ output$progress_bars <- renderUI({
         reference = reference,
         make_rel = isTRUE(input$active_preprocessing) &&
           isTRUE(input$make_rel_decision),
-        source = "B"
+        source = "B",
+        plot_width = session$clientData$output_MyPlotC_width
       ) %>%
         app_style_plotly() %>%
         config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape"))
@@ -1425,7 +1576,7 @@ output$progress_bars <- renderUI({
           test = DataR()
       }
 
-      heatmap_spec(x = test, 
+      heatmap_spec(x = test,
                         z = if(!is.null(max_cor()) && !isTruthy(input$map_color)){
                             signif(max_cor(),2)
                         }
@@ -1455,6 +1606,7 @@ output$progress_bars <- renderUI({
                         min_sn = MinSNR(),
                         min_cor = MinCor(),
                         select = data_click$plot,
+                        colorscale = app_heatmap_colorscale,
                         source = "heat_plot") %>%
           app_style_plotly() %>%
           event_register(event = "plotly_click")

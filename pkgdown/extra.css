@@ -1,53 +1,793 @@
-.openspecy-app-shell {
-  margin: 1.5rem 0 2rem;
+:root {
+  --os-bg: #061317;
+  --os-bg-deep: #030b0e;
+  --os-surface: #0d2227;
+  --os-surface-raised: #123039;
+  --os-surface-soft: #16373e;
+  --os-border: rgba(151, 225, 216, 0.22);
+  --os-border-strong: rgba(151, 225, 216, 0.42);
+  --os-text: #effbf9;
+  --os-muted: #b7d2cf;
+  --os-accent: #63e6d4;
+  --os-accent-strong: #8af3e4;
+  --os-accent-ink: #03201f;
+  --os-sky: #91ddff;
+  --os-warm: #ffca8a;
+  --os-focus: #ffd99d;
+  --os-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  --os-radius: 1.35rem;
+  --os-content: 76rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body.openspecy-welcome-page {
+  color: var(--os-text);
+  background:
+    radial-gradient(circle at 10% 2%, rgba(56, 163, 153, 0.14), transparent 28rem),
+    radial-gradient(circle at 92% 28%, rgba(66, 145, 181, 0.11), transparent 32rem),
+    var(--os-bg);
+}
+
+body.openspecy-welcome-page nav.navbar,
+body.openspecy-welcome-page .navbar-default {
+  color: var(--os-text);
+  border-color: var(--os-border);
+  background: rgba(3, 11, 14, 0.96) !important;
+  box-shadow: none;
+  backdrop-filter: blur(14px);
+}
+
+body.openspecy-welcome-page nav.navbar a,
+body.openspecy-welcome-page .navbar-default .navbar-nav > li > a,
+body.openspecy-welcome-page .navbar-default .navbar-brand {
+  color: var(--os-muted);
+}
+
+body.openspecy-welcome-page nav.navbar a:hover,
+body.openspecy-welcome-page nav.navbar a:focus,
+body.openspecy-welcome-page .navbar-default .navbar-nav > li > a:hover,
+body.openspecy-welcome-page .navbar-default .navbar-nav > li > a:focus,
+body.openspecy-welcome-page .navbar-default .navbar-brand:hover,
+body.openspecy-welcome-page .navbar-default .navbar-brand:focus {
+  color: var(--os-text);
+}
+
+body.openspecy-welcome-page .navbar .dropdown-menu {
+  color: var(--os-text);
+  border-color: var(--os-border);
+  background: var(--os-surface);
+}
+
+body.openspecy-welcome-page .navbar .dropdown-item,
+body.openspecy-welcome-page .navbar .dropdown-menu a {
+  color: var(--os-muted);
+}
+
+body.openspecy-welcome-page .navbar .dropdown-item:hover,
+body.openspecy-welcome-page .navbar .dropdown-item:focus,
+body.openspecy-welcome-page .navbar .dropdown-menu a:hover,
+body.openspecy-welcome-page .navbar .dropdown-menu a:focus {
+  color: var(--os-text);
+  background: var(--os-surface-soft);
+}
+
+body.openspecy-welcome-page .navbar-toggler,
+body.openspecy-welcome-page .navbar-default .navbar-toggle {
+  color: var(--os-text);
+  border-color: var(--os-border-strong);
+}
+
+body.openspecy-welcome-page .navbar-toggler-icon,
+body.openspecy-welcome-page .navbar-default .navbar-toggle .icon-bar {
+  filter: invert(1);
+}
+
+body.openspecy-welcome-page .navbar input,
+body.openspecy-welcome-page .navbar .form-control {
+  color: var(--os-text);
+  border-color: var(--os-border);
+  background: var(--os-surface);
+}
+
+body.openspecy-welcome-page .navbar input::placeholder,
+body.openspecy-welcome-page .navbar .form-control::placeholder {
+  color: var(--os-muted);
+  opacity: 0.86;
+}
+
+body.openspecy-welcome-page > .container.template-home {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+body.openspecy-welcome-page .template-home > .row {
+  margin: 0;
+}
+
+body.openspecy-welcome-page .template-home main#main {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  flex: 0 0 100%;
+}
+
+body.openspecy-welcome-page .template-home > .row > aside {
+  display: none;
+}
+
+body.openspecy-welcome-page .template-home > footer,
+body.openspecy-welcome-page .template-home .pkgdown-footer {
+  color: var(--os-muted);
+  border-color: var(--os-border);
+  background: var(--os-bg-deep);
+}
+
+.openspecy-welcome,
+.openspecy-welcome * {
+  box-sizing: border-box;
+}
+
+.openspecy-welcome {
+  position: relative;
   overflow: hidden;
-  border: 1px solid var(--bs-border-color, #d7dde3);
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 4px 18px rgba(24, 33, 43, 0.08);
+  color: var(--os-text);
+  font-size: 1.02rem;
+  line-height: 1.65;
+}
+
+.openspecy-welcome::before {
+  position: absolute;
+  z-index: -1;
+  top: 18rem;
+  left: -22rem;
+  width: 44rem;
+  height: 44rem;
+  border: 1px solid rgba(99, 230, 212, 0.09);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 7rem rgba(99, 230, 212, 0.018),
+    0 0 0 14rem rgba(99, 230, 212, 0.012);
+  content: "";
+}
+
+.openspecy-welcome h1,
+.openspecy-welcome h2,
+.openspecy-welcome h3,
+.openspecy-welcome h4,
+.openspecy-welcome p,
+.openspecy-welcome ul,
+.openspecy-welcome ol {
+  margin-top: 0;
+}
+
+.openspecy-welcome h1,
+.openspecy-welcome h2,
+.openspecy-welcome h3,
+.openspecy-welcome h4 {
+  color: var(--os-text);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.openspecy-welcome h1 {
+  max-width: 9ch;
+  margin-bottom: 1.35rem;
+  font-size: clamp(3.45rem, 8vw, 6.7rem);
+  letter-spacing: -0.065em;
+}
+
+.openspecy-welcome h2 {
+  margin-bottom: 1rem;
+  font-size: clamp(2.15rem, 4.5vw, 3.8rem);
+  letter-spacing: -0.045em;
+}
+
+.openspecy-welcome h3 {
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+}
+
+.openspecy-welcome h4 {
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+.openspecy-welcome .page-header {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.openspecy-welcome a {
+  color: var(--os-accent);
+  text-underline-offset: 0.2em;
+}
+
+.openspecy-welcome a:hover {
+  color: var(--os-accent-strong);
+}
+
+.openspecy-welcome a:focus-visible,
+.openspecy-welcome button:focus-visible,
+body.openspecy-welcome-page .navbar a:focus-visible,
+body.openspecy-welcome-page .navbar button:focus-visible {
+  outline: 3px solid var(--os-focus);
+  outline-offset: 4px;
+  border-radius: 0.25rem;
+}
+
+.openspecy-page-nav,
+.openspecy-hero,
+.openspecy-section,
+.openspecy-home-footer {
+  width: min(calc(100% - clamp(2rem, 8vw, 7rem)), var(--os-content));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.openspecy-page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  min-height: 5.5rem;
+  border-bottom: 1px solid var(--os-border);
+}
+
+.openspecy-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.72rem;
+  color: var(--os-text) !important;
+  font-size: 1.05rem;
+  font-weight: 750;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.openspecy-wordmark-mark {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border: 1px solid rgba(99, 230, 212, 0.5);
+  border-radius: 50%;
+  color: var(--os-accent);
+  background: rgba(99, 230, 212, 0.08);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.openspecy-page-nav-links {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 2.7vw, 2rem);
+  font-size: 0.91rem;
+}
+
+.openspecy-page-nav-links a {
+  color: var(--os-muted);
+  text-decoration: none;
+}
+
+.openspecy-page-nav-links a:hover {
+  color: var(--os-text);
+}
+
+.openspecy-hero {
+  display: grid;
+  min-height: min(51rem, calc(100vh - 8rem));
+  padding: clamp(4.5rem, 10vw, 8.5rem) 0 clamp(5rem, 10vw, 8rem);
+  align-items: center;
+  grid-template-columns: minmax(0, 1.02fr) minmax(25rem, 0.98fr);
+  gap: clamp(3rem, 8vw, 7rem);
+}
+
+.openspecy-eyebrow,
+.openspecy-welcome .openspecy-eyebrow {
+  margin-bottom: 1rem;
+  color: var(--os-accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.openspecy-hero-lead {
+  max-width: 42rem;
+  margin-bottom: 2rem;
+  color: var(--os-muted);
+  font-size: clamp(1.18rem, 2.1vw, 1.4rem);
+  line-height: 1.65;
+}
+
+.openspecy-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.openspecy-button {
+  display: inline-flex;
+  min-height: 3.15rem;
+  padding: 0.78rem 1.15rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  font-weight: 750;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none !important;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.openspecy-button:hover {
+  transform: translateY(-2px);
+}
+
+.openspecy-button-primary,
+.openspecy-welcome .openspecy-button-primary {
+  color: var(--os-accent-ink);
+  background: var(--os-accent);
+}
+
+.openspecy-button-primary:hover,
+.openspecy-welcome .openspecy-button-primary:hover {
+  color: var(--os-accent-ink);
+  background: var(--os-accent-strong);
+}
+
+.openspecy-button-secondary,
+.openspecy-welcome .openspecy-button-secondary {
+  color: var(--os-text);
+  border-color: var(--os-border-strong);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.openspecy-button-secondary:hover,
+.openspecy-welcome .openspecy-button-secondary:hover {
+  color: var(--os-text);
+  border-color: rgba(151, 225, 216, 0.68);
+  background: rgba(99, 230, 212, 0.08);
+}
+
+.openspecy-proof-points {
+  display: grid;
+  margin: 2.4rem 0 0;
+  padding: 1.25rem 0 0;
+  border-top: 1px solid var(--os-border);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+  list-style: none;
+}
+
+.openspecy-proof-points li {
+  min-width: 0;
+}
+
+.openspecy-proof-points strong,
+.openspecy-proof-points span {
+  display: block;
+}
+
+.openspecy-proof-points strong {
+  color: var(--os-text);
+  font-size: 0.92rem;
+}
+
+.openspecy-proof-points span {
+  margin-top: 0.1rem;
+  color: var(--os-muted);
+  font-size: 0.79rem;
+  line-height: 1.4;
+}
+
+.openspecy-spectrum-card {
+  position: relative;
+  padding: 1.15rem;
+  overflow: hidden;
+  border: 1px solid var(--os-border-strong);
+  border-radius: calc(var(--os-radius) + 0.35rem);
+  background:
+    linear-gradient(150deg, rgba(22, 55, 62, 0.9), rgba(8, 27, 32, 0.96)),
+    var(--os-surface);
+  box-shadow: var(--os-shadow);
+  transform: rotate(1deg);
+}
+
+.openspecy-spectrum-card::before {
+  position: absolute;
+  top: -45%;
+  left: 30%;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 50%;
+  background: rgba(99, 230, 212, 0.09);
+  filter: blur(50px);
+  content: "";
+}
+
+.openspecy-spectrum-card-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  padding: 0.35rem 0.35rem 1.15rem;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--os-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.openspecy-live-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--os-accent);
+}
+
+.openspecy-live-dot::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.openspecy-spectrum-visual {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  border: 1px solid rgba(151, 225, 216, 0.14);
+  border-radius: 0.9rem;
+  background: rgba(3, 13, 16, 0.64);
+}
+
+.openspecy-spectrum-grid path {
+  fill: none;
+  stroke: rgba(183, 210, 207, 0.1);
+  stroke-width: 1;
+}
+
+.openspecy-spectrum-area {
+  fill: url(#openspecy-spectrum-fill);
+}
+
+.openspecy-spectrum-line {
+  fill: none;
+  stroke: url(#openspecy-spectrum-gradient);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 5;
+}
+
+.openspecy-spectrum-labels {
+  fill: var(--os-muted);
+  font-size: 15px;
+}
+
+.openspecy-spectrum-result {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: calc(100% - 3rem);
+  margin: -1rem auto 0;
+  padding: 0.95rem 1rem;
+  align-items: center;
+  gap: 0.85rem;
+  border: 1px solid rgba(255, 202, 138, 0.3);
+  border-radius: 0.8rem;
+  background: rgba(9, 29, 34, 0.96);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25);
+}
+
+.openspecy-spectrum-result > span:last-child,
+.openspecy-spectrum-result strong,
+.openspecy-spectrum-result small {
+  display: block;
+}
+
+.openspecy-spectrum-result strong {
+  color: var(--os-text);
+  font-size: 0.88rem;
+}
+
+.openspecy-spectrum-result small {
+  margin-top: 0.12rem;
+  color: var(--os-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.openspecy-result-icon {
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 202, 138, 0.4);
+  border-radius: 50%;
+  color: var(--os-warm);
+  background: rgba(255, 202, 138, 0.08);
+}
+
+.openspecy-section {
+  padding: clamp(5rem, 10vw, 8.5rem) 0;
+  border-top: 1px solid var(--os-border);
+  scroll-margin-top: 5rem;
+}
+
+.openspecy-section-heading {
+  max-width: 49rem;
+  margin-bottom: clamp(2.4rem, 5vw, 4rem);
+}
+
+.openspecy-section-heading > p:last-child,
+.openspecy-value-intro > p,
+.openspecy-r-copy > p,
+.openspecy-partner-lead > p {
+  color: var(--os-muted);
+  font-size: 1.1rem;
+}
+
+.openspecy-path-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.openspecy-path-card {
+  display: flex;
+  min-height: 29rem;
+  padding: clamp(1.5rem, 3vw, 2.15rem);
+  flex-direction: column;
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius);
+  background: linear-gradient(160deg, rgba(18, 48, 57, 0.72), rgba(10, 29, 34, 0.92));
+}
+
+.openspecy-path-card-partner {
+  border-color: rgba(255, 202, 138, 0.34);
+  background: linear-gradient(160deg, rgba(69, 53, 34, 0.36), rgba(10, 29, 34, 0.94));
+}
+
+.openspecy-card-number {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin-bottom: auto;
+  place-items: center;
+  border: 1px solid var(--os-border-strong);
+  border-radius: 50%;
+  color: var(--os-accent);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.openspecy-card-kicker {
+  margin: 2.7rem 0 0.55rem;
+  color: var(--os-muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.openspecy-path-card h3 {
+  min-height: 3.7rem;
+  margin-bottom: 1rem;
+}
+
+.openspecy-path-card > p:not(.openspecy-card-kicker) {
+  margin-bottom: 1.6rem;
+  color: var(--os-muted);
+  font-size: 0.95rem;
+}
+
+.openspecy-card-links {
+  display: flex;
+  margin-top: auto;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.openspecy-card-links a {
+  display: flex;
+  padding: 0.65rem 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(151, 225, 216, 0.15);
+  color: var(--os-text);
+  font-size: 0.91rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.openspecy-card-links a:last-child {
+  border-bottom: 0;
+}
+
+.openspecy-card-links a:hover {
+  color: var(--os-accent);
+}
+
+.openspecy-value-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(26rem, 1.1fr);
+  gap: clamp(3rem, 8vw, 7rem);
+}
+
+.openspecy-science-note {
+  padding: 1.15rem 1.25rem;
+  border: 1px solid rgba(255, 202, 138, 0.24);
+  border-radius: 0.8rem;
+  background: rgba(255, 202, 138, 0.055);
+  font-size: 0.92rem !important;
+}
+
+.openspecy-workflow {
+  margin: 0;
+  padding: 0;
+  counter-reset: workflow;
+  list-style: none;
+}
+
+.openspecy-workflow li {
+  position: relative;
+  display: grid;
+  min-height: 6.8rem;
+  padding: 1.35rem 0 1.35rem 4.9rem;
+  align-items: start;
+  border-top: 1px solid var(--os-border);
+  grid-template-columns: 7rem 1fr;
+  gap: 1rem;
+  counter-increment: workflow;
+}
+
+.openspecy-workflow li:last-child {
+  border-bottom: 1px solid var(--os-border);
+}
+
+.openspecy-workflow li::before {
+  position: absolute;
+  top: 1.15rem;
+  left: 0;
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border: 1px solid var(--os-border-strong);
+  border-radius: 50%;
+  color: var(--os-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  content: "0" counter(workflow);
+}
+
+.openspecy-workflow span {
+  color: var(--os-text);
+  font-weight: 750;
+}
+
+.openspecy-workflow p {
+  margin-bottom: 0;
+  color: var(--os-muted);
+  font-size: 0.93rem;
+}
+
+.openspecy-navigation-section {
+  padding-bottom: clamp(5rem, 9vw, 7rem);
+}
+
+.openspecy-navigation-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.openspecy-navigation-grid > a,
+.openspecy-community-links > a {
+  display: flex;
+  min-height: 10rem;
+  padding: 1.25rem;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+  border: 1px solid var(--os-border);
+  border-radius: 0.95rem;
+  color: var(--os-text);
+  background: rgba(13, 34, 39, 0.62);
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.openspecy-navigation-grid > a:hover,
+.openspecy-community-links > a:hover {
+  border-color: var(--os-border-strong);
+  color: var(--os-text);
+  background: var(--os-surface);
+  transform: translateY(-2px);
+}
+
+.openspecy-navigation-grid strong,
+.openspecy-community-links strong,
+.openspecy-navigation-grid span,
+.openspecy-community-links span {
+  display: block;
+}
+
+.openspecy-navigation-grid span,
+.openspecy-community-links span {
+  color: var(--os-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.openspecy-app-section {
+  width: min(calc(100% - clamp(1rem, 4vw, 4rem)), 94rem);
+}
+
+.openspecy-app-intro {
+  display: flex;
+  max-width: none;
+  align-items: end;
+  justify-content: space-between;
+  gap: 3rem;
+}
+
+.openspecy-app-intro > p {
+  max-width: 34rem;
+  margin-bottom: 0.65rem;
+}
+
+.openspecy-app-shell {
+  margin: 1.5rem 0 1.4rem;
+  overflow: hidden;
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--os-radius);
+  background: #07171b;
+  box-shadow: var(--os-shadow);
 }
 
 .openspecy-app-toolbar {
   display: flex;
+  min-height: 4.25rem;
+  padding: 0.75rem 0.9rem;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 58px;
-  padding: 0.65rem 0.85rem;
-  border-bottom: 1px solid var(--bs-border-color, #d7dde3);
-  background: #f7f9fb;
+  border-bottom: 1px solid var(--os-border);
+  background: #10292f;
 }
 
 .openspecy-app-heading {
   display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
   min-width: 0;
-}
-
-.openspecy-app-heading p,
-.openspecy-app-actions p,
-.openspecy-app-progress p {
-  margin: 0;
-}
-
-.openspecy-app-heading p,
-.openspecy-app-actions p {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  align-items: baseline;
   gap: 0.75rem;
 }
 
 .openspecy-app-heading strong {
-  color: #17212b;
-  font-size: 1rem;
+  color: var(--os-text);
+  font-size: 0.93rem;
   white-space: nowrap;
 }
 
 #openspecy-app-status {
-  color: #56616c;
-  font-size: 0.875rem;
+  color: var(--os-muted);
+  font-size: 0.82rem;
 }
 
 .openspecy-app-actions {
@@ -56,11 +796,43 @@
   gap: 0.5rem;
 }
 
+.openspecy-app-actions .btn {
+  min-height: 2.35rem;
+  padding: 0.43rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+}
+
+.openspecy-app-actions .btn-outline-secondary {
+  color: var(--os-text);
+  border-color: var(--os-border-strong);
+  background: transparent;
+}
+
+.openspecy-app-actions .btn-outline-secondary:hover {
+  color: var(--os-text);
+  border-color: var(--os-accent);
+  background: rgba(99, 230, 212, 0.08);
+}
+
+.openspecy-app-actions .btn-primary {
+  color: var(--os-accent-ink);
+  border-color: var(--os-accent);
+  background: var(--os-accent);
+}
+
+.openspecy-app-actions .btn-primary:disabled {
+  color: var(--os-muted);
+  border-color: var(--os-border);
+  background: var(--os-surface-soft);
+  opacity: 0.75;
+}
+
 .openspecy-app-viewport {
   position: relative;
-  height: min(74vh, 760px);
-  min-height: 520px;
-  background: #fff;
+  height: min(76vh, 790px);
+  min-height: 540px;
+  background: #07171b;
 }
 
 #openspecy-app-frame {
@@ -68,17 +840,19 @@
   width: 100%;
   height: 100%;
   border: 0;
-  background: #fff;
+  background: #07171b;
 }
 
 .openspecy-app-loading {
   position: absolute;
-  inset: 0;
   z-index: 2;
+  inset: 0;
   display: grid;
-  place-items: center;
   padding: 2rem;
-  background: #fff;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(99, 230, 212, 0.09), transparent 20rem),
+    #07171b;
   opacity: 1;
   visibility: visible;
   transition: opacity 180ms ease, visibility 180ms ease;
@@ -86,24 +860,24 @@
 
 .openspecy-app-loading-content {
   width: min(100%, 32rem);
-  color: #56616c;
+  color: var(--os-muted);
   text-align: center;
 }
 
 .openspecy-app-loading-title {
   margin-bottom: 0.75rem;
-  color: #17212b;
-  font-size: 1.125rem;
-  font-weight: 600;
+  color: var(--os-text);
+  font-size: 1.1rem;
+  font-weight: 750;
 }
 
 .openspecy-app-progress {
   position: relative;
-  height: 8px;
+  height: 0.5rem;
   margin: 0 auto 1rem;
   overflow: hidden;
-  border-radius: 4px;
-  background: #dce2e7;
+  border-radius: 999px;
+  background: var(--os-surface-soft);
 }
 
 .openspecy-app-progress span {
@@ -111,7 +885,7 @@
   inset: 0 auto 0 0;
   width: 38%;
   border-radius: inherit;
-  background: #087f8c;
+  background: var(--os-accent);
   animation: openspecy-app-progress 1.35s ease-in-out infinite;
 }
 
@@ -128,8 +902,8 @@ html.openspecy-app-fullscreen-open body {
 
 .openspecy-app-shell.is-fullscreen {
   position: fixed;
-  inset: 0;
   z-index: 2000;
+  inset: 0;
   display: flex;
   width: auto;
   height: auto;
@@ -145,13 +919,403 @@ html.openspecy-app-fullscreen-open body {
   flex: 1 1 auto;
 }
 
+.openspecy-app-note {
+  max-width: 67rem;
+  margin: 0 auto;
+  color: var(--os-muted);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.openspecy-app-note code {
+  color: var(--os-sky);
+  background: rgba(145, 221, 255, 0.08);
+}
+
+.openspecy-r-section {
+  display: grid;
+  align-items: center;
+  grid-template-columns: minmax(0, 0.9fr) minmax(25rem, 1.1fr);
+  gap: clamp(3rem, 8vw, 7rem);
+}
+
+.openspecy-r-copy .openspecy-card-links {
+  max-width: 27rem;
+  margin-top: 2rem;
+}
+
+.openspecy-code-card {
+  overflow: hidden;
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--os-radius);
+  background: var(--os-bg-deep);
+  box-shadow: var(--os-shadow);
+}
+
+.openspecy-code-label {
+  padding: 0.7rem 1.25rem;
+  border-bottom: 1px solid var(--os-border);
+  color: var(--os-muted);
+  background: var(--os-surface);
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.openspecy-code-card pre {
+  margin: 0;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  overflow-x: auto;
+  border: 0;
+  border-radius: 0;
+  color: var(--os-accent-strong);
+  background: transparent;
+  font-size: clamp(0.92rem, 2vw, 1.08rem);
+  line-height: 1.75;
+}
+
+.openspecy-code-card code {
+  color: inherit;
+  background: transparent;
+}
+
+.openspecy-code-card > p {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--os-border);
+  color: var(--os-muted);
+  background: rgba(13, 34, 39, 0.52);
+  font-size: 0.82rem;
+}
+
+.openspecy-partner-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(30rem, 1.22fr);
+  gap: clamp(3rem, 8vw, 7rem);
+}
+
+.openspecy-partner-lead .openspecy-actions {
+  margin: 2rem 0;
+}
+
+.openspecy-partner-options {
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.openspecy-partner-options li {
+  padding: 0.65rem 0 0.65rem 1.25rem;
+  border-top: 1px solid var(--os-border);
+}
+
+.openspecy-partner-options li::before {
+  float: left;
+  margin-left: -1.25rem;
+  color: var(--os-accent);
+  content: "+";
+}
+
+.openspecy-partner-options a {
+  color: var(--os-muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.openspecy-partner-options a:hover {
+  color: var(--os-text);
+}
+
+.openspecy-partner-roll {
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius);
+  background: linear-gradient(155deg, rgba(18, 48, 57, 0.72), rgba(8, 25, 30, 0.92));
+}
+
+.openspecy-partner-roll > p {
+  color: var(--os-muted);
+  font-size: 0.9rem;
+}
+
+.openspecy-partner-tier {
+  margin-top: 1.6rem;
+  padding: 1.35rem;
+  border: 1px solid var(--os-border);
+  border-radius: 0.9rem;
+  background: rgba(3, 11, 14, 0.38);
+}
+
+.openspecy-partner-tier-featured {
+  border-color: rgba(255, 202, 138, 0.32);
+  background: rgba(255, 202, 138, 0.055);
+}
+
+.openspecy-partner-tier h4 {
+  display: flex;
+  margin-bottom: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--os-warm);
+}
+
+.openspecy-partner-tier h4 span {
+  color: var(--os-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.openspecy-partner-tier ul {
+  display: grid;
+  margin-bottom: 0;
+  padding-left: 1.15rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem 1.6rem;
+}
+
+.openspecy-partner-tier li {
+  color: var(--os-text);
+  font-size: 0.88rem;
+}
+
+.openspecy-partner-details {
+  margin-top: 1rem;
+  border-top: 1px solid var(--os-border);
+}
+
+.openspecy-partner-details summary {
+  padding: 1rem 0 0;
+  color: var(--os-accent);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.openspecy-partner-details summary:hover {
+  color: var(--os-accent-strong);
+}
+
+.openspecy-partner-details summary:focus-visible {
+  outline: 3px solid var(--os-focus);
+  outline-offset: 4px;
+}
+
+.openspecy-partner-detail-grid {
+  display: grid;
+  padding-top: 1.25rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.openspecy-partner-detail-grid h4 {
+  color: var(--os-accent);
+}
+
+.openspecy-partner-detail-grid p {
+  color: var(--os-muted);
+  font-size: 0.79rem;
+  line-height: 1.55;
+}
+
+.openspecy-community-section {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(3rem, 8vw, 7rem);
+}
+
+.openspecy-community-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+
+.openspecy-community-links > a {
+  min-height: 8.5rem;
+}
+
+.openspecy-home-footer {
+  display: flex;
+  padding: 2.7rem 0 4rem;
+  align-items: start;
+  justify-content: space-between;
+  gap: 2rem;
+  border-top: 1px solid var(--os-border);
+}
+
+.openspecy-home-footer strong {
+  color: var(--os-text);
+  font-size: 1.1rem;
+}
+
+.openspecy-home-footer p {
+  margin: 0.25rem 0 0;
+  color: var(--os-muted);
+  font-size: 0.83rem;
+}
+
+.openspecy-home-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.7rem 1.25rem;
+}
+
+.openspecy-home-footer-links a {
+  color: var(--os-muted);
+  font-size: 0.84rem;
+  text-decoration: none;
+}
+
+.openspecy-home-footer-links a:hover {
+  color: var(--os-text);
+}
+
 @keyframes openspecy-app-progress {
   0% { transform: translateX(-105%); }
   55% { transform: translateX(165%); }
   100% { transform: translateX(270%); }
 }
 
+@media (max-width: 991.98px) {
+  .openspecy-page-nav-links {
+    gap: 1rem;
+  }
+
+  .openspecy-page-nav-links a:nth-child(3),
+  .openspecy-page-nav-links a:nth-child(4) {
+    display: none;
+  }
+
+  .openspecy-hero,
+  .openspecy-value-section,
+  .openspecy-r-section,
+  .openspecy-partner-section,
+  .openspecy-community-section {
+    grid-template-columns: 1fr;
+  }
+
+  .openspecy-hero {
+    min-height: auto;
+  }
+
+  .openspecy-spectrum-card {
+    width: min(100%, 39rem);
+    margin: 0 auto;
+    transform: none;
+  }
+
+  .openspecy-path-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .openspecy-path-card {
+    min-height: 0;
+  }
+
+  .openspecy-card-number {
+    margin-bottom: 1rem;
+  }
+
+  .openspecy-card-kicker {
+    margin-top: 1.5rem;
+  }
+
+  .openspecy-path-card h3 {
+    min-height: 0;
+  }
+
+  .openspecy-navigation-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .openspecy-app-intro {
+    display: block;
+  }
+
+  .openspecy-partner-section,
+  .openspecy-community-section {
+    gap: 3rem;
+  }
+}
+
 @media (max-width: 575.98px) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .openspecy-page-nav,
+  .openspecy-hero,
+  .openspecy-section,
+  .openspecy-home-footer {
+    width: calc(100% - 1.5rem);
+  }
+
+  .openspecy-page-nav {
+    min-height: 4.5rem;
+  }
+
+  .openspecy-page-nav-links {
+    gap: 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .openspecy-page-nav-links a:first-child,
+  .openspecy-page-nav-links a:last-child {
+    display: none;
+  }
+
+  .openspecy-hero {
+    padding-top: 4.2rem;
+    gap: 3.5rem;
+  }
+
+  .openspecy-welcome h1 {
+    font-size: clamp(3.2rem, 17vw, 4.5rem);
+  }
+
+  .openspecy-actions,
+  .openspecy-actions .openspecy-button {
+    width: 100%;
+  }
+
+  .openspecy-proof-points {
+    grid-template-columns: 1fr;
+  }
+
+  .openspecy-proof-points li {
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid rgba(151, 225, 216, 0.12);
+  }
+
+  .openspecy-spectrum-card {
+    padding: 0.65rem;
+    border-radius: 1rem;
+  }
+
+  .openspecy-spectrum-result {
+    width: calc(100% - 1rem);
+  }
+
+  .openspecy-workflow li {
+    padding-left: 4rem;
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .openspecy-navigation-grid,
+  .openspecy-community-links,
+  .openspecy-partner-tier ul,
+  .openspecy-partner-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .openspecy-app-section {
+    width: calc(100% - 0.5rem);
+  }
+
   .openspecy-app-toolbar,
   .openspecy-app-heading {
     align-items: stretch;
@@ -163,23 +1327,43 @@ html.openspecy-app-fullscreen-open body {
     gap: 0.5rem;
   }
 
-  .openspecy-app-actions p > * {
+  .openspecy-app-actions,
+  .openspecy-app-actions > * {
     flex: 1 1 0;
   }
 
-  .openspecy-app-actions p {
-    width: 100%;
+  .openspecy-app-viewport {
+    height: 72vh;
+    min-height: 440px;
   }
 
-  .openspecy-app-viewport {
-    height: 70vh;
-    min-height: 430px;
+  .openspecy-partner-tier h4,
+  .openspecy-home-footer {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .openspecy-home-footer-links {
+    justify-content: flex-start;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .openspecy-button,
+  .openspecy-navigation-grid > a,
+  .openspecy-community-links > a,
   .openspecy-app-loading {
     transition: none;
+  }
+
+  .openspecy-button:hover,
+  .openspecy-navigation-grid > a:hover,
+  .openspecy-community-links > a:hover {
+    transform: none;
   }
 
   .openspecy-app-progress span {

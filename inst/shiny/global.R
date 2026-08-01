@@ -96,7 +96,10 @@ app_empty_ratio_definitions <- function() {
 # readable beside the app source without promising a future import contract.
 app_user_metadata_input_ids <- c(
   # Preprocessing
-  "active_preprocessing", "make_rel_decision", "smooth_decision",
+  "active_preprocessing", "spike_decision", "spike_direction",
+  "spike_residual_threshold", "spike_residual_window",
+  "saturation_decision", "saturation_mode", "saturation_ceiling",
+  "saturation_max_loss", "make_rel_decision", "smooth_decision",
   "smoother", "derivative_order", "smoother_window", "derivative_abs",
   "conform_decision", "conform_selection", "conform_res",
   "intensity_decision", "intensity_corr", "baseline_decision",
@@ -116,6 +119,117 @@ app_user_metadata_input_ids <- c(
   "quant_numerator_area", "quant_denominator_area",
   "quant_numerator_peak", "quant_denominator_peak"
 )
+
+app_saturation_value <- function(mode = "auto", ceiling = NULL) {
+  mode <- match.arg(mode, c("auto", "threshold"))
+  if(identical(mode, "auto")) return("auto")
+  if(!is.numeric(ceiling) || length(ceiling) != 1L ||
+     !is.finite(ceiling)) {
+    stop("Enter one finite detector ceiling for threshold saturation mode.",
+         call. = FALSE)
+  }
+  as.numeric(ceiling)
+}
+
+app_apply_spectral_corrections <- function(
+    x,
+    spike = TRUE,
+    spike_args = list(),
+    saturation = "auto",
+    saturation_args = list()) {
+  if(!inherits(x, "OpenSpecy")) {
+    stop("'x' must be an OpenSpecy object", call. = FALSE)
+  }
+  if(!is.list(spike_args) || !is.list(saturation_args)) {
+    stop("Correction arguments must be supplied as lists.", call. = FALSE)
+  }
+
+  current <- x
+  if(isTRUE(spike)) {
+    current <- do.call(correct_spike, c(list(x = current), spike_args))
+  }
+  if(!is.null(saturation)) {
+    current <- withCallingHandlers(
+      do.call(
+        restrict_range,
+        c(list(x = current, saturation = saturation, make_rel = FALSE),
+          saturation_args)
+      ),
+      warning = function(warning) invokeRestart("muffleWarning")
+    )
+  }
+  current
+}
+
+app_copy_correction_history <- function(from, to) {
+  for(name in c("automatic_spike", "saturation_restriction")) {
+    value <- attr(from, name, exact = TRUE)
+    if(!is.null(value)) attr(to, name) <- value
+  }
+  to
+}
+
+app_conform_axis <- function(x, resolution) {
+  target <- conform_res(x$wavenumber, res = resolution)
+  diagnostic <- attr(x, "saturation_restriction", exact = TRUE)
+  excluded <- if(is.list(diagnostic) && isTRUE(diagnostic$applied)) {
+    diagnostic$excluded_ranges
+  } else {
+    NULL
+  }
+  if(!is.null(excluded) && nrow(excluded)) {
+    keep <- rep(TRUE, length(target))
+    for(i in seq_len(nrow(excluded))) {
+      keep <- keep & !(target >= excluded$region_min[[i]] &
+                         target <= excluded$region_max[[i]])
+    }
+    target <- target[keep]
+  }
+  if(length(target) < 3L) {
+    stop("Correction and conformation left fewer than three wavenumbers.",
+         call. = FALSE)
+  }
+  target
+}
+
+app_attach_correction_metadata <- function(x) {
+  x <- as_OpenSpecy(x)
+  x$metadata <- data.table::copy(x$metadata)
+  spike <- attr(x, "automatic_spike", exact = TRUE)
+  if(is.list(spike)) {
+    x$metadata$spike_correction_applied <- isTRUE(spike$applied)
+    x$metadata$spike_correction_reason <- as.character(spike$reason)
+    x$metadata$spike_corrected_region_count <-
+      nrow(spike$corrected_regions)
+  }
+  saturation <- attr(x, "saturation_restriction", exact = TRUE)
+  if(is.list(saturation)) {
+    format_ranges <- function(ranges) {
+      if(is.null(ranges) || !nrow(ranges)) return(NA_character_)
+      paste0(
+        format(ranges$region_min, trim = TRUE), "-",
+        format(ranges$region_max, trim = TRUE),
+        collapse = " | "
+      )
+    }
+    x$metadata$saturation_restriction_applied <-
+      isTRUE(saturation$applied)
+    x$metadata$saturation_restriction_reason <-
+      as.character(saturation$reason)
+    x$metadata$saturation_loss_fraction <-
+      as.numeric(saturation$saturation_loss_fraction)
+    x$metadata$saturation_proposed_loss_fraction <-
+      as.numeric(saturation$proposed_saturation_loss_fraction)
+    x$metadata$saturation_excluded_ranges <-
+      format_ranges(saturation$excluded_ranges)
+    x$metadata$saturation_proposed_excluded_ranges <-
+      format_ranges(saturation$proposed_excluded_ranges)
+    x$metadata$saturation_detected_spectra <- paste(
+      saturation$detected_spectra, collapse = " | "
+    )
+  }
+  x
+}
 
 app_metadata_scalar <- function(value, separator = " | ") {
   if(is.null(value) || !length(value)) return(NA_character_)
@@ -697,6 +811,116 @@ app_plot_palette <- list(
   spectrum = app_theme$spectrum
 )
 
+# Okabe-Ito hues, ordered from cool to warm and lifted away from the very dark
+# end of common perceptually uniform scales so every value remains visible on
+# the application's navy canvas.
+app_heatmap_colorscale <- list(
+  c(0.00, "#56B4E9"),
+  c(0.20, "#44B9A8"),
+  c(0.40, "#009E73"),
+  c(0.60, "#F0E442"),
+  c(0.80, "#E69F00"),
+  c(1.00, "#CC79A7")
+)
+
+app_quality_checks <- c(
+  "high_tail", "silent_region", "co2_region", "missing_values",
+  "flat_spectrum", "negative_intensity", "low_snr", "spike",
+  "saturation"
+)
+
+app_quality_counts <- function(report) {
+  statuses <- c("error", "warning", "pass")
+  if(is.null(report) || !is.data.frame(report) || !nrow(report)) {
+    return(stats::setNames(rep.int(0L, length(statuses)), statuses))
+  }
+  if(!all(c("status", "test_id") %in% names(report))) {
+    stop("Quality reports must include 'status' and 'test_id'.",
+         call. = FALSE)
+  }
+  unique_report <- report[!duplicated(report$test_id), , drop = FALSE]
+  stats::setNames(
+    vapply(statuses, function(status) {
+      sum(unique_report$status == status, na.rm = TRUE)
+    }, integer(1)),
+    statuses
+  )
+}
+
+app_quality_evidence <- function(row) {
+  parts <- character()
+  if(length(row$metric) && !is.na(row$metric) && nzchar(row$metric)) {
+    parts <- c(parts, paste0("Metric: ", row$metric))
+  }
+  if(length(row$value) && is.finite(row$value)) {
+    parts <- c(parts, paste0("Observed: ", signif(row$value, 5)))
+  }
+  if(length(row$threshold) && is.finite(row$threshold)) {
+    parts <- c(parts, paste0("Threshold: ", signif(row$threshold, 5)))
+  }
+  if(length(row$candidate_max) && is.finite(row$candidate_max)) {
+    candidate_label <- if(identical(row$metric, "saturated_interval_count")) {
+      "Detector ceiling"
+    } else {
+      "Candidate maximum"
+    }
+    parts <- c(parts, paste0(
+      candidate_label, ": ", signif(row$candidate_max, 5)
+    ))
+  }
+  if(length(row$control_max) && is.finite(row$control_max)) {
+    parts <- c(parts, paste0(
+      "Control maximum: ", signif(row$control_max, 5)
+    ))
+  }
+  if(length(row$region_min) && length(row$region_max) &&
+     is.finite(row$region_min) && is.finite(row$region_max)) {
+    parts <- c(parts, paste0(
+      "Region: ", format(row$region_min, trim = TRUE), "-",
+      format(row$region_max, trim = TRUE), " cm^-1"
+    ))
+  }
+  if(!length(parts)) "No numeric exception was recorded." else
+    paste(parts, collapse = "; ")
+}
+
+app_quality_modal_content <- function(report, status) {
+  status <- match.arg(status, c("error", "warning", "pass"))
+  if(is.null(report) || !nrow(report)) {
+    return(tags$p("Upload a spectrum to run the quality checks."))
+  }
+  rows <- report[report$status == status & !duplicated(report$test_id), ,
+                 drop = FALSE]
+  if(!nrow(rows)) {
+    return(tags$p(paste0("No ", status, " findings for this spectrum.")))
+  }
+  tagList(lapply(seq_len(nrow(rows)), function(i) {
+    row <- rows[i, , drop = FALSE]
+    correction <- if(isTRUE(row$correction_applied[[1L]])) {
+      row$correction_summary[[1L]]
+    } else if(length(row$correction_summary) &&
+              !is.na(row$correction_summary[[1L]])) {
+      row$correction_summary[[1L]]
+    } else {
+      "No automatic correction was recorded for this finding."
+    }
+    tags$section(
+      class = paste("openspecy-quality-finding", paste0(
+        "openspecy-quality-finding-", status
+      )),
+      tags$h4(gsub("_", " ", row$check[[1L]], fixed = TRUE)),
+      tags$p(tags$strong("Finding: "), row$description[[1L]]),
+      tags$p(tags$strong("Evidence: "), app_quality_evidence(row)),
+      tags$p(tags$strong("Interpretation: "),
+             ifelse(is.na(row$likely_cause[[1L]]),
+                    "No likely cause was recorded.",
+                    row$likely_cause[[1L]])),
+      tags$p(tags$strong("Action: "), row$potential_fix[[1L]]),
+      tags$p(tags$strong("Automatic correction: "), correction)
+    )
+  }))
+}
+
 app_summary_row <- function(items) {
   if(!is.list(items)) {
     stop("Summary items must be supplied as a list.", call. = FALSE)
@@ -749,8 +973,31 @@ app_style_plotly <- function(plot) {
   )
 }
 
+app_spectrum_legend_layout <- function(plot_width = NULL) {
+  width <- suppressWarnings(as.numeric(plot_width))
+  width <- if(length(width)) width[[1L]] else NA_real_
+  if(!is.finite(width)) width <- 900
+  if(width < 640) {
+    return(list(
+      legend = list(
+        orientation = "h", x = 0, xanchor = "left",
+        y = -0.22, yanchor = "top"
+      ),
+      margin = list(t = 28, r = 18, b = 105, l = 62)
+    ))
+  }
+  list(
+    legend = list(
+      orientation = "v", x = 1.02, xanchor = "left",
+      y = 1, yanchor = "top"
+    ),
+    margin = list(t = 28, r = 190, b = 64, l = 72)
+  )
+}
+
 app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
-                              make_rel = FALSE, source = "B") {
+                              make_rel = FALSE, source = "B",
+                              plot_width = NULL) {
   prepare_trace <- function(x, normalize = FALSE) {
     if(is.null(x)) return(NULL)
     x <- as_OpenSpecy(x)
@@ -798,6 +1045,16 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
     "Identification match",
     app_plot_palette$reference, 2.2, "dot"
   )
+  legend_layout <- app_spectrum_legend_layout(plot_width)
+  legend <- c(
+    legend_layout$legend,
+    list(
+      bgcolor = "rgba(11, 25, 41, 0.82)",
+      bordercolor = app_plot_palette$grid,
+      borderwidth = 1,
+      font = list(color = app_plot_palette$text)
+    )
+  )
   plotly::layout(
     plot,
     xaxis = list(
@@ -805,16 +1062,8 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
       autorange = "reversed"
     ),
     yaxis = list(title = "intensity [-]"),
-    legend = list(
-      orientation = "h",
-      x = 0,
-      y = 1.03,
-      bgcolor = "rgba(11, 25, 41, 0.82)",
-      bordercolor = app_plot_palette$grid,
-      borderwidth = 1,
-      font = list(color = app_plot_palette$text)
-    ),
-    margin = list(t = 58)
+    legend = legend,
+    margin = legend_layout$margin
   )
 }
 

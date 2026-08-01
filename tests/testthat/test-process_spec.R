@@ -127,3 +127,27 @@ test_that("process_spec() passes automated range policies through", {
   expect_true(attr(processed, "automatic_flatten")$applied)
   expect_true(check_OpenSpecy(processed))
 })
+
+test_that("process_spec() can correct spikes before other processing", {
+  axis <- seq(400, 1800, length.out = 101)
+  baseline <- sin(axis / 200)
+  values <- baseline
+  values[51] <- values[51] + 20
+  os <- as_OpenSpecy(axis, data.frame(sample = values))
+  expected <- correct_spike(os, interpolation_points = 5L)
+  expected$spectra <- make_rel(expected$spectra)
+  processed <- process_spec(
+    os,
+    conform_spec = FALSE,
+    smooth_intens = FALSE,
+    make_rel = TRUE,
+    correct_spike = TRUE,
+    correct_spike_args = list(
+      method = "residual", residual_threshold = 8,
+      interpolation_points = 5L
+    )
+  )
+
+  expect_equal(processed$spectra, expected$spectra)
+  expect_true(attr(processed, "automatic_spike")$applied)
+})

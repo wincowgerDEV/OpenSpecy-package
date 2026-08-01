@@ -16,6 +16,110 @@
     progress: 4
   };
 
+  function isWasmMode() {
+    var marker = document.querySelector('meta[name="openspecy-wasm-mode"]');
+    return marker && marker.getAttribute("content") === "true";
+  }
+
+  function dispositionFilename(disposition) {
+    var encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (encoded) {
+      try {
+        return decodeURIComponent(encoded[1]);
+      } catch (_error) {
+        return encoded[1];
+      }
+    }
+    var plain = disposition.match(/filename="?([^";]+)"?/i);
+    return plain ? plain[1] : "";
+  }
+
+  function safeFilename(filename) {
+    return String(filename || "openspecy-download")
+      .replace(/[\\/:*?"<>|]/g, "-")
+      .replace(/^\.+|\.+$/g, "") || "openspecy-download";
+  }
+
+  function showDownloadError(error) {
+    var message = "Open Specy could not save this download. " + error.message;
+    window.console.error(message, error);
+    if (window.Shiny && window.Shiny.notifications &&
+        window.Shiny.notifications.show) {
+      window.Shiny.notifications.show({
+        html: message,
+        type: "error",
+        duration: null
+      });
+    }
+  }
+
+  async function downloadInCurrentFrame(button) {
+    if (button.dataset.openspecyDownloadActive === "true") return;
+    var href = button.href;
+    if (!href || href === window.location.href || /#$/.test(href)) {
+      showDownloadError(new Error("The download is not ready yet."));
+      return;
+    }
+
+    button.dataset.openspecyDownloadActive = "true";
+    button.setAttribute("aria-busy", "true");
+    button.classList.add("disabled");
+    try {
+      var response = await window.fetch(href, {
+        cache: "no-store",
+        credentials: "same-origin"
+      });
+      if (!response.ok) {
+        throw new Error("The server returned HTTP " + response.status + ".");
+      }
+      var blob = await response.blob();
+      if (!blob.size) throw new Error("The generated file was empty.");
+
+      var contentType = (response.headers.get("content-type") || "")
+        .toLowerCase();
+      var prefix = (await blob.slice(0, 128).text()).trimStart().toLowerCase();
+      if (contentType.indexOf("text/html") === 0 ||
+          contentType.indexOf("application/xhtml+xml") === 0 ||
+          prefix.indexOf("<!doctype html") === 0 ||
+          prefix.indexOf("<html") === 0) {
+        throw new Error("The server returned an HTML page instead of the file.");
+      }
+
+      var filename = dispositionFilename(
+        response.headers.get("content-disposition") || ""
+      );
+      var objectUrl = window.URL.createObjectURL(blob);
+      var localLink = document.createElement("a");
+      localLink.href = objectUrl;
+      localLink.download = safeFilename(filename);
+      localLink.style.display = "none";
+      document.body.appendChild(localLink);
+      localLink.click();
+      localLink.remove();
+      window.setTimeout(function () {
+        window.URL.revokeObjectURL(objectUrl);
+      }, 1000);
+    } catch (error) {
+      showDownloadError(error);
+    } finally {
+      delete button.dataset.openspecyDownloadActive;
+      button.removeAttribute("aria-busy");
+      button.classList.remove("disabled");
+    }
+  }
+
+  function bindWasmDownloads() {
+    if (!isWasmMode()) return;
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      var button = target && target.closest ? target.closest("#download_data") : null;
+      if (!button) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void downloadInCurrentFrame(button);
+    }, true);
+  }
+
   function formatSeconds(seconds) {
     seconds = Math.max(0, Math.round(seconds));
     if (seconds < 60) return seconds + (seconds === 1 ? " second" : " seconds");
@@ -179,8 +283,12 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bindReadyEvent, { once: true });
+    document.addEventListener("DOMContentLoaded", function () {
+      bindWasmDownloads();
+      bindReadyEvent();
+    }, { once: true });
   } else {
+    bindWasmDownloads();
     bindReadyEvent();
   }
 })();

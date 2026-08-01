@@ -23,6 +23,12 @@ assess_spec(x, ...)
   flat_tol = sqrt(.Machine$double.eps),
   negative_tol = 0,
   na.rm = TRUE,
+  report = c("issues", "all"),
+  snr_metric = "run_sig_over_noise",
+  spike_args = list(),
+  saturation = "auto",
+  saturation_min_run = NULL,
+  saturation_tolerance = sqrt(.Machine$double.eps),
   ...
 )
 }
@@ -32,7 +38,8 @@ assess_spec(x, ...)
 \item{checks}{character; checks to run. Options include
 \code{"high_tail"}, \code{"silent_region"}, \code{"co2_region"},
 \code{"missing_values"}, \code{"flat_spectrum"},
-\code{"negative_intensity"}, and \code{"low_snr"}.}
+\code{"negative_intensity"}, \code{"low_snr"}, \code{"spike"}, and
+\code{"saturation"}. Spike and saturation checks are opt-in.}
 
 \item{high_prob}{numeric; spectrum-wide quantile used as the high intensity
 threshold for the silent-region check.}
@@ -59,14 +66,36 @@ flagged as negative.}
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating thresholds and metrics.}
 
+\item{report}{character; \code{"issues"} preserves the issue-only return
+contract, while \code{"all"} returns an explicit pass, warning, or error row
+for every requested check and spectrum.}
+
+\item{snr_metric}{character; signal-to-noise metric passed to
+\code{\link{sig_noise}()} for the \code{"low_snr"} check.}
+
+\item{spike_args}{named list of arguments passed to the shared internal spike
+detector when \code{"spike"} is requested.}
+
+\item{saturation}{\code{"auto"} or one finite numeric detector ceiling used
+by the \code{"saturation"} check.}
+
+\item{saturation_min_run}{integer or \code{NULL}; minimum saturated run used
+by the shared detector.}
+
+\item{saturation_tolerance}{numeric; relative equality tolerance for
+automatic detector plateaus.}
+
 \item{\ldots}{further arguments passed to \code{\link{sig_noise}()} for the
 \code{"low_snr"} check.}
 }
 \value{
-A \code{\link[data.table]{data.table-class}()} with one row per issue found
+With \code{report = "issues"}, a
+\code{\link[data.table]{data.table-class}()} with one row per issue found
 and columns describing the spectrum, check, issue, likely cause, potential
 fix, metric value, threshold, and region. If no issues are found, an empty
-\code{data.table} with the same columns is returned.
+table with the same columns is returned. With \code{report = "all"}, one
+status row is returned for every requested spectrum/check pair, plus any
+applicable batch-level error, with stable IDs and correction diagnostics.
 }
 \description{
 \code{assess_spec()} scans spectra for common quality-control issues and

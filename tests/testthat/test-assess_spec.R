@@ -176,3 +176,235 @@ test_that("flat spectra do not produce infinite artifact findings", {
   result <- assess_spec(os, checks = c("high_tail", "co2_region"))
   expect_equal(nrow(result), 0)
 })
+
+test_that("full assessment reports passes, warnings, and errors", {
+  clean <- make_assess_test_spec()
+  full <- assess_spec(
+    clean,
+    checks = c("negative_intensity", "missing_values"),
+    report = "all"
+  )
+  expect_equal(nrow(full), 2L)
+  expect_true(all(full$status == "pass"))
+  expect_true(all(c("scope", "status", "finding_count", "regions",
+                    "correction_applied", "correction_summary", "test_id") %in%
+                  names(full)))
+  expect_equal(length(unique(full$test_id)), nrow(full))
+  expect_equal(
+    full$value[full$check == "missing_values"],
+    0
+  )
+  expect_true(is.finite(
+    full$value[full$check == "negative_intensity"]
+  ))
+  expect_true(all(nzchar(full$metric)))
+
+  damaged <- clean
+  damaged$spectra[1, 1] <- NA_real_
+  damaged$spectra[2, 1] <- -1
+  damaged$spectra[3, 1] <- NA_real_
+  full_damaged <- assess_spec(
+    damaged,
+    checks = c("negative_intensity", "missing_values"),
+    report = "all"
+  )
+  expect_setequal(full_damaged$status, c("warning", "error"))
+  expect_equal(
+    full_damaged$finding_count[full_damaged$check == "missing_values"],
+    2L
+  )
+  expect_equal(
+    full_damaged$finding_count[full_damaged$check == "negative_intensity"],
+    1L
+  )
+})
+
+test_that("assess_spec() uses shared saturation detection and diagnostics", {
+  axis <- 0:10
+  values <- c(1, 2, 4, 8, 10, 10, 8, 4, 2, 1, 0)
+  os <- as_OpenSpecy(axis, data.frame(sample = values))
+  issues <- assess_spec(os, checks = "saturation", saturation = "auto")
+  expect_equal(issues$check, "saturation")
+  expect_equal(issues$value, 1)
+  expect_equal(c(issues$region_min, issues$region_max), c(4, 5))
+
+  corrected <- restrict_range(
+    os, saturation = "auto", saturation_guard = 0, make_rel = FALSE
+  )
+  corrected_report <- assess_spec(
+    corrected, checks = "saturation", saturation = "auto", report = "all"
+  )
+  expect_identical(corrected_report$status, "pass")
+  expect_true(corrected_report$correction_applied)
+  expect_equal(corrected_report$finding_count, 1L)
+  expect_equal(nrow(corrected_report$regions[[1L]]), 1L)
+
+  too_wide <- os
+  too_wide$spectra[, 1] <- c(0, rep(10, 9), 0)
+  expect_warning(
+    rejected <- restrict_range(too_wide, saturation = 10,
+                               saturation_guard = 0, make_rel = FALSE,
+                               max_saturation_loss = 0.7)
+  )
+  full <- assess_spec(rejected, checks = "saturation", saturation = 10,
+                      report = "all")
+  expect_true(any(full$scope == "batch" & full$status == "error"))
+  expect_true(any(full$test_id == "batch:batch:saturation"))
+
+  batch <- as_OpenSpecy(
+    axis,
+    data.frame(
+      clipped = values,
+      clean = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11)
+    )
+  )
+  batch_corrected <- restrict_range(
+    batch, saturation = "auto", saturation_guard = 0, make_rel = FALSE
+  )
+  batch_report <- assess_spec(
+    batch_corrected, checks = "saturation", report = "all"
+  )
+  expect_true(all(batch_report$status == "pass"))
+  expect_true(all(batch_report$correction_applied))
+  expect_true(all(batch_report$finding_count == 1L))
+})
+
+test_that("assess_spec() can select exact breakpoint SNR", {
+  axis <- seq_len(10)
+  os <- as_OpenSpecy(axis, data.frame(sample = c(rep(1, 8), 10, 10)))
+  expect_equal(
+    nrow(assess_spec(os, checks = "low_snr", snr_metric = "breakpoint_snr",
+                     snr_threshold = 9)),
+    0L
+  )
+  expect_equal(
+    nrow(assess_spec(os, checks = "low_snr", snr_metric = "breakpoint_snr",
+                     snr_threshold = 11)),
+    1L
+  )
+
+  zero_noise <- as_OpenSpecy(
+    axis, data.frame(sample = c(rep(0, 9), 10))
+  )
+  zero_noise_report <- assess_spec(
+    zero_noise, checks = "low_snr", snr_metric = "breakpoint_snr",
+    report = "all"
+  )
+  expect_identical(zero_noise_report$status, "pass")
+  expect_identical(zero_noise_report$value, Inf)
+})
+
+test_that("full assessment preserves disjoint detector regions", {
+  axis <- 0:10
+  values <- c(0, 10, 10, 0, 0, 0, 0, 10, 10, 0, 0)
+  os <- as_OpenSpecy(axis, data.frame(sample = values))
+  report <- assess_spec(
+    os, checks = "saturation", saturation = 10, report = "all"
+  )
+
+  expect_identical(report$status, "warning")
+  expect_equal(report$finding_count, 2L)
+  expect_equal(
+    report$regions[[1L]][, c("region_min", "region_max")],
+    data.frame(region_min = c(1, 7), region_max = c(2, 8))
+  )
+})
+
+test_that("full assessment never calls an all-missing check a pass", {
+  os <- as_OpenSpecy(
+    seq_len(30), data.frame(sample = rep(NA_real_, 30))
+  )
+  report <- suppressWarnings(assess_spec(
+    os,
+    checks = c("missing_values", "flat_spectrum", "negative_intensity",
+               "low_snr", "spike", "saturation"),
+    report = "all"
+  ))
+
+  expect_true(all(report$status == "error"))
+  expect_true(all(report$issue[report$check != "missing_values"] ==
+                    "Check unavailable"))
+
+  short <- as_OpenSpecy(
+    seq_len(10), data.frame(sample = seq_len(10))
+  )
+  short_report <- suppressWarnings(assess_spec(
+    short, checks = "low_snr", report = "all"
+  ))
+  expect_identical(short_report$status, "error")
+  expect_identical(short_report$issue, "Check unavailable")
+
+  uncovered <- assess_spec(
+    short, checks = "silent_region", report = "all"
+  )
+  expect_identical(uncovered$status, "error")
+  expect_identical(uncovered$issue, "Check unavailable")
+})
+
+test_that("empty full assessment retains its schema", {
+  os <- make_assess_test_spec()
+  empty <- assess_spec(os, checks = character(), report = "all")
+  reference <- assess_spec(os, checks = "missing_values", report = "all")
+
+  expect_equal(nrow(empty), 0L)
+  expect_identical(names(empty), names(reference))
+})
+
+test_that("spike assessment surfaces uncorrectable and rejected candidates", {
+  values <- rep(0, 101)
+  values[2] <- 50
+  original <- as_OpenSpecy(seq_len(101), data.frame(sample = values))
+  attempted <- correct_spike(
+    original,
+    method = "prominence_fwhm",
+    direction = "positive",
+    prominence_threshold = 10,
+    width_threshold = 4,
+    interpolation_points = 5L
+  )
+  report <- assess_spec(
+    attempted,
+    checks = "spike",
+    report = "all",
+    spike_args = list(
+      method = "prominence_fwhm",
+      direction = "positive",
+      prominence_threshold = 10,
+      width_threshold = 4,
+      interpolation_points = 5L
+    )
+  )
+
+  expect_identical(report$status, "warning")
+  expect_false(report$regions[[1L]]$correctable)
+  expect_true("boundary_interval" %in% report$regions[[1L]]$reason)
+  expect_match(report$correction_summary,
+               "Spike correction was not applied")
+
+  history_only <- assess_spec(
+    attempted,
+    checks = "spike",
+    report = "all",
+    spike_args = list(residual_threshold = 1e9)
+  )
+  expect_identical(history_only$status, "warning")
+  expect_match(history_only$issue, "Previous spike correction")
+  expect_true("boundary_interval" %in% history_only$regions[[1L]]$reason)
+
+  too_few <- as_OpenSpecy(
+    seq_len(9), data.frame(sample = c(0, 1, 0, 1, 0, 20, 0, 1, 0))
+  )
+  unavailable <- assess_spec(
+    too_few,
+    checks = "spike",
+    report = "all",
+    spike_args = list(
+      method = "prominence_fwhm_ratio",
+      direction = "positive",
+      min_peaks = 20L,
+      interpolation_points = 1L
+    )
+  )
+  expect_identical(unavailable$status, "error")
+  expect_identical(unavailable$issue, "Check unavailable")
+})

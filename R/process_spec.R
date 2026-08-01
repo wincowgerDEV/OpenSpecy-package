@@ -39,6 +39,10 @@
 #' with \code{\link{make_rel}()}.
 #' @param make_rel_args named list of arguments passed to
 #' \code{\link{make_rel}()}.
+#' @param correct_spike logical; whether to correct isolated impulse artifacts
+#' before conforming, restricting, or otherwise processing spectra.
+#' @param correct_spike_args named list of arguments passed to
+#' \code{\link{correct_spike}()}.
 #' @param \ldots further arguments passed to subfunctions.
 #'
 #' @return
@@ -109,10 +113,12 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
                                    smooth_intens_args = list(
                                      polynomial = 3, window = 11,
                                      derivative = 1, abs = TRUE),
-                                   make_rel = TRUE,
-                                   make_rel_args = list(
-                                       na.rm = TRUE),
-                                   ...) {
+                                    make_rel = TRUE,
+                                    make_rel_args = list(
+                                        na.rm = TRUE),
+                                    correct_spike = FALSE,
+                                    correct_spike_args = list(),
+                                    ...) {
   x <- as_OpenSpecy(x)
 
   apply_intensity_step <- function(x, fun, args = list()) {
@@ -120,6 +126,9 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
   }
 
   if(active) {
+    if(correct_spike) {
+      x <- do.call("correct_spike", c(list(x), correct_spike_args))
+    }
     if(adj_intens) {
       args <- utils::modifyList(list(make_rel = FALSE), adj_intens_args)
       x <- apply_intensity_step(x, "adj_intens", args)

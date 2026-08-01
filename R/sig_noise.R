@@ -13,6 +13,8 @@
 #' noise), \code{"run_sig_over_noise"} (absolute value of signal /
 #' noise where signal is estimated as the max intensity and noise is
 #' estimated as the height of a low intensity region.),
+#' \code{"breakpoint_snr"} (ratio between the upper and lower groups around
+#' the exact least-squares breakpoint in sorted absolute amplitudes),
 #' \code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
 #' \code{"tot_sig"} (sum of intensities), or \code{"entropy"} (Shannon entropy of intensities)..
 #' @param step numeric; the step size of the region to look for the run_sig_over_noise option.
@@ -84,6 +86,8 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
   values <- if (metric == "run_sig_over_noise") {
     .run_sig_over_noise_matrix(x$spectra, step = step, prob = prob,
                                na.rm = na.rm)
+  } else if (metric == "breakpoint_snr") {
+    .breakpoint_snr_matrix(x$spectra, na.rm = na.rm)
   } else if (metric == "entropy") {
     .sig_noise_entropy(x, breaks = breaks)
   } else {
@@ -114,6 +118,40 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
   else {
     return(values)
   }
+}
+
+.breakpoint_snr_matrix <- function(spectra, na.rm = TRUE) {
+  out <- vapply(seq_len(ncol(spectra)), function(i) {
+    values <- spectra[, i]
+    if (!isTRUE(na.rm) && any(!is.finite(values))) return(NA_real_)
+    values <- abs(values[is.finite(values)])
+    n <- length(values)
+    if (n < 2L) return(NA_real_)
+
+    values <- sort.int(values, method = "quick")
+    if (values[[n]] == 0) return(1)
+    if (values[[1L]] == values[[n]]) return(1)
+
+    sums <- cumsum(values)
+    sums_sq <- cumsum(values^2)
+    candidates <- seq_len(n - 1L)
+    left_n <- candidates
+    right_n <- n - candidates
+    left_sum <- sums[candidates]
+    right_sum <- sums[[n]] - left_sum
+    left_sse <- sums_sq[candidates] - left_sum^2 / left_n
+    right_sse <- (sums_sq[[n]] - sums_sq[candidates]) -
+      right_sum^2 / right_n
+    split <- candidates[[which.min(left_sse + right_sse)]]
+
+    noise <- stats::median(values[seq_len(split)])
+    signal <- stats::median(values[seq.int(split + 1L, n)])
+    if (!is.finite(noise) || !is.finite(signal)) return(NA_real_)
+    if (noise == 0) return(if (signal > 0) Inf else 1)
+    signal / noise
+  }, FUN.VALUE = numeric(1))
+  names(out) <- colnames(spectra)
+  out
 }
 
 .sig_noise_simple_matrix <- function(x, metric, na.rm, sig_min, sig_max,

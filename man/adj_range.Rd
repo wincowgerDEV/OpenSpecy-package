@@ -23,6 +23,12 @@ restrict_range(x, ...)
   tail_n = 5L,
   co2_region = c(2200, 2420),
   max_crop = 0.2,
+  saturation = NULL,
+  saturation_min_run = NULL,
+  saturation_tolerance = sqrt(.Machine$double.eps),
+  saturation_guard = 1L,
+  max_saturation_loss = 0.7,
+  min_remaining = 3L,
   ...
 )
 
@@ -63,6 +69,26 @@ by automatic tail assessment.}
 
 \item{max_crop}{numeric; maximum fraction of the full wavenumber span that
 automatic tail restriction may remove across both ends.}
+
+\item{saturation}{\code{NULL}, \code{"auto"}, or one finite numeric detector
+ceiling. Non-\code{NULL} values trigger shared saturation restriction.}
+
+\item{saturation_min_run}{integer or \code{NULL}; minimum adjacent saturated
+values. The conservative automatic default accepts a two-sample hard
+plateau; supply an explicit value to calibrate longer plateaus. A known
+numeric detector ceiling defaults to one sample.}
+
+\item{saturation_tolerance}{numeric; relative tolerance used to recognize an
+effectively constant automatic detector plateau.}
+
+\item{saturation_guard}{integer; sampled points added to both sides of each
+detected saturated interval before the shared union is removed.}
+
+\item{max_saturation_loss}{numeric; largest fraction of wavenumber coverage
+that saturation restriction may remove. The default is 0.70.}
+
+\item{min_remaining}{integer; minimum retained wavenumber count after
+saturation restriction.}
 
 \item{\ldots}{additional arguments passed to subfunctions; currently not
 in use.}

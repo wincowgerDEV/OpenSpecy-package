@@ -128,7 +128,7 @@ test_that("bundled Shiny app does not block startup or auto-load remote images",
                         fixed = TRUE)))
 })
 
-test_that("bundled app defaults artifact automation and identification but not quantification", {
+test_that("bundled app defaults corrections, identification, but not quantification", {
   app_path <- run_app(test_mode = TRUE)
   ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
                      collapse = "\n")
@@ -137,6 +137,11 @@ test_that("bundled app defaults artifact automation and identification but not q
   expect_match(ui_source, '"active_preprocessing", "Preprocessing", TRUE',
                fixed = TRUE)
   expect_match(ui_source, '"active_identification", "Identification", TRUE',
+               fixed = TRUE)
+  expect_match(ui_source, '"spike_decision", "Remove Isolated Spikes", TRUE',
+               fixed = TRUE)
+  expect_match(ui_source,
+               '"saturation_decision", "Remove Saturated Ranges", TRUE',
                fixed = TRUE)
   expect_match(
     ui_source,
@@ -148,7 +153,13 @@ test_that("bundled app defaults artifact automation and identification but not q
   expect_match(server_source, "restrict_range = FALSE", fixed = TRUE)
   expect_match(server_source, "flatten_range = FALSE", fixed = TRUE)
   expect_match(server_source, "app_apply_range_automation", fixed = TRUE)
+  expect_match(server_source, "app_apply_spectral_corrections", fixed = TRUE)
   expect_gt(regexpr("process_spec(", server_source, fixed = TRUE)[[1]], 0)
+  expect_lt(
+    regexpr("app_apply_spectral_corrections(", server_source,
+            fixed = TRUE)[[1]],
+    regexpr("process_spec(", server_source, fixed = TRUE)[[1]]
+  )
   expect_gt(regexpr("app_apply_range_automation(", server_source,
                     fixed = TRUE)[[1]],
             regexpr("process_spec(", server_source, fixed = TRUE)[[1]])
@@ -200,6 +211,19 @@ test_that("bundled app defaults artifact automation and identification but not q
     fixed = TRUE
   )
   expect_match(server_source, "app_spectrum_plot(", fixed = TRUE)
+  expect_match(server_source, 'report = "all"', fixed = TRUE)
+  expect_match(server_source, "app_quality_counts(quality_report())",
+               fixed = TRUE)
+  expect_match(server_source, "colorscale = app_heatmap_colorscale",
+               fixed = TRUE)
+  expect_match(server_source, "range = target_axis", fixed = TRUE)
+  expect_match(server_source,
+               "if(!identical(library$wavenumber, target_axis))",
+               fixed = TRUE)
+  expect_match(ui_source, 'role = "group"', fixed = TRUE)
+  expect_match(ui_source, '"quality_error_details"', fixed = TRUE)
+  expect_match(ui_source, '"quality_warning_details"', fixed = TRUE)
+  expect_match(ui_source, '"quality_pass_details"', fixed = TRUE)
 })
 
 test_that("bundled app namespaces dashboard boxes", {
@@ -497,6 +521,12 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_true(is.function(env$app_download_choices))
   expect_true(is.function(env$app_download_label))
   expect_true(is.function(env$app_apply_range_automation))
+  expect_true(is.function(env$app_apply_spectral_corrections))
+  expect_true(is.function(env$app_attach_correction_metadata))
+  expect_true(is.function(env$app_conform_axis))
+  expect_true(is.function(env$app_quality_counts))
+  expect_true(is.function(env$app_quality_modal_content))
+  expect_true(is.function(env$app_spectrum_legend_layout))
   expect_true(is.function(env$app_theme_css))
   expect_true(is.function(env$app_summary_row))
   expect_true(is.function(env$app_style_plotly))
@@ -574,7 +604,16 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_true(all(vapply(
     spectrum_traces, function(trace) isTRUE(trace$showlegend), logical(1)
   )))
-  expect_identical(spectrum_plot$x$layout$legend$orientation, "h")
+  expect_identical(spectrum_plot$x$layout$legend$orientation, "v")
+  expect_gt(spectrum_plot$x$layout$legend$x, 1)
+  expect_gte(spectrum_plot$x$layout$margin$r, 180)
+
+  mobile_plot <- plotly::plotly_build(env$app_spectrum_plot(
+    active, raw = raw, reference = reference, plot_width = 390
+  ))
+  expect_identical(mobile_plot$x$layout$legend$orientation, "h")
+  expect_lt(mobile_plot$x$layout$legend$y, 0)
+  expect_gte(mobile_plot$x$layout$margin$b, 100)
 
   active_only <- plotly::plotly_build(env$app_spectrum_plot(active))
   expect_identical(
@@ -620,6 +659,138 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
     expect_true(all(c("wavenumber", "intensity") %in% names(testdata)))
     expect_gt(nrow(testdata), 0)
   })
+})
+
+test_that("bundled app correction and quality helpers preserve auditable state", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  plateau <- cbind(first = seq_len(40), second = seq_len(40) / 2)
+  plateau[20:21, 1] <- 100
+  saturated <- as_OpenSpecy(seq_len(40), as.data.frame(plateau))
+  restricted <- env$app_apply_spectral_corrections(
+    saturated, spike = FALSE, saturation = "auto",
+    saturation_args = list(saturation_guard = 1L)
+  )
+  diagnostic <- attr(restricted, "saturation_restriction")
+  expect_true(diagnostic$applied)
+  expect_false(any(env$app_conform_axis(restricted, 1) %in% 19:22))
+  annotated <- env$app_attach_correction_metadata(restricted)
+  expect_true(all(c(
+    "saturation_restriction_applied",
+    "saturation_restriction_reason",
+    "saturation_loss_fraction",
+    "saturation_excluded_ranges",
+    "saturation_proposed_loss_fraction",
+    "saturation_proposed_excluded_ranges",
+    "saturation_detected_spectra"
+  ) %in% names(annotated$metadata)))
+  expect_true(all(annotated$metadata$saturation_restriction_applied))
+
+  rejected_values <- c(0, rep(10, 9), 0)
+  rejected_source <- as_OpenSpecy(
+    0:10, data.frame(sample = rejected_values)
+  )
+  rejected <- env$app_apply_spectral_corrections(
+    rejected_source, spike = FALSE, saturation = 10,
+    saturation_args = list(
+      saturation_guard = 0L, max_saturation_loss = 0.70
+    )
+  )
+  rejected_metadata <- env$app_attach_correction_metadata(rejected)$metadata
+  expect_false(rejected_metadata$saturation_restriction_applied)
+  expect_equal(rejected_metadata$saturation_loss_fraction, 0)
+  expect_gt(rejected_metadata$saturation_proposed_loss_fraction, 0.70)
+  expect_true(is.na(rejected_metadata$saturation_excluded_ranges))
+  expect_false(is.na(
+    rejected_metadata$saturation_proposed_excluded_ranges
+  ))
+
+  report <- data.frame(
+    status = c("warning", "warning", "pass"),
+    test_id = c("spectrum:a:spike", "spectrum:a:spike",
+                "spectrum:a:missing_values"),
+    check = c("spike", "spike", "missing_values"),
+    description = c("Spike detected", "Duplicate", "No issue detected"),
+    likely_cause = c("Impulse", "Impulse", NA),
+    potential_fix = c("Correct it", "Correct it", "No action required."),
+    metric = c("score", "score", NA),
+    value = c(9, 10, NA), threshold = c(8, 8, NA),
+    region_min = c(60, 60, NA), region_max = c(60, 60, NA),
+    correction_applied = c(FALSE, FALSE, FALSE),
+    correction_summary = NA_character_, stringsAsFactors = FALSE
+  )
+  expect_identical(
+    env$app_quality_counts(report),
+    c(error = 0L, warning = 1L, pass = 1L)
+  )
+  warning_html <- as.character(
+    env$app_quality_modal_content(report, "warning")
+  )
+  expect_match(warning_html, "Finding:", fixed = TRUE)
+  expect_match(warning_html, "Evidence:", fixed = TRUE)
+  expect_match(warning_html, "Interpretation:", fixed = TRUE)
+  expect_match(warning_html, "Action:", fixed = TRUE)
+  expect_match(warning_html, "Automatic correction:", fixed = TRUE)
+
+  colors <- vapply(env$app_heatmap_colorscale, `[[`, character(1), 2L)
+  rgb <- grDevices::col2rgb(colors)
+  expect_true(all(colMeans(rgb) > 85))
+  expect_false(any(tolower(colors) %in% c("#000000", "#440154")))
+})
+
+test_that("bundled app applies spike correction through the registered API", {
+  app_path <- run_app(test_mode = TRUE)
+  namespace_path <- normalizePath(
+    file.path(app_path, "..", "..", "NAMESPACE"),
+    winslash = "/", mustWork = FALSE
+  )
+  registered <- file.exists(namespace_path) && any(grepl(
+    "^S3method\\(correct_spike,OpenSpecy\\)$",
+    readLines(namespace_path, warn = FALSE)
+  ))
+  skip_if(!registered,
+          "correct_spike.OpenSpecy is registered when documentation is regenerated")
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  axis <- seq_len(121)
+  baseline <- sin(axis / 15)
+  values <- baseline
+  values[61] <- values[61] + 40
+  spiked <- as_OpenSpecy(axis, data.frame(sample = values))
+  corrected <- env$app_apply_spectral_corrections(
+    spiked,
+    spike_args = list(interpolation_points = 5L),
+    saturation = NULL
+  )
+  expect_true(attr(corrected, "automatic_spike")$applied)
+  expect_equal(
+    unname(corrected$spectra[61, 1]), baseline[61], tolerance = 0.02
+  )
 })
 
 test_that("bundled app quantifies the displayed processed spectra", {
@@ -1045,7 +1216,10 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
   sys.source(file.path(app_path, "global.R"), envir = env)
 
   expected_input_ids <- c(
-    "active_preprocessing", "make_rel_decision", "smooth_decision",
+    "active_preprocessing", "spike_decision", "spike_direction",
+    "spike_residual_threshold", "spike_residual_window",
+    "saturation_decision", "saturation_mode", "saturation_ceiling",
+    "saturation_max_loss", "make_rel_decision", "smooth_decision",
     "smoother", "derivative_order", "smoother_window", "derivative_abs",
     "conform_decision", "conform_selection", "conform_res",
     "intensity_decision", "intensity_corr", "baseline_decision",
@@ -1130,6 +1304,28 @@ test_that("bundled app updates the native download label without replacing it", 
   expect_match(script_source, '[data-card-widget="collapse"]', fixed = TRUE)
   expect_false(grepl('output$download_data <- renderUI', server_source,
                      fixed = TRUE))
+})
+
+test_that("bundled app bridges downloads only inside WebAssembly", {
+  app_path <- run_app(test_mode = TRUE)
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  bridge <- paste(readLines(
+    file.path(app_path, "www", "parent-frame.js"), warn = FALSE
+  ), collapse = "\n")
+
+  expect_match(ui_source, 'name = "openspecy-wasm-mode"', fixed = TRUE)
+  expect_match(ui_source, 'if(app_wasm_mode()) "true" else "false"',
+               fixed = TRUE)
+  expect_match(bridge, "function bindWasmDownloads()", fixed = TRUE)
+  expect_match(bridge, "if (!isWasmMode()) return", fixed = TRUE)
+  expect_match(bridge, "event.preventDefault()", fixed = TRUE)
+  expect_match(bridge, "window.fetch(href", fixed = TRUE)
+  expect_match(bridge, "response.blob()", fixed = TRUE)
+  expect_match(bridge, "window.URL.createObjectURL(blob)", fixed = TRUE)
+  expect_match(bridge, "localLink.download = safeFilename(filename)",
+               fixed = TRUE)
+  expect_match(bridge, "HTML page instead of the file", fixed = TRUE)
 })
 
 test_that("bundled Shiny app uses package-downloaded libraries before network", {

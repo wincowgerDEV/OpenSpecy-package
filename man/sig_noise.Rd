@@ -40,6 +40,8 @@ signal times noise), \code{"sig_over_noise"} (absolute value of signal /
 noise), \code{"run_sig_over_noise"} (absolute value of signal /
 noise where signal is estimated as the max intensity and noise is
 estimated as the height of a low intensity region.),
+\code{"breakpoint_snr"} (ratio between the upper and lower groups around
+the exact least-squares breakpoint in sorted absolute amplitudes),
 \code{"log_tot_sig"} (sum of the inverse log intensities, useful for spectra  in log units),
 \code{"tot_sig"} (sum of intensities), or \code{"entropy"} (Shannon entropy of intensities)..}
 

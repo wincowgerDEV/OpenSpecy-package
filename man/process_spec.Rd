@@ -28,6 +28,8 @@ process_spec(x, ...)
   smooth_intens_args = list(polynomial = 3, window = 11, derivative = 1, abs = TRUE),
   make_rel = TRUE,
   make_rel_args = list(na.rm = TRUE),
+  correct_spike = FALSE,
+  correct_spike_args = list(),
   ...
 )
 }
@@ -78,6 +80,12 @@ with \code{\link{make_rel}()}.}
 
 \item{make_rel_args}{named list of arguments passed to
 \code{\link{make_rel}()}.}
+
+\item{correct_spike}{logical; whether to correct isolated impulse artifacts
+before conforming, restricting, or otherwise processing spectra.}
+
+\item{correct_spike_args}{named list of arguments passed to
+\code{\link{correct_spike}()}.}
 
 \item{\ldots}{further arguments passed to subfunctions.}
 }

@@ -321,6 +321,46 @@ noise in most cases, same as the app.
 processed <- process_spec(raman_hdpe)
 ```
 
+Isolated impulse artifacts and detector saturation should be handled before
+ordinary smoothing, baseline correction, derivatives, or normalization. The
+package keeps both operations opt-in; the app exposes them as owner controls and
+uses this order when they are enabled:
+
+```{r eval=FALSE}
+quality_ready <- raman_hdpe |>
+  correct_spike(method = "residual", direction = "both") |>
+  restrict_range(saturation = "auto", make_rel = FALSE) |>
+  process_spec(correct_spike = FALSE)
+```
+
+The default residual method is deliberately limited to isolated points and
+uses the actual wavenumber coordinates for its local interpolation. For Raman
+work, `correct_spike()` also implements the prominence/FWHM procedures described
+by [Coca-Lopez (2024)](https://doi.org/10.1016/j.aca.2024.342312). The manual
+paper mode requires prominence and width thresholds calibrated for the
+material, instrument, resolution, and acquisition conditions. Its automated
+prominence/FWHM-ratio mode uses an upper outlier threshold of 3.5 standard
+deviations only when enough peaks are available. Width is measured in sampled
+CCD-pixel units, not cm^-1^; the paper reference correction flags intervals at
+`rel_height = 0.8` and interpolates from `m = 10` unflagged points on each side.
+
+No single-spectrum detector can always distinguish a cosmic-ray spike from a
+genuine narrow band. Inspect correction diagnostics, calibrate on representative
+standards, and pay particular attention to spikes on real bands and to
+narrow-band materials such as calcite and polystyrene. Boundary candidates are
+not extrapolated. If a feature is ambiguous, retain the raw data and recollect
+rather than treating an interpolated peak as measured evidence.
+
+`saturation = "auto"` detects a hard maximum plateau only when it has lower
+shoulders; a known finite detector ceiling can be supplied instead. Detected
+intervals are unioned across the batch, guard-expanded, and removed from every
+spectrum on the same shared axis. At most 70% of wavenumber-cell coverage is
+removed by default. A proposal over that inclusive limit, or one leaving too
+few points, is rejected with a warning and unchanged spectral values. Apply the
+identical retained axis to the reference library before identification. Open
+Specy does not reconstruct saturated peaks: recollection at lower exposure,
+laser power, or integration time is the scientifically preferred remedy.
+
 Processed spectra can be checked and corrected before identification. The
 default CO2 and high-tail checks compare the artifact-region maximum with the
 maximum outside both artifact regions after temporary min-max normalization.
@@ -337,6 +377,22 @@ assessment <- assess_spec(
 corrected <- processed |>
   flatten_range(automate = TRUE, make_rel = FALSE) |>
   restrict_range(automate = TRUE, make_rel = FALSE)
+```
+
+The compatibility default returns issue rows only and stays empty when a clean
+spectrum has no findings. Use the complete report for auditable UI or batch
+status, and opt into spike and saturation checks explicitly. The exact
+breakpoint SNR sorts amplitudes and evaluates every possible two-group split;
+it does not depend on histogram bins.
+
+```{r eval=FALSE}
+quality_report <- assess_spec(
+  quality_ready,
+  checks = c("missing_values", "negative_intensity", "low_snr",
+             "spike", "saturation"),
+  report = "all",
+  snr_metric = "breakpoint_snr"
+)
 ```
 
 You can compare the processed and unprocessed data in an overlay plot.

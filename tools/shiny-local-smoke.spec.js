@@ -330,6 +330,11 @@ test("local app renders spectra, matches, and one informative progress overlay",
     await expect(tab).toHaveClass(/active/);
     if (tabName === "Preprocessing") {
       await expect(minMaxControl).toBeVisible();
+      await expect(page.locator("#spike_decision")).toBeChecked();
+      await expect(page.locator("#saturation_decision")).toBeChecked();
+      await expect(page.locator("#spike_direction")).toHaveValue("both");
+      await expect(page.locator("#spike_residual_threshold")).toHaveValue("8");
+      await expect(page.locator("#saturation_mode")).toHaveValue("auto");
       const rangeSwitch = page.locator("#range_automate");
       const rangeCard = rangeSwitch.locator(
         "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
@@ -506,6 +511,37 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect(page.locator("#MyPlotC .legendtext")).toHaveText([
     "Raw spectrum", "Active spectrum", "Identification match",
   ]);
+  const desktopLegend = await page.locator("#MyPlotC").evaluate((plot) => ({
+    orientation: plot.layout.legend.orientation,
+    x: plot.layout.legend.x,
+    rightMargin: plot.layout.margin.r,
+  }));
+  expect(desktopLegend).toMatchObject({ orientation: "v" });
+  expect(desktopLegend.x).toBeGreaterThan(1);
+  expect(desktopLegend.rightMargin).toBeGreaterThanOrEqual(180);
+
+  for (const status of ["error", "warning", "pass"]) {
+    const button = page.locator(`#quality_${status}_details`);
+    await expect(button).toBeVisible();
+    await expect(button).toContainText(new RegExp(status, "i"));
+    await expect(page.locator(`#quality_${status}_count`)).toHaveText(/^\d+$/);
+  }
+
+  const heatmapColors = await page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((item) => item.type === "heatmap");
+    return (trace && trace.colorscale ? trace.colorscale : []).map((entry) =>
+      String(entry[1]).toUpperCase()
+    );
+  });
+  expect(heatmapColors).toEqual([
+    "#56B4E9", "#44B9A8", "#009E73", "#F0E442", "#E69F00", "#CC79A7",
+  ]);
+  expect(heatmapColors.every((hex) => {
+    const channels = hex.match(/[0-9A-F]{2}/g).map((value) => parseInt(value, 16));
+    const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] +
+      0.0722 * channels[2];
+    return luminance >= 90;
+  })).toBe(true);
   await expect(page.locator("#range_automation_status")).toContainText(
     /Problematic spectra: \d+ of 2 before/i
   );
@@ -776,7 +812,16 @@ test("local app renders spectra, matches, and one informative progress overlay",
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => window.dispatchEvent(new Event("resize")));
-  await page.waitForTimeout(750);
+  await expect.poll(async () => page.locator("#MyPlotC").evaluate((plot) =>
+    plot.layout.legend.orientation
+  )).toBe("h");
+  const mobileLegend = await page.locator("#MyPlotC").evaluate((plot) => ({
+    orientation: plot.layout.legend.orientation,
+    y: plot.layout.legend.y,
+    bottomMargin: plot.layout.margin.b,
+  }));
+  expect(mobileLegend.y).toBeLessThan(0);
+  expect(mobileLegend.bottomMargin).toBeGreaterThanOrEqual(100);
   await expectSummaryRowsFilled(page, true);
   const [mobileSpectra, mobileSummary] = await Promise.all([
     spectraCard.boundingBox(), summaryCard.boundingBox(),

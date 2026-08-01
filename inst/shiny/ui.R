@@ -49,6 +49,52 @@ preprocessing_controls <- tagList(
     "Transforms uploaded spectra before artifact checks and identification."
   ),
   app_control_box(
+    "spike_decision", "Remove Isolated Spikes", TRUE,
+    selectInput(
+      "spike_direction", "Spike Direction",
+      choices = c("Positive and negative" = "both",
+                  "Positive only" = "positive",
+                  "Negative only" = "negative"),
+      selected = "both"
+    ),
+    numericInput(
+      "spike_residual_threshold", "Robust Residual Threshold",
+      value = 8, min = 3, step = 0.5
+    ),
+    numericInput(
+      "spike_residual_window", "Neighbor Points per Side",
+      value = 5, min = 2, step = 1
+    ),
+    note = c(
+      "Detects conservative one-point impulse artifacts before smoothing and baseline correction, then interpolates only accepted intervals.",
+      "Inspect the quality findings after processing because a narrow real spectral band can resemble a spike."
+    )
+  ),
+  app_control_box(
+    "saturation_decision", "Remove Saturated Ranges", TRUE,
+    selectInput(
+      "saturation_mode", "Saturation Detection",
+      choices = c("Automatic hard plateaus" = "auto",
+                  "Detector ceiling" = "threshold"),
+      selected = "auto"
+    ),
+    conditionalPanel(
+      condition = "input.saturation_mode == 'threshold'",
+      numericInput(
+        "saturation_ceiling", "Detector Ceiling", value = 65535,
+        min = 0, step = 1
+      )
+    ),
+    sliderInput(
+      "saturation_max_loss", "Maximum Shared-Axis Loss",
+      min = 0, max = 0.7, value = 0.7, step = 0.05
+    ),
+    note = c(
+      "Finds hard plateaus across the uploaded batch and removes the same guarded ranges from every spectrum before ordinary preprocessing.",
+      "If the proposal removes too much spectral coverage, no values are removed and the quality panel records recollection guidance."
+    )
+  ),
+  app_control_box(
     "make_rel_decision", "Min-Max Normalize", TRUE,
     note = c(
       "Rescales each spectrum between zero and one for comparison.",
@@ -350,6 +396,10 @@ dashboardPage(
   body = dashboardBody(
     shinyjs::useShinyjs(),
     tags$head(
+      tags$meta(
+        name = "openspecy-wasm-mode",
+        content = if(app_wasm_mode()) "true" else "false"
+      ),
       tags$script(src = "parent-frame.js"),
       tags$link(rel = "icon", type = "image/png", href = "favicon.png"),
       tags$style(HTML(paste0(
@@ -466,6 +516,45 @@ dashboardPage(
           border-radius: 6px;
         }
         .openspecy-automation-status:empty { display: none; }
+        .openspecy-quality-controls {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          margin: 10px 0 8px;
+        }
+        .btn.openspecy-quality-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: .45rem;
+          min-height: 44px;
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border: 1px solid var(--openspecy-grid) !important;
+          font-weight: 700;
+        }
+        .btn.openspecy-quality-button:hover,
+        .btn.openspecy-quality-button:focus {
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-accent) !important;
+          box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2);
+        }
+        .openspecy-quality-error { border-left: 4px solid #FB7185 !important; }
+        .openspecy-quality-warning { border-left: 4px solid #FACC15 !important; }
+        .openspecy-quality-pass { border-left: 4px solid #4ADE80 !important; }
+        .openspecy-quality-count { min-width: 1ch; }
+        .openspecy-quality-finding {
+          padding: 12px 14px;
+          margin-bottom: 12px;
+          border: 1px solid var(--openspecy-grid);
+          border-radius: 8px;
+          background: var(--openspecy-panel-2);
+        }
+        .openspecy-quality-finding h4 {
+          color: var(--openspecy-text);
+          text-transform: capitalize;
+        }
+        .openspecy-quality-finding p:last-child { margin-bottom: 0; }
         .openspecy-download-details {
           display: block;
           padding: 12px;
@@ -916,6 +1005,7 @@ dashboardPage(
         }
         @media (max-width: 575px) {
           .openspecy-summary-grid > .openspecy-summary-panel { flex-basis: 100%; }
+          .openspecy-quality-controls { grid-template-columns: 1fr; }
           .main-footer { text-align: left; }
           .openspecy-support-button { max-width: 52px; }
         }
@@ -1038,6 +1128,45 @@ dashboardPage(
               )
             ),
             column(1, uiOutput("nav_buttons"))
+          ),
+          div(
+            class = "openspecy-quality-controls",
+            role = "group",
+            `aria-label` = "Spectral quality checks",
+            actionButton(
+              "quality_error_details",
+              tagList(
+                icon("times-circle", `aria-hidden` = "true"),
+                textOutput("quality_error_count", inline = TRUE),
+                tags$span("Errors")
+              ),
+              class = paste(
+                "openspecy-quality-button openspecy-quality-error"
+              ),
+              title = "Open error findings for the active spectrum"
+            ),
+            actionButton(
+              "quality_warning_details",
+              tagList(
+                icon("exclamation-triangle", `aria-hidden` = "true"),
+                textOutput("quality_warning_count", inline = TRUE),
+                tags$span("Warnings")
+              ),
+              class = paste(
+                "openspecy-quality-button openspecy-quality-warning"
+              ),
+              title = "Open warning findings for the active spectrum"
+            ),
+            actionButton(
+              "quality_pass_details",
+              tagList(
+                icon("check-circle", `aria-hidden` = "true"),
+                textOutput("quality_pass_count", inline = TRUE),
+                tags$span("Passes")
+              ),
+              class = "openspecy-quality-button openspecy-quality-pass",
+              title = "Open passed checks for the active spectrum"
+            )
           ),
           div(
             class = "openspecy-plot-frame openspecy-spectrum-frame",

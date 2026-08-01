@@ -332,14 +332,34 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_true(any(grepl('toHaveValue("Top Matches")', smoke,
                         fixed = TRUE)))
   expect_false(any(grepl("downloadSelectize", smoke, fixed = TRUE)))
-  expect_true(any(grepl("shinylive-download-diagnostics", smoke,
+  expect_true(any(grepl("verifyNativeDownload", smoke, fixed = TRUE)))
+  expect_true(any(grepl("savedFirstBytesHex", smoke, fixed = TRUE)))
+  expect_true(any(grepl("contentType", smoke, fixed = TRUE)))
+  expect_true(any(grepl("disposition", smoke, fixed = TRUE)))
+  expect_true(any(grepl("requestUrl", smoke, fixed = TRUE)))
+  expect_true(any(grepl("clickResponse", smoke, fixed = TRUE)))
+  expect_true(any(grepl("probeDownloadEndpoint", smoke, fixed = TRUE)))
+  expect_true(any(grepl("native browser download", smoke, fixed = TRUE)))
+  expect_true(any(grepl("shinylive-download-", smoke,
                         fixed = TRUE)))
-  expect_true(any(grepl('fetch(link.href, { cache: "no-store" })', smoke,
+  expect_true(any(grepl('fetch(element.href, { cache: "no-store" })', smoke,
                         fixed = TRUE)))
-  expect_true(any(grepl('downloadFailure === "canceled"', smoke,
-                        fixed = TRUE)))
-  expect_false(any(grepl('process.platform === "win32"', smoke,
+  expect_false(any(grepl('downloadFailure === "canceled"', smoke,
                          fixed = TRUE)))
+  expect_false(any(grepl("handler checks remain authoritative", smoke,
+                         ignore.case = TRUE)))
+  expect_true(all(vapply(
+    c(
+      "Test Data", "Test Map", "User Metadata", "Processed Spectra",
+      "Top Matches", "Thresholded Particles"
+    ),
+    function(label) any(grepl(paste0('label: "', label, '"'), smoke,
+                              fixed = TRUE)),
+    logical(1)
+  )))
+  expect_true(any(grepl('download.path()', smoke, fixed = TRUE)))
+  expect_true(any(grepl('fs.readFileSync(downloadPath)', smoke,
+                        fixed = TRUE)))
 })
 
 test_that("pkgdown homepage and Shiny app provide the embed handshake", {
@@ -377,14 +397,24 @@ test_that("pkgdown homepage and Shiny app provide the embed handshake", {
   expect_true(any(grepl('src="app/"', homepage, fixed = TRUE)))
   expect_false(any(grepl('src="openspecy/"', homepage, fixed = TRUE)))
   expect_true(all(vapply(
-    c("## Community and help", "## Partner with us", "## Contract services"),
-    function(heading) any(grepl(heading, homepage, fixed = TRUE)),
+    c('id="choose-your-path"', 'id="why-openspecy"',
+      'id="partner-with-openspecy"'),
+    function(section) any(grepl(section, homepage, fixed = TRUE)),
     logical(1)
   )))
-  expect_lt(which(grepl("data-openspecy-embed", homepage,
-                        fixed = TRUE))[[1]],
-            which(grepl("Analyze, Process, Identify", homepage,
-                        fixed = TRUE))[[1]])
+  expect_true(any(grepl("y2F4Fu6A4aA&amp;list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g",
+                        homepage, fixed = TRUE)))
+  expect_true(any(grepl("Pew-Gerstner Fellowship in Ocean Plastics Research",
+                        homepage, fixed = TRUE)))
+  expect_true(any(grepl("Walking Softer", homepage, fixed = TRUE)))
+  hero_line <- which(grepl("Turn spectra into evidence", homepage,
+                           fixed = TRUE))[[1]]
+  embed_line <- which(grepl("data-openspecy-embed", homepage,
+                            fixed = TRUE))[[1]]
+  r_line <- which(grepl("Use OpenSpecy in R", homepage,
+                        fixed = TRUE))[[1]]
+  expect_lt(hero_line, embed_line)
+  expect_lt(embed_line, r_line)
   expect_false(any(grepl("requestFullscreen", script, fixed = TRUE)))
   expect_true(any(grepl("openspecy-app-fullscreen-open", script,
                         fixed = TRUE)))

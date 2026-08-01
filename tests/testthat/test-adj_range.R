@@ -27,6 +27,8 @@ test_that("restrict_range() provides correct range", {
   expect_identical(single_range$wavenumber, seq(1000,2000, by = 10))
   expect_identical(double_range$wavenumber, c(seq(1000,1500, by = 10),
                                               seq(2000,2500, by = 10)))
+  expect_error(restrict_range(test_noise, min = 5000, max = 6000),
+               "do not overlap")
 })
 
 test_that("flatten_range() function test", {
@@ -142,4 +144,207 @@ test_that("automated range arguments are validated", {
   expect_error(flatten_range(os, min = c(1000, 2200),
                              max = c(1100, 2400), automate = TRUE),
                "one flattening range")
+})
+
+make_saturated_range_spec <- function(first = 3:4, second = 7:8) {
+  axis <- 0:10
+  one <- seq_along(axis)
+  two <- rev(one)
+  one[first] <- 100
+  two[second] <- 100
+  as_OpenSpecy(axis, data.frame(one = one, two = two))
+}
+
+test_that("saturation restriction removes one shared union", {
+  os <- make_saturated_range_spec()
+  attr(os, "example_attribute") <- "preserved"
+  restricted <- restrict_range(
+    os, saturation = 100, saturation_guard = 0,
+    make_rel = FALSE, max_saturation_loss = 0.7
+  )
+
+  expect_true(attr(restricted, "saturation_restriction")$applied)
+  expect_equal(restricted$wavenumber, setdiff(os$wavenumber, c(2, 3, 6, 7)))
+  expect_equal(ncol(restricted$spectra), 2L)
+  expect_equal(nrow(restricted$metadata), 2L)
+  expect_identical(attr(restricted, "example_attribute"), "preserved")
+  diagnostic <- attr(restricted, "saturation_restriction")
+  expect_equal(diagnostic$detected_interval_count, 2L)
+  expect_equal(diagnostic$excluded_interval_count, 2L)
+  expect_equal(diagnostic$affected_spectrum_count, 2L)
+  expect_equal(diagnostic$retained_points, nrow(restricted$spectra))
+  expect_equal(
+    diagnostic$axis_signature,
+    digest::digest(restricted$wavenumber, algo = "md5")
+  )
+  expect_true(nrow(diagnostic$retained_ranges) > 0L)
+  expect_true(check_OpenSpecy(restricted))
+})
+
+test_that("automatic saturation detection is conservative", {
+  axis <- 0:10
+  rounded <- c(1, 2, 4, 8, 10, 9.999, 8, 4, 2, 1, 0)
+  hard <- c(1, 2, 4, 8, 10, 10, 8, 4, 2, 1, 0)
+  broad <- c(0, 2, 5, 8, 10, 10, 10, 8, 5, 2, 0)
+  edge <- c(10, 10, 8, 4, 2, 1, 0, 0, 0, 0, 0)
+  os <- as_OpenSpecy(axis, data.frame(rounded = rounded, hard = hard,
+                                      broad = broad, edge = edge))
+  detection <- OpenSpecy:::.detect_saturation(os, "auto", tolerance = 1e-8)
+
+  expect_identical(unique(detection$regions$spectrum_id), "hard")
+  restricted <- restrict_range(os, saturation = "auto", saturation_guard = 0,
+                               make_rel = FALSE)
+  expect_equal(restricted$wavenumber, setdiff(axis, c(4, 5)))
+
+  clean <- as_OpenSpecy(axis, data.frame(sample = seq_along(axis)))
+  clean$metadata[, file_id := NULL]
+  expect_true(check_OpenSpecy(clean))
+  expect_identical(
+    restrict_range(clean, saturation = "auto", make_rel = FALSE),
+    clean
+  )
+})
+
+test_that("saturation loss boundary is inclusive and rollback preserves data", {
+  axis <- 0:10
+  exact <- rep(0, length(axis))
+  exact[3:9] <- 10
+  os <- as_OpenSpecy(axis, data.frame(sample = exact))
+
+  accepted <- restrict_range(os, saturation = 10, saturation_guard = 0,
+                             make_rel = FALSE, max_saturation_loss = 0.70)
+  expect_true(attr(accepted, "saturation_restriction")$applied)
+  expect_equal(attr(accepted, "saturation_restriction")$
+                 saturation_loss_fraction, 0.70)
+
+  decimal_axis <- seq(0, 1, length.out = 11)
+  decimal <- as_OpenSpecy(decimal_axis, data.frame(sample = exact))
+  decimal_accepted <- restrict_range(
+    decimal, saturation = 10, saturation_guard = 0, make_rel = FALSE,
+    max_saturation_loss = 0.70
+  )
+  expect_true(attr(decimal_accepted, "saturation_restriction")$applied)
+
+  too_wide <- os
+  too_wide$spectra[2, 1] <- 10
+  expect_warning(
+    rejected <- restrict_range(too_wide, saturation = 10,
+                               saturation_guard = 0, make_rel = FALSE,
+                               max_saturation_loss = 0.70),
+    "interpretation may be unreliable"
+  )
+  expect_identical(rejected$wavenumber, too_wide$wavenumber)
+  expect_identical(rejected$spectra, too_wide$spectra)
+  expect_false(attr(rejected, "saturation_restriction")$applied)
+  expect_identical(attr(rejected, "saturation_restriction")$reason,
+                   "exceeds_max_saturation_loss")
+  rejected_diagnostic <- attr(rejected, "saturation_restriction")
+  expect_equal(rejected_diagnostic$retained_points,
+               nrow(rejected$spectra))
+  expect_equal(rejected_diagnostic$saturation_loss_fraction, 0)
+  expect_gt(rejected_diagnostic$proposed_saturation_loss_fraction, 0.70)
+  expect_equal(nrow(rejected_diagnostic$excluded_ranges), 0L)
+  expect_gt(nrow(rejected_diagnostic$proposed_excluded_ranges), 0L)
+  expect_equal(
+    rejected_diagnostic$axis_signature,
+    digest::digest(rejected$wavenumber, algo = "md5")
+  )
+})
+
+test_that("shared saturation diagnostics distinguish detection from impact", {
+  axis <- 0:10
+  spectra <- data.frame(
+    clipped = c(1, 2, 4, 8, 10, 10, 8, 4, 2, 1, 0),
+    clean_one = seq_along(axis),
+    clean_two = rev(seq_along(axis))
+  )
+  os <- as_OpenSpecy(axis, spectra)
+  restricted <- restrict_range(
+    os, saturation = "auto", saturation_guard = 0, make_rel = FALSE
+  )
+  diagnostic <- attr(restricted, "saturation_restriction")
+
+  expect_identical(diagnostic$detected_spectra, "clipped")
+  expect_setequal(diagnostic$affected_spectra, names(spectra))
+  expect_equal(diagnostic$detected_spectrum_count, 1L)
+  expect_equal(diagnostic$affected_spectrum_count, 3L)
+})
+
+test_that("automatic saturation does not join separate manual ranges", {
+  axis <- 0:10
+  values <- c(1, 2, 3, 10, 4, 4, 4, 10, 3, 2, 1)
+  os <- as_OpenSpecy(axis, data.frame(sample = values))
+  restricted <- restrict_range(
+    os,
+    min = c(0, 7), max = c(3, 10),
+    saturation = "auto", saturation_guard = 0, make_rel = FALSE
+  )
+
+  expect_identical(restricted$wavenumber, c(0:3, 7:10))
+  expect_null(attr(restricted, "saturation_restriction"))
+
+  boundary_values <- c(1, 2, 3, 4, 4, 4, 4, 10, 10, 3, 2)
+  boundary <- as_OpenSpecy(axis, data.frame(sample = boundary_values))
+  boundary_restricted <- restrict_range(
+    boundary,
+    min = c(0, 7), max = c(3, 10),
+    saturation = "auto", saturation_guard = 0, make_rel = FALSE
+  )
+  expect_identical(boundary_restricted$wavenumber, c(0:3, 7:10))
+  expect_null(attr(boundary_restricted, "saturation_restriction"))
+
+  numeric_values <- c(1, 2, 10, 10, 4, 4, 4, 3, 2, 1, 0)
+  numeric <- as_OpenSpecy(axis, data.frame(sample = numeric_values))
+  numeric_restricted <- restrict_range(
+    numeric,
+    min = c(0, 7), max = c(3, 10),
+    saturation = 10, saturation_guard = 0, make_rel = FALSE,
+    max_saturation_loss = 0.30
+  )
+  numeric_diagnostic <- attr(numeric_restricted, "saturation_restriction")
+  expect_true(numeric_diagnostic$applied)
+  expect_equal(numeric_diagnostic$saturation_loss_fraction, 0.25)
+
+  edge_values <- c(1, 2, 3, 10, 4, 4, 4, 3, 2, 1, 0)
+  edge_numeric <- as_OpenSpecy(axis, data.frame(sample = edge_values))
+  edge_restricted <- restrict_range(
+    edge_numeric,
+    min = c(0, 7), max = c(3, 10),
+    saturation = 10, saturation_guard = 1L, make_rel = FALSE
+  )
+  expect_identical(edge_restricted$wavenumber, c(0:1, 7:10))
+  expect_equal(
+    nrow(attr(edge_restricted, "saturation_restriction")$excluded_ranges),
+    1L
+  )
+})
+
+test_that("saturation loss uses irregular-axis cell coverage", {
+  axis <- c(0, 1, 2, 3, 4, 100)
+  values <- c(1, 2, 3, 4, 10, 10)
+  os <- as_OpenSpecy(axis, data.frame(sample = values))
+
+  expect_warning(
+    restricted <- restrict_range(
+      os, saturation = 10, saturation_guard = 0, make_rel = FALSE,
+      max_saturation_loss = 0.70
+    ),
+    "interpretation may be unreliable"
+  )
+  diagnostic <- attr(restricted, "saturation_restriction")
+  expect_identical(restricted$wavenumber, axis)
+  expect_gt(diagnostic$proposed_saturation_loss_fraction, 0.95)
+})
+
+test_that("saturation arguments are validated", {
+  os <- make_saturated_range_spec()
+  expect_error(restrict_range(os, saturation = "possible"), "must be")
+  expect_error(restrict_range(os, saturation = Inf), "must be")
+  expect_error(restrict_range(os, saturation = 100, saturation_guard = -1),
+               "non-negative")
+  expect_error(restrict_range(os, saturation = 100,
+                              max_saturation_loss = 1.1), "in [0, 1]",
+               fixed = TRUE)
+  expect_error(restrict_range(os, automate = TRUE, saturation = "auto"),
+               "separate stages")
 })

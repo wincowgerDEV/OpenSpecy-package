@@ -82,3 +82,32 @@ test_that("entropy results in accurate info", {
                   sig_noise(noise, metric = "entropy",
                                        breaks = 10) |> unname())
 })
+
+test_that("breakpoint SNR uses exact sorted amplitudes", {
+  axis <- seq_len(10)
+  separated <- as_OpenSpecy(
+    axis,
+    data.frame(clear = c(rep(1, 8), 10, 10),
+               flat = rep(3, 10),
+               zero = rep(0, 10))
+  )
+
+  result <- sig_noise(separated, metric = "breakpoint_snr")
+  expect_equal(unname(result[["clear"]]), 10)
+  expect_equal(unname(result[["flat"]]), 1)
+  expect_equal(unname(result[["zero"]]), 1)
+
+  isolated_upper <- as_OpenSpecy(
+    axis, data.frame(sample = c(rep(1, 9), 10))
+  )
+  expect_equal(
+    unname(sig_noise(isolated_upper, metric = "breakpoint_snr")),
+    10
+  )
+
+  separated$spectra[1, "clear"] <- NA_real_
+  expect_true(is.finite(sig_noise(separated, metric = "breakpoint_snr",
+                                  na.rm = TRUE)[["clear"]]))
+  expect_true(is.na(sig_noise(separated, metric = "breakpoint_snr",
+                              na.rm = FALSE)[["clear"]]))
+})
