@@ -11,6 +11,7 @@ const path = require("path");
 //   tools/shiny-local-smoke.spec.js --workers=1
 
 const repo = path.resolve(__dirname, "..");
+const rPidFile = path.join(repo, "test-results", ".shiny-local-smoke-r.pid");
 let port = Number(process.env.OPENSPECY_LOCAL_SMOKE_PORT || 0);
 let app;
 let stderr = "";
@@ -119,6 +120,23 @@ async function consumeDownload(page) {
   const content = fs.readFileSync(downloadPath);
   expect(content.length).toBeGreaterThan(20);
   return { content, filename: download.suggestedFilename() };
+}
+
+async function expectBuilderItem(page, outputSelector, label) {
+  await page.waitForFunction(({ selector, expected }) => {
+    const output = document.querySelector(selector);
+    const alert = document.querySelector(
+      ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
+    );
+    return Boolean(alert || output?.textContent?.includes(expected));
+  }, { selector: outputSelector, expected: label }, { timeout: 15000 });
+  const alert = page.locator(
+    ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
+  );
+  if (await alert.isVisible()) {
+    throw new Error(`Failed to add ${label}: ${(await alert.innerText()).trim()}`);
+  }
+  await expect(page.locator(outputSelector)).toContainText(label);
 }
 
 async function selectizeOption(page, id, value) {
@@ -264,7 +282,10 @@ async function expectBlueBorder(locator) {
 test.beforeAll(async () => {
   test.setTimeout(90000);
   if (!Number.isInteger(port) || port < 1) port = await findFreePort();
+  fs.mkdirSync(path.dirname(rPidFile), { recursive: true });
+  fs.rmSync(rPidFile, { force: true });
   const expression = [
+    `writeLines(as.character(Sys.getpid()), ${JSON.stringify(rPidFile.replace(/\\/g, "/"))})`,
     `devtools::load_all(${JSON.stringify(repo.replace(/\\/g, "/"))}, quiet=TRUE)`,
     `shiny::runApp(${JSON.stringify(path.join(repo, "inst", "shiny").replace(/\\/g, "/"))}, host='127.0.0.1', port=${port}, launch.browser=FALSE)`,
   ].join("; ");
@@ -283,12 +304,40 @@ test.beforeAll(async () => {
   await waitForApp();
 });
 
-test.afterAll(() => {
-  if (app && !app.killed) app.kill();
+test.afterAll(async () => {
+  let rPid = app?.pid;
+  try {
+    const recordedPid = Number(fs.readFileSync(rPidFile, "utf8").trim());
+    if (Number.isInteger(recordedPid) && recordedPid > 0) rPid = recordedPid;
+  } catch (_) {
+    // Fall back to the child-process PID when R did not reach PID-file setup.
+  }
+  if (process.platform === "win32") {
+    if (Number.isInteger(rPid) && rPid > 0) {
+      await new Promise((resolve) => {
+        const killer = spawn(
+          "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+          [
+            "-NoProfile", "-NonInteractive", "-Command",
+            `Stop-Process -Id ${rPid} -Force -ErrorAction SilentlyContinue`,
+          ],
+          { windowsHide: true, stdio: "ignore" }
+        );
+        killer.once("exit", resolve);
+        killer.once("error", resolve);
+      });
+    }
+  } else if (app && app.exitCode === null) {
+    app.kill("SIGTERM");
+  }
+  app?.stdout?.destroy();
+  app?.stderr?.destroy();
+  app?.unref();
+  fs.rmSync(rPidFile, { force: true });
 });
 
 test("local app renders spectra, matches, and one informative progress overlay", async ({ page }, testInfo) => {
-  test.setTimeout(300000);
+  test.setTimeout(420000);
   const severeErrors = [];
   const popups = [];
   page.on("console", (message) => {
@@ -373,7 +422,31 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect(page.locator("#active_quantification")).not.toBeChecked();
   await expect(page.locator("#quant_ratio_name")).toBeVisible();
   await expect(page.locator("#quant_ratio_add")).toBeVisible();
-  await expect(page.locator("#quant_ratio_bounds")).toContainText(/Upload.*spectra/i);
+  const ratioNumericIds = [
+    "quant_numerator_area_min", "quant_numerator_area_max",
+    "quant_denominator_area_min", "quant_denominator_area_max",
+    "quant_numerator_peak", "quant_denominator_peak",
+  ];
+  for (const id of ratioNumericIds) {
+    await expect(page.locator(`#${id}`)).toBeAttached();
+    await expect(page.locator(`#${id}`)).toHaveAttribute("type", "number");
+  }
+  const measurementSwitch = page.locator("#quant_measurement_enabled");
+  const measurementCard = measurementSwitch.locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  await expect(measurementCard.locator(":scope > .card-header"))
+    .toContainText("Single Measurements");
+  await expect(measurementSwitch).not.toBeChecked();
+  await expect(page.locator("#quant_measurement_area_min")).toHaveAttribute(
+    "type", "number"
+  );
+  await expect(page.locator("#quant_measurement_area_max")).toHaveAttribute(
+    "type", "number"
+  );
+  await expect(page.locator("#quant_measurement_wavenumber")).toHaveAttribute(
+    "type", "number"
+  );
   await expectInformationalDetails(page);
   await expectEnabledSwitchColors(page, "active_preprocessing");
   await toggleCard(settingsCard);
@@ -520,13 +593,63 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(desktopLegend.x).toBeGreaterThan(1);
   expect(desktopLegend.rightMargin).toBeGreaterThanOrEqual(180);
 
-  for (const status of ["error", "warning", "pass"]) {
+  const qualityControls = [
+    { status: "automatic", label: /Automatic Corrections Made/i },
+    { status: "warning", label: /Warnings/i },
+    { status: "success", label: /Successes/i },
+  ];
+  for (const { status, label } of qualityControls) {
     const button = page.locator(`#quality_${status}_details`);
     await expect(button).toBeVisible();
-    await expect(button).toContainText(new RegExp(status, "i"));
+    await expect(button).toContainText(label);
     await expect(page.locator(`#quality_${status}_count`)).toHaveText(/^\d+$/);
   }
+  const qualityControlGroup = page.locator(".openspecy-quality-controls");
+  await expect(qualityControlGroup.locator("button.openspecy-quality-button"))
+    .toHaveCount(3);
+  await expect(qualityControlGroup).not.toContainText(/\bErrors?\b/i);
 
+  const automaticCount = Number(
+    await page.locator("#quality_automatic_count").textContent()
+  );
+  expect(await page.locator("#quality_automatic_details").evaluate((button) =>
+    button.classList.contains("openspecy-automatic-applied")
+  )).toBe(automaticCount > 0);
+  await page.locator("#quality_automatic_details").click();
+  let qualityModal = page.locator(".modal-content:visible");
+  await expect(qualityModal).toContainText("Automatic corrections made");
+  await expect(qualityModal.locator(".openspecy-quality-finding-automatic"))
+    .toHaveCount(4);
+  for (const label of [
+    "Spike correction", "Saturation restriction", "CO2 flattening",
+    "High-tail range restriction",
+  ]) {
+    await expect(qualityModal).toContainText(label);
+  }
+  await qualityModal.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(qualityModal).toBeHidden();
+
+  for (const status of ["warning", "success"]) {
+    await page.locator(`#quality_${status}_details`).click();
+    qualityModal = page.locator(".modal-content:visible");
+    await expect(qualityModal).toContainText(
+      status === "warning" ? "Spectral quality warnings" :
+        "Successful spectral checks"
+    );
+    expect(await qualityModal.locator(".openspecy-quality-finding")
+      .evaluateAll((findings, expectedStatus) => findings.every((finding) =>
+        finding.classList.contains(`openspecy-quality-finding-${expectedStatus}`)
+      ), status)).toBe(true);
+    await qualityModal.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(qualityModal).toBeHidden();
+  }
+
+  await expect(page.locator("#map_color")).toBeAttached();
+  await selectizeOption(page, "map_color", "Match Value");
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((item) => item.type === "heatmap");
+    return Boolean(trace?.showscale);
+  }), { timeout: 30000 }).toBe(true);
   const heatmapColors = await page.locator("#heatmapA").evaluate((plot) => {
     const trace = (plot.data || []).find((item) => item.type === "heatmap");
     return (trace && trace.colorscale ? trace.colorscale : []).map((entry) =>
@@ -542,15 +665,126 @@ test("local app renders spectra, matches, and one informative progress overlay",
       0.0722 * channels[2];
     return luminance >= 90;
   })).toBe(true);
-  await expect(page.locator("#range_automation_status")).toContainText(
-    /Problematic spectra: \d+ of 2 before/i
-  );
-  await expect(page.locator("#co2_automation_status")).toContainText(
-    /Problematic spectra: \d+ of 2 before/i
-  );
+  const numericHeatmapLegend = await page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((item) => item.type === "heatmap");
+    return {
+      showscale: trace?.showscale,
+      title: trace?.colorbar?.title?.text || trace?.colorbar?.title || "",
+      x: trace?.colorbar?.x,
+      rightMargin: plot.layout?.margin?.r,
+    };
+  });
+  expect(numericHeatmapLegend.showscale).toBe(true);
+  expect(numericHeatmapLegend.title).toMatch(/Match Value|Signal\/Noise|Value/i);
+  expect(numericHeatmapLegend.x).toBeGreaterThan(1);
+  expect(numericHeatmapLegend.rightMargin).toBeGreaterThanOrEqual(140);
+  await selectizeOption(page, "map_color", "Match Name");
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((item) => item.type === "heatmap");
+    return Boolean(trace?.showscale);
+  }), { timeout: 30000 }).toBe(false);
+  const categoricalHeatmap = await page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((item) => item.type === "heatmap");
+    return {
+      showscale: trace?.showscale,
+      layoutLegend: plot.layout?.showlegend,
+    };
+  });
+  expect(categoricalHeatmap).toMatchObject({
+    showscale: false,
+    layoutLegend: false,
+  });
   await expect(page.locator("#eventmetadata table")).toBeVisible();
   await expect(page.locator("#heatmap_frame")).toBeVisible();
   await expect(page.locator("#collapse_decision")).not.toBeChecked();
+  await expect(overlay).toBeHidden({ timeout: 30000 });
+
+  // Emit the same Plotly click event as a user cell click. Selection should
+  // update through the marker proxy without restarting analysis or replacing
+  // the heatmap graph (the visible double-render regression).
+  const heatmapMarkerBefore = await page.locator("#heatmapA").evaluate((plot) => {
+    const marker = (plot.data || []).find((trace) =>
+      String(trace.name).toLowerCase() === "selected spectrum"
+    );
+    return JSON.stringify({ x: marker?.x || [], y: marker?.y || [] });
+  });
+  await page.locator("#heatmapA").evaluate((plot) => {
+    const baseTrace = (plot.data || []).find((trace) => trace.type === "heatmap");
+    const state = {
+      afterPlots: 0,
+      busyReappearances: 0,
+      fullReplacements: 0,
+      wasBusy: document.documentElement.classList.contains("openspecy-busy-visible"),
+      baseTrace,
+      plotContainer: plot.querySelector(".plot-container"),
+    };
+    state.afterPlotHandler = () => { state.afterPlots += 1; };
+    plot.on("plotly_afterplot", state.afterPlotHandler);
+    state.busyObserver = new MutationObserver(() => {
+      const busy = document.documentElement.classList.contains(
+        "openspecy-busy-visible"
+      );
+      if (busy && !state.wasBusy) state.busyReappearances += 1;
+      state.wasBusy = busy;
+    });
+    state.busyObserver.observe(document.documentElement, {
+      attributes: true, attributeFilter: ["class"],
+    });
+    state.plotObserver = new MutationObserver((mutations) => {
+      const containsFullPlot = (node) => node.nodeType === 1 && (
+        node.matches?.(".plot-container, .svg-container") ||
+        node.querySelector?.(".plot-container, .svg-container")
+      );
+      for (const mutation of mutations) {
+        if (Array.from(mutation.removedNodes || []).some(containsFullPlot)) {
+          state.fullReplacements += 1;
+        }
+      }
+    });
+    state.plotObserver.observe(plot, { childList: true, subtree: true });
+    window.__openspecyHeatmapClickProbe = state;
+  });
+  await page.locator("#heatmapA").evaluate((plot) => {
+    const curveNumber = (plot.data || []).findIndex(
+      (trace) => trace.type === "heatmap"
+    );
+    if (curveNumber < 0 || typeof plot.emit !== "function") {
+      throw new Error("The rendered heatmap does not expose Plotly click events");
+    }
+    plot.emit("plotly_click", {
+      points: [{ curveNumber, pointNumber: 1 }],
+    });
+  });
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
+    const marker = (plot.data || []).find((trace) =>
+      String(trace.name).toLowerCase() === "selected spectrum"
+    );
+    return JSON.stringify({ x: marker?.x || [], y: marker?.y || [] });
+  }), { timeout: 60000 }).not.toBe(heatmapMarkerBefore);
+  await page.waitForTimeout(750);
+  const heatmapClickState = await page.locator("#heatmapA").evaluate((plot) => {
+    const state = window.__openspecyHeatmapClickProbe;
+    state.busyObserver.disconnect();
+    state.plotObserver.disconnect();
+    if (typeof plot.removeListener === "function") {
+      plot.removeListener("plotly_afterplot", state.afterPlotHandler);
+    }
+    return {
+      afterPlots: state.afterPlots,
+      busyReappearances: state.busyReappearances,
+      fullReplacements: state.fullReplacements,
+      sameBaseTrace: (plot.data || []).find((trace) => trace.type === "heatmap") ===
+        state.baseTrace,
+      samePlotContainer: plot.querySelector(".plot-container") ===
+        state.plotContainer,
+    };
+  });
+  expect(heatmapClickState.busyReappearances).toBe(0);
+  expect(heatmapClickState.fullReplacements).toBe(0);
+  expect(heatmapClickState.afterPlots).toBeLessThanOrEqual(1);
+  expect(heatmapClickState.sameBaseTrace).toBe(true);
+  expect(heatmapClickState.samePlotContainer).toBe(true);
+  await expect(overlay).toBeHidden();
   const spectraCard = page.locator("#spectra_box");
   const summaryCard = page.locator("#analysis_summary_box");
   await expect(summaryCard).toBeVisible();
@@ -655,35 +889,75 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect(firstMatch).toContainText(/poly\(ethylene\)/i, { timeout: 240000 });
   await expect(overlay).toBeHidden({ timeout: 120000 });
 
-  // Draft ratios and Add are quiet while Quantification is off. Turning the
-  // owner on calculates only the saved definitions.
+  // Draft ratios and single measurements are quiet while Quantification is
+  // off. Every wavenumber control is a fine-grained numeric input, not a
+  // range slider; turning the owner on calculates both saved definition sets.
   await page.getByRole("link", { name: "Quantification", exact: true }).click();
   await expect(page.locator("#active_quantification")).not.toBeChecked();
   await resetProgressProbe(page);
-  const areaSliderState = await page.evaluate(() => [
-    "quant_numerator_area", "quant_denominator_area",
-  ].map((id) => {
-    const slider = window.jQuery(`#${id}`).data("ionRangeSlider");
+  const quantificationInputState = await page.evaluate((ids) => ids.map((id) => {
+    const input = document.getElementById(id);
     return {
-      min: slider.options.min,
-      max: slider.options.max,
-      step: slider.options.step,
-      from: slider.result.from,
-      to: slider.result.to,
+      id,
+      type: input?.type || "",
+      step: Number(input?.step),
+      hasRangeSlider: Boolean(
+        window.jQuery && window.jQuery(input).data("ionRangeSlider")
+      ),
     };
-  }));
-  expect(areaSliderState.flatMap((slider) => Object.values(slider))
-    .every(Number.isInteger)).toBe(true);
+  }), [
+    ...ratioNumericIds,
+    "quant_measurement_area_min", "quant_measurement_area_max",
+    "quant_measurement_wavenumber",
+  ]);
+  expect(quantificationInputState.every((input) =>
+    input.type === "number" && Number.isFinite(input.step) && input.step > 0 &&
+    !input.hasRangeSlider
+  )).toBe(true);
+  await page.locator("#quant_numerator_area_min").fill("1650.5");
+  await page.locator("#quant_numerator_area_max").fill("1849.5");
+  await page.locator("#quant_denominator_area_min").fill("1420.5");
+  await page.locator("#quant_denominator_area_max").fill("1499.5");
+  await expect(page.locator("#quant_numerator_area_min")).toHaveValue("1650.5");
   await page.locator("#quant_ratio_name").fill("Custom Carbonyl");
   await page.waitForTimeout(350);
   await page.locator("#quant_ratio_add").click();
-  await expect(page.locator("#quant_saved_ratios")).toContainText("Custom Carbonyl");
+  await expectBuilderItem(page, "#quant_saved_ratios", "Custom Carbonyl");
+  await expect(page.locator("#quant_ratio_name")).toHaveValue("");
   await page.locator('input[name="quant_ratio_type"][value="peak"]')
     .check({ force: true });
-  await expect(page.locator("#quant_numerator_peak")).toBeAttached();
+  await expect(page.locator("#quant_numerator_peak")).toBeVisible();
+  await page.waitForTimeout(350);
+  await page.locator("#quant_numerator_peak").fill("1715.25");
+  await page.locator("#quant_denominator_peak").fill("1460.25");
   await page.locator("#quant_ratio_name").fill("Custom Peak");
   await page.waitForTimeout(350);
   await page.locator("#quant_ratio_add").click();
+  await expectBuilderItem(page, "#quant_saved_ratios", "Custom Peak");
+  await expect(page.locator("#quant_ratio_name")).toHaveValue("");
+
+  await measurementSwitch.check({ force: true });
+  await expectEnabledSwitchColors(page, "quant_measurement_enabled");
+  await expect(page.locator("#quant_measurement_area_min")).toBeVisible();
+  await page.locator("#quant_measurement_area_min").fill("1650.5");
+  await page.locator("#quant_measurement_area_max").fill("1849.5");
+  await page.locator("#quant_measurement_name").fill("Custom Area");
+  await page.locator("#quant_measurement_add").click();
+  await expectBuilderItem(
+    page, "#quant_measurement_definitions", "Custom Area"
+  );
+  await expect(page.locator("#quant_measurement_name")).toHaveValue("");
+  await page.locator('input[name="quant_measurement_type"][value="intensity"]')
+    .check({ force: true });
+  await expect(page.locator("#quant_measurement_wavenumber")).toBeVisible();
+  await page.waitForTimeout(350);
+  await page.locator("#quant_measurement_wavenumber").fill("1715.25");
+  await page.locator("#quant_measurement_name").fill("Custom Intensity");
+  await page.locator("#quant_measurement_add").click();
+  await expectBuilderItem(
+    page, "#quant_measurement_definitions", "Custom Intensity"
+  );
+  await expect(page.locator("#quant_measurement_name")).toHaveValue("");
   await page.waitForTimeout(500);
   const ratioBuilderState = await page.evaluate(() => {
     const savedSelect = document.getElementById("quant_remove_id");
@@ -713,6 +987,37 @@ test("local app renders spectra, matches, and one informative progress overlay",
     savedCount: 2,
     warning: "",
   });
+  const measurementBuilderState = await page.evaluate(() => {
+    const savedSelect = document.getElementById("quant_measurement_remove_id");
+    const visibleDialog = Array.from(document.querySelectorAll(
+      '[role="dialog"], .swal2-popup, .sweet-alert'
+    )).find((element) => {
+      const style = getComputedStyle(element);
+      return style.display !== "none" && style.visibility !== "hidden";
+    });
+    return {
+      enabled: document.getElementById("quant_measurement_enabled")?.checked,
+      type: document.querySelector(
+        'input[name="quant_measurement_type"]:checked'
+      )?.value || "",
+      name: document.getElementById("quant_measurement_name")?.value || "",
+      savedCount: savedSelect?.selectize ?
+        Object.keys(savedSelect.selectize.options).length :
+        (savedSelect?.options?.length || 0),
+      savedText: document.getElementById("quant_measurement_definitions")
+        ?.textContent || "",
+      warning: visibleDialog?.textContent?.trim() || "",
+    };
+  });
+  expect(measurementBuilderState).toMatchObject({
+    enabled: true,
+    type: "intensity",
+    name: "",
+    savedCount: 2,
+    warning: "",
+  });
+  expect(measurementBuilderState.savedText).toMatch(/Custom Area/);
+  expect(measurementBuilderState.savedText).toMatch(/Custom Intensity/);
   await page.waitForTimeout(1300);
   await expect(overlay).toBeHidden();
   const mutedQuantState = await page.evaluate(() => window.__openspecySmoke);
@@ -724,13 +1029,19 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expectEnabledSwitchColors(page, "active_quantification");
   await expect.poll(async () => (
     await page.evaluate(() => window.__openspecySmoke.phases.join(" "))
-  ), { timeout: 120000 }).toMatch(/Calculating saved ratios/i);
+  ), { timeout: 120000 }).toMatch(/Calculating saved quantification/i);
   await expect(page.locator("#eventmetadata table")).toContainText(
     /area_ratio_custom_carbonyl/i,
     { timeout: 120000 }
   );
   await expect(page.locator("#eventmetadata table")).toContainText(
     /peak_ratio_custom_peak/i
+  );
+  await expect(page.locator("#eventmetadata table")).toContainText(
+    /area_under_band_custom_area/i
+  );
+  await expect(page.locator("#eventmetadata table")).toContainText(
+    /point_intensity_custom_intensity/i
   );
   await expect(firstMatch).toContainText(/poly\(ethylene\)/i);
   await expect(overlay).toBeHidden({ timeout: 120000 });
@@ -757,10 +1068,12 @@ test("local app renders spectra, matches, and one informative progress overlay",
     /range_automate.*MinRange.*MaxRange.*active_identification.*id_strategy.*lib_type/i
   );
   expect(metadataLines[0]).toMatch(
-    /active_quantification.*quant_saved_ratio_definitions/i
+    /active_quantification.*quant_saved_ratio_definitions.*quant_saved_measurement_definitions/i
   );
   expect(metadataText).toMatch(/Custom Carbonyl/i);
   expect(metadataText).toMatch(/Custom Peak/i);
+  expect(metadataText).toMatch(/Custom Area/i);
+  expect(metadataText).toMatch(/Custom Intensity/i);
   await toggleCard(downloadCard);
   await expectCardCollapsed(downloadCard, false);
   await selectizeOption(page, "download_selection", "Top Matches");
@@ -780,6 +1093,8 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(topMatchLines[0]).toMatch(/quantification_definitions/i);
   expect(topMatchLines[0]).toMatch(/area_ratio_custom_carbonyl/i);
   expect(topMatchLines[0]).toMatch(/peak_ratio_custom_peak/i);
+  expect(topMatchLines[0]).toMatch(/area_under_band_custom_area/i);
+  expect(topMatchLines[0]).toMatch(/point_intensity_custom_intensity/i);
   expect(topMatchLines.length).toBe(7);
   expect(topMatchesText).toMatch(/poly\(ethylene\)/i);
   await toggleCard(downloadCard);
@@ -804,6 +1119,8 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(processedText).toMatch(/quantification_definitions/i);
   expect(processedText).toMatch(/area_ratio_custom_carbonyl/i);
   expect(processedText).toMatch(/peak_ratio_custom_peak/i);
+  expect(processedText).toMatch(/area_under_band_custom_area/i);
+  expect(processedText).toMatch(/point_intensity_custom_intensity/i);
   expect(processedText).toMatch(/raman_hdpe/i);
   await page.locator("#active_identification").check({ force: true });
   await expect(firstMatch).toContainText(/poly\(ethylene\)/i, { timeout: 240000 });

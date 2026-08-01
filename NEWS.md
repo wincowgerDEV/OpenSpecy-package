@@ -12,9 +12,12 @@
   intervals from a whole batch, with irregular-axis coverage accounting and a
   conservative rollback when the proposed loss exceeds 70% or leaves too few
   points.
-- Added default-on app controls for isolated spikes and saturation, cached
-  pass/warning/error details for the active spectrum, an external adaptive
-  spectrum legend, and a bright colorblind-accessible heatmap palette. Hosted
+- Added default-on app controls for isolated spikes and saturation, separated
+  automatic-correction details from warning/success results for the active
+  spectrum, an external adaptive spectrum legend, and bright
+  colorblind-accessible heatmap palettes. Numeric map legends sit outside the
+  plot, categorical Match Name colors are shared with the material summary,
+  and map selection updates its marker without rebuilding the heatmap. Hosted
   WebAssembly downloads now use a same-frame validated Blob handoff while
   local Shiny retains its native download handler; browser smoke tests require
   genuine CSV and ZIP files from real clicks.
@@ -53,12 +56,17 @@
   the app chrome, cards, controls, tables, progress widgets, and plots.
 - Added named area-under-band ratio indices, explicit custom area-ratio
   composition, `peak_ratio()` for nearest-point or linearly interpolated point
-  ratios, and 4S Fill Peaks baseline correction. The app's Quantification tab
-  now defaults off and lets users name and save any number of area-band or
-  point-ratio definitions from final-processed-axis sliders. It calculates saved
-  ratios from the exact final processed spectra displayed in the app, uses
-  integer wavenumber sliders, and includes exact definitions, values, and
-  processed-spectrum provenance in Processed Spectra and Top Matches downloads.
+  ratios, `point_intensity()` for non-ratio point measurements, and 4S Fill
+  Peaks baseline correction. The app's Quantification tab now defaults off and
+  lets users save ratios, individual band areas, and individual point
+  intensities from precise numeric inputs. It calculates any combination from
+  the exact final processed spectra displayed in the app and includes exact
+  definitions, values, and processed-spectrum provenance in Processed Spectra
+  and Top Matches downloads.
+- Made the representative medoid library the interactive app default and cache
+  reference-library preparation by the final processed axis. The complete
+  library remains an explicit local-app option for users who accept its longer
+  initial calculation.
 - Reimplemented 4S Fill Peaks smoothing and suppression in base R, removing the
   compiled `baseline` runtime dependency so the same correction works in local
   R and the hosted WebAssembly app.

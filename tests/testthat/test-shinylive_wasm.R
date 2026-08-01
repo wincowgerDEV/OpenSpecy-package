@@ -268,6 +268,7 @@ test_that("only one workflow publishes the combined native Pages site", {
   expect_true(any(grepl("path: _wasm/pinned", wasm, fixed = TRUE)))
   expect_equal(sum(grepl("pak-version: repo", shinylive, fixed = TRUE)), 1L)
   expect_equal(sum(grepl("pak-version: repo", wasm, fixed = TRUE)), 1L)
+  expect_equal(sum(grepl("any::pkgdown", shinylive, fixed = TRUE)), 1L)
 })
 
 test_that("pkgdown installs the checked-out package before rendering", {

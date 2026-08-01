@@ -172,12 +172,6 @@ preprocessing_controls <- tagList(
       numericInput(
         "range_artifact_ratio", "Artifact Ratio Threshold",
         value = 3, min = 1.1, step = 0.1
-      ),
-      uiOutput(
-        "range_automation_status",
-        container = function(...) {
-          div(..., class = "openspecy-automation-status")
-        }
       )
     ),
     div(
@@ -204,12 +198,6 @@ preprocessing_controls <- tagList(
       numericInput(
         "co2_artifact_ratio", "Artifact Ratio Threshold",
         value = 3, min = 1.1, step = 0.1
-      ),
-      uiOutput(
-        "co2_automation_status",
-        container = function(...) {
-          div(..., class = "openspecy-automation-status")
-        }
       )
     ),
     numericInput("MinFlat", "Minimum Wavenumber", value = 2200,
@@ -244,7 +232,10 @@ identification_controls <- tagList(
       "id_strategy", "Library Transformation",
       choices = c("Derivative" = "deriv", "No Baseline" = "nobaseline")
     ),
-    pickerInput("lib_type", "Library Type", choices = app_library_type_choices())
+    pickerInput(
+      "lib_type", "Library Type",
+      choices = app_library_type_choices(), selected = "medoid"
+    )
   ),
   conditionalPanel(
     condition = "input.lib_type != 'model'",
@@ -328,7 +319,60 @@ quantification_controls <- tagList(
       selected = "area",
       inline = TRUE
     ),
-    uiOutput("quant_ratio_bounds"),
+    conditionalPanel(
+      condition = "input.quant_ratio_type == 'area'",
+      fluidRow(
+        column(
+          6,
+          numericInput(
+            "quant_numerator_area_min", "Numerator minimum (cm^-1)",
+            value = 1650, step = 1
+          )
+        ),
+        column(
+          6,
+          numericInput(
+            "quant_numerator_area_max", "Numerator maximum (cm^-1)",
+            value = 1850, step = 1
+          )
+        )
+      ),
+      fluidRow(
+        column(
+          6,
+          numericInput(
+            "quant_denominator_area_min", "Denominator minimum (cm^-1)",
+            value = 1420, step = 1
+          )
+        ),
+        column(
+          6,
+          numericInput(
+            "quant_denominator_area_max", "Denominator maximum (cm^-1)",
+            value = 1500, step = 1
+          )
+        )
+      )
+    ),
+    conditionalPanel(
+      condition = "input.quant_ratio_type == 'peak'",
+      fluidRow(
+        column(
+          6,
+          numericInput(
+            "quant_numerator_peak", "Numerator point (cm^-1)",
+            value = 1715, step = 1
+          )
+        ),
+        column(
+          6,
+          numericInput(
+            "quant_denominator_peak", "Denominator point (cm^-1)",
+            value = 1460, step = 1
+          )
+        )
+      )
+    ),
     div(
       class = "openspecy-quant-builder-actions",
       actionButton(
@@ -347,6 +391,88 @@ quantification_controls <- tagList(
       "Every ratio uses exactly the final processed uploaded spectrum visible as the primary trace in the Spectra plot; reference-match overlays are not used and no separate quantification treatment is applied.",
       "For one polyethylene carbonyl-area scenario, choose Area ratio, name it Carbonyl area, use 1650-1850 cm^-1 as the numerator and 1420-1500 cm^-1 as the denominator, then click Add Ratio.",
       "Choose Peak ratio when a method compares two individual wavenumbers. Confirm suitable bands and preprocessing for the material, instrument, and method you are following."
+    )
+  ),
+  bs4Dash::box(
+    width = 12,
+    title = "Single Measurements",
+    prettySwitch(
+      "quant_measurement_enabled", "Enable Single Measurements",
+      inline = TRUE, value = FALSE, status = "success", fill = TRUE
+    ),
+    conditionalPanel(
+      condition = "input.quant_measurement_enabled",
+      textInput(
+        "quant_measurement_name", "Measurement Name",
+        placeholder = "For example: Carbonyl area"
+      ),
+      radioButtons(
+        "quant_measurement_type", "Measurement Type",
+        choices = c(
+          "Area under a region" = "area",
+          "Single-wavenumber intensity" = "intensity"
+        ),
+        selected = "area",
+        inline = TRUE
+      ),
+      conditionalPanel(
+        condition = "input.quant_measurement_type == 'area'",
+        fluidRow(
+          column(
+            6,
+            numericInput(
+              "quant_measurement_area_min", "Region minimum (cm^-1)",
+              value = 1650, step = 1
+            )
+          ),
+          column(
+            6,
+            numericInput(
+              "quant_measurement_area_max", "Region maximum (cm^-1)",
+              value = 1850, step = 1
+            )
+          )
+        )
+      ),
+      conditionalPanel(
+        condition = "input.quant_measurement_type == 'intensity'",
+        numericInput(
+          "quant_measurement_wavenumber", "Wavenumber (cm^-1)",
+          value = 1715, step = 1
+        )
+      ),
+      div(
+        class = "openspecy-quant-builder-actions",
+        actionButton(
+          "quant_measurement_add", "Add Measurement",
+          icon = icon("plus"),
+          class = "openspecy-add-measurement-button"
+        ),
+        actionButton(
+          "quant_measurement_clear", "Clear All",
+          icon = icon("eraser"),
+          class = "btn-outline-warning"
+        )
+      ),
+      div(
+        class = "openspecy-saved-measurements",
+        tags$h5("Saved Measurements"),
+        uiOutput("quant_measurement_definitions"),
+        selectInput(
+          "quant_measurement_remove_id", "Saved measurements",
+          choices = character()
+        ),
+        actionButton(
+          "quant_measurement_remove", "Remove Selected",
+          icon = icon("trash"),
+          class = "btn-outline-danger"
+        )
+      )
+    ),
+    footer = footnote(
+      "How single measurements are calculated",
+      "Area measurements integrate one selected wavenumber region; intensity measurements use the nearest available value to one requested wavenumber.",
+      "Saved ratios and saved single measurements can be calculated together from the same final processed spectra."
     )
   )
 )
@@ -539,9 +665,29 @@ dashboardPage(
           border-color: var(--openspecy-accent) !important;
           box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2);
         }
-        .openspecy-quality-error { border-left: 4px solid #FB7185 !important; }
-        .openspecy-quality-warning { border-left: 4px solid #FACC15 !important; }
-        .openspecy-quality-pass { border-left: 4px solid #4ADE80 !important; }
+        .btn.openspecy-quality-automatic {
+          border-color: var(--openspecy-grid) !important;
+        }
+        .btn.openspecy-quality-warning { border-color: #FACC15 !important; }
+        .btn.openspecy-quality-success { border-color: #FB7185 !important; }
+        .openspecy-quality-icon-warning { color: #FACC15 !important; }
+        .openspecy-quality-icon-success { color: #FB7185 !important; }
+        .openspecy-quality-automatic.openspecy-automatic-applied {
+          border: 2px solid transparent !important;
+          background:
+            linear-gradient(var(--openspecy-panel-2), var(--openspecy-panel-2)) padding-box,
+            linear-gradient(90deg, #FB7185, #E69F00, #F0E442, #009E73, #56B4E9, #CC79A7) border-box !important;
+        }
+        .openspecy-quality-automatic.openspecy-automatic-applied
+          .openspecy-quality-icon-automatic {
+          color: transparent !important;
+          background: linear-gradient(
+            90deg, #FB7185, #E69F00, #F0E442, #009E73, #56B4E9, #CC79A7
+          );
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
         .openspecy-quality-count { min-width: 1ch; }
         .openspecy-quality-finding {
           padding: 12px 14px;
@@ -549,6 +695,15 @@ dashboardPage(
           border: 1px solid var(--openspecy-grid);
           border-radius: 8px;
           background: var(--openspecy-panel-2);
+        }
+        .openspecy-quality-finding-warning { border-color: #FACC15; }
+        .openspecy-quality-finding-success,
+        .openspecy-quality-finding-pass { border-color: #FB7185; }
+        .openspecy-quality-finding-automatic.openspecy-automatic-applied {
+          border: 2px solid transparent;
+          background:
+            linear-gradient(var(--openspecy-panel-2), var(--openspecy-panel-2)) padding-box,
+            linear-gradient(90deg, #FB7185, #E69F00, #F0E442, #009E73, #56B4E9, #CC79A7) border-box;
         }
         .openspecy-quality-finding h4 {
           color: var(--openspecy-text);
@@ -624,9 +779,11 @@ dashboardPage(
         .openspecy-quant-builder-actions {
           display: flex;
           justify-content: flex-end;
+          gap: .5rem;
           margin: 4px 0 14px;
         }
-        .btn.openspecy-add-ratio-button {
+        .btn.openspecy-add-ratio-button,
+        .btn.openspecy-add-measurement-button {
           display: inline-flex;
           align-items: center;
           gap: .5rem;
@@ -635,11 +792,13 @@ dashboardPage(
           border-color: var(--openspecy-accent) !important;
           font-weight: 700;
         }
-        .openspecy-saved-ratios {
+        .openspecy-saved-ratios,
+        .openspecy-saved-measurements {
           padding-top: 12px;
           border-top: 1px solid var(--openspecy-grid);
         }
-        .openspecy-saved-ratios h5 { color: var(--openspecy-text); }
+        .openspecy-saved-ratios h5,
+        .openspecy-saved-measurements h5 { color: var(--openspecy-text); }
         .modal-content {
           color: var(--openspecy-text);
           background: var(--openspecy-panel);
@@ -1132,23 +1291,37 @@ dashboardPage(
           div(
             class = "openspecy-quality-controls",
             role = "group",
-            `aria-label` = "Spectral quality checks",
+            `aria-label` = "Automatic corrections and spectral quality checks",
             actionButton(
-              "quality_error_details",
+              "quality_automatic_details",
               tagList(
-                icon("times-circle", `aria-hidden` = "true"),
-                textOutput("quality_error_count", inline = TRUE),
-                tags$span("Errors")
+                icon(
+                  "magic",
+                  class = paste(
+                    "openspecy-quality-icon",
+                    "openspecy-quality-icon-automatic"
+                  ),
+                  `aria-hidden` = "true"
+                ),
+                textOutput("quality_automatic_count", inline = TRUE),
+                tags$span("Automatic Corrections Made")
               ),
               class = paste(
-                "openspecy-quality-button openspecy-quality-error"
+                "openspecy-quality-button openspecy-quality-automatic"
               ),
-              title = "Open error findings for the active spectrum"
+              title = "Open automatic correction details"
             ),
             actionButton(
               "quality_warning_details",
               tagList(
-                icon("exclamation-triangle", `aria-hidden` = "true"),
+                icon(
+                  "exclamation-triangle",
+                  class = paste(
+                    "openspecy-quality-icon",
+                    "openspecy-quality-icon-warning"
+                  ),
+                  `aria-hidden` = "true"
+                ),
                 textOutput("quality_warning_count", inline = TRUE),
                 tags$span("Warnings")
               ),
@@ -1158,14 +1331,21 @@ dashboardPage(
               title = "Open warning findings for the active spectrum"
             ),
             actionButton(
-              "quality_pass_details",
+              "quality_success_details",
               tagList(
-                icon("check-circle", `aria-hidden` = "true"),
-                textOutput("quality_pass_count", inline = TRUE),
-                tags$span("Passes")
+                icon(
+                  "check-circle",
+                  class = paste(
+                    "openspecy-quality-icon",
+                    "openspecy-quality-icon-success"
+                  ),
+                  `aria-hidden` = "true"
+                ),
+                textOutput("quality_success_count", inline = TRUE),
+                tags$span("Successes")
               ),
-              class = "openspecy-quality-button openspecy-quality-pass",
-              title = "Open passed checks for the active spectrum"
+              class = "openspecy-quality-button openspecy-quality-success",
+              title = "Open successful checks for the active spectrum"
             )
           ),
           div(

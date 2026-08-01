@@ -92,6 +92,18 @@ app_empty_ratio_definitions <- function() {
   )
 }
 
+app_empty_measurement_definitions <- function() {
+  data.frame(
+    id = integer(),
+    name = character(),
+    column = character(),
+    type = character(),
+    minimum = numeric(),
+    maximum = numeric(),
+    stringsAsFactors = FALSE
+  )
+}
+
 # Input IDs are kept as the exported column names so the settings snapshot is
 # readable beside the app source without promising a future import contract.
 app_user_metadata_input_ids <- c(
@@ -116,8 +128,13 @@ app_user_metadata_input_ids <- c(
   "xy_grid", "collapse_decision", "collapse_type", "collapse_log_type",
   # Quantification builder
   "active_quantification", "quant_ratio_name", "quant_ratio_type",
-  "quant_numerator_area", "quant_denominator_area",
-  "quant_numerator_peak", "quant_denominator_peak"
+  "quant_numerator_area_min", "quant_numerator_area_max",
+  "quant_denominator_area_min", "quant_denominator_area_max",
+  "quant_numerator_peak", "quant_denominator_peak",
+  "quant_measurement_enabled", "quant_measurement_name",
+  "quant_measurement_type",
+  "quant_measurement_area_min", "quant_measurement_area_max",
+  "quant_measurement_wavenumber"
 )
 
 app_saturation_value <- function(mode = "auto", ceiling = NULL) {
@@ -269,9 +286,35 @@ app_saved_ratio_definitions <- function(definitions) {
   }, character(1)), collapse = " || ")
 }
 
+app_saved_measurement_definitions <- function(definitions) {
+  if(is.null(definitions) || !is.data.frame(definitions) ||
+     !nrow(definitions)) {
+    return(NA_character_)
+  }
+  required <- names(app_empty_measurement_definitions())
+  if(!all(required %in% names(definitions))) {
+    stop("Saved measurement definitions have an unexpected structure.",
+         call. = FALSE)
+  }
+  paste(vapply(seq_len(nrow(definitions)), function(i) {
+    definition <- definitions[i, required, drop = FALSE]
+    paste(
+      paste0("id=", definition$id[[1L]]),
+      paste0("name=", definition$name[[1L]]),
+      paste0("column=", definition$column[[1L]]),
+      paste0("type=", definition$type[[1L]]),
+      paste0("minimum=", definition$minimum[[1L]]),
+      paste0("maximum=", definition$maximum[[1L]]),
+      sep = "; "
+    )
+  }, character(1)), collapse = " || ")
+}
+
 app_user_metadata_snapshot <- function(settings, definitions, recorded_at,
                                        app_version, session_id,
-                                       source = NULL, file_info = NULL) {
+                                       source = NULL, file_info = NULL,
+                                       measurements =
+                                         app_empty_measurement_definitions()) {
   if(!is.list(settings)) {
     stop("App settings must be supplied as a named list.", call. = FALSE)
   }
@@ -319,7 +362,12 @@ app_user_metadata_snapshot <- function(settings, definitions, recorded_at,
       quant_saved_ratio_count = if(is.data.frame(definitions)) {
         nrow(definitions)
       } else 0L,
-      quant_saved_ratio_definitions = app_saved_ratio_definitions(definitions)
+      quant_saved_ratio_definitions = app_saved_ratio_definitions(definitions),
+      quant_saved_measurement_count = if(is.data.frame(measurements)) {
+        nrow(measurements)
+      } else 0L,
+      quant_saved_measurement_definitions =
+        app_saved_measurement_definitions(measurements)
     )
   )
 
@@ -440,7 +488,7 @@ app_ratio_definition_label <- function(definition) {
   }
 }
 
-app_ratio_slider_defaults <- function(axis, type = c("area", "peak")) {
+app_quantification_defaults <- function(axis, type = c("area", "peak")) {
   type <- match.arg(type)
   axis <- sort(unique(as.numeric(axis)))
   axis <- axis[is.finite(axis)]
@@ -449,47 +497,47 @@ app_ratio_slider_defaults <- function(axis, type = c("area", "peak")) {
          call. = FALSE)
   }
 
-  axis_min <- as.integer(ceiling(min(axis)))
-  axis_max <- as.integer(floor(max(axis)))
+  axis_min <- min(axis)
+  axis_max <- max(axis)
   if(axis_min >= axis_max) {
-    stop("The processed wavenumber range must contain at least two integers.",
+    stop("The processed wavenumber range must contain at least two values.",
          call. = FALSE)
   }
-  clamp_integer <- function(value) {
-    as.integer(pmax(axis_min, pmin(axis_max, round(value))))
+  clamp_value <- function(value) {
+    as.numeric(pmax(axis_min, pmin(axis_max, value)))
   }
-  closest_integer <- function(value) {
-    clamp_integer(axis[[which.min(abs(axis - value))]])
+  closest_value <- function(value) {
+    as.numeric(axis[[which.min(abs(axis - value))]])
   }
-  # Ratios may use any whole-number boundary or point within the processed
-  # axis; peak lookup resolves a selected point to measured data later.
-  step <- 1L
+  # Numeric inputs permit exact typed values. Points are resolved to measured
+  # data by point_intensity() or peak_ratio() when quantification runs.
+  step <- min(diff(axis)) / 10
 
   if(identical(type, "area")) {
     scenario <- c(1650, 1850, 1420, 1500)
     if(all(scenario >= axis_min & scenario <= axis_max)) {
-      numerator <- sort(vapply(scenario[1:2], closest_integer, integer(1)))
+      numerator <- sort(vapply(scenario[1:2], closest_value, numeric(1)))
       denominator <- sort(vapply(
-        scenario[3:4], closest_integer, integer(1)
+        scenario[3:4], closest_value, numeric(1)
       ))
     } else {
       selections <- axis[pmax(
         1L,
         pmin(length(axis), round(c(.60, .78, .24, .42) * length(axis)))
       )]
-      numerator <- sort(clamp_integer(selections[1:2]))
-      denominator <- sort(clamp_integer(selections[3:4]))
+      numerator <- sort(clamp_value(selections[1:2]))
+      denominator <- sort(clamp_value(selections[3:4]))
     }
   } else {
     scenario <- c(1715, 1460)
     if(all(scenario >= axis_min & scenario <= axis_max)) {
-      numerator <- closest_integer(scenario[[1L]])
-      denominator <- closest_integer(scenario[[2L]])
+      numerator <- closest_value(scenario[[1L]])
+      denominator <- closest_value(scenario[[2L]])
     } else {
-      numerator <- clamp_integer(
+      numerator <- clamp_value(
         axis[[max(1L, round(.67 * length(axis)))]]
       )
-      denominator <- clamp_integer(
+      denominator <- clamp_value(
         axis[[max(1L, round(.33 * length(axis)))]]
       )
     }
@@ -504,6 +552,109 @@ app_ratio_slider_defaults <- function(axis, type = c("area", "peak")) {
   )
 }
 
+# Retained as an internal compatibility alias for saved app tests and sessions;
+# the UI now uses numeric inputs, not sliders.
+app_ratio_slider_defaults <- app_quantification_defaults
+
+app_measurement_column_name <- function(name, type) {
+  if(!is.character(name) || length(name) != 1L || is.na(name) ||
+     !nzchar(trimws(name))) {
+    stop("Enter a nonempty measurement name before adding it.", call. = FALSE)
+  }
+  type <- match.arg(type, c("area", "point"))
+  plain <- iconv(trimws(name), to = "ASCII//TRANSLIT", sub = "")
+  slug <- tolower(gsub("[^A-Za-z0-9]+", "_", plain))
+  slug <- gsub("^_+|_+$", "", slug)
+  if(is.na(slug) || !nzchar(slug)) {
+    stop("The measurement name must contain at least one letter or number.",
+         call. = FALSE)
+  }
+  paste0(if(identical(type, "area")) {
+    "area_under_band_"
+  } else {
+    "point_intensity_"
+  }, slug)
+}
+
+app_add_measurement_definition <- function(definitions, name, type, values,
+                                           axis) {
+  expected <- names(app_empty_measurement_definitions())
+  if(!is.data.frame(definitions) || !identical(names(definitions), expected)) {
+    stop("Measurement definitions have an unexpected structure.",
+         call. = FALSE)
+  }
+  type <- match.arg(type, c("area", "point"))
+  name <- trimws(name)
+  column <- app_measurement_column_name(name, type)
+  if(column %in% definitions$column) {
+    stop("A measurement with the same metadata name has already been added.",
+         call. = FALSE)
+  }
+
+  axis <- sort(unique(as.numeric(axis)))
+  axis <- axis[is.finite(axis)]
+  if(!length(axis)) {
+    stop("Upload and process a valid spectrum before adding measurements.",
+         call. = FALSE)
+  }
+  expected_length <- if(identical(type, "area")) 2L else 1L
+  if(!is.numeric(values) || length(values) != expected_length ||
+     any(!is.finite(values))) {
+    stop(
+      if(identical(type, "area")) {
+        "Measurement area must contain two finite wavenumber values."
+      } else {
+        "Measurement point must contain one finite wavenumber value."
+      },
+      call. = FALSE
+    )
+  }
+  values <- sort(as.numeric(values))
+  if(identical(type, "point")) values <- rep(values, 2L)
+  if(any(values < axis[[1L]] | values > axis[[length(axis)]])) {
+    stop(
+      "Measurement selections must stay within the displayed processed wavenumber range.",
+      call. = FALSE
+    )
+  }
+  if(identical(type, "area") &&
+     !any(axis >= values[[1L]] & axis <= values[[2L]])) {
+    stop(
+      "The measurement area must contain at least one displayed processed wavenumber.",
+      call. = FALSE
+    )
+  }
+
+  next_id <- if(nrow(definitions)) max(definitions$id) + 1L else 1L
+  rbind(
+    definitions,
+    data.frame(
+      id = next_id,
+      name = name,
+      column = column,
+      type = type,
+      minimum = values[[1L]],
+      maximum = values[[2L]],
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+app_measurement_definition_label <- function(definition) {
+  if(identical(definition$type[[1L]], "area")) {
+    paste0(
+      definition$name[[1L]], " (area: ",
+      format(definition$minimum[[1L]]), "-",
+      format(definition$maximum[[1L]]), " cm^-1)"
+    )
+  } else {
+    paste0(
+      definition$name[[1L]], " (intensity: ",
+      format(definition$minimum[[1L]]), " cm^-1)"
+    )
+  }
+}
+
 app_ratio_definitions_text <- function(definitions) {
   if(!nrow(definitions)) return(character())
   paste(
@@ -514,10 +665,32 @@ app_ratio_definitions_text <- function(definitions) {
   )
 }
 
-app_ratio_metadata_columns <- function(definitions) {
+app_measurement_definitions_text <- function(definitions) {
   if(!nrow(definitions)) return(character())
+  paste(
+    vapply(seq_len(nrow(definitions)), function(i) {
+      app_measurement_definition_label(definitions[i, , drop = FALSE])
+    }, character(1)),
+    collapse = "; "
+  )
+}
+
+app_quantification_definitions_text <- function(ratios, measurements) {
+  parts <- c(
+    if(nrow(ratios)) paste0("Ratios: ", app_ratio_definitions_text(ratios)),
+    if(nrow(measurements)) paste0(
+      "Measurements: ", app_measurement_definitions_text(measurements)
+    )
+  )
+  paste(parts, collapse = "; ")
+}
+
+app_ratio_metadata_columns <- function(
+    definitions,
+    measurements = app_empty_measurement_definitions()) {
+  if(!nrow(definitions) && !nrow(measurements)) return(character())
   c("quantification_source", "quantification_definitions",
-    definitions$column)
+    definitions$column, measurements$column)
 }
 
 app_area_ratio <- function(source, numerator, denominator) {
@@ -552,14 +725,36 @@ app_area_ratio <- function(source, numerator, denominator) {
   values
 }
 
-app_attach_quantification <- function(x, definitions) {
+app_area_measurement <- function(source, bounds) {
+  source <- as_OpenSpecy(source)
+  axis <- source$wavenumber
+  named_na <- stats::setNames(
+    rep(NA_real_, ncol(source$spectra)), colnames(source$spectra)
+  )
+  complete <- length(bounds) == 2L && all(is.finite(bounds)) &&
+    all(bounds >= min(axis) & bounds <= max(axis)) &&
+    any(axis >= bounds[[1L]] & axis <= bounds[[2L]])
+  if(!complete) {
+    warning(
+      "The source spectrum does not fully cover this area measurement; returning NA.",
+      call. = FALSE
+    )
+    return(named_na)
+  }
+  area_under_band(source, min = bounds[[1L]], max = bounds[[2L]])
+}
+
+app_attach_quantification <- function(
+    x,
+    definitions,
+    measurements = app_empty_measurement_definitions()) {
   x <- as_OpenSpecy(x)
-  if(!nrow(definitions)) return(x)
+  if(!nrow(definitions) && !nrow(measurements)) return(x)
 
   x$metadata <- data.table::copy(x$metadata)
   x$metadata$quantification_source <- app_quantification_source_value
   x$metadata$quantification_definitions <-
-    app_ratio_definitions_text(definitions)
+    app_quantification_definitions_text(definitions, measurements)
   for(i in seq_len(nrow(definitions))) {
     definition <- definitions[i, , drop = FALSE]
     values <- if(identical(definition$type[[1L]], "area")) {
@@ -573,6 +768,26 @@ app_attach_quantification <- function(x, definitions) {
         x,
         numerator = definition$numerator_min[[1L]],
         denominator = definition$denominator_min[[1L]],
+        method = "nearest"
+      )
+    }
+    if(length(values) != nrow(x$metadata)) {
+      stop("Quantification returned an unexpected number of values for '",
+           definition$name[[1L]], "'.", call. = FALSE)
+    }
+    x$metadata[[definition$column[[1L]]]] <- as.numeric(values)
+  }
+  for(i in seq_len(nrow(measurements))) {
+    definition <- measurements[i, , drop = FALSE]
+    values <- if(identical(definition$type[[1L]], "area")) {
+      app_area_measurement(
+        x,
+        c(definition$minimum[[1L]], definition$maximum[[1L]])
+      )
+    } else {
+      point_intensity(
+        x,
+        wavenumber = definition$minimum[[1L]],
         method = "nearest"
       )
     }
@@ -823,21 +1038,71 @@ app_heatmap_colorscale <- list(
   c(1.00, "#CC79A7")
 )
 
-app_quality_checks <- c(
-  "high_tail", "silent_region", "co2_region", "missing_values",
-  "flat_spectrum", "negative_intensity", "low_snr", "spike",
-  "saturation"
+app_category_colors <- c(
+  "#56B4E9", "#E69F00", "#009E73", "#F0E442", "#CC79A7",
+  "#D55E00", "#7FDBFF", "#98D8C8", "#F4A6C1", "#FDD17A"
 )
 
+app_category_palette <- function(values) {
+  labels <- if(is.factor(values)) {
+    levels(values)
+  } else {
+    sort(unique(as.character(values[!is.na(values)])))
+  }
+  if(!length(labels)) return(stats::setNames(character(), character()))
+  stats::setNames(
+    rep(app_category_colors, length.out = length(labels)),
+    labels
+  )
+}
+
+app_category_colorscale <- function(values) {
+  palette <- app_category_palette(values)
+  count <- length(palette)
+  if(!count) return(app_heatmap_colorscale)
+  if(count == 1L) {
+    return(list(c(0, unname(palette[[1L]])),
+                c(1, unname(palette[[1L]]))))
+  }
+  centers <- seq(0, 1, length.out = count)
+  edges <- c(0, (centers[-1L] + centers[-count]) / 2, 1)
+  unlist(lapply(seq_len(count), function(i) {
+    list(
+      c(edges[[i]], unname(palette[[i]])),
+      c(edges[[i + 1L]], unname(palette[[i]]))
+    )
+  }), recursive = FALSE)
+}
+
+app_quality_checks <- c(
+  "silent_region", "missing_values", "flat_spectrum",
+  "negative_intensity", "low_snr"
+)
+
+app_automatic_quality_checks <- c(
+  "spike", "saturation", "co2_region", "high_tail"
+)
+
+app_quality_ui_report <- function(report) {
+  if(is.null(report) || !is.data.frame(report) || !nrow(report)) return(report)
+  if(!all(c("status", "test_id", "check") %in% names(report))) {
+    stop("Quality reports must include 'status', 'test_id', and 'check'.",
+         call. = FALSE)
+  }
+  report <- report[!report$check %in% app_automatic_quality_checks, ,
+                   drop = FALSE]
+  report$status <- ifelse(
+    report$status %in% c("pass", "success"), "success", "warning"
+  )
+  report
+}
+
 app_quality_counts <- function(report) {
-  statuses <- c("error", "warning", "pass")
+  statuses <- c("warning", "success")
   if(is.null(report) || !is.data.frame(report) || !nrow(report)) {
     return(stats::setNames(rep.int(0L, length(statuses)), statuses))
   }
-  if(!all(c("status", "test_id") %in% names(report))) {
-    stop("Quality reports must include 'status' and 'test_id'.",
-         call. = FALSE)
-  }
+  report <- app_quality_ui_report(report)
   unique_report <- report[!duplicated(report$test_id), , drop = FALSE]
   stats::setNames(
     vapply(statuses, function(status) {
@@ -885,10 +1150,11 @@ app_quality_evidence <- function(row) {
 }
 
 app_quality_modal_content <- function(report, status) {
-  status <- match.arg(status, c("error", "warning", "pass"))
+  status <- match.arg(status, c("warning", "success"))
   if(is.null(report) || !nrow(report)) {
     return(tags$p("Upload a spectrum to run the quality checks."))
   }
+  report <- app_quality_ui_report(report)
   rows <- report[report$status == status & !duplicated(report$test_id), ,
                  drop = FALSE]
   if(!nrow(rows)) {
@@ -896,14 +1162,6 @@ app_quality_modal_content <- function(report, status) {
   }
   tagList(lapply(seq_len(nrow(rows)), function(i) {
     row <- rows[i, , drop = FALSE]
-    correction <- if(isTRUE(row$correction_applied[[1L]])) {
-      row$correction_summary[[1L]]
-    } else if(length(row$correction_summary) &&
-              !is.na(row$correction_summary[[1L]])) {
-      row$correction_summary[[1L]]
-    } else {
-      "No automatic correction was recorded for this finding."
-    }
     tags$section(
       class = paste("openspecy-quality-finding", paste0(
         "openspecy-quality-finding-", status
@@ -913,10 +1171,156 @@ app_quality_modal_content <- function(report, status) {
       tags$p(tags$strong("Evidence: "), app_quality_evidence(row)),
       tags$p(tags$strong("Interpretation: "),
              ifelse(is.na(row$likely_cause[[1L]]),
-                    "No likely cause was recorded.",
-                    row$likely_cause[[1L]])),
-      tags$p(tags$strong("Action: "), row$potential_fix[[1L]]),
-      tags$p(tags$strong("Automatic correction: "), correction)
+                     "No likely cause was recorded.",
+                     row$likely_cause[[1L]])),
+      tags$p(tags$strong("Action: "), row$potential_fix[[1L]])
+    )
+  }))
+}
+
+app_automatic_report <- function(
+    x = NULL,
+    diagnostics = data.frame(),
+    enabled = c(spike = FALSE, saturation = FALSE,
+                flatten = FALSE, tails = FALSE)) {
+  enabled_names <- c("spike", "saturation", "flatten", "tails")
+  enabled <- enabled[enabled_names]
+  enabled[is.na(enabled)] <- FALSE
+  enabled <- stats::setNames(as.logical(enabled), enabled_names)
+
+  make_row <- function(step, label, is_enabled, applied, outcome, summary) {
+    data.frame(
+      step = step,
+      label = label,
+      enabled = isTRUE(is_enabled),
+      applied = isTRUE(applied),
+      outcome = outcome,
+      summary = summary,
+      stringsAsFactors = FALSE
+    )
+  }
+  attr_or_null <- function(name) {
+    if(is.null(x)) NULL else attr(x, name, exact = TRUE)
+  }
+  attr_row <- function(step, label, is_enabled, diagnostic,
+                       applied_summary, clean_summary) {
+    if(!isTRUE(is_enabled)) {
+      return(make_row(step, label, FALSE, FALSE, "disabled",
+                      "This automatic correction is disabled."))
+    }
+    if(is.null(x)) {
+      return(make_row(step, label, TRUE, FALSE, "pending",
+                      "Upload spectra to run this automatic check."))
+    }
+    if(is.null(diagnostic)) {
+      return(make_row(step, label, TRUE, FALSE, "not_needed", clean_summary))
+    }
+    if(isTRUE(diagnostic$applied)) {
+      return(make_row(step, label, TRUE, TRUE, "applied",
+                      applied_summary(diagnostic)))
+    }
+    make_row(
+      step, label, TRUE, FALSE, "rejected",
+      paste0(
+        "A candidate correction was not applied (",
+        gsub("_", " ", as.character(diagnostic$reason), fixed = TRUE), ")."
+      )
+    )
+  }
+
+  spike <- attr_or_null("automatic_spike")
+  saturation <- attr_or_null("saturation_restriction")
+  rows <- list(
+    attr_row(
+      "spike", "Spike correction", enabled[["spike"]], spike,
+      function(value) paste0(
+        "Corrected ", nrow(value$corrected_regions), " spike region",
+        if(nrow(value$corrected_regions) == 1L) "" else "s", " across ",
+        length(value$affected_spectra), " spectrum",
+        if(length(value$affected_spectra) == 1L) "" else "s", "."
+      ),
+      "No correctable spike regions were detected."
+    ),
+    attr_row(
+      "saturation", "Saturation restriction", enabled[["saturation"]],
+      saturation,
+      function(value) paste0(
+        "Removed ", value$excluded_interval_count, " shared saturated range",
+        if(value$excluded_interval_count == 1L) "" else "s", " (",
+        signif(100 * value$saturation_loss_fraction, 3),
+        "% of the wavenumber span)."
+      ),
+      "No shared saturated ranges were detected."
+    )
+  )
+
+  range_row <- function(step, check, label, is_enabled) {
+    if(!isTRUE(is_enabled)) {
+      return(make_row(step, label, FALSE, FALSE, "disabled",
+                      "This automatic correction is disabled."))
+    }
+    if(is.null(x)) {
+      return(make_row(step, label, TRUE, FALSE, "pending",
+                      "Upload spectra to run this automatic check."))
+    }
+    row <- if(is.data.frame(diagnostics) && nrow(diagnostics)) {
+      diagnostics[diagnostics$check == check, , drop = FALSE]
+    } else data.frame()
+    if(!nrow(row)) {
+      return(make_row(step, label, TRUE, FALSE, "not_needed",
+                      "No automatic correction was necessary."))
+    }
+    row <- row[nrow(row), , drop = FALSE]
+    total <- row$total_spectra[[1L]]
+    before <- total - row$before_passes[[1L]]
+    after <- total - row$after_passes[[1L]]
+    comparison <- paste0(
+      "Problematic spectra: ", before, " of ", total, " before; ",
+      after, " of ", total, " after the candidate correction."
+    )
+    if(isTRUE(row$accepted[[1L]])) {
+      return(make_row(step, label, TRUE, TRUE, "applied", paste(
+        comparison, "The improved correction was retained."
+      )))
+    }
+    if(identical(row$reason[[1L]], "no_failures")) {
+      return(make_row(step, label, TRUE, FALSE, "not_needed", paste(
+        comparison, "No correction was necessary."
+      )))
+    }
+    detail <- if(nzchar(row$message[[1L]])) {
+      paste0(" ", row$message[[1L]])
+    } else ""
+    make_row(step, label, TRUE, FALSE, "rejected", paste0(
+      comparison, " The candidate was not retained (",
+      gsub("_", " ", row$reason[[1L]], fixed = TRUE), ").", detail
+    ))
+  }
+  rows[[3L]] <- range_row(
+    "flatten", "co2_region", "CO2 flattening", enabled[["flatten"]]
+  )
+  rows[[4L]] <- range_row(
+    "tails", "high_tail", "High-tail range restriction", enabled[["tails"]]
+  )
+  do.call(rbind, rows)
+}
+
+app_automatic_modal_content <- function(report) {
+  if(is.null(report) || !is.data.frame(report) || !nrow(report)) {
+    return(tags$p("Upload spectra to review automatic corrections."))
+  }
+  tagList(lapply(seq_len(nrow(report)), function(i) {
+    row <- report[i, , drop = FALSE]
+    tags$section(
+      class = paste(
+        "openspecy-quality-finding openspecy-quality-finding-automatic",
+        paste0("openspecy-automatic-outcome-", row$outcome[[1L]]),
+        if(isTRUE(row$applied[[1L]])) "openspecy-automatic-applied" else ""
+      ),
+      tags$h4(row$label[[1L]]),
+      tags$p(tags$strong("Status: "),
+             gsub("_", " ", row$outcome[[1L]], fixed = TRUE)),
+      tags$p(tags$strong("Details: "), row$summary[[1L]])
     )
   }))
 }

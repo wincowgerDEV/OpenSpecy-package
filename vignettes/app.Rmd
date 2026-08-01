@@ -276,10 +276,11 @@ artifacts occur in spectra.
 
 ## Quantification
 
-The **Quantification** tab builds user-defined area or point ratios and is off
-by default. Upload spectra, give a ratio a meaningful name, choose **Area
-ratio** or **Peak ratio**, set the numerator and denominator, and click **Add
-Ratio**. The sliders span the shared wavenumber axis in the final processed data. Add
+The **Quantification** tab builds user-defined ratios and independent single
+measurements and is off by default. Upload spectra, give a ratio a meaningful
+name, choose **Area ratio** or **Peak ratio**, enter the numerator and
+denominator values, and click **Add Ratio**. Numeric text boxes permit exact
+typed values within the shared wavenumber axis of the final processed data. Add
 as many definitions as needed, or remove a saved definition before exporting.
 
 Area ratios use two wavenumber ranges and divide the area in the numerator band
@@ -291,16 +292,22 @@ ratio `Carbonyl area`, set 1650--1850 cm^-1 as the numerator, and set
 preprocessing depend on the material and method, so treat this only as a setup
 example.
 
+The **Single Measurements** box can independently save either the area under
+one region or the intensity at one wavenumber. Enable it, name the measurement,
+choose its type, enter the numeric bounds or point, and click **Add
+Measurement**. The app can calculate saved ratios and saved single measurements
+together. Single-wavenumber intensity uses the nearest measured wavenumber and
+does not search for a local peak.
+
 Calculations use the exact final processed spectra shown as the white active
 trace in the **Spectra** plot. Configure the shared preprocessing settings
-before interpreting or comparing ratios; quantification does not run a second
-preprocessing pipeline. Draft names and sliders do not start calculation; only
-saved definitions are calculated after Quantification is enabled. Slider values
-are whole-number wavenumbers over the final processed shared axis.
+before interpreting or comparing results; quantification does not run a second
+preprocessing pipeline. Draft names and numeric values do not start calculation;
+only saved definitions are calculated after Quantification is enabled.
 
-The saved area- and peak-ratio definitions, values, and processed-spectrum
-source are added to the metadata in both **Processed Spectra** and **Top
-Matches** downloads.
+The saved area- and peak-ratio definitions, single-region areas,
+single-wavenumber intensities, values, and processed-spectrum source are added
+to the metadata in both **Processed Spectra** and **Top Matches** downloads.
 
 ## Collapse Particle Spectra
 
@@ -335,8 +342,8 @@ knitr::include_graphics("app/download_threshold.jpg")
 You can download a csv file of your processed data using the **Processed
 Spectra** option. This will download a version of your spectra with whatever
 processing options you have selected at the time. When quantification is on,
-the saved ratio definitions, values, and processed-spectrum source are included in its
-metadata.
+the saved ratio and single-measurement definitions, values, and
+processed-spectrum source are included in its metadata.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download_yourspec.jpg")
@@ -348,7 +355,7 @@ Choose **User Metadata** to download a one-row settings snapshot named
 `os_metadata_<date-time>.csv`. Its columns record the current preprocessing,
 identification, advanced, and quantification inputs using their app input names,
 along with session, app-version, uploaded-file, displayed-processed-data, and
-saved-ratio provenance. The MD5 field describes the displayed processed
+saved-ratio and saved-measurement provenance. The MD5 field describes the displayed processed
 `OpenSpecy` object rather than the original file bytes. The file is intended to
 help document and manually reproduce an analysis. The app does not currently
 upload these snapshots or use them to reset controls, and the export does not
@@ -374,7 +381,11 @@ libraries.
 **Library Transformation** controls the library to search based on how the spectra are transformed in the processing tab. Derivative will search against a derivative transformed library. No
 Baseline will search against a baseline corrected library. 
 
-**Library Type** will determine the library or model to use for the identification. Full is all of the spectra we have an includes 40k spectra. Medoid is a smaller library of the most important 4k spectra. Multinomial will use an AI multinomial regression to identify the spectra. 
+**Library Type** determines the library or model used for identification.
+Medoid is the default because its representative library is substantially
+faster for interactive work. Full searches all 40k-plus reference spectra and
+remains available in the local app when that additional detail is worth the
+longer first calculation. Multinomial uses a trained classification model.
 
 **Threshold Correlation** will set the minimum value from matching to use as a
 'positive identification' this will black out pixels in a spectral map view if
@@ -400,7 +411,7 @@ spectrum may not be the best match.
 ## Download Top Matches
 
 To download the top matches and associated metadata, use the top matches
-download option. Top N controls the number of top matches to provide for each spectrum and Columns to Save will just save the simplest metadata for interpretation if set to simple or everything if set to all. When quantification is on, the saved area- and peak-ratio definitions, values, and processed-spectrum source are included with the match metadata.
+download option. Top N controls the number of top matches to provide for each spectrum and Columns to Save will just save the simplest metadata for interpretation if set to simple or everything if set to all. When quantification is on, saved area and peak ratios, single-region areas, single-wavenumber intensities, and processed-spectrum provenance are included with the match metadata.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download.jpg")

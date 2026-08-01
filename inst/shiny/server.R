@@ -33,9 +33,13 @@ function(input, output, session) {
   preprocessed <- reactiveValues(data = NULL)
   data_click <- reactiveValues(plot = NULL, table = NULL)
   meta_cache <- reactiveVal(NULL)
-  selected_match_cache <- reactiveVal(NULL)
   correction_diagnostics <- reactiveVal(data.frame())
   ratio_definitions <- reactiveVal(app_empty_ratio_definitions())
+  measurement_definitions <- reactiveVal(app_empty_measurement_definitions())
+  quantification_axis <- reactiveVal(NULL)
+  library_axis_cache <- new.env(parent = emptyenv())
+  library_axis_cache$key <- NULL
+  library_axis_cache$value <- NULL
 
   observeEvent(input$range_automate, {
     manual_range <- !isTRUE(input$range_automate)
@@ -99,9 +103,10 @@ observeEvent(input$file, {
   data_click$plot <- 1
   data_click$table <- 1
   preprocessed$data <- NULL
-  selected_match_cache(NULL)
   correction_diagnostics(data.frame())
   ratio_definitions(app_empty_ratio_definitions())
+  measurement_definitions(app_empty_measurement_definitions())
+  quantification_axis(NULL)
 
   if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
              ignore.case = T, as.character(input$file$datapath)))) {
@@ -180,10 +185,10 @@ observeEvent(input$file, {
     }
 })
   
-  #The matching library to use. 
-  libraryR <- reactive({
-      req(!is.null(preprocessed$data))
-      req(input$active_identification)
+  # Load the selected library independently of the processed data. Keeping this
+  # expensive read in its own reactive prevents every preprocessing change from
+  # re-reading the 42 MB full library.
+  library_source <- reactive({
       analysis_phase(
         "Loading the reference library",
         paste0(
@@ -192,64 +197,76 @@ observeEvent(input$file, {
         ),
         52
       )
-      if (input$id_strategy == "deriv" && input$lib_type == "medoid") {
-          library <- load_app_library("medoid_derivative")
-          #return(library)
+      if(input$id_strategy == "deriv" && input$lib_type == "medoid") {
+        load_app_library("medoid_derivative")
+      } else if(input$id_strategy == "nobaseline" &&
+                input$lib_type == "medoid") {
+        load_app_library("medoid_nobaseline")
+      } else if(input$id_strategy == "deriv" &&
+                input$lib_type == "model") {
+        load_app_library("model_derivative")[[input$id_spec_type]]
+      } else if(input$id_strategy == "nobaseline" &&
+                input$lib_type == "model") {
+        load_app_library("model_nobaseline")[[input$id_spec_type]]
+      } else if(grepl("nobaseline$", input$id_strategy)) {
+        load_app_library("nobaseline")
+      } else {
+        load_app_library("derivative")
       }
-      else if (input$id_strategy == "nobaseline" &&
-               input$lib_type == "medoid") {
-          library <- load_app_library("medoid_nobaseline")
+  })
+
+  #The matching library to use.
+  libraryR <- reactive({
+      req(!is.null(preprocessed$data))
+      req(input$active_identification)
+      library <- library_source()
+      if(identical(input$lib_type, "model")) return(library)
+
+      target_axis <- DataR()$wavenumber
+      cache_key <- digest::digest(
+        list(
+          input$id_strategy, input$lib_type, input$id_spec_type,
+          target_axis
+        ),
+        algo = "md5"
+      )
+      if(identical(library_axis_cache$key, cache_key) &&
+         inherits(library_axis_cache$value, "OpenSpecy")) {
+        return(library_axis_cache$value)
       }
-      else if (input$id_strategy == "deriv" &&
-               input$lib_type == "model") {
-          library <- load_app_library("model_derivative")
-          library <- library[[input$id_spec_type]]
-          return(library)
-      }
-      else if (input$id_strategy == "nobaseline" &&
-               input$lib_type == "model") {
-          library <- load_app_library("model_nobaseline")
-          library <- library[[input$id_spec_type]]
-          return(library)
-      }
-      else if (grepl("nobaseline$", input$id_strategy)) {
-          library <- load_app_library("nobaseline")
-      }
-      else if (grepl("deriv$", input$id_strategy)) {
-          library <- load_app_library("derivative")
-      }
+
       analysis_phase(
         "Preparing the reference library",
         paste0("Filtering ", format(ncol(library$spectra), big.mark = ","),
                " reference spectra to the final processed axis."),
         64
       )
-      if(!is.null(preprocessed$data)){
-          target_axis <- DataR()$wavenumber
-          library <- conform_spec(
-            library,
-            range = target_axis,
-            res = NULL,
-            allow_na = TRUE,
-            type = "roll"
-          )
-          if(!identical(library$wavenumber, target_axis)) {
-            stop("The reference library did not conform to the displayed shared axis.",
-                 call. = FALSE)
-          }
-          keep_spectra <- !apply(library$spectra, 2, function(x) all(is.na(x)))
-          library <- filter_spec(library, logic = keep_spectra)
+      library <- conform_spec(
+        library,
+        range = target_axis,
+        res = NULL,
+        allow_na = TRUE,
+        type = "roll"
+      )
+      if(!identical(library$wavenumber, target_axis)) {
+        stop("The reference library did not conform to the displayed shared axis.",
+             call. = FALSE)
       }
-      
-      if(grepl("^both", input$id_spec_type)) {
-          library
+      keep_spectra <- !apply(library$spectra, 2, function(x) all(is.na(x)))
+      library <- filter_spec(library, logic = keep_spectra)
+
+      if(grepl("^ftir", input$id_spec_type)) {
+        library <- filter_spec(
+          library, logic = library$metadata$spectrum_type == "ftir"
+        )
+      } else if(grepl("^raman", input$id_spec_type)) {
+        library <- filter_spec(
+          library, logic = library$metadata$spectrum_type == "raman"
+        )
       }
-      else if (grepl("^ftir", input$id_spec_type)){
-          filter_spec(library, logic = library$metadata$spectrum_type == "ftir")
-      }
-      else if (grepl("^raman", input$id_spec_type)){
-          filter_spec(library, logic = library$metadata$spectrum_type == "raman")
-      }
+      library_axis_cache$key <- cache_key
+      library_axis_cache$value <- library
+      library
   })
 
   observeEvent(libraryR(), {
@@ -563,141 +580,43 @@ observeEvent(input$file, {
     app_attach_correction_metadata(processed)
   })
 
-  automation_status_ui <- function(check, label) {
-    diagnostics <- correction_diagnostics()
-    row <- diagnostics[diagnostics$check == check, , drop = FALSE]
-    if(!nrow(row)) {
-      return(tags$p(
-        class = "openspecy-automation-status text-muted",
-        paste("Waiting for the", label, "check to run on processed spectra.")
-      ))
+  update_quantification_inputs <- function(axis, type) {
+    defaults <- app_quantification_defaults(axis, type = type)
+    common <- list(
+      session = session, min = defaults$min, max = defaults$max,
+      step = defaults$step
+    )
+    update_value <- function(id, value) {
+      do.call(updateNumericInput, c(common, list(inputId = id, value = value)))
     }
-    row <- row[nrow(row), , drop = FALSE]
-    total <- row$total_spectra[[1L]]
-    before_problems <- total - row$before_passes[[1L]]
-    after_problems <- total - row$after_passes[[1L]]
-    reason <- row$reason[[1L]]
-
-    comparison <- if(identical(reason, "no_failures")) {
-      paste0(
-        "Problematic spectra: ", before_problems, " of ", total,
-        " before correction; ", after_problems, " of ", total,
-        " after correction."
-      )
+    if(identical(type, "area")) {
+      update_value("quant_numerator_area_min", defaults$numerator[[1L]])
+      update_value("quant_numerator_area_max", defaults$numerator[[2L]])
+      update_value("quant_denominator_area_min", defaults$denominator[[1L]])
+      update_value("quant_denominator_area_max", defaults$denominator[[2L]])
     } else {
-      paste0(
-        "Problematic spectra: ", before_problems, " of ", total,
-        " before correction; ", after_problems, " of ", total,
-        " after the candidate correction."
-      )
+      update_value("quant_numerator_peak", defaults$numerator[[1L]])
+      update_value("quant_denominator_peak", defaults$denominator[[1L]])
     }
-    outcome <- switch(
-      reason,
-      no_failures = "No correction was necessary.",
-      improved = "The correction improved the batch and was retained.",
-      not_improved = paste(
-        "The candidate did not improve the batch, so the original processed",
-        "spectra were retained."
-      ),
-      correction_error = paste(
-        "The correction could not be completed, so the original processed",
-        "spectra were retained."
-      ),
-      invalid_candidate = paste(
-        "The candidate did not preserve the batch, so the original processed",
-        "spectra were retained."
-      ),
-      assessment_error = paste(
-        "The candidate could not be assessed, so the original processed",
-        "spectra were retained."
-      ),
-      "The automatic check completed."
-    )
-
-    tags$div(
-      class = paste(
-        "openspecy-automation-status",
-        paste0("openspecy-automation-status-", reason)
-      ),
-      role = "status",
-      tags$strong(paste0(label, ": ")),
-      tags$span(paste(comparison, outcome))
-    )
   }
 
-  output$co2_automation_status <- renderUI({
-    if(!isTRUE(input$active_preprocessing)) return(NULL)
-    if(!isTRUE(input$co2_decision)) return(NULL)
-    if(!isTRUE(input$co2_automate)) return(NULL)
-    if(is.null(preprocessed$data)) {
-      return(tags$p(
-        class = "openspecy-automation-status text-muted",
-        "Upload spectra to run the automatic CO2 check."
-      ))
+  observe({
+    req(!is.null(preprocessed$data))
+    axis <- DataR()$wavenumber
+    signature <- digest::digest(axis, algo = "md5")
+    current <- isolate(quantification_axis())
+    if(is.null(current) || !identical(current$signature, signature)) {
+      quantification_axis(list(signature = signature, axis = axis))
     }
-    automation_status_ui("co2_region", "CO2 check")
   })
-  outputOptions(output, "co2_automation_status", suspendWhenHidden = FALSE)
 
-  output$range_automation_status <- renderUI({
-    if(!isTRUE(input$active_preprocessing)) return(NULL)
-    if(!isTRUE(input$range_decision)) return(NULL)
-    if(!isTRUE(input$range_automate)) return(NULL)
-    if(is.null(preprocessed$data)) {
-      return(tags$p(
-        class = "openspecy-automation-status text-muted",
-        "Upload spectra to run the automatic high-tail check."
-      ))
-    }
-    automation_status_ui("high_tail", "High-tail check")
-  })
-  outputOptions(output, "range_automation_status", suspendWhenHidden = FALSE)
-
-
-  output$quant_ratio_bounds <- renderUI({
-    if(is.null(preprocessed$data)) {
-      return(tags$p(
-        class = "text-muted openspecy-quantification-prompt",
-        "Upload and process spectra to set ratio points and ranges."
-      ))
-    }
-
-    processed <- DataR()
+  observeEvent(list(quantification_axis(), input$quant_ratio_type), {
+    axis_state <- quantification_axis()
+    req(!is.null(axis_state))
     type <- input$quant_ratio_type
     if(is.null(type)) type <- "area"
-    defaults <- app_ratio_slider_defaults(
-      processed$wavenumber,
-      type = type
-    )
-    if(identical(type, "area")) {
-      tagList(
-        sliderInput(
-          "quant_numerator_area", "Numerator area (cm^-1)",
-          min = defaults$min, max = defaults$max,
-          value = defaults$numerator, step = defaults$step
-        ),
-        sliderInput(
-          "quant_denominator_area", "Denominator area (cm^-1)",
-          min = defaults$min, max = defaults$max,
-          value = defaults$denominator, step = defaults$step
-        )
-      )
-    } else {
-      tagList(
-        sliderInput(
-          "quant_numerator_peak", "Numerator point (cm^-1)",
-          min = defaults$min, max = defaults$max,
-          value = defaults$numerator, step = defaults$step
-        ),
-        sliderInput(
-          "quant_denominator_peak", "Denominator point (cm^-1)",
-          min = defaults$min, max = defaults$max,
-          value = defaults$denominator, step = defaults$step
-        )
-      )
-    }
-  })
-  outputOptions(output, "quant_ratio_bounds", suspendWhenHidden = FALSE)
+    update_quantification_inputs(axis_state$axis, type)
+  }, ignoreInit = TRUE)
 
   observeEvent(input$quant_ratio_add, {
     if(is.null(preprocessed$data)) {
@@ -716,19 +635,25 @@ observeEvent(input$file, {
       processed <- isolate(DataR())
       type <- isolate(input$quant_ratio_type)
       if(is.null(type)) type <- "area"
-      defaults <- app_ratio_slider_defaults(
+      defaults <- app_quantification_defaults(
         processed$wavenumber,
         type = type
       )
       numerator <- if(identical(type, "peak")) {
         isolate(input$quant_numerator_peak)
       } else {
-        isolate(input$quant_numerator_area)
+        c(
+          isolate(input$quant_numerator_area_min),
+          isolate(input$quant_numerator_area_max)
+        )
       }
       denominator <- if(identical(type, "peak")) {
         isolate(input$quant_denominator_peak)
       } else {
-        isolate(input$quant_denominator_area)
+        c(
+          isolate(input$quant_denominator_area_min),
+          isolate(input$quant_denominator_area_max)
+        )
       }
       if(is.null(numerator) || !length(numerator)) {
         numerator <- defaults$numerator
@@ -790,11 +715,139 @@ observeEvent(input$file, {
     ratio_definitions(definitions[definitions$id != id, , drop = FALSE])
   })
 
+  observeEvent(list(quantification_axis(), input$quant_measurement_type), {
+    axis_state <- quantification_axis()
+    req(!is.null(axis_state))
+    ui_type <- input$quant_measurement_type
+    type <- if(identical(ui_type, "intensity")) "peak" else "area"
+    defaults <- app_quantification_defaults(axis_state$axis, type = type)
+    common <- list(
+      session = session, min = defaults$min, max = defaults$max,
+      step = defaults$step
+    )
+    if(identical(type, "area")) {
+      do.call(updateNumericInput, c(common, list(
+        inputId = "quant_measurement_area_min",
+        value = defaults$numerator[[1L]]
+      )))
+      do.call(updateNumericInput, c(common, list(
+        inputId = "quant_measurement_area_max",
+        value = defaults$numerator[[2L]]
+      )))
+    } else {
+      do.call(updateNumericInput, c(common, list(
+        inputId = "quant_measurement_wavenumber",
+        value = defaults$numerator[[1L]]
+      )))
+    }
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$quant_measurement_add, {
+    if(is.null(preprocessed$data)) {
+      show_alert(
+        title = "Process spectra first",
+        text = paste(
+          "Measurements use the shared wavenumber axis of the displayed",
+          "processed spectra."
+        ),
+        type = "warning"
+      )
+      return()
+    }
+    result <- tryCatch({
+      processed <- isolate(DataR())
+      ui_type <- isolate(input$quant_measurement_type)
+      type <- if(identical(ui_type, "intensity")) "point" else "area"
+      values <- if(identical(type, "point")) {
+        isolate(input$quant_measurement_wavenumber)
+      } else {
+        c(
+          isolate(input$quant_measurement_area_min),
+          isolate(input$quant_measurement_area_max)
+        )
+      }
+      app_add_measurement_definition(
+        measurement_definitions(),
+        name = isolate(input$quant_measurement_name),
+        type = type,
+        values = values,
+        axis = processed$wavenumber
+      )
+    }, error = function(error) error)
+    if(inherits(result, "error")) {
+      show_alert(
+        title = "Measurement not added",
+        text = conditionMessage(result),
+        type = "warning"
+      )
+      return()
+    }
+    measurement_definitions(result)
+    updateTextInput(session, "quant_measurement_name", value = "")
+  })
+
+  output$quant_measurement_definitions <- renderUI({
+    definitions <- measurement_definitions()
+    if(!nrow(definitions)) {
+      return(tags$p(
+        class = "text-muted openspecy-measurement-empty",
+        "No single measurements saved yet."
+      ))
+    }
+    tags$ul(lapply(seq_len(nrow(definitions)), function(i) {
+      tags$li(app_measurement_definition_label(
+        definitions[i, , drop = FALSE]
+      ))
+    }))
+  })
+  outputOptions(
+    output, "quant_measurement_definitions", suspendWhenHidden = FALSE
+  )
+
+  observe({
+    definitions <- measurement_definitions()
+    labels <- if(nrow(definitions)) {
+      vapply(seq_len(nrow(definitions)), function(i) {
+        app_measurement_definition_label(definitions[i, , drop = FALSE])
+      }, character(1))
+    } else character()
+    updateSelectInput(
+      session, "quant_measurement_remove_id",
+      choices = stats::setNames(as.character(definitions$id), labels),
+      selected = if(nrow(definitions)) {
+        as.character(utils::tail(definitions$id, 1L))
+      } else character()
+    )
+  })
+
+  observeEvent(input$quant_measurement_remove, {
+    id <- suppressWarnings(as.integer(
+      isolate(input$quant_measurement_remove_id)
+    ))
+    if(is.na(id)) return()
+    definitions <- measurement_definitions()
+    measurement_definitions(
+      definitions[definitions$id != id, , drop = FALSE]
+    )
+  })
+
+  observeEvent(input$quant_measurement_clear, {
+    measurement_definitions(app_empty_measurement_definitions())
+  })
+
   active_ratio_definitions <- reactive({
     if(!isTRUE(input$active_quantification)) {
       return(app_empty_ratio_definitions())
     }
     ratio_definitions()
+  })
+
+  active_measurement_definitions <- reactive({
+    if(!isTRUE(input$active_quantification) ||
+       !isTRUE(input$quant_measurement_enabled)) {
+      return(app_empty_measurement_definitions())
+    }
+    measurement_definitions()
   })
 
   # Keep analysis spectra independent of ratio-only settings so changing a
@@ -807,17 +860,20 @@ observeEvent(input$file, {
   quantified_data <- reactive({
     processed <- DataR()
     definitions <- active_ratio_definitions()
-    if(!nrow(definitions)) return(processed)
+    measurements <- active_measurement_definitions()
+    if(!nrow(definitions) && !nrow(measurements)) return(processed)
     analysis_phase(
-      "Calculating saved ratios",
+      "Calculating saved quantification",
       paste0(
         "Calculating ", nrow(definitions), " saved ratio",
-        if(nrow(definitions) == 1L) "" else "s",
+        if(nrow(definitions) == 1L) "" else "s", " and ",
+        nrow(measurements), " single measurement",
+        if(nrow(measurements) == 1L) "" else "s",
         " from the displayed processed spectra."
       ),
       49
     )
-    app_attach_quantification(processed, definitions)
+    app_attach_quantification(processed, definitions, measurements)
   })
 
   #The data to use in the plot. 
@@ -838,59 +894,68 @@ observeEvent(input$file, {
       input$signal_selection
   })
 
-  quality_spike_args <- reactive({
-      if(!isTRUE(input$active_preprocessing) ||
-         !isTRUE(input$spike_decision)) {
-          return(list(method = "residual", direction = "both"))
-      }
-      list(
-        method = "residual",
-        direction = if(is.null(input$spike_direction)) {
-          "both"
-        } else input$spike_direction,
-        residual_threshold = if(is.null(input$spike_residual_threshold)) {
-          8
-        } else input$spike_residual_threshold,
-        residual_window = if(is.null(input$spike_residual_window)) {
-          5L
-        } else as.integer(input$spike_residual_window)
-      )
-  })
-
-  quality_saturation <- reactive({
-      if(!isTRUE(input$active_preprocessing) ||
-         !isTRUE(input$saturation_decision)) return("auto")
-      mode <- if(is.null(input$saturation_mode)) {
-        "auto"
-      } else input$saturation_mode
-      ceiling <- if(identical(mode, "threshold")) {
-        input$saturation_ceiling
-      } else {
-        NULL
-      }
-      app_saturation_value(mode, ceiling)
-  })
-
   quality_report <- reactive({
       if(is.null(preprocessed$data)) return(NULL)
       selected <- DataR_plot()
-      assess_spec(
-        selected,
-        checks = app_quality_checks,
-        report = "all",
-        snr_metric = effective_signal_selection(),
-        spike_args = quality_spike_args(),
-        saturation = quality_saturation()
+      report <- tryCatch(
+        assess_spec(
+          selected,
+          checks = app_quality_checks,
+          report = "all",
+          snr_metric = effective_signal_selection()
+        ),
+        error = function(error) data.frame(
+          status = "warning",
+          test_id = paste0(
+            "spectrum:", colnames(selected$spectra)[[1L]],
+            ":assessment"
+          ),
+          check = "assessment",
+          description = conditionMessage(error),
+          likely_cause = "The quality assessment could not complete.",
+          potential_fix = paste(
+            "Review the processed spectrum and settings, then run the",
+            "assessment again."
+          ),
+          metric = NA_character_, value = NA_real_, threshold = NA_real_,
+          region_min = NA_real_, region_max = NA_real_,
+          stringsAsFactors = FALSE
+        )
       )
+      app_quality_ui_report(report)
   })
 
   quality_counts <- reactive(app_quality_counts(quality_report()))
-  output$quality_error_count <- renderText(quality_counts()[["error"]])
   output$quality_warning_count <- renderText(quality_counts()[["warning"]])
-  output$quality_pass_count <- renderText(quality_counts()[["pass"]])
-  outputOptions(output, "quality_error_count", suspendWhenHidden = FALSE)
+  output$quality_success_count <- renderText(quality_counts()[["success"]])
   outputOptions(output, "quality_warning_count", suspendWhenHidden = FALSE)
-  outputOptions(output, "quality_pass_count", suspendWhenHidden = FALSE)
+  outputOptions(output, "quality_success_count", suspendWhenHidden = FALSE)
+
+  automatic_report <- reactive({
+      app_automatic_report(
+        x = if(is.null(preprocessed$data)) NULL else DataR(),
+        diagnostics = correction_diagnostics(),
+        enabled = c(
+          spike = isTRUE(input$active_preprocessing) &&
+            isTRUE(input$spike_decision),
+          saturation = isTRUE(input$active_preprocessing) &&
+            isTRUE(input$saturation_decision),
+          flatten = isTRUE(input$active_preprocessing) &&
+            isTRUE(input$co2_decision) && isTRUE(input$co2_automate),
+          tails = isTRUE(input$active_preprocessing) &&
+            isTRUE(input$range_decision) && isTRUE(input$range_automate)
+        )
+      )
+  })
+  automatic_count <- reactive(sum(automatic_report()$applied, na.rm = TRUE))
+  output$quality_automatic_count <- renderText(automatic_count())
+  outputOptions(output, "quality_automatic_count", suspendWhenHidden = FALSE)
+  observe({
+      shinyjs::toggleClass(
+        "quality_automatic_details", "openspecy-automatic-applied",
+        condition = automatic_count() > 0L
+      )
+  })
 
   show_quality_modal <- function(status, title, icon_name) {
       showModal(modalDialog(
@@ -901,16 +966,24 @@ observeEvent(input$file, {
         footer = modalButton("Close")
       ))
   }
-  observeEvent(input$quality_error_details, {
-      show_quality_modal("error", "Spectral quality errors", "times-circle")
+  observeEvent(input$quality_automatic_details, {
+      showModal(modalDialog(
+        title = tagList(icon("magic"), "Automatic corrections made"),
+        app_automatic_modal_content(automatic_report()),
+        easyClose = TRUE,
+        size = "l",
+        footer = modalButton("Close")
+      ))
   })
   observeEvent(input$quality_warning_details, {
       show_quality_modal(
         "warning", "Spectral quality warnings", "exclamation-triangle"
       )
   })
-  observeEvent(input$quality_pass_details, {
-      show_quality_modal("pass", "Passed spectral checks", "check-circle")
+  observeEvent(input$quality_success_details, {
+      show_quality_modal(
+        "success", "Successful spectral checks", "check-circle"
+      )
   })
 
   #The signal to noise ratio
@@ -1270,18 +1343,12 @@ observeEvent(input$file, {
       )
   })
 
-  observe(priority = -1, {
+  selected_match <- reactive({
       if(is.null(preprocessed$data) || !isTRUE(input$active_identification) ||
-         grepl("^model$", input$lib_type)) {
-          selected_match_cache(NULL)
-          return()
-      }
-      selected_match_cache(NULL)
-      selected_match_cache(
-        tryCatch(
-          match_selected(),
-          shiny.silent.error = function(e) NULL
-        )
+         grepl("^model$", input$lib_type)) return(NULL)
+      tryCatch(
+        match_selected(),
+        shiny.silent.error = function(e) NULL
       )
   })
 
@@ -1536,19 +1603,10 @@ output$progress_bars <- renderUI({
       primary <- DataR_plot()
       raw <- RawR_plot()
       reference <- if(isTRUE(input$active_identification)) {
-        selected_match_cache()
+        selected_match()
       } else {
         NULL
       }
-      analysis_phase(
-        "Rendering results",
-        paste0(
-          "Drawing the active spectrum",
-          if(is.null(raw)) "" else ", its raw overlay",
-          if(is.null(reference)) "." else ", and the selected identification match."
-        ),
-        94
-      )
       app_spectrum_plot(
         active = primary,
         raw = raw,
@@ -1563,55 +1621,140 @@ output$progress_bars <- renderUI({
     })
 
  #Heatmap ----
- #Display the map or batch data in a selectable heatmap. 
-  output$heatmapA <- renderPlotly({
+ #Display the map or batch data in a selectable heatmap.
+  match_name_palette <- reactive({
+      if(!isTRUE(input$active_identification)) {
+        return(app_category_palette(character()))
+      }
+      app_category_palette(max_cor_identity())
+  })
+
+  heatmap_state <- reactive({
       req(!is.null(preprocessed$data))
       req(ncol(preprocessed$data$spectra) > 1)
-      #req(input$map_color)
-      if(isTRUE(input$collapse_decision) && isTruthy(particles_logi()) &&
-         length(unique(as.character(particles_logi()))) > 1){
-          test = def_features(DataR(), features = particles_logi())
-      }
-      else{
-          test = DataR()
+      test <- if(isTRUE(input$collapse_decision) &&
+                 isTruthy(particles_logi()) &&
+                 length(unique(as.character(particles_logi()))) > 1) {
+        def_features(DataR(), features = particles_logi())
+      } else {
+        DataR()
       }
 
-      heatmap_spec(x = test,
-                        z = if(!is.null(max_cor()) && !isTruthy(input$map_color)){
-                            signif(max_cor(),2)
-                        }
-                   else if(!is.null(signal_to_noise()) && !isTruthy(input$map_color)){
-                       signif(signal_to_noise(),2)
-                   }
-                   else if(!is.null(max_cor()) && identical(input$map_color, "Match ID")){
-                        names(max_cor())
-                   }
-                   else if(!is.null(max_cor()) && identical(input$map_color, "Match Value")){
-                       signif(max_cor(),2)
-                   }
-                   else if(!is.null(signal_to_noise()) && identical(input$map_color, "Signal/Noise")){
-                       signif(signal_to_noise(),2)
-                   }
-                   else if(!is.null(max_cor()) && identical(input$map_color, "Match Name")){
-                       max_cor_identity()
-                   }
-                   else if(isTRUE(input$collapse_decision) &&
-                           isTruthy(particles_logi()) &&
-                           identical(input$map_color, "Feature ID")){
-                       test$metadata$feature_id
-                   }
-                   else{NULL},
-                        sn = signif(signal_to_noise(), 2), 
-                        cor = if(is.null(max_cor())){max_cor()} else{signif(max_cor(), 2)}, 
-                        min_sn = MinSNR(),
-                        min_cor = MinCor(),
-                        select = data_click$plot,
-                        colorscale = app_heatmap_colorscale,
-                        source = "heat_plot") %>%
-          app_style_plotly() %>%
-          event_register(event = "plotly_click")
-
+      map_color <- input$map_color
+      categorical <- FALSE
+      legend_title <- map_color
+      z <- if(!is.null(max_cor()) && !isTruthy(map_color)) {
+        legend_title <- "Match Value"
+        signif(max_cor(), 2)
+      } else if(!is.null(signal_to_noise()) && !isTruthy(map_color)) {
+        legend_title <- "Signal/Noise"
+        signif(signal_to_noise(), 2)
+      } else if(!is.null(max_cor()) && identical(map_color, "Match ID")) {
+        categorical <- TRUE
+        names(max_cor())
+      } else if(!is.null(max_cor()) && identical(map_color, "Match Value")) {
+        signif(max_cor(), 2)
+      } else if(!is.null(signal_to_noise()) &&
+                identical(map_color, "Signal/Noise")) {
+        signif(signal_to_noise(), 2)
+      } else if(!is.null(max_cor()) && identical(map_color, "Match Name")) {
+        categorical <- TRUE
+        max_cor_identity()
+      } else if(isTRUE(input$collapse_decision) &&
+                isTruthy(particles_logi()) &&
+                identical(map_color, "Feature ID")) {
+        categorical <- TRUE
+        test$metadata$feature_id
+      } else {
+        legend_title <- "Signal/Noise"
+        signif(signal_to_noise(), 2)
+      }
+      if(categorical) {
+        z <- factor(
+          as.character(z),
+          levels = sort(unique(as.character(z[!is.na(z)])))
+        )
+        keep <- rep(TRUE, length(z))
+        sn_values <- signal_to_noise()
+        cor_values <- max_cor()
+        if(!is.null(sn_values)) keep <- keep & sn_values > MinSNR()
+        if(!is.null(cor_values)) keep <- keep & cor_values > MinCor()
+        keep[is.na(keep)] <- FALSE
+        z[!keep] <- NA
+      }
+      all_categorical_masked <- categorical && all(is.na(z))
+      list(
+        data = test,
+        z = z,
+        categorical = categorical,
+        legend_title = if(isTruthy(legend_title)) legend_title else "Value",
+        colorscale = if(all_categorical_masked) {
+          list(c(0, app_theme$muted), c(1, app_theme$muted))
+        } else if(categorical) {
+          app_category_colorscale(z)
+        } else {
+          app_heatmap_colorscale
+        }
+      )
   })
+
+  output$heatmapA <- renderPlotly({
+      state <- heatmap_state()
+      plot <- heatmap_spec(
+        x = state$data,
+        z = state$z,
+        sn = signif(signal_to_noise(), 2),
+        cor = if(is.null(max_cor())) max_cor() else signif(max_cor(), 2),
+        min_sn = if(state$categorical) NULL else MinSNR(),
+        min_cor = if(state$categorical) NULL else MinCor(),
+        select = isolate(data_click$plot),
+        colorscale = state$colorscale,
+        showlegend = !state$categorical,
+        source = "heat_plot"
+      ) %>%
+        app_style_plotly()
+      if(!state$categorical) {
+        plot <- plotly::style(
+          plot,
+          colorbar = list(
+            title = list(text = state$legend_title),
+            x = 1.03, xanchor = "left", y = 0.5, yanchor = "middle"
+          ),
+          traces = 1L
+        ) %>%
+          plotly::layout(
+            showlegend = FALSE,
+            margin = list(t = 28, r = 145, b = 64, l = 72)
+          )
+      } else {
+        plot <- plotly::style(
+          plot,
+          zmin = 1,
+          zmax = max(1L, length(levels(state$z))),
+          traces = 1L
+        ) %>%
+          plotly::layout(showlegend = FALSE)
+      }
+      event_register(plot, event = "plotly_click")
+  })
+
+  observeEvent(data_click$plot, {
+      req(!is.null(preprocessed$data))
+      req(ncol(preprocessed$data$spectra) > 1)
+      state <- heatmap_state()
+      selected <- data_click$plot
+      req(length(selected) == 1L, selected >= 1L,
+          selected <= nrow(state$data$metadata))
+      plotlyProxy("heatmapA", session) %>%
+        plotlyProxyInvoke(
+          "restyle",
+          list(
+            x = list(state$data$metadata$x[[selected]]),
+            y = list(state$data$metadata$y[[selected]])
+          ),
+          list(1L)
+        )
+  }, ignoreInit = TRUE)
 
   thresholded_particles <- reactive({
       req(isTRUE(input$collapse_decision))
@@ -1681,6 +1824,11 @@ output$progress_bars <- renderUI({
 
       ggplot() +
           geom_bar(aes(y = match_names, fill = match_names)) +
+          scale_fill_manual(
+            values = match_name_palette(),
+            na.value = app_theme$muted,
+            drop = FALSE
+          ) +
           theme_black_minimal(base_size = 15) +
           theme(legend.position = "none") +
           labs(x = "Count", y = "Material Class")
@@ -1768,7 +1916,8 @@ output$progress_bars <- renderUI({
         write_spec(your_spec, file)
       } else if(identical(selection, "Top Matches")) {
         quant_columns <- app_ratio_metadata_columns(
-          active_ratio_definitions()
+          active_ratio_definitions(),
+          active_measurement_definitions()
         )
         if(!grepl("^model$", input$lib_type)) {
           top_n <- input$top_n_input
@@ -1868,8 +2017,10 @@ output$progress_bars <- renderUI({
 
   observeEvent(heatmap_click(), {
       click <- heatmap_click()
-      if (!is.null(click$pointNumber))
+      if (!is.null(click$pointNumber) &&
+          (is.null(click$curveNumber) || click$curveNumber == 0)) {
           data_click$plot <- click$pointNumber + 1
+      }
   }, ignoreNULL = TRUE, ignoreInit = TRUE)
 
   observe({
@@ -1929,6 +2080,7 @@ output$progress_bars <- renderUI({
     app_user_metadata_snapshot(
       settings = settings,
       definitions = ratio_definitions(),
+      measurements = measurement_definitions(),
       recorded_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %z"),
       app_version = tryCatch(
         as.character(utils::packageVersion("OpenSpecy")),

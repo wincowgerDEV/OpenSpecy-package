@@ -37,8 +37,9 @@
 #'            method = "linear")
 #'
 #' @seealso
-#' \code{\link{area_under_band}()} for individual band areas and named
-#' area-over-area indices.
+#' \code{\link{point_intensity}()} for a non-ratio measurement at one
+#' wavenumber and \code{\link{area_under_band}()} for individual band areas
+#' and named area-over-area indices.
 #'
 #' @export
 peak_ratio <- function(x, ...) {

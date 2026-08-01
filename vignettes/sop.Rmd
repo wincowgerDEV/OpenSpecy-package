@@ -629,7 +629,24 @@ make_rel(raman_hdpe) |> plot()
 
 ```
 
-## Area and Point Ratios
+## Area and Point Measurements and Ratios
+
+For a non-ratio measurement, `area_under_band()` returns the inclusive summed
+intensity within one explicit region, while `point_intensity()` returns the
+intensity at one requested wavenumber for every spectrum. The point method uses
+the nearest measured value by default; `method = "linear"` interpolates between
+adjacent measured points without extrapolating.
+
+```{r}
+single_region_area <- area_under_band(
+  fill_peaks, min = 2700, max = 3000
+)
+single_point_intensity <- point_intensity(
+  fill_peaks, wavenumber = 2880
+)
+single_region_area
+single_point_intensity
+```
 
 For a custom area-over-area ratio, choose the numerator and denominator ranges
 explicitly, calculate each with `area_under_band()`, and divide the returned

@@ -53,6 +53,7 @@ jobs:
           extra-packages: |
             local::.
             any::jsonlite
+            any::pkgdown
             shinylive@0.5.0
             any::httpuv
           needs: website

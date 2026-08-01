@@ -119,3 +119,25 @@ test_that("peak_ratio() validates its object, points, and method", {
                method = "spline")
   )
 })
+
+test_that("peak_ratio() matches composed point intensities exactly", {
+  ascending <- make_peak_ratio_fixture()
+  descending <- as_OpenSpecy(
+    rev(ascending$wavenumber),
+    ascending$spectra[3:1, , drop = FALSE]
+  )
+
+  for (x in list(ascending, descending)) {
+    for (method in c("nearest", "linear")) {
+      numerator <- point_intensity(x, 1005, method = method)
+      denominator <- point_intensity(x, 1015, method = method)
+      expect_identical(
+        peak_ratio(
+          x, numerator = 1005, denominator = 1015, method = method
+        ),
+        numerator / denominator,
+        info = paste("method", method)
+      )
+    }
+  }
+})

@@ -54,6 +54,7 @@ peak_ratio(raman_hdpe, numerator = 2880, denominator = 2840,
 
 }
 \seealso{
-\code{\link{area_under_band}()} for individual band areas and named
-area-over-area indices.
+\code{\link{point_intensity}()} for a non-ratio measurement at one
+wavenumber and \code{\link{area_under_band}()} for individual band areas
+and named area-over-area indices.
 }
