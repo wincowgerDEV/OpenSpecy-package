@@ -74,7 +74,7 @@
 - [x] Add exact artifact/repository validation, a shared digest-pinned Docker wasm builder, fresh isolated tools, and a clean-commit pre-push entry point; validate the downloaded current-HEAD action artifact.
 - [x] Move the marketing/app shell into pure `site/` source, stage `/`, build README-driven docs at `/pkgdown/`, retain `/app/`, and update workflow/static/browser route contracts plus SEO evidence.
 - [x] Add a read-only Docker engine preflight and a clearly labeled non-Docker landing/pkgdown shell test; run the latter locally and preserve the full Docker gate as mandatory before push.
-- [ ] On a clean candidate commit with a healthy Docker/WSL engine, run `tools/wasm/test-shinylive-prepush.ps1` and retain its JSON evidence.
+- [x] On a clean candidate commit with a healthy Docker/WSL engine, run `tools/wasm/test-shinylive-prepush.ps1` and retain its JSON evidence.
 - [ ] After a maintainer commit produces a matching current-SHA wasm artifact, run the canonical upload/identification and six-download hosted smoke.
 
 ## Verification
@@ -88,12 +88,12 @@
 
 - Paper modes were validated primarily on positive Raman cosmic-ray spikes and require enough peaks for the 3.5-SD LoD; calibrate on representative Raman/FTIR, negative-spike, edge, NA, heterogeneous-noise, and narrow-band cases before choosing the app's detector default.
 - This is a large release-facing sequence: implement package detection/reporting contracts before app automation, then hosted/browser and presentation work, so UI does not duplicate unstable scientific policy.
-- The current Docker CLI cannot reach `//./pipe/docker_engine`; Docker Desktop 4.19.0 is not running and prior logs include WSL/ext4 failures. Update/start Docker Desktop and WSL safely; do not purge/reset/unregister data. Static source checks are useful but cannot replace the Linux wasm build.
+- Docker Desktop 4.84.0/Engine 29.6.2 now passes the Linux action-equivalent build; keep the early engine diagnostic and portable-path guard so Windows-only checks cannot mask runner failures.
 
 ## Approval Notes
 
 - Approved by: user, 2026-07-31 ("go for it").
 - Minor extension approved by: user, 2026-08-01 (`speckit-implement` request in this chat).
 - Hosted-site architecture extension approved by: user, 2026-08-02 (`speckit-implement`; static root, `/app/`, `/pkgdown/`, SEO).
-- Completed evidence: 199 focused hosted/wasm tests and 1,862 full tests pass; the current-source `/site/` base-path shell, conventional pkgdown build, SEO/route checks, and desktop/expanded/mobile browser smoke pass with `action_equivalent = false`. Earlier native app/download and exact 116-package action-artifact evidence remains valid only for its matching commit.
-- Follow-up: repair Docker/WSL, create a local candidate commit, and run `tools/wasm/test-shinylive-prepush.ps1`; do not recommend pushing until it passes. Public Pages publication remains the only post-push-only check.
+- Completed evidence: clean candidate `ddf94d0e` passed the full Docker pre-push gate on 2026-08-02: exact 116-package repository, pinned checksums, three routes, nested-frame startup/upload/identification/map selection, and six genuine downloads; retained report records `status = passed` and 184,025,215 site bytes.
+- Follow-up: after the maintainer commits and pushes the portable-path fix, verify the matching public wasm artifact and Pages publication; these are the only post-push checks still pending.

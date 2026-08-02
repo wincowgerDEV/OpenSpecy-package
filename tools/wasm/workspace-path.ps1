@@ -19,11 +19,35 @@ function Resolve-OpenSpecyWorkspacePath {
     [IO.Path]::DirectorySeparatorChar,
     [IO.Path]::AltDirectorySeparatorChar
   ) + [IO.Path]::DirectorySeparatorChar
+  $comparison = if ([IO.Path]::DirectorySeparatorChar -eq "\") {
+    [StringComparison]::OrdinalIgnoreCase
+  } else {
+    [StringComparison]::Ordinal
+  }
   if (-not $resolved.StartsWith(
-      $prefix, [StringComparison]::OrdinalIgnoreCase)) {
+      $prefix, $comparison)) {
     throw "Path must stay inside the repository: $Path"
   }
   $resolved
+}
+
+function Get-OpenSpecyRepoRelativePath {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$RepoRoot,
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  $resolved = Resolve-OpenSpecyWorkspacePath `
+    -RepoRoot $RepoRoot -Path $Path
+  $root = [IO.Path]::GetFullPath($RepoRoot)
+  $prefix = $root.TrimEnd(
+    [IO.Path]::DirectorySeparatorChar,
+    [IO.Path]::AltDirectorySeparatorChar
+  ) + [IO.Path]::DirectorySeparatorChar
+  $resolved.Substring($prefix.Length)
 }
 
 function Resolve-OpenSpecyScratchPath {
@@ -42,8 +66,13 @@ function Resolve-OpenSpecyScratchPath {
     [IO.Path]::DirectorySeparatorChar,
     [IO.Path]::AltDirectorySeparatorChar
   ) + [IO.Path]::DirectorySeparatorChar
+  $comparison = if ([IO.Path]::DirectorySeparatorChar -eq "\") {
+    [StringComparison]::OrdinalIgnoreCase
+  } else {
+    [StringComparison]::Ordinal
+  }
   if (-not $resolved.StartsWith(
-      $scratchPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+      $scratchPrefix, $comparison)) {
     throw "Scratch path must be a child of the repository's _wasm directory: $Path"
   }
   $resolved

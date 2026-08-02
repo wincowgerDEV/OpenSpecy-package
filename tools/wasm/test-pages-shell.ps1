@@ -19,10 +19,7 @@ function Invoke-Checked([string]$File, [string[]]$Arguments) {
 }
 
 function Get-RepoRelative([string]$Path) {
-  $rootUri = [Uri]($repoRoot.TrimEnd([IO.Path]::DirectorySeparatorChar) + "/")
-  $pathUri = [Uri][IO.Path]::GetFullPath($Path)
-  [Uri]::UnescapeDataString($rootUri.MakeRelativeUri($pathUri).ToString()).
-    Replace("/", [IO.Path]::DirectorySeparatorChar)
+  Get-OpenSpecyRepoRelativePath -RepoRoot $repoRoot -Path $Path
 }
 
 if (-not (Test-Path -LiteralPath $Rscript -PathType Leaf)) {

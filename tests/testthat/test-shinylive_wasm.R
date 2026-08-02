@@ -412,7 +412,9 @@ test_that("only one workflow publishes the combined native Pages site", {
   expect_equal(sum(grepl("pak-version: repo", wasm, fixed = TRUE)), 1L)
   expect_equal(sum(grepl("any::pkgdown", shinylive, fixed = TRUE)), 1L)
   expect_true(any(grepl("tools/wasm/build-wasm-repo.ps1", wasm,
-                        fixed = TRUE)))
+                         fixed = TRUE)))
+  expect_true(any(grepl("tools/wasm/test-workspace-path.ps1", wasm,
+                         fixed = TRUE)))
   expect_false(any(grepl("r-wasm/actions/build-rwasm@v3", wasm,
                          fixed = TRUE)))
   expect_gte(sum(grepl("check-wasm-artifact.R", shinylive,
@@ -487,6 +489,14 @@ test_that("hosted preflight is exact and the full pre-push gate is unskippable",
   expect_true(any(grepl("git status --porcelain", build, fixed = TRUE)))
   expect_true(any(grepl("workspace-path.ps1", c(preflight, build),
                          fixed = TRUE)))
+  path_consumers <- list(preflight, build, shell)
+  expect_true(all(vapply(
+    path_consumers,
+    function(x) any(grepl("Get-OpenSpecyRepoRelativePath", x, fixed = TRUE)),
+    logical(1)
+  )))
+  expect_false(any(grepl("MakeRelativeUri", unlist(path_consumers),
+                         fixed = TRUE)))
   expect_true(any(grepl("{{.Server.Version}}", docker, fixed = TRUE)))
   expect_true(any(grepl("{{.OSType}}", docker, fixed = TRUE)))
   expect_true(any(grepl('osType -ne "linux"', docker, fixed = TRUE)))
@@ -505,7 +515,7 @@ test_that("hosted preflight is exact and the full pre-push gate is unskippable",
                          fixed = TRUE)))
 })
 
-test_that("wasm workspace path resolver handles absolute Windows paths", {
+test_that("wasm workspace path resolver handles absolute paths portably", {
   script <- test_path("..", "..", "tools", "wasm",
                       "test-workspace-path.ps1")
   if (!file.exists(script)) {
@@ -520,8 +530,8 @@ test_that("wasm workspace path resolver handles absolute Windows paths", {
     stdout = TRUE, stderr = TRUE
   )
   expect_null(attr(output, "status"), info = paste(output, collapse = "\n"))
-  expect_true(any(grepl("accepts safe relative/absolute paths", output,
-                        fixed = TRUE)))
+  expect_true(any(grepl("emits portable repository-relative paths", output,
+                         fixed = TRUE)))
 })
 
 test_that("pkgdown installs the checked-out package before rendering", {
