@@ -43,8 +43,9 @@ from a hardcoded package version/commit pin plus pinned app dependency closure,
 stage only the small medoid/model libraries with guarded `get_lib()` workflows,
 and verify startup, assets, dependency resolution, and library matching without
 hand-editing generated web artifacts. Keep GitHub's `README.md` free of the
-interactive embed; pkgdown-only app markup belongs in `pkgdown/index.md` and
-must use the relative standalone route `app/`. Treat
+interactive embed. Maintain the pure HTML/CSS/JS landing and app shell in
+`site/` at `/`, keep its iframe on relative `app/`, and build conventional
+README-driven pkgdown docs at `/pkgdown/`. Treat
 `Moore-Institute-4-Plastic-Pollution-Res/openspecy` as the hosting bridge and
 keep workflows fork-portable while this package remains canonical. For
 hosted UI work, preserve upload/download app mode with page-owned viewport

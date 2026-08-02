@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenSpecy | Free Raman &amp; FTIR Spectral Analysis App</title>
+  <meta name="description" content="Analyze, process, identify, and share Raman and FTIR spectra in your browser with OpenSpecy, a free open-source tool for microplastics research.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="theme-color" content="#050b14">
+  <link rel="canonical" href="https://wincowgerdev.github.io/OpenSpecy-package/">
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="stylesheet" href="assets/site.css">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="OpenSpecy">
+  <meta property="og:title" content="OpenSpecy | Free Raman &amp; FTIR Spectral Analysis App">
+  <meta property="og:description" content="Analyze, process, identify, and share Raman and FTIR spectra in your browser with OpenSpecy, a free open-source tool for microplastics research.">
+  <meta property="og:url" content="https://wincowgerdev.github.io/OpenSpecy-package/">
+  <meta property="og:image" content="https://wincowgerdev.github.io/OpenSpecy-package/assets/openspecy-logo.png">
+  <meta property="og:image:width" content="900">
+  <meta property="og:image:height" content="213">
+  <meta property="og:image:alt" content="OpenSpecy logo with stylized Raman and FTIR spectra">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="OpenSpecy | Free Raman &amp; FTIR Spectral Analysis App">
+  <meta name="twitter:description" content="Open-source Raman and FTIR spectral analysis for the browser and R.">
+  <meta name="twitter:image" content="https://wincowgerdev.github.io/OpenSpecy-package/assets/openspecy-logo.png">
+  <meta name="twitter:image:alt" content="OpenSpecy logo with stylized Raman and FTIR spectra">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "OpenSpecy",
+    "url": "https://wincowgerdev.github.io/OpenSpecy-package/",
+    "description": "Free, open-source software for processing, identifying, visualizing, and sharing Raman and FTIR spectra, with tools for microplastics research.",
+    "applicationCategory": "ScienceApplication",
+    "applicationSubCategory": "Spectroscopy software",
+    "operatingSystem": "Any",
+    "browserRequirements": "A modern browser with JavaScript and WebAssembly support",
+    "isAccessibleForFree": true,
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "codeRepository": "https://github.com/wincowgerDEV/OpenSpecy-package",
+    "image": "https://wincowgerdev.github.io/OpenSpecy-package/assets/openspecy-logo.png",
+    "sameAs": [
+      "https://cran.r-project.org/package=OpenSpecy",
+      "https://github.com/wincowgerDEV/OpenSpecy-package"
+    ],
+    "featureList": [
+      "Raman and FTIR spectrum import",
+      "Spectral preprocessing and quality assessment",
+      "Reference-library matching",
+      "Individual, batch, and hyperspectral map analysis",
+      "Plots, tables, metadata, and data export",
+      "Reproducible R workflows"
+    ],
+    "citation": [
+      {
+        "@type": "ScholarlyArticle",
+        "name": "Open Specy 1.0: Automated (Hyper)spectroscopy for Microplastics",
+        "datePublished": "2025",
+        "identifier": "https://doi.org/10.1021/acs.analchem.5c00962"
+      },
+      {
+        "@type": "ScholarlyArticle",
+        "name": "Microplastic Spectral Classification Needs an Open Source Community: Open Specy to the Rescue!",
+        "datePublished": "2021",
+        "identifier": "https://doi.org/10.1021/acs.analchem.1c00123"
+      }
+    ]
+  }
+  </script>
+  <script>document.documentElement.classList.add("js");</script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header" id="top">
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a class="wordmark" href="#top" aria-label="OpenSpecy home">
+        <img src="assets/openspecy-logo.png" alt="OpenSpecy" width="900" height="213">
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav-links">
+        <span class="sr-only">Toggle navigation</span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+      <div class="nav-links" id="site-nav-links" data-open="false">
+        <a href="#web-app">Web app</a>
+        <a href="#learn">Tutorials</a>
+        <a href="#science">Science</a>
+        <a href="#partners">Partners</a>
+        <a href="pkgdown/">R documentation</a>
+        <a class="nav-contact" href="#contact">Contact</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Open-source Raman and FTIR analysis</p>
+        <h1 id="hero-title">Free Raman &amp; FTIR analysis, right in your browser.</h1>
+        <p class="hero-lead">
+          OpenSpecy helps researchers, students, laboratories, and communities
+          process, identify, visualize, and share spectra through a free browser
+          app and a reproducible R package.
+        </p>
+        <div class="button-row" aria-label="Get started">
+          <a class="button button-primary" href="#web-app">Start analyzing</a>
+          <a class="button button-secondary" href="https://www.youtube.com/watch?v=y2F4Fu6A4aA&amp;list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g" target="_blank" rel="noopener noreferrer">Watch the full tutorial</a>
+        </div>
+        <ul class="hero-facts" aria-label="OpenSpecy highlights">
+          <li><strong>No installation</strong><span>Use the hosted browser app</span></li>
+          <li><strong>Raman + FTIR</strong><span>Individual, batch, and map data</span></li>
+          <li><strong>Open and reusable</strong><span>Inspect, export, and reproduce results</span></li>
+        </ul>
+      </div>
+
+      <div class="spectrum-card" aria-hidden="true">
+        <div class="spectrum-card-header">
+          <span>Sample spectrum</span>
+          <span class="status-pill"><i></i> Analysis ready</span>
+        </div>
+        <svg viewBox="0 0 720 390" focusable="false">
+          <defs>
+            <linearGradient id="spectrum-stroke" x1="0" x2="1">
+              <stop offset="0" stop-color="#38bdf8"></stop>
+              <stop offset="0.55" stop-color="#67e8f9"></stop>
+              <stop offset="1" stop-color="#fbbf24"></stop>
+            </linearGradient>
+            <linearGradient id="spectrum-area" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#38bdf8" stop-opacity="0.28"></stop>
+              <stop offset="1" stop-color="#38bdf8" stop-opacity="0"></stop>
+            </linearGradient>
+          </defs>
+          <g class="spectrum-grid">
+            <path d="M48 50H690M48 122H690M48 194H690M48 266H690M48 338H690"></path>
+            <path d="M48 50V338M176 50V338M304 50V338M432 50V338M560 50V338M690 50V338"></path>
+          </g>
+          <path class="spectrum-fill" d="M48 319 C92 317 111 308 139 314 S184 307 209 311 C239 315 249 288 261 218 C271 151 283 83 299 230 C308 303 334 311 358 304 C391 296 398 279 412 271 C427 262 432 304 458 306 C489 307 496 277 509 194 C518 139 529 103 542 231 C550 296 566 305 583 300 C606 294 614 268 625 246 C637 223 647 300 668 305 C678 306 685 304 690 301 L690 338 L48 338 Z"></path>
+          <path class="spectrum-line" d="M48 319 C92 317 111 308 139 314 S184 307 209 311 C239 315 249 288 261 218 C271 151 283 83 299 230 C308 303 334 311 358 304 C391 296 398 279 412 271 C427 262 432 304 458 306 C489 307 496 277 509 194 C518 139 529 103 542 231 C550 296 566 305 583 300 C606 294 614 268 625 246 C637 223 647 300 668 305 C678 306 685 304 690 301"></path>
+          <g class="spectrum-labels">
+            <text x="48" y="370">400</text>
+            <text x="610" y="370">4,000 cm⁻¹</text>
+          </g>
+        </svg>
+        <div class="spectrum-card-result">
+          <span class="result-mark">✓</span>
+          <span><strong>Transparent analysis</strong><small>Review the spectrum, processing, and match evidence.</small></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section paths" id="start" aria-labelledby="start-title">
+      <div class="section-heading">
+        <p class="eyebrow">Choose your route</p>
+        <h2 id="start-title">Start where you are.</h2>
+        <p>Use the browser app for an approachable workflow, follow a guided lesson, or build a scripted analysis with the R package.</p>
+      </div>
+      <div class="card-grid card-grid-three">
+        <article class="path-card">
+          <span class="card-number" aria-hidden="true">01</span>
+          <p class="card-kicker">New users and students</p>
+          <h3>Analyze with visual guidance</h3>
+          <p>Load a spectrum in the browser, explore each processing choice, inspect candidate matches, and download your results.</p>
+          <div class="link-stack">
+            <a href="#web-app">Open the embedded app <span aria-hidden="true">→</span></a>
+            <a href="#learn">Follow the video tutorial <span aria-hidden="true">→</span></a>
+            <a href="pkgdown/articles/sop.html">Read the written SOP <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+        <article class="path-card">
+          <span class="card-number" aria-hidden="true">02</span>
+          <p class="card-kicker">Researchers and laboratories</p>
+          <h3>Work across samples and maps</h3>
+          <p>Process individual spectra, batches, or hyperspectral maps; assess quality; compare references; summarize materials; and export evidence.</p>
+          <div class="link-stack">
+            <a href="#capabilities">Explore capabilities <span aria-hidden="true">→</span></a>
+            <a href="#science">Read the publications <span aria-hidden="true">→</span></a>
+            <a href="pkgdown/articles/advanced.html">See advanced workflows <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+        <article class="path-card partner-card">
+          <span class="card-number" aria-hidden="true">03</span>
+          <p class="card-kicker">Funders and collaborators</p>
+          <h3>Support open scientific infrastructure</h3>
+          <p>Help maintain accessible spectral tools, shared reference data, training resources, and transparent methods for a growing community.</p>
+          <div class="link-stack">
+            <a href="#impact">See the public value <span aria-hidden="true">→</span></a>
+            <a href="#partners">Meet project partners <span aria-hidden="true">→</span></a>
+            <a href="mailto:wincowger@gmail.com?subject=OpenSpecy%20partnership">Start a conversation <span aria-hidden="true">↗</span></a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section app-section" id="web-app" aria-labelledby="app-title">
+      <div class="app-intro">
+        <div>
+          <p class="eyebrow">Analyze in the browser</p>
+          <h2 id="app-title">OpenSpecy web app</h2>
+        </div>
+        <p>Upload your data or begin with the included test spectra. The interface below runs through Shinylive and WebAssembly in a modern browser.</p>
+      </div>
+
+      <div class="app-shell" data-openspecy-embed>
+        <div class="app-toolbar">
+          <div class="app-heading">
+            <strong>Interactive workspace</strong>
+            <span id="openspecy-app-status" role="status" aria-live="polite">Loading application...</span>
+          </div>
+          <div class="app-actions">
+            <a class="toolbar-button toolbar-button-secondary" href="app/" target="_blank" rel="noopener">Open separately</a>
+            <button class="toolbar-button toolbar-button-primary" id="openspecy-fullscreen" type="button" aria-controls="openspecy-app-frame" aria-pressed="false" disabled>Expand app</button>
+          </div>
+        </div>
+        <div class="app-viewport">
+          <div class="app-loading" data-openspecy-loading>
+            <div class="app-loading-content">
+              <p class="app-loading-title">Loading OpenSpecy</p>
+              <div class="app-progress" role="progressbar" aria-label="Loading the OpenSpecy web application" aria-valuetext="Loading">
+                <span></span>
+              </div>
+              <p>WebR is starting. You can keep reading this page while the application loads.</p>
+            </div>
+          </div>
+          <iframe id="openspecy-app-frame" title="OpenSpecy Raman and FTIR spectral analysis application" src="app/" loading="eager"></iframe>
+        </div>
+      </div>
+      <noscript><p class="notice">The embedded app requires JavaScript. <a href="app/">Open the OpenSpecy app directly.</a></p></noscript>
+      <p class="app-note">
+        The hosted edition uses compact medoid and model libraries selected for
+        browser delivery. The local R package can also access larger reference
+        libraries. Reference matches support interpretation and should be
+        reviewed alongside instrument quality assurance, controls, and domain
+        expertise.
+      </p>
+    </section>
+
+    <section class="section workflow-section" id="capabilities" aria-labelledby="capabilities-title">
+      <div class="workflow-copy">
+        <p class="eyebrow">An open analysis path</p>
+        <h2 id="capabilities-title">From instrument output to interpretable evidence.</h2>
+        <p>OpenSpecy organizes Raman and Fourier-transform infrared spectra into a visible, reusable workflow. The same project supports approachable browser analysis and composable R functions.</p>
+        <p class="science-note">OpenSpecy supports scientific judgment; it does not replace appropriate controls, expert review, or validation for a specific application.</p>
+      </div>
+      <ol class="workflow-list">
+        <li><span>Read</span><p>Import individual, batch, and map spectra from supported instrument and open data formats.</p></li>
+        <li><span>Process</span><p>Apply traceable smoothing, baseline correction, range restriction, alignment, normalization, and quality checks.</p></li>
+        <li><span>Identify</span><p>Compare spectra with managed reference libraries and inspect candidate match evidence.</p></li>
+        <li><span>Quantify</span><p>Summarize materials, ratios, regional area, or intensity measurements for downstream interpretation.</p></li>
+        <li><span>Share</span><p>Export spectra, results, plots, and metadata or reproduce the workflow in R.</p></li>
+      </ol>
+    </section>
+
+    <section class="section tutorial-section" id="learn" aria-labelledby="learn-title">
+      <div class="tutorial-copy">
+        <p class="eyebrow">Learn OpenSpecy</p>
+        <h2 id="learn-title">Follow the full video tutorial.</h2>
+        <p>See the app workflow from start to finish, then use the written documentation when you want a step-by-step reference or function-level detail.</p>
+        <div class="link-stack tutorial-links">
+          <a href="https://www.youtube.com/watch?v=y2F4Fu6A4aA&amp;list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g" target="_blank" rel="noopener noreferrer">Open the complete YouTube playlist <span aria-hidden="true">↗</span></a>
+          <a href="pkgdown/articles/sop.html">Read the standard operating procedure <span aria-hidden="true">→</span></a>
+          <a href="pkgdown/">Browse package tutorials and reference <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+      <div class="video-card">
+        <div class="video-frame" data-video-embed
+             data-video-src="https://www.youtube-nocookie.com/embed/y2F4Fu6A4aA?list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g&amp;rel=0&amp;autoplay=1">
+          <button class="video-load" type="button"
+                  aria-label="Load the OpenSpecy tutorial from YouTube">
+            <span class="video-play" aria-hidden="true">▶</span>
+            <strong>Play the full OpenSpecy tutorial</strong>
+            <span>Loads the privacy-enhanced YouTube player.</span>
+          </button>
+          <noscript><a href="https://www.youtube.com/watch?v=y2F4Fu6A4aA&amp;list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g">Watch the OpenSpecy tutorial on YouTube.</a></noscript>
+        </div>
+        <p>Prefer a new tab? <a href="https://www.youtube.com/watch?v=y2F4Fu6A4aA&amp;list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>.</p>
+      </div>
+    </section>
+
+    <section class="section impact-section" id="impact" aria-labelledby="impact-title">
+      <div class="section-heading">
+        <p class="eyebrow">Why the project matters</p>
+        <h2 id="impact-title">Open tools make spectral evidence easier to inspect, teach, and reuse.</h2>
+      </div>
+      <div class="card-grid card-grid-four">
+        <article class="value-card">
+          <h3>Accessible</h3>
+          <p>Begin in a browser without configuring a local R environment, then move to the package when a scripted workflow is needed.</p>
+        </article>
+        <article class="value-card">
+          <h3>Transparent</h3>
+          <p>Inspect preprocessing choices, quality information, reference matches, and exported results instead of relying on a closed analysis path.</p>
+        </article>
+        <article class="value-card">
+          <h3>Reproducible</h3>
+          <p>Use the same core OpenSpecy object model and analysis functions in R for documented, reviewable research.</p>
+        </article>
+        <article class="value-card">
+          <h3>Community-built</h3>
+          <p>Contribute code, methods, reference spectra, testing, training, or scientific review through an open project.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section science-section" id="science" aria-labelledby="science-title">
+      <div class="science-intro">
+        <p class="eyebrow">Peer-reviewed foundation</p>
+        <h2 id="science-title">Publications behind OpenSpecy</h2>
+        <p>Cite the 2025 Open Specy 1.0 paper when using the current software. The 2021 paper introduced the open-source community approach to microplastic spectral classification.</p>
+      </div>
+      <div class="publication-list">
+        <article class="publication-card">
+          <p class="publication-year">2025 · Analytical Chemistry</p>
+          <h3>Open Specy 1.0: Automated (Hyper)spectroscopy for Microplastics</h3>
+          <p>Win Cowger and collaborators. <em>Analytical Chemistry</em>, 97(32), 17345–17356.</p>
+          <a href="https://doi.org/10.1021/acs.analchem.5c00962" target="_blank" rel="noopener noreferrer">Read via DOI: 10.1021/acs.analchem.5c00962 <span aria-hidden="true">↗</span></a>
+        </article>
+        <article class="publication-card">
+          <p class="publication-year">2021 · Analytical Chemistry</p>
+          <h3>Microplastic Spectral Classification Needs an Open Source Community: Open Specy to the Rescue!</h3>
+          <p>Win Cowger and collaborators. The foundational paper describing a shared, open approach to spectral classification.</p>
+          <a href="https://doi.org/10.1021/acs.analchem.1c00123" target="_blank" rel="noopener noreferrer">Read via DOI: 10.1021/acs.analchem.1c00123 <span aria-hidden="true">↗</span></a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section r-section" id="r-package" aria-labelledby="r-title">
+      <div class="r-copy">
+        <p class="eyebrow">Reproducible by design</p>
+        <h2 id="r-title">Take the workflow into R.</h2>
+        <p>Install OpenSpecy from CRAN, launch the bundled local app, or compose package functions into an analysis that colleagues can inspect and rerun.</p>
+        <div class="link-stack">
+          <a href="pkgdown/reference/">Browse the R function reference <span aria-hidden="true">→</span></a>
+          <a href="pkgdown/articles/">Read package tutorials <span aria-hidden="true">→</span></a>
+          <a href="https://github.com/wincowgerDEV/OpenSpecy-package" target="_blank" rel="noopener noreferrer">View source and contribute on GitHub <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+      <div class="code-card" aria-label="R installation example">
+        <div class="code-card-label">R console</div>
+        <pre><code>install.packages("OpenSpecy")
+
+library(OpenSpecy)
+run_app()</code></pre>
+        <p>The <a href="pkgdown/">package website</a> contains written tutorials, reference documentation, release notes, and citation guidance.</p>
+      </div>
+    </section>
+
+    <section class="section partners-section" id="partners" aria-labelledby="partners-title">
+      <div class="partner-lead">
+        <p class="eyebrow">Partners and contributors</p>
+        <h2 id="partners-title">OpenSpecy grows through shared support.</h2>
+        <p>Financial support, contributed spectra, software expertise, teaching, testing, and scientific review help keep this public resource useful.</p>
+        <div class="button-row">
+          <a class="button button-primary" href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&amp;business=wincowger@gmail.com&amp;lc=US&amp;item_name=Donation+to+Open+Specy&amp;no_note=0&amp;currency_code=USD" target="_blank" rel="noopener noreferrer">Donate to OpenSpecy</a>
+          <a class="button button-secondary" href="mailto:wincowger@gmail.com?subject=OpenSpecy%20partnership">Discuss a partnership</a>
+        </div>
+        <ul class="partner-actions">
+          <li><a href="https://osf.io/rjg3c/" target="_blank" rel="noopener noreferrer">Contribute spectra through the Community Data Warehouse</a></li>
+          <li><a href="https://docs.google.com/document/d/1SaFgAYKsLbMSYdJClR5s42TyGmPRWihLQcf5zun_yfo/edit?usp=sharing" target="_blank" rel="noopener noreferrer">Read the community contribution guidelines</a></li>
+          <li><a href="https://github.com/wincowgerDEV/OpenSpecy-package" target="_blank" rel="noopener noreferrer">Contribute code, tests, or documentation</a></li>
+        </ul>
+      </div>
+
+      <div class="partner-roll">
+        <div class="partner-featured">
+          <p class="tier-label">Thriving monetary partners <span>$10,000–$100,000</span></p>
+          <ul>
+            <li>Moore Institute for Plastic Pollution Research</li>
+            <li>Helmholtz Information &amp; Data Science Academy</li>
+            <li>National Renewable Energy Laboratory</li>
+            <li>McPZ Foundation</li>
+            <li>Pew-Gerstner Fellowship in Ocean Plastics Research</li>
+            <li>Walking Softer</li>
+          </ul>
+        </div>
+        <details>
+          <summary>See every monetary and in-kind partner</summary>
+          <div class="partner-details">
+            <div>
+              <h3>Monetary partners</h3>
+              <p><strong>Maintaining ($1,000–$10,000):</strong> University of California, Riverside; National Science Foundation; Alfred Wegener Institute; Hawai'i Pacific University; National Institute of Standards and Technology; University of Toronto; University of Koblenz-Landau; Thermo Fisher Scientific.</p>
+              <p><strong>Supporting ($100–$1,000):</strong> Jennifer Gadd.</p>
+              <p><strong>Saving (under $100):</strong> Anne Jefferson; Heather Szafranski; Gwendolyn Lattin; Collin Weber; Gregory Gearhart; Anika Ballent; Shelly Moore; Susanne Brander (Oregon State University); Jeremy Conkle (Texas A&amp;M University–Corpus Christi).</p>
+            </div>
+            <div>
+              <h3>In-kind partners</h3>
+              <p><strong>Thriving ($10,000–$100,000):</strong> Win Cowger; Zacharias Steinmetz.</p>
+              <p><strong>Maintaining ($1,000–$10,000):</strong> Garth Covernton; Jamie Leonard; Shelly Moore; Rachel Kozloski; Katherine Lasdin; Aleksandra Karapetrova; Laura Markley; Walter Yu; Walter Waldman; Vesna Teofilovic; Monica Arienzo; Mary Fey Long Norris; Cristiane Vidal; Scott Coffin; Charles Moore; Aline Carvalho; Shreyas Patankar; Andrea Faltynkova; Sebastian Primpke; Andrew Gray; Chelsea Rochman; Orestis Herodotu; Hannah De Frond; Keenan Munno; Hannah Hapich; Jennifer Lynch.</p>
+              <p><strong>Supporting ($100–$1,000):</strong> Alexandre Dehaut; Gabriel Erni Cassola.</p>
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="section contact-section" id="contact" aria-labelledby="contact-title">
+      <div>
+        <p class="eyebrow">Contact and community</p>
+        <h2 id="contact-title">Help shape what comes next.</h2>
+        <p>Questions, bug reports, new spectra, teaching ideas, scientific feedback, and partnership conversations are all welcome.</p>
+      </div>
+      <div class="contact-grid">
+        <a href="https://github.com/wincowgerDEV/OpenSpecy-package/issues" target="_blank" rel="noopener noreferrer"><strong>Report an issue</strong><span>Share a bug or request a feature on GitHub.</span></a>
+        <a href="mailto:wincowger@gmail.com?subject=OpenSpecy%20inquiry"><strong>Email the project</strong><span>Contact Win Cowger about research, training, or partnership.</span></a>
+        <a href="https://www.linkedin.com/in/win-cowger/" target="_blank" rel="noopener noreferrer"><strong>Follow development</strong><span>See project news and applications on LinkedIn.</span></a>
+        <a href="pkgdown/"><strong>Read the documentation</strong><span>Find written tutorials, package reference, and citation details.</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <a class="footer-mark" href="#top">OpenSpecy</a>
+      <p>Free and open tools for Raman and FTIR spectral analysis.</p>
+    </div>
+    <nav aria-label="Footer navigation">
+      <a href="app/">Web app</a>
+      <a href="pkgdown/">R documentation</a>
+      <a href="https://github.com/wincowgerDEV/OpenSpecy-package" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://cran.r-project.org/package=OpenSpecy" target="_blank" rel="noopener noreferrer">CRAN</a>
+      <a href="https://doi.org/10.1021/acs.analchem.5c00962" target="_blank" rel="noopener noreferrer">Cite</a>
+      <a href="pkgdown/LICENSE.html">License</a>
+    </nav>
+  </footer>
+
+  <script src="assets/site.js" defer></script>
+</body>
+</html>

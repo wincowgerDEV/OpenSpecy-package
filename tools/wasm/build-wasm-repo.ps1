@@ -11,6 +11,7 @@ param(
 $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 . (Join-Path $PSScriptRoot "workspace-path.ps1")
+. (Join-Path $PSScriptRoot "docker-preflight.ps1")
 Push-Location $repoRoot
 
 function Resolve-ScratchPath([string]$Path) {
@@ -32,6 +33,13 @@ function Get-RepoRelative([string]$Path) {
 }
 
 try {
+  try {
+    $dockerReadiness = Assert-OpenSpecyDockerEngine
+    $docker = $dockerReadiness.DockerCommand
+  } catch {
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    exit 1
+  }
   $headSha = (& git rev-parse HEAD).Trim()
   if (-not [string]::Equals(
       $headSha, $PackageSha, [StringComparison]::OrdinalIgnoreCase)) {
@@ -50,9 +58,6 @@ try {
   } else {
     throw "Rscript was not found."
   }
-  $docker = (Get-Command docker -ErrorAction Stop).Source
-  Invoke-Checked $docker @("version")
-
   $out = Resolve-ScratchPath $OutDir
   if (Test-Path -LiteralPath $out) {
     Remove-Item -LiteralPath $out -Recurse -Force

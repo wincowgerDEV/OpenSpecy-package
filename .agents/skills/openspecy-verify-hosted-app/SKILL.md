@@ -1,6 +1,6 @@
 ---
 name: openspecy-verify-hosted-app
-description: Reproduce and diagnose OpenSpecy's GitHub Pages and Shinylive deployment locally from an action-built wasm artifact. Use for hosted-app, pkgdown embed, wasm package pin, deployment workflow, or action-equivalent preflight work.
+description: Reproduce and diagnose OpenSpecy's static landing, pkgdown, and Shinylive deployment locally from an action-built wasm artifact. Use for hosted-app routes, wasm package pin, deployment workflow, or action-equivalent preflight work.
 ---
 
 # Verify The Hosted OpenSpecy App
@@ -48,8 +48,9 @@ powershell.exe -ExecutionPolicy Bypass -File `
 
 6. Use `-StageLibraries` only when the download path is part of the requested
    test. Use `-Bootstrap` only with permission for network installs.
-7. Inspect the generated pkgdown root, `/app/`, manifests, package/image
-   checks, Playwright result, and loading/desktop/expanded/mobile screenshots.
+7. Inspect the generated landing root, `/app/`, `/pkgdown/`, SEO metadata,
+   robots/sitemap, manifests, package/image checks, Playwright result, and
+   landing/loading/desktop/expanded/pkgdown/mobile screenshots.
 8. Run `git status --short` and `git check-ignore` on representative `_wasm/`
    outputs before handoff.
 
@@ -60,12 +61,12 @@ Classify the first failure before changing source:
 - artifact/SHA mismatch or incomplete image/repository;
 - package or dependency closure/index failure;
 - staged library name, shape, or matching failure;
-- pkgdown or Shinylive export failure;
+- landing, pkgdown, or Shinylive export failure;
 - startup/readiness timeout;
 - upload, identification, download, console, or visual failure.
 
-Fix the canonical package, `inst/shiny/`, pkgdown source, workflow, or wasm tool
-that owns the failure. Never patch generated site output.
+Fix the canonical `site/`, package, `inst/shiny/`, README/pkgdown source,
+workflow, or wasm tool that owns the failure. Never patch generated site output.
 
 ## Handoff Evidence
 

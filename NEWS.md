@@ -21,11 +21,12 @@
   WebAssembly downloads now use a same-frame validated Blob handoff while
   local Shiny retains its native download handler; browser smoke tests require
   genuine CSV and ZIP files from real clicks.
-- Rebuilt the dark pkgdown homepage as an audience-oriented welcome page with
-  app/site navigation, scientific and funding context, the full video tutorial,
-  and responsive accessible calls to action. Pew-Gerstner Fellowship in Ocean
-  Plastics Research and Walking Softer are now credited as Thriving monetary
-  partners.
+- Added a dark, accessible static landing page at the hosted-site root with the
+  embedded app, navigation guidance, search and social metadata, tutorial,
+  publications, contacts, and funding context. Conventional README-driven
+  pkgdown documentation now lives at `/pkgdown/`; the app remains at `/app/`.
+  Pew-Gerstner Fellowship in Ocean Plastics Research and Walking Softer are
+  credited as Thriving monetary partners.
 - Added a reusable workflow for compressing hyperspectral images with PCA and
   K-means (`k = 100`) and plotting pixel cluster groups with `heatmap_spec()`.
 - Fixed bundled Shiny app startup when another attached package caused R to
@@ -81,14 +82,13 @@
 - Streamlined the app to one analysis workspace with Preprocessing,
   Identification, and Advanced tabs; moved independent thresholds and map
   controls to Advanced, removed Google Translate and the informational sidebar,
-  and moved community, partner, and contract information to the pkgdown source.
-- Embedded the hosted Shinylive app immediately below the pkgdown title with
-  real Shiny readiness feedback and a viewport full-screen mode that persists
-  through upload/download dialogs. GitHub retains a normal README, and brief
-  reactive updates no longer flash the app's processing overlay. The standalone
-  app is published at `/app/` so it resolves to
-  `openanalysis.org/openspecy/app/` through the repository-relative Moore
-  Institute hosting fork.
+  and moved community, partner, and contract information to the hosted landing
+  source.
+- Embedded the hosted Shinylive app on the static landing page with real Shiny
+  readiness feedback and a viewport app mode that persists through
+  upload/download dialogs. GitHub retains a normal README, and brief reactive
+  updates no longer flash the app's processing overlay. Relative `app/` and
+  `pkgdown/` routes keep GitHub project and hosting-fork deployments portable.
 - Added source manifests, app configuration, and GitHub Actions for building a
   hosted Shinylive/WebAssembly app from `inst/shiny/`. The hosted app is pinned
   to a versioned wasm CRAN-like repository containing `OpenSpecy` and the app
@@ -103,7 +103,8 @@
   unavailable Google Translate connectivity probe in WebAssembly mode, and
   exercising the Shinylive iframe/selectize controls in the browser smoke test.
 - Consolidated GitHub Pages publication into one native deployment containing
-  the pkgdown site and the self-contained Shinylive app. The complete wasm
+  the static landing page, conventional pkgdown docs, and the self-contained
+  Shinylive app. The complete wasm
   package repository is now retained as a pinned Actions build artifact and
   embedded in the app instead of accumulating public `wasm/<commit>` trees.
 - Bundled the Shiny app in `inst/shiny/` from

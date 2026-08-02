@@ -42,10 +42,11 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
   identified/batch/quantification states, changed genuine downloads, progress,
   console/screenshot evidence, and asset impact. Apply
   `openspecy-develop-shiny-app` during implementation.
-- Hosted Shinylive/WebAssembly planning must include action verification,
-  hardcoded package and dependency pinning, dependency-closure evidence,
-  small-library staging, generated-artifact boundaries, and at least one
-  startup/library-matching smoke path when relevant.
+- Hosted Shinylive/WebAssembly planning must include the root `site/`, `/app/`,
+  and `/pkgdown/` route contract, action verification, hardcoded package and
+  dependency pinning, dependency-closure evidence, small-library staging,
+  generated-artifact boundaries, and at least one startup/library-matching
+  smoke path when relevant.
 - A short work checklist with exact paths.
 - Verification commands and any manual or CI-guarded checks.
 - Risks or open questions that can change implementation.

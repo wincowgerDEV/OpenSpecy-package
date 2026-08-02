@@ -50,7 +50,9 @@ jobs:
               " from ", find.package(source[["Package"]]), "\n", sep = "")
 
       - name: Build site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE, dest_dir = "docs/pkgdown")
+        run: |
+          options(pkgdown.internet = FALSE)
+          pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE, dest_dir = "docs/pkgdown")
         shell: Rscript {0}
 
       - name: List built site

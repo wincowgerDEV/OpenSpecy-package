@@ -209,13 +209,18 @@ Invoke-Checked $Rscript @(
 )
 
 $siteRoot = Join-Path $work "site"
+$pkgdownSite = Join-Path $siteRoot "pkgdown"
 $site = Join-Path $siteRoot "app"
 $workApp = Join-Path $work "app-source"
 $appManifest = Join-Path $work "wasm-app-manifest.json"
 $artifactRef = "openspecy-wasm-$PackageSha"
 Invoke-Checked $Rscript @(
   "-e",
-  "pkgdown::build_site_github_pages(new_process=FALSE, install=FALSE, dest_dir='$((Get-RepoRelative $siteRoot).Replace('\', '/'))')"
+  "options(pkgdown.internet=FALSE); pkgdown::build_site_github_pages(new_process=FALSE, install=FALSE, dest_dir='$((Get-RepoRelative $pkgdownSite).Replace('\', '/'))')"
+)
+Invoke-Checked $Rscript @(
+  "tools/wasm/stage-pages-shell.R",
+  (Get-RepoRelative $siteRoot)
 )
 Invoke-Checked $Rscript @(
   "tools/wasm/prepare-shinylive-app.R",

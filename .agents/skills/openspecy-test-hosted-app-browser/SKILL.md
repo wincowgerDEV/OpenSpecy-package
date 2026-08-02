@@ -1,6 +1,6 @@
 ---
 name: openspecy-test-hosted-app-browser
-description: Exercise OpenSpecy's pkgdown-embedded Shinylive app through nested browser frames. Use for hosted upload, identification, download, app-mode, loading, busy-overlay, responsive-layout, console, or screenshot regressions.
+description: Exercise OpenSpecy's landing-page-embedded Shinylive app through nested browser frames. Use for hosted routes, SEO/pkgdown links, upload, identification, download, app-mode, loading, busy-overlay, responsive layout, console, or screenshot regressions.
 ---
 
 # Test The Hosted App In A Browser
@@ -12,7 +12,7 @@ stay aligned.
 
 The hosted interaction crosses three documents:
 
-1. pkgdown page;
+1. static root landing page;
 2. `#openspecy-app-frame` Shinylive shell;
 3. Shinylive's `iframe.app-frame` containing Shiny.
 
@@ -45,9 +45,10 @@ An outer iframe load event alone does not mean Shiny is ready.
    if a blocking busy class appears again.
 9. Download Top Matches, verify a nonempty CSV and representative result text,
    and confirm app mode remains active after chooser, upload, and download.
-10. Exit only through the toolbar control. Capture loading, embedded desktop,
-    expanded, and mobile screenshots and inspect them for clipping, overlap,
-    blank frames, stale overlays, and unreadable controls.
+10. Exit only through the toolbar control. Verify `/pkgdown/` independently,
+    then capture landing, loading, embedded desktop, expanded, pkgdown, and
+    mobile screenshots and inspect them for clipping, overlap, blank frames,
+    stale overlays, and unreadable controls.
 
 ## Local App Parity
 

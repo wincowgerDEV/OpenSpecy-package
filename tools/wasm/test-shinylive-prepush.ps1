@@ -10,6 +10,13 @@ param(
 $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path ".").Path
 . (Join-Path $PSScriptRoot "workspace-path.ps1")
+. (Join-Path $PSScriptRoot "docker-preflight.ps1")
+try {
+  [void](Assert-OpenSpecyDockerEngine)
+} catch {
+  Write-Host $_.Exception.Message -ForegroundColor Red
+  exit 1
+}
 $status = @(& git status --porcelain=v1 --untracked-files=all)
 if ($status) {
   throw "The full pre-push rehearsal requires a clean local commit. Commit the candidate locally (do not push yet), then rerun."
@@ -28,7 +35,7 @@ $siteWork = Join-Path $work "site-preflight"
   -PackageSha $packageSha `
   -OutDir $pinned `
   -Rscript $Rscript
-if ($LASTEXITCODE -ne 0) { throw "The pinned wasm build failed." }
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 & powershell.exe -ExecutionPolicy Bypass -File `
   "tools/wasm/test-shinylive-action.ps1" `
@@ -41,7 +48,7 @@ if ($LASTEXITCODE -ne 0) { throw "The pinned wasm build failed." }
   -Port $Port `
   -StageLibraries `
   -Bootstrap
-if ($LASTEXITCODE -ne 0) { throw "The assembled Shinylive rehearsal failed." }
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $siteRoot = Join-Path $siteWork "site"
 $siteBytes = (Get-ChildItem -LiteralPath $siteRoot -Recurse -File |

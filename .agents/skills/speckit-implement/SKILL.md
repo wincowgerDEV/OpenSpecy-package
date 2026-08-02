@@ -45,7 +45,7 @@ are not required.
     a CI-guarded or manual smoke test that covers startup, assets, dependency
     resolution, and library matching. Apply `openspecy-verify-hosted-app` for
     action-equivalent assembly and `openspecy-test-hosted-app-browser` for
-    pkgdown/Shinylive interaction or presentation changes.
+    landing/pkgdown/Shinylive interaction or presentation changes.
 
 ## Rules
 

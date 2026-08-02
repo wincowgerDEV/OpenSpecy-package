@@ -9,7 +9,7 @@ Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 [![Codecov test coverage](https://codecov.io/gh/wincowgerDEV/OpenSpecy-package/branch/main/graph/badge.svg)](https://app.codecov.io/gh/wincowgerDEV/OpenSpecy-package?branch=main)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![DOI](https://img.shields.io/badge/DOI-10.1021/acs.analchem.5c00962-blue.svg)](https://doi.org/10.1021/acs.analchem.5c00962)
-[![Website](https://img.shields.io/badge/web-openspecy.org-white)](https://wincowgerdev.github.io/OpenSpecy-package/)
+[![Website](https://img.shields.io/badge/web-OpenSpecy%20app-white)](https://wincowgerdev.github.io/OpenSpecy-package/)
 <!-- badges: end -->
 
 Raman and (FT)IR spectral analysis tool for 
@@ -61,7 +61,7 @@ run_app()
 
 ## Simple workflow for single spectral identification
 
-See [package vignette](https://wincowgerdev.github.io/OpenSpecy-package/articles/sop.html)
+See [package vignette](https://wincowgerdev.github.io/OpenSpecy-package/pkgdown/articles/sop.html)
 for a detailed standard operating procedure.
 
 ```r
@@ -123,11 +123,11 @@ https://pypi.org/project/openspi/
 ## Citations
 
 Cowger W, Steinmetz Z, Gray A, Munno K, Lynch J, Hapich H, Primpke S,
-De Frond H, Rochman C, Herodotou O (2021). “Microplastic Spectral Classification
-Needs an Open Source Community: Open Specy to the Rescue!”
-*Analytical Chemistry*, **93**(21), 7543–7548. doi:
+De Frond H, Rochman C, Herodotou O (2021). "Microplastic Spectral Classification
+Needs an Open Source Community: Open Specy to the Rescue!"
+*Analytical Chemistry*, **93**(21), 7543-7548. doi:
 [10.1021/acs.analchem.1c00123](https://doi.org/10.1021/acs.analchem.1c00123).
 
-Cowger W, Steinmetz Z, Leong N, Faltynkova A, Sherrod H (2024). “OpenSpecy: Analyze,
-Process, Identify, and Share Raman and (FT)IR Spectra.” *R package*, **1.0.8**.
-[https://github.com/wincowgerDEV/OpenSpecy-package](https://github.com/wincowgerDEV/OpenSpecy-package).
+Cowger W et al. (2025). "Open Specy 1.0: Automated (Hyper)spectroscopy
+for Microplastics." *Analytical Chemistry*, **97**(32), 17345-17356. doi:
+[10.1021/acs.analchem.5c00962](https://doi.org/10.1021/acs.analchem.5c00962).

@@ -270,7 +270,7 @@ async function verifyNativeDownload({
   return { content, filename: suggestedFilename, endpoint };
 }
 
-test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testInfo) => {
+test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, testInfo) => {
   const url = process.env.SHINYLIVE_SMOKE_URL || "http://127.0.0.1:8080/";
   const expectedVersion = process.env.OPENSPECY_EXPECTED_VERSION;
   const consoleErrors = [];
@@ -305,7 +305,44 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
     }
   });
 
-  await page.goto(url, { waitUntil: "domcontentloaded" });
+  const pkgdownUrl = new URL("pkgdown/", url).toString();
+  const pkgdownResponse = await page.goto(pkgdownUrl, {
+    waitUntil: "domcontentloaded",
+  });
+  expect(pkgdownResponse?.ok()).toBe(true);
+  await expect(page.locator("body")).toContainText("OpenSpecy");
+  await expect(page.locator("footer")).toContainText("pkgdown");
+  await expect(page.locator("[data-openspecy-embed]")).toHaveCount(0);
+  await page.screenshot({
+    path: testInfo.outputPath("pkgdown-documentation.png"),
+  });
+
+  const landingResponse = await page.goto(url, {
+    waitUntil: "domcontentloaded",
+  });
+  expect(landingResponse?.ok()).toBe(true);
+  await expect(page).toHaveTitle(/OpenSpecy/i);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    "content", /Raman|FTIR/i
+  );
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href", /^https:\/\//
+  );
+  const structuredData = page.locator('script[type="application/ld+json"]');
+  await expect(structuredData).toHaveCount(1);
+  const applicationSchema = JSON.parse(await structuredData.textContent());
+  expect(applicationSchema.name).toBe("OpenSpecy");
+  const applicationTypes = Array.isArray(applicationSchema["@type"])
+    ? applicationSchema["@type"]
+    : [applicationSchema["@type"]];
+  expect(applicationTypes.some((type) =>
+    ["SoftwareApplication", "WebApplication"].includes(type)
+  )).toBe(true);
+  await expect(page.locator('a[href^="pkgdown/"]').first()).toBeAttached();
+  await page.screenshot({
+    path: testInfo.outputPath("landing-page-desktop.png"),
+  });
   const embed = page.locator("[data-openspecy-embed]");
   await expect(embed).toBeAttached();
   await expect(page.locator("#openspecy-app-frame")).toHaveAttribute(
@@ -319,7 +356,7 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
   await expect(page.locator("#openspecy-fullscreen")).toBeDisabled();
   await embed.scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: testInfo.outputPath("pkgdown-app-loading.png"),
+    path: testInfo.outputPath("landing-app-loading.png"),
   });
 
   const shinyliveFrame = page.frameLocator("#openspecy-app-frame");
@@ -359,7 +396,7 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
 
   await embed.scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: testInfo.outputPath("pkgdown-embedded-app-desktop.png"),
+    path: testInfo.outputPath("landing-embedded-app-desktop.png"),
   });
 
   await fullscreenButton.click();
@@ -603,8 +640,12 @@ test("pkgdown embeds a working OpenSpecy Shinylive app", async ({ page }, testIn
   await expect(fullscreenButton).toHaveText("Expand app");
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path: testInfo.outputPath("landing-page-mobile.png"),
+  });
   await embed.scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: testInfo.outputPath("pkgdown-embedded-app-mobile.png"),
+    path: testInfo.outputPath("landing-embedded-app-mobile.png"),
   });
 });
