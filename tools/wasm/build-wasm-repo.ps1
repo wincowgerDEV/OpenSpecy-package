@@ -83,6 +83,17 @@ try {
   $packages = (Get-Content -LiteralPath $resolvedRoots |
     Where-Object { $_.Trim() }) -join " "
   if (-not $packages) { throw "The resolved wasm package set is empty." }
+  # Build local::. from an exact committed snapshot. Mounting the repository
+  # itself lets ignored _wasm scratch outputs leak into the package source and
+  # makes repeated rehearsals recursively inflate the OpenSpecy archive.
+  $sourceArchive = Join-Path $out "candidate-source.zip"
+  $sourceSnapshot = Join-Path $out "candidate-source"
+  Invoke-Checked "git" @(
+    "archive", "--format=zip", "--output=$sourceArchive", $PackageSha
+  )
+  Expand-Archive -LiteralPath $sourceArchive `
+    -DestinationPath $sourceSnapshot -Force
+  Remove-Item -LiteralPath $sourceArchive -Force
   $driver = Join-Path $repoRoot "tools/wasm/rwasm-build"
   $webRImage = "ghcr.io/r-wasm/webr@sha256:2bd309d7a4ea1daed82b6fdb8e325b0de715fcd8592c5b6f3b3b88366e70cb76"
   $imageTag = "openspecy-rwasm-prepush:$($PackageSha.Substring(0, 12).ToLowerInvariant())"
@@ -95,19 +106,27 @@ try {
 
   $repoPath = Join-Path $out "repo"
   $imagePath = Join-Path $out "image"
-  $mount = $repoRoot + ":/github/workspace"
+  $sourceMount = $sourceSnapshot + ":/github/workspace:ro"
+  $outputMount = $out + ":/github/output"
   $strip = "demo,doc,examples,help,html,include,tests,vignette"
-  Invoke-Checked $docker @(
-    "run", "--rm",
-    "--env", "GITHUB_SHA=$PackageSha",
-    "--volume", $mount,
-    "--workdir", "/github/workspace",
-    $imageTag,
-    "/code.R",
-    (Get-RepoRelative $imagePath),
-    (Get-RepoRelative $repoPath),
-    "true", $packages, $strip
-  )
+  try {
+    Invoke-Checked $docker @(
+      "run", "--rm",
+      "--env", "GITHUB_SHA=$PackageSha",
+      "--volume", $sourceMount,
+      "--volume", $outputMount,
+      "--workdir", "/github/workspace",
+      $imageTag,
+      "/code.R",
+      "/github/output/image",
+      "/github/output/repo",
+      "true", $packages, $strip
+    )
+  } finally {
+    if (Test-Path -LiteralPath $sourceSnapshot) {
+      Remove-Item -LiteralPath $sourceSnapshot -Recurse -Force
+    }
+  }
 
   $oldGitHubSha = $env:GITHUB_SHA
   $env:GITHUB_SHA = $PackageSha

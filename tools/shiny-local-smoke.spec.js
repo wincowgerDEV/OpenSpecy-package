@@ -104,22 +104,51 @@ async function expectInformationalDetails(page) {
     .toBe(true);
 }
 
-async function consumeDownload(page) {
+async function consumeDownload(
+  page,
+  { readyTimeout = 30000, eventTimeout = 30000 } = {}
+) {
   const link = page.locator("#download_data");
   await expect(link).toBeVisible();
   await expect.poll(async () => link.getAttribute("href"), {
-    timeout: 30000,
+    timeout: readyTimeout,
   }).toMatch(/(?:^|\/)session\/[^/]+\/download\/download_data/);
+  await expect(link).not.toHaveClass(/\bdisabled\b/, {
+    timeout: readyTimeout,
+  });
+  const started = Date.now();
   const [download] = await Promise.all([
-    page.waitForEvent("download"),
+    page.waitForEvent("download", { timeout: eventTimeout }),
     link.click(),
   ]);
+  const elapsed = Date.now() - started;
   expect(await download.failure()).toBeNull();
   const downloadPath = await download.path();
   expect(downloadPath).not.toBeNull();
   const content = fs.readFileSync(downloadPath);
   expect(content.length).toBeGreaterThan(20);
-  return { content, filename: download.suggestedFilename() };
+  return { content, elapsed, filename: download.suggestedFilename() };
+}
+
+async function fetchDownload(link, { readyTimeout = 30000 } = {}) {
+  await expect(link).toBeVisible();
+  await expect.poll(async () => link.getAttribute("href"), {
+    timeout: readyTimeout,
+  }).toMatch(/(?:^|\/)session\/[^/]+\/download\/download_data/);
+  await expect(link).not.toHaveClass(/\bdisabled\b/, {
+    timeout: readyTimeout,
+  });
+  const started = Date.now();
+  const response = await link.evaluate(async (element) => {
+    const result = await fetch(element.href, { cache: "no-store" });
+    return {
+      status: result.status,
+      contentType: result.headers.get("content-type") || "",
+      disposition: result.headers.get("content-disposition") || "",
+      content: await result.text(),
+    };
+  });
+  return { ...response, elapsed: Date.now() - started };
 }
 
 async function expectBuilderItem(page, outputSelector, label) {
@@ -370,6 +399,106 @@ test.afterEach(async ({}, testInfo) => {
     });
     console.error(`Local Shiny stderr:\n${stderr}`);
   }
+});
+
+test("map-scale Top Matches download stays fast and leaves the session healthy", async ({ page }) => {
+  test.setTimeout(900000);
+  const stderrStart = stderr.length;
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  await page.locator("#active_identification").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await page.locator("#active_preprocessing").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await page.locator("#collapse_decision").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await page.locator("#threshold_decision").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(page.locator("#active_identification")).toBeChecked();
+  await expect(page.locator("#active_preprocessing")).not.toBeChecked();
+  await expect(page.locator("#collapse_decision")).not.toBeChecked();
+  await expect(page.locator("#threshold_decision")).not.toBeChecked();
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+
+  const mapUploadPath = path.join(repo, "inst", "extdata", "CA_tiny_map.zip");
+  await page.locator("#file").setInputFiles(mapUploadPath);
+  await expect.poll(async () => page.locator("#file").evaluate((input) =>
+    input.files?.[0]?.name || ""
+  )).toBe("CA_tiny_map.zip");
+  await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((candidate) =>
+      candidate.type === "heatmap" && Array.isArray(candidate.z)
+    );
+    return trace ? trace.z.flat(Infinity).filter(Number.isFinite).length : 0;
+  }), { timeout: 180000 }).toBeGreaterThan(1);
+  await expect(page.locator("#event table tbody tr").first()).toBeVisible({
+    timeout: 180000,
+  });
+  await expect(page.locator("#eventmetadata")).toContainText("CA small UF.dat", {
+    timeout: 600000,
+  });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 180000,
+  });
+  await waitForStableSelectizeGeneration(
+    page.locator("#download_selection"),
+    "Top Matches",
+    { timeout: 180000 }
+  );
+  await page.locator("#download_selection").evaluate((select) => {
+    select.selectize.setValue("Top Matches");
+  });
+  await expect(page.locator("#download_selection")).toHaveValue("Top Matches");
+  await expect(page.locator("#download_data")).toHaveText("Download Top Matches");
+  await expect(page.locator("#top_n_input")).toHaveValue("1");
+
+  const topMatches = await fetchDownload(page.locator("#download_data"), {
+    readyTimeout: 600000,
+  });
+  expect(topMatches.elapsed).toBeLessThan(15000);
+  expect(topMatches.status).toBe(200);
+  expect(topMatches.contentType).toMatch(/^text\/(?:csv|plain)/i);
+  expect(topMatches.disposition).toMatch(/filename="?Top-Matches-.*\.csv/i);
+  const rows = topMatches.content.split(/\r?\n/).filter(Boolean);
+  expect(rows).toHaveLength(209);
+  expect(rows[0]).toMatch(
+    /file_name.*col_id.*material_class.*match_val.*signal_to_noise/i
+  );
+
+  await page.locator("#download_selection").evaluate((select) => {
+    select.selectize.setValue("Processed Spectra");
+  });
+  await expect(page.locator("#download_selection")).toHaveValue("Processed Spectra");
+  await expect(page.locator("#download_data")).toHaveText("Download Processed Spectra");
+  const postExport = await fetchDownload(page.locator("#download_data"));
+  expect(postExport.status).toBe(200);
+  expect(postExport.disposition).toMatch(/filename="?Processed-Spectra-.*\.csv/i);
+  expect(postExport.content).toMatch(/wavenumber/i);
+
+  await expect.poll(() => stderr.slice(stderrStart), { timeout: 10000 })
+    .toMatch(/completed 'Top Matches' download/i);
+  const diagnostics = stderr.slice(stderrStart);
+  expect(diagnostics).not.toMatch(/cannot allocate vector/i);
+  expect(severeErrors).toEqual([]);
 });
 
 test("local app renders spectra, matches, and one informative progress overlay", async ({ page }, testInfo) => {

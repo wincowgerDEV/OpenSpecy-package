@@ -1581,6 +1581,156 @@ test_that("bundled app orders downloads from the current analysis state", {
   expect_identical(env$app_download_label("unsupported"), "Download selected")
 })
 
+test_that("Top Matches ranks before expanding metadata", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  correlations <- matrix(
+    c(
+      0.91, 0.42, 0.76,
+      0.83, 0.95, 0.51,
+      0.60, 0.72, 0.89,
+      0.14, 0.31, 0.22
+    ),
+    nrow = 4L, byrow = TRUE,
+    dimnames = list(
+      c("reference_a", "reference_b", "reference_c", "reference_d"),
+      c("object_1", "object_2", "object_3")
+    )
+  )
+  library_metadata <- data.table::data.table(
+    sample_name = rownames(correlations),
+    material_class = c("PE", "PP", "PET", "PS"),
+    spectrum_identity = c("A", "B", "C", "D"),
+    organization = c("one", "two", "three", "four"),
+    rare_library_column = c(NA_character_, NA_character_, NA_character_,
+                            "retained"),
+    empty_library_column = NA_character_
+  )
+  spectrum_metadata <- data.table::data.table(
+    file_name = rep("map.zip", 3L),
+    col_id = colnames(correlations),
+    x = 0:2,
+    quant_metric = NA_real_,
+    empty_spectrum_column = NA_character_
+  )
+  snr <- c(24, 8, 31)
+  top_n <- 2L
+  match_threshold <- 0.8
+  signal_threshold <- 10
+  quant_columns <- "quant_metric"
+
+  export_matches <- function(columns_selected) {
+    env$app_top_matches_export(
+      cor_matrix = correlations,
+      library_metadata = library_metadata,
+      spectrum_metadata = spectrum_metadata,
+      signal_to_noise = snr,
+      match_threshold = match_threshold,
+      signal_threshold = signal_threshold,
+      top_n = top_n,
+      columns_selected = columns_selected,
+      quant_columns = quant_columns
+    )
+  }
+  simple <- export_matches("Simple")
+  expect_identical(
+    simple,
+    data.table::data.table(
+      file_name = rep("map.zip", 6L),
+      col_id = c("object_2", "object_2", "object_1", "object_1",
+                 "object_3", "object_3"),
+      material_class = c("PP", "unknown", "PE", "PP", "PET", "unknown"),
+      match_val = c(0.95, 0.72, 0.91, 0.83, 0.89, 0.76),
+      signal_to_noise = c(8, 8, 24, 24, 31, 31),
+      quant_metric = NA_real_
+    )
+  )
+
+  all_columns <- export_matches("All")
+  expect_identical(
+    names(all_columns),
+    c(
+      "col_id", "file_name", "material_class", "spectrum_identity",
+      "match_val", "signal_to_noise", "sample_name", "organization",
+      "rare_library_column", "match_threshold", "signal_threshold",
+      "good_signal", "x", "quant_metric", "good_match_vals",
+      "good_matches"
+    )
+  )
+  expect_true(all(is.na(all_columns$rare_library_column)))
+  expect_true(all(is.na(all_columns$quant_metric)))
+  expect_false("empty_library_column" %in% names(all_columns))
+  expect_false("empty_spectrum_column" %in% names(all_columns))
+  expect_identical(
+    all_columns[, names(simple), with = FALSE],
+    simple
+  )
+
+  spectrum_permutation <- c(3L, 1L, 2L)
+  permuted <- env$app_top_matches_export(
+    cor_matrix = correlations,
+    library_metadata = library_metadata,
+    spectrum_metadata = spectrum_metadata[spectrum_permutation],
+    signal_to_noise = snr[spectrum_permutation],
+    match_threshold = match_threshold,
+    signal_threshold = signal_threshold,
+    top_n = top_n,
+    columns_selected = "All",
+    quant_columns = quant_columns
+  )
+  expect_identical(permuted, all_columns)
+
+  tied_correlations <- correlations
+  tied_correlations[c("reference_a", "reference_b"), "object_1"] <- 0.91
+  tied <- env$app_top_match_rows(tied_correlations, top_n = 2L)
+  expect_identical(
+    tied[Var2 == "object_1", Var1],
+    c("reference_a", "reference_b")
+  )
+
+  ranked <- env$app_top_match_rows(correlations, top_n = 99L)
+  expect_equal(nrow(ranked), length(correlations))
+  expect_error(
+    env$app_top_match_rows(unname(correlations), top_n = 1L),
+    "must name references"
+  )
+  duplicated_correlations <- correlations
+  rownames(duplicated_correlations)[[2L]] <- rownames(correlations)[[1L]]
+  expect_error(
+    env$app_top_match_rows(duplicated_correlations, top_n = 1L),
+    "identifiers must be unique"
+  )
+  expect_error(
+    env$app_top_matches_export(
+      correlations,
+      data.table::rbindlist(list(library_metadata, library_metadata[1L])),
+      spectrum_metadata, snr, match_threshold, signal_threshold
+    ),
+    "identifiers must be unique"
+  )
+  expect_error(
+    env$app_top_matches_export(
+      correlations, library_metadata,
+      spectrum_metadata[col_id != "object_3"],
+      snr, match_threshold, signal_threshold
+    ),
+    "does not align"
+  )
+})
+
 test_that("bundled app exports one-row metadata snapshots without restoring them", {
   missing <- .openspecy_app_packages()[
     !vapply(.openspecy_app_packages(), requireNamespace, logical(1),

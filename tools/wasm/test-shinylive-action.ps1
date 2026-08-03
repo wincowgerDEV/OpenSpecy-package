@@ -104,6 +104,11 @@ New-Item -ItemType Directory -Path $work | Out-Null
 New-Item -ItemType Directory -Force -Path $tools | Out-Null
 
 if ($Bootstrap) {
+  # pak/pkgcache is otherwise shared across R versions and runs. A stale
+  # Windows binary cached under a source-package key can make a clean
+  # rehearsal fail while unpacking (for example, raw ZIP bytes presented as a
+  # tarball). Keep bootstrap downloads inside the freshly recreated tool tree.
+  $env:R_PKG_CACHE_DIR = Join-Path $tools "pkg-cache"
   $packageRoots = Get-Content -LiteralPath `
     "inst/shiny/wasm/app-package-roots.txt" |
     ForEach-Object { ($_ -replace '#.*$', '').Trim() } |
@@ -140,7 +145,7 @@ if ($shinyliveVersion -ne "0.5.0") {
 }
 
 Invoke-Checked $rExe @(
-  "CMD", "INSTALL", "--no-multiarch", "--with-keep.source",
+  "CMD", "INSTALL", "--no-multiarch", "--no-lock", "--with-keep.source",
   "-l", $tools, "."
 )
 

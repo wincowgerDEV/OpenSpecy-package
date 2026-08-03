@@ -144,6 +144,7 @@ async function verifyNativeDownload({
   contentTypePattern,
   contentPattern,
   expectedPrefix,
+  probeEndpoint = true,
   testInfo,
   runtimeDiagnostics,
 }) {
@@ -151,6 +152,7 @@ async function verifyNativeDownload({
   await expect.poll(async () => link.getAttribute("href"), {
     timeout: 30000,
   }).toMatch(/(?:^|\/)session\/[^/]+\/download\/download_data/);
+  await expect(link).not.toHaveClass(/\bdisabled\b/, { timeout: 300000 });
 
   const linkState = await link.evaluate((element) => ({
     href: element.href,
@@ -200,9 +202,9 @@ async function verifyNativeDownload({
   // This duplicate GET is diagnostic only. The click-to-disk artifact below
   // remains authoritative, so a successful fetch can never excuse a canceled
   // or empty native browser download.
-  const endpoint = await probeDownloadEndpoint(link);
-  const endpointFilename = endpoint.error ? "" :
-    dispositionFilename(endpoint.disposition);
+  const endpoint = probeEndpoint ? await probeDownloadEndpoint(link) : null;
+  const endpointFilename = endpoint && !endpoint.error ?
+    dispositionFilename(endpoint.disposition) : "";
   const preview = content ? bytePreview(content) : null;
   const problems = [];
   if (eventError) problems.push(`download event: ${eventError}`);
@@ -222,7 +224,29 @@ async function verifyNativeDownload({
       !content.subarray(0, expectedPrefix.length).equals(expectedPrefix)) {
     problems.push(`downloaded file did not start with ${expectedPrefix.toString("hex")}`);
   }
-  if (endpoint.error) {
+  if (!probeEndpoint) {
+    if (clickResponse.error) {
+      problems.push(`click response: ${clickResponse.error}`);
+    } else {
+      if (clickResponse.status !== 200) {
+        problems.push(`click response status: ${clickResponse.status}`);
+      }
+      if (!contentTypePattern.test(clickResponse.contentType)) {
+        problems.push(
+          `unexpected click MIME type: ${clickResponse.contentType || "<none>"}`
+        );
+      }
+      const clickFilename = dispositionFilename(clickResponse.disposition);
+      if (!clickFilename || !filenamePattern.test(clickFilename)) {
+        problems.push(
+          `unexpected click disposition: ${clickResponse.disposition || "<none>"}`
+        );
+      }
+      // Chromium may expose an empty response.body() for a streamed
+      // attachment even when the native download artifact is complete. The
+      // saved click-to-disk bytes above remain authoritative here.
+    }
+  } else if (endpoint.error) {
     problems.push(`endpoint probe: ${endpoint.error}`);
   } else {
     if (!endpoint.ok || endpoint.status !== 200) {
@@ -267,7 +291,11 @@ async function verifyNativeDownload({
     throw new Error(`${label} native download failed: ${problems.join("; ")}`);
   }
 
-  return { content, filename: suggestedFilename, endpoint };
+  return {
+    content,
+    filename: suggestedFilename,
+    endpoint: endpoint || clickResponse,
+  };
 }
 
 test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, testInfo) => {
@@ -279,7 +307,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   // WebAssembly startup, preprocessing, and identification share one browser
   // thread. Keep the overall budget above the sum of those real phases while
   // retaining shorter per-action timeouts for selector failures.
-  test.setTimeout(900000);
+  test.setTimeout(1800000);
   expect(expectedVersion).toBeTruthy();
 
   page.on("console", (message) => {
@@ -553,13 +581,9 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     await expect(embed).toHaveClass(/\bis-fullscreen\b/);
   }
 
-  // Thresholded Particles is contextual to map uploads with collapsing on.
-  // Disable identification and ordinary preprocessing, then enable the SNR
-  // threshold that owns the logical feature mask used for collapsing.
-  await setShinyCheckbox(identificationSwitch, false);
-  await setShinyCheckbox(appFrame.locator("#active_preprocessing"), false);
-  await setShinyCheckbox(appFrame.locator("#threshold_decision"), false);
-  await setShinyCheckbox(appFrame.locator("#collapse_decision"), true);
+  // A real multi-spectrum map is the memory-sensitive Top Matches case. Keep
+  // identification enabled here: the one-spectrum fixture cannot expose a
+  // full correlation-matrix expansion before Top N selection.
   const mapUploadPath = path.resolve("inst", "extdata", "CA_tiny_map.zip");
   expect(fs.existsSync(mapUploadPath)).toBe(true);
   await fileInput.setInputFiles(mapUploadPath);
@@ -577,6 +601,69 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     );
     return trace ? trace.z.flat(Infinity).filter(Number.isFinite).length : 0;
   }), { timeout: 300000 }).toBeGreaterThan(1);
+  await expect(firstMatch).toBeVisible({ timeout: 600000 });
+  await expect.poll(async () => firstMatch.textContent(), {
+    timeout: 600000,
+  }).toMatch(/\S/);
+  await expect(appFrame.locator("#eventmetadata")).toContainText(
+    "CA small UF.dat",
+    { timeout: 900000 }
+  );
+  await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 300000,
+  });
+  await waitForStableDownloadGeneration(downloadSelection, "Top Matches");
+  await selectDownload(
+    downloadSelection,
+    downloadLink,
+    "Top Matches",
+    { timeout: 300000, stableFor: 1500 }
+  );
+  await expect(appFrame.locator("#top_n_input")).toHaveValue("1");
+  const mapDiagnosticStart = runtimeDiagnostics.length;
+  const mapTopMatches = await verifyNativeDownload({
+    page,
+    link: downloadLink,
+    label: "Test Map Top Matches",
+    filenamePattern: /^Top-Matches-.*\.csv$/i,
+    contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
+    contentPattern: /file_name.*col_id.*material_class.*match_val.*signal_to_noise/i,
+    probeEndpoint: false,
+    testInfo,
+    runtimeDiagnostics,
+  });
+  const mapTopMatchLines = mapTopMatches.content.toString("utf8")
+    .split(/\r?\n/).filter(Boolean);
+  expect(mapTopMatchLines).toHaveLength(209);
+  const mapDownloadLogs = runtimeDiagnostics.slice(mapDiagnosticStart).join("\n");
+  expect(mapDownloadLogs).toMatch(/creating 'Top Matches' download/i);
+  expect(mapDownloadLogs).toMatch(/completed 'Top Matches' download/i);
+  expect(mapDownloadLogs).not.toMatch(/cannot allocate vector/i);
+
+  // Prove that the map export leaves the WebR session healthy for another
+  // map-dependent download instead of turning every later endpoint into HTTP 500.
+  await selectDownload(downloadSelection, downloadLink, "Processed Spectra");
+  await verifyNativeDownload({
+    page,
+    link: downloadLink,
+    label: "Processed Spectra After Map",
+    filenamePattern: /^Processed-Spectra-.*\.csv$/i,
+    contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
+    contentPattern: /wavenumber/i,
+    testInfo,
+    runtimeDiagnostics,
+  });
+
+  // Thresholded Particles is contextual to map uploads with collapsing on.
+  // Disable identification and ordinary preprocessing, then enable the SNR
+  // threshold that owns the logical feature mask used for collapsing.
+  await setShinyCheckbox(identificationSwitch, false);
+  await setShinyCheckbox(appFrame.locator("#active_preprocessing"), false);
+  await setShinyCheckbox(appFrame.locator("#threshold_decision"), false);
+  await setShinyCheckbox(appFrame.locator("#collapse_decision"), true);
+  await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 300000,
+  });
   const mapSnrThreshold = await appFrame.locator("#heatmapA")
     .evaluate((plot) => {
       const trace = (plot.data || []).find((candidate) =>

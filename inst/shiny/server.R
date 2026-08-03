@@ -1967,48 +1967,19 @@ output$progress_bars <- renderUI({
           top_n <- max(1L, as.integer(top_n))
           columns_selected <- input$columns_selected
           if(is.null(columns_selected)) columns_selected <- "Simple"
-          dataR_metadata <- data.table(
+          processed <- quantified_data()
+          snr <- signal_to_noise()
+          all_matches <- app_top_matches_export(
+            cor_matrix = correlation(),
+            library_metadata = library_filtered()$metadata,
+            spectrum_metadata = processed$metadata,
+            signal_to_noise = snr,
             match_threshold = MinCor(),
-            signal_to_noise = signal_to_noise(),
             signal_threshold = MinSNR(),
-            good_signal = signal_to_noise() > MinSNR()
-          ) %>%
-            bind_cols(quantified_data()$metadata)
-
-          all_matches <- reshape2::melt(correlation()) %>%
-            as.data.table() %>%
-            left_join(
-              library_filtered()$metadata %>%
-                select(-any_of(c("col_id", "file_name"))),
-              by = c("Var1" = "sample_name")
-            ) %>%
-            left_join(dataR_metadata, by = c("Var2" = "col_id")) %>%
-            rename(
-              "sample_name" = "Var1",
-              "col_id" = "Var2",
-              "match_val" = "value"
-            ) %>%
-            mutate(
-              good_match_vals = match_val > match_threshold,
-              good_matches = match_val > match_threshold &
-                signal_to_noise > signal_threshold
-            ) %>%
-            {keep <- !sapply(., OpenSpecy::is_empty_vector) |
-              names(.) %in% quant_columns
-             .[, keep, with = FALSE]} %>%
-            select(file_name, col_id, material_class, spectrum_identity,
-                   match_val, signal_to_noise, everything()) %>%
-            .[order(-match_val), head(.SD, top_n), by = col_id] %>%
-            {if(identical(columns_selected, "Simple")) {
-              select(., any_of(c(
-                "file_name", "col_id", "material_class", "match_val",
-                "signal_to_noise", quant_columns
-              )))
-            } else .} %>%
-            mutate(
-              material_class = ifelse(match_val < MinCor(), "unknown",
-                                      material_class)
-            )
+            top_n = top_n,
+            columns_selected = columns_selected,
+            quant_columns = quant_columns
+          )
           fwrite(all_matches, file)
         } else {
           result <- bind_cols(quantified_data()$metadata, matches_to_single())

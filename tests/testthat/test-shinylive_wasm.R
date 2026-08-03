@@ -464,6 +464,11 @@ test_that("hosted preflight is exact and the full pre-push gate is unskippable",
   expect_true(any(grepl("check-wasm-repo.R", preflight, fixed = TRUE)))
   expect_true(any(grepl('$env:R_LIBS_USER = $tools', preflight,
                         fixed = TRUE)))
+  expect_true(any(grepl(
+    '$env:R_PKG_CACHE_DIR = Join-Path $tools "pkg-cache"',
+    preflight, fixed = TRUE
+  )))
+  expect_true(any(grepl('"--no-lock"', preflight, fixed = TRUE)))
   expect_true(any(grepl("Remove-Item -LiteralPath $tools", preflight,
                         fixed = TRUE)))
   expect_true(any(grepl('Assert-Equal $playwrightVersion "1.61.1"',
@@ -487,6 +492,15 @@ test_that("hosted preflight is exact and the full pre-push gate is unskippable",
   expect_true(any(grepl("check-wasm-artifact.R", build, fixed = TRUE)))
   expect_true(any(grepl("git rev-parse HEAD", build, fixed = TRUE)))
   expect_true(any(grepl("git status --porcelain", build, fixed = TRUE)))
+  expect_true(any(grepl('"archive", "--format=zip"', build,
+                         fixed = TRUE)))
+  expect_true(any(grepl(':/github/workspace:ro', build, fixed = TRUE)))
+  expect_true(any(grepl(':/github/output', build, fixed = TRUE)))
+  expect_true(any(grepl('"/github/output/image"', build, fixed = TRUE)))
+  expect_true(any(grepl('Remove-Item -LiteralPath $sourceSnapshot', build,
+                         fixed = TRUE)))
+  expect_false(any(grepl('$repoRoot + ":/github/workspace"', build,
+                          fixed = TRUE)))
   expect_true(any(grepl("workspace-path.ps1", c(preflight, build),
                          fixed = TRUE)))
   path_consumers <- list(preflight, build, shell)
@@ -597,7 +611,7 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_true(any(grepl(
     'grep -q "${PACKAGE_SHA}" <<< "$pin_body"', workflow, fixed = TRUE
   )))
-  expect_true(any(grepl("test.setTimeout(900000)", smoke, fixed = TRUE)))
+  expect_true(any(grepl("test.setTimeout(1800000)", smoke, fixed = TRUE)))
   expect_true(any(grepl("timeout: 600000", smoke, fixed = TRUE)))
   expect_true(any(grepl("toBeChecked()", smoke, fixed = TRUE)))
   expect_true(any(grepl('toHaveValue("Top Matches")', smoke,
@@ -609,6 +623,8 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_true(any(grepl("disposition", smoke, fixed = TRUE)))
   expect_true(any(grepl("requestUrl", smoke, fixed = TRUE)))
   expect_true(any(grepl("clickResponse", smoke, fixed = TRUE)))
+  expect_false(any(grepl('if (!clickResponse.length)', smoke,
+                         fixed = TRUE)))
   expect_true(any(grepl("probeDownloadEndpoint", smoke, fixed = TRUE)))
   expect_true(any(grepl("native browser download", smoke, fixed = TRUE)))
   expect_true(any(grepl("shinylive-download-", smoke,
@@ -635,6 +651,12 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl('candidate.type === "heatmap"', smoke,
                         fixed = TRUE)))
+  expect_true(any(grepl('label: "Test Map Top Matches"', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('"CA small UF.dat"', smoke, fixed = TRUE)))
+  expect_true(any(grepl("probeEndpoint: false", smoke, fixed = TRUE)))
+  expect_true(any(grepl("toHaveLength(209)", smoke, fixed = TRUE)))
+  expect_true(any(grepl("cannot allocate vector", smoke, fixed = TRUE)))
   expect_true(any(grepl("stableFor: 1500", smoke, fixed = TRUE)))
   expect_true(any(grepl('new URL("pkgdown/", url)', smoke,
                          fixed = TRUE)))
@@ -645,6 +667,12 @@ test_that("hosted deployment exports the exact current bundled app", {
   local_smoke <- readLines(local_smoke_path, warn = FALSE)
   expect_true(any(grepl("CA_tiny_map.zip", local_smoke, fixed = TRUE)))
   expect_true(any(grepl("Thresholded Particles", local_smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl("fetchDownload", local_smoke, fixed = TRUE)))
+  expect_true(any(grepl("topMatches.elapsed", local_smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('"CA small UF.dat"', local_smoke, fixed = TRUE)))
+  expect_true(any(grepl("toHaveLength(209)", local_smoke,
                         fixed = TRUE)))
 })
 

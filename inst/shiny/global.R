@@ -78,6 +78,179 @@ app_download_label <- function(selection) {
   unname(labels[[selection]])
 }
 
+app_top_match_rows <- function(cor_matrix, top_n = 1L) {
+  if(!is.matrix(cor_matrix) || !is.numeric(cor_matrix) ||
+     !nrow(cor_matrix) || !ncol(cor_matrix)) {
+    stop("Top Matches requires a nonempty numeric correlation matrix.",
+         call. = FALSE)
+  }
+  if(is.null(rownames(cor_matrix)) || is.null(colnames(cor_matrix))) {
+    stop("The correlation matrix must name references and uploaded spectra.",
+         call. = FALSE)
+  }
+  if(anyDuplicated(rownames(cor_matrix)) ||
+     anyDuplicated(colnames(cor_matrix))) {
+    stop("Correlation matrix identifiers must be unique.", call. = FALSE)
+  }
+  top_n <- suppressWarnings(as.integer(top_n))
+  if(length(top_n) != 1L || is.na(top_n) || top_n < 1L) top_n <- 1L
+  top_n <- min(top_n, nrow(cor_matrix))
+
+  # Rank each uploaded spectrum while the data are still a compact matrix.
+  # Expanding every score before keeping Top N can require gigabytes for maps.
+  indices <- matrix(NA_integer_, nrow = top_n, ncol = ncol(cor_matrix))
+  for(column in seq_len(ncol(cor_matrix))) {
+    indices[, column] <- utils::head(
+      order(cor_matrix[, column], decreasing = TRUE, na.last = TRUE),
+      top_n
+    )
+  }
+  reference_index <- as.vector(indices)
+  spectrum_index <- rep(seq_len(ncol(cor_matrix)), each = top_n)
+
+  data.table::data.table(
+    Var1 = rownames(cor_matrix)[reference_index],
+    Var2 = colnames(cor_matrix)[spectrum_index],
+    value = cor_matrix[cbind(reference_index, spectrum_index)]
+  )
+}
+
+.app_metadata_probe <- function(metadata, key, sentinel) {
+  values <- lapply(names(metadata), function(name) {
+    if(identical(name, key)) return(sentinel)
+    if(OpenSpecy::is_empty_vector(metadata[[name]])) NA else TRUE
+  })
+  names(values) <- names(metadata)
+  data.table::as.data.table(values)
+}
+
+.app_top_matches_keep_names <- function(
+    library_metadata, spectrum_metadata, quant_columns) {
+  library_for_join <- library_metadata %>%
+    dplyr::select(-dplyr::any_of(c("col_id", "file_name")))
+  library_probe <- .app_metadata_probe(
+    library_for_join, "sample_name", "__openspecy_probe__"
+  )
+  spectrum_probe <- .app_metadata_probe(
+    spectrum_metadata, "col_id", "__openspecy_probe__"
+  )
+  spectrum_details_probe <- data.table::data.table(
+    match_threshold = TRUE,
+    signal_to_noise = TRUE,
+    signal_threshold = TRUE,
+    good_signal = TRUE
+  ) %>%
+    dplyr::bind_cols(spectrum_probe)
+
+  probe <- data.table::data.table(
+    Var1 = "__openspecy_probe__",
+    Var2 = "__openspecy_probe__",
+    value = TRUE
+  ) %>%
+    dplyr::left_join(
+      library_probe, by = c("Var1" = "sample_name")
+    ) %>%
+    dplyr::left_join(
+      spectrum_details_probe, by = c("Var2" = "col_id")
+    ) %>%
+    dplyr::rename(
+      "sample_name" = "Var1",
+      "col_id" = "Var2",
+      "match_val" = "value"
+    ) %>%
+    dplyr::mutate(good_match_vals = TRUE, good_matches = TRUE)
+
+  names(probe)[
+    !vapply(probe, OpenSpecy::is_empty_vector, logical(1)) |
+      names(probe) %in% quant_columns
+  ]
+}
+
+app_top_matches_export <- function(
+    cor_matrix, library_metadata, spectrum_metadata, signal_to_noise,
+    match_threshold, signal_threshold, top_n = 1L,
+    columns_selected = c("Simple", "All"), quant_columns = character()) {
+  columns_selected <- match.arg(columns_selected)
+  library_metadata <- data.table::as.data.table(library_metadata)
+  spectrum_metadata <- data.table::as.data.table(spectrum_metadata)
+  required_library <- c("sample_name", "material_class")
+  required_spectrum <- c("file_name", "col_id")
+  if(!all(required_library %in% names(library_metadata))) {
+    stop("Reference metadata is missing Top Matches identifiers.",
+         call. = FALSE)
+  }
+  if(!all(required_spectrum %in% names(spectrum_metadata))) {
+    stop("Uploaded metadata is missing Top Matches identifiers.",
+         call. = FALSE)
+  }
+  library_ids <- as.character(library_metadata$sample_name)
+  spectrum_ids <- as.character(spectrum_metadata$col_id)
+  if(anyDuplicated(library_ids) || anyDuplicated(spectrum_ids)) {
+    stop("Top Matches identifiers must be unique.", call. = FALSE)
+  }
+  library_order <- match(rownames(cor_matrix), library_ids)
+  spectrum_order <- match(colnames(cor_matrix), spectrum_ids)
+  if(anyNA(library_order) || anyNA(spectrum_order)) {
+    stop("Top Matches metadata does not align with the correlation matrix.",
+         call. = FALSE)
+  }
+  library_metadata <- library_metadata[library_order]
+  spectrum_metadata <- spectrum_metadata[spectrum_order]
+  if(length(signal_to_noise) != ncol(cor_matrix)) {
+    stop("Signal-to-noise values do not align with uploaded spectra.",
+         call. = FALSE)
+  }
+  signal_to_noise <- signal_to_noise[spectrum_order]
+  top_n <- suppressWarnings(as.integer(top_n))
+  if(length(top_n) != 1L || is.na(top_n) || top_n < 1L) top_n <- 1L
+  top_n <- min(top_n, nrow(cor_matrix))
+
+  keep_names <- .app_top_matches_keep_names(
+    library_metadata, spectrum_metadata, quant_columns
+  )
+
+  spectrum_details <- data.table::data.table(
+    match_threshold = match_threshold,
+    signal_to_noise = signal_to_noise,
+    signal_threshold = signal_threshold,
+    good_signal = signal_to_noise > signal_threshold
+  ) %>%
+    dplyr::bind_cols(spectrum_metadata)
+
+  app_top_match_rows(cor_matrix, top_n) %>%
+    dplyr::left_join(
+      library_metadata %>%
+        dplyr::select(-dplyr::any_of(c("col_id", "file_name"))),
+      by = c("Var1" = "sample_name")
+    ) %>%
+    dplyr::left_join(spectrum_details, by = c("Var2" = "col_id")) %>%
+    dplyr::rename(
+      "sample_name" = "Var1",
+      "col_id" = "Var2",
+      "match_val" = "value"
+    ) %>%
+    dplyr::mutate(
+      good_match_vals = match_val > match_threshold,
+      good_matches = match_val > match_threshold &
+        signal_to_noise > signal_threshold
+    ) %>%
+    {.[, names(.) %in% keep_names, with = FALSE]} %>%
+    dplyr::select(file_name, col_id, material_class, spectrum_identity,
+                  match_val, signal_to_noise, dplyr::everything()) %>%
+    .[order(-match_val), utils::head(.SD, top_n), by = col_id] %>%
+    {if(identical(columns_selected, "Simple")) {
+      dplyr::select(., dplyr::any_of(c(
+        "file_name", "col_id", "material_class", "match_val",
+        "signal_to_noise", quant_columns
+      )))
+    } else .} %>%
+    dplyr::mutate(
+      material_class = ifelse(match_val < match_threshold, "unknown",
+                              material_class)
+    ) %>%
+    data.table::as.data.table()
+}
+
 app_empty_ratio_definitions <- function() {
   data.frame(
     id = integer(),
