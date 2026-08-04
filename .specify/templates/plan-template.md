@@ -30,7 +30,7 @@
 - **Generated artifacts**: [Whether documentation generation is needed; required configured tool version; no direct generated-file edits.]
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
-- **Bundled Shiny app**: [impact on `inst/`; canonical final reactive feeding visible/exported results; owner/child gating; contextual downloads/progress; assets/size; headless and browser tests; or N/A.]
+- **Bundled Shiny app**: [impact on `inst/`; canonical final reactive feeding visible/exported results; owner/child gating; substantive adjacent guidance for non-obvious scientific/processing inputs; contextual downloads/progress; assets/size; headless and browser tests; or N/A.]
 - **Hosted Shinylive/WebAssembly app**: [impact on root `site/`, `/app/`, `/pkgdown/`, `.github/workflows/`, wasm package repository, hardcoded package/dependency pins, dependency closure, small medoid/model library staging, generated artifacts, action-equivalent preflight, interaction/visual smoke tests, or N/A.]
 
 ## Package Surfaces

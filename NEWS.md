@@ -4,7 +4,10 @@
   and the manual and automated prominence/FWHM methods described by Coca-Lopez
   (2024). Corrections are transactional, preserve the `OpenSpecy` axis and
   metadata alignment, avoid boundary extrapolation, and retain auditable
-  accepted/rejected-region diagnostics.
+  accepted/rejected-region diagnostics. Safe correction now repeats while the
+  correctable count decreases, retaining successful passes when later
+  candidates are newly exposed and leaving no-progress candidates unchanged
+  with their safeguard reason.
 - Added opt-in spike and saturation checks plus `report = "all"` status output
   to `assess_spec()`, exact sorted-amplitude `breakpoint_snr` support to
   `sig_noise()`, and optional spike correction at the start of `process_spec()`.
@@ -12,12 +15,14 @@
   intervals from a whole batch, with irregular-axis coverage accounting and a
   conservative rollback when the proposed loss exceeds 70% or leaves too few
   points.
-- Added default-on app controls for isolated spikes and saturation, separated
+- Added a default-on app control for isolated spikes and an opt-in saturation
+  control, separated
   automatic-correction details from warning/success results for the active
   spectrum, an external adaptive spectrum legend, and bright
-  colorblind-accessible heatmap palettes. Numeric map legends sit outside the
-  plot, categorical Match Name colors are shared with the material summary,
-  and map selection updates its marker without rebuilding the heatmap. Hosted
+  colorblind-accessible heatmap palettes. Numeric map legends sit horizontally
+  above the plot, default Match Name maps no longer flash a numeric metric,
+  categorical Match Name colors are shared with the material summary, and map
+  selection updates its marker without rebuilding the heatmap. Hosted
   WebAssembly downloads now use a same-frame validated Blob handoff while
   local Shiny retains its native download handler; browser smoke tests require
   genuine CSV and ZIP files from real clicks.
@@ -60,7 +65,9 @@
   ratios, `point_intensity()` for non-ratio point measurements, and 4S Fill
   Peaks baseline correction. The app's Quantification tab now defaults off and
   lets users save ratios, individual band areas, and individual point
-  intensities from precise numeric inputs. It calculates any combination from
+  intensities from precise numeric inputs. Custom Ratios and Single
+  Measurements now share the single Quantification owner without a redundant
+  child switch. The app calculates any combination from
   the exact final processed spectra displayed in the app and includes exact
   definitions, values, and processed-spectrum provenance in Processed Spectra
   and Top Matches downloads.
@@ -71,14 +78,17 @@
 - Reimplemented 4S Fill Peaks smoothing and suppression in base R, removing the
   compiled `baseline` runtime dependency so the same correction works in local
   R and the hosted WebAssembly app.
-- Widened the contextual download action, changed uploaded spectrum traces to
+- Made the contextual download action fill its card, changed uploaded spectrum traces to
   white, standardized enabled switches to green and white, validated all
   informational disclosures, and restored the historical donation choices in
   an on-demand right-side header dialog. Removed the inactive help and dark-mode
   header toggles, aligned the full-width Spectra and Summary cards, and kept
   disabled child settings inert until their owning analysis switch is enabled.
   Automatic tail mode now visibly disables its manual bounds and explains that
-  assessment uses the full processed axis.
+  assessment uses the full processed axis. Processing disclosures now explain
+  each spike and saturation input, success findings omit empty interpretation
+  and action fields, and automatic details report the ranges actually corrected
+  by spike, saturation, CO2, and high-tail operations.
 - Streamlined the app to one analysis workspace with Preprocessing,
   Identification, and Advanced tabs; moved independent thresholds and map
   controls to Advanced, removed Google Translate and the informational sidebar,

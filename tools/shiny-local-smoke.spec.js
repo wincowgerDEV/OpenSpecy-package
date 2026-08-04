@@ -168,13 +168,68 @@ async function expectBuilderItem(page, outputSelector, label) {
   await expect(page.locator(outputSelector)).toContainText(label);
 }
 
+async function dismissVisibleAlert(page) {
+  const alert = page.locator(
+    ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
+  );
+  if (!await alert.isVisible()) return false;
+  const alertText = (await alert.innerText()).trim();
+  const expectedNonfatalAlert = /Best practice not followed!|No regions passing threshold|No or all regions passing threshold/i;
+  if (!expectedNonfatalAlert.test(alertText)) {
+    throw new Error(`Unexpected alert while exercising the app: ${alertText}`);
+  }
+  const confirm = alert.locator(
+    "button.swal2-confirm, button.confirm, button:has-text('OK')"
+  ).first();
+  if (await confirm.count()) {
+    await confirm.click({ force: true });
+  } else {
+    await page.keyboard.press("Escape");
+  }
+  await page.waitForTimeout(100);
+  return true;
+}
+
+async function dismissQueuedAlerts(page) {
+  let quietChecks = 0;
+  for (let attempt = 0; attempt < 16 && quietChecks < 4; attempt += 1) {
+    await page.waitForTimeout(200);
+    if (await dismissVisibleAlert(page)) {
+      quietChecks = 0;
+    } else {
+      quietChecks += 1;
+    }
+  }
+}
+
+async function clickPastQueuedAlerts(page, locator) {
+  let lastError;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await dismissQueuedAlerts(page);
+    try {
+      await locator.click({ timeout: 2500 });
+      return;
+    } catch (error) {
+      lastError = error;
+      const alert = page.locator(
+        ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
+      );
+      if (!await alert.isVisible()) throw error;
+    }
+  }
+  throw lastError;
+}
+
 async function selectizeOption(page, id, value) {
+  const select = page.locator(`#${id}`);
+  if (await select.inputValue() === value) return;
   const control = page.locator(`#${id} + .selectize-control`);
-  await control.locator(".selectize-input").click();
+  await control.locator(".selectize-input").click({ timeout: 10000 });
+  if (await select.inputValue() === value) return;
   await control.locator(
     `.selectize-dropdown-content [data-value="${value}"]`
-  ).click();
-  await expect(page.locator(`#${id}`)).toHaveValue(value);
+  ).click({ timeout: 10000 });
+  await expect(select).toHaveValue(value);
 }
 
 async function waitForStableSelectizeGeneration(
@@ -219,7 +274,7 @@ async function toggleCard(card) {
     ':scope > .card-header [data-card-widget="collapse"]'
   );
   await expect(toggle).toBeVisible();
-  await toggle.click();
+  await toggle.click({ timeout: 10000 });
 }
 
 async function expectEqualWidthAndTop(first, second, tolerance = 2) {
@@ -502,7 +557,7 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
 });
 
 test("local app renders spectra, matches, and one informative progress overlay", async ({ page }, testInfo) => {
-  test.setTimeout(420000);
+  test.setTimeout(900000);
   const severeErrors = [];
   const popups = [];
   page.on("console", (message) => {
@@ -545,10 +600,42 @@ test("local app renders spectra, matches, and one informative progress overlay",
     if (tabName === "Preprocessing") {
       await expect(minMaxControl).toBeVisible();
       await expect(page.locator("#spike_decision")).toBeChecked();
-      await expect(page.locator("#saturation_decision")).toBeChecked();
+      const saturationSwitch = page.locator("#saturation_decision");
+      await expect(saturationSwitch).not.toBeChecked();
       await expect(page.locator("#spike_direction")).toHaveValue("both");
       await expect(page.locator("#spike_residual_threshold")).toHaveValue("8");
       await expect(page.locator("#saturation_mode")).toHaveValue("auto");
+      const preprocessingPane = page.locator("#spike_decision").locator(
+        "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' tab-pane ')][1]"
+      );
+      const preprocessingTitles = await preprocessingPane.locator(
+        ".card > .card-header .card-title"
+      ).allTextContents();
+      expect(preprocessingTitles.slice(-2).map((text) => text.trim())).toEqual([
+        "Remove Isolated Spikes", "Remove Saturated Ranges",
+      ]);
+      const spikeCard = page.locator("#spike_decision").locator(
+        "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+      );
+      if (await spikeCard.evaluate((card) => card.classList.contains("collapsed-card"))) {
+        await toggleCard(spikeCard);
+      }
+      await expect(spikeCard).toContainText(
+        "Robust Residual Threshold is the prediction error"
+      );
+      await toggleCard(spikeCard);
+      const saturationCard = saturationSwitch.locator(
+        "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+      );
+      if (await saturationCard.evaluate((card) => card.classList.contains("collapsed-card"))) {
+        await toggleCard(saturationCard);
+      }
+      await expect(saturationCard).toContainText(
+        "Detector Ceiling is expressed in the uploaded intensity units"
+      );
+      await toggleCard(saturationCard);
+      await saturationSwitch.check({ force: true });
+      await expectEnabledSwitchColors(page, "saturation_decision");
       const rangeSwitch = page.locator("#range_automate");
       const rangeCard = rangeSwitch.locator(
         "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
@@ -596,13 +683,13 @@ test("local app renders spectra, matches, and one informative progress overlay",
     await expect(page.locator(`#${id}`)).toBeAttached();
     await expect(page.locator(`#${id}`)).toHaveAttribute("type", "number");
   }
-  const measurementSwitch = page.locator("#quant_measurement_enabled");
-  const measurementCard = measurementSwitch.locator(
+  await expect(page.locator("#quant_measurement_enabled")).toHaveCount(0);
+  const measurementCard = page.locator("#quant_measurement_name").locator(
     "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
   );
   await expect(measurementCard.locator(":scope > .card-header"))
     .toContainText("Single Measurements");
-  await expect(measurementSwitch).not.toBeChecked();
+  await expect(page.locator("#quant_measurement_name")).toBeVisible();
   await expect(page.locator("#quant_measurement_area_min")).toHaveAttribute(
     "type", "number"
   );
@@ -619,13 +706,18 @@ test("local app renders spectra, matches, and one informative progress overlay",
 
   const downloadButtonStyle = await page.locator("#download_data").evaluate((button) => {
     const box = button.getBoundingClientRect();
+    const titleBox = button.closest(".card-title")?.getBoundingClientRect();
     return {
       width: box.width,
+      titleWidth: titleBox?.width || 0,
       whiteSpace: getComputedStyle(button).whiteSpace,
       gap: parseFloat(getComputedStyle(button).columnGap || getComputedStyle(button).gap),
     };
   });
   expect(downloadButtonStyle.width).toBeGreaterThanOrEqual(270);
+  expect(Math.abs(
+    downloadButtonStyle.width - downloadButtonStyle.titleWidth
+  )).toBeLessThanOrEqual(2);
   expect(downloadButtonStyle.whiteSpace).toBe("nowrap");
   expect(downloadButtonStyle.gap).toBeGreaterThanOrEqual(8);
 
@@ -699,6 +791,52 @@ test("local app renders spectra, matches, and one informative progress overlay",
       attributes: true, childList: true, subtree: true, characterData: true,
     });
     record();
+  });
+
+  // Capture every initial nonempty heatmap render. The server-side default
+  // must settle directly on categorical Match Name without a transient
+  // numeric Match Value colorbar while the dynamic selector binds.
+  await page.evaluate(() => {
+    const state = {
+      samples: [], observer: null, plot: null, afterPlot: null,
+    };
+    const record = () => {
+      const plot = document.getElementById("heatmapA");
+      const trace = (plot?.data || []).find((item) => item.type === "heatmap");
+      const finiteCount = (trace?.z || []).flat?.(Infinity)
+        .filter(Number.isFinite).length || 0;
+      if (!trace || finiteCount === 0) return;
+      const sample = {
+        showscale: Boolean(trace.showscale),
+        title: trace.colorbar?.title?.text || trace.colorbar?.title || "",
+        mapColor: document.getElementById("map_color")?.value || "",
+      };
+      const key = JSON.stringify(sample);
+      if (state.samples.at(-1)?.key !== key) {
+        state.samples.push({ ...sample, key });
+      }
+    };
+    const attach = () => {
+      const plot = document.getElementById("heatmapA");
+      if (!plot || plot === state.plot || typeof plot.on !== "function") {
+        record();
+        return;
+      }
+      if (state.plot && state.afterPlot &&
+          typeof state.plot.removeListener === "function") {
+        state.plot.removeListener("plotly_afterplot", state.afterPlot);
+      }
+      state.plot = plot;
+      state.afterPlot = record;
+      plot.on("plotly_afterplot", state.afterPlot);
+      record();
+    };
+    state.observer = new MutationObserver(attach);
+    state.observer.observe(document.documentElement, {
+      childList: true, subtree: true, attributes: true,
+    });
+    window.__openspecyInitialHeatmapProbe = state;
+    attach();
   });
 
   const ramanText = fs.readFileSync(
@@ -804,6 +942,36 @@ test("local app renders spectra, matches, and one informative progress overlay",
   ]) {
     await expect(qualityModal).toContainText(label);
   }
+  const saturationFinding = qualityModal.locator(
+    ".openspecy-quality-finding-automatic",
+    { hasText: "Saturation restriction" }
+  );
+  await expect(saturationFinding).not.toContainText(/disabled/i);
+  const spikeFinding = qualityModal.locator(
+    ".openspecy-quality-finding-automatic",
+    { hasText: "Spike correction" }
+  );
+  await expect(spikeFinding).not.toContainText(/correctable spikes remain/i);
+  if (/Status:\s*applied/i.test(await spikeFinding.textContent())) {
+    await expect(spikeFinding).toContainText(/Corrected \d+ spike region/i);
+    await expect(spikeFinding).toContainText(/cm\^-1/i);
+  }
+  const co2Finding = qualityModal.locator(
+    ".openspecy-quality-finding-automatic",
+    { hasText: "CO2 flattening" }
+  );
+  if (/Status:\s*applied/i.test(await co2Finding.textContent())) {
+    await expect(co2Finding).toContainText(/Flattened 2200-2400 cm\^-1/i);
+  }
+  const tailFinding = qualityModal.locator(
+    ".openspecy-quality-finding-automatic",
+    { hasText: "High-tail range restriction" }
+  );
+  if (/Status:\s*applied/i.test(await tailFinding.textContent())) {
+    await expect(tailFinding).toContainText(
+      /Restricted the shared wavenumber axis from .* to .* cm\^-1/i
+    );
+  }
   await qualityModal.getByRole("button", { name: "Close", exact: true }).click();
   await expect(qualityModal).toBeHidden();
 
@@ -839,6 +1007,15 @@ test("local app renders spectra, matches, and one informative progress overlay",
     expect(modalTestIds[status].every((finding) =>
       finding.border === expectedBorder
     )).toBe(true);
+    if (expectedCount > 0 && status === "warning") {
+      await expect(qualityModal).toContainText("Interpretation:");
+      await expect(qualityModal).toContainText("Action:");
+    }
+    if (expectedCount > 0 && status === "success") {
+      await expect(qualityModal).not.toContainText("Interpretation:");
+      await expect(qualityModal).not.toContainText("Action:");
+      await expect(qualityModal).not.toContainText(/check passed/i);
+    }
     await qualityModal.getByRole("button", { name: "Close", exact: true }).click();
     await expect(qualityModal).toBeHidden();
   }
@@ -856,6 +1033,20 @@ test("local app renders spectra, matches, and one informative progress overlay",
   )).toHaveLength(1);
 
   await expect(page.locator("#map_color")).toBeAttached();
+  await expect(page.locator("#map_color")).toHaveValue("Match Name");
+  const initialHeatmapStates = await page.evaluate(() => {
+    const state = window.__openspecyInitialHeatmapProbe;
+    state?.observer?.disconnect();
+    if (state?.plot && state?.afterPlot &&
+        typeof state.plot.removeListener === "function") {
+      state.plot.removeListener("plotly_afterplot", state.afterPlot);
+    }
+    return (state?.samples || []).map(({ key, ...sample }) => sample);
+  });
+  expect(initialHeatmapStates.length).toBeGreaterThan(0);
+  expect(initialHeatmapStates.every((state) =>
+    !state.showscale && !/Match Value/i.test(String(state.title))
+  )).toBe(true);
   await selectizeOption(page, "map_color", "Match Value");
   await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
     const trace = (plot.data || []).find((item) => item.type === "heatmap");
@@ -881,14 +1072,42 @@ test("local app renders spectra, matches, and one informative progress overlay",
     return {
       showscale: trace?.showscale,
       title: trace?.colorbar?.title?.text || trace?.colorbar?.title || "",
+      orientation: trace?.colorbar?.orientation,
       x: trace?.colorbar?.x,
+      y: trace?.colorbar?.y,
+      topMargin: plot.layout?.margin?.t,
       rightMargin: plot.layout?.margin?.r,
     };
   });
   expect(numericHeatmapLegend.showscale).toBe(true);
   expect(numericHeatmapLegend.title).toMatch(/Match Value|Signal\/Noise|Value/i);
-  expect(numericHeatmapLegend.x).toBeGreaterThan(1);
-  expect(numericHeatmapLegend.rightMargin).toBeGreaterThanOrEqual(140);
+  expect(numericHeatmapLegend.orientation).toBe("h");
+  expect(numericHeatmapLegend.x).toBeCloseTo(0.5, 4);
+  expect(numericHeatmapLegend.y).toBeGreaterThan(1);
+  expect(numericHeatmapLegend.topMargin).toBeGreaterThanOrEqual(100);
+  expect(numericHeatmapLegend.rightMargin).toBeLessThan(100);
+  const desktopHeatmapLegendBounds = await page.locator("#heatmapA").evaluate((plot) => {
+    const legend = plot.querySelector(".colorbar");
+    const plotArea = plot.querySelector(".nsewdrag");
+    if (!legend || !plotArea) return null;
+    const legendBox = legend.getBoundingClientRect();
+    const plotAreaBox = plotArea.getBoundingClientRect();
+    return {
+      legendBottom: legendBox.bottom,
+      legendWidth: legendBox.width,
+      plotTop: plotAreaBox.top,
+      plotWidth: plotAreaBox.width,
+    };
+  });
+  expect(desktopHeatmapLegendBounds).not.toBeNull();
+  expect(desktopHeatmapLegendBounds.legendBottom)
+    .toBeLessThanOrEqual(desktopHeatmapLegendBounds.plotTop + 8);
+  expect(desktopHeatmapLegendBounds.legendWidth)
+    .toBeLessThan(desktopHeatmapLegendBounds.plotWidth);
+  await page.screenshot({
+    path: testInfo.outputPath("local-app-numeric-heatmap-legend.png"),
+    fullPage: true,
+  });
   await selectizeOption(page, "map_color", "Match Name");
   await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
     const trace = (plot.data || []).find((item) => item.type === "heatmap");
@@ -1204,8 +1423,6 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expectBuilderItem(page, "#quant_saved_ratios", "Custom Peak");
   await expect(page.locator("#quant_ratio_name")).toHaveValue("");
 
-  await measurementSwitch.check({ force: true });
-  await expectEnabledSwitchColors(page, "quant_measurement_enabled");
   await expect(page.locator("#quant_measurement_area_min")).toBeVisible();
   await page.locator("#quant_measurement_area_min").fill("1650.5");
   await page.locator("#quant_measurement_area_max").fill("1849.5");
@@ -1264,7 +1481,6 @@ test("local app renders spectra, matches, and one informative progress overlay",
       return style.display !== "none" && style.visibility !== "hidden";
     });
     return {
-      enabled: document.getElementById("quant_measurement_enabled")?.checked,
       type: document.querySelector(
         'input[name="quant_measurement_type"]:checked'
       )?.value || "",
@@ -1278,7 +1494,6 @@ test("local app renders spectra, matches, and one informative progress overlay",
     };
   });
   expect(measurementBuilderState).toMatchObject({
-    enabled: true,
     type: "intensity",
     name: "",
     savedCount: 2,
@@ -1407,6 +1622,46 @@ test("local app renders spectra, matches, and one informative progress overlay",
   }));
   expect(mobileLegend.y).toBeLessThan(0);
   expect(mobileLegend.bottomMargin).toBeGreaterThanOrEqual(100);
+  await selectizeOption(page, "map_color", "Match Value");
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((item) => item.type === "heatmap");
+    return Boolean(trace?.showscale) && trace?.colorbar?.orientation === "h";
+  }), { timeout: 30000 }).toBe(true);
+  const mobileHeatmapLegendBounds = await page.locator("#heatmapA").evaluate((plot) => {
+    const legend = plot.querySelector(".colorbar");
+    const plotArea = plot.querySelector(".nsewdrag");
+    if (!legend || !plotArea) return null;
+    const legendBox = legend.getBoundingClientRect();
+    const plotAreaBox = plotArea.getBoundingClientRect();
+    return {
+      legendBottom: legendBox.bottom,
+      legendWidth: legendBox.width,
+      plotTop: plotAreaBox.top,
+      plotWidth: plotAreaBox.width,
+    };
+  });
+  expect(mobileHeatmapLegendBounds).not.toBeNull();
+  expect(mobileHeatmapLegendBounds.legendBottom)
+    .toBeLessThanOrEqual(mobileHeatmapLegendBounds.plotTop + 8);
+  expect(mobileHeatmapLegendBounds.legendWidth)
+    .toBeLessThanOrEqual(mobileHeatmapLegendBounds.plotWidth);
+  const mobileDownloadWidth = await page.locator("#download_data").evaluate((button) => {
+    const buttonBox = button.getBoundingClientRect();
+    const titleBox = button.closest(".card-title")?.getBoundingClientRect();
+    return { button: buttonBox.width, available: titleBox?.width || 0 };
+  });
+  expect(mobileDownloadWidth.button).toBeGreaterThanOrEqual(250);
+  expect(Math.abs(mobileDownloadWidth.button - mobileDownloadWidth.available))
+    .toBeLessThanOrEqual(2);
+  await page.screenshot({
+    path: testInfo.outputPath("local-app-mobile-numeric-heatmap.png"),
+    fullPage: true,
+  });
+  await selectizeOption(page, "map_color", "Match Name");
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((item) => item.type === "heatmap");
+    return Boolean(trace?.showscale);
+  }), { timeout: 30000 }).toBe(false);
   await expectSummaryRowsFilled(page, true);
   const [mobileSpectra, mobileSummary] = await Promise.all([
     spectraCard.boundingBox(), summaryCard.boundingBox(),
@@ -1451,40 +1706,141 @@ test("local app renders spectra, matches, and one informative progress overlay",
     );
     return trace ? trace.z.flat(Infinity).filter(Number.isFinite).length : 0;
   }), { timeout: 120000 }).toBeGreaterThan(1);
-  const mapSnrThreshold = await page.locator("#heatmapA").evaluate((plot) => {
+  await expect(page.locator("#map_color")).toBeAttached();
+  await selectizeOption(page, "map_color", "Signal/Noise");
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
     const trace = (plot.data || []).find((candidate) =>
       candidate.type === "heatmap" && Array.isArray(candidate.z)
     );
-    const values = (trace?.z || []).flat(Infinity)
-      .filter(Number.isFinite).sort((left, right) => left - right);
-    return values.length ? values[Math.floor(values.length / 2)] : null;
-  });
-  expect(Number.isFinite(mapSnrThreshold)).toBe(true);
-  await page.locator("#MinSNR").evaluate((input, value) => {
-    input.value = String(value);
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    window.Shiny?.setInputValue("MinSNR", value, { priority: "event" });
-  }, mapSnrThreshold);
-  await page.locator("#threshold_decision").evaluate((input) => input.click());
-  await expect(page.locator("#threshold_decision")).toBeChecked();
+    const title = trace?.colorbar?.title?.text || trace?.colorbar?.title || "";
+    return Boolean(trace?.showscale) && /Signal\/Noise/i.test(String(title));
+  }), { timeout: 30000 }).toBe(true);
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
   await expect(overlay).toBeHidden({ timeout: 120000 });
+  await toggleCard(settingsCard);
+  await expectCardCollapsed(settingsCard, false);
+  await page.waitForTimeout(600);
+  const advancedTab = page.getByRole("link", {
+    name: "Advanced", exact: true,
+  });
+  await advancedTab.click();
+  await expect(advancedTab).toHaveClass(/active/);
+  await page.waitForTimeout(600);
+  const signalThresholdCard = page.locator("#threshold_decision").locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  await toggleCard(signalThresholdCard);
+  await expectCardCollapsed(signalThresholdCard, false);
+  await expect(page.locator("#signal_selection + .selectize-control"))
+    .toBeVisible();
+  await page.locator("#collapse_log_type").evaluate((input) => {
+    input.value = "Thresholds";
+    if (window.jQuery && window.jQuery(input).data("selectpicker")) {
+      window.jQuery(input).selectpicker("val", "Thresholds");
+    }
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    window.Shiny?.setInputValue(
+      "collapse_log_type", "Thresholds", { priority: "event" }
+    );
+  });
+  await expect(page.locator("#collapse_log_type")).toHaveValue("Thresholds");
+  await selectizeOption(page, "signal_selection", "log_tot_sig");
+  await page.locator("#MinSNR").fill("-10000");
+  await page.locator("#MinSNR").evaluate(() => {
+    window.Shiny?.setInputValue("MinSNR", -10000, { priority: "event" });
+  });
+  await page.waitForTimeout(250);
+  await page.locator("#threshold_decision").evaluate((input) => input.click());
+  await expect(page.locator("#threshold_decision")).toBeChecked();
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((candidate) =>
+      candidate.type === "heatmap" && Array.isArray(candidate.z)
+    );
+    const values = (trace?.text || []).flat(Infinity).map((text) => {
+      const match = String(text).match(/<br>snr:\s*([^<]+)/i);
+      return match ? Number.parseFloat(match[1]) : NaN;
+    }).filter(Number.isFinite).sort((left, right) => left - right);
+    const spread = values.length > 1 ? values.at(-1) - values[0] : 0;
+    return values.length > 1 && values[0] >= 0 && spread > 0 ? {
+      min: values[0], max: values.at(-1), spread,
+    } : null;
+  }), { timeout: 120000 }).toMatchObject({
+    min: expect.any(Number),
+    max: expect.any(Number),
+    spread: expect.any(Number),
+  });
+  const mapSnrRange = await page.locator("#heatmapA").evaluate((plot) => {
+    const trace = (plot.data || []).find((candidate) =>
+      candidate.type === "heatmap" && Array.isArray(candidate.z)
+    );
+    const values = (trace?.text || []).flat(Infinity).map((text) => {
+      const match = String(text).match(/<br>snr:\s*([^<]+)/i);
+      return match ? Number.parseFloat(match[1]) : NaN;
+    }).filter(Number.isFinite).sort((left, right) => left - right);
+    return values.length ? { min: values[0], max: values.at(-1) } : null;
+  });
+  expect(mapSnrRange?.min).toBeGreaterThanOrEqual(0);
+  expect(mapSnrRange?.max).toBeGreaterThan(mapSnrRange?.min);
+  const mapSnrThreshold = (mapSnrRange.min + mapSnrRange.max) / 2;
+  await page.locator("#MinSNR").fill(String(mapSnrThreshold));
+  await page.locator("#MinSNR").evaluate((input) => {
+    window.Shiny?.setInputValue(
+      "MinSNR", Number(input.value), { priority: "event" }
+    );
+  });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  await expect(overlay).toBeHidden({ timeout: 120000 });
+  const thresholdState = await page.evaluate(() => ({
+    collapse: document.getElementById("collapse_decision")?.checked,
+    logic: document.getElementById("collapse_log_type")?.value,
+    metric: document.getElementById("signal_selection")?.value,
+    threshold: document.getElementById("MinSNR")?.value,
+    thresholdEnabled: document.getElementById("threshold_decision")?.checked,
+  }));
+  await testInfo.attach("final-map-threshold-state", {
+    body: JSON.stringify(thresholdState, null, 2),
+    contentType: "application/json",
+  });
+  expect(thresholdState).toMatchObject({
+    collapse: true,
+    logic: "Thresholds",
+    metric: "log_tot_sig",
+    thresholdEnabled: true,
+  });
+  expect(Number(thresholdState.threshold)).toBeCloseTo(mapSnrThreshold, 6);
+  await expect.poll(async () => page.locator("#map_color").evaluate(
+    (select) => Object.keys(select.selectize ? select.selectize.options : {})
+  ), { timeout: 120000 }).toContain("Feature ID");
+  await toggleCard(signalThresholdCard);
+  await expectCardCollapsed(signalThresholdCard);
+  await toggleCard(settingsCard);
+  await expectCardCollapsed(settingsCard);
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  await expect(overlay).toBeHidden({ timeout: 120000 });
+  await dismissQueuedAlerts(page);
   const snrThresholdBuckets = {};
   for (const status of ["warning", "success"]) {
-    const expectedCount = Number(
-      await page.locator(`#quality_${status}_count`).textContent()
+    await clickPastQueuedAlerts(
+      page, page.locator(`#quality_${status}_details`)
     );
-    await page.locator(`#quality_${status}_details`).click();
     qualityModal = page.locator(".modal-content:visible");
     await expect(qualityModal).toContainText(
       status === "warning" ? "Spectral quality warnings" :
         "Successful spectral checks"
     );
-    await expect(qualityModal.locator(".openspecy-quality-finding"))
-      .toHaveCount(expectedCount);
+    const findingCount = await qualityModal.locator(
+      ".openspecy-quality-finding"
+    ).count();
+    await expect.poll(async () => Number(
+      await page.locator(`#quality_${status}_count`).textContent()
+    ), { timeout: 30000 }).toBe(findingCount);
     const thresholdFinding = qualityModal.locator(
       '[data-quality-test-id$=":snr_threshold"]'
     );
@@ -1494,7 +1850,10 @@ test("local app renders spectra, matches, and one informative progress overlay",
         "data-quality-status", status
       );
     }
-    await qualityModal.getByRole("button", { name: "Close", exact: true }).click();
+    await clickPastQueuedAlerts(
+      page,
+      qualityModal.getByRole("button", { name: "Close", exact: true })
+    );
     await expect(qualityModal).toBeHidden();
   }
   expect(snrThresholdBuckets.warning + snrThresholdBuckets.success).toBe(1);

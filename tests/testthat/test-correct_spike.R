@@ -346,3 +346,136 @@ test_that("correction preserves existing non-finite values and adds none", {
                    which(!is.finite(original$spectra)))
   expect_true(attr(corrected, "automatic_spike")$applied)
 })
+
+test_that("iterative correction retains safe test-map passes", {
+  map_path <- system.file(
+    "extdata", "CA_tiny_map.zip", package = "OpenSpecy"
+  )
+  expect_true(nzchar(map_path) && file.exists(map_path))
+  original <- read_any(map_path) |>
+    c_spec(range = "common", res = 6) |>
+    manage_na(ig = c(NA, 0), type = "remove")
+
+  corrected <- correct_spike(
+    original,
+    method = "residual", direction = "both",
+    residual_threshold = 8, residual_window = 5
+  )
+  diagnostic <- attr(corrected, "automatic_spike")
+
+  expect_true(diagnostic$applied)
+  expect_identical(diagnostic$reason, "corrected_with_safeguards")
+  expect_identical(diagnostic$before_count, 43L)
+  expect_identical(diagnostic$after_count, 1L)
+  expect_identical(diagnostic$pass_count, 3L)
+  expect_equal(nrow(diagnostic$corrected_regions), 49L)
+  expect_true("interpolation_no_change" %in%
+                diagnostic$rejected_regions$reason)
+  expect_false(identical(diagnostic$reason, "correctable_spikes_remain"))
+  expect_equal(
+    sum(as.matrix(original$spectra) != as.matrix(corrected$spectra)), 49L
+  )
+  expect_identical(corrected$wavenumber, original$wavenumber)
+  expect_identical(dimnames(corrected$spectra), dimnames(original$spectra))
+  expect_identical(corrected$metadata, original$metadata)
+  expect_identical(
+    correct_spike(
+      corrected,
+      method = "residual", direction = "both",
+      residual_threshold = 8, residual_window = 5
+    ),
+    corrected
+  )
+})
+
+test_that("idempotency preserves applied diagnostics after metadata changes", {
+  values <- rep(0, 101)
+  values[c(2, 51)] <- 50
+  corrected <- correct_spike(
+    make_spike_test_spec(values),
+    method = "prominence_fwhm",
+    direction = "positive",
+    prominence_threshold = 10,
+    width_threshold = 4,
+    interpolation_points = 5L
+  )
+  original_diagnostic <- attr(corrected, "automatic_spike")
+  expect_true(original_diagnostic$applied)
+  expect_true("boundary_interval" %in%
+                original_diagnostic$rejected_regions$reason)
+
+  annotated <- corrected
+  annotated$metadata$note <- "metadata does not affect spike detection"
+  repeated <- correct_spike(
+    annotated,
+    method = "prominence_fwhm",
+    direction = "positive",
+    prominence_threshold = 10,
+    width_threshold = 4,
+    interpolation_points = 5L
+  )
+
+  expect_identical(repeated, annotated)
+  expect_identical(attr(repeated, "automatic_spike"), original_diagnostic)
+})
+
+test_that("idempotency does not preserve stale diagnostics after data changes", {
+  values <- rep(0, 101)
+  values[51] <- 50
+  corrected <- correct_spike(
+    make_spike_test_spec(values),
+    method = "prominence_fwhm",
+    direction = "positive",
+    prominence_threshold = 10,
+    width_threshold = 4,
+    interpolation_points = 5L
+  )
+  expect_true(attr(corrected, "automatic_spike")$applied)
+
+  changed <- corrected
+  changed$spectra[2, 1] <- 50
+  attempted <- correct_spike(
+    changed,
+    method = "prominence_fwhm",
+    direction = "positive",
+    prominence_threshold = 10,
+    width_threshold = 4,
+    interpolation_points = 5L
+  )
+  diagnostic <- attr(attempted, "automatic_spike")
+
+  expect_false(diagnostic$applied)
+  expect_identical(diagnostic$method, "prominence_fwhm")
+  expect_identical(diagnostic$reason, "no_correctable_regions")
+  expect_true("boundary_interval" %in% diagnostic$rejected_regions$reason)
+  expect_false(identical(diagnostic$result_signature,
+                         attr(corrected, "automatic_spike")$result_signature))
+})
+
+test_that("idempotency does not preserve stale diagnostics after method changes", {
+  values <- rep(0, 101)
+  values[c(2, 51)] <- 50
+  corrected <- correct_spike(
+    make_spike_test_spec(values),
+    residual_window = 5L,
+    interpolation_points = 5L
+  )
+  expect_true(attr(corrected, "automatic_spike")$applied)
+
+  attempted <- correct_spike(
+    corrected,
+    method = "prominence_fwhm",
+    direction = "positive",
+    prominence_threshold = 10,
+    width_threshold = 4,
+    interpolation_points = 5L
+  )
+  diagnostic <- attr(attempted, "automatic_spike")
+
+  expect_false(diagnostic$applied)
+  expect_identical(diagnostic$method, "prominence_fwhm")
+  expect_identical(diagnostic$reason, "no_correctable_regions")
+  expect_true("boundary_interval" %in% diagnostic$rejected_regions$reason)
+  expect_false(identical(diagnostic$result_signature,
+                         attr(corrected, "automatic_spike")$result_signature))
+})

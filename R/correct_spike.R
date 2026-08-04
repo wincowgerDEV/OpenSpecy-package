@@ -28,6 +28,13 @@
 #' quadratic reconstruction over a multi-point interval is rejected to avoid
 #' silently truncating an underlying broad band.
 #'
+#' Correction proceeds through bounded transactional passes while the detector's
+#' correctable count strictly decreases. This lets a newly revealed spike be
+#' corrected without rolling back safe earlier replacements. Processing stops
+#' on no progress; boundary, interpolation, and band-protection safeguards stay
+#' in force, and any remaining safeguarded candidates are recorded rather than
+#' forced.
+#'
 #' No single-spectrum method can always distinguish a cosmic-ray spike from a
 #' genuine band with the same shape. Calibrate paper thresholds on representative
 #' standards, especially for narrow-band materials such as calcite and
@@ -70,8 +77,8 @@
 #' existing attributes are preserved. A successful or rejected attempted
 #' correction stores an `automatic_spike` attribute containing the method,
 #' parameters, corrected and rejected regions, affected spectra, detector
-#' counts, and transaction reason. If nothing is detected, `x` is returned
-#' unchanged.
+#' counts, pass count, and transaction reason. If nothing is detected, `x` is
+#' returned unchanged.
 #'
 #' @examples
 #' wave <- seq(400, 1800, length.out = 101)
@@ -162,109 +169,144 @@ correct_spike.OpenSpecy <- function(
     detection$parameters,
     list(interpolation = interpolation)
   )
-  rejected <- .candidate_rejected_regions(detection$candidates)
-  regions <- .merge_spike_regions(detection$candidates)
-
-  if (nrow(regions) == 0L) {
-    attr(x, "automatic_spike") <- .spike_diagnostic(
-      applied = FALSE,
-      method = method,
-      parameters = diagnostic_parameters,
-      corrected = .empty_spike_regions(),
-      rejected = rejected,
-      before_count = detection$correctable_count,
-      after_count = detection$correctable_count,
-      candidate_count = detection$candidate_count,
-      reason = "no_correctable_regions"
-    )
-    return(x)
-  }
-
-  prepared <- .prepare_spike_corrections(
-    x = x,
-    regions = regions,
-    flagged = detection$flagged,
-    interpolation_points = parameters$interpolation_points,
-    interpolation = interpolation
+  original <- x
+  previous_diagnostic <- attr(original, "automatic_spike", exact = TRUE)
+  initial_correctable_count <- detection$correctable_count
+  initial_candidate_count <- detection$candidate_count
+  attempt_signature <- .spike_result_signature(
+    original, method, diagnostic_parameters
   )
-  rejected <- data.table::rbindlist(
-    list(rejected, prepared$rejected),
-    use.names = TRUE
-  )
+  current <- x
+  corrected <- rejected <- .empty_spike_regions()
+  pass_count <- 0L
+  stop_reason <- "no_correctable_regions"
+  # Each accepted pass strictly decreases this non-negative count, so the
+  # detected state supplies a finite bound without another public argument.
+  maximum_passes <- max(1L, initial_correctable_count)
 
-  if (nrow(prepared$accepted) == 0L) {
-    attr(x, "automatic_spike") <- .spike_diagnostic(
-      applied = FALSE,
-      method = method,
-      parameters = diagnostic_parameters,
-      corrected = .empty_spike_regions(),
-      rejected = rejected,
-      before_count = detection$correctable_count,
-      after_count = detection$correctable_count,
-      candidate_count = detection$candidate_count,
-      reason = "no_correctable_regions"
-    )
-    return(x)
-  }
-
-  trial <- x
-  for (replacement in prepared$replacements) {
-    trial$spectra[replacement$rows, replacement$spectrum_index] <-
-      replacement$values
-  }
-
-  transaction_reason <- .validate_spike_transaction(
-    original = x,
-    trial = trial,
-    flagged = detection$flagged
-  )
-  after <- do.call(
-    .detect_spikes,
-    c(list(x = trial), parameters)
-  )
-  if (is.null(transaction_reason) &&
-      after$correctable_count >= detection$correctable_count) {
-    transaction_reason <- "detector_count_not_reduced"
-  }
-  if (is.null(transaction_reason) && after$correctable_count > 0L) {
-    transaction_reason <- "correctable_spikes_remain"
-  }
-
-  if (!is.null(transaction_reason)) {
-    rolled_back <- data.table::copy(prepared$accepted)
-    data.table::set(rolled_back, j = "reason", value = transaction_reason)
+  repeat {
     rejected <- data.table::rbindlist(
-      list(rejected, rolled_back),
+      list(rejected, .candidate_rejected_regions(detection$candidates)),
       use.names = TRUE
     )
-    attr(x, "automatic_spike") <- .spike_diagnostic(
+    regions <- .merge_spike_regions(detection$candidates)
+    if (nrow(regions) == 0L) {
+      stop_reason <- "no_correctable_regions"
+      break
+    }
+
+    prepared <- .prepare_spike_corrections(
+      x = current,
+      regions = regions,
+      flagged = detection$flagged,
+      interpolation_points = parameters$interpolation_points,
+      interpolation = interpolation
+    )
+    rejected <- data.table::rbindlist(
+      list(rejected, prepared$rejected), use.names = TRUE
+    )
+    if (nrow(prepared$accepted) == 0L) {
+      stop_reason <- "no_correctable_regions"
+      break
+    }
+
+    trial <- current
+    for (replacement in prepared$replacements) {
+      trial$spectra[replacement$rows, replacement$spectrum_index] <-
+        replacement$values
+    }
+    transaction_reason <- .validate_spike_transaction(
+      original = current,
+      trial = trial,
+      flagged = detection$flagged
+    )
+    after <- do.call(
+      .detect_spikes,
+      c(list(x = trial), parameters)
+    )
+    if (is.null(transaction_reason) &&
+        after$correctable_count >= detection$correctable_count) {
+      transaction_reason <- "detector_count_not_reduced"
+    }
+    if (!is.null(transaction_reason)) {
+      rolled_back <- data.table::copy(prepared$accepted)
+      data.table::set(
+        rolled_back, j = "reason", value = transaction_reason
+      )
+      rejected <- data.table::rbindlist(
+        list(rejected, rolled_back), use.names = TRUE
+      )
+      stop_reason <- transaction_reason
+      break
+    }
+
+    accepted <- data.table::copy(prepared$accepted)
+    data.table::set(accepted, j = "reason", value = "corrected")
+    corrected <- data.table::rbindlist(
+      list(corrected, accepted), use.names = TRUE
+    )
+    current <- trial
+    detection <- after
+    pass_count <- pass_count + 1L
+    if (detection$correctable_count == 0L ||
+        detection$candidate_count == 0L) {
+      stop_reason <- "corrected"
+      break
+    }
+    if (pass_count >= maximum_passes) {
+      stop_reason <- "iteration_limit"
+      break
+    }
+  }
+
+  corrected <- unique(corrected)
+  rejected <- unique(rejected)
+  if (nrow(corrected) == 0L) {
+    # Repeating a completed correction with only the same safeguarded residual
+    # candidate is an exact no-op, including its prior diagnostic attribute.
+    if (is.list(previous_diagnostic) &&
+        isTRUE(previous_diagnostic$applied) &&
+        identical(previous_diagnostic$result_signature, attempt_signature)) {
+      return(original)
+    }
+    attr(original, "automatic_spike") <- .spike_diagnostic(
       applied = FALSE,
       method = method,
       parameters = diagnostic_parameters,
-      corrected = .empty_spike_regions(),
+      corrected = corrected,
       rejected = rejected,
-      before_count = detection$correctable_count,
-      after_count = after$correctable_count,
-      candidate_count = detection$candidate_count,
-      reason = transaction_reason
+      before_count = initial_correctable_count,
+      after_count = detection$correctable_count,
+      candidate_count = initial_candidate_count,
+      pass_count = pass_count,
+      reason = stop_reason,
+      result_signature = attempt_signature
     )
-    return(x)
+    return(original)
   }
 
-  corrected <- data.table::copy(prepared$accepted)
-  data.table::set(corrected, j = "reason", value = "corrected")
-  attr(trial, "automatic_spike") <- .spike_diagnostic(
+  final_reason <- if (detection$correctable_count > 0L ||
+                      nrow(rejected) > 0L) {
+    "corrected_with_safeguards"
+  } else {
+    "corrected"
+  }
+  attr(current, "automatic_spike") <- .spike_diagnostic(
     applied = TRUE,
     method = method,
     parameters = diagnostic_parameters,
     corrected = corrected,
     rejected = rejected,
-    before_count = detection$correctable_count,
-    after_count = after$correctable_count,
-    candidate_count = detection$candidate_count,
-    reason = "corrected"
+    before_count = initial_correctable_count,
+    after_count = detection$correctable_count,
+    candidate_count = initial_candidate_count,
+    pass_count = pass_count,
+    reason = final_reason,
+    result_signature = .spike_result_signature(
+      current, method, diagnostic_parameters
+    )
   )
-  trial
+  current
 }
 
 .validate_spike_input <- function(x) {
@@ -1130,6 +1172,18 @@ correct_spike.OpenSpecy <- function(
   NULL
 }
 
+.spike_result_signature <- function(x, method, parameters) {
+  digest::digest(
+    list(
+      wavenumber = x$wavenumber,
+      spectra = x$spectra,
+      method = method,
+      parameters = parameters
+    ),
+    algo = "xxhash64"
+  )
+}
+
 .spike_diagnostic <- function(
     applied,
     method,
@@ -1139,7 +1193,9 @@ correct_spike.OpenSpecy <- function(
     before_count,
     after_count,
     candidate_count,
-    reason) {
+    pass_count = 0L,
+    reason,
+    result_signature = NULL) {
   affected <- unique(corrected$spectrum_id)
   list(
     applied = isTRUE(applied),
@@ -1151,6 +1207,8 @@ correct_spike.OpenSpecy <- function(
     candidate_count = as.integer(candidate_count),
     before_count = as.integer(before_count),
     after_count = as.integer(after_count),
-    reason = reason
+    pass_count = as.integer(pass_count),
+    reason = reason,
+    result_signature = result_signature
   )
 }

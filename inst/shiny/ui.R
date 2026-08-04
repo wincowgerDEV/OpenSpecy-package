@@ -49,52 +49,6 @@ preprocessing_controls <- tagList(
     "Transforms uploaded spectra before artifact checks and identification."
   ),
   app_control_box(
-    "spike_decision", "Remove Isolated Spikes", TRUE,
-    selectInput(
-      "spike_direction", "Spike Direction",
-      choices = c("Positive and negative" = "both",
-                  "Positive only" = "positive",
-                  "Negative only" = "negative"),
-      selected = "both"
-    ),
-    numericInput(
-      "spike_residual_threshold", "Robust Residual Threshold",
-      value = 8, min = 3, step = 0.5
-    ),
-    numericInput(
-      "spike_residual_window", "Neighbor Points per Side",
-      value = 5, min = 2, step = 1
-    ),
-    note = c(
-      "Detects conservative one-point impulse artifacts before smoothing and baseline correction, then interpolates only accepted intervals.",
-      "Inspect the quality findings after processing because a narrow real spectral band can resemble a spike."
-    )
-  ),
-  app_control_box(
-    "saturation_decision", "Remove Saturated Ranges", TRUE,
-    selectInput(
-      "saturation_mode", "Saturation Detection",
-      choices = c("Automatic hard plateaus" = "auto",
-                  "Detector ceiling" = "threshold"),
-      selected = "auto"
-    ),
-    conditionalPanel(
-      condition = "input.saturation_mode == 'threshold'",
-      numericInput(
-        "saturation_ceiling", "Detector Ceiling", value = 65535,
-        min = 0, step = 1
-      )
-    ),
-    sliderInput(
-      "saturation_max_loss", "Maximum Shared-Axis Loss",
-      min = 0, max = 0.7, value = 0.7, step = 0.05
-    ),
-    note = c(
-      "Finds hard plateaus across the uploaded batch and removes the same guarded ranges from every spectrum before ordinary preprocessing.",
-      "If the proposal removes too much spectral coverage, no values are removed and the quality panel records recollection guidance."
-    )
-  ),
-  app_control_box(
     "make_rel_decision", "Min-Max Normalize", TRUE,
     note = c(
       "Rescales each spectrum between zero and one for comparison.",
@@ -207,6 +161,56 @@ preprocessing_controls <- tagList(
     note = c(
       "Minimum and Maximum Wavenumber define the CO2 or artifact region tested by automatic mode and flattened when correction is retained.",
       "Automatic mode corrects that region only when its artifact ratio exceeds the threshold and the batch improves; manual mode uses the same bounds directly."
+    )
+  ),
+  app_control_box(
+    "spike_decision", "Remove Isolated Spikes", TRUE,
+    selectInput(
+      "spike_direction", "Spike Direction",
+      choices = c("Positive and negative" = "both",
+                  "Positive only" = "positive",
+                  "Negative only" = "negative"),
+      selected = "both"
+    ),
+    numericInput(
+      "spike_residual_threshold", "Robust Residual Threshold",
+      value = 8, min = 3, step = 0.5
+    ),
+    numericInput(
+      "spike_residual_window", "Neighbor Points per Side",
+      value = 5, min = 2, step = 1
+    ),
+    note = c(
+      "Spike Direction tests upward impulses, downward impulses, or both relative to a wavenumber-aware prediction from neighboring samples.",
+      "Robust Residual Threshold is the prediction error scaled by local median absolute deviation: higher values are more conservative, while lower values admit more candidates.",
+      "Neighbor Points per Side is the number of finite samples used on each side of a candidate; larger windows add context but can span narrow real bands.",
+      "Only one-point candidates that pass boundary, interpolation, and band-protection safeguards are replaced. Safeguarded candidates remain unchanged and are explained under Automatic Corrections Made."
+    )
+  ),
+  app_control_box(
+    "saturation_decision", "Remove Saturated Ranges", FALSE,
+    selectInput(
+      "saturation_mode", "Saturation Detection",
+      choices = c("Automatic hard plateaus" = "auto",
+                  "Detector ceiling" = "threshold"),
+      selected = "auto"
+    ),
+    conditionalPanel(
+      condition = "input.saturation_mode == 'threshold'",
+      numericInput(
+        "saturation_ceiling", "Detector Ceiling", value = 65535,
+        min = 0, step = 1
+      )
+    ),
+    sliderInput(
+      "saturation_max_loss", "Maximum Shared-Axis Loss",
+      min = 0, max = 0.7, value = 0.7, step = 0.05
+    ),
+    note = c(
+      "Saturation Detection chooses either automatic hard-plateau detection (at least two adjacent, effectively constant values at a spectrum maximum) or a known detector ceiling.",
+      "Detector Ceiling is expressed in the uploaded intensity units; threshold mode flags values at or above it, such as 65535 for appropriate 16-bit detector data.",
+      "Maximum Shared-Axis Loss is the permitted fraction of wavenumber coverage removed from every spectrum (0.10 means 10%); lower values reject more proposals and the maximum is 0.70.",
+      "Accepted intervals receive a one-sample guard and are removed identically across the batch. A proposal is a no-op when it exceeds the loss limit or leaves too few shared points, because reconstructing clipped peaks would be scientifically unsafe."
     )
   )
 )
@@ -396,13 +400,7 @@ quantification_controls <- tagList(
   bs4Dash::box(
     width = 12,
     title = "Single Measurements",
-    prettySwitch(
-      "quant_measurement_enabled", "Enable Single Measurements",
-      inline = TRUE, value = FALSE, status = "success", fill = TRUE
-    ),
-    conditionalPanel(
-      condition = "input.quant_measurement_enabled",
-      textInput(
+    textInput(
         "quant_measurement_name", "Measurement Name",
         placeholder = "For example: Carbonyl area"
       ),
@@ -467,8 +465,7 @@ quantification_controls <- tagList(
           icon = icon("trash"),
           class = "btn-outline-danger"
         )
-      )
-    ),
+      ),
     footer = footnote(
       "How single measurements are calculated",
       "Area measurements integrate one selected wavenumber region; intensity measurements use the nearest available value to one requested wavenumber.",
@@ -728,8 +725,8 @@ dashboardPage(
           display: inline-flex;
           align-items: center;
           gap: .65rem;
-          width: 20rem !important;
-          max-width: calc(100% - 44px) !important;
+          width: 100% !important;
+          max-width: 100% !important;
           margin: 0;
           color: var(--openspecy-canvas) !important;
           background: var(--openspecy-accent) !important;
@@ -743,7 +740,9 @@ dashboardPage(
           box-sizing: border-box;
         }
         #download_panel_box .card-title {
+          width: calc(100% - 44px);
           max-width: calc(100% - 44px);
+          flex: 0 0 calc(100% - 44px);
           margin: 0;
         }
         #download_panel_box .card-body { padding-top: 14px; }
@@ -843,6 +842,9 @@ dashboardPage(
           background: var(--openspecy-panel-2) !important;
           border-color: var(--openspecy-grid) !important;
         }
+        .selectize-control.dropdown-active { z-index: 1100; }
+        .selectize-dropdown { z-index: 1101 !important; }
+        #choice_names { position: relative; z-index: 20; }
         .custom-file-label::after,
         .input-group-text {
           color: var(--openspecy-text) !important;

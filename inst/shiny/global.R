@@ -304,8 +304,7 @@ app_user_metadata_input_ids <- c(
   "quant_numerator_area_min", "quant_numerator_area_max",
   "quant_denominator_area_min", "quant_denominator_area_max",
   "quant_numerator_peak", "quant_denominator_peak",
-  "quant_measurement_enabled", "quant_measurement_name",
-  "quant_measurement_type",
+  "quant_measurement_name", "quant_measurement_type",
   "quant_measurement_area_min", "quant_measurement_area_max",
   "quant_measurement_wavenumber"
 )
@@ -348,11 +347,16 @@ app_apply_spectral_corrections <- function(
       warning = function(warning) invokeRestart("muffleWarning")
     )
   }
+  attr(current, "app_automatic_correction_state") <- c(
+    spike = isTRUE(spike), saturation = !is.null(saturation)
+  )
   current
 }
 
 app_copy_correction_history <- function(from, to) {
-  for(name in c("automatic_spike", "saturation_restriction")) {
+  for(name in c(
+      "automatic_spike", "saturation_restriction",
+      "app_automatic_correction_state")) {
     value <- attr(from, name, exact = TRUE)
     if(!is.null(value)) attr(to, name) <- value
   }
@@ -1029,7 +1033,18 @@ app_attach_quantification <- function(
 
 .app_range_diagnostic <- function(step, check, enabled, attempted, accepted,
                                   total, before, after, reason,
-                                  message = "") {
+                                  message = "",
+                                  original_range = c(NA_real_, NA_real_),
+                                  applied_range = c(NA_real_, NA_real_)) {
+  normalize_range <- function(value) {
+    value <- suppressWarnings(as.numeric(value))
+    if(length(value) < 2L || any(!is.finite(value[1:2]))) {
+      return(c(NA_real_, NA_real_))
+    }
+    range(value[1:2])
+  }
+  original_range <- normalize_range(original_range)
+  applied_range <- normalize_range(applied_range)
   data.frame(
     step = step,
     check = check,
@@ -1041,6 +1056,10 @@ app_attach_quantification <- function(
     after_passes = as.integer(after),
     reason = reason,
     message = message,
+    original_range_min = original_range[[1L]],
+    original_range_max = original_range[[2L]],
+    applied_range_min = applied_range[[1L]],
+    applied_range_max = applied_range[[2L]],
     stringsAsFactors = FALSE
   )
 }
@@ -1107,12 +1126,41 @@ app_attach_quantification <- function(
   }
 
   accepted <- after$passes > before$passes
+  correction_detail <- attr(
+    candidate,
+    if(identical(step, "flatten_range")) {
+      "automatic_flatten"
+    } else {
+      "automatic_tail"
+    },
+    exact = TRUE
+  )
+  original_range <- if(is.list(correction_detail) &&
+                            !is.null(correction_detail$original_range)) {
+    correction_detail$original_range
+  } else {
+    range(x$wavenumber, na.rm = TRUE)
+  }
+  applied_range <- if(identical(step, "flatten_range")) {
+    if(is.list(correction_detail) && !is.null(correction_detail$region)) {
+      correction_detail$region
+    } else {
+      c(correction_args$min, correction_args$max)
+    }
+  } else if(is.list(correction_detail) &&
+            !is.null(correction_detail$corrected_range)) {
+    correction_detail$corrected_range
+  } else {
+    range(candidate$wavenumber, na.rm = TRUE)
+  }
   list(
     data = if(accepted) candidate else x,
     diagnostic = .app_range_diagnostic(
       step, check, TRUE, TRUE, accepted, before$total,
       before$passes, after$passes,
-      if(accepted) "improved" else "not_improved"
+      if(accepted) "improved" else "not_improved",
+      original_range = original_range,
+      applied_range = applied_range
     )
   )
 }
@@ -1211,6 +1259,26 @@ app_heatmap_colorscale <- list(
   c(1.00, "#CC79A7")
 )
 
+app_heatmap_legend_layout <- function(title = "Value") {
+  title <- trimws(as.character(title))
+  title <- if(length(title) && !is.na(title[[1L]]) && nzchar(title[[1L]])) {
+    title[[1L]]
+  } else {
+    "Value"
+  }
+  list(
+    colorbar = list(
+      title = list(text = title, side = "top"),
+      orientation = "h",
+      x = 0.5, xanchor = "center",
+      y = 1.03, yanchor = "bottom",
+      len = 0.72,
+      thickness = 14
+    ),
+    margin = list(t = 104, r = 32, b = 64, l = 72)
+  )
+}
+
 app_category_colors <- c(
   "#56B4E9", "#E69F00", "#009E73", "#F0E442", "#CC79A7",
   "#D55E00", "#7FDBFF", "#98D8C8", "#F4A6C1", "#FDD17A"
@@ -1256,6 +1324,42 @@ app_automatic_quality_checks <- c(
   "spike", "saturation", "co2_region", "high_tail"
 )
 
+app_quality_success_description <- function(row) {
+  if(!is.data.frame(row) || nrow(row) != 1L || !"check" %in% names(row)) {
+    stop("A success description requires one quality-report row.",
+         call. = FALSE)
+  }
+  check <- as.character(row$check[[1L]])
+  switch(
+    check,
+    silent_region = {
+      region <- if(all(c("region_min", "region_max") %in% names(row)) &&
+                   is.finite(row$region_min[[1L]]) &&
+                   is.finite(row$region_max[[1L]])) {
+        paste0(
+          " in ", format(row$region_min[[1L]], trim = TRUE), "-",
+          format(row$region_max[[1L]], trim = TRUE), " cm^-1"
+        )
+      } else " in the configured silent region"
+      paste0(
+        "The maximum intensity", region,
+        " stayed at or below the spectrum-wide high-quantile threshold."
+      )
+    },
+    missing_values =
+      "No NA, NaN, Inf, or -Inf intensity values were detected.",
+    flat_spectrum = paste(
+      "The finite intensity range exceeds the configured flat-spectrum",
+      "tolerance, so the spectrum is not constant."
+    ),
+    negative_intensity = paste(
+      "The minimum finite intensity stayed at or above the allowed negative",
+      "threshold."
+    ),
+    as.character(row$description[[1L]])
+  )
+}
+
 app_quality_ui_report <- function(report) {
   if(is.null(report) || !is.data.frame(report) || !nrow(report)) return(report)
   if(!all(c("status", "test_id", "check") %in% names(report))) {
@@ -1271,6 +1375,12 @@ app_quality_ui_report <- function(report) {
   report$status <- ifelse(
     report$status %in% c("pass", "success"), "success", "warning"
   )
+  success_rows <- which(report$status == "success")
+  for(i in success_rows) {
+    report$description[[i]] <- app_quality_success_description(
+      report[i, , drop = FALSE]
+    )
+  }
   report
 }
 
@@ -1419,7 +1529,7 @@ app_quality_evidence <- function(row) {
   if(length(row$metric) && !is.na(row$metric) && nzchar(row$metric)) {
     parts <- c(parts, paste0("Metric: ", row$metric))
   }
-  if(length(row$value) && is.finite(row$value)) {
+  if(length(row$value) && !is.na(row$value)) {
     parts <- c(parts, paste0("Observed: ", signif(row$value, 5)))
   }
   if(length(row$threshold) && is.finite(row$threshold)) {
@@ -1474,13 +1584,48 @@ app_quality_modal_content <- function(report, status) {
       tags$h4(gsub("_", " ", row$check[[1L]], fixed = TRUE)),
       tags$p(tags$strong("Finding: "), row$description[[1L]]),
       tags$p(tags$strong("Evidence: "), app_quality_evidence(row)),
-      tags$p(tags$strong("Interpretation: "),
-             ifelse(is.na(row$likely_cause[[1L]]),
-                     "No likely cause was recorded.",
-                     row$likely_cause[[1L]])),
-      tags$p(tags$strong("Action: "), row$potential_fix[[1L]])
+      if(identical(status, "warning")) {
+        tags$p(
+          tags$strong("Interpretation: "),
+          ifelse(
+            is.na(row$likely_cause[[1L]]),
+            "No likely cause was recorded.",
+            row$likely_cause[[1L]]
+          )
+        )
+      },
+      if(identical(status, "warning")) {
+        tags$p(tags$strong("Action: "), row$potential_fix[[1L]])
+      }
     )
   }))
+}
+
+app_format_wavenumber_ranges <- function(ranges, maximum = 4L) {
+  if(is.null(ranges) || !is.data.frame(ranges) || !nrow(ranges) ||
+     !all(c("region_min", "region_max") %in% names(ranges))) {
+    return("no recorded wavenumber range")
+  }
+  maximum <- suppressWarnings(as.integer(maximum))
+  if(length(maximum) != 1L || is.na(maximum) || maximum < 1L) maximum <- 4L
+  ranges <- unique(ranges[, c("region_min", "region_max"), drop = FALSE])
+  ranges <- ranges[
+    is.finite(ranges$region_min) & is.finite(ranges$region_max), , drop = FALSE
+  ]
+  if(!nrow(ranges)) return("no recorded wavenumber range")
+  labels <- vapply(seq_len(min(nrow(ranges), maximum)), function(i) {
+    bounds <- sort(c(ranges$region_min[[i]], ranges$region_max[[i]]))
+    formatted <- format(signif(bounds, 7), trim = TRUE)
+    if(isTRUE(all.equal(bounds[[1L]], bounds[[2L]]))) {
+      paste0(formatted[[1L]], " cm^-1")
+    } else {
+      paste0(formatted[[1L]], "-", formatted[[2L]], " cm^-1")
+    }
+  }, character(1))
+  if(nrow(ranges) > maximum) {
+    labels <- c(labels, paste0("and ", nrow(ranges) - maximum, " more"))
+  }
+  paste(labels, collapse = ", ")
 }
 
 app_automatic_report <- function(
@@ -1492,6 +1637,13 @@ app_automatic_report <- function(
   enabled <- enabled[enabled_names]
   enabled[is.na(enabled)] <- FALSE
   enabled <- stats::setNames(as.logical(enabled), enabled_names)
+  recorded_state <- if(is.null(x)) NULL else
+    attr(x, "app_automatic_correction_state", exact = TRUE)
+  if(is.logical(recorded_state) &&
+     all(c("spike", "saturation") %in% names(recorded_state))) {
+    enabled[c("spike", "saturation")] <-
+      recorded_state[c("spike", "saturation")]
+  }
 
   make_row <- function(step, label, is_enabled, applied, outcome, summary) {
     data.frame(
@@ -1524,11 +1676,24 @@ app_automatic_report <- function(
       return(make_row(step, label, TRUE, TRUE, "applied",
                       applied_summary(diagnostic)))
     }
+    rejected <- if(is.data.frame(diagnostic$rejected_regions)) {
+      diagnostic$rejected_regions
+    } else data.frame()
+    rejection_detail <- if(nrow(rejected) && "reason" %in% names(rejected)) {
+      paste0(
+        "; across correction passes, safeguards left ", nrow(rejected),
+        " candidate region",
+        if(nrow(rejected) == 1L) "" else "s", " unchanged (",
+        paste(unique(gsub("_", " ", rejected$reason, fixed = TRUE)),
+              collapse = ", "), ")"
+      )
+    } else ""
     make_row(
       step, label, TRUE, FALSE, "rejected",
       paste0(
         "A candidate correction was not applied (",
-        gsub("_", " ", as.character(diagnostic$reason), fixed = TRUE), ")."
+        gsub("_", " ", as.character(diagnostic$reason), fixed = TRUE),
+        rejection_detail, ")."
       )
     )
   }
@@ -1538,12 +1703,27 @@ app_automatic_report <- function(
   rows <- list(
     attr_row(
       "spike", "Spike correction", enabled[["spike"]], spike,
-      function(value) paste0(
-        "Corrected ", nrow(value$corrected_regions), " spike region",
-        if(nrow(value$corrected_regions) == 1L) "" else "s", " across ",
-        length(value$affected_spectra), " spectrum",
-        if(length(value$affected_spectra) == 1L) "" else "s", "."
-      ),
+      function(value) {
+        corrected_count <- nrow(value$corrected_regions)
+        rejected <- if(is.data.frame(value$rejected_regions)) {
+          value$rejected_regions
+        } else data.frame()
+        remaining <- if(nrow(rejected)) paste0(
+          " Across correction passes, safeguards left ", nrow(rejected),
+          " candidate region",
+          if(nrow(rejected) == 1L) "" else "s", " unchanged (",
+          paste(unique(gsub("_", " ", rejected$reason, fixed = TRUE)),
+                collapse = ", "), ")."
+        ) else ""
+        paste0(
+          "Corrected ", corrected_count, " spike region",
+          if(corrected_count == 1L) "" else "s", " across ",
+          length(value$affected_spectra), " spectrum",
+          if(length(value$affected_spectra) == 1L) "" else "s", " at ",
+          app_format_wavenumber_ranges(value$corrected_regions), ".",
+          remaining
+        )
+      },
       "No correctable spike regions were detected."
     ),
     attr_row(
@@ -1551,7 +1731,8 @@ app_automatic_report <- function(
       saturation,
       function(value) paste0(
         "Removed ", value$excluded_interval_count, " shared saturated range",
-        if(value$excluded_interval_count == 1L) "" else "s", " (",
+        if(value$excluded_interval_count == 1L) "" else "s", " at ",
+        app_format_wavenumber_ranges(value$excluded_ranges), " (",
         signif(100 * value$saturation_loss_fraction, 3),
         "% of the wavenumber span)."
       ),
@@ -1584,8 +1765,35 @@ app_automatic_report <- function(
       after, " of ", total, " after the candidate correction."
     )
     if(isTRUE(row$accepted[[1L]])) {
+      numeric_field <- function(name) {
+        if(!name %in% names(row)) return(NA_real_)
+        suppressWarnings(as.numeric(row[[name]][[1L]]))
+      }
+      format_range <- function(minimum, maximum) paste0(
+        format(signif(minimum, 7), trim = TRUE), "-",
+        format(signif(maximum, 7), trim = TRUE), " cm^-1"
+      )
+      applied_min <- numeric_field("applied_range_min")
+      applied_max <- numeric_field("applied_range_max")
+      original_min <- numeric_field("original_range_min")
+      original_max <- numeric_field("original_range_max")
+      range_detail <- if(identical(step, "flatten") &&
+                         all(is.finite(c(applied_min, applied_max)))) {
+        paste0("Flattened ", format_range(applied_min, applied_max), ".")
+      } else if(identical(step, "tails") &&
+                all(is.finite(c(
+                  original_min, original_max, applied_min, applied_max
+                )))) {
+        paste0(
+          "Restricted the shared wavenumber axis from ",
+          format_range(original_min, original_max), " to ",
+          format_range(applied_min, applied_max), "."
+        )
+      } else {
+        "The corrected range was retained."
+      }
       return(make_row(step, label, TRUE, TRUE, "applied", paste(
-        comparison, "The improved correction was retained."
+        range_detail, comparison, "The improved correction was retained."
       )))
     }
     if(identical(row$reason[[1L]], "no_failures")) {

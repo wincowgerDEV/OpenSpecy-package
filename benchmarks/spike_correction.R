@@ -292,3 +292,49 @@ residual_results <- list(
 )
 
 print(do.call(rbind, residual_results))
+
+# The test-map behavior intentionally differs from the previous all-or-nothing
+# transaction, so this case validates scientific invariants and repeatability
+# rather than pretending it has a same-output legacy oracle.
+benchmark_iterative_map <- function(repetitions = 3L) {
+  source <- read_any(file.path("inst", "extdata", "CA_tiny_map.zip")) |>
+    c_spec(range = "common", res = 6) |>
+    manage_na(ig = c(NA, 0), type = "remove")
+  outputs <- vector("list", repetitions)
+  times <- numeric(repetitions)
+  for(i in seq_len(repetitions)) {
+    times[[i]] <- system.time({
+      outputs[[i]] <- correct_spike(
+        source,
+        method = "residual", direction = "both",
+        residual_threshold = 8, residual_window = 5
+      )
+    })[["elapsed"]]
+  }
+  candidate <- outputs[[1L]]
+  diagnostic <- attr(candidate, "automatic_spike")
+  if(!isTRUE(diagnostic$applied) || diagnostic$before_count != 43L ||
+     diagnostic$after_count != 1L || diagnostic$pass_count != 3L ||
+     nrow(diagnostic$corrected_regions) != 49L ||
+     !all(vapply(outputs, identical, logical(1), candidate)) ||
+     !identical(correct_spike(candidate), candidate) ||
+     !identical(candidate$wavenumber, source$wavenumber) ||
+     !identical(dimnames(candidate$spectra), dimnames(source$spectra)) ||
+     !identical(candidate$metadata, source$metadata)) {
+    stop("iterative test-map correction failed its diagnostic or object invariants")
+  }
+  median_time <- stats::median(times)
+  message(sprintf(
+    "208-spectrum iterative residual correction: median %.3fs (%s)",
+    median_time, paste(sprintf("%.3f", times), collapse = ", ")
+  ))
+  if(median_time > 10) {
+    warning(
+      "iterative test-map spike correction exceeded the 10-second benchmark flag",
+      call. = FALSE
+    )
+  }
+  invisible(times)
+}
+
+benchmark_iterative_map()

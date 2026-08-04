@@ -1,18 +1,16 @@
 <!--
 Sync Impact Report
-Version change: 3.5.0 -> 3.6.0
+Version change: 3.6.0 -> 3.7.0
 Modified principles:
-- Documentation Is Part of the Change: separate the root marketing/app shell from README-driven pkgdown documentation
-- Hosted Shinylive/WebAssembly Application Boundary: establish `/`, `/app/`, and `/pkgdown/` as three explicit sibling surfaces
+- Documentation Is Part of the Change: require substantive per-input guidance for non-obvious scientific and processing controls
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md and .agents/skills/speckit-plan/: plan root landing, app, and pkgdown routes explicitly
-- .agents/skills/speckit-implement/: route hosted presentation work through the landing/pkgdown/browser checks
-- .agents/skills/openspecy-test-hosted-app-browser/ and openspecy-verify-hosted-app/: use the root landing page as the outer frame and inspect all three routes
-- AGENTS.md: synchronize concise durable guidance
+- .specify/templates/plan-template.md and .agents/skills/speckit-plan/: plan user guidance for non-obvious Shiny inputs
+- .agents/skills/openspecy-develop-shiny-app/: verify processing disclosures explain inputs, scales, effects, and safeguards
+- AGENTS.md: synchronize the durable app-guidance rule
 Follow-up TODOs:
 - None
 -->
@@ -177,6 +175,13 @@ reopens that presentation decision. The dependency-free public landing/app
 shell belongs in `site/`; pkgdown SHOULD use README-driven conventional package
 content under `/pkgdown/` instead of duplicating the marketing page. Package
 prose duplicated across README, pkgdown, and landing sources MUST stay aligned.
+
+Bundled application controls that expose non-obvious scientific or processing
+choices MUST provide adjacent or readily discoverable help that names every
+adjustable input and explains its purpose, units or scale, how modes and
+higher/lower values change the analysis, and any material rejection, no-op, or
+interpretation consequence. A generic restatement of the control title is not
+substantive guidance.
 
 Examples and workflow documentation MUST prefer representative `OpenSpecy`
 objects and MUST show how the object structure and meaningful attributes move
@@ -540,4 +545,4 @@ outputs, or claim browser readiness without the required interaction evidence.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.6.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-02
+**Version**: 3.7.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-04

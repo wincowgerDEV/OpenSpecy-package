@@ -49,7 +49,10 @@ for integration and verification procedure.
   useful. A table appearing does not substitute for a missing spectrum or match
   overlay.
 - Extend the centralized theme to dynamic controls, sidebars, tables, dialogs,
-  and plots. Informational disclosures must contain substantive details.
+  and plots. For every non-obvious scientific or processing control group,
+  informational disclosures must name each input, its units or scale, how its
+  modes or higher/lower values affect analysis, and material rejection, no-op,
+  or interpretation consequences.
 - Keep settings exports human-readable, but do not add an importer or imply a
   compatibility contract unless the active plan explicitly accepts that API.
 

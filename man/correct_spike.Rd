@@ -78,8 +78,8 @@ wavenumber axis, spectra dimensions and names, metadata alignment, and
 existing attributes are preserved. A successful or rejected attempted
 correction stores an \code{automatic_spike} attribute containing the method,
 parameters, corrected and rejected regions, affected spectra, detector
-counts, and transaction reason. If nothing is detected, \code{x} is returned
-unchanged.
+counts, pass count, and transaction reason. If nothing is detected, \code{x} is
+returned unchanged.
 }
 \description{
 \code{correct_spike()} detects isolated positive or negative intensity artifacts
@@ -107,6 +107,13 @@ intervals are merged before interpolation so one spike cannot be used to
 repair another. Linear interpolation that materially disagrees with a local
 quadratic reconstruction over a multi-point interval is rejected to avoid
 silently truncating an underlying broad band.
+
+Correction proceeds through bounded transactional passes while the detector's
+correctable count strictly decreases. This lets a newly revealed spike be
+corrected without rolling back safe earlier replacements. Processing stops
+on no progress; boundary, interpolation, and band-protection safeguards stay
+in force, and any remaining safeguarded candidates are recorded rather than
+forced.
 
 No single-spectrum method can always distinguish a cosmic-ray spike from a
 genuine band with the same shape. Calibrate paper thresholds on representative

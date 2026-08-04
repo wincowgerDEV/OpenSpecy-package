@@ -40,7 +40,8 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
 - Bundled Shiny planning must name the canonical final reactive feeding visible
   and exported results, owner/child input gating, affected no-upload/processed/
   identified/batch/quantification states, changed genuine downloads, progress,
-  console/screenshot evidence, and asset impact. Apply
+  console/screenshot evidence, asset impact, and substantive adjacent guidance
+  for every non-obvious scientific or processing input. Apply
   `openspecy-develop-shiny-app` during implementation.
 - Hosted Shinylive/WebAssembly planning must include the root `site/`, `/app/`,
   and `/pkgdown/` route contract, action verification, hardcoded package and

@@ -844,8 +844,7 @@ observeEvent(input$file, {
   })
 
   active_measurement_definitions <- reactive({
-    if(!isTRUE(input$active_quantification) ||
-       !isTRUE(input$quant_measurement_enabled)) {
+    if(!isTRUE(input$active_quantification)) {
       return(app_empty_measurement_definitions())
     }
     measurement_definitions()
@@ -1513,12 +1512,12 @@ output$sidebar_metadata <- DT::renderDataTable(server = TRUE, {
       }
   })
 
-# Progress Bars
-output$choice_names <- renderUI({
+  map_color_choices <- reactive({
     req(ncol(preprocessed$data$spectra) > 1)
     identification_enabled <- isTRUE(input$active_identification)
     collapse_enabled <- isTRUE(input$collapse_decision)
-    choice_names = c(
+    if(identification_enabled) req(!is.null(max_cor()))
+    choice_names <- c(
       if(identification_enabled) "Match Name" else NA,
       if(identification_enabled && !identical(input$lib_type, "model")) {
         "Match ID"
@@ -1527,12 +1526,29 @@ output$choice_names <- renderUI({
       if(!is.null(signal_to_noise())) "Signal/Noise" else NA,
       if(collapse_enabled && !is.null(collapse_features())) "Feature ID" else NA
     )
-    choice_names = choice_names[!is.na(choice_names)]
+    choice_names[!is.na(choice_names)]
+  })
+
+  resolved_map_color <- reactive({
+    choices <- map_color_choices()
+    req(length(choices) > 0L)
+    selected <- input$map_color
+    if(!isTruthy(selected) || !selected %in% choices) choices[[1L]] else selected
+  })
+
+# Progress Bars
+output$choice_names <- renderUI({
+    choice_names <- map_color_choices()
+    selected <- isolate(input$map_color)
+    if(!isTruthy(selected) || !selected %in% choice_names) {
+      selected <- choice_names[[1L]]
+    }
         tagList(
             fluidRow(
                 column(6, selectInput(inputId = "map_color", 
                                       label = "Map Color", 
-                                      choices = choice_names)
+                                      choices = choice_names,
+                                      selected = selected)
             )
             )
                 )
@@ -1670,16 +1686,10 @@ output$progress_bars <- renderUI({
         DataR()
       }
 
-      map_color <- input$map_color
+      map_color <- resolved_map_color()
       categorical <- FALSE
       legend_title <- map_color
-      z <- if(!is.null(max_cor()) && !isTruthy(map_color)) {
-        legend_title <- "Match Value"
-        signif(max_cor(), 2)
-      } else if(!is.null(signal_to_noise()) && !isTruthy(map_color)) {
-        legend_title <- "Signal/Noise"
-        signif(signal_to_noise(), 2)
-      } else if(!is.null(max_cor()) && identical(map_color, "Match ID")) {
+      z <- if(!is.null(max_cor()) && identical(map_color, "Match ID")) {
         categorical <- TRUE
         names(max_cor())
       } else if(!is.null(max_cor()) && identical(map_color, "Match Value")) {
@@ -1696,8 +1706,7 @@ output$progress_bars <- renderUI({
         categorical <- TRUE
         test$metadata$feature_id
       } else {
-        legend_title <- "Signal/Noise"
-        signif(signal_to_noise(), 2)
+        validate(need(FALSE, "The selected map color is not available."))
       }
       if(categorical) {
         z <- factor(
@@ -1752,17 +1761,15 @@ output$progress_bars <- renderUI({
         traces = 2L
       )
       if(!state$categorical) {
+        legend_layout <- app_heatmap_legend_layout(state$legend_title)
         plot <- plotly::style(
           plot,
-          colorbar = list(
-            title = list(text = state$legend_title),
-            x = 1.03, xanchor = "left", y = 0.5, yanchor = "middle"
-          ),
+          colorbar = legend_layout$colorbar,
           traces = 1L
         ) %>%
           plotly::layout(
             showlegend = FALSE,
-            margin = list(t = 28, r = 145, b = 64, l = 72)
+            margin = legend_layout$margin
           )
       } else {
         plot <- plotly::style(

@@ -178,8 +178,19 @@ test_that("bundled app defaults corrections, identification, but not quantificat
   expect_match(ui_source, '"spike_decision", "Remove Isolated Spikes", TRUE',
                fixed = TRUE)
   expect_match(ui_source,
-               '"saturation_decision", "Remove Saturated Ranges", TRUE',
+               '"saturation_decision", "Remove Saturated Ranges", FALSE',
                fixed = TRUE)
+  expect_lt(regexpr('"co2_decision"', ui_source, fixed = TRUE)[[1L]],
+            regexpr('"spike_decision"', ui_source, fixed = TRUE)[[1L]])
+  expect_lt(regexpr('"spike_decision"', ui_source, fixed = TRUE)[[1L]],
+            regexpr('"saturation_decision"', ui_source, fixed = TRUE)[[1L]])
+  expect_match(ui_source, "Robust Residual Threshold is the prediction error",
+               fixed = TRUE)
+  expect_match(ui_source, "Neighbor Points per Side is the number",
+               fixed = TRUE)
+  expect_match(ui_source, "Detector Ceiling is expressed in the uploaded intensity units",
+               fixed = TRUE)
+  expect_match(ui_source, "0.10 means 10%", fixed = TRUE)
   expect_match(
     ui_source,
     'app_section_switch("active_quantification", "Quantification", FALSE)',
@@ -330,8 +341,8 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
       "quant_denominator_area_min", "quant_denominator_area_max",
       "quant_numerator_peak", "quant_denominator_peak",
       "quant_ratio_add", "quant_saved_ratios",
-      "quant_measurement_enabled", "quant_measurement_name",
-      "quant_measurement_type", "quant_measurement_area_min",
+      "quant_measurement_name", "quant_measurement_type",
+      "quant_measurement_area_min",
       "quant_measurement_area_max", "quant_measurement_wavenumber",
       "quant_measurement_add", "quant_measurement_remove",
       "quant_measurement_clear", "quant_measurement_definitions"
@@ -339,6 +350,7 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
     function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
     logical(1)
   )))
+  expect_false(grepl("quant_measurement_enabled", ui_source, fixed = TRUE))
   expect_false(grepl('"quant_ratio_bounds"', ui_source, fixed = TRUE))
   expect_false(grepl("app_quantification_indices", global_source,
                      fixed = TRUE))
@@ -418,10 +430,20 @@ test_that("bundled app uses collapsed responsive panels and one shared theme", {
   expect_match(ui_source, "collapsed = TRUE", fixed = TRUE)
   expect_match(ui_source, "title = shiny::downloadButton(", fixed = TRUE)
   expect_match(ui_source, "app_theme_css()", fixed = TRUE)
-  expect_match(ui_source, "width: 20rem !important",
+  expect_match(ui_source, "width: 100% !important",
                fixed = TRUE)
+  expect_match(ui_source, "flex: 0 0 calc(100% - 44px)", fixed = TRUE)
   expect_match(ui_source, "gap: .65rem", fixed = TRUE)
   expect_match(ui_source, "white-space: nowrap", fixed = TRUE)
+  expect_match(ui_source,
+               ".selectize-control.dropdown-active { z-index: 1100; }",
+               fixed = TRUE)
+  expect_match(ui_source,
+               ".selectize-dropdown { z-index: 1101 !important; }",
+               fixed = TRUE)
+  expect_match(ui_source,
+               "#choice_names { position: relative; z-index: 20; }",
+               fixed = TRUE)
   expect_match(ui_source, "background: var(--openspecy-success)",
                fixed = TRUE)
   expect_match(
@@ -522,11 +544,14 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
                "if(!isTRUE(input$active_quantification))", fixed = TRUE)
   expect_match(server_source, "active_ratio_definitions", fixed = TRUE)
   expect_match(server_source, "active_measurement_definitions", fixed = TRUE)
-  expect_match(
-    server_source,
-    "!isTRUE(input$quant_measurement_enabled)",
-    fixed = TRUE
+  expect_false(grepl("quant_measurement_enabled", server_source,
+                     fixed = TRUE))
+  measurement_owner <- sub(
+    ".*active_measurement_definitions <- reactive\\(\\{", "", server_source
   )
+  measurement_owner <- sub("# Keep analysis spectra.*", "", measurement_owner)
+  expect_match(measurement_owner,
+               "if(!isTRUE(input$active_quantification))", fixed = TRUE)
   expect_match(server_source, "isolate(input$quant_ratio_name)",
                fixed = TRUE)
   expect_match(server_source,
@@ -615,11 +640,13 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_true(is.function(env$app_quality_status_report))
   expect_true(is.function(env$app_threshold_quality_report))
   expect_true(is.function(env$app_quality_counts))
+  expect_true(is.function(env$app_quality_success_description))
   expect_true(is.function(env$app_quality_modal_content))
   expect_true(is.function(env$app_automatic_report))
   expect_true(is.function(env$app_automatic_modal_content))
   expect_true(is.function(env$app_category_palette))
   expect_true(is.function(env$app_category_colorscale))
+  expect_true(is.function(env$app_heatmap_legend_layout))
   expect_true(is.function(env$app_add_measurement_definition))
   expect_true(is.function(env$app_measurement_definition_label))
   expect_true(is.function(env$app_spectrum_legend_layout))
@@ -782,6 +809,20 @@ test_that("bundled app correction and quality helpers preserve auditable state",
   )
   diagnostic <- attr(restricted, "saturation_restriction")
   expect_true(diagnostic$applied)
+  expect_identical(
+    attr(restricted, "app_automatic_correction_state"),
+    c(spike = FALSE, saturation = TRUE)
+  )
+  rebuilt <- as_OpenSpecy(
+    restricted$wavenumber,
+    as.data.frame(restricted$spectra),
+    metadata = restricted$metadata
+  )
+  rebuilt <- env$app_copy_correction_history(restricted, rebuilt)
+  expect_identical(
+    attr(rebuilt, "app_automatic_correction_state"),
+    c(spike = FALSE, saturation = TRUE)
+  )
   expect_false(any(env$app_conform_axis(restricted, 1) %in% 19:22))
   annotated <- env$app_attach_correction_metadata(restricted)
   expect_true(all(c(
@@ -858,7 +899,19 @@ test_that("bundled app correction and quality helpers preserve auditable state",
   expect_match(warning_html, "Low signal found", fixed = TRUE)
   expect_false(grepl("Flat check passed", warning_html, fixed = TRUE))
   expect_false(grepl("Spike detected", warning_html, fixed = TRUE))
-  expect_match(success_html, "Flat check passed", fixed = TRUE)
+  expect_match(success_html, "Finding:", fixed = TRUE)
+  expect_match(success_html, "Evidence:", fixed = TRUE)
+  expect_match(
+    success_html,
+    "finite intensity range exceeds the configured flat-spectrum tolerance",
+    fixed = TRUE
+  )
+  expect_false(grepl("check passed", success_html, fixed = TRUE))
+  expect_false(grepl("Interpretation:", success_html, fixed = TRUE))
+  expect_false(grepl("Action:", success_html, fixed = TRUE))
+  expect_false(grepl("No likely cause was recorded", success_html,
+                     fixed = TRUE))
+  expect_false(grepl("No action required", success_html, fixed = TRUE))
   expect_false(grepl("Missing values found", success_html, fixed = TRUE))
   expect_false(grepl("Low signal found", success_html, fixed = TRUE))
   expect_false(grepl("Automatic correction:", warning_html, fixed = TRUE))
@@ -947,6 +1000,10 @@ test_that("bundled app correction and quality helpers preserve auditable state",
     after_passes = c(2L, 2L),
     reason = c("improved", "no_failures"),
     message = c("", ""),
+    original_range_min = c(400, 400),
+    original_range_max = c(4000, 4000),
+    applied_range_min = c(2200, 400),
+    applied_range_max = c(2400, 4000),
     stringsAsFactors = FALSE
   )
   automatic <- env$app_automatic_report(
@@ -958,6 +1015,18 @@ test_that("bundled app correction and quality helpers preserve auditable state",
   expect_identical(automatic$step,
                    c("spike", "saturation", "flatten", "tails"))
   expect_identical(sum(automatic$applied), 2L)
+  expect_match(
+    automatic$summary[automatic$step == "spike"],
+    "at 20 cm^-1", fixed = TRUE
+  )
+  expect_match(
+    automatic$summary[automatic$step == "flatten"],
+    "Flattened 2200-2400 cm^-1", fixed = TRUE
+  )
+  expect_false(grepl(
+    "disabled", automatic$summary[automatic$step == "saturation"],
+    fixed = TRUE
+  ))
   automatic_html <- paste(as.character(
     env$app_automatic_modal_content(automatic)
   ), collapse = "")
@@ -975,6 +1044,22 @@ test_that("bundled app correction and quality helpers preserve auditable state",
       gregexpr("openspecy-automatic-applied", automatic_html, fixed = TRUE)
     )),
     2L
+  )
+
+  canonical_state <- saturated
+  attr(canonical_state, "app_automatic_correction_state") <- c(
+    spike = FALSE, saturation = TRUE
+  )
+  state_report <- env$app_automatic_report(
+    canonical_state,
+    enabled = c(spike = TRUE, saturation = FALSE,
+                flatten = FALSE, tails = FALSE)
+  )
+  expect_identical(
+    state_report$outcome[state_report$step == "saturation"], "not_needed"
+  )
+  expect_identical(
+    state_report$outcome[state_report$step == "spike"], "disabled"
   )
 
   colors <- vapply(env$app_heatmap_colorscale, `[[`, character(1), 2L)
@@ -1004,6 +1089,7 @@ test_that("bundled app keeps numeric heatmap legends outside and class colors al
     data.frame(a = c(1, 2), b = c(2, 3), c = c(3, 4), d = c(4, 5)),
     metadata = data.frame(x = c(0, 1, 0, 1), y = c(0, 0, 1, 1))
   )
+  legend_layout <- env$app_heatmap_legend_layout("Match Value")
   numeric_plot <- heatmap_spec(
     map,
     z = c(0.2, 0.4, 0.6, 0.8),
@@ -1012,23 +1098,23 @@ test_that("bundled app keeps numeric heatmap legends outside and class colors al
   ) %>%
     env$app_style_plotly() %>%
     plotly::style(
-      colorbar = list(
-        title = list(text = "Match Value"),
-        x = 1.03, xanchor = "left", y = 0.5, yanchor = "middle"
-      ),
+      colorbar = legend_layout$colorbar,
       traces = 1L
     ) %>%
     plotly::layout(
       showlegend = FALSE,
-      margin = list(t = 28, r = 145, b = 64, l = 72)
+      margin = legend_layout$margin
     ) %>%
     plotly::plotly_build()
   heatmap_trace <- Filter(
     function(trace) identical(trace$type, "heatmap"), numeric_plot$x$data
   )[[1L]]
   expect_true(isTRUE(heatmap_trace$showscale))
-  expect_gt(heatmap_trace$colorbar$x, 1)
-  expect_gte(numeric_plot$x$layout$margin$r, 140)
+  expect_identical(heatmap_trace$colorbar$orientation, "h")
+  expect_equal(heatmap_trace$colorbar$x, 0.5)
+  expect_gt(heatmap_trace$colorbar$y, 1)
+  expect_gte(numeric_plot$x$layout$margin$t, 100)
+  expect_lt(numeric_plot$x$layout$margin$r, 100)
 
   categories <- c("PET", "PE", "PP", "PE")
   palette <- env$app_category_palette(categories)
@@ -1062,6 +1148,10 @@ test_that("bundled app keeps numeric heatmap legends outside and class colors al
   )
   expect_match(server_source, "values = match_name_palette()", fixed = TRUE)
   expect_match(server_source, "showlegend = !state$categorical", fixed = TRUE)
+  expect_match(server_source, "map_color_choices <- reactive({", fixed = TRUE)
+  expect_match(server_source, "resolved_map_color <- reactive({", fixed = TRUE)
+  expect_match(server_source, "map_color <- resolved_map_color()", fixed = TRUE)
+  expect_false(grepl("!isTruthy(map_color)", server_source, fixed = TRUE))
   expect_match(
     server_source,
     "zmax = max(1L, length(levels(state$z)))",
@@ -1073,7 +1163,7 @@ test_that("bundled app keeps numeric heatmap legends outside and class colors al
     fixed = TRUE
   )
   expect_match(server_source,
-               'x = 1.03, xanchor = "left", y = 0.5, yanchor = "middle"',
+               "app_heatmap_legend_layout(state$legend_title)",
                fixed = TRUE)
 })
 
@@ -1449,6 +1539,12 @@ test_that("bundled app accepts only improving post-processing corrections", {
   expect_true(flattened$diagnostics$accepted[[1]])
   expect_identical(flattened$diagnostics$before_passes[[1]], 2L)
   expect_identical(flattened$diagnostics$after_passes[[1]], 3L)
+  expect_equal(
+    unlist(flattened$diagnostics[1, c(
+      "applied_range_min", "applied_range_max"
+    )], use.names = FALSE),
+    c(2200, 2400)
+  )
 
   restrict_received_flattened <- FALSE
   env$restrict_range <- function(x, ...) {
@@ -1477,6 +1573,19 @@ test_that("bundled app accepts only improving post-processing corrections", {
                    attr(batch, "source_tag"))
   expect_false(is.null(attr(corrected$data, "automatic_flatten")))
   expect_false(is.null(attr(corrected$data, "automatic_tail")))
+  tail_detail <- attr(corrected$data, "automatic_tail")
+  expect_equal(
+    unlist(corrected$diagnostics[2, c(
+      "original_range_min", "original_range_max"
+    )], use.names = FALSE),
+    tail_detail$original_range
+  )
+  expect_equal(
+    unlist(corrected$diagnostics[2, c(
+      "applied_range_min", "applied_range_max"
+    )], use.names = FALSE),
+    tail_detail$corrected_range
+  )
   expect_equal(nrow(assess_spec(
     corrected$data, checks = c("co2_region", "high_tail")
   )), 0L)
@@ -1767,8 +1876,8 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "quant_ratio_name", "quant_ratio_type", "quant_numerator_area_min",
     "quant_numerator_area_max", "quant_denominator_area_min",
     "quant_denominator_area_max", "quant_numerator_peak",
-    "quant_denominator_peak", "quant_measurement_enabled",
-    "quant_measurement_name", "quant_measurement_type",
+    "quant_denominator_peak", "quant_measurement_name",
+    "quant_measurement_type",
     "quant_measurement_area_min", "quant_measurement_area_max",
     "quant_measurement_wavenumber"
   )
