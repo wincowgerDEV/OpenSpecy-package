@@ -11,17 +11,19 @@ for integration and verification procedure.
 
 ## Workflow
 
-1. Read the active plan, constitution, `AGENTS.md`, `inst/shiny/global.R`,
-   `ui.R`, `server.R`, `tests/testthat/test-run_app.R`, and
-   `tools/shiny-local-smoke.spec.js`.
+1. Read the active tranche and `AGENTS.md`, then locate relevant constitution
+   rules, app symbols, consumers, tests, and browser journeys with `rg`. Read
+   bounded regions first; read complete large app/test files only when a
+   cross-cutting reactive pipeline or ownership question requires it.
 2. Map each changed user action through its owner control, dependent inputs,
    canonical reactive data, plots/tables, identification or quantification,
    metadata, and downloads. Resolve divergent consumers before editing.
 3. Put pure/sourceable app helpers in `global.R`, declarative controls and
    theme tokens in `ui.R`, and orchestration in `server.R`. Move logic into
    `R/` only when it has a stable package-level contract.
-4. Implement the smallest coherent change, then verify the affected app-state
-   matrix before broad package tests.
+4. Implement the smallest coherent change, then iterate with source parsing,
+   the narrowest `run_app` assertions, and one browser journey selected by
+   name when visual or interactive evidence is required.
 5. Apply `openspecy-test-hosted-app-browser` and
    `openspecy-verify-hosted-app` only when hosted presentation, wasm runtime,
    workflows, pins, dependency closure, or staged libraries are affected.
@@ -75,22 +77,47 @@ Cover the states affected by the change:
 
 ## Verification
 
-Use the maintained gate script from the repository root. For a final local app
-candidate, run:
+Use the maintained gate script from the repository root. During presentation
+or help-text iteration, run static parsing plus focused assertions:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File `
   .agents\skills\openspecy-run-quality-gates\scripts\quality-gates.ps1 `
-  -Filter run_app -BundledAppBrowser -FullTests
+  -Filter run_app -BundledAppStatic
 ```
 
-This parses the app, runs focused tests, checks the browser test syntax, runs
-the real local Playwright workflow with one worker, and then runs full package
-tests. Use `-Check` only when the maintainer explicitly requests a full package
-check or the plan is release/CRAN-facing.
+For changed reactivity, plotting, selection, or downloads, add one targeted
+browser journey before the final broad pass:
 
-Inspect every emitted screenshot, browser console/server diagnostics, and each
-downloaded file rather than relying on exit status alone. Run `git diff
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File `
+  .agents\skills\openspecy-run-quality-gates\scripts\quality-gates.ps1 `
+  -Filter run_app -BundledAppBrowser -BrowserGrep "<changed journey>"
+```
+
+Run the complete browser workflow once on a coherent final app candidate when
+the change is cross-cutting or release-facing. Add `-FullTests` only when
+package/scientific code changed or the plan's class requires it:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File `
+  .agents\skills\openspecy-run-quality-gates\scripts\quality-gates.ps1 `
+  -Filter run_app -BundledAppBrowser
+```
+
+This parses the app, runs focused tests, checks the browser test syntax, and
+runs the real local Playwright workflow with one worker. It runs full package
+tests only when `-FullTests` is supplied. Use `-Check` only when the maintainer
+explicitly requests a full package check or the plan is release/CRAN-facing.
+
+On the first browser failure, retain its trace, screenshot, console, and server
+diagnostics and inspect them before rerunning. After two failures in the same
+stage, reduce the journey or add a direct state probe before another full
+browser attempt. Prefer semantic Shiny acknowledgements and stable-result
+conditions to fixed waits, and reuse one local app process when practical.
+
+Inspect screenshots and downloaded files for the changed states rather than
+loading every unchanged artifact. Run `git diff
 --check`, confirm no generated package or hosted output was hand-edited, and
 report `inst/shiny/www` file count/bytes; perform a detailed orphan/compression
 audit when assets or dependencies changed.
@@ -98,6 +125,7 @@ audit when assets or dependencies changed.
 ## Handoff
 
 Report changed app states, the canonical reactive feeding all consumers,
-focused/full/browser results, download evidence, screenshot review, asset-size
-impact, hosted checks run or not applicable, and whether `R CMD check` was
-explicitly requested. Never claim public deployment success from local smoke.
+focused/targeted/final gate results, download evidence, changed screenshot
+review, asset-size impact, hosted checks run or not applicable, and whether
+full package tests or `R CMD check` were triggered. Never claim public
+deployment success from local smoke.

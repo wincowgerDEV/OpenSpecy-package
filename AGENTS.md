@@ -2,8 +2,10 @@
 Use `.specify/memory/constitution.md` as durable project memory and the active
 concise feature plan as the implementation brief. Default Spec Kit workflow:
 create or update one `plan.md` under `specs/<feature>/`; keep it under 100
-nonblank lines with goals, requirements, technical decisions, package surfaces,
-a short work checklist, verification, and open questions. Do not create separate
+nonblank lines and target 1,500 words, with goals, requirements, technical
+decisions, package surfaces, a short work checklist, verification, and open
+questions. Close a plan to unrelated refinements once implementation is done
+except for maintainer, CI, or post-push work. Do not create separate
 `spec.md`, `tasks.md`, research, data-model, contract, quickstart, or checklist
 artifacts unless explicitly requested.
 
@@ -19,7 +21,13 @@ and preserve base-pipe composability.
 For same-output function improvements, keep old comparison code in
 `benchmarks/`, add or update a repeated benchmark that flags material
 regressions, and keep `tests/` focused on current package behavior. Run focused
-tests before full tests, documentation, and package checks. Network tests must
+tests before full tests, documentation, and package checks. Classify the current
+tranche as presentation-only, bundled-app behavior, package/scientific, or
+hosted/release; run only the smallest invalidated gate during iteration and run
+triggered broad gates once on the final candidate. Reuse passing evidence while
+its covered files, inputs, dependencies, and contracts are unchanged. After two
+failures in the same broad stage, isolate a focused reproducer before rerunning.
+Network tests must
 guard the actual download host. Keep long-running tests manual or GitHub Actions
 guarded. For reference-library or other long-running external workflows, run
 subset probes and staged temp-output/logged rebuilds before a full run; compare
@@ -40,6 +48,11 @@ For non-obvious scientific or processing controls, provide adjacent guidance
 that names each input, its units or scale, the effect of choices or higher/lower
 values, and important rejection, no-op, or interpretation consequences.
 Package functionality and CRAN readiness take precedence over app convenience.
+Locate symbols with `rg` and read bounded source/diff regions before whole large
+files. Select only skills required by the affected surface, use compact test
+reporters and decision-relevant failure excerpts, and keep complete verbose logs
+in temporary or ignored evidence paths. If routine app work exceeds 30 minutes
+or reveals a higher change class, report and re-baseline that scope expansion.
 The hosted Shinylive/WebAssembly app should be generated from the
 bundled app by GitHub Actions, use the repo's wasm CRAN-like package repository
 from a hardcoded package version/commit pin plus pinned app dependency closure,

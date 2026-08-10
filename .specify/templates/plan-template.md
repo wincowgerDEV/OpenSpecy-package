@@ -2,7 +2,9 @@
 
 **Feature dir**: `specs/[###-feature-name]`  
 **Date**: [DATE]  
-**Review budget**: Keep this file under 100 nonblank lines. If it grows, summarize or move detail into code comments after implementation.
+**Review budget**: Keep this file under 100 nonblank lines and target no more than 1,500 words. If it grows, summarize completed history or move implementation detail into code comments.
+**Current tranche**: [The bounded set of changes being implemented now; do not inherit unrelated historical gates.]
+**Change class**: [presentation-only | bundled-app behavior | package/scientific | hosted/release | mixed, with the highest class named]
 
 ## Goal
 
@@ -56,15 +58,18 @@
 
 ## Verification
 
-- Focused tests:
+- Direct regression or acceptance check for each changed behavior:
+- Focused tests and parse/static checks:
+- Targeted browser journey and genuine downloads, when triggered:
 - Toolchain/version preflight:
-- `devtools::document()`:
-- Full `devtools::test()`:
-- `devtools::check()` or CI/R CMD check:
+- `devtools::document()` trigger or N/A:
+- Full `devtools::test()` trigger or N/A:
+- `devtools::check()` or CI/R CMD check trigger or N/A:
 - Benchmarks:
 - Reference-library/long workflow staging:
-- Shiny app state matrix: [no-upload, processed, identified, optional batch/quantification, muted controls, genuine downloads, progress, console/screenshots, asset inventory.]
-- Shinylive/WebAssembly package repo, dependency closure, pins, libraries, action-equivalent preflight, and nested-frame interaction/visual smoke test:
+- Shiny affected states or N/A: [Only changed no-upload/processed/identified/batch/quantification/muted/download/progress/visual states; asset inventory when assets change.]
+- Shinylive/WebAssembly trigger or N/A: [Only changed package repo, dependencies, pins, libraries, routes, runtime, action-equivalent preflight, or nested-frame states.]
+- Reusable evidence: [gate, covered files/contracts, candidate state; invalidate only when one changes.]
 
 ## Risks And Open Questions
 

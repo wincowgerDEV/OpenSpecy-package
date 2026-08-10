@@ -2,9 +2,14 @@ param(
   [string]$Filter,
   [string[]]$Benchmark = @(),
   [switch]$Document,
+  [switch]$BundledAppStatic,
   [switch]$BundledAppBrowser,
+  [string]$BrowserGrep,
   [switch]$FullTests,
-  [switch]$Check
+  [switch]$Check,
+  [switch]$CheckPrepareOnly,
+  [string]$CheckIncludeUntracked = "",
+  [string]$CheckExcludeUntracked = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,12 +40,22 @@ Push-Location $repo
 try {
   git status --short
 
-  if ($Filter) {
-    $env:OPENSPECY_TEST_FILTER = $Filter
-    Invoke-RExpression "devtools::test(filter = Sys.getenv('OPENSPECY_TEST_FILTER'), reporter = 'summary', stop_on_failure = TRUE)"
+  if ($BrowserGrep -and -not $BundledAppBrowser) {
+    throw "-BrowserGrep requires -BundledAppBrowser."
+  }
+  if ($CheckPrepareOnly -and -not $Check) {
+    throw "-CheckPrepareOnly requires -Check."
+  }
+  if (($CheckIncludeUntracked -or $CheckExcludeUntracked) -and -not $Check) {
+    throw "Untracked-file check classifications require -Check."
   }
 
-  if ($BundledAppBrowser) {
+  if ($Filter) {
+    $env:OPENSPECY_TEST_FILTER = $Filter
+    Invoke-RExpression "devtools::test(filter = Sys.getenv('OPENSPECY_TEST_FILTER'), reporter = 'check', stop_on_failure = TRUE)"
+  }
+
+  if ($BundledAppStatic -or $BundledAppBrowser) {
     $appSources = @(
       (Resolve-Path "inst/shiny/global.R").Path,
       (Resolve-Path "inst/shiny/ui.R").Path,
@@ -60,6 +75,15 @@ try {
       throw "The local app browser test has invalid JavaScript."
     }
 
+    $wwwFiles = Get-ChildItem "inst/shiny/www" -Recurse -File
+    $appFiles = Get-ChildItem "inst/shiny" -Recurse -File
+    Write-Host ("inst/shiny/www: {0} files, {1} bytes" -f `
+      $wwwFiles.Count, ($wwwFiles | Measure-Object Length -Sum).Sum)
+    Write-Host ("inst/shiny: {0} files, {1} bytes" -f `
+      $appFiles.Count, ($appFiles | Measure-Object Length -Sum).Sum)
+  }
+
+  if ($BundledAppBrowser) {
     $nodeModules = @(
       (Join-Path $repo "_wasm\action-sim\node\node_modules"),
       (Join-Path $repo "node_modules")
@@ -72,15 +96,12 @@ try {
       throw "playwright.cmd was not found under $nodeModules."
     }
 
-    $wwwFiles = Get-ChildItem "inst/shiny/www" -Recurse -File
-    $appFiles = Get-ChildItem "inst/shiny" -Recurse -File
-    Write-Host ("inst/shiny/www: {0} files, {1} bytes" -f `
-      $wwwFiles.Count, ($wwwFiles | Measure-Object Length -Sum).Sum)
-    Write-Host ("inst/shiny: {0} files, {1} bytes" -f `
-      $appFiles.Count, ($appFiles | Measure-Object Length -Sum).Sum)
-
     $env:NODE_PATH = $nodeModules
-    & $playwright test $smokeRelative --workers=1
+    $playwrightArguments = @("test", $smokeRelative, "--workers=1")
+    if ($BrowserGrep) {
+      $playwrightArguments += @("--grep", $BrowserGrep)
+    }
+    & $playwright @playwrightArguments
     if ($LASTEXITCODE -ne 0) {
       throw "The bundled Shiny Playwright smoke test failed."
     }
@@ -101,11 +122,22 @@ try {
   }
 
   if ($FullTests) {
-    Invoke-RExpression "devtools::test(reporter = 'summary', stop_on_failure = TRUE)"
+    Invoke-RExpression "devtools::test(reporter = 'check', stop_on_failure = TRUE)"
   }
 
   if ($Check) {
-    Invoke-RExpression "devtools::check(document = FALSE, cran = FALSE, error_on = 'error')"
+    $stagedCheck = Join-Path $PSScriptRoot "staged-package-check.ps1"
+    $stagedCheckArguments = @{}
+    if ($CheckIncludeUntracked) {
+      $stagedCheckArguments.IncludeUntracked = $CheckIncludeUntracked
+    }
+    if ($CheckExcludeUntracked) {
+      $stagedCheckArguments.ExcludeUntracked = $CheckExcludeUntracked
+    }
+    if ($CheckPrepareOnly) {
+      $stagedCheckArguments.PrepareOnly = $true
+    }
+    & $stagedCheck @stagedCheckArguments
   }
 
   git diff --check

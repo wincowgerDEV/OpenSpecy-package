@@ -1,18 +1,20 @@
 <!--
 Sync Impact Report
-Version change: 3.6.0 -> 3.7.0
+Version change: 3.7.0 -> 3.8.0
 Modified principles:
-- Documentation Is Part of the Change: require substantive per-input guidance for non-obvious scientific and processing controls
+- Development Workflow and Quality Gates: require current-tranche planning, proportional verification, evidence reuse, and bounded failure diagnosis
 Added sections:
-- None
+- IX. Proportional Evidence and Efficient Execution
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md and .agents/skills/speckit-plan/: plan user guidance for non-obvious Shiny inputs
-- .agents/skills/openspecy-develop-shiny-app/: verify processing disclosures explain inputs, scales, effects, and safeguards
-- AGENTS.md: synchronize the durable app-guidance rule
+- .specify/templates/plan-template.md and .agents/skills/speckit-plan/: add current-tranche class, compact word budget, and triggered verification ladder
+- .agents/skills/speckit-implement/: use targeted context, minimal skill routing, scope checkpoints, and invalidation-aware gates
+- .agents/skills/openspecy-develop-shiny-app/: replace mandatory whole-file loading and omnibus browser loops with symbol-first and targeted-state verification
+- .agents/skills/openspecy-run-quality-gates/ and its scripts: add gate tiers, compact test reporting, static/targeted browser checks, and fail-closed tracked-source package checks
+- AGENTS.md: synchronize proportional verification and context-economy rules
 Follow-up TODOs:
-- None
+- Split the omnibus local browser scenario into smaller tagged journeys as those journeys next change; do not perform a behavior-free rewrite solely for this amendment.
 -->
 
 # OpenSpecy Constitution
@@ -254,6 +256,45 @@ over table-only pathways or one dataset's taxonomy.
 Rationale: Small, evidence-based APIs reduce maintenance burden, documentation
 churn, and repeated breaking redesign while preserving advanced composition.
 
+### IX. Proportional Evidence and Efficient Execution
+Work MUST be organized around the current change tranche rather than all
+historical scope in a long-lived plan. Before editing, the tranche MUST be
+classified by its highest affected surface: presentation only, bundled-app
+behavior, package or scientific behavior, or hosted/release behavior. Every
+changed behavior still MUST receive a direct regression or explicit manual
+acceptance check, and an unexpected package, scientific, download, or hosted
+runtime effect MUST escalate the class rather than be treated as a minor UI
+detail.
+
+Verification MUST be dependency-aware and evidence-reusing. Iteration MUST
+begin with the smallest parse, unit, benchmark, or browser check that directly
+covers the change. A passing result remains valid while its covered source,
+dependencies, inputs, and contract remain unchanged. Full affected browser
+workflows, full package tests, documentation generation, and package checks
+SHOULD run no more than once for a coherent final candidate and only when their
+trigger is present. Broad gates MUST NOT be used as diagnosis loops: after the
+same broad stage fails twice, work MUST isolate a smaller reproducer and report
+the scope or harness problem before another broad attempt.
+
+Accuracy-critical context MUST be loaded, but context unrelated to the current
+tranche SHOULD NOT be repeatedly loaded. Agents SHOULD locate symbols and
+consumers before reading bounded source regions, inspect changed diff hunks
+before whole diffs, select only the skills required by the affected surface,
+and use parallel workers only for nonoverlapping investigations. Command output
+SHOULD report decision-relevant summaries and failure excerpts; complete logs
+MUST remain available in a temporary or ignored evidence location whenever
+console output is filtered.
+
+Plans SHOULD target at most 1,500 words as well as 100 nonblank lines. A plan
+whose implementation is complete except for maintainer, CI, or post-push work
+SHOULD be closed to new unrelated refinements; the next tranche SHOULD use a
+new concise plan or an explicitly bounded delta so old release gates do not
+silently become requirements for every minor follow-up.
+
+Rationale: Direct evidence protects scientific correctness. Dependency-aware
+staging, targeted context, and bounded diagnostics preserve that evidence while
+reducing feedback time, repeated computation, and token consumption.
+
 ## R Package Standards
 
 The repository is governed as the OpenSpecy R package. Plans and pull requests
@@ -437,7 +478,8 @@ source changes.
 Feature work SHOULD start from one concise Spec Kit `plan.md` that combines the
 former specification, planning, and task-review content. The plan MUST be short
 enough for a maintainer to review in about five minutes, with a hard target of
-no more than 100 nonblank lines. It MUST state the user impact, affected
+no more than 100 nonblank lines and a soft target of 1,500 words. It MUST state
+the current tranche and highest change class, user impact, affected
 functions and objects, test expectations, documentation updates, benchmark
 impact, generated artifact strategy, and a short implementation checklist.
 
@@ -451,6 +493,15 @@ benchmarks instead of duplicated planning documents.
 Before implementation is complete:
 
 - Focused tests MUST pass before broader verification begins.
+- The current tranche MUST declare the smallest gates that cover its changed
+  dependency graph. A passed expensive gate SHOULD be reused until a covered
+  file, dependency, input, or contract changes.
+- Presentation-only app changes require affected source parsing, focused app
+  assertions, and inspection of the changed state; app behavior changes add a
+  targeted browser journey and genuine files when downloads change. Package or
+  scientific changes add focused invariant tests, relevant benchmarks, and the
+  full package suite. Hosted/release changes add their action-equivalent or
+  release gates when matching inputs exist.
 - Relevant benchmarks MUST run before full tests for same-output changes.
 - `devtools::document()` MUST be run after roxygen, export, S3/S4 method, or
   package metadata changes that affect help pages or `NAMESPACE`, but only
@@ -474,6 +525,10 @@ Before implementation is complete:
   or examples.
 - Long-running tests MUST be manual or GitHub Actions guarded, not a surprise
   cost in routine local test runs.
+- Full browser workflows, full package tests, documentation generation, and
+  package checks SHOULD each run once on the final candidate when triggered.
+  After two failures in the same broad stage, isolate a focused reproducer
+  before rerunning that stage.
 - Official reference-library or other long-running external workflow changes
   MUST use staged subset/temp-output verification and report compatibility
   counts against available legacy artifacts before being treated as complete.
@@ -498,6 +553,15 @@ MAY be used for repository scripts; machine-wide policy changes and Store-stub
 executables MUST NOT be used as workflow shortcuts. Expensive full tests,
 documentation, and checks SHOULD each run once per final candidate unless a
 failure requires another run.
+
+Implementation tools SHOULD use symbol-first searches, bounded source and diff
+windows, compact test reporters, targeted browser selection, and short
+finding-oriented subagent returns. Full logs and screenshots remain evidence
+artifacts but SHOULD enter conversational context only when a failure or visual
+decision requires them. If a routine app tranche exceeds 30 minutes or reveals
+a higher change class, the next user update MUST identify the expansion and
+re-baseline the remaining verification rather than silently continuing under a
+"minor" label.
 
 Remote synchronization is maintainer-owned by default. Automated agents MUST
 NOT run `git push`, `git pull`, or `git pull --rebase` unless the user explicitly
@@ -545,4 +609,4 @@ outputs, or claim browser readiness without the required interaction evidence.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.7.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-04
+**Version**: 3.8.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-10
