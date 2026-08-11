@@ -164,7 +164,23 @@ is_Specs <- function(x) {
 
 #' @rdname Specs
 #' @export
-check_Specs <- function(x) {
+check_Specs <- function(x, ...) {
+  UseMethod("check_Specs")
+}
+
+#' @rdname Specs
+#' @export
+check_Specs.default <- function(x, ...) {
+  .check_specs_memory(x)
+}
+
+#' @rdname Specs
+#' @export
+check_Specs.Specs <- function(x, ...) {
+  .check_specs_memory(x)
+}
+
+.check_specs_memory <- function(x) {
   if (!(cos <- is_Specs(x)))
     warning("Object 'x' is not of class 'Specs'", call. = FALSE)
   if (!(cln <- identical(names(x), c("variables", "values", "coords", "metadata"))))
@@ -269,6 +285,8 @@ fit_specs_pca <- function(x, n_components, center = TRUE, scale. = FALSE,
     data <- t(x$spectra)
     original_variables <- x$wavenumber
   } else if (is_Specs(x)) {
+    if (inherits(x, "FileSpecs"))
+      .filespec_stop_unsupported("fit_specs_pca()")
     x <- as_Specs(x)
     if (.is_hilbert_specs(x))
       stop("PCA cannot be fit after Hilbert encoding; decode first or place ",
@@ -391,6 +409,8 @@ decompress_spec.Specs <- function(x, expand = TRUE, index = NULL, ...) {
 #' @export
 encode_specs_hilbert <- function(x, bits_per_variable = NULL, limits = NULL,
                                  ...) {
+  if (inherits(x, "FileSpecs"))
+    .filespec_stop_unsupported("encode_specs_hilbert()")
   x <- as_Specs(x)
   if (.is_hilbert_specs(x))
     stop("'x' is already Hilbert-encoded", call. = FALSE)
@@ -435,6 +455,8 @@ encode_specs_hilbert <- function(x, bits_per_variable = NULL, limits = NULL,
 #' @rdname Specs
 #' @export
 decode_specs_hilbert <- function(x, ...) {
+  if (inherits(x, "FileSpecs"))
+    .filespec_stop_unsupported("decode_specs_hilbert()")
   x <- as_Specs(x)
   if (!.is_hilbert_specs(x))
     stop("'x' must be a Hilbert-encoded Specs object", call. = FALSE)
@@ -472,8 +494,20 @@ decode_specs_hilbert <- function(x, ...) {
 #' @rdname Specs
 #' @export
 write_specs <- function(x, file, compress = "xz", ...) {
+  UseMethod("write_specs")
+}
+
+#' @rdname Specs
+#' @export
+write_specs.default <- function(x, file, compress = "xz", ...) {
   if (!is_Specs(x))
     stop("object 'x' needs to be of class 'Specs'", call. = FALSE)
+  saveRDS(x, file = file, compress = compress, ...)
+}
+
+#' @rdname Specs
+#' @export
+write_specs.Specs <- function(x, file, compress = "xz", ...) {
   saveRDS(x, file = file, compress = compress, ...)
 }
 
@@ -483,6 +517,8 @@ read_specs <- function(file, ...) {
   x <- readRDS(file, ...)
   if (!is_Specs(x))
     stop("file does not contain a Specs object", call. = FALSE)
+  if (inherits(x, "FileSpecs"))
+    .filespec_validate_source(x, strong = TRUE)
   x
 }
 

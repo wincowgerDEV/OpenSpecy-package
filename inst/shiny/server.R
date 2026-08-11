@@ -1,7 +1,7 @@
 function(input, output, session) {
     
   #Setup ----
-    options(shiny.maxRequestSize=10000*1024^2)
+    options(shiny.maxRequestSize = app_upload_limit_bytes())
     
     #URL Query
     # observeEvent(session$clientData$url_search, {
@@ -31,6 +31,17 @@ function(input, output, session) {
   load_data()
 
   preprocessed <- reactiveValues(data = NULL)
+  final_specs <- reactiveVal(NULL)
+  final_selection <- reactiveVal(NULL)
+  filespec_index_state <- reactiveVal(NULL)
+  filespec_selected_position <- reactiveVal(NULL)
+  filespec_viewport_state <- reactiveVal(NULL)
+  filespec_status_state <- reactiveVal(
+    paste(
+      "No file-backed source is open. This control is available only in",
+      "the local R application."
+    )
+  )
   data_click <- reactiveValues(plot = NULL, table = NULL)
   meta_cache <- reactiveVal(NULL)
   correction_diagnostics <- reactiveVal(data.frame())
@@ -59,6 +70,301 @@ function(input, output, session) {
       list(message = message, detail = detail, progress = progress)
     )
   }
+
+  clear_filespec_state <- function(status = NULL) {
+    final_specs(NULL)
+    final_selection(NULL)
+    filespec_index_state(NULL)
+    filespec_selected_position(NULL)
+    filespec_viewport_state(NULL)
+    meta_cache(NULL)
+    if(!is.null(status)) filespec_status_state(status)
+    invisible(NULL)
+  }
+
+  load_filespec_selection <- function(position) {
+    specs <- isolate(final_specs())
+    index <- isolate(filespec_index_state())
+    if(is.null(specs) || is.null(index)) return(invisible(FALSE))
+    position <- suppressWarnings(as.integer(position))
+    if(length(position) != 1L || is.na(position) || position < 1L ||
+       position > nrow(index)) return(invisible(FALSE))
+
+    row <- index[position, , drop = FALSE]
+    analysis_phase(
+      "Reading one file-backed spectrum",
+      paste0(
+        "Materializing pixel ", row$col_id[[1L]], " from ",
+        row$region[[1L]], "; the remaining spectra stay on disk."
+      ),
+      16
+    )
+    selected <- tryCatch(
+      OpenSpecy:::.filespec_read(specs, position),
+      error = identity
+    )
+    if(inherits(selected, "error")) {
+      show_alert(
+        title = "Unable to read that pixel",
+        text = conditionMessage(selected), type = "error"
+      )
+      return(invisible(FALSE))
+    }
+    check <- tryCatch(check_OpenSpecy(selected), error = identity,
+                      warning = identity)
+    if(inherits(check, "condition")) {
+      show_alert(
+        title = "The selected spectrum is invalid",
+        text = conditionMessage(check), type = "error"
+      )
+      return(invisible(FALSE))
+    }
+
+    meta_cache(NULL)
+    final_selection(selected)
+    preprocessed$data <- selected
+    filespec_selected_position(position)
+    data_click$plot <- 1L
+    data_click$table <- 1L
+    correction_diagnostics(data.frame())
+    quantification_axis(NULL)
+    filespec_status_state(paste0(
+      "Open read-only: ", basename(specs$source$members$path[[1L]]), ". ",
+      format(nrow(index), big.mark = ","), " indexed spectra; selected ",
+      row$col_id[[1L]], " in ", row$region[[1L]], "."
+    ))
+    invisible(TRUE)
+  }
+
+  output$filespec_status <- renderText(filespec_status_state())
+  output$filespec_active <- reactive(!is.null(final_specs()))
+  outputOptions(output, "filespec_status", suspendWhenHidden = FALSE)
+  outputOptions(output, "filespec_active", suspendWhenHidden = FALSE)
+
+  observeEvent(input$filespec_open, {
+    req(app_local_file_mode())
+    path <- trimws(as.character(input$filespec_path))
+    if(length(path) != 1L || is.na(path) || !nzchar(path)) {
+      show_alert(
+        title = "Enter a source path",
+        text = "Choose one existing H5 file or ENVI .hdr/.dat/.img member.",
+        type = "warning"
+      )
+      return()
+    }
+
+    preprocessed$data <- NULL
+    clear_filespec_state("Validating the requested source path...")
+    correction_diagnostics(data.frame())
+    ratio_definitions(app_empty_ratio_definitions())
+    measurement_definitions(app_empty_measurement_definitions())
+    quantification_axis(NULL)
+    data_click$plot <- 1L
+    data_click$table <- 1L
+    shinyjs::reset("file")
+    source_bytes <- suppressWarnings(file.info(path)$size)
+    size_text <- if(length(source_bytes) && is.finite(source_bytes)) {
+      paste0(" (", format(structure(source_bytes, class = "object_size"),
+                           units = "auto"), ")")
+    } else ""
+    analysis_phase(
+      "Indexing a large source",
+      paste0(
+        "Opening ", basename(path), size_text,
+        " read-only and fingerprinting its H5/ENVI members."
+      ),
+      7
+    )
+    opened <- tryCatch(
+      OpenSpecy::open_specs(path, cache_dir = app_filespec_cache_dir()),
+      error = identity
+    )
+    if(inherits(opened, "error")) {
+      clear_filespec_state(paste0("Open failed: ", conditionMessage(opened)))
+      show_alert(
+        title = "Unable to open the large source",
+        text = conditionMessage(opened), type = "error"
+      )
+      return()
+    }
+    index <- tryCatch(OpenSpecy:::.filespec_index(opened), error = identity)
+    if(inherits(index, "error") || !nrow(index)) {
+      message <- if(inherits(index, "error")) conditionMessage(index) else
+        "The source contains no indexed spectra."
+      clear_filespec_state(paste0("Open failed: ", message))
+      show_alert(title = "Unable to index the large source", text = message,
+                 type = "error")
+      return()
+    }
+
+    regions <- OpenSpecy:::.filespec_regions(opened)
+    final_specs(opened)
+    filespec_index_state(index)
+    filespec_viewport_state(app_filespec_extent(index, regions[[1L]]))
+    updateSelectInput(
+      session, "filespec_region", choices = regions, selected = regions[[1L]]
+    )
+    analysis_phase(
+      "Preparing the bounded map",
+      paste0(
+        "Indexed ", format(nrow(index), big.mark = ","), " spectra across ",
+        length(regions), " region", if(length(regions) == 1L) "." else "s."
+      ),
+      12
+    )
+    first <- app_filespec_region_rows(index, regions[[1L]])[[1L]]
+    load_filespec_selection(first)
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$filespec_region, {
+    index <- isolate(filespec_index_state())
+    req(!is.null(index), isTruthy(input$filespec_region))
+    filespec_viewport_state(
+      app_filespec_extent(index, input$filespec_region)
+    )
+    rows <- app_filespec_region_rows(index, input$filespec_region)
+    current <- isolate(filespec_selected_position())
+    if(!length(current) || !current %in% rows) load_filespec_selection(rows[[1L]])
+  }, ignoreInit = TRUE)
+
+  filespec_preview <- reactive({
+    index <- filespec_index_state()
+    req(!is.null(index), isTruthy(input$filespec_region))
+    viewport <- tryCatch(
+      app_filespec_viewport(
+        index, input$filespec_region, filespec_viewport_state()
+      ),
+      error = function(...) app_filespec_extent(index, input$filespec_region)
+    )
+    app_filespec_preview(
+      index, input$filespec_region, roi = viewport
+    )
+  })
+
+  output$filespec_view_status <- renderText({
+    preview <- filespec_preview()
+    bounds <- preview$viewport
+    paste0(
+      format(preview$spectra, big.mark = ","), " of ",
+      format(preview$total_spectra, big.mark = ","), " pixels visible; X ",
+      signif(bounds[["xmin"]], 6), " to ", signif(bounds[["xmax"]], 6),
+      ", Y ", signif(bounds[["ymin"]], 6), " to ",
+      signif(bounds[["ymax"]], 6), "."
+    )
+  })
+  outputOptions(output, "filespec_view_status", suspendWhenHidden = FALSE)
+
+  output$filespec_map <- renderPlot({
+    preview <- filespec_preview()
+    index <- filespec_index_state()
+    position <- filespec_selected_position()
+    selected <- NULL
+    if(length(position) == 1L && !is.na(position) &&
+       position >= 1L && position <= nrow(index) &&
+       identical(as.character(index$region[[position]]), preview$region)) {
+      coordinates <- app_filespec_coordinates(index[position, , drop = FALSE])
+      selected <- list(x = coordinates$x[[1L]], y = coordinates$y[[1L]])
+    }
+    graphics::par(bg = app_theme$canvas, fg = app_theme$text,
+                  mar = c(4.5, 5, 3.2, 1))
+    app_draw_filespec_preview(preview, selected)
+  }, res = 96)
+
+  observeEvent(input$filespec_map_click, {
+    click <- input$filespec_map_click
+    index <- isolate(filespec_index_state())
+    region <- isolate(input$filespec_region)
+    req(!is.null(index), isTruthy(region), length(click$x), length(click$y))
+    position <- app_filespec_nearest_position(
+      index, region, click$x, click$y,
+      roi = isolate(filespec_viewport_state())
+    )
+    if(length(position)) load_filespec_selection(position)
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$filespec_map_brush, {
+    brush <- input$filespec_map_brush
+    index <- isolate(filespec_index_state())
+    region <- isolate(input$filespec_region)
+    req(!is.null(index), isTruthy(region), !is.null(brush))
+    candidate <- tryCatch(
+      app_filespec_viewport(
+        index, region,
+        c(brush$xmin, brush$xmax, brush$ymin, brush$ymax)
+      ),
+      error = identity
+    )
+    if(inherits(candidate, "error")) return()
+    visible <- tryCatch(
+      app_filespec_preview(index, region, roi = candidate,
+                           max_width = 2L, max_height = 2L),
+      error = identity
+    )
+    if(!inherits(visible, "error")) filespec_viewport_state(candidate)
+  }, ignoreInit = TRUE)
+
+  shift_filespec_view <- function(direction = "reset") {
+    index <- isolate(filespec_index_state())
+    region <- isolate(input$filespec_region)
+    req(!is.null(index), isTruthy(region))
+    full <- app_filespec_extent(index, region)
+    current <- isolate(filespec_viewport_state())
+    if(is.null(current) || identical(direction, "reset")) {
+      filespec_viewport_state(full)
+      return(invisible(NULL))
+    }
+    current <- app_filespec_viewport(index, region, current)
+    width <- diff(current[c("xmin", "xmax")])
+    height <- diff(current[c("ymin", "ymax")])
+    center_x <- mean(current[c("xmin", "xmax")])
+    center_y <- mean(current[c("ymin", "ymax")])
+    if(identical(direction, "left")) center_x <- center_x - 0.4 * width
+    if(identical(direction, "right")) center_x <- center_x + 0.4 * width
+    if(identical(direction, "down")) center_y <- center_y - 0.4 * height
+    if(identical(direction, "up")) center_y <- center_y + 0.4 * height
+    if(identical(direction, "out")) {
+      width <- min(diff(full[c("xmin", "xmax")]), width * 1.8)
+      height <- min(diff(full[c("ymin", "ymax")]), height * 1.8)
+    }
+    clamp <- function(center, span, lower, upper) {
+      if(span >= upper - lower) return(c(lower, upper))
+      bounds <- center + c(-0.5, 0.5) * span
+      if(bounds[[1L]] < lower) bounds <- bounds + lower - bounds[[1L]]
+      if(bounds[[2L]] > upper) bounds <- bounds - (bounds[[2L]] - upper)
+      bounds
+    }
+    x <- clamp(center_x, width, full[["xmin"]], full[["xmax"]])
+    y <- clamp(center_y, height, full[["ymin"]], full[["ymax"]])
+    filespec_viewport_state(c(
+      xmin = x[[1L]], xmax = x[[2L]], ymin = y[[1L]], ymax = y[[2L]]
+    ))
+    invisible(NULL)
+  }
+
+  observeEvent(input$filespec_view_reset, shift_filespec_view("reset"),
+               ignoreInit = TRUE)
+  observeEvent(input$filespec_view_out, shift_filespec_view("out"),
+               ignoreInit = TRUE)
+  observeEvent(input$filespec_view_left, shift_filespec_view("left"),
+               ignoreInit = TRUE)
+  observeEvent(input$filespec_view_right, shift_filespec_view("right"),
+               ignoreInit = TRUE)
+  observeEvent(input$filespec_view_up, shift_filespec_view("up"),
+               ignoreInit = TRUE)
+  observeEvent(input$filespec_view_down, shift_filespec_view("down"),
+               ignoreInit = TRUE)
+
+  observeEvent(input$filespec_close, {
+    preprocessed$data <- NULL
+    clear_filespec_state(
+      "Closed the file-backed source; source and completed caches were unchanged."
+    )
+  }, ignoreInit = TRUE)
+
+  session$onSessionEnded(function() {
+    clear_filespec_state()
+    preprocessed$data <- NULL
+  })
 
   observeEvent(input$support_openspecy, {
     donation_links <- c(
@@ -104,10 +410,24 @@ observeEvent(input$file, {
   data_click$plot <- 1
   data_click$table <- 1
   preprocessed$data <- NULL
+  clear_filespec_state(
+    "Ordinary upload mode is active; no file-backed source is open."
+  )
   correction_diagnostics(data.frame())
   ratio_definitions(app_empty_ratio_definitions())
   measurement_definitions(app_empty_measurement_definitions())
   quantification_axis(NULL)
+
+  upload_size <- app_validate_upload_size(input$file, app_wasm_mode())
+  if(!isTRUE(upload_size$ok)) {
+    show_alert(
+      title = "Upload is too large for ordinary mode",
+      text = upload_size$message,
+      type = "warning"
+    )
+    shinyjs::reset("file")
+    return(NULL)
+  }
 
   if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
              ignore.case = T, as.character(input$file$datapath)))) {
@@ -293,14 +613,20 @@ observeEvent(input$file, {
   })
   # Corrects spectral intensity units using the user specified correction
 
- # Redirecting preprocessed data to be a reactive variable. Not totally sure why this is happening in addition to the other. 
+ active_source <- reactive({
+    selected <- final_selection()
+    if(!is.null(selected)) selected else preprocessed$data
+ })
+
+ # Route ordinary uploads or the bounded FileSpecs selection into the same
+ # established analysis pipeline.
  data <- reactive({
-    req(input$file)
-      da <- preprocessed$data
+    req(!is.null(active_source()))
+      da <- active_source()
       if(isTruthy(input$xy_grid) &&
-         (!all(diff(sort(preprocessed$data$metadata$y)) %in% c(0,1)) ||
-          !all(diff(sort(preprocessed$data$metadata$x)) %in% c(0,1)))){
-          grid <- gen_grid(nrow(preprocessed$data$metadata))
+         (!all(diff(sort(da$metadata$y)) %in% c(0,1)) ||
+          !all(diff(sort(da$metadata$x)) %in% c(0,1)))){
+          grid <- gen_grid(nrow(da$metadata))
           da$metadata$x <- grid$x
           da$metadata$y <- grid$y
       }
@@ -1043,12 +1369,9 @@ observeEvent(input$file, {
 
   observeEvent(list(quantified_data(), effective_signal_selection()), {
       req(isTruthy(quantified_data()))
-      meta <- quantified_data()$metadata
-      meta$signal_to_noise <- signal_to_noise()
-      meta <- meta[, !sapply(meta, OpenSpecy::is_empty_vector), with = FALSE]
-      meta[, coord_key := paste(x, y)]
-      meta <- data.table(Index = seq_len(nrow(meta)), meta)
-      meta_cache(meta)
+      meta_cache(app_uploaded_metadata_cache(
+        quantified_data(), signal_to_noise()
+      ))
   })
   
   
@@ -1357,8 +1680,6 @@ observeEvent(input$file, {
 
   #Spectral data for the selected match. 
   match_selected <- reactive({# Default to first row if not yet clicked
-      #req(input$file)
-      #req(input$active_identification)
       if(!isTRUE(input$active_identification)) {
           return(as_OpenSpecy(
             x = numeric(), spectra = data.table(empty = numeric())
@@ -1406,18 +1727,9 @@ match_metadata <- reactive({
     model_library <- grepl("^model$", input$lib_type)
     if (!model_library) {
         selected_match <- matches_to_single()[data_click$table, ]
-        dataR_metadata <- quantified_data()$metadata
-        dataR_metadata$signal_to_noise <- signal_to_noise()
-        if ("material_class" %in% names(dataR_metadata)) {
-            dataR_metadata[, material_class := NULL]
-        }
-        setkey(dataR_metadata, col_id)
-        setkey(selected_match, object_id)
-
-        result <- dataR_metadata[selected_match, on = c(col_id = "object_id")]
-        result <- result[, !sapply(result, OpenSpecy::is_empty_vector), with = FALSE] %>%
-            select(file_name, col_id, material_class, spectrum_identity, match_val, signal_to_noise, everything())
-        result
+        app_selected_metadata(
+          quantified_data(), selected_match, signal_to_noise()
+        )
     } else {
         result <- bind_cols(
           quantified_data()$metadata[data_click$plot,],
@@ -1453,7 +1765,7 @@ output$eventmetadata <- DT::renderDataTable(server = TRUE, {
     req(!is.null(match_metadata()))
     datatable(
         match_metadata(),
-        escape = FALSE,
+        escape = TRUE,
         options = list(
             dom = 't',
             ordering = FALSE,
@@ -1485,32 +1797,21 @@ output$event <- DT::renderDataTable({
 })
 
 #Full metadata table for uploaded spectra
-output$sidebar_metadata <- DT::renderDataTable(server = TRUE, {
+output$sidebar_metadata <- DT::renderDataTable({
     req(!is.null(meta_cache()))
-    datatable(meta_cache(),
-              escape = FALSE,
-              options = list(searchHighlight = TRUE,
-                             scrollX = TRUE,
-                             sDom  = '<"top">lrt<"bottom">ip',
-                             lengthChange = FALSE,
-                             pageLength = 5,
-                             columnDefs = list(list(visible = FALSE, targets = 0))),
-              rownames = FALSE,
-              filter = "top",
-              caption = "Uploaded Metadata",
-              style = "bootstrap",
-              selection = "single")
-})
+    app_uploaded_metadata_table(meta_cache())
+}, server = FALSE)
+outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
 
   sidebar_proxy <- DT::dataTableProxy("sidebar_metadata")
 
-  observe({
+  observeEvent(list(meta_cache(), data_click$plot), {
       req(!is.null(meta_cache()))
-      sel <- data_click$plot
-      if (!is.null(sel) && sel <= nrow(meta_cache())) {
-          DT::selectRows(sidebar_proxy, sel)
+      row <- app_uploaded_metadata_row(meta_cache(), data_click$plot)
+      if (length(row)) {
+          DT::selectRows(sidebar_proxy, row)
       }
-  })
+  }, ignoreInit = FALSE)
 
   map_color_choices <- reactive({
     req(ncol(preprocessed$data$spectra) > 1)
@@ -2093,8 +2394,11 @@ output$progress_bars <- renderUI({
   })
 
   observeEvent(input$sidebar_metadata_rows_selected, ignoreInit = TRUE, {
-      sel <- meta_cache()$Index[input$sidebar_metadata_rows_selected]
-      if (!is.null(sel) && !identical(sel, data_click$plot)) {
+      req(!is.null(meta_cache()))
+      sel <- app_uploaded_metadata_spectrum(
+        meta_cache(), input$sidebar_metadata_rows_selected
+      )
+      if (length(sel) && !identical(sel, as.integer(data_click$plot))) {
           data_click$plot <- sel
       }
   })
@@ -2104,10 +2408,13 @@ output$progress_bars <- renderUI({
       req(!is.null(meta_cache()))
       meta <- meta_cache()
       cur <- data_click$plot
-      if (cur > nrow(meta)) return()
-      target <- paste(meta$x[cur] + dx, meta$y[cur] + dy)
-      idx <- match(target, meta$coord_key)
-      if (!is.na(idx)) data_click$plot <- idx
+      row <- app_uploaded_metadata_row(meta, cur)
+      if(!length(row) || !all(c("x", "y") %in% names(meta))) return()
+      target <- paste(meta$x[[row]] + dx, meta$y[[row]] + dy)
+      target_row <- match(target, meta$.openspecy_coord_key)
+      if (!is.na(target_row)) {
+        data_click$plot <- meta$.openspecy_index[[target_row]]
+      }
   }
 
   observeEvent(input$left_spec,  { move_selection(dx = -1) })
@@ -2131,6 +2438,22 @@ output$progress_bars <- renderUI({
   outputOptions(output, "nav_buttons", suspendWhenHidden = FALSE)
 
   # Log events ----
+
+  current_file_info <- reactive({
+    specs <- final_specs()
+    if(is.null(specs)) return(input$file)
+    members <- specs$source$members
+    data.frame(
+      name = paste(basename(members$path), collapse = " + "),
+      size = sum(as.numeric(members$size)),
+      type = paste0("FileSpecs/", toupper(specs$source$backend)),
+      lastModified = format(
+        as.POSIXct(max(as.numeric(members$mtime)), origin = "1970-01-01"),
+        "%Y-%m-%d %H:%M:%S %z"
+      ),
+      stringsAsFactors = FALSE
+    )
+  })
   
   user_metadata <- reactive({
     settings <- stats::setNames(
@@ -2147,8 +2470,8 @@ output$progress_bars <- renderUI({
         error = function(...) "development"
       ),
       session_id = session_id,
-      source = preprocessed$data,
-      file_info = input$file
+      source = active_source(),
+      file_info = current_file_info()
     )
   })
 

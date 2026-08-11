@@ -2,19 +2,26 @@
 % Please edit documentation in R/split_spec.R
 \name{split_spec}
 \alias{split_spec}
+\alias{split_spec.default}
 \title{Split Open Specy objects}
 \usage{
-split_spec(x)
+split_spec(x, ...)
+
+\method{split_spec}{default}(x, ...)
 }
 \arguments{
-\item{x}{a list of OpenSpecy objects}
+\item{x}{a list of OpenSpecy objects or another supported spectral object.}
+
+\item{...}{arguments passed to class methods.}
 }
 \value{
-A list of Open Specy objects each with 1 spectrum.
+For ordinary inputs, a list of Open Specy objects each with one spectrum.
+For \code{FileSpecs}, a named list of descriptor-only \code{FileSpecs} region views
+that share the immutable source and cache.
 }
 \description{
-Convert a list of Open Specy objects with any number of spectra into
-a list of Open Specy objects with one spectrum each.
+Convert a list of Open Specy objects into one-spectrum objects, or split a
+file-backed map into lightweight region views.
 }
 \details{
 Function will accept a list of Open Specy objects of any length and will split

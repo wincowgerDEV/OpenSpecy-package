@@ -923,6 +923,7 @@ dashboardPage(
           background: #FFFFFF !important;
         }
         #spectra_box .direct-chat-contacts {
+          z-index: 40;
           overflow-y: auto;
           color: var(--openspecy-text) !important;
           background: var(--openspecy-panel) !important;
@@ -992,6 +993,10 @@ dashboardPage(
         }
         #spectra_box.direct-chat-contacts-open > .card-header {
           border-bottom-color: var(--openspecy-accent) !important;
+        }
+        #spectra_box.direct-chat-contacts-open #choice_names {
+          z-index: 0;
+          pointer-events: none;
         }
         #spectra_box .direct-chat-contacts .close,
         #spectra_box .direct-chat-contacts [data-dismiss] {
@@ -1093,6 +1098,38 @@ dashboardPage(
         }
         .openspecy-plot-frame { padding: 8px; margin: 8px 0 16px; }
         .openspecy-mini-plot { margin-top: 8px; }
+        #filespec_source_box { margin-bottom: 18px; }
+        .openspecy-filespec-toolbar {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 8px 0;
+        }
+        .openspecy-filespec-toolbar .btn { min-width: 42px; }
+        .openspecy-upload-guidance {
+          color: var(--openspecy-muted);
+          font-size: 12px;
+          line-height: 1.35;
+          margin: -4px 0 8px;
+        }
+        .openspecy-filespec-intro,
+        .openspecy-filespec-status {
+          color: var(--openspecy-muted);
+          line-height: 1.45;
+        }
+        .openspecy-filespec-status {
+          padding: 8px 10px;
+          border-left: 3px solid var(--openspecy-accent);
+          background: var(--openspecy-canvas);
+        }
+        .openspecy-filespec-map {
+          min-height: 320px;
+          padding: 8px;
+          border: 1px solid var(--openspecy-grid);
+          border-radius: 7px;
+          background: var(--openspecy-canvas);
+        }
         .shiny-output-error-validation {
           color: var(--openspecy-accent);
           font-size: 130%;
@@ -1218,6 +1255,10 @@ dashboardPage(
               ".0", ".zip", ".img", ".h5", ".txt", ".json", ".rds",
               ".hdr", ".dat"
             )
+          ),
+          tags$p(
+            class = "openspecy-upload-guidance",
+            app_upload_guidance()
           )
         ),
         column(
@@ -1271,6 +1312,100 @@ dashboardPage(
               class = "openspecy-download-body",
               uiOutput("download_ui"),
               uiOutput("top_n")
+            )
+          )
+        )
+      ),
+      if(app_local_file_mode()) fluidRow(
+        bs4Dash::box(
+          id = "filespec_source_box",
+          title = "Large local H5 / ENVI source",
+          width = 12,
+          collapsible = TRUE,
+          collapsed = TRUE,
+          tags$p(
+            class = "openspecy-filespec-intro",
+            paste0(
+              "Enter a path on this computer for a large H5 file or an ENVI ",
+              ".hdr/.dat/.img pair. Open Specy opens the source read-only, ",
+              "keeps its spectra on disk, and reads only the pixel you select."
+            )
+          ),
+          fluidRow(
+            column(
+              9,
+              textInput(
+                "filespec_path", "Source path",
+                placeholder = "C:/data/hyperspectral-map.h5"
+              )
+            ),
+            column(
+              3,
+              actionButton(
+                "filespec_open", "Open read-only",
+                icon = icon("folder-open"), class = "btn-primary"
+              )
+            )
+          ),
+          tags$p(
+            class = "openspecy-filespec-intro",
+            paste0(
+              "Ordinary browser uploads above ",
+              app_upload_limit_label(FALSE),
+              " are rejected before analysis. The path opener avoids that ",
+              "browser copy and never enables whole-cube preprocessing."
+            )
+          ),
+          tags$p(
+            class = "openspecy-filespec-status",
+            textOutput("filespec_status", container = tags$span)
+          ),
+          conditionalPanel(
+            condition = "output.filespec_active === true",
+            selectInput(
+              "filespec_region", "Preview region", choices = character()
+            ),
+            div(
+              class = "openspecy-filespec-toolbar",
+              actionButton("filespec_view_left", NULL,
+                           icon = icon("arrow-left"), title = "Pan left"),
+              actionButton("filespec_view_right", NULL,
+                           icon = icon("arrow-right"), title = "Pan right"),
+              actionButton("filespec_view_up", NULL,
+                           icon = icon("arrow-up"), title = "Pan up"),
+              actionButton("filespec_view_down", NULL,
+                           icon = icon("arrow-down"), title = "Pan down"),
+              actionButton("filespec_view_out", "Zoom out",
+                           icon = icon("search-minus")),
+              actionButton("filespec_view_reset", "Reset view",
+                           icon = icon("expand")),
+              actionButton("filespec_close", "Close source",
+                           icon = icon("times"), class = "btn-outline-danger")
+            ),
+            div(
+              class = "openspecy-filespec-map",
+              plotOutput(
+                "filespec_map", height = "42vh",
+                click = clickOpts(id = "filespec_map_click", clip = TRUE),
+                brush = brushOpts(
+                  id = "filespec_map_brush", direction = "xy",
+                  resetOnNew = TRUE
+                )
+              )
+            ),
+            tags$p(
+              class = "openspecy-filespec-status",
+              textOutput("filespec_view_status", container = tags$span)
+            ),
+            tags$p(
+              class = "openspecy-filespec-intro",
+              paste0(
+                "The map is a bounded server-rendered index preview, not a ",
+                "full spectral payload. Drag a rectangle to zoom to an exact ",
+                "ROI, use the pan/reset controls to move the viewport, and ",
+                "click a pixel to materialize one OpenSpecy spectrum for the ",
+                "existing analysis controls."
+              )
             )
           )
         )

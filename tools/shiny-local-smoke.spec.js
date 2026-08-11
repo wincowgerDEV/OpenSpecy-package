@@ -12,6 +12,7 @@ const path = require("path");
 
 const repo = path.resolve(__dirname, "..");
 const rPidFile = path.join(repo, "test-results", ".shiny-local-smoke-r.pid");
+const fileSpecsSmokePath = process.env.OPENSPECY_LOCAL_FILE_SPECS_PATH || "";
 let port = Number(process.env.OPENSPECY_LOCAL_SMOKE_PORT || 0);
 let app;
 let stderr = "";
@@ -396,6 +397,7 @@ test.beforeAll(async () => {
   fs.rmSync(rPidFile, { force: true });
   const expression = [
     `writeLines(as.character(Sys.getpid()), ${JSON.stringify(rPidFile.replace(/\\/g, "/"))})`,
+    "options(openspecy.shiny.local_files=TRUE)",
     `devtools::load_all(${JSON.stringify(repo.replace(/\\/g, "/"))}, quiet=TRUE)`,
     `shiny::runApp(${JSON.stringify(path.join(repo, "inst", "shiny").replace(/\\/g, "/"))}, host='127.0.0.1', port=${port}, launch.browser=FALSE)`,
   ].join("; ");
@@ -406,6 +408,9 @@ test.beforeAll(async () => {
       OPENSPECY_SHINY_LIBRARY_PATH:
         process.env.OPENSPECY_SHINY_LIBRARY_PATH ||
         "C:/Users/winco/AppData/Local/R/cache/R/OpenSpecy/reference_libraries",
+      OPENSPECY_FILE_SPECS_CACHE:
+        process.env.OPENSPECY_FILE_SPECS_CACHE ||
+        path.join(repo, "_wasm", "feature009-app-cache"),
     },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
@@ -553,6 +558,65 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
     .toMatch(/completed 'Top Matches' download/i);
   const diagnostics = stderr.slice(stderrStart);
   expect(diagnostics).not.toMatch(/cannot allocate vector/i);
+  expect(severeErrors).toEqual([]);
+});
+
+test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, testInfo) => {
+  test.setTimeout(300000);
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  for (const inputId of [
+    "active_identification", "active_preprocessing", "collapse_decision",
+    "threshold_decision",
+  ]) {
+    await page.locator(`#${inputId}`).evaluate((input) => {
+      if (input.checked) input.click();
+    });
+  }
+  const mapUploadPath = path.join(repo, "inst", "extdata", "CA_tiny_map.zip");
+  await page.locator("#file").setInputFiles(mapUploadPath);
+  await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
+  await expect(page.locator("#eventmetadata")).toContainText("CA small UF.dat", {
+    timeout: 180000,
+  });
+  await dismissQueuedAlerts(page);
+
+  const spectraCard = page.locator("#spectra_box");
+  const sidebarToggle = page.locator("#mycardsidebar");
+  await sidebarToggle.click();
+  await expect(spectraCard).toHaveClass(/direct-chat-contacts-open/);
+  const sidebar = spectraCard.locator(".direct-chat-contacts");
+  await sidebar.getByRole("link", {
+    name: "Uploaded Metadata", exact: true,
+  }).click();
+  const metadataTable = sidebar.locator(
+    "#sidebar_metadata .dataTables_scrollBody table"
+  );
+  await expect(metadataTable).toBeVisible({
+    timeout: 60000,
+  });
+  const nonFirstMetadataRow = metadataTable.locator("tbody tr").nth(1);
+  await expect(nonFirstMetadataRow).toContainText("0_1", { timeout: 60000 });
+  await nonFirstMetadataRow.click();
+  await expect(page.locator("#eventmetadata table")).toContainText("0_1", {
+    timeout: 60000,
+  });
+  await page.screenshot({
+    path: testInfo.outputPath("test-map-uploaded-metadata.png"),
+    fullPage: true,
+  });
+  await sidebarToggle.click();
+  await expect(spectraCard).not.toHaveClass(/direct-chat-contacts-open/);
+  await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
   expect(severeErrors).toEqual([]);
 });
 
@@ -1887,4 +1951,142 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(popups).toEqual([]);
   expect(severeErrors).toEqual([]);
   expect(stderr).not.toMatch(/Warning: Error in|Execution halted/);
+});
+
+test("local FileSpecs path opens regions and materializes only the selected spectrum", async ({ page }, testInfo) => {
+  test.skip(
+    !fileSpecsSmokePath || !fs.existsSync(fileSpecsSmokePath),
+    "Set OPENSPECY_LOCAL_FILE_SPECS_PATH to exercise a genuine local H5/ENVI source."
+  );
+  test.setTimeout(900000);
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  for (const inputId of [
+    "active_identification", "active_preprocessing", "collapse_decision",
+    "threshold_decision",
+  ]) {
+    await page.locator(`#${inputId}`).evaluate((input) => {
+      if (input.checked) input.click();
+    });
+  }
+
+  const sourceCard = page.locator("#filespec_source_box");
+  await expectCardCollapsed(sourceCard);
+  await toggleCard(sourceCard);
+  await expectCardCollapsed(sourceCard, false);
+  await page.locator("#filespec_path").fill(fileSpecsSmokePath);
+  await page.locator("#filespec_open").click();
+  await expect(page.locator("#filespec_status")).toContainText(
+    "Open read-only:", { timeout: 180000 }
+  );
+  await expect(page.locator("#filespec_status")).toContainText("indexed spectra");
+  await expect(page.locator("#filespec_map")).toBeVisible({ timeout: 60000 });
+
+  if (path.basename(fileSpecsSmokePath).toLowerCase() === "drop.h5") {
+    await expect.poll(
+      async () => page.locator("#filespec_region").evaluate((select) =>
+        Object.keys(select.selectize ? select.selectize.options : {})
+      ),
+      { timeout: 60000 }
+    ).toEqual(["Region1", "Region2", "Region3"]);
+    await selectizeOption(page, "filespec_region", "Region3");
+    await expect(page.locator("#filespec_status")).toContainText("Region3", {
+      timeout: 60000,
+    });
+  } else {
+    const regions = await page.locator("#filespec_region").evaluate((select) =>
+      Object.keys(select.selectize ? select.selectize.options : {})
+    );
+    expect(regions.length).toBeGreaterThanOrEqual(1);
+  }
+
+  const fullViewport = await page.locator("#filespec_view_status").innerText();
+  expect(fullViewport).toMatch(/pixels visible/i);
+  const previewImage = page.locator("#filespec_map img");
+  await expect(previewImage).toBeVisible();
+  const viewportMatch = fullViewport.match(
+    /X\s+([-+\d.e]+)\s+to\s+([-+\d.e]+),\s+Y\s+([-+\d.e]+)\s+to\s+([-+\d.e]+)/i
+  );
+  expect(viewportMatch).not.toBeNull();
+  const [xmin, xmax, ymin, ymax] = viewportMatch.slice(1).map(Number);
+  await page.evaluate(({ xmin, xmax, ymin, ymax }) => {
+    window.Shiny.setInputValue("filespec_map_brush", {
+      xmin: xmin + 0.15 * (xmax - xmin),
+      xmax: xmin + 0.48 * (xmax - xmin),
+      ymin: ymin + 0.20 * (ymax - ymin),
+      ymax: ymin + 0.58 * (ymax - ymin),
+    }, { priority: "event" });
+  }, { xmin, xmax, ymin, ymax });
+  await expect.poll(
+    async () => page.locator("#filespec_view_status").innerText(),
+    { timeout: 60000 }
+  ).not.toBe(fullViewport);
+  const brushedViewport = await page.locator("#filespec_view_status").innerText();
+  await page.locator("#filespec_view_right").click();
+  await expect.poll(
+    async () => page.locator("#filespec_view_status").innerText(),
+    { timeout: 60000 }
+  ).not.toBe(brushedViewport);
+  await page.locator("#filespec_view_reset").click();
+  await expect(page.locator("#filespec_view_status")).toHaveText(fullViewport, {
+    timeout: 60000,
+  });
+
+  await expect.poll(async () => page.locator("#MyPlotC").evaluate((plot) =>
+    Math.max(0, ...(plot.data || []).map((trace) =>
+      Array.isArray(trace.x) ? trace.x.length : 0
+    ))
+  ), { timeout: 120000 }).toBeGreaterThan(100);
+
+  const statusBeforeClick = await page.locator("#filespec_status").innerText();
+  const previewBox = await previewImage.boundingBox();
+  expect(previewBox).not.toBeNull();
+  await previewImage.click({
+    position: {
+      x: Math.max(1, Math.floor(previewBox.width * 0.8)),
+      y: Math.max(1, Math.floor(previewBox.height * 0.7)),
+    },
+  });
+  await expect.poll(
+    async () => page.locator("#filespec_status").innerText(),
+    { timeout: 60000 }
+  ).not.toBe(statusBeforeClick);
+
+  await waitForStableSelectizeGeneration(
+    page.locator("#download_selection"), "Processed Spectra",
+    { timeout: 120000 }
+  );
+  await page.locator("#download_selection").evaluate((select) => {
+    select.selectize.setValue("Processed Spectra");
+  });
+  const selectedDownload = await fetchDownload(page.locator("#download_data"), {
+    readyTimeout: 120000,
+  });
+  expect(selectedDownload.status).toBe(200);
+  const selectedHeader = selectedDownload.content.split(/\r?\n/, 1)[0];
+  expect(selectedHeader.split(",").length).toBeGreaterThan(100);
+  expect(selectedHeader).toMatch(/col_id|file_name/i);
+  expect(selectedDownload.content.length).toBeLessThan(2 * 1024 * 1024);
+  await page.screenshot({
+    path: testInfo.outputPath("local-filespec-selection.png"),
+    fullPage: true,
+  });
+  await page.locator("#filespec_close").click();
+  await expect(page.locator("#filespec_status")).toContainText(
+    "Closed the file-backed source", { timeout: 60000 }
+  );
+  await expect(page.locator("#filespec_map")).toBeHidden();
+  expect(severeErrors).toEqual([]);
 });

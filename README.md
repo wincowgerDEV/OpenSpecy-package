@@ -114,6 +114,56 @@ match_spec(query_specs, library_specs, top_n = 5)
 decompress_spec(query_specs, index = 1)
 ```
 
+## Large file-backed Specs workflow (experimental)
+
+`FileSpecs` is the local-first `Specs` subtype for hyperspectral maps that are
+too large to keep in memory. `open_specs()` indexes an H5 file or an ENVI
+`.hdr` plus `.dat`/`.img` pair without storing the spectral cube in the R
+object. Sources are opened read-only, fingerprints identify their version, and
+derived cache files live outside the source. Existing matrix-backed `Specs` and
+ordinary `OpenSpecy` workflows are unchanged.
+
+```r
+cache <- file.path(tempdir(), "openspecy-map-cache")
+large_map <- open_specs("path/to/map.h5", cache_dir = cache)
+print(large_map)
+
+# Region splits are lightweight views. Materialization must be explicit.
+regions <- split_spec(large_map, by = "region")
+one_spectrum <- decompress_spec(regions[[1]], index = 1)
+small_roi <- decompress_spec(large_map, region = "Region1",
+                             roi = c(10, 30, 20, 40))
+
+# A complete one-region view can be streamed to a new float64 ENVI pair.
+# Existing output members are never overwritten.
+write_spec(regions[[1]], "path/to/new-region.hdr")
+
+# The first supported whole-map pipeline finds regions automatically, streams
+# S/N and exact particle means, then matches the much smaller collapsed object.
+particles <- automate_particle_analysis(
+  large_map, library = spec_lib,
+  particle_id_strategy = "collapse", collapse_function = mean,
+  spectral_smooth = FALSE, sn_threshold_min = 0.04,
+  cor_threshold = 0.7, top_n = 1,
+  outputs = c("details", "summary", "processed", "particle_image",
+              "particle_heatmap", "sn_histogram", "cor_histogram")
+)
+plot(particles, sample = "Region1", which = "sn_histogram")
+```
+
+The initial file-backed analysis contract deliberately excludes whole-map
+correlation matrices, raw-pixel matching, spectral smoothing, entropy S/N,
+median/custom collapse, and PCA/K-means fitting. Use a bounded
+`decompress_spec()` selection when another established `OpenSpecy` operation is
+needed. With an `OpenSpecy` reference library, `top_n` can retain multiple exact
+ranked matches after collapse. Requesting `particle_image` for H5 data stitches
+and caches only the current region's registered mosaic tiles. The local Shiny
+app launched with `run_app()` also has a **Large local H5 / ENVI source** path
+opener with a bounded server raster, exact brushed ROI, pan/reset controls,
+one-pixel materialization, and selected-spectrum download. Filesystem access is
+disabled by default in other deployments and always disabled in the hosted
+WebAssembly app, which keeps its ordinary upload limit and local-app guidance.
+
 ## Related Packages
 ### Open Specy on Python
 

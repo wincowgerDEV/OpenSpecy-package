@@ -75,9 +75,33 @@ add_visual_image <- function(x, image, bottom_left = NULL, top_right = NULL,
 #' @export
 visual_image <- function(x, require = FALSE, ...) {
   vi <- attr(x, "visual_image")
+  if (!is.null(vi$regions) && length(vi$regions)) {
+    region <- .visual_image_region(x)
+    if (length(region) == 1L && region %in% names(vi$regions)) {
+      vi <- vi$regions[[region]]
+    }
+  }
   if (is.null(vi) && isTRUE(require))
     stop("No visual image is attached to 'x'", call. = FALSE)
   vi
+}
+
+.visual_image_region <- function(x) {
+  tables <- list()
+  if (is_OpenSpecy(x) && !is.null(x$metadata)) {
+    tables <- list(x$metadata)
+  } else if (inherits(x, "FileSpecs")) {
+    tables <- list(.filespec_index(x))
+  } else if (is_Specs(x)) {
+    tables <- list(x$coords, x$metadata)
+  }
+  for (table in tables) {
+    if (is.null(table) || !"region" %in% names(table)) next
+    region <- unique(as.character(table[["region"]]))
+    region <- region[!is.na(region) & nzchar(region)]
+    if (length(region)) return(region)
+  }
+  character()
 }
 
 #' @rdname visual_image
@@ -139,7 +163,7 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
                     error = function(e) .read_visual_bmp_file(image)))
   }
 
-  if (is.raw(image) || (is.numeric(image) && is.null(dim(image)))) {
+  if ((is.raw(image) || is.numeric(image)) && is.null(dim(image))) {
     return(.read_visual_bmp_bytes(image))
   }
 
@@ -297,7 +321,11 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
 .infer_visual_map_dim <- function(x) {
   md <- NULL
   if (is_OpenSpecy(x)) md <- as_OpenSpecy(x)$metadata
-  if (is_Specs(x)) md <- as_Specs(x)$coords
+  if (inherits(x, "FileSpecs")) {
+    md <- .filespec_index(x)
+  } else if (is_Specs(x)) {
+    md <- as_Specs(x)$coords
+  }
   if (is.null(md) || !all(c("x", "y") %in% names(md))) return(NULL)
   x_vals <- suppressWarnings(as.numeric(md$x))
   y_vals <- suppressWarnings(as.numeric(md$y))

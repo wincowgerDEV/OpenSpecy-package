@@ -8,6 +8,40 @@ app_wasm_mode <- function() {
     env %in% c("1", "true", "yes", "on")
 }
 
+app_local_file_mode <- function() {
+  if(app_wasm_mode()) return(FALSE)
+
+  env <- tolower(trimws(Sys.getenv(
+    "OPENSPECY_SHINY_LOCAL_FILES", ""
+  )))
+  isTRUE(getOption("openspecy.shiny.local_files", FALSE)) ||
+    env %in% c("1", "true", "yes", "on")
+}
+
+app_filespec_cache_dir <- function() {
+  configured <- trimws(Sys.getenv(
+    "OPENSPECY_FILE_SPECS_CACHE", ""
+  ))
+  cache_dir <- if(nzchar(configured)) configured else
+    file.path(tempdir(), "OpenSpecy-shiny-filespec-cache")
+
+  if(file.exists(cache_dir) && !dir.exists(cache_dir)) {
+    stop("The app FileSpecs cache path points to a file.", call. = FALSE)
+  }
+  if(!dir.exists(cache_dir) && !dir.create(
+    cache_dir, recursive = TRUE, showWarnings = FALSE
+  )) {
+    stop("The app FileSpecs cache directory could not be created.",
+         call. = FALSE)
+  }
+  if(file.access(cache_dir, mode = 2L) != 0L) {
+    stop("The app FileSpecs cache directory is not writable.",
+         call. = FALSE)
+  }
+
+  normalizePath(cache_dir, winslash = "/", mustWork = TRUE)
+}
+
 validate_wasm_package_version <- function() {
   if (!app_wasm_mode()) return(invisible(TRUE))
 
@@ -76,6 +110,350 @@ app_download_label <- function(selection) {
     return("Download selected")
   }
   unname(labels[[selection]])
+}
+
+app_upload_limit_bytes <- function(wasm = app_wasm_mode()) {
+  if(isTRUE(wasm)) 100 * 1024^2 else 512 * 1024^2
+}
+
+app_upload_limit_label <- function(wasm = app_wasm_mode()) {
+  paste0(if(isTRUE(wasm)) "100" else "512", " MB")
+}
+
+app_upload_guidance <- function(wasm = app_wasm_mode(),
+                                local_file = app_local_file_mode()) {
+  if(isTRUE(wasm)) {
+    return(paste0(
+      "The hosted app accepts ordinary browser uploads up to ",
+      app_upload_limit_label(TRUE), " total. Run the local OpenSpecy app for ",
+      "a larger H5 or ENVI map and use Large local H5 / ENVI source."
+    ))
+  }
+  if(isTRUE(local_file)) {
+    return(paste0(
+      "Ordinary browser uploads are limited to ",
+      app_upload_limit_label(FALSE), " total. For a larger H5 or ENVI map, ",
+      "use Large local H5 / ENVI source below."
+    ))
+  }
+  paste0(
+    "Ordinary browser uploads are limited to ",
+    app_upload_limit_label(FALSE), " total. For a larger H5 or ENVI map, ",
+    "launch the local app with OpenSpecy::run_app(), then use Large local ",
+    "H5 / ENVI source."
+  )
+}
+
+app_validate_upload_size <- function(file_info, wasm = app_wasm_mode()) {
+  limit <- app_upload_limit_bytes(wasm)
+  sizes <- if(is.data.frame(file_info) && "size" %in% names(file_info)) {
+    suppressWarnings(as.numeric(file_info$size))
+  } else {
+    numeric()
+  }
+  sizes <- sizes[is.finite(sizes) & sizes >= 0]
+  total <- sum(sizes)
+  ok <- !length(sizes) || total <= limit
+  guidance <- app_upload_guidance(
+    wasm = wasm,
+    local_file = !isTRUE(wasm) && app_local_file_mode()
+  )
+  list(ok = ok, size = total, limit = limit, message = guidance)
+}
+
+app_filespec_coordinates <- function(index) {
+  if(!is.data.frame(index) || !nrow(index)) {
+    stop("A FileSpecs preview requires a nonempty index.", call. = FALSE)
+  }
+  stage <- all(c("stage_x_nm", "stage_y_nm") %in% names(index)) &&
+    all(is.finite(index$stage_x_nm)) && all(is.finite(index$stage_y_nm))
+  if(stage) {
+    list(
+      x = as.numeric(index$stage_x_nm),
+      y = as.numeric(index$stage_y_nm),
+      xlab = "Stage X (nm)", ylab = "Stage Y (nm)"
+    )
+  } else {
+    if(!all(c("x", "y") %in% names(index))) {
+      stop("The FileSpecs index has no plottable coordinates.", call. = FALSE)
+    }
+    list(
+      x = as.numeric(index$x), y = as.numeric(index$y),
+      xlab = "X", ylab = "Y"
+    )
+  }
+}
+
+app_filespec_region_rows <- function(index, region = NULL) {
+  if(!is.data.frame(index) || !nrow(index) || !"region" %in% names(index)) {
+    stop("A FileSpecs preview requires indexed regions.", call. = FALSE)
+  }
+  regions <- unique(as.character(index$region))
+  if(is.null(region) || !length(region) || is.na(region[[1L]]) ||
+     !nzchar(region[[1L]])) region <- regions[[1L]]
+  region <- as.character(region[[1L]])
+  if(!region %in% regions) {
+    stop("The selected FileSpecs region is unavailable.", call. = FALSE)
+  }
+  which(as.character(index$region) == region)
+}
+
+app_filespec_extent <- function(index, region = NULL) {
+  rows <- app_filespec_region_rows(index, region)
+  selected <- index[rows, , drop = FALSE]
+  coordinates <- app_filespec_coordinates(selected)
+  keep <- is.finite(coordinates$x) & is.finite(coordinates$y)
+  if(!any(keep)) {
+    stop("The selected FileSpecs region has no finite coordinates.",
+         call. = FALSE)
+  }
+  expand_range <- function(value) {
+    value <- range(value)
+    if(diff(value) > 0) value else value + c(-0.5, 0.5)
+  }
+  c(
+    xmin = expand_range(coordinates$x[keep])[[1L]],
+    xmax = expand_range(coordinates$x[keep])[[2L]],
+    ymin = expand_range(coordinates$y[keep])[[1L]],
+    ymax = expand_range(coordinates$y[keep])[[2L]]
+  )
+}
+
+app_filespec_viewport <- function(index, region = NULL, roi = NULL) {
+  extent <- app_filespec_extent(index, region)
+  if(is.null(roi)) return(extent)
+  roi <- suppressWarnings(as.numeric(roi))
+  if(length(roi) != 4L || any(!is.finite(roi))) {
+    stop("A FileSpecs viewport must be c(xmin, xmax, ymin, ymax).",
+         call. = FALSE)
+  }
+  roi <- c(
+    xmin = max(min(roi[1:2]), extent[["xmin"]]),
+    xmax = min(max(roi[1:2]), extent[["xmax"]]),
+    ymin = max(min(roi[3:4]), extent[["ymin"]]),
+    ymax = min(max(roi[3:4]), extent[["ymax"]])
+  )
+  if(roi[["xmin"]] >= roi[["xmax"]] ||
+     roi[["ymin"]] >= roi[["ymax"]]) {
+    stop("The FileSpecs viewport does not overlap a positive map area.",
+         call. = FALSE)
+  }
+  roi
+}
+
+app_filespec_preview <- function(index, region = NULL, roi = NULL,
+                                 max_width = 512L, max_height = 512L) {
+  max_width <- suppressWarnings(as.integer(max_width))
+  max_height <- suppressWarnings(as.integer(max_height))
+  if(length(max_width) != 1L || is.na(max_width) || max_width < 1L ||
+     length(max_height) != 1L || is.na(max_height) || max_height < 1L) {
+    stop("Preview dimensions must be positive whole numbers.", call. = FALSE)
+  }
+  rows <- app_filespec_region_rows(index, region)
+  selected <- index[rows, , drop = FALSE]
+  coordinates <- app_filespec_coordinates(selected)
+  viewport <- app_filespec_viewport(index, region, roi)
+  finite <- is.finite(coordinates$x) & is.finite(coordinates$y)
+  keep <- finite &
+    coordinates$x >= viewport[["xmin"]] &
+    coordinates$x <= viewport[["xmax"]] &
+    coordinates$y >= viewport[["ymin"]] &
+    coordinates$y <= viewport[["ymax"]]
+  if(!any(keep)) {
+    stop("The FileSpecs viewport contains no indexed pixels.",
+         call. = FALSE)
+  }
+  x <- coordinates$x[keep]
+  y <- coordinates$y[keep]
+  x_range <- viewport[c("xmin", "xmax")]
+  y_range <- viewport[c("ymin", "ymax")]
+  x_unique <- length(unique(x))
+  y_unique <- length(unique(y))
+  width <- min(max_width, max(1L, x_unique))
+  height <- min(max_height, max(1L, y_unique))
+  x_bin <- if(diff(x_range) == 0) rep.int(1L, length(x)) else {
+    pmin(width, floor((x - x_range[[1L]]) / diff(x_range) * width) + 1L)
+  }
+  y_bin <- if(diff(y_range) == 0) rep.int(1L, length(y)) else {
+    pmin(height, floor((y - y_range[[1L]]) / diff(y_range) * height) + 1L)
+  }
+  counts <- matrix(
+    tabulate((y_bin - 1L) * width + x_bin, nbins = width * height),
+    nrow = height, ncol = width, byrow = TRUE
+  )
+  list(
+    counts = counts,
+    xlim = unname(x_range), ylim = unname(y_range),
+    xlab = coordinates$xlab, ylab = coordinates$ylab,
+    region = as.character(selected$region[[1L]]),
+    spectra = length(x), total_spectra = sum(finite),
+    viewport = viewport
+  )
+}
+
+app_filespec_nearest_position <- function(index, region, x, y, roi = NULL) {
+  x <- suppressWarnings(as.numeric(x))
+  y <- suppressWarnings(as.numeric(y))
+  if(length(x) != 1L || length(y) != 1L || !is.finite(x) || !is.finite(y)) {
+    return(integer())
+  }
+  rows <- app_filespec_region_rows(index, region)
+  coordinates <- app_filespec_coordinates(index[rows, , drop = FALSE])
+  viewport <- app_filespec_viewport(index, region, roi)
+  keep <- coordinates$x >= viewport[["xmin"]] &
+    coordinates$x <= viewport[["xmax"]] &
+    coordinates$y >= viewport[["ymin"]] &
+    coordinates$y <= viewport[["ymax"]]
+  rows <- rows[keep]
+  coordinates$x <- coordinates$x[keep]
+  coordinates$y <- coordinates$y[keep]
+  if(!length(rows)) return(integer())
+  distance <- (coordinates$x - x)^2 + (coordinates$y - y)^2
+  distance[!is.finite(distance)] <- Inf
+  if(!any(is.finite(distance))) return(integer())
+  as.integer(rows[[which.min(distance)]])
+}
+
+app_draw_filespec_preview <- function(preview, selected = NULL) {
+  counts <- preview$counts
+  density <- log1p(counts)
+  maximum <- max(density, na.rm = TRUE)
+  palette <- grDevices::colorRampPalette(c("#10243A", "#38BDF8", "#F0E442"))(
+    64L
+  )
+  color_index <- if(is.finite(maximum) && maximum > 0) {
+    pmax(1L, pmin(64L, ceiling(density / maximum * 64L)))
+  } else {
+    matrix(1L, nrow(counts), ncol(counts))
+  }
+  colors <- matrix("#050B14", nrow(counts), ncol(counts))
+  colors[counts > 0] <- palette[color_index[counts > 0]]
+  graphics::plot.new()
+  graphics::plot.window(preview$xlim, preview$ylim, asp = 1)
+  graphics::rasterImage(
+    grDevices::as.raster(colors[nrow(colors):1L, , drop = FALSE]),
+    preview$xlim[[1L]], preview$ylim[[1L]],
+    preview$xlim[[2L]], preview$ylim[[2L]], interpolate = FALSE
+  )
+  graphics::axis(1, col = app_theme$axis, col.axis = app_theme$text)
+  graphics::axis(2, col = app_theme$axis, col.axis = app_theme$text)
+  graphics::box(col = app_theme$border)
+  graphics::title(
+    main = paste0(
+      preview$region, " — ", format(preview$spectra, big.mark = ","),
+      if(preview$spectra < preview$total_spectra) paste0(
+        " of ", format(preview$total_spectra, big.mark = ","), " visible pixels"
+      ) else " indexed pixels"
+    ),
+    xlab = preview$xlab, ylab = preview$ylab, col.main = app_theme$text,
+    col.lab = app_theme$text
+  )
+  if(is.list(selected) && all(c("x", "y") %in% names(selected)) &&
+     is.finite(selected$x) && is.finite(selected$y)) {
+    graphics::points(selected$x, selected$y, pch = 4L, lwd = 2.5,
+                     cex = 1.4, col = "#FB7185")
+  }
+  invisible(preview)
+}
+
+app_uploaded_metadata_cache <- function(x, signal_to_noise) {
+  spectrum_ids <- colnames(x$spectra)
+  metadata <- data.table::copy(data.table::as.data.table(x$metadata))
+  if(is.null(spectrum_ids) || anyNA(spectrum_ids) || anyDuplicated(spectrum_ids) ||
+     !"col_id" %in% names(metadata)) {
+    stop("Uploaded spectra and metadata require unique identifiers.",
+         call. = FALSE)
+  }
+
+  metadata_ids <- as.character(metadata$col_id)
+  spectrum_index <- match(metadata_ids, spectrum_ids)
+  if(nrow(metadata) != length(spectrum_ids) || anyNA(metadata_ids) ||
+     anyDuplicated(metadata_ids) || anyNA(spectrum_index) ||
+     length(signal_to_noise) != length(spectrum_ids)) {
+    stop("Uploaded metadata does not align with the processed spectra.",
+         call. = FALSE)
+  }
+
+  metadata$signal_to_noise <- signal_to_noise[spectrum_index]
+  metadata <- metadata[
+    , !vapply(metadata, OpenSpecy::is_empty_vector, logical(1)), with = FALSE
+  ]
+  metadata$.openspecy_index <- as.integer(spectrum_index)
+  metadata$.openspecy_coord_key <- if(all(c("x", "y") %in% names(metadata))) {
+    paste(metadata$x, metadata$y)
+  } else {
+    rep.int(NA_character_, nrow(metadata))
+  }
+  data.table::setcolorder(
+    metadata,
+    c(".openspecy_index", ".openspecy_coord_key",
+      setdiff(names(metadata), c(".openspecy_index", ".openspecy_coord_key")))
+  )
+  metadata
+}
+
+app_uploaded_metadata_display <- function(metadata) {
+  metadata[
+    , !names(metadata) %in% c(".openspecy_index", ".openspecy_coord_key"),
+    with = FALSE
+  ]
+}
+
+app_uploaded_metadata_spectrum <- function(metadata, rows_selected) {
+  row <- suppressWarnings(as.integer(rows_selected))
+  row <- row[
+    !is.na(row) & row >= 1L & row <= nrow(metadata)
+  ]
+  if(length(row) != 1L) return(integer())
+  as.integer(metadata$.openspecy_index[[row]])
+}
+
+app_uploaded_metadata_row <- function(metadata, spectrum_index) {
+  spectrum_index <- suppressWarnings(as.integer(spectrum_index))
+  if(length(spectrum_index) != 1L || is.na(spectrum_index)) return(integer())
+  row <- match(spectrum_index, metadata$.openspecy_index)
+  if(is.na(row)) integer() else as.integer(row)
+}
+
+app_uploaded_metadata_table <- function(metadata) {
+  DT::datatable(
+    app_uploaded_metadata_display(metadata),
+    escape = TRUE,
+    options = list(
+      searchHighlight = TRUE,
+      scrollX = TRUE,
+      sDom = '<"top">lrt<"bottom">ip',
+      lengthChange = FALSE,
+      pageLength = 5
+    ),
+    rownames = FALSE,
+    filter = "top",
+    caption = "Uploaded Metadata",
+    style = "bootstrap",
+    selection = "single"
+  )
+}
+
+app_selected_metadata <- function(x, selected_match, signal_to_noise) {
+  metadata <- app_uploaded_metadata_display(
+    app_uploaded_metadata_cache(x, signal_to_noise)
+  )
+  selected_match <- data.table::copy(
+    data.table::as.data.table(selected_match)
+  )
+  if("material_class" %in% names(metadata)) {
+    metadata[, material_class := NULL]
+  }
+
+  result <- metadata[selected_match, on = c(col_id = "object_id")]
+  result <- result[
+    , !vapply(result, OpenSpecy::is_empty_vector, logical(1)), with = FALSE
+  ] %>%
+    dplyr::select(
+      file_name, col_id, material_class, spectrum_identity, match_val,
+      signal_to_noise, dplyr::everything()
+    )
+  result
 }
 
 app_top_match_rows <- function(cor_matrix, top_n = 1L) {

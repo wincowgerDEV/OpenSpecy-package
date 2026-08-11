@@ -94,6 +94,116 @@ found in its software manual or you can check out
 spectral file conversions. For instructions, see [Spectragryph
 Tutorial](https://wincowgerdev.github.io/OpenSpecy-package/pkgdown/articles/spectragryph.html). Unfortunately the maintainer of Spectragryph passed away and it is unclear how much longer this will be supported.
 
+## Experimental large H5 and ENVI workflow
+
+Use `FileSpecs` for a hyperspectral map that is too large for an ordinary
+in-memory `OpenSpecy` workflow. It is a lightweight, local-first `Specs`
+subtype: the serialized object contains source, axis, coordinate, recipe,
+fingerprint, and cache descriptors, but no open connection and no full values
+matrix. `open_specs()` currently accepts H5 or an ENVI `.hdr` plus `.dat`/`.img`
+pair. It opens each member read-only and never writes beside or over the source.
+
+Choose a dedicated cache directory. Completed cache entries are versioned by
+the source fingerprint and published atomically. A changed, missing, or moved
+source is rejected instead of silently reusing stale results. A saved
+descriptor therefore still needs its original, unchanged source files. Remove
+only a cache directory that you created, and only after every session using it
+has ended; source files are not cache files.
+
+```{r, eval=FALSE}
+cache_dir <- file.path(tempdir(), "openspecy-large-map-cache")
+map <- open_specs("D:/spectral-data/map.h5", cache_dir = cache_dir)
+map
+
+# These are descriptor-only regional views.
+region_views <- split_spec(map, by = "region")
+
+# Materialize only a reviewed selection. A whole-source request is refused.
+pixel <- decompress_spec(region_views[[1]], index = 1)
+roi <- decompress_spec(map, region = "Region1",
+                       roi = c(xmin = 10, xmax = 30,
+                               ymin = 20, ymax = 40))
+
+# Save the descriptor, not a copy of the spectral cube.
+write_specs(map, "map.filespec.rds")
+map <- read_specs("map.filespec.rds")
+
+# Or stream one complete rectangular region to a new float64 ENVI pair.
+# Existing output members are refused rather than overwritten.
+write_spec(region_views[[1]], "region-1-export.hdr")
+```
+
+The export preserves the wavelength axis with round-trip-safe formatting and
+rejects custom writers, incomplete/multi-region views, source members, and
+existing output paths.
+
+Selecting an entire region is explicit but may still be large; prefer an index
+or a small region of interest before calling established `OpenSpecy` functions.
+Matrix-only `Specs` operations fail with guidance rather than falling back to a
+hidden whole-cube read.
+
+The first supported direct analysis is region-aware particle identification
+with S/N screening and exact mean collapse. It streams each region, rereads
+only retained pixels to form particle means, materializes that small collapsed
+object, and then uses established preprocessing and exact matching. Thresholds
+remain scientific choices: `sn_threshold_min` and `sn_threshold_max` bound the
+accepted S/N scale, `area_threshold` rejects smaller connected regions in
+pixels, and `cor_threshold` is the minimum correlation used for interpretation.
+
+```{r, eval=FALSE}
+particle_result <- automate_particle_analysis(
+  map,
+  library = reference_library,
+  particle_id_strategy = "collapse",
+  collapse_function = mean,
+  spectral_smooth = FALSE,
+  sn_threshold_min = 0.04,
+  sn_threshold_max = Inf,
+  area_threshold = 1,
+  cor_threshold = 0.7,
+  top_n = 1,
+  outputs = c("details", "summary", "processed", "particle_image",
+              "particle_heatmap", "particle_heatmap_thresholded",
+              "sn_histogram", "cor_histogram")
+)
+
+# Recorded plots survive after the pipeline returns.
+plot(particle_result, sample = "Region1", which = "particle_heatmap")
+plot(particle_result, sample = "Region1", which = "sn_histogram")
+plot(particle_result, sample = "Region1", which = "cor_histogram")
+```
+
+The signal heatmap uses a continuous finite minimum-to-maximum legend; the
+threshold mask remains binary. Both histograms draw the configured threshold
+lines. With an in-memory `OpenSpecy` reference library, `top_n` can retain
+multiple exact ranked names and values on each collapsed particle; compressed
+library inputs currently retain only the top match. For H5 data, requesting
+`particle_image` materializes and caches the registered visual mosaic only for
+the current region, using all intersecting tiles rather than one unrelated
+tile. This initial file-backed method supports only the `collapse` strategy,
+`mean`, non-entropy S/N, and no spectral smoothing. Whole-map correlations,
+raw-pixel matching, median/custom collapse, PCA/K-means fitting, and arbitrary
+file-backed operation chains remain intentionally unavailable. Use bounded
+materialization for those established operations, and verify equivalence on a
+representative subset before interpreting a large run.
+
+In the locally launched Shiny app, expand **Large local H5 / ENVI source**,
+enter a server-side path, and click **Open read-only**. The app indexes the map,
+renders a bounded region preview, lets you brush an exact ROI and pan/reset the
+viewport, and materializes one selected spectrum for the existing controls and
+downloads, avoiding a browser copy. Closing the source clears session state
+without changing the source or completed cache generations. Ordinary uploads
+are limited to 512 MB. The hosted WebAssembly app is limited to 100 MB and
+cannot open a path on your computer; run `run_app()` locally for larger sources.
+The path opener is enabled automatically by `run_app()`, disabled by default in
+other Shiny deployments, and never enabled in WebAssembly. The large-map path
+is not a promise that every app control can process a whole cube.
+
+Maintainers can run the repeated benchmark in
+`benchmarks/file_specs_particle_analysis.R`. It is opt-in and accepts external
+H5, ENVI, eager-RDS oracle, and reference-library paths through environment
+variables; it never copies the large source into the repository.
+
 If you don't have your own data, you can use a test dataset.
 
 ```{r}

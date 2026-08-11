@@ -133,6 +133,9 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
   if (is_OpenSpecy(x)) {
     return(data.table::as.data.table(as_OpenSpecy(x)$metadata))
   }
+  if (inherits(x, "FileSpecs")) {
+    .filespec_stop_unsupported("particle image plotting")
+  }
   if (is_Specs(x)) {
     x <- as_Specs(x)
     md <- data.table::as.data.table(x$coords)

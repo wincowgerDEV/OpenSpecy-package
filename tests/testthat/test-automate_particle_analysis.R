@@ -28,6 +28,7 @@ test_that("automate_particle_analysis() returns details and summaries", {
   )
 
   expect_type(res, "list")
+  expect_s3_class(res, "OpenSpecyParticleAnalysis")
   expect_s3_class(res$particle_details_all_csv, "data.table")
   expect_s3_class(res$particle_summary_all_csv, "data.table")
   expect_gt(nrow(res$particle_details_all_csv), 0)
@@ -36,7 +37,8 @@ test_that("automate_particle_analysis() returns details and summaries", {
     c("sample_id", "particle_details_csv", "particle_summary_csv",
       "particles_raw_rds", "particles_rds", "particle_image_png",
       "particle_heatmap_png", "particle_heatmap_thresholded_jpg",
-      "cor_heatmap_png", "time_rds")
+      "cor_heatmap_png", "sn_histogram_png", "cor_histogram_png",
+      "time_rds")
   )
 })
 
@@ -143,7 +145,8 @@ test_that("automate_particle_analysis() returns and writes image outputs", {
     sn_threshold_min = 0.001,
     area_threshold = 0,
     outputs = c("details", "summary", "raw", "processed",
-                "particle_image", "heatmap", "thresholded", "correlation"),
+                "particle_image", "heatmap", "thresholded", "correlation",
+                "sn_histogram", "cor_histogram"),
     process_args = list(smooth_intens = FALSE, make_rel = TRUE)
   )
 
@@ -152,9 +155,44 @@ test_that("automate_particle_analysis() returns and writes image outputs", {
   expect_s3_class(sample$particle_heatmap_png, "recordedplot")
   expect_s3_class(sample$particle_heatmap_thresholded_jpg, "recordedplot")
   expect_s3_class(sample$cor_heatmap_png, "recordedplot")
+  expect_s3_class(sample$sn_histogram_png, "recordedplot")
+  expect_s3_class(sample$cor_histogram_png, "recordedplot")
+  expect_identical(
+    attr(sample$particle_heatmap_png, "plot_info")$legend,
+    "continuous_gradient"
+  )
+  expect_equal(attr(sample$sn_histogram_png, "plot_info")$thresholds, 0.001)
+  expect_equal(attr(sample$cor_histogram_png, "plot_info")$thresholds, 0.7)
   expect_true(file.exists(file.path(out_dir, "particle_image_small.png")))
   expect_true(file.exists(file.path(out_dir, "particle_heatmap_small.png")))
   expect_true(file.exists(file.path(out_dir,
                                    "particle_heatmap_thresholdedsmall.jpg")))
   expect_true(file.exists(file.path(out_dir, "cor_heatmap_small.png")))
+  expect_true(file.exists(file.path(out_dir, "sn_histogram_small.png")))
+  expect_true(file.exists(file.path(out_dir, "cor_histogram_small.png")))
+
+  replay <- tempfile(fileext = ".png")
+  grDevices::png(replay, width = 600, height = 600)
+  grDevices::dev.control(displaylist = "enable")
+  expect_invisible(plot(res, sample = "small", which = "sn_histogram"))
+  grDevices::dev.off()
+  expect_gt(file.info(replay)$size, 0)
+})
+
+test_that("particle heatmap scale includes the finite endpoints", {
+  scale <- .particle_continuous_scale(c(NA, -2.5, 0, 7.25, Inf))
+  expect_equal(scale$range, c(-2.5, 7.25))
+  expect_equal(range(scale$ticks), scale$range)
+})
+test_that("new particle arguments preserve the established positional API", {
+  for (fun in list(
+    automate_particle_analysis,
+    OpenSpecy:::automate_particle_analysis.default,
+    OpenSpecy:::automate_particle_analysis.FileSpecs
+  )) {
+    argument_names <- names(formals(fun))
+    expect_identical(tail(argument_names, 2L), c("top_n", "..."))
+    expect_gt(match("top_n", argument_names),
+              match("specs_centers", argument_names))
+  }
 })

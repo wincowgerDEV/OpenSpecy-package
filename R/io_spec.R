@@ -1,15 +1,19 @@
-#' @rdname io_spec
+#' @name io_spec
 #' @title Read and write spectral data
 #'
 #' @description
 #' Functions for reading and writing spectral data to and from OpenSpecy format.
 #' \code{OpenSpecy} objects are lists with components `wavenumber`, `spectra`,
-#' and `metadata`. Currently supported formats are .json, .csv, or .rds.
+#' and `metadata`; their supported formats are .json, .csv, and .rds.
+#' A file-backed `FileSpecs` method writes a new ENVI pair.
 #'
-#' @param x an object of class \code{\link{OpenSpecy}}.
+#' @param x an object of class \code{\link{OpenSpecy}} or a file-backed
+#'   `FileSpecs` descriptor. File-backed objects are exported as a new ENVI
+#'   header/binary pair and never overwrite source members.
 #' @param file file path to be read from or written to.
-#' @param method optional; function to be used as a custom reader or writer.
-#' Defaults to the appropriate function based on the file extension.
+#' @param method optional custom reader or `OpenSpecy` writer. `FileSpecs`
+#'   rejects custom writers so its source-protection guarantee cannot be
+#'   bypassed. Otherwise defaults to the file extension's method.
 #' @param digits number of significant digits to use when formatting numeric
 #' values; defaults to \code{\link[base]{getOption}("digits")}.
 #' @param \ldots further arguments passed to the submethods.
@@ -19,13 +23,18 @@
 #' precision of the numbers returned if using multiple devices for .json and
 #' .csv files but the numbers should be nearly identical.
 #' \code{\link[base]{readRDS}()} should return the exact same object every time.
+#' `write_spec.FileSpecs()` streams one complete rectangular region to a new
+#' ENVI BIP pair using float64 spectra and a round-trip-safe wavelength axis.
+#' It refuses custom writers, source-member targets, existing outputs, and
+#' multi-region or incomplete views.
 #'
 #' @return
 #' \code{read_spec()} reads data formatted as an \code{OpenSpecy} object and
 #' returns a list object of class \code{\link{OpenSpecy}} containing spectral
 #' data.
-#' \code{write_spec()} writes a file for an object of class
-#' \code{\link{OpenSpecy}} containing spectral data.
+#' \code{write_spec()} writes spectral data. For `FileSpecs`, it invisibly
+#' returns the new ENVI header and binary paths; other methods are called for
+#' their file-writing side effect.
 #' \code{as_hyperspec()} converts an \code{OpenSpecy} object to a
 #' \code{\link[hyperSpec]{hyperSpec-class}} object.
 #'

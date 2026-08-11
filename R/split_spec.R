@@ -3,10 +3,11 @@
 #' @title Split Open Specy objects
 #'
 #' @description
-#' Convert a list of Open Specy objects with any number of spectra into
-#' a list of Open Specy objects with one spectrum each.
+#' Convert a list of Open Specy objects into one-spectrum objects, or split a
+#' file-backed map into lightweight region views.
 #'
-#' @param x a list of OpenSpecy objects
+#' @param x a list of OpenSpecy objects or another supported spectral object.
+#' @param ... arguments passed to class methods.
 #'
 #' @details
 #' Function will accept a list of Open Specy objects of any length and will split
@@ -16,7 +17,9 @@
 #' one spectrum.
 #'
 #' @return
-#' A list of Open Specy objects each with 1 spectrum.
+#' For ordinary inputs, a list of Open Specy objects each with one spectrum.
+#' For `FileSpecs`, a named list of descriptor-only `FileSpecs` region views
+#' that share the immutable source and cache.
 #'
 #' @examples
 #' data("test_lib")
@@ -34,7 +37,13 @@
 #'
 #'
 #' @export
-split_spec <- function(x){
+split_spec <- function(x, ...) {
+  UseMethod("split_spec")
+}
+
+#' @rdname split_spec
+#' @export
+split_spec.default <- function(x, ...) {
   if(is_OpenSpecy(x)) stop("x must be a list of Open Specy objects")
 
   lapply(x, function(x) {

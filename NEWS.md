@@ -1,5 +1,25 @@
 # OpenSpecy 1.7.1
 
+- Added experimental, local-first `FileSpecs` descriptors for read-only H5 and
+  ENVI maps. They fingerprint immutable sources, keep derived generations in a
+  separate atomic cache, provide bounded `decompress_spec()` selections and
+  lightweight region views, stream complete rectangular views to new atomic
+  float64 ENVI pairs without wavelength-axis truncation, and fail early for
+  unsupported matrix-only
+  operations while preserving legacy matrix-backed `Specs` behavior. The first
+  direct large-map workflow streams region-wise S/N and exact particle means
+  through `automate_particle_analysis()`, supports exact ranked `top_n` results
+  for `OpenSpecy` libraries, and lazily caches registered regional H5 mosaics
+  for particle images; it intentionally requires the
+  collapse strategy, `mean`, non-entropy S/N, and no spectral smoothing.
+- Added an explicitly gated local Shiny path opener and bounded raster preview
+  with brushed ROI, pan/reset, one-pixel selection, and cleanup for large H5
+  and ENVI maps, with explicit 512 MB local and 100 MB hosted ordinary-upload
+  limits. H5 mosaics now retain region, local and stage coordinates, unique
+  pixels, and intersecting image tiles. Particle-analysis results replay via
+  `plot()`, expose S/N and correlation histograms with threshold lines, and use
+  a continuous finite signal legend. Uploaded Test Map metadata now keeps
+  stable row-to-spectrum selection in both app modes.
 - Added `correct_spike()` with a conservative wavenumber-aware residual method
   and the manual and automated prominence/FWHM methods described by Coca-Lopez
   (2024). Corrections are transactional, preserve the `OpenSpecy` axis and

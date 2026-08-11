@@ -31,6 +31,9 @@
 #' @param close,close_kernel passed to \code{\link{def_features}()}.
 #' @param sn_threshold_min,sn_threshold_max signal/noise thresholds.
 #' @param cor_threshold minimum match value for confident particle labels.
+#' @param top_n positive integer number of exact library matches to retain.
+#'   The established maximum-correlation columns remain available; ranks are
+#'   added to particle metadata and details when `top_n` is greater than one.
 #' @param area_threshold minimum feature area in pixels.
 #' @param label_unknown logical; label low-correlation matches as `"unknown"`.
 #' @param remove_materials optional material labels to remove after matching.
@@ -40,9 +43,9 @@
 #' @param collapse_function function used by \code{\link{collapse_spec}()}.
 #' @param outputs character vector containing any of `"details"`, `"summary"`,
 #' `"particle_image"`, `"particle_heatmap"`,
-#' `"particle_heatmap_thresholded"`, `"cor_heatmap"`, `"raw"`,
-#' `"processed"`, or `"time"`. Short aliases `"heatmap"`,
-#' `"thresholded"`, and `"correlation"` are also accepted.
+#' `"particle_heatmap_thresholded"`, `"cor_heatmap"`, `"sn_histogram"`,
+#' `"cor_histogram"`, `"raw"`, `"processed"`, or `"time"`. Short aliases
+#' `"heatmap"`, `"thresholded"`, and `"correlation"` are also accepted.
 #' @param process_args optional named list overriding \code{\link{process_spec}()}
 #' arguments for spectra before matching.
 #' @param specs_steps,specs_centers compression controls for Specs-based
@@ -55,8 +58,9 @@
 #' exports where applicable: `particle_details_csv`, `particle_summary_csv`,
 #' `particles_raw_rds`, `particles_rds`, `particle_image_png`,
 #' `particle_heatmap_png`, `particle_heatmap_thresholded_jpg`,
-#' `cor_heatmap_png`, and `time_rds`. Image entries are recorded base-graphics
-#' plots that can be replayed with \code{\link[grDevices]{replayPlot}()}.
+#' `cor_heatmap_png`, `sn_histogram_png`, `cor_histogram_png`, and `time_rds`.
+#' The result has class `OpenSpecyParticleAnalysis`; use its `plot()` method to
+#' replay a named recorded plot.
 #'
 #' @examples
 #' tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()
@@ -83,9 +87,31 @@ automate_particle_analysis <- function(
     collapse_function = stats::median,
     outputs = c("details", "summary"),
     process_args = list(), specs_steps = c("pca", "kmeans"),
-    specs_centers = NULL, ...) {
+    specs_centers = NULL, top_n = 1L, ...) {
+  UseMethod("automate_particle_analysis")
+}
+
+#' @rdname automate_particle_analysis
+#' @export
+automate_particle_analysis.default <- function(
+    x, library, output_dir = NULL, images = NULL, bottom_left = NULL,
+    top_right = NULL, origins = NULL, material_col = "material_class",
+    library_id_col = "sample_name",
+    particle_id_strategy = c("collapse", "partial_collapse",
+                             "nonspatial_collapse", "all_cell_id", "raw"),
+    spectral_smooth = FALSE, sigma1 = c(1, 1, 1),
+    spatial_smooth = FALSE, sigma2 = c(3, 3), close = FALSE,
+    close_kernel = c(4, 4), sn_threshold_min = 0.04,
+    sn_threshold_max = Inf, cor_threshold = 0.7, area_threshold = 1,
+    label_unknown = FALSE, remove_materials = NULL, remove_unknown = FALSE,
+    pixel_length = 25, metric = "sig_times_noise", abs = FALSE,
+    collapse_function = stats::median,
+    outputs = c("details", "summary"),
+    process_args = list(), specs_steps = c("pca", "kmeans"),
+    specs_centers = NULL, top_n = 1L, ...) {
 
   .reject_removed_particle_args(list(...))
+  top_n <- .normalize_particle_top_n(top_n, library)
   particle_id_strategy <- .normalize_particle_strategy(particle_id_strategy)
   outputs <- .normalize_particle_outputs(outputs)
   samples <- .normalize_particle_samples(x)
@@ -116,7 +142,8 @@ automate_particle_analysis <- function(
     threshold[is.na(threshold)] <- FALSE
     map$metadata$threshold <- threshold
     plot_outputs <- .particle_pre_match_plots(
-      map, sample_name, output_dir, outputs, pixel_length, origin
+      map, sample_name, output_dir, outputs, pixel_length, origin,
+      sn_threshold_min, sn_threshold_max
     )
 
     if (!any(threshold) && !particle_id_strategy %in% c("raw",
@@ -168,7 +195,7 @@ automate_particle_analysis <- function(
 
     proc_map <- .append_particle_matches(
       proc_map, library = library, material_col = material_col,
-      library_id_col = library_id_col
+      library_id_col = library_id_col, top_n = top_n
     )
     proc_map <- .filter_particle_matches(
       proc_map,
@@ -197,7 +224,7 @@ automate_particle_analysis <- function(
       plot_outputs,
       .particle_post_match_plots(
         map, proc_map, sample_name, output_dir, outputs, material_col,
-        pixel_length, origin
+        pixel_length, origin, cor_threshold
       )
     )
 
@@ -219,6 +246,8 @@ automate_particle_analysis <- function(
       particle_heatmap_thresholded_jpg =
         plot_outputs$particle_heatmap_thresholded_jpg,
       cor_heatmap_png = plot_outputs$cor_heatmap_png,
+      sn_histogram_png = plot_outputs$sn_histogram_png,
+      cor_histogram_png = plot_outputs$cor_histogram_png,
       time_rds = if ("time" %in% outputs) elapsed else NULL
     )
   }
@@ -232,8 +261,72 @@ automate_particle_analysis <- function(
   if (!is.null(output_dir)) {
     .write_particle_all_outputs(output_dir, details_all, summary_all, outputs)
   }
-  list(samples = sample_results, particle_details_all_csv = details_all,
-       particle_summary_all_csv = summary_all)
+  structure(
+    list(samples = sample_results, particle_details_all_csv = details_all,
+         particle_summary_all_csv = summary_all),
+    class = c("OpenSpecyParticleAnalysis", "list")
+  )
+}
+
+#' Plot a recorded particle-analysis diagnostic
+#'
+#' @param x an `OpenSpecyParticleAnalysis` result.
+#' @param sample sample name or numeric position.
+#' @param which plot name, with or without its file-style suffix. If `NULL`,
+#' the first available plot is used.
+#' @param ... reserved for future plotting options.
+#'
+#' @return `x` invisibly.
+#' @export
+plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
+  samples <- x$samples
+  if (is.character(sample)) {
+    if (length(sample) != 1L || !sample %in% names(samples)) {
+      stop("unknown particle-analysis sample: ", paste(sample, collapse = ", "),
+           call. = FALSE)
+    }
+    item <- samples[[sample]]
+  } else {
+    sample <- as.integer(sample)[1L]
+    if (is.na(sample) || sample < 1L || sample > length(samples)) {
+      stop("'sample' is outside the available result range", call. = FALSE)
+    }
+    item <- samples[[sample]]
+  }
+
+  plot_names <- c(
+    particle_image = "particle_image_png",
+    particle_heatmap = "particle_heatmap_png",
+    particle_heatmap_thresholded = "particle_heatmap_thresholded_jpg",
+    cor_heatmap = "cor_heatmap_png",
+    sn_histogram = "sn_histogram_png",
+    cor_histogram = "cor_histogram_png"
+  )
+  available <- plot_names[vapply(plot_names, function(nm) {
+    inherits(item[[nm]], "recordedplot")
+  }, FUN.VALUE = logical(1))]
+  if (!length(available)) {
+    stop("the selected sample has no recorded plots", call. = FALSE)
+  }
+  if (is.null(which)) {
+    field <- unname(available[[1L]])
+  } else {
+    which <- as.character(which)[1L]
+    if (which %in% unname(plot_names)) {
+      field <- which
+    } else if (which %in% names(plot_names)) {
+      field <- unname(plot_names[[which]])
+    } else {
+      stop("unknown plot '", which, "'; choose one of: ",
+           paste(names(plot_names), collapse = ", "), call. = FALSE)
+    }
+    if (!inherits(item[[field]], "recordedplot")) {
+      stop("plot '", which, "' was not requested for this sample",
+           call. = FALSE)
+    }
+  }
+  grDevices::replayPlot(item[[field]])
+  invisible(x)
 }
 
 .reject_removed_particle_args <- function(args) {
@@ -243,7 +336,7 @@ automate_particle_analysis <- function(
   if (length(removed)) {
     stop("Removed automate_particle_analysis argument(s): ",
          paste(removed, collapse = ", "),
-         ". Use composable preprocessing, top-1 matching, or explicit ",
+         ". Use composable preprocessing, exact top-N matching, or explicit ",
          "post-processing outside this workflow.", call. = FALSE)
   }
   invisible(TRUE)
@@ -274,6 +367,19 @@ automate_particle_analysis <- function(
   replace <- outputs %in% names(aliases)
   outputs[replace] <- aliases[outputs[replace]]
   unique(outputs)
+}
+
+.normalize_particle_top_n <- function(top_n, library) {
+  value <- suppressWarnings(as.integer(top_n))
+  if (length(value) != 1L || is.na(value) || value < 1L ||
+      !identical(as.numeric(top_n), as.numeric(value))) {
+    stop("'top_n' must be one positive integer", call. = FALSE)
+  }
+  if (value > 1L && !is_OpenSpecy(library)) {
+    stop("'top_n' greater than one currently requires an OpenSpecy library",
+         call. = FALSE)
+  }
+  value
 }
 
 .normalize_particle_samples <- function(x) {
@@ -470,12 +576,26 @@ automate_particle_analysis <- function(
 }
 
 .append_particle_matches <- function(proc_map, library, material_col,
-                                     library_id_col) {
+                                     library_id_col, top_n = 1L) {
   if (is_OpenSpecy(library)) {
     cors <- cor_spec(proc_map, library, compute = "base")
     max_cors <- max_cor_named(cors)
     proc_map$metadata$max_cor_val <- as.numeric(max_cors)
     proc_map$metadata$max_cor_name <- names(max_cors)
+    if (top_n > 1L) {
+      retained <- min(top_n, nrow(cors))
+      ranked <- vapply(seq_len(ncol(cors)), function(column) {
+        head(order(cors[, column], decreasing = TRUE, na.last = TRUE), retained)
+      }, FUN.VALUE = integer(retained))
+      if (retained == 1L) ranked <- matrix(ranked, nrow = 1L)
+      for (rank in seq_len(retained)) {
+        rows <- ranked[rank, ]
+        proc_map$metadata[[paste0("match_rank_", rank, "_name")]] <-
+          rownames(cors)[rows]
+        proc_map$metadata[[paste0("match_rank_", rank, "_value")]] <-
+          cors[cbind(rows, seq_len(ncol(cors)))]
+      }
+    }
     lib_md <- data.table::as.data.table(library$metadata)
     if (all(c(library_id_col, material_col) %in% names(lib_md))) {
       idx <- match(proc_map$metadata$max_cor_name, lib_md[[library_id_col]])
@@ -599,7 +719,10 @@ automate_particle_analysis <- function(
     dt$g <- dt$mean_g
     dt$b <- dt$mean_b
   }
+  rank_cols <- grep("^match_rank_[0-9]+_(name|value)$", names(dt),
+                    value = TRUE)
   cols <- intersect(c("particle_id", "sample_id", "max_cor_val",
+                      rank_cols,
                       "bad_spectra", material_col,
                       "area_um2", "perimeter_um", "max_length_um",
                       "min_length_um", "aspect_ratio", "circularity",
@@ -618,7 +741,8 @@ automate_particle_analysis <- function(
 }
 
 .particle_pre_match_plots <- function(map, sample_name, output_dir, outputs,
-                                      pixel_length, origin) {
+                                      pixel_length, origin, sn_threshold_min,
+                                      sn_threshold_max) {
   out <- list()
   if ("particle_heatmap" %in% outputs) {
     out$particle_heatmap_png <- .capture_particle_plot(
@@ -641,12 +765,26 @@ automate_particle_analysis <- function(
       }
     )
   }
+  if ("sn_histogram" %in% outputs) {
+    out$sn_histogram_png <- .capture_particle_plot(
+      .particle_output_path(output_dir, "sn_histogram_", sample_name, ".png"),
+      device = "png",
+      plot_fun = function() {
+        .plot_particle_histogram(
+          map$metadata$snr,
+          thresholds = c(sn_threshold_min, sn_threshold_max),
+          main = "Signal/noise distribution",
+          xlab = "Signal/noise"
+        )
+      }
+    )
+  }
   out
 }
 
 .particle_post_match_plots <- function(map, proc_map, sample_name, output_dir,
                                        outputs, material_col, pixel_length,
-                                       origin) {
+                                       origin, cor_threshold) {
   out <- list()
   if ("particle_image" %in% outputs &&
       material_col %in% names(map$metadata)) {
@@ -669,6 +807,21 @@ automate_particle_analysis <- function(
       device = "png",
       plot_fun = function() {
         .plot_particle_correlation_heatmap(map, pixel_length, origin)
+      }
+    )
+  }
+  if ("cor_histogram" %in% outputs &&
+      "max_cor_val" %in% names(proc_map$metadata)) {
+    out$cor_histogram_png <- .capture_particle_plot(
+      .particle_output_path(output_dir, "cor_histogram_", sample_name, ".png"),
+      device = "png",
+      plot_fun = function() {
+        .plot_particle_histogram(
+          proc_map$metadata$max_cor_val,
+          thresholds = cor_threshold,
+          main = "Maximum-correlation distribution",
+          xlab = "Maximum correlation"
+        )
       }
     )
   }
@@ -699,12 +852,14 @@ automate_particle_analysis <- function(
     grDevices::png(filename, width = width, height = height, units = units)
   }
   opened <- TRUE
+  grDevices::dev.control(displaylist = "enable")
   on.exit({
     if (opened && grDevices::dev.cur() > 1L) grDevices::dev.off()
     if (temp_file) unlink(filename)
   }, add = TRUE)
-  plot_fun()
+  plot_info <- plot_fun()
   out <- grDevices::recordPlot()
+  if (!is.null(plot_info)) attr(out, "plot_info") <- plot_info
   opened <- FALSE
   grDevices::dev.off()
   if (temp_file) unlink(filename)
@@ -720,8 +875,30 @@ automate_particle_analysis <- function(
   graphics::image(grid$x, grid$y, grid$z, col = cols,
                   xlab = "X (um)", ylab = "Y (um)", main = main, asp = 1)
   legend_title <- if (identical(value_col, "snr")) "Signal/noise" else value_col
-  .add_particle_continuous_legend(values, cols, title = legend_title)
+  scale <- .add_particle_continuous_legend(
+    values, cols, title = legend_title
+  )
   graphics::box()
+  invisible(scale)
+}
+
+.plot_particle_histogram <- function(values, thresholds, main, xlab) {
+  values <- suppressWarnings(as.numeric(values))
+  values <- values[is.finite(values)]
+  if (!length(values)) {
+    graphics::plot.new()
+    graphics::title(main = main, xlab = xlab)
+    return(invisible(list(thresholds = numeric(), range = c(NA_real_,
+                                                            NA_real_))))
+  }
+  graphics::hist(values, breaks = "Sturges", col = "grey80", border = "white",
+                 main = main, xlab = xlab)
+  thresholds <- unique(as.numeric(thresholds))
+  thresholds <- thresholds[is.finite(thresholds)]
+  if (length(thresholds)) {
+    graphics::abline(v = thresholds, col = "#D62728", lwd = 2, lty = 2)
+  }
+  invisible(list(thresholds = thresholds, range = range(values)))
 }
 
 .plot_particle_thresholded_heatmap <- function(map, pixel_length, origin) {
@@ -753,23 +930,56 @@ automate_particle_analysis <- function(
 }
 
 .add_particle_continuous_legend <- function(values, cols, title) {
-  finite <- values[is.finite(values)]
-  if (!length(finite)) return(invisible(NULL))
+  scale <- .particle_continuous_scale(values)
+  if (is.null(scale)) return(invisible(NULL))
+  rng <- scale$range
+  ticks <- scale$ticks
+  usr <- graphics::par("usr")
+  dx <- diff(usr[1:2])
+  dy <- diff(usr[3:4])
+  xleft <- usr[[1L]] + 0.82 * dx
+  xright <- usr[[1L]] + 0.86 * dx
+  ybottom <- usr[[3L]] + 0.50 * dy
+  ytop <- usr[[3L]] + 0.88 * dy
+  gradient <- grDevices::as.raster(matrix(rev(cols), ncol = 1L))
+  graphics::rect(
+    xleft - 0.01 * dx, ybottom - 0.025 * dy,
+    usr[[1L]] + 0.985 * dx, ytop + 0.075 * dy,
+    col = grDevices::adjustcolor("white", alpha.f = 0.88), border = NA
+  )
+  graphics::rasterImage(
+    gradient, xleft, ybottom, xright, ytop, interpolate = TRUE
+  )
+  graphics::rect(xleft, ybottom, xright, ytop, border = "grey25")
+  positions <- if (identical(rng[[1L]], rng[[2L]])) {
+    rep((ybottom + ytop) / 2, length(ticks))
+  } else {
+    ybottom + (ticks - rng[[1L]]) / diff(rng) * (ytop - ybottom)
+  }
+  graphics::segments(
+    xright, positions, xright + 0.012 * dx, positions, col = "grey20"
+  )
+  graphics::text(
+    xright + 0.018 * dx, positions,
+    labels = format(signif(ticks, 3), trim = TRUE),
+    adj = c(0, 0.5), cex = 0.75, col = "grey10"
+  )
+  graphics::text(
+    (xleft + xright) / 2, ytop + 0.04 * dy,
+    labels = title, adj = c(0.5, 0), cex = 0.8, col = "grey10"
+  )
+  scale$legend <- "continuous_gradient"
+  invisible(scale)
+}
+
+.particle_continuous_scale <- function(values) {
+  finite <- suppressWarnings(as.numeric(values))
+  finite <- finite[is.finite(finite)]
+  if (!length(finite)) return(NULL)
   rng <- range(finite)
   ticks <- pretty(rng, n = 5)
   ticks <- ticks[ticks >= rng[1L] & ticks <= rng[2L]]
-  if (!length(ticks)) ticks <- rng
-  if (identical(rng[1L], rng[2L])) {
-    idx <- rep(ceiling(length(cols) / 2), length(ticks))
-  } else {
-    breaks <- seq(rng[1L], rng[2L], length.out = length(cols) + 1L)
-    idx <- findInterval(ticks, breaks, all.inside = TRUE)
-  }
-  graphics::legend("topright",
-                   legend = format(signif(ticks, 3), trim = TRUE),
-                   fill = cols[pmax(1L, pmin(length(cols), idx))],
-                   title = title, cex = 0.9, bty = "n", inset = 0.01)
-  invisible(NULL)
+  list(range = rng, ticks = sort(unique(c(rng, ticks))))
 }
 
 .particle_map_grid <- function(md, values, pixel_length, origin) {
@@ -827,6 +1037,8 @@ automate_particle_analysis <- function(
        particle_heatmap_thresholded_jpg =
          plot_outputs$particle_heatmap_thresholded_jpg,
        cor_heatmap_png = plot_outputs$cor_heatmap_png,
+       sn_histogram_png = plot_outputs$sn_histogram_png,
+       cor_histogram_png = plot_outputs$cor_histogram_png,
        time_rds = if ("time" %in% outputs) Sys.time() - time_start else NULL)
 }
 

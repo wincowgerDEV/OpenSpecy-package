@@ -60,6 +60,16 @@ test_that("visual images read uncompressed BMP bytes without grDevices readbitma
   expect_equal(img[2, 1, ], c(0, 0, 1))
 })
 
+test_that("decoded raw RGB arrays are not reparsed as BMP byte streams", {
+  data("raman_hdpe")
+  image <- array(as.raw(c(255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0)),
+                 dim = c(2, 2, 3))
+  attached <- add_visual_image(
+    raman_hdpe, image, bottom_left = c(1, 2), top_right = c(2, 1)
+  )
+  expect_identical(visual_image(attached)$image, image)
+})
+
 test_that("visual image attributes survive Specs conversion and decompression", {
   os <- as_OpenSpecy(
     1:4,

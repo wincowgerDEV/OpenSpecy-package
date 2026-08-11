@@ -73,6 +73,12 @@ run_app <- function(path = "system", log = TRUE, ref = NULL,
   .openspecy_require_shiny_packages()
 
   message("Launching bundled OpenSpecy Shiny app from: ", app_path)
+  old_local_file_mode <- getOption("openspecy.shiny.local_files", NULL)
+  on.exit(
+    options(openspecy.shiny.local_files = old_local_file_mode),
+    add = TRUE
+  )
+  options(openspecy.shiny.local_files = TRUE)
   runApp(app_path, launch.browser = launch.browser, ...)
 }
 

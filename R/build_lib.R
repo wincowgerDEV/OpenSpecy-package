@@ -1151,6 +1151,8 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
 #' @rdname build_lib
 #' @export
 make_lib_lookup_template <- function(x, columns, add = NULL, path = NULL) {
+  if (inherits(x, "FileSpecs"))
+    .filespec_stop_unsupported("make_lib_lookup_template()")
   if (!(is_OpenSpecy(x) || is_Specs(x))) {
     stop("'x' must be an OpenSpecy or Specs object", call. = FALSE)
   }
@@ -1178,6 +1180,8 @@ make_lib_lookup_template <- function(x, columns, add = NULL, path = NULL) {
 join_lib_metadata <- function(x, lookup, by, require_complete = FALSE,
                               return = c("object", "table", "report"),
                               suffixes = c(".x", ".y")) {
+  if (inherits(x, "FileSpecs"))
+    .filespec_stop_unsupported("join_lib_metadata()")
   return <- match.arg(return)
   is_os <- is_OpenSpecy(x)
   is_specs <- is_Specs(x)
@@ -1279,6 +1283,8 @@ join_material_hierarchy <- function(x, hierarchy, key_col = "material",
                                     output_names = levels,
                                     require_complete = FALSE,
                                     return = c("object", "table", "report")) {
+  if (inherits(x, "FileSpecs"))
+    .filespec_stop_unsupported("join_material_hierarchy()")
   return <- match.arg(return)
   is_os <- is_OpenSpecy(x)
   is_specs <- is_Specs(x)

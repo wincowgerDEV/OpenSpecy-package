@@ -125,6 +125,36 @@ test_that("bundled app updates map selection without full heatmap or spectrum re
   expect_false(grepl("sliderInput(", quantification_ui, fixed = TRUE))
 })
 
+test_that("run_app() enables local files only during its blocking run", {
+  tmp <- file.path(tempdir(), "OpenSpecy-testthat-run-app-local-files")
+  on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
+  dir.create(tmp, showWarnings = FALSE, recursive = TRUE)
+  file.create(file.path(tmp, c("server.R", "ui.R")))
+
+  old_option <- getOption("openspecy.shiny.local_files", NULL)
+  on.exit(options(openspecy.shiny.local_files = old_option), add = TRUE)
+  options(openspecy.shiny.local_files = FALSE)
+  observed <- NULL
+  local_mocked_bindings(
+    .openspecy_require_shiny_packages = function() invisible(TRUE),
+    runApp = function(...) {
+      observed <<- getOption("openspecy.shiny.local_files", FALSE)
+      "app-returned"
+    },
+    .package = "OpenSpecy"
+  )
+
+  expect_identical(
+    run_app(path = tmp, launch.browser = FALSE), "app-returned"
+  )
+  expect_true(observed)
+  expect_false(getOption("openspecy.shiny.local_files"))
+
+  expect_identical(run_app(path = tmp, test_mode = TRUE),
+                   normalizePath(tmp, winslash = "/", mustWork = TRUE))
+  expect_false(getOption("openspecy.shiny.local_files"))
+})
+
 test_that("bundled Shiny app does not block startup or auto-load remote images", {
   app_path <- run_app(test_mode = TRUE)
   ui_source <- readLines(file.path(app_path, "ui.R"), warn = FALSE)
@@ -462,8 +492,11 @@ test_that("bundled app uses collapsed responsive panels and one shared theme", {
                fixed = TRUE)
   expect_false(grepl("bs4Dash::popover", ui_source, fixed = TRUE))
   expect_false(grepl('data-toggle="popover"', ui_source, fixed = TRUE))
-  expect_match(ui_source, "#spectra_box .direct-chat-contacts {",
-               fixed = TRUE)
+  expect_match(
+    ui_source,
+    "#spectra_box .direct-chat-contacts {\n          z-index: 40;",
+    fixed = TRUE
+  )
   expect_match(ui_source, "#sidebar_tables {", fixed = TRUE)
   expect_match(ui_source, "#spectra_box #mycardsidebar {", fixed = TRUE)
   expect_match(
@@ -471,6 +504,12 @@ test_that("bundled app uses collapsed responsive panels and one shared theme", {
     "#spectra_box.direct-chat-contacts-open #mycardsidebar",
     fixed = TRUE
   )
+  expect_match(
+    ui_source,
+    "#spectra_box.direct-chat-contacts-open #choice_names {",
+    fixed = TRUE
+  )
+  expect_match(ui_source, "pointer-events: none;", fixed = TRUE)
   expect_match(ui_source,
                "background: var(--openspecy-panel) !important;",
                fixed = TRUE)
@@ -1644,6 +1683,91 @@ test_that("bundled Test Map exercises both post-processing corrections", {
   expect_equal(nrow(assess_spec(
     result$data, checks = c("co2_region", "high_tail")
   )), 0L)
+})
+
+test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  test_map <- suppressWarnings(read_any(read_extdata("CA_tiny_map.zip")))
+  expect_identical(ncol(test_map$spectra), 208L)
+  expect_identical(nrow(test_map$metadata), 208L)
+  spectrum_ids <- colnames(test_map$spectra)
+  signal_to_noise <- seq_along(spectrum_ids)
+  original_metadata <- data.table::copy(test_map$metadata)
+
+  cache <- env$app_uploaded_metadata_cache(test_map, signal_to_noise)
+  expect_identical(test_map$metadata, original_metadata)
+  expect_identical(cache$.openspecy_index, seq_len(208L))
+  expect_identical(cache$signal_to_noise, signal_to_noise)
+
+  table <- env$app_uploaded_metadata_table(cache)
+  expect_s3_class(table, "datatables")
+  expect_identical(nrow(table$x$data), 208L)
+  expect_identical(table$x$filter, "top")
+  expect_identical(table$x$options$pageLength, 5)
+  expect_match(table$x$options$sDom, "ip", fixed = TRUE)
+  expect_identical(attr(table$x$options, "escapeIdx"), "true")
+
+  reordered <- test_map
+  reordered$metadata <- data.table::copy(test_map$metadata[208:1])
+  reordered_before <- data.table::copy(reordered$metadata)
+  reordered_cache <- env$app_uploaded_metadata_cache(
+    reordered, signal_to_noise
+  )
+  selected_row <- 37L
+  expected_spectrum <- match(
+    reordered$metadata$col_id[[selected_row]], spectrum_ids
+  )
+  expect_identical(
+    env$app_uploaded_metadata_spectrum(reordered_cache, selected_row),
+    as.integer(expected_spectrum)
+  )
+  expect_identical(
+    env$app_uploaded_metadata_row(reordered_cache, expected_spectrum),
+    selected_row
+  )
+
+  selected_match <- data.table::data.table(
+    object_id = spectrum_ids[[137L]],
+    material_class = "test material",
+    spectrum_identity = "test reference",
+    match_val = 0.91
+  )
+  selected <- env$app_selected_metadata(
+    reordered, selected_match, signal_to_noise
+  )
+  expect_identical(reordered$metadata, reordered_before)
+  expect_identical(selected$col_id, spectrum_ids[[137L]])
+  expect_identical(selected$signal_to_noise, 137L)
+  expect_identical(
+    selected$x,
+    test_map$metadata[col_id == spectrum_ids[[137L]], x]
+  )
+
+  server_source <- paste(
+    readLines(file.path(app_path, "server.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  expect_match(
+    server_source,
+    'outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)',
+    fixed = TRUE
+  )
+  expect_match(server_source, "}, server = FALSE)", fixed = TRUE)
+  expect_false(grepl("setkey(dataR_metadata", server_source, fixed = TRUE))
 })
 
 test_that("bundled app orders downloads from the current analysis state", {

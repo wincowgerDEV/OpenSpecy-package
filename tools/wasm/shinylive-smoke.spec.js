@@ -136,6 +136,21 @@ async function setShinyCheckbox(input, checked) {
   }
 }
 
+async function dismissQueuedAlerts(root) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const alert = root.locator(
+      ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
+    ).first();
+    if (!await alert.isVisible().catch(() => false)) return;
+    const confirm = alert.locator(
+      "button.swal2-confirm, button.confirm, button:has-text('OK')"
+    ).first();
+    if (!await confirm.isVisible().catch(() => false)) return;
+    await confirm.click({ force: true });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+}
+
 async function verifyNativeDownload({
   page,
   link,
@@ -609,6 +624,31 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     "CA small UF.dat",
     { timeout: 900000 }
   );
+  await dismissQueuedAlerts(appFrame);
+  const mapSpectraCard = appFrame.locator("#spectra_box");
+  const mapSidebarToggle = appFrame.locator("#mycardsidebar");
+  await mapSidebarToggle.click();
+  await expect(mapSpectraCard).toHaveClass(/direct-chat-contacts-open/);
+  const mapSidebar = mapSpectraCard.locator(".direct-chat-contacts");
+  await mapSidebar.getByRole("link", {
+    name: "Uploaded Metadata", exact: true,
+  }).click();
+  const mapMetadataTable = mapSidebar.locator(
+    "#sidebar_metadata .dataTables_scrollBody table"
+  );
+  await expect(mapMetadataTable).toBeVisible({
+    timeout: 300000,
+  });
+  const nonFirstMapMetadataRow = mapMetadataTable.locator("tbody tr").nth(1);
+  await expect(nonFirstMapMetadataRow).toContainText("0_1", {
+    timeout: 300000,
+  });
+  await nonFirstMapMetadataRow.click();
+  await expect(appFrame.locator("#eventmetadata table")).toContainText("0_1", {
+    timeout: 300000,
+  });
+  await mapSidebarToggle.click();
+  await expect(mapSpectraCard).not.toHaveClass(/direct-chat-contacts-open/);
   await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 300000,
   });

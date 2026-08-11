@@ -23,6 +23,12 @@ cor_spec.Specs <- function(x, library, na.rm = TRUE, compute = "optimized",
   stop("'compute' must be 'optimized' or 'base'", call. = FALSE)
 }
 
+#' @rdname open_specs
+#' @export
+cor_spec.FileSpecs <- function(x, ...) {
+  .filespec_stop_unsupported("cor_spec()")
+}
+
 #' @rdname Specs
 #' @export
 match_spec.Specs <- function(x, library, top_n = NULL, expand = FALSE,
@@ -49,6 +55,12 @@ match_spec.Specs <- function(x, library, top_n = NULL, expand = FALSE,
     res <- .expand_specs_matches(res, x)
 
   res
+}
+
+#' @rdname open_specs
+#' @export
+match_spec.FileSpecs <- function(x, ...) {
+  .filespec_stop_unsupported("match_spec()")
 }
 
 .match_specs_hilbert <- function(x, library, top_n = NULL,
@@ -171,6 +183,12 @@ def_features.Specs <- function(x, features,
   .append_specs_transformation(obj, list(method = "def_features"))
 }
 
+#' @rdname open_specs
+#' @export
+def_features.FileSpecs <- function(x, ...) {
+  .filespec_stop_unsupported("def_features()")
+}
+
 #' @rdname Specs
 #' @export
 collapse_spec.Specs <- function(x, fun = mean, column = "feature_id", ...) {
@@ -245,4 +263,10 @@ collapse_spec.Specs <- function(x, fun = mean, column = "feature_id", ...) {
     column = column,
     values = length(uids)
   ))
+}
+
+#' @rdname open_specs
+#' @export
+collapse_spec.FileSpecs <- function(x, ...) {
+  .filespec_stop_unsupported("collapse_spec()")
 }
