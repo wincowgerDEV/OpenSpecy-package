@@ -1,0 +1,10 @@
+{
+  "integration": "claude",
+  "version": "0.8.12",
+  "installed_at": "2026-08-12T17:34:12.617113+00:00",
+  "files": {
+    ".claude/skills/speckit-constitution/SKILL.md": "c1a044aba243ca6aff627fb5e4404feb6f1108d4f7dd174631bee3ae477d6c15",
+    ".claude/skills/speckit-implement/SKILL.md": "efeb6dc763bcf6ee5fe6732ce4d4243fe7c9c37f1db10ac39d8b0780ff9eebe0",
+    ".claude/skills/speckit-plan/SKILL.md": "5dbf517056a7df98de24835cb44c582b8d9b5c95950f917b129a740ca7f6448b"
+  }
+}

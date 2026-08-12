@@ -32,7 +32,16 @@ inst/OpenSpecy-shiny-main/
 
 # Local Shiny/Shinylive smoke-test and build artifacts
 .codex-*/
+.claude-*/
 _wasm/
+
+# Local-only NTFS junctions to .agents/skills/openspecy-* (recreate with
+# .specify/scripts/powershell/link-claude-skills.ps1); git cannot track a
+# junction as a link, so committing it would duplicate the files instead.
+.claude/skills/openspecy-*/
+
+# specify CLI's local integration catalog cache
+.specify/integrations/.cache/
 _site/
 debug.log
 node_modules/

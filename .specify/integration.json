@@ -2,7 +2,8 @@
   "version": "0.8.12",
   "integration_state_schema": 1,
   "installed_integrations": [
-    "codex"
+    "codex",
+    "claude"
   ],
   "integration_settings": {
     "codex": {
@@ -11,6 +12,10 @@
       "parsed_options": {
         "skills": true
       },
+      "invoke_separator": "-"
+    },
+    "claude": {
+      "script": "ps",
       "invoke_separator": "-"
     }
   },
