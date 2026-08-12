@@ -26,6 +26,9 @@ function(input, output, session) {
 
   #create a random session id
   session_id <- digest(runif(10))
+  particle_output_root <- file.path(
+    tempdir(), paste0("OpenSpecy-shiny-particles-", session_id)
+  )
 
   # Session state
   load_data()
@@ -52,6 +55,37 @@ function(input, output, session) {
   library_axis_cache$key <- NULL
   library_axis_cache$value <- NULL
   quality_modal_observers <- new.env(parent = emptyenv())
+
+  advanced_child_ids <- c(
+    "filespec_path", "filespec_open", "threshold_decision", "MinSNR",
+    "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
+    "spatial_decision", "sigma", "xy_grid", "collapse_decision",
+    "collapse_type", "particle_id_strategy", "particle_area_threshold"
+  )
+  set_advanced_child_state <- function(enabled) {
+    lapply(advanced_child_ids, function(id) {
+      shinyjs::toggleState(id, condition = enabled)
+    })
+    ids <- jsonlite::toJSON(advanced_child_ids, auto_unbox = TRUE)
+    script <- sprintf(
+      paste0(
+        "(function(ids, enabled) { ids.forEach(function(id) { ",
+        "var el = document.getElementById(id); if (!el) return; ",
+        "el.disabled = !enabled; ",
+        "if (el.selectize) { enabled ? el.selectize.enable() : el.selectize.disable(); } ",
+        "if (window.jQuery && window.jQuery(el).data('selectpicker')) { ",
+        "window.jQuery(el).prop('disabled', !enabled).selectpicker('refresh'); } ",
+        "}); })(%s, %s);"
+      ),
+      ids, if(enabled) "true" else "false"
+    )
+    shinyjs::runjs(script)
+  }
+  observeEvent(input$active_advanced, {
+    enabled <- isTRUE(input$active_advanced)
+    set_advanced_child_state(enabled)
+    session$onFlushed(function() set_advanced_child_state(enabled), once = TRUE)
+  }, ignoreInit = FALSE)
 
   observeEvent(input$range_automate, {
     manual_range <- !isTRUE(input$range_automate)
@@ -143,6 +177,17 @@ function(input, output, session) {
 
   observeEvent(input$filespec_open, {
     req(app_local_file_mode())
+    if(!isTRUE(input$active_advanced) || !isTRUE(input$collapse_decision)) {
+      show_alert(
+        title = "Enable Advanced particle analysis",
+        text = paste(
+          "Turn on the Advanced master switch and Collapse Particle Spectra",
+          "before opening a local H5 or ENVI source."
+        ),
+        type = "warning"
+      )
+      return()
+    }
     path <- trimws(as.character(input$filespec_path))
     if(length(path) != 1L || is.na(path) || !nzchar(path)) {
       show_alert(
@@ -204,6 +249,14 @@ function(input, output, session) {
     updateSelectInput(
       session, "filespec_region", choices = regions, selected = regions[[1L]]
     )
+    updatePickerInput(
+      session, "collapse_type", choices = "Mean", selected = "Mean"
+    )
+    updatePickerInput(
+      session, "particle_id_strategy",
+      choices = c("Connected threshold regions" = "collapse"),
+      selected = "collapse"
+    )
     analysis_phase(
       "Preparing the bounded map",
       paste0(
@@ -254,116 +307,33 @@ function(input, output, session) {
   })
   outputOptions(output, "filespec_view_status", suspendWhenHidden = FALSE)
 
-  output$filespec_map <- renderPlot({
-    preview <- filespec_preview()
-    index <- filespec_index_state()
-    position <- filespec_selected_position()
-    selected <- NULL
-    if(length(position) == 1L && !is.na(position) &&
-       position >= 1L && position <= nrow(index) &&
-       identical(as.character(index$region[[position]]), preview$region)) {
-      coordinates <- app_filespec_coordinates(index[position, , drop = FALSE])
-      selected <- list(x = coordinates$x[[1L]], y = coordinates$y[[1L]])
-    }
-    graphics::par(bg = app_theme$canvas, fg = app_theme$text,
-                  mar = c(4.5, 5, 3.2, 1))
-    app_draw_filespec_preview(preview, selected)
-  }, res = 96)
-
-  observeEvent(input$filespec_map_click, {
-    click <- input$filespec_map_click
-    index <- isolate(filespec_index_state())
-    region <- isolate(input$filespec_region)
-    req(!is.null(index), isTruthy(region), length(click$x), length(click$y))
-    position <- app_filespec_nearest_position(
-      index, region, click$x, click$y,
-      roi = isolate(filespec_viewport_state())
-    )
-    if(length(position)) load_filespec_selection(position)
-  }, ignoreInit = TRUE)
-
-  observeEvent(input$filespec_map_brush, {
-    brush <- input$filespec_map_brush
-    index <- isolate(filespec_index_state())
-    region <- isolate(input$filespec_region)
-    req(!is.null(index), isTruthy(region), !is.null(brush))
-    candidate <- tryCatch(
-      app_filespec_viewport(
-        index, region,
-        c(brush$xmin, brush$xmax, brush$ymin, brush$ymax)
-      ),
-      error = identity
-    )
-    if(inherits(candidate, "error")) return()
-    visible <- tryCatch(
-      app_filespec_preview(index, region, roi = candidate,
-                           max_width = 2L, max_height = 2L),
-      error = identity
-    )
-    if(!inherits(visible, "error")) filespec_viewport_state(candidate)
-  }, ignoreInit = TRUE)
-
-  shift_filespec_view <- function(direction = "reset") {
-    index <- isolate(filespec_index_state())
-    region <- isolate(input$filespec_region)
-    req(!is.null(index), isTruthy(region))
-    full <- app_filespec_extent(index, region)
-    current <- isolate(filespec_viewport_state())
-    if(is.null(current) || identical(direction, "reset")) {
-      filespec_viewport_state(full)
-      return(invisible(NULL))
-    }
-    current <- app_filespec_viewport(index, region, current)
-    width <- diff(current[c("xmin", "xmax")])
-    height <- diff(current[c("ymin", "ymax")])
-    center_x <- mean(current[c("xmin", "xmax")])
-    center_y <- mean(current[c("ymin", "ymax")])
-    if(identical(direction, "left")) center_x <- center_x - 0.4 * width
-    if(identical(direction, "right")) center_x <- center_x + 0.4 * width
-    if(identical(direction, "down")) center_y <- center_y - 0.4 * height
-    if(identical(direction, "up")) center_y <- center_y + 0.4 * height
-    if(identical(direction, "out")) {
-      width <- min(diff(full[c("xmin", "xmax")]), width * 1.8)
-      height <- min(diff(full[c("ymin", "ymax")]), height * 1.8)
-    }
-    clamp <- function(center, span, lower, upper) {
-      if(span >= upper - lower) return(c(lower, upper))
-      bounds <- center + c(-0.5, 0.5) * span
-      if(bounds[[1L]] < lower) bounds <- bounds + lower - bounds[[1L]]
-      if(bounds[[2L]] > upper) bounds <- bounds - (bounds[[2L]] - upper)
-      bounds
-    }
-    x <- clamp(center_x, width, full[["xmin"]], full[["xmax"]])
-    y <- clamp(center_y, height, full[["ymin"]], full[["ymax"]])
-    filespec_viewport_state(c(
-      xmin = x[[1L]], xmax = x[[2L]], ymin = y[[1L]], ymax = y[[2L]]
-    ))
-    invisible(NULL)
-  }
-
-  observeEvent(input$filespec_view_reset, shift_filespec_view("reset"),
-               ignoreInit = TRUE)
-  observeEvent(input$filespec_view_out, shift_filespec_view("out"),
-               ignoreInit = TRUE)
-  observeEvent(input$filespec_view_left, shift_filespec_view("left"),
-               ignoreInit = TRUE)
-  observeEvent(input$filespec_view_right, shift_filespec_view("right"),
-               ignoreInit = TRUE)
-  observeEvent(input$filespec_view_up, shift_filespec_view("up"),
-               ignoreInit = TRUE)
-  observeEvent(input$filespec_view_down, shift_filespec_view("down"),
-               ignoreInit = TRUE)
-
   observeEvent(input$filespec_close, {
     preprocessed$data <- NULL
     clear_filespec_state(
       "Closed the file-backed source; source and completed caches were unchanged."
+    )
+    updatePickerInput(
+      session, "collapse_type",
+      choices = c("Mean", "Median", "Geometric Mean"), selected = "Mean"
+    )
+    updatePickerInput(
+      session, "particle_id_strategy",
+      choices = c(
+        "Connected threshold regions" = "collapse",
+        "Spectral clusters within regions" = "partial_collapse",
+        "Non-spatial spectral clusters" = "nonspatial_collapse",
+        "Per-cell identities" = "all_cell_id"
+      ),
+      selected = "collapse"
     )
   }, ignoreInit = TRUE)
 
   session$onSessionEnded(function() {
     clear_filespec_state()
     preprocessed$data <- NULL
+    if(dir.exists(particle_output_root)) {
+      unlink(particle_output_root, recursive = TRUE, force = TRUE)
+    }
   })
 
   observeEvent(input$support_openspecy, {
@@ -623,7 +593,7 @@ observeEvent(input$file, {
  data <- reactive({
     req(!is.null(active_source()))
       da <- active_source()
-      if(isTruthy(input$xy_grid) &&
+      if(isTRUE(input$active_advanced) && isTruthy(input$xy_grid) &&
          (!all(diff(sort(da$metadata$y)) %in% c(0,1)) ||
           !all(diff(sort(da$metadata$x)) %in% c(0,1)))){
           grid <- gen_grid(nrow(da$metadata))
@@ -793,7 +763,7 @@ observeEvent(input$file, {
       processed <- app_copy_correction_history(corrected_source, processed)
     }
 
-    if(isTRUE(input$spatial_decision)) {
+    if(isTRUE(input$active_advanced) && isTRUE(input$spatial_decision)) {
       analysis_phase(
         "Smoothing the spectral map",
         "Applying the selected spatial smoothing before artifact checks.",
@@ -1216,7 +1186,8 @@ observeEvent(input$file, {
   # Keep the metric control inert until thresholding is enabled. This lets a
   # user prepare the setting without invalidating the analysis pipeline.
   effective_signal_selection <- reactive({
-      if(!isTRUE(input$threshold_decision)) return("run_sig_over_noise")
+      if(!isTRUE(input$active_advanced) ||
+         !isTRUE(input$threshold_decision)) return("run_sig_over_noise")
       input$signal_selection
   })
 
@@ -1251,18 +1222,22 @@ observeEvent(input$file, {
       selected_index <- data_click$plot
       threshold_report <- app_threshold_quality_report(
         spectrum_id = colnames(selected$spectra)[[1L]],
-        snr_value = if(isTRUE(input$threshold_decision)) {
+        snr_value = if(isTRUE(input$active_advanced) &&
+                       isTRUE(input$threshold_decision)) {
           signal_to_noise()[[selected_index]]
         } else NULL,
-        snr_threshold = if(isTRUE(input$threshold_decision)) {
+        snr_threshold = if(isTRUE(input$active_advanced) &&
+                           isTRUE(input$threshold_decision)) {
           input$MinSNR
         } else NULL,
         signal_metric = effective_signal_selection(),
-        correlation_value = if(isTRUE(input$active_identification) &&
+        correlation_value = if(isTRUE(input$active_advanced) &&
+                               isTRUE(input$active_identification) &&
                                isTRUE(input$cor_threshold_decision)) {
           max_cor()[[selected_index]]
         } else NULL,
-        correlation_threshold = if(isTRUE(input$active_identification) &&
+        correlation_threshold = if(isTRUE(input$active_advanced) &&
+                                   isTRUE(input$active_identification) &&
                                    isTRUE(input$cor_threshold_decision)) {
           input$MinCor
         } else NULL
@@ -1377,7 +1352,7 @@ observeEvent(input$file, {
   
   MinSNR <- reactive({
       req(!is.null(preprocessed$data))
-      if(!input$threshold_decision){
+      if(!isTRUE(input$active_advanced) || !input$threshold_decision){
           -Inf
       }
       else{
@@ -1385,67 +1360,215 @@ observeEvent(input$file, {
       }
   })
 
-  particles_logi <- reactive({
-      req(isTRUE(input$collapse_decision))
-      collapse_logic <- input$collapse_log_type
+  MaxSNR <- reactive({
+      req(!is.null(preprocessed$data))
+      if(!isTRUE(input$active_advanced) || !input$threshold_decision) {
+          Inf
+      } else {
+          value <- suppressWarnings(as.numeric(input$MaxSNR))
+          if(length(value) != 1L || is.na(value)) Inf else value
+      }
+  })
 
-      if(identical(collapse_logic, "Thresholds")){
-          if(isTRUE(input$active_identification) &&
-             isTRUE(input$threshold_decision) &&
-             isTRUE(input$cor_threshold_decision)){
-              return(signal_to_noise() > MinSNR() & max_cor() > MinCor())
-          }
-          if(isTRUE(input$threshold_decision)){
-              return(signal_to_noise() > MinSNR())
-          }
-          if(isTRUE(input$active_identification) &&
-             isTRUE(input$cor_threshold_decision)){
-              return(max_cor() > MinCor())
-          }          
-      }
-      if(identical(collapse_logic, "Identities")){
-          if(!isTRUE(input$active_identification)) return(NULL)
-          return(max_cor_identity())
-      }
-      if(identical(collapse_logic, "Both")){
-          if(!isTRUE(input$active_identification)) return(NULL)
-          background_fill <- max_cor_identity()
-          if(isTRUE(input$threshold_decision) &&
-             isTRUE(input$cor_threshold_decision)){
-              background_fill[!(signal_to_noise() > MinSNR() & max_cor() > MinCor())] <- "background"
-              return(background_fill)
-          }
-          if(isTRUE(input$threshold_decision)){
-              background_fill[!(signal_to_noise() > MinSNR())] <- "background"
-              return(background_fill)
-          }
-          if(isTRUE(input$cor_threshold_decision)){
-              background_fill[!(max_cor() > MinCor())] <- "background"
-              return(background_fill)
-          }   
-      }
-      return(NULL)
+  particle_pipeline_enabled <- reactive({
+    isTRUE(input$active_advanced) && isTRUE(input$collapse_decision) &&
+      !is.null(preprocessed$data)
+  })
+
+  particle_collapse_function <- reactive({
+    switch(
+      input$collapse_type,
+      "Median" = stats::median,
+      "Geometric Mean" = function(x) exp(mean(log(x))),
+      base::mean
+    )
+  })
+
+  particle_process_args <- reactive({
+    library <- library_filtered()
+    if(is.null(final_specs())) {
+      return(list(
+        conform_spec = TRUE,
+        conform_spec_args = list(range = library$wavenumber, res = NULL,
+                                 type = "roll"),
+        restrict_range = FALSE, flatten_range = FALSE,
+        subtr_baseline = FALSE, smooth_intens = FALSE, make_rel = FALSE
+      ))
+    }
+
+    active <- isTRUE(input$active_preprocessing)
+    smooth_active <- active && isTRUE(input$smooth_decision)
+    baseline_args <- if(identical(input$baseline_method, "fill_peaks")) {
+      list(type = "fill_peaks", lambda = input$baseline_lambda,
+           hwi = input$baseline_hwi, it = input$iterations,
+           make_rel = FALSE)
+    } else {
+      list(type = "polynomial", degree = input$baseline, raw = FALSE,
+           refit_at_end = input$refit, iterations = input$iterations,
+           baseline = NULL, make_rel = FALSE)
+    }
+    list(
+      active = TRUE,
+      adj_intens = active && isTRUE(input$intensity_decision),
+      adj_intens_args = list(type = input$intensity_corr),
+      conform_spec = TRUE,
+      conform_spec_args = list(range = library$wavenumber, res = NULL,
+                               type = "roll"),
+      restrict_range = active && isTRUE(input$range_decision),
+      restrict_range_args = list(min = input$MinRange, max = input$MaxRange,
+                                 make_rel = FALSE),
+      flatten_range = active && isTRUE(input$co2_decision),
+      flatten_range_args = list(min = input$MinFlat, max = input$MaxFlat,
+                                make_rel = FALSE),
+      subtr_baseline = active && isTRUE(input$baseline_decision),
+      subtr_baseline_args = baseline_args,
+      smooth_intens = smooth_active,
+      smooth_intens_args = if(smooth_active) {
+        list(
+          polynomial = input$smoother,
+          window = calc_window_points(library$wavenumber,
+                                      input$smoother_window),
+          derivative = input$derivative_order,
+          abs = input$derivative_abs
+        )
+      } else {
+        list()
+      },
+      make_rel = active && isTRUE(input$make_rel_decision)
+    )
+  })
+
+  particle_analysis_state <- reactive({
+    if(!particle_pipeline_enabled()) {
+      return(list(result = NULL, output_dir = NULL, error = NULL))
+    }
+    if(!isTRUE(input$active_identification)) {
+      return(list(
+        result = NULL, output_dir = NULL,
+        error = "Turn on Identification to match collapsed particle spectra."
+      ))
+    }
+    if(identical(input$lib_type, "model")) {
+      return(list(
+        result = NULL, output_dir = NULL,
+        error = paste(
+          "Particle analysis requires a spectral reference library;",
+          "choose a medoid or full library instead of the model."
+        )
+      ))
+    }
+
+    source <- if(!is.null(final_specs())) final_specs() else DataR()
+    if(inherits(source, "FileSpecs") &&
+       (!identical(input$particle_id_strategy, "collapse") ||
+        !identical(input$collapse_type, "Mean"))) {
+      return(list(
+        result = NULL, output_dir = NULL,
+        error = paste(
+          "File-backed maps currently require Connected threshold regions",
+          "and Mean collapse."
+        )
+      ))
+    }
+    settings_key <- digest::digest(list(
+      source = if(inherits(source, "FileSpecs")) source$source$id else
+        list(input$file$name, dim(source$spectra), source$wavenumber),
+      input$particle_id_strategy, input$collapse_type,
+      input$particle_area_threshold, effective_signal_selection(),
+      MinSNR(), MaxSNR(), MinCor(), input$id_strategy, input$lib_type,
+      particle_process_args()
+    ))
+    output_dir <- file.path(particle_output_root, settings_key)
+    dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    progress_for_message <- function(message) {
+      if(grepl("complete", message, ignore.case = TRUE)) return(96)
+      if(grepl("outputs", message, ignore.case = TRUE)) return(88)
+      if(grepl("matching", message, ignore.case = TRUE)) return(76)
+      if(grepl("mean|collapse", message, ignore.case = TRUE)) return(58)
+      if(grepl("signal/noise", message, ignore.case = TRUE)) return(36)
+      if(grepl("index|read|region", message, ignore.case = TRUE)) return(20)
+      12
+    }
+    result <- tryCatch(
+      withCallingHandlers(
+        automate_particle_analysis(
+          source,
+          library = library_filtered(),
+          output_dir = output_dir,
+          material_col = "material_class",
+          library_id_col = "sample_name",
+          particle_id_strategy = input$particle_id_strategy,
+          spectral_smooth = FALSE,
+          sn_threshold_min = MinSNR(),
+          sn_threshold_max = MaxSNR(),
+          cor_threshold = MinCor(),
+          area_threshold = input$particle_area_threshold,
+          label_unknown = TRUE,
+          pixel_length = 1,
+          metric = effective_signal_selection(),
+          abs = FALSE,
+          collapse_function = particle_collapse_function(),
+          outputs = unname(app_particle_output_choices()),
+          process_args = particle_process_args(),
+          origins = list(x = 0, y = 0)
+        ),
+        message = function(condition) {
+          detail <- conditionMessage(condition)
+          analysis_phase(
+            "Analyzing particles", detail, progress_for_message(detail)
+          )
+          try(session$flushReact(), silent = TRUE)
+          invokeRestart("muffleMessage")
+        }
+      ),
+      error = identity
+    )
+    if(inherits(result, "error")) {
+      return(list(result = NULL, output_dir = output_dir,
+                  error = conditionMessage(result)))
+    }
+    list(result = result, output_dir = output_dir, error = NULL)
+  })
+
+  particle_analysis <- reactive(particle_analysis_state()$result)
+  particle_output_dir <- reactive(particle_analysis_state()$output_dir)
+
+  observe({
+    if(particle_pipeline_enabled()) particle_analysis_state()
+  })
+
+  observeEvent(particle_analysis_state()$error, {
+    error <- particle_analysis_state()$error
+    if(is.null(error)) return()
+    message("OpenSpecy app: particle analysis could not run: ", error)
+    show_alert(title = "Particle analysis could not run", text = error,
+               type = "error")
+  }, ignoreNULL = TRUE)
+
+  particle_sample_name <- reactive({
+    result <- particle_analysis()
+    req(!is.null(result), length(result$samples))
+    requested <- if(!is.null(final_specs())) input$filespec_region else NULL
+    if(isTruthy(requested) && requested %in% names(result$samples)) {
+      requested
+    } else {
+      names(result$samples)[[1L]]
+    }
+  })
+
+  particle_sample <- reactive({
+    result <- particle_analysis()
+    req(!is.null(result))
+    result$samples[[particle_sample_name()]]
   })
 
   collapse_features <- reactive({
-      if(!isTRUE(input$collapse_decision) || is.null(preprocessed$data)) {
+      sample <- particle_sample()
+      processed <- sample$particles_rds
+      if(is.null(processed) || !"feature_id" %in% names(processed$metadata)) {
         return(NULL)
       }
-      features <- tryCatch(
-        particles_logi(),
-        error = function(error) NULL
-      )
-      if(!(is.logical(features) || is.character(features)) ||
-         length(features) != ncol(DataR()$spectra)) {
-        return(NULL)
-      }
-      if(is.logical(features)) {
-        features[is.na(features)] <- FALSE
-        if(!any(features) || all(features)) return(NULL)
-      } else if(!any(!is.na(features) & nzchar(features))) {
-        return(NULL)
-      }
-      features
+      processed$metadata$feature_id
   })
 
 
@@ -1511,11 +1634,13 @@ observeEvent(input$file, {
           }
       }
 
-      signal_failed <- isTRUE(input$threshold_decision) &&
-        all(signal_to_noise() < MinSNR())
-      correlation_failed <- identification_enabled &&
+      signal_failed <- isTRUE(input$active_advanced) &&
+        isTRUE(input$threshold_decision) &&
+        !any(signal_to_noise() >= MinSNR(), na.rm = TRUE)
+      correlation_failed <- isTRUE(input$active_advanced) &&
+        identification_enabled &&
         isTRUE(input$cor_threshold_decision) &&
-        all(max_cor() < MinCor())
+        !any(max_cor() >= MinCor(), na.rm = TRUE)
       if(signal_failed || correlation_failed) {
           show_alert(
             title = "No regions passing threshold",
@@ -1528,17 +1653,6 @@ observeEvent(input$file, {
           )
       }
 
-      if(isTRUE(input$collapse_decision) && !is.null(collapse_features()) &&
-         length(unique(as.character(collapse_features()))) == 1) {
-          show_alert(
-            title = "No or all regions passing threshold",
-            text = paste0(
-              "The current threshold settings of the Signal-Noise and/or Correlation returned either all ",
-              "or no regions passing. This often indicates an issue with the threshold settings or data."
-            ),
-            type = "warning"
-          )
-      }
   })
 
   RawR_plot <- reactive({
@@ -1634,7 +1748,7 @@ observeEvent(input$file, {
   
   MinCor <- reactive({
       req(!is.null(preprocessed$data))
-      if(!input$cor_threshold_decision){
+      if(!isTRUE(input$active_advanced) || !input$cor_threshold_decision){
           -Inf
       }
       else{
@@ -1642,10 +1756,31 @@ observeEvent(input$file, {
       }
   })
   
+  output$cor_plot_ui <- renderUI({
+      if(!is.null(particle_analysis())) {
+        imageOutput("cor_plot_image", height = "16vh")
+      } else {
+        plotOutput("cor_plot", height = "16vh")
+      }
+  })
+
+  output$cor_plot_image <- renderImage({
+      req(!is.null(particle_analysis()))
+      path <- file.path(
+        particle_output_dir(),
+        paste0("cor_histogram_", particle_sample_name(), ".png")
+      )
+      req(file.exists(path))
+      list(src = path, contentType = "image/png", alt =
+             "Maximum-correlation distribution with the current threshold")
+  }, deleteFile = FALSE)
+
   output$cor_plot <- renderPlot({
       req(!is.null(preprocessed$data))
+      req(isTRUE(input$active_advanced))
       req(isTRUE(input$active_identification))
       req(isTRUE(input$cor_threshold_decision))
+      req(is.null(particle_analysis()))
       ggplot() +
           geom_histogram(aes(x = max_cor()), fill = app_plot_palette$primary,
                          color = app_plot_palette$panel) +
@@ -1746,15 +1881,38 @@ match_metadata <- reactive({
 # Display ----
 
 #Histogram of SNR
+output$snr_plot_ui <- renderUI({
+    if(!is.null(particle_analysis())) {
+      imageOutput("snr_plot_image", height = "16vh")
+    } else {
+      plotOutput("snr_plot", height = "16vh")
+    }
+})
+
+output$snr_plot_image <- renderImage({
+    req(!is.null(particle_analysis()))
+    path <- file.path(
+      particle_output_dir(),
+      paste0("sn_histogram_", particle_sample_name(), ".png")
+    )
+    req(file.exists(path))
+    list(src = path, contentType = "image/png", alt =
+           "Signal/noise distribution with the current minimum and maximum")
+}, deleteFile = FALSE)
+
 output$snr_plot <- renderPlot({
     req(!is.null(preprocessed$data))
+    req(isTRUE(input$active_advanced))
     req(isTRUE(input$threshold_decision))
+    req(is.null(particle_analysis()))
     ggplot() +
         geom_histogram(aes(x = signal_to_noise()),
                        fill = app_plot_palette$primary,
                        color = app_plot_palette$panel) +
         scale_x_continuous(trans =  scales::modulus_trans(p = 0, offset = 1)) +
         geom_vline(xintercept = MinSNR(), color = app_plot_palette$reference,
+                   linewidth = 0.8) +
+        geom_vline(xintercept = MaxSNR(), color = app_plot_palette$reference,
                    linewidth = 0.8) +
         theme_black_minimal() +
         labs(x = "Signal/Noise")
@@ -1814,35 +1972,46 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
   }, ignoreInit = FALSE)
 
   map_color_choices <- reactive({
+    if(!is.null(particle_analysis())) {
+      return(c(
+        "Particle Image" = "particle_image",
+        "Thresholded Particles" = "particle_heatmap_thresholded",
+        "Signal / Noise" = "particle_heatmap",
+        "Correlation" = "cor_heatmap"
+      ))
+    }
+    if(!is.null(final_specs())) {
+      return(c("Source Index" = "filespec_preview"))
+    }
     req(ncol(preprocessed$data$spectra) > 1)
     identification_enabled <- isTRUE(input$active_identification)
-    collapse_enabled <- isTRUE(input$collapse_decision)
     if(identification_enabled) req(!is.null(max_cor()))
     choice_names <- c(
-      if(identification_enabled) "Match Name" else NA,
-      if(identification_enabled && !identical(input$lib_type, "model")) {
-        "Match ID"
-      } else NA,
-      if(identification_enabled && !is.null(max_cor())) "Match Value" else NA,
-      if(!is.null(signal_to_noise())) "Signal/Noise" else NA,
-      if(collapse_enabled && !is.null(collapse_features())) "Feature ID" else NA
+      if(identification_enabled) "Match Name" else NA_character_,
+      if(identification_enabled && !identical(input$lib_type, "model"))
+        "Match ID" else NA_character_,
+      if(identification_enabled && !is.null(max_cor())) "Match Value" else
+        NA_character_,
+      if(!is.null(signal_to_noise())) "Signal/Noise" else NA_character_
     )
-    choice_names[!is.na(choice_names)]
+    choice_names <- choice_names[!is.na(choice_names)]
+    stats::setNames(choice_names, choice_names)
   })
 
   resolved_map_color <- reactive({
     choices <- map_color_choices()
     req(length(choices) > 0L)
     selected <- input$map_color
-    if(!isTruthy(selected) || !selected %in% choices) choices[[1L]] else selected
+    values <- unname(choices)
+    if(!isTruthy(selected) || !selected %in% values) values[[1L]] else selected
   })
 
 # Progress Bars
 output$choice_names <- renderUI({
     choice_names <- map_color_choices()
     selected <- isolate(input$map_color)
-    if(!isTruthy(selected) || !selected %in% choice_names) {
-      selected <- choice_names[[1L]]
+    if(!isTruthy(selected) || !selected %in% unname(choice_names)) {
+      selected <- unname(choice_names)[[1L]]
     }
         tagList(
             fluidRow(
@@ -1857,7 +2026,7 @@ output$choice_names <- renderUI({
 
 output$progress_bars <- renderUI({
     req(!is.null(preprocessed$data))
-    req(ncol(preprocessed$data$spectra) > 1)
+    req(ncol(preprocessed$data$spectra) > 1 || particle_pipeline_enabled())
 
     percent_true <- function(x) {
       available <- !is.na(x)
@@ -1865,12 +2034,14 @@ output$progress_bars <- renderUI({
       sum(x[available]) / sum(available) * 100
     }
 
-    signal_values <- if(isTRUE(input$threshold_decision)) {
+    signal_values <- if(isTRUE(input$active_advanced) &&
+                        isTRUE(input$threshold_decision)) {
       signal_to_noise()
     } else {
       NULL
     }
-    correlation_values <- if(isTRUE(input$active_identification) &&
+    correlation_values <- if(isTRUE(input$active_advanced) &&
+                              isTRUE(input$active_identification) &&
                               isTRUE(input$cor_threshold_decision)) {
       max_cor()
     } else {
@@ -1883,7 +2054,9 @@ output$progress_bars <- renderUI({
         id = "signal_summary_panel",
         shinyWidgets::progressBar(
           id = "signal_progress",
-          value = percent_true(signal_values > MinSNR()),
+          value = percent_true(
+            signal_values > MinSNR() & signal_values < MaxSNR()
+          ),
           status = "success",
           title = "Good Signal",
           display_pct = TRUE
@@ -1908,7 +2081,8 @@ output$progress_bars <- renderUI({
         shinyWidgets::progressBar(
           id = "match_progress",
           value = percent_true(
-            signal_values > MinSNR() & correlation_values > MinCor()
+            signal_values > MinSNR() & signal_values < MaxSNR() &
+              correlation_values > MinCor()
           ),
           status = "success",
           title = "Good Identifications",
@@ -1918,7 +2092,7 @@ output$progress_bars <- renderUI({
     }
 
     plot_items <- list()
-    if(isTRUE(input$collapse_decision) && !is.null(collapse_features())) {
+    if(particle_pipeline_enabled() && !is.null(particle_analysis())) {
       plot_items[[length(plot_items) + 1L]] <- div(
         id = "particle_summary_panel",
         plotOutput("particle_plot", height = "25vh")
@@ -1974,18 +2148,20 @@ output$progress_bars <- renderUI({
       if(!isTRUE(input$active_identification)) {
         return(app_category_palette(character()))
       }
+      if(particle_pipeline_enabled()) {
+        particles <- thresholded_particles()
+        if(!is.null(particles) &&
+           "material_class" %in% names(particles$metadata)) {
+          return(app_category_palette(particles$metadata$material_class))
+        }
+      }
       app_category_palette(max_cor_identity())
   })
 
   heatmap_state <- reactive({
       req(!is.null(preprocessed$data))
       req(ncol(preprocessed$data$spectra) > 1)
-      features <- collapse_features()
-      test <- if(!is.null(features)) {
-        def_features(DataR(), features = features)
-      } else {
-        DataR()
-      }
+      test <- DataR()
 
       map_color <- resolved_map_color()
       categorical <- FALSE
@@ -2001,11 +2177,6 @@ output$progress_bars <- renderUI({
       } else if(!is.null(max_cor()) && identical(map_color, "Match Name")) {
         categorical <- TRUE
         max_cor_identity()
-      } else if(isTRUE(input$collapse_decision) &&
-                !is.null(features) &&
-                identical(map_color, "Feature ID")) {
-        categorical <- TRUE
-        test$metadata$feature_id
       } else {
         validate(need(FALSE, "The selected map color is not available."))
       }
@@ -2038,112 +2209,50 @@ output$progress_bars <- renderUI({
       )
   })
 
-  output$heatmapA <- renderPlotly({
-      state <- heatmap_state()
-      plot <- heatmap_spec(
-        x = state$data,
-        z = state$z,
-        sn = signif(signal_to_noise(), 2),
-        cor = if(is.null(max_cor())) max_cor() else signif(max_cor(), 2),
-        min_sn = if(state$categorical) NULL else MinSNR(),
-        min_cor = if(state$categorical) NULL else MinCor(),
-        select = isolate(data_click$plot),
-        colorscale = state$colorscale,
-        showlegend = !state$categorical,
-        source = "heat_plot"
-      ) %>%
-        app_style_plotly()
-      plot <- plotly::style(
-        plot,
-        marker = list(
-          color = "#F59E0B", size = 14, opacity = 1,
-          line = list(color = "#FFF7ED", width = 2)
-        ),
-        traces = 2L
-      )
-      if(!state$categorical) {
-        legend_layout <- app_heatmap_legend_layout(state$legend_title)
-        plot <- plotly::style(
-          plot,
-          colorbar = legend_layout$colorbar,
-          traces = 1L
-        ) %>%
-          plotly::layout(
-            showlegend = FALSE,
-            margin = legend_layout$margin
-          )
-      } else {
-        plot <- plotly::style(
-          plot,
-          zmin = 1,
-          zmax = max(1L, length(levels(state$z))),
-          traces = 1L
-        ) %>%
-          plotly::layout(showlegend = FALSE)
-      }
-      event_register(plot, event = "plotly_click")
-  })
-
-  observeEvent(data_click$plot, {
-      req(!is.null(preprocessed$data))
-      req(ncol(preprocessed$data$spectra) > 1)
-      state <- heatmap_state()
-      selected <- data_click$plot
-      req(length(selected) == 1L, selected >= 1L,
-          selected <= nrow(state$data$metadata))
-      plotlyProxy("heatmapA", session) %>%
-        plotlyProxyInvoke(
-          "restyle",
-          list(
-            # Plotly.restyle consumes the outer list per trace. Keep each
-            # selected coordinate as a one-point vector inside that wrapper.
-            x = list(list(state$data$metadata$x[[selected]])),
-            y = list(list(state$data$metadata$y[[selected]]))
-          ),
-          list(1L)
+  output$heatmapA <- renderPlot({
+      result <- particle_analysis()
+      if(!is.null(result)) {
+        plot(
+          result,
+          sample = particle_sample_name(),
+          which = resolved_map_color()
         )
-  }, ignoreInit = TRUE)
+        return(invisible(NULL))
+      }
+      if(!is.null(final_specs())) {
+        preview <- filespec_preview()
+        index <- filespec_index_state()
+        position <- filespec_selected_position()
+        selected <- NULL
+        if(length(position) == 1L && !is.na(position) &&
+           position >= 1L && position <= nrow(index)) {
+          coordinates <- app_filespec_coordinates(index[position, , drop = FALSE])
+          selected <- list(x = coordinates$x[[1L]], y = coordinates$y[[1L]])
+        }
+        graphics::par(bg = app_theme$canvas, fg = app_theme$text,
+                      mar = c(4.5, 5, 3.2, 1))
+        app_draw_filespec_preview(preview, selected)
+        return(invisible(NULL))
+      }
+      state <- heatmap_state()
+      app_draw_server_heatmap(
+        state$data$metadata,
+        state$z,
+        categorical = state$categorical,
+        title = state$legend_title,
+        selected = isolate(data_click$plot)
+      )
+  }, res = 110)
 
   thresholded_particles <- reactive({
-      req(isTRUE(input$collapse_decision))
-      collapse_fun <- function(x, type = input$collapse_type) {
-          switch(type,
-                 "Mean" = mean(x),
-                 "Median" = median(x),
-                 "Geometric Mean" = exp(mean(log(x))))
-      }
-
-      spec <- DataR()
-      if (input$active_identification) {
-          spec$metadata$material_class <- max_cor_identity()
-      }
-
-      features <- collapse_features()
-      req(!is.null(features))
-      spec_feat <- def_features(spec, features = features)
-
-      collapsed <- collapse_spec(spec_feat, fun = collapse_fun) %>%
-          filter_spec(., logic = .$metadata$feature_id != "-88")
-
-      if (input$active_identification) {
-          fid <- spec_feat$metadata$feature_id
-          classes <- spec_feat$metadata$material_class
-          ids <- unique(fid[fid != "-88"])
-          majority <- vapply(ids, function(id) {
-              vals <- classes[fid == id]
-              vals <- vals[!is.na(vals)]
-              if (length(vals) == 0) NA_character_ else names(sort(table(vals), decreasing = TRUE))[1]
-          }, character(1))
-          collapsed$metadata$material_class <- majority[match(collapsed$metadata$feature_id, ids)]
-      }
-
-      collapsed
+      req(particle_pipeline_enabled())
+      particle_sample()$particles_rds
   })
   
   #Summary Plots ----
   output$particle_plot <- renderPlot({
       req(!is.null(preprocessed$data))
-      req(isTRUE(input$collapse_decision))
+      req(particle_pipeline_enabled())
       req(thresholded_particles()$metadata$area)
       ggplot() +
           geom_histogram(aes(x = sqrt(thresholded_particles()$metadata$area)),
@@ -2156,21 +2265,15 @@ output$progress_bars <- renderUI({
   output$material_plot <- renderPlot({
       req(!is.null(preprocessed$data))
       req(isTRUE(input$active_identification))
-      req(max_cor_identity())
-      if(input$collapse_decision){
-          if (isTruthy(thresholded_particles()) &&
-              all(grepl("_[0-9]+", thresholded_particles()$metadata$feature_id))) {
-              
-              match_names <- gsub("_[0-9]+", "", thresholded_particles()$metadata$feature_id)
-              
-          } else {
-              match_names <- thresholded_particles()$metadata$material_class
-              
-          }    
-      }
-        else {
+      if(particle_pipeline_enabled()) {
+          particles <- thresholded_particles()
+          req(!is.null(particles),
+              "material_class" %in% names(particles$metadata))
+          match_names <- particles$metadata$material_class
+      } else {
+          req(max_cor_identity())
           match_names <- max_cor_identity()
-      } 
+      }
 
       ggplot() +
           geom_bar(aes(y = match_names, fill = match_names)) +
@@ -2192,12 +2295,11 @@ output$progress_bars <- renderUI({
       has_upload = !is.null(preprocessed$data),
       identification = !is.null(preprocessed$data) &&
         isTRUE(input$active_identification),
-      collapse = !is.null(preprocessed$data) &&
-        isTRUE(input$collapse_decision) && !is.null(collapse_features())
+      collapse = particle_pipeline_enabled() && !is.null(particle_analysis())
     )
     selectInput(
       inputId = "download_selection",
-      label = "Download contents",
+      label = "Download type",
       choices = choice_names,
       selected = choice_names[[1L]]
     )
@@ -2240,13 +2342,33 @@ output$progress_bars <- renderUI({
       )
   })
   outputOptions(output, "top_n", suspendWhenHidden = FALSE)
+
+  output$particle_download_contents <- renderUI({
+    req(identical(input$download_selection, "Thresholded Particles"))
+    choices <- app_particle_output_choices()
+    tags$details(
+      class = "openspecy-download-details",
+      open = NA,
+      tags$summary("Thresholded particle contents"),
+      checkboxGroupInput(
+        "particle_outputs_selected", NULL,
+        choices = choices, selected = unname(choices)
+      )
+    )
+  })
+  outputOptions(output, "particle_download_contents", suspendWhenHidden = FALSE)
+
   output$download_data <- downloadHandler(
     filename = function() {
       selection <- input$download_selection
       if(identical(selection, "User Metadata")) {
         return(paste0("os_metadata_", human_ts(), ".csv"))
       }
-      extension <- if(identical(selection, "Test Map")) ".zip" else ".csv"
+      extension <- if(selection %in% c("Test Map", "Thresholded Particles")) {
+        ".zip"
+      } else {
+        ".csv"
+      }
       paste0(gsub("[^A-Za-z0-9]+", "-", selection), "-", human_ts(), extension)
     },
     content = function(file) {
@@ -2304,7 +2426,20 @@ output$progress_bars <- renderUI({
           fwrite(result, file)
         }
       } else if(identical(selection, "Thresholded Particles")) {
-        write_spec(thresholded_particles(), file = file)
+        selected <- input$particle_outputs_selected
+        if(is.null(selected)) selected <- unname(app_particle_output_choices())
+        files <- app_particle_output_files(particle_output_dir(), selected)
+        if(!length(files)) {
+          stop("No completed particle-analysis files match the selected contents.")
+        }
+        zip_file <- tempfile("openspecy-particles-", fileext = ".zip")
+        on.exit(unlink(zip_file, force = TRUE), add = TRUE)
+        app_write_particle_archive(
+          files, destination = zip_file, root = particle_output_dir()
+        )
+        if(!file.copy(zip_file, file, overwrite = TRUE)) {
+          stop("Unable to prepare the thresholded-particle archive.")
+        }
       } else if(identical(selection, "User Metadata")) {
         fwrite(data.table::as.data.table(user_metadata()), file)
       } else {
@@ -2324,64 +2459,126 @@ output$progress_bars <- renderUI({
 
   observe({
       toggle(id = "heatmap_frame",
-             condition = isTruthy(ncol(preprocessed$data$spectra) > 1))
+             condition = isTruthy(
+               !is.null(final_specs()) || !is.null(particle_analysis()) ||
+                 (!is.null(preprocessed$data) &&
+                    ncol(preprocessed$data$spectra) > 1)
+             ))
       toggle(id = "placeholder1", condition = !isTruthy(preprocessed$data))
   })
 
-  heatmap_click <- reactive({
-      req(!is.null(preprocessed$data))
-      req(ncol(preprocessed$data$spectra) > 1)
-      suppressWarnings(
-          event_data("plotly_click", source = "heat_plot", priority = "event")
-      )
-  })
+  nearest_metadata_row <- function(metadata, x, y) {
+    if(is.null(metadata) || !nrow(metadata) ||
+       !all(c("x", "y") %in% names(metadata))) return(integer())
+    dx <- suppressWarnings(as.numeric(metadata$x) - as.numeric(x))
+    dy <- suppressWarnings(as.numeric(metadata$y) - as.numeric(y))
+    distance <- dx^2 + dy^2
+    distance[!is.finite(distance)] <- Inf
+    if(all(is.infinite(distance))) integer() else which.min(distance)
+  }
 
-  observeEvent(heatmap_click(), {
-      click <- heatmap_click()
-      curve_number <- if(length(click$curveNumber)) {
-        suppressWarnings(as.integer(click$curveNumber[[1L]]))
-      } else {
-        0L
-      }
-      if(is.na(curve_number) || curve_number != 0L) return()
+  particle_metadata_modal <- function(metadata, title) {
+    metadata <- as.data.frame(metadata, stringsAsFactors = FALSE)
+    keep <- vapply(metadata, function(value) {
+      length(value) && !all(is.na(value) | !nzchar(as.character(value)))
+    }, logical(1))
+    metadata <- metadata[, keep, drop = FALSE]
+    if(ncol(metadata) > 24L) metadata <- metadata[, seq_len(24L), drop = FALSE]
+    rows <- lapply(names(metadata), function(name) {
+      tags$tr(tags$th(name), tags$td(as.character(metadata[[name]][[1L]])))
+    })
+    showModal(modalDialog(
+      title = title,
+      easyClose = TRUE,
+      size = "m",
+      tags$div(class = "table-responsive",
+               tags$table(class = "table table-sm", tags$tbody(rows))),
+      footer = modalButton("Close")
+    ))
+  }
 
-      selected <- integer()
-      if(length(click$x) && length(click$y)) {
-        state <- isolate(heatmap_state())
-        metadata <- state$data$metadata
-        click_x <- click$x[[1L]]
-        click_y <- click$y[[1L]]
-        coordinate_match <- function(values, target) {
-          if(is.numeric(values) && is.numeric(target)) {
-            tolerance <- sqrt(.Machine$double.eps) *
-              pmax(1, abs(values), abs(target))
-            !is.na(values) & !is.na(target) &
-              abs(values - target) <= tolerance
+  observeEvent(input$heatmap_click, {
+      click <- input$heatmap_click
+      req(length(click$x), length(click$y))
+      click_x <- click$x[[1L]]
+      click_y <- click$y[[1L]]
+
+      if(!is.null(final_specs())) {
+        index <- isolate(filespec_index_state())
+        region <- isolate(input$filespec_region)
+        rows <- app_filespec_region_rows(index, region)
+        particle_result <- isolate(particle_analysis())
+        processed <- if(!is.null(particle_result)) {
+          sample_name <- if(region %in% names(particle_result$samples)) {
+            region
           } else {
-            !is.na(values) & !is.na(target) &
-              as.character(values) == as.character(target)
+            names(particle_result$samples)[[1L]]
           }
+          particle_result$samples[[sample_name]]$particles_rds
+        } else NULL
+        selected <- if(!is.null(particle_result)) {
+          local_row <- nearest_metadata_row(index[rows, , drop = FALSE],
+                                            click_x, click_y)
+          if(length(local_row)) rows[[local_row]] else integer()
+        } else {
+          app_filespec_nearest_position(
+            index, region, click_x, click_y,
+            roi = isolate(filespec_viewport_state())
+          )
         }
-        selected <- which(
-          coordinate_match(metadata$x, click_x) &
-            coordinate_match(metadata$y, click_y)
+        if(length(selected)) {
+          load_filespec_selection(selected)
+          metadata <- index[selected, , drop = FALSE]
+          if(!is.null(processed) && nrow(processed$metadata)) {
+            particle_row <- nearest_metadata_row(processed$metadata,
+                                                 click_x, click_y)
+            if(length(particle_row)) {
+              extra <- as.data.frame(processed$metadata[particle_row, ])
+              extra <- extra[, setdiff(names(extra), names(metadata)),
+                             drop = FALSE]
+              metadata <- cbind(metadata, extra)
+            }
+          }
+          particle_metadata_modal(metadata, "Map selection metadata")
+        }
+        return()
+      }
+
+      source <- if(!is.null(isolate(particle_analysis()))) {
+        sample <- isolate(particle_sample())
+        if(inherits(sample$particles_raw_rds, "OpenSpecy")) {
+          sample$particles_raw_rds
+        } else {
+          sample$particles_rds
+        }
+      } else {
+        isolate(heatmap_state())$data
+      }
+      req(!is.null(source), nrow(source$metadata))
+      selected <- nearest_metadata_row(source$metadata, click_x, click_y)
+      if(length(selected)) {
+        if(selected <= ncol(preprocessed$data$spectra)) {
+          data_click$plot <- selected
+        }
+        particle_metadata_modal(
+          source$metadata[selected, , drop = FALSE],
+          "Map selection metadata"
         )
       }
-      if(!length(selected) && length(click$pointNumber)) {
-        point_number <- suppressWarnings(as.numeric(
-          unlist(click$pointNumber, use.names = FALSE)
-        ))
-        if(length(point_number) == 1L && is.finite(point_number)) {
-          selected <- as.integer(point_number + 1L)
-        }
-      }
-      selected <- selected[
-        !is.na(selected) & selected >= 1L &
-          selected <= ncol(preprocessed$data$spectra)
-      ]
-      if(length(selected)) {
-          data_click$plot <- selected[[1L]]
-      }
+  }, ignoreNULL = TRUE, ignoreInit = TRUE)
+
+  observeEvent(input$heatmap_brush, {
+    req(!is.null(final_specs()), is.null(isolate(particle_analysis())))
+    brush <- input$heatmap_brush
+    index <- isolate(filespec_index_state())
+    region <- isolate(input$filespec_region)
+    candidate <- tryCatch(
+      app_filespec_viewport(
+        index, region, c(brush$xmin, brush$xmax, brush$ymin, brush$ymax)
+      ),
+      error = identity
+    )
+    if(!inherits(candidate, "error")) filespec_viewport_state(candidate)
   }, ignoreNULL = TRUE, ignoreInit = TRUE)
 
   observe({

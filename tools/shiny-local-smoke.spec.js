@@ -504,12 +504,11 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
     input.files?.[0]?.name || ""
   )).toBe("CA_tiny_map.zip");
   await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
-  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((candidate) =>
-      candidate.type === "heatmap" && Array.isArray(candidate.z)
-    );
-    return trace ? trace.z.flat(Infinity).filter(Number.isFinite).length : 0;
-  }), { timeout: 180000 }).toBeGreaterThan(1);
+  const mapImage = page.locator("#heatmapA img");
+  await expect(mapImage).toBeVisible({ timeout: 180000 });
+  await expect.poll(async () => mapImage.evaluate((image) =>
+    image.complete ? image.naturalWidth * image.naturalHeight : 0
+  ), { timeout: 180000 }).toBeGreaterThan(1000);
   await expect(page.locator("#event table tbody tr").first()).toBeVisible({
     timeout: 180000,
   });
@@ -575,8 +574,8 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
   for (const inputId of [
-    "active_identification", "active_preprocessing", "collapse_decision",
-    "threshold_decision",
+    "active_identification", "active_preprocessing", "active_advanced",
+    "collapse_decision", "threshold_decision",
   ]) {
     await page.locator(`#${inputId}`).evaluate((input) => {
       if (input.checked) input.click();
@@ -617,6 +616,148 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   await sidebarToggle.click();
   await expect(spectraCard).not.toHaveClass(/direct-chat-contacts-open/);
   await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
+  expect(severeErrors).toEqual([]);
+});
+
+test("ordinary map particle analysis exposes scalable results and a ZIP", async ({ page }, testInfo) => {
+  test.setTimeout(600000);
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await page.locator("#active_preprocessing").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  const settingsCard = page.locator("#analysis_settings_box");
+  await toggleCard(settingsCard);
+  await expectCardCollapsed(settingsCard, false);
+  await page.getByRole("link", { name: "Advanced", exact: true }).click();
+  await page.locator("#active_advanced").check({ force: true });
+  await expect.poll(async () => page.locator("#collapse_decision").evaluate(
+    (input) => !input.disabled
+  ), { timeout: 30000 }).toBe(true);
+  await page.locator("#collapse_decision").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await page.locator("#threshold_decision").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await page.evaluate(() => {
+    window.Shiny.setInputValue("active_advanced", true, { priority: "event" });
+    window.Shiny.setInputValue("collapse_decision", true, { priority: "event" });
+    window.Shiny.setInputValue("threshold_decision", true, { priority: "event" });
+    window.Shiny.setInputValue("active_preprocessing", false, {
+      priority: "event",
+    });
+    document.getElementById("signal_selection").selectize.setValue("tot_sig");
+    window.Shiny.setInputValue("MinSNR", 0.1, { priority: "event" });
+    window.Shiny.setInputValue("MaxSNR", 1000000000000, {
+      priority: "event",
+    });
+  });
+  await page.locator("#threshold_decision").check({ force: true });
+  await page.evaluate(() => {
+    window.Shiny.setInputValue("active_advanced", true, { priority: "event" });
+    window.Shiny.setInputValue("collapse_decision", true, { priority: "event" });
+    window.Shiny.setInputValue("threshold_decision", true, { priority: "event" });
+    window.Shiny.setInputValue("active_preprocessing", false, {
+      priority: "event",
+    });
+    document.getElementById("signal_selection").selectize.setValue(
+      "run_sig_over_noise"
+    );
+    document.getElementById("MinSNR").value = "0.04";
+    document.getElementById("MaxSNR").value = "1.2";
+    window.Shiny.setInputValue("MinSNR", 0.04, { priority: "event" });
+    window.Shiny.setInputValue("MaxSNR", 1.2, {
+      priority: "event",
+    });
+  });
+
+  await page.locator("#file").setInputFiles(
+    path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
+  );
+  await dismissQueuedAlerts(page);
+  await page.waitForFunction(() => {
+    const select = document.getElementById("map_color");
+    const options = Object.keys(select?.selectize?.options || {});
+    const alert = document.querySelector(
+      ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
+    );
+    return options.includes("particle_image") ||
+      /Particle analysis could not run/i.test(alert?.textContent || "");
+  }, null, { timeout: 240000 });
+  await dismissVisibleAlert(page);
+  const particleAlert = page.locator(
+    ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
+  );
+  if (await particleAlert.isVisible()) {
+    throw new Error(`Particle analysis alert: ${(await particleAlert.innerText()).trim()}`);
+  }
+  await expect.poll(async () => page.locator("#map_color").evaluate((select) =>
+    Object.keys(select.selectize ? select.selectize.options : {})
+  ), { timeout: 240000 }).toEqual([
+    "particle_image", "particle_heatmap_thresholded",
+    "particle_heatmap", "cor_heatmap",
+  ]);
+  const mapImage = page.locator("#heatmapA img");
+  await expect(mapImage).toBeVisible({ timeout: 120000 });
+  const signalCard = page.locator("#threshold_decision").locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  const correlationCard = page.locator("#cor_threshold_decision").locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  await toggleCard(signalCard);
+  await toggleCard(correlationCard);
+  await expect(page.locator("#snr_plot_image img")).toBeVisible({ timeout: 120000 });
+  await expect(page.locator("#cor_plot_image img")).toBeVisible({ timeout: 120000 });
+  for (const value of [
+    "particle_image", "particle_heatmap_thresholded",
+    "particle_heatmap", "cor_heatmap",
+  ]) {
+    await page.locator("#map_color").evaluate((select, next) => {
+      select.selectize.setValue(next);
+    }, value);
+    await expect(mapImage).toBeVisible({ timeout: 120000 });
+  }
+
+  const mapBox = await mapImage.boundingBox();
+  expect(mapBox).not.toBeNull();
+  await mapImage.click({
+    position: {
+      x: Math.floor(mapBox.width * 0.6),
+      y: Math.floor(mapBox.height * 0.4),
+    },
+  });
+  const modal = page.locator(".modal-content:visible");
+  await expect(modal).toContainText("Map selection metadata", {
+    timeout: 60000,
+  });
+  await modal.getByRole("button", { name: "Close", exact: true }).click();
+
+  await waitForStableSelectizeGeneration(
+    page.locator("#download_selection"), "Thresholded Particles",
+    { timeout: 120000 }
+  );
+  await page.locator("#download_selection").evaluate((select) => {
+    select.selectize.setValue("Thresholded Particles");
+  });
+  await expect(page.locator("#particle_outputs_selected input:checked"))
+    .toHaveCount(11);
+  const download = await consumeDownload(page);
+  expect(download.filename).toMatch(/^Thresholded-Particles-.*\.zip$/i);
+  expect(download.content.subarray(0, 2).toString("ascii")).toBe("PK");
+  await page.screenshot({
+    path: testInfo.outputPath("ordinary-particle-analysis.png"), fullPage: true,
+  });
   expect(severeErrors).toEqual([]);
 });
 
@@ -857,52 +998,6 @@ test("local app renders spectra, matches, and one informative progress overlay",
     record();
   });
 
-  // Capture every initial nonempty heatmap render. The server-side default
-  // must settle directly on categorical Match Name without a transient
-  // numeric Match Value colorbar while the dynamic selector binds.
-  await page.evaluate(() => {
-    const state = {
-      samples: [], observer: null, plot: null, afterPlot: null,
-    };
-    const record = () => {
-      const plot = document.getElementById("heatmapA");
-      const trace = (plot?.data || []).find((item) => item.type === "heatmap");
-      const finiteCount = (trace?.z || []).flat?.(Infinity)
-        .filter(Number.isFinite).length || 0;
-      if (!trace || finiteCount === 0) return;
-      const sample = {
-        showscale: Boolean(trace.showscale),
-        title: trace.colorbar?.title?.text || trace.colorbar?.title || "",
-        mapColor: document.getElementById("map_color")?.value || "",
-      };
-      const key = JSON.stringify(sample);
-      if (state.samples.at(-1)?.key !== key) {
-        state.samples.push({ ...sample, key });
-      }
-    };
-    const attach = () => {
-      const plot = document.getElementById("heatmapA");
-      if (!plot || plot === state.plot || typeof plot.on !== "function") {
-        record();
-        return;
-      }
-      if (state.plot && state.afterPlot &&
-          typeof state.plot.removeListener === "function") {
-        state.plot.removeListener("plotly_afterplot", state.afterPlot);
-      }
-      state.plot = plot;
-      state.afterPlot = record;
-      plot.on("plotly_afterplot", state.afterPlot);
-      record();
-    };
-    state.observer = new MutationObserver(attach);
-    state.observer.observe(document.documentElement, {
-      childList: true, subtree: true, attributes: true,
-    });
-    window.__openspecyInitialHeatmapProbe = state;
-    attach();
-  });
-
   const ramanText = fs.readFileSync(
     path.join(repo, "inst", "extdata", "raman_hdpe.csv"),
     "utf8"
@@ -1094,247 +1189,30 @@ test("local app renders spectra, matches, and one informative progress overlay",
     ...modalTestIds.success,
   ].filter((finding) =>
     finding.testId.endsWith(":correlation_threshold")
-  )).toHaveLength(1);
+  )).toHaveLength(0);
 
   await expect(page.locator("#map_color")).toBeAttached();
   await expect(page.locator("#map_color")).toHaveValue("Match Name");
-  const initialHeatmapStates = await page.evaluate(() => {
-    const state = window.__openspecyInitialHeatmapProbe;
-    state?.observer?.disconnect();
-    if (state?.plot && state?.afterPlot &&
-        typeof state.plot.removeListener === "function") {
-      state.plot.removeListener("plotly_afterplot", state.afterPlot);
-    }
-    return (state?.samples || []).map(({ key, ...sample }) => sample);
-  });
-  expect(initialHeatmapStates.length).toBeGreaterThan(0);
-  expect(initialHeatmapStates.every((state) =>
-    !state.showscale && !/Match Value/i.test(String(state.title))
-  )).toBe(true);
+  const heatmapImage = page.locator("#heatmapA img");
+  await expect(heatmapImage).toBeVisible({ timeout: 30000 });
+  const categoricalMapSrc = await heatmapImage.getAttribute("src");
   await selectizeOption(page, "map_color", "Match Value");
-  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((item) => item.type === "heatmap");
-    return Boolean(trace?.showscale);
-  }), { timeout: 30000 }).toBe(true);
-  const heatmapColors = await page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((item) => item.type === "heatmap");
-    return (trace && trace.colorscale ? trace.colorscale : []).map((entry) =>
-      String(entry[1]).toUpperCase()
-    );
-  });
-  expect(heatmapColors).toEqual([
-    "#56B4E9", "#44B9A8", "#009E73", "#F0E442", "#E69F00", "#CC79A7",
-  ]);
-  expect(heatmapColors.every((hex) => {
-    const channels = hex.match(/[0-9A-F]{2}/g).map((value) => parseInt(value, 16));
-    const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] +
-      0.0722 * channels[2];
-    return luminance >= 90;
-  })).toBe(true);
-  const numericHeatmapLegend = await page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((item) => item.type === "heatmap");
-    return {
-      showscale: trace?.showscale,
-      title: trace?.colorbar?.title?.text || trace?.colorbar?.title || "",
-      orientation: trace?.colorbar?.orientation,
-      x: trace?.colorbar?.x,
-      y: trace?.colorbar?.y,
-      topMargin: plot.layout?.margin?.t,
-      rightMargin: plot.layout?.margin?.r,
-    };
-  });
-  expect(numericHeatmapLegend.showscale).toBe(true);
-  expect(numericHeatmapLegend.title).toMatch(/Match Value|Signal\/Noise|Value/i);
-  expect(numericHeatmapLegend.orientation).toBe("h");
-  expect(numericHeatmapLegend.x).toBeCloseTo(0.5, 4);
-  expect(numericHeatmapLegend.y).toBeGreaterThan(1);
-  expect(numericHeatmapLegend.topMargin).toBeGreaterThanOrEqual(100);
-  expect(numericHeatmapLegend.rightMargin).toBeLessThan(100);
-  const desktopHeatmapLegendBounds = await page.locator("#heatmapA").evaluate((plot) => {
-    const legend = plot.querySelector(".colorbar");
-    const plotArea = plot.querySelector(".nsewdrag");
-    if (!legend || !plotArea) return null;
-    const legendBox = legend.getBoundingClientRect();
-    const plotAreaBox = plotArea.getBoundingClientRect();
-    return {
-      legendBottom: legendBox.bottom,
-      legendWidth: legendBox.width,
-      plotTop: plotAreaBox.top,
-      plotWidth: plotAreaBox.width,
-    };
-  });
-  expect(desktopHeatmapLegendBounds).not.toBeNull();
-  expect(desktopHeatmapLegendBounds.legendBottom)
-    .toBeLessThanOrEqual(desktopHeatmapLegendBounds.plotTop + 8);
-  expect(desktopHeatmapLegendBounds.legendWidth)
-    .toBeLessThan(desktopHeatmapLegendBounds.plotWidth);
+  await expect.poll(async () => heatmapImage.getAttribute("src"), {
+    timeout: 30000,
+  }).not.toBe(categoricalMapSrc);
   await page.screenshot({
-    path: testInfo.outputPath("local-app-numeric-heatmap-legend.png"),
+    path: testInfo.outputPath("local-app-scalable-heatmap.png"),
     fullPage: true,
   });
   await selectizeOption(page, "map_color", "Match Name");
-  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((item) => item.type === "heatmap");
-    return Boolean(trace?.showscale);
-  }), { timeout: 30000 }).toBe(false);
-  const categoricalHeatmap = await page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((item) => item.type === "heatmap");
-    return {
-      showscale: trace?.showscale,
-      layoutLegend: plot.layout?.showlegend,
-    };
-  });
-  expect(categoricalHeatmap).toMatchObject({
-    showscale: false,
-    layoutLegend: false,
-  });
+  await expect.poll(async () => heatmapImage.getAttribute("src"), {
+    timeout: 30000,
+  }).not.toBeNull();
   await expect(page.locator("#eventmetadata table")).toBeVisible();
   await expect(page.locator("#heatmap_frame")).toBeVisible();
   await expect(page.locator("#collapse_decision")).not.toBeChecked();
   await expect(overlay).toBeHidden({ timeout: 30000 });
 
-  // Click the rendered Plotly interaction surface as a user would. Selection
-  // should update through the marker proxy without restarting analysis or
-  // replacing the heatmap graph (the visible double-render regression).
-  const heatmapMarkerBefore = await page.locator("#heatmapA").evaluate((plot) => {
-    const marker = (plot.data || []).find((trace) =>
-      String(trace.name).toLowerCase() === "selected spectrum"
-    );
-    return JSON.stringify({ x: marker?.x || [], y: marker?.y || [] });
-  });
-  await page.locator("#heatmapA").evaluate((plot) => {
-    const baseTrace = (plot.data || []).find((trace) => trace.type === "heatmap");
-    const state = {
-      afterPlots: 0,
-      busyReappearances: 0,
-      fullReplacements: 0,
-      wasBusy: document.documentElement.classList.contains("openspecy-busy-visible"),
-      baseTrace,
-      plotContainer: plot.querySelector(".plot-container"),
-      clickedPoint: null,
-    };
-    state.afterPlotHandler = () => { state.afterPlots += 1; };
-    state.clickHandler = (event) => {
-      const point = event?.points?.[0];
-      if (point) {
-        state.clickedPoint = { x: point.x, y: point.y };
-      }
-    };
-    plot.on("plotly_afterplot", state.afterPlotHandler);
-    plot.on("plotly_click", state.clickHandler);
-    state.busyObserver = new MutationObserver(() => {
-      const busy = document.documentElement.classList.contains(
-        "openspecy-busy-visible"
-      );
-      if (busy && !state.wasBusy) state.busyReappearances += 1;
-      state.wasBusy = busy;
-    });
-    state.busyObserver.observe(document.documentElement, {
-      attributes: true, attributeFilter: ["class"],
-    });
-    state.plotObserver = new MutationObserver((mutations) => {
-      const containsFullPlot = (node) => node.nodeType === 1 && (
-        node.matches?.(".plot-container, .svg-container") ||
-        node.querySelector?.(".plot-container, .svg-container")
-      );
-      for (const mutation of mutations) {
-        if (Array.from(mutation.removedNodes || []).some(containsFullPlot)) {
-          state.fullReplacements += 1;
-        }
-      }
-    });
-    state.plotObserver.observe(plot, { childList: true, subtree: true });
-    window.__openspecyHeatmapClickProbe = state;
-  });
-  const heatmapInteractionSurface = page.locator("#heatmapA .nsewdrag");
-  await expect(heatmapInteractionSurface).toBeVisible();
-  const interactionBox = await heatmapInteractionSurface.boundingBox();
-  expect(interactionBox).not.toBeNull();
-  await page.mouse.click(
-    interactionBox.x + interactionBox.width * 0.75,
-    interactionBox.y + interactionBox.height * 0.25
-  );
-  await expect.poll(async () => page.locator("#heatmapA").evaluate(() =>
-    window.__openspecyHeatmapClickProbe?.clickedPoint || null
-  ), { timeout: 60000 }).not.toBeNull();
-  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
-    const marker = (plot.data || []).find((trace) =>
-      String(trace.name).toLowerCase() === "selected spectrum"
-    );
-    return JSON.stringify({ x: marker?.x || [], y: marker?.y || [] });
-  }), { timeout: 60000 }).not.toBe(heatmapMarkerBefore);
-  const selectedMarker = await page.locator("#heatmapA").evaluate((plot) => {
-    const marker = (plot.data || []).find((trace) =>
-      String(trace.name).toLowerCase() === "selected spectrum"
-    );
-    const points = Array.from(plot.querySelectorAll(".scatterlayer path.point"));
-    const visiblePoint = points.find((point) => {
-      const box = point.getBoundingClientRect();
-      return box.width > 0 && box.height > 0 &&
-        getComputedStyle(point).opacity !== "0";
-    });
-    return {
-      x: marker?.x,
-      y: marker?.y,
-      color: marker?.marker?.color,
-      size: marker?.marker?.size,
-      fill: visiblePoint ? getComputedStyle(visiblePoint).fill : "",
-      visible: Boolean(visiblePoint),
-      clickedPoint: window.__openspecyHeatmapClickProbe?.clickedPoint,
-    };
-  });
-  expect(Array.isArray(selectedMarker.x)).toBe(true);
-  expect(Array.isArray(selectedMarker.y)).toBe(true);
-  expect(selectedMarker.x).toHaveLength(1);
-  expect(selectedMarker.y).toHaveLength(1);
-  expect(String(selectedMarker.color).toUpperCase()).toBe("#F59E0B");
-  expect(selectedMarker.size).toBe(14);
-  expect(selectedMarker.fill).toBe("rgb(245, 158, 11)");
-  expect(selectedMarker.visible).toBe(true);
-  expect(Number(selectedMarker.x[0])).toBeCloseTo(
-    Number(selectedMarker.clickedPoint.x), 8
-  );
-  expect(Number(selectedMarker.y[0])).toBeCloseTo(
-    Number(selectedMarker.clickedPoint.y), 8
-  );
-  await page.waitForTimeout(750);
-  const heatmapClickState = await page.locator("#heatmapA").evaluate((plot) => {
-    const state = window.__openspecyHeatmapClickProbe;
-    const marker = (plot.data || []).find((trace) =>
-      trace.name === "Selected Spectrum"
-    );
-    const markerPoints = Array.from(
-      plot.querySelectorAll(".scatterlayer path.point")
-    );
-    state.busyObserver.disconnect();
-    state.plotObserver.disconnect();
-    if (typeof plot.removeListener === "function") {
-      plot.removeListener("plotly_afterplot", state.afterPlotHandler);
-      plot.removeListener("plotly_click", state.clickHandler);
-    }
-    return {
-      afterPlots: state.afterPlots,
-      busyReappearances: state.busyReappearances,
-      fullReplacements: state.fullReplacements,
-      sameBaseTrace: (plot.data || []).find((trace) => trace.type === "heatmap") ===
-        state.baseTrace,
-      samePlotContainer: plot.querySelector(".plot-container") ===
-        state.plotContainer,
-      markerVisible: Array.isArray(marker?.x) && marker.x.length === 1 &&
-        Array.isArray(marker?.y) && marker.y.length === 1 &&
-        markerPoints.some((point) => {
-          const box = point.getBoundingClientRect();
-          return box.width > 0 && box.height > 0 &&
-            getComputedStyle(point).opacity !== "0";
-        }),
-    };
-  });
-  expect(heatmapClickState.busyReappearances).toBe(0);
-  expect(heatmapClickState.fullReplacements).toBe(0);
-  expect(heatmapClickState.afterPlots).toBeLessThanOrEqual(1);
-  expect(heatmapClickState.sameBaseTrace).toBe(true);
-  expect(heatmapClickState.samePlotContainer).toBe(true);
-  expect(heatmapClickState.markerVisible).toBe(true);
   await expect(overlay).toBeHidden();
   const spectraCard = page.locator("#spectra_box");
   const summaryCard = page.locator("#analysis_summary_box");
@@ -1686,29 +1564,12 @@ test("local app renders spectra, matches, and one informative progress overlay",
   }));
   expect(mobileLegend.y).toBeLessThan(0);
   expect(mobileLegend.bottomMargin).toBeGreaterThanOrEqual(100);
+  const mobileHeatmap = page.locator("#heatmapA img");
+  const mobileCategoricalSrc = await mobileHeatmap.getAttribute("src");
   await selectizeOption(page, "map_color", "Match Value");
-  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((item) => item.type === "heatmap");
-    return Boolean(trace?.showscale) && trace?.colorbar?.orientation === "h";
-  }), { timeout: 30000 }).toBe(true);
-  const mobileHeatmapLegendBounds = await page.locator("#heatmapA").evaluate((plot) => {
-    const legend = plot.querySelector(".colorbar");
-    const plotArea = plot.querySelector(".nsewdrag");
-    if (!legend || !plotArea) return null;
-    const legendBox = legend.getBoundingClientRect();
-    const plotAreaBox = plotArea.getBoundingClientRect();
-    return {
-      legendBottom: legendBox.bottom,
-      legendWidth: legendBox.width,
-      plotTop: plotAreaBox.top,
-      plotWidth: plotAreaBox.width,
-    };
-  });
-  expect(mobileHeatmapLegendBounds).not.toBeNull();
-  expect(mobileHeatmapLegendBounds.legendBottom)
-    .toBeLessThanOrEqual(mobileHeatmapLegendBounds.plotTop + 8);
-  expect(mobileHeatmapLegendBounds.legendWidth)
-    .toBeLessThanOrEqual(mobileHeatmapLegendBounds.plotWidth);
+  await expect.poll(async () => mobileHeatmap.getAttribute("src"), {
+    timeout: 30000,
+  }).not.toBe(mobileCategoricalSrc);
   const mobileDownloadWidth = await page.locator("#download_data").evaluate((button) => {
     const buttonBox = button.getBoundingClientRect();
     const titleBox = button.closest(".card-title")?.getBoundingClientRect();
@@ -1722,10 +1583,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
     fullPage: true,
   });
   await selectizeOption(page, "map_color", "Match Name");
-  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((item) => item.type === "heatmap");
-    return Boolean(trace?.showscale);
-  }), { timeout: 30000 }).toBe(false);
+  await expect(mobileHeatmap).toBeVisible();
   await expectSummaryRowsFilled(page, true);
   const [mobileSpectra, mobileSummary] = await Promise.all([
     spectraCard.boundingBox(), summaryCard.boundingBox(),
@@ -1738,222 +1596,14 @@ test("local app renders spectra, matches, and one informative progress overlay",
   )).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("local-app-mobile.png"), fullPage: true });
 
-  // Exercise the contextual map export natively too. Wait for a real heatmap
-  // from the new upload before inspecting options; collapse=true can leave a
-  // stale Thresholded Particles option behind while the replacement file is
-  // still being processed.
-  await page.locator("#active_identification").evaluate((input) => {
-    if (input.checked) input.click();
-  });
-  await page.locator("#active_preprocessing").evaluate((input) => {
-    if (input.checked) input.click();
-  });
-  await page.locator("#collapse_decision").evaluate((input) => {
-    if (!input.checked) input.click();
-  });
-  await page.locator("#threshold_decision").evaluate((input) => {
-    if (input.checked) input.click();
-  });
-  await expect(page.locator("#active_identification")).not.toBeChecked();
-  await expect(page.locator("#active_preprocessing")).not.toBeChecked();
-  await expect(page.locator("#collapse_decision")).toBeChecked();
-  await expect(page.locator("#threshold_decision")).not.toBeChecked();
-  const mapUploadPath = path.join(repo, "inst", "extdata", "CA_tiny_map.zip");
-  await page.locator("#file").setInputFiles(mapUploadPath);
-  await expect.poll(async () => page.locator("#file").evaluate((input) =>
-    input.files?.[0]?.name || ""
-  )).toBe("CA_tiny_map.zip");
-  await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 120000 });
-  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((candidate) =>
-      candidate.type === "heatmap" && Array.isArray(candidate.z)
-    );
-    return trace ? trace.z.flat(Infinity).filter(Number.isFinite).length : 0;
-  }), { timeout: 120000 }).toBeGreaterThan(1);
-  await expect(page.locator("#map_color")).toBeAttached();
-  await selectizeOption(page, "map_color", "Signal/Noise");
-  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((candidate) =>
-      candidate.type === "heatmap" && Array.isArray(candidate.z)
-    );
-    const title = trace?.colorbar?.title?.text || trace?.colorbar?.title || "";
-    return Boolean(trace?.showscale) && /Signal\/Noise/i.test(String(title));
-  }), { timeout: 30000 }).toBe(true);
-  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
-    timeout: 120000,
-  });
-  await expect(overlay).toBeHidden({ timeout: 120000 });
-  await toggleCard(settingsCard);
-  await expectCardCollapsed(settingsCard, false);
-  await page.waitForTimeout(600);
-  const advancedTab = page.getByRole("link", {
-    name: "Advanced", exact: true,
-  });
-  await advancedTab.click();
-  await expect(advancedTab).toHaveClass(/active/);
-  await page.waitForTimeout(600);
-  const signalThresholdCard = page.locator("#threshold_decision").locator(
-    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
-  );
-  await toggleCard(signalThresholdCard);
-  await expectCardCollapsed(signalThresholdCard, false);
-  await expect(page.locator("#signal_selection + .selectize-control"))
-    .toBeVisible();
-  await page.locator("#collapse_log_type").evaluate((input) => {
-    input.value = "Thresholds";
-    if (window.jQuery && window.jQuery(input).data("selectpicker")) {
-      window.jQuery(input).selectpicker("val", "Thresholds");
-    }
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    window.Shiny?.setInputValue(
-      "collapse_log_type", "Thresholds", { priority: "event" }
-    );
-  });
-  await expect(page.locator("#collapse_log_type")).toHaveValue("Thresholds");
-  await selectizeOption(page, "signal_selection", "log_tot_sig");
-  await page.locator("#MinSNR").fill("-10000");
-  await page.locator("#MinSNR").evaluate(() => {
-    window.Shiny?.setInputValue("MinSNR", -10000, { priority: "event" });
-  });
-  await page.waitForTimeout(250);
-  await page.locator("#threshold_decision").evaluate((input) => input.click());
-  await expect(page.locator("#threshold_decision")).toBeChecked();
-  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((candidate) =>
-      candidate.type === "heatmap" && Array.isArray(candidate.z)
-    );
-    const values = (trace?.text || []).flat(Infinity).map((text) => {
-      const match = String(text).match(/<br>snr:\s*([^<]+)/i);
-      return match ? Number.parseFloat(match[1]) : NaN;
-    }).filter(Number.isFinite).sort((left, right) => left - right);
-    const spread = values.length > 1 ? values.at(-1) - values[0] : 0;
-    return values.length > 1 && values[0] >= 0 && spread > 0 ? {
-      min: values[0], max: values.at(-1), spread,
-    } : null;
-  }), { timeout: 120000 }).toMatchObject({
-    min: expect.any(Number),
-    max: expect.any(Number),
-    spread: expect.any(Number),
-  });
-  const mapSnrRange = await page.locator("#heatmapA").evaluate((plot) => {
-    const trace = (plot.data || []).find((candidate) =>
-      candidate.type === "heatmap" && Array.isArray(candidate.z)
-    );
-    const values = (trace?.text || []).flat(Infinity).map((text) => {
-      const match = String(text).match(/<br>snr:\s*([^<]+)/i);
-      return match ? Number.parseFloat(match[1]) : NaN;
-    }).filter(Number.isFinite).sort((left, right) => left - right);
-    return values.length ? { min: values[0], max: values.at(-1) } : null;
-  });
-  expect(mapSnrRange?.min).toBeGreaterThanOrEqual(0);
-  expect(mapSnrRange?.max).toBeGreaterThan(mapSnrRange?.min);
-  const mapSnrThreshold = (mapSnrRange.min + mapSnrRange.max) / 2;
-  await page.locator("#MinSNR").fill(String(mapSnrThreshold));
-  await page.locator("#MinSNR").evaluate((input) => {
-    window.Shiny?.setInputValue(
-      "MinSNR", Number(input.value), { priority: "event" }
-    );
-  });
-  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
-    timeout: 120000,
-  });
-  await expect(overlay).toBeHidden({ timeout: 120000 });
-  const thresholdState = await page.evaluate(() => ({
-    collapse: document.getElementById("collapse_decision")?.checked,
-    logic: document.getElementById("collapse_log_type")?.value,
-    metric: document.getElementById("signal_selection")?.value,
-    threshold: document.getElementById("MinSNR")?.value,
-    thresholdEnabled: document.getElementById("threshold_decision")?.checked,
-  }));
-  await testInfo.attach("final-map-threshold-state", {
-    body: JSON.stringify(thresholdState, null, 2),
-    contentType: "application/json",
-  });
-  expect(thresholdState).toMatchObject({
-    collapse: true,
-    logic: "Thresholds",
-    metric: "log_tot_sig",
-    thresholdEnabled: true,
-  });
-  expect(Number(thresholdState.threshold)).toBeCloseTo(mapSnrThreshold, 6);
-  await expect.poll(async () => page.locator("#map_color").evaluate(
-    (select) => Object.keys(select.selectize ? select.selectize.options : {})
-  ), { timeout: 120000 }).toContain("Feature ID");
-  await toggleCard(signalThresholdCard);
-  await expectCardCollapsed(signalThresholdCard);
-  await toggleCard(settingsCard);
-  await expectCardCollapsed(settingsCard);
-  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
-    timeout: 120000,
-  });
-  await expect(overlay).toBeHidden({ timeout: 120000 });
-  await dismissQueuedAlerts(page);
-  const snrThresholdBuckets = {};
-  for (const status of ["warning", "success"]) {
-    await clickPastQueuedAlerts(
-      page, page.locator(`#quality_${status}_details`)
-    );
-    qualityModal = page.locator(".modal-content:visible");
-    await expect(qualityModal).toContainText(
-      status === "warning" ? "Spectral quality warnings" :
-        "Successful spectral checks"
-    );
-    const findingCount = await qualityModal.locator(
-      ".openspecy-quality-finding"
-    ).count();
-    await expect.poll(async () => Number(
-      await page.locator(`#quality_${status}_count`).textContent()
-    ), { timeout: 30000 }).toBe(findingCount);
-    const thresholdFinding = qualityModal.locator(
-      '[data-quality-test-id$=":snr_threshold"]'
-    );
-    snrThresholdBuckets[status] = await thresholdFinding.count();
-    if (snrThresholdBuckets[status]) {
-      await expect(thresholdFinding).toHaveAttribute(
-        "data-quality-status", status
-      );
-    }
-    await clickPastQueuedAlerts(
-      page,
-      qualityModal.getByRole("button", { name: "Close", exact: true })
-    );
-    await expect(qualityModal).toBeHidden();
-  }
-  expect(snrThresholdBuckets.warning + snrThresholdBuckets.success).toBe(1);
-  await expect.poll(async () => page.locator("#download_selection").evaluate(
-    (select) => Object.keys(select.selectize ? select.selectize.options : {})
-  ), { timeout: 120000 }).toContain("Thresholded Particles");
-  await waitForStableSelectizeGeneration(
-    page.locator("#download_selection"),
-    "Thresholded Particles"
-  );
-  await page.locator("#download_selection").evaluate((select) => {
-    select.selectize.setValue("Thresholded Particles");
-  });
-  await expect(page.locator("#download_selection")).toHaveValue(
-    "Thresholded Particles", { timeout: 120000 }
-  );
-  await expect(page.locator("#download_data")).toHaveText(
-    "Download Thresholded Particles", { timeout: 120000 }
-  );
-  await page.waitForTimeout(750);
-  await expect(page.locator("#download_selection")).toHaveValue(
-    "Thresholded Particles"
-  );
-  const thresholdedDownload = await consumeDownload(page);
-  expect(thresholdedDownload.filename).toMatch(
-    /^Thresholded-Particles-.*\.csv$/i
-  );
-  expect(thresholdedDownload.content.toString("utf8")).toMatch(
-    /wavenumber|feature_id/i
-  );
+  // Particle-analysis maps, histograms, click metadata, and ZIP exports are
+  // covered by the dedicated ordinary-map journey above.
   expect(popups).toEqual([]);
   expect(severeErrors).toEqual([]);
   expect(stderr).not.toMatch(/Warning: Error in|Execution halted/);
 });
 
-test("local FileSpecs path opens regions and materializes only the selected spectrum", async ({ page }, testInfo) => {
+test("local FileSpecs path runs particle analysis and keeps selections bounded", async ({ page }) => {
   test.skip(
     !fileSpecsSmokePath || !fs.existsSync(fileSpecsSmokePath),
     "Set OPENSPECY_LOCAL_FILE_SPECS_PATH to exercise a genuine local H5/ENVI source."
@@ -1973,14 +1623,36 @@ test("local FileSpecs path opens regions and materializes only the selected spec
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
-  for (const inputId of [
-    "active_identification", "active_preprocessing", "collapse_decision",
-    "threshold_decision",
-  ]) {
-    await page.locator(`#${inputId}`).evaluate((input) => {
-      if (input.checked) input.click();
+  await page.locator("#active_identification").check({ force: true });
+  await page.locator("#active_preprocessing").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  const settingsCard = page.locator("#analysis_settings_box");
+  await toggleCard(settingsCard);
+  await expectCardCollapsed(settingsCard, false);
+  const advancedTab = page.getByRole("link", {
+    name: "Advanced", exact: true,
+  });
+  await advancedTab.click();
+  await page.locator("#active_advanced").check({ force: true });
+  await expect.poll(async () => page.locator("#collapse_decision").evaluate(
+    (input) => !input.disabled
+  ), { timeout: 30000 }).toBe(true);
+  await page.locator("#collapse_decision").check({ force: true });
+  await page.locator("#threshold_decision").check({ force: true });
+  await page.evaluate(() => {
+    window.Shiny.setInputValue("active_advanced", true, { priority: "event" });
+    window.Shiny.setInputValue("collapse_decision", true, { priority: "event" });
+    window.Shiny.setInputValue("threshold_decision", true, { priority: "event" });
+    window.Shiny.setInputValue("active_preprocessing", false, {
+      priority: "event",
     });
-  }
+    document.getElementById("signal_selection").selectize.setValue("tot_sig");
+    window.Shiny.setInputValue("MinSNR", 0.1, { priority: "event" });
+    window.Shiny.setInputValue("MaxSNR", 1000000000000, {
+      priority: "event",
+    });
+  });
 
   const sourceCard = page.locator("#filespec_source_box");
   await expectCardCollapsed(sourceCard);
@@ -1992,7 +1664,12 @@ test("local FileSpecs path opens regions and materializes only the selected spec
     "Open read-only:", { timeout: 180000 }
   );
   await expect(page.locator("#filespec_status")).toContainText("indexed spectra");
-  await expect(page.locator("#filespec_map")).toBeVisible({ timeout: 60000 });
+  await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
+  const previewImage = page.locator("#heatmapA img");
+  await expect(previewImage).toBeVisible({ timeout: 180000 });
+  await expect.poll(async () => page.locator("#map_color").evaluate((select) =>
+    Object.keys(select.selectize ? select.selectize.options : {})
+  ), { timeout: 240000 }).toContain("particle_heatmap_thresholded");
 
   if (path.basename(fileSpecsSmokePath).toLowerCase() === "drop.h5") {
     await expect.poll(
@@ -2012,81 +1689,5 @@ test("local FileSpecs path opens regions and materializes only the selected spec
     expect(regions.length).toBeGreaterThanOrEqual(1);
   }
 
-  const fullViewport = await page.locator("#filespec_view_status").innerText();
-  expect(fullViewport).toMatch(/pixels visible/i);
-  const previewImage = page.locator("#filespec_map img");
-  await expect(previewImage).toBeVisible();
-  const viewportMatch = fullViewport.match(
-    /X\s+([-+\d.e]+)\s+to\s+([-+\d.e]+),\s+Y\s+([-+\d.e]+)\s+to\s+([-+\d.e]+)/i
-  );
-  expect(viewportMatch).not.toBeNull();
-  const [xmin, xmax, ymin, ymax] = viewportMatch.slice(1).map(Number);
-  await page.evaluate(({ xmin, xmax, ymin, ymax }) => {
-    window.Shiny.setInputValue("filespec_map_brush", {
-      xmin: xmin + 0.15 * (xmax - xmin),
-      xmax: xmin + 0.48 * (xmax - xmin),
-      ymin: ymin + 0.20 * (ymax - ymin),
-      ymax: ymin + 0.58 * (ymax - ymin),
-    }, { priority: "event" });
-  }, { xmin, xmax, ymin, ymax });
-  await expect.poll(
-    async () => page.locator("#filespec_view_status").innerText(),
-    { timeout: 60000 }
-  ).not.toBe(fullViewport);
-  const brushedViewport = await page.locator("#filespec_view_status").innerText();
-  await page.locator("#filespec_view_right").click();
-  await expect.poll(
-    async () => page.locator("#filespec_view_status").innerText(),
-    { timeout: 60000 }
-  ).not.toBe(brushedViewport);
-  await page.locator("#filespec_view_reset").click();
-  await expect(page.locator("#filespec_view_status")).toHaveText(fullViewport, {
-    timeout: 60000,
-  });
-
-  await expect.poll(async () => page.locator("#MyPlotC").evaluate((plot) =>
-    Math.max(0, ...(plot.data || []).map((trace) =>
-      Array.isArray(trace.x) ? trace.x.length : 0
-    ))
-  ), { timeout: 120000 }).toBeGreaterThan(100);
-
-  const statusBeforeClick = await page.locator("#filespec_status").innerText();
-  const previewBox = await previewImage.boundingBox();
-  expect(previewBox).not.toBeNull();
-  await previewImage.click({
-    position: {
-      x: Math.max(1, Math.floor(previewBox.width * 0.8)),
-      y: Math.max(1, Math.floor(previewBox.height * 0.7)),
-    },
-  });
-  await expect.poll(
-    async () => page.locator("#filespec_status").innerText(),
-    { timeout: 60000 }
-  ).not.toBe(statusBeforeClick);
-
-  await waitForStableSelectizeGeneration(
-    page.locator("#download_selection"), "Processed Spectra",
-    { timeout: 120000 }
-  );
-  await page.locator("#download_selection").evaluate((select) => {
-    select.selectize.setValue("Processed Spectra");
-  });
-  const selectedDownload = await fetchDownload(page.locator("#download_data"), {
-    readyTimeout: 120000,
-  });
-  expect(selectedDownload.status).toBe(200);
-  const selectedHeader = selectedDownload.content.split(/\r?\n/, 1)[0];
-  expect(selectedHeader.split(",").length).toBeGreaterThan(100);
-  expect(selectedHeader).toMatch(/col_id|file_name/i);
-  expect(selectedDownload.content.length).toBeLessThan(2 * 1024 * 1024);
-  await page.screenshot({
-    path: testInfo.outputPath("local-filespec-selection.png"),
-    fullPage: true,
-  });
-  await page.locator("#filespec_close").click();
-  await expect(page.locator("#filespec_status")).toContainText(
-    "Closed the file-backed source", { timeout: 60000 }
-  );
-  await expect(page.locator("#filespec_map")).toBeHidden();
   expect(severeErrors).toEqual([]);
 });

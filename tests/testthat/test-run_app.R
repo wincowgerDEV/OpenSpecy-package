@@ -89,20 +89,17 @@ test_that("bundled app updates map selection without full heatmap or spectrum re
 
   expect_match(server_source, "ncol(preprocessed$data$spectra) > 1",
                fixed = TRUE)
-  expect_match(server_source,
-               'event_data("plotly_click", source = "heat_plot"',
+  expect_match(server_source, "output$heatmapA <- renderPlot({", fixed = TRUE)
+  expect_match(server_source, "app_draw_server_heatmap(", fixed = TRUE)
+  expect_match(server_source, "observeEvent(input$heatmap_click, {",
                fixed = TRUE)
-  expect_match(server_source, "select = isolate(data_click$plot)",
+  expect_match(server_source, "particle_metadata_modal(", fixed = TRUE)
+  expect_false(grepl('event_data("plotly_click", source = "heat_plot"',
+                     server_source, fixed = TRUE))
+  expect_false(grepl('plotlyProxy("heatmapA", session)', server_source,
+                     fixed = TRUE))
+  expect_match(ui_source, 'plotOutput(\n                  "heatmapA"',
                fixed = TRUE)
-  expect_match(server_source, 'plotlyProxy("heatmapA", session)', fixed = TRUE)
-  expect_match(server_source, 'plotlyProxyInvoke(\n          "restyle"',
-               fixed = TRUE)
-  expect_match(
-    server_source,
-    "x = list(list(state$data$metadata$x[[selected]]))",
-    fixed = TRUE
-  )
-  expect_match(server_source, 'color = "#F59E0B", size = 14', fixed = TRUE)
   expect_match(server_source, "selected_match <- reactive({", fixed = TRUE)
   expect_match(server_source, "selected_match()", fixed = TRUE)
   expect_false(grepl("selected_match_cache", server_source, fixed = TRUE))
@@ -293,13 +290,12 @@ test_that("bundled app defaults corrections, identification, but not quantificat
   expect_match(server_source, "quality_findings <- reactive({", fixed = TRUE)
   expect_match(server_source, "app_threshold_quality_report(", fixed = TRUE)
   expect_match(server_source, "collapse_features <- reactive({", fixed = TRUE)
-  expect_match(
-    server_source,
-    "isTRUE(input$collapse_decision) && !is.null(collapse_features())",
-    fixed = TRUE
-  )
-  expect_match(server_source, "colorscale = state$colorscale",
+  expect_match(server_source, "particle_pipeline_enabled <- reactive({",
                fixed = TRUE)
+  expect_match(server_source,
+               "isTRUE(input$active_advanced) && isTRUE(input$collapse_decision)",
+               fixed = TRUE)
+  expect_match(server_source, "app_draw_server_heatmap(", fixed = TRUE)
   expect_match(server_source, "range = target_axis", fixed = TRUE)
   expect_match(server_source,
                "if(!identical(library$wavenumber, target_axis))",
@@ -395,11 +391,12 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
     "Matches processed spectra to references and displays the best results.",
     fixed = TRUE
   )
-  expect_match(
-    ui_source,
-    "These settings operate independently of both Preprocessing and Identification.",
-    fixed = TRUE
-  )
+  expect_match(ui_source,
+               'app_section_switch(\n    "active_advanced", "Advanced", FALSE',
+               fixed = TRUE)
+  expect_match(ui_source,
+               "Turning this off negates every Advanced setting.",
+               fixed = TRUE)
   expect_match(ui_source, "openspecy-section-description", fixed = TRUE)
   expect_true(all(vapply(
     c("range_artifact_ratio", "co2_artifact_ratio"),
@@ -577,6 +574,11 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
   expect_match(server_source,
                "smooth_args <- if(smooth_enabled)", fixed = TRUE)
   expect_match(server_source, "effective_signal_selection", fixed = TRUE)
+  expect_match(server_source, "set_advanced_child_state <- function(enabled)",
+               fixed = TRUE)
+  expect_match(server_source,
+               "enabled ? el.selectize.enable() : el.selectize.disable()",
+               fixed = TRUE)
   expect_false(grepl("list(DataR(), input$signal_selection)", server_source,
                      fixed = TRUE))
   expect_match(server_source,
@@ -1107,7 +1109,7 @@ test_that("bundled app correction and quality helpers preserve auditable state",
   expect_false(any(tolower(colors) %in% c("#000000", "#440154")))
 })
 
-test_that("bundled app keeps numeric heatmap legends outside and class colors aligned", {
+test_that("bundled app renders scalable numeric and class heatmaps", {
   missing <- .openspecy_app_packages()[
     !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
             quietly = TRUE)
@@ -1128,32 +1130,14 @@ test_that("bundled app keeps numeric heatmap legends outside and class colors al
     data.frame(a = c(1, 2), b = c(2, 3), c = c(3, 4), d = c(4, 5)),
     metadata = data.frame(x = c(0, 1, 0, 1), y = c(0, 0, 1, 1))
   )
-  legend_layout <- env$app_heatmap_legend_layout("Match Value")
-  numeric_plot <- heatmap_spec(
-    map,
-    z = c(0.2, 0.4, 0.6, 0.8),
-    colorscale = env$app_heatmap_colorscale,
-    showlegend = TRUE
-  ) %>%
-    env$app_style_plotly() %>%
-    plotly::style(
-      colorbar = legend_layout$colorbar,
-      traces = 1L
-    ) %>%
-    plotly::layout(
-      showlegend = FALSE,
-      margin = legend_layout$margin
-    ) %>%
-    plotly::plotly_build()
-  heatmap_trace <- Filter(
-    function(trace) identical(trace$type, "heatmap"), numeric_plot$x$data
-  )[[1L]]
-  expect_true(isTRUE(heatmap_trace$showscale))
-  expect_identical(heatmap_trace$colorbar$orientation, "h")
-  expect_equal(heatmap_trace$colorbar$x, 0.5)
-  expect_gt(heatmap_trace$colorbar$y, 1)
-  expect_gte(numeric_plot$x$layout$margin$t, 100)
-  expect_lt(numeric_plot$x$layout$margin$r, 100)
+  image <- tempfile(fileext = ".png")
+  grDevices::png(image, width = 600, height = 400)
+  expect_silent(env$app_draw_server_heatmap(
+    map$metadata, c(0.2, 0.4, 0.6, 0.8), title = "Match Value"
+  ))
+  grDevices::dev.off()
+  expect_gt(file.info(image)$size, 0)
+  unlink(image)
 
   categories <- c("PET", "PE", "PP", "PE")
   palette <- env$app_category_palette(categories)
@@ -1186,24 +1170,15 @@ test_that("bundled app keeps numeric heatmap legends outside and class colors al
     fixed = TRUE
   )
   expect_match(server_source, "values = match_name_palette()", fixed = TRUE)
-  expect_match(server_source, "showlegend = !state$categorical", fixed = TRUE)
   expect_match(server_source, "map_color_choices <- reactive({", fixed = TRUE)
   expect_match(server_source, "resolved_map_color <- reactive({", fixed = TRUE)
-  expect_match(server_source, "map_color <- resolved_map_color()", fixed = TRUE)
-  expect_false(grepl("!isTruthy(map_color)", server_source, fixed = TRUE))
-  expect_match(
-    server_source,
-    "zmax = max(1L, length(levels(state$z)))",
-    fixed = TRUE
-  )
-  expect_match(
-    server_source,
-    "min_sn = if(state$categorical) NULL else MinSNR()",
-    fixed = TRUE
-  )
-  expect_match(server_source,
-               "app_heatmap_legend_layout(state$legend_title)",
+  expect_match(server_source, '"Particle Image" = "particle_image"',
                fixed = TRUE)
+  expect_match(server_source,
+               '"Thresholded Particles" = "particle_heatmap_thresholded"',
+               fixed = TRUE)
+  expect_match(server_source, "app_draw_server_heatmap(", fixed = TRUE)
+  expect_match(server_source, "plot(\n          result,", fixed = TRUE)
 })
 
 test_that("bundled app applies spike correction through the registered API", {
@@ -1756,6 +1731,13 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
     selected$x,
     test_map$metadata[col_id == spectrum_ids[[137L]], x]
   )
+  selected_without_match <- env$app_selected_metadata(
+    reordered,
+    selected_match[, .(object_id, material_class, spectrum_identity)],
+    signal_to_noise
+  )
+  expect_false("match_val" %in% names(selected_without_match))
+  expect_identical(selected_without_match$col_id, spectrum_ids[[137L]])
 
   server_source <- paste(
     readLines(file.path(app_path, "server.R"), warn = FALSE),
@@ -1993,10 +1975,11 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "range_artifact_ratio", "MinRange", "MaxRange", "co2_decision",
     "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
     "active_identification", "id_spec_type", "id_strategy", "lib_type",
-    "filter_lib", "lib_org", "threshold_decision", "MinSNR",
-    "signal_selection", "cor_threshold_decision", "MinCor",
+    "filter_lib", "lib_org", "active_advanced", "threshold_decision",
+    "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
     "spatial_decision", "sigma", "xy_grid", "collapse_decision",
-    "collapse_type", "collapse_log_type", "active_quantification",
+    "collapse_type", "particle_id_strategy", "particle_area_threshold",
+    "active_quantification",
     "quant_ratio_name", "quant_ratio_type", "quant_numerator_area_min",
     "quant_numerator_area_max", "quant_denominator_area_min",
     "quant_denominator_area_max", "quant_numerator_peak",

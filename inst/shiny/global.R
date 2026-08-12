@@ -113,35 +113,159 @@ app_download_label <- function(selection) {
 }
 
 app_upload_limit_bytes <- function(wasm = app_wasm_mode()) {
-  if(isTRUE(wasm)) 100 * 1024^2 else 512 * 1024^2
+  2 * 1024^3
 }
 
 app_upload_limit_label <- function(wasm = app_wasm_mode()) {
-  paste0(if(isTRUE(wasm)) "100" else "512", " MB")
+  "2 GB"
 }
 
 app_upload_guidance <- function(wasm = app_wasm_mode(),
                                 local_file = app_local_file_mode()) {
-  if(isTRUE(wasm)) {
-    return(paste0(
-      "The hosted app accepts ordinary browser uploads up to ",
-      app_upload_limit_label(TRUE), " total. Run the local OpenSpecy app for ",
-      "a larger H5 or ENVI map and use Large local H5 / ENVI source."
-    ))
-  }
-  if(isTRUE(local_file)) {
-    return(paste0(
-      "Ordinary browser uploads are limited to ",
-      app_upload_limit_label(FALSE), " total. For a larger H5 or ENVI map, ",
-      "use Large local H5 / ENVI source below."
-    ))
+  local_route <- if(isTRUE(local_file) && !isTRUE(wasm)) {
+    "Open Advanced and use Local H5 / ENVI source to bypass the browser copy."
+  } else {
+    paste(
+      "Run the local OpenSpecy app with OpenSpecy::run_app(), then open",
+      "Advanced and use Local H5 / ENVI source."
+    )
   }
   paste0(
-    "Ordinary browser uploads are limited to ",
-    app_upload_limit_label(FALSE), " total. For a larger H5 or ENVI map, ",
-    "launch the local app with OpenSpecy::run_app(), then use Large local ",
-    "H5 / ENVI source."
+    "The browser upload limit is ", app_upload_limit_label(wasm),
+    " total. ", local_route
   )
+}
+
+app_particle_output_choices <- function() {
+  c(
+    "Particle details" = "details",
+    "Particle summaries" = "summary",
+    "Raw map object" = "raw",
+    "Processed particle object" = "processed",
+    "Particle image" = "particle_image",
+    "Signal heatmap" = "particle_heatmap",
+    "Thresholded heatmap" = "particle_heatmap_thresholded",
+    "Correlation heatmap" = "cor_heatmap",
+    "Signal/noise histogram" = "sn_histogram",
+    "Correlation histogram" = "cor_histogram",
+    "Timing" = "time"
+  )
+}
+
+app_particle_output_files <- function(output_dir, outputs) {
+  if(!dir.exists(output_dir)) return(character())
+  patterns <- c(
+    details = "^particle_details_.*\\.csv$",
+    summary = "^particle_summary_.*\\.csv$",
+    raw = "^particles_raw_.*\\.rds$",
+    processed = "^particles_(?!raw_).*\\.rds$",
+    particle_image = "^particle_image_.*\\.png$",
+    particle_heatmap = "^particle_heatmap_(?!thresholded).*\\.png$"
+  )
+  patterns[["particle_heatmap_thresholded"]] <-
+    "^particle_heatmap_thresholded.*\\.jpg$"
+  patterns[["cor_heatmap"]] <- "^cor_heatmap_.*\\.png$"
+  patterns[["sn_histogram"]] <- "^sn_histogram.*\\.png$"
+  patterns[["cor_histogram"]] <- "^cor_histogram.*\\.png$"
+  patterns[["time"]] <- "^time_.*\\.rds$"
+  files <- list.files(output_dir, full.names = TRUE)
+  selected <- intersect(as.character(outputs), names(patterns))
+  unique(unlist(lapply(selected, function(name) {
+    files[grepl(patterns[[name]], basename(files), perl = TRUE)]
+  }), use.names = FALSE))
+}
+
+app_write_particle_archive <- function(files, destination, root) {
+  files <- normalizePath(files, winslash = "/", mustWork = TRUE)
+  root <- normalizePath(root, winslash = "/", mustWork = TRUE)
+  relative <- substring(files, nchar(root) + 2L)
+  if(!length(files) || any(!startsWith(files, paste0(root, "/"))) ||
+     any(!nzchar(relative))) {
+    stop("Particle archive files must be inside the completed output directory.",
+         call. = FALSE)
+  }
+  zip::zipr(destination, files = files, root = root,
+            include_directories = FALSE)
+  invisible(destination)
+}
+
+app_draw_server_heatmap <- function(metadata, values, categorical = FALSE,
+                                    title = "Map", selected = NULL) {
+  if(!is.data.frame(metadata) || !all(c("x", "y") %in% names(metadata))) {
+    stop("A map requires x and y metadata.", call. = FALSE)
+  }
+  if(length(values) != nrow(metadata)) {
+    stop("Map values must align with metadata rows.", call. = FALSE)
+  }
+  x <- as.numeric(metadata$x)
+  y <- as.numeric(metadata$y)
+  finite_xy <- is.finite(x) & is.finite(y)
+  if(!any(finite_xy)) stop("The map has no finite coordinates.", call. = FALSE)
+
+  if(isTRUE(categorical)) {
+    labels <- as.character(values)
+    levels <- sort(unique(labels[!is.na(labels) & nzchar(labels)]))
+    codes <- match(labels, levels)
+    palette <- grDevices::hcl.colors(max(1L, length(levels)), "Dark 3")
+    legend_labels <- levels
+  } else {
+    numeric_values <- suppressWarnings(as.numeric(values))
+    finite_values <- numeric_values[is.finite(numeric_values)]
+    if(!length(finite_values)) stop("The selected map has no finite values.",
+                                    call. = FALSE)
+    palette <- grDevices::hcl.colors(100L, "Viridis")
+    limits <- range(finite_values)
+    if(identical(limits[[1L]], limits[[2L]])) {
+      codes <- ifelse(is.finite(numeric_values), 50L, NA_integer_)
+    } else {
+      codes <- floor((numeric_values - limits[[1L]]) / diff(limits) * 99) + 1L
+      codes <- pmax(1L, pmin(100L, codes))
+    }
+    legend_labels <- signif(pretty(limits, n = 5), 3)
+    legend_labels <- legend_labels[
+      legend_labels >= limits[[1L]] & legend_labels <= limits[[2L]]
+    ]
+  }
+  colors <- rep(NA_character_, length(codes))
+  keep <- finite_xy & !is.na(codes)
+  colors[keep] <- palette[codes[keep]]
+
+  graphics::par(bg = app_theme$canvas, fg = app_theme$text,
+                col.axis = app_theme$text, col.lab = app_theme$text,
+                col.main = app_theme$text, mar = c(4.5, 4.8, 3.5, 1.5))
+  xs <- sort(unique(x[finite_xy]))
+  ys <- sort(unique(y[finite_xy]))
+  regular <- length(xs) * length(ys) <= max(5e6, 4 * sum(finite_xy)) &&
+    !anyDuplicated(data.frame(x = x[finite_xy], y = y[finite_xy]))
+  if(regular) {
+    z <- matrix(NA_real_, nrow = length(xs), ncol = length(ys))
+    z[cbind(match(x[finite_xy], xs), match(y[finite_xy], ys))] <- codes[finite_xy]
+    graphics::image(xs, ys, z, col = palette, xlab = "X", ylab = "Y",
+                    main = title, asp = 1, useRaster = TRUE)
+  } else {
+    graphics::plot(x[finite_xy], y[finite_xy], col = colors[finite_xy],
+                   pch = 15, cex = 0.7, xlab = "X", ylab = "Y",
+                   main = title, asp = 1)
+  }
+  if(length(selected) == 1L && is.finite(selected) && selected >= 1L &&
+     selected <= nrow(metadata) && finite_xy[[selected]]) {
+    graphics::points(x[[selected]], y[[selected]], pch = 0, cex = 1.4,
+                     lwd = 2, col = app_plot_palette$reference)
+  }
+  if(isTRUE(categorical) && length(legend_labels) &&
+     length(legend_labels) <= 20L) {
+    graphics::legend("topright", legend = legend_labels,
+                     fill = palette[seq_along(legend_labels)], cex = 0.75,
+                     bty = "n", text.col = app_theme$text)
+  } else if(!isTRUE(categorical) && length(legend_labels)) {
+    positions <- if(length(legend_labels) == 1L) 50L else
+      round(seq(1, 100, length.out = length(legend_labels)))
+    graphics::legend("topright", legend = legend_labels,
+                     fill = palette[positions], cex = 0.75, bty = "n",
+                     text.col = app_theme$text, title = title)
+  }
+  graphics::box(col = app_theme$text)
+  invisible(NULL)
 }
 
 app_validate_upload_size <- function(file_info, wasm = app_wasm_mode()) {
@@ -450,8 +574,11 @@ app_selected_metadata <- function(x, selected_match, signal_to_noise) {
     , !vapply(result, OpenSpecy::is_empty_vector, logical(1)), with = FALSE
   ] %>%
     dplyr::select(
-      file_name, col_id, material_class, spectrum_identity, match_val,
-      signal_to_noise, dplyr::everything()
+      dplyr::any_of(c(
+        "file_name", "col_id", "material_class", "spectrum_identity",
+        "match_val", "signal_to_noise"
+      )),
+      dplyr::everything()
     )
   result
 }
@@ -674,9 +801,11 @@ app_user_metadata_input_ids <- c(
   "active_identification", "id_spec_type", "id_strategy", "lib_type",
   "filter_lib", "lib_org",
   # Advanced
-  "threshold_decision", "MinSNR", "signal_selection",
+  "active_advanced", "threshold_decision", "MinSNR", "MaxSNR",
+  "signal_selection",
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
-  "xy_grid", "collapse_decision", "collapse_type", "collapse_log_type",
+  "xy_grid", "collapse_decision", "collapse_type", "particle_id_strategy",
+  "particle_area_threshold",
   # Quantification builder
   "active_quantification", "quant_ratio_name", "quant_ratio_type",
   "quant_numerator_area_min", "quant_numerator_area_max",

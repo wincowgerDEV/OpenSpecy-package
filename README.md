@@ -144,7 +144,7 @@ particles <- automate_particle_analysis(
   large_map, library = spec_lib,
   particle_id_strategy = "collapse", collapse_function = mean,
   spectral_smooth = FALSE, sn_threshold_min = 0.04,
-  cor_threshold = 0.7, top_n = 1,
+  cor_threshold = 0.7,
   outputs = c("details", "summary", "processed", "particle_image",
               "particle_heatmap", "sn_histogram", "cor_histogram")
 )
@@ -155,14 +155,16 @@ The initial file-backed analysis contract deliberately excludes whole-map
 correlation matrices, raw-pixel matching, spectral smoothing, entropy S/N,
 median/custom collapse, and PCA/K-means fitting. Use a bounded
 `decompress_spec()` selection when another established `OpenSpecy` operation is
-needed. With an `OpenSpecy` reference library, `top_n` can retain multiple exact
-ranked matches after collapse. Requesting `particle_image` for H5 data stitches
+needed. Particle analysis retains the exact best match after collapse.
+Requesting `particle_image` for H5 data stitches
 and caches only the current region's registered mosaic tiles. The local Shiny
-app launched with `run_app()` also has a **Large local H5 / ENVI source** path
-opener with a bounded server raster, exact brushed ROI, pan/reset controls,
-one-pixel materialization, and selected-spectrum download. Filesystem access is
-disabled by default in other deployments and always disabled in the hosted
-WebAssembly app, which keeps its ordinary upload limit and local-app guidance.
+app launched with `run_app()` places a **Local H5 / ENVI source** opener inside
+Advanced. With Advanced and Collapse Particle Spectra enabled, it runs the
+region-sequential pipeline with progress, scalable server-rendered particle
+maps, click metadata, threshold histograms, and configurable result archives.
+Filesystem access is disabled by default in other deployments and always
+disabled in the hosted WebAssembly app. Browser uploads are capped at 2 GB and
+oversize selections receive a popup directing them to the local path workflow.
 
 ## Related Packages
 ### Open Specy on Python

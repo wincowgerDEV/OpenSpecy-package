@@ -49,6 +49,20 @@ test_that("automate_particle_analysis() rejects removed legacy arguments", {
     automate_particle_analysis(os, os, adj_map_baseline = TRUE),
     "Removed automate_particle_analysis"
   )
+  expect_error(
+    automate_particle_analysis(os, os, spatial_smooth = TRUE),
+    "spatial_smooth"
+  )
+  expect_error(
+    automate_particle_analysis(os, os, top_n = 2L),
+    "top_n"
+  )
+  expect_error(
+    automate_particle_analysis(
+      os, os, sn_threshold_min = 2, sn_threshold_max = 1
+    ),
+    "sn_threshold_min"
+  )
 })
 
 test_that("automate_particle_analysis() smooths in-memory maps when requested", {
@@ -65,6 +79,39 @@ test_that("automate_particle_analysis() smooths in-memory maps when requested", 
 
   expect_equal(dim(smoothed$spectra), dim(raw$spectra))
   expect_false(isTRUE(all.equal(smoothed$spectra, raw$spectra)))
+})
+
+test_that("automate_particle_analysis() explains all-pixel thresholds", {
+  map <- as_OpenSpecy(
+    c(800, 1200, 2500, 3000),
+    spectra = matrix(rep(c(1, 3, 2, 4), 4), ncol = 4),
+    metadata = expand.grid(x = 0:1, y = 0:1)
+  )
+  expect_error(
+    automate_particle_analysis(
+      map, map, sn_threshold_min = -Inf, sn_threshold_max = Inf,
+      metric = "tot_sig"
+    ),
+    "retained every map pixel"
+  )
+})
+
+test_that("particle preprocessing preserves an explicit target axis", {
+  source <- as_OpenSpecy(
+    seq(700, 1300, by = 10),
+    spectra = matrix(seq_len(61), ncol = 1)
+  )
+  target <- c(721.2, 805.8, 934.6, 1102.1, 1277.7)
+  library <- as_OpenSpecy(target, spectra = matrix(seq_along(target), ncol = 1))
+  processed <- OpenSpecy:::.process_for_particle_match(
+    source, library,
+    list(
+      conform_spec = TRUE,
+      conform_spec_args = list(range = target, res = NULL, type = "roll"),
+      restrict_range = FALSE, smooth_intens = FALSE, make_rel = FALSE
+    )
+  )
+  expect_identical(processed$wavenumber, target)
 })
 
 test_that("automate_particle_analysis() keeps all-cell coordinates and visual colors", {
@@ -184,15 +231,14 @@ test_that("particle heatmap scale includes the finite endpoints", {
   expect_equal(scale$range, c(-2.5, 7.25))
   expect_equal(range(scale$ticks), scale$range)
 })
-test_that("new particle arguments preserve the established positional API", {
+test_that("removed particle arguments are absent from the public methods", {
   for (fun in list(
     automate_particle_analysis,
     OpenSpecy:::automate_particle_analysis.default,
     OpenSpecy:::automate_particle_analysis.FileSpecs
   )) {
     argument_names <- names(formals(fun))
-    expect_identical(tail(argument_names, 2L), c("top_n", "..."))
-    expect_gt(match("top_n", argument_names),
-              match("specs_centers", argument_names))
+    expect_identical(tail(argument_names, 2L), c("specs_centers", "..."))
+    expect_false(any(c("spatial_smooth", "top_n") %in% argument_names))
   }
 })

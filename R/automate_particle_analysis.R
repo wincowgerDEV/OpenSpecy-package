@@ -26,14 +26,10 @@
 #' @param spectral_smooth,sigma1 apply 3D Gaussian smoothing to spectral maps;
 #' file readers apply this while reading and in-memory maps are smoothed after
 #' coercion.
-#' @param spatial_smooth,sigma2 passed to \code{\link{sig_noise}()} and
-#' feature detection.
+#' @param sigma2 shape kernel passed to \code{\link{def_features}()}.
 #' @param close,close_kernel passed to \code{\link{def_features}()}.
 #' @param sn_threshold_min,sn_threshold_max signal/noise thresholds.
 #' @param cor_threshold minimum match value for confident particle labels.
-#' @param top_n positive integer number of exact library matches to retain.
-#'   The established maximum-correlation columns remain available; ranks are
-#'   added to particle metadata and details when `top_n` is greater than one.
 #' @param area_threshold minimum feature area in pixels.
 #' @param label_unknown logical; label low-correlation matches as `"unknown"`.
 #' @param remove_materials optional material labels to remove after matching.
@@ -79,7 +75,7 @@ automate_particle_analysis <- function(
     particle_id_strategy = c("collapse", "partial_collapse",
                              "nonspatial_collapse", "all_cell_id", "raw"),
     spectral_smooth = FALSE, sigma1 = c(1, 1, 1),
-    spatial_smooth = FALSE, sigma2 = c(3, 3), close = FALSE,
+    sigma2 = c(3, 3), close = FALSE,
     close_kernel = c(4, 4), sn_threshold_min = 0.04,
     sn_threshold_max = Inf, cor_threshold = 0.7, area_threshold = 1,
     label_unknown = FALSE, remove_materials = NULL, remove_unknown = FALSE,
@@ -87,7 +83,7 @@ automate_particle_analysis <- function(
     collapse_function = stats::median,
     outputs = c("details", "summary"),
     process_args = list(), specs_steps = c("pca", "kmeans"),
-    specs_centers = NULL, top_n = 1L, ...) {
+    specs_centers = NULL, ...) {
   UseMethod("automate_particle_analysis")
 }
 
@@ -100,7 +96,7 @@ automate_particle_analysis.default <- function(
     particle_id_strategy = c("collapse", "partial_collapse",
                              "nonspatial_collapse", "all_cell_id", "raw"),
     spectral_smooth = FALSE, sigma1 = c(1, 1, 1),
-    spatial_smooth = FALSE, sigma2 = c(3, 3), close = FALSE,
+    sigma2 = c(3, 3), close = FALSE,
     close_kernel = c(4, 4), sn_threshold_min = 0.04,
     sn_threshold_max = Inf, cor_threshold = 0.7, area_threshold = 1,
     label_unknown = FALSE, remove_materials = NULL, remove_unknown = FALSE,
@@ -108,10 +104,10 @@ automate_particle_analysis.default <- function(
     collapse_function = stats::median,
     outputs = c("details", "summary"),
     process_args = list(), specs_steps = c("pca", "kmeans"),
-    specs_centers = NULL, top_n = 1L, ...) {
+    specs_centers = NULL, ...) {
 
   .reject_removed_particle_args(list(...))
-  top_n <- .normalize_particle_top_n(top_n, library)
+  .validate_particle_sn_thresholds(sn_threshold_min, sn_threshold_max)
   particle_id_strategy <- .normalize_particle_strategy(particle_id_strategy)
   outputs <- .normalize_particle_outputs(outputs)
   samples <- .normalize_particle_samples(x)
@@ -124,17 +120,19 @@ automate_particle_analysis.default <- function(
   for (i in seq_along(samples)) {
     time_start <- Sys.time()
     sample_name <- names(samples)[i]
+    .particle_progress(sample_name, "read", sprintf("sample %d of %d", i,
+                                                     length(samples)))
     map <- .read_particle_sample(samples[[i]], spectral_smooth = spectral_smooth,
                                  sigma = sigma1)
     map <- .attach_particle_image(map, images, bottom_left, top_right, i)
 
     origin <- .particle_origin(origins, i)
+    .particle_progress(sample_name, "signal/noise")
     snr <- sig_noise(
       restrict_range(map, min = c(750, 2420), max = c(2200, 4000),
                      make_rel = FALSE),
       metric = metric,
-      spatial_smooth = spatial_smooth,
-      sigma = sigma2,
+      spatial_smooth = FALSE,
       abs = abs
     )
     map$metadata$snr <- snr
@@ -154,7 +152,14 @@ automate_particle_analysis.default <- function(
       next
     }
 
+    if (all(threshold) && particle_id_strategy %in%
+        c("collapse", "partial_collapse")) {
+      stop("S/N thresholds retained every map pixel; choose a higher minimum ",
+           "or lower maximum before defining spatial particles", call. = FALSE)
+    }
+
     if (identical(particle_id_strategy, "collapse")) {
+      .particle_progress(sample_name, "particle detection and collapse")
       map <- def_features(
         map, threshold, shape_kernel = sigma2, close = close,
         close_kernel = close_kernel
@@ -193,9 +198,10 @@ automate_particle_analysis.default <- function(
       next
     }
 
+    .particle_progress(sample_name, "library matching")
     proc_map <- .append_particle_matches(
       proc_map, library = library, material_col = material_col,
-      library_id_col = library_id_col, top_n = top_n
+      library_id_col = library_id_col
     )
     proc_map <- .filter_particle_matches(
       proc_map,
@@ -228,6 +234,7 @@ automate_particle_analysis.default <- function(
       )
     )
 
+    .particle_progress(sample_name, "outputs")
     elapsed <- Sys.time() - time_start
     if (!is.null(output_dir)) {
       .write_particle_outputs(output_dir, sample_name, map, proc_map, details,
@@ -250,6 +257,7 @@ automate_particle_analysis.default <- function(
       cor_histogram_png = plot_outputs$cor_histogram_png,
       time_rds = if ("time" %in% outputs) elapsed else NULL
     )
+    .particle_progress(sample_name, "complete")
   }
 
   details_all <- .bind_particle_tables(
@@ -332,12 +340,23 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
 .reject_removed_particle_args <- function(args) {
   removed <- intersect(names(args),
                        c("adj_map_baseline", "k", "k_weighting",
-                         "vote_count"))
+                         "vote_count", "spatial_smooth", "top_n"))
   if (length(removed)) {
     stop("Removed automate_particle_analysis argument(s): ",
          paste(removed, collapse = ", "),
-         ". Use composable preprocessing, exact top-N matching, or explicit ",
+         ". Use composable preprocessing, exact best-match output, or explicit ",
          "post-processing outside this workflow.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+.validate_particle_sn_thresholds <- function(minimum, maximum) {
+  valid_scalar <- function(value) {
+    is.numeric(value) && length(value) == 1L && !is.na(value)
+  }
+  if(!valid_scalar(minimum) || !valid_scalar(maximum) || minimum >= maximum) {
+    stop("sn_threshold_min must be a numeric scalar below sn_threshold_max",
+         call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -367,19 +386,6 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   replace <- outputs %in% names(aliases)
   outputs[replace] <- aliases[outputs[replace]]
   unique(outputs)
-}
-
-.normalize_particle_top_n <- function(top_n, library) {
-  value <- suppressWarnings(as.integer(top_n))
-  if (length(value) != 1L || is.na(value) || value < 1L ||
-      !identical(as.numeric(top_n), as.numeric(value))) {
-    stop("'top_n' must be one positive integer", call. = FALSE)
-  }
-  if (value > 1L && !is_OpenSpecy(library)) {
-    stop("'top_n' greater than one currently requires an OpenSpecy library",
-         call. = FALSE)
-  }
-  value
 }
 
 .normalize_particle_samples <- function(x) {
@@ -571,31 +577,17 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     conform_spec_args = list(range = range, res = NULL),
     restrict_range = TRUE,
     restrict_range_args = list(min = c(750, 2420), max = c(2200, 4000))
-  ), process_args)
+  ), process_args, keep.null = TRUE)
   do.call(process_spec, c(list(x), args))
 }
 
 .append_particle_matches <- function(proc_map, library, material_col,
-                                     library_id_col, top_n = 1L) {
+                                     library_id_col) {
   if (is_OpenSpecy(library)) {
     cors <- cor_spec(proc_map, library, compute = "base")
     max_cors <- max_cor_named(cors)
     proc_map$metadata$max_cor_val <- as.numeric(max_cors)
     proc_map$metadata$max_cor_name <- names(max_cors)
-    if (top_n > 1L) {
-      retained <- min(top_n, nrow(cors))
-      ranked <- vapply(seq_len(ncol(cors)), function(column) {
-        head(order(cors[, column], decreasing = TRUE, na.last = TRUE), retained)
-      }, FUN.VALUE = integer(retained))
-      if (retained == 1L) ranked <- matrix(ranked, nrow = 1L)
-      for (rank in seq_len(retained)) {
-        rows <- ranked[rank, ]
-        proc_map$metadata[[paste0("match_rank_", rank, "_name")]] <-
-          rownames(cors)[rows]
-        proc_map$metadata[[paste0("match_rank_", rank, "_value")]] <-
-          cors[cbind(rows, seq_len(ncol(cors)))]
-      }
-    }
     lib_md <- data.table::as.data.table(library$metadata)
     if (all(c(library_id_col, material_col) %in% names(lib_md))) {
       idx <- match(proc_map$metadata$max_cor_name, lib_md[[library_id_col]])
@@ -608,6 +600,15 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     proc_map$metadata[[material_col]] <- matches$name
   }
   proc_map
+}
+
+.particle_progress <- function(sample, stage, detail = NULL) {
+  text <- paste0("Particle analysis [", sample, "]: ", stage)
+  if (!is.null(detail) && nzchar(detail)) {
+    text <- paste0(text, " (", detail, ")")
+  }
+  message(text)
+  invisible(NULL)
 }
 
 .filter_particle_matches <- function(proc_map, material_col, cor_threshold,
@@ -719,10 +720,7 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     dt$g <- dt$mean_g
     dt$b <- dt$mean_b
   }
-  rank_cols <- grep("^match_rank_[0-9]+_(name|value)$", names(dt),
-                    value = TRUE)
   cols <- intersect(c("particle_id", "sample_id", "max_cor_val",
-                      rank_cols,
                       "bad_spectra", material_col,
                       "area_um2", "perimeter_um", "max_length_um",
                       "min_length_um", "aspect_ratio", "circularity",

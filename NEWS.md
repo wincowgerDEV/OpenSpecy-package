@@ -8,14 +8,18 @@
   unsupported matrix-only
   operations while preserving legacy matrix-backed `Specs` behavior. The first
   direct large-map workflow streams region-wise S/N and exact particle means
-  through `automate_particle_analysis()`, supports exact ranked `top_n` results
-  for `OpenSpecy` libraries, and lazily caches registered regional H5 mosaics
+  through `automate_particle_analysis()`, retains one exact best match, and
+  lazily caches registered regional H5 mosaics
   for particle images; it intentionally requires the
   collapse strategy, `mean`, non-entropy S/N, and no spectral smoothing.
-- Added an explicitly gated local Shiny path opener and bounded raster preview
-  with brushed ROI, pan/reset, one-pixel selection, and cleanup for large H5
-  and ENVI maps, with explicit 512 MB local and 100 MB hosted ordinary-upload
-  limits. H5 mosaics now retain region, local and stage coordinates, unique
+- Integrated the explicitly gated local H5/ENVI path opener into the Advanced
+  tab and connected it, plus ordinary maps, to the particle pipeline with
+  progress, selectable scalable maps, click metadata, threshold histograms,
+  and configurable complete result archives. Browser and Shinylive uploads now
+  use a 2 GB cap with an oversize popup instead of persistent guidance. The
+  particle workflow no longer exposes ineffective `spatial_smooth` or
+  multi-match `top_n` controls. H5 mosaics retain region, local and stage
+  coordinates, unique
   pixels, and intersecting image tiles. Particle-analysis results replay via
   `plot()`, expose S/N and correlation histograms with threshold lines, and use
   a continuous finite signal legend. Uploaded Test Map metadata now keeps

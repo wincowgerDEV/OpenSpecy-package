@@ -21,7 +21,6 @@ automate_particle_analysis(
     "all_cell_id", "raw"),
   spectral_smooth = FALSE,
   sigma1 = c(1, 1, 1),
-  spatial_smooth = FALSE,
   sigma2 = c(3, 3),
   close = FALSE,
   close_kernel = c(4, 4),
@@ -40,7 +39,6 @@ automate_particle_analysis(
   process_args = list(),
   specs_steps = c("pca", "kmeans"),
   specs_centers = NULL,
-  top_n = 1L,
   ...
 )
 
@@ -58,7 +56,6 @@ automate_particle_analysis(
     "all_cell_id", "raw"),
   spectral_smooth = FALSE,
   sigma1 = c(1, 1, 1),
-  spatial_smooth = FALSE,
   sigma2 = c(3, 3),
   close = FALSE,
   close_kernel = c(4, 4),
@@ -77,7 +74,6 @@ automate_particle_analysis(
   process_args = list(),
   specs_steps = c("pca", "kmeans"),
   specs_centers = NULL,
-  top_n = 1L,
   ...
 )
 
@@ -95,7 +91,6 @@ automate_particle_analysis(
     "all_cell_id", "raw"),
   spectral_smooth = FALSE,
   sigma1 = c(1, 1, 1),
-  spatial_smooth = FALSE,
   sigma2 = c(3, 3),
   close = FALSE,
   close_kernel = c(4, 4),
@@ -114,7 +109,6 @@ automate_particle_analysis(
   process_args = list(),
   specs_steps = c("pca", "kmeans"),
   specs_centers = NULL,
-  top_n = 1L,
   ...
 )
 }
@@ -146,8 +140,7 @@ outputs.}
 file readers apply this while reading and in-memory maps are smoothed after
 coercion.}
 
-\item{spatial_smooth, sigma2}{passed to \code{\link{sig_noise}()} and
-feature detection.}
+\item{sigma2}{shape kernel passed to \code{\link{def_features}()}.}
 
 \item{close, close_kernel}{passed to \code{\link{def_features}()}.}
 
@@ -180,10 +173,6 @@ arguments for spectra before matching.}
 
 \item{specs_steps, specs_centers}{compression controls for Specs-based
 strategies.}
-
-\item{top_n}{positive integer number of exact library matches to retain.
-The established maximum-correlation columns remain available; ranks are
-added to particle metadata and details when \code{top_n} is greater than one.}
 
 \item{\ldots}{catches removed legacy arguments and otherwise is reserved.}
 }

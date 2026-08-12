@@ -11,7 +11,6 @@
 #   OPENSPECY_PARTICLE_LIBRARY_RDS       OpenSpecy/Specs reference library
 #   OPENSPECY_FILE_SPECS_BENCH_REGION    region used by the particle pipeline
 #   OPENSPECY_FILE_SPECS_BENCH_REPS      repetitions (default 3)
-#   OPENSPECY_FILE_SPECS_BENCH_TOP_N     exact ranks for OpenSpecy libraries
 #   OPENSPECY_FILE_SPECS_BENCH_PEAK      use optional peakRAM measurements
 #   OPENSPECY_FILE_SPECS_BENCH_OUTPUT    new CSV path for results
 
@@ -172,9 +171,6 @@ if (requireNamespace("pkgload", quietly = TRUE)) {
     cor_threshold = .bench_number(
       "OPENSPECY_FILE_SPECS_BENCH_COR_MIN", 0.7
     ),
-    top_n = .bench_number(
-      "OPENSPECY_FILE_SPECS_BENCH_TOP_N", 1, integer = TRUE
-    ),
     area_threshold = area,
     metric = if (tiny) "tot_sig" else Sys.getenv(
       "OPENSPECY_FILE_SPECS_BENCH_SN_METRIC", "sig_times_noise"
@@ -190,11 +186,9 @@ if (requireNamespace("pkgload", quietly = TRUE)) {
                                              tolerance = 1e-10) {
   shared <- intersect(names(file_backed$particle_details_all_csv),
                       names(eager$particle_details_all_csv))
-  rank_columns <- grep("^match_rank_[0-9]+_(name|value)$", shared,
-                       value = TRUE)
   detail_columns <- intersect(
     c("max_cor_val", "area_um2", "perimeter_um",
-      "max_length_um", "min_length_um", "material_class", rank_columns),
+      "max_length_um", "min_length_um", "material_class"),
     shared
   )
   detail_equal <- isTRUE(all.equal(

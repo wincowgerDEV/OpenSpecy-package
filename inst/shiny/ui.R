@@ -255,17 +255,70 @@ identification_controls <- tagList(
 )
 
 advanced_controls <- tagList(
-  div(
-    class = "openspecy-section-switch openspecy-section-note",
-    tags$strong("Advanced"),
-    tags$span(
-      "These settings operate independently of both Preprocessing and Identification."
+  app_section_switch(
+    "active_advanced", "Advanced", FALSE,
+    "Enables the map thresholds, spatial controls, and particle pipeline below. Turning this off negates every Advanced setting."
+  ),
+  if(app_local_file_mode()) bs4Dash::box(
+    id = "filespec_source_box",
+    title = "Local H5 / ENVI source",
+    width = 12,
+    collapsible = TRUE,
+    collapsed = TRUE,
+    tags$p(
+      class = "openspecy-filespec-intro",
+      paste(
+        "Open one H5 file or ENVI .hdr/.dat/.img member by local path.",
+        "The source stays read-only and spectra stream from disk. Configure",
+        "the particle settings below before opening the source."
+      )
+    ),
+    fluidRow(
+      column(
+        8,
+        textInput(
+          "filespec_path", "Source path",
+          placeholder = "C:/data/hyperspectral-map.h5"
+        )
+      ),
+      column(
+        4,
+        actionButton(
+          "filespec_open", "Open read-only",
+          icon = icon("folder-open"), class = "btn-primary"
+        )
+      )
+    ),
+    tags$p(
+      class = "openspecy-filespec-status",
+      textOutput("filespec_status", container = tags$span)
+    ),
+    conditionalPanel(
+      condition = "output.filespec_active === true",
+      selectInput("filespec_region", "Map region", choices = character()),
+      div(
+        class = "openspecy-filespec-toolbar",
+        actionButton("filespec_close", "Close source",
+                     icon = icon("times"), class = "btn-outline-danger")
+      ),
+      tags$p(
+        class = "openspecy-filespec-status",
+        textOutput("filespec_view_status", container = tags$span)
+      )
     )
   ),
   app_control_box(
     "threshold_decision", "Threshold Signal / Noise", FALSE,
-    numericInput("MinSNR", "Minimum Value", value = 4,
-                 min = -10000, max = 10000, step = 1),
+    fluidRow(
+      column(
+        6,
+        numericInput("MinSNR", "Minimum Value", value = 4, step = 1)
+      ),
+      column(
+        6,
+        numericInput("MaxSNR", "Maximum Value", value = 1e12, step = 1)
+      )
+    ),
     selectInput(
       "signal_selection", "Signal Thresholding Technique",
       choices = c(
@@ -274,21 +327,25 @@ advanced_controls <- tagList(
         "Total Signal" = "log_tot_sig"
       )
     ),
-    div(class = "openspecy-mini-plot", plotOutput("snr_plot", height = "16vh")),
-    note = "Threshold batch/map spectra and preview the selected cutoff."
+    div(class = "openspecy-mini-plot", uiOutput("snr_plot_ui")),
+    note = c(
+      "Minimum and Maximum Value define the accepted interval on the selected metric scale; the histogram draws both current thresholds.",
+      "Signal Over Noise is a local peak-to-noise ratio, Signal Times Noise emphasizes absolute response, and Total Signal sums intensity. Larger values are not interchangeable between metrics.",
+      "Pixels outside either bound are background. The default maximum is deliberately high; lower it when saturated or unusually intense pixels must be excluded."
+    )
   ),
   app_control_box(
     "cor_threshold_decision", "Threshold Correlation", TRUE,
     numericInput("MinCor", "Minimum Value", value = 0.7,
                  min = 0, max = 1, step = 0.1),
-    div(class = "openspecy-mini-plot", plotOutput("cor_plot", height = "16vh")),
+    div(class = "openspecy-mini-plot", uiOutput("cor_plot_ui")),
     note = "Set the minimum match score used for a confident identification."
   ),
   app_control_box(
     "spatial_decision", "Spatial Smooth", FALSE,
     numericInput("sigma", "Spatial Standard Deviation", value = 1,
                  min = 0.01, max = 3, step = 0.01),
-    note = "Apply Gaussian smoothing across a hyperspectral image."
+    note = "Apply Gaussian smoothing to ordinary in-memory maps. This does not alter the bounded FileSpecs particle pipeline."
   ),
   app_control_box(
     "xy_grid", "XY Grid Conform", FALSE,
@@ -298,13 +355,27 @@ advanced_controls <- tagList(
     "collapse_decision", "Collapse Particle Spectra", FALSE,
     pickerInput(
       "collapse_type", "Collapse Function",
-      choices = c("Median", "Mean", "Geometric Mean")
+      choices = c("Mean", "Median", "Geometric Mean"), selected = "Mean"
     ),
     pickerInput(
-      "collapse_log_type", "Particle Region Logic",
-      choices = c("Thresholds", "Identities", "Both")
+      "particle_id_strategy", "Particle ID Strategy",
+      choices = c(
+        "Connected threshold regions" = "collapse",
+        "Spectral clusters within regions" = "partial_collapse",
+        "Non-spatial spectral clusters" = "nonspatial_collapse",
+        "Per-cell identities" = "all_cell_id"
+      ),
+      selected = "collapse"
     ),
-    note = "Combine spectra within inferred particle regions for hyperspectral maps."
+    numericInput(
+      "particle_area_threshold", "Minimum Particle Area (pixels)",
+      value = 1, min = 0, step = 1
+    ),
+    note = c(
+      "Runs automate_particle_analysis() only while both Advanced and this switch are on. Turning collapse off leaves raw spectra in the ordinary app workflow.",
+      "Connected threshold regions is the bounded FileSpecs strategy. Other strategies are available for ordinary in-memory maps; raw is intentionally represented by turning this switch off.",
+      "Minimum Particle Area rejects connected regions at or below the selected pixel area."
+    )
   )
 )
 
@@ -1107,12 +1178,6 @@ dashboardPage(
           margin: 8px 0;
         }
         .openspecy-filespec-toolbar .btn { min-width: 42px; }
-        .openspecy-upload-guidance {
-          color: var(--openspecy-muted);
-          font-size: 12px;
-          line-height: 1.35;
-          margin: -4px 0 8px;
-        }
         .openspecy-filespec-intro,
         .openspecy-filespec-status {
           color: var(--openspecy-muted);
@@ -1255,10 +1320,6 @@ dashboardPage(
               ".0", ".zip", ".img", ".h5", ".txt", ".json", ".rds",
               ".hdr", ".dat"
             )
-          ),
-          tags$p(
-            class = "openspecy-upload-guidance",
-            app_upload_guidance()
           )
         ),
         column(
@@ -1311,101 +1372,8 @@ dashboardPage(
             div(
               class = "openspecy-download-body",
               uiOutput("download_ui"),
-              uiOutput("top_n")
-            )
-          )
-        )
-      ),
-      if(app_local_file_mode()) fluidRow(
-        bs4Dash::box(
-          id = "filespec_source_box",
-          title = "Large local H5 / ENVI source",
-          width = 12,
-          collapsible = TRUE,
-          collapsed = TRUE,
-          tags$p(
-            class = "openspecy-filespec-intro",
-            paste0(
-              "Enter a path on this computer for a large H5 file or an ENVI ",
-              ".hdr/.dat/.img pair. Open Specy opens the source read-only, ",
-              "keeps its spectra on disk, and reads only the pixel you select."
-            )
-          ),
-          fluidRow(
-            column(
-              9,
-              textInput(
-                "filespec_path", "Source path",
-                placeholder = "C:/data/hyperspectral-map.h5"
-              )
-            ),
-            column(
-              3,
-              actionButton(
-                "filespec_open", "Open read-only",
-                icon = icon("folder-open"), class = "btn-primary"
-              )
-            )
-          ),
-          tags$p(
-            class = "openspecy-filespec-intro",
-            paste0(
-              "Ordinary browser uploads above ",
-              app_upload_limit_label(FALSE),
-              " are rejected before analysis. The path opener avoids that ",
-              "browser copy and never enables whole-cube preprocessing."
-            )
-          ),
-          tags$p(
-            class = "openspecy-filespec-status",
-            textOutput("filespec_status", container = tags$span)
-          ),
-          conditionalPanel(
-            condition = "output.filespec_active === true",
-            selectInput(
-              "filespec_region", "Preview region", choices = character()
-            ),
-            div(
-              class = "openspecy-filespec-toolbar",
-              actionButton("filespec_view_left", NULL,
-                           icon = icon("arrow-left"), title = "Pan left"),
-              actionButton("filespec_view_right", NULL,
-                           icon = icon("arrow-right"), title = "Pan right"),
-              actionButton("filespec_view_up", NULL,
-                           icon = icon("arrow-up"), title = "Pan up"),
-              actionButton("filespec_view_down", NULL,
-                           icon = icon("arrow-down"), title = "Pan down"),
-              actionButton("filespec_view_out", "Zoom out",
-                           icon = icon("search-minus")),
-              actionButton("filespec_view_reset", "Reset view",
-                           icon = icon("expand")),
-              actionButton("filespec_close", "Close source",
-                           icon = icon("times"), class = "btn-outline-danger")
-            ),
-            div(
-              class = "openspecy-filespec-map",
-              plotOutput(
-                "filespec_map", height = "42vh",
-                click = clickOpts(id = "filespec_map_click", clip = TRUE),
-                brush = brushOpts(
-                  id = "filespec_map_brush", direction = "xy",
-                  resetOnNew = TRUE
-                )
-              )
-            ),
-            tags$p(
-              class = "openspecy-filespec-status",
-              textOutput("filespec_view_status", container = tags$span)
-            ),
-            tags$p(
-              class = "openspecy-filespec-intro",
-              paste0(
-                "The map is a bounded server-rendered index preview, not a ",
-                "full spectral payload. Drag a rectangle to zoom to an exact ",
-                "ROI, use the pan/reset controls to move the viewport, and ",
-                "click a pixel to materialize one OpenSpecy spectrum for the ",
-                "existing analysis controls."
-              )
+              uiOutput("top_n"),
+              uiOutput("particle_download_contents")
             )
           )
         )
@@ -1425,7 +1393,14 @@ dashboardPage(
                 id = "heatmap_frame",
                 class = "openspecy-plot-frame",
                 style = "display:none",
-                plotlyOutput("heatmapA")
+                plotOutput(
+                  "heatmapA", height = "48vh",
+                  click = clickOpts(id = "heatmap_click", clip = TRUE),
+                  brush = brushOpts(
+                    id = "heatmap_brush", direction = "xy",
+                    resetOnNew = TRUE
+                  )
+                )
               )
             ),
             column(1, uiOutput("nav_buttons"))

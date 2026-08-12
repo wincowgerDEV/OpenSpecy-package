@@ -51,7 +51,6 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
     sn_threshold_min = 5,
     sn_threshold_max = Inf,
     cor_threshold = 0.7,
-    top_n = 2L,
     area_threshold = 0,
     metric = "tot_sig",
     collapse_function = mean,
@@ -71,10 +70,8 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   expect_equal(nrow(result$particle_details_all_csv), 1)
   expect_equal(result$particle_details_all_csv$area_um2, 4 * 25^2)
   expect_equal(result$particle_details_all_csv$material_class, "polymer")
-  expect_equal(result$particle_details_all_csv$match_rank_1_name, "particle")
-  expect_equal(result$particle_details_all_csv$match_rank_2_name, "other")
-  expect_true(all(c("match_rank_1_value", "match_rank_2_value") %in%
-                    names(result$samples$Region1$particles_rds$metadata)))
+  expect_equal(result$samples$Region1$particles_rds$metadata$max_cor_name,
+               "particle")
   expect_s3_class(result$samples$Region1$particles_raw_rds, "FileSpecs")
   expect_s3_class(result$samples$Region1$particles_rds, "OpenSpecy")
   expect_s3_class(result$samples$Region1$sn_histogram_png, "recordedplot")
@@ -131,8 +128,8 @@ test_that("FileSpecs particle automation rejects unsupported whole-map paths", {
     specs, library, collapse_function = mean, metric = "entropy"
   ), "explicit global breaks")
   expect_error(automate_particle_analysis(
-    specs, 1, collapse_function = mean, top_n = 2L
-  ), "requires an OpenSpecy library")
+    specs, library, collapse_function = mean, top_n = 2L
+  ), "top_n")
 })
 
 test_that("FileSpecs particle image identities include image content", {

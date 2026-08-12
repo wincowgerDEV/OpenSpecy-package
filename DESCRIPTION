@@ -90,6 +90,7 @@ Imports:
     mmand,
     plotly,
     digest,
+    zip,
     glmnet,
     jpeg,
     shiny,

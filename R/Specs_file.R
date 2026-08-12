@@ -1077,6 +1077,13 @@ write_spec.FileSpecs <- function(x, file, method = NULL, ...) {
   components <- as.character(list(...))
   if (!length(components) || anyNA(components) || any(!nzchar(components)))
     stop("cache path components must be nonempty", call. = FALSE)
+  separators <- strsplit(components, "[/\\\\]", perl = TRUE)
+  if (any(grepl("^(?:[A-Za-z]:|[/\\\\])", components, perl = TRUE)) ||
+      any(vapply(separators, function(parts) {
+        any(!nzchar(parts) | parts %in% c(".", ".."))
+      }, logical(1)))) {
+    stop("cache path escapes the FileSpecs cache root", call. = FALSE)
+  }
   root <- normalizePath(x$cache$root, winslash = "/", mustWork = FALSE)
   candidate <- normalizePath(do.call(file.path, c(list(root), components)),
                              winslash = "/", mustWork = FALSE)

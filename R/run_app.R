@@ -36,6 +36,7 @@
 #' `shiny::runApp()`
 #'
 #' @importFrom shiny shinyOptions runApp
+#' @importFrom zip zipr
 #' @export
 run_app <- function(path = "system", log = TRUE, ref = NULL,
                     check_local = TRUE, test_mode = FALSE,

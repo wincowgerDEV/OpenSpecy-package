@@ -23,16 +23,17 @@ test_that("large FileSpecs controls are local-only and app sources parse", {
 
   ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
                      collapse = "\n")
-  expect_match(ui_source, "if(app_local_file_mode()) fluidRow", fixed = TRUE)
-  expect_match(ui_source, 'id = "filespec_source_box"', fixed = TRUE)
-  expect_match(ui_source, 'plotOutput(\n                "filespec_map"',
+  expect_match(ui_source, "if(app_local_file_mode()) bs4Dash::box",
                fixed = TRUE)
+  expect_match(ui_source, 'id = "filespec_source_box"', fixed = TRUE)
+  expect_match(ui_source, '"active_advanced", "Advanced", FALSE', fixed = TRUE)
+  expect_match(ui_source, 'plotOutput(\n                  "heatmapA"', fixed = TRUE)
   expect_match(ui_source, "output.filespec_active === true", fixed = TRUE)
-  expect_match(ui_source, 'id = "filespec_map_brush"', fixed = TRUE)
-  expect_match(ui_source, '"filespec_view_reset"', fixed = TRUE)
+  expect_match(ui_source, 'id = "heatmap_brush"', fixed = TRUE)
   expect_match(ui_source, '"filespec_close"', fixed = TRUE)
   expect_match(ui_source, "read-only", fixed = TRUE)
-  expect_match(ui_source, "app_upload_guidance()", fixed = TRUE)
+  expect_false(grepl("openspecy-upload-guidance", ui_source, fixed = TRUE))
+  expect_false(grepl('plotlyOutput("heatmapA")', ui_source, fixed = TRUE))
 })
 
 test_that("local filesystem access requires an explicit non-wasm opt-in", {
@@ -93,25 +94,25 @@ test_that("the app FileSpecs cache uses an override or process temp storage", {
   ))
 })
 
-test_that("ordinary uploads are bounded with local and hosted guidance", {
+test_that("browser uploads use one 2 GB cap and oversize guidance", {
   app <- source_filespec_app_global()
   env <- app$env
 
   expect_true(env$app_validate_upload_size(
-    data.frame(size = 1024), wasm = FALSE
+    data.frame(size = 2 * 1024^3), wasm = FALSE
   )$ok)
   local <- env$app_validate_upload_size(
-    data.frame(size = 513 * 1024^2), wasm = FALSE
+    data.frame(size = 2 * 1024^3 + 1), wasm = FALSE
   )
   expect_false(local$ok)
-  expect_match(local$message, "Large local H5 / ENVI source", fixed = TRUE)
+  expect_match(local$message, "Local H5 / ENVI source", fixed = TRUE)
   hosted <- env$app_validate_upload_size(
-    data.frame(size = 101 * 1024^2), wasm = TRUE
+    data.frame(size = 2 * 1024^3 + 1), wasm = TRUE
   )
   expect_false(hosted$ok)
-  expect_match(hosted$message, "hosted app", fixed = TRUE)
+  expect_match(hosted$message, "browser upload limit", fixed = TRUE)
   expect_match(hosted$message, "Run the local OpenSpecy app", fixed = TRUE)
-  expect_match(env$app_upload_guidance(TRUE), "100 MB", fixed = TRUE)
+  expect_match(env$app_upload_guidance(TRUE), "2 GB", fixed = TRUE)
   expect_match(
     env$app_upload_guidance(TRUE), "Run the local OpenSpecy app", fixed = TRUE
   )
@@ -163,6 +164,50 @@ test_that("FileSpecs index previews and selections remain bounded", {
   )
 })
 
+test_that("particle output groups select the requested completed artifacts", {
+  app <- source_filespec_app_global()
+  env <- app$env
+  directory <- tempfile("openspecy-particle-outputs-")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+  expected <- c(
+    "particle_details_all.csv", "particles_Region1.rds",
+    "particle_heatmap_Region1.png", "sn_histogram_Region1.png"
+  )
+  file.create(file.path(directory, expected))
+
+  selected <- basename(env$app_particle_output_files(
+    directory, c("details", "particle_heatmap", "sn_histogram")
+  ))
+  expect_setequal(selected, expected[c(1, 3, 4)])
+  expect_true(all(c("particle_image", "cor_heatmap", "time") %in%
+                    unname(env$app_particle_output_choices())))
+
+  archive <- tempfile(fileext = ".zip")
+  env$app_write_particle_archive(
+    file.path(directory, expected[c(1, 3, 4)]), archive, directory
+  )
+  expect_setequal(utils::unzip(archive, list = TRUE)$Name,
+                  expected[c(1, 3, 4)])
+})
+
+test_that("server heatmaps render categorical and continuous map values", {
+  app <- source_filespec_app_global()
+  env <- app$env
+  metadata <- expand.grid(x = 0:2, y = 0:1)
+  image <- tempfile(fileext = ".png")
+  on.exit(unlink(image), add = TRUE)
+  grDevices::png(image, width = 600, height = 400)
+  expect_no_error(env$app_draw_server_heatmap(
+    metadata, seq_len(nrow(metadata)), title = "Signal"
+  ))
+  expect_no_error(env$app_draw_server_heatmap(
+    metadata, rep(c("a", "b"), 3), categorical = TRUE, title = "Material"
+  ))
+  grDevices::dev.off()
+  expect_gt(file.info(image)$size, 0)
+})
+
 test_that("large source server path materializes only one selection", {
   app_path <- run_app(test_mode = TRUE)
   server_source <- paste(
@@ -185,8 +230,8 @@ test_that("large source server path materializes only one selection", {
   expect_match(server_source, "da <- active_source()", fixed = TRUE)
   expect_match(server_source, "filespec_viewport_state <- reactiveVal(NULL)",
                fixed = TRUE)
-  expect_match(server_source, "input$filespec_map_brush", fixed = TRUE)
-  expect_match(server_source, 'shift_filespec_view("right")', fixed = TRUE)
+  expect_match(server_source, "input$heatmap_brush", fixed = TRUE)
+  expect_match(server_source, "automate_particle_analysis(", fixed = TRUE)
   expect_match(server_source, "req(app_local_file_mode())", fixed = TRUE)
   expect_match(server_source, "cache_dir = app_filespec_cache_dir()",
                fixed = TRUE)
@@ -200,6 +245,8 @@ test_that("large source server path materializes only one selection", {
   )
   expect_false(grepl("10000*1024^2", server_source, fixed = TRUE))
   expect_false(grepl("req(input$file)", server_source, fixed = TRUE))
+  expect_false(grepl('renderPlotly({\n      state <- heatmap_state()',
+                     server_source, fixed = TRUE))
 
   global_source <- paste(
     readLines(file.path(app_path, "global.R"), warn = FALSE), collapse = "\n"

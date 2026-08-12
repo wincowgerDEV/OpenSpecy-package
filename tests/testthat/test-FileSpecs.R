@@ -307,6 +307,12 @@ test_that("FileSpecs cache publication is contained, locked, and immutable", {
   expect_equal(readRDS(reused)$value, 1)
   expect_error(OpenSpecy:::.filespec_cache_path(specs, "..", "escape.rds"),
                "escapes")
+  expect_error(OpenSpecy:::.filespec_cache_path(
+    specs, "particle/../escape.rds"
+  ), "escapes")
+  expect_error(OpenSpecy:::.filespec_cache_path(
+    specs, "particle\\..\\escape.rds"
+  ), "escapes")
 
   lock <- OpenSpecy:::.filespec_acquire_lock(specs, "shared")
   on.exit(OpenSpecy:::.filespec_release_lock(specs, lock), add = TRUE)

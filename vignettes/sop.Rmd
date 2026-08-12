@@ -161,7 +161,6 @@ particle_result <- automate_particle_analysis(
   sn_threshold_max = Inf,
   area_threshold = 1,
   cor_threshold = 0.7,
-  top_n = 1,
   outputs = c("details", "summary", "processed", "particle_image",
               "particle_heatmap", "particle_heatmap_thresholded",
               "sn_histogram", "cor_histogram")
@@ -175,9 +174,8 @@ plot(particle_result, sample = "Region1", which = "cor_histogram")
 
 The signal heatmap uses a continuous finite minimum-to-maximum legend; the
 threshold mask remains binary. Both histograms draw the configured threshold
-lines. With an in-memory `OpenSpecy` reference library, `top_n` can retain
-multiple exact ranked names and values on each collapsed particle; compressed
-library inputs currently retain only the top match. For H5 data, requesting
+lines. The pipeline retains the exact best match on each collapsed particle.
+For H5 data, requesting
 `particle_image` materializes and caches the registered visual mosaic only for
 the current region, using all intersecting tiles rather than one unrelated
 tile. This initial file-backed method supports only the `collapse` strategy,
@@ -187,17 +185,20 @@ file-backed operation chains remain intentionally unavailable. Use bounded
 materialization for those established operations, and verify equivalence on a
 representative subset before interpreting a large run.
 
-In the locally launched Shiny app, expand **Large local H5 / ENVI source**,
-enter a server-side path, and click **Open read-only**. The app indexes the map,
-renders a bounded region preview, lets you brush an exact ROI and pan/reset the
-viewport, and materializes one selected spectrum for the existing controls and
-downloads, avoiding a browser copy. Closing the source clears session state
-without changing the source or completed cache generations. Ordinary uploads
-are limited to 512 MB. The hosted WebAssembly app is limited to 100 MB and
-cannot open a path on your computer; run `run_app()` locally for larger sources.
-The path opener is enabled automatically by `run_app()`, disabled by default in
-other Shiny deployments, and never enabled in WebAssembly. The large-map path
-is not a promise that every app control can process a whole cube.
+In the locally launched Shiny app, open **Advanced**, enable its master switch
+and **Collapse Particle Spectra**, configure the signal/correlation and collapse
+settings, then expand **Local H5 / ENVI source** and click **Open read-only**.
+The app indexes the map and runs the region-sequential particle pipeline with
+progress while spectra remain on disk. The Spectra box selects particle image,
+thresholded, continuous signal, or correlation maps; map clicks show concise
+metadata, and the threshold boxes replay the result histograms. The Thresholded
+Particles archive can include any combination of the pipeline's tables,
+objects, plots, and timing. Closing the source clears session state without
+changing the source or completed cache generations. Browser uploads in local
+and hosted modes are capped at 2 GB; an oversize selection opens a popup that
+directs users to the local path workflow. The path opener is enabled by
+`run_app()`, disabled by default in other deployments, and never enabled in
+WebAssembly.
 
 Maintainers can run the repeated benchmark in
 `benchmarks/file_specs_particle_analysis.R`. It is opt-in and accepts external
