@@ -50,13 +50,17 @@
 #'
 #' @return
 #' A list with `samples`, `particle_details_all_csv`, and
-#' `particle_summary_all_csv`. Each per-sample entry uses names matching file
-#' exports where applicable: `particle_details_csv`, `particle_summary_csv`,
-#' `particles_raw_rds`, `particles_rds`, `particle_image_png`,
-#' `particle_heatmap_png`, `particle_heatmap_thresholded_jpg`,
-#' `cor_heatmap_png`, `sn_histogram_png`, `cor_histogram_png`, and `time_rds`.
-#' The result has class `OpenSpecyParticleAnalysis`; use its `plot()` method to
-#' replay a named recorded plot.
+#' `particle_summary_all_csv`. Each per-sample entry has `particle_details_csv`,
+#' `particle_summary_csv`, `particles_raw_rds`, `particles_rds`, and `time_rds`,
+#' plus one plot-data list for each requested plot output: `particle_image`,
+#' `particle_heatmap`, `particle_heatmap_thresholded`, `cor_heatmap`,
+#' `sn_histogram`, and `cor_histogram`. Each plot-data list carries the grid or
+#' histogram values needed to build a custom `plot()`/`plotly`/`ggplot2` view
+#' (a `type` field plus `x`/`y`/`z`, `values`, `thresholds`, or `levels` as
+#' appropriate), or `type = "empty"` with a `reason` string when nothing
+#' passed filtering. `output_dir` still writes the matching static PNG/JPG for
+#' each requested plot. The result has class `OpenSpecyParticleAnalysis`; use
+#' its `plot()` method to draw one of these plots with base graphics.
 #'
 #' @examples
 #' tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()
@@ -148,7 +152,7 @@ automate_particle_analysis.default <- function(
                                                         "nonspatial_collapse")) {
       sample_results[[i]] <- .empty_particle_result(sample_name, map,
                                                     time_start, outputs,
-                                                    plot_outputs)
+                                                    plot_outputs, output_dir)
       next
     }
 
@@ -185,7 +189,7 @@ automate_particle_analysis.default <- function(
     if (is.null(strategy_result)) {
       sample_results[[i]] <- .empty_particle_result(sample_name, map,
                                                     time_start, outputs,
-                                                    plot_outputs)
+                                                    plot_outputs, output_dir)
       next
     }
     proc_map <- strategy_result$processed
@@ -194,7 +198,7 @@ automate_particle_analysis.default <- function(
     if (is.null(proc_map) || ncol(proc_map$spectra) == 0L) {
       sample_results[[i]] <- .empty_particle_result(sample_name, map,
                                                     time_start, outputs,
-                                                    plot_outputs)
+                                                    plot_outputs, output_dir)
       next
     }
 
@@ -248,13 +252,12 @@ automate_particle_analysis.default <- function(
       particle_summary_csv = summary,
       particles_raw_rds = if ("raw" %in% outputs) map else NULL,
       particles_rds = if ("processed" %in% outputs) proc_map else NULL,
-      particle_image_png = plot_outputs$particle_image_png,
-      particle_heatmap_png = plot_outputs$particle_heatmap_png,
-      particle_heatmap_thresholded_jpg =
-        plot_outputs$particle_heatmap_thresholded_jpg,
-      cor_heatmap_png = plot_outputs$cor_heatmap_png,
-      sn_histogram_png = plot_outputs$sn_histogram_png,
-      cor_histogram_png = plot_outputs$cor_histogram_png,
+      particle_image = plot_outputs$particle_image,
+      particle_heatmap = plot_outputs$particle_heatmap,
+      particle_heatmap_thresholded = plot_outputs$particle_heatmap_thresholded,
+      cor_heatmap = plot_outputs$cor_heatmap,
+      sn_histogram = plot_outputs$sn_histogram,
+      cor_histogram = plot_outputs$cor_histogram,
       time_rds = if ("time" %in% outputs) elapsed else NULL
     )
     .particle_progress(sample_name, "complete")
@@ -280,8 +283,9 @@ automate_particle_analysis.default <- function(
 #'
 #' @param x an `OpenSpecyParticleAnalysis` result.
 #' @param sample sample name or numeric position.
-#' @param which plot name, with or without its file-style suffix. If `NULL`,
-#' the first available plot is used.
+#' @param which one of `"particle_image"`, `"particle_heatmap"`,
+#' `"particle_heatmap_thresholded"`, `"cor_heatmap"`, `"sn_histogram"`, or
+#' `"cor_histogram"`. If `NULL`, the first plot with data is used.
 #' @param ... reserved for future plotting options.
 #'
 #' @return `x` invisibly.
@@ -302,38 +306,32 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     item <- samples[[sample]]
   }
 
-  plot_names <- c(
-    particle_image = "particle_image_png",
-    particle_heatmap = "particle_heatmap_png",
-    particle_heatmap_thresholded = "particle_heatmap_thresholded_jpg",
-    cor_heatmap = "cor_heatmap_png",
-    sn_histogram = "sn_histogram_png",
-    cor_histogram = "cor_histogram_png"
-  )
-  available <- plot_names[vapply(plot_names, function(nm) {
-    inherits(item[[nm]], "recordedplot")
-  }, FUN.VALUE = logical(1))]
-  if (!length(available)) {
-    stop("the selected sample has no recorded plots", call. = FALSE)
+  fields <- c("particle_image", "particle_heatmap",
+             "particle_heatmap_thresholded", "cor_heatmap", "sn_histogram",
+             "cor_histogram")
+  present <- fields[vapply(fields, function(nm) !is.null(item[[nm]]),
+                          logical(1))]
+  if (!length(present)) {
+    stop("the selected sample has no plot data; rerun with a broader ",
+         "'outputs' argument to request one", call. = FALSE)
   }
   if (is.null(which)) {
-    field <- unname(available[[1L]])
+    non_empty <- present[vapply(present, function(nm) {
+      !identical(item[[nm]]$type, "empty")
+    }, logical(1))]
+    field <- if (length(non_empty)) non_empty[[1L]] else present[[1L]]
   } else {
-    which <- as.character(which)[1L]
-    if (which %in% unname(plot_names)) {
-      field <- which
-    } else if (which %in% names(plot_names)) {
-      field <- unname(plot_names[[which]])
-    } else {
+    field <- as.character(which)[1L]
+    if (!field %in% fields) {
       stop("unknown plot '", which, "'; choose one of: ",
-           paste(names(plot_names), collapse = ", "), call. = FALSE)
+           paste(fields, collapse = ", "), call. = FALSE)
     }
-    if (!inherits(item[[field]], "recordedplot")) {
-      stop("plot '", which, "' was not requested for this sample",
-           call. = FALSE)
+    if (!field %in% present) {
+      stop("plot '", which, "' was not requested for this analysis; add ",
+           "it to 'outputs' and rerun", call. = FALSE)
     }
   }
-  grDevices::replayPlot(item[[field]])
+  .draw_particle_plot_data(item[[field]])
   invisible(x)
 }
 
@@ -743,38 +741,33 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
                                       sn_threshold_max) {
   out <- list()
   if ("particle_heatmap" %in% outputs) {
-    out$particle_heatmap_png <- .capture_particle_plot(
-      .particle_output_path(output_dir, "particle_heatmap_", sample_name,
-                            ".png"),
-      device = "png",
-      plot_fun = function() {
-        .plot_particle_heatmap(map, "snr", pixel_length, origin,
-                               main = "Particle Heatmap")
-      }
+    out$particle_heatmap <- .particle_heatmap_data(
+      map, "snr", pixel_length, origin, legend_title = "Signal/noise",
+      title = "Particle Heatmap"
+    )
+    .write_particle_plot_file(
+      output_dir, "particle_heatmap_", sample_name, ".png", "png",
+      function() .draw_particle_plot_data(out$particle_heatmap)
     )
   }
   if ("particle_heatmap_thresholded" %in% outputs) {
-    out$particle_heatmap_thresholded_jpg <- .capture_particle_plot(
-      .particle_output_path(output_dir, "particle_heatmap_thresholded",
-                            sample_name, ".jpg"),
-      device = "jpeg",
-      plot_fun = function() {
-        .plot_particle_thresholded_heatmap(map, pixel_length, origin)
-      }
+    out$particle_heatmap_thresholded <- .particle_thresholded_heatmap_data(
+      map, pixel_length, origin
+    )
+    .write_particle_plot_file(
+      output_dir, "particle_heatmap_thresholded", sample_name, ".jpg",
+      "jpeg",
+      function() .draw_particle_plot_data(out$particle_heatmap_thresholded)
     )
   }
   if ("sn_histogram" %in% outputs) {
-    out$sn_histogram_png <- .capture_particle_plot(
-      .particle_output_path(output_dir, "sn_histogram_", sample_name, ".png"),
-      device = "png",
-      plot_fun = function() {
-        .plot_particle_histogram(
-          map$metadata$snr,
-          thresholds = c(sn_threshold_min, sn_threshold_max),
-          main = "Signal/noise distribution",
-          xlab = "Signal/noise"
-        )
-      }
+    out$sn_histogram <- .particle_histogram_data(
+      map$metadata$snr, thresholds = c(sn_threshold_min, sn_threshold_max),
+      main = "Signal/noise distribution", xlab = "Signal/noise"
+    )
+    .write_particle_plot_file(
+      output_dir, "sn_histogram_", sample_name, ".png", "png",
+      function() .draw_particle_plot_data(out$sn_histogram)
     )
   }
   out
@@ -784,50 +777,57 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
                                        outputs, material_col, pixel_length,
                                        origin, cor_threshold) {
   out <- list()
-  if ("particle_image" %in% outputs &&
-      material_col %in% names(map$metadata)) {
-    out$particle_image_png <- .capture_particle_plot(
-      .particle_output_path(output_dir, "particle_image_", sample_name,
-                            ".png"),
-      device = "png",
-      plot_fun = function() {
-        plot_map <- .particle_image_plot_map(map, material_col)
-        cex <- if (is.null(visual_image(map))) 1 else 0.45
-        particle_image(plot_map, material_col = material_col,
-                       pixel_length = pixel_length, origin = origin,
-                       labels = FALSE, cex = cex)
+  if ("particle_image" %in% outputs) {
+    out$particle_image <- if (material_col %in% names(map$metadata)) {
+      .particle_image_data(map, material_col, pixel_length, origin)
+    } else {
+      list(type = "empty",
+           reason = paste0("the reference library has no '", material_col,
+                           "' column, so particles have no material to ",
+                           "color"))
+    }
+    .write_particle_plot_file(
+      output_dir, "particle_image_", sample_name, ".png", "png",
+      function() {
+        if (identical(out$particle_image$type, "empty")) {
+          .draw_particle_plot_data(out$particle_image)
+        } else {
+          cex <- if (is.null(visual_image(map))) 1 else 0.45
+          particle_image(map, material_col = material_col,
+                         pixel_length = pixel_length, origin = origin,
+                         labels = FALSE, cex = cex)
+        }
       }
     )
   }
-  if ("cor_heatmap" %in% outputs && "max_cor_val" %in% names(map$metadata)) {
-    out$cor_heatmap_png <- .capture_particle_plot(
-      .particle_output_path(output_dir, "cor_heatmap_", sample_name, ".png"),
-      device = "png",
-      plot_fun = function() {
-        .plot_particle_correlation_heatmap(map, pixel_length, origin)
-      }
+  if ("cor_heatmap" %in% outputs) {
+    out$cor_heatmap <- if ("max_cor_val" %in% names(map$metadata)) {
+      .particle_correlation_heatmap_data(map, pixel_length, origin)
+    } else {
+      list(type = "empty",
+           reason = "no particles matched the reference library")
+    }
+    .write_particle_plot_file(
+      output_dir, "cor_heatmap_", sample_name, ".png", "png",
+      function() .draw_particle_plot_data(out$cor_heatmap)
     )
   }
-  if ("cor_histogram" %in% outputs &&
-      "max_cor_val" %in% names(proc_map$metadata)) {
-    out$cor_histogram_png <- .capture_particle_plot(
-      .particle_output_path(output_dir, "cor_histogram_", sample_name, ".png"),
-      device = "png",
-      plot_fun = function() {
-        .plot_particle_histogram(
-          proc_map$metadata$max_cor_val,
-          thresholds = cor_threshold,
-          main = "Maximum-correlation distribution",
-          xlab = "Maximum correlation"
-        )
-      }
+  if ("cor_histogram" %in% outputs) {
+    out$cor_histogram <- if ("max_cor_val" %in% names(proc_map$metadata)) {
+      .particle_histogram_data(
+        proc_map$metadata$max_cor_val, thresholds = cor_threshold,
+        main = "Maximum-correlation distribution", xlab = "Maximum correlation"
+      )
+    } else {
+      list(type = "empty",
+           reason = "no particles matched the reference library")
+    }
+    .write_particle_plot_file(
+      output_dir, "cor_histogram_", sample_name, ".png", "png",
+      function() .draw_particle_plot_data(out$cor_histogram)
     )
   }
   out
-}
-
-.particle_image_plot_map <- function(map, material_col) {
-  map
 }
 
 .particle_output_path <- function(output_dir, prefix, sample_name, ext) {
@@ -835,96 +835,145 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   file.path(output_dir, paste0(prefix, sample_name, ext))
 }
 
-.capture_particle_plot <- function(filename = NULL, device = "png", plot_fun,
-                                   width = 850, height = 850,
-                                   units = "px") {
-  temp_file <- is.null(filename)
-  if (temp_file) {
-    filename <- tempfile(fileext = if (identical(device, "jpeg")) ".jpg" else ".png")
-  }
-  opened <- FALSE
+.write_particle_plot_file <- function(output_dir, prefix, sample_name, ext,
+                                      device, plot_fun, width = 850,
+                                      height = 850, units = "px") {
+  filename <- .particle_output_path(output_dir, prefix, sample_name, ext)
+  if (is.null(filename)) return(invisible(NULL))
   if (identical(device, "jpeg")) {
     grDevices::jpeg(filename, width = width, height = height, units = units,
                     quality = 95)
   } else {
     grDevices::png(filename, width = width, height = height, units = units)
   }
-  opened <- TRUE
-  grDevices::dev.control(displaylist = "enable")
-  on.exit({
-    if (opened && grDevices::dev.cur() > 1L) grDevices::dev.off()
-    if (temp_file) unlink(filename)
-  }, add = TRUE)
-  plot_info <- plot_fun()
-  out <- grDevices::recordPlot()
-  if (!is.null(plot_info)) attr(out, "plot_info") <- plot_info
-  opened <- FALSE
-  grDevices::dev.off()
-  if (temp_file) unlink(filename)
-  out
+  on.exit(grDevices::dev.off(), add = TRUE)
+  plot_fun()
+  invisible(filename)
 }
 
-.plot_particle_heatmap <- function(map, value_col, pixel_length, origin,
-                                   main) {
+# Dispatch a plot-data list (as produced by the .particle_*_data() family)
+# to the matching base-graphics drawing routine. Used both to render the
+# static PNG/JPG kept for downloads and to replay a plot in
+# plot.OpenSpecyParticleAnalysis().
+.draw_particle_plot_data <- function(data, main = NULL) {
+  if (is.null(data) || identical(data$type, "empty")) {
+    graphics::plot.new()
+    reason <- if (!is.null(data$reason)) data$reason else "no data available"
+    graphics::title(main = if (!is.null(main)) main else "No data",
+                    sub = reason, cex.sub = 0.9, col.sub = "grey30")
+    return(invisible(data))
+  }
+  main <- if (!is.null(main)) main else data$title
+  switch(
+    data$type,
+    heatmap = .draw_particle_heatmap(data, main),
+    heatmap_binary = .draw_particle_binary_heatmap(data, main),
+    heatmap_categorical = .draw_particle_categorical_heatmap(data, main),
+    histogram = .draw_particle_histogram(data),
+    stop("unknown particle plot data type: '", data$type, "'", call. = FALSE)
+  )
+  invisible(data)
+}
+
+.particle_heatmap_data <- function(map, value_col, pixel_length, origin,
+                                   legend_title = value_col, title = NULL) {
   md <- data.table::as.data.table(map$metadata)
   values <- suppressWarnings(as.numeric(md[[value_col]]))
   grid <- .particle_map_grid(md, values, pixel_length, origin)
+  list(type = "heatmap", x = grid$x, y = grid$y, z = grid$z,
+       value_col = value_col, legend_title = legend_title, title = title)
+}
+
+.draw_particle_heatmap <- function(data, main) {
   cols <- grDevices::hcl.colors(100, "Viridis")
-  graphics::image(grid$x, grid$y, grid$z, col = cols,
+  graphics::image(data$x, data$y, data$z, col = cols,
                   xlab = "X (um)", ylab = "Y (um)", main = main, asp = 1)
-  legend_title <- if (identical(value_col, "snr")) "Signal/noise" else value_col
-  scale <- .add_particle_continuous_legend(
-    values, cols, title = legend_title
-  )
+  .add_particle_continuous_legend(data$z, cols, title = data$legend_title)
   graphics::box()
-  invisible(scale)
+  invisible(data)
 }
 
-.plot_particle_histogram <- function(values, thresholds, main, xlab) {
-  values <- suppressWarnings(as.numeric(values))
-  values <- values[is.finite(values)]
-  if (!length(values)) {
-    graphics::plot.new()
-    graphics::title(main = main, xlab = xlab)
-    return(invisible(list(thresholds = numeric(), range = c(NA_real_,
-                                                            NA_real_))))
-  }
-  graphics::hist(values, breaks = "Sturges", col = "grey80", border = "white",
-                 main = main, xlab = xlab)
-  thresholds <- unique(as.numeric(thresholds))
-  thresholds <- thresholds[is.finite(thresholds)]
-  if (length(thresholds)) {
-    graphics::abline(v = thresholds, col = "#D62728", lwd = 2, lty = 2)
-  }
-  invisible(list(thresholds = thresholds, range = range(values)))
-}
-
-.plot_particle_thresholded_heatmap <- function(map, pixel_length, origin) {
+.particle_thresholded_heatmap_data <- function(map, pixel_length, origin) {
   md <- data.table::as.data.table(map$metadata)
   values <- as.integer(isTRUE(md$threshold) | (!is.na(md$threshold) &
                                                 md$threshold))
   grid <- .particle_map_grid(md, values, pixel_length, origin)
-  graphics::image(grid$x, grid$y, grid$z, breaks = c(-0.5, 0.5, 1.5),
-                  col = c("white", "black"),
-                  xlab = "X (um)", ylab = "Y (um)",
-                  main = "Thresholded Particle Heatmap", asp = 1)
-  graphics::box()
+  list(type = "heatmap_binary", x = grid$x, y = grid$y, z = grid$z,
+       labels = c("Background", "Threshold"),
+       title = "Thresholded Particle Heatmap")
 }
 
-.plot_particle_correlation_heatmap <- function(map, pixel_length, origin) {
+.draw_particle_binary_heatmap <- function(data, main) {
+  graphics::image(data$x, data$y, data$z, breaks = c(-0.5, 0.5, 1.5),
+                  col = c("white", "black"), xlab = "X (um)",
+                  ylab = "Y (um)", main = main, asp = 1)
+  graphics::box()
+  invisible(data)
+}
+
+.particle_correlation_heatmap_data <- function(map, pixel_length, origin) {
   md <- data.table::as.data.table(map$metadata)
   bins <- cut(suppressWarnings(as.numeric(md$max_cor_val)),
               c(0, 0.3, 0.6, 0.75, 1), include.lowest = TRUE)
   values <- as.integer(bins)
   grid <- .particle_map_grid(md, values, pixel_length, origin)
-  cols <- grDevices::hcl.colors(4, "Viridis")
-  graphics::image(grid$x, grid$y, grid$z, breaks = seq(0.5, 4.5, by = 1),
-                  col = cols, xlab = "X (um)", ylab = "Y (um)",
-                  main = "Correlation Heatmap", asp = 1)
-  graphics::legend("topright", legend = levels(bins), fill = cols,
-                   title = "Correlation", cex = 1, bty = "n",
+  list(type = "heatmap_categorical", x = grid$x, y = grid$y, z = grid$z,
+       levels = levels(bins), legend_title = "Correlation",
+       title = "Correlation Heatmap")
+}
+
+.draw_particle_categorical_heatmap <- function(data, main) {
+  cols <- grDevices::hcl.colors(length(data$levels), "Viridis")
+  graphics::image(data$x, data$y, data$z,
+                  breaks = seq(0.5, length(data$levels) + 0.5, by = 1),
+                  col = cols, xlab = "X (um)", ylab = "Y (um)", main = main,
+                  asp = 1)
+  graphics::legend("topright", legend = data$levels, fill = cols,
+                   title = data$legend_title, cex = 1, bty = "n",
                    inset = 0.01)
   graphics::box()
+  invisible(data)
+}
+
+.particle_image_data <- function(map, material_col, pixel_length, origin) {
+  md <- data.table::as.data.table(map$metadata)
+  material <- as.character(md[[material_col]])
+  background <- .particle_background_material(material)
+  levels <- sort(unique(material[!background]))
+  if (!length(levels)) {
+    return(list(type = "empty",
+               reason = "every particle matched to background/unknown"))
+  }
+  palette <- .resolve_particle_palette(material[!background])
+  values <- match(material, levels)
+  grid <- .particle_map_grid(md, values, pixel_length, origin)
+  list(type = "heatmap_categorical", x = grid$x, y = grid$y, z = grid$z,
+       levels = levels, legend_title = "Material",
+       palette = palette[levels], title = "Particle Image")
+}
+
+.particle_histogram_data <- function(values, thresholds, main, xlab) {
+  values <- suppressWarnings(as.numeric(values))
+  values <- values[is.finite(values)]
+  thresholds <- unique(as.numeric(thresholds))
+  thresholds <- thresholds[is.finite(thresholds)]
+  list(type = "histogram", values = values, thresholds = thresholds,
+       main = main, xlab = xlab,
+       range = if (length(values)) range(values) else c(NA_real_, NA_real_))
+}
+
+.draw_particle_histogram <- function(data) {
+  if (!length(data$values)) {
+    graphics::plot.new()
+    graphics::title(main = data$main, xlab = data$xlab)
+    return(invisible(data))
+  }
+  graphics::hist(data$values, breaks = "Sturges", col = "grey80",
+                 border = "white", main = data$main, xlab = data$xlab)
+  if (length(data$thresholds)) {
+    graphics::abline(v = data$thresholds, col = "#D62728", lwd = 2, lty = 2)
+  }
+  invisible(data)
 }
 
 .add_particle_continuous_legend <- function(values, cols, title) {
@@ -1024,20 +1073,55 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
 }
 
 .empty_particle_result <- function(sample_name, map, time_start, outputs,
-                                   plot_outputs = list()) {
+                                   plot_outputs = list(), output_dir = NULL) {
+  elapsed <- Sys.time() - time_start
+  note <- paste(
+    "no particles passed the current signal/noise, correlation, or area",
+    "threshold settings"
+  )
+  details <- if ("details" %in% outputs) {
+    data.table::data.table(sample_id = sample_name,
+                           particle_id = NA_character_, note = note)
+  } else {
+    NULL
+  }
+  summary <- if ("summary" %in% outputs) {
+    data.table::data.table(sample_id = sample_name,
+                           material_class = NA_character_, count = 0L,
+                           note = note)
+  } else {
+    NULL
+  }
+  if (!is.null(output_dir)) {
+    if (!is.null(details)) {
+      data.table::fwrite(details, file.path(
+        output_dir, paste0("particle_details_", sample_name, ".csv")
+      ))
+    }
+    if (!is.null(summary)) {
+      data.table::fwrite(summary, file.path(
+        output_dir, paste0("particle_summary_", sample_name, ".csv")
+      ))
+    }
+    if ("time" %in% outputs) {
+      saveRDS(elapsed, file.path(output_dir,
+                                 paste0("time_", sample_name, ".rds")))
+    }
+  }
+  empty_plot <- list(type = "empty", reason = note)
   list(sample_id = sample_name,
-       particle_details_csv = NULL,
-       particle_summary_csv = NULL,
+       particle_details_csv = details,
+       particle_summary_csv = summary,
        particles_raw_rds = if ("raw" %in% outputs) map else NULL,
        particles_rds = NULL,
-       particle_image_png = plot_outputs$particle_image_png,
-       particle_heatmap_png = plot_outputs$particle_heatmap_png,
-       particle_heatmap_thresholded_jpg =
-         plot_outputs$particle_heatmap_thresholded_jpg,
-       cor_heatmap_png = plot_outputs$cor_heatmap_png,
-       sn_histogram_png = plot_outputs$sn_histogram_png,
-       cor_histogram_png = plot_outputs$cor_histogram_png,
-       time_rds = if ("time" %in% outputs) Sys.time() - time_start else NULL)
+       particle_image = if ("particle_image" %in% outputs) empty_plot
+         else NULL,
+       particle_heatmap = plot_outputs$particle_heatmap,
+       particle_heatmap_thresholded = plot_outputs$particle_heatmap_thresholded,
+       cor_heatmap = if ("cor_heatmap" %in% outputs) empty_plot else NULL,
+       sn_histogram = plot_outputs$sn_histogram,
+       cor_histogram = if ("cor_histogram" %in% outputs) empty_plot else NULL,
+       time_rds = if ("time" %in% outputs) elapsed else NULL)
 }
 
 .sample_particle_item <- function(x, name) {

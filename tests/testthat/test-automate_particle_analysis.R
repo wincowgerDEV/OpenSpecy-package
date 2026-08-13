@@ -35,9 +35,9 @@ test_that("automate_particle_analysis() returns details and summaries", {
   expect_named(
     res$samples[[1]],
     c("sample_id", "particle_details_csv", "particle_summary_csv",
-      "particles_raw_rds", "particles_rds", "particle_image_png",
-      "particle_heatmap_png", "particle_heatmap_thresholded_jpg",
-      "cor_heatmap_png", "sn_histogram_png", "cor_histogram_png",
+      "particles_raw_rds", "particles_rds", "particle_image",
+      "particle_heatmap", "particle_heatmap_thresholded",
+      "cor_heatmap", "sn_histogram", "cor_histogram",
       "time_rds")
   )
 })
@@ -198,18 +198,15 @@ test_that("automate_particle_analysis() returns and writes image outputs", {
   )
 
   sample <- res$samples$small
-  expect_s3_class(sample$particle_image_png, "recordedplot")
-  expect_s3_class(sample$particle_heatmap_png, "recordedplot")
-  expect_s3_class(sample$particle_heatmap_thresholded_jpg, "recordedplot")
-  expect_s3_class(sample$cor_heatmap_png, "recordedplot")
-  expect_s3_class(sample$sn_histogram_png, "recordedplot")
-  expect_s3_class(sample$cor_histogram_png, "recordedplot")
-  expect_identical(
-    attr(sample$particle_heatmap_png, "plot_info")$legend,
-    "continuous_gradient"
-  )
-  expect_equal(attr(sample$sn_histogram_png, "plot_info")$thresholds, 0.001)
-  expect_equal(attr(sample$cor_histogram_png, "plot_info")$thresholds, 0.7)
+  expect_identical(sample$particle_image$type, "heatmap_categorical")
+  expect_identical(sample$particle_heatmap$type, "heatmap")
+  expect_identical(sample$particle_heatmap_thresholded$type, "heatmap_binary")
+  expect_identical(sample$cor_heatmap$type, "heatmap_categorical")
+  expect_identical(sample$sn_histogram$type, "histogram")
+  expect_identical(sample$cor_histogram$type, "histogram")
+  expect_true(all(c("x", "y", "z") %in% names(sample$particle_heatmap)))
+  expect_equal(sample$sn_histogram$thresholds, 0.001)
+  expect_equal(sample$cor_histogram$thresholds, 0.7)
   expect_true(file.exists(file.path(out_dir, "particle_image_small.png")))
   expect_true(file.exists(file.path(out_dir, "particle_heatmap_small.png")))
   expect_true(file.exists(file.path(out_dir,

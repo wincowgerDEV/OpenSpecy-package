@@ -29,10 +29,11 @@ automate_particle_analysis.FileSpecs <- function(
     stop("FileSpecs particle analysis currently requires ",
          "'collapse_function = mean'", call. = FALSE)
   }
-  if (isTRUE(spectral_smooth)) {
-    stop("FileSpecs 3-D spectral-map smoothing is not enabled until the ",
-         "region-halo equivalence gate passes; use spectral_smooth = FALSE",
-         call. = FALSE)
+  if (isTRUE(spectral_smooth) &&
+      (!is.numeric(sigma1) || length(sigma1) != 3L || anyNA(sigma1) ||
+       any(sigma1 < 0))) {
+    stop("'sigma1' must be a nonnegative numeric vector of length 3 when ",
+         "spectral_smooth = TRUE", call. = FALSE)
   }
   if (identical(metric, "entropy")) {
     stop("FileSpecs entropy S/N requires explicit global breaks and is not ",
@@ -58,7 +59,9 @@ automate_particle_analysis.FileSpecs <- function(
       bottom_left = .indexed_argument(bottom_left, i),
       top_right = .indexed_argument(top_right, i),
       origin = .particle_origin(origins, i), material_col = material_col,
-      library_id_col = library_id_col, sigma2 = sigma2, close = close,
+      library_id_col = library_id_col,
+      spectral_smooth = spectral_smooth, sigma1 = sigma1,
+      sigma2 = sigma2, close = close,
       close_kernel = close_kernel,
       sn_threshold_min = sn_threshold_min,
       sn_threshold_max = sn_threshold_max, cor_threshold = cor_threshold,
@@ -88,8 +91,8 @@ automate_particle_analysis.FileSpecs <- function(
 
 .automate_particle_filespec_region <- function(
     x, library, sample_name, output_dir, image, bottom_left, top_right,
-    origin, material_col, library_id_col, sigma2, close,
-    close_kernel, sn_threshold_min, sn_threshold_max, cor_threshold,
+    origin, material_col, library_id_col, spectral_smooth, sigma1, sigma2,
+    close, close_kernel, sn_threshold_min, sn_threshold_max, cor_threshold,
     area_threshold, label_unknown, remove_materials, remove_unknown,
     pixel_length, metric, abs, outputs, process_args,
     chunk_size = getOption("OpenSpecy.filespec.chunk_size", 8192L)) {
@@ -119,8 +122,9 @@ automate_particle_analysis.FileSpecs <- function(
   axis <- .filespec_read(x, index = 1L)$wavenumber
 
   cache_key <- digest::digest(list(
-    schema = "filespec-particle-collapse-2", source = x$source$id,
+    schema = "filespec-particle-collapse-3", source = x$source$id,
     view = x$view, metric = metric, abs = abs,
+    spectral_smooth = isTRUE(spectral_smooth), sigma1 = sigma1,
     sigma2 = sigma2, close = close,
     close_kernel = close_kernel, sn_min = sn_threshold_min,
     sn_max = sn_threshold_max, area = area_threshold,
@@ -137,6 +141,7 @@ automate_particle_analysis.FileSpecs <- function(
     .particle_progress(sample_name, "streaming signal/noise")
     snr <- .filespec_particle_snr(
       x, index = index, bands = bands, metric = metric, abs = abs,
+      spectral_smooth = spectral_smooth, sigma1 = sigma1,
       chunk_size = chunk_size
     )
     threshold <- snr > sn_threshold_min & snr < sn_threshold_max
@@ -170,7 +175,9 @@ automate_particle_analysis.FileSpecs <- function(
         .particle_progress(sample_name, "streaming particle means")
         .filespec_mean_features(
           x, index = index, feature_metadata = id_map$metadata,
-          feature_ids = feature_ids, axis = axis, chunk_size = chunk_size
+          feature_ids = feature_ids, axis = axis,
+          spectral_smooth = spectral_smooth, sigma1 = sigma1,
+          chunk_size = chunk_size
         )
       } else {
         NULL
@@ -197,7 +204,7 @@ automate_particle_analysis.FileSpecs <- function(
   )
   if (is.null(cached$collapsed)) {
     out <- .empty_particle_result(sample_name, x, time_start, outputs,
-                                  plot_outputs)
+                                  plot_outputs, output_dir)
     return(out)
   }
 
@@ -242,24 +249,29 @@ automate_particle_analysis.FileSpecs <- function(
     particle_summary_csv = summary,
     particles_raw_rds = if ("raw" %in% outputs) x else NULL,
     particles_rds = if ("processed" %in% outputs) proc_map else NULL,
-    particle_image_png = plot_outputs$particle_image_png,
-    particle_heatmap_png = plot_outputs$particle_heatmap_png,
-    particle_heatmap_thresholded_jpg =
-      plot_outputs$particle_heatmap_thresholded_jpg,
-    cor_heatmap_png = plot_outputs$cor_heatmap_png,
-    sn_histogram_png = plot_outputs$sn_histogram_png,
-    cor_histogram_png = plot_outputs$cor_histogram_png,
+    particle_image = plot_outputs$particle_image,
+    particle_heatmap = plot_outputs$particle_heatmap,
+    particle_heatmap_thresholded = plot_outputs$particle_heatmap_thresholded,
+    cor_heatmap = plot_outputs$cor_heatmap,
+    sn_histogram = plot_outputs$sn_histogram,
+    cor_histogram = plot_outputs$cor_histogram,
     time_rds = if ("time" %in% outputs) elapsed else NULL
   )
   .particle_progress(sample_name, "complete")
   result
 }
 
-.filespec_particle_snr <- function(x, index, bands, metric, abs, chunk_size) {
+.filespec_particle_snr <- function(x, index, bands, metric, abs,
+                                   spectral_smooth, sigma1, chunk_size) {
   chunks <- .filespec_particle_chunks(x, index, chunk_size)
   out <- rep(NA_real_, nrow(index))
   for (rows in chunks) {
-    values <- .filespec_read_values(x, index = rows, bands = bands)
+    values <- if (isTRUE(spectral_smooth)) {
+      .filespec_smoothed_values(x, index, rows, bands = bands,
+                                sigma1 = sigma1)
+    } else {
+      .filespec_read_values(x, index = rows, bands = bands)
+    }
     block <- as_OpenSpecy(
       values$wavenumber, spectra = values$spectra,
       metadata = data.frame(col_id = colnames(values$spectra)),
@@ -271,23 +283,98 @@ automate_particle_analysis.FileSpecs <- function(
   out
 }
 
-.filespec_particle_chunks <- function(x, index, chunk_size) {
-  chunk_size <- as.integer(chunk_size)
-  positions <- seq_len(nrow(index))
-  if (!identical(x$source$backend, "h5") ||
-      !all(c("row", "col") %in% names(index))) {
-    return(split(positions, ceiling(positions / chunk_size)))
-  }
+# Purely geometric column grouping from row/col grid coordinates, independent
+# of backend. `.filespec_particle_chunks()` only applies it for the h5
+# backend (matching its original chunking heuristic); halo-based
+# spectral_smooth uses it directly for any backend, since correctness of the
+# padding math depends only on a complete rectangular grid, not on how the
+# backend physically reads pixels.
+.filespec_column_chunk_id <- function(index, chunk_size) {
+  if (!all(c("row", "col") %in% names(index))) return(NULL)
   rows <- sort(unique(index$row))
   columns <- sort(unique(index$col))
   complete <- nrow(index) == length(rows) * length(columns) &&
     !anyDuplicated(index[, c("row", "col"), with = FALSE])
-  if (!isTRUE(complete))
-    return(split(positions, ceiling(positions / chunk_size)))
-  columns_per_chunk <- max(1L, floor(chunk_size / length(rows)))
-  column_groups <- split(columns,
-                         ceiling(seq_along(columns) / columns_per_chunk))
-  lapply(column_groups, function(columns) which(index$col %in% columns))
+  if (!isTRUE(complete)) return(NULL)
+  columns_per_chunk <- max(1L, floor(as.integer(chunk_size) / length(rows)))
+  ceiling(match(index$col, columns) / columns_per_chunk)
+}
+
+.filespec_particle_chunks <- function(x, index, chunk_size) {
+  positions <- seq_len(nrow(index))
+  if (!identical(x$source$backend, "h5")) {
+    return(split(positions, ceiling(positions / as.integer(chunk_size))))
+  }
+  col_chunk <- .filespec_column_chunk_id(index, chunk_size)
+  if (is.null(col_chunk)) {
+    return(split(positions, ceiling(positions / as.integer(chunk_size))))
+  }
+  split(positions, col_chunk)
+}
+
+# Read a halo-padded column block around `rows` (positions into `index`, a
+# single region's complete row x col grid), 3-D Gaussian-smooth it with the
+# same mmand::gaussianSmooth() call the eager reader uses, then trim back to
+# exactly the requested pixels. The halo equals mmand's own kernel radius for
+# `sigma1`, so trimmed values are numerically identical to smoothing the full
+# region at once, without ever reading more than one padded column slab.
+.filespec_smoothed_values <- function(x, index, rows, bands, sigma1) {
+  target <- index[rows]
+  if (!all(c("row", "col") %in% names(index))) {
+    stop("spectral_smooth requires row/col grid coordinates for this ",
+         "FileSpecs region", call. = FALSE)
+  }
+  rows_all <- sort(unique(index$row))
+  cols_all <- sort(unique(index$col))
+  complete <- nrow(index) == length(rows_all) * length(cols_all) &&
+    !anyDuplicated(index[, c("row", "col"), with = FALSE])
+  if (!isTRUE(complete)) {
+    stop("spectral_smooth requires a complete rectangular row/col grid for ",
+         "this FileSpecs region; irregular regions are not supported",
+         call. = FALSE)
+  }
+
+  target_cols <- sort(unique(target$col))
+  halo <- .gaussian_kernel_half_width(sigma1[[3L]])
+  col_lo_i <- max(1L, match(min(target_cols), cols_all) - halo)
+  col_hi_i <- min(length(cols_all), match(max(target_cols), cols_all) + halo)
+  padded_cols <- cols_all[col_lo_i:col_hi_i]
+
+  block_rows <- which(index$col %in% padded_cols)
+  block <- .filespec_read_values(x, index = block_rows, bands = NULL)
+  sel <- block$index
+  nband <- length(block$wavenumber)
+
+  row_map <- match(sel$row, rows_all)
+  col_map <- match(sel$col, padded_cols)
+  lin <- (col_map - 1L) * length(rows_all) + row_map
+  arr <- matrix(NA_real_, nrow = nband,
+                ncol = length(rows_all) * length(padded_cols))
+  arr[, lin] <- block$spectra
+  dim(arr) <- c(nband, length(rows_all), length(padded_cols))
+
+  smoothed <- mmand::gaussianSmooth(arr, sigma = sigma1)
+
+  band_keep <- if (is.null(bands)) {
+    seq_len(nband)
+  } else {
+    match(x$source$axis[bands], block$wavenumber)
+  }
+  out_row <- match(target$row, rows_all)
+  out_col <- match(target$col, padded_cols)
+  out_lin <- (out_col - 1L) * length(rows_all) + out_row
+  spectra <- matrix(smoothed, nrow = nband)[band_keep, out_lin, drop = FALSE]
+  colnames(spectra) <- target$col_id
+
+  list(wavenumber = block$wavenumber[band_keep], spectra = spectra,
+       index = target)
+}
+
+.gaussian_kernel_half_width <- function(sigma) {
+  if (!is.finite(sigma) || sigma <= 0) return(0L)
+  size <- ceiling(6 * sigma)
+  if (size %% 2L == 0L) size <- size + 1L
+  as.integer((size - 1L) / 2L)
 }
 
 .filespec_particle_display <- function(index, snr, threshold) {
@@ -303,17 +390,32 @@ automate_particle_analysis.FileSpecs <- function(
 }
 
 .filespec_mean_features <- function(x, index, feature_metadata, feature_ids,
-                                    axis, chunk_size) {
+                                    axis, spectral_smooth, sigma1,
+                                    chunk_size) {
   ids <- as.character(feature_metadata$feature_id)
   keep <- ids %in% feature_ids
   selected <- which(keep)
   sums <- matrix(0, nrow = length(axis), ncol = length(feature_ids),
                  dimnames = list(as.character(axis), feature_ids))
   counts <- integer(length(feature_ids))
-  chunks <- split(selected, ceiling(seq_along(selected) /
-                                      as.integer(chunk_size)))
+  if (isTRUE(spectral_smooth)) {
+    col_chunk <- .filespec_column_chunk_id(index, chunk_size)
+    if (is.null(col_chunk)) {
+      stop("spectral_smooth requires a complete rectangular row/col grid ",
+           "for this FileSpecs region", call. = FALSE)
+    }
+    chunks <- split(selected, col_chunk[selected])
+  } else {
+    chunks <- split(selected, ceiling(seq_along(selected) /
+                                        as.integer(chunk_size)))
+  }
   for (rows in chunks) {
-    block <- .filespec_read_values(x, index = rows)
+    block <- if (isTRUE(spectral_smooth)) {
+      .filespec_smoothed_values(x, index, rows, bands = NULL,
+                                sigma1 = sigma1)
+    } else {
+      .filespec_read_values(x, index = rows)
+    }
     groups <- match(ids[rows], feature_ids)
     for (group in unique(groups)) {
       cols <- which(groups == group)

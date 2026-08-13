@@ -74,8 +74,8 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
                "particle")
   expect_s3_class(result$samples$Region1$particles_raw_rds, "FileSpecs")
   expect_s3_class(result$samples$Region1$particles_rds, "OpenSpecy")
-  expect_s3_class(result$samples$Region1$sn_histogram_png, "recordedplot")
-  expect_s3_class(result$samples$Region1$cor_histogram_png, "recordedplot")
+  expect_identical(result$samples$Region1$sn_histogram$type, "histogram")
+  expect_identical(result$samples$Region1$cor_histogram$type, "histogram")
 
   eager <- decompress_spec(specs, region = "Region1")
   eager_result <- do.call(automate_particle_analysis,
@@ -122,14 +122,54 @@ test_that("FileSpecs particle automation rejects unsupported whole-map paths", {
     specs, library, collapse_function = mean, particle_id_strategy = "raw"
   ), "supports only")
   expect_error(automate_particle_analysis(
-    specs, library, collapse_function = mean, spectral_smooth = TRUE
-  ), "region-halo")
-  expect_error(automate_particle_analysis(
     specs, library, collapse_function = mean, metric = "entropy"
   ), "explicit global breaks")
   expect_error(automate_particle_analysis(
     specs, library, collapse_function = mean, top_n = 2L
   ), "top_n")
+})
+
+test_that("FileSpecs spectral_smooth matches the eager mmand::gaussianSmooth reader", {
+  directory <- tempfile("filespec-particle-smooth-")
+  dir.create(directory)
+  fixture <- .make_particle_filespec_envi(directory)
+  specs <- open_specs(fixture$header, cache_dir = file.path(directory, "cache"))
+  library <- as_OpenSpecy(
+    fixture$axis,
+    spectra = cbind(particle = fixture$particle, other = c(4, 2, 3, 1)),
+    metadata = data.frame(sample_name = c("particle", "other"),
+                          material_class = c("polymer", "other"))
+  )
+  args <- list(
+    library = library, particle_id_strategy = "collapse",
+    spectral_smooth = TRUE, sigma1 = c(1, 1, 1),
+    sn_threshold_min = 2, sn_threshold_max = Inf, cor_threshold = 0.7,
+    area_threshold = 0, metric = "tot_sig", collapse_function = mean,
+    outputs = c("details", "processed"),
+    process_args = list(smooth_intens = FALSE, make_rel = TRUE)
+  )
+
+  old_chunk <- getOption("OpenSpecy.filespec.chunk_size")
+  options(OpenSpecy.filespec.chunk_size = 3L)
+  on.exit(options(OpenSpecy.filespec.chunk_size = old_chunk), add = TRUE)
+  streamed <- do.call(automate_particle_analysis, c(list(x = specs), args))
+
+  # Compare against the eager reader on the raw ENVI file (not
+  # decompress_spec()), so both paths smooth via the same
+  # mmand::gaussianSmooth() call rather than spatial_smooth().
+  eager <- do.call(automate_particle_analysis,
+                   c(list(x = fixture$binary), args))
+
+  expect_gt(nrow(streamed$particle_details_all_csv), 0)
+  expect_equal(
+    streamed$particle_details_all_csv$area_um2,
+    eager$particle_details_all_csv$area_um2
+  )
+  expect_equal(
+    streamed$samples$Region1$particles_rds$spectra,
+    eager$samples[[1]]$particles_rds$spectra,
+    tolerance = 1e-10, ignore_attr = TRUE
+  )
 })
 
 test_that("FileSpecs particle image identities include image content", {

@@ -140,7 +140,6 @@ app_particle_output_choices <- function() {
   c(
     "Particle details" = "details",
     "Particle summaries" = "summary",
-    "Raw map object" = "raw",
     "Processed particle object" = "processed",
     "Particle image" = "particle_image",
     "Signal heatmap" = "particle_heatmap",
@@ -2369,6 +2368,100 @@ app_summary_row <- function(items) {
     shiny::fluidRow,
     c(list(class = "openspecy-summary-grid"), unname(columns))
   )
+}
+
+# Even color steps across an integer 1..length(colors) domain, for indexed
+# (categorical/binary) plotly heatmap traces.
+app_indexed_colorscale <- function(colors) {
+  count <- length(colors)
+  if (!count) return(list(c(0, app_theme$muted), c(1, app_theme$muted)))
+  if (count == 1L) return(list(c(0, unname(colors[[1L]])),
+                               c(1, unname(colors[[1L]]))))
+  centers <- seq(0, 1, length.out = count)
+  edges <- c(0, (centers[-1L] + centers[-count]) / 2, 1)
+  unlist(lapply(seq_len(count), function(i) {
+    list(c(edges[[i]], unname(colors[[i]])),
+         c(edges[[i + 1L]], unname(colors[[i]])))
+  }), recursive = FALSE)
+}
+
+# Render one automate_particle_analysis() plot-data list (see
+# R/automate_particle_analysis.R) as a themed, interactive plotly object.
+# Mirrors the pre-FileSpecs heatmapA/MyPlotC theme via app_style_plotly()
+# instead of the base-graphics rendering automate_particle_analysis() keeps
+# for its own plot() method and static PNG/JPG downloads.
+app_particle_plotly <- function(data, source = "heat_plot") {
+  if (is.null(data) || identical(data$type, "empty")) {
+    reason <- if (!is.null(data$reason)) data$reason else "no data available"
+    plot <- plotly::plot_ly(source = source) |>
+      plotly::layout(
+        annotations = list(list(
+          text = reason, showarrow = FALSE, x = 0.5, y = 0.5,
+          xref = "paper", yref = "paper",
+          font = list(color = app_plot_palette$text, size = 13)
+        )),
+        xaxis = list(visible = FALSE), yaxis = list(visible = FALSE)
+      ) |>
+      app_style_plotly()
+    return(plotly::event_register(plot, "plotly_click"))
+  }
+  if (identical(data$type, "histogram")) {
+    plot <- plotly::plot_ly(
+      x = data$values, type = "histogram",
+      marker = list(color = app_plot_palette$primary), source = source
+    ) |>
+      plotly::layout(
+        title = data$main, xaxis = list(title = data$xlab),
+        yaxis = list(title = "Count"),
+        shapes = lapply(data$thresholds, function(v) list(
+          type = "line", x0 = v, x1 = v, y0 = 0, y1 = 1, yref = "paper",
+          line = list(color = app_theme$reference, width = 2, dash = "dash")
+        ))
+      ) |>
+      app_style_plotly()
+    return(plot)
+  }
+
+  legend_title <- if (isTruthy(data$legend_title)) data$legend_title else
+    "Value"
+  categorical <- data$type %in% c("heatmap_binary", "heatmap_categorical")
+  if (identical(data$type, "heatmap_binary")) {
+    z <- t(data$z) + 1L
+    levels <- data$labels
+    colorscale <- app_indexed_colorscale(
+      c(app_theme$panel_2, app_theme$accent)
+    )
+  } else if (identical(data$type, "heatmap_categorical")) {
+    z <- t(data$z)
+    levels <- data$levels
+    colors <- if (!is.null(data$palette)) data$palette[levels] else
+      grDevices::hcl.colors(length(levels), "Viridis")
+    colorscale <- app_indexed_colorscale(colors)
+  } else {
+    z <- t(data$z)
+    colorscale <- app_heatmap_colorscale
+  }
+
+  plot <- plotly::plot_ly(source = source) |>
+    plotly::add_trace(
+      x = data$x, y = data$y, z = z, type = "heatmap",
+      colorscale = colorscale,
+      zmin = if (categorical) 0.5 else NULL,
+      zmax = if (categorical) length(levels) + 0.5 else NULL,
+      showscale = TRUE,
+      colorbar = if (categorical) {
+        list(tickmode = "array", tickvals = seq_along(levels),
+             ticktext = levels, title = list(text = legend_title))
+      } else {
+        list(title = list(text = legend_title))
+      }
+    ) |>
+    plotly::layout(
+      title = data$title, xaxis = list(title = "X (um)"),
+      yaxis = list(title = "Y (um)")
+    ) |>
+    app_style_plotly()
+  plotly::event_register(plot, "plotly_click")
 }
 
 app_style_plotly <- function(plot) {

@@ -1169,6 +1169,29 @@ dashboardPage(
         }
         .openspecy-plot-frame { padding: 8px; margin: 8px 0 16px; }
         .openspecy-mini-plot { margin-top: 8px; }
+        .openspecy-heatmap-popover {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          z-index: 20;
+          max-width: 220px;
+          padding: 8px 10px;
+          border: 1px solid var(--openspecy-border);
+          border-radius: 8px;
+          background: var(--openspecy-panel-2);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, .35);
+          font-size: 12px;
+          line-height: 1.5;
+          pointer-events: none;
+        }
+        .openspecy-heatmap-popover table { width: 100%; }
+        .openspecy-heatmap-popover th {
+          text-align: left;
+          padding-right: 8px;
+          font-weight: 600;
+          opacity: .75;
+        }
+        .openspecy-heatmap-popover td { text-align: right; }
         #filespec_source_box { margin-bottom: 18px; }
         .openspecy-filespec-toolbar {
           display: flex;
@@ -1392,7 +1415,7 @@ dashboardPage(
               div(
                 id = "heatmap_frame",
                 class = "openspecy-plot-frame",
-                style = "display:none",
+                style = "display:none; position: relative;",
                 plotOutput(
                   "heatmapA", height = "48vh",
                   click = clickOpts(id = "heatmap_click", clip = TRUE),
@@ -1400,7 +1423,9 @@ dashboardPage(
                     id = "heatmap_brush", direction = "xy",
                     resetOnNew = TRUE
                   )
-                )
+                ),
+                plotly::plotlyOutput("heatmapB", height = "48vh"),
+                uiOutput("heatmap_popover")
               )
             ),
             column(1, uiOutput("nav_buttons"))

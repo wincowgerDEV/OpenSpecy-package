@@ -178,13 +178,17 @@ strategies.}
 }
 \value{
 A list with \code{samples}, \code{particle_details_all_csv}, and
-\code{particle_summary_all_csv}. Each per-sample entry uses names matching file
-exports where applicable: \code{particle_details_csv}, \code{particle_summary_csv},
-\code{particles_raw_rds}, \code{particles_rds}, \code{particle_image_png},
-\code{particle_heatmap_png}, \code{particle_heatmap_thresholded_jpg},
-\code{cor_heatmap_png}, \code{sn_histogram_png}, \code{cor_histogram_png}, and \code{time_rds}.
-The result has class \code{OpenSpecyParticleAnalysis}; use its \code{plot()} method to
-replay a named recorded plot.
+\code{particle_summary_all_csv}. Each per-sample entry has \code{particle_details_csv},
+\code{particle_summary_csv}, \code{particles_raw_rds}, \code{particles_rds}, and \code{time_rds},
+plus one plot-data list for each requested plot output: \code{particle_image},
+\code{particle_heatmap}, \code{particle_heatmap_thresholded}, \code{cor_heatmap},
+\code{sn_histogram}, and \code{cor_histogram}. Each plot-data list carries the grid or
+histogram values needed to build a custom \code{plot()}/\code{plotly}/\code{ggplot2} view
+(a \code{type} field plus \code{x}/\code{y}/\code{z}, \code{values}, \code{thresholds}, or \code{levels} as
+appropriate), or \code{type = "empty"} with a \code{reason} string when nothing
+passed filtering. \code{output_dir} still writes the matching static PNG/JPG for
+each requested plot. The result has class \code{OpenSpecyParticleAnalysis}; use
+its \code{plot()} method to draw one of these plots with base graphics.
 }
 \description{
 \code{automate_particle_analysis()} generalizes the batch map workflow used for

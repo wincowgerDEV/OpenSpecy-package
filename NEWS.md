@@ -11,7 +11,9 @@
   through `automate_particle_analysis()`, retains one exact best match, and
   lazily caches registered regional H5 mosaics
   for particle images; it intentionally requires the
-  collapse strategy, `mean`, non-entropy S/N, and no spectral smoothing.
+  collapse strategy, `mean`, and non-entropy S/N. `spectral_smooth = TRUE` now
+  streams a halo-padded 3-D Gaussian smooth (matching `mmand::gaussianSmooth()`
+  exactly) instead of erroring, without ever materializing a full region.
 - Integrated the explicitly gated local H5/ENVI path opener into the Advanced
   tab and connected it, plus ordinary maps, to the particle pipeline with
   progress, selectable scalable maps, click metadata, threshold histograms,
@@ -24,6 +26,21 @@
   `plot()`, expose S/N and correlation histograms with threshold lines, and use
   a continuous finite signal legend. Uploaded Test Map metadata now keeps
   stable row-to-spectrum selection in both app modes.
+- `automate_particle_analysis()`/`automate_particle_filespecs()` now return
+  queryable plot **data** (`particle_image`, `particle_heatmap`,
+  `particle_heatmap_thresholded`, `cor_heatmap`, `sn_histogram`,
+  `cor_histogram`; each a list with grid/histogram values and a `type`, or
+  `type = "empty"` with a `reason` when nothing passed filtering) instead of
+  stored `recordedplot` objects; this is a breaking change to the field names
+  and shape of `automate_particle_analysis()`'s per-sample result. `plot()`
+  still draws any of these with base graphics, and the app renders them with
+  Plotly for on-theme, interactive maps. Advanced no longer disables its own
+  controls while off, matching the other top-level switches. The Thresholded
+  Particles download drops the duplicative Raw Map object choice, defaults to
+  itself once a particle result exists, and now zips every selected content
+  type including an explanatory details/summary when no particles passed
+  filtering. The redundant "No regions passing threshold" popup is removed in
+  favor of the existing quality warning/success indicators.
 - Added `correct_spike()` with a conservative wavenumber-aware residual method
   and the manual and automated prominence/FWHM methods described by Coca-Lopez
   (2024). Corrections are transactional, preserve the `OpenSpecy` axis and

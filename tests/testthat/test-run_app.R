@@ -93,13 +93,17 @@ test_that("bundled app updates map selection without full heatmap or spectrum re
   expect_match(server_source, "app_draw_server_heatmap(", fixed = TRUE)
   expect_match(server_source, "observeEvent(input$heatmap_click, {",
                fixed = TRUE)
-  expect_match(server_source, "particle_metadata_modal(", fixed = TRUE)
-  expect_false(grepl('event_data("plotly_click", source = "heat_plot"',
-                     server_source, fixed = TRUE))
+  expect_match(server_source, "heatmap_popover_info <- reactiveVal(NULL)",
+               fixed = TRUE)
+  expect_match(server_source, "output$heatmap_popover <- renderUI({",
+               fixed = TRUE)
+  expect_match(server_source, 'event_data("plotly_click", source = "heat_plot"',
+               fixed = TRUE)
   expect_false(grepl('plotlyProxy("heatmapA", session)', server_source,
                      fixed = TRUE))
   expect_match(ui_source, 'plotOutput(\n                  "heatmapA"',
                fixed = TRUE)
+  expect_match(ui_source, 'plotly::plotlyOutput("heatmapB"', fixed = TRUE)
   expect_match(server_source, "selected_match <- reactive({", fixed = TRUE)
   expect_match(server_source, "selected_match()", fixed = TRUE)
   expect_false(grepl("selected_match_cache", server_source, fixed = TRUE))
@@ -574,10 +578,17 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
   expect_match(server_source,
                "smooth_args <- if(smooth_enabled)", fixed = TRUE)
   expect_match(server_source, "effective_signal_selection", fixed = TRUE)
-  expect_match(server_source, "set_advanced_child_state <- function(enabled)",
-               fixed = TRUE)
+  # Advanced's own inputs stay editable while the master switch is off
+  # (matching active_identification's children), instead of being
+  # shinyjs-disabled; every reader gates on isTRUE(input$active_advanced).
+  expect_false(grepl("set_advanced_child_state <- function(enabled)",
+                     server_source, fixed = TRUE))
+  expect_false(grepl(
+    "enabled ? el.selectize.enable() : el.selectize.disable()",
+    server_source, fixed = TRUE
+  ))
   expect_match(server_source,
-               "enabled ? el.selectize.enable() : el.selectize.disable()",
+               "isTRUE(input$active_advanced) so an edit while off cannot",
                fixed = TRUE)
   expect_false(grepl("list(DataR(), input$signal_selection)", server_source,
                      fixed = TRUE))
@@ -1178,7 +1189,10 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
                '"Thresholded Particles" = "particle_heatmap_thresholded"',
                fixed = TRUE)
   expect_match(server_source, "app_draw_server_heatmap(", fixed = TRUE)
-  expect_match(server_source, "plot(\n          result,", fixed = TRUE)
+  expect_match(
+    server_source,
+    "app_particle_plotly(sample[[resolved_map_color()]]", fixed = TRUE
+  )
 })
 
 test_that("bundled app applies spike correction through the registered API", {

@@ -23,3 +23,9 @@ Claude Code, sharing one set of durable instructions and skills:
   and reach Claude through git-ignored local directory junctions under
   `.claude/skills/`. If they're missing after a fresh clone, run
   `powershell.exe -ExecutionPolicy Bypass -File .specify\scripts\powershell\link-claude-skills.ps1`.
+- Skills alone aren't invocable as `/slash` commands in Claude Code (unlike
+  Codex, where `speckit-*` skills are directly invocable). `.claude/commands/`
+  has thin `speckit-plan.md`, `speckit-implement.md`, and
+  `speckit-constitution.md` wrappers that just point at the matching skill, so
+  `/speckit-plan`, `/speckit-implement`, and `/speckit-constitution` work the
+  same way Codex's equivalents do without duplicating skill content.

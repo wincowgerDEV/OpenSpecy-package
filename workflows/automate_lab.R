@@ -24,11 +24,12 @@ cache_dir <- Sys.getenv(
 sn_threshold_min <- 1e6
 sn_threshold_max <- Inf
 cor_threshold <- 0.7
-top_n <- 1L
 
 get_lib("medoid_derivative")
 lib <- load_lib("medoid_derivative")
 
+wd = "C:\\Users\\winco\\OneDrive\\Documents\\EWG"
+source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\test_1um.h5"
 map <- open_specs(source_file, cache_dir = cache_dir)
 print(map)
 
@@ -38,18 +39,21 @@ print(map)
 region_views <- split_spec(map, by = "region")
 names(region_views)
 
-result <- map |>
-  automate_particle_analysis(
+map <- read_any("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\test_1um.h5")
+files = list.files(wd, pattern = "(blank|drop|spike)Region.*\\.rds", full.names = TRUE)
+files = files[!grepl("particles", files)]
+files_list = read_any(files)
+result <- lapply(files, function(x){
+  automate_particle_analysis( 
+    x,
     library = lib,
-    output_dir = output_dir,
+    output_dir = wd,
     material_col = "material_class",
     particle_id_strategy = "collapse",
-    spectral_smooth = FALSE,
-    spatial_smooth = FALSE,
+    spectral_smooth = TRUE,
     sn_threshold_min = sn_threshold_min,
     sn_threshold_max = sn_threshold_max,
     cor_threshold = cor_threshold,
-    top_n = top_n,
     area_threshold = 1,
     label_unknown = TRUE,
     remove_unknown = FALSE,
@@ -63,11 +67,12 @@ result <- map |>
     ),
     origins = list(x = 0, y = 0)
   )
+})
 
 # plot() replaces replayPlot() and accepts a region/sample name or position.
 plot(result, sample = 1, which = "particle_heatmap")
 plot(result, sample = 1, which = "sn_histogram")
-plot(result, sample = 1, which = "cor_histogram")
+plot(result, sample = 1, which = "particle_image")
 
 result$particle_details_all_csv
 result$particle_summary_all_csv

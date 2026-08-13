@@ -46,6 +46,7 @@ function(input, output, session) {
     )
   )
   data_click <- reactiveValues(plot = NULL, table = NULL)
+  heatmap_popover_info <- reactiveVal(NULL)
   meta_cache <- reactiveVal(NULL)
   correction_diagnostics <- reactiveVal(data.frame())
   ratio_definitions <- reactiveVal(app_empty_ratio_definitions())
@@ -56,36 +57,10 @@ function(input, output, session) {
   library_axis_cache$value <- NULL
   quality_modal_observers <- new.env(parent = emptyenv())
 
-  advanced_child_ids <- c(
-    "filespec_path", "filespec_open", "threshold_decision", "MinSNR",
-    "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
-    "spatial_decision", "sigma", "xy_grid", "collapse_decision",
-    "collapse_type", "particle_id_strategy", "particle_area_threshold"
-  )
-  set_advanced_child_state <- function(enabled) {
-    lapply(advanced_child_ids, function(id) {
-      shinyjs::toggleState(id, condition = enabled)
-    })
-    ids <- jsonlite::toJSON(advanced_child_ids, auto_unbox = TRUE)
-    script <- sprintf(
-      paste0(
-        "(function(ids, enabled) { ids.forEach(function(id) { ",
-        "var el = document.getElementById(id); if (!el) return; ",
-        "el.disabled = !enabled; ",
-        "if (el.selectize) { enabled ? el.selectize.enable() : el.selectize.disable(); } ",
-        "if (window.jQuery && window.jQuery(el).data('selectpicker')) { ",
-        "window.jQuery(el).prop('disabled', !enabled).selectpicker('refresh'); } ",
-        "}); })(%s, %s);"
-      ),
-      ids, if(enabled) "true" else "false"
-    )
-    shinyjs::runjs(script)
-  }
-  observeEvent(input$active_advanced, {
-    enabled <- isTRUE(input$active_advanced)
-    set_advanced_child_state(enabled)
-    session$onFlushed(function() set_advanced_child_state(enabled), once = TRUE)
-  }, ignoreInit = FALSE)
+  # Advanced's own inputs stay editable while the master switch is off, same
+  # as active_identification's children; every reader below already gates on
+  # isTRUE(input$active_advanced) so an edit while off cannot invalidate
+  # analysis or trigger recomputation.
 
   observeEvent(input$range_automate, {
     manual_range <- !isTRUE(input$range_automate)
@@ -1634,25 +1609,6 @@ observeEvent(input$file, {
           }
       }
 
-      signal_failed <- isTRUE(input$active_advanced) &&
-        isTRUE(input$threshold_decision) &&
-        !any(signal_to_noise() >= MinSNR(), na.rm = TRUE)
-      correlation_failed <- isTRUE(input$active_advanced) &&
-        identification_enabled &&
-        isTRUE(input$cor_threshold_decision) &&
-        !any(max_cor() >= MinCor(), na.rm = TRUE)
-      if(signal_failed || correlation_failed) {
-          show_alert(
-            title = "No regions passing threshold",
-            text = paste0(
-              "The current threshold settings of the Signal-Noise and/or Correlation returned ",
-              "no regions passing. This often indicates an issue with the threshold settings ",
-              "or data and will return the raw data in the plots."
-            ),
-            type = "warning"
-          )
-      }
-
   })
 
   RawR_plot <- reactive({
@@ -2209,16 +2165,20 @@ output$progress_bars <- renderUI({
       )
   })
 
-  output$heatmapA <- renderPlot({
+  output$heatmapB <- plotly::renderPlotly({
       result <- particle_analysis()
-      if(!is.null(result)) {
-        plot(
-          result,
-          sample = particle_sample_name(),
-          which = resolved_map_color()
-        )
-        return(invisible(NULL))
-      }
+      req(!is.null(result))
+      sample <- particle_sample()
+      app_particle_plotly(sample[[resolved_map_color()]], source = "heat_plot")
+  })
+
+  observe({
+      show_particle <- !is.null(particle_analysis())
+      toggle(id = "heatmapA", condition = !show_particle)
+      toggle(id = "heatmapB", condition = show_particle)
+  })
+
+  output$heatmapA <- renderPlot({
       if(!is.null(final_specs())) {
         preview <- filespec_preview()
         index <- filespec_index_state()
@@ -2297,14 +2257,28 @@ output$progress_bars <- renderUI({
         isTRUE(input$active_identification),
       collapse = particle_pipeline_enabled() && !is.null(particle_analysis())
     )
+    values <- unname(choice_names)
+    current <- isolate(input$download_selection)
+    selected <- if(isTruthy(current) && current %in% values) current else
+      values[[1L]]
     selectInput(
       inputId = "download_selection",
       label = "Download type",
       choices = choice_names,
-      selected = choice_names[[1L]]
+      selected = selected
     )
-  })  
+  })
   outputOptions(output, "download_ui", suspendWhenHidden = FALSE)
+
+  # Once a particle-analysis result exists, jump the download type to
+  # Thresholded Particles: it is the primary artifact for a large/collapsed
+  # run and would otherwise stay stuck on whatever was selected before the
+  # particle pipeline had a result (e.g. the initial "Test Data" default).
+  observeEvent(particle_analysis(), {
+    req(particle_pipeline_enabled(), !is.null(particle_analysis()))
+    updateSelectInput(session, "download_selection",
+                      selected = "Thresholded Particles")
+  }, ignoreNULL = TRUE)
 
   observeEvent(input$download_selection, {
     label <- app_download_label(input$download_selection)
@@ -2477,25 +2451,25 @@ output$progress_bars <- renderUI({
     if(all(is.infinite(distance))) integer() else which.min(distance)
   }
 
-  particle_metadata_modal <- function(metadata, title) {
-    metadata <- as.data.frame(metadata, stringsAsFactors = FALSE)
-    keep <- vapply(metadata, function(value) {
-      length(value) && !all(is.na(value) | !nzchar(as.character(value)))
-    }, logical(1))
-    metadata <- metadata[, keep, drop = FALSE]
-    if(ncol(metadata) > 24L) metadata <- metadata[, seq_len(24L), drop = FALSE]
-    rows <- lapply(names(metadata), function(name) {
-      tags$tr(tags$th(name), tags$td(as.character(metadata[[name]][[1L]])))
-    })
-    showModal(modalDialog(
-      title = title,
-      easyClose = TRUE,
-      size = "m",
-      tags$div(class = "table-responsive",
-               tags$table(class = "table table-sm", tags$tbody(rows))),
-      footer = modalButton("Close")
-    ))
-  }
+  # Small popover docked in the plot viewer: x, y, and the currently
+  # displayed z-value/label only, instead of a full-metadata modal.
+  output$heatmap_popover <- renderUI({
+      info <- heatmap_popover_info()
+      req(!is.null(info))
+      rows <- list(
+        tags$tr(tags$th("x"), tags$td(format(signif(info$x, 4)))),
+        tags$tr(tags$th("y"), tags$td(format(signif(info$y, 4))))
+      )
+      if(!is.null(info$z)) {
+        rows <- c(rows, list(tags$tr(
+          tags$th(if(isTruthy(info$label)) info$label else "z"),
+          tags$td(as.character(info$z))
+        )))
+      }
+      div(class = "openspecy-heatmap-popover",
+          tags$table(tags$tbody(rows)))
+  })
+  outputOptions(output, "heatmap_popover", suspendWhenHidden = FALSE)
 
   observeEvent(input$heatmap_click, {
       click <- input$heatmap_click
@@ -2506,64 +2480,80 @@ output$progress_bars <- renderUI({
       if(!is.null(final_specs())) {
         index <- isolate(filespec_index_state())
         region <- isolate(input$filespec_region)
-        rows <- app_filespec_region_rows(index, region)
-        particle_result <- isolate(particle_analysis())
-        processed <- if(!is.null(particle_result)) {
-          sample_name <- if(region %in% names(particle_result$samples)) {
-            region
-          } else {
-            names(particle_result$samples)[[1L]]
-          }
-          particle_result$samples[[sample_name]]$particles_rds
-        } else NULL
-        selected <- if(!is.null(particle_result)) {
-          local_row <- nearest_metadata_row(index[rows, , drop = FALSE],
-                                            click_x, click_y)
-          if(length(local_row)) rows[[local_row]] else integer()
-        } else {
-          app_filespec_nearest_position(
-            index, region, click_x, click_y,
-            roi = isolate(filespec_viewport_state())
-          )
-        }
+        selected <- app_filespec_nearest_position(
+          index, region, click_x, click_y,
+          roi = isolate(filespec_viewport_state())
+        )
         if(length(selected)) {
           load_filespec_selection(selected)
-          metadata <- index[selected, , drop = FALSE]
-          if(!is.null(processed) && nrow(processed$metadata)) {
-            particle_row <- nearest_metadata_row(processed$metadata,
-                                                 click_x, click_y)
-            if(length(particle_row)) {
-              extra <- as.data.frame(processed$metadata[particle_row, ])
-              extra <- extra[, setdiff(names(extra), names(metadata)),
-                             drop = FALSE]
-              metadata <- cbind(metadata, extra)
-            }
-          }
-          particle_metadata_modal(metadata, "Map selection metadata")
+          row <- index[selected, , drop = FALSE]
+          heatmap_popover_info(list(x = row$x[[1L]], y = row$y[[1L]],
+                                    z = NULL, label = NULL))
         }
         return()
       }
 
-      source <- if(!is.null(isolate(particle_analysis()))) {
-        sample <- isolate(particle_sample())
-        if(inherits(sample$particles_raw_rds, "OpenSpecy")) {
-          sample$particles_raw_rds
-        } else {
-          sample$particles_rds
-        }
-      } else {
-        isolate(heatmap_state())$data
-      }
-      req(!is.null(source), nrow(source$metadata))
-      selected <- nearest_metadata_row(source$metadata, click_x, click_y)
+      state <- isolate(heatmap_state())
+      req(!is.null(state$data), nrow(state$data$metadata))
+      selected <- nearest_metadata_row(state$data$metadata, click_x, click_y)
       if(length(selected)) {
         if(selected <= ncol(preprocessed$data$spectra)) {
           data_click$plot <- selected
         }
-        particle_metadata_modal(
-          source$metadata[selected, , drop = FALSE],
-          "Map selection metadata"
-        )
+        z_value <- state$z[[selected]]
+        heatmap_popover_info(list(
+          x = state$data$metadata$x[[selected]],
+          y = state$data$metadata$y[[selected]],
+          z = if(is.numeric(z_value)) signif(z_value, 3) else z_value,
+          label = state$legend_title
+        ))
+      }
+  }, ignoreNULL = TRUE, ignoreInit = TRUE)
+
+  observeEvent(plotly::event_data("plotly_click", source = "heat_plot"), {
+      click <- plotly::event_data("plotly_click", source = "heat_plot")
+      req(length(click$x), length(click$y))
+      click_x <- click$x[[1L]]
+      click_y <- click$y[[1L]]
+      click_z <- if(length(click$z)) click$z[[1L]] else NA
+
+      result <- isolate(particle_analysis())
+      req(!is.null(result))
+      sample <- isolate(particle_sample())
+      field <- isolate(resolved_map_color())
+      data <- sample[[field]]
+      label <- if(isTruthy(data$legend_title)) data$legend_title else field
+      z_display <- if(identical(data$type, "heatmap_binary") &&
+                      is.finite(click_z)) {
+        data$labels[[round(click_z)]]
+      } else if(identical(data$type, "heatmap_categorical") &&
+               is.finite(click_z)) {
+        data$levels[[round(click_z)]]
+      } else if(is.numeric(click_z)) {
+        signif(click_z, 3)
+      } else {
+        NULL
+      }
+      heatmap_popover_info(list(x = click_x, y = click_y, z = z_display,
+                                label = label))
+
+      source_map <- if(inherits(sample$particles_raw_rds, "OpenSpecy")) {
+        sample$particles_raw_rds
+      } else {
+        sample$particles_rds
+      }
+      req(!is.null(source_map), nrow(source_map$metadata))
+      selected <- nearest_metadata_row(source_map$metadata, click_x, click_y)
+      req(length(selected))
+      if(!is.null(isolate(final_specs()))) {
+        index <- isolate(filespec_index_state())
+        region <- isolate(input$filespec_region)
+        rows <- app_filespec_region_rows(index, region)
+        local_row <- nearest_metadata_row(index[rows, , drop = FALSE],
+                                          click_x, click_y)
+        if(length(local_row)) load_filespec_selection(rows[[local_row]])
+      } else if(selected <= ncol(isolate(preprocessed$data$spectra))) {
+        data_click$plot <- selected
       }
   }, ignoreNULL = TRUE, ignoreInit = TRUE)
 

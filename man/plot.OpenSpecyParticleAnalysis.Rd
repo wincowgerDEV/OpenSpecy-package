@@ -11,8 +11,9 @@
 
 \item{sample}{sample name or numeric position.}
 
-\item{which}{plot name, with or without its file-style suffix. If \code{NULL},
-the first available plot is used.}
+\item{which}{one of \code{"particle_image"}, \code{"particle_heatmap"},
+\code{"particle_heatmap_thresholded"}, \code{"cor_heatmap"}, \code{"sn_histogram"}, or
+\code{"cor_histogram"}. If \code{NULL}, the first plot with data is used.}
 
 \item{...}{reserved for future plotting options.}
 }
