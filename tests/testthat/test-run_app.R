@@ -89,21 +89,25 @@ test_that("bundled app updates map selection without full heatmap or spectrum re
 
   expect_match(server_source, "ncol(preprocessed$data$spectra) > 1",
                fixed = TRUE)
-  expect_match(server_source, "output$heatmapA <- renderPlot({", fixed = TRUE)
-  expect_match(server_source, "app_draw_server_heatmap(", fixed = TRUE)
-  expect_match(server_source, "observeEvent(input$heatmap_click, {",
+  expect_match(server_source, "output$heatmapA <- plotly::renderPlotly({",
                fixed = TRUE)
-  expect_match(server_source, "heatmap_popover_info <- reactiveVal(NULL)",
-               fixed = TRUE)
-  expect_match(server_source, "output$heatmap_popover <- renderUI({",
-               fixed = TRUE)
+  expect_false(grepl("app_draw_server_heatmap(", server_source, fixed = TRUE))
+  expect_false(grepl("observeEvent(input$heatmap_click, {", server_source,
+                     fixed = TRUE))
+  expect_false(grepl("heatmap_popover_info", server_source, fixed = TRUE))
+  expect_false(grepl("output$heatmap_popover <- renderUI({", server_source,
+                     fixed = TRUE))
   expect_match(server_source, 'event_data("plotly_click", source = "heat_plot"',
                fixed = TRUE)
-  expect_false(grepl('plotlyProxy("heatmapA", session)', server_source,
+  # A cheap marker restyle (not a full heatmap redraw) syncs the selection
+  # marker on click.
+  expect_true(grepl('plotlyProxy("heatmapA", session)', server_source,
+                    fixed = TRUE))
+  expect_match(ui_source, 'plotly::plotlyOutput("heatmapA"', fixed = TRUE)
+  expect_false(grepl('plotOutput(\n                  "heatmapA"', ui_source,
                      fixed = TRUE))
-  expect_match(ui_source, 'plotOutput(\n                  "heatmapA"',
-               fixed = TRUE)
-  expect_match(ui_source, 'plotly::plotlyOutput("heatmapB"', fixed = TRUE)
+  expect_false(grepl('plotly::plotlyOutput("heatmapB"', ui_source,
+                     fixed = TRUE))
   expect_match(server_source, "selected_match <- reactive({", fixed = TRUE)
   expect_match(server_source, "selected_match()", fixed = TRUE)
   expect_false(grepl("selected_match_cache", server_source, fixed = TRUE))
@@ -299,7 +303,8 @@ test_that("bundled app defaults corrections, identification, but not quantificat
   expect_match(server_source,
                "isTRUE(input$active_advanced) && isTRUE(input$collapse_decision)",
                fixed = TRUE)
-  expect_match(server_source, "app_draw_server_heatmap(", fixed = TRUE)
+  expect_match(server_source, "current_heatmap_data <- reactive({",
+               fixed = TRUE)
   expect_match(server_source, "range = target_axis", fixed = TRUE)
   expect_match(server_source,
                "if(!identical(library$wavenumber, target_axis))",
@@ -396,7 +401,7 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
     fixed = TRUE
   )
   expect_match(ui_source,
-               'app_section_switch(\n    "active_advanced", "Advanced", FALSE',
+               'app_section_switch(\n    "active_advanced", "Advanced", TRUE',
                fixed = TRUE)
   expect_match(ui_source,
                "Turning this off negates every Advanced setting.",
@@ -1141,14 +1146,12 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
     data.frame(a = c(1, 2), b = c(2, 3), c = c(3, 4), d = c(4, 5)),
     metadata = data.frame(x = c(0, 1, 0, 1), y = c(0, 0, 1, 1))
   )
-  image <- tempfile(fileext = ".png")
-  grDevices::png(image, width = 600, height = 400)
-  expect_silent(env$app_draw_server_heatmap(
-    map$metadata, c(0.2, 0.4, 0.6, 0.8), title = "Match Value"
-  ))
-  grDevices::dev.off()
-  expect_gt(file.info(image)$size, 0)
-  unlink(image)
+  numeric_data <- env$app_ordinary_heatmap_data(
+    map$metadata, c(0.2, 0.4, 0.6, 0.8), categorical = FALSE,
+    legend_title = "Match Value"
+  )
+  widget <- expect_silent(env$app_particle_plotly(numeric_data))
+  expect_s3_class(widget, "plotly")
 
   categories <- c("PET", "PE", "PP", "PE")
   palette <- env$app_category_palette(categories)
@@ -1188,10 +1191,12 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
   expect_match(server_source,
                '"Thresholded Particles" = "particle_heatmap_thresholded"',
                fixed = TRUE)
-  expect_match(server_source, "app_draw_server_heatmap(", fixed = TRUE)
+  expect_false(grepl("app_draw_server_heatmap(", server_source, fixed = TRUE))
   expect_match(
-    server_source,
-    "app_particle_plotly(sample[[resolved_map_color()]]", fixed = TRUE
+    server_source, "return(sample[[resolved_map_color()]])", fixed = TRUE
+  )
+  expect_match(
+    server_source, "app_particle_plotly(current_heatmap_data()", fixed = TRUE
   )
 })
 

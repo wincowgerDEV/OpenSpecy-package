@@ -345,6 +345,10 @@ write_spec.FileSpecs <- function(x, file, method = NULL, ...) {
 
 .filespec_read <- function(x, index, bands = NULL) {
   values <- .filespec_read_values(x, index = index, bands = bands)
+  .filespec_values_to_OpenSpecy(x, values)
+}
+
+.filespec_values_to_OpenSpecy <- function(x, values) {
   selected <- values$index
   metadata <- .filespec_materialized_metadata(x$source, selected)
   coords <- metadata[, c("x", "y"), with = FALSE]
@@ -359,6 +363,42 @@ write_spec.FileSpecs <- function(x, file, method = NULL, ...) {
     generation = x$cache$generation
   )
   out
+}
+
+# Convert a target in-memory chunk budget (default ~100MB, double precision
+# at 8 bytes/value) into a spectrum count, given the number of spectral
+# bands. Used to size reads relative to a byte budget rather than a flat
+# spectrum count, since the two diverge widely across instruments.
+.filespec_chunk_size_for_bytes <- function(nband, target_bytes = 100 * 1024^2) {
+  bytes_per_spectrum <- max(1, as.numeric(nband)) * 8
+  max(1L, as.integer(floor(target_bytes / bytes_per_spectrum)))
+}
+
+# Positions for a bounded, locality-preserving block of up to `chunk_size`
+# spectra around `position`, all from the same region as `position`. Index
+# rows within one region are stored in the source's on-disk scan order, so a
+# contiguous window of positions is also a spatially local neighborhood.
+.filespec_block_positions <- function(index, position, chunk_size) {
+  region <- index$region[[position]]
+  candidates <- which(index$region == region)
+  half <- as.integer(chunk_size) %/% 2L
+  lo <- max(min(candidates), position - half)
+  hi <- min(max(candidates), lo + as.integer(chunk_size) - 1L)
+  lo <- max(min(candidates), hi - as.integer(chunk_size) + 1L)
+  candidates[candidates >= lo & candidates <= hi]
+}
+
+# Read a block of up to ~100MB (see .filespec_chunk_size_for_bytes())
+# containing `position`, instead of a single spectrum. Callers that browse
+# pixel-by-pixel (e.g. the Shiny app) cache the returned block and only
+# re-read when a later position falls outside it, turning repeat browsing
+# within a neighborhood into a cache hit instead of a fresh disk read.
+.filespec_read_block <- function(x, index, position, chunk_size = NULL) {
+  if (is.null(chunk_size)) {
+    chunk_size <- .filespec_chunk_size_for_bytes(length(x$source$axis))
+  }
+  positions <- .filespec_block_positions(index, position, chunk_size)
+  .filespec_read_values(x, index = positions, bands = NULL)
 }
 
 .filespec_read_values <- function(x, index, bands = NULL) {

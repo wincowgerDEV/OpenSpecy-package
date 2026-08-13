@@ -42,6 +42,73 @@ test_that("automate_particle_analysis() returns details and summaries", {
   )
 })
 
+test_that(".normalize_particle_samples() expands a file-path vector", {
+  normalized <- OpenSpecy:::.normalize_particle_samples(c("a.h5", "b.h5"))
+  expect_type(normalized, "list")
+  expect_length(normalized, 2L)
+  expect_identical(normalized[[1]], "a.h5")
+  expect_identical(normalized[[2]], "b.h5")
+  expect_identical(names(normalized), c("a", "b"))
+
+  single <- OpenSpecy:::.normalize_particle_samples("a.h5")
+  expect_length(single, 1L)
+  expect_identical(single[[1]], "a.h5")
+
+  object <- as_OpenSpecy(1:2, spectra = data.frame(a = 1:2))
+  wrapped <- OpenSpecy:::.normalize_particle_samples(object)
+  expect_length(wrapped, 1L)
+  expect_identical(wrapped[[1]], object)
+})
+
+test_that("automate_particle_analysis() reads a vector of file paths one at a time", {
+  wn <- seq(750, 1800, length.out = 40)
+  pe <- sin(wn / 120) + 1
+  mineral <- cos(wn / 130) + 1
+  lib <- as_OpenSpecy(
+    wn,
+    spectra = cbind(pe = pe, mineral = mineral),
+    metadata = data.frame(
+      x = 0:1,
+      y = 0,
+      sample_name = c("pe", "mineral"),
+      material_class = c("poly(ethylene)", "mineral")
+    )
+  )
+  map <- as_OpenSpecy(
+    wn,
+    spectra = cbind(pe + 0.01, pe + 0.02, mineral + 0.01, rep(0, length(wn))),
+    metadata = data.frame(x = c(0, 1, 0, 1), y = c(0, 0, 1, 1))
+  )
+
+  paths <- c(
+    tempfile("particle-sample-a-", fileext = ".rds"),
+    tempfile("particle-sample-b-", fileext = ".rds")
+  )
+  on.exit(unlink(paths), add = TRUE)
+  write_spec(map, paths[[1L]])
+  write_spec(map, paths[[2L]])
+
+  res <- automate_particle_analysis(
+    paths,
+    lib,
+    sn_threshold_min = 0.001,
+    area_threshold = 0,
+    outputs = c("details", "summary"),
+    process_args = list(smooth_intens = FALSE, make_rel = TRUE)
+  )
+
+  expect_s3_class(res, "OpenSpecyParticleAnalysis")
+  expect_length(res$samples, 2L)
+  expect_identical(
+    names(res$samples),
+    tools::file_path_sans_ext(basename(paths))
+  )
+  expect_gt(nrow(res$particle_details_all_csv), 0)
+  expect_setequal(
+    unique(res$particle_details_all_csv$sample_id), names(res$samples)
+  )
+})
+
 test_that("automate_particle_analysis() rejects removed legacy arguments", {
   wn <- 1:5
   os <- as_OpenSpecy(wn, spectra = matrix(seq_len(10), nrow = 5))

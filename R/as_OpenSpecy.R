@@ -263,7 +263,7 @@ as_OpenSpecy <- function(x, ...) {
 as_OpenSpecy.OpenSpecy <- function(x, session_id = FALSE,
                                    compute_file_id = TRUE, ...) {
   if (!is.matrix(x$spectra)) {
-    x$spectra <- .as_spectra_matrix(x$spectra, message_conversion = TRUE)
+    x$spectra <- .as_spectra_matrix(x$spectra, message_conversion = FALSE)
   }
 
   if(session_id)

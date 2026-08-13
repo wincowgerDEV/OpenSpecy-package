@@ -116,6 +116,16 @@ app_upload_limit_bytes <- function(wasm = app_wasm_mode()) {
   2 * 1024^3
 }
 
+# The HTTP transport ceiling (shiny.maxRequestSize). Wasm mode keeps the same
+# 2 GiB cap as the read_any()-vs-FileSpecs decision threshold (its "upload"
+# is really an in-browser virtual-FS copy, still bounded by browser memory).
+# Local mode raises this well past that decision threshold so large H5/ENVI
+# files can actually reach the server to be routed through FileSpecs instead
+# of being rejected by the transport layer before app logic ever runs.
+app_max_request_size_bytes <- function(wasm = app_wasm_mode()) {
+  if(isTRUE(wasm)) app_upload_limit_bytes(wasm) else 50 * 1024^3
+}
+
 app_upload_limit_label <- function(wasm = app_wasm_mode()) {
   "2 GB"
 }
@@ -123,11 +133,15 @@ app_upload_limit_label <- function(wasm = app_wasm_mode()) {
 app_upload_guidance <- function(wasm = app_wasm_mode(),
                                 local_file = app_local_file_mode()) {
   local_route <- if(isTRUE(local_file) && !isTRUE(wasm)) {
-    "Open Advanced and use Local H5 / ENVI source to bypass the browser copy."
+    paste(
+      "Large H5 or ENVI (.hdr/.dat/.img) files stream automatically from",
+      "disk here instead; this upload's type isn't one of those."
+    )
   } else {
     paste(
-      "Run the local OpenSpecy app with OpenSpecy::run_app(), then open",
-      "Advanced and use Local H5 / ENVI source."
+      "Run the local OpenSpecy app with OpenSpecy::run_app() to stream",
+      "large H5 or ENVI files automatically from disk instead of loading",
+      "them into the browser."
     )
   }
   paste0(
@@ -188,84 +202,6 @@ app_write_particle_archive <- function(files, destination, root) {
   invisible(destination)
 }
 
-app_draw_server_heatmap <- function(metadata, values, categorical = FALSE,
-                                    title = "Map", selected = NULL) {
-  if(!is.data.frame(metadata) || !all(c("x", "y") %in% names(metadata))) {
-    stop("A map requires x and y metadata.", call. = FALSE)
-  }
-  if(length(values) != nrow(metadata)) {
-    stop("Map values must align with metadata rows.", call. = FALSE)
-  }
-  x <- as.numeric(metadata$x)
-  y <- as.numeric(metadata$y)
-  finite_xy <- is.finite(x) & is.finite(y)
-  if(!any(finite_xy)) stop("The map has no finite coordinates.", call. = FALSE)
-
-  if(isTRUE(categorical)) {
-    labels <- as.character(values)
-    levels <- sort(unique(labels[!is.na(labels) & nzchar(labels)]))
-    codes <- match(labels, levels)
-    palette <- grDevices::hcl.colors(max(1L, length(levels)), "Dark 3")
-    legend_labels <- levels
-  } else {
-    numeric_values <- suppressWarnings(as.numeric(values))
-    finite_values <- numeric_values[is.finite(numeric_values)]
-    if(!length(finite_values)) stop("The selected map has no finite values.",
-                                    call. = FALSE)
-    palette <- grDevices::hcl.colors(100L, "Viridis")
-    limits <- range(finite_values)
-    if(identical(limits[[1L]], limits[[2L]])) {
-      codes <- ifelse(is.finite(numeric_values), 50L, NA_integer_)
-    } else {
-      codes <- floor((numeric_values - limits[[1L]]) / diff(limits) * 99) + 1L
-      codes <- pmax(1L, pmin(100L, codes))
-    }
-    legend_labels <- signif(pretty(limits, n = 5), 3)
-    legend_labels <- legend_labels[
-      legend_labels >= limits[[1L]] & legend_labels <= limits[[2L]]
-    ]
-  }
-  colors <- rep(NA_character_, length(codes))
-  keep <- finite_xy & !is.na(codes)
-  colors[keep] <- palette[codes[keep]]
-
-  graphics::par(bg = app_theme$canvas, fg = app_theme$text,
-                col.axis = app_theme$text, col.lab = app_theme$text,
-                col.main = app_theme$text, mar = c(4.5, 4.8, 3.5, 1.5))
-  xs <- sort(unique(x[finite_xy]))
-  ys <- sort(unique(y[finite_xy]))
-  regular <- length(xs) * length(ys) <= max(5e6, 4 * sum(finite_xy)) &&
-    !anyDuplicated(data.frame(x = x[finite_xy], y = y[finite_xy]))
-  if(regular) {
-    z <- matrix(NA_real_, nrow = length(xs), ncol = length(ys))
-    z[cbind(match(x[finite_xy], xs), match(y[finite_xy], ys))] <- codes[finite_xy]
-    graphics::image(xs, ys, z, col = palette, xlab = "X", ylab = "Y",
-                    main = title, asp = 1, useRaster = TRUE)
-  } else {
-    graphics::plot(x[finite_xy], y[finite_xy], col = colors[finite_xy],
-                   pch = 15, cex = 0.7, xlab = "X", ylab = "Y",
-                   main = title, asp = 1)
-  }
-  if(length(selected) == 1L && is.finite(selected) && selected >= 1L &&
-     selected <= nrow(metadata) && finite_xy[[selected]]) {
-    graphics::points(x[[selected]], y[[selected]], pch = 0, cex = 1.4,
-                     lwd = 2, col = app_plot_palette$reference)
-  }
-  if(isTRUE(categorical) && length(legend_labels) &&
-     length(legend_labels) <= 20L) {
-    graphics::legend("topright", legend = legend_labels,
-                     fill = palette[seq_along(legend_labels)], cex = 0.75,
-                     bty = "n", text.col = app_theme$text)
-  } else if(!isTRUE(categorical) && length(legend_labels)) {
-    positions <- if(length(legend_labels) == 1L) 50L else
-      round(seq(1, 100, length.out = length(legend_labels)))
-    graphics::legend("topright", legend = legend_labels,
-                     fill = palette[positions], cex = 0.75, bty = "n",
-                     text.col = app_theme$text, title = title)
-  }
-  graphics::box(col = app_theme$text)
-  invisible(NULL)
-}
 
 app_validate_upload_size <- function(file_info, wasm = app_wasm_mode()) {
   limit <- app_upload_limit_bytes(wasm)
@@ -437,46 +373,48 @@ app_filespec_nearest_position <- function(index, region, x, y, roi = NULL) {
   as.integer(rows[[which.min(distance)]])
 }
 
-app_draw_filespec_preview <- function(preview, selected = NULL) {
+# Reshape app_filespec_preview()'s bounded density-count overview (already
+# downsampled to a small fixed raster, safe for arbitrarily large sources)
+# into the same heatmap plot-data contract app_particle_plotly() consumes,
+# so the FileSpecs raw-browsing state uses the same one Plotly renderer as
+# ordinary maps and particle results instead of a separate base-graphics path.
+app_filespec_preview_data <- function(preview) {
   counts <- preview$counts
   density <- log1p(counts)
-  maximum <- max(density, na.rm = TRUE)
-  palette <- grDevices::colorRampPalette(c("#10243A", "#38BDF8", "#F0E442"))(
-    64L
+  width <- ncol(counts)
+  height <- nrow(counts)
+  xs <- seq(preview$xlim[[1L]], preview$xlim[[2L]], length.out = width)
+  ys <- seq(preview$ylim[[1L]], preview$ylim[[2L]], length.out = height)
+  title <- paste0(
+    preview$region, " — ", format(preview$spectra, big.mark = ","),
+    if(preview$spectra < preview$total_spectra) {
+      paste0(" of ", format(preview$total_spectra, big.mark = ","),
+             " visible pixels")
+    } else {
+      " indexed pixels"
+    }
   )
-  color_index <- if(is.finite(maximum) && maximum > 0) {
-    pmax(1L, pmin(64L, ceiling(density / maximum * 64L)))
+  list(type = "heatmap", x = xs, y = ys, z = t(density),
+       legend_title = "Spectra density", title = title)
+}
+
+# Grid-shaped plot data for an ordinary uploaded map's heatmap (Match
+# Name/ID/Value, Signal/Noise), matching the same contract.
+app_ordinary_heatmap_data <- function(metadata, values, categorical,
+                                      legend_title) {
+  if(categorical) {
+    values <- droplevels(values)
+    levels <- levels(values)
+    grid <- OpenSpecy:::.particle_map_grid(metadata, as.integer(values), 1,
+                                           c(0, 0))
+    list(type = "heatmap_categorical", x = grid$x, y = grid$y, z = grid$z,
+         levels = levels, legend_title = legend_title,
+         palette = app_category_palette(levels), title = legend_title)
   } else {
-    matrix(1L, nrow(counts), ncol(counts))
+    grid <- OpenSpecy:::.particle_map_grid(metadata, values, 1, c(0, 0))
+    list(type = "heatmap", x = grid$x, y = grid$y, z = grid$z,
+         legend_title = legend_title, title = legend_title)
   }
-  colors <- matrix("#050B14", nrow(counts), ncol(counts))
-  colors[counts > 0] <- palette[color_index[counts > 0]]
-  graphics::plot.new()
-  graphics::plot.window(preview$xlim, preview$ylim, asp = 1)
-  graphics::rasterImage(
-    grDevices::as.raster(colors[nrow(colors):1L, , drop = FALSE]),
-    preview$xlim[[1L]], preview$ylim[[1L]],
-    preview$xlim[[2L]], preview$ylim[[2L]], interpolate = FALSE
-  )
-  graphics::axis(1, col = app_theme$axis, col.axis = app_theme$text)
-  graphics::axis(2, col = app_theme$axis, col.axis = app_theme$text)
-  graphics::box(col = app_theme$border)
-  graphics::title(
-    main = paste0(
-      preview$region, " — ", format(preview$spectra, big.mark = ","),
-      if(preview$spectra < preview$total_spectra) paste0(
-        " of ", format(preview$total_spectra, big.mark = ","), " visible pixels"
-      ) else " indexed pixels"
-    ),
-    xlab = preview$xlab, ylab = preview$ylab, col.main = app_theme$text,
-    col.lab = app_theme$text
-  )
-  if(is.list(selected) && all(c("x", "y") %in% names(selected)) &&
-     is.finite(selected$x) && is.finite(selected$y)) {
-    graphics::points(selected$x, selected$y, pch = 4L, lwd = 2.5,
-                     cex = 1.4, col = "#FB7185")
-  }
-  invisible(preview)
 }
 
 app_uploaded_metadata_cache <- function(x, signal_to_noise) {
@@ -515,11 +453,41 @@ app_uploaded_metadata_cache <- function(x, signal_to_noise) {
   metadata
 }
 
-app_uploaded_metadata_display <- function(metadata) {
-  metadata[
+# Metadata columns worth surfacing as a per-pixel "z variable": present, and
+# not constant across every row. Excludes duplicated file/instrument-level
+# metadata (file_name, organization, fixed acquisition settings, etc.) that
+# repeats identically for every pixel and adds no spatial signal.
+app_metadata_variable_columns <- function(metadata, exclude = character()) {
+  candidates <- setdiff(names(metadata), exclude)
+  keep <- vapply(candidates, function(col) {
+    values <- metadata[[col]]
+    length(unique(values[!is.na(values)])) > 1L
+  }, logical(1))
+  candidates[keep]
+}
+
+# Large sources get x/y/z/col_id plus any other per-pixel "z variable" only
+# -- the columns a heatmap could be colored by -- dropping duplicated
+# file-level metadata that would otherwise repeat unchanged across a huge
+# number of rows. Smaller sources keep every column but move the same set to
+# the front, so both cases surface what's spatially informative first.
+app_uploaded_metadata_large_threshold <- 100000L
+
+app_uploaded_metadata_display <- function(metadata, large = NULL) {
+  display <- metadata[
     , !names(metadata) %in% c(".openspecy_index", ".openspecy_coord_key"),
     with = FALSE
   ]
+  if(is.null(large)) {
+    large <- nrow(display) > app_uploaded_metadata_large_threshold
+  }
+  front <- intersect(c("x", "y", "z", "col_id"), names(display))
+  front <- c(front, app_metadata_variable_columns(display, exclude = front))
+  if(isTRUE(large)) {
+    return(display[, front, with = FALSE])
+  }
+  data.table::setcolorder(display, c(front, setdiff(names(display), front)))
+  display
 }
 
 app_uploaded_metadata_spectrum <- function(metadata, rows_selected) {
@@ -539,8 +507,18 @@ app_uploaded_metadata_row <- function(metadata, spectrum_index) {
 }
 
 app_uploaded_metadata_table <- function(metadata) {
+  large <- nrow(metadata) > app_uploaded_metadata_large_threshold
+  caption <- if(isTRUE(large)) {
+    paste0(
+      "Uploaded Metadata (", format(nrow(metadata), big.mark = ","),
+      " spectra: showing only x/y/z and other per-pixel columns that vary",
+      " across spectra; unchanging file-level columns are hidden)"
+    )
+  } else {
+    "Uploaded Metadata"
+  }
   DT::datatable(
-    app_uploaded_metadata_display(metadata),
+    app_uploaded_metadata_display(metadata, large = large),
     escape = TRUE,
     options = list(
       searchHighlight = TRUE,
@@ -551,15 +529,18 @@ app_uploaded_metadata_table <- function(metadata) {
     ),
     rownames = FALSE,
     filter = "top",
-    caption = "Uploaded Metadata",
+    caption = caption,
     style = "bootstrap",
     selection = "single"
   )
 }
 
 app_selected_metadata <- function(x, selected_match, signal_to_noise) {
+  # Downloaded/matched output keeps every column regardless of source size --
+  # the large-source reduction in app_uploaded_metadata_display() is a
+  # display-only convenience for the Uploaded Metadata tab.
   metadata <- app_uploaded_metadata_display(
-    app_uploaded_metadata_cache(x, signal_to_noise)
+    app_uploaded_metadata_cache(x, signal_to_noise), large = FALSE
   )
   selected_match <- data.table::copy(
     data.table::as.data.table(selected_match)
@@ -1790,6 +1771,11 @@ app_category_colors <- c(
   "#D55E00", "#7FDBFF", "#98D8C8", "#F4A6C1", "#FDD17A"
 )
 
+# One canonical color per label, shared by the heatmap (ordinary "Match
+# Name" and particle "Particle Image" modes), the Summary material-class bar
+# chart, and particle_image()'s static export. Known material-class names
+# (R/particle_image.R's .particle_material_palette()) always get their fixed
+# color; anything else cycles the app's categorical palette in sorted order.
 app_category_palette <- function(values) {
   labels <- if(is.factor(values)) {
     levels(values)
@@ -1797,10 +1783,15 @@ app_category_palette <- function(values) {
     sort(unique(as.character(values[!is.na(values)])))
   }
   if(!length(labels)) return(stats::setNames(character(), character()))
-  stats::setNames(
-    rep(app_category_colors, length.out = length(labels)),
-    labels
-  )
+  known <- OpenSpecy:::.particle_material_palette()
+  matched <- labels %in% names(known)
+  colors <- rep(NA_character_, length(labels))
+  colors[matched] <- unname(known[labels[matched]])
+  if(any(!matched)) {
+    colors[!matched] <- rep(app_category_colors,
+                            length.out = sum(!matched))
+  }
+  stats::setNames(colors, labels)
 }
 
 app_category_colorscale <- function(values) {
@@ -2385,12 +2376,36 @@ app_indexed_colorscale <- function(colors) {
   }), recursive = FALSE)
 }
 
+# Per-cell hover text for a heatmap-family plot-data list. Returns a
+# character matrix with the same dims as t(data$z), matching plotly's
+# column-major (x-major) layout for a transposed z matrix.
+app_heatmap_hover_text <- function(data, legend_title, levels = NULL) {
+  xs <- data$x
+  ys <- data$y
+  z_t <- t(data$z)
+  z_label <- if (!is.null(levels)) {
+    ifelse(is.na(z_t), NA_character_, levels[z_t])
+  } else {
+    ifelse(is.na(z_t), NA_character_, format(signif(z_t, 3), trim = TRUE))
+  }
+  value_line <- ifelse(
+    is.na(z_label), "no data", paste0(legend_title, ": ", z_label)
+  )
+  matrix(
+    paste0("x: ", rep(xs, each = length(ys)), "<br>y: ",
+           rep(ys, times = length(xs)), "<br>", value_line),
+    nrow = length(ys), ncol = length(xs)
+  )
+}
+
 # Render one automate_particle_analysis() plot-data list (see
 # R/automate_particle_analysis.R) as a themed, interactive plotly object.
-# Mirrors the pre-FileSpecs heatmapA/MyPlotC theme via app_style_plotly()
-# instead of the base-graphics rendering automate_particle_analysis() keeps
-# for its own plot() method and static PNG/JPG downloads.
-app_particle_plotly <- function(data, source = "heat_plot") {
+# Mirrors the pre-FileSpecs heatmapA/MyPlotC Plotly theme: a heatmap trace
+# (hover-only metadata, no click popover) plus a second, always-present
+# marker trace that server.R moves via plotlyProxyInvoke("restyle", ...)
+# on selection change instead of a full redraw. `select` is the currently
+# selected point's data coordinates (list(x=, y=)) or NULL.
+app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
   if (is.null(data) || identical(data$type, "empty")) {
     reason <- if (!is.null(data$reason)) data$reason else "no data available"
     plot <- plotly::plot_ly(source = source) |>
@@ -2425,6 +2440,7 @@ app_particle_plotly <- function(data, source = "heat_plot") {
   legend_title <- if (isTruthy(data$legend_title)) data$legend_title else
     "Value"
   categorical <- data$type %in% c("heatmap_binary", "heatmap_categorical")
+  levels <- NULL
   if (identical(data$type, "heatmap_binary")) {
     z <- t(data$z) + 1L
     levels <- data$labels
@@ -2435,12 +2451,25 @@ app_particle_plotly <- function(data, source = "heat_plot") {
     z <- t(data$z)
     levels <- data$levels
     colors <- if (!is.null(data$palette)) data$palette[levels] else
-      grDevices::hcl.colors(length(levels), "Viridis")
-    colorscale <- app_indexed_colorscale(colors)
+      app_category_palette(levels)
+    colorscale <- app_indexed_colorscale(colors[levels])
   } else {
     z <- t(data$z)
     colorscale <- app_heatmap_colorscale
   }
+  hover_text <- app_heatmap_hover_text(data, legend_title, levels)
+
+  legend_layout <- app_heatmap_legend_layout(legend_title)
+  colorbar <- if (categorical) {
+    utils::modifyList(legend_layout$colorbar, list(
+      tickmode = "array", tickvals = seq_along(levels), ticktext = levels
+    ))
+  } else {
+    legend_layout$colorbar
+  }
+
+  select_x <- if (!is.null(select) && is.finite(select$x)) select$x else NA
+  select_y <- if (!is.null(select) && is.finite(select$y)) select$y else NA
 
   plot <- plotly::plot_ly(source = source) |>
     plotly::add_trace(
@@ -2448,17 +2477,19 @@ app_particle_plotly <- function(data, source = "heat_plot") {
       colorscale = colorscale,
       zmin = if (categorical) 0.5 else NULL,
       zmax = if (categorical) length(levels) + 0.5 else NULL,
-      showscale = TRUE,
-      colorbar = if (categorical) {
-        list(tickmode = "array", tickvals = seq_along(levels),
-             ticktext = levels, title = list(text = legend_title))
-      } else {
-        list(title = list(text = legend_title))
-      }
+      showscale = TRUE, colorbar = colorbar,
+      hoverinfo = "text", text = hover_text
+    ) |>
+    plotly::add_trace(
+      x = select_x, y = select_y, type = "scatter", mode = "markers",
+      marker = list(color = "#F59E0B", size = 14, opacity = 1,
+                    line = list(color = "#FFF7ED", width = 2)),
+      hoverinfo = "skip", showlegend = FALSE, name = "Selected"
     ) |>
     plotly::layout(
       title = data$title, xaxis = list(title = "X (um)"),
-      yaxis = list(title = "Y (um)")
+      yaxis = list(title = "Y (um)", scaleanchor = "x", scaleratio = 1),
+      showlegend = FALSE, margin = legend_layout$margin
     ) |>
     app_style_plotly()
   plotly::event_register(plot, "plotly_click")

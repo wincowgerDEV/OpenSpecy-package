@@ -26,14 +26,17 @@ test_that("large FileSpecs controls are local-only and app sources parse", {
   expect_match(ui_source, "if(app_local_file_mode()) bs4Dash::box",
                fixed = TRUE)
   expect_match(ui_source, 'id = "filespec_source_box"', fixed = TRUE)
-  expect_match(ui_source, '"active_advanced", "Advanced", FALSE', fixed = TRUE)
-  expect_match(ui_source, 'plotOutput(\n                  "heatmapA"', fixed = TRUE)
+  expect_match(ui_source, '"active_advanced", "Advanced", TRUE', fixed = TRUE)
+  expect_match(ui_source, 'plotly::plotlyOutput("heatmapA"', fixed = TRUE)
   expect_match(ui_source, "output.filespec_active === true", fixed = TRUE)
-  expect_match(ui_source, 'id = "heatmap_brush"', fixed = TRUE)
+  expect_false(grepl('id = "heatmap_brush"', ui_source, fixed = TRUE))
   expect_match(ui_source, '"filespec_close"', fixed = TRUE)
   expect_match(ui_source, "read-only", fixed = TRUE)
   expect_false(grepl("openspecy-upload-guidance", ui_source, fixed = TRUE))
-  expect_false(grepl('plotlyOutput("heatmapA")', ui_source, fixed = TRUE))
+  # There is no longer a manual open-path entry point; large local files
+  # route through the standard upload automatically (R6).
+  expect_false(grepl('"filespec_path"', ui_source, fixed = TRUE))
+  expect_false(grepl('"filespec_open"', ui_source, fixed = TRUE))
 })
 
 test_that("local filesystem access requires an explicit non-wasm opt-in", {
@@ -97,15 +100,21 @@ test_that("the app FileSpecs cache uses an override or process temp storage", {
 test_that("browser uploads use one 2 GB cap and oversize guidance", {
   app <- source_filespec_app_global()
   env <- app$env
+  old_local <- getOption("openspecy.shiny.local_files", NULL)
+  on.exit(options(openspecy.shiny.local_files = old_local), add = TRUE)
 
   expect_true(env$app_validate_upload_size(
     data.frame(size = 2 * 1024^3), wasm = FALSE
   )$ok)
+  # With local-file access opted in, an oversize upload is expected to
+  # auto-route through FileSpecs rather than being rejected outright.
+  options(openspecy.shiny.local_files = TRUE)
   local <- env$app_validate_upload_size(
     data.frame(size = 2 * 1024^3 + 1), wasm = FALSE
   )
   expect_false(local$ok)
-  expect_match(local$message, "Local H5 / ENVI source", fixed = TRUE)
+  expect_match(local$message, "stream automatically from", fixed = TRUE)
+  options(openspecy.shiny.local_files = old_local)
   hosted <- env$app_validate_upload_size(
     data.frame(size = 2 * 1024^3 + 1), wasm = TRUE
   )
@@ -195,17 +204,22 @@ test_that("server heatmaps render categorical and continuous map values", {
   app <- source_filespec_app_global()
   env <- app$env
   metadata <- expand.grid(x = 0:2, y = 0:1)
-  image <- tempfile(fileext = ".png")
-  on.exit(unlink(image), add = TRUE)
-  grDevices::png(image, width = 600, height = 400)
-  expect_no_error(env$app_draw_server_heatmap(
-    metadata, seq_len(nrow(metadata)), title = "Signal"
-  ))
-  expect_no_error(env$app_draw_server_heatmap(
-    metadata, rep(c("a", "b"), 3), categorical = TRUE, title = "Material"
-  ))
-  grDevices::dev.off()
-  expect_gt(file.info(image)$size, 0)
+
+  numeric_data <- env$app_ordinary_heatmap_data(
+    metadata, seq_len(nrow(metadata)), categorical = FALSE,
+    legend_title = "Signal"
+  )
+  numeric_widget <- expect_no_error(env$app_particle_plotly(numeric_data))
+  expect_s3_class(numeric_widget, "plotly")
+
+  categorical_data <- env$app_ordinary_heatmap_data(
+    metadata, factor(rep(c("a", "b"), 3)), categorical = TRUE,
+    legend_title = "Material"
+  )
+  categorical_widget <- expect_no_error(
+    env$app_particle_plotly(categorical_data)
+  )
+  expect_s3_class(categorical_widget, "plotly")
 })
 
 test_that("large source server path materializes only one selection", {
@@ -218,8 +232,16 @@ test_that("large source server path materializes only one selection", {
   expect_match(server_source, "final_specs <- reactiveVal(NULL)", fixed = TRUE)
   expect_match(server_source, "final_selection <- reactiveVal(NULL)",
                fixed = TRUE)
-  expect_match(server_source,
-               "OpenSpecy:::.filespec_read(specs, position)", fixed = TRUE)
+  # A ~100MB neighborhood block is read (and cached) around the requested
+  # position, instead of streaming a single spectrum per selection (R7).
+  expect_match(
+    server_source,
+    "OpenSpecy:::.filespec_read_block(specs, index, position)", fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "OpenSpecy:::.filespec_values_to_OpenSpecy(specs, values)", fixed = TRUE
+  )
   expect_match(server_source, "final_selection(selected)", fixed = TRUE)
   expect_match(server_source, "preprocessed$data <- selected", fixed = TRUE)
   expect_match(server_source, "OpenSpecy:::.filespec_index(opened)",
@@ -230,9 +252,12 @@ test_that("large source server path materializes only one selection", {
   expect_match(server_source, "da <- active_source()", fixed = TRUE)
   expect_match(server_source, "filespec_viewport_state <- reactiveVal(NULL)",
                fixed = TRUE)
-  expect_match(server_source, "input$heatmap_brush", fixed = TRUE)
+  expect_false(grepl("input$heatmap_brush", server_source, fixed = TRUE))
   expect_match(server_source, "automate_particle_analysis(", fixed = TRUE)
-  expect_match(server_source, "req(app_local_file_mode())", fixed = TRUE)
+  # Large local files auto-route through FileSpecs from the standard upload;
+  # there is no longer a separate manual local-file entry point (R6).
+  expect_match(server_source, "app_local_file_mode() && filespec_compatible",
+               fixed = TRUE)
   expect_match(server_source, "cache_dir = app_filespec_cache_dir()",
                fixed = TRUE)
   expect_match(server_source, "session$onSessionEnded(function()", fixed = TRUE)
@@ -240,7 +265,7 @@ test_that("large source server path materializes only one selection", {
                "upload_size <- app_validate_upload_size", fixed = TRUE)
   expect_match(
     server_source,
-    "options(shiny.maxRequestSize = app_upload_limit_bytes())",
+    "options(shiny.maxRequestSize = app_max_request_size_bytes())",
     fixed = TRUE
   )
   expect_false(grepl("10000*1024^2", server_source, fixed = TRUE))
@@ -254,8 +279,12 @@ test_that("large source server path materializes only one selection", {
   expect_false(grepl("escape = FALSE", global_source, fixed = TRUE))
   expect_false(grepl("escape = FALSE", server_source, fixed = TRUE))
 
-  opener <- sub(".*observeEvent\\(input\\$filespec_open", "", server_source)
-  opener <- sub("observeEvent\\(input\\$support_openspecy.*", "", opener)
+  # There is no longer a separate manual open entry point -- large local
+  # files auto-route through open_via_filespecs() from the standard upload
+  # handler (R6); it should still avoid Plotly calls and whole-source
+  # decompress_spec() materialization.
+  opener <- sub(".*open_via_filespecs <- function", "", server_source)
+  opener <- sub("observeEvent\\(input\\$filespec_region.*", "", opener)
   expect_false(grepl("plotly", opener, ignore.case = TRUE))
   expect_false(grepl("decompress_spec", opener, fixed = TRUE))
 })

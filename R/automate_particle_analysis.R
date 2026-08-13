@@ -387,7 +387,11 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
 }
 
 .normalize_particle_samples <- function(x) {
-  if (is.character(x) || is_OpenSpecy(x) || is_Specs(x)) x <- list(x)
+  if (is.character(x) && length(x) > 1L) {
+    x <- as.list(x)
+  } else if (is.character(x) || is_OpenSpecy(x) || is_Specs(x)) {
+    x <- list(x)
+  }
   if (!is.list(x)) {
     stop("'x' must be files, OpenSpecy/Specs objects, or a list",
          call. = FALSE)
@@ -886,6 +890,8 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
 
 .draw_particle_heatmap <- function(data, main) {
   cols <- grDevices::hcl.colors(100, "Viridis")
+  old_par <- graphics::par(mar = graphics::par("mar") + c(0, 0, 0, 6))
+  on.exit(graphics::par(old_par), add = TRUE)
   graphics::image(data$x, data$y, data$z, col = cols,
                   xlab = "X (um)", ylab = "Y (um)", main = main, asp = 1)
   .add_particle_continuous_legend(data$z, cols, title = data$legend_title)
@@ -924,13 +930,20 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
 
 .draw_particle_categorical_heatmap <- function(data, main) {
   cols <- grDevices::hcl.colors(length(data$levels), "Viridis")
+  old_par <- graphics::par(mar = graphics::par("mar") + c(0, 0, 0, 6))
+  on.exit(graphics::par(old_par), add = TRUE)
   graphics::image(data$x, data$y, data$z,
                   breaks = seq(0.5, length(data$levels) + 0.5, by = 1),
                   col = cols, xlab = "X (um)", ylab = "Y (um)", main = main,
                   asp = 1)
-  graphics::legend("topright", legend = data$levels, fill = cols,
-                   title = data$legend_title, cex = 1, bty = "n",
-                   inset = 0.01)
+  usr <- graphics::par("usr")
+  old_xpd <- graphics::par(xpd = NA)
+  on.exit(graphics::par(old_xpd), add = TRUE)
+  graphics::legend(
+    x = usr[[2L]] + 0.5 * graphics::par("cxy")[[1L]], y = usr[[4L]],
+    legend = data$levels, fill = cols, title = data$legend_title,
+    cex = 0.85, bty = "n", xjust = 0, yjust = 1
+  )
   graphics::box()
   invisible(data)
 }
@@ -982,18 +995,15 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   rng <- scale$range
   ticks <- scale$ticks
   usr <- graphics::par("usr")
-  dx <- diff(usr[1:2])
   dy <- diff(usr[3:4])
-  xleft <- usr[[1L]] + 0.82 * dx
-  xright <- usr[[1L]] + 0.86 * dx
-  ybottom <- usr[[3L]] + 0.50 * dy
-  ytop <- usr[[3L]] + 0.88 * dy
+  char_width <- graphics::par("cxy")[[1L]]
+  old_xpd <- graphics::par(xpd = NA)
+  on.exit(graphics::par(old_xpd), add = TRUE)
+  xleft <- usr[[2L]] + 1.0 * char_width
+  xright <- usr[[2L]] + 2.0 * char_width
+  ybottom <- usr[[3L]] + 0.15 * dy
+  ytop <- usr[[3L]] + 0.85 * dy
   gradient <- grDevices::as.raster(matrix(rev(cols), ncol = 1L))
-  graphics::rect(
-    xleft - 0.01 * dx, ybottom - 0.025 * dy,
-    usr[[1L]] + 0.985 * dx, ytop + 0.075 * dy,
-    col = grDevices::adjustcolor("white", alpha.f = 0.88), border = NA
-  )
   graphics::rasterImage(
     gradient, xleft, ybottom, xright, ytop, interpolate = TRUE
   )
@@ -1004,15 +1014,15 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     ybottom + (ticks - rng[[1L]]) / diff(rng) * (ytop - ybottom)
   }
   graphics::segments(
-    xright, positions, xright + 0.012 * dx, positions, col = "grey20"
+    xright, positions, xright + 0.3 * char_width, positions, col = "grey20"
   )
   graphics::text(
-    xright + 0.018 * dx, positions,
+    xright + 0.4 * char_width, positions,
     labels = format(signif(ticks, 3), trim = TRUE),
     adj = c(0, 0.5), cex = 0.75, col = "grey10"
   )
   graphics::text(
-    (xleft + xright) / 2, ytop + 0.04 * dy,
+    (xleft + xright) / 2, ytop + 0.06 * dy,
     labels = title, adj = c(0.5, 0), cex = 0.8, col = "grey10"
   )
   scale$legend <- "continuous_gradient"

@@ -21,7 +21,7 @@ cache_dir <- Sys.getenv(
 
 # These are the current scientific decision thresholds. They are also drawn on
 # the returned S/N and maximum-correlation histograms.
-sn_threshold_min <- 1e6
+sn_threshold_min <- 1e7
 sn_threshold_max <- Inf
 cor_threshold <- 0.7
 
@@ -30,7 +30,7 @@ lib <- load_lib("medoid_derivative")
 
 wd = "C:\\Users\\winco\\OneDrive\\Documents\\EWG"
 source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\test_1um.h5"
-map <- open_specs(source_file, cache_dir = cache_dir)
+map <- open_specs(source_file, cache_dir = wd)
 print(map)
 
 # Region views share the immutable source and cache. This is useful for
@@ -43,9 +43,9 @@ map <- read_any("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\test_1um.h5")
 files = list.files(wd, pattern = "(blank|drop|spike)Region.*\\.rds", full.names = TRUE)
 files = files[!grepl("particles", files)]
 files_list = read_any(files)
-result <- lapply(files, function(x){
-  automate_particle_analysis( 
-    x,
+
+result2 <- automate_particle_analysis( 
+    map,
     library = lib,
     output_dir = wd,
     material_col = "material_class",
@@ -66,13 +66,12 @@ result <- lapply(files, function(x){
       "sn_histogram", "cor_histogram", "time"
     ),
     origins = list(x = 0, y = 0)
-  )
-})
+)
 
 # plot() replaces replayPlot() and accepts a region/sample name or position.
-plot(result, sample = 1, which = "particle_heatmap")
+plot(result2, sample = 1, which = "particle_heatmap")
 plot(result, sample = 1, which = "sn_histogram")
-plot(result, sample = 1, which = "particle_image")
+plot(result2, sample = 1, which = "particle_image")
 
 result$particle_details_all_csv
 result$particle_summary_all_csv

@@ -24,7 +24,7 @@ test_that("write_spec() works without errors", {
 
 test_that("read_spec() gives expected output", {
   jsn <- read_extdata("raman_hdpe.json") |> read_spec() |> expect_silent()
-  expect_message(rds <- read_extdata("raman_hdpe.rds") |> read_spec())
+  rds <- read_extdata("raman_hdpe.rds") |> read_spec() |> expect_silent()
   csv <- read_extdata("raman_hdpe_os.csv") |> read_spec() |> expect_silent()
 
   expect_s3_class(jsn, "OpenSpecy")

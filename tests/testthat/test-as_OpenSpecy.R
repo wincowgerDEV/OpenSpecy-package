@@ -75,7 +75,7 @@ test_that("as_OpenSpecy() upgrades old data.table spectra", {
   old <- os
   old$spectra <- data.table::as.data.table(old$spectra)
 
-  expect_message(upgraded <- as_OpenSpecy(old), "data.table")
+  expect_silent(upgraded <- as_OpenSpecy(old))
   expect_true(is.matrix(upgraded$spectra))
   expect_equal(upgraded$spectra, os$spectra)
 })

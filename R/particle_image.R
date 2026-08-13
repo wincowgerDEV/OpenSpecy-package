@@ -54,6 +54,11 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
          call. = FALSE)
   }
 
+  if (isTRUE(legend)) {
+    old_par <- graphics::par(mar = graphics::par("mar") + c(0, 0, 0, 6))
+    on.exit(graphics::par(old_par), add = TRUE)
+  }
+
   vi <- if (is_OpenSpecy(x) || is_Specs(x)) {
     .resolve_visual_image(x, img = image, bottom_left = bottom_left,
                           top_right = top_right)
@@ -122,8 +127,14 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
   }
 
   if (isTRUE(legend) && length(pal)) {
-    graphics::legend("topright", legend = names(pal), fill = pal,
-                     cex = 0.8, bty = "n")
+    usr <- graphics::par("usr")
+    old_xpd <- graphics::par(xpd = NA)
+    on.exit(graphics::par(old_xpd), add = TRUE)
+    graphics::legend(
+      x = usr[[2L]] + 0.5 * graphics::par("cxy")[[1L]], y = usr[[4L]],
+      legend = names(pal), fill = pal, cex = 0.8, bty = "n",
+      xjust = 0, yjust = 1
+    )
   }
 
   invisible(dt)

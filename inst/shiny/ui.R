@@ -256,37 +256,24 @@ identification_controls <- tagList(
 
 advanced_controls <- tagList(
   app_section_switch(
-    "active_advanced", "Advanced", FALSE,
+    "active_advanced", "Advanced", TRUE,
     "Enables the map thresholds, spatial controls, and particle pipeline below. Turning this off negates every Advanced setting."
   ),
   if(app_local_file_mode()) bs4Dash::box(
     id = "filespec_source_box",
-    title = "Local H5 / ENVI source",
+    title = "File-backed source",
     width = 12,
     collapsible = TRUE,
     collapsed = TRUE,
     tags$p(
       class = "openspecy-filespec-intro",
       paste(
-        "Open one H5 file or ENVI .hdr/.dat/.img member by local path.",
-        "The source stays read-only and spectra stream from disk. Configure",
-        "the particle settings below before opening the source."
-      )
-    ),
-    fluidRow(
-      column(
-        8,
-        textInput(
-          "filespec_path", "Source path",
-          placeholder = "C:/data/hyperspectral-map.h5"
-        )
-      ),
-      column(
-        4,
-        actionButton(
-          "filespec_open", "Open read-only",
-          icon = icon("folder-open"), class = "btn-primary"
-        )
+        "Uploads over the browser limit stream read-only from disk",
+        "automatically here in the local app instead of loading into",
+        "memory -- use the standard upload above. Everything downstream",
+        "(preprocessing, identification, particle analysis, downloads)",
+        "works the same as an ordinary upload; large files are just",
+        "slower."
       )
     ),
     tags$p(
@@ -1169,29 +1156,6 @@ dashboardPage(
         }
         .openspecy-plot-frame { padding: 8px; margin: 8px 0 16px; }
         .openspecy-mini-plot { margin-top: 8px; }
-        .openspecy-heatmap-popover {
-          position: absolute;
-          top: 16px;
-          right: 16px;
-          z-index: 20;
-          max-width: 220px;
-          padding: 8px 10px;
-          border: 1px solid var(--openspecy-border);
-          border-radius: 8px;
-          background: var(--openspecy-panel-2);
-          box-shadow: 0 8px 20px rgba(0, 0, 0, .35);
-          font-size: 12px;
-          line-height: 1.5;
-          pointer-events: none;
-        }
-        .openspecy-heatmap-popover table { width: 100%; }
-        .openspecy-heatmap-popover th {
-          text-align: left;
-          padding-right: 8px;
-          font-weight: 600;
-          opacity: .75;
-        }
-        .openspecy-heatmap-popover td { text-align: right; }
         #filespec_source_box { margin-bottom: 18px; }
         .openspecy-filespec-toolbar {
           display: flex;
@@ -1416,16 +1380,7 @@ dashboardPage(
                 id = "heatmap_frame",
                 class = "openspecy-plot-frame",
                 style = "display:none; position: relative;",
-                plotOutput(
-                  "heatmapA", height = "48vh",
-                  click = clickOpts(id = "heatmap_click", clip = TRUE),
-                  brush = brushOpts(
-                    id = "heatmap_brush", direction = "xy",
-                    resetOnNew = TRUE
-                  )
-                ),
-                plotly::plotlyOutput("heatmapB", height = "48vh"),
-                uiOutput("heatmap_popover")
+                plotly::plotlyOutput("heatmapA", height = "48vh")
               )
             ),
             column(1, uiOutput("nav_buttons"))

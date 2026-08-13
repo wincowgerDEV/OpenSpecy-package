@@ -1,7 +1,7 @@
 function(input, output, session) {
     
   #Setup ----
-    options(shiny.maxRequestSize = app_upload_limit_bytes())
+    options(shiny.maxRequestSize = app_max_request_size_bytes())
     
     #URL Query
     # observeEvent(session$clientData$url_search, {
@@ -39,6 +39,10 @@ function(input, output, session) {
   filespec_index_state <- reactiveVal(NULL)
   filespec_selected_position <- reactiveVal(NULL)
   filespec_viewport_state <- reactiveVal(NULL)
+  # Not reactive: a plain read-through I/O cache for the last ~100MB block
+  # read via load_filespec_selection(), so browsing pixel-by-pixel within one
+  # neighborhood reuses it instead of hitting disk on every click.
+  filespec_block_cache <- new.env(parent = emptyenv())
   filespec_status_state <- reactiveVal(
     paste(
       "No file-backed source is open. This control is available only in",
@@ -46,7 +50,6 @@ function(input, output, session) {
     )
   )
   data_click <- reactiveValues(plot = NULL, table = NULL)
-  heatmap_popover_info <- reactiveVal(NULL)
   meta_cache <- reactiveVal(NULL)
   correction_diagnostics <- reactiveVal(data.frame())
   ratio_definitions <- reactiveVal(app_empty_ratio_definitions())
@@ -86,6 +89,7 @@ function(input, output, session) {
     filespec_index_state(NULL)
     filespec_selected_position(NULL)
     filespec_viewport_state(NULL)
+    filespec_block_cache$block <- NULL
     meta_cache(NULL)
     if(!is.null(status)) filespec_status_state(status)
     invisible(NULL)
@@ -100,16 +104,60 @@ function(input, output, session) {
        position > nrow(index)) return(invisible(FALSE))
 
     row <- index[position, , drop = FALSE]
-    analysis_phase(
-      "Reading one file-backed spectrum",
-      paste0(
-        "Materializing pixel ", row$col_id[[1L]], " from ",
-        row$region[[1L]], "; the remaining spectra stay on disk."
-      ),
-      16
-    )
+    cache <- filespec_block_cache$block
+    cached_col <- if(!is.null(cache) &&
+                     identical(cache$source_id, specs$source$id)) {
+      match(position, cache$values$index$index)
+    } else {
+      NA_integer_
+    }
+    if(!is.na(cached_col)) {
+      analysis_phase(
+        "Reading one file-backed spectrum",
+        paste0(
+          "Reusing the cached neighborhood block for pixel ",
+          row$col_id[[1L]], " from ", row$region[[1L]], "."
+        ),
+        16
+      )
+      values <- list(
+        wavenumber = cache$values$wavenumber,
+        spectra = cache$values$spectra[, cached_col, drop = FALSE],
+        index = cache$values$index[cached_col]
+      )
+    } else {
+      analysis_phase(
+        "Reading a file-backed neighborhood",
+        paste0(
+          "Materializing a bounded block (up to ~100MB) around pixel ",
+          row$col_id[[1L]], " from ", row$region[[1L]],
+          "; the rest of the source stays on disk."
+        ),
+        16
+      )
+      block <- tryCatch(
+        OpenSpecy:::.filespec_read_block(specs, index, position),
+        error = identity
+      )
+      if(inherits(block, "error")) {
+        show_alert(
+          title = "Unable to read that pixel",
+          text = conditionMessage(block), type = "error"
+        )
+        return(invisible(FALSE))
+      }
+      filespec_block_cache$block <- list(
+        source_id = specs$source$id, values = block
+      )
+      cached_col <- match(position, block$index$index)
+      values <- list(
+        wavenumber = block$wavenumber,
+        spectra = block$spectra[, cached_col, drop = FALSE],
+        index = block$index[cached_col]
+      )
+    }
     selected <- tryCatch(
-      OpenSpecy:::.filespec_read(specs, position),
+      OpenSpecy:::.filespec_values_to_OpenSpecy(specs, values),
       error = identity
     )
     if(inherits(selected, "error")) {
@@ -150,29 +198,11 @@ function(input, output, session) {
   outputOptions(output, "filespec_status", suspendWhenHidden = FALSE)
   outputOptions(output, "filespec_active", suspendWhenHidden = FALSE)
 
-  observeEvent(input$filespec_open, {
-    req(app_local_file_mode())
-    if(!isTRUE(input$active_advanced) || !isTRUE(input$collapse_decision)) {
-      show_alert(
-        title = "Enable Advanced particle analysis",
-        text = paste(
-          "Turn on the Advanced master switch and Collapse Particle Spectra",
-          "before opening a local H5 or ENVI source."
-        ),
-        type = "warning"
-      )
-      return()
-    }
-    path <- trimws(as.character(input$filespec_path))
-    if(length(path) != 1L || is.na(path) || !nzchar(path)) {
-      show_alert(
-        title = "Enter a source path",
-        text = "Choose one existing H5 file or ENVI .hdr/.dat/.img member.",
-        type = "warning"
-      )
-      return()
-    }
-
+  # Open a local H5/ENVI path as a bounded, read-only FileSpecs source and
+  # select its first pixel. Reused by the standard upload handler for large
+  # local files (open_via_filespecs()) -- there is no longer a separate
+  # manual "Local H5/ENVI source" entry point.
+  open_via_filespecs <- function(path, display_name = basename(path)) {
     preprocessed$data <- NULL
     clear_filespec_state("Validating the requested source path...")
     correction_diagnostics(data.frame())
@@ -181,7 +211,6 @@ function(input, output, session) {
     quantification_axis(NULL)
     data_click$plot <- 1L
     data_click$table <- 1L
-    shinyjs::reset("file")
     source_bytes <- suppressWarnings(file.info(path)$size)
     size_text <- if(length(source_bytes) && is.finite(source_bytes)) {
       paste0(" (", format(structure(source_bytes, class = "object_size"),
@@ -190,8 +219,9 @@ function(input, output, session) {
     analysis_phase(
       "Indexing a large source",
       paste0(
-        "Opening ", basename(path), size_text,
-        " read-only and fingerprinting its H5/ENVI members."
+        "Opening ", display_name, size_text,
+        " read-only and fingerprinting its H5/ENVI members. Uploads over ",
+        "the browser limit stream from disk instead of loading into memory."
       ),
       7
     )
@@ -205,7 +235,7 @@ function(input, output, session) {
         title = "Unable to open the large source",
         text = conditionMessage(opened), type = "error"
       )
-      return()
+      return(invisible(FALSE))
     }
     index <- tryCatch(OpenSpecy:::.filespec_index(opened), error = identity)
     if(inherits(index, "error") || !nrow(index)) {
@@ -214,7 +244,7 @@ function(input, output, session) {
       clear_filespec_state(paste0("Open failed: ", message))
       show_alert(title = "Unable to index the large source", text = message,
                  type = "error")
-      return()
+      return(invisible(FALSE))
     }
 
     regions <- OpenSpecy:::.filespec_regions(opened)
@@ -223,14 +253,6 @@ function(input, output, session) {
     filespec_viewport_state(app_filespec_extent(index, regions[[1L]]))
     updateSelectInput(
       session, "filespec_region", choices = regions, selected = regions[[1L]]
-    )
-    updatePickerInput(
-      session, "collapse_type", choices = "Mean", selected = "Mean"
-    )
-    updatePickerInput(
-      session, "particle_id_strategy",
-      choices = c("Connected threshold regions" = "collapse"),
-      selected = "collapse"
     )
     analysis_phase(
       "Preparing the bounded map",
@@ -242,7 +264,8 @@ function(input, output, session) {
     )
     first <- app_filespec_region_rows(index, regions[[1L]])[[1L]]
     load_filespec_selection(first)
-  }, ignoreInit = TRUE)
+    invisible(TRUE)
+  }
 
   observeEvent(input$filespec_region, {
     index <- isolate(filespec_index_state())
@@ -365,6 +388,17 @@ observeEvent(input$file, {
 
   upload_size <- app_validate_upload_size(input$file, app_wasm_mode())
   if(!isTRUE(upload_size$ok)) {
+    # One upload control for every source: a local (non-wasm) H5/ENVI file
+    # over the browser cap streams from disk via FileSpecs instead of being
+    # rejected. Standard functionality is otherwise identical, just slower.
+    filespec_compatible <- nrow(input$file) == 1L && grepl(
+      "(\\.h5$)|(\\.hdr$)|(\\.dat$)|(\\.img$)",
+      as.character(input$file$datapath), ignore.case = TRUE
+    )
+    if(app_local_file_mode() && filespec_compatible) {
+      open_via_filespecs(input$file$datapath[[1L]], input$file$name[[1L]])
+      return(NULL)
+    }
     show_alert(
       title = "Upload is too large for ordinary mode",
       text = upload_size$message,
@@ -2165,44 +2199,141 @@ output$progress_bars <- renderUI({
       )
   })
 
-  output$heatmapB <- plotly::renderPlotly({
-      result <- particle_analysis()
-      req(!is.null(result))
-      sample <- particle_sample()
-      app_particle_plotly(sample[[resolved_map_color()]], source = "heat_plot")
+  nearest_metadata_row <- function(metadata, x, y) {
+    if(is.null(metadata) || !nrow(metadata) ||
+       !all(c("x", "y") %in% names(metadata))) return(integer())
+    dx <- suppressWarnings(as.numeric(metadata$x) - as.numeric(x))
+    dy <- suppressWarnings(as.numeric(metadata$y) - as.numeric(y))
+    distance <- dx^2 + dy^2
+    distance[!is.finite(distance)] <- Inf
+    if(all(is.infinite(distance))) integer() else which.min(distance)
+  }
+
+  # One heatmap state for every map source: particle results (ordinary or
+  # FileSpecs-backed), the FileSpecs raw preview, or an ordinary map. Each
+  # returns the same automate_particle_analysis()-style plot-data contract,
+  # so app_particle_plotly() is the only renderer (no base-graphics variant).
+  current_heatmap_data <- reactive({
+      if(!is.null(particle_analysis())) {
+        sample <- particle_sample()
+        return(sample[[resolved_map_color()]])
+      }
+      if(!is.null(final_specs())) {
+        return(app_filespec_preview_data(filespec_preview()))
+      }
+      state <- heatmap_state()
+      app_ordinary_heatmap_data(state$data$metadata, state$z,
+                                state$categorical, state$legend_title)
+  })
+
+  # The currently selected point's data (x, y) coordinates, in whatever
+  # coordinate space the active map source uses. FileSpecs sources track
+  # selection via the materialized pixel position; everything else (ordinary
+  # maps, including their particle-analysis overlays, since particle
+  # analysis runs on the same currently uploaded map) tracks it via
+  # data_click$plot indexing preprocessed$data$metadata directly.
+  current_select_xy <- reactive({
+      if(!is.null(final_specs())) {
+        position <- filespec_selected_position()
+        index <- filespec_index_state()
+        if(length(position) == 1L && !is.na(position) &&
+           position >= 1L && position <= nrow(index)) {
+          row <- index[position, , drop = FALSE]
+          coords <- app_filespec_coordinates(row)
+          return(list(x = coords$x[[1L]], y = coords$y[[1L]]))
+        }
+        return(NULL)
+      }
+      req(!is.null(preprocessed$data))
+      selected <- data_click$plot
+      metadata <- preprocessed$data$metadata
+      if(length(selected) != 1L || is.na(selected) || selected < 1L ||
+         selected > nrow(metadata)) {
+        return(NULL)
+      }
+      list(x = metadata$x[[selected]], y = metadata$y[[selected]])
+  })
+
+  output$heatmapA <- plotly::renderPlotly({
+      app_particle_plotly(current_heatmap_data(), source = "heat_plot",
+                          select = isolate(current_select_xy()))
   })
 
   observe({
-      show_particle <- !is.null(particle_analysis())
-      toggle(id = "heatmapA", condition = !show_particle)
-      toggle(id = "heatmapB", condition = show_particle)
+      toggle(id = "heatmap_frame",
+             condition = isTruthy(
+               !is.null(final_specs()) || !is.null(particle_analysis()) ||
+                 (!is.null(preprocessed$data) &&
+                    ncol(preprocessed$data$spectra) > 1)
+             ))
   })
 
-  output$heatmapA <- renderPlot({
-      if(!is.null(final_specs())) {
-        preview <- filespec_preview()
-        index <- filespec_index_state()
-        position <- filespec_selected_position()
-        selected <- NULL
-        if(length(position) == 1L && !is.na(position) &&
-           position >= 1L && position <= nrow(index)) {
-          coordinates <- app_filespec_coordinates(index[position, , drop = FALSE])
-          selected <- list(x = coordinates$x[[1L]], y = coordinates$y[[1L]])
-        }
-        graphics::par(bg = app_theme$canvas, fg = app_theme$text,
-                      mar = c(4.5, 5, 3.2, 1))
-        app_draw_filespec_preview(preview, selected)
-        return(invisible(NULL))
+  # Cheap selection sync: move only the marker trace instead of a full
+  # heatmap redraw (matches the pre-FileSpecs heatmapA behavior). Guarded on
+  # a heatmap actually existing client-side yet, so this never races the
+  # widget's own first creation (which already places the marker correctly
+  # via output$heatmapA's own `select =` argument).
+  observeEvent(current_select_xy(), {
+      req(!is.null(isolate(current_heatmap_data())))
+      select <- current_select_xy()
+      x <- if(is.null(select)) NA_real_ else select$x
+      y <- if(is.null(select)) NA_real_ else select$y
+      plotly::plotlyProxy("heatmapA", session) %>%
+        plotly::plotlyProxyInvoke(
+          "restyle", list(x = list(list(x)), y = list(list(y))), list(1L)
+        )
+  }, ignoreNULL = FALSE, ignoreInit = TRUE)
+
+  observeEvent(plotly::event_data("plotly_click", source = "heat_plot"), {
+      click <- plotly::event_data("plotly_click", source = "heat_plot")
+      curve_number <- if(length(click$curveNumber)) {
+        suppressWarnings(as.integer(click$curveNumber[[1L]]))
+      } else {
+        0L
       }
-      state <- heatmap_state()
-      app_draw_server_heatmap(
-        state$data$metadata,
-        state$z,
-        categorical = state$categorical,
-        title = state$legend_title,
-        selected = isolate(data_click$plot)
+      if(is.na(curve_number) || curve_number != 0L) return()
+      req(length(click$x), length(click$y))
+      click_x <- click$x[[1L]]
+      click_y <- click$y[[1L]]
+
+      if(!is.null(isolate(final_specs()))) {
+        index <- isolate(filespec_index_state())
+        region <- isolate(input$filespec_region)
+        selected <- app_filespec_nearest_position(
+          index, region, click_x, click_y,
+          roi = isolate(filespec_viewport_state())
+        )
+        if(length(selected)) load_filespec_selection(selected)
+        return()
+      }
+
+      req(!is.null(preprocessed$data))
+      selected <- nearest_metadata_row(preprocessed$data$metadata, click_x,
+                                       click_y)
+      if(length(selected) && selected <= ncol(preprocessed$data$spectra)) {
+        data_click$plot <- selected
+      }
+  }, ignoreNULL = TRUE, ignoreInit = TRUE)
+
+  observeEvent(plotly::event_data("plotly_relayout", source = "heat_plot"), {
+      req(!is.null(final_specs()), is.null(particle_analysis()))
+      relayout <- plotly::event_data("plotly_relayout", source = "heat_plot")
+      if(isTRUE(relayout[["xaxis.autorange"]])) {
+        filespec_viewport_state(NULL)
+        return()
+      }
+      xr <- c(relayout[["xaxis.range[0]"]], relayout[["xaxis.range[1]"]])
+      yr <- c(relayout[["yaxis.range[0]"]], relayout[["yaxis.range[1]"]])
+      req(length(xr) == 2L, length(yr) == 2L)
+      index <- isolate(filespec_index_state())
+      region <- isolate(input$filespec_region)
+      candidate <- tryCatch(
+        app_filespec_viewport(index, region, c(xr[[1L]], xr[[2L]],
+                                              yr[[1L]], yr[[2L]])),
+        error = identity
       )
-  }, res = 110)
+      if(!inherits(candidate, "error")) filespec_viewport_state(candidate)
+  }, ignoreNULL = TRUE, ignoreInit = TRUE)
 
   thresholded_particles <- reactive({
       req(particle_pipeline_enabled())
@@ -2278,6 +2409,26 @@ output$progress_bars <- renderUI({
     req(particle_pipeline_enabled(), !is.null(particle_analysis()))
     updateSelectInput(session, "download_selection",
                       selected = "Thresholded Particles")
+  }, ignoreNULL = TRUE)
+
+  # Same "jump to the newly relevant default" treatment for identification
+  # results as particle_analysis() gets above -- without it, "User Metadata"
+  # (always a valid choice) can never be displaced once selected, even after
+  # identification produces Top Matches. particle_pipeline_enabled() is
+  # excluded so it doesn't fight the Thresholded Particles default when both
+  # are active.
+  # max_cor() re-invalidates several times while identification/library
+  # loading settle, and each invalidation carries an analysis_phase() busy
+  # message; observing it directly kept the busy overlay's idle grace timer
+  # from ever elapsing. Debouncing decouples "how often max_cor() recomputes"
+  # from "how often we push a client update", so the default jump fires once,
+  # after the result actually settles.
+  max_cor_settled <- shiny::debounce(reactive(max_cor()), 1000)
+
+  observeEvent(max_cor_settled(), {
+    req(isTRUE(input$active_identification), !is.null(max_cor_settled()),
+        !particle_pipeline_enabled())
+    updateSelectInput(session, "download_selection", selected = "Top Matches")
   }, ignoreNULL = TRUE)
 
   observeEvent(input$download_selection, {
@@ -2432,144 +2583,8 @@ output$progress_bars <- renderUI({
   # Hide functions or objects when they shouldn't exist.
 
   observe({
-      toggle(id = "heatmap_frame",
-             condition = isTruthy(
-               !is.null(final_specs()) || !is.null(particle_analysis()) ||
-                 (!is.null(preprocessed$data) &&
-                    ncol(preprocessed$data$spectra) > 1)
-             ))
       toggle(id = "placeholder1", condition = !isTruthy(preprocessed$data))
   })
-
-  nearest_metadata_row <- function(metadata, x, y) {
-    if(is.null(metadata) || !nrow(metadata) ||
-       !all(c("x", "y") %in% names(metadata))) return(integer())
-    dx <- suppressWarnings(as.numeric(metadata$x) - as.numeric(x))
-    dy <- suppressWarnings(as.numeric(metadata$y) - as.numeric(y))
-    distance <- dx^2 + dy^2
-    distance[!is.finite(distance)] <- Inf
-    if(all(is.infinite(distance))) integer() else which.min(distance)
-  }
-
-  # Small popover docked in the plot viewer: x, y, and the currently
-  # displayed z-value/label only, instead of a full-metadata modal.
-  output$heatmap_popover <- renderUI({
-      info <- heatmap_popover_info()
-      req(!is.null(info))
-      rows <- list(
-        tags$tr(tags$th("x"), tags$td(format(signif(info$x, 4)))),
-        tags$tr(tags$th("y"), tags$td(format(signif(info$y, 4))))
-      )
-      if(!is.null(info$z)) {
-        rows <- c(rows, list(tags$tr(
-          tags$th(if(isTruthy(info$label)) info$label else "z"),
-          tags$td(as.character(info$z))
-        )))
-      }
-      div(class = "openspecy-heatmap-popover",
-          tags$table(tags$tbody(rows)))
-  })
-  outputOptions(output, "heatmap_popover", suspendWhenHidden = FALSE)
-
-  observeEvent(input$heatmap_click, {
-      click <- input$heatmap_click
-      req(length(click$x), length(click$y))
-      click_x <- click$x[[1L]]
-      click_y <- click$y[[1L]]
-
-      if(!is.null(final_specs())) {
-        index <- isolate(filespec_index_state())
-        region <- isolate(input$filespec_region)
-        selected <- app_filespec_nearest_position(
-          index, region, click_x, click_y,
-          roi = isolate(filespec_viewport_state())
-        )
-        if(length(selected)) {
-          load_filespec_selection(selected)
-          row <- index[selected, , drop = FALSE]
-          heatmap_popover_info(list(x = row$x[[1L]], y = row$y[[1L]],
-                                    z = NULL, label = NULL))
-        }
-        return()
-      }
-
-      state <- isolate(heatmap_state())
-      req(!is.null(state$data), nrow(state$data$metadata))
-      selected <- nearest_metadata_row(state$data$metadata, click_x, click_y)
-      if(length(selected)) {
-        if(selected <= ncol(preprocessed$data$spectra)) {
-          data_click$plot <- selected
-        }
-        z_value <- state$z[[selected]]
-        heatmap_popover_info(list(
-          x = state$data$metadata$x[[selected]],
-          y = state$data$metadata$y[[selected]],
-          z = if(is.numeric(z_value)) signif(z_value, 3) else z_value,
-          label = state$legend_title
-        ))
-      }
-  }, ignoreNULL = TRUE, ignoreInit = TRUE)
-
-  observeEvent(plotly::event_data("plotly_click", source = "heat_plot"), {
-      click <- plotly::event_data("plotly_click", source = "heat_plot")
-      req(length(click$x), length(click$y))
-      click_x <- click$x[[1L]]
-      click_y <- click$y[[1L]]
-      click_z <- if(length(click$z)) click$z[[1L]] else NA
-
-      result <- isolate(particle_analysis())
-      req(!is.null(result))
-      sample <- isolate(particle_sample())
-      field <- isolate(resolved_map_color())
-      data <- sample[[field]]
-      label <- if(isTruthy(data$legend_title)) data$legend_title else field
-      z_display <- if(identical(data$type, "heatmap_binary") &&
-                      is.finite(click_z)) {
-        data$labels[[round(click_z)]]
-      } else if(identical(data$type, "heatmap_categorical") &&
-               is.finite(click_z)) {
-        data$levels[[round(click_z)]]
-      } else if(is.numeric(click_z)) {
-        signif(click_z, 3)
-      } else {
-        NULL
-      }
-      heatmap_popover_info(list(x = click_x, y = click_y, z = z_display,
-                                label = label))
-
-      source_map <- if(inherits(sample$particles_raw_rds, "OpenSpecy")) {
-        sample$particles_raw_rds
-      } else {
-        sample$particles_rds
-      }
-      req(!is.null(source_map), nrow(source_map$metadata))
-      selected <- nearest_metadata_row(source_map$metadata, click_x, click_y)
-      req(length(selected))
-      if(!is.null(isolate(final_specs()))) {
-        index <- isolate(filespec_index_state())
-        region <- isolate(input$filespec_region)
-        rows <- app_filespec_region_rows(index, region)
-        local_row <- nearest_metadata_row(index[rows, , drop = FALSE],
-                                          click_x, click_y)
-        if(length(local_row)) load_filespec_selection(rows[[local_row]])
-      } else if(selected <= ncol(isolate(preprocessed$data$spectra))) {
-        data_click$plot <- selected
-      }
-  }, ignoreNULL = TRUE, ignoreInit = TRUE)
-
-  observeEvent(input$heatmap_brush, {
-    req(!is.null(final_specs()), is.null(isolate(particle_analysis())))
-    brush <- input$heatmap_brush
-    index <- isolate(filespec_index_state())
-    region <- isolate(input$filespec_region)
-    candidate <- tryCatch(
-      app_filespec_viewport(
-        index, region, c(brush$xmin, brush$xmax, brush$ymin, brush$ymax)
-      ),
-      error = identity
-    )
-    if(!inherits(candidate, "error")) filespec_viewport_state(candidate)
-  }, ignoreNULL = TRUE, ignoreInit = TRUE)
 
   observe({
       if(!isTruthy(input$event_rows_selected)){

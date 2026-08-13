@@ -41,6 +41,25 @@
   type including an explanatory details/summary when no particles passed
   filtering. The redundant "No regions passing threshold" popup is removed in
   favor of the existing quality warning/success indicators.
+- Unified the app's numeric, categorical, particle, and FileSpecs-preview
+  heatmaps into one Plotly renderer with an on-theme colorbar/legend above the
+  plot, hover tooltips instead of a click popup, and a selection marker kept
+  in sync via a cheap trace restyle; this replaces the separate base-graphics
+  heatmap, its click/brush handlers, and the metadata popover. Material-class
+  colors are resolved from one shared palette across the heatmap, particle
+  summary, and `particle_image()`. There is no longer a separate local
+  H5/ENVI upload entry point: the standard upload now auto-routes local files
+  over the 2 GB browser cap through `FileSpecs` automatically, reading and
+  caching bounded ~100MB neighborhood blocks instead of one spectrum per
+  click. The Advanced switch and its correlation threshold default on. The
+  Uploaded Metadata tab moves x/y/z and other per-pixel columns to the front
+  for every source, and for sources over 100,000 spectra shows only those
+  columns, dropping duplicated file-level metadata. `automate_particle_analysis()`
+  now accepts a character vector of file paths, reading and processing each
+  one in turn. Base-graphics particle-plot legends (`plot()`, `particle_image()`)
+  now draw in the margin outside the plotted data instead of overlapping it.
+  The `as_OpenSpecy()` data.table-to-matrix conversion notice is silent when
+  called internally.
 - Added `correct_spike()` with a conservative wavenumber-aware residual method
   and the manual and automated prominence/FWHM methods described by Coca-Lopez
   (2024). Corrections are transactional, preserve the `OpenSpecy` axis and
