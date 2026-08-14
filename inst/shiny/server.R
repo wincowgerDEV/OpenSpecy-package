@@ -133,7 +133,7 @@ observeEvent(input$file, {
   }
 
   if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
-             ignore.case = T, as.character(input$file$datapath)))) {
+             ignore.case = T, as.character(input$file$name)))) {
     upload_status_state(paste(
       "Uploaded data type is not supported. Check the upload guidance for",
       "the accepted file extensions."
@@ -150,9 +150,22 @@ observeEvent(input$file, {
   )
       
       rout <- tryCatch(expr = {
-          members <- read_any(
-            file = as.character(input$file$datapath), c_spec = FALSE
-          )
+          # RDS maps are already serialized OpenSpecy objects. Reading a lone
+          # RDS directly avoids dispatch and, critically for gigabyte maps,
+          # avoids hashing/copying the full spectra matrix merely to add a
+          # provenance ID. Existing IDs in the serialized object are retained.
+          members <- if(nrow(input$file) == 1L &&
+                       grepl("\\.rds$", input$file$name[[1L]],
+                             ignore.case = TRUE)) {
+            as_OpenSpecy(
+              readRDS(as.character(input$file$datapath[[1L]])),
+              compute_file_id = FALSE
+            )
+          } else {
+            read_any(
+              file = as.character(input$file$datapath), c_spec = FALSE
+            )
+          }
           combined <- if(is_OpenSpecy(members)) {
             members
           } else {
@@ -173,7 +186,7 @@ observeEvent(input$file, {
       )
       #print(rout)
       
-      if(!inherits(rout, "simpleError") && all(!grepl("(\\.hdr$)|(\\.dat$)|(\\.zip$)", input$file$datapath))){
+      if(!inherits(rout, "simpleError") && all(!grepl("(\\.hdr$)|(\\.dat$)|(\\.zip$)", input$file$name))){
           rout$metadata$file_name <- input$file$name
       }
       
@@ -407,7 +420,10 @@ observeEvent(input$file, {
         list()
       }
 
-      conform_enabled <- isTRUE(input$conform_decision)
+      preserve_uploaded_axis <- isTRUE(input$active_advanced) &&
+        !identical(input$preserve_uploaded_axis, FALSE)
+      conform_enabled <- isTRUE(input$conform_decision) &&
+        !preserve_uploaded_axis
       conform_args <- if(conform_enabled) {
         list(
           range = app_conform_axis(processed, input$conform_res),
@@ -931,7 +947,11 @@ observeEvent(input$file, {
   })
 
   identify_blockwise <- function(object) {
-    reference <- library_filtered()
+    preserve_axis <- isTRUE(input$active_advanced) &&
+      !identical(input$preserve_uploaded_axis, FALSE)
+    reference <- app_reference_for_query(
+      library_filtered(), object, preserve_axis = preserve_axis
+    )
     analysis_phase(
       "Identifying spectra",
       paste0(
@@ -944,7 +964,7 @@ observeEvent(input$file, {
     )
     OpenSpecy:::.match_spec_blockwise(
       object, reference, top_n = top_n_value(), block_size = 100L,
-      conform = TRUE, type = "roll"
+      conform = FALSE, type = "roll"
     )
   }
 
@@ -1027,7 +1047,7 @@ observeEvent(input$file, {
       names(subset_mapping)
     )
     rows <- match(subset_mapping$pixel_id, full$pixel_id)
-    full[rows, (columns) := subset_mapping[, ..columns]]
+    full[rows, (columns) := subset_mapping[, columns, with = FALSE]]
     full[rejection_reason == "threshold", rejection_reason := "correlation"]
     full
   }
@@ -1091,18 +1111,35 @@ observeEvent(input$file, {
       use_library <- isTRUE(input$active_identification) &&
         !identical(input$lib_type, "model")
       collapse <- particle_pipeline_enabled()
-      correlation_first <- collapse &&
+      strategy <- input$particle_id_strategy
+      clustered <- collapse && strategy %in%
+        c("partial_collapse", "nonspatial_collapse")
+      correlation_threshold <- collapse &&
         isTRUE(input$cor_threshold_decision)
 
-      if(correlation_first && !use_library) {
-        return(list(
-          object = NULL, matches = NULL, pixel_matches = NULL,
-          pixel_to_unit = NULL, partition = NULL, error = NULL,
-          diagnostic = paste(
-            "Correlation-based particle collapse needs Identification and a",
-            "medoid or full reference library."
-          )
-        ))
+      unavailable <- function(message, mapping = NULL, partition = NULL,
+                              pixel_matches = NULL) list(
+        object = NULL, matches = NULL, pixel_matches = pixel_matches,
+        pixel_to_unit = mapping, partition = partition, error = NULL,
+        diagnostic = message
+      )
+
+      mapping_match_fields <- function(mapping, source_ids, matches) {
+        mapping <- data.table::copy(data.table::as.data.table(mapping))
+        best <- best_match_rows(matches)
+        index <- match(source_ids, best$object_id)
+        mapping$threshold_match_val <- best$match_val[index]
+        mapping$threshold_match_id <- best$library_id[index]
+        mapping$threshold_material <- match_material(best$library_id[index])
+        mapping
+      }
+
+      if((correlation_threshold || (clustered &&
+          identical(strategy, "partial_collapse"))) && !use_library) {
+        return(unavailable(paste(
+          "Correlation thresholds and spatial spectral clusters need",
+          "Identification with a medoid or full reference library."
+        )))
       }
 
       if(!collapse) {
@@ -1118,40 +1155,143 @@ observeEvent(input$file, {
 
       signal_keep <- signal_eligible()
       if(!any(signal_keep)) {
+        return(unavailable(
+          "No pixels pass the enabled signal/noise threshold."
+        ))
+      }
+      signal_subset <- if(all(signal_keep)) spatial else
+        filter_spec(spatial, logic = signal_keep)
+
+      if(clustered) {
+        # PCA/K-means is the first reduction and is fitted once per source.
+        # Both modes identify the same processed cluster spectra. Spatial mode
+        # then projects those identities back to the original pixels and makes
+        # a second, connected same-material collapse without re-identifying.
+        cluster_partition <- OpenSpecy:::.partition_particle_map(
+          signal_subset, eligible = rep(TRUE, ncol(signal_subset$spectra)),
+          strategy = "nonspatial_collapse",
+          pca_components = particle_pca_components(),
+          centers = particle_cluster_k(),
+          collapse_function = particle_collapse_function(),
+          area_threshold = if(identical(strategy, "partial_collapse")) 1 else
+            particle_area_threshold()
+        )
+        cluster_partition$settings$requested_strategy <- strategy
+        if(is.null(cluster_partition$analysis_units)) {
+          return(unavailable(
+            "No spectral clusters meet the active minimum area.",
+            cluster_partition$pixel_to_unit, cluster_partition
+          ))
+        }
+        processed_clusters <- ordinary_process(cluster_partition$analysis_units)
+        cluster_matches <- if(use_library) {
+          identify_blockwise(processed_clusters)
+        } else NULL
+        processed_clusters <- attach_best_matches(
+          processed_clusters, cluster_matches
+        )
+        full_cluster_mapping <- expand_pixel_mapping(
+          cluster_partition$pixel_to_unit, spatial, signal_keep
+        )
+        cluster_ids <- full_cluster_mapping$unit_id
+        if(use_library) {
+          full_cluster_mapping <- mapping_match_fields(
+            full_cluster_mapping, cluster_ids, cluster_matches
+          )
+        }
+        cluster_keep <- !is.na(cluster_ids)
+        if(correlation_threshold) {
+          cluster_keep <- cluster_keep &
+            !is.na(full_cluster_mapping$threshold_match_val) &
+            full_cluster_mapping$threshold_match_val >= MinCor()
+        }
+
+        if(identical(strategy, "nonspatial_collapse")) {
+          keep_ids <- unique(cluster_ids[cluster_keep])
+          if(!length(keep_ids)) {
+            return(unavailable(
+              "No spectral clusters meet the enabled thresholds and minimum area.",
+              full_cluster_mapping, cluster_partition, cluster_matches
+            ))
+          }
+          full_cluster_mapping$kept <- cluster_keep
+          full_cluster_mapping$eligible <- signal_keep & cluster_keep
+          full_cluster_mapping$unit_id[!cluster_keep] <- NA_character_
+          full_cluster_mapping$unit_index <- match(
+            full_cluster_mapping$unit_id, keep_ids
+          )
+          full_cluster_mapping$rejection_reason[signal_keep & !cluster_keep] <-
+            if(correlation_threshold) "correlation" else "area"
+          keep_columns <- colnames(processed_clusters$spectra) %in% keep_ids
+          processed_clusters <- if(all(keep_columns)) processed_clusters else
+            filter_spec(processed_clusters, logic = keep_columns)
+          matches <- if(is.null(cluster_matches)) NULL else
+            cluster_matches[object_id %in% keep_ids]
+          processed_clusters <- attach_best_matches(processed_clusters, matches)
+          return(list(
+            object = processed_clusters, matches = matches,
+            pixel_matches = cluster_matches,
+            pixel_to_unit = full_cluster_mapping,
+            partition = cluster_partition, error = NULL, diagnostic = NULL
+          ))
+        }
+
+        final_partition <- OpenSpecy:::.partition_particle_map(
+          spatial, eligible = signal_keep & cluster_keep,
+          strategy = "collapse",
+          material = full_cluster_mapping$threshold_material,
+          collapse_function = particle_collapse_function(),
+          area_threshold = particle_area_threshold()
+        )
+        final_mapping <- final_partition$pixel_to_unit
+        final_mapping$spectral_cluster_id <- cluster_ids
+        for(column in c("threshold_match_val", "threshold_match_id",
+                        "threshold_material")) {
+          final_mapping[[column]] <- full_cluster_mapping[[column]]
+        }
+        if(is.null(final_partition$analysis_units)) {
+          return(unavailable(
+            "No connected material particles meet the enabled thresholds and minimum area.",
+            final_mapping, cluster_partition, cluster_matches
+          ))
+        }
+        final_object <- ordinary_process(final_partition$analysis_units)
+        membership <- unique(data.table::data.table(
+          pixel_id = cluster_ids[final_mapping$kept],
+          unit_id = final_mapping$unit_id[final_mapping$kept],
+          pixel_index = final_mapping$pixel_index[final_mapping$kept],
+          kept = TRUE
+        ), by = c("pixel_id", "unit_id"))
+        matches <- app_aggregate_unit_matches(
+          cluster_matches, membership,
+          unit_ids = colnames(final_object$spectra),
+          library_ids = colnames(library_filtered()$spectra),
+          top_n = top_n_value()
+        )
+        final_object <- attach_best_matches(final_object, matches)
+        cluster_partition$final_partition <- final_partition
         return(list(
-          object = NULL, matches = NULL, pixel_matches = NULL,
-          pixel_to_unit = NULL, partition = NULL, error = NULL,
-          diagnostic = "No pixels pass the enabled signal/noise threshold."
+          object = final_object, matches = matches,
+          pixel_matches = cluster_matches, pixel_to_unit = final_mapping,
+          partition = cluster_partition, error = NULL, diagnostic = NULL
         ))
       }
 
-      if(!correlation_first) {
+      if(!correlation_threshold) {
         partition <- OpenSpecy:::.partition_particle_map(
-          spatial, eligible = signal_keep,
-          strategy = input$particle_id_strategy,
-          pca_components = particle_pca_components(),
-          centers = particle_cluster_k(),
+          spatial, eligible = signal_keep, strategy = "collapse",
           collapse_function = particle_collapse_function(),
           area_threshold = particle_area_threshold()
         )
         if(is.null(partition$analysis_units)) {
-          return(list(
-            object = NULL, matches = NULL, pixel_matches = NULL,
-            pixel_to_unit = partition$pixel_to_unit, partition = partition,
-            error = NULL,
-            diagnostic = "No particle groups meet the active thresholds and minimum area."
+          return(unavailable(
+            "No connected particle regions meet the active thresholds and minimum area.",
+            partition$pixel_to_unit, partition
           ))
         }
         processed <- ordinary_process(partition$analysis_units)
         matches <- if(use_library) identify_blockwise(processed) else NULL
         processed <- attach_best_matches(processed, matches)
-        if(use_library) {
-          unit_material <- processed$metadata$material_class[
-            match(partition$pixel_to_unit$unit_id,
-                  colnames(processed$spectra))
-          ]
-          partition$pixel_to_unit$material <- unit_material
-        }
         return(list(
           object = processed, matches = matches, pixel_matches = NULL,
           pixel_to_unit = partition$pixel_to_unit, partition = partition,
@@ -1159,65 +1299,50 @@ observeEvent(input$file, {
         ))
       }
 
-      # Correlation-first collapse: subset by spatial-only S/N, process those
-      # pixels once, identify once, threshold the best score, and collapse the
-      # already-processed spectra by the identities from that same match table.
-      signal_subset <- filter_spec(spatial, logic = signal_keep)
+      # Correlation-connected regions use one processed pixel identification
+      # pass, then collapse the spatial-only source and reprocess the final
+      # particles. Their Top-N rows are projected from that same first pass.
       processed_pixels <- ordinary_process(signal_subset)
       pixel_matches <- identify_blockwise(processed_pixels)
-      best <- best_match_rows(pixel_matches)
-      pixel_ids <- colnames(processed_pixels$spectra)
-      best_index <- match(pixel_ids, best$object_id)
-      scores <- best$match_val[best_index]
-      material <- match_material(best$library_id[best_index])
-      correlation_keep <- !is.na(scores) & scores >= MinCor()
-      # Region geometry and PCA/K-means are based on spatial-only spectra.
-      # The resulting mapping is then applied to the corresponding fully
-      # processed pixels so those spectra are not processed a second time.
+      subset_mapping <- identity_pixel_mapping(signal_subset)
+      subset_mapping <- mapping_match_fields(
+        subset_mapping, subset_mapping$pixel_id, pixel_matches
+      )
+      full_identity <- expand_pixel_mapping(subset_mapping, spatial, signal_keep)
+      for(column in c("threshold_match_val", "threshold_match_id",
+                      "threshold_material")) {
+        full_identity[[column]] <- NA
+        full_identity[[column]][match(subset_mapping$pixel_id,
+                                      full_identity$pixel_id)] <-
+          subset_mapping[[column]]
+      }
+      correlation_keep <- !is.na(full_identity$threshold_match_val) &
+        full_identity$threshold_match_val >= MinCor()
       partition <- OpenSpecy:::.partition_particle_map(
-        signal_subset, eligible = correlation_keep,
-        strategy = input$particle_id_strategy, material = material,
-        pca_components = particle_pca_components(),
-        centers = particle_cluster_k(),
-        collapse_function = base::mean,
+        spatial, eligible = signal_keep & correlation_keep,
+        strategy = "collapse", material = full_identity$threshold_material,
+        collapse_function = particle_collapse_function(),
         area_threshold = particle_area_threshold()
       )
-      full_mapping <- expand_pixel_mapping(
-        partition$pixel_to_unit, spatial, signal_keep
-      )
+      final_mapping <- partition$pixel_to_unit
+      for(column in c("threshold_match_val", "threshold_match_id",
+                      "threshold_material")) {
+        final_mapping[[column]] <- full_identity[[column]]
+      }
       if(is.null(partition$analysis_units)) {
-        return(list(
-          object = NULL, matches = NULL, pixel_matches = pixel_matches,
-          pixel_to_unit = full_mapping, partition = partition, error = NULL,
-          diagnostic = "No particle groups meet the enabled thresholds and minimum area."
+        return(unavailable(
+          "No connected particle regions meet the enabled thresholds and minimum area.",
+          final_mapping, partition, pixel_matches
         ))
       }
-      processed_pixels$metadata <- data.table::as.data.table(
-        processed_pixels$metadata
-      )
-      processed_pixels$metadata$unit_id <- partition$pixel_to_unit$unit_id
-      processed_pixels$metadata$feature_id <- partition$pixel_to_unit$unit_id
-      processed_pixels$metadata$area <- partition$pixel_to_unit$area
-      collapsed <- OpenSpecy:::.collapse_particle_units(
-        processed_pixels, partition$pixel_to_unit,
-        particle_collapse_function(),
-        geometric = identical(input$collapse_type, "Geometric Mean")
-      )
-      unit_ids <- colnames(collapsed$spectra)
+      processed <- ordinary_process(partition$analysis_units)
       matches <- aggregate_unit_matches(
-        pixel_matches, partition$pixel_to_unit, unit_ids
+        pixel_matches, final_mapping, colnames(processed$spectra)
       )
-      collapsed <- attach_best_matches(collapsed, matches)
-      unit_material <- partition$pixel_to_unit[
-        kept & !is.na(unit_id), .(material_class = material[[1L]]),
-        by = unit_id
-      ]
-      collapsed$metadata$material_class <- unit_material$material_class[
-        match(colnames(collapsed$spectra), unit_material$unit_id)
-      ]
+      processed <- attach_best_matches(processed, matches)
       list(
-        object = collapsed, matches = matches, pixel_matches = pixel_matches,
-        pixel_to_unit = full_mapping, partition = partition,
+        object = processed, matches = matches, pixel_matches = pixel_matches,
+        pixel_to_unit = final_mapping, partition = partition,
         error = NULL, diagnostic = NULL
       )
     }, error = identity)
@@ -1251,7 +1376,7 @@ observeEvent(input$file, {
     }
     settings <- if(!is.null(state$partition)) state$partition$settings else NULL
     if(is.null(settings)) return(NULL)
-    if(identical(settings$strategy, "collapse")) {
+    if(identical(input$particle_id_strategy, "collapse")) {
       retained <- unique(state$pixel_to_unit$unit_id[
         state$pixel_to_unit$kept & !is.na(state$pixel_to_unit$unit_id)
       ])
@@ -1272,8 +1397,14 @@ observeEvent(input$file, {
     tags$p(
       class = "text-muted",
       paste0(
+        if(identical(input$particle_id_strategy, "partial_collapse")) {
+          "Spatial material-connected mode. "
+        } else {
+          "Non-spatial spectral-cluster mode. "
+        },
         "Effective PCA components: ", settings$pca_components,
-        "; effective K by group: ", centers_text, "."
+        "; source-scoped K: ", centers_text, "; final particles: ",
+        ncol(state$object$spectra), "."
       )
     )
   })
@@ -1332,10 +1463,18 @@ observeEvent(input$file, {
   })
 
   #The data to use in the plot. 
+  selected_unit_index <- reactive({
+      value <- suppressWarnings(as.integer(data_click$plot))
+      count <- ncol(DataR()$spectra)
+      if(length(value) != 1L || is.na(value) || value < 1L ||
+         value > count) return(NA_integer_)
+      value
+  })
+
   DataR_plot <- reactive({
       if(isTruthy(DataR())){
-          selected <- min(max(1L, as.integer(data_click$plot)),
-                          ncol(DataR()$spectra))
+          selected <- selected_unit_index()
+          if(is.na(selected)) return(app_rejected_spectrum(DataR()$wavenumber))
           filter_spec(DataR(), logic = seq_len(ncol(DataR()$spectra)) == selected)
        }
       else {
@@ -1380,12 +1519,17 @@ observeEvent(input$file, {
           stringsAsFactors = FALSE
         )
       )
-      selected_index <- data_click$plot
+      selected_index <- selected_unit_index()
+      safe_selected_value <- function(values) {
+        if(is.na(selected_index) || is.null(values) ||
+           selected_index > length(values)) return(NA_real_)
+        as.numeric(values[[selected_index]])
+      }
       threshold_report <- app_threshold_quality_report(
         spectrum_id = colnames(selected$spectra)[[1L]],
         snr_value = if(isTRUE(input$active_advanced) &&
                        isTRUE(input$threshold_decision)) {
-          canonical_signal_noise()[[selected_index]]
+          safe_selected_value(canonical_signal_noise())
         } else NULL,
         snr_threshold = if(isTRUE(input$active_advanced) &&
                            isTRUE(input$threshold_decision)) {
@@ -1395,7 +1539,7 @@ observeEvent(input$file, {
         correlation_value = if(isTRUE(input$active_advanced) &&
                                isTRUE(input$active_identification) &&
                                isTRUE(input$cor_threshold_decision)) {
-          max_cor()[[selected_index]]
+          safe_selected_value(max_cor())
         } else NULL,
         correlation_threshold = if(isTRUE(input$active_advanced) &&
                                    isTRUE(input$active_identification) &&
@@ -1612,8 +1756,12 @@ observeEvent(input$file, {
                      match_val = ai_output()$value)
       }
       else{
-          selected <- min(max(1L, as.integer(data_click$plot)),
-                          ncol(DataR()$spectra))
+          selected <- selected_unit_index()
+          if(is.na(selected)) {
+            return(data.table::data.table(
+              sample_name = character(), match_val = numeric()
+            ))
+          }
           selected_object_id <- colnames(DataR()$spectra)[selected]
           app_matches_for_object(
             identification_matches(), selected_object_id
@@ -1671,10 +1819,16 @@ observeEvent(input$file, {
 #Create the data table that goes below the plot which provides extra metadata.
 match_metadata <- reactive({
     req(!is.null(preprocessed$data))
+    selected_index <- selected_unit_index()
+    if(is.na(selected_index)) {
+      return(data.table::data.table(
+        Selection = "The selected pixel does not belong to a retained particle."
+      ))
+    }
     identification_enabled <- isTRUE(input$active_identification)
     if(!identification_enabled) {
         return(
-          quantified_data()$metadata[data_click$plot,] %>%
+          quantified_data()$metadata[selected_index,] %>%
             .[, !sapply(., OpenSpecy::is_empty_vector), with = FALSE]
         )
     }
@@ -1689,10 +1843,10 @@ match_metadata <- reactive({
         )
     } else {
         result <- bind_cols(
-          quantified_data()$metadata[data_click$plot,],
-          matches_to_single()[data_click$plot,]
+          quantified_data()$metadata[selected_index,],
+          matches_to_single()[selected_index,]
         )
-        result$signal_to_noise <- canonical_signal_noise()[data_click$plot]
+        result$signal_to_noise <- canonical_signal_noise()[selected_index]
         result <- result[, !sapply(result, OpenSpecy::is_empty_vector), with = FALSE] %>%
             mutate(match_val = signif(match_val, 2)) %>%
             select(file_name, col_id, material_class, match_val, signal_to_noise, everything())
@@ -1794,7 +1948,12 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
     pixel_best_index <- if(is.null(pixel_best)) rep(NA_integer_, length(ids)) else
       match(ids, pixel_best$object_id)
 
-    if(!is.null(pixel_best) &&
+    if(all(c("threshold_match_val", "threshold_match_id",
+             "threshold_material") %in% names(mapping))) {
+      correlation <- as.numeric(mapping$threshold_match_val)
+      match_id <- as.character(mapping$threshold_match_id)
+      material <- as.character(mapping$threshold_material)
+    } else if(!is.null(pixel_best) &&
        particle_pipeline_enabled() &&
        isTRUE(input$cor_threshold_decision)) {
       correlation <- pixel_best$match_val[pixel_best_index]
@@ -1836,7 +1995,8 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       metadata = data.table::as.data.table(spatial$metadata), mapping = mapping,
       signal_to_noise = signal, correlation = as.numeric(correlation),
       match_id = as.character(match_id), material = as.character(material),
-      unit_id = mapping$unit_id, rejected = rejected,
+      unit_id = mapping$unit_id, unit_index = mapping$unit_index,
+      rejected = rejected,
       rejection_reason = reason
     )
   })
@@ -1848,12 +2008,12 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       (!is.null(state$object) ||
          (!is.null(state$pixel_matches) && nrow(state$pixel_matches)))
     choices <- c(
-      if(particle_pipeline_enabled()) "Particle Unit" else NA_character_,
       if(identification_enabled) "Match Name" else NA_character_,
       if(identification_enabled && !identical(input$lib_type, "model"))
         "Match ID" else NA_character_,
       if(identification_enabled) "Match Value" else NA_character_,
-      "Signal/Noise"
+      "Signal/Noise",
+      if(particle_pipeline_enabled()) "Particle Unit" else NA_character_
     )
     choices <- choices[!is.na(choices)]
     stats::setNames(choices, choices)
@@ -1880,7 +2040,17 @@ output$choice_names <- renderUI({
                                       label = "Map Color", 
                                       choices = choice_names,
                                       selected = selected)
-            )
+                ),
+                column(
+                  3,
+                  tags$div(
+                    style = "padding-top:1.85rem;",
+                    actionButton(
+                      "heatmap_legend_details", "View Legend",
+                      icon = icon("list"), class = "btn btn-outline-info"
+                    )
+                  )
+                )
             )
                 )
 })
@@ -1965,6 +2135,12 @@ output$progress_bars <- renderUI({
         plotOutput("material_plot", height = "25vh")
       )
     }
+    if(particle_pipeline_enabled() && !is.null(canonical_state()$object)) {
+      plot_items[[length(plot_items) + 1L]] <- div(
+        id = "particle_summary_table_panel",
+        DT::DTOutput("particle_summary_table")
+      )
+    }
 
     req(length(metric_items) + length(plot_items) > 0L)
     bs4Dash::box(
@@ -2012,15 +2188,12 @@ output$progress_bars <- renderUI({
       app_category_palette(pixel_projection()$material)
   })
 
-  heatmap_state <- reactive({
-      req(!is.null(preprocessed$data))
-      req(ncol(preprocessed$data$spectra) > 1)
+  heatmap_state_for <- function(map_color) {
       projection <- pixel_projection()
-      map_color <- resolved_map_color()
       categorical <- FALSE
       z <- if(identical(map_color, "Particle Unit")) {
         categorical <- TRUE
-        projection$unit_id
+        projection$unit_index
       } else if(identical(map_color, "Match ID")) {
         categorical <- TRUE
         projection$match_id
@@ -2035,9 +2208,14 @@ output$progress_bars <- renderUI({
         validate(need(FALSE, "The selected map color is not available."))
       }
       if(categorical) {
+        category_levels <- if(identical(map_color, "Particle Unit")) {
+          as.character(sort(unique(as.integer(z[!is.na(z)]))))
+        } else {
+          sort(unique(as.character(z[!is.na(z)])))
+        }
         z <- factor(
           as.character(z),
-          levels = sort(unique(as.character(z[!is.na(z)])))
+          levels = category_levels
         )
       }
       list(
@@ -2047,6 +2225,12 @@ output$progress_bars <- renderUI({
         rejected = projection$rejected,
         rejection_reason = projection$rejection_reason
       )
+  }
+
+  heatmap_state <- reactive({
+      req(!is.null(preprocessed$data))
+      req(ncol(preprocessed$data$spectra) > 1)
+      heatmap_state_for(resolved_map_color())
   })
 
   nearest_metadata_row <- function(metadata, x, y) {
@@ -2056,17 +2240,27 @@ output$progress_bars <- renderUI({
     dy <- suppressWarnings(as.numeric(metadata$y) - as.numeric(y))
     distance <- dx^2 + dy^2
     distance[!is.finite(distance)] <- Inf
-    if(all(is.infinite(distance))) integer() else which.min(distance)
+    if(all(is.infinite(distance))) return(integer())
+    # .particle_map_grid() assigns duplicate x/y cells in row order, so the
+    # last pixel at a coordinate is the one the user can actually see. Match
+    # that rule here; choosing the first tie could select a hidden retained
+    # pixel underneath a visibly rejected black cell.
+    candidates <- which(distance == min(distance))
+    candidates[[length(candidates)]]
   }
 
   # Particle and ordinary maps share one Plotly data contract and renderer.
-  current_heatmap_data <- reactive({
-      state <- heatmap_state()
+  heatmap_data_for <- function(map_color) {
+      state <- heatmap_state_for(map_color)
       app_ordinary_heatmap_data(
-        state$metadata, state$z, state$categorical, "",
+        state$metadata, state$z, state$categorical, map_color,
         rejected = state$rejected,
         rejection_reason = state$rejection_reason
       )
+  }
+
+  current_heatmap_data <- reactive({
+      heatmap_data_for(resolved_map_color())
   })
 
   # The currently selected point's data coordinates come from the uploaded
@@ -2090,16 +2284,18 @@ output$progress_bars <- renderUI({
   observeEvent(data_click$plot, {
     mapping <- canonical_state()$pixel_to_unit
     if(is.null(mapping)) return()
+    selected_plot <- suppressWarnings(as.integer(data_click$plot))
+    if(length(selected_plot) != 1L || is.na(selected_plot)) return()
     mapping <- data.table::as.data.table(mapping)
     current_pixel <- isolate(data_click$pixel)
     current_unit <- mapping$unit_index[match(current_pixel,
                                              mapping$pixel_index)]
     if(length(current_unit) == 1L && !is.na(current_unit) &&
-       identical(as.integer(current_unit), as.integer(data_click$plot))) {
+       identical(as.integer(current_unit), selected_plot)) {
       return()
     }
     representative <- mapping[
-      unit_index == as.integer(data_click$plot) & kept,
+      unit_index == selected_plot & kept,
       pixel_index[[1L]]
     ]
     if(length(representative)) data_click$pixel <- representative
@@ -2109,6 +2305,16 @@ output$progress_bars <- renderUI({
       app_particle_plotly(current_heatmap_data(), source = "heat_plot",
                           select = isolate(current_select_xy()))
   })
+
+  observeEvent(input$heatmap_legend_details, {
+      data <- current_heatmap_data()
+      model <- app_heatmap_legend_model(data)
+      showModal(modalDialog(
+        title = paste(model$title, "Legend"),
+        app_heatmap_legend_content(model),
+        easyClose = TRUE, footer = modalButton("Close")
+      ))
+  }, ignoreInit = TRUE)
 
   observe({
       toggle(id = "heatmap_frame",
@@ -2154,7 +2360,9 @@ output$progress_bars <- renderUI({
         mapping <- canonical_state()$pixel_to_unit
         if(!is.null(mapping)) {
           unit <- mapping$unit_index[match(selected, mapping$pixel_index)]
-          if(length(unit) == 1L && !is.na(unit)) data_click$plot <- unit
+          data_click$plot <- if(length(unit) == 1L && !is.na(unit)) {
+            unit
+          } else NA_integer_
         } else {
           data_click$plot <- selected
         }
@@ -2167,12 +2375,7 @@ output$progress_bars <- renderUI({
       req(particle_pipeline_enabled())
       particles <- canonical_final()
       req(particles$metadata$area)
-      ggplot() +
-          geom_histogram(aes(x = sqrt(particles$metadata$area)),
-                         fill = app_plot_palette$primary,
-                         color = app_plot_palette$panel) +
-          theme_black_minimal(base_size = 15) +
-          labs(x = "Nominal Particle Size (sqrt(area))", y = "Count")
+      app_particle_size_plot(particles)
   })
   
   output$material_plot <- renderPlot({
@@ -2188,16 +2391,16 @@ output$progress_bars <- renderUI({
           match_names <- max_cor_identity()
       }
 
-      ggplot() +
-          geom_bar(aes(y = match_names, fill = match_names)) +
-          scale_fill_manual(
-            values = match_name_palette(),
-            na.value = app_theme$muted,
-            drop = FALSE
-          ) +
-          theme_black_minimal(base_size = 15) +
-          theme(legend.position = "none") +
-          labs(x = "Count", y = "Material Class")
+      app_material_summary_plot(match_names, match_name_palette())
+  })
+
+  output$particle_summary_table <- DT::renderDT({
+      req(particle_pipeline_enabled(), !is.null(canonical_state()$object))
+      DT::datatable(
+        app_particle_summary_table(canonical_final()), rownames = FALSE,
+        options = list(dom = "t", paging = FALSE, ordering = TRUE,
+                       scrollX = TRUE), caption = "Final Particle Summary"
+      )
   })
 
   
@@ -2288,7 +2491,9 @@ output$progress_bars <- renderUI({
       "Particle details" = "details",
       "Processed particle object" = "processed",
       "Pixel-to-unit mapping" = "mapping",
-      "Retained Top-N matches" = "matches"
+      "Retained Top-N matches" = "matches",
+      "Final particle summary table" = "summary",
+      "All analysis figures" = "figures"
     )
     tags$details(
       class = "openspecy-download-details",
@@ -2372,7 +2577,7 @@ output$progress_bars <- renderUI({
       } else if(identical(selection, "Thresholded Particles")) {
         selected <- input$particle_outputs_selected
         if(is.null(selected)) selected <- c("details", "processed", "mapping",
-                                            "matches")
+                                            "matches", "summary", "figures")
         archive_root <- file.path(
           particle_output_root, paste0("download-", human_ts())
         )
@@ -2399,6 +2604,57 @@ output$progress_bars <- renderUI({
           path <- file.path(archive_root, "top_matches.csv")
           fwrite(canonical_state()$matches, path)
           files <- c(files, path)
+        }
+        if("summary" %in% selected) {
+          path <- file.path(archive_root, "particle_summary.csv")
+          fwrite(app_particle_summary_table(canonical_final()), path)
+          files <- c(files, path)
+        }
+        if("figures" %in% selected) {
+          sn_thresholds <- if(isTRUE(input$active_advanced) &&
+                              isTRUE(input$threshold_decision)) {
+            c(MinSNR(), MaxSNR())
+          } else numeric()
+          path <- file.path(archive_root, "signal_noise_histogram.png")
+          app_write_ggplot_png(app_histogram_ggplot(
+            signal_to_noise(), sn_thresholds, "Signal/Noise"
+          ), path)
+          files <- c(files, path)
+
+          correlation_values <- if(!is.null(canonical_state()$pixel_matches) &&
+                                    nrow(canonical_state()$pixel_matches)) {
+            best_match_rows(canonical_state()$pixel_matches)$match_val
+          } else max_cor()
+          if(!is.null(correlation_values) && length(correlation_values)) {
+            cor_thresholds <- if(isTRUE(input$cor_threshold_decision)) {
+              MinCor()
+            } else numeric()
+            path <- file.path(archive_root, "correlation_histogram.png")
+            app_write_ggplot_png(app_histogram_ggplot(
+              correlation_values, cor_thresholds, "Correlation"
+            ), path)
+            files <- c(files, path)
+          }
+
+          for(map_name in unname(map_color_choices())) {
+            slug <- tolower(gsub("[^A-Za-z0-9]+", "_", map_name))
+            path <- file.path(archive_root, paste0(slug, "_heatmap.png"))
+            app_write_ggplot_png(
+              app_heatmap_ggplot(heatmap_data_for(map_name)), path,
+              width = 8, height = 7
+            )
+            files <- c(files, path)
+          }
+
+          path <- file.path(archive_root, "particle_size_distribution.png")
+          app_write_ggplot_png(app_particle_size_plot(canonical_final()), path)
+          files <- c(files, path)
+          if("material_class" %in% names(canonical_final()$metadata)) {
+            material <- canonical_final()$metadata$material_class
+            path <- file.path(archive_root, "material_summary.png")
+            app_write_ggplot_png(app_material_summary_plot(material), path)
+            files <- c(files, path)
+          }
         }
         if(!length(files)) stop("Choose at least one available particle output.")
         zip_file <- tempfile("openspecy-particles-", fileext = ".zip")
@@ -2444,7 +2700,14 @@ output$progress_bars <- renderUI({
       sel <- app_uploaded_metadata_spectrum(
         meta_cache(), input$sidebar_metadata_rows_selected
       )
-      if (length(sel) && !identical(sel, as.integer(data_click$plot))) {
+      if(length(sel) && particle_pipeline_enabled()) {
+        data_click$pixel <- sel
+        mapping <- canonical_state()$pixel_to_unit
+        unit <- mapping$unit_index[match(sel, mapping$pixel_index)]
+        data_click$plot <- if(length(unit) == 1L && !is.na(unit)) {
+          unit
+        } else NA_integer_
+      } else if (length(sel) && !identical(sel, as.integer(data_click$plot))) {
           data_click$plot <- sel
       }
   })
@@ -2464,7 +2727,9 @@ output$progress_bars <- renderUI({
           data_click$pixel <- target_row
           mapping <- canonical_state()$pixel_to_unit
           unit <- mapping$unit_index[match(target_row, mapping$pixel_index)]
-          if(length(unit) == 1L && !is.na(unit)) data_click$plot <- unit
+          data_click$plot <- if(length(unit) == 1L && !is.na(unit)) {
+            unit
+          } else NA_integer_
         }
         return()
       }

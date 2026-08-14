@@ -169,13 +169,25 @@ and peak memory before expensive work and gives recovery guidance when a known
 unsafe configuration is selected.
 
 For hyperspectral maps, optional spatial smoothing happens first. Signal/noise
-is calculated from that spatial-only data. Particle collapse can use connected
-threshold regions, PCA plus K-means within regions, or non-spatial PCA plus
-K-means groups. Correlation-threshold collapse performs one processed matching
-pass, filters pixels by the selected thresholds, and reuses the resulting
-material identities while collapsing. Identification retains only the selected
-Top N matches per spectrum (10 by default), and the table and download share
-that same compact result instead of storing a full correlation matrix.
+is calculated from that spatial-only data. Both spectral-cluster modes first fit
+one source-scoped PCA plus K-means model, collapse the spatial-only spectra by
+cluster, and process and identify those clusters once. Non-spatial mode returns
+those clusters as particles. Spatial mode projects their material identities
+back to the pixels, joins touching clusters with the same material, and
+reprocesses those final raw/spatial-only particles without a second match run.
+Correlation-threshold collapse reuses the same first identification pass.
+Identification retains only the selected Top N matches per spectrum (10 by
+default), and the table and download share that compact result instead of
+storing a full correlation matrix.
+
+The default-on **Preserve Uploaded Wavenumbers** advanced option keeps the map's
+axis and conforms the identification library onto it with memory-bounded
+`mean_up` averaging and interpolation. Heatmaps omit inline legends; **View Legend** opens a formatted modal
+and explains when more than 30 categories make a legend impractical. Rejected
+pixels remain selectable for location context but return no match and a flat
+processed trace. The particle archive includes the final summary table, both
+threshold histograms, every available heatmap, the material summary, and the
+particle-size distribution.
 
 ## Related Packages
 ### Open Specy on Python

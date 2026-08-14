@@ -56,6 +56,8 @@ test_that("conform_spec() conforms wavenumbers correctly", {
   expect_equal(range(conf_new$wavenumber), range(new_wavenumbers))
 
   expect_identical(conf_roll$wavenumber, new_wavenumbers)
+  expect_identical(conf_mean_up$wavenumber, new_wavenumbers)
+  expect_equal(nrow(conf_mean_up$spectra), length(new_wavenumbers))
 
   expect_identical(conf_wider$wavenumber, conform_res(sam$wavenumber, res = 5))
   
@@ -71,4 +73,25 @@ test_that("conform_spec() conforms wavenumbers correctly", {
   expect_true(all(conf_wider$wavenumber <= max(sam$wavenumber)) & all(conf_wider$wavenumber >= min(sam$wavenumber)))
   
   
+})
+
+test_that("mean_up uses one bounded aggregate row per requested wavenumber", {
+  source <- as_OpenSpecy(
+    1:9,
+    spectra = cbind(a = 1:9, b = (1:9) * 10),
+    metadata = data.frame(label = c("a", "b"))
+  )
+  conformed <- conform_spec(
+    source, range = c(2, 5, 8), res = NULL, type = "mean_up"
+  )
+
+  expect_identical(conformed$wavenumber, c(2, 5, 8))
+  expect_equal(conformed$spectra[, "a"], c(2, 5, 8))
+  expect_equal(conformed$spectra[, "b"], c(20, 50, 80))
+  finer <- conform_spec(
+    source, range = seq(1, 9, by = 0.5), res = NULL, type = "mean_up"
+  )
+  expect_identical(finer$wavenumber, seq(1, 9, by = 0.5))
+  expect_equal(finer$spectra[, "a"], seq(1, 9, by = 0.5))
+  expect_equal(finer$spectra[, "b"], seq(10, 90, by = 5))
 })

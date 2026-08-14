@@ -655,7 +655,7 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   effective_centers <- integer()
 
   if (any(eligible)) {
-    if (strategy %in% c("collapse", "partial_collapse")) {
+    if (identical(strategy, "collapse")) {
       region_id <- .particle_connected_regions(
         x_coord, y_coord, eligible, material, source_id,
         shape_kernel = shape_kernel, close = close,
@@ -667,9 +667,7 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
       pca <- .particle_shared_pca(x$spectra, eligible, pca_components)
       scores <- pca$scores
       effective_components <- pca$n_components
-      grouping <- if (identical(strategy, "partial_collapse")) {
-        region_id
-      } else if (is.null(material)) {
+      grouping <- if (is.null(material)) {
         if (length(source_levels) == 1L) {
           ifelse(eligible, "global", NA_character_)
         } else {
@@ -695,11 +693,6 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   if (identical(strategy, "collapse")) {
     candidate[eligible] <- paste(source_token[eligible], region_id[eligible],
                                  sep = ":")
-  } else if (identical(strategy, "partial_collapse")) {
-    candidate[eligible] <- paste(
-      source_token[eligible], region_id[eligible], cluster_id[eligible],
-      sep = ":"
-    )
   } else {
     group_key <- if (is.null(material)) rep("global", n_pixels) else material
     candidate[eligible] <- paste(

@@ -734,7 +734,7 @@ test_that("material identities define connected regions without matching", {
   expect_false(any(grepl("polymer", kept$unit_id, fixed = TRUE)))
 })
 
-test_that("within-region PCA/K-means is shared, clamped, and deterministic", {
+test_that("spatial-cluster PCA/K-means is source-scoped and deterministic", {
   fixture <- particle_partition_fixture()
   set.seed(812)
   seed_before <- .Random.seed
@@ -763,10 +763,10 @@ test_that("within-region PCA/K-means is shared, clamped, and deterministic", {
   expect_identical(seed_after, seed_before)
   expect_identical(first$pixel_to_unit, second$pixel_to_unit)
   expect_equal(first$settings$pca_components, 6L)
-  expect_equal(unname(first$settings$centers), c(2L, 2L))
-  expect_equal(data.table::uniqueN(na.omit(first$pixel_to_unit$region_id)), 2L)
-  expect_equal(data.table::uniqueN(na.omit(first$pixel_to_unit$unit_id)), 4L)
-  expect_equal(ncol(first$analysis_units$spectra), 4L)
+  expect_equal(unname(first$settings$centers), 2L)
+  expect_equal(data.table::uniqueN(na.omit(first$pixel_to_unit$region_id)), 0L)
+  expect_equal(data.table::uniqueN(na.omit(first$pixel_to_unit$unit_id)), 2L)
+  expect_equal(ncol(first$analysis_units$spectra), 2L)
   by_unit <- first$pixel_to_unit[first$pixel_to_unit$kept,
                                  .(families = data.table::uniqueN(
                                    fixture$family[pixel_index]
@@ -805,6 +805,42 @@ test_that("nonspatial PCA/K-means clusters globally with stable mapping", {
   expect_equal(data.table::uniqueN(na.omit(first$pixel_to_unit$unit_id)), 2L)
   expect_equal(sort(first$analysis_units$metadata$area), c(4L, 4L))
   expect_equal(nrow(first$pixel_to_unit), ncol(fixture$map$spectra))
+})
+
+test_that("spatial cluster composition joins only connected equal materials", {
+  wave <- 1:6
+  spectra <- cbind(
+    p1 = c(1, 2, 6, 2, 1, 1),
+    p2 = c(1, 2, 6, 2, 1, 1),
+    p3 = c(6, 2, 1, 2, 6, 1),
+    p4 = c(6, 2, 1, 2, 6, 1)
+  )
+  map <- as_OpenSpecy(
+    wave, spectra = spectra,
+    metadata = data.frame(x = 0:3, y = 0)
+  )
+  clusters <- OpenSpecy:::.partition_particle_map(
+    map, strategy = "nonspatial_collapse", pca_components = 2,
+    centers = 2, collapse_function = "mean", area_threshold = 1,
+    seed = 4
+  )
+  expect_equal(data.table::uniqueN(clusters$pixel_to_unit$unit_id), 2L)
+
+  same_material <- rep("polymer", 4L)
+  spatial_joined <- OpenSpecy:::.partition_particle_map(
+    map, strategy = "collapse", material = same_material,
+    collapse_function = "mean", area_threshold = 1
+  )
+  expect_equal(data.table::uniqueN(spatial_joined$pixel_to_unit$unit_id), 1L)
+
+  different_material <- ifelse(
+    clusters$pixel_to_unit$unit_index == 1L, "polymer-a", "polymer-b"
+  )
+  spatial_separate <- OpenSpecy:::.partition_particle_map(
+    map, strategy = "collapse", material = different_material,
+    collapse_function = "mean", area_threshold = 1
+  )
+  expect_equal(data.table::uniqueN(spatial_separate$pixel_to_unit$unit_id), 2L)
 })
 
 test_that("particle partition area and geometric-mean validation are explicit", {

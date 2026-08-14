@@ -310,3 +310,41 @@ print(data.frame(
   equivalent = TRUE,
   stringsAsFactors = FALSE
 ), row.names = FALSE)
+
+# Structural validation formerly materialized a full logical matrix for
+# `!is.na(spectra)`. The bounded implementation holds one row at a time and
+# exits as soon as every spectrum has two valid values.
+legacy_validate_values <- function() {
+  !any(colSums(!is.na(na_spectra)) < 2L)
+}
+current_validate_values <- function() {
+  OpenSpecy:::.spectra_have_valid_values(na_spectra, minimum = 2L)
+}
+if(!identical(current_validate_values(), legacy_validate_values())) {
+  stop("bounded and former structural validation differ", call. = FALSE)
+}
+legacy_validation_elapsed <- elapsed_samples(legacy_validate_values)
+current_validation_elapsed <- elapsed_samples(current_validate_values)
+validation_runtime_ratio <- stats::median(current_validation_elapsed) /
+  max(stats::median(legacy_validation_elapsed), .Machine$double.eps)
+validation_failure_limit <- 1.25
+if(validation_runtime_ratio > validation_failure_limit) {
+  stop(
+    "material bounded-validation runtime regression: current/old = ",
+    sprintf("%.3f", validation_runtime_ratio), " (failure limit ",
+    validation_failure_limit, ")", call. = FALSE
+  )
+}
+print(data.frame(
+  validation_wavenumbers = na_wavenumber_count,
+  validation_spectra = na_spectrum_count,
+  repetitions = repetitions,
+  former_mask_mib = 4 * na_wavenumber_count * na_spectrum_count / 1024^2,
+  current_row_mib = 16 * na_spectrum_count / 1024^2,
+  former_median_seconds = stats::median(legacy_validation_elapsed),
+  current_median_seconds = stats::median(current_validation_elapsed),
+  current_to_former_runtime = validation_runtime_ratio,
+  failure_runtime_limit = validation_failure_limit,
+  equivalent = TRUE,
+  stringsAsFactors = FALSE
+), row.names = FALSE)

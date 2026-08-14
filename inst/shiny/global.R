@@ -214,6 +214,136 @@ app_ordinary_heatmap_data <- function(metadata, values, categorical,
   }
 }
 
+app_reference_for_query <- function(reference, query, preserve_axis = TRUE) {
+  if(identical(reference$wavenumber, query$wavenumber)) {
+    return(reference)
+  }
+  conform_spec(
+    reference, range = query$wavenumber, res = NULL,
+    allow_na = FALSE, type = if(isTRUE(preserve_axis)) "mean_up" else "roll"
+  )
+}
+
+app_rejected_spectrum <- function(wavenumber) {
+  axis <- as.numeric(wavenumber)
+  spectra <- matrix(0, nrow = length(axis), ncol = 1L,
+                    dimnames = list(NULL, "No retained particle"))
+  as_OpenSpecy(
+    axis, spectra = spectra,
+    metadata = data.frame(selection = "No retained particle")
+  )
+}
+
+app_particle_summary_table <- function(object) {
+  md <- data.table::as.data.table(object$metadata)
+  if(!nrow(md)) return(data.table::data.table())
+  material <- if("material_class" %in% names(md)) {
+    as.character(md$material_class)
+  } else rep("unidentified", nrow(md))
+  material[is.na(material) | !nzchar(material)] <- "unknown"
+  area <- if("area" %in% names(md)) as.numeric(md$area) else rep(1, nrow(md))
+  data.table::data.table(material_class = material, area = area)[, .(
+    particle_count = .N,
+    total_area_pixels = sum(area, na.rm = TRUE),
+    mean_area_pixels = mean(area, na.rm = TRUE),
+    median_area_pixels = stats::median(area, na.rm = TRUE)
+  ), by = material_class][order(-particle_count, material_class)]
+}
+
+app_particle_size_plot <- function(object) {
+  md <- data.table::as.data.table(object$metadata)
+  area <- if("area" %in% names(md)) as.numeric(md$area) else numeric()
+  ggplot2::ggplot(data.frame(size = sqrt(area)), ggplot2::aes(x = size)) +
+    ggplot2::geom_histogram(
+      bins = 30L, fill = app_plot_palette$primary,
+      color = app_plot_palette$panel
+    ) +
+    theme_black_minimal(base_size = 15) +
+    ggplot2::labs(x = "Nominal Particle Size (sqrt(area))", y = "Count")
+}
+
+app_material_summary_plot <- function(material, palette = NULL) {
+  values <- as.character(material)
+  values[is.na(values) | !nzchar(values)] <- "unknown"
+  if(is.null(palette)) palette <- app_category_palette(values)
+  missing_levels <- setdiff(unique(values), names(palette))
+  if(length(missing_levels)) {
+    palette <- c(palette, app_category_palette(missing_levels))
+  }
+  frame <- data.frame(material_class = factor(values, levels = names(palette)))
+  ggplot2::ggplot(frame, ggplot2::aes(y = material_class,
+                                      fill = material_class)) +
+    ggplot2::geom_bar() +
+    ggplot2::scale_fill_manual(
+      values = palette, na.value = app_theme$muted, drop = FALSE
+    ) +
+    theme_black_minimal(base_size = 15) +
+    ggplot2::theme(legend.position = "none") +
+    ggplot2::labs(x = "Count", y = "Material Class")
+}
+
+app_histogram_ggplot <- function(values, thresholds = numeric(), xlab) {
+  frame <- data.frame(value = as.numeric(values))
+  frame <- frame[is.finite(frame$value), , drop = FALSE]
+  plot <- ggplot2::ggplot(frame, ggplot2::aes(x = value)) +
+    ggplot2::geom_histogram(
+      bins = 30L, fill = app_plot_palette$primary,
+      color = app_plot_palette$panel
+    ) +
+    theme_black_minimal(base_size = 15) +
+    ggplot2::labs(x = xlab, y = "Count")
+  for(value in thresholds[is.finite(thresholds)]) {
+    plot <- plot + ggplot2::geom_vline(
+      xintercept = value, color = app_theme$reference,
+      linewidth = 0.8, linetype = "dashed"
+    )
+  }
+  plot
+}
+
+app_heatmap_ggplot <- function(data) {
+  grid <- expand.grid(x = data$x, y = data$y)
+  grid$value <- as.vector(data$z)
+  rejected <- if(is.null(data$rejected)) rep(FALSE, nrow(grid)) else
+    !is.na(as.vector(data$rejected))
+  grid$rejected <- rejected
+  categorical <- identical(data$type, "heatmap_categorical") ||
+    identical(data$type, "heatmap_binary")
+  if(categorical) {
+    levels <- if(identical(data$type, "heatmap_binary")) data$labels else
+      data$levels
+    grid$value <- factor(levels[as.integer(grid$value)], levels = levels)
+    palette <- if(!is.null(data$palette)) data$palette[levels] else
+      app_category_palette(levels)
+    plot <- ggplot2::ggplot(grid, ggplot2::aes(x = x, y = y, fill = value)) +
+      ggplot2::geom_tile() +
+      ggplot2::scale_fill_manual(values = palette, na.value = app_theme$panel_2,
+                                 drop = FALSE)
+  } else {
+    plot <- ggplot2::ggplot(grid, ggplot2::aes(x = x, y = y, fill = value)) +
+      ggplot2::geom_tile() +
+      ggplot2::scale_fill_gradientn(
+        colours = vapply(app_heatmap_colorscale, `[[`, "", 2L),
+        na.value = app_theme$panel_2
+      )
+  }
+  if(any(rejected)) {
+    plot <- plot + ggplot2::geom_tile(
+      data = grid[rejected, , drop = FALSE], fill = "black"
+    )
+  }
+  plot + ggplot2::coord_equal() + theme_black_minimal(base_size = 13) +
+    ggplot2::labs(x = "X (um)", y = "Y (um)", fill = data$legend_title)
+}
+
+app_write_ggplot_png <- function(plot, path, width = 8, height = 6) {
+  ggplot2::ggsave(
+    filename = path, plot = plot, width = width, height = height,
+    units = "in", dpi = 150, bg = app_plot_palette$panel
+  )
+  invisible(path)
+}
+
 app_uploaded_metadata_cache <- function(x, signal_to_noise) {
   spectrum_ids <- colnames(x$spectra)
   metadata <- data.table::copy(data.table::as.data.table(x$metadata))
@@ -386,9 +516,8 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
   }
   unit_ids <- as.character(unit_ids)
   library_ids <- as.character(library_ids)
-  if(anyDuplicated(mapping$pixel_id) || anyDuplicated(unit_ids) ||
-     anyDuplicated(library_ids)) {
-    stop("Unit-match projection identifiers must be unique.", call. = FALSE)
+  if(anyDuplicated(unit_ids) || anyDuplicated(library_ids)) {
+    stop("Unit and library identifiers must be unique.", call. = FALSE)
   }
   top_n <- suppressWarnings(as.integer(top_n))
   if(length(top_n) != 1L || is.na(top_n) || top_n < 1L) top_n <- 1L
@@ -399,7 +528,8 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
     .(object_id = pixel_id, unit_id, pixel_index)
   ]
   joined <- merge(
-    matches, membership, by = "object_id", all = FALSE, sort = FALSE
+    matches, membership, by = "object_id", all = FALSE, sort = FALSE,
+    allow.cartesian = TRUE
   )
   if(!nrow(joined)) {
     return(data.table::data.table(
@@ -595,7 +725,7 @@ app_user_metadata_input_ids <- c(
   "active_advanced", "threshold_decision", "MinSNR", "MaxSNR",
   "signal_selection",
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
-  "xy_grid", "collapse_decision", "collapse_type", "particle_id_strategy",
+  "xy_grid", "preserve_uploaded_axis", "collapse_decision", "collapse_type", "particle_id_strategy",
   "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
   # Quantification builder
   "active_quantification", "quant_ratio_name", "quant_ratio_type",
@@ -1559,14 +1689,72 @@ app_heatmap_colorscale <- list(
 
 app_heatmap_legend_layout <- function(title = NULL) {
   list(
-    colorbar = list(
-      orientation = "h",
-      x = 0.5, xanchor = "center",
-      y = 1.01, yanchor = "bottom",
-      len = 0.18,
-      thickness = 4
+    margin = list(t = 18, r = 24, b = 58, l = 66)
+  )
+}
+
+app_heatmap_legend_model <- function(data, max_categories = 30L) {
+  title <- if(isTruthy(data$legend_title)) data$legend_title else "Value"
+  categorical <- identical(data$type, "heatmap_categorical") ||
+    identical(data$type, "heatmap_binary")
+  if(categorical) {
+    levels <- if(identical(data$type, "heatmap_binary")) {
+      as.character(data$labels)
+    } else as.character(data$levels)
+    colors <- if(!is.null(data$palette)) data$palette[levels] else
+      app_category_palette(levels)[levels]
+    return(list(
+      title = title, categorical = TRUE, too_many = length(levels) > max_categories,
+      levels = levels, colors = unname(colors), range = NULL
+    ))
+  }
+  values <- as.numeric(data$z)
+  values <- values[is.finite(values)]
+  list(
+    title = title, categorical = FALSE, too_many = FALSE,
+    levels = NULL, colors = vapply(app_heatmap_colorscale, `[[`, "", 2L),
+    range = if(length(values)) range(values) else c(NA_real_, NA_real_)
+  )
+}
+
+app_heatmap_legend_content <- function(model) {
+  if(isTRUE(model$too_many)) {
+    return(tags$p(
+      "More than 30 categories are present, so a categorical legend would not be useful. Use the heatmap hover information to inspect individual pixels."
+    ))
+  }
+  if(isTRUE(model$categorical)) {
+    return(tags$div(
+      class = "openspecy-modal-legend-grid",
+      lapply(seq_along(model$levels), function(i) tags$div(
+        class = "openspecy-modal-legend-item",
+        tags$span(
+          `aria-hidden` = "true",
+          style = paste0(
+            "display:inline-block;width:1rem;height:1rem;margin-right:.55rem;",
+            "vertical-align:middle;border:1px solid #d8e2ec;background:",
+            model$colors[[i]], ";"
+          )
+        ),
+        tags$span(model$levels[[i]])
+      ))
+    ))
+  }
+  labels <- if(all(is.finite(model$range))) {
+    format(signif(model$range, 4), trim = TRUE)
+  } else c("No finite values", "")
+  tags$div(
+    tags$div(
+      `aria-hidden` = "true",
+      style = paste0(
+        "height:1.25rem;border:1px solid #d8e2ec;background:linear-gradient(90deg,",
+        paste(model$colors, collapse = ","), ");"
+      )
     ),
-    margin = list(t = 42, r = 24, b = 58, l = 66)
+    tags$div(
+      style = "display:flex;justify-content:space-between;margin-top:.35rem;",
+      tags$span(labels[[1L]]), tags$span(labels[[2L]])
+    )
   )
 }
 
@@ -2280,13 +2468,6 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
   ))
 
   legend_layout <- app_heatmap_legend_layout(legend_title)
-  colorbar <- if (categorical) {
-    utils::modifyList(legend_layout$colorbar, list(
-      tickmode = "array", tickvals = seq_along(levels), ticktext = levels
-    ))
-  } else {
-    legend_layout$colorbar
-  }
 
   select_x <- if (!is.null(select) && is.finite(select$x)) select$x else NA
   select_y <- if (!is.null(select) && is.finite(select$y)) select$y else NA
@@ -2297,7 +2478,7 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       colorscale = colorscale,
       zmin = if (categorical) 0.5 else NULL,
       zmax = if (categorical) length(levels) + 0.5 else NULL,
-      showscale = TRUE, colorbar = colorbar,
+      showscale = FALSE,
       hoverinfo = "text", text = hover_text, hoverongaps = FALSE
     ) |>
     plotly::add_trace(

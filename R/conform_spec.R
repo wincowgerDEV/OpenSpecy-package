@@ -14,10 +14,12 @@
 #' of the dataset be allowed?
 #' @param type the type of wavenumber adjustment to make. \code{"interp"}
 #' results in linear interpolation while \code{"roll"} conducts a nearest
-#' rolling join of the wavenumbers. \code{"mean_up"} only works when
-#' Spectra are being aggregated, we take the mean of the intensities within the
-#' wavenumber specified. This can maintain smaller peaks and make spectra more
-#' similar to it's less resolved relatives. mean_up option is still experimental.
+#' rolling join of the wavenumbers. \code{"mean_up"} assigns source values by
+#' midpoint and returns one row for every requested wavenumber: occupied bins
+#' are averaged, while requested positions with no source value are linearly
+#' interpolated. This can maintain smaller peaks, match either a coarser or
+#' finer target axis, and avoid full-size grouping copies. The mean-up option is
+#' still experimental.
 #'
 #' @param \ldots further arguments passed to \code{\link[stats]{approx}()}
 #'
@@ -90,16 +92,7 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F,
   }
 
   if(type == "mean_up"){
-    groups <- cut(x = raw_wave, breaks = wn)
-    group_chr <- as.character(groups)
-    u_groups <- unique(group_chr)
-    spec <- lapply(u_groups, function(g) {
-      rows <- if (is.na(g)) is.na(group_chr) else !is.na(group_chr) & group_chr == g
-      colMeans(x$spectra[rows, , drop = FALSE])
-    }) |>
-      unlist(use.names = FALSE) |>
-      matrix(ncol = ncol(x$spectra), byrow = TRUE)
-    colnames(spec) <- colnames(x$spectra)
+    spec <- .conform_mean_up_matrix(raw_wave, x$spectra, wn)
   }
 
   if(allow_na){
@@ -127,6 +120,53 @@ conform_spec.OpenSpecy <- function(x, range = NULL, res = 5, allow_na = F,
 
 .conform_intens <- function(...) {
   approx(...)$y
+}
+
+.conform_mean_up_matrix <- function(x, y, xout) {
+  if (!length(xout)) {
+    return(matrix(numeric(), nrow = 0L, ncol = ncol(y),
+                  dimnames = list(NULL, colnames(y))))
+  }
+  if (length(xout) == 1L) {
+    out <- matrix(colMeans(y), nrow = 1L)
+    colnames(out) <- colnames(y)
+    return(out)
+  }
+  if (is.unsorted(x) || is.unsorted(xout) || anyDuplicated(xout) ||
+      anyNA(x) || anyNA(xout)) {
+    stop("mean_up requires finite, increasing, unique wavenumbers",
+         call. = FALSE)
+  }
+
+  # Assign every source row to its nearest requested wavenumber. Midpoint
+  # boundaries produce exactly one output row per target and avoid the list,
+  # character labels, and unlist copy used by cut().
+  boundaries <- (xout[-1L] + xout[-length(xout)]) / 2
+  group <- findInterval(x, boundaries) + 1L
+  rows <- split(seq_along(group), factor(group, levels = seq_along(xout)))
+  out <- matrix(NA_real_, nrow = length(xout), ncol = ncol(y),
+                dimnames = list(NULL, colnames(y)))
+  occupied <- which(lengths(rows) > 0L)
+  for (i in occupied) {
+    out[i, ] <- colMeans(y[rows[[i]], , drop = FALSE])
+  }
+
+  # A finer target axis necessarily contains empty midpoint bins. Fill only
+  # those rows by interpolation, one row at a time, so preserving a dense
+  # uploaded axis does not allocate another target-by-library matrix.
+  empty <- which(lengths(rows) == 0L)
+  for (i in empty) {
+    if (length(x) == 1L) {
+      out[i, ] <- y[1L, ]
+      next
+    }
+    interval <- findInterval(xout[[i]], x)
+    left <- max(1L, min(interval, length(x) - 1L))
+    right <- left + 1L
+    weight <- (xout[[i]] - x[[left]]) / (x[[right]] - x[[left]])
+    out[i, ] <- y[left, ] + (y[right, ] - y[left, ]) * weight
+  }
+  out
 }
 
 .conform_intens_matrix <- function(x, y, xout, ...) {

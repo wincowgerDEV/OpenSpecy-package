@@ -477,7 +477,7 @@ check_OpenSpecy <- function(x) {
     warning("Wavenumber values have NA", call. = F)
   if(!(cs <- is.matrix(x$spectra) && length(dim(x$spectra)) == 2L))
     warning("Spectra are not a matrix", call. = F)
-  if(!(csn <- cs && !any(colSums(!is.na(x$spectra)) < 2)))
+  if(!(csn <- cs && .spectra_have_valid_values(x$spectra, minimum = 2L)))
     warning("Some of the spectra have one or fewer non NA values", call. = F)
   if(!(cm <- is.data.table(x$metadata)))
     warning("Metadata are not a 'data.table'", call. = F)
@@ -508,6 +508,20 @@ check_OpenSpecy <- function(x) {
   chk <- all(cw, cs, cm, cr, cl, cu, cv, co, csz, csn, cwn, cln, cos, du)
 
   return(chk)
+}
+
+.spectra_have_valid_values <- function(spectra, minimum = 2L) {
+  if(!is.matrix(spectra) || ncol(spectra) == 0L ||
+     nrow(spectra) < minimum) return(FALSE)
+  counts <- integer(ncol(spectra))
+  pending <- seq_len(ncol(spectra))
+  for(row in seq_len(nrow(spectra))) {
+    counts[pending] <- counts[pending] +
+      as.integer(!is.na(spectra[row, pending]))
+    pending <- pending[counts[pending] < minimum]
+    if(!length(pending)) return(TRUE)
+  }
+  FALSE
 }
 
 #' @rdname as_OpenSpecy

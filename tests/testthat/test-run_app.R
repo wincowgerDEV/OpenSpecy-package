@@ -124,12 +124,20 @@ test_that("bundled app has one in-memory upload route", {
 
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                    warn = FALSE), collapse = "\n")
+  expect_match(server_source, "readRDS(as.character(input$file$datapath[[1L]]))",
+               fixed = TRUE)
+  expect_match(server_source, "compute_file_id = FALSE", fixed = TRUE)
   expect_match(server_source,
-               "read_any(\n            file = as.character(input$file$datapath), c_spec = FALSE",
+               "read_any(\n              file = as.character(input$file$datapath), c_spec = FALSE",
                fixed = TRUE)
   expect_match(server_source, "combined <- if(is_OpenSpecy(members))",
                fixed = TRUE)
   expect_match(server_source, "upload_status_state(upload_size$message)",
+               fixed = TRUE)
+  expect_match(server_source,
+               "candidates <- which(distance == min(distance))",
+               fixed = TRUE)
+  expect_match(server_source, "candidates[[length(candidates)]]",
                fixed = TRUE)
 })
 
@@ -409,8 +417,9 @@ test_that("bundled app defaults corrections, identification, but not quantificat
                fixed = TRUE)
   expect_match(server_source, "OpenSpecy:::.match_spec_blockwise(",
                fixed = TRUE)
-  expect_match(server_source, "conform = TRUE, type = \"roll\"",
+  expect_match(server_source, "conform = FALSE, type = \"roll\"",
                fixed = TRUE)
+  expect_match(server_source, "app_reference_for_query(", fixed = TRUE)
   expect_match(ui_source, 'role = "group"', fixed = TRUE)
   expect_match(ui_source, '"quality_automatic_details"', fixed = TRUE)
   expect_match(ui_source, '"quality_warning_details"', fixed = TRUE)
@@ -1286,7 +1295,7 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
     "rejected = projection$rejected",
     fixed = TRUE
   )
-  expect_match(server_source, "values = match_name_palette()", fixed = TRUE)
+  expect_match(server_source, "app_material_summary_plot(", fixed = TRUE)
   expect_match(server_source, "map_color_choices <- reactive({", fixed = TRUE)
   expect_match(server_source, "resolved_map_color <- reactive({", fixed = TRUE)
   expect_match(server_source,
@@ -1947,7 +1956,8 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "active_identification", "id_spec_type", "id_strategy", "lib_type",
     "top_n_input", "filter_lib", "lib_org", "active_advanced", "threshold_decision",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
-    "spatial_decision", "sigma", "xy_grid", "collapse_decision",
+    "spatial_decision", "sigma", "xy_grid", "preserve_uploaded_axis",
+    "collapse_decision",
     "collapse_type", "particle_id_strategy", "particle_pca_components",
     "particle_cluster_k", "particle_area_threshold",
     "active_quantification",

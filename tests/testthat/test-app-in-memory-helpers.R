@@ -139,16 +139,61 @@ test_that("collapsed units reuse real member-pixel correlations", {
   expect_equal(projected$match_val, c(0.9, 0.85))
   expect_identical(projected$source_pixel_id, c("p1", "p2"))
   expect_false(any(projected$match_val == mean(c(0.9, 0.7))))
+
+  split_membership <- data.table::data.table(
+    pixel_id = c("p1", "p1"), unit_id = c("u1", "u2"),
+    pixel_index = 1:2, kept = TRUE
+  )
+  split_projected <- env$app_aggregate_unit_matches(
+    matches[object_id == "p1"], split_membership,
+    unit_ids = c("u1", "u2"), library_ids = c("a", "b", "c"), top_n = 2L
+  )
+  expect_identical(unique(split_projected$object_id), c("u1", "u2"))
+  expect_equal(nrow(split_projected), 4L)
 })
 
-test_that("compact heatmap legends omit redundant titles and stay small", {
+test_that("uploaded-axis identification conforms only the reference", {
   env <- .source_in_memory_app_helpers()
-  layout <- env$app_heatmap_legend_layout("Redundant title")
+  reference <- as_OpenSpecy(
+    1:9, spectra = cbind(ref = 1:9),
+    metadata = data.frame(label = "ref")
+  )
+  query <- as_OpenSpecy(
+    c(2, 5, 8), spectra = cbind(query = c(2, 5, 8)),
+    metadata = data.frame(label = "query")
+  )
 
-  expect_false("title" %in% names(layout$colorbar))
-  expect_equal(layout$colorbar$len, 0.18, tolerance = 0.02)
-  expect_equal(layout$colorbar$thickness, 4, tolerance = 1)
-  expect_lte(layout$margin$t, 50)
+  conformed <- env$app_reference_for_query(reference, query, TRUE)
+  expect_identical(conformed$wavenumber, query$wavenumber)
+  expect_identical(query$wavenumber, c(2, 5, 8))
+  expect_equal(conformed$spectra[, 1L], c(2, 5, 8))
+
+  rejected <- env$app_rejected_spectrum(query$wavenumber)
+  expect_identical(rejected$wavenumber, query$wavenumber)
+  expect_true(all(rejected$spectra == 0))
+})
+
+test_that("heatmaps omit inline legends and build bounded modal legends", {
+  env <- .source_in_memory_app_helpers()
+  layout <- env$app_heatmap_legend_layout("Match Name")
+  model <- env$app_heatmap_legend_model(list(
+    type = "heatmap_categorical", legend_title = "Match Name",
+    levels = c("PE", "PP"), palette = c(PE = "#112233", PP = "#445566")
+  ))
+
+  expect_null(layout$colorbar)
+  expect_lte(layout$margin$t, 20)
+  expect_true(model$categorical)
+  expect_false(model$too_many)
+  expect_identical(model$levels, c("PE", "PP"))
+
+  crowded <- env$app_heatmap_legend_model(list(
+    type = "heatmap_categorical", legend_title = "Particle Unit",
+    levels = as.character(seq_len(31L))
+  ))
+  expect_true(crowded$too_many)
+  expect_match(as.character(env$app_heatmap_legend_content(crowded)),
+               "More than 30 categories", fixed = TRUE)
 })
 
 test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {
@@ -167,6 +212,7 @@ test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {
   expect_equal(sum(!is.na(data$rejected)), 1L)
 
   widget <- env$app_particle_plotly(data)
+  expect_contains(widget$x$shinyEvents, "plotly_click")
   built <- suppressWarnings(plotly::plotly_build(widget))
   rejected_trace <- built$x$data[[2L]]
   expect_identical(rejected_trace$type, "heatmap")
@@ -177,6 +223,7 @@ test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {
   ) == "#000000"))
   expect_equal(sum(is.finite(unlist(rejected_trace$z))), 1L)
   expect_equal(sum(is.finite(unlist(built$x$data[[1L]]$z))), 3L)
+  expect_false(isTRUE(built$x$data[[1L]]$showscale))
   expect_null(built$x$layout$title)
 })
 

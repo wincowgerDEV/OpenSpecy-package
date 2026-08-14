@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const http = require("http");
 const net = require("net");
@@ -119,7 +119,7 @@ async function consumeDownload(
   const started = Date.now();
   const [download] = await Promise.all([
     page.waitForEvent("download", { timeout: eventTimeout }),
-    link.click(),
+    link.click({ timeout: eventTimeout }),
   ]);
   const elapsed = Date.now() - started;
   expect(await download.failure()).toBeNull();
@@ -127,7 +127,9 @@ async function consumeDownload(
   expect(downloadPath).not.toBeNull();
   const content = fs.readFileSync(downloadPath);
   expect(content.length).toBeGreaterThan(20);
-  return { content, elapsed, filename: download.suggestedFilename() };
+  return {
+    content, elapsed, filename: download.suggestedFilename(), path: downloadPath,
+  };
 }
 
 async function fetchDownload(link, { readyTimeout = 30000 } = {}) {
@@ -719,12 +721,13 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
 
   const heatmapContract = await page.locator("#heatmapA").evaluate((plot) => ({
     traceCount: plot.data?.length || 0,
-    colorbar: plot.data?.[0]?.colorbar || {},
+    showscale: plot.data?.[0]?.showscale,
   }));
   expect(heatmapContract.traceCount).toBeGreaterThanOrEqual(3);
-  expect(heatmapContract.colorbar.len).toBeLessThanOrEqual(0.2);
-  expect(heatmapContract.colorbar.thickness).toBeLessThanOrEqual(5);
-  expect(heatmapContract.colorbar.title?.text || "").toBe("");
+  expect(heatmapContract.showscale).toBe(false);
+  await page.locator("#heatmap_legend_details").click();
+  await expect(page.getByRole("dialog")).toContainText("Legend");
+  await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
 
   for (const value of [
     "Particle Unit", "Match Name", "Match ID", "Match Value", "Signal/Noise",
@@ -736,12 +739,25 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
       .toBeVisible({ timeout: 120000 });
   }
 
+  const strategyStatuses = {};
   for (const strategy of ["partial_collapse", "nonspatial_collapse"]) {
     await pickerOption(page, "particle_id_strategy", strategy);
+    const modeLabel = strategy === "partial_collapse"
+      ? "Spatial material-connected mode"
+      : "Non-spatial spectral-cluster mode";
+    await expect(page.locator("#particle_partition_status"))
+      .toContainText(modeLabel, { timeout: 240000 });
     await expect(page.locator("#particle_partition_status"))
       .toContainText("Effective PCA components", { timeout: 240000 });
+    await expect(page.locator("#particle_partition_status"))
+      .toContainText("source-scoped K", { timeout: 240000 });
+    strategyStatuses[strategy] = await page.locator(
+      "#particle_partition_status"
+    ).innerText();
     await expect(particleAlert).toHaveCount(0);
   }
+  expect(strategyStatuses.partial_collapse)
+    .not.toBe(strategyStatuses.nonspatial_collapse);
   await pickerOption(page, "particle_id_strategy", "collapse");
   await page.waitForFunction(() => {
     const select = document.getElementById("map_color");
@@ -756,10 +772,53 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
     select.selectize.setValue("Thresholded Particles");
   });
   await expect(page.locator("#particle_outputs_selected input:checked"))
-    .toHaveCount(4);
+    .toHaveCount(6);
   const download = await consumeDownload(page);
   expect(download.filename).toMatch(/^Thresholded-Particles-.*\.zip$/i);
   expect(download.content.subarray(0, 2).toString("ascii")).toBe("PK");
+  const archiveList = spawnSync("tar", ["-tf", download.path], {
+    encoding: "utf8",
+  });
+  expect(archiveList.status).toBe(0);
+  expect(archiveList.stdout).toEqual(expect.stringContaining(
+    "particle_summary.csv"
+  ));
+  for (const figure of [
+    "signal_noise_histogram.png", "correlation_histogram.png",
+    "match_name_heatmap.png", "match_id_heatmap.png",
+    "match_value_heatmap.png", "signal_noise_heatmap.png",
+    "particle_unit_heatmap.png", "material_summary.png",
+    "particle_size_distribution.png",
+  ]) {
+    expect(archiveList.stdout).toEqual(expect.stringContaining(figure));
+  }
+
+  // A rejected map pixel is deliberately not snapped to the nearest retained
+  // particle. Choose a threshold just above the smallest distinct S/N value
+  // so the map contains both retained and rejected pixels, then click the
+  // black rejection layer directly.
+  const snrCutoff = await page.locator("#snr_plot").evaluate((plot) => {
+    const values = (plot.data || []).flatMap((trace) => trace.x || [])
+      .map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+    const distinct = values.filter((value, index) =>
+      index === 0 || value !== values[index - 1]
+    );
+    if (distinct.length < 2) throw new Error("Test map needs distinct S/N values");
+    return (distinct[0] + distinct[1]) / 2;
+  });
+  await page.evaluate((cutoff) => {
+    window.Shiny.setInputValue("threshold_decision", true, { priority: "event" });
+    window.Shiny.setInputValue("MinSNR", cutoff, { priority: "event" });
+    window.Shiny.setInputValue("MaxSNR", 1e12, { priority: "event" });
+  }, snrCutoff);
+  await page.waitForFunction(() => {
+    const plot = document.getElementById("heatmapA");
+    const rejected = plot?.data?.[1]?.z || [];
+    const primary = plot?.data?.[0]?.z || [];
+    const hasRejected = rejected.some((row) => row.some(Number.isFinite));
+    const hasRetained = primary.some((row) => row.some(Number.isFinite));
+    return hasRejected && hasRetained;
+  }, null, { timeout: 240000 });
   await page.screenshot({
     path: testInfo.outputPath("in-memory-particle-analysis.png"), fullPage: true,
   });
@@ -1190,30 +1249,38 @@ test("local app renders spectra, matches, and one informative progress overlay",
   ]).size).toBe(
     modalTestIds.warning.length + modalTestIds.success.length
   );
-  expect([
+  const correlationFindings = [
     ...modalTestIds.warning,
     ...modalTestIds.success,
   ].filter((finding) =>
     finding.testId.endsWith(":correlation_threshold")
-  )).toHaveLength(0);
+  );
+  expect(correlationFindings).toHaveLength(1);
+  expect(correlationFindings[0].status).toBe("success");
 
   await expect(page.locator("#map_color")).toBeAttached();
   await expect(page.locator("#map_color")).toHaveValue("Match Name");
-  const heatmapImage = page.locator("#heatmapA img");
-  await expect(heatmapImage).toBeVisible({ timeout: 30000 });
-  const categoricalMapSrc = await heatmapImage.getAttribute("src");
+  const heatmapSvg = page.locator("#heatmapA.js-plotly-plot .main-svg").first();
+  await expect(heatmapSvg).toBeVisible({ timeout: 30000 });
+  const categoricalMapSignature = await page.locator("#heatmapA").evaluate(
+    (plot) => JSON.stringify({
+      z: plot.data?.[0]?.z, colorscale: plot.data?.[0]?.colorscale,
+    })
+  );
   await selectizeOption(page, "map_color", "Match Value");
-  await expect.poll(async () => heatmapImage.getAttribute("src"), {
+  await expect.poll(async () => page.locator("#heatmapA").evaluate(
+    (plot) => JSON.stringify({
+      z: plot.data?.[0]?.z, colorscale: plot.data?.[0]?.colorscale,
+    })
+  ), {
     timeout: 30000,
-  }).not.toBe(categoricalMapSrc);
+  }).not.toBe(categoricalMapSignature);
   await page.screenshot({
     path: testInfo.outputPath("local-app-scalable-heatmap.png"),
     fullPage: true,
   });
   await selectizeOption(page, "map_color", "Match Name");
-  await expect.poll(async () => heatmapImage.getAttribute("src"), {
-    timeout: 30000,
-  }).not.toBeNull();
+  await expect(heatmapSvg).toBeVisible({ timeout: 30000 });
   await expect(page.locator("#eventmetadata table")).toBeVisible();
   await expect(page.locator("#heatmap_frame")).toBeVisible();
   await expect(page.locator("#collapse_decision")).not.toBeChecked();
@@ -1511,9 +1578,11 @@ test("local app renders spectra, matches, and one informative progress overlay",
   const topMatchDetails = page.locator("details.openspecy-download-details");
   await expect(topMatchDetails).toBeVisible();
   await expect(topMatchDetails).not.toHaveAttribute("open", "");
-  await topMatchDetails.locator("summary").click();
+  await expect(overlay).toBeHidden({ timeout: 120000 });
+  await topMatchDetails.locator("summary").click({ timeout: 30000 });
   await page.locator("#top_n_input").fill("3");
   await selectizeOption(page, "columns_selected", "Simple");
+  await expect(overlay).toBeHidden({ timeout: 240000 });
   const topMatchesDownload = await consumeDownload(page);
   expect(topMatchesDownload.filename).toMatch(/^Top-Matches-.*\.csv$/i);
   const topMatchesText = topMatchesDownload.content.toString("utf8");
@@ -1570,12 +1639,19 @@ test("local app renders spectra, matches, and one informative progress overlay",
   }));
   expect(mobileLegend.y).toBeLessThan(0);
   expect(mobileLegend.bottomMargin).toBeGreaterThanOrEqual(100);
-  const mobileHeatmap = page.locator("#heatmapA img");
-  const mobileCategoricalSrc = await mobileHeatmap.getAttribute("src");
+  const mobileCategoricalSignature = await page.locator("#heatmapA").evaluate(
+    (plot) => JSON.stringify({
+      z: plot.data?.[0]?.z, colorscale: plot.data?.[0]?.colorscale,
+    })
+  );
   await selectizeOption(page, "map_color", "Match Value");
-  await expect.poll(async () => mobileHeatmap.getAttribute("src"), {
+  await expect.poll(async () => page.locator("#heatmapA").evaluate(
+    (plot) => JSON.stringify({
+      z: plot.data?.[0]?.z, colorscale: plot.data?.[0]?.colorscale,
+    })
+  ), {
     timeout: 30000,
-  }).not.toBe(mobileCategoricalSrc);
+  }).not.toBe(mobileCategoricalSignature);
   const mobileDownloadWidth = await page.locator("#download_data").evaluate((button) => {
     const buttonBox = button.getBoundingClientRect();
     const titleBox = button.closest(".card-title")?.getBoundingClientRect();
@@ -1589,7 +1665,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
     fullPage: true,
   });
   await selectizeOption(page, "map_color", "Match Name");
-  await expect(mobileHeatmap).toBeVisible();
+  await expect(heatmapSvg).toBeVisible();
   await expectSummaryRowsFilled(page, true);
   const [mobileSpectra, mobileSummary] = await Promise.all([
     spectraCard.boundingBox(), summaryCard.boundingBox(),

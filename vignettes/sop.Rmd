@@ -193,13 +193,25 @@ cluster count if the selected configuration is known to be unsafe.
 
 For an uploaded map, the app applies optional spatial smoothing before any
 particle decision. Signal/noise is calculated from that spatial-only object.
-Connected-region and clustering strategies collapse eligible pixels before
-ordinary processing and identification. When correlation is itself a collapse
-threshold, the app fully processes and identifies eligible pixels once, keeps
-only the selected Top N results, and reuses their material identities while
-forming and collapsing particles. Threshold failures are background pixels,
-not unknown particles. The package-only experimental workflow above remains
-available independently for research that needs bounded on-disk access.
+Connected regions collapse eligible pixels before ordinary processing and
+identification. Both clustering strategies instead fit one source-scoped PCA
+plus K-means model to the spatial-only spectra, collapse those spectral groups,
+and process and identify the clusters once. Non-spatial mode returns those
+clusters. Spatial mode projects the cluster material identities to the original
+pixels, joins adjacent equal-material clusters, collapses the raw/spatial-only
+spectra again, and reprocesses the final particles without identifying twice.
+When correlation is a threshold, that same first Top N identification result is
+reused. Threshold failures are background pixels, not unknown particles.
+
+The default-on **Preserve Uploaded Wavenumbers** advanced control leaves the
+uploaded axis unchanged and conforms the identification library onto it with
+memory-bounded `mean_up` averaging and interpolation. Heatmap legends open from **View Legend**; categorical
+maps with more than 30 values rely on hover instead of listing an unreadable
+legend. A rejected pixel has no nearest-particle substitution: its processed
+trace is flat and it has no matches. Thresholded-particle downloads can include
+the final summary table, both histograms, all available heatmaps, the material
+summary, and particle-size distribution. The package-only experimental workflow
+above remains available independently for bounded on-disk research.
 
 Maintainers can run the repeated benchmark in
 `benchmarks/file_specs_particle_analysis.R`. It is opt-in and accepts external

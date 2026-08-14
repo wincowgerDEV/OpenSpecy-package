@@ -85,7 +85,10 @@ manage_na.default <- function(x, lead_tail_only = TRUE, ig = c(NA), ...) {
 #' @export
 manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
                                 type = "ignore", ...) {
-  x <- as_OpenSpecy(x)
+  # Data cleaning must not hash the entire spectral matrix merely to add a
+  # provenance ID. This is especially costly for multi-gigabyte maps and is
+  # unrelated to missing-value management.
+  x <- as_OpenSpecy(x, compute_file_id = FALSE)
 
   if (type == "remove") {
     consistent <- .rows_without_ignored_values(
@@ -93,6 +96,7 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
       lead_tail_only = lead_tail_only,
       ig = ig
     )
+    if (all(consistent)) return(x)
     x$wavenumber <- x$wavenumber[consistent]
     x$spectra <- x$spectra[consistent, , drop = FALSE]
     return(x)

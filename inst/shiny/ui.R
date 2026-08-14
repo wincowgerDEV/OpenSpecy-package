@@ -322,6 +322,13 @@ advanced_controls <- tagList(
     note = "Replace discontinuous uploaded map coordinates with a continuous XY grid."
   ),
   app_control_box(
+    "preserve_uploaded_axis", "Preserve Uploaded Wavenumbers", TRUE,
+    note = c(
+      "Keeps the uploaded wavenumber axis instead of resampling it to the preprocessing resolution.",
+      "For identification, the reference library is conformed onto that exact axis with mean_up: occupied bins are averaged and empty finer-axis positions are interpolated. Only the library expands, which protects memory for large uploaded maps."
+    )
+  ),
+  app_control_box(
     "collapse_decision", "Collapse Particle Spectra", FALSE,
     pickerInput(
       "collapse_type", "Collapse Function",
@@ -331,7 +338,7 @@ advanced_controls <- tagList(
       "particle_id_strategy", "Particle ID Strategy",
       choices = c(
         "Connected threshold regions" = "collapse",
-        "Spectral clusters within regions" = "partial_collapse",
+        "Spatial material-connected clusters" = "partial_collapse",
         "Non-spatial spectral clusters" = "nonspatial_collapse"
       ),
       selected = "collapse"
@@ -364,9 +371,10 @@ advanced_controls <- tagList(
       value = 1, min = 0, step = 1
     ),
     note = c(
-      "Turning collapse off leaves pixels in the ordinary app workflow. With correlation thresholding on, pixels are fully processed and identified once before grouping; otherwise grouping happens before spectral preprocessing.",
-      "Signal/noise uses only the uploaded spectra plus optional Spatial Smooth. Connected regions use whichever enabled signal/noise and correlation thresholds pass; correlation regions also require the same material identity.",
-      "PCA Components and K-means Clusters are requested maxima. The effective values are clamped to the eligible data and reported above. Higher values cost more memory and can make smaller groups.",
+      "Turning collapse off leaves pixels in the ordinary app workflow. Signal/noise always uses only the uploaded spectra plus optional Spatial Smooth.",
+      "Connected regions use the enabled signal/noise and correlation thresholds and require equal material identity when correlation is active.",
+      "Both cluster modes fit source-scoped PCA then K-means to spatial-only spectra and collapse those groups before other processing. Non-spatial mode keeps the identified clusters as particles. Spatial mode projects their material identities to pixels, joins touching equal-material clusters, collapses the spatial-only data again, and reprocesses without a second identification.",
+      "PCA Components and K-means Clusters are requested maxima. The effective values are clamped to each source and reported above. Higher values cost more memory and can make smaller groups.",
       "Minimum Particle Area is inclusive: groups with fewer pixels than this value are rejected after grouping. Geometric Mean requires every collapsed intensity to be positive."
     )
   )

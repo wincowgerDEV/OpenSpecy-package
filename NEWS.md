@@ -5,13 +5,20 @@
   Identification now ranks bounded query blocks and retains only a shared Top N
   result (10 by default) for the match table and download. Particle analysis
   calculates signal/noise after optional spatial smoothing but before other
-  processing; correlation-threshold collapse identifies processed pixels once,
-  filters by correlation/material identity, and reuses that pass during
-  connected or PCA/K-means collapse. All heatmaps black out rejected pixels,
-  legends are compact and title-free, threshold histograms remain on-theme, and
-  only caught errors open alert dialogs.
-- Corrected package `automate_particle_analysis()` partitioning so connected,
-  within-region PCA/K-means, and non-spatial PCA/K-means units never cross
+  processing. Spectral cluster modes now fit source-scoped PCA/K-means first,
+  identify collapsed clusters once, and either retain them as non-spatial
+  particles or project their identities into a second connected same-material
+  spatial collapse without re-identification. Correlation thresholds reuse that
+  first pass. All heatmaps black out rejected pixels, omit inline legends, and
+  expose a formatted legend modal (or a >30-category explanation); rejected
+  clicks return no match and a flat processed trace. Threshold histograms remain
+  on-theme, and only caught errors open alert dialogs.
+  The default-on uploaded-axis option conforms the reference library onto the
+  exact uploaded axis with memory-bounded `mean_up` averaging/interpolation,
+  and particle ZIPs restore the summary table, both
+  histograms, every heatmap, material summary, and size distribution.
+- Corrected package `automate_particle_analysis()` partitioning so connected
+  units and source-scoped PCA/K-means clusters never cross
   source maps or H5 regions; return stable pixel-to-unit membership and aligned
   unit IDs/metadata; and apply the minimum pixel area inclusively. Connected
   units retain recomputed shape and signal summaries, while `specs_centers`
@@ -50,8 +57,7 @@
   filtering. The redundant "No regions passing threshold" popup is removed in
   favor of the existing quality warning/success indicators.
 - Unified the app's numeric, categorical, and particle heatmaps into one Plotly
-  renderer with an on-theme colorbar/legend above the
-  plot, hover tooltips instead of a click popup, and a selection marker kept
+  renderer with hover tooltips, an on-demand modal legend, and a selection marker kept
   in sync via a cheap trace restyle; this replaces the separate base-graphics
   heatmap, its click/brush handlers, and the metadata popover. Material-class
   colors are resolved from one shared palette across the heatmap, particle
