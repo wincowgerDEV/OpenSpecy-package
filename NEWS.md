@@ -1,5 +1,23 @@
 # OpenSpecy 1.7.1
 
+- Added a single **Run** button as the sole trigger for the app's analysis
+  tranche, replacing the four per-tab owner switches; the button turns bright
+  green whenever a new dataset is uploaded or a setting changes, and returns
+  to the app's normal accent color once Run has produced current results.
+  Uploading a new dataset now also resets the heatmap, spectrum plot, and
+  quality/automatic-correction reports back to a "click Run" state instead of
+  continuing to show the previous dataset's results. "Collapse Particle
+  Spectra" and "Spatial Smooth" are silently ignored for a single uploaded
+  spectrum instead of erroring. Fixed a crash ("wasn't able to determine
+  range of domain") when a heatmap's selected color metric has no finite
+  values for any pixel (for example, when no uploaded spectrum clears the
+  correlation threshold).
+- Replaced the **Preserve Uploaded Wavenumbers** advanced switch with a
+  **Mean Up** conformation technique (the new default). Mean Up only
+  resamples the uploaded spectra to the selected Wavenumber Resolution when
+  that resolution is finer than what was actually uploaded; otherwise it
+  leaves the uploaded axis untouched and conforms the reference library onto
+  it instead, exactly as the removed switch did.
 - Rebuilt the bundled app around one in-memory `OpenSpecy` workflow with a
   unified 10 GiB upload ceiling and best-effort resident/peak-memory guidance.
   Identification now ranks bounded query blocks and retains only a shared Top N

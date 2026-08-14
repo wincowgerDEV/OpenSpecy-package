@@ -180,9 +180,11 @@ Identification retains only the selected Top N matches per spectrum (10 by
 default), and the table and download share that compact result instead of
 storing a full correlation matrix.
 
-The default-on **Preserve Uploaded Wavenumbers** advanced option keeps the map's
-axis and conforms the identification library onto it with memory-bounded
-`mean_up` averaging and interpolation. Heatmaps omit inline legends; **View Legend** opens a formatted modal
+The default **Mean Up** conformation technique keeps the uploaded axis and
+conforms the identification library onto it with memory-bounded averaging and
+interpolation, unless the selected Wavenumber Resolution is actually finer
+than what was uploaded, in which case the uploaded spectra are resampled to
+that resolution instead. Heatmaps omit inline legends; **View Legend** opens a formatted modal
 and explains when more than 30 categories make a legend impractical. Rejected
 pixels remain selectable for location context but return no match and a flat
 processed trace. The particle archive includes the final summary table, both

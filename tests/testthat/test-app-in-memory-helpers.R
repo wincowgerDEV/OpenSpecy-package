@@ -227,6 +227,52 @@ test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {
   expect_null(built$x$layout$title)
 })
 
+test_that("a fully rejected continuous heatmap builds without a domain error", {
+  env <- .source_in_memory_app_helpers()
+  metadata <- data.frame(x = c(0, 1, 0), y = c(0, 0, 1))
+  data <- env$app_ordinary_heatmap_data(
+    metadata = metadata,
+    values = rep(NA_real_, 3),
+    categorical = FALSE,
+    legend_title = "Match Value",
+    rejected = c(TRUE, TRUE, TRUE),
+    rejection_reason = rep("below correlation threshold", 3)
+  )
+  expect_true(all(is.na(data$z)))
+
+  widget <- env$app_particle_plotly(data)
+  built <- expect_no_error(suppressWarnings(plotly::plotly_build(widget)))
+  primary_trace <- built$x$data[[1L]]
+  expect_true(is.finite(primary_trace$zmin))
+  expect_true(is.finite(primary_trace$zmax))
+  expect_lt(primary_trace$zmin, primary_trace$zmax)
+})
+
+test_that("mean_up conform preserves the uploaded axis only when appropriate", {
+  env <- .source_in_memory_app_helpers()
+  wavenumber <- seq(400, 4000, by = 2)
+  spectra <- matrix(1, nrow = length(wavenumber), ncol = 1,
+                    dimnames = list(NULL, "a"))
+  uploaded <- as_OpenSpecy(wavenumber, spectra = spectra)
+
+  # Not "mean_up": always resample regardless of the requested resolution.
+  expect_false(env$app_conform_preserve_axis(uploaded, TRUE, "interp", 1))
+  expect_false(env$app_conform_preserve_axis(uploaded, TRUE, "roll", 8))
+
+  # Conform Wavenumbers turned off entirely: nothing touches the uploaded
+  # axis either way, so mean_up always preserves it.
+  expect_true(env$app_conform_preserve_axis(uploaded, FALSE, "mean_up", 1))
+
+  # mean_up, conform on: a finer requested resolution (smaller cm^-1 step)
+  # than the upload's native ~2 cm^-1 spacing resamples the upload up.
+  expect_false(env$app_conform_preserve_axis(uploaded, TRUE, "mean_up", 1))
+
+  # A coarser (or equal) requested resolution preserves the native axis and
+  # defers to conforming the library instead.
+  expect_true(env$app_conform_preserve_axis(uploaded, TRUE, "mean_up", 4))
+  expect_true(env$app_conform_preserve_axis(uploaded, TRUE, "mean_up", 2))
+})
+
 test_that("threshold rejection masks are vector-safe at their boundaries", {
   env <- .source_in_memory_app_helpers()
   values <- c(NA_real_, 0.49, 0.5, 0.75, 1)

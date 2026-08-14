@@ -203,9 +203,11 @@ spectra again, and reprocesses the final particles without identifying twice.
 When correlation is a threshold, that same first Top N identification result is
 reused. Threshold failures are background pixels, not unknown particles.
 
-The default-on **Preserve Uploaded Wavenumbers** advanced control leaves the
-uploaded axis unchanged and conforms the identification library onto it with
-memory-bounded `mean_up` averaging and interpolation. Heatmap legends open from **View Legend**; categorical
+The default **Mean Up** conformation technique leaves the uploaded axis
+unchanged and conforms the identification library onto it with memory-bounded
+averaging and interpolation, unless the selected Wavenumber Resolution is
+finer than the upload's native resolution, in which case the uploaded spectra
+are resampled up to that resolution instead. Heatmap legends open from **View Legend**; categorical
 maps with more than 30 values rely on hover instead of listing an unreadable
 legend. A rejected pixel has no nearest-particle substitution: its processed
 trace is flat and it has no matches. Thresholded-particle downloads can include

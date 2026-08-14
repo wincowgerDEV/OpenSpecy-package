@@ -50,6 +50,40 @@ function(input, output, session) {
     shinyjs::toggleState("run_analysis", condition = !is.null(preprocessed$data))
   })
 
+  # Each Run-gated result below is a reactiveVal cache populated only when
+  # Run is clicked, rather than a plain bindEvent()-wrapped reactive, so that
+  # a fresh upload can explicitly clear it back to "not yet analyzed" instead
+  # of continuing to show the previous dataset's results until the next Run.
+  run_gated_reactive <- function(compute) {
+    cache <- reactiveVal(NULL)
+    observeEvent(input$run_analysis, {
+      cache(compute())
+    })
+    structure(list(read = function() cache(), clear = function() cache(NULL)),
+              class = "openspecy_run_gate")
+  }
+
+  # Bright green ("dirty") whenever there is a new upload or a settings
+  # change the current results don't reflect yet; the app's normal accent
+  # color once Run has been clicked for the current upload and settings.
+  analysis_dirty <- reactiveVal(FALSE)
+  analysis_needs_reset <- reactiveVal(FALSE)
+  settings_signature <- reactive({
+    lapply(app_user_metadata_input_ids, function(id) input[[id]])
+  })
+  observeEvent(settings_signature(), {
+    analysis_dirty(TRUE)
+  }, ignoreInit = TRUE)
+  observeEvent(input$run_analysis, {
+    analysis_dirty(FALSE)
+    analysis_needs_reset(FALSE)
+  })
+  observe({
+    shinyjs::toggleClass(
+      "run_analysis", "openspecy-run-dirty", condition = isTRUE(analysis_dirty())
+    )
+  })
+
   observeEvent(input$range_automate, {
     manual_range <- !isTRUE(input$range_automate)
     shinyjs::toggleState("MinRange", condition = manual_range)
@@ -235,9 +269,21 @@ observeEvent(input$file, {
           "Checking spectral structure and preparing the shared wavenumber axis.",
           15
         )
-        preprocessed$data <- rout 
+        preprocessed$data <- rout
         upload_status_state(NULL)
         #print(preprocessed$data)
+
+        # A newly uploaded dataset invalidates every previous Run's results;
+        # clear them back to "not yet analyzed" instead of leaving the prior
+        # dataset's heatmap/spectra/reports visible until the next Run click.
+        analysis_dirty(TRUE)
+        analysis_needs_reset(TRUE)
+        canonical_state_gate$clear()
+        quantified_data_gate$clear()
+        quality_report_gate$clear()
+        automatic_report_gate$clear()
+        ai_output_gate$clear()
+        pixel_projection_gate$clear()
     }
 })
 
@@ -419,14 +465,21 @@ observeEvent(input$file, {
         list()
       }
 
-      preserve_uploaded_axis <- !identical(input$preserve_uploaded_axis, FALSE)
+      preserve_uploaded_axis <- app_conform_preserve_axis(
+        processed, input$conform_decision, input$conform_selection,
+        input$conform_res
+      )
       conform_enabled <- isTRUE(input$conform_decision) &&
         !preserve_uploaded_axis
       conform_args <- if(conform_enabled) {
         list(
           range = app_conform_axis(processed, input$conform_res),
           res = NULL,
-          type = input$conform_selection
+          # Mean Up only reaches this branch when the target resolution is
+          # finer than the upload's native resolution, which calls for
+          # interpolation (mean_up itself can only aggregate down).
+          type = if(identical(input$conform_selection, "mean_up")) "interp" else
+            input$conform_selection
         )
       } else {
         list()
@@ -591,13 +644,21 @@ observeEvent(input$file, {
       )
     }
 
-    app_attach_correction_metadata(processed)
+    result <- app_attach_correction_metadata(processed)
+    # identify_blockwise() reads this back so its "conform the library
+    # instead" decision always matches what actually happened to this
+    # specific object's axis, regardless of which pipeline stage called
+    # ordinary_process() (whole upload, cluster collapse, pixel subset, ...).
+    attr(result, "preserve_uploaded_axis") <- preserve_uploaded_axis
+    result
   }
 
   spatial_data <- reactive({
     req(!is.null(preprocessed$data))
     uploaded <- data()
-    if(!isTRUE(input$spatial_decision)) {
+    # Spatial smoothing has no neighbors to smooth across for a single
+    # uploaded spectrum; silently skip it rather than erroring.
+    if(!isTRUE(input$spatial_decision) || ncol(uploaded$spectra) <= 1L) {
       return(uploaded)
     }
     analysis_phase(
@@ -908,7 +969,11 @@ observeEvent(input$file, {
   })
 
   particle_pipeline_enabled <- reactive({
-    isTRUE(input$collapse_decision) && !is.null(preprocessed$data)
+    # Collapsing particle spectra requires a map with more than one spectrum
+    # to group; silently ignore the setting for a single uploaded spectrum
+    # instead of erroring.
+    isTRUE(input$collapse_decision) && !is.null(preprocessed$data) &&
+      ncol(preprocessed$data$spectra) > 1L
   })
 
   particle_collapse_function <- reactive({
@@ -936,7 +1001,7 @@ observeEvent(input$file, {
   })
 
   identify_blockwise <- function(object) {
-    preserve_axis <- !identical(input$preserve_uploaded_axis, FALSE)
+    preserve_axis <- isTRUE(attr(object, "preserve_uploaded_axis", exact = TRUE))
     reference <- app_reference_for_query(
       library_filtered(), object, preserve_axis = preserve_axis
     )
@@ -1082,7 +1147,7 @@ observeEvent(input$file, {
   # This state is the only expensive analysis owner. It returns one final
   # OpenSpecy object, its compact Top-N match table, and a complete full-pixel
   # mapping used only to project unit results back onto the map.
-  canonical_state <- reactive({
+  canonical_state_gate <- run_gated_reactive(function() {
     req(!is.null(preprocessed$data))
     estimate <- memory_preflight()
     if(identical(estimate$status, "unsafe")) {
@@ -1341,7 +1406,8 @@ observeEvent(input$file, {
       ))
     }
     result
-  }) |> bindEvent(input$run_analysis)
+  })
+  canonical_state <- reactive(canonical_state_gate$read())
 
   canonical_error_key <- reactiveVal(NULL)
   observeEvent(canonical_state()$error, {
@@ -1397,6 +1463,10 @@ observeEvent(input$file, {
   outputOptions(output, "particle_partition_status", suspendWhenHidden = FALSE)
 
   canonical_final <- reactive({
+    validate(need(
+      !isTRUE(analysis_needs_reset()),
+      "A new dataset was uploaded. Click Run to analyze it."
+    ))
     state <- canonical_state()
     reason <- state$diagnostic
     if(is.null(reason)) reason <- state$error
@@ -1429,7 +1499,7 @@ observeEvent(input$file, {
   # receives the same canonical final object.
   DataR <- reactive(canonical_final())
 
-  quantified_data <- reactive({
+  quantified_data_gate <- run_gated_reactive(function() {
     processed <- DataR()
     definitions <- active_ratio_definitions()
     measurements <- active_measurement_definitions()
@@ -1446,7 +1516,8 @@ observeEvent(input$file, {
       49
     )
     app_attach_quantification(processed, definitions, measurements)
-  }) |> bindEvent(input$run_analysis)
+  })
+  quantified_data <- reactive(quantified_data_gate$read())
 
   #The data to use in the plot. 
   selected_unit_index <- reactive({
@@ -1476,7 +1547,7 @@ observeEvent(input$file, {
       input$signal_selection
   })
 
-  quality_report <- reactive({
+  quality_report_gate <- run_gated_reactive(function() {
       if(is.null(preprocessed$data)) return(NULL)
       selected <- DataR_plot()
       assessment <- tryCatch(
@@ -1530,7 +1601,8 @@ observeEvent(input$file, {
         list(assessment, threshold_report), use.names = TRUE, fill = TRUE
       )
       app_quality_ui_report(report)
-  }) |> bindEvent(input$run_analysis)
+  })
+  quality_report <- reactive(quality_report_gate$read())
 
   quality_findings <- reactive({
       report <- quality_report()
@@ -1546,7 +1618,7 @@ observeEvent(input$file, {
   outputOptions(output, "quality_warning_count", suspendWhenHidden = FALSE)
   outputOptions(output, "quality_success_count", suspendWhenHidden = FALSE)
 
-  automatic_report <- reactive({
+  automatic_report_gate <- run_gated_reactive(function() {
       app_automatic_report(
         x = if(is.null(preprocessed$data)) NULL else DataR(),
         diagnostics = correction_diagnostics(),
@@ -1557,7 +1629,8 @@ observeEvent(input$file, {
           tails = isTRUE(input$range_decision) && isTRUE(input$range_automate)
         )
       )
-  }) |> bindEvent(input$run_analysis)
+  })
+  automatic_report <- reactive(automatic_report_gate$read())
   automatic_count <- reactive(sum(automatic_report()$applied, na.rm = TRUE))
   output$quality_automatic_count <- renderText(automatic_count())
   outputOptions(output, "quality_automatic_count", suspendWhenHidden = FALSE)
@@ -1637,7 +1710,7 @@ observeEvent(input$file, {
   })
 
   #The output from the AI classification algorithm.
-  ai_output <- reactive({ #tested working.
+  ai_output_gate <- run_gated_reactive(function() { #tested working.
       req(!is.null(preprocessed$data))
       req(grepl("^model$", input$lib_type))
       analysis_phase(
@@ -1646,18 +1719,19 @@ observeEvent(input$file, {
                " uploaded spectrum", if(ncol(DataR()$spectra) == 1L) "." else "s."),
         76
       )
-      
+
       #rn <- runif(n = length(unique(libraryR()$all_variables)))
       mean <- rep.int(mean(unlist(DataR()$spectra)), times = length(unique(libraryR()$all_variables)))
-      
+
       fill <- as_OpenSpecy(as.numeric(unique(libraryR()$all_variables)),
                            spectra = data.frame(mean))
-      
+
       data <- conform_spec(DataR(), range = fill$wavenumber,
                            res = NULL)
-      
+
       match_spec(data, library = libraryR(), na.rm = T, fill = fill)
-  }) |> bindEvent(input$run_analysis)
+  })
+  ai_output <- reactive(ai_output_gate$read())
 
   # Best values are projected from the compact Top-N table; no full
   # library-by-spectrum matrix is created or retained.
@@ -1880,7 +1954,7 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       }
   }, ignoreInit = FALSE)
 
-  pixel_projection <- reactive({
+  pixel_projection_gate <- run_gated_reactive(function() {
     req(!is.null(preprocessed$data))
     spatial <- spatial_data()
     ids <- colnames(spatial$spectra)
@@ -1950,7 +2024,8 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       rejected = rejected,
       rejection_reason = reason
     )
-  }) |> bindEvent(input$run_analysis)
+  })
+  pixel_projection <- reactive(pixel_projection_gate$read())
 
   map_color_choices <- reactive({
     req(ncol(preprocessed$data$spectra) > 1)
@@ -2191,6 +2266,12 @@ output$progress_bars <- renderUI({
   }
 
   current_heatmap_data <- reactive({
+      if(is.null(pixel_projection())) {
+        return(list(
+          type = "empty",
+          reason = "A new dataset was uploaded. Click Run to analyze it."
+        ))
+      }
       heatmap_data_for(resolved_map_color())
   })
 

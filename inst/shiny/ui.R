@@ -45,16 +45,19 @@ preprocessing_controls <- tagList(
     "conform_decision", "Conform Wavenumbers", TRUE,
     selectInput(
       "conform_selection", "Conformation Technique",
-      choices = c("Linear Interpolation" = "interp", "Nearest" = "roll")
+      choices = c(
+        "Mean Up" = "mean_up",
+        "Linear Interpolation" = "interp",
+        "Nearest" = "roll"
+      ),
+      selected = "mean_up"
     ),
     sliderInput("conform_res", "Wavenumber Resolution",
                 min = 4, max = 16, value = 6),
-    prettySwitch("preserve_uploaded_axis", "Preserve Uploaded Wavenumbers",
-                 inline = TRUE, value = TRUE, status = "success", fill = TRUE),
     note = c(
       "Creates a regular shared wavenumber axis at the selected resolution.",
-      "Preserve Uploaded Wavenumbers keeps the uploaded wavenumber axis instead of resampling it to the resolution above.",
-      "For identification, the reference library is conformed onto that exact axis with mean_up: occupied bins are averaged and empty finer-axis positions are interpolated. Only the library expands, which protects memory for large uploaded maps."
+      "Mean Up only resamples the uploaded spectra up to the selected resolution when that resolution is finer than what was actually uploaded. Otherwise it leaves the uploaded axis untouched and conforms the reference library onto it instead: occupied bins are averaged and empty finer-axis positions are interpolated. This avoids discarding real uploaded resolution and keeps memory bounded, since only the (smaller) library expands.",
+      "Linear Interpolation and Nearest always resample the uploaded spectra to the selected resolution."
     )
   ),
   app_control_box(
@@ -815,6 +818,20 @@ dashboardPage(
           font-weight: 700;
           white-space: nowrap;
         }
+        .btn.openspecy-run-button {
+          display: inline-flex;
+          align-items: center;
+          gap: .5rem;
+          margin-top: 10px;
+          color: var(--openspecy-canvas) !important;
+          background: var(--openspecy-accent) !important;
+          border-color: var(--openspecy-accent) !important;
+          font-weight: 700;
+        }
+        .btn.openspecy-run-button.openspecy-run-dirty {
+          background: var(--openspecy-success) !important;
+          border-color: var(--openspecy-success) !important;
+        }
         .openspecy-quant-builder-actions {
           display: flex;
           justify-content: flex-end;
@@ -1276,7 +1293,7 @@ dashboardPage(
             actionButton(
               "run_analysis", "Run",
               icon = icon("play"),
-              class = "btn-success openspecy-run-button",
+              class = "openspecy-run-button",
               title = paste(
                 "Run the current preprocessing, threshold, cluster,",
                 "identification, and quantification settings."

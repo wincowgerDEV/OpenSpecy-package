@@ -392,7 +392,8 @@ test_that("bundled app runs corrections and identification unconditionally", {
   expect_match(server_source, 'report = "all"', fixed = TRUE)
   expect_match(server_source, "quality_findings <- reactive({", fixed = TRUE)
   expect_match(server_source, "app_threshold_quality_report(", fixed = TRUE)
-  expect_match(server_source, "canonical_state <- reactive({", fixed = TRUE)
+  expect_match(server_source, "canonical_state_gate <- run_gated_reactive(function() {",
+               fixed = TRUE)
   expect_match(server_source, "canonical_final <- reactive({", fixed = TRUE)
   expect_match(server_source, "particle_pipeline_enabled <- reactive({",
                fixed = TRUE)
@@ -613,7 +614,8 @@ test_that("bundled app uses collapsed responsive panels and one shared theme", {
   expect_match(server_source, "quantified_data()$metadata", fixed = TRUE)
   expect_match(server_source, "app_summary_row(metric_items)", fixed = TRUE)
   expect_match(server_source, "app_summary_row(plot_items)", fixed = TRUE)
-  expect_match(server_source, "automatic_report <- reactive({", fixed = TRUE)
+  expect_match(server_source, "automatic_report_gate <- run_gated_reactive(function() {",
+               fixed = TRUE)
   expect_match(server_source, "app_automatic_modal_content(automatic_report())",
                fixed = TRUE)
   expect_match(server_source, '"quality_automatic_details",', fixed = TRUE)
@@ -718,6 +720,154 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
   expect_match(bridge_source,
                "if (!analysisPhaseActive || !shinyIsBusy) return;",
                fixed = TRUE)
+})
+
+test_that("a new upload resets Run-gated results and marks the Run button dirty", {
+  app_path <- run_app(test_mode = TRUE)
+  server_source <- paste(readLines(file.path(app_path, "server.R"), warn = FALSE),
+                         collapse = "\n")
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+
+  # Every Run-gated result is a reactiveVal cache (not a plain bindEvent()
+  # reactive) so a fresh upload can explicitly clear it.
+  for(gate in c("canonical_state", "quantified_data", "quality_report",
+                "automatic_report", "ai_output", "pixel_projection")) {
+    expect_match(
+      server_source,
+      paste0(gate, "_gate <- run_gated_reactive(function() {"),
+      fixed = TRUE
+    )
+    expect_match(
+      server_source,
+      paste0(gate, " <- reactive(", gate, "_gate$read())"),
+      fixed = TRUE
+    )
+  }
+
+  # A successful new upload clears every cache and marks the button dirty;
+  # canonical_final() and the heatmap both show a "click Run" state instead
+  # of the previous dataset's stale results.
+  expect_match(server_source, "analysis_needs_reset(TRUE)", fixed = TRUE)
+  expect_match(server_source, "canonical_state_gate$clear()", fixed = TRUE)
+  expect_match(server_source, "quantified_data_gate$clear()", fixed = TRUE)
+  expect_match(server_source, "quality_report_gate$clear()", fixed = TRUE)
+  expect_match(server_source, "automatic_report_gate$clear()", fixed = TRUE)
+  expect_match(server_source, "ai_output_gate$clear()", fixed = TRUE)
+  expect_match(server_source, "pixel_projection_gate$clear()", fixed = TRUE)
+  expect_match(
+    server_source,
+    'need(\n      !isTRUE(analysis_needs_reset()),\n      "A new dataset was uploaded. Click Run to analyze it."\n    )',
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "if(is.null(pixel_projection())) {",
+    fixed = TRUE
+  )
+
+  # The reset markers are set right after preprocessed$data is assigned the
+  # newly read object, in the upload observer's success branch -- not in the
+  # error/warning branches, which intentionally leave prior results in place.
+  expect_match(
+    server_source,
+    "preprocessed$data <- rout\n        upload_status_state(NULL)",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "analysis_dirty(TRUE)\n        analysis_needs_reset(TRUE)\n        canonical_state_gate$clear()",
+    fixed = TRUE
+  )
+
+  # Settings changes (any input tracked for the metadata snapshot) also mark
+  # the button dirty; only a Run click clears both flags.
+  expect_match(
+    server_source,
+    "observeEvent(settings_signature(), {\n    analysis_dirty(TRUE)",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "observeEvent(input$run_analysis, {\n    analysis_dirty(FALSE)\n    analysis_needs_reset(FALSE)",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    'shinyjs::toggleClass(\n      "run_analysis", "openspecy-run-dirty", condition = isTRUE(analysis_dirty())',
+    fixed = TRUE
+  )
+
+  # The button carries a dedicated class the CSS themes for both states, and
+  # is not permanently bootstrap-green.
+  expect_match(ui_source, 'class = "openspecy-run-button"', fixed = TRUE)
+  expect_false(grepl('"btn-success openspecy-run-button"', ui_source, fixed = TRUE))
+  expect_match(ui_source, ".btn.openspecy-run-button.openspecy-run-dirty {",
+               fixed = TRUE)
+})
+
+test_that("collapse and spatial smooth are silently ignored for a single spectrum", {
+  app_path <- run_app(test_mode = TRUE)
+  server_source <- paste(readLines(file.path(app_path, "server.R"), warn = FALSE),
+                         collapse = "\n")
+
+  expect_match(
+    server_source,
+    paste0(
+      "if(!isTRUE(input$spatial_decision) || ncol(uploaded$spectra) <= 1L) {"
+    ),
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    paste0(
+      "isTRUE(input$collapse_decision) && !is.null(preprocessed$data) &&\n",
+      "      ncol(preprocessed$data$spectra) > 1L"
+    ),
+    fixed = TRUE
+  )
+})
+
+test_that("Mean Up conform replaces the preserve-uploaded-axis switch", {
+  app_path <- run_app(test_mode = TRUE)
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+  global_source <- paste(readLines(file.path(app_path, "global.R"),
+                                   warn = FALSE), collapse = "\n")
+
+  expect_false(grepl("preserve_uploaded_axis\"", ui_source, fixed = TRUE))
+  expect_match(ui_source, '"Mean Up" = "mean_up"', fixed = TRUE)
+  expect_match(ui_source, 'selected = "mean_up"', fixed = TRUE)
+
+  expect_match(global_source, "app_conform_preserve_axis <- function(",
+               fixed = TRUE)
+
+  # ordinary_process() decides once per call whether to resample the
+  # uploaded spectra or leave the axis alone, and stamps that decision onto
+  # its result so identify_blockwise() (called separately, on the already-
+  # processed object, from several different pipeline stages) makes exactly
+  # the same choice for conforming the library.
+  expect_match(
+    server_source,
+    paste0(
+      "preserve_uploaded_axis <- app_conform_preserve_axis(\n",
+      "        processed, input$conform_decision, input$conform_selection,\n",
+      "        input$conform_res\n      )"
+    ),
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    'attr(result, "preserve_uploaded_axis") <- preserve_uploaded_axis',
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    'preserve_axis <- isTRUE(attr(object, "preserve_uploaded_axis", exact = TRUE))',
+    fixed = TRUE
+  )
 })
 
 test_that("bundled app keeps a stable native download link", {
@@ -1957,7 +2107,7 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "id_spec_type", "id_strategy", "lib_type",
     "top_n_input", "filter_lib", "lib_org", "threshold_decision",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
-    "spatial_decision", "sigma", "xy_grid", "preserve_uploaded_axis",
+    "spatial_decision", "sigma", "xy_grid",
     "collapse_decision",
     "collapse_type", "particle_id_strategy", "particle_pca_components",
     "particle_cluster_k", "particle_area_threshold",

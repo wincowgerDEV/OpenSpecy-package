@@ -732,7 +732,7 @@ app_user_metadata_input_ids <- c(
   "threshold_decision", "MinSNR", "MaxSNR",
   "signal_selection",
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
-  "xy_grid", "preserve_uploaded_axis", "collapse_decision", "collapse_type", "particle_id_strategy",
+  "xy_grid", "collapse_decision", "collapse_type", "particle_id_strategy",
   "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
   # Quantification builder
   "quant_ratio_name", "quant_ratio_type",
@@ -819,6 +819,21 @@ app_conform_axis <- function(x, resolution) {
          call. = FALSE)
   }
   target
+}
+
+# "Mean Up" is a resolution-aware conform strategy, not a fixed conform type:
+# the uploaded spectra are only resampled to the requested resolution when
+# that target is finer (a smaller cm^-1 step) than what was actually
+# uploaded; otherwise the uploaded axis is left alone and the reference
+# library is conformed onto it instead (see identify_blockwise's
+# preserve_axis), since aggregating real uploaded data down to a coarser
+# axis would discard information the library doesn't have to begin with.
+app_conform_preserve_axis <- function(uploaded, conform_decision,
+                                      conform_selection, conform_res) {
+  if(!identical(conform_selection, "mean_up")) return(FALSE)
+  if(!isTRUE(conform_decision)) return(TRUE)
+  native_res <- spec_res(uploaded)
+  !is.finite(native_res) || as.numeric(conform_res) >= native_res
 }
 
 app_attach_correction_metadata <- function(x) {
@@ -2462,6 +2477,23 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
     z <- t(data$z)
     colorscale <- app_heatmap_colorscale
   }
+  # A continuous z matrix with no finite values (e.g. every pixel currently
+  # rejected for this metric) leaves Plotly's automatic domain detection
+  # nothing to work with, which throws "wasn't able to determine range of
+  # domain" instead of just rendering an empty/fully-masked map.
+  continuous_range <- if (categorical) {
+    c(NA_real_, NA_real_)
+  } else {
+    finite_z <- z[is.finite(z)]
+    if (length(finite_z)) {
+      range(finite_z)
+    } else {
+      c(0, 1)
+    }
+  }
+  if (!categorical && continuous_range[[1L]] == continuous_range[[2L]]) {
+    continuous_range <- continuous_range + c(-0.5, 0.5)
+  }
   hover_text <- app_heatmap_hover_text(data, legend_title, levels)
   rejected <- if(is.null(data$rejected)) {
     matrix(NA_real_, nrow = nrow(data$z), ncol = ncol(data$z))
@@ -2489,8 +2521,8 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
     plotly::add_trace(
       x = data$x, y = data$y, z = z, type = "heatmap",
       colorscale = colorscale,
-      zmin = if (categorical) 0.5 else NULL,
-      zmax = if (categorical) length(levels) + 0.5 else NULL,
+      zmin = if (categorical) 0.5 else continuous_range[[1L]],
+      zmax = if (categorical) length(levels) + 0.5 else continuous_range[[2L]],
       showscale = FALSE,
       hoverinfo = "text", text = hover_text, hoverongaps = FALSE
     ) |>
