@@ -490,20 +490,12 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
-  await page.locator("#active_identification").evaluate((input) => {
-    if (!input.checked) input.click();
-  });
-  await page.locator("#active_preprocessing").evaluate((input) => {
-    if (input.checked) input.click();
-  });
   await page.locator("#collapse_decision").evaluate((input) => {
     if (input.checked) input.click();
   });
   await page.locator("#threshold_decision").evaluate((input) => {
     if (input.checked) input.click();
   });
-  await expect(page.locator("#active_identification")).toBeChecked();
-  await expect(page.locator("#active_preprocessing")).not.toBeChecked();
   await expect(page.locator("#collapse_decision")).not.toBeChecked();
   await expect(page.locator("#threshold_decision")).not.toBeChecked();
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
@@ -515,6 +507,8 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   await expect.poll(async () => page.locator("#file").evaluate((input) =>
     input.files?.[0]?.name || ""
   )).toBe("CA_tiny_map.zip");
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await page.locator("#run_analysis").click();
   await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
   const mapPlot = page.locator("#heatmapA.js-plotly-plot");
   await expect(mapPlot.locator(".main-svg").first()).toBeVisible({
@@ -589,16 +583,15 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
-  for (const inputId of [
-    "active_identification", "active_preprocessing", "active_advanced",
-    "collapse_decision", "threshold_decision",
-  ]) {
+  for (const inputId of ["collapse_decision", "threshold_decision"]) {
     await page.locator(`#${inputId}`).evaluate((input) => {
       if (input.checked) input.click();
     });
   }
   const mapUploadPath = path.join(repo, "inst", "extdata", "CA_tiny_map.zip");
   await page.locator("#file").setInputFiles(mapUploadPath);
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await page.locator("#run_analysis").click();
   await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
   await expect(page.locator("#eventmetadata")).toContainText("CA small UF.dat", {
     timeout: 180000,
@@ -652,7 +645,6 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   await toggleCard(settingsCard);
   await expectCardCollapsed(settingsCard, false);
   await page.getByRole("link", { name: "Advanced", exact: true }).click();
-  await page.locator("#active_advanced").check({ force: true });
   await expect.poll(async () => page.locator("#collapse_decision").evaluate(
     (input) => !input.disabled
   ), { timeout: 30000 }).toBe(true);
@@ -666,7 +658,6 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
     if (!input.checked) input.click();
   });
   await page.evaluate(() => {
-    window.Shiny.setInputValue("active_advanced", true, { priority: "event" });
     window.Shiny.setInputValue("collapse_decision", true, { priority: "event" });
     window.Shiny.setInputValue("threshold_decision", false, { priority: "event" });
     window.Shiny.setInputValue("cor_threshold_decision", true, { priority: "event" });
@@ -679,6 +670,8 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   await page.locator("#file").setInputFiles(
     path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
   );
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await page.locator("#run_analysis").click();
   await page.waitForFunction(() => {
     const select = document.getElementById("map_color");
     const options = Object.keys(select?.selectize?.options || {});
@@ -696,7 +689,7 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
     Object.keys(select.selectize ? select.selectize.options : {})
   );
   expect(mapChoices).toEqual(expect.arrayContaining([
-    "Particle Unit", "Match Name", "Match ID", "Match Value", "Signal/Noise",
+    "Particle Unit", "Material Class", "Match ID", "Match Value", "Signal/Noise",
   ]));
   await expect(page.locator("#heatmapA.js-plotly-plot .main-svg").first())
     .toBeVisible({ timeout: 120000 });
@@ -730,7 +723,7 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
 
   for (const value of [
-    "Particle Unit", "Match Name", "Match ID", "Match Value", "Signal/Noise",
+    "Particle Unit", "Material Class", "Match ID", "Match Value", "Signal/Noise",
   ]) {
     await page.locator("#map_color").evaluate((select, next) => {
       select.selectize.setValue(next);
@@ -742,6 +735,8 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   const strategyStatuses = {};
   for (const strategy of ["partial_collapse", "nonspatial_collapse"]) {
     await pickerOption(page, "particle_id_strategy", strategy);
+    await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+    await page.locator("#run_analysis").click();
     const modeLabel = strategy === "partial_collapse"
       ? "Spatial material-connected mode"
       : "Non-spatial spectral-cluster mode";
@@ -759,6 +754,8 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   expect(strategyStatuses.partial_collapse)
     .not.toBe(strategyStatuses.nonspatial_collapse);
   await pickerOption(page, "particle_id_strategy", "collapse");
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await page.locator("#run_analysis").click();
   await page.waitForFunction(() => {
     const select = document.getElementById("map_color");
     return Object.keys(select?.selectize?.options || {}).includes("Particle Unit");
@@ -772,7 +769,7 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
     select.selectize.setValue("Thresholded Particles");
   });
   await expect(page.locator("#particle_outputs_selected input:checked"))
-    .toHaveCount(6);
+    .toHaveCount(4);
   const download = await consumeDownload(page);
   expect(download.filename).toMatch(/^Thresholded-Particles-.*\.zip$/i);
   expect(download.content.subarray(0, 2).toString("ascii")).toBe("PK");
@@ -785,7 +782,7 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   ));
   for (const figure of [
     "signal_noise_histogram.png", "correlation_histogram.png",
-    "match_name_heatmap.png", "match_id_heatmap.png",
+    "material_class_heatmap.png", "match_id_heatmap.png",
     "match_value_heatmap.png", "signal_noise_heatmap.png",
     "particle_unit_heatmap.png", "material_summary.png",
     "particle_size_distribution.png",
@@ -941,7 +938,6 @@ test("local app renders spectra, matches, and one informative progress overlay",
 
   await page.getByRole("link", { name: "Quantification", exact: true }).click();
   await expectCardCollapsed(settingsCard, false);
-  await expect(page.locator("#active_quantification")).not.toBeChecked();
   await expect(page.locator("#quant_ratio_name")).toBeVisible();
   await expect(page.locator("#quant_ratio_add")).toBeVisible();
   const ratioNumericIds = [
@@ -970,7 +966,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
     "type", "number"
   );
   await expectInformationalDetails(page);
-  await expectEnabledSwitchColors(page, "active_preprocessing");
+  await expectEnabledSwitchColors(page, "spike_decision");
   await toggleCard(settingsCard);
   await expectCardCollapsed(settingsCard);
 
@@ -1077,6 +1073,8 @@ test("local app renders spectra, matches, and one informative progress overlay",
     mimeType: "text/csv",
     buffer: Buffer.from(ramanBatch, "utf8"),
   });
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await page.locator("#run_analysis").click();
   const overlay = page.locator("#openspecy_busy_overlay");
   await expect(overlay).toBeVisible({ timeout: 30000 });
   const elapsedBefore = await page.locator("#openspecy_busy_elapsed").textContent();
@@ -1259,7 +1257,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(correlationFindings[0].status).toBe("success");
 
   await expect(page.locator("#map_color")).toBeAttached();
-  await expect(page.locator("#map_color")).toHaveValue("Match Name");
+  await expect(page.locator("#map_color")).toHaveValue("Material Class");
   const heatmapSvg = page.locator("#heatmapA.js-plotly-plot .main-svg").first();
   await expect(heatmapSvg).toBeVisible({ timeout: 30000 });
   const categoricalMapSignature = await page.locator("#heatmapA").evaluate(
@@ -1279,7 +1277,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
     path: testInfo.outputPath("local-app-scalable-heatmap.png"),
     fullPage: true,
   });
-  await selectizeOption(page, "map_color", "Match Name");
+  await selectizeOption(page, "map_color", "Material Class");
   await expect(heatmapSvg).toBeVisible({ timeout: 30000 });
   await expect(page.locator("#eventmetadata table")).toBeVisible();
   await expect(page.locator("#heatmap_frame")).toBeVisible();
@@ -1357,7 +1355,9 @@ test("local app renders spectra, matches, and one informative progress overlay",
     contentType: "application/json",
   });
 
-  // Child settings are configuration-only until their owner switch is on.
+  // Nothing recomputes until Run is clicked again, even after a settings
+  // change that would otherwise matter (here, turning on baseline
+  // correction and picking its method).
   await page.getByRole("link", { name: "Preprocessing", exact: true }).click();
   await expectCardCollapsed(settingsCard, false);
   const baselineSwitch = page.locator("#baseline_decision");
@@ -1382,6 +1382,12 @@ test("local app renders spectra, matches, and one informative progress overlay",
 
   await resetProgressProbe(page);
   await baselineSwitch.check({ force: true });
+  await page.waitForTimeout(1300);
+  await expect(overlay).toBeHidden();
+  expect(await nonemptyTraces(page)).toEqual(tracesBeforeMutedChange);
+  expect(await firstMatch.textContent()).toEqual(matchBeforeMutedChange);
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await page.locator("#run_analysis").click();
   await expect.poll(async () => (
     await page.evaluate(() => window.__openspecySmoke.phases.join(" "))
   ), { timeout: 120000 }).toMatch(/Preprocessing spectra/i);
@@ -1391,11 +1397,10 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect(firstMatch).toContainText(/poly\(ethylene\)/i, { timeout: 240000 });
   await expect(overlay).toBeHidden({ timeout: 120000 });
 
-  // Draft ratios and single measurements are quiet while Quantification is
-  // off. Every wavenumber control is a fine-grained numeric input, not a
-  // range slider; turning the owner on calculates both saved definition sets.
+  // Draft ratios and single measurements never trigger the analysis
+  // pipeline on their own -- only clicking Run does. Every wavenumber
+  // control is a fine-grained numeric input, not a range slider.
   await page.getByRole("link", { name: "Quantification", exact: true }).click();
-  await expect(page.locator("#active_quantification")).not.toBeChecked();
   await resetProgressProbe(page);
   const quantificationInputState = await page.evaluate((ids) => ids.map((id) => {
     const input = document.getElementById(id);
@@ -1523,8 +1528,8 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(mutedQuantState.visible).toEqual([false]);
 
   await resetProgressProbe(page);
-  await page.locator("#active_quantification").check({ force: true });
-  await expectEnabledSwitchColors(page, "active_quantification");
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await page.locator("#run_analysis").click();
   await expect.poll(async () => (
     await page.evaluate(() => window.__openspecySmoke.phases.join(" "))
   ), { timeout: 120000 }).toMatch(/Calculating saved quantification/i);
@@ -1560,13 +1565,13 @@ test("local app renders spectra, matches, and one informative progress overlay",
   const metadataLines = metadataText.split(/\r?\n/).filter(Boolean);
   expect(metadataLines).toHaveLength(2);
   expect(metadataLines[0]).toMatch(
-    /recorded_at.*app_version.*data_digest_md5.*active_preprocessing/i
+    /recorded_at.*app_version.*data_digest_md5.*spike_decision/i
   );
   expect(metadataLines[0]).toMatch(
-    /range_automate.*MinRange.*MaxRange.*active_identification.*id_strategy.*lib_type/i
+    /range_automate.*MinRange.*MaxRange.*id_strategy.*lib_type/i
   );
   expect(metadataLines[0]).toMatch(
-    /active_quantification.*quant_saved_ratio_definitions.*quant_saved_measurement_definitions/i
+    /quant_ratio_name.*quant_saved_ratio_definitions.*quant_saved_measurement_definitions/i
   );
   expect(metadataText).toMatch(/Custom Carbonyl/i);
   expect(metadataText).toMatch(/Custom Peak/i);
@@ -1601,14 +1606,11 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expectCardCollapsed(downloadCard);
   await page.screenshot({ path: testInfo.outputPath("local-app-analysis-result.png"), fullPage: true });
 
+  // Identification always runs as part of Run now (there is no owner
+  // switch to disable it); confirm the Processed Spectra download still
+  // carries the full quantification/identification-derived columns.
   await page.getByRole("link", { name: "Identification", exact: true }).click();
-  await page.locator("#active_identification").uncheck({ force: true });
-  await expect.poll(() => nonemptyTraces(page), { timeout: 60000 }).toHaveLength(2);
-  expect((await nonemptyTraces(page)).map((trace) => trace.name)).toEqual([
-    "Raw spectrum", "Active spectrum",
-  ]);
-  await expect(page.locator("#event")).toBeHidden();
-  await expect(page.locator("#download_selection")).toHaveValue("Processed Spectra");
+  await selectizeOption(page, "download_selection", "Processed Spectra");
   await expect(page.locator("#download_data")).toHaveText("Download Processed Spectra");
   const processedDownload = await consumeDownload(page);
   expect(processedDownload.filename).toMatch(/^Processed-Spectra-.*\.csv$/i);
@@ -1622,7 +1624,6 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(processedText).toMatch(/area_under_band_custom_area/i);
   expect(processedText).toMatch(/point_intensity_custom_intensity/i);
   expect(processedText).toMatch(/raman_hdpe/i);
-  await page.locator("#active_identification").check({ force: true });
   await expect(firstMatch).toContainText(/poly\(ethylene\)/i, { timeout: 240000 });
   await expect.poll(() => nonemptyTraces(page), { timeout: 240000 }).toHaveLength(3);
   await expect(overlay).toBeHidden({ timeout: 30000 });
@@ -1664,7 +1665,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
     path: testInfo.outputPath("local-app-mobile-numeric-heatmap.png"),
     fullPage: true,
   });
-  await selectizeOption(page, "map_color", "Match Name");
+  await selectizeOption(page, "map_color", "Material Class");
   await expect(heatmapSvg).toBeVisible();
   await expectSummaryRowsFilled(page, true);
   const [mobileSpectra, mobileSummary] = await Promise.all([

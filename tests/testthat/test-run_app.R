@@ -309,16 +309,16 @@ test_that("bundled Shiny app does not block startup or auto-load remote images",
                         fixed = TRUE)))
 })
 
-test_that("bundled app defaults corrections, identification, but not quantification", {
+test_that("bundled app runs corrections and identification unconditionally", {
   app_path <- run_app(test_mode = TRUE)
   ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
                      collapse = "\n")
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                    warn = FALSE), collapse = "\n")
-  expect_match(ui_source, '"active_preprocessing", "Preprocessing", TRUE',
-               fixed = TRUE)
-  expect_match(ui_source, '"active_identification", "Identification", TRUE',
-               fixed = TRUE)
+  expect_false(grepl("active_preprocessing", ui_source, fixed = TRUE))
+  expect_false(grepl("active_identification", ui_source, fixed = TRUE))
+  expect_false(grepl("active_advanced", ui_source, fixed = TRUE))
+  expect_false(grepl("active_quantification", ui_source, fixed = TRUE))
   expect_match(ui_source, '"spike_decision", "Remove Isolated Spikes", TRUE',
                fixed = TRUE)
   expect_match(ui_source,
@@ -335,11 +335,6 @@ test_that("bundled app defaults corrections, identification, but not quantificat
   expect_match(ui_source, "Detector Ceiling is expressed in the uploaded intensity units",
                fixed = TRUE)
   expect_match(ui_source, "0.10 means 10%", fixed = TRUE)
-  expect_match(
-    ui_source,
-    'app_section_switch("active_quantification", "Quantification", FALSE)',
-    fixed = TRUE
-  )
   expect_match(ui_source, '"range_automate"', fixed = TRUE)
   expect_match(ui_source, '"co2_automate"', fixed = TRUE)
   expect_match(server_source, "restrict_range = FALSE", fixed = TRUE)
@@ -392,16 +387,7 @@ test_that("bundled app defaults corrections, identification, but not quantificat
   expect_match(server_source, "quantified_data", fixed = TRUE)
   expect_match(server_source, "app_attach_quantification", fixed = TRUE)
   expect_match(server_source, "RawR_plot <- reactive({", fixed = TRUE)
-  expect_match(
-    server_source,
-    "if(!isTRUE(input$active_preprocessing)) return(NULL)",
-    fixed = TRUE
-  )
-  expect_match(
-    server_source,
-    "reference <- if(isTRUE(input$active_identification))",
-    fixed = TRUE
-  )
+  expect_match(server_source, "reference <- selected_match()", fixed = TRUE)
   expect_match(server_source, "app_spectrum_plot(", fixed = TRUE)
   expect_match(server_source, 'report = "all"', fixed = TRUE)
   expect_match(server_source, "quality_findings <- reactive({", fixed = TRUE)
@@ -411,7 +397,7 @@ test_that("bundled app defaults corrections, identification, but not quantificat
   expect_match(server_source, "particle_pipeline_enabled <- reactive({",
                fixed = TRUE)
   expect_match(server_source,
-               "isTRUE(input$active_advanced) && isTRUE(input$collapse_decision)",
+               "isTRUE(input$collapse_decision) && !is.null(preprocessed$data)",
                fixed = TRUE)
   expect_match(server_source, "current_heatmap_data <- reactive({",
                fixed = TRUE)
@@ -502,23 +488,11 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_false(grepl("app_quantification_indices", global_source,
                      fixed = TRUE))
   expect_false(grepl("quant_carbonyl_saub", ui_source, fixed = TRUE))
-  expect_match(
-    ui_source,
-    "Transforms uploaded spectra before artifact checks and identification.",
-    fixed = TRUE
-  )
-  expect_match(
-    ui_source,
-    "Matches processed spectra to references and displays the best results.",
-    fixed = TRUE
-  )
-  expect_match(ui_source,
-               'app_section_switch(\n    "active_advanced", "Advanced", TRUE',
+  expect_match(ui_source, '"run_analysis", "Run"', fixed = TRUE)
+  expect_match(ui_source, "shinyjs::disabled(", fixed = TRUE)
+  expect_match(server_source,
+               'shinyjs::toggleState("run_analysis", condition = !is.null(preprocessed$data))',
                fixed = TRUE)
-  expect_match(ui_source,
-               "Turning this off negates every Advanced setting.",
-               fixed = TRUE)
-  expect_match(ui_source, "openspecy-section-description", fixed = TRUE)
   expect_true(all(vapply(
     c("range_artifact_ratio", "co2_artifact_ratio"),
     function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
@@ -695,9 +669,9 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
   expect_match(server_source,
                "smooth_args <- if(smooth_enabled)", fixed = TRUE)
   expect_match(server_source, "effective_signal_selection", fixed = TRUE)
-  # Advanced's own inputs stay editable while the master switch is off
-  # (matching active_identification's children), instead of being
-  # shinyjs-disabled; every reader gates on isTRUE(input$active_advanced).
+  # A single Run button, gated only on upload completion, is the sole
+  # trigger for the expensive analysis tranche; there are no per-tab
+  # owner switches left to keep child controls inert while disabled.
   expect_false(grepl("set_advanced_child_state <- function(enabled)",
                      server_source, fixed = TRUE))
   expect_false(grepl(
@@ -705,22 +679,16 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
     server_source, fixed = TRUE
   ))
   expect_match(server_source,
-               "isTRUE(input$active_advanced) so an edit while off cannot",
+               'shinyjs::toggleState("run_analysis", condition = !is.null(preprocessed$data))',
                fixed = TRUE)
+  expect_false(grepl("active_preprocessing|active_identification|active_advanced|active_quantification",
+                     server_source))
   expect_false(grepl("list(DataR(), input$signal_selection)", server_source,
                      fixed = TRUE))
-  expect_match(server_source,
-               "if(!isTRUE(input$active_quantification))", fixed = TRUE)
   expect_match(server_source, "active_ratio_definitions", fixed = TRUE)
   expect_match(server_source, "active_measurement_definitions", fixed = TRUE)
   expect_false(grepl("quant_measurement_enabled", server_source,
                      fixed = TRUE))
-  measurement_owner <- sub(
-    ".*active_measurement_definitions <- reactive\\(\\{", "", server_source
-  )
-  measurement_owner <- sub("# Keep analysis spectra.*", "", measurement_owner)
-  expect_match(measurement_owner,
-               "if(!isTRUE(input$active_quantification))", fixed = TRUE)
   expect_match(server_source, "isolate(input$quant_ratio_name)",
                fixed = TRUE)
   expect_match(server_source,
@@ -1925,6 +1893,39 @@ test_that("bundled app orders downloads from the current analysis state", {
   expect_identical(env$app_download_label("unsupported"), "Download selected")
 })
 
+test_that("top matches table guards against a rejected pixel selection", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  server_source <- paste(
+    readLines(file.path(app_path, "server.R"), warn = FALSE),
+    collapse = "\n"
+  )
+
+  block <- regmatches(
+    server_source,
+    regexpr("(?s)top_matches <- reactive\\(\\{.*?\\n  \\}\\)",
+            server_source, perl = TRUE)
+  )
+  expect_length(block, 1L)
+  expect_match(block, "req(!is.na(selected_unit_index()))", fixed = TRUE)
+
+  # The guard must run before matches_to_single() is piped into
+  # dplyr::select(), so a rejected (NA) selection halts the reactive instead
+  # of reaching the select() call with matches_to_single()'s two-column
+  # "nothing selected" stub, which is missing "material_class" and crashes.
+  guard_pos <- regexpr("req(!is.na(selected_unit_index()))", block,
+                        fixed = TRUE)
+  select_pos <- regexpr("matches_to_single()", block, fixed = TRUE)
+  expect_true(guard_pos < select_pos)
+})
+
 test_that("bundled app exports one-row metadata snapshots without restoring them", {
   missing <- .openspecy_app_packages()[
     !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
@@ -1942,7 +1943,7 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
   sys.source(file.path(app_path, "global.R"), envir = env)
 
   expected_input_ids <- c(
-    "active_preprocessing", "spike_decision", "spike_direction",
+    "spike_decision", "spike_direction",
     "spike_residual_threshold", "spike_residual_window",
     "saturation_decision", "saturation_mode", "saturation_ceiling",
     "saturation_max_loss", "make_rel_decision", "smooth_decision",
@@ -1953,14 +1954,13 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "baseline_hwi", "iterations", "range_decision", "range_automate",
     "range_artifact_ratio", "MinRange", "MaxRange", "co2_decision",
     "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
-    "active_identification", "id_spec_type", "id_strategy", "lib_type",
-    "top_n_input", "filter_lib", "lib_org", "active_advanced", "threshold_decision",
+    "id_spec_type", "id_strategy", "lib_type",
+    "top_n_input", "filter_lib", "lib_org", "threshold_decision",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
     "spatial_decision", "sigma", "xy_grid", "preserve_uploaded_axis",
     "collapse_decision",
     "collapse_type", "particle_id_strategy", "particle_pca_components",
     "particle_cluster_k", "particle_area_threshold",
-    "active_quantification",
     "quant_ratio_name", "quant_ratio_type", "quant_numerator_area_min",
     "quant_numerator_area_max", "quant_denominator_area_min",
     "quant_denominator_area_max", "quant_numerator_peak",

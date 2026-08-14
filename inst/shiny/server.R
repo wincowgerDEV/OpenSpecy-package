@@ -43,10 +43,12 @@ function(input, output, session) {
   quantification_axis <- reactiveVal(NULL)
   quality_modal_observers <- new.env(parent = emptyenv())
 
-  # Advanced's own inputs stay editable while the master switch is off, same
-  # as active_identification's children; every reader below already gates on
-  # isTRUE(input$active_advanced) so an edit while off cannot invalidate
-  # analysis or trigger recomputation.
+  # The Run button is the single trigger for the full analysis tranche; it is
+  # enabled purely by upload completion (preprocessed$data becoming non-NULL)
+  # and is not gated by any other setting.
+  observe({
+    shinyjs::toggleState("run_analysis", condition = !is.null(preprocessed$data))
+  })
 
   observeEvent(input$range_automate, {
     manual_range <- !isTRUE(input$range_automate)
@@ -279,7 +281,6 @@ observeEvent(input$file, {
   #The matching library to use.
   libraryR <- reactive({
       req(!is.null(preprocessed$data))
-      req(input$active_identification)
       library <- library_source()
       if(identical(input$lib_type, "model")) return(library)
 
@@ -296,7 +297,6 @@ observeEvent(input$file, {
   })
 
   observeEvent(libraryR(), {
-      req(input$active_identification)
       orgs <- sort(unique(libraryR()$metadata$organization))
       current <- isolate(input$lib_org)
       selected <- intersect(current, orgs)
@@ -307,7 +307,6 @@ observeEvent(input$file, {
   
 
   library_filtered <- reactive({
-      req(isTRUE(input$active_identification))
       library <- libraryR()
       library_type <- input$lib_type
       filter_enabled <- !identical(library_type, "model") &&
@@ -324,7 +323,7 @@ observeEvent(input$file, {
  data <- reactive({
     req(!is.null(preprocessed$data))
       da <- preprocessed$data
-      if(isTRUE(input$active_advanced) && isTruthy(input$xy_grid) &&
+      if(isTruthy(input$xy_grid) &&
          (!all(diff(sort(da$metadata$y)) %in% c(0,1)) ||
           !all(diff(sort(da$metadata$x)) %in% c(0,1)))){
           grid <- gen_grid(nrow(da$metadata))
@@ -341,7 +340,7 @@ observeEvent(input$file, {
   ordinary_process <- function(uploaded) {
     processed <- uploaded
 
-    if(isTRUE(input$active_preprocessing)) {
+    {
       spike_enabled <- isTRUE(input$spike_decision)
       spike_args <- if(spike_enabled) {
         list(
@@ -420,8 +419,7 @@ observeEvent(input$file, {
         list()
       }
 
-      preserve_uploaded_axis <- isTRUE(input$active_advanced) &&
-        !identical(input$preserve_uploaded_axis, FALSE)
+      preserve_uploaded_axis <- !identical(input$preserve_uploaded_axis, FALSE)
       conform_enabled <- isTRUE(input$conform_decision) &&
         !preserve_uploaded_axis
       conform_args <- if(conform_enabled) {
@@ -495,7 +493,7 @@ observeEvent(input$file, {
     }
 
     diagnostics <- list()
-    if(isTRUE(input$active_preprocessing) && isTRUE(input$co2_decision)) {
+    if(isTRUE(input$co2_decision)) {
       if(isTRUE(input$co2_automate)) {
         co2_artifact_ratio <- input$co2_artifact_ratio
         if(is.null(co2_artifact_ratio)) co2_artifact_ratio <- 3
@@ -529,7 +527,7 @@ observeEvent(input$file, {
       }
     }
 
-    if(isTRUE(input$active_preprocessing) && isTRUE(input$range_decision)) {
+    if(isTRUE(input$range_decision)) {
       if(isTRUE(input$range_automate)) {
         range_artifact_ratio <- input$range_artifact_ratio
         if(is.null(range_artifact_ratio)) range_artifact_ratio <- 3
@@ -599,7 +597,7 @@ observeEvent(input$file, {
   spatial_data <- reactive({
     req(!is.null(preprocessed$data))
     uploaded <- data()
-    if(!isTRUE(input$active_advanced) || !isTRUE(input$spatial_decision)) {
+    if(!isTRUE(input$spatial_decision)) {
       return(uploaded)
     }
     analysis_phase(
@@ -854,16 +852,10 @@ observeEvent(input$file, {
   })
 
   active_ratio_definitions <- reactive({
-    if(!isTRUE(input$active_quantification)) {
-      return(app_empty_ratio_definitions())
-    }
     ratio_definitions()
   })
 
   active_measurement_definitions <- reactive({
-    if(!isTRUE(input$active_quantification)) {
-      return(app_empty_measurement_definitions())
-    }
     measurement_definitions()
   })
 
@@ -873,7 +865,7 @@ observeEvent(input$file, {
   })
 
   MinSNR <- reactive({
-    if(!isTRUE(input$active_advanced) || !isTRUE(input$threshold_decision)) {
+    if(!isTRUE(input$threshold_decision)) {
       return(-Inf)
     }
     value <- suppressWarnings(as.numeric(input$MinSNR))
@@ -881,7 +873,7 @@ observeEvent(input$file, {
   })
 
   MaxSNR <- reactive({
-    if(!isTRUE(input$active_advanced) || !isTRUE(input$threshold_decision)) {
+    if(!isTRUE(input$threshold_decision)) {
       return(Inf)
     }
     value <- suppressWarnings(as.numeric(input$MaxSNR))
@@ -889,8 +881,7 @@ observeEvent(input$file, {
   })
 
   MinCor <- reactive({
-    if(!isTRUE(input$active_advanced) ||
-       !isTRUE(input$cor_threshold_decision)) return(-Inf)
+    if(!isTRUE(input$cor_threshold_decision)) return(-Inf)
     value <- suppressWarnings(as.numeric(input$MinCor))
     if(length(value) != 1L || is.na(value)) -Inf else value
   })
@@ -912,14 +903,12 @@ observeEvent(input$file, {
     values <- signal_to_noise()
     keep <- values > MinSNR() & values < MaxSNR()
     keep[is.na(keep)] <- FALSE
-    if(!isTRUE(input$active_advanced) ||
-       !isTRUE(input$threshold_decision)) keep[] <- TRUE
+    if(!isTRUE(input$threshold_decision)) keep[] <- TRUE
     keep
   })
 
   particle_pipeline_enabled <- reactive({
-    isTRUE(input$active_advanced) && isTRUE(input$collapse_decision) &&
-      !is.null(preprocessed$data)
+    isTRUE(input$collapse_decision) && !is.null(preprocessed$data)
   })
 
   particle_collapse_function <- reactive({
@@ -947,8 +936,7 @@ observeEvent(input$file, {
   })
 
   identify_blockwise <- function(object) {
-    preserve_axis <- isTRUE(input$active_advanced) &&
-      !identical(input$preserve_uploaded_axis, FALSE)
+    preserve_axis <- !identical(input$preserve_uploaded_axis, FALSE)
     reference <- app_reference_for_query(
       library_filtered(), object, preserve_axis = preserve_axis
     )
@@ -1055,8 +1043,7 @@ observeEvent(input$file, {
   memory_preflight <- reactive({
     req(!is.null(preprocessed$data))
     library_size <- 0L
-    if(isTRUE(input$active_identification) &&
-       !identical(input$lib_type, "model")) {
+    if(!identical(input$lib_type, "model")) {
       library_size <- ncol(library_filtered()$spectra)
     }
     clustered <- particle_pipeline_enabled() &&
@@ -1108,8 +1095,7 @@ observeEvent(input$file, {
 
     result <- tryCatch({
       spatial <- spatial_data()
-      use_library <- isTRUE(input$active_identification) &&
-        !identical(input$lib_type, "model")
+      use_library <- !identical(input$lib_type, "model")
       collapse <- particle_pipeline_enabled()
       strategy <- input$particle_id_strategy
       clustered <- collapse && strategy %in%
@@ -1355,7 +1341,7 @@ observeEvent(input$file, {
       ))
     }
     result
-  })
+  }) |> bindEvent(input$run_analysis)
 
   canonical_error_key <- reactiveVal(NULL)
   observeEvent(canonical_state()$error, {
@@ -1460,7 +1446,7 @@ observeEvent(input$file, {
       49
     )
     app_attach_quantification(processed, definitions, measurements)
-  })
+  }) |> bindEvent(input$run_analysis)
 
   #The data to use in the plot. 
   selected_unit_index <- reactive({
@@ -1486,8 +1472,7 @@ observeEvent(input$file, {
   # Keep the metric control inert until thresholding is enabled. This lets a
   # user prepare the setting without invalidating the analysis pipeline.
   effective_signal_selection <- reactive({
-      if(!isTRUE(input$active_advanced) ||
-         !isTRUE(input$threshold_decision)) return("run_sig_over_noise")
+      if(!isTRUE(input$threshold_decision)) return("run_sig_over_noise")
       input$signal_selection
   })
 
@@ -1527,23 +1512,17 @@ observeEvent(input$file, {
       }
       threshold_report <- app_threshold_quality_report(
         spectrum_id = colnames(selected$spectra)[[1L]],
-        snr_value = if(isTRUE(input$active_advanced) &&
-                       isTRUE(input$threshold_decision)) {
+        snr_value = if(isTRUE(input$threshold_decision)) {
           safe_selected_value(canonical_signal_noise())
         } else NULL,
-        snr_threshold = if(isTRUE(input$active_advanced) &&
-                           isTRUE(input$threshold_decision)) {
+        snr_threshold = if(isTRUE(input$threshold_decision)) {
           input$MinSNR
         } else NULL,
         signal_metric = effective_signal_selection(),
-        correlation_value = if(isTRUE(input$active_advanced) &&
-                               isTRUE(input$active_identification) &&
-                               isTRUE(input$cor_threshold_decision)) {
+        correlation_value = if(isTRUE(input$cor_threshold_decision)) {
           safe_selected_value(max_cor())
         } else NULL,
-        correlation_threshold = if(isTRUE(input$active_advanced) &&
-                                   isTRUE(input$active_identification) &&
-                                   isTRUE(input$cor_threshold_decision)) {
+        correlation_threshold = if(isTRUE(input$cor_threshold_decision)) {
           input$MinCor
         } else NULL
       )
@@ -1551,7 +1530,7 @@ observeEvent(input$file, {
         list(assessment, threshold_report), use.names = TRUE, fill = TRUE
       )
       app_quality_ui_report(report)
-  })
+  }) |> bindEvent(input$run_analysis)
 
   quality_findings <- reactive({
       report <- quality_report()
@@ -1572,17 +1551,13 @@ observeEvent(input$file, {
         x = if(is.null(preprocessed$data)) NULL else DataR(),
         diagnostics = correction_diagnostics(),
         enabled = c(
-          spike = isTRUE(input$active_preprocessing) &&
-            isTRUE(input$spike_decision),
-          saturation = isTRUE(input$active_preprocessing) &&
-            isTRUE(input$saturation_decision),
-          flatten = isTRUE(input$active_preprocessing) &&
-            isTRUE(input$co2_decision) && isTRUE(input$co2_automate),
-          tails = isTRUE(input$active_preprocessing) &&
-            isTRUE(input$range_decision) && isTRUE(input$range_automate)
+          spike = isTRUE(input$spike_decision),
+          saturation = isTRUE(input$saturation_decision),
+          flatten = isTRUE(input$co2_decision) && isTRUE(input$co2_automate),
+          tails = isTRUE(input$range_decision) && isTRUE(input$range_automate)
         )
       )
-  })
+  }) |> bindEvent(input$run_analysis)
   automatic_count <- reactive(sum(automatic_report()$applied, na.rm = TRUE))
   output$quality_automatic_count <- renderText(automatic_count())
   outputOptions(output, "quality_automatic_count", suspendWhenHidden = FALSE)
@@ -1646,7 +1621,6 @@ observeEvent(input$file, {
   })
   RawR_plot <- reactive({
       req(!is.null(preprocessed$data))
-      if(!isTRUE(input$active_preprocessing)) return(NULL)
       uploaded <- data()
       selected <- if(particle_pipeline_enabled()) data_click$pixel else
         data_click$plot
@@ -1657,15 +1631,14 @@ observeEvent(input$file, {
   })
   
   identification_matches <- reactive({
-    req(!is.null(preprocessed$data), isTRUE(input$active_identification))
+    req(!is.null(preprocessed$data))
     req(!identical(input$lib_type, "model"))
     canonical_state()$matches
   })
 
-  #The output from the AI classification algorithm. 
-  ai_output <- reactive({ #tested working. 
+  #The output from the AI classification algorithm.
+  ai_output <- reactive({ #tested working.
       req(!is.null(preprocessed$data))
-      req(input$active_identification)
       req(grepl("^model$", input$lib_type))
       analysis_phase(
         "Classifying spectra",
@@ -1683,14 +1656,13 @@ observeEvent(input$file, {
       data <- conform_spec(DataR(), range = fill$wavenumber,
                            res = NULL)
       
-      match_spec(data, library = libraryR(), na.rm = T, fill = fill) 
-  })
-  
+      match_spec(data, library = libraryR(), na.rm = T, fill = fill)
+  }) |> bindEvent(input$run_analysis)
+
   # Best values are projected from the compact Top-N table; no full
   # library-by-spectrum matrix is created or retained.
   max_cor <- reactive({
       req(!is.null(preprocessed$data))
-      if(!isTRUE(input$active_identification)) return(NULL)
       if(identical(input$lib_type, "model")) {
         ai <- as.numeric(ai_output()[["value"]])
         names(ai) <- ai_output()[["name"]]
@@ -1708,7 +1680,6 @@ observeEvent(input$file, {
   #The maximum correlation or AI value. 
   max_cor_identity <- reactive({
       req(!is.null(preprocessed$data))
-      if(!isTRUE(input$active_identification)) return(NULL)
       values <- max_cor()
       if(is.null(values)) return(NULL)
       identities <- if(!identical(input$lib_type, "model")) {
@@ -1735,8 +1706,7 @@ observeEvent(input$file, {
         best_match_rows(pixel_matches)$match_val
       } else max_cor()
       req(!is.null(values), length(values))
-      thresholds <- if(isTRUE(input$active_advanced) &&
-                        isTRUE(input$cor_threshold_decision)) MinCor() else
+      thresholds <- if(isTRUE(input$cor_threshold_decision)) MinCor() else
         numeric()
       app_particle_plotly(list(
         type = "histogram", values = as.numeric(values),
@@ -1749,7 +1719,6 @@ observeEvent(input$file, {
   #Metadata for all the matches for a single unknown spectrum
   matches_to_single <- reactive({
       req(!is.null(preprocessed$data))
-      req(input$active_identification)
       if(grepl("^model$", input$lib_type)){
           data.table(object_id = colnames(DataR()$spectra),
                      material_class = max_cor_identity(),
@@ -1779,11 +1748,6 @@ observeEvent(input$file, {
 
   #Spectral data for the selected match. 
   match_selected <- reactive({# Default to first row if not yet clicked
-      if(!isTRUE(input$active_identification)) {
-          return(as_OpenSpecy(
-            x = numeric(), spectra = data.table(empty = numeric())
-          ))
-      }
       req(!grepl("^model$", input$lib_type))
 
       # Get data from filter_spec
@@ -1798,7 +1762,7 @@ observeEvent(input$file, {
   })
 
   selected_match <- reactive({
-      if(is.null(preprocessed$data) || !isTRUE(input$active_identification) ||
+      if(is.null(preprocessed$data) ||
          grepl("^model$", input$lib_type)) return(NULL)
       tryCatch(
         match_selected(),
@@ -1809,8 +1773,8 @@ observeEvent(input$file, {
   #All matches table for the current selection
   top_matches <- reactive({
       req(!is.null(preprocessed$data))
-      req(input$active_identification)
       req(!grepl("^model$", input$lib_type))
+      req(!is.na(selected_unit_index()))
       matches_to_single() %>%
           dplyr::select("match_val", "material_class", "spectrum_identity",
                         "organization", "sample_name")
@@ -1825,14 +1789,6 @@ match_metadata <- reactive({
         Selection = "The selected pixel does not belong to a retained particle."
       ))
     }
-    identification_enabled <- isTRUE(input$active_identification)
-    if(!identification_enabled) {
-        return(
-          quantified_data()$metadata[selected_index,] %>%
-            .[, !sapply(., OpenSpecy::is_empty_vector), with = FALSE]
-        )
-    }
-
     model_library <- grepl("^model$", input$lib_type)
     if (!model_library) {
         rows <- matches_to_single()
@@ -1863,8 +1819,7 @@ output$snr_plot_ui <- renderUI({
 
 output$snr_plot <- renderPlotly({
     req(!is.null(preprocessed$data))
-    thresholds <- if(isTRUE(input$active_advanced) &&
-                      isTRUE(input$threshold_decision)) {
+    thresholds <- if(isTRUE(input$threshold_decision)) {
       c(MinSNR(), MaxSNR())
     } else numeric()
     app_particle_plotly(list(
@@ -1894,7 +1849,6 @@ output$eventmetadata <- DT::renderDataTable(server = TRUE, {
 
 # Create the data tables for all matches
 output$event <- DT::renderDataTable({
-    req(input$active_identification)
     req(!grepl("^model$", input$lib_type))
     datatable(top_matches() %>%
                   mutate(organization = as.factor(organization),
@@ -1973,15 +1927,12 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
     signal <- as.numeric(signal_to_noise()[match(ids, names(signal_to_noise()))])
     signal_rejected <- app_threshold_rejection_mask(
       signal,
-      enabled = isTRUE(input$active_advanced) &&
-        isTRUE(input$threshold_decision),
+      enabled = isTRUE(input$threshold_decision),
       minimum = MinSNR(), maximum = MaxSNR()
     )
     correlation_rejected <- app_threshold_rejection_mask(
       correlation,
-      enabled = isTRUE(input$active_advanced) &&
-        isTRUE(input$active_identification) &&
-        isTRUE(input$cor_threshold_decision),
+      enabled = isTRUE(input$cor_threshold_decision),
       minimum = MinCor()
     )
     rejected <- signal_rejected | correlation_rejected
@@ -1999,16 +1950,15 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       rejected = rejected,
       rejection_reason = reason
     )
-  })
+  }) |> bindEvent(input$run_analysis)
 
   map_color_choices <- reactive({
     req(ncol(preprocessed$data$spectra) > 1)
     state <- canonical_state()
-    identification_enabled <- isTRUE(input$active_identification) &&
-      (!is.null(state$object) ||
-         (!is.null(state$pixel_matches) && nrow(state$pixel_matches)))
+    identification_enabled <- !is.null(state$object) ||
+      (!is.null(state$pixel_matches) && nrow(state$pixel_matches))
     choices <- c(
-      if(identification_enabled) "Match Name" else NA_character_,
+      if(identification_enabled) "Material Class" else NA_character_,
       if(identification_enabled && !identical(input$lib_type, "model"))
         "Match ID" else NA_character_,
       if(identification_enabled) "Match Value" else NA_character_,
@@ -2065,15 +2015,12 @@ output$progress_bars <- renderUI({
       sum(x[available]) / sum(available) * 100
     }
 
-    signal_values <- if(isTRUE(input$active_advanced) &&
-                        isTRUE(input$threshold_decision)) {
+    signal_values <- if(isTRUE(input$threshold_decision)) {
       pixel_projection()$signal_to_noise
     } else {
       NULL
     }
-    correlation_values <- if(isTRUE(input$active_advanced) &&
-                              isTRUE(input$active_identification) &&
-                              isTRUE(input$cor_threshold_decision)) {
+    correlation_values <- if(isTRUE(input$cor_threshold_decision)) {
       pixel_projection()$correlation
     } else {
       NULL
@@ -2129,18 +2076,10 @@ output$progress_bars <- renderUI({
         plotOutput("particle_plot", height = "25vh")
       )
     }
-    if(isTRUE(input$active_identification)) {
-      plot_items[[length(plot_items) + 1L]] <- div(
-        id = "material_summary_panel",
-        plotOutput("material_plot", height = "25vh")
-      )
-    }
-    if(particle_pipeline_enabled() && !is.null(canonical_state()$object)) {
-      plot_items[[length(plot_items) + 1L]] <- div(
-        id = "particle_summary_table_panel",
-        DT::DTOutput("particle_summary_table")
-      )
-    }
+    plot_items[[length(plot_items) + 1L]] <- div(
+      id = "material_summary_panel",
+      plotOutput("material_plot", height = "25vh")
+    )
 
     req(length(metric_items) + length(plot_items) > 0L)
     bs4Dash::box(
@@ -2161,17 +2100,12 @@ output$progress_bars <- renderUI({
 
       primary <- DataR_plot()
       raw <- RawR_plot()
-      reference <- if(isTRUE(input$active_identification)) {
-        selected_match()
-      } else {
-        NULL
-      }
+      reference <- selected_match()
       app_spectrum_plot(
         active = primary,
         raw = raw,
         reference = reference,
-        make_rel = isTRUE(input$active_preprocessing) &&
-          isTRUE(input$make_rel_decision),
+        make_rel = isTRUE(input$make_rel_decision),
         source = "B",
         plot_width = session$clientData$output_MyPlotC_width
       ) %>%
@@ -2182,9 +2116,6 @@ output$progress_bars <- renderUI({
  #Heatmap ----
  #Display the map or batch data in a selectable heatmap.
   match_name_palette <- reactive({
-      if(!isTRUE(input$active_identification)) {
-        return(app_category_palette(character()))
-      }
       app_category_palette(pixel_projection()$material)
   })
 
@@ -2201,7 +2132,7 @@ output$progress_bars <- renderUI({
         signif(projection$correlation, 2)
       } else if(identical(map_color, "Signal/Noise")) {
         signif(projection$signal_to_noise, 2)
-      } else if(identical(map_color, "Match Name")) {
+      } else if(identical(map_color, "Material Class")) {
         categorical <- TRUE
         projection$material
       } else {
@@ -2380,7 +2311,6 @@ output$progress_bars <- renderUI({
   
   output$material_plot <- renderPlot({
       req(!is.null(preprocessed$data))
-      req(isTRUE(input$active_identification))
       if(particle_pipeline_enabled()) {
           particles <- canonical_final()
           req(!is.null(particles),
@@ -2394,23 +2324,12 @@ output$progress_bars <- renderUI({
       app_material_summary_plot(match_names, match_name_palette())
   })
 
-  output$particle_summary_table <- DT::renderDT({
-      req(particle_pipeline_enabled(), !is.null(canonical_state()$object))
-      DT::datatable(
-        app_particle_summary_table(canonical_final()), rownames = FALSE,
-        options = list(dom = "t", paging = FALSE, ordering = TRUE,
-                       scrollX = TRUE), caption = "Final Particle Summary"
-      )
-  })
-
-  
   # Data Download options ----
   # Progress Bars
   output$download_ui <- renderUI({
     choice_names <- app_download_choices(
       has_upload = !is.null(preprocessed$data),
       identification = !is.null(preprocessed$data) &&
-        isTRUE(input$active_identification) &&
         !is.null(canonical_state()$object),
       collapse = particle_pipeline_enabled() &&
         !is.null(canonical_state()$object)
@@ -2453,8 +2372,7 @@ output$progress_bars <- renderUI({
   max_cor_settled <- shiny::debounce(reactive(max_cor()), 1000)
 
   observeEvent(max_cor_settled(), {
-    req(isTRUE(input$active_identification), !is.null(max_cor_settled()),
-        !particle_pipeline_enabled())
+    req(!is.null(max_cor_settled()), !particle_pipeline_enabled())
     updateSelectInput(session, "download_selection", selected = "Top Matches")
   }, ignoreNULL = TRUE)
 
@@ -2472,8 +2390,7 @@ output$progress_bars <- renderUI({
 
   output$columns_selected <- renderUI({
     req(identical(input$download_selection, "Top Matches"))
-    req(isTRUE(input$active_identification),
-        !identical(input$lib_type, "model"))
+    req(!identical(input$lib_type, "model"))
     tags$details(
       class = "openspecy-download-details",
       tags$summary("Top Matches columns"),
@@ -2490,8 +2407,6 @@ output$progress_bars <- renderUI({
     choices <- c(
       "Particle details" = "details",
       "Processed particle object" = "processed",
-      "Pixel-to-unit mapping" = "mapping",
-      "Retained Top-N matches" = "matches",
       "Final particle summary table" = "summary",
       "All analysis figures" = "figures"
     )
@@ -2576,8 +2491,8 @@ output$progress_bars <- renderUI({
         }
       } else if(identical(selection, "Thresholded Particles")) {
         selected <- input$particle_outputs_selected
-        if(is.null(selected)) selected <- c("details", "processed", "mapping",
-                                            "matches", "summary", "figures")
+        if(is.null(selected)) selected <- c("details", "processed", "summary",
+                                            "figures")
         archive_root <- file.path(
           particle_output_root, paste0("download-", human_ts())
         )
@@ -2594,25 +2509,13 @@ output$progress_bars <- renderUI({
           saveRDS(canonical_final(), path)
           files <- c(files, path)
         }
-        if("mapping" %in% selected) {
-          path <- file.path(archive_root, "pixel_to_unit.csv")
-          fwrite(canonical_state()$pixel_to_unit, path)
-          files <- c(files, path)
-        }
-        if("matches" %in% selected &&
-           !is.null(canonical_state()$matches)) {
-          path <- file.path(archive_root, "top_matches.csv")
-          fwrite(canonical_state()$matches, path)
-          files <- c(files, path)
-        }
         if("summary" %in% selected) {
           path <- file.path(archive_root, "particle_summary.csv")
           fwrite(app_particle_summary_table(canonical_final()), path)
           files <- c(files, path)
         }
         if("figures" %in% selected) {
-          sn_thresholds <- if(isTRUE(input$active_advanced) &&
-                              isTRUE(input$threshold_decision)) {
+          sn_thresholds <- if(isTRUE(input$threshold_decision)) {
             c(MinSNR(), MaxSNR())
           } else numeric()
           path <- file.path(archive_root, "signal_noise_histogram.png")

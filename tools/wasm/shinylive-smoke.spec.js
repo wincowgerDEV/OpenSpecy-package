@@ -433,8 +433,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(fullscreenButton).toBeEnabled();
   const fileInput = appFrame.locator("#file, input[type='file']").first();
   await expect(fileInput).toBeAttached({ timeout: 180000 });
-  const identificationSwitch = appFrame.locator("#active_identification").first();
-  await expect(identificationSwitch).toBeChecked();
+  const runButton = appFrame.locator("#run_analysis").first();
   const firstMatch = appFrame.locator("#event table tbody tr").first();
 
   await embed.scrollIntoViewIfNeeded();
@@ -535,6 +534,8 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   });
 
   await fileInput.setInputFiles(uploadPath);
+  await expect(runButton).toBeEnabled({ timeout: 60000 });
+  await runButton.click();
   await expect(firstMatch).toContainText(/poly\(ethylene\)/i, {
     timeout: 600000,
   });
@@ -542,9 +543,8 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     timeout: 120000,
   });
   await expect(embed).toHaveClass(/\bis-fullscreen\b/);
-  await expect(identificationSwitch).toBeChecked();
 
-  if (await identificationSwitch.count()) {
+  {
     await appFrame.locator("html").evaluate(() => {
       window.__openspecyResultSeenAt = performance.now();
     });
@@ -605,6 +605,8 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect.poll(async () => fileInput.evaluate((input) =>
     input.files?.[0]?.name || ""
   )).toBe("CA_tiny_map.zip");
+  await expect(runButton).toBeEnabled({ timeout: 60000 });
+  await runButton.click();
   // Wait for a map-owned output and an idle Shiny generation so that stale
   // Selectize state from the previous Raman upload cannot satisfy this check.
   await expect(appFrame.locator("#heatmap_frame")).toBeVisible({
@@ -695,12 +697,12 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   });
 
   // Thresholded Particles is contextual to map uploads with collapsing on.
-  // Disable identification and ordinary preprocessing, then enable the SNR
-  // threshold that owns the logical feature mask used for collapsing.
-  await setShinyCheckbox(identificationSwitch, false);
-  await setShinyCheckbox(appFrame.locator("#active_preprocessing"), false);
+  // Enable the SNR threshold that owns the logical feature mask used for
+  // collapsing, then click Run so the change actually takes effect.
   await setShinyCheckbox(appFrame.locator("#threshold_decision"), false);
   await setShinyCheckbox(appFrame.locator("#collapse_decision"), true);
+  await expect(runButton).toBeEnabled({ timeout: 60000 });
+  await runButton.click();
   await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 300000,
   });

@@ -1,28 +1,4 @@
 # UI helpers ----
-app_section_switch <- function(input_id, label, value = TRUE,
-                               note = character()) {
-  note <- trimws(as.character(note))
-  note <- paste(note[!is.na(note) & nzchar(note)], collapse = " ")
-  has_note <- nzchar(note)
-
-  div(
-    class = if(has_note) {
-      "openspecy-section-switch openspecy-section-switch-with-note"
-    } else {
-      "openspecy-section-switch"
-    },
-    prettySwitch(
-      inputId = input_id,
-      label = label,
-      inline = TRUE,
-      value = value,
-      status = "success",
-      fill = TRUE
-    ),
-    if(has_note) tags$span(class = "openspecy-section-description", note)
-  )
-}
-
 app_control_box <- function(input_id, label, value = FALSE, ...,
                             note = character()) {
   bs4Dash::box(
@@ -44,10 +20,6 @@ app_control_box <- function(input_id, label, value = FALSE, ...,
 }
 
 preprocessing_controls <- tagList(
-  app_section_switch(
-    "active_preprocessing", "Preprocessing", TRUE,
-    "Transforms uploaded spectra before artifact checks and identification."
-  ),
   app_control_box(
     "make_rel_decision", "Min-Max Normalize", TRUE,
     note = c(
@@ -77,7 +49,13 @@ preprocessing_controls <- tagList(
     ),
     sliderInput("conform_res", "Wavenumber Resolution",
                 min = 4, max = 16, value = 6),
-    note = "Creates a regular shared wavenumber axis at the selected resolution."
+    prettySwitch("preserve_uploaded_axis", "Preserve Uploaded Wavenumbers",
+                 inline = TRUE, value = TRUE, status = "success", fill = TRUE),
+    note = c(
+      "Creates a regular shared wavenumber axis at the selected resolution.",
+      "Preserve Uploaded Wavenumbers keeps the uploaded wavenumber axis instead of resampling it to the resolution above.",
+      "For identification, the reference library is conformed onto that exact axis with mean_up: occupied bins are averaged and empty finer-axis positions are interpolated. Only the library expands, which protects memory for large uploaded maps."
+    )
   ),
   app_control_box(
     "intensity_decision", "Intensity Adjustment", FALSE,
@@ -216,10 +194,6 @@ preprocessing_controls <- tagList(
 )
 
 identification_controls <- tagList(
-  app_section_switch(
-    "active_identification", "Identification", TRUE,
-    "Matches processed spectra to references and displays the best results."
-  ),
   bs4Dash::box(
     width = 12,
     title = "Identification Strategy",
@@ -270,10 +244,6 @@ identification_controls <- tagList(
 )
 
 advanced_controls <- tagList(
-  app_section_switch(
-    "active_advanced", "Advanced", TRUE,
-    "Enables the map thresholds, spatial controls, and particle pipeline below. Turning this off negates every Advanced setting."
-  ),
   app_control_box(
     "threshold_decision", "Threshold Signal / Noise", FALSE,
     fluidRow(
@@ -320,13 +290,6 @@ advanced_controls <- tagList(
   app_control_box(
     "xy_grid", "XY Grid Conform", FALSE,
     note = "Replace discontinuous uploaded map coordinates with a continuous XY grid."
-  ),
-  app_control_box(
-    "preserve_uploaded_axis", "Preserve Uploaded Wavenumbers", TRUE,
-    note = c(
-      "Keeps the uploaded wavenumber axis instead of resampling it to the preprocessing resolution.",
-      "For identification, the reference library is conformed onto that exact axis with mean_up: occupied bins are averaged and empty finer-axis positions are interpolated. Only the library expands, which protects memory for large uploaded maps."
-    )
   ),
   app_control_box(
     "collapse_decision", "Collapse Particle Spectra", FALSE,
@@ -381,7 +344,6 @@ advanced_controls <- tagList(
 )
 
 quantification_controls <- tagList(
-  app_section_switch("active_quantification", "Quantification", FALSE),
   bs4Dash::box(
     width = 12,
     title = "Custom Ratios",
@@ -1309,6 +1271,17 @@ dashboardPage(
             class = "openspecy-upload-status",
             role = "status",
             `aria-live` = "polite"
+          ),
+          shinyjs::disabled(
+            actionButton(
+              "run_analysis", "Run",
+              icon = icon("play"),
+              class = "btn-success openspecy-run-button",
+              title = paste(
+                "Run the current preprocessing, threshold, cluster,",
+                "identification, and quantification settings."
+              )
+            )
           )
         ),
         column(
@@ -1461,12 +1434,9 @@ dashboardPage(
               id = "sidebar_tables",
               tabPanel(
                 "Library Matches",
-                conditionalPanel(
-                  condition = "input.active_identification",
-                  fluidRow(
-                    style = "padding:1rem;overflow-x:auto",
-                    DT::dataTableOutput("event")
-                  )
+                fluidRow(
+                  style = "padding:1rem;overflow-x:auto",
+                  DT::dataTableOutput("event")
                 )
               ),
               tabPanel(

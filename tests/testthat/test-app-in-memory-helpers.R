@@ -175,9 +175,9 @@ test_that("uploaded-axis identification conforms only the reference", {
 
 test_that("heatmaps omit inline legends and build bounded modal legends", {
   env <- .source_in_memory_app_helpers()
-  layout <- env$app_heatmap_legend_layout("Match Name")
+  layout <- env$app_heatmap_legend_layout("Material Class")
   model <- env$app_heatmap_legend_model(list(
-    type = "heatmap_categorical", legend_title = "Match Name",
+    type = "heatmap_categorical", legend_title = "Material Class",
     levels = c("PE", "PP"), palette = c(PE = "#112233", PP = "#445566")
   ))
 
@@ -256,4 +256,28 @@ test_that("histograms draw threshold lines only for finite values", {
   expect_length(built$x$layout$shapes, 1L)
   expect_identical(built$x$layout$shapes[[1L]]$x0, 2)
   expect_identical(built$x$layout$shapes[[1L]]$x1, 2)
+})
+
+test_that("histogram axis stays at the data range and clamps out-of-range thresholds", {
+  env <- .source_in_memory_app_helpers()
+  histogram <- list(
+    type = "histogram", values = c(1, 2, 3), xlab = "Signal/noise",
+    thresholds = c(-5, 10)
+  )
+
+  built <- plotly::plotly_build(env$app_particle_plotly(histogram))
+  expect_identical(built$x$layout$xaxis$range, c(1, 3))
+  expect_length(built$x$layout$shapes, 2L)
+  shape_x0 <- vapply(built$x$layout$shapes, `[[`, numeric(1), "x0")
+  expect_setequal(shape_x0, c(1, 3))
+
+  ggplot <- env$app_histogram_ggplot(c(1, 2, 3), thresholds = c(-5, 10),
+                                      xlab = "Signal/noise")
+  built_range <- ggplot2::ggplot_build(ggplot)$layout$panel_params[[1L]]$x.range
+  expect_equal(built_range, c(1, 3))
+  vline_x <- vapply(ggplot$layers, function(layer) {
+    if (inherits(layer$geom, "GeomVline")) layer$data$xintercept else NA_real_
+  }, numeric(1))
+  vline_x <- vline_x[!is.na(vline_x)]
+  expect_setequal(vline_x, c(1, 3))
 })

@@ -292,11 +292,18 @@ app_histogram_ggplot <- function(values, thresholds = numeric(), xlab) {
     ) +
     theme_black_minimal(base_size = 15) +
     ggplot2::labs(x = xlab, y = "Count")
-  for(value in thresholds[is.finite(thresholds)]) {
-    plot <- plot + ggplot2::geom_vline(
-      xintercept = value, color = app_theme$reference,
-      linewidth = 0.8, linetype = "dashed"
-    )
+  if(nrow(frame)) {
+    data_range <- range(frame$value)
+    plot <- plot +
+      ggplot2::scale_x_continuous(expand = c(0, 0)) +
+      ggplot2::coord_cartesian(xlim = data_range)
+    for(value in thresholds[is.finite(thresholds)]) {
+      clamped <- min(max(value, data_range[1L]), data_range[2L])
+      plot <- plot + ggplot2::geom_vline(
+        xintercept = clamped, color = app_theme$reference,
+        linewidth = 0.8, linetype = "dashed"
+      )
+    }
   }
   plot
 }
@@ -707,7 +714,7 @@ app_empty_measurement_definitions <- function() {
 # readable beside the app source without promising a future import contract.
 app_user_metadata_input_ids <- c(
   # Preprocessing
-  "active_preprocessing", "spike_decision", "spike_direction",
+  "spike_decision", "spike_direction",
   "spike_residual_threshold", "spike_residual_window",
   "saturation_decision", "saturation_mode", "saturation_ceiling",
   "saturation_max_loss", "make_rel_decision", "smooth_decision",
@@ -719,16 +726,16 @@ app_user_metadata_input_ids <- c(
   "range_artifact_ratio", "MinRange", "MaxRange", "co2_decision",
   "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
   # Identification
-  "active_identification", "id_spec_type", "id_strategy", "lib_type",
+  "id_spec_type", "id_strategy", "lib_type",
   "top_n_input", "filter_lib", "lib_org",
   # Advanced
-  "active_advanced", "threshold_decision", "MinSNR", "MaxSNR",
+  "threshold_decision", "MinSNR", "MaxSNR",
   "signal_selection",
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
   "xy_grid", "preserve_uploaded_axis", "collapse_decision", "collapse_type", "particle_id_strategy",
   "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
   # Quantification builder
-  "active_quantification", "quant_ratio_name", "quant_ratio_type",
+  "quant_ratio_name", "quant_ratio_type",
   "quant_numerator_area_min", "quant_numerator_area_max",
   "quant_denominator_area_min", "quant_denominator_area_max",
   "quant_numerator_peak", "quant_denominator_peak",
@@ -2413,14 +2420,20 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
     return(plotly::event_register(plot, "plotly_click"))
   }
   if (identical(data$type, "histogram")) {
+    finite_values <- data$values[is.finite(data$values)]
+    data_range <- if (length(finite_values)) range(finite_values) else c(0, 1)
+    clamped_thresholds <- pmin(
+      pmax(data$thresholds[is.finite(data$thresholds)], data_range[1L]),
+      data_range[2L]
+    )
     plot <- plotly::plot_ly(
       x = data$values, type = "histogram",
       marker = list(color = app_plot_palette$primary), source = source
     ) |>
       plotly::layout(
-        xaxis = list(title = data$xlab),
+        xaxis = list(title = data$xlab, range = data_range),
         yaxis = list(title = "Count"),
-        shapes = lapply(data$thresholds[is.finite(data$thresholds)], function(v) list(
+        shapes = lapply(clamped_thresholds, function(v) list(
           type = "line", x0 = v, x1 = v, y0 = 0, y1 = 1, yref = "paper",
           line = list(color = app_theme$reference, width = 2, dash = "dash")
         ))
