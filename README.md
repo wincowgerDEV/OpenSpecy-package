@@ -114,7 +114,7 @@ match_spec(query_specs, library_specs, top_n = 5)
 decompress_spec(query_specs, index = 1)
 ```
 
-## Large file-backed Specs workflow (experimental)
+## Large package-only Specs workflow (experimental)
 
 `FileSpecs` is the local-first `Specs` subtype for hyperspectral maps that are
 too large to keep in memory. `open_specs()` indexes an H5 file or an ENVI
@@ -151,20 +151,31 @@ particles <- automate_particle_analysis(
 plot(particles, sample = "Region1", which = "sn_histogram")
 ```
 
-The initial file-backed analysis contract deliberately excludes whole-map
+The initial package analysis contract deliberately excludes whole-map
 correlation matrices, raw-pixel matching, spectral smoothing, entropy S/N,
 median/custom collapse, and PCA/K-means fitting. Use a bounded
 `decompress_spec()` selection when another established `OpenSpecy` operation is
 needed. Particle analysis retains the exact best match after collapse.
 Requesting `particle_image` for H5 data stitches
-and caches only the current region's registered mosaic tiles. The local Shiny
-app launched with `run_app()` places a **Local H5 / ENVI source** opener inside
-Advanced. With Advanced and Collapse Particle Spectra enabled, it runs the
-region-sequential pipeline with progress, scalable server-rendered particle
-maps, click metadata, threshold histograms, and configurable result archives.
-Filesystem access is disabled by default in other deployments and always
-disabled in the hosted WebAssembly app. Browser uploads are capped at 2 GB and
-oversize selections receive a popup directing them to the local path workflow.
+and caches only the current region's registered mosaic tiles. These experimental
+APIs remain available to package users for future large-map research.
+
+## In-memory app workflow
+
+The bundled and browser apps use one in-memory `OpenSpecy` workflow. Uploads
+have a 10 GiB transport ceiling, but the usable dataset size also depends on
+available RAM and the selected operations. The app reports estimated resident
+and peak memory before expensive work and gives recovery guidance when a known
+unsafe configuration is selected.
+
+For hyperspectral maps, optional spatial smoothing happens first. Signal/noise
+is calculated from that spatial-only data. Particle collapse can use connected
+threshold regions, PCA plus K-means within regions, or non-spatial PCA plus
+K-means groups. Correlation-threshold collapse performs one processed matching
+pass, filters pixels by the selected thresholds, and reuses the resulting
+material identities while collapsing. Identification retains only the selected
+Top N matches per spectrum (10 by default), and the table and download share
+that same compact result instead of storing a full correlation matrix.
 
 ## Related Packages
 ### Open Specy on Python

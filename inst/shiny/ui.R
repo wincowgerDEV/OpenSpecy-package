@@ -239,7 +239,22 @@ identification_controls <- tagList(
     pickerInput(
       "lib_type", "Library Type",
       choices = app_library_type_choices(), selected = "medoid"
-    )
+    ),
+    conditionalPanel(
+      condition = "input.lib_type != 'model'",
+      numericInput(
+        "top_n_input", "Top N matches retained",
+        value = 10, min = 1, max = 1000, step = 1
+      ),
+      tags$p(
+        class = "text-muted",
+        paste(
+          "Only these ranked matches are kept for each spectrum. The Matches",
+          "table and Top Matches download reuse this compact result."
+        )
+      )
+    ),
+    uiOutput("memory_preflight_status")
   ),
   conditionalPanel(
     condition = "input.lib_type != 'model'",
@@ -258,41 +273,6 @@ advanced_controls <- tagList(
   app_section_switch(
     "active_advanced", "Advanced", TRUE,
     "Enables the map thresholds, spatial controls, and particle pipeline below. Turning this off negates every Advanced setting."
-  ),
-  if(app_local_file_mode()) bs4Dash::box(
-    id = "filespec_source_box",
-    title = "File-backed source",
-    width = 12,
-    collapsible = TRUE,
-    collapsed = TRUE,
-    tags$p(
-      class = "openspecy-filespec-intro",
-      paste(
-        "Uploads over the browser limit stream read-only from disk",
-        "automatically here in the local app instead of loading into",
-        "memory -- use the standard upload above. Everything downstream",
-        "(preprocessing, identification, particle analysis, downloads)",
-        "works the same as an ordinary upload; large files are just",
-        "slower."
-      )
-    ),
-    tags$p(
-      class = "openspecy-filespec-status",
-      textOutput("filespec_status", container = tags$span)
-    ),
-    conditionalPanel(
-      condition = "output.filespec_active === true",
-      selectInput("filespec_region", "Map region", choices = character()),
-      div(
-        class = "openspecy-filespec-toolbar",
-        actionButton("filespec_close", "Close source",
-                     icon = icon("times"), class = "btn-outline-danger")
-      ),
-      tags$p(
-        class = "openspecy-filespec-status",
-        textOutput("filespec_view_status", container = tags$span)
-      )
-    )
   ),
   app_control_box(
     "threshold_decision", "Threshold Signal / Noise", FALSE,
@@ -316,7 +296,7 @@ advanced_controls <- tagList(
     ),
     div(class = "openspecy-mini-plot", uiOutput("snr_plot_ui")),
     note = c(
-      "Minimum and Maximum Value define the accepted interval on the selected metric scale; the histogram draws both current thresholds.",
+      "Minimum and Maximum Value define a strict accepted interval on the selected metric scale: values must be greater than the minimum and less than the maximum. The histogram draws both current thresholds.",
       "Signal Over Noise is a local peak-to-noise ratio, Signal Times Noise emphasizes absolute response, and Total Signal sums intensity. Larger values are not interchangeable between metrics.",
       "Pixels outside either bound are background. The default maximum is deliberately high; lower it when saturated or unusually intense pixels must be excluded."
     )
@@ -326,13 +306,16 @@ advanced_controls <- tagList(
     numericInput("MinCor", "Minimum Value", value = 0.7,
                  min = 0, max = 1, step = 0.1),
     div(class = "openspecy-mini-plot", uiOutput("cor_plot_ui")),
-    note = "Set the minimum match score used for a confident identification."
+    note = paste(
+      "Set the minimum match score used for a confident identification.",
+      "Scores at or above the minimum pass; lower or non-finite scores are background."
+    )
   ),
   app_control_box(
     "spatial_decision", "Spatial Smooth", FALSE,
     numericInput("sigma", "Spatial Standard Deviation", value = 1,
                  min = 0.01, max = 3, step = 0.01),
-    note = "Apply Gaussian smoothing to ordinary in-memory maps. This does not alter the bounded FileSpecs particle pipeline."
+    note = "Apply Gaussian smoothing to the uploaded hyperspectral map before thresholding or particle grouping."
   ),
   app_control_box(
     "xy_grid", "XY Grid Conform", FALSE,
@@ -349,19 +332,42 @@ advanced_controls <- tagList(
       choices = c(
         "Connected threshold regions" = "collapse",
         "Spectral clusters within regions" = "partial_collapse",
-        "Non-spatial spectral clusters" = "nonspatial_collapse",
-        "Per-cell identities" = "all_cell_id"
+        "Non-spatial spectral clusters" = "nonspatial_collapse"
       ),
       selected = "collapse"
     ),
+    conditionalPanel(
+      condition = paste0(
+        "input.particle_id_strategy == 'partial_collapse' || ",
+        "input.particle_id_strategy == 'nonspatial_collapse'"
+      ),
+      fluidRow(
+        column(
+          6,
+          numericInput(
+            "particle_pca_components", "PCA Components",
+            value = 10, min = 1, step = 1
+          )
+        ),
+        column(
+          6,
+          numericInput(
+            "particle_cluster_k", "K-means Clusters",
+            value = 10, min = 1, step = 1
+          )
+        )
+      )
+    ),
+    uiOutput("particle_partition_status"),
     numericInput(
       "particle_area_threshold", "Minimum Particle Area (pixels)",
       value = 1, min = 0, step = 1
     ),
     note = c(
-      "Runs automate_particle_analysis() only while both Advanced and this switch are on. Turning collapse off leaves raw spectra in the ordinary app workflow.",
-      "Connected threshold regions is the bounded FileSpecs strategy. Other strategies are available for ordinary in-memory maps; raw is intentionally represented by turning this switch off.",
-      "Minimum Particle Area rejects connected regions at or below the selected pixel area."
+      "Turning collapse off leaves pixels in the ordinary app workflow. With correlation thresholding on, pixels are fully processed and identified once before grouping; otherwise grouping happens before spectral preprocessing.",
+      "Signal/noise uses only the uploaded spectra plus optional Spatial Smooth. Connected regions use whichever enabled signal/noise and correlation thresholds pass; correlation regions also require the same material identity.",
+      "PCA Components and K-means Clusters are requested maxima. The effective values are clamped to the eligible data and reported above. Higher values cost more memory and can make smaller groups.",
+      "Minimum Particle Area is inclusive: groups with fewer pixels than this value are rejected after grouping. Geometric Mean requires every collapsed intensity to be positive."
     )
   )
 )
@@ -1156,31 +1162,12 @@ dashboardPage(
         }
         .openspecy-plot-frame { padding: 8px; margin: 8px 0 16px; }
         .openspecy-mini-plot { margin-top: 8px; }
-        #filespec_source_box { margin-bottom: 18px; }
-        .openspecy-filespec-toolbar {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          align-items: center;
-          margin: 8px 0;
-        }
-        .openspecy-filespec-toolbar .btn { min-width: 42px; }
-        .openspecy-filespec-intro,
-        .openspecy-filespec-status {
-          color: var(--openspecy-muted);
-          line-height: 1.45;
-        }
-        .openspecy-filespec-status {
-          padding: 8px 10px;
-          border-left: 3px solid var(--openspecy-accent);
-          background: var(--openspecy-canvas);
-        }
-        .openspecy-filespec-map {
-          min-height: 320px;
-          padding: 8px;
-          border: 1px solid var(--openspecy-grid);
-          border-radius: 7px;
-          background: var(--openspecy-canvas);
+        .openspecy-upload-status {
+          display: block;
+          min-height: 1.4em;
+          margin: 4px 0 0;
+          color: #FACC15;
+          line-height: 1.35;
         }
         .shiny-output-error-validation {
           color: var(--openspecy-accent);
@@ -1307,6 +1294,13 @@ dashboardPage(
               ".0", ".zip", ".img", ".h5", ".txt", ".json", ".rds",
               ".hdr", ".dat"
             )
+          ),
+          uiOutput(
+            "upload_status",
+            container = tags$p,
+            class = "openspecy-upload-status",
+            role = "status",
+            `aria-live` = "polite"
           )
         ),
         column(
@@ -1359,8 +1353,8 @@ dashboardPage(
             div(
               class = "openspecy-download-body",
               uiOutput("download_ui"),
-              uiOutput("top_n"),
-              uiOutput("particle_download_contents")
+              uiOutput("particle_download_contents"),
+              uiOutput("columns_selected")
             )
           )
         )

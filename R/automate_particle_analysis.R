@@ -30,7 +30,7 @@
 #' @param close,close_kernel passed to \code{\link{def_features}()}.
 #' @param sn_threshold_min,sn_threshold_max signal/noise thresholds.
 #' @param cor_threshold minimum match value for confident particle labels.
-#' @param area_threshold minimum feature area in pixels.
+#' @param area_threshold minimum feature area in pixels (inclusive).
 #' @param label_unknown logical; label low-correlation matches as `"unknown"`.
 #' @param remove_materials optional material labels to remove after matching.
 #' @param remove_unknown logical; remove `"unknown"` after matching.
@@ -44,8 +44,10 @@
 #' `"heatmap"`, `"thresholded"`, and `"correlation"` are also accepted.
 #' @param process_args optional named list overriding \code{\link{process_spec}()}
 #' arguments for spectra before matching.
-#' @param specs_steps,specs_centers compression controls for Specs-based
-#' strategies.
+#' @param specs_steps retained for signature compatibility; clustering
+#' strategies require the concrete `c("pca", "kmeans")` workflow.
+#' @param specs_centers requested K-means cluster count for clustering
+#' strategies; the effective count is clamped to the eligible data.
 #' @param \ldots catches removed legacy arguments and otherwise is reserved.
 #'
 #' @return
@@ -164,10 +166,6 @@ automate_particle_analysis.default <- function(
 
     if (identical(particle_id_strategy, "collapse")) {
       .particle_progress(sample_name, "particle detection and collapse")
-      map <- def_features(
-        map, threshold, shape_kernel = sigma2, close = close,
-        close_kernel = close_kernel
-      )
     }
 
     strategy_result <- .particle_strategy_map(
@@ -376,6 +374,18 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   strategy
 }
 
+.validate_particle_specs_steps <- function(steps) {
+  expected <- c("pca", "kmeans")
+  if (!is.character(steps) || anyNA(steps) || !identical(steps, expected)) {
+    stop(
+      "'specs_steps' is retained for compatibility, but partial and ",
+      "nonspatial collapse now require c(\"pca\", \"kmeans\")",
+      call. = FALSE
+    )
+  }
+  invisible(expected)
+}
+
 .normalize_particle_outputs <- function(outputs) {
   aliases <- c(heatmap = "particle_heatmap",
                thresholded = "particle_heatmap_thresholded",
@@ -487,24 +497,41 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
                                    collapse_function, process_args,
                                    specs_steps, specs_centers, material_col,
                                    library_id_col) {
-  if (identical(particle_id_strategy, "collapse")) {
-    id_map <- if (all(c("feature_id", "area") %in% names(map$metadata))) {
-      map
+  if (particle_id_strategy %in%
+      c("collapse", "partial_collapse", "nonspatial_collapse")) {
+    clustering <- particle_id_strategy %in%
+      c("partial_collapse", "nonspatial_collapse")
+    if (clustering) {
+      .validate_particle_specs_steps(specs_steps)
+      centers <- specs_centers
+      if (is.null(centers)) {
+        centers <- max(1L, min(50L, sum(threshold, na.rm = TRUE)))
+      }
     } else {
-      def_features(
-        map, threshold, shape_kernel = sigma2, close = close,
-        close_kernel = close_kernel
-      )
+      # Connected collapse has no PCA/K-means stage, so public compression
+      # controls must not change or invalidate it.
+      centers <- 1L
     }
-    proc <- collapse_spec(id_map, fun = collapse_function)
-    keep <- proc$metadata$feature_id != "-88" &
-      proc$metadata$area > area_threshold
-    keep[is.na(keep)] <- FALSE
-    if (!any(keep)) return(NULL)
+    partition <- .partition_particle_map(
+      map,
+      eligible = threshold,
+      strategy = particle_id_strategy,
+      pca_components = 10L,
+      centers = centers,
+      collapse_function = collapse_function,
+      area_threshold = area_threshold,
+      shape_kernel = sigma2,
+      close = close,
+      close_kernel = close_kernel,
+      seed = 1L
+    )
+    if (is.null(partition$analysis_units)) return(NULL)
     return(.particle_strategy_result(
-      .process_for_particle_match(filter_spec(proc, keep), library,
+      .process_for_particle_match(partition$analysis_units, library,
                                   process_args),
-      id_map
+      partition$display,
+      pixel_to_unit = partition$pixel_to_unit,
+      settings = partition$settings
     ))
   }
 
@@ -526,50 +553,716 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     map <- .join_particle_cell_matches(map, cell_map, material_col)
     material <- map$metadata[[material_col]]
     material[is.na(material) | !threshold] <- "background"
-    id_map <- def_features(map, material, close = close,
-                           close_kernel = close_kernel)
-    proc <- collapse_spec(id_map, fun = stats::median)
-    keep <- !grepl("background", proc$metadata$feature_id) &
-      proc$metadata$area > area_threshold
-    keep[is.na(keep)] <- FALSE
-    if (!any(keep)) return(NULL)
+    partition <- .partition_particle_map(
+      map,
+      eligible = threshold,
+      strategy = "collapse",
+      material = material,
+      collapse_function = collapse_function,
+      area_threshold = area_threshold,
+      shape_kernel = sigma2,
+      close = close,
+      close_kernel = close_kernel,
+      seed = 1L
+    )
+    if (is.null(partition$analysis_units)) return(NULL)
     return(.particle_strategy_result(
-      .process_for_particle_match(filter_spec(proc, keep), library,
+      .process_for_particle_match(partition$analysis_units, library,
                                   process_args),
-      id_map
+      partition$display,
+      pixel_to_unit = partition$pixel_to_unit,
+      settings = partition$settings
     ))
   }
 
-  .particle_strategy_result(
-    .specs_particle_strategy(map, threshold, library, particle_id_strategy,
-                             specs_steps, specs_centers, close, close_kernel,
-                             sigma2, process_args),
-    map
-  )
+  stop("unknown particle strategy: ", particle_id_strategy, call. = FALSE)
 }
 
-.particle_strategy_result <- function(processed, display) {
-  list(processed = processed, display = display)
+.particle_strategy_result <- function(processed, display,
+                                      pixel_to_unit = NULL,
+                                      settings = NULL) {
+  list(processed = processed, display = display,
+       pixel_to_unit = pixel_to_unit, settings = settings)
 }
 
 .specs_particle_strategy <- function(map, threshold, library, strategy,
                                      specs_steps, specs_centers, close,
                                      close_kernel, sigma2, process_args) {
-  work <- if (identical(strategy, "nonspatial_collapse") && any(threshold)) {
-    filter_spec(map, threshold)
-  } else {
-    map
-  }
+  .validate_particle_specs_steps(specs_steps)
   centers <- specs_centers
-  if (is.null(centers)) centers <- max(1L, min(50L, ncol(work$spectra)))
-  specs <- as_Specs(work, steps = specs_steps, centers = centers, nstart = 5)
-  if (identical(strategy, "partial_collapse")) {
-    specs <- def_features(specs, threshold, shape_kernel = sigma2,
-                          close = close, close_kernel = close_kernel)
-    specs <- collapse_spec(specs, fun = mean, column = "feature_id")
+  if (is.null(centers)) centers <- max(1L, min(50L, sum(threshold)))
+  partition <- .partition_particle_map(
+    map, eligible = threshold, strategy = strategy,
+    pca_components = 10L, centers = centers,
+    collapse_function = mean, area_threshold = 1,
+    shape_kernel = sigma2, close = close, close_kernel = close_kernel,
+    seed = 1L
+  )
+  if (is.null(partition$analysis_units)) return(NULL)
+  .process_for_particle_match(partition$analysis_units, library, process_args)
+}
+
+# Partition a spatial-only spectral map into stable analysis units. This helper
+# deliberately accepts material identities rather than a library or correlation
+# matrix so callers can reuse a single identification pass.
+.partition_particle_map <- function(
+    x, eligible = rep(TRUE, ncol(x$spectra)),
+    strategy = c("collapse", "partial_collapse", "nonspatial_collapse"),
+    material = NULL, pca_components = 10L, centers = 10L,
+    collapse_function = stats::median, area_threshold = 1,
+    shape_kernel = c(3, 3), close = FALSE, close_kernel = c(4, 4),
+    seed = 1L) {
+  x <- as_OpenSpecy(x)
+  strategy <- match.arg(strategy)
+  n_pixels <- ncol(x$spectra)
+  eligible_input <- .particle_logical_mask(eligible, n_pixels, "eligible")
+  material <- .particle_material_vector(material, n_pixels)
+  eligible <- eligible_input
+  missing_material <- rep(FALSE, n_pixels)
+  if (!is.null(material)) {
+    missing_material <- is.na(material) | !nzchar(trimws(material))
+    eligible <- eligible & !missing_material
   }
-  proc <- decompress_spec(specs, expand = FALSE)
-  .process_for_particle_match(proc, library, process_args)
+  area_threshold <- .particle_scalar_number(
+    area_threshold, "area_threshold", minimum = 0
+  )
+  pca_components <- .particle_positive_integer(pca_components,
+                                               "pca_components")
+  centers <- .particle_positive_integer(centers, "centers")
+  seed <- .particle_integer(seed, "seed")
+  collapse <- .particle_collapse_function(collapse_function)
+
+  md <- data.table::as.data.table(x$metadata)
+  pixel_id <- colnames(x$spectra)
+  if (is.null(pixel_id)) pixel_id <- paste0("pixel_", seq_len(n_pixels))
+  if (length(pixel_id) != n_pixels || anyNA(pixel_id) ||
+      anyDuplicated(pixel_id)) {
+    stop("particle partitioning requires unique spectrum column names",
+         call. = FALSE)
+  }
+  x_coord <- if ("x" %in% names(md)) as.numeric(md$x) else
+    seq_len(n_pixels) - 1
+  y_coord <- if ("y" %in% names(md)) as.numeric(md$y) else
+    rep(0, n_pixels)
+  source_id <- .particle_source_vector(md, n_pixels)
+  source_levels <- unique(source_id)
+  source_index <- match(source_id, source_levels)
+  source_token <- sprintf("source_%06d", source_index)
+
+  region_id <- rep(NA_character_, n_pixels)
+  cluster_id <- rep(NA_character_, n_pixels)
+  effective_components <- 0L
+  effective_centers <- integer()
+
+  if (any(eligible)) {
+    if (strategy %in% c("collapse", "partial_collapse")) {
+      region_id <- .particle_connected_regions(
+        x_coord, y_coord, eligible, material, source_id,
+        shape_kernel = shape_kernel, close = close,
+        close_kernel = close_kernel
+      )
+    }
+
+    if (strategy %in% c("partial_collapse", "nonspatial_collapse")) {
+      pca <- .particle_shared_pca(x$spectra, eligible, pca_components)
+      scores <- pca$scores
+      effective_components <- pca$n_components
+      grouping <- if (identical(strategy, "partial_collapse")) {
+        region_id
+      } else if (is.null(material)) {
+        if (length(source_levels) == 1L) {
+          ifelse(eligible, "global", NA_character_)
+        } else {
+          ifelse(eligible, source_token, NA_character_)
+        }
+      } else {
+        material_group <- paste0("material:", material)
+        if (length(source_levels) > 1L) {
+          material_group <- paste(source_token, material_group, sep = ":")
+        }
+        ifelse(eligible, material_group, NA_character_)
+      }
+      clustered <- .particle_kmeans_groups(
+        scores, pixel_index = which(eligible), grouping = grouping[eligible],
+        centers = centers, seed = seed
+      )
+      cluster_id[eligible] <- clustered$cluster_id
+      effective_centers <- clustered$effective_centers
+    }
+  }
+
+  candidate <- rep(NA_character_, n_pixels)
+  if (identical(strategy, "collapse")) {
+    candidate[eligible] <- paste(source_token[eligible], region_id[eligible],
+                                 sep = ":")
+  } else if (identical(strategy, "partial_collapse")) {
+    candidate[eligible] <- paste(
+      source_token[eligible], region_id[eligible], cluster_id[eligible],
+      sep = ":"
+    )
+  } else {
+    group_key <- if (is.null(material)) rep("global", n_pixels) else material
+    candidate[eligible] <- paste(
+      source_token[eligible], group_key[eligible], cluster_id[eligible],
+      sep = ":"
+    )
+  }
+  candidate[!eligible] <- NA_character_
+  candidate_levels <- unique(candidate[!is.na(candidate)])
+  candidate_area <- tabulate(match(candidate, candidate_levels),
+                             nbins = length(candidate_levels))
+  names(candidate_area) <- candidate_levels
+  area <- unname(candidate_area[candidate])
+  keep_candidate <- names(candidate_area)[candidate_area >= area_threshold]
+  kept <- !is.na(candidate) & candidate %in% keep_candidate
+  kept_levels <- unique(candidate[kept])
+  unit_lookup <- stats::setNames(
+    sprintf("unit_%06d", seq_along(kept_levels)), kept_levels
+  )
+  unit_id <- unname(unit_lookup[candidate])
+  unit_id[!kept] <- NA_character_
+  unit_levels <- unname(unit_lookup[kept_levels])
+  unit_index <- match(unit_id, unit_levels)
+
+  rejection_reason <- rep(NA_character_, n_pixels)
+  rejection_reason[!eligible_input] <- "threshold"
+  rejection_reason[eligible_input & missing_material] <-
+    "missing material identity"
+  rejection_reason[eligible & !kept] <- "area"
+  pixel_to_unit <- data.table::data.table(
+    pixel_index = seq_len(n_pixels), pixel_id = as.character(pixel_id),
+    source_id = source_id, x = x_coord, y = y_coord, eligible = eligible,
+    material = if (is.null(material)) rep(NA_character_, n_pixels) else material,
+    region_id = region_id, cluster_id = cluster_id, unit_id = unit_id,
+    unit_index = as.integer(unit_index), area = as.integer(area), kept = kept,
+    rejection_reason = rejection_reason
+  )
+
+  display <- x
+  display_md <- data.table::copy(md)
+  display_md[, `:=`(
+    partition_source = pixel_to_unit$source_id,
+    partition_eligible = pixel_to_unit$eligible,
+    partition_material = pixel_to_unit$material,
+    region_id = pixel_to_unit$region_id,
+    cluster_id = pixel_to_unit$cluster_id,
+    unit_id = pixel_to_unit$unit_id,
+    feature_id = pixel_to_unit$unit_id,
+    area = pixel_to_unit$area,
+    partition_rejection = pixel_to_unit$rejection_reason
+  )]
+  display$metadata <- display_md
+  display <- .particle_partition_colors(display, pixel_to_unit)
+
+  analysis_units <- .collapse_particle_units(
+    display, pixel_to_unit, collapse$fun, geometric = collapse$geometric
+  )
+  settings <- list(
+    strategy = strategy,
+    requested_pca_components = pca_components,
+    pca_components = effective_components,
+    requested_centers = centers,
+    centers = effective_centers,
+    area_threshold = area_threshold,
+    collapse = collapse$name,
+    seed = seed
+  )
+  list(analysis_units = analysis_units, pixel_to_unit = pixel_to_unit,
+       display = display, settings = settings)
+}
+
+.particle_partition_colors <- function(display, mapping) {
+  md <- data.table::copy(data.table::as.data.table(display$metadata))
+  # A single visual-image registration cannot disambiguate repeated local x/y
+  # coordinates from several source maps. Preserve existing RGB metadata, but
+  # do not perform an unsafe cross-source image lookup.
+  if (!all(c("r", "g", "b") %in% names(md)) &&
+      !is.null(visual_image(display)) &&
+      data.table::uniqueN(mapping$source_id) == 1L) {
+    vi <- .resolve_visual_image(display)
+    if (!is.null(vi$image) && !is.null(vi$bottom_left) &&
+        !is.null(vi$top_right) && all(c("x", "y") %in% names(md))) {
+      image_raster <- .visual_image_raster(vi$image)
+      map_dim <- .visual_map_dim(vi, md)
+      xy <- .map_to_image_coords(md$x, md$y, map_dim, vi$bottom_left,
+                                 vi$top_right)
+      clipped <- .clip_image_coords(
+        cbind(xy$y, xy$x), dim(image_raster),
+        tolerance = .image_edge_tolerance(
+          map_dim, vi$bottom_left, vi$top_right
+        )
+      )
+      colors <- rep(NA_character_, nrow(md))
+      if (any(clipped$valid)) {
+        colors[clipped$valid] <- image_raster[
+          clipped$coords[clipped$valid, , drop = FALSE]
+        ]
+      }
+      rgb <- matrix(NA_integer_, nrow = 3L, ncol = nrow(md))
+      if (any(clipped$valid)) {
+        rgb[, clipped$valid] <- grDevices::col2rgb(colors[clipped$valid])
+      }
+      md[, `:=`(r = rgb[1L, ], g = rgb[2L, ], b = rgb[3L, ])]
+    }
+  }
+  display$metadata <- md
+  display
+}
+
+.particle_logical_mask <- function(x, n, name) {
+  if (!is.logical(x) || length(x) != n) {
+    stop("'", name, "' must be a logical vector with one value per spectrum",
+         call. = FALSE)
+  }
+  x[is.na(x)] <- FALSE
+  x
+}
+
+.particle_material_vector <- function(x, n) {
+  if (is.null(x)) return(NULL)
+  if (length(x) != n) {
+    stop("'material' must have one value per spectrum", call. = FALSE)
+  }
+  as.character(x)
+}
+
+.particle_source_vector <- function(metadata, n) {
+  if (nrow(metadata) != n) {
+    stop("particle metadata must have one row per spectrum", call. = FALSE)
+  }
+  # H5 inputs may reset x/y within each region, so region is part of the map
+  # identity alongside the file identifiers. Mixed uploads legitimately lack
+  # some fields row-wise, so encode missing values explicitly instead of
+  # dropping a partially populated source column globally.
+  available <- intersect(c("file_id", "file_name", "region"), names(metadata))
+  informative <- available[vapply(available, function(name) {
+    value <- trimws(as.character(metadata[[name]]))
+    length(value) == n && any(!is.na(value) & nzchar(value))
+  }, logical(1))]
+  if (!length(informative)) return(rep("map", n))
+
+  pieces <- lapply(informative, function(name) {
+    value <- enc2utf8(as.character(metadata[[name]]))
+    present <- !is.na(value) & nzchar(trimws(value))
+    # Length-prefix each value so filenames containing separators cannot make
+    # two source keys ambiguous. M and V distinguish a missing field from any
+    # literal user value.
+    ifelse(
+      present,
+      paste0(name, "=V", nchar(value, type = "bytes"), ":", value),
+      paste0(name, "=M")
+    )
+  })
+  do.call(paste, c(pieces, sep = "\034"))
+}
+
+.particle_scalar_number <- function(x, name, minimum = -Inf) {
+  value <- suppressWarnings(as.numeric(x))
+  if (length(value) != 1L || is.na(value) || !is.finite(value) ||
+      value < minimum) {
+    stop("'", name, "' must be one finite number no smaller than ", minimum,
+         call. = FALSE)
+  }
+  value
+}
+
+.particle_positive_integer <- function(x, name) {
+  value <- .particle_scalar_number(x, name, minimum = 1)
+  if (value != floor(value)) {
+    stop("'", name, "' must be a positive whole number", call. = FALSE)
+  }
+  as.integer(value)
+}
+
+.particle_integer <- function(x, name) {
+  value <- .particle_scalar_number(x, name)
+  if (value != floor(value) || value < -.Machine$integer.max ||
+      value > .Machine$integer.max) {
+    stop("'", name, "' must be one whole number", call. = FALSE)
+  }
+  as.integer(value)
+}
+
+.particle_connected_regions <- function(x, y, eligible, material, source,
+                                        shape_kernel, close, close_kernel) {
+  idx <- which(eligible)
+  if (!length(idx)) return(rep(NA_character_, length(eligible)))
+  if (length(source) != length(eligible) || anyNA(source)) {
+    stop("connected particle partitioning requires one source per spectrum",
+         call. = FALSE)
+  }
+  if (any(!is.finite(x[idx])) || any(!is.finite(y[idx]))) {
+    stop("connected particle partitioning requires finite x/y coordinates",
+         call. = FALSE)
+  }
+  coordinate_key <- paste(source[idx], x[idx], y[idx], sep = "\r")
+  if (anyDuplicated(coordinate_key)) {
+    stop(
+      "connected particle partitioning requires unique x/y coordinates ",
+      "within each source map", call. = FALSE
+    )
+  }
+  labels <- if (is.null(material)) rep("eligible", length(eligible)) else material
+  out <- rep(NA_character_, length(eligible))
+  next_region <- 0L
+  component_kernel <- mmand::shapeKernel(shape_kernel, type = "box")
+  close_kernel_object <- if (isTRUE(close)) {
+    mmand::shapeKernel(close_kernel, type = "box")
+  } else {
+    NULL
+  }
+  for (source_value in unique(source[idx])) {
+    source_all <- which(source == source_value)
+    source_idx <- idx[source[idx] == source_value]
+    x_levels <- sort(unique(x[source_all]))
+    y_levels <- sort(unique(y[source_all]))
+    x_index <- match(x, x_levels)
+    y_index <- match(y, y_levels)
+    for (label in unique(labels[source_idx])) {
+      label_idx <- source_idx[labels[source_idx] == label]
+      binary <- matrix(FALSE, nrow = length(y_levels), ncol = length(x_levels))
+      binary[cbind(y_index[label_idx], x_index[label_idx])] <- TRUE
+      topology <- if (isTRUE(close)) {
+        mmand::closing(binary, close_kernel_object)
+      } else {
+        binary
+      }
+      topology[is.na(topology) | is.infinite(topology)] <- FALSE
+      components <- mmand::components(topology, component_kernel)
+      component <- components[cbind(y_index[label_idx], x_index[label_idx])]
+      component_levels <- unique(component[!is.na(component) & component > 0])
+      if (!length(component_levels)) next
+      normalized <- match(component, component_levels)
+      valid <- !is.na(normalized)
+      normalized[valid] <- normalized[valid] + next_region
+      out[label_idx[valid]] <- sprintf("region_%06d", normalized[valid])
+      next_region <- next_region + length(component_levels)
+    }
+  }
+  out
+}
+
+.particle_shared_pca <- function(spectra, eligible, requested) {
+  idx <- which(eligible)
+  data <- t(spectra[, idx, drop = FALSE])
+  if (any(!is.finite(data))) {
+    stop("PCA clustering requires finite values in every eligible spectrum",
+         call. = FALSE)
+  }
+  if (nrow(data) == 1L) {
+    scores <- matrix(0, nrow = 1L, ncol = 1L,
+                     dimnames = list(rownames(data), "PC1"))
+    return(list(scores = scores, n_components = 1L))
+  }
+  effective <- max(1L, min(requested, nrow(data) - 1L, ncol(data)))
+  fit <- stats::prcomp(data, center = TRUE, scale. = FALSE,
+                       rank. = effective)
+  available <- min(effective, ncol(fit$x))
+  list(scores = fit$x[, seq_len(available), drop = FALSE],
+       n_components = as.integer(available))
+}
+
+.particle_kmeans_groups <- function(scores, pixel_index, grouping, centers,
+                                    seed) {
+  if (length(grouping) != nrow(scores) || length(pixel_index) != nrow(scores)) {
+    stop("internal particle clustering alignment failure", call. = FALSE)
+  }
+  if (anyNA(grouping)) {
+    stop("internal particle clustering groups cannot be missing",
+         call. = FALSE)
+  }
+  out <- rep(NA_character_, length(grouping))
+  groups <- unique(grouping)
+  group_code <- match(grouping, groups)
+  group_rows <- unname(split(
+    seq_along(group_code),
+    factor(group_code, levels = seq_along(groups))
+  ))
+  effective <- integer(length(groups))
+  names(effective) <- groups
+  for (i in seq_along(groups)) {
+    rows <- group_rows[[i]]
+    group_scores <- scores[rows, , drop = FALSE]
+    unique_rows <- !duplicated(as.data.frame(group_scores))
+    k <- min(centers, length(rows), sum(unique_rows))
+    effective[[i]] <- k
+    if (k <= 1L) {
+      cluster <- rep(1L, length(rows))
+    } else if (k == length(rows)) {
+      cluster <- seq_along(rows)
+    } else {
+      cluster <- .particle_local_seed(seed + i - 1L, {
+        stats::kmeans(group_scores, centers = k, nstart = 10)$cluster
+      })
+      first_pixel <- tapply(pixel_index[rows], cluster, min)
+      relabel <- match(cluster, order(first_pixel))
+      cluster <- as.integer(relabel)
+    }
+    out[rows] <- sprintf("cluster_%06d", cluster)
+  }
+  list(cluster_id = out, effective_centers = effective)
+}
+
+.particle_local_seed <- function(seed, code) {
+  had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  if (had_seed) old_seed <- get(".Random.seed", envir = .GlobalEnv,
+                                inherits = FALSE)
+  on.exit({
+    if (had_seed) {
+      assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+      rm(".Random.seed", envir = .GlobalEnv)
+    }
+  }, add = TRUE)
+  set.seed(seed)
+  force(code)
+}
+
+.particle_collapse_function <- function(fun) {
+  if (is.character(fun) && length(fun) == 1L && !is.na(fun)) {
+    name <- tolower(gsub("[ _-]", "", fun))
+    if (name %in% c("geometric", "geometricmean", "gmean")) {
+      return(list(fun = .particle_geometric_mean, geometric = TRUE,
+                  name = "geometric mean"))
+    }
+    if (identical(name, "mean")) {
+      return(list(fun = base::mean, geometric = FALSE, name = "mean"))
+    }
+    if (identical(name, "median")) {
+      return(list(fun = stats::median, geometric = FALSE, name = "median"))
+    }
+    stop("unknown particle collapse function: ", fun, call. = FALSE)
+  }
+  FUN <- match.fun(fun)
+  # A custom reducer may legitimately contain log() and exp() without being a
+  # geometric mean. Positivity is therefore an explicit contract, not a guess
+  # based on the function's deparsed body.
+  geometric <- identical(FUN, .particle_geometric_mean)
+  name <- if (geometric) "geometric mean" else if (identical(FUN, base::mean)) {
+    "mean"
+  } else if (identical(FUN, stats::median)) {
+    "median"
+  } else {
+    "custom"
+  }
+  list(fun = FUN, geometric = geometric, name = name)
+}
+
+.particle_geometric_mean <- function(x, ...) {
+  if (any(!is.finite(x)) || any(x <= 0)) {
+    stop("geometric mean collapse requires strictly positive finite values",
+         call. = FALSE)
+  }
+  exp(mean(log(x), ...))
+}
+
+.collapse_particle_units <- function(display, mapping, fun, geometric) {
+  if (!any(mapping$kept)) return(NULL)
+  work <- filter_spec(display, mapping$kept)
+  if (isTRUE(geometric) &&
+      (any(!is.finite(work$spectra)) || any(work$spectra <= 0))) {
+    stop("geometric mean collapse requires strictly positive finite values",
+         call. = FALSE)
+  }
+  work_metadata <- data.table::as.data.table(work$metadata)
+  unit_id <- unique(as.character(work_metadata$unit_id))
+  unit_rows <- .particle_membership_rows(work_metadata$unit_id, unit_id)
+  collapsed <- work
+  collapsed$spectra <- .particle_reduce_unit_spectra(
+    work$spectra, unit_rows, fun
+  )
+  colnames(collapsed$spectra) <- unit_id
+  collapsed$metadata <- data.table::copy(
+    work_metadata[vapply(unit_rows, `[[`, integer(1), 1L)]
+  )
+  # Retain metadata only when it is genuinely shared by every member. This
+  # prevents a collapsed unit from inheriting an arbitrary pixel identity while
+  # preserving source-, material-, and group-level values.
+  for (name in names(work_metadata)) {
+    collapsed$metadata[[name]] <- .particle_constant_unit_metadata(
+      work_metadata[[name]], unit_rows
+    )
+  }
+  unit_statistic <- function(values, FUN) {
+    vapply(unit_rows, function(rows) FUN(values[rows]), numeric(1))
+  }
+  # These are feature-level scientific summaries, not constant provenance.
+  # Recompute them from every retained pixel so a unit never inherits a stale
+  # or first-pixel value from an earlier feature definition.
+  if ("snr" %in% names(work_metadata)) {
+    collapsed$metadata$mean_snr <- unit_statistic(
+      work_metadata$snr, base::mean
+    )
+  }
+  if ("max_cor_val" %in% names(work_metadata)) {
+    collapsed$metadata$mean_cor <- unit_statistic(
+      work_metadata$max_cor_val, base::mean
+    )
+  }
+  if (all(c("r", "g", "b") %in% names(work_metadata))) {
+    for (channel in c("r", "g", "b")) {
+      collapsed$metadata[[paste0("mean_", channel)]] <- unit_statistic(
+        work_metadata[[channel]], .rms_color_channel
+      )
+    }
+  }
+  # collapse_spec() retains metadata from the first member. Geometry produced
+  # for an earlier feature definition is invalid after repartitioning, and
+  # disconnected spectral clusters do not have one defensible hull. Keep the
+  # recomputed centroid/count below and remove unsupported stale geometry.
+  stale_geometry <- intersect(
+    c("perimeter", "feret_min", "feret_max", "convex_hull_area",
+      "first_x", "first_y", "rand_x", "rand_y"),
+    names(collapsed$metadata)
+  )
+  if (length(stale_geometry)) {
+    collapsed$metadata[, (stale_geometry) := NULL]
+  }
+  kept_mapping <- mapping[mapping$kept]
+  if (nrow(kept_mapping) != nrow(work_metadata) ||
+      !identical(as.character(kept_mapping$unit_id),
+                 as.character(work_metadata$unit_id))) {
+    stop("internal collapsed particle membership alignment failure",
+         call. = FALSE)
+  }
+  unit_source <- vapply(unit_rows, function(rows) {
+    values <- unique(kept_mapping$source_id[rows])
+    if (length(values) != 1L || is.na(values)) {
+      stop("a collapsed particle unit crossed source maps", call. = FALSE)
+    }
+    values
+  }, character(1))
+  unit_x <- vapply(unit_rows, function(rows) mean(kept_mapping$x[rows]),
+                   numeric(1))
+  unit_y <- vapply(unit_rows, function(rows) mean(kept_mapping$y[rows]),
+                   numeric(1))
+  connected_geometry <- if (all(is.na(kept_mapping$cluster_id))) {
+    .particle_connected_unit_geometry(kept_mapping, unit_id, unit_rows)
+  } else {
+    NULL
+  }
+
+  collapsed$metadata$col_id <- unit_id
+  collapsed$metadata$unit_id <- unit_id
+  collapsed$metadata$feature_id <- collapsed$metadata$unit_id
+  collapsed$metadata$partition_source <- unit_source
+  collapsed$metadata$x <- unit_x
+  collapsed$metadata$y <- unit_y
+  collapsed$metadata$centroid_x <- unit_x
+  collapsed$metadata$centroid_y <- unit_y
+  collapsed$metadata$unit_index <- seq_len(ncol(collapsed$spectra))
+  collapsed$metadata$area <- as.integer(lengths(unit_rows))
+  collapsed$metadata$pixel_count <- collapsed$metadata$area
+  if (!is.null(connected_geometry)) {
+    geometry_index <- match(unit_id, connected_geometry$unit_id)
+    for (name in setdiff(names(connected_geometry), "unit_id")) {
+      collapsed$metadata[[name]] <- connected_geometry[[name]][geometry_index]
+    }
+    collapsed$metadata$x <- collapsed$metadata$centroid_x
+    collapsed$metadata$y <- collapsed$metadata$centroid_y
+  }
+  collapsed
+}
+
+.particle_reduce_unit_spectra <- function(spectra, unit_rows, fun) {
+  FUN <- match.fun(fun)
+  out <- matrix(NA_real_, nrow = nrow(spectra), ncol = length(unit_rows))
+  for (i in seq_along(unit_rows)) {
+    block <- spectra[, unit_rows[[i]], drop = FALSE]
+    if (identical(FUN, stats::median)) {
+      out[, i] <- matrixStats::rowMedians(block)
+    } else if (identical(FUN, base::mean)) {
+      out[, i] <- rowMeans(block)
+    } else if (identical(FUN, base::sum)) {
+      out[, i] <- rowSums(block)
+    } else {
+      out[, i] <- apply(block, 1L, FUN)
+    }
+  }
+  out
+}
+
+.particle_connected_unit_geometry <- function(mapping, unit_id, unit_rows) {
+  mapping <- data.table::as.data.table(mapping)
+  if (length(unit_rows) != length(unit_id)) {
+    stop("internal connected particle membership alignment failure",
+         call. = FALSE)
+  }
+  data.table::rbindlist(Map(function(id, rows) {
+    members <- mapping[rows]
+    points <- unique(members[, c("x", "y"), with = FALSE])
+    if (!nrow(points) || any(!is.finite(points$x)) ||
+        any(!is.finite(points$y))) {
+      stop("connected particle geometry requires finite x/y coordinates",
+           call. = FALSE)
+    }
+    first <- members[1L]
+    if (nrow(points) == 1L) {
+      return(data.table::data.table(
+        unit_id = id, centroid_x = points$x, centroid_y = points$y,
+        first_x = first$x, first_y = first$y, perimeter = 4,
+        feret_min = 1, feret_max = 1, convex_hull_area = NA_real_
+      ))
+    }
+
+    hull <- points[unique(grDevices::chull(points$x, points$y))]
+    distances <- as.matrix(stats::dist(hull[, c("x", "y"), with = FALSE]))
+    feret_max <- max(distances) + 1
+    next_point <- c(seq.int(2L, nrow(hull)), 1L)
+    perimeter <- sum(sqrt(
+      (hull$x - hull$x[next_point])^2 +
+        (hull$y - hull$y[next_point])^2
+    ))
+    convex_hull_area <- if (nrow(hull) < 3L) {
+      0
+    } else {
+      abs(sum(
+        hull$x * hull$y[next_point] - hull$y * hull$x[next_point]
+      )) / 2
+    }
+    area <- nrow(points)
+    data.table::data.table(
+      unit_id = id,
+      centroid_x = mean(points$x), centroid_y = mean(points$y),
+      first_x = first$x, first_y = first$y,
+      perimeter = perimeter, feret_min = area / feret_max,
+      feret_max = feret_max, convex_hull_area = convex_hull_area
+    )
+  }, unit_id, unit_rows))
+}
+
+.particle_membership_rows <- function(membership, unit_id) {
+  code <- match(as.character(membership), as.character(unit_id))
+  if (length(code) != length(membership) || anyNA(code)) {
+    stop("internal particle membership contains an unknown unit",
+         call. = FALSE)
+  }
+  unname(split(
+    seq_along(code),
+    factor(code, levels = seq_along(unit_id))
+  ))
+}
+
+.particle_constant_unit_metadata <- function(values, unit_rows) {
+  if (is.list(values) && !is.object(values)) {
+    out <- vector("list", length(unit_rows))
+    for (i in seq_along(unit_rows)) {
+      group <- values[unit_rows[[i]]]
+      if (length(group) && all(vapply(group, identical, logical(1), group[[1L]]))) {
+        out[[i]] <- group[[1L]]
+      }
+    }
+    return(out)
+  }
+  out <- values[rep(NA_integer_, length(unit_rows))]
+  for (i in seq_along(unit_rows)) {
+    group <- values[unit_rows[[i]]]
+    valid <- !is.na(group)
+    if (is.character(group)) valid <- valid & nzchar(trimws(group))
+    distinct <- unique(as.character(group[valid]))
+    if (length(distinct) == 1L) out[[i]] <- group[which(valid)[[1L]]]
+  }
+  unname(out)
 }
 
 .process_for_particle_match <- function(x, library, process_args) {

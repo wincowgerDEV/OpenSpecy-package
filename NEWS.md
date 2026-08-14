@@ -1,6 +1,23 @@
 # OpenSpecy 1.7.1
 
-- Added experimental, local-first `FileSpecs` descriptors for read-only H5 and
+- Rebuilt the bundled app around one in-memory `OpenSpecy` workflow with a
+  unified 10 GiB upload ceiling and best-effort resident/peak-memory guidance.
+  Identification now ranks bounded query blocks and retains only a shared Top N
+  result (10 by default) for the match table and download. Particle analysis
+  calculates signal/noise after optional spatial smoothing but before other
+  processing; correlation-threshold collapse identifies processed pixels once,
+  filters by correlation/material identity, and reuses that pass during
+  connected or PCA/K-means collapse. All heatmaps black out rejected pixels,
+  legends are compact and title-free, threshold histograms remain on-theme, and
+  only caught errors open alert dialogs.
+- Corrected package `automate_particle_analysis()` partitioning so connected,
+  within-region PCA/K-means, and non-spatial PCA/K-means units never cross
+  source maps or H5 regions; return stable pixel-to-unit membership and aligned
+  unit IDs/metadata; and apply the minimum pixel area inclusively. Connected
+  units retain recomputed shape and signal summaries, while `specs_centers`
+  remains the public K policy and non-default `specs_steps` now fails clearly
+  instead of being silently ignored.
+- Added experimental, package-only `FileSpecs` descriptors for read-only H5 and
   ENVI maps. They fingerprint immutable sources, keep derived generations in a
   separate atomic cache, provide bounded `decompress_spec()` selections and
   lightweight region views, stream complete rectangular views to new atomic
@@ -14,18 +31,9 @@
   collapse strategy, `mean`, and non-entropy S/N. `spectral_smooth = TRUE` now
   streams a halo-padded 3-D Gaussian smooth (matching `mmand::gaussianSmooth()`
   exactly) instead of erroring, without ever materializing a full region.
-- Integrated the explicitly gated local H5/ENVI path opener into the Advanced
-  tab and connected it, plus ordinary maps, to the particle pipeline with
-  progress, selectable scalable maps, click metadata, threshold histograms,
-  and configurable complete result archives. Browser and Shinylive uploads now
-  use a 2 GB cap with an oversize popup instead of persistent guidance. The
-  particle workflow no longer exposes ineffective `spatial_smooth` or
-  multi-match `top_n` controls. H5 mosaics retain region, local and stage
-  coordinates, unique
-  pixels, and intersecting image tiles. Particle-analysis results replay via
-  `plot()`, expose S/N and correlation histograms with threshold lines, and use
-  a continuous finite signal legend. Uploaded Test Map metadata now keeps
-  stable row-to-spectrum selection in both app modes.
+  H5 mosaics retain region, local and stage coordinates, unique pixels, and
+  intersecting image tiles. These APIs remain available to package users but
+  are no longer routed through the app.
 - `automate_particle_analysis()`/`automate_particle_filespecs()` now return
   queryable plot **data** (`particle_image`, `particle_heatmap`,
   `particle_heatmap_thresholded`, `cor_heatmap`, `sn_histogram`,
@@ -41,17 +49,14 @@
   type including an explanatory details/summary when no particles passed
   filtering. The redundant "No regions passing threshold" popup is removed in
   favor of the existing quality warning/success indicators.
-- Unified the app's numeric, categorical, particle, and FileSpecs-preview
-  heatmaps into one Plotly renderer with an on-theme colorbar/legend above the
+- Unified the app's numeric, categorical, and particle heatmaps into one Plotly
+  renderer with an on-theme colorbar/legend above the
   plot, hover tooltips instead of a click popup, and a selection marker kept
   in sync via a cheap trace restyle; this replaces the separate base-graphics
   heatmap, its click/brush handlers, and the metadata popover. Material-class
   colors are resolved from one shared palette across the heatmap, particle
-  summary, and `particle_image()`. There is no longer a separate local
-  H5/ENVI upload entry point: the standard upload now auto-routes local files
-  over the 2 GB browser cap through `FileSpecs` automatically, reading and
-  caching bounded ~100MB neighborhood blocks instead of one spectrum per
-  click. The Advanced switch and its correlation threshold default on. The
+  summary, and `particle_image()`. The Advanced switch and its correlation
+  threshold default on. The
   Uploaded Metadata tab moves x/y/z and other per-pixel columns to the front
   for every source, and for sources over 100,000 spectra shows only those
   columns, dropping duplicated file-level metadata. `automate_particle_analysis()`

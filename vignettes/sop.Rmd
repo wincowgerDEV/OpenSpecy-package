@@ -185,20 +185,21 @@ file-backed operation chains remain intentionally unavailable. Use bounded
 materialization for those established operations, and verify equivalence on a
 representative subset before interpreting a large run.
 
-In the locally launched Shiny app, open **Advanced**, enable its master switch
-and **Collapse Particle Spectra**, configure the signal/correlation and collapse
-settings, then expand **Local H5 / ENVI source** and click **Open read-only**.
-The app indexes the map and runs the region-sequential particle pipeline with
-progress while spectra remain on disk. The Spectra box selects particle image,
-thresholded, continuous signal, or correlation maps; map clicks show concise
-metadata, and the threshold boxes replay the result histograms. The Thresholded
-Particles archive can include any combination of the pipeline's tables,
-objects, plots, and timing. Closing the source clears session state without
-changing the source or completed cache generations. Browser uploads in local
-and hosted modes are capped at 2 GB; an oversize selection opens a popup that
-directs users to the local path workflow. The path opener is enabled by
-`run_app()`, disabled by default in other deployments, and never enabled in
-WebAssembly.
+The Shiny app deliberately uses a separate in-memory workflow. Its 10 GiB
+upload ceiling is a transport limit rather than a promise that every operation
+will fit in RAM. Before expensive operations, review the app's resident and
+peak-memory estimate and reduce the data, reference library, PCA components, or
+cluster count if the selected configuration is known to be unsafe.
+
+For an uploaded map, the app applies optional spatial smoothing before any
+particle decision. Signal/noise is calculated from that spatial-only object.
+Connected-region and clustering strategies collapse eligible pixels before
+ordinary processing and identification. When correlation is itself a collapse
+threshold, the app fully processes and identifies eligible pixels once, keeps
+only the selected Top N results, and reuses their material identities while
+forming and collapsing particles. Threshold failures are background pixels,
+not unknown particles. The package-only experimental workflow above remains
+available independently for research that needs bounded on-disk access.
 
 Maintainers can run the repeated benchmark in
 `benchmarks/file_specs_particle_analysis.R`. It is opt-in and accepts external

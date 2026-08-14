@@ -26,6 +26,42 @@ test_that("read_h5() keeps raw region spectra by default", {
                     "stage_pos_1"))
 })
 
+test_that("read_h5() preserves cube order while assembling regions", {
+  skip_if_not_installed("hdf5r")
+
+  file <- tempfile(fileext = ".h5")
+  h5 <- hdf5r::H5File$new(file, mode = "w")
+  fi <- h5$create_group("FileInfo")
+  xml <- paste0(
+    "<VAR TYPE=\"System.Double\" NAME=\"m_StartFrequency\">100</VAR>",
+    "<VAR TYPE=\"System.Double\" NAME=\"m_EndFrequency\">400</VAR>"
+  )
+  fi[["MetaData"]] <- as.integer(charToRaw(xml))
+  regions <- h5$create_group("Regions")
+  first <- array(as.numeric(seq_len(24)), dim = c(2, 3, 4))
+  second <- array(as.numeric(101:124), dim = c(2, 3, 4))
+  region1 <- regions$create_group("Region1")
+  region2 <- regions$create_group("Region2")
+  region1[["Dataset"]] <- first
+  region2[["Dataset"]] <- second
+  h5$close_all()
+
+  os <- read_h5(file, read_visual = FALSE)
+  expected <- cbind(
+    matrix(aperm(first, c(3, 1, 2)), nrow = 4),
+    matrix(aperm(second, c(3, 1, 2)), nrow = 4)
+  )
+  colnames(expected) <- c(
+    paste0("Region1_r", rep(1:2, 3), "c", rep(1:3, each = 2)),
+    paste0("Region2_r", rep(1:2, 3), "c", rep(1:3, each = 2))
+  )
+
+  expect_identical(os$spectra, expected)
+  expect_identical(as.character(os$metadata$region),
+                   rep(c("Region1", "Region2"), each = 6))
+  expect_identical(os$metadata$col_id, colnames(expected))
+})
+
 test_that("read_h5() attaches mosaic coregistration when stage metadata are present", {
   skip_if_not_installed("hdf5r")
 

@@ -148,7 +148,7 @@ coercion.}
 
 \item{cor_threshold}{minimum match value for confident particle labels.}
 
-\item{area_threshold}{minimum feature area in pixels.}
+\item{area_threshold}{minimum feature area in pixels (inclusive).}
 
 \item{label_unknown}{logical; label low-correlation matches as \code{"unknown"}.}
 
@@ -171,8 +171,11 @@ coercion.}
 \item{process_args}{optional named list overriding \code{\link{process_spec}()}
 arguments for spectra before matching.}
 
-\item{specs_steps, specs_centers}{compression controls for Specs-based
-strategies.}
+\item{specs_steps}{retained for signature compatibility; clustering
+strategies require the concrete \code{c("pca", "kmeans")} workflow.}
+
+\item{specs_centers}{requested K-means cluster count for clustering
+strategies; the effective count is clamped to the eligible data.}
 
 \item{\ldots}{catches removed legacy arguments and otherwise is reserved.}
 }

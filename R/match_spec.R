@@ -119,6 +119,25 @@ cor_spec.default <- function(x, ...) {
 cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                                type = "roll", compute = "optimized",
                                ...) {
+  inputs <- .cor_spec_inputs(x, library, conform = conform, type = type)
+
+  lib <- inputs$library$spectra[inputs$library_rows, , drop = FALSE]
+  lib <- make_rel(lib, na.rm = na.rm)
+  lib <- .matrix_mean_replace(lib)
+
+  spec <- inputs$x$spectra[inputs$x_rows, , drop = FALSE]
+  spec <- make_rel(spec, na.rm = na.rm)
+  spec <- .matrix_mean_replace(spec)
+
+  if(compute == "optimized"){
+      return(.fast_correlation(lib, spec, ...))
+  }
+  if(compute == "base"){
+      return(cor(lib, spec, ...))
+  }
+}
+
+.cor_spec_inputs <- function(x, library, conform = FALSE, type = "roll") {
   x <- as_OpenSpecy(x)
   if (is_OpenSpecy(library)) library <- as_OpenSpecy(library)
 
@@ -157,32 +176,24 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                          collapse = " ")),
             call. = F)
 
-  lib <- library$spectra[library$wavenumber %in% x$wavenumber, , drop = FALSE]
-  lib <- make_rel(lib, na.rm = na.rm)
-  lib <- .matrix_mean_replace(lib)
+  list(
+    x = x,
+    library = library,
+    x_rows = x$wavenumber %in% library$wavenumber,
+    library_rows = library$wavenumber %in% x$wavenumber
+  )
+}
 
-  spec <- x$spectra[x$wavenumber %in% library$wavenumber, , drop = FALSE]
-  spec <- make_rel(spec, na.rm = na.rm)
-  spec <- .matrix_mean_replace(spec)
-
-  if(compute == "optimized"){
-      return(.fast_correlation(lib, spec, ...))
-  }
-  if(compute == "base"){
-      return(cor(lib, spec, ...))
-  }
+.scale_correlation_spectra <- function(x) {
+  x <- t(x)
+  x <- x - rowMeans(x)
+  x / sqrt(rowSums(x^2))
 }
 
 .fast_correlation <- function(x, y = NULL) {
-  scale_spectra <- function(mat) {
-    mat <- t(mat)
-    mat <- mat - rowMeans(mat)
-    mat / sqrt(rowSums(mat^2))
-  }
-
-  mat_1 <- scale_spectra(x)
+  mat_1 <- .scale_correlation_spectra(x)
   if(!is.null(y)){
-    mat_2 <- scale_spectra(y)
+    mat_2 <- .scale_correlation_spectra(y)
     # tcrossprod() keeps the heavy work in BLAS; the transpose is retained here
     # because benchmarks show it is faster for the spectra-by-wavenumber layout.
     mat_3 <- tcrossprod(mat_1, mat_2)
@@ -194,6 +205,121 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   colnames(mat_3) <- colnames(x)
   rownames(mat_3) <- colnames(x)
   return(mat_3)
+}
+
+# Internal bounded matcher used by in-memory app workflows. Correlation is
+# calculated for at most `block_size` query spectra, ranked immediately, and
+# discarded so callers never retain the full library-by-query matrix.
+.match_spec_blockwise <- function(x, library, top_n = 10L,
+                                  block_size = 100L, na.rm = TRUE,
+                                  conform = FALSE, type = "roll", ...) {
+  if(length(top_n) != 1L || !is.numeric(top_n) || is.na(top_n) ||
+     !is.finite(top_n) || top_n < 1 || top_n > .Machine$integer.max ||
+     top_n != floor(top_n)) {
+    stop("'top_n' must be a positive integer", call. = FALSE)
+  }
+  top_n <- as.integer(top_n)
+
+  candidate_block_size <- tryCatch(
+    suppressWarnings(as.integer(block_size)),
+    error = function(error) NA_integer_
+  )
+  if(length(candidate_block_size) != 1L || is.na(candidate_block_size) ||
+     candidate_block_size < 1L) {
+    candidate_block_size <- 100L
+  }
+
+  inputs <- .cor_spec_inputs(x, library, conform = conform, type = type)
+  library_spectra <- inputs$library$spectra[
+    inputs$library_rows, , drop = FALSE
+  ]
+  library_count <- ncol(library_spectra)
+  query_count <- ncol(inputs$x$spectra)
+  top_n <- min(top_n, library_count)
+  if(query_count == 0L || library_count == 0L) {
+    return(data.table(
+      object_id = character(), library_id = character(), match_val = numeric()
+    ))
+  }
+  capacity <- .blockwise_retained_capacity(query_count, top_n)
+  library_ids <- colnames(library_spectra)
+  query_ids <- colnames(inputs$x$spectra)
+
+  library_spectra <- make_rel(library_spectra, na.rm = na.rm)
+  library_spectra <- .matrix_mean_replace(library_spectra)
+  scaled_library <- .scale_correlation_spectra(library_spectra)
+  rm(library_spectra)
+
+  starts <- seq.int(1L, query_count, by = candidate_block_size)
+  result_rows <- as.integer(capacity$rows)
+  object_id <- character(result_rows)
+  library_id <- character(result_rows)
+  match_val <- numeric(result_rows)
+  cursor <- 1
+  for(i in seq_along(starts)) {
+    columns <- seq.int(
+      starts[[i]], min(query_count, starts[[i]] + candidate_block_size - 1L)
+    )
+    query_block <- inputs$x$spectra[
+      inputs$x_rows, columns, drop = FALSE
+    ]
+    query_block <- make_rel(query_block, na.rm = na.rm)
+    query_block <- .matrix_mean_replace(query_block)
+    scaled_query_block <- .scale_correlation_spectra(query_block)
+    rm(query_block)
+    scores <- tcrossprod(scaled_library, scaled_query_block)
+    rownames(scores) <- library_ids
+    colnames(scores) <- query_ids[columns]
+    block <- .top_match_rows(scores, top_n)
+    rows <- seq.int(cursor, length.out = nrow(block))
+    object_id[rows] <- block$object_id
+    library_id[rows] <- block$library_id
+    match_val[rows] <- block$match_val
+    cursor <- cursor + nrow(block)
+  }
+
+  data.table(
+    object_id = object_id, library_id = library_id, match_val = match_val
+  )
+}
+
+.blockwise_retained_capacity <- function(query_count, top_n,
+                                         bytes_per_row = 32) {
+  rows <- as.double(query_count) * as.double(top_n)
+  bytes <- rows * as.double(bytes_per_row)
+  max_bytes <- suppressWarnings(as.numeric(getOption(
+    "OpenSpecy.blockwise_max_retained_bytes", 10 * 1024^3
+  )))
+  if(length(max_bytes) != 1L || is.na(max_bytes) || !is.finite(max_bytes) ||
+     max_bytes <= 0) {
+    max_bytes <- 10 * 1024^3
+  }
+  if(!is.finite(rows) || rows > .Machine$integer.max ||
+     !is.finite(bytes) || bytes > max_bytes) {
+    stop(
+      "Retaining Top N would require too many result rows (approximately ",
+      format(rows, scientific = FALSE, big.mark = ",", trim = TRUE),
+      "). Lower Top N or split the dataset before identification.",
+      call. = FALSE
+    )
+  }
+  list(rows = rows, bytes = bytes, max_bytes = max_bytes)
+}
+
+.top_match_rows <- function(cor_matrix, top_n) {
+  orders <- vapply(seq_len(ncol(cor_matrix)), function(column) {
+    head(order(cor_matrix[, column], decreasing = TRUE, na.last = TRUE,
+               method = "radix"), top_n)
+  }, FUN.VALUE = integer(top_n))
+  orders <- matrix(orders, nrow = top_n, ncol = ncol(cor_matrix))
+  order_vector <- as.vector(orders)
+  column_vector <- rep(seq_len(ncol(cor_matrix)), each = top_n)
+
+  data.table(
+    object_id = rep(colnames(cor_matrix), each = top_n),
+    library_id = rownames(cor_matrix)[order_vector],
+    match_val = cor_matrix[cbind(order_vector, column_vector)]
+  )
 }
 
 #' @rdname match_spec

@@ -8,40 +8,6 @@ app_wasm_mode <- function() {
     env %in% c("1", "true", "yes", "on")
 }
 
-app_local_file_mode <- function() {
-  if(app_wasm_mode()) return(FALSE)
-
-  env <- tolower(trimws(Sys.getenv(
-    "OPENSPECY_SHINY_LOCAL_FILES", ""
-  )))
-  isTRUE(getOption("openspecy.shiny.local_files", FALSE)) ||
-    env %in% c("1", "true", "yes", "on")
-}
-
-app_filespec_cache_dir <- function() {
-  configured <- trimws(Sys.getenv(
-    "OPENSPECY_FILE_SPECS_CACHE", ""
-  ))
-  cache_dir <- if(nzchar(configured)) configured else
-    file.path(tempdir(), "OpenSpecy-shiny-filespec-cache")
-
-  if(file.exists(cache_dir) && !dir.exists(cache_dir)) {
-    stop("The app FileSpecs cache path points to a file.", call. = FALSE)
-  }
-  if(!dir.exists(cache_dir) && !dir.create(
-    cache_dir, recursive = TRUE, showWarnings = FALSE
-  )) {
-    stop("The app FileSpecs cache directory could not be created.",
-         call. = FALSE)
-  }
-  if(file.access(cache_dir, mode = 2L) != 0L) {
-    stop("The app FileSpecs cache directory is not writable.",
-         call. = FALSE)
-  }
-
-  normalizePath(cache_dir, winslash = "/", mustWork = TRUE)
-}
-
 validate_wasm_package_version <- function() {
   if (!app_wasm_mode()) return(invisible(TRUE))
 
@@ -112,80 +78,23 @@ app_download_label <- function(selection) {
   unname(labels[[selection]])
 }
 
-app_upload_limit_bytes <- function(wasm = app_wasm_mode()) {
-  2 * 1024^3
+app_upload_limit_bytes <- function() {
+  10 * 1024^3
 }
 
-# The HTTP transport ceiling (shiny.maxRequestSize). Wasm mode keeps the same
-# 2 GiB cap as the read_any()-vs-FileSpecs decision threshold (its "upload"
-# is really an in-browser virtual-FS copy, still bounded by browser memory).
-# Local mode raises this well past that decision threshold so large H5/ENVI
-# files can actually reach the server to be routed through FileSpecs instead
-# of being rejected by the transport layer before app logic ever runs.
-app_max_request_size_bytes <- function(wasm = app_wasm_mode()) {
-  if(isTRUE(wasm)) app_upload_limit_bytes(wasm) else 50 * 1024^3
+app_max_request_size_bytes <- function() {
+  app_upload_limit_bytes()
 }
 
-app_upload_limit_label <- function(wasm = app_wasm_mode()) {
-  "2 GB"
+app_upload_limit_label <- function() {
+  "10 GiB"
 }
 
-app_upload_guidance <- function(wasm = app_wasm_mode(),
-                                local_file = app_local_file_mode()) {
-  local_route <- if(isTRUE(local_file) && !isTRUE(wasm)) {
-    paste(
-      "Large H5 or ENVI (.hdr/.dat/.img) files stream automatically from",
-      "disk here instead; this upload's type isn't one of those."
-    )
-  } else {
-    paste(
-      "Run the local OpenSpecy app with OpenSpecy::run_app() to stream",
-      "large H5 or ENVI files automatically from disk instead of loading",
-      "them into the browser."
-    )
-  }
+app_upload_guidance <- function() {
   paste0(
-    "The browser upload limit is ", app_upload_limit_label(wasm),
-    " total. ", local_route
+    "The upload ceiling is ", app_upload_limit_label(),
+    " total. Choose fewer or smaller files and try again."
   )
-}
-
-app_particle_output_choices <- function() {
-  c(
-    "Particle details" = "details",
-    "Particle summaries" = "summary",
-    "Processed particle object" = "processed",
-    "Particle image" = "particle_image",
-    "Signal heatmap" = "particle_heatmap",
-    "Thresholded heatmap" = "particle_heatmap_thresholded",
-    "Correlation heatmap" = "cor_heatmap",
-    "Signal/noise histogram" = "sn_histogram",
-    "Correlation histogram" = "cor_histogram",
-    "Timing" = "time"
-  )
-}
-
-app_particle_output_files <- function(output_dir, outputs) {
-  if(!dir.exists(output_dir)) return(character())
-  patterns <- c(
-    details = "^particle_details_.*\\.csv$",
-    summary = "^particle_summary_.*\\.csv$",
-    raw = "^particles_raw_.*\\.rds$",
-    processed = "^particles_(?!raw_).*\\.rds$",
-    particle_image = "^particle_image_.*\\.png$",
-    particle_heatmap = "^particle_heatmap_(?!thresholded).*\\.png$"
-  )
-  patterns[["particle_heatmap_thresholded"]] <-
-    "^particle_heatmap_thresholded.*\\.jpg$"
-  patterns[["cor_heatmap"]] <- "^cor_heatmap_.*\\.png$"
-  patterns[["sn_histogram"]] <- "^sn_histogram.*\\.png$"
-  patterns[["cor_histogram"]] <- "^cor_histogram.*\\.png$"
-  patterns[["time"]] <- "^time_.*\\.rds$"
-  files <- list.files(output_dir, full.names = TRUE)
-  selected <- intersect(as.character(outputs), names(patterns))
-  unique(unlist(lapply(selected, function(name) {
-    files[grepl(patterns[[name]], basename(files), perl = TRUE)]
-  }), use.names = FALSE))
 }
 
 app_write_particle_archive <- function(files, destination, root) {
@@ -203,205 +112,91 @@ app_write_particle_archive <- function(files, destination, root) {
 }
 
 
-app_validate_upload_size <- function(file_info, wasm = app_wasm_mode()) {
-  limit <- app_upload_limit_bytes(wasm)
-  sizes <- if(is.data.frame(file_info) && "size" %in% names(file_info)) {
-    suppressWarnings(as.numeric(file_info$size))
-  } else {
-    numeric()
+app_validate_upload_size <- function(file_info) {
+  limit <- app_upload_limit_bytes()
+  if(is.null(file_info) || (is.data.frame(file_info) && !nrow(file_info))) {
+    return(list(ok = TRUE, size = 0, limit = limit,
+                message = app_upload_guidance()))
   }
-  sizes <- sizes[is.finite(sizes) & sizes >= 0]
+  if(!is.data.frame(file_info) || !"size" %in% names(file_info)) {
+    return(list(
+      ok = FALSE, size = NA_real_, limit = limit,
+      message = paste(
+        "Open Specy could not verify the selected file sizes.",
+        app_upload_guidance()
+      )
+    ))
+  }
+  sizes <- suppressWarnings(as.numeric(file_info$size))
+  if(length(sizes) != nrow(file_info) || any(!is.finite(sizes) | sizes < 0)) {
+    return(list(
+      ok = FALSE, size = NA_real_, limit = limit,
+      message = paste(
+        "Every selected file must report a valid nonnegative size.",
+        app_upload_guidance()
+      )
+    ))
+  }
   total <- sum(sizes)
-  ok <- !length(sizes) || total <= limit
-  guidance <- app_upload_guidance(
-    wasm = wasm,
-    local_file = !isTRUE(wasm) && app_local_file_mode()
-  )
-  list(ok = ok, size = total, limit = limit, message = guidance)
+  ok <- total <= limit
+  list(ok = ok, size = total, limit = limit,
+       message = app_upload_guidance())
 }
 
-app_filespec_coordinates <- function(index) {
-  if(!is.data.frame(index) || !nrow(index)) {
-    stop("A FileSpecs preview requires a nonempty index.", call. = FALSE)
+# Vector-safe threshold truth table shared by map projection and direct tests.
+# Correlation uses an inclusive minimum (equal passes); signal/noise uses strict
+# interior bounds (equal to either bound fails).
+app_threshold_rejection_mask <- function(values, enabled, minimum,
+                                         maximum = NULL) {
+  values <- suppressWarnings(as.numeric(values))
+  if(!isTRUE(enabled)) return(rep(FALSE, length(values)))
+  minimum <- suppressWarnings(as.numeric(minimum))
+  if(length(minimum) != 1L || is.na(minimum)) {
+    stop("A threshold minimum must be one numeric value.", call. = FALSE)
   }
-  stage <- all(c("stage_x_nm", "stage_y_nm") %in% names(index)) &&
-    all(is.finite(index$stage_x_nm)) && all(is.finite(index$stage_y_nm))
-  if(stage) {
-    list(
-      x = as.numeric(index$stage_x_nm),
-      y = as.numeric(index$stage_y_nm),
-      xlab = "Stage X (nm)", ylab = "Stage Y (nm)"
-    )
-  } else {
-    if(!all(c("x", "y") %in% names(index))) {
-      stop("The FileSpecs index has no plottable coordinates.", call. = FALSE)
-    }
-    list(
-      x = as.numeric(index$x), y = as.numeric(index$y),
-      xlab = "X", ylab = "Y"
-    )
+  if(is.null(maximum)) return(is.na(values) | values < minimum)
+  maximum <- suppressWarnings(as.numeric(maximum))
+  if(length(maximum) != 1L || is.na(maximum)) {
+    stop("A threshold maximum must be one numeric value.", call. = FALSE)
   }
-}
-
-app_filespec_region_rows <- function(index, region = NULL) {
-  if(!is.data.frame(index) || !nrow(index) || !"region" %in% names(index)) {
-    stop("A FileSpecs preview requires indexed regions.", call. = FALSE)
-  }
-  regions <- unique(as.character(index$region))
-  if(is.null(region) || !length(region) || is.na(region[[1L]]) ||
-     !nzchar(region[[1L]])) region <- regions[[1L]]
-  region <- as.character(region[[1L]])
-  if(!region %in% regions) {
-    stop("The selected FileSpecs region is unavailable.", call. = FALSE)
-  }
-  which(as.character(index$region) == region)
-}
-
-app_filespec_extent <- function(index, region = NULL) {
-  rows <- app_filespec_region_rows(index, region)
-  selected <- index[rows, , drop = FALSE]
-  coordinates <- app_filespec_coordinates(selected)
-  keep <- is.finite(coordinates$x) & is.finite(coordinates$y)
-  if(!any(keep)) {
-    stop("The selected FileSpecs region has no finite coordinates.",
-         call. = FALSE)
-  }
-  expand_range <- function(value) {
-    value <- range(value)
-    if(diff(value) > 0) value else value + c(-0.5, 0.5)
-  }
-  c(
-    xmin = expand_range(coordinates$x[keep])[[1L]],
-    xmax = expand_range(coordinates$x[keep])[[2L]],
-    ymin = expand_range(coordinates$y[keep])[[1L]],
-    ymax = expand_range(coordinates$y[keep])[[2L]]
-  )
-}
-
-app_filespec_viewport <- function(index, region = NULL, roi = NULL) {
-  extent <- app_filespec_extent(index, region)
-  if(is.null(roi)) return(extent)
-  roi <- suppressWarnings(as.numeric(roi))
-  if(length(roi) != 4L || any(!is.finite(roi))) {
-    stop("A FileSpecs viewport must be c(xmin, xmax, ymin, ymax).",
-         call. = FALSE)
-  }
-  roi <- c(
-    xmin = max(min(roi[1:2]), extent[["xmin"]]),
-    xmax = min(max(roi[1:2]), extent[["xmax"]]),
-    ymin = max(min(roi[3:4]), extent[["ymin"]]),
-    ymax = min(max(roi[3:4]), extent[["ymax"]])
-  )
-  if(roi[["xmin"]] >= roi[["xmax"]] ||
-     roi[["ymin"]] >= roi[["ymax"]]) {
-    stop("The FileSpecs viewport does not overlap a positive map area.",
-         call. = FALSE)
-  }
-  roi
-}
-
-app_filespec_preview <- function(index, region = NULL, roi = NULL,
-                                 max_width = 512L, max_height = 512L) {
-  max_width <- suppressWarnings(as.integer(max_width))
-  max_height <- suppressWarnings(as.integer(max_height))
-  if(length(max_width) != 1L || is.na(max_width) || max_width < 1L ||
-     length(max_height) != 1L || is.na(max_height) || max_height < 1L) {
-    stop("Preview dimensions must be positive whole numbers.", call. = FALSE)
-  }
-  rows <- app_filespec_region_rows(index, region)
-  selected <- index[rows, , drop = FALSE]
-  coordinates <- app_filespec_coordinates(selected)
-  viewport <- app_filespec_viewport(index, region, roi)
-  finite <- is.finite(coordinates$x) & is.finite(coordinates$y)
-  keep <- finite &
-    coordinates$x >= viewport[["xmin"]] &
-    coordinates$x <= viewport[["xmax"]] &
-    coordinates$y >= viewport[["ymin"]] &
-    coordinates$y <= viewport[["ymax"]]
-  if(!any(keep)) {
-    stop("The FileSpecs viewport contains no indexed pixels.",
-         call. = FALSE)
-  }
-  x <- coordinates$x[keep]
-  y <- coordinates$y[keep]
-  x_range <- viewport[c("xmin", "xmax")]
-  y_range <- viewport[c("ymin", "ymax")]
-  x_unique <- length(unique(x))
-  y_unique <- length(unique(y))
-  width <- min(max_width, max(1L, x_unique))
-  height <- min(max_height, max(1L, y_unique))
-  x_bin <- if(diff(x_range) == 0) rep.int(1L, length(x)) else {
-    pmin(width, floor((x - x_range[[1L]]) / diff(x_range) * width) + 1L)
-  }
-  y_bin <- if(diff(y_range) == 0) rep.int(1L, length(y)) else {
-    pmin(height, floor((y - y_range[[1L]]) / diff(y_range) * height) + 1L)
-  }
-  counts <- matrix(
-    tabulate((y_bin - 1L) * width + x_bin, nbins = width * height),
-    nrow = height, ncol = width, byrow = TRUE
-  )
-  list(
-    counts = counts,
-    xlim = unname(x_range), ylim = unname(y_range),
-    xlab = coordinates$xlab, ylab = coordinates$ylab,
-    region = as.character(selected$region[[1L]]),
-    spectra = length(x), total_spectra = sum(finite),
-    viewport = viewport
-  )
-}
-
-app_filespec_nearest_position <- function(index, region, x, y, roi = NULL) {
-  x <- suppressWarnings(as.numeric(x))
-  y <- suppressWarnings(as.numeric(y))
-  if(length(x) != 1L || length(y) != 1L || !is.finite(x) || !is.finite(y)) {
-    return(integer())
-  }
-  rows <- app_filespec_region_rows(index, region)
-  coordinates <- app_filespec_coordinates(index[rows, , drop = FALSE])
-  viewport <- app_filespec_viewport(index, region, roi)
-  keep <- coordinates$x >= viewport[["xmin"]] &
-    coordinates$x <= viewport[["xmax"]] &
-    coordinates$y >= viewport[["ymin"]] &
-    coordinates$y <= viewport[["ymax"]]
-  rows <- rows[keep]
-  coordinates$x <- coordinates$x[keep]
-  coordinates$y <- coordinates$y[keep]
-  if(!length(rows)) return(integer())
-  distance <- (coordinates$x - x)^2 + (coordinates$y - y)^2
-  distance[!is.finite(distance)] <- Inf
-  if(!any(is.finite(distance))) return(integer())
-  as.integer(rows[[which.min(distance)]])
-}
-
-# Reshape app_filespec_preview()'s bounded density-count overview (already
-# downsampled to a small fixed raster, safe for arbitrarily large sources)
-# into the same heatmap plot-data contract app_particle_plotly() consumes,
-# so the FileSpecs raw-browsing state uses the same one Plotly renderer as
-# ordinary maps and particle results instead of a separate base-graphics path.
-app_filespec_preview_data <- function(preview) {
-  counts <- preview$counts
-  density <- log1p(counts)
-  width <- ncol(counts)
-  height <- nrow(counts)
-  xs <- seq(preview$xlim[[1L]], preview$xlim[[2L]], length.out = width)
-  ys <- seq(preview$ylim[[1L]], preview$ylim[[2L]], length.out = height)
-  title <- paste0(
-    preview$region, " — ", format(preview$spectra, big.mark = ","),
-    if(preview$spectra < preview$total_spectra) {
-      paste0(" of ", format(preview$total_spectra, big.mark = ","),
-             " visible pixels")
-    } else {
-      " indexed pixels"
-    }
-  )
-  list(type = "heatmap", x = xs, y = ys, z = t(density),
-       legend_title = "Spectra density", title = title)
+  is.na(values) | values <= minimum | values >= maximum
 }
 
 # Grid-shaped plot data for an ordinary uploaded map's heatmap (Match
 # Name/ID/Value, Signal/Noise), matching the same contract.
 app_ordinary_heatmap_data <- function(metadata, values, categorical,
-                                      legend_title) {
+                                      legend_title, rejected = NULL,
+                                      rejection_reason = NULL) {
+  rejected <- if(is.null(rejected)) rep(FALSE, length(values)) else {
+    out <- as.logical(rejected)
+    if(length(out) != length(values)) {
+      stop("The heatmap threshold mask does not align with its values.",
+           call. = FALSE)
+    }
+    out[is.na(out)] <- FALSE
+    out
+  }
+  if(is.null(rejection_reason)) {
+    rejection_reason <- rep("active threshold", length(values))
+  }
+  if(length(rejection_reason) != length(values)) {
+    stop("The heatmap rejection reasons do not align with its values.",
+         call. = FALSE)
+  }
+  rejection_reason <- as.character(rejection_reason)
+  rejection_reason[!rejected] <- NA_character_
+  rejected_grid <- OpenSpecy:::.particle_map_grid(
+    metadata, ifelse(rejected, 1, NA_real_), 1, c(0, 0)
+  )$z
+  reason_levels <- unique(rejection_reason[rejected & !is.na(rejection_reason)])
+  reason_codes <- match(rejection_reason, reason_levels)
+  reason_grid <- OpenSpecy:::.particle_map_grid(
+    metadata, reason_codes, 1, c(0, 0)
+  )$z
+  reason_grid <- matrix(
+    ifelse(is.na(reason_grid), NA_character_, reason_levels[reason_grid]),
+    nrow = nrow(reason_grid), ncol = ncol(reason_grid)
+  )
   if(categorical) {
     values <- droplevels(values)
     levels <- levels(values)
@@ -409,11 +204,13 @@ app_ordinary_heatmap_data <- function(metadata, values, categorical,
                                            c(0, 0))
     list(type = "heatmap_categorical", x = grid$x, y = grid$y, z = grid$z,
          levels = levels, legend_title = legend_title,
-         palette = app_category_palette(levels), title = legend_title)
+         palette = app_category_palette(levels), rejected = rejected_grid,
+         rejection_reason = reason_grid)
   } else {
     grid <- OpenSpecy:::.particle_map_grid(metadata, values, 1, c(0, 0))
     list(type = "heatmap", x = grid$x, y = grid$y, z = grid$z,
-         legend_title = legend_title, title = legend_title)
+         legend_title = legend_title, rejected = rejected_grid,
+         rejection_reason = reason_grid)
   }
 }
 
@@ -563,108 +360,96 @@ app_selected_metadata <- function(x, selected_match, signal_to_noise) {
   result
 }
 
-app_top_match_rows <- function(cor_matrix, top_n = 1L) {
-  if(!is.matrix(cor_matrix) || !is.numeric(cor_matrix) ||
-     !nrow(cor_matrix) || !ncol(cor_matrix)) {
-    stop("Top Matches requires a nonempty numeric correlation matrix.",
+app_matches_for_object <- function(matches, object_id) {
+  matches <- data.table::as.data.table(matches)
+  object_id <- as.character(object_id)
+  if(!"object_id" %in% names(matches) || length(object_id) != 1L ||
+     is.na(object_id)) {
+    stop("A single valid spectrum identifier is required.", call. = FALSE)
+  }
+  selected_rows <- which(as.character(matches[["object_id"]]) == object_id)
+  data.table::copy(matches[selected_rows])
+}
+
+# Project a one-pass pixel Top-N result onto collapsed units without averaging
+# incomplete reference coverage into a synthetic correlation. Each retained
+# value remains an actual member-pixel correlation and carries its provenance.
+app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
+                                       top_n = 10L) {
+  matches <- data.table::copy(data.table::as.data.table(matches))
+  mapping <- data.table::copy(data.table::as.data.table(mapping))
+  if(!all(c("object_id", "library_id", "match_val") %in% names(matches)) ||
+     !all(c("pixel_id", "unit_id", "pixel_index", "kept") %in%
+          names(mapping))) {
+    stop("Unit-match projection received incomplete matches or mapping.",
          call. = FALSE)
   }
-  if(is.null(rownames(cor_matrix)) || is.null(colnames(cor_matrix))) {
-    stop("The correlation matrix must name references and uploaded spectra.",
-         call. = FALSE)
-  }
-  if(anyDuplicated(rownames(cor_matrix)) ||
-     anyDuplicated(colnames(cor_matrix))) {
-    stop("Correlation matrix identifiers must be unique.", call. = FALSE)
+  unit_ids <- as.character(unit_ids)
+  library_ids <- as.character(library_ids)
+  if(anyDuplicated(mapping$pixel_id) || anyDuplicated(unit_ids) ||
+     anyDuplicated(library_ids)) {
+    stop("Unit-match projection identifiers must be unique.", call. = FALSE)
   }
   top_n <- suppressWarnings(as.integer(top_n))
   if(length(top_n) != 1L || is.na(top_n) || top_n < 1L) top_n <- 1L
-  top_n <- min(top_n, nrow(cor_matrix))
+  top_n <- min(top_n, length(library_ids))
 
-  # Rank each uploaded spectrum while the data are still a compact matrix.
-  # Expanding every score before keeping Top N can require gigabytes for maps.
-  indices <- matrix(NA_integer_, nrow = top_n, ncol = ncol(cor_matrix))
-  for(column in seq_len(ncol(cor_matrix))) {
-    indices[, column] <- utils::head(
-      order(cor_matrix[, column], decreasing = TRUE, na.last = TRUE),
-      top_n
-    )
-  }
-  reference_index <- as.vector(indices)
-  spectrum_index <- rep(seq_len(ncol(cor_matrix)), each = top_n)
-
-  data.table::data.table(
-    Var1 = rownames(cor_matrix)[reference_index],
-    Var2 = colnames(cor_matrix)[spectrum_index],
-    value = cor_matrix[cbind(reference_index, spectrum_index)]
-  )
-}
-
-.app_metadata_probe <- function(metadata, key, sentinel) {
-  values <- lapply(names(metadata), function(name) {
-    if(identical(name, key)) return(sentinel)
-    if(OpenSpecy::is_empty_vector(metadata[[name]])) NA else TRUE
-  })
-  names(values) <- names(metadata)
-  data.table::as.data.table(values)
-}
-
-.app_top_matches_keep_names <- function(
-    library_metadata, spectrum_metadata, quant_columns) {
-  library_for_join <- library_metadata %>%
-    dplyr::select(-dplyr::any_of(c("col_id", "file_name")))
-  library_probe <- .app_metadata_probe(
-    library_for_join, "sample_name", "__openspecy_probe__"
-  )
-  spectrum_probe <- .app_metadata_probe(
-    spectrum_metadata, "col_id", "__openspecy_probe__"
-  )
-  spectrum_details_probe <- data.table::data.table(
-    match_threshold = TRUE,
-    signal_to_noise = TRUE,
-    signal_threshold = TRUE,
-    good_signal = TRUE
-  ) %>%
-    dplyr::bind_cols(spectrum_probe)
-
-  probe <- data.table::data.table(
-    Var1 = "__openspecy_probe__",
-    Var2 = "__openspecy_probe__",
-    value = TRUE
-  ) %>%
-    dplyr::left_join(
-      library_probe, by = c("Var1" = "sample_name")
-    ) %>%
-    dplyr::left_join(
-      spectrum_details_probe, by = c("Var2" = "col_id")
-    ) %>%
-    dplyr::rename(
-      "sample_name" = "Var1",
-      "col_id" = "Var2",
-      "match_val" = "value"
-    ) %>%
-    dplyr::mutate(good_match_vals = TRUE, good_matches = TRUE)
-
-  names(probe)[
-    !vapply(probe, OpenSpecy::is_empty_vector, logical(1)) |
-      names(probe) %in% quant_columns
+  membership <- mapping[
+    kept & !is.na(unit_id),
+    .(object_id = pixel_id, unit_id, pixel_index)
   ]
+  joined <- merge(
+    matches, membership, by = "object_id", all = FALSE, sort = FALSE
+  )
+  if(!nrow(joined)) {
+    return(data.table::data.table(
+      object_id = character(), library_id = character(), match_val = numeric(),
+      source_pixel_id = character()
+    ))
+  }
+  joined[, `:=`(
+    source_pixel_id = object_id,
+    library_order = match(library_id, library_ids),
+    unit_order = match(unit_id, unit_ids)
+  )]
+  if(anyNA(joined$library_order) || anyNA(joined$unit_order)) {
+    stop("Unit-match projection identifiers do not align.", call. = FALSE)
+  }
+  data.table::setorder(
+    joined, unit_order, -match_val, library_order, pixel_index, na.last = TRUE
+  )
+  ranked <- joined[, .SD[1L], by = .(unit_id, library_id)]
+  data.table::setorder(
+    ranked, unit_order, -match_val, library_order, pixel_index,
+    na.last = TRUE
+  )
+  ranked[, .rank := seq_len(.N), by = unit_id]
+  ranked <- ranked[.rank <= top_n]
+  ranked[, .(
+    object_id = unit_id, library_id, match_val, source_pixel_id
+  )]
 }
 
-app_top_matches_export <- function(
-    cor_matrix, library_metadata, spectrum_metadata, signal_to_noise,
-    match_threshold, signal_threshold, top_n = 1L,
+# Join and format the already-ranked blockwise result used by every app
+# identification consumer. No correlation matrix is reconstructed here.
+app_top_matches_export_compact <- function(
+    matches, library_metadata, spectrum_metadata, signal_to_noise,
+    match_threshold, signal_threshold = c(-Inf, Inf), top_n = 10L,
     columns_selected = c("Simple", "All"), quant_columns = character()) {
   columns_selected <- match.arg(columns_selected)
+  matches <- data.table::copy(data.table::as.data.table(matches))
+  required_matches <- c("object_id", "library_id", "match_val")
+  if(!all(required_matches %in% names(matches)) || !nrow(matches)) {
+    stop("Top Matches requires a nonempty ranked match table.", call. = FALSE)
+  }
   library_metadata <- data.table::as.data.table(library_metadata)
   spectrum_metadata <- data.table::as.data.table(spectrum_metadata)
-  required_library <- c("sample_name", "material_class")
-  required_spectrum <- c("file_name", "col_id")
-  if(!all(required_library %in% names(library_metadata))) {
+  if(!all(c("sample_name", "material_class") %in%
+          names(library_metadata))) {
     stop("Reference metadata is missing Top Matches identifiers.",
          call. = FALSE)
   }
-  if(!all(required_spectrum %in% names(spectrum_metadata))) {
+  if(!all(c("file_name", "col_id") %in% names(spectrum_metadata))) {
     stop("Uploaded metadata is missing Top Matches identifiers.",
          call. = FALSE)
   }
@@ -673,67 +458,93 @@ app_top_matches_export <- function(
   if(anyDuplicated(library_ids) || anyDuplicated(spectrum_ids)) {
     stop("Top Matches identifiers must be unique.", call. = FALSE)
   }
-  library_order <- match(rownames(cor_matrix), library_ids)
-  spectrum_order <- match(colnames(cor_matrix), spectrum_ids)
-  if(anyNA(library_order) || anyNA(spectrum_order)) {
-    stop("Top Matches metadata does not align with the correlation matrix.",
+  if(any(!matches$library_id %in% library_ids) ||
+     any(!matches$object_id %in% spectrum_ids)) {
+    stop("Top Matches metadata does not align with the ranked matches.",
          call. = FALSE)
   }
-  library_metadata <- library_metadata[library_order]
-  spectrum_metadata <- spectrum_metadata[spectrum_order]
-  if(length(signal_to_noise) != ncol(cor_matrix)) {
+
+  top_n <- suppressWarnings(as.integer(top_n))
+  if(length(top_n) != 1L || is.na(top_n) || top_n < 1L) top_n <- 1L
+  top_n <- min(top_n, length(library_ids))
+  matches[, .rank := seq_len(.N), by = object_id]
+  matches <- matches[.rank <= top_n]
+  matches[, .rank := NULL]
+
+  thresholds <- suppressWarnings(as.numeric(signal_threshold))
+  thresholds <- thresholds[!is.na(thresholds)]
+  signal_min <- if(length(thresholds)) thresholds[[1L]] else -Inf
+  signal_max <- if(length(thresholds) > 1L) thresholds[[2L]] else Inf
+  if(length(signal_to_noise) != length(spectrum_ids)) {
     stop("Signal-to-noise values do not align with uploaded spectra.",
          call. = FALSE)
   }
-  signal_to_noise <- signal_to_noise[spectrum_order]
-  top_n <- suppressWarnings(as.integer(top_n))
-  if(length(top_n) != 1L || is.na(top_n) || top_n < 1L) top_n <- 1L
-  top_n <- min(top_n, nrow(cor_matrix))
-
-  keep_names <- .app_top_matches_keep_names(
-    library_metadata, spectrum_metadata, quant_columns
-  )
-
+  if(!is.null(names(signal_to_noise)) &&
+     all(spectrum_ids %in% names(signal_to_noise))) {
+    signal_to_noise <- signal_to_noise[spectrum_ids]
+  }
   spectrum_details <- data.table::data.table(
+    col_id = spectrum_ids,
     match_threshold = match_threshold,
-    signal_to_noise = signal_to_noise,
-    signal_threshold = signal_threshold,
-    good_signal = signal_to_noise > signal_threshold
-  ) %>%
-    dplyr::bind_cols(spectrum_metadata)
+    signal_to_noise = as.numeric(signal_to_noise),
+    signal_threshold_min = signal_min,
+    signal_threshold_max = signal_max,
+    good_signal = is.finite(as.numeric(signal_to_noise)) &
+      as.numeric(signal_to_noise) > signal_min &
+      as.numeric(signal_to_noise) < signal_max
+  )
+  spectrum_details <- spectrum_details[spectrum_metadata, on = "col_id"]
+  library_for_join <- data.table::copy(library_metadata)[
+    , !names(library_metadata) %in% c("col_id", "file_name"), with = FALSE
+  ]
+  data.table::setnames(
+    library_for_join, "material_class", ".reference_material_class"
+  )
+  if("spectrum_identity" %in% names(library_for_join)) {
+    data.table::setnames(
+      library_for_join, "spectrum_identity", ".reference_spectrum_identity"
+    )
+  } else {
+    library_for_join[, .reference_spectrum_identity := NA_character_]
+  }
 
-  app_top_match_rows(cor_matrix, top_n) %>%
-    dplyr::left_join(
-      library_metadata %>%
-        dplyr::select(-dplyr::any_of(c("col_id", "file_name"))),
-      by = c("Var1" = "sample_name")
-    ) %>%
-    dplyr::left_join(spectrum_details, by = c("Var2" = "col_id")) %>%
-    dplyr::rename(
-      "sample_name" = "Var1",
-      "col_id" = "Var2",
-      "match_val" = "value"
-    ) %>%
+  result <- matches %>%
+    dplyr::left_join(library_for_join,
+                     by = c("library_id" = "sample_name")) %>%
+    dplyr::left_join(spectrum_details,
+                     by = c("object_id" = "col_id")) %>%
+    dplyr::rename(sample_name = library_id, col_id = object_id) %>%
     dplyr::mutate(
-      good_match_vals = match_val > match_threshold,
-      good_matches = match_val > match_threshold &
-        signal_to_noise > signal_threshold
+      good_match_vals = is.finite(match_val) & match_val >= match_threshold,
+      good_matches = good_match_vals & good_signal,
+      material_class = ifelse(
+        good_match_vals & !is.na(.reference_material_class) &
+          nzchar(.reference_material_class),
+        .reference_material_class, "unknown"
+      ),
+      spectrum_identity = .reference_spectrum_identity
     ) %>%
-    {.[, names(.) %in% keep_names, with = FALSE]} %>%
-    dplyr::select(file_name, col_id, material_class, spectrum_identity,
-                  match_val, signal_to_noise, dplyr::everything()) %>%
-    .[order(-match_val), utils::head(.SD, top_n), by = col_id] %>%
-    {if(identical(columns_selected, "Simple")) {
-      dplyr::select(., dplyr::any_of(c(
+    dplyr::select(-dplyr::starts_with(".reference_")) %>%
+    data.table::as.data.table()
+
+  keep <- !vapply(result, OpenSpecy::is_empty_vector, logical(1)) |
+    names(result) %in% quant_columns
+  result <- result[, keep, with = FALSE] %>%
+    dplyr::select(
+      dplyr::any_of(c(
+        "file_name", "col_id", "material_class", "spectrum_identity",
+        "match_val", "signal_to_noise"
+      )),
+      dplyr::everything()
+    )
+  if(identical(columns_selected, "Simple")) {
+    result <- result %>%
+      dplyr::select(dplyr::any_of(c(
         "file_name", "col_id", "material_class", "match_val",
         "signal_to_noise", quant_columns
       )))
-    } else .} %>%
-    dplyr::mutate(
-      material_class = ifelse(match_val < match_threshold, "unknown",
-                              material_class)
-    ) %>%
-    data.table::as.data.table()
+  }
+  data.table::as.data.table(result)
 }
 
 app_empty_ratio_definitions <- function() {
@@ -779,13 +590,13 @@ app_user_metadata_input_ids <- c(
   "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
   # Identification
   "active_identification", "id_spec_type", "id_strategy", "lib_type",
-  "filter_lib", "lib_org",
+  "top_n_input", "filter_lib", "lib_org",
   # Advanced
   "active_advanced", "threshold_decision", "MinSNR", "MaxSNR",
   "signal_selection",
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
   "xy_grid", "collapse_decision", "collapse_type", "particle_id_strategy",
-  "particle_area_threshold",
+  "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
   # Quantification builder
   "active_quantification", "quant_ratio_name", "quant_ratio_type",
   "quant_numerator_area_min", "quant_numerator_area_max",
@@ -1746,23 +1557,16 @@ app_heatmap_colorscale <- list(
   c(1.00, "#CC79A7")
 )
 
-app_heatmap_legend_layout <- function(title = "Value") {
-  title <- trimws(as.character(title))
-  title <- if(length(title) && !is.na(title[[1L]]) && nzchar(title[[1L]])) {
-    title[[1L]]
-  } else {
-    "Value"
-  }
+app_heatmap_legend_layout <- function(title = NULL) {
   list(
     colorbar = list(
-      title = list(text = title, side = "top"),
       orientation = "h",
       x = 0.5, xanchor = "center",
-      y = 1.03, yanchor = "bottom",
-      len = 0.72,
-      thickness = 14
+      y = 1.01, yanchor = "bottom",
+      len = 0.18,
+      thickness = 4
     ),
-    margin = list(t = 104, r = 32, b = 64, l = 72)
+    margin = list(t = 42, r = 24, b = 58, l = 66)
   )
 }
 
@@ -1771,9 +1575,9 @@ app_category_colors <- c(
   "#D55E00", "#7FDBFF", "#98D8C8", "#F4A6C1", "#FDD17A"
 )
 
-# One canonical color per label, shared by the heatmap (ordinary "Match
-# Name" and particle "Particle Image" modes), the Summary material-class bar
-# chart, and particle_image()'s static export. Known material-class names
+# One canonical color per label, shared by the app heatmap and Summary
+# material-class bar chart, and consistent with particle_image()'s package
+# static export. Known material-class names
 # (R/particle_image.R's .particle_material_palette()) always get their fixed
 # color; anything else cycles the app's categorical palette in sorted order.
 app_category_palette <- function(values) {
@@ -2400,7 +2204,7 @@ app_heatmap_hover_text <- function(data, legend_title, levels = NULL) {
 
 # Render one automate_particle_analysis() plot-data list (see
 # R/automate_particle_analysis.R) as a themed, interactive plotly object.
-# Mirrors the pre-FileSpecs heatmapA/MyPlotC Plotly theme: a heatmap trace
+# Uses the shared heatmapA/MyPlotC Plotly theme: a heatmap trace
 # (hover-only metadata, no click popover) plus a second, always-present
 # marker trace that server.R moves via plotlyProxyInvoke("restyle", ...)
 # on selection change instead of a full redraw. `select` is the currently
@@ -2426,9 +2230,9 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       marker = list(color = app_plot_palette$primary), source = source
     ) |>
       plotly::layout(
-        title = data$main, xaxis = list(title = data$xlab),
+        xaxis = list(title = data$xlab),
         yaxis = list(title = "Count"),
-        shapes = lapply(data$thresholds, function(v) list(
+        shapes = lapply(data$thresholds[is.finite(data$thresholds)], function(v) list(
           type = "line", x0 = v, x1 = v, y0 = 0, y1 = 1, yref = "paper",
           line = list(color = app_theme$reference, width = 2, dash = "dash")
         ))
@@ -2458,6 +2262,22 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
     colorscale <- app_heatmap_colorscale
   }
   hover_text <- app_heatmap_hover_text(data, legend_title, levels)
+  rejected <- if(is.null(data$rejected)) {
+    matrix(NA_real_, nrow = nrow(data$z), ncol = ncol(data$z))
+  } else {
+    data$rejected
+  }
+  rejected_z <- t(ifelse(is.na(rejected) | rejected == 0, NA_real_, 1))
+  rejected_reason <- if(is.null(data$rejection_reason)) {
+    matrix("active threshold", nrow = nrow(data$z), ncol = ncol(data$z))
+  } else {
+    data$rejection_reason
+  }
+  rejected_text <- t(ifelse(
+    is.na(rejected) | rejected == 0,
+    NA_character_,
+    paste0("Rejected: ", rejected_reason)
+  ))
 
   legend_layout <- app_heatmap_legend_layout(legend_title)
   colorbar <- if (categorical) {
@@ -2478,7 +2298,14 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       zmin = if (categorical) 0.5 else NULL,
       zmax = if (categorical) length(levels) + 0.5 else NULL,
       showscale = TRUE, colorbar = colorbar,
-      hoverinfo = "text", text = hover_text
+      hoverinfo = "text", text = hover_text, hoverongaps = FALSE
+    ) |>
+    plotly::add_trace(
+      x = data$x, y = data$y, z = rejected_z, type = "heatmap",
+      colorscale = list(c(0, "#000000"), c(1, "#000000")),
+      zmin = 0, zmax = 1, showscale = FALSE,
+      hoverinfo = "text", text = rejected_text, hoverongaps = FALSE,
+      name = "Rejected"
     ) |>
     plotly::add_trace(
       x = select_x, y = select_y, type = "scatter", mode = "markers",
@@ -2487,7 +2314,7 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       hoverinfo = "skip", showlegend = FALSE, name = "Selected"
     ) |>
     plotly::layout(
-      title = data$title, xaxis = list(title = "X (um)"),
+      xaxis = list(title = "X (um)"),
       yaxis = list(title = "Y (um)", scaleanchor = "x", scaleratio = 1),
       showlegend = FALSE, margin = legend_layout$margin
     ) |>

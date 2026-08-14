@@ -352,6 +352,111 @@ test_that("cor_spec() routine and match_spec() return same values", {
   expect_identical(names, top_matches$library_id)
 })
 
+test_that("blockwise top matches equal full correlation and identification", {
+  library <- as_OpenSpecy(
+    1:5,
+    spectra = data.frame(
+      first = c(1, 2, 3, 4, 5),
+      tied = c(1, 2, 3, 4, 5),
+      reverse = c(5, 4, 3, 2, 1),
+      peaked = c(1, 1, 5, 1, 1),
+      flat = rep(2, 5)
+    )
+  )
+  query <- as_OpenSpecy(
+    1:5,
+    spectra = data.frame(
+      query_b = c(5, 4, 3, 2, 1),
+      query_a = c(1, 2, 3, 4, 5),
+      query_na = rep(3, 5),
+      query_peak = c(1, 1, 5, 1, 1)
+    )
+  )
+  full <- cor_spec(query, library, compute = "optimized")
+
+  ordered_reference <- function(top_n) {
+    reference <- suppressMessages(
+      ident_spec(full, query, library, top_n = top_n)
+    )
+    object_order <- match(reference$object_id, colnames(full))
+    library_order <- match(reference$library_id, rownames(full))
+    reference[
+      order(object_order, -reference$match_val, library_order, na.last = TRUE)
+    ]
+  }
+
+  for(top_n in c(1L, 2L, 5L, 9L)) {
+    expected <- ordered_reference(top_n)
+    actual <- OpenSpecy:::.match_spec_blockwise(
+      query, library, top_n = top_n, block_size = 2L
+    )
+
+    expect_identical(names(actual), c("object_id", "library_id", "match_val"))
+    expect_equal(actual, expected)
+    expect_equal(
+      nrow(actual), ncol(query$spectra) * min(top_n, ncol(library$spectra))
+    )
+    expect_identical(unique(actual$object_id), colnames(query$spectra))
+  }
+
+  tied <- OpenSpecy:::.match_spec_blockwise(
+    query, library, top_n = 2L, block_size = 1L
+  )
+  expect_identical(
+    tied[object_id == "query_a", library_id], c("first", "tied")
+  )
+  expect_identical(
+    tied[object_id == "query_na", library_id], c("first", "tied")
+  )
+  expect_true(all(is.na(tied[object_id == "query_na", match_val])))
+})
+
+test_that("blockwise matching uses the 100-query fallback block size", {
+  expected <- OpenSpecy:::.match_spec_blockwise(
+    tiny_map, test_lib, top_n = 3L, block_size = 100L
+  )
+
+  expect_identical(
+    OpenSpecy:::.match_spec_blockwise(
+      tiny_map, test_lib, top_n = 3L, block_size = NULL
+    ),
+    expected
+  )
+  expect_identical(
+    OpenSpecy:::.match_spec_blockwise(
+      tiny_map, test_lib, top_n = 3L, block_size = NA_integer_
+    ),
+    expected
+  )
+  expect_error(
+    OpenSpecy:::.match_spec_blockwise(tiny_map, test_lib, top_n = 0L),
+    "positive integer"
+  )
+  expect_error(
+    OpenSpecy:::.match_spec_blockwise(
+      tiny_map, test_lib, top_n = .Machine$integer.max + 1
+    ),
+    "positive integer"
+  )
+})
+
+test_that("blockwise retained Top N capacity fails before allocation", {
+  capacity <- OpenSpecy:::.blockwise_retained_capacity(100L, 10L)
+  expect_equal(capacity$rows, 1000)
+  expect_equal(capacity$bytes, 32000)
+
+  expect_error(
+    OpenSpecy:::.blockwise_retained_capacity(2200000L, 1000L),
+    "Lower Top N or split the dataset"
+  )
+  old <- options(OpenSpecy.blockwise_max_retained_bytes = 1000)
+  on.exit(options(old), add = TRUE)
+  expect_error(
+    OpenSpecy:::.blockwise_retained_capacity(100L, 10L),
+    "Lower Top N or split the dataset"
+  )
+})
+
 test_that("cor_spec() routine with preprocessing returns same values as setting conform = T", {
   tiny_map2 <- read_extdata("CA_tiny_map.zip") |>
     read_any() |>

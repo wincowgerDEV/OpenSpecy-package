@@ -12,7 +12,6 @@ const path = require("path");
 
 const repo = path.resolve(__dirname, "..");
 const rPidFile = path.join(repo, "test-results", ".shiny-local-smoke-r.pid");
-const fileSpecsSmokePath = process.env.OPENSPECY_LOCAL_FILE_SPECS_PATH || "";
 let port = Number(process.env.OPENSPECY_LOCAL_SMOKE_PORT || 0);
 let app;
 let stderr = "";
@@ -233,6 +232,21 @@ async function selectizeOption(page, id, value) {
   await expect(select).toHaveValue(value);
 }
 
+async function pickerOption(page, id, value) {
+  const select = page.locator(`#${id}`);
+  await select.evaluate((element, next) => {
+    const picker = window.jQuery ? window.jQuery(element) : null;
+    if (picker && typeof picker.selectpicker === "function") {
+      picker.selectpicker("val", next);
+      picker.trigger("change");
+      return;
+    }
+    element.value = next;
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+  await expect(select).toHaveValue(value);
+}
+
 async function waitForStableSelectizeGeneration(
   select,
   requiredOption,
@@ -397,7 +411,6 @@ test.beforeAll(async () => {
   fs.rmSync(rPidFile, { force: true });
   const expression = [
     `writeLines(as.character(Sys.getpid()), ${JSON.stringify(rPidFile.replace(/\\/g, "/"))})`,
-    "options(openspecy.shiny.local_files=TRUE)",
     `devtools::load_all(${JSON.stringify(repo.replace(/\\/g, "/"))}, quiet=TRUE)`,
     `shiny::runApp(${JSON.stringify(path.join(repo, "inst", "shiny").replace(/\\/g, "/"))}, host='127.0.0.1', port=${port}, launch.browser=FALSE)`,
   ].join("; ");
@@ -408,9 +421,6 @@ test.beforeAll(async () => {
       OPENSPECY_SHINY_LIBRARY_PATH:
         process.env.OPENSPECY_SHINY_LIBRARY_PATH ||
         "C:/Users/winco/AppData/Local/R/cache/R/OpenSpecy/reference_libraries",
-      OPENSPECY_FILE_SPECS_CACHE:
-        process.env.OPENSPECY_FILE_SPECS_CACHE ||
-        path.join(repo, "_wasm", "feature009-app-cache"),
     },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
@@ -504,11 +514,15 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
     input.files?.[0]?.name || ""
   )).toBe("CA_tiny_map.zip");
   await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
-  const mapImage = page.locator("#heatmapA img");
-  await expect(mapImage).toBeVisible({ timeout: 180000 });
-  await expect.poll(async () => mapImage.evaluate((image) =>
-    image.complete ? image.naturalWidth * image.naturalHeight : 0
-  ), { timeout: 180000 }).toBeGreaterThan(1000);
+  const mapPlot = page.locator("#heatmapA.js-plotly-plot");
+  await expect(mapPlot.locator(".main-svg").first()).toBeVisible({
+    timeout: 180000,
+  });
+  await expect.poll(async () => mapPlot.evaluate((plot) =>
+    Array.isArray(plot.data) ? plot.data.filter((trace) =>
+      Array.isArray(trace.z) && trace.z.length > 0
+    ).length : 0
+  ), { timeout: 180000 }).toBeGreaterThan(0);
   await expect(page.locator("#event table tbody tr").first()).toBeVisible({
     timeout: 180000,
   });
@@ -528,7 +542,7 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   });
   await expect(page.locator("#download_selection")).toHaveValue("Top Matches");
   await expect(page.locator("#download_data")).toHaveText("Download Top Matches");
-  await expect(page.locator("#top_n_input")).toHaveValue("1");
+  await expect(page.locator("#top_n_input")).toHaveValue("10");
 
   const topMatches = await fetchDownload(page.locator("#download_data"), {
     readyTimeout: 600000,
@@ -538,7 +552,7 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   expect(topMatches.contentType).toMatch(/^text\/(?:csv|plain)/i);
   expect(topMatches.disposition).toMatch(/filename="?Top-Matches-.*\.csv/i);
   const rows = topMatches.content.split(/\r?\n/).filter(Boolean);
-  expect(rows).toHaveLength(209);
+  expect(rows).toHaveLength(2081);
   expect(rows[0]).toMatch(
     /file_name.*col_id.*material_class.*match_val.*signal_to_noise/i
   );
@@ -619,8 +633,8 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   expect(severeErrors).toEqual([]);
 });
 
-test("ordinary map particle analysis exposes scalable results and a ZIP", async ({ page }, testInfo) => {
-  test.setTimeout(600000);
+test("in-memory particle analysis exposes three strategies and a canonical ZIP", async ({ page }, testInfo) => {
+  test.setTimeout(900000);
   const severeErrors = [];
   page.on("console", (message) => {
     if (message.type() === "error" &&
@@ -632,9 +646,6 @@ test("ordinary map particle analysis exposes scalable results and a ZIP", async 
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
-  await page.locator("#active_preprocessing").evaluate((input) => {
-    if (input.checked) input.click();
-  });
   const settingsCard = page.locator("#analysis_settings_box");
   await toggleCard(settingsCard);
   await expectCardCollapsed(settingsCard, false);
@@ -647,36 +658,18 @@ test("ordinary map particle analysis exposes scalable results and a ZIP", async 
     if (!input.checked) input.click();
   });
   await page.locator("#threshold_decision").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await page.locator("#cor_threshold_decision").evaluate((input) => {
     if (!input.checked) input.click();
   });
   await page.evaluate(() => {
     window.Shiny.setInputValue("active_advanced", true, { priority: "event" });
     window.Shiny.setInputValue("collapse_decision", true, { priority: "event" });
-    window.Shiny.setInputValue("threshold_decision", true, { priority: "event" });
-    window.Shiny.setInputValue("active_preprocessing", false, {
-      priority: "event",
-    });
-    document.getElementById("signal_selection").selectize.setValue("tot_sig");
-    window.Shiny.setInputValue("MinSNR", 0.1, { priority: "event" });
-    window.Shiny.setInputValue("MaxSNR", 1000000000000, {
-      priority: "event",
-    });
-  });
-  await page.locator("#threshold_decision").check({ force: true });
-  await page.evaluate(() => {
-    window.Shiny.setInputValue("active_advanced", true, { priority: "event" });
-    window.Shiny.setInputValue("collapse_decision", true, { priority: "event" });
-    window.Shiny.setInputValue("threshold_decision", true, { priority: "event" });
-    window.Shiny.setInputValue("active_preprocessing", false, {
-      priority: "event",
-    });
-    document.getElementById("signal_selection").selectize.setValue(
-      "run_sig_over_noise"
-    );
-    document.getElementById("MinSNR").value = "0.04";
-    document.getElementById("MaxSNR").value = "1.2";
-    window.Shiny.setInputValue("MinSNR", 0.04, { priority: "event" });
-    window.Shiny.setInputValue("MaxSNR", 1.2, {
+    window.Shiny.setInputValue("threshold_decision", false, { priority: "event" });
+    window.Shiny.setInputValue("cor_threshold_decision", true, { priority: "event" });
+    window.Shiny.setInputValue("MinCor", 0, { priority: "event" });
+    window.Shiny.setInputValue("particle_area_threshold", 1, {
       priority: "event",
     });
   });
@@ -684,31 +677,27 @@ test("ordinary map particle analysis exposes scalable results and a ZIP", async 
   await page.locator("#file").setInputFiles(
     path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
   );
-  await dismissQueuedAlerts(page);
   await page.waitForFunction(() => {
     const select = document.getElementById("map_color");
     const options = Object.keys(select?.selectize?.options || {});
     const alert = document.querySelector(
       ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
     );
-    return options.includes("particle_image") ||
-      /Particle analysis could not run/i.test(alert?.textContent || "");
-  }, null, { timeout: 240000 });
-  await dismissVisibleAlert(page);
+    if (alert) throw new Error(alert.textContent || "Unexpected analysis alert");
+    return options.includes("Particle Unit");
+  }, null, { timeout: 360000 });
   const particleAlert = page.locator(
     ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
   );
-  if (await particleAlert.isVisible()) {
-    throw new Error(`Particle analysis alert: ${(await particleAlert.innerText()).trim()}`);
-  }
-  await expect.poll(async () => page.locator("#map_color").evaluate((select) =>
+  await expect(particleAlert).toHaveCount(0);
+  const mapChoices = await page.locator("#map_color").evaluate((select) =>
     Object.keys(select.selectize ? select.selectize.options : {})
-  ), { timeout: 240000 }).toEqual([
-    "particle_image", "particle_heatmap_thresholded",
-    "particle_heatmap", "cor_heatmap",
-  ]);
-  const mapImage = page.locator("#heatmapA img");
-  await expect(mapImage).toBeVisible({ timeout: 120000 });
+  );
+  expect(mapChoices).toEqual(expect.arrayContaining([
+    "Particle Unit", "Match Name", "Match ID", "Match Value", "Signal/Noise",
+  ]));
+  await expect(page.locator("#heatmapA.js-plotly-plot .main-svg").first())
+    .toBeVisible({ timeout: 120000 });
   const signalCard = page.locator("#threshold_decision").locator(
     "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
   );
@@ -717,31 +706,47 @@ test("ordinary map particle analysis exposes scalable results and a ZIP", async 
   );
   await toggleCard(signalCard);
   await toggleCard(correlationCard);
-  await expect(page.locator("#snr_plot_image img")).toBeVisible({ timeout: 120000 });
-  await expect(page.locator("#cor_plot_image img")).toBeVisible({ timeout: 120000 });
+  await expect(page.locator("#snr_plot.js-plotly-plot .main-svg").first())
+    .toBeVisible({ timeout: 120000 });
+  await expect(page.locator("#cor_plot.js-plotly-plot .main-svg").first())
+    .toBeVisible({ timeout: 120000 });
+  const histogramShapes = await page.evaluate(() => ({
+    snr: document.getElementById("snr_plot")?.layout?.shapes || [],
+    correlation: document.getElementById("cor_plot")?.layout?.shapes || [],
+  }));
+  expect(histogramShapes.snr).toHaveLength(0);
+  expect(histogramShapes.correlation).toHaveLength(1);
+
+  const heatmapContract = await page.locator("#heatmapA").evaluate((plot) => ({
+    traceCount: plot.data?.length || 0,
+    colorbar: plot.data?.[0]?.colorbar || {},
+  }));
+  expect(heatmapContract.traceCount).toBeGreaterThanOrEqual(3);
+  expect(heatmapContract.colorbar.len).toBeLessThanOrEqual(0.2);
+  expect(heatmapContract.colorbar.thickness).toBeLessThanOrEqual(5);
+  expect(heatmapContract.colorbar.title?.text || "").toBe("");
+
   for (const value of [
-    "particle_image", "particle_heatmap_thresholded",
-    "particle_heatmap", "cor_heatmap",
+    "Particle Unit", "Match Name", "Match ID", "Match Value", "Signal/Noise",
   ]) {
     await page.locator("#map_color").evaluate((select, next) => {
       select.selectize.setValue(next);
     }, value);
-    await expect(mapImage).toBeVisible({ timeout: 120000 });
+    await expect(page.locator("#heatmapA.js-plotly-plot .main-svg").first())
+      .toBeVisible({ timeout: 120000 });
   }
 
-  const mapBox = await mapImage.boundingBox();
-  expect(mapBox).not.toBeNull();
-  await mapImage.click({
-    position: {
-      x: Math.floor(mapBox.width * 0.6),
-      y: Math.floor(mapBox.height * 0.4),
-    },
-  });
-  const modal = page.locator(".modal-content:visible");
-  await expect(modal).toContainText("Map selection metadata", {
-    timeout: 60000,
-  });
-  await modal.getByRole("button", { name: "Close", exact: true }).click();
+  for (const strategy of ["partial_collapse", "nonspatial_collapse"]) {
+    await pickerOption(page, "particle_id_strategy", strategy);
+    await expect(page.locator("#particle_partition_status"))
+      .toContainText("Effective PCA components", { timeout: 240000 });
+    await expect(particleAlert).toHaveCount(0);
+  }
+  await pickerOption(page, "particle_id_strategy", "collapse");
+  await page.waitForFunction(() => {
+    const select = document.getElementById("map_color");
+    return Object.keys(select?.selectize?.options || {}).includes("Particle Unit");
+  }, null, { timeout: 240000 });
 
   await waitForStableSelectizeGeneration(
     page.locator("#download_selection"), "Thresholded Particles",
@@ -751,13 +756,14 @@ test("ordinary map particle analysis exposes scalable results and a ZIP", async 
     select.selectize.setValue("Thresholded Particles");
   });
   await expect(page.locator("#particle_outputs_selected input:checked"))
-    .toHaveCount(11);
+    .toHaveCount(4);
   const download = await consumeDownload(page);
   expect(download.filename).toMatch(/^Thresholded-Particles-.*\.zip$/i);
   expect(download.content.subarray(0, 2).toString("ascii")).toBe("PK");
   await page.screenshot({
-    path: testInfo.outputPath("ordinary-particle-analysis.png"), fullPage: true,
+    path: testInfo.outputPath("in-memory-particle-analysis.png"), fullPage: true,
   });
+  await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
   expect(severeErrors).toEqual([]);
 });
 
@@ -1601,93 +1607,4 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(popups).toEqual([]);
   expect(severeErrors).toEqual([]);
   expect(stderr).not.toMatch(/Warning: Error in|Execution halted/);
-});
-
-test("local FileSpecs path runs particle analysis and keeps selections bounded", async ({ page }) => {
-  test.skip(
-    !fileSpecsSmokePath || !fs.existsSync(fileSpecsSmokePath),
-    "Set OPENSPECY_LOCAL_FILE_SPECS_PATH to exercise a genuine local H5/ENVI source."
-  );
-  test.setTimeout(900000);
-  const severeErrors = [];
-  page.on("console", (message) => {
-    if (message.type() === "error" &&
-        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
-      severeErrors.push(message.text());
-    }
-  });
-  page.on("pageerror", (error) => severeErrors.push(error.message));
-
-  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
-  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
-    timeout: 120000,
-  });
-  await page.locator("#active_identification").check({ force: true });
-  await page.locator("#active_preprocessing").evaluate((input) => {
-    if (input.checked) input.click();
-  });
-  const settingsCard = page.locator("#analysis_settings_box");
-  await toggleCard(settingsCard);
-  await expectCardCollapsed(settingsCard, false);
-  const advancedTab = page.getByRole("link", {
-    name: "Advanced", exact: true,
-  });
-  await advancedTab.click();
-  await page.locator("#active_advanced").check({ force: true });
-  await expect.poll(async () => page.locator("#collapse_decision").evaluate(
-    (input) => !input.disabled
-  ), { timeout: 30000 }).toBe(true);
-  await page.locator("#collapse_decision").check({ force: true });
-  await page.locator("#threshold_decision").check({ force: true });
-  await page.evaluate(() => {
-    window.Shiny.setInputValue("active_advanced", true, { priority: "event" });
-    window.Shiny.setInputValue("collapse_decision", true, { priority: "event" });
-    window.Shiny.setInputValue("threshold_decision", true, { priority: "event" });
-    window.Shiny.setInputValue("active_preprocessing", false, {
-      priority: "event",
-    });
-    document.getElementById("signal_selection").selectize.setValue("tot_sig");
-    window.Shiny.setInputValue("MinSNR", 0.1, { priority: "event" });
-    window.Shiny.setInputValue("MaxSNR", 1000000000000, {
-      priority: "event",
-    });
-  });
-
-  const sourceCard = page.locator("#filespec_source_box");
-  await expectCardCollapsed(sourceCard);
-  await toggleCard(sourceCard);
-  await expectCardCollapsed(sourceCard, false);
-  await page.locator("#filespec_path").fill(fileSpecsSmokePath);
-  await page.locator("#filespec_open").click();
-  await expect(page.locator("#filespec_status")).toContainText(
-    "Open read-only:", { timeout: 180000 }
-  );
-  await expect(page.locator("#filespec_status")).toContainText("indexed spectra");
-  await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
-  const previewImage = page.locator("#heatmapA img");
-  await expect(previewImage).toBeVisible({ timeout: 180000 });
-  await expect.poll(async () => page.locator("#map_color").evaluate((select) =>
-    Object.keys(select.selectize ? select.selectize.options : {})
-  ), { timeout: 240000 }).toContain("particle_heatmap_thresholded");
-
-  if (path.basename(fileSpecsSmokePath).toLowerCase() === "drop.h5") {
-    await expect.poll(
-      async () => page.locator("#filespec_region").evaluate((select) =>
-        Object.keys(select.selectize ? select.selectize.options : {})
-      ),
-      { timeout: 60000 }
-    ).toEqual(["Region1", "Region2", "Region3"]);
-    await selectizeOption(page, "filespec_region", "Region3");
-    await expect(page.locator("#filespec_status")).toContainText("Region3", {
-      timeout: 60000,
-    });
-  } else {
-    const regions = await page.locator("#filespec_region").evaluate((select) =>
-      Object.keys(select.selectize ? select.selectize.options : {})
-    );
-    expect(regions.length).toBeGreaterThanOrEqual(1);
-  }
-
-  expect(severeErrors).toEqual([]);
 });

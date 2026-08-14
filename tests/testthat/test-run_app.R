@@ -55,6 +55,115 @@ test_that("bundled Shiny app source files parse", {
   }
 })
 
+test_that("bundled app uses one 10 GiB total upload ceiling", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  limit <- 10 * 1024^3
+  expect_identical(env$app_upload_limit_bytes(), limit)
+  expect_identical(env$app_max_request_size_bytes(), limit)
+  expect_true(env$app_validate_upload_size(data.frame(size = limit))$ok)
+  expect_false(env$app_validate_upload_size(
+    data.frame(size = limit + 1)
+  )$ok)
+  expect_true(env$app_validate_upload_size(
+    data.frame(size = c(limit - 1, 1))
+  )$ok)
+  multi_over <- env$app_validate_upload_size(
+    data.frame(size = c(limit - 1, 2))
+  )
+  expect_false(multi_over$ok)
+  expect_match(multi_over$message, "10 GiB", fixed = TRUE)
+  expect_false(env$app_validate_upload_size(data.frame(size = NA_real_))$ok)
+  expect_false(env$app_validate_upload_size(data.frame(size = Inf))$ok)
+  expect_false(env$app_validate_upload_size(data.frame(size = -1))$ok)
+
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+  bridge_source <- paste(readLines(
+    file.path(app_path, "www", "parent-frame.js"), warn = FALSE
+  ), collapse = "\n")
+  expect_match(
+    server_source,
+    "options(shiny.maxRequestSize = app_max_request_size_bytes())",
+    fixed = TRUE
+  )
+  expect_match(bridge_source,
+               "10 * 1024 * 1024 * 1024", fixed = TRUE)
+  expect_match(bridge_source, "setUploadStatus(", fixed = TRUE)
+  expect_false(grepl("showUploadLimitPopup", bridge_source, fixed = TRUE))
+})
+
+test_that("bundled app has one in-memory upload route", {
+  app_path <- run_app(test_mode = TRUE)
+  source_paths <- file.path(app_path, c(
+    "global.R", "server.R", "ui.R", file.path("www", "parent-frame.js")
+  ))
+  app_source <- paste(unlist(lapply(source_paths, readLines, warn = FALSE)),
+                      collapse = "\n")
+  prohibited <- c(
+    "app_local_file_mode", "app_filespec_", "open_via_filespecs",
+    "openspecy.shiny.local_files", "OPENSPECY_SHINY_LOCAL_FILES",
+    "FileSpecs", "file-backed", "Local H5 / ENVI"
+  )
+  expect_false(any(vapply(
+    prohibited, grepl, logical(1), x = app_source, fixed = TRUE
+  )))
+
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+  expect_match(server_source,
+               "read_any(\n            file = as.character(input$file$datapath), c_spec = FALSE",
+               fixed = TRUE)
+  expect_match(server_source, "combined <- if(is_OpenSpecy(members))",
+               fixed = TRUE)
+  expect_match(server_source, "upload_status_state(upload_size$message)",
+               fixed = TRUE)
+})
+
+test_that("particle archives contain only canonical requested artifacts", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  directory <- tempfile("openspecy-particle-outputs-")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+  expected <- c("particle_details.csv", "particles_processed.rds",
+                "pixel_to_unit.csv", "top_matches.csv")
+  file.create(file.path(directory, expected))
+
+  archive <- tempfile(fileext = ".zip")
+  env$app_write_particle_archive(
+    file.path(directory, expected[c(1, 3, 4)]), archive, directory
+  )
+  expect_setequal(utils::unzip(archive, list = TRUE)$Name,
+                  expected[c(1, 3, 4)])
+})
+
 test_that("bundled Shiny app no longer advertises YAML uploads", {
   app_path <- run_app(test_mode = TRUE)
   app_source <- unlist(lapply(
@@ -72,7 +181,9 @@ test_that("bundled Shiny app avoids app-local library data assumptions", {
 
   expect_false(any(grepl("data/.*\\.rds", server_source)))
   expect_true(any(grepl("load_app_library", server_source, fixed = TRUE)))
-  expect_true(any(grepl("apply\\(library\\$spectra, 2", server_source)))
+  expect_false(any(grepl("apply\\(library\\$spectra, 2", server_source)))
+  expect_true(any(grepl("OpenSpecy:::.match_spec_blockwise", server_source,
+                        fixed = TRUE)))
   expect_false(any(grepl("vapply\\(\\.\\$spectra", server_source)))
   expect_true(any(grepl("colnames\\(library_filtered\\(\\)\\$spectra\\)", server_source)))
   expect_true(any(grepl("colnames\\(DataR\\(\\)\\$spectra\\)", server_source)))
@@ -130,34 +241,24 @@ test_that("bundled app updates map selection without full heatmap or spectrum re
   expect_false(grepl("sliderInput(", quantification_ui, fixed = TRUE))
 })
 
-test_that("run_app() enables local files only during its blocking run", {
-  tmp <- file.path(tempdir(), "OpenSpecy-testthat-run-app-local-files")
+test_that("run_app() launches without app-only local-file state", {
+  tmp <- file.path(tempdir(), "OpenSpecy-testthat-run-app-launch")
   on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
   dir.create(tmp, showWarnings = FALSE, recursive = TRUE)
   file.create(file.path(tmp, c("server.R", "ui.R")))
 
-  old_option <- getOption("openspecy.shiny.local_files", NULL)
-  on.exit(options(openspecy.shiny.local_files = old_option), add = TRUE)
-  options(openspecy.shiny.local_files = FALSE)
-  observed <- NULL
   local_mocked_bindings(
     .openspecy_require_shiny_packages = function() invisible(TRUE),
-    runApp = function(...) {
-      observed <<- getOption("openspecy.shiny.local_files", FALSE)
-      "app-returned"
-    },
+    runApp = function(...) "app-returned",
     .package = "OpenSpecy"
   )
 
   expect_identical(
     run_app(path = tmp, launch.browser = FALSE), "app-returned"
   )
-  expect_true(observed)
-  expect_false(getOption("openspecy.shiny.local_files"))
 
   expect_identical(run_app(path = tmp, test_mode = TRUE),
                    normalizePath(tmp, winslash = "/", mustWork = TRUE))
-  expect_false(getOption("openspecy.shiny.local_files"))
 })
 
 test_that("bundled Shiny app does not block startup or auto-load remote images", {
@@ -297,7 +398,8 @@ test_that("bundled app defaults corrections, identification, but not quantificat
   expect_match(server_source, 'report = "all"', fixed = TRUE)
   expect_match(server_source, "quality_findings <- reactive({", fixed = TRUE)
   expect_match(server_source, "app_threshold_quality_report(", fixed = TRUE)
-  expect_match(server_source, "collapse_features <- reactive({", fixed = TRUE)
+  expect_match(server_source, "canonical_state <- reactive({", fixed = TRUE)
+  expect_match(server_source, "canonical_final <- reactive({", fixed = TRUE)
   expect_match(server_source, "particle_pipeline_enabled <- reactive({",
                fixed = TRUE)
   expect_match(server_source,
@@ -305,9 +407,9 @@ test_that("bundled app defaults corrections, identification, but not quantificat
                fixed = TRUE)
   expect_match(server_source, "current_heatmap_data <- reactive({",
                fixed = TRUE)
-  expect_match(server_source, "range = target_axis", fixed = TRUE)
-  expect_match(server_source,
-               "if(!identical(library$wavenumber, target_axis))",
+  expect_match(server_source, "OpenSpecy:::.match_spec_blockwise(",
+               fixed = TRUE)
+  expect_match(server_source, "conform = TRUE, type = \"roll\"",
                fixed = TRUE)
   expect_match(ui_source, 'role = "group"', fixed = TRUE)
   expect_match(ui_source, '"quality_automatic_details"', fixed = TRUE)
@@ -364,7 +466,8 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
     function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
     logical(1)
   )))
-  expect_match(server_source, 'tags$summary("Top Match options")', fixed = TRUE)
+  expect_match(server_source, 'tags$summary("Top Matches columns")',
+               fixed = TRUE)
   expect_match(ui_source, '"baseline_method", "Baseline Method"',
                fixed = TRUE)
   expect_match(ui_source, '"Fill Peaks (4S)" = "fill_peaks"',
@@ -1175,25 +1278,23 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
   expect_match(server_source,
                "match_name_palette <- reactive({", fixed = TRUE)
   expect_match(server_source,
-               "app_category_palette(max_cor_identity())", fixed = TRUE)
-  expect_match(server_source, "app_category_colorscale(z)", fixed = TRUE)
+               "app_category_palette(pixel_projection()$material)",
+               fixed = TRUE)
   expect_match(server_source, "keep[is.na(keep)] <- FALSE", fixed = TRUE)
   expect_match(
     server_source,
-    "list(c(0, app_theme$muted), c(1, app_theme$muted))",
+    "rejected = projection$rejected",
     fixed = TRUE
   )
   expect_match(server_source, "values = match_name_palette()", fixed = TRUE)
   expect_match(server_source, "map_color_choices <- reactive({", fixed = TRUE)
   expect_match(server_source, "resolved_map_color <- reactive({", fixed = TRUE)
-  expect_match(server_source, '"Particle Image" = "particle_image"',
-               fixed = TRUE)
   expect_match(server_source,
-               '"Thresholded Particles" = "particle_heatmap_thresholded"',
+               'identical(selection, "Thresholded Particles")',
                fixed = TRUE)
   expect_false(grepl("app_draw_server_heatmap(", server_source, fixed = TRUE))
   expect_match(
-    server_source, "return(sample[[resolved_map_color()]])", fixed = TRUE
+    server_source, "heatmap_state <- reactive({", fixed = TRUE
   )
   expect_match(
     server_source, "app_particle_plotly(current_heatmap_data()", fixed = TRUE
@@ -1815,156 +1916,6 @@ test_that("bundled app orders downloads from the current analysis state", {
   expect_identical(env$app_download_label("unsupported"), "Download selected")
 })
 
-test_that("Top Matches ranks before expanding metadata", {
-  missing <- .openspecy_app_packages()[
-    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
-            quietly = TRUE)
-  ]
-  skip_if(length(missing), paste(
-    "Missing Shiny app packages:", paste(missing, collapse = ", ")
-  ))
-
-  app_path <- run_app(test_mode = TRUE)
-  env <- new.env(parent = globalenv())
-  old_wd <- getwd()
-  on.exit(setwd(old_wd), add = TRUE)
-  setwd(app_path)
-  sys.source(file.path(app_path, "global.R"), envir = env)
-
-  correlations <- matrix(
-    c(
-      0.91, 0.42, 0.76,
-      0.83, 0.95, 0.51,
-      0.60, 0.72, 0.89,
-      0.14, 0.31, 0.22
-    ),
-    nrow = 4L, byrow = TRUE,
-    dimnames = list(
-      c("reference_a", "reference_b", "reference_c", "reference_d"),
-      c("object_1", "object_2", "object_3")
-    )
-  )
-  library_metadata <- data.table::data.table(
-    sample_name = rownames(correlations),
-    material_class = c("PE", "PP", "PET", "PS"),
-    spectrum_identity = c("A", "B", "C", "D"),
-    organization = c("one", "two", "three", "four"),
-    rare_library_column = c(NA_character_, NA_character_, NA_character_,
-                            "retained"),
-    empty_library_column = NA_character_
-  )
-  spectrum_metadata <- data.table::data.table(
-    file_name = rep("map.zip", 3L),
-    col_id = colnames(correlations),
-    x = 0:2,
-    quant_metric = NA_real_,
-    empty_spectrum_column = NA_character_
-  )
-  snr <- c(24, 8, 31)
-  top_n <- 2L
-  match_threshold <- 0.8
-  signal_threshold <- 10
-  quant_columns <- "quant_metric"
-
-  export_matches <- function(columns_selected) {
-    env$app_top_matches_export(
-      cor_matrix = correlations,
-      library_metadata = library_metadata,
-      spectrum_metadata = spectrum_metadata,
-      signal_to_noise = snr,
-      match_threshold = match_threshold,
-      signal_threshold = signal_threshold,
-      top_n = top_n,
-      columns_selected = columns_selected,
-      quant_columns = quant_columns
-    )
-  }
-  simple <- export_matches("Simple")
-  expect_identical(
-    simple,
-    data.table::data.table(
-      file_name = rep("map.zip", 6L),
-      col_id = c("object_2", "object_2", "object_1", "object_1",
-                 "object_3", "object_3"),
-      material_class = c("PP", "unknown", "PE", "PP", "PET", "unknown"),
-      match_val = c(0.95, 0.72, 0.91, 0.83, 0.89, 0.76),
-      signal_to_noise = c(8, 8, 24, 24, 31, 31),
-      quant_metric = NA_real_
-    )
-  )
-
-  all_columns <- export_matches("All")
-  expect_identical(
-    names(all_columns),
-    c(
-      "col_id", "file_name", "material_class", "spectrum_identity",
-      "match_val", "signal_to_noise", "sample_name", "organization",
-      "rare_library_column", "match_threshold", "signal_threshold",
-      "good_signal", "x", "quant_metric", "good_match_vals",
-      "good_matches"
-    )
-  )
-  expect_true(all(is.na(all_columns$rare_library_column)))
-  expect_true(all(is.na(all_columns$quant_metric)))
-  expect_false("empty_library_column" %in% names(all_columns))
-  expect_false("empty_spectrum_column" %in% names(all_columns))
-  expect_identical(
-    all_columns[, names(simple), with = FALSE],
-    simple
-  )
-
-  spectrum_permutation <- c(3L, 1L, 2L)
-  permuted <- env$app_top_matches_export(
-    cor_matrix = correlations,
-    library_metadata = library_metadata,
-    spectrum_metadata = spectrum_metadata[spectrum_permutation],
-    signal_to_noise = snr[spectrum_permutation],
-    match_threshold = match_threshold,
-    signal_threshold = signal_threshold,
-    top_n = top_n,
-    columns_selected = "All",
-    quant_columns = quant_columns
-  )
-  expect_identical(permuted, all_columns)
-
-  tied_correlations <- correlations
-  tied_correlations[c("reference_a", "reference_b"), "object_1"] <- 0.91
-  tied <- env$app_top_match_rows(tied_correlations, top_n = 2L)
-  expect_identical(
-    tied[Var2 == "object_1", Var1],
-    c("reference_a", "reference_b")
-  )
-
-  ranked <- env$app_top_match_rows(correlations, top_n = 99L)
-  expect_equal(nrow(ranked), length(correlations))
-  expect_error(
-    env$app_top_match_rows(unname(correlations), top_n = 1L),
-    "must name references"
-  )
-  duplicated_correlations <- correlations
-  rownames(duplicated_correlations)[[2L]] <- rownames(correlations)[[1L]]
-  expect_error(
-    env$app_top_match_rows(duplicated_correlations, top_n = 1L),
-    "identifiers must be unique"
-  )
-  expect_error(
-    env$app_top_matches_export(
-      correlations,
-      data.table::rbindlist(list(library_metadata, library_metadata[1L])),
-      spectrum_metadata, snr, match_threshold, signal_threshold
-    ),
-    "identifiers must be unique"
-  )
-  expect_error(
-    env$app_top_matches_export(
-      correlations, library_metadata,
-      spectrum_metadata[col_id != "object_3"],
-      snr, match_threshold, signal_threshold
-    ),
-    "does not align"
-  )
-})
-
 test_that("bundled app exports one-row metadata snapshots without restoring them", {
   missing <- .openspecy_app_packages()[
     !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
@@ -1994,10 +1945,11 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "range_artifact_ratio", "MinRange", "MaxRange", "co2_decision",
     "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
     "active_identification", "id_spec_type", "id_strategy", "lib_type",
-    "filter_lib", "lib_org", "active_advanced", "threshold_decision",
+    "top_n_input", "filter_lib", "lib_org", "active_advanced", "threshold_decision",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
     "spatial_decision", "sigma", "xy_grid", "collapse_decision",
-    "collapse_type", "particle_id_strategy", "particle_area_threshold",
+    "collapse_type", "particle_id_strategy", "particle_pca_components",
+    "particle_cluster_k", "particle_area_threshold",
     "active_quantification",
     "quant_ratio_name", "quant_ratio_type", "quant_numerator_area_min",
     "quant_numerator_area_max", "quant_denominator_area_min",

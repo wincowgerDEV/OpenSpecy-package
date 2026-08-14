@@ -120,36 +120,31 @@
     }, true);
   }
 
-  function showUploadLimitPopup() {
-    var localInstruction = isWasmMode()
-      ? "Run the local OpenSpecy app, open Advanced, and use Local H5 / ENVI source."
-      : "Open Advanced and use Local H5 / ENVI source to bypass the browser copy.";
-    var message = "The browser upload limit is 2 GB total. " + localInstruction;
-    if (window.Swal && typeof window.Swal.fire === "function") {
-      window.Swal.fire({
-        icon: "warning",
-        title: "Upload is larger than 2 GB",
-        text: message,
-        confirmButtonText: "OK"
-      });
-    } else {
-      window.alert(message);
-    }
+  function setUploadStatus(message) {
+    var status = document.getElementById("upload_status");
+    if (!status) return;
+    status.textContent = message || "";
   }
 
   function bindUploadLimit() {
-    var uploadLimit = 2 * 1024 * 1024 * 1024;
+    var uploadLimit = 10 * 1024 * 1024 * 1024;
     document.addEventListener("change", function (event) {
       var input = event.target;
       if (!input || input.id !== "file" || !input.files) return;
       var total = Array.prototype.reduce.call(input.files, function (sum, file) {
         return sum + (Number(file.size) || 0);
       }, 0);
-      if (total <= uploadLimit) return;
+      if (total <= uploadLimit) {
+        setUploadStatus("");
+        return;
+      }
       event.preventDefault();
       event.stopImmediatePropagation();
       input.value = "";
-      showUploadLimitPopup();
+      setUploadStatus(
+        "The selected files exceed the 10 GiB total upload ceiling. " +
+        "Choose fewer or smaller files and try again."
+      );
     }, true);
   }
 

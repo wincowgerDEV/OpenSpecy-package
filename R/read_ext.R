@@ -415,55 +415,73 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
     }
 
     file_meta <- .read_h5_file_metadata(h5)
-    first_dims <- .h5_dataset_dims(h5[[paste0("/Regions/", regions[1],
-                                             "/Dataset")]])
-    if (length(first_dims) != 3L)
-        stop("Expected 3D dataset. Got dims: ",
-             paste(first_dims, collapse = "x"), call. = FALSE)
-    spec_dim <- .h5_spectral_dim(first_dims, file_meta)
-    n_wavenumber <- first_dims[spec_dim]
-    wavenumbers <- .h5_wavenumbers(file_meta, n_wavenumber)
-
-    mats <- vector("list", length(regions))
-    metas <- vector("list", length(regions))
-    region_extents <- vector("list", length(regions))
-
-    for (i in seq_along(regions)) {
-        reg <- regions[i]
-        dset <- h5[[paste0("/Regions/", reg, "/Dataset")]]
-        dims <- .h5_dataset_dims(dset)
+    layouts <- lapply(regions, function(reg) {
+        dims <- .h5_dataset_dims(
+            h5[[paste0("/Regions/", reg, "/Dataset")]]
+        )
         if (length(dims) != 3L)
             stop("Expected 3D dataset. Got dims: ",
                  paste(dims, collapse = "x"), call. = FALSE)
         spec_dim <- .h5_spectral_dim(dims, file_meta)
+        spatial_dims <- dims[setdiff(seq_along(dims), spec_dim)]
+        list(dims = dims, spec_dim = spec_dim, n = dims[spec_dim],
+             ny = spatial_dims[1L], nx = spatial_dims[2L])
+    })
+    n_wavenumber <- layouts[[1L]]$n
+    if (any(vapply(layouts, `[[`, integer(1), "n") != n_wavenumber)) {
+        stop("H5 regions must use the same number of spectral bands",
+             call. = FALSE)
+    }
+    wavenumbers <- .h5_wavenumbers(file_meta, n_wavenumber)
+
+    metas <- vector("list", length(regions))
+    region_extents <- vector("list", length(regions))
+    region_columns <- vapply(layouts, function(layout) {
+        layout$ny * layout$nx
+    }, FUN.VALUE = integer(1))
+    column_ends <- cumsum(region_columns)
+    column_starts <- column_ends - region_columns + 1L
+    spectra <- matrix(NA_real_, nrow = n_wavenumber,
+                      ncol = sum(region_columns))
+    spectrum_ids <- character(ncol(spectra))
+
+    for (i in seq_along(regions)) {
+        reg <- regions[i]
+        dset <- h5[[paste0("/Regions/", reg, "/Dataset")]]
+        layout <- layouts[[i]]
         cube <- dset$read()
-        cube <- aperm(cube, c(spec_dim, setdiff(seq_along(dims), spec_dim)))
+        cube <- aperm(
+            cube,
+            c(layout$spec_dim,
+              setdiff(seq_along(layout$dims), layout$spec_dim))
+        )
         if (isTRUE(spectral_smooth))
             cube <- mmand::gaussianSmooth(cube, sigma = sigma)
 
-        n <- dim(cube)[1L]
-        ny <- dim(cube)[2L]
-        nx <- dim(cube)[3L]
-        if (n != length(wavenumbers))
-            wavenumbers <- .h5_wavenumbers(file_meta, n)
-
-        mat <- matrix(cube, nrow = n, ncol = ny * nx)
+        columns <- seq.int(column_starts[i], column_ends[i])
         id_digits <- gsub("\\D", "", reg)
         particle_lab <- if (nzchar(id_digits)) paste0("Region", id_digits) else reg
-        grid <- expand.grid(row = seq_len(ny), col = seq_len(nx))
+        grid <- expand.grid(row = seq_len(layout$ny),
+                            col = seq_len(layout$nx))
         ids <- paste0(reg, "_r", grid$row, "c", grid$col)
-        colnames(mat) <- ids
+        spectra[, columns] <- matrix(
+            cube,
+            nrow = n_wavenumber,
+            ncol = length(columns)
+        )
+        spectrum_ids[columns] <- ids
 
-        stage <- .h5_region_stage(h5, reg, ny = ny, nx = nx)
+        stage <- .h5_region_stage(
+            h5, reg, ny = layout$ny, nx = layout$nx
+        )
         if (is.null(stage)) {
             stage <- .h5_region_stage_from_metadata(
-                file_meta, region_index = i, ny = ny, nx = nx,
+                file_meta, region_index = i, ny = layout$ny, nx = layout$nx,
                 region = reg
             )
         }
         region_extents[[i]] <- stage
 
-        mats[[i]] <- mat
         metas[[i]] <- data.table(
             id = ids,
             file_name = basename(file),
@@ -484,7 +502,7 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
         metas[[i]] <- cbind(metas[[i]], .h5_region_metadata(h5, reg))
     }
 
-    spectra <- do.call(cbind, mats)
+    colnames(spectra) <- spectrum_ids
     metadata <- data.table::rbindlist(metas, fill = TRUE)
     if (length(file_meta)) {
         scalar_meta <- as.data.table(file_meta)

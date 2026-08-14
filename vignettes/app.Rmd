@@ -80,6 +80,14 @@ wavenumbers `wavenumber` and name the column with the intensities `intensity`.
 Wavenumber units must be cm^-1^. All other columns will be interpreted as additional spectra. Alternatively, spectra can be uploaded in wide csv format where some column names are in numerical format for the wavenumbers, rows will be interpreted as spectra, and any nonnumeric columns will be interpreted as metadata.  
 Always keep a copy of the original files.
 
+The app reads uploaded datasets into memory and has a 10 GiB total upload
+ceiling. This ceiling only governs transport: preprocessing, PCA, clustering,
+and identification also need working memory. The memory summary distinguishes
+the estimated resident dataset from the estimated peak operation cost and
+reports whether available RAM could be measured. If a known-unsafe operation is
+blocked, try signal/noise-first particle collapse, fewer reference spectra,
+fewer PCA components or clusters, a smaller input, or a machine with more RAM.
+
 ```{r sample_data, echo=FALSE, out.width="50%"}
 knitr::kable(head(raman_hdpe), caption = "Sample data `raman_hdpe`")
 ```
@@ -160,7 +168,13 @@ practice, we are rarely able to collect spectra of that good quality and more
 often use 5. The Signal Over Noise technique searches your spectra for high and
 low regions and conducts division on them to derive the signal to noise ratio.
 Signal Times Noise multiplies the mean signal by the standard deviation of the
-signal and Total Signal sums the intensities. A histogram shows the threshold line at the value specified compared to the histogram of that metric for all the data. 
+signal and Total Signal sums the intensities. A histogram is always available
+for the selected metric and draws threshold lines only while signal/noise
+thresholding is enabled. Signal/noise is calculated from the upload after
+optional hyperspectral spatial smoothing, but before baseline correction,
+normalization, or the other spectral processing settings.
+The accepted interval is strict: values must be greater than the minimum and
+less than the maximum, so a value equal to either bound is rejected.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/snr_threshold.jpg")
@@ -311,7 +325,11 @@ to the metadata in both **Processed Spectra** and **Top Matches** downloads.
 
 ## Collapse Particle Spectra
 
-When working with spectral images you can identify particles and get their shapes, sizes, and material types automatically. If you select the collapse particle spectra option it will enable this feature and you can download the collapsed particle spectra (averaged spectra for each particle) from the download tab. 
+When working with spectral images you can identify particles and get their
+shapes, sizes, and material types automatically. **Collapse Particle Spectra**
+reduces the number of spectra carried into later work and enables the collapsed
+particle download. The collapse statistic can be the mean, median, or geometric
+mean; geometric mean requires positive intensities.
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/collapse_spec.jpg")
 ```
@@ -328,10 +346,25 @@ Collapsing the particles will also make a particle size plot appear in the summa
 knitr::include_graphics("app/particle_size.jpg")
 ```
 
-Whatever selection you have active will inform how your spectra is
-thresholded. It should get thresholded in coincidence with what you see on the
-spectral map. Pro tip: The file that gets downloaded is an OpenSpecy with median spectra for each of your thresholded particles. You can upload that back to the
-app and analyze that independently.
+Threshold source and collapse strategy are separate choices. A signal/noise-only
+connected strategy forms particles from adjacent pixels that pass the
+spatial-only signal/noise mask. A correlation-only strategy processes and
+identifies pixels once, removes matches below the threshold, and forms connected
+regions only between adjacent pixels with the same material identity. Selecting
+both applies the signal/noise mask first and then the same one-pass correlation
+logic. Rejected pixels appear black in every map view.
+Because this path deliberately does not identify a second time, each collapsed
+unit's Top Matches are the strongest retained correlations from its member
+pixels, not newly calculated correlations of the collapsed spectrum. The
+**All** download includes the source pixel for each retained unit match.
+
+**Spectral clusters within region** uses PCA followed by K-means to subdivide
+each eligible connected/material region. **Non-spatial spectral clusters** uses
+PCA plus K-means without requiring adjacency. PCA components and K are 10 by
+default and are clamped to what the current data can support; the app reports
+the effective values. Area filtering happens after groups are formed. The
+downloaded `OpenSpecy` contains one collapsed spectrum per retained unit and
+membership metadata that maps its source pixels.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download_threshold.jpg")
@@ -387,9 +420,14 @@ faster for interactive work. Full searches all 40k-plus reference spectra and
 remains available in the local app when that additional detail is worth the
 longer first calculation. Multinomial uses a trained classification model.
 
-**Threshold Correlation** will set the minimum value from matching to use as a
-'positive identification' this will black out pixels in a spectral map view if
-they are lower than the threshold and will reset identification values to unknown in downloaded results.
+**Threshold Correlation** sets the minimum value used for a positive
+identification. Scores exactly equal to the minimum pass; lower or non-finite
+scores are blacked out in a spectral map and labeled unknown in downloads.
+
+**Top N** controls how many ranked library matches the app retains per spectrum
+and defaults to 10. Matching works in bounded blocks and discards all other
+correlations immediately. The Matches table and Top Matches download use this
+same compact result, so neither view starts another identification pass.
 
 ## Matches
 
@@ -410,8 +448,13 @@ spectrum may not be the best match.
 
 ## Download Top Matches
 
-To download the top matches and associated metadata, use the top matches
-download option. Top N controls the number of top matches to provide for each spectrum and Columns to Save will just save the simplest metadata for interpretation if set to simple or everything if set to all. When quantification is on, saved area and peak ratios, single-region areas, single-wavenumber intensities, and processed-spectrum provenance are included with the match metadata.
+To download the top matches and associated metadata, use the Top Matches
+download option. The download cannot include more rows per spectrum than the
+current Identification **Top N** value. **Columns to Save** writes either the
+simplest interpretation fields or all available metadata. When quantification
+is on, saved area and peak ratios, single-region areas, single-wavenumber
+intensities, and processed-spectrum provenance are included with the match
+metadata.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download.jpg")

@@ -672,7 +672,7 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_true(any(grepl("topMatches.elapsed", local_smoke,
                         fixed = TRUE)))
   expect_true(any(grepl('"CA small UF.dat"', local_smoke, fixed = TRUE)))
-  expect_true(any(grepl("toHaveLength(209)", local_smoke,
+  expect_true(any(grepl("toHaveLength(2081)", local_smoke,
                         fixed = TRUE)))
 })
 

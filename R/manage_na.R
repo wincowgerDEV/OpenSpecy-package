@@ -87,6 +87,17 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
                                 type = "ignore", ...) {
   x <- as_OpenSpecy(x)
 
+  if (type == "remove") {
+    consistent <- .rows_without_ignored_values(
+      x$spectra,
+      lead_tail_only = lead_tail_only,
+      ig = ig
+    )
+    x$wavenumber <- x$wavenumber[consistent]
+    x$spectra <- x$spectra[consistent, , drop = FALSE]
+    return(x)
+  }
+
   ignored_info <- .spectra_ignore_info(
     x$spectra,
     lead_tail_only = lead_tail_only,
@@ -142,13 +153,48 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
     }
   }
 
-  if(type == "remove"){
-    consistent <- rowSums(ignored) == 0
-    x$wavenumber <- x$wavenumber[consistent]
-    x$spectra <- x$spectra[consistent, , drop = FALSE]
+  return(x)
+}
+
+.rows_without_ignored_values <- function(spectra, lead_tail_only = TRUE,
+                                         ig = c(NA)) {
+  n_wavenumber <- nrow(spectra)
+  if (n_wavenumber == 0L) return(logical())
+
+  row_is_valid <- function(index) {
+    !.ignored_value_vector(spectra[index, ], ig)
   }
 
-  return(x)
+  if (!lead_tail_only) {
+    return(vapply(seq_len(n_wavenumber), function(index) {
+      all(row_is_valid(index))
+    }, FUN.VALUE = logical(1)))
+  }
+
+  seen <- logical(ncol(spectra))
+  first <- NA_integer_
+  for (index in seq_len(n_wavenumber)) {
+    seen <- seen | row_is_valid(index)
+    if (all(seen)) {
+      first <- index
+      break
+    }
+  }
+  if (is.na(first)) return(rep(FALSE, n_wavenumber))
+
+  seen[] <- FALSE
+  last <- NA_integer_
+  for (index in rev(seq_len(n_wavenumber))) {
+    seen <- seen | row_is_valid(index)
+    if (all(seen)) {
+      last <- index
+      break
+    }
+  }
+
+  keep <- rep(FALSE, n_wavenumber)
+  if (!is.na(last) && first <= last) keep[first:last] <- TRUE
+  keep
 }
 
 .spectra_ignore_info <- function(spectra, lead_tail_only = TRUE, ig = c(NA)) {
@@ -199,6 +245,18 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
       matched[is.na(matched)] <- FALSE
       ignored <- ignored | matched
     }
+  }
+  ignored
+}
+
+.ignored_value_vector <- function(values, ig = c(NA)) {
+  ignored <- if (anyNA(ig)) is.na(values) else rep(FALSE, length(values))
+
+  exact_values <- ig[!is.na(ig)]
+  for (value in exact_values) {
+    matched <- values == value
+    matched[is.na(matched)] <- FALSE
+    ignored <- ignored | matched
   }
   ignored
 }
