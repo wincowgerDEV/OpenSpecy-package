@@ -84,11 +84,41 @@
 
 - **R11 target not met.** Measured 386s (real browser) vs. the 240s target, down from ~500s. Remaining cost is dominated by `tcrossprod` correlation matching (~92s, `R/match_spec.R`, scales with query-pixel count x library size -- inherent to the correlation-threshold strategy's per-pixel identification pass) and file upload/read/correction overhead (~100s for a 313MB/183k-pixel file). Block-size tuning (100->1,000) did not measurably help, confirming the cost is FLOP-bound, not chunking-overhead-bound. Further reduction would need either a scientific-behavior change (e.g., skipping some preprocessing step in the per-pixel identification pass) that needs explicit sign-off, or more package-level vectorization in a follow-on tranche.
 - R8 (tab-box collapse on re-click) is reverted, not shipped; the DOM/JS interaction with bs4Dash's own tab-switch handling needs dedicated investigation time this tranche didn't have left.
-- No GitHub token/`gh` CLI available in this environment, so CI logs and wasm artifacts can't be pulled directly; the actual `deploy-shinylive.yml` run on push is the first real confirmation this fix is sufficient.
-- Raw `& playwright.cmd test <file>` invocations intermittently failed with a `test.beforeAll()` "did not expect" error unrelated to file content (reproduced even on a trivial file); routing through `quality-gates.ps1` (which the working test suite already used successfully all session) avoided it every time. Cause not root-caused; flagging so a future session doesn't lose time on it.
-- R12 (click-to-spectra latency) was not independently re-timed after the R11 fixes in a real browser; the `CLICK_TO_SETTLE_MS_APPROX` probe from the temporary timing test read ~5.1s, but that measurement's methodology (a `waitForFunction` polling a nonexistent property) was not rigorous enough to trust -- worth a dedicated, real timing check.
+- No GitHub token/`gh` CLI here, so CI logs/wasm artifacts can't be pulled directly; the `deploy-shinylive.yml` run on push is the first real confirmation.
+- Raw `& playwright.cmd test <file>` intermittently failed with an unrelated `test.beforeAll()` error (even on a trivial file); `quality-gates.ps1` avoided it every time -- not root-caused, flagging for a future session.
+- R12 (click-to-spectra latency) not rigorously re-timed in a real browser; a crude probe read ~5.1s but its methodology wasn't trustworthy.
+
+## Round 2: Real-Usage Follow-Up (same tranche, user-reported after live testing)
+
+- **R13 (critical).** R in `tryCatch()`: `return()` inside `expr` exits the
+  *enclosing function*, not just the tryCatch call, so `result$settings <-
+  run_settings` placed after the `tryCatch()` call was dead code on every
+  branch except one (collapse + Threshold Correlation, success). Most real
+  runs had `canonical_state()$settings == NULL`, silently breaking most of
+  R5's fixes (particle-size histogram blocked by `req()`, Map Color/
+  download gating defaulting to "not collapsed"). Fixed by attaching
+  `settings = run_settings` at every actual return point (`unavailable()`
+  plus five direct `return(list(...))` calls) instead.
+- R14. Added **Signal/Noise Basis** (Raw/Spatially Smoothed vs. Fully
+  Processed) controlling what data decides collapse eligibility, plus a
+  **Recalculate Preview** button so the Signal/Noise histogram only
+  recomputes on Run/click (dims when stale), not live on every settings
+  change. `canonical_signal_noise()`/the figures-download ZIP now read the
+  same Run-gated preview instead of live `signal_to_noise()`.
+- R15. Fixed a `filter_spec()` "zero spectra" crash clicking a
+  collapse-rejected pixel: `RawR_plot()` had no NA/out-of-range guard
+  (unlike `DataR_plot()`, which already flat-lines); now mirrors it.
+- **Investigated, not changed:** the user's real settings (S/N threshold
+  0.01 sig-times-noise, Threshold Correlation off, "Connected threshold
+  regions") merge nearly every eligible pixel into ONE particle (confirmed
+  84/208 -> 1 on a fixture) because that strategy has no material grouping
+  without Threshold Correlation -- documented design, not a bug, but the
+  likely source of "particle spectrum looks like noise." A material-aware
+  mode not requiring Threshold Correlation needs a scientific-design call.
+- Full local Playwright suite (4/4) and full `devtools::test()` rerun clean
+  after every fix in this round.
 
 ## Approval Notes
 
 - Approved by: Win Cowger (auto-accepted per explicit request to auto-accept and implement)
-- Follow-up: (1) R8 tab-collapse-on-reclick needs dedicated DOM investigation. (2) R11's remaining ~146s gap needs either a product decision on preprocessing scope for the per-pixel identification pass, or more `R/` vectorization work, scoped as its own tranche. (3) R12 needs a rigorous real-browser click-latency measurement.
+- Follow-up: (1) R8 tab-collapse-on-reclick needs dedicated DOM investigation. (2) R11's remaining ~146s gap needs either a product decision on preprocessing scope for the per-pixel identification pass, or more `R/` vectorization work, scoped as its own tranche. (3) R12 needs a rigorous real-browser click-latency measurement. (4) Whether "Connected threshold regions" should gain material-aware grouping without requiring Threshold Correlation (Round 2 finding).

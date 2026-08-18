@@ -1,5 +1,32 @@
 # OpenSpecy 1.7.1
 
+- Fixed a bug in `canonical_state_gate`'s Run-gated result where `return()`
+  inside `tryCatch()` exits the enclosing reactive directly, silently
+  skipping the settings snapshot the previous entry's fixes attached after
+  the `tryCatch()` call -- on every code path except one (collapse with
+  Threshold Correlation on and a successful result), `canonical_state()`'s
+  settings were `NULL`, so the heatmap/plot/download fixes below were
+  silently inert whenever Threshold Correlation was off. Settings are now
+  attached at every actual return point instead. This also fixes the
+  particle-size histogram never rendering when collapsed (its `req()` on
+  the missing settings blocked it silently) and the Map Color selector/
+  particle-summary gating for the same reason.
+- Added a **Signal/Noise Basis** choice (Raw / Spatially Smoothed, the
+  previous default; or Fully Processed, which also applies every other
+  enabled preprocessing step to each pixel before scoring it) that decides
+  which pixels are eligible for particle collapsing. The Signal/Noise
+  histogram preview no longer recomputes live on every settings change
+  (which could re-run spatial smoothing or, with Fully Processed, full
+  preprocessing, before Run was ever clicked); it now only updates on Run
+  or a new **Recalculate Preview** button in the Threshold Signal/Noise
+  box, and dims when the basis, Spatial Smooth, or thresholding settings
+  have changed since its last computation. The memory preflight advisory
+  no longer runs a live spatial smooth either (uses the raw upload's
+  dimensions only, which is all it ever needed).
+- Fixed a `filter_spec()` "zero spectra" error when clicking a
+  collapse-rejected/background pixel: the raw-spectrum overlay reactive had
+  no fallback for an invalid selection (unlike the processed-spectrum
+  reactive, which already flat-lines correctly); it now does the same.
 - Fixed the Run-gated reactivity the previous entry introduced: the heatmap,
   particle/material plots, correlation and signal/noise histograms, download
   type list, and progress-bar summaries now read only the settings captured

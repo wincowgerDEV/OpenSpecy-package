@@ -2106,6 +2106,7 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
     "identification_active", "id_spec_type", "id_strategy", "lib_type",
     "top_n_input", "filter_lib", "lib_org", "threshold_decision",
+    "signal_basis",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
     "spatial_decision", "sigma", "xy_grid",
     "collapse_decision",

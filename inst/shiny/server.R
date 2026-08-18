@@ -1018,16 +1018,29 @@ observeEvent(input$file, {
     if(length(value) != 1L || is.na(value)) -Inf else value
   })
 
-  # S/N is intentionally calculated from only the uploaded spectra plus the
-  # optional spatial smooth. It never depends on baseline, derivative, range,
-  # normalization, particle collapse, or identification settings.
-  signal_to_noise <- reactive({
+  # S/N Basis defaults to only the uploaded spectra plus the optional spatial
+  # smooth (fast; independent of baseline, derivative, range, normalization,
+  # particle collapse, or identification settings). Signal/Noise Basis =
+  # "Fully Processed" instead runs every other enabled preprocessing step on
+  # each pixel first, at real cost on a large map -- deliberately not the
+  # default. Either way, this decides collapse eligibility (signal_eligible()
+  # below), not what data particles collapse from.
+  signal_to_noise_basis <- reactive({
     req(!is.null(preprocessed$data))
+    if(identical(input$signal_basis, "fully_processed")) {
+      ordinary_process(spatial_data())
+    } else {
+      spatial_data()
+    }
+  })
+
+  signal_to_noise <- reactive({
+    basis <- signal_to_noise_basis()
     values <- sig_noise(
-      spatial_data(), step = 10,
+      basis, step = 10,
       metric = effective_signal_selection(), abs = FALSE
     )
-    names(values) <- colnames(spatial_data()$spectra)
+    names(values) <- colnames(basis$spectra)
     values
   })
 
@@ -1037,6 +1050,52 @@ observeEvent(input$file, {
     keep[is.na(keep)] <- FALSE
     if(!isTRUE(input$threshold_decision)) keep[] <- TRUE
     keep
+  })
+
+  # The Signal/Noise histogram preview is expensive to keep live (it can run
+  # the full "Fully Processed" basis, or a spatial smooth, over the whole
+  # map) and re-triggering it on every settings change is exactly the
+  # flicker-before-Run pattern the rest of this file avoids. It only
+  # recomputes on Run or an explicit "Recalculate Preview" click, and dims
+  # (via a signature comparison) whenever the settings it depends on have
+  # since changed.
+  snr_preview <- reactiveVal(NULL)
+  snr_preview_signature <- reactiveVal(NULL)
+  snr_relevant_signature <- reactive({
+    list(
+      signal_basis = input$signal_basis, spatial_decision = input$spatial_decision,
+      sigma = input$sigma, signal_selection = input$signal_selection,
+      threshold_decision = input$threshold_decision,
+      MinSNR = input$MinSNR, MaxSNR = input$MaxSNR
+    )
+  })
+  recalculate_snr_preview <- function() {
+    if(is.null(preprocessed$data)) return(invisible(NULL))
+    snr_preview(signal_to_noise())
+    snr_preview_signature(snr_relevant_signature())
+  }
+  # Priority matches canonical_state_gate: canonical_signal_noise() below
+  # reads snr_preview() and is itself read by default-priority gates
+  # (quantified_data_gate and friends), so it must be populated before
+  # those run on the same Run click.
+  observeEvent(
+    input$run_analysis, recalculate_snr_preview(),
+    priority = RUN_GATE_PRIORITY_CANONICAL
+  )
+  observeEvent(input$recalculate_snr, recalculate_snr_preview(), ignoreInit = TRUE)
+  observeEvent(input$file, {
+    snr_preview(NULL)
+    snr_preview_signature(NULL)
+  }, ignoreInit = TRUE)
+  snr_preview_stale <- reactive({
+    is.null(snr_preview_signature()) ||
+      !identical(snr_preview_signature(), snr_relevant_signature())
+  })
+  observe({
+    shinyjs::toggleClass(
+      id = "snr_preview_container", class = "openspecy-preview-stale",
+      condition = isTRUE(snr_preview_stale())
+    )
   })
 
   particle_pipeline_enabled <- reactive({
@@ -1266,7 +1325,7 @@ observeEvent(input$file, {
                               pixel_matches = NULL) list(
         object = NULL, matches = NULL, pixel_matches = pixel_matches,
         pixel_to_unit = mapping, partition = partition, error = NULL,
-        diagnostic = message
+        diagnostic = message, settings = run_settings
       )
 
       mapping_match_fields <- function(mapping, source_ids, matches) {
@@ -1294,7 +1353,8 @@ observeEvent(input$file, {
         return(list(
           object = processed, matches = matches, pixel_matches = matches,
           pixel_to_unit = identity_pixel_mapping(processed, signal_eligible()),
-          partition = NULL, error = NULL, diagnostic = NULL
+          partition = NULL, error = NULL, diagnostic = NULL,
+          settings = run_settings
         ))
       }
 
@@ -1377,7 +1437,8 @@ observeEvent(input$file, {
             object = processed_clusters, matches = matches,
             pixel_matches = cluster_matches,
             pixel_to_unit = full_cluster_mapping,
-            partition = cluster_partition, error = NULL, diagnostic = NULL
+            partition = cluster_partition, error = NULL, diagnostic = NULL,
+            settings = run_settings
           ))
         }
 
@@ -1418,7 +1479,8 @@ observeEvent(input$file, {
         return(list(
           object = final_object, matches = matches,
           pixel_matches = cluster_matches, pixel_to_unit = final_mapping,
-          partition = cluster_partition, error = NULL, diagnostic = NULL
+          partition = cluster_partition, error = NULL, diagnostic = NULL,
+          settings = run_settings
         ))
       }
 
@@ -1440,7 +1502,7 @@ observeEvent(input$file, {
         return(list(
           object = processed, matches = matches, pixel_matches = NULL,
           pixel_to_unit = partition$pixel_to_unit, partition = partition,
-          error = NULL, diagnostic = NULL
+          error = NULL, diagnostic = NULL, settings = run_settings
         ))
       }
 
@@ -1577,7 +1639,12 @@ observeEvent(input$file, {
   canonical_signal_noise <- reactive({
     object <- canonical_final()
     mapping <- canonical_state()$pixel_to_unit
-    pixel_values <- signal_to_noise()
+    # snr_preview() (Run-gated) instead of live signal_to_noise(): the final
+    # object and its pixel_to_unit mapping only change on Run, so the S/N
+    # values attached to it must come from that same Run, not whatever the
+    # Signal/Noise Basis/thresholding inputs currently say.
+    pixel_values <- snr_preview()
+    req(!is.null(pixel_values))
     ids <- colnames(object$spectra)
     if(is.null(mapping)) {
       values <- pixel_values[match(ids, names(pixel_values))]
@@ -1797,6 +1864,11 @@ observeEvent(input$file, {
       selected <- if(isTRUE(canonical_state()$settings$collapse)) {
         data_click$pixel
       } else data_click$plot
+      selected <- suppressWarnings(as.integer(selected))
+      if(length(selected) != 1L || is.na(selected) ||
+         selected < 1L || selected > ncol(uploaded$spectra)) {
+        return(app_rejected_spectrum(uploaded$wavenumber))
+      }
       filter_spec(
         uploaded,
         logic = seq_len(ncol(uploaded$spectra)) == selected
@@ -1997,11 +2069,13 @@ output$snr_plot_ui <- renderUI({
 
 output$snr_plot <- renderPlotly({
     req(!is.null(preprocessed$data))
+    values <- snr_preview()
+    req(!is.null(values))
     thresholds <- if(isTRUE(input$threshold_decision)) {
       c(MinSNR(), MaxSNR())
     } else numeric()
     app_particle_plotly(list(
-      type = "histogram", values = as.numeric(signal_to_noise()),
+      type = "histogram", values = as.numeric(values),
       thresholds = thresholds, xlab = "Signal/Noise"
     ), source = "snr_histogram")
 })
@@ -2714,7 +2788,7 @@ output$progress_bars <- renderUI({
           } else numeric()
           path <- file.path(archive_root, "signal_noise_histogram.png")
           app_write_ggplot_png(app_histogram_ggplot(
-            signal_to_noise(), sn_thresholds, "Signal/Noise"
+            snr_preview(), sn_thresholds, "Signal/Noise"
           ), path)
           files <- c(files, path)
 

@@ -257,6 +257,14 @@ identification_controls <- tagList(
 advanced_controls <- tagList(
   app_control_box(
     "threshold_decision", "Threshold Signal / Noise", FALSE,
+    selectInput(
+      "signal_basis", "Signal/Noise Basis",
+      choices = c(
+        "Raw / Spatially Smoothed" = "raw_smoothed",
+        "Fully Processed" = "fully_processed"
+      ),
+      selected = "raw_smoothed"
+    ),
     fluidRow(
       column(
         6,
@@ -275,11 +283,28 @@ advanced_controls <- tagList(
         "Total Signal" = "log_tot_sig"
       )
     ),
-    div(class = "openspecy-mini-plot", uiOutput("snr_plot_ui")),
+    div(
+      id = "snr_preview_container",
+      class = "openspecy-mini-plot",
+      div(
+        class = "openspecy-snr-preview-header",
+        actionButton(
+          "recalculate_snr", "Recalculate Preview",
+          icon = icon("rotate"), class = "btn-sm openspecy-recalculate-button",
+          title = paste(
+            "Recompute the Signal/Noise Basis and preview histogram for the",
+            "current settings without running the full analysis."
+          )
+        )
+      ),
+      uiOutput("snr_plot_ui")
+    ),
     note = c(
+      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses only the uploaded spectra plus optional Spatial Smooth (fast, the previous default); Fully Processed additionally applies every other enabled preprocessing step to each pixel first (slower, but excludes pixels whose apparent signal is a raw-data or baseline artifact).",
       "Minimum and Maximum Value define a strict accepted interval on the selected metric scale: values must be greater than the minimum and less than the maximum. The histogram draws both current thresholds.",
       "Signal Over Noise is a local peak-to-noise ratio, Signal Times Noise emphasizes absolute response, and Total Signal sums intensity. Larger values are not interchangeable between metrics.",
-      "Pixels outside either bound are background. The default maximum is deliberately high; lower it when saturated or unusually intense pixels must be excluded."
+      "Pixels outside either bound are background. The default maximum is deliberately high; lower it when saturated or unusually intense pixels must be excluded.",
+      "The preview histogram only updates on Run or Recalculate Preview; it dims when Signal/Noise Basis, Spatial Smooth, or the thresholding settings above have changed since the last computation."
     )
   ),
   app_control_box(
@@ -1167,6 +1192,17 @@ dashboardPage(
         }
         .openspecy-plot-frame { padding: 8px; margin: 8px 0 16px; }
         .openspecy-mini-plot { margin-top: 8px; }
+        .openspecy-snr-preview-header {
+          display: flex;
+          justify-content: flex-end;
+          padding: 6px 6px 0;
+        }
+        .btn.openspecy-recalculate-button {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-border) !important;
+        }
+        .openspecy-preview-stale { opacity: .35; }
         .openspecy-upload-status {
           display: block;
           min-height: 1.4em;

@@ -729,7 +729,7 @@ app_user_metadata_input_ids <- c(
   "identification_active", "id_spec_type", "id_strategy", "lib_type",
   "top_n_input", "filter_lib", "lib_org",
   # Advanced
-  "threshold_decision", "MinSNR", "MaxSNR",
+  "threshold_decision", "signal_basis", "MinSNR", "MaxSNR",
   "signal_selection",
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
   "xy_grid", "collapse_decision", "collapse_type", "particle_id_strategy",
