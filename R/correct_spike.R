@@ -515,12 +515,35 @@ correct_spike.OpenSpecy <- function(
 .detect_residual_spikes <- function(x, ids, parameters) {
   records <- list()
   record_index <- 0L
-  for (spectrum_index in seq_len(ncol(x$spectra))) {
-    metrics <- .local_residual_metrics(
-      x$wavenumber,
-      x$spectra[, spectrum_index],
-      window = parameters$residual_window
+  n_spectra <- ncol(x$spectra)
+  window <- parameters$residual_window
+  n_wavenumbers <- nrow(x$spectra)
+  # The batched path shares every index computation (chord/neighbor
+  # offsets) across all spectra in one call instead of paying that setup
+  # cost per spectrum; it requires the same all-finite precondition as the
+  # per-spectrum fast path in .local_residual_metrics(). One spectrum has no
+  # per-call overhead worth batching.
+  batched <- NULL
+  if (n_spectra > 1L && n_wavenumbers > 2L * window &&
+      all(is.finite(x$spectra)) && all(is.finite(x$wavenumber))) {
+    batched <- .local_residual_metrics_matrix(
+      x$wavenumber, x$spectra, window = window
     )
+  }
+  for (spectrum_index in seq_len(n_spectra)) {
+    metrics <- if (is.null(batched)) {
+      .local_residual_metrics(
+        x$wavenumber,
+        x$spectra[, spectrum_index],
+        window = window
+      )
+    } else {
+      list(
+        predicted = batched$predicted[, spectrum_index],
+        residual = batched$residual[, spectrum_index],
+        score = batched$score[, spectrum_index]
+      )
+    }
     selected <- switch(
       parameters$direction,
       both = abs(metrics$score) >= parameters$residual_threshold,
@@ -741,6 +764,100 @@ correct_spike.OpenSpecy <- function(
     numerical_floor
   )
   score[centers] <- (residual[centers] - local_center) / denominator
+  list(predicted = predicted, residual = residual, score = score)
+}
+
+# Batched form of .local_residual_metrics_complete() across every column of
+# a full spectra matrix at once. A large map/batch upload calls the
+# per-spectrum version thousands of times per correction pass (and
+# correct_spike() re-detects on the whole matrix every pass), so per-call
+# allocation/outer() overhead dominates runtime long before the underlying
+# math does. Every shared index (centers, chord left/right offsets,
+# neighbor offsets) depends only on `n` and `window`, not on `values`, so
+# this computes them once and reuses matrixStats row/col reducers across
+# all columns instead of one small matrix per spectrum. Output is
+# numerically identical to calling .local_residual_metrics_complete() on
+# each column separately (verified in benchmarks/spike_correction.R).
+.local_residual_metrics_matrix <- function(axis, values, window) {
+  n <- nrow(values)
+  p <- ncol(values)
+  predicted <- residual <- score <- matrix(NA_real_, n, p)
+  centers <- seq.int(window + 1L, n - window)
+  n_centers <- length(centers)
+  if (n_centers == 0L) return(list(predicted = predicted, residual = residual,
+                                    score = score))
+
+  chord_predictions <- matrix(
+    NA_real_, nrow = n_centers * p, ncol = window * window
+  )
+  column <- 0L
+  for (left_offset in rev(seq_len(window))) {
+    left <- centers - left_offset
+    for (right_offset in seq_len(window)) {
+      right <- centers + right_offset
+      column <- column + 1L
+      weight <- (axis[centers] - axis[left]) / (axis[right] - axis[left])
+      block <- values[left, , drop = FALSE] + sweep(
+        values[right, , drop = FALSE] - values[left, , drop = FALSE],
+        1L, weight, `*`
+      )
+      chord_predictions[, column] <- as.vector(block)
+    }
+  }
+  predicted[centers, ] <- matrix(
+    matrixStats::rowMedians(chord_predictions), n_centers, p
+  )
+  residual[centers, ] <- values[centers, , drop = FALSE] -
+    predicted[centers, , drop = FALSE]
+
+  centers_residual <- residual[centers, , drop = FALSE]
+  global_center <- matrixStats::colMedians(centers_residual)
+  global_scale <- matrixStats::colMedians(
+    abs(sweep(centers_residual, 2L, global_center, `-`))
+  ) * 1.4826
+  intensity_scale <- pmax(matrixStats::colMaxs(abs(values)), 1)
+  numerical_floor <- sqrt(.Machine$double.eps) * intensity_scale
+  global_scale[!is.finite(global_scale)] <- 0
+
+  scale_window <- max(2L * window, 5L)
+  offsets <- c(seq.int(-scale_window, -1L), seq_len(scale_window))
+  neighbor_indices <- outer(centers, offsets, `+`)
+
+  neighbor_big <- matrix(NA_real_, n_centers * p, length(offsets))
+  for (k in seq_along(offsets)) {
+    idx <- neighbor_indices[, k]
+    ok <- idx >= 1L & idx <= n
+    if (!any(ok)) next
+    sub <- residual[idx[ok], , drop = FALSE]
+    row_positions <- outer(which(ok), (seq_len(p) - 1L) * n_centers, `+`)
+    neighbor_big[as.vector(row_positions), k] <- as.vector(sub)
+  }
+  usable <- rowSums(is.finite(neighbor_big)) >= 3L
+
+  global_center_flat <- rep(global_center, each = n_centers)
+  global_scale_flat <- rep(global_scale, each = n_centers)
+  local_center_flat <- global_center_flat
+  local_scale_flat <- global_scale_flat
+  if (any(usable)) {
+    local_center_flat[usable] <- matrixStats::rowMedians(
+      neighbor_big[usable, , drop = FALSE], na.rm = TRUE
+    )
+    deviations <- abs(
+      neighbor_big[usable, , drop = FALSE] - local_center_flat[usable]
+    )
+    local_scale_flat[usable] <- matrixStats::rowMedians(
+      deviations, na.rm = TRUE
+    ) * 1.4826
+  }
+
+  numerical_floor_flat <- rep(numerical_floor, each = n_centers)
+  denominator_flat <- pmax(
+    local_scale_flat, global_scale_flat * 0.25, numerical_floor_flat
+  )
+  residual_flat <- as.vector(centers_residual)
+  score_flat <- (residual_flat - local_center_flat) / denominator_flat
+  score[centers, ] <- matrix(score_flat, n_centers, p)
+
   list(predicted = predicted, residual = residual, score = score)
 }
 

@@ -726,7 +726,7 @@ app_user_metadata_input_ids <- c(
   "range_artifact_ratio", "MinRange", "MaxRange", "co2_decision",
   "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
   # Identification
-  "id_spec_type", "id_strategy", "lib_type",
+  "identification_active", "id_spec_type", "id_strategy", "lib_type",
   "top_n_input", "filter_lib", "lib_org",
   # Advanced
   "threshold_decision", "MinSNR", "MaxSNR",

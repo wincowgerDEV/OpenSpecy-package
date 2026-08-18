@@ -43,6 +43,14 @@ function(input, output, session) {
   quantification_axis <- reactiveVal(NULL)
   quality_modal_observers <- new.env(parent = emptyenv())
 
+  # .match_spec_blockwise() computes and discards one library-by-block
+  # correlation matrix at a time so memory stays bounded regardless of query
+  # count; the result is identical for any block size. 1000 cuts per-block R
+  # loop/allocation overhead substantially versus the old 100 on large maps
+  # (tens of thousands of query pixels) while keeping peak memory for one
+  # block (library_count * block_size * 8 bytes) small.
+  identify_block_size <- 1000L
+
   # The Run button is the single trigger for the full analysis tranche; it is
   # enabled purely by upload completion (preprocessed$data becoming non-NULL)
   # and is not gated by any other setting.
@@ -54,11 +62,24 @@ function(input, output, session) {
   # Run is clicked, rather than a plain bindEvent()-wrapped reactive, so that
   # a fresh upload can explicitly clear it back to "not yet analyzed" instead
   # of continuing to show the previous dataset's results until the next Run.
-  run_gated_reactive <- function(compute) {
+  #
+  # Every gate below registers its own observeEvent(input$run_analysis, ...).
+  # Shiny gives no ordering guarantee between independent observers bound to
+  # the same input, but downstream gates (quantified_data_gate and friends)
+  # call canonical_final()/DataR(), which reads canonical_state_gate's cache
+  # and the reset flag cleared below. `priority` makes that dependency
+  # explicit and deterministic instead of racing: higher priority runs
+  # first. RUN_GATE_PRIORITY_RESET (highest) clears the reset flag before any
+  # gate computes; RUN_GATE_PRIORITY_CANONICAL populates canonical_state
+  # before any gate that reads it.
+  RUN_GATE_PRIORITY_RESET <- 20L
+  RUN_GATE_PRIORITY_CANONICAL <- 10L
+  RUN_GATE_PRIORITY_DEFAULT <- 0L
+  run_gated_reactive <- function(compute, priority = RUN_GATE_PRIORITY_DEFAULT) {
     cache <- reactiveVal(NULL)
     observeEvent(input$run_analysis, {
       cache(compute())
-    })
+    }, priority = priority)
     structure(list(read = function() cache(), clear = function() cache(NULL)),
               class = "openspecy_run_gate")
   }
@@ -77,11 +98,61 @@ function(input, output, session) {
   observeEvent(input$run_analysis, {
     analysis_dirty(FALSE)
     analysis_needs_reset(FALSE)
-  })
+  }, priority = RUN_GATE_PRIORITY_RESET)
   observe({
     shinyjs::toggleClass(
       "run_analysis", "openspecy-run-dirty", condition = isTRUE(analysis_dirty())
     )
+  })
+
+  # One "Turn All On/Off" button per settings tab that has switches. The
+  # label names the action the click will take (based on whether every
+  # switch in the tab is already on), not the current state.
+  app_tab_switch_ids <- list(
+    preprocessing = c(
+      "make_rel_decision", "smooth_decision", "conform_decision",
+      "intensity_decision", "baseline_decision", "range_decision",
+      "co2_decision", "spike_decision", "saturation_decision"
+    ),
+    identification = c("identification_active", "filter_lib"),
+    advanced = c(
+      "threshold_decision", "cor_threshold_decision", "spatial_decision",
+      "xy_grid", "collapse_decision"
+    )
+  )
+  app_render_tab_all_toggle <- function(tab) {
+    ids <- app_tab_switch_ids[[tab]]
+    values <- vapply(ids, function(id) isTRUE(input[[id]]), logical(1))
+    turn_on <- !all(values)
+    actionButton(
+      paste0(tab, "_all_toggle"),
+      if(turn_on) "Turn All On" else "Turn All Off",
+      icon = icon(if(turn_on) "toggle-on" else "toggle-off"),
+      class = "btn-sm openspecy-tab-all-toggle",
+      title = paste0(
+        if(turn_on) "Turn on every switch " else "Turn off every switch ",
+        "in this tab."
+      )
+    )
+  }
+  lapply(names(app_tab_switch_ids), function(tab) {
+    output[[paste0(tab, "_all_toggle")]] <- renderUI(
+      app_render_tab_all_toggle(tab)
+    )
+    outputOptions(output, paste0(tab, "_all_toggle"), suspendWhenHidden = FALSE)
+    observeEvent(input[[paste0(tab, "_all_toggle")]], {
+      ids <- app_tab_switch_ids[[tab]]
+      turn_on <- !all(vapply(ids, function(id) isTRUE(input[[id]]), logical(1)))
+      for(id in ids) shinyWidgets::updatePrettySwitch(session, id, value = turn_on)
+    }, ignoreInit = TRUE)
+  })
+
+  observe({
+    active <- isTRUE(input$identification_active)
+    shinyjs::toggleState("id_spec_type", condition = active)
+    shinyjs::toggleState("id_strategy", condition = active)
+    shinyjs::toggleState("lib_type", condition = active)
+    shinyjs::toggleState("top_n_input", condition = active)
   })
 
   observeEvent(input$range_automate, {
@@ -1011,12 +1082,12 @@ observeEvent(input$file, {
         "Comparing ", format(ncol(object$spectra), big.mark = ","),
         " spectrum", if(ncol(object$spectra) == 1L) "" else "s",
         " with ", format(ncol(reference$spectra), big.mark = ","),
-        " references in blocks of 100."
+        " references in blocks of ", format(identify_block_size, big.mark = ","), "."
       ),
       76
     )
     OpenSpecy:::.match_spec_blockwise(
-      object, reference, top_n = top_n_value(), block_size = 100L,
+      object, reference, top_n = top_n_value(), block_size = identify_block_size,
       conform = FALSE, type = "roll"
     )
   }
@@ -1055,18 +1126,25 @@ observeEvent(input$file, {
     object
   }
 
-  identity_pixel_mapping <- function(object) {
+  # `eligible` marks pixels that fail the enabled signal/noise threshold.
+  # They remain real columns in `object` (nothing is filtered out here,
+  # unlike the collapse paths), but a NA `unit_index` keeps a click on one
+  # from resolving to a valid spectrum, so it flat-lines like a rejected
+  # collapsed particle instead of silently ignoring the threshold.
+  identity_pixel_mapping <- function(object, eligible = NULL) {
     metadata <- data.table::as.data.table(object$metadata)
     ids <- colnames(object$spectra)
+    eligible <- if(is.null(eligible)) rep(TRUE, length(ids)) else eligible
     data.table::data.table(
       pixel_index = seq_along(ids), pixel_id = ids,
       source_id = OpenSpecy:::.particle_source_vector(metadata, length(ids)),
       x = if("x" %in% names(metadata)) metadata$x else seq_along(ids) - 1,
       y = if("y" %in% names(metadata)) metadata$y else 0,
-      eligible = TRUE, material = NA_character_, region_id = ids,
+      eligible = eligible, material = NA_character_, region_id = ids,
       cluster_id = NA_character_, unit_id = ids,
-      unit_index = seq_along(ids), area = 1L, kept = TRUE,
-      rejection_reason = NA_character_
+      unit_index = ifelse(eligible, seq_along(ids), NA_integer_),
+      area = 1L, kept = eligible,
+      rejection_reason = ifelse(eligible, NA_character_, "threshold")
     )
   }
 
@@ -1114,10 +1192,14 @@ observeEvent(input$file, {
     clustered <- particle_pipeline_enabled() &&
       input$particle_id_strategy %in%
         c("partial_collapse", "nonspatial_collapse")
+    # Memory only depends on object dimensions/size, not spectral values, so
+    # this reads the raw upload directly instead of spatial_data(). Reading
+    # spatial_data() here would run the (potentially expensive) spatial
+    # smooth as a side effect of this purely advisory, pre-Run estimate.
     tryCatch(
       OpenSpecy:::.app_memory_preflight(
-        spatial_data(), library_size = library_size,
-        top_n = top_n_value(), block_size = 100L,
+        preprocessed$data, library_size = library_size,
+        top_n = top_n_value(), block_size = identify_block_size,
         pca_components = if(clustered) particle_pca_components() else 0L,
         clusters = if(clustered) particle_cluster_k() else 0L
       ),
@@ -1149,24 +1231,36 @@ observeEvent(input$file, {
   # mapping used only to project unit results back onto the map.
   canonical_state_gate <- run_gated_reactive(function() {
     req(!is.null(preprocessed$data))
+    # Captured once per Run so every consumer (heatmap, plots, download
+    # list, summary panels) can tell what actually produced the current
+    # result instead of re-reading these settings live and drifting out of
+    # sync with canonical_state() until the next Run.
+    run_settings <- list(
+      collapse = particle_pipeline_enabled(),
+      strategy = input$particle_id_strategy,
+      threshold_active = isTRUE(input$threshold_decision),
+      correlation_active = particle_pipeline_enabled() &&
+        isTRUE(input$cor_threshold_decision),
+      min_snr = MinSNR(), max_snr = MaxSNR(), min_cor = MinCor()
+    )
     estimate <- memory_preflight()
     if(identical(estimate$status, "unsafe")) {
       return(list(
         object = NULL, matches = NULL, pixel_matches = NULL,
         pixel_to_unit = NULL, partition = NULL, error = NULL,
-        diagnostic = estimate$message
+        diagnostic = estimate$message, settings = run_settings
       ))
     }
 
     result <- tryCatch({
       spatial <- spatial_data()
-      use_library <- !identical(input$lib_type, "model")
-      collapse <- particle_pipeline_enabled()
-      strategy <- input$particle_id_strategy
+      use_library <- isTRUE(input$identification_active) &&
+        !identical(input$lib_type, "model")
+      collapse <- run_settings$collapse
+      strategy <- run_settings$strategy
       clustered <- collapse && strategy %in%
         c("partial_collapse", "nonspatial_collapse")
-      correlation_threshold <- collapse &&
-        isTRUE(input$cor_threshold_decision)
+      correlation_threshold <- run_settings$correlation_active
 
       unavailable <- function(message, mapping = NULL, partition = NULL,
                               pixel_matches = NULL) list(
@@ -1199,8 +1293,8 @@ observeEvent(input$file, {
         processed <- attach_best_matches(processed, matches)
         return(list(
           object = processed, matches = matches, pixel_matches = matches,
-          pixel_to_unit = identity_pixel_mapping(processed), partition = NULL,
-          error = NULL, diagnostic = NULL
+          pixel_to_unit = identity_pixel_mapping(processed, signal_eligible()),
+          partition = NULL, error = NULL, diagnostic = NULL
         ))
       }
 
@@ -1402,11 +1496,13 @@ observeEvent(input$file, {
       return(list(
         object = NULL, matches = NULL, pixel_matches = NULL,
         pixel_to_unit = NULL, partition = NULL,
-        error = conditionMessage(result), diagnostic = NULL
+        error = conditionMessage(result), diagnostic = NULL,
+        settings = run_settings
       ))
     }
+    result$settings <- run_settings
     result
-  })
+  }, priority = RUN_GATE_PRIORITY_CANONICAL)
   canonical_state <- reactive(canonical_state_gate$read())
 
   canonical_error_key <- reactiveVal(NULL)
@@ -1421,14 +1517,17 @@ observeEvent(input$file, {
   observeEvent(input$file, canonical_error_key(NULL), ignoreInit = TRUE)
 
   output$particle_partition_status <- renderUI({
-    if(!particle_pipeline_enabled()) return(NULL)
     state <- canonical_state()
+    if(is.null(state$partition)) return(NULL)
     if(!is.null(state$diagnostic)) {
       return(tags$p(class = "text-warning", state$diagnostic))
     }
-    settings <- if(!is.null(state$partition)) state$partition$settings else NULL
+    settings <- state$partition$settings
     if(is.null(settings)) return(NULL)
-    if(identical(input$particle_id_strategy, "collapse")) {
+    strategy <- if(is.null(settings$requested_strategy)) {
+      settings$strategy
+    } else settings$requested_strategy
+    if(identical(strategy, "collapse")) {
       retained <- unique(state$pixel_to_unit$unit_id[
         state$pixel_to_unit$kept & !is.na(state$pixel_to_unit$unit_id)
       ])
@@ -1449,7 +1548,7 @@ observeEvent(input$file, {
     tags$p(
       class = "text-muted",
       paste0(
-        if(identical(input$particle_id_strategy, "partial_collapse")) {
+        if(identical(strategy, "partial_collapse")) {
           "Spatial material-connected mode. "
         } else {
           "Non-spatial spectral-cluster mode. "
@@ -1695,8 +1794,9 @@ observeEvent(input$file, {
   RawR_plot <- reactive({
       req(!is.null(preprocessed$data))
       uploaded <- data()
-      selected <- if(particle_pipeline_enabled()) data_click$pixel else
-        data_click$plot
+      selected <- if(isTRUE(canonical_state()$settings$collapse)) {
+        data_click$pixel
+      } else data_click$plot
       filter_spec(
         uploaded,
         logic = seq_len(ncol(uploaded$spectra)) == selected
@@ -1712,6 +1812,7 @@ observeEvent(input$file, {
   #The output from the AI classification algorithm.
   ai_output_gate <- run_gated_reactive(function() { #tested working.
       req(!is.null(preprocessed$data))
+      req(isTRUE(input$identification_active))
       req(grepl("^model$", input$lib_type))
       analysis_phase(
         "Classifying spectra",
@@ -1773,15 +1874,15 @@ observeEvent(input$file, {
   })
 
   output$cor_plot <- renderPlotly({
-      pixel_matches <- canonical_state()$pixel_matches
-      values <- if(particle_pipeline_enabled() &&
-                   isTRUE(input$cor_threshold_decision) &&
+      state <- canonical_state()
+      pixel_matches <- state$pixel_matches
+      correlation_active <- isTRUE(state$settings$correlation_active)
+      values <- if(correlation_active &&
                    !is.null(pixel_matches) && nrow(pixel_matches)) {
         best_match_rows(pixel_matches)$match_val
       } else max_cor()
       req(!is.null(values), length(values))
-      thresholds <- if(isTRUE(input$cor_threshold_decision)) MinCor() else
-        numeric()
+      thresholds <- if(correlation_active) MinCor() else numeric()
       app_particle_plotly(list(
         type = "histogram", values = as.numeric(values),
         thresholds = thresholds, xlab = "Correlation"
@@ -1812,10 +1913,13 @@ observeEvent(input$file, {
               dplyr::rename(sample_name = library_id) %>%
               left_join(library_filtered()$metadata, by = c("sample_name")) %>%
               mutate(match_val = signif(match_val, 2)) %>%
-              {if(isTRUE(input$cor_threshold_decision)) {
-                mutate(., name = ifelse(match_val < MinCor(), "Unknown",
-                                        material_class))
-              } else .}
+              {
+                settings <- canonical_state()$settings
+                if(isTRUE(settings$correlation_active)) {
+                  mutate(., name = ifelse(match_val < settings$min_cor, "Unknown",
+                                          material_class))
+                } else .
+              }
 
       }
   })
@@ -2030,6 +2134,12 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
   map_color_choices <- reactive({
     req(ncol(preprocessed$data$spectra) > 1)
     state <- canonical_state()
+    # Wait for the current dataset's first Run before offering any choice.
+    # Rendering earlier (true the instant a map/batch is uploaded, before
+    # Run) would default the selectize to whatever's available then --
+    # usually just "Signal/Noise" -- and that premature value sticks even
+    # once the full Material Class/Match ID/Match Value list exists.
+    req(!is.null(state$object))
     identification_enabled <- !is.null(state$object) ||
       (!is.null(state$pixel_matches) && nrow(state$pixel_matches))
     choices <- c(
@@ -2038,7 +2148,7 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
         "Match ID" else NA_character_,
       if(identification_enabled) "Match Value" else NA_character_,
       "Signal/Noise",
-      if(particle_pipeline_enabled()) "Particle Unit" else NA_character_
+      if(isTRUE(state$settings$collapse)) "Particle Unit" else NA_character_
     )
     choices <- choices[!is.na(choices)]
     stats::setNames(choices, choices)
@@ -2082,7 +2192,8 @@ output$choice_names <- renderUI({
 
 output$progress_bars <- renderUI({
     req(!is.null(preprocessed$data))
-    req(ncol(preprocessed$data$spectra) > 1 || particle_pipeline_enabled())
+    settings <- canonical_state()$settings
+    req(ncol(preprocessed$data$spectra) > 1 || isTRUE(settings$collapse))
 
     percent_true <- function(x) {
       available <- !is.na(x)
@@ -2090,12 +2201,12 @@ output$progress_bars <- renderUI({
       sum(x[available]) / sum(available) * 100
     }
 
-    signal_values <- if(isTRUE(input$threshold_decision)) {
+    signal_values <- if(isTRUE(settings$threshold_active)) {
       pixel_projection()$signal_to_noise
     } else {
       NULL
     }
-    correlation_values <- if(isTRUE(input$cor_threshold_decision)) {
+    correlation_values <- if(isTRUE(settings$correlation_active)) {
       pixel_projection()$correlation
     } else {
       NULL
@@ -2108,7 +2219,7 @@ output$progress_bars <- renderUI({
         shinyWidgets::progressBar(
           id = "signal_progress",
           value = percent_true(
-            signal_values > MinSNR() & signal_values < MaxSNR()
+            signal_values > settings$min_snr & signal_values < settings$max_snr
           ),
           status = "success",
           title = "Good Signal",
@@ -2121,7 +2232,7 @@ output$progress_bars <- renderUI({
         id = "correlation_summary_panel",
         shinyWidgets::progressBar(
           id = "correlation_progress",
-          value = percent_true(correlation_values >= MinCor()),
+          value = percent_true(correlation_values >= settings$min_cor),
           status = "success",
           title = "Good Match Values",
           display_pct = TRUE
@@ -2134,8 +2245,8 @@ output$progress_bars <- renderUI({
         shinyWidgets::progressBar(
           id = "match_progress",
           value = percent_true(
-            signal_values > MinSNR() & signal_values < MaxSNR() &
-              correlation_values >= MinCor()
+            signal_values > settings$min_snr & signal_values < settings$max_snr &
+              correlation_values >= settings$min_cor
           ),
           status = "success",
           title = "Good Identifications",
@@ -2145,7 +2256,7 @@ output$progress_bars <- renderUI({
     }
 
     plot_items <- list()
-    if(particle_pipeline_enabled() && !is.null(canonical_state()$object)) {
+    if(isTRUE(settings$collapse) && !is.null(canonical_state()$object)) {
       plot_items[[length(plot_items) + 1L]] <- div(
         id = "particle_summary_panel",
         plotOutput("particle_plot", height = "25vh")
@@ -2384,7 +2495,7 @@ output$progress_bars <- renderUI({
   #Summary Plots ----
   output$particle_plot <- renderPlot({
       req(!is.null(preprocessed$data))
-      req(particle_pipeline_enabled())
+      req(isTRUE(canonical_state()$settings$collapse))
       particles <- canonical_final()
       req(particles$metadata$area)
       app_particle_size_plot(particles)
@@ -2392,7 +2503,7 @@ output$progress_bars <- renderUI({
   
   output$material_plot <- renderPlot({
       req(!is.null(preprocessed$data))
-      if(particle_pipeline_enabled()) {
+      if(isTRUE(canonical_state()$settings$collapse)) {
           particles <- canonical_final()
           req(!is.null(particles),
               "material_class" %in% names(particles$metadata))
@@ -2408,12 +2519,12 @@ output$progress_bars <- renderUI({
   # Data Download options ----
   # Progress Bars
   output$download_ui <- renderUI({
+    state <- canonical_state()
     choice_names <- app_download_choices(
       has_upload = !is.null(preprocessed$data),
       identification = !is.null(preprocessed$data) &&
-        !is.null(canonical_state()$object),
-      collapse = particle_pipeline_enabled() &&
-        !is.null(canonical_state()$object)
+        !is.null(state$object),
+      collapse = isTRUE(state$settings$collapse) && !is.null(state$object)
     )
     values <- unname(choice_names)
     current <- isolate(input$download_selection)
@@ -2433,7 +2544,8 @@ output$progress_bars <- renderUI({
   # run and would otherwise stay stuck on whatever was selected before the
   # particle pipeline had a result (e.g. the initial "Test Data" default).
   observeEvent(canonical_state()$object, {
-    req(particle_pipeline_enabled(), !is.null(canonical_state()$object))
+    state <- canonical_state()
+    req(isTRUE(state$settings$collapse), !is.null(state$object))
     updateSelectInput(session, "download_selection",
                       selected = "Thresholded Particles")
   }, ignoreNULL = TRUE)
@@ -2453,7 +2565,7 @@ output$progress_bars <- renderUI({
   max_cor_settled <- shiny::debounce(reactive(max_cor()), 1000)
 
   observeEvent(max_cor_settled(), {
-    req(!is.null(max_cor_settled()), !particle_pipeline_enabled())
+    req(!is.null(max_cor_settled()), !isTRUE(canonical_state()$settings$collapse))
     updateSelectInput(session, "download_selection", selected = "Top Matches")
   }, ignoreNULL = TRUE)
 
@@ -2469,7 +2581,7 @@ output$progress_bars <- renderUI({
     )
   }, ignoreNULL = FALSE)
 
-  output$columns_selected <- renderUI({
+  output$columns_selected_ui <- renderUI({
     req(identical(input$download_selection, "Top Matches"))
     req(!identical(input$lib_type, "model"))
     tags$details(
@@ -2481,7 +2593,7 @@ output$progress_bars <- renderUI({
       )
     )
   })
-  outputOptions(output, "columns_selected", suspendWhenHidden = FALSE)
+  outputOptions(output, "columns_selected_ui", suspendWhenHidden = FALSE)
 
   output$particle_download_contents <- renderUI({
     req(identical(input$download_selection, "Thresholded Particles"))
@@ -2596,8 +2708,9 @@ output$progress_bars <- renderUI({
           files <- c(files, path)
         }
         if("figures" %in% selected) {
-          sn_thresholds <- if(isTRUE(input$threshold_decision)) {
-            c(MinSNR(), MaxSNR())
+          run_settings <- canonical_state()$settings
+          sn_thresholds <- if(isTRUE(run_settings$threshold_active)) {
+            c(run_settings$min_snr, run_settings$max_snr)
           } else numeric()
           path <- file.path(archive_root, "signal_noise_histogram.png")
           app_write_ggplot_png(app_histogram_ggplot(
@@ -2610,8 +2723,8 @@ output$progress_bars <- renderUI({
             best_match_rows(canonical_state()$pixel_matches)$match_val
           } else max_cor()
           if(!is.null(correlation_values) && length(correlation_values)) {
-            cor_thresholds <- if(isTRUE(input$cor_threshold_decision)) {
-              MinCor()
+            cor_thresholds <- if(isTRUE(run_settings$correlation_active)) {
+              run_settings$min_cor
             } else numeric()
             path <- file.path(archive_root, "correlation_histogram.png")
             app_write_ggplot_png(app_histogram_ggplot(
@@ -2684,7 +2797,7 @@ output$progress_bars <- renderUI({
       sel <- app_uploaded_metadata_spectrum(
         meta_cache(), input$sidebar_metadata_rows_selected
       )
-      if(length(sel) && particle_pipeline_enabled()) {
+      if(length(sel) && isTRUE(canonical_state()$settings$collapse)) {
         data_click$pixel <- sel
         mapping <- canonical_state()$pixel_to_unit
         unit <- mapping$unit_index[match(sel, mapping$pixel_index)]
@@ -2698,7 +2811,7 @@ output$progress_bars <- renderUI({
 
 
   move_selection <- function(dx = 0, dy = 0) {
-      if(particle_pipeline_enabled()) {
+      if(isTRUE(canonical_state()$settings$collapse)) {
         metadata <- data.table::as.data.table(spatial_data()$metadata)
         current <- data_click$pixel
         if(length(current) != 1L || is.na(current) ||

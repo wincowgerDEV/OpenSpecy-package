@@ -723,6 +723,10 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     window.Shiny?.setInputValue("MinSNR", value, { priority: "event" });
   }, mapSnrThreshold);
   await setShinyCheckbox(appFrame.locator("#threshold_decision"), true);
+  // Settings only take effect once Run is clicked; the download list must
+  // not react to the threshold change above on its own.
+  await expect(runButton).toBeEnabled({ timeout: 60000 });
+  await runButton.click();
   await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 300000,
   });

@@ -808,6 +808,10 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
     window.Shiny.setInputValue("MinSNR", cutoff, { priority: "event" });
     window.Shiny.setInputValue("MaxSNR", 1e12, { priority: "event" });
   }, snrCutoff);
+  // Settings only take effect once Run is clicked; the heatmap must not
+  // react to the threshold change above on its own.
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await page.locator("#run_analysis").click();
   await page.waitForFunction(() => {
     const plot = document.getElementById("heatmapA");
     const rejected = plot?.data?.[1]?.z || [];
@@ -1585,6 +1589,9 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect(topMatchDetails).not.toHaveAttribute("open", "");
   await expect(overlay).toBeHidden({ timeout: 120000 });
   await topMatchDetails.locator("summary").click({ timeout: 30000 });
+  // #top_n_input lives in the Identification tab pane, hidden while a
+  // different settings tab (Quantification, above) is active.
+  await page.getByRole("link", { name: "Identification", exact: true }).click();
   await page.locator("#top_n_input").fill("3");
   await selectizeOption(page, "columns_selected", "Simple");
   await expect(overlay).toBeHidden({ timeout: 240000 });
@@ -1606,10 +1613,11 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expectCardCollapsed(downloadCard);
   await page.screenshot({ path: testInfo.outputPath("local-app-analysis-result.png"), fullPage: true });
 
-  // Identification always runs as part of Run now (there is no owner
-  // switch to disable it); confirm the Processed Spectra download still
-  // carries the full quantification/identification-derived columns.
+  // Confirm the Processed Spectra download still carries the full
+  // quantification/identification-derived columns.
   await page.getByRole("link", { name: "Identification", exact: true }).click();
+  await toggleCard(downloadCard);
+  await expectCardCollapsed(downloadCard, false);
   await selectizeOption(page, "download_selection", "Processed Spectra");
   await expect(page.locator("#download_data")).toHaveText("Download Processed Spectra");
   const processedDownload = await consumeDownload(page);

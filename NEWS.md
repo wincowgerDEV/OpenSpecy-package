@@ -1,5 +1,32 @@
 # OpenSpecy 1.7.1
 
+- Fixed the Run-gated reactivity the previous entry introduced: the heatmap,
+  particle/material plots, correlation and signal/noise histograms, download
+  type list, and progress-bar summaries now read only the settings captured
+  at the last Run instead of live checkboxes, so toggling Collapse Particle
+  Spectra, Spatial Smooth, Threshold Signal/Noise, or Threshold Correlation
+  no longer recomputes or re-renders anything before Run is clicked. Added an
+  **on/off switch to the Identification Strategy** box (default on) that
+  fully skips identification, and one **Turn All On/Off** button per settings
+  tab that has switches. Processed spectra now flat-line below the enabled
+  signal/noise threshold whether or not Collapse Particle Spectra is on
+  (previously only when it was on). Fixed a race between the six
+  Run-triggered result caches that could leave quantification, quality
+  reports, and other Run-gated results silently stuck at their pre-Run value;
+  results are now populated in an explicit, deterministic order. Fixed the
+  Map Color selector defaulting to Signal/Noise and never updating once
+  Material Class/Match ID/Match Value became available. The Run button's
+  default (nothing-to-run) color is now the app's dark background color
+  instead of light blue, and the Spectra card has visible space above it.
+  Vectorized residual spike detection across every spectrum in a map/batch
+  upload at once instead of one small allocation per spectrum per
+  correction pass (same output; see `benchmarks/spike_correction.R`), and
+  raised the identification blockwise match size from 100 to 1,000 query
+  spectra per block (same output, less chunking overhead). The memory
+  preflight estimate no longer runs the actual spatial smooth as a side
+  effect of estimating memory. Fixed a duplicate `id="columns_selected"`
+  between the Top Matches column-choice `uiOutput` wrapper and its inner
+  `selectInput`.
 - Added a single **Run** button as the sole trigger for the app's analysis
   tranche, replacing the four per-tab owner switches; the button turns bright
   green whenever a new dataset is uploaded or a setting changes, and returns

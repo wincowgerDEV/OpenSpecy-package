@@ -199,11 +199,19 @@ preprocessing_controls <- tagList(
 identification_controls <- tagList(
   bs4Dash::box(
     width = 12,
-    title = "Identification Strategy",
+    title = div(
+      class = "openspecy-box-title-with-switch",
+      span("Identification Strategy"),
+      prettySwitch(
+        inputId = "identification_active", label = NULL, inline = TRUE,
+        value = TRUE, status = "success", fill = TRUE
+      )
+    ),
     footer = footnote(
       "Identification options",
       "Choose a spectrum type and a library transformation that matches preprocessing.",
-      "The local app supports full, medoid, and multinomial libraries; the browser app uses compact libraries."
+      "The local app supports full, medoid, and multinomial libraries; the browser app uses compact libraries.",
+      "Turning this off skips identification entirely: no match table, no Top Matches, no correlation threshold, and Spatial material-connected clusters (which require a material identity) become unavailable."
     ),
     pickerInput(
       "id_spec_type", "Spectrum Type",
@@ -811,6 +819,14 @@ dashboardPage(
           text-decoration: none;
           white-space: nowrap;
         }
+        .openspecy-box-title-with-switch {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          gap: .5rem;
+        }
+        .openspecy-tab-all-toggle { margin-bottom: 10px; }
         .btn.openspecy-support-button {
           color: var(--openspecy-canvas) !important;
           background: var(--openspecy-accent) !important;
@@ -823,15 +839,17 @@ dashboardPage(
           align-items: center;
           gap: .5rem;
           margin-top: 10px;
-          color: var(--openspecy-canvas) !important;
-          background: var(--openspecy-accent) !important;
-          border-color: var(--openspecy-accent) !important;
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-canvas) !important;
+          border-color: var(--openspecy-border) !important;
           font-weight: 700;
         }
         .btn.openspecy-run-button.openspecy-run-dirty {
+          color: var(--openspecy-canvas) !important;
           background: var(--openspecy-success) !important;
           border-color: var(--openspecy-success) !important;
         }
+        #spectra_box { margin-top: 16px; }
         .openspecy-quant-builder-actions {
           display: flex;
           justify-content: flex-end;
@@ -1313,17 +1331,29 @@ dashboardPage(
             tabPanel(
               "Preprocessing",
               value = "preprocessing",
-              div(class = "openspecy-tab-scroll", preprocessing_controls)
+              div(
+                class = "openspecy-tab-scroll",
+                uiOutput("preprocessing_all_toggle"),
+                preprocessing_controls
+              )
             ),
             tabPanel(
               "Identification",
               value = "identification",
-              div(class = "openspecy-tab-scroll", identification_controls)
+              div(
+                class = "openspecy-tab-scroll",
+                uiOutput("identification_all_toggle"),
+                identification_controls
+              )
             ),
             tabPanel(
               "Advanced",
               value = "advanced",
-              div(class = "openspecy-tab-scroll", advanced_controls)
+              div(
+                class = "openspecy-tab-scroll",
+                uiOutput("advanced_all_toggle"),
+                advanced_controls
+              )
             ),
             tabPanel(
               "Quantification",
@@ -1352,7 +1382,7 @@ dashboardPage(
               class = "openspecy-download-body",
               uiOutput("download_ui"),
               uiOutput("particle_download_contents"),
-              uiOutput("columns_selected")
+              uiOutput("columns_selected_ui")
             )
           )
         )
