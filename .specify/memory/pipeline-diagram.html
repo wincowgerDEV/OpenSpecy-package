@@ -420,6 +420,7 @@
   <path class="edge-tap" d="M1620,2930 C 2470,2700 2470,1900 2135,1510" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1165,1590 L2135,1590" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1565,1930 L2135,1985" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1620,2900 C 2440,2650 2440,2100 2135,2000" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1170,2185 C 1750,2140 1950,2120 2135,2110" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1170,2200 C 1800,2210 1950,2220 2135,2220" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M620,2980 C 1300,3050 2420,2900 2420,2500 C 2420,2350 2280,2260 2135,2225" marker-end="url(#arrowTap)"></path>
@@ -686,9 +687,9 @@
 
 <div class="node output tip-left" style="left:2250px;top:1985px" tabindex="0">
   Correlation Histogram
-  <div class="depends">depends on: Correlation Threshold on</div>
-  <div class="tip">output$cor_plot reads canonical_state()$pixel_matches / max_cor(), filtered by MinCor() &mdash; empty/flat when Correlation Threshold is off.
-  <span class="loc">server.R:1956</span></div>
+  <div class="depends">depends on: Correlation Threshold on, OR AI Classification</div>
+  <div class="tip">output$cor_plot uses best_match_rows(pixel_matches)$match_val only when correlation_active AND pixel_matches has rows; otherwise it falls back to max_cor() &mdash; and max_cor() is ai_output() in AI mode (server.R:1919-1933). Since pixel_matches is always NULL in AI mode, this histogram renders the AI prediction-value distribution whenever Library type = AI model, with no Correlation Threshold involved at all.
+  <span class="loc">server.R:1956-1970</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2110px" tabindex="0">
