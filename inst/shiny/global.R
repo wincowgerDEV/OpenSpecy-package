@@ -1860,7 +1860,8 @@ app_category_colorscale <- function(values) {
 
 app_quality_checks <- c(
   "silent_region", "missing_values", "flat_spectrum",
-  "negative_intensity", "co2_region", "high_tail", "spike"
+  "negative_intensity", "co2_region", "high_tail", "spike",
+  "low_snr", "saturation"
 )
 
 app_automatic_quality_checks <- c(
@@ -1899,6 +1900,38 @@ app_quality_success_description <- function(row) {
       "The minimum finite intensity stayed at or above the allowed negative",
       "threshold."
     ),
+    co2_region = {
+      region <- if(all(c("region_min", "region_max") %in% names(row)) &&
+                   is.finite(row$region_min[[1L]]) &&
+                   is.finite(row$region_max[[1L]])) {
+        paste0(
+          " in ", format(row$region_min[[1L]], trim = TRUE), "-",
+          format(row$region_max[[1L]], trim = TRUE), " cm^-1"
+        )
+      } else " in the configured CO2 region"
+      paste0(
+        "The normalized maximum", region,
+        " stayed below the artifact ratio threshold relative to the rest",
+        " of the spectrum."
+      )
+    },
+    high_tail = paste(
+      "The normalized maximum in the first and last tail points stayed",
+      "below the artifact ratio threshold relative to the rest of the",
+      "spectrum."
+    ),
+    spike = "No isolated single-point spikes were detected.",
+    low_snr = {
+      metric <- if("metric" %in% names(row) &&
+                   isTruthy(row$metric[[1L]])) {
+        as.character(row$metric[[1L]])
+      } else "signal-to-noise"
+      paste0(
+        "The ", metric,
+        " metric stayed at or above the configured threshold."
+      )
+    },
+    saturation = "No saturated spectral intervals were detected.",
     as.character(row$description[[1L]])
   )
 }

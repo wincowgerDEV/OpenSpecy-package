@@ -12,10 +12,19 @@
   (previously these three were only ever reported as part of "Automatic
   Corrections Made," which stayed silent when the matching toggle was off),
   so turning automatic correction off never hides whether the spectrum
-  actually has the issue.
-- Filled the Automatic Corrections/Warnings/Successes buttons with their
-  semantic color (blue/amber/green) instead of a thin border on a neutral
-  background, so they read as clickable like the app's other buttons.
+  actually has the issue. Low Signal/Noise and Saturation checks are also
+  now always included -- every quality check the package supports is now
+  reported as a Warning or Success for the viewed spectrum, not just five
+  of the nine. Every one of those checks now also has its own specific
+  success message (e.g. "No isolated single-point spikes were detected")
+  instead of a generic "check passed" placeholder for the five that were
+  missing one.
+- Filled the Warnings/Successes buttons with their semantic color (amber/
+  green) instead of a thin border on a neutral background, so they read as
+  clickable like the app's other buttons; Automatic Corrections Made keeps
+  its rainbow identity as a permanent fill (previously only a border shown
+  when something had actually been applied), with a glow ring added to
+  still flag when a correction was actually applied.
 - Fixed the Thresholded Particles download's Particle Unit and Match ID
   heatmap images always drawing a legend, even though both are per-particle
   identifiers with too many categories for a legend to be useful.

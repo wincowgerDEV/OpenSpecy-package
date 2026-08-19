@@ -735,9 +735,11 @@ dashboardPage(
           box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2);
         }
         .btn.openspecy-quality-automatic {
-          background: var(--openspecy-accent) !important;
-          border-color: var(--openspecy-accent) !important;
-          color: var(--openspecy-canvas) !important;
+          background: linear-gradient(
+            90deg, #FB7185, #E69F00, #F0E442, #009E73, #56B4E9, #CC79A7
+          ) !important;
+          border-color: transparent !important;
+          color: var(--openspecy-text) !important;
         }
         .btn.openspecy-quality-warning {
           background: #FACC15 !important;
@@ -749,27 +751,16 @@ dashboardPage(
           border-color: var(--openspecy-success) !important;
           color: var(--openspecy-canvas) !important;
         }
-        .openspecy-quality-icon-automatic { color: var(--openspecy-canvas) !important; }
+        .openspecy-quality-icon-automatic { color: var(--openspecy-text) !important; }
         .openspecy-quality-icon-warning { color: var(--openspecy-canvas) !important; }
         .openspecy-quality-icon-success {
           color: var(--openspecy-canvas) !important;
         }
+        /* The button is rainbow-filled at all times (its brand identity);
+           the applied state additionally gets a glow ring so it's still
+           clear something actually happened, not just that the check ran. */
         .openspecy-quality-automatic.openspecy-automatic-applied {
-          border: 2px solid transparent !important;
-          background:
-            linear-gradient(var(--openspecy-panel-2), var(--openspecy-panel-2)) padding-box,
-            linear-gradient(90deg, #FB7185, #E69F00, #F0E442, #009E73, #56B4E9, #CC79A7) border-box !important;
-          color: var(--openspecy-text) !important;
-        }
-        .openspecy-quality-automatic.openspecy-automatic-applied
-          .openspecy-quality-icon-automatic {
-          color: transparent !important;
-          background: linear-gradient(
-            90deg, #FB7185, #E69F00, #F0E442, #009E73, #56B4E9, #CC79A7
-          );
-          background-clip: text;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          box-shadow: 0 0 0 .18rem rgba(255, 255, 255, .4) !important;
         }
         .openspecy-quality-count { min-width: 1ch; }
         .openspecy-quality-finding {

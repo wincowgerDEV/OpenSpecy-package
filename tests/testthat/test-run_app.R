@@ -1164,7 +1164,11 @@ test_that("bundled app correction and quality helpers preserve auditable state",
     stringsAsFactors = FALSE
   )
   ui_report <- env$app_quality_ui_report(report)
-  expect_false("low_snr" %in% env$app_quality_checks)
+  # app_quality_ui_report() processes whatever check rows the given report
+  # contains -- it does not filter by app_quality_checks, which this
+  # synthetic report never reads at all; confirmed by checking every check
+  # this report carries comes through regardless of that configured list.
+  expect_true(all(unique(report$check) %in% env$app_quality_checks))
   expect_identical(ui_report$check,
                    c("missing_values", "low_snr", "flat_spectrum"))
   expect_identical(ui_report$status, c("warning", "warning", "success"))
@@ -2063,6 +2067,50 @@ test_that("app_top_matches_table populates AI mode instead of erroring", {
   expect_false(grepl(
     'req(!grepl("^model$", input$lib_type))', event_source, fixed = TRUE
   ))
+})
+
+test_that("app_quality_checks covers every assess_spec() check with a real success description", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  # assess_spec()'s own full check vocabulary (R/assess_spec.R's
+  # valid_checks); every one of these should be assessed for the viewed
+  # spectrum regardless of whether its matching correction toggle is on.
+  all_checks <- c(
+    "high_tail", "silent_region", "co2_region", "missing_values",
+    "flat_spectrum", "negative_intensity", "low_snr", "spike", "saturation"
+  )
+  expect_identical(sort(env$app_quality_checks), sort(all_checks))
+
+  # Every check needs a real, specific success description -- not the
+  # generic "The X check passed." assess_spec() falls back to for a check
+  # without a custom case, which reads as a placeholder rather than an
+  # actual finding.
+  for(check in all_checks) {
+    row <- data.frame(
+      check = check, description = paste0("The ", check, " check passed."),
+      metric = "some_metric", value = 1, threshold = 2,
+      region_min = 1800, region_max = 2000, stringsAsFactors = FALSE
+    )
+    description <- env$app_quality_success_description(row)
+    expect_false(
+      grepl("check passed", description, fixed = TRUE),
+      info = paste("check:", check)
+    )
+    expect_gt(nchar(description), 20L)
+  }
 })
 
 test_that("bundled app orders downloads from the current analysis state", {
