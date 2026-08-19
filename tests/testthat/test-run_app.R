@@ -1999,6 +1999,72 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
   expect_false(grepl("setkey(dataR_metadata", server_source, fixed = TRUE))
 })
 
+test_that("app_top_matches_table populates AI mode instead of erroring", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  # Real-library mode: matches_to_single() is already scoped to the selected
+  # spectrum's ranked candidates -- selected_index is unused, every listed
+  # column is present, and the literal select() must still work unchanged.
+  library_rows <- data.table::data.table(
+    match_val = c(0.95, 0.80), material_class = c("PET", "PE"),
+    spectrum_identity = c("polyethylene terephthalate", "polyethylene"),
+    organization = c("Lab A", "Lab A"), sample_name = c("ref_1", "ref_2")
+  )
+  library_result <- env$app_top_matches_table(library_rows, FALSE, 1L)
+  expect_identical(nrow(library_result), 2L)
+  expect_identical(
+    names(library_result),
+    c("match_val", "material_class", "spectrum_identity", "organization",
+      "sample_name")
+  )
+
+  # AI mode: matches_to_single() has one prediction row per spectrum in the
+  # whole dataset (only match_val/material_class/object_id), indexed by
+  # selected_unit_index() -- this must return the one selected row instead
+  # of the empty table the unfixed req(!grepl("^model$", ...)) guard used to
+  # produce, and must not error on the missing library-metadata columns.
+  model_rows <- data.table::data.table(
+    object_id = c("spec_1", "spec_2", "spec_3"),
+    material_class = c("PET", "PVC", "PE"),
+    match_val = c(0.7, 0.4, 0.9)
+  )
+  model_result <- env$app_top_matches_table(model_rows, TRUE, 2L)
+  expect_identical(nrow(model_result), 1L)
+  expect_identical(names(model_result), c("match_val", "material_class"))
+  expect_identical(model_result$material_class, "PVC")
+  expect_identical(model_result$match_val, 0.4)
+
+  server_source <- paste(
+    readLines(file.path(app_path, "server.R"), warn = FALSE), collapse = "\n"
+  )
+  expect_match(server_source, "app_top_matches_table(", fixed = TRUE)
+  expect_false(grepl(
+    'req(!grepl("^model$", input$lib_type))\n      req(!is.na(selected_unit_index()))',
+    server_source, fixed = TRUE
+  ))
+
+  event_source <- sub(
+    '.*output\\$event <- DT::renderDataTable\\(\\{', "", server_source
+  )
+  event_source <- sub("\\}\\)\\n\\n.*", "", event_source)
+  expect_false(grepl(
+    'req(!grepl("^model$", input$lib_type))', event_source, fixed = TRUE
+  ))
+})
+
 test_that("bundled app orders downloads from the current analysis state", {
   missing <- .openspecy_app_packages()[
     !vapply(.openspecy_app_packages(), requireNamespace, logical(1),

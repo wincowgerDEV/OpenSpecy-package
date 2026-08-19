@@ -422,6 +422,7 @@
   <path class="edge-tap" d="M1565,1930 L2135,1985" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1620,2900 C 2440,2650 2440,2100 2135,2000" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1170,2185 C 1750,2140 1950,2120 2135,2110" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1620,2870 C 2480,2600 2480,2200 2135,2115" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1170,2200 C 1800,2210 1950,2220 2135,2220" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M620,2980 C 1300,3050 2420,2900 2420,2500 C 2420,2350 2280,2260 2135,2225" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1620,2950 C 2460,2820 2460,2450 2135,2215" marker-end="url(#arrowTap)"></path>
@@ -637,7 +638,7 @@
 <div class="node function" style="left:1550px;top:2950px" tabindex="0">
   AI Model Classification
   <div class="sub">ai_output_gate: match_spec()</div>
-  <div class="tip">Calls match_spec(data, library=libraryR(), na.rm=TRUE) directly on the already-finalized DataR() &mdash; bypasses identify_blockwise()/.match_spec_blockwise() entirely, and never populates matches/pixel_matches (so the Top Matches TABLE stays empty in this mode, per its req() guard). It is NOT a dead end otherwise: ai_output() feeds max_cor()/max_cor_identity() directly (server.R:1922-1941), which in turn feed the Heatmap's material coloring, Selection Metadata Table, and Download: Top Matches/Thresholded Particles (dotted rose lines) &mdash; confirmed by reading each consumer's source.
+  <div class="tip">Calls match_spec(data, library=libraryR(), na.rm=TRUE) directly on the already-finalized DataR() &mdash; bypasses identify_blockwise()/.match_spec_blockwise() entirely, and never populates matches/pixel_matches. Not a dead end: ai_output() feeds max_cor()/max_cor_identity() directly (server.R:1922-1941), which in turn feed the Heatmap's material coloring, Selection Metadata Table, and both Top Matches outputs (table + download) and Download: Thresholded Particles (dotted rose lines) &mdash; confirmed by reading each consumer's source. Spec 015 fixed the Top Matches Table specifically, which used to stay empty in this mode despite the others already showing AI results.
   <span class="loc">server.R:1893-1914</span></div>
 </div>
 
@@ -694,9 +695,9 @@
 
 <div class="node output tip-left" style="left:2250px;top:2110px" tabindex="0">
   Top Matches Table
-  <div class="depends">depends on: Library Identification (blocked in AI mode)</div>
-  <div class="tip">output$event reads top_matches(), which has req(!grepl("^model$", input$lib_type)) &mdash; explicitly blocked whenever Library type = AI model, unlike the Download version below, which is NOT blocked.
-  <span class="loc">server.R:2118, 2032</span></div>
+  <div class="depends">depends on: Library Identification OR AI Classification</div>
+  <div class="tip">output$event reads top_matches() &larr; app_top_matches_table() (global.R), which now branches on lib_type: real-library mode shows the selected spectrum's ranked candidates unchanged; AI mode shows a single row -- matches_to_single()[selected_unit_index(), ] via dplyr::any_of() -- since AI mode has one prediction per spectrum, not ranked candidates. Previously blocked entirely in AI mode (req(!grepl("^model$", ...))) despite the Download version and Selection Metadata Table already showing AI results; fixed in spec 015.
+  <span class="loc">server.R:2049-2055, 2130-2138 &middot; global.R app_top_matches_table()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2220px" tabindex="0">
@@ -762,8 +763,10 @@
 
 <footer class="page">
   Sources: <code>inst/shiny/server.R</code>, <code>inst/shiny/global.R</code>, <code>inst/shiny/ui.R</code>, and the <code>R/</code> package
-  functions each stage wraps. Reflects the app as of the "run button add"/"new run"/"reactivity improvements" commits
-  (spec <code>014-run-gating-reactivity-and-deploy-fix</code>). When a plan changes any stage, branch, function, or
+  functions each stage wraps. Reflects the app through spec
+  <code>015-diagram-conformance-instant-feedback</code> (AI-mode Top Matches Table fix; instant Run/Recalculate
+  Preview/download feedback -- see <code>RUN_GATE_PRIORITY_ANNOUNCE</code>, <code>www/parent-frame.js</code>).
+  When a plan changes any stage, branch, function, or
   output dependency named here, update this diagram in the same plan &mdash; see Constitution Principle X.
 </footer>
 

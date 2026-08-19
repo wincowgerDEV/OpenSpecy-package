@@ -508,6 +508,30 @@ app_matches_for_object <- function(matches, object_id) {
   data.table::copy(matches[selected_rows])
 }
 
+# The Top Matches table shows the ranked candidate list for the SELECTED
+# spectrum in real-library mode (matches_to_single_result already scoped to
+# one spectrum), but AI mode's matches_to_single_result has one prediction
+# row per spectrum in the whole dataset instead of ranked candidates, so it
+# must be indexed down to the selection first. any_of() drops columns AI
+# mode's narrower match_val/material_class shape doesn't have, instead of
+# erroring on a literal select() of library-metadata columns that don't
+# exist there.
+app_top_matches_table <- function(matches_to_single_result, model_library,
+                                  selected_index) {
+  matches_to_single_result <- data.table::as.data.table(matches_to_single_result)
+  if(isTRUE(model_library)) {
+    matches_to_single_result[selected_index, ] %>%
+      dplyr::select(dplyr::any_of(c(
+        "match_val", "material_class", "spectrum_identity", "organization",
+        "sample_name"
+      )))
+  } else {
+    matches_to_single_result %>%
+      dplyr::select("match_val", "material_class", "spectrum_identity",
+                    "organization", "sample_name")
+  }
+}
+
 # Project a one-pass pixel Top-N result onto collapsed units without averaging
 # incomplete reference coverage into a synthetic correlation. Each retained
 # value remains an actual member-pixel correlation and carries its provenance.

@@ -1,5 +1,18 @@
 # OpenSpecy 1.7.1
 
+- Fixed the Top Matches table staying empty whenever Library type = AI model,
+  even though the Top Matches download and the Selection Metadata table
+  already showed AI predictions. AI mode has one prediction per spectrum
+  rather than a ranked candidate list, so the table now shows that single
+  prediction for the selected spectrum instead of erroring/staying blank.
+- Clicking Run, Recalculate Preview, or a download now shows busy feedback
+  immediately instead of after a multi-second delay (dominated, for Run, by
+  an unannounced whole-map signal-to-noise scan that ran ahead of the first
+  progress message; Recalculate Preview previously had no progress signal at
+  all in its default configuration). Run and Recalculate Preview also get an
+  instant client-side busy indicator on click, and downloads show the same
+  indicator consistently in both the local Shiny app and the hosted
+  Shinylive build.
 - Fixed clicking a row in the Uploaded Metadata table jumping to an unrelated
   or unchanged map location instead of that particle's first (lowest raw
   pixel index) location: the handler treated the table row's particle/unit

@@ -19,11 +19,11 @@
 
 ## Requirements
 
-- R1. `output$event`/`top_matches()` gets an AI-mode branch mirroring the Top Matches download's `bind_cols(quantified_data()$metadata, matches_to_single())` shape, using `dplyr::any_of()` (as `app_selected_metadata()` already does) instead of the current literal `dplyr::select("match_val", "material_class", "spectrum_identity", "organization", "sample_name")`, which errors on AI mode's 3-column shape. Table shows one row per spectrum with its AI prediction instead of staying empty.
-- R2. A new observer fires on `input$run_analysis` at a priority above `RUN_GATE_PRIORITY_RESET` (20) and sends one `analysis_phase()` message before any other Run-triggered observer runs, so the client's busy overlay can start counting from click time rather than from whenever the first currently-instrumented call happens to land.
+- R1. `output$event`/`top_matches()` gets an AI-mode branch. AI mode has one prediction per spectrum, not a ranked candidate list, so (discovered during implementation, correcting this plan's original draft) it mirrors `match_metadata()`'s existing AI branch -- `matches_to_single()[selected_unit_index(), ]` -- rather than the download handler's whole-map `bind_cols()` export shape, which is a different concept (every spectrum, not just the selected one). Uses `dplyr::any_of()` (as `app_selected_metadata()` already does) instead of the current literal `dplyr::select(...)`, which errors on AI mode's narrower `match_val`/`material_class` shape. `output$event`'s own `req(!grepl("^model$", ...))` guard and its `organization`/`material_class` factor `mutate()` (which would error on AI mode's missing `organization` column) are also fixed.
+- R2. A new observer fires on `input$run_analysis` at a priority above `RUN_GATE_PRIORITY_RESET` (20) and sends one `analysis_phase()` message before any other Run-triggered observer runs, so the client's busy overlay can start counting from click time rather than from whenever the first currently-instrumented call happens to land. A `testServer()` regression test reproduces spec 014's original priority-race failure mode (a consumer observer reading `canonical_state()`/`canonical_final()` before `canonical_state_gate` has populated it on the same click) to prove the new observer cannot reintroduce it.
 - R3. `recalculate_snr_preview()`'s first statement becomes an `analysis_phase()` call, before `signal_to_noise_basis()`/`spatial_data()`/`sig_noise()` -- today this path has zero progress signals in the default configuration.
-- R4. `#run_analysis` and `#recalculate_snr` get an immediate client-side (plain JS, no server round trip) busy/disabled visual on click -- mirroring the existing `downloadInCurrentFrame()` pattern in `parent-frame.js` that already does this for wasm downloads -- re-enabled on the existing completion signal or `shiny:idle`. A second click while active is inert.
-- R5. The Top Matches and Thresholded Particles download links show a visible "generating..." state from click, since plain `<a href>` downloads never fire the `shiny:busy`/`shiny:idle` events the current overlay depends on.
+- R4. `#run_analysis` and `#recalculate_snr` get an immediate client-side (plain JS, no server round trip) busy/disabled visual on click, via one shared helper function in `parent-frame.js` -- re-enabled on the existing completion signal or `shiny:idle`. A second click while active is inert. 650ms client debounce is confirmed acceptable and left unchanged.
+- R5. The Top Matches and Thresholded Particles download links use that same shared helper on click, in BOTH wasm and local (non-wasm) modes, so click feedback is consistent across hosting modes: wasm reuses `downloadInCurrentFrame()`'s existing fetch+blob completion signal to re-enable; non-wasm keeps its native Shiny `<a>` download binding untouched (per the Bundled Shiny Application Boundary's native-download-binding requirement) and re-enables on a fixed fallback timeout, since a same-tab anchor download has no reliable JS completion event.
 
 ## Technical Decisions
 
@@ -42,12 +42,13 @@
 
 ## Work Checklist
 
-- [ ] `server.R`: AI-mode branch for `top_matches()`; verify with `testServer()`.
-- [ ] `server.R`: announce-first observer on `input$run_analysis` (priority above `RUN_GATE_PRIORITY_RESET`), message-only.
-- [ ] `server.R`: move `recalculate_snr_preview()`'s first `analysis_phase()` call to its top.
-- [ ] `www/parent-frame.js`: click handlers for `#run_analysis`, `#recalculate_snr`, and the two download links; disable + visual state on click, re-enable on completion/idle.
-- [ ] `.specify/memory/pipeline-diagram.html`: update Top Matches Table box once R1 lands.
-- [ ] `NEWS.md` entry.
+- [x] `global.R`/`server.R`: AI-mode branch for `top_matches()`, extracted to a testable `app_top_matches_table()` helper (matches the codebase's `sys.source()`-tested-helper convention; `shiny::testServer()` isn't used anywhere in this app's test suite). `output$event`'s own guard/factor-mutate fixed to match.
+- [x] `server.R`: `RUN_GATE_PRIORITY_ANNOUNCE` (25, above `RESET`'s 20) + message-only announce-first observer on `input$run_analysis`.
+- [x] `server.R`: `recalculate_snr_preview()`'s first statement is now `analysis_phase(...)`.
+- [x] `www/parent-frame.js`: shared `markBusy()`/`clearBusy()` helpers; wired to `#run_analysis`, `#recalculate_snr` (cleared via `hideBusy()`, the real completion signal), and `#download_data` in non-wasm mode (fixed 4s fallback, no reliable completion event) -- `#download_data` is the single button that serves every download type, so no second download link was needed. Wasm mode's existing `downloadInCurrentFrame()` now reuses the same helpers.
+- [x] `.specify/memory/pipeline-diagram.html`: Top Matches Table box, AI Model Classification tooltip, and footer updated for R1.
+- [x] `NEWS.md` entry.
+- [x] Regression test for the observer-priority failure mode (`tests/testthat/test-run_app_reactivity.R`): an isolated reactive graph using the real priority constants, proving `announce -> reset -> canonical -> default` ordering and that the default-priority consumer never sees a stale/missing canonical-priority value.
 
 ## Verification
 
@@ -55,12 +56,13 @@
 - Focused tests: `devtools::test()` limited to touched app/R files. Full `devtools::test()`/`devtools::check()`: not triggered by this app-only, non-exported-surface tranche.
 - Shiny affected states: identified (AI mode, R1); processed/identified/batch (R2-R5, click-feedback only). No-upload and download-content are unchanged and reused, not re-verified from scratch.
 - Reusable evidence: N/A, new tranche; the touched files (`server.R` observers, `parent-frame.js`) changed again since spec 014.
+- **Run**: focused gate (`quality-gates.ps1 -Filter run_app -BundledAppStatic`) -- 630/630 pass, sources parse. Targeted browser journey ("local app renders spectra, matches, and one informative progress overlay") -- 1/1 pass, confirming Run + the busy overlay still work end to end with the reordered/added observers. Full local Playwright suite and `devtools::check()` not run: not triggered by this app-only, non-release-facing tranche.
 
 ## Risks And Open Questions
 
-- Observer-priority changes are the highest-risk part of this tranche given spec 014's real regression in this exact area; R2 needs a test/manual check specifically reproducing that failure mode (a stale/half-updated read), not just "the button still works."
-- The client's fixed 650ms busy-overlay debounce (`parent-frame.js`) may still be worth shortening once server signals arrive promptly at click time -- left as an implementer judgment call after R2/R3 land, not pre-decided.
-- R5 has no natural "download finished" signal for a plain browser download in non-wasm mode; whether to reveal for a fixed duration or switch non-wasm downloads to the wasm-style fetch+blob pattern (which does have a real completion event) is an open implementation choice, not resolved here.
+- Observer-priority changes are the highest-risk part of this tranche given spec 014's real regression in this exact area; resolved by a dedicated `testServer()` regression test reproducing that exact failure mode (see R2), not just "the button still works."
+- 650ms client debounce: confirmed acceptable by the maintainer; not changed in this tranche.
+- Download consistency: resolved by sharing one client-side busy-decoration helper across wasm and non-wasm, per maintainer direction to keep the two modes consistent where possible; the underlying download transport stays per-mode (wasm fetch+blob, non-wasm native `<a>` binding, per the constitution's native-binding requirement) since unifying transport is out of scope and riskier than unifying the visual feedback layer.
 
 ## Approval Notes
 

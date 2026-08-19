@@ -40,6 +40,24 @@
       .replace(/^\.+|\.+$/g, "") || "openspecy-download";
   }
 
+  // Shared immediate (zero-round-trip) busy decoration, so Run, Recalculate
+  // Preview, and downloads all give the same instant visual response on
+  // click instead of waiting on a server round trip -- reused below by
+  // downloadInCurrentFrame() (wasm downloads) and bindInstantFeedback()
+  // (Run/Recalculate Preview in both modes, plain downloads in non-wasm
+  // mode).
+  function markBusy(el) {
+    if (!el) return;
+    el.setAttribute("aria-busy", "true");
+    el.classList.add("disabled");
+  }
+
+  function clearBusy(el) {
+    if (!el) return;
+    el.removeAttribute("aria-busy");
+    el.classList.remove("disabled");
+  }
+
   function showDownloadError(error) {
     var message = "Open Specy could not save this download. " + error.message;
     window.console.error(message, error);
@@ -62,8 +80,7 @@
     }
 
     button.dataset.openspecyDownloadActive = "true";
-    button.setAttribute("aria-busy", "true");
-    button.classList.add("disabled");
+    markBusy(button);
     try {
       var response = await window.fetch(href, {
         cache: "no-store",
@@ -103,8 +120,7 @@
       showDownloadError(error);
     } finally {
       delete button.dataset.openspecyDownloadActive;
-      button.removeAttribute("aria-busy");
-      button.classList.remove("disabled");
+      clearBusy(button);
     }
   }
 
@@ -117,6 +133,42 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       void downloadInCurrentFrame(button);
+    }, true);
+  }
+
+  var downloadFeedbackTimer = null;
+
+  // Instant (pre-server-round-trip) busy feedback for Run, Recalculate
+  // Preview, and plain (non-wasm) downloads, consistent with the fetch+blob
+  // download path above. Run/Recalculate Preview are ordinary Shiny
+  // actionButtons -- this only decorates them, it must never preventDefault
+  // or stopPropagation, or Shiny's own click binding would stop receiving
+  // the click. Cleared for Run/Recalculate by hideBusy() below, once the
+  // real analysis-phase/idle cycle finishes; downloads get a fixed fallback
+  // timeout since a same-tab file download has no reliable JS completion
+  // event when using the native Shiny download binding (kept as-is here,
+  // consistent with the wasm path only decorating, never replacing it).
+  function bindInstantFeedback() {
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      var closest = target && target.closest ? target.closest.bind(target) : null;
+      if (!closest) return;
+
+      var runButton = closest("#run_analysis");
+      if (runButton) markBusy(runButton);
+
+      var recalcButton = closest("#recalculate_snr");
+      if (recalcButton) markBusy(recalcButton);
+
+      if (isWasmMode()) return; // #download_data is fully handled by bindWasmDownloads() there
+      var downloadButton = closest("#download_data");
+      if (downloadButton) {
+        markBusy(downloadButton);
+        window.clearTimeout(downloadFeedbackTimer);
+        downloadFeedbackTimer = window.setTimeout(function () {
+          clearBusy(downloadButton);
+        }, 4000);
+      }
     }, true);
   }
 
@@ -219,6 +271,8 @@
       overlay.setAttribute("aria-hidden", "true");
       renderBusyState();
     }
+    clearBusy(document.getElementById("run_analysis"));
+    clearBusy(document.getElementById("recalculate_snr"));
   }
 
   function notifyReady() {
@@ -313,11 +367,13 @@
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
       bindWasmDownloads();
+      bindInstantFeedback();
       bindUploadLimit();
       bindReadyEvent();
     }, { once: true });
   } else {
     bindWasmDownloads();
+    bindInstantFeedback();
     bindUploadLimit();
     bindReadyEvent();
   }

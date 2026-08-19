@@ -72,6 +72,7 @@ function(input, output, session) {
   # first. RUN_GATE_PRIORITY_RESET (highest) clears the reset flag before any
   # gate computes; RUN_GATE_PRIORITY_CANONICAL populates canonical_state
   # before any gate that reads it.
+  RUN_GATE_PRIORITY_ANNOUNCE <- 25L
   RUN_GATE_PRIORITY_RESET <- 20L
   RUN_GATE_PRIORITY_CANONICAL <- 10L
   RUN_GATE_PRIORITY_DEFAULT <- 0L
@@ -95,6 +96,17 @@ function(input, output, session) {
   observeEvent(settings_signature(), {
     analysis_dirty(TRUE)
   }, ignoreInit = TRUE)
+  # Sends the first busy-overlay signal immediately on click, before any
+  # other Run-triggered observer (including the reset below and every
+  # run_gated_reactive()) runs -- otherwise the overlay has nothing to react
+  # to until whichever gate happens to reach its own first analysis_phase()
+  # call, which can be seconds away (e.g. recalculate_snr_preview()'s
+  # whole-map scan has none at all). Message-only: reads nothing, writes
+  # nothing any other observer depends on, so it cannot affect gate ordering.
+  observeEvent(input$run_analysis, {
+    analysis_phase("Starting analysis", "Preparing to run.", 1)
+  }, priority = RUN_GATE_PRIORITY_ANNOUNCE)
+
   observeEvent(input$run_analysis, {
     analysis_dirty(FALSE)
     analysis_needs_reset(FALSE)
@@ -1071,6 +1083,11 @@ observeEvent(input$file, {
   })
   recalculate_snr_preview <- function() {
     if(is.null(preprocessed$data)) return(invisible(NULL))
+    # First statement, before the signal_to_noise()/sig_noise() scan below:
+    # in the default configuration this function previously had no progress
+    # signal at all, so Recalculate Preview looked unresponsive until the
+    # (potentially whole-map) scan finished.
+    analysis_phase("Calculating signal/noise", "Scanning the uploaded data.", 2)
     snr_preview(signal_to_noise())
     snr_preview_signature(snr_relevant_signature())
   }
@@ -2031,11 +2048,11 @@ observeEvent(input$file, {
   #All matches table for the current selection
   top_matches <- reactive({
       req(!is.null(preprocessed$data))
-      req(!grepl("^model$", input$lib_type))
       req(!is.na(selected_unit_index()))
-      matches_to_single() %>%
-          dplyr::select("match_val", "material_class", "spectrum_identity",
-                        "organization", "sample_name")
+      app_top_matches_table(
+        matches_to_single(), grepl("^model$", input$lib_type),
+        selected_unit_index()
+      )
   })
 
 #Create the data table that goes below the plot which provides extra metadata.
@@ -2116,10 +2133,15 @@ output$eventmetadata <- DT::renderDataTable(server = TRUE, {
 
 # Create the data tables for all matches
 output$event <- DT::renderDataTable({
-    req(!grepl("^model$", input$lib_type))
-    datatable(top_matches() %>%
-                  mutate(organization = as.factor(organization),
-                         material_class = as.factor(material_class)),
+    data <- top_matches()
+    # AI mode's any_of()-selected row may be missing either column.
+    if("organization" %in% names(data)) {
+      data <- data %>% mutate(organization = as.factor(organization))
+    }
+    if("material_class" %in% names(data)) {
+      data <- data %>% mutate(material_class = as.factor(material_class))
+    }
+    datatable(data,
               options = list(searchHighlight = TRUE,
                              scrollX = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
