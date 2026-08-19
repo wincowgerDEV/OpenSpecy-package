@@ -44,6 +44,9 @@ canonical final `OpenSpecy` reactive; gate child inputs behind owner controls;
 preserve native downloads; and verify affected no-upload/processed/identified
 states with genuine files plus console/screenshot review. Routine app iteration
 does not require R CMD check unless explicitly requested or release-facing.
+Treat `.specify/memory/pipeline-diagram.html` as the canonical map of that
+pipeline: do not deviate from it outside an explicit plan naming the diagram
+component changed, and update the diagram in the same change.
 For non-obvious scientific or processing controls, provide adjacent guidance
 that names each input, its units or scale, the effect of choices or higher/lower
 values, and important rejection, no-op, or interpretation consequences.

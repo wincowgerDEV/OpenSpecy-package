@@ -1,20 +1,16 @@
 <!--
 Sync Impact Report
-Version change: 3.7.0 -> 3.8.0
+Version change: 3.9.0 -> 3.9.1
 Modified principles:
-- Development Workflow and Quality Gates: require current-tranche planning, proportional verification, evidence reuse, and bounded failure diagnosis
+- X. Data Analysis Pipeline Fidelity: clarify that the diagram must visually distinguish user-triggered recomputation from passive/live-but-uncommitted state, and must make each output's true dependency legible
 Added sections:
-- IX. Proportional Evidence and Efficient Execution
+- None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md and .agents/skills/speckit-plan/: add current-tranche class, compact word budget, and triggered verification ladder
-- .agents/skills/speckit-implement/: use targeted context, minimal skill routing, scope checkpoints, and invalidation-aware gates
-- .agents/skills/openspecy-develop-shiny-app/: replace mandatory whole-file loading and omnibus browser loops with symbol-first and targeted-state verification
-- .agents/skills/openspecy-run-quality-gates/ and its scripts: add gate tiers, compact test reporting, static/targeted browser checks, and fail-closed tracked-source package checks
-- AGENTS.md: synchronize proportional verification and context-economy rules
+- .specify/memory/pipeline-diagram.html: revised to add a trigger node color (Run button, S/N-preview Recalculate button), a visible per-output dependency tap for every terminal output, and a pan/zoom viewer; also fixes a tooltip z-index stacking bug
 Follow-up TODOs:
-- Split the omnibus local browser scenario into smaller tagged journeys as those journeys next change; do not perform a behavior-free rewrite solely for this amendment.
+- None
 -->
 
 # OpenSpecy Constitution
@@ -295,6 +291,36 @@ Rationale: Direct evidence protects scientific correctness. Dependency-aware
 staging, targeted context, and bounded diagnostics preserve that evidence while
 reducing feedback time, repeated computation, and token consumption.
 
+### X. Data Analysis Pipeline Fidelity
+`.specify/memory/pipeline-diagram.html` MUST be treated as the canonical map of
+the bundled Shiny app's data analysis pipeline: every stage from file upload
+through processing, particle partitioning, identification, quantification, and
+every rendered plot, table, and download, plus every point where data shape or
+a user setting sends processing down a materially different function path. The
+diagram MUST stay synchronized with `inst/shiny/server.R`, `inst/shiny/global.R`,
+and the `R/` functions each stage wraps. It MUST visually distinguish
+user-triggered recomputation (the Run button and any dedicated recompute
+control, e.g. a histogram preview's own refresh action) from passive settings
+and from reactives that are live but not yet visible until such a trigger
+commits them, and it MUST make each terminal output's true upstream dependency
+legible without requiring a reader to already know the source.
+
+The pipeline it documents MUST NOT be deviated from incidentally. Any change
+that adds, removes, reorders, or reroutes a pipeline stage, branch condition, or
+the function(s) a stage calls MUST be an explicit part of a feature plan. That
+plan MUST name the specific diagram box(es) or decision(s) it changes and MUST
+update `pipeline-diagram.html` in the same change, including revised hover
+detail wherever a box's short label no longer captures the nuance needed to
+interpret the path.
+
+Rationale: The app's analysis pipeline spans thousands of lines across
+`server.R`/`global.R` and dozens of `R/` functions, with several branch points
+that materially change scientific output (collapse strategy, identification,
+quantification, and signal/noise or correlation thresholds). A single diagram
+that stays accurate is cheaper to keep correct than re-deriving the pipeline
+from source on every review, and it protects the Bundled Shiny Application
+Boundary's "one canonical reactive" rule from silent pipeline drift.
+
 ## R Package Standards
 
 The repository is governed as the OpenSpecy R package. Plans and pull requests
@@ -366,7 +392,9 @@ testing expectations, or public API restraint.
 For one app analysis state, the visible spectrum, summaries, identification,
 quantification, metadata, and downloads MUST derive from the same final
 processed `OpenSpecy` reactive object unless a deliberately different source is
-named in the interface and plan. Hidden duplicate preprocessing pipelines are
+named in the interface and plan. This reactive chain is documented in
+`.specify/memory/pipeline-diagram.html` per Principle X; keep the diagram
+synchronized when it changes. Hidden duplicate preprocessing pipelines are
 non-compliant because they make visible and exported results irreproducible.
 Collision-prone UI functions MUST be namespace-qualified, and dynamically
 rendered inputs MUST be handled safely while absent.
@@ -606,7 +634,10 @@ repositories, or silently diverge from the local app beyond the documented
 small-library constraint. They MUST also block hosted homepage changes that put
 interactive app markup back into GitHub's README, commit generated `_wasm/`
 outputs, or claim browser readiness without the required interaction evidence.
+They MUST also block plans that change an app analysis pipeline stage, branch,
+or function without naming the affected `pipeline-diagram.html` component and
+updating that diagram in the same change.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.8.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-10
+**Version**: 3.9.1 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-19

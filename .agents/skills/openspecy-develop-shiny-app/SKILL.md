@@ -18,6 +18,9 @@ for integration and verification procedure.
 2. Map each changed user action through its owner control, dependent inputs,
    canonical reactive data, plots/tables, identification or quantification,
    metadata, and downloads. Resolve divergent consumers before editing.
+   Cross-check the mapped flow against `.specify/memory/pipeline-diagram.html`
+   and update the diagram in the same change when a stage, branch, or function
+   call moves (Constitution Principle X).
 3. Put pure/sourceable app helpers in `global.R`, declarative controls and
    theme tokens in `ui.R`, and orchestration in `server.R`. Move logic into
    `R/` only when it has a stable package-level contract.

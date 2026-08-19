@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OpenSpecy App Analysis Pipeline</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='78' font-size='80'%3E%F0%9F%94%AC%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #f2f5f7;
+    --surface: #ffffff;
+    --surface-2: #eaeff3;
+    --text: #182129;
+    --text-muted: #55636f;
+    --border: #d3dbe1;
+    --edge: #8fa0ac;
+    --edge-alt: #a8763f;
+
+    --input: #0d6f78;
+    --input-bg: #e0f3f1;
+    --input-border: #a9dcd8;
+
+    --function: #2f4f9e;
+    --function-bg: #e7ecfb;
+    --function-border: #b9c7f2;
+
+    --decision: #92620a;
+    --decision-bg: #fbf0d9;
+    --decision-border: #edcf97;
+
+    --output: #9c2f68;
+    --output-bg: #fbe6f0;
+    --output-border: #f0bdd7;
+
+    --trigger: #1c7a3e;
+    --trigger-bg: #e1f5e6;
+    --trigger-border: #a9dfb8;
+
+    --tip-bg: #182129;
+    --tip-text: #eef2f5;
+    --tip-border: #354250;
+
+    --shadow: 0 1px 2px rgba(24,33,41,.06), 0 6px 16px rgba(24,33,41,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12171c;
+      --surface: #1a2129;
+      --surface-2: #202a33;
+      --text: #e9eef2;
+      --text-muted: #9fb0bc;
+      --border: #33424f;
+      --edge: #62727e;
+      --edge-alt: #c99a5f;
+
+      --input: #5fd6cd;
+      --input-bg: #123330;
+      --input-border: #1f5f58;
+
+      --function: #92aaf5;
+      --function-bg: #1c2748;
+      --function-border: #33438a;
+
+      --decision: #f0c05a;
+      --decision-bg: #3a2e12;
+      --decision-border: #7a5a1c;
+
+      --output: #f28fbb;
+      --output-bg: #3a1c2b;
+      --output-border: #7a3559;
+
+      --trigger: #6fe097;
+      --trigger-bg: #123420;
+      --trigger-border: #276b45;
+
+      --tip-bg: #eef2f5;
+      --tip-text: #182129;
+      --tip-border: #c7d0d7;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12171c;
+    --surface: #1a2129;
+    --surface-2: #202a33;
+    --text: #e9eef2;
+    --text-muted: #9fb0bc;
+    --border: #33424f;
+    --edge: #62727e;
+    --edge-alt: #c99a5f;
+
+    --input: #5fd6cd;
+    --input-bg: #123330;
+    --input-border: #1f5f58;
+
+    --function: #92aaf5;
+    --function-bg: #1c2748;
+    --function-border: #33438a;
+
+    --decision: #f0c05a;
+    --decision-bg: #3a2e12;
+    --decision-border: #7a5a1c;
+
+    --output: #f28fbb;
+    --output-bg: #3a1c2b;
+    --output-border: #7a3559;
+
+    --trigger: #6fe097;
+    --trigger-bg: #123420;
+    --trigger-border: #276b45;
+
+    --tip-bg: #eef2f5;
+    --tip-text: #182129;
+    --tip-border: #c7d0d7;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  header.page {
+    max-width: 1200px; margin: 0 auto; padding: 40px 24px 8px;
+  }
+  header.page .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-muted); margin: 0 0 10px;
+  }
+  header.page h1 {
+    font-size: 28px; line-height: 1.25; margin: 0 0 12px; text-wrap: balance;
+    font-weight: 700;
+  }
+  header.page p { font-size: 15px; line-height: 1.6; color: var(--text-muted); max-width: 84ch; margin: 0 0 10px; }
+  header.page .rule {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; font-size: 13.5px; line-height: 1.55; margin: 18px 0 6px;
+  }
+  header.page .rule strong { color: var(--text); }
+
+  section.legend {
+    max-width: 1200px; margin: 22px auto 8px; padding: 0 24px;
+    display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+  .swatch { width: 18px; height: 18px; border-radius: 4px; flex: none; border: 1.5px solid; }
+  .swatch.input { background: var(--input-bg); border-color: var(--input-border); }
+  .swatch.function { background: var(--function-bg); border-color: var(--function-border); }
+  .swatch.decision { background: var(--decision-bg); border-color: var(--decision-border); clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); }
+  .swatch.output { background: var(--output-bg); border-color: var(--output-border); }
+  .swatch.trigger { background: var(--trigger-bg); border-color: var(--trigger-border); border-radius: 50%; }
+  .legend-line { width: 26px; height: 0; border-top: 2px solid var(--edge); }
+  .legend-line.alt { border-top: 2px dashed var(--edge-alt); }
+  .legend-line.tap { width: 26px; height: 0; border-top: 2px dotted var(--output); }
+  .legend-line.click { width: 26px; height: 0; border-top: 2px dashed var(--input); }
+
+  .canvas-scroll {
+    max-width: 1200px; margin: 14px auto 0; padding: 0 24px;
+  }
+  .viewer-hint {
+    font-size: 12.5px; color: var(--text-muted); margin: 0 0 8px;
+  }
+  .viewer-hint kbd {
+    font-family: "IBM Plex Mono", monospace; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; font-size: 11px;
+  }
+  .viewer {
+    position: relative; height: min(78vh, 880px); overflow: hidden;
+    border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+    box-shadow: var(--shadow); cursor: grab; touch-action: none;
+  }
+  .viewer.grabbing { cursor: grabbing; }
+  .zoom-controls {
+    position: absolute; top: 12px; right: 12px; z-index: 1000;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .zoom-controls button {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 17px; line-height: 1;
+    cursor: pointer; box-shadow: var(--shadow); font-family: inherit;
+  }
+  .zoom-controls button:hover { background: var(--surface-2); }
+  .zoom-controls button#zoomReset { font-size: 11px; font-weight: 600; }
+
+  .zoom-layer { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+  .canvas { position: relative; }
+  .canvas svg { position: absolute; inset: 0; overflow: visible; z-index: 0; }
+  .canvas svg path, .canvas svg line { fill: none; stroke: var(--edge); stroke-width: 2; }
+  .canvas svg .edge-alt { stroke: var(--edge-alt); stroke-dasharray: 7 5; }
+  .canvas svg .edge-relation { stroke: var(--output); stroke-dasharray: 2 5; stroke-width: 1.75; }
+  .canvas svg .edge-tap { stroke: var(--output); stroke-dasharray: 1 5; stroke-width: 1.75; opacity: .85; }
+  .canvas svg .edge-trigger { stroke: var(--trigger); stroke-width: 2.25; }
+  .canvas svg .edge-click { stroke: var(--input); stroke-dasharray: 5 4; stroke-width: 1.75; opacity: .9; }
+  .canvas svg text.edge-label {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; fill: var(--text-muted);
+  }
+  .canvas svg text.edge-label.strong { fill: var(--edge-alt); font-weight: 600; }
+  .canvas svg text.edge-label.tap { fill: var(--output); font-weight: 600; }
+
+  .node {
+    position: absolute; transform: translate(-50%, -50%); z-index: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; border-radius: 10px; border: 1.5px solid; padding: 10px 14px;
+    font-size: 13px; line-height: 1.3; font-weight: 600; cursor: default;
+  }
+  .node:hover, .node:focus-visible { z-index: 400; }
+  .node .sub { font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: 10.5px; margin-top: 4px; opacity: .82; }
+  .node .depends {
+    font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 10px; margin-top: 5px;
+    color: var(--output); opacity: .95;
+  }
+  .node.input { width: 240px; height: 90px; background: var(--input-bg); border-color: var(--input-border); color: var(--input); }
+  .node.function { width: 240px; height: 90px; background: var(--function-bg); border-color: var(--function-border); color: var(--function); }
+  .node.output { width: 230px; min-height: 90px; background: var(--output-bg); border-color: var(--output-border); color: var(--output); }
+  .node.trigger {
+    width: 178px; height: 72px; background: var(--trigger-bg); border-color: var(--trigger-border);
+    color: var(--trigger); border-radius: 36px;
+  }
+  .node.decision {
+    width: 230px; height: 150px; background: var(--decision-bg); border-color: var(--decision-border);
+    color: var(--decision); clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); padding: 30px 42px;
+  }
+
+  .node .tip {
+    position: absolute; left: 50%; top: 100%; transform: translate(-50%, 10px);
+    width: 300px; max-width: 60vw; background: var(--tip-bg); color: var(--tip-text);
+    border: 1px solid var(--tip-border); border-radius: 8px; padding: 11px 13px;
+    font-size: 12.5px; line-height: 1.5; font-weight: 400; text-align: left;
+    opacity: 0; visibility: hidden; transition: opacity .12s ease, transform .12s ease;
+    z-index: 5000; box-shadow: var(--shadow); pointer-events: none;
+  }
+  .node.tip-above .tip { top: auto; bottom: 100%; transform: translate(-50%, -10px); }
+  .node.tip-left .tip { left: auto; right: 100%; top: 50%; transform: translate(-10px, -50%); }
+  .node:hover .tip, .node:focus-visible .tip { opacity: 1; visibility: visible; transform: translate(-50%, 4px); }
+  .node.tip-above:hover .tip, .node.tip-above:focus-visible .tip { transform: translate(-50%, -4px); }
+  .node.tip-left:hover .tip, .node.tip-left:focus-visible .tip { transform: translate(-4px, -50%); }
+  .node .tip .loc { display: block; margin-top: 6px; font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--edge-alt); }
+  .node:focus-visible { outline: 2px solid var(--function); outline-offset: 3px; }
+
+  footer.page {
+    max-width: 1200px; margin: 20px auto 60px; padding: 18px 24px 0; border-top: 1px solid var(--border);
+    font-size: 12.5px; color: var(--text-muted); line-height: 1.6;
+  }
+  footer.page code { color: var(--text); }
+
+  @media (max-width: 640px) {
+    header.page h1 { font-size: 23px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <p class="eyebrow">OpenSpecy &middot; .specify/memory/pipeline-diagram.html</p>
+  <h1>App Data Analysis Pipeline</h1>
+  <p>
+    How a spectrum or hyperspectral map moves through the bundled Shiny app (<code>inst/shiny/</code>),
+    from upload to every rendered plot, table, and download. Boxes are colored by role &mdash;
+    <strong style="color:var(--input)">input</strong>,
+    <strong style="color:var(--function)">function</strong>,
+    <strong style="color:var(--decision)">decision</strong>,
+    <strong style="color:var(--trigger)">user-triggered recompute</strong>,
+    <strong style="color:var(--output)">output</strong> &mdash;
+    diamonds mark every point where data shape or a user setting sends processing down a
+    materially different function path, dotted rose lines tap each output back to every
+    upstream point that actually decides whether it exists or what shape it takes, and dashed
+    teal lines show click-driven interaction between outputs (e.g. the Heatmap driving the
+    Spectrum Plot). <strong>Hover or focus any box</strong> for the exact reactive/function
+    name, source location, and any nuance the short label can't carry.
+  </p>
+  <div class="rule">
+    <strong>Constitution Principle X (Data Analysis Pipeline Fidelity):</strong> this diagram is the
+    canonical map of the app's analysis pipeline. Deviations from it (new stages, changed branch
+    conditions, new/removed function calls, or a changed output dependency) must not happen
+    incidentally &mdash; they must be an explicit part of a plan, and that plan must name the
+    diagram box(es)/decision(s) it changes and update this file. See
+    <code>.specify/memory/constitution.md</code>.
+  </div>
+</header>
+
+<section class="legend" aria-hidden="false">
+  <span class="legend-item"><span class="swatch input"></span> Input</span>
+  <span class="legend-item"><span class="swatch function"></span> Function</span>
+  <span class="legend-item"><span class="swatch decision"></span> Decision</span>
+  <span class="legend-item"><span class="swatch trigger"></span> User-triggered recompute</span>
+  <span class="legend-item"><span class="swatch output"></span> Output</span>
+  <span class="legend-item"><span class="legend-line"></span> main flow</span>
+  <span class="legend-item"><span class="legend-line alt"></span> alternate / skipped path</span>
+  <span class="legend-item"><span class="legend-line tap"></span> output's true dependency</span>
+  <span class="legend-item"><span class="legend-line click"></span> click interaction</span>
+</section>
+
+<div class="canvas-scroll">
+<p class="viewer-hint">Scroll/pinch to zoom, drag to pan, or use the controls. Zoom starts fit-to-width &mdash; you're not seeing the whole pipeline at once by design.</p>
+<div class="viewer" id="viewer" tabindex="0" aria-label="Pannable, zoomable pipeline diagram">
+  <div class="zoom-controls">
+    <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+    <button type="button" id="zoomOut" aria-label="Zoom out">&minus;</button>
+    <button type="button" id="zoomReset" aria-label="Reset view">Fit</button>
+  </div>
+  <div class="zoom-layer" id="zoomLayer">
+<div class="canvas" id="canvas" style="width:2520px;height:3060px;">
+<svg viewBox="0 0 2520 3060" width="2520" height="3060" role="img"
+     aria-label="Flowchart of the OpenSpecy Shiny app's data analysis pipeline, from file upload through processing, particle partitioning, identification, quantification, and every terminal output, with each output tapped back to its true dependency and click-driven output-to-output interaction shown separately.">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)"></path>
+    </marker>
+    <marker id="arrowAlt" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--edge-alt)"></path>
+    </marker>
+    <marker id="arrowTap" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--output)"></path>
+    </marker>
+    <marker id="arrowTrigger" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--trigger)"></path>
+    </marker>
+    <marker id="arrowClick" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--input)"></path>
+    </marker>
+  </defs>
+
+  <!-- main spine -->
+  <path d="M1050,115 L1050,175" marker-end="url(#arrow)"></path>
+  <path d="M1050,275 L1050,315" marker-end="url(#arrow)"></path>
+  <path d="M1050,475 L1050,515" marker-end="url(#arrow)"></path>
+  <text x="1066" y="500" class="edge-label">yes</text>
+  <path class="edge-alt" d="M1165,400 L1520,400" marker-end="url(#arrowAlt)"></path>
+  <text x="1240" y="392" class="edge-label strong">no: abort</text>
+
+  <path d="M1050,615 L1050,655" marker-end="url(#arrow)"></path>
+  <path d="M1050,815 L1050,855" marker-end="url(#arrow)"></path>
+  <text x="1066" y="840" class="edge-label">yes: map</text>
+  <path class="edge-alt" d="M935,740 C 790,815 790,1000 940,1078" marker-end="url(#arrowAlt)"></path>
+  <text x="742" y="912" class="edge-label strong" transform="rotate(-84 742 912)">no: single spectrum</text>
+
+  <path d="M1050,955 L1050,995" marker-end="url(#arrow)"></path>
+  <path d="M1050,1155 L1050,1195" marker-end="url(#arrow)"></path>
+  <text x="1066" y="1180" class="edge-label">yes</text>
+  <path class="edge-alt" d="M1165,1080 L1520,1080" marker-end="url(#arrowAlt)"></path>
+  <text x="1250" y="1072" class="edge-label strong">no: blocked</text>
+
+  <path d="M1050,1295 L1050,1335" marker-end="url(#arrow)"></path>
+
+  <!-- collapse decision fan-out -->
+  <path d="M935,1400 L262,1535" marker-end="url(#arrow)"></path>
+  <text x="560" y="1455" class="edge-label">off</text>
+  <path d="M1050,1495 L1050,1505" marker-end="url(#arrow)"></path>
+  <text x="1066" y="1478" class="edge-label">on</text>
+
+  <path d="M250,1635 L250,1705" marker-end="url(#arrow)"></path>
+
+  <!-- strategy fan-out -->
+  <path d="M935,1600 L556,1705" marker-end="url(#arrow)"></path>
+  <text x="700" y="1638" class="edge-label">connected regions</text>
+  <path d="M1050,1665 L1050,1705" marker-end="url(#arrow)"></path>
+  <text x="1066" y="1690" class="edge-label">spatial clusters</text>
+  <path d="M1165,1600 L1544,1705" marker-end="url(#arrow)"></path>
+  <text x="1345" y="1638" class="edge-label">non-spatial clusters</text>
+
+  <!-- relationship between the two clustering strategies (Spatial Clusters <-> Non-spatial Clusters only) -->
+  <path class="edge-relation" d="M1430,1745 C 1350,1723 1250,1723 1170,1745"></path>
+  <text x="1085" y="1712" class="edge-label" style="fill:var(--output)">shares PCA+k-means step; spatial clusters adds a 2nd collapse pass</text>
+
+  <!-- funnel into identification gate -->
+  <path d="M250,1805 L985,1855" marker-end="url(#arrow)"></path>
+  <path d="M550,1805 L1000,1855" marker-end="url(#arrow)"></path>
+  <path d="M1050,1805 L1050,1845" marker-end="url(#arrow)"></path>
+  <path d="M1550,1805 L1100,1855" marker-end="url(#arrow)"></path>
+
+  <path d="M1050,2005 L1050,2045" marker-end="url(#arrow)"></path>
+  <text x="1066" y="2030" class="edge-label">yes</text>
+  <path class="edge-alt" d="M1165,1930 C 1460,2010 1460,2360 1172,2428" marker-end="url(#arrowAlt)"></path>
+  <text x="1420" y="2200" class="edge-label strong" transform="rotate(90 1420 2200)">no: matches stay NULL</text>
+
+  <!-- correlation threshold, captured alongside identification in run_settings -->
+  <path class="edge-relation" d="M1165,1955 C 1300,1970 1360,1970 1450,1955"></path>
+
+  <path d="M1050,2145 L1050,2215" marker-end="url(#arrow)"></path>
+  <path d="M1050,2315 L1050,2385" marker-end="url(#arrow)"></path>
+  <path d="M1050,2485 L1050,2555" marker-end="url(#arrow)"></path>
+
+  <!-- fan-out to quantification / pixel projection / AI classification -->
+  <path d="M930,2610 L558,2693" marker-end="url(#arrow)"></path>
+  <path d="M1050,2655 L1050,2725" marker-end="url(#arrow)"></path>
+  <path d="M1170,2610 L1542,2693" marker-end="url(#arrow)"></path>
+
+  <path d="M550,2855 L550,2895" marker-end="url(#arrow)"></path>
+  <text x="566" y="2880" class="edge-label">yes</text>
+  <path class="edge-alt" d="M480,2825 C 340,2870 340,2930 468,2948" marker-end="url(#arrowAlt)"></path>
+  <text x="330" y="2915" class="edge-label strong">no: unchanged</text>
+
+  <path d="M1550,2855 L1550,2895" marker-end="url(#arrow)"></path>
+  <text x="1566" y="2880" class="edge-label">yes</text>
+  <path class="edge-alt" d="M1620,2825 C 1760,2870 1760,2930 1632,2948" marker-end="url(#arrowAlt)"></path>
+  <text x="1690" y="2915" class="edge-label strong">no: n/a</text>
+
+  <!-- Click Run / Recalculate Preview: positioned right after the (always-live) upload validity check,
+       because nothing downstream produces a visible result without Click Run -->
+  <path class="edge-trigger" d="M1561,505 C 1400,530 1250,545 1172,558" marker-end="url(#arrowTrigger)"></path>
+  <text x="1420" y="524" class="edge-label" style="fill:var(--trigger)">gates everything below</text>
+  <path class="edge-trigger" d="M1650,646 C 2050,780 2280,1000 2250,1205" marker-end="url(#arrowTrigger)"></path>
+  <text x="1980" y="900" class="edge-label" style="fill:var(--trigger)" transform="rotate(58 1980 900)">only refills S/N histogram</text>
+
+  <!-- output dependency taps (Download: Static Files intentionally has none -- see its "depends on" line) -->
+  <path class="edge-tap" d="M1170,1250 L2135,1250" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1050,1345 C 1650,1355 1900,1360 2135,1370" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1050,1360 C 1700,1400 1950,1420 2135,1430" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,240 C 1900,450 2100,950 2135,1420" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1050,1375 C 1750,1440 2000,1470 2135,1490" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,1265 C 1800,1330 2020,1420 2135,1480" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2185 C 1900,1950 2050,1700 2135,1500" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1620,2930 C 2470,2700 2470,1900 2135,1510" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1165,1590 L2135,1590" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1565,1930 L2135,1985" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2185 C 1750,2140 1950,2120 2135,2110" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2200 C 1800,2210 1950,2220 2135,2220" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M620,2980 C 1300,3050 2420,2900 2420,2500 C 2420,2350 2280,2260 2135,2225" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1620,2950 C 2460,2820 2460,2450 2135,2215" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2290 C 1800,2300 1950,2320 2135,2330" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2430 L2135,2440" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2590 L2135,2560" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2620 L2135,2630" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1620,2920 C 2450,2800 2450,2700 2135,2635" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2650 L2135,2715" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M620,2930 C 1500,2850 2050,2780 2135,2715" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2790 L2135,2805" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1620,2900 C 2250,2850 2250,2820 2135,2808" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2830 L2135,2900" marker-end="url(#arrowTap)"></path>
+
+  <!-- click interaction: clicking the Heatmap is what drives the Spectrum Plot and Selection Metadata Table -->
+  <path class="edge-click" d="M2250,2762 C 2420,2680 2420,2600 2260,2575" marker-end="url(#arrowClick)"></path>
+  <path class="edge-click" d="M2250,2762 C 2380,2720 2380,2660 2260,2622" marker-end="url(#arrowClick)"></path>
+</svg>
+
+<!-- Stage 0: upload -->
+<div class="node input" style="left:1050px;top:70px" tabindex="0">
+  Uploaded File(s)
+  <div class="tip">Single <code>.rds</code> files are restored directly with <code>as_OpenSpecy()</code>; every other supported format goes through <code>read_any()</code>. Multiple files/members are combined next.
+  <span class="loc">server.R:222-359</span></div>
+</div>
+
+<div class="node function" style="left:1050px;top:230px" tabindex="0">
+  Read &amp; Combine
+  <div class="sub">read_any / as_OpenSpecy / c_spec / manage_na</div>
+  <div class="tip">read_any(file, c_spec=FALSE) parses the file; multiple members combine via c_spec(members, range="common"); manage_na(ig=c(NA,0), type="remove") drops empty rows/cols. Output becomes preprocessed$data, the single upload-level object everything else reads from. Runs immediately on upload, live, regardless of Run.
+  <span class="loc">server.R:222-359 &middot; R/read_multi.R:45 &middot; R/manage_spec.R:44</span></div>
+</div>
+
+<div class="node decision" style="left:1050px;top:400px" tabindex="0">
+  Passes validity check?
+  <div class="sub">check_OpenSpecy()</div>
+  <div class="tip">Verifies wavenumber/spectra/metadata shape and coherence. Still part of the live upload handler, not gated by Run &mdash; it has to pass before Click Run (below) even becomes reachable.
+  <span class="loc">server.R:301 &middot; R/as_OpenSpecy.R:469</span></div>
+</div>
+<div class="node output tip-above" style="left:1650px;top:400px" tabindex="0">
+  Upload Error (abort)
+  <div class="tip">show_alert + upload_status_state fire; preprocessed$data is never set, so no later stage runs at all.
+  <span class="loc">server.R:301-343</span></div>
+</div>
+
+<div class="node trigger" style="left:1650px;top:500px" tabindex="0">
+  &#9654; Click Run
+  <div class="tip">input$run_analysis. Positioned here because nothing downstream produces a visible result without it: XY Grid Normalize onward is either literally inside canonical_state_gate's Run-triggered closure, or &mdash; like data()/spatial_data() themselves &mdash; is technically a live reactive() that Shiny only evaluates because canonical_state_gate (or the narrow click-driven raw-spectrum/click-position paths) asks for its value. Change a setting: nothing visible updates. Click Run: the whole cascade below executes, and every scientific output derives from that one snapshot (see "Build canonical_state" further down). Also fires the dependent Run-gated caches (Quantification, Pixel Projection, AI Model Classification) on the same click, in priority order (RESET, then CANONICAL, then DEFAULT).
+  <span class="loc">server.R:75-106, 1296</span></div>
+</div>
+
+<div class="node trigger" style="left:1650px;top:610px" tabindex="0">
+  &#8635; Recalculate Preview
+  <div class="tip">input$recalculate_snr. Unlike Click Run (above), this does NOT gate the analysis pipeline &mdash; it only refills the Signal/Noise histogram preview (snr_preview()) from the already-live signal_to_noise() metric, so thresholds can be previewed without committing to a full Run. Its card dims ("stale") whenever a setting it depends on has changed since the last recompute.
+  <span class="loc">server.R:1080-1099</span></div>
+</div>
+
+<div class="node function" style="left:1050px;top:570px" tabindex="0">
+  XY Grid Normalize
+  <div class="sub">gen_grid()  &middot; optional</div>
+  <div class="tip">Only runs if "Snap to grid" is on AND coordinates are spatially discontinuous; rewrites metadata$x/$y. Spectra values are untouched.
+  <span class="loc">server.R:440-451 &middot; R/as_OpenSpecy.R:541</span></div>
+</div>
+
+<div class="node decision" style="left:1050px;top:740px" tabindex="0">
+  Map data?
+  <div class="sub">ncol(spectra) &gt; 1</div>
+  <div class="tip">A single uploaded spectrum always takes the "no" path below &mdash; Spatial Smooth and Collapse become no-ops regardless of switch position, checked the same way at every stage that depends on pixel count.
+  <span class="loc">server.R:732, 1109-1114</span></div>
+</div>
+
+<div class="node function" style="left:1050px;top:910px" tabindex="0">
+  Spatial Smooth
+  <div class="sub">spatial_smooth()  &middot; optional, map only</div>
+  <div class="tip">A plain live reactive, not gated by Run: it recomputes immediately whenever Spatial Smooth / sigma changes. Runs only if the switch is on; convolves each pixel with its spatial neighbors. The result (spatial_data()) is what Signal/Noise, Collapse, and Pixel Projection all read from next &mdash; not the raw upload. Nothing the user SEES changes until Click Run captures this value (see the trigger above).
+  <span class="loc">server.R:727-743 &middot; R/spatial_smooth.R:28</span></div>
+</div>
+
+<div class="node decision" style="left:1050px;top:1080px" tabindex="0">
+  Memory preflight safe?
+  <div class="sub">.app_memory_preflight()</div>
+  <div class="tip">Live reactive, estimated from preprocessed$data's dimensions; drives the advisory pre-Run status text AND is re-checked inside canonical_state_gate at Run time as a safety gate.
+  <span class="loc">server.R:1253-1283, 1313-1320</span></div>
+</div>
+<div class="node output tip-above" style="left:1650px;top:1080px" tabindex="0">
+  Analysis Blocked
+  <div class="tip">canonical_state_gate short-circuits to an empty/diagnostic result before spatial_data() is ever computed.
+  <span class="loc">server.R:1313-1320</span></div>
+</div>
+
+<div class="node function" style="left:1050px;top:1250px" tabindex="0">
+  Signal/Noise Compute
+  <div class="sub">sig_noise()  &middot; live, not Run-gated</div>
+  <div class="tip">A plain live reactive (deliberately cheap): recomputes immediately on any relevant setting change, before Run. signal_to_noise_basis() picks spatial_data() ("Raw/Spatially Smoothed", default) or ordinary_process(spatial_data()) ("Fully Processed") per the Signal/Noise Basis control; sig_noise(basis, step=10) yields the per-pixel metric. signal_eligible() masks it by MinSNR()/MaxSNR() (-Inf/Inf, i.e. no-op, when the threshold switch is off). Only the S/N Histogram *preview* is deliberately held back (Click Run or Recalculate Preview, both above) to avoid flicker &mdash; the underlying metric itself is always current.
+  <span class="loc">server.R:1028-1053 &middot; R/sig_noise.R:59</span></div>
+</div>
+
+<div class="node decision" style="left:1050px;top:1420px" tabindex="0">
+  Collapse particles?
+  <div class="sub">input$collapse_decision</div>
+  <div class="tip">particle_pipeline_enabled(): true only if the switch is on AND the upload has &gt;1 pixel. Signal/Noise threshold gating (above) applies on BOTH branches, not just this one &mdash; a rejected pixel flat-lines either way.
+  <span class="loc">server.R:1109-1115</span></div>
+</div>
+
+<!-- off-collapse lane -->
+<div class="node function" style="left:250px;top:1590px" tabindex="0">
+  Ordinary Process
+  <div class="sub">process_spec() + corrections</div>
+  <div class="tip">canonical_state_gate's !collapse branch: optional correct_spike() (residual method) and saturation check, then process_spec(adj_intens, conform_spec, subtr_baseline, smooth_intens, make_rel), then optional flatten_range()/restrict_range(). This exact sequence is reused at every "Ordinary Process" box in this diagram, and is the ONLY step that changes spectra values themselves &mdash; every later step (collapse, identification, quantification) only adds columns or picks which units exist.
+  <span class="loc">server.R:1357-1366, 457-725 &middot; R/process_spec.R</span></div>
+</div>
+<div class="node function" style="left:250px;top:1760px" tabindex="0">
+  Identity Pixel Mapping
+  <div class="sub">identity_pixel_mapping()</div>
+  <div class="tip">R7 fix: even with Collapse off, a pixel failing the Signal/Noise threshold gets eligible=FALSE / unit_index=NA here, so it flat-lines on click instead of silently staying included.
+  <span class="loc">server.R:1363</span></div>
+</div>
+
+<!-- collapse-on: strategy -->
+<div class="node decision" style="left:1050px;top:1590px" tabindex="0">
+  Particle ID Strategy?
+  <div class="sub">input$particle_id_strategy</div>
+  <div class="tip">All three strategies are backed by OpenSpecy:::.partition_particle_map(), just with different strategy= arguments and pre/post steps &mdash; see each box below.
+  <span class="loc">server.R:1328-1329, 1495 onward &middot; R/automate_particle_analysis.R:608</span></div>
+</div>
+
+<div class="node function" style="left:550px;top:1760px" tabindex="0">
+  Connected Threshold Regions
+  <div class="sub">strategy = "collapse"</div>
+  <div class="tip">Without Correlation Threshold: .partition_particle_map(eligible=signal_keep, strategy="collapse") flood-fills spatially-connected same-eligibility pixels into particles, then Ordinary Process + (if identification is on) Library Identification run once on the collapsed units. WITH Correlation Threshold on: identification runs FIRST per-pixel, then partitioning re-runs with eligible = signal_keep &amp; correlation_keep and material = the per-pixel match, so a region must also share a passing, matching material; a final Ordinary Process + app_aggregate_unit_matches() re-aggregates identification onto the final particles. Needs a real (non-model) library only when Correlation Threshold is on, else blocked with an "unavailable()" diagnostic.
+  <span class="loc">server.R:1495-1563, 1349-1354</span></div>
+</div>
+<div class="node function" style="left:1050px;top:1760px" tabindex="0">
+  Spatial Clusters
+  <div class="sub">strategy = "partial_collapse"</div>
+  <div class="tip">Shares Non-spatial Clusters' first pass (PCA + k-means, dotted rose line), then takes the cluster-identified material labels and runs a SECOND .partition_particle_map(strategy="collapse", material=&lt;cluster material&gt;) to spatially merge same-material connected pixels into fewer, larger particles; re-processes and re-aggregates matches. Requires a real (non-model) library. Confirmed genuine divergence from Non-spatial Clusters on a real multi-particle map: 1 merged particle vs. 4.
+  <span class="loc">server.R:1453-1492</span></div>
+</div>
+<div class="node function" style="left:1550px;top:1760px" tabindex="0">
+  Non-spatial Clusters
+  <div class="sub">strategy = "nonspatial_collapse"</div>
+  <div class="tip">.partition_particle_map(signal_subset, strategy="nonspatial_collapse", pca_components=, centers=, collapse_function=) clusters SPECTRA by PCA + k-means (not spatial position) into analysis_units = cluster-mean spectra, then Ordinary Process + Library Identification + Attach Best Matches run on the clusters. Stops here &mdash; no spatial merge step, unlike Spatial Clusters (dotted rose line: they share the clustering step above).
+  <span class="loc">server.R:1378-1451</span></div>
+</div>
+
+<div class="node decision" style="left:1050px;top:1930px" tabindex="0">
+  Run library identification?
+  <div class="sub">identification_active &amp; lib_type != "model"</div>
+  <div class="tip">Combines the Identification on/off switch (default on) with lib_type != "model". Off: identify_blockwise() is never called; matches/pixel_matches stay NULL, so the Top Matches Table, match-based map colors, and Correlation Threshold (which needs identification) all become empty/unavailable. The AI Model Classification box further down has its own identical active-switch check and reaches several of the same outputs through a completely different path (ai_output()), NOT through matches/pixel_matches.
+  <span class="loc">server.R:1324-1325 &middot; ui.R:205-208</span></div>
+</div>
+
+<div class="node decision" style="left:1450px;top:1930px" tabindex="0">
+  Correlation Threshold on?
+  <div class="sub">input$cor_threshold_decision</div>
+  <div class="tip">Requires identification to be on (UI note). Captured into run_settings$correlation_active alongside identification_active at the very start of canonical_state_gate, and feeds MinCor() (else -Inf, i.e. no-op). Gates the per-pixel correlation_keep mask used inside "Connected Threshold Regions" and "Spatial Clusters", and separately gates the Correlation Histogram and the correlation-based rejection shown on the Heatmap/Map Color Choices/Progress Bars.
+  <span class="loc">server.R:1015-1017, 1309-1310, 1495-1563</span></div>
+</div>
+
+<div class="node function" style="left:1050px;top:2100px" tabindex="0">
+  Library Identification
+  <div class="sub">identify_blockwise / .match_spec_blockwise</div>
+  <div class="tip">identify_blockwise(object) calls OpenSpecy:::.match_spec_blockwise(object, reference, top_n=, block_size=1000L, type="roll"). Reference resolved by app_reference_for_query(library_filtered(), object). Inside "Connected Threshold Regions + Correlation Threshold" this can run twice &mdash; see that box. This path (and Attach Best Matches below it) is what feeds max_cor()/matches_to_single() in real-library mode; AI Model Classification feeds the exact same downstream functions through ai_output() instead when lib_type="model".
+  <span class="loc">server.R:1141-1160 &middot; R/match_spec.R:213</span></div>
+</div>
+<div class="node function" style="left:1050px;top:2270px" tabindex="0">
+  Attach Best Matches
+  <div class="sub">attach_best_matches / match_material</div>
+  <div class="tip">Adds max_cor_name, max_cor_val, material_class to object$metadata from best_match_rows(matches) + match_material(). Result becomes canonical_state()$object.
+  <span class="loc">server.R:1162-1194</span></div>
+</div>
+
+<div class="node function" style="left:1050px;top:2440px" tabindex="0">
+  Build canonical_state
+  <div class="sub">canonical_state_gate  &middot; Run-gated</div>
+  <div class="tip">The single expensive-analysis owner: bundles object, matches, pixel_matches, pixel_to_unit, partition, error, diagnostic, and a run_settings snapshot (collapse/strategy/thresholds captured once per Run) so every downstream reader sees exactly what produced this result, never live inputs. This closure is exactly what Click Run (near the top of this diagram) executes.
+  <span class="loc">server.R:1296-1366+</span></div>
+</div>
+
+<div class="node function" style="left:1050px;top:2610px" tabindex="0">
+  canonical_final() / DataR()
+  <div class="sub">validated read of canonical_state</div>
+  <div class="tip">validate()-guards on analysis_needs_reset() (new upload not yet Run) and a non-NULL object, else surfaces diagnostic/error text. DataR() is a compatibility alias. Per the Constitution's Bundled Shiny Application Boundary: every visible/exported result for one analysis state MUST derive from this one object.
+  <span class="loc">server.R:1634-1645, 1674</span></div>
+</div>
+
+<div class="node decision" style="left:550px;top:2780px" tabindex="0">
+  Quantification defined?
+  <div class="sub">ratio_definitions() / measurement_definitions()</div>
+  <div class="tip">Purely data-driven, no switch: true if the user has added any peak-ratio or point-intensity definitions. Also Run-gated (quantified_data_gate), so it recomputes on the same Click Run event as canonical_state_gate, not independently.
+  <span class="loc">server.R:1676-1694</span></div>
+</div>
+<div class="node function" style="left:550px;top:2950px" tabindex="0">
+  Quantification
+  <div class="sub">app_attach_quantification()</div>
+  <div class="tip">Calls peak_ratio()/app_area_ratio() and point_intensity()/app_area_measurement() per user-defined row, adding numeric metadata columns only &mdash; never touches $spectra values. Its output (quantified_data()) is NOT a dead end: it feeds Download: Processed Spectra and Download: Top Matches directly (dotted rose lines), since both read quantified_data() rather than canonical_final() directly. Note: the package's quantify_particles() export is not used by the app.
+  <span class="loc">global.R:1374-1428</span></div>
+</div>
+
+<div class="node function" style="left:1050px;top:2780px" tabindex="0">
+  Pixel Projection
+  <div class="sub">pixel_projection_gate  &middot; map only, Run-gated</div>
+  <div class="tip">Projects unit-level results (canonical_state()$object/$matches/$pixel_to_unit) back onto every raw pixel of spatial_data() for heatmap coloring; computes rejected/rejection_reason per pixel from Signal/Noise + correlation thresholds via app_threshold_rejection_mask().
+  <span class="loc">server.R:2150-2220</span></div>
+</div>
+
+<div class="node decision" style="left:1550px;top:2780px" tabindex="0">
+  Library type = model (AI)?
+  <div class="sub">input$lib_type == "model"</div>
+  <div class="tip">Architecturally separate from Library Identification above &mdash; this path runs after canonicalization, not inside canonical_state_gate. It also disables filter/organism library controls and blocks strategies that need a real reference library.
+  <span class="loc">server.R:1324-1325, 1349-1354 &middot; ui.R:228-241</span></div>
+</div>
+<div class="node function" style="left:1550px;top:2950px" tabindex="0">
+  AI Model Classification
+  <div class="sub">ai_output_gate: match_spec()</div>
+  <div class="tip">Calls match_spec(data, library=libraryR(), na.rm=TRUE) directly on the already-finalized DataR() &mdash; bypasses identify_blockwise()/.match_spec_blockwise() entirely, and never populates matches/pixel_matches (so the Top Matches TABLE stays empty in this mode, per its req() guard). It is NOT a dead end otherwise: ai_output() feeds max_cor()/max_cor_identity() directly (server.R:1922-1941), which in turn feed the Heatmap's material coloring, Selection Metadata Table, and Download: Top Matches/Thresholded Particles (dotted rose lines) &mdash; confirmed by reading each consumer's source.
+  <span class="loc">server.R:1893-1914</span></div>
+</div>
+
+<!-- ================= dependency rail: every terminal output tapped at its true upstream point(s) ================= -->
+
+<div class="node output tip-left" style="left:2250px;top:150px" tabindex="0">
+  Download: Static Files
+  <div class="depends">depends on: nothing analysis-related</div>
+  <div class="tip">User Metadata template / Test Data / Test Map are static bundled files, available the moment the app loads &mdash; not derived from canonical_state() or even a successful upload. The one deliberate non-canonical output in this diagram.
+  <span class="loc">server.R:2717, 2732-2737</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:1250px" tabindex="0">
+  Signal/Noise Histogram
+  <div class="depends">depends on: Signal/Noise Compute + Recalculate Preview</div>
+  <div class="tip">output$snr_plot reads snr_preview(), populated only by Click Run or the Recalculate Preview button (both near the top of this diagram) from the live signal_to_noise() metric.
+  <span class="loc">server.R:2079</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:1370px" tabindex="0">
+  Particle Size Plot
+  <div class="depends">depends on: Collapse particles = on</div>
+  <div class="tip">output$particle_plot reads canonical_final()$metadata$area, which only exists when particles were collapsed into units; empty for a non-collapsed map or single spectrum.
+  <span class="loc">server.R:2592</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:1430px" tabindex="0">
+  Sidebar Metadata Table
+  <div class="depends">depends on: Read &amp; Combine (off) or Collapse (on)</div>
+  <div class="tip">output$sidebar_metadata reads meta_cache(), from quantified_data() + canonical_signal_noise(). Its row structure changes drastically with Collapse: OFF &rarr; one row per uploaded spectrum/pixel, an identity that traces straight back to Read &amp; Combine (long dotted line to the top of the diagram) rather than any processing step; ON &rarr; one row per collapsed particle/cluster, an identity decided at Collapse/Particle ID Strategy instead.
+  <span class="loc">server.R:2134, 1863</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:1490px" tabindex="0">
+  Download: Thresholded Particles (zip)
+  <div class="depends">depends on: Collapse, Signal/Noise, Identification/AI</div>
+  <div class="tip">Details/processed/summary/particle-size figures always come from canonical_final() + snr_preview() &mdash; Signal/Noise thresholding alone is enough to produce this archive once Collapse has produced units. The correlation histogram and material-summary figures are added ONLY when identification produced values: correlation_values falls back through canonical_state()$pixel_matches or max_cor() (which is ai_output() in AI mode), and material_summary.png only appears if material_class exists in canonical_final()$metadata. The heatmap PNGs inside the zip come from map_color_choices()/heatmap_data_for(), so they also reflect whichever identification path ran.
+  <span class="loc">server.R:2781-2843</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:1590px" tabindex="0">
+  Partition Status Text
+  <div class="depends">depends on: Particle ID Strategy</div>
+  <div class="tip">output$particle_partition_status reads canonical_state()$partition / $diagnostic / $pixel_to_unit, which record which strategy ran and how many units it produced.
+  <span class="loc">server.R:1589</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:1985px" tabindex="0">
+  Correlation Histogram
+  <div class="depends">depends on: Correlation Threshold on</div>
+  <div class="tip">output$cor_plot reads canonical_state()$pixel_matches / max_cor(), filtered by MinCor() &mdash; empty/flat when Correlation Threshold is off.
+  <span class="loc">server.R:1956</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:2110px" tabindex="0">
+  Top Matches Table
+  <div class="depends">depends on: Library Identification (blocked in AI mode)</div>
+  <div class="tip">output$event reads top_matches(), which has req(!grepl("^model$", input$lib_type)) &mdash; explicitly blocked whenever Library type = AI model, unlike the Download version below, which is NOT blocked.
+  <span class="loc">server.R:2118, 2032</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:2220px" tabindex="0">
+  Download: Top Matches
+  <div class="depends">depends on: Identification OR AI, + Quantification</div>
+  <div class="tip">Two branches in the same handler: real-library mode reads identification_matches() + library_filtered()$metadata + quantified_data()$metadata (via quant_columns, from Quantification); AI mode instead does bind_cols(quantified_data()$metadata, matches_to_single()), and matches_to_single() in AI mode reads ai_output()$value directly. Either way quantified_data()'s columns are included &mdash; this is one of only two outputs that genuinely depends on Quantification.
+  <span class="loc">server.R:2742-2780</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:2330px" tabindex="0">
+  Material Class Plot
+  <div class="depends">depends on: Attach Best Matches (or Collapse grouping)</div>
+  <div class="tip">output$material_plot reads metadata$material_class (collapse) or max_cor_identity() (non-collapse) &mdash; either way it needs Library Identification (or AI Model Classification, via max_cor_identity()) to have run.
+  <span class="loc">server.R:2600</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:2440px" tabindex="0">
+  Map Color Choices
+  <div class="depends">depends on: Build canonical_state</div>
+  <div class="tip">map_color_choices() reads canonical_state()$object / $pixel_matches / $settings$collapse &mdash; available choices (Material, Correlation, Signal/Noise, ...) change with what that Run actually computed.
+  <span class="loc">server.R:2223</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:2560px" tabindex="0">
+  Spectrum Plot
+  <div class="depends">depends on: canonical_final() + Heatmap click (live)</div>
+  <div class="tip">output$MyPlotC reads DataR_plot() (processed, Run-gated), RawR_plot() (raw, click-driven, stays live between Runs) and selected_match() (reference overlay). Which pixel/particle it shows is set by clicking the Heatmap or a table row (see the dashed teal line from Heatmap below) &mdash; the Plot does not drive the Heatmap, the relationship runs the other way.
+  <span class="loc">server.R:2377-2385</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:2630px" tabindex="0">
+  Selection Metadata Table
+  <div class="depends">depends on: canonical_final() + click; Identification OR AI</div>
+  <div class="tip">output$eventmetadata reads match_metadata(), from selected_unit_index() + matches_to_single(). match_metadata() branches on lib_type: real-library mode uses Library Identification's matches_to_single(); AI mode instead does bind_cols(quantified_data()$metadata, matches_to_single()) where matches_to_single() reads ai_output() &mdash; unlike Top Matches Table, this one is NOT blocked in AI mode. Row selection is set by clicking the Heatmap (dashed teal line below).
+  <span class="loc">server.R:2099, 2042</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:2720px" tabindex="0">
+  Download: Processed Spectra
+  <div class="depends">depends on: Ordinary Process (values) + Quantification (columns)</div>
+  <div class="tip">write_spec() from quantified_data() + canonical_signal_noise(). The spectra VALUES in this download trace back only to Ordinary Process &mdash; Collapse/Strategy only decide which columns (units) exist. Quantification is not a dead end here: quantified_data() is the literal source object, so any peak-ratio/point-intensity columns the user defined ride along in the export; Identification adds metadata columns only, never touches $spectra.
+  <span class="loc">server.R:2738-2741</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:2810px" tabindex="0">
+  Heatmap
+  <div class="depends">depends on: Pixel Projection; Identification OR AI</div>
+  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(). Its available colorings change with upstream state: Collapse off shows per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows only Signal/Noise-based coloring. Material coloring in AI mode comes from max_cor_identity() &larr; ai_output() (dotted rose line), not a dead end. Clicking the Heatmap is itself the trigger for the Spectrum Plot and Selection Metadata Table (dashed teal lines above) &mdash; those two do not feed back into it.
+  <span class="loc">server.R:2523, 2475</span></div>
+</div>
+
+<div class="node output tip-left" style="left:2250px;top:2900px" tabindex="0">
+  Progress Bars
+  <div class="depends">depends on: Pixel Projection + thresholds</div>
+  <div class="tip">output$progress_bars reads pixel_projection() plus canonical_state()$settings thresholds (Good Signal / Good Match / Good Identification).
+  <span class="loc">server.R:2282</span></div>
+</div>
+
+</div>
+  </div>
+</div>
+</div>
+
+<footer class="page">
+  Sources: <code>inst/shiny/server.R</code>, <code>inst/shiny/global.R</code>, <code>inst/shiny/ui.R</code>, and the <code>R/</code> package
+  functions each stage wraps. Reflects the app as of the "run button add"/"new run"/"reactivity improvements" commits
+  (spec <code>014-run-gating-reactivity-and-deploy-fix</code>). When a plan changes any stage, branch, function, or
+  output dependency named here, update this diagram in the same plan &mdash; see Constitution Principle X.
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var viewer = document.getElementById("viewer");
+  var layer = document.getElementById("zoomLayer");
+  var canvasEl = document.getElementById("canvas");
+  var scale = 1, x = 24, y = 24;
+  var dragging = false, moved = false, lastX = 0, lastY = 0;
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function apply() {
+    layer.style.transform = "translate(" + x + "px," + y + "px) scale(" + scale + ")";
+  }
+  function fitToWidth() {
+    var vw = viewer.clientWidth || 1000;
+    var cw = canvasEl.offsetWidth || 2520;
+    scale = clamp(vw / cw * 0.94, 0.2, 2);
+    x = (vw - cw * scale) / 2;
+    y = 24;
+    apply();
+  }
+  function setScale(newScale, cx, cy) {
+    newScale = clamp(newScale, 0.18, 2.2);
+    var rect = viewer.getBoundingClientRect();
+    var px = (cx - rect.left - x) / scale;
+    var py = (cy - rect.top - y) / scale;
+    x -= px * (newScale - scale);
+    y -= py * (newScale - scale);
+    scale = newScale;
+    apply();
+  }
+
+  viewer.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    var delta = e.deltaY > 0 ? -0.09 : 0.09;
+    setScale(scale + delta, e.clientX, e.clientY);
+  }, { passive: false });
+
+  viewer.addEventListener("pointerdown", function (e) {
+    dragging = true; moved = false; lastX = e.clientX; lastY = e.clientY;
+    viewer.classList.add("grabbing");
+    viewer.setPointerCapture(e.pointerId);
+  });
+  viewer.addEventListener("pointermove", function (e) {
+    if (!dragging) return;
+    var dx = e.clientX - lastX, dy = e.clientY - lastY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+    x += dx; y += dy; lastX = e.clientX; lastY = e.clientY;
+    apply();
+  });
+  function stopDrag() { dragging = false; viewer.classList.remove("grabbing"); }
+  viewer.addEventListener("pointerup", stopDrag);
+  viewer.addEventListener("pointercancel", stopDrag);
+  viewer.addEventListener("pointerleave", stopDrag);
+
+  document.getElementById("zoomIn").addEventListener("click", function () {
+    var r = viewer.getBoundingClientRect();
+    setScale(scale + 0.18, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("zoomOut").addEventListener("click", function () {
+    var r = viewer.getBoundingClientRect();
+    setScale(scale - 0.18, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("zoomReset").addEventListener("click", fitToWidth);
+
+  window.addEventListener("resize", fitToWidth);
+  fitToWidth();
+})();
+</script>
+
+</body>
+</html>
