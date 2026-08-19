@@ -1860,8 +1860,7 @@ app_category_colorscale <- function(values) {
 
 app_quality_checks <- c(
   "silent_region", "missing_values", "flat_spectrum",
-  "negative_intensity", "co2_region", "high_tail", "spike",
-  "low_snr", "saturation"
+  "negative_intensity", "co2_region", "high_tail", "spike", "saturation"
 )
 
 app_automatic_quality_checks <- c(
@@ -1946,8 +1945,11 @@ app_quality_ui_report <- function(report) {
   # arguments such as `status` cannot be shadowed by same-named columns in
   # data.table's non-standard evaluation.
   report <- as.data.frame(report, stringsAsFactors = FALSE)
-  report <- report[!report$check %in% app_automatic_quality_checks, ,
-                   drop = FALSE]
+  # spike/saturation/co2_region/high_tail (app_automatic_quality_checks)
+  # used to be filtered out here on the assumption they'd only ever be
+  # reported via Automatic Corrections Made. They're now also included in
+  # Warnings/Successes for the viewed spectrum -- independent of whether
+  # the matching correction is actually applied -- so no longer excluded.
   report$status <- ifelse(
     report$status %in% c("pass", "success"), "success", "warning"
   )

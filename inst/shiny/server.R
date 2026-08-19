@@ -1772,10 +1772,10 @@ observeEvent(input$file, {
           5L
         } else as.integer(input$spike_residual_window)
       )
-      # low_snr reuses the app's configured Signal/Noise threshold
-      # regardless of whether input$threshold_decision is on (that toggle
-      # only gates particle-collapse eligibility, not this advisory check).
-      quality_snr_threshold <- if(is.null(input$MinSNR)) 4 else input$MinSNR
+      # low_snr is deliberately not in app_quality_checks/requested here --
+      # it would be redundant with the app's existing separate "SNR
+      # Threshold" finding (app_threshold_quality_report() below, tied to
+      # input$MinSNR).
       # saturation reuses app_saturation_value() (the same helper
       # ordinary_process() uses), guarded so an incomplete/invalid manual
       # ceiling degrades to "auto" for this reporting-only call instead of
@@ -1793,7 +1793,6 @@ observeEvent(input$file, {
           checks = app_quality_checks,
           report = "all",
           snr_metric = effective_signal_selection(),
-          snr_threshold = quality_snr_threshold,
           co2_region = quality_co2_region,
           artifact_ratio = quality_artifact_ratio,
           spike_args = quality_spike_args,

@@ -8,17 +8,16 @@
   incidentally forced the real computation to run live.
 - Changed Remove Isolated Spikes, Flatten Region, and Range Selection to
   default off. Whether their toggles are on or off, the viewed spectrum's
-  Warnings/Successes now always include a spike/CO2-region/high-tail check
-  (previously these three were only ever reported as part of "Automatic
-  Corrections Made," which stayed silent when the matching toggle was off),
-  so turning automatic correction off never hides whether the spectrum
-  actually has the issue. Low Signal/Noise and Saturation checks are also
-  now always included -- every quality check the package supports is now
-  reported as a Warning or Success for the viewed spectrum, not just five
-  of the nine. Every one of those checks now also has its own specific
-  success message (e.g. "No isolated single-point spikes were detected")
-  instead of a generic "check passed" placeholder for the five that were
-  missing one.
+  Warnings/Successes now always include a spike/CO2-region/high-tail/
+  saturation check (previously these four were only ever reported as part
+  of "Automatic Corrections Made," which stayed silent when the matching
+  toggle was off, and a leftover filter separately hid them from Warnings/
+  Successes even after being computed), so turning automatic correction off
+  never hides whether the spectrum actually has the issue. Every one of
+  these checks now also has its own specific success message (e.g. "No
+  isolated single-point spikes were detected") instead of a generic "check
+  passed" placeholder. A Low Signal/Noise check was considered but left out
+  as redundant with the app's existing separate SNR Threshold finding.
 - Filled the Warnings/Successes buttons with their semantic color (amber/
   green) instead of a thin border on a neutral background, so they read as
   clickable like the app's other buttons; Automatic Corrections Made keeps

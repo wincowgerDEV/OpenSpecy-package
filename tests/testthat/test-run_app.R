@@ -1165,16 +1165,21 @@ test_that("bundled app correction and quality helpers preserve auditable state",
   )
   ui_report <- env$app_quality_ui_report(report)
   # app_quality_ui_report() processes whatever check rows the given report
-  # contains -- it does not filter by app_quality_checks, which this
-  # synthetic report never reads at all; confirmed by checking every check
-  # this report carries comes through regardless of that configured list.
-  expect_true(all(unique(report$check) %in% env$app_quality_checks))
+  # contains -- it does not filter by app_quality_checks (low_snr here is
+  # deliberately not one of the app's configured checks, demonstrating that
+  # loose coupling), and it no longer drops app_automatic_quality_checks
+  # members (spike/saturation/co2_region/high_tail) either: those are also
+  # reported as Warnings/Successes now, in addition to Automatic
+  # Corrections Made, not exclusively there.
+  expect_false("low_snr" %in% env$app_quality_checks)
+  expect_true("spike" %in% env$app_automatic_quality_checks)
   expect_identical(ui_report$check,
-                   c("missing_values", "low_snr", "flat_spectrum"))
-  expect_identical(ui_report$status, c("warning", "warning", "success"))
+                   c("missing_values", "low_snr", "flat_spectrum", "spike"))
+  expect_identical(ui_report$status,
+                   c("warning", "warning", "success", "warning"))
   expect_identical(
     env$app_quality_counts(report),
-    c(warning = 2L, success = 1L)
+    c(warning = 3L, success = 1L)
   )
   warning_html <- paste(as.character(
     env$app_quality_modal_content(report, "warning")
@@ -1189,7 +1194,10 @@ test_that("bundled app correction and quality helpers preserve auditable state",
   expect_match(warning_html, "Missing values found", fixed = TRUE)
   expect_match(warning_html, "Low signal found", fixed = TRUE)
   expect_false(grepl("Flat check passed", warning_html, fixed = TRUE))
-  expect_false(grepl("Spike detected", warning_html, fixed = TRUE))
+  # spike is an app_automatic_quality_checks member, but Warnings/Successes
+  # no longer excludes those (see app_quality_ui_report()) -- it now shows
+  # here in addition to Automatic Corrections Made, not instead of it.
+  expect_match(warning_html, "Spike detected", fixed = TRUE)
   expect_match(success_html, "Finding:", fixed = TRUE)
   expect_match(success_html, "Evidence:", fixed = TRUE)
   expect_match(
@@ -2086,18 +2094,25 @@ test_that("app_quality_checks covers every assess_spec() check with a real succe
   sys.source(file.path(app_path, "global.R"), envir = env)
 
   # assess_spec()'s own full check vocabulary (R/assess_spec.R's
-  # valid_checks); every one of these should be assessed for the viewed
-  # spectrum regardless of whether its matching correction toggle is on.
+  # valid_checks). low_snr is deliberately excluded from app_quality_checks
+  # -- it's redundant with the app's existing separate "SNR Threshold"
+  # finding (app_threshold_quality_report(), tied to input$MinSNR) -- but
+  # every other check should be assessed for the viewed spectrum regardless
+  # of whether its matching correction toggle is on.
   all_checks <- c(
     "high_tail", "silent_region", "co2_region", "missing_values",
     "flat_spectrum", "negative_intensity", "low_snr", "spike", "saturation"
   )
-  expect_identical(sort(env$app_quality_checks), sort(all_checks))
+  expect_identical(
+    sort(env$app_quality_checks), sort(setdiff(all_checks, "low_snr"))
+  )
+  expect_false("low_snr" %in% env$app_quality_checks)
 
-  # Every check needs a real, specific success description -- not the
-  # generic "The X check passed." assess_spec() falls back to for a check
-  # without a custom case, which reads as a placeholder rather than an
-  # actual finding.
+  # Every check assess_spec() supports needs a real, specific success
+  # description -- not the generic "The X check passed." fallback, which
+  # reads as a placeholder rather than an actual finding -- regardless of
+  # whether app_quality_checks currently requests it, so this stays
+  # complete if the configured set changes again later.
   for(check in all_checks) {
     row <- data.frame(
       check = check, description = paste0("The ", check, " check passed."),
