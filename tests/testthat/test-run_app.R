@@ -319,7 +319,7 @@ test_that("bundled app runs corrections and identification unconditionally", {
   expect_false(grepl("active_identification", ui_source, fixed = TRUE))
   expect_false(grepl("active_advanced", ui_source, fixed = TRUE))
   expect_false(grepl("active_quantification", ui_source, fixed = TRUE))
-  expect_match(ui_source, '"spike_decision", "Remove Isolated Spikes", TRUE',
+  expect_match(ui_source, '"spike_decision", "Remove Isolated Spikes", FALSE',
                fixed = TRUE)
   expect_match(ui_source,
                '"saturation_decision", "Remove Saturated Ranges", FALSE',
@@ -571,12 +571,12 @@ test_that("bundled app uses collapsed responsive panels and one shared theme", {
                fixed = TRUE)
   expect_match(
     ui_source,
-    ".btn.openspecy-quality-success {\n          border-color: var(--openspecy-success)",
+    ".btn.openspecy-quality-success {\n          background: var(--openspecy-success)",
     fixed = TRUE
   )
   expect_match(
     ui_source,
-    ".openspecy-quality-icon-success {\n          color: var(--openspecy-success)",
+    ".openspecy-quality-icon-success {\n          color: var(--openspecy-canvas)",
     fixed = TRUE
   )
   expect_match(ui_source, "background: #FFFFFF", fixed = TRUE)

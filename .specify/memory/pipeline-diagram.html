@@ -497,7 +497,7 @@
 <div class="node function" style="left:1050px;top:910px" tabindex="0">
   Spatial Smooth
   <div class="sub">spatial_smooth()  &middot; optional, map only</div>
-  <div class="tip">A plain live reactive, not gated by Run: it recomputes immediately whenever Spatial Smooth / sigma changes. Runs only if the switch is on; convolves each pixel with its spatial neighbors. The result (spatial_data()) is what Signal/Noise, Collapse, and Pixel Projection all read from next &mdash; not the raw upload. Nothing the user SEES changes until Click Run captures this value (see the trigger above).
+  <div class="tip">A plain live reactive, not gated by Run: technically it recomputes on the next read after Spatial Smooth/sigma changes, not on a fixed schedule. Runs only if the switch is on; convolves each pixel with its spatial neighbors. The result (spatial_data()) is what Signal/Noise, Collapse, and Pixel Projection all read from next &mdash; not the raw upload. Only Run-gated/click-triggered code reads it, so the actual convolution never executes before Run: current_select_xy() (the always-on marker-position sync) previously read spatial_data()$metadata purely for x/y coordinates, which spatial_smooth() never changes, and that forced the real computation live on every toggle; fixed by reading data() (pre-smoothing, identical metadata) there instead.
   <span class="loc">server.R:727-743 &middot; R/spatial_smooth.R:28</span></div>
 </div>
 

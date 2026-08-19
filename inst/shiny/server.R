@@ -1741,12 +1741,46 @@ observeEvent(input$file, {
   quality_report_gate <- run_gated_reactive(function() {
       if(is.null(preprocessed$data)) return(NULL)
       selected <- DataR_plot()
+      # co2_region/high_tail/spike are assessed here unconditionally, even
+      # when their matching correction toggle (co2_decision/range_decision/
+      # spike_decision) is off, so turning automatic correction off never
+      # hides whether the viewed spectrum actually has the issue -- the
+      # user still sees a warning (issue present) or success (none found).
+      # assess_spec() takes one shared artifact_ratio for both co2_region
+      # and high_tail; the app exposes them as two independent inputs, so
+      # this reporting-only call picks the CO2 ratio when set, falling back
+      # to the tail ratio, then the package default -- an intentional
+      # simplification of the always-on assessment, not of either
+      # correction's own (still independently-configured) automatic mode.
+      quality_co2_region <- if(is.null(input$MinFlat) || is.null(input$MaxFlat)) {
+        c(2200, 2420)
+      } else sort(c(input$MinFlat, input$MaxFlat))
+      quality_artifact_ratio <- if(!is.null(input$co2_artifact_ratio)) {
+        input$co2_artifact_ratio
+      } else if(!is.null(input$range_artifact_ratio)) {
+        input$range_artifact_ratio
+      } else 3
+      quality_spike_args <- list(
+        method = "residual",
+        direction = if(is.null(input$spike_direction)) {
+          "both"
+        } else input$spike_direction,
+        residual_threshold = if(is.null(input$spike_residual_threshold)) {
+          8
+        } else input$spike_residual_threshold,
+        residual_window = if(is.null(input$spike_residual_window)) {
+          5L
+        } else as.integer(input$spike_residual_window)
+      )
       assessment <- tryCatch(
         assess_spec(
           selected,
           checks = app_quality_checks,
           report = "all",
-          snr_metric = effective_signal_selection()
+          snr_metric = effective_signal_selection(),
+          co2_region = quality_co2_region,
+          artifact_ratio = quality_artifact_ratio,
+          spike_args = quality_spike_args
         ),
         error = function(error) data.frame(
           status = "warning",
@@ -2509,7 +2543,14 @@ output$progress_bars <- renderUI({
   current_select_xy <- reactive({
       req(!is.null(preprocessed$data))
       selected <- data_click$pixel
-      metadata <- spatial_data()$metadata
+      # data(), not spatial_data(): spatial_smooth() only convolves spectra,
+      # it passes metadata (including x/y) through unchanged, and this only
+      # needs coordinates. Reading spatial_data() here forced the
+      # (potentially expensive) spatial-smoothing computation to run live
+      # on every Spatial Smooth/sigma change, via this reactive's own
+      # always-on observer below -- before Run, without the map ever
+      # visibly changing, since nothing here used the smoothed values.
+      metadata <- data()$metadata
       if(length(selected) != 1L || is.na(selected) || selected < 1L ||
          selected > nrow(metadata)) {
         mapping <- canonical_state()$pixel_to_unit
@@ -2930,6 +2971,19 @@ output$progress_bars <- renderUI({
         meta_cache(), input$sidebar_metadata_rows_selected
       )
       if(!length(sel)) return()
+      # The sidebar_proxy sync below (observeEvent(list(meta_cache(),
+      # data_click$plot), ...)) calls DT::selectRows() every time
+      # data_click$plot changes from ANY source, including a manual heatmap
+      # click -- and that client-side selection change echoes straight back
+      # through this same input, indistinguishable from a genuine table
+      # click. Without this guard, that echo re-derives a "representative"
+      # (first, not necessarily clicked) member pixel for the unit and
+      # overwrites data_click$pixel, so a manual click anywhere on a
+      # multi-pixel collapsed particle silently snaps back to that
+      # particle's representative pixel instead of staying where clicked.
+      if(identical(sel, suppressWarnings(as.integer(isolate(data_click$plot))))) {
+        return()
+      }
       mapping <- canonical_state()$pixel_to_unit
       if(!is.null(mapping)) {
         mapping <- data.table::as.data.table(mapping)

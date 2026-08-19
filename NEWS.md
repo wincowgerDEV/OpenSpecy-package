@@ -1,5 +1,30 @@
 # OpenSpecy 1.7.1
 
+- Fixed Spatial Smooth running its (potentially expensive) convolution
+  immediately on every toggle/Spatial Standard Deviation change, before Run
+  was ever clicked. An always-on observer that keeps the heatmap's selection
+  marker in sync with clicks was reading the spatially-smoothed object purely
+  for pixel x/y coordinates, which smoothing never changes, and that
+  incidentally forced the real computation to run live.
+- Changed Remove Isolated Spikes, Flatten Region, and Range Selection to
+  default off. Whether their toggles are on or off, the viewed spectrum's
+  Warnings/Successes now always include a spike/CO2-region/high-tail check
+  (previously these three were only ever reported as part of "Automatic
+  Corrections Made," which stayed silent when the matching toggle was off),
+  so turning automatic correction off never hides whether the spectrum
+  actually has the issue.
+- Filled the Automatic Corrections/Warnings/Successes buttons with their
+  semantic color (blue/amber/green) instead of a thin border on a neutral
+  background, so they read as clickable like the app's other buttons.
+- Fixed the Thresholded Particles download's Particle Unit and Match ID
+  heatmap images always drawing a legend, even though both are per-particle
+  identifiers with too many categories for a legend to be useful.
+- Fixed a selection feedback loop that snapped a manual heatmap click on a
+  multi-pixel collapsed particle back to that particle's first/representative
+  pixel instead of staying on the pixel actually clicked: syncing the
+  sidebar metadata table's selection to match a heatmap click echoed back
+  through the table's own selection-change handler, which was
+  indistinguishable from a genuine row click.
 - Fixed the Top Matches table staying empty whenever Library type = AI model,
   even though the Top Matches download and the Selection Metadata table
   already showed AI predictions. AI mode has one prediction per spectrum

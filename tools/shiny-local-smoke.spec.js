@@ -508,7 +508,40 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
     input.files?.[0]?.name || ""
   )).toBe("CA_tiny_map.zip");
   await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+
+  // Toggling Spatial Smooth (before Run) must not force spatial_smooth() to
+  // actually run: it's a live (not Run-gated) reactive by design, but a
+  // regression let an always-on click-position-sync observer eagerly force
+  // it anyway, running the real convolution on every toggle/sigma change.
+  await page.evaluate(() => {
+    window.__openspecyPhaseMessages = [];
+    window.Shiny.addCustomMessageHandler("openspecy-analysis-phase", (state) => {
+      window.__openspecyPhaseMessages.push(state.message);
+    });
+  });
+  const spatialSwitch = page.locator("#spatial_decision");
+  await expect(spatialSwitch).toBeAttached({ timeout: 30000 });
+  await spatialSwitch.evaluate((input) => { if (!input.checked) input.click(); });
+  await page.waitForTimeout(1500);
+  const phaseMessages = await page.evaluate(() => window.__openspecyPhaseMessages);
+  expect(phaseMessages.some((message) => /smoothing the spectral map/i.test(message)))
+    .toBe(false);
+  await spatialSwitch.evaluate((input) => { if (input.checked) input.click(); });
+
+  const runClickedAt = Date.now();
   await page.locator("#run_analysis").click();
+  await expect(page.locator("#run_analysis")).toHaveClass(/\bdisabled\b/, {
+    timeout: 500,
+  });
+  console.log(
+    `[timing] #run_analysis got .disabled ${Date.now() - runClickedAt}ms after click`
+  );
+  await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
+    timeout: 3000,
+  });
+  console.log(
+    `[timing] #openspecy_busy_overlay visible ${Date.now() - runClickedAt}ms after click`
+  );
   await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
   const mapPlot = page.locator("#heatmapA.js-plotly-plot");
   await expect(mapPlot.locator(".main-svg").first()).toBeVisible({
@@ -539,6 +572,25 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   await expect(page.locator("#download_selection")).toHaveValue("Top Matches");
   await expect(page.locator("#download_data")).toHaveText("Download Top Matches");
   await expect(page.locator("#top_n_input")).toHaveValue("10");
+
+  // fetchDownload() below calls fetch() directly on the link's href and
+  // never dispatches a real click, so it can't catch a click-feedback
+  // regression on its own. This does a real click via Playwright's download
+  // event API first, to prove #download_data's busy decoration (and the
+  // actual download) start within a perceived instant of the click.
+  const realDownloadPromise = page.waitForEvent("download");
+  const downloadClickedAt = Date.now();
+  await page.locator("#download_data").click();
+  await expect(page.locator("#download_data")).toHaveClass(/\bdisabled\b/, {
+    timeout: 500,
+  });
+  console.log(
+    `[timing] #download_data got .disabled ${Date.now() - downloadClickedAt}ms after click`
+  );
+  await realDownloadPromise;
+  console.log(
+    `[timing] download event received ${Date.now() - downloadClickedAt}ms after click`
+  );
 
   const topMatches = await fetchDownload(page.locator("#download_data"), {
     readyTimeout: 600000,
@@ -870,7 +922,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
     await expect(tab).toHaveClass(/active/);
     if (tabName === "Preprocessing") {
       await expect(minMaxControl).toBeVisible();
-      await expect(page.locator("#spike_decision")).toBeChecked();
+      await expect(page.locator("#spike_decision")).not.toBeChecked();
       const saturationSwitch = page.locator("#saturation_decision");
       await expect(saturationSwitch).not.toBeChecked();
       await expect(page.locator("#spike_direction")).toHaveValue("both");
@@ -970,6 +1022,12 @@ test("local app renders spectra, matches, and one informative progress overlay",
     "type", "number"
   );
   await expectInformationalDetails(page);
+  // spike_decision now defaults off; explicitly enable it to exercise the
+  // same "what does an enabled switch look like" check this always did.
+  await page.locator("#spike_decision").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await expect(page.locator("#spike_decision")).toBeChecked();
   await expectEnabledSwitchColors(page, "spike_decision");
   await toggleCard(settingsCard);
   await expectCardCollapsed(settingsCard);
@@ -1143,12 +1201,18 @@ test("local app renders spectra, matches, and one informative progress overlay",
       const icon = button.querySelector(".openspecy-quality-icon-success");
       return {
         border: getComputedStyle(button).borderColor,
+        background: getComputedStyle(button).backgroundColor,
         icon: icon ? getComputedStyle(icon).color : "",
       };
     });
+  // The button is filled with its semantic color (not just bordered) so it
+  // reads as clickable; the icon/text switch to the dark canvas color for
+  // contrast against that fill, matching the Run button's own dirty-state
+  // convention (dark text on a bright fill).
   expect(successColors).toEqual({
     border: "rgb(34, 197, 94)",
-    icon: "rgb(34, 197, 94)",
+    background: "rgb(34, 197, 94)",
+    icon: "rgb(5, 11, 20)",
   });
 
   const automaticCount = Number(

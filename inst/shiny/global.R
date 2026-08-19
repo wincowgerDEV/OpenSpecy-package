@@ -339,8 +339,16 @@ app_heatmap_ggplot <- function(data) {
       data = grid[rejected, , drop = FALSE], fill = "black"
     )
   }
-  plot + ggplot2::coord_equal() + theme_black_minimal(base_size = 13) +
+  plot <- plot + ggplot2::coord_equal() + theme_black_minimal(base_size = 13) +
     ggplot2::labs(x = "X (um)", y = "Y (um)", fill = data$legend_title)
+  # Particle Unit and Match ID are per-particle identifiers -- essentially
+  # as many categories as there are particles -- so a legend is never
+  # useful for them, unlike Material Class's small fixed vocabulary.
+  if(identical(data$legend_title, "Particle Unit") ||
+     identical(data$legend_title, "Match ID")) {
+    plot <- plot + ggplot2::theme(legend.position = "none")
+  }
+  plot
 }
 
 app_write_ggplot_png <- function(plot, path, width = 8, height = 6) {
@@ -1852,7 +1860,7 @@ app_category_colorscale <- function(values) {
 
 app_quality_checks <- c(
   "silent_region", "missing_values", "flat_spectrum",
-  "negative_intensity"
+  "negative_intensity", "co2_region", "high_tail", "spike"
 )
 
 app_automatic_quality_checks <- c(

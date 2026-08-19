@@ -99,7 +99,7 @@ preprocessing_controls <- tagList(
     )
   ),
   app_control_box(
-    "range_decision", "Range Selection", TRUE,
+    "range_decision", "Range Selection", FALSE,
     prettySwitch("range_automate", "Automatic High-Tail Correction",
                  inline = TRUE, value = TRUE, status = "success", fill = TRUE),
     conditionalPanel(
@@ -125,7 +125,7 @@ preprocessing_controls <- tagList(
     )
   ),
   app_control_box(
-    "co2_decision", "Flatten Region", TRUE,
+    "co2_decision", "Flatten Region", FALSE,
     prettySwitch("co2_automate", "Automatic CO2 Correction",
                  inline = TRUE, value = TRUE, status = "success", fill = TRUE),
     conditionalPanel(
@@ -145,7 +145,7 @@ preprocessing_controls <- tagList(
     )
   ),
   app_control_box(
-    "spike_decision", "Remove Isolated Spikes", TRUE,
+    "spike_decision", "Remove Isolated Spikes", FALSE,
     selectInput(
       "spike_direction", "Spike Direction",
       choices = c("Positive and negative" = "both",
@@ -735,21 +735,31 @@ dashboardPage(
           box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2);
         }
         .btn.openspecy-quality-automatic {
-          border-color: var(--openspecy-grid) !important;
+          background: var(--openspecy-accent) !important;
+          border-color: var(--openspecy-accent) !important;
+          color: var(--openspecy-canvas) !important;
         }
-        .btn.openspecy-quality-warning { border-color: #FACC15 !important; }
+        .btn.openspecy-quality-warning {
+          background: #FACC15 !important;
+          border-color: #FACC15 !important;
+          color: var(--openspecy-canvas) !important;
+        }
         .btn.openspecy-quality-success {
+          background: var(--openspecy-success) !important;
           border-color: var(--openspecy-success) !important;
+          color: var(--openspecy-canvas) !important;
         }
-        .openspecy-quality-icon-warning { color: #FACC15 !important; }
+        .openspecy-quality-icon-automatic { color: var(--openspecy-canvas) !important; }
+        .openspecy-quality-icon-warning { color: var(--openspecy-canvas) !important; }
         .openspecy-quality-icon-success {
-          color: var(--openspecy-success) !important;
+          color: var(--openspecy-canvas) !important;
         }
         .openspecy-quality-automatic.openspecy-automatic-applied {
           border: 2px solid transparent !important;
           background:
             linear-gradient(var(--openspecy-panel-2), var(--openspecy-panel-2)) padding-box,
             linear-gradient(90deg, #FB7185, #E69F00, #F0E442, #009E73, #56B4E9, #CC79A7) border-box !important;
+          color: var(--openspecy-text) !important;
         }
         .openspecy-quality-automatic.openspecy-automatic-applied
           .openspecy-quality-icon-automatic {
