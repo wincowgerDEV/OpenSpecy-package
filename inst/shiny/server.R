@@ -1097,6 +1097,14 @@ observeEvent(input$file, {
       condition = isTRUE(snr_preview_stale())
     )
   })
+  # Mirrors the main Run button's dirty/clean convention exactly (green =
+  # clicking it would change the result; dark navy = it already matches).
+  observe({
+    shinyjs::toggleClass(
+      id = "recalculate_snr", class = "openspecy-run-dirty",
+      condition = isTRUE(snr_preview_stale())
+    )
+  })
 
   particle_pipeline_enabled <- reactive({
     # Collapsing particle spectra requires a map with more than one spectrum
@@ -2070,7 +2078,14 @@ output$snr_plot_ui <- renderUI({
 output$snr_plot <- renderPlotly({
     req(!is.null(preprocessed$data))
     values <- snr_preview()
-    req(!is.null(values))
+    if(is.null(values)) {
+      # req() alone would leave the previous dataset's chart frozen on
+      # screen instead of visibly resetting to blank on a fresh upload.
+      return(app_particle_plotly(list(
+        type = "empty",
+        reason = "Click Recalculate Preview (or Run) to compute this histogram."
+      ), source = "snr_histogram"))
+    }
     thresholds <- if(isTRUE(input$threshold_decision)) {
       c(MinSNR(), MaxSNR())
     } else numeric()
@@ -2269,10 +2284,14 @@ output$progress_bars <- renderUI({
     settings <- canonical_state()$settings
     req(ncol(preprocessed$data$spectra) > 1 || isTRUE(settings$collapse))
 
-    percent_true <- function(x) {
+    # A single rounded percentage (shinyWidgets::progressBar() itself calls
+    # round()) reads as "0%"/"none" whenever the true share is small but
+    # nonzero -- exactly what a sparse real-world map with many small
+    # particles looks like. Pass raw pixel counts as value/total instead, so
+    # the bar also shows "142 / 331,180" alongside the rounded percentage.
+    pixel_count <- function(x) {
       available <- !is.na(x)
-      if(!any(available)) return(0)
-      sum(x[available]) / sum(available) * 100
+      c(good = sum(x[available]), total = sum(available))
     }
 
     signal_values <- if(isTRUE(settings$threshold_active)) {
@@ -2288,42 +2307,45 @@ output$progress_bars <- renderUI({
 
     metric_items <- list()
     if(!is.null(signal_values)) {
+      counts <- pixel_count(
+        signal_values > settings$min_snr & signal_values < settings$max_snr
+      )
       metric_items[[length(metric_items) + 1L]] <- div(
         id = "signal_summary_panel",
         shinyWidgets::progressBar(
           id = "signal_progress",
-          value = percent_true(
-            signal_values > settings$min_snr & signal_values < settings$max_snr
-          ),
+          value = counts[["good"]], total = counts[["total"]],
           status = "success",
-          title = "Good Signal",
+          title = "Good Signal (% Pixels)",
           display_pct = TRUE
         )
       )
     }
     if(!is.null(correlation_values)) {
+      counts <- pixel_count(correlation_values >= settings$min_cor)
       metric_items[[length(metric_items) + 1L]] <- div(
         id = "correlation_summary_panel",
         shinyWidgets::progressBar(
           id = "correlation_progress",
-          value = percent_true(correlation_values >= settings$min_cor),
+          value = counts[["good"]], total = counts[["total"]],
           status = "success",
-          title = "Good Match Values",
+          title = "Good Match Values (% Pixels)",
           display_pct = TRUE
         )
       )
     }
     if(!is.null(signal_values) && !is.null(correlation_values)) {
+      counts <- pixel_count(
+        signal_values > settings$min_snr & signal_values < settings$max_snr &
+          correlation_values >= settings$min_cor
+      )
       metric_items[[length(metric_items) + 1L]] <- div(
         id = "match_summary_panel",
         shinyWidgets::progressBar(
           id = "match_progress",
-          value = percent_true(
-            signal_values > settings$min_snr & signal_values < settings$max_snr &
-              correlation_values >= settings$min_cor
-          ),
+          value = counts[["good"]], total = counts[["total"]],
           status = "success",
-          title = "Good Identifications",
+          title = "Good Identifications (% Pixels)",
           display_pct = TRUE
         )
       )
@@ -2866,21 +2888,33 @@ output$progress_bars <- renderUI({
       }
   })
 
+  # meta_cache()'s .openspecy_index is always a column index into
+  # quantified_data()/canonical_final() -- i.e. a *unit* index (one particle
+  # per row when collapsed, one pixel per row otherwise; identical when not
+  # collapsed). Resolve both data_click$pixel and data_click$plot directly
+  # here (mirroring the heatmap-click handler below) instead of only setting
+  # $plot and relying on the separate observeEvent(data_click$plot, ...) to
+  # pick up the change: that observer -- and an earlier version of this one
+  # -- skip the update whenever the clicked unit already equals the current
+  # $plot value, which is true by coincidence on the very first row click
+  # whenever that row's unit index is 1 (matching data_click$plot's initial
+  # default), silently leaving the marker at its stale/default location.
+  # Previously this also set data_click$pixel to the *unit* index directly,
+  # which is only a raw pixel index by coincidence -- landing on an
+  # unrelated/random map location for any other selection.
   observeEvent(input$sidebar_metadata_rows_selected, ignoreInit = TRUE, {
       req(!is.null(meta_cache()))
       sel <- app_uploaded_metadata_spectrum(
         meta_cache(), input$sidebar_metadata_rows_selected
       )
-      if(length(sel) && isTRUE(canonical_state()$settings$collapse)) {
-        data_click$pixel <- sel
-        mapping <- canonical_state()$pixel_to_unit
-        unit <- mapping$unit_index[match(sel, mapping$pixel_index)]
-        data_click$plot <- if(length(unit) == 1L && !is.na(unit)) {
-          unit
-        } else NA_integer_
-      } else if (length(sel) && !identical(sel, as.integer(data_click$plot))) {
-          data_click$plot <- sel
+      if(!length(sel)) return()
+      mapping <- canonical_state()$pixel_to_unit
+      if(!is.null(mapping)) {
+        mapping <- data.table::as.data.table(mapping)
+        representative <- mapping[unit_index == sel & kept, pixel_index[[1L]]]
+        if(length(representative)) data_click$pixel <- representative[[1L]]
       }
+      data_click$plot <- sel
   })
 
 

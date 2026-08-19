@@ -118,6 +118,37 @@
 - Full local Playwright suite (4/4) and full `devtools::test()` rerun clean
   after every fix in this round.
 
+## Round 3: Second Real-Usage Follow-Up (same tranche, user-reported after Round 2)
+
+- **R16.** Uploaded Metadata row clicks landed on an unrelated/unchanged map
+  location: the handler wrote the clicked row's unit index straight into
+  `data_click$pixel` (a raw pixel index) and separately no-opped whenever the
+  clicked unit already equalled `data_click$plot`'s value -- true on every
+  first click by coincidence, since that reactiveValues field defaults to
+  `1`. Now resolves both `data_click$pixel` (via `pixel_to_unit`'s first/
+  lowest-index member, i.e. first x/y) and `data_click$plot` directly and
+  unconditionally, mirroring the heatmap click handler.
+- R17. "Good Signal"/"Good Match Values"/"Good Identifications" now pass raw
+  pixel counts (`value`/`total`) to `shinyWidgets::progressBar()` instead of
+  one pre-rounded percentage, so a small-but-real passing share on a large
+  sparse map shows e.g. "142 / 331,180" instead of a misleading rounded
+  "0%". The underlying metric was already per-pixel, not per-particle.
+- R18. Recalculate Preview button moved out of `#snr_preview_container` (the
+  card that dims when stale) into its own header so it no longer dims along
+  with the plot; it now shares `.openspecy-run-button`/`.openspecy-run-dirty`
+  CSS with the main Run button (green when stale, dark navy when current).
+  `output$snr_plot` now renders an explicit empty state instead of `req()`-
+  freezing on the previous dataset's chart when `snr_preview()` is reset to
+  `NULL` on upload.
+- Verified via a dedicated `testServer()` script (multi-pixel particle,
+  exact x/y match) plus the full local Playwright suite: 3/4 pass; the 4th
+  (`tar -tf` on a downloaded ZIP) fails identically on an unmodified file
+  path with GNU tar (this machine's resolved `tar`) fundamentally unable to
+  read PKZIP archives at all -- confirmed unrelated via `git diff --stat`
+  showing zero overlap with the download/archive code. Pre-existing
+  environment fragility, not a regression; the test should use `unzip -l`/a
+  JS zip reader instead of shelling out to `tar` in a follow-up.
+
 ## Approval Notes
 
 - Approved by: Win Cowger (auto-accepted per explicit request to auto-accept and implement)

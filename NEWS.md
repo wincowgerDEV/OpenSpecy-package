@@ -1,5 +1,27 @@
 # OpenSpecy 1.7.1
 
+- Fixed clicking a row in the Uploaded Metadata table jumping to an unrelated
+  or unchanged map location instead of that particle's first (lowest raw
+  pixel index) location: the handler treated the table row's particle/unit
+  index as if it were a raw pixel index, and separately skipped updating the
+  selection whenever the clicked unit happened to already equal the current
+  selection's default -- most visibly on the very first row click, since the
+  app's initial selection defaults to unit 1. It now resolves both the
+  selected pixel and unit directly, unconditionally, matching the heatmap
+  click handler.
+- Changed the Summary panel's "Good Signal"/"Good Match Values"/"Good
+  Identifications" bars to show the underlying pixel counts (e.g.
+  "142 / 331,180") alongside the percentage: `shinyWidgets::progressBar()`
+  rounds its displayed percentage to the nearest whole number, so a real but
+  small share of passing pixels on a large, sparse map could read as a
+  misleading "0%".
+- Moved the Signal/Noise **Recalculate Preview** button out of the histogram
+  card it previously shared with the plot: that card dims when the preview
+  is stale, which was dimming the one control needed to un-dim it. The
+  button now uses the same green ("would change the result")/dark navy
+  ("already current") convention as the main Run button, and the histogram
+  itself now visibly resets to blank (instead of freezing on the previous
+  dataset's chart) when a new file is uploaded.
 - Fixed a bug in `canonical_state_gate`'s Run-gated result where `return()`
   inside `tryCatch()` exits the enclosing reactive directly, silently
   skipping the settings snapshot the previous entry's fixes attached after

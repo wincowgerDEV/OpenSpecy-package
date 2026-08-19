@@ -284,19 +284,21 @@ advanced_controls <- tagList(
       )
     ),
     div(
+      class = "openspecy-snr-preview-header",
+      actionButton(
+        "recalculate_snr", "Recalculate Preview",
+        icon = icon("rotate"),
+        class = "btn-sm openspecy-run-button openspecy-recalculate-button",
+        title = paste(
+          "Recompute the Signal/Noise Basis and preview histogram for the",
+          "current settings without running the full analysis. Green means",
+          "there are unpreviewed changes; dark means the preview is current."
+        )
+      )
+    ),
+    div(
       id = "snr_preview_container",
       class = "openspecy-mini-plot",
-      div(
-        class = "openspecy-snr-preview-header",
-        actionButton(
-          "recalculate_snr", "Recalculate Preview",
-          icon = icon("rotate"), class = "btn-sm openspecy-recalculate-button",
-          title = paste(
-            "Recompute the Signal/Noise Basis and preview histogram for the",
-            "current settings without running the full analysis."
-          )
-        )
-      ),
       uiOutput("snr_plot_ui")
     ),
     note = c(
@@ -304,7 +306,7 @@ advanced_controls <- tagList(
       "Minimum and Maximum Value define a strict accepted interval on the selected metric scale: values must be greater than the minimum and less than the maximum. The histogram draws both current thresholds.",
       "Signal Over Noise is a local peak-to-noise ratio, Signal Times Noise emphasizes absolute response, and Total Signal sums intensity. Larger values are not interchangeable between metrics.",
       "Pixels outside either bound are background. The default maximum is deliberately high; lower it when saturated or unusually intense pixels must be excluded.",
-      "The preview histogram only updates on Run or Recalculate Preview; it dims when Signal/Noise Basis, Spatial Smooth, or the thresholding settings above have changed since the last computation."
+      "The preview histogram only updates on Run or Recalculate Preview (green = a recalculation would change it; dark = it already matches these settings). A new upload resets it to blank until the first Run or Recalculate."
     )
   ),
   app_control_box(
@@ -1195,13 +1197,9 @@ dashboardPage(
         .openspecy-snr-preview-header {
           display: flex;
           justify-content: flex-end;
-          padding: 6px 6px 0;
+          margin-top: 8px;
         }
-        .btn.openspecy-recalculate-button {
-          color: var(--openspecy-text) !important;
-          background: var(--openspecy-panel-2) !important;
-          border-color: var(--openspecy-border) !important;
-        }
+        .btn.openspecy-recalculate-button { margin-top: 0; }
         .openspecy-preview-stale { opacity: .35; }
         .openspecy-upload-status {
           display: block;
