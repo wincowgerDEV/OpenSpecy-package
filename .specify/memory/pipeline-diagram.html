@@ -262,7 +262,8 @@
   <h1>App Data Analysis Pipeline</h1>
   <p>
     How a spectrum or hyperspectral map moves through the bundled Shiny app (<code>inst/shiny/</code>),
-    from upload to every rendered plot, table, and download. Boxes are colored by role &mdash;
+    from local upload or hosted browser-file mounting to every rendered plot, table, and download.
+    Boxes are colored by role &mdash;
     <strong style="color:var(--input)">input</strong>,
     <strong style="color:var(--function)">function</strong>,
     <strong style="color:var(--decision)">decision</strong>,
@@ -282,6 +283,13 @@
     incidentally &mdash; they must be an explicit part of a plan, and that plan must name the
     diagram box(es)/decision(s) it changes and update this file. See
     <code>.specify/memory/constitution.md</code>.
+  </div>
+  <div class="rule">
+    <strong>Active plan 017 target:</strong> this view includes the approved target flow before its
+    implementation is complete. The hosted path mounts browser <code>File</code> objects into webR,
+    then fully materializes the ordinary in-memory <code>OpenSpecy</code> object. It does not introduce
+    <code>FileSpecs</code> processing. Planned function names and source locations are marked below;
+    this notice is removed when implementation and verification make the diagram current-state truth.
   </div>
 </header>
 
@@ -308,7 +316,7 @@
   <div class="zoom-layer" id="zoomLayer">
 <div class="canvas" id="canvas" style="width:2520px;height:3060px;">
 <svg viewBox="0 0 2520 3060" width="2520" height="3060" role="img"
-     aria-label="Flowchart of the OpenSpecy Shiny app's data analysis pipeline, from file upload through processing, particle partitioning, identification, quantification, and every terminal output, with each output tapped back to its true dependency and click-driven output-to-output interaction shown separately.">
+     aria-label="Target flowchart for OpenSpecy plan 017, from local upload or hosted browser-file mounting through full in-memory processing, active-spectrum quality inspection, particle partitioning, identification, quantification, and every terminal output.">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)"></path>
@@ -329,6 +337,8 @@
 
   <!-- main spine -->
   <path d="M1050,115 L1050,175" marker-end="url(#arrow)"></path>
+  <path d="M550,115 C 550,180 820,205 930,230" marker-end="url(#arrow)"></path>
+  <text x="650" y="168" class="edge-label" style="fill:var(--input)">hosted: WORKERFS mount</text>
   <path d="M1050,275 L1050,315" marker-end="url(#arrow)"></path>
   <path d="M1050,475 L1050,515" marker-end="url(#arrow)"></path>
   <text x="1066" y="500" class="edge-label">yes</text>
@@ -341,11 +351,10 @@
   <path class="edge-alt" d="M935,740 C 790,815 790,1000 940,1078" marker-end="url(#arrowAlt)"></path>
   <text x="742" y="912" class="edge-label strong" transform="rotate(-84 742 912)">no: single spectrum</text>
 
-  <path d="M1050,955 L1050,995" marker-end="url(#arrow)"></path>
-  <path d="M1050,1155 L1050,1195" marker-end="url(#arrow)"></path>
-  <text x="1066" y="1180" class="edge-label">yes</text>
-  <path class="edge-alt" d="M1165,1080 L1520,1080" marker-end="url(#arrowAlt)"></path>
-  <text x="1250" y="1072" class="edge-label strong">no: blocked</text>
+  <path d="M1050,955 L1050,1195" marker-end="url(#arrow)"></path>
+  <path class="edge-alt" d="M1170,930 C 1380,950 1490,1030 1535,1070" marker-end="url(#arrowAlt)"></path>
+  <path class="edge-alt" d="M1170,240 C 1460,340 1580,750 1615,1035" marker-end="url(#arrowAlt)"></path>
+  <text x="1420" y="1000" class="edge-label strong">actual exception only</text>
 
   <path d="M1050,1295 L1050,1335" marker-end="url(#arrow)"></path>
 
@@ -428,7 +437,11 @@
   <path class="edge-tap" d="M1620,2950 C 2460,2820 2460,2450 2135,2215" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1170,2290 C 1800,2300 1950,2320 2135,2330" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1170,2430 L2135,2440" marker-end="url(#arrowTap)"></path>
-  <path class="edge-tap" d="M1170,2590 L2135,2560" marker-end="url(#arrowTap)"></path>
+  <path d="M1170,2590 C 1400,2590 1600,2560 1730,2560" marker-end="url(#arrow)"></path>
+  <path d="M1970,2560 L2135,2560" marker-end="url(#arrow)"></path>
+  <path d="M1850,2605 L1850,2685" marker-end="url(#arrow)"></path>
+  <path class="edge-relation" d="M1170,930 C 1650,1100 1680,2200 1800,2515"></path>
+  <text x="1670" y="1900" class="edge-label" style="fill:var(--output)" transform="rotate(83 1670 1900)">rejected click: process one source pixel</text>
   <path class="edge-tap" d="M1170,2620 L2135,2630" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1620,2920 C 2450,2800 2450,2700 2135,2635" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1170,2650 L2135,2715" marker-end="url(#arrowTap)"></path>
@@ -437,23 +450,30 @@
   <path class="edge-tap" d="M1620,2900 C 2250,2850 2250,2820 2135,2808" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1170,2830 L2135,2900" marker-end="url(#arrowTap)"></path>
 
-  <!-- click interaction: clicking the Heatmap is what drives the Spectrum Plot and Selection Metadata Table -->
-  <path class="edge-click" d="M2250,2762 C 2420,2680 2420,2600 2260,2575" marker-end="url(#arrowClick)"></path>
+  <!-- click interaction: Heatmap selection drives the active-spectrum inspection lane and metadata -->
+  <path class="edge-click" d="M2250,2762 C 2160,2700 2050,2600 1970,2575" marker-end="url(#arrowClick)"></path>
   <path class="edge-click" d="M2250,2762 C 2380,2720 2380,2660 2260,2622" marker-end="url(#arrowClick)"></path>
 </svg>
 
 <!-- Stage 0: upload -->
+<div class="node input" style="left:550px;top:70px" tabindex="0">
+  Hosted Browser File(s)
+  <div class="sub">planned WORKERFS mount</div>
+  <div class="tip">Plan 017 target: a custom inner-frame picker sends browser <code>File</code> objects, not their bytes, through a capability handshake to the pinned Shinylive shell. The owned outer adapter calls <code>webR.FS.mount("WORKERFS", {files}, sessionMount)</code> and returns only sanitized mounted paths to Shiny. This bypasses Shinylive's multipart-body concatenation and R-raw copy; the files remain read-only and are unmounted on replacement/session end.
+  <span class="loc">planned: inst/shiny/www/wasm-file-mount.js &middot; tools/wasm/prepare-shinylive-app.R</span></div>
+</div>
 <div class="node input" style="left:1050px;top:70px" tabindex="0">
-  Uploaded File(s)
-  <div class="tip">Single <code>.rds</code> files are restored directly with <code>as_OpenSpecy()</code>; every other supported format goes through <code>read_any()</code>. Multiple files/members are combined next.
-  <span class="loc">server.R:222-359</span></div>
+  Local Shiny Temp File(s)
+  <div class="sub">native fileInput path</div>
+  <div class="tip">The bundled/local app keeps Shiny's native <code>fileInput()</code> temporary paths. Small hosted files may use this path only when the mount capability is unavailable or below the measured fallback threshold. Both entry paths converge at the same reader and scientific pipeline.
+  <span class="loc">server.R:222-359 &middot; planned runtime branch</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:230px" tabindex="0">
-  Read &amp; Combine
-  <div class="sub">read_any / as_OpenSpecy / c_spec / manage_na</div>
-  <div class="tip">read_any(file, c_spec=FALSE) parses the file; multiple members combine via c_spec(members, range="common"); manage_na(ig=c(NA,0), type="remove") drops empty rows/cols. Output becomes preprocessed$data, the single upload-level object everything else reads from. Runs immediately on upload, live, regardless of Run.
-  <span class="loc">server.R:222-359 &middot; R/read_multi.R:45 &middot; R/manage_spec.R:44</span></div>
+  Read &amp; Materialize
+  <div class="sub">mounted/native paths &rarr; full OpenSpecy in R</div>
+  <div class="tip"><code>read_any(file, c_spec=FALSE)</code> or <code>as_OpenSpecy()</code> reads either mounted or native paths; multiple members combine with <code>c_spec(..., range="common")</code>, then <code>manage_na()</code>. The entire spectra matrix is materialized in R memory before anything downstream runs. This is not a <code>FileSpecs</code> branch. A mounted ZIP can still require a WebAssembly temporary extraction copy; selecting its HDR+DAT members directly is the measured fallback, not a different analysis path.
+  <span class="loc">server.R:222-359 &middot; R/read_multi.R:45 &middot; R/manage_spec.R:44 &middot; plan 017</span></div>
 </div>
 
 <div class="node decision" style="left:1050px;top:400px" tabindex="0">
@@ -501,29 +521,24 @@
   <span class="loc">server.R:727-743 &middot; R/spatial_smooth.R:28</span></div>
 </div>
 
-<div class="node decision" style="left:1050px;top:1080px" tabindex="0">
-  Memory preflight safe?
-  <div class="sub">.app_memory_preflight()</div>
-  <div class="tip">Live reactive, estimated from preprocessed$data's dimensions; drives the advisory pre-Run status text AND is re-checked inside canonical_state_gate at Run time as a safety gate.
-  <span class="loc">server.R:1253-1283, 1313-1320</span></div>
-</div>
 <div class="node output tip-above" style="left:1650px;top:1080px" tabindex="0">
-  Analysis Blocked
-  <div class="tip">canonical_state_gate short-circuits to an empty/diagnostic result before spatial_data() is ever computed.
-  <span class="loc">server.R:1313-1320</span></div>
+  Measured Runtime Failure
+  <div class="depends">depends on: an actual read/allocation/analysis error</div>
+  <div class="tip">Plan 017 removes the predictive RAM decision and hard block. Only a caught failure that actually occurs on the mounted/native read or committed analysis path reaches this output, with the failing phase, elapsed time, and recovery guidance. It never rejects a job from a platform-memory estimate.
+  <span class="loc">planned: server.R upload/analysis error handlers; R/app_memory.R removed</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:1250px" tabindex="0">
   Signal/Noise Compute
   <div class="sub">sig_noise()  &middot; live, not Run-gated</div>
-  <div class="tip">A plain live reactive (deliberately cheap): recomputes immediately on any relevant setting change, before Run. signal_to_noise_basis() picks spatial_data() ("Raw/Spatially Smoothed", default) or ordinary_process(spatial_data()) ("Fully Processed") per the Signal/Noise Basis control; sig_noise(basis, step=10) yields the per-pixel metric. signal_eligible() masks it by MinSNR()/MaxSNR() (-Inf/Inf, i.e. no-op, when the threshold switch is off). Only the S/N Histogram *preview* is deliberately held back (Click Run or Recalculate Preview, both above) to avoid flicker &mdash; the underlying metric itself is always current.
+  <div class="tip">Dataset-level reactive: <code>signal_to_noise_basis()</code> chooses spatial or fully processed map data, <code>sig_noise(..., step=10)</code> yields each pixel's metric, and <code>signal_eligible()</code> applies MinSNR()/MaxSNR(). It owns threshold eligibility, metadata, and the histogram preview. Plan 017 removes it as the evidence source for the selected spectrum's Quality Findings; that SNR is computed directly on Active Spectrum Inspection instead.
   <span class="loc">server.R:1028-1053 &middot; R/sig_noise.R:59</span></div>
 </div>
 
 <div class="node decision" style="left:1050px;top:1420px" tabindex="0">
   Collapse particles?
   <div class="sub">input$collapse_decision</div>
-  <div class="tip">particle_pipeline_enabled(): true only if the switch is on AND the upload has &gt;1 pixel. Signal/Noise threshold gating (above) applies on BOTH branches, not just this one &mdash; a rejected pixel flat-lines either way.
+  <div class="tip">particle_pipeline_enabled(): true only if the switch is on AND the upload has &gt;1 pixel. Dataset Signal/Noise thresholding applies on both branches and can exclude a pixel from canonical units. Plan 017 keeps that rejection in maps/exports but lets a click inspect the genuinely processed source pixel instead of drawing a synthetic flat line.
   <span class="loc">server.R:1109-1115</span></div>
 </div>
 
@@ -537,7 +552,7 @@
 <div class="node function" style="left:250px;top:1760px" tabindex="0">
   Identity Pixel Mapping
   <div class="sub">identity_pixel_mapping()</div>
-  <div class="tip">R7 fix: even with Collapse off, a pixel failing the Signal/Noise threshold gets eligible=FALSE / unit_index=NA here, so it flat-lines on click instead of silently staying included.
+  <div class="tip">Even with Collapse off, a pixel failing the Signal/Noise threshold gets eligible=FALSE / unit_index=NA so it stays excluded from canonical outputs. Plan 017 routes a click on that pixel to the explicitly labeled Active Spectrum Inspection fallback; it is not silently re-included and is not replaced by zeros.
   <span class="loc">server.R:1363</span></div>
 </div>
 
@@ -605,7 +620,7 @@
 <div class="node function" style="left:1050px;top:2610px" tabindex="0">
   canonical_final() / DataR()
   <div class="sub">validated read of canonical_state</div>
-  <div class="tip">validate()-guards on analysis_needs_reset() (new upload not yet Run) and a non-NULL object, else surfaces diagnostic/error text. DataR() is a compatibility alias. Per the Constitution's Bundled Shiny Application Boundary: every visible/exported result for one analysis state MUST derive from this one object.
+  <div class="tip">validate()-guards on analysis_needs_reset() (new upload not yet Run) and a non-NULL object, else surfaces diagnostic/error text. DataR() is a compatibility alias. Summaries, identification, quantification, metadata, maps, and downloads derive from this object. Plan 017's named view-only Active Spectrum Inspection lane is the deliberate exception for inspecting a rejected clicked source pixel.
   <span class="loc">server.R:1634-1645, 1674</span></div>
 </div>
 
@@ -640,6 +655,20 @@
   <div class="sub">ai_output_gate: match_spec()</div>
   <div class="tip">Calls match_spec(data, library=libraryR(), na.rm=TRUE) directly on the already-finalized DataR() &mdash; bypasses identify_blockwise()/.match_spec_blockwise() entirely, and never populates matches/pixel_matches. Not a dead end: ai_output() feeds max_cor()/max_cor_identity() directly (server.R:1922-1941), which in turn feed the Heatmap's material coloring, Selection Metadata Table, and both Top Matches outputs (table + download) and Download: Thresholded Particles (dotted rose lines) &mdash; confirmed by reading each consumer's source. Spec 015 fixed the Top Matches Table specifically, which used to stay empty in this mode despite the others already showing AI results.
   <span class="loc">server.R:1893-1914</span></div>
+</div>
+
+<div class="node function" style="left:1850px;top:2560px" tabindex="0">
+  Active Spectrum Inspection
+  <div class="sub">planned active_spectrum_view()</div>
+  <div class="tip">One aligned, one-column <code>OpenSpecy</code> object is the exact processed trace used by both Spectrum Plot and Quality Findings. A retained click selects its canonical unit. A rejected click takes that source pixel from the ordinary in-memory upload, applies the committed Run processing settings once, and labels it “rejected-pixel inspection”; it never substitutes zeros. Selection changes are narrow and do not recompute the whole map or library.
+  <span class="loc">planned: server.R DataR_plot/quality_report_gate replacement</span></div>
+</div>
+
+<div class="node output tip-above" style="left:1850px;top:2730px" tabindex="0">
+  Quality Findings
+  <div class="depends">depends on: Active Spectrum Inspection only</div>
+  <div class="tip"><code>assess_spec()</code> and the selected metric's <code>sig_noise()</code> run directly on the same one-column object shown as the processed Active Spectrum. Silent-region, flatness, high-tail, CO2, and SNR evidence never index the heatmap, <code>canonical_signal_noise()</code>, <code>max_cor()</code>, or the full dataset. Threshold on/off cannot alter these findings for an unchanged selected trace.
+  <span class="loc">planned: server.R quality_report_gate</span></div>
 </div>
 
 <!-- ================= dependency rail: every terminal output tapped at its true upstream point(s) ================= -->
@@ -723,9 +752,9 @@
 
 <div class="node output tip-left" style="left:2250px;top:2560px" tabindex="0">
   Spectrum Plot
-  <div class="depends">depends on: canonical_final() + Heatmap click (live)</div>
-  <div class="tip">output$MyPlotC reads DataR_plot() (processed, Run-gated), RawR_plot() (raw, click-driven, stays live between Runs) and selected_match() (reference overlay). Which pixel/particle it shows is set by clicking the Heatmap or a table row (see the dashed teal line from Heatmap below) &mdash; the Plot does not drive the Heatmap, the relationship runs the other way.
-  <span class="loc">server.R:2377-2385</span></div>
+  <div class="depends">depends on: Active Spectrum Inspection + optional match</div>
+  <div class="tip">The processed trace is byte-for-byte the one-column object from Active Spectrum Inspection; the raw trace and optional selected reference remain labeled overlays. Heatmap/table selection drives the inspection lane, which drives this plot and Quality Findings together. The plot never reads a synthetic rejected spectrum.
+  <span class="loc">planned: server.R output$MyPlotC</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2630px" tabindex="0">
@@ -745,7 +774,7 @@
 <div class="node output tip-left" style="left:2250px;top:2810px" tabindex="0">
   Heatmap
   <div class="depends">depends on: Pixel Projection; Identification OR AI</div>
-  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(). Its available colorings change with upstream state: Collapse off shows per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows only Signal/Noise-based coloring. Material coloring in AI mode comes from max_cor_identity() &larr; ai_output() (dotted rose line), not a dead end. Clicking the Heatmap is itself the trigger for the Spectrum Plot and Selection Metadata Table (dashed teal lines above) &mdash; those two do not feed back into it.
+  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(). Its available colorings change with upstream state: Collapse off shows per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows only Signal/Noise-based coloring. Clicking selects a pixel/unit for Active Spectrum Inspection and Selection Metadata (dashed teal lines); the heatmap is never the quality-test data source.
   <span class="loc">server.R:2523, 2475</span></div>
 </div>
 
@@ -763,9 +792,10 @@
 
 <footer class="page">
   Sources: <code>inst/shiny/server.R</code>, <code>inst/shiny/global.R</code>, <code>inst/shiny/ui.R</code>, and the <code>R/</code> package
-  functions each stage wraps. Reflects the app through spec
-  <code>015-diagram-conformance-instant-feedback</code> (AI-mode Top Matches Table fix; instant Run/Recalculate
-  Preview/download feedback -- see <code>RUN_GATE_PRIORITY_ANNOUNCE</code>, <code>www/parent-frame.js</code>).
+  functions each stage wraps. The current-state base reflects spec
+  <code>015-diagram-conformance-instant-feedback</code>; mounted ingestion, removal of predictive memory
+  blocking, Active Spectrum Inspection, and Quality Findings show the approved target for active
+  <code>017-active-spectrum-large-map</code> and retain explicit “planned” locations until implemented.
   When a plan changes any stage, branch, function, or
   output dependency named here, update this diagram in the same plan &mdash; see Constitution Principle X.
 </footer>
