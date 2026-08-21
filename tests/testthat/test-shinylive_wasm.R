@@ -686,6 +686,18 @@ test_that("hosted deployment exports the exact current bundled app", {
                         smoke, fixed = TRUE)))
   expect_true(any(grepl('toContain("particle_summary.csv")', smoke,
                         fixed = TRUE)))
+  expect_true(any(grepl('require("./zip-entries")', smoke, fixed = TRUE)))
+  expect_false(any(grepl('require("child_process")', smoke,
+                         fixed = TRUE)))
+  expect_false(any(grepl('"tar"', smoke, fixed = TRUE)))
+
+  zip_entries_path <- test_path("..", "..", "tools", "wasm",
+                                "zip-entries.js")
+  zip_entries <- readLines(zip_entries_path, warn = FALSE)
+  expect_true(any(grepl("function parseZipEntryNames", zip_entries,
+                        fixed = TRUE)))
+  expect_true(any(grepl("ZIP central-directory self-test passed", zip_entries,
+                        fixed = TRUE)))
   expect_true(any(grepl('new URL("pkgdown/", url)', smoke,
                          fixed = TRUE)))
   expect_true(any(grepl('a[href^="pkgdown/"]', smoke, fixed = TRUE)))
@@ -712,7 +724,9 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl("filter = 'shinylive_wasm'", quality_gate,
                         fixed = TRUE)))
-  expect_true(any(grepl("shinylive-smoke.spec.js", quality_gate,
+  expect_true(any(grepl('Get-ChildItem "tools/wasm" -File -Filter *.js',
+                        quality_gate, fixed = TRUE)))
+  expect_true(any(grepl('node.Source "tools/wasm/zip-entries.js"', quality_gate,
                         fixed = TRUE)))
   expect_true(any(grepl("Language.Parser]::ParseFile", quality_gate,
                         fixed = TRUE)))

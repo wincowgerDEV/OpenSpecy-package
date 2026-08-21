@@ -3,7 +3,7 @@
 **Feature dir**: `specs/016-hosted-deployment-reliability`
 **Date**: 2026-08-21
 **Review budget**: Under 100 nonblank lines and 1,500 words.
-**Current tranche**: Fix the repeatedly failing Shinylive browser smoke and make hosted-impact planning plus a fast hosted-source gate routine for future changes.
+**Current tranche**: Fix the repeatedly failing Shinylive browser smoke, including cross-platform archive verification, and make hosted-impact planning plus a fast hosted-source gate routine for future changes.
 **Change class**: hosted/release.
 
 ## Goal
@@ -21,6 +21,7 @@
 
 - R1. The hosted map fixture explicitly sets `top_n_input` to 1 before asserting the 209-line Top Matches CSV; it must not depend on the UI default.
 - R1a. The thresholded-particle smoke verifies the app's current ZIP download contract and its summary/detail CSV members.
+- R1b. ZIP inspection must be portable between Windows development and GitHub's Ubuntu runner; it must not rely on an operating-system archive command.
 - R2. A fast `-HostedAppStatic` gate validates hosted workflow contracts and JavaScript/R/PowerShell source syntax without needing Docker, a wasm artifact, downloads, or a browser runtime.
 - R3. Every concise development plan explicitly classifies hosted impact and schedules the fast gate whenever shared hosted inputs change; full action-equivalent/browser verification remains proportional and artifact-driven.
 - R4. Durable governance and hosted/implementation/quality-gate skills distinguish three tiers: fast hosted-source gate, matching-artifact preflight, and full clean-commit rebuild/rehearsal.
@@ -48,6 +49,7 @@
 - [x] Quality gate and `tests/testthat/test-shinylive_wasm.R`: add/cover `-HostedAppStatic` syntax and source-contract checks.
 - [x] Constitution, plan template, AGENTS, and hosted/Spec Kit skills: require hosted-impact classification and tiered gates.
 - [x] Run focused hosted contracts, fast hosted-source gate, and matching-artifact preflight against the exact reusable artifact.
+- [x] Replace platform-dependent ZIP inspection, cover its parser with a fast self-test, and rerun the invalidated hosted gates.
 
 ## Verification
 
@@ -55,9 +57,10 @@
 - Fast gate: `quality-gates.ps1 -Filter shinylive_wasm -HostedAppStatic` passed (`FAIL 0`, `WARN 0`, `SKIP 0`, `PASS 237`).
 - Toolchain/source checks: hosted JS syntax, wasm R parse, PowerShell parser, and workflow contract tests passed.
 - Matching artifact: exact artifact `a34ce9e6e00898471d19a9ae0bb6790c002a861c` passed the 117-package closure check and staged-library probe (top medoid score 0.9686); its assembled 587-file site passed the nested-frame Playwright smoke (1/1, 3.3 minutes) with desktop/mobile/fullscreen screenshots reviewed.
+- Retry delta: run 32508416595 proved all build/assembly stages still pass but exposed Windows `tar` versus Ubuntu GNU tar behavior in the ZIP member assertion. The dependency-free parser passed its synthetic self-test and a genuine 795 KB Thresholded Particles ZIP; the fast hosted gate passed 243 assertions, and the retained matching-runtime nested-frame smoke recorded `status: passed` in about 3.3 minutes with refreshed fullscreen/mobile screenshots reviewed.
 - Full pre-push rebuild: not triggered because package/dependency closure and wasm build inputs are unchanged.
 - Documentation/package/full tests/benchmarks: N/A for hosted harness/governance-only changes.
-- Reusable evidence: green wasm run 32315243842 covers the unchanged package repository artifact at the exact SHA; invalidated only by package/dependency/build-input changes.
+- Reusable evidence: green wasm run 32506606777 and the successful assembly stages in deploy run 32508416595 cover the exact `f2b25cff872947a3ef500da8cdc5baa05d859f99` package artifact; invalidated only by package/dependency/build-input changes.
 
 ## Risks And Open Questions
 

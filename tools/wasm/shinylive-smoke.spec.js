@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
-const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const { readZipEntryNames } = require("./zip-entries");
 
 function bytePreview(content, limit = 32) {
   const bytes = content.subarray(0, limit);
@@ -770,12 +770,9 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     testInfo,
     runtimeDiagnostics,
   });
-  const thresholdedArchive = spawnSync(
-    "tar", ["-tf", thresholdedParticles.path], { encoding: "utf8" }
-  );
-  expect(thresholdedArchive.status).toBe(0);
-  expect(thresholdedArchive.stdout).toContain("particle_summary.csv");
-  expect(thresholdedArchive.stdout).toContain("particle_details.csv");
+  const thresholdedEntries = readZipEntryNames(thresholdedParticles.path);
+  expect(thresholdedEntries).toContain("particle_summary.csv");
+  expect(thresholdedEntries).toContain("particle_details.csv");
   await expect(embed).toHaveClass(/\bis-fullscreen\b/);
 
   const severeErrors = consoleErrors.filter((text) =>

@@ -89,14 +89,19 @@ try {
       Invoke-RExpression "devtools::test(filter = 'shinylive_wasm', reporter = 'check', stop_on_failure = TRUE)"
     }
 
-    $hostedSmoke = (Resolve-Path "tools/wasm/shinylive-smoke.spec.js").Path
     $node = Get-Command node.exe -ErrorAction SilentlyContinue
     if (-not $node) {
       throw "A real node.exe is required for hosted source checks."
     }
-    & $node.Source --check $hostedSmoke
+    foreach ($hostedJavaScript in Get-ChildItem "tools/wasm" -File -Filter *.js) {
+      & $node.Source --check $hostedJavaScript.FullName
+      if ($LASTEXITCODE -ne 0) {
+        throw "$($hostedJavaScript.Name) has invalid JavaScript."
+      }
+    }
+    & $node.Source "tools/wasm/zip-entries.js"
     if ($LASTEXITCODE -ne 0) {
-      throw "The hosted Shinylive browser test has invalid JavaScript."
+      throw "The portable ZIP central-directory self-test failed."
     }
 
     $wasmRFiles = Get-ChildItem "tools/wasm" -Recurse -File -Filter *.R
