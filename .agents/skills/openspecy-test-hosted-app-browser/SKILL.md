@@ -60,6 +60,8 @@ behavior. Runtime-specific differences still require hosted coverage here.
 
 ## Browser Rules
 
+- Set every output-determining control explicitly before asserting fixture
+  output. Assert a default only when the default itself is under test.
 - Use page-owned fixed viewport state when Browse/Download must not exit app
   mode; browser-native Fullscreen is allowed to close for native browser UI.
 - Keep long browser tests manual or CI-guarded.

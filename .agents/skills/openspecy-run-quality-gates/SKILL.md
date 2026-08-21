@@ -23,6 +23,12 @@ invalidated by the files or contracts that changed:
   artifact/action-equivalent checks, or R CMD check only when those surfaces or
   release obligations are triggered.
 
+Every tranche still classifies hosted impact. Any change to `R/`, `DESCRIPTION`,
+`inst/shiny/`, `site/`, README/pkgdown inputs, `tools/wasm/`, or deployment
+workflows runs `-HostedAppStatic`. This fast tier runs hosted contract tests and
+parses hosted JS/R/PowerShell sources without Docker, network downloads, a wasm
+artifact, or a browser. It is an early gate, not runtime proof.
+
 A passed gate remains current until one of its covered files, dependencies,
 inputs, or contracts changes. Do not use full browser, full package, or package
 check as a debugging loop.
@@ -37,17 +43,22 @@ check as a debugging loop.
    `-BundledAppBrowser -BrowserGrep "<journey>"` after focused tests pass when
    browser evidence is needed. Run the complete browser spec once for the final
    cross-cutting or release-facing candidate.
-4. Run affected benchmarks before the full suite. Subsecond comparisons need
+4. Run `-HostedAppStatic` after any shared hosted input changes. Add the exact
+   action-artifact preflight when hosted routes, runtime, interactions, or
+   assembly changed. Reserve the full clean-commit wasm rebuild rehearsal for
+   dependency closure, package image, build driver, pin, or release-facing
+   changes.
+5. Run affected benchmarks before the full suite. Subsecond comparisons need
    repeated timings; equivalent-output regressions over 10 percent must fail or
    be justified in the active plan.
-5. Before `devtools::document()`, compare installed roxygen2 with
+6. Before `devtools::document()`, compare installed roxygen2 with
    `Config/roxygen2/version` in `DESCRIPTION`. Stop on mismatch.
-6. Run documentation once, then inspect generated diffs. Author, contributor,
+7. Run documentation once, then inspect generated diffs. Author, contributor,
    reference, alias, and export changes require corresponding source changes.
    Never repair generated files manually.
-7. Run the full local tests once after focused and app-browser tests pass when
+8. Run the full local tests once after focused and app-browser tests pass when
    package/scientific code changed or the plan's verification class triggers it.
-8. Add `-Check` only when the maintainer explicitly requests a full package
+9. Add `-Check` only when the maintainer explicitly requests a full package
    check or the plan is release/CRAN-facing.
 
 If the same broad stage fails twice, stop rerunning it and create a reduced
@@ -98,6 +109,14 @@ Use `-Check -CheckPrepareOnly` to validate and retain the exact manifest without
 running R CMD build/check.
 
 ## Commands
+
+Fast hosted-source gate for every shared hosted input change:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File `
+  .agents\skills\openspecy-run-quality-gates\scripts\quality-gates.ps1 `
+  -HostedAppStatic
+```
 
 Package-focused example:
 

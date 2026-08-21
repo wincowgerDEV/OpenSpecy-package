@@ -34,7 +34,7 @@
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
 - **Bundled Shiny app**: [impact on `inst/`; canonical final reactive feeding visible/exported results; owner/child gating; substantive adjacent guidance for non-obvious scientific/processing inputs; contextual downloads/progress; assets/size; headless and browser tests; or N/A.]
 - **Pipeline diagram**: [`.specify/memory/pipeline-diagram.html` box(es)/decision(s) this plan changes, and whether the diagram is updated in this plan; or N/A if the analysis pipeline is untouched.]
-- **Hosted Shinylive/WebAssembly app**: [impact on root `site/`, `/app/`, `/pkgdown/`, `.github/workflows/`, wasm package repository, hardcoded package/dependency pins, dependency closure, small medoid/model library staging, generated artifacts, action-equivalent preflight, interaction/visual smoke tests, or N/A.]
+- **Hosted Shinylive/WebAssembly app**: [Always classify impact, including explicit N/A. Name changed shared inputs and the triggered tier: fast `-HostedAppStatic`; exact matching-artifact preflight for hosted runtime/routes/interactions/assembly; full clean-commit rebuild for dependency/image/driver/pin or release-facing changes.]
 
 ## Package Surfaces
 
@@ -69,7 +69,7 @@
 - Benchmarks:
 - Reference-library/long workflow staging:
 - Shiny affected states or N/A: [Only changed no-upload/processed/identified/batch/quantification/muted/download/progress/visual states; asset inventory when assets change.]
-- Shinylive/WebAssembly trigger or N/A: [Only changed package repo, dependencies, pins, libraries, routes, runtime, action-equivalent preflight, or nested-frame states.]
+- Shinylive/WebAssembly impact: [Always state changed/unchanged/N/A; fast hosted-source gate for shared inputs; matching-artifact and full-rebuild triggers or explicit proportional deferral.]
 - Reusable evidence: [gate, covered files/contracts, candidate state; invalidate only when one changes.]
 
 ## Risks And Open Questions

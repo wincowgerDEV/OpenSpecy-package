@@ -19,8 +19,11 @@ are not required.
    open questions from the plan.
 3. Identify the bounded current tranche, classify its highest affected surface,
    and record the smallest verification ladder that covers every changed
-   behavior. Passing evidence remains valid until a covered file, dependency,
-   input, or contract changes.
+   behavior. Confirm the plan also classifies hosted impact. Shared hosted
+   inputs trigger `-HostedAppStatic`; use matching-artifact and clean-rebuild
+   tiers only when their runtime/assembly or dependency/build inputs change.
+   Passing evidence remains valid until a covered file, dependency, input, or
+   contract changes.
 4. If an open question blocks correctness, ask it before editing. Otherwise make
    conservative assumptions and proceed.
 5. Locate owning symbols and consumers with `rg`, then read bounded source and
@@ -59,6 +62,9 @@ are not required.
     resolution, and library matching. Apply `openspecy-verify-hosted-app` for
     action-equivalent assembly and `openspecy-test-hosted-app-browser` for
     landing/pkgdown/Shinylive interaction or presentation changes.
+14. Hosted browser fixtures must set output-determining controls explicitly.
+    Do not encode a UI default as fixture setup unless that default is the
+    behavior the regression is intended to test.
 
 ## Rules
 

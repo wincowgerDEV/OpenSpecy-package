@@ -655,9 +655,37 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl('"CA small UF.dat"', smoke, fixed = TRUE)))
   expect_true(any(grepl("probeEndpoint: false", smoke, fixed = TRUE)))
+  top_n_locator <- grep(
+    'const mapTopNInput = appFrame.locator("#top_n_input")',
+    smoke, fixed = TRUE
+  )
+  top_n_tab <- grep('name: "Identification", exact: true', smoke,
+                    fixed = TRUE)
+  top_n_fill <- grep('await mapTopNInput.fill("1")', smoke, fixed = TRUE)
+  top_n_blur <- grep('await mapTopNInput.press("Tab")', smoke, fixed = TRUE)
+  top_n_lines <- grep("toHaveLength(209)", smoke, fixed = TRUE)
+  expect_length(top_n_locator, 1L)
+  expect_length(top_n_tab, 1L)
+  expect_length(top_n_fill, 1L)
+  expect_length(top_n_blur, 1L)
+  expect_length(top_n_lines, 1L)
+  expect_lt(top_n_tab, top_n_locator)
+  expect_lt(top_n_locator, top_n_fill)
+  expect_lt(top_n_fill, top_n_blur)
+  expect_lt(top_n_blur, top_n_lines)
   expect_true(any(grepl("toHaveLength(209)", smoke, fixed = TRUE)))
   expect_true(any(grepl("cannot allocate vector", smoke, fixed = TRUE)))
   expect_true(any(grepl("stableFor: 1500", smoke, fixed = TRUE)))
+  expect_true(any(grepl(
+    'filenamePattern: /^Thresholded-Particles-.*\\.zip$/i',
+    smoke, fixed = TRUE
+  )))
+  expect_true(any(grepl('contentTypePattern: /^application\\/zip/i',
+                        smoke, fixed = TRUE)))
+  expect_true(any(grepl('expectedPrefix: Buffer.from("PK", "ascii")',
+                        smoke, fixed = TRUE)))
+  expect_true(any(grepl('toContain("particle_summary.csv")', smoke,
+                        fixed = TRUE)))
   expect_true(any(grepl('new URL("pkgdown/", url)', smoke,
                          fixed = TRUE)))
   expect_true(any(grepl('a[href^="pkgdown/"]', smoke, fixed = TRUE)))
@@ -673,6 +701,20 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl('"CA small UF.dat"', local_smoke, fixed = TRUE)))
   expect_true(any(grepl("toHaveLength(2081)", local_smoke,
+                        fixed = TRUE)))
+
+  quality_gate_path <- test_path(
+    "..", "..", ".agents", "skills", "openspecy-run-quality-gates",
+    "scripts", "quality-gates.ps1"
+  )
+  quality_gate <- readLines(quality_gate_path, warn = FALSE)
+  expect_true(any(grepl("[switch]$HostedAppStatic", quality_gate,
+                        fixed = TRUE)))
+  expect_true(any(grepl("filter = 'shinylive_wasm'", quality_gate,
+                        fixed = TRUE)))
+  expect_true(any(grepl("shinylive-smoke.spec.js", quality_gate,
+                        fixed = TRUE)))
+  expect_true(any(grepl("Language.Parser]::ParseFile", quality_gate,
                         fixed = TRUE)))
 })
 

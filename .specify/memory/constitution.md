@@ -1,14 +1,16 @@
 <!--
 Sync Impact Report
-Version change: 3.9.0 -> 3.9.1
+Version change: 3.9.1 -> 3.10.0
 Modified principles:
-- X. Data Analysis Pipeline Fidelity: clarify that the diagram must visually distinguish user-triggered recomputation from passive/live-but-uncommitted state, and must make each output's true dependency legible
+- IX. Proportional Evidence and Efficient Execution: require every plan to classify hosted impact and use tiered hosted verification
+- Hosted Shinylive/WebAssembly Application Boundary: add a fast source gate and explicit smoke-fixture preconditions before artifact/full-rebuild tiers
+- Development Workflow and Quality Gates: make hosted impact and the fast gate routine for shared hosted inputs
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/memory/pipeline-diagram.html: revised to add a trigger node color (Run button, S/N-preview Recalculate button), a visible per-output dependency tap for every terminal output, and a pan/zoom viewer; also fixes a tooltip z-index stacking bug
+- .specify/templates/plan-template.md, AGENTS.md, and relevant Spec Kit/app/hosted/quality-gate skills: synchronized tiered hosted planning and verification
 Follow-up TODOs:
 - None
 -->
@@ -287,6 +289,12 @@ SHOULD be closed to new unrelated refinements; the next tranche SHOULD use a
 new concise plan or an explicitly bounded delta so old release gates do not
 silently become requirements for every minor follow-up.
 
+Every plan MUST classify its hosted Shinylive/WebAssembly impact, including an
+explicit `N/A` when no source consumed by the hosted build changes. Changes to
+shared hosted inputs MUST schedule the fast hosted-source gate; matching-artifact
+and full rebuild gates MUST be selected only when their inputs or contracts are
+invalidated, as defined by the Hosted Shinylive/WebAssembly Application Boundary.
+
 Rationale: Direct evidence protects scientific correctness. Dependency-aware
 staging, targeted context, and bounded diagnostics preserve that evidence while
 reducing feedback time, repeated computation, and token consumption.
@@ -493,6 +501,26 @@ and dependency metadata, generated app startup, static asset loading, and a
 browser or CI-guarded smoke path that exercises library matching. Size impact
 and generated output location MUST be reported before handoff.
 
+Hosted verification MUST use three dependency-aware tiers. First, changes to
+source consumed by the hosted build--including `R/`, `DESCRIPTION`, `inst/shiny/`,
+`site/`, README/pkgdown inputs, `tools/wasm/`, or deployment workflows--MUST run
+the maintained fast hosted-source gate, which checks hosted contract tests and
+JavaScript, R, and PowerShell syntax without Docker, downloads, a wasm artifact,
+or a browser runtime. Second, changes to hosted routes, export/runtime behavior,
+interactions, pins, libraries, or workflow assembly SHOULD run the
+action-equivalent preflight with an exact matching action-built artifact when
+one is available. Third, a clean-commit wasm rebuild rehearsal MUST run before a
+release-facing push when package dependencies, the wasm package image or closure,
+the build driver, pins, or equivalent high-risk build inputs change. Minor
+shared-app changes MAY leave the third tier to GitHub Actions when their plan
+records the deferral and the bundled-app, fast hosted-source, and directly
+affected browser gates are green.
+
+Hosted browser smoke fixtures MUST explicitly set every user-control value on
+which their expected output depends. A smoke test MAY assert an application
+default only when that default is itself the behavior under test; incidental
+defaults MUST NOT serve as hidden fixture setup.
+
 When a matching action-built wasm artifact is available, local handoff SHOULD
 run `tools/wasm/test-shinylive-action.ps1` with that artifact's exact package
 commit. The preflight MUST assemble `/`, `/app/`, and `/pkgdown/`, bundle the
@@ -510,6 +538,9 @@ no more than 100 nonblank lines and a soft target of 1,500 words. It MUST state
 the current tranche and highest change class, user impact, affected
 functions and objects, test expectations, documentation updates, benchmark
 impact, generated artifact strategy, and a short implementation checklist.
+Every plan MUST also state whether shared hosted inputs change and name the
+triggered hosted verification tier, even when hosted work is not the highest
+change class.
 
 Separate `spec.md`, `tasks.md`, research, data-model, contract, quickstart, or
 checklist files MUST NOT be required by default. They MAY be created only when
@@ -524,6 +555,9 @@ Before implementation is complete:
 - The current tranche MUST declare the smallest gates that cover its changed
   dependency graph. A passed expensive gate SHOULD be reused until a covered
   file, dependency, input, or contract changes.
+- Changes to shared hosted inputs MUST pass the fast hosted-source gate before
+  handoff. Matching-artifact and clean-rebuild tiers MUST be added only when
+  their hosted runtime, assembly, dependency, pin, or release triggers apply.
 - Presentation-only app changes require affected source parsing, focused app
   assertions, and inspection of the changed state; app behavior changes add a
   targeted browser journey and genuine files when downloads change. Package or
@@ -634,10 +668,13 @@ repositories, or silently diverge from the local app beyond the documented
 small-library constraint. They MUST also block hosted homepage changes that put
 interactive app markup back into GitHub's README, commit generated `_wasm/`
 outputs, or claim browser readiness without the required interaction evidence.
+They MUST also block plans that omit hosted-impact classification or changes to
+shared hosted inputs that omit the fast hosted-source gate without a documented
+exception.
 They MUST also block plans that change an app analysis pipeline stage, branch,
 or function without naming the affected `pipeline-diagram.html` component and
 updating that diagram in the same change.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.9.1 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-19
+**Version**: 3.10.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-21

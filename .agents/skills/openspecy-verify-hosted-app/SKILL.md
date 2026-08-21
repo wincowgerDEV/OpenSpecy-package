@@ -20,19 +20,28 @@ package version is unchanged.
 
 ## Workflow
 
-1. Read `DESCRIPTION`, the active plan,
+1. Run the fast hosted-source gate first. Stop on contract or syntax failure;
+   this avoids spending an artifact/browser cycle on a source defect:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File `
+  .agents\skills\openspecy-run-quality-gates\scripts\quality-gates.ps1 `
+  -HostedAppStatic
+```
+
+2. Read `DESCRIPTION`, the active plan,
    `.github/workflows/deploy-cran-repo.yml`,
    `.github/workflows/deploy-shinylive.yml`, and the artifact manifest.
    Confirm workflow artifact lookup uses `github.repository` so the same source
    can run in the Moore Institute hosting fork.
-2. If shared `inst/shiny/` source changed, first apply
+3. If shared `inst/shiny/` source changed, first apply
    `openspecy-develop-shiny-app` and retain its local state-matrix, download,
    console, screenshot, and asset evidence. Hosted preflight is additional.
-3. Confirm `git status --short`; preserve user changes and keep all generated
+4. Confirm `git status --short`; preserve user changes and keep all generated
    output under ignored `_wasm/` paths.
-4. Choose a fresh `-WorkDir`, a reusable ignored `-ToolDir`/`-NodeDir`, and a
+5. Choose a fresh `-WorkDir`, a reusable ignored `-ToolDir`/`-NodeDir`, and a
    free port. The script removes `-WorkDir`, so verify that path before running.
-5. Run from the repository root:
+6. Run from the repository root:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File `
@@ -46,12 +55,12 @@ powershell.exe -ExecutionPolicy Bypass -File `
   -Port <free-port>
 ```
 
-6. Use `-StageLibraries` only when the download path is part of the requested
+7. Use `-StageLibraries` only when the download path is part of the requested
    test. Use `-Bootstrap` only with permission for network installs.
-7. Inspect the generated landing root, `/app/`, `/pkgdown/`, SEO metadata,
+8. Inspect the generated landing root, `/app/`, `/pkgdown/`, SEO metadata,
    robots/sitemap, manifests, package/image checks, Playwright result, and
    landing/loading/desktop/expanded/pkgdown/mobile screenshots.
-8. Run `git status --short` and `git check-ignore` on representative `_wasm/`
+9. Run `git status --short` and `git check-ignore` on representative `_wasm/`
    outputs before handoff.
 
 ## Failure Triage

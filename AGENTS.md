@@ -70,6 +70,13 @@ keep workflows fork-portable while this package remains canonical. For
 hosted UI work, preserve upload/download app mode with page-owned viewport
 state, debounce brief Shiny busy transitions, and run the action-equivalent
 preflight plus nested-frame browser smoke when a matching wasm artifact exists.
+Every plan must classify hosted impact. Changes to `R/`, `DESCRIPTION`,
+`inst/shiny/`, `site/`, README/pkgdown inputs, `tools/wasm/`, or deployment
+workflows must run the fast `-HostedAppStatic` gate; add an exact-artifact
+preflight for hosted runtime/route/interaction/assembly changes and reserve the
+full clean-commit wasm rebuild for dependency/image/driver/pin or release-facing
+changes. Hosted smoke fixtures must explicitly set output-determining controls
+instead of relying on incidental defaults.
 Remote synchronization is maintainer-owned by default: do not run `git push`,
 `git pull`, or `git pull --rebase` unless the user explicitly authorizes that
 specific operation in the current request. Earlier permission does not carry

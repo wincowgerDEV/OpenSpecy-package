@@ -4,6 +4,7 @@ param(
   [switch]$Document,
   [switch]$BundledAppStatic,
   [switch]$BundledAppBrowser,
+  [switch]$HostedAppStatic,
   [string]$BrowserGrep,
   [switch]$FullTests,
   [switch]$Check,
@@ -55,7 +56,7 @@ try {
     Invoke-RExpression "devtools::test(filter = Sys.getenv('OPENSPECY_TEST_FILTER'), reporter = 'check', stop_on_failure = TRUE)"
   }
 
-  if ($BundledAppStatic -or $BundledAppBrowser) {
+  if ($BundledAppStatic -or $BundledAppBrowser -or $HostedAppStatic) {
     $appSources = @(
       (Resolve-Path "inst/shiny/global.R").Path,
       (Resolve-Path "inst/shiny/ui.R").Path,
@@ -81,6 +82,44 @@ try {
       $wwwFiles.Count, ($wwwFiles | Measure-Object Length -Sum).Sum)
     Write-Host ("inst/shiny: {0} files, {1} bytes" -f `
       $appFiles.Count, ($appFiles | Measure-Object Length -Sum).Sum)
+  }
+
+  if ($HostedAppStatic) {
+    if ($Filter -ne "shinylive_wasm") {
+      Invoke-RExpression "devtools::test(filter = 'shinylive_wasm', reporter = 'check', stop_on_failure = TRUE)"
+    }
+
+    $hostedSmoke = (Resolve-Path "tools/wasm/shinylive-smoke.spec.js").Path
+    $node = Get-Command node.exe -ErrorAction SilentlyContinue
+    if (-not $node) {
+      throw "A real node.exe is required for hosted source checks."
+    }
+    & $node.Source --check $hostedSmoke
+    if ($LASTEXITCODE -ne 0) {
+      throw "The hosted Shinylive browser test has invalid JavaScript."
+    }
+
+    $wasmRFiles = Get-ChildItem "tools/wasm" -Recurse -File -Filter *.R
+    $env:OPENSPECY_WASM_R_SOURCES = `
+      ($wasmRFiles.FullName -join [IO.Path]::PathSeparator)
+    Invoke-RExpression "paths <- strsplit(Sys.getenv('OPENSPECY_WASM_R_SOURCES'), getElement(.Platform, 'path.sep'), fixed = TRUE)[[1L]]; invisible(lapply(paths, parse)); cat('Hosted wasm R sources parse successfully.\n')"
+
+    $powerShellErrors = @()
+    foreach ($source in Get-ChildItem "tools/wasm" -Recurse -File -Filter *.ps1) {
+      $tokens = $null
+      $errors = $null
+      [void][System.Management.Automation.Language.Parser]::ParseFile(
+        $source.FullName, [ref]$tokens, [ref]$errors
+      )
+      foreach ($error in $errors) {
+        $powerShellErrors += "{0}:{1}: {2}" -f `
+          $source.FullName, $error.Extent.StartLineNumber, $error.Message
+      }
+    }
+    if ($powerShellErrors.Count) {
+      throw "Hosted wasm PowerShell parse failures:`n$($powerShellErrors -join [Environment]::NewLine)"
+    }
+    Write-Host "Hosted workflow contracts and JS/R/PowerShell sources pass fast checks."
   }
 
   if ($BundledAppBrowser) {
@@ -145,6 +184,7 @@ try {
 finally {
   Remove-Item Env:OPENSPECY_TEST_FILTER -ErrorAction SilentlyContinue
   Remove-Item Env:OPENSPECY_APP_SOURCES -ErrorAction SilentlyContinue
+  Remove-Item Env:OPENSPECY_WASM_R_SOURCES -ErrorAction SilentlyContinue
   if ($hadNodePath) {
     $env:NODE_PATH = $oldNodePath
   } else {

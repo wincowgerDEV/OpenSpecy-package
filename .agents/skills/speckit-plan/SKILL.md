@@ -61,6 +61,12 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
   dependency pinning, dependency-closure evidence, small-library staging,
   generated-artifact boundaries, and at least one startup/library-matching
   smoke path when relevant.
+- Every plan must classify hosted impact, including explicit `N/A`. Changes to
+  `R/`, `DESCRIPTION`, `inst/shiny/`, `site/`, README/pkgdown inputs,
+  `tools/wasm/`, or deployment workflows schedule `-HostedAppStatic`; add the
+  matching-artifact tier for hosted runtime/routes/interactions/assembly, and
+  the clean-rebuild tier only for dependency/image/driver/pin or release-facing
+  triggers.
 - A short work checklist with exact paths.
 - Verification commands and any manual or CI-guarded checks.
 - Reusable evidence whose covered files, dependencies, inputs, and contracts

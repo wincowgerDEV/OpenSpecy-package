@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -309,6 +310,7 @@ async function verifyNativeDownload({
   return {
     content,
     filename: suggestedFilename,
+    path: downloadPath,
     endpoint: endpoint || clickResponse,
   };
 }
@@ -661,7 +663,19 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     "Top Matches",
     { timeout: 300000, stableFor: 1500 }
   );
-  await expect(appFrame.locator("#top_n_input")).toHaveValue("1");
+  // This fixture's 209-line assertion requires one retained match per map
+  // spectrum. Configure that precondition explicitly: Top N is an analysis
+  // control whose product default may change independently of this smoke.
+  // The settings panel opens on another tab, so make the owning tab visible
+  // before using Playwright's user-level form interaction.
+  await appFrame.getByRole("link", {
+    name: "Identification", exact: true,
+  }).click();
+  const mapTopNInput = appFrame.locator("#top_n_input");
+  await expect(mapTopNInput).toBeVisible();
+  await mapTopNInput.fill("1");
+  await mapTopNInput.press("Tab");
+  await expect(mapTopNInput).toHaveValue("1");
   const mapDiagnosticStart = runtimeDiagnostics.length;
   const mapTopMatches = await verifyNativeDownload({
     page,
@@ -746,16 +760,22 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     "Thresholded Particles",
     { timeout: 300000, stableFor: 1500 }
   );
-  await verifyNativeDownload({
+  const thresholdedParticles = await verifyNativeDownload({
     page,
     link: downloadLink,
     label: "Thresholded Particles",
-    filenamePattern: /^Thresholded-Particles-.*\.csv$/i,
-    contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
-    contentPattern: /wavenumber|feature_id/i,
+    filenamePattern: /^Thresholded-Particles-.*\.zip$/i,
+    contentTypePattern: /^application\/zip/i,
+    expectedPrefix: Buffer.from("PK", "ascii"),
     testInfo,
     runtimeDiagnostics,
   });
+  const thresholdedArchive = spawnSync(
+    "tar", ["-tf", thresholdedParticles.path], { encoding: "utf8" }
+  );
+  expect(thresholdedArchive.status).toBe(0);
+  expect(thresholdedArchive.stdout).toContain("particle_summary.csv");
+  expect(thresholdedArchive.stdout).toContain("particle_details.csv");
   await expect(embed).toHaveClass(/\bis-fullscreen\b/);
 
   const severeErrors = consoleErrors.filter((text) =>

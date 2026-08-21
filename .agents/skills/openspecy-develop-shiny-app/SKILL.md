@@ -27,9 +27,11 @@ for integration and verification procedure.
 4. Implement the smallest coherent change, then iterate with source parsing,
    the narrowest `run_app` assertions, and one browser journey selected by
    name when visual or interactive evidence is required.
-5. Apply `openspecy-test-hosted-app-browser` and
-   `openspecy-verify-hosted-app` only when hosted presentation, wasm runtime,
-   workflows, pins, dependency closure, or staged libraries are affected.
+5. Because `inst/shiny/` feeds the hosted build, every bundled-app change runs
+   `-HostedAppStatic`. Apply `openspecy-test-hosted-app-browser` and
+   `openspecy-verify-hosted-app` additionally when hosted presentation, wasm
+   runtime, workflows, pins, dependency closure, or staged libraries are
+   affected.
 
 ## Integration Contracts
 
