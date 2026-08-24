@@ -1,5 +1,18 @@
 # OpenSpecy 1.7.1
 
+- Reduced default `read_envi()` peak memory without changing its public API or
+  returned `OpenSpecy` format. BIP, BIL, and BSQ files are now read in bounded
+  blocks directly into the final band-by-pixel matrix instead of constructing
+  and permuting multiple complete arrays; `spectral_smooth = TRUE` retains its
+  existing three-dimensional smoothing path.
+- Fixed collapsed analysis settings requiring a separate maximize click: the
+  Preprocessing, Identification, Advanced, and Quantification tabs now expand
+  the card and activate the chosen tab with the same click. Run, Recalculate
+  Preview, and download actions again schedule the central loading overlay
+  directly from the browser click, before a blocking local or WebAssembly R
+  task can delay server phase messages. The overlay now follows Shiny's real
+  idle lifecycle instead of being dismissed after the first reactive flush,
+  which could precede lazy identification and rendering work.
 - Changed the default `assess_spec()` silent region to 2420--2550 cm^-1^ and
   the high-tail/CO2 detection and automatic-correction ratio from 3x to 2x.
   Explicit caller values remain unchanged.
@@ -9,7 +22,16 @@
 - The hosted Shinylive app can mount browser-selected files into webR WORKERFS
   and pass their paths to the ordinary `read_any()` pipeline, avoiding the
   copying multipart/R-raw upload bridge while still fully materializing an
-  in-memory `OpenSpecy` object. Local Shiny retains native uploads.
+  in-memory `OpenSpecy` object. Shinylive now presents only that mounted-file
+  picker, while local Shiny presents only its native upload. Hosted mount and
+  read/materialization status appears in the central progress popup instead of
+  explanatory/status text below the picker. Mounted text spectra are read
+  through `fread()`'s text parser to avoid its unsupported 32-bit WORKERFS file
+  memory map while retaining delimiter/type inference and output structure.
+- WebAssembly repository builds now reuse a verified dependency-only CRAN-like
+  cache locally and in GitHub Actions. Every reuse evicts and rebuilds
+  `OpenSpecy`, refreshes changed dependency versions, regenerates the VFS image,
+  and retains exact commit/artifact checks.
 - Fixed active-spectrum quality findings for collapsed maps: retained units and
   rejected clicked pixels now use the same one-spectrum object as the plotted
   trace, and SNR is calculated directly from that object instead of indexing a

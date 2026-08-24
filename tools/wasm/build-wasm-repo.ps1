@@ -5,7 +5,13 @@ param(
   [string]$PackageSha,
 
   [string]$OutDir = "_wasm/pinned",
-  [string]$Rscript = "Rscript"
+  [string]$Rscript = "Rscript",
+
+  [string]$DependencyCacheDir = "_wasm/rwasm-dependency-cache",
+
+  [string]$DependencyCacheSeed = "",
+
+  [switch]$DisableDependencyCache
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,6 +34,35 @@ function Invoke-Checked([string]$File, [string[]]$Arguments) {
 function Get-RepoRelative([string]$Path) {
   (Get-OpenSpecyRepoRelativePath -RepoRoot $repoRoot -Path $Path).
     Replace("\", "/")
+}
+
+function Copy-DirectoryContents([string]$Source, [string]$Destination) {
+  New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+  foreach ($item in Get-ChildItem -LiteralPath $Source -Force) {
+    Copy-Item -LiteralPath $item.FullName -Destination $Destination `
+      -Recurse -Force
+  }
+}
+
+function Get-DependencyCacheKey([string]$WebRImage) {
+  $inputs = @(
+    "DESCRIPTION",
+    "inst/shiny/wasm/app-package-roots.txt",
+    "tools/wasm/resolve-wasm-package-roots.R",
+    "tools/wasm/rwasm-build/Dockerfile",
+    "tools/wasm/rwasm-build/code.R"
+  )
+  $parts = @("openspecy-rwasm-dependencies-v1", $WebRImage)
+  foreach ($input in $inputs) {
+    $parts += "$input=$((Get-FileHash -LiteralPath $input -Algorithm SHA256).Hash)"
+  }
+  $bytes = [Text.Encoding]::UTF8.GetBytes(($parts -join "`n"))
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try {
+    ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace("-", "").ToLowerInvariant()
+  } finally {
+    $sha.Dispose()
+  }
 }
 
 try {
@@ -57,6 +92,19 @@ try {
     throw "Rscript was not found."
   }
   $out = Resolve-ScratchPath $OutDir
+  $webRImage = "ghcr.io/r-wasm/webr@sha256:2bd309d7a4ea1daed82b6fdb8e325b0de715fcd8592c5b6f3b3b88366e70cb76"
+  $cacheRepo = $null
+  $cacheKey = $null
+  if (-not $DisableDependencyCache) {
+    $cacheRoot = Resolve-ScratchPath $DependencyCacheDir
+    if ($cacheRoot -eq $out -or
+        $cacheRoot.StartsWith($out + [IO.Path]::DirectorySeparatorChar,
+                              [StringComparison]::OrdinalIgnoreCase)) {
+      throw "DependencyCacheDir must be outside OutDir so output cleanup cannot remove it."
+    }
+    $cacheKey = Get-DependencyCacheKey $webRImage
+    $cacheRepo = Join-Path (Join-Path $cacheRoot $cacheKey) "repo"
+  }
   if (Test-Path -LiteralPath $out) {
     Remove-Item -LiteralPath $out -Recurse -Force
   }
@@ -95,7 +143,6 @@ try {
     -DestinationPath $sourceSnapshot -Force
   Remove-Item -LiteralPath $sourceArchive -Force
   $driver = Join-Path $repoRoot "tools/wasm/rwasm-build"
-  $webRImage = "ghcr.io/r-wasm/webr@sha256:2bd309d7a4ea1daed82b6fdb8e325b0de715fcd8592c5b6f3b3b88366e70cb76"
   $imageTag = "openspecy-rwasm-prepush:$($PackageSha.Substring(0, 12).ToLowerInvariant())"
   Invoke-Checked $docker @(
     "build",
@@ -106,6 +153,32 @@ try {
 
   $repoPath = Join-Path $out "repo"
   $imagePath = Join-Path $out "image"
+  $packageName = ((Get-Content -LiteralPath "DESCRIPTION" |
+    Where-Object { $_ -match '^Package:\s*' } |
+    Select-Object -First 1) -replace '^Package:\s*', '').Trim()
+  if (-not $packageName) { throw "DESCRIPTION has no Package field." }
+
+  if ($cacheRepo -and -not (Test-Path -LiteralPath $cacheRepo) -and
+      $DependencyCacheSeed) {
+    $seed = Resolve-ScratchPath $DependencyCacheSeed
+    if (-not (Test-Path -LiteralPath $seed -PathType Container)) {
+      throw "DependencyCacheSeed is not a repository directory: $seed"
+    }
+    Write-Host "Seeding wasm dependency cache $cacheKey from $seed."
+    Copy-DirectoryContents $seed $cacheRepo
+    Invoke-Checked $Rscript @(
+      "tools/wasm/evict-wasm-cache-package.R",
+      (Get-RepoRelative $cacheRepo),
+      $packageName
+    )
+  }
+  if ($cacheRepo -and (Test-Path -LiteralPath $cacheRepo)) {
+    Write-Host "Restoring wasm dependency cache $cacheKey."
+    Copy-DirectoryContents $cacheRepo $repoPath
+  } elseif ($cacheRepo) {
+    Write-Host "No wasm dependency cache found for $cacheKey; building the closure once."
+  }
+
   $sourceMount = $sourceSnapshot + ":/github/workspace:ro"
   $outputMount = $out + ":/github/output"
   $strip = "demo,doc,examples,help,html,include,tests,vignette"
@@ -145,6 +218,28 @@ try {
     (Get-RepoRelative $out),
     $PackageSha
   )
+  if ($cacheRepo) {
+    $cacheParent = Split-Path -Parent $cacheRepo
+    $cacheNext = Join-Path $cacheParent ("repo.next-" + $PID)
+    if (Test-Path -LiteralPath $cacheNext) {
+      Remove-Item -LiteralPath $cacheNext -Recurse -Force
+    }
+    Copy-DirectoryContents $repoPath $cacheNext
+    Invoke-Checked $Rscript @(
+      "tools/wasm/evict-wasm-cache-package.R",
+      (Get-RepoRelative $cacheNext),
+      $packageName
+    )
+    if (Test-Path -LiteralPath $cacheRepo) {
+      Remove-Item -LiteralPath $cacheRepo -Recurse -Force
+    }
+    Move-Item -LiteralPath $cacheNext -Destination $cacheRepo
+    [IO.File]::WriteAllText(
+      (Join-Path $cacheParent "cache-key.txt"),
+      $cacheKey + [Environment]::NewLine
+    )
+    Write-Host "Refreshed wasm dependency cache $cacheKey."
+  }
   Write-Host "Built and verified pinned wasm repository for $PackageSha at $out."
 } finally {
   Pop-Location

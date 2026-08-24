@@ -102,7 +102,8 @@ test_that("bundled app uses one 10 GiB total upload ceiling", {
   )
   expect_match(bridge_source,
                "10 * 1024 * 1024 * 1024", fixed = TRUE)
-  expect_match(bridge_source, "setUploadStatus(", fixed = TRUE)
+  expect_match(bridge_source, "showUploadError(", fixed = TRUE)
+  expect_match(bridge_source, "data-openspecy-upload-status", fixed = TRUE)
   expect_false(grepl("showUploadLimitPopup", bridge_source, fixed = TRUE))
 })
 
@@ -151,6 +152,60 @@ test_that("hosted mounted-file metadata stays inside its session mount", {
     env$app_upload_failure_guidance(2.5, mounted = TRUE),
     "failed after 2.5 seconds", fixed = TRUE
   )
+
+  csv <- OpenSpecy::read_extdata("raman_hdpe.csv")
+  mounted_text <- env$app_read_uploaded_members(csv, mounted = TRUE)
+  ordinary_text <- read_any(csv, c_spec = FALSE)
+  expect_s3_class(mounted_text, "OpenSpecy")
+  expect_equal(mounted_text$wavenumber, ordinary_text$wavenumber)
+  expect_equal(mounted_text$spectra, ordinary_text$spectra)
+  expect_identical(mounted_text$metadata$file_name,
+                   ordinary_text$metadata$file_name)
+})
+
+test_that("local and hosted modes render exactly one upload control", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  old_option <- getOption("openspecy.shiny.wasm")
+  old_env <- Sys.getenv("OPENSPECY_SHINY_WASM", unset = NA_character_)
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  on.exit(options(openspecy.shiny.wasm = old_option), add = TRUE)
+  on.exit({
+    if(is.na(old_env)) Sys.unsetenv("OPENSPECY_SHINY_WASM") else
+      Sys.setenv(OPENSPECY_SHINY_WASM = old_env)
+  }, add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+  Sys.unsetenv("OPENSPECY_SHINY_WASM")
+
+  render_mode <- function(wasm) {
+    options(openspecy.shiny.wasm = wasm)
+    as.character(source(file.path(app_path, "ui.R"),
+                        local = new.env(parent = env))$value)
+  }
+  local_html <- render_mode(FALSE)
+  hosted_html <- render_mode(TRUE)
+
+  expect_length(
+    regmatches(local_html, gregexpr('id="file"', local_html, fixed = TRUE))[[1L]],
+    1L
+  )
+  expect_match(local_html, 'id="upload_status"', fixed = TRUE)
+  expect_false(grepl("openspecy_workerfs_files", local_html, fixed = TRUE))
+  expect_false(grepl('id="file"', hosted_html, fixed = TRUE))
+  expect_match(hosted_html, 'id="openspecy_workerfs_files"', fixed = TRUE)
+  expect_match(hosted_html, " disabled", fixed = TRUE)
+  expect_false(grepl('id="upload_status"', hosted_html, fixed = TRUE))
+  expect_false(grepl("Mounted files bypass", hosted_html, fixed = TRUE))
 })
 
 test_that("bundled app has one in-memory upload route", {
@@ -174,16 +229,14 @@ test_that("bundled app has one in-memory upload route", {
   expect_match(server_source, "readRDS(as.character(file_info$datapath[[1L]]))",
                fixed = TRUE)
   expect_match(server_source, "compute_file_id = FALSE", fixed = TRUE)
-  expect_match(server_source,
-               "read_any(\n              file = as.character(file_info$datapath), c_spec = FALSE",
-               fixed = TRUE)
   expect_match(server_source, "read_uploaded_files <- function(file_info",
                fixed = TRUE)
   expect_match(server_source, "app_mounted_file_info(input$mounted_files)",
                fixed = TRUE)
+  expect_match(server_source, "app_read_uploaded_members(", fixed = TRUE)
   expect_match(server_source, "combined <- if(is_OpenSpecy(members))",
                fixed = TRUE)
-  expect_match(server_source, "upload_status_state(upload_size$message)",
+  expect_match(server_source, "set_upload_status(upload_size$message, \"error\")",
                fixed = TRUE)
   expect_match(server_source,
                "candidates <- which(distance == min(distance))",
@@ -344,7 +397,11 @@ test_that("bundled Shiny app does not block startup or auto-load remote images",
   expect_true(any(grepl("busyDelay = 650", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy-analysis-phase", bridge, fixed = TRUE)))
   expect_true(any(grepl("analysisPhaseActive", bridge, fixed = TRUE)))
-  expect_true(any(grepl("if (!analysisPhaseActive) return", bridge,
+  expect_true(any(grepl("function beginBusyAction", bridge, fixed = TRUE)))
+  expect_true(any(grepl("data-openspecy-busy-action", bridge, fixed = TRUE)))
+  expect_true(any(grepl("function bindAnalysisSettings", bridge,
+                        fixed = TRUE)))
+  expect_true(any(grepl("if (!analysisPhaseActive || !shinyIsBusy) return", bridge,
                         fixed = TRUE)))
   expect_true(any(grepl("elapsedTimer", bridge, fixed = TRUE)))
   expect_true(any(grepl("aria-valuenow", bridge, fixed = TRUE)))
@@ -816,7 +873,8 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   # of the previous dataset's stale results.
   expect_match(server_source, "analysis_needs_reset(TRUE)", fixed = TRUE)
   expect_match(server_source, '"openspecy-upload-materialized"', fixed = TRUE)
-  expect_match(server_source, '"openspecy-analysis-complete"', fixed = TRUE)
+  expect_false(grepl('"openspecy-analysis-complete"', server_source,
+                     fixed = TRUE))
   expect_match(server_source, "canonical_state_gate$clear()", fixed = TRUE)
   expect_match(server_source, "quantified_data_gate$clear()", fixed = TRUE)
   expect_match(server_source, "automatic_report_gate$clear()", fixed = TRUE)
@@ -838,7 +896,7 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   # error/warning branches, which intentionally leave prior results in place.
   expect_match(
     server_source,
-    "preprocessed$data <- rout\n        upload_status_state(NULL)",
+    "preprocessed$data <- rout\n        set_upload_status(NULL)",
     fixed = TRUE
   )
   expect_match(
@@ -2380,10 +2438,14 @@ test_that("bundled app updates the native download label without replacing it", 
   expect_match(script_source, 'button.setAttribute("aria-label", label)',
                fixed = TRUE)
   expect_match(script_source, "button.appendChild(icon)", fixed = TRUE)
-  expect_match(script_source, '"#analysis_settings .nav-link"', fixed = TRUE)
-  expect_match(script_source, 'this.closest("#analysis_settings_box")',
+  expect_match(script_source, 'target.closest("#analysis_settings .nav-link")',
                fixed = TRUE)
-  expect_match(script_source, '[data-card-widget="collapse"]', fixed = TRUE)
+  expect_match(script_source, 'document.getElementById("analysis_settings_box")',
+               fixed = TRUE)
+  expect_match(script_source, '}, true);', fixed = TRUE)
+  expect_match(script_source,
+               ':scope > .card-header [data-card-widget="collapse"]',
+               fixed = TRUE)
   expect_false(grepl('output$download_data <- renderUI', server_source,
                      fixed = TRUE))
 })

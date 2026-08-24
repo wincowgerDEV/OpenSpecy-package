@@ -11,13 +11,14 @@
   var idleTimer = null;
   var elapsedTimer = null;
   var busyDelay = 650;
+  var busyActionIdleGuard = 5000;
   var idleGrace = 200;
   var busyStartedAt = null;
+  var busyActionStartedAt = null;
+  var busyActionSawShinyBusy = false;
   var analysisPhaseActive = false;
   var shinyIsBusy = false;
-  var workerfsAvailable = false;
   var mountedFileLimit = 10 * 1024 * 1024 * 1024;
-  var nativeWasmLimit = 32 * 1024 * 1024;
   var busyState = {
     message: "Preparing analysis...",
     detail: "Open Specy is preparing the next result.",
@@ -60,10 +61,61 @@
     el.classList.add("disabled");
   }
 
+  function beginBusyAction(el, state) {
+    if (!el || el.disabled || el.getAttribute("aria-disabled") === "true") {
+      return false;
+    }
+    markBusy(el);
+    analysisPhaseActive = true;
+    shinyIsBusy = true;
+    busyActionStartedAt = Date.now();
+    busyActionSawShinyBusy = false;
+    window.clearTimeout(busyTimer);
+    busyTimer = null;
+    window.clearTimeout(idleTimer);
+    idleTimer = null;
+    if (busyStartedAt === null) busyStartedAt = Date.now();
+    busyState = {
+      message: state.message,
+      detail: state.detail,
+      progress: state.progress
+    };
+    document.documentElement.setAttribute(
+      "data-openspecy-busy-action", state.action
+    );
+    renderBusyState();
+    scheduleBusy(true);
+    return true;
+  }
+
   function clearBusy(el) {
     if (!el) return;
     el.removeAttribute("aria-busy");
     el.classList.remove("disabled");
+  }
+
+  function recordUploadStatus(message) {
+    if (message) {
+      document.documentElement.setAttribute(
+        "data-openspecy-upload-status", message
+      );
+    } else {
+      document.documentElement.removeAttribute("data-openspecy-upload-status");
+    }
+  }
+
+  function showUploadError(message, error) {
+    recordUploadStatus(message);
+    window.console.error(message, error || "");
+    hideBusy();
+    if (window.Shiny && window.Shiny.notifications &&
+        window.Shiny.notifications.show) {
+      window.Shiny.notifications.show({
+        html: message,
+        type: "error",
+        duration: null
+      });
+    }
   }
 
   function showDownloadError(error) {
@@ -88,7 +140,12 @@
     }
 
     button.dataset.openspecyDownloadActive = "true";
-    markBusy(button);
+    beginBusyAction(button, {
+      action: "download",
+      message: "Preparing download",
+      detail: "Open Specy is generating and transferring the selected file.",
+      progress: 8
+    });
     try {
       await new Promise(function (resolve) {
         window.setTimeout(resolve, 250);
@@ -138,7 +195,7 @@
       showDownloadError(error);
     } finally {
       delete button.dataset.openspecyDownloadActive;
-      clearBusy(button);
+      hideBusy();
     }
   }
 
@@ -173,27 +230,55 @@
       if (!closest) return;
 
       var runButton = closest("#run_analysis");
-      if (runButton) markBusy(runButton);
+      if (runButton) beginBusyAction(runButton, {
+        action: "run",
+        message: "Starting analysis",
+        detail: "Open Specy is preparing the selected files and settings.",
+        progress: 1
+      });
 
       var recalcButton = closest("#recalculate_snr");
-      if (recalcButton) markBusy(recalcButton);
+      if (recalcButton) beginBusyAction(recalcButton, {
+        action: "recalculate",
+        message: "Recalculating signal/noise preview",
+        detail: "Open Specy is scanning the uploaded spectra.",
+        progress: 8
+      });
 
       if (isWasmMode()) return; // #download_data is fully handled by bindWasmDownloads() there
       var downloadButton = closest("#download_data");
       if (downloadButton) {
-        markBusy(downloadButton);
+        beginBusyAction(downloadButton, {
+          action: "download",
+          message: "Preparing download",
+          detail: "Open Specy is generating the selected file.",
+          progress: 8
+        });
         window.clearTimeout(downloadFeedbackTimer);
         downloadFeedbackTimer = window.setTimeout(function () {
-          clearBusy(downloadButton);
+          hideBusy();
         }, 4000);
       }
     }, true);
   }
 
-  function setUploadStatus(message) {
-    var status = document.getElementById("upload_status");
-    if (!status) return;
-    status.textContent = message || "";
+  // Tab headers stay visible while the analysis card is collapsed. Expand the
+  // owning card in capture phase so the same click both opens the card and
+  // activates the requested tab, before Bootstrap/AdminLTE handle the link.
+  function bindAnalysisSettings() {
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      var tab = target && target.closest ?
+        target.closest("#analysis_settings .nav-link") : null;
+      if (!tab) return;
+      var settingsBox = document.getElementById("analysis_settings_box");
+      if (!settingsBox ||
+          !settingsBox.classList.contains("collapsed-card")) return;
+      var collapseControl = settingsBox.querySelector(
+        ':scope > .card-header [data-card-widget="collapse"]'
+      );
+      if (collapseControl) collapseControl.click();
+    }, true);
   }
 
   function workerfsRequest(action, files) {
@@ -242,13 +327,12 @@
     if (!container || !input) return;
 
     workerfsRequest("capability").then(function () {
-      workerfsAvailable = true;
-      container.hidden = false;
-      var nativeLabel = document.querySelector('label[for="file"]');
-      if (nativeLabel) nativeLabel.textContent = "Standard upload (small files)";
+      input.disabled = false;
     }).catch(function (error) {
-      workerfsAvailable = false;
-      window.console.warn("OpenSpecy WORKERFS capability unavailable", error);
+      showUploadError(
+        "Browser file mounting is unavailable. Reload the app or use local Open Specy.",
+        error
+      );
     });
 
     input.addEventListener("change", async function () {
@@ -269,13 +353,21 @@
       }, 0);
       if (total > mountedFileLimit) {
         input.value = "";
-        setUploadStatus(
+        showUploadError(
           "The selected files exceed the 10 GiB total upload ceiling. " +
           "Choose fewer or smaller files and try again."
         );
         return;
       }
-      setUploadStatus("Mounting selected files without copying their upload body...");
+      var fileCount = files.length + " file" + (files.length === 1 ? "" : "s");
+      recordUploadStatus("Mounting " + fileCount + " in the browser.");
+      beginBusyAction(input, {
+        action: "upload",
+        message: "Mounting selected files",
+        detail: "Making " + fileCount +
+          " available to Shinylive without copying the upload body.",
+        progress: 3
+      });
       try {
         var response = await workerfsRequest("mount", files);
         if (!window.Shiny || !window.Shiny.setInputValue) {
@@ -284,16 +376,19 @@
         window.Shiny.setInputValue(
           "mounted_files", mountedPayload(response), { priority: "event" }
         );
-        setUploadStatus(
-          files.length + " file" + (files.length === 1 ? "" : "s") +
-          " mounted; reading into OpenSpecy memory now."
-        );
+        busyState.message = "Reading and materializing spectra";
+        busyState.detail = fileCount +
+          " mounted; reading the complete dataset into OpenSpecy memory.";
+        busyState.progress = Math.max(busyState.progress, 8);
+        recordUploadStatus(busyState.message + ": " + busyState.detail);
+        renderBusyState();
+        scheduleBusy(true);
       } catch (error) {
         input.value = "";
-        setUploadStatus(
+        showUploadError(
           "Browser mounting failed: " + error.message +
-          " Small files can use Standard upload; for a large ENVI map, " +
-          "try the extracted HDR and DAT pair together."
+          " Reload the app or use local Open Specy.",
+          error
         );
       }
     });
@@ -304,6 +399,7 @@
   }
 
   function bindUploadLimit() {
+    if (isWasmMode()) return;
     var uploadLimit = 10 * 1024 * 1024 * 1024;
     document.addEventListener("change", function (event) {
       var input = event.target;
@@ -311,23 +407,11 @@
       var total = Array.prototype.reduce.call(input.files, function (sum, file) {
         return sum + (Number(file.size) || 0);
       }, 0);
-      if (isWasmMode() && total > nativeWasmLimit) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        input.value = "";
-        setUploadStatus(workerfsAvailable ?
-          "Large hosted inputs must use Mount files in browser to avoid the copying upload transport." :
-          "This hosted runtime cannot safely accept a large standard upload because the browser mount bridge is unavailable. Reload the app or use local Open Specy.");
-        return;
-      }
-      if (total <= uploadLimit) {
-        setUploadStatus("");
-        return;
-      }
+      if (total <= uploadLimit) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       input.value = "";
-      setUploadStatus(
+      showUploadError(
         "The selected files exceed the 10 GiB total upload ceiling. " +
         "Choose fewer or smaller files and try again."
       );
@@ -372,7 +456,7 @@
     elapsedTimer = window.setInterval(renderBusyState, 1000);
   }
 
-  function scheduleBusy() {
+  function scheduleBusy(clientInitiated) {
     if (!analysisPhaseActive || !shinyIsBusy) return;
     if (document.documentElement.classList.contains("openspecy-busy-visible")) {
       renderBusyState();
@@ -381,6 +465,7 @@
     if (busyTimer !== null) return;
     busyTimer = window.setTimeout(function () {
       busyTimer = null;
+      if (clientInitiated && analysisPhaseActive) shinyIsBusy = true;
       showBusy();
     }, busyDelay);
   }
@@ -389,24 +474,32 @@
     var overlay = document.getElementById("openspecy_busy_overlay");
     window.clearTimeout(busyTimer);
     window.clearTimeout(idleTimer);
+    window.clearTimeout(downloadFeedbackTimer);
     window.clearInterval(elapsedTimer);
     busyTimer = null;
     idleTimer = null;
+    downloadFeedbackTimer = null;
     elapsedTimer = null;
     busyStartedAt = null;
+    busyActionStartedAt = null;
+    busyActionSawShinyBusy = false;
     analysisPhaseActive = false;
+    shinyIsBusy = false;
     busyState = {
       message: "Preparing analysis...",
       detail: "Open Specy is preparing the next result.",
       progress: 4
     };
     document.documentElement.classList.remove("openspecy-busy-visible");
+    document.documentElement.removeAttribute("data-openspecy-busy-action");
     if (overlay) {
       overlay.setAttribute("aria-hidden", "true");
       renderBusyState();
     }
     clearBusy(document.getElementById("run_analysis"));
     clearBusy(document.getElementById("recalculate_snr"));
+    clearBusy(document.getElementById("download_data"));
+    clearBusy(document.getElementById("openspecy_workerfs_files"));
   }
 
   function notifyReady() {
@@ -466,13 +559,13 @@
             Math.max(0, Math.min(99, nextProgress))
           );
         }
+        if (document.documentElement.getAttribute(
+          "data-openspecy-busy-action"
+        ) === "upload") {
+          recordUploadStatus(busyState.message + ": " + busyState.detail);
+        }
         renderBusyState();
         scheduleBusy();
-      });
-
-      window.Shiny.addCustomMessageHandler("openspecy-analysis-complete", function (_state) {
-        shinyIsBusy = false;
-        hideBusy();
       });
 
       window.Shiny.addCustomMessageHandler("openspecy-upload-materialized", function (state) {
@@ -486,6 +579,17 @@
           "data-openspecy-materialized-files",
           JSON.stringify(files)
         );
+        recordUploadStatus(
+          files.length + " file" + (files.length === 1 ? "" : "s") +
+          " fully materialized in OpenSpecy memory."
+        );
+      });
+
+      window.Shiny.addCustomMessageHandler("openspecy-upload-status", function (state) {
+        var message = state && state.message ? String(state.message) : "";
+        if (!message) return;
+        recordUploadStatus(message);
+        if (state.type === "error") showUploadError(message);
       });
 
       window.Shiny.addCustomMessageHandler("openspecy-download-label", function (state) {
@@ -504,34 +608,36 @@
         button.setAttribute("title", state.title || label);
       });
 
-      window.Shiny.addCustomMessageHandler("openspecy-mounted-reset", function () {
+      window.Shiny.addCustomMessageHandler("openspecy-mounted-reset", function (_state) {
         var input = document.getElementById("openspecy_workerfs_files");
         if (input) input.value = "";
         workerfsRequest("unmount").catch(function () {});
       });
     }
 
-    shinyDocument.on(
-      "click.openspecySettings",
-      "#analysis_settings .nav-link",
-      function () {
-        var settingsBox = this.closest("#analysis_settings_box");
-        if (!settingsBox || !settingsBox.classList.contains("collapsed-card")) return;
-        var collapseControl = settingsBox.querySelector('[data-card-widget="collapse"]');
-        if (collapseControl) collapseControl.click();
-      }
-    );
-
     shinyDocument.on("shiny:busy.openspecyBusy", function () {
       shinyIsBusy = true;
+      if (analysisPhaseActive) busyActionSawShinyBusy = true;
       window.clearTimeout(idleTimer);
       idleTimer = null;
       scheduleBusy();
     });
 
     shinyDocument.on("shiny:idle.openspecyBusy", function () {
+      if (!analysisPhaseActive) {
+        shinyIsBusy = false;
+        return;
+      }
+      // Download generation does not own the WebSocket busy/idle cycle. A
+      // pending idle event from an earlier configuration flush must not cancel
+      // its overlay; native downloads use the bounded fallback timer and wasm
+      // downloads hide it when their fetch/blob transfer actually completes.
+      if (document.documentElement.getAttribute(
+        "data-openspecy-busy-action"
+      ) === "download") return;
+      if (!busyActionSawShinyBusy && busyActionStartedAt !== null &&
+          Date.now() - busyActionStartedAt < busyActionIdleGuard) return;
       shinyIsBusy = false;
-      if (!analysisPhaseActive) return;
       window.clearTimeout(busyTimer);
       busyTimer = null;
       window.clearTimeout(idleTimer);
@@ -554,6 +660,7 @@
     document.addEventListener("DOMContentLoaded", function () {
       bindWasmDownloads();
       bindInstantFeedback();
+      bindAnalysisSettings();
       bindUploadLimit();
       bindWorkerfsUpload();
       probeReadyState();
@@ -562,6 +669,7 @@
   } else {
     bindWasmDownloads();
     bindInstantFeedback();
+    bindAnalysisSettings();
     bindUploadLimit();
     bindWorkerfsUpload();
     probeReadyState();

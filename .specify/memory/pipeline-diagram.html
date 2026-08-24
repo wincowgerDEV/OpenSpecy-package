@@ -284,13 +284,6 @@
     diagram box(es)/decision(s) it changes and update this file. See
     <code>.specify/memory/constitution.md</code>.
   </div>
-  <div class="rule">
-    <strong>Active plan 017 target:</strong> this view includes the approved target flow before its
-    implementation is complete. The hosted path mounts browser <code>File</code> objects into webR,
-    then fully materializes the ordinary in-memory <code>OpenSpecy</code> object. It does not introduce
-    <code>FileSpecs</code> processing. Planned function names and source locations are marked below;
-    this notice is removed when implementation and verification make the diagram current-state truth.
-  </div>
 </header>
 
 <section class="legend" aria-hidden="false">
@@ -316,7 +309,7 @@
   <div class="zoom-layer" id="zoomLayer">
 <div class="canvas" id="canvas" style="width:2520px;height:3060px;">
 <svg viewBox="0 0 2520 3060" width="2520" height="3060" role="img"
-     aria-label="Target flowchart for OpenSpecy plan 017, from local upload or hosted browser-file mounting through full in-memory processing, active-spectrum quality inspection, particle partitioning, identification, quantification, and every terminal output.">
+     aria-label="Current OpenSpecy flowchart from local upload or hosted browser-file mounting through full in-memory processing, active-spectrum quality inspection, particle partitioning, identification, quantification, and every terminal output.">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)"></path>
@@ -459,21 +452,21 @@
 <div class="node input" style="left:550px;top:70px" tabindex="0">
   Hosted Browser File(s)
   <div class="sub">session-scoped WORKERFS mount</div>
-  <div class="tip">The inner-frame picker sends browser <code>File</code> objects, not their bytes, through a capability handshake to the pinned Shinylive shell. The owned outer adapter exposes one composite Blob plus member offsets to <code>webR.FS.mount("WORKERFS", {packages}, sessionMount)</code> and returns only validated mounted paths to Shiny. This bypasses Shinylive's multipart-body concatenation and R-raw copy; replacement or page exit unmounts the prior session path.
+  <div class="tip">This is the only hosted upload control. The inner-frame picker sends browser <code>File</code> objects, not their bytes, through a capability handshake to the pinned Shinylive shell. The owned outer adapter exposes one composite Blob plus member offsets to <code>webR.FS.mount("WORKERFS", {packages}, sessionMount)</code> and returns only validated mounted paths to Shiny. Mount and read stages report through the central progress popup; replacement or page exit unmounts the prior session path.
   <span class="loc">parent-frame.js &middot; tools/wasm/shinylive-workerfs-bridge.js &middot; patch-shinylive-workerfs.R</span></div>
 </div>
 <div class="node input" style="left:1050px;top:70px" tabindex="0">
   Local Shiny Temp File(s)
   <div class="sub">native fileInput path</div>
-  <div class="tip">The bundled/local app keeps Shiny's native <code>fileInput()</code> temporary paths. Small hosted files may use this path only when the mount capability is unavailable or below the measured fallback threshold. Both entry paths converge at the same reader and scientific pipeline.
+  <div class="tip">This is the only local upload control. The bundled/local app keeps Shiny's native <code>fileInput()</code> temporary paths; it is not rendered in Shinylive. The local and hosted entry paths converge at the same reader and scientific pipeline.
   <span class="loc">server.R: read_uploaded_files() &middot; parent-frame.js: bindWorkerfsUpload()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:230px" tabindex="0">
   Read &amp; Materialize
   <div class="sub">mounted/native paths &rarr; full OpenSpecy in R</div>
-  <div class="tip"><code>read_any(file, c_spec=FALSE)</code> or <code>as_OpenSpecy()</code> reads either mounted or native paths; multiple members combine with <code>c_spec(..., range="common")</code>, then <code>manage_na()</code>. The entire spectra matrix is materialized in R memory before anything downstream runs. This is not a <code>FileSpecs</code> branch. A mounted ZIP can still require a WebAssembly temporary extraction copy; selecting its HDR+DAT members directly is the measured fallback, not a different analysis path.
-  <span class="loc">server.R: read_uploaded_files() &middot; global.R: app_mounted_file_info() &middot; R/read_multi.R</span></div>
+  <div class="tip"><code>app_read_uploaded_members()</code> dispatches either mounted or native paths into the ordinary readers; multiple members combine with <code>c_spec(..., range="common")</code>, then <code>manage_na()</code>. Direct WORKERFS text inputs use <code>read_text()</code> with <code>fread(text=...)</code> because webR cannot memory-map a browser-backed file; delimiter/type inference and the resulting object remain the same. Default ENVI reads fill the final band-by-pixel matrix from bounded BIP/BIL/BSQ blocks instead of constructing and permuting whole intermediate arrays. This is not a <code>FileSpecs</code> branch. A mounted ZIP still uses temporary extraction before that bounded read.
+  <span class="loc">server.R: read_uploaded_files() &middot; global.R: app_mounted_file_info(), app_read_uploaded_members() &middot; R/read_multi.R &middot; R/read_envi.R: .read_envi_spectra()</span></div>
 </div>
 
 <div class="node decision" style="left:1050px;top:400px" tabindex="0">
@@ -484,7 +477,7 @@
 </div>
 <div class="node output tip-above" style="left:1650px;top:400px" tabindex="0">
   Upload Error (abort)
-  <div class="tip">show_alert + upload_status_state fire; preprocessed$data is never set, so no later stage runs at all.
+  <div class="tip"><code>show_alert()</code> plus the mode-appropriate local status or hosted persistent notification fire; <code>preprocessed$data</code> is never set, so no later stage runs at all.
   <span class="loc">server.R:301-343</span></div>
 </div>
 

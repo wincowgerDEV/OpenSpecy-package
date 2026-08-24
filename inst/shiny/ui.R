@@ -1324,48 +1324,44 @@ dashboardPage(
         column(
           2,
           class = "openspecy-upload-column",
-          fileInput(
-            "file", "Upload spectra", multiple = TRUE,
-            placeholder = ".csv, .zip, .asp, .jdx, .spc, .spa, ...",
-            accept = c(
-              "text/csv", "text/comma-separated-values,text/plain", ".csv",
-              ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData", ".spa",
-              ".0", ".zip", ".img", ".h5", ".txt", ".json", ".rds",
-              ".hdr", ".dat"
-            )
-          ),
-          tags$div(
-            id = "openspecy_workerfs_upload",
-            class = "openspecy-workerfs-upload",
-            hidden = NA,
-            tags$label(
-              `for` = "openspecy_workerfs_files",
-              "Mount files in browser (recommended for large maps)"
-            ),
-            tags$input(
-              id = "openspecy_workerfs_files", type = "file", multiple = NA,
-              accept = paste(c(
-                ".csv", ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData",
-                ".spa", ".0", ".zip", ".img", ".h5", ".txt", ".json",
-                ".rds", ".hdr", ".dat"
-              ), collapse = ",")
-            ),
-            tags$p(
-              class = "text-muted openspecy-workerfs-guidance",
-              paste(
-                "Mounted files bypass the copying Shinylive upload transport,",
-                "then follow the same full in-memory analysis. Select companion",
-                "HDR and DAT files together."
+          if(app_wasm_mode()) {
+            tags$div(
+              id = "openspecy_workerfs_upload",
+              class = "openspecy-workerfs-upload",
+              tags$label(
+                `for` = "openspecy_workerfs_files", "Upload spectra"
+              ),
+              tags$input(
+                id = "openspecy_workerfs_files", type = "file", multiple = NA,
+                disabled = NA,
+                accept = paste(c(
+                  ".csv", ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData",
+                  ".spa", ".0", ".zip", ".img", ".h5", ".txt", ".json",
+                  ".rds", ".hdr", ".dat"
+                ), collapse = ",")
               )
             )
-          ),
-          uiOutput(
-            "upload_status",
-            container = tags$p,
-            class = "openspecy-upload-status",
-            role = "status",
-            `aria-live` = "polite"
-          ),
+          } else {
+            tagList(
+              fileInput(
+                "file", "Upload spectra", multiple = TRUE,
+                placeholder = ".csv, .zip, .asp, .jdx, .spc, .spa, ...",
+                accept = c(
+                  "text/csv", "text/comma-separated-values,text/plain", ".csv",
+                  ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData", ".spa",
+                  ".0", ".zip", ".img", ".h5", ".txt", ".json", ".rds",
+                  ".hdr", ".dat"
+                )
+              ),
+              uiOutput(
+                "upload_status",
+                container = tags$p,
+                class = "openspecy-upload-status",
+                role = "status",
+                `aria-live` = "polite"
+              )
+            )
+          },
           shinyjs::disabled(
             actionButton(
               "run_analysis", "Run",

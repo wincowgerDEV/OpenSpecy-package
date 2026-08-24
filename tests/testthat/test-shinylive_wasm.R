@@ -413,6 +413,10 @@ test_that("only one workflow publishes the combined native Pages site", {
   expect_equal(sum(grepl("any::pkgdown", shinylive, fixed = TRUE)), 1L)
   expect_true(any(grepl("tools/wasm/build-wasm-repo.ps1", wasm,
                          fixed = TRUE)))
+  expect_true(any(grepl("uses: actions/cache@v5", wasm, fixed = TRUE)))
+  expect_true(any(grepl("path: _wasm/rwasm-dependency-cache", wasm,
+                        fixed = TRUE)))
+  expect_true(any(grepl("wasm-deps-v1-", wasm, fixed = TRUE)))
   expect_true(any(grepl("tools/wasm/test-workspace-path.ps1", wasm,
                          fixed = TRUE)))
   expect_false(any(grepl("r-wasm/actions/build-rwasm@v3", wasm,
@@ -473,6 +477,10 @@ test_that("hosted preflight is exact and the full pre-push gate is unskippable",
                         fixed = TRUE)))
   expect_true(any(grepl('Assert-Equal $playwrightVersion "1.61.1"',
                         preflight, fixed = TRUE)))
+  expect_true(any(grepl("require('@playwright/test'); require('http-server')",
+                        preflight, fixed = TRUE)))
+  expect_true(any(grepl("ConnectAsync", preflight, fixed = TRUE)))
+  expect_true(any(grepl("RedirectStandardError", preflight, fixed = TRUE)))
   expect_false(any(grepl("defaultLibrary", preflight, fixed = TRUE)))
   expect_true(any(grepl("git status --porcelain", prepush, fixed = TRUE)))
   expect_true(any(grepl("docker-preflight.ps1", prepush, fixed = TRUE)))
@@ -490,6 +498,11 @@ test_that("hosted preflight is exact and the full pre-push gate is unskippable",
   expect_true(any(grepl("Assert-OpenSpecyDockerEngine", build,
                          fixed = TRUE)))
   expect_true(any(grepl("check-wasm-artifact.R", build, fixed = TRUE)))
+  expect_true(any(grepl("DependencyCacheDir", build, fixed = TRUE)))
+  expect_true(any(grepl("DependencyCacheSeed", build, fixed = TRUE)))
+  expect_true(any(grepl("evict-wasm-cache-package.R", build, fixed = TRUE)))
+  expect_true(any(grepl("Restoring wasm dependency cache", build,
+                        fixed = TRUE)))
   expect_true(any(grepl("git rev-parse HEAD", build, fixed = TRUE)))
   expect_true(any(grepl("git status --porcelain", build, fixed = TRUE)))
   expect_true(any(grepl('"archive", "--format=zip"', build,
@@ -766,8 +779,8 @@ test_that("static landing and Shiny app provide the embed handshake", {
   expect_true(any(grepl("openspecy:ready", bridge, fixed = TRUE)))
   expect_true(any(grepl("shiny:busy.openspecyBusy", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy-analysis-phase", bridge, fixed = TRUE)))
-  expect_true(any(grepl("openspecy-analysis-complete", bridge,
-                        fixed = TRUE)))
+  expect_false(any(grepl("openspecy-analysis-complete", bridge,
+                         fixed = TRUE)))
   expect_true(any(grepl("openspecy-upload-materialized", bridge,
                         fixed = TRUE)))
   expect_true(any(grepl("data-openspecy-materialized-files", bridge,
@@ -778,7 +791,10 @@ test_that("static landing and Shiny app provide the embed handshake", {
   expect_true(any(grepl("openspecy-busy-visible", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy:workerfs", bridge, fixed = TRUE)))
   expect_true(any(grepl('Shiny.setInputValue(', bridge, fixed = TRUE)))
-  expect_true(any(grepl("nativeWasmLimit", bridge, fixed = TRUE)))
+  expect_true(any(grepl('action: "upload"', bridge, fixed = TRUE)))
+  expect_true(any(grepl("data-openspecy-upload-status", bridge,
+                        fixed = TRUE)))
+  expect_false(any(grepl("nativeWasmLimit", bridge, fixed = TRUE)))
 
   readme_path <- test_path("..", "..", "README.md")
   site_dir <- test_path("..", "..", "site")

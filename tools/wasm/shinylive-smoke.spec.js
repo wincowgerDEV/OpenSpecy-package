@@ -479,10 +479,12 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(page.locator("#openspecy-app-status")).toHaveText("Ready");
   const fullscreenButton = page.locator("#openspecy-fullscreen");
   await expect(fullscreenButton).toBeEnabled();
-  const fileInput = appFrame.locator("#file, input[type='file']").first();
-  await expect(fileInput).toBeAttached({ timeout: 180000 });
   const mountedInput = appFrame.locator("#openspecy_workerfs_files");
   await expect(mountedInput).toBeVisible({ timeout: 180000 });
+  await expect(mountedInput).toBeEnabled({ timeout: 180000 });
+  await expect(appFrame.locator("#file")).toHaveCount(0);
+  await expect(appFrame.locator("input[type='file']")).toHaveCount(1);
+  await expect(appFrame.locator("#upload_status")).toHaveCount(0);
   const runButton = appFrame.locator("#run_analysis").first();
   const firstMatch = appFrame.locator("#event table tbody tr").first();
 
@@ -496,13 +498,13 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
       const state = await appFrame.locator("html").evaluate((html) => ({
         transport: html.getAttribute("data-openspecy-materialized"),
         files: html.getAttribute("data-openspecy-materialized-files"),
-        status: document.getElementById("upload_status")?.textContent || "",
+        status: html.getAttribute("data-openspecy-upload-status") || "",
       }));
       if (state.transport === "workerfs" && state.files === expectedFiles) {
         await expect(runButton).toBeEnabled({ timeout: 60000 });
         return;
       }
-      if (/mounting failed|exceed.*limit|metadata was rejected/i.test(state.status)) {
+      if (/mounting failed|exceed.*limit|metadata was rejected|read\/materialize phase failed|cannot allocate vector/i.test(state.status)) {
         throw new Error(`Large WORKERFS mount failed: ${state.status}`);
       }
       await page.waitForTimeout(1000);
@@ -612,9 +614,18 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     });
   });
 
-  await fileInput.setInputFiles(uploadPath);
+  await mountedInput.setInputFiles(uploadPath);
+  await expect(appFrame.locator("html")).toHaveAttribute(
+    "data-openspecy-busy-action", "upload", { timeout: 30000 }
+  );
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await runButton.click();
+  await expect(appFrame.locator("html")).toHaveClass(
+    /\bopenspecy-busy-visible\b/, { timeout: 30000 }
+  );
+  await expect(appFrame.locator("#openspecy_busy_message")).toContainText(
+    /Preparing analysis|Preprocessing|Identifying|Rendering/
+  );
   await expect(firstMatch).toContainText(/poly\(ethylene\)/i, {
     timeout: 600000,
   });
@@ -675,11 +686,10 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     await expect(embed).toHaveClass(/\bis-fullscreen\b/);
   }
 
-  // Prove the mounted companion-file route materializes a normal in-memory
-  // object. The server emits this marker only after read_any(), manage_na(),
-  // and OpenSpecy validation succeed; an error resets the chooser instead.
+  // Every hosted selection uses WORKERFS. The server emits this marker only
+  // after read_any(), manage_na(), and OpenSpecy validation succeed.
   await expect(appFrame.locator("html")).toHaveAttribute(
-    "data-openspecy-materialized", "native", {
+    "data-openspecy-materialized", "workerfs", {
       timeout: 60000,
     }
   );

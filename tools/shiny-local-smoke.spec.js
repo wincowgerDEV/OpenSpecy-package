@@ -277,6 +277,7 @@ async function waitForStableSelectizeGeneration(
 
 async function expectCardCollapsed(card, collapsed = true) {
   await expect(card).toBeVisible();
+  await expect(card).not.toHaveClass(/collapsing-card/, { timeout: 10000 });
   if (collapsed) {
     await expect(card).toHaveClass(/collapsed-card/);
     await expect(card.locator(":scope > .card-body")).toBeHidden();
@@ -292,6 +293,62 @@ async function toggleCard(card) {
   );
   await expect(toggle).toBeVisible();
   await toggle.click({ timeout: 10000 });
+}
+
+async function expectClientBusyOverlay(page, selector, action, requireOverlay = true) {
+  await page.evaluate((buttonSelector) => {
+    const blocker = (event) => {
+      const target = event.target?.closest?.(buttonSelector);
+      if (!target) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    window.__openspecyBusyBlocker = blocker;
+    document.addEventListener("click", blocker, true);
+  }, selector);
+  await page.locator(selector).click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-openspecy-busy-action", action, { timeout: 500 }
+  );
+  await expect(page.locator(selector)).toHaveAttribute("aria-busy", "true");
+  if (requireOverlay) {
+    await page.waitForTimeout(900);
+    await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
+      timeout: 3000,
+    });
+    await expect(page.locator("#openspecy_busy_overlay")).toHaveAttribute(
+      "aria-hidden", "false"
+    );
+  }
+  await page.evaluate(() => {
+    document.removeEventListener("click", window.__openspecyBusyBlocker, true);
+    delete window.__openspecyBusyBlocker;
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+}
+
+async function expectNativeDownloadBusyOverlay(page) {
+  await page.route(/\/download\/download_data(?:\?|$)/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  }, { times: 1 });
+  const downloadPromise = page.waitForEvent("download");
+  const clickPromise = page.locator("#download_data").click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-openspecy-busy-action", "download", { timeout: 500 }
+  );
+  await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
+    timeout: 3000,
+  });
+  await clickPromise;
+  await downloadPromise;
+  await expect(page.locator("#openspecy_busy_overlay")).toBeHidden({
+    timeout: 6000,
+  });
 }
 
 async function expectEqualWidthAndTop(first, second, tolerance = 2) {
@@ -471,6 +528,57 @@ test.afterEach(async ({}, testInfo) => {
     });
     console.error(`Local Shiny stderr:\n${stderr}`);
   }
+});
+
+test("settings tabs expand the card and sustained actions start the overlay client-side", async ({ page }) => {
+  test.setTimeout(300000);
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("#openspecy_workerfs_files")).toHaveCount(0);
+  await expect(page.locator("input[type='file']")).toHaveCount(1);
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+
+  const settingsCard = page.locator("#analysis_settings_box");
+  await expectCardCollapsed(settingsCard);
+  await page.getByRole("link", { name: "Identification", exact: true }).click();
+  await expectCardCollapsed(settingsCard, false);
+  await expect(page.getByRole("link", { name: "Identification", exact: true }))
+    .toHaveClass(/active/);
+  await toggleCard(settingsCard);
+  await expectCardCollapsed(settingsCard);
+
+  await expectNativeDownloadBusyOverlay(page);
+  await page.locator("#file").setInputFiles(
+    path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
+  );
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  await expectClientBusyOverlay(page, "#run_analysis", "run");
+
+  await page.locator("#file").setInputFiles(
+    path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
+  );
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  await page.getByRole("link", { name: "Advanced", exact: true }).click();
+  await expectCardCollapsed(settingsCard, false);
+  const thresholdCard = page.locator("#threshold_decision").locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  await toggleCard(thresholdCard);
+  await expect(page.locator("#recalculate_snr")).toBeVisible();
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  await expectClientBusyOverlay(
+    page, "#recalculate_snr", "recalculate", false
+  );
 });
 
 test("map-scale Top Matches download stays fast and leaves the session healthy", async ({ page }) => {

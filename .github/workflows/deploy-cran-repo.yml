@@ -37,6 +37,19 @@ jobs:
           extra-packages: any::jsonlite
           pak-version: repo
 
+      # The repository builder evicts OpenSpecy from this seed before every
+      # run, refreshes changed dependency versions, and verifies the final
+      # package/image against PACKAGE_SHA. A unique suffix lets the updated
+      # dependency repo be saved after restoring the latest compatible seed.
+      - name: Restore wasm dependency repository
+        uses: actions/cache@v5
+        with:
+          path: _wasm/rwasm-dependency-cache
+          key: >-
+            wasm-deps-v1-${{ runner.os }}-${{ hashFiles('DESCRIPTION', 'inst/shiny/wasm/app-package-roots.txt', 'tools/wasm/resolve-wasm-package-roots.R', 'tools/wasm/evict-wasm-cache-package.R', 'tools/wasm/rwasm-build/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            wasm-deps-v1-${{ runner.os }}-${{ hashFiles('DESCRIPTION', 'inst/shiny/wasm/app-package-roots.txt', 'tools/wasm/resolve-wasm-package-roots.R', 'tools/wasm/evict-wasm-cache-package.R', 'tools/wasm/rwasm-build/**') }}-
+
       # This invokes the same digest-pinned Docker driver as the local
       # clean-commit pre-push rehearsal, preventing CI/local build drift.
       - name: Build and verify wasm package repository

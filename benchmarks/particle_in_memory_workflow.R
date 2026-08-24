@@ -94,6 +94,91 @@ elapsed_samples <- function(fun) {
   }, numeric(1))
 }
 
+# Keep the former caTools array + two-aperm materialization here as the
+# same-output reference for the blockwise ENVI reader. Tests assert the current
+# contract; this benchmark owns the retired comparison implementation.
+envi_fixture_zip <- read_extdata("CA_tiny_map.zip")
+envi_fixture_dir <- tempfile("openspecy-envi-benchmark-")
+dir.create(envi_fixture_dir)
+on.exit(unlink(envi_fixture_dir, recursive = TRUE), add = TRUE)
+utils::unzip(envi_fixture_zip, exdir = envi_fixture_dir)
+envi_header_source <- list.files(
+  envi_fixture_dir, pattern = "\\.hdr$", recursive = TRUE,
+  full.names = TRUE, ignore.case = TRUE
+)[1L]
+envi_binary_source <- list.files(
+  envi_fixture_dir, pattern = "\\.(dat|img)$", recursive = TRUE,
+  full.names = TRUE, ignore.case = TRUE
+)[1L]
+if (is.na(envi_header_source) || is.na(envi_binary_source)) {
+  stop("the ENVI benchmark fixture is incomplete", call. = FALSE)
+}
+
+# The package fixture is too small for stable relative timing on Windows.
+# Repeat complete BIP rows into a temporary ~11 MiB map so a 10% threshold is
+# meaningful while every value and pixel-order comparison remains exact.
+envi_repeat_rows <- 32L
+envi_header <- file.path(envi_fixture_dir, "benchmark.hdr")
+envi_binary <- file.path(envi_fixture_dir, "benchmark.dat")
+header_lines <- readLines(envi_header_source, warn = FALSE)
+source_header <- OpenSpecy:::.read_envi_header(envi_header_source)
+header_lines <- sub(
+  "^([[:space:]]*lines[[:space:]]*=[[:space:]]*).*$",
+  paste0("\\1", as.integer(source_header[["lines"]]) * envi_repeat_rows),
+  header_lines, ignore.case = TRUE
+)
+writeLines(header_lines, envi_header)
+source_connection <- file(envi_binary_source, "rb")
+source_bytes <- readBin(
+  source_connection, raw(), n = file.info(envi_binary_source)$size
+)
+close(source_connection)
+benchmark_connection <- file(envi_binary, "wb")
+writeBin(rep(source_bytes, envi_repeat_rows), benchmark_connection)
+close(benchmark_connection)
+rm(source_bytes)
+
+legacy_envi_materialize <- function() {
+  arr <- caTools::read.ENVI(envi_binary, envi_header)
+  matrix(aperm(arr, c(3, 2, 1)), nrow = dim(arr)[3],
+         ncol = dim(arr)[1] * dim(arr)[2])
+}
+blockwise_envi_materialize <- function() {
+  OpenSpecy:::.read_envi_spectra(
+    envi_binary, OpenSpecy:::.read_envi_header(envi_header)
+  )
+}
+legacy_envi <- legacy_envi_materialize()
+blockwise_envi <- blockwise_envi_materialize()
+if (!identical(blockwise_envi, legacy_envi)) {
+  stop("blockwise and former ENVI materializations differ", call. = FALSE)
+}
+legacy_envi_elapsed <- elapsed_samples(legacy_envi_materialize)
+blockwise_envi_elapsed <- elapsed_samples(blockwise_envi_materialize)
+envi_runtime_ratio <- stats::median(blockwise_envi_elapsed) /
+  max(stats::median(legacy_envi_elapsed), .Machine$double.eps)
+if (envi_runtime_ratio > 1.50) {
+  stop(
+    "material blockwise ENVI runtime regression: blockwise/legacy = ",
+    sprintf("%.3f", envi_runtime_ratio), " (failure limit 1.50)",
+    call. = FALSE
+  )
+}
+print(data.frame(
+  envi_pixels = ncol(blockwise_envi),
+  envi_bands = nrow(blockwise_envi),
+  repetitions = repetitions,
+  legacy_median_seconds = stats::median(legacy_envi_elapsed),
+  blockwise_median_seconds = stats::median(blockwise_envi_elapsed),
+  blockwise_to_legacy_runtime = envi_runtime_ratio,
+  material_runtime_limit = 1.10,
+  failure_runtime_limit = 1.50,
+  material_runtime_regression = envi_runtime_ratio > 1.10,
+  equivalent = TRUE,
+  stringsAsFactors = FALSE
+), row.names = FALSE)
+rm(legacy_envi, blockwise_envi)
+
 full_elapsed <- elapsed_samples(canonical_full_match)
 block_elapsed <- elapsed_samples(blockwise_match)
 full_median <- stats::median(full_elapsed)

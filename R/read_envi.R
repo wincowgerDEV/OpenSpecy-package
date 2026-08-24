@@ -79,23 +79,28 @@ read_envi <- function(file, header = NULL,
   
 
   hdr <- .read_envi_header(header)
-  arr <- read.ENVI(file, header)
-
-  if(spectral_smooth)
+  if(spectral_smooth) {
+    arr <- read.ENVI(file, header)
     arr <- gaussianSmooth(arr, sigma)
+    dims <- dim(arr)
+    ny <- dims[1]
+    nx <- dims[2]
+    n_bands <- dims[3]
+    spectra <- matrix(aperm(arr, c(3, 2, 1)),
+                      nrow = n_bands, ncol = ny * nx)
+  } else {
+    ny <- as.integer(hdr[["lines"]])
+    nx <- as.integer(hdr[["samples"]])
+    n_bands <- as.integer(hdr[["bands"]])
+    spectra <- .read_envi_spectra(file, hdr)
+  }
 
   md <- hdr[names(hdr) != "wavelength"]
 
-  dims <- dim(arr)
-  ny <- dims[1]
-  nx <- dims[2]
-  n_bands <- dims[3]
   coords <- data.frame(
     y = as.numeric(rep(seq_len(ny) - 1, each = nx)),
     x = as.numeric(rep(seq_len(nx) - 1, times = ny))
   )
-  spectra <- matrix(aperm(arr, c(3, 2, 1)),
-                    nrow = n_bands, ncol = ny * nx)
   colnames(spectra) <- paste(coords$y, coords$x, sep = "_")
 
   if("wavelength" %in% names(hdr)) {
@@ -139,6 +144,123 @@ read_envi <- function(file, header = NULL,
                      ...)
 
   return(os)
+}
+
+.envi_read_spec <- function(data_type) {
+  switch(
+    as.character(data_type),
+    "1" = list(what = integer(), size = 1L, signed = FALSE,
+               storage = "integer"),
+    "2" = list(what = integer(), size = 2L, signed = TRUE,
+               storage = "integer"),
+    "3" = list(what = integer(), size = 4L, signed = TRUE,
+               storage = "integer"),
+    "4" = list(what = double(), size = 4L, signed = TRUE,
+               storage = "double"),
+    "5" = list(what = double(), size = 8L, signed = TRUE,
+               storage = "double"),
+    "9" = list(what = complex(), size = NA_integer_, signed = TRUE,
+               storage = "complex"),
+    "12" = list(what = integer(), size = 2L, signed = FALSE,
+                storage = "integer"),
+    stop("read.ENVI: Error in input header file data type is missing, ",
+         "incorrect or unsupported", call. = FALSE)
+  )
+}
+
+.read_envi_block <- function(connection, count, spec, endian) {
+  args <- list(
+    con = connection,
+    what = spec$what,
+    n = as.integer(count),
+    endian = endian
+  )
+  if (!is.na(spec$size)) args$size <- spec$size
+  if (identical(spec$what, integer())) args$signed <- spec$signed
+  values <- do.call(readBin, args)
+  if (length(values) != count) {
+    stop("ENVI binary ended before all declared values were read", call. = FALSE)
+  }
+  values
+}
+
+.read_envi_spectra <- function(file, hdr, block_pixels = 8192L) {
+  nx <- as.integer(hdr[["samples"]])
+  ny <- as.integer(hdr[["lines"]])
+  n_bands <- as.integer(hdr[["bands"]])
+  if (anyNA(c(nx, ny, n_bands)) || any(c(nx, ny, n_bands) <= 0L)) {
+    stop("read.ENVI: data sizes missing or incorrect", call. = FALSE)
+  }
+  if (!file.exists(file)) {
+    stop("read.ENVI: Could not open input file: ", file, call. = FALSE)
+  }
+
+  spec <- .envi_read_spec(hdr[["data type"]])
+  interleave <- tolower(gsub("[[:space:]]+", "", hdr[["interleave"]] %||% "bsq"))
+  if (!interleave %in% c("bip", "bil", "bsq")) {
+    stop("read.ENVI: incorrect interleave type", call. = FALSE)
+  }
+  byte_order <- suppressWarnings(as.integer(hdr[["byte order"]] %||% -1L))
+  platform_order <- if (identical(.Platform$endian, "big")) 1L else 0L
+  endian <- if (byte_order < 0L || byte_order == platform_order) {
+    .Platform$endian
+  } else {
+    "swap"
+  }
+  header_offset <- suppressWarnings(as.numeric(hdr[["header offset"]] %||% 0))
+  if (!is.finite(header_offset) || header_offset < 0) {
+    stop("read.ENVI: header offset is missing or incorrect", call. = FALSE)
+  }
+
+  n_pixels <- nx * ny
+  connection <- file(file, "rb")
+  on.exit(close(connection), add = TRUE)
+  if (header_offset > 0) seek(connection, where = header_offset, origin = "start")
+
+  if (identical(interleave, "bip") && n_pixels <= block_pixels) {
+    return(matrix(
+      .read_envi_block(connection, n_bands * n_pixels, spec, endian),
+      nrow = n_bands, ncol = n_pixels
+    ))
+  }
+
+  empty <- switch(
+    spec$storage,
+    integer = NA_integer_,
+    double = NA_real_,
+    complex = NA_complex_
+  )
+  spectra <- matrix(empty, nrow = n_bands, ncol = n_pixels)
+
+  if (identical(interleave, "bip")) {
+    starts <- seq.int(1L, n_pixels, by = block_pixels)
+    for (start in starts) {
+      finish <- min(n_pixels, start + block_pixels - 1L)
+      count <- finish - start + 1L
+      values <- .read_envi_block(
+        connection, n_bands * count, spec, endian
+      )
+      spectra[, start:finish] <- matrix(values, nrow = n_bands)
+    }
+  } else if (identical(interleave, "bil")) {
+    for (row in seq_len(ny)) {
+      columns <- ((row - 1L) * nx + 1L):(row * nx)
+      values <- .read_envi_block(connection, nx * n_bands, spec, endian)
+      spectra[, columns] <- t(matrix(values, nrow = nx, ncol = n_bands))
+    }
+  } else {
+    starts <- seq.int(1L, n_pixels, by = block_pixels)
+    for (band in seq_len(n_bands)) {
+      for (start in starts) {
+        finish <- min(n_pixels, start + block_pixels - 1L)
+        spectra[band, start:finish] <- .read_envi_block(
+          connection, finish - start + 1L, spec, endian
+        )
+      }
+    }
+  }
+
+  spectra
 }
 
 .read_envi_header <- function(headerfile, ...) {

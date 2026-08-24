@@ -273,22 +273,55 @@ $httpVersion = (Get-Content -Raw -LiteralPath $httpManifest |
   ConvertFrom-Json).version
 Assert-Equal $playwrightVersion "1.61.1" "Playwright version"
 Assert-Equal $httpVersion "14.1.1" "http-server version"
+$env:NODE_PATH = Join-Path $nodeDir "node_modules"
+Invoke-Checked "node.exe" @(
+  "-e",
+  "require('@playwright/test'); require('http-server')"
+)
 
 if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) {
   throw "Port $Port is already in use."
 }
 
-$env:NODE_PATH = Join-Path $nodeDir "node_modules"
 $env:SHINYLIVE_SMOKE_URL = "http://127.0.0.1:$Port/"
 $env:OPENSPECY_EXPECTED_VERSION =
   (& $Rscript -e "cat(read.dcf('DESCRIPTION')[1, 'Version'])")
+$serverStdout = Join-Path $work "http-server.stdout.log"
+$serverStderr = Join-Path $work "http-server.stderr.log"
 $server = Start-Process -FilePath "node.exe" -ArgumentList @(
   (Join-Path $nodeDir "node_modules/http-server/bin/http-server"),
   $siteRoot, "-p", $Port
-) -WindowStyle Hidden -PassThru
+) -WorkingDirectory $repoRoot -WindowStyle Hidden -PassThru `
+  -RedirectStandardOutput $serverStdout -RedirectStandardError $serverStderr
 
 try {
-  Start-Sleep -Seconds 2
+  $serverReady = $false
+  foreach ($attempt in 1..60) {
+    $client = [Net.Sockets.TcpClient]::new()
+    try {
+      $connection = $client.ConnectAsync("127.0.0.1", $Port)
+      if ($connection.Wait(250) -and $client.Connected) {
+        $serverReady = $true
+        break
+      }
+    } catch {
+      # The server may still be starting; retry below.
+    } finally {
+      $client.Dispose()
+    }
+    $server.Refresh()
+    if ($server.HasExited) { break }
+    Start-Sleep -Milliseconds 250
+  }
+  if (-not $serverReady) {
+    $server.Refresh()
+    $serverError = if (Test-Path -LiteralPath $serverStderr) {
+      (Get-Content -Raw -LiteralPath $serverStderr).Trim()
+    } else {
+      "<no stderr captured>"
+    }
+    throw "Local hosted-test server did not bind port $Port; exited=$($server.HasExited). $serverError"
+  }
   Invoke-Checked $playwright @(
     "test", "tools/wasm/shinylive-smoke.spec.js",
     "--output", (Get-RepoRelative (Join-Path $work "playwright-results"))

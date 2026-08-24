@@ -113,11 +113,6 @@ function(input, output, session) {
     analysis_dirty(FALSE)
     analysis_needs_reset(FALSE)
   }, priority = RUN_GATE_PRIORITY_RESET)
-  observeEvent(input$run_analysis, {
-    session$onFlushed(function() {
-      session$sendCustomMessage("openspecy-analysis-complete", list())
-    }, once = TRUE)
-  }, priority = -100L)
   observe({
     shinyjs::toggleClass(
       "run_analysis", "openspecy-run-dirty", condition = isTRUE(analysis_dirty())
@@ -192,6 +187,16 @@ function(input, output, session) {
     )
   }
 
+  set_upload_status <- function(message = NULL, type = "message") {
+    upload_status_state(message)
+    if(app_wasm_mode() && !is.null(message)) {
+      session$sendCustomMessage(
+        "openspecy-upload-status",
+        list(message = as.character(message), type = type)
+      )
+    }
+  }
+
   session$onSessionEnded(function() {
     preprocessed$data <- NULL
     if(dir.exists(particle_output_root)) {
@@ -237,8 +242,8 @@ function(input, output, session) {
 
 
   #Read Data ----
-# Both native Shiny uploads and hosted WORKERFS mounts enter this function as
-# the same four-column file table and converge before read_any().
+# The mode-exclusive local Shiny upload and hosted WORKERFS picker enter this
+# function as the same four-column file table and converge before read_any().
 read_uploaded_files <- function(file_info, mounted = FALSE) {
   started <- proc.time()[["elapsed"]]
   data_click$plot <- 1
@@ -247,7 +252,7 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
   preprocessed$data <- NULL
   inspection_source_gate(NULL)
   active_file_info(file_info)
-  upload_status_state(NULL)
+  set_upload_status(NULL)
   meta_cache(NULL)
   correction_diagnostics(data.frame())
   ratio_definitions(app_empty_ratio_definitions())
@@ -264,7 +269,7 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
 
   upload_size <- app_validate_upload_size(file_info)
   if(!isTRUE(upload_size$ok)) {
-    upload_status_state(upload_size$message)
+    set_upload_status(upload_size$message, "error")
     reset_upload_control()
     active_file_info(NULL)
     return(NULL)
@@ -272,10 +277,10 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
 
   if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
              ignore.case = TRUE, as.character(file_info$name)))) {
-    upload_status_state(paste(
+    set_upload_status(paste(
       "Uploaded data type is not supported. Check the upload guidance for",
       "the accepted file extensions."
-    ))
+    ), "error")
     reset_upload_control()
     active_file_info(NULL)
     return(NULL)
@@ -304,8 +309,8 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
               compute_file_id = FALSE
             )
           } else {
-            read_any(
-              file = as.character(file_info$datapath), c_spec = FALSE
+            app_read_uploaded_members(
+              paths = file_info$datapath, mounted = mounted
             )
           }
           combined <- if(is_OpenSpecy(members)) {
@@ -350,25 +355,36 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
     #print(checkit)
     if (inherits(rout, "simpleError") || inherits(checkit, "simpleError")) {
       elapsed <- proc.time()[["elapsed"]] - started
+      failure_detail <- paste0(
+        if(inherits(rout, "simpleError")) {
+          paste0("Data loading reported: ", rout, ".")
+        } else "",
+        if(inherits(checkit, "simpleError")) {
+          paste0(" Data checking reported: ", checkit, ".")
+        } else ""
+      )
+      failure_message <- paste(
+        failure_detail, app_upload_failure_guidance(elapsed, mounted)
+      )
       show_alert(
         title = "Something went wrong with reading the data :-(",
-        text =  paste0(if(inherits(rout, "simpleError")){paste0("There was an error during data loading that said ",
-                                                                  rout, ".")} else{""},
-                       if(inherits(checkit, "simpleError")){paste0(" There was an error during data checking that said ",
-                                                                  checkit, ".")} else{""},
-                       ". If you uploaded a text/csv file, make sure that the columns are numeric and named 'wavenumber' and 'intensity'. ",
-                       app_upload_failure_guidance(elapsed, mounted)),
+        text = paste0(
+          failure_detail,
+          " If you uploaded a text/csv file, make sure that the columns are ",
+          "numeric and named 'wavenumber' and 'intensity'. ",
+          app_upload_failure_guidance(elapsed, mounted)
+        ),
         type =  "error"
       )
-      upload_status_state(app_upload_failure_guidance(elapsed, mounted))
+      set_upload_status(failure_message, "error")
       reset_upload_control()
       active_file_info(NULL)
       preprocessed$data <- NULL
     }
     else if(inherits(checkit, "simpleWarning")) {
-      upload_status_state(paste(
+      set_upload_status(paste(
         "The uploaded spectra need attention:", as.character(checkit)
-      ))
+      ), "warning")
       reset_upload_control()
       active_file_info(NULL)
       preprocessed$data <- NULL
@@ -381,7 +397,7 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
           15
         )
         preprocessed$data <- rout
-        upload_status_state(NULL)
+        set_upload_status(NULL)
         session$sendCustomMessage(
           "openspecy-upload-materialized",
           list(
@@ -413,8 +429,10 @@ observeEvent(input$mounted_files, {
     app_mounted_file_info(input$mounted_files), error = identity
   )
   if(inherits(file_info, "error")) {
-    upload_status_state(paste("Mounted file metadata was rejected:",
-                              conditionMessage(file_info)))
+    set_upload_status(
+      paste("Mounted file metadata was rejected:", conditionMessage(file_info)),
+      "error"
+    )
     session$sendCustomMessage("openspecy-mounted-reset", list())
     return(NULL)
   }

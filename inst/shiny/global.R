@@ -182,6 +182,36 @@ app_mounted_file_info <- function(value) {
   )
 }
 
+# data.table::fread() memory-maps filename inputs. webR's 32-bit runtime cannot
+# mmap a WORKERFS-backed browser File, even when the file itself is tiny. Feed
+# direct mounted text through fread's text parser so delimiter/type inference
+# and the resulting OpenSpecy format stay the same without the unsupported map.
+app_workerfs_fread <- function(file, ...) {
+  lines <- readLines(file, warn = FALSE)
+  data.table::fread(text = paste(lines, collapse = "\n"), ...)
+}
+
+app_read_uploaded_members <- function(paths, mounted = FALSE) {
+  paths <- as.character(paths)
+  mounted_text <- isTRUE(mounted) &
+    grepl("\\.(xyz|csv|tsv|txt)$", paths, ignore.case = TRUE)
+  read_one <- function(path, use_workerfs_text) {
+    if(isTRUE(use_workerfs_text)) {
+      read_text(file = path, method = app_workerfs_fread)
+    } else {
+      read_any(file = path, c_spec = FALSE)
+    }
+  }
+  envi_pair <- length(paths) == 2L &&
+    any(grepl("\\.(dat|img)$", paths, ignore.case = TRUE)) &&
+    any(grepl("\\.hdr$", paths, ignore.case = TRUE))
+  if(envi_pair) return(read_any(file = paths, c_spec = FALSE))
+  if(length(paths) > 1L) {
+    return(Map(read_one, paths, mounted_text))
+  }
+  read_one(paths[[1L]], mounted_text[[1L]])
+}
+
 app_upload_failure_guidance <- function(elapsed_seconds, mounted = FALSE) {
   elapsed <- max(0, suppressWarnings(as.numeric(elapsed_seconds)[[1L]]))
   route <- if(isTRUE(mounted)) {
