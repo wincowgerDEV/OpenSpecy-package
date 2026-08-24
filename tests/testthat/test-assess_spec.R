@@ -11,6 +11,14 @@ make_assess_test_spec <- function(values = NULL) {
   )
 }
 
+test_that("assess_spec() uses reviewed silent-region and artifact defaults", {
+  expect_identical(
+    formals(assess_spec.OpenSpecy)$silent_region,
+    quote(c(2420, 2550))
+  )
+  expect_identical(formals(assess_spec.OpenSpecy)$artifact_ratio, 2)
+})
+
 test_that("assess_spec() handles input errors correctly", {
   assess_spec(1:1000) |> expect_error()
   assess_spec(make_assess_test_spec(), checks = "not_a_check") |>
@@ -47,13 +55,13 @@ test_that("assess_spec() finds high tail values", {
 
 test_that("assess_spec() finds high silent and CO2 regions", {
   silent <- make_assess_test_spec()
-  silent$spectra[silent$wavenumber == 1900, "sample"] <- 12
+  silent$spectra[silent$wavenumber == 2450, "sample"] <- 12
   silent_res <- assess_spec(silent, checks = "silent_region") |>
     expect_silent()
 
   expect_equal(silent_res$check, "silent_region")
-  expect_equal(silent_res$region_min, 1800)
-  expect_equal(silent_res$region_max, 2000)
+  expect_equal(silent_res$region_min, 2420)
+  expect_equal(silent_res$region_max, 2550)
 
   co2 <- make_assess_test_spec()
   co2$spectra[co2$wavenumber == 2300, "sample"] <- 40
@@ -135,18 +143,28 @@ test_that("artifact checks use the normalized ratio boundary", {
   wavenumber <- seq(1000, 2500, by = 10)
   values <- rep(0, length(wavenumber))
   values[wavenumber == 1200] <- 1
-  values[1] <- 2.999
+  values[1] <- 1.999
   below <- as_OpenSpecy(x = wavenumber, spectra = data.frame(sample = values))
   expect_equal(nrow(assess_spec(below, checks = "high_tail")), 0)
 
-  values[1] <- 3
+  values[1] <- 2
   boundary <- as_OpenSpecy(
     x = wavenumber,
     spectra = data.frame(sample = values)
   )
   result <- assess_spec(boundary, checks = "high_tail")
-  expect_equal(result$value, 3, tolerance = 1e-12)
-  expect_equal(result$threshold, 3)
+  expect_equal(result$value, 2, tolerance = 1e-12)
+  expect_equal(result$threshold, 2)
+
+  expect_equal(nrow(assess_spec(
+    boundary, checks = "high_tail", artifact_ratio = 3
+  )), 0L)
+  boundary$spectra[1, "sample"] <- 3
+  explicit_three <- assess_spec(
+    boundary, checks = "high_tail", artifact_ratio = 3
+  )
+  expect_equal(explicit_three$value, 3, tolerance = 1e-12)
+  expect_equal(explicit_three$threshold, 3)
 })
 
 test_that("artifact checks do not classify unstructured noise", {
@@ -168,7 +186,7 @@ test_that("CO2 and tail checks do not mask one another", {
 
   result <- assess_spec(os, checks = c("high_tail", "co2_region"))
   expect_setequal(result$check, c("high_tail", "co2_region"))
-  expect_true(all(result$value >= 3))
+  expect_true(all(result$value >= 2))
 })
 
 test_that("flat spectra do not produce infinite artifact findings", {

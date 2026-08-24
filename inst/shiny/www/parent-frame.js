@@ -1,7 +1,12 @@
 (function () {
   "use strict";
 
+  document.documentElement.setAttribute(
+    "data-openspecy-parent-bridge", "loaded"
+  );
+
   var notified = false;
+  var readyProbeTimer = null;
   var busyTimer = null;
   var idleTimer = null;
   var elapsedTimer = null;
@@ -10,6 +15,9 @@
   var busyStartedAt = null;
   var analysisPhaseActive = false;
   var shinyIsBusy = false;
+  var workerfsAvailable = false;
+  var mountedFileLimit = 10 * 1024 * 1024 * 1024;
+  var nativeWasmLimit = 32 * 1024 * 1024;
   var busyState = {
     message: "Preparing analysis...",
     detail: "Open Specy is preparing the next result.",
@@ -82,10 +90,20 @@
     button.dataset.openspecyDownloadActive = "true";
     markBusy(button);
     try {
-      var response = await window.fetch(href, {
+      await new Promise(function (resolve) {
+        window.setTimeout(resolve, 250);
+      });
+      var request = function () { return window.fetch(href, {
         cache: "no-store",
         credentials: "same-origin"
-      });
+      }); };
+      var response = await request();
+      if (response.status >= 500) {
+        await new Promise(function (resolve) {
+          window.setTimeout(resolve, 350);
+        });
+        response = await request();
+      }
       if (!response.ok) {
         throw new Error("The server returned HTTP " + response.status + ".");
       }
@@ -178,6 +196,113 @@
     status.textContent = message || "";
   }
 
+  function workerfsRequest(action, files) {
+    return new Promise(function (resolve, reject) {
+      if (window.parent === window) {
+        reject(new Error("The browser mount bridge is not available."));
+        return;
+      }
+      var channel = new MessageChannel();
+      var timer = window.setTimeout(function () {
+        channel.port1.close();
+        reject(new Error("The browser mount bridge did not respond."));
+      }, 30000);
+      channel.port1.onmessage = function (event) {
+        window.clearTimeout(timer);
+        channel.port1.close();
+        if (event.data && event.data.ok) resolve(event.data);
+        else reject(new Error(
+          event.data && event.data.error ? event.data.error :
+            "The browser mount failed."
+        ));
+      };
+      window.parent.postMessage({
+        type: "openspecy:workerfs",
+        action: action,
+        files: files || []
+      }, window.location.origin, [channel.port2]);
+    });
+  }
+
+  function mountedPayload(response) {
+    return {
+      transport: "workerfs",
+      mount_id: response.mountId,
+      name: response.files.map(function (file) { return file.name; }),
+      size: response.files.map(function (file) { return file.size; }),
+      type: response.files.map(function (file) { return file.type; }),
+      datapath: response.files.map(function (file) { return file.datapath; })
+    };
+  }
+
+  function bindWorkerfsUpload() {
+    if (!isWasmMode()) return;
+    var container = document.getElementById("openspecy_workerfs_upload");
+    var input = document.getElementById("openspecy_workerfs_files");
+    if (!container || !input) return;
+
+    workerfsRequest("capability").then(function () {
+      workerfsAvailable = true;
+      container.hidden = false;
+      var nativeLabel = document.querySelector('label[for="file"]');
+      if (nativeLabel) nativeLabel.textContent = "Standard upload (small files)";
+    }).catch(function (error) {
+      workerfsAvailable = false;
+      window.console.warn("OpenSpecy WORKERFS capability unavailable", error);
+    });
+
+    input.addEventListener("change", async function () {
+      var files = Array.prototype.slice.call(input.files || []);
+      if (!files.length) return;
+      var runButton = document.getElementById("run_analysis");
+      document.documentElement.setAttribute(
+        "data-openspecy-materialized", "pending"
+      );
+      document.documentElement.removeAttribute(
+        "data-openspecy-materialized-files"
+      );
+      if (runButton) {
+        runButton.disabled = true;
+      }
+      var total = files.reduce(function (sum, file) {
+        return sum + (Number(file.size) || 0);
+      }, 0);
+      if (total > mountedFileLimit) {
+        input.value = "";
+        setUploadStatus(
+          "The selected files exceed the 10 GiB total upload ceiling. " +
+          "Choose fewer or smaller files and try again."
+        );
+        return;
+      }
+      setUploadStatus("Mounting selected files without copying their upload body...");
+      try {
+        var response = await workerfsRequest("mount", files);
+        if (!window.Shiny || !window.Shiny.setInputValue) {
+          throw new Error("The Shiny session is not ready.");
+        }
+        window.Shiny.setInputValue(
+          "mounted_files", mountedPayload(response), { priority: "event" }
+        );
+        setUploadStatus(
+          files.length + " file" + (files.length === 1 ? "" : "s") +
+          " mounted; reading into OpenSpecy memory now."
+        );
+      } catch (error) {
+        input.value = "";
+        setUploadStatus(
+          "Browser mounting failed: " + error.message +
+          " Small files can use Standard upload; for a large ENVI map, " +
+          "try the extracted HDR and DAT pair together."
+        );
+      }
+    });
+
+    window.addEventListener("pagehide", function () {
+      workerfsRequest("unmount").catch(function () {});
+    });
+  }
+
   function bindUploadLimit() {
     var uploadLimit = 10 * 1024 * 1024 * 1024;
     document.addEventListener("change", function (event) {
@@ -186,6 +311,15 @@
       var total = Array.prototype.reduce.call(input.files, function (sum, file) {
         return sum + (Number(file.size) || 0);
       }, 0);
+      if (isWasmMode() && total > nativeWasmLimit) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        input.value = "";
+        setUploadStatus(workerfsAvailable ?
+          "Large hosted inputs must use Mount files in browser to avoid the copying upload transport." :
+          "This hosted runtime cannot safely accept a large standard upload because the browser mount bridge is unavailable. Reload the app or use local Open Specy.");
+        return;
+      }
       if (total <= uploadLimit) {
         setUploadStatus("");
         return;
@@ -278,16 +412,41 @@
   function notifyReady() {
     if (notified || window.top === window) return;
     notified = true;
+    window.clearTimeout(readyProbeTimer);
+    readyProbeTimer = null;
+    document.documentElement.setAttribute(
+      "data-openspecy-parent-bridge", "ready-sent"
+    );
     window.top.postMessage({ type: "openspecy:ready" }, window.location.origin);
   }
 
+  function notifyIfConnectedAndIdle() {
+    var socket = window.Shiny && window.Shiny.shinyapp &&
+      window.Shiny.shinyapp.$socket;
+    if (socket && socket.readyState === 1 &&
+        !document.documentElement.classList.contains("shiny-busy")) {
+      notifyReady();
+    }
+  }
+
+  function probeReadyState() {
+    notifyIfConnectedAndIdle();
+    if (!notified) {
+      readyProbeTimer = window.setTimeout(probeReadyState, 250);
+    }
+  }
+
   function bindReadyEvent() {
-    if (!window.jQuery) {
+    var jquery = window.jQuery || window.$;
+    if (!jquery) {
       window.setTimeout(bindReadyEvent, 50);
       return;
     }
 
-    var shinyDocument = window.jQuery(document);
+    var shinyDocument = jquery(document);
+    document.documentElement.setAttribute(
+      "data-openspecy-parent-bindings", "ready"
+    );
 
     if (window.Shiny && window.Shiny.addCustomMessageHandler) {
       window.Shiny.addCustomMessageHandler("openspecy-analysis-phase", function (state) {
@@ -311,6 +470,24 @@
         scheduleBusy();
       });
 
+      window.Shiny.addCustomMessageHandler("openspecy-analysis-complete", function (_state) {
+        shinyIsBusy = false;
+        hideBusy();
+      });
+
+      window.Shiny.addCustomMessageHandler("openspecy-upload-materialized", function (state) {
+        var files = Array.isArray(state.files) ? state.files :
+          (state.files ? [state.files] : []);
+        document.documentElement.setAttribute(
+          "data-openspecy-materialized",
+          state.transport || "unknown"
+        );
+        document.documentElement.setAttribute(
+          "data-openspecy-materialized-files",
+          JSON.stringify(files)
+        );
+      });
+
       window.Shiny.addCustomMessageHandler("openspecy-download-label", function (state) {
         var button = document.getElementById(state.id || "download_data");
         var label = state.label || "Download selected";
@@ -325,6 +502,12 @@
         button.appendChild(labelNode);
         button.setAttribute("aria-label", label);
         button.setAttribute("title", state.title || label);
+      });
+
+      window.Shiny.addCustomMessageHandler("openspecy-mounted-reset", function () {
+        var input = document.getElementById("openspecy_workerfs_files");
+        if (input) input.value = "";
+        workerfsRequest("unmount").catch(function () {});
       });
     }
 
@@ -361,6 +544,9 @@
 
     shinyDocument.on("shiny:disconnected.openspecyBusy", hideBusy);
 
+    shinyDocument.one("shiny:connected.openspecyParent", function () {
+      window.setTimeout(notifyIfConnectedAndIdle, 0);
+    });
     shinyDocument.one("shiny:idle.openspecyParent", notifyReady);
   }
 
@@ -369,12 +555,16 @@
       bindWasmDownloads();
       bindInstantFeedback();
       bindUploadLimit();
+      bindWorkerfsUpload();
+      probeReadyState();
       bindReadyEvent();
     }, { once: true });
   } else {
     bindWasmDownloads();
     bindInstantFeedback();
     bindUploadLimit();
+    bindWorkerfsUpload();
+    probeReadyState();
     bindReadyEvent();
   }
 })();

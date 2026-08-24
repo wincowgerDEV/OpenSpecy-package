@@ -490,6 +490,11 @@ laser power, or integration time is the scientifically preferred remedy.
 Processed spectra can be checked and corrected before identification. The
 default CO2 and high-tail checks compare the artifact-region maximum with the
 maximum outside both artifact regions after temporary min-max normalization.
+The default artifact ratio is 2: a candidate is flagged at or above twice the
+control-region maximum. Raising this dimensionless ratio makes detection and
+automatic correction less sensitive; an explicit value remains authoritative.
+The default silent-region quality check covers 2420--2550 cm^-1^ and is applied
+to each assessed spectrum, not as a blanket dataset result.
 With `automate = TRUE`, each range function returns spectra unchanged when its
 issue is absent. Otherwise, `flatten_range()` flattens a flagged CO2 region and
 `restrict_range()` crops a shared batch tail only when no more than 20% of the

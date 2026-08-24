@@ -10,6 +10,16 @@ need_file <- function(path) {
 
 need_file(file.path(site_dir, "index.html"))
 need_file(file.path(site_dir, "pinned-wasm-library.json"))
+bundle_file <- file.path(site_dir, "shinylive", "shinylive.js")
+need_file(bundle_file)
+bundle_text <- rawToChar(readBin(
+  bundle_file, what = "raw", n = file.info(bundle_file)$size
+))
+if (!grepl("OPENSPECY_WORKERFS_BRIDGE_V1", bundle_text, fixed = TRUE) ||
+    !grepl('e2 !== "WORKERFS" && "packages" in t2', bundle_text,
+           fixed = TRUE)) {
+  fail("Exported app is missing its guarded WORKERFS bridge.")
+}
 
 app_json <- list.files(site_dir, pattern = "app\\.json$", recursive = TRUE,
                        full.names = TRUE)

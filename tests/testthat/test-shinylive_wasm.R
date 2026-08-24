@@ -611,7 +611,9 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_true(any(grepl(
     'grep -q "${PACKAGE_SHA}" <<< "$pin_body"', workflow, fixed = TRUE
   )))
-  expect_true(any(grepl("test.setTimeout(1800000)", smoke, fixed = TRUE)))
+  expect_true(any(grepl(
+    "test.setTimeout(largeUpload ? 2400000 : 1800000)", smoke, fixed = TRUE
+  )))
   expect_true(any(grepl("timeout: 600000", smoke, fixed = TRUE)))
   expect_true(any(grepl("toBeChecked()", smoke, fixed = TRUE)))
   expect_true(any(grepl('toHaveValue("Top Matches")', smoke,
@@ -648,6 +650,12 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_true(any(grepl('fs.readFileSync(downloadPath)', smoke,
                         fixed = TRUE)))
   expect_true(any(grepl('locator("#heatmap_frame")', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl("tinyEnviFiles", smoke, fixed = TRUE)))
+  expect_true(any(grepl("#openspecy_workerfs_files", smoke, fixed = TRUE)))
+  expect_true(any(grepl("mountedInput.setInputFiles(mapUploadPath)", smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl("OPENSPECY_SMOKE_LARGE_UPLOAD", smoke,
                         fixed = TRUE)))
   expect_true(any(grepl('candidate.type === "heatmap"', smoke,
                         fixed = TRUE)))
@@ -742,12 +750,35 @@ test_that("static landing and Shiny app provide the embed handshake", {
   bridge <- readLines(bridge_path, warn = FALSE)
   expect_true(any(grepl("shiny:idle.openspecyParent", bridge,
                         fixed = TRUE)))
+  expect_true(any(grepl("shiny:connected.openspecyParent", bridge,
+                        fixed = TRUE)))
+  expect_true(any(grepl("notifyIfConnectedAndIdle", bridge,
+                        fixed = TRUE)))
+  expect_true(any(grepl("readyProbeTimer", bridge, fixed = TRUE)))
+  expect_true(any(grepl("probeReadyState", bridge, fixed = TRUE)))
+  expect_equal(sum(grepl("probeReadyState();", bridge, fixed = TRUE)), 2L)
+  expect_true(any(grepl("data-openspecy-parent-bridge", bridge,
+                        fixed = TRUE)))
+  expect_true(any(grepl("window.jQuery || window.$", bridge, fixed = TRUE)))
+  expect_true(any(grepl("data-openspecy-parent-bindings", bridge,
+                        fixed = TRUE)))
   expect_true(any(grepl("window.top.postMessage", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy:ready", bridge, fixed = TRUE)))
   expect_true(any(grepl("shiny:busy.openspecyBusy", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy-analysis-phase", bridge, fixed = TRUE)))
+  expect_true(any(grepl("openspecy-analysis-complete", bridge,
+                        fixed = TRUE)))
+  expect_true(any(grepl("openspecy-upload-materialized", bridge,
+                        fixed = TRUE)))
+  expect_true(any(grepl("data-openspecy-materialized-files", bridge,
+                        fixed = TRUE)))
+  expect_true(any(grepl("Array.isArray(state.files)", bridge,
+                        fixed = TRUE)))
   expect_false(any(grepl("shiny:value.openspecyBusy", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy-busy-visible", bridge, fixed = TRUE)))
+  expect_true(any(grepl("openspecy:workerfs", bridge, fixed = TRUE)))
+  expect_true(any(grepl('Shiny.setInputValue(', bridge, fixed = TRUE)))
+  expect_true(any(grepl("nativeWasmLimit", bridge, fixed = TRUE)))
 
   readme_path <- test_path("..", "..", "README.md")
   site_dir <- test_path("..", "..", "site")
@@ -868,6 +899,26 @@ test_that("bundled app has no floating wasm package installer", {
                           fixed = TRUE)))
     expect_false(any(grepl("openspecy.shiny.wasm.repo", prepare_source,
                            fixed = TRUE)))
+    expect_true(any(grepl("patch_shinylive_workerfs", prepare_source,
+                          fixed = TRUE)))
+    workerfs_patch <- readLines(test_path(
+      "..", "..", "tools", "wasm", "patch-shinylive-workerfs.R"
+    ), warn = FALSE)
+    workerfs_bridge <- readLines(test_path(
+      "..", "..", "tools", "wasm", "shinylive-workerfs-bridge.js"
+    ), warn = FALSE)
+    expect_true(any(grepl("expected_sha256", workerfs_patch,
+                          fixed = TRUE)))
+    expect_true(any(grepl("rawToChar(readBin", workerfs_patch,
+                          fixed = TRUE)))
+    expect_true(any(grepl("OPENSPECY_WORKERFS_BRIDGE_V1", workerfs_bridge,
+                          fixed = TRUE)))
+    expect_true(any(grepl('fs.mount("WORKERFS"', workerfs_bridge,
+                          fixed = TRUE)))
+    expect_true(any(grepl("handle.webRProxy.webR.FS", workerfs_bridge,
+                          fixed = TRUE)))
+    expect_true(any(grepl("openspecyWorkerfsCleanup(fs)", workerfs_bridge,
+                          fixed = TRUE)))
   }
 })
 

@@ -15,6 +15,8 @@
 # OPENSPECY_BENCH_H5_REGIONS (default 4)
 # OPENSPECY_BENCH_H5_ROWS (default 32)
 # OPENSPECY_BENCH_H5_COLUMNS (default 32)
+# OPENSPECY_BENCH_LARGE_ZIP (optional external ENVI ZIP)
+# OPENSPECY_BENCH_STOP_AFTER_INGEST (set to true for the hosted-ingest slice)
 
 devtools::load_all(export_all = TRUE, quiet = TRUE)
 
@@ -136,6 +138,140 @@ print(data.frame(
   equivalent = TRUE,
   stringsAsFactors = FALSE
 ), row.names = FALSE)
+
+# Repeated native-upload proxy versus browser-mounted-path ingestion. The
+# native case includes a full temporary-file copy before the ordinary reader;
+# the mounted case starts at the selected path because the browser bridge has
+# already exposed the File through WORKERFS. Both must materialize the same
+# complete OpenSpecy object before downstream work begins.
+materialize_ingest <- function(paths) {
+  members <- read_any(paths, c_spec = FALSE)
+  combined <- if (is_OpenSpecy(members)) {
+    members
+  } else {
+    c_spec(members, range = "common", res = 8)
+  }
+  manage_na(combined, ig = c(NA, 0), type = "remove")
+}
+
+ingest_fixture <- read_extdata("CA_tiny_map.zip")
+mounted_ingest <- function() materialize_ingest(ingest_fixture)
+native_ingest <- function() {
+  uploaded <- tempfile(fileext = ".zip")
+  on.exit(unlink(uploaded), add = TRUE)
+  if (!file.copy(ingest_fixture, uploaded, overwrite = TRUE)) {
+    stop("unable to create the native-upload benchmark copy", call. = FALSE)
+  }
+  materialize_ingest(uploaded)
+}
+
+mounted_reference <- mounted_ingest()
+native_reference <- native_ingest()
+if (!isTRUE(all.equal(mounted_reference, native_reference,
+                      tolerance = 1e-14))) {
+  stop("mounted-path and native-copy materialized objects differ",
+       call. = FALSE)
+}
+mounted_ingest_elapsed <- elapsed_samples(mounted_ingest)
+native_ingest_elapsed <- elapsed_samples(native_ingest)
+mounted_ingest_median <- stats::median(mounted_ingest_elapsed)
+native_ingest_median <- stats::median(native_ingest_elapsed)
+ingest_runtime_ratio <- mounted_ingest_median /
+  max(native_ingest_median, .Machine$double.eps)
+ingest_failure_limit <- 1.50
+if (ingest_runtime_ratio > ingest_failure_limit) {
+  stop(
+    "material mounted-path ingestion regression: mounted/native = ",
+    sprintf("%.3f", ingest_runtime_ratio), " (failure limit ",
+    ingest_failure_limit, ")", call. = FALSE
+  )
+}
+print(data.frame(
+  ingest_fixture_bytes = file.info(ingest_fixture)$size,
+  materialized_mib = as.numeric(object.size(mounted_reference)) / 1024^2,
+  repetitions = repetitions,
+  native_copy_read_median_seconds = native_ingest_median,
+  mounted_read_median_seconds = mounted_ingest_median,
+  mounted_to_native_runtime = ingest_runtime_ratio,
+  material_runtime_limit = 1.10,
+  failure_runtime_limit = ingest_failure_limit,
+  material_runtime_regression = ingest_runtime_ratio > 1.10,
+  equivalent = TRUE,
+  stringsAsFactors = FALSE
+), row.names = FALSE)
+
+# An external large ENVI ZIP is deliberately opt-in. It is read once through
+# the ZIP route and once as its extracted HDR+DAT pair, never copied into the
+# repository. Only compact signatures survive between reads so the benchmark
+# does not retain two gigabyte-scale matrices at once.
+large_zip <- Sys.getenv("OPENSPECY_BENCH_LARGE_ZIP", "")
+if (nzchar(large_zip)) {
+  if (!file.exists(large_zip)) {
+    stop("OPENSPECY_BENCH_LARGE_ZIP does not exist: ", large_zip,
+         call. = FALSE)
+  }
+  object_signature <- function(x) {
+    rows <- unique(c(1L, max(1L, nrow(x$spectra) %/% 2L), nrow(x$spectra)))
+    columns <- unique(c(1L, max(1L, ncol(x$spectra) %/% 2L),
+                        ncol(x$spectra)))
+    list(
+      dimensions = dim(x$spectra),
+      wavenumber = range(x$wavenumber),
+      values = unname(x$spectra[rows, columns, drop = FALSE]),
+      metadata_names = names(x$metadata),
+      metadata_rows = nrow(x$metadata)
+    )
+  }
+
+  gc(FALSE)
+  zip_timing <- system.time(zip_object <- materialize_ingest(large_zip))
+  zip_signature <- object_signature(zip_object)
+  materialized_bytes <- as.numeric(object.size(zip_object))
+  rm(zip_object)
+  gc(FALSE)
+
+  listing <- utils::unzip(large_zip, list = TRUE)$Name
+  members <- listing[grepl("\\.(hdr|dat|img)$", listing, ignore.case = TRUE)]
+  if (!any(grepl("\\.hdr$", members, ignore.case = TRUE)) ||
+      !any(grepl("\\.(dat|img)$", members, ignore.case = TRUE))) {
+    stop("external ZIP does not contain an ENVI HDR+DAT/IMG pair",
+         call. = FALSE)
+  }
+  extracted <- tempfile("openspecy-envi-")
+  dir.create(extracted)
+  on.exit(unlink(extracted, recursive = TRUE), add = TRUE)
+  extract_timing <- system.time(utils::unzip(
+    large_zip, files = members, exdir = extracted
+  ))
+  direct_paths <- file.path(extracted, members)
+  direct_paths <- direct_paths[grepl("\\.(hdr|dat|img)$", direct_paths,
+                                     ignore.case = TRUE)]
+  gc(FALSE)
+  direct_timing <- system.time(direct_object <- materialize_ingest(direct_paths))
+  direct_signature <- object_signature(direct_object)
+  if (!isTRUE(all.equal(zip_signature, direct_signature,
+                        tolerance = 1e-14))) {
+    stop("ZIP and direct ENVI materialization signatures differ",
+         call. = FALSE)
+  }
+  print(data.frame(
+    external_zip = normalizePath(large_zip, winslash = "/"),
+    zip_bytes = file.info(large_zip)$size,
+    materialized_mib = materialized_bytes / 1024^2,
+    spectra = zip_signature$dimensions[[2L]],
+    wavenumbers = zip_signature$dimensions[[1L]],
+    zip_read_seconds = unname(zip_timing[["elapsed"]]),
+    extract_seconds = unname(extract_timing[["elapsed"]]),
+    direct_pair_read_seconds = unname(direct_timing[["elapsed"]]),
+    equivalent = TRUE,
+    stringsAsFactors = FALSE
+  ), row.names = FALSE)
+}
+
+if (identical(tolower(Sys.getenv("OPENSPECY_BENCH_STOP_AFTER_INGEST", "")),
+              "true")) {
+  quit(save = "no", status = 0L)
+}
 
 # Repeated H5 region-assembly benchmark. Input cubes stand in for data already
 # read from each H5 region so this isolates the former list-plus-cbind peak from

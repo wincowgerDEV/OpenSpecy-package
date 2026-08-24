@@ -131,5 +131,8 @@ shinylive::export(
   template_params = list(title = "OpenSpecy")
 )
 
+source(file.path("tools", "wasm", "patch-shinylive-workerfs.R"))
+patch_shinylive_workerfs(out_dir)
+
 cat("Prepared Shinylive app at: ",
     normalizePath(out_dir, winslash = "/", mustWork = FALSE), "\n", sep = "")

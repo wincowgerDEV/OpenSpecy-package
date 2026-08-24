@@ -106,7 +106,7 @@ preprocessing_controls <- tagList(
       condition = "input.range_automate",
       numericInput(
         "range_artifact_ratio", "Artifact Ratio Threshold",
-        value = 3, min = 1.1, step = 0.1
+        value = 2, min = 1.1, step = 0.1
       )
     ),
     div(
@@ -132,7 +132,7 @@ preprocessing_controls <- tagList(
       condition = "input.co2_automate",
       numericInput(
         "co2_artifact_ratio", "Artifact Ratio Threshold",
-        value = 3, min = 1.1, step = 0.1
+        value = 2, min = 1.1, step = 0.1
       )
     ),
     numericInput("MinFlat", "Minimum Wavenumber", value = 2200,
@@ -238,8 +238,7 @@ identification_controls <- tagList(
           "table and Top Matches download reuse this compact result."
         )
       )
-    ),
-    uiOutput("memory_preflight_status")
+    )
   ),
   conditionalPanel(
     condition = "input.lib_type != 'model'",
@@ -1326,13 +1325,38 @@ dashboardPage(
           2,
           class = "openspecy-upload-column",
           fileInput(
-            "file", NULL, multiple = TRUE,
+            "file", "Upload spectra", multiple = TRUE,
             placeholder = ".csv, .zip, .asp, .jdx, .spc, .spa, ...",
             accept = c(
               "text/csv", "text/comma-separated-values,text/plain", ".csv",
               ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData", ".spa",
               ".0", ".zip", ".img", ".h5", ".txt", ".json", ".rds",
               ".hdr", ".dat"
+            )
+          ),
+          tags$div(
+            id = "openspecy_workerfs_upload",
+            class = "openspecy-workerfs-upload",
+            hidden = NA,
+            tags$label(
+              `for` = "openspecy_workerfs_files",
+              "Mount files in browser (recommended for large maps)"
+            ),
+            tags$input(
+              id = "openspecy_workerfs_files", type = "file", multiple = NA,
+              accept = paste(c(
+                ".csv", ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData",
+                ".spa", ".0", ".zip", ".img", ".h5", ".txt", ".json",
+                ".rds", ".hdr", ".dat"
+              ), collapse = ",")
+            ),
+            tags$p(
+              class = "text-muted openspecy-workerfs-guidance",
+              paste(
+                "Mounted files bypass the copying Shinylive upload transport,",
+                "then follow the same full in-memory analysis. Select companion",
+                "HDR and DAT files together."
+              )
             )
           ),
           uiOutput(
@@ -1504,6 +1528,10 @@ dashboardPage(
           ),
           div(
             class = "openspecy-plot-frame openspecy-spectrum-frame",
+            tags$p(
+              class = "text-muted openspecy-active-spectrum-status",
+              textOutput("active_spectrum_status", inline = TRUE)
+            ),
             plotlyOutput("MyPlotC", height = "45vh")
           ),
           div(

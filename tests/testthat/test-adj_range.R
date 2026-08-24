@@ -84,6 +84,29 @@ make_automatic_range_spec <- function(left = 0L, right = 0L, co2 = FALSE,
   as_OpenSpecy(x = wavenumber, spectra = spectra)
 }
 
+test_that("automatic artifact corrections default to the reviewed 2x boundary", {
+  expect_identical(formals(restrict_range.OpenSpecy)$artifact_ratio, 2)
+  expect_identical(formals(flatten_range.OpenSpecy)$artifact_ratio, 2)
+  expect_identical(formals(.auto_restrict_tail)$ratio, 2)
+
+  boundary <- make_automatic_range_spec()
+  boundary$spectra[1, "one"] <- 4
+  expect_true(attr(
+    restrict_range(boundary, automate = TRUE, make_rel = FALSE),
+    "automatic_tail"
+  )$applied)
+
+  explicit_three <- make_automatic_range_spec()
+  explicit_three$spectra[1, "one"] <- 4
+  expect_identical(
+    restrict_range(
+      explicit_three, automate = TRUE, artifact_ratio = 3,
+      make_rel = FALSE
+    ),
+    explicit_three
+  )
+})
+
 test_that("automated range functions are exact no-ops when checks pass", {
   clean <- make_automatic_range_spec()
 

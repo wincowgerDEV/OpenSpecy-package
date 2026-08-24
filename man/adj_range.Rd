@@ -19,7 +19,7 @@ restrict_range(x, ...)
   max = NULL,
   make_rel = TRUE,
   automate = FALSE,
-  artifact_ratio = 3,
+  artifact_ratio = 2,
   tail_n = 5L,
   co2_region = c(2200, 2420),
   max_crop = 0.2,
@@ -42,7 +42,7 @@ flatten_range(x, ...)
   max = 2400,
   make_rel = TRUE,
   automate = FALSE,
-  artifact_ratio = 3,
+  artifact_ratio = 2,
   tail_n = 5L,
   ...
 )
@@ -60,7 +60,9 @@ range [0, 1] using \code{make_rel()} function?}
 \item{automate}{logical; if \code{TRUE}, first assess the relevant artifact and
 only restrict a high tail or flatten a high CO2 region when detected.}
 
-\item{artifact_ratio}{numeric; minimum artifact-to-control maximum ratio.}
+\item{artifact_ratio}{numeric; minimum artifact-to-control maximum ratio.
+The default \code{2} triggers at twice the control-region maximum; higher
+values make automatic correction less sensitive.}
 
 \item{tail_n}{integer; number of points defining each spectral tail.}
 

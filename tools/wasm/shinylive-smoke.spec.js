@@ -24,6 +24,24 @@ function dispositionFilename(disposition) {
   return plain ? plain[1] : "";
 }
 
+function tinyEnviFiles() {
+  const header = [
+    "ENVI", "samples = 2", "lines = 2", "bands = 3",
+    "header offset = 0", "data type = 4", "interleave = bip",
+    "byte order = 0", "wavelength = {100, 200, 300}", ""
+  ].join("\n");
+  const values = [111, 211, 311, 112, 212, 312,
+                  121, 221, 321, 122, 222, 322];
+  const binary = Buffer.alloc(values.length * 4);
+  values.forEach((value, index) => binary.writeFloatLE(value, index * 4));
+  return [
+    { name: "mounted-tiny.hdr", mimeType: "text/plain",
+      buffer: Buffer.from(header, "utf8") },
+    { name: "mounted-tiny.dat", mimeType: "application/octet-stream",
+      buffer: binary },
+  ];
+}
+
 async function summarizeResponse(response) {
   const headers = response.headers();
   let content = null;
@@ -318,13 +336,14 @@ async function verifyNativeDownload({
 test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, testInfo) => {
   const url = process.env.SHINYLIVE_SMOKE_URL || "http://127.0.0.1:8080/";
   const expectedVersion = process.env.OPENSPECY_EXPECTED_VERSION;
+  const largeUpload = process.env.OPENSPECY_SMOKE_LARGE_UPLOAD;
   const consoleErrors = [];
   const runtimeDiagnostics = [];
 
   // WebAssembly startup, preprocessing, and identification share one browser
   // thread. Keep the overall budget above the sum of those real phases while
   // retaining shorter per-action timeouts for selector failures.
-  test.setTimeout(1800000);
+  test.setTimeout(largeUpload ? 2400000 : 1800000);
   expect(expectedVersion).toBeTruthy();
 
   page.on("console", (message) => {
@@ -428,15 +447,73 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     console.error(`Shinylive runtime diagnostics:\n${diagnostics}`);
     throw error;
   }
-  await expect(embed).toHaveClass(/\bis-ready\b/, { timeout: 120000 });
+  try {
+    const readyTimeout = Number(
+      process.env.OPENSPECY_SMOKE_READY_TIMEOUT || 120000
+    );
+    await expect(embed).toHaveClass(/\bis-ready\b/, { timeout: readyTimeout });
+  } catch (error) {
+    const readyState = await appFrame.locator("html").evaluate((html) => ({
+      htmlClass: html.className,
+      bridgeState: html.getAttribute("data-openspecy-parent-bridge"),
+      socketReadyState: window.Shiny?.shinyapp?.$socket?.readyState ?? null,
+      shinyConnected: Boolean(window.Shiny?.shinyapp?.$socket),
+      visibilityState: document.visibilityState,
+      href: window.location.href,
+      origin: window.location.origin,
+      parentOrigin: (() => {
+        try { return window.parent.location.origin; } catch (_error) { return "inaccessible"; }
+      })(),
+      topOrigin: (() => {
+        try { return window.top.location.origin; } catch (_error) { return "inaccessible"; }
+      })(),
+    })).catch((stateError) => ({ error: stateError.message }));
+    runtimeDiagnostics.unshift(`[ready-state] ${JSON.stringify(readyState)}`);
+    await testInfo.attach("shinylive-ready-diagnostics", {
+      body: runtimeDiagnostics.join("\n"),
+      contentType: "text/plain",
+    });
+    throw new Error(`${error.message}\nReady state: ${JSON.stringify(readyState)}`);
+  }
   await expect(page.locator("[data-openspecy-loading]")).toBeHidden();
   await expect(page.locator("#openspecy-app-status")).toHaveText("Ready");
   const fullscreenButton = page.locator("#openspecy-fullscreen");
   await expect(fullscreenButton).toBeEnabled();
   const fileInput = appFrame.locator("#file, input[type='file']").first();
   await expect(fileInput).toBeAttached({ timeout: 180000 });
+  const mountedInput = appFrame.locator("#openspecy_workerfs_files");
+  await expect(mountedInput).toBeVisible({ timeout: 180000 });
   const runButton = appFrame.locator("#run_analysis").first();
   const firstMatch = appFrame.locator("#event table tbody tr").first();
+
+  const verifyLargeMountedUpload = async () => {
+    expect(fs.existsSync(largeUpload)).toBe(true);
+    const largeName = path.basename(largeUpload);
+    const expectedFiles = JSON.stringify([largeName]);
+    await mountedInput.setInputFiles(largeUpload);
+    const deadline = Date.now() + 1800000;
+    while (Date.now() < deadline) {
+      const state = await appFrame.locator("html").evaluate((html) => ({
+        transport: html.getAttribute("data-openspecy-materialized"),
+        files: html.getAttribute("data-openspecy-materialized-files"),
+        status: document.getElementById("upload_status")?.textContent || "",
+      }));
+      if (state.transport === "workerfs" && state.files === expectedFiles) {
+        await expect(runButton).toBeEnabled({ timeout: 60000 });
+        return;
+      }
+      if (/mounting failed|exceed.*limit|metadata was rejected/i.test(state.status)) {
+        throw new Error(`Large WORKERFS mount failed: ${state.status}`);
+      }
+      await page.waitForTimeout(1000);
+    }
+    throw new Error(`Large WORKERFS materialization timed out for ${largeName}.`);
+  };
+
+  if (largeUpload && process.env.OPENSPECY_SMOKE_LARGE_ONLY === "true") {
+    await verifyLargeMountedUpload();
+    return;
+  }
 
   await embed.scrollIntoViewIfNeeded();
   await page.screenshot({
@@ -598,15 +675,45 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     await expect(embed).toHaveClass(/\bis-fullscreen\b/);
   }
 
+  // Prove the mounted companion-file route materializes a normal in-memory
+  // object. The server emits this marker only after read_any(), manage_na(),
+  // and OpenSpecy validation succeed; an error resets the chooser instead.
+  await expect(appFrame.locator("html")).toHaveAttribute(
+    "data-openspecy-materialized", "native", {
+      timeout: 60000,
+    }
+  );
+  await expect(runButton).not.toHaveAttribute("aria-busy", "true", {
+    timeout: 60000,
+  });
+  await mountedInput.setInputFiles(tinyEnviFiles());
+  await expect.poll(async () => mountedInput.evaluate((input) =>
+    Array.from(input.files || [], (file) => file.name)
+  )).toEqual(["mounted-tiny.hdr", "mounted-tiny.dat"]);
+  await expect(appFrame.locator("html")).toHaveAttribute(
+    "data-openspecy-materialized", "workerfs", { timeout: 60000 }
+  );
+  await expect(appFrame.locator("html")).toHaveAttribute(
+    "data-openspecy-materialized-files",
+    JSON.stringify(["mounted-tiny.hdr", "mounted-tiny.dat"]),
+    { timeout: 60000 }
+  );
+  await expect(runButton).toBeEnabled({ timeout: 60000 });
+
   // A real multi-spectrum map is the memory-sensitive Top Matches case. Keep
   // identification enabled here: the one-spectrum fixture cannot expose a
   // full correlation-matrix expansion before Top N selection.
   const mapUploadPath = path.resolve("inst", "extdata", "CA_tiny_map.zip");
   expect(fs.existsSync(mapUploadPath)).toBe(true);
-  await fileInput.setInputFiles(mapUploadPath);
-  await expect.poll(async () => fileInput.evaluate((input) =>
+  await mountedInput.setInputFiles(mapUploadPath);
+  await expect.poll(async () => mountedInput.evaluate((input) =>
     input.files?.[0]?.name || ""
   )).toBe("CA_tiny_map.zip");
+  await expect(appFrame.locator("html")).toHaveAttribute(
+    "data-openspecy-materialized-files",
+    JSON.stringify(["CA_tiny_map.zip"]),
+    { timeout: 300000 }
+  );
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await runButton.click();
   // Wait for a map-owned output and an idle Shiny generation so that stale
@@ -668,6 +775,12 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   // control whose product default may change independently of this smoke.
   // The settings panel opens on another tab, so make the owning tab visible
   // before using Playwright's user-level form interaction.
+  const settingsBox = appFrame.locator("#analysis_settings_box");
+  if ((await settingsBox.getAttribute("class") || "")
+    .includes("collapsed-card")) {
+    await settingsBox.locator('[data-card-widget="collapse"]').first().click();
+    await expect(settingsBox).not.toHaveClass(/\bcollapsed-card\b/);
+  }
   await appFrame.getByRole("link", {
     name: "Identification", exact: true,
   }).click();
@@ -798,4 +911,11 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await page.screenshot({
     path: testInfo.outputPath("landing-embedded-app-mobile.png"),
   });
+
+  // Optional pre-push proof for a maintainer-supplied large map. Completion
+  // is acknowledged only after the mounted file has passed read_any(),
+  // manage_na(), and OpenSpecy validation in the WebR session.
+  if (largeUpload) {
+    await verifyLargeMountedUpload();
+  }
 });

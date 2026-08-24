@@ -143,6 +143,66 @@ app_validate_upload_size <- function(file_info) {
        message = app_upload_guidance())
 }
 
+app_mounted_file_info <- function(value) {
+  if(is.null(value) || !identical(value$transport, "workerfs")) {
+    stop("Mounted file metadata is missing its WORKERFS transport marker.",
+         call. = FALSE)
+  }
+  mount_id <- as.character(value$mount_id)
+  if(length(mount_id) != 1L || !grepl("^[0-9a-f]{32}$", mount_id)) {
+    stop("Mounted file metadata has an invalid session identifier.",
+         call. = FALSE)
+  }
+  fields <- lapply(c("name", "size", "type", "datapath"), function(field) {
+    unlist(value[[field]], use.names = FALSE)
+  })
+  names(fields) <- c("name", "size", "type", "datapath")
+  count <- length(fields$name)
+  if(!count || any(vapply(fields, length, integer(1)) != count)) {
+    stop("Mounted file metadata columns do not align.", call. = FALSE)
+  }
+  names_safe <- nzchar(fields$name) &
+    !fields$name %in% c(".", "..") &
+    !grepl("[\\/[:cntrl:]]", fields$name)
+  if(!all(names_safe) || anyDuplicated(tolower(fields$name))) {
+    stop("Mounted files require safe, case-insensitively unique names.",
+         call. = FALSE)
+  }
+  prefix <- paste0("/tmp/openspecy-upload-", mount_id, "/")
+  expected_paths <- paste0(prefix, fields$name)
+  if(!identical(as.character(fields$datapath), expected_paths)) {
+    stop("Mounted file paths escaped their session directory.", call. = FALSE)
+  }
+  data.frame(
+    name = as.character(fields$name),
+    size = as.numeric(fields$size),
+    type = as.character(fields$type),
+    datapath = as.character(fields$datapath),
+    stringsAsFactors = FALSE
+  )
+}
+
+app_upload_failure_guidance <- function(elapsed_seconds, mounted = FALSE) {
+  elapsed <- max(0, suppressWarnings(as.numeric(elapsed_seconds)[[1L]]))
+  route <- if(isTRUE(mounted)) {
+    paste(
+      "The browser mount succeeded, but full in-memory reading or allocation",
+      "did not. For an ENVI ZIP, try selecting the extracted HDR and DAT",
+      "files together to avoid ZIP extraction overhead."
+    )
+  } else {
+    paste(
+      "For large hosted inputs, use Mount files in browser; local Shiny can",
+      "continue to use the standard upload control."
+    )
+  }
+  paste0(
+    "The read/materialize phase failed after ", sprintf("%.1f", elapsed),
+    " seconds. ", route,
+    " Close other memory-heavy tabs or applications before retrying."
+  )
+}
+
 # Vector-safe threshold truth table shared by map projection and direct tests.
 # Correlation uses an inclusive minimum (equal passes); signal/noise uses strict
 # interior bounds (equal to either bound fails).

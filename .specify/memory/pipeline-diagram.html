@@ -458,22 +458,22 @@
 <!-- Stage 0: upload -->
 <div class="node input" style="left:550px;top:70px" tabindex="0">
   Hosted Browser File(s)
-  <div class="sub">planned WORKERFS mount</div>
-  <div class="tip">Plan 017 target: a custom inner-frame picker sends browser <code>File</code> objects, not their bytes, through a capability handshake to the pinned Shinylive shell. The owned outer adapter calls <code>webR.FS.mount("WORKERFS", {files}, sessionMount)</code> and returns only sanitized mounted paths to Shiny. This bypasses Shinylive's multipart-body concatenation and R-raw copy; the files remain read-only and are unmounted on replacement/session end.
-  <span class="loc">planned: inst/shiny/www/wasm-file-mount.js &middot; tools/wasm/prepare-shinylive-app.R</span></div>
+  <div class="sub">session-scoped WORKERFS mount</div>
+  <div class="tip">The inner-frame picker sends browser <code>File</code> objects, not their bytes, through a capability handshake to the pinned Shinylive shell. The owned outer adapter exposes one composite Blob plus member offsets to <code>webR.FS.mount("WORKERFS", {packages}, sessionMount)</code> and returns only validated mounted paths to Shiny. This bypasses Shinylive's multipart-body concatenation and R-raw copy; replacement or page exit unmounts the prior session path.
+  <span class="loc">parent-frame.js &middot; tools/wasm/shinylive-workerfs-bridge.js &middot; patch-shinylive-workerfs.R</span></div>
 </div>
 <div class="node input" style="left:1050px;top:70px" tabindex="0">
   Local Shiny Temp File(s)
   <div class="sub">native fileInput path</div>
   <div class="tip">The bundled/local app keeps Shiny's native <code>fileInput()</code> temporary paths. Small hosted files may use this path only when the mount capability is unavailable or below the measured fallback threshold. Both entry paths converge at the same reader and scientific pipeline.
-  <span class="loc">server.R:222-359 &middot; planned runtime branch</span></div>
+  <span class="loc">server.R: read_uploaded_files() &middot; parent-frame.js: bindWorkerfsUpload()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:230px" tabindex="0">
   Read &amp; Materialize
   <div class="sub">mounted/native paths &rarr; full OpenSpecy in R</div>
   <div class="tip"><code>read_any(file, c_spec=FALSE)</code> or <code>as_OpenSpecy()</code> reads either mounted or native paths; multiple members combine with <code>c_spec(..., range="common")</code>, then <code>manage_na()</code>. The entire spectra matrix is materialized in R memory before anything downstream runs. This is not a <code>FileSpecs</code> branch. A mounted ZIP can still require a WebAssembly temporary extraction copy; selecting its HDR+DAT members directly is the measured fallback, not a different analysis path.
-  <span class="loc">server.R:222-359 &middot; R/read_multi.R:45 &middot; R/manage_spec.R:44 &middot; plan 017</span></div>
+  <span class="loc">server.R: read_uploaded_files() &middot; global.R: app_mounted_file_info() &middot; R/read_multi.R</span></div>
 </div>
 
 <div class="node decision" style="left:1050px;top:400px" tabindex="0">
@@ -524,8 +524,8 @@
 <div class="node output tip-above" style="left:1650px;top:1080px" tabindex="0">
   Measured Runtime Failure
   <div class="depends">depends on: an actual read/allocation/analysis error</div>
-  <div class="tip">Plan 017 removes the predictive RAM decision and hard block. Only a caught failure that actually occurs on the mounted/native read or committed analysis path reaches this output, with the failing phase, elapsed time, and recovery guidance. It never rejects a job from a platform-memory estimate.
-  <span class="loc">planned: server.R upload/analysis error handlers; R/app_memory.R removed</span></div>
+  <div class="tip">Only a caught failure that actually occurs on the mounted/native read or committed analysis path reaches this output, with the failing phase, elapsed time, and recovery guidance. It never rejects a job from a platform-memory estimate.
+  <span class="loc">server.R: read_uploaded_files() and canonical_state_gate &middot; global.R: app_upload_failure_guidance()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:1250px" tabindex="0">
@@ -659,16 +659,16 @@
 
 <div class="node function" style="left:1850px;top:2560px" tabindex="0">
   Active Spectrum Inspection
-  <div class="sub">planned active_spectrum_view()</div>
-  <div class="tip">One aligned, one-column <code>OpenSpecy</code> object is the exact processed trace used by both Spectrum Plot and Quality Findings. A retained click selects its canonical unit. A rejected click takes that source pixel from the ordinary in-memory upload, applies the committed Run processing settings once, and labels it “rejected-pixel inspection”; it never substitutes zeros. Selection changes are narrow and do not recompute the whole map or library.
-  <span class="loc">planned: server.R DataR_plot/quality_report_gate replacement</span></div>
+  <div class="sub">active_spectrum_view()</div>
+  <div class="tip">One aligned, one-column <code>OpenSpecy</code> object is the exact processed trace used by both Spectrum Plot and Quality Findings. A retained click selects its canonical unit. A rejected click takes that source pixel from the committed inspection source, applies the committed Run processing settings once, and labels it “rejected-pixel inspection”; it never substitutes zeros. Selection changes are narrow and do not recompute the whole map or library.
+  <span class="loc">server.R: active_spectrum_view() and DataR_plot()</span></div>
 </div>
 
 <div class="node output tip-above" style="left:1850px;top:2730px" tabindex="0">
   Quality Findings
   <div class="depends">depends on: Active Spectrum Inspection only</div>
   <div class="tip"><code>assess_spec()</code> and the selected metric's <code>sig_noise()</code> run directly on the same one-column object shown as the processed Active Spectrum. Silent-region, flatness, high-tail, CO2, and SNR evidence never index the heatmap, <code>canonical_signal_noise()</code>, <code>max_cor()</code>, or the full dataset. Threshold on/off cannot alter these findings for an unchanged selected trace.
-  <span class="loc">planned: server.R quality_report_gate</span></div>
+  <span class="loc">server.R: quality_report() &middot; R/assess_spec.R &middot; R/sig_noise.R</span></div>
 </div>
 
 <!-- ================= dependency rail: every terminal output tapped at its true upstream point(s) ================= -->
@@ -754,7 +754,7 @@
   Spectrum Plot
   <div class="depends">depends on: Active Spectrum Inspection + optional match</div>
   <div class="tip">The processed trace is byte-for-byte the one-column object from Active Spectrum Inspection; the raw trace and optional selected reference remain labeled overlays. Heatmap/table selection drives the inspection lane, which drives this plot and Quality Findings together. The plot never reads a synthetic rejected spectrum.
-  <span class="loc">planned: server.R output$MyPlotC</span></div>
+  <span class="loc">server.R: output$MyPlotC &middot; DataR_plot() &middot; active_spectrum_view()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2630px" tabindex="0">
@@ -792,10 +792,9 @@
 
 <footer class="page">
   Sources: <code>inst/shiny/server.R</code>, <code>inst/shiny/global.R</code>, <code>inst/shiny/ui.R</code>, and the <code>R/</code> package
-  functions each stage wraps. The current-state base reflects spec
-  <code>015-diagram-conformance-instant-feedback</code>; mounted ingestion, removal of predictive memory
-  blocking, Active Spectrum Inspection, and Quality Findings show the approved target for active
-  <code>017-active-spectrum-large-map</code> and retain explicit “planned” locations until implemented.
+  functions each stage wraps. The current state includes spec
+  <code>017-active-spectrum-large-map</code>: mounted ingestion, actual-failure guidance instead of predictive
+  memory blocking, Active Spectrum Inspection, and selection-bound Quality Findings.
   When a plan changes any stage, branch, function, or
   output dependency named here, update this diagram in the same plan &mdash; see Constitution Principle X.
 </footer>

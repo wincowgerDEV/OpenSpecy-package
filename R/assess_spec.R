@@ -15,10 +15,11 @@
 #' threshold for the silent-region check.
 #' @param artifact_ratio numeric; minimum ratio between the normalized maximum
 #' in a tail or carbon dioxide region and the normalized maximum outside both
-#' artifact regions required to flag an issue.
+#' artifact regions required to flag an issue. The default \code{2} flags a
+#' candidate at or above twice the control-region maximum.
 #' @param tail_n integer; number of points to check at each end of the spectrum.
 #' @param silent_region numeric length two; wavenumber range expected to be
-#' mostly silent.
+#' mostly silent. The default is \code{c(2420, 2550)} cm^-1.
 #' @param co2_region numeric length two; carbon dioxide wavenumber range.
 #' @param snr_threshold numeric; spectra with run signal-to-noise below this
 #' value are flagged.
@@ -82,9 +83,9 @@ assess_spec.OpenSpecy <- function(x,
                                     "negative_intensity", "low_snr"
                                   ),
                                   high_prob = 0.9,
-                                  artifact_ratio = 3,
+                                  artifact_ratio = 2,
                                   tail_n = 5L,
-                                  silent_region = c(1800, 2000),
+                                  silent_region = c(2420, 2550),
                                   co2_region = c(2200, 2420),
                                   snr_threshold = 4,
                                    flat_tol = sqrt(.Machine$double.eps),

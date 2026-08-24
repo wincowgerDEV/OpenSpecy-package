@@ -18,6 +18,8 @@
 #' @param automate logical; if `TRUE`, first assess the relevant artifact and
 #' only restrict a high tail or flatten a high CO2 region when detected.
 #' @param artifact_ratio numeric; minimum artifact-to-control maximum ratio.
+#' The default \code{2} triggers at twice the control-region maximum; higher
+#' values make automatic correction less sensitive.
 #' @param tail_n integer; number of points defining each spectral tail.
 #' @param co2_region numeric length two; carbon dioxide exclusion region used
 #' by automatic tail assessment.
@@ -83,7 +85,7 @@ restrict_range.default <- function(x, ...) {
 #' @export
 restrict_range.OpenSpecy <- function(x, min = NULL, max = NULL,
                                      make_rel = TRUE, automate = FALSE,
-                                     artifact_ratio = 3, tail_n = 5L,
+                                     artifact_ratio = 2, tail_n = 5L,
                                      co2_region = c(2200, 2420),
                                      max_crop = 0.2,
                                      saturation = NULL,
@@ -514,7 +516,7 @@ flatten_range.default <- function(x, ...) {
 #'
 #' @export
 flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
-                                    automate = FALSE, artifact_ratio = 3,
+                                    automate = FALSE, artifact_ratio = 2,
                                     tail_n = 5L,
                                     ...) {
   x <- as_OpenSpecy(x)
@@ -567,7 +569,7 @@ flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
   return(x)
 }
 
-.auto_restrict_tail <- function(x, ratio = 3, tail_n = 5L,
+.auto_restrict_tail <- function(x, ratio = 2, tail_n = 5L,
                                 co2_region = c(2200, 2420),
                                 max_crop = 0.2) {
   if (!is.numeric(ratio) || length(ratio) != 1L || is.na(ratio) ||

@@ -1,5 +1,20 @@
 # OpenSpecy 1.7.1
 
+- Changed the default `assess_spec()` silent region to 2420--2550 cm^-1^ and
+  the high-tail/CO2 detection and automatic-correction ratio from 3x to 2x.
+  Explicit caller values remain unchanged.
+- Removed speculative RAM forecasting from the Shiny app. Jobs now proceed
+  until the real read, allocation, or processing operation succeeds or fails,
+  with elapsed-phase recovery guidance while retaining the 10 GiB input limit.
+- The hosted Shinylive app can mount browser-selected files into webR WORKERFS
+  and pass their paths to the ordinary `read_any()` pipeline, avoiding the
+  copying multipart/R-raw upload bridge while still fully materializing an
+  in-memory `OpenSpecy` object. Local Shiny retains native uploads.
+- Fixed active-spectrum quality findings for collapsed maps: retained units and
+  rejected clicked pixels now use the same one-spectrum object as the plotted
+  trace, and SNR is calculated directly from that object instead of indexing a
+  dataset/heatmap vector. Rejected pixels are labeled and no longer assessed as
+  synthetic zero spectra.
 - Fixed Spatial Smooth running its (potentially expensive) convolution
   immediately on every toggle/Spatial Standard Deviation change, before Run
   was ever clicked. An always-on observer that keeps the heatmap's selection

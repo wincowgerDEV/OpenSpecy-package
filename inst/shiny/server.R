@@ -35,12 +35,14 @@ function(input, output, session) {
 
   preprocessed <- reactiveValues(data = NULL)
   upload_status_state <- reactiveVal(NULL)
+  active_file_info <- reactiveVal(NULL)
   data_click <- reactiveValues(plot = NULL, pixel = NULL, table = NULL)
   meta_cache <- reactiveVal(NULL)
   correction_diagnostics <- reactiveVal(data.frame())
   ratio_definitions <- reactiveVal(app_empty_ratio_definitions())
   measurement_definitions <- reactiveVal(app_empty_measurement_definitions())
   quantification_axis <- reactiveVal(NULL)
+  inspection_source_gate <- reactiveVal(NULL)
   quality_modal_observers <- new.env(parent = emptyenv())
 
   # .match_spec_blockwise() computes and discards one library-by-block
@@ -111,6 +113,11 @@ function(input, output, session) {
     analysis_dirty(FALSE)
     analysis_needs_reset(FALSE)
   }, priority = RUN_GATE_PRIORITY_RESET)
+  observeEvent(input$run_analysis, {
+    session$onFlushed(function() {
+      session$sendCustomMessage("openspecy-analysis-complete", list())
+    }, once = TRUE)
+  }, priority = -100L)
   observe({
     shinyjs::toggleClass(
       "run_analysis", "openspecy-run-dirty", condition = isTRUE(analysis_dirty())
@@ -230,13 +237,16 @@ function(input, output, session) {
 
 
   #Read Data ----
-  #Sending data to a remote repo. 
-observeEvent(input$file, {
-  # Read in data when uploaded based on the file type
+# Both native Shiny uploads and hosted WORKERFS mounts enter this function as
+# the same four-column file table and converge before read_any().
+read_uploaded_files <- function(file_info, mounted = FALSE) {
+  started <- proc.time()[["elapsed"]]
   data_click$plot <- 1
   data_click$pixel <- 1
   data_click$table <- 1
   preprocessed$data <- NULL
+  inspection_source_gate(NULL)
+  active_file_info(file_info)
   upload_status_state(NULL)
   meta_cache(NULL)
   correction_diagnostics(data.frame())
@@ -244,27 +254,40 @@ observeEvent(input$file, {
   measurement_definitions(app_empty_measurement_definitions())
   quantification_axis(NULL)
 
-  upload_size <- app_validate_upload_size(input$file)
+  reset_upload_control <- function() {
+    if(isTRUE(mounted)) {
+      session$sendCustomMessage("openspecy-mounted-reset", list())
+    } else {
+      shinyjs::reset("file")
+    }
+  }
+
+  upload_size <- app_validate_upload_size(file_info)
   if(!isTRUE(upload_size$ok)) {
     upload_status_state(upload_size$message)
-    shinyjs::reset("file")
+    reset_upload_control()
+    active_file_info(NULL)
     return(NULL)
   }
 
   if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
-             ignore.case = T, as.character(input$file$name)))) {
+             ignore.case = TRUE, as.character(file_info$name)))) {
     upload_status_state(paste(
       "Uploaded data type is not supported. Check the upload guidance for",
       "the accepted file extensions."
     ))
-    shinyjs::reset("file")
+    reset_upload_control()
+    active_file_info(NULL)
     return(NULL)
   }
 
   analysis_phase(
-    "Reading uploaded spectra",
-    paste0("Reading and validating ", nrow(input$file), " uploaded file",
-           if(nrow(input$file) == 1L) "." else "s."),
+    "Reading and materializing spectra",
+    paste0(
+      "Reading and validating ", nrow(file_info), " ",
+      if(isTRUE(mounted)) "browser-mounted" else "uploaded", " file",
+      if(nrow(file_info) == 1L) "." else "s."
+    ),
     8
   )
       
@@ -273,16 +296,16 @@ observeEvent(input$file, {
           # RDS directly avoids dispatch and, critically for gigabyte maps,
           # avoids hashing/copying the full spectra matrix merely to add a
           # provenance ID. Existing IDs in the serialized object are retained.
-          members <- if(nrow(input$file) == 1L &&
-                       grepl("\\.rds$", input$file$name[[1L]],
+          members <- if(nrow(file_info) == 1L &&
+                       grepl("\\.rds$", file_info$name[[1L]],
                              ignore.case = TRUE)) {
             as_OpenSpecy(
-              readRDS(as.character(input$file$datapath[[1L]])),
+              readRDS(as.character(file_info$datapath[[1L]])),
               compute_file_id = FALSE
             )
           } else {
             read_any(
-              file = as.character(input$file$datapath), c_spec = FALSE
+              file = as.character(file_info$datapath), c_spec = FALSE
             )
           }
           combined <- if(is_OpenSpecy(members)) {
@@ -305,8 +328,8 @@ observeEvent(input$file, {
       )
       #print(rout)
       
-      if(!inherits(rout, "simpleError") && all(!grepl("(\\.hdr$)|(\\.dat$)|(\\.zip$)", input$file$name))){
-          rout$metadata$file_name <- input$file$name
+      if(!inherits(rout, "simpleError") && all(!grepl("(\\.hdr$)|(\\.dat$)|(\\.zip$)", file_info$name))){
+          rout$metadata$file_name <- file_info$name
       }
       
       if(!inherits(rout, "simpleError")){
@@ -326,23 +349,28 @@ observeEvent(input$file, {
       
     #print(checkit)
     if (inherits(rout, "simpleError") || inherits(checkit, "simpleError")) {
+      elapsed <- proc.time()[["elapsed"]] - started
       show_alert(
         title = "Something went wrong with reading the data :-(",
         text =  paste0(if(inherits(rout, "simpleError")){paste0("There was an error during data loading that said ",
                                                                   rout, ".")} else{""},
                        if(inherits(checkit, "simpleError")){paste0(" There was an error during data checking that said ",
                                                                   checkit, ".")} else{""},
-                       ". If you uploaded a text/csv file, make sure that the columns are numeric and named 'wavenumber' and 'intensity'."),
+                       ". If you uploaded a text/csv file, make sure that the columns are numeric and named 'wavenumber' and 'intensity'. ",
+                       app_upload_failure_guidance(elapsed, mounted)),
         type =  "error"
       )
-      reset("file")
+      upload_status_state(app_upload_failure_guidance(elapsed, mounted))
+      reset_upload_control()
+      active_file_info(NULL)
       preprocessed$data <- NULL
     }
     else if(inherits(checkit, "simpleWarning")) {
       upload_status_state(paste(
         "The uploaded spectra need attention:", as.character(checkit)
       ))
-      reset("file")
+      reset_upload_control()
+      active_file_info(NULL)
       preprocessed$data <- NULL
     }
       
@@ -354,6 +382,13 @@ observeEvent(input$file, {
         )
         preprocessed$data <- rout
         upload_status_state(NULL)
+        session$sendCustomMessage(
+          "openspecy-upload-materialized",
+          list(
+            transport = if(isTRUE(mounted)) "workerfs" else "native",
+            files = as.character(file_info$name)
+          )
+        )
         #print(preprocessed$data)
 
         # A newly uploaded dataset invalidates every previous Run's results;
@@ -363,12 +398,28 @@ observeEvent(input$file, {
         analysis_needs_reset(TRUE)
         canonical_state_gate$clear()
         quantified_data_gate$clear()
-        quality_report_gate$clear()
         automatic_report_gate$clear()
         ai_output_gate$clear()
         pixel_projection_gate$clear()
     }
-})
+}
+
+observeEvent(input$file, {
+  read_uploaded_files(input$file, mounted = FALSE)
+}, ignoreInit = TRUE)
+
+observeEvent(input$mounted_files, {
+  file_info <- tryCatch(
+    app_mounted_file_info(input$mounted_files), error = identity
+  )
+  if(inherits(file_info, "error")) {
+    upload_status_state(paste("Mounted file metadata was rejected:",
+                              conditionMessage(file_info)))
+    session$sendCustomMessage("openspecy-mounted-reset", list())
+    return(NULL)
+  }
+  read_uploaded_files(file_info, mounted = TRUE)
+}, ignoreInit = TRUE)
 
   output$upload_status <- renderUI({
     message <- upload_status_state()
@@ -463,37 +514,62 @@ observeEvent(input$file, {
     })
 
   # Preprocess ----
+  ordinary_processing_input_ids <- c(
+    "spike_decision", "spike_direction", "spike_residual_threshold",
+    "spike_residual_window", "saturation_decision", "saturation_mode",
+    "saturation_ceiling", "saturation_max_loss", "intensity_decision",
+    "intensity_corr", "conform_decision", "conform_selection", "conform_res",
+    "baseline_decision", "baseline_method", "baseline_lambda", "baseline_hwi",
+    "iterations", "baseline", "refit", "smooth_decision", "smoother",
+    "smoother_window", "derivative_order", "derivative_abs",
+    "make_rel_decision", "co2_decision", "co2_automate",
+    "co2_artifact_ratio", "MinFlat", "MaxFlat", "range_decision",
+    "range_automate", "range_artifact_ratio", "MinRange", "MaxRange"
+  )
+  current_processing_settings <- function() {
+    stats::setNames(
+      lapply(ordinary_processing_input_ids, function(id) input[[id]]),
+      ordinary_processing_input_ids
+    )
+  }
+
   # Ordinary spectral processing is a pure operation over its input. Spatial
   # smoothing is deliberately kept outside this function so S/N and particle
   # partitioning always use the same spatial-only spectra.
-  ordinary_process <- function(uploaded) {
+  ordinary_process <- function(uploaded, settings = NULL, view_only = FALSE) {
+    value <- function(id) {
+      if(is.null(settings)) input[[id]] else settings[[id]]
+    }
+    report_phase <- function(...) {
+      if(!isTRUE(view_only)) analysis_phase(...)
+    }
     processed <- uploaded
 
     {
-      spike_enabled <- isTRUE(input$spike_decision)
+      spike_enabled <- isTRUE(value("spike_decision"))
       spike_args <- if(spike_enabled) {
         list(
           method = "residual",
-          direction = if(is.null(input$spike_direction)) {
+          direction = if(is.null(value("spike_direction"))) {
             "both"
-          } else input$spike_direction,
-          residual_threshold = if(is.null(input$spike_residual_threshold)) {
+          } else value("spike_direction"),
+          residual_threshold = if(is.null(value("spike_residual_threshold"))) {
             8
-          } else input$spike_residual_threshold,
-          residual_window = if(is.null(input$spike_residual_window)) {
+          } else value("spike_residual_threshold"),
+          residual_window = if(is.null(value("spike_residual_window"))) {
             5L
-          } else as.integer(input$spike_residual_window)
+          } else as.integer(value("spike_residual_window"))
         )
       } else {
         list()
       }
-      saturation_enabled <- isTRUE(input$saturation_decision)
+      saturation_enabled <- isTRUE(value("saturation_decision"))
       saturation <- if(saturation_enabled) {
-        saturation_mode <- if(is.null(input$saturation_mode)) {
+        saturation_mode <- if(is.null(value("saturation_mode"))) {
           "auto"
-        } else input$saturation_mode
+        } else value("saturation_mode")
         ceiling <- if(identical(saturation_mode, "threshold")) {
-          input$saturation_ceiling
+          value("saturation_ceiling")
         } else {
           NULL
         }
@@ -503,9 +579,9 @@ observeEvent(input$file, {
       }
       saturation_args <- if(saturation_enabled) {
         list(
-          max_saturation_loss = if(is.null(input$saturation_max_loss)) {
+          max_saturation_loss = if(is.null(value("saturation_max_loss"))) {
             0.7
-          } else input$saturation_max_loss
+          } else value("saturation_max_loss")
         )
       } else {
         list()
@@ -515,7 +591,7 @@ observeEvent(input$file, {
           if(spike_enabled) "checking isolated spikes",
           if(saturation_enabled) "checking shared saturated ranges"
         )
-        analysis_phase(
+        report_phase(
           "Correcting acquisition artifacts",
           paste0(
             paste(correction_steps, collapse = " and "),
@@ -532,7 +608,7 @@ observeEvent(input$file, {
         )
       }
       corrected_source <- processed
-      analysis_phase(
+      report_phase(
         "Preprocessing spectra",
         paste0(
           "Applying the selected preprocessing steps to ",
@@ -541,50 +617,50 @@ observeEvent(input$file, {
         ),
         26
       )
-      intensity_enabled <- isTRUE(input$intensity_decision)
+      intensity_enabled <- isTRUE(value("intensity_decision"))
       intensity_args <- if(intensity_enabled) {
-        list(type = input$intensity_corr)
+        list(type = value("intensity_corr"))
       } else {
         list()
       }
 
       preserve_uploaded_axis <- app_conform_preserve_axis(
-        processed, input$conform_decision, input$conform_selection,
-        input$conform_res
+        processed, value("conform_decision"), value("conform_selection"),
+        value("conform_res")
       )
-      conform_enabled <- isTRUE(input$conform_decision) &&
+      conform_enabled <- isTRUE(value("conform_decision")) &&
         !preserve_uploaded_axis
       conform_args <- if(conform_enabled) {
         list(
-          range = app_conform_axis(processed, input$conform_res),
+          range = app_conform_axis(processed, value("conform_res")),
           res = NULL,
           # Mean Up only reaches this branch when the target resolution is
           # finer than the upload's native resolution, which calls for
           # interpolation (mean_up itself can only aggregate down).
-          type = if(identical(input$conform_selection, "mean_up")) "interp" else
-            input$conform_selection
+          type = if(identical(value("conform_selection"), "mean_up")) "interp" else
+            value("conform_selection")
         )
       } else {
         list()
       }
 
-      baseline_enabled <- isTRUE(input$baseline_decision)
+      baseline_enabled <- isTRUE(value("baseline_decision"))
       baseline_args <- if(baseline_enabled) {
-        if(identical(input$baseline_method, "fill_peaks")) {
+        if(identical(value("baseline_method"), "fill_peaks")) {
           list(
             type = "fill_peaks",
-            lambda = input$baseline_lambda,
-            hwi = input$baseline_hwi,
-            it = input$iterations,
+            lambda = value("baseline_lambda"),
+            hwi = value("baseline_hwi"),
+            it = value("iterations"),
             make_rel = FALSE
           )
         } else {
           list(
             type = "polynomial",
-            degree = input$baseline,
+            degree = value("baseline"),
             raw = FALSE,
-            refit_at_end = input$refit,
-            iterations = input$iterations,
+            refit_at_end = value("refit"),
+            iterations = value("iterations"),
             baseline = NULL,
             make_rel = FALSE
           )
@@ -593,7 +669,7 @@ observeEvent(input$file, {
         list()
       }
 
-      smooth_enabled <- isTRUE(input$smooth_decision)
+      smooth_enabled <- isTRUE(value("smooth_decision"))
       smooth_args <- if(smooth_enabled) {
         smoothing_axis <- if(conform_enabled) {
           conform_args$range
@@ -601,10 +677,10 @@ observeEvent(input$file, {
           processed$wavenumber
         }
         list(
-          polynomial = input$smoother,
-          window = calc_window_points(smoothing_axis, input$smoother_window),
-          derivative = input$derivative_order,
-          abs = input$derivative_abs
+          polynomial = value("smoother"),
+          window = calc_window_points(smoothing_axis, value("smoother_window")),
+          derivative = value("derivative_order"),
+          abs = value("derivative_abs")
         )
       } else {
         list()
@@ -623,17 +699,17 @@ observeEvent(input$file, {
         subtr_baseline_args = baseline_args,
         smooth_intens = smooth_enabled,
         smooth_intens_args = smooth_args,
-        make_rel = input$make_rel_decision
+        make_rel = value("make_rel_decision")
       )
       processed <- app_copy_correction_history(corrected_source, processed)
     }
 
     diagnostics <- list()
-    if(isTRUE(input$co2_decision)) {
-      if(isTRUE(input$co2_automate)) {
-        co2_artifact_ratio <- input$co2_artifact_ratio
-        if(is.null(co2_artifact_ratio)) co2_artifact_ratio <- 3
-        analysis_phase(
+    if(isTRUE(value("co2_decision"))) {
+      if(isTRUE(value("co2_automate"))) {
+        co2_artifact_ratio <- value("co2_artifact_ratio")
+        if(is.null(co2_artifact_ratio)) co2_artifact_ratio <- 2
+        report_phase(
           "Checking the CO2 region",
           "Testing the processed spectra and keeping flattening only if more spectra pass.",
           38
@@ -645,8 +721,8 @@ observeEvent(input$file, {
           # These bounds define both the assessed CO2 region and the region
           # flattened by an accepted automatic correction.
           flatten_args = list(
-            min = input$MinFlat,
-            max = input$MaxFlat,
+            min = value("MinFlat"),
+            max = value("MaxFlat"),
             artifact_ratio = co2_artifact_ratio
           )
         )
@@ -656,18 +732,18 @@ observeEvent(input$file, {
       } else {
         processed <- flatten_range(
           processed,
-          min = input$MinFlat,
-          max = input$MaxFlat,
+          min = value("MinFlat"),
+          max = value("MaxFlat"),
           make_rel = FALSE
         )
       }
     }
 
-    if(isTRUE(input$range_decision)) {
-      if(isTRUE(input$range_automate)) {
-        range_artifact_ratio <- input$range_artifact_ratio
-        if(is.null(range_artifact_ratio)) range_artifact_ratio <- 3
-        analysis_phase(
+    if(isTRUE(value("range_decision"))) {
+      if(isTRUE(value("range_automate"))) {
+        range_artifact_ratio <- value("range_artifact_ratio")
+        if(is.null(range_artifact_ratio)) range_artifact_ratio <- 2
+        report_phase(
           "Checking spectral tails",
           "Testing the processed batch and keeping shared-axis cropping only if more spectra pass.",
           43
@@ -685,10 +761,10 @@ observeEvent(input$file, {
         )
         if(isTRUE(high_tail_accepted)) {
           accepted_bounds <- range(processed$wavenumber, na.rm = TRUE)
-          updateNumericInput(
+          if(!isTRUE(view_only)) updateNumericInput(
             session, "MinRange", value = accepted_bounds[[1L]]
           )
-          updateNumericInput(
+          if(!isTRUE(view_only)) updateNumericInput(
             session, "MaxRange", value = accepted_bounds[[2L]]
           )
         }
@@ -697,8 +773,8 @@ observeEvent(input$file, {
       } else {
         processed <- restrict_range(
           processed,
-          min = input$MinRange,
-          max = input$MaxRange,
+          min = value("MinRange"),
+          max = value("MaxRange"),
           make_rel = FALSE
         )
       }
@@ -709,12 +785,12 @@ observeEvent(input$file, {
     } else {
       data.frame()
     }
-    correction_diagnostics(diagnostics)
+    if(!isTRUE(view_only)) correction_diagnostics(diagnostics)
     if(nrow(diagnostics)) {
       accepted <- sum(diagnostics$accepted)
       skipped <- sum(diagnostics$reason == "no_failures")
       rejected <- nrow(diagnostics) - accepted - skipped
-      analysis_phase(
+      report_phase(
         "Artifact checks complete",
         paste0(
           accepted, " automated correction", if(accepted == 1L) " was" else "s were",
@@ -1100,7 +1176,7 @@ observeEvent(input$file, {
     priority = RUN_GATE_PRIORITY_CANONICAL
   )
   observeEvent(input$recalculate_snr, recalculate_snr_preview(), ignoreInit = TRUE)
-  observeEvent(input$file, {
+  observeEvent(list(input$file, input$mounted_files), {
     snr_preview(NULL)
     snr_preview_signature(NULL)
   }, ignoreInit = TRUE)
@@ -1197,8 +1273,8 @@ observeEvent(input$file, {
     object$metadata <- data.table::as.data.table(object$metadata)
     if(nrow(object$metadata) == length(ids)) object$metadata$col_id <- ids
     if(!"file_name" %in% names(object$metadata)) {
-      source_name <- if(!is.null(input$file$name)) input$file$name[[1L]] else
-        "uploaded"
+      files <- active_file_info()
+      source_name <- if(!is.null(files$name)) files$name[[1L]] else "uploaded"
       object$metadata$file_name <- rep(source_name, nrow(object$metadata))
     }
     if(is.null(matches) || !nrow(matches)) return(object)
@@ -1267,54 +1343,14 @@ observeEvent(input$file, {
     full
   }
 
-  memory_preflight <- reactive({
-    req(!is.null(preprocessed$data))
-    library_size <- 0L
-    if(!identical(input$lib_type, "model")) {
-      library_size <- ncol(library_filtered()$spectra)
-    }
-    clustered <- particle_pipeline_enabled() &&
-      input$particle_id_strategy %in%
-        c("partial_collapse", "nonspatial_collapse")
-    # Memory only depends on object dimensions/size, not spectral values, so
-    # this reads the raw upload directly instead of spatial_data(). Reading
-    # spatial_data() here would run the (potentially expensive) spatial
-    # smooth as a side effect of this purely advisory, pre-Run estimate.
-    tryCatch(
-      OpenSpecy:::.app_memory_preflight(
-        preprocessed$data, library_size = library_size,
-        top_n = top_n_value(), block_size = identify_block_size,
-        pca_components = if(clustered) particle_pca_components() else 0L,
-        clusters = if(clustered) particle_cluster_k() else 0L
-      ),
-      error = function(error) structure(list(
-        safe = NA, status = "unknown", peak_phase = NA_character_,
-        message = paste(
-          "Available RAM could not be estimated.",
-          "The 10 GiB upload ceiling remains in effect; reduce the file,",
-          "library, Top N, PCA components, or clusters if processing fails."
-        ),
-        error = conditionMessage(error)
-      ), class = "OpenSpecy_memory_preflight")
-    )
-  })
-
-  output$memory_preflight_status <- renderUI({
-    if(is.null(preprocessed$data)) return(NULL)
-    estimate <- memory_preflight()
-    class_name <- switch(
-      estimate$status, safe = "text-success", unsafe = "text-danger",
-      "text-muted"
-    )
-    tags$p(class = class_name, estimate$message)
-  })
-  outputOptions(output, "memory_preflight_status", suspendWhenHidden = FALSE)
-
   # This state is the only expensive analysis owner. It returns one final
   # OpenSpecy object, its compact Top-N match table, and a complete full-pixel
   # mapping used only to project unit results back onto the map.
   canonical_state_gate <- run_gated_reactive(function() {
     req(!is.null(preprocessed$data))
+    # Never let a failed replacement Run expose the prior Run's source pixel
+    # through the rejected-pixel inspection lane.
+    inspection_source_gate(NULL)
     # Captured once per Run so every consumer (heatmap, plots, download
     # list, summary panels) can tell what actually produced the current
     # result instead of re-reading these settings live and drifting out of
@@ -1325,19 +1361,12 @@ observeEvent(input$file, {
       threshold_active = isTRUE(input$threshold_decision),
       correlation_active = particle_pipeline_enabled() &&
         isTRUE(input$cor_threshold_decision),
-      min_snr = MinSNR(), max_snr = MaxSNR(), min_cor = MinCor()
+      min_snr = MinSNR(), max_snr = MaxSNR(), min_cor = MinCor(),
+      processing = current_processing_settings()
     )
-    estimate <- memory_preflight()
-    if(identical(estimate$status, "unsafe")) {
-      return(list(
-        object = NULL, matches = NULL, pixel_matches = NULL,
-        pixel_to_unit = NULL, partition = NULL, error = NULL,
-        diagnostic = estimate$message, settings = run_settings
-      ))
-    }
-
     result <- tryCatch({
       spatial <- spatial_data()
+      inspection_source_gate(spatial)
       use_library <- isTRUE(input$identification_active) &&
         !identical(input$lib_type, "model")
       collapse <- run_settings$collapse
@@ -1601,7 +1630,10 @@ observeEvent(input$file, {
       title = "Analysis could not complete", text = error, type = "error"
     )
   }, ignoreNULL = TRUE)
-  observeEvent(input$file, canonical_error_key(NULL), ignoreInit = TRUE)
+  observeEvent(
+    list(input$file, input$mounted_files), canonical_error_key(NULL),
+    ignoreInit = TRUE
+  )
 
   output$particle_partition_status <- renderUI({
     state <- canonical_state()
@@ -1719,16 +1751,51 @@ observeEvent(input$file, {
       value
   })
 
-  DataR_plot <- reactive({
-      if(isTruthy(DataR())){
-          selected <- selected_unit_index()
-          if(is.na(selected)) return(app_rejected_spectrum(DataR()$wavenumber))
-          filter_spec(DataR(), logic = seq_len(ncol(DataR()$spectra)) == selected)
-       }
-      else {
-          list(wavenumber = numeric(), spectra = data.table(empty = numeric()))
-      }
+  active_spectrum_view <- reactive({
+    final <- DataR()
+    selected <- selected_unit_index()
+    if(!is.na(selected)) {
+      viewed <- filter_spec(
+        final, logic = seq_len(ncol(final$spectra)) == selected
+      )
+      attr(viewed, "openspecy_selection_status") <- "retained"
+      return(viewed)
+    }
+
+    source <- inspection_source_gate()
+    pixel <- suppressWarnings(as.integer(data_click$pixel))
+    validate(need(
+      !is.null(source) && length(pixel) == 1L && !is.na(pixel) &&
+        pixel >= 1L && pixel <= ncol(source$spectra),
+      "The selected source pixel is not available for inspection."
+    ))
+    viewed <- filter_spec(
+      source, logic = seq_len(ncol(source$spectra)) == pixel
+    )
+    viewed <- ordinary_process(
+      viewed, settings = canonical_state()$settings$processing,
+      view_only = TRUE
+    )
+    pixel_id <- colnames(source$spectra)[[pixel]]
+    colnames(viewed$spectra) <- paste0("Rejected pixel: ", pixel_id)
+    viewed$metadata$col_id <- colnames(viewed$spectra)
+    viewed$metadata$selection <- "Rejected pixel inspection"
+    attr(viewed, "openspecy_selection_status") <- "rejected_pixel"
+    viewed
   })
+
+  DataR_plot <- reactive(active_spectrum_view())
+
+  output$active_spectrum_status <- renderText({
+    viewed <- active_spectrum_view()
+    if(identical(attr(viewed, "openspecy_selection_status"),
+                 "rejected_pixel")) {
+      "Rejected-pixel inspection: this processed source pixel was not retained as an analysis unit."
+    } else {
+      "Active retained spectrum"
+    }
+  })
+  outputOptions(output, "active_spectrum_status", suspendWhenHidden = FALSE)
   
   # SNR ----
   # Keep the metric control inert until thresholding is enabled. This lets a
@@ -1738,8 +1805,10 @@ observeEvent(input$file, {
       input$signal_selection
   })
 
-  quality_report_gate <- run_gated_reactive(function() {
+  quality_report <- reactive({
       if(is.null(preprocessed$data)) return(NULL)
+      if(isTRUE(analysis_needs_reset()) ||
+         is.null(canonical_state()$object)) return(NULL)
       selected <- DataR_plot()
       # co2_region/high_tail/spike are assessed here unconditionally, even
       # when their matching correction toggle (co2_decision/range_decision/
@@ -1759,7 +1828,7 @@ observeEvent(input$file, {
         input$co2_artifact_ratio
       } else if(!is.null(input$range_artifact_ratio)) {
         input$range_artifact_ratio
-      } else 3
+      } else 2
       quality_spike_args <- list(
         method = "residual",
         direction = if(is.null(input$spike_direction)) {
@@ -1825,7 +1894,10 @@ observeEvent(input$file, {
       threshold_report <- app_threshold_quality_report(
         spectrum_id = colnames(selected$spectra)[[1L]],
         snr_value = if(isTRUE(input$threshold_decision)) {
-          safe_selected_value(canonical_signal_noise())
+          as.numeric(sig_noise(
+            selected, step = 10, metric = effective_signal_selection(),
+            abs = FALSE
+          )[[1L]])
         } else NULL,
         snr_threshold = if(isTRUE(input$threshold_decision)) {
           input$MinSNR
@@ -1843,7 +1915,6 @@ observeEvent(input$file, {
       )
       app_quality_ui_report(report)
   })
-  quality_report <- reactive(quality_report_gate$read())
 
   quality_findings <- reactive({
       report <- quality_report()
@@ -3064,7 +3135,7 @@ output$progress_bars <- renderUI({
 
   # Log events ----
 
-  current_file_info <- reactive(input$file)
+  current_file_info <- reactive(active_file_info())
   
   user_metadata <- reactive({
     settings <- stats::setNames(

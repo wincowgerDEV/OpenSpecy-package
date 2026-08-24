@@ -106,6 +106,53 @@ test_that("bundled app uses one 10 GiB total upload ceiling", {
   expect_false(grepl("showUploadLimitPopup", bridge_source, fixed = TRUE))
 })
 
+test_that("hosted mounted-file metadata stays inside its session mount", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  mount_id <- paste(rep("a", 32), collapse = "")
+  payload <- list(
+    transport = "workerfs", mount_id = mount_id,
+    name = c("map.hdr", "map.dat"), size = c(100, 200),
+    type = c("text/plain", "application/octet-stream"),
+    datapath = paste0(
+      "/tmp/openspecy-upload-", mount_id, "/",
+      c("map.hdr", "map.dat")
+    )
+  )
+  info <- env$app_mounted_file_info(payload)
+  expect_s3_class(info, "data.frame")
+  expect_identical(info$name, payload$name)
+  expect_identical(info$datapath, payload$datapath)
+  expect_true(env$app_validate_upload_size(info)$ok)
+
+  escaped <- payload
+  escaped$datapath[[1L]] <- "/tmp/map.hdr"
+  expect_error(env$app_mounted_file_info(escaped), "escaped")
+  collision <- payload
+  collision$name <- c("map.dat", "MAP.DAT")
+  collision$datapath <- paste0(
+    "/tmp/openspecy-upload-", mount_id, "/", collision$name
+  )
+  expect_error(env$app_mounted_file_info(collision), "unique")
+  expect_match(
+    env$app_upload_failure_guidance(2.5, mounted = TRUE),
+    "failed after 2.5 seconds", fixed = TRUE
+  )
+})
+
 test_that("bundled app has one in-memory upload route", {
   app_path <- run_app(test_mode = TRUE)
   source_paths <- file.path(app_path, c(
@@ -124,11 +171,15 @@ test_that("bundled app has one in-memory upload route", {
 
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                    warn = FALSE), collapse = "\n")
-  expect_match(server_source, "readRDS(as.character(input$file$datapath[[1L]]))",
+  expect_match(server_source, "readRDS(as.character(file_info$datapath[[1L]]))",
                fixed = TRUE)
   expect_match(server_source, "compute_file_id = FALSE", fixed = TRUE)
   expect_match(server_source,
-               "read_any(\n              file = as.character(input$file$datapath), c_spec = FALSE",
+               "read_any(\n              file = as.character(file_info$datapath), c_spec = FALSE",
+               fixed = TRUE)
+  expect_match(server_source, "read_uploaded_files <- function(file_info",
+               fixed = TRUE)
+  expect_match(server_source, "app_mounted_file_info(input$mounted_files)",
                fixed = TRUE)
   expect_match(server_source, "combined <- if(is_OpenSpecy(members))",
                fixed = TRUE)
@@ -628,8 +679,8 @@ test_that("bundled app uses collapsed responsive panels and one shared theme", {
                "artifact_ratio = co2_artifact_ratio", fixed = TRUE)
   expect_match(server_source,
                "artifact_ratio = range_artifact_ratio", fixed = TRUE)
-  expect_match(server_source, "min = input$MinFlat", fixed = TRUE)
-  expect_match(server_source, "max = input$MaxFlat", fixed = TRUE)
+  expect_match(server_source, 'min = value("MinFlat")', fixed = TRUE)
+  expect_match(server_source, 'max = value("MaxFlat")', fixed = TRUE)
   expect_match(server_source,
                'updateNumericInput(\n            session, "MinRange"',
                fixed = TRUE)
@@ -731,8 +782,8 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
 
   # Every Run-gated result is a reactiveVal cache (not a plain bindEvent()
   # reactive) so a fresh upload can explicitly clear it.
-  for(gate in c("canonical_state", "quantified_data", "quality_report",
-                "automatic_report", "ai_output", "pixel_projection")) {
+  for(gate in c("canonical_state", "quantified_data", "automatic_report",
+                "ai_output", "pixel_projection")) {
     expect_match(
       server_source,
       paste0(gate, "_gate <- run_gated_reactive(function() {"),
@@ -744,14 +795,30 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
       fixed = TRUE
     )
   }
+  expect_match(server_source, "quality_report <- reactive({", fixed = TRUE)
+  expect_match(server_source, "active_spectrum_view <- reactive({",
+               fixed = TRUE)
+  expect_match(
+    server_source,
+    "canonical_state_gate <- run_gated_reactive(function() {\n    req(!is.null(preprocessed$data))\n    # Never let a failed replacement Run expose the prior Run's source pixel\n    # through the rejected-pixel inspection lane.\n    inspection_source_gate(NULL)",
+    fixed = TRUE
+  )
+  expect_match(server_source,
+               "selected, step = 10, metric = effective_signal_selection()",
+               fixed = TRUE)
+  expect_false(grepl(
+    "safe_selected_value(canonical_signal_noise())", server_source,
+    fixed = TRUE
+  ))
 
   # A successful new upload clears every cache and marks the button dirty;
   # canonical_final() and the heatmap both show a "click Run" state instead
   # of the previous dataset's stale results.
   expect_match(server_source, "analysis_needs_reset(TRUE)", fixed = TRUE)
+  expect_match(server_source, '"openspecy-upload-materialized"', fixed = TRUE)
+  expect_match(server_source, '"openspecy-analysis-complete"', fixed = TRUE)
   expect_match(server_source, "canonical_state_gate$clear()", fixed = TRUE)
   expect_match(server_source, "quantified_data_gate$clear()", fixed = TRUE)
-  expect_match(server_source, "quality_report_gate$clear()", fixed = TRUE)
   expect_match(server_source, "automatic_report_gate$clear()", fixed = TRUE)
   expect_match(server_source, "ai_output_gate$clear()", fixed = TRUE)
   expect_match(server_source, "pixel_projection_gate$clear()", fixed = TRUE)
@@ -853,8 +920,9 @@ test_that("Mean Up conform replaces the preserve-uploaded-axis switch", {
     server_source,
     paste0(
       "preserve_uploaded_axis <- app_conform_preserve_axis(\n",
-      "        processed, input$conform_decision, input$conform_selection,\n",
-      "        input$conform_res\n      )"
+      "        processed, value(\"conform_decision\"), ",
+      "value(\"conform_selection\"),\n",
+      "        value(\"conform_res\")\n      )"
     ),
     fixed = TRUE
   )
@@ -2335,6 +2403,7 @@ test_that("bundled app bridges downloads only inside WebAssembly", {
   expect_match(bridge, "if (!isWasmMode()) return", fixed = TRUE)
   expect_match(bridge, "event.preventDefault()", fixed = TRUE)
   expect_match(bridge, "window.fetch(href", fixed = TRUE)
+  expect_match(bridge, "if (response.status >= 500)", fixed = TRUE)
   expect_match(bridge, "response.blob()", fixed = TRUE)
   expect_match(bridge, "window.URL.createObjectURL(blob)", fixed = TRUE)
   expect_match(bridge, "localLink.download = safeFilename(filename)",
