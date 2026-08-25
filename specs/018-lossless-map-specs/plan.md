@@ -3,77 +3,71 @@
 **Feature dir**: `specs/018-lossless-map-specs`  
 **Date**: 2026-08-25  
 **Review budget**: Under 100 nonblank lines and 1,500 words.  
-**Current tranche**: Prove compact-map feasibility, add exact `Specs` deduplication plus optional batch-smoothed background suppression, then route H5/ENVI maps through it in the bundled and hosted app.  
-**Change class**: Mixed; highest is hosted/release because public scientific APIs, object flow, app behavior, and the action-built wasm package change.
+**Current tranche**: Prove compact-map feasibility; implement exact and background-suppressed `Specs`; keep PCA/K-means/Hilbert full-object transforms compact; route local direct paths and hosted WORKERFS paths through one Run-gated app pipeline.
+**Change class**: Mixed; highest hosted/release because scientific APIs, dependencies, app ingestion, and the pinned wasm package change.
 
 ## Goal
 
-- Keep large maps fully in memory by storing repeated spectra/metadata/coordinates once and, when explicitly committed, mapping batch-smoothed background pixels to one zero spectrum before they consume dense R memory.
-- Preserve canonical `OpenSpecy`; make `Specs` either exactly reconstructable or clearly marked as background-suppressed, with indexed processing, inspection, provenance, and exports.
+- Keep large maps fully in memory without repeating identical spectra, metadata, or coordinates; optionally map configured background to a virtual zero value after the user-selected smoothing/S/N workflow.
+- Preserve canonical `OpenSpecy`, foreground scientific meaning, full-dataset PCA/K-means multiplicity, indexed inspection, provenance, exports, and one app pipeline without ever expanding compact pixels.
 
 ## Scope
 
-- **In**: Genuine-map profiling; exact spectral deduplication; compact grids/metadata; halo-aware batch smoothing; configured S/N background suppression; `Specs` version/accessors; direct H5/ENVI/ZIP readers; app-required methods; Run-gated local/Shinylive routing; docs, benchmarks, and hosted verification.
-- **Out**: Changing the three-part `OpenSpecy` contract; FileSpecs; approximate foreground deduplication; custom webR heaps; early suppression for Fully Processed S/N basis; silent deletion of source pixels; non-map formats by default.
-- **Users**: Package users request a compact representation/filter explicitly; the app derives it from committed H5/ENVI map settings without another upload control.
+- **In**: Genuine-map profiling; exact deduplication; compact grids/metadata; optional batch smoothing/S/N suppression; `Specs` version/accessors; base H5/ENVI/ZIP compact readers; weighted full-object PCA/K-means and foreground Hilbert; local direct-path picker; hosted WORKERFS; app methods/docs/benchmarks/gates.
+- **Out**: Changing `OpenSpecy`; FileSpecs; approximate foreground deduplication; reader arguments for PCA/K-means/Hilbert; custom webR heaps; silent source deletion; ordinary non-map compaction by default.
+- **Users**: Package users explicitly choose compact/background operations; the app derives them from committed controls. Local and hosted users see exactly one mode-appropriate file picker.
 
 ## Requirements
 
-- R1. Profile the private 500 MB ZIP before structural work: exact unique spectra, background/foreground counts under representative configured filters, metadata cardinalities, grid regularity, projected compact bytes, read time, and peak RSS. Never copy, commit, or upload it. Stop before app rewrites if neither exact nor filtered projection can credibly fit with the pinned runtime below 2 GiB.
-- R2. Exact `deduplicate` remains independently available: store each bit-identical column once with an integer source-to-value mapping. Hashes only index candidates; verified equality makes collisions harmless. Exact mode reconstructs ordering, IDs, NA/NaN, values, metadata, wavenumbers, and attributes.
-- R3. Add `background` as an explicit optional `Specs` step. A non-`NULL` filter policy supplies its inputs: stream full-band spatial tiles/regions, apply configured 3-D Gaussian smoothing, compute the chosen `sig_noise()` metric, then suppress non-finite or strict-min/max failures. It must precede PCA, K-means, or Hilbert because those remove original per-pixel spectral/coordinate meaning; supported later steps can stack in their existing legal order.
-- R4. Every suppressed source remains but points to one correctly sized zero sentinel. Exclude that sentinel from PCA fitting and K-means assignment so indexed decompression always returns exact zero; apply later transforms only to retained smoothed foreground, then deduplicate. Preserve source S/N, eligibility/reason, and identity.
-- R5. Tiles include spatial halos derived from the actual Gaussian kernel support; discard halos only after smoothing. Small BIP/BIL/BSQ and H5 fixtures must match whole-cube `mmand::gaussianSmooth()` and `sig_noise()` at borders and tile seams within a stated floating tolerance, with identical masks.
-- R6. Regular complete grids use per-region dimensions, origin, spacing/axes, and traversal order; irregular grids fall back to compact explicit vectors. Repeated metadata uses constants or dictionaries. Indexed coordinate/metadata access must not materialize all rows.
-- R7. `Specs` accepts legacy dense 0.1 objects and compact exact/filtered objects, bumps its format version, validates mappings/scopes/descriptors/provenance, round-trips through `write_specs()`/`read_specs()`, and never silently upgrades a lossless object to lossy.
-- R8. Add `representation = c("OpenSpecy", "Specs")`, ordered `steps`, and `background_filter = NULL` to H5/ENVI routes through `read_zip()`/`read_any()`. Defaults remain `OpenSpecy`. `specs_background_filter(metric, minimum, maximum, sigma, step)` creates validated policy; input presence replaces a boolean. PCA/K-means tuning passes to the existing `as_Specs()` owners rather than duplicating reader arguments.
-- R9. Compact readers build `Specs` incrementally without dense `OpenSpecy`, then use the shared ordered-step engine. Exact mode preserves ordinary-reader output; filtered mode records algorithm/version, basis, metric, bounds, step, sigma, boundary policy, counts, source fingerprint, and subsequent transforms.
-- R10. Extend only demonstrated app operations to `Specs`: NA handling, processing/corrections, ranges, S/N, features/collapse, matching/AI, quantification, map projection, metadata, and native downloads. Columnwise work runs per unique value; coordinate-dependent work uses indexes and re-deduplicates.
-- R11. Upload/mount performs path, header, dimensions, and readability validation only. Click Run snapshots settings and owns batch smoothing/filtering/compaction. The early suppression path requires existing Threshold S/N and Spatial Smooth owners on with Raw / Spatially Smoothed basis; otherwise use exact compact reading and existing later threshold semantics. Muted settings do no work.
-- R12. Recalculate Preview uses the same tile/halo/S/N algorithm to produce a histogram without retaining a second map; it shows central staged progress and marks the committed object stale. Changing filter metric, bounds, sigma, or basis requires another Run from the still-mounted/native source.
-- R13. One Run-gated canonical object feeds all results: compact `Specs` for an uncollapsed map and `OpenSpecy` for a single/collapsed result. Indexed `decompress_spec(index=)` produces Active Spectrum. A suppressed click shows the zero line plus “background-suppressed” provenance and bypasses misleading flat-spectrum/SNR-unavailable warnings.
-- R14. Existing processed, collapsed, identified/model, quantified, map, metadata, and download states remain aligned. Large exports stream or retain compact RDS; filtered exports are labeled transformed data and never presented as raw measurements.
-- R15. Acceptance requires the exact action-built app to load the genuine ZIP, report suppression/unique counts, select foreground/background pixels, complete representative Run/identification, and download a verified result without severe console errors or wasm allocation failure.
+- R1. Profile the private 500 MB ZIP before structural work: exact unique spectra, background/foreground counts under representative controls, metadata cardinalities, grid regularity, projected bytes, read time, and peak RSS. Never copy, commit, or upload it. Stop before app rewrites if neither exact nor filtered projection credibly fits below the pinned 2 GiB heap.
+- R2. Exact `deduplicate` remains independently lossless: store each bit-identical foreground column once and an integer source mapping. Hashes index candidates only; verified equality makes collisions harmless. Reconstruct order, IDs, NA/NaN, values, metadata, axis, and attributes.
+- R3. `background` is an optional `as_Specs()` step and streaming reader transformation. A non-`NULL` filter policy applies configured 3-D Gaussian smoothing only when requested, computes the chosen `sig_noise()` metric, and suppresses non-finite or strict-min/max failures. If thresholding is off, do not suppress; if smoothing is off, classify unsmoothed values.
+- R4. Reserve source/value index `0` as the authoritative background sentinel; foreground indices start at 1. Preserve source S/N, eligibility, below/above/non-finite reason, identity, and filter settings. Indexed raw decompression of index 0 is always an exact wavenumber-length zero line labeled transformed/background-suppressed.
+- R5. Full-band spatial tiles/regions use halos derived from Gaussian kernel support. Small BIP/BIL/BSQ and H5 fixtures must match whole-cube `mmand::gaussianSmooth()` and `sig_noise()` at borders/seams within stated tolerance with identical masks.
+- R6. Regular grids use per-region dimensions, origin, axes/spacing, and traversal; irregular grids use compact explicit vectors. Metadata columns use constants/dictionaries. Indexed access does not materialize unrelated rows.
+- R7. `Specs` accepts legacy dense 0.1 plus compact exact/filtered objects, bumps its format version, validates mappings/descriptors/provenance, round-trips through `write_specs()`/`read_specs()`, and never silently makes a lossless object lossy.
+- R8. H5/ENVI readers add only `representation = c("OpenSpecy","Specs")` and `background_filter = NULL`, forwarded by `read_zip()`/`read_any()`; defaults remain `OpenSpecy`. Do not expose `steps`, PCA, K-means, or Hilbert tuning on readers. `specs_background_filter(metric, minimum, maximum, sigma=NULL, step)` is the reusable validated policy.
+- R9. Compact readers stream/build the complete base `Specs` without dense `OpenSpecy`; exact foreground deduplication always remains available. PCA/K-means/Hilbert run afterward only through `as_Specs()` on the fully read in-memory compact object and append ordered transformation records.
+- R10. PCA excludes mapping 0 and uses foreground multiplicity weights from the source mapping to calculate weighted centering/scaling/covariance/SVD equivalent to repeated full pixels without expansion. Background PCA scores are exposed as all zero; inverse reconstruction checks the mask and returns exact spectral zero, not the PCA center.
+- R11. K-means excludes background, uses source multiplicities in its objective/centroid updates, and reserves class 0 for background while foreground classes are 1..k. Hilbert fits limits/encodes foreground unique values only and exposes background code 0. A separate mask disambiguates any legitimate foreground zero score/code.
+- R12. Transformation order is validated: `background` must precede PCA/K-means/Hilbert while physical pixel spectra exist; `deduplicate` is lossless and composable; supported PCA/K-means/Hilbert orders remain as currently documented. Mapping/weight composition, not row expansion, carries full-source multiplicity through stacked transforms.
+- R13. Extend only demonstrated app operations to compact `Specs`: NA handling, corrections/ranges, S/N, features/collapse, matching/AI, quantification, map projection, metadata, and downloads. Coordinate-dependent work uses indexes and re-deduplicates.
+- R14. App staging snapshots actual controls: Threshold S/N off means no `background`; Spatial Smooth off means no smoothing; selected metric/bounds/basis/sigma are recorded and used once. Fully Processed basis runs the committed processing on compact foreground before classification without dense expansion. Muted controls do no work.
+- R15. Upload/mount only stages source paths/header. Click Run owns materialization/transforms; Recalculate Preview scans the same tiles but retains only S/N results. Changed settings mark results stale and reread the untouched source. Suppressed clicks show explicit provenance and bypass misleading flat/SNR-unavailable warnings.
+- R16. Replace local `fileInput()` with one local-only server-filesystem picker using `shinyFiles` (or an equivalently verified maintained API): multiple selections resolve to normalized read-only real paths and flow directly to readers without Shiny temp copies. Restrict roots to configured/local volumes, reject traversal/non-files, and preserve companion HDR/DAT selection. Shinylive renders only its existing WORKERFS picker and never loads this local dependency.
+- R17. One canonical `Specs` map or `OpenSpecy` single/collapsed object feeds processed, identified/model, quantified, map, metadata, inspection, and download states. Large exports stream or remain compact RDS; transformed outputs are labeled and never presented as raw.
+- R18. Acceptance requires the exact action-built app to process the genuine ZIP, report counts, select foreground/background, identify a representative spectrum, and download verified output without severe console or wasm allocation errors; local acceptance proves the selected source path is unchanged and no temporary upload copy was created.
 
 ## Technical Decisions
 
-- **Approach**: Evolve `Specs(variables, values, coords, metadata)` with compact mappings/dictionaries, a protected zero sentinel, and ordered transformation records. Dense components remain valid. Exact deduplication and lossy `background` are distinct steps; PCA/K-means/Hilbert operate only on foreground afterward.
-- **Public API**: `representation`, ordered `steps`, and optional `background_filter` are demonstrated policies. Export its validated builder and indexed coordinate/metadata accessors; keep hashing/tiling/halo/dictionaries internal. Example: `read_envi(..., representation="Specs", steps=c("background","deduplicate","pca","kmeans"), background_filter=specs_background_filter(...), ...)`.
-- **Scientific behavior**: Suppression is never default in package readers. In the app, the existing Threshold S/N owner, metric/bounds, Raw/Smoothed basis, and Spatial Smooth owner/sigma visibly define it. The foreground stored in filtered `Specs` is smoothed once; downstream spatial smoothing must recognize provenance and not run twice.
-- **Constitution/generated artifacts**: Before the app switch, use `speckit-constitution` to permit one canonical spectral object (`OpenSpecy` or `Specs`) while retaining the single-pipeline rule. Update roxygen first, verify configured roxygen2, regenerate/inspect `NAMESPACE` and `man`, and never edit generated web/wasm output.
-- **Bundled app/pipeline diagram**: Keep one picker, owner/child gating, central elapsed progress, native downloads, and no new assets. Update “Read & Lossless Compact” into upload-time source staging, insert Run-gated “Batch Smooth → S/N → Suppress → Deduplicate,” and revise Spatial Smooth, preview, S/N, canonical state, inspection, metadata, and download dependencies.
-- **Hosted app**: Shared `R/` and `inst/shiny/` inputs require fast `-HostedAppStatic`; changed runtime/interactions require exact-artifact preflight. The release-facing genuine-file target requires one final clean-commit wasm rebuild. Preserve `/`, `/app/`, `/pkgdown/`, pins, closure, staged small libraries, and generated boundaries.
+- **Approach**: `Specs(variables, values, coords, metadata)` stores foreground unique values and compact source mapping/grid/dictionaries; mapping 0 is virtual background in every value space. Weighted PCA/K-means consume `values` plus mapping counts; Hilbert is pointwise. Each transform returns a new compact mapping/model without unraveling.
+- **Public API**: Readers own only return representation and optional streaming background policy. `as_Specs(x, steps=..., background_filter=..., ...)` owns ordered full-object transforms and their existing tuning; export the filter builder and indexed coordinate/metadata accessors. Example: `read_envi(..., representation="Specs", background_filter=policy) |> as_Specs(steps=c("pca","kmeans","hilbert"), ...)`.
+- **Scientific behavior**: Exact mode is lossless. Background suppression and PCA/K-means/Hilbert retain distinct provenance/tolerance. Small expanded oracles must show weighted PCA/K-means agree with full pixel multiplicity; sentinel zero is never fitted, clustered, or interpreted as measured flat data.
+- **Constitution/generated artifacts**: Before app switching, use `speckit-constitution` to allow one canonical spectral object. Update roxygen/source metadata first, verify configured roxygen2, regenerate/inspect `NAMESPACE`/`man`, and never edit generated web/wasm output.
+- **Bundled app/diagram**: Keep owner gating, central elapsed progress, native downloads, and no new data assets. Update source staging, local direct/hosted mount branches, batch formatting, full-object transforms, preview/S/N, canonical state, inspection, metadata, and download dependencies. Apply `openspecy-develop-shiny-app`.
+- **Hosted impact**: `R/`, `DESCRIPTION`, and `inst/shiny/` change: run fast `-HostedAppStatic`, exact-artifact preflight, and one release-facing clean rebuild. Preserve `/`, `/app/`, `/pkgdown/`, pins, closure, small libraries, and generated boundaries; exclude local-only `shinyFiles` from hosted runtime roots.
 
 ## Package Surfaces
 
-- `R/`: `Specs.R`, `Specs_methods.R`, readers, `sig_noise.R`, and only required processing/accessor/writer methods; `OpenSpecy` unchanged.
-- `tests/testthat/`: Exact/filtered invariants, legal/illegal step orders, zero-sentinel exclusion from PCA/K-means, legacy migration, halo seams, masks/provenance, indexed reconstruction, app states/downloads, and hosted contracts.
-- `benchmarks/`: Repeated dense versus exact versus filtered read/process/match/write; equivalence/tolerance, suppression accuracy, object/RDS bytes, peak RSS, and slowdown guards; genuine path opt-in.
-- `inst/`: `inst/shiny/{global.R,server.R,ui.R}` guidance and browser fixtures; asset inventory/size unchanged.
-- Docs/metadata: Update roxygen, vignette/README, `NEWS.md`, and generated docs; `DESCRIPTION` unchanged unless proven otherwise. `workflows/`, deployment workflow source, and `site/` routes remain unchanged.
+- `R/`: `Specs*.R`, readers, `sig_noise.R`, required methods, `run_app.R`; `OpenSpecy` unchanged.
+- Tests/benchmarks: invariants/migration, tile seams, setting matrix, sentinel 0, legal orders, weighted compact-versus-expanded PCA/K-means, Hilbert/background, readers, local path security/no-copy, app states/downloads, hosted contracts; repeated bytes/RSS/runtime and >10% same-output slowdown flags.
+- App/docs/metadata: `inst/shiny/{global,server,ui}.R`, browser fixtures, pipeline diagram, roxygen, vignette/README, `NEWS.md`, generated docs; add guarded `shinyFiles` metadata. No site-route or deployment-source change expected.
 
 ## Work Checklist
 
-- [ ] Profile exact duplicates and smoothed S/N suppression on the genuine map; record feasibility and false-background spot checks before APIs/app work.
-- [ ] Amend constitution; implement/version compact components, filter policy, tiling/halo pipeline, accessors, provenance, and focused tests.
-- [ ] Implement direct H5/ENVI/ZIP exact/filtered readers and compare whole-cube versus tiled values/masks plus dense exact signatures.
-- [ ] Add demonstrated `Specs` methods; stage sources on upload and route Run/Preview/canonical outputs through one compact pipeline; synchronize the diagram.
-- [ ] Update guidance, roxygen, NEWS, benchmarks, generated docs, and genuine transformed downloads.
-- [ ] Run focused/package/app gates, exact-artifact preflight, and final clean wasm rebuild with the private ZIP acceptance journey.
+- [ ] Profile genuine exact/background feasibility and false-background spot checks.
+- [ ] Amend constitution; implement/version compact mapping 0, dictionaries/accessors, filter policy, tile/halo reader, and invariants.
+- [ ] Implement weighted no-expansion PCA/K-means, foreground Hilbert, stacked mapping/provenance, and expanded-oracle tests.
+- [ ] Replace local upload with secured direct-path selection; stage hosted/local sources and route Run/Preview/outputs through one pipeline; synchronize diagram.
+- [ ] Update dependencies/guidance/roxygen/NEWS/benchmarks/docs and genuine transformed downloads.
+- [ ] Run focused/full/check/app/static gates, exact preflight, and final clean rebuild with private ZIP acceptance.
 
-## Verification
+## Verification And Risks
 
-- Focused: `Specs|read_envi|read_ext|read_multi|sig_noise|spatial_smooth|process_spec|def_features|match_spec|run_app|shinylive_wasm`; parse app sources and run fast `-HostedAppStatic`.
-- Scientific/performance: tile/full smoothing tolerance and identical masks; exact-mode equality; filtered foreground/mask/provenance; selected suppressed/retained pixels; false-background review; peak RSS, bytes, repeated runtime, and >10% same-output slowdown flag.
-- Final: configured `devtools::document()`, full `devtools::test()`, release-facing `devtools::check()`, installed-app smoke, affected states/genuine downloads, console/screenshots, exact preflight, and clean rebuild. Prior hosted artifacts are invalidated by package/app flow changes.
-
-## Risks And Open Questions
-
-- The dense spectra are about 1,078.9 MiB versus 78.3 MiB of other object data; success depends on foreground/suppressed proportions. Unique foreground may still exceed webR memory.
-- Batch smoothing must not create seam-dependent particle edges. False background is scientifically irreversible inside the compact object; recovery requires rerunning the untouched source with revised settings.
-- Fully Processed S/N early suppression is deferred because it would move the entire configurable preprocessing pipeline into the reader; it retains exact compact reading and post-read thresholding in this tranche.
+- Focused: `Specs|read_envi|read_ext|read_multi|sig_noise|spatial_smooth|process_spec|match_spec|run_app|shinylive_wasm`; app parse and `-HostedAppStatic`. Final: configured document, full test/check, installed/browser state matrix, genuine downloads, console/screenshots, exact preflight/rebuild.
+- The spectra are ~1,078.9 MiB versus ~78.3 MiB other data; unique foreground can still exceed webR. Batch smoothing must not create seams; false background requires rerunning the untouched source. Weighted K-means initialization/equivalence needs a documented deterministic tolerance.
 
 ## Approval Notes
 
 - Approved by:
-- Follow-up: Reconsider a custom 4 GiB/memory64 runtime only if validated filtered compaction still cannot fit.
+- Follow-up: Reconsider custom 4 GiB/memory64 only if validated compact workflows still cannot fit.

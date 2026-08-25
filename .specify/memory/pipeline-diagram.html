@@ -262,7 +262,7 @@
   <h1>App Data Analysis Pipeline</h1>
   <p>
     How a spectrum or hyperspectral map moves through the bundled Shiny app (<code>inst/shiny/</code>),
-    from local upload or hosted browser-file mounting to every rendered plot, table, and download.
+    from local direct-file selection or hosted browser-file mounting to every rendered plot, table, and download.
     Boxes are colored by role &mdash;
     <strong style="color:var(--input)">input</strong>,
     <strong style="color:var(--function)">function</strong>,
@@ -285,12 +285,13 @@
     <code>.specify/memory/constitution.md</code>.
   </div>
   <div class="rule">
-    <strong>Plan 018 target (not yet implemented):</strong> upload stages and validates an H5/ENVI
-    source; Click Run owns halo-aware batch smoothing, configured S/N classification,
-    background-to-zero suppression, and exact foreground deduplication into <code>Specs</code>;
-    PCA and K-means may stack afterward while the zero sentinel stays protected.
-    Without committed suppression settings, the route remains exact. Indexed inspection
-    returns one labeled <code>OpenSpecy</code> without expanding the map.
+    <strong>Plan 018 target (not yet implemented):</strong> a local direct path or hosted WORKERFS
+    mount stages and validates an H5/ENVI source. Click Run materializes the complete base
+    <code>Specs</code> with exact deduplication and, only when selected, halo-aware smoothing,
+    S/N classification, and background-to-zero suppression. PCA, K-means, and Hilbert are
+    later full-object <code>as_Specs()</code> transforms over foreground unique values and source
+    multiplicities; they never expand pixels and preserve background mapping 0. Indexed
+    inspection returns one labeled <code>OpenSpecy</code> without expanding the map.
   </div>
 </header>
 
@@ -317,7 +318,7 @@
   <div class="zoom-layer" id="zoomLayer">
 <div class="canvas" id="canvas" style="width:2520px;height:3060px;">
 <svg viewBox="0 0 2520 3060" width="2520" height="3060" role="img"
-     aria-label="OpenSpecy app flowchart, including planned source staging and Run-gated batch smoothing, signal-noise background suppression, and compact Specs materialization for H5 and ENVI maps.">
+     aria-label="OpenSpecy app flowchart, including planned direct local and hosted mounted source staging, Run-gated compact H5 and ENVI materialization, and later no-expansion full-object Specs transforms.">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)"></path>
@@ -464,10 +465,10 @@
   <span class="loc">parent-frame.js &middot; tools/wasm/shinylive-workerfs-bridge.js &middot; patch-shinylive-workerfs.R</span></div>
 </div>
 <div class="node input" style="left:1050px;top:70px" tabindex="0">
-  Local Shiny Temp File(s)
-  <div class="sub">native fileInput path</div>
-  <div class="tip">This is the only local upload control. The bundled/local app keeps Shiny's native <code>fileInput()</code> temporary paths; it is not rendered in Shinylive. The local and hosted entry paths converge at the same reader and scientific pipeline.
-  <span class="loc">server.R: read_uploaded_files() &middot; parent-frame.js: bindWorkerfsUpload()</span></div>
+  Local Filesystem Path(s)
+  <div class="sub">local-only direct picker &middot; no upload copy</div>
+  <div class="tip">The bundled/local app uses one secured <code>shinyFiles</code> picker to resolve normalized, read-only real paths, including multiple files and ENVI companions. It replaces <code>fileInput()</code>, so Shiny does not first copy the source into session temp storage. Shinylive renders only its WORKERFS picker. Both entry paths converge at the same readers and scientific pipeline.
+  <span class="loc">Plan 018 &middot; ui.R/server.R: local source picker &middot; parent-frame.js: bindWorkerfsUpload()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:230px" tabindex="0">
@@ -491,7 +492,7 @@
 
 <div class="node trigger" style="left:1650px;top:500px" tabindex="0">
   &#9654; Click Run
-  <div class="tip">Snapshots every scientific setting. For a staged compact source this is the sole owner of reading and materialization: it constructs the validated background-filter policy only when Threshold S/N, Spatial Smooth, and Raw / Spatially Smoothed basis are committed, then runs Batch Smooth &rarr; S/N &rarr; Suppress &rarr; Deduplicate. Other settings remain passive until the next Run. Every later output derives from this snapshot.
+  <div class="tip">Snapshots every scientific setting. For a staged source this is the sole owner of base reading and materialization. It always permits exact deduplication; Threshold S/N alone enables the background-filter policy, and Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. The readers do not accept or run PCA, K-means, or Hilbert. Other settings remain passive until the next Run. Every later output derives from this snapshot.
   <span class="loc">Plan 018 &middot; server.R: run gate priorities and canonical_state_gate()</span></div>
 </div>
 
@@ -502,9 +503,9 @@
 </div>
 
 <div class="node function" style="left:1050px;top:570px" tabindex="0">
-  Batch Smooth &rarr; S/N &rarr; Suppress &rarr; Deduplicate
-  <div class="sub">ordered Specs steps &middot; Run-gated H5/ENVI materialization</div>
-  <div class="tip">Reads full-band spatial tiles/regions with Gaussian halos. The optional ordered <code>background</code> step smooths first, computes the chosen S/N metric and strict min/max eligibility, points rejected sources to one protected zero spectrum, and exact-deduplicates retained foreground. Without it, <code>deduplicate</code> remains lossless. PCA and K-means may stack afterward in their supported order, operate only on foreground, and never absorb or alter the zero sentinel; background must remain before PCA/K-means/Hilbert while original per-pixel spectra and coordinates exist. The reader also builds grid/metadata dictionaries, records provenance, validates <code>Specs</code>, and reports progress.
+  Base Specs Materialization
+  <div class="sub">optional smooth/S/N/background + exact deduplicate &middot; Run-gated</div>
+  <div class="tip">Reads full-band spatial tiles/regions, adding Gaussian halos only when smoothing is selected. Threshold S/N enables the optional background filter: it classifies the chosen smoothed or unsmoothed basis, points rejected sources to protected mapping 0, and exact-deduplicates retained foreground. With thresholding off, no background is removed; exact <code>deduplicate</code> remains lossless. The reader builds the complete base <code>Specs</code>, grid/metadata dictionaries, provenance, and progress, but accepts no PCA, K-means, or Hilbert arguments. Those operate afterward on the full compact object.
   <span class="loc">Plan 018 &middot; R/{read_envi,read_ext,read_multi,Specs,sig_noise}.R &middot; server.R: canonical_state_gate()</span></div>
 </div>
 
@@ -614,7 +615,7 @@
 <div class="node function" style="left:1050px;top:2440px" tabindex="0">
   Build canonical_state
   <div class="sub">one Specs map or OpenSpecy unit object &middot; Run-gated</div>
-  <div class="tip">The single expensive-analysis owner bundles one canonical object, matches, compact pixel/value mapping, partition, diagnostics, and the committed run-settings snapshot. An uncollapsed H5/ENVI map remains lossless <code>Specs</code>; a single spectrum or collapsed unit result is canonical <code>OpenSpecy</code>. Downstream consumers use representation-aware accessors rather than maintaining duplicate pipelines.
+  <div class="tip">The single expensive-analysis owner bundles one canonical object, matches, compact pixel/value mapping, partition, diagnostics, and the committed run-settings snapshot. Requested PCA, K-means, and Hilbert formatting runs here through full-object <code>as_Specs()</code>, after the base map has been completely read. These transforms consume foreground unique values plus mapping multiplicities without unraveling pixels: PCA background scores, K-means class, and Hilbert code are 0, disambiguated by the authoritative background mask. A single spectrum or collapsed unit result remains canonical <code>OpenSpecy</code>. Downstream consumers use representation-aware accessors rather than duplicate pipelines.
   <span class="loc">Plan 018 &middot; server.R: canonical_state_gate()</span></div>
 </div>
 
@@ -662,7 +663,7 @@
   Active Spectrum Inspection
   <div class="sub">active_spectrum_view() &middot; indexed exact decompression</div>
   <div class="tip">One aligned, one-column <code>OpenSpecy</code> object is the exact processed trace used by both Spectrum Plot and Quality Findings. A retained click selects its canonical unit. A rejected click takes that source pixel from the committed inspection source, applies the committed Run processing settings once, and labels it “rejected-pixel inspection”; it never substitutes zeros. Selection changes are narrow and do not recompute the whole map or library.
-  <strong>Plan 018 target:</strong> a compact map resolves the clicked source and calls indexed <code>decompress_spec()</code> without expanding unrelated data. Retained foreground reconstructs through its PCA/K-means stack as applicable. A suppressed source returns an exact zero line labeled “background-suppressed,” with metric, bounds, sigma, and reason.
+  <strong>Plan 018 target:</strong> a compact map resolves the clicked source and calls indexed <code>decompress_spec()</code> without expanding unrelated data. Retained foreground reconstructs through its stacked transforms as applicable. Mapping 0 bypasses PCA centering and every fitted model; a suppressed source returns an exact zero line labeled “background-suppressed,” with metric, bounds, sigma, and reason.
   <span class="loc">Plan 018 &middot; server.R: active_spectrum_view(), DataR_plot() &middot; R/Specs.R: decompress_spec(index=)</span></div>
 </div>
 
@@ -800,9 +801,9 @@
   functions each stage wraps. The current state includes spec
   <code>017-active-spectrum-large-map</code>: mounted ingestion, actual-failure guidance instead of predictive
   memory blocking, Active Spectrum Inspection, and selection-bound Quality Findings.
-  Plan <code>018-lossless-map-specs</code> adds the explicitly labeled, not-yet-implemented staged
-  source and ordered <code>background</code>/<code>deduplicate</code>/PCA/K-means compact
-  <code>Specs</code> route; replace planned locations with verified source locations as it lands.
+  Plan <code>018-lossless-map-specs</code> adds the explicitly labeled, not-yet-implemented local-direct/hosted-mounted
+  source route, base <code>background</code>/<code>deduplicate</code> materialization, and later weighted
+  PCA/K-means/Hilbert full-object transforms over compact <code>Specs</code>; replace planned locations with verified source locations as it lands.
   When a plan changes any stage, branch, function, or
   output dependency named here, update this diagram in the same plan &mdash; see Constitution Principle X.
 </footer>

@@ -21,35 +21,34 @@ cache_dir <- Sys.getenv(
 
 # These are the current scientific decision thresholds. They are also drawn on
 # the returned S/N and maximum-correlation histograms.
-sn_threshold_min <- 1e6
+sn_threshold_min <- 0
 sn_threshold_max <- Inf
-cor_threshold <- 0.7
+cor_threshold <- 0.6
 
 get_lib("medoid_derivative")
 lib <- load_lib("medoid_derivative")
 
 wd = "C:\\Users\\winco\\OneDrive\\Documents\\EWG"
-source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\dilutioncurve.h5"
+source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\bigconcurve.h5"
 map <- open_specs(source_file, cache_dir = wd)
 print(map)
 
 # Region views share the immutable source and cache. This is useful for
 # inspection, but automate_particle_analysis() discovers and processes these
 # regions sequentially without a user-written loop.
-region_views <- split_spec(map, by = "region")
+region_views <- split_spec(list(map), by = "region")
 names(region_views)
 
-map <- read_any("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\blank.h5")
-files = list.files(wd, pattern = "(blank|drop|spike)Region.*\\.rds", full.names = TRUE)
-files = files[!grepl("particles", files)]
-files_list = read_any(files)
+map <- read_any("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\bigconcurve.h5")
+
+listedfiles <- lapply(unique(map$metadata$region), function(x) filter_spec(map, map$metadata$region ==x))
 
 result2 <- automate_particle_analysis( 
     map,
     library = lib,
     output_dir = wd,
     material_col = "material_class",
-    particle_id_strategy = "collapse",
+    particle_id_strategy = "all_cell_id",
     spectral_smooth = TRUE,
     sn_threshold_min = sn_threshold_min,
     sn_threshold_max = sn_threshold_max,
@@ -67,6 +66,12 @@ result2 <- automate_particle_analysis(
     ),
     origins = list(x = 0, y = 0)
 )
+
+library(dplyr)
+result2$particle_details_all_csv %>%
+  group_by(sample_id) %>%
+  summarise(percent_area = sum(area_um2[material_class == "poly(ethylene)"])/sum(area_um2),
+area = sum(area_um2))
 
 # plot() replaces replayPlot() and accepts a region/sample name or position.
 plot(result2, sample = 1, which = "particle_heatmap")
