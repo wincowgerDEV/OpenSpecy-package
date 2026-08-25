@@ -93,11 +93,64 @@ read_many <- function(file, ...) {
 #' @rdname read_multi
 #' @export
 read_zip <- function(file, ...) {
-  flst <- unzip(zipfile = file, list = T)$Name
-  flst <- flst[!grepl("_MACOSX", flst)]
+  archive_members <- unzip(zipfile = file, list = T)
+  archive_members <- archive_members[
+    !grepl("_MACOSX", archive_members$Name), , drop = FALSE
+  ]
+  flst <- archive_members$Name
 
-  tmp <- file.path(tempdir(), "OpenSpecy-unzip")
+  args <- list(...)
+  envi_pair <- length(flst) == 2L &&
+    any(grepl("\\.dat$", ignore.case = TRUE, flst)) &&
+    any(grepl("\\.hdr$", ignore.case = TRUE, flst))
+
+  # The webR heap is shared by R and its in-memory filesystem. Extracting a
+  # large ENVI DAT into MEMFS before allocating the final double matrix can
+  # therefore consume both copies at once. The default blockwise ENVI reader
+  # is sequential, so stream the compressed member directly into that reader.
+  # spectral_smooth=TRUE retains the filename-based caTools path below.
+  if (envi_pair && !isTRUE(args[["spectral_smooth"]])) {
+    dat_name <- flst[grepl("\\.dat$", ignore.case = TRUE, flst)][[1L]]
+    hdr_name <- flst[grepl("\\.hdr$", ignore.case = TRUE, flst)][[1L]]
+    header_size <- archive_members$Length[
+      match(hdr_name, archive_members$Name)
+    ]
+    header_connection <- unz(file, hdr_name, open = "rb")
+    header_raw <- tryCatch(
+      readBin(header_connection, what = "raw", n = header_size),
+      finally = close(header_connection)
+    )
+    if (length(header_raw) != header_size) {
+      stop("ENVI header ended before its declared ZIP member size",
+           call. = FALSE)
+    }
+
+    header_file <- tempfile("OpenSpecy-envi-", fileext = ".hdr")
+    on.exit(unlink(header_file, force = TRUE), add = TRUE)
+    header_output <- file(header_file, open = "wb")
+    tryCatch(
+      writeBin(header_raw, header_output),
+      finally = close(header_output)
+    )
+
+    data_connection <- unz(file, dat_name, open = "rb")
+    on.exit(close(data_connection), add = TRUE)
+    args[c("file", "header")] <- NULL
+    if (is.null(args[["metadata"]])) {
+      args[["metadata"]] <- list(
+        file_name = basename(dat_name),
+        license = "CC BY-NC"
+      )
+    }
+    return(do.call(
+      read_envi,
+      c(list(file = data_connection, header = header_file), args)
+    ))
+  }
+
+  tmp <- tempfile("OpenSpecy-unzip-")
   dir.create(tmp, showWarnings = F)
+  on.exit(unlink(tmp, recursive = TRUE, force = TRUE), add = TRUE)
 
   unzip(file, exdir = tmp)
 
@@ -113,6 +166,5 @@ read_zip <- function(file, ...) {
     os <- read_many(flst,  ...)
   }
 
-  unlink(tmp, recursive = T)
   return(os)
 }

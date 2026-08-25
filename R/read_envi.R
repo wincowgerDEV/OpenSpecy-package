@@ -105,7 +105,9 @@ read_envi <- function(file, header = NULL,
 
   if("wavelength" %in% names(hdr)) {
       wavenumbers <- hdr$wavelength
-  } else if(grepl("\\.img$", file) & file.exists(gsub("\\.img$", ".parms", file))) {
+  } else if(is.character(file) && length(file) == 1L &&
+            grepl("\\.img$", file) &&
+            file.exists(gsub("\\.img$", ".parms", file))) {
       metadata <- readLines(gsub("\\.img$", ".parms", file))
       names <- gsub("=.*", "", metadata)
       vals <- gsub(".*=", "", metadata)
@@ -191,7 +193,8 @@ read_envi <- function(file, header = NULL,
   if (anyNA(c(nx, ny, n_bands)) || any(c(nx, ny, n_bands) <= 0L)) {
     stop("read.ENVI: data sizes missing or incorrect", call. = FALSE)
   }
-  if (!file.exists(file)) {
+  connection_input <- inherits(file, "connection")
+  if (!connection_input && !file.exists(file)) {
     stop("read.ENVI: Could not open input file: ", file, call. = FALSE)
   }
 
@@ -213,9 +216,24 @@ read_envi <- function(file, header = NULL,
   }
 
   n_pixels <- nx * ny
-  connection <- file(file, "rb")
-  on.exit(close(connection), add = TRUE)
-  if (header_offset > 0) seek(connection, where = header_offset, origin = "start")
+  connection <- if (connection_input) file else file(file, "rb")
+  close_connection <- !connection_input
+  if (connection_input && !isOpen(connection)) {
+    open(connection, "rb")
+    close_connection <- TRUE
+  }
+  if (close_connection) on.exit(close(connection), add = TRUE)
+  if (header_offset > 0) {
+    if (connection_input) {
+      skipped <- readBin(connection, what = "raw", n = header_offset)
+      if (length(skipped) != header_offset) {
+        stop("ENVI binary ended inside the declared header offset",
+             call. = FALSE)
+      }
+    } else {
+      seek(connection, where = header_offset, origin = "start")
+    }
+  }
 
   if (identical(interleave, "bip") && n_pixels <= block_pixels) {
     return(matrix(

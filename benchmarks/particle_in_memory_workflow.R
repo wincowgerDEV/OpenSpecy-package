@@ -250,17 +250,38 @@ native_ingest <- function() {
   materialize_ingest(uploaded)
 }
 
+# Same-output reference for the former read_zip() implementation. It keeps the
+# complete uncompressed ENVI binary in a temporary directory while the final
+# matrix is allocated, which is the peak-memory behavior the streaming route
+# removes from the package implementation.
+legacy_extract_ingest <- function() {
+  extracted <- tempfile("openspecy-legacy-envi-")
+  dir.create(extracted)
+  on.exit(unlink(extracted, recursive = TRUE), add = TRUE)
+  members <- utils::unzip(ingest_fixture, list = TRUE)$Name
+  utils::unzip(ingest_fixture, exdir = extracted)
+  materialize_ingest(file.path(extracted, members))
+}
+
 mounted_reference <- mounted_ingest()
 native_reference <- native_ingest()
+legacy_reference <- legacy_extract_ingest()
 if (!isTRUE(all.equal(mounted_reference, native_reference,
                       tolerance = 1e-14))) {
   stop("mounted-path and native-copy materialized objects differ",
        call. = FALSE)
 }
+if (!isTRUE(all.equal(mounted_reference, legacy_reference,
+                      tolerance = 1e-14))) {
+  stop("streamed and former extracted ENVI ZIP objects differ",
+       call. = FALSE)
+}
 mounted_ingest_elapsed <- elapsed_samples(mounted_ingest)
 native_ingest_elapsed <- elapsed_samples(native_ingest)
+legacy_ingest_elapsed <- elapsed_samples(legacy_extract_ingest)
 mounted_ingest_median <- stats::median(mounted_ingest_elapsed)
 native_ingest_median <- stats::median(native_ingest_elapsed)
+legacy_ingest_median <- stats::median(legacy_ingest_elapsed)
 ingest_runtime_ratio <- mounted_ingest_median /
   max(native_ingest_median, .Machine$double.eps)
 ingest_failure_limit <- 1.50
@@ -271,16 +292,28 @@ if (ingest_runtime_ratio > ingest_failure_limit) {
     ingest_failure_limit, ")", call. = FALSE
   )
 }
+streaming_runtime_ratio <- mounted_ingest_median /
+  max(legacy_ingest_median, .Machine$double.eps)
+if (streaming_runtime_ratio > ingest_failure_limit) {
+  stop(
+    "material streamed ENVI ZIP regression: streamed/extracted = ",
+    sprintf("%.3f", streaming_runtime_ratio), " (failure limit ",
+    ingest_failure_limit, ")", call. = FALSE
+  )
+}
 print(data.frame(
   ingest_fixture_bytes = file.info(ingest_fixture)$size,
   materialized_mib = as.numeric(object.size(mounted_reference)) / 1024^2,
   repetitions = repetitions,
   native_copy_read_median_seconds = native_ingest_median,
   mounted_read_median_seconds = mounted_ingest_median,
+  former_extract_read_median_seconds = legacy_ingest_median,
   mounted_to_native_runtime = ingest_runtime_ratio,
+  streamed_to_extracted_runtime = streaming_runtime_ratio,
   material_runtime_limit = 1.10,
   failure_runtime_limit = ingest_failure_limit,
-  material_runtime_regression = ingest_runtime_ratio > 1.10,
+  material_runtime_regression = ingest_runtime_ratio > 1.10 ||
+    streaming_runtime_ratio > 1.10,
   equivalent = TRUE,
   stringsAsFactors = FALSE
 ), row.names = FALSE)

@@ -336,14 +336,20 @@ async function verifyNativeDownload({
 test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, testInfo) => {
   const url = process.env.SHINYLIVE_SMOKE_URL || "http://127.0.0.1:8080/";
   const expectedVersion = process.env.OPENSPECY_EXPECTED_VERSION;
-  const largeUpload = process.env.OPENSPECY_SMOKE_LARGE_UPLOAD;
+  const largeUploads = process.env.OPENSPECY_SMOKE_LARGE_UPLOADS
+    ? JSON.parse(process.env.OPENSPECY_SMOKE_LARGE_UPLOADS)
+    : (process.env.OPENSPECY_SMOKE_LARGE_UPLOAD
+      ? [process.env.OPENSPECY_SMOKE_LARGE_UPLOAD]
+      : []);
+  expect(Array.isArray(largeUploads)).toBe(true);
+  expect(largeUploads.every((file) => typeof file === "string" && file)).toBe(true);
   const consoleErrors = [];
   const runtimeDiagnostics = [];
 
   // WebAssembly startup, preprocessing, and identification share one browser
   // thread. Keep the overall budget above the sum of those real phases while
   // retaining shorter per-action timeouts for selector failures.
-  test.setTimeout(largeUpload ? 2400000 : 1800000);
+  test.setTimeout(largeUploads.length ? 2400000 : 1800000);
   expect(expectedVersion).toBeTruthy();
 
   page.on("console", (message) => {
@@ -489,10 +495,10 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   const firstMatch = appFrame.locator("#event table tbody tr").first();
 
   const verifyLargeMountedUpload = async () => {
-    expect(fs.existsSync(largeUpload)).toBe(true);
-    const largeName = path.basename(largeUpload);
-    const expectedFiles = JSON.stringify([largeName]);
-    await mountedInput.setInputFiles(largeUpload);
+    largeUploads.forEach((file) => expect(fs.existsSync(file)).toBe(true));
+    const largeNames = largeUploads.map((file) => path.basename(file));
+    const expectedFiles = JSON.stringify(largeNames);
+    await mountedInput.setInputFiles(largeUploads);
     const deadline = Date.now() + 1800000;
     while (Date.now() < deadline) {
       const state = await appFrame.locator("html").evaluate((html) => ({
@@ -509,10 +515,12 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
       }
       await page.waitForTimeout(1000);
     }
-    throw new Error(`Large WORKERFS materialization timed out for ${largeName}.`);
+    throw new Error(
+      `Large WORKERFS materialization timed out for ${largeNames.join(", ")}.`
+    );
   };
 
-  if (largeUpload && process.env.OPENSPECY_SMOKE_LARGE_ONLY === "true") {
+  if (largeUploads.length && process.env.OPENSPECY_SMOKE_LARGE_ONLY === "true") {
     await verifyLargeMountedUpload();
     return;
   }
@@ -925,7 +933,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   // Optional pre-push proof for a maintainer-supplied large map. Completion
   // is acknowledged only after the mounted file has passed read_any(),
   // manage_na(), and OpenSpecy validation in the WebR session.
-  if (largeUpload) {
+  if (largeUploads.length) {
     await verifyLargeMountedUpload();
   }
 });

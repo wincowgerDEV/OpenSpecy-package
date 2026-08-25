@@ -3,7 +3,7 @@
 **Feature dir**: `specs/017-active-spectrum-large-map`
 **Date**: 2026-08-21
 **Review budget**: Under 100 nonblank lines and 1,500 words.
-**Current tranche**: Completed and verified; closed to unrelated refinements except maintainer, CI, or post-push work.
+**Current tranche**: Post-push hosted-memory follow-up; safe reader improvements are verified, while the genuine ZIP is blocked on a custom webR runtime/fork decision.
 **Change class**: Mixed; highest hosted/release, with package/scientific and bundled-app behavior changes.
 
 ## Goal
@@ -13,7 +13,7 @@
 
 ## Scope
 
-- **In**: completed active-spectrum/default/WORKERFS work; settings-tab expansion; Run/Recalculate/download overlay startup; blockwise ENVI binary materialization into the final spectra matrix; synchronized pipeline diagram.
+- **In**: completed active-spectrum/default/WORKERFS work; settings-tab expansion; Run/Recalculate/download overlay startup; blockwise ENVI binary materialization into the final spectra matrix; direct ENVI-pair streaming from ZIP to avoid wasm extraction copies; synchronized pipeline diagram.
 - **Out**: `FileSpecs`/chunked downstream analysis; promising that every upload below 10 GiB fits WebAssembly; changing identification libraries; committing the 500 MB fixture; silently reducing scientific options.
 - **Users**: local and hosted app users inspecting individual spectra or analyzing hyperspectral ENVI maps.
 
@@ -30,11 +30,13 @@
 - R9. Clicking any visible analysis tab expands the settings card and activates that tab in one action. Run, Recalculate Preview, and downloads schedule the accessible central overlay from the browser click, retain the 650 ms anti-flash delay, and stay synchronized with real phase/idle or download completion.
 - R10. Default `read_envi()` reads BIP/BIL/BSQ blocks directly into the final band-by-pixel matrix. Its signature and output dimensions, ordering, values, metadata, coordinates, names, IDs, attributes, and spectral-smoothing behavior remain unchanged.
 - R11. Cache the verified wasm dependency repository across local rehearsals and GitHub Actions using dependency-defining inputs plus the pinned webR image as the compatibility key. Evict the local `OpenSpecy` package before every reuse, refresh changed dependency versions, rebuild the VFS image, and retain exact commit/artifact validation so a same-version new commit cannot be skipped.
+- R12. Treat the 10 GiB picker ceiling separately from the pinned webR runtime's compiled 2 GiB heap. For an ENVI-only ZIP, stream the HDR and binary members into the same blockwise reader without extracting the full DAT into MEMFS; preserve ordinary `read_zip()` output and cleanup behavior for every other archive layout.
 
 ## Technical Decisions
 
 - **Approach**: keep `canonical_final()` as the sole source for summaries, identification, quantification, metadata, and downloads. Add one deliberately named view-only active-spectrum lane for inspection/quality, sourced from the canonical selected unit or a one-column processed clicked-pixel fallback. Hosted mounting changes only how source paths enter `read_any()`; the complete object then follows the ordinary pipeline with no `FileSpecs` branch or processing-mode flag.
 - **ENVI memory path**: retain the legacy caTools array route only when `spectral_smooth=TRUE`; the default path allocates the final spectra matrix once and fills bounded BIP/BIL/BSQ blocks, avoiding two whole-array permutations while producing the same object.
+- **Hosted ZIP memory path**: the pinned wasm heap limit is compile-time, not an app upload option. Prefer removing the avoidable uncompressed-DAT MEMFS copy by reading ENVI ZIP members through sequential connections; do not patch generated webR assets or claim the 10 GiB picker cap is allocatable analysis memory.
 - **Public API**: no new arguments or exports. The reviewed changes are defaults for existing meaningful-policy arguments (`silent_region`, `artifact_ratio`); explicit values and base-pipe composition remain unchanged. Document scientific/user-visible consequences and boundary behavior.
 - **Dependencies**: no new R dependency. The pinned webR 0.6.0 WORKERFS wrapper accepts package metadata, not its documented direct-file form: preserve the selected browser `File` objects through structured cloning, expose them as one composite Blob plus member offsets, and call `WebR.FS.mount("WORKERFS", {packages}, mountpoint)`. The deterministic adapter must fail closed on a Shinylive asset/hash mismatch rather than editing generated output by hand.
 - **Mounted text compatibility**: webR is a 32-bit process and `fread(filename)` cannot mmap WORKERFS files. Direct mounted CSV/TSV/TXT/XYZ inputs therefore enter the same `read_text()` parser through `fread(text=...)`; binary/ENVI paths retain their existing readers and the returned `OpenSpecy` structure is unchanged.
@@ -65,12 +67,16 @@
 - [x] Replace default ENVI array permutations with bounded direct-to-final-matrix reads; add all-interleave invariants and the former path to the repeated benchmark.
 - [x] Update the Read & Materialize diagram detail; run focused tests/benchmark, full package tests, bundled browser smoke, fast hosted gate, and matching-artifact preflight.
 - [x] Seed and verify the wasm dependency-repository cache; compare an uncached closure build with a cached exact-artifact rerun and retain the clean SHA checks.
+- [x] Reproduce the genuine mounted ZIP locally against the action-equivalent hosted app and capture the exact failure phase/message.
+- [ ] Prove the extracted HDR+DAT pair can materialize in the same pinned runtime and add multi-file genuine-map smoke support.
+- [ ] Stream ENVI-only ZIP members without full extraction; prove small ZIP parity, package tests/benchmark, and genuine hosted materialization.
 
 ## Verification
 
 - **Direct/scientific**: selected retained/rejected collapsed pixels; threshold on/off identical active trace and non-threshold QC; finite SNR; non-flat range; silent-region boundaries; artifact ratios below/equal/above 2; explicit 3x override unchanged.
 - **Performance/parity**: verify zero full-file HTTP/R-raw upload copy on the mounted route; repeated small native-vs-mounted object/output equality with <=10% downstream regression; genuine ZIP completes or records the actual browser/runtime limit within 30 minutes; direct HDR+DAT is a diagnostic comparator, not a different analysis mode.
 - **Follow-up parity**: compare the blockwise reader byte-for-byte with the former caTools/aperm result for BIP/BIL/BSQ fixtures and the genuine ZIP signature; browser assertions must observe card expansion and the overlay itself for all three action types.
+- **Hosted-memory follow-up**: the action-equivalent browser must mount the genuine ZIP, fully materialize 427 x 331,180 spectra, and enable Run without `cannot allocate vector`; the extracted pair is the same-runtime diagnostic control.
 - **App/browser**: focused `run_app|assess_spec|adj_range` tests, bundled static gate, local native upload plus hosted WORKERFS small/multi-file/ZIP journeys, selection/collapse/QC/progress, console and desktop/mobile screenshots. The 500 MB journey is manual/CI-guarded and never routine.
 - **Docs/package**: confirm roxygen2 8.0.0, regenerate/inspect generated diffs, run full `devtools::test()` and staged `R CMD check` once because exported scientific defaults change.
 - **Hosted**: `-HostedAppStatic`; clean-commit wasm build because package image changes; exact matching-artifact action preflight and nested-frame smoke. Reuse current green workflow syntax/permissions only; R/app runtime evidence is invalidated.
@@ -78,6 +84,7 @@
 ## Risks And Open Questions
 
 - WORKERFS avoids copying selected bytes through Shinylive's request bridge but does not reduce the 1.054 GiB R matrix or later processing copies; ZIP extraction may still add the 0.527 GiB DAT. If the exact mounted ZIP still cannot finish, report the measured phase and recommend selecting the extracted HDR+DAT pair, without restoring a forecast or changing downstream functions.
+- Post-push reproduction: the prior matching app mounted the genuine ZIP then failed after 110.8 seconds with `cannot allocate vector of size 1.1 Gb`; the streamed-reader wasm candidate `0a57691` preserved exact desktop output (25.84 seconds) but the same hosted allocation failed after 1.4 seconds, while mounted HDR+DAT stayed busy and timed out at 30 minutes. The pinned `R.js` hardcodes a 2,147,483,648-byte heap and R's vector-size default is already unlimited, so a higher limit requires rebuilding/forking webR in 4 GiB or memory64 mode rather than changing the 10 GiB picker or an app option.
 - Local evidence for SHA-256 `4931f855…d59b6d50`: the 521,106,125-byte ZIP materialized to 1,157.239 MiB (427 x 331,180) in 30.15 s; direct HDR+DAT extraction/read took 7.17 + 22.48 s and produced an equal compact signature. Small repeated mounted-path reads were 0.09-0.12 s versus 0.13-0.14 s with a native-copy proxy.
 - Exact hosted evidence: clean candidate `600f72c` restored and verified the pinned 117-package repository in 522.6 seconds after an app-only update (uncached baseline 3,372.4 seconds; first cached sample 598.7 seconds). Its action-equivalent assembly, library smoke, routes, mounted CSV/ENVI/ZIP-map analysis, progress overlay, and downloads passed; the nested-frame browser journey took 3.1 minutes. The mounted-text regression found during preflight was `fread(filename)` attempting an unsupported 32-bit WORKERFS mmap and is now routed through the equivalent text parser.
 - Shinylive does not expose a public app-level mount hook. The exact pinned asset must first prove a narrow message bridge can safely reach its webR proxy. If that prototype fails, stop for an upstream/fork decision rather than silently returning to FileSpecs or shipping a brittle generated-file edit.

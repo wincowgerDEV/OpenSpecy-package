@@ -625,7 +625,8 @@ test_that("hosted deployment exports the exact current bundled app", {
     'grep -q "${PACKAGE_SHA}" <<< "$pin_body"', workflow, fixed = TRUE
   )))
   expect_true(any(grepl(
-    "test.setTimeout(largeUpload ? 2400000 : 1800000)", smoke, fixed = TRUE
+    "test.setTimeout(largeUploads.length ? 2400000 : 1800000)", smoke,
+    fixed = TRUE
   )))
   expect_true(any(grepl("timeout: 600000", smoke, fixed = TRUE)))
   expect_true(any(grepl("toBeChecked()", smoke, fixed = TRUE)))
@@ -669,6 +670,8 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_true(any(grepl("mountedInput.setInputFiles(mapUploadPath)", smoke,
                         fixed = TRUE)))
   expect_true(any(grepl("OPENSPECY_SMOKE_LARGE_UPLOAD", smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl("OPENSPECY_SMOKE_LARGE_UPLOADS", smoke,
                         fixed = TRUE)))
   expect_true(any(grepl('candidate.type === "heatmap"', smoke,
                         fixed = TRUE)))

@@ -21,7 +21,7 @@ cache_dir <- Sys.getenv(
 
 # These are the current scientific decision thresholds. They are also drawn on
 # the returned S/N and maximum-correlation histograms.
-sn_threshold_min <- 1e7
+sn_threshold_min <- 1e6
 sn_threshold_max <- Inf
 cor_threshold <- 0.7
 
@@ -29,7 +29,7 @@ get_lib("medoid_derivative")
 lib <- load_lib("medoid_derivative")
 
 wd = "C:\\Users\\winco\\OneDrive\\Documents\\EWG"
-source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\test_1um.h5"
+source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\dilutioncurve.h5"
 map <- open_specs(source_file, cache_dir = wd)
 print(map)
 
@@ -39,7 +39,7 @@ print(map)
 region_views <- split_spec(map, by = "region")
 names(region_views)
 
-map <- read_any("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\test_1um.h5")
+map <- read_any("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\blank.h5")
 files = list.files(wd, pattern = "(blank|drop|spike)Region.*\\.rds", full.names = TRUE)
 files = files[!grepl("particles", files)]
 files_list = read_any(files)

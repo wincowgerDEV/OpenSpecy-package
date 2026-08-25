@@ -5,6 +5,12 @@
   blocks directly into the final band-by-pixel matrix instead of constructing
   and permuting multiple complete arrays; `spectral_smooth = TRUE` retains its
   existing three-dimensional smoothing path.
+- Reduced `read_zip()` peak memory for two-member ENVI HDR+DAT archives by
+  streaming the compressed binary directly into the same blockwise
+  band-by-pixel reader. This avoids retaining a complete extracted DAT beside
+  the final matrix in WebAssembly while preserving the returned `OpenSpecy`
+  data and the existing extraction path for other ZIP layouts and smoothed ENVI
+  reads.
 - Fixed collapsed analysis settings requiring a separate maximize click: the
   Preprocessing, Identification, Advanced, and Quantification tabs now expand
   the card and activate the chosen tab with the same click. Run, Recalculate

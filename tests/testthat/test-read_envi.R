@@ -27,6 +27,35 @@ test_that("ENVI files are read", {
                       "pixel size"))
 })
 
+test_that("ENVI ZIP members stream without a full extraction directory", {
+  archive <- read_extdata("CA_tiny_map.zip")
+  legacy_extraction <- file.path(tempdir(), "OpenSpecy-unzip")
+  unlink(legacy_extraction, recursive = TRUE, force = TRUE)
+  dir.create(legacy_extraction)
+  sentinel <- file.path(legacy_extraction, "streaming-sentinel")
+  writeLines("keep", sentinel)
+  on.exit(unlink(legacy_extraction, recursive = TRUE, force = TRUE), add = TRUE)
+
+  streamed <- read_zip(archive)
+  expect_true(file.exists(sentinel))
+
+  extracted <- tempfile("OpenSpecy-envi-reference-")
+  dir.create(extracted)
+  on.exit(unlink(extracted, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(archive, exdir = extracted)
+  dat <- list.files(extracted, pattern = "\\.dat$", full.names = TRUE,
+                    ignore.case = TRUE)
+  hdr <- list.files(extracted, pattern = "\\.hdr$", full.names = TRUE,
+                    ignore.case = TRUE)
+  reference <- read_envi(dat, hdr)
+
+  expect_identical(streamed$wavenumber, reference$wavenumber)
+  expect_identical(streamed$spectra, reference$spectra)
+  expect_identical(streamed$metadata, reference$metadata)
+  expect_identical(attributes(streamed$spectra),
+                   attributes(reference$spectra))
+})
+
 test_that("ENVI interleaves keep the same band-by-pixel format", {
   nx <- 3L
   ny <- 2L
@@ -72,6 +101,14 @@ test_that("ENVI interleaves keep the same band-by-pixel format", {
     expect_identical(object$metadata$y, c(0, 0, 0, 1, 1, 1))
     expect_identical(colnames(object$spectra),
                      c("0_0", "0_1", "0_2", "1_0", "1_1", "1_2"))
+
+    bytes <- readBin(binary, what = "raw", n = file.info(binary)$size)
+    binary_connection <- rawConnection(bytes, open = "rb")
+    streamed <- read_envi(
+      binary_connection, header, metadata = list(file_name = "map.dat")
+    )
+    close(binary_connection)
+    expect_identical(streamed, object)
   }
 })
 
