@@ -148,19 +148,55 @@ test_that("automate_particle_analysis() smooths in-memory maps when requested", 
   expect_false(isTRUE(all.equal(smoothed$spectra, raw$spectra)))
 })
 
-test_that("automate_particle_analysis() explains all-pixel thresholds", {
+test_that("automate_particle_analysis() accepts both threshold extremes", {
+  wn <- seq(750, 1800, length.out = 40)
+  particle <- sin(wn / 120) + 1
   map <- as_OpenSpecy(
-    c(800, 1200, 2500, 3000),
-    spectra = matrix(rep(c(1, 3, 2, 4), 4), ncol = 4),
+    wn,
+    spectra = matrix(rep(particle, 4), ncol = 4),
     metadata = expand.grid(x = 0:1, y = 0:1)
   )
-  expect_error(
-    automate_particle_analysis(
-      map, map, sn_threshold_min = -Inf, sn_threshold_max = Inf,
-      metric = "tot_sig"
+  library <- as_OpenSpecy(
+    wn, spectra = matrix(particle, ncol = 1,
+                         dimnames = list(NULL, "particle")),
+    metadata = data.frame(sample_name = "particle",
+                          material_class = "polymer")
+  )
+
+  retained <- NULL
+  expect_message(
+    retained <- automate_particle_analysis(
+      map, library, sn_threshold_min = -Inf, sn_threshold_max = Inf,
+      metric = "tot_sig", area_threshold = 0,
+      outputs = c("details", "summary", "processed"),
+      process_args = list(smooth_intens = FALSE, make_rel = TRUE)
     ),
     "retained every map pixel"
   )
+  expect_s3_class(retained, "OpenSpecyParticleAnalysis")
+  expect_equal(ncol(retained$samples[[1]]$particles_rds$spectra), 1L)
+  expect_equal(retained$samples[[1]]$particles_rds$metadata$area, 4L)
+  expect_equal(nrow(retained$particle_details_all_csv), 1L)
+
+  strategy_calls <- 0L
+  local_mocked_bindings(
+    .particle_strategy_map = function(...) {
+      strategy_calls <<- strategy_calls + 1L
+      stop("particle strategy must not run")
+    },
+    .package = "OpenSpecy"
+  )
+  removed <- NULL
+  expect_message(
+    removed <- automate_particle_analysis(
+      map, library, sn_threshold_min = 1e12, sn_threshold_max = Inf,
+      metric = "tot_sig"
+    ),
+    "removed every map pixel"
+  )
+  expect_identical(strategy_calls, 0L)
+  expect_null(removed$samples[[1]]$particles_rds)
+  expect_equal(removed$particle_summary_all_csv$count, 0L)
 })
 
 test_that("particle preprocessing preserves an explicit target axis", {

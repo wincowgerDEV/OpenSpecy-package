@@ -200,6 +200,10 @@ optional base-graphics particle images. Visual images attached to map objects
 or read from supported H5 mosaics are used for particle color extraction when
 feature definition is requested. It keeps file output optional and returns all
 results as R objects.
+S/N thresholds that remove every pixel return an empty analysis without
+library matching. Thresholds that retain every pixel continue normally; a
+connected collapse treats the full extent of each source map as one particle.
+Both threshold extremes emit an informational message.
 }
 \examples{
 tiny_map <- read_extdata("CA_tiny_map.zip") |> read_any()

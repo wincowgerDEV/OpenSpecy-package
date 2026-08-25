@@ -21,7 +21,7 @@ cache_dir <- Sys.getenv(
 
 # These are the current scientific decision thresholds. They are also drawn on
 # the returned S/N and maximum-correlation histograms.
-sn_threshold_min <- 0
+sn_threshold_min <- 4*10^5
 sn_threshold_max <- Inf
 cor_threshold <- 0.6
 
@@ -36,19 +36,19 @@ print(map)
 # Region views share the immutable source and cache. This is useful for
 # inspection, but automate_particle_analysis() discovers and processes these
 # regions sequentially without a user-written loop.
-region_views <- split_spec(list(map), by = "region")
+region_views <- split_spec(map, by = "region")
 names(region_views)
 
-map <- read_any("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\bigconcurve.h5")
+map <- read_h5("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\smallconcurve.h5")
 
 listedfiles <- lapply(unique(map$metadata$region), function(x) filter_spec(map, map$metadata$region ==x))
 
 result2 <- automate_particle_analysis( 
-    map,
+    listedfiles,
     library = lib,
     output_dir = wd,
     material_col = "material_class",
-    particle_id_strategy = "all_cell_id",
+    particle_id_strategy = "collapse",
     spectral_smooth = TRUE,
     sn_threshold_min = sn_threshold_min,
     sn_threshold_max = sn_threshold_max,
@@ -72,6 +72,8 @@ result2$particle_details_all_csv %>%
   group_by(sample_id) %>%
   summarise(percent_area = sum(area_um2[material_class == "poly(ethylene)"])/sum(area_um2),
 area = sum(area_um2))
+
+plot(sample_spec(listedfiles[[4]] |> spatial_smooth(), 10))
 
 # plot() replaces replayPlot() and accepts a region/sample name or position.
 plot(result2, sample = 1, which = "particle_heatmap")

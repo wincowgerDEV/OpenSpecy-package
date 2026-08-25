@@ -1,5 +1,10 @@
 # OpenSpecy 1.7.1
 
+- `automate_particle_analysis()` now treats both S/N threshold extremes as
+  valid outcomes. Removing every map pixel emits a message and returns an empty
+  analysis before library matching; retaining every pixel emits a message and
+  continues, allowing connected collapse to identify and measure the full map
+  as one particle per source.
 - Reduced default `read_envi()` peak memory without changing its public API or
   returned `OpenSpecy` format. BIP, BIL, and BSQ files are now read in bounded
   blocks directly into the final band-by-pixel matrix instead of constructing

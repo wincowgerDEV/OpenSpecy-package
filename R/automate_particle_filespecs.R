@@ -149,19 +149,25 @@ automate_particle_analysis.FileSpecs <- function(
     display <- .filespec_particle_display(index, snr, threshold)
     display <- .attach_particle_image(display, list(image), list(bottom_left),
                                       list(top_right), 1L)
+    threshold_state <- .particle_threshold_state(threshold)
 
-    if (!any(threshold)) {
+    if (identical(threshold_state, "none")) {
       cached <- list(snr = snr, threshold = threshold,
                      feature_metadata = NULL, collapsed = NULL)
     } else {
-      if (all(threshold)) {
-        stop("the FileSpecs thresholds select every pixel; choose thresholds ",
-             "that separate particles from background", call. = FALSE)
+      id_map <- if (identical(threshold_state, "all")) {
+        .partition_particle_map(
+          display, eligible = threshold, strategy = "collapse",
+          collapse_function = mean, area_threshold = 0,
+          shape_kernel = sigma2, close = close,
+          close_kernel = close_kernel
+        )$display
+      } else {
+        def_features(
+          display, threshold, shape_kernel = sigma2, close = close,
+          close_kernel = close_kernel
+        )
       }
-      id_map <- def_features(
-        display, threshold, shape_kernel = sigma2, close = close,
-        close_kernel = close_kernel
-      )
       region_name <- as.character(index$region[[1L]])
       feature <- as.character(id_map$metadata$feature_id)
       foreground <- !is.na(feature) & feature != "-88"
@@ -191,6 +197,8 @@ automate_particle_analysis.FileSpecs <- function(
   } else {
     .particle_progress(sample_name, "reuse cached particle means")
   }
+
+  .particle_threshold_state_message(cached$threshold, sample_name, "collapse")
 
   display <- .filespec_particle_display(index, cached$snr, cached$threshold)
   if (!is.null(cached$feature_metadata)) {

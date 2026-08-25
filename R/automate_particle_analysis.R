@@ -8,6 +8,10 @@
 #' or read from supported H5 mosaics are used for particle color extraction when
 #' feature definition is requested. It keeps file output optional and returns all
 #' results as R objects.
+#' S/N thresholds that remove every pixel return an empty analysis without
+#' library matching. Thresholds that retain every pixel continue normally; a
+#' connected collapse treats the full extent of each source map as one particle.
+#' Both threshold extremes emit an informational message.
 #'
 #' @param x character vector of files, an `OpenSpecy`/`Specs` object, or a list
 #' of objects/files.
@@ -150,18 +154,14 @@ automate_particle_analysis.default <- function(
       sn_threshold_min, sn_threshold_max
     )
 
-    if (!any(threshold) && !particle_id_strategy %in% c("raw",
-                                                        "nonspatial_collapse")) {
+    threshold_state <- .particle_threshold_state_message(
+      threshold, sample_name, particle_id_strategy
+    )
+    if (identical(threshold_state, "none")) {
       sample_results[[i]] <- .empty_particle_result(sample_name, map,
                                                     time_start, outputs,
                                                     plot_outputs, output_dir)
       next
-    }
-
-    if (all(threshold) && particle_id_strategy %in%
-        c("collapse", "partial_collapse")) {
-      stop("S/N thresholds retained every map pixel; choose a higher minimum ",
-           "or lower maximum before defining spatial particles", call. = FALSE)
     }
 
     if (identical(particle_id_strategy, "collapse")) {
@@ -355,6 +355,37 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
          call. = FALSE)
   }
   invisible(TRUE)
+}
+
+.particle_threshold_state_message <- function(threshold, sample_name,
+                                              strategy) {
+  state <- .particle_threshold_state(threshold)
+  if (identical(state, "none")) {
+    message(
+      "S/N thresholds removed every map pixel in '", sample_name,
+      "'; returning an empty particle analysis without library matching."
+    )
+    return("none")
+  }
+  if (identical(state, "all")) {
+    suffix <- if (identical(strategy, "collapse")) {
+      " A connected collapse treats each source map as one particle."
+    } else {
+      ""
+    }
+    message(
+      "S/N thresholds retained every map pixel in '", sample_name,
+      "'; continuing with particle_id_strategy = '", strategy, "'.", suffix
+    )
+    return("all")
+  }
+  "mixed"
+}
+
+.particle_threshold_state <- function(threshold) {
+  if (!any(threshold)) return("none")
+  if (all(threshold)) return("all")
+  "mixed"
 }
 
 .normalize_particle_strategy <- function(strategy) {

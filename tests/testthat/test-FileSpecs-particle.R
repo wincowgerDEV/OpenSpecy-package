@@ -105,6 +105,48 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   expect_identical(source_after, source_before)
 })
 
+test_that("FileSpecs particle automation accepts both threshold extremes", {
+  directory <- tempfile("filespec-particle-extremes-")
+  dir.create(directory)
+  fixture <- .make_particle_filespec_envi(directory)
+  specs <- open_specs(fixture$header, cache_dir = file.path(directory, "cache"))
+  library <- as_OpenSpecy(
+    fixture$axis,
+    spectra = matrix(fixture$particle, ncol = 1,
+                     dimnames = list(NULL, "particle")),
+    metadata = data.frame(sample_name = "particle",
+                          material_class = "polymer")
+  )
+  args <- list(
+    x = specs, library = library, collapse_function = mean,
+    metric = "tot_sig", area_threshold = 0,
+    outputs = c("details", "summary", "processed"),
+    process_args = list(smooth_intens = FALSE, make_rel = TRUE)
+  )
+
+  retained <- NULL
+  expect_message(
+    retained <- do.call(
+      automate_particle_analysis,
+      c(args, list(sn_threshold_min = -Inf, sn_threshold_max = Inf))
+    ),
+    "retained every map pixel"
+  )
+  expect_equal(ncol(retained$samples$Region1$particles_rds$spectra), 1L)
+  expect_equal(retained$samples$Region1$particles_rds$metadata$area, 16L)
+
+  removed <- NULL
+  expect_message(
+    removed <- do.call(
+      automate_particle_analysis,
+      c(args, list(sn_threshold_min = 1e12, sn_threshold_max = Inf))
+    ),
+    "removed every map pixel"
+  )
+  expect_null(removed$samples$Region1$particles_rds)
+  expect_equal(removed$particle_summary_all_csv$count, 0L)
+})
+
 test_that("FileSpecs particle automation rejects unsupported whole-map paths", {
   directory <- tempfile("filespec-particle-errors-")
   dir.create(directory)
