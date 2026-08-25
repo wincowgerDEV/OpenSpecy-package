@@ -284,6 +284,14 @@
     diagram box(es)/decision(s) it changes and update this file. See
     <code>.specify/memory/constitution.md</code>.
   </div>
+  <div class="rule">
+    <strong>Plan 018 target (not yet implemented):</strong> upload stages and validates an H5/ENVI
+    source; Click Run owns halo-aware batch smoothing, configured S/N classification,
+    background-to-zero suppression, and exact foreground deduplication into <code>Specs</code>;
+    PCA and K-means may stack afterward while the zero sentinel stays protected.
+    Without committed suppression settings, the route remains exact. Indexed inspection
+    returns one labeled <code>OpenSpecy</code> without expanding the map.
+  </div>
 </header>
 
 <section class="legend" aria-hidden="false">
@@ -309,7 +317,7 @@
   <div class="zoom-layer" id="zoomLayer">
 <div class="canvas" id="canvas" style="width:2520px;height:3060px;">
 <svg viewBox="0 0 2520 3060" width="2520" height="3060" role="img"
-     aria-label="Current OpenSpecy flowchart from local upload or hosted browser-file mounting through full in-memory processing, active-spectrum quality inspection, particle partitioning, identification, quantification, and every terminal output.">
+     aria-label="OpenSpecy app flowchart, including planned source staging and Run-gated batch smoothing, signal-noise background suppression, and compact Specs materialization for H5 and ENVI maps.">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)"></path>
@@ -463,55 +471,55 @@
 </div>
 
 <div class="node function" style="left:1050px;top:230px" tabindex="0">
-  Read &amp; Materialize
-  <div class="sub">mounted/native paths &rarr; full OpenSpecy in R</div>
-  <div class="tip"><code>app_read_uploaded_members()</code> dispatches either mounted or native paths into the ordinary readers; multiple members combine with <code>c_spec(..., range="common")</code>, then <code>manage_na()</code>. Direct WORKERFS text inputs use <code>read_text()</code> with <code>fread(text=...)</code> because webR cannot memory-map a browser-backed file; delimiter/type inference and the resulting object remain the same. Default ENVI reads fill the final band-by-pixel matrix from bounded BIP/BIL/BSQ blocks instead of constructing and permuting whole intermediate arrays. A two-member ENVI HDR+DAT ZIP streams its compressed DAT directly through that bounded reader, avoiding a full temporary extracted copy; other ZIP layouts and spectrally smoothed ENVI reads retain ordinary extraction. This is not a <code>FileSpecs</code> branch.
-  <span class="loc">server.R: read_uploaded_files() &middot; global.R: app_mounted_file_info(), app_read_uploaded_members() &middot; R/read_multi.R &middot; R/read_envi.R: .read_envi_spectra()</span></div>
+  Stage Source &amp; Header
+  <div class="sub">validate path, members, header, dimensions &middot; no full map</div>
+  <div class="tip"><strong>Plan 018 target:</strong> mounted and native paths converge into a session-owned source descriptor. H5/ENVI/ZIP input validates readable members, header, dimensions, axis, and expected bytes but defers spectral materialization until Click Run commits scientific settings. Ordinary small formats retain their compatible dense <code>OpenSpecy</code> read. The original source stays untouched and available for reruns.
+  <span class="loc">Plan 018 &middot; server.R: staged_source() &middot; global.R: app_read_uploaded_members() &middot; R/{read_multi,read_envi,read_ext}.R</span></div>
 </div>
 
 <div class="node decision" style="left:1050px;top:400px" tabindex="0">
   Passes validity check?
-  <div class="sub">check_OpenSpecy()</div>
-  <div class="tip">Verifies wavenumber/spectra/metadata shape and coherence. Still part of the live upload handler, not gated by Run &mdash; it has to pass before Click Run (below) even becomes reachable.
-  <span class="loc">server.R:301 &middot; R/as_OpenSpecy.R:469</span></div>
+  <div class="sub">source descriptor or OpenSpecy valid?</div>
+  <div class="tip">Before Run, compact candidates validate source readability, members, axis, dimensions, and size arithmetic without allocating spectra. Already-materialized ordinary input uses <code>check_OpenSpecy()</code>. The completed Run later validates its compact object with <code>check_Specs()</code> before publishing canonical state.
+  <span class="loc">Plan 018 &middot; server.R: staged source validation &middot; R/{read_envi,read_ext,Specs}.R</span></div>
 </div>
 <div class="node output tip-above" style="left:1650px;top:400px" tabindex="0">
   Upload Error (abort)
-  <div class="tip"><code>show_alert()</code> plus the mode-appropriate local status or hosted persistent notification fire; <code>preprocessed$data</code> is never set, so no later stage runs at all.
-  <span class="loc">server.R:301-343</span></div>
+  <div class="tip"><code>show_alert()</code> plus the mode-appropriate persistent status fires. Neither a source descriptor nor canonical object is published, so Run and later stages cannot consume a partial source.
+  <span class="loc">Plan 018 &middot; server.R: source staging</span></div>
 </div>
 
 <div class="node trigger" style="left:1650px;top:500px" tabindex="0">
   &#9654; Click Run
-  <div class="tip">input$run_analysis. Positioned here because nothing downstream produces a visible result without it: XY Grid Normalize onward is either literally inside canonical_state_gate's Run-triggered closure, or &mdash; like data()/spatial_data() themselves &mdash; is technically a live reactive() that Shiny only evaluates because canonical_state_gate (or the narrow click-driven raw-spectrum/click-position paths) asks for its value. Change a setting: nothing visible updates. Click Run: the whole cascade below executes, and every scientific output derives from that one snapshot (see "Build canonical_state" further down). Also fires the dependent Run-gated caches (Quantification, Pixel Projection, AI Model Classification) on the same click, in priority order (RESET, then CANONICAL, then DEFAULT).
-  <span class="loc">server.R:75-106, 1296</span></div>
+  <div class="tip">Snapshots every scientific setting. For a staged compact source this is the sole owner of reading and materialization: it constructs the validated background-filter policy only when Threshold S/N, Spatial Smooth, and Raw / Spatially Smoothed basis are committed, then runs Batch Smooth &rarr; S/N &rarr; Suppress &rarr; Deduplicate. Other settings remain passive until the next Run. Every later output derives from this snapshot.
+  <span class="loc">Plan 018 &middot; server.R: run gate priorities and canonical_state_gate()</span></div>
 </div>
 
 <div class="node trigger" style="left:1650px;top:610px" tabindex="0">
   &#8635; Recalculate Preview
-  <div class="tip">input$recalculate_snr. Unlike Click Run (above), this does NOT gate the analysis pipeline &mdash; it only refills the Signal/Noise histogram preview (snr_preview()) from the already-live signal_to_noise() metric, so thresholds can be previewed without committing to a full Run. Its card dims ("stale") whenever a setting it depends on has changed since the last recompute.
-  <span class="loc">server.R:1080-1099</span></div>
+  <div class="tip">Does not publish canonical analysis. For a staged compact source it scans the same haloed tiles, applies smoothing and the selected <code>sig_noise()</code> metric, and retains only histogram values/summary; central progress makes the potentially long scan explicit. Any changed metric, bounds, basis, or sigma keeps canonical results stale until Click Run rereads the source.
+  <span class="loc">Plan 018 &middot; server.R: recalculate_snr_preview()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:570px" tabindex="0">
-  XY Grid Normalize
-  <div class="sub">gen_grid()  &middot; optional</div>
-  <div class="tip">Only runs if "Snap to grid" is on AND coordinates are spatially discontinuous; rewrites metadata$x/$y. Spectra values are untouched.
-  <span class="loc">server.R:440-451 &middot; R/as_OpenSpecy.R:541</span></div>
+  Batch Smooth &rarr; S/N &rarr; Suppress &rarr; Deduplicate
+  <div class="sub">ordered Specs steps &middot; Run-gated H5/ENVI materialization</div>
+  <div class="tip">Reads full-band spatial tiles/regions with Gaussian halos. The optional ordered <code>background</code> step smooths first, computes the chosen S/N metric and strict min/max eligibility, points rejected sources to one protected zero spectrum, and exact-deduplicates retained foreground. Without it, <code>deduplicate</code> remains lossless. PCA and K-means may stack afterward in their supported order, operate only on foreground, and never absorb or alter the zero sentinel; background must remain before PCA/K-means/Hilbert while original per-pixel spectra and coordinates exist. The reader also builds grid/metadata dictionaries, records provenance, validates <code>Specs</code>, and reports progress.
+  <span class="loc">Plan 018 &middot; R/{read_envi,read_ext,read_multi,Specs,sig_noise}.R &middot; server.R: canonical_state_gate()</span></div>
 </div>
 
 <div class="node decision" style="left:1050px;top:740px" tabindex="0">
   Map data?
-  <div class="sub">ncol(spectra) &gt; 1</div>
-  <div class="tip">A single uploaded spectrum always takes the "no" path below &mdash; Spatial Smooth and Collapse become no-ops regardless of switch position, checked the same way at every stage that depends on pixel count.
-  <span class="loc">server.R:732, 1109-1114</span></div>
+  <div class="sub">source count &gt; 1 (dense or compact)</div>
+  <div class="tip">Uses dense spectrum columns or the compact source count, never the number of unique stored values. A map whose pixels all share one exact spectrum is still a map. A genuine single spectrum takes the "no" path, making Spatial Smooth and Collapse no-ops.
+  <span class="loc">Plan 018 &middot; server.R: map guards &middot; R/Specs.R: indexed accessors</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:910px" tabindex="0">
   Spatial Smooth
-  <div class="sub">spatial_smooth()  &middot; optional, map only</div>
-  <div class="tip">A plain live reactive, not gated by Run: technically it recomputes on the next read after Spatial Smooth/sigma changes, not on a fixed schedule. Runs only if the switch is on; convolves each pixel with its spatial neighbors. The result (spatial_data()) is what Signal/Noise, Collapse, and Pixel Projection all read from next &mdash; not the raw upload. Only Run-gated/click-triggered code reads it, so the actual convolution never executes before Run: current_select_xy() (the always-on marker-position sync) previously read spatial_data()$metadata purely for x/y coordinates, which spatial_smooth() never changes, and that forced the real computation live on every toggle; fixed by reading data() (pre-smoothing, identical metadata) there instead.
-  <span class="loc">server.R:727-743 &middot; R/spatial_smooth.R:28</span></div>
+  <div class="sub">dense here &middot; filtered Specs already smoothed once</div>
+  <div class="tip">Dense/ordinary maps retain the existing optional <code>spatial_smooth()</code>. A filtered compact map arrives with the same committed Gaussian transformation recorded, so this stage recognizes provenance and does not smooth twice. An exact compact map without early suppression may use a bounded Specs smoothing method and re-deduplicate its result.
+  <span class="loc">Plan 018 &middot; server.R: spatial_data() &middot; R/spatial_smooth.R &middot; Specs transformation provenance</span></div>
 </div>
 
 <div class="node output tip-above" style="left:1650px;top:1080px" tabindex="0">
@@ -523,9 +531,9 @@
 
 <div class="node function" style="left:1050px;top:1250px" tabindex="0">
   Signal/Noise Compute
-  <div class="sub">sig_noise()  &middot; live, not Run-gated</div>
-  <div class="tip">Dataset-level reactive: <code>signal_to_noise_basis()</code> chooses spatial or fully processed map data, <code>sig_noise(..., step=10)</code> yields each pixel's metric, and <code>signal_eligible()</code> applies MinSNR()/MaxSNR(). It owns threshold eligibility, metadata, and the histogram preview. Plan 017 removes it as the evidence source for the selected spectrum's Quality Findings; that SNR is computed directly on Active Spectrum Inspection instead.
-  <span class="loc">server.R:1028-1053 &middot; R/sig_noise.R:59</span></div>
+  <div class="sub">reuse committed source S/N or compute unique values</div>
+  <div class="tip">Filtered compact maps reuse their per-source S/N and eligibility produced by the batch reader, guaranteeing that particle edges and zero mapping use the same metric. Exact compact maps compute once per unique value and project through the source index; dense/Fully Processed paths retain ordinary computation. Selected-spectrum Quality Findings remain bound to Active Spectrum Inspection, with suppressed pixels handled by provenance.
+  <span class="loc">Plan 018 &middot; server.R: signal_to_noise_basis()/signal_eligible() &middot; R/{sig_noise,Specs_methods}.R</span></div>
 </div>
 
 <div class="node decision" style="left:1050px;top:1420px" tabindex="0">
@@ -538,15 +546,15 @@
 <!-- off-collapse lane -->
 <div class="node function" style="left:250px;top:1590px" tabindex="0">
   Ordinary Process
-  <div class="sub">process_spec() + corrections</div>
-  <div class="tip">canonical_state_gate's !collapse branch: optional correct_spike() (residual method) and saturation check, then process_spec(adj_intens, conform_spec, subtr_baseline, smooth_intens, make_rel), then optional flatten_range()/restrict_range(). This exact sequence is reused at every "Ordinary Process" box in this diagram, and is the ONLY step that changes spectra values themselves &mdash; every later step (collapse, identification, quantification) only adds columns or picks which units exist.
-  <span class="loc">server.R:1357-1366, 457-725 &middot; R/process_spec.R</span></div>
+  <div class="sub">process_spec() + corrections &middot; unique values once</div>
+  <div class="tip">The !collapse branch applies the existing correction and processing sequence. For Plan 018 compact maps, deterministic columnwise operations run once per unique stored value while source mappings and compact metadata remain aligned; range changes update <code>variables</code>. Coordinate-dependent exceptions use their named compact method and may re-deduplicate. This remains the only stage that changes spectral values.
+  <span class="loc">Plan 018 &middot; server.R: ordinary processing &middot; R/process_spec.R &middot; R/Specs_methods.R</span></div>
 </div>
 <div class="node function" style="left:250px;top:1760px" tabindex="0">
   Identity Pixel Mapping
   <div class="sub">identity_pixel_mapping()</div>
-  <div class="tip">Even with Collapse off, a pixel failing the Signal/Noise threshold gets eligible=FALSE / unit_index=NA so it stays excluded from canonical outputs. Plan 017 routes a click on that pixel to the explicitly labeled Active Spectrum Inspection fallback; it is not silently re-included and is not replaced by zeros.
-  <span class="loc">server.R:1363</span></div>
+  <div class="tip">With Collapse off, an ineligible pixel remains excluded from canonical units. Exact-mode rejection retains Plan 017's source-pixel inspection fallback. When Plan 018's committed <code>background</code> step ran, the source instead points deliberately to the protected zero sentinel and carries suppression reason/provenance; it is never presented as an unchanged measurement.
+  <span class="loc">Plan 018 &middot; server.R: identity_pixel_mapping() &middot; Specs source mapping</span></div>
 </div>
 
 <!-- collapse-on: strategy -->
@@ -566,13 +574,13 @@
 <div class="node function" style="left:1050px;top:1760px" tabindex="0">
   Spatial Clusters
   <div class="sub">strategy = "partial_collapse"</div>
-  <div class="tip">Shares Non-spatial Clusters' first pass (PCA + k-means, dotted rose line), then takes the cluster-identified material labels and runs a SECOND .partition_particle_map(strategy="collapse", material=&lt;cluster material&gt;) to spatially merge same-material connected pixels into fewer, larger particles; re-processes and re-aggregates matches. Requires a real (non-model) library. Confirmed genuine divergence from Non-spatial Clusters on a real multi-particle map: 1 merged particle vs. 4.
+  <div class="tip">Shares Non-spatial Clusters' first pass (PCA + k-means, dotted rose line), then spatially merges same-material connected pixels and re-aggregates matches. Plan 018 keeps the upstream background zero sentinel outside PCA fitting and K-means assignment, so only retained foreground participates; the source mask still controls particle edges. Requires a real library.
   <span class="loc">server.R:1453-1492</span></div>
 </div>
 <div class="node function" style="left:1550px;top:1760px" tabindex="0">
   Non-spatial Clusters
   <div class="sub">strategy = "nonspatial_collapse"</div>
-  <div class="tip">.partition_particle_map(signal_subset, strategy="nonspatial_collapse", pca_components=, centers=, collapse_function=) clusters SPECTRA by PCA + k-means (not spatial position) into analysis_units = cluster-mean spectra, then Ordinary Process + Library Identification + Attach Best Matches run on the clusters. Stops here &mdash; no spatial merge step, unlike Spatial Clusters (dotted rose line: they share the clustering step above).
+  <div class="tip">Clusters retained foreground spectra by PCA + k-means into cluster-mean analysis units, then runs Ordinary Process, Identification, and Attach Best Matches. The protected background zero value and its source mappings never enter the PCA model or a cluster. Stops without Spatial Clusters' later spatial merge.
   <span class="loc">server.R:1378-1451</span></div>
 </div>
 
@@ -592,29 +600,29 @@
 
 <div class="node function" style="left:1050px;top:2100px" tabindex="0">
   Library Identification
-  <div class="sub">identify_blockwise / .match_spec_blockwise</div>
-  <div class="tip">identify_blockwise(object) calls OpenSpecy:::.match_spec_blockwise(object, reference, top_n=, block_size=1000L, type="roll"). Reference resolved by app_reference_for_query(library_filtered(), object). Inside "Connected Threshold Regions + Correlation Threshold" this can run twice &mdash; see that box. This path (and Attach Best Matches below it) is what feeds max_cor()/matches_to_single() in real-library mode; AI Model Classification feeds the exact same downstream functions through ai_output() instead when lib_type="model".
-  <span class="loc">server.R:1141-1160 &middot; R/match_spec.R:213</span></div>
+  <div class="sub">unique-value matching &middot; indexed source projection</div>
+  <div class="tip">Dense objects retain blockwise matching. Plan 018 compact maps match each unique stored value once, then project match rows through the source-to-value index when pixel-level thresholds, maps, or metadata require them. Collapsed units continue through canonical <code>OpenSpecy</code>. AI Model Classification reaches the same downstream result contract through its separate path.
+  <span class="loc">Plan 018 &middot; server.R: identify_blockwise() &middot; R/{match_spec,Specs_methods}.R</span></div>
 </div>
 <div class="node function" style="left:1050px;top:2270px" tabindex="0">
   Attach Best Matches
-  <div class="sub">attach_best_matches / match_material</div>
-  <div class="tip">Adds max_cor_name, max_cor_val, material_class to object$metadata from best_match_rows(matches) + match_material(). Result becomes canonical_state()$object.
-  <span class="loc">server.R:1162-1194</span></div>
+  <div class="sub">attach compact dictionaries / dense metadata</div>
+  <div class="tip">Adds max_cor_name, max_cor_val, and material_class to dense metadata or compact source/value metadata dictionaries without expanding repeated labels. The resulting single object becomes <code>canonical_state()$object</code>.
+  <span class="loc">Plan 018 &middot; server.R: attach_best_matches() &middot; Specs metadata accessors</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:2440px" tabindex="0">
   Build canonical_state
-  <div class="sub">canonical_state_gate  &middot; Run-gated</div>
-  <div class="tip">The single expensive-analysis owner: bundles object, matches, pixel_matches, pixel_to_unit, partition, error, diagnostic, and a run_settings snapshot (collapse/strategy/thresholds captured once per Run) so every downstream reader sees exactly what produced this result, never live inputs. This closure is exactly what Click Run (near the top of this diagram) executes.
-  <span class="loc">server.R:1296-1366+</span></div>
+  <div class="sub">one Specs map or OpenSpecy unit object &middot; Run-gated</div>
+  <div class="tip">The single expensive-analysis owner bundles one canonical object, matches, compact pixel/value mapping, partition, diagnostics, and the committed run-settings snapshot. An uncollapsed H5/ENVI map remains lossless <code>Specs</code>; a single spectrum or collapsed unit result is canonical <code>OpenSpecy</code>. Downstream consumers use representation-aware accessors rather than maintaining duplicate pipelines.
+  <span class="loc">Plan 018 &middot; server.R: canonical_state_gate()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:2610px" tabindex="0">
   canonical_final() / DataR()
-  <div class="sub">validated read of canonical_state</div>
-  <div class="tip">validate()-guards on analysis_needs_reset() (new upload not yet Run) and a non-NULL object, else surfaces diagnostic/error text. DataR() is a compatibility alias. Summaries, identification, quantification, metadata, maps, and downloads derive from this object. Plan 017's named view-only Active Spectrum Inspection lane is the deliberate exception for inspecting a rejected clicked source pixel.
-  <span class="loc">server.R:1634-1645, 1674</span></div>
+  <div class="sub">validated canonical Specs/OpenSpecy read</div>
+  <div class="tip">Validates committed state and returns its one canonical spectral object. Summaries, identification, quantification, metadata, maps, and downloads derive from this object through representation-aware accessors. The named Active Spectrum Inspection lane is the deliberate one-column <code>OpenSpecy</code> view boundary, including rejected clicked source pixels.
+  <span class="loc">Plan 018 &middot; server.R: canonical_final(), DataR()</span></div>
 </div>
 
 <div class="node decision" style="left:550px;top:2780px" tabindex="0">
@@ -632,9 +640,9 @@
 
 <div class="node function" style="left:1050px;top:2780px" tabindex="0">
   Pixel Projection
-  <div class="sub">pixel_projection_gate  &middot; map only, Run-gated</div>
-  <div class="tip">Projects unit-level results (canonical_state()$object/$matches/$pixel_to_unit) back onto every raw pixel of spatial_data() for heatmap coloring; computes rejected/rejection_reason per pixel from Signal/Noise + correlation thresholds via app_threshold_rejection_mask().
-  <span class="loc">server.R:2150-2220</span></div>
+  <div class="sub">indexed projection &middot; map only, Run-gated</div>
+  <div class="tip">Projects canonical unit/value results through the compact source index for heatmap coloring and rejection metadata. Coordinate and requested color columns materialize only for the plotted rows; spectral matrices do not expand. Dense objects retain the existing pixel-to-unit path.
+  <span class="loc">Plan 018 &middot; server.R: pixel_projection_gate() &middot; Specs accessors</span></div>
 </div>
 
 <div class="node decision" style="left:1550px;top:2780px" tabindex="0">
@@ -652,16 +660,17 @@
 
 <div class="node function" style="left:1850px;top:2560px" tabindex="0">
   Active Spectrum Inspection
-  <div class="sub">active_spectrum_view()</div>
+  <div class="sub">active_spectrum_view() &middot; indexed exact decompression</div>
   <div class="tip">One aligned, one-column <code>OpenSpecy</code> object is the exact processed trace used by both Spectrum Plot and Quality Findings. A retained click selects its canonical unit. A rejected click takes that source pixel from the committed inspection source, applies the committed Run processing settings once, and labels it “rejected-pixel inspection”; it never substitutes zeros. Selection changes are narrow and do not recompute the whole map or library.
-  <span class="loc">server.R: active_spectrum_view() and DataR_plot()</span></div>
+  <strong>Plan 018 target:</strong> a compact map resolves the clicked source and calls indexed <code>decompress_spec()</code> without expanding unrelated data. Retained foreground reconstructs through its PCA/K-means stack as applicable. A suppressed source returns an exact zero line labeled “background-suppressed,” with metric, bounds, sigma, and reason.
+  <span class="loc">Plan 018 &middot; server.R: active_spectrum_view(), DataR_plot() &middot; R/Specs.R: decompress_spec(index=)</span></div>
 </div>
 
 <div class="node output tip-above" style="left:1850px;top:2730px" tabindex="0">
   Quality Findings
   <div class="depends">depends on: Active Spectrum Inspection only</div>
-  <div class="tip"><code>assess_spec()</code> and the selected metric's <code>sig_noise()</code> run directly on the same one-column object shown as the processed Active Spectrum. Silent-region, flatness, high-tail, CO2, and SNR evidence never index the heatmap, <code>canonical_signal_noise()</code>, <code>max_cor()</code>, or the full dataset. Threshold on/off cannot alter these findings for an unchanged selected trace.
-  <span class="loc">server.R: quality_report() &middot; R/assess_spec.R &middot; R/sig_noise.R</span></div>
+  <div class="tip">For measured/retained spectra, <code>assess_spec()</code> and <code>sig_noise()</code> run directly on the displayed one-column Active Spectrum. A Plan 018 suppressed source instead reports its committed suppression evidence and bypasses misleading flat-spectrum or unavailable-S/N warnings on the intentional zero sentinel. No quality path reads heatmap or full-dataset values.
+  <span class="loc">Plan 018 &middot; server.R: quality_report() &middot; R/{assess_spec,sig_noise}.R</span></div>
 </div>
 
 <!-- ================= dependency rail: every terminal output tapped at its true upstream point(s) ================= -->
@@ -689,9 +698,10 @@
 
 <div class="node output tip-left" style="left:2250px;top:1430px" tabindex="0">
   Sidebar Metadata Table
-  <div class="depends">depends on: Read &amp; Combine (off) or Collapse (on)</div>
+  <div class="depends">depends on: Batch Compact (off) or Collapse (on)</div>
   <div class="tip">output$sidebar_metadata reads meta_cache(), from quantified_data() + canonical_signal_noise(). Its row structure changes drastically with Collapse: OFF &rarr; one row per uploaded spectrum/pixel, an identity that traces straight back to Read &amp; Combine (long dotted line to the top of the diagram) rather than any processing step; ON &rarr; one row per collapsed particle/cluster, an identity decided at Collapse/Particle ID Strategy instead.
-  <span class="loc">server.R:2134, 1863</span></div>
+  <strong>Plan 018 target:</strong> compact maps materialize only the requested display columns/rows through indexed metadata accessors; the full spectral matrix is never expanded.
+  <span class="loc">Plan 018 &middot; server.R: sidebar metadata cache &middot; Specs metadata accessors</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:1490px" tabindex="0">
@@ -754,14 +764,16 @@
   Selection Metadata Table
   <div class="depends">depends on: canonical_final() + click; Identification OR AI</div>
   <div class="tip">output$eventmetadata reads match_metadata(), from selected_unit_index() + matches_to_single(). match_metadata() branches on lib_type: real-library mode uses Library Identification's matches_to_single(); AI mode instead does bind_cols(quantified_data()$metadata, matches_to_single()) where matches_to_single() reads ai_output() &mdash; unlike Top Matches Table, this one is NOT blocked in AI mode. Row selection is set by clicking the Heatmap (dashed teal line below).
-  <span class="loc">server.R:2099, 2042</span></div>
+  <strong>Plan 018 target:</strong> a compact selection fetches exactly one aligned source metadata row and its value-level match fields.
+  <span class="loc">Plan 018 &middot; server.R: match_metadata() &middot; Specs metadata accessors</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2720px" tabindex="0">
   Download: Processed Spectra
   <div class="depends">depends on: Ordinary Process (values) + Quantification (columns)</div>
   <div class="tip">write_spec() from quantified_data() + canonical_signal_noise(). The spectra VALUES in this download trace back only to Ordinary Process &mdash; Collapse/Strategy only decide which columns (units) exist. Quantification is not a dead end here: quantified_data() is the literal source object, so any peak-ratio/point-intensity columns the user defined ride along in the export; Identification adds metadata columns only, never touches $spectra.
-  <span class="loc">server.R:2738-2741</span></div>
+  <strong>Plan 018 target:</strong> large compact maps use a compact RDS or a streaming expanded writer; no download may first materialize the entire dense object. Small/collapsed <code>OpenSpecy</code> outputs retain native behavior.
+  <span class="loc">Plan 018 &middot; server.R: processed download &middot; R/{io_spec,Specs}.R</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2810px" tabindex="0">
@@ -788,6 +800,9 @@
   functions each stage wraps. The current state includes spec
   <code>017-active-spectrum-large-map</code>: mounted ingestion, actual-failure guidance instead of predictive
   memory blocking, Active Spectrum Inspection, and selection-bound Quality Findings.
+  Plan <code>018-lossless-map-specs</code> adds the explicitly labeled, not-yet-implemented staged
+  source and ordered <code>background</code>/<code>deduplicate</code>/PCA/K-means compact
+  <code>Specs</code> route; replace planned locations with verified source locations as it lands.
   When a plan changes any stage, branch, function, or
   output dependency named here, update this diagram in the same plan &mdash; see Constitution Principle X.
 </footer>
