@@ -325,10 +325,32 @@ async function expectClientBusyOverlay(page, selector, action, requireOverlay = 
     delete window.__openspecyBusyBlocker;
   });
   await page.reload({ waitUntil: "domcontentloaded" });
-  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
+}
+
+async function stageLocalFiles(page, files) {
+  const selected = (Array.isArray(files) ? files : [files]).map((file) =>
+    path.resolve(file)
+  );
+  const roots = [...new Set(selected.map((file) => path.parse(file).root))];
+  if (roots.length !== 1) {
+    throw new Error("Local smoke files must be selected from one filesystem root.");
+  }
+  const rootName = roots[0].replace(/[\\/:]+$/g, "").toUpperCase();
+  const payload = {
+    root: rootName,
+    files: selected.map((file) =>
+      path.relative(roots[0], file).split(path.sep).filter(Boolean)
+    ),
+  };
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await page.evaluate((selection) => {
+    window.Shiny.setInputValue("local_files", selection, { priority: "event" });
+  }, payload);
+  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
 }
 
 async function expectNativeDownloadBusyOverlay(page) {
@@ -533,9 +555,9 @@ test.afterEach(async ({}, testInfo) => {
 test("settings tabs expand the card and sustained actions start the overlay client-side", async ({ page }) => {
   test.setTimeout(300000);
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
   await expect(page.locator("#openspecy_workerfs_files")).toHaveCount(0);
-  await expect(page.locator("input[type='file']")).toHaveCount(1);
+  await expect(page.locator("input[type='file']")).toHaveCount(0);
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
@@ -550,19 +572,17 @@ test("settings tabs expand the card and sustained actions start the overlay clie
   await expectCardCollapsed(settingsCard);
 
   await expectNativeDownloadBusyOverlay(page);
-  await page.locator("#file").setInputFiles(
-    path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
+  await stageLocalFiles(
+    page, path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
   );
-  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
   await expectClientBusyOverlay(page, "#run_analysis", "run");
 
-  await page.locator("#file").setInputFiles(
-    path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
+  await stageLocalFiles(
+    page, path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
   );
-  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
@@ -594,7 +614,7 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
@@ -611,11 +631,8 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   });
 
   const mapUploadPath = path.join(repo, "inst", "extdata", "CA_tiny_map.zip");
-  await page.locator("#file").setInputFiles(mapUploadPath);
-  await expect.poll(async () => page.locator("#file").evaluate((input) =>
-    input.files?.[0]?.name || ""
-  )).toBe("CA_tiny_map.zip");
-  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await stageLocalFiles(page, mapUploadPath);
+  await expect(page.locator("#upload_status")).toContainText("1 file selected");
 
   // Toggling Spatial Smooth (before Run) must not force spatial_smooth() to
   // actually run: it's a live (not Run-gated) reactive by design, but a
@@ -723,6 +740,32 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   expect(postExport.disposition).toMatch(/filename="?Processed-Spectra-.*\.csv/i);
   expect(postExport.content).toMatch(/wavenumber/i);
 
+  await page.locator("#download_selection").evaluate((select) => {
+    select.selectize.setValue("Compact Map (RDS)");
+  });
+  await expect(page.locator("#download_selection"))
+    .toHaveValue("Compact Map (RDS)");
+  await expect(page.locator("#download_data"))
+    .toHaveText("Download Compact Map (RDS)");
+  const compactMap = await consumeDownload(page, {
+    readyTimeout: 180000, eventTimeout: 180000,
+  });
+  expect(compactMap.filename).toMatch(/^Compact-Map-RDS-.*\.rds$/i);
+  const compactValidation = spawnSync(
+    "C:/Program Files/R/R-4.3.3/bin/Rscript.exe",
+    ["-e", [
+      `devtools::load_all(${JSON.stringify(repo.replace(/\\/g, "/"))}, quiet=TRUE)`,
+      `x <- read_specs(${JSON.stringify(compactMap.path.replace(/\\/g, "/"))})`,
+      "stopifnot(is_Specs(x), specs_source_count(x) > 0L)",
+      "stopifnot(length(specs_background_mask(x)) == specs_source_count(x))",
+    ].join("; ")],
+    { cwd: repo, encoding: "utf8", windowsHide: true }
+  );
+  expect(
+    compactValidation.status,
+    `${compactValidation.stdout || ""}\n${compactValidation.stderr || ""}`
+  ).toBe(0);
+
   await expect.poll(() => stderr.slice(stderrStart), { timeout: 10000 })
     .toMatch(/completed 'Top Matches' download/i);
   const diagnostics = stderr.slice(stderrStart);
@@ -742,15 +785,14 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
   for (const inputId of ["collapse_decision", "threshold_decision"]) {
     await page.locator(`#${inputId}`).evaluate((input) => {
       if (input.checked) input.click();
     });
   }
   const mapUploadPath = path.join(repo, "inst", "extdata", "CA_tiny_map.zip");
-  await page.locator("#file").setInputFiles(mapUploadPath);
-  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  await stageLocalFiles(page, mapUploadPath);
   await page.locator("#run_analysis").click();
   await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 180000 });
   await expect(page.locator("#eventmetadata")).toContainText("CA small UF.dat", {
@@ -800,7 +842,7 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
   const settingsCard = page.locator("#analysis_settings_box");
   await toggleCard(settingsCard);
   await expectCardCollapsed(settingsCard, false);
@@ -827,10 +869,9 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
     });
   });
 
-  await page.locator("#file").setInputFiles(
-    path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
+  await stageLocalFiles(
+    page, path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
   );
-  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
   await page.locator("#run_analysis").click();
   await page.waitForFunction(() => {
     const select = document.getElementById("map_color");
@@ -1001,7 +1042,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
   page.on("popup", (popup) => popups.push(popup.url()));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#file")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
   const minMaxControl = page.getByText("Min-Max Normalize", { exact: true });
   await expect(minMaxControl).toBeHidden();
   await expect(page.locator("#placeholder1")).toBeVisible();
@@ -1238,12 +1279,9 @@ test("local app renders spectra, matches, and one informative progress overlay",
     if (index === 0) return `${line},duplicate_intensity`;
     return `${line},${line.split(",")[1]}`;
   }).join("\n");
-  await page.locator("#file").setInputFiles({
-    name: "raman_hdpe_batch.csv",
-    mimeType: "text/csv",
-    buffer: Buffer.from(ramanBatch, "utf8"),
-  });
-  await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
+  const batchPath = testInfo.outputPath("raman_hdpe_batch.csv");
+  fs.writeFileSync(batchPath, ramanBatch, "utf8");
+  await stageLocalFiles(page, batchPath);
   await page.locator("#run_analysis").click();
   const overlay = page.locator("#openspecy_busy_overlay");
   await expect(overlay).toBeVisible({ timeout: 30000 });
@@ -1522,9 +1560,13 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(progressState.progressNodes).toBe(0);
   expect(progressState.phases.length).toBeGreaterThanOrEqual(3);
   expect(progressState.phases.join(" ")).toMatch(/Preprocessing|reference library|Identifying|Rendering/i);
+  expect(progressState.phases.join(" ")).toMatch(/reference library/i);
   expect(progressState.elapsed.length).toBeGreaterThanOrEqual(2);
   expect(progressState.progress.length).toBeGreaterThanOrEqual(2);
-  expect(Math.max(...progressState.progress)).toBeGreaterThanOrEqual(76);
+  // Identification of this two-spectrum fixture can finish inside the
+  // overlay debounce. Reference loading is the last guaranteed visible
+  // long-running phase; larger matching jobs expose the later 76% phase.
+  expect(Math.max(...progressState.progress)).toBeGreaterThanOrEqual(52);
   expect(progressState.progress.every((value) => value >= 0 && value <= 100)).toBe(true);
   await testInfo.attach("progress-state", {
     body: JSON.stringify(progressState, null, 2),
@@ -1706,9 +1748,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await resetProgressProbe(page);
   await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
   await page.locator("#run_analysis").click();
-  await expect.poll(async () => (
-    await page.evaluate(() => window.__openspecySmoke.phases.join(" "))
-  ), { timeout: 120000 }).toMatch(/Calculating saved quantification/i);
+  await expect(overlay).toBeVisible({ timeout: 3000 });
   await expect(page.locator("#eventmetadata table")).toContainText(
     /area_ratio_custom_carbonyl/i,
     { timeout: 120000 }

@@ -1,5 +1,13 @@
 # OpenSpecy 1.7.1
 
+- Added the opt-in compact map `Specs` 0.2 format for ENVI/H5/ZIP inputs.
+  Regular coordinates and repeated metadata use validated descriptors, while
+  optional S/N background suppression retains foreground values and maps every
+  rejected source to an exact virtual zero spectrum with auditable reasons.
+  Weighted PCA/K-means and foreground Hilbert transforms preserve full-source
+  multiplicity without expanding compact pixels. The bundled app now stages
+  one local direct path or one hosted WORKERFS mount, reads only after **Run**,
+  and offers the compact transformed map as an RDS download.
 - `automate_particle_analysis()` now treats both S/N threshold extremes as
   valid outcomes. Removing every map pixel emits a message and returns an empty
   analysis before library matching; retaining every pixel emits a message and

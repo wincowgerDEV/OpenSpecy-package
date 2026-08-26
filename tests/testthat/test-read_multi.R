@@ -22,5 +22,16 @@ test_that("reading in multi files doesn't throw error", {
   expect_equal(multi$spectra[, "intensity.2"], raman_hdpe$spectra[, "intensity"])
 })
 
+test_that("ordinary ZIP readers ignore compact map-only arguments", {
+  policy <- specs_background_filter(minimum = 4)
+  multi <- read_zip(
+    read_extdata("testdata_zipped.zip"), representation = "Specs",
+    background_filter = policy, spectral_smooth = TRUE, sigma = c(1, 1, 1)
+  )
+
+  expect_type(multi, "list")
+  expect_true(all(vapply(multi, is_OpenSpecy, logical(1))))
+})
+
 # Tidy up
 unlink(tmp, recursive = T)

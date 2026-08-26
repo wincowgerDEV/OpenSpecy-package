@@ -24,7 +24,9 @@ Multiple spectra will return a list if this is false.}
 }
 \value{
 All \code{read_*()} functions return \code{OpenSpecy} objects if a single
-spectrum or map is provided, otherwise they provide a list of \code{OpenSpecy} objects.
+spectrum or map is provided, otherwise they provide a list of
+\code{OpenSpecy} objects. Map readers can return \code{Specs} when that
+representation is explicitly forwarded.
 }
 \description{
 Wrapper functions for reading files in batch.

@@ -65,8 +65,11 @@ multinomial model libraries; the local app can still use the full libraries.
 
 # Reading Data
 
-Once the app is open, if you have your own data, click **Browse** at the top
-left hand corner of the Analyze Spectra tab.
+Once the app is open, select your data at the top left and then click **Run**.
+Local Shiny uses a filesystem picker and reads the selected source path without
+making a Shiny upload copy. The hosted app uses its single browser picker and
+mounts that file through WORKERFS. Selection only stages the source; the central
+progress popup reports reading and every later analysis phase after **Run**.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
 knitr::include_graphics("app/mainpage.jpg")
@@ -78,6 +81,12 @@ but the other file types are still in development, though most of the time these
 files work perfectly. If uploading a .csv file, the simplest format is to label the column with the
 wavenumbers `wavenumber` and name the column with the intensities `intensity`.
 Wavenumber units must be cm^-1^. All other columns will be interpreted as additional spectra. Alternatively, spectra can be uploaded in wide csv format where some column names are in numerical format for the wavenumbers, rows will be interpreted as spectra, and any nonnumeric columns will be interpreted as metadata.  
+
+ENVI and H5 maps are read into the compact in-memory `Specs` representation.
+When S/N thresholding is enabled, the app records the selected metric, strict
+bounds, smoothing choice, per-source S/N, and rejection reason; rejected pixels
+map to an exact virtual zero spectrum. Turning thresholding off preserves every
+pixel. **Compact Map (RDS)** downloads that complete transformed state.
 Always keep a copy of the original files.
 
 The app reads uploaded datasets into memory and has a 10 GiB total upload

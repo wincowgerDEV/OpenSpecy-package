@@ -20,13 +20,17 @@ source_wasm_tool <- function(file, env) {
 
 test_that("Shinylive wasm package roots include app runtime packages", {
   roots <- read_wasm_manifest_lines(wasm_manifest_path("app-package-roots.txt"))
+  hosted_packages <- .openspecy_app_packages(hosted = TRUE)
 
   expect_true("local::." %in% roots)
-  expect_true(all(.openspecy_app_packages() %in% roots))
+  expect_true(all(hosted_packages %in% roots))
   expect_true(all(c(
     "shiny", "plotly", "data.table", "jsonlite", "OpenSpecy"
   ) %in% c(roots, "OpenSpecy")))
-  expect_true(all(c("curl", "scales") %in% .openspecy_app_packages()))
+  expect_true(all(c("curl", "scales") %in% hosted_packages))
+  expect_true("shinyFiles" %in% .openspecy_app_packages())
+  expect_false("shinyFiles" %in% hosted_packages)
+  expect_false("shinyFiles" %in% roots)
 })
 
 test_that("Fill Peaks has no compiled baseline runtime dependency", {

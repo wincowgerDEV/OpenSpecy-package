@@ -29,6 +29,126 @@ test_that("Specs constructor and checks validate objects", {
   expect_false(suppressWarnings(check_Specs(list())))
 })
 
+make_compact_specs_test_object <- function() {
+  values <- matrix(
+    c(1, 2, 3, 4, 5, 6), nrow = 3,
+    dimnames = list(c("1000", "1010", "1020"), c("V1", "V2"))
+  )
+  regions <- data.table(
+    name = "Region1", n = 6L, nx = 3L, ny = 2L,
+    x_origin = 10, y_origin = 20, x_step = 2, y_step = 3,
+    id_prefix = "px_"
+  )
+  coords <- .compact_specs_coords(regions, c(1L, 1L, 0L, 2L, 2L, 0L))
+  source_md <- data.table(
+    sample = rep("map", 6), group = rep(c("a", "b"), each = 3),
+    note = paste0("n", seq_len(6))
+  )
+  Specs(
+    variables = rownames(values), values = values, coords = coords,
+    metadata = data.table(value_id = colnames(values)),
+    attributes = list(
+      source_metadata = .encode_specs_metadata(source_md),
+      background = list(
+        mask = c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE),
+        signal_to_noise = c(5, 5, 0, 6, 6, NA),
+        reason = c(0L, 0L, 1L, 0L, 0L, 3L),
+        reason_levels = c("foreground", "below_minimum", "above_maximum",
+                          "nonfinite"),
+        policy = specs_background_filter(minimum = 4)
+      )
+    )
+  )
+}
+
+test_that("compact Specs preserve legacy compatibility and indexed access", {
+  compact <- make_compact_specs_test_object()
+  coords <- specs_coordinates(compact, c(1, 3, 6))
+  metadata <- specs_metadata(compact, c(2, 5))
+
+  expect_true(check_Specs(compact))
+  expect_equal(specs_source_count(compact), 6L)
+  expect_equal(coords$x, c(10, 14, 14))
+  expect_equal(coords$y, c(20, 20, 23))
+  expect_equal(coords$value_index, c(1L, 0L, 0L))
+  expect_equal(metadata$sample, c("map", "map"))
+  expect_equal(metadata$group, c("a", "b"))
+  expect_equal(specs_background_mask(compact),
+               c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE))
+  expect_equal(unname(specs_source_values(compact, c(3, 4))[, 1]), c(0, 0, 0))
+
+  legacy <- Specs(compact$variables, compact$values)
+  legacy$coords[, value_index := NULL]
+  attr(legacy, "specs_version") <- "0.1.0"
+  expect_true(check_Specs(legacy))
+})
+
+test_that("weighted compact PCA matches an expanded foreground oracle", {
+  compact <- make_compact_specs_test_object()
+  model <- fit_specs_pca(compact, n_components = 1)
+  expanded <- t(compact$values[, c(1, 1, 2, 2), drop = FALSE])
+  oracle <- stats::prcomp(expanded, rank. = 1)
+
+  expect_equal(model$center, oracle$center, tolerance = 1e-12)
+  expect_equal(abs(model$rotation), abs(oracle$rotation[, 1, drop = FALSE]),
+               tolerance = 1e-12)
+
+  transformed <- as_Specs(
+    compact, steps = c("pca", "hilbert"), n_components = 1,
+    bits_per_variable = 4
+  )
+  expect_equal(specs_source_values(transformed, c(3, 6)),
+               matrix(0, nrow = 2, ncol = 2,
+                      dimnames = list(c("hilbert_hi", "hilbert_lo"),
+                                      c("px_20_14", "px_23_14"))))
+  expect_equal(unname(decompress_spec(transformed, index = c(3, 6))$spectra),
+               matrix(0, nrow = 3, ncol = 2))
+})
+
+test_that("weighted compact K-means excludes background and preserves counts", {
+  compact <- make_compact_specs_test_object()
+  initial <- rbind(c(1, 2, 3), c(4, 5, 6))
+  expanded <- t(compact$values[, c(1, 1, 2, 2), drop = FALSE])
+  oracle <- stats::kmeans(expanded, centers = initial, algorithm = "Lloyd")
+  clustered <- as_Specs(
+    compact, steps = "kmeans", centers = initial, algorithm = "Lloyd"
+  )
+
+  expect_equal(unname(t(clustered$values)), unname(oracle$centers),
+               tolerance = 1e-12)
+  expect_equal(clustered$metadata$cluster_size, oracle$size)
+  expect_equal(specs_coordinates(clustered)$value_index,
+               c(1L, 1L, 0L, 2L, 2L, 0L))
+  expect_equal(specs_source_values(clustered, c(3, 6)),
+               matrix(0, nrow = 3, ncol = 2,
+                      dimnames = list(c("1000", "1010", "1020"),
+                                      c("px_20_14", "px_23_14"))))
+})
+
+test_that("precomputed background classification preserves foreground spectra", {
+  exact <- make_specs_test_os(nx = 3, ny = 2) |>
+    as_Specs(steps = character())
+  policy <- specs_background_filter(minimum = 4, maximum = 9)
+  classified <- .apply_specs_background_result(
+    exact, policy, c(5, 3, 6, Inf, 7, 9), basis = "fully_processed"
+  )
+
+  expect_equal(specs_background_mask(classified),
+               c(FALSE, TRUE, FALSE, TRUE, FALSE, TRUE))
+  expect_equal(
+    unname(decompress_spec(classified, index = c(2, 4, 6))$spectra),
+    matrix(0, nrow = nrow(exact$values), ncol = 3)
+  )
+  expect_equal(unname(classified$values),
+               unname(exact$values[, c(1, 3, 5), drop = FALSE]))
+  expect_identical(attr(classified, "background")$basis, "fully_processed")
+  expect_true(check_Specs(classified))
+  expect_error(
+    .apply_specs_background_result(classified, policy, rep(5, 6)),
+    "already"
+  )
+})
+
 test_that("fit_specs_pca() and as_Specs() compress OpenSpecy objects", {
   os <- make_specs_test_os()
   model <- fit_specs_pca(os, n_components = 3)
@@ -64,10 +184,12 @@ test_that("decompress_spec() reconstructs OpenSpecy objects", {
   specs <- as_Specs(os, model)
 
   expanded <- decompress_spec(specs, expand = TRUE)
+  coerced <- as_OpenSpecy(specs)
   active <- decompress_spec(specs, expand = FALSE)
 
   expect_s3_class(expanded, "OpenSpecy")
   expect_true(check_OpenSpecy(expanded))
+  expect_equal(coerced, expanded)
   expect_equal(nrow(expanded$spectra), length(os$wavenumber))
   expect_equal(ncol(expanded$spectra), nrow(specs$coords))
   expect_equal(expanded$metadata$source_id, specs$coords$source_id)
@@ -88,6 +210,21 @@ test_that("decompress_spec() reconstructs OpenSpecy objects", {
   expect_error(decompress_spec(specs, index = nrow(specs$coords) + 1),
                "outside x\\$coords")
   expect_error(decompress_spec(specs, index = c(1, 1)), "duplicate")
+})
+
+test_that("compact Specs are accepted by OpenSpecy particle partitioning", {
+  specs <- make_compact_specs_test_object()
+  partition <- .partition_particle_map(
+    specs, eligible = !specs_background_mask(specs), strategy = "collapse",
+    area_threshold = 1
+  )
+
+  expect_equal(nrow(partition$pixel_to_unit), specs_source_count(specs))
+  expect_equal(ncol(partition$display$spectra), specs_source_count(specs))
+  expect_equal(nrow(partition$display$metadata), specs_source_count(specs))
+  expect_false(any(partition$pixel_to_unit$kept[
+    specs_background_mask(specs)
+  ]))
 })
 
 test_that("Hilbert helpers support Hilbert-only compression and validation", {

@@ -36,7 +36,10 @@ for integration and verification procedure.
 ## Integration Contracts
 
 - Feed the visible spectrum, summary, identification, quantification,
-  metadata, and downloads from the same final processed `OpenSpecy` reactive.
+  metadata, and downloads from the same final processed spectral reactive.
+  Use `OpenSpecy` normally; a plan-approved compact `Specs` map must keep full
+  state compact and materialize `OpenSpecy` only at bounded indexed or collapsed
+  boundaries.
   Do not create a hidden second preprocessing pipeline.
 - Branch on every owner toggle before reading child inputs. Disabled, hidden,
   or otherwise muted child controls must not invalidate analysis, run network

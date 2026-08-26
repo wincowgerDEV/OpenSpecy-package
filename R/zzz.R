@@ -2,7 +2,8 @@
 if (getRversion() >= "2.15.1") {
   utils::globalVariables(c(
     ".", ".N", ".row_id", ".rs.invokeShinyWindowExternal", "column",
-    "correct", "level", "n", "problem", "value", "y"
+    "correct", "level", "n", "problem", "value", "value_id",
+    "value_index", "y"
   ))
 }
 

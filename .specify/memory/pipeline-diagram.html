@@ -287,9 +287,9 @@
   <div class="rule">
     <strong>Plan 018 target (not yet implemented):</strong> a local direct path or hosted WORKERFS
     mount stages and validates an H5/ENVI source. Click Run materializes the complete base
-    <code>Specs</code> with exact deduplication and, only when selected, halo-aware smoothing,
+    <code>Specs</code> with lossless compact coordinates/metadata and, only when selected, halo-aware smoothing,
     S/N classification, and background-to-zero suppression. PCA, K-means, and Hilbert are
-    later full-object <code>as_Specs()</code> transforms over foreground unique values and source
+    later full-object <code>as_Specs()</code> transforms over foreground values and source
     multiplicities; they never expand pixels and preserve background mapping 0. Indexed
     inspection returns one labeled <code>OpenSpecy</code> without expanding the map.
   </div>
@@ -492,7 +492,7 @@
 
 <div class="node trigger" style="left:1650px;top:500px" tabindex="0">
   &#9654; Click Run
-  <div class="tip">Snapshots every scientific setting. For a staged source this is the sole owner of base reading and materialization. It always permits exact deduplication; Threshold S/N alone enables the background-filter policy, and Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. The readers do not accept or run PCA, K-means, or Hilbert. Other settings remain passive until the next Run. Every later output derives from this snapshot.
+  <div class="tip">Snapshots every scientific setting. For a staged source this is the sole owner of base reading and materialization. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Readers compact coordinates and metadata losslessly but do not hash spectra or accept PCA, K-means, or Hilbert arguments. Other settings remain passive until the next Run. Every later output derives from this snapshot.
   <span class="loc">Plan 018 &middot; server.R: run gate priorities and canonical_state_gate()</span></div>
 </div>
 
@@ -504,8 +504,8 @@
 
 <div class="node function" style="left:1050px;top:570px" tabindex="0">
   Base Specs Materialization
-  <div class="sub">optional smooth/S/N/background + exact deduplicate &middot; Run-gated</div>
-  <div class="tip">Reads full-band spatial tiles/regions, adding Gaussian halos only when smoothing is selected. Threshold S/N enables the optional background filter: it classifies the chosen smoothed or unsmoothed basis, points rejected sources to protected mapping 0, and exact-deduplicates retained foreground. With thresholding off, no background is removed; exact <code>deduplicate</code> remains lossless. The reader builds the complete base <code>Specs</code>, grid/metadata dictionaries, provenance, and progress, but accepts no PCA, K-means, or Hilbert arguments. Those operate afterward on the full compact object.
+  <div class="sub">optional smooth/S/N/background + compact descriptors &middot; Run-gated</div>
+  <div class="tip">Reads full-band spatial tiles/regions, adding Gaussian halos only when smoothing is selected. Threshold S/N enables the optional background filter: it classifies the chosen smoothed or unsmoothed basis and points rejected sources to protected mapping 0. With thresholding off, no background is removed. The reader retains every foreground spectrum exactly once and losslessly compacts grid/metadata descriptors; the genuine profile found no exact spectral duplicates, so it performs no spectral hashing. Readers accept no PCA, K-means, or Hilbert arguments; those operate afterward on the full compact object.
   <span class="loc">Plan 018 &middot; R/{read_envi,read_ext,read_multi,Specs,sig_noise}.R &middot; server.R: canonical_state_gate()</span></div>
 </div>
 
@@ -519,7 +519,7 @@
 <div class="node function" style="left:1050px;top:910px" tabindex="0">
   Spatial Smooth
   <div class="sub">dense here &middot; filtered Specs already smoothed once</div>
-  <div class="tip">Dense/ordinary maps retain the existing optional <code>spatial_smooth()</code>. A filtered compact map arrives with the same committed Gaussian transformation recorded, so this stage recognizes provenance and does not smooth twice. An exact compact map without early suppression may use a bounded Specs smoothing method and re-deduplicate its result.
+  <div class="tip">Dense/ordinary maps retain the existing optional <code>spatial_smooth()</code>. A filtered compact map arrives with the same committed Gaussian transformation recorded, so this stage recognizes provenance and does not smooth twice. A compact map without early suppression uses a bounded Specs smoothing method when requested.
   <span class="loc">Plan 018 &middot; server.R: spatial_data() &middot; R/spatial_smooth.R &middot; Specs transformation provenance</span></div>
 </div>
 
@@ -532,7 +532,7 @@
 
 <div class="node function" style="left:1050px;top:1250px" tabindex="0">
   Signal/Noise Compute
-  <div class="sub">reuse committed source S/N or compute unique values</div>
+  <div class="sub">reuse committed source S/N or compute foreground values</div>
   <div class="tip">Filtered compact maps reuse their per-source S/N and eligibility produced by the batch reader, guaranteeing that particle edges and zero mapping use the same metric. Exact compact maps compute once per unique value and project through the source index; dense/Fully Processed paths retain ordinary computation. Selected-spectrum Quality Findings remain bound to Active Spectrum Inspection, with suppressed pixels handled by provenance.
   <span class="loc">Plan 018 &middot; server.R: signal_to_noise_basis()/signal_eligible() &middot; R/{sig_noise,Specs_methods}.R</span></div>
 </div>
@@ -547,8 +547,8 @@
 <!-- off-collapse lane -->
 <div class="node function" style="left:250px;top:1590px" tabindex="0">
   Ordinary Process
-  <div class="sub">process_spec() + corrections &middot; unique values once</div>
-  <div class="tip">The !collapse branch applies the existing correction and processing sequence. For Plan 018 compact maps, deterministic columnwise operations run once per unique stored value while source mappings and compact metadata remain aligned; range changes update <code>variables</code>. Coordinate-dependent exceptions use their named compact method and may re-deduplicate. This remains the only stage that changes spectral values.
+  <div class="sub">process_spec() + corrections &middot; foreground values once</div>
+  <div class="tip">The !collapse branch applies the existing correction and processing sequence. For Plan 018 compact maps, deterministic columnwise operations run once per stored foreground value while source mappings and compact metadata remain aligned; range changes update <code>variables</code>. Coordinate-dependent exceptions use their named compact method and update descriptors. This remains the only stage that changes spectral values.
   <span class="loc">Plan 018 &middot; server.R: ordinary processing &middot; R/process_spec.R &middot; R/Specs_methods.R</span></div>
 </div>
 <div class="node function" style="left:250px;top:1760px" tabindex="0">
@@ -615,7 +615,7 @@
 <div class="node function" style="left:1050px;top:2440px" tabindex="0">
   Build canonical_state
   <div class="sub">one Specs map or OpenSpecy unit object &middot; Run-gated</div>
-  <div class="tip">The single expensive-analysis owner bundles one canonical object, matches, compact pixel/value mapping, partition, diagnostics, and the committed run-settings snapshot. Requested PCA, K-means, and Hilbert formatting runs here through full-object <code>as_Specs()</code>, after the base map has been completely read. These transforms consume foreground unique values plus mapping multiplicities without unraveling pixels: PCA background scores, K-means class, and Hilbert code are 0, disambiguated by the authoritative background mask. A single spectrum or collapsed unit result remains canonical <code>OpenSpecy</code>. Downstream consumers use representation-aware accessors rather than duplicate pipelines.
+  <div class="tip">The single expensive-analysis owner bundles one canonical object, matches, compact pixel/value mapping, partition, diagnostics, and the committed run-settings snapshot. Requested PCA, K-means, and Hilbert formatting runs here through full-object <code>as_Specs()</code>, after the base map has been completely read. These transforms consume foreground values plus mapping multiplicities without unraveling pixels: PCA background scores, K-means class, and Hilbert code are 0, disambiguated by the authoritative background mask. A single spectrum or collapsed unit result remains canonical <code>OpenSpecy</code>. Downstream consumers use representation-aware accessors rather than duplicate pipelines.
   <span class="loc">Plan 018 &middot; server.R: canonical_state_gate()</span></div>
 </div>
 
@@ -802,7 +802,7 @@
   <code>017-active-spectrum-large-map</code>: mounted ingestion, actual-failure guidance instead of predictive
   memory blocking, Active Spectrum Inspection, and selection-bound Quality Findings.
   Plan <code>018-lossless-map-specs</code> adds the explicitly labeled, not-yet-implemented local-direct/hosted-mounted
-  source route, base <code>background</code>/<code>deduplicate</code> materialization, and later weighted
+  source route, base compact-coordinate/metadata plus optional <code>background</code> materialization, and later weighted
   PCA/K-means/Hilbert full-object transforms over compact <code>Specs</code>; replace planned locations with verified source locations as it lands.
   When a plan changes any stage, branch, function, or
   output dependency named here, update this diagram in the same plan &mdash; see Constitution Principle X.

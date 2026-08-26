@@ -101,6 +101,8 @@ read_h5(
   spectral_smooth = FALSE,
   sigma = c(1, 1, 1),
   read_visual = TRUE,
+  representation = c("OpenSpecy", "Specs"),
+  background_filter = NULL,
   ...
 )
 }
@@ -133,11 +135,19 @@ in nanometres and all mosaic tiles intersecting each region are registered
 for overlays and feature color extraction.
 \code{\link{as_OpenSpecy}()} for details.}
 
+\item{representation}{for H5 maps, return an ordinary dense
+\code{"OpenSpecy"} (the default) or a compact in-memory \code{"Specs"}.}
+
+\item{background_filter}{optional H5 map policy returned by
+\code{\link{specs_background_filter}()}; rejected/non-finite source pixels
+receive mapping 0 and foreground spectra retain their read values.}
+
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-All \code{read_*()} functions return data frames containing two columns
-named \code{"wavenumber"} and \code{"intensity"}.
+Text and single-spectrum readers return their established objects.
+\code{read_h5()} returns an \code{OpenSpecy} object by default or a compact
+\code{Specs} object when requested.
 }
 \description{
 Functions for reading spectral data from external file types.

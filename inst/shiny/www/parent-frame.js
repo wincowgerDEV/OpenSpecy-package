@@ -320,6 +320,33 @@
     };
   }
 
+  var runReadyGeneration = 0;
+  function setRunButtonReady(enabled) {
+    var generation = ++runReadyGeneration;
+    var applyReadyState = function () {
+      if (generation !== runReadyGeneration) return;
+      var button = document.getElementById("run_analysis");
+      if (!button) return;
+      button.disabled = !enabled;
+      button.classList.toggle("shinyjs-disabled", !enabled);
+      button.classList.toggle("disabled", !enabled);
+      if (enabled) {
+        button.removeAttribute("aria-disabled");
+      } else {
+        button.setAttribute("aria-disabled", "true");
+      }
+      document.documentElement.setAttribute(
+        "data-openspecy-run-ready", enabled ? "accepted" : "pending"
+      );
+    };
+    applyReadyState();
+    if (enabled) {
+      [0, 50, 250, 1000].forEach(function (delay) {
+        window.setTimeout(applyReadyState, delay);
+      });
+    }
+  }
+
   function bindWorkerfsUpload() {
     if (!isWasmMode()) return;
     var container = document.getElementById("openspecy_workerfs_upload");
@@ -338,16 +365,13 @@
     input.addEventListener("change", async function () {
       var files = Array.prototype.slice.call(input.files || []);
       if (!files.length) return;
-      var runButton = document.getElementById("run_analysis");
       document.documentElement.setAttribute(
         "data-openspecy-materialized", "pending"
       );
       document.documentElement.removeAttribute(
         "data-openspecy-materialized-files"
       );
-      if (runButton) {
-        runButton.disabled = true;
-      }
+      setRunButtonReady(false);
       var total = files.reduce(function (sum, file) {
         return sum + (Number(file.size) || 0);
       }, 0);
@@ -376,10 +400,16 @@
         window.Shiny.setInputValue(
           "mounted_files", mountedPayload(response), { priority: "event" }
         );
-        busyState.message = "Reading and materializing spectra";
+        // WORKERFS has accepted the browser File handles and mounted_files is
+        // now queued on the same ordered Shiny connection as the next Run
+        // click. Unlock here so a large File/Blob does not wait on a separate
+        // server-to-client flush merely to become runnable. Server-side
+        // validation still resets the picker if the metadata is rejected.
+        setRunButtonReady(true);
+        busyState.message = "Files mounted and ready";
         busyState.detail = fileCount +
-          " mounted; reading the complete dataset into OpenSpecy memory.";
-        busyState.progress = Math.max(busyState.progress, 8);
+          " mounted. Click Run to read and analyze the complete dataset.";
+        busyState.progress = Math.max(busyState.progress, 10);
         recordUploadStatus(busyState.message + ": " + busyState.detail);
         renderBusyState();
         scheduleBusy(true);
@@ -590,6 +620,14 @@
         if (!message) return;
         recordUploadStatus(message);
         if (state.type === "error") showUploadError(message);
+      });
+
+      // The bridge disables Run before mounting. Re-enable it only when the
+      // server has accepted and staged the WORKERFS metadata; relying on the
+      // separate shinyjs reactive here leaves a timing race for large files.
+      window.Shiny.addCustomMessageHandler("openspecy-run-ready", function (state) {
+        var enabled = Boolean(state && state.enabled);
+        setRunButtonReady(enabled);
       });
 
       window.Shiny.addCustomMessageHandler("openspecy-download-label", function (state) {

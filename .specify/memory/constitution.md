@@ -1,16 +1,15 @@
 <!--
 Sync Impact Report
-Version change: 3.9.1 -> 3.10.0
+Version change: 3.10.0 -> 3.11.0
 Modified principles:
-- IX. Proportional Evidence and Efficient Execution: require every plan to classify hosted impact and use tiered hosted verification
-- Hosted Shinylive/WebAssembly Application Boundary: add a fast source gate and explicit smoke-fixture preconditions before artifact/full-rebuild tiers
-- Development Workflow and Quality Gates: make hosted impact and the fast gate routine for shared hosted inputs
+- II. OpenSpecy Object Contract: allow a plan-approved compact Specs map as canonical analysis state without dense expansion
+- Bundled Shiny Application Boundary: require representation-aware consumers and an explicit indexed OpenSpecy inspection boundary
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md, AGENTS.md, and relevant Spec Kit/app/hosted/quality-gate skills: synchronized tiered hosted planning and verification
+- .specify/templates/plan-template.md, AGENTS.md, and relevant Spec Kit/app skills: synchronized canonical Specs-map guidance
 Follow-up TODOs:
 - None
 -->
@@ -42,6 +41,14 @@ one row per spectrum. Column names in `spectra` MUST remain unique and aligned
 with rows in `metadata`; function changes MUST preserve or deliberately update
 that alignment through `as_OpenSpecy()`, `OpenSpecy()`, or documented conversion
 helpers.
+
+When an explicit feature plan introduces a compact `Specs` representation for a
+hyperspectral map, that `Specs` object MAY be the canonical full-map analysis
+state. Representation-aware accessors MUST preserve source order, metadata,
+coordinates, background state, and transformation provenance without requiring
+the complete dense map to be decompressed. A consumer that requires
+`OpenSpecy` MUST materialize only its documented boundary, such as one selected
+spectrum or a genuinely collapsed set of analysis units.
 
 Filtering, joining, splitting, reducing, and model-preparation code MUST keep
 `spectra` columns and `metadata` rows in the same order and length. Logical
@@ -399,8 +406,12 @@ testing expectations, or public API restraint.
 
 For one app analysis state, the visible spectrum, summaries, identification,
 quantification, metadata, and downloads MUST derive from the same final
-processed `OpenSpecy` reactive object unless a deliberately different source is
-named in the interface and plan. This reactive chain is documented in
+processed spectral reactive object unless a deliberately different source is
+named in the interface and plan. That object is normally `OpenSpecy`; an
+explicitly planned compact-map workflow MAY keep canonical full-map state as
+`Specs` when every consumer uses representation-aware accessors and any
+`OpenSpecy` conversion is bounded to the selected spectrum or collapsed units.
+This reactive chain is documented in
 `.specify/memory/pipeline-diagram.html` per Principle X; keep the diagram
 synchronized when it changes. Hidden duplicate preprocessing pipelines are
 non-compliant because they make visible and exported results irreproducible.
@@ -677,4 +688,4 @@ updating that diagram in the same change.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.10.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-21
+**Version**: 3.11.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-25

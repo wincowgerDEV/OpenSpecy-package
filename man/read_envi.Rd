@@ -9,6 +9,8 @@ read_envi(
   header = NULL,
   spectral_smooth = F,
   sigma = c(1, 1, 1),
+  representation = c("OpenSpecy", "Specs"),
+  background_filter = NULL,
   metadata = list(file_name = basename(file), user_name = NULL, contact_info = NULL,
     organization = NULL, citation = NULL, spectrum_type = NULL, spectrum_identity = NULL,
     material_form = NULL, material_phase = NULL, material_producer = NULL,
@@ -38,13 +40,21 @@ standard deviations for the \code{gaussianSmooth} function from the
 \code{mmand} package to describe how spectral smoothing occurs on each dimension.
 The first two dimensions are x and y, the third is the wavenumbers.}
 
+\item{representation}{return an ordinary dense \code{"OpenSpecy"} (the
+default) or an in-memory compact \code{"Specs"} map.}
+
+\item{background_filter}{optional policy returned by
+\code{\link{specs_background_filter}()}. In compact mode, BIP maps are read
+in halo-aware row blocks and only foreground spectra are retained; source
+mapping 0 records every rejected or non-finite background pixel.}
+
 \item{metadata}{a named list of the metadata; see
 \code{\link{as_OpenSpecy}()} for details.}
 
 \item{\ldots}{further arguments passed to the submethods.}
 }
 \value{
-An \code{OpenSpecy} object.
+An \code{OpenSpecy} object, or a compact \code{Specs} object when requested.
 }
 \description{
 This function allows ENVI data import.

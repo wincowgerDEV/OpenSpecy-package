@@ -57,7 +57,7 @@ function(input, output, session) {
   # enabled purely by upload completion (preprocessed$data becoming non-NULL)
   # and is not gated by any other setting.
   observe({
-    shinyjs::toggleState("run_analysis", condition = !is.null(preprocessed$data))
+    shinyjs::toggleState("run_analysis", condition = !is.null(active_file_info()))
   })
 
   # Each Run-gated result below is a reactiveVal cache populated only when
@@ -75,6 +75,7 @@ function(input, output, session) {
   # gate computes; RUN_GATE_PRIORITY_CANONICAL populates canonical_state
   # before any gate that reads it.
   RUN_GATE_PRIORITY_ANNOUNCE <- 25L
+  RUN_GATE_PRIORITY_MATERIALIZE <- 24L
   RUN_GATE_PRIORITY_RESET <- 20L
   RUN_GATE_PRIORITY_CANONICAL <- 10L
   RUN_GATE_PRIORITY_DEFAULT <- 0L
@@ -251,19 +252,18 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
   data_click$table <- 1
   preprocessed$data <- NULL
   inspection_source_gate(NULL)
+  attr(file_info, "mounted") <- isTRUE(mounted)
   active_file_info(file_info)
   set_upload_status(NULL)
   meta_cache(NULL)
   correction_diagnostics(data.frame())
-  ratio_definitions(app_empty_ratio_definitions())
-  measurement_definitions(app_empty_measurement_definitions())
   quantification_axis(NULL)
 
   reset_upload_control <- function() {
     if(isTRUE(mounted)) {
       session$sendCustomMessage("openspecy-mounted-reset", list())
     } else {
-      shinyjs::reset("file")
+      active_file_info(NULL)
     }
   }
 
@@ -297,6 +297,19 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
   )
       
       rout <- tryCatch(expr = {
+          background_policy <- if(isTRUE(input$threshold_decision)) {
+            specs_background_filter(
+              metric = effective_signal_selection(), minimum = MinSNR(),
+              maximum = MaxSNR(),
+              sigma = if(isTRUE(input$spatial_decision)) {
+                rep(as.numeric(input$sigma), 3L)
+              } else NULL,
+              step = 10
+            )
+          } else NULL
+          reader_background_policy <- if(
+            identical(input$signal_basis, "fully_processed")
+          ) NULL else background_policy
           # RDS maps are already serialized OpenSpecy objects. Reading a lone
           # RDS directly avoids dispatch and, critically for gigabyte maps,
           # avoids hashing/copying the full spectra matrix merely to add a
@@ -304,16 +317,23 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
           members <- if(nrow(file_info) == 1L &&
                        grepl("\\.rds$", file_info$name[[1L]],
                              ignore.case = TRUE)) {
-            as_OpenSpecy(
-              readRDS(as.character(file_info$datapath[[1L]])),
-              compute_file_id = FALSE
-            )
+            serialized <- readRDS(as.character(file_info$datapath[[1L]]))
+            if(is_Specs(serialized)) {
+              check_Specs(serialized)
+              serialized
+            } else {
+              as_OpenSpecy(serialized, compute_file_id = FALSE)
+            }
           } else {
             app_read_uploaded_members(
-              paths = file_info$datapath, mounted = mounted
+              paths = file_info$datapath, mounted = mounted,
+              representation = "Specs",
+              background_filter = reader_background_policy,
+              spectral_smooth = isTRUE(input$spatial_decision),
+              sigma = rep(as.numeric(input$sigma), 3L)
             )
           }
-          combined <- if(is_OpenSpecy(members)) {
+          combined <- if(is_OpenSpecy(members) || is_Specs(members)) {
             members
           } else {
             c_spec(
@@ -321,7 +341,32 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
               res = if(input$conform_decision) input$conform_res else 8
             )
           }
-          manage_na(combined, ig = c(NA, 0), type = "remove")},
+          if(is_Specs(combined) && !is.null(background_policy) &&
+             identical(input$signal_basis, "fully_processed")) {
+            analysis_phase(
+              "Classifying fully processed signal/noise",
+              paste(
+                "Applying the committed preprocessing to active map spectra",
+                "before assigning the background sentinel."
+              ),
+              13
+            )
+            classification_basis <- ordinary_process(
+              combined, settings = current_processing_settings(),
+              view_only = TRUE
+            )
+            classification_snr <- sig_noise(
+              classification_basis, metric = background_policy$metric,
+              step = background_policy$step, spatial_smooth = FALSE,
+              abs = FALSE
+            )
+            combined <- OpenSpecy:::.apply_specs_background_result(
+              combined, background_policy, classification_snr,
+              basis = "fully_processed"
+            )
+          }
+          if(is_Specs(combined)) combined else
+            manage_na(combined, ig = c(NA, 0), type = "remove")},
           error = function(e){
               class(e$message) <- "simpleError"
               e$message
@@ -333,12 +378,15 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
       )
       #print(rout)
       
-      if(!inherits(rout, "simpleError") && all(!grepl("(\\.hdr$)|(\\.dat$)|(\\.zip$)", file_info$name))){
+      if(!inherits(rout, "simpleError") && is_OpenSpecy(rout) &&
+         all(!grepl("(\\.hdr$)|(\\.dat$)|(\\.zip$)", file_info$name))){
           rout$metadata$file_name <- file_info$name
       }
       
       if(!inherits(rout, "simpleError")){
-          checkit <- tryCatch(expr = {check_OpenSpecy(rout)},
+          checkit <- tryCatch(expr = {
+            if(is_Specs(rout)) check_Specs(rout) else check_OpenSpecy(rout)
+          },
                               error = function(e){
                                   class(e$message) <- "simpleError"
                                   e$message
@@ -420,9 +468,51 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
     }
 }
 
-observeEvent(input$file, {
-  read_uploaded_files(input$file, mounted = FALSE)
-}, ignoreInit = TRUE)
+stage_selected_files <- function(file_info, mounted = FALSE) {
+  attr(file_info, "mounted") <- isTRUE(mounted)
+  active_file_info(file_info)
+  preprocessed$data <- NULL
+  inspection_source_gate(NULL)
+  ratio_definitions(app_empty_ratio_definitions())
+  measurement_definitions(app_empty_measurement_definitions())
+  quantification_axis(NULL)
+  set_upload_status(paste0(
+    nrow(file_info), " file", if(nrow(file_info) == 1L) "" else "s",
+    " selected. Click Run to read and analyze."
+  ))
+  analysis_dirty(TRUE)
+  analysis_needs_reset(TRUE)
+  canonical_state_gate$clear()
+  quantified_data_gate$clear()
+  automatic_report_gate$clear()
+  ai_output_gate$clear()
+  pixel_projection_gate$clear()
+  if(isTRUE(mounted) && app_wasm_mode()) {
+    session$sendCustomMessage(
+      "openspecy-run-ready", list(enabled = TRUE)
+    )
+  }
+}
+
+if(!app_wasm_mode()) {
+  local_roots <- app_local_roots()
+  shinyFiles::shinyFileChoose(
+    input, "local_files", roots = local_roots, session = session,
+    filetypes = c("csv", "asp", "tsv", "spc", "jdx", "dx", "RData",
+                  "spa", "0", "zip", "img", "h5", "txt", "json", "rds",
+                  "hdr", "dat")
+  )
+  observeEvent(input$local_files, {
+    parsed <- shinyFiles::parseFilePaths(local_roots, input$local_files)
+    file_info <- tryCatch(app_local_file_info(parsed, local_roots),
+                          error = identity)
+    if(inherits(file_info, "error")) {
+      set_upload_status(conditionMessage(file_info), "error")
+      return(NULL)
+    }
+    stage_selected_files(file_info, mounted = FALSE)
+  }, ignoreInit = TRUE)
+}
 
 observeEvent(input$mounted_files, {
   file_info <- tryCatch(
@@ -436,8 +526,14 @@ observeEvent(input$mounted_files, {
     session$sendCustomMessage("openspecy-mounted-reset", list())
     return(NULL)
   }
-  read_uploaded_files(file_info, mounted = TRUE)
+  stage_selected_files(file_info, mounted = TRUE)
 }, ignoreInit = TRUE)
+
+observeEvent(input$run_analysis, {
+  files <- active_file_info()
+  req(!is.null(files))
+  read_uploaded_files(files, mounted = isTRUE(attr(files, "mounted")))
+}, priority = RUN_GATE_PRIORITY_MATERIALIZE)
 
   output$upload_status <- renderUI({
     message <- upload_status_state()
@@ -521,6 +617,21 @@ observeEvent(input$mounted_files, {
  data <- reactive({
     req(!is.null(preprocessed$data))
       da <- preprocessed$data
+      if(is_Specs(da)) {
+        if(isTruthy(input$xy_grid)) {
+          md <- specs_metadata(da)
+          if(!all(diff(sort(md$y)) %in% c(0, 1)) ||
+             !all(diff(sort(md$x)) %in% c(0, 1))) {
+            grid <- gen_grid(nrow(md))
+            coords <- specs_coordinates(da)
+            coords$x <- grid$x
+            coords$y <- grid$y
+            da$coords <- coords
+            attr(da, "source_metadata") <- OpenSpecy:::.encode_specs_metadata(md)
+          }
+        }
+        return(da)
+      }
       if(isTruthy(input$xy_grid) &&
          (!all(diff(sort(da$metadata$y)) %in% c(0,1)) ||
           !all(diff(sort(da$metadata$x)) %in% c(0,1)))){
@@ -530,6 +641,13 @@ observeEvent(input$mounted_files, {
       }
           da
     })
+
+  source_count <- function(x) {
+    if(is_Specs(x)) specs_source_count(x) else ncol(x$spectra)
+  }
+  source_metadata <- function(x) {
+    if(is_Specs(x)) specs_metadata(x) else data.table::as.data.table(x$metadata)
+  }
 
   # Preprocess ----
   ordinary_processing_input_ids <- c(
@@ -561,6 +679,7 @@ observeEvent(input$mounted_files, {
     report_phase <- function(...) {
       if(!isTRUE(view_only)) analysis_phase(...)
     }
+    if(is_Specs(uploaded)) uploaded <- decompress_spec(uploaded, expand = FALSE)
     processed <- uploaded
 
     {
@@ -833,6 +952,7 @@ observeEvent(input$mounted_files, {
   spatial_data <- reactive({
     req(!is.null(preprocessed$data))
     uploaded <- data()
+    if(is_Specs(uploaded)) return(uploaded)
     # Spatial smoothing has no neighbors to smooth across for a single
     # uploaded spectrum; silently skip it rather than erroring.
     if(!isTRUE(input$spatial_decision) || ncol(uploaded$spectra) <= 1L) {
@@ -1133,15 +1253,29 @@ observeEvent(input$mounted_files, {
   # below), not what data particles collapse from.
   signal_to_noise_basis <- reactive({
     req(!is.null(preprocessed$data))
+    spatial <- spatial_data()
     if(identical(input$signal_basis, "fully_processed")) {
-      ordinary_process(spatial_data())
+      ordinary_process(spatial)
     } else {
-      spatial_data()
+      spatial
     }
   })
 
   signal_to_noise <- reactive({
+    source <- spatial_data()
+    if(is_Specs(source)) {
+      background <- attr(source, "background")
+      if(!is.null(background) && length(background$signal_to_noise) ==
+         specs_source_count(source)) {
+        values <- background$signal_to_noise
+        names(values) <- specs_coordinates(source)$source_id
+        return(values)
+      }
+    }
     basis <- signal_to_noise_basis()
+    if(is_Specs(basis)) {
+      basis <- decompress_spec(basis, expand = FALSE)
+    }
     values <- sig_noise(
       basis, step = 10,
       metric = effective_signal_selection(), abs = FALSE
@@ -1194,7 +1328,7 @@ observeEvent(input$mounted_files, {
     priority = RUN_GATE_PRIORITY_CANONICAL
   )
   observeEvent(input$recalculate_snr, recalculate_snr_preview(), ignoreInit = TRUE)
-  observeEvent(list(input$file, input$mounted_files), {
+  observeEvent(list(input$local_files, input$mounted_files), {
     snr_preview(NULL)
     snr_preview_signature(NULL)
   }, ignoreInit = TRUE)
@@ -1221,8 +1355,10 @@ observeEvent(input$mounted_files, {
     # Collapsing particle spectra requires a map with more than one spectrum
     # to group; silently ignore the setting for a single uploaded spectrum
     # instead of erroring.
-    isTRUE(input$collapse_decision) && !is.null(preprocessed$data) &&
-      ncol(preprocessed$data$spectra) > 1L
+    count <- if(is_Specs(preprocessed$data)) {
+      specs_source_count(preprocessed$data)
+    } else if(!is.null(preprocessed$data)) ncol(preprocessed$data$spectra) else 0L
+    isTRUE(input$collapse_decision) && count > 1L
   })
 
   particle_collapse_function <- reactive({
@@ -1336,8 +1472,12 @@ observeEvent(input$mounted_files, {
 
   expand_pixel_mapping <- function(subset_mapping, full_object,
                                    signal_keep) {
-    metadata <- data.table::as.data.table(full_object$metadata)
-    ids <- colnames(full_object$spectra)
+    metadata <- if(is_Specs(full_object)) {
+      specs_metadata(full_object)
+    } else data.table::as.data.table(full_object$metadata)
+    ids <- if(is_Specs(full_object)) {
+      specs_coordinates(full_object)$source_id
+    } else colnames(full_object$spectra)
     full <- data.table::data.table(
       pixel_index = seq_along(ids), pixel_id = ids,
       source_id = OpenSpecy:::.particle_source_vector(metadata, length(ids)),
@@ -1419,12 +1559,29 @@ observeEvent(input$mounted_files, {
       }
 
       if(!collapse) {
-        processed <- ordinary_process(spatial)
+        if(is_Specs(spatial)) {
+          compact_keep <- signal_eligible()
+          if(!any(compact_keep)) {
+            return(unavailable(
+              "No pixels pass the enabled signal/noise threshold."
+            ))
+          }
+          selected <- which(compact_keep)
+          active <- decompress_spec(spatial, index = selected)
+          processed <- ordinary_process(active)
+        } else {
+          selected <- seq_len(ncol(spatial$spectra))
+          processed <- ordinary_process(spatial)
+        }
         matches <- if(use_library) identify_blockwise(processed) else NULL
         processed <- attach_best_matches(processed, matches)
+        mapping <- identity_pixel_mapping(processed, rep(TRUE, ncol(processed$spectra)))
+        if(is_Specs(spatial)) {
+          mapping <- expand_pixel_mapping(mapping, spatial, compact_keep)
+        }
         return(list(
           object = processed, matches = matches, pixel_matches = matches,
-          pixel_to_unit = identity_pixel_mapping(processed, signal_eligible()),
+          pixel_to_unit = mapping,
           partition = NULL, error = NULL, diagnostic = NULL,
           settings = run_settings
         ))
@@ -1436,8 +1593,11 @@ observeEvent(input$mounted_files, {
           "No pixels pass the enabled signal/noise threshold."
         ))
       }
-      signal_subset <- if(all(signal_keep)) spatial else
+      signal_subset <- if(is_Specs(spatial)) {
+        decompress_spec(spatial, index = which(signal_keep))
+      } else if(all(signal_keep)) spatial else {
         filter_spec(spatial, logic = signal_keep)
+      }
 
       if(clustered) {
         # PCA/K-means is the first reduction and is fitted once per source.
@@ -1649,7 +1809,7 @@ observeEvent(input$mounted_files, {
     )
   }, ignoreNULL = TRUE)
   observeEvent(
-    list(input$file, input$mounted_files), canonical_error_key(NULL),
+    list(input$local_files, input$mounted_files), canonical_error_key(NULL),
     ignoreInit = TRUE
   )
 
@@ -1782,19 +1942,25 @@ observeEvent(input$mounted_files, {
 
     source <- inspection_source_gate()
     pixel <- suppressWarnings(as.integer(data_click$pixel))
+    source_count <- if(is_Specs(source)) specs_source_count(source) else
+      if(is.null(source)) 0L else ncol(source$spectra)
     validate(need(
       !is.null(source) && length(pixel) == 1L && !is.na(pixel) &&
-        pixel >= 1L && pixel <= ncol(source$spectra),
+        pixel >= 1L && pixel <= source_count,
       "The selected source pixel is not available for inspection."
     ))
-    viewed <- filter_spec(
+    viewed <- if(is_Specs(source)) {
+      decompress_spec(source, index = pixel)
+    } else filter_spec(
       source, logic = seq_len(ncol(source$spectra)) == pixel
     )
     viewed <- ordinary_process(
       viewed, settings = canonical_state()$settings$processing,
       view_only = TRUE
     )
-    pixel_id <- colnames(source$spectra)[[pixel]]
+    pixel_id <- if(is_Specs(source)) {
+      specs_coordinates(source, pixel)$source_id[[1L]]
+    } else colnames(source$spectra)[[pixel]]
     colnames(viewed$spectra) <- paste0("Rejected pixel: ", pixel_id)
     viewed$metadata$col_id <- colnames(viewed$spectra)
     viewed$metadata$selection <- "Rejected pixel inspection"
@@ -2029,10 +2195,15 @@ observeEvent(input$mounted_files, {
         data_click$pixel
       } else data_click$plot
       selected <- suppressWarnings(as.integer(selected))
+      uploaded_count <- source_count(uploaded)
       if(length(selected) != 1L || is.na(selected) ||
-         selected < 1L || selected > ncol(uploaded$spectra)) {
-        return(app_rejected_spectrum(uploaded$wavenumber))
+         selected < 1L || selected > uploaded_count) {
+        axis <- if(is_Specs(uploaded)) {
+          OpenSpecy:::.specs_variables_for_open_specy(uploaded$variables)
+        } else uploaded$wavenumber
+        return(app_rejected_spectrum(axis))
       }
+      if(is_Specs(uploaded)) return(decompress_spec(uploaded, index = selected))
       filter_spec(
         uploaded,
         logic = seq_len(ncol(uploaded$spectra)) == selected
@@ -2311,7 +2482,9 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
   pixel_projection_gate <- run_gated_reactive(function() {
     req(!is.null(preprocessed$data))
     spatial <- spatial_data()
-    ids <- colnames(spatial$spectra)
+    ids <- if(is_Specs(spatial)) {
+      specs_coordinates(spatial)$source_id
+    } else colnames(spatial$spectra)
     mapping <- canonical_state()$pixel_to_unit
     if(is.null(mapping)) mapping <- identity_pixel_mapping(spatial)
     mapping <- data.table::as.data.table(mapping)
@@ -2371,7 +2544,7 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       "signal/noise and correlation"
 
     list(
-      metadata = data.table::as.data.table(spatial$metadata), mapping = mapping,
+      metadata = source_metadata(spatial), mapping = mapping,
       signal_to_noise = signal, correlation = as.numeric(correlation),
       match_id = as.character(match_id), material = as.character(material),
       unit_id = mapping$unit_id, unit_index = mapping$unit_index,
@@ -2382,7 +2555,7 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
   pixel_projection <- reactive(pixel_projection_gate$read())
 
   map_color_choices <- reactive({
-    req(ncol(preprocessed$data$spectra) > 1)
+    req(source_count(preprocessed$data) > 1)
     state <- canonical_state()
     # Wait for the current dataset's first Run before offering any choice.
     # Rendering earlier (true the instant a map/batch is uploaded, before
@@ -2443,7 +2616,7 @@ output$choice_names <- renderUI({
 output$progress_bars <- renderUI({
     req(!is.null(preprocessed$data))
     settings <- canonical_state()$settings
-    req(ncol(preprocessed$data$spectra) > 1 || isTRUE(settings$collapse))
+    req(source_count(preprocessed$data) > 1 || isTRUE(settings$collapse))
 
     # A single rounded percentage (shinyWidgets::progressBar() itself calls
     # round()) reads as "0%"/"none" whenever the true share is small but
@@ -2603,7 +2776,7 @@ output$progress_bars <- renderUI({
 
   heatmap_state <- reactive({
       req(!is.null(preprocessed$data))
-      req(ncol(preprocessed$data$spectra) > 1)
+      req(source_count(preprocessed$data) > 1)
       heatmap_state_for(resolved_map_color())
   })
 
@@ -2655,7 +2828,7 @@ output$progress_bars <- renderUI({
       # on every Spatial Smooth/sigma change, via this reactive's own
       # always-on observer below -- before Run, without the map ever
       # visibly changing, since nothing here used the smoothed values.
-      metadata <- data()$metadata
+      metadata <- source_metadata(data())
       if(length(selected) != 1L || is.na(selected) || selected < 1L ||
          selected > nrow(metadata)) {
         mapping <- canonical_state()$pixel_to_unit
@@ -2707,7 +2880,7 @@ output$progress_bars <- renderUI({
       toggle(id = "heatmap_frame",
              condition = isTruthy(
                !is.null(preprocessed$data) &&
-                 ncol(preprocessed$data$spectra) > 1
+                  source_count(preprocessed$data) > 1
              ))
   })
 
@@ -2740,9 +2913,9 @@ output$progress_bars <- renderUI({
       click_y <- click$y[[1L]]
 
       req(!is.null(preprocessed$data))
-      selected <- nearest_metadata_row(spatial_data()$metadata, click_x,
+      selected <- nearest_metadata_row(source_metadata(spatial_data()), click_x,
                                        click_y)
-      if(length(selected) && selected <= ncol(preprocessed$data$spectra)) {
+      if(length(selected) && selected <= source_count(preprocessed$data)) {
         data_click$pixel <- selected
         mapping <- canonical_state()$pixel_to_unit
         if(!is.null(mapping)) {
@@ -2788,7 +2961,8 @@ output$progress_bars <- renderUI({
       has_upload = !is.null(preprocessed$data),
       identification = !is.null(preprocessed$data) &&
         !is.null(state$object),
-      collapse = isTRUE(state$settings$collapse) && !is.null(state$object)
+      collapse = isTRUE(state$settings$collapse) && !is.null(state$object),
+      compact = is_Specs(preprocessed$data)
     )
     values <- unname(choice_names)
     current <- isolate(input$download_selection)
@@ -2887,9 +3061,7 @@ output$progress_bars <- renderUI({
       }
       extension <- if(selection %in% c("Test Map", "Thresholded Particles")) {
         ".zip"
-      } else {
-        ".csv"
-      }
+      } else if(identical(selection, "Compact Map (RDS)")) ".rds" else ".csv"
       paste0(gsub("[^A-Za-z0-9]+", "-", selection), "-", human_ts(), extension)
     },
     content = function(file) {
@@ -2907,6 +3079,9 @@ output$progress_bars <- renderUI({
         your_spec <- quantified_data()
         your_spec$metadata$signal_to_noise <- canonical_signal_noise()
         write_spec(your_spec, file)
+      } else if(identical(selection, "Compact Map (RDS)")) {
+        req(is_Specs(preprocessed$data))
+        write_specs(preprocessed$data, file)
       } else if(identical(selection, "Top Matches")) {
         quant_columns <- app_ratio_metadata_columns(
           active_ratio_definitions(),
@@ -3101,7 +3276,7 @@ output$progress_bars <- renderUI({
 
   move_selection <- function(dx = 0, dy = 0) {
       if(isTRUE(canonical_state()$settings$collapse)) {
-        metadata <- data.table::as.data.table(spatial_data()$metadata)
+        metadata <- source_metadata(spatial_data())
         current <- data_click$pixel
         if(length(current) != 1L || is.na(current) ||
            !all(c("x", "y") %in% names(metadata))) return()
@@ -3138,7 +3313,7 @@ output$progress_bars <- renderUI({
 
   output$nav_buttons <- renderUI({
       req(!is.null(preprocessed$data))
-      if (ncol(preprocessed$data$spectra) > 1) {
+      if (source_count(preprocessed$data) > 1) {
           tagList(
               div(style = "display:flex;justify-content:center;", actionButton("up_spec", label = NULL, icon = icon("arrow-up"))),
               div(style = "display:flex;justify-content:center;gap:0.5em;", 

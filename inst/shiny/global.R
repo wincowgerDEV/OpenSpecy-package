@@ -48,7 +48,7 @@ validate_wasm_package_version()
 #library(glmnet)
 
 app_download_choices <- function(has_upload, identification,
-                                 collapse = FALSE) {
+                                 collapse = FALSE, compact = FALSE) {
   tests <- c("Test Data", "Test Map")
   metadata <- "User Metadata"
   if (!isTRUE(has_upload)) return(c(tests, metadata))
@@ -58,6 +58,7 @@ app_download_choices <- function(has_upload, identification,
   } else {
     "Processed Spectra"
   }
+  if (isTRUE(compact)) choices <- c(choices, "Compact Map (RDS)")
   if (isTRUE(collapse)) choices <- c(choices, "Thresholded Particles")
   c(choices, tests, metadata)
 }
@@ -67,6 +68,7 @@ app_download_label <- function(selection) {
     "Test Data" = "Download Test Data",
     "Test Map" = "Download Test Map",
     "Processed Spectra" = "Download Processed Spectra",
+    "Compact Map (RDS)" = "Download Compact Map (RDS)",
     "Top Matches" = "Download Top Matches",
     "Thresholded Particles" = "Download Thresholded Particles",
     "User Metadata" = "Download User Metadata"
@@ -182,6 +184,52 @@ app_mounted_file_info <- function(value) {
   )
 }
 
+app_local_file_info <- function(value, roots) {
+  value <- data.frame(value, stringsAsFactors = FALSE)
+  required <- c("name", "size", "type", "datapath")
+  if (!nrow(value) || !all(required %in% names(value))) {
+    stop("Local file selection did not return complete file metadata.",
+         call. = FALSE)
+  }
+  paths <- normalizePath(value$datapath, winslash = "/", mustWork = TRUE)
+  if (any(file.info(paths)$isdir)) {
+    stop("Local selection must contain files, not directories.", call. = FALSE)
+  }
+  root_paths <- unique(normalizePath(
+    unname(as.character(roots)), winslash = "/", mustWork = TRUE
+  ))
+  root_prefixes <- paste0(sub("/+$", "", root_paths), "/")
+  inside <- vapply(paths, function(path) {
+    any(path == root_paths | startsWith(path, root_prefixes))
+  }, logical(1))
+  if (!all(inside)) {
+    stop("Local file selection escaped the configured filesystem roots.",
+         call. = FALSE)
+  }
+  if (anyDuplicated(tolower(paths))) {
+    stop("Local files must be unique.", call. = FALSE)
+  }
+  value$datapath <- paths
+  value$size <- as.numeric(file.info(paths)$size)
+  value[, required, drop = FALSE]
+}
+
+app_local_roots <- function() {
+  if (identical(.Platform$OS.type, "windows")) {
+    candidates <- paste0(LETTERS, ":/")
+    paths <- candidates[dir.exists(candidates)]
+    names(paths) <- sub(":/$", "", paths)
+  } else {
+    paths <- c(root = "/")
+  }
+  if (!length(paths)) {
+    stop("No readable local filesystem roots were found.", call. = FALSE)
+  }
+  stats::setNames(
+    normalizePath(paths, winslash = "/", mustWork = TRUE), names(paths)
+  )
+}
+
 # data.table::fread() memory-maps filename inputs. webR's 32-bit runtime cannot
 # mmap a WORKERFS-backed browser File, even when the file itself is tiny. Feed
 # direct mounted text through fread's text parser so delimiter/type inference
@@ -191,13 +239,23 @@ app_workerfs_fread <- function(file, ...) {
   data.table::fread(text = paste(lines, collapse = "\n"), ...)
 }
 
-app_read_uploaded_members <- function(paths, mounted = FALSE) {
+app_read_uploaded_members <- function(paths, mounted = FALSE,
+                                      representation = "OpenSpecy",
+                                      background_filter = NULL,
+                                      spectral_smooth = FALSE,
+                                      sigma = c(1, 1, 1)) {
   paths <- as.character(paths)
   mounted_text <- isTRUE(mounted) &
     grepl("\\.(xyz|csv|tsv|txt)$", paths, ignore.case = TRUE)
   read_one <- function(path, use_workerfs_text) {
     if(isTRUE(use_workerfs_text)) {
       read_text(file = path, method = app_workerfs_fread)
+    } else if(grepl("\\.(zip|h5)$", path, ignore.case = TRUE)) {
+      read_any(
+        file = path, c_spec = FALSE, representation = representation,
+        background_filter = background_filter,
+        spectral_smooth = spectral_smooth, sigma = sigma
+      )
     } else {
       read_any(file = path, c_spec = FALSE)
     }
@@ -205,7 +263,11 @@ app_read_uploaded_members <- function(paths, mounted = FALSE) {
   envi_pair <- length(paths) == 2L &&
     any(grepl("\\.(dat|img)$", paths, ignore.case = TRUE)) &&
     any(grepl("\\.hdr$", paths, ignore.case = TRUE))
-  if(envi_pair) return(read_any(file = paths, c_spec = FALSE))
+  if(envi_pair) return(read_any(
+    file = paths, c_spec = FALSE, representation = representation,
+    background_filter = background_filter,
+    spectral_smooth = spectral_smooth, sigma = sigma
+  ))
   if(length(paths) > 1L) {
     return(Map(read_one, paths, mounted_text))
   }
@@ -222,8 +284,8 @@ app_upload_failure_guidance <- function(elapsed_seconds, mounted = FALSE) {
     )
   } else {
     paste(
-      "For large hosted inputs, use Mount files in browser; local Shiny can",
-      "continue to use the standard upload control."
+      "Local Shiny reads the selected source path directly; confirm the file",
+      "is still available and readable."
     )
   }
   paste0(

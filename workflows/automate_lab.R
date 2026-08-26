@@ -21,7 +21,7 @@ cache_dir <- Sys.getenv(
 
 # These are the current scientific decision thresholds. They are also drawn on
 # the returned S/N and maximum-correlation histograms.
-sn_threshold_min <- 4*10^5
+sn_threshold_min <- 2
 sn_threshold_max <- Inf
 cor_threshold <- 0.6
 
@@ -57,7 +57,7 @@ result2 <- automate_particle_analysis(
     label_unknown = TRUE,
     remove_unknown = FALSE,
     pixel_length = 1,
-    metric = "tot_sig",
+    metric = "run_sig_over_noise",
     collapse_function = mean,
     outputs = c(
       "details", "summary", "processed", "particle_image",
@@ -69,9 +69,9 @@ result2 <- automate_particle_analysis(
 
 library(dplyr)
 result2$particle_details_all_csv %>%
-  group_by(sample_id) %>%
-  summarise(percent_area = sum(area_um2[material_class == "poly(ethylene)"])/sum(area_um2),
-area = sum(area_um2))
+  dplyr::group_by(sample_id) %>%
+  dplyr::summarise(percent_area = sum(area_um2[material_class == "poly(ethylene)"])/sum(area_um2),
+  pe_area = sum(area_um2[material_class == "poly(ethylene)"]), area = sum(area_um2))
 
 plot(sample_spec(listedfiles[[4]] |> spatial_smooth(), 10))
 

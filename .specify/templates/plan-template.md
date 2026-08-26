@@ -32,7 +32,7 @@
 - **Generated artifacts**: [Whether documentation generation is needed; required configured tool version; no direct generated-file edits.]
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
-- **Bundled Shiny app**: [impact on `inst/`; canonical final reactive feeding visible/exported results; owner/child gating; substantive adjacent guidance for non-obvious scientific/processing inputs; contextual downloads/progress; assets/size; headless and browser tests; or N/A.]
+- **Bundled Shiny app**: [impact on `inst/`; canonical final `OpenSpecy` or explicitly planned compact `Specs` reactive feeding visible/exported results through bounded accessors; owner/child gating; substantive adjacent guidance for non-obvious scientific/processing inputs; contextual downloads/progress; assets/size; headless and browser tests; or N/A.]
 - **Pipeline diagram**: [`.specify/memory/pipeline-diagram.html` box(es)/decision(s) this plan changes, and whether the diagram is updated in this plan; or N/A if the analysis pipeline is untouched.]
 - **Hosted Shinylive/WebAssembly app**: [Always classify impact, including explicit N/A. Name changed shared inputs and the triggered tier: fast `-HostedAppStatic`; exact matching-artifact preflight for hosted runtime/routes/interactions/assembly; full clean-commit rebuild for dependency/image/driver/pin or release-facing changes.]
 

@@ -62,6 +62,42 @@ test_that("read_h5() preserves cube order while assembling regions", {
   expect_identical(os$metadata$col_id, colnames(expected))
 })
 
+test_that("read_h5() can return compact Specs with background sentinel zero", {
+  skip_if_not_installed("hdf5r")
+
+  file <- tempfile(fileext = ".h5")
+  h5 <- hdf5r::H5File$new(file, mode = "w")
+  fi <- h5$create_group("FileInfo")
+  xml <- paste0(
+    "<VAR TYPE=\"System.Double\" NAME=\"m_StartFrequency\">100</VAR>",
+    "<VAR TYPE=\"System.Double\" NAME=\"m_EndFrequency\">400</VAR>"
+  )
+  fi[["MetaData"]] <- as.integer(charToRaw(xml))
+  regions <- h5$create_group("Regions")
+  cube <- array(as.numeric(seq_len(24)), dim = c(2, 3, 4))
+  region <- regions$create_group("Region1")
+  region[["Dataset"]] <- cube
+  h5$close_all()
+
+  eager <- read_h5(file, read_visual = FALSE)
+  exact <- read_h5(file, read_visual = FALSE, representation = "Specs")
+  threshold <- stats::median(sig_noise(eager, metric = "sig", abs = FALSE))
+  policy <- specs_background_filter("sig", threshold, step = 1)
+  filtered <- read_h5(
+    file, read_visual = FALSE, representation = "Specs",
+    background_filter = policy
+  )
+
+  expect_true(check_Specs(exact))
+  expect_identical(unname(specs_source_values(exact)),
+                   unname(eager$spectra))
+  expect_equal(specs_metadata(exact)$region, eager$metadata$region)
+  expected_keep <- sig_noise(eager, metric = "sig", abs = FALSE) > threshold
+  expect_equal(specs_background_mask(filtered), unname(!expected_keep))
+  expect_equal(ncol(filtered$values), sum(expected_keep))
+  expect_true(all(specs_source_values(filtered, which(!expected_keep)) == 0))
+})
+
 test_that("read_h5() attaches mosaic coregistration when stage metadata are present", {
   skip_if_not_installed("hdf5r")
 

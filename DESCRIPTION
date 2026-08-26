@@ -105,6 +105,7 @@ Suggests:
     curl,
     shinyjs, 
     shinyWidgets,
+    shinyFiles,
     bs4Dash,
     dplyr, 
     DT,

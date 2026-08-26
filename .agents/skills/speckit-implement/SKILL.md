@@ -48,7 +48,8 @@ are not required.
    available legacy identifiers, wavenumber axes, metadata shape, warnings, and
    representative `OpenSpecy` joins or matches before marking the work complete.
 12. For bundled Shiny app work, apply `openspecy-develop-shiny-app`. Keep one
-   final processed `OpenSpecy` reactive behind plots, summaries, identification,
+   final processed spectral reactive (`OpenSpecy`, or a plan-approved compact
+   `Specs` map with bounded conversion) behind plots, summaries, identification,
    quantification, metadata, and downloads; gate child inputs behind their owner
    controls; preserve native downloads; and verify the affected app-state matrix
    with focused tests plus a manual or CI-guarded browser smoke when relevant.

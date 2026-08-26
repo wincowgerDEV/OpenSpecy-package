@@ -100,9 +100,27 @@ get_metadata(spec_lib, logic = top_matches$library_id)
 
 ## Compressed Specs workflow
 
-`as_Specs()` can compress map or library spectra for fast approximate matching.
-The default workflow fits PCA and then Hilbert-encodes the PCA scores into exact
-high/low 64-bit code rows.
+`Specs` 0.2 can keep physical map spectra in memory while representing regular
+coordinates and repeated metadata compactly. `read_envi()` and `read_h5()` keep
+their dense `OpenSpecy` default; request `representation = "Specs"` explicitly.
+An optional background policy applies strict S/N bounds and maps rejected or
+non-finite source pixels to a virtual exact-zero spectrum. This step is lossy
+and is always recorded; coordinate/metadata compaction itself is lossless.
+
+```r
+policy <- specs_background_filter(
+  metric = "run_sig_over_noise", minimum = 4, sigma = c(1, 1, 1)
+)
+map <- read_envi("map.dat", "map.hdr", representation = "Specs",
+                 background_filter = policy, spectral_smooth = TRUE)
+specs_background_mask(map)
+decompress_spec(map, index = 1)
+```
+
+PCA, weighted Lloyd K-means, and Hilbert encoding remain explicit full-object
+transformations after reading. Background sources are excluded and keep code
+or class 0; source multiplicities are carried as weights without row expansion.
+The default `as_Specs()` workflow fits PCA and then Hilbert-encodes its scores.
 
 ```r
 model <- fit_specs_pca(spec_lib, n_components = 16)
@@ -162,11 +180,13 @@ APIs remain available to package users for future large-map research.
 
 ## In-memory app workflow
 
-The bundled and browser apps use one in-memory `OpenSpecy` workflow. Uploads
-have a 10 GiB transport ceiling, but the usable dataset size also depends on
-available RAM and the selected operations. The app reports estimated resident
-and peak memory before expensive work and gives recovery guidance when a known
-unsafe configuration is selected.
+The bundled and browser apps use one canonical in-memory spectral workflow.
+Local Shiny selects read-only filesystem paths directly; Shinylive mounts the
+browser-selected files through WORKERFS. Selection only stages the source, and
+**Run** owns reading and analysis. ENVI/H5 maps enter as compact `Specs` when
+possible; ordinary or collapsed spectra remain `OpenSpecy`. The 10 GiB input
+ceiling is a transport limit rather than a guarantee that every operation fits
+the available R or WebAssembly memory.
 
 For hyperspectral maps, optional spatial smoothing happens first. Signal/noise
 is calculated from that spatial-only data. Both spectral-cluster modes first fit

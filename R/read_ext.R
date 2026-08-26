@@ -26,6 +26,11 @@
 #' @param spectral_smooth logical; whether H5 cubes should be smoothed before
 #' matrix conversion.
 #' @param sigma numeric vector passed to \code{\link[mmand]{gaussianSmooth}()}.
+#' @param representation for H5 maps, return an ordinary dense
+#' \code{"OpenSpecy"} (the default) or a compact in-memory \code{"Specs"}.
+#' @param background_filter optional H5 map policy returned by
+#' \code{\link{specs_background_filter}()}; rejected/non-finite source pixels
+#' receive mapping 0 and foreground spectra retain their read values.
 #' @param read_visual logical; whether H5 mosaic images should be attached as
 #' visual-image attributes when present. H5 region stage coordinates are kept
 #' in nanometres and all mosaic tiles intersecting each region are registered
@@ -42,8 +47,9 @@
 #' bugs in the file conversion. Please contact us if you identify any.
 #'
 #' @return
-#' All \code{read_*()} functions return data frames containing two columns
-#' named \code{"wavenumber"} and \code{"intensity"}.
+#' Text and single-spectrum readers return their established objects.
+#' \code{read_h5()} returns an \code{OpenSpecy} object by default or a compact
+#' \code{Specs} object when requested.
 #'
 #' @examples
 #' read_extdata("raman_hdpe.csv") |> read_text()
@@ -396,7 +402,12 @@ read_extdata <- function(file = NULL) {
 #' @import hdf5r 
 #' @export
 read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
-                    sigma = c(1, 1, 1), read_visual = TRUE, ...) {
+                    sigma = c(1, 1, 1), read_visual = TRUE,
+                    representation = c("OpenSpecy", "Specs"),
+                    background_filter = NULL, ...) {
+
+    representation <- match.arg(representation)
+    background_filter <- .validate_specs_background_filter(background_filter)
 
     h5 <- H5File$new(file, mode = "r")
     on.exit({
@@ -441,22 +452,30 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
     }, FUN.VALUE = integer(1))
     column_ends <- cumsum(region_columns)
     column_starts <- column_ends - region_columns + 1L
-    spectra <- matrix(NA_real_, nrow = n_wavenumber,
-                      ncol = sum(region_columns))
-    spectrum_ids <- character(ncol(spectra))
+    compact <- identical(representation, "Specs")
+    if (!compact) {
+        spectra <- matrix(NA_real_, nrow = n_wavenumber,
+                          ncol = sum(region_columns))
+        spectrum_ids <- character(ncol(spectra))
+    } else {
+        value_chunks <- list()
+        source_mapping <- integer(sum(region_columns))
+        source_snr <- rep(NA_real_, sum(region_columns))
+        retained <- 0L
+    }
 
     for (i in seq_along(regions)) {
         reg <- regions[i]
         dset <- h5[[paste0("/Regions/", reg, "/Dataset")]]
         layout <- layouts[[i]]
-        cube <- dset$read()
-        cube <- aperm(
-            cube,
+        raw_cube <- dset$read()
+        raw_cube <- aperm(
+            raw_cube,
             c(layout$spec_dim,
               setdiff(seq_along(layout$dims), layout$spec_dim))
         )
-        if (isTRUE(spectral_smooth))
-            cube <- mmand::gaussianSmooth(cube, sigma = sigma)
+        cube <- if (isTRUE(spectral_smooth))
+            mmand::gaussianSmooth(raw_cube, sigma = sigma) else raw_cube
 
         columns <- seq.int(column_starts[i], column_ends[i])
         id_digits <- gsub("\\D", "", reg)
@@ -464,12 +483,43 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
         grid <- expand.grid(row = seq_len(layout$ny),
                             col = seq_len(layout$nx))
         ids <- paste0(reg, "_r", grid$row, "c", grid$col)
-        spectra[, columns] <- matrix(
-            cube,
-            nrow = n_wavenumber,
-            ncol = length(columns)
-        )
-        spectrum_ids[columns] <- ids
+        region_values <- matrix(cube, nrow = n_wavenumber,
+                                ncol = length(columns))
+        if (!compact) {
+            spectra[, columns] <- region_values
+            spectrum_ids[columns] <- ids
+        } else if (is.null(background_filter)) {
+            value_chunks[[length(value_chunks) + 1L]] <- region_values
+            source_mapping[columns] <- retained + seq_along(columns)
+            retained <- retained + length(columns)
+        } else {
+            basis_cube <- if (is.null(background_filter$sigma)) raw_cube else
+                mmand::gaussianSmooth(raw_cube, sigma = background_filter$sigma)
+            basis <- matrix(basis_cube, nrow = n_wavenumber,
+                            ncol = length(columns))
+            metric_object <- as_OpenSpecy(
+                wavenumbers, spectra = basis,
+                metadata = data.frame(
+                    x = rep(seq_len(layout$nx) - 1L, times = layout$ny),
+                    y = rep(seq_len(layout$ny) - 1L, each = layout$nx)
+                )
+            )
+            region_snr <- sig_noise(
+                metric_object, metric = background_filter$metric,
+                step = background_filter$step,
+                spatial_smooth = FALSE, abs = FALSE
+            )
+            source_snr[columns] <- region_snr
+            keep <- is.finite(region_snr) &
+                region_snr > background_filter$minimum &
+                region_snr < background_filter$maximum
+            if (any(keep)) {
+                value_chunks[[length(value_chunks) + 1L]] <-
+                    region_values[, keep, drop = FALSE]
+                source_mapping[columns[keep]] <- retained + seq_len(sum(keep))
+                retained <- retained + sum(keep)
+            }
+        }
 
         stage <- .h5_region_stage(
             h5, reg, ny = layout$ny, nx = layout$nx
@@ -502,19 +552,71 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
         metas[[i]] <- cbind(metas[[i]], .h5_region_metadata(h5, reg))
     }
 
-    colnames(spectra) <- spectrum_ids
     metadata <- data.table::rbindlist(metas, fill = TRUE)
     if (length(file_meta)) {
         scalar_meta <- as.data.table(file_meta)
         scalar_meta <- scalar_meta[rep(1L, nrow(metadata))]
         metadata <- cbind(metadata, scalar_meta)
     }
-    coords <- metadata[, c("x", "y"), with = FALSE]
-    metadata_no_coords <- metadata[, setdiff(names(metadata), c("x", "y")),
-                                   with = FALSE]
-    os <- as_OpenSpecy(wavenumbers, spectra = spectra,
-                       metadata = metadata_no_coords, coords = coords,
-                       session_id = TRUE)
+    if (!compact) {
+        colnames(spectra) <- spectrum_ids
+        coords <- metadata[, c("x", "y"), with = FALSE]
+        metadata_no_coords <- metadata[, setdiff(names(metadata), c("x", "y")),
+                                       with = FALSE]
+        os <- as_OpenSpecy(wavenumbers, spectra = spectra,
+                           metadata = metadata_no_coords, coords = coords,
+                           session_id = TRUE)
+    } else {
+        values <- if (length(value_chunks)) do.call(cbind, value_chunks) else
+            matrix(numeric(), nrow = n_wavenumber, ncol = 0L)
+        value_ids <- paste0("V", seq_len(ncol(values)))
+        colnames(values) <- value_ids
+        compact_regions <- data.table::rbindlist(lapply(seq_along(regions), function(i) {
+            data.table::data.table(
+                name = regions[[i]], n = as.integer(region_columns[[i]]),
+                nx = as.integer(layouts[[i]]$nx),
+                ny = as.integer(layouts[[i]]$ny),
+                x_origin = 0, y_origin = 0, x_step = 1, y_step = 1,
+                id_prefix = paste0(regions[[i]], "_")
+            )
+        }))
+        coords <- .compact_specs_coords(
+            compact_regions, source_mapping, source_id = metadata$id
+        )
+        background <- if (is.null(background_filter)) NULL else {
+            reason <- integer(length(source_snr))
+            reason[!is.finite(source_snr)] <- 3L
+            reason[is.finite(source_snr) &
+                   source_snr <= background_filter$minimum] <- 1L
+            reason[is.finite(source_snr) &
+                   source_snr >= background_filter$maximum] <- 2L
+            list(
+                mask = source_mapping == 0L,
+                signal_to_noise = source_snr, reason = reason,
+                reason_levels = c("foreground", "below_minimum",
+                                  "above_maximum", "nonfinite"),
+                policy = background_filter
+            )
+        }
+        os <- Specs(
+            wavenumbers, values, coords = coords,
+            metadata = data.table::data.table(value_id = value_ids),
+            attributes = list(
+                source_metadata = .encode_specs_metadata(metadata),
+                background = background
+            )
+        )
+        if (!is.null(background)) {
+            os <- .append_specs_transformation(os, list(
+                method = "background", retained = ncol(values),
+                suppressed = sum(source_mapping == 0L),
+                metric = background_filter$metric,
+                minimum = background_filter$minimum,
+                maximum = background_filter$maximum,
+                sigma = background_filter$sigma, lossy = TRUE
+            ))
+        }
+    }
 
     if (isTRUE(read_visual)) {
         vi <- .read_h5_visual_image(h5, region_extents)

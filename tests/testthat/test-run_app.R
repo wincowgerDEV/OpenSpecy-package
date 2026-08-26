@@ -104,6 +104,17 @@ test_that("bundled app uses one 10 GiB total upload ceiling", {
                "10 * 1024 * 1024 * 1024", fixed = TRUE)
   expect_match(bridge_source, "showUploadError(", fixed = TRUE)
   expect_match(bridge_source, "data-openspecy-upload-status", fixed = TRUE)
+  expect_match(server_source, '"openspecy-run-ready"', fixed = TRUE)
+  expect_match(bridge_source, '"openspecy-run-ready"', fixed = TRUE)
+  expect_match(bridge_source, "setRunButtonReady(enabled)", fixed = TRUE)
+  expect_match(bridge_source, "setRunButtonReady(true)", fixed = TRUE)
+  expect_match(bridge_source, "data-openspecy-run-ready", fixed = TRUE)
+  expect_match(bridge_source, "runReadyGeneration", fixed = TRUE)
+  expect_match(bridge_source, "Files mounted and ready", fixed = TRUE)
+  expect_false(grepl(
+    "mounted; reading the complete dataset into OpenSpecy memory",
+    bridge_source, fixed = TRUE
+  ))
   expect_false(grepl("showUploadLimitPopup", bridge_source, fixed = TRUE))
 })
 
@@ -163,6 +174,68 @@ test_that("hosted mounted-file metadata stays inside its session mount", {
                    ordinary_text$metadata$file_name)
 })
 
+test_that("local file metadata preserves normalized source paths", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  roots <- env$app_local_roots()
+  expect_true(length(roots) >= 1L)
+  expect_true(all(dir.exists(unname(roots))))
+
+  workspace_file <- normalizePath(
+    file.path(old_wd, "test-run_app.R"), winslash = "/", mustWork = TRUE
+  )
+  workspace_root <- roots[vapply(unname(roots), function(root_path) {
+    root_prefix <- paste0(sub("/+$", "", root_path), "/")
+    identical(workspace_file, root_path) || startsWith(workspace_file, root_prefix)
+  }, logical(1))][1]
+  expect_false(is.na(workspace_root))
+  drive_selected <- data.frame(
+    name = basename(workspace_file), size = file.info(workspace_file)$size,
+    type = "text/plain", datapath = workspace_file
+  )
+  expect_identical(
+    env$app_local_file_info(drive_selected, workspace_root)$datapath,
+    workspace_file
+  )
+
+  root <- tempfile("openspecy-local-root-")
+  outside <- tempfile("openspecy-local-outside-")
+  dir.create(root)
+  dir.create(outside)
+  on.exit(unlink(c(root, outside), recursive = TRUE), add = TRUE)
+  source <- file.path(root, "map.dat")
+  writeBin(as.raw(1:16), source)
+  selected <- data.frame(
+    name = basename(source), size = file.info(source)$size,
+    type = "application/octet-stream", datapath = source
+  )
+  info <- env$app_local_file_info(selected, c(root = root))
+  normalized <- normalizePath(source, winslash = "/", mustWork = TRUE)
+  expect_identical(info$datapath, normalized)
+  expect_true(file.exists(normalized))
+  expect_identical(as.numeric(file.info(normalized)$size), info$size)
+
+  escaped <- file.path(outside, "escaped.dat")
+  writeBin(as.raw(1:4), escaped)
+  selected$datapath <- escaped
+  expect_error(
+    env$app_local_file_info(selected, c(root = root)), "escaped"
+  )
+})
+
 test_that("local and hosted modes render exactly one upload control", {
   missing <- .openspecy_app_packages()[
     !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
@@ -196,19 +269,20 @@ test_that("local and hosted modes render exactly one upload control", {
   hosted_html <- render_mode(TRUE)
 
   expect_length(
-    regmatches(local_html, gregexpr('id="file"', local_html, fixed = TRUE))[[1L]],
+    regmatches(local_html, gregexpr('id="local_files"', local_html,
+                                    fixed = TRUE))[[1L]],
     1L
   )
   expect_match(local_html, 'id="upload_status"', fixed = TRUE)
   expect_false(grepl("openspecy_workerfs_files", local_html, fixed = TRUE))
-  expect_false(grepl('id="file"', hosted_html, fixed = TRUE))
+  expect_false(grepl('id="local_files"', hosted_html, fixed = TRUE))
   expect_match(hosted_html, 'id="openspecy_workerfs_files"', fixed = TRUE)
   expect_match(hosted_html, " disabled", fixed = TRUE)
   expect_false(grepl('id="upload_status"', hosted_html, fixed = TRUE))
   expect_false(grepl("Mounted files bypass", hosted_html, fixed = TRUE))
 })
 
-test_that("bundled app has one in-memory upload route", {
+test_that("bundled app has one mode-specific direct or mounted read route", {
   app_path <- run_app(test_mode = TRUE)
   source_paths <- file.path(app_path, c(
     "global.R", "server.R", "ui.R", file.path("www", "parent-frame.js")
@@ -226,15 +300,18 @@ test_that("bundled app has one in-memory upload route", {
 
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                    warn = FALSE), collapse = "\n")
-  expect_match(server_source, "readRDS(as.character(file_info$datapath[[1L]]))",
+  expect_match(server_source,
+               "serialized <- readRDS(as.character(file_info$datapath[[1L]]))",
                fixed = TRUE)
+  expect_match(server_source, "if(is_Specs(serialized))", fixed = TRUE)
   expect_match(server_source, "compute_file_id = FALSE", fixed = TRUE)
   expect_match(server_source, "read_uploaded_files <- function(file_info",
                fixed = TRUE)
   expect_match(server_source, "app_mounted_file_info(input$mounted_files)",
                fixed = TRUE)
   expect_match(server_source, "app_read_uploaded_members(", fixed = TRUE)
-  expect_match(server_source, "combined <- if(is_OpenSpecy(members))",
+  expect_match(server_source,
+               "combined <- if(is_OpenSpecy(members) || is_Specs(members))",
                fixed = TRUE)
   expect_match(server_source, "set_upload_status(upload_size$message, \"error\")",
                fixed = TRUE)
@@ -310,7 +387,7 @@ test_that("bundled app updates map selection without full heatmap or spectrum re
   ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
                      collapse = "\n")
 
-  expect_match(server_source, "ncol(preprocessed$data$spectra) > 1",
+  expect_match(server_source, "source_count(preprocessed$data) > 1",
                fixed = TRUE)
   expect_match(server_source, "output$heatmapA <- plotly::renderPlotly({",
                fixed = TRUE)
@@ -505,8 +582,7 @@ test_that("bundled app runs corrections and identification unconditionally", {
   expect_match(server_source, "canonical_final <- reactive({", fixed = TRUE)
   expect_match(server_source, "particle_pipeline_enabled <- reactive({",
                fixed = TRUE)
-  expect_match(server_source,
-               "isTRUE(input$collapse_decision) && !is.null(preprocessed$data)",
+  expect_match(server_source, "isTRUE(input$collapse_decision) && count > 1L",
                fixed = TRUE)
   expect_match(server_source, "current_heatmap_data <- reactive({",
                fixed = TRUE)
@@ -600,7 +676,7 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_match(ui_source, '"run_analysis", "Run"', fixed = TRUE)
   expect_match(ui_source, "shinyjs::disabled(", fixed = TRUE)
   expect_match(server_source,
-               'shinyjs::toggleState("run_analysis", condition = !is.null(preprocessed$data))',
+               'shinyjs::toggleState("run_analysis", condition = !is.null(active_file_info()))',
                fixed = TRUE)
   expect_true(all(vapply(
     c("range_artifact_ratio", "co2_artifact_ratio"),
@@ -789,7 +865,7 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
     server_source, fixed = TRUE
   ))
   expect_match(server_source,
-               'shinyjs::toggleState("run_analysis", condition = !is.null(preprocessed$data))',
+               'shinyjs::toggleState("run_analysis", condition = !is.null(active_file_info()))',
                fixed = TRUE)
   expect_false(grepl("active_preprocessing|active_identification|active_advanced|active_quantification",
                      server_source))
@@ -836,6 +912,31 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
                          collapse = "\n")
   ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
                      collapse = "\n")
+  read_start <- regexpr("read_uploaded_files <- function", server_source,
+                        fixed = TRUE)[[1L]]
+  stage_start <- regexpr("stage_selected_files <- function", server_source,
+                         fixed = TRUE)[[1L]]
+  local_start <- regexpr("if(!app_wasm_mode())", server_source,
+                         fixed = TRUE)[[1L]]
+  read_body <- substr(server_source, read_start, stage_start - 1L)
+  stage_body <- substr(server_source, stage_start, local_start - 1L)
+
+  # Saved quantification belongs to the selected source. Re-running that
+  # source must retain the definitions; choosing a new source resets them.
+  expect_false(grepl("ratio_definitions(app_empty_ratio_definitions())",
+                     read_body, fixed = TRUE))
+  expect_false(grepl(
+    "measurement_definitions(app_empty_measurement_definitions())",
+    read_body, fixed = TRUE
+  ))
+  expect_match(stage_body,
+               "ratio_definitions(app_empty_ratio_definitions())",
+               fixed = TRUE)
+  expect_match(
+    stage_body,
+    "measurement_definitions(app_empty_measurement_definitions())",
+    fixed = TRUE
+  )
 
   # Every Run-gated result is a reactiveVal cache (not a plain bindEvent()
   # reactive) so a fresh upload can explicitly clear it.
@@ -945,10 +1046,7 @@ test_that("collapse and spatial smooth are silently ignored for a single spectru
   )
   expect_match(
     server_source,
-    paste0(
-      "isTRUE(input$collapse_decision) && !is.null(preprocessed$data) &&\n",
-      "      ncol(preprocessed$data$spectra) > 1L"
-    ),
+    "isTRUE(input$collapse_decision) && count > 1L",
     fixed = TRUE
   )
 })
@@ -2281,11 +2379,17 @@ test_that("bundled app orders downloads from the current analysis state", {
   expect_identical(env$app_download_choices(TRUE, TRUE, collapse = TRUE),
                    c("Top Matches", "Processed Spectra", "Thresholded Particles",
                      "Test Data", "Test Map", "User Metadata"))
+  expect_identical(
+    env$app_download_choices(TRUE, TRUE, collapse = TRUE, compact = TRUE),
+    c("Top Matches", "Processed Spectra", "Compact Map (RDS)",
+      "Thresholded Particles", "Test Data", "Test Map", "User Metadata")
+  )
 
   expected_labels <- c(
     "Test Data" = "Download Test Data",
     "Test Map" = "Download Test Map",
     "Processed Spectra" = "Download Processed Spectra",
+    "Compact Map (RDS)" = "Download Compact Map (RDS)",
     "Top Matches" = "Download Top Matches",
     "Thresholded Particles" = "Download Thresholded Particles",
     "User Metadata" = "Download User Metadata"

@@ -6,6 +6,7 @@
 # workflows/data/.
 
 library(OpenSpecy)
+library(fs)
 
 data_dir <- Sys.getenv(
   "OPENSPECY_LIBRARY_DATA",
@@ -37,8 +38,15 @@ metadata_drop <- data.table::fread(
   file.path(workflow_data, "metadata_drop_columns.csv")
 )
 
+metadatafiles <- dir_ls(path = "H:\\My Drive\\Work\\Projects\\OpenSpecy\\SpectraFilesCodeProcessedSpectra",
+              recurse = T,
+              regexp = "/Processed/.*\\.rds$",
+              fail = F)
+
+files <- c(metadatafiles, source_file)
+
 libraries <- build_lib(
-  source_file,
+  files,
   restrict_range_args = list(
     min = c(100),
     max = c(11994)

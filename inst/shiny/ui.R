@@ -1343,15 +1343,10 @@ dashboardPage(
             )
           } else {
             tagList(
-              fileInput(
-                "file", "Upload spectra", multiple = TRUE,
-                placeholder = ".csv, .zip, .asp, .jdx, .spc, .spa, ...",
-                accept = c(
-                  "text/csv", "text/comma-separated-values,text/plain", ".csv",
-                  ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData", ".spa",
-                  ".0", ".zip", ".img", ".h5", ".txt", ".json", ".rds",
-                  ".hdr", ".dat"
-                )
+              shinyFiles::shinyFilesButton(
+                "local_files", "Select spectra", "Select local spectral files",
+                multiple = TRUE,
+                class = "btn btn-default action-button openspecy-local-files"
               ),
               uiOutput(
                 "upload_status",

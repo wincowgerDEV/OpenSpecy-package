@@ -3,15 +3,18 @@
 #'
 #' @description
 #' \code{Specs} objects store compressed spectral data for large hyperspectral
-#' datasets. They use a structure similar to \code{OpenSpecy}, but store latent
-#' \code{variables}, compressed \code{values}, coordinate data, and metadata
-#' separately.
+#' datasets. They use a structure similar to \code{OpenSpecy}, but store
+#' physical or latent \code{variables}, active \code{values}, coordinate data,
+#' and metadata separately. Version 0.2 objects may represent regular grids and
+#' repeated metadata compactly and reserve source mapping 0 for explicitly
+#' background-suppressed pixels.
 #'
 #' @param variables vector of latent variable names.
 #' @param values numeric matrix with one row per variable and one column per
 #' active spectrum or cluster.
 #' @param coords coordinate \code{data.frame} or \code{data.table}; should
-#' include \code{x}, \code{y}, \code{source_id}, and \code{value_id}.
+#' include \code{x}, \code{y}, \code{source_id}, and \code{value_id}; or an
+#' internal validated compact regular-grid descriptor returned by map readers.
 #' @param metadata metadata \code{data.frame} or \code{data.table} with one row
 #' per column in \code{values}.
 #' @param attributes list of Specs attributes to attach.
@@ -20,10 +23,16 @@
 #' \code{fit_specs_pca()}; if omitted and \code{"pca"} is in \code{steps}, a
 #' model is fit from \code{x}.
 #' @param steps character vector of compression steps. Supported values are
-#' \code{"pca"}, \code{"kmeans"}, and \code{"hilbert"}. K-means can be placed
-#' before, between, or after the other steps; PCA cannot be placed after
-#' Hilbert encoding.
-#' @param centers passed to \code{\link[stats]{kmeans}()} when K-means is used.
+#' \code{"background"}, \code{"pca"}, \code{"kmeans"}, and \code{"hilbert"}.
+#' Background suppression must precede every compression step. K-means can be
+#' placed before, between, or after the other compression steps; PCA cannot be
+#' placed after Hilbert encoding.
+#' @param background_filter optional policy returned by
+#' \code{specs_background_filter()}. Suppression is explicit and lossy and
+#' records the source mask, signal/noise values, reasons, and policy.
+#' @param centers initial centers or the number of centers for weighted Lloyd
+#' K-means. Source mapping multiplicities supply the weights and mapping 0 is
+#' excluded.
 #' @param n_components number of PCA components to keep.
 #' @param center,scale. arguments passed to \code{\link[stats]{prcomp}()}.
 #' @param bits_per_variable positive whole number of bits used for each
@@ -58,7 +67,9 @@
 #' \code{Specs()}, \code{as_Specs()}, \code{encode_specs_hilbert()}, and
 #' \code{decode_specs_hilbert()} return a \code{Specs} object.
 #' \code{fit_specs_pca()} returns a \code{SpecsPCA} model.
-#' \code{decompress_spec()} returns an approximate \code{OpenSpecy} object.
+#' \code{decompress_spec()} returns an exact \code{OpenSpecy} object for
+#' uncompressed values, an approximate reconstruction after PCA/Hilbert, and an
+#' exact zero line for every background-suppressed source.
 #' \code{read_specs()} returns a \code{Specs} object.
 #'
 #' @examples
@@ -98,8 +109,11 @@ Specs <- function(variables, values, coords = NULL, metadata = NULL,
       x = seq_len(ncol(values)) - 1L,
       y = 0L,
       source_id = value_ids,
-      value_id = value_ids
+      value_id = value_ids,
+      value_index = seq_along(value_ids)
     )
+  } else if (inherits(coords, "SpecsCoords")) {
+    .validate_specs_coords_model(coords, ncol(values))
   } else {
     coords <- as.data.table(coords)
     if (!all(c("x", "y") %in% names(coords)))
@@ -110,9 +124,27 @@ Specs <- function(variables, values, coords = NULL, metadata = NULL,
       coords[, value_id := source_id]
     coords[, source_id := as.character(source_id)]
     coords[, value_id := as.character(value_id)]
+    if (!"value_index" %in% names(coords)) {
+      coords[, value_index := match(value_id, value_ids)]
+      coords[value_id == "0", value_index := 0L]
+    }
+    coords[, value_index := as.integer(value_index)]
+    if (anyNA(coords$value_index) || any(coords$value_index < 0L) ||
+        any(coords$value_index > ncol(values))) {
+      stop("'coords$value_index' must map every source to 0 or a value column",
+           call. = FALSE)
+    }
+    expected_id <- rep("0", nrow(coords))
+    foreground <- coords$value_index > 0L
+    expected_id[foreground] <- value_ids[coords$value_index[foreground]]
+    if (!identical(coords$value_id, expected_id)) {
+      stop("'coords$value_id' and 'coords$value_index' must agree",
+           call. = FALSE)
+    }
   }
 
-  if (!all(coords$value_id %in% value_ids))
+  if (!inherits(coords, "SpecsCoords") &&
+      !all(coords$value_id %in% c("0", value_ids)))
     stop("all 'coords$value_id' values must be column names in 'values'",
          call. = FALSE)
 
@@ -146,12 +178,21 @@ Specs <- function(variables, values, coords = NULL, metadata = NULL,
     class = c("Specs", "list")
   )
 
-  attr(obj, "specs_version") <- .specs_attr(attributes, "specs_version", "0.1.0")
+  attr(obj, "specs_version") <- .specs_attr(attributes, "specs_version", "0.2.0")
   attr(obj, "variable_model") <- .specs_attr(attributes, "variable_model", NULL)
   attr(obj, "hilbert_model") <- .specs_attr(attributes, "hilbert_model", NULL)
   attr(obj, "spectrum_compression") <- .specs_attr(attributes, "spectrum_compression", NULL)
   attr(obj, "transformations") <- .specs_attr(attributes, "transformations", list())
   attr(obj, "visual_image") <- .specs_attr(attributes, "visual_image", NULL)
+  attr(obj, "background") <- .specs_attr(attributes, "background", NULL)
+  attr(obj, "source_metadata") <- .specs_attr(attributes, "source_metadata", NULL)
+  attr(obj, "source_attributes") <- .specs_attr(attributes, "source_attributes", NULL)
+
+  if (inherits(coords, "SpecsCoords")) {
+    .validate_specs_metadata_model(attr(obj, "source_metadata"),
+                                   coords$n_source)
+  }
+  .validate_specs_background(obj)
 
   obj
 }
@@ -194,25 +235,44 @@ check_Specs.Specs <- function(x, ...) {
   if (!(cu <- cval && !is.null(colnames(x$values)) &&
         length(unique(colnames(x$values))) == ncol(x$values)))
     warning("Column names in 'values' are not unique", call. = FALSE)
-  if (!(cc <- data.table::is.data.table(x$coords)))
-    warning("'coords' must be a data.table", call. = FALSE)
+  compact_coords <- inherits(x$coords, "SpecsCoords")
+  if (!(cc <- data.table::is.data.table(x$coords) || compact_coords))
+    warning("'coords' must be a data.table or compact SpecsCoords",
+            call. = FALSE)
   if (!(cm <- data.table::is.data.table(x$metadata)))
     warning("'metadata' must be a data.table", call. = FALSE)
-  if (!(ccn <- cc && all(c("x", "y", "source_id", "value_id") %in% names(x$coords))))
-    warning("'coords' must include x, y, source_id, and value_id", call. = FALSE)
+  if (!(ccn <- cc && (compact_coords ||
+      all(c("x", "y", "source_id", "value_id") %in% names(x$coords)))))
+    warning("'coords' must include source mapping and coordinates",
+            call. = FALSE)
   if (!(cmn <- cm && "value_id" %in% names(x$metadata)))
     warning("'metadata' must include value_id", call. = FALSE)
   if (!(cr <- cval && cm && nrow(x$metadata) == ncol(x$values)))
     warning("Number of metadata rows is not equal to ncol(values)", call. = FALSE)
-  if (!(cvid <- cval && ccn && all(x$coords$value_id %in% colnames(x$values))))
-    warning("Some coords$value_id values are not present in values", call. = FALSE)
+  mapping <- if (ccn) tryCatch(.specs_value_index(x), error = function(e) NA_integer_)
+  if (!(cvid <- cval && ccn && !anyNA(mapping) && all(mapping >= 0L) &&
+        all(mapping <= ncol(x$values))))
+    warning("Some source mappings are outside values", call. = FALSE)
   if (!(mvid <- cval && cmn && identical(as.character(x$metadata$value_id),
                                          colnames(x$values))))
     warning("metadata$value_id must match colnames(values)", call. = FALSE)
   if (!(ch <- .check_specs_hilbert_invariants(x)))
     warning("Hilbert Specs metadata or code rows are invalid", call. = FALSE)
+  descriptors <- tryCatch({
+    if (compact_coords) {
+      .validate_specs_coords_model(x$coords, ncol(x$values))
+      .validate_specs_metadata_model(attr(x, "source_metadata"),
+                                     specs_source_count(x))
+    }
+    .validate_specs_background(x)
+    TRUE
+  }, error = function(e) {
+    warning(conditionMessage(e), call. = FALSE)
+    FALSE
+  })
 
-  all(cos, cln, cv, cval, cl, cu, cc, cm, ccn, cmn, cr, cvid, mvid, ch)
+  all(cos, cln, cv, cval, cl, cu, cc, cm, ccn, cmn, cr, cvid, mvid, ch,
+      descriptors)
 }
 
 #' @rdname Specs
@@ -230,23 +290,56 @@ as_Specs.default <- function(x, ...) {
 
 #' @rdname Specs
 #' @export
-as_Specs.Specs <- function(x, ...) {
-  x
+as_Specs.Specs <- function(x, model = NULL, steps = NULL,
+                           background_filter = NULL,
+                           n_components = NULL, centers = NULL,
+                           bits_per_variable = NULL, limits = NULL, ...) {
+  steps <- .normalize_specs_steps(
+    steps, model = model, background_filter = background_filter
+  )
+  .validate_specs_steps(steps)
+  .transform_specs(
+    x, model = model, steps = steps,
+    background_filter = background_filter,
+    n_components = n_components, centers = centers,
+    bits_per_variable = bits_per_variable, limits = limits, ...
+  )
 }
 
 #' @rdname Specs
 #' @export
 as_Specs.OpenSpecy <- function(x, model = NULL, steps = c("pca", "hilbert"),
+                               background_filter = NULL,
                                n_components = NULL, centers = NULL,
                                bits_per_variable = NULL, limits = NULL,
                                ...) {
   x <- as_OpenSpecy(x)
-  steps <- .normalize_specs_steps(steps, model = model)
+  steps <- .normalize_specs_steps(
+    steps, model = model, background_filter = background_filter
+  )
   .validate_specs_steps(steps)
 
   specs <- .open_specy_to_specs(x)
+  .transform_specs(
+    specs, model = model, steps = steps,
+    background_filter = background_filter,
+    n_components = n_components, centers = centers,
+    bits_per_variable = bits_per_variable, limits = limits, ...
+  )
+}
+
+.transform_specs <- function(specs, model = NULL, steps = character(),
+                             background_filter = NULL,
+                             n_components = NULL, centers = NULL,
+                             bits_per_variable = NULL, limits = NULL, ...) {
   for (step in steps) {
-    if (identical(step, "kmeans")) {
+    if (identical(step, "background")) {
+      specs <- .background_specs(specs, background_filter)
+    } else if (!ncol(specs$values)) {
+      specs <- .append_specs_transformation(specs, list(
+        method = step, skipped = TRUE, reason = "no foreground spectra"
+      ))
+    } else if (identical(step, "kmeans")) {
       if (is.null(centers))
         stop("'centers' must be supplied when K-means is used",
              call. = FALSE)
@@ -291,8 +384,9 @@ fit_specs_pca <- function(x, n_components, center = TRUE, scale. = FALSE,
     if (.is_hilbert_specs(x))
       stop("PCA cannot be fit after Hilbert encoding; decode first or place ",
            "'pca' before 'hilbert' in steps", call. = FALSE)
-    data <- t(x$values)
-    original_variables <- .specs_variables_for_open_specy(x$variables)
+    return(.fit_specs_pca_weighted(
+      x, n_components = n_components, center = center, scale. = scale.
+    ))
   } else if (inherits(x, c("matrix", "data.frame"))) {
     data <- as.matrix(x)
     storage.mode(data) <- "double"
@@ -355,10 +449,7 @@ decompress_spec.default <- function(x, ...) {
 #' @rdname Specs
 #' @export
 decompress_spec.Specs <- function(x, expand = TRUE, index = NULL, ...) {
-  .N <- y <- NULL
-
   x <- as_Specs(x)
-  x <- .subset_specs_for_decompression(x, expand = expand, index = index)
   if (.is_hilbert_specs(x))
     x <- decode_specs_hilbert(x)
 
@@ -367,29 +458,47 @@ decompress_spec.Specs <- function(x, expand = TRUE, index = NULL, ...) {
     stop("Only Specs objects with PCA or Hilbert metadata can be decompressed",
          call. = FALSE)
 
-  active_values <- if (isTRUE(expand)) {
-    x$values[, match(x$coords$value_id, colnames(x$values)), drop = FALSE]
-  } else {
-    x$values
-  }
-
-  if (!is.null(model)) {
-    spectra <- .inverse_specs_pca(model, t(active_values))
-    spectra <- t(spectra)
-    variables <- as.numeric(model$original_variables)
-  } else {
-    spectra <- active_values
-    variables <- .specs_variables_for_open_specy(x$variables)
-  }
-
   if (isTRUE(expand)) {
-    colnames(spectra) <- x$coords$source_id
-    md <- data.table::as.data.table(x$coords)
+    source_index <- .specs_source_index(x, index)
+    mapping <- .specs_value_index(x)[source_index]
+    variables <- if (is.null(model)) {
+      .specs_variables_for_open_specy(x$variables)
+    } else {
+      .specs_variables_for_open_specy(model$original_variables)
+    }
+    spectra <- matrix(
+      0, nrow = length(variables), ncol = length(source_index),
+      dimnames = list(as.character(variables), NULL)
+    )
+    foreground <- mapping > 0L
+    if (any(foreground)) {
+      active <- x$values[, mapping[foreground], drop = FALSE]
+      if (!is.null(model)) active <- t(.inverse_specs_pca(model, t(active)))
+      spectra[, foreground] <- active
+    }
+    md <- specs_metadata(x, source_index)
+    colnames(spectra) <- md$source_id
   } else {
-    colnames(spectra) <- colnames(x$values)
+    value_index <- if (is.null(index)) seq_len(ncol(x$values)) else index
+    if (!is.numeric(value_index) || anyNA(value_index) ||
+        any(value_index != floor(value_index)) || any(value_index < 1L) ||
+        any(value_index > ncol(x$values))) {
+      stop("'index' must select valid active value columns", call. = FALSE)
+    }
+    value_index <- as.integer(value_index)
+    active <- x$values[, value_index, drop = FALSE]
+    if (!is.null(model)) {
+      spectra <- t(.inverse_specs_pca(model, t(active)))
+      variables <- .specs_variables_for_open_specy(model$original_variables)
+    } else {
+      spectra <- active
+      variables <- .specs_variables_for_open_specy(x$variables)
+    }
+    colnames(spectra) <- colnames(x$values)[value_index]
     md <- data.table::as.data.table(x$metadata)
+    md <- md[match(colnames(spectra), value_id)]
     if (!"x" %in% names(md))
-      md[, x := seq_len(.N) - 1L]
+      md[, x := seq_len(nrow(md)) - 1L]
     if (!"y" %in% names(md))
       md[, y := 0L]
   }
@@ -402,7 +511,19 @@ decompress_spec.Specs <- function(x, expand = TRUE, index = NULL, ...) {
   )
   if (!is.null(attr(x, "visual_image")))
     attr(out, "visual_image") <- attr(x, "visual_image")
+  source_attributes <- attr(x, "source_attributes")
+  if (is.list(source_attributes)) {
+    for (name in setdiff(names(source_attributes), c("names", "class"))) {
+      attr(out, name) <- source_attributes[[name]]
+    }
+  }
   out
+}
+
+#' @rdname Specs
+#' @export
+as_OpenSpecy.Specs <- function(x, ...) {
+  decompress_spec(x, expand = TRUE, ...)
 }
 
 #' @rdname Specs
@@ -436,13 +557,9 @@ encode_specs_hilbert <- function(x, bits_per_variable = NULL, limits = NULL,
     values = codes,
     coords = x$coords,
     metadata = x$metadata,
-    attributes = list(
-      specs_version = attr(x, "specs_version"),
-      variable_model = attr(x, "variable_model"),
-      hilbert_model = hilbert$model,
-      spectrum_compression = compression,
-      transformations = attr(x, "transformations"),
-      visual_image = attr(x, "visual_image")
+    attributes = .specs_attrs(
+      x, list(hilbert_model = hilbert$model,
+              spectrum_compression = compression)
     )
   )
   .append_specs_transformation(out, list(
@@ -481,12 +598,9 @@ decode_specs_hilbert <- function(x, ...) {
     values = values,
     coords = x$coords,
     metadata = x$metadata,
-    attributes = list(
-      specs_version = attr(x, "specs_version"),
-      variable_model = attr(x, "variable_model"),
-      spectrum_compression = compression,
-      transformations = attr(x, "transformations"),
-      visual_image = attr(x, "visual_image")
+    attributes = .specs_attrs(
+      x, list(hilbert_model = NULL,
+              spectrum_compression = compression)
     )
   )
 }
@@ -611,10 +725,11 @@ read_specs <- function(file, ...) {
   )
 }
 
-.normalize_specs_steps <- function(steps, model = NULL) {
+.normalize_specs_steps <- function(steps, model = NULL,
+                                   background_filter = NULL) {
   if (is.null(steps)) steps <- character()
   steps <- tolower(as.character(steps))
-  allowed <- c("pca", "kmeans", "hilbert")
+  allowed <- c("background", "pca", "kmeans", "hilbert")
   bad <- setdiff(steps, allowed)
   if (length(bad))
     stop("unsupported Specs compression step(s): ", paste(bad, collapse = ", "),
@@ -624,11 +739,21 @@ read_specs <- function(file, ...) {
 
   if (!is.null(model) && !"pca" %in% steps)
     steps <- c("pca", steps)
+  if (!is.null(background_filter) && !"background" %in% steps)
+    steps <- c("background", steps)
 
   steps
 }
 
 .validate_specs_steps <- function(steps) {
+  background <- match("background", steps)
+  transformed <- match(c("pca", "kmeans", "hilbert"), steps)
+  transformed <- transformed[!is.na(transformed)]
+  if (!is.na(background) && length(transformed) &&
+      background > min(transformed)) {
+    stop("background suppression must precede PCA, K-means, and Hilbert ",
+         "encoding", call. = FALSE)
+  }
   pca <- match("pca", steps)
   hilbert <- match("hilbert", steps)
   if (!is.na(pca) && !is.na(hilbert) && pca > hilbert) {
@@ -658,6 +783,7 @@ read_specs <- function(file, ...) {
     coords[, y := 0L]
   coords[, source_id := value_ids]
   coords[, value_id := value_ids]
+  coords[, value_index := seq_len(.N)]
 
   metadata_cols <- setdiff(names(md), c("x", "y"))
   metadata <- md[, metadata_cols, with = FALSE]
@@ -668,7 +794,11 @@ read_specs <- function(file, ...) {
                           c("value_id", setdiff(names(metadata), "value_id")))
 
   Specs(x$wavenumber, values, coords = coords, metadata = metadata,
-        attributes = list(visual_image = attr(x, "visual_image")))
+        attributes = list(
+          visual_image = attr(x, "visual_image"),
+          source_metadata = .encode_specs_metadata(md),
+          source_attributes = attributes(x)
+        ))
 }
 
 .default_specs_n_components <- function(x, n_components = NULL, steps,
@@ -709,12 +839,8 @@ read_specs <- function(file, ...) {
     values = scores,
     coords = x$coords,
     metadata = x$metadata,
-    attributes = list(
-      specs_version = attr(x, "specs_version"),
-      variable_model = .specs_model_metadata(model),
-      spectrum_compression = attr(x, "spectrum_compression"),
-      transformations = attr(x, "transformations"),
-      visual_image = attr(x, "visual_image")
+    attributes = .specs_attrs(
+      x, list(variable_model = .specs_model_metadata(model))
     )
   )
   .append_specs_transformation(out, list(
@@ -1129,11 +1255,21 @@ read_specs <- function(file, ...) {
   data
 }
 
-.kmeans_specs <- function(x, centers, ...) {
-  value_id <- NULL
-
+.kmeans_specs <- function(x, centers, iter.max = 10L, nstart = 1L,
+                          algorithm = "Lloyd", trace = FALSE, ...) {
+  if (!identical(algorithm, "Lloyd")) {
+    stop("compact weighted K-means currently requires algorithm = 'Lloyd'",
+         call. = FALSE)
+  }
+  if (isTRUE(trace)) {
+    message("Running weighted compact K-means over foreground values")
+  }
   active_ids <- colnames(x$values)
-  km <- stats::kmeans(t(x$values), centers = centers, ...)
+  weights <- .specs_value_weights(x)
+  km <- .weighted_specs_kmeans(
+    t(x$values), weights = weights, centers = centers,
+    iter.max = iter.max, nstart = nstart
+  )
 
   cluster_ids <- paste0("KM", seq_len(nrow(km$centers)))
   values <- t(km$centers)
@@ -1142,10 +1278,20 @@ read_specs <- function(file, ...) {
   colnames(values) <- cluster_ids
   rownames(values) <- x$variables
 
-  lookup <- cluster_ids[km$cluster]
-  names(lookup) <- active_ids
-  coords <- data.table::as.data.table(x$coords)
-  coords[, value_id := lookup[value_id]]
+  old_mapping <- .specs_value_index(x)
+  new_mapping <- old_mapping
+  foreground <- old_mapping > 0L
+  new_mapping[foreground] <- km$cluster[old_mapping[foreground]]
+  coords <- x$coords
+  if (inherits(coords, "SpecsCoords")) {
+    coords$value_index <- new_mapping
+  } else {
+    coords <- data.table::copy(data.table::as.data.table(coords))
+    coords[, value_index := new_mapping]
+    coords[, value_id := ifelse(
+      value_index == 0L, "0", cluster_ids[value_index]
+    )]
+  }
 
   metadata <- data.table(
     value_id = cluster_ids,
@@ -1163,14 +1309,7 @@ read_specs <- function(file, ...) {
     ifault = km$ifault
   )
 
-  attrs <- list(
-    specs_version = attr(x, "specs_version"),
-    variable_model = attr(x, "variable_model"),
-    hilbert_model = attr(x, "hilbert_model"),
-    spectrum_compression = compression,
-    transformations = attr(x, "transformations"),
-    visual_image = attr(x, "visual_image")
-  )
+  attrs <- .specs_attrs(x, list(spectrum_compression = compression))
 
   out <- Specs(x$variables, values, coords = coords, metadata = metadata,
                attributes = attrs)
@@ -1206,7 +1345,7 @@ read_specs <- function(file, ...) {
 .expand_specs_matches <- function(res, x) {
   active_value_id <- object_id <- source_id <- NULL
 
-  coords <- data.table::as.data.table(x$coords)
+  coords <- specs_coordinates(x)
   expanded <- merge(res, coords, by.x = "object_id", by.y = "value_id",
                     allow.cartesian = TRUE, all.x = TRUE)
   expanded[, active_value_id := object_id]

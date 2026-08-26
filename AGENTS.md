@@ -40,7 +40,8 @@ assets, report package-size impact, test helpers/server modules headlessly where
 feasible, verify installed app paths/assets, and use manual or CI-guarded app
 smoke tests. Apply `openspecy-develop-shiny-app` for local app work: feed plots,
 summaries, identification, quantification, metadata, and downloads from one
-canonical final `OpenSpecy` reactive; gate child inputs behind owner controls;
+canonical final spectral reactive (`OpenSpecy`, or a plan-approved compact
+`Specs` map with bounded indexed conversion); gate child inputs behind owner controls;
 preserve native downloads; and verify affected no-upload/processed/identified
 states with genuine files plus console/screenshot review. Routine app iteration
 does not require R CMD check unless explicitly requested or release-facing.

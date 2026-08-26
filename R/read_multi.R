@@ -22,7 +22,9 @@
 #'
 #' @return
 #' All \code{read_*()} functions return \code{OpenSpecy} objects if a single
-#' spectrum or map is provided, otherwise they provide a list of \code{OpenSpecy} objects.
+#' spectrum or map is provided, otherwise they provide a list of
+#' \code{OpenSpecy} objects. Map readers can return \code{Specs} when that
+#' representation is explicitly forwarded.
 #'
 #' @examples
 #' \dontshow{data.table::setDTthreads(2)}
@@ -49,7 +51,7 @@ read_any <- function(file, c_spec = T,
   }
   else if(length(file) > 1){
     os <- read_many(file = file, ...)
-    if(c_spec & !is_OpenSpecy(os) & is.list(os)){
+    if(c_spec & !is_OpenSpecy(os) & !is_Specs(os) & is.list(os)){
         os <- do.call("c_spec", c(list(os), c_spec_args))
     }
   }
@@ -58,7 +60,7 @@ read_any <- function(file, c_spec = T,
   }
   else if (grepl("(\\.zip$)", ignore.case = T, file)) {
     os <- read_zip(file = file, ...)
-    if(c_spec & !is_OpenSpecy(os) & is.list(os)){
+    if(c_spec & !is_OpenSpecy(os) & !is_Specs(os) & is.list(os)){
         os <- do.call("c_spec", c(list(os), c_spec_args))
     }
   }
@@ -108,8 +110,15 @@ read_zip <- function(file, ...) {
   # large ENVI DAT into MEMFS before allocating the final double matrix can
   # therefore consume both copies at once. The default blockwise ENVI reader
   # is sequential, so stream the compressed member directly into that reader.
-  # spectral_smooth=TRUE retains the filename-based caTools path below.
-  if (envi_pair && !isTRUE(args[["spectral_smooth"]])) {
+  # A compact background read performs its own halo-aware smoothing and can
+  # therefore keep streaming even when spectral_smooth=TRUE. Exact smoothed
+  # reads still need a seekable filename until their no-filter tile path is
+  # implemented.
+  compact_background_stream <-
+    identical(args[["representation"]], "Specs") &&
+    !is.null(args[["background_filter"]])
+  if (envi_pair && (!isTRUE(args[["spectral_smooth"]]) ||
+                    compact_background_stream)) {
     dat_name <- flst[grepl("\\.dat$", ignore.case = TRUE, flst)][[1L]]
     hdr_name <- flst[grepl("\\.hdr$", ignore.case = TRUE, flst)][[1L]]
     header_size <- archive_members$Length[
@@ -163,7 +172,11 @@ read_zip <- function(file, ...) {
 
     os <- read_envi(dat, hdr, ...)
   } else {
-    os <- read_many(flst,  ...)
+    ordinary_args <- args
+    ordinary_args[c(
+      "representation", "background_filter", "spectral_smooth", "sigma"
+    )] <- NULL
+    os <- do.call(read_many, c(list(file = flst), ordinary_args))
   }
 
   return(os)

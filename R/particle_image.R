@@ -149,16 +149,7 @@ particle_image <- function(x, material_col = "material_class", image = NULL,
   }
   if (is_Specs(x)) {
     x <- as_Specs(x)
-    md <- data.table::as.data.table(x$coords)
-    if (nrow(x$metadata) && "value_id" %in% names(x$metadata)) {
-      row_id <- seq_len(nrow(md))
-      md$.row_id <- row_id
-      md <- merge(md, x$metadata, by = "value_id", all.x = TRUE,
-                  sort = FALSE)
-      data.table::setorder(md, .row_id)
-      md$.row_id <- NULL
-    }
-    return(md)
+    return(specs_metadata(x))
   }
   data.table::as.data.table(x)
 }

@@ -136,7 +136,7 @@ def_features.Specs <- function(x, features,
   bottom_left <- vi$bottom_left
   top_right <- vi$top_right
 
-  if (length(features) != nrow(x$coords))
+  if (length(features) != specs_source_count(x))
     stop("'features' must have one value per row in x$coords",
          call. = FALSE)
 
@@ -149,7 +149,7 @@ def_features.Specs <- function(x, features,
            "convert to logical or use close = FALSE",
            call. = FALSE)
 
-    tmp <- list(metadata = data.table::as.data.table(x$coords))
+    tmp <- list(metadata = specs_coordinates(x))
     features_df <- .def_features(tmp, binary = features,
                                  shape_kernel = shape_kernel,
                                  shape_type = shape_type,
@@ -165,7 +165,7 @@ def_features.Specs <- function(x, features,
 
   obj <- x
   x <- y <- feature_id <- r <- g <- b <- NULL
-  md <- features_df[data.table::setDT(obj$coords), on = c("x", "y")]
+  md <- features_df[specs_coordinates(obj), on = c("x", "y")]
   md[, feature_id := ifelse(is.na(feature_id), "-88", feature_id)]
   if (all(c("r", "g", "b") %in% names(md))) {
     md[, `:=`(mean_r = as.integer(sqrt(mean(r^2))),
@@ -180,6 +180,7 @@ def_features.Specs <- function(x, features,
   md[, "rand_y" := sample(y, 1), by = "feature_id"]
 
   obj$coords <- md
+  attr(obj, "source_metadata") <- .encode_specs_metadata(md)
   .append_specs_transformation(obj, list(method = "def_features"))
 }
 
@@ -192,26 +193,30 @@ def_features.FileSpecs <- function(x, ...) {
 #' @rdname Specs
 #' @export
 collapse_spec.Specs <- function(x, fun = mean, column = "feature_id", ...) {
-  collapse_size <- value_id <- NULL
+  collapse_size <- value_id <- value_index <- NULL
 
   x <- as_Specs(x)
-  if (!column %in% names(x$coords))
-    stop("column '", column, "' was not found in x$coords", call. = FALSE)
-
-  ids <- as.character(x$coords[[column]])
-  value_idx <- match(x$coords$value_id, colnames(x$values))
-  if (any(is.na(value_idx)))
-    stop("Some coords$value_id values are not present in values",
+  source_md <- specs_metadata(x)
+  if (!column %in% names(source_md))
+    stop("column '", column, "' was not found in source metadata",
          call. = FALSE)
 
+  ids <- as.character(source_md[[column]])
+  value_idx <- .specs_value_index(x)
+
   uids <- unique(ids)
-  out <- matrix(NA_real_, nrow = nrow(x$values), ncol = length(uids),
-                dimnames = list(x$variables, uids))
+  has_foreground <- vapply(uids, function(id) {
+    any(value_idx[ids == id] > 0L)
+  }, logical(1))
+  stored_ids <- uids[has_foreground]
+  out <- matrix(NA_real_, nrow = nrow(x$values), ncol = length(stored_ids),
+                dimnames = list(x$variables, stored_ids))
   FUN <- match.fun(fun)
 
-  for (i in seq_along(uids)) {
-    sel <- ids == uids[i]
+  for (i in seq_along(stored_ids)) {
+    sel <- ids == stored_ids[i]
     idx <- value_idx[sel]
+    idx <- idx[idx > 0L]
 
     if (identical(FUN, base::mean)) {
       weights <- tabulate(idx, nbins = ncol(x$values))
@@ -226,13 +231,15 @@ collapse_spec.Specs <- function(x, fun = mean, column = "feature_id", ...) {
     }
   }
 
-  coords <- data.table::as.data.table(x$coords)
+  coords <- specs_coordinates(x)
   coords[, value_id := ids]
+  coords[, value_index := match(ids, stored_ids)]
+  coords[is.na(value_index), `:=`(value_index = 0L, value_id = "0")]
 
-  metadata <- coords[match(uids, ids)]
-  metadata[, value_id := uids]
-  metadata[, collapse_size := as.integer(tabulate(match(ids, uids),
-                                                  nbins = length(uids)))]
+  metadata <- source_md[match(stored_ids, ids)]
+  metadata[, value_id := stored_ids]
+  metadata[, collapse_size := as.integer(tabulate(match(ids, stored_ids),
+                                                   nbins = length(stored_ids)))]
   data.table::setcolorder(metadata,
                           c("value_id", setdiff(names(metadata), "value_id")))
 
@@ -241,7 +248,7 @@ collapse_spec.Specs <- function(x, fun = mean, column = "feature_id", ...) {
   compression$collapse <- list(
     method = "collapse",
     column = column,
-    values = length(uids)
+    values = length(stored_ids)
   )
 
   out_obj <- Specs(
@@ -249,19 +256,12 @@ collapse_spec.Specs <- function(x, fun = mean, column = "feature_id", ...) {
     values = out,
     coords = coords,
     metadata = metadata,
-    attributes = list(
-      specs_version = attr(x, "specs_version"),
-      variable_model = attr(x, "variable_model"),
-      hilbert_model = attr(x, "hilbert_model"),
-      spectrum_compression = compression,
-      transformations = attr(x, "transformations"),
-      visual_image = attr(x, "visual_image")
-    )
+    attributes = .specs_attrs(x, list(spectrum_compression = compression))
   )
   .append_specs_transformation(out_obj, list(
     method = "collapse",
     column = column,
-    values = length(uids)
+    values = length(stored_ids)
   ))
 }
 

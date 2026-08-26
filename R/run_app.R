@@ -77,9 +77,10 @@ run_app <- function(path = "system", log = TRUE, ref = NULL,
   runApp(app_path, launch.browser = launch.browser, ...)
 }
 
-.openspecy_app_packages <- function() {
-  c("shinyjs", "shinyWidgets", "bs4Dash", "dplyr", "ggplot2", "DT",
-    "reshape2", "curl", "scales")
+.openspecy_app_packages <- function(hosted = FALSE) {
+  runtime <- c("shinyjs", "shinyWidgets", "bs4Dash", "dplyr", "ggplot2", "DT",
+               "reshape2", "curl", "scales")
+  if (isTRUE(hosted)) runtime else c(runtime, "shinyFiles")
 }
 
 .openspecy_require_shiny_packages <- function() {

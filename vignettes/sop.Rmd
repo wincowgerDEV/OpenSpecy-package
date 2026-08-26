@@ -185,11 +185,13 @@ file-backed operation chains remain intentionally unavailable. Use bounded
 materialization for those established operations, and verify equivalence on a
 representative subset before interpreting a large run.
 
-The Shiny app deliberately uses a separate in-memory workflow. Its 10 GiB
-upload ceiling is a transport limit rather than a promise that every operation
-will fit in RAM. Before expensive operations, review the app's resident and
-peak-memory estimate and reduce the data, reference library, PCA components, or
-cluster count if the selected configuration is known to be unsafe.
+The Shiny app deliberately uses a separate in-memory workflow. Local Shiny
+reads selected filesystem paths directly; Shinylive mounts the browser-selected
+file through WORKERFS. Its 10 GiB input ceiling is a transport limit rather than
+a promise that every operation will fit in RAM. ENVI/H5 maps use compact
+coordinates and metadata, and optional configured background suppression maps
+rejected pixels to virtual zero while retaining per-source S/N and reasons.
+Selection only stages a source; **Run** owns the read and every later operation.
 
 For an uploaded map, the app applies optional spatial smoothing before any
 particle decision. Signal/noise is calculated from that spatial-only object.
