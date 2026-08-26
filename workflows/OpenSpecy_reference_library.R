@@ -57,6 +57,8 @@ libraries <- build_lib(
   clean_metadata_values = TRUE
 )
 
+write_spec(libraries, paste0(output_dir, "/", "libraries.rds"))
+
 keep <- !is.na(libraries$raw$metadata$material_type) &
   !grepl(
     paste0(
