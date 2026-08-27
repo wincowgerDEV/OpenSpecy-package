@@ -25,9 +25,22 @@ workflow_data <- file.path("workflows", "data")
 classes_reference <- data.table::fread(
   file.path(workflow_data, "classes_reference.csv")
 )
+classes_regex <- data.table::fread(
+  file.path(workflow_data, "classes_regex.csv")
+)
 library_types <- data.table::fread(
   file.path(workflow_data, "library_types.csv")
 )
+# The table documents every technique present in a source. A multi-technique
+# summary is not a valid per-spectrum fallback, so retain it for source QA but
+# fill individual blank values only from single-technique sources.
+library_type_lookup <- data.table::copy(library_types)
+library_type_lookup[
+  grepl(";", spectrum_type, fixed = TRUE), spectrum_type := NA_character_
+]
+classes_exact <- classes_reference[
+  !is.na(material) & nzchar(material), .(spectrum_identity, material)
+]
 material_hierarchy <- data.table::fread(
   file.path(workflow_data, "material_hierarchy.csv")
 )
@@ -52,12 +65,103 @@ libraries <- build_lib(
     max = c(11994)
   ),
   exclude_ids = known_bad_ids$sample_name,
-  metadata_lookups = list(classes_reference, library_types),
-  material_hierarchy = material_hierarchy,
-  clean_metadata_values = TRUE
+  metadata_lookups = list(
+    list(lookup = classes_exact, by = "spectrum_identity"),
+    list(
+      lookup = library_type_lookup,
+      by = "organization",
+      fallback_by = "user_name",
+      fill_only = TRUE
+    )
+  ),
+  material_hierarchy = NULL,
+  clean_metadata_values = TRUE,
+  prune = NULL
 )
 
-write_spec(libraries, paste0(output_dir, "/", "libraries.rds"))
+libraries <- lapply(libraries, function(x) {
+  prediction <- predict_class_reference(
+    x$metadata, classes_regex, return = "report"
+  )
+  if (nrow(prediction$clashes) > 0L) {
+    stop(
+      "Class regex clashes require exact material entries: ",
+      paste(head(prediction$clashes$spectrum_identity, 20L), collapse = ", ")
+    )
+  }
+  x$metadata <- prediction$data
+  x <- join_material_hierarchy(x, material_hierarchy)
+  attr(x, "class_prediction_report") <- prediction[
+    c("summary", "predictions", "clashes", "overlaps")
+  ]
+  OpenSpecy:::.lib_complete_reference_classes(
+    x, classes = classes_reference, hierarchy = material_hierarchy
+  )
+})
+class_prediction <- attr(libraries$raw, "class_prediction_report")
+message(
+  "Class regex prediction QA: ",
+  paste(
+    names(class_prediction$summary), class_prediction$summary[.N],
+    sep = "=", collapse = "; "
+  )
+)
+class_coverage <- attr(libraries$raw, "class_coverage_report")
+message(
+  "Class coverage QA: ",
+  paste(
+    names(class_coverage), class_coverage[.N], sep = "=", collapse = "; "
+  )
+)
+type_coverage <- data.table::data.table(
+  field = c("library_type", "spectrum_type"),
+  populated = c(
+    sum(!is.na(libraries$raw$metadata$library_type) &
+          nzchar(libraries$raw$metadata$library_type)),
+    sum(!is.na(libraries$raw$metadata$spectrum_type) &
+          nzchar(libraries$raw$metadata$spectrum_type))
+  ),
+  total = nrow(libraries$raw$metadata)
+)
+message(
+  "Library/type coverage QA: ",
+  paste(type_coverage[, paste0(field, "=", populated, "/", total)],
+        collapse = "; ")
+)
+if (any(type_coverage$populated != type_coverage$total)) {
+  stop("Blank library_type or spectrum_type values remain after source lookup")
+}
+libraries[c("derivative", "nobaseline")] <- lapply(
+  libraries[c("derivative", "nobaseline")],
+  prune_lib
+)
+
+saveRDS(object = libraries, file = paste0(output_dir, "/", "libraries.rds"))
+
+superseded_drop <- c(
+  "x", "y", "xunits", "interpretation", "form_factor", "shape", "x_unit",
+  "spectrumid", "locationdescription", "datatype"
+)
+optional_drop <- grepl("^assessment_", metadata_drop$metadata_column)
+drop_status <- data.table::data.table(
+  metadata_column = metadata_drop$metadata_column,
+  status = ifelse(
+    metadata_drop$metadata_column %in% names(libraries$raw$metadata),
+    "present",
+    ifelse(
+      metadata_drop$metadata_column %in% superseded_drop,
+      "superseded_absent",
+      ifelse(optional_drop, "optional_absent", "stale_absent")
+    )
+  )
+)
+message(
+  "Metadata drop-table QA: ",
+  paste(
+    drop_status[, paste0(status, "=", .N), by = status]$V1,
+    collapse = "; "
+  )
+)
 
 keep <- !is.na(libraries$raw$metadata$material_type) &
   !grepl(
@@ -65,7 +169,7 @@ keep <- !is.na(libraries$raw$metadata$material_type) &
       "(6_f12)|(6_c8)|(7_b1)|(6_e5)|(7_c7)|(7_e6)|(7_c9)|",
       "(7_g6)|(7_c4)|(7_a8)|(6_h4)|(6_g5)"
     ),
-    libraries$raw$metadata$spectrumid,
+    libraries$raw$metadata$spectrum_id,
     ignore.case = TRUE
   )
 keep[is.na(keep)] <- TRUE

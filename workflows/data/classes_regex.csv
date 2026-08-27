@@ -1,0 +1,73 @@
+pattern,material
+^(?:cotton|wool|silk|wood|fur|animal fibre|algae)$,organic matter
+^acrylic(?:[[:space:]]*\(|$),poly(acrylonitrile)
+^aramid(?:[[:space:](]|$),polyamides
+^cellulose[[:space:]]+diacetate(?:[[:space:](]|$),cellulose acetate
+^epoxide$,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
+^lyocell(?:[[:space:](]|$),rayon
+^modacrylic(?:[[:space:](]|$),polyacrylonitriles (nitriles)
+^mffrc[0-9]+_modified pet(?:[[:space:](]|_),poly(ethylene terephthalate)
+^mffrc[0-9]+_olefin[[:space:]]*\(certran hmpe\)_,poly(ethylene)
+^mffrc[0-9]+_pvdc(?:[[:space:](]|_),poly(vinylidene chloride)
+^nylon(?:[[:space:](]|$),polyamides
+^olefin[[:space:]]*\(pe(?:[[:space:]]|\x2c|\)|$),poly(ethylene)
+^olefin[[:space:]]*\(pp(?:[[:space:]]|\x2c|\)|$),poly(propylene)
+^plc[0-9]+_.*_cellulose(?:[.][0-9]+)?$,organic matter
+^plc[0-9]+_.*_cotton(?:[.][0-9]+)?$,organic matter
+^plc[0-9]+_.*_cpe(?:[.][0-9]+)?$,other plastic
+^plc[0-9]+_.*_glass(?:[.][0-9]+)?$,other material
+^plc[0-9]+_.*_hdpe(?:[.][0-9]+)?$,poly(ethylene)
+^plc[0-9]+_.*_keratin(?:[.][0-9]+)?$,organic matter
+^plc[0-9]+_.*_ldpe(?:[.][0-9]+)?$,poly(ethylene)
+^plc[0-9]+_.*_natural rubber(?:[.][0-9]+)?$,other plastic
+^plc[0-9]+_.*_nitrile(?:[.][0-9]+)?$,polyacrylonitriles (nitriles)
+^plc[0-9]+_.*_nylon(?:[.][0-9]+)?$,polyamides
+^plc[0-9]+_.*_paint(?:[.][0-9]+)?$,other plastic
+^plc[0-9]+_.*_pc(?:[.][0-9]+)?$,polycarbonates
+^plc[0-9]+_.*_pe(?:[.][0-9]+)?$,poly(ethylene)
+^plc[0-9]+_.*_pest(?:[.][0-9]+)?$,polyesters
+^plc[0-9]+_.*_pet(?:[.][0-9]+)?$,poly(ethylene terephthalate)
+^plc[0-9]+_.*_plastisol(?:[.][0-9]+)?$,other plastic
+^plc[0-9]+_.*_pp(?:[.][0-9]+)?$,poly(propylene)
+^plc[0-9]+_.*_ps(?:[.][0-9]+)?$,polystyrene
+^plc[0-9]+_.*_rubber(?:[.][0-9]+)?$,other plastic
+^plc[0-9]+_.*_sealant(?:[.][0-9]+)?$,other material
+^plc[0-9]+_.*_silicone(?:[.][0-9]+)?$,silicones
+^plc[0-9]+_.*_teflon(?:[.][0-9]+)?$,poly(tetrafluoroethylene)
+^plc[0-9]+_.*_tpe(?:[.][0-9]+)?$,other plastic
+^poly[[:space:]]+1-butene isotactic$,polyolefins (polyalkenes)
+^poly[[:space:]]+4-methyl-1-pentene$,polyolefins (polyalkenes)
+^poly\(amide\)$,polyamides
+^poly\(styrene\)$,polystyrene
+^poly\(vinylchloride\)$,poly(vinyl chloride)
+^polyamide(?:[[:space:](]|$),polyamides
+^polyester(?:[[:space:](]|$),polyesters
+^polyethylene glycol$,poly(ethylene glycol)
+^rayon(?:[[:space:](]|$),rayon
+^scipoly[0-9]+_cellulose$,organic matter
+^scipoly[0-9]+_cellulose acetate$,cellulose acetate
+^scipoly[0-9]+_nylon(?:[[:space:](]|$),polyamides
+^scipoly[0-9]+_poly\(butylene terephthalate\)$,poly(butylene terephthalate)
+^scipoly[0-9]+_poly\(ethylene glycol\)$,poly(ethylene glycol)
+^scipoly[0-9]+_poly\(tetrafluoroethylene\)$,poly(tetrafluoroethylene)
+^scipoly[0-9]+_poly\(vinyl chloride\)(?:\x2c carboxylated)?$,poly(vinyl chloride)
+^scipoly[0-9]+_poly\(vinylidene fluoride\)$,poly(vinylidene fluoride)
+^scipoly[0-9]+_polyacetal$,polyacetal - polyoxymethylene
+^scipoly[0-9]+_polyacrylamide(?:\x2c|$),polyacrylamides
+^scipoly[0-9]+_polyacrylonitrile$,polyacrylonitriles (nitriles)
+^scipoly[0-9]+_polyamide(?:[[:space:](]|$),polyamides
+^scipoly[0-9]+_polycarbonate(?:\x2c|$),polycarbonates
+^scipoly[0-9]+_polyethylene(?:$|\x2c low density$),poly(ethylene)
+^scipoly[0-9]+_polypropylene(?:\x2c|$),poly(propylene)
+^scipoly[0-9]+_polystyrene(?:\x2c|$),polystyrene
+^scipoly[0-9]+_polyvinylpyrrolidone$,poly(vinyl pyrrolidone)
+^spandex(?:[[:space:](]|$),polyurethanes (isocyanates)
+^tf[0-9]+_(?!.*(?:cotton|hemp|linen|lycra|nylon|polyester|rayon|silk|spandex|viscose|wool)).*acetate(?:[[:space:]]|$),cellulose acetate
+^tf[0-9]+_(?!.*(?:acetate|cotton|hemp|linen|lycra|nylon|polyester|rayon|silk|spandex|wool)).*(?:modal|viscose)(?:[[:space:]]|$),rayon
+^tf[0-9]+_(?!.*(?:acetate|hemp|linen|lycra|modal|nylon|polyester|rayon|silk|spandex|viscose|wool)).*cotton(?:[[:space:]]|$),organic matter
+^tf[0-9]+_(?!.*(?:acetate|cotton|hemp|linen|lycra|modal|nylon|polyester|rayon|spandex|viscose|wool)).*silk(?:[[:space:]]|$),organic matter
+^tf[0-9]+_(?!.*(?:acetate|cotton|hemp|linen|lycra|modal|polyester|rayon|silk|spandex|viscose|wool)).*nylon(?:[[:space:]]|$),polyamides
+^tf[0-9]+_(?!.*(?:acetate|cotton|hemp|linen|lycra|modal|nylon|rayon|silk|spandex|viscose|wool)).*polyester(?:[[:space:]]|$),polyesters
+^tf[0-9]+_(?!.*(?:acetate|cotton|linen|lycra|modal|nylon|polyester|rayon|silk|spandex|viscose|wool)).*hemp(?:[[:space:]]|$),organic matter
+^tf[0-9]+_(?!.*(?:acetate|cotton|hemp|lycra|modal|nylon|polyester|rayon|silk|spandex|viscose|wool)).*linen(?:[[:space:]]|$),organic matter
+^tf[0-9]+_(?!.*(?:acetate|cotton|hemp|linen|lycra|modal|nylon|polyester|rayon|silk|spandex|viscose)).*wool(?:[[:space:]]|$),organic matter

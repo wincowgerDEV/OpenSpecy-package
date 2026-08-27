@@ -1,5 +1,34 @@
 # OpenSpecy 1.7.1
 
+- Added auditable `prune_lib()` and recipe-selective `build_lib(prune = ...)`
+  support for reference-library QA/QC. Generic classes are reassigned only to
+  eligible same-technique candidates, then classes are processed largest first
+  with bounded correlation blocks, deterministic ties, and protected minimum
+  sizes. The official workflow prunes derivative and nobaseline libraries
+  before medoid/model creation while leaving raw unpruned.
+- Harmonized reviewed metadata aliases and made `build_lib()` lookup keys
+  explicitly selectable, with optional fallback-key merging and fill-only
+  lookup values. The official workflow coalesces username into a missing
+  organization before one type join and verifies complete library/spectrum
+  types. The curated reference tables now separate polyamides
+  from polyacrylamides, classify adipate polymers as polyesters, correct PA,
+  aramid, Nomex, duplicate, and common-name mappings, and cover reviewed
+  organization plus exact user-source fallbacks.
+- Added `predict_class_reference()` for reviewable class-table curation.
+  Flexible patterns now live in a separate regex reference, run only after the
+  exact lookup, and fill only blank materials when every match agrees. Exact
+  overlaps are allowed and reported; distinct-material clashes stay blank.
+- `build_lib()` now removes recognizable paths and every `read_any()`-supported
+  trailing file extension from `spectrum_identity` before exact metadata
+  lookup. Numeric OPUS suffixes include any terminal period followed only by
+  digits, such as `.10`. It records an audit attribute and normalizes exact
+  lookup keys the same way. The compressed exact class table no longer carries
+  extension-only aliases, and the source table records all observed spectrum
+  techniques, including MBARI as Raman.
+- Accelerated reference-library Savitzky-Golay derivatives with compiled
+  convolution and polynomial baseline subtraction with reusable QR fits. The
+  retained benchmark compares the former implementations and enforces tight
+  same-output tolerances.
 - Added the opt-in compact map `Specs` 0.2 format for ENVI/H5/ZIP inputs.
   Regular coordinates and repeated metadata use validated descriptors, while
   optional S/N background suppression retains foreground values and maps every

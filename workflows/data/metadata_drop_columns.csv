@@ -2,6 +2,12 @@ metadata_column
 x
 y
 xunits
+interpretation
+form_factor
+shape
+x_unit
+spectrumid
+locationdescription
 firstx
 lastx
 xfactor
@@ -56,6 +62,9 @@ file_id
 z_plot_titles
 session_id
 1
+v1
+3997_91411
+polymer_hit_3_labs
 polymer
 specno
 atrcorrection

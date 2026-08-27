@@ -1,4 +1,5 @@
 spectrum_identity,material
+()-camphor,
 (+)-pseudoephedrine hcl (lot #359562/1),other material
 (01) ldpe,poly(ethylene)
 (02) hdpe,poly(ethylene)
@@ -36,6 +37,7 @@ spectrum_identity,material
 *paralloid,other plastic
 *seed apium nodiflorum,organic matter
 0,mineral
+008,
 06-monoacetylmorphine hcl trihydrate (lot #n17-p100a),other material
 1,mineral
 1 2 polybutadiene,"poly(1,2-butadiene)"
@@ -44,6 +46,7 @@ spectrum_identity,material
 "1,2-diiodotetrafluorobenzene",other material
 "1,3-dimethylamylamine hcl (lot #n1p7)",other material
 "1,4-dibenzylpiperazine dihcl     (lot #b00199286)",other material
+"1,4-polyisoprene (cis and trans)(latex)","1,4-polyisoprene (cis and trans)(latex)"
 "1,5-pentanediol",other plastic
 "1,6-hexanediamine",other material
 1-bromo-3-chloropropane,other material
@@ -206,6 +209,7 @@ spectrum_identity,material
 "4,5-(methylenedioxy)-2-aminoindan hcl (lot #n16-p75c)",other material
 "4,6-dinitro-m-xylene",other material
 4-(2-aminopropyl)benzofuran hcl (lot #n17-p87b),other material
+4-5,
 4-acetamidophenol,other material
 4-acetoxy-det hcl (lot #0496888-7),other material
 4-acetoxy-mipt hcl (lot #0541115-2),other material
@@ -381,6 +385,8 @@ acrylnitril-butadien-styrol,acrylonitrile butadiene styrene (abs)
 acrylonitrile,poly(acrylonitrile)
 acrylonitrile butadiene,other plastic
 acrylonitrile butadiene styrene,acrylonitrile butadiene styrene (abs)
+acrylonitrile butadiene styrene (abs),acrylonitrile butadiene styrene (abs)
+acrylonitrile butadiene_ref,acrylonitrile butadiene styrene (abs)
 acrylonitrile-butadiene-styrene rubber,acrylonitrile butadiene styrene (abs)
 actinolite,mineral
 actinolite__r040063-1__infrared__infrared_data_processed__190,mineral
@@ -472,9 +478,9 @@ ag cl,mineral
 ag fe2 s3,mineral
 ag i,mineral
 ag o6 u v,mineral
-ag1.041 mn0.919 pb3 s12 sb5.041,mineral
-ag1.049 mn0.901 pb3 s12 sb5.049,mineral
-ag17.742 as3.552 s15 sb0.448,mineral
+ag1.041 mn0.919 pb3 s12 sb5,mineral
+ag1.049 mn0.901 pb3 s12 sb5,mineral
+ag17.742 as3.552 s15 sb0,mineral
 ag9 cl62 cu24 h48 k o48 pb26,mineral
 agardite-(y),mineral
 agarditey__r060711__raman__532__0__unoriented__raman_data_processed__12193,mineral
@@ -523,37 +529,37 @@ al h24 na o20 s2,mineral
 al k o8 s2,mineral
 al na o8 si3,mineral
 al o4 p,mineral
-al0.004 as0.016 ba0.018 ca0.007 cu0.034 fe0.965 h1.494 o9 p0.003 pb1.924 si0.085 v1.836 zn0.009,mineral
-al0.03 ba0.88 ca0.13 fe0.35 k0.61 mg0.05 mn0.28 na2.09 nb0.01 o18 si4 sr0.33 ti2.91,mineral
+al0.004 as0.016 ba0.018 ca0.007 cu0.034 fe0.965 h1.494 o9 p0.003 pb1.924 si0.085 v1.836 zn0,mineral
+al0.03 ba0.88 ca0.13 fe0.35 k0.61 mg0.05 mn0.28 na2.09 nb0.01 o18 si4 sr0.33 ti2,mineral
 al0.03 ca2 fe1.366 h mg0.344 mn0.26 o15 si5,mineral
-al0.04 ca9 f0.84 h0.16 mg0.96 o27.16 p6.97,mineral
-al0.1 ca0.28 ce0.02 fe0.1 h6 nb0.8 nd0.02 o14 si0.26 ta0.52 ti0.22 u1.44,mineral
-al0.122 ca1.802 fe0.575 h1.94 k0.014 mg4.479 mn0.016 na0.124 o24 si7.94 ti0.002,mineral
-al0.306 ca0.158 fe4.52 h2 k1.414 mg0.11 mn0.13 na2.428 o24 si7.84 ti0.094,mineral
+al0.04 ca9 f0.84 h0.16 mg0.96 o27.16 p6,mineral
+al0.1 ca0.28 ce0.02 fe0.1 h6 nb0.8 nd0.02 o14 si0.26 ta0.52 ti0.22 u1,mineral
+al0.122 ca1.802 fe0.575 h1.94 k0.014 mg4.479 mn0.016 na0.124 o24 si7.94 ti0,mineral
+al0.306 ca0.158 fe4.52 h2 k1.414 mg0.11 mn0.13 na2.428 o24 si7.84 ti0,mineral
 al0.54 cu fe5.46 h16 o28 p4,mineral
 al0.635 as cu fe0.365 h2 o6,mineral
-al0.74 as3 fe1.26 h23 mg4.23 mn8.06 o34 zn0.71,mineral
+al0.74 as3 fe1.26 h23 mg4.23 mn8.06 o34 zn0,mineral
 al0.761 fe3.239 h36 o42 s6,mineral
 al0.816 as2 ca fe0.354 h3 mg0.784 mn0.046 o10,mineral
-al0.91 as f0.73 fe0.09 h0.27 li0.05 na0.95 o4.27,mineral
-al1.02 ca0.02 na0.98 o8 si2.98,mineral
-al1.07 ca3.94 fe2.93 h28 mg1.01 o40 p6 sr0.06,mineral
-al1.282 ca0.03 cl0.05 f0.22 fe2.43 h1.38 k0.88 mg0.12 mn0.03 na0.07 o11.73 si2.808 ti0.21,mineral
+al0.91 as f0.73 fe0.09 h0.27 li0.05 na0.95 o4,mineral
+al1.02 ca0.02 na0.98 o8 si2,mineral
+al1.07 ca3.94 fe2.93 h28 mg1.01 o40 p6 sr0,mineral
+al1.282 ca0.03 cl0.05 f0.22 fe2.43 h1.38 k0.88 mg0.12 mn0.03 na0.07 o11.73 si2.808 ti0,mineral
 al1.356 be3 fe0.384 h10.944 mg0.258 na0.425 o18.912 si6,mineral
 al1.8 b ca1.65 fe0.2 h mg0.1 mn1.2 o16 si4,mineral
-al1.84 ca0.93 fe0.16 h18 mg0.04 mn2.96 o26 p4 zn0.07,mineral
+al1.84 ca0.93 fe0.16 h18 mg0.04 mn2.96 o26 p4 zn0,mineral
 al1.86 b ca1.95 fe0.18 h0.9 mg0.015 mn0.995 o16 si4,mineral
-al1.876 ba0.002 ca0.162 h34 k0.03 mg0.047 n1.315 na0.106 o22.52 si7.123,mineral
-al1.9 h4 na1.95 o14 si4.1,mineral
+al1.876 ba0.002 ca0.162 h34 k0.03 mg0.047 n1.315 na0.106 o22.52 si7,mineral
+al1.9 h4 na1.95 o14 si4,mineral
 al1.98 be cr0.02 o4,mineral
 al12 ca5.515 cl3 k2.505 na7.5 o60 s3 si12,mineral
-al12.12 b34.68 ca4.98 na24.34 o206.27 si56.18 zr3.28,mineral
+al12.12 b34.68 ca4.98 na24.34 o206.27 si56.18 zr3,mineral
 al2 ba h3 mg1.97 mn0.03 o15 p3,mineral
 al2 ba o8 si2,mineral
 al2 be3 o18 si6,mineral
 al2 ca0.12 fe2.58 mg0.27 o12 si3,mineral
 al2 ca2 h6 o22 si6 sn,mineral
-al2 fe0.02 h44 mg0.28 mn0.64 o38 s4 zn0.06,mineral
+al2 fe0.02 h44 mg0.28 mn0.64 o38 s4 zn0,mineral
 al2 fe3 o12 si3,mineral
 al2 h3 o7 p,mineral
 al2 h34 o29 s3,mineral
@@ -565,28 +571,28 @@ al2 o3,mineral
 al2 o5 si,mineral
 al2.08 ca2 fe0.39 h mn0.53 o13 si3,mineral
 al2.09 ca2 fe0.91 h o13 si3,mineral
-al2.66 be2 f2 k0.46 na6.2 o39 si15.34,mineral
-al2.672 ca0.82 h12 k o22 si5.328,mineral
+al2.66 be2 f2 k0.46 na6.2 o39 si15,mineral
+al2.672 ca0.82 h12 k o22 si5,mineral
 al3 ba0.882 h7 o14 p2,mineral
 al3 be2 f2 k0.983 na6.017 o39 si15,mineral
-al3 bi0.49 ca0.23 h6 o14 p1.8 si0.2 sr0.28,mineral
+al3 bi0.49 ca0.23 h6 o14 p1.8 si0.2 sr0,mineral
 al3 f14 na5,mineral
 al3 h2 k o12 si3,mineral
 al3 h4 na o12 p2,mineral
 al3 h6 k o14 s2,mineral
 al3 h6 k0.42 na0.58 o14 s2,mineral
-al3.02 h8 k0.012 mg0.26 mn1.74 o20 si4 v0.98,mineral
-al3.156 ca1.01 k0.164 na0.226 o24 si8.844,mineral
-al4 ba0.08 fe2.26 h4 mg0.74 o26 p3.92 sr1.92 v0.08,mineral
+al3.02 h8 k0.012 mg0.26 mn1.74 o20 si4 v0,mineral
+al3.156 ca1.01 k0.164 na0.226 o24 si8,mineral
+al4 ba0.08 fe2.26 h4 mg0.74 o26 p3.92 sr1.92 v0,mineral
 al4 ca0.87 h4 li3.72 na0.41 o20 p4,mineral
 al4 fe0.14 mg1.86 na0.09 o18.58 si5,mineral
-al4 h16 ni0.72 o20 v1.88 zn0.28,mineral
-al4.251 ca0.084 fe0.06 k0.336 mg1.94 o18 si4.749,mineral
-al4.76 fe0.34 o16 sb2.9,mineral
-al5.88 ca0.94 cl0.48 h0.96 na6.4 o24.48 s3.54 si6.12,mineral
-al7.7 ca2.7 h12.68 o45.862 p4 si3 sr0.3,mineral
-al8.435 fe0.83 h o15 sn zn0.36,mineral
-al9.8 b27.8 ca4 cr fe5.8 li4 na19.6 ni0.4 o177 p0.6 si45.1 zn2.5,mineral
+al4 h16 ni0.72 o20 v1.88 zn0,mineral
+al4.251 ca0.084 fe0.06 k0.336 mg1.94 o18 si4,mineral
+al4.76 fe0.34 o16 sb2,mineral
+al5.88 ca0.94 cl0.48 h0.96 na6.4 o24.48 s3.54 si6,mineral
+al7.7 ca2.7 h12.68 o45.862 p4 si3 sr0,mineral
+al8.435 fe0.83 h o15 sn zn0,mineral
+al9.8 b27.8 ca4 cr fe5.8 li4 na19.6 ni0.4 o177 p0.6 si45.1 zn2,mineral
 alabandite,mineral
 alabandite__r070174-1__infrared__infrared_data_processed__1054,mineral
 alabandite__r070174__raman__532__0__unoriented__raman_data_processed__36781,mineral
@@ -640,6 +646,7 @@ algae desmarestia viridis,organic matter
 algae fucus serratus,organic matter
 algae laminaria digita and hyperborea,organic matter
 algae laminaria sacharina,organic matter
+algae_ref,organic matter
 algin,organic matter
 alginic acid  sodium salt,organic matter
 alginic acid sodium salt,other material
@@ -647,6 +654,7 @@ alginic_acid_aldrich,other material
 alizarin 23600_532,other material
 alizarin 23600_785,other material
 alkyd varnish,other plastic
+alkyd varnish_ref,other plastic
 alkyd.resin,other plastic
 alkyd_varnish,other plastic
 allabogdanite,mineral
@@ -797,6 +805,7 @@ amber (dominican republic; a. nissenbaum),mineral
 amber (new jersey; a. nissenbaum),mineral
 amber__r060569__raman__532__0__unoriented__raman_data_processed__36245,mineral
 amber__r060569__raman__780__0__unoriented__raman_data_processed__36244,mineral
+amber_ref,mineral
 amblygonite,mineral
 amblygonite__r040006-1__infrared__infrared_data_processed__1004,mineral
 amblygonite__r040006__raman__532__0__unoriented__raman_data_processed__14787,mineral
@@ -970,6 +979,8 @@ anhydrite__r061102__raman__785__0__unoriented__raman_data_processed__18159,miner
 aniline,mineral
 anilite,mineral
 anilite__r060514__raman__532__0__unoriented__raman_data_processed__10325,mineral
+animal fibre like,organic matter
+animal fibre_ref,organic matter
 anisole,mineral
 ankangite__r080136__raman__532__0__unoriented__raman_data_processed__30964,mineral
 ankerite,mineral
@@ -1089,7 +1100,8 @@ arakiite__r070172__raman__780__0__unoriented__raman_data_processed__26786,minera
 aramayoite,mineral
 aramayoite__r061071__raman__532__0__unoriented__raman_data_processed__16284,mineral
 aramayoite__r061071__raman__785__0__unoriented__raman_data_processed__16299,mineral
-aramid,kevlar - polyaramide
+aramid,poly(p-phenylene terephthalamide) (Kevlar)
+aramid_ref,poly(p-phenylene terephthalamide) (Kevlar)
 arapovite,mineral
 aravaipaite,mineral
 aravaipaite__r100004__raman__532__0__unoriented__raman_data_processed__33694,mineral
@@ -1226,33 +1238,33 @@ as bi2 h o6,mineral
 as ca cu0.96 h mg0.04 o5,mineral
 as ca h5 o6,mineral
 as cu h o9 pb2 s,mineral
-as cu0.86 h o5 zn1.14,mineral
+as cu0.86 h o5 zn1,mineral
 as h mn2 o5,mineral
 as h o5 pb zn,mineral
 as h o5 zn2,mineral
 as h9 mg o8,mineral
-as0.04 ca0.88 f0.73 h0.24 na0.88 nb0.14 o6 pb0.02 si0.12 ta1.7,mineral
-as0.4 fe4.56 o12 s0.84 sb3.84 zn0.2,mineral
+as0.04 ca0.88 f0.73 h0.24 na0.88 nb0.14 o6 pb0.02 si0.12 ta1,mineral
+as0.4 fe4.56 o12 s0.84 sb3.84 zn0,mineral
 as0.404 o14 p1.594 pb3 te zn3,mineral
-as0.476 cu0.356 fe9 h19 na o38 p5.524,mineral
-as1.8 cu5 h4 o12 p0.2,mineral
-as2 ba fe2.52 o14 sb0.48,mineral
-as2 ca1.928 fe3 h48.352 mg mo8 na0.072 o61.176,mineral
-as2 ca2 h4 mg0.14 o10 zn0.86,mineral
+as0.476 cu0.356 fe9 h19 na o38 p5,mineral
+as1.8 cu5 h4 o12 p0,mineral
+as2 ba fe2.52 o14 sb0,mineral
+as2 ca1.928 fe3 h48.352 mg mo8 na0.072 o61,mineral
+as2 ca2 h4 mg0.14 o10 zn0,mineral
 as2 co2.01 fe0.74 h16 ni0.25 o16,mineral
-as2 fe0.65 h2.65 o9 pb2 zn0.35,mineral
+as2 fe0.65 h2.65 o9 pb2 zn0,mineral
 as2 fe2 h2 o10 pb,mineral
 as2 h8 mn7 o16,mineral
 as2 o4 zn,mineral
 as2 s3,mineral
-as2.892 ca1.91 mg0.56 mn1.77 na1.376 o12 p0.09 pb0.384 v0.018,mineral
+as2.892 ca1.91 mg0.56 mn1.77 na1.376 o12 p0.09 pb0.384 v0,mineral
 as22.36 ca11.84 fe5.94 mn3.4 o81.36 ti6,mineral
 as3 ca4 h9 o16,mineral
 as3 cd cu1.5 h0.02 o14 zn2,mineral
 as3 fe4 o21,mineral
-as4 fe4.8 h10 o26 pb4 zn2.2,mineral
+as4 fe4.8 h10 o26 pb4 zn2,mineral
 as6 o18 pb3 te zn3,mineral
-as6.3 cu0.843 fe h6 mg0.1 mn12.9 o33 si1.7,mineral
+as6.3 cu0.843 fe h6 mg0.1 mn12.9 o33 si1,mineral
 as8 s9,mineral
 asbecasite,mineral
 asbecasite__r060719__raman__532__0__unoriented__raman_data_processed__12214,mineral
@@ -1422,8 +1434,8 @@ ba o2,mineral
 ba o3 ti,mineral
 ba o4 s,mineral
 ba o9 si3 ti,mineral
-ba0.16 ca12.82 f h4.18 k6.94 mn0.18 na3.18 o92.59 si35 sr0.5,mineral
-ba2.5 ca f4 fe6.1 h8 k1.2 mn9.4 na3 nb0.32 o72 si16 ti7.68 zr0.3,mineral
+ba0.16 ca12.82 f h4.18 k6.94 mn0.18 na3.18 o92.59 si35 sr0,mineral
+ba2.5 ca f4 fe6.1 h8 k1.2 mn9.4 na3 nb0.32 o72 si16 ti7.68 zr0,mineral
 ba9.5 ca3.5 cl4 h12 o36 si8 ti,mineral
 babingtonite,mineral
 babingtonite__r060083-1__infrared__infrared_data_processed__1180,mineral
@@ -1588,12 +1600,12 @@ bazhenovite__r130224__raman__780__0__unoriented__raman_data_processed__37911,min
 bb-22    (lot #0447496-10),other material
 be ca f0.48 h0.52 o4.52 p,mineral
 be h2 o2,mineral
-be1.694 ca1.9 fe2.449 h2 k0.072 mg2.551 na0.1 o24 pb0.928 si6.306,mineral
+be1.694 ca1.9 fe2.449 h2 k0.072 mg2.551 na0.1 o24 pb0.928 si6,mineral
 be2 ca3 h2 o12 si3,mineral
 be3 ca0.36 h7.26 k li1.44 na0.84 o15.01 p3,mineral
 be4 ca2 fe0.52 h16 li0.17 mg0.05 mn4.14 o34 p6,mineral
 be4 h2 o9 si2,mineral
-be5.176 ca0.764 ce0.824 eu0.008 f4 gd0.078 h7.72 la0.236 mg0.012 mn0.485 na3.652 nd0.374 o33.15 pr0.114 si8.824 sm0.08 th0.174 y0.242,mineral
+be5.176 ca0.764 ce0.824 eu0.008 f4 gd0.078 h7.72 la0.236 mg0.012 mn0.485 na3.652 nd0.374 o33.15 pr0.114 si8.824 sm0.08 th0.174 y0,mineral
 beachcast white foam sheet,other plastic
 beaverite-(cu),mineral
 beaveritecu__r060400__raman__532__0__unoriented__raman_data_processed__34897,mineral
@@ -1831,6 +1843,9 @@ bismutite__r060665__raman__780__0__unoriented__raman_data_processed__38633,miner
 bismutotantalite,mineral
 bisphenol a,other material
 bisphenol a diglycidyl ether,bisphenol-a diglycidyl ether epoxy resin
+bisphenol a polysulfone,bisphenol a polysulfone
+bisphenol-a diglycidyl ether epoxy resin,bisphenol-a diglycidyl ether epoxy resin
+bisphenol-f diglycidyl ether epoxy resin,bisphenol-f diglycidyl ether epoxy resin
 bitumen (iraq 9053; nissenbaum),other material
 bitumen (oman 1927; nissenbaum),other material
 bitumen z0098_532,other material
@@ -1970,6 +1985,8 @@ boussingaultite__r061027__raman__785__0__unoriented__raman_data_processed__14768
 boussingaultite__r070597__raman__532__0__unoriented__raman_data_processed__23144,mineral
 boussingaultite__r070597__raman__780__0__unoriented__raman_data_processed__23142,mineral
 bowieite,mineral
+bpf,
+br,
 br tl,mineral
 brackebuschite,mineral
 brackebuschite__r050547__raman__532__0__unoriented__raman_data_processed__32285,mineral
@@ -2150,22 +2167,22 @@ c,mineral
 c as18 mn26 o57,mineral
 c bi2 o5,mineral
 c ca o3,mineral
-c ca0.997 o3 sr0.003,mineral
+c ca0.997 o3 sr0,mineral
 c ca2 f2 o3,mineral
 c cd o3,mineral
 c cs2 o3,mineral
 c fe o3,mineral
 c h10 cu2 mg2 o11,mineral
-c h2 al0.333 o5 zn0.667,mineral
+c h2 al0.333 o5 zn0,mineral
 c h30 ca3 mn o25 s,mineral
 c h5 cl mg2 o6,mineral
 c k2 o3,mineral
 c li2 o3,mineral
 c si,mineral
-c0.118 h3.224 cr0.23 mg0.77 o2.966,mineral
+c0.118 h3.224 cr0.23 mg0.77 o2,mineral
 c0.31 h18 al12 ca2.23 cl0.17 k2.16 na11.61 o61.79 s2.7 si12,mineral
 c0.5 h4 mg o4,mineral
-c0.61 na3 o3.5 s0.89,mineral
+c0.61 na3 o3.5 s0,mineral
 c1. black fiber,organic matter
 c10. grey fiber,organic matter
 c11. pink fiber,organic matter
@@ -2174,27 +2191,28 @@ c12. orange fiber,organic matter
 c13 ba6 ca6 mg o39,mineral
 c18 h32 o2,mineral
 c18 h37 n,mineral
-c2 b3.468 f2 mg9 o58 pb14.144 si10.532,mineral
+c2 b3.468 f2 mg9 o58 pb14.144 si10,mineral
 c2 ba ca o6,mineral
 c2 ca fe0.33 mg0.67 o6,mineral
 c2 ca mg o6,mineral
 c2 cl k na22 o42 s9,mineral
 c2 h,mineral
 c2 h2 o12 pb4 s,mineral
-c2 h2.64 ba0.01 ca0.02 ce0.98 f0.14 o7.74 sr0.98,mineral
+c2 h2.64 ba0.01 ca0.02 ce0.98 f0.14 o7.74 sr0,mineral
 c2 h3 ca o8 y,mineral
 c2 h6 b4 ca4 mg o18,mineral
 c2 mg na2 o6,mineral
 c2. blue fiber,organic matter
-c2.64 h40.56 al0.75 ca18 ce0.18 f0.39 fe3.6 k1.17 mn5.72 na47.84 nb0.87 o254.37 si75.57 sr2.43 ti0.57 zr9.24,mineral
-c3 h8.5 ca1.5 o23 si4 y2.5,mineral
+c2.64 h40.56 al0.75 ca18 ce0.18 f0.39 fe3.6 k1.17 mn5.72 na47.84 nb0.87 o254.37 si75.57 sr2.43 ti0.57 zr9,mineral
+c3 h8.5 ca1.5 o23 si4 y2,mineral
 c3. blue fiber,organic matter
 c4 ba o4,mineral
-c4 ca1.263 ce0.626 dy0.068 gd0.273 la0.137 nd0.879 o16 pr0.147 sm0.324 tm0.029 y0.254,mineral
-c4 h4.59 al0.112 ca3.76 f0.41 k0.882 na3.658 o31.373 si7.748,mineral
+c4 ca1.263 ce0.626 dy0.068 gd0.273 la0.137 nd0.879 o16 pr0.147 sm0.324 tm0.029 y0,mineral
+c4 h4.59 al0.112 ca3.76 f0.41 k0.882 na3.658 o31.373 si7,mineral
 c4. green fiber,organic matter
-c5 ba0.5 ca1.44 ce0.78 na2.67 o15 sr0.55,mineral
+c5 ba0.5 ca1.44 ce0.78 na2.67 o15 sr0,mineral
 c5. pink fiber bundle,organic matter
+c5/c9 copolymer harz,
 c6. red fiber,organic matter
 c7. blue fiber,organic matter
 c8. pink fiber bundle,organic matter
@@ -2215,17 +2233,17 @@ ca n2 o6,mineral
 ca o2,mineral
 ca o4 s,mineral
 ca o4 w,mineral
-ca o8 ti zr2.5,mineral
+ca o8 ti zr2,mineral
 ca0.182 mn o21 pb7.818 si6,mineral
-ca0.74 ce0.03 k0.6 mg0.04 mn0.2 na0.9 o20 pb0.01 si8 th0.88,mineral
+ca0.74 ce0.03 k0.6 mg0.04 mn0.2 na0.9 o20 pb0.01 si8 th0,mineral
 ca0.774 fe0.11 mg0.901 na0.226 o6 si2,mineral
-ca0.82 f1.25 mn0.79 na1.18 o7.75 si2 ti0.477 zr0.733,mineral
-ca0.83 cu0.01 fe0.08 h14 k mg0.04 na nb0.08 o32 si10 ti0.06 zn0.02 zr1.86,mineral
+ca0.82 f1.25 mn0.79 na1.18 o7.75 si2 ti0.477 zr0,mineral
+ca0.83 cu0.01 fe0.08 h14 k mg0.04 na nb0.08 o32 si10 ti0.06 zn0.02 zr1,mineral
 ca13 f10 h12 o34 si10,mineral
 ca2 fe h8 o12 p2,mineral
 ca2 fe2 o5,mineral
 ca2 h11.912 mn7 o34.956 si10,mineral
-ca2 h9.2 o8 s2.19,mineral
+ca2 h9.2 o8 s2,mineral
 ca2 o12 pb si3 zn3,mineral
 ca2.25 h7 o11 si3,mineral
 ca3 fe2 o12 si3,mineral
@@ -2481,7 +2499,7 @@ cb-13 (lot #n1p15),other material
 cd i2,mineral
 ce h8 o12 s2,mineral
 ce o2,mineral
-ce0.62 dy0.02 er0.01 f0.24 gd0.02 la0.03 nd0.06 o1.68 pr0.01 sm0.01 y0.2 yb0.02,mineral
+ce0.62 dy0.02 er0.01 f0.24 gd0.02 la0.03 nd0.06 o1.68 pr0.01 sm0.01 y0.2 yb0,mineral
 cebaite-(ce),mineral
 cebaitece__r060248__raman__532__0__unoriented__raman_data_processed__33492,mineral
 cechite,mineral
@@ -2500,10 +2518,14 @@ celestite (wards),other material
 cellulose,organic matter
 cellulose acetate,cellulose acetate
 cellulose acetate butyrate,cellulose derivatives (ether cellulose)
+cellulose like,organic matter
+cellulose nitrate,cellulose nitrate
 cellulose propionate,cellulose derivatives (ether cellulose)
 cellulose triacetate,cellulose derivatives (ether cellulose)
 cellulose wipe,organic matter
 cellulose-sample (sigma 9004-34-6),organic matter
+cellulose_like,organic matter
+cellulose_like_ref,organic matter
 cellulose_propionate,cellulose derivatives (ether cellulose)
 cellulose_triacetate,cellulose acetate
 celluloseacetate,cellulose acetate
@@ -2719,6 +2741,7 @@ chitin cha-2 400 mw,organic matter
 chitin crangon antonia,organic matter
 chitin from crustacean shells,organic matter
 "chitin, from shrimp shells",organic matter
+chitin_ref,organic matter
 chitosan_aldrich,other material
 chkalovite,mineral
 chkalovite__r060682__raman__532__0__unoriented__raman_data_processed__11726,mineral
@@ -2823,7 +2846,7 @@ citric_acid_sigma-aldrich,other material
 cl cr2 f h2 o10 pb4,mineral
 cl cu2 h3 o3,mineral
 cl h20 hg4 n2 o s,mineral
-cl o4 pb3.5 si0.5,mineral
+cl o4 pb3.5 si0,mineral
 cl tl,mineral
 cl0.675 fe4 o8,mineral
 cl1.857 fe8 h12.025 o23.584 si6,mineral
@@ -2938,6 +2961,7 @@ co o,mineral
 co3 o4,mineral
 coal,other material
 coal-kbr,other material
+coal_ref,other material
 coalingite,mineral
 coalingite__r110196__raman__532__0__unoriented__raman_data_processed__36026,mineral
 coalingite__r110196__raman__780__0__unoriented__raman_data_processed__36028,mineral
@@ -3060,7 +3084,7 @@ copal (philippines; a. nissenbaum),other material
 copiapite,mineral
 copiapite__r060821__raman__532__0__unoriented__raman_data_processed__12810,mineral
 copiapite__r060821__raman__785__0__unoriented__raman_data_processed__14670,mineral
-copolyamide,polyamides (polylactams)
+copolyamide,polyamides
 copolyester,polyesters
 copper,mineral
 copper oxide,other material
@@ -3250,7 +3274,7 @@ cryolithionite,mineral
 cryolithionite__r080051__raman__532__0__unoriented__raman_data_processed__27441,mineral
 cryolithionite__r080051__raman__780__0__unoriented__raman_data_processed__27440,mineral
 cs n o3,mineral
-cu fe0.5 s4 sn1.5,mineral
+cu fe0.5 s4 sn1,mineral
 cu h4 na2 o10 s2,mineral
 cu h4 o5 se,mineral
 cu h5 o11 pb4 s,mineral
@@ -3685,7 +3709,7 @@ dreyerite__r130060__raman__532__0__unoriented__raman_data_processed__37785,miner
 dreyerite__r130060__raman__780__0__unoriented__raman_data_processed__37787,mineral
 drip irrigation tubing,other plastic
 dromostanolone (lot #g407),other material
-"ds 1iii2 smooth area (very thin), 14.2.07",other material
+"ds 1iii2 smooth area (very thin), 14",other material
 dufrenoysite,mineral
 dufrenoysite__r070579__raman__532__0__unoriented__raman_data_processed__23028,mineral
 dufrenoysite__r070579__raman__780__0__unoriented__raman_data_processed__28323,mineral
@@ -3729,6 +3753,7 @@ dypingite__r060758__raman__532__0__unoriented__raman_data_processed__18796,miner
 dypingite__r070086__raman__532__0__unoriented__raman_data_processed__17580,mineral
 dyscrasite,mineral
 e-flea hcl (lot #rm-170707-01),other material
+e/p,
 eaa 1. clear pellet,other plastic
 eakerite,mineral
 eakerite__r060319__raman__532__0__unoriented__raman_data_processed__34089,mineral
@@ -3906,6 +3931,9 @@ eosphorite__r060293__raman__532__0__unoriented__raman_data_processed__34041,mine
 eosphorite__r060293__raman__780__0__unoriented__raman_data_processed__34043,mineral
 eosphorite__r061055__raman__532__0__unoriented__raman_data_processed__14870,mineral
 eosphorite__r061055__raman__785__0__unoriented__raman_data_processed__14868,mineral
+ep,
+ep_ref,
+epdm rubber (ethylene propylene diene monomer rubber),epdm rubber (ethylene propylene diene monomer rubber)
 ephedrine base (lot #02502du),other material
 ephesite,mineral
 ephesite__r060848__raman__532__0__unoriented__raman_data_processed__18625,mineral
@@ -3965,6 +3993,7 @@ epistolite__r070396__raman__532__0__unoriented__raman_data_processed__21631,mine
 epistolite__r070396__raman__785__0__unoriented__raman_data_processed__21629,mineral
 epofix resin,other material
 epoxide resin,other plastic
+epoxide_ref,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
 epoxy,other plastic
 eps,polystyrene
 epsomite,mineral
@@ -4029,32 +4058,34 @@ ethylbenzene,other material
 ethylen vinylalcohol,other plastic
 ethylen-acrylat-monomere,other material
 ethylen-propylen-dien rubber,other plastic
-ethylen-vinylacetat-copolymer,ethylene-vinyl acetate
+ethylen-vinylacetat-copolymer,poly(ethylene-vinyl acetate) (EVA)
 ethylene acrylic acid,other plastic
 ethylene acrylic acide,other plastic
 ethylene chloride,other material
 ethylene ethyl acrylate,other plastic
 ethylene ethyl acrylate copolymer,other plastic
+ethylene ethyl acrylate_ref,other plastic
 ethylene glycol,other material
 ethylene methacrylic acid,other plastic
 ethylene methacrylic acid copolymer,other plastic
 ethylene propylene,ethylene-propylene
 ethylene propylene copolymer,ethylene-propylene
-ethylene vinyl acetat copolymer,ethylene-vinyl acetate
-ethylene vinyl acetate,ethylene-vinyl acetate
-ethylene vinyl acetate 14% copolymer,ethylene-vinyl acetate
-ethylene vinyl acetate 18% copolymer,ethylene-vinyl acetate
-ethylene vinyl acetate 28% copolymer,ethylene-vinyl acetate
-ethylene vinyl acetate 33% copolymer,ethylene-vinyl acetate
-ethylene vinyl acetate 40% copolymer,ethylene-vinyl acetate
+ethylene vinyl acetat copolymer,poly(ethylene-vinyl acetate) (EVA)
+ethylene vinyl acetate,poly(ethylene-vinyl acetate) (EVA)
+ethylene vinyl acetate 14% copolymer,poly(ethylene-vinyl acetate) (EVA)
+ethylene vinyl acetate 18% copolymer,poly(ethylene-vinyl acetate) (EVA)
+ethylene vinyl acetate 28% copolymer,poly(ethylene-vinyl acetate) (EVA)
+ethylene vinyl acetate 33% copolymer,poly(ethylene-vinyl acetate) (EVA)
+ethylene vinyl acetate 40% copolymer,poly(ethylene-vinyl acetate) (EVA)
 ethylene vinyl alcohol,other plastic
 ethylene vinylalcohol copolymer,other plastic
-ethylene/vinyl actetate copolymer,ethylene-vinyl acetate
+ethylene-propylene,ethylene-propylene
+ethylene/vinyl actetate copolymer,poly(ethylene-vinyl acetate) (EVA)
 ethylene_acrylic_acid,other plastic
 ethylene_ethyl_acrylate,other plastic
 ethylene_methacrylic_acid,other plastic
 ethylene_propylene,ethylene-propylene
-ethylene_vinyl_acetate,ethylene-vinyl acetate
+ethylene_vinyl_acetate,poly(ethylene-vinyl acetate) (EVA)
 ethylene_vinyl_alcohol,other plastic
 ethylphenidate hcl (lot #n16-p77e),other material
 etizolam (lot #17313),other material
@@ -4111,12 +4142,13 @@ euxenite-(y),mineral
 euxenitey__r080101-1__infrared__infrared_data_processed__1016,mineral
 euxenitey__r080101__raman__532__0__unoriented__raman_data_processed__30620,mineral
 euxenitey__r080101__raman__780__0__unoriented__raman_data_processed__30622,mineral
-eva,ethylene-vinyl acetate
-eva 1. white foam,ethylene-vinyl acetate
-eva 2. yellow fragment,ethylene-vinyl acetate
-eva 3. grey foam,ethylene-vinyl acetate
-eva 4. clear film,ethylene-vinyl acetate
-eva 5. green fiber,ethylene-vinyl acetate
+eva,poly(ethylene-vinyl acetate) (EVA)
+eva 1. white foam,poly(ethylene-vinyl acetate) (EVA)
+eva 2. yellow fragment,poly(ethylene-vinyl acetate) (EVA)
+eva 3. grey foam,poly(ethylene-vinyl acetate) (EVA)
+eva 4. clear film,poly(ethylene-vinyl acetate) (EVA)
+eva 5. green fiber,poly(ethylene-vinyl acetate) (EVA)
+eva_ref,poly(ethylene-vinyl acetate) (EVA)
 evansite,mineral
 "evansite (santa guo, spain huj 12646)",other material
 evansite__r061030__raman__532__0__unoriented__raman_data_processed__14617,mineral
@@ -4171,7 +4203,7 @@ fayalite__r100103__raman__532__0__unoriented__raman_data_processed__34370,minera
 fayalite__r100104__raman__532__0__unoriented__raman_data_processed__34382,mineral
 fdu-pb-22   (lot #rm-140311-01),other material
 fe h o2,mineral
-fe h o9 pb1.937 v1.912,mineral
+fe h o9 pb1.937 v1,mineral
 fe h2 k o9 s2,mineral
 fe h2 na o2 s2,mineral
 fe h3 o7 s,mineral
@@ -4182,7 +4214,7 @@ fe s2,mineral
 fe0.528 h15 mg4.472 na2 o23 p4,mineral
 fe0.58 h2 mg8.42 o18 si4,mineral
 fe0.8 h mn0.2 o5 pb v,mineral
-fe1.08 h11.25 mg0.2 mn0.25 o16 s2 zn0.47,mineral
+fe1.08 h11.25 mg0.2 mn0.25 o16 s2 zn0,mineral
 fe2 h4 mn o18 p2,mineral
 fe2 o3,mineral
 fe3 o4,mineral
@@ -4201,6 +4233,7 @@ fenaksite__r080135__raman__780__0__unoriented__raman_data_processed__30949,miner
 fencooperite,mineral
 fencooperite__r061032__raman__532__0__unoriented__raman_data_processed__14549,mineral
 fentanyl hcl (lot #alb-297-3),other material
+fep,
 ferberite,mineral
 ferberite__r040044-1__infrared__infrared_data_processed__271,mineral
 ferberite__r040044__raman__514__0__unoriented__raman_data_processed__9712,mineral
@@ -4341,9 +4374,9 @@ fibre kapok,organic matter
 fibre linen,organic matter
 fibre mulberry silk,other material
 fibre polyactide,other plastic
-fibre polyamide 6,polyamides (polylactams)
+fibre polyamide 6,polyamides
 fibre polyamide 6 (not)stretched,nylon 6 - poly(caprolactam)
-fibre polyamide 6 p6.6,"nylon 6,6 - poly(hexamethylene adipamide)"
+fibre polyamide 6 p6,"nylon 6,6 - poly(hexamethylene adipamide)"
 fibre polyester,polyesters
 fibre polyetheretherketone,peek - poly(ether ether ketone)
 fibre polypropylene,poly(propylene)
@@ -4359,6 +4392,7 @@ fibre tussah silk,organic matter
 fibre urtica dioica l conar fibra,organic matter
 fibre viscose,organic matter
 fibre viscose dyed,organic matter
+fibre_acetate,
 fibre_cocoanut,organic matter
 fibre_cotton_combers,organic matter
 fibre_cotton_us_pima,organic matter
@@ -4375,7 +4409,7 @@ fibre_mulberry_silk,organic matter
 fibre_polyactide,other plastic
 fibre_polyamide_6,nylon 6 - poly(caprolactam)
 fibre_polyamide_6_(not)stretched,nylon 6 - poly(caprolactam)
-fibre_polyamide_6_p6.6,organic matter
+fibre_polyamide_6_p6,organic matter
 fibre_polyester,polyesters
 fibre_polyetheretherketone,peek - poly(ether ether ketone)
 fibre_polypropylene,poly(propylene)
@@ -4629,6 +4663,7 @@ foshagite__r070098__raman__785__0__unoriented__raman_data_processed__25078,miner
 fourmarierite,mineral
 fourmarierite__r100187__raman__532__0__unoriented__raman_data_processed__34788,mineral
 fourmarierite__r100187__raman__780__0__unoriented__raman_data_processed__34790,mineral
+fpm,
 francevillite,mineral
 francevillite__r070159__raman__532__0__unoriented__raman_data_processed__25100,mineral
 francevillite__r070159__raman__785__0__unoriented__raman_data_processed__25101,mineral
@@ -4705,6 +4740,7 @@ fur_cat_european_shorthair,organic matter
 fur_cow,organic matter
 fur_lama,organic matter
 fur_mohair_angora_goat,organic matter
+fur_ref,organic matter
 fur_yak,organic matter
 fur_yak_bleached,organic matter
 furanyl fentanyl hcl (lot #alb-288-12),other material
@@ -5205,8 +5241,8 @@ gysinite-(nd),mineral
 gysinitend__r100062__raman__532__0__unoriented__raman_data_processed__33841,mineral
 h0.066 na1.934 o7 si2 zr,mineral
 h10 mn3 o14 p2,mineral
-h10.3 k2.98 na1.22 nb2.2 o31.15 si8 ti1.8,mineral
-h15.68 k3.4 mn0.2 na2 nb0.8 o32.4 si8 ti3.2,mineral
+h10.3 k2.98 na1.22 nb2.2 o31.15 si8 ti1,mineral
+h15.68 k3.4 mn0.2 na2 nb0.8 o32.4 si8 ti3,mineral
 h2 mg o2,mineral
 h2 na o4 p,mineral
 h2 o10 s sb4,mineral
@@ -5330,8 +5366,6 @@ hazenite,mineral
 hazenite__r100029__raman__532__0__unoriented__raman_data_processed__33718,mineral
 hazenite__r100029__raman__780__0__unoriented__raman_data_processed__33720,mineral
 hdpe,poly(ethylene)
-hdpe.1,poly(ethylene)
-hdpe.2,poly(ethylene)
 heazlewoodite,mineral
 heazlewoodite__r061074__raman__532__0__unoriented__raman_data_processed__16081,mineral
 heazlewoodite__r061074__raman__785__0__unoriented__raman_data_processed__25810,mineral
@@ -5808,6 +5842,7 @@ isoamyl alcohol,other material
 isobutyl alcohol,other material
 isobutyl methacrylate,other material
 isobutylen-isopropen-rubber,other plastic
+isobutylene-isoprene,isobutylene-isoprene
 isobutyryl fentanyl hcl (lot #alb-235-7),other material
 isocubanite,mineral
 isocubanite__r090050__raman__532__0__unoriented__raman_data_processed__32827,mineral
@@ -6430,8 +6465,6 @@ lazurite__r040023__raman__514__0__unoriented__raman_data_processed__24531,minera
 lazurite__r040023__raman__532__0__unoriented__raman_data_processed__26092,mineral
 lazurite__r040023__raman__780__0__unoriented__raman_data_processed__29937,mineral
 ldpe,poly(ethylene)
-ldpe.1,poly(ethylene)
-ldpe.2,poly(ethylene)
 lead,mineral
 lead tin yellow (type i);,other material
 lead tin yellow (type ii);,other material
@@ -6635,7 +6668,6 @@ lizardite__r060006-1__infrared__infrared_data_processed__841,mineral
 lizardite__r060006__raman__532__0__unoriented__raman_data_processed__29403,mineral
 lizardite__r060006__raman__780__0__unoriented__raman_data_processed__29404,mineral
 lldpe,poly(ethylene)
-lldpe.2,poly(ethylene)
 lobanovite,mineral
 lobanovite__r120068__raman__780__0__unoriented__raman_data_processed__36873,mineral
 "loess (houzhuang, china)",other material
@@ -7008,6 +7040,7 @@ meierite,mineral
 meionite,mineral
 meionite__r040169__raman__532__0__unoriented__raman_data_processed__30252,mineral
 meionite__r040169__raman__785__0__unoriented__raman_data_processed__20882,mineral
+melamine-formaldehyde,melamine-formaldehyde
 melanophlogite,mineral
 melanophlogite__r060863__raman__532__0__unoriented__raman_data_processed__13002,mineral
 melanophlogite__r060863__raman__785__0__unoriented__raman_data_processed__18644,mineral
@@ -7172,11 +7205,207 @@ meyerhofferite,mineral
 meyerhofferite__r050671-1__infrared__infrared_data_processed__1185,mineral
 meyerhofferite__r050671__raman__532__0__unoriented__raman_data_processed__32883,mineral
 meyerhofferite__r050671__raman__780__0__unoriented__raman_data_processed__32885,mineral
+mffrc001_cellulose diacetate_canadian celanese co,cellulose acetate
+mffrc002_cellulose triacetate_calenese,cellulose acetate
+mffrc003_cellulose diacetate_eastman fibers,cellulose acetate
+mffrc004_cellulose diacetate_fmc american,cellulose acetate
+mffrc005_acrylic (pan-ma-nictric acid terpolymer)_asa,poly(acrylonitrile)
+mffrc006_acrylic (pan-ma-aa)_asahi chemical co,poly(acrylonitrile)
+mffrc007_acrylic (pan-ma.pan-aa)_asahi chemical co,poly(acrylonitrile)
+mffrc008_acrylic (pan-va)_bayer,poly(acrylonitrile)
+mffrc009_acrylic (pan-ma)_bayer,poly(acrylonitrile)
+mffrc010_acrylic (pan-ma)_bayer,poly(acrylonitrile)
+mffrc011_acrylic (pan-ma-aromatic sulphonate)_bayer,poly(acrylonitrile)
+"mffrc012_acrylic (contains zn, ag)_courtaulds",poly(acrylonitrile)
+"mffrc013_acrylic (pan-mma, no dmf)_cyanamid",poly(acrylonitrile)
+"mffrc014_acrylic (pan-mma, no dmf)_cyanamid",poly(acrylonitrile)
+"mffrc015_acrylic (pan-mma, nascn)_cyanenka sa",poly(acrylonitrile)
+"mffrc016_acrylic (pan-ma, nascn)_cyanenka sa",poly(acrylonitrile)
+"mffrc017_acrylic (pan-mma, nascn)_cyanenka sa",poly(acrylonitrile)
+"mffrc018_acrylic (pan-mma, nascn)_cyanenka sa",poly(acrylonitrile)
+"mffrc019_acrylic (pan-mma, nascn)_cyanenka sa",poly(acrylonitrile)
+"mffrc020_acrylic (pan-mma, nascn)_cyanenka sa",poly(acrylonitrile)
+"mffrc021_acrylic (pan-mma, nascn)_cyanenka sa",poly(acrylonitrile)
+"mffrc022_acrylic (pan-mma, nascn)_cyanenka sa",poly(acrylonitrile)
+"mffrc023_acrylic (pan-mma, nascn)_cyanenka sa",poly(acrylonitrile)
+"mffrc024_acrylic (pan-ma, dmf solvent)_du pont",poly(acrylonitrile)
+mffrc026_acrylic_du pont,poly(acrylonitrile)
+mffrc027_acrylic (pan-ma)_hoechst,poly(acrylonitrile)
+mffrc028_acrylic (pan-ma)_hoechst,poly(acrylonitrile)
+mffrc029_acrylic (pan-ma)_hoechst,poly(acrylonitrile)
+mffrc030_acrylic (pan-ma)_hoechst,poly(acrylonitrile)
+mffrc031_acrylic (pan-ma)_hoechst,poly(acrylonitrile)
+mffrc032_acrylic (pan-ma)_hoechst,poly(acrylonitrile)
+mffrc033_acrylic (pan-ma)_hoechst,poly(acrylonitrile)
+"mffrc034_acrylic (pan-ma, dmf solvent)_hoechst",poly(acrylonitrile)
+"mffrc035_acrylic (pan-ma, dmf solvent)_hoechst",poly(acrylonitrile)
+"mffrc036_acrylic (pan-ma, dmf solvent)_hoechst",poly(acrylonitrile)
+"mffrc037_acrylic (pan-ma, dmf solvent)_hoechst",poly(acrylonitrile)
+mffrc038_acrylic (pan homopolymer)_mann,poly(acrylonitrile)
+mffrc039_acrylic (pan-ma)_markische faser,poly(acrylonitrile)
+mffrc040_acrylic (pan-va)_monsanto,poly(acrylonitrile)
+"mffrc041_acrylic (89 pan-11 ma, dmf solvent)_snia",poly(acrylonitrile)
+"mffrc042_acrylic (89 pan-11 ma, dmf solvent)_snia",poly(acrylonitrile)
+"mffrc043_acrylic (pan-ma-aromatic sulphonate, dmf s",poly(acrylonitrile)
+mffrc044_acrylic (pan-va)_solutia,poly(acrylonitrile)
+mffrc045_acrylic (zncl solvent)_toho rayon,poly(acrylonitrile)
+"mffrc046_acrylic (random polymer mix, zncl solvent)_t",poly(acrylonitrile)
+"mffrc047_acrylic (pan-ma, zncl solvent)_toho rayon",poly(acrylonitrile)
+"mffrc048_acrylic (pan-ma, zncl solvent)_toho rayon",poly(acrylonitrile)
+mffrc049_aramid (kevlar 29)_du pont,polyamides
+mffrc050_aramid (kevlar 49)_du pont,polyamides
+mffrc051_aramid (nomex og 1)_du pont,polyamides
+mffrc052_aramid (nomex t450)_du pont,polyamides
+mffrc054_chlorofiber_fmc american,
+mffrc055_lyocell (tencel)_courtaulds,rayon
+mffrc056_lyocell_lenzing,rayon
+mffrc057_modacrylic (63 pan-37 vdc)_bayer,polyacrylonitriles (nitriles)
+mffrc058_modacrylic_eastman fibers,polyacrylonitriles (nitriles)
+mffrc059_modacrylic (82 pan-15 vc-3 ma)_hoescht,polyacrylonitriles (nitriles)
+mffrc060_modacrylic_lenzing,polyacrylonitriles (nitriles)
+mffrc061_modacrylic (pan-vbr)_monsanto,polyacrylonitriles (nitriles)
+mffrc062_modacrylic (pan-vdc)_snia,polyacrylonitriles (nitriles)
+mffrc063_modacrylic_solutia,polyacrylonitriles (nitriles)
+mffrc064_modacrylic (pan-vdc)_toray,polyacrylonitriles (nitriles)
+mffrc065_modacrylic_toray,polyacrylonitriles (nitriles)
+mffrc066_modacrylic_union carbide,polyacrylonitriles (nitriles)
+mffrc067_modacrylic_waxman,polyacrylonitriles (nitriles)
+mffrc068_modacrylic (pan-va-vc)_waxman,polyacrylonitriles (nitriles)
+mffrc069_modacrylic (pan-va-vc)_waxman,polyacrylonitriles (nitriles)
+mffrc070_modacrylic_waxman,polyacrylonitriles (nitriles)
+mffrc071_modacrylic_waxman,polyacrylonitriles (nitriles)
+mffrc072_modacrylic (pan-vc)_waxman fibers,polyacrylonitriles (nitriles)
+mffrc073_modacrylic (vdc-antimony trioxide)_waxman,polyacrylonitriles (nitriles)
+mffrc074_nylon (pa6)_allied signal fibers,polyamides
+mffrc075_nylon (pa6)_allied signal fibers,polyamides
+mffrc076_nylon (pa6)_allied signal fibers,polyamides
+mffrc077_nylon (pa6)_allied signal fibers,polyamides
+mffrc078_nylon (pa6)_allied signal fibers,polyamides
+mffrc079_nylon (pa6)_allied signal fibers,polyamides
+mffrc080_nylon (pa6)_allied signal fibers,polyamides
+"mffrc081_nylon (pa6, 1220 mbx)_allied signal fibers",polyamides
+"mffrc082_nylon (pa6, hydrofil)_allied signal fibers",polyamides
+"mffrc083_nylon (pa6, patina)_allied signal fibers",polyamides
+"mffrc084_nylon (pa6, t-260)_allied signal fibers",polyamides
+"mffrc085_nylon (pa6, t-511)_allied signal fibers",polyamides
+"mffrc086_nylon (pa6, t-716)_allied signal fibers",polyamides
+mffrc087_nylon (pa6)_basf,polyamides
+"mffrc088_nylon (pa6, h110s blue)_basf",polyamides
+"mffrc089_nylon (pa66,266as)_du pont",polyamides
+"mffrc090_nylon (pa66, 426a)_du pont",polyamides
+"mffrc091_nylon (pa66, 496a)_du pont",polyamides
+"mffrc092_nylon (pa66, 566)_du pont",polyamides
+"mffrc093_nylon (pa66, 576)_du pont",polyamides
+"mffrc094_nylon (pa66, 608)_du pont",polyamides
+"mffrc095_nylon (pa66, 696as)_du pont",polyamides
+"mffrc096_nylon (pa66, 746)_du pont",polyamides
+"mffrc097_nylon (pa66, microsupplex)_du pont",polyamides
+mffrc098_nylon (pa66 carpet yarn)_du pont,polyamides
+"mffrc099_nylon (pa66, p1136)_du pont",polyamides
+"mffrc100_nylon (pa66, p1232)_du pont",polyamides
+"mffrc101_nylon (pa66, p1237 footlights)_du pont",polyamides
+"mffrc102_nylon (pa66, p1261)_du pont",polyamides
+"mffrc103_nylon (special pa, qiana t472)_du pont",polyamides
+"mffrc104_nylon (pa66, quintesse t323)_ici",polyamides
+"mffrc105_nylon (pa66, tactel k000)_ici",polyamides
+"mffrc106_nylon (pa-pu, monvelle)_monsanto",polyamides
+"mffrc107_nylon (pa66, t0660)_monsanto",polyamides
+"mffrc108_nylon (pa66, t0802)_monsanto",polyamides
+"mffrc109_nylon (pa66, t0810)_monsanto",polyamides
+"mffrc110_nylon (pa66, t0811)_monsanto",polyamides
+"mffrc111_nylon (pa66, t08dv)_monsanto",polyamides
+"mffrc112_nylon (pa66, t1184)_monsanto",polyamides
+"mffrc113_nylon (pa66, t1943)_monsanto",polyamides
+"mffrc114_nylon (pa66, t19dv)_monsanto",polyamides
+"mffrc115_nylon (pa66, t2082)_monsanto",polyamides
+"mffrc116_nylon (pa66, t2093)_monsanto",polyamides
+mffrc117_nylon (pa6)_shaw industries,polyamides
+"mffrc118_nylon (pa6, lilion)_snia",polyamides
+"mffrc119_nylon (pa66)_wellman, inc",polyamides
+"mffrc120_nylon (pa66)_wellman, inc",polyamides
+"mffrc121_olefin (pp, t-150)_hercules inc",poly(propylene)
+mffrc122_olefin (certran hmpe)_hoechst celanese,poly(ethylene)
+"mffrc123_olefin (pp, marvess)_phillips",poly(propylene)
+"mffrc124_olefin (pp, marvess in g05)_phillips",poly(propylene)
+"mffrc125_olefin (pp, marvess)_phillips",poly(propylene)
+mffrc126_olefin (pp)_shaw industries,poly(propylene)
+mffrc127_olefin (pp)_shaw industries,poly(propylene)
+"mffrc128_olefin (pp, type 079)_shaw industries",poly(propylene)
+mffrc129_pbi_hoechst celanese,
+mffrc130_polyacrylate (inidex)_courtaulds,
+mffrc131_polyacrylate (vectran hs)_hoechst celanese,
+mffrc132_polyester (pet)_albany international,polyesters
+mffrc133_polyester (pen)_allied signal fibers,polyesters
+mffrc134_pvdc (nonbur n90 (mac))_asahi chemical c,
+"mffrc135_polyester (pcdt, vestan 16)_bayer",polyesters
+mffrc136_polyester (coolmax)_du pont,polyesters
+"mffrc137_polyester (pet, dacron 242)_du pont",polyesters
+"mffrc138_polyester (pet, dacron 50t)_du pont",polyesters
+"mffrc139_polyester (pet, dacron 56t)_du pont",polyesters
+"mffrc140_polyester (pet, hollofil #76)_du pont",polyesters
+"mffrc141_polyester (recycled pet, hollofil 808)_du pon",polyesters
+"mffrc142_polyester (pet, hollofil ii)_du pont",polyesters
+mffrc143_polyester (quallofil)_du pont,polyesters
+mffrc144_polyester (encron)_enka,polyesters
+mffrc145_polyester (encron 8)_enka,polyesters
+mffrc146_polyester (f931)_fiber extrusion,polyesters
+"mffrc147_polyester (f935, black)_fiber extrusion",polyesters
+mffrc148_polyester (f939)_fiber extrusion,polyesters
+"mffrc149_polyester (pet, grilene)_grilon sa",polyesters
+"mffrc150_polyester (pet, grilene w)_grilon sa",polyesters
+"mffrc151_polyester (pet, trevira 120)_hoechst",polyesters
+"mffrc155_polyester (special pet, trevira 525)_hoechst",polyesters
+mffrc156_modified pet (trevira 550)_hoechst,polyesters
+"mffrc157_polyester (pet, trevira 561)_hoechst",polyesters
+mffrc158_polyester (trevira 561)_hoechst,polyesters
+mffrc159_polyester (trevira 610)_hoechst,polyesters
+mffrc160_modified pet (trevira 630)_hoechst,polyesters
+mffrc161_modified pet (trevira 640)_hoechst,polyesters
+"mffrc162_polyester (pet, trevira 661)_hoechst",polyesters
+"mffrc163_polyester (pes, trevira 684)_hoechst",polyesters
+"mffrc164_polyester (pbt, trevira 810)_hoechst",polyesters
+"mffrc165_polyester (pbt, trevira 813)_hoechst",polyesters
+"mffrc166_polyester (pet, trevira dolan)_hoechst",polyesters
+mffrc167_polyester (2359)_hoechst celanese,polyesters
+mffrc168_polyester (t295)_hoechst celanese,polyesters
+"mffrc169_polyester (pet, mitrelle k1010)_ici",polyesters
+"mffrc170_polyester (pet, mitrelle silk fabric)_ici",polyesters
+"mffrc171_polyester (pet, terinda suede fabric)_ici",polyesters
+"mffrc172_polyester (pet, terinda t5001)_ici",polyesters
+mffrc173_nylon (timbrelle)_ici,polyamides
+mffrc174_polyester (epitropic pet type 745)_ici,polyesters
+mffrc175_polyester_shaw industries,polyesters
+mffrc176_polyester_shaw industries,polyesters
+"mffrc177_polyester (pet, wistel c)_snia",polyesters
+"mffrc178_polyester (pet, wistel s)_snia",polyesters
+mffrc179_polyester (a-telluna)_unitika,polyesters
+"mffrc180_pes (2 types, h38)_unitika",polyesters
+"mffrc181_pes (2 types, p68)_unitika",polyesters
+mffrc182_polyester_wellman,polyesters
+mffrc183_polyester (recycled pet)_wellman,polyesters
+"mffrc184_polyester_wellman, inc",polyesters
+"mffrc185_polyester_wellman, inc",polyesters
+mffrc186_rayon (danufil f)_acordis fibers,rayon
+mffrc187_lyocell (tencel)_cortaulds,rayon
+mffrc188_rayon (fibro hs)_cortaulds,rayon
+mffrc189_rayon (sarille dv)_cortaulds,rayon
+mffrc190_rayon (vincel modal)_cortaulds,rayon
+mffrc191_rayon (fiber 40 sn 2556)_fmc american visc,rayon
+mffrc192_rayon (fiber 410 sn2452)_fmc american vis,rayon
+mffrc193_rayon (fiber 43)_fmc american viscose,rayon
+mffrc194_rayon (pfr rayon)_fmc american viscose,rayon
+mffrc195_rayon_fmc american viscose,rayon
+mffrc196_rayon_fmc american viscose,rayon
+mffrc197_rayon (danufil)_hoechst ag,rayon
+mffrc198_rayon (tapiflorl)_lenzing ag,rayon
+mffrc199_spandex (lycra 126)_du pont,polyurethanes (isocyanates)
+mffrc200_sulfar (ryton)_amoco,
+mffrc201_chlorofiber (thermovyl type l9s)_rhone pou,
 mg o3 si,mineral
 mg o5 ti2,mineral
 mg2 o4 si,mineral
 mg3 o8 p2,mineral
-"mgo (merck) open since 6.3.07, today: 14.3.07",other material
+"mgo (merck) open since 6.3.07, today: 14",other material
 miargyrite,mineral
 miargyrite__altered__raman__532__0__unoriented__raman_data_processed__7114,mineral
 miargyrite__r050440__raman__532__0__unoriented__raman_data_processed__30791,mineral
@@ -7255,6 +7484,7 @@ minasgeraisitey__r120134__raman__532__0__unoriented__raman_data_processed__37040
 minasgeraisitey__r120134__raman__780__0__unoriented__raman_data_processed__37042,mineral
 minasragrite,mineral
 minasragrite__r130365__raman__532__0__unoriented__raman_data_processed__37917,mineral
+mineral,mineral
 minium,mineral
 minium__r050426-1__infrared__infrared_data_processed__692,mineral
 minium__r050426__raman__532__0__unoriented__raman_data_processed__22466,mineral
@@ -7266,6 +7496,7 @@ minyulite__r070151__raman__532__0__unoriented__raman_data_processed__19285,miner
 minyulite__r070151__raman__785__0__unoriented__raman_data_processed__19287,mineral
 minyulite__r100072__raman__532__0__unoriented__raman_data_processed__34120,mineral
 minyulite__r100072__raman__780__0__unoriented__raman_data_processed__34122,mineral
+mir on silicon,other plastic
 miserite,mineral
 miserite__r060095-1__infrared__infrared_data_processed__1188,mineral
 miserite__r060095__raman__532__0__unoriented__raman_data_processed__30271,mineral
@@ -7326,7 +7557,7 @@ monazitece__r120146__raman__532__0__unoriented__raman_data_processed__37193,mine
 monazitela__r070263__raman__532__0__unoriented__raman_data_processed__20317,mineral
 monetite,mineral
 monetite__r070259__raman__532__0__unoriented__raman_data_processed__20273,mineral
-monohydracalcite_synthesis_try3_7.07.14,other material
+monohydracalcite_synthesis_try3_7,other material
 monohydrocalcite (synthetic),other material
 monolinuron,other material
 montebrasite,mineral
@@ -7407,6 +7638,8 @@ morinite__r070529__raman__532__0__unoriented__raman_data_processed__26277,minera
 morinite__r070529__raman__785__0__unoriented__raman_data_processed__26276,mineral
 morphine base monohydrate (lot #n14-p61),other material
 morphine hcl trihydrate (lot #x07917),other material
+morphotype 1,
+morphotype 2,
 mortar roman homogenized (august's bridge 27bc; p. tiano),other material
 mos - 87 - 2b,other material
 mosandrite-(ce),mineral
@@ -7639,6 +7872,7 @@ naujakasite__r060975__raman__785__0__unoriented__raman_data_processed__13801,min
 naumannite,mineral
 nb o2,mineral
 nb2 o5,mineral
+nbr,
 nchwaningite,mineral
 nchwaningite__r140275__raman__532__0__unoriented__raman_data_processed__38988,mineral
 nchwaningite__r140275__raman__780__0__unoriented__raman_data_processed__38990,mineral
@@ -7789,37 +8023,50 @@ northupite__r060156__raman__780__0__unoriented__raman_data_processed__33123,mine
 nosean,mineral
 nosean__r050422__raman__532__0__unoriented__raman_data_processed__30517,mineral
 nosean__r050422__raman__780__0__unoriented__raman_data_processed__30519,mineral
+npsf,
 nuffieldite,mineral
 nuffieldite__r100113__raman__532__0__unoriented__raman_data_processed__34421,mineral
-nylon,polyamides (polylactams)
-nylon 1. white cable tie fragment,polyamides (polylactams)
-nylon 10. yellow fiber,polyamides (polylactams)
-nylon 11,nylon 11 - poly(undecano-11-lactam)
-nylon 11. red fiber,polyamides (polylactams)
+nylon,polyamides
+nylon 1. white cable tie fragment,polyamides
+nylon 10 - poly(decano-10-lactam),nylon 10 - poly(decano-10-lactam)
+"nylon 10,10 - poly(decamethylene sebacamide)","nylon 10,10 - poly(decamethylene sebacamide)"
+nylon 10. yellow fiber,polyamides
+nylon 11,nylon 11 - poly(11-aminoundecanoic acid)
+nylon 11 - poly(11-aminoundecanoic acid),nylon 11 - poly(11-aminoundecanoic acid)
+nylon 11. red fiber,polyamides
 nylon 12,nylon 12 - poly(dodecano-12-lactam)
-nylon 13. green fiber,polyamides (polylactams)
-nylon 20. black coat fiber,polyamides (polylactams)
-nylon 21. white toothbrush fiber,polyamides (polylactams)
-nylon 22. blue toothbrush fiber,polyamides (polylactams)
-nylon 3. white fiber,polyamides (polylactams)
-nylon 4. white fiber,polyamides (polylactams)
-nylon 5. white tooth floss fiber,polyamides (polylactams)
+nylon 12 - poly(dodecano-12-lactam),nylon 12 - poly(dodecano-12-lactam)
+nylon 13. green fiber,polyamides
+nylon 20. black coat fiber,polyamides
+nylon 21. white toothbrush fiber,polyamides
+nylon 22. blue toothbrush fiber,polyamides
+nylon 3 - poly(propiolactam),nylon 3 - poly(propiolactam)
+nylon 3. white fiber,polyamides
+"nylon 4,6 - poly(tetramethylene adipamide)","nylon 4,6 - poly(tetramethylene adipamide)"
+nylon 4. white fiber,polyamides
+nylon 5. white tooth floss fiber,polyamides
 nylon 6,nylon 6 - poly(caprolactam)
 nylon 6 (3)  t,nylon 6 - poly(caprolactam)
+nylon 6 - poly(caprolactam),nylon 6 - poly(caprolactam)
 nylon 6 12,"nylon 6,12 - poly(hexamethylene dodecanediamide)"
 nylon 6 6,"nylon 6,6 - poly(hexamethylene adipamide)"
 nylon 6 9,"nylon 6,9 - poly(hexamethylene azelamide)"
 nylon 6(3),nylon 6 - poly(caprolactam)
+"nylon 6,10 - poly(hexamethylene sebacamide)","nylon 6,10 - poly(hexamethylene sebacamide)"
+"nylon 6,12 - poly(hexamethylene dodecanediamide)","nylon 6,12 - poly(hexamethylene dodecanediamide)"
 "nylon 6,6","nylon 6,6 - poly(hexamethylene adipamide)"
-nylon 6. red fiber,polyamides (polylactams)
+"nylon 6,6 - poly(hexamethylene adipamide)","nylon 6,6 - poly(hexamethylene adipamide)"
+"nylon 6,9 - poly(hexamethylene azelamide)","nylon 6,9 - poly(hexamethylene azelamide)"
+nylon 6. red fiber,polyamides
 nylon 6/6 pellets,"nylon 6,6 - poly(hexamethylene adipamide)"
-nylon 7. green carpet fiber,polyamides (polylactams)
+nylon 7. green carpet fiber,polyamides
+nylon 8 - polycapryllactam,nylon 8 - polycapryllactam
 nylon-12,nylon 12 - poly(dodecano-12-lactam)
 "nylon6 and nylon6,6-monofilament-goodfellow",nylon 6 - poly(caprolactam)
 "nylon6,6-film-goodfellow","nylon 6,6 - poly(hexamethylene adipamide)"
 "nylon6,6-fragment-goodfellow","nylon 6,6 - poly(hexamethylene adipamide)"
 nylon6-film-goodfellow,nylon 6 - poly(caprolactam)
-nylon_11,nylon 11 - poly(undecano-11-lactam)
+nylon_11,nylon 11 - poly(11-aminoundecanoic acid)
 nylon_12,nylon 12 - poly(dodecano-12-lactam)
 nylon_6,nylon 6 - poly(caprolactam)
 nylon_6_(3)_ t,nylon 6 - poly(caprolactam)
@@ -7827,8 +8074,8 @@ nylon_6_12,"nylon 6,12 - poly(hexamethylene dodecanediamide)"
 nylon_6_6,"nylon 6,6 - poly(hexamethylene adipamide)"
 nylon_6_9,"nylon 6,9 - poly(hexamethylene azelamide)"
 nylon_6_aldrich,nylon 6 - poly(caprolactam)
-nylon_spandex_x,polyamides (polylactams)
-nylon_x_x,polyamides (polylactams)
+nylon_spandex_x,polyamides
+nylon_x_x,polyamides
 nyon6-transparent film-goodfellow,nylon 6 - poly(caprolactam)
 o pb,mineral
 o-xylene,other material
@@ -7927,6 +8174,7 @@ opal__x070003__raman__532__0__unoriented__raman_data_processed__20597,mineral
 opal__x080017__raman__532__0__unoriented__raman_data_processed__31580,mineral
 opal__x080018__raman__532__0__unoriented__raman_data_processed__31578,mineral
 opal__x080018__raman__780__0__unoriented__raman_data_processed__31576,mineral
+organic matter,organic matter
 orickite,mineral
 orickite__r070739__raman__532__0__unoriented__raman_data_processed__24842,mineral
 orientite,mineral
@@ -7993,6 +8241,7 @@ otavite,mineral
 otavite__r050677-1__infrared__infrared_data_processed__833,mineral
 otavite__r050677__raman__532__0__unoriented__raman_data_processed__38362,mineral
 otavite__r050677__raman__780__0__unoriented__raman_data_processed__38364,mineral
+other material,other material
 other plastic,other plastic
 ottensite,mineral
 ottensite__r070115__raman__532__0__unoriented__raman_data_processed__27600,mineral
@@ -8017,19 +8266,21 @@ oxy-dravite,mineral
 oxy-schorl,mineral
 oxycodone hcl monohydrate (lot #1312000123),other material
 oxyphlogopite,mineral
+p,
 p-phenylenediamine,other plastic
 p-vinylbenzyl chloride,other plastic
 p-xylene,other plastic
-pa,polyacrylamides
-pa 1. green film,polyamides (polylactams)
-pa 2. orange fragment,polyamides (polylactams)
-pa 3. orange fragment,polyamides (polylactams)
-pa 4. orange fiber,polyamides (polylactams)
-pa 5. blue fragment,polyamides (polylactams)
-pa 6. clear film,polyamides (polylactams)
+pa,polyamides
+pa 1. green film,polyamides
+pa 2. orange fragment,polyamides
+pa 3. orange fragment,polyamides
+pa 4. orange fiber,polyamides
+pa 5. blue fragment,polyamides
+pa 6. clear film,polyamides
 pa6,nylon 6 - poly(caprolactam)
-pa6/pa66,polyamides (polylactams)
-pa66,polyamides (polylactams)
+pa6/pa66,polyamides
+pa66,polyamides
+pa_ref,polyamides
 paakkonenite,mineral
 paakkonenite__r060709__raman__532__0__unoriented__raman_data_processed__18714,mineral
 paakkonenite__r060709__raman__785__0__unoriented__raman_data_processed__30386,mineral
@@ -8188,7 +8439,7 @@ paulingitena__r060457__raman__532__0__unoriented__raman_data_processed__9818,min
 pavonite,mineral
 pavonite__r070566__raman__532__0__unoriented__raman_data_processed__22978,mineral
 pb-22 (lot #rm-031113-2),other material
-pb1.6 s7 sb3.4,mineral
+pb1.6 s7 sb3,mineral
 pbat,poly(butylene terephthalate)
 pbe,poly(propylene)
 pbs,other plastic
@@ -8280,6 +8531,8 @@ pe+silicate+bio,poly(ethylene)
 "pe, 1-octene copolymer",other plastic
 pe-co-pp,ethylene-propylene
 pe-oxidized,poly(ethylene)
+pe_like,poly(ethylene)
+pe_ref,poly(ethylene)
 pea 1. clear double sided tape,other plastic
 pearceite,mineral
 pearceite__r050310-1__infrared__infrared_data_processed__762,mineral
@@ -8298,7 +8551,11 @@ pectolite__r070607__raman__780__0__unoriented__raman_data_processed__28363,miner
 pectolite__r120024__raman__532__0__unoriented__raman_data_processed__36715,mineral
 pectolite__r120024__raman__780__0__unoriented__raman_data_processed__36717,mineral
 peek,peek - poly(ether ether ketone)
+peek - poly(ether ether ketone),peek - poly(ether ether ketone)
+pefouling,poly(ethylene)
 pei,polyimides
+pek - poly(ether ketone),pek - poly(ether ketone)
+pekk - poly(ether ketone ketone),pekk - poly(ether ketone ketone)
 pellyite,mineral
 pellyite__r150078__raman__532__0__unoriented__raman_data_processed__38964,mineral
 penfieldite,mineral
@@ -8395,8 +8652,6 @@ pet 9. white shampoo bottle fragment,poly(ethylene terephthalate)
 pet 9. yellow fiber bundle,poly(ethylene terephthalate)
 pet g,poly(ethylene terephthalate)
 pet-g,poly(ethylene glycol)
-pet.1,poly(ethylene terephthalate)
-pet.2,poly(ethylene terephthalate)
 pet/pest,polyesters
 petalite,mineral
 petalite__r040100-1__infrared__infrared_data_processed__1248,mineral
@@ -8426,16 +8681,16 @@ petterdite__r110019__raman__532__0__unoriented__raman_data_processed__35304,mine
 petterdite__r110019__raman__780__0__unoriented__raman_data_processed__35306,mineral
 petzite,mineral
 petzite__r070254-1__infrared__infrared_data_processed__1034,mineral
-peva 1. pink flip flop foam,ethylene-vinyl acetate
-peva 10. yellow fiber,ethylene-vinyl acetate
-peva 11. purple fiber,ethylene-vinyl acetate
-peva 12. pink fiber,ethylene-vinyl acetate
-peva 13. blue fiber,ethylene-vinyl acetate
-peva 2. orange flip flop foam,ethylene-vinyl acetate
-peva 5. blue flip flop foam,ethylene-vinyl acetate
-peva 6. blue flip flop foam,ethylene-vinyl acetate
-peva 7. yellow flip flop foam,ethylene-vinyl acetate
-peva 8. green flip flop foam,ethylene-vinyl acetate
+peva 1. pink flip flop foam,poly(ethylene-vinyl acetate) (EVA)
+peva 10. yellow fiber,poly(ethylene-vinyl acetate) (EVA)
+peva 11. purple fiber,poly(ethylene-vinyl acetate) (EVA)
+peva 12. pink fiber,poly(ethylene-vinyl acetate) (EVA)
+peva 13. blue fiber,poly(ethylene-vinyl acetate) (EVA)
+peva 2. orange flip flop foam,poly(ethylene-vinyl acetate) (EVA)
+peva 5. blue flip flop foam,poly(ethylene-vinyl acetate) (EVA)
+peva 6. blue flip flop foam,poly(ethylene-vinyl acetate) (EVA)
+peva 7. yellow flip flop foam,poly(ethylene-vinyl acetate) (EVA)
+peva 8. green flip flop foam,poly(ethylene-vinyl acetate) (EVA)
 pex,poly(ethylene)
 pezzottaite,mineral
 pezzottaite__r060583__raman__532__0__unoriented__raman_data_processed__11205,mineral
@@ -8477,6 +8732,7 @@ phenethyl alcohol,other plastic
 phenethylamine,other material
 phenmetrazine hcl (lot #08/10/13),other material
 phenol,other material
+phenol formaldehyde,phenol formaldehyde
 phenolphthalein,other material
 phenoxy resin,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
 phenoxy_resin,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
@@ -8591,6 +8847,7 @@ pla,polylactic acid
 pla 1. white straw fragment,polylactic acid
 pla 3. white teabag fiber,polylactic acid
 pla 4. white 3d printer fragment,polylactic acid
+pla 5. orange 3d printing fragment,polylactic acid
 pla 6. grey 3d printing fragment,polylactic acid
 pla 7. clear 3d printing fragment,polylactic acid
 pla 8. black 3d printing fragment,polylactic acid
@@ -8610,6 +8867,68 @@ platinum,mineral
 plattnerite,mineral
 plattnerite__r070605__raman__532__0__unoriented__raman_data_processed__28358,mineral
 plattnerite__r080019__raman__532__0__unoriented__raman_data_processed__26619,mineral
+plc001_orange lab coat_cotton,organic matter
+plc002_disposable glove_nitrile,polyacrylonitriles (nitriles)
+plc003_reusable hair net_cpe,other plastic
+plc004_kn95 outer layer_pp,poly(propylene)
+plc005_safety glasses strap_pet,poly(ethylene terephthalate)
+plc006_safety glasses strap_rubber,other plastic
+plc007_kimwipe_cellulose,organic matter
+plc008_label tape_unknown,
+plc009_masking tape_cellulose+rubber,
+plc010_double-sided tape_pvc+acrylic,
+plc011_latex tubing_natural rubber,other plastic
+plc012_tygon tubing_tpe,other plastic
+plc013_wash bottle_ldpe,poly(ethylene)
+plc014_wash bottle nozzle_pp,poly(propylene)
+plc015_isopore membrane_pc,polycarbonates
+plc016_isopore filter paper_cellulose,organic matter
+plc017_anodisc support collar_pp,poly(propylene)
+plc018_anodisc filter paper_cellulose,organic matter
+plc019_petrislide_ps,polystyrene
+plc020_jar lid rubber_plastisol,other plastic
+plc021_jar lid paint_unknown,paint
+plc022_rubber band_rubber,other plastic
+plc023_cable ties_nylon,polyamides
+plc024_orange storage bin_pp,poly(propylene)
+plc025_cardboard_cellulose,organic matter
+plc026_styrofoam_ps,polystyrene
+plc027_home depot bucket_hdpe,poly(ethylene)
+plc028_clear storage container_pp,poly(propylene)
+plc029_yellow storage lid_pe,poly(ethylene)
+plc030_clear o-ring_silicone,silicones
+plc031_analytical balance_paint,other plastic
+plc032_lumos ii_paint,other plastic
+plc033_microscope cover_nylon,polyamides
+plc034_cryo gloves_synthetic lining,other plastic
+plc035_heat gloves_cotton,organic matter
+plc036_dewar mesh_pe,poly(ethylene)
+plc037_thread tape_teflon,poly(tetrafluoroethylene)
+plc038_plaskolite_pc,polycarbonates
+plc039_orange towel_cotton,organic matter
+plc040_green towel_pest-pa,polyesters
+plc041_blue towel_pest,polyesters
+plc042_purple towel_microfiber,other plastic
+plc043_paper towels_cellulose,organic matter
+plc044_orange dustpan_pp,poly(propylene)
+plc045_orange broom bristles_pest,polyesters
+plc046_horsehair bristles_keratin,organic matter
+plc047_dish sponge_cellulose,organic matter
+plc048_coconut fiber_cellulose,organic matter
+plc049_clear bin liner_hdpe,poly(ethylene)
+plc050_ceiling tile coating_pet,poly(ethylene terephthalate)
+plc051_lab stool_paint,paint
+plc052_lab walls_paint,paint
+plc053_wall molding_rubber,other plastic
+plc054_lab doorframes_paint,paint
+plc055_benchtop coating_sealant,other material
+plc056_clear caulk_sealant,other material
+plc057_pipette bulb_rubber,other plastic
+plc058_human hair_keratin,organic matter
+plc059_dog hair_keratin,organic matter
+plc060_diposable pipet_glass,mineral
+plc061_reusable bag_pp,poly(propylene)
+plc062_synthetic fleece_pest,polyesters
 plexigum,other material
 plexisol,other material
 plombierite,mineral
@@ -8637,6 +8956,7 @@ pmma-clear fragment-e-plastics,poly(methyl methacrylate)
 pmma-clear fragment-goodfellow,poly(methyl methacrylate)
 pmma-green fragment-e-plastics,poly(methyl methacrylate)
 pmma-red fragment-e-plastics,poly(methyl methacrylate)
+pmma_ref,poly(methyl methacrylate)
 poldervaartite,mineral
 poldervaartite__r080080__raman__532__0__unoriented__raman_data_processed__29903,mineral
 poldervaartite__r080080__raman__780__0__unoriented__raman_data_processed__29905,mineral
@@ -8651,95 +8971,310 @@ pollucite__r050345__raman__514__0__unoriented__raman_data_processed__10794,miner
 pollucite__r050345__raman__532__0__unoriented__raman_data_processed__29148,mineral
 pollucite__r050345__raman__780__0__unoriented__raman_data_processed__29150,mineral
 polu butadiene acrylonitrile,other plastic
+poly 1-butene isotactic_ref,polyolefins (polyalkenes)
+poly 4-methyl-1-pentene_ref,polyolefins (polyalkenes)
 poly vinyl chloride,poly(vinyl chloride)
+poly(-methylstyrene),poly(-methylstyrene)
 poly(1 butene) isotactic,"polydienes (butadienes, isoprenes)"
+"poly(1,2-butadiene)","poly(1,2-butadiene)"
+"poly(1,4-butadiene)","poly(1,4-butadiene)"
+"poly(1,4-butylene succinate)","poly(1,4-butylene succinate)"
+"poly(1,4-pentadiene)","poly(1,4-pentadiene)"
+"poly(1,6-hexylene succinate)","poly(1,6-hexylene succinate)"
+poly(1-bromo-1-butenylene) (polybromoprene),poly(1-bromo-1-butenylene) (polybromoprene)
 poly(1-butadiene),"polydienes (butadienes, isoprenes)"
+"poly(1-ethyl-1,4-butadiene)","poly(1-ethyl-1,4-butadiene)"
+poly(1-pentenylene),poly(1-pentenylene)
 poly(1_butene)_isotactic,"polydienes (butadienes, isoprenes)"
 poly(2 4 6 tribromostyrene),"polystyrenes (polyphenylethylenes, -methylstyrene)"
 poly(2 6 dimethyl p phenylene oxide),"poly(2,6-dimethyl-p-phenylene oxide)"
 poly(2 hydroxyethyl methacrylate),poly(2-hydroxyethyl methacrylate)
+"poly(2,2,3,3-tetrafluoropropyl acrylate)","poly(2,2,3,3-tetrafluoropropyl acrylate)"
+"poly(2,2,3,3-tetrafluoropropyl methacrylate)","poly(2,2,3,3-tetrafluoropropyl methacrylate)"
+"poly(2,5-difluorostyrene)","poly(2,5-difluorostyrene)"
+"poly(2,6,3',5'-tetrachloro bisphenol a carbonate)","poly(2,6,3',5'-tetrachloro bisphenol a carbonate)"
 "poly(2,6-dimethyl-p-phenylene oxide)","poly(2,6-dimethyl-p-phenylene oxide)"
+"poly(2,6-diphenyl-p-phenylene oxide)","poly(2,6-diphenyl-p-phenylene oxide)"
+poly(2-chloro-p-xylylene),poly(2-chloro-p-xylylene)
+poly(2-chloroethyl methacrylate),poly(2-chloroethyl methacrylate)
+poly(2-chlorostyrene),poly(2-chlorostyrene)
+poly(2-cyanoethyl acrylate),poly(2-cyanoethyl acrylate)
+poly(2-ethoxyethyl methacrylate),poly(2-ethoxyethyl methacrylate)
+poly(2-ethylhexyl acrylate),poly(2-ethylhexyl acrylate)
+poly(2-hydroxyethyl acrylate),poly(2-hydroxyethyl acrylate)
 poly(2-hydroxyethyl methacrylate),poly(2-hydroxyethyl methacrylate)
+poly(2-hydroxypropyl methacrylate),poly(2-hydroxypropyl methacrylate)
+poly(2-methoxystyrene),poly(2-methoxystyrene)
+poly(2-methylbutene),poly(2-methylbutene)
+poly(2-methylstyrene),poly(2-methylstyrene)
+poly(2-phenylethyl methacrylate),poly(2-phenylethyl methacrylate)
 poly(2_hydroxyethyl_methacrylate),poly(2-hydroxyethyl methacrylate)
+poly(3-butoxypropylene oxide),poly(3-butoxypropylene oxide)
+poly(3-chlorostyrene),poly(3-chlorostyrene)
+poly(3-hydroxybutyrate),poly(3-hydroxybutyrate)
+poly(3-methoxypropylene oxide),poly(3-methoxypropylene oxide)
+poly(3-methylstyrene),poly(3-methylstyrene)
 poly(4 4' dipropoxy 2 2' diphenyl propane fumarate),other plastic
 poly(4 methyl 1 pentene),other plastic
 "poly(4,4'-dipropoxy-2,2'-diphenyl propane fumarate)",other plastic
+"poly(4,4'-thiodiphenylene carbonate)","poly(4,4'-thiodiphenylene carbonate)"
+poly(4-bromostyrene),poly(4-bromostyrene)
+poly(4-chlorophenyl acrylate),poly(4-chlorophenyl acrylate)
+poly(4-chlorostyrene),poly(4-chlorostyrene)
+poly(4-fluorostyrene),poly(4-fluorostyrene)
+poly(4-hydroxybutyrate),poly(4-hydroxybutyrate)
 poly(4-methyl-1-pentene),other plastic
+poly(4-methylstyrene),poly(4-methylstyrene)
+poly(4-tert-butylcyclohexyl methacrylate),poly(4-tert-butylcyclohexyl methacrylate)
+poly(4-tert-butylstyrene),poly(4-tert-butylstyrene)
+poly(4-vinyl phenol),poly(4-vinyl phenol)
 poly(4_4'_dipropoxy_2_2'_diphenyl_propane_fumarate),other plastic
 poly(4_methyl_1_pentene),other plastic
+poly(acrylamide),poly(acrylamide)
 poly(acrylic acid),poly(acrylic acid)
+poly(acrylonitrile),poly(acrylonitrile)
+poly(amide),polyamides
+poly(azelaic anhydride),poly(azelaic anhydride)
+poly(benzyl acrylate),poly(benzyl acrylate)
+poly(benzyl methacrylate),poly(benzyl methacrylate)
+poly(bis-a diglycidyl ether- alt - ethylenediamine),poly(bis-a diglycidyl ether- alt - ethylenediamine)
+poly(bis-a diglycidyl ether- alt - hexamethylenediamine),poly(bis-a diglycidyl ether- alt - hexamethylenediamine)
+poly(bis-a diglycidyl ether- alt - octamethylenediamine),poly(bis-a diglycidyl ether- alt - octamethylenediamine)
+poly(bisphenol a carbonate),poly(bisphenol a carbonate)
+poly(bisphenol a isophthalate),poly(bisphenol a isophthalate)
+poly(bisphenol a terephthalate),poly(bisphenol a terephthalate)
+poly(bisphenol b carbonate),poly(bisphenol b carbonate)
+poly(bisphenol f carbonate),poly(bisphenol f carbonate)
 poly(butadiene),"polydienes (butadienes, isoprenes)"
+poly(butyl acrylate),poly(butyl acrylate)
+poly(butyl cyanoacrylate),poly(butyl cyanoacrylate)
+poly(butyl methacrylate),poly(butyl methacrylate)
+poly(butyl vinyl ether),poly(butyl vinyl ether)
+poly(butylene adipate),poly(butylene adipate)
+poly(butylene isophthalate),poly(butylene isophthalate)
+poly(butylene sebacate),poly(butylene sebacate)
 poly(butylene terephtalate),poly(butylene terephthalate)
 poly(butylene terephthalate),poly(butylene terephthalate)
+poly(butylene),poly(butylene)
 poly(butylene_terephthalate),poly(butylene terephthalate)
+poly(caprolactone),poly(caprolactone)
+poly(chloroprene) (Neoprene),poly(chloroprene) (Neoprene)
+poly(chlorotrifluoroethylene),poly(chlorotrifluoroethylene)
+poly(cyanomethyl acrylate),poly(cyanomethyl acrylate)
+poly(cyclohexyl acrylate),poly(cyclohexyl acrylate)
+poly(cyclohexyl methacrylate),poly(cyclohexyl methacrylate)
+poly(cyclohexylenedimethylene terephthalate),poly(cyclohexylenedimethylene terephthalate)
+poly(cyclohexylethylene),poly(cyclohexylethylene)
+poly(decylmethacrylate),poly(decylmethacrylate)
 poly(diallyl isophtalate),other plastic
 poly(diallyl isophthalate),other plastic
+poly(dibutyl fumarate),poly(dibutyl fumarate)
+poly(diethyl fumarate),poly(diethyl fumarate)
+poly(diethylsiloxane) (pdes),poly(diethylsiloxane) (pdes)
+poly(dimethyl fumarate),poly(dimethyl fumarate)
+poly(dimethylsiloxane) (pdms),poly(dimethylsiloxane) (pdms)
+poly(dipropyl fumarate),poly(dipropyl fumarate)
+poly(dodecylmethacrylate),poly(dodecylmethacrylate)
+poly(epichlorohydrin),poly(epichlorohydrin)
+poly(ether ether sulfone),poly(ether ether sulfone)
+poly(ethersulfone),poly(ethersulfone)
+poly(ethyl acrylate),poly(ethyl acrylate)
+poly(ethyl cyanoacrylate),poly(ethyl cyanoacrylate)
 poly(ethyl methacrylate),poly(ethyl methacrylate)
+poly(ethyl vinyl ether),poly(ethyl vinyl ether)
+poly(ethylene adipate),poly(ethylene adipate)
+poly(ethylene carbonate),poly(ethylene carbonate)
 poly(ethylene glycol),poly(ethylene glycol)
+poly(ethylene isophthalate),poly(ethylene isophthalate)
+poly(ethylene naphthalate),poly(ethylene naphthalate)
 poly(ethylene oxide),other plastic
+poly(ethylene phthalate),poly(ethylene phthalate)
+poly(ethylene sebacate),poly(ethylene sebacate)
+poly(ethylene succinate),poly(ethylene succinate)
+poly(ethylene sulfide),poly(ethylene sulfide)
 poly(ethylene terephtalate),poly(ethylene terephthalate)
 poly(ethylene terephthalate),poly(ethylene terephthalate)
 poly(ethylene terepthalate),poly(ethylene terephthalate)
+poly(ethylene),poly(ethylene)
+poly(ethylene) + fouling,poly(ethylene)
+poly(ethylene) like,poly(ethylene)
+poly(ethylene-vinyl acetate) (EVA),poly(ethylene-vinyl acetate) (EVA)
 poly(ethylene:propylene:diene),other plastic
 poly(ethylene_terephthalate),poly(ethylene terephthalate)
+poly(ethyleneketone),poly(ethyleneketone)
+poly(glycolic acid) (PGA),poly(glycolic acid) (PGA)
+poly(heptylethylene),poly(heptylethylene)
+"poly(hexamethylene isophthalamide), pa 6i","poly(hexamethylene isophthalamide), pa 6i"
+poly(hexamethylene oxide),poly(hexamethylene oxide)
+poly(hexamethylene sebacate),poly(hexamethylene sebacate)
+"poly(hexamethylene teraphthalamide), pa 6t","poly(hexamethylene teraphthalamide), pa 6t"
+poly(hexyl acrylate),poly(hexyl acrylate)
+poly(hexyl cyanoacrylate),poly(hexyl cyanoacrylate)
+poly(hexyl methacrylate),poly(hexyl methacrylate)
+poly(hexyl vinyl ether),poly(hexyl vinyl ether)
+poly(hexylethylene),poly(hexylethylene)
+poly(isobutyl acrylate),poly(isobutyl acrylate)
 poly(isobutyl methacrylate),poly(isobutyl methacrylate)
+poly(isobutyl vinyl ether),poly(isobutyl vinyl ether)
+poly(isobutylene),poly(isobutylene)
+poly(isopropyl acrylate),poly(isopropyl acrylate)
+poly(isopropyl methacrylate),poly(isopropyl methacrylate)
+poly(isopropyl vinyl ether),poly(isopropyl vinyl ether)
+poly(isopropylethylene),poly(isopropylethylene)
+poly(m-phenylene isophthalamide) (Nomex),poly(m-phenylene isophthalamide) (Nomex)
+poly(methacrylamide),poly(methacrylamide)
 poly(methacrylate),poly(butyl methacrylate)
+poly(methacrylic acid),poly(methacrylic acid)
+poly(methacrylonitrile),poly(methacrylonitrile)
+poly(methyl acrylate),poly(methyl acrylate)
+poly(methyl cyanoacrylate),poly(methyl cyanoacrylate)
+poly(methyl isopropenyl ketone),poly(methyl isopropenyl ketone)
 poly(methyl methacrylate),poly(methyl methacrylate)
+poly(methyl vinyl ether),poly(methyl vinyl ether)
+poly(methylphenylsiloxane) (pmps),poly(methylphenylsiloxane) (pmps)
 poly(n butyl methacrylate),poly(butyl methacrylate)
+poly(n-acetylmethacrylamide),poly(n-acetylmethacrylamide)
+poly(n-benzyl methacrylamide),poly(n-benzyl methacrylamide)
 poly(n-butyl methacrylate),poly(butyl methacrylate)
+poly(n-isopropyl acrylamide),poly(n-isopropyl acrylamide)
+poly(n-octyl acrylamide),poly(n-octyl acrylamide)
+poly(n-phenyl acrylamide),poly(n-phenyl acrylamide)
+poly(n-sec-butyl acrylamide),poly(n-sec-butyl acrylamide)
+poly(n-tert-butyl acrylamide),poly(n-tert-butyl acrylamide)
+poly(n-tert-butylmethacrylamide),poly(n-tert-butylmethacrylamide)
+"poly(nonanmethylene teraphthalamide), pa 9t","poly(nonanmethylene teraphthalamide), pa 9t"
+poly(octadecyl methacrylate),poly(octadecyl methacrylate)
+poly(octyl acrylate),poly(octyl acrylate)
+poly(octyl cyanoacrylate),poly(octyl cyanoacrylate)
+poly(octyl methacrylate),poly(octyl methacrylate)
+poly(octyl vinyl ether),poly(octyl vinyl ether)
+poly(octylethylene),poly(octylethylene)
+poly(oxymethylene-oxyethylene),poly(oxymethylene-oxyethylene)
+poly(oxymethylene-oxytetramethylene),poly(oxymethylene-oxytetramethylene)
 poly(p phenylene ether sulphone),other plastic
+poly(p-pentamethylenedibenzoic anhydride),poly(p-pentamethylenedibenzoic anhydride)
 poly(p-phenylene ether sulphone),other plastic
+poly(p-phenylene oxide),poly(p-phenylene oxide)
+poly(p-phenylene terephthalamide) (Kevlar),poly(p-phenylene terephthalamide) (Kevlar)
+poly(p-phenylene vinylene),poly(p-phenylene vinylene)
+poly(p-phenylene),poly(p-phenylene)
+poly(p-tetramethylenedibenzoic anhydride),poly(p-tetramethylenedibenzoic anhydride)
+poly(p-xylene),poly(p-xylene)
 poly(p_phenylene_ether_sulphone),other plastic
+poly(pentylethylene),poly(pentylethylene)
+poly(phenyl methacrylate),poly(phenyl methacrylate)
 poly(phenylene sulfide),other plastic
+poly(phenylsulfone),poly(phenylsulfone)
+poly(propyl acrylate),poly(propyl acrylate)
+poly(propyl methacrylate),poly(propyl methacrylate)
+poly(propyl vinyl ether),poly(propyl vinyl ether)
+poly(propylene adipate),poly(propylene adipate)
+poly(propylene carbonate),poly(propylene carbonate)
+poly(propylene glycol),poly(propylene glycol)
+poly(propylene sulfide),poly(propylene sulfide)
+poly(propylene),poly(propylene)
+poly(propylene) like,poly(propylene)
+poly(propyleneketone),poly(propyleneketone)
+poly(sebacic anhydride),poly(sebacic anhydride)
+poly(sec-butyl acrylate),poly(sec-butyl acrylate)
+poly(sec-butyl methacrylate),poly(sec-butyl methacrylate)
+poly(sec-butyl vinyl ether),poly(sec-butyl vinyl ether)
+poly(stearyl acrylate),poly(stearyl acrylate)
+poly(styrene),polystyrene
+poly(tert-butyl acrylate),poly(tert-butyl acrylate)
+poly(tert-butyl methacrylate),poly(tert-butyl methacrylate)
+poly(tert-butylethylene),poly(tert-butylethylene)
 poly(tetrafluoroethylene),poly(tetrafluoroethylene)
+poly(tetrahydrofuran),poly(tetrahydrofuran)
+poly(tetramethyl bisphenol a carbonate),poly(tetramethyl bisphenol a carbonate)
+"poly(thio-1,4-phenylene)","poly(thio-1,4-phenylene)"
+poly(trimethylene glycol),poly(trimethylene glycol)
+poly(trimethylene succinate),poly(trimethylene succinate)
+poly(trimethylene terephthalate),poly(trimethylene terephthalate)
 poly(vinyl acetate),poly(vinyl acetate)
 poly(vinyl alcohol),poly(vinyl alcohol)
 "poly(vinyl alcohol), 98% hydrolyzed",poly(vinyl alcohol)
 "poly(vinyl alcohol), 99.7% hydrolyzed",poly(vinyl alcohol)
+poly(vinyl benzoate),poly(vinyl benzoate)
+poly(vinyl bromide),poly(vinyl bromide)
+poly(vinyl butyl sulfide),poly(vinyl butyl sulfide)
 poly(vinyl butyral),poly(vinyl butyral)
+poly(vinyl butyrate),poly(vinyl butyrate)
+poly(vinyl caproate),poly(vinyl caproate)
 poly(vinyl chloride),poly(vinyl chloride)
 poly(vinyl chloride) carboxylated,poly(vinyl chloride)
 "poly(vinyl chloride), carboxylated",poly(vinyl chloride)
+poly(vinyl ethyl ketone),poly(vinyl ethyl ketone)
+poly(vinyl ethyl sulfide),poly(vinyl ethyl sulfide)
+poly(vinyl fluoride),poly(vinyl fluoride)
 poly(vinyl formal),poly(vinyl formal)
+poly(vinyl formate),poly(vinyl formate)
+poly(vinyl methyl ketone),poly(vinyl methyl ketone)
+poly(vinyl methyl sulfide),poly(vinyl methyl sulfide)
+poly(vinyl phenyl ketone),poly(vinyl phenyl ketone)
+poly(vinyl phenyl sulfide),poly(vinyl phenyl sulfide)
+poly(vinyl propionate),poly(vinyl propionate)
+poly(vinyl propyl sulfide),poly(vinyl propyl sulfide)
+poly(vinyl pyrrolidone),poly(vinyl pyrrolidone)
 poly(vinyl stearate),poly(vinyl stearate)
+poly(vinyl valerate),poly(vinyl valerate)
 poly(vinyl.acetate:ethylene),other plastic
 poly(vinyl.butyral),poly(vinyl butyral)
 poly(vinyl_acetate),poly(vinyl acetate)
 poly(vinyl_alcohol),poly(vinyl alcohol)
+poly(vinylchloride),poly(vinyl chloride)
+poly(vinylidene chloride),poly(vinylidene chloride)
 poly(vinylidene fluoride),poly(vinylidene fluoride)
 poly(vinylidene.fluoride),poly(vinylidene fluoride)
-poly_ethylene-co-vinyl acetate_aldrich,ethylene-vinyl acetate
+"poly[(1,4-butanediol)-alt-(4,4'-diphenylmethane diisocyanate)]","poly[(1,4-butanediol)-alt-(4,4'-diphenylmethane diisocyanate)]"
+"poly[(diethylene glycol)-alt-(1,6-hexamethylene diisocyanate)]","poly[(diethylene glycol)-alt-(1,6-hexamethylene diisocyanate)]"
+"poly[(ethylene glycol)-alt-(4,4'-diphenylmethane diisocyanate)]","poly[(ethylene glycol)-alt-(4,4'-diphenylmethane diisocyanate)]"
+"poly[(polytetrahydrofuran 1000)-alt-(4,4'-diphenylmethane diisocyanate)]","poly[(polytetrahydrofuran 1000)-alt-(4,4'-diphenylmethane diisocyanate)]"
+"poly[(tetraethylene glycol)-alt-(1,6-hexamethylene diisocyanate)]","poly[(tetraethylene glycol)-alt-(1,6-hexamethylene diisocyanate)]"
+"poly[1,1-bis(chloromethyl)trimethylene oxide]","poly[1,1-bis(chloromethyl)trimethylene oxide]"
+poly[di(n-butyl) itaconate],poly[di(n-butyl) itaconate]
+poly[di(n-hexyl) itaconate],poly[di(n-hexyl) itaconate]
+poly[di(n-propyl) itaconate],poly[di(n-propyl) itaconate]
+poly[dimethyl itaconate],poly[dimethyl itaconate]
+poly[oxy(hexyloxymethyl)ethylene],poly[oxy(hexyloxymethyl)ethylene]
+poly_ethylene-co-vinyl acetate_aldrich,poly(ethylene-vinyl acetate) (EVA)
 poly_vinyl_alcohol_87-89pr_hydrolyzed_higher_weight_aldrich,poly(vinyl alcohol)
 poly_vinyl_alcohol_87-89pr_hydrolyzed_lower_weight_aldrich,poly(vinyl alcohol)
 poly_vinyl_alcohol_98pr_hydrolyzed_aldrich,poly(vinyl alcohol)
 poly_vinyl_alcohol_99pr_hydrolyzed_aldrich,poly(vinyl alcohol)
 polyacetal,polyacetal - polyoxymethylene
+polyacetal - polyoxymethylene,polyacetal - polyoxymethylene
 polyacrylamide,polyacrylamides
 polyacrylamide carboxyl modified,polyacrylamides
 "polyacrylamide, carboxyl modified",polyacrylamides
+polyacrylamide_ref,polyacrylamides
 polyacrylic_x_x,poly(acrylonitrile)
 polyacrylonitrile,polyacrylonitriles (nitriles)
 polyamid 6,nylon 6 - poly(caprolactam)
 polyamid 66,"nylon 6,6 - poly(hexamethylene adipamide)"
-polyamide,polyamides (polylactams)
+polyamide,polyamides
 polyamide 6,nylon 6 - poly(caprolactam)
 polyamide 66,"nylon 6,6 - poly(hexamethylene adipamide)"
-polyamide resin,polyamides (polylactams)
+polyamide resin,polyamides
 polyamide_6,nylon 6 - poly(caprolactam)
 polyamide_66,"nylon 6,6 - poly(hexamethylene adipamide)"
-polyamide_resin,polyamides (polylactams)
+polyamide_resin,polyamides
 polybasite,mineral
 polybpacarbonate,poly(bisphenol a carbonate)
 polybuthylene terephthalate,poly(butylene terephthalate)
+polybuthylene terephthalate_ref,poly(butylene terephthalate)
 polybuthylene_terephthalate,poly(butylene terephthalate)
 polybutyleneterephtalate,poly(butylene terephthalate)
 polybutyratadipat-terephthalat,other plastic
 polycaprolactone,poly(caprolactone)
 polycaprolactone_aldrich,poly(caprolactone)
 polycaprolactone_polysciences,poly(caprolactone)
+polycaprolactone_ref,poly(caprolactone)
 polycarbonate,polycarbonates
 polycarbonate-thick film-goodfellow,polycarbonates
+polycarbonate_ref,polycarbonates
 polychloroprene,other plastic
+polychloroprene_ref,other plastic
 polydimethylsiloxane,poly(dimethylsiloxane) (pdms)
 polydymite,mineral
 polydymite__r050609-1__infrared__infrared_data_processed__705,mineral
@@ -8766,6 +9301,7 @@ polyester for blocks,polyesters
 polyester-epoxy,polyesters
 polyester_cotton_rayon,polyesters
 polyester_cotton_x,polyesters
+polyester_ref,polyesters
 polyester_spandex_x,polyesters
 polyester_x_x,polyesters
 polyesterterpthalate,poly(ethylene terephthalate)
@@ -8779,6 +9315,7 @@ polyethylene,poly(ethylene)
 polyethylene chlorinated,other plastic
 polyethylene chlorosulfonated,other plastic
 polyethylene foamed,poly(ethylene)
+polyethylene glycol_ref,poly(ethylene glycol)
 polyethylene high density,poly(ethylene)
 polyethylene low density,poly(ethylene)
 polyethylene low density linear,poly(ethylene)
@@ -8799,7 +9336,7 @@ polyethylene with acryloid and pthalocyanine (blue),other plastic
 "polyethylene, low density",poly(ethylene)
 "polyethylene, low mw ~4,000 by gpc",poly(ethylene)
 "polyethylene, oxidized",other plastic
-polyethylene-vinyl acetate,ethylene-vinyl acetate
+polyethylene-vinyl acetate,poly(ethylene-vinyl acetate) (EVA)
 polyethylene_glycol_400_bdh,poly(ethylene glycol)
 polyethylene_glycol_6000_bdh,poly(ethylene glycol)
 polyethylene_high_density,poly(ethylene)
@@ -8817,14 +9354,18 @@ polyhalite,mineral
 polyhalite__r070209-1__infrared__infrared_data_processed__993,mineral
 polyhalite__r070209__raman__532__0__unoriented__raman_data_processed__20136,mineral
 polyhalite__r070209__raman__785__0__unoriented__raman_data_processed__20138,mineral
+polyhydroxyalkanoate (pha),polyhydroxyalkanoate (pha)
 polyhydroxybutyrate,polyesters
 polyhydroxybutyric acid,other plastic
 polyhydroxybutyric_acid,other plastic
 polyimide,polyimides
+polyimide_ref,polyimides
+polyimides,polyimides
 polyisoprene,"1,4-polyisoprene (cis and trans)(latex)"
 polyisoprene chlorinated,other plastic
 "polyisoprene, chlorinated",other plastic
 polylactic acid,polylactic acid
+polylactic acid_ref,polylactic acid
 polylactic acide,polylactic acid
 polylactic_acid,polylactic acid
 polylactide,polylactic acid
@@ -8845,6 +9386,8 @@ polymethyl methacrylate,poly(methyl methacrylate)
 polymethylstyrene,poly(-methylstyrene)
 polyoxymethylen,polyacetal - polyoxymethylene
 polyoxymethylene,polyacetal - polyoxymethylene
+polyoxymethylene_ref,polyacetal - polyoxymethylene
+polyphenylenes (polyaromatics),polyphenylenes (polyaromatics)
 polyphenylsulfone,polyethersulfones (polysulfone)
 polyproplyene,poly(propylene)
 polypropylen,poly(propylene)
@@ -8863,17 +9406,20 @@ polystyrene-fragment-sigma,polystyrene
 polystyrene-granule-goodfellow,polystyrene
 polystyrene-packaging foam-centrifuge tube,polystyrene
 polysulfone,polyethersulfones (polysulfone)
+polysulfone_ref,polyethersulfones (polysulfone)
 polytehylene terephthalate,poly(ethylene terephthalate)
 polytehylene terephthalate amorphous,poly(ethylene terephthalate)
 polytehylene_terephthalate,poly(ethylene terephthalate)
 polytehylene_terephthalate_amorphous,poly(ethylene terephthalate)
 polytetrafluoroethylene,poly(tetrafluoroethylene)
+polytetrafluoroethylene_ref,poly(tetrafluoroethylene)
 polyurethan,polyurethanes (isocyanates)
 polyurethane,polyurethanes (isocyanates)
 polyurethane acrylic resin,polyurethanes (isocyanates)
 polyurethane-foam-goodfellow,polyurethanes (isocyanates)
 polyurethane-fragment-goodfellow,polyurethanes (isocyanates)
 polyvinyl acetate,poly(vinyl acetate)
+polyvinyl acetate_ref,poly(vinyl acetate)
 polyvinyl alcohol,poly(vinyl alcohol)
 polyvinyl alcohol (film),poly(vinyl alcohol)
 polyvinyl chloride,poly(vinyl chloride)
@@ -9014,8 +9560,12 @@ pp 8. orange fragment,poly(propylene)
 pp 8. white toothbrush fragment,poly(propylene)
 pp 9. green fragment,poly(propylene)
 pp 9. white fork fragment,poly(propylene)
+pp_like,poly(propylene)
+pp_ref,poly(propylene)
 ppe,other plastic
 ppo,other plastic
+pppeb,
+pppeb_ref,
 pps,other plastic
 pravadoline (lot #k8h81107),other material
 pregabalin (lot #aa0000010),other material
@@ -9108,6 +9658,7 @@ ps 8. white foam,polystyrene
 ps 9. white foam,polystyrene
 ps-pvc,other plastic
 ps/eps,polystyrene
+ps_ref,polystyrene
 psa,other plastic
 pseudoboleite,mineral
 pseudoboleite__r050162__raman__532__0__unoriented__raman_data_processed__27848,mineral
@@ -9153,6 +9704,7 @@ pu 5. yellow foam,polyurethanes (isocyanates)
 pu 6. black phone case fragment,polyurethanes (isocyanates)
 pu 6. yellow fragment,polyurethanes (isocyanates)
 pu 7. yellow packaging foam,polyurethanes (isocyanates)
+pu_ref_0,polyurethanes (isocyanates)
 pucherite,mineral
 pucherite__r060824__raman__532__0__unoriented__raman_data_processed__14462,mineral
 pucherite__r060824__raman__785__0__unoriented__raman_data_processed__12841,mineral
@@ -9189,8 +9741,7 @@ pvc 7. clear food container fragment,poly(vinyl chloride)
 pvc 7. green film,poly(vinyl chloride)
 pvc 8. grey fragment,poly(vinyl chloride)
 pvc 9. white fragment,poly(vinyl chloride)
-pvc.1,poly(vinyl chloride)
-pvc.2,poly(vinyl chloride)
+pvc_ref,poly(vinyl chloride)
 pvdf,poly(vinylidene fluoride)
 px-1 (lot #0469661-1),other material
 px-2 (lot #0461309-28),other material
@@ -9422,6 +9973,7 @@ raw umber 40610_785,other material
 raygrantite,mineral
 raygrantite__r120151__raman__532__0__unoriented__raman_data_processed__37213,mineral
 raygrantite__r120151__raman__780__0__unoriented__raman_data_processed__37215,mineral
+rayon,rayon
 rcs-4 (lot #n1p38emg),other material
 rcs-8 (lot #alb203-21),other material
 realgar,mineral
@@ -9830,6 +10382,7 @@ satterlyite,mineral
 satterlyite__r060810__raman__532__0__unoriented__raman_data_processed__30827,mineral
 satterlyite__r060810__raman__785__0__unoriented__raman_data_processed__30828,mineral
 sbc,styrene-butadiene
+sbs,
 scainiite,mineral
 scainiite__r100085__raman__532__0__unoriented__raman_data_processed__34255,mineral
 scainiite__r100085__raman__780__0__unoriented__raman_data_processed__34257,mineral
@@ -9917,6 +10470,106 @@ schwartzembergite__r050159__raman__532__0__unoriented__raman_data_processed__219
 schwartzembergite__r050159__raman__785__0__unoriented__raman_data_processed__21914,mineral
 schwartzembergite__r070429__raman__532__0__unoriented__raman_data_processed__21881,mineral
 schwartzembergite__r070429__raman__785__0__unoriented__raman_data_processed__21885,mineral
+scipoly001_acrylonitrile(22)-butadiene(78) copolymer,
+scipoly002_acrylonitrile(38)-butadiene(62) copolymer,
+scipoly003_acrylonitrile(51)-butadiene(49) copolymer,
+scipoly004_butyl methacrylate-isobutyl methacrylate,
+scipoly005_cellulose,organic matter
+scipoly006_cellulose acetate,cellulose acetate
+scipoly007_cellulose acetate butyrate,
+scipoly008_cellulose propionate,
+scipoly009_cellulose triacetate,
+"scipoly010_ethyl cellulose, viscosity 4cp",
+"scipoly011_ethyl cellulose, viscosity 22cp",
+"scipoly012_ethyl cellulose, viscosity 300cp",
+scipoly013_ethylene(85)-acrylic acid(15),
+scipoly014_ethylene(82)-ethyl acrylate(18),
+scipoly015_ethylene(88)-methacrylic acid(12),
+scipoly016_ethylene(86)-vinyl acetate(14),
+scipoly017_eva(18),
+scipoly018_eva(28),
+scipoly019_eva(33),
+scipoly020_eva(40),
+scipoly021_eva(45),
+scipoly022_ethylene-vinyl alcohol copolymer,
+scipoly023_hydroxyethyl cellulose,
+scipoly024_hydroxypropyl cellulose,
+scipoly025_hydroxypropyl methyl cellulose,
+scipoly026_methyl cellulose,
+scipoly027_methyl vinyl ether-maleic acid copolymer,
+scipoly028_methyl vinyl ether-maleic anhydride copolyme,
+scipoly029_nylon 6 (polycaprolactam),
+"scipoly030_nylon 6,6",
+"scipoly031_nylon 6,12",
+scipoly032_nylon 11,
+scipoly033_nylon 12,
+scipoly034_phenoxy resin,
+scipoly035_polyacetal,
+scipoly036_polyacrylamide,
+"scipoly037_polyacrylamide, carboxyl modified",
+"scipoly038_poly(acrylic acid), mw450k",
+"scipoly039_poly(acrylic acid), mw4m",
+scipoly040_polyacrylonitrile,
+scipoly041_polyamide resin,
+"scipoly042_poly(1-butene), isotactic",
+scipoly043_poly(butylene terephthalate),
+scipoly044_poly(n-butyl methacrylate),
+scipoly045_polycaprolactone,
+"scipoly046_polycarbonate, mw36k",
+"scipoly047_polycarbonate, mw45k",
+"scipoly048_poly(2,6-dimethyl-p-phenylene oxide)",
+"scipoly049_poly(4,4-dipropoxy-2,2-dipehnyl propane fum",
+scipoly050_polyethylene,
+"scipoly051_polyethylene, chlorosulfonated",
+"scipoly052_polyethylene, low density",
+"scipoly053_polyethylene, oxidized",
+scipoly054_poly(ethylene glycol),
+"scipoly055_poly(ethylene oxide), mw100k",
+"scipoly056_poly(ethylene oxide), mw400k",
+scipoly057_poly(ethyl methacrylate),
+"scipoly058_poly(2-hydroxyethyl methacrylate), mw300k",
+"scipoly059_poly(2-hydroxyethyl methacrylate), mw1m",
+scipoly060_poly(isobutyl methacrylate),
+"scipoly061_polyisoprene, chlorinated",
+"scipoly062_poly(methyl methacrylate), mw75k",
+"scipoly063_poly(methyl methacrylate), mw540k",
+scipoly064_poly(4-methyl-1-pentane),
+scipoly065_poly(p-phenylene-ether-sulphone),
+scipoly066_poly(phenylene sulfide),
+"scipoly067_polypropylene, isotactic",
+"scipoly068_polystyrene, mw1.2k",
+"scipoly069_polystyrene, mw260k",
+"scipoly070_polystyrene sulfonate, sodium salt",
+scipoly071_polysulfone,
+scipoly072_poly(tetrafluoroethylene),
+"scipoly073_poly(2,4,6-tribromostyrene)",
+"scipoly074_poly(vinyl acetate), mw150k",
+"scipoly075_poly(vinyl acetate), mw500k",
+"scipoly076_poly(vinyl alcohol), 88p hydrolyzed",
+"scipoly077_poly(vinyl alcohol), 98p hydrolyzed",
+"scipoly078_poly(vinyl alcohol), 99p hydrolyzed",
+scipoly079_poly(vinyl butyral),
+scipoly080_poly(vinyl chloride),
+"scipoly081_poly(vinyl chloride), carboxylated",
+scipoly082_poly(vinylidene fluoride),
+"scipoly083_poly(4-vinylpyridine), linear",
+scipoly084_poly(4-vinylpyridine-co-styrene),
+scipoly085_polyvinylpyrrolidone,
+scipoly086_styrene-acrylonitrile (75-25) copolymer,
+scipoly087_styrene-acrylonitrile (68-32) copolymer,
+scipoly088_styrene-allyl alcohol copolymer,
+"scipoly089_styrene-butadiene copolymer, aba block",
+scipoly090_styrene-butyl methacrylate copolymer,
+"scipoly091_styrene-ethylene-butylene copolymer, aba",
+"scipoly092_styrene-isoprene copolymer, aba",
+scipoly093_styrene-maleic anhydride copolymer,
+scipoly094_styrene-maleic anhydride copolymer,
+scipoly095_vinyl chloride-vinyl acetate copolymer,
+scipoly096_vinyl chloride-vinyl acetate copolymer,
+scipoly097_vinyl chloride-vinyl acetate-hydroxypropyl acr,
+scipoly098_vinylidene chloride-vinyl chloride copolymer,
+scipoly099_n-vinylpyrrolidone-vinyl acetate (60-40) copol,
+"scipoly100_zein, purified",
 scolecite,mineral
 scolecite__r040111-1__infrared__infrared_data_processed__358,mineral
 scolecite__r040111__raman__514__0__unoriented__raman_data_processed__9515,mineral
@@ -10126,11 +10779,12 @@ silicon__r040145__raman__532__0__unoriented__raman_data_processed__27508,mineral
 silicon__r040145__raman__780__0__unoriented__raman_data_processed__27510,mineral
 silicon__r050145-1__infrared__infrared_data_processed__1060,mineral
 silicon__r050145-1__infrared__infrared_data_processed__793,mineral
-silicone,polysiloxanes
-silicone rubber,polysiloxanes
-silicone seal reactor,polysiloxanes
+silicone,silicones
+silicone rubber,silicones
+silicone seal reactor,silicones
 silicone/pdms,poly(dimethylsiloxane) (pdms)
-silicone_rubber,polysiloxanes
+silicone_ref,silicones
+silicone_rubber,silicones
 siliconnitride__r120129__raman__532__0__unoriented__raman_data_processed__37010,mineral
 silikon rubber,other plastic
 silk,organic matter
@@ -10374,7 +11028,7 @@ spurrite__r050236-1__infrared__infrared_data_processed__914,mineral
 spurrite__r050236__raman__514__0__unoriented__raman_data_processed__10638,mineral
 spurrite__r050236__raman__532__0__unoriented__raman_data_processed__32640,mineral
 spurrite__r070632__raman__532__0__unoriented__raman_data_processed__23500,mineral
-sr 1. clear fragment,polysiloxanes
+sr 1. clear fragment,silicones
 srebrodolskite,mineral
 stannite,mineral
 stannite (wards),other material
@@ -10510,6 +11164,7 @@ strapping tape blue,other plastic
 strashimirite,mineral
 strashimirite__r060142__raman__532__0__unoriented__raman_data_processed__36611,mineral
 strashimirite__r060335__raman__532__0__unoriented__raman_data_processed__36659,mineral
+strawberry container,
 strelkinite,mineral
 strelkinite__r070046__raman__532__0__unoriented__raman_data_processed__17315,mineral
 strelkinite__r070046__raman__785__0__unoriented__raman_data_processed__25045,mineral
@@ -10576,16 +11231,22 @@ styrene allyl alccohol,other plastic
 styrene allyl alcohol,other plastic
 styrene butadiene,styrene-butadiene
 styrene butadiene copolymer,styrene-butadiene
+styrene butadiene_ref,styrene-butadiene
 styrene butyl methacrylate,other plastic
 styrene butylmethacrylate copolymer,other plastic
 "styrene ethyelene-butylene, aba blockcopolymer",other plastic
 styrene ethylene butylene,other plastic
 styrene isoprene,styrene-isoprene
 styrene isoprene aba block copolymer,styrene-isoprene
+styrene isoprene_ref,styrene-isoprene
 styrene maleic anhydride,styrene-maleic
 styrene maleic anhydride copolymer,styrene-maleic
 styrene maleic anhydride partial methyl ester,styrene-maleic
 "styrene maleic anhydride, partial methyl ester",styrene-maleic
+styrene-acrylonitrile (san),styrene-acrylonitrile (san)
+styrene-butadiene,styrene-butadiene
+styrene-isoprene,styrene-isoprene
+styrene-maleic,styrene-maleic
 styrene/isoprene,styrene-isoprene
 styrene/isoprene copolymer,styrene-isoprene
 styrene_acrylonitrile,styrene-acrylonitrile (san)
@@ -10858,6 +11519,133 @@ tetrahydrofuran fentanyl hcl (lot #0497941-14),other material
 tetrawickmanite,mineral
 tetrawickmanite__r100003__raman__532__0__unoriented__raman_data_processed__33556,mineral
 tetrawickmanite__r100003__raman__780__0__unoriented__raman_data_processed__33558,mineral
+tf001_acetate satin,
+tf002_acetate tricot,
+tf003_spun viscose challis,
+tf004_black spun viscose challis,
+tf005_modal jersey 95 (lycra 5),
+tf006_80 nylon-20 lycra,
+tf007_nylon-spandex jersey,
+tf008_nylon 6 tricot,
+tf009_nylon 66 semi-dull taffeta,
+tf010_nylon 66 stretch fabric,
+tf011_nylon oxford bunting,
+tf012_81 nylon-19 lycra,
+tf013_bleached desized cotton print cloth,
+tf014_cotton print cloth,
+tf015_cotton print cloth,
+tf016_greige cotton print cloth,
+tf017_bleached cotton 10oz bull denim,
+tf018_bleached cotton 10oz bull denim,
+tf019_cotton interlock knit,
+tf020_cotton interlock knit,
+tf021_bleached cotton poplin,
+tf022_greige 4 cotton duck,
+tf023_greige 6 cotton duck,
+tf024_bleached cotton corduroy,
+tf025_bleached cotton broadcloth,
+tf026_black cotton boradcloth,
+"tf027_bleached, cotton terry cloth",
+"tf028_unbleached, cotton terry cloth",
+"tf029_bleached, cotton twill",
+tf030_bleached cotton flannel,
+tf031_unbleached cotton flannel,
+tf032_greige 10 cotton duck,
+tf033_bleached army carded cotton sateen,
+tf034_unbleached army carded cotton sateen,
+tf035_bleached combed cotton lawn,
+"tf036_bleached, combed cotton batiste",
+tf037_bleached cotton t-shirt fabric,
+tf038_black cotton t-shirt fabric,
+tf039_bleached cotton percale sheeting,
+tf040_unbleached cotton percale sheeting,
+tf041_bleached cotton organdy,
+tf042_bleached cotton velveteen,
+tf043_black cotton velveteen,
+tf044_bleached cotton boradcloth,
+tf045_ interlock sport shirt cotton knit,
+tf046_black combed cotton interlock knit,
+"tf047_scoured, unbleached cotton interlock knit",
+tf048_bleached lightweight cotton duck,
+tf049_unbleached lightweight cotton duck,
+"tf050_bleached, heavy cotton sail cloth",
+"tf051_unbleached, heavy cotton sail cloth",
+"tf052_desized, bleached army duck",
+"tf053_desized, unbleached army duck",
+tf054_greige 8 cotton duck,
+tf055_bleached cotton warp sateen,
+tf056_bleached cotton filling sateen,
+tf057_bleached cotton interlock lightweight knit,
+"tf058_desized, scoured, bleached cotton sheeting",
+tf059_unbleached cotton sheeting,
+"tf060_bleached, lightweight cotton twill",
+tf061_wool felt,
+"tf062_scoured, worsted wool flannel",
+tf063_scoured woolen flannel,
+tf064_wool jersey knit,
+"tf065_scoured, worsted wool gabardine",
+tf066_dyeable worsted wool challis,
+tf067_degummed silk crepe de chine,
+tf068_silk pongee,
+tf069_degummed silk shantung,
+tf070_degummed silk georgette,
+tf071_silk broadcloth,
+tf072_silk habutae,
+tf073_degummed silk charmeuse,
+tf074_degummed silk twill,
+tf075_degummed silk chiffon,
+tf076_degummed silk organza,
+tf077_silk taffeta,
+tf078_black silk noil,
+tf079_natural raw silk noil,
+tf080_bleached silk noil,
+tf081_spun polyester type 54,
+tf082_texturized polyester interlock knit,
+"tf083_polyester, texturized double knit jersey heat set",
+"tf084_polyester, double knit jersey not heat set",
+tf085_95 polyester-5 spandex jersey,
+tf086_polyester-cotton eco twill,
+tf087_65 polyester-35 cotton bleached broadcloth,
+tf088_65 polyester-35 cotton bleached broadcloth,
+tf089_50 polyester-50 cotton single knit jersey,
+tf090_bleached 65 polyester-35 cotton shirting,
+tf091_bleached 50 polyester-50 cotton interlock knit,
+tf092_50 polyester-50 cotton sheeting,
+tf093_92 bamboo-8 spandex jersey,
+tf094_92 bamboo-8 spandex dischargeable black jersey,
+tf095_silk-rayon velvet,
+tf096_silk-rayon velvet dischargeable black,
+tf097_92 cotton-8 lycra leotard fabric,
+tf098_92 cotton-8 lycra black leotard fabric,
+tf099_multi-filament dense polyester taffeta weave,
+tf100_polyester suede,
+tf101_polyester ultra sheer,
+tf102_firesafe polyester,
+tf103_polyester hercules,
+tf104_polyester duck,
+tf105_polyester gaming suede,
+tf106_polyester georgette,
+tf107_polyester silk,
+tf108_polyester poplin,
+tf109_polyester organza,
+tf110_dyed black polyester interlock knit,
+tf111_white polyester interlock knit,
+tf112_polyester georgette,
+tf113_polyester linen,
+tf114_polyester soft knit,
+tf115_polyester soft knit,
+tf116_88 polyester-12 lycra,
+tf117_linen canvas loomstate,
+tf118_linen canvas loomstate,
+"tf119_lighter weight linen canvas, loomstate",
+"tf120_lighter weight canvas linen, loomstate",
+tf121_linen suiting,
+tf122_linen suiting,
+tf123_linen suiting,
+tf124_handkerchief linen,
+tf125_unbleached handkerchief linen,
+tf126_56 cotton-44 linen blend,
+tf127_hemp suiting,
 tfmpp monohydrochloride (lot #gbfa016743),other material
 th-pvp hcl (lot #rm-160223-02),other material
 thaumasite,mineral
@@ -11361,6 +12149,9 @@ umwelt/pest,polyesters
 umwelt/polystyrol,polystyrene
 umwelt/polyvinylchlorid,poly(vinyl chloride)
 umwelt/vinylidene chloride,other plastic
+umweltprobe,
+unknown,
+unknown_x_x,
 ur-144 (lot #alb214-11),other material
 uralborite,mineral
 uralborite__r061140__raman__532__0__unoriented__raman_data_processed__16704,mineral
@@ -11390,6 +12181,7 @@ urb-754 (lot #0438238-10),other material
 urb602 (lot #0438099-15),other material
 urea,other material
 urea (baker),other material
+urea-formaldehyde,urea-formaldehyde
 uric acid,other material
 urusovite,mineral
 urusovite__r061114__raman__532__0__unoriented__raman_data_processed__16388,mineral
@@ -11771,6 +12563,7 @@ whewellite__r050526-1__infrared__infrared_data_processed__592,mineral
 whewellite__r050526__raman__532__0__unoriented__raman_data_processed__32192,mineral
 whewellite__r050526__raman__780__0__unoriented__raman_data_processed__32194,mineral
 whewellite__r070655__raman__780__0__unoriented__raman_data_processed__24908,mineral
+white and gray mask filter,
 white marble-ward's-45-e-3120-35-kbr,other material
 white shoe sole fragment,other plastic
 whiteite-(cafemg),mineral
@@ -11887,6 +12680,7 @@ wood glue,other material
 wood mahagoni,organic matter
 wood pine,organic matter
 "wood tamarisk modern timna, israel",organic matter
+wood_ref,organic matter
 woodhouseite,mineral
 woodhouseite__r060520__raman__532__0__unoriented__raman_data_processed__10349,mineral
 woodhouseite__r060520__raman__532__0__unoriented__raman_data_processed__39082,mineral
