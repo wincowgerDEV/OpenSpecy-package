@@ -10,6 +10,23 @@ wasm_manifest_path <- function(file) {
   test_path("..", "..", "inst", "shiny", "wasm", file)
 }
 
+shiny_app_source_path <- function(file) {
+  installed <- system.file("shiny", file, package = "OpenSpecy")
+  if (nzchar(installed)) return(installed)
+
+  workspace <- Sys.getenv("GITHUB_WORKSPACE", unset = "")
+  candidates <- c(
+    test_path("..", "..", "inst", "shiny", file),
+    if (nzchar(workspace)) file.path(workspace, "inst", "shiny", file)
+  )
+  existing <- candidates[file.exists(candidates)]
+  testthat::skip_if(
+    length(existing) == 0L,
+    "bundled Shiny application sources are unavailable"
+  )
+  existing[[1L]]
+}
+
 source_wasm_tool <- function(file, env) {
   path <- test_path("..", "..", "tools", "wasm", file)
   if (!file.exists(path)) {
@@ -34,8 +51,7 @@ test_that("Shinylive wasm package roots include app runtime packages", {
 
   app_sources <- unlist(lapply(
     c("global.R", "ui.R", "server.R"),
-    function(file) readLines(test_path("..", "..", "inst", "shiny", file),
-                             warn = FALSE)
+    function(file) readLines(shiny_app_source_path(file), warn = FALSE)
   ), use.names = FALSE)
   expect_false(any(grepl("shinyFiles::", app_sources, fixed = TRUE)))
 })

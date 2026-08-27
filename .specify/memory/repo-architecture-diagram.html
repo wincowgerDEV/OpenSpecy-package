@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OpenSpecy Repository Architecture</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='78' font-size='80'%3E%F0%9F%97%82%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #f2f5f7;
+    --surface: #ffffff;
+    --surface-2: #eaeff3;
+    --text: #182129;
+    --text-muted: #55636f;
+    --border: #d3dbe1;
+    --edge: #8fa0ac;
+    --edge-alt: #a8763f;
+
+    --input: #0d6f78;
+    --input-bg: #e0f3f1;
+    --input-border: #a9dcd8;
+
+    --function: #2f4f9e;
+    --function-bg: #e7ecfb;
+    --function-border: #b9c7f2;
+
+    --decision: #92620a;
+    --decision-bg: #fbf0d9;
+    --decision-border: #edcf97;
+
+    --output: #9c2f68;
+    --output-bg: #fbe6f0;
+    --output-border: #f0bdd7;
+
+    --trigger: #1c7a3e;
+    --trigger-bg: #e1f5e6;
+    --trigger-border: #a9dfb8;
+
+    --tip-bg: #182129;
+    --tip-text: #eef2f5;
+    --tip-border: #354250;
+
+    --shadow: 0 1px 2px rgba(24,33,41,.06), 0 6px 16px rgba(24,33,41,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12171c;
+      --surface: #1a2129;
+      --surface-2: #202a33;
+      --text: #e9eef2;
+      --text-muted: #9fb0bc;
+      --border: #33424f;
+      --edge: #62727e;
+      --edge-alt: #c99a5f;
+
+      --input: #5fd6cd;
+      --input-bg: #123330;
+      --input-border: #1f5f58;
+
+      --function: #92aaf5;
+      --function-bg: #1c2748;
+      --function-border: #33438a;
+
+      --decision: #f0c05a;
+      --decision-bg: #3a2e12;
+      --decision-border: #7a5a1c;
+
+      --output: #f28fbb;
+      --output-bg: #3a1c2b;
+      --output-border: #7a3559;
+
+      --trigger: #6fe097;
+      --trigger-bg: #123420;
+      --trigger-border: #276b45;
+
+      --tip-bg: #eef2f5;
+      --tip-text: #182129;
+      --tip-border: #c7d0d7;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12171c;
+    --surface: #1a2129;
+    --surface-2: #202a33;
+    --text: #e9eef2;
+    --text-muted: #9fb0bc;
+    --border: #33424f;
+    --edge: #62727e;
+    --edge-alt: #c99a5f;
+
+    --input: #5fd6cd;
+    --input-bg: #123330;
+    --input-border: #1f5f58;
+
+    --function: #92aaf5;
+    --function-bg: #1c2748;
+    --function-border: #33438a;
+
+    --decision: #f0c05a;
+    --decision-bg: #3a2e12;
+    --decision-border: #7a5a1c;
+
+    --output: #f28fbb;
+    --output-bg: #3a1c2b;
+    --output-border: #7a3559;
+
+    --trigger: #6fe097;
+    --trigger-bg: #123420;
+    --trigger-border: #276b45;
+
+    --tip-bg: #eef2f5;
+    --tip-text: #182129;
+    --tip-border: #c7d0d7;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  header.page {
+    max-width: 1200px; margin: 0 auto; padding: 40px 24px 8px;
+  }
+  header.page .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-muted); margin: 0 0 10px;
+  }
+  header.page h1 {
+    font-size: 28px; line-height: 1.25; margin: 0 0 12px; text-wrap: balance;
+    font-weight: 700;
+  }
+  header.page p { font-size: 15px; line-height: 1.6; color: var(--text-muted); max-width: 84ch; margin: 0 0 10px; }
+  header.page .rule {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; font-size: 13.5px; line-height: 1.55; margin: 18px 0 6px;
+  }
+  header.page .rule strong { color: var(--text); }
+
+  section.legend {
+    max-width: 1200px; margin: 22px auto 8px; padding: 0 24px;
+    display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+  .swatch { width: 18px; height: 18px; border-radius: 4px; flex: none; border: 1.5px solid; }
+  .swatch.governance { background: var(--trigger-bg); border-color: var(--trigger-border); }
+  .swatch.pkgcore { background: var(--function-bg); border-color: var(--function-border); }
+  .swatch.support { background: var(--decision-bg); border-color: var(--decision-border); }
+  .swatch.docs { background: var(--input-bg); border-color: var(--input-border); }
+  .swatch.hosted { background: var(--output-bg); border-color: var(--output-border); }
+  .swatch.external { background: var(--surface-2); border-color: var(--output-border); border-style: dashed; }
+  .legend-line { width: 26px; height: 0; border-top: 2px solid var(--edge); }
+  .legend-line.alt { border-top: 2px dashed var(--edge-alt); }
+
+  .canvas-scroll {
+    max-width: 1200px; margin: 14px auto 0; padding: 0 24px;
+  }
+  .viewer-hint {
+    font-size: 12.5px; color: var(--text-muted); margin: 0 0 8px;
+  }
+  .viewer-hint kbd {
+    font-family: "IBM Plex Mono", monospace; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; font-size: 11px;
+  }
+  .viewer {
+    position: relative; height: min(78vh, 880px); overflow: hidden;
+    border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+    box-shadow: var(--shadow); cursor: grab; touch-action: none;
+  }
+  .viewer.grabbing { cursor: grabbing; }
+  .zoom-controls {
+    position: absolute; top: 12px; right: 12px; z-index: 1000;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .zoom-controls button {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 17px; line-height: 1;
+    cursor: pointer; box-shadow: var(--shadow); font-family: inherit;
+  }
+  .zoom-controls button:hover { background: var(--surface-2); }
+  .zoom-controls button#zoomReset { font-size: 11px; font-weight: 600; }
+
+  .zoom-layer { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+  .canvas { position: relative; }
+  .canvas svg { position: absolute; inset: 0; overflow: visible; z-index: 0; }
+  .canvas svg path { fill: none; stroke: var(--edge); stroke-width: 2; }
+  .canvas svg .edge-alt { stroke: var(--edge-alt); stroke-dasharray: 7 5; }
+  .canvas svg text.edge-label {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; fill: var(--text-muted);
+  }
+  .canvas svg text.edge-label.strong { fill: var(--edge-alt); font-weight: 600; }
+  .canvas svg rect.boundary {
+    fill: var(--surface-2); fill-opacity: .35; stroke: var(--edge-alt); stroke-width: 1.5; stroke-dasharray: 8 6;
+  }
+  .canvas svg text.boundary-label {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; fill: var(--text-muted); font-style: italic;
+  }
+
+  .node {
+    position: absolute; transform: translate(-50%, -50%); z-index: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; border-radius: 10px; border: 1.5px solid; padding: 10px 14px;
+    font-size: 13px; line-height: 1.3; font-weight: 600; cursor: pointer;
+    width: 224px; min-height: 90px; text-decoration: none;
+  }
+  .node:hover, .node:focus-visible { z-index: 400; }
+  .node .sub { font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: 10.5px; margin-top: 4px; opacity: .82; }
+  .node.governance { background: var(--trigger-bg); border-color: var(--trigger-border); color: var(--trigger); }
+  .node.pkgcore { background: var(--function-bg); border-color: var(--function-border); color: var(--function); }
+  .node.support { background: var(--decision-bg); border-color: var(--decision-border); color: var(--decision); }
+  .node.docs { background: var(--input-bg); border-color: var(--input-border); color: var(--input); }
+  .node.hosted { background: var(--output-bg); border-color: var(--output-border); color: var(--output); }
+  .node.external { background: var(--surface-2); border-color: var(--output-border); border-style: dashed; color: var(--output); }
+  .node.nested { width: 200px; min-height: 78px; font-size: 12.5px; }
+
+  .node .tip {
+    position: absolute; left: 50%; top: 100%; transform: translate(-50%, 10px);
+    width: 300px; max-width: 60vw; background: var(--tip-bg); color: var(--tip-text);
+    border: 1px solid var(--tip-border); border-radius: 8px; padding: 11px 13px;
+    font-size: 12.5px; line-height: 1.5; font-weight: 400; text-align: left;
+    opacity: 0; visibility: hidden; transition: opacity .12s ease, transform .12s ease;
+    z-index: 5000; box-shadow: var(--shadow); pointer-events: none;
+  }
+  .node.tip-above .tip { top: auto; bottom: 100%; transform: translate(-50%, -10px); }
+  .node.tip-left .tip { left: auto; right: 100%; top: 50%; transform: translate(-10px, -50%); }
+  .node:hover .tip, .node:focus-visible .tip { opacity: 1; visibility: visible; transform: translate(-50%, 4px); }
+  .node.tip-above:hover .tip, .node.tip-above:focus-visible .tip { transform: translate(-50%, -4px); }
+  .node.tip-left:hover .tip, .node.tip-left:focus-visible .tip { transform: translate(-4px, -50%); }
+  .node .tip .loc { display: block; margin-top: 6px; font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--edge-alt); }
+  .node:focus-visible { outline: 2px solid var(--function); outline-offset: 3px; }
+
+  footer.page {
+    max-width: 1200px; margin: 20px auto 60px; padding: 18px 24px 0; border-top: 1px solid var(--border);
+    font-size: 12.5px; color: var(--text-muted); line-height: 1.6;
+  }
+  footer.page code { color: var(--text); }
+
+  @media (max-width: 640px) {
+    header.page h1 { font-size: 23px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <p class="eyebrow">OpenSpecy &middot; .specify/memory/repo-architecture-diagram.html</p>
+  <h1>Repository Architecture</h1>
+  <p>
+    How this repository's top-level folders relate: which ones govern the rest, which ones make up
+    the installable R package, how the bundled Shiny app becomes the hosted Shinylive site, and which
+    folders test, benchmark, or document the others. Boxes are colored by tier &mdash;
+    <strong style="color:var(--trigger)">governance</strong>,
+    <strong style="color:var(--function)">R package core</strong>,
+    <strong style="color:var(--decision)">verification/support</strong>,
+    <strong style="color:var(--input)">documentation</strong>,
+    <strong style="color:var(--output)">hosted deployment</strong> &mdash;
+    solid arrows show "contains / builds into" relationships, dashed arrows show "governs / supports /
+    documents" relationships. <strong>Every box is a real link</strong>: click or press Enter on a
+    focused box to open that folder on GitHub (or, for the one dashed external box, the live hosted
+    site) in a new tab. <strong>Hover or focus any box</strong> for a longer description first.
+  </p>
+  <div class="rule">
+    <strong>Companion to <code>pipeline-diagram.html</code>:</strong> that diagram is the canonical,
+    Constitution-governed (Principle X) map of the bundled app's internal data-analysis pipeline. This
+    diagram is a lighter-weight repository map at the folder level, not an app-internal one. It is not
+    itself bound by Principle X, but it should still be kept roughly in sync when a top-level folder's
+    purpose changes, moves, or a new one is added &mdash; see
+    <code>.specify/memory/constitution.md</code> for the durable rules this repo follows.
+  </div>
+</header>
+
+<section class="legend" aria-hidden="false">
+  <span class="legend-item"><span class="swatch governance"></span> Governance</span>
+  <span class="legend-item"><span class="swatch pkgcore"></span> R package core</span>
+  <span class="legend-item"><span class="swatch support"></span> Verification / support</span>
+  <span class="legend-item"><span class="swatch docs"></span> Documentation</span>
+  <span class="legend-item"><span class="swatch hosted"></span> Hosted deployment</span>
+  <span class="legend-item"><span class="swatch external"></span> External (live site, not a repo folder)</span>
+  <span class="legend-item"><span class="legend-line"></span> contains / builds into</span>
+  <span class="legend-item"><span class="legend-line alt"></span> governs / supports / documents</span>
+</section>
+
+<div class="canvas-scroll">
+<p class="viewer-hint">Scroll/pinch to zoom, drag to pan, or use the controls. Click any box to open its folder on GitHub in a new tab.</p>
+<div class="viewer" id="viewer" tabindex="0" aria-label="Pannable, zoomable repository architecture diagram">
+  <div class="zoom-controls">
+    <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+    <button type="button" id="zoomOut" aria-label="Zoom out">&minus;</button>
+    <button type="button" id="zoomReset" aria-label="Reset view">Fit</button>
+  </div>
+  <div class="zoom-layer" id="zoomLayer">
+<div class="canvas" id="canvas" style="width:1600px;height:1400px;">
+<svg viewBox="0 0 1600 1400" width="1600" height="1400" role="img"
+     aria-label="OpenSpecy repository folder map: governance folders at top, the R package core and bundled Shiny app in the middle, verification/support and documentation folders to the sides, and the hosted Shinylive/GitHub Pages deployment chain at the bottom.">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)"></path>
+    </marker>
+    <marker id="arrowAlt" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--edge-alt)"></path>
+    </marker>
+  </defs>
+
+  <!-- governance boundary: everything inside is set by the four governance folders above it -->
+  <rect class="boundary" x="70" y="225" width="1460" height="1010" rx="18"></rect>
+  <text class="boundary-label" x="96" y="252">governed by .agents/ .claude/ .github/ .specify/ (constitution, skills, CI, Spec Kit templates)</text>
+
+  <!-- governance -> boundary (relationship, not data flow) -->
+  <path class="edge-alt" d="M230,146 L230,224" marker-end="url(#arrowAlt)"></path>
+  <path class="edge-alt" d="M590,146 L590,224" marker-end="url(#arrowAlt)"></path>
+  <path class="edge-alt" d="M950,146 L950,224" marker-end="url(#arrowAlt)"></path>
+  <path class="edge-alt" d="M1310,146 L1310,224" marker-end="url(#arrowAlt)"></path>
+
+  <!-- inst/ contains inst/shiny/ -->
+  <path d="M1250,426 L1250,499" marker-end="url(#arrow)"></path>
+  <text class="edge-label" x="1264" y="468">contains</text>
+
+  <!-- workflows/ + benchmarks/ support R/ -->
+  <path class="edge-alt" d="M262,635 C 300,545 320,485 342,428" marker-end="url(#arrowAlt)"></path>
+  <path class="edge-alt" d="M262,785 C 195,610 260,485 342,432" marker-end="url(#arrowAlt)"></path>
+  <text class="edge-label strong" x="128" y="560" transform="rotate(-62 128 560)">supports/validates (outside CRAN tests)</text>
+
+  <!-- vignettes/ + docs/ document R/ -->
+  <path class="edge-alt" d="M1040,635 C 800,500 600,440 470,397" marker-end="url(#arrowAlt)"></path>
+  <path class="edge-alt" d="M1040,785 C 760,650 550,480 468,412" marker-end="url(#arrowAlt)"></path>
+  <text class="edge-label strong" x="740" y="560" transform="rotate(24 740 560)">documents</text>
+
+  <!-- inst/shiny/ + tools/wasm/ generate the hosted Shinylive app (routed right and below the docs tier to avoid crossing it) -->
+  <path d="M1155,585 C 1235,690 1235,810 1175,878 C 1050,940 900,946 768,948" marker-end="url(#arrow)"></path>
+  <text class="edge-label" x="965" y="905">generates hosted Shinylive app</text>
+
+  <!-- tools/wasm/ assembles into site/ -->
+  <path d="M750,1046 L750,1104" marker-end="url(#arrow)"></path>
+  <text class="edge-label" x="764" y="1080">assembles into site/app/</text>
+
+  <!-- site/ published to the live GitHub Pages site -->
+  <path d="M750,1196 L750,1274" marker-end="url(#arrow)"></path>
+  <text class="edge-label" x="764" y="1240">published by .github/workflows/</text>
+</svg>
+
+<!-- Governance tier -->
+<a class="node governance" style="left:230px;top:100px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/.agents" target="_blank" rel="noopener">
+  .agents/
+  <div class="sub">Codex skill definitions</div>
+  <div class="tip">Durable skill instructions for the Codex agent integration: speckit-plan, speckit-implement, speckit-constitution (hand-customized for this repo's single-plan.md workflow), plus the openspecy-* skills (public API design, Shiny app development, quality gates, hosted-app verification). Reaches Claude Code through git-ignored directory junctions under .claude/skills/.
+  <span class="loc">.agents/skills/</span></div>
+</a>
+<a class="node governance" style="left:590px;top:100px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/.claude" target="_blank" rel="noopener">
+  .claude/
+  <div class="sub">Claude Code skills, commands, settings</div>
+  <div class="tip">Claude Code's copies of the shared skills (kept in sync with .agents/ by the speckit-constitution workflow step), thin /speckit-plan, /speckit-implement, /speckit-constitution command wrappers, and local settings/worktrees.
+  <span class="loc">.claude/skills/, .claude/commands/</span></div>
+</a>
+<a class="node governance" style="left:950px;top:100px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/.github" target="_blank" rel="noopener">
+  .github/
+  <div class="sub">CI workflows, issue templates</div>
+  <div class="tip">GitHub Actions workflows that gate and build the repo: R-CMD-check.yaml, deploy-shinylive.yml, deploy-cran-repo.yml, pkgdown.yaml, test-coverage.yaml, release-file-system-image.yml. These are what actually run the package checks and assemble the hosted site below.
+  <span class="loc">.github/workflows/</span></div>
+</a>
+<a class="node governance tip-left" style="left:1310px;top:100px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/.specify" target="_blank" rel="noopener">
+  .specify/
+  <div class="sub">Spec Kit constitution, memory, templates</div>
+  <div class="tip">Durable project memory: constitution.md (the principles this repo follows, including the one behind this diagram), memory/pipeline-diagram.html (this diagram's sibling, covering the app's internal data-analysis pipeline instead of repo structure), feature plan templates, and helper scripts.
+  <span class="loc">.specify/memory/constitution.md</span></div>
+</a>
+
+<!-- R package core tier -->
+<a class="node pkgcore" style="left:350px;top:380px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/R" target="_blank" rel="noopener">
+  R/
+  <div class="sub">Package functions, exported + internal</div>
+  <div class="tip">The R package's actual functions: readers, process_spec(), match_spec(), library builders, and every other exported or internal function. Everything else in this tier tests, documents, or bundles around this folder.
+  <span class="loc">R/*.R</span></div>
+</a>
+<a class="node pkgcore" style="left:650px;top:380px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/man" target="_blank" rel="noopener">
+  man/
+  <div class="sub">Generated Rd help pages</div>
+  <div class="tip">Roxygen-generated documentation, produced by devtools::document(). Never hand-edited directly (Constitution Principle VII) &mdash; update the roxygen comments in R/ and regenerate instead.
+  <span class="loc">man/*.Rd</span></div>
+</a>
+<a class="node pkgcore" style="left:950px;top:380px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/tests" target="_blank" rel="noopener">
+  tests/
+  <div class="sub">testthat suite (devtools::test())</div>
+  <div class="tip">The CRAN-facing automated test suite for current package behavior. Unlike workflows/ and benchmarks/ to the left, this folder is part of the package's required test/CRAN surface.
+  <span class="loc">tests/testthat/</span></div>
+</a>
+<a class="node pkgcore tip-left" style="left:1250px;top:380px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/inst" target="_blank" rel="noopener">
+  inst/
+  <div class="sub">Bundled assets + the Shiny app</div>
+  <div class="tip">Installed alongside the package: example data and, most importantly, the bundled Shiny application under inst/shiny/ (below). Must stay small and network-free for CRAN readiness.
+  <span class="loc">inst/</span></div>
+</a>
+
+<!-- inst/shiny/, nested under inst/ -->
+<a class="node pkgcore nested tip-left" style="left:1250px;top:545px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/inst/shiny" target="_blank" rel="noopener">
+  inst/shiny/
+  <div class="sub">Bundled app (run_app())</div>
+  <div class="tip">The canonical local and hosted app surface: ui.R, server.R, global.R, and app assets. Launched locally via run_app(); also the source the hosted Shinylive build (bottom of this diagram) is generated from. Its own data-analysis pipeline is separately diagrammed in pipeline-diagram.html.
+  <span class="loc">inst/shiny/{ui,server,global}.R</span></div>
+</a>
+
+<!-- Verification/support tier -->
+<a class="node support" style="left:260px;top:680px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/workflows" target="_blank" rel="noopener">
+  workflows/
+  <div class="sub">Long-running reference-library scripts</div>
+  <div class="tip">Reproducible, version-controlled scripts (e.g. OpenSpecy_reference_library.R) that use R/ package functions on large external spectral datasets to build and validate the reference library. Not part of the CRAN test surface.
+  <span class="loc">workflows/</span></div>
+</a>
+<a class="node support" style="left:260px;top:830px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/benchmarks" target="_blank" rel="noopener">
+  benchmarks/
+  <div class="sub">Old-vs-new performance comparisons</div>
+  <div class="tip">Keeps prior implementations of R/ functions for same-output performance comparisons (Constitution Principle VI). Required whenever a function change claims a speed improvement with unchanged output; excluded from CRAN submission.
+  <span class="loc">benchmarks/</span></div>
+</a>
+
+<!-- Documentation tier -->
+<a class="node docs" style="left:1050px;top:680px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/vignettes" target="_blank" rel="noopener">
+  vignettes/
+  <div class="sub">Package + app tutorials (Rmd)</div>
+  <div class="tip">Long-form documentation built with knitr/rmarkdown. sop.Rmd, advanced.Rmd, library-builder.Rmd, and spectragryph.Rmd document R/ package workflows; app.Rmd documents the bundled Shiny app in inst/shiny/.
+  <span class="loc">vignettes/*.Rmd</span></div>
+</a>
+<a class="node docs" style="left:1050px;top:830px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/docs" target="_blank" rel="noopener">
+  docs/
+  <div class="sub">Generated pkgdown reference site</div>
+  <div class="tip">pkgdown-generated function reference and article pages, built from the roxygen comments in R/ and the vignettes/ articles above. Regenerated by the pkgdown build process, not hand-edited (Constitution Principle VII).
+  <span class="loc">docs/ (pkgdown output)</span></div>
+</a>
+
+<!-- Hosted deployment tier -->
+<a class="node hosted" style="left:750px;top:1000px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/tools/wasm" target="_blank" rel="noopener">
+  tools/wasm/
+  <div class="sub">Builds the hosted Shinylive app</div>
+  <div class="tip">Scripts that turn inst/shiny/ into the WebAssembly Shinylive app and stage the public Pages shell: stage-pages-shell.R, check-pages-site.R, check-shinylive-export.R, and related helpers. Driven by .github/workflows/deploy-shinylive.yml.
+  <span class="loc">tools/wasm/</span></div>
+</a>
+<a class="node hosted tip-above" style="left:750px;top:1150px" href="https://github.com/wincowgerDEV/OpenSpecy-package/tree/main/site" target="_blank" rel="noopener">
+  site/
+  <div class="sub">GitHub Pages landing shell</div>
+  <div class="tip">Hand-authored landing page and assets at the Pages root. stage-pages-shell.R copies this tree verbatim into the deployed site alongside the generated /app/ (Shinylive, from inst/shiny/ via tools/wasm/) and /pkgdown/ (from docs/) routes.
+  <span class="loc">site/index.html</span></div>
+</a>
+
+<!-- External: the live deployed site, not a repository folder -->
+<a class="node external tip-above" style="left:750px;top:1320px" href="https://wincowgerdev.github.io/OpenSpecy-package/" target="_blank" rel="noopener">
+  Live GitHub Pages site
+  <div class="sub">wincowgerdev.github.io/OpenSpecy-package</div>
+  <div class="tip">The deployed result of site/ plus the generated /app/ and /pkgdown/ routes, published by .github/workflows/deploy-shinylive.yml. Not a repository folder &mdash; this box links to the live public site instead of a GitHub tree.
+  <span class="loc">https://wincowgerdev.github.io/OpenSpecy-package/</span></div>
+</a>
+
+</div>
+  </div>
+</div>
+</div>
+
+<footer class="page">
+  Sources: repository top-level folder listing plus <code>tools/wasm/stage-pages-shell.R</code>,
+  <code>.github/workflows/deploy-shinylive.yml</code>, and <code>.specify/memory/constitution.md</code>.
+  Intentionally omitted for legibility: <code>data/</code>, <code>packages/</code>,
+  <code>test-results/</code>, and other non-architectural or generated-scratch folders. This diagram
+  is a repository-structure map, distinct from and not bound by the Constitution Principle X rules
+  that govern <code>pipeline-diagram.html</code>'s app data-analysis pipeline coverage; update it when
+  a top-level folder's purpose materially changes.
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var viewer = document.getElementById("viewer");
+  var layer = document.getElementById("zoomLayer");
+  var canvasEl = document.getElementById("canvas");
+  var scale = 1, x = 24, y = 24;
+  var dragging = false, moved = false, lastX = 0, lastY = 0;
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function apply() {
+    layer.style.transform = "translate(" + x + "px," + y + "px) scale(" + scale + ")";
+  }
+  function fitToWidth() {
+    var vw = viewer.clientWidth || 1000;
+    var cw = canvasEl.offsetWidth || 1600;
+    scale = clamp(vw / cw * 0.94, 0.2, 2);
+    x = (vw - cw * scale) / 2;
+    y = 24;
+    apply();
+  }
+  function setScale(newScale, cx, cy) {
+    newScale = clamp(newScale, 0.18, 2.2);
+    var rect = viewer.getBoundingClientRect();
+    var px = (cx - rect.left - x) / scale;
+    var py = (cy - rect.top - y) / scale;
+    x -= px * (newScale - scale);
+    y -= py * (newScale - scale);
+    scale = newScale;
+    apply();
+  }
+
+  viewer.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    var delta = e.deltaY > 0 ? -0.09 : 0.09;
+    setScale(scale + delta, e.clientX, e.clientY);
+  }, { passive: false });
+
+  viewer.addEventListener("pointerdown", function (e) {
+    dragging = true; moved = false; lastX = e.clientX; lastY = e.clientY;
+    viewer.classList.add("grabbing");
+    viewer.setPointerCapture(e.pointerId);
+  });
+  viewer.addEventListener("pointermove", function (e) {
+    if (!dragging) return;
+    var dx = e.clientX - lastX, dy = e.clientY - lastY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+    x += dx; y += dy; lastX = e.clientX; lastY = e.clientY;
+    apply();
+  });
+  function stopDrag() { dragging = false; viewer.classList.remove("grabbing"); }
+  viewer.addEventListener("pointerup", stopDrag);
+  viewer.addEventListener("pointercancel", stopDrag);
+  viewer.addEventListener("pointerleave", stopDrag);
+
+  viewer.addEventListener("click", function (e) {
+    if (moved) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
+  document.getElementById("zoomIn").addEventListener("click", function () {
+    var r = viewer.getBoundingClientRect();
+    setScale(scale + 0.18, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("zoomOut").addEventListener("click", function () {
+    var r = viewer.getBoundingClientRect();
+    setScale(scale - 0.18, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("zoomReset").addEventListener("click", fitToWidth);
+
+  window.addEventListener("resize", fitToWidth);
+  fitToWidth();
+})();
+</script>
+
+</body>
+</html>
