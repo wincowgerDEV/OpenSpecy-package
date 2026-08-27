@@ -6,6 +6,7 @@
 \alias{join_lib_metadata}
 \alias{join_material_hierarchy}
 \alias{dedupe_spec}
+\alias{prune_lib}
 \alias{reduce_lib}
 \alias{build_model_lib}
 \alias{assess_lib}
@@ -27,6 +28,7 @@ build_lib(
   restrict_range_args = NULL,
   signal_noise = TRUE,
   assess = FALSE,
+  prune = NULL,
   progress = TRUE,
   ...
 )
@@ -59,6 +61,18 @@ dedupe_spec(
   duplicate = c("first", "remove_all", "none"),
   scale = 100,
   algo = "md5"
+)
+
+prune_lib(
+  x,
+  class_col = "material_class",
+  type_col = "spectrum_type",
+  material_type_col = "material_type",
+  id_col = "sample_name",
+  min_n = 10,
+  exclude = c(2200, 2420),
+  return = c("object", "ids", "report"),
+  progress = TRUE
 )
 
 reduce_lib(
@@ -115,7 +129,12 @@ when \code{build_lib()} combines multiple sources.}
 spectra in \code{build_lib()}.}
 
 \item{metadata_lookups}{a lookup table, csv path, or list of lookup tables and
-paths. If non-\code{NULL}, each is joined with
+paths. A lookup may instead be supplied as \code{list(lookup = x, by = key)}
+to use an explicit key (including a named metadata-to-lookup key mapping).
+An explicit one-column lookup may add \code{fallback_by} to fill blank
+metadata keys before joining and \code{fill_only = TRUE} to preserve existing
+nonblank metadata values while filling gaps from the lookup.
+If non-\code{NULL}, each is joined with
 \code{join_lib_metadata()}. Automatic ordinary lookups use the single shared
 column that has overlapping values and unique lookup keys. Lookups with no
 usable shared key are skipped with a message; lookups with multiple usable
@@ -152,6 +171,10 @@ unless explicitly overridden.}
 
 \item{assess}{logical; whether to run \code{\link{assess_spec}()} on each
 output library and append assessment summaries to its metadata.}
+
+\item{prune}{\code{NULL}, or a named list mapping recipe names to argument
+lists for \code{\link{prune_lib}()}. Selected recipes are pruned independently
+after processing and assessment. \code{NULL} preserves unpruned outputs.}
 
 \item{progress}{logical; whether \code{build_lib()} reports named processing
 stages and elapsed time.}
@@ -192,14 +215,20 @@ material metadata.}
 
 \item{algo}{hash algorithm passed to \code{\link[digest]{digest}()}.}
 
+\item{class_col, type_col}{metadata columns used for model labels.}
+
+\item{material_type_col}{metadata column used to distinguish plastic from
+non-plastic candidates when reassigning generic classes.}
+
+\item{min_n}{groups with \code{min_n} or fewer spectra are kept whole.}
+
+\item{exclude}{numeric length-two wavenumber interval excluded from pruning
+correlations.}
+
 \item{group_cols}{metadata columns defining groups for reduction.}
 
 \item{k}{maximum representatives to keep for groups larger than
 \code{min_n}.}
-
-\item{min_n}{groups with \code{min_n} or fewer spectra are kept whole.}
-
-\item{class_col, type_col}{metadata columns used for model labels.}
 
 \item{alpha}{alpha value passed to \code{\link[glmnet]{glmnet}()}.}
 
@@ -223,9 +252,12 @@ that neighbor has the same \code{class_col} value.}
 \item{\ldots}{further arguments passed to the underlying operation.}
 }
 \value{
+Each library returned by \code{build_lib()} includes a
+\code{spectrum_identity_cleanup_report} attribute listing changed original
+and normalized identities with their counts.
 \code{build_lib()} returns a named list of \code{OpenSpecy} libraries.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
-\code{dedupe_spec()}, and \code{reduce_lib()} return an updated spectral
+\code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 object unless \code{return} requests a table, report, or ids.
 \code{make_lib_lookup_template()} returns a data.table unless \code{path} is
 supplied, in which case it writes the csv and invisibly returns the table.
@@ -253,8 +285,14 @@ Metadata column names are first converted to lowercase
 underscore names and known aliases are coalesced using
 \code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
 automatic and regular-expression matching. Metadata values can optionally be
-normalized to lowercase trimmed character values before lookup joins. By
-default, each source is also
+normalized to lowercase trimmed character values before lookup joins.
+\code{spectrum_identity} is also reduced to a basename when it is a
+recognizable path, then trailing extensions supported by
+\code{\link{read_any}()} are removed. The same normalization is applied to
+exact lookup keys. Regex class rules belong in a separate table and can be
+applied afterward with \code{\link{predict_class_reference}()}.
+This keeps filenames usable as identities without treating file containers
+as part of a material name. By default, each source is also
 converted to absorbance before merging when its intensity units are known.
 A nonempty \code{intensity_unit} object attribute takes precedence over the
 per-spectrum \code{intensity_units} metadata column. Each recipe is either a

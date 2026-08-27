@@ -142,12 +142,22 @@ that identifies the source column and matching rules. Pass the result as
 or `clean_values = TRUE` in `lib_clean_metadata()` to lowercase, trim, and
 ASCII-normalize character metadata values before joins. Ordinary and
 hierarchical joins run whenever their corresponding lookup input is non-`NULL`.
+`spectrum_identity` receives one additional deterministic cleanup: recognizable
+paths are reduced to their basename and trailing file extensions supported by
+`read_any()` are removed. Numeric OPUS extensions include `.10` and any other
+terminal period followed only by digits. Exact lookup keys receive the same
+cleanup. Each built library records changed values and counts in its
+`spectrum_identity_cleanup_report` attribute. Keep flexible class patterns in a
+separate table and apply them afterward with `predict_class_reference()`.
 Automatic ordinary lookups use the single shared column with overlapping values
 and unique lookup keys. Lookups with no usable shared key are skipped with a
 message; lookups with multiple usable shared keys are treated as ambiguous, so
-call `join_lib_metadata()` directly when a custom join is needed. Automatic
-`build_lib()` lookups coalesce curated lookup values back into existing
-metadata columns, so lookup tables can correct fields such as `spectrum_type`.
+wrap a lookup as `list(lookup = table, by = "key")` when an explicit key is
+needed. Named `by` vectors map metadata names to different lookup names. An
+explicit one-column lookup can set `fallback_by = "user_name"` to fill a blank
+organization key before joining, and `fill_only = TRUE` to fill blank values
+such as `library_type` or `spectrum_type` without replacing populated source
+metadata.
 
 ```{r mini-library-build}
 mini_libs <- build_lib(
@@ -186,12 +196,44 @@ mini_libs$raw$metadata[
 ]
 ```
 
+`prune_lib()` performs the spectrum-supported cleanup used before medoid or
+model creation. It reassigns only the generic `other plastic` and
+`other material` classes when an eligible same-technique candidate exists,
+then evaluates material classes from largest to smallest using bounded
+correlation blocks. FTIR and NIR share a candidate pool; Raman is separate;
+2200--2420 cm^-1^ is excluded by default. Classes are never reduced below
+`min_n`, constant or unmatched spectra are retained, and deterministic IDs
+resolve correlation ties. Use `return = "report"` for the retained IDs, frozen
+class schedule, reassignment events, and removals. `build_lib(prune = ...)`
+maps recipe names to `prune_lib()` argument lists, so each selected spectral
+representation is pruned independently.
+
+```{r mini-library-prune}
+pruned <- prune_lib(
+  mini_libs$derivative,
+  min_n = 1,
+  return = "report",
+  progress = FALSE
+)
+pruned$summary
+pruned$schedule
+```
+
 ## Official Reference-Library Workflow
 
 The version-controlled
 [`workflows/OpenSpecy_reference_library.R`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/workflows/OpenSpecy_reference_library.R)
 script is a straight-line composition of OpenSpecy functions. Canonically named
-class, library-type, material-hierarchy, and known-bad-ID tables live under
+exact-class, regex-class, library-type, material-hierarchy, and known-bad-ID
+tables live under
 `workflows/data/`. Raw-data corrections are completed externally before this
-workflow runs. The script is excluded from package builds but remains available
+workflow runs. The official build merges a missing organization from
+`user_name`, applies one source-type lookup, and asserts complete
+library/spectrum-type coverage. The exact class lookup runs first;
+`predict_class_reference()` then evaluates the separate regex table only for
+blank materials. Exact/regex overlaps are audited without overwriting exact
+values, and conflicting regex predictions stop for review. Remaining uncertain
+identities are retained as `unclassified`. Derivative and nobaseline libraries
+are pruned before their medoids and models are created; raw remains unpruned.
+The script is excluded from package builds but remains available
 in the GitHub repository so library releases can be reviewed and reproduced.

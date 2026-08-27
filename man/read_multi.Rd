@@ -34,7 +34,8 @@ Wrapper functions for reading files in batch.
 \details{
 \code{read_any()} provides a single function to quickly read in any of the
 supported formats, it assumes that the file extension will tell it how to
-process the spectra.
+process the spectra. OPUS extensions are a period followed only by one or
+more digits, including multi-digit extensions such as \code{.10}.
 \code{read_zip()} provides functionality for reading in spectral map files
 with ENVI file format or as individual files in a zip folder. If individual
 files, spectra are concatenated.

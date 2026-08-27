@@ -1,0 +1,4 @@
+interface:
+  display_name: "Curate OpenSpecy Class References"
+  short_description: "Audit exact and regex material-class mappings"
+  default_prompt: "Use $openspecy-curate-class-reference to curate exact and regex class mappings and validate unmatched identities."

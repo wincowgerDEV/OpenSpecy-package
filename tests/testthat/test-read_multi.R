@@ -33,5 +33,19 @@ test_that("ordinary ZIP readers ignore compact map-only arguments", {
   expect_true(all(vapply(multi, is_OpenSpecy, logical(1))))
 })
 
+test_that("read_any() dispatches multi-digit OPUS extensions", {
+  opus_file <- NULL
+  local_mocked_bindings(
+    read_opus = function(file, ...) {
+      opus_file <<- file
+      "opus-result"
+    },
+    .package = "OpenSpecy"
+  )
+
+  expect_identical(read_any("sample.10"), "opus-result")
+  expect_identical(opus_file, "sample.10")
+})
+
 # Tidy up
 unlink(tmp, recursive = T)

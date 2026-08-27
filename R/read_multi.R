@@ -1,3 +1,11 @@
+.supported_spectrum_extensions <- function() {
+  c(
+    "json", "rds", "csv", "tsv", "txt", "xyz", "jdx", "dx",
+    "asp", "spa", "spc", "zip", "h5", "hdf5", "dat", "img", "hdr",
+    "[0-9]+"
+  )
+}
+
 #' @rdname read_multi
 #' @title Read spectral data from multiple files
 #'
@@ -7,7 +15,8 @@
 #' @details
 #' \code{read_any()} provides a single function to quickly read in any of the
 #' supported formats, it assumes that the file extension will tell it how to
-#' process the spectra.
+#' process the spectra. OPUS extensions are a period followed only by one or
+#' more digits, including multi-digit extensions such as `.10`.
 #' \code{read_zip()} provides functionality for reading in spectral map files
 #' with ENVI file format or as individual files in a zip folder. If individual
 #' files, spectra are concatenated.
@@ -64,12 +73,12 @@ read_any <- function(file, c_spec = T,
         os <- do.call("c_spec", c(list(os), c_spec_args))
     }
   }
-    else if (grepl("(\\.h5$)", ignore.case = T, file)) {
+    else if (grepl("(\\.h5$)|(\\.hdf5$)", ignore.case = T, file)) {
         os <- read_h5(file = file, ...)
     }
   else if (grepl("(\\.xyz$)|(\\.csv$)|(\\.tsv$)|(\\.txt$)", ignore.case = T, file)) {
     os <- read_text(file = file, ...)
-  } else if (grepl("\\.[0-999]$", ignore.case = T, file)) {
+  } else if (grepl("\\.[0-9]+$", ignore.case = T, file)) {
     os <- read_opus(file = file, ...)
   }
   else if (grepl("(\\.jdx$)|(\\.dx$)", ignore.case = T, file)) {

@@ -22,8 +22,14 @@
 #' underscore names and known aliases are coalesced using
 #' \code{metadata_name_lookup}; see \code{\link{lib_clean_metadata}()} for
 #' automatic and regular-expression matching. Metadata values can optionally be
-#' normalized to lowercase trimmed character values before lookup joins. By
-#' default, each source is also
+#' normalized to lowercase trimmed character values before lookup joins.
+#' \code{spectrum_identity} is also reduced to a basename when it is a
+#' recognizable path, then trailing extensions supported by
+#' \code{\link{read_any}()} are removed. The same normalization is applied to
+#' exact lookup keys. Regex class rules belong in a separate table and can be
+#' applied afterward with \code{\link{predict_class_reference}()}.
+#' This keeps filenames usable as identities without treating file containers
+#' as part of a material name. By default, each source is also
 #' converted to absorbance before merging when its intensity units are known.
 #' A nonempty \code{intensity_unit} object attribute takes precedence over the
 #' per-spectrum \code{intensity_units} metadata column. Each recipe is either a
@@ -103,7 +109,12 @@
 #' Supplying the list triggers restriction; \code{make_rel = FALSE} is used
 #' unless explicitly overridden.
 #' @param metadata_lookups a lookup table, csv path, or list of lookup tables and
-#' paths. If non-\code{NULL}, each is joined with
+#' paths. A lookup may instead be supplied as \code{list(lookup = x, by = key)}
+#' to use an explicit key (including a named metadata-to-lookup key mapping).
+#' An explicit one-column lookup may add \code{fallback_by} to fill blank
+#' metadata keys before joining and \code{fill_only = TRUE} to preserve existing
+#' nonblank metadata values while filling gaps from the lookup.
+#' If non-\code{NULL}, each is joined with
 #' \code{join_lib_metadata()}. Automatic ordinary lookups use the single shared
 #' column that has overlapping values and unique lookup keys. Lookups with no
 #' usable shared key are skipped with a message; lookups with multiple usable
@@ -129,6 +140,9 @@
 #' \code{\link{sig_noise}()} result as metadata column \code{sn}.
 #' @param assess logical; whether to run \code{\link{assess_spec}()} on each
 #' output library and append assessment summaries to its metadata.
+#' @param prune \code{NULL}, or a named list mapping recipe names to argument
+#' lists for \code{\link{prune_lib}()}. Selected recipes are pruned independently
+#' after processing and assessment. \code{NULL} preserves unpruned outputs.
 #' @param progress logical; whether \code{build_lib()} reports named processing
 #' stages and elapsed time.
 #' @param group_cols metadata columns defining groups for reduction.
@@ -148,12 +162,19 @@
 #' \code{\link{make_rel}()}.
 #' @param complete_cases logical; whether to remove spectra with any missing
 #' training values.
+#' @param material_type_col metadata column used to distinguish plastic from
+#' non-plastic candidates when reassigning generic classes.
+#' @param exclude numeric length-two wavenumber interval excluded from pruning
+#' correlations.
 #' @param \ldots further arguments passed to the underlying operation.
 #'
 #' @return
+#' Each library returned by \code{build_lib()} includes a
+#' \code{spectrum_identity_cleanup_report} attribute listing changed original
+#' and normalized identities with their counts.
 #' \code{build_lib()} returns a named list of \code{OpenSpecy} libraries.
 #' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
-#' \code{dedupe_spec()}, and \code{reduce_lib()} return an updated spectral
+#' \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 #' object unless \code{return} requests a table, report, or ids.
 #' \code{make_lib_lookup_template()} returns a data.table unless \code{path} is
 #' supplied, in which case it writes the csv and invisibly returns the table.
@@ -242,7 +263,8 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       metadata_name_lookup = lib_metadata_name_lookup(),
                       clean_metadata_values = FALSE,
                       convert_intensity = TRUE, restrict_range_args = NULL,
-                      signal_noise = TRUE, assess = FALSE, progress = TRUE,
+                      signal_noise = TRUE, assess = FALSE, prune = NULL,
+                      progress = TRUE,
                       ...) {
   if (!is.logical(progress) || length(progress) != 1L || is.na(progress)) {
     stop("'progress' must be TRUE or FALSE", call. = FALSE)
@@ -323,6 +345,22 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     hash_algo = hash_algo,
     report = report
   )
+  identity_cleanup_report <- data.table::data.table()
+  if ("spectrum_identity" %in% names(lib$metadata)) {
+    identity_before <- as.character(lib$metadata$spectrum_identity)
+    identity_after <- .lib_clean_spectrum_identity(identity_before)
+    changed <- xor(is.na(identity_before), is.na(identity_after)) |
+      (!is.na(identity_before) & !is.na(identity_after) &
+         identity_before != identity_after)
+    identity_cleanup_report <- data.table::data.table(
+      original = identity_before[changed],
+      spectrum_identity = identity_after[changed]
+    )[, .(n = .N), by = .(original, spectrum_identity)]
+    lib$metadata$spectrum_identity <- identity_after
+    if (any(changed)) {
+      report(sprintf("cleaned %d spectrum identity value(s)", sum(changed)))
+    }
+  }
 
   if (!is.null(restrict_range_args)) {
     report("restricting the wavenumber range")
@@ -338,8 +376,11 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     lib <- do.call("restrict_range", c(list(lib), args))
   }
 
+  lookup_reports <- list()
   if (!is.null(metadata_lookups)) {
-    lookups <- if (is.character(metadata_lookups) &&
+    lookups <- if (.lib_is_lookup_spec(metadata_lookups)) {
+      list(metadata_lookups)
+    } else if (is.character(metadata_lookups) &&
                    length(metadata_lookups) > 1L) {
       as.list(metadata_lookups)
     } else if (is.list(metadata_lookups) &&
@@ -352,39 +393,81 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     for (i in seq_along(lookups)) {
       report(sprintf("joining metadata lookup %d/%d", i, length(lookups)))
       lookup <- lookups[[i]]
-      lookup_table <- lib_clean_metadata(.lib_read_lookup(lookup),
+      lookup_spec <- .lib_normalize_lookup_spec(lookup)
+      lookup_table <- lib_clean_metadata(.lib_read_lookup(lookup_spec$lookup),
                                          metadata_name_lookup,
                                          clean_values = clean_metadata_values)
-      auto_key <- .lib_auto_lookup_key(lib$metadata, lookup_table)
-      if (length(auto_key$shared) == 0L) {
-        report(sprintf(
-          "skipping metadata lookup %d/%d; no shared metadata column",
-          i, length(lookups)
-        ))
-        next
+      if ("spectrum_identity" %in% names(lookup_table)) {
+        lookup_table$spectrum_identity <- .lib_clean_spectrum_identity(
+          lookup_table$spectrum_identity
+        )
       }
-      if (length(auto_key$candidates) == 0L) {
-        report(sprintf(
-          "skipping metadata lookup %d/%d; no usable shared key values in: %s",
-          i, length(lookups), paste(auto_key$shared, collapse = ", ")
-        ))
-        next
+      lookup_key <- lookup_spec$by
+      key_merge_report <- data.table::data.table()
+      if (is.null(lookup_key)) {
+        auto_key <- .lib_auto_lookup_key(lib$metadata, lookup_table)
+        if (length(auto_key$shared) == 0L) {
+          report(sprintf(
+            "skipping metadata lookup %d/%d; no shared metadata column",
+            i, length(lookups)
+          ))
+          next
+        }
+        if (length(auto_key$candidates) == 0L) {
+          report(sprintf(
+            "skipping metadata lookup %d/%d; no usable shared key values in: %s",
+            i, length(lookups), paste(auto_key$shared, collapse = ", ")
+          ))
+          next
+        }
+        if (length(auto_key$candidates) > 1L) {
+          stop("Each automatic metadata lookup must have exactly one usable ",
+               "shared key. Candidate columns were: ",
+               paste(auto_key$candidates, collapse = ", "),
+               ". Supply list(lookup = x, by = key) for an explicit join",
+               call. = FALSE)
+        }
+        lookup_key <- auto_key$candidates
       }
-      if (length(auto_key$candidates) > 1L) {
-        stop("Each automatic metadata lookup must have exactly one usable ",
-             "shared key. Candidate columns were: ",
-             paste(auto_key$candidates, collapse = ", "),
-             ". Use join_lib_metadata() directly for advanced joins",
-             call. = FALSE)
+      if (!is.null(lookup_spec$fallback_by)) {
+        metadata_key <- if (is.null(names(lookup_key)) ||
+                            all(names(lookup_key) == "")) {
+          unname(lookup_key)
+        } else {
+          names(lookup_key)
+        }
+        if (length(metadata_key) != 1L) {
+          stop("'fallback_by' requires a one-column explicit lookup key",
+               call. = FALSE)
+        }
+        .lib_require_cols(lib$metadata,
+                          c(metadata_key, lookup_spec$fallback_by),
+                          "metadata")
+        primary <- as.character(lib$metadata[[metadata_key]])
+        fallback <- as.character(lib$metadata[[lookup_spec$fallback_by]])
+        primary_blank <- is.na(primary) | !nzchar(trimws(primary))
+        fallback_present <- !is.na(fallback) & nzchar(trimws(fallback))
+        filled <- primary_blank & fallback_present
+        primary[filled] <- fallback[filled]
+        lib$metadata[[metadata_key]] <- primary
+        key_merge_report <- data.table::data.table(
+          problem = "fallback_metadata_key",
+          column = metadata_key,
+          value = lookup_spec$fallback_by,
+          n = sum(filled)
+        )
       }
       coalesce_cols <- intersect(
         names(lib$metadata),
-        setdiff(names(lookup_table), auto_key$candidates)
+        setdiff(names(lookup_table), unname(lookup_key))
       )
-      lib <- join_lib_metadata(lib, lookup_table, by = auto_key$candidates)
+      lib <- join_lib_metadata(lib, lookup_table, by = lookup_key)
+      lookup_reports[[i]] <- data.table::rbindlist(
+        list(key_merge_report, attr(lib, "join_report")), fill = TRUE
+      )
       lib$metadata <- .lib_coalesce_joined_metadata(
-        lib$metadata,
-        coalesce_cols
+        lib$metadata, coalesce_cols,
+        lookup_precedence = !isTRUE(lookup_spec$fill_only)
       )
     }
   }
@@ -468,6 +551,24 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
       }
     }
 
+    if (!is.null(prune) && recipe_name %in% names(prune)) {
+      report(sprintf("pruning library (%s)", recipe_name))
+      prune_args <- prune[[recipe_name]]
+      if (is.null(prune_args)) prune_args <- list()
+      if (!is.list(prune_args) ||
+          (!is.null(names(prune_args)) && any(names(prune_args) == ""))) {
+        stop("Each selected 'prune' recipe must contain a named argument list",
+             call. = FALSE)
+      }
+      prune_args$return <- "object"
+      out <- do.call(prune_lib, c(list(out), prune_args))
+    }
+
+    if (length(lookup_reports) > 0L) {
+      attr(out, "metadata_lookup_reports") <- lookup_reports
+    }
+    attr(out, "spectrum_identity_cleanup_report") <- identity_cleanup_report
+
     out
   }
 
@@ -475,12 +576,270 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
       anyDuplicated(names(recipes))) {
     stop("'recipes' must be a uniquely named list", call. = FALSE)
   }
+  if (!is.null(prune)) {
+    if (!is.list(prune) || is.null(names(prune)) ||
+        any(is.na(names(prune)) | names(prune) == "") ||
+        anyDuplicated(names(prune))) {
+      stop("'prune' must be NULL or a uniquely named list", call. = FALSE)
+    }
+    unknown_prune <- setdiff(names(prune), names(recipes))
+    if (length(unknown_prune) > 0L) {
+      stop("'prune' names must identify recipes: ",
+           paste(unknown_prune, collapse = ", "), call. = FALSE)
+    }
+  }
   out <- lapply(seq_along(recipes), function(i) {
     apply_recipe(recipes[[i]], names(recipes)[[i]], i)
   })
   names(out) <- names(recipes)
   report("complete")
   out
+}
+
+.lib_clean_spectrum_identity <- function(x) {
+  out <- trimws(as.character(x))
+  missing <- is.na(out)
+  windows_path <- grepl("^[A-Za-z]:[\\\\/]", out) |
+    grepl("\\\\", out)
+  unix_path <- grepl("^(?:/|\\./|\\.\\./)", out, perl = TRUE)
+  out <- gsub("\\\\", "/", out)
+  extensions <- .supported_spectrum_extensions()
+  pattern <- paste0(
+    "\\.(?:", paste(extensions, collapse = "|"), ")$"
+  )
+  suffixed_path <- grepl("/", out, fixed = TRUE) &
+    grepl(pattern, out, ignore.case = TRUE, perl = TRUE)
+  path <- windows_path | unix_path | suffixed_path
+  out[path] <- sub(".*/", "", out[path])
+  repeat {
+    cleaned <- sub(pattern, "", out, ignore.case = TRUE, perl = TRUE)
+    if (identical(cleaned, out)) break
+    out <- cleaned
+  }
+  out <- trimws(out)
+  out[missing | !nzchar(out)] <- NA_character_
+  out
+}
+
+#' Predict blank class-reference values with reviewed regex rules
+#'
+#' Applies a separate regex reference only to rows whose `material` is blank.
+#' Populated exact materials are authoritative and are never overwritten, even
+#' when a regex also matches them. A blank row is filled only when all matching
+#' patterns name one material. Distinct-material matches remain blank and are
+#' reported as clashes. Exact/regex overlaps are allowed and reported for QA.
+#' If present, `match_identity` is used for pattern matching while
+#' `spectrum_identity` remains the reported exact identity.
+#'
+#' @param metadata A data.frame or data.table with `spectrum_identity` and
+#'   `material` columns. Row order is preserved.
+#' @param regex_reference A data.frame or data.table with unique `pattern` and
+#'   nonblank `material` columns.
+#' @param return Return the updated table or an audit containing `data`,
+#'   `summary`, `predictions`, `clashes`, and `overlaps`.
+#'
+#' @return An updated data.table, or an audit list when `return = "report"`.
+#' @export
+predict_class_reference <- function(metadata, regex_reference,
+                                    return = c("table", "report")) {
+  return <- match.arg(return)
+  out <- data.table::as.data.table(data.table::copy(metadata))
+  rules <- data.table::as.data.table(data.table::copy(regex_reference))
+  .lib_require_cols(out, c("spectrum_identity", "material"),
+                    "metadata")
+  .lib_require_cols(rules, c("pattern", "material"), "regex reference")
+  out$spectrum_identity <- as.character(out$spectrum_identity)
+  out$material <- as.character(out$material)
+  rules$pattern <- as.character(rules$pattern)
+  rules$material <- as.character(rules$material)
+  blank <- function(value) {
+    is.na(value) | !nzchar(trimws(as.character(value)))
+  }
+  if (any(blank(rules$pattern)) || any(blank(rules$material))) {
+    stop("Regex-reference patterns and materials must be nonblank",
+         call. = FALSE)
+  }
+  if (anyDuplicated(rules$pattern)) {
+    stop("Regex-reference patterns must be unique", call. = FALSE)
+  }
+
+  match_value <- if ("match_identity" %in% names(out)) {
+    value <- as.character(out$match_identity)
+    value[blank(value)] <- out$spectrum_identity[blank(value)]
+    value
+  } else {
+    out$spectrum_identity
+  }
+  missing_identity <- blank(match_value)
+  match_value[missing_identity] <- ""
+  hits <- matrix(FALSE, nrow = nrow(out), ncol = nrow(rules))
+  if (nrow(rules) > 0L && nrow(out) > 0L) {
+    hits <- vapply(seq_len(nrow(rules)), function(i) {
+      tryCatch(
+        grepl(rules$pattern[[i]], match_value, perl = TRUE),
+        warning = function(w) {
+          stop("Invalid class regex '", rules$pattern[[i]], "': ",
+               conditionMessage(w), call. = FALSE)
+        },
+        error = function(e) {
+          stop("Invalid class regex '", rules$pattern[[i]], "': ",
+               conditionMessage(e), call. = FALSE)
+        }
+      )
+    }, logical(nrow(out)))
+    if (is.null(dim(hits))) hits <- matrix(hits, ncol = 1L)
+  }
+  if (any(missing_identity) && ncol(hits) > 0L) {
+    hits[missing_identity, ] <- FALSE
+  }
+
+  matched_materials <- lapply(seq_len(nrow(out)), function(i) {
+    unique(rules$material[which(hits[i, ])])
+  })
+  matched_patterns <- lapply(seq_len(nrow(out)), function(i) {
+    rules$pattern[which(hits[i, ])]
+  })
+  blank_material <- blank(out$material)
+  unique_match <- lengths(matched_materials) == 1L
+  clash <- lengths(matched_materials) > 1L
+  predict <- blank_material & unique_match
+  out$material[predict] <- vapply(
+    matched_materials[predict], `[[`, character(1), 1L
+  )
+
+  prediction_rows <- which(predict)
+  predictions <- data.table::data.table(
+    spectrum_identity = out$spectrum_identity[prediction_rows],
+    match_identity = match_value[prediction_rows],
+    material = out$material[prediction_rows],
+    patterns = vapply(matched_patterns[prediction_rows], paste,
+                      character(1), collapse = "; ")
+  )[, .(n = .N), by = .(spectrum_identity, match_identity, material, patterns)]
+
+  clash_rows <- which(blank_material & clash)
+  clashes <- if (length(clash_rows) == 0L) {
+    data.table::data.table(
+      spectrum_identity = character(), match_identity = character(),
+      materials = character(), patterns = character(), n = integer()
+    )
+  } else {
+    data.table::data.table(
+      spectrum_identity = out$spectrum_identity[clash_rows],
+      match_identity = match_value[clash_rows],
+      materials = vapply(matched_materials[clash_rows], paste,
+                         character(1), collapse = "; "),
+      patterns = vapply(matched_patterns[clash_rows], paste,
+                        character(1), collapse = "; ")
+    )[, .(n = .N),
+      by = .(spectrum_identity, match_identity, materials, patterns)]
+  }
+
+  overlap_rows <- which(!blank_material & lengths(matched_materials) > 0L)
+  overlaps <- data.table::data.table(
+    spectrum_identity = out$spectrum_identity[overlap_rows],
+    exact_material = out$material[overlap_rows],
+    regex_materials = vapply(matched_materials[overlap_rows], paste,
+                             character(1), collapse = "; "),
+    patterns = vapply(matched_patterns[overlap_rows], paste,
+                      character(1), collapse = "; ")
+  )[, agreement := vapply(seq_len(.N), function(i) {
+    exact_material[[i]] %in% strsplit(regex_materials[[i]], "; ", fixed = TRUE)[[1L]]
+  }, logical(1))][, .(n = .N),
+                 by = .(spectrum_identity, exact_material, regex_materials,
+                        patterns, agreement)]
+
+  summary <- data.table::data.table(
+    rows = nrow(out), regex_rules = nrow(rules),
+    existing = sum(!blank_material), predicted = sum(predict),
+    clashes = length(clash_rows), overlaps = length(overlap_rows),
+    unmatched = sum(blank(out$material))
+  )
+  if (return == "report") {
+    return(list(data = out, summary = summary, predictions = predictions,
+                clashes = clashes, overlaps = overlaps))
+  }
+  out
+}
+
+# Complete official reference-library class coverage while retaining uncertain
+# identities as an explicit review queue. This stays internal because the two
+# normalization rules are contributor-specific, not a general package API.
+.lib_complete_reference_classes <- function(x, classes, hierarchy) {
+  metadata <- data.table::copy(x$metadata)
+  blank <- function(value) {
+    value <- as.character(value)
+    is.na(value) | !nzchar(trimws(value))
+  }
+  missing_before <- blank(metadata$material_class)
+  identity <- as.character(metadata$spectrum_identity)
+  user <- as.character(metadata$user_name)
+  lookup_key <- identity
+  assignment <- ifelse(missing_before, NA_character_, "existing_or_exact_lookup")
+  exact_classes <- classes
+
+  normalized_key <- rep(NA_character_, nrow(metadata))
+  gicquel <- missing_before & !is.na(user) &
+    user == "gicquel et al. 2024" & !is.na(identity)
+  normalized_key[gicquel] <- sub(
+    "_ref(?:_0)?(?:[.]csv)?$", "", identity[gicquel], perl = TRUE
+  )
+  mffrc <- missing_before & !is.na(user) &
+    user == "elise granek and kellie teague" & !is.na(identity)
+  mffrc_base <- sub("[.][0-9]+$", "", identity[mffrc])
+  mffrc_base <- sub("^mffrc[0-9]+_", "", mffrc_base)
+  mffrc_base <- sub("_.*$", "", mffrc_base)
+  mffrc_family <- trimws(sub("[[:space:]]*[(].*$", "", mffrc_base))
+  mffrc_key <- mffrc_base
+  use_family <- is.na(match(mffrc_key, exact_classes$spectrum_identity)) &
+    !is.na(match(mffrc_family, exact_classes$spectrum_identity))
+  mffrc_key[use_family] <- mffrc_family[use_family]
+  normalized_key[mffrc] <- mffrc_key
+
+  normalized_material <- exact_classes$material[
+    match(normalized_key, exact_classes$spectrum_identity)
+  ]
+  resolved <- missing_before & !blank(normalized_material)
+  lookup_key[resolved] <- normalized_key[resolved]
+  metadata$material[resolved] <- normalized_material[resolved]
+
+  hierarchy_material <- match(metadata$material[resolved], hierarchy$material)
+  resolved_rows <- which(resolved)
+  material_rows <- resolved_rows[!is.na(hierarchy_material)]
+  material_lookup <- hierarchy_material[!is.na(hierarchy_material)]
+  if (length(material_rows) > 0L) {
+    metadata$material_class[material_rows] <- hierarchy$material_class[material_lookup]
+    metadata$material_type[material_rows] <- hierarchy$material_type[material_lookup]
+  }
+  unresolved_rows <- resolved_rows[is.na(hierarchy_material)]
+  if (length(unresolved_rows) > 0L) {
+    class_pairs <- unique(hierarchy[, .(material_class, material_type)])
+    class_lookup <- match(metadata$material[unresolved_rows],
+                          class_pairs$material_class)
+    class_rows <- unresolved_rows[!is.na(class_lookup)]
+    metadata$material_class[class_rows] <- metadata$material[class_rows]
+    metadata$material_type[class_rows] <-
+      class_pairs$material_type[class_lookup[!is.na(class_lookup)]]
+  }
+  source_resolved <- resolved & !blank(metadata$material_class)
+  assignment[source_resolved] <- "reviewed_source_key"
+  unresolved <- blank(metadata$material_class)
+  metadata$material[unresolved & blank(metadata$material)] <- "unclassified"
+  metadata$material_class[unresolved] <- "unclassified"
+  metadata$material_type[unresolved & blank(metadata$material_type)] <- "unknown"
+  lookup_key[unresolved] <- identity[unresolved]
+  assignment[unresolved] <- "unresolved_identity"
+  metadata[, `:=`(class_lookup_key = lookup_key,
+                  class_assignment_reason = assignment)]
+  report <- data.table::data.table(
+    stage = c("before", "after"),
+    populated_class = c(sum(!missing_before), sum(!blank(metadata$material_class))),
+    reviewed_source_key = c(0L, sum(source_resolved)),
+    unclassified = c(0L, sum(unresolved)), total = nrow(metadata)
+  )
+  stopifnot(report[stage == "after", populated_class] == nrow(metadata))
+  x$metadata <- metadata
+  attr(x, "class_coverage_report") <- report
+  x
 }
 
 .lib_prepare_sources <- function(sources, range, res, metadata_name_lookup,
@@ -1020,9 +1379,9 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
     contact_info = character(),
     organization = character(),
     citation = character(),
-    spectrum_identity = c("substance"),
+    spectrum_identity = c("substance", "interpretation"),
     spectrum_type = character(),
-    material_form = c("description",
+    material_form = c("description", "form_factor", "shape",
                       "form_film_foam_pliable_hard", "form", "state",
                       "morphology"),
     material_producer = character(),
@@ -1036,6 +1395,8 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
                                "external_diffuse_reflectance_accessory"),
     instrument_mode = c("spectralcollectionmode", "method_3", "method_23"),
     intensity_units = c("y_unit"),
+    data_type = c("datatype"),
+    wavenumber_units = c("xunits", "x_unit"),
     spectral_resolution = c("resolution"),
     laser_light_used = c("laser_nm", "laser_frequency"),
     number_of_accumulations = c("number_of_sample_scans", "coadded_scans"),
@@ -1049,6 +1410,8 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
     smoother = c("smooth"),
     user_name = character(),
     sample_id = character(),
+    spectrum_id = c("spectrumid"),
+    location_description = c("locationdescription"),
     longest_dimension = character(),
     width = character(),
     source = c("source_database", "origin", "nist_source"),
@@ -1398,6 +1761,265 @@ dedupe_spec <- function(x, id_col = "sample_name", exclude_ids = NULL,
 
 #' @rdname build_lib
 #' @export
+prune_lib <- function(x, class_col = "material_class",
+                      type_col = "spectrum_type",
+                      material_type_col = "material_type",
+                      id_col = "sample_name", min_n = 10,
+                      exclude = c(2200, 2420),
+                      return = c("object", "ids", "report"),
+                      progress = TRUE) {
+  return <- match.arg(return)
+  x <- as_OpenSpecy(x)
+  .lib_require_cols(x$metadata, c(class_col, type_col, material_type_col),
+                    "metadata")
+  if (length(min_n) != 1L || is.na(min_n) || min_n < 1 || min_n %% 1 != 0) {
+    stop("'min_n' must be one positive whole number", call. = FALSE)
+  }
+  if (!is.numeric(exclude) || length(exclude) != 2L || anyNA(exclude)) {
+    stop("'exclude' must be two finite wavenumbers", call. = FALSE)
+  }
+  if (!is.logical(progress) || length(progress) != 1L || is.na(progress)) {
+    stop("'progress' must be TRUE or FALSE", call. = FALSE)
+  }
+
+  metadata <- data.table::copy(x$metadata)
+  ids <- .lib_ids(x, id_col)
+  classes <- trimws(as.character(metadata[[class_col]]))
+  material_types <- trimws(tolower(as.character(
+    metadata[[material_type_col]]
+  )))
+  pools <- .lib_prune_pools(metadata[[type_col]])
+  normalized <- .lib_prune_normalize(x$spectra, x$wavenumber, exclude)
+
+  reassigned <- .lib_reassign_other_classes(
+    classes, material_types, pools, normalized, ids
+  )
+  classes <- reassigned$classes
+  metadata[[class_col]] <- classes
+  protected <- tolower(classes) %in% "unclassified"
+
+  schedule <- data.table::data.table(
+    pool = pools,
+    material_class = classes,
+    is_protected = protected
+  )[!is.na(pool) & !is.na(material_class) & nzchar(material_class),
+    .(initial_n = .N, is_protected = all(is_protected)),
+    by = .(pool, material_class)][is_protected == FALSE]
+  if (nrow(schedule) > 0L) {
+    data.table::setorder(schedule, pool, -initial_n, material_class)
+    schedule[, schedule_order := seq_len(.N), by = pool]
+  } else {
+    schedule[, schedule_order := integer()]
+  }
+
+  active <- rep(TRUE, length(ids))
+  removal_rows <- list()
+  removal_i <- 0L
+  if (nrow(schedule) > 0L) {
+    for (s in seq_len(nrow(schedule))) {
+      target_pool <- schedule$pool[[s]]
+      target_class <- schedule$material_class[[s]]
+      if (isTRUE(progress)) {
+        message(sprintf(
+          "prune_lib: %s / %s (%d initially)",
+          target_pool, target_class, schedule$initial_n[[s]]
+        ))
+      }
+      repeat {
+        target <- which(active & pools == target_pool &
+                          !is.na(classes) & classes == target_class)
+        if (length(target) <= min_n) break
+        candidates <- which(active & pools == target_pool & !protected)
+        best <- .lib_prune_best_match(
+          target, candidates, normalized, ids, exclude_self = TRUE
+        )
+        conflicts <- which(
+          !is.na(best$index) & is.finite(best$correlation) &
+            classes[best$index] != target_class
+        )
+        conflicts <- conflicts[!is.na(conflicts)]
+        if (length(conflicts) == 0L) break
+        removable_n <- min(length(conflicts), length(target) - min_n)
+        if (removable_n < 1L) break
+        conflict_rows <- data.table::data.table(
+          query = target[conflicts],
+          matched = best$index[conflicts],
+          correlation = best$correlation[conflicts]
+        )
+        conflict_rows[, query_id := ids[query]]
+        data.table::setorder(conflict_rows, -correlation, query_id)
+        conflict_rows <- conflict_rows[seq_len(removable_n)]
+        active[conflict_rows$query] <- FALSE
+        removal_i <- removal_i + 1L
+        removal_rows[[removal_i]] <- conflict_rows[, .(
+          spectrum_id = ids[query],
+          prior_class = classes[query],
+          matched_id = ids[matched],
+          matched_class = classes[matched],
+          correlation,
+          pool = target_pool,
+          schedule_order = schedule$schedule_order[[s]],
+          reason = "top_match_other_class"
+        )]
+      }
+    }
+  }
+
+  removals <- if (length(removal_rows) > 0L) {
+    data.table::rbindlist(removal_rows, fill = TRUE)
+  } else {
+    data.table::data.table(
+      spectrum_id = character(), prior_class = character(),
+      matched_id = character(), matched_class = character(),
+      correlation = numeric(), pool = character(), schedule_order = integer(),
+      reason = character()
+    )
+  }
+  retained_ids <- ids[active]
+  out <- x
+  out$metadata <- metadata
+  if (!all(active)) out <- filter_spec(out, active)
+  audit <- list(
+    retained_ids = retained_ids,
+    schedule = schedule,
+    reassignments = reassigned$report,
+    removals = removals,
+    summary = data.table::data.table(
+      before = length(ids),
+      after = sum(active),
+      reassigned = nrow(reassigned$report),
+      removed = sum(!active)
+    )
+  )
+  attr(out, "prune_report") <- audit
+  if (return == "ids") return(retained_ids)
+  if (return == "report") return(c(list(object = out), audit))
+  out
+}
+
+.lib_prune_pools <- function(type) {
+  type <- trimws(tolower(as.character(type)))
+  out <- ifelse(type %in% c("ftir", "nir"), "ftir_nir",
+                ifelse(type == "raman", "raman", type))
+  out[is.na(type) | !nzchar(type)] <- NA_character_
+  out
+}
+
+.lib_prune_normalize <- function(spectra, wavenumber, exclude) {
+  limits <- sort(exclude)
+  use <- wavenumber < limits[[1L]] | wavenumber > limits[[2L]]
+  if (!any(use)) {
+    stop("'exclude' removes every wavenumber", call. = FALSE)
+  }
+  # Correlation normalization is invariant to the preceding per-spectrum
+  # min/max transform. Work spectrum-by-wavenumber directly to avoid two
+  # additional full-library matrices during large builds.
+  values <- t(spectra[use, , drop = FALSE])
+  means <- rowMeans(values, na.rm = TRUE)
+  row_block <- 256L
+  blocks <- split(seq_len(nrow(values)),
+                  ceiling(seq_len(nrow(values)) / row_block))
+  for (block in blocks) {
+    part <- values[block, , drop = FALSE]
+    missing <- is.na(part)
+    if (any(missing)) {
+      idx <- which(missing, arr.ind = TRUE)
+      part[idx] <- means[block][idx[, "row"]]
+    }
+    part <- part - means[block]
+    values[block, ] <- part
+  }
+  norms <- numeric(nrow(values))
+  for (block in blocks) {
+    part <- values[block, , drop = FALSE]
+    part[!is.finite(part)] <- 0
+    norms[block] <- sqrt(rowSums(part * part))
+    values[block, ] <- part
+  }
+  valid <- is.finite(norms) & norms > 0
+  for (block in blocks) {
+    block <- block[valid[block]]
+    if (length(block) > 0L) {
+      values[block, ] <- values[block, , drop = FALSE] / norms[block]
+    }
+  }
+  values[!valid, ] <- NA_real_
+  values
+}
+
+.lib_prune_best_match <- function(query, candidates, normalized, ids,
+                                  exclude_self = FALSE, block_size = 64L) {
+  candidate_order <- order(ids[candidates], candidates, na.last = TRUE)
+  candidates <- candidates[candidate_order]
+  best_index <- rep(NA_integer_, length(query))
+  best_correlation <- rep(NA_real_, length(query))
+  blocks <- split(seq_along(query),
+                  ceiling(seq_along(query) / as.integer(block_size)))
+  for (block in blocks) {
+    # Multiply against the resident normalized matrix and subset the small
+    # correlation block, rather than copying the full candidate library for
+    # every query block.
+    cors <- tcrossprod(normalized[query[block], , drop = FALSE], normalized)
+    cors <- cors[, candidates, drop = FALSE]
+    cors[!is.finite(cors)] <- -Inf
+    if (isTRUE(exclude_self)) {
+      self_col <- match(query[block], candidates)
+      has_self <- !is.na(self_col)
+      cors[cbind(which(has_self), self_col[has_self])] <- -Inf
+    }
+    local <- max.col(cors, ties.method = "first")
+    scores <- cors[cbind(seq_along(block), local)]
+    ok <- is.finite(scores)
+    best_index[block[ok]] <- candidates[local[ok]]
+    best_correlation[block[ok]] <- scores[ok]
+  }
+  list(index = best_index, correlation = best_correlation)
+}
+
+.lib_reassign_other_classes <- function(classes, material_types, pools,
+                                        normalized, ids) {
+  class_keys <- tolower(classes)
+  generic <- which(class_keys %in% c("other plastic", "other material"))
+  rows <- list()
+  for (i in generic) {
+    plastic <- identical(class_keys[[i]], "other plastic")
+    eligible <- !is.na(pools) & pools == pools[[i]] &
+      !class_keys %in% c("other plastic", "other material", "unclassified") &
+      !is.na(classes) & nzchar(classes)
+    if (plastic) {
+      eligible <- eligible & material_types == "plastic"
+    } else {
+      eligible <- eligible & !is.na(material_types) &
+        material_types != "plastic"
+    }
+    candidates <- which(eligible)
+    if (length(candidates) == 0L) next
+    best <- .lib_prune_best_match(i, candidates, normalized, ids)
+    if (is.na(best$index[[1L]])) next
+    old <- classes[[i]]
+    classes[[i]] <- classes[[best$index[[1L]]]]
+    rows[[length(rows) + 1L]] <- data.table::data.table(
+      spectrum_id = ids[[i]], prior_class = old,
+      material_class = classes[[i]],
+      matched_id = ids[[best$index[[1L]]]],
+      correlation = best$correlation[[1L]], pool = pools[[i]],
+      reason = "nearest_eligible_class"
+    )
+  }
+  report <- if (length(rows) > 0L) {
+    data.table::rbindlist(rows, fill = TRUE)
+  } else {
+    data.table::data.table(
+      spectrum_id = character(), prior_class = character(),
+      material_class = character(), matched_id = character(),
+      correlation = numeric(), pool = character(), reason = character()
+    )
+  }
+  list(classes = classes, report = report)
+}
+
+#' @rdname build_lib
+#' @export
 reduce_lib <- function(x, group_cols = "material_class", id_col = "sample_name",
                        k = 50, min_n = k, return = c("object", "ids"), ...) {
   return <- match.arg(return)
@@ -1599,6 +2221,42 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       make_rel = TRUE
     )
   )
+}
+
+.lib_is_lookup_spec <- function(x) {
+  is.list(x) && !inherits(x, c("data.frame", "data.table")) &&
+    all(c("lookup", "by") %in% names(x))
+}
+
+.lib_normalize_lookup_spec <- function(x) {
+  if (!.lib_is_lookup_spec(x)) {
+    return(list(lookup = x, by = NULL, fallback_by = NULL,
+                fill_only = FALSE))
+  }
+  extra <- setdiff(names(x), c("lookup", "by", "fallback_by", "fill_only"))
+  if (length(extra) > 0L) {
+    stop("Explicit metadata lookup specifications only accept 'lookup', ",
+         "'by', 'fallback_by', and 'fill_only'", call. = FALSE)
+  }
+  if (is.null(x$by) || !is.character(x$by) || length(x$by) < 1L ||
+      anyNA(x$by) || any(!nzchar(x$by))) {
+    stop("Explicit metadata lookup 'by' must contain column names",
+         call. = FALSE)
+  }
+  if (!is.null(x$fallback_by) &&
+      (!is.character(x$fallback_by) || length(x$fallback_by) != 1L ||
+       is.na(x$fallback_by) || !nzchar(x$fallback_by))) {
+    stop("Explicit metadata lookup 'fallback_by' must be one column name",
+         call. = FALSE)
+  }
+  if (is.null(x$fallback_by)) x$fallback_by <- NULL
+  if (is.null(x$fill_only)) x$fill_only <- FALSE
+  if (!is.logical(x$fill_only) || length(x$fill_only) != 1L ||
+      is.na(x$fill_only)) {
+    stop("Explicit metadata lookup 'fill_only' must be TRUE or FALSE",
+         call. = FALSE)
+  }
+  x
 }
 
 .lib_auto_lookup_key <- function(metadata, lookup_table) {
@@ -1871,7 +2529,8 @@ lib_clean_metadata <- function(x,
 }
 
 .lib_coalesce_joined_metadata <- function(metadata, columns,
-                                          suffixes = c(".x", ".y")) {
+                                          suffixes = c(".x", ".y"),
+                                          lookup_precedence = TRUE) {
   metadata <- data.table::as.data.table(metadata)
   for (col in columns) {
     left <- paste0(col, suffixes[[1L]])
@@ -1882,6 +2541,11 @@ lib_clean_metadata <- function(x,
     use_replacement <- !is.na(replacement)
     if (is.character(replacement)) {
       use_replacement <- use_replacement & nzchar(replacement)
+    }
+    if (!isTRUE(lookup_precedence)) {
+      keep_existing <- !is.na(result)
+      if (is.character(result)) keep_existing <- keep_existing & nzchar(result)
+      use_replacement <- use_replacement & !keep_existing
     }
     result[use_replacement] <- replacement[use_replacement]
     data.table::set(metadata, j = left, value = result)

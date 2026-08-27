@@ -159,17 +159,15 @@ calc_window_points.OpenSpecy <- function(x, wavenum_width = 70, ...){
   out[seq_len(k), ] <- filt[seq_len(k), , drop = FALSE] %*%
     y[seq_len(n), , drop = FALSE]
 
-  mid_n <- len - n + 1L
-  mid <- matrix(0, nrow = mid_n, ncol = ncol(y))
   center <- filt[k + 1L, ]
-
-  # The centered window is the common case; loop over the small filter width
-  # once and update every spectrum column at the same time.
-  for (i in seq_len(n)) {
-    rows <- i:(i + mid_n - 1L)
-    mid <- mid + center[i] * y[rows, , drop = FALSE]
-  }
-  out[(k + 1L):(len - k), ] <- mid
+  # stats::filter performs the long centered convolution in compiled code.
+  # Reverse the coefficients to retain the historical row-wise dot product,
+  # which matters for odd derivatives.
+  centered <- vapply(seq_len(ncol(y)), function(i) {
+    as.numeric(stats::filter(y[, i], rev(center), sides = 2L))
+  }, numeric(len))
+  out[(k + 1L):(len - k), ] <-
+    centered[(k + 1L):(len - k), , drop = FALSE]
 
   out[(len - k + 1L):len, ] <- filt[(k + 2L):n, , drop = FALSE] %*%
     y[(len - n + 1L):len, , drop = FALSE]

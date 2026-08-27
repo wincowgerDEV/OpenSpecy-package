@@ -337,7 +337,7 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
         criteria_met <- FALSE
         # Step 1: Initial polynomial fit
         pixels_number <- length(y)
-        paramVector <- lm(y ~ stats::poly(x, degree = degree, raw = raw))
+        paramVector <- .baseline_poly_fit(x, y, degree, raw)
         mod_poly <- paramVector$fitted.values
         dev_curr <- sd(paramVector$residuals)
         # Step 2: Detect intersections
@@ -397,10 +397,10 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
                 seg_y <- spectrum[start:end]
                 
                 if(length(seg_y) <= order) return(seg_y)
-                
+                fit_qr <- .baseline_poly_qr(seg_x, order, raw)
                 for (i in seq_len(iter)) {
-                    p <- lm(seg_y ~ poly(seg_x, order, raw = raw))
-                    py_fit <- predict(p, newdata = data.frame(seg_x = seg_x))
+                    p <- .baseline_poly_fit_qr(fit_qr, seg_y)
+                    py_fit <- p$fitted.values
                     dev_curr <- sd(p$residuals)
                     seg_y <- pmin(seg_y, py_fit + dev_curr)
                 }
@@ -424,9 +424,10 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
         }
        
         else{
+            fit_qr <- .baseline_poly_qr(x, degree, raw)
             while (!criteria_met) {
                 # Predict the intensity using the polynomial of specified length
-                paramVector <- lm(y ~ stats::poly(x, degree = degree, raw = raw))
+                paramVector <- .baseline_poly_fit_qr(fit_qr, y)
                 mod_poly <- paramVector$fitted.values
                 dev_curr <- sd(paramVector$residuals)
                 
@@ -474,6 +475,19 @@ subtr_baseline.default <- function(x,y,type = "polynomial",
     
     if (make_rel) make_rel(corrected) else corrected
     
+}
+
+.baseline_poly_qr <- function(x, degree, raw) {
+    qr(cbind(1, stats::poly(x, degree = degree, raw = raw)))
+}
+
+.baseline_poly_fit_qr <- function(fit_qr, y) {
+    fitted <- as.numeric(base::qr.fitted(fit_qr, y))
+    list(fitted.values = fitted, residuals = as.numeric(y) - fitted)
+}
+
+.baseline_poly_fit <- function(x, y, degree, raw) {
+    .baseline_poly_fit_qr(.baseline_poly_qr(x, degree, raw), y)
 }
 
 #' @rdname subtr_baseline

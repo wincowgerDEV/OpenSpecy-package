@@ -516,6 +516,37 @@ test_that("metadata name helpers support smart and extensible matching", {
   expect_named(strict, "projectcodes")
 })
 
+test_that("metadata harmonization coalesces reviewed aliases only", {
+  metadata <- data.table::data.table(
+    spectrum_identity = c("canonical", NA),
+    interpretation = c("ignored", "interpreted"),
+    form_factor = c("film", NA),
+    shape = c(NA, "fiber"),
+    datatype = c("absorbance", "raman shift"),
+    xunits = c("cm-1", NA),
+    x_unit = c(NA, "1/cm"),
+    spectrumid = c("a", "b"),
+    locationdescription = c("left", "right"),
+    name = c("source name", "source name 2"),
+    names = c("other meaning", "other meaning 2"),
+    file = c("raw path", "raw path 2"),
+    file_name = c("display", "display 2"),
+    sample = c("source sample", "source sample 2"),
+    sample_name = c("stable-a", "stable-b")
+  )
+
+  cleaned <- lib_clean_metadata(metadata)
+
+  expect_equal(cleaned$spectrum_identity, c("canonical", "interpreted"))
+  expect_equal(cleaned$material_form, c("film", "fiber"))
+  expect_equal(cleaned$data_type, c("absorbance", "raman shift"))
+  expect_equal(cleaned$wavenumber_units, c("cm-1", "1/cm"))
+  expect_equal(cleaned$spectrum_id, c("a", "b"))
+  expect_equal(cleaned$location_description, c("left", "right"))
+  expect_true(all(c("name", "names", "file", "file_name", "sample",
+                    "sample_name") %in% names(cleaned)))
+})
+
 test_that("metadata regex lookup reports overlapping patterns", {
   name_lookup <- lib_metadata_name_lookup(
     defaults = FALSE,
@@ -679,6 +710,346 @@ test_that("build_lib() skips metadata lookups with no shared key", {
     ),
     "Candidate columns were"
   )
+})
+
+test_that("build_lib() merges source keys and fills lookup values", {
+  lib <- filter_spec(tiny_build_lib(), 1:3)
+  lib$metadata$organization <- c("source org", NA, NA)
+  lib$metadata$user_name <- c("known", "fallback user", "unmapped")
+  lib$metadata$library_type <- c("metadata type", NA, NA)
+  source_lookup <- data.table::data.table(
+    organization = c("source org", "fallback user"),
+    library_type = c("organization type", "user type"),
+    spectrum_type = "raman"
+  )
+
+  built <- suppressWarnings(build_lib(
+    lib,
+    recipes = list(raw = list()),
+    metadata_lookups = list(
+      lookup = source_lookup,
+      by = "organization",
+      fallback_by = "user_name",
+      fill_only = TRUE
+    ),
+    dedupe = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )$raw)
+
+  expect_equal(built$metadata$library_type,
+               c("metadata type", "user type", NA))
+  expect_equal(built$metadata$spectrum_type, rep("ftir", 3))
+  expect_equal(built$metadata$organization,
+               c("source org", "fallback user", "unmapped"))
+  expect_equal(
+    attr(built, "metadata_lookup_reports")[[1]][
+      problem == "fallback_metadata_key", n
+    ],
+    2L
+  )
+})
+
+test_that("build_lib() cleans filename-derived spectrum identities and keys", {
+  lib <- tiny_build_lib()
+  lib$metadata$spectrum_identity <- c(
+    "C:\\incoming\\Sample.CSV", "/tmp/Other.SPC",
+    "relative/folder/Third.HDF5", "compound pe/pa/pe",
+    "name.spc.csv", "plain identity", "opus.10", "unsupported.foo"
+  )
+  lookup <- data.table::data.table(
+    spectrum_identity = c(
+      "sample.csv", "other.spc", "third.hdf5", "compound pe/pa/pe",
+      "name", "plain identity", "opus.10", "unsupported.foo"
+    ),
+    material = paste0("material_", seq_len(8))
+  )
+
+  built <- build_lib(
+    lib,
+    recipes = list(raw = list()),
+    metadata_lookups = list(lookup = lookup, by = "spectrum_identity"),
+    dedupe = FALSE,
+    signal_noise = FALSE,
+    clean_metadata_values = TRUE,
+    progress = FALSE
+  )$raw
+
+  expect_identical(
+    built$metadata$spectrum_identity,
+    c("sample", "other", "third", "compound pe/pa/pe", "name",
+      "plain identity", "opus", "unsupported.foo")
+  )
+  expect_identical(built$metadata$material, lookup$material)
+  report <- attr(built, "spectrum_identity_cleanup_report")
+  expect_s3_class(report, "data.table")
+  expect_equal(sum(report$n), 5L)
+  expect_true(all(c("original", "spectrum_identity", "n") %in%
+                    names(report)))
+})
+
+test_that("build_lib() rejects lookup collisions after identity cleanup", {
+  lib <- tiny_build_lib()
+  lib$metadata$spectrum_identity <- rep("same", 8)
+  lookup <- data.table::data.table(
+    spectrum_identity = c("same.csv", "same.spc"),
+    material = c("first", "second")
+  )
+
+  expect_error(
+    build_lib(
+      lib,
+      recipes = list(raw = list()),
+      metadata_lookups = list(lookup = lookup, by = "spectrum_identity"),
+      dedupe = FALSE,
+      signal_noise = FALSE,
+      progress = FALSE
+    ),
+    "Lookup keys must be unique"
+  )
+})
+
+test_that("prune_lib() orders classes, preserves floors, and audits removals", {
+  wn <- seq(500, 3500, length.out = 80)
+  shape_a <- dnorm(seq(-3, 3, length.out = length(wn)))
+  shape_b <- dnorm(seq(-3, 3, length.out = length(wn)), mean = 1)
+  spectra <- cbind(
+    shape_a, shape_a * 1.01, shape_a * 0.99, shape_a + 0.002,
+    shape_b,
+    shape_b * 1.01, shape_b * 0.99, shape_b + 0.002,
+    rev(shape_a), rev(shape_a) * 1.01
+  )
+  colnames(spectra) <- paste0("id", seq_len(ncol(spectra)))
+  lib <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c(rep("large", 5), rep("medium", 3), rep("small", 2)),
+      material_type = "plastic",
+      spectrum_type = "ftir"
+    )
+  )
+
+  report <- prune_lib(lib, min_n = 2, return = "report", progress = FALSE)
+
+  expect_true(check_OpenSpecy(report$object))
+  expect_equal(report$schedule$material_class, c("large", "medium", "small"))
+  expect_equal(report$schedule$initial_n, c(5L, 3L, 2L))
+  expect_true(nrow(report$removals) >= 1)
+  expect_equal(report$summary$reassigned, 0L)
+  expect_true(all(table(report$object$metadata$material_class) >= 2))
+  expect_identical(colnames(report$object$spectra),
+                   report$object$metadata$sample_name)
+  expect_identical(report$retained_ids, colnames(report$object$spectra))
+})
+
+test_that("prune_lib() retains unclassified spectra outside matching", {
+  lib <- tiny_build_lib()
+  lib$metadata$material_type <- "plastic"
+  lib$metadata$material_class[1:2] <- "unclassified"
+  protected_ids <- lib$metadata$sample_name[1:2]
+
+  report <- prune_lib(lib, min_n = 1, return = "report", progress = FALSE)
+
+  expect_true(all(protected_ids %in% report$retained_ids))
+  expect_false("unclassified" %in% report$schedule$material_class)
+  expect_false(any(report$removals$prior_class == "unclassified"))
+  expect_false(any(report$removals$matched_class == "unclassified"))
+})
+
+test_that("prune_lib() reassigns generic classes and tolerates no candidates", {
+  lib <- filter_spec(tiny_build_lib(), 1:4)
+  lib$metadata$material_class <- c("polymer a", "other plastic",
+                                   "other material", "other plastic")
+  lib$metadata$material_type <- c("plastic", "plastic", "mineral", "plastic")
+  lib$metadata$spectrum_type <- c("ftir", "ftir", "raman", NA)
+  report <- prune_lib(lib, min_n = 1, return = "report", progress = FALSE)
+
+  expect_equal(report$object$metadata$material_class[2], "polymer a")
+  expect_equal(report$object$metadata$material_class[3], "other material")
+  expect_equal(report$object$metadata$material_class[4], "other plastic")
+  expect_equal(nrow(report$reassignments), 1)
+  expect_equal(report$summary$removed, 0L)
+})
+
+test_that("prune_lib() preserves non-generic class labels and empty audits", {
+  lib <- filter_spec(tiny_build_lib(), 1:2)
+  lib$metadata$material_class <- c("Polymer A", "Polymer A")
+  lib$metadata$material_type <- "plastic"
+  report <- prune_lib(lib, min_n = 1, return = "report", progress = FALSE)
+
+  expect_equal(report$object$metadata$material_class,
+               c("Polymer A", "Polymer A"))
+  expect_s3_class(report$reassignments, "data.table")
+  expect_s3_class(report$removals, "data.table")
+  expect_equal(nrow(report$reassignments), 0)
+  expect_equal(nrow(report$removals), 0)
+  expect_equal(report$summary$reassigned, 0L)
+  expect_equal(report$summary$removed, 0L)
+})
+
+test_that("build_lib() applies pruning only to named recipes", {
+  lib <- tiny_build_lib()
+  lib$metadata$material_type <- "plastic"
+  built <- build_lib(
+    lib,
+    recipes = list(raw = list(), processed = list()),
+    prune = list(processed = list(min_n = 1, progress = FALSE)),
+    dedupe = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )
+
+  expect_null(attr(built$raw, "prune_report"))
+  expect_true(is.list(attr(built$processed, "prune_report")))
+})
+
+test_that("reference workflow tables encode reviewed taxonomy and source rules", {
+  data_path <- function(file) {
+    testthat::test_path("..", "..", "workflows", "data", file)
+  }
+  classes <- data.table::fread(data_path("classes_reference.csv"))
+  regex_classes <- data.table::fread(data_path("classes_regex.csv"))
+  hierarchy <- data.table::fread(data_path("material_hierarchy.csv"))
+  types <- data.table::fread(data_path("library_types.csv"))
+  drops <- data.table::fread(data_path("metadata_drop_columns.csv"))
+
+  expect_false(anyNA(classes$spectrum_identity))
+  expect_false(any(classes$spectrum_identity == ""))
+  expect_identical(anyDuplicated(classes$spectrum_identity), 0L)
+  expect_false(any(grepl("^regex:", classes$spectrum_identity)))
+  expect_named(regex_classes, c("pattern", "material"))
+  expect_false(anyNA(regex_classes$pattern))
+  expect_false(any(regex_classes$pattern == ""))
+  expect_identical(anyDuplicated(regex_classes$pattern), 0L)
+  class_audit <- predict_class_reference(
+    classes, regex_classes, return = "report"
+  )
+  expect_gt(class_audit$summary$predicted, 0L)
+  expect_equal(class_audit$summary$clashes, 0L)
+  expect_gt(class_audit$summary$overlaps, 0L)
+  expect_true(all(!is.na(regex_classes$material)))
+  expect_identical(anyDuplicated(hierarchy$material), 0L)
+  expect_equal(classes[spectrum_identity == "pa", material], "polyamides")
+  exact_classes <- classes[!grepl("^regex:", spectrum_identity)]
+  expect_identical(
+    OpenSpecy:::.lib_clean_spectrum_identity(exact_classes$spectrum_identity),
+    exact_classes$spectrum_identity
+  )
+  expect_true(all(
+    hierarchy[grepl("adipate", material), material_class] == "polyesters"
+  ))
+  expect_false("polyamides (polylactams)" %in% hierarchy$material_class)
+  expect_true(all(c("polyamides", "polyacrylamides") %in%
+                    hierarchy$material_class))
+  expect_equal(
+    classes[spectrum_identity == "plc004_kn95 outer layer_pp", material],
+    "poly(propylene)"
+  )
+  unresolved_plc <- classes[
+    spectrum_identity == "plc008_label tape_unknown", material
+  ]
+  expect_true(is.na(unresolved_plc) | unresolved_plc == "")
+  expect_true(all(c("microplastix", "nist", "hcmr", "cnr", "vliz",
+                    "nicolas coca") %in% types$organization))
+  expect_false("user_name" %in% names(types))
+  expect_equal(types[organization == "nist", spectrum_type], "nir")
+  expect_equal(
+    types[organization == "monterey bay aquarium research institute",
+          spectrum_type],
+    "raman"
+  )
+  expect_false(anyNA(types$spectrum_type))
+  expect_false(any(types$spectrum_type == ""))
+  expect_true(all(c("interpretation", "form_factor", "shape", "x_unit",
+                    "spectrumid", "locationdescription", "v1",
+                    "3997_91411", "polymer_hit_3_labs") %in%
+                  drops$metadata_column))
+})
+
+test_that("predict_class_reference() fills only blanks and audits overlaps", {
+  classes <- data.table::data.table(
+    spectrum_identity = c(
+      "nylon exact override", "nylon fiber", "nylon blend", "unknown"
+    ),
+    material = c(
+      "manual material", NA_character_, NA_character_, NA_character_
+    )
+  )
+  rules <- data.table::data.table(
+    pattern = c("^nylon", "blend$"),
+    material = c("polyamides", "polyesters")
+  )
+
+  report <- predict_class_reference(classes, rules, return = "report")
+  exact <- report$data
+
+  expect_equal(exact[spectrum_identity == "nylon exact override", material],
+               "manual material")
+  expect_equal(exact[spectrum_identity == "nylon fiber", material],
+               "polyamides")
+  expect_true(is.na(exact[spectrum_identity == "nylon blend", material]))
+  expect_true(is.na(exact[spectrum_identity == "unknown", material]))
+  expect_equal(report$summary$predicted, 1L)
+  expect_equal(report$summary$clashes, 1L)
+  expect_equal(report$summary$unmatched, 2L)
+  expect_equal(report$summary$overlaps, 1L)
+  expect_equal(report$clashes$spectrum_identity, "nylon blend")
+  expect_match(report$clashes$materials, "polyamides")
+  expect_match(report$clashes$materials, "polyesters")
+  expect_equal(report$overlaps$spectrum_identity, "nylon exact override")
+  expect_false(report$overlaps$agreement)
+  expect_equal(report$predictions$spectrum_identity, "nylon fiber")
+})
+
+test_that("reference class completion resolves reviewed wrappers and audits uncertainty", {
+  lib <- tiny_build_lib()
+  lib$metadata[, `:=`(
+    spectrum_identity = c(
+      "known", "pa_ref.csv", "mffrc001_nylon (pa6)_maker.0",
+      "cellulose_like_ref.csv", NA_character_, "known_2", "known_3",
+      "known_4"
+    ),
+    user_name = c(
+      NA_character_, "gicquel et al. 2024",
+      "elise granek and kellie teague", "gicquel et al. 2024",
+      NA_character_, NA_character_, NA_character_, NA_character_
+    ),
+    material = NA_character_,
+    material_type = NA_character_
+  )]
+  lib$metadata$material_class <- c(
+    "known class", rep(NA_character_, 4), rep("known class", 3)
+  )
+  classes <- data.table::data.table(
+    spectrum_identity = c("pa", "nylon"),
+    material = c("polyamides", "polyamides")
+  )
+  hierarchy <- data.table::data.table(
+    material = "nylon 6 - poly(caprolactam)",
+    material_class = "polyamides",
+    material_type = "plastic"
+  )
+
+  completed <- .lib_complete_reference_classes(lib, classes, hierarchy)
+  report <- attr(completed, "class_coverage_report")
+
+  expect_true(check_OpenSpecy(completed))
+  expect_false(anyNA(completed$metadata$material_class))
+  expect_equal(completed$metadata$material_class[2:3],
+               rep("polyamides", 2))
+  expect_equal(completed$metadata$class_lookup_key[2:3], c("pa", "nylon"))
+  expect_equal(completed$metadata$class_assignment_reason[2:3],
+               rep("reviewed_source_key", 2))
+  expect_equal(completed$metadata$material_class[4:5],
+               rep("unclassified", 2))
+  expect_equal(completed$metadata$class_assignment_reason[4:5],
+               rep("unresolved_identity", 2))
+  expect_identical(completed$metadata$spectrum_identity,
+                   lib$metadata$spectrum_identity)
+  expect_equal(report[stage == "after", populated_class], nrow(lib$metadata))
+  expect_equal(report[stage == "after", reviewed_source_key], 2L)
+  expect_equal(report[stage == "after", unclassified], 2L)
 })
 
 test_that("build_lib() preserves full source ranges through NA-aware recipes", {

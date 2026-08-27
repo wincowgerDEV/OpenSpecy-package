@@ -39,7 +39,7 @@ print(map)
 region_views <- split_spec(map, by = "region")
 names(region_views)
 
-map <- read_h5("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\smallconcurve.h5")
+map <- read_h5("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\moredilute.h5")
 
 listedfiles <- lapply(unique(map$metadata$region), function(x) filter_spec(map, map$metadata$region ==x))
 
@@ -74,8 +74,14 @@ result2$particle_details_all_csv %>%
   pe_area = sum(area_um2[material_class == "poly(ethylene)"]), area = sum(area_um2))
 
 plot(sample_spec(listedfiles[[4]] |> spatial_smooth(), 10))
-
+percent_area <- c(137/(322*262),  2479/(317*251), 31885/(304*266))
+dose <- c(10000,  1000, 10)
 # plot() replaces replayPlot() and accepts a region/sample name or position.
+library(ggplot2)
+ggplot() +
+  geom_point(aes(x = dose, y = percent_area)) +
+  scale_x_log10()+
+  scale_y_log10() 
 plot(result2, sample = 1, which = "particle_heatmap")
 plot(result, sample = 1, which = "sn_histogram")
 plot(result2, sample = 1, which = "particle_image")
