@@ -3992,6 +3992,7 @@ epistolite,mineral
 epistolite__r070396__raman__532__0__unoriented__raman_data_processed__21631,mineral
 epistolite__r070396__raman__785__0__unoriented__raman_data_processed__21629,mineral
 epofix resin,other material
+epoxide,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
 epoxide resin,other plastic
 epoxide_ref,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
 epoxy,other plastic
@@ -8971,7 +8972,9 @@ pollucite__r050345__raman__514__0__unoriented__raman_data_processed__10794,miner
 pollucite__r050345__raman__532__0__unoriented__raman_data_processed__29148,mineral
 pollucite__r050345__raman__780__0__unoriented__raman_data_processed__29150,mineral
 polu butadiene acrylonitrile,other plastic
+poly 1-butene isotactic,polyolefins (polyalkenes)
 poly 1-butene isotactic_ref,polyolefins (polyalkenes)
+poly 4-methyl-1-pentene,polyolefins (polyalkenes)
 poly 4-methyl-1-pentene_ref,polyolefins (polyalkenes)
 poly vinyl chloride,poly(vinyl chloride)
 poly(-methylstyrene),poly(-methylstyrene)
@@ -9315,6 +9318,7 @@ polyethylene,poly(ethylene)
 polyethylene chlorinated,other plastic
 polyethylene chlorosulfonated,other plastic
 polyethylene foamed,poly(ethylene)
+polyethylene glycol,poly(ethylene glycol)
 polyethylene glycol_ref,poly(ethylene glycol)
 polyethylene high density,poly(ethylene)
 polyethylene low density,poly(ethylene)

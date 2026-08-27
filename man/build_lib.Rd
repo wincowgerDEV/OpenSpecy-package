@@ -30,6 +30,18 @@ build_lib(
   assess = FALSE,
   prune = NULL,
   progress = TRUE,
+  data_dir = Sys.getenv("OPENSPECY_LIBRARY_DATA", unset = normalizePath("..", mustWork =
+    FALSE)),
+  source_file = Sys.getenv("OPENSPECY_SOURCE_FILE", unset = file.path(data_dir,
+    "library_raw.rds")),
+  processed_dir = Sys.getenv("OPENSPECY_PROCESSED_DIR", unset =
+    paste0("H:/My Drive/Work/Projects/OpenSpecy/", "SpectraFilesCodeProcessedSpectra")),
+  workflow_data = file.path("workflows", "data"),
+  output_dir = NULL,
+  previous_library_dir = NULL,
+  reuse = TRUE,
+  seed = 123,
+  holdout = 0.1,
   ...
 )
 
@@ -110,6 +122,7 @@ assess_lib(
 \item{x}{an \code{OpenSpecy} or \code{Specs} object for metadata helpers.
 For \code{build_lib()}, one \code{OpenSpecy}, a nonempty list containing only
 \code{OpenSpecy} objects, or a nonempty character vector of file paths.
+Omit \code{x} to discover the official sources from the path defaults.
 Each RDS path may store either one \code{OpenSpecy} or a list of them; other
 paths are read with \code{\link{read_any}()}.
 Large same-axis source lists are prepared in bulk to avoid repeated legacy
@@ -131,9 +144,10 @@ spectra in \code{build_lib()}.}
 \item{metadata_lookups}{a lookup table, csv path, or list of lookup tables and
 paths. A lookup may instead be supplied as \code{list(lookup = x, by = key)}
 to use an explicit key (including a named metadata-to-lookup key mapping).
-An explicit one-column lookup may add \code{fallback_by} to fill blank
-metadata keys before joining and \code{fill_only = TRUE} to preserve existing
-nonblank metadata values while filling gaps from the lookup.
+\code{fill_only = TRUE} preserves existing nonblank metadata values while
+filling gaps from the lookup. The older \code{fallback_by} lookup field is
+deprecated; canonical metadata keys are now filled from reviewed internal
+aliases before any external join.
 If non-\code{NULL}, each is joined with
 \code{join_lib_metadata()}. Automatic ordinary lookups use the single shared
 column that has overlapping values and unique lookup keys. Lookups with no
@@ -178,6 +192,31 @@ after processing and assessment. \code{NULL} preserves unpruned outputs.}
 
 \item{progress}{logical; whether \code{build_lib()} reports named processing
 stages and elapsed time.}
+
+\item{data_dir}{default directory containing official source and build data.}
+
+\item{source_file}{default raw source RDS path.}
+
+\item{processed_dir}{default directory recursively searched for processed
+source RDS files.}
+
+\item{workflow_data}{directory containing the curated reference CSV tables.}
+
+\item{output_dir}{\code{NULL} for the composable in-memory return, or a
+directory that triggers the complete checkpointed workflow. When \code{x} is
+omitted, the default is \code{reference-library-build} under \code{data_dir}.}
+
+\item{previous_library_dir}{directory containing the seven legacy artifacts
+used for complete old/new assessment, \code{"system"}, or \code{NULL} to skip
+external comparison. The no-argument official workflow defaults to
+\code{"system"} and retrieves missing artifacts with \code{get_lib()}.}
+
+\item{reuse}{logical; whether manifest-compatible completed checkpoints and
+versioned release files may be reused.}
+
+\item{seed}{random seed used before model training.}
+
+\item{holdout}{fraction of stable spectrum groups reserved for assessment.}
 
 \item{columns}{metadata columns to deduplicate into a template.}
 
@@ -232,8 +271,6 @@ correlations.}
 
 \item{alpha}{alpha value passed to \code{\link[glmnet]{glmnet}()}.}
 
-\item{seed}{random seed used before model training.}
-
 \item{grouped}{logical; whether multinomial coefficients use grouped
 penalties.}
 
@@ -255,20 +292,27 @@ that neighbor has the same \code{class_col} value.}
 Each library returned by \code{build_lib()} includes a
 \code{spectrum_identity_cleanup_report} attribute listing changed original
 and normalized identities with their counts.
-\code{build_lib()} returns a named list of \code{OpenSpecy} libraries.
+In composable mode, \code{build_lib()} returns a named list of
+\code{OpenSpecy} libraries. Its end-to-end mode returns one list containing
+\code{libraries}, \code{medoids}, \code{models}, and \code{assessments}; each
+assessment item is a reviewable data.table, and each model contains one
+\code{tests} data.table.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 object unless \code{return} requests a table, report, or ids.
 \code{make_lib_lookup_template()} returns a data.table unless \code{path} is
 supplied, in which case it writes the csv and invisibly returns the table.
 \code{build_model_lib()} returns a list suitable for AI classification with
-\code{\link{match_spec}()}. \code{assess_lib()} returns a data.table summary.
+\code{\link{match_spec}()} and one tidy \code{tests} table instead of
+separate accuracy/confusion summaries. \code{assess_lib()} returns a
+data.table summary.
 }
 \description{
-Helpers for creating reference libraries from source files and OpenSpecy
-objects with metadata lookup tables. \code{build_lib()} provides the
-standard end-to-end workflow while the supporting functions remain available
-for advanced composition.
+Create reference libraries from source files and OpenSpecy objects.
+With no \code{x}, or when \code{output_dir} is supplied,
+\code{build_lib()} runs the official end-to-end workflow and returns raw,
+processed, medoid, model, and assessment artifacts in one object. Supporting
+functions remain available for advanced composition.
 }
 \details{
 \code{build_lib()} combines sources over their full wavenumber range,
@@ -303,6 +347,16 @@ copy. Signal-to-noise is added by default, and optional
 spectrum.
 Progress messages report named stages and elapsed time by default so
 long-running builds remain observable.
+
+The official workflow reads its environment-aware paths inside
+\code{build_lib()}, writes each completed stage under
+\code{output_dir/checkpoints}, and promotes validated legacy-compatible files
+into a versioned release directory. With \code{reuse = TRUE}, a checkpoint
+is reused only when its manifest signature matches the source files, curated
+tables, relevant arguments, package version, and builder implementation.
+Full assessments use the complete candidate and legacy artifacts. A seeded
+ten-percent holdout is grouped by stable spectrum identity so the same
+spectrum cannot occur in both reference training and testing partitions.
 
 \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the

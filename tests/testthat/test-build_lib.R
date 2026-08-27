@@ -206,14 +206,15 @@ test_that("build_model_lib() returns the model library artifact structure", {
   model <- suppressWarnings(
     build_model_lib(lib, type_col = NULL, min_n = 2, nlambda = 3)
   )
-  expect_named(model, c("model", "dimension_conversion", "accuracy",
-                        "confusion", "coefficients", "class_names",
-                        "class_num", "observation_count",
-                        "overall_accuracy", "class_accuracy",
-                        "overall_accuracy2", "variable_num",
+  expect_named(model, c("model", "dimension_conversion", "tests",
+                        "coefficients", "class_names", "class_num",
+                        "observation_count", "variable_num",
                         "all_variables", "variables_in"))
   expect_true(all(c("factor_num", "name") %in%
                     names(model$dimension_conversion)))
+  expect_true(all(c("spectrum_id", "technique", "expected_class",
+                    "predicted_class", "correct", "score", "split",
+                    "provenance") %in% names(model$tests)))
 })
 
 test_that("build_lib() applies named recipes to merged sources", {
@@ -238,6 +239,7 @@ test_that("build_lib() converts metadata intensity units before recipes", {
     nrow = nrow(lib$spectra),
     dimnames = list(NULL, paste0("u", 1:5))
   )
+  lib$spectra[1, 2] <- NA_real_
   lib$metadata <- data.table::data.table(
     sample_name = colnames(lib$spectra),
     intensity_units = c(
@@ -263,7 +265,10 @@ test_that("build_lib() converts metadata intensity units before recipes", {
   )
   expect_equal(
     built$spectra[, 2],
-    adj_intens(original[, 2], type = "transmittance", make_rel = FALSE)
+    adj_intens(
+      original[, 2], type = "transmittance", make_rel = FALSE,
+      na.rm = TRUE
+    )
   )
   expect_equal(built$spectra[, 3:5], original[, 3:5])
   expect_equal(
@@ -712,7 +717,7 @@ test_that("build_lib() skips metadata lookups with no shared key", {
   )
 })
 
-test_that("build_lib() merges source keys and fills lookup values", {
+test_that("build_lib() standardizes source keys before external lookups", {
   lib <- filter_spec(tiny_build_lib(), 1:3)
   lib$metadata$organization <- c("source org", NA, NA)
   lib$metadata$user_name <- c("known", "fallback user", "unmapped")
@@ -729,7 +734,6 @@ test_that("build_lib() merges source keys and fills lookup values", {
     metadata_lookups = list(
       lookup = source_lookup,
       by = "organization",
-      fallback_by = "user_name",
       fill_only = TRUE
     ),
     dedupe = FALSE,
@@ -743,8 +747,8 @@ test_that("build_lib() merges source keys and fills lookup values", {
   expect_equal(built$metadata$organization,
                c("source org", "fallback user", "unmapped"))
   expect_equal(
-    attr(built, "metadata_lookup_reports")[[1]][
-      problem == "fallback_metadata_key", n
+    attr(built, "metadata_lookup_reports")$canonical_source_keys[
+      problem == "filled_canonical_key", n
     ],
     2L
   )
@@ -1083,6 +1087,22 @@ test_that("build_lib() preserves full source ranges through NA-aware recipes", {
   expect_true(any(is.finite(built$nobaseline$spectra[, 8])))
 })
 
+test_that("source-stage hashes support spectra with no shared finite rows", {
+  lib <- filter_spec(tiny_build_lib(), 1:2)
+  midpoint <- floor(nrow(lib$spectra) / 2)
+  lib$spectra[seq_len(midpoint), 1] <- NA_real_
+  lib$spectra[seq.int(midpoint + 1L, nrow(lib$spectra)), 2] <- NA_real_
+
+  built <- build_lib(
+    lib, recipes = list(raw = list()), signal_noise = FALSE,
+    progress = FALSE
+  )$raw
+  expect_true(check_OpenSpecy(built))
+  expect_equal(ncol(built$spectra), 2L)
+  expect_false(anyNA(built$metadata$sample_name))
+  expect_identical(colnames(built$spectra), built$metadata$sample_name)
+})
+
 test_that("build_lib() applies baseline recipes across source-specific NA tails", {
   lib <- filter_spec(tiny_build_lib(), 1:2)
   lib$spectra[1:5, 1] <- NA_real_
@@ -1134,4 +1154,181 @@ test_that("extdata files combine into a mini library", {
   )
   expect_true(check_OpenSpecy(built$raw))
   expect_true(all(c("material", "material_type") %in% names(built$raw$metadata)))
+})
+
+test_that("build_lib() creates and reuses one end-to-end artifact bundle", {
+  lib <- tiny_build_lib()
+  lib$metadata[, `:=`(
+    spectrum_identity = label,
+    organization = source,
+    user_name = source,
+    spectrum_id = sample_name
+  )]
+  workflow_data <- file.path(tempdir(), paste0("workflow-", sample.int(1e8, 1)))
+  output_dir <- file.path(tempdir(), paste0("output-", sample.int(1e8, 1)))
+  dir.create(workflow_data, recursive = TRUE)
+  data.table::fwrite(data.table::data.table(
+    spectrum_identity = unique(lib$metadata$spectrum_identity),
+    material = paste0("material_", seq_along(unique(
+      lib$metadata$spectrum_identity
+    )))
+  ), file.path(workflow_data, "classes_reference.csv"))
+  data.table::fwrite(data.table::data.table(
+    pattern = "^never[0-9]+$", material = "other material"
+  ), file.path(workflow_data, "classes_regex.csv"))
+  data.table::fwrite(data.table::data.table(
+    organization = c("a", "b", "c"), library_type = "test",
+    spectrum_type = "ftir"
+  ), file.path(workflow_data, "library_types.csv"))
+  classes <- data.table::fread(
+    file.path(workflow_data, "classes_reference.csv")
+  )
+  data.table::fwrite(data.table::data.table(
+    material = classes$material,
+    material_class = rep(c("class_a", "class_b"), length.out = nrow(classes)),
+    material_type = "plastic"
+  ), file.path(workflow_data, "material_hierarchy.csv"))
+  data.table::fwrite(data.table::data.table(sample_name = character()),
+                     file.path(workflow_data, "known_bad_ids.csv"))
+  data.table::fwrite(data.table::data.table(
+    metadata_column = "unused_legacy_column"
+  ), file.path(workflow_data, "metadata_drop_columns.csv"))
+
+  first <- suppressWarnings(build_lib(
+    lib, output_dir = output_dir, workflow_data = workflow_data,
+    previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
+    clean_metadata_values = TRUE, progress = FALSE
+  ))
+  expect_named(first, c("libraries", "medoids", "models", "assessments"))
+  expect_named(first$libraries, c("raw", "derivative", "nobaseline"))
+  expect_named(first$medoids, c("derivative", "nobaseline"))
+  expect_named(first$models, c("derivative", "nobaseline"))
+  expect_true(all(vapply(first$libraries, check_OpenSpecy, logical(1))))
+  expect_true(all(vapply(first$medoids, check_OpenSpecy, logical(1))))
+  expect_true(all(c(
+    "build_summary", "class_prediction", "class_coverage",
+    "type_coverage", "pruning", "metadata_drop", "output_manifest"
+  ) %in% names(first$assessments)))
+  release_dir <- attr(first, "output_dir")
+  expect_true(all(file.exists(file.path(
+    release_dir,
+    c("raw.rds", "derivative.rds", "nobaseline.rds",
+      "medoid_derivative.rds", "medoid_nobaseline.rds",
+      "model_derivative.rds", "model_nobaseline.rds",
+      "reference_library_build.rds")
+  ))))
+
+  second <- suppressWarnings(build_lib(
+    lib, output_dir = output_dir, workflow_data = workflow_data,
+    previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
+    clean_metadata_values = TRUE, progress = FALSE, reuse = TRUE
+  ))
+  expect_true(any(second$assessments$output_manifest$status == "reused"))
+  expect_equal(second$libraries$raw$spectra, first$libraries$raw$spectra)
+
+  rebuilt <- suppressWarnings(build_lib(
+    lib, output_dir = output_dir, workflow_data = workflow_data,
+    previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
+    clean_metadata_values = TRUE, progress = FALSE, reuse = FALSE
+  ))
+  expect_false(any(rebuilt$assessments$output_manifest$status == "reused"))
+})
+
+test_that("combined reference splits prevent old-new identity leakage", {
+  lib <- tiny_build_lib()
+  split <- OpenSpecy:::.lib_combined_split(
+    lib, lib, artifact = "raw", seed = 71, holdout = 0.25
+  )
+  expect_identical(anyDuplicated(split$manifest$group_id), 0L)
+  expect_true(all(split$manifest$new_present & split$manifest$old_present))
+  expect_true(all(split$manifest$split %in% c("train", "test")))
+  expect_length(intersect(
+    split$manifest[split == "train", group_id],
+    split$manifest[split == "test", group_id]
+  ), 0L)
+
+  tests <- OpenSpecy:::.lib_reference_holdout_test(
+    lib, split, artifact = "raw", source = "new", block_size = 2L
+  )
+  expect_true(all(tests$split == "test"))
+  expect_true(all(tests$provenance == "reference_holdout"))
+  expect_false(any(tests$spectrum_id %in%
+                     split$manifest[split == "train", group_id]))
+})
+
+test_that("complete old-new assessments cover every artifact and held-out model", {
+  skip_if_not_installed("glmnet")
+  small <- tiny_build_lib()
+  spectra <- do.call(cbind, lapply(seq_len(5), function(i) {
+    small$spectra + i / 1000
+  }))
+  metadata <- data.table::rbindlist(lapply(seq_len(5), function(i) {
+    out <- data.table::copy(small$metadata)
+    out$sample_name <- paste0(out$sample_name, "_", i)
+    out
+  }))
+  colnames(spectra) <- metadata$sample_name
+  lib <- as_OpenSpecy(
+    small$wavenumber, spectra = spectra, metadata = metadata,
+    attributes = list(intensity_unit = "absorbance")
+  )
+  model <- suppressWarnings(build_model_lib(lib))
+  model_set <- list(both = model, ftir = model, raman = NULL)
+  build <- list(
+    libraries = list(raw = lib, derivative = lib, nobaseline = lib),
+    medoids = list(derivative = lib, nobaseline = lib),
+    models = list(derivative = model_set, nobaseline = model_set),
+    assessments = list()
+  )
+  previous <- file.path(tempdir(), paste0("previous-", sample.int(1e8, 1)))
+  dir.create(previous, recursive = TRUE)
+  saveRDS(lib, file.path(previous, "raw.rds"))
+  saveRDS(lib, file.path(previous, "derivative.rds"))
+  saveRDS(lib, file.path(previous, "nobaseline.rds"))
+  saveRDS(lib, file.path(previous, "medoid_derivative.rds"))
+  saveRDS(lib, file.path(previous, "medoid_nobaseline.rds"))
+  saveRDS(model_set, file.path(previous, "model_derivative.rds"))
+  saveRDS(model_set, file.path(previous, "model_nobaseline.rds"))
+
+  comparison <- suppressWarnings(OpenSpecy:::.lib_compare_reference_build(
+    build, previous_library_dir = previous,
+    seed = 211, holdout = 0.25, progress = FALSE
+  ))
+  expect_true(all(c(
+    "models", "split_manifest", "library_identification",
+    "model_identification", "assess_spec_shifts", "old_new_compatibility"
+  ) %in% names(comparison)))
+  expect_equal(unique(comparison$split_manifest$artifact), c(
+    "raw", "derivative", "nobaseline", "medoid_derivative",
+    "medoid_nobaseline"
+  ))
+  expect_true(all(
+    comparison$split_manifest$new_present &
+      comparison$split_manifest$old_present
+  ))
+  expect_gt(nrow(comparison$library_identification), 0L)
+  expect_gt(nrow(comparison$model_identification), 0L)
+  expect_gt(nrow(comparison$assess_spec_shifts), 0L)
+  expect_true(all(
+    comparison$models$derivative$both$tests$provenance == "heldout_model"
+  ))
+})
+
+test_that("reference regex table contains only genuinely variable rules", {
+  regex_reference <- data.table::fread(
+    file.path("..", "..", "workflows", "data", "classes_regex.csv")
+  )
+  expect_false(any(vapply(
+    regex_reference$pattern,
+    OpenSpecy:::.lib_regex_is_exact_literal,
+    logical(1)
+  )))
+  exact <- data.table::fread(
+    file.path("..", "..", "workflows", "data", "classes_reference.csv")
+  )
+  expect_true(all(c(
+    "epoxide", "poly 1-butene isotactic", "poly 4-methyl-1-pentene",
+    "poly(amide)", "poly(styrene)", "poly(vinylchloride)",
+    "polyethylene glycol"
+  ) %in% exact$spectrum_identity))
 })

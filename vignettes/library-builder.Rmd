@@ -155,9 +155,11 @@ Automatic ordinary lookups use the single shared column with overlapping values
 and unique lookup keys. Lookups with no usable shared key are skipped with a
 message; lookups with multiple usable shared keys are treated as ambiguous, so
 wrap a lookup as `list(lookup = table, by = "key")` when an explicit key is
-needed. Named `by` vectors map metadata names to different lookup names. An
-explicit one-column lookup can set `fallback_by = "user_name"` to fill a blank
-organization key before joining, and `fill_only = TRUE` to fill blank values
+needed. Named `by` vectors map metadata names to different lookup names.
+Canonical source metadata is standardized before these external joins: a
+populated `organization` remains authoritative and a blank organization is
+filled from the reviewed internal `user_name` alias. The older lookup-level
+`fallback_by` field is deprecated. Set `fill_only = TRUE` to fill blank values
 such as `library_type` or `spectrum_type` without replacing populated source
 metadata.
 
@@ -225,17 +227,38 @@ pruned$schedule
 
 The version-controlled
 [`workflows/OpenSpecy_reference_library.R`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/workflows/OpenSpecy_reference_library.R)
-script is a straight-line composition of OpenSpecy functions. Canonically named
+script now contains one default `build_lib()` call. The complete visual flow,
+including checkpoint reuse and old/new assessments, is maintained in
+[`workflows/build_lib_workflow.md`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/workflows/build_lib_workflow.md).
+Canonically named
 exact-class, regex-class, library-type, material-hierarchy, and known-bad-ID
 tables live under
 `workflows/data/`. Raw-data corrections are completed externally before this
-workflow runs. The official build merges a missing organization from
-`user_name`, applies one source-type lookup, and asserts complete
-library/spectrum-type coverage. The exact class lookup runs first;
+workflow runs. Path arguments default from `OPENSPECY_LIBRARY_DATA`,
+`OPENSPECY_SOURCE_FILE`, `OPENSPECY_PROCESSED_DIR`, and
+`OPENSPECY_LIBRARY_OUTPUT`, so they do not need to be assigned before the call.
+The official build fills a missing organization from `user_name` before one
+source-type lookup and asserts complete library/spectrum-type coverage. The
+exact class lookup runs first;
 `predict_class_reference()` then evaluates the separate regex table only for
 blank materials. Exact/regex overlaps are audited without overwriting exact
 values, and conflicting regex predictions stop for review. Remaining uncertain
 identities are retained as `unclassified`. Derivative and nobaseline libraries
 are pruned before their medoids and models are created; raw remains unpruned.
+Each completed library, medoid, model, and assessment component is written with
+a manifest under `output_dir/checkpoints`. `reuse = TRUE` loads it only when
+the source/lookup signatures, arguments, package version, and builder contract
+still match. Validated output is promoted into a versioned release directory,
+which contains the seven legacy RDS names plus one aggregate build RDS.
+
+The returned object has four top-level elements: `libraries`, `medoids`,
+`models`, and `assessments`. Each model has one tidy `tests` table. Full
+assessment uses every candidate and downloaded legacy artifact, makes one
+stable-identity-grouped ten-percent holdout, removes held-out reference spectra
+before identification, evaluates corresponding models, and reports clear
+old/new `assess_spec(report = "all")` shifts. The smaller 1,000-spectrum run in
+the manual benchmark is development-only and is not part of `build_lib()` or
+final acceptance evidence.
+
 The script is excluded from package builds but remains available
 in the GitHub repository so library releases can be reviewed and reproduced.

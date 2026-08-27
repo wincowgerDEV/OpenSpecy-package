@@ -230,6 +230,7 @@ as_OpenSpecy <- function(x, ...) {
 .matrix_adj_neg <- function(x, na.rm = FALSE) {
   mins <- matrixStats::colMins(x, na.rm = na.rm)
   adjust <- mins < 1
+  adjust[is.na(adjust)] <- FALSE
   if (!any(adjust)) return(x)
 
   out <- x

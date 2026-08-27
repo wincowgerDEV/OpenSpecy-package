@@ -1,5 +1,19 @@
 # OpenSpecy 1.7.1
 
+- `build_lib()` now provides a no-argument, end-to-end official workflow that
+  returns libraries, medoids, models, and named assessment tables in one
+  object. Completed components and full old/new assessment stages are exported
+  with input manifests as they finish; `reuse = TRUE` resumes only compatible
+  checkpoints and validated artifacts are promoted to a versioned release
+  directory.
+- Full reference assessment now uses a stable-identity-grouped ten-percent
+  holdout across the complete candidate and legacy artifacts, prevents exact
+  reference leakage, records model and reference identification metrics, and
+  reports per-check shifts from `assess_spec()`. Model evaluation rows now live
+  in one tidy `tests` table rather than scattered accuracy/confusion fields.
+- Canonical source metadata is coalesced before external joins, and
+  `fallback_by` is deprecated. Literal-only anchored class patterns moved from
+  `classes_regex.csv` to exact entries in `classes_reference.csv`.
 - Added auditable `prune_lib()` and recipe-selective `build_lib(prune = ...)`
   support for reference-library QA/QC. Generic classes are reassigned only to
   eligible same-technique candidates, then classes are processed largest first

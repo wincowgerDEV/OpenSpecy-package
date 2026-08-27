@@ -3,7 +3,6 @@ pattern,material
 ^acrylic(?:[[:space:]]*\(|$),poly(acrylonitrile)
 ^aramid(?:[[:space:](]|$),polyamides
 ^cellulose[[:space:]]+diacetate(?:[[:space:](]|$),cellulose acetate
-^epoxide$,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
 ^lyocell(?:[[:space:](]|$),rayon
 ^modacrylic(?:[[:space:](]|$),polyacrylonitriles (nitriles)
 ^mffrc[0-9]+_modified pet(?:[[:space:](]|_),poly(ethylene terephthalate)
@@ -35,14 +34,8 @@ pattern,material
 ^plc[0-9]+_.*_silicone(?:[.][0-9]+)?$,silicones
 ^plc[0-9]+_.*_teflon(?:[.][0-9]+)?$,poly(tetrafluoroethylene)
 ^plc[0-9]+_.*_tpe(?:[.][0-9]+)?$,other plastic
-^poly[[:space:]]+1-butene isotactic$,polyolefins (polyalkenes)
-^poly[[:space:]]+4-methyl-1-pentene$,polyolefins (polyalkenes)
-^poly\(amide\)$,polyamides
-^poly\(styrene\)$,polystyrene
-^poly\(vinylchloride\)$,poly(vinyl chloride)
 ^polyamide(?:[[:space:](]|$),polyamides
 ^polyester(?:[[:space:](]|$),polyesters
-^polyethylene glycol$,poly(ethylene glycol)
 ^rayon(?:[[:space:](]|$),rayon
 ^scipoly[0-9]+_cellulose$,organic matter
 ^scipoly[0-9]+_cellulose acetate$,cellulose acetate

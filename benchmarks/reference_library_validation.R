@@ -1,11 +1,89 @@
-# Manual validation of a saved full reference-library build. Set
-# OPENSPECY_SAVED_LIBRARIES to a libraries.rds path before running. This script
-# is intentionally outside tests because the artifact is large and external.
+# Manual reference-library validation with three explicit modes:
+# - saved (default): retain the earlier saved-build taxonomy/pruning checks;
+# - probe: development-only end-to-end build of 1,000 sampled legacy raw spectra;
+# - full: complete candidate build and comprehensive comparison with all seven
+#   downloaded legacy artifacts.
+# Set OPENSPECY_REFERENCE_VALIDATION_MODE and the path variables named below.
+# This script is intentionally outside tests because artifacts are large,
+# network-backed, and computationally expensive.
 
 if (requireNamespace("pkgload", quietly = TRUE)) {
   pkgload::load_all(".", export_all = FALSE)
 } else {
   library(OpenSpecy)
+}
+
+mode <- Sys.getenv("OPENSPECY_REFERENCE_VALIDATION_MODE", unset = "saved")
+if (identical(mode, "probe")) {
+  seed <- as.integer(Sys.getenv("OPENSPECY_VALIDATION_SEED", unset = "123"))
+  output <- Sys.getenv(
+    "OPENSPECY_VALIDATION_OUTPUT",
+    unset = tempfile("openspecy-reference-probe-")
+  )
+  reuse <- tolower(Sys.getenv(
+    "OPENSPECY_VALIDATION_REUSE", unset = "true"
+  )) %in% c("true", "1", "yes")
+  raw <- tryCatch(
+    load_lib("raw"),
+    error = function(error) {
+      get_lib("raw")
+      load_lib("raw")
+    }
+  )
+  set.seed(seed)
+  types <- data.table::fread(file.path(
+    "workflows", "data", "library_types.csv"
+  ))
+  organization <- as.character(raw$metadata$organization)
+  fallback <- as.character(raw$metadata$user_name)
+  fill <- is.na(organization) | !nzchar(organization)
+  organization[fill] <- fallback[fill]
+  eligible <- organization %in% types$organization &
+    !is.na(raw$metadata$spectrum_type) & nzchar(raw$metadata$spectrum_type)
+  eligible[is.na(eligible)] <- FALSE
+  eligible <- which(eligible)
+  if (length(eligible) < 1000L) {
+    stop("Legacy raw library has fewer than 1,000 safely typed spectra")
+  }
+  probe <- filter_spec(raw, sample(eligible, 1000L))
+  result <- build_lib(
+    probe, output_dir = output, previous_library_dir = NULL,
+    reuse = reuse, seed = seed
+  )
+  stopifnot(
+    identical(names(result),
+              c("libraries", "medoids", "models", "assessments")),
+    all(vapply(result$libraries, check_OpenSpecy, logical(1))),
+    all(vapply(result$medoids, check_OpenSpecy, logical(1)))
+  )
+  print(result$assessments$build_summary)
+  print(result$assessments$output_manifest)
+  message("Development-only 1,000-spectrum probe retained at: ", output)
+  quit(save = "no", status = 0L)
+}
+
+if (identical(mode, "full")) {
+  result <- build_lib(reuse = TRUE)
+  stopifnot(
+    nrow(result$assessments$split_manifest) > 0L,
+    nrow(result$assessments$library_identification) > 0L,
+    nrow(result$assessments$model_identification) > 0L,
+    nrow(result$assessments$assess_spec_shifts) > 0L,
+    !anyDuplicated(result$assessments$split_manifest[
+      , paste(artifact, group_id, sep = "\r")
+    ])
+  )
+  print(result$assessments$library_identification)
+  print(result$assessments$model_identification)
+  print(result$assessments$assess_spec_shifts)
+  print(result$assessments$old_new_compatibility)
+  print(result$assessments$output_manifest)
+  message("Full candidate release retained at: ", attr(result, "output_dir"))
+  quit(save = "no", status = 0L)
+}
+
+if (!identical(mode, "saved")) {
+  stop("OPENSPECY_REFERENCE_VALIDATION_MODE must be saved, probe, or full")
 }
 
 path <- Sys.getenv("OPENSPECY_SAVED_LIBRARIES")
