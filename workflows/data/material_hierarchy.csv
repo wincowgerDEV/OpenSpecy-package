@@ -14,6 +14,7 @@ mineral,mineral,not plastic
 organic matter,organic matter,not plastic
 other material,other material,not plastic
 other plastic,other plastic,plastic
+paint,paint,plastic
 phenol formaldehyde,phenol formaldehyde,plastic
 peek - poly(ether ether ketone),poly(ether)ketones (polyketones),plastic
 pek - poly(ether ketone),poly(ether)ketones (polyketones),plastic
@@ -262,3 +263,6 @@ styrene-butadiene,styrene-butadiene,plastic
 styrene-isoprene,styrene-isoprene,plastic
 styrene-maleic,styrene-maleic,plastic
 urea-formaldehyde,urea-formaldehyde,plastic
+polybenzimidazole,polybenzimidazole,plastic
+poly(phenylene sulfide),poly(phenylene sulfide),plastic
+acrylonitrile-butadiene,acrylonitrile-butadiene,plastic

@@ -62,7 +62,7 @@
 - [x] Complete final class coverage with reviewed Gicquel/MFFRC keys plus an explicit, identity-preserving `unclassified` review queue.
 - [x] Merge organization/username before one type lookup; assert saved-build type coverage; curate regex-filled exact class-reference rows with clash/override QA.
 - [x] Normalize and audit filename-derived identities; compress normalized class keys; audit remaining unmatched classes and source techniques against the saved build.
-- [ ] Separate regex rules, implement/test unmatched-only prediction, support multi-digit OPUS extensions, and add/validate the reusable curation skill.
+- [x] Separate regex rules, implement/test unmatched-only prediction, support multi-digit OPUS extensions, and add/validate the reusable curation skill.
 - [x] Rebuild a representative subset to temporary output; compare IDs, metadata schema/coverage, taxonomy distributions, pruning audit, axes, attributes, warnings, joins, and matches against this saved RDS.
 - [x] Run focused tests/benchmarks, documentation, full tests once, and `-HostedAppStatic`; report readiness without publishing artifacts.
 

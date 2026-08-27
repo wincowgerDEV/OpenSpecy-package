@@ -1,5 +1,5 @@
 spectrum_identity,material
-()-camphor,
+()-camphor,organic matter
 (+)-pseudoephedrine hcl (lot #359562/1),other material
 (01) ldpe,poly(ethylene)
 (02) hdpe,poly(ethylene)
@@ -1986,7 +1986,7 @@ boussingaultite__r070597__raman__532__0__unoriented__raman_data_processed__23144
 boussingaultite__r070597__raman__780__0__unoriented__raman_data_processed__23142,mineral
 bowieite,mineral
 bpf,
-br,
+br,"polydienes (butadienes, isoprenes)"
 br tl,mineral
 brackebuschite,mineral
 brackebuschite__r050547__raman__532__0__unoriented__raman_data_processed__32285,mineral
@@ -2212,7 +2212,7 @@ c4 h4.59 al0.112 ca3.76 f0.41 k0.882 na3.658 o31.373 si7,mineral
 c4. green fiber,organic matter
 c5 ba0.5 ca1.44 ce0.78 na2.67 o15 sr0,mineral
 c5. pink fiber bundle,organic matter
-c5/c9 copolymer harz,
+c5/c9 copolymer harz,other plastic
 c6. red fiber,organic matter
 c7. blue fiber,organic matter
 c8. pink fiber bundle,organic matter
@@ -3753,7 +3753,7 @@ dypingite__r060758__raman__532__0__unoriented__raman_data_processed__18796,miner
 dypingite__r070086__raman__532__0__unoriented__raman_data_processed__17580,mineral
 dyscrasite,mineral
 e-flea hcl (lot #rm-170707-01),other material
-e/p,
+e/p,ethylene-propylene
 eaa 1. clear pellet,other plastic
 eakerite,mineral
 eakerite__r060319__raman__532__0__unoriented__raman_data_processed__34089,mineral
@@ -3931,8 +3931,8 @@ eosphorite__r060293__raman__532__0__unoriented__raman_data_processed__34041,mine
 eosphorite__r060293__raman__780__0__unoriented__raman_data_processed__34043,mineral
 eosphorite__r061055__raman__532__0__unoriented__raman_data_processed__14870,mineral
 eosphorite__r061055__raman__785__0__unoriented__raman_data_processed__14868,mineral
-ep,
-ep_ref,
+ep,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
+ep_ref,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
 epdm rubber (ethylene propylene diene monomer rubber),epdm rubber (ethylene propylene diene monomer rubber)
 ephedrine base (lot #02502du),other material
 ephesite,mineral
@@ -4233,7 +4233,7 @@ fenaksite__r080135__raman__780__0__unoriented__raman_data_processed__30949,miner
 fencooperite,mineral
 fencooperite__r061032__raman__532__0__unoriented__raman_data_processed__14549,mineral
 fentanyl hcl (lot #alb-297-3),other material
-fep,
+fep,other plastic
 ferberite,mineral
 ferberite__r040044-1__infrared__infrared_data_processed__271,mineral
 ferberite__r040044__raman__514__0__unoriented__raman_data_processed__9712,mineral
@@ -4392,7 +4392,7 @@ fibre tussah silk,organic matter
 fibre urtica dioica l conar fibra,organic matter
 fibre viscose,organic matter
 fibre viscose dyed,organic matter
-fibre_acetate,
+fibre_acetate,cellulose acetate
 fibre_cocoanut,organic matter
 fibre_cotton_combers,organic matter
 fibre_cotton_us_pima,organic matter
@@ -4663,7 +4663,7 @@ foshagite__r070098__raman__785__0__unoriented__raman_data_processed__25078,miner
 fourmarierite,mineral
 fourmarierite__r100187__raman__532__0__unoriented__raman_data_processed__34788,mineral
 fourmarierite__r100187__raman__780__0__unoriented__raman_data_processed__34790,mineral
-fpm,
+fpm,other plastic
 francevillite,mineral
 francevillite__r070159__raman__532__0__unoriented__raman_data_processed__25100,mineral
 francevillite__r070159__raman__785__0__unoriented__raman_data_processed__25101,mineral
@@ -7256,7 +7256,7 @@ mffrc049_aramid (kevlar 29)_du pont,polyamides
 mffrc050_aramid (kevlar 49)_du pont,polyamides
 mffrc051_aramid (nomex og 1)_du pont,polyamides
 mffrc052_aramid (nomex t450)_du pont,polyamides
-mffrc054_chlorofiber_fmc american,
+mffrc054_chlorofiber_fmc american,poly(vinyl chloride)
 mffrc055_lyocell (tencel)_courtaulds,rayon
 mffrc056_lyocell_lenzing,rayon
 mffrc057_modacrylic (63 pan-37 vdc)_bayer,polyacrylonitriles (nitriles)
@@ -7331,9 +7331,9 @@ mffrc122_olefin (certran hmpe)_hoechst celanese,poly(ethylene)
 mffrc126_olefin (pp)_shaw industries,poly(propylene)
 mffrc127_olefin (pp)_shaw industries,poly(propylene)
 "mffrc128_olefin (pp, type 079)_shaw industries",poly(propylene)
-mffrc129_pbi_hoechst celanese,
-mffrc130_polyacrylate (inidex)_courtaulds,
-mffrc131_polyacrylate (vectran hs)_hoechst celanese,
+mffrc129_pbi_hoechst celanese,polybenzimidazole
+mffrc130_polyacrylate (inidex)_courtaulds,polyacrylates (propenoates)
+mffrc131_polyacrylate (vectran hs)_hoechst celanese,polyacrylates (propenoates)
 mffrc132_polyester (pet)_albany international,polyesters
 mffrc133_polyester (pen)_allied signal fibers,polyesters
 mffrc134_pvdc (nonbur n90 (mac))_asahi chemical c,
@@ -7399,8 +7399,8 @@ mffrc196_rayon_fmc american viscose,rayon
 mffrc197_rayon (danufil)_hoechst ag,rayon
 mffrc198_rayon (tapiflorl)_lenzing ag,rayon
 mffrc199_spandex (lycra 126)_du pont,polyurethanes (isocyanates)
-mffrc200_sulfar (ryton)_amoco,
-mffrc201_chlorofiber (thermovyl type l9s)_rhone pou,
+mffrc200_sulfar (ryton)_amoco,poly(phenylene sulfide)
+mffrc201_chlorofiber (thermovyl type l9s)_rhone pou,poly(vinyl chloride)
 mg o3 si,mineral
 mg o5 ti2,mineral
 mg2 o4 si,mineral
@@ -7872,7 +7872,7 @@ naujakasite__r060975__raman__785__0__unoriented__raman_data_processed__13801,min
 naumannite,mineral
 nb o2,mineral
 nb2 o5,mineral
-nbr,
+nbr,acrylonitrile-butadiene
 nchwaningite,mineral
 nchwaningite__r140275__raman__532__0__unoriented__raman_data_processed__38988,mineral
 nchwaningite__r140275__raman__780__0__unoriented__raman_data_processed__38990,mineral
@@ -8294,7 +8294,7 @@ painite,mineral
 painite__r060957__raman__532__0__unoriented__raman_data_processed__13417,mineral
 painite__r060957__raman__785__0__unoriented__raman_data_processed__13823,mineral
 painite__r100164__raman__532__0__unoriented__raman_data_processed__34660,mineral
-paint,other plastic
+paint,paint
 palenzonaite,mineral
 palenzonaite__r060455__raman__780__0__unoriented__raman_data_processed__36877,mineral
 palermoite,mineral
@@ -8897,8 +8897,8 @@ plc027_home depot bucket_hdpe,poly(ethylene)
 plc028_clear storage container_pp,poly(propylene)
 plc029_yellow storage lid_pe,poly(ethylene)
 plc030_clear o-ring_silicone,silicones
-plc031_analytical balance_paint,other plastic
-plc032_lumos ii_paint,other plastic
+plc031_analytical balance_paint,paint
+plc032_lumos ii_paint,paint
 plc033_microscope cover_nylon,polyamides
 plc034_cryo gloves_synthetic lining,other plastic
 plc035_heat gloves_cotton,organic matter
@@ -10382,7 +10382,7 @@ satterlyite,mineral
 satterlyite__r060810__raman__532__0__unoriented__raman_data_processed__30827,mineral
 satterlyite__r060810__raman__785__0__unoriented__raman_data_processed__30828,mineral
 sbc,styrene-butadiene
-sbs,
+sbs,styrene-butadiene
 scainiite,mineral
 scainiite__r100085__raman__532__0__unoriented__raman_data_processed__34255,mineral
 scainiite__r100085__raman__780__0__unoriented__raman_data_processed__34257,mineral
@@ -10470,106 +10470,106 @@ schwartzembergite__r050159__raman__532__0__unoriented__raman_data_processed__219
 schwartzembergite__r050159__raman__785__0__unoriented__raman_data_processed__21914,mineral
 schwartzembergite__r070429__raman__532__0__unoriented__raman_data_processed__21881,mineral
 schwartzembergite__r070429__raman__785__0__unoriented__raman_data_processed__21885,mineral
-scipoly001_acrylonitrile(22)-butadiene(78) copolymer,
-scipoly002_acrylonitrile(38)-butadiene(62) copolymer,
-scipoly003_acrylonitrile(51)-butadiene(49) copolymer,
-scipoly004_butyl methacrylate-isobutyl methacrylate,
+scipoly001_acrylonitrile(22)-butadiene(78) copolymer,acrylonitrile-butadiene
+scipoly002_acrylonitrile(38)-butadiene(62) copolymer,acrylonitrile-butadiene
+scipoly003_acrylonitrile(51)-butadiene(49) copolymer,acrylonitrile-butadiene
+scipoly004_butyl methacrylate-isobutyl methacrylate,polymethacrylates
 scipoly005_cellulose,organic matter
 scipoly006_cellulose acetate,cellulose acetate
-scipoly007_cellulose acetate butyrate,
-scipoly008_cellulose propionate,
-scipoly009_cellulose triacetate,
-"scipoly010_ethyl cellulose, viscosity 4cp",
-"scipoly011_ethyl cellulose, viscosity 22cp",
-"scipoly012_ethyl cellulose, viscosity 300cp",
+scipoly007_cellulose acetate butyrate,cellulose derivatives (ether cellulose)
+scipoly008_cellulose propionate,cellulose derivatives (ether cellulose)
+scipoly009_cellulose triacetate,cellulose derivatives (ether cellulose)
+"scipoly010_ethyl cellulose, viscosity 4cp",ethyl cellulose
+"scipoly011_ethyl cellulose, viscosity 22cp",ethyl cellulose
+"scipoly012_ethyl cellulose, viscosity 300cp",ethyl cellulose
 scipoly013_ethylene(85)-acrylic acid(15),
 scipoly014_ethylene(82)-ethyl acrylate(18),
 scipoly015_ethylene(88)-methacrylic acid(12),
-scipoly016_ethylene(86)-vinyl acetate(14),
-scipoly017_eva(18),
-scipoly018_eva(28),
-scipoly019_eva(33),
-scipoly020_eva(40),
-scipoly021_eva(45),
+scipoly016_ethylene(86)-vinyl acetate(14),ethylene-vinyl acetate
+scipoly017_eva(18),ethylene-vinyl acetate
+scipoly018_eva(28),ethylene-vinyl acetate
+scipoly019_eva(33),ethylene-vinyl acetate
+scipoly020_eva(40),ethylene-vinyl acetate
+scipoly021_eva(45),ethylene-vinyl acetate
 scipoly022_ethylene-vinyl alcohol copolymer,
-scipoly023_hydroxyethyl cellulose,
-scipoly024_hydroxypropyl cellulose,
-scipoly025_hydroxypropyl methyl cellulose,
-scipoly026_methyl cellulose,
+scipoly023_hydroxyethyl cellulose,cellulose derivatives (ether cellulose)
+scipoly024_hydroxypropyl cellulose,cellulose derivatives (ether cellulose)
+scipoly025_hydroxypropyl methyl cellulose,cellulose derivatives (ether cellulose)
+scipoly026_methyl cellulose,methyl cellulose
 scipoly027_methyl vinyl ether-maleic acid copolymer,
 scipoly028_methyl vinyl ether-maleic anhydride copolyme,
-scipoly029_nylon 6 (polycaprolactam),
-"scipoly030_nylon 6,6",
-"scipoly031_nylon 6,12",
-scipoly032_nylon 11,
-scipoly033_nylon 12,
-scipoly034_phenoxy resin,
+scipoly029_nylon 6 (polycaprolactam),nylon 6 - poly(caprolactam)
+"scipoly030_nylon 6,6","nylon 6,6 - poly(hexamethylene adipamide)"
+"scipoly031_nylon 6,12","nylon 6,12 - poly(hexamethylene dodecanediamide)"
+scipoly032_nylon 11,nylon 11 - poly(11-aminoundecanoic acid)
+scipoly033_nylon 12,nylon 12 - poly(dodecano-12-lactam)
+scipoly034_phenoxy resin,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
 scipoly035_polyacetal,
-scipoly036_polyacrylamide,
+scipoly036_polyacrylamide,poly(acrylamide)
 "scipoly037_polyacrylamide, carboxyl modified",
-"scipoly038_poly(acrylic acid), mw450k",
-"scipoly039_poly(acrylic acid), mw4m",
-scipoly040_polyacrylonitrile,
+"scipoly038_poly(acrylic acid), mw450k",poly(acrylic acid)
+"scipoly039_poly(acrylic acid), mw4m",poly(acrylic acid)
+scipoly040_polyacrylonitrile,poly(acrylonitrile)
 scipoly041_polyamide resin,
-"scipoly042_poly(1-butene), isotactic",
+"scipoly042_poly(1-butene), isotactic",poly(butylene)
 scipoly043_poly(butylene terephthalate),
-scipoly044_poly(n-butyl methacrylate),
-scipoly045_polycaprolactone,
+scipoly044_poly(n-butyl methacrylate),poly(butyl methacrylate)
+scipoly045_polycaprolactone,poly(caprolactone)
 "scipoly046_polycarbonate, mw36k",
 "scipoly047_polycarbonate, mw45k",
-"scipoly048_poly(2,6-dimethyl-p-phenylene oxide)",
-"scipoly049_poly(4,4-dipropoxy-2,2-dipehnyl propane fum",
+"scipoly048_poly(2,6-dimethyl-p-phenylene oxide)","poly(2,6-dimethyl-p-phenylene oxide)"
+"scipoly049_poly(4,4-dipropoxy-2,2-dipehnyl propane fum",polyesters
 scipoly050_polyethylene,
-"scipoly051_polyethylene, chlorosulfonated",
+"scipoly051_polyethylene, chlorosulfonated",polyolefins (polyalkenes)
 "scipoly052_polyethylene, low density",
-"scipoly053_polyethylene, oxidized",
+"scipoly053_polyethylene, oxidized",poly(ethylene)
 scipoly054_poly(ethylene glycol),
-"scipoly055_poly(ethylene oxide), mw100k",
-"scipoly056_poly(ethylene oxide), mw400k",
-scipoly057_poly(ethyl methacrylate),
-"scipoly058_poly(2-hydroxyethyl methacrylate), mw300k",
-"scipoly059_poly(2-hydroxyethyl methacrylate), mw1m",
-scipoly060_poly(isobutyl methacrylate),
-"scipoly061_polyisoprene, chlorinated",
-"scipoly062_poly(methyl methacrylate), mw75k",
-"scipoly063_poly(methyl methacrylate), mw540k",
-scipoly064_poly(4-methyl-1-pentane),
-scipoly065_poly(p-phenylene-ether-sulphone),
-scipoly066_poly(phenylene sulfide),
+"scipoly055_poly(ethylene oxide), mw100k",poly(ethylene glycol)
+"scipoly056_poly(ethylene oxide), mw400k",poly(ethylene glycol)
+scipoly057_poly(ethyl methacrylate),poly(ethyl methacrylate)
+"scipoly058_poly(2-hydroxyethyl methacrylate), mw300k",poly(2-hydroxyethyl methacrylate)
+"scipoly059_poly(2-hydroxyethyl methacrylate), mw1m",poly(2-hydroxyethyl methacrylate)
+scipoly060_poly(isobutyl methacrylate),poly(isobutyl methacrylate)
+"scipoly061_polyisoprene, chlorinated","polydienes (butadienes, isoprenes)"
+"scipoly062_poly(methyl methacrylate), mw75k",poly(methyl methacrylate)
+"scipoly063_poly(methyl methacrylate), mw540k",poly(methyl methacrylate)
+scipoly064_poly(4-methyl-1-pentane),polyolefins (polyalkenes)
+scipoly065_poly(p-phenylene-ether-sulphone),polyethersulfones (polysulfone)
+scipoly066_poly(phenylene sulfide),poly(phenylene sulfide)
 "scipoly067_polypropylene, isotactic",
 "scipoly068_polystyrene, mw1.2k",
 "scipoly069_polystyrene, mw260k",
-"scipoly070_polystyrene sulfonate, sodium salt",
-scipoly071_polysulfone,
+"scipoly070_polystyrene sulfonate, sodium salt","polystyrenes (polyphenylethylenes, -methylstyrene)"
+scipoly071_polysulfone,polyethersulfones (polysulfone)
 scipoly072_poly(tetrafluoroethylene),
-"scipoly073_poly(2,4,6-tribromostyrene)",
-"scipoly074_poly(vinyl acetate), mw150k",
-"scipoly075_poly(vinyl acetate), mw500k",
-"scipoly076_poly(vinyl alcohol), 88p hydrolyzed",
-"scipoly077_poly(vinyl alcohol), 98p hydrolyzed",
-"scipoly078_poly(vinyl alcohol), 99p hydrolyzed",
-scipoly079_poly(vinyl butyral),
+"scipoly073_poly(2,4,6-tribromostyrene)",polyhalostyrenes
+"scipoly074_poly(vinyl acetate), mw150k",poly(vinyl acetate)
+"scipoly075_poly(vinyl acetate), mw500k",poly(vinyl acetate)
+"scipoly076_poly(vinyl alcohol), 88p hydrolyzed",poly(vinyl alcohol)
+"scipoly077_poly(vinyl alcohol), 98p hydrolyzed",poly(vinyl alcohol)
+"scipoly078_poly(vinyl alcohol), 99p hydrolyzed",poly(vinyl alcohol)
+scipoly079_poly(vinyl butyral),poly(vinyl butyral)
 scipoly080_poly(vinyl chloride),
 "scipoly081_poly(vinyl chloride), carboxylated",
 scipoly082_poly(vinylidene fluoride),
 "scipoly083_poly(4-vinylpyridine), linear",
 scipoly084_poly(4-vinylpyridine-co-styrene),
 scipoly085_polyvinylpyrrolidone,
-scipoly086_styrene-acrylonitrile (75-25) copolymer,
-scipoly087_styrene-acrylonitrile (68-32) copolymer,
+scipoly086_styrene-acrylonitrile (75-25) copolymer,styrene-acrylonitrile (san)
+scipoly087_styrene-acrylonitrile (68-32) copolymer,styrene-acrylonitrile (san)
 scipoly088_styrene-allyl alcohol copolymer,
-"scipoly089_styrene-butadiene copolymer, aba block",
+"scipoly089_styrene-butadiene copolymer, aba block",styrene-butadiene
 scipoly090_styrene-butyl methacrylate copolymer,
 "scipoly091_styrene-ethylene-butylene copolymer, aba",
-"scipoly092_styrene-isoprene copolymer, aba",
-scipoly093_styrene-maleic anhydride copolymer,
-scipoly094_styrene-maleic anhydride copolymer,
+"scipoly092_styrene-isoprene copolymer, aba",styrene-isoprene
+scipoly093_styrene-maleic anhydride copolymer,styrene-maleic
+scipoly094_styrene-maleic anhydride copolymer,styrene-maleic
 scipoly095_vinyl chloride-vinyl acetate copolymer,
 scipoly096_vinyl chloride-vinyl acetate copolymer,
 scipoly097_vinyl chloride-vinyl acetate-hydroxypropyl acr,
-scipoly098_vinylidene chloride-vinyl chloride copolymer,
+scipoly098_vinylidene chloride-vinyl chloride copolymer,polyhaloolefins (vinylhalides)
 scipoly099_n-vinylpyrrolidone-vinyl acetate (60-40) copol,
-"scipoly100_zein, purified",
+"scipoly100_zein, purified",organic matter
 scolecite,mineral
 scolecite__r040111-1__infrared__infrared_data_processed__358,mineral
 scolecite__r040111__raman__514__0__unoriented__raman_data_processed__9515,mineral
@@ -11521,131 +11521,131 @@ tetrawickmanite__r100003__raman__532__0__unoriented__raman_data_processed__33556
 tetrawickmanite__r100003__raman__780__0__unoriented__raman_data_processed__33558,mineral
 tf001_acetate satin,
 tf002_acetate tricot,
-tf003_spun viscose challis,
-tf004_black spun viscose challis,
-tf005_modal jersey 95 (lycra 5),
-tf006_80 nylon-20 lycra,
-tf007_nylon-spandex jersey,
-tf008_nylon 6 tricot,
-tf009_nylon 66 semi-dull taffeta,
-tf010_nylon 66 stretch fabric,
+tf003_spun viscose challis,organic matter
+tf004_black spun viscose challis,organic matter
+tf005_modal jersey 95 (lycra 5),organic matter
+tf006_80 nylon-20 lycra,polyamides
+tf007_nylon-spandex jersey,polyamides
+tf008_nylon 6 tricot,nylon 6 - poly(caprolactam)
+tf009_nylon 66 semi-dull taffeta,"nylon 6,6 - poly(hexamethylene adipamide)"
+tf010_nylon 66 stretch fabric,"nylon 6,6 - poly(hexamethylene adipamide)"
 tf011_nylon oxford bunting,
 tf012_81 nylon-19 lycra,
-tf013_bleached desized cotton print cloth,
-tf014_cotton print cloth,
-tf015_cotton print cloth,
-tf016_greige cotton print cloth,
-tf017_bleached cotton 10oz bull denim,
-tf018_bleached cotton 10oz bull denim,
-tf019_cotton interlock knit,
-tf020_cotton interlock knit,
-tf021_bleached cotton poplin,
-tf022_greige 4 cotton duck,
-tf023_greige 6 cotton duck,
-tf024_bleached cotton corduroy,
-tf025_bleached cotton broadcloth,
-tf026_black cotton boradcloth,
-"tf027_bleached, cotton terry cloth",
-"tf028_unbleached, cotton terry cloth",
-"tf029_bleached, cotton twill",
-tf030_bleached cotton flannel,
-tf031_unbleached cotton flannel,
-tf032_greige 10 cotton duck,
-tf033_bleached army carded cotton sateen,
-tf034_unbleached army carded cotton sateen,
-tf035_bleached combed cotton lawn,
-"tf036_bleached, combed cotton batiste",
-tf037_bleached cotton t-shirt fabric,
-tf038_black cotton t-shirt fabric,
-tf039_bleached cotton percale sheeting,
-tf040_unbleached cotton percale sheeting,
-tf041_bleached cotton organdy,
-tf042_bleached cotton velveteen,
-tf043_black cotton velveteen,
-tf044_bleached cotton boradcloth,
-tf045_ interlock sport shirt cotton knit,
-tf046_black combed cotton interlock knit,
-"tf047_scoured, unbleached cotton interlock knit",
-tf048_bleached lightweight cotton duck,
-tf049_unbleached lightweight cotton duck,
-"tf050_bleached, heavy cotton sail cloth",
-"tf051_unbleached, heavy cotton sail cloth",
-"tf052_desized, bleached army duck",
-"tf053_desized, unbleached army duck",
-tf054_greige 8 cotton duck,
-tf055_bleached cotton warp sateen,
-tf056_bleached cotton filling sateen,
-tf057_bleached cotton interlock lightweight knit,
-"tf058_desized, scoured, bleached cotton sheeting",
-tf059_unbleached cotton sheeting,
-"tf060_bleached, lightweight cotton twill",
-tf061_wool felt,
-"tf062_scoured, worsted wool flannel",
-tf063_scoured woolen flannel,
-tf064_wool jersey knit,
-"tf065_scoured, worsted wool gabardine",
-tf066_dyeable worsted wool challis,
-tf067_degummed silk crepe de chine,
-tf068_silk pongee,
-tf069_degummed silk shantung,
-tf070_degummed silk georgette,
-tf071_silk broadcloth,
-tf072_silk habutae,
-tf073_degummed silk charmeuse,
-tf074_degummed silk twill,
-tf075_degummed silk chiffon,
-tf076_degummed silk organza,
-tf077_silk taffeta,
-tf078_black silk noil,
-tf079_natural raw silk noil,
-tf080_bleached silk noil,
-tf081_spun polyester type 54,
-tf082_texturized polyester interlock knit,
-"tf083_polyester, texturized double knit jersey heat set",
-"tf084_polyester, double knit jersey not heat set",
-tf085_95 polyester-5 spandex jersey,
-tf086_polyester-cotton eco twill,
+tf013_bleached desized cotton print cloth,organic matter
+tf014_cotton print cloth,organic matter
+tf015_cotton print cloth,organic matter
+tf016_greige cotton print cloth,organic matter
+tf017_bleached cotton 10oz bull denim,organic matter
+tf018_bleached cotton 10oz bull denim,organic matter
+tf019_cotton interlock knit,organic matter
+tf020_cotton interlock knit,organic matter
+tf021_bleached cotton poplin,organic matter
+tf022_greige 4 cotton duck,organic matter
+tf023_greige 6 cotton duck,organic matter
+tf024_bleached cotton corduroy,organic matter
+tf025_bleached cotton broadcloth,organic matter
+tf026_black cotton boradcloth,organic matter
+"tf027_bleached, cotton terry cloth",organic matter
+"tf028_unbleached, cotton terry cloth",organic matter
+"tf029_bleached, cotton twill",organic matter
+tf030_bleached cotton flannel,organic matter
+tf031_unbleached cotton flannel,organic matter
+tf032_greige 10 cotton duck,organic matter
+tf033_bleached army carded cotton sateen,organic matter
+tf034_unbleached army carded cotton sateen,organic matter
+tf035_bleached combed cotton lawn,organic matter
+"tf036_bleached, combed cotton batiste",organic matter
+tf037_bleached cotton t-shirt fabric,organic matter
+tf038_black cotton t-shirt fabric,organic matter
+tf039_bleached cotton percale sheeting,organic matter
+tf040_unbleached cotton percale sheeting,organic matter
+tf041_bleached cotton organdy,organic matter
+tf042_bleached cotton velveteen,organic matter
+tf043_black cotton velveteen,organic matter
+tf044_bleached cotton boradcloth,organic matter
+tf045_ interlock sport shirt cotton knit,organic matter
+tf046_black combed cotton interlock knit,organic matter
+"tf047_scoured, unbleached cotton interlock knit",organic matter
+tf048_bleached lightweight cotton duck,organic matter
+tf049_unbleached lightweight cotton duck,organic matter
+"tf050_bleached, heavy cotton sail cloth",organic matter
+"tf051_unbleached, heavy cotton sail cloth",organic matter
+"tf052_desized, bleached army duck",organic matter
+"tf053_desized, unbleached army duck",organic matter
+tf054_greige 8 cotton duck,organic matter
+tf055_bleached cotton warp sateen,organic matter
+tf056_bleached cotton filling sateen,organic matter
+tf057_bleached cotton interlock lightweight knit,organic matter
+"tf058_desized, scoured, bleached cotton sheeting",organic matter
+tf059_unbleached cotton sheeting,organic matter
+"tf060_bleached, lightweight cotton twill",organic matter
+tf061_wool felt,organic matter
+"tf062_scoured, worsted wool flannel",organic matter
+tf063_scoured woolen flannel,organic matter
+tf064_wool jersey knit,organic matter
+"tf065_scoured, worsted wool gabardine",organic matter
+tf066_dyeable worsted wool challis,organic matter
+tf067_degummed silk crepe de chine,organic matter
+tf068_silk pongee,organic matter
+tf069_degummed silk shantung,organic matter
+tf070_degummed silk georgette,organic matter
+tf071_silk broadcloth,organic matter
+tf072_silk habutae,organic matter
+tf073_degummed silk charmeuse,organic matter
+tf074_degummed silk twill,organic matter
+tf075_degummed silk chiffon,organic matter
+tf076_degummed silk organza,organic matter
+tf077_silk taffeta,organic matter
+tf078_black silk noil,organic matter
+tf079_natural raw silk noil,organic matter
+tf080_bleached silk noil,organic matter
+tf081_spun polyester type 54,polyesters
+tf082_texturized polyester interlock knit,polyesters
+"tf083_polyester, texturized double knit jersey heat set",polyesters
+"tf084_polyester, double knit jersey not heat set",polyesters
+tf085_95 polyester-5 spandex jersey,polyesters
+tf086_polyester-cotton eco twill,polyesters
 tf087_65 polyester-35 cotton bleached broadcloth,
 tf088_65 polyester-35 cotton bleached broadcloth,
-tf089_50 polyester-50 cotton single knit jersey,
+tf089_50 polyester-50 cotton single knit jersey,polyesters
 tf090_bleached 65 polyester-35 cotton shirting,
 tf091_bleached 50 polyester-50 cotton interlock knit,
-tf092_50 polyester-50 cotton sheeting,
+tf092_50 polyester-50 cotton sheeting,polyesters
 tf093_92 bamboo-8 spandex jersey,
 tf094_92 bamboo-8 spandex dischargeable black jersey,
-tf095_silk-rayon velvet,
-tf096_silk-rayon velvet dischargeable black,
-tf097_92 cotton-8 lycra leotard fabric,
-tf098_92 cotton-8 lycra black leotard fabric,
-tf099_multi-filament dense polyester taffeta weave,
-tf100_polyester suede,
-tf101_polyester ultra sheer,
-tf102_firesafe polyester,
-tf103_polyester hercules,
-tf104_polyester duck,
-tf105_polyester gaming suede,
-tf106_polyester georgette,
-tf107_polyester silk,
-tf108_polyester poplin,
-tf109_polyester organza,
-tf110_dyed black polyester interlock knit,
-tf111_white polyester interlock knit,
-tf112_polyester georgette,
-tf113_polyester linen,
-tf114_polyester soft knit,
-tf115_polyester soft knit,
-tf116_88 polyester-12 lycra,
-tf117_linen canvas loomstate,
-tf118_linen canvas loomstate,
-"tf119_lighter weight linen canvas, loomstate",
-"tf120_lighter weight canvas linen, loomstate",
-tf121_linen suiting,
-tf122_linen suiting,
-tf123_linen suiting,
-tf124_handkerchief linen,
-tf125_unbleached handkerchief linen,
-tf126_56 cotton-44 linen blend,
-tf127_hemp suiting,
+tf095_silk-rayon velvet,organic matter
+tf096_silk-rayon velvet dischargeable black,organic matter
+tf097_92 cotton-8 lycra leotard fabric,organic matter
+tf098_92 cotton-8 lycra black leotard fabric,organic matter
+tf099_multi-filament dense polyester taffeta weave,polyester
+tf100_polyester suede,polyester
+tf101_polyester ultra sheer,polyester
+tf102_firesafe polyester,polyester
+tf103_polyester hercules,polyester
+tf104_polyester duck,polyester
+tf105_polyester gaming suede,polyester
+tf106_polyester georgette,polyester
+tf107_polyester silk,polyester
+tf108_polyester poplin,polyester
+tf109_polyester organza,polyester
+tf110_dyed black polyester interlock knit,polyester
+tf111_white polyester interlock knit,polyester
+tf112_polyester georgette,polyester
+tf113_polyester linen,polyester
+tf114_polyester soft knit,polyester
+tf115_polyester soft knit,polyester
+tf116_88 polyester-12 lycra,polyester
+tf117_linen canvas loomstate,organic matter
+tf118_linen canvas loomstate,organic matter
+"tf119_lighter weight linen canvas, loomstate",organic matter
+"tf120_lighter weight canvas linen, loomstate",organic matter
+tf121_linen suiting,organic matter
+tf122_linen suiting,organic matter
+tf123_linen suiting,organic matter
+tf124_handkerchief linen,organic matter
+tf125_unbleached handkerchief linen,organic matter
+tf126_56 cotton-44 linen blend,organic matter
+tf127_hemp suiting,organic matter
 tfmpp monohydrochloride (lot #gbfa016743),other material
 th-pvp hcl (lot #rm-160223-02),other material
 thaumasite,mineral
