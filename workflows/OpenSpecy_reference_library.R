@@ -74,7 +74,7 @@ libraries <- build_lib(
       fill_only = TRUE
     )
   ),
-  material_hierarchy = NULL,
+  material_hierarchy = material_hierarchy,
   clean_metadata_values = TRUE,
   prune = NULL
 )

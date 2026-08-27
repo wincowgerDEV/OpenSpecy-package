@@ -951,6 +951,24 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     "Thresholded Particles",
     { timeout: 300000, stableFor: 1500 }
   );
+  // Keep this hosted smoke bounded and explicit. Figure rendering is the
+  // expensive optional branch of this archive in single-threaded webR; the
+  // archive contract exercised here requires the two canonical CSV products.
+  const selectedParticleOutputs = new Set(["details", "summary"]);
+  const particleOutputNames = ["details", "processed", "summary", "figures"];
+  for (const outputName of particleOutputNames) {
+    await setShinyCheckbox(
+      appFrame.locator(
+        `#particle_outputs_selected input[value="${outputName}"]`
+      ),
+      selectedParticleOutputs.has(outputName)
+    );
+  }
+  await expect.poll(async () => appFrame.locator("#particle_outputs_selected")
+    .evaluate((group) => Array.from(
+      group.querySelectorAll('input[type="checkbox"]:checked')
+    ).map((input) => input.value))
+  ).toEqual(["details", "summary"]);
   const thresholdedParticles = await verifyNativeDownload({
     page,
     link: downloadLink,
@@ -958,11 +976,8 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     filenamePattern: /^Thresholded-Particles-.*\.zip$/i,
     contentTypePattern: /^application\/zip/i,
     expectedPrefix: Buffer.from("PK", "ascii"),
-    // The default archive renders several figures in single-threaded webR.
-    // Wait for that one authoritative browser download instead of timing out
-    // after 30 seconds and then rebuilding the same expensive ZIP as a probe.
     probeEndpoint: false,
-    eventTimeout: 300000,
+    eventTimeout: 120000,
     testInfo,
     runtimeDiagnostics,
   });

@@ -8874,9 +8874,9 @@ plc004_kn95 outer layer_pp,poly(propylene)
 plc005_safety glasses strap_pet,poly(ethylene terephthalate)
 plc006_safety glasses strap_rubber,other plastic
 plc007_kimwipe_cellulose,organic matter
-plc008_label tape_unknown,
-plc009_masking tape_cellulose+rubber,
-plc010_double-sided tape_pvc+acrylic,
+plc008_label tape_unknown,other plastic
+plc009_masking tape_cellulose+rubber,other plastic
+plc010_double-sided tape_pvc+acrylic,polyhaloolefins (vinylhalides)
 plc011_latex tubing_natural rubber,other plastic
 plc012_tygon tubing_tpe,other plastic
 plc013_wash bottle_ldpe,poly(ethylene)
@@ -9564,8 +9564,8 @@ pp_like,poly(propylene)
 pp_ref,poly(propylene)
 ppe,other plastic
 ppo,other plastic
-pppeb,
-pppeb_ref,
+pppeb,ethylene-propylene
+pppeb_ref,ethylene-propylene
 pps,other plastic
 pravadoline (lot #k8h81107),other material
 pregabalin (lot #aa0000010),other material
@@ -10482,48 +10482,48 @@ scipoly009_cellulose triacetate,cellulose derivatives (ether cellulose)
 "scipoly010_ethyl cellulose, viscosity 4cp",ethyl cellulose
 "scipoly011_ethyl cellulose, viscosity 22cp",ethyl cellulose
 "scipoly012_ethyl cellulose, viscosity 300cp",ethyl cellulose
-scipoly013_ethylene(85)-acrylic acid(15),
-scipoly014_ethylene(82)-ethyl acrylate(18),
-scipoly015_ethylene(88)-methacrylic acid(12),
+scipoly013_ethylene(85)-acrylic acid(15),poly(ethylene)
+scipoly014_ethylene(82)-ethyl acrylate(18),poly(ethylene)
+scipoly015_ethylene(88)-methacrylic acid(12),poly(ethylene)
 scipoly016_ethylene(86)-vinyl acetate(14),ethylene-vinyl acetate
 scipoly017_eva(18),ethylene-vinyl acetate
 scipoly018_eva(28),ethylene-vinyl acetate
 scipoly019_eva(33),ethylene-vinyl acetate
 scipoly020_eva(40),ethylene-vinyl acetate
 scipoly021_eva(45),ethylene-vinyl acetate
-scipoly022_ethylene-vinyl alcohol copolymer,
+scipoly022_ethylene-vinyl alcohol copolymer,poly(ethylene)
 scipoly023_hydroxyethyl cellulose,cellulose derivatives (ether cellulose)
 scipoly024_hydroxypropyl cellulose,cellulose derivatives (ether cellulose)
 scipoly025_hydroxypropyl methyl cellulose,cellulose derivatives (ether cellulose)
 scipoly026_methyl cellulose,methyl cellulose
-scipoly027_methyl vinyl ether-maleic acid copolymer,
-scipoly028_methyl vinyl ether-maleic anhydride copolyme,
+scipoly027_methyl vinyl ether-maleic acid copolymer,poly(methyl vinyl ether)
+scipoly028_methyl vinyl ether-maleic anhydride copolyme,poly(methyl vinyl ether)
 scipoly029_nylon 6 (polycaprolactam),nylon 6 - poly(caprolactam)
 "scipoly030_nylon 6,6","nylon 6,6 - poly(hexamethylene adipamide)"
 "scipoly031_nylon 6,12","nylon 6,12 - poly(hexamethylene dodecanediamide)"
 scipoly032_nylon 11,nylon 11 - poly(11-aminoundecanoic acid)
 scipoly033_nylon 12,nylon 12 - poly(dodecano-12-lactam)
 scipoly034_phenoxy resin,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)"
-scipoly035_polyacetal,
+scipoly035_polyacetal,polyacetal - polyoxymethylene
 scipoly036_polyacrylamide,poly(acrylamide)
-"scipoly037_polyacrylamide, carboxyl modified",
+"scipoly037_polyacrylamide, carboxyl modified",polyacrylamides
 "scipoly038_poly(acrylic acid), mw450k",poly(acrylic acid)
 "scipoly039_poly(acrylic acid), mw4m",poly(acrylic acid)
 scipoly040_polyacrylonitrile,poly(acrylonitrile)
-scipoly041_polyamide resin,
+scipoly041_polyamide resin,polyamides
 "scipoly042_poly(1-butene), isotactic",poly(butylene)
-scipoly043_poly(butylene terephthalate),
+scipoly043_poly(butylene terephthalate),poly(butylenes)
 scipoly044_poly(n-butyl methacrylate),poly(butyl methacrylate)
 scipoly045_polycaprolactone,poly(caprolactone)
-"scipoly046_polycarbonate, mw36k",
-"scipoly047_polycarbonate, mw45k",
+"scipoly046_polycarbonate, mw36k",polycarbonates
+"scipoly047_polycarbonate, mw45k",polycarbonates
 "scipoly048_poly(2,6-dimethyl-p-phenylene oxide)","poly(2,6-dimethyl-p-phenylene oxide)"
 "scipoly049_poly(4,4-dipropoxy-2,2-dipehnyl propane fum",polyesters
-scipoly050_polyethylene,
+scipoly050_polyethylene,polyethylene
 "scipoly051_polyethylene, chlorosulfonated",polyolefins (polyalkenes)
-"scipoly052_polyethylene, low density",
+"scipoly052_polyethylene, low density",polyethylene
 "scipoly053_polyethylene, oxidized",poly(ethylene)
-scipoly054_poly(ethylene glycol),
+scipoly054_poly(ethylene glycol),poly(ethylene glycol)
 "scipoly055_poly(ethylene oxide), mw100k",poly(ethylene glycol)
 "scipoly056_poly(ethylene oxide), mw400k",poly(ethylene glycol)
 scipoly057_poly(ethyl methacrylate),poly(ethyl methacrylate)
@@ -10536,12 +10536,12 @@ scipoly060_poly(isobutyl methacrylate),poly(isobutyl methacrylate)
 scipoly064_poly(4-methyl-1-pentane),polyolefins (polyalkenes)
 scipoly065_poly(p-phenylene-ether-sulphone),polyethersulfones (polysulfone)
 scipoly066_poly(phenylene sulfide),poly(phenylene sulfide)
-"scipoly067_polypropylene, isotactic",
-"scipoly068_polystyrene, mw1.2k",
-"scipoly069_polystyrene, mw260k",
+"scipoly067_polypropylene, isotactic",polypropylenes
+"scipoly068_polystyrene, mw1.2k",polystyrenes
+"scipoly069_polystyrene, mw260k",polystyrenes
 "scipoly070_polystyrene sulfonate, sodium salt","polystyrenes (polyphenylethylenes, -methylstyrene)"
 scipoly071_polysulfone,polyethersulfones (polysulfone)
-scipoly072_poly(tetrafluoroethylene),
+scipoly072_poly(tetrafluoroethylene),poly(tetrafluoroethylene)
 "scipoly073_poly(2,4,6-tribromostyrene)",polyhalostyrenes
 "scipoly074_poly(vinyl acetate), mw150k",poly(vinyl acetate)
 "scipoly075_poly(vinyl acetate), mw500k",poly(vinyl acetate)
@@ -10549,26 +10549,26 @@ scipoly072_poly(tetrafluoroethylene),
 "scipoly077_poly(vinyl alcohol), 98p hydrolyzed",poly(vinyl alcohol)
 "scipoly078_poly(vinyl alcohol), 99p hydrolyzed",poly(vinyl alcohol)
 scipoly079_poly(vinyl butyral),poly(vinyl butyral)
-scipoly080_poly(vinyl chloride),
-"scipoly081_poly(vinyl chloride), carboxylated",
-scipoly082_poly(vinylidene fluoride),
-"scipoly083_poly(4-vinylpyridine), linear",
-scipoly084_poly(4-vinylpyridine-co-styrene),
-scipoly085_polyvinylpyrrolidone,
+scipoly080_poly(vinyl chloride),polyhaloolefins (vinylhalides)
+"scipoly081_poly(vinyl chloride), carboxylated",polyhaloolefins (vinylhalides)
+scipoly082_poly(vinylidene fluoride),poly(vinylidenes)
+"scipoly083_poly(4-vinylpyridine), linear",poly(4-vinylpyridines)
+scipoly084_poly(4-vinylpyridine-co-styrene),poly(4-vinylpyridine-cos)
+scipoly085_polyvinylpyrrolidone,poly(vinyl pyrrolidone)
 scipoly086_styrene-acrylonitrile (75-25) copolymer,styrene-acrylonitrile (san)
 scipoly087_styrene-acrylonitrile (68-32) copolymer,styrene-acrylonitrile (san)
-scipoly088_styrene-allyl alcohol copolymer,
+scipoly088_styrene-allyl alcohol copolymer,polystyrenes
 "scipoly089_styrene-butadiene copolymer, aba block",styrene-butadiene
-scipoly090_styrene-butyl methacrylate copolymer,
-"scipoly091_styrene-ethylene-butylene copolymer, aba",
+scipoly090_styrene-butyl methacrylate copolymer,polystyrenes
+"scipoly091_styrene-ethylene-butylene copolymer, aba",polystyrenes
 "scipoly092_styrene-isoprene copolymer, aba",styrene-isoprene
 scipoly093_styrene-maleic anhydride copolymer,styrene-maleic
 scipoly094_styrene-maleic anhydride copolymer,styrene-maleic
-scipoly095_vinyl chloride-vinyl acetate copolymer,
-scipoly096_vinyl chloride-vinyl acetate copolymer,
-scipoly097_vinyl chloride-vinyl acetate-hydroxypropyl acr,
+scipoly095_vinyl chloride-vinyl acetate copolymer,polyhaloolefins (vinylhalides)
+scipoly096_vinyl chloride-vinyl acetate copolymer,polyhaloolefins (vinylhalides)
+scipoly097_vinyl chloride-vinyl acetate-hydroxypropyl acr,polyhaloolefins (vinylhalides)
 scipoly098_vinylidene chloride-vinyl chloride copolymer,polyhaloolefins (vinylhalides)
-scipoly099_n-vinylpyrrolidone-vinyl acetate (60-40) copol,
+scipoly099_n-vinylpyrrolidone-vinyl acetate (60-40) copol,poly(vinyl pyrrolidone)
 "scipoly100_zein, purified",organic matter
 scolecite,mineral
 scolecite__r040111-1__infrared__infrared_data_processed__358,mineral
@@ -11519,8 +11519,8 @@ tetrahydrofuran fentanyl hcl (lot #0497941-14),other material
 tetrawickmanite,mineral
 tetrawickmanite__r100003__raman__532__0__unoriented__raman_data_processed__33556,mineral
 tetrawickmanite__r100003__raman__780__0__unoriented__raman_data_processed__33558,mineral
-tf001_acetate satin,
-tf002_acetate tricot,
+tf001_acetate satin,cellulose acetate
+tf002_acetate tricot,cellulose acetate
 tf003_spun viscose challis,organic matter
 tf004_black spun viscose challis,organic matter
 tf005_modal jersey 95 (lycra 5),organic matter
@@ -11529,8 +11529,8 @@ tf007_nylon-spandex jersey,polyamides
 tf008_nylon 6 tricot,nylon 6 - poly(caprolactam)
 tf009_nylon 66 semi-dull taffeta,"nylon 6,6 - poly(hexamethylene adipamide)"
 tf010_nylon 66 stretch fabric,"nylon 6,6 - poly(hexamethylene adipamide)"
-tf011_nylon oxford bunting,
-tf012_81 nylon-19 lycra,
+tf011_nylon oxford bunting,polyamides
+tf012_81 nylon-19 lycra,polyamides
 tf013_bleached desized cotton print cloth,organic matter
 tf014_cotton print cloth,organic matter
 tf015_cotton print cloth,organic matter
@@ -11605,14 +11605,14 @@ tf082_texturized polyester interlock knit,polyesters
 "tf084_polyester, double knit jersey not heat set",polyesters
 tf085_95 polyester-5 spandex jersey,polyesters
 tf086_polyester-cotton eco twill,polyesters
-tf087_65 polyester-35 cotton bleached broadcloth,
-tf088_65 polyester-35 cotton bleached broadcloth,
+tf087_65 polyester-35 cotton bleached broadcloth,polyesters
+tf088_65 polyester-35 cotton bleached broadcloth,polyesters
 tf089_50 polyester-50 cotton single knit jersey,polyesters
-tf090_bleached 65 polyester-35 cotton shirting,
-tf091_bleached 50 polyester-50 cotton interlock knit,
+tf090_bleached 65 polyester-35 cotton shirting,polyesters
+tf091_bleached 50 polyester-50 cotton interlock knit,polyesters
 tf092_50 polyester-50 cotton sheeting,polyesters
-tf093_92 bamboo-8 spandex jersey,
-tf094_92 bamboo-8 spandex dischargeable black jersey,
+tf093_92 bamboo-8 spandex jersey,organic matter
+tf094_92 bamboo-8 spandex dischargeable black jersey,organic matter
 tf095_silk-rayon velvet,organic matter
 tf096_silk-rayon velvet dischargeable black,organic matter
 tf097_92 cotton-8 lycra leotard fabric,organic matter

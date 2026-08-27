@@ -712,11 +712,26 @@ test_that("hosted deployment exports the exact current bundled app", {
                         smoke, fixed = TRUE)))
   expect_true(any(grepl('expectedPrefix: Buffer.from("PK", "ascii")',
                         smoke, fixed = TRUE)))
+  particle_outputs <- grep(
+    'const selectedParticleOutputs = new Set(["details", "summary"])',
+    smoke, fixed = TRUE
+  )
+  particle_output_names <- grep(
+    'const particleOutputNames = ["details", "processed", "summary", "figures"]',
+    smoke, fixed = TRUE
+  )
+  thresholded_label <- grep('label: "Thresholded Particles"', smoke,
+                            fixed = TRUE)
+  expect_length(particle_outputs, 1L)
+  expect_length(particle_output_names, 1L)
+  expect_length(thresholded_label, 1L)
+  expect_lt(particle_outputs, thresholded_label)
+  expect_lt(particle_output_names, thresholded_label)
   thresholded_call <- smoke[grep('label: "Thresholded Particles"', smoke,
                                  fixed = TRUE)[1L] + 0:12]
   expect_true(any(grepl("probeEndpoint: false", thresholded_call,
                         fixed = TRUE)))
-  expect_true(any(grepl("eventTimeout: 300000", thresholded_call,
+  expect_true(any(grepl("eventTimeout: 120000", thresholded_call,
                         fixed = TRUE)))
   expect_true(any(grepl('toContain("particle_summary.csv")', smoke,
                         fixed = TRUE)))
