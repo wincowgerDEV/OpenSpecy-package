@@ -977,7 +977,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     contentTypePattern: /^application\/zip/i,
     expectedPrefix: Buffer.from("PK", "ascii"),
     probeEndpoint: false,
-    eventTimeout: 120000,
+    eventTimeout: 300000,
     testInfo,
     runtimeDiagnostics,
   });

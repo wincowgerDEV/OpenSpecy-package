@@ -8,6 +8,17 @@ app_wasm_mode <- function() {
     env %in% c("1", "true", "yes", "on")
 }
 
+# Keep the local filesystem picker available without advertising shinyFiles to
+# Shinylive's static dependency scanner. The package is required by run_app()
+# for local sessions and this resolver is never called in WebAssembly mode.
+app_shiny_files <- function(name) {
+  if(app_wasm_mode()) {
+    stop("Local filesystem controls are unavailable in WebAssembly mode.",
+         call. = FALSE)
+  }
+  getExportedValue("shinyFiles", name)
+}
+
 validate_wasm_package_version <- function() {
   if (!app_wasm_mode()) return(invisible(TRUE))
 

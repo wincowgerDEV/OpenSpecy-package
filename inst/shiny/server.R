@@ -496,14 +496,14 @@ stage_selected_files <- function(file_info, mounted = FALSE) {
 
 if(!app_wasm_mode()) {
   local_roots <- app_local_roots()
-  shinyFiles::shinyFileChoose(
+  app_shiny_files("shinyFileChoose")(
     input, "local_files", roots = local_roots, session = session,
     filetypes = c("csv", "asp", "tsv", "spc", "jdx", "dx", "RData",
                   "spa", "0", "zip", "img", "h5", "txt", "json", "rds",
                   "hdr", "dat")
   )
   observeEvent(input$local_files, {
-    parsed <- shinyFiles::parseFilePaths(local_roots, input$local_files)
+    parsed <- app_shiny_files("parseFilePaths")(local_roots, input$local_files)
     file_info <- tryCatch(app_local_file_info(parsed, local_roots),
                           error = identity)
     if(inherits(file_info, "error")) {

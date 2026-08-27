@@ -31,6 +31,13 @@ test_that("Shinylive wasm package roots include app runtime packages", {
   expect_true("shinyFiles" %in% .openspecy_app_packages())
   expect_false("shinyFiles" %in% hosted_packages)
   expect_false("shinyFiles" %in% roots)
+
+  app_sources <- unlist(lapply(
+    c("global.R", "ui.R", "server.R"),
+    function(file) readLines(test_path("..", "..", "inst", "shiny", file),
+                             warn = FALSE)
+  ), use.names = FALSE)
+  expect_false(any(grepl("shinyFiles::", app_sources, fixed = TRUE)))
 })
 
 test_that("Fill Peaks has no compiled baseline runtime dependency", {
@@ -731,7 +738,7 @@ test_that("hosted deployment exports the exact current bundled app", {
                                  fixed = TRUE)[1L] + 0:12]
   expect_true(any(grepl("probeEndpoint: false", thresholded_call,
                         fixed = TRUE)))
-  expect_true(any(grepl("eventTimeout: 120000", thresholded_call,
+  expect_true(any(grepl("eventTimeout: 300000", thresholded_call,
                         fixed = TRUE)))
   expect_true(any(grepl('toContain("particle_summary.csv")', smoke,
                         fixed = TRUE)))

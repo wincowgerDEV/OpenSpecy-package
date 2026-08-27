@@ -1343,7 +1343,7 @@ dashboardPage(
             )
           } else {
             tagList(
-              shinyFiles::shinyFilesButton(
+              app_shiny_files("shinyFilesButton")(
                 "local_files", "Select spectra", "Select local spectral files",
                 multiple = TRUE,
                 class = "btn btn-default action-button openspecy-local-files"
