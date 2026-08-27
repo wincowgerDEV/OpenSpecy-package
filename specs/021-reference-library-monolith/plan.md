@@ -42,11 +42,11 @@
 
 ## Package Surfaces And Work Checklist
 
-- [ ] `R/build_lib.R`: implement official/custom modes, canonical pre-join harmonization, all current workflow stages, bundle/model-test/assessment contracts, delegated progress, manifest-validated `reuse`, component checkpoints/promotion, and compatibility shims; touch `R/match_spec.R`/`R/manage_lib.R` only if consumers require it.
-- [ ] `workflows/OpenSpecy_reference_library.R` and `workflows/data/classes_{reference,regex}.csv`: reduce the script to setup plus one default `build_lib()` call and migrate exact-only regex rows with curation audit.
-- [ ] `tests/testthat/test-build_lib.R`: cover tiny end-to-end bundle shape, default-path resolution without real writes/downloads, pre-join coalescing/conflicts, removal/deprecation of `fallback_by`, filters/drops, progress/quiet behavior, model `tests`, assessments, atomic outputs, alignment/attributes, and legacy filenames; keep network/long tests guarded.
-- [ ] `benchmarks/reference_library_validation.R`: retain the prior straight-line workflow as comparison evidence; add the seeded 1,000-spectrum internal probe, leakage checks, and a separately guarded full old/new 10% reference/model evaluation with `assess_spec` deltas, compatibility tables, and runtime/memory reporting.
-- [ ] `vignettes/library-builder.Rmd`, workflow diagram, `NEWS.md`, roxygen/generated docs: visually document every build/checkpoint/assessment branch plus the one-call workflow, return schema, progress, reuse invalidation, assessment interpretation, split limitations, custom composition, and breaking/deprecated fields. `DESCRIPTION` stays unchanged absent an unavoidable dependency; `.github/workflows/`, `inst/`, `site/`, README, and pkgdown sources stay unchanged.
+- [x] `R/build_lib.R`: implement official/custom modes, canonical pre-join harmonization, all current workflow stages, bundle/model-test/assessment contracts, delegated progress, manifest-validated `reuse`, component checkpoints/promotion, and compatibility shims.
+- [x] `workflows/OpenSpecy_reference_library.R` and `workflows/data/classes_{reference,regex}.csv`: reduce the script to setup plus one default `build_lib()` call and migrate exact-only regex rows with curation audit.
+- [x] `tests/testthat/test-build_lib.R`: cover end-to-end shape, path resolution, coalescing/conflicts, `fallback_by` deprecation, filters/drops, progress, model tests, assessments, atomic outputs, alignment, attributes, and legacy filenames; keep long/network tests guarded.
+- [x] `benchmarks/reference_library_validation.R`: retain saved-build comparison evidence; add the seeded 1,000-spectrum internal probe, leakage checks, and guarded full old/new 10% evaluation with `assess_spec` deltas and compatibility tables.
+- [x] `vignettes/library-builder.Rmd`, `.specify/memory/build-lib-diagram.html`, `NEWS.md`, roxygen/generated docs: document every build/checkpoint/assessment branch, the one-call workflow, return schema, progress, reuse invalidation, assessment interpretation, split limitations, custom composition, and migrations.
 
 ## Verification
 
@@ -63,5 +63,5 @@
 
 ## Approval Notes
 
-- Approved by:
-- Follow-up:
+- Approved by: user implementation request, 2026-08-27.
+- Follow-up: run the guarded complete seven-artifact assessment and R CMD check before publishing a release.

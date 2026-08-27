@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OpenSpecy Reference Library Build</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='78' font-size='80'%3E%F0%9F%A7%AA%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg:#f2f5f7; --surface:#fff; --surface-2:#eaeff3; --text:#182129;
+    --muted:#55636f; --border:#d3dbe1; --edge:#8fa0ac; --edge-alt:#a8763f;
+    --input:#0d6f78; --input-bg:#e0f3f1; --input-border:#a9dcd8;
+    --function:#2f4f9e; --function-bg:#e7ecfb; --function-border:#b9c7f2;
+    --decision:#92620a; --decision-bg:#fbf0d9; --decision-border:#edcf97;
+    --output:#9c2f68; --output-bg:#fbe6f0; --output-border:#f0bdd7;
+    --assessment:#1c7a3e; --assessment-bg:#e1f5e6; --assessment-border:#a9dfb8;
+    --tip-bg:#182129; --tip-text:#eef2f5; --shadow:0 1px 2px rgba(24,33,41,.06),0 6px 16px rgba(24,33,41,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#12171c; --surface:#1a2129; --surface-2:#202a33; --text:#e9eef2;
+      --muted:#9fb0bc; --border:#33424f; --edge:#62727e; --edge-alt:#c99a5f;
+      --input:#5fd6cd; --input-bg:#123330; --input-border:#1f5f58;
+      --function:#92aaf5; --function-bg:#1c2748; --function-border:#33438a;
+      --decision:#f0c05a; --decision-bg:#3a2e12; --decision-border:#7a5a1c;
+      --output:#f28fbb; --output-bg:#3a1c2b; --output-border:#7a3559;
+      --assessment:#6fe097; --assessment-bg:#123420; --assessment-border:#276b45;
+      --tip-bg:#eef2f5; --tip-text:#182129; --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 24px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#12171c; --surface:#1a2129; --surface-2:#202a33; --text:#e9eef2;
+    --muted:#9fb0bc; --border:#33424f; --edge:#62727e; --edge-alt:#c99a5f;
+    --input:#5fd6cd; --input-bg:#123330; --input-border:#1f5f58;
+    --function:#92aaf5; --function-bg:#1c2748; --function-border:#33438a;
+    --decision:#f0c05a; --decision-bg:#3a2e12; --decision-border:#7a5a1c;
+    --output:#f28fbb; --output-bg:#3a1c2b; --output-border:#7a3559;
+    --assessment:#6fe097; --assessment-bg:#123420; --assessment-border:#276b45;
+    --tip-bg:#eef2f5; --tip-text:#182129; --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 24px rgba(0,0,0,.45);
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif; }
+  code,.mono { font-family:"IBM Plex Mono",ui-monospace,monospace; }
+  header.page,footer.page { max-width:1200px; margin:0 auto; padding:40px 24px 8px; }
+  header.page .eyebrow { font:12px "IBM Plex Mono",monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
+  header.page h1 { font-size:28px; line-height:1.25; margin:0 0 12px; font-weight:700; }
+  header.page p,footer.page { font-size:14px; line-height:1.6; color:var(--muted); }
+  header.page .rule { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin:18px 0 6px; }
+  section.legend { max-width:1200px; margin:22px auto 8px; padding:0 24px; display:flex; flex-wrap:wrap; gap:10px 22px; }
+  .legend-item { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+  .swatch { width:18px; height:18px; border-radius:4px; border:1.5px solid; }
+  .swatch.input { background:var(--input-bg); border-color:var(--input-border); }
+  .swatch.function { background:var(--function-bg); border-color:var(--function-border); }
+  .swatch.decision { background:var(--decision-bg); border-color:var(--decision-border); transform:rotate(45deg); border-radius:2px; }
+  .swatch.output { background:var(--output-bg); border-color:var(--output-border); }
+  .swatch.assessment { background:var(--assessment-bg); border-color:var(--assessment-border); }
+  .legend-line { width:26px; border-top:2px solid var(--edge); }
+  .legend-line.alt { border-top:2px dashed var(--edge-alt); }
+  .canvas-scroll { max-width:1200px; margin:14px auto 0; padding:0 24px; }
+  .viewer-hint { font-size:12.5px; color:var(--muted); margin:0 0 8px; }
+  .viewer { position:relative; height:min(78vh,880px); overflow:hidden; border:1px solid var(--border); border-radius:12px; background:var(--surface); box-shadow:var(--shadow); cursor:grab; touch-action:none; }
+  .viewer.grabbing { cursor:grabbing; }
+  .zoom-controls { position:absolute; top:12px; right:12px; z-index:1000; display:flex; flex-direction:column; gap:6px; }
+  .zoom-controls button { width:34px; height:34px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; box-shadow:var(--shadow); }
+  .zoom-layer { position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; }
+  .canvas { position:relative; width:1800px; height:2750px; }
+  .canvas svg { position:absolute; inset:0; z-index:0; overflow:visible; }
+  .canvas svg path { fill:none; stroke:var(--edge); stroke-width:2; }
+  .canvas svg .alt { stroke:var(--edge-alt); stroke-dasharray:7 5; }
+  .canvas svg text { font:11px "IBM Plex Mono",monospace; fill:var(--muted); }
+  .lane { fill:var(--surface-2); fill-opacity:.25; stroke:var(--border); stroke-width:1.5; stroke-dasharray:8 6; rx:18; }
+  .lane-label { font-size:13px!important; font-weight:600!important; letter-spacing:.04em; }
+  .node { position:absolute; transform:translate(-50%,-50%); z-index:2; width:250px; min-height:86px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border-radius:10px; border:1.5px solid; padding:10px 14px; font-size:13px; line-height:1.3; font-weight:600; cursor:help; }
+  .node .sub { font:10.5px "IBM Plex Mono",monospace; font-weight:500; margin-top:5px; opacity:.82; }
+  .node.input { color:var(--input); background:var(--input-bg); border-color:var(--input-border); }
+  .node.function { color:var(--function); background:var(--function-bg); border-color:var(--function-border); }
+  .node.decision { color:var(--decision); background:var(--decision-bg); border-color:var(--decision-border); }
+  .node.output { color:var(--output); background:var(--output-bg); border-color:var(--output-border); }
+  .node.assessment { color:var(--assessment); background:var(--assessment-bg); border-color:var(--assessment-border); }
+  .node.checkpoint { border-style:dashed; }
+  .tip { display:none; position:absolute; left:50%; bottom:calc(100% + 9px); transform:translateX(-50%); width:310px; padding:10px 12px; border-radius:7px; background:var(--tip-bg); color:var(--tip-text); font-size:11px; line-height:1.45; font-weight:400; text-align:left; box-shadow:var(--shadow); z-index:100; }
+  .node:hover { z-index:50; }
+  .node:hover .tip,.node:focus .tip { display:block; }
+  footer.page { padding-top:18px; padding-bottom:40px; }
+</style>
+</head>
+<body>
+<header class="page">
+  <p class="eyebrow">OpenSpecy project memory · reference-library workflow</p>
+  <h1><code>build_lib()</code>: source data to release and assessments</h1>
+  <p>This canonical visual companion follows the default build, restart-safe checkpoints, and full old/new validation. Hover a box for details; pan and zoom to follow the flow.</p>
+  <p class="rule"><strong>Default contract:</strong> one <code>build_lib()</code> call returns <code>libraries</code>, <code>medoids</code>, <code>models</code>, and <code>assessments</code>. The 1,000-spectrum sample is a development probe only; official assessment uses complete candidate and legacy artifacts.</p>
+</header>
+<section class="legend" aria-label="Diagram legend">
+  <div class="legend-item"><span class="swatch input"></span>input or path</div><div class="legend-item"><span class="swatch function"></span>transformation</div><div class="legend-item"><span class="swatch decision"></span>branch</div><div class="legend-item"><span class="swatch output"></span>artifact/checkpoint</div><div class="legend-item"><span class="swatch assessment"></span>assessment</div><div class="legend-item"><span class="legend-line"></span>build flow</div><div class="legend-item"><span class="legend-line alt"></span>reuse/comparison</div>
+</section>
+<div class="canvas-scroll"><p class="viewer-hint">Drag to pan · scroll or use controls to zoom · hover boxes for detail</p><div class="viewer" id="viewer"><div class="zoom-controls"><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomReset" aria-label="Fit diagram">Fit</button></div><div class="zoom-layer" id="zoomLayer"><div class="canvas" id="canvas">
+<svg width="1800" height="2750" viewBox="0 0 1800 2750" aria-hidden="true">
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--edge);stroke:none"></path></marker><marker id="arrowAlt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--edge-alt);stroke:none"></path></marker></defs>
+  <rect class="lane" x="70" y="35" width="420" height="650"></rect><text class="lane-label" x="90" y="65">ENTRY MODES</text>
+  <rect class="lane" x="535" y="35" width="790" height="1635"></rect><text class="lane-label" x="555" y="65">OFFICIAL BUILD</text>
+  <rect class="lane" x="70" y="1720" width="1260" height="720"></rect><text class="lane-label" x="90" y="1750">BUILT ARTIFACTS</text>
+  <rect class="lane" x="1370" y="620" width="370" height="1820"></rect><text class="lane-label" x="1390" y="650">FULL ASSESSMENT</text>
+  <rect class="lane" x="360" y="2480" width="1080" height="220"></rect><text class="lane-label" x="380" y="2510">PROMOTION AND RETURN</text>
+  <path d="M280 160 L280 235" marker-end="url(#arrow)"></path><path d="M280 325 L280 435" marker-end="url(#arrow)"></path>
+  <path d="M405 280 C520 280 570 150 730 150" marker-end="url(#arrow)"></path><text x="455" y="263">official</text>
+  <path d="M855 195 L855 260" marker-end="url(#arrow)"></path><path d="M855 350 L855 420" marker-end="url(#arrow)"></path><path d="M855 510 L855 580" marker-end="url(#arrow)"></path>
+  <path class="alt" d="M730 625 C620 625 620 760 730 760" marker-end="url(#arrowAlt)"></path><text x="615" y="695">compatible checkpoint</text>
+  <path d="M980 625 C1110 625 1110 760 980 760" marker-end="url(#arrow)"></path><text x="1085" y="695">rebuild</text>
+  <path d="M855 805 L855 870" marker-end="url(#arrow)"></path><path d="M855 960 L855 1025" marker-end="url(#arrow)"></path><path d="M855 1115 L855 1180" marker-end="url(#arrow)"></path><path d="M855 1270 L855 1335" marker-end="url(#arrow)"></path><path d="M855 1425 L855 1490" marker-end="url(#arrow)"></path><path d="M855 1580 L855 1780" marker-end="url(#arrow)"></path>
+  <path class="alt" d="M730 760 C610 860 610 1620 730 1825" marker-end="url(#arrowAlt)"></path>
+  <path d="M855 1870 C730 1900 400 1900 330 1970" marker-end="url(#arrow)"></path><path d="M855 1870 L760 1970" marker-end="url(#arrow)"></path><path d="M855 1870 C980 1900 1130 1900 1190 1970" marker-end="url(#arrow)"></path>
+  <path d="M760 2060 L650 2130" marker-end="url(#arrow)"></path><path d="M1190 2060 L1050 2130" marker-end="url(#arrow)"></path><path d="M650 2220 L650 2290" marker-end="url(#arrow)"></path><path d="M1050 2220 L1050 2290" marker-end="url(#arrow)"></path>
+  <path class="alt" d="M855 465 C1250 465 1350 705 1435 755" marker-end="url(#arrowAlt)"></path><path d="M1560 800 L1560 885" marker-end="url(#arrow)"></path><path d="M1560 975 L1560 1060" marker-end="url(#arrow)"></path>
+  <path d="M1315 2015 C1390 2015 1405 1150 1435 1150" marker-end="url(#arrow)"></path><path d="M1560 1195 L1560 1280" marker-end="url(#arrow)"></path><path d="M1560 1370 L1560 1455" marker-end="url(#arrow)"></path><path d="M1560 1545 L1560 1630" marker-end="url(#arrow)"></path><path d="M1560 1720 L1560 1805" marker-end="url(#arrow)"></path><path d="M1560 1895 L1560 1980" marker-end="url(#arrow)"></path><path d="M1560 2070 L1560 2155" marker-end="url(#arrow)"></path>
+  <path d="M855 2375 L855 2525" marker-end="url(#arrow)"></path><path d="M1435 2200 C1270 2290 1180 2490 1030 2565" marker-end="url(#arrow)"></path><path d="M905 2610 L905 2640" marker-end="url(#arrow)"></path>
+</svg>
+<div class="node input" style="left:280px;top:115px">Call <code>build_lib()</code><div class="sub">one public entry point</div><div class="tip">The official workflow script now contains setup plus one default call. Advanced callers can still supply an OpenSpecy object and named stage arguments.</div></div>
+<div class="node decision" style="left:280px;top:280px">Official end-to-end mode?<div class="sub">x omitted or output_dir supplied</div><div class="tip">Omitting x selects source discovery and the whole official workflow. Supplying x with no output directory preserves composable library-only behavior.</div></div>
+<div class="node function" style="left:280px;top:480px">Composable custom build<div class="sub">named recipe OpenSpecy objects</div><div class="tip">The compatibility path applies requested normalization, lookups, filters, deduplication, processing, and pruning without official release side effects.</div></div>
+<div class="node input" style="left:855px;top:150px">Resolve default paths<div class="sub">data · source · workflow · output · legacy</div><div class="tip">Environment-aware defaults live in the function signature. Explicit arguments override all path locations.</div></div>
+<div class="node function" style="left:855px;top:305px">Fingerprint build contract<div class="sub">files + checksums + args + package + code</div><div class="tip">A deterministic signature covers inputs relevant to safe restart. Any changed source, lookup, argument, package contract, or builder code invalidates downstream reuse.</div></div>
+<div class="node decision" style="left:855px;top:465px"><code>reuse = TRUE</code> and manifest matches?<div class="sub">stage-by-stage decision</div><div class="tip">Only completed artifacts with compatible signatures are reused. reuse = FALSE forces every stage to rebuild.</div></div>
+<div class="node output checkpoint" style="left:730px;top:760px">Load completed checkpoint<div class="sub">status = reused</div><div class="tip">Libraries, each medoid/model, split/evaluation results, and assessments have independent restart points.</div></div>
+<div class="node function" style="left:980px;top:760px">Discover, read, and merge sources<div class="sub">raw + processed spectra</div><div class="tip">Source discovery, joining, axis alignment, and intensity conversion report elapsed time and before/after counts.</div></div>
+<div class="node function" style="left:855px;top:915px">Standardize and coalesce metadata<div class="sub">canonical internal values first</div><div class="tip">Populated canonical values win; reviewed aliases such as user_name fill only blanks before external joins. Fills and conflicts are reported.</div></div>
+<div class="node function" style="left:855px;top:1070px">Exact curated joins<div class="sub">classes_reference + library_types</div><div class="tip">Exact class and canonical organization lookups run first. fallback_by is not used officially and is deprecated in general lookup specifications.</div></div>
+<div class="node function" style="left:855px;top:1225px">Regex completion and hierarchy<div class="sub">only unresolved classes</div><div class="tip">Variable regex rules fill blanks only and report overlaps/unmatched values. Literal-only rules live in classes_reference.csv. Hierarchy follows classification.</div></div>
+<div class="node function" style="left:855px;top:1380px">Identity cleanup, exclusions, dedupe<div class="sub">audited row decisions</div><div class="tip">Stable identities are cleaned, excluded IDs removed, duplicate spectra resolved, and counts captured for assessments.</div></div>
+<div class="node function" style="left:855px;top:1535px">Build three recipes<div class="sub">raw · derivative · nobaseline</div><div class="tip">Canonical aligned OpenSpecy objects feed each recipe with progress and preserved metadata/attributes.</div></div>
+<div class="node function" style="left:855px;top:1660px">Prune and apply final policies<div class="sub">classes · superseded · filters · drops · rounding</div><div class="tip">Every pruning pool/class reports progress. Superseded and one-off filters, metadata drops, coverage checks, and rounding are builder-owned.</div></div>
+<div class="node output checkpoint" style="left:855px;top:1825px">Library checkpoints<div class="sub">atomic component exports</div><div class="tip">Every completed library is written atomically before downstream work begins, limiting loss on long-run failure.</div></div>
+<div class="node output" style="left:330px;top:2015px">Raw library<div class="sub">libraries$raw</div><div class="tip">Canonical classified reference spectra before derivative or baseline-removal processing.</div></div>
+<div class="node output" style="left:760px;top:2015px">Derivative library<div class="sub">libraries$derivative</div><div class="tip">Pruned derivative spectra and metadata.</div></div>
+<div class="node output" style="left:1190px;top:2015px">No-baseline library<div class="sub">libraries$nobaseline</div><div class="tip">Pruned baseline-removed spectra and metadata.</div></div>
+<div class="node output checkpoint" style="left:650px;top:2175px">Derivative medoids<div class="sub">medoids$derivative</div><div class="tip">Class/type medoid selection is checkpointed when complete.</div></div>
+<div class="node output checkpoint" style="left:1050px;top:2175px">No-baseline medoids<div class="sub">medoids$nobaseline</div><div class="tip">Class/type medoid selection is checkpointed when complete.</div></div>
+<div class="node output checkpoint" style="left:650px;top:2335px">Derivative models<div class="sub">both · FTIR · Raman</div><div class="tip">Each available model is checkpointed independently and keeps one tidy tests table plus inference fields.</div></div>
+<div class="node output checkpoint" style="left:1050px;top:2335px">No-baseline models<div class="sub">both · FTIR · Raman</div><div class="tip">Unavailable technique models become reviewable warnings without obscuring completed work.</div></div>
+<div class="node input" style="left:1560px;top:755px">Load seven legacy artifacts<div class="sub">get_lib-compatible files</div><div class="tip">Complete raw, derivative, nobaseline, both medoid, and both model artifacts are loaded or retrieved.</div></div>
+<div class="node assessment" style="left:1560px;top:930px">Compatibility inventory<div class="sub">IDs · axes · metadata · counts · shape</div><div class="tip">Candidate and legacy artifacts are compared for identifiers, axes, metadata, classes, techniques, warnings, and object validity.</div></div>
+<div class="node assessment" style="left:1560px;top:1110px">Combined grouped 90/10 split<div class="sub">stable current or legacy content identity</div><div class="tip">A seeded split uses the complete combined population. sample_name_old links rebuilt spectra to legacy identities so the same spectrum cannot cross train/test.</div></div>
+<div class="node assessment" style="left:1560px;top:1325px">Reference holdout identification<div class="sub">test 10% against each source's 90%</div><div class="tip">Test groups are removed before correlation matching, preventing exact self-matches. Results retain per-spectrum class and score.</div></div>
+<div class="node assessment" style="left:1560px;top:1500px">Model holdout identification<div class="sub">new models retrained on 90%</div><div class="tip">Candidate models train only on matching training references. Legacy model results are labeled compatibility evidence because original training membership is unknown.</div></div>
+<div class="node assessment" style="left:1560px;top:1675px"><code>assess_spec(report = "all")</code><div class="sub">chunked across complete artifacts</div><div class="tip">Per-check/status counts, findings, rates, examples, and unavailable checks are summarized across full old/new artifacts.</div></div>
+<div class="node assessment" style="left:1560px;top:1850px">Old → new shifts<div class="sub">absolute + relative rates</div><div class="tip">Quality-check shifts and identification summaries remain interpretable by technique, class, artifact, and source.</div></div>
+<div class="node output checkpoint" style="left:1560px;top:2025px">Assessment checkpoints<div class="sub">split · reference · model · assess_spec</div><div class="tip">Long comparison components are saved independently and reused only under a compatible candidate/legacy signature.</div></div>
+<div class="node assessment" style="left:1560px;top:2200px"><code>assessments</code> list<div class="sub">reviewable data.table items</div><div class="tip">Build, lookup, cleanup, filter, prune, model, split, identification, quality shift, compatibility, warning, and output-manifest tables.</div></div>
+<div class="node output" style="left:905px;top:2565px">Atomic versioned release<div class="sub">legacy RDS names + aggregate RDS</div><div class="tip">Validated artifacts are promoted to a signature-named release without partially replacing an official build.</div></div>
+<div class="node output" style="left:905px;top:2680px">Return one build object<div class="sub">libraries + medoids + models + assessments</div><div class="tip">The caller receives all scientific artifacts and audit evidence in one predictable nested object.</div></div>
+</div></div></div></div>
+<footer class="page">Sources: <code>R/build_lib.R</code>, <code>workflows/OpenSpecy_reference_library.R</code>, curated tables in <code>workflows/data/</code>, and <code>specs/021-reference-library-monolith/plan.md</code>. Keep this diagram synchronized when stage order, reuse boundaries, artifact shape, or assessment semantics change.</footer>
+<script>
+(function(){"use strict";var viewer=document.getElementById("viewer"),layer=document.getElementById("zoomLayer"),canvas=document.getElementById("canvas"),scale=1,x=24,y=24,drag=false,moved=false,lastX=0,lastY=0;function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}function apply(){layer.style.transform="translate("+x+"px,"+y+"px) scale("+scale+")";}function fit(){var vw=viewer.clientWidth||1000,cw=canvas.offsetWidth||1800;scale=clamp(vw/cw*.94,.18,2);x=(vw-cw*scale)/2;y=24;apply();}function setScale(next,cx,cy){next=clamp(next,.16,2.2);var r=viewer.getBoundingClientRect(),px=(cx-r.left-x)/scale,py=(cy-r.top-y)/scale;x-=px*(next-scale);y-=py*(next-scale);scale=next;apply();}viewer.addEventListener("wheel",function(e){e.preventDefault();setScale(scale+(e.deltaY>0?-.09:.09),e.clientX,e.clientY);},{passive:false});viewer.addEventListener("pointerdown",function(e){drag=true;moved=false;lastX=e.clientX;lastY=e.clientY;viewer.classList.add("grabbing");viewer.setPointerCapture(e.pointerId);});viewer.addEventListener("pointermove",function(e){if(!drag)return;var dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)>2||Math.abs(dy)>2)moved=true;x+=dx;y+=dy;lastX=e.clientX;lastY=e.clientY;apply();});function stop(){drag=false;viewer.classList.remove("grabbing");}viewer.addEventListener("pointerup",stop);viewer.addEventListener("pointercancel",stop);viewer.addEventListener("click",function(e){if(moved){e.preventDefault();e.stopPropagation();}},true);document.getElementById("zoomIn").addEventListener("click",function(){var r=viewer.getBoundingClientRect();setScale(scale+.18,r.left+r.width/2,r.top+r.height/2);});document.getElementById("zoomOut").addEventListener("click",function(){var r=viewer.getBoundingClientRect();setScale(scale-.18,r.left+r.width/2,r.top+r.height/2);});document.getElementById("zoomReset").addEventListener("click",fit);window.addEventListener("resize",fit);fit();})();
+</script>
+</body>
+</html>

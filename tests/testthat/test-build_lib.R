@@ -1235,9 +1235,13 @@ test_that("build_lib() creates and reuses one end-to-end artifact bundle", {
 })
 
 test_that("combined reference splits prevent old-new identity leakage", {
-  lib <- tiny_build_lib()
+  old <- tiny_build_lib()
+  new <- old
+  new$metadata$sample_name_old <- new$metadata$sample_name
+  new$metadata$sample_name <- paste0("rebuilt_", new$metadata$sample_name)
+  colnames(new$spectra) <- new$metadata$sample_name
   split <- OpenSpecy:::.lib_combined_split(
-    lib, lib, artifact = "raw", seed = 71, holdout = 0.25
+    new, old, artifact = "raw", seed = 71, holdout = 0.25
   )
   expect_identical(anyDuplicated(split$manifest$group_id), 0L)
   expect_true(all(split$manifest$new_present & split$manifest$old_present))
@@ -1248,11 +1252,14 @@ test_that("combined reference splits prevent old-new identity leakage", {
   ), 0L)
 
   tests <- OpenSpecy:::.lib_reference_holdout_test(
-    lib, split, artifact = "raw", source = "new", block_size = 2L
+    new, split, artifact = "raw", source = "new", block_size = 2L
   )
   expect_true(all(tests$split == "test"))
   expect_true(all(tests$provenance == "reference_holdout"))
-  expect_false(any(tests$spectrum_id %in%
+  test_ids <- new$metadata$sample_name_old[
+    new$metadata$sample_name %in% tests$spectrum_id
+  ]
+  expect_false(any(test_ids %in%
                      split$manifest[split == "train", group_id]))
 })
 

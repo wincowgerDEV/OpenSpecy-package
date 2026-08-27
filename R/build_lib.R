@@ -3090,7 +3090,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_local_build_assessments <- function(libraries, medoids, models,
                                          completed, model_warnings) {
-  artifacts <- c(libraries, medoids)
+  artifacts <- c(
+    libraries,
+    setNames(medoids, paste0("medoid_", names(medoids)))
+  )
   summary <- data.table::rbindlist(lapply(names(artifacts), function(name) {
     data.table::data.table(
       artifact = name,
@@ -3256,9 +3259,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     artifact <- recipe
     split <- split_by_artifact[[artifact]]
     candidate <- build$libraries[[recipe]]
-    ids <- .lib_ids(candidate, "sample_name")
+    group_ids <- .lib_comparison_group_ids(candidate)
     test_groups <- split$manifest[split == "test", group_id]
-    candidate_test <- ids %in% test_groups
+    candidate_test <- group_ids %in% test_groups
     if (!any(candidate_test) || all(candidate_test)) next
     train <- filter_spec(candidate, !candidate_test)
     test <- filter_spec(candidate, candidate_test)
@@ -3305,8 +3308,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
     legacy_model <- prior[[paste0("model_", recipe)]]
     legacy_test <- library_pairs[[artifact]]$old
-    legacy_ids <- .lib_ids(legacy_test, "sample_name")
-    legacy_keep <- legacy_ids %in% test_groups
+    legacy_groups <- .lib_comparison_group_ids(legacy_test)
+    legacy_keep <- legacy_groups %in% test_groups
     if (!any(legacy_keep)) next
     legacy_test <- filter_spec(legacy_test, legacy_keep)
     for (type in intersect(c("both", "ftir", "raman"), names(legacy_model))) {
@@ -3451,7 +3454,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_split_rows <- function(x, source) {
   metadata <- x$metadata
-  ids <- .lib_ids(x, "sample_name")
+  ids <- .lib_comparison_group_ids(x)
   data.table::data.table(
     source = source, row = seq_along(ids), group_id = ids,
     material_class = if ("material_class" %in% names(metadata))
@@ -3459,6 +3462,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     spectrum_type = if ("spectrum_type" %in% names(metadata))
       as.character(metadata$spectrum_type) else NA_character_
   )
+}
+
+.lib_comparison_group_ids <- function(x) {
+  ids <- as.character(.lib_ids(x, "sample_name"))
+  metadata <- x$metadata
+  if (!"sample_name_old" %in% names(metadata)) return(ids)
+  legacy_ids <- trimws(as.character(metadata$sample_name_old))
+  usable <- !is.na(legacy_ids) & nzchar(legacy_ids) &
+    tolower(legacy_ids) != "new format"
+  ids[usable] <- legacy_ids[usable]
+  ids
 }
 
 .lib_first_value <- function(x) {
@@ -3470,9 +3484,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 .lib_reference_holdout_test <- function(x, split, artifact, source,
                                         block_size = 32L) {
   ids <- .lib_ids(x, "sample_name")
+  group_ids <- .lib_comparison_group_ids(x)
   test_groups <- split$manifest[split == "test", group_id]
-  test_idx <- which(ids %in% test_groups)
-  train_idx <- which(!ids %in% test_groups)
+  test_idx <- which(group_ids %in% test_groups)
+  train_idx <- which(!group_ids %in% test_groups)
   if (length(test_idx) == 0L || length(train_idx) == 0L) {
     return(data.table::data.table())
   }

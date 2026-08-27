@@ -229,7 +229,7 @@ The version-controlled
 [`workflows/OpenSpecy_reference_library.R`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/workflows/OpenSpecy_reference_library.R)
 script now contains one default `build_lib()` call. The complete visual flow,
 including checkpoint reuse and old/new assessments, is maintained in
-[`workflows/build_lib_workflow.md`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/workflows/build_lib_workflow.md).
+[`.specify/memory/build-lib-diagram.html`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/.specify/memory/build-lib-diagram.html).
 Canonically named
 exact-class, regex-class, library-type, material-hierarchy, and known-bad-ID
 tables live under
