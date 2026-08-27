@@ -906,7 +906,18 @@ test_that("build_lib() applies pruning only to named recipes", {
 
 test_that("reference workflow tables encode reviewed taxonomy and source rules", {
   data_path <- function(file) {
-    testthat::test_path("..", "..", "workflows", "data", file)
+    roots <- c(
+      testthat::test_path("..", ".."),
+      Sys.getenv("GITHUB_WORKSPACE", unset = "")
+    )
+    roots <- unique(roots[nzchar(roots)])
+    candidates <- file.path(roots, "workflows", "data", file)
+    existing <- candidates[file.exists(candidates)]
+    testthat::skip_if(
+      length(existing) == 0L,
+      "repository-only reference workflow tables are not installed"
+    )
+    existing[[1L]]
   }
   classes <- data.table::fread(data_path("classes_reference.csv"))
   regex_classes <- data.table::fread(data_path("classes_regex.csv"))

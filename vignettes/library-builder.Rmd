@@ -79,6 +79,7 @@ could come from a CSV edited outside R.
 lookup <- data.table::data.table(
   file_name = basename(mini_files),
   library_type = c("example", "example", "example"),
+  spectrum_type = c("raman", "ftir", "raman"),
   material = c("hdpe", "ldpe in soil", "atacamite")
 )
 
@@ -90,7 +91,8 @@ hierarchy <- data.table::data.table(
 
 join_lib_metadata(mini_raw, lookup, by = "file_name",
                   require_complete = TRUE)$metadata[
-  , c("file_name", "library_type", "material"), with = FALSE
+  , c("file_name", "library_type", "spectrum_type", "material"),
+  with = FALSE
 ]
 ```
 
