@@ -712,6 +712,12 @@ test_that("hosted deployment exports the exact current bundled app", {
                         smoke, fixed = TRUE)))
   expect_true(any(grepl('expectedPrefix: Buffer.from("PK", "ascii")',
                         smoke, fixed = TRUE)))
+  thresholded_call <- smoke[grep('label: "Thresholded Particles"', smoke,
+                                 fixed = TRUE)[1L] + 0:12]
+  expect_true(any(grepl("probeEndpoint: false", thresholded_call,
+                        fixed = TRUE)))
+  expect_true(any(grepl("eventTimeout: 300000", thresholded_call,
+                        fixed = TRUE)))
   expect_true(any(grepl('toContain("particle_summary.csv")', smoke,
                         fixed = TRUE)))
   expect_true(any(grepl('require("./zip-entries")', smoke, fixed = TRUE)))

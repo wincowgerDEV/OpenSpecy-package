@@ -958,6 +958,11 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     filenamePattern: /^Thresholded-Particles-.*\.zip$/i,
     contentTypePattern: /^application\/zip/i,
     expectedPrefix: Buffer.from("PK", "ascii"),
+    // The default archive renders several figures in single-threaded webR.
+    // Wait for that one authoritative browser download instead of timing out
+    // after 30 seconds and then rebuilding the same expensive ZIP as a probe.
+    probeEndpoint: false,
+    eventTimeout: 300000,
     testInfo,
     runtimeDiagnostics,
   });
