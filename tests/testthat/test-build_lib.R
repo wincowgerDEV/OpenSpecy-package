@@ -957,10 +957,10 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
     classes[spectrum_identity == "plc004_kn95 outer layer_pp", material],
     "poly(propylene)"
   )
-  unresolved_plc <- classes[
-    spectrum_identity == "plc008_label tape_unknown", material
-  ]
-  expect_true(is.na(unresolved_plc) | unresolved_plc == "")
+  expect_equal(
+    classes[spectrum_identity == "plc008_label tape_unknown", material],
+    "other plastic"
+  )
   expect_true(all(c("microplastix", "nist", "hcmr", "cnr", "vliz",
                     "nicolas coca") %in% types$organization))
   expect_false("user_name" %in% names(types))
