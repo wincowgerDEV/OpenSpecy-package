@@ -104,6 +104,32 @@ test_that("process_spec() bulk-processes complete columns beside NA columns", {
   expect_equal(attr(processed, "derivative_order"), "1")
 })
 
+test_that("one NA plan can be reused across intensity steps", {
+  spectra <- cbind(
+    complete = raman_hdpe$spectra[, 1],
+    leading = raman_hdpe$spectra[, 1],
+    trailing = raman_hdpe$spectra[, 1]
+  )
+  spectra[1:8, "leading"] <- NA_real_
+  spectra[(nrow(spectra) - 7L):nrow(spectra), "trailing"] <- NA_real_
+  os <- as_OpenSpecy(raman_hdpe$wavenumber, spectra)
+  plan <- OpenSpecy:::.intensity_na_plan(os$spectra)
+
+  once <- OpenSpecy:::.process_intensity_step(
+    os, "make_rel", list(na.rm = TRUE), na_plan = plan
+  )
+  twice <- OpenSpecy:::.process_intensity_step(
+    once, "make_rel", list(na.rm = TRUE), na_plan = plan
+  )
+
+  expect_equal(twice$spectra, once$spectra)
+  expect_equal(plan$complete_cols, 1L)
+  expect_equal(plan$missing_cols, 2:3)
+  expect_equal(plan$ignored_info$first, c(9L, 1L))
+  expect_equal(plan$ignored_info$last,
+               c(nrow(spectra), nrow(spectra) - 8L))
+})
+
 test_that("process_spec() passes automated range policies through", {
   wavenumber <- seq(1000, 2500, by = 10)
   values <- rep(0.1, length(wavenumber))

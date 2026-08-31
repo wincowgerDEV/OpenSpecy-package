@@ -40,3 +40,33 @@ test_that("smooth_intens() works as expected", {
   expect_equal(smt$wavenumber, raman_hdpe$wavenumber)
   expect_equal(range(smt$spectra), c(0, 1))
 })
+
+test_that("matrix Savitzky-Golay filtering matches the columnwise algorithm", {
+  set.seed(52)
+  y <- matrix(rnorm(101 * 7), nrow = 101, ncol = 7,
+              dimnames = list(NULL, paste0("s", seq_len(7))))
+  p <- 3L
+  n <- 15L
+  m <- 1L
+  filt <- OpenSpecy:::.sgolay_filter(p = p, n = n, m = m)
+  k <- floor(n / 2)
+  legacy <- vapply(seq_len(ncol(y)), function(i) {
+    values <- numeric(nrow(y))
+    values[seq_len(k)] <- filt[seq_len(k), , drop = FALSE] %*%
+      y[seq_len(n), i]
+    values[(k + 1L):(nrow(y) - k)] <- as.numeric(
+      stats::filter(y[, i], rev(filt[k + 1L, ]), sides = 2L)
+    )[(k + 1L):(nrow(y) - k)]
+    values[(nrow(y) - k + 1L):nrow(y)] <-
+      filt[(k + 2L):n, , drop = FALSE] %*%
+      y[(nrow(y) - n + 1L):nrow(y), i]
+    values
+  }, numeric(nrow(y)))
+  colnames(legacy) <- colnames(y)
+
+  expect_equal(
+    OpenSpecy:::.sgfilt_matrix(y, p = p, n = n, m = m),
+    legacy,
+    tolerance = 1e-12
+  )
+})

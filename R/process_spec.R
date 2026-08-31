@@ -120,9 +120,13 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
                                     correct_spike_args = list(),
                                     ...) {
   x <- as_OpenSpecy(x)
+  na_plan <- NULL
 
   apply_intensity_step <- function(x, fun, args = list()) {
-    .process_intensity_step(x, fun, args)
+    if (is.null(na_plan) || !identical(na_plan$dim, dim(x$spectra))) {
+      na_plan <<- .intensity_na_plan(x$spectra)
+    }
+    .process_intensity_step(x, fun, args, na_plan = na_plan)
   }
 
   if(active) {
@@ -137,12 +141,16 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
         attr(x, "intensity_unit") <- "absorbance"
       }
     }
-    if(conform_spec)
+    if(conform_spec) {
       x <- do.call("conform_spec", c(list(x), conform_spec_args))
-    if(restrict_range)
+      na_plan <- NULL
+    }
+    if(restrict_range) {
       x <- do.call("restrict_range",
                    c(list(x), utils::modifyList(list(make_rel = FALSE),
                                                 restrict_range_args)))
+      na_plan <- NULL
+    }
     if(flatten_range) {
       args <- utils::modifyList(list(make_rel = FALSE), flatten_range_args)
       x <- apply_intensity_step(x, "flatten_range", args)
@@ -166,26 +174,45 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
   return(x)
 }
 
-.process_intensity_step <- function(x, fun, args = list()) {
-  if (!anyNA(x$spectra)) {
-    return(do.call(fun, c(list(x), args)))
-  }
+.intensity_na_plan <- function(spectra) {
+  ignored <- is.na(spectra)
+  na_cols <- colSums(ignored) > 0L
+  missing_cols <- which(na_cols)
+  list(
+    dim = dim(spectra),
+    has_na = any(na_cols),
+    complete_cols = which(!na_cols),
+    missing_cols = missing_cols,
+    ignored_info = if (length(missing_cols) == 0L) NULL else {
+      .spectra_ignore_info_from_mask(
+        ignored[, missing_cols, drop = FALSE],
+        lead_tail_only = TRUE
+      )
+    }
+  )
+}
 
-  na_cols <- colSums(is.na(x$spectra)) > 0L
-  if (!any(na_cols)) {
+.process_intensity_step <- function(x, fun, args = list(), na_plan = NULL) {
+  if (is.null(na_plan)) na_plan <- .intensity_na_plan(x$spectra)
+  if (!identical(na_plan$dim, dim(x$spectra))) {
+    stop("'na_plan' dimensions do not match the spectra matrix", call. = FALSE)
+  }
+  if (!isTRUE(na_plan$has_na)) {
     return(do.call(fun, c(list(x), args)))
   }
 
   step <- function(value) {
     do.call(fun, c(list(value), args))
   }
-  if (all(na_cols)) {
-    return(manage_na(x, fun = step))
+  if (length(na_plan$complete_cols) == 0L) {
+    return(.manage_na_ignore(
+      x, fun = step, ignored_info = na_plan$ignored_info
+    ))
   }
 
   out <- x
-  complete_cols <- which(!na_cols)
-  missing_cols <- which(na_cols)
+  complete_cols <- na_plan$complete_cols
+  missing_cols <- na_plan$missing_cols
 
   complete <- .subset_open_specy_columns(x, complete_cols)
   complete <- do.call(fun, c(list(complete), args))
@@ -194,7 +221,9 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
   out <- .copy_open_specy_attributes(out, complete)
 
   missing <- .subset_open_specy_columns(x, missing_cols)
-  missing <- manage_na(missing, fun = step)
+  missing <- .manage_na_ignore(
+    missing, fun = step, ignored_info = na_plan$ignored_info
+  )
   .check_intensity_step_shape(missing, x, missing_cols)
   out$spectra[, missing_cols] <- missing$spectra
   out <- .copy_open_specy_attributes(out, missing)

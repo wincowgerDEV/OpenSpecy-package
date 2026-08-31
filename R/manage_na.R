@@ -107,57 +107,66 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
     lead_tail_only = lead_tail_only,
     ig = ig
   )
-  ignored <- ignored_info$ignored
 
   if(type == "ignore"){
     if (missing(fun)) {
       stop("'fun' must be supplied when type = 'ignore'", call. = FALSE)
     }
-    if (!any(ignored)) {
-      return(do.call(fun, c(list(x), list(...))))
+    x <- .manage_na_ignore(
+      x, fun = fun, ignored_info = ignored_info,
+      lead_tail_only = lead_tail_only, ...
+    )
+  }
+
+  return(x)
+}
+
+.manage_na_ignore <- function(x, fun, ignored_info, lead_tail_only = TRUE,
+                              ...) {
+  ignored <- ignored_info$ignored
+  if (!any(ignored)) {
+    return(do.call(fun, c(list(x), list(...))))
+  }
+  if (any(!ignored_info$has_valid)) {
+    stop("All intensity values are NA, cannot remove or ignore with manage na.",
+         call. = FALSE)
+  }
+
+  if (lead_tail_only) {
+    mask_keys <- paste(ignored_info$first, ignored_info$last, sep = ":")
+  } else {
+    mask_keys <- vapply(seq_len(ncol(ignored)), function(i) {
+      paste(which(ignored[, i]), collapse = ",")
+    }, FUN.VALUE = character(1))
+  }
+
+  for (cols in split(seq_len(ncol(x$spectra)), mask_keys)) {
+    keep <- if (lead_tail_only) {
+      seq.int(ignored_info$first[cols[1L]], ignored_info$last[cols[1L]])
+    } else {
+      !ignored[, cols[1L]]
     }
-    if (any(!ignored_info$has_valid)) {
+    if (!any(keep)) {
       stop("All intensity values are NA, cannot remove or ignore with manage na.",
            call. = FALSE)
     }
 
-    if (lead_tail_only) {
-      mask_keys <- paste(ignored_info$first, ignored_info$last, sep = ":")
-    } else {
-      mask_keys <- vapply(seq_len(ncol(ignored)), function(i) {
-        paste(which(ignored[, i]), collapse = ",")
-      }, FUN.VALUE = character(1))
+    reduced <- x
+    reduced$wavenumber <- x$wavenumber[keep]
+    reduced$spectra <- x$spectra[keep, cols, drop = FALSE]
+    reduced$metadata <- data.table::copy(x$metadata[cols])
+    processed <- do.call(fun, c(list(reduced), list(...)))
+
+    if (!identical(processed$wavenumber, reduced$wavenumber) ||
+        !identical(dim(processed$spectra), dim(reduced$spectra))) {
+      stop("Functions used with manage_na(type = 'ignore') must preserve ",
+           "the wavenumber axis and spectra dimensions", call. = FALSE)
     }
 
-    for (cols in split(seq_len(ncol(x$spectra)), mask_keys)) {
-      keep <- if (lead_tail_only) {
-        seq.int(ignored_info$first[cols[1L]], ignored_info$last[cols[1L]])
-      } else {
-        !ignored[, cols[1L]]
-      }
-      if (!any(keep)) {
-        stop("All intensity values are NA, cannot remove or ignore with manage na.",
-             call. = FALSE)
-      }
-
-      reduced <- x
-      reduced$wavenumber <- x$wavenumber[keep]
-      reduced$spectra <- x$spectra[keep, cols, drop = FALSE]
-      reduced$metadata <- data.table::copy(x$metadata[cols])
-      processed <- do.call(fun, c(list(reduced), list(...)))
-
-      if (!identical(processed$wavenumber, reduced$wavenumber) ||
-          !identical(dim(processed$spectra), dim(reduced$spectra))) {
-        stop("Functions used with manage_na(type = 'ignore') must preserve ",
-             "the wavenumber axis and spectra dimensions", call. = FALSE)
-      }
-
-      x$spectra[keep, cols] <- processed$spectra
-      x <- .copy_open_specy_attributes(x, processed)
-    }
+    x$spectra[keep, cols] <- processed$spectra
+    x <- .copy_open_specy_attributes(x, processed)
   }
-
-  return(x)
+  x
 }
 
 .rows_without_ignored_values <- function(spectra, lead_tail_only = TRUE,
@@ -204,12 +213,18 @@ manage_na.OpenSpecy <- function(x, lead_tail_only = TRUE, ig = c(NA), fun,
 .spectra_ignore_info <- function(spectra, lead_tail_only = TRUE, ig = c(NA)) {
   raw_ignored <- .ignored_value_matrix(spectra, ig)
 
+  .spectra_ignore_info_from_mask(raw_ignored, lead_tail_only)
+}
+
+.spectra_ignore_info_from_mask <- function(raw_ignored,
+                                           lead_tail_only = TRUE) {
+
   if (!lead_tail_only) {
     return(list(
       ignored = raw_ignored,
       has_valid = colSums(!raw_ignored) > 0L,
-      first = rep(NA_integer_, ncol(spectra)),
-      last = rep(NA_integer_, ncol(spectra))
+      first = rep(NA_integer_, ncol(raw_ignored)),
+      last = rep(NA_integer_, ncol(raw_ignored))
     ))
   }
 

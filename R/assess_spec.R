@@ -574,6 +574,11 @@ assess_spec.OpenSpecy <- function(x,
   if (length(checks) == 0L || length(ids) == 0L) {
     return(.empty_full_assessment(issues))
   }
+  if (!any(checks %in% c("spike", "saturation"))) {
+    return(.expand_standard_assessment_report(
+      x = x, checks = checks, issues = issues, evidence = evidence, ids = ids
+    ))
+  }
   severity <- c(
     high_tail = "warning", silent_region = "warning", co2_region = "warning",
     missing_values = "error", flat_spectrum = "error",
@@ -784,6 +789,143 @@ assess_spec.OpenSpecy <- function(x,
     )
   }
   data.table::rbindlist(rows[seq_len(cursor)], use.names = TRUE, fill = TRUE)
+}
+
+.expand_standard_assessment_report <- function(x, checks, issues, evidence,
+                                               ids) {
+  count <- length(ids)
+  out <- data.table::data.table(
+    spectrum_index = rep(seq_len(count), times = length(checks)),
+    spectrum_id = rep(ids, times = length(checks)),
+    check = rep(checks, each = count)
+  )
+  keys <- paste(out$check, out$spectrum_index, sep = "\r")
+  evidence_index <- match(
+    keys, paste(evidence$check, evidence$spectrum_index, sep = "\r")
+  )
+  issue_index <- match(
+    keys, paste(issues$check, issues$spectrum_index, sep = "\r")
+  )
+  found <- !is.na(issue_index)
+
+  out[, `:=`(
+    issue = paste0("No issue detected"),
+    description = paste0("The ", gsub("_", " ", check), " check passed."),
+    likely_cause = NA_character_,
+    potential_fix = "No action required.",
+    metric = NA_character_,
+    value = NA_real_,
+    threshold = NA_real_,
+    candidate_max = NA_real_,
+    control_max = NA_real_,
+    region_min = NA_real_,
+    region_max = NA_real_
+  )]
+
+  evidence_fields <- c(
+    "metric", "value", "threshold", "candidate_max", "control_max",
+    "region_min", "region_max"
+  )
+  has_evidence <- !is.na(evidence_index)
+  if (any(has_evidence)) {
+    for (field in evidence_fields) {
+      data.table::set(
+        out, which(has_evidence), field,
+        evidence[[field]][evidence_index[has_evidence]]
+      )
+    }
+  }
+
+  issue_fields <- c(
+    "issue", "description", "likely_cause", "potential_fix", "metric",
+    "value", "threshold", "candidate_max", "control_max", "region_min",
+    "region_max"
+  )
+  if (any(found)) {
+    for (field in issue_fields) {
+      data.table::set(
+        out, which(found), field, issues[[field]][issue_index[found]]
+      )
+    }
+  }
+
+  severity <- c(
+    high_tail = "warning", silent_region = "warning",
+    co2_region = "warning", missing_values = "error",
+    flat_spectrum = "error", negative_intensity = "warning",
+    low_snr = "warning"
+  )
+  out[, `:=`(
+    scope = "spectrum",
+    status = "pass",
+    finding_count = 0L
+  )]
+  if (any(found)) {
+    out$status[found] <- unname(severity[out$check[found]])
+    count_metric <- out$metric[found] %in% c(
+      "non_finite_count", "spike_count", "saturated_interval_count"
+    )
+    issue_counts <- rep.int(1L, sum(found))
+    finite_counts <- count_metric & is.finite(out$value[found])
+    issue_counts[finite_counts] <- as.integer(out$value[found][finite_counts])
+    out$finding_count[found] <- issue_counts
+  }
+
+  evaluable <- rep(FALSE, nrow(out))
+  evaluable[has_evidence] <- evidence$evaluable[evidence_index[has_evidence]]
+  unavailable <- !found & !evaluable
+  if (any(unavailable)) {
+    finite_spectrum <- colSums(is.finite(x$spectra)) > 0L
+    out$issue[unavailable] <- "Check unavailable"
+    out$description[unavailable] <- paste0(
+      "The ", gsub("_", " ", out$check[unavailable]),
+      " check could not be evaluated from the available finite data and ",
+      "wavenumber coverage."
+    )
+    no_finite <- !finite_spectrum[out$spectrum_index[unavailable]]
+    causes <- rep(
+      paste(
+        "The spectrum has too few usable points or does not cover the",
+        "region required by this check."
+      ),
+      sum(unavailable)
+    )
+    causes[no_finite] <- paste(
+      "The imported spectrum contains only missing or non-finite",
+      "intensity values."
+    )
+    out$likely_cause[unavailable] <- causes
+    out$potential_fix[unavailable] <- paste(
+      "Inspect the source file, repair the import, or recollect the",
+      "spectrum before interpretation."
+    )
+    out$status[unavailable] <- "error"
+    out$finding_count[unavailable] <- 1L
+  }
+
+  empty_region <- data.frame(region_min = numeric(), region_max = numeric())
+  regions <- rep(list(empty_region), nrow(out))
+  region_rows <- which(is.finite(out$region_min) & is.finite(out$region_max))
+  if (length(region_rows)) {
+    region_groups <- split(
+      region_rows,
+      paste(out$region_min[region_rows], out$region_max[region_rows], sep = ":")
+    )
+    for (rows in region_groups) {
+      region <- data.frame(
+        region_min = out$region_min[rows[[1L]]],
+        region_max = out$region_max[rows[[1L]]]
+      )
+      regions[rows] <- rep(list(region), length(rows))
+    }
+  }
+  out$regions <- regions
+  out$correction_applied <- FALSE
+  out$correction_summary <- NA_character_
+  out$test_id <- paste(
+    "spectrum", out$spectrum_index, out$spectrum_id, out$check, sep = ":"
+  )
+  out
 }
 
 .artifact_ratio_metrics <- function(x, tail_n = 5L,

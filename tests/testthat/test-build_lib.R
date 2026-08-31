@@ -172,8 +172,7 @@ test_that("reduce_lib() returns medoid ids or reduced OpenSpecy objects", {
   expect_equal(ncol(reduced$spectra), 4)
 })
 
-test_that("reduce_lib() matches cluster PAM medoids when cluster is installed", {
-  skip_if_not_installed("cluster")
+test_that("reduce_lib() uses cluster PAM medoids and reports useful progress", {
   lib <- tiny_build_lib()
   ids <- .lib_ids(lib, "sample_name")
   reduction_obj <- lib
@@ -194,9 +193,26 @@ test_that("reduce_lib() matches cluster PAM medoids when cluster is installed", 
     ids[idx][cluster::pam(distance, k = 2, diss = TRUE, pamonce = 6)$id.med]
   }), use.names = FALSE)
 
-  actual <- reduce_lib(lib, group_cols = "material_class", k = 2, min_n = 2,
-                       return = "ids")
+  messages <- capture.output(
+    actual <- reduce_lib(
+      lib, group_cols = "material_class", k = 2, min_n = 2,
+      return = "ids", progress = TRUE
+    ),
+    type = "message"
+  )
   expect_equal(actual, expected)
+  messages <- paste(messages, collapse = "\n")
+  expect_match(messages, "spectra in .* groups")
+  expect_match(messages, "PAM group 1/2 starting")
+  expect_match(messages, "correlation complete")
+  expect_match(messages, "PAM complete")
+  expect_match(messages, "kept=4/8")
+
+  expect_silent(
+    reduce_lib(lib, group_cols = "material_class", k = 2, min_n = 2,
+               return = "ids", progress = FALSE)
+  )
+  expect_error(reduce_lib(lib, progress = NA), "'progress'")
 })
 
 test_that("build_model_lib() returns the model library artifact structure", {
@@ -230,6 +246,13 @@ test_that("build_lib() applies named recipes to merged sources", {
   expect_named(built, c("raw", "relative"))
   expect_true(check_OpenSpecy(built$raw))
   expect_true(check_OpenSpecy(built$relative))
+})
+
+test_that("build_lib() requires explicit source inputs", {
+  expect_error(
+    build_lib(),
+    "'x' must specify the source library file path"
+  )
 })
 
 test_that("build_lib() converts metadata intensity units before recipes", {
@@ -603,6 +626,17 @@ test_that("build_lib() cleans and coalesces metadata column names", {
                      "number_of_sample_scans") %in% names(built$metadata)))
 })
 
+test_that("source metadata invalid bytes are normalized before merging", {
+  invalid <- rawToChar(as.raw(c(0x66, 0x80, 0x6f)))
+  Encoding(invalid) <- "unknown"
+  expect_false(validUTF8(invalid))
+  normalized <- OpenSpecy:::.lib_normalize_metadata_encoding(
+    data.table::data.table(value = invalid)
+  )
+  expect_true(validUTF8(normalized$value))
+  expect_equal(normalized$value, "fo")
+})
+
 test_that("build_lib() runs default joins, processing, SNR, and assessment", {
   lib <- tiny_build_lib()
   lib$spectra[1, 1] <- -1
@@ -876,6 +910,43 @@ test_that("prune_lib() reassigns generic classes and tolerates no candidates", {
   expect_equal(report$summary$removed, 0L)
 })
 
+test_that("prune_lib() constrains generic reassignment and updates type", {
+  wn <- seq(500, 3500, length.out = 80)
+  plastic <- dnorm(seq(-3, 3, length.out = length(wn)))
+  organic <- dnorm(seq(-3, 3, length.out = length(wn)), mean = 1)
+  mineral <- rev(cumsum(seq_along(wn)))
+  spectra <- cbind(plastic, organic, mineral, plastic, organic, mineral)
+  colnames(spectra) <- paste0("generic", seq_len(ncol(spectra)))
+  lib <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c(
+        "polymer a", "organic matter", "mineral",
+        "other plastic", "other material", "other"
+      ),
+      material_type = c(
+        "plastic", "not plastic", "not plastic", "plastic", "not plastic",
+        "other"
+      ),
+      spectrum_type = "ftir"
+    )
+  )
+
+  report <- prune_lib(lib, min_n = 1, return = "report", progress = FALSE)
+
+  expect_equal(
+    report$object$metadata$material_class[4:6],
+    c("polymer a", "organic matter", "mineral")
+  )
+  expect_equal(
+    report$object$metadata$material_type[4:6],
+    c("plastic", "not plastic", "not plastic")
+  )
+  expect_equal(nrow(report$reassignments), 3L)
+  expect_true(all(report$reassignments$reason == "nearest_eligible_class"))
+})
+
 test_that("prune_lib() preserves non-generic class labels and empty audits", {
   lib <- filter_spec(tiny_build_lib(), 1:2)
   lib$metadata$material_class <- c("Polymer A", "Polymer A")
@@ -945,6 +1016,8 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
   expect_gt(class_audit$summary$overlaps, 0L)
   expect_true(all(!is.na(regex_classes$material)))
   expect_identical(anyDuplicated(hierarchy$material), 0L)
+  expect_equal(hierarchy[material == "other", material_class], "other")
+  expect_equal(hierarchy[material == "other", material_type], "other")
   expect_equal(classes[spectrum_identity == "pa", material], "polyamides")
   exact_classes <- classes[!grepl("^regex:", spectrum_identity)]
   expect_identical(
@@ -965,6 +1038,43 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
     classes[spectrum_identity == "plc008_label tape_unknown", material],
     "other plastic"
   )
+  organic_recommendations <- c(
+    "1,5-pentanediol", "11-aminoundecanoic acid", "1-bromobutane",
+    "1-vinyl-2-pyrolidinone", "2-bromopropanoic acid", "2-butanone",
+    "2-chloro-4-methylpentane", "2-methyl-2-pentanol", "butyl acrylate",
+    "ethyl (a-chloromethyl)acrylate", "ethyl acrylate",
+    "n,n-diethyl-m-toluamide", "n,n-dimethyl-m-toluamide",
+    "n-butyl benzoate", "n-decyl methacrylate", "n-vinylformamide",
+    "p-phenylenediamine", "p-vinylbenzyl chloride", "p-xylene",
+    "propionic acid", "sec-butyl benzoate", "styrene",
+    "tamoxifen (lot #bcbt3163)"
+  )
+  expect_true(all(
+    classes[spectrum_identity %in% organic_recommendations, material] ==
+      "organic matter"
+  ))
+  expect_true(all(
+    classes[spectrum_identity %in% c(
+      "c2. blue fiber", "c4. green fiber", "c6. red fiber",
+      "c8. pink fiber bundle", "c9. grey fiber"
+    ), material] == "other"
+  ))
+  expect_equal(
+    classes[spectrum_identity == "fibre_polyamide_6_p6", material],
+    "nylon 6,6 - poly(hexamethylene adipamide)"
+  )
+  expect_equal(
+    classes[spectrum_identity == "ps 16. purple lego fragment", material],
+    "acrylonitrile butadiene styrene (abs)"
+  )
+  expect_true(all(
+    classes[spectrum_identity %in% c("polyesterurethane", "polyetherurethane"),
+            material] == "polyurethanes (isocyanates)"
+  ))
+  expect_true(all(
+    classes[spectrum_identity %in% c("tylose", "tylose2"), material] ==
+      "methyl cellulose"
+  ))
   expect_true(all(c("microplastix", "nist", "hcmr", "cnr", "vliz",
                     "nicolas coca") %in% types$organization))
   expect_false("user_name" %in% names(types))
@@ -1034,16 +1144,16 @@ test_that("reference class completion resolves reviewed wrappers and audits unce
     material_type = NA_character_
   )]
   lib$metadata$material_class <- c(
-    "known class", rep(NA_character_, 4), rep("known class", 3)
+    "known class", rep(NA_character_, 3), rep("known class", 4)
   )
   classes <- data.table::data.table(
-    spectrum_identity = c("pa", "nylon"),
-    material = c("polyamides", "polyamides")
+    spectrum_identity = c("pa", "nylon", "cellulose_like"),
+    material = c("polyamides", "polyamides", "organic matter")
   )
   hierarchy <- data.table::data.table(
-    material = "nylon 6 - poly(caprolactam)",
-    material_class = "polyamides",
-    material_type = "plastic"
+    material = c("nylon 6 - poly(caprolactam)", "organic matter"),
+    material_class = c("polyamides", "organic matter"),
+    material_type = c("plastic", "not plastic")
   )
 
   completed <- .lib_complete_reference_classes(lib, classes, hierarchy)
@@ -1056,15 +1166,60 @@ test_that("reference class completion resolves reviewed wrappers and audits unce
   expect_equal(completed$metadata$class_lookup_key[2:3], c("pa", "nylon"))
   expect_equal(completed$metadata$class_assignment_reason[2:3],
                rep("reviewed_source_key", 2))
-  expect_equal(completed$metadata$material_class[4:5],
-               rep("unclassified", 2))
-  expect_equal(completed$metadata$class_assignment_reason[4:5],
-               rep("unresolved_identity", 2))
+  expect_equal(completed$metadata$material_class[4], "organic matter")
+  expect_equal(completed$metadata$class_assignment_reason[4],
+               "reviewed_source_key")
   expect_identical(completed$metadata$spectrum_identity,
                    lib$metadata$spectrum_identity)
   expect_equal(report[stage == "after", populated_class], nrow(lib$metadata))
-  expect_equal(report[stage == "after", reviewed_source_key], 2L)
-  expect_equal(report[stage == "after", unclassified], 2L)
+  expect_equal(report[stage == "after", reviewed_source_key], 3L)
+  expect_equal(report[stage == "after", unclassified], 0L)
+  expect_equal(report[stage == "after", other], 0L)
+})
+
+test_that("reference class completion labels and caps unresolved other", {
+  source <- tiny_build_lib()
+  ids <- paste0("coverage", seq_len(100L))
+  spectra <- matrix(
+    rep(source$spectra[, 1L], 100L), nrow = nrow(source$spectra)
+  )
+  colnames(spectra) <- ids
+  metadata <- data.table::data.table(
+    sample_name = ids, col_id = ids,
+    spectrum_identity = c(rep("known", 99L), "unknown"),
+    user_name = NA_character_,
+    material = c(rep("known", 99L), NA_character_),
+    material_class = c(rep("known class", 99L), NA_character_),
+    material_type = c(rep("plastic", 99L), NA_character_),
+    spectrum_type = "ftir"
+  )
+  lib <- as_OpenSpecy(source$wavenumber, spectra, metadata = metadata)
+  classes <- data.table::data.table(
+    spectrum_identity = character(), material = character()
+  )
+  hierarchy <- data.table::data.table(
+    material = "known", material_class = "known class",
+    material_type = "plastic"
+  )
+
+  completed <- .lib_complete_reference_classes(lib, classes, hierarchy)
+  report <- attr(completed, "class_coverage_report")
+  expect_equal(completed$metadata$material[100L], "other")
+  expect_equal(completed$metadata$material_class[100L], "other")
+  expect_equal(completed$metadata$material_type[100L], "other")
+  expect_equal(report[stage == "after", unresolved_other], 1L)
+  expect_equal(report[stage == "after", other_fraction], 0.01)
+
+  lib$metadata[99:100, `:=`(
+    spectrum_identity = c("unknown_2", "unknown"),
+    material = NA_character_, material_class = NA_character_,
+    material_type = NA_character_
+  )]
+  expect_error(
+    .lib_complete_reference_classes(lib, classes, hierarchy),
+    "above the reviewed 1% maximum",
+    fixed = TRUE
+  )
 })
 
 test_that("build_lib() preserves full source ranges through NA-aware recipes", {
@@ -1156,7 +1311,7 @@ test_that("extdata files combine into a mini library", {
   expect_true(all(c("material", "material_type") %in% names(built$raw$metadata)))
 })
 
-test_that("build_lib() creates and reuses one end-to-end artifact bundle", {
+test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   lib <- tiny_build_lib()
   lib$metadata[, `:=`(
     spectrum_identity = label,
@@ -1164,9 +1319,14 @@ test_that("build_lib() creates and reuses one end-to-end artifact bundle", {
     user_name = source,
     spectrum_id = sample_name
   )]
-  workflow_data <- file.path(tempdir(), paste0("workflow-", sample.int(1e8, 1)))
+  workflow_root <- file.path(
+    tempdir(), paste0("workflow-", sample.int(1e8, 1))
+  )
+  workflow_data <- file.path(workflow_root, "data")
   output_dir <- file.path(tempdir(), paste0("output-", sample.int(1e8, 1)))
   dir.create(workflow_data, recursive = TRUE)
+  old_working_dir <- setwd(workflow_root)
+  on.exit(setwd(old_working_dir), add = TRUE)
   data.table::fwrite(data.table::data.table(
     spectrum_identity = unique(lib$metadata$spectrum_identity),
     material = paste0("material_", seq_along(unique(
@@ -1195,9 +1355,9 @@ test_that("build_lib() creates and reuses one end-to-end artifact bundle", {
   ), file.path(workflow_data, "metadata_drop_columns.csv"))
 
   first <- suppressWarnings(build_lib(
-    lib, output_dir = output_dir, workflow_data = workflow_data,
+    lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
-    clean_metadata_values = TRUE, progress = FALSE
+    progress = FALSE
   ))
   expect_named(first, c("libraries", "medoids", "models", "assessments"))
   expect_named(first$libraries, c("raw", "derivative", "nobaseline"))
@@ -1219,17 +1379,17 @@ test_that("build_lib() creates and reuses one end-to-end artifact bundle", {
   ))))
 
   second <- suppressWarnings(build_lib(
-    lib, output_dir = output_dir, workflow_data = workflow_data,
+    lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
-    clean_metadata_values = TRUE, progress = FALSE, reuse = TRUE
+    progress = FALSE, reuse = TRUE
   ))
   expect_true(any(second$assessments$output_manifest$status == "reused"))
   expect_equal(second$libraries$raw$spectra, first$libraries$raw$spectra)
 
   rebuilt <- suppressWarnings(build_lib(
-    lib, output_dir = output_dir, workflow_data = workflow_data,
+    lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
-    clean_metadata_values = TRUE, progress = FALSE, reuse = FALSE
+    progress = FALSE, reuse = FALSE
   ))
   expect_false(any(rebuilt$assessments$output_manifest$status == "reused"))
 })
@@ -1251,9 +1411,13 @@ test_that("combined reference splits prevent old-new identity leakage", {
     split$manifest[split == "test", group_id]
   ), 0L)
 
-  tests <- OpenSpecy:::.lib_reference_holdout_test(
-    new, split, artifact = "raw", source = "new", block_size = 2L
+  messages <- capture.output(
+    tests <- OpenSpecy:::.lib_reference_holdout_test(
+      new, split, artifact = "raw", source = "new", progress = TRUE
+    ),
+    type = "message"
   )
+  expect_match(paste(messages, collapse = "\n"), "full correlation complete")
   expect_true(all(tests$split == "test"))
   expect_true(all(tests$provenance == "reference_holdout"))
   test_ids <- new$metadata$sample_name_old[
@@ -1322,6 +1486,15 @@ test_that("complete old-new assessments cover every artifact and held-out model"
 })
 
 test_that("reference regex table contains only genuinely variable rules", {
+  expect_true(OpenSpecy:::.lib_regex_is_exact_literal(
+    "^poly\\(amide\\)$"
+  ))
+  expect_false(OpenSpecy:::.lib_regex_is_exact_literal(
+    "^olefin[[:space:]]*\\(pe(?:[[:space:]]|\\x2c|\\)|$)"
+  ))
+  expect_false(OpenSpecy:::.lib_regex_is_exact_literal(
+    "^(?:cotton|wool|silk)$"
+  ))
   regex_reference <- data.table::fread(
     file.path("..", "..", "workflows", "data", "classes_regex.csv")
   )

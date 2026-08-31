@@ -23,22 +23,16 @@ build_lib(
   metadata_lookups = NULL,
   material_hierarchy = NULL,
   metadata_name_lookup = lib_metadata_name_lookup(),
-  clean_metadata_values = FALSE,
+  clean_metadata_values = NULL,
   convert_intensity = TRUE,
   restrict_range_args = NULL,
   signal_noise = TRUE,
   assess = FALSE,
   prune = NULL,
   progress = TRUE,
-  data_dir = Sys.getenv("OPENSPECY_LIBRARY_DATA", unset = normalizePath("..", mustWork =
-    FALSE)),
-  source_file = Sys.getenv("OPENSPECY_SOURCE_FILE", unset = file.path(data_dir,
-    "library_raw.rds")),
-  processed_dir = Sys.getenv("OPENSPECY_PROCESSED_DIR", unset =
-    paste0("H:/My Drive/Work/Projects/OpenSpecy/", "SpectraFilesCodeProcessedSpectra")),
-  workflow_data = file.path("workflows", "data"),
+  workflow_data = NULL,
   output_dir = NULL,
-  previous_library_dir = NULL,
+  previous_library_dir = "system",
   reuse = TRUE,
   seed = 123,
   holdout = 0.1,
@@ -94,6 +88,7 @@ reduce_lib(
   k = 50,
   min_n = k,
   return = c("object", "ids"),
+  progress = FALSE,
   ...
 )
 
@@ -122,7 +117,8 @@ assess_lib(
 \item{x}{an \code{OpenSpecy} or \code{Specs} object for metadata helpers.
 For \code{build_lib()}, one \code{OpenSpecy}, a nonempty list containing only
 \code{OpenSpecy} objects, or a nonempty character vector of file paths.
-Omit \code{x} to discover the official sources from the path defaults.
+The official workflow requires \code{x}; it does not guess source-library
+locations.
 Each RDS path may store either one \code{OpenSpecy} or a list of them; other
 paths are read with \code{\link{read_any}()}.
 Large same-axis source lists are prepared in bulk to avoid repeated legacy
@@ -165,9 +161,11 @@ default \code{"material"} metadata key.}
 The default is returned by \code{\link{lib_metadata_name_lookup}()}; use
 \code{NULL} to clean names without coalescing aliases.}
 
-\item{clean_metadata_values}{logical; whether \code{build_lib()} should also
-lowercase, trim, ASCII-normalize, and normalize blank/unknown character
-metadata values in source metadata and lookup tables before joining.}
+\item{clean_metadata_values}{logical or \code{NULL}; whether
+\code{build_lib()} should lowercase, trim, ASCII-normalize, and normalize
+blank/unknown character metadata values before joining. \code{NULL} enables
+cleaning for the official output workflow and disables it for composable
+in-memory builds. Invalid byte sequences are always converted to UTF-8.}
 
 \item{convert_intensity}{logical; whether to infer reflectance,
 transmittance, or absorbance units from each source and convert known
@@ -191,25 +189,21 @@ lists for \code{\link{prune_lib}()}. Selected recipes are pruned independently
 after processing and assessment. \code{NULL} preserves unpruned outputs.}
 
 \item{progress}{logical; whether \code{build_lib()} reports named processing
-stages and elapsed time.}
+stages and elapsed time, or \code{reduce_lib()} reports group sizes and
+correlation/PAM timings.}
 
-\item{data_dir}{default directory containing official source and build data.}
-
-\item{source_file}{default raw source RDS path.}
-
-\item{processed_dir}{default directory recursively searched for processed
-source RDS files.}
-
-\item{workflow_data}{directory containing the curated reference CSV tables.}
+\item{workflow_data}{optional directory containing the curated reference CSV
+tables. If \code{NULL}, the directory is discovered beside the calling
+script or under the current working directory.}
 
 \item{output_dir}{\code{NULL} for the composable in-memory return, or a
-directory that triggers the complete checkpointed workflow. When \code{x} is
-omitted, the default is \code{reference-library-build} under \code{data_dir}.}
+directory that triggers the complete checkpointed workflow. The official
+workflow requires an explicit output directory.}
 
 \item{previous_library_dir}{directory containing the seven legacy artifacts
 used for complete old/new assessment, \code{"system"}, or \code{NULL} to skip
-external comparison. The no-argument official workflow defaults to
-\code{"system"} and retrieves missing artifacts with \code{get_lib()}.}
+external comparison. The end-to-end workflow defaults to \code{"system"}
+and retrieves missing artifacts with \code{get_lib()}.}
 
 \item{reuse}{logical; whether manifest-compatible completed checkpoints and
 versioned release files may be reused.}
@@ -256,8 +250,11 @@ material metadata.}
 
 \item{class_col, type_col}{metadata columns used for model labels.}
 
-\item{material_type_col}{metadata column used to distinguish plastic from
-non-plastic candidates when reassigning generic classes.}
+\item{material_type_col}{metadata column used to require plastic candidates
+for \code{"other plastic"} and to update the type after generic-class
+reassignment. \code{"other material"} candidates are restricted by
+\code{class_col} to \code{"organic matter"} or \code{"mineral"};
+\code{"other"} may match any established class in the spectral pool.}
 
 \item{min_n}{groups with \code{min_n} or fewer spectra are kept whole.}
 
@@ -309,8 +306,8 @@ data.table summary.
 }
 \description{
 Create reference libraries from source files and OpenSpecy objects.
-With no \code{x}, or when \code{output_dir} is supplied,
-\code{build_lib()} runs the official end-to-end workflow and returns raw,
+When \code{output_dir} is supplied, \code{build_lib()} runs the official
+end-to-end workflow and returns raw,
 processed, medoid, model, and assessment artifacts in one object. Supporting
 functions remain available for advanced composition.
 }
@@ -348,8 +345,11 @@ spectrum.
 Progress messages report named stages and elapsed time by default so
 long-running builds remain observable.
 
-The official workflow reads its environment-aware paths inside
-\code{build_lib()}, writes each completed stage under
+The official workflow requires explicit source paths and an output
+directory. When \code{workflow_data} is omitted, \code{build_lib()} looks
+for the curated helper tables under \code{data/} beside the calling script,
+then under \code{data/} or \code{workflows/data/} in the current working
+directory. It writes each completed stage under
 \code{output_dir/checkpoints}, and promotes validated legacy-compatible files
 into a versioned release directory. With \code{reuse = TRUE}, a checkpoint
 is reused only when its manifest signature matches the source files, curated
@@ -357,6 +357,14 @@ tables, relevant arguments, package version, and builder implementation.
 Full assessments use the complete candidate and legacy artifacts. A seeded
 ten-percent holdout is grouped by stable spectrum identity so the same
 spectrum cannot occur in both reference training and testing partitions.
+Official class completion retains unmapped reviewed identities as
+\code{"other"} and stops when that class exceeds one percent of an artifact.
+Before pruning, \code{prune_lib()} reassigns generic classes by nearest
+same-technique correlation: \code{"other"} may use any established class,
+\code{"other plastic"} requires a plastic candidate, and
+\code{"other material"} requires \code{"organic matter"} or
+\code{"mineral"}. The matched material type and a correlation audit are
+retained.
 
 \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the

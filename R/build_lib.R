@@ -3,8 +3,8 @@
 #'
 #' @description
 #' Create reference libraries from source files and OpenSpecy objects.
-#' With no \code{x}, or when \code{output_dir} is supplied,
-#' \code{build_lib()} runs the official end-to-end workflow and returns raw,
+#' When \code{output_dir} is supplied, \code{build_lib()} runs the official
+#' end-to-end workflow and returns raw,
 #' processed, medoid, model, and assessment artifacts in one object. Supporting
 #' functions remain available for advanced composition.
 #'
@@ -42,8 +42,11 @@
 #' Progress messages report named stages and elapsed time by default so
 #' long-running builds remain observable.
 #'
-#' The official workflow reads its environment-aware paths inside
-#' \code{build_lib()}, writes each completed stage under
+#' The official workflow requires explicit source paths and an output
+#' directory. When \code{workflow_data} is omitted, \code{build_lib()} looks
+#' for the curated helper tables under \code{data/} beside the calling script,
+#' then under \code{data/} or \code{workflows/data/} in the current working
+#' directory. It writes each completed stage under
 #' \code{output_dir/checkpoints}, and promotes validated legacy-compatible files
 #' into a versioned release directory. With \code{reuse = TRUE}, a checkpoint
 #' is reused only when its manifest signature matches the source files, curated
@@ -51,6 +54,14 @@
 #' Full assessments use the complete candidate and legacy artifacts. A seeded
 #' ten-percent holdout is grouped by stable spectrum identity so the same
 #' spectrum cannot occur in both reference training and testing partitions.
+#' Official class completion retains unmapped reviewed identities as
+#' \code{"other"} and stops when that class exceeds one percent of an artifact.
+#' Before pruning, \code{prune_lib()} reassigns generic classes by nearest
+#' same-technique correlation: \code{"other"} may use any established class,
+#' \code{"other plastic"} requires a plastic candidate, and
+#' \code{"other material"} requires \code{"organic matter"} or
+#' \code{"mineral"}. The matched material type and a correlation audit are
+#' retained.
 #'
 #' \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 #' values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -82,7 +93,8 @@
 #' @param x an \code{OpenSpecy} or \code{Specs} object for metadata helpers.
 #' For \code{build_lib()}, one \code{OpenSpecy}, a nonempty list containing only
 #' \code{OpenSpecy} objects, or a nonempty character vector of file paths.
-#' Omit \code{x} to discover the official sources from the path defaults.
+#' The official workflow requires \code{x}; it does not guess source-library
+#' locations.
 #' Each RDS path may store either one \code{OpenSpecy} or a list of them; other
 #' paths are read with \code{\link{read_any}()}.
 #' Large same-axis source lists are prepared in bulk to avoid repeated legacy
@@ -141,9 +153,11 @@
 #' \code{canonical_name}, \code{source_name}, and optional \code{regex} columns.
 #' The default is returned by \code{\link{lib_metadata_name_lookup}()}; use
 #' \code{NULL} to clean names without coalescing aliases.
-#' @param clean_metadata_values logical; whether \code{build_lib()} should also
-#' lowercase, trim, ASCII-normalize, and normalize blank/unknown character
-#' metadata values in source metadata and lookup tables before joining.
+#' @param clean_metadata_values logical or \code{NULL}; whether
+#' \code{build_lib()} should lowercase, trim, ASCII-normalize, and normalize
+#' blank/unknown character metadata values before joining. \code{NULL} enables
+#' cleaning for the official output workflow and disables it for composable
+#' in-memory builds. Invalid byte sequences are always converted to UTF-8.
 #' @param convert_intensity logical; whether to infer reflectance,
 #' transmittance, or absorbance units from each source and convert known
 #' non-absorbance spectra with \code{\link{adj_intens}()} before merging.
@@ -157,19 +171,18 @@
 #' lists for \code{\link{prune_lib}()}. Selected recipes are pruned independently
 #' after processing and assessment. \code{NULL} preserves unpruned outputs.
 #' @param progress logical; whether \code{build_lib()} reports named processing
-#' stages and elapsed time.
-#' @param data_dir default directory containing official source and build data.
-#' @param source_file default raw source RDS path.
-#' @param processed_dir default directory recursively searched for processed
-#' source RDS files.
-#' @param workflow_data directory containing the curated reference CSV tables.
+#' stages and elapsed time, or \code{reduce_lib()} reports group sizes and
+#' correlation/PAM timings.
+#' @param workflow_data optional directory containing the curated reference CSV
+#' tables. If \code{NULL}, the directory is discovered beside the calling
+#' script or under the current working directory.
 #' @param output_dir \code{NULL} for the composable in-memory return, or a
-#' directory that triggers the complete checkpointed workflow. When \code{x} is
-#' omitted, the default is \code{reference-library-build} under \code{data_dir}.
+#' directory that triggers the complete checkpointed workflow. The official
+#' workflow requires an explicit output directory.
 #' @param previous_library_dir directory containing the seven legacy artifacts
 #' used for complete old/new assessment, \code{"system"}, or \code{NULL} to skip
-#' external comparison. The no-argument official workflow defaults to
-#' \code{"system"} and retrieves missing artifacts with \code{get_lib()}.
+#' external comparison. The end-to-end workflow defaults to \code{"system"}
+#' and retrieves missing artifacts with \code{get_lib()}.
 #' @param reuse logical; whether manifest-compatible completed checkpoints and
 #' versioned release files may be reused.
 #' @param seed fixed seed for the grouped old/new assessment split.
@@ -191,8 +204,11 @@
 #' \code{\link{make_rel}()}.
 #' @param complete_cases logical; whether to remove spectra with any missing
 #' training values.
-#' @param material_type_col metadata column used to distinguish plastic from
-#' non-plastic candidates when reassigning generic classes.
+#' @param material_type_col metadata column used to require plastic candidates
+#' for \code{"other plastic"} and to update the type after generic-class
+#' reassignment. \code{"other material"} candidates are restricted by
+#' \code{class_col} to \code{"organic matter"} or \code{"mineral"};
+#' \code{"other"} may match any established class in the spectral pool.
 #' @param exclude numeric length-two wavenumber interval excluded from pruning
 #' correlations.
 #' @param \ldots further arguments passed to the underlying operation.
@@ -296,30 +312,24 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       dedupe = TRUE, metadata_lookups = NULL,
                       material_hierarchy = NULL,
                       metadata_name_lookup = lib_metadata_name_lookup(),
-                      clean_metadata_values = FALSE,
+                      clean_metadata_values = NULL,
                       convert_intensity = TRUE, restrict_range_args = NULL,
                       signal_noise = TRUE, assess = FALSE, prune = NULL,
                       progress = TRUE,
-                      data_dir = Sys.getenv(
-                        "OPENSPECY_LIBRARY_DATA",
-                        unset = normalizePath("..", mustWork = FALSE)
-                      ),
-                      source_file = Sys.getenv(
-                        "OPENSPECY_SOURCE_FILE",
-                        unset = file.path(data_dir, "library_raw.rds")
-                      ),
-                      processed_dir = Sys.getenv(
-                        "OPENSPECY_PROCESSED_DIR",
-                        unset = paste0(
-                          "H:/My Drive/Work/Projects/OpenSpecy/",
-                          "SpectraFilesCodeProcessedSpectra"
-                        )
-                      ),
-                      workflow_data = file.path("workflows", "data"),
-                      output_dir = NULL, previous_library_dir = NULL,
+                      workflow_data = NULL,
+                      output_dir = NULL, previous_library_dir = "system",
                       reuse = TRUE, seed = 123, holdout = 0.1,
                       ...) {
-  official_mode <- missing(x) || !is.null(output_dir)
+  if (missing(x)) {
+    stop(
+      "'x' must specify the source library file path(s) or OpenSpecy object(s)",
+      call. = FALSE
+    )
+  }
+  official_mode <- !is.null(output_dir)
+  if (is.null(clean_metadata_values)) {
+    clean_metadata_values <- official_mode
+  }
   if (!is.logical(reuse) || length(reuse) != 1L || is.na(reuse)) {
     stop("'reuse' must be TRUE or FALSE", call. = FALSE)
   }
@@ -339,23 +349,10 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     ))
   }
 
-  if (is.null(output_dir)) {
-    output_dir <- Sys.getenv(
-      "OPENSPECY_LIBRARY_OUTPUT",
-      unset = file.path(data_dir, "reference-library-build")
-    )
-  }
-  sources <- if (missing(x)) {
-    .lib_reference_sources(source_file, processed_dir, progress = progress)
-  } else {
-    x
-  }
-  if (is.null(previous_library_dir) && missing(x)) {
-    previous_library_dir <- "system"
-  }
+  workflow_data <- .lib_find_workflow_data(workflow_data)
 
   .lib_build_reference(
-    x = sources, recipes = recipes, range = range, res = res,
+    x = x, recipes = recipes, range = range, res = res,
     id_col = id_col, exclude_ids = exclude_ids, dedupe = dedupe,
     metadata_lookups = metadata_lookups,
     material_hierarchy = material_hierarchy,
@@ -937,7 +934,8 @@ predict_class_reference <- function(metadata, regex_reference,
 
 # Complete official reference-library class coverage while retaining uncertain
 # identities as an explicit review queue. This stays internal because the two
-# normalization rules are contributor-specific, not a general package API.
+# normalization rules and the reviewed one-percent cap are specific to the
+# official library, not a general package API.
 .lib_complete_reference_classes <- function(x, classes, hierarchy) {
   metadata <- data.table::copy(x$metadata)
   blank <- function(value) {
@@ -952,12 +950,15 @@ predict_class_reference <- function(metadata, regex_reference,
   exact_classes <- classes
 
   normalized_key <- rep(NA_character_, nrow(metadata))
-  gicquel <- missing_before & !is.na(user) &
+  direct <- missing_before & !is.na(identity) &
+    !is.na(match(identity, exact_classes$spectrum_identity))
+  normalized_key[direct] <- identity[direct]
+  gicquel <- missing_before & is.na(normalized_key) & !is.na(user) &
     user == "gicquel et al. 2024" & !is.na(identity)
   normalized_key[gicquel] <- sub(
     "_ref(?:_0)?(?:[.]csv)?$", "", identity[gicquel], perl = TRUE
   )
-  mffrc <- missing_before & !is.na(user) &
+  mffrc <- missing_before & is.na(normalized_key) & !is.na(user) &
     user == "elise granek and kellie teague" & !is.na(identity)
   mffrc_base <- sub("[.][0-9]+$", "", identity[mffrc])
   mffrc_base <- sub("^mffrc[0-9]+_", "", mffrc_base)
@@ -984,31 +985,54 @@ predict_class_reference <- function(metadata, regex_reference,
     metadata$material_class[material_rows] <- hierarchy$material_class[material_lookup]
     metadata$material_type[material_rows] <- hierarchy$material_type[material_lookup]
   }
-  unresolved_rows <- resolved_rows[is.na(hierarchy_material)]
-  if (length(unresolved_rows) > 0L) {
-    class_pairs <- unique(hierarchy[, .(material_class, material_type)])
-    class_lookup <- match(metadata$material[unresolved_rows],
+  class_pairs <- unique(hierarchy[, .(material_class, material_type)])
+  missing_class_rows <- which(
+    blank(metadata$material_class) & !blank(metadata$material)
+  )
+  reviewed_class_rows <- integer()
+  if (length(missing_class_rows) > 0L) {
+    class_lookup <- match(metadata$material[missing_class_rows],
                           class_pairs$material_class)
-    class_rows <- unresolved_rows[!is.na(class_lookup)]
-    metadata$material_class[class_rows] <- metadata$material[class_rows]
-    metadata$material_type[class_rows] <-
+    reviewed_class_rows <- missing_class_rows[!is.na(class_lookup)]
+    metadata$material_class[reviewed_class_rows] <-
+      metadata$material[reviewed_class_rows]
+    metadata$material_type[reviewed_class_rows] <-
       class_pairs$material_type[class_lookup[!is.na(class_lookup)]]
   }
   source_resolved <- resolved & !blank(metadata$material_class)
   assignment[source_resolved] <- "reviewed_source_key"
+  reviewed_class_key <- seq_len(nrow(metadata)) %in% reviewed_class_rows &
+    !source_resolved
+  assignment[reviewed_class_key] <- "reviewed_class_key"
   unresolved <- blank(metadata$material_class)
-  metadata$material[unresolved & blank(metadata$material)] <- "unclassified"
-  metadata$material_class[unresolved] <- "unclassified"
-  metadata$material_type[unresolved & blank(metadata$material_type)] <- "unknown"
+  metadata$material[unresolved] <- "other"
+  metadata$material_class[unresolved] <- "other"
+  metadata$material_type[unresolved] <- "other"
   lookup_key[unresolved] <- identity[unresolved]
   assignment[unresolved] <- "unresolved_identity"
+  other <- !blank(metadata$material_class) &
+    tolower(trimws(metadata$material_class)) == "other"
+  other_fraction <- if (nrow(metadata)) sum(other) / nrow(metadata) else 0
+  if (other_fraction > 0.01) {
+    stop(sprintf(
+      paste0(
+        "The 'other' class is %.2f%% of the library (%d/%d), above the ",
+        "reviewed 1%% maximum; review exact class mappings for: %s"
+      ),
+      100 * other_fraction, sum(other), nrow(metadata),
+      paste(head(unique(identity[other]), 20L), collapse = ", ")
+    ), call. = FALSE)
+  }
   metadata[, `:=`(class_lookup_key = lookup_key,
                   class_assignment_reason = assignment)]
   report <- data.table::data.table(
     stage = c("before", "after"),
     populated_class = c(sum(!missing_before), sum(!blank(metadata$material_class))),
     reviewed_source_key = c(0L, sum(source_resolved)),
-    unclassified = c(0L, sum(unresolved)), total = nrow(metadata)
+    reviewed_class_key = c(0L, sum(reviewed_class_key)),
+    unclassified = c(0L, 0L), unresolved_other = c(0L, sum(unresolved)),
+    other = c(0L, sum(other)), other_fraction = c(0, other_fraction),
+    total = nrow(metadata)
   )
   stopifnot(report[stage == "after", populated_class] == nrow(metadata))
   x$metadata <- metadata
@@ -1019,15 +1043,19 @@ predict_class_reference <- function(metadata, regex_reference,
 .lib_prepare_sources <- function(sources, range, res, metadata_name_lookup,
                                  clean_metadata_values, convert_intensity,
                                  id_col, hash_scale, hash_algo, report) {
-  records <- lapply(seq_along(sources), function(i) {
-    .lib_source_record(
+  records <- vector("list", length(sources))
+  for (i in seq_along(sources)) {
+    if (i == 1L || i == length(sources) || i %% 2500L == 0L) {
+      report(sprintf("preparing source object %d/%d", i, length(sources)))
+    }
+    records[[i]] <- .lib_source_record(
       sources[[i]],
       i,
       id_col = id_col,
       hash_scale = hash_scale,
       hash_algo = hash_algo
     )
-  })
+  }
   metadata <- .lib_combined_metadata(
     records,
     metadata_name_lookup,
@@ -1247,12 +1275,24 @@ predict_class_reference <- function(metadata, regex_reference,
     lapply(records, `[[`, "metadata"),
     fill = TRUE
   )
+  metadata <- .lib_normalize_metadata_encoding(metadata)
   metadata <- lib_clean_metadata(
     metadata,
     metadata_name_lookup,
     clean_values = clean_metadata_values
   )
   metadata <- metadata[, setdiff(names(metadata), c("x", "y")), with = FALSE]
+  metadata
+}
+
+.lib_normalize_metadata_encoding <- function(metadata) {
+  metadata <- data.table::as.data.table(data.table::copy(metadata))
+  for (column in names(metadata)) {
+    value <- metadata[[column]]
+    if (!is.character(value) && !is.factor(value)) next
+    value <- iconv(as.character(value), from = "", to = "UTF-8", sub = "")
+    data.table::set(metadata, j = column, value = value)
+  }
   metadata
 }
 
@@ -2011,10 +2051,12 @@ prune_lib <- function(x, class_col = "material_class",
   normalized <- .lib_prune_normalize(x$spectra, x$wavenumber, exclude)
 
   reassigned <- .lib_reassign_other_classes(
-    classes, material_types, pools, normalized, ids
+    classes, material_types, pools, normalized, ids, progress = progress
   )
   classes <- reassigned$classes
+  material_types <- reassigned$material_types
   metadata[[class_col]] <- classes
+  metadata[[material_type_col]] <- material_types
   protected <- tolower(classes) %in% "unclassified"
 
   schedule <- data.table::data.table(
@@ -2217,32 +2259,52 @@ prune_lib <- function(x, class_col = "material_class",
 }
 
 .lib_reassign_other_classes <- function(classes, material_types, pools,
-                                        normalized, ids) {
+                                        normalized, ids, progress = FALSE) {
   class_keys <- tolower(classes)
-  generic <- which(class_keys %in% c("other plastic", "other material"))
+  generic_labels <- c("other", "other plastic", "other material")
+  generic <- which(class_keys %in% generic_labels)
   rows <- list()
-  for (i in generic) {
-    plastic <- identical(class_keys[[i]], "other plastic")
-    eligible <- !is.na(pools) & pools == pools[[i]] &
-      !class_keys %in% c("other plastic", "other material", "unclassified") &
+  if (isTRUE(progress) && length(generic)) {
+    message(sprintf(
+      "prune_lib: reassigning %d generic-class spectrum/spectra",
+      length(generic)
+    ))
+  }
+  groups <- split(generic, paste(pools[generic], class_keys[generic], sep = "\r"))
+  for (query in groups) {
+    generic_class <- class_keys[[query[[1L]]]]
+    target_pool <- pools[[query[[1L]]]]
+    eligible <- !is.na(pools) & pools == target_pool &
+      !class_keys %in% c(generic_labels, "unclassified") &
       !is.na(classes) & nzchar(classes)
-    if (plastic) {
+    if (identical(generic_class, "other plastic")) {
       eligible <- eligible & material_types == "plastic"
-    } else {
-      eligible <- eligible & !is.na(material_types) &
-        material_types != "plastic"
+    } else if (identical(generic_class, "other material")) {
+      eligible <- eligible & class_keys %in% c("organic matter", "mineral")
     }
     candidates <- which(eligible)
+    if (isTRUE(progress)) {
+      message(sprintf(
+        "prune_lib: %s / %s reassignment (%d query; %d eligible)",
+        target_pool, generic_class, length(query), length(candidates)
+      ))
+    }
     if (length(candidates) == 0L) next
-    best <- .lib_prune_best_match(i, candidates, normalized, ids)
-    if (is.na(best$index[[1L]])) next
-    old <- classes[[i]]
-    classes[[i]] <- classes[[best$index[[1L]]]]
+    best <- .lib_prune_best_match(query, candidates, normalized, ids)
+    matched <- which(!is.na(best$index))
+    if (!length(matched)) next
+    query_rows <- query[matched]
+    candidate_rows <- best$index[matched]
+    prior_class <- classes[query_rows]
+    prior_type <- material_types[query_rows]
+    classes[query_rows] <- classes[candidate_rows]
+    material_types[query_rows] <- material_types[candidate_rows]
     rows[[length(rows) + 1L]] <- data.table::data.table(
-      spectrum_id = ids[[i]], prior_class = old,
-      material_class = classes[[i]],
-      matched_id = ids[[best$index[[1L]]]],
-      correlation = best$correlation[[1L]], pool = pools[[i]],
+      spectrum_id = ids[query_rows], prior_class,
+      material_class = classes[query_rows], prior_material_type = prior_type,
+      material_type = material_types[query_rows],
+      matched_id = ids[candidate_rows],
+      correlation = best$correlation[matched], pool = pools[query_rows],
       reason = "nearest_eligible_class"
     )
   }
@@ -2251,33 +2313,91 @@ prune_lib <- function(x, class_col = "material_class",
   } else {
     data.table::data.table(
       spectrum_id = character(), prior_class = character(),
-      material_class = character(), matched_id = character(),
+      material_class = character(), prior_material_type = character(),
+      material_type = character(), matched_id = character(),
       correlation = numeric(), pool = character(), reason = character()
     )
   }
-  list(classes = classes, report = report)
+  if (isTRUE(progress) && length(generic)) {
+    message(sprintf(
+      "prune_lib: generic-class reassignment complete (reassigned=%d; retained=%d)",
+      nrow(report), length(generic) - nrow(report)
+    ))
+  }
+  list(classes = classes, material_types = material_types, report = report)
 }
 
 #' @rdname build_lib
 #' @export
 reduce_lib <- function(x, group_cols = "material_class", id_col = "sample_name",
-                       k = 50, min_n = k, return = c("object", "ids"), ...) {
+                       k = 50, min_n = k, return = c("object", "ids"),
+                       progress = FALSE, ...) {
   return <- match.arg(return)
+  if (!is.logical(progress) || length(progress) != 1L || is.na(progress)) {
+    stop("'progress' must be TRUE or FALSE", call. = FALSE)
+  }
   x <- as_OpenSpecy(x)
   .lib_require_cols(x$metadata, group_cols, "metadata")
 
   ids <- .lib_ids(x, id_col)
-  reduction_obj <- x
-  spectra <- make_rel(x$spectra, na.rm = TRUE)
-  spectra <- .matrix_mean_replace(spectra)
-  reduction_obj$spectra <- spectra
-
   groups <- do.call(paste, c(x$metadata[, group_cols, with = FALSE], sep = "_"))
-  keep_ids <- unlist(lapply(split(seq_along(groups), groups), function(idx) {
-    if (length(idx) <= min_n || length(idx) <= k) return(ids[idx])
-    .pam_group_ids(filter_spec(reduction_obj, idx), id_col = id_col, k = k,
-                   ...)
+  group_index <- split(seq_along(groups), groups)
+  reduce_group <- lengths(group_index) > min_n & lengths(group_index) > k
+  reduce_number <- cumsum(reduce_group)
+  reduce_total <- sum(reduce_group)
+  reduction_started <- proc.time()[["elapsed"]]
+
+  if (isTRUE(progress)) {
+    message(sprintf(
+      "reduce_lib: %d spectra in %d groups; %d group(s) require PAM (k=%d)",
+      length(ids), length(group_index), reduce_total, k
+    ))
+  }
+
+  keep_ids <- unlist(lapply(seq_along(group_index), function(group_i) {
+    idx <- group_index[[group_i]]
+    if (!reduce_group[[group_i]]) return(ids[idx])
+
+    reduce_i <- reduce_number[[group_i]]
+    values <- vapply(group_cols, function(column) {
+      value <- as.character(x$metadata[[column]][idx[[1L]]])
+      if (is.na(value) || !nzchar(value)) value <- "<missing>"
+      paste0(column, "=", value)
+    }, character(1))
+    label <- paste(values, collapse = ", ")
+    group_started <- proc.time()[["elapsed"]]
+    if (isTRUE(progress)) {
+      message(sprintf(
+        "reduce_lib: PAM group %d/%d starting (%s; n=%d; k=%d)",
+        reduce_i, reduce_total, label, length(idx), k
+      ))
+    }
+
+    reduction_group <- filter_spec(x, idx)
+    reduction_group$spectra <- .matrix_mean_replace(
+      make_rel(reduction_group$spectra, na.rm = TRUE)
+    )
+    selected <- .pam_group_ids(
+      reduction_group, id_col = id_col, k = k,
+      progress = progress, group_label = label, ...
+    )
+    if (isTRUE(progress)) {
+      message(sprintf(
+        "reduce_lib: PAM group %d/%d complete (kept=%d/%d; %.1fs)",
+        reduce_i, reduce_total, length(selected), length(idx),
+        proc.time()[["elapsed"]] - group_started
+      ))
+    }
+    selected
   }), use.names = FALSE)
+
+  if (isTRUE(progress)) {
+    message(sprintf(
+      "reduce_lib: complete (kept=%d/%d; %.1fs)",
+      length(keep_ids), length(ids),
+      proc.time()[["elapsed"]] - reduction_started
+    ))
+  }
 
   if (return == "ids") return(keep_ids)
   filter_spec(x, keep_ids)
@@ -2581,15 +2701,20 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       seed = seed, holdout = holdout
     )
   )
-  checkpoints <- .lib_checkpoint_manager(
-    output_dir, signature = signature, reuse = reuse, report = report
-  )
-
-  core <- checkpoints$get("core_libraries")
-  if (is.null(core)) {
-    report("building raw, derivative, and nobaseline libraries")
-    core <- .lib_build_core(
-      x = x, recipes = recipes, range = range, res = res, id_col = id_col,
+  # Keep expensive spectral preprocessing reusable when only downstream class,
+  # pruning, assessment, or export code changes. Bump component_version only
+  # when a core transformation intentionally changes its scientific output.
+  core_signature <- .lib_component_signature(
+    x,
+    workflow_paths = unlist(
+      tables$paths[c(
+        "classes_reference", "library_types", "material_hierarchy",
+        "known_bad_ids"
+      )],
+      use.names = FALSE
+    ),
+    arguments = list(
+      recipes = recipes, range = range, res = res, id_col = id_col,
       exclude_ids = exclude_ids, dedupe = dedupe,
       metadata_lookups = metadata_lookups,
       material_hierarchy = material_hierarchy,
@@ -2597,18 +2722,39 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       clean_metadata_values = clean_metadata_values,
       convert_intensity = convert_intensity,
       restrict_range_args = restrict_range_args,
-      signal_noise = signal_noise, assess = assess, prune = NULL,
-      progress = progress, ...
-    )
-    checkpoints$put("core_libraries", core)
-    for (name in names(core)) {
-      checkpoints$put(paste0("core_library_", name), core[[name]])
-    }
-  }
+      signal_noise = signal_noise, assess = assess
+    ),
+    component_version = "core-libraries-v1"
+  )
+  checkpoints <- .lib_checkpoint_manager(
+    output_dir, signature = signature, reuse = reuse, report = report
+  )
 
   libraries <- checkpoints$get("libraries")
-  local_assessments <- NULL
+  local_assessments <- checkpoints$get("library_assessments")
   if (is.null(libraries)) {
+    core <- checkpoints$get("core_libraries", key = core_signature)
+    if (is.null(core)) {
+      report("building raw, derivative, and nobaseline libraries")
+      core <- .lib_build_core(
+        x = x, recipes = recipes, range = range, res = res, id_col = id_col,
+        exclude_ids = exclude_ids, dedupe = dedupe,
+        metadata_lookups = metadata_lookups,
+        material_hierarchy = material_hierarchy,
+        metadata_name_lookup = metadata_name_lookup,
+        clean_metadata_values = clean_metadata_values,
+        convert_intensity = convert_intensity,
+        restrict_range_args = restrict_range_args,
+        signal_noise = signal_noise, assess = assess, prune = NULL,
+        progress = progress, ...
+      )
+      checkpoints$put("core_libraries", core, key = core_signature)
+      for (name in names(core)) {
+        checkpoints$put(
+          paste0("core_library_", name), core[[name]], key = core_signature
+        )
+      }
+    }
     completed <- .lib_complete_reference_build(
       core, tables = tables, prune = prune, progress = progress,
       report = report
@@ -2616,15 +2762,21 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     libraries <- completed$libraries
     local_assessments <- completed$assessments
     checkpoints$put("libraries", libraries)
+    checkpoints$put("library_assessments", local_assessments)
     for (name in names(libraries)) {
       checkpoints$put(paste0("library_", name), libraries[[name]])
     }
+  } else if (is.null(local_assessments)) {
+    report("reconstructing completed-library assessments from attributes")
+    local_assessments <- .lib_recover_library_assessments(libraries, tables)
+    checkpoints$put("library_assessments", local_assessments)
   }
 
   medoids <- checkpoints$get("medoids")
   if (is.null(medoids)) {
     medoids <- .lib_build_medoids(
-      libraries, report = report, checkpoints = checkpoints
+      libraries, report = report, checkpoints = checkpoints,
+      progress = progress
     )
     checkpoints$put("medoids", medoids)
   }
@@ -2704,6 +2856,42 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   build
 }
 
+.lib_find_workflow_data <- function(workflow_data = NULL,
+                                    script_dirs = NULL) {
+  if (!is.null(workflow_data)) return(workflow_data)
+  if (is.null(script_dirs)) {
+    script_paths <- unlist(lapply(sys.frames(), function(frame) {
+      path <- frame$ofile
+      if (is.null(path)) character() else as.character(path)
+    }), use.names = FALSE)
+    script_dirs <- dirname(normalizePath(
+      script_paths[file.exists(script_paths)], mustWork = FALSE
+    ))
+  }
+  candidates <- unique(c(
+    file.path(rev(script_dirs), "data"),
+    file.path(getwd(), "data"),
+    file.path(getwd(), "workflows", "data")
+  ))
+  required <- c(
+    "classes_reference.csv", "classes_regex.csv", "library_types.csv",
+    "material_hierarchy.csv", "known_bad_ids.csv",
+    "metadata_drop_columns.csv"
+  )
+  complete <- vapply(candidates, function(path) {
+    dir.exists(path) && all(file.exists(file.path(path, required)))
+  }, logical(1))
+  if (!any(complete)) {
+    stop(
+      "Could not locate the reference helper tables. Put them in data/ ",
+      "beside the calling script or supply 'workflow_data'. Searched: ",
+      paste(candidates, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  normalizePath(candidates[which(complete)[1L]], mustWork = TRUE)
+}
+
 .lib_reference_tables <- function(workflow_data) {
   if (!is.character(workflow_data) || length(workflow_data) != 1L ||
       is.na(workflow_data) || !nzchar(workflow_data)) {
@@ -2748,10 +2936,27 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (is.na(pattern) || !startsWith(pattern, "^") ||
       !endsWith(pattern, "$")) return(FALSE)
   body <- substr(pattern, 2L, nchar(pattern) - 1L)
-  # Escaped punctuation still denotes one exact normalized identity; every
-  # other regex metacharacter denotes controlled variability.
-  body <- gsub("\\\\[().+*?{}|^$\\[\\]\\\\]", "", body, perl = TRUE)
-  !grepl("[.()+*?{}|\\[\\]]|\\[:|\\d|\\s|\\w|\\x", body, perl = TRUE)
+  chars <- strsplit(body, "", fixed = TRUE)[[1L]]
+  if (length(chars) == 0L) return(TRUE)
+  metacharacters <- c(".", "(", ")", "+", "*", "?", "{", "}",
+                      "|", "[", "]", "^", "$")
+  variable_escapes <- c(
+    "A", "B", "b", "D", "d", "G", "K", "N", "P", "p", "Q",
+    "R", "S", "s", "W", "w", "X", "x", "Z", "z", "0", "1",
+    "2", "3", "4", "5", "6", "7", "8", "9"
+  )
+  escaped <- FALSE
+  for (char in chars) {
+    if (escaped) {
+      if (char %in% variable_escapes) return(FALSE)
+      escaped <- FALSE
+    } else if (identical(char, "\\")) {
+      escaped <- TRUE
+    } else if (char %in% metacharacters) {
+      return(FALSE)
+    }
+  }
+  !escaped
 }
 
 .lib_build_signature <- function(x, workflow_paths, arguments) {
@@ -2777,6 +2982,26 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   digest::digest(
     list(sources = sources, workflow = workflow, arguments = arguments,
          version = description, code = code_checksum),
+    algo = "sha256"
+  )
+}
+
+.lib_component_signature <- function(x, workflow_paths, arguments,
+                                     component_version) {
+  sources <- if (is.character(x)) {
+    .lib_file_signatures(x)
+  } else {
+    data.table::data.table(
+      path = "<in-memory>", size = as.numeric(object.size(x)),
+      modified = NA_character_, checksum = digest::digest(x, algo = "sha256")
+    )
+  }
+  workflow <- .lib_file_signatures(workflow_paths, checksum_limit = Inf)
+  digest::digest(
+    list(
+      sources = sources, workflow = workflow, arguments = arguments,
+      component_version = component_version
+    ),
     algo = "sha256"
   )
 }
@@ -2902,7 +3127,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       artifact = name, stage = coverage$stage,
       populated_class = coverage$populated_class,
       reviewed_source_key = coverage$reviewed_source_key,
-      unclassified = coverage$unclassified
+      reviewed_class_key = coverage$reviewed_class_key,
+      unclassified = coverage$unclassified,
+      unresolved_other = coverage$unresolved_other,
+      other = coverage$other,
+      other_fraction = coverage$other_fraction
     )
   }
 
@@ -3009,7 +3238,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
-.lib_build_medoids <- function(libraries, report, checkpoints = NULL) {
+.lib_build_medoids <- function(libraries, report, checkpoints = NULL,
+                               progress = TRUE) {
   processed <- intersect(c("derivative", "nobaseline"), names(libraries))
   out <- lapply(processed, function(name) {
     stage <- paste0("medoid_", name)
@@ -3019,7 +3249,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     ids <- reduce_lib(
       libraries[[name]],
       group_cols = c("spectrum_type", "organization", "material_class"),
-      k = 50, min_n = 50, return = "ids"
+      k = 50, min_n = 50, return = "ids",
+      progress = progress
     )
     result <- filter_spec(libraries[[name]], ids)
     if (!is.null(checkpoints)) checkpoints$put(stage, result)
@@ -3086,6 +3317,69 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     tolower(x$metadata$spectrum_type) == type
   if (!any(keep)) return(NULL)
   filter_spec(x, keep)
+}
+
+.lib_recover_library_assessments <- function(libraries, tables) {
+  prediction <- data.table::rbindlist(lapply(names(libraries), function(name) {
+    report <- attr(libraries[[name]], "class_prediction_report")
+    if (is.null(report) || is.null(report$summary)) return(NULL)
+    data.table::data.table(
+      artifact = name, metric = names(report$summary),
+      value = as.character(unlist(report$summary, use.names = FALSE))
+    )
+  }), fill = TRUE)
+  coverage <- data.table::rbindlist(lapply(names(libraries), function(name) {
+    report <- attr(libraries[[name]], "class_coverage_report")
+    if (is.null(report)) return(NULL)
+    out <- data.table::copy(data.table::as.data.table(report))
+    out[, artifact := name]
+    out
+  }), fill = TRUE)
+  type_coverage <- data.table::rbindlist(lapply(names(libraries), function(name) {
+    metadata <- libraries[[name]]$metadata
+    data.table::data.table(
+      artifact = name, field = c("library_type", "spectrum_type"),
+      populated = c(
+        sum(!is.na(metadata$library_type) & nzchar(metadata$library_type)),
+        sum(!is.na(metadata$spectrum_type) & nzchar(metadata$spectrum_type))
+      ), total = nrow(metadata)
+    )
+  }))
+  pruning <- data.table::rbindlist(lapply(names(libraries), function(name) {
+    report <- attr(libraries[[name]], "prune_report")
+    if (is.null(report) || is.null(report$summary)) return(NULL)
+    out <- data.table::copy(report$summary)
+    out[, artifact := name]
+    out
+  }), fill = TRUE)
+
+  raw_coverage <- attr(libraries$raw, "class_coverage_report")
+  before_filter <- if (is.null(raw_coverage) || nrow(raw_coverage) == 0L) {
+    NA_integer_
+  } else {
+    as.integer(raw_coverage$total[[nrow(raw_coverage)]])
+  }
+  after_filter <- ncol(libraries$raw$spectra)
+  metadata_drop <- data.table::data.table(
+    metadata_column = tables$metadata_drop$metadata_column,
+    status = ifelse(
+      tables$metadata_drop$metadata_column %in% names(libraries$raw$metadata),
+      "retained", "removed_or_absent"
+    )
+  )
+  list(
+    class_prediction = prediction,
+    class_coverage = coverage,
+    type_coverage = type_coverage,
+    pruning = pruning,
+    filters = data.table::data.table(
+      stage = "special_filter", before = before_filter,
+      after = after_filter,
+      removed = if (is.na(before_filter)) NA_integer_ else
+        before_filter - after_filter
+    ),
+    metadata_drop = metadata_drop
+  )
 }
 
 .lib_local_build_assessments <- function(libraries, medoids, models,
@@ -3239,7 +3533,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         checkpoints$get(stage, key = checkpoint_key)
       if (is.null(tests)) {
         tests <- .lib_reference_holdout_test(
-          pair[[source]], split, artifact, source
+          pair[[source]], split, artifact, source,
+          progress = progress
         )
         if (!is.null(checkpoints)) {
           checkpoints$put(stage, tests, key = checkpoint_key)
@@ -3259,6 +3554,12 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     artifact <- recipe
     split <- split_by_artifact[[artifact]]
     candidate <- build$libraries[[recipe]]
+    use <- candidate$wavenumber >= 800 & candidate$wavenumber <= 3200
+    if (sum(use) >= 2L) {
+      candidate <- restrict_range(
+        candidate, min = 800, max = 3200, make_rel = FALSE
+      )
+    }
     group_ids <- .lib_comparison_group_ids(candidate)
     test_groups <- split$manifest[split == "test", group_id]
     candidate_test <- group_ids %in% test_groups
@@ -3282,27 +3583,29 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       if (isTRUE(progress)) {
         message("build_lib assessment: held-out model ", recipe, "/", type)
       }
+      model_started <- proc.time()[["elapsed"]]
       stage <- paste0("assessment_model_", recipe, "_", type, "_new")
       tests <- if (is.null(checkpoints)) NULL else
         checkpoints$get(stage, key = checkpoint_key)
       if (is.null(tests)) {
-        evaluation_model <- tryCatch(
-          build_model_lib(candidate_sources[[type]]),
-          error = function(error) NULL
+        evaluation_model <- build_model_lib(candidate_sources[[type]])
+        tests <- .lib_model_holdout_test(
+          evaluation_model, candidate_tests[[type]], recipe, type,
+          source = "new", provenance = "heldout_model"
         )
-        if (!is.null(evaluation_model)) {
-          tests <- .lib_model_holdout_test(
-            evaluation_model, candidate_tests[[type]], recipe, type,
-            source = "new", provenance = "heldout_model"
-          )
-          if (!is.null(checkpoints)) {
-            checkpoints$put(stage, tests, key = checkpoint_key)
-          }
+        if (!is.null(checkpoints)) {
+          checkpoints$put(stage, tests, key = checkpoint_key)
         }
       }
       if (!is.null(tests)) {
         updated_models[[recipe]][[type]]$tests <- tests
         model_tests[[paste(recipe, type, "new", sep = "_")]] <- tests
+        if (isTRUE(progress)) {
+          message(sprintf(
+            "build_lib assessment: held-out model %s/%s complete (%.1fs)",
+            recipe, type, proc.time()[["elapsed"]] - model_started
+          ))
+        }
       }
     }
 
@@ -3345,9 +3648,24 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       summary <- if (is.null(checkpoints)) NULL else
         checkpoints$get(stage, key = checkpoint_key)
       if (is.null(summary)) {
+        assessment_started <- proc.time()[["elapsed"]]
+        if (isTRUE(progress)) {
+          message(sprintf(
+            "build_lib assessment: assess_spec %s/%s starting (spectra=%d)",
+            artifact, source,
+            ncol(library_pairs[[artifact]][[source]]$spectra)
+          ))
+        }
         summary <- .lib_assess_spec_summary(
           library_pairs[[artifact]][[source]], artifact, source
         )
+        if (isTRUE(progress)) {
+          message(sprintf(
+            "build_lib assessment: assess_spec %s/%s complete (%.1fs)",
+            artifact, source,
+            proc.time()[["elapsed"]] - assessment_started
+          ))
+        }
         if (!is.null(checkpoints)) {
           checkpoints$put(stage, summary, key = checkpoint_key)
         }
@@ -3482,8 +3800,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_reference_holdout_test <- function(x, split, artifact, source,
-                                        block_size = 32L) {
-  ids <- .lib_ids(x, "sample_name")
+                                        progress = FALSE) {
   group_ids <- .lib_comparison_group_ids(x)
   test_groups <- split$manifest[split == "test", group_id]
   test_idx <- which(group_ids %in% test_groups)
@@ -3493,28 +3810,49 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
   library <- filter_spec(x, train_idx)
   library_ids <- .lib_ids(library, "sample_name")
-  blocks <- split(test_idx, ceiling(seq_along(test_idx) / block_size))
-  out <- lapply(blocks, function(index) {
-    query <- filter_spec(x, index)
-    cors <- cor_spec(query, library = library, compute = "optimized")
-    top <- max_cor_named(cors)
-    matched_ids <- names(top)
-    matched_rows <- match(matched_ids, library_ids)
-    data.table::data.table(
-      artifact = artifact, source = source,
-      spectrum_id = ids[index],
-      technique = as.character(query$metadata$spectrum_type),
-      expected_class = as.character(query$metadata$material_class),
-      predicted_class = as.character(
-        library$metadata$material_class[matched_rows]
+  query <- filter_spec(x, test_idx)
+  query_ids <- .lib_ids(query, "sample_name")
+  started <- proc.time()[["elapsed"]]
+  if (isTRUE(progress)) {
+    message(sprintf(
+      paste0(
+        "build_lib assessment: %s/%s reference identification starting ",
+        "(test=%d; train=%d)"
       ),
-      correct = as.character(query$metadata$material_class) ==
-        as.character(library$metadata$material_class[matched_rows]),
-      score = as.numeric(top), split = "test",
-      provenance = "reference_holdout"
-    )
-  })
-  data.table::rbindlist(out, fill = TRUE)
+      artifact, source, length(test_idx), length(train_idx)
+    ))
+  }
+  cors <- cor_spec(query, library = library, compute = "optimized")
+  if (isTRUE(progress)) {
+    message(sprintf(
+      paste0(
+        "build_lib assessment: %s/%s full correlation complete ",
+        "(%d x %d; %.1fs)"
+      ),
+      artifact, source, nrow(cors), ncol(cors),
+      proc.time()[["elapsed"]] - started
+    ))
+  }
+  top <- max_cor_named(cors)
+  matched_rows <- match(names(top), library_ids)
+  rm(cors)
+  expected <- as.character(query$metadata$material_class)
+  predicted <- as.character(library$metadata$material_class[matched_rows])
+  if (isTRUE(progress)) {
+    message(sprintf(
+      "build_lib assessment: %s/%s reference identification complete (%.1fs)",
+      artifact, source, proc.time()[["elapsed"]] - started
+    ))
+  }
+  data.table::data.table(
+    artifact = artifact, source = source,
+    spectrum_id = query_ids,
+    technique = as.character(query$metadata$spectrum_type),
+    expected_class = expected, predicted_class = predicted,
+    correct = expected == predicted,
+    score = as.numeric(top), split = "test",
+    provenance = "reference_holdout"
+  )
 }
 
 .lib_model_holdout_test <- function(model, x, artifact, type, source,
@@ -3581,24 +3919,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   merge(overall, macro, by = group_cols, all = TRUE)
 }
 
-.lib_assess_spec_summary <- function(x, artifact, source,
-                                     block_size = 500L) {
-  blocks <- split(seq_len(ncol(x$spectra)),
-                  ceiling(seq_len(ncol(x$spectra)) / block_size))
-  rows <- lapply(blocks, function(index) {
-    assessed <- assess_spec(filter_spec(x, index), report = "all")
-    assessed[, .(
-      count = .N,
-      finding_count = sum(finding_count, na.rm = TRUE),
-      example_ids = paste(head(unique(spectrum_id[status != "pass"]), 20L),
-                          collapse = "; ")
-    ), by = .(check, status)]
-  })
-  summary <- data.table::rbindlist(rows, fill = TRUE)[, .(
-    count = sum(count), finding_count = sum(finding_count),
-    example_ids = paste(head(unique(unlist(strsplit(
-      example_ids[nzchar(example_ids)], "; ", fixed = TRUE
-    ))), 20L), collapse = "; ")
+.lib_assess_spec_summary <- function(x, artifact, source) {
+  assessed <- assess_spec(x, report = "all")
+  summary <- assessed[, .(
+    count = .N,
+    finding_count = sum(finding_count, na.rm = TRUE),
+    example_ids = paste(
+      head(unique(spectrum_id[status != "pass"]), 20L), collapse = "; "
+    )
   ), by = .(check, status)]
   summary[, `:=`(
     artifact = artifact, source = source,
@@ -4041,167 +4369,33 @@ lib_clean_metadata <- function(x,
   x
 }
 
-.pam_distance_matrix <- function(distance) {
-  if (inherits(distance, "dist")) {
-    distance <- as.matrix(distance)
-  } else {
-    distance <- as.matrix(distance)
-  }
-  if (!is.numeric(distance) || nrow(distance) != ncol(distance)) {
-    stop("'distance' must be a square numeric dissimilarity matrix",
-         call. = FALSE)
-  }
-  if (anyNA(distance)) {
-    stop("'distance' must not contain missing values", call. = FALSE)
-  }
-  if (!isTRUE(all.equal(distance, t(distance), tolerance = 1e-12,
-                        check.attributes = FALSE))) {
-    stop("'distance' must be symmetric", call. = FALSE)
-  }
-
-  if (any(distance < 0)) {
-    stop("'distance' must contain non-negative dissimilarities",
-         call. = FALSE)
-  }
-  diag(distance) <- 0
-  storage.mode(distance) <- "double"
-  distance
-}
-
-.pam_validate_k <- function(k, n) {
-  if (!is.numeric(k) || length(k) != 1L || is.na(k) ||
-      k < 1 || k >= n || k != floor(k)) {
-    stop("'k' must be a positive integer smaller than the number of spectra",
-         call. = FALSE)
-  }
-  as.integer(k)
-}
-
-.pam_validate_medoids <- function(medoids, k, n, names = NULL) {
-  if (is.null(medoids)) return(NULL)
-  if (is.character(medoids)) {
-    if (is.null(names)) {
-      stop("Character 'medoids' need named distance rows", call. = FALSE)
-    }
-    medoids <- match(medoids, names)
-  }
-  if (!is.numeric(medoids) || length(medoids) != k ||
-      anyNA(medoids) || any(medoids != floor(medoids)) ||
-      any(medoids < 1 | medoids > n) || anyDuplicated(medoids)) {
-    stop("'medoids' must be unique observation indices of length 'k'",
-         call. = FALSE)
-  }
-  as.integer(medoids)
-}
-
-.pam_assign_info <- function(distance, medoids) {
-  d_med <- distance[, medoids, drop = FALSE]
-  cluster <- max.col(-d_med, ties.method = "last")
-
-  nearest <- d_med[cbind(seq_len(nrow(distance)), cluster)]
-
-  second <- rep(Inf, nrow(distance))
-  if (length(medoids) > 1L) {
-    second_dist <- d_med
-    second_dist[cbind(seq_len(nrow(distance)), cluster)] <- Inf
-    second <- matrixStats::rowMins(second_dist)
-  }
-
-  list(cluster = cluster, nearest = nearest, second = second)
-}
-
-.pam_order_medoids <- function(distance, medoids) {
-  sort.int(medoids)
-}
-
-.pam_build_medoids <- function(distance, k) {
-  n <- nrow(distance)
-  medoids <- integer()
-  nearest <- rep(Inf, n)
-
-  for (step in seq_len(k)) {
-    candidates <- setdiff(seq_len(n), medoids)
-    totals <- vapply(candidates, function(candidate) {
-      sum(pmin(nearest, distance[, candidate]))
-    }, numeric(1))
-    best <- min(totals)
-    candidate <- candidates[max(which(totals <= best))]
-    medoids <- c(medoids, candidate)
-    nearest <- pmin(nearest, distance[, candidate])
-  }
-
-  medoids
-}
-
-.pam_eager_swap <- function(distance, medoids) {
-  n <- nrow(distance)
-  tol <- sqrt(.Machine$double.eps)
-  info <- .pam_assign_info(distance, medoids)
-
-  repeat {
-    changed <- FALSE
-    for (candidate in seq_len(n)) {
-      if (candidate %in% medoids) next
-
-      candidate_distance <- distance[, candidate]
-      new_distance <- pmin(candidate_distance, info$nearest)
-      base_delta <- sum(new_distance - info$nearest)
-      delta <- rep(base_delta, length(medoids))
-      for (medoid_i in seq_along(medoids)) {
-        removed <- info$cluster == medoid_i
-        if (!any(removed)) next
-        delta[medoid_i] <- base_delta +
-          sum(pmin(candidate_distance[removed], info$second[removed]) -
-                new_distance[removed])
-      }
-
-      best_medoid <- which.min(delta)
-      if (delta[best_medoid] < -tol) {
-        medoids[best_medoid] <- candidate
-        info <- .pam_assign_info(distance, medoids)
-        changed <- TRUE
-      }
-    }
-    if (!changed) break
-  }
-
-  medoids
-}
-
-.pam_medoids <- function(distance, k, medoids = NULL, do.swap = TRUE,
-                         pamonce = 6, trace.lev = 0) {
-  if (!is.logical(do.swap) || length(do.swap) != 1L || is.na(do.swap)) {
-    stop("'do.swap' must be TRUE or FALSE", call. = FALSE)
-  }
-  if (!is.numeric(trace.lev) || length(trace.lev) != 1L ||
-      is.na(trace.lev) || trace.lev != 0) {
-    stop("'trace.lev' is not supported by reduce_lib()'s internal PAM",
-         call. = FALSE)
-  }
-  if (!is.numeric(pamonce) || length(pamonce) != 1L ||
-      is.na(pamonce) || pamonce != 6) {
-    stop("reduce_lib()'s internal PAM currently supports pamonce = 6",
-         call. = FALSE)
-  }
-
-  distance <- .pam_distance_matrix(distance)
-  n <- nrow(distance)
-  k <- .pam_validate_k(k, n)
-  medoids <- .pam_validate_medoids(medoids, k, n, rownames(distance))
-  if (is.null(medoids)) medoids <- .pam_build_medoids(distance, k)
-  if (isTRUE(do.swap)) medoids <- .pam_eager_swap(distance, medoids)
-  .pam_order_medoids(distance, medoids)
-}
-
-.pam_group_ids <- function(x, id_col, k, ...) {
+.pam_group_ids <- function(x, id_col, k, progress = FALSE,
+                           group_label = "group", ...) {
   x <- as_OpenSpecy(x)
   ids <- .lib_ids(x, id_col)
   if (ncol(x$spectra) <= k) return(ids)
+
+  correlation_started <- proc.time()[["elapsed"]]
+  if (isTRUE(progress)) {
+    message(sprintf(
+      "reduce_lib: correlation starting (%s; n=%d)",
+      group_label, length(ids)
+    ))
+  }
   cors <- cor_spec(x, x, compute = "optimized")
   cors[is.na(cors)] <- 0
   cors <- pmax(pmin(cors, 1), -1)
   diag(cors) <- 1
   distance <- stats::as.dist(1 - cors)
+  rm(cors)
+  if (isTRUE(progress)) {
+    message(sprintf(
+      "reduce_lib: correlation complete (%s; n=%d; %.1fs)",
+      group_label, length(ids),
+      proc.time()[["elapsed"]] - correlation_started
+    ))
+  }
+
   user_args <- list(...)
   if (length(user_args) > 0L) {
     if (is.null(names(user_args)) || any(names(user_args) == "")) {
@@ -4216,7 +4410,24 @@ lib_clean_metadata <- function(x,
     }
   }
 
-  pam_args <- c(list(distance = distance, k = min(k, length(ids) - 1L)),
-                user_args)
-  ids[do.call(.pam_medoids, pam_args)]
+  pam_args <- list(
+    x = distance, k = min(k, length(ids) - 1L), diss = TRUE, pamonce = 6
+  )
+  pam_args[names(user_args)] <- user_args
+  if (isTRUE(progress)) {
+    message(sprintf(
+      "reduce_lib: PAM starting (%s; n=%d; k=%d)",
+      group_label, length(ids), pam_args$k
+    ))
+  }
+  pam_started <- proc.time()[["elapsed"]]
+  result <- do.call(cluster::pam, pam_args)
+  if (isTRUE(progress)) {
+    message(sprintf(
+      "reduce_lib: PAM complete (%s; n=%d; k=%d; %.1fs)",
+      group_label, length(ids), length(result$id.med),
+      proc.time()[["elapsed"]] - pam_started
+    ))
+  }
+  ids[result$id.med]
 }

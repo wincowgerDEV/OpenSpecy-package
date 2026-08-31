@@ -267,13 +267,11 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
         roll <- pmax(roll, y[i:(i + out_n - 1L), cols, drop = FALSE])
       }
     }
-    signal <- apply(roll, 2L, max)
-    noise <- vapply(seq_along(cols), function(i) {
-      vals <- roll[, i]
-      vals <- vals[vals != 0]
-      if (length(vals) == 0L) return(NA_real_)
-      as.numeric(quantile(vals, probs = prob, na.rm = TRUE, names = FALSE))
-    }, FUN.VALUE = numeric(1))
+    signal <- matrixStats::colMaxs(roll)
+    roll[roll == 0] <- NA_real_
+    noise <- as.numeric(matrixStats::colQuantiles(
+      roll, probs = prob, na.rm = TRUE, drop = TRUE
+    ))
     values[cols] <- signal/noise
   }
 

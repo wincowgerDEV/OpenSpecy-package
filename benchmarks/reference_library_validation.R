@@ -63,7 +63,9 @@ if (identical(mode, "probe")) {
 }
 
 if (identical(mode, "full")) {
-  result <- build_lib(reuse = TRUE)
+  workflow <- new.env(parent = globalenv())
+  sys.source("workflows/OpenSpecy_reference_library.R", envir = workflow)
+  result <- workflow$reference_library_build
   stopifnot(
     nrow(result$assessments$split_manifest) > 0L,
     nrow(result$assessments$library_identification) > 0L,
@@ -99,7 +101,8 @@ stopifnot(all(vapply(libraries[-1L], function(x) {
   identical(x$wavenumber, libraries$raw$wavenumber)
 }, logical(1))))
 stopifnot(all(vapply(libraries[-1L], function(x) {
-  identical(colnames(x$spectra), colnames(libraries$raw$spectra))
+  all(colnames(x$spectra) %in% colnames(libraries$raw$spectra)) &&
+    identical(colnames(x$spectra), x$metadata$sample_name)
 }, logical(1))))
 
 workflow_data <- file.path("workflows", "data")
@@ -121,6 +124,12 @@ raw$metadata <- lib_clean_metadata(raw$metadata, clean_values = TRUE)
 raw$metadata$spectrum_identity <- OpenSpecy:::.lib_clean_spectrum_identity(
   raw$metadata$spectrum_identity
 )
+# Recompute derived classification from the current curated tables. Saved
+# libraries may carry stale populated values that would correctly block a
+# fill-only lookup and make a table-curation audit measure the prior build.
+for (column in c("material", "material_class", "material_type")) {
+  raw$metadata[[column]] <- NA_character_
+}
 before <- data.table::data.table(
   populated_identity = sum(!is.na(raw$metadata$spectrum_identity)),
   populated_material = sum(!is.na(raw$metadata$material)),
@@ -171,6 +180,11 @@ after_lookup <- data.table::data.table(
   populated_class = sum(!is.na(joined$metadata$material_class)),
   populated_library_type = sum(!is.na(joined$metadata$library_type))
 )
+blank_class <- is.na(joined$metadata$material_class) |
+  !nzchar(trimws(joined$metadata$material_class))
+print(joined$metadata[blank_class, .N, by = .(
+  material, organization, user_name, spectrum_identity
+)][order(-N, spectrum_identity)][1:min(.N, 100L)], nrows = 100L)
 joined <- OpenSpecy:::.lib_complete_reference_classes(
   joined, classes, hierarchy
 )
@@ -227,8 +241,15 @@ indices <- unlist(lapply(seq_len(nrow(groups)), function(i) {
       joined$metadata$material_class == groups$material_class[[i]]
   )[seq_len(min(groups$N[[i]], 40L))]
 }), use.names = FALSE)
-representative <- filter_spec(libraries$derivative, indices)
-representative$metadata <- data.table::copy(joined$metadata[indices])
+selected_ids <- colnames(raw$spectra)[indices]
+derivative_indices <- match(
+  intersect(selected_ids, colnames(libraries$derivative$spectra)),
+  colnames(libraries$derivative$spectra)
+)
+representative <- filter_spec(libraries$derivative, derivative_indices)
+representative$metadata <- data.table::copy(joined$metadata[
+  match(colnames(representative$spectra), colnames(raw$spectra))
+])
 pruned <- prune_lib(
   representative, min_n = 10, return = "report", progress = FALSE
 )

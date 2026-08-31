@@ -201,16 +201,20 @@ mini_libs$raw$metadata[
 ```
 
 `prune_lib()` performs the spectrum-supported cleanup used before medoid or
-model creation. It reassigns only the generic `other plastic` and
-`other material` classes when an eligible same-technique candidate exists,
-then evaluates material classes from largest to smallest using bounded
-correlation blocks. FTIR and NIR share a candidate pool; Raman is separate;
-2200--2420 cm^-1^ is excluded by default. Classes are never reduced below
-`min_n`, constant or unmatched spectra are retained, and deterministic IDs
-resolve correlation ties. Use `return = "report"` for the retained IDs, frozen
-class schedule, reassignment events, and removals. `build_lib(prune = ...)`
-maps recipe names to `prune_lib()` argument lists, so each selected spectral
-representation is pruned independently.
+model creation. Within the same spectral-technique pool, `other` may be
+reassigned to the nearest established class, `other plastic` only to a
+candidate whose `material_type` is `plastic`, and `other material` only to
+`organic matter` or `mineral`. The matched `material_type` is copied with the
+class. It then evaluates material classes from largest to smallest using
+bounded correlation blocks. FTIR and NIR share a candidate pool; Raman is
+separate; 2200--2420 cm^-1^ is excluded by default. Classes are never reduced
+below `min_n`, constant or unmatched spectra are retained, and deterministic
+IDs resolve correlation ties. Use `return = "report"` for the retained IDs,
+frozen class schedule, reassignment correlations, and removals.
+`build_lib(prune = ...)` maps recipe names to `prune_lib()` argument lists, so
+each selected spectral representation is pruned independently. In the official
+workflow, an otherwise unresolved identity is labeled `other`; the build stops
+for curation if `other` exceeds one percent of an artifact.
 
 ```{r mini-library-prune}
 pruned <- prune_lib(
@@ -227,16 +231,19 @@ pruned$schedule
 
 The version-controlled
 [`workflows/OpenSpecy_reference_library.R`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/workflows/OpenSpecy_reference_library.R)
-script now contains one default `build_lib()` call. The complete visual flow,
+script retains the source and output path finders and passes those paths to one
+`build_lib()` call. The complete visual flow,
 including checkpoint reuse and old/new assessments, is maintained in
 [`.specify/memory/build-lib-diagram.html`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/.specify/memory/build-lib-diagram.html).
 Canonically named
 exact-class, regex-class, library-type, material-hierarchy, and known-bad-ID
 tables live under
 `workflows/data/`. Raw-data corrections are completed externally before this
-workflow runs. Path arguments default from `OPENSPECY_LIBRARY_DATA`,
-`OPENSPECY_SOURCE_FILE`, `OPENSPECY_PROCESSED_DIR`, and
-`OPENSPECY_LIBRARY_OUTPUT`, so they do not need to be assigned before the call.
+workflow runs. The source-library paths and output directory are explicit
+inputs. When `workflow_data` is not supplied, `build_lib()` looks for the
+helper tables under `data/` beside the calling script, then under `data/` or
+`workflows/data/` in the current working directory. Calling `build_lib()` with
+no `x` now stops with an actionable error instead of guessing external paths.
 The official build fills a missing organization from `user_name` before one
 source-type lookup and asserts complete library/spectrum-type coverage. The
 exact class lookup runs first;
@@ -259,6 +266,16 @@ before identification, evaluates corresponding models, and reports clear
 old/new `assess_spec(report = "all")` shifts. The smaller 1,000-spectrum run in
 the manual benchmark is development-only and is not part of `build_lib()` or
 final acceptance evidence.
+
+The standard call therefore has this shape:
+
+```{r official-call-shape, eval=FALSE}
+reference_library_build <- build_lib(
+  files,
+  output_dir = output_dir,
+  previous_library_dir = "system"
+)
+```
 
 The script is excluded from package builds but remains available
 in the GitHub repository so library releases can be reviewed and reproduced.

@@ -1,11 +1,27 @@
 # OpenSpecy 1.7.1
 
-- `build_lib()` now provides a no-argument, end-to-end official workflow that
-  returns libraries, medoids, models, and named assessment tables in one
-  object. Completed components and full old/new assessment stages are exported
+- `build_lib()` now provides an end-to-end official workflow from explicit
+  source-library paths and an explicit output directory, returning libraries,
+  medoids, models, and named assessment tables in one object. Curated helper
+  CSVs are discovered under `data/` beside the calling script or working
+  directory. Completed components and full old/new assessment stages are exported
   with input manifests as they finish; `reuse = TRUE` resumes only compatible
   checkpoints and validated artifacts are promoted to a versioned release
   directory.
+- Restored the optimized `cluster::pam(pamonce = 6)` medoid engine used by the
+  established reference workflow. `reduce_lib(progress = TRUE)` and delegated
+  `build_lib()` reduction now report each group size plus separate correlation
+  and PAM timings, making large medoid bottlenecks visible.
+- Full old/new reference holdouts now use one optimized full-matrix
+  `cor_spec()` call per artifact/source pair instead of repeatedly normalizing
+  the training library in small query blocks. Progress reports the matrix
+  dimensions plus correlation and total identification time.
+- Vectorized `assess_spec(report = "all")` report expansion so complete
+  in-memory library assessments no longer rescan the full evidence table for
+  every spectrum. `build_lib()` calls `assess_spec()` once per complete
+  artifact and reports each artifact/source timing.
+- Fixed the anchored-regex audit so PCRE escapes such as `\x2c` are classified
+  without compiling an invalid detector expression.
 - Full reference assessment now uses a stable-identity-grouped ten-percent
   holdout across the complete candidate and legacy artifacts, prevents exact
   reference leakage, records model and reference identification metrics, and
@@ -16,10 +32,18 @@
   `classes_regex.csv` to exact entries in `classes_reference.csv`.
 - Added auditable `prune_lib()` and recipe-selective `build_lib(prune = ...)`
   support for reference-library QA/QC. Generic classes are reassigned only to
-  eligible same-technique candidates, then classes are processed largest first
-  with bounded correlation blocks, deterministic ties, and protected minimum
-  sizes. The official workflow prunes derivative and nobaseline libraries
-  before medoid/model creation while leaving raw unpruned.
+  eligible same-technique candidates: `other` may match any established class,
+  `other plastic` only plastic classes, and `other material` only organic
+  matter or mineral. Reassignment also updates material type. Classes are then
+  processed largest first with bounded correlation blocks, deterministic ties,
+  and protected minimum sizes. The official workflow labels remaining blank
+  standards as `other`, enforces a one-percent cap, and prunes derivative and
+  nobaseline libraries before medoid/model creation while leaving raw unpruned.
+- Applied Clarissa's reviewed exact-class corrections using OpenSpecy's
+  existing canonical names: confirmed monomers/non-polymers move to organic
+  matter, polymer-natural blends to `other`, and reviewed ABS, nylon 6,6,
+  cellulose, polyurethane, SciPoly, and textile-polyester identities to their
+  existing hierarchy values.
 - Harmonized reviewed metadata aliases and made `build_lib()` lookup keys
   explicitly selectable, with optional fallback-key merging and fill-only
   lookup values. The official workflow coalesces username into a missing
@@ -440,10 +464,9 @@
   attempting a download.
 - Removed built-in YAML read/write support and the YAML example fixture;
   `read_spec()` and `write_spec()` now support JSON, RDS, and CSV formats.
-- Removed runtime `signal` and `cluster` dependencies by using internal
-  Savitzky-Golay filtering and PAM medoid selection in package workflows.
-- Made internal PAM medoid return order deterministic in tied cases so
-  `reduce_lib(return = "ids")` is stable across platforms.
+- Removed the runtime `signal` dependency by using internal Savitzky-Golay
+  filtering. Reference-library medoids continue to use the established
+  `cluster::pam(pamonce = 6)` implementation.
 - Aligned `automate_particle_analysis()` collapse exports with legacy
   `analyze_features()` particle details, summaries, raw maps, and processed
   particle objects; returned list item names now mirror export filenames and
