@@ -31,7 +31,9 @@ failures in the same broad stage, isolate a focused reproducer before rerunning.
 Network tests must
 guard the actual download host. Keep long-running tests manual or GitHub Actions
 guarded. For reference-library or other long-running external workflows, run
-subset probes and staged temp-output/logged rebuilds before a full run; compare
+subset probes and staged temp-output/logged rebuilds before a full run; define
+representative kernel dimensions, expected time/memory, progress boundaries,
+checkpoint behavior, and a stop/restart threshold before production scale; compare
 rebuilt artifacts against available legacy IDs, wavenumber axes, metadata
 counts/names, warnings, and representative `OpenSpecy` joins or matches before
 claiming completion. The Shiny application may be bundled in this repository
@@ -56,7 +58,11 @@ Package functionality and CRAN readiness take precedence over app convenience.
 Locate symbols with `rg` and read bounded source/diff regions before whole large
 files. Select only skills required by the affected surface, use compact test
 reporters and decision-relevant failure excerpts, and keep complete verbose logs
-in temporary or ignored evidence paths. If routine app work exceeds 30 minutes
+in task-specific ignored `.codex-*` or OS temporary paths, never as loose files in the
+repository root. Before handoff, reconcile every plan checkbox with evidence,
+state deferred gates, inspect owned processes and `git status`, and clean task
+scratch artifacts. Do not claim completion while promised long work is active
+unless the user explicitly accepts a partial handoff. If routine app work exceeds 30 minutes
 or reveals a higher change class, report and re-baseline that scope expansion.
 The hosted Shinylive/WebAssembly app should be generated from the
 bundled app by GitHub Actions, use the repo's wasm CRAN-like package repository

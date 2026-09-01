@@ -5,6 +5,7 @@
 **Review budget**: Under 100 nonblank lines and about 1,500 words.  
 **Current tranche**: Make `build_lib()` own the official source-to-library/medoid/model workflow, its progress reporting, saved outputs, and reviewable old/new assessments; reduce `workflows/OpenSpecy_reference_library.R` to one default builder call.  
 **Change class**: package/scientific
+**Status**: Implementation and the complete production rebuild are finished; targeted app browser smoke awaits an available backend, and release-only R CMD check remains deferred.
 
 ## Goal
 
@@ -13,8 +14,8 @@
 
 ## Scope
 
-- **In**: `build_lib()` inputs/return contract; helper-table discovery, curated lookups including the reviewed Clarissa recommendations, class completion, constrained generic-class reassignment and pruning, exclusions and metadata drops, medoid/model creation, resumable exports, assessment collection, progress, regex cleanup, and a visual workflow diagram.
-- **Out**: Correcting raw source files, inventing fuzzy material mappings, publishing/replacing OSF/AWS libraries, changing `get_lib()` download URLs, bundled Shiny UI changes, and unrelated processing algorithms. Restoring the established compiled PAM engine after the replacement fails at production scale is in scope.
+- **In**: `build_lib()` inputs/return contract; helper-table discovery, curated lookups including the reviewed Clarissa recommendations, class completion, constrained generic-class reassignment and pruning, exclusions and metadata drops, medoid/model creation, resumable exports, assessment collection, progress, regex cleanup, a visual workflow diagram, and the requested bundled-app fix keeping processing, identification, and quantification independently usable.
+- **Out**: Correcting raw source files, inventing fuzzy material mappings, publishing/replacing OSF/AWS libraries, changing `get_lib()` download URLs, and unrelated processing algorithms. Restoring the established compiled PAM engine after the replacement fails at production scale is in scope.
 - **Users**: Maintainers use the no-argument official build; advanced users may still supply `x`, paths, lookup inputs, or named stage argument lists and may compose the existing helpers independently.
 
 ## Requirements
@@ -33,6 +34,7 @@
 - R12. Run `assess_spec(report = "all")` across the complete comparable old/new artifacts and store per-check/status counts, rates, absolute/relative shifts, unavailable checks, and severity changes, with enough IDs to inspect regressions. Metrics must be interpretable side by side and flag missing/undefined denominators. Sampling 1,000 legacy raw spectra is permitted only for internal staged development, never as the function's assessment scope or final evidence.
 - R13. Translate the reviewed Clarissa workbook identities into existing canonical `material` values: monomers and other confirmed non-polymers use `organic matter`; confirmed polymers use existing ABS, nylon 6,6, cellulose derivative, methyl cellulose, polyurethane, or conservative generic labels; polymer-natural mixtures use the explicitly requested `other` label. Do not import the workbook's alternate taxonomy names.
 - R14. Official class completion labels otherwise blank standards as `other` and fails if that unresolved class exceeds 1% of an artifact. During `prune_lib()`, reassign `other` to the nearest established class in its spectral pool, `other plastic` only to plastic candidates, and `other material` only to `organic matter` or `mineral`; update the reassigned material type and retain a correlation audit. A generic class with no eligible finite match remains explicit.
+- R15. The bundled app captures identification ownership in committed Run state. Raw/processed spectra remain viewable and quantifiable with identification off; raw/processed identification remains available when on; match tables/downloads/colors stay absent when off, and multi-spectrum heatmaps offer only non-identification colors.
 
 ## Technical Decisions
 
@@ -41,15 +43,16 @@
 - **API classification**: `x` is required; explicit `output_dir` triggers the official monolith while `NULL` preserves custom in-memory composition. Lookup objects and `reuse` are policies; pruning/reduction/model tuning uses named lists owned by each helper. Canonical coalesces, generic-class candidate restrictions, the 1% unresolved cap, names, progress, and assessments are inferred. The one-caller reassignment helper remains internal.
 - **Dependencies**: Reuse base R, `data.table`, existing package dependencies, and existing download helpers; move recommended package `cluster` from Suggests to Imports and restore the supplied/reference `cluster::pam(pamonce = 6)` medoid path. Add no Excel-writing dependency. Network/large comparison stages guard the actual OSF/AWS hosts and skip only in routine tests, while the official workflow fails with actionable recovery guidance.
 - **Compatibility/docs**: Treat the return/model layout and default output side effects as public changes. Update the vignette, roxygen, examples, and `NEWS.md`; regenerate with configured roxygen and inspect `NAMESPACE`/`man` diffs rather than editing them.
-- **Bundled Shiny/pipeline diagram**: N/A; no `inst/shiny` source or diagram stage changes. **Hosted**: `R/` and vignette inputs trigger fast `-HostedAppStatic`; run matching-artifact preflight when a candidate medoid/model bundle is staged. A clean wasm rebuild is deferred unless library pins/images or release artifacts are updated.
+- **Bundled Shiny/pipeline diagram**: Preserve one canonical final spectral reactive and use its captured identification setting as the owner for match-only consumers. The canonical HTML already specifies the corrected optional-identification topology, so no diagram change is needed. **Hosted**: `R/`, vignette, and `inst/shiny/` inputs trigger fast `-HostedAppStatic`; run matching-artifact preflight when a candidate medoid/model bundle is staged. A clean wasm rebuild is deferred unless library pins/images or release artifacts are updated.
 
 ## Package Surfaces And Work Checklist
 
-- [ ] `R/build_lib.R`: require explicit sources, discover adjacent helper data, fix regex classification, and retain official/custom modes, assessments, progress, validated reuse, checkpoints, and promotion.
-- [ ] `workflows/OpenSpecy_reference_library.R` and curated CSVs: retain source/output finders, pass explicit paths to one call, apply reviewed exact-name corrections, and keep the exact-vs-regex curation audit.
-- [ ] `tests/testthat/test-build_lib.R`: cover missing inputs, helper discovery, regex escapes, exact recommendation mappings, unresolved-class cap, constrained generic reassignment, end-to-end shape, reuse, assessments, outputs, alignment, and legacy filenames.
+- [x] `R/build_lib.R`: require explicit sources, discover adjacent helper data, fix regex classification, and retain official/custom modes, assessments, progress, validated reuse, checkpoints, and promotion.
+- [x] `workflows/OpenSpecy_reference_library.R` and curated CSVs: retain source/output finders, pass explicit paths to one call, apply reviewed exact-name corrections, and keep the exact-vs-regex curation audit.
+- [x] `tests/testthat/test-build_lib.R`: cover missing inputs, helper discovery, regex escapes, exact recommendation mappings, unresolved-class cap, constrained generic reassignment, end-to-end shape, reuse, assessments, outputs, alignment, and legacy filenames.
+- [x] `inst/shiny` and app tests: make identification-owned outputs use captured Run state; cover no-identification metadata/download/map choices plus real-library and model choices without breaking quantification.
 - [x] Benchmarks: retain saved-build comparison evidence and the seeded 1,000-spectrum internal probe; compare the superseded pure-R PAM path with compiled PAM for medoid equivalence and representative runtime.
-- [ ] Vignette, HTML diagram, NEWS, and generated help: document explicit paths, helper discovery, all five reference inputs to splitting, return schema, reuse, assessments, and migrations.
+- [x] Vignette, HTML diagram, NEWS, and generated help: document explicit paths, helper discovery, all five reference inputs to splitting, return schema, reuse, assessments, and migrations.
 
 ## Verification
 
@@ -64,8 +67,10 @@
 - Legacy model training membership cannot be reconstructed from downloaded models; label those scores as compatibility evidence and use the leakage-free library/new-model split for inferential comparisons.
 - Full old/new identification and `assess_spec()` evaluation may be expensive; keep it manual/CI-guarded, checkpoint it, and report complete logs without weakening the final full-library evidence requirement.
 - PAM still requires a quadratic dissimilarity object for each group; group-level correlation/PAM timings expose this bound, while the compiled engine keeps the largest observed 18,971-spectrum group finite.
+- The completed build took 26,652 seconds. The corrected optimized correlation reduced the largest first pruning class from about 118 minutes to 19.1 minutes, but this still misses the maintainer's under-10-minute expectation; a follow-up performance tranche should benchmark a single cached/global optimized correlation strategy against measured memory limits.
 
 ## Approval Notes
 
 - Approved by: user implementation request, 2026-08-27.
-- Follow-up: run the guarded complete seven-artifact assessment and R CMD check before publishing a release.
+- Completed evidence: the guarded complete seven-artifact build/assessment finished 2026-09-01 with all libraries, medoids, models, and 18 assessment tables promoted to a versioned local release; the full local test suite passed with three expected CI/network skips.
+- Follow-up: address the recorded pruning performance gap in a separate bounded tranche, run the targeted app-state browser smoke when a backend is available, and run R CMD check or the CI matrix before publishing a release; no publication is authorized by this plan.

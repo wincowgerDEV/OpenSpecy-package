@@ -1,15 +1,15 @@
 <!--
 Sync Impact Report
-Version change: 3.10.0 -> 3.11.0
+Version change: 3.11.0 -> 3.12.0
 Modified principles:
-- II. OpenSpecy Object Contract: allow a plan-approved compact Specs map as canonical analysis state without dense expansion
-- Bundled Shiny Application Boundary: require representation-aware consumers and an explicit indexed OpenSpecy inspection boundary
+- VI. Benchmark-Governed Performance Work: require production-scale budgets, telemetry, and complexity-aware stop/restart decisions
+- IX. Proportional Evidence and Efficient Execution: require evidence-backed checklist reconciliation, process ownership, and workspace cleanup before handoff
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md, AGENTS.md, and relevant Spec Kit/app skills: synchronized canonical Specs-map guidance
+- .specify/templates/plan-template.md, AGENTS.md, and shared speckit-implement skill: synchronized long-run and closure guidance
 Follow-up TODOs:
 - None
 -->
@@ -214,6 +214,16 @@ another stable timing method. Setup, file loading, documentation, and unrelated
 work SHOULD be kept outside the measured expression. Benchmark scripts MUST
 signal material regressions instead of only printing timings.
 
+Long-running or production-scale changes MUST define stage-level runtime and
+memory expectations before the full run, benchmark the highest-risk kernel at
+representative dimensions, and report dimensions plus elapsed time at useful
+stage boundaries. If a stage materially exceeds its budget or performs
+avoidable work with worse scaling than an available package path, execution
+MUST stop at a safe checkpoint for a focused reproducer and benchmark before a
+replacement full run. Blocking or chunking MUST be justified by measured
+memory constraints; it MUST NOT repeatedly compute against data that are
+ineligible for the result when a complete optimized operation fits.
+
 Speed improvement recommendations are welcome when they preserve package scope,
 avoid unnecessary dependency growth, and include benchmark evidence. Benchmarks
 MUST remain outside formal package tests and CRAN obligations; they are
@@ -289,6 +299,18 @@ and use parallel workers only for nonoverlapping investigations. Command output
 SHOULD report decision-relevant summaries and failure excerpts; complete logs
 MUST remain available in a temporary or ignored evidence location whenever
 console output is filtered.
+
+Before any completion handoff, every plan checkbox MUST be reconciled with
+current evidence: completed work is checked, while incomplete or deferred work
+remains unchecked with its blocker, owner, and required gate stated. A task
+MUST NOT be described as complete while a user-requested long-running process
+is still active unless the user explicitly accepts that partial handoff.
+Agents MUST inspect processes they launched, repository status, and working
+directories before handoff; stop or record owned processes and remove completed
+scratch scripts, logs, and generated diagnostics. Temporary work MUST use an
+OS temporary directory or a task-specific ignored evidence directory rather
+than the repository root. Any intentionally retained temporary artifact MUST
+be named in the handoff with its purpose and cleanup condition.
 
 Plans SHOULD target at most 1,500 words as well as 100 nonblank lines. A plan
 whose implementation is complete except for maintainer, CI, or post-push work
@@ -386,8 +408,9 @@ stages with logs and temporary outputs, and only then the full workflow. Full
 local rebuilds SHOULD write to a temporary output directory first unless the
 user explicitly authorizes publishing or replacing generated artifacts.
 Successful intermediate artifacts MAY be reused for diagnosis and comparison,
-but temporary diagnostics and generated outputs MUST be cleaned up or clearly
-reported before handoff.
+but each expensive stage MUST expose dimensions, elapsed time, and checkpoint
+state sufficient to distinguish progress from a hang. Temporary diagnostics
+and generated outputs MUST be cleaned up or clearly reported before handoff.
 
 ## Bundled Shiny Application Boundary
 
@@ -605,6 +628,9 @@ Before implementation is complete:
 - Official reference-library or other long-running external workflow changes
   MUST use staged subset/temp-output verification and report compatibility
   counts against available legacy artifacts before being treated as complete.
+- Production-scale stages MUST have a representative kernel benchmark, an
+  expected time/memory envelope, progress at meaningful boundaries, and a safe
+  checkpoint/abort decision when observed scaling materially misses the plan.
 - Bundled Shiny app changes MUST apply the
   `openspecy-develop-shiny-app` workflow: parse the canonical app sources, run
   focused noninteractive tests, verify the affected app-state matrix, create
@@ -635,6 +661,12 @@ decision requires them. If a routine app tranche exceeds 30 minutes or reveals
 a higher change class, the next user update MUST identify the expansion and
 re-baseline the remaining verification rather than silently continuing under a
 "minor" label.
+
+The final candidate review MUST reconcile the plan checklist against evidence,
+inspect owned background processes and `git status`, and leave the repository
+root free of task-created scratch files. Incomplete release, CI, browser, or
+maintainer-owned work MUST remain explicit rather than being hidden by checked
+implementation boxes or a general completion claim.
 
 Remote synchronization is maintainer-owned by default. Automated agents MUST
 NOT run `git push`, `git pull`, or `git pull --rebase` unless the user explicitly
@@ -688,4 +720,4 @@ updating that diagram in the same change.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.11.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-08-25
+**Version**: 3.12.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-09-01

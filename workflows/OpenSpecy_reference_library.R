@@ -42,5 +42,5 @@ if (!length(files) || any(!file.exists(files))) {
 reference_library_build <- build_lib(
   x = files,
   output_dir = output_dir,
-  reuse = TRUE
+  reuse = F
 )

@@ -23,7 +23,9 @@ are not required.
    inputs trigger `-HostedAppStatic`; use matching-artifact and clean-rebuild
    tiers only when their runtime/assembly or dependency/build inputs change.
    Passing evidence remains valid until a covered file, dependency, input, or
-   contract changes.
+   contract changes. For long or production-scale work, also record the
+   highest-risk kernel's representative dimensions, expected runtime/memory,
+   progress boundaries, checkpoint behavior, and stop/restart threshold.
 4. If an open question blocks correctness, ask it before editing. Otherwise make
    conservative assumptions and proceed.
 5. Locate owning symbols and consumers with `rg`, then read bounded source and
@@ -44,11 +46,16 @@ are not required.
     reproducer, and tell the user what expanded before continuing.
 11. For reference-library or other long-running external workflows, run a small
    representative probe first, then isolated expensive stages with logs and
-   temporary outputs before the full workflow. Compare rebuilt artifacts against
-   available legacy identifiers, wavenumber axes, metadata shape, warnings, and
-   representative `OpenSpecy` joins or matches before marking the work complete.
+   temporary outputs before the full workflow. Benchmark the highest-risk
+   kernel at representative dimensions and do not continue a materially
+   over-budget stage merely because it remains active. Stop at a safe
+   checkpoint, isolate the scaling or memory issue, verify the replacement, and
+   then restart. Compare rebuilt artifacts against available legacy identifiers,
+   wavenumber axes, metadata shape, warnings, and representative `OpenSpecy`
+   joins or matches before marking the work complete.
 12. For bundled Shiny app work, apply `openspecy-develop-shiny-app`. Keep one
-   final processed `OpenSpecy` reactive behind plots, summaries, identification,
+   final processed spectral reactive (`OpenSpecy`, or a plan-approved compact
+   `Specs` map with bounded conversion) behind plots, summaries, identification,
    quantification, metadata, and downloads; gate child inputs behind their owner
    controls; preserve native downloads; and verify the affected app-state matrix
    with focused tests plus a manual or CI-guarded browser smoke when relevant.
@@ -65,6 +72,13 @@ are not required.
 14. Hosted browser fixtures must set output-determining controls explicitly.
     Do not encode a UI default as fixture setup unless that default is the
     behavior the regression is intended to test.
+15. Before handoff, reconcile every plan checkbox against current evidence.
+    Leave incomplete or deferred work unchecked with its blocker and required
+    gate. Inspect owned processes and `git status`; stop or record launched
+    processes, remove task-created scratch files from the repository root, and
+    name any retained temporary artifact plus its cleanup condition. Do not
+    claim completion while promised long work is still running unless the user
+    explicitly accepts that partial handoff.
 
 ## Rules
 
@@ -97,7 +111,9 @@ are not required.
   changes.
 - Keep tool output decision-sized: prefer `git diff --stat`/`--name-only`,
   changed hunks, compact reporters, and short failure excerpts. Retain complete
-  verbose logs outside conversational context when filtering them.
+  verbose logs outside conversational context when filtering them. Put scratch
+  scripts, logs, and diagnostics in an OS temporary directory or a task-specific
+  ignored `.codex-*` directory, never as loose files in the repository root.
 - Parallelize only independent surfaces with one owner each and concise task
   packets. Do not request redundant reviews of a contract already covered by a
   direct regression unless its scientific or release risk warrants it.

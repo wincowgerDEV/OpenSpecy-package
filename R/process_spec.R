@@ -177,11 +177,11 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
 .intensity_na_plan <- function(spectra) {
   ignored <- is.na(spectra)
   na_cols <- colSums(ignored) > 0L
-  missing_cols <- which(na_cols)
+  missing_cols <- unname(which(na_cols))
   list(
     dim = dim(spectra),
     has_na = any(na_cols),
-    complete_cols = which(!na_cols),
+    complete_cols = unname(which(!na_cols)),
     missing_cols = missing_cols,
     ignored_info = if (length(missing_cols) == 0L) NULL else {
       .spectra_ignore_info_from_mask(

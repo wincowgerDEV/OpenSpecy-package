@@ -27,6 +27,16 @@
   reference leakage, records model and reference identification metrics, and
   reports per-check shifts from `assess_spec()`. Model evaluation rows now live
   in one tidy `tests` table rather than scattered accuracy/confusion fields.
+  Candidate and legacy production models are applied directly to their
+  corresponding held-out spectra without being retrained, and the assessment
+  records that provenance explicitly.
+- Reference-build promotion now reports each release artifact and serializes
+  the aggregate build only once after its final manifest is attached, removing
+  a redundant multi-gigabyte in-memory compression pass.
+- The bundled app now treats identification as a Run-captured optional owner:
+  raw or processed spectra remain viewable and quantifiable without matches,
+  while match tables, downloads, and heatmap colors appear only when
+  identification was enabled for that Run.
 - Canonical source metadata is coalesced before external joins, and
   `fallback_by` is deprecated. Literal-only anchored class patterns moved from
   `classes_regex.csv` to exact entries in `classes_reference.csv`.
@@ -35,8 +45,11 @@
   eligible same-technique candidates: `other` may match any established class,
   `other plastic` only plastic classes, and `other material` only organic
   matter or mineral. Reassignment also updates material type. Classes are then
-  processed largest first with bounded correlation blocks, deterministic ties,
-  and protected minimum sizes. The official workflow labels remaining blank
+  processed largest first with one optimized `cor_spec()` matrix per
+  class/pool pair, reused across removal iterations with deterministic ties and
+  protected minimum sizes. This replaces repeated small blocks that multiplied
+  against ineligible spectra and obscured multi-hour bottlenecks. The official
+  workflow labels remaining blank
   standards as `other`, enforces a one-percent cap, and prunes derivative and
   nobaseline libraries before medoid/model creation while leaving raw unpruned.
 - Applied Clarissa's reviewed exact-class corrections using OpenSpecy's

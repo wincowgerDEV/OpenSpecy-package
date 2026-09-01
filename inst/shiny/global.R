@@ -650,7 +650,8 @@ app_selected_metadata <- function(x, selected_match, signal_to_noise) {
   selected_match <- data.table::copy(
     data.table::as.data.table(selected_match)
   )
-  if("material_class" %in% names(metadata)) {
+  if("material_class" %in% names(metadata) &&
+     "material_class" %in% names(selected_match)) {
     metadata[, material_class := NULL]
   }
 
@@ -677,6 +678,20 @@ app_matches_for_object <- function(matches, object_id) {
   }
   selected_rows <- which(as.character(matches[["object_id"]]) == object_id)
   data.table::copy(matches[selected_rows])
+}
+
+app_map_color_choices <- function(identification_active, model_library,
+                                  collapse) {
+  choices <- c(
+    if(isTRUE(identification_active)) "Material Class" else NA_character_,
+    if(isTRUE(identification_active) && !isTRUE(model_library))
+      "Match ID" else NA_character_,
+    if(isTRUE(identification_active)) "Match Value" else NA_character_,
+    "Signal/Noise",
+    if(isTRUE(collapse)) "Particle Unit" else NA_character_
+  )
+  choices <- choices[!is.na(choices)]
+  stats::setNames(choices, choices)
 }
 
 # The Top Matches table shows the ranked candidate list for the SELECTED

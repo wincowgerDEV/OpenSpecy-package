@@ -2221,6 +2221,18 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
   )
   expect_false("match_val" %in% names(selected_without_match))
   expect_identical(selected_without_match$col_id, spectrum_ids[[137L]])
+  reordered_with_class <- reordered
+  reordered_with_class$metadata[, material_class := "uploaded class"]
+  selected_without_identification <- env$app_selected_metadata(
+    reordered_with_class,
+    data.table::data.table(object_id = spectrum_ids[[137L]]),
+    signal_to_noise
+  )
+  expect_identical(selected_without_identification$col_id, spectrum_ids[[137L]])
+  expect_identical(
+    selected_without_identification$material_class,
+    "uploaded class"
+  )
 
   server_source <- paste(
     readLines(file.path(app_path, "server.R"), warn = FALSE),

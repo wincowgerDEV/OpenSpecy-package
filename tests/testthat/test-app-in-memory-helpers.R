@@ -117,6 +117,27 @@ test_that("single-spectrum Top Matches selection uses exact object IDs", {
   expect_error(env$app_matches_for_object(matches, c("pixel-1", "pixel-2")))
 })
 
+test_that("heatmap colors expose identification fields only when enabled", {
+  env <- .source_in_memory_app_helpers()
+
+  expect_identical(
+    unname(env$app_map_color_choices(FALSE, FALSE, FALSE)),
+    "Signal/Noise"
+  )
+  expect_identical(
+    unname(env$app_map_color_choices(FALSE, FALSE, TRUE)),
+    c("Signal/Noise", "Particle Unit")
+  )
+  expect_identical(
+    unname(env$app_map_color_choices(TRUE, FALSE, FALSE)),
+    c("Material Class", "Match ID", "Match Value", "Signal/Noise")
+  )
+  expect_identical(
+    unname(env$app_map_color_choices(TRUE, TRUE, FALSE)),
+    c("Material Class", "Match Value", "Signal/Noise")
+  )
+})
+
 test_that("collapsed units reuse real member-pixel correlations", {
   env <- .source_in_memory_app_helpers()
   matches <- data.table::data.table(

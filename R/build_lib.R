@@ -2057,6 +2057,7 @@ prune_lib <- function(x, class_col = "material_class",
   material_types <- reassigned$material_types
   metadata[[class_col]] <- classes
   metadata[[material_type_col]] <- material_types
+  rm(normalized)
   protected <- tolower(classes) %in% "unclassified"
 
   schedule <- data.table::data.table(
@@ -2092,13 +2093,60 @@ prune_lib <- function(x, class_col = "material_class",
           target_pool, target_class, schedule$initial_n[[s]]
         ))
       }
+      initial_target <- which(active & pools == target_pool &
+                                !is.na(classes) & classes == target_class)
+      candidates <- which(active & pools == target_pool & !protected)
+      candidate_order <- order(ids[candidates], candidates, na.last = TRUE)
+      candidates <- candidates[candidate_order]
+      correlations <- NULL
+      disabled_candidates <- rep(FALSE, length(candidates))
+      if (length(initial_target) > min_n) {
+        correlation_started <- proc.time()[["elapsed"]]
+        if (isTRUE(progress)) {
+          message(sprintf(
+            paste0("prune_lib: %s / %s correlation starting ",
+                   "(%d query; %d eligible)"),
+            target_pool, target_class, length(initial_target),
+            length(candidates)
+          ))
+        }
+        correlations <- .lib_prune_correlations(
+          x, initial_target, candidates, exclude, ids
+        )
+        if (isTRUE(progress)) {
+          message(sprintf(
+            paste0("prune_lib: %s / %s correlation complete ",
+                   "(%d x %d; %.1fs)"),
+            target_pool, target_class, nrow(correlations),
+            ncol(correlations),
+            proc.time()[["elapsed"]] - correlation_started
+          ))
+        }
+      }
+      iteration <- 0L
       repeat {
         target <- which(active & pools == target_pool &
                           !is.na(classes) & classes == target_class)
         if (length(target) <= min_n) break
-        candidates <- which(active & pools == target_pool & !protected)
-        best <- .lib_prune_best_match(
-          target, candidates, normalized, ids, exclude_self = TRUE
+        newly_disabled <- which(!active[candidates] & !disabled_candidates)
+        if (length(newly_disabled) > 0L) {
+          correlations[, newly_disabled] <- -Inf
+          disabled_candidates[newly_disabled] <- TRUE
+        }
+        target_rows <- match(target, initial_target)
+        current_correlations <- if (length(target_rows) ==
+                                      nrow(correlations) &&
+                                    identical(target_rows,
+                                              seq_len(nrow(correlations)))) {
+          correlations
+        } else {
+          correlations[target_rows, , drop = FALSE]
+        }
+        local <- max.col(current_correlations, ties.method = "first")
+        scores <- current_correlations[cbind(seq_along(target_rows), local)]
+        best <- list(
+          index = ifelse(is.finite(scores), candidates[local], NA_integer_),
+          correlation = ifelse(is.finite(scores), scores, NA_real_)
         )
         conflicts <- which(
           !is.na(best$index) & is.finite(best$correlation) &
@@ -2117,6 +2165,15 @@ prune_lib <- function(x, class_col = "material_class",
         data.table::setorder(conflict_rows, -correlation, query_id)
         conflict_rows <- conflict_rows[seq_len(removable_n)]
         active[conflict_rows$query] <- FALSE
+        iteration <- iteration + 1L
+        if (isTRUE(progress)) {
+          message(sprintf(
+            paste0("prune_lib: %s / %s iteration %d ",
+                   "(removed=%d; retained=%d)"),
+            target_pool, target_class, iteration, nrow(conflict_rows),
+            sum(active[initial_target])
+          ))
+        }
         removal_i <- removal_i + 1L
         removal_rows[[removal_i]] <- conflict_rows[, .(
           spectrum_id = ids[query],
@@ -2129,6 +2186,7 @@ prune_lib <- function(x, class_col = "material_class",
           reason = "top_match_other_class"
         )]
       }
+      rm(correlations)
       if (isTRUE(progress)) {
         retained <- sum(active & pools == target_pool &
                           !is.na(classes) & classes == target_class)
@@ -2256,6 +2314,35 @@ prune_lib <- function(x, class_col = "material_class",
     best_correlation[block[ok]] <- scores[ok]
   }
   list(index = best_index, correlation = best_correlation)
+}
+
+.lib_prune_correlations <- function(x, query, candidates, exclude, ids) {
+  limits <- sort(exclude)
+  use <- x$wavenumber < limits[[1L]] | x$wavenumber > limits[[2L]]
+
+  query_spec <- x
+  query_spec$wavenumber <- x$wavenumber[use]
+  query_spec$spectra <- x$spectra[use, query, drop = FALSE]
+  query_spec$metadata <- x$metadata[query]
+  colnames(query_spec$spectra) <- ids[query]
+
+  candidate_spec <- x
+  candidate_spec$wavenumber <- x$wavenumber[use]
+  candidate_spec$spectra <- x$spectra[use, candidates, drop = FALSE]
+  candidate_spec$metadata <- x$metadata[candidates]
+  colnames(candidate_spec$spectra) <- ids[candidates]
+
+  # cor_spec() returns library spectra by query spectra. Passing the target
+  # class as the library gives the row-by-candidate layout needed by max.col()
+  # without transposing or copying the full correlation matrix.
+  correlations <- cor_spec(
+    candidate_spec, library = query_spec, compute = "optimized"
+  )
+  correlations[!is.finite(correlations)] <- -Inf
+  self_column <- match(query, candidates)
+  has_self <- !is.na(self_column)
+  correlations[cbind(which(has_self), self_column[has_self])] <- -Inf
+  correlations
 }
 
 .lib_reassign_other_classes <- function(classes, material_types, pools,
@@ -2701,6 +2788,25 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       seed = seed, holdout = holdout
     )
   )
+  # Keep completed libraries, medoids, and production models reusable when
+  # only assessment, reporting, or export code changes. Bump this version
+  # whenever those scientific artifacts intentionally change.
+  artifact_signature <- .lib_component_signature(
+    x,
+    workflow_paths = unlist(tables$paths, use.names = FALSE),
+    arguments = list(
+      recipes = recipes, range = range, res = res, id_col = id_col,
+      exclude_ids = exclude_ids, dedupe = dedupe,
+      metadata_lookups = metadata_lookups,
+      material_hierarchy = material_hierarchy,
+      metadata_name_lookup = metadata_name_lookup,
+      clean_metadata_values = clean_metadata_values,
+      convert_intensity = convert_intensity,
+      restrict_range_args = restrict_range_args,
+      signal_noise = signal_noise, assess = assess, prune = prune
+    ),
+    component_version = "reference-artifacts-v1"
+  )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
   # when a core transformation intentionally changes its scientific output.
@@ -2727,7 +2833,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     component_version = "core-libraries-v1"
   )
   checkpoints <- .lib_checkpoint_manager(
-    output_dir, signature = signature, reuse = reuse, report = report
+    output_dir, signature = artifact_signature, reuse = reuse, report = report
   )
 
   libraries <- checkpoints$get("libraries")
@@ -2803,7 +2909,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(
-    list(signature, prior_signature, seed = seed, holdout = holdout),
+    list(
+      artifact_signature, prior_signature, seed = seed, holdout = holdout,
+      assessment_version = "production-model-split-reference-v1"
+    ),
     algo = "sha256"
   )
   cached_assessments <- checkpoints$get(
@@ -2838,7 +2947,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   report("promoting validated artifacts to a versioned release directory")
   release_dir <- .lib_promote_reference_build(
     build, output_dir = output_dir,
-    signature = assessment_key, reuse = reuse
+    signature = assessment_key, reuse = reuse, progress = report
   )
   build$assessments$output_manifest <- data.table::rbindlist(list(
     checkpoints$manifest(),
@@ -2849,6 +2958,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   ), fill = TRUE)
   attr(build, "output_dir") <- normalizePath(release_dir, mustWork = FALSE)
   attr(build, "build_signature") <- signature
+  report("serializing the combined reference-library build object")
   .lib_atomic_saveRDS(
     build, file.path(release_dir, "reference_library_build.rds")
   )
@@ -3564,21 +3674,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     test_groups <- split$manifest[split == "test", group_id]
     candidate_test <- group_ids %in% test_groups
     if (!any(candidate_test) || all(candidate_test)) next
-    train <- filter_spec(candidate, !candidate_test)
     test <- filter_spec(candidate, candidate_test)
-    candidate_sources <- list(
-      both = train,
-      ftir = .lib_filter_optional_type(train, "ftir"),
-      raman = .lib_filter_optional_type(train, "raman")
-    )
     candidate_tests <- list(
       both = test,
       ftir = .lib_filter_optional_type(test, "ftir"),
       raman = .lib_filter_optional_type(test, "raman")
     )
-    for (type in names(candidate_sources)) {
-      if (is.null(candidate_sources[[type]]) ||
-          is.null(candidate_tests[[type]]) ||
+    for (type in names(candidate_tests)) {
+      if (is.null(candidate_tests[[type]]) ||
           is.null(updated_models[[recipe]][[type]])) next
       if (isTRUE(progress)) {
         message("build_lib assessment: held-out model ", recipe, "/", type)
@@ -3588,10 +3691,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       tests <- if (is.null(checkpoints)) NULL else
         checkpoints$get(stage, key = checkpoint_key)
       if (is.null(tests)) {
-        evaluation_model <- build_model_lib(candidate_sources[[type]])
         tests <- .lib_model_holdout_test(
-          evaluation_model, candidate_tests[[type]], recipe, type,
-          source = "new", provenance = "heldout_model"
+          updated_models[[recipe]][[type]], candidate_tests[[type]],
+          recipe, type, source = "new",
+          provenance = "production_model_split_reference"
         )
         if (!is.null(checkpoints)) {
           checkpoints$put(stage, tests, key = checkpoint_key)
@@ -3955,7 +4058,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   out
 }
 
-.lib_promote_reference_build <- function(build, output_dir, signature, reuse) {
+.lib_promote_reference_build <- function(build, output_dir, signature, reuse,
+                                         progress = NULL) {
   release_dir <- file.path(output_dir, "releases", substr(signature, 1L, 12L))
   dir.create(release_dir, recursive = TRUE, showWarnings = FALSE)
   artifacts <- c(
@@ -3966,11 +4070,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   for (name in names(artifacts)) {
     path <- file.path(release_dir, paste0(name, ".rds"))
     if (!isTRUE(reuse) || !file.exists(path)) {
+      if(is.function(progress)) {
+        progress(paste0("promoting release artifact: ", name))
+      }
       .lib_atomic_saveRDS(artifacts[[name]], path)
+    } else if(is.function(progress)) {
+      progress(paste0("reusing promoted release artifact: ", name))
     }
   }
-  .lib_atomic_saveRDS(build, file.path(release_dir,
-                                       "reference_library_build.rds"))
   release_dir
 }
 

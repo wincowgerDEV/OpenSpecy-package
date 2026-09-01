@@ -1443,7 +1443,10 @@ test_that("complete old-new assessments cover every artifact and held-out model"
     small$wavenumber, spectra = spectra, metadata = metadata,
     attributes = list(intensity_unit = "absorbance")
   )
-  model <- suppressWarnings(build_model_lib(lib))
+  model_input <- restrict_range(
+    lib, min = 800, max = 3200, make_rel = FALSE
+  )
+  model <- suppressWarnings(build_model_lib(model_input))
   model_set <- list(both = model, ftir = model, raman = NULL)
   build <- list(
     libraries = list(raw = lib, derivative = lib, nobaseline = lib),
@@ -1481,7 +1484,8 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   expect_gt(nrow(comparison$model_identification), 0L)
   expect_gt(nrow(comparison$assess_spec_shifts), 0L)
   expect_true(all(
-    comparison$models$derivative$both$tests$provenance == "heldout_model"
+    comparison$models$derivative$both$tests$provenance ==
+      "production_model_split_reference"
   ))
 })
 

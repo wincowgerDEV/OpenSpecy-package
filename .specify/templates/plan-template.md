@@ -32,6 +32,7 @@
 - **Generated artifacts**: [Whether documentation generation is needed; required configured tool version; no direct generated-file edits.]
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
+- **Performance and observability**: [For long or production-scale stages, name representative kernel dimensions, expected runtime/memory, progress boundaries, checkpoint/reuse behavior, and the condition that stops a materially over-budget run; or N/A.]
 - **Bundled Shiny app**: [impact on `inst/`; canonical final `OpenSpecy` or explicitly planned compact `Specs` reactive feeding visible/exported results through bounded accessors; owner/child gating; substantive adjacent guidance for non-obvious scientific/processing inputs; contextual downloads/progress; assets/size; headless and browser tests; or N/A.]
 - **Pipeline diagram**: [`.specify/memory/pipeline-diagram.html` box(es)/decision(s) this plan changes, and whether the diagram is updated in this plan; or N/A if the analysis pipeline is untouched.]
 - **Hosted Shinylive/WebAssembly app**: [Always classify impact, including explicit N/A. Name changed shared inputs and the triggered tier: fast `-HostedAppStatic`; exact matching-artifact preflight for hosted runtime/routes/interactions/assembly; full clean-commit rebuild for dependency/image/driver/pin or release-facing changes.]
@@ -56,6 +57,7 @@
 - [ ] [First focused test task with path]
 - [ ] [Documentation or metadata task with path]
 - [ ] [Validation command or manual/CI-guarded check]
+- [ ] Reconcile every checkbox with evidence; record deferred gates, stop or record owned processes, and remove task-created scratch files from the repository root.
 
 ## Verification
 
@@ -68,9 +70,11 @@
 - `devtools::check()` or CI/R CMD check trigger or N/A:
 - Benchmarks:
 - Reference-library/long workflow staging:
+- Long-stage budget and telemetry: [Representative dimensions, expected time/memory, progress/checkpoints, and abort/restart threshold; or N/A.]
 - Shiny affected states or N/A: [Only changed no-upload/processed/identified/batch/quantification/muted/download/progress/visual states; asset inventory when assets change.]
 - Shinylive/WebAssembly impact: [Always state changed/unchanged/N/A; fast hosted-source gate for shared inputs; matching-artifact and full-rebuild triggers or explicit proportional deferral.]
 - Reusable evidence: [gate, covered files/contracts, candidate state; invalidate only when one changes.]
+- Closure audit: [Checklist evidence, owned-process status, `git status`, root scratch cleanup, and intentionally retained temporary artifacts with cleanup conditions.]
 
 ## Risks And Open Questions
 

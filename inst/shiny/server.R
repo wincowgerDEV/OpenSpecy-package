@@ -1516,6 +1516,9 @@ observeEvent(input$run_analysis, {
     run_settings <- list(
       collapse = particle_pipeline_enabled(),
       strategy = input$particle_id_strategy,
+      identification_active = isTRUE(input$identification_active),
+      model_library = isTRUE(input$identification_active) &&
+        identical(input$lib_type, "model"),
       threshold_active = isTRUE(input$threshold_decision),
       correlation_active = particle_pipeline_enabled() &&
         isTRUE(input$cor_threshold_decision),
@@ -1525,8 +1528,8 @@ observeEvent(input$run_analysis, {
     result <- tryCatch({
       spatial <- spatial_data()
       inspection_source_gate(spatial)
-      use_library <- isTRUE(input$identification_active) &&
-        !identical(input$lib_type, "model")
+      use_library <- run_settings$identification_active &&
+        !run_settings$model_library
       collapse <- run_settings$collapse
       strategy <- run_settings$strategy
       clustered <- collapse && strategy %in%
@@ -2212,8 +2215,10 @@ observeEvent(input$run_analysis, {
   
   identification_matches <- reactive({
     req(!is.null(preprocessed$data))
-    req(!identical(input$lib_type, "model"))
-    canonical_state()$matches
+    state <- canonical_state()
+    req(isTRUE(state$settings$identification_active))
+    req(!isTRUE(state$settings$model_library))
+    state$matches
   })
 
   #The output from the AI classification algorithm.
@@ -2245,7 +2250,9 @@ observeEvent(input$run_analysis, {
   # library-by-spectrum matrix is created or retained.
   max_cor <- reactive({
       req(!is.null(preprocessed$data))
-      if(identical(input$lib_type, "model")) {
+      settings <- canonical_state()$settings
+      req(isTRUE(settings$identification_active))
+      if(isTRUE(settings$model_library)) {
         ai <- as.numeric(ai_output()[["value"]])
         names(ai) <- ai_output()[["name"]]
         return(ai)
@@ -2264,7 +2271,7 @@ observeEvent(input$run_analysis, {
       req(!is.null(preprocessed$data))
       values <- max_cor()
       if(is.null(values)) return(NULL)
-      identities <- if(!identical(input$lib_type, "model")) {
+      identities <- if(!isTRUE(canonical_state()$settings$model_library)) {
         metadata <- data.table::as.data.table(DataR()$metadata)
         if("material_class" %in% names(metadata)) {
           as.character(metadata$material_class)
@@ -2301,7 +2308,9 @@ observeEvent(input$run_analysis, {
   #Metadata for all the matches for a single unknown spectrum
   matches_to_single <- reactive({
       req(!is.null(preprocessed$data))
-      if(grepl("^model$", input$lib_type)){
+      settings <- canonical_state()$settings
+      req(isTRUE(settings$identification_active))
+      if(isTRUE(settings$model_library)){
           data.table(object_id = colnames(DataR()$spectra),
                      material_class = max_cor_identity(),
                      match_val = ai_output()$value)
@@ -2333,7 +2342,9 @@ observeEvent(input$run_analysis, {
 
   #Spectral data for the selected match. 
   match_selected <- reactive({# Default to first row if not yet clicked
-      req(!grepl("^model$", input$lib_type))
+      settings <- canonical_state()$settings
+      req(isTRUE(settings$identification_active))
+      req(!isTRUE(settings$model_library))
 
       # Get data from filter_spec
       rows <- matches_to_single()
@@ -2347,8 +2358,10 @@ observeEvent(input$run_analysis, {
   })
 
   selected_match <- reactive({
+      settings <- canonical_state()$settings
       if(is.null(preprocessed$data) ||
-         grepl("^model$", input$lib_type)) return(NULL)
+         !isTRUE(settings$identification_active) ||
+         isTRUE(settings$model_library)) return(NULL)
       tryCatch(
         match_selected(),
         shiny.silent.error = function(e) NULL
@@ -2358,9 +2371,11 @@ observeEvent(input$run_analysis, {
   #All matches table for the current selection
   top_matches <- reactive({
       req(!is.null(preprocessed$data))
+      settings <- canonical_state()$settings
+      req(isTRUE(settings$identification_active))
       req(!is.na(selected_unit_index()))
       app_top_matches_table(
-        matches_to_single(), grepl("^model$", input$lib_type),
+        matches_to_single(), isTRUE(settings$model_library),
         selected_unit_index()
       )
   })
@@ -2374,7 +2389,17 @@ match_metadata <- reactive({
         Selection = "The selected pixel does not belong to a retained particle."
       ))
     }
-    model_library <- grepl("^model$", input$lib_type)
+    settings <- canonical_state()$settings
+    identification_active <- isTRUE(settings$identification_active)
+    model_library <- isTRUE(settings$model_library)
+    if(!identification_active) {
+        selected_object_id <- colnames(quantified_data()$spectra)[selected_index]
+        return(app_selected_metadata(
+          quantified_data(),
+          data.table::data.table(object_id = selected_object_id),
+          canonical_signal_noise()
+        ))
+    }
     if (!model_library) {
         rows <- matches_to_single()
         selected_row <- min(max(1L, as.integer(data_click$table)), nrow(rows))
@@ -2563,18 +2588,11 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
     # usually just "Signal/Noise" -- and that premature value sticks even
     # once the full Material Class/Match ID/Match Value list exists.
     req(!is.null(state$object))
-    identification_enabled <- !is.null(state$object) ||
-      (!is.null(state$pixel_matches) && nrow(state$pixel_matches))
-    choices <- c(
-      if(identification_enabled) "Material Class" else NA_character_,
-      if(identification_enabled && !identical(input$lib_type, "model"))
-        "Match ID" else NA_character_,
-      if(identification_enabled) "Match Value" else NA_character_,
-      "Signal/Noise",
-      if(isTRUE(state$settings$collapse)) "Particle Unit" else NA_character_
+    app_map_color_choices(
+      identification_active = state$settings$identification_active,
+      model_library = state$settings$model_library,
+      collapse = state$settings$collapse
     )
-    choices <- choices[!is.na(choices)]
-    stats::setNames(choices, choices)
   })
 
   resolved_map_color <- reactive({
@@ -2960,7 +2978,8 @@ output$progress_bars <- renderUI({
     choice_names <- app_download_choices(
       has_upload = !is.null(preprocessed$data),
       identification = !is.null(preprocessed$data) &&
-        !is.null(state$object),
+        !is.null(state$object) &&
+        isTRUE(state$settings$identification_active),
       collapse = isTRUE(state$settings$collapse) && !is.null(state$object),
       compact = is_Specs(preprocessed$data)
     )
