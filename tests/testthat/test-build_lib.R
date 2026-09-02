@@ -22,6 +22,21 @@ tiny_build_lib <- function() {
   )
 }
 
+reference_workflow_data_path <- function(file) {
+  roots <- c(
+    testthat::test_path("..", ".."),
+    Sys.getenv("GITHUB_WORKSPACE", unset = "")
+  )
+  roots <- unique(roots[nzchar(roots)])
+  candidates <- file.path(roots, "workflows", "data", file)
+  existing <- candidates[file.exists(candidates)]
+  testthat::skip_if(
+    length(existing) == 0L,
+    "repository-only reference workflow tables are not installed"
+  )
+  existing[[1L]]
+}
+
 test_that("make_lib_lookup_template() returns or writes deduplicated templates", {
   lib <- tiny_build_lib()
 
@@ -1027,25 +1042,21 @@ test_that("build_lib() applies pruning only to named recipes", {
 })
 
 test_that("reference workflow tables encode reviewed taxonomy and source rules", {
-  data_path <- function(file) {
-    roots <- c(
-      testthat::test_path("..", ".."),
-      Sys.getenv("GITHUB_WORKSPACE", unset = "")
-    )
-    roots <- unique(roots[nzchar(roots)])
-    candidates <- file.path(roots, "workflows", "data", file)
-    existing <- candidates[file.exists(candidates)]
-    testthat::skip_if(
-      length(existing) == 0L,
-      "repository-only reference workflow tables are not installed"
-    )
-    existing[[1L]]
-  }
-  classes <- data.table::fread(data_path("classes_reference.csv"))
-  regex_classes <- data.table::fread(data_path("classes_regex.csv"))
-  hierarchy <- data.table::fread(data_path("material_hierarchy.csv"))
-  types <- data.table::fread(data_path("library_types.csv"))
-  drops <- data.table::fread(data_path("metadata_drop_columns.csv"))
+  classes <- data.table::fread(
+    reference_workflow_data_path("classes_reference.csv")
+  )
+  regex_classes <- data.table::fread(
+    reference_workflow_data_path("classes_regex.csv")
+  )
+  hierarchy <- data.table::fread(
+    reference_workflow_data_path("material_hierarchy.csv")
+  )
+  types <- data.table::fread(
+    reference_workflow_data_path("library_types.csv")
+  )
+  drops <- data.table::fread(
+    reference_workflow_data_path("metadata_drop_columns.csv")
+  )
 
   expect_false(anyNA(classes$spectrum_identity))
   expect_false(any(classes$spectrum_identity == ""))
@@ -1699,7 +1710,7 @@ test_that("reference regex table contains only genuinely variable rules", {
     "^(?:cotton|wool|silk)$"
   ))
   regex_reference <- data.table::fread(
-    file.path("..", "..", "workflows", "data", "classes_regex.csv")
+    reference_workflow_data_path("classes_regex.csv")
   )
   expect_false(any(vapply(
     regex_reference$pattern,
@@ -1707,7 +1718,7 @@ test_that("reference regex table contains only genuinely variable rules", {
     logical(1)
   )))
   exact <- data.table::fread(
-    file.path("..", "..", "workflows", "data", "classes_reference.csv")
+    reference_workflow_data_path("classes_reference.csv")
   )
   expect_true(all(c(
     "epoxide", "poly 1-butene isotactic", "poly 4-methyl-1-pentene",
