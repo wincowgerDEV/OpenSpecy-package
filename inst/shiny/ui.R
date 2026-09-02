@@ -137,7 +137,7 @@ preprocessing_controls <- tagList(
     ),
     numericInput("MinFlat", "Minimum Wavenumber", value = 2200,
                  min = 1, max = 6000, step = 1),
-    numericInput("MaxFlat", "Maximum Wavenumber", value = 2400,
+    numericInput("MaxFlat", "Maximum Wavenumber", value = 2420,
                  min = 1, max = 6000, step = 1),
     note = c(
       "Minimum and Maximum Wavenumber define the CO2 or artifact region tested by automatic mode and flattened when correction is retained.",
@@ -209,13 +209,17 @@ identification_controls <- tagList(
     ),
     footer = footnote(
       "Identification options",
-      "Choose a spectrum type and a library transformation that matches preprocessing.",
+      "All compares against the complete FTIR, Raman, and NIR reference set; choose one spectrum type only when it is known in advance.",
+      "Choose a library transformation that matches preprocessing.",
       "The local app supports full, medoid, and multinomial libraries; the browser app uses compact libraries.",
       "Turning this off skips identification entirely: no match table, no Top Matches, no correlation threshold, and Spatial material-connected clusters (which require a material identity) become unavailable."
     ),
     pickerInput(
       "id_spec_type", "Spectrum Type",
-      choices = c("Both" = "both", "FTIR" = "ftir", "Raman" = "raman")
+      choices = c(
+        "All" = "all", "FTIR" = "ftir", "Raman" = "raman", "NIR" = "nir"
+      ),
+      selected = "all"
     ),
     pickerInput(
       "id_strategy", "Library Transformation",

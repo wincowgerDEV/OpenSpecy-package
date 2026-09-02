@@ -222,15 +222,51 @@ test_that("build_model_lib() returns the model library artifact structure", {
   model <- suppressWarnings(
     build_model_lib(lib, type_col = NULL, min_n = 2, nlambda = 3)
   )
-  expect_named(model, c("model", "dimension_conversion", "tests",
+  expect_named(model, c("model", "lambda_selected", "selection_metric",
+                        "dimension_conversion", "tests",
                         "coefficients", "class_names", "class_num",
-                        "observation_count", "variable_num",
+                        "observation_count", "fill", "variable_num",
                         "all_variables", "variables_in"))
+  expect_true(is_OpenSpecy(model$fill))
+  expect_identical(model$selection_metric, "macro_class_accuracy")
   expect_true(all(c("factor_num", "name") %in%
                     names(model$dimension_conversion)))
   expect_true(all(c("spectrum_id", "technique", "expected_class",
                     "predicted_class", "correct", "score", "split",
                     "provenance") %in% names(model$tests)))
+})
+
+test_that("official model building records fit warnings and progress", {
+  lib <- tiny_build_lib()
+  messages <- character()
+  local_mocked_bindings(
+    build_model_lib = function(...) {
+      warning("mock convergence warning", call. = FALSE)
+      list(
+        observation_count = 4L, class_num = 2L,
+        lambda_selected = 0.1
+      )
+    },
+    .package = "OpenSpecy"
+  )
+
+  result <- OpenSpecy:::.lib_build_models(
+    list(derivative = list(nir = lib)),
+    report = function(message) messages <<- c(messages, message)
+  )
+  expect_identical(
+    result$warnings,
+    data.table::data.table(
+      artifact = "derivative", model = "nir",
+      warning = "mock convergence warning"
+    )
+  )
+  expect_identical(
+    attr(result$models$derivative$nir, "training_warnings"),
+    "mock convergence warning"
+  )
+  expect_true(any(grepl("model warning", messages, fixed = TRUE)))
+  expect_true(any(grepl("model complete", messages, fixed = TRUE)))
 })
 
 test_that("build_lib() applies named recipes to merged sources", {
@@ -1313,6 +1349,7 @@ test_that("extdata files combine into a mini library", {
 
 test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   lib <- tiny_build_lib()
+  lib$spectra[30, ] <- lib$spectra[30, ] + 10
   lib$metadata[, `:=`(
     spectrum_identity = label,
     organization = source,
@@ -1357,14 +1394,19 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   first <- suppressWarnings(build_lib(
     lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
-    progress = FALSE
+    progress = FALSE,
+    recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
   expect_named(first, c("libraries", "medoids", "models", "assessments"))
   expect_named(first$libraries, c("raw", "derivative", "nobaseline"))
   expect_named(first$medoids, c("derivative", "nobaseline"))
   expect_named(first$models, c("derivative", "nobaseline"))
-  expect_true(all(vapply(first$libraries, check_OpenSpecy, logical(1))))
-  expect_true(all(vapply(first$medoids, check_OpenSpecy, logical(1))))
+  expect_true(all(vapply(first$libraries, function(recipe) {
+    all(vapply(recipe, check_OpenSpecy, logical(1)))
+  }, logical(1))))
+  expect_true(all(vapply(first$medoids, function(recipe) {
+    all(vapply(recipe, check_OpenSpecy, logical(1)))
+  }, logical(1))))
   expect_true(all(c(
     "build_summary", "class_prediction", "class_coverage",
     "type_coverage", "pruning", "metadata_drop", "output_manifest"
@@ -1381,15 +1423,18 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   second <- suppressWarnings(build_lib(
     lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
-    progress = FALSE, reuse = TRUE
+    progress = FALSE, reuse = TRUE,
+    recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
   expect_true(any(second$assessments$output_manifest$status == "reused"))
-  expect_equal(second$libraries$raw$spectra, first$libraries$raw$spectra)
+  expect_equal(second$libraries$raw$ftir$spectra,
+               first$libraries$raw$ftir$spectra)
 
   rebuilt <- suppressWarnings(build_lib(
     lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
-    progress = FALSE, reuse = FALSE
+    progress = FALSE, reuse = FALSE,
+    recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
   expect_false(any(rebuilt$assessments$output_manifest$status == "reused"))
 })
@@ -1406,6 +1451,10 @@ test_that("combined reference splits prevent old-new identity leakage", {
   expect_identical(anyDuplicated(split$manifest$group_id), 0L)
   expect_true(all(split$manifest$new_present & split$manifest$old_present))
   expect_true(all(split$manifest$split %in% c("train", "test")))
+  expect_equal(
+    sum(split$manifest$split == "test"),
+    round(nrow(split$manifest) * 0.25)
+  )
   expect_length(intersect(
     split$manifest[split == "train", group_id],
     split$manifest[split == "test", group_id]
@@ -1425,6 +1474,17 @@ test_that("combined reference splits prevent old-new identity leakage", {
   ]
   expect_false(any(test_ids %in%
                      split$manifest[split == "train", group_id]))
+
+  old_tests <- OpenSpecy:::.lib_reference_holdout_test(
+    old, split, artifact = "raw", source = "old", progress = FALSE
+  )
+  expect_equal(nrow(tests), nrow(old_tests))
+  expect_setequal(
+    new$metadata$sample_name_old[
+      match(tests$spectrum_id, new$metadata$sample_name)
+    ],
+    old_tests$spectrum_id
+  )
 })
 
 test_that("complete old-new assessments cover every artifact and held-out model", {
@@ -1449,8 +1509,14 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   model <- suppressWarnings(build_model_lib(model_input))
   model_set <- list(both = model, ftir = model, raman = NULL)
   build <- list(
-    libraries = list(raw = lib, derivative = lib, nobaseline = lib),
-    medoids = list(derivative = lib, nobaseline = lib),
+    libraries = list(
+      raw = list(ftir = lib), derivative = list(ftir = lib),
+      nobaseline = list(ftir = lib)
+    ),
+    medoids = list(
+      derivative = list(ftir = model_input),
+      nobaseline = list(ftir = model_input)
+    ),
     models = list(derivative = model_set, nobaseline = model_set),
     assessments = list()
   )
@@ -1473,8 +1539,8 @@ test_that("complete old-new assessments cover every artifact and held-out model"
     "model_identification", "assess_spec_shifts", "old_new_compatibility"
   ) %in% names(comparison)))
   expect_equal(unique(comparison$split_manifest$artifact), c(
-    "raw", "derivative", "nobaseline", "medoid_derivative",
-    "medoid_nobaseline"
+    "raw_ftir", "derivative_ftir", "nobaseline_ftir",
+    "medoid_derivative_ftir", "medoid_nobaseline_ftir"
   ))
   expect_true(all(
     comparison$split_manifest$new_present &
@@ -1484,9 +1550,48 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   expect_gt(nrow(comparison$model_identification), 0L)
   expect_gt(nrow(comparison$assess_spec_shifts), 0L)
   expect_true(all(
-    comparison$models$derivative$both$tests$provenance ==
+    comparison$models$derivative$ftir$tests$provenance ==
       "production_model_split_reference"
   ))
+})
+
+test_that("reference quality schemas and type ranges are stable", {
+  expect_named(OpenSpecy:::.lib_warning_schema(),
+               c("artifact", "model", "warning"))
+  expect_type(OpenSpecy:::.lib_warning_schema()$warning, "character")
+
+  x <- tiny_build_lib()
+  x$metadata$spectrum_type <- rep(c("ftir", "raman"), each = 4)
+  typed <- OpenSpecy:::.lib_partition_reference_libraries(
+    list(raw = x), report = NULL
+  )$raw
+  expect_equal(range(typed$ftir$wavenumber), c(400, 4000))
+  expect_equal(range(typed$raman$wavenumber), c(200, 4000))
+})
+
+test_that("identification ranges retain partial spectra and drop empty ones", {
+  axis <- seq(400, 4000, by = 6)
+  spectra <- cbind(
+    complete = sin(axis / 100),
+    partial = ifelse(axis < 1200, NA_real_, cos(axis / 90)),
+    outside_only = ifelse(axis < 800, 1, NA_real_)
+  )
+  object <- as_OpenSpecy(
+    axis, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      spectrum_type = "ftir",
+      material_class = "plastic"
+    )
+  )
+
+  restricted <- OpenSpecy:::.lib_restrict_model_range(object, "ftir")
+  expect_equal(range(restricted$wavenumber), c(802, 3196))
+  expect_identical(colnames(restricted$spectra), c("complete", "partial"))
+  expect_identical(
+    attr(restricted, "identification_dropped_ids"), "outside_only"
+  )
+  expect_true(anyNA(restricted$spectra[, "partial"]))
 })
 
 test_that("reference regex table contains only genuinely variable rules", {

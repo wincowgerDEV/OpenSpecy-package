@@ -613,8 +613,8 @@ flatten_range.OpenSpecy <- function(x, min = 2200, max = 2400, make_rel = TRUE,
     metrics <- .artifact_ratio_metrics(
       current, tail_n = tail_n, co2_region = co2_region
     )
-    trim_left <- any(metrics$left_ratio >= ratio, na.rm = TRUE)
-    trim_right <- any(metrics$right_ratio >= ratio, na.rm = TRUE)
+    trim_left <- any(metrics$left_ratio > ratio, na.rm = TRUE)
+    trim_right <- any(metrics$right_ratio > ratio, na.rm = TRUE)
     if (!trim_left && !trim_right) break
 
     next_lo <- lo + as.integer(trim_left)

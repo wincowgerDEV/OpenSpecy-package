@@ -554,22 +554,20 @@ observeEvent(input$run_analysis, {
         ),
         52
       )
-      if(input$id_strategy == "deriv" && input$lib_type == "medoid") {
-        load_app_library("medoid_derivative")
-      } else if(input$id_strategy == "nobaseline" &&
-                input$lib_type == "medoid") {
-        load_app_library("medoid_nobaseline")
-      } else if(input$id_strategy == "deriv" &&
-                input$lib_type == "model") {
-        load_app_library("model_derivative")[[input$id_spec_type]]
-      } else if(input$id_strategy == "nobaseline" &&
-                input$lib_type == "model") {
-        load_app_library("model_nobaseline")[[input$id_spec_type]]
+      artifact_name <- if(input$lib_type == "medoid") {
+        paste0("medoid_", if(input$id_strategy == "deriv") {
+          "derivative"
+        } else "nobaseline")
+      } else if(input$lib_type == "model") {
+        paste0("model_", if(input$id_strategy == "deriv") {
+          "derivative"
+        } else "nobaseline")
       } else if(grepl("nobaseline$", input$id_strategy)) {
-        load_app_library("nobaseline")
-      } else {
-        load_app_library("derivative")
-      }
+        "nobaseline"
+      } else "derivative"
+      app_select_library_spectrum_type(
+        load_app_library(artifact_name), input$id_spec_type
+      )
   })
 
   #The matching library to use.
@@ -586,11 +584,16 @@ observeEvent(input$run_analysis, {
         library <- filter_spec(
           library, logic = library$metadata$spectrum_type == "raman"
         )
+      } else if(grepl("^nir", input$id_spec_type)) {
+        library <- filter_spec(
+          library, logic = library$metadata$spectrum_type == "nir"
+        )
       }
       library
   })
 
   observeEvent(libraryR(), {
+      if(identical(input$lib_type, "model")) return()
       orgs <- sort(unique(libraryR()$metadata$organization))
       current <- isolate(input$lib_org)
       selected <- intersect(current, orgs)
@@ -1310,6 +1313,13 @@ observeEvent(input$run_analysis, {
     )
   })
   recalculate_snr_preview <- function() {
+    if(is.null(preprocessed$data)) {
+      files <- active_file_info()
+      if(is.null(files)) return(invisible(NULL))
+      read_uploaded_files(
+        files, mounted = isTRUE(attr(files, "mounted", exact = TRUE))
+      )
+    }
     if(is.null(preprocessed$data)) return(invisible(NULL))
     # First statement, before the signal_to_noise()/sig_noise() scan below:
     # in the default configuration this function previously had no progress
@@ -2072,6 +2082,14 @@ observeEvent(input$run_analysis, {
           stringsAsFactors = FALSE
         )
       )
+      # Restrict Range may deliberately exclude an assessment region. That is
+      # a successful no-op, not a warning about bad data. Genuine unavailable
+      # checks remain warnings when the selected axis still covers the region.
+      assessment <- app_mark_absent_quality_regions(
+        assessment, selected$wavenumber,
+        list(silent_region = c(2420, 2550),
+             co2_region = quality_co2_region)
+      )
       selected_index <- selected_unit_index()
       safe_selected_value <- function(values) {
         if(is.na(selected_index) || is.null(values) ||
@@ -2233,16 +2251,7 @@ observeEvent(input$run_analysis, {
         76
       )
 
-      #rn <- runif(n = length(unique(libraryR()$all_variables)))
-      mean <- rep.int(mean(unlist(DataR()$spectra)), times = length(unique(libraryR()$all_variables)))
-
-      fill <- as_OpenSpecy(as.numeric(unique(libraryR()$all_variables)),
-                           spectra = data.frame(mean))
-
-      data <- conform_spec(DataR(), range = fill$wavenumber,
-                           res = NULL)
-
-      match_spec(data, library = libraryR(), na.rm = T, fill = fill)
+      app_classify_model_library(DataR(), libraryR())
   })
   ai_output <- reactive(ai_output_gate$read())
 
@@ -2414,7 +2423,10 @@ match_metadata <- reactive({
         )
         result$signal_to_noise <- canonical_signal_noise()[selected_index]
         result <- result[, !sapply(result, OpenSpecy::is_empty_vector), with = FALSE] %>%
-            mutate(match_val = signif(match_val, 2)) %>%
+            mutate(
+              match_val = signif(match_val, 2),
+              signal_to_noise = signif(signal_to_noise, 2)
+            ) %>%
             select(file_name, col_id, material_class, match_val, signal_to_noise, everything())
         result
     }
@@ -2588,10 +2600,25 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
     # usually just "Signal/Noise" -- and that premature value sticks even
     # once the full Material Class/Match ID/Match Value list exists.
     req(!is.null(state$object))
+    projection <- pixel_projection()
+    has_text <- function(values) {
+      values <- as.character(values)
+      any(!is.na(values) & nzchar(trimws(values)))
+    }
+    has_number <- function(values) any(is.finite(as.numeric(values)))
+    availability <- c(
+      "Material Class" = has_text(projection$material),
+      "Match ID" = has_text(projection$match_id),
+      "Match Value" = has_number(projection$correlation),
+      "Signal/Noise" = has_number(projection$signal_to_noise),
+      "Particle Unit" = has_number(projection$unit_index),
+      "Spectrum Index" = nrow(projection$metadata) > 0L
+    )
     app_map_color_choices(
       identification_active = state$settings$identification_active,
       model_library = state$settings$model_library,
-      collapse = state$settings$collapse
+      collapse = state$settings$collapse,
+      availability = availability
     )
   })
 
@@ -2766,6 +2793,8 @@ output$progress_bars <- renderUI({
         signif(projection$correlation, 2)
       } else if(identical(map_color, "Signal/Noise")) {
         signif(projection$signal_to_noise, 2)
+      } else if(identical(map_color, "Spectrum Index")) {
+        seq_len(nrow(projection$metadata))
       } else if(identical(map_color, "Material Class")) {
         categorical <- TRUE
         projection$material

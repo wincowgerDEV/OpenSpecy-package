@@ -601,6 +601,49 @@ test("settings tabs expand the card and sustained actions start the overlay clie
   );
 });
 
+test("Recalculate Preview materializes staged spectra before Run", async ({ page }) => {
+  test.setTimeout(300000);
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("#id_spec_type")).toHaveValue("all");
+
+  await stageLocalFiles(
+    page, path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
+  );
+  await expect(page.locator("#upload_status")).toContainText(
+    "selected. Click Run to read and analyze."
+  );
+
+  const settingsCard = page.locator("#analysis_settings_box");
+  await page.getByRole("link", { name: "Advanced", exact: true }).click();
+  await expectCardCollapsed(settingsCard, false);
+  const thresholdCard = page.locator("#threshold_decision").locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  await toggleCard(thresholdCard);
+  const preview = page.locator("#recalculate_snr");
+  await expect(preview).toBeVisible();
+  await preview.click();
+  await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
+    timeout: 10000,
+  });
+  await expect(page.locator("#openspecy_busy_overlay")).toBeHidden({
+    timeout: 240000,
+  });
+  await expect(page.locator("#snr_plot .main-svg").first()).toBeVisible({
+    timeout: 30000,
+  });
+  await expect(page.locator("#run_analysis")).toHaveClass(/openspecy-run-dirty/);
+  expect(severeErrors).toEqual([]);
+});
+
 test("map-scale Top Matches download stays fast and leaves the session healthy", async ({ page }) => {
   test.setTimeout(900000);
   const stderrStart = stderr.length;

@@ -52,8 +52,17 @@
 #' is reused only when its manifest signature matches the source files, curated
 #' tables, relevant arguments, package version, and builder implementation.
 #' Full assessments use the complete candidate and legacy artifacts. A seeded
-#' ten-percent holdout is grouped by stable spectrum identity so the same
-#' spectrum cannot occur in both reference training and testing partitions.
+#' ten-percent holdout is grouped by stable spectrum identity, allocated to an
+#' exact rounded ten percent across class/type strata, and limited to
+#' identities present in both artifacts, so old and new are evaluated on the
+#' exact same query spectra without reference leakage.
+#' After derivative and baseline-removal processing, FTIR spectra whose
+#' 2200--2420 CO2-region maximum exceeds twice the 2420--2550 silent-region
+#' maximum are flattened. High-tail checks use each spectrum's finite support;
+#' tails are trimmed and reassessed, failed corrections are removed, and
+#' spectra with running signal-to-noise below two are removed before pruning.
+#' Full artifacts are then partitioned into Raman (200--4000), FTIR
+#' (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
 #' Official class completion retains unmapped reviewed identities as
 #' \code{"other"} and stops when that class exceeds one percent of an artifact.
 #' Before pruning, \code{prune_lib()} reassigns generic classes by nearest
@@ -84,8 +93,10 @@
 #' relative, mean-filled spectra.
 #'
 #' \code{build_model_lib()} trains the multinomial \code{glmnet} model structure
-#' used by OpenSpecy model libraries. Filter, smooth, or otherwise preprocess
-#' spectra before calling this helper.
+#' used by OpenSpecy model libraries. Inverse class weights and stratified
+#' cross-validation select the lambda by class-balanced error (the complement
+#' of macro class accuracy). The returned model carries a training-median
+#' filler so \code{\link{match_spec}()} can identify partially covered spectra.
 #'
 #' \code{assess_lib()} returns a compact summary of object validity, library
 #' size, class balance, and optionally nearest-neighbor class consistency.
@@ -219,9 +230,14 @@
 #' and normalized identities with their counts.
 #' In composable mode, \code{build_lib()} returns a named list of
 #' \code{OpenSpecy} libraries. Its end-to-end mode returns one list containing
-#' \code{libraries}, \code{medoids}, \code{models}, and \code{assessments}; each
-#' assessment item is a reviewable data.table, and each model contains one
-#' \code{tests} data.table.
+#' \code{libraries}, \code{medoids}, \code{models}, and \code{assessments}.
+#' Official libraries and medoids are nested by recipe and then
+#' \code{ftir}, \code{raman}, or \code{nir}; FTIR and Raman medoids/models use
+#' 800--3200 while the NIR interval is derived from finite coverage within
+#' 4000--12000. Assessment items are typed reviewable data.tables, including
+#' macro-first summaries, class accuracy, confusion counts, quality-control
+#' removals, stable warnings, and output manifests. Each model contains one
+#' \code{tests} data.table and a one-spectrum \code{fill} object.
 #' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 #' \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 #' object unless \code{return} requests a table, report, or ids.
@@ -2549,8 +2565,24 @@ build_model_lib <- function(x, class_col = "material_class",
   user_args <- list(...)
   glmnet_args[names(user_args)] <- user_args
 
-  model <- do.call(glmnet::glmnet, glmnet_args)
-  lambda <- min(model$lambda)
+  class_rows <- split(seq_along(outcome), outcome)
+  nfolds <- min(5L, min(lengths(class_rows)))
+  if (nfolds >= 3L) {
+    foldid <- integer(length(outcome))
+    for (rows in class_rows) {
+      foldid[rows] <- sample(rep(seq_len(nfolds), length.out = length(rows)))
+    }
+    cv_args <- glmnet_args
+    cv_args$foldid <- foldid
+    cv_args$nfolds <- nfolds
+    cv_args$type.measure <- "class"
+    fit <- do.call(glmnet::cv.glmnet, cv_args)
+    model <- fit$glmnet.fit
+    lambda <- fit$lambda.min
+  } else {
+    model <- do.call(glmnet::glmnet, glmnet_args)
+    lambda <- min(model$lambda)
+  }
   coefficients <- stats::coef(model, s = lambda)
 
   dimension_conversion <- unique(data.table::data.table(
@@ -2614,14 +2646,28 @@ build_model_lib <- function(x, class_col = "material_class",
     split, provenance
   )]
 
+  fill_values <- matrixStats::rowMedians(spectra, na.rm = TRUE)
+  fill_values[!is.finite(fill_values)] <- 0
+  fill <- as_OpenSpecy(
+    wavenumbers,
+    spectra = matrix(
+      fill_values, ncol = 1L,
+      dimnames = list(NULL, "model_training_median")
+    ),
+    metadata = data.table::data.table(sample_name = "model_training_median")
+  )
+
   list(
     model = model,
+    lambda_selected = lambda,
+    selection_metric = "macro_class_accuracy",
     dimension_conversion = dimension_conversion,
     tests = tests,
     coefficients = coefficients_join,
     class_names = unique(labels),
     class_num = length(unique(outcome)),
     observation_count = length(labels),
+    fill = fill,
     variable_num = nrow(coefficients_join),
     all_variables = as.numeric(colnames(train)),
     variables_in = coefficients_join$names
@@ -2805,7 +2851,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       restrict_range_args = restrict_range_args,
       signal_noise = signal_noise, assess = assess, prune = prune
     ),
-    component_version = "reference-artifacts-v1"
+    component_version = "reference-artifacts-v2-type-quality"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -2888,7 +2934,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
 
   models <- checkpoints$get("models")
-  model_warnings <- data.table::data.table()
+  model_warnings <- .lib_warning_schema()
   if (is.null(models)) {
     model_result <- .lib_build_models(
       medoids, report = report, checkpoints = checkpoints
@@ -2911,7 +2957,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "production-model-split-reference-v1"
+      assessment_version = "paired-type-macro-reference-v3-exact-holdout"
     ),
     algo = "sha256"
   )
@@ -3230,7 +3276,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
     prediction_rows[[name]] <- data.table::data.table(
       artifact = name, metric = names(prediction$summary),
-      value = as.character(unlist(prediction$summary, use.names = FALSE))
+      value = as.numeric(unlist(prediction$summary, use.names = FALSE))
     )
     coverage <- attr(libraries[[name]], "class_coverage_report")
     coverage_rows[[name]] <- data.table::data.table(
@@ -3259,6 +3305,13 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     stop("Blank library_type or spectrum_type values remain after source lookup",
          call. = FALSE)
   }
+
+  quality <- .lib_quality_control_processed(
+    libraries, report = report,
+    artifact_ratio = 2, tail_n = 5L, max_crop = 0.2,
+    snr_threshold = 2
+  )
+  libraries <- quality$libraries
 
   prune_spec <- prune
   if (is.null(prune_spec)) {
@@ -3331,6 +3384,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
                  before_filter - ncol(libraries$raw$spectra),
                  ncol(libraries$raw$spectra)))
 
+  libraries <- .lib_partition_reference_libraries(libraries, report)
+
   list(
     libraries = libraries,
     assessments = list(
@@ -3338,6 +3393,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       class_coverage = data.table::rbindlist(coverage_rows, fill = TRUE),
       type_coverage = type_coverage,
       pruning = data.table::rbindlist(prune_rows, fill = TRUE),
+      quality_control = quality$assessment,
       filters = data.table::data.table(
         stage = "special_filter", before = before_filter,
         after = ncol(libraries$raw$spectra),
@@ -3348,23 +3404,270 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
+.lib_quality_schema <- function() {
+  data.table::data.table(
+    artifact = character(), spectrum_id = character(),
+    spectrum_type = character(), check = character(), action = character(),
+    before_value = numeric(), after_value = numeric(), threshold = numeric(),
+    removed = logical(), reason = character()
+  )
+}
+
+.lib_warning_schema <- function() {
+  data.table::data.table(
+    artifact = character(), model = character(), warning = character()
+  )
+}
+
+.lib_quality_control_processed <- function(libraries, report,
+                                           artifact_ratio = 2,
+                                           tail_n = 5L,
+                                           max_crop = 0.2,
+                                           snr_threshold = 2) {
+  assessment <- list()
+  for (recipe in intersect(c("derivative", "nobaseline"), names(libraries))) {
+    x <- libraries[[recipe]]
+    started <- proc.time()[["elapsed"]]
+    ids <- .lib_ids(x, "sample_name")
+    type <- tolower(as.character(x$metadata$spectrum_type))
+    report(sprintf(
+      "quality gate %s: starting (spectra=%d; wavenumbers=%d)",
+      recipe, ncol(x$spectra), nrow(x$spectra)
+    ))
+
+    metrics <- .artifact_ratio_metrics(
+      x, tail_n = tail_n, co2_region = c(2200, 2420),
+      silent_region = c(2420, 2550)
+    )
+    co2 <- type == "ftir" & is.finite(metrics$co2_ratio) &
+      metrics$co2_ratio > artifact_ratio
+    co2[is.na(co2)] <- FALSE
+    if (any(co2)) {
+      corrected <- flatten_range(
+        filter_spec(x, co2), min = 2200, max = 2420, make_rel = FALSE
+      )
+      x$spectra[, co2] <- corrected$spectra
+    }
+    co2_after <- .artifact_ratio_metrics(
+      x, tail_n = tail_n, co2_region = c(2200, 2420),
+      silent_region = c(2420, 2550)
+    )$co2_ratio
+    assessment[[paste0(recipe, "_co2")]] <- data.table::data.table(
+      artifact = recipe, spectrum_id = ids[co2], spectrum_type = type[co2],
+      check = "co2_region", action = "flatten",
+      before_value = metrics$co2_ratio[co2], after_value = co2_after[co2],
+      threshold = artifact_ratio, removed = FALSE,
+      reason = "co2_to_silent_ratio_above_threshold"
+    )
+    report(sprintf("quality gate %s: CO2 flatten complete (flattened=%d)",
+                   recipe, sum(co2)))
+
+    tail_before <- .artifact_ratio_metrics(
+      x, tail_n = tail_n, co2_region = c(2200, 2420),
+      silent_region = c(2420, 2550)
+    )$tail_ratio
+    tail_flag <- is.finite(tail_before) & tail_before > artifact_ratio
+    tail_flag[is.na(tail_flag)] <- FALSE
+    correction <- .lib_trim_high_tail_matrix(
+      x$wavenumber, x$spectra[, tail_flag, drop = FALSE],
+      artifact_ratio = artifact_ratio, tail_n = tail_n,
+      max_crop = max_crop, co2_region = c(2200, 2420)
+    )
+    if (any(tail_flag)) x$spectra[, tail_flag] <- correction$spectra
+    tail_after <- .artifact_ratio_metrics(
+      x, tail_n = tail_n, co2_region = c(2200, 2420),
+      silent_region = c(2420, 2550)
+    )$tail_ratio
+    failed_tail <- rep(FALSE, ncol(x$spectra))
+    failed_tail[tail_flag] <- !correction$passed
+    assessment[[paste0(recipe, "_tail")]] <- data.table::data.table(
+      artifact = recipe, spectrum_id = ids[tail_flag],
+      spectrum_type = type[tail_flag], check = "high_tail",
+      action = ifelse(correction$passed, "trim", "drop"),
+      before_value = tail_before[tail_flag], after_value = tail_after[tail_flag],
+      threshold = artifact_ratio, removed = !correction$passed,
+      reason = correction$reason
+    )
+    report(sprintf(
+      "quality gate %s: high-tail correction complete (flagged=%d; corrected=%d; failed=%d)",
+      recipe, sum(tail_flag), sum(correction$passed), sum(!correction$passed)
+    ))
+
+    snr <- sig_noise(x, metric = "run_sig_over_noise", step = 10,
+                     na.rm = TRUE)
+    low_snr <- !is.finite(snr) | snr < snr_threshold
+    assessment[[paste0(recipe, "_snr")]] <- data.table::data.table(
+      artifact = recipe, spectrum_id = ids[low_snr],
+      spectrum_type = type[low_snr], check = "low_snr", action = "drop",
+      before_value = as.numeric(snr[low_snr]), after_value = NA_real_,
+      threshold = snr_threshold, removed = TRUE,
+      reason = ifelse(is.finite(snr[low_snr]),
+                      "running_snr_below_threshold", "running_snr_unavailable")
+    )
+    remove <- failed_tail | low_snr
+    if (all(remove)) {
+      stop("Quality control removed every spectrum from ", recipe,
+           call. = FALSE)
+    }
+    x <- filter_spec(x, !remove)
+    x$metadata$sn <- snr[!remove]
+    attr(x, "quality_control_report") <- data.table::rbindlist(
+      assessment[grepl(paste0("^", recipe, "_"), names(assessment))],
+      fill = TRUE
+    )
+    libraries[[recipe]] <- x
+    report(sprintf(
+      "quality gate %s: complete (removed=%d; retained=%d; %.1fs)",
+      recipe, sum(remove), ncol(x$spectra),
+      proc.time()[["elapsed"]] - started
+    ))
+  }
+  rows <- data.table::rbindlist(assessment, fill = TRUE)
+  if (!nrow(rows)) rows <- .lib_quality_schema()
+  list(libraries = libraries, assessment = rows)
+}
+
+.lib_trim_high_tail_matrix <- function(wavenumber, spectra,
+                                       artifact_ratio = 2, tail_n = 5L,
+                                       max_crop = 0.2,
+                                       co2_region = c(2200, 2420)) {
+  if (!ncol(spectra)) {
+    return(list(spectra = spectra, passed = logical(), reason = character()))
+  }
+  passed <- logical(ncol(spectra))
+  reason <- rep("corrected", ncol(spectra))
+  for (column in seq_len(ncol(spectra))) {
+    values <- spectra[, column]
+    original <- which(is.finite(values))
+    if (length(original) <= 2L * tail_n) {
+      reason[column] <- "insufficient_finite_range"
+      next
+    }
+    original_span <- abs(wavenumber[max(original)] - wavenumber[min(original)])
+    repeat {
+      finite <- which(is.finite(values))
+      if (length(finite) <= 2L * tail_n) {
+        reason[column] <- "insufficient_finite_range"
+        break
+      }
+      normalized <- values
+      lo <- min(normalized[finite])
+      span <- max(normalized[finite]) - lo
+      if (!is.finite(span) || span <= 0) {
+        reason[column] <- "flat_or_unavailable"
+        break
+      }
+      normalized[finite] <- (normalized[finite] - lo) / span
+      left <- head(finite, tail_n)
+      right <- tail(finite, tail_n)
+      control <- setdiff(
+        finite,
+        c(left, right, which(wavenumber >= co2_region[1L] &
+                              wavenumber <= co2_region[2L]))
+      )
+      control_max <- if (length(control)) max(normalized[control]) else NA_real_
+      if (!is.finite(control_max)) {
+        reason[column] <- "control_unavailable"
+        break
+      }
+      left_ratio <- max(normalized[left]) / control_max
+      right_ratio <- max(normalized[right]) / control_max
+      trim_left <- is.finite(left_ratio) && left_ratio > artifact_ratio
+      trim_right <- is.finite(right_ratio) && right_ratio > artifact_ratio
+      if (!trim_left && !trim_right) {
+        spectra[, column] <- values
+        passed[column] <- TRUE
+        break
+      }
+      if (trim_left) values[min(finite)] <- NA_real_
+      if (trim_right) values[max(finite)] <- NA_real_
+      remaining <- which(is.finite(values))
+      cropped <- 1 - abs(wavenumber[max(remaining)] -
+                           wavenumber[min(remaining)]) / original_span
+      if (!is.finite(cropped) || cropped > max_crop) {
+        reason[column] <- "max_crop_exceeded"
+        break
+      }
+    }
+  }
+  list(spectra = spectra, passed = passed, reason = reason)
+}
+
+.lib_type_ranges <- function() {
+  list(raman = c(200, 4000), ftir = c(400, 4000), nir = c(4000, 12000))
+}
+
+.lib_drop_blank_metadata <- function(x) {
+  blank <- vapply(x$metadata, function(column) {
+    if (is.character(column)) {
+      all(is.na(column) | !nzchar(trimws(column)))
+    } else {
+      all(is.na(column))
+    }
+  }, logical(1))
+  if (any(blank)) x$metadata[, (names(blank)[blank]) := NULL]
+  x
+}
+
+.lib_partition_reference_libraries <- function(libraries, report = NULL) {
+  ranges <- .lib_type_ranges()
+  lapply(names(libraries), function(recipe) {
+    x <- libraries[[recipe]]
+    out <- lapply(names(ranges), function(type) {
+      subset <- .lib_filter_optional_type(x, type)
+      if (is.null(subset)) return(NULL)
+      limits <- ranges[[type]]
+      inside <- subset$wavenumber >= limits[1L] &
+        subset$wavenumber <= limits[2L]
+      if (sum(inside) < 2L) return(NULL)
+      subset <- restrict_range(
+        subset, min = limits[1L], max = limits[2L], make_rel = FALSE
+      )
+      subset <- .lib_drop_blank_metadata(subset)
+      if (!is.null(report)) report(sprintf(
+        "partitioned %s/%s (spectra=%d; range=%g-%g; wavenumbers=%d)",
+        recipe, type, ncol(subset$spectra), limits[1L], limits[2L],
+        nrow(subset$spectra)
+      ))
+      subset
+    })
+    names(out) <- names(ranges)
+    Filter(Negate(is.null), out)
+  }) |> stats::setNames(names(libraries))
+}
+
 .lib_build_medoids <- function(libraries, report, checkpoints = NULL,
                                progress = TRUE) {
   processed <- intersect(c("derivative", "nobaseline"), names(libraries))
   out <- lapply(processed, function(name) {
-    stage <- paste0("medoid_", name)
-    cached <- if (is.null(checkpoints)) NULL else checkpoints$get(stage)
-    if (!is.null(cached)) return(cached)
-    report(paste0("selecting medoids (", name, ")"))
-    ids <- reduce_lib(
-      libraries[[name]],
-      group_cols = c("spectrum_type", "organization", "material_class"),
-      k = 50, min_n = 50, return = "ids",
-      progress = progress
-    )
-    result <- filter_spec(libraries[[name]], ids)
-    if (!is.null(checkpoints)) checkpoints$put(stage, result)
-    result
+    types <- libraries[[name]]
+    stats::setNames(lapply(names(types), function(type) {
+      stage <- paste0("medoid_", name, "_", type)
+      cached <- if (is.null(checkpoints)) NULL else checkpoints$get(stage)
+      if (!is.null(cached)) return(cached)
+      x <- .lib_restrict_model_range(types[[type]], type)
+      dropped <- attr(x, "identification_dropped_ids", exact = TRUE)
+      if (length(dropped)) report(sprintf(
+        "discarded unidentifiable spectra (%s/%s; fewer than 2 finite values=%d)",
+        name, type, length(dropped)
+      ))
+      report(sprintf(
+        "selecting medoids (%s/%s; spectra=%d; wavenumbers=%d; range=%g-%g)",
+        name, type, ncol(x$spectra), nrow(x$spectra),
+        min(x$wavenumber), max(x$wavenumber)
+      ))
+      ids <- reduce_lib(
+        x,
+        group_cols = intersect(c("organization", "material_class"),
+                               names(x$metadata)),
+        k = 50, min_n = 50, return = "ids",
+        progress = progress
+      )
+      result <- filter_spec(x, ids)
+      attr(result, "identification_range") <- range(x$wavenumber)
+      if (!is.null(checkpoints)) checkpoints$put(stage, result)
+      result
+    }), names(types))
   })
   names(out) <- processed
   out
@@ -3374,25 +3677,27 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   models <- list()
   warnings <- list()
   for (recipe in names(medoids)) {
-    x <- medoids[[recipe]]
-    use <- x$wavenumber >= 800 & x$wavenumber <= 3200
-    if (sum(use) >= 2L) {
-      x <- restrict_range(x, min = 800, max = 3200, make_rel = FALSE)
+    sources <- medoids[[recipe]]
+    if (all(c("ftir", "raman") %in% names(sources))) {
+      sources$both <- .lib_bind_same_axis(
+        list(sources$ftir, sources$raman),
+        label = paste0(recipe, " FTIR/Raman model input")
+      )
     }
-    sources <- list(
-      both = x,
-      ftir = .lib_filter_optional_type(x, "ftir"),
-      raman = .lib_filter_optional_type(x, "raman")
-    )
     models[[recipe]] <- list()
     for (type in names(sources)) {
       stage <- paste0("model_", recipe, "_", type)
       cached <- if (is.null(checkpoints)) NULL else checkpoints$get(stage)
       if (!is.null(cached)) {
         models[[recipe]][[type]] <- cached
+        cached_warnings <- attr(cached, "training_warnings", exact = TRUE)
+        if(length(cached_warnings)) warnings[[length(warnings) + 1L]] <-
+          data.table::data.table(
+            artifact = recipe, model = type,
+            warning = as.character(cached_warnings)
+          )
         next
       }
-      report(paste0("training model (", recipe, "/", type, ")"))
       if (is.null(sources[[type]])) {
         warnings[[length(warnings) + 1L]] <- data.table::data.table(
           artifact = recipe, model = type,
@@ -3401,8 +3706,30 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         models[[recipe]][[type]] <- NULL
         next
       }
+      model_started <- proc.time()[["elapsed"]]
+      model_classes <- if("material_class" %in% names(sources[[type]]$metadata)) {
+        data.table::uniqueN(sources[[type]]$metadata$material_class,
+                            na.rm = TRUE)
+      } else NA_integer_
+      report(sprintf(
+        paste0("training model (%s/%s; spectra=%d; wavenumbers=%d; ",
+               "classes=%s)"),
+        recipe, type, ncol(sources[[type]]$spectra),
+        nrow(sources[[type]]$spectra),
+        if(is.na(model_classes)) "unknown" else model_classes
+      ))
+      training_warnings <- character()
       models[[recipe]][[type]] <- tryCatch(
-        build_model_lib(sources[[type]]),
+        withCallingHandlers(
+          build_model_lib(sources[[type]]),
+          warning = function(condition) {
+            message <- conditionMessage(condition)
+            training_warnings <<- unique(c(training_warnings, message))
+            report(sprintf("model warning (%s/%s): %s",
+                           recipe, type, message))
+            invokeRestart("muffleWarning")
+          }
+        ),
         error = function(error) {
           warnings[[length(warnings) + 1L]] <<- data.table::data.table(
             artifact = recipe, model = type,
@@ -3411,15 +3738,96 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           NULL
         }
       )
+      if(length(training_warnings)) {
+        warnings[[length(warnings) + 1L]] <- data.table::data.table(
+          artifact = recipe, model = type,
+          warning = training_warnings
+        )
+      }
+      if(!is.null(models[[recipe]][[type]])) {
+        attr(models[[recipe]][[type]], "training_warnings") <-
+          training_warnings
+      }
       if (!is.null(checkpoints) && !is.null(models[[recipe]][[type]])) {
         checkpoints$put(stage, models[[recipe]][[type]])
       }
+      if (!is.null(models[[recipe]][[type]])) report(sprintf(
+        paste0("model complete (%s/%s; observations=%d; classes=%d; ",
+               "lambda=%.6g; %.1fs)"),
+        recipe, type, models[[recipe]][[type]]$observation_count,
+        models[[recipe]][[type]]$class_num,
+        models[[recipe]][[type]]$lambda_selected,
+        proc.time()[["elapsed"]] - model_started
+      ))
     }
   }
   list(
     models = models,
-    warnings = data.table::rbindlist(warnings, fill = TRUE)
+    warnings = if (length(warnings)) {
+      data.table::rbindlist(warnings, fill = TRUE)
+    } else {
+      .lib_warning_schema()
+    }
   )
+}
+
+.lib_restrict_model_range <- function(x, type) {
+  type <- tolower(type)
+  if (type %in% c("ftir", "raman")) {
+    limits <- c(800, 3200)
+  } else if (identical(type, "nir")) {
+    finite_fraction <- rowMeans(is.finite(x$spectra))
+    usable <- x$wavenumber >= 4000 & x$wavenumber <= 12000 &
+      finite_fraction >= 0.9
+    if (!any(usable)) {
+      usable <- x$wavenumber >= 4000 & x$wavenumber <= 12000 &
+        finite_fraction > 0
+    }
+    runs <- rle(usable)
+    candidates <- which(runs$values)
+    if (!length(candidates)) {
+      stop("NIR spectra have no finite values in 4000-12000", call. = FALSE)
+    }
+    run <- candidates[which.max(runs$lengths[candidates])]
+    ends <- cumsum(runs$lengths)
+    starts <- ends - runs$lengths + 1L
+    indices <- seq.int(starts[run], ends[run])
+    limits <- range(x$wavenumber[indices])
+  } else {
+    stop("Unsupported spectrum type: ", type, call. = FALSE)
+  }
+  out <- restrict_range(
+    x, min = limits[1L], max = limits[2L], make_rel = FALSE
+  )
+  finite_count <- colSums(is.finite(out$spectra))
+  usable <- finite_count >= 2L
+  dropped <- .lib_ids(out, "sample_name")[!usable]
+  if (!any(usable)) {
+    stop(type, " spectra have fewer than two finite values in the ",
+         "identification interval", call. = FALSE)
+  }
+  if (any(!usable)) out <- filter_spec(out, usable)
+  attr(out, "identification_range") <- limits
+  attr(out, "identification_dropped_ids") <- dropped
+  attr(out, "identification_finite_coverage") <-
+    mean(is.finite(out$spectra))
+  out
+}
+
+.lib_bind_same_axis <- function(objects, label = "objects") {
+  objects <- Filter(Negate(is.null), objects)
+  if (!length(objects)) return(NULL)
+  axes <- lapply(objects, `[[`, "wavenumber")
+  if (!all(vapply(axes[-1L], identical, logical(1), axes[[1L]]))) {
+    stop(label, " do not share an identical wavenumber axis", call. = FALSE)
+  }
+  out <- objects[[1L]]
+  out$spectra <- do.call(cbind, lapply(objects, `[[`, "spectra"))
+  out$metadata <- data.table::rbindlist(
+    lapply(objects, `[[`, "metadata"), fill = TRUE
+  )
+  out <- as_OpenSpecy(out)
+  out
 }
 
 .lib_filter_optional_type <- function(x, type) {
@@ -3435,7 +3843,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     if (is.null(report) || is.null(report$summary)) return(NULL)
     data.table::data.table(
       artifact = name, metric = names(report$summary),
-      value = as.character(unlist(report$summary, use.names = FALSE))
+      value = as.numeric(unlist(report$summary, use.names = FALSE))
     )
   }), fill = TRUE)
   coverage <- data.table::rbindlist(lapply(names(libraries), function(name) {
@@ -3495,8 +3903,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 .lib_local_build_assessments <- function(libraries, medoids, models,
                                          completed, model_warnings) {
   artifacts <- c(
-    libraries,
-    setNames(medoids, paste0("medoid_", names(medoids)))
+    .lib_named_typed_objects(libraries),
+    .lib_named_typed_objects(medoids, prefix = "medoid_")
   )
   summary <- data.table::rbindlist(lapply(names(artifacts), function(name) {
     data.table::data.table(
@@ -3519,8 +3927,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       )
     }), fill = TRUE)
   }), fill = TRUE)
-  lookup_coverage <- data.table::rbindlist(lapply(names(libraries), function(name) {
-    reports <- attr(libraries[[name]], "metadata_lookup_reports")
+  library_artifacts <- .lib_named_typed_objects(libraries)
+  lookup_coverage <- data.table::rbindlist(lapply(names(library_artifacts), function(name) {
+    reports <- attr(library_artifacts[[name]], "metadata_lookup_reports")
     if (is.null(reports) || length(reports) == 0L) return(NULL)
     data.table::rbindlist(lapply(names(reports), function(stage) {
       out <- data.table::copy(reports[[stage]])
@@ -3528,15 +3937,15 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       out
     }), fill = TRUE)
   }), fill = TRUE)
-  identity_cleanup <- data.table::rbindlist(lapply(names(libraries), function(name) {
-    out <- attr(libraries[[name]], "spectrum_identity_cleanup_report")
+  identity_cleanup <- data.table::rbindlist(lapply(names(library_artifacts), function(name) {
+    out <- attr(library_artifacts[[name]], "spectrum_identity_cleanup_report")
     if (is.null(out) || nrow(out) == 0L) return(NULL)
     out <- data.table::copy(out)
     out[, artifact := name]
     out
   }), fill = TRUE)
-  exclusions <- data.table::rbindlist(lapply(names(libraries), function(name) {
-    out <- attr(libraries[[name]], "build_stage_report")
+  exclusions <- data.table::rbindlist(lapply(names(library_artifacts), function(name) {
+    out <- attr(library_artifacts[[name]], "build_stage_report")
     if (is.null(out) || nrow(out) == 0L) return(NULL)
     out <- data.table::copy(out)
     out[, artifact := name]
@@ -3556,14 +3965,37 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     medoid_model_summary = model_summary,
     split_manifest = data.table::data.table(),
     library_identification = data.table::data.table(),
+    library_class_accuracy = data.table::data.table(),
+    library_confusion = data.table::data.table(),
     model_identification = data.table::data.table(),
+    model_class_accuracy = data.table::data.table(),
+    model_confusion = data.table::data.table(),
     assess_spec_shifts = data.table::data.table(),
     old_new_compatibility = data.table::data.table(),
-    warnings = model_warnings,
+    quality_control = .lib_quality_schema(),
+    warnings = if (nrow(model_warnings)) model_warnings else
+      .lib_warning_schema(),
     output_manifest = data.table::data.table()
   )
   if (!is.null(completed)) defaults[names(completed)] <- completed
   defaults
+}
+
+.lib_named_typed_objects <- function(x, prefix = "") {
+  out <- list()
+  for (recipe in names(x)) {
+    item <- x[[recipe]]
+    if (is_OpenSpecy(item)) {
+      out[[paste0(prefix, recipe)]] <- item
+    } else if (is.list(item)) {
+      for (type in names(item)) {
+        if (is_OpenSpecy(item[[type]])) {
+          out[[paste0(prefix, recipe, "_", type)]] <- item[[type]]
+        }
+      }
+    }
+  }
+  out
 }
 
 .lib_previous_signature <- function(path) {
@@ -3587,17 +4019,38 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
                                          checkpoints = NULL,
                                          checkpoint_key = NULL) {
   prior <- .lib_load_previous_libraries(previous_library_dir, progress)
-  library_pairs <- list(
-    raw = list(new = build$libraries$raw, old = prior$raw),
-    derivative = list(new = build$libraries$derivative,
-                      old = prior$derivative),
-    nobaseline = list(new = build$libraries$nobaseline,
-                      old = prior$nobaseline),
-    medoid_derivative = list(new = build$medoids$derivative,
-                             old = prior$medoid_derivative),
-    medoid_nobaseline = list(new = build$medoids$nobaseline,
-                             old = prior$medoid_nobaseline)
-  )
+  library_pairs <- list()
+  for (recipe in intersect(names(build$libraries),
+                           c("raw", "derivative", "nobaseline"))) {
+    for (type in names(build$libraries[[recipe]])) {
+      artifact <- paste(recipe, type, sep = "_")
+      old <- .lib_filter_optional_type(prior[[recipe]], type)
+      if (is.null(old)) next
+      limits <- range(build$libraries[[recipe]][[type]]$wavenumber)
+      old <- restrict_range(old, min = limits[1L], max = limits[2L],
+                            make_rel = FALSE)
+      library_pairs[[artifact]] <- list(
+        new = build$libraries[[recipe]][[type]], old = old,
+        recipe = recipe, type = type
+      )
+    }
+  }
+  for (recipe in intersect(names(build$medoids),
+                           c("derivative", "nobaseline"))) {
+    legacy <- prior[[paste0("medoid_", recipe)]]
+    for (type in names(build$medoids[[recipe]])) {
+      artifact <- paste("medoid", recipe, type, sep = "_")
+      old <- .lib_filter_optional_type(legacy, type)
+      if (is.null(old)) next
+      limits <- range(build$medoids[[recipe]][[type]]$wavenumber)
+      old <- restrict_range(old, min = limits[1L], max = limits[2L],
+                            make_rel = FALSE)
+      library_pairs[[artifact]] <- list(
+        new = build$medoids[[recipe]][[type]], old = old,
+        recipe = recipe, type = type
+      )
+    }
+  }
 
   compatibility <- data.table::rbindlist(
     lapply(names(library_pairs), function(artifact) {
@@ -3656,30 +4109,36 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   split_manifest <- data.table::rbindlist(split_rows, fill = TRUE)
   reference_tests <- data.table::rbindlist(reference_tests, fill = TRUE)
   library_identification <- .lib_identification_summary(reference_tests)
+  library_class_accuracy <- .lib_class_accuracy(reference_tests)
+  library_confusion <- .lib_confusion_table(reference_tests)
 
   model_tests <- list()
   updated_models <- build$models
   for (recipe in intersect(c("derivative", "nobaseline"),
                            names(build$models))) {
     artifact <- recipe
-    split <- split_by_artifact[[artifact]]
-    candidate <- build$libraries[[recipe]]
-    use <- candidate$wavenumber >= 800 & candidate$wavenumber <= 3200
-    if (sum(use) >= 2L) {
-      candidate <- restrict_range(
-        candidate, min = 800, max = 3200, make_rel = FALSE
+    candidate_tests <- list()
+    for (type in names(build$libraries[[recipe]])) {
+      split <- split_by_artifact[[paste(recipe, type, sep = "_")]]
+      if (is.null(split)) next
+      candidate <- .lib_restrict_model_range(
+        build$libraries[[recipe]][[type]], type
+      )
+      test_groups <- split$manifest[split == "test", group_id]
+      test_ids <- split$rows[
+        source == "new" & group_id %in% test_groups, spectrum_id
+      ]
+      test_idx <- match(test_ids, .lib_ids(candidate, "sample_name"),
+                        nomatch = 0L)
+      test_idx <- test_idx[test_idx > 0L]
+      if (!length(test_idx)) next
+      candidate_tests[[type]] <- filter_spec(candidate, test_idx)
+    }
+    if (all(c("ftir", "raman") %in% names(candidate_tests))) {
+      candidate_tests$both <- .lib_bind_same_axis(
+        candidate_tests[c("ftir", "raman")], "combined model test spectra"
       )
     }
-    group_ids <- .lib_comparison_group_ids(candidate)
-    test_groups <- split$manifest[split == "test", group_id]
-    candidate_test <- group_ids %in% test_groups
-    if (!any(candidate_test) || all(candidate_test)) next
-    test <- filter_spec(candidate, candidate_test)
-    candidate_tests <- list(
-      both = test,
-      ftir = .lib_filter_optional_type(test, "ftir"),
-      raman = .lib_filter_optional_type(test, "raman")
-    )
     for (type in names(candidate_tests)) {
       if (is.null(candidate_tests[[type]]) ||
           is.null(updated_models[[recipe]][[type]])) next
@@ -3713,14 +4172,30 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     }
 
     legacy_model <- prior[[paste0("model_", recipe)]]
-    legacy_test <- library_pairs[[artifact]]$old
-    legacy_groups <- .lib_comparison_group_ids(legacy_test)
-    legacy_keep <- legacy_groups %in% test_groups
-    if (!any(legacy_keep)) next
-    legacy_test <- filter_spec(legacy_test, legacy_keep)
+    legacy_queries <- list()
+    for (type in intersect(c("ftir", "raman"), names(candidate_tests))) {
+      split <- split_by_artifact[[paste(recipe, type, sep = "_")]]
+      legacy_test <- library_pairs[[paste(recipe, type, sep = "_")]]$old
+      test_groups <- split$manifest[split == "test", group_id]
+      test_ids <- split$rows[
+        source == "old" & group_id %in% test_groups, spectrum_id
+      ]
+      legacy_idx <- match(test_ids, .lib_ids(legacy_test, "sample_name"),
+                          nomatch = 0L)
+      legacy_idx <- legacy_idx[legacy_idx > 0L]
+      if (length(legacy_idx)) {
+        legacy_queries[[type]] <- filter_spec(legacy_test, legacy_idx)
+      }
+    }
+    if (all(c("ftir", "raman") %in% names(legacy_queries))) {
+      legacy_queries$both <- .lib_bind_same_axis(
+        lapply(legacy_queries[c("ftir", "raman")], function(query) {
+          restrict_range(query, min = 800, max = 3200, make_rel = FALSE)
+        }), "combined legacy model test spectra"
+      )
+    }
     for (type in intersect(c("both", "ftir", "raman"), names(legacy_model))) {
-      query <- if (type == "both") legacy_test else
-        .lib_filter_optional_type(legacy_test, type)
+      query <- legacy_queries[[type]]
       if (is.null(query) || is.null(legacy_model[[type]])) next
       stage <- paste0("assessment_model_", recipe, "_", type, "_old")
       tests <- if (is.null(checkpoints)) NULL else
@@ -3740,6 +4215,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
   model_tests <- data.table::rbindlist(model_tests, fill = TRUE)
   model_identification <- .lib_identification_summary(model_tests)
+  model_class_accuracy <- .lib_class_accuracy(model_tests)
+  model_confusion <- .lib_confusion_table(model_tests)
 
   if (isTRUE(progress)) {
     message("build_lib assessment: summarizing assess_spec shifts")
@@ -3784,7 +4261,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     models = updated_models,
     split_manifest = split_manifest,
     library_identification = library_identification,
+    library_class_accuracy = library_class_accuracy,
+    library_confusion = library_confusion,
     model_identification = model_identification,
+    model_class_accuracy = model_class_accuracy,
+    model_confusion = model_confusion,
     assess_spec_shifts = assess_spec_shifts,
     old_new_compatibility = compatibility
   )
@@ -3823,43 +4304,79 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   old_ids <- .lib_ids(old, "sample_name")
   new_names <- names(new$metadata)
   old_names <- names(old$metadata)
+  metrics <- c(
+    "new_spectra", "old_spectra", "shared_identifiers",
+    "new_only_identifiers", "old_only_identifiers", "axes_identical",
+    "new_wavenumbers", "old_wavenumbers", "new_metadata_columns",
+    "old_metadata_columns", "new_only_metadata", "old_only_metadata"
+  )
+  numeric_value <- c(
+    ncol(new$spectra), ncol(old$spectra), length(intersect(new_ids, old_ids)),
+    length(setdiff(new_ids, old_ids)), length(setdiff(old_ids, new_ids)),
+    NA_real_, length(new$wavenumber), length(old$wavenumber),
+    length(new_names), length(old_names), NA_real_, NA_real_
+  )
+  logical_value <- rep(NA, length(metrics))
+  logical_value[metrics == "axes_identical"] <-
+    identical(new$wavenumber, old$wavenumber)
+  character_value <- rep(NA_character_, length(metrics))
+  character_value[metrics == "new_only_metadata"] <-
+    paste(setdiff(new_names, old_names), collapse = "; ")
+  character_value[metrics == "old_only_metadata"] <-
+    paste(setdiff(old_names, new_names), collapse = "; ")
   data.table::data.table(
     artifact = artifact,
-    metric = c(
-      "new_spectra", "old_spectra", "shared_identifiers",
-      "new_only_identifiers", "old_only_identifiers", "axes_identical",
-      "new_wavenumbers", "old_wavenumbers", "new_metadata_columns",
-      "old_metadata_columns", "new_only_metadata", "old_only_metadata"
-    ),
-    value = c(
-      ncol(new$spectra), ncol(old$spectra), length(intersect(new_ids, old_ids)),
-      length(setdiff(new_ids, old_ids)), length(setdiff(old_ids, new_ids)),
-      identical(new$wavenumber, old$wavenumber), length(new$wavenumber),
-      length(old$wavenumber), length(new_names), length(old_names),
-      paste(setdiff(new_names, old_names), collapse = "; "),
-      paste(setdiff(old_names, new_names), collapse = "; ")
-    )
+    metric = metrics, numeric_value = numeric_value,
+    logical_value = logical_value, character_value = character_value
   )
 }
 
 .lib_combined_split <- function(new, old, artifact, seed, holdout) {
+  paired_ids <- .lib_paired_group_ids(new, old)
   rows <- data.table::rbindlist(list(
-    .lib_split_rows(new, "new"), .lib_split_rows(old, "old")
+    .lib_split_rows(new, "new", paired_ids$new),
+    .lib_split_rows(old, "old", paired_ids$old)
   ), fill = TRUE)
   groups <- rows[, .(
     material_class = .lib_first_value(material_class),
     spectrum_type = .lib_first_value(spectrum_type),
     new_present = any(source == "new"), old_present = any(source == "old")
   ), by = group_id]
+  groups <- groups[new_present & old_present]
   groups[, stratum := paste(
     ifelse(is.na(spectrum_type), "unknown", spectrum_type),
     ifelse(is.na(material_class), "unclassified", material_class), sep = "\r"
   )]
+  allocation <- groups[, .(available = .N), by = stratum]
+  allocation[, `:=`(
+    expected = available * holdout,
+    selected = as.integer(floor(available * holdout))
+  )]
+  target <- min(
+    nrow(groups),
+    max(1L, as.integer(round(nrow(groups) * holdout)))
+  )
   set.seed(seed)
-  test_groups <- groups[, {
-    n_test <- if (.N <= 1L) 0L else max(1L, floor(.N * holdout))
-    list(group_id = if (n_test) sample(group_id, n_test) else character())
-  }, by = stratum]$group_id
+  allocation[, `:=`(
+    remainder = expected - selected,
+    tie_break = stats::runif(.N)
+  )]
+  data.table::setorder(
+    allocation, -remainder, tie_break, stratum
+  )
+  remaining <- target - sum(allocation$selected)
+  while (remaining > 0L) {
+    eligible <- which(allocation$selected < allocation$available)
+    if (!length(eligible)) break
+    take <- head(eligible, remaining)
+    allocation$selected[take] <- allocation$selected[take] + 1L
+    remaining <- remaining - length(take)
+  }
+  test_groups <- unlist(lapply(seq_len(nrow(allocation)), function(i) {
+    n <- allocation$selected[[i]]
+    if (!n) return(character())
+    sample(groups[stratum == allocation$stratum[[i]], group_id], n)
+  }), use.names = FALSE)
   groups[, `:=`(
     artifact = artifact,
     split = ifelse(group_id %in% test_groups, "test", "train")
@@ -3873,16 +4390,70 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
-.lib_split_rows <- function(x, source) {
+.lib_split_rows <- function(x, source, group_ids = NULL) {
   metadata <- x$metadata
-  ids <- .lib_comparison_group_ids(x)
+  if (is.null(group_ids)) group_ids <- .lib_comparison_group_ids(x)
+  if (length(group_ids) != ncol(x$spectra)) {
+    stop("Comparison group identifiers are not aligned to spectra",
+         call. = FALSE)
+  }
   data.table::data.table(
-    source = source, row = seq_along(ids), group_id = ids,
+    source = source, row = seq_along(group_ids), group_id = group_ids,
+    spectrum_id = as.character(.lib_ids(x, "sample_name")),
     material_class = if ("material_class" %in% names(metadata))
       as.character(metadata$material_class) else NA_character_,
     spectrum_type = if ("spectrum_type" %in% names(metadata))
       as.character(metadata$spectrum_type) else NA_character_
   )
+}
+
+.lib_paired_group_ids <- function(new, old) {
+  new_group <- paste0("new-unmatched:", seq_len(ncol(new$spectra)))
+  old_group <- paste0("old-unmatched:", seq_len(ncol(old$spectra)))
+  new_assigned <- old_assigned <- logical(0L)
+  new_assigned <- rep(FALSE, length(new_group))
+  old_assigned <- rep(FALSE, length(old_group))
+
+  values <- function(x, field) {
+    if (!field %in% names(x$metadata)) {
+      return(rep(NA_character_, ncol(x$spectra)))
+    }
+    out <- tolower(trimws(as.character(x$metadata[[field]])))
+    out[is.na(out) | !nzchar(out) | out == "new format"] <- NA_character_
+    out
+  }
+  match_unique <- function(new_values, old_values, prefix) {
+    new_counts <- table(new_values, useNA = "no")
+    old_counts <- table(old_values, useNA = "no")
+    shared <- intersect(names(new_counts)[new_counts == 1L],
+                        names(old_counts)[old_counts == 1L])
+    if (!length(shared)) return(invisible(NULL))
+    new_rows <- match(shared, new_values)
+    old_rows <- match(shared, old_values)
+    use <- !new_assigned[new_rows] & !old_assigned[old_rows]
+    if (!any(use)) return(invisible(NULL))
+    shared <- shared[use]
+    new_rows <- new_rows[use]
+    old_rows <- old_rows[use]
+    group <- paste0(prefix, ":", shared)
+    new_group[new_rows] <<- group
+    old_group[old_rows] <<- group
+    new_assigned[new_rows] <<- TRUE
+    old_assigned[old_rows] <<- TRUE
+    invisible(NULL)
+  }
+
+  match_unique(values(new, "sample_name_old"), values(old, "sample_name"),
+               "legacy-id")
+  match_unique(values(new, "sample_name"), values(old, "sample_name"),
+               "sample-id")
+  match_unique(values(new, "sample_name"), values(old, "sample_name_old"),
+               "candidate-id")
+  match_unique(values(new, "sample_name_old"),
+               values(old, "sample_name_old"), "shared-legacy-id")
+  match_unique(values(new, "spectrum_identity"),
+               values(old, "spectrum_identity"), "spectrum-identity")
+  list(new = new_group, old = old_group)
 }
 
 .lib_comparison_group_ids <- function(x) {
@@ -3904,10 +4475,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_reference_holdout_test <- function(x, split, artifact, source,
                                         progress = FALSE) {
-  group_ids <- .lib_comparison_group_ids(x)
   test_groups <- split$manifest[split == "test", group_id]
-  test_idx <- which(group_ids %in% test_groups)
-  train_idx <- which(!group_ids %in% test_groups)
+  source_label <- source
+  source_rows <- split$rows[get("source") == source_label]
+  test_idx <- source_rows[group_id %in% test_groups, row]
+  train_idx <- source_rows[!group_id %in% test_groups, row]
   if (length(test_idx) == 0L || length(train_idx) == 0L) {
     return(data.table::data.table())
   }
@@ -3960,8 +4532,19 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_model_holdout_test <- function(model, x, artifact, type, source,
                                     provenance) {
-  x <- .lib_align_model_input(x, model)
-  prediction <- ai_classify(x, model)
+  fill <- model$fill
+  if (!is_OpenSpecy(fill)) {
+    variables <- as.numeric(model$all_variables)
+    fill <- as_OpenSpecy(
+      variables,
+      spectra = matrix(
+        0, nrow = length(variables), ncol = 1L,
+        dimnames = list(NULL, "model_zero_fill")
+      ),
+      metadata = data.table::data.table(sample_name = "model_zero_fill")
+    )
+  }
+  prediction <- match_spec(x, library = model, fill = fill)
   predicted <- if ("name" %in% names(prediction)) {
     as.character(prediction$name)
   } else if ("predicted_name" %in% names(prediction)) {
@@ -4009,17 +4592,69 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
   overall <- tests[, .(
     spectra = .N, evaluated = sum(!is.na(correct)),
-    accuracy = mean(correct, na.rm = TRUE),
-    mean_score = mean(score, na.rm = TRUE)
+    coverage = mean(!is.na(correct)),
+    overall_accuracy = if (all(is.na(correct))) NA_real_ else
+      mean(correct, na.rm = TRUE),
+    mean_score = if (all(is.na(score))) NA_real_ else mean(score, na.rm = TRUE)
   ), by = group_cols]
   class_summary <- tests[, .(
-    class_accuracy = mean(correct, na.rm = TRUE), class_spectra = .N
+    class_accuracy = if (all(is.na(correct))) NA_real_ else
+      mean(correct, na.rm = TRUE),
+    class_spectra = .N,
+    class_evaluated = sum(!is.na(correct))
   ), by = c(group_cols, "expected_class")]
   macro <- class_summary[, .(
-    macro_class_accuracy = mean(class_accuracy, na.rm = TRUE),
-    classes = .N
+    macro_class_accuracy = if (all(is.na(class_accuracy))) NA_real_ else
+      mean(class_accuracy, na.rm = TRUE),
+    classes = .N,
+    evaluated_classes = sum(!is.na(class_accuracy))
   ), by = group_cols]
-  merge(overall, macro, by = group_cols, all = TRUE)
+  out <- merge(overall, macro, by = group_cols, all = TRUE)
+  data.table::setcolorder(
+    out,
+    c(group_cols, "macro_class_accuracy", "coverage", "overall_accuracy",
+      "spectra", "evaluated", "classes", "evaluated_classes", "mean_score")
+  )
+  out
+}
+
+.lib_class_accuracy <- function(tests) {
+  if (!nrow(tests)) {
+    return(data.table::data.table(
+      artifact = character(), model = character(), source = character(),
+      technique = character(), provenance = character(),
+      expected_class = character(), spectra = integer(), evaluated = integer(),
+      coverage = numeric(), class_accuracy = numeric()
+    ))
+  }
+  group_cols <- intersect(
+    c("artifact", "model", "source", "technique", "provenance"),
+    names(tests)
+  )
+  tests[, .(
+    spectra = .N,
+    evaluated = sum(!is.na(correct)),
+    coverage = mean(!is.na(correct)),
+    class_accuracy = if (all(is.na(correct))) NA_real_ else
+      mean(correct, na.rm = TRUE)
+  ), by = c(group_cols, "expected_class")]
+}
+
+.lib_confusion_table <- function(tests) {
+  if (!nrow(tests)) {
+    return(data.table::data.table(
+      artifact = character(), model = character(), source = character(),
+      technique = character(), provenance = character(),
+      expected_class = character(), predicted_class = character(),
+      spectra = integer()
+    ))
+  }
+  group_cols <- intersect(
+    c("artifact", "model", "source", "technique", "provenance"),
+    names(tests)
+  )
+  tests[, .(spectra = .N),
+        by = c(group_cols, "expected_class", "predicted_class")]
 }
 
 .lib_assess_spec_summary <- function(x, artifact, source) {

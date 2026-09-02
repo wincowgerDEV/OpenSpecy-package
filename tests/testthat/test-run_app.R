@@ -423,6 +423,17 @@ test_that("bundled app updates map selection without full heatmap or spectrum re
     'choices = app_library_type_choices(), selected = "medoid"',
     fixed = TRUE
   )
+  expect_match(ui_source, '"All" = "all"', fixed = TRUE)
+  expect_match(ui_source, 'selected = "all"', fixed = TRUE)
+  expect_match(
+    server_source,
+    'app_select_library_spectrum_type(', fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    'read_uploaded_files(\n        files, mounted = isTRUE(attr(files, "mounted", exact = TRUE))',
+    fixed = TRUE
+  )
   quantification_ui <- sub(
     ".*quantification_controls <- tagList\\(", "", ui_source
   )
@@ -1607,6 +1618,20 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
   setwd(app_path)
   sys.source(file.path(app_path, "global.R"), envir = env)
 
+  no_identification <- env$app_map_color_choices(
+    identification_active = FALSE, model_library = FALSE, collapse = FALSE
+  )
+  expect_identical(
+    unname(no_identification), c("Signal/Noise", "Spectrum Index")
+  )
+  expect_false(any(c("Material Class", "Match ID", "Match Value") %in%
+                     unname(no_identification)))
+  only_index <- env$app_map_color_choices(
+    identification_active = FALSE, model_library = FALSE, collapse = FALSE,
+    availability = c("Signal/Noise" = FALSE, "Spectrum Index" = TRUE)
+  )
+  expect_identical(unname(only_index), "Spectrum Index")
+
   map <- as_OpenSpecy(
     c(1000, 1100),
     data.frame(a = c(1, 2), b = c(2, 3), c = c(3, 4), d = c(4, 5)),
@@ -2040,7 +2065,7 @@ test_that("bundled app accepts only improving post-processing corrections", {
     unlist(flattened$diagnostics[1, c(
       "applied_range_min", "applied_range_max"
     )], use.names = FALSE),
-    c(2200, 2400)
+    c(2200, 2420)
   )
 
   restrict_received_flattened <- FALSE
@@ -2178,6 +2203,10 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
   expect_identical(table$x$options$pageLength, 5)
   expect_match(table$x$options$sDom, "ip", fixed = TRUE)
   expect_identical(attr(table$x$options, "escapeIdx"), "true")
+  expect_identical(
+    table$x$data$signal_to_noise,
+    signif(as.numeric(signal_to_noise), 2)
+  )
 
   reordered <- test_map
   reordered$metadata <- data.table::copy(test_map$metadata[208:1])
@@ -2209,7 +2238,7 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
   )
   expect_identical(reordered$metadata, reordered_before)
   expect_identical(selected$col_id, spectrum_ids[[137L]])
-  expect_identical(selected$signal_to_noise, 137L)
+  expect_identical(selected$signal_to_noise, signif(137, 2))
   expect_identical(
     selected$x,
     test_map$metadata[col_id == spectrum_ids[[137L]], x]
@@ -2362,6 +2391,129 @@ test_that("app_quality_checks covers every assess_spec() check with a real succe
     )
     expect_gt(nchar(description), 20L)
   }
+})
+
+test_that("app treats assessment regions outside a restricted axis as successes", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  report <- data.frame(
+    status = c("error", "error"),
+    test_id = c("spectrum:1:a:silent_region", "spectrum:1:a:co2_region"),
+    check = c("silent_region", "co2_region"),
+    issue = c("Check unavailable", "Check unavailable"),
+    description = c("unavailable", "unavailable"),
+    likely_cause = c("no coverage", "no coverage"),
+    potential_fix = c("change range", "change range"),
+    finding_count = c(1L, 1L), stringsAsFactors = FALSE
+  )
+  marked <- env$app_mark_absent_quality_regions(
+    report, 800:2000,
+    list(silent_region = c(2420, 2550), co2_region = c(2200, 2420))
+  )
+  expect_true(all(marked$status == "pass"))
+  expect_true(all(marked$issue == "Region not in spectrum"))
+  expect_true(all(marked$finding_count == 0L))
+  expect_true(all(grepl("outside the restricted spectrum", marked$description,
+                        fixed = TRUE)))
+  expect_true(all(env$app_quality_ui_report(marked)$status == "success"))
+
+  covered <- env$app_mark_absent_quality_regions(
+    report, c(2200, 2300, 2450),
+    list(silent_region = c(2420, 2550), co2_region = c(2200, 2420))
+  )
+  expect_identical(covered, report)
+})
+
+test_that("app spectrum-type router supports complete and specific artifacts", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  make_reference <- function(type, axis) {
+    id <- paste0(type, "_reference")
+    as_OpenSpecy(
+      axis,
+      spectra = stats::setNames(data.frame(seq_along(axis)), id),
+      metadata = data.table::data.table(
+        col_id = id, sample_name = id, spectrum_type = type,
+        organization = "test"
+      )
+    )
+  }
+  typed <- list(
+    ftir = make_reference("ftir", seq(800, 824, by = 6)),
+    raman = make_reference("raman", seq(200, 224, by = 6)),
+    nir = make_reference("nir", seq(4000, 4024, by = 6))
+  )
+  expect_identical(
+    env$app_select_library_spectrum_type(typed, "raman"), typed$raman
+  )
+  complete <- env$app_select_library_spectrum_type(typed, "all")
+  expect_true(is_OpenSpecy(complete))
+  expect_identical(ncol(complete$spectra), 3L)
+  expect_true(anyNA(complete$spectra))
+  expect_identical(
+    attr(complete, "openspecy_spectrum_types"), c("ftir", "raman", "nir")
+  )
+
+  legacy_model <- list(model = structure(list(), class = "legacy"),
+                       dimension_conversion = data.table::data.table())
+  expect_identical(
+    env$app_select_library_spectrum_type(legacy_model, "all"), legacy_model
+  )
+  typed_models <- list(
+    ftir = legacy_model, raman = legacy_model, nir = legacy_model
+  )
+  expect_s3_class(
+    env$app_select_library_spectrum_type(typed_models, "all"),
+    "openspecy_typed_models"
+  )
+
+  model_for <- function(type, axis, score) {
+    list(
+      fill = make_reference(type, axis), score = score,
+      model = structure(list(), class = "test_model"),
+      dimension_conversion = data.table::data.table()
+    )
+  }
+  models <- env$app_select_library_spectrum_type(list(
+    ftir = model_for("ftir", seq(800, 824, by = 6), 0.6),
+    raman = model_for("raman", seq(800, 824, by = 6), 0.8),
+    nir = model_for("nir", seq(4000, 4024, by = 6), 0.99)
+  ), "all")
+  env$match_spec <- function(x, library, ...) {
+    data.table::data.table(
+      x = seq_len(ncol(x$spectra)), y = 1L,
+      value = library$score, name = paste0("class_", library$score)
+    )
+  }
+  prediction <- env$app_classify_model_library(typed$ftir, models)
+  expect_identical(prediction$spectrum_type, "raman")
+  expect_identical(prediction$value, 0.8)
 })
 
 test_that("bundled app orders downloads from the current analysis state", {

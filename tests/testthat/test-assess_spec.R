@@ -153,17 +153,21 @@ test_that("artifact checks use the normalized ratio boundary", {
     spectra = data.frame(sample = values)
   )
   result <- assess_spec(boundary, checks = "high_tail")
-  expect_equal(result$value, 2, tolerance = 1e-12)
+  expect_equal(nrow(result), 0L)
+
+  boundary$spectra[1, "sample"] <- 2.001
+  result <- assess_spec(boundary, checks = "high_tail")
+  expect_equal(result$value, 2.001, tolerance = 1e-12)
   expect_equal(result$threshold, 2)
 
   expect_equal(nrow(assess_spec(
     boundary, checks = "high_tail", artifact_ratio = 3
   )), 0L)
-  boundary$spectra[1, "sample"] <- 3
+  boundary$spectra[1, "sample"] <- 3.001
   explicit_three <- assess_spec(
     boundary, checks = "high_tail", artifact_ratio = 3
   )
-  expect_equal(explicit_three$value, 3, tolerance = 1e-12)
+  expect_equal(explicit_three$value, 3.001, tolerance = 1e-12)
   expect_equal(explicit_three$threshold, 3)
 })
 
@@ -425,4 +429,18 @@ test_that("spike assessment surfaces uncorrectable and rejected candidates", {
   )
   expect_identical(unavailable$status, "error")
   expect_identical(unavailable$issue, "Check unavailable")
+})
+
+test_that("high-tail checks use each spectrum's finite endpoints", {
+  wn <- seq(1000, 2600, by = 10)
+  values <- dnorm(seq(-3, 3, length.out = length(wn)))
+  spectra <- cbind(full = values, padded = values)
+  spectra[c(1:15, (nrow(spectra) - 14):nrow(spectra)), "padded"] <- NA_real_
+  os <- as_OpenSpecy(
+    wn, spectra = spectra,
+    metadata = data.table(sample_name = colnames(spectra))
+  )
+  assessed <- assess_spec(os, checks = "high_tail", report = "all")
+  expect_false(any(assessed$status == "error"))
+  expect_true(all(assessed$status == "pass"))
 })

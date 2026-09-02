@@ -44,3 +44,14 @@ reference_library_build <- build_lib(
   output_dir = output_dir,
   reuse = F
 )
+
+build_file <- paste0(
+  "C:/Users/winco/OneDrive/Documents/OpenSpecy_offline/",
+  "reference-library-build-optimized-20260831-205821/",
+  "releases/953122fcc1d0/reference_library_build.rds"
+)
+
+reference_library_build <- readRDS(build_file)
+
+names(reference_library_build)
+names(reference_library_build$assessments)

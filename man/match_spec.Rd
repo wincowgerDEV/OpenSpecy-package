@@ -131,7 +131,9 @@ joined; \code{NULL} if you don't want to join.}
 joined; \code{NULL} if you don't want to join.}
 
 \item{fill}{an \code{OpenSpecy} object with a single spectrum to be used to
-fill missing values for alignment with the AI classification.}
+fill missing values for alignment with AI classification. When omitted and
+the model library contains a \code{fill} object, that stored training filler
+is used. Finite query values replace the filler; query \code{NA}s do not.}
 
 \item{cor_matrix}{a correlation matrix for object and library,
 can be returned by \code{cor_spec()}}

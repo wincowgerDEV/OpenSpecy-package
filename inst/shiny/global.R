@@ -383,7 +383,12 @@ app_reference_for_query <- function(reference, query, preserve_axis = TRUE) {
   }
   conform_spec(
     reference, range = query$wavenumber, res = NULL,
-    allow_na = FALSE, type = if(isTRUE(preserve_axis)) "mean_up" else "roll"
+    # An "all" reference combines the independently ranged FTIR, Raman, and
+    # NIR libraries. References outside the query's support are deliberately
+    # NA padded and cor_spec() ignores them; rejecting those NAs here would
+    # make the complete-library option unusable.
+    allow_na = anyNA(reference$spectra),
+    type = if(isTRUE(preserve_axis)) "mean_up" else "roll"
   )
 }
 
@@ -583,6 +588,11 @@ app_uploaded_metadata_display <- function(metadata, large = NULL) {
     , !names(metadata) %in% c(".openspecy_index", ".openspecy_coord_key"),
     with = FALSE
   ]
+  if("signal_to_noise" %in% names(display)) {
+    # Keep full precision in the canonical object and downloads, but make the
+    # user-facing metadata as readable as the two-significant-figure match.
+    display[, signal_to_noise := signif(as.numeric(signal_to_noise), 2)]
+  }
   if(is.null(large)) {
     large <- nrow(display) > app_uploaded_metadata_large_threshold
   }
@@ -681,16 +691,22 @@ app_matches_for_object <- function(matches, object_id) {
 }
 
 app_map_color_choices <- function(identification_active, model_library,
-                                  collapse) {
+                                  collapse, availability = NULL) {
   choices <- c(
     if(isTRUE(identification_active)) "Material Class" else NA_character_,
     if(isTRUE(identification_active) && !isTRUE(model_library))
       "Match ID" else NA_character_,
     if(isTRUE(identification_active)) "Match Value" else NA_character_,
     "Signal/Noise",
-    if(isTRUE(collapse)) "Particle Unit" else NA_character_
+    if(isTRUE(collapse)) "Particle Unit" else NA_character_,
+    "Spectrum Index"
   )
   choices <- choices[!is.na(choices)]
+  if(!is.null(availability)) {
+    available <- as.logical(availability[choices])
+    available[is.na(available)] <- FALSE
+    choices <- choices[available]
+  }
   stats::setNames(choices, choices)
 }
 
@@ -1648,7 +1664,7 @@ app_attach_quantification <- function(
   tail_n <- value_or("tail_n", 5L)
   co2_region <- if(identical(check, "co2_region")) {
     min <- value_or("min", 2200)
-    max <- value_or("max", 2400)
+    max <- value_or("max", 2420)
     if(length(min) != 1L || length(max) != 1L) {
       stop("automatic CO2 correction requires one flattening range",
            call. = FALSE)
@@ -1726,6 +1742,10 @@ app_attach_quantification <- function(
 
 .app_attempt_range_automation <- function(x, step, correction_args = list()) {
   check <- if(identical(step, "flatten_range")) "co2_region" else "high_tail"
+  if(identical(step, "flatten_range")) {
+    if(is.null(correction_args$min)) correction_args$min <- 2200
+    if(is.null(correction_args$max)) correction_args$max <- 2420
+  }
   before <- .app_range_assessment(x, check, correction_args)
   if(before$failures == 0L) {
     return(list(
@@ -2051,6 +2071,10 @@ app_quality_success_description <- function(row) {
          call. = FALSE)
   }
   check <- as.character(row$check[[1L]])
+  if("issue" %in% names(row) &&
+     identical(as.character(row$issue[[1L]]), "Region not in spectrum")) {
+    return(as.character(row$description[[1L]]))
+  }
   switch(
     check,
     silent_region = {
@@ -2111,6 +2135,30 @@ app_quality_success_description <- function(row) {
     saturation = "No saturated spectral intervals were detected.",
     as.character(row$description[[1L]])
   )
+}
+
+app_mark_absent_quality_regions <- function(report, wavenumber, regions) {
+  if(is.null(report) || !is.data.frame(report) || !nrow(report)) return(report)
+  wavenumber <- suppressWarnings(as.numeric(wavenumber))
+  for(check in intersect(names(regions), unique(as.character(report$check)))) {
+    region <- suppressWarnings(as.numeric(regions[[check]]))
+    if(length(region) != 2L || any(!is.finite(region))) next
+    region <- sort(region)
+    if(any(wavenumber >= region[[1L]] & wavenumber <= region[[2L]],
+           na.rm = TRUE)) next
+    rows <- which(report$check == check)
+    report$status[rows] <- "pass"
+    report$issue[rows] <- "Region not in spectrum"
+    report$description[rows] <- paste0(
+      "The configured ", gsub("_", " ", check), " (",
+      region[[1L]], "-", region[[2L]],
+      " cm^-1) is outside the restricted spectrum, so the check was skipped."
+    )
+    report$likely_cause[rows] <- NA_character_
+    report$potential_fix[rows] <- "No action required."
+    if("finding_count" %in% names(report)) report$finding_count[rows] <- 0L
+  }
+  report
 }
 
 app_quality_ui_report <- function(report) {
@@ -3041,6 +3089,109 @@ app_library_type_choices <- function() {
   }
 
   c("Full" = "full", "Medoid" = "medoid", "Multinomial" = "model")
+}
+
+app_reference_spectrum_types <- c("ftir", "raman", "nir")
+
+# New reference artifacts are keyed by spectrum type because their supported
+# axes differ. A specific selection takes one member. "all" combines real
+# libraries onto their full union axis (with intentional NA padding), while
+# model artifacts remain a typed set so each model can use its own axis/fill.
+app_select_library_spectrum_type <- function(artifact,
+                                             spectrum_type = "all") {
+  spectrum_type <- match.arg(
+    spectrum_type, c("all", app_reference_spectrum_types)
+  )
+  if(is_OpenSpecy(artifact)) return(artifact)
+  if(!is.list(artifact)) {
+    stop("The selected reference artifact has an unsupported structure.",
+         call. = FALSE)
+  }
+
+  available <- intersect(app_reference_spectrum_types, names(artifact))
+  if(!length(available)) {
+    if(all(c("model", "dimension_conversion") %in% names(artifact))) {
+      # Compatibility for pre-type-split model artifacts. They cannot supply
+      # NIR, but remain usable until the new typed artifact is installed.
+      return(artifact)
+    }
+    stop("The selected reference artifact has no FTIR, Raman, or NIR member.",
+         call. = FALSE)
+  }
+  if(!identical(spectrum_type, "all")) {
+    selected <- artifact[[spectrum_type]]
+    if(is.null(selected)) {
+      stop("The selected reference artifact has no '", spectrum_type,
+           "' member.", call. = FALSE)
+    }
+    return(selected)
+  }
+
+  typed <- artifact[available]
+  if(all(vapply(typed, is_OpenSpecy, logical(1)))) {
+    combined <- c_spec(unname(typed), range = "full", res = 6)
+    attr(combined, "openspecy_spectrum_types") <- available
+    return(combined)
+  }
+  structure(typed, class = c("openspecy_typed_models", "list"))
+}
+
+app_classify_model_library <- function(x, library) {
+  classify_one <- function(model) {
+    fill <- model$fill
+    model_axis <- if(is_OpenSpecy(fill)) {
+      fill$wavenumber
+    } else {
+      suppressWarnings(as.numeric(unique(model$all_variables)))
+    }
+    model_axis <- model_axis[is.finite(model_axis)]
+    overlap <- if(length(model_axis)) {
+      x$wavenumber >= min(model_axis) & x$wavenumber <= max(model_axis)
+    } else logical()
+    if(!length(model_axis) || sum(overlap, na.rm = TRUE) < 2L) {
+      return(NULL)
+    }
+    if(!is_OpenSpecy(fill)) {
+      fallback <- mean(x$spectra[is.finite(x$spectra)], na.rm = TRUE)
+      if(!is.finite(fallback)) fallback <- 0
+      fill <- as_OpenSpecy(
+        model_axis,
+        spectra = data.frame(fill = rep.int(fallback, length(model_axis)))
+      )
+    }
+    data <- conform_spec(
+      x, range = fill$wavenumber, res = NULL, allow_na = TRUE
+    )
+    match_spec(data, library = model, na.rm = TRUE, fill = fill)
+  }
+
+  if(!inherits(library, "openspecy_typed_models")) {
+    result <- classify_one(library)
+    if(is.null(result)) {
+      stop("The selected model range does not overlap the uploaded spectrum.",
+           call. = FALSE)
+    }
+    return(result)
+  }
+
+  predictions <- lapply(names(library), function(type) {
+    result <- classify_one(library[[type]])
+    if(is.null(result)) return(NULL)
+    result$spectrum_type <- type
+    result$.type_order <- match(type, app_reference_spectrum_types)
+    result
+  })
+  predictions <- Filter(Negate(is.null), predictions)
+  if(!length(predictions)) {
+    stop("None of the FTIR, Raman, or NIR model ranges overlap the uploaded spectrum.",
+         call. = FALSE)
+  }
+  candidates <- data.table::rbindlist(predictions, use.names = TRUE, fill = TRUE)
+  data.table::setorder(candidates, x, -value, .type_order, na.last = TRUE)
+  result <- candidates[, .SD[1L], by = x]
+  result[, .type_order := NULL]
+  data.table::setorder(result, x)
+  result
 }
 
 app_validate_library_type <- function(type) {

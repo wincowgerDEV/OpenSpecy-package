@@ -1,5 +1,24 @@
 # OpenSpecy 1.7.1
 
+- Official `build_lib()` artifacts are now partitioned by FTIR, Raman, and NIR
+  with full ranges of 400--4000, 200--4000, and 4000--12000 respectively;
+  FTIR/Raman medoids and models use 800--3200, while the NIR identification
+  interval is derived from finite coverage. Per-type all-blank metadata columns
+  are dropped, and the bundled app now offers NIR identification.
+- The bundled app now defaults Spectrum Type to `All`, using complete
+  FTIR/Raman/NIR full or medoid references and every overlapping typed model.
+  Recalculate Preview can materialize staged files before Run, displayed
+  signal-to-noise metadata uses two significant figures, and CO2/silent checks
+  outside a user-restricted axis are reported as successful no-ops.
+- Derivative and no-baseline reference spectra now pass checkpointed quality
+  gates before pruning: FTIR CO2 is selectively flattened when its CO2/silent
+  maximum ratio is greater than two, high-tail detection ignores NA padding
+  and drops failed corrections, and running SNR below two is removed.
+- Model/reference comparisons now use exactly the same paired held-out IDs for
+  old and new artifacts and report macro class accuracy first, with coverage,
+  overall accuracy, per-class results, and confusion counts. Models use the
+  package `match_spec()` filler pathway for partial spectra; warnings have a
+  stable empty schema and numeric assessment fields remain numeric.
 - `build_lib()` now provides an end-to-end official workflow from explicit
   source-library paths and an explicit output directory, returning libraries,
   medoids, models, and named assessment tables in one object. Curated helper
@@ -12,6 +31,10 @@
   established reference workflow. `reduce_lib(progress = TRUE)` and delegated
   `build_lib()` reduction now report each group size plus separate correlation
   and PAM timings, making large medoid bottlenecks visible.
+- Optimized identical-input `cor_spec(x, x)` calls through the symmetric
+  one-matrix `tcrossprod()` kernel. This preserves the full correlation matrix
+  exactly while avoiding the general two-matrix path used during PAM medoid
+  selection.
 - Full old/new reference holdouts now use one optimized full-matrix
   `cor_spec()` call per artifact/source pair instead of repeatedly normalizing
   the training library in small query blocks. Progress reports the matrix

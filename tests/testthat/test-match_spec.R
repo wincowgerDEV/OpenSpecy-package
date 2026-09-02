@@ -80,6 +80,24 @@ test_that("ai_classify() handles input errors correctly", {
   ai_classify(1:1000) |> expect_error()
 })
 
+test_that("optimized self-correlation matches the general two-matrix path", {
+  x <- as_OpenSpecy(
+    1:20,
+    spectra = matrix(
+      stats::rnorm(20 * 12), nrow = 20, ncol = 12,
+      dimnames = list(NULL, paste0("s", seq_len(12)))
+    )
+  )
+  prepared <- OpenSpecy:::.matrix_mean_replace(
+    make_rel(x$spectra, na.rm = TRUE)
+  )
+  symmetric <- cor_spec(x, x, compute = "optimized")
+  general <- OpenSpecy:::.fast_correlation(prepared, prepared)
+
+  expect_identical(dimnames(symmetric), dimnames(general))
+  expect_equal(symmetric, general, tolerance = 1e-12)
+})
+
 test_that("ai_classify() handles array predictions with spectrum IDs", {
   os <- as_OpenSpecy(
     x = 1:3,
@@ -106,6 +124,24 @@ test_that("ai_classify() handles array predictions with spectrum IDs", {
   expect_equal(matches$y, c(2L, 1L))
   expect_equal(matches$value, c(0.7, 0.8))
   expect_equal(matches$name, c("two", "one"))
+})
+
+test_that("fill_spec() preserves filler values where queries are missing", {
+  query <- as_OpenSpecy(
+    2:4,
+    spectra = matrix(c(NA, 30, NA), ncol = 1,
+                     dimnames = list(NULL, "query")),
+    metadata = data.table(sample_name = "query")
+  )
+  filler <- as_OpenSpecy(
+    1:5,
+    spectra = matrix(1:5, ncol = 1,
+                     dimnames = list(NULL, "fill")),
+    metadata = data.table(sample_name = "fill")
+  )
+  filled <- fill_spec(query, filler)
+  expect_equal(as.numeric(filled$spectra[, 1]), c(1, 2, 30, 4, 5))
+  expect_false(anyNA(filled$spectra))
 })
 
 

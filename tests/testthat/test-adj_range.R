@@ -91,8 +91,15 @@ test_that("automatic artifact corrections default to the reviewed 2x boundary", 
 
   boundary <- make_automatic_range_spec()
   boundary$spectra[1, "one"] <- 4
-  expect_true(attr(
+  expect_identical(
     restrict_range(boundary, automate = TRUE, make_rel = FALSE),
+    boundary
+  )
+
+  above_boundary <- make_automatic_range_spec()
+  above_boundary$spectra[1, "one"] <- 4.01
+  expect_true(attr(
+    restrict_range(above_boundary, automate = TRUE, make_rel = FALSE),
     "automatic_tail"
   )$applied)
 

@@ -38,7 +38,9 @@
 #' @param rm_empty logical; whether to remove empty columns in the metadata.
 #' @param logic a logical or numeric vector describing which spectra to keep.
 #' @param fill an \code{OpenSpecy} object with a single spectrum to be used to
-#' fill missing values for alignment with the AI classification.
+#' fill missing values for alignment with AI classification. When omitted and
+#' the model library contains a \code{fill} object, that stored training filler
+#' is used. Finite query values replace the filler; query \code{NA}s do not.
 #' @param method the type of similarity metric to return.
 #' @param \ldots additional arguments passed \code{\link[stats]{cor}()}.
 #'
@@ -130,6 +132,10 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   spec <- .matrix_mean_replace(spec)
 
   if(compute == "optimized"){
+      # Self-correlation is common in medoid selection. The one-matrix
+      # tcrossprod() path uses the symmetric BLAS kernel and avoids scaling and
+      # multiplying the same matrix twice while returning the same full matrix.
+      if(identical(lib, spec)) return(.fast_correlation(lib))
       return(.fast_correlation(lib, spec, ...))
   }
   if(compute == "base"){
@@ -351,6 +357,9 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                  add_library_metadata = add_library_metadata,
                  add_object_metadata = add_object_metadata)
   } else {
+    if (is.null(fill) && is.list(library) && is_OpenSpecy(library$fill)) {
+      fill <- library$fill
+    }
     res <- ai_classify(x, library, fill)
   }
 
@@ -523,6 +532,9 @@ ai_classify.default <- function(x, ...) {
 ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
   x <- as_OpenSpecy(x)
 
+  if (is.null(fill) && is.list(library) && is_OpenSpecy(library$fill)) {
+    fill <- library$fill
+  }
   if(!is.null(fill)) {
     filled <- fill_spec(x, fill)
   } else {
@@ -531,9 +543,14 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
   proc <- t(filled$spectra)
   colnames(proc) <- filled$wavenumber
 
+  selected_lambda <- if (!is.null(library$lambda_selected)) {
+    library$lambda_selected
+  } else {
+    min(library$model$lambda)
+  }
   pred <- predict(library$model,
                   newx = proc,
-                  min(library$model$lambda),
+                  selected_lambda,
                   type = "response")
   filt <- .ai_prediction_table(pred, n = nrow(proc))
   
@@ -623,7 +640,15 @@ fill_spec.OpenSpecy <- function(x, fill, ...) {
                  ncol = ncol(x$spectra),
                  dimnames = list(NULL, colnames(x$spectra)))
   
-  test[match(x$wavenumber, fill$wavenumber),] <- x$spectra
+  aligned_rows <- match(x$wavenumber, fill$wavenumber)
+  available <- which(!is.na(aligned_rows))
+  if (length(available)) {
+    target <- test[aligned_rows[available], , drop = FALSE]
+    source <- x$spectra[available, , drop = FALSE]
+    finite <- is.finite(source)
+    target[finite] <- source[finite]
+    test[aligned_rows[available], ] <- target
+  }
 
   x$spectra <- test
   x$wavenumber <- fill$wavenumber

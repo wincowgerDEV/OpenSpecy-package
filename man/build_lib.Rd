@@ -291,9 +291,14 @@ Each library returned by \code{build_lib()} includes a
 and normalized identities with their counts.
 In composable mode, \code{build_lib()} returns a named list of
 \code{OpenSpecy} libraries. Its end-to-end mode returns one list containing
-\code{libraries}, \code{medoids}, \code{models}, and \code{assessments}; each
-assessment item is a reviewable data.table, and each model contains one
-\code{tests} data.table.
+\code{libraries}, \code{medoids}, \code{models}, and \code{assessments}.
+Official libraries and medoids are nested by recipe and then
+\code{ftir}, \code{raman}, or \code{nir}; FTIR and Raman medoids/models use
+800--3200 while the NIR interval is derived from finite coverage within
+4000--12000. Assessment items are typed reviewable data.tables, including
+macro-first summaries, class accuracy, confusion counts, quality-control
+removals, stable warnings, and output manifests. Each model contains one
+\code{tests} data.table and a one-spectrum \code{fill} object.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 object unless \code{return} requests a table, report, or ids.
@@ -355,8 +360,17 @@ into a versioned release directory. With \code{reuse = TRUE}, a checkpoint
 is reused only when its manifest signature matches the source files, curated
 tables, relevant arguments, package version, and builder implementation.
 Full assessments use the complete candidate and legacy artifacts. A seeded
-ten-percent holdout is grouped by stable spectrum identity so the same
-spectrum cannot occur in both reference training and testing partitions.
+ten-percent holdout is grouped by stable spectrum identity, allocated to an
+exact rounded ten percent across class/type strata, and limited to
+identities present in both artifacts, so old and new are evaluated on the
+exact same query spectra without reference leakage.
+After derivative and baseline-removal processing, FTIR spectra whose
+2200--2420 CO2-region maximum exceeds twice the 2420--2550 silent-region
+maximum are flattened. High-tail checks use each spectrum's finite support;
+tails are trimmed and reassessed, failed corrections are removed, and
+spectra with running signal-to-noise below two are removed before pruning.
+Full artifacts are then partitioned into Raman (200--4000), FTIR
+(400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
 Official class completion retains unmapped reviewed identities as
 \code{"other"} and stops when that class exceeds one percent of an artifact.
 Before pruning, \code{prune_lib()} reassigns generic classes by nearest
@@ -387,8 +401,10 @@ each metadata group. It uses OpenSpecy's optimized correlation routine on
 relative, mean-filled spectra.
 
 \code{build_model_lib()} trains the multinomial \code{glmnet} model structure
-used by OpenSpecy model libraries. Filter, smooth, or otherwise preprocess
-spectra before calling this helper.
+used by OpenSpecy model libraries. Inverse class weights and stratified
+cross-validation select the lambda by class-balanced error (the complement
+of macro class accuracy). The returned model carries a training-median
+filler so \code{\link{match_spec}()} can identify partially covered spectra.
 
 \code{assess_lib()} returns a compact summary of object validity, library
 size, class balance, and optionally nearest-neighbor class consistency.

@@ -253,6 +253,7 @@ assess_spec.OpenSpecy <- function(x,
       x,
       tail_n = tail_n,
       co2_region = co2_region,
+      silent_region = silent_region,
       na.rm = na.rm
     )
   }
@@ -264,12 +265,12 @@ assess_spec.OpenSpecy <- function(x,
       candidate_max = artifact_metrics$tail_max,
       control_max = artifact_metrics$control_max
     )
-    idx <- which(!is.na(tail_ratio) & tail_ratio >= artifact_ratio)
+    idx <- which(!is.na(tail_ratio) & tail_ratio > artifact_ratio)
     issues[[length(issues) + 1L]] <- .issue_table(
       "high_tail", idx,
       "High tail intensity",
       paste0("The normalized maximum in the first or last ",
-             artifact_metrics$tail_n, " spectrum points is at least ",
+             artifact_metrics$tail_n, " spectrum points is greater than ",
              artifact_ratio, " times the maximum outside the tail and CO2 ",
              "regions."),
       "Instrument artifact, fluorescence, uncorrected or poorly corrected baseline, or a real peak that is being cropped at the edge.",
@@ -327,23 +328,23 @@ assess_spec.OpenSpecy <- function(x,
     assessment_evidence[["co2_region"]] <- .evidence_table(
       "co2_region", "artifact_max_ratio", co2_ratio, artifact_ratio,
       candidate_max = artifact_metrics$co2_max,
-      control_max = artifact_metrics$control_max,
+      control_max = artifact_metrics$silent_max,
       region = co2_region
     )
-    idx <- which(!is.na(co2_ratio) & co2_ratio >= artifact_ratio)
+    idx <- which(!is.na(co2_ratio) & co2_ratio > artifact_ratio)
     issues[[length(issues) + 1L]] <- .issue_table(
       "co2_region", idx,
       "High intensity in CO2 region (infrared spectra)",
       paste0("The normalized maximum in ", co2_region[1L], "-",
-             co2_region[2L], " is at least ", artifact_ratio,
-             " times the maximum outside the tail and CO2 regions."),
+             co2_region[2L], " is greater than ", artifact_ratio,
+             " times the maximum in the silent region."),
       "Carbon dioxide present in signal, baseline correction issues, or background collection issues.",
       "Flatten or remove the CO2 region, add the instrument's atmospheric correction, purge the instrument, or rerun the background or spectrum.",
       "artifact_max_ratio",
       co2_ratio[idx],
       artifact_ratio,
       artifact_metrics$co2_max[idx],
-      artifact_metrics$control_max[idx],
+      artifact_metrics$silent_max[idx],
       region = co2_region
     )
   }
@@ -930,21 +931,46 @@ assess_spec.OpenSpecy <- function(x,
 
 .artifact_ratio_metrics <- function(x, tail_n = 5L,
                                     co2_region = c(2200, 2420),
+                                    silent_region = c(2420, 2550),
                                     na.rm = TRUE) {
   spectra <- x$spectra
   nr <- nrow(spectra)
   tail_n <- min(as.integer(tail_n), nr)
-  left_rows <- seq_len(tail_n)
-  right_rows <- seq.int(max(1L, nr - tail_n + 1L), nr)
-  tail_rows <- unique(c(left_rows, right_rows))
   co2_rows <- x$wavenumber >= co2_region[1L] &
     x$wavenumber <= co2_region[2L]
-  control_rows <- !(seq_len(nr) %in% tail_rows) & !co2_rows
+  silent_rows <- x$wavenumber >= silent_region[1L] &
+    x$wavenumber <= silent_region[2L]
 
   normalized <- .normalize_artifact_spectra(spectra)
-  col_max <- function(rows) {
+  finite <- is.finite(normalized)
+  finite_count <- colSums(finite)
+  first_finite <- max.col(t(finite), ties.method = "first")
+  last_finite <- nr + 1L - max.col(t(finite[nr:1L, , drop = FALSE]),
+                                  ties.method = "first")
+  first_finite[finite_count == 0L] <- NA_integer_
+  last_finite[finite_count == 0L] <- NA_integer_
+
+  offsets <- seq.int(0L, tail_n - 1L)
+  left_index <- outer(offsets, first_finite, "+")
+  right_index <- outer(offsets, last_finite, function(offset, last) {
+    last - offset
+  })
+  left_index[left_index > rep(last_finite, each = tail_n)] <- NA_integer_
+  right_index[right_index < rep(first_finite, each = tail_n)] <- NA_integer_
+
+  indexed_max <- function(index) {
+    columns <- matrix(rep(seq_len(ncol(spectra)), each = nrow(index)),
+                      nrow = nrow(index))
+    values <- matrix(NA_real_, nrow = nrow(index), ncol = ncol(index))
+    use <- is.finite(index)
+    values[use] <- normalized[cbind(index[use], columns[use])]
+    out <- matrixStats::colMaxs(values, na.rm = na.rm)
+    out[!is.finite(out)] <- NA_real_
+    as.numeric(out)
+  }
+  col_max <- function(rows, source = normalized) {
     if (!any(rows)) return(rep(NA_real_, ncol(spectra)))
-    values <- matrixStats::colMaxs(normalized[rows, , drop = FALSE],
+    values <- matrixStats::colMaxs(source[rows, , drop = FALSE],
                                    na.rm = na.rm)
     values[!is.finite(values)] <- NA_real_
     as.numeric(values)
@@ -957,12 +983,24 @@ assess_spec.OpenSpecy <- function(x,
     out
   }
 
-  left_max <- col_max(seq_len(nr) %in% left_rows)
-  right_max <- col_max(seq_len(nr) %in% right_rows)
+  left_max <- indexed_max(left_index)
+  right_max <- indexed_max(right_index)
   tail_max <- pmax(left_max, right_max, na.rm = TRUE)
   tail_max[!is.finite(tail_max)] <- NA_real_
   co2_max <- col_max(co2_rows)
-  control_max <- col_max(control_rows)
+  silent_max <- col_max(silent_rows)
+
+  control <- normalized
+  tail_index <- unique(rbind(
+    cbind(as.vector(left_index),
+          rep(seq_len(ncol(spectra)), each = nrow(left_index))),
+    cbind(as.vector(right_index),
+          rep(seq_len(ncol(spectra)), each = nrow(right_index)))
+  ))
+  tail_index <- tail_index[is.finite(tail_index[, 1L]), , drop = FALSE]
+  if (nrow(tail_index)) control[tail_index] <- NA_real_
+  if (any(co2_rows)) control[co2_rows, ] <- NA_real_
+  control_max <- col_max(rep(TRUE, nr), source = control)
 
   list(
     tail_n = tail_n,
@@ -970,11 +1008,12 @@ assess_spec.OpenSpecy <- function(x,
     right_max = right_max,
     tail_max = tail_max,
     co2_max = co2_max,
+    silent_max = silent_max,
     control_max = control_max,
     left_ratio = ratio(left_max, control_max),
     right_ratio = ratio(right_max, control_max),
     tail_ratio = ratio(tail_max, control_max),
-    co2_ratio = ratio(co2_max, control_max)
+    co2_ratio = ratio(co2_max, silent_max)
   )
 }
 
