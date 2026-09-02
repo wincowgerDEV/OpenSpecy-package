@@ -176,9 +176,10 @@ test_that("reduce_lib() uses cluster PAM medoids and reports useful progress", {
   lib <- tiny_build_lib()
   ids <- .lib_ids(lib, "sample_name")
   reduction_obj <- lib
-  reduction_obj$spectra <- .matrix_mean_replace(
-    make_rel(lib$spectra, na.rm = TRUE)
+  reduction_obj$spectra <- make_rel(
+    mean_replace(lib$spectra, na.rm = TRUE), na.rm = TRUE
   )
+  reduction_obj$spectra[!is.finite(reduction_obj$spectra)] <- 0
   groups <- do.call(paste, c(lib$metadata[, "material_class", with = FALSE],
                              sep = "_"))
 
@@ -190,7 +191,10 @@ test_that("reduce_lib() uses cluster PAM medoids and reports useful progress", {
     cors <- pmax(pmin(cors, 1), -1)
     diag(cors) <- 1
     distance <- stats::as.dist(1 - cors)
-    ids[idx][cluster::pam(distance, k = 2, diss = TRUE, pamonce = 6)$id.med]
+    set.seed(OpenSpecy:::.lib_pam_seed(ids[idx]))
+    ids[idx][cluster::pam(
+      distance, k = 2, diss = TRUE, variant = "faster"
+    )$id.med]
   }), use.names = FALSE)
 
   messages <- capture.output(
@@ -206,6 +210,7 @@ test_that("reduce_lib() uses cluster PAM medoids and reports useful progress", {
   expect_match(messages, "PAM group 1/2 starting")
   expect_match(messages, "correlation complete")
   expect_match(messages, "PAM complete")
+  expect_match(messages, "variant=faster")
   expect_match(messages, "kept=4/8")
 
   expect_silent(
@@ -223,12 +228,18 @@ test_that("build_model_lib() returns the model library artifact structure", {
     build_model_lib(lib, type_col = NULL, min_n = 2, nlambda = 3)
   )
   expect_named(model, c("model", "lambda_selected", "selection_metric",
-                        "dimension_conversion", "tests",
+                        "lambda_metrics", "dimension_conversion", "tests",
                         "coefficients", "class_names", "class_num",
-                        "observation_count", "fill", "variable_num",
+                        "observation_count", "fill", "support",
+                        "class_support", "fill_method", "fill_replaced",
+                        "variable_num",
                         "all_variables", "variables_in"))
   expect_true(is_OpenSpecy(model$fill))
   expect_identical(model$selection_metric, "macro_class_accuracy")
+  expect_identical(model$fill_method, "wavenumber_mean")
+  expect_true(all(c("lambda", "macro_class_accuracy", "overall_accuracy",
+                    "selected", "selection_scope", "selection_rule") %in%
+                    names(model$lambda_metrics)))
   expect_true(all(c("factor_num", "name") %in%
                     names(model$dimension_conversion)))
   expect_true(all(c("spectrum_id", "technique", "expected_class",
@@ -1439,17 +1450,17 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_false(any(rebuilt$assessments$output_manifest$status == "reused"))
 })
 
-test_that("combined reference splits prevent old-new identity leakage", {
+test_that("source-local reference splits prevent self-match leakage", {
   old <- tiny_build_lib()
   new <- old
   new$metadata$sample_name_old <- new$metadata$sample_name
   new$metadata$sample_name <- paste0("rebuilt_", new$metadata$sample_name)
   colnames(new$spectra) <- new$metadata$sample_name
-  split <- OpenSpecy:::.lib_combined_split(
-    new, old, artifact = "raw", seed = 71, holdout = 0.25
+  split <- OpenSpecy:::.lib_source_split(
+    new, artifact = "raw", source = "new", seed = 71, holdout = 0.25
   )
   expect_identical(anyDuplicated(split$manifest$group_id), 0L)
-  expect_true(all(split$manifest$new_present & split$manifest$old_present))
+  expect_true(all(split$manifest$source == "new"))
   expect_true(all(split$manifest$split %in% c("train", "test")))
   expect_equal(
     sum(split$manifest$split == "test"),
@@ -1462,29 +1473,24 @@ test_that("combined reference splits prevent old-new identity leakage", {
 
   messages <- capture.output(
     tests <- OpenSpecy:::.lib_reference_holdout_test(
-      new, split, artifact = "raw", source = "new", progress = TRUE
+      reference = new, data = new, split = split,
+      artifact = "raw", source = "new", progress = TRUE
     ),
     type = "message"
   )
   expect_match(paste(messages, collapse = "\n"), "full correlation complete")
   expect_true(all(tests$split == "test"))
-  expect_true(all(tests$provenance == "reference_holdout"))
-  test_ids <- new$metadata$sample_name_old[
-    new$metadata$sample_name %in% tests$spectrum_id
-  ]
-  expect_false(any(test_ids %in%
-                     split$manifest[split == "train", group_id]))
+  expect_true(all(tests$provenance == "source_local_reference_holdout"))
 
+  old_split <- OpenSpecy:::.lib_source_split(
+    old, artifact = "raw", source = "old", seed = 72, holdout = 0.25
+  )
   old_tests <- OpenSpecy:::.lib_reference_holdout_test(
-    old, split, artifact = "raw", source = "old", progress = FALSE
+    reference = old, data = old, split = old_split,
+    artifact = "raw", source = "old", progress = FALSE
   )
-  expect_equal(nrow(tests), nrow(old_tests))
-  expect_setequal(
-    new$metadata$sample_name_old[
-      match(tests$spectrum_id, new$metadata$sample_name)
-    ],
-    old_tests$spectrum_id
-  )
+  expect_true(all(old_split$manifest$source == "old"))
+  expect_true(all(old_tests$source == "old"))
 })
 
 test_that("complete old-new assessments cover every artifact and held-out model", {
@@ -1540,19 +1546,107 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   ) %in% names(comparison)))
   expect_equal(unique(comparison$split_manifest$artifact), c(
     "raw_ftir", "derivative_ftir", "nobaseline_ftir",
-    "medoid_derivative_ftir", "medoid_nobaseline_ftir"
+    "medoid_derivative_ftir", "medoid_nobaseline_ftir",
+    "model_derivative_ftir", "model_nobaseline_ftir"
   ))
-  expect_true(all(
-    comparison$split_manifest$new_present &
-      comparison$split_manifest$old_present
-  ))
+  expect_setequal(unique(comparison$split_manifest$source), c("new", "old"))
   expect_gt(nrow(comparison$library_identification), 0L)
   expect_gt(nrow(comparison$model_identification), 0L)
   expect_gt(nrow(comparison$assess_spec_shifts), 0L)
   expect_true(all(
     comparison$models$derivative$ftir$tests$provenance ==
-      "production_model_split_reference"
+      "candidate_model_source_local_holdout"
   ))
+})
+
+test_that("support and fill helpers use the intended axes", {
+  x <- tiny_build_lib()
+  x$spectra[,] <- NA_real_
+  x$spectra[seq_len(6), 1] <- seq_len(6)
+  x$spectra[seq_len(7), 2] <- seq_len(7)
+  support <- OpenSpecy:::.lib_filter_spectral_support(x, min_fraction = 0.1)
+  expect_equal(support$audit$minimum_observed, rep(7L, 8))
+  expect_false(support$audit$retained[1])
+  expect_true(support$audit$retained[2])
+
+  spectra <- matrix(c(1, NA, 3, 10, 20, NA), nrow = 3)
+  spectrum_fill <- OpenSpecy:::.lib_spectrum_mean_replace(spectra)
+  expect_equal(spectrum_fill[, 1], c(1, 2, 3))
+  expect_equal(spectrum_fill[, 2], c(10, 20, 15))
+  wave_fill <- OpenSpecy:::.lib_wavenumber_mean_replace(spectra)
+  expect_equal(wave_fill$means, c(5.5, 20, 3))
+  expect_equal(wave_fill$spectra[, 1], c(1, 20, 3))
+  expect_equal(wave_fill$spectra[, 2], c(10, 20, 3))
+})
+
+test_that("medoid selection restores original missing values", {
+  x <- tiny_build_lib()
+  x$spectra[10:20, 1] <- NA_real_
+  ids <- reduce_lib(
+    x, group_cols = "material_class", k = 2, min_n = 2,
+    return = "ids", progress = FALSE
+  )
+  restored <- filter_spec(x, ids)
+  if ("s1" %in% ids) {
+    expect_true(anyNA(restored$spectra[, match("s1", ids)]))
+  }
+  flat <- x
+  flat$spectra[, 1] <- NA_real_
+  flat$spectra[seq_len(7), 1] <- 1
+  expect_no_error(reduce_lib(
+    flat, group_cols = "material_class", k = 2, min_n = 2,
+    return = "ids", progress = FALSE
+  ))
+})
+
+test_that("macro lambda metrics choose class-balanced accuracy", {
+  outcome <- c(1L, 1L, 1L, 2L)
+  predictions <- array(0, dim = c(4, 2, 2))
+  predictions[cbind(seq_len(4), c(1, 1, 1, 1), 1)] <- 1
+  predictions[cbind(seq_len(4), c(1, 2, 2, 2), 2)] <- 1
+  metrics <- OpenSpecy:::.lib_macro_lambda_metrics(
+    predictions, outcome, lambda = c(1, 0.1)
+  )
+  expect_equal(metrics$macro_class_accuracy, c(0.5, 2 / 3))
+  expect_equal(metrics$overall_accuracy, c(0.75, 0.5))
+  expect_identical(which(metrics$selected), 2L)
+})
+
+test_that("rebuild_lib_artifacts reuses completed libraries downstream", {
+  skip_if_not_installed("glmnet")
+  base <- tiny_build_lib()
+  libraries <- lapply(seq_len(3), function(i) {
+    spectra <- do.call(cbind, lapply(seq_len(3), function(copy) {
+      base$spectra + copy / 1000
+    }))
+    metadata <- data.table::rbindlist(lapply(seq_len(3), function(copy) {
+      out <- data.table::copy(base$metadata)
+      out$sample_name <- paste0(out$sample_name, "_", copy)
+      out
+    }))
+    colnames(spectra) <- metadata$sample_name
+    as_OpenSpecy(base$wavenumber, spectra = spectra, metadata = metadata)
+  })
+  names(libraries) <- c("raw", "derivative", "nobaseline")
+  libraries <- lapply(libraries, function(x) list(ftir = x))
+  libraries$derivative$ftir$spectra[10:20, 1] <- NA_real_
+  input <- tempfile(fileext = ".rds")
+  saveRDS(list(libraries = libraries, assessments = list()), input)
+  output <- tempfile("downstream-build-")
+
+  first <- suppressWarnings(rebuild_lib_artifacts(
+    input, output_dir = output, previous_library_dir = NULL,
+    reuse = TRUE, progress = FALSE
+  ))
+  expect_named(first, c("libraries", "medoids", "models", "assessments"))
+  expect_true(anyNA(first$medoids$derivative$ftir$spectra))
+  expect_true(first$models$derivative$ftir$fill_replaced > 0L)
+  expect_true("medoid_model_support" %in% names(first$assessments))
+  second <- suppressWarnings(rebuild_lib_artifacts(
+    input, output_dir = output, previous_library_dir = NULL,
+    reuse = TRUE, progress = FALSE
+  ))
+  expect_true(any(second$assessments$output_manifest$status == "reused"))
 })
 
 test_that("reference quality schemas and type ranges are stable", {

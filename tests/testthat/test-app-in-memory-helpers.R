@@ -122,19 +122,20 @@ test_that("heatmap colors expose identification fields only when enabled", {
 
   expect_identical(
     unname(env$app_map_color_choices(FALSE, FALSE, FALSE)),
-    "Signal/Noise"
+    c("Signal/Noise", "Spectrum Index")
   )
   expect_identical(
     unname(env$app_map_color_choices(FALSE, FALSE, TRUE)),
-    c("Signal/Noise", "Particle Unit")
+    c("Signal/Noise", "Particle Unit", "Spectrum Index")
   )
   expect_identical(
     unname(env$app_map_color_choices(TRUE, FALSE, FALSE)),
-    c("Material Class", "Match ID", "Match Value", "Signal/Noise")
+    c("Material Class", "Match ID", "Match Value", "Signal/Noise",
+      "Spectrum Index")
   )
   expect_identical(
     unname(env$app_map_color_choices(TRUE, TRUE, FALSE)),
-    c("Material Class", "Match Value", "Signal/Noise")
+    c("Material Class", "Match Value", "Signal/Noise", "Spectrum Index")
   )
 })
 

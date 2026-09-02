@@ -2,6 +2,7 @@
 % Please edit documentation in R/build_lib.R
 \name{build_lib}
 \alias{build_lib}
+\alias{rebuild_lib_artifacts}
 \alias{make_lib_lookup_template}
 \alias{join_lib_metadata}
 \alias{join_material_hierarchy}
@@ -37,6 +38,16 @@ build_lib(
   seed = 123,
   holdout = 0.1,
   ...
+)
+
+rebuild_lib_artifacts(
+  x,
+  output_dir,
+  previous_library_dir = "system",
+  reuse = TRUE,
+  seed = 123,
+  holdout = 0.1,
+  progress = TRUE
 )
 
 make_lib_lookup_template(x, columns, add = NULL, path = NULL)
@@ -102,7 +113,6 @@ build_model_lib(
   grouped = TRUE,
   weights = TRUE,
   make_relative = TRUE,
-  complete_cases = TRUE,
   ...
 )
 
@@ -122,7 +132,10 @@ locations.
 Each RDS path may store either one \code{OpenSpecy} or a list of them; other
 paths are read with \code{\link{read_any}()}.
 Large same-axis source lists are prepared in bulk to avoid repeated legacy
-object coercion.}
+object coercion.
+For \code{rebuild_lib_artifacts()}, a completed four-part build object, its
+RDS path, or a build/output directory containing completed \code{libraries}
+checkpoints.}
 
 \item{recipes}{named list of \code{\link{process_spec}()} argument lists or
 functions. Names become names of the returned libraries.}
@@ -276,9 +289,6 @@ penalties.}
 \item{make_relative}{logical; whether to normalize model inputs with
 \code{\link{make_rel}()}.}
 
-\item{complete_cases}{logical; whether to remove spectra with any missing
-training values.}
-
 \item{nearest}{logical; if \code{TRUE}, \code{assess_lib()} compares each
 spectrum with its highest-correlation neighbor and reports the fraction where
 that neighbor has the same \code{class_col} value.}
@@ -306,7 +316,8 @@ object unless \code{return} requests a table, report, or ids.
 supplied, in which case it writes the csv and invisibly returns the table.
 \code{build_model_lib()} returns a list suitable for AI classification with
 \code{\link{match_spec}()} and one tidy \code{tests} table instead of
-separate accuracy/confusion summaries. \code{assess_lib()} returns a
+separate accuracy/confusion summaries. It also contains typed
+\code{lambda_metrics} and \code{support} tables. \code{assess_lib()} returns a
 data.table summary.
 }
 \description{
@@ -359,11 +370,12 @@ directory. It writes each completed stage under
 into a versioned release directory. With \code{reuse = TRUE}, a checkpoint
 is reused only when its manifest signature matches the source files, curated
 tables, relevant arguments, package version, and builder implementation.
-Full assessments use the complete candidate and legacy artifacts. A seeded
-ten-percent holdout is grouped by stable spectrum identity, allocated to an
-exact rounded ten percent across class/type strata, and limited to
-identities present in both artifacts, so old and new are evaluated on the
-exact same query spectra without reference leakage.
+Full assessments use the complete candidate and legacy artifacts. Seeded
+ten-percent holdouts are allocated independently within each source across
+class/type strata. Candidate artifacts are assessed on candidate data and
+legacy artifacts on legacy data, so taxonomy changes do not require fuzzy
+cross-version class matching. Query identifiers are removed from full and
+medoid references before matching to prevent exact self-matches.
 After derivative and baseline-removal processing, FTIR spectra whose
 2200--2420 CO2-region maximum exceeds twice the 2420--2550 silent-region
 maximum are flattened. High-tail checks use each spectrum's finite support;
@@ -398,16 +410,24 @@ this step when that should affect duplicate detection.
 
 \code{reduce_lib()} uses PAM medoids to keep representative spectra within
 each metadata group. It uses OpenSpecy's optimized correlation routine on
-relative, mean-filled spectra.
+relative spectra whose missing values are temporarily replaced by each
+spectrum's finite mean. Official medoids are then selected from the original
+object so their genuine missing values are preserved.
 
 \code{build_model_lib()} trains the multinomial \code{glmnet} model structure
 used by OpenSpecy model libraries. Inverse class weights and stratified
-cross-validation select the lambda by class-balanced error (the complement
-of macro class accuracy). The returned model carries a training-median
-filler so \code{\link{match_spec}()} can identify partially covered spectra.
+cross-validation select the lambda with the highest out-of-fold macro class
+accuracy. Missing training values are replaced with the finite mean at each
+wavenumber. The returned model carries the same training-mean filler so
+\code{\link{match_spec}()} can identify partially covered spectra.
 
 \code{assess_lib()} returns a compact summary of object validity, library
 size, class balance, and optionally nearest-neighbor class consistency.
+
+\code{rebuild_lib_artifacts()} starts from completed type-keyed libraries
+and rebuilds only medoids, models, and assessments. Its input and output
+locations are explicit, and every downstream component is checkpointed so a
+compatible interrupted run can resume without repeating completed work.
 }
 \examples{
 wavenumber <- seq(100, 6100, by = 100)

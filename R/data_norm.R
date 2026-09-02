@@ -9,6 +9,8 @@
 #' by the minimum intensity.
 #' \code{make_rel()} converts intensities \code{y} into relative values between
 #' 0 and 1 using the standard normalization equation.
+#' \code{mean_replace()} replaces missing values by the finite mean. For a
+#' matrix, each column is treated as one spectrum and receives its own mean.
 #' If \code{na.rm} is \code{TRUE}, missing values are removed before the
 #' computation proceeds.
 #'
@@ -25,7 +27,8 @@
 #' @param x a numeric vector or an \R object which is coercible to one by
 #' \code{as.vector(x, "numeric")}; \code{x} should contain the spectral
 #' wavenumbers.
-#' @param y a numeric vector containing the spectral intensities.
+#' @param y a numeric vector or matrix containing spectral intensities. Matrix
+#' columns are spectra for \code{mean_replace()}.
 #' @param res spectral resolution supplied to \code{fun}.
 #' @param fun the function to be applied to each element of \code{x}; defaults
 #' to \code{\link[base]{round}()} to round to a specific resolution \code{res}.
@@ -34,14 +37,15 @@
 #' @return
 #' \code{adj_res()} and \code{conform_res()} return a numeric vector with
 #' resolution-conformed wavenumbers.
-#' \code{adj_neg()} and \code{make_rel()} return numeric vectors
-#' with the normalized intensity data.
+#' \code{adj_neg()} and \code{make_rel()} return normalized intensity data.
+#' \code{mean_replace()} preserves the vector or matrix shape of \code{y}.
 #'
 #' @examples
 #' adj_res(seq(500, 4000, 4), 5)
 #' conform_res(seq(500, 4000, 4))
 #' adj_neg(c(-1000, -1, 0, 1, 10))
 #' make_rel(c(-1000, -1, 0, 1, 10))
+#' mean_replace(matrix(c(1, NA, 3, 10, 20, NA), nrow = 3))
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
@@ -80,6 +84,7 @@ adj_neg <- function(y, na.rm = FALSE) {
 #'
 #' @export
 mean_replace <- function(y, na.rm = TRUE) {
+  if (is.matrix(y)) return(.matrix_mean_replace(y, na.rm = na.rm))
   m <- mean(y, na.rm = na.rm)
 
   fifelse(is.na(y), m, y)

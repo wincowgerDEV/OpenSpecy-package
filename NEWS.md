@@ -1,5 +1,21 @@
 # OpenSpecy 1.7.1
 
+- Added `rebuild_lib_artifacts()` to reuse completed type-keyed libraries while
+  checkpointing a new medoid, model, and assessment run. Spectra with at least
+  10% observed support now enter medoid/model preparation: PAM uses temporary
+  spectrum-mean filling, published medoids restore original missing values, and
+  model training uses wavenumber-mean filling instead of complete-case removal.
+  Lambda is selected by out-of-fold macro class accuracy without changing the
+  calibrated alpha, no-intercept, grouped multinomial, or class-weight policy.
+  `mean_replace()` now applies an optimized per-spectrum column fill to matrix
+  inputs while preserving its existing vector behavior.
+- Large medoid groups now use deterministic `cluster::pam(variant = "faster")`
+  initialization, avoiding the prior quadratic-times-k BUILD phase while
+  retaining FasterPAM swaps and reproducible selected identifiers.
+- Candidate medoids/models are now tested on independently stratified candidate
+  library samples and legacy artifacts on legacy library samples. Exact class
+  labels are used within each source, reference self-matches are removed, and
+  denominators/provenance make the source-local results explicit.
 - Official `build_lib()` artifacts are now partitioned by FTIR, Raman, and NIR
   with full ranges of 400--4000, 200--4000, and 4000--12000 respectively;
   FTIR/Raman medoids and models use 800--3200, while the NIR identification
@@ -14,11 +30,10 @@
   gates before pruning: FTIR CO2 is selectively flattened when its CO2/silent
   maximum ratio is greater than two, high-tail detection ignores NA padding
   and drops failed corrections, and running SNR below two is removed.
-- Model/reference comparisons now use exactly the same paired held-out IDs for
-  old and new artifacts and report macro class accuracy first, with coverage,
-  overall accuracy, per-class results, and confusion counts. Models use the
-  package `match_spec()` filler pathway for partial spectra; warnings have a
-  stable empty schema and numeric assessment fields remain numeric.
+- Model/reference comparisons report macro class accuracy first, with coverage,
+  overall accuracy, per-class results, confusion counts, stable warning schemas,
+  and numeric assessment fields. Models use the package `match_spec()` filler
+  pathway for partial spectra.
 - `build_lib()` now provides an end-to-end official workflow from explicit
   source-library paths and an explicit output directory, returning libraries,
   medoids, models, and named assessment tables in one object. Curated helper

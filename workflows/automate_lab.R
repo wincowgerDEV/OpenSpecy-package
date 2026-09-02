@@ -39,7 +39,7 @@ print(map)
 region_views <- split_spec(map, by = "region")
 names(region_views)
 
-map <- read_h5("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\moredilute.h5")
+map <- read_h5("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\EWG_100-1000-10000_REANALYZED.h5")
 
 listedfiles <- lapply(unique(map$metadata$region), function(x) filter_spec(map, map$metadata$region ==x))
 
@@ -48,7 +48,7 @@ result2 <- automate_particle_analysis(
     library = lib,
     output_dir = wd,
     material_col = "material_class",
-    particle_id_strategy = "collapse",
+    particle_id_strategy = "all_cell_id",
     spectral_smooth = TRUE,
     sn_threshold_min = sn_threshold_min,
     sn_threshold_max = sn_threshold_max,

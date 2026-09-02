@@ -269,12 +269,25 @@ and NIR uses 4000--12000 cm^-1^. FTIR/Raman medoids and models use 800--3200;
 the NIR identification interval is derived from the longest region with at
 least 90% finite coverage (falling back to available coverage) and recorded on
 the object. All-blank metadata columns are dropped independently by type.
-Each model stores a training-median filler and one tidy `tests` table.
+Each spectrum must observe at least 10% of its type-specific identification
+axis to enter medoid selection or model fitting. PAM operates on a temporary
+relative matrix where each spectrum's missing values are filled by that
+spectrum's finite mean. Selected medoid IDs are then pulled from the original
+range-restricted object, so published medoids retain their original `NA`
+positions. Model fitting fills those restored gaps with the finite mean at each
+wavenumber across training medoids. Each model stores that training-mean filler,
+the support audit, per-lambda cross-validation metrics, and one tidy `tests`
+table. Lambda is selected by maximum out-of-fold macro class accuracy; the
+calibrated alpha, no-intercept, grouped multinomial, and inverse-frequency
+weight settings are unchanged.
 
-Full assessment uses every candidate and downloaded legacy artifact, creates
-one stable-identity-paired rounded ten-percent holdout allocated across
-class/type strata, and gives old and new exactly
-the same query IDs. Held-out reference spectra are removed before library
+Full assessment uses every candidate and downloaded legacy artifact. Candidate
+artifacts use a seeded approximately ten-percent class/type-stratified sample
+from the candidate full library, while legacy artifacts independently use the
+legacy full library. This source-local policy tolerates taxonomy evolution
+without fuzzy cross-version class matching; its results describe each
+artifact on its own source population and are not paired causal deltas.
+Held-out identifiers are removed from full and medoid references before
 identification; production models are evaluated without retraining through
 `match_spec()` so partial spectra can use the stored filler. Macro class
 accuracy is the primary metric, followed by evaluated coverage, overall
@@ -293,6 +306,20 @@ reference_library_build <- build_lib(
   previous_library_dir = "system"
 )
 ```
+
+After upstream libraries have already completed, rebuild only the downstream
+artifacts into a new explicit output location:
+
+```{r downstream-rebuild-shape, eval=FALSE}
+updated_reference_library_build <- rebuild_lib_artifacts(
+  completed_build_dir,
+  output_dir = downstream_output_dir,
+  previous_library_dir = "system"
+)
+```
+
+`completed_build_dir` may instead be a `reference_library_build.rds`, a
+`libraries.rds` checkpoint, or the corresponding in-memory build object.
 
 The script is excluded from package builds but remains available
 in the GitHub repository so library releases can be reviewed and reproduced.

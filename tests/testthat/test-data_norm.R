@@ -8,6 +8,15 @@ test_that("adj_res() function test", {
     expect_equal(adj_res(seq(500, 4000, 4), 5), round(seq(500, 4000, 4)/5)*5)
 })
 
+test_that("mean_replace() fills vectors globally and matrices by spectrum", {
+  expect_equal(mean_replace(c(1, NA, 3)), c(1, 2, 3))
+  spectra <- matrix(c(1, NA, 3, 10, 20, NA), nrow = 3)
+  expect_equal(
+    mean_replace(spectra),
+    matrix(c(1, 2, 3, 10, 20, 15), nrow = 3)
+  )
+})
+
 test_that("conform_res() function test", {
     x <- seq(500, 4000, 4)
     expect_equal(conform_res(x, 5), seq(floor(min(x)/5)*5, ceiling(max(x)/5)*5, by=5))
