@@ -42,6 +42,36 @@ if (!length(files) || any(!file.exists(files))) {
 reference_library_build <- build_lib(
   x = files,
   output_dir = output_dir,
-  remove_other = TRUE,
-  reuse = FALSE
+
+build_file <- paste0(
+  "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\reference-library-rebuild-na-support-20260902\\releases\\9cfc00e59556\\reference_library_build.rds"
 )
+
+reference_library_build <- readRDS(build_file)
+
+der_ftir <- reference_library_build$libraries$derivative$ftir
+
+der_ram_mod <- reference_library_build$models$derivative$raman
+
+sample_spec(der_ftir, 5) |> plot(offset = 1)
+
+library(dplyr)
+lib_type_mats <- der_ftir$metadata |>
+  dplyr::group_by(organization,material, material_class) |>
+  summarise(count = n())
+
+
+lib_type_mats <- der_ftir$metadata |>
+  dplyr::filter(is.na(spectrum_identity)) |>
+  dplyr::group_by(organization, spectrum_identity, material, material_class) #|>
+  summarise(count = n())
+
+get_lib("raw")
+
+raw_lib <- load_lib("raw")
+raw_mat <- raw_lib$metadata |>
+  dplyr::filter(is.na(spectrum_identity)) 
+
+
+names(reference_library_build)
+names(reference_library_build$assessments)
