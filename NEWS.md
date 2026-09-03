@@ -9,6 +9,9 @@
 - Updated the hosted homepage with the requested Pew-Gerstner Fellows Program
   acknowledgement and replaced the hero spectrum illustration with an eager,
   muted autoplay embed of the supplied privacy-enhanced YouTube video.
+- Stabilized the wasm repository build by installing its native HDF5, JPEG,
+  PNG, and Pandoc build prerequisites once in the pinned driver image, with a
+  retried apt refresh that no longer depends on the runtime rig repository.
 - Official `build_lib()` runs now default to `remove_other = TRUE`, removing
   blank `spectrum_identity` rows and the generic `other`, `other plastic`, and
   `other material` labels before quality control, medoids, and models while

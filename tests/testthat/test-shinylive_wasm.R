@@ -464,6 +464,15 @@ test_that("only one workflow publishes the combined native Pages site", {
     "ghcr.io/r-wasm/webr@sha256:2bd309d7a4ea1daed82b6fdb8e325b0de715fcd8592c5b6f3b3b88366e70cb76",
     driver, fixed = TRUE
   )))
+  expect_true(any(grepl(
+    "rm -f /etc/apt/sources.list.d/rig.list", driver, fixed = TRUE
+  )))
+  expect_true(any(grepl("for attempt in 1 2 3", driver, fixed = TRUE)))
+  expect_true(all(vapply(
+    c("libhdf5-dev", "libjpeg-dev", "libpng-dev", "pandoc"),
+    function(package) any(grepl(package, driver, fixed = TRUE)),
+    logical(1)
+  )))
 })
 
 test_that("hosted preflight is exact and the full pre-push gate is unskippable", {

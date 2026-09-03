@@ -14,7 +14,9 @@ data_dir <- Sys.getenv(
   "OPENSPECY_LIBRARY_DATA",
   unset = "H:\\My Drive\\Work\\Projects\\OpenSpecy\\SpectraFilesCodeProcessedSpectra"
 )
+
 processed_dir <- Sys.getenv("OPENSPECY_PROCESSED_DIR", unset = data_dir)
+
 output_dir <- Sys.getenv(
   "OPENSPECY_LIBRARY_OUTPUT",
   unset = paste0(
