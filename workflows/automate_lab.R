@@ -39,12 +39,24 @@ print(map)
 region_views <- split_spec(map, by = "region")
 names(region_views)
 
-map <- read_h5("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\EWG_100-1000-10000_REANALYZED.h5")
+files <- list.files(path = wd, "REANALYZED\\.h5", full.names = T)
 
+for(file in files){
+  print(file)
+map <- read_h5(file)
 listedfiles <- lapply(unique(map$metadata$region), function(x) filter_spec(map, map$metadata$region ==x))
+for(item in listedfiles){
+  print(gsub("\\.h5", paste0(unique(item$metadata$region), ".rds"), file))
+  write_spec(item,file = gsub("\\.h5", paste0(unique(item$metadata$region), ".rds"), file))
+  }
+}
+
+files <- list.files(path = wd, "REANALYZED.*\\.rds", full.names = T)
+
+files <- files[!grepl("(particles)|(time)", files)]
 
 result2 <- automate_particle_analysis( 
-    listedfiles,
+    files,
     library = lib,
     output_dir = wd,
     material_col = "material_class",

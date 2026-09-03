@@ -316,8 +316,9 @@ Official libraries and medoids are nested by recipe and then
 800--3200 while the NIR interval is derived from finite coverage within
 4000--12000. Assessment items are typed reviewable data.tables, including
 macro-first summaries, class accuracy, ranked confusion counts, generic-row
-review/removal tables, quality-control removals, stable warnings, and output
-manifests. Each model contains one
+review/removal tables, quality-control removals, metadata-finalization
+audits, ranked model assessment/error correlations, stable warnings, and
+output manifests. Each model contains one
 \code{tests} data.table and a one-spectrum \code{fill} object.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
@@ -386,6 +387,10 @@ class/type strata. Candidate artifacts are assessed on candidate data and
 legacy artifacts on legacy data, so taxonomy changes do not require fuzzy
 cross-version class matching. Query identifiers are removed from full and
 medoid references before matching to prevent exact self-matches.
+Held-out model outputs are also joined to per-spectrum assessment metric
+values. Point-biserial Pearson correlations with incorrect identification
+are ranked within each model output and across each source so the strongest
+quality-related error associations can be reviewed directly.
 After derivative and baseline-removal processing, FTIR spectra whose
 2200--2420 CO2-region maximum exceeds twice the 2420--2550 silent-region
 maximum are flattened. High-tail checks use each spectrum's finite support;
@@ -393,6 +398,10 @@ tails are trimmed and reassessed, failed corrections are removed, and
 spectra with running signal-to-noise below two are removed before pruning.
 Full artifacts are then partitioned into Raman (200--4000), FTIR
 (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
+After full and medoid libraries are complete, metadata columns containing
+only missing values are removed and the remainder are stably ordered from
+the fewest to the most missing values. Spectra, metadata rows, identifiers,
+axes, and object attributes are unchanged.
 Official class completion temporarily assigns unresolved identities to
 \code{"other"}. By default, spectra with a blank identity or a generic
 \code{"other"}, \code{"other plastic"}, or \code{"other material"} label

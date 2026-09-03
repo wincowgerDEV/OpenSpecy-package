@@ -1347,6 +1347,76 @@ test_that("confusion tables rank the largest misidentifications first", {
   expect_named(OpenSpecy:::.lib_confusion_table(tests[0]), names(confusion))
 })
 
+test_that("model assessment metrics rank associations with inaccurate IDs", {
+  rows <- data.table::rbindlist(list(
+    data.table::data.table(
+      artifact = "derivative", model = "raman", source = "new",
+      technique = "raman", provenance = "candidate", check = "low_snr",
+      metric = "run_sig_over_noise", value = c(8, 7, 6, 5, 2, 1, 0, -1),
+      correct = c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
+    ),
+    data.table::data.table(
+      artifact = "derivative", model = "raman", source = "new",
+      technique = "raman", provenance = "candidate",
+      check = "missing_values", metric = "non_finite_count",
+      value = rep(0, 8),
+      correct = c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
+    )
+  ))
+  result <- OpenSpecy:::.lib_model_assessment_correlations(rows)
+  detailed <- result[scope == "model_output"]
+
+  expect_named(
+    result, names(OpenSpecy:::.lib_model_assessment_correlation_schema())
+  )
+  expect_identical(detailed$check[[1L]], "low_snr")
+  expect_identical(detailed$rank[[1L]], 1L)
+  expect_true(detailed$strongest[[1L]])
+  expect_lt(detailed$correlation[[1L]], -0.8)
+  expect_equal(detailed$inaccuracy_rate[[1L]], 0.5)
+  expect_equal(detailed$mean_value_correct[[1L]], 6.5)
+  expect_equal(detailed$mean_value_incorrect[[1L]], 0.5)
+  expect_true(is.na(detailed[check == "missing_values", correlation]))
+  expect_true(all(c("model_output", "source_overall") %in% result$scope))
+
+  empty <- OpenSpecy:::.lib_model_assessment_correlations(rows[0])
+  expect_named(empty, names(result))
+  expect_type(empty$correlation, "double")
+  expect_type(empty$rank, "integer")
+})
+
+test_that("reference metadata is ordered by missingness after all-NA removal", {
+  x <- tiny_build_lib()
+  x$metadata <- data.table::data.table(
+    sample_name = colnames(x$spectra),
+    complete = seq_len(ncol(x$spectra)),
+    two_missing = c(NA, NA, rep("x", ncol(x$spectra) - 2L)),
+    one_missing = c(NA, rep("y", ncol(x$spectra) - 1L)),
+    entirely_missing = rep(NA_character_, ncol(x$spectra))
+  )
+  attr(x, "metadata_order_marker") <- "preserved"
+
+  finalized <- OpenSpecy:::.lib_finalize_reference_metadata(
+    libraries = list(raw = list(ftir = x)),
+    medoids = list(derivative = list(ftir = x))
+  )
+  expected <- c("sample_name", "complete", "one_missing", "two_missing")
+  expect_identical(names(finalized$libraries$raw$ftir$metadata), expected)
+  expect_identical(names(finalized$medoids$derivative$ftir$metadata), expected)
+  expect_true(check_OpenSpecy(finalized$libraries$raw$ftir))
+  expect_identical(
+    attr(finalized$libraries$raw$ftir, "metadata_order_marker"), "preserved"
+  )
+  expect_equal(finalized$assessment$dropped_columns, c(1L, 1L))
+  expect_equal(finalized$assessment$dropped_names,
+               rep("entirely_missing", 2L))
+  expect_equal(finalized$assessment$maximum_missing, c(2L, 2L))
+  expect_named(
+    finalized$assessment,
+    names(OpenSpecy:::.lib_metadata_finalization_schema())
+  )
+})
+
 test_that("build_lib() preserves full source ranges through NA-aware recipes", {
   lib <- tiny_build_lib()
   left <- lib
@@ -1499,7 +1569,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_true(all(c(
     "build_summary", "class_prediction", "class_coverage",
     "type_coverage", "other_review", "other_filter", "pruning",
-    "pruning_reassignments", "metadata_drop", "output_manifest"
+    "pruning_reassignments", "metadata_drop", "metadata_finalization",
+    "model_assessment_correlations", "output_manifest"
   ) %in% names(first$assessments)))
   release_dir <- attr(first, "output_dir")
   expect_true(all(file.exists(file.path(
@@ -1621,7 +1692,8 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   ))
   expect_true(all(c(
     "models", "split_manifest", "library_identification",
-    "model_identification", "assess_spec_shifts", "old_new_compatibility"
+    "model_identification", "model_assessment_correlations",
+    "assess_spec_shifts", "old_new_compatibility"
   ) %in% names(comparison)))
   expect_equal(unique(comparison$split_manifest$artifact), c(
     "raw_ftir", "derivative_ftir", "nobaseline_ftir",
@@ -1631,6 +1703,7 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   expect_setequal(unique(comparison$split_manifest$source), c("new", "old"))
   expect_gt(nrow(comparison$library_identification), 0L)
   expect_gt(nrow(comparison$model_identification), 0L)
+  expect_gt(nrow(comparison$model_assessment_correlations), 0L)
   expect_gt(nrow(comparison$assess_spec_shifts), 0L)
   expect_true(all(
     comparison$models$derivative$ftir$tests$provenance ==

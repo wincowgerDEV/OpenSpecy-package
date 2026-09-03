@@ -1,5 +1,14 @@
 # OpenSpecy 1.7.1
 
+- Final full and medoid reference libraries now drop metadata columns that are
+  entirely `NA` and stably order the remainder from least to most missing.
+  `assessments$metadata_finalization` records the change. Model holdout outputs
+  now include ranked point-biserial correlations between numeric
+  `assess_spec()` metrics and incorrect IDs, making the strongest quality/error
+  associations directly reviewable without retraining models.
+- Updated the hosted homepage with the requested Pew-Gerstner Fellows Program
+  acknowledgement and replaced the hero spectrum illustration with an eager,
+  muted autoplay embed of the supplied privacy-enhanced YouTube video.
 - Official `build_lib()` runs now default to `remove_other = TRUE`, removing
   blank `spectrum_identity` rows and the generic `other`, `other plastic`, and
   `other material` labels before quality control, medoids, and models while

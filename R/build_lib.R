@@ -57,6 +57,10 @@
 #' legacy artifacts on legacy data, so taxonomy changes do not require fuzzy
 #' cross-version class matching. Query identifiers are removed from full and
 #' medoid references before matching to prevent exact self-matches.
+#' Held-out model outputs are also joined to per-spectrum assessment metric
+#' values. Point-biserial Pearson correlations with incorrect identification
+#' are ranked within each model output and across each source so the strongest
+#' quality-related error associations can be reviewed directly.
 #' After derivative and baseline-removal processing, FTIR spectra whose
 #' 2200--2420 CO2-region maximum exceeds twice the 2420--2550 silent-region
 #' maximum are flattened. High-tail checks use each spectrum's finite support;
@@ -64,6 +68,10 @@
 #' spectra with running signal-to-noise below two are removed before pruning.
 #' Full artifacts are then partitioned into Raman (200--4000), FTIR
 #' (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
+#' After full and medoid libraries are complete, metadata columns containing
+#' only missing values are removed and the remainder are stably ordered from
+#' the fewest to the most missing values. Spectra, metadata rows, identifiers,
+#' axes, and object attributes are unchanged.
 #' Official class completion temporarily assigns unresolved identities to
 #' \code{"other"}. By default, spectra with a blank identity or a generic
 #' \code{"other"}, \code{"other plastic"}, or \code{"other material"} label
@@ -257,8 +265,9 @@
 #' 800--3200 while the NIR interval is derived from finite coverage within
 #' 4000--12000. Assessment items are typed reviewable data.tables, including
 #' macro-first summaries, class accuracy, ranked confusion counts, generic-row
-#' review/removal tables, quality-control removals, stable warnings, and output
-#' manifests. Each model contains one
+#' review/removal tables, quality-control removals, metadata-finalization
+#' audits, ranked model assessment/error correlations, stable warnings, and
+#' output manifests. Each model contains one
 #' \code{tests} data.table and a one-spectrum \code{fill} object.
 #' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 #' \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
@@ -3241,6 +3250,12 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     checkpoints$put("medoids", medoids)
   }
 
+  report("finalizing library metadata by missing-value count")
+  finalized <- .lib_finalize_reference_metadata(libraries, medoids)
+  libraries <- finalized$libraries
+  medoids <- finalized$medoids
+  local_assessments$metadata_finalization <- finalized$assessment
+
   models <- checkpoints$get("models")
   model_warnings <- .lib_warning_schema()
   if (is.null(models)) {
@@ -3265,7 +3280,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "source-local-type-macro-reference-v5-ranked-confusion"
+      assessment_version = "source-local-type-macro-reference-v6-model-metrics"
     ),
     algo = "sha256"
   )
@@ -3370,6 +3385,12 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
     checkpoints$put("medoids", medoids)
   }
+  report("finalizing library metadata by missing-value count")
+  finalized <- .lib_finalize_reference_metadata(libraries, medoids)
+  libraries <- finalized$libraries
+  medoids <- finalized$medoids
+  if (is.null(completed)) completed <- list()
+  completed$metadata_finalization <- finalized$assessment
   models <- checkpoints$get("models")
   model_warnings <- .lib_warning_schema()
   if (is.null(models)) {
@@ -3390,7 +3411,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "source-local-type-macro-reference-v5-ranked-confusion"
+    assessment_version = "source-local-type-macro-reference-v6-model-metrics"
   ), algo = "sha256")
   cached <- checkpoints$get("assessments", key = assessment_key)
   if (!is.null(cached)) {
@@ -3526,8 +3547,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   keep <- c(
     "lookup_coverage", "identity_cleanup", "class_prediction",
     "class_coverage", "type_coverage", "exclusions_deduplication",
-    "other_review", "other_filter", "filters", "metadata_drop", "pruning",
-    "pruning_reassignments", "quality_control"
+    "other_review", "other_filter", "filters", "metadata_drop",
+    "metadata_finalization", "pruning", "pruning_reassignments",
+    "quality_control", "model_assessment_correlations"
   )
   assessments[intersect(keep, names(assessments))]
 }
@@ -4608,6 +4630,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     exclusions_deduplication = exclusions,
     filters = data.table::data.table(),
     metadata_drop = data.table::data.table(),
+    metadata_finalization = .lib_metadata_finalization_schema(),
     pruning = data.table::data.table(),
     pruning_reassignments = .lib_prune_reassignment_schema(),
     medoid_model_summary = model_summary,
@@ -4620,6 +4643,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     model_identification = data.table::data.table(),
     model_class_accuracy = data.table::data.table(),
     model_confusion = data.table::data.table(),
+    model_assessment_correlations =
+      .lib_model_assessment_correlation_schema(),
     assess_spec_shifts = data.table::data.table(),
     old_new_compatibility = data.table::data.table(),
     quality_control = .lib_quality_schema(),
@@ -4646,6 +4671,182 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     }
   }
   out
+}
+
+.lib_metadata_finalization_schema <- function() {
+  data.table::data.table(
+    artifact = character(), spectra = integer(), before_columns = integer(),
+    after_columns = integer(), dropped_columns = integer(),
+    dropped_names = character(), minimum_missing = integer(),
+    maximum_missing = integer()
+  )
+}
+
+.lib_finalize_one_metadata <- function(x, artifact) {
+  if (!is_OpenSpecy(x)) {
+    stop("Metadata finalization requires an OpenSpecy object", call. = FALSE)
+  }
+  metadata <- data.table::copy(x$metadata)
+  before <- ncol(metadata)
+  missing <- vapply(metadata, function(column) {
+    as.integer(sum(is.na(column)))
+  }, integer(1L))
+  fully_missing <- if (nrow(metadata)) {
+    names(missing)[missing == nrow(metadata)]
+  } else {
+    character()
+  }
+  if (length(fully_missing)) metadata[, (fully_missing) := NULL]
+  remaining_missing <- missing[setdiff(names(missing), fully_missing)]
+  if (length(remaining_missing)) {
+    ordered <- names(remaining_missing)[order(
+      remaining_missing, seq_along(remaining_missing)
+    )]
+    data.table::setcolorder(metadata, ordered)
+  }
+  out <- x
+  out$metadata <- metadata
+  if (!check_OpenSpecy(out)) {
+    stop("Metadata finalization broke the OpenSpecy object contract for '",
+         artifact, "'", call. = FALSE)
+  }
+  assessment <- data.table::data.table(
+    artifact = artifact,
+    spectra = as.integer(nrow(metadata)),
+    before_columns = as.integer(before),
+    after_columns = as.integer(ncol(metadata)),
+    dropped_columns = as.integer(length(fully_missing)),
+    dropped_names = paste(fully_missing, collapse = "; "),
+    minimum_missing = if (length(remaining_missing)) {
+      as.integer(min(remaining_missing))
+    } else {
+      NA_integer_
+    },
+    maximum_missing = if (length(remaining_missing)) {
+      as.integer(max(remaining_missing))
+    } else {
+      NA_integer_
+    }
+  )
+  list(object = out, assessment = assessment)
+}
+
+.lib_finalize_reference_metadata <- function(libraries, medoids) {
+  assessment <- list()
+  finalize <- function(collection, prefix = "") {
+    for (recipe in names(collection)) {
+      for (type in names(collection[[recipe]])) {
+        if (!is_OpenSpecy(collection[[recipe]][[type]])) next
+        artifact <- paste0(prefix, recipe, "_", type)
+        result <- .lib_finalize_one_metadata(
+          collection[[recipe]][[type]], artifact
+        )
+        collection[[recipe]][[type]] <- result$object
+        assessment[[artifact]] <<- result$assessment
+      }
+    }
+    collection
+  }
+  libraries <- finalize(libraries)
+  medoids <- finalize(medoids, prefix = "medoid_")
+  list(
+    libraries = libraries,
+    medoids = medoids,
+    assessment = if (length(assessment)) {
+      data.table::rbindlist(assessment, fill = TRUE)
+    } else {
+      .lib_metadata_finalization_schema()
+    }
+  )
+}
+
+.lib_model_assessment_correlation_schema <- function() {
+  data.table::data.table(
+    scope = character(), artifact = character(), model = character(),
+    source = character(), technique = character(), provenance = character(),
+    check = character(), metric = character(), spectra = integer(),
+    evaluated = integer(), inaccurate = integer(),
+    inaccuracy_rate = numeric(), mean_value_correct = numeric(),
+    mean_value_incorrect = numeric(), correlation = numeric(),
+    absolute_correlation = numeric(), rank = integer(),
+    strongest = logical()
+  )
+}
+
+.lib_model_assessment_correlations <- function(rows) {
+  schema <- .lib_model_assessment_correlation_schema()
+  if (is.null(rows) || !nrow(rows)) return(schema)
+  rows <- data.table::as.data.table(rows)
+  required <- c(
+    "artifact", "model", "source", "technique", "provenance",
+    "check", "metric", "value", "correct"
+  )
+  missing <- setdiff(required, names(rows))
+  if (length(missing)) {
+    stop("Model assessment rows are missing: ", paste(missing, collapse = ", "),
+         call. = FALSE)
+  }
+  summarize <- function(x, by, scope) {
+    out <- x[, {
+      complete <- is.finite(value) & !is.na(correct)
+      values <- value[complete]
+      inaccurate <- !correct[complete]
+      association <- if (length(values) >= 3L &&
+                           data.table::uniqueN(values) > 1L &&
+                           data.table::uniqueN(inaccurate) > 1L) {
+        stats::cor(values, as.numeric(inaccurate))
+      } else {
+        NA_real_
+      }
+      list(
+        spectra = as.integer(.N),
+        evaluated = as.integer(sum(complete)),
+        inaccurate = as.integer(sum(inaccurate)),
+        inaccuracy_rate = if (length(inaccurate)) mean(inaccurate) else NA_real_,
+        mean_value_correct = if (any(!inaccurate)) {
+          mean(values[!inaccurate])
+        } else {
+          NA_real_
+        },
+        mean_value_incorrect = if (any(inaccurate)) {
+          mean(values[inaccurate])
+        } else {
+          NA_real_
+        },
+        correlation = association,
+        absolute_correlation = abs(association)
+      )
+    }, by = by]
+    out[, scope := scope]
+    out
+  }
+  output_groups <- c(
+    "artifact", "model", "source", "technique", "provenance",
+    "check", "metric"
+  )
+  output <- summarize(rows, output_groups, "model_output")
+  overall <- summarize(
+    rows, c("source", "provenance", "check", "metric"), "source_overall"
+  )
+  overall[, `:=`(
+    artifact = "all", model = "all", technique = "all"
+  )]
+  out <- data.table::rbindlist(list(output, overall), fill = TRUE)
+  rank_groups <- c(
+    "scope", "artifact", "model", "source", "technique", "provenance"
+  )
+  out[, rank := as.integer(data.table::frank(
+    -absolute_correlation, ties.method = "min", na.last = "keep"
+  )), by = rank_groups]
+  out[, strongest := !is.na(rank) & rank == 1L]
+  data.table::setcolorder(out, names(schema))
+  data.table::setorderv(
+    out,
+    c(rank_groups, "rank", "absolute_correlation", "check", "metric"),
+    c(rep(1L, length(rank_groups)), 1L, -1L, 1L, 1L),
+    na.last = TRUE
+  )
+  out[]
 }
 
 .lib_previous_signature <- function(path) {
@@ -4776,6 +4977,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   library_confusion <- .lib_confusion_table(reference_tests)
 
   model_tests <- list()
+  model_metric_rows <- list()
   updated_models <- build$models
   model_split_rows <- list()
   for (recipe in intersect(c("derivative", "nobaseline"),
@@ -4827,6 +5029,37 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           query_by_type[c("ftir", "raman")], "combined model test spectra"
         )
       }
+      assessment_by_type <- list()
+      for (actual_type in setdiff(names(query_by_type), "both")) {
+        stage <- paste0(
+          "assessment_model_metrics_", recipe, "_", actual_type, "_", source
+        )
+        assessed <- if (is.null(checkpoints)) NULL else
+          checkpoints$get(stage, key = checkpoint_key)
+        if (is.null(assessed)) {
+          assessment_started <- proc.time()[["elapsed"]]
+          if (isTRUE(progress)) message(
+            "build_lib assessment: assess_spec model holdout ", recipe, "/",
+            actual_type, "/", source, " starting (spectra=",
+            ncol(query_by_type[[actual_type]]$spectra), ")"
+          )
+          assessed <- assess_spec(
+            query_by_type[[actual_type]], report = "all"
+          )[scope == "spectrum", .(spectrum_id, check, metric, value)]
+          if (!is.null(checkpoints)) {
+            checkpoints$put(stage, assessed, key = checkpoint_key)
+          }
+          if (isTRUE(progress)) message(sprintf(
+            paste0(
+              "build_lib assessment: assess_spec model holdout ",
+              "%s/%s/%s complete (%.1fs)"
+            ),
+            recipe, actual_type, source,
+            proc.time()[["elapsed"]] - assessment_started
+          ))
+        }
+        assessment_by_type[[actual_type]] <- assessed
+      }
       for (type in intersect(names(model_set), names(query_by_type))) {
         if (is.null(model_set[[type]]) || is.null(query_by_type[[type]])) next
         model_started <- proc.time()[["elapsed"]]
@@ -4856,6 +5089,27 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           updated_models[[recipe]][[type]]$tests <- tests
         }
         model_tests[[paste(recipe, type, source, sep = "_")]] <- tests
+        evidence <- if (type == "both") {
+          data.table::rbindlist(
+            assessment_by_type[intersect(
+              c("ftir", "raman"), names(assessment_by_type)
+            )],
+            fill = TRUE
+          )
+        } else {
+          assessment_by_type[[type]]
+        }
+        if (!is.null(evidence) && nrow(evidence) && nrow(tests)) {
+          joined <- merge(
+            tests, evidence, by = "spectrum_id", all = FALSE,
+            allow.cartesian = TRUE, sort = FALSE
+          )
+          model_metric_rows[[paste(recipe, type, source, sep = "_")]] <-
+            joined[, .(
+              artifact, model, source, technique, provenance,
+              spectrum_id, correct, check, metric, value
+            )]
+        }
         if (isTRUE(progress)) message(sprintf(
           "build_lib assessment: source-local model %s/%s/%s complete (%.1fs)",
           recipe, type, source,
@@ -4871,6 +5125,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   model_identification <- .lib_identification_summary(model_tests)
   model_class_accuracy <- .lib_class_accuracy(model_tests)
   model_confusion <- .lib_confusion_table(model_tests)
+  model_assessment_correlations <- .lib_model_assessment_correlations(
+    data.table::rbindlist(model_metric_rows, fill = TRUE)
+  )
 
   if (isTRUE(progress)) {
     message("build_lib assessment: summarizing assess_spec shifts")
@@ -4921,6 +5178,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     model_identification = model_identification,
     model_class_accuracy = model_class_accuracy,
     model_confusion = model_confusion,
+    model_assessment_correlations = model_assessment_correlations,
     assess_spec_shifts = assess_spec_shifts,
     old_new_compatibility = compatibility
   )

@@ -908,8 +908,23 @@ test_that("static landing and Shiny app provide the embed handshake", {
   )))
   expect_true(any(grepl("y2F4Fu6A4aA&amp;list=PLqdH8O1nalYa4a8JXQ6GbNsH3YQV_aY7g",
                         homepage, fixed = TRUE)))
-  expect_true(any(grepl("Pew-Gerstner Fellowship in Ocean Plastics Research",
-                         homepage, fixed = TRUE)))
+  pew_acknowledgement <- paste0(
+    "Support for this project was provided by the Pew-Gerstner Fellows ",
+    "Program in Marine Conservation at The Pew Charitable Trusts. The views ",
+    "expressed herein are those of the author(s) and do not necessarily ",
+    "reflect the views of The Pew Charitable Trusts."
+  )
+  expect_true(grepl(pew_acknowledgement, homepage_text, fixed = TRUE))
+  expect_true(grepl(
+    paste0(
+      "https://www.youtube-nocookie.com/embed/8zrlQeTCwkQ?autoplay=1",
+      "&amp;mute=1&amp;playsinline=1&amp;rel=0"
+    ), homepage_text, fixed = TRUE
+  ))
+  expect_true(any(grepl('class="hero-video-card"', homepage,
+                         fixed = TRUE)))
+  expect_false(any(grepl('class="spectrum-card"', homepage,
+                          fixed = TRUE)))
   expect_true(any(grepl("Walking Softer", homepage, fixed = TRUE)))
   expect_true(all(vapply(
     c("10.1021/acs.analchem.5c00962", "10.1021/acs.analchem.1c00123",

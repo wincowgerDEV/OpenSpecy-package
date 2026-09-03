@@ -339,112 +339,24 @@ h3 {
   line-height: 1.35;
 }
 
-.spectrum-card {
-  padding: 0.8rem;
+.hero-video-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
   border: 1px solid var(--os-border-strong);
   border-radius: 1.5rem;
-  background: linear-gradient(145deg, rgba(16, 36, 58, 0.96), rgba(5, 11, 20, 0.96));
+  background: var(--os-bg-deep);
   box-shadow: var(--os-shadow);
   transform: rotate(1.2deg);
 }
 
-.spectrum-card-header {
-  display: flex;
-  min-height: 3.5rem;
-  padding: 0 0.75rem;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--os-muted);
-  font-size: 0.77rem;
-  font-weight: 700;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: #a7f3d0;
-}
-
-.status-pill i {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 0 0.25rem rgba(52, 211, 153, 0.12);
-}
-
-.spectrum-card svg {
+.hero-video-card iframe {
+  position: absolute;
   width: 100%;
-  border: 1px solid var(--os-border);
-  border-radius: 1rem;
-  background: #06111e;
-}
-
-.spectrum-grid path {
-  fill: none;
-  stroke: rgba(148, 193, 225, 0.12);
-  stroke-width: 1;
-}
-
-.spectrum-fill {
-  fill: url(#spectrum-area);
-}
-
-.spectrum-line {
-  fill: none;
-  stroke: url(#spectrum-stroke);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 5;
-}
-
-.spectrum-labels {
-  fill: var(--os-muted);
-  font-size: 17px;
-}
-
-.spectrum-card-result {
-  display: flex;
-  width: calc(100% - 1rem);
-  min-height: 4.7rem;
-  margin: -1.3rem auto 0;
-  padding: 0.9rem 1rem;
-  align-items: center;
-  gap: 0.75rem;
-  border: 1px solid var(--os-border);
-  border-radius: 0.9rem;
-  background: rgba(11, 25, 41, 0.97);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
-}
-
-.result-mark {
-  display: grid;
-  width: 2.2rem;
-  height: 2.2rem;
-  flex: 0 0 auto;
-  place-items: center;
-  color: var(--os-accent-ink);
-  border-radius: 50%;
-  background: var(--os-accent-light);
-  font-weight: 900;
-}
-
-.spectrum-card-result strong,
-.spectrum-card-result small {
-  display: block;
-}
-
-.spectrum-card-result strong {
-  color: var(--os-text);
-  font-size: 0.85rem;
-}
-
-.spectrum-card-result small {
-  margin-top: 0.12rem;
-  color: var(--os-muted);
-  font-size: 0.7rem;
-  line-height: 1.4;
+  height: 100%;
+  border: 0;
+  inset: 0;
 }
 
 .section {
@@ -1317,7 +1229,7 @@ html.openspecy-app-fullscreen-open body {
     min-height: auto;
   }
 
-  .spectrum-card {
+  .hero-video-card {
     width: min(100%, 39rem);
     margin: 0 auto;
     transform: none;
@@ -1397,8 +1309,7 @@ html.openspecy-app-fullscreen-open body {
     border-bottom: 1px solid var(--os-border);
   }
 
-  .spectrum-card {
-    padding: 0.6rem;
+  .hero-video-card {
     border-radius: 1rem;
   }
 

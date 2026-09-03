@@ -53,6 +53,13 @@ test("static landing shell is crawlable, responsive, and base-path safe", async 
     const types = Array.isArray(record["@type"]) ? record["@type"] : [record["@type"]];
     return types.includes("WebApplication") || types.includes("SoftwareApplication");
   })).toBeTruthy();
+  const heroVideo = page.locator(".hero-video-card iframe");
+  await expect(heroVideo).toBeVisible();
+  await expect(heroVideo).toHaveAttribute(
+    "src",
+    /youtube-nocookie\.com\/embed\/8zrlQeTCwkQ\?autoplay=1&mute=1&playsinline=1&rel=0/
+  );
+  await expect(heroVideo).toHaveAttribute("allow", /autoplay/);
   await expect(page.locator(".video-load")).toBeVisible();
   await expect(page.locator("[data-video-embed]")).toHaveAttribute(
     "data-video-src",
