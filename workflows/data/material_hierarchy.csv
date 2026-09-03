@@ -1,57 +1,57 @@
 material,material_class,material_type
-acrylonitrile butadiene styrene (abs),acrylonitrile butadiene styrene (abs),plastic
-cellulose acetate,cellulose derivatives (ether cellulose),plastic
-cellulose nitrate,cellulose derivatives (ether cellulose),plastic
-ethyl cellulose,cellulose derivatives (ether cellulose),plastic
-methyl cellulose,cellulose derivatives (ether cellulose),plastic
-rayon,cellulose derivatives (ether cellulose),plastic
-epdm rubber (ethylene propylene diene monomer rubber),epdm rubber (ethylene propylene diene monomer rubber),plastic
-ethylene-propylene,ethylene-propylene,plastic
-poly(ethylene-vinyl acetate) (EVA),ethylene-vinyl acetate,plastic
-isobutylene-isoprene,isobutylene-isoprene,plastic
-melamine-formaldehyde,melamine-formaldehyde,plastic
+acrylonitrile butadiene styrene (abs),polyacrylonitrile-butadiene-styrene,plastic
+cellulose acetate,cellulose derivatives,plastic
+cellulose nitrate,cellulose derivatives,plastic
+ethyl cellulose,cellulose derivatives,plastic
+methyl cellulose,cellulose derivatives,plastic
+rayon,cellulose derivatives,plastic
+epdm rubber (ethylene propylene diene monomer rubber),polyethylene-propylene-diene rubber,plastic
+ethylene-propylene,polyethylene-propylene,plastic
+poly(ethylene-vinyl acetate) (EVA),polyethylene-vinyl acetate,plastic
+isobutylene-isoprene,polyisobutylene-isoprene,plastic
+melamine-formaldehyde,polymelamine-formaldehyde,plastic
 mineral,mineral,not plastic
 organic matter,organic matter,not plastic
 other,other,other
 other material,other material,not plastic
 other plastic,other plastic,plastic
 paint,paint,plastic
-phenol formaldehyde,phenol formaldehyde,plastic
-peek - poly(ether ether ketone),poly(ether)ketones (polyketones),plastic
-pek - poly(ether ketone),poly(ether)ketones (polyketones),plastic
-pekk - poly(ether ketone ketone),poly(ether)ketones (polyketones),plastic
-poly(ethyleneketone),poly(ether)ketones (polyketones),plastic
-poly(propyleneketone),poly(ether)ketones (polyketones),plastic
-poly(tetrafluoroethylene),poly(tetrafluoroethylene),plastic
+phenol formaldehyde,polyphenol-formaldehyde,plastic
+peek - poly(ether ether ketone),polyetherketones,plastic
+pek - poly(ether ketone),polyetherketones,plastic
+pekk - poly(ether ketone ketone),polyetherketones,plastic
+poly(ethyleneketone),polyetherketones,plastic
+poly(propyleneketone),polyetherketones,plastic
+poly(tetrafluoroethylene),polytetrafluoroethylene,plastic
 poly(acrylamide),polyacrylamides,plastic
 poly(n-isopropyl acrylamide),polyacrylamides,plastic
 poly(n-octyl acrylamide),polyacrylamides,plastic
 poly(n-phenyl acrylamide),polyacrylamides,plastic
 poly(n-sec-butyl acrylamide),polyacrylamides,plastic
 poly(n-tert-butyl acrylamide),polyacrylamides,plastic
-"poly(2,2,3,3-tetrafluoropropyl acrylate)",polyacrylates (propenoates),plastic
-poly(2-cyanoethyl acrylate),polyacrylates (propenoates),plastic
-poly(2-ethylhexyl acrylate),polyacrylates (propenoates),plastic
-poly(4-chlorophenyl acrylate),polyacrylates (propenoates),plastic
-poly(acrylic acid),polyacrylates (propenoates),plastic
-poly(benzyl acrylate),polyacrylates (propenoates),plastic
-poly(butyl acrylate),polyacrylates (propenoates),plastic
-poly(cyanomethyl acrylate),polyacrylates (propenoates),plastic
-poly(cyclohexyl acrylate),polyacrylates (propenoates),plastic
-poly(ethyl acrylate),polyacrylates (propenoates),plastic
-poly(hexyl acrylate),polyacrylates (propenoates),plastic
-poly(isobutyl acrylate),polyacrylates (propenoates),plastic
-poly(isopropyl acrylate),polyacrylates (propenoates),plastic
-poly(methyl acrylate),polyacrylates (propenoates),plastic
-poly(octyl acrylate),polyacrylates (propenoates),plastic
-poly(propyl acrylate),polyacrylates (propenoates),plastic
-poly(sec-butyl acrylate),polyacrylates (propenoates),plastic
-poly(stearyl acrylate),polyacrylates (propenoates),plastic
-poly(tert-butyl acrylate),polyacrylates (propenoates),plastic
-poly(acrylonitrile),polyacrylonitriles (nitriles),plastic
+"poly(2,2,3,3-tetrafluoropropyl acrylate)",polyacrylates,plastic
+poly(2-cyanoethyl acrylate),polyacrylates,plastic
+poly(2-ethylhexyl acrylate),polyacrylates,plastic
+poly(4-chlorophenyl acrylate),polyacrylates,plastic
+poly(acrylic acid),polyacrylates,plastic
+poly(benzyl acrylate),polyacrylates,plastic
+poly(butyl acrylate),polyacrylates,plastic
+poly(cyanomethyl acrylate),polyacrylates,plastic
+poly(cyclohexyl acrylate),polyacrylates,plastic
+poly(ethyl acrylate),polyacrylates,plastic
+poly(hexyl acrylate),polyacrylates,plastic
+poly(isobutyl acrylate),polyacrylates,plastic
+poly(isopropyl acrylate),polyacrylates,plastic
+poly(methyl acrylate),polyacrylates,plastic
+poly(octyl acrylate),polyacrylates,plastic
+poly(propyl acrylate),polyacrylates,plastic
+poly(sec-butyl acrylate),polyacrylates,plastic
+poly(stearyl acrylate),polyacrylates,plastic
+poly(tert-butyl acrylate),polyacrylates,plastic
+poly(acrylonitrile),polyacrylonitriles,plastic
 poly(butylene adipate),polyesters,plastic
 poly(ethylene adipate),polyesters,plastic
-poly(methacrylonitrile),polyacrylonitriles (nitriles),plastic
+poly(methacrylonitrile),polyacrylonitriles,plastic
 poly(propylene adipate),polyesters,plastic
 poly(p-phenylene terephthalamide) (Kevlar),polyamides,plastic
 poly(m-phenylene isophthalamide) (Nomex),polyamides,plastic
@@ -87,17 +87,17 @@ poly(ethyl cyanoacrylate),polycyanoacrylates,plastic
 poly(hexyl cyanoacrylate),polycyanoacrylates,plastic
 poly(methyl cyanoacrylate),polycyanoacrylates,plastic
 poly(octyl cyanoacrylate),polycyanoacrylates,plastic
-"1,4-polyisoprene (cis and trans)(latex)","polydienes (butadienes, isoprenes)",plastic
-"poly(1,2-butadiene)","polydienes (butadienes, isoprenes)",plastic
-"poly(1,4-butadiene)","polydienes (butadienes, isoprenes)",plastic
-"poly(1,4-pentadiene)","polydienes (butadienes, isoprenes)",plastic
-"poly(1-ethyl-1,4-butadiene)","polydienes (butadienes, isoprenes)",plastic
-poly(1-pentenylene),"polydienes (butadienes, isoprenes)",plastic
-bisphenol-a diglycidyl ether epoxy resin,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)",plastic
-bisphenol-f diglycidyl ether epoxy resin,"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)",plastic
-poly(bis-a diglycidyl ether- alt - ethylenediamine),"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)",plastic
-poly(bis-a diglycidyl ether- alt - hexamethylenediamine),"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)",plastic
-poly(bis-a diglycidyl ether- alt - octamethylenediamine),"polydiglycidyl ethers (polyepoxides, polyhydroxyethers, phenoxy)",plastic
+"1,4-polyisoprene (cis and trans)(latex)",polydienes,plastic
+"poly(1,2-butadiene)",polydienes,plastic
+"poly(1,4-butadiene)",polydienes,plastic
+"poly(1,4-pentadiene)",polydienes,plastic
+"poly(1-ethyl-1,4-butadiene)",polydienes,plastic
+poly(1-pentenylene),polydienes,plastic
+bisphenol-a diglycidyl ether epoxy resin,polydiglycidyl ethers,plastic
+bisphenol-f diglycidyl ether epoxy resin,polydiglycidyl ethers,plastic
+poly(bis-a diglycidyl ether- alt - ethylenediamine),polydiglycidyl ethers,plastic
+poly(bis-a diglycidyl ether- alt - hexamethylenediamine),polydiglycidyl ethers,plastic
+poly(bis-a diglycidyl ether- alt - octamethylenediamine),polydiglycidyl ethers,plastic
 poly(3-hydroxybutyrate),polyesters,plastic
 poly(4-hydroxybutyrate),polyesters,plastic
 poly(caprolactone),polyesters,plastic
@@ -105,35 +105,35 @@ poly(ethylene naphthalate),polyesters,plastic
 poly(ethylene phthalate),polyesters,plastic
 poly(glycolic acid) (PGA),polyesters,plastic
 polylactic acid,polyesters,plastic
-poly(3-butoxypropylene oxide),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly(3-methoxypropylene oxide),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly(epichlorohydrin),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly(ethylene glycol),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly(hexamethylene oxide),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly(oxymethylene-oxyethylene),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly(oxymethylene-oxytetramethylene),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly(propylene glycol),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly(tetrahydrofuran),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly(trimethylene glycol),"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-"poly[1,1-bis(chloromethyl)trimethylene oxide]","polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-poly[oxy(hexyloxymethyl)ethylene],"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-polyacetal - polyoxymethylene,"polyethers (polyglycols, oxyalkylenes, glycidyl ethers & cyclic ethers)",plastic
-bisphenol a polysulfone,polyethersulfones (polysulfone),plastic
-poly(ether ether sulfone),polyethersulfones (polysulfone),plastic
-poly(ethersulfone),polyethersulfones (polysulfone),plastic
-poly(phenylsulfone),polyethersulfones (polysulfone),plastic
+poly(3-butoxypropylene oxide),polyethers,plastic
+poly(3-methoxypropylene oxide),polyethers,plastic
+poly(epichlorohydrin),polyethers,plastic
+poly(ethylene glycol),polyethers,plastic
+poly(hexamethylene oxide),polyethers,plastic
+poly(oxymethylene-oxyethylene),polyethers,plastic
+poly(oxymethylene-oxytetramethylene),polyethers,plastic
+poly(propylene glycol),polyethers,plastic
+poly(tetrahydrofuran),polyethers,plastic
+poly(trimethylene glycol),polyethers,plastic
+"poly[1,1-bis(chloromethyl)trimethylene oxide]",polyethers,plastic
+poly[oxy(hexyloxymethyl)ethylene],polyethers,plastic
+polyacetal - polyoxymethylene,polyethers,plastic
+bisphenol a polysulfone,polyethersulfones,plastic
+poly(ether ether sulfone),polyethersulfones,plastic
+poly(ethersulfone),polyethersulfones,plastic
+poly(phenylsulfone),polyethersulfones,plastic
 poly(dibutyl fumarate),polyesters,plastic
 poly(diethyl fumarate),polyesters,plastic
 poly(dimethyl fumarate),polyesters,plastic
 poly(dipropyl fumarate),polyesters,plastic
 poly(chloroprene) (Neoprene),polyhalodienes,plastic
 poly(1-bromo-1-butenylene) (polybromoprene),polyhalodienes,plastic
-poly(chlorotrifluoroethylene),polyhaloolefins (vinylhalides),plastic
-poly(vinyl bromide),polyhaloolefins (vinylhalides),plastic
-poly(vinyl chloride),polyhaloolefins (vinylhalides),plastic
-poly(vinyl fluoride),polyhaloolefins (vinylhalides),plastic
-poly(vinylidene chloride),polyhaloolefins (vinylhalides),plastic
-poly(vinylidene fluoride),polyhaloolefins (vinylhalides),plastic
+poly(chlorotrifluoroethylene),polyhaloolefins,plastic
+poly(vinyl bromide),polyhaloolefins,plastic
+poly(vinyl chloride),polyhaloolefins,plastic
+poly(vinyl fluoride),polyhaloolefins,plastic
+poly(vinylidene chloride),polyhaloolefins,plastic
+poly(vinylidene fluoride),polyhaloolefins,plastic
 "poly(2,5-difluorostyrene)",polyhalostyrenes,plastic
 poly(2-chlorostyrene),polyhalostyrenes,plastic
 poly(3-chlorostyrene),polyhalostyrenes,plastic
@@ -143,15 +143,15 @@ poly(4-fluorostyrene),polyhalostyrenes,plastic
 poly(2-hydroxyethyl acrylate),polyhydroxy(meth)acrylates,plastic
 poly(2-hydroxyethyl methacrylate),polyhydroxy(meth)acrylates,plastic
 poly(2-hydroxypropyl methacrylate),polyhydroxy(meth)acrylates,plastic
-polyhydroxyalkanoate (pha),polyhydroxyalkanoate (pha),plastic
+polyhydroxyalkanoate (pha),polyhydroxyalkanoates,plastic
 polyimides,polyimides,plastic
 poly(bisphenol a isophthalate),polyesters,plastic
 poly(butylene isophthalate),polyesters,plastic
 poly(ethylene isophthalate),polyesters,plastic
-poly[di(n-butyl) itaconate],polyitaconates (polymethylene succinates),plastic
-poly[di(n-hexyl) itaconate],polyitaconates (polymethylene succinates),plastic
-poly[di(n-propyl) itaconate],polyitaconates (polymethylene succinates),plastic
-poly[dimethyl itaconate],polyitaconates (polymethylene succinates),plastic
+poly[di(n-butyl) itaconate],polyitaconates,plastic
+poly[di(n-hexyl) itaconate],polyitaconates,plastic
+poly[di(n-propyl) itaconate],polyitaconates,plastic
+poly[dimethyl itaconate],polyitaconates,plastic
 poly(methacrylamide),polymethacrylamides,plastic
 poly(n-acetylmethacrylamide),polymethacrylamides,plastic
 poly(n-benzyl methacrylamide),polymethacrylamides,plastic
@@ -178,39 +178,39 @@ poly(phenyl methacrylate),polymethacrylates,plastic
 poly(propyl methacrylate),polymethacrylates,plastic
 poly(sec-butyl methacrylate),polymethacrylates,plastic
 poly(tert-butyl methacrylate),polymethacrylates,plastic
-poly(2-methylbutene),polyolefins (polyalkenes),plastic
-poly(butylene),polyolefins (polyalkenes),plastic
-poly(cyclohexylethylene),polyolefins (polyalkenes),plastic
-poly(ethylene),polyolefins (polyalkenes),plastic
-poly(heptylethylene),polyolefins (polyalkenes),plastic
-poly(hexylethylene),polyolefins (polyalkenes),plastic
-poly(isobutylene),polyolefins (polyalkenes),plastic
-poly(isopropylethylene),polyolefins (polyalkenes),plastic
-poly(octylethylene),polyolefins (polyalkenes),plastic
-poly(pentylethylene),polyolefins (polyalkenes),plastic
-poly(propylene),polyolefins (polyalkenes),plastic
-poly(tert-butylethylene),polyolefins (polyalkenes),plastic
-poly(2-chloro-p-xylylene),polyphenylenes (polyaromatics),plastic
-poly(p-phenylene vinylene),polyphenylenes (polyaromatics),plastic
-poly(p-phenylene),polyphenylenes (polyaromatics),plastic
-poly(p-xylene),polyphenylenes (polyaromatics),plastic
-polyphenylenes (polyaromatics),polyphenylenes (polyaromatics),plastic
-"poly(2,6-dimethyl-p-phenylene oxide)",polyphenylethers (polyphenyleneoxide),plastic
-"poly(2,6-diphenyl-p-phenylene oxide)",polyphenylethers (polyphenyleneoxide),plastic
-poly(p-phenylene oxide),polyphenylethers (polyphenyleneoxide),plastic
+poly(2-methylbutene),polyolefins,plastic
+poly(butylene),polyolefins,plastic
+poly(cyclohexylethylene),polyolefins,plastic
+poly(ethylene),polyethylene,plastic
+poly(heptylethylene),polyolefins,plastic
+poly(hexylethylene),polyolefins,plastic
+poly(isobutylene),polyolefins,plastic
+poly(isopropylethylene),polyolefins,plastic
+poly(octylethylene),polyolefins,plastic
+poly(pentylethylene),polyolefins,plastic
+poly(propylene),polypropylene,plastic
+poly(tert-butylethylene),polyolefins,plastic
+poly(2-chloro-p-xylylene),polyphenylenes,plastic
+poly(p-phenylene vinylene),polyphenylenes,plastic
+poly(p-phenylene),polyphenylenes,plastic
+poly(p-xylene),polyphenylenes,plastic
+polyphenylenes (polyaromatics),polyphenylenes,plastic
+"poly(2,6-dimethyl-p-phenylene oxide)",polyphenylethers,plastic
+"poly(2,6-diphenyl-p-phenylene oxide)",polyphenylethers,plastic
+poly(p-phenylene oxide),polyphenylethers,plastic
 poly(butylene sebacate),polyesters,plastic
 poly(ethylene sebacate),polyesters,plastic
 poly(hexamethylene sebacate),polyesters,plastic
 poly(diethylsiloxane) (pdes),silicones,plastic
 poly(dimethylsiloxane) (pdms),silicones,plastic
 poly(methylphenylsiloxane) (pmps),silicones,plastic
-poly(-methylstyrene),"polystyrenes (polyphenylethylenes, -methylstyrene)",plastic
-poly(2-methoxystyrene),"polystyrenes (polyphenylethylenes, -methylstyrene)",plastic
-poly(2-methylstyrene),"polystyrenes (polyphenylethylenes, -methylstyrene)",plastic
-poly(3-methylstyrene),"polystyrenes (polyphenylethylenes, -methylstyrene)",plastic
-poly(4-methylstyrene),"polystyrenes (polyphenylethylenes, -methylstyrene)",plastic
-poly(4-tert-butylstyrene),"polystyrenes (polyphenylethylenes, -methylstyrene)",plastic
-polystyrene,"polystyrenes (polyphenylethylenes, -methylstyrene)",plastic
+poly(-methylstyrene),polystyrenes,plastic
+poly(2-methoxystyrene),polystyrenes,plastic
+poly(2-methylstyrene),polystyrenes,plastic
+poly(3-methylstyrene),polystyrenes,plastic
+poly(4-methylstyrene),polystyrenes,plastic
+poly(4-tert-butylstyrene),polystyrenes,plastic
+polystyrene,polystyrenes,plastic
 "poly(1,4-butylene succinate)",polyesters,plastic
 "poly(1,6-hexylene succinate)",polyesters,plastic
 poly(ethylene succinate),polyesters,plastic
@@ -220,14 +220,14 @@ poly(butylene terephthalate),polyesters,plastic
 poly(cyclohexylenedimethylene terephthalate),polyesters,plastic
 poly(ethylene terephthalate),polyesters,plastic
 poly(trimethylene terephthalate),polyesters,plastic
-poly(ethylene sulfide),polythioethers (sulfides),plastic
-poly(propylene sulfide),polythioethers (sulfides),plastic
-"poly(thio-1,4-phenylene)",polythioethers (sulfides),plastic
-"poly[(1,4-butanediol)-alt-(4,4'-diphenylmethane diisocyanate)]",polyurethanes (isocyanates),plastic
-"poly[(diethylene glycol)-alt-(1,6-hexamethylene diisocyanate)]",polyurethanes (isocyanates),plastic
-"poly[(ethylene glycol)-alt-(4,4'-diphenylmethane diisocyanate)]",polyurethanes (isocyanates),plastic
-"poly[(polytetrahydrofuran 1000)-alt-(4,4'-diphenylmethane diisocyanate)]",polyurethanes (isocyanates),plastic
-"poly[(tetraethylene glycol)-alt-(1,6-hexamethylene diisocyanate)]",polyurethanes (isocyanates),plastic
+poly(ethylene sulfide),polythioethers,plastic
+poly(propylene sulfide),polythioethers,plastic
+"poly(thio-1,4-phenylene)",polythioethers,plastic
+"poly[(1,4-butanediol)-alt-(4,4'-diphenylmethane diisocyanate)]",polyurethanes,plastic
+"poly[(diethylene glycol)-alt-(1,6-hexamethylene diisocyanate)]",polyurethanes,plastic
+"poly[(ethylene glycol)-alt-(4,4'-diphenylmethane diisocyanate)]",polyurethanes,plastic
+"poly[(polytetrahydrofuran 1000)-alt-(4,4'-diphenylmethane diisocyanate)]",polyurethanes,plastic
+"poly[(tetraethylene glycol)-alt-(1,6-hexamethylene diisocyanate)]",polyurethanes,plastic
 poly(4-vinyl phenol),polyvinylalcohols,plastic
 poly(vinyl alcohol),polyvinylalcohols,plastic
 poly(vinyl butyral),polyvinylalcohols,plastic
@@ -259,11 +259,11 @@ poly(vinyl ethyl sulfide),polyvinylsulfides,plastic
 poly(vinyl methyl sulfide),polyvinylsulfides,plastic
 poly(vinyl phenyl sulfide),polyvinylsulfides,plastic
 poly(vinyl propyl sulfide),polyvinylsulfides,plastic
-styrene-acrylonitrile (san),styrene-acrylonitrile (san),plastic
-styrene-butadiene,styrene-butadiene,plastic
-styrene-isoprene,styrene-isoprene,plastic
-styrene-maleic,styrene-maleic,plastic
-urea-formaldehyde,urea-formaldehyde,plastic
+styrene-acrylonitrile (san),polystyrene-acrylonitrile,plastic
+styrene-butadiene,polystyrene-butadiene,plastic
+styrene-isoprene,polystyrene-isoprene,plastic
+styrene-maleic,polystyrene-maleic,plastic
+urea-formaldehyde,polyurea-formaldehyde,plastic
 polybenzimidazole,polybenzimidazole,plastic
-poly(phenylene sulfide),poly(phenylene sulfide),plastic
-acrylonitrile-butadiene,acrylonitrile-butadiene,plastic
+poly(phenylene sulfide),polyphenylene sulfide,plastic
+acrylonitrile-butadiene,polyacrylonitrile-butadiene,plastic

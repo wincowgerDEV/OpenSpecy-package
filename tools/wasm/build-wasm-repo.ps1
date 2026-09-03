@@ -18,6 +18,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 . (Join-Path $PSScriptRoot "workspace-path.ps1")
 . (Join-Path $PSScriptRoot "docker-preflight.ps1")
+. (Join-Path $PSScriptRoot "dependency-cache.ps1")
 Push-Location $repoRoot
 
 function Resolve-ScratchPath([string]$Path) {
@@ -94,6 +95,7 @@ try {
   $out = Resolve-ScratchPath $OutDir
   $webRImage = "ghcr.io/r-wasm/webr@sha256:2bd309d7a4ea1daed82b6fdb8e325b0de715fcd8592c5b6f3b3b88366e70cb76"
   $cacheRepo = $null
+  $cacheRoot = $null
   $cacheKey = $null
   if (-not $DisableDependencyCache) {
     $cacheRoot = Resolve-ScratchPath $DependencyCacheDir
@@ -158,19 +160,28 @@ try {
     Select-Object -First 1) -replace '^Package:\s*', '').Trim()
   if (-not $packageName) { throw "DESCRIPTION has no Package field." }
 
-  if ($cacheRepo -and -not (Test-Path -LiteralPath $cacheRepo) -and
-      $DependencyCacheSeed) {
-    $seed = Resolve-ScratchPath $DependencyCacheSeed
-    if (-not (Test-Path -LiteralPath $seed -PathType Container)) {
-      throw "DependencyCacheSeed is not a repository directory: $seed"
+  if ($cacheRepo -and -not (Test-Path -LiteralPath $cacheRepo)) {
+    $seed = if ($DependencyCacheSeed) {
+      Resolve-ScratchPath $DependencyCacheSeed
+    } else {
+      Get-OpenSpecyCompatibleWasmCacheSeed `
+        -CacheRoot $cacheRoot -CurrentKey $cacheKey
     }
-    Write-Host "Seeding wasm dependency cache $cacheKey from $seed."
-    Copy-DirectoryContents $seed $cacheRepo
-    Invoke-Checked $Rscript @(
-      "tools/wasm/evict-wasm-cache-package.R",
-      (Get-RepoRelative $cacheRepo),
-      $packageName
-    )
+    if ($seed) {
+      if (-not (Test-Path -LiteralPath $seed -PathType Container)) {
+        throw "DependencyCacheSeed is not a repository directory: $seed"
+      }
+      Write-Host (
+        "Seeding wasm dependency cache $cacheKey from compatible " +
+        "repository $seed."
+      )
+      Copy-DirectoryContents $seed $cacheRepo
+      Invoke-Checked $Rscript @(
+        "tools/wasm/evict-wasm-cache-package.R",
+        (Get-RepoRelative $cacheRepo),
+        $packageName
+      )
+    }
   }
   if ($cacheRepo -and (Test-Path -LiteralPath $cacheRepo)) {
     Write-Host "Restoring wasm dependency cache $cacheKey."

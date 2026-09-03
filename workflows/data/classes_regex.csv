@@ -4,7 +4,7 @@ pattern,material
 ^aramid(?:[[:space:](]|$),polyamides
 ^cellulose[[:space:]]+diacetate(?:[[:space:](]|$),cellulose acetate
 ^lyocell(?:[[:space:](]|$),rayon
-^modacrylic(?:[[:space:](]|$),polyacrylonitriles (nitriles)
+^modacrylic(?:[[:space:](]|$),polyacrylonitriles
 ^mffrc[0-9]+_modified pet(?:[[:space:](]|_),poly(ethylene terephthalate)
 ^mffrc[0-9]+_olefin[[:space:]]*\(certran hmpe\)_,poly(ethylene)
 ^mffrc[0-9]+_pvdc(?:[[:space:](]|_),poly(vinylidene chloride)
@@ -19,7 +19,7 @@ pattern,material
 ^plc[0-9]+_.*_keratin(?:[.][0-9]+)?$,organic matter
 ^plc[0-9]+_.*_ldpe(?:[.][0-9]+)?$,poly(ethylene)
 ^plc[0-9]+_.*_natural rubber(?:[.][0-9]+)?$,other plastic
-^plc[0-9]+_.*_nitrile(?:[.][0-9]+)?$,polyacrylonitriles (nitriles)
+^plc[0-9]+_.*_nitrile(?:[.][0-9]+)?$,polyacrylonitriles
 ^plc[0-9]+_.*_nylon(?:[.][0-9]+)?$,polyamides
 ^plc[0-9]+_.*_paint(?:[.][0-9]+)?$,paint
 ^plc[0-9]+_.*_pc(?:[.][0-9]+)?$,polycarbonates
@@ -47,14 +47,14 @@ pattern,material
 ^scipoly[0-9]+_poly\(vinylidene fluoride\)$,poly(vinylidene fluoride)
 ^scipoly[0-9]+_polyacetal$,polyacetal - polyoxymethylene
 ^scipoly[0-9]+_polyacrylamide(?:\x2c|$),polyacrylamides
-^scipoly[0-9]+_polyacrylonitrile$,polyacrylonitriles (nitriles)
+^scipoly[0-9]+_polyacrylonitrile$,polyacrylonitriles
 ^scipoly[0-9]+_polyamide(?:[[:space:](]|$),polyamides
 ^scipoly[0-9]+_polycarbonate(?:\x2c|$),polycarbonates
 ^scipoly[0-9]+_polyethylene(?:$|\x2c low density$),poly(ethylene)
 ^scipoly[0-9]+_polypropylene(?:\x2c|$),poly(propylene)
 ^scipoly[0-9]+_polystyrene(?:\x2c|$),polystyrene
 ^scipoly[0-9]+_polyvinylpyrrolidone$,poly(vinyl pyrrolidone)
-^spandex(?:[[:space:](]|$),polyurethanes (isocyanates)
+^spandex(?:[[:space:](]|$),polyurethanes
 ^tf[0-9]+_(?!.*(?:cotton|hemp|linen|lycra|nylon|polyester|rayon|silk|spandex|viscose|wool)).*acetate(?:[[:space:]]|$),cellulose acetate
 ^tf[0-9]+_(?!.*(?:acetate|cotton|hemp|linen|lycra|nylon|polyester|rayon|silk|spandex|wool)).*(?:modal|viscose)(?:[[:space:]]|$),rayon
 ^tf[0-9]+_(?!.*(?:acetate|hemp|linen|lycra|modal|nylon|polyester|rayon|silk|spandex|viscose|wool)).*cotton(?:[[:space:]]|$),organic matter

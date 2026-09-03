@@ -1127,7 +1127,7 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
   )
   expect_true(all(
     classes[spectrum_identity %in% c("polyesterurethane", "polyetherurethane"),
-            material] == "polyurethanes (isocyanates)"
+            material] == "polyurethanes"
   ))
   expect_true(all(
     classes[spectrum_identity %in% c("tylose", "tylose2"), material] ==
@@ -1278,6 +1278,73 @@ test_that("reference class completion labels and caps unresolved other", {
     "above the reviewed 1% maximum",
     fixed = TRUE
   )
+})
+
+test_that("official other policy removes vague rows and preserves a typed review", {
+  lib <- tiny_build_lib()
+  lib$metadata[, `:=`(
+    spectrum_identity = c(NA_character_, paste0("identity_", 2:8)),
+    sample_id = paste0("sample_", 1:8),
+    file_name = paste0("file_", 1:8, ".csv"),
+    organization = source,
+    user_name = source,
+    citation = "citation",
+    other_info = "note",
+    material = c("other", "other plastic", "polyamide", rep("polyester", 5)),
+    material_type = c("other", "plastic", "other material", rep("plastic", 5))
+  )]
+  lib$metadata$material_class <- c(
+    "other", "other plastic", "other material", rep("polyesters", 5)
+  )
+
+  removed <- OpenSpecy:::.lib_apply_other_policy(
+    list(raw = lib), remove_other = TRUE, report = NULL
+  )
+  expect_identical(colnames(removed$libraries$raw$spectra), paste0("s", 4:8))
+  expect_identical(nrow(removed$libraries$raw$metadata), 5L)
+  expect_named(removed$review, names(OpenSpecy:::.lib_other_review_schema()))
+  expect_named(removed$summary, names(OpenSpecy:::.lib_other_filter_schema()))
+  expect_type(removed$review$source_row, "integer")
+  expect_type(removed$summary$removed, "integer")
+  expect_equal(removed$review$reason,
+               c("missing_spectrum_identity", rep("generic_other_label", 2)))
+  expect_equal(removed$summary[, .(candidates, removed, after)],
+               data.table::data.table(candidates = 3L, removed = 3L, after = 5L))
+  expect_true(check_OpenSpecy(removed$libraries$raw))
+
+  retained <- OpenSpecy:::.lib_apply_other_policy(
+    list(raw = lib), remove_other = FALSE, report = NULL
+  )
+  expect_identical(ncol(retained$libraries$raw$spectra), 8L)
+  expect_true(all(
+    retained$review$action == "retained_for_semisupervised_reassignment"
+  ))
+  expect_identical(retained$summary$removed, 0L)
+  expect_identical(formals(build_lib)$remove_other, TRUE)
+})
+
+test_that("confusion tables rank the largest misidentifications first", {
+  tests <- data.table::data.table(
+    artifact = "derivative", model = "raman", source = "new",
+    technique = "raman", provenance = "candidate",
+    expected_class = c(rep("polyethylene", 10), rep("polypropylene", 4)),
+    predicted_class = c(rep("polyethylene", 5), rep("polypropylene", 5),
+                        rep("polypropylene", 3), "polyethylene")
+  )
+  confusion <- OpenSpecy:::.lib_confusion_table(tests)
+  expect_named(confusion, c(
+    "artifact", "model", "source", "technique", "provenance",
+    "expected_class", "predicted_class", "spectra", "misidentified",
+    "expected_class_spectra", "expected_class_fraction"
+  ), ignore.order = TRUE)
+  expect_true(confusion$misidentified[[1L]])
+  expect_equal(confusion$spectra[[1L]], 5L)
+  expect_equal(
+    confusion[expected_class == "polyethylene", expected_class_fraction],
+    c(0.5, 0.5)
+  )
+  expect_type(confusion$expected_class_fraction, "double")
+  expect_named(OpenSpecy:::.lib_confusion_table(tests[0]), names(confusion))
 })
 
 test_that("build_lib() preserves full source ranges through NA-aware recipes", {
@@ -1431,7 +1498,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   }, logical(1))))
   expect_true(all(c(
     "build_summary", "class_prediction", "class_coverage",
-    "type_coverage", "pruning", "metadata_drop", "output_manifest"
+    "type_coverage", "other_review", "other_filter", "pruning",
+    "pruning_reassignments", "metadata_drop", "output_manifest"
   ) %in% names(first$assessments)))
   release_dir <- attr(first, "output_dir")
   expect_true(all(file.exists(file.path(
@@ -1725,4 +1793,45 @@ test_that("reference regex table contains only genuinely variable rules", {
     "poly(amide)", "poly(styrene)", "poly(vinylchloride)",
     "polyethylene glycol"
   ) %in% exact$spectrum_identity))
+})
+
+test_that("official material hierarchy uses concise reviewed polymer classes", {
+  hierarchy <- data.table::fread(
+    reference_workflow_data_path("material_hierarchy.csv")
+  )
+  expect_identical(anyDuplicated(hierarchy$material), 0L)
+  expect_false(anyNA(hierarchy$material_class))
+  expect_false(any(!nzchar(trimws(hierarchy$material_class))))
+  expect_identical(
+    hierarchy[material == "poly(ethylene)", material_class], "polyethylene"
+  )
+  expect_identical(
+    hierarchy[material == "poly(propylene)", material_class], "polypropylene"
+  )
+  expect_identical(
+    hierarchy[material == "poly(tetrafluoroethylene)", material_class],
+    "polytetrafluoroethylene"
+  )
+  expect_identical(
+    hierarchy[material == "poly(ethylene-vinyl acetate) (EVA)",
+              material_class],
+    "polyethylene-vinyl acetate"
+  )
+  expect_identical(
+    hierarchy[material == "styrene-butadiene", material_class],
+    "polystyrene-butadiene"
+  )
+  expect_identical(
+    hierarchy[material == "poly(ethylene glycol)", material_class],
+    "polyethers"
+  )
+  parenthetical_classes <- unique(
+    hierarchy[grepl("[()]", material_class), material_class]
+  )
+  expect_identical(parenthetical_classes, "polyhydroxy(meth)acrylates")
+  exceptions <- c(
+    "cellulose derivatives", "paint", "silicones", "other plastic"
+  )
+  polymer_classes <- unique(hierarchy[material_type == "plastic", material_class])
+  expect_true(all(startsWith(setdiff(polymer_classes, exceptions), "poly")))
 })

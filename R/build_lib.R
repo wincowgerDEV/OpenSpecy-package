@@ -64,8 +64,12 @@
 #' spectra with running signal-to-noise below two are removed before pruning.
 #' Full artifacts are then partitioned into Raman (200--4000), FTIR
 #' (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
-#' Official class completion retains unmapped reviewed identities as
-#' \code{"other"} and stops when that class exceeds one percent of an artifact.
+#' Official class completion temporarily assigns unresolved identities to
+#' \code{"other"}. By default, spectra with a blank identity or a generic
+#' \code{"other"}, \code{"other plastic"}, or \code{"other material"} label
+#' are removed before quality control and retained in the
+#' \code{other_review} assessment table. Set \code{remove_other = FALSE} to
+#' retain them for \code{prune_lib()}'s nearest-class semisupervised pathway.
 #' Before pruning, \code{prune_lib()} reassigns generic classes by nearest
 #' same-technique correlation: \code{"other"} may use any established class,
 #' \code{"other plastic"} requires a plastic candidate, and
@@ -208,6 +212,13 @@
 #' and retrieves missing artifacts with \code{get_lib()}.
 #' @param reuse logical; whether manifest-compatible completed checkpoints and
 #' versioned release files may be reused.
+#' @param remove_other logical; in the official end-to-end workflow, whether
+#' spectra with blank \code{spectrum_identity} or generic \code{"other"},
+#' \code{"other plastic"}, or \code{"other material"} metadata are removed
+#' before quality control, medoid selection, and model fitting. Removed rows
+#' remain reviewable in \code{assessments$other_review}. If \code{FALSE}, the
+#' generic rows are retained for \code{prune_lib()}'s constrained nearest-class
+#' reassignment. Source-only composable builds do not apply the official filter.
 #' @param seed fixed seed for the grouped old/new assessment split.
 #' @param holdout fraction of stable spectrum groups reserved for assessment.
 #' @param group_cols metadata columns defining groups for reduction.
@@ -245,8 +256,9 @@
 #' \code{ftir}, \code{raman}, or \code{nir}; FTIR and Raman medoids/models use
 #' 800--3200 while the NIR interval is derived from finite coverage within
 #' 4000--12000. Assessment items are typed reviewable data.tables, including
-#' macro-first summaries, class accuracy, confusion counts, quality-control
-#' removals, stable warnings, and output manifests. Each model contains one
+#' macro-first summaries, class accuracy, ranked confusion counts, generic-row
+#' review/removal tables, quality-control removals, stable warnings, and output
+#' manifests. Each model contains one
 #' \code{tests} data.table and a one-spectrum \code{fill} object.
 #' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 #' \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
@@ -345,7 +357,8 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       progress = TRUE,
                       workflow_data = NULL,
                       output_dir = NULL, previous_library_dir = "system",
-                      reuse = TRUE, seed = 123, holdout = 0.1,
+                      reuse = TRUE, remove_other = TRUE,
+                      seed = 123, holdout = 0.1,
                       ...) {
   if (missing(x)) {
     stop(
@@ -359,6 +372,10 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
   }
   if (!is.logical(reuse) || length(reuse) != 1L || is.na(reuse)) {
     stop("'reuse' must be TRUE or FALSE", call. = FALSE)
+  }
+  if (!is.logical(remove_other) || length(remove_other) != 1L ||
+      is.na(remove_other)) {
+    stop("'remove_other' must be TRUE or FALSE", call. = FALSE)
   }
 
   if (!official_mode) {
@@ -390,7 +407,8 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     signal_noise = signal_noise, assess = assess, prune = prune,
     progress = progress, workflow_data = workflow_data,
     output_dir = output_dir, previous_library_dir = previous_library_dir,
-    reuse = reuse, seed = seed, holdout = holdout, ...
+    reuse = reuse, remove_other = remove_other,
+    seed = seed, holdout = holdout, ...
   )
 }
 
@@ -976,7 +994,8 @@ predict_class_reference <- function(metadata, regex_reference,
 # identities as an explicit review queue. This stays internal because the two
 # normalization rules and the reviewed one-percent cap are specific to the
 # official library, not a general package API.
-.lib_complete_reference_classes <- function(x, classes, hierarchy) {
+.lib_complete_reference_classes <- function(x, classes, hierarchy,
+                                            enforce_other_limit = TRUE) {
   metadata <- data.table::copy(x$metadata)
   blank <- function(value) {
     value <- as.character(value)
@@ -1053,7 +1072,7 @@ predict_class_reference <- function(metadata, regex_reference,
   other <- !blank(metadata$material_class) &
     tolower(trimws(metadata$material_class)) == "other"
   other_fraction <- if (nrow(metadata)) sum(other) / nrow(metadata) else 0
-  if (other_fraction > 0.01) {
+  if (isTRUE(enforce_other_limit) && other_fraction > 0.01) {
     stop(sprintf(
       paste0(
         "The 'other' class is %.2f%% of the library (%d/%d), above the ",
@@ -1078,6 +1097,128 @@ predict_class_reference <- function(metadata, regex_reference,
   x$metadata <- metadata
   attr(x, "class_coverage_report") <- report
   x
+}
+
+.lib_other_review_schema <- function() {
+  data.table::data.table(
+    artifact = character(), source_row = integer(), spectrum_id = character(),
+    spectrum_identity = character(), sample_id = character(),
+    file_name = character(), organization = character(), user_name = character(),
+    citation = character(), other_info = character(), material = character(),
+    material_class = character(), material_type = character(),
+    spectrum_type = character(), generic_fields = character(),
+    reason = character(), action = character()
+  )
+}
+
+.lib_other_filter_schema <- function() {
+  data.table::data.table(
+    artifact = character(), action = character(), before = integer(),
+    candidates = integer(), missing_identity = integer(),
+    generic_label = integer(), removed = integer(), after = integer()
+  )
+}
+
+.lib_apply_other_policy <- function(libraries, remove_other, report = NULL) {
+  generic_labels <- c("other", "other plastic", "other material")
+  reviews <- list()
+  summaries <- list()
+  value <- function(metadata, column) {
+    if (column %in% names(metadata)) as.character(metadata[[column]]) else
+      rep(NA_character_, nrow(metadata))
+  }
+  for (artifact in names(libraries)) {
+    object <- libraries[[artifact]]
+    metadata <- object$metadata
+    identity <- value(metadata, "spectrum_identity")
+    missing_identity <- is.na(identity) | !nzchar(trimws(identity))
+    label_columns <- c("material", "material_class", "material_type")
+    generic_matrix <- vapply(label_columns, function(column) {
+      tolower(trimws(value(metadata, column))) %in% generic_labels
+    }, logical(nrow(metadata)))
+    if (is.null(dim(generic_matrix))) {
+      generic_matrix <- matrix(generic_matrix, ncol = length(label_columns))
+    }
+    generic <- rowSums(generic_matrix) > 0L
+    candidates <- missing_identity | generic
+    action <- if (isTRUE(remove_other)) {
+      "removed"
+    } else {
+      "retained_for_semisupervised_reassignment"
+    }
+    if (any(candidates)) {
+      rows <- which(candidates)
+      triggered <- apply(generic_matrix[rows, , drop = FALSE], 1L, function(x) {
+        paste(label_columns[x], collapse = "; ")
+      })
+      review <- data.table::data.table(
+        artifact = artifact,
+        source_row = as.integer(rows),
+        spectrum_id = as.character(.lib_ids(object, "sample_name"))[rows],
+        spectrum_identity = identity[rows],
+        sample_id = value(metadata, "sample_id")[rows],
+        file_name = value(metadata, "file_name")[rows],
+        organization = value(metadata, "organization")[rows],
+        user_name = value(metadata, "user_name")[rows],
+        citation = value(metadata, "citation")[rows],
+        other_info = value(metadata, "other_info")[rows],
+        material = value(metadata, "material")[rows],
+        material_class = value(metadata, "material_class")[rows],
+        material_type = value(metadata, "material_type")[rows],
+        spectrum_type = value(metadata, "spectrum_type")[rows],
+        generic_fields = triggered,
+        reason = ifelse(missing_identity[rows],
+                        "missing_spectrum_identity", "generic_other_label"),
+        action = action
+      )
+      reviews[[artifact]] <- review
+    }
+    before <- ncol(object$spectra)
+    if (isTRUE(remove_other) && any(candidates)) {
+      if (all(candidates)) {
+        stop("Removing blank identities and generic classes would remove every ",
+             "spectrum from ", artifact, call. = FALSE)
+      }
+      object <- filter_spec(object, !candidates)
+    }
+    summary <- data.table::data.table(
+      artifact = artifact, action = action, before = as.integer(before),
+      candidates = as.integer(sum(candidates)),
+      missing_identity = as.integer(sum(missing_identity)),
+      generic_label = as.integer(sum(generic)),
+      removed = as.integer(if (isTRUE(remove_other)) sum(candidates) else 0L),
+      after = as.integer(ncol(object$spectra))
+    )
+    summaries[[artifact]] <- summary
+    attr(object, "other_review_report") <- if (is.null(reviews[[artifact]])) {
+      .lib_other_review_schema()
+    } else {
+      reviews[[artifact]]
+    }
+    attr(object, "other_filter_report") <- summary
+    libraries[[artifact]] <- object
+    if (is.function(report)) report(sprintf(
+      paste0("generic review %s: candidates=%d (missing identity=%d; ",
+             "generic label=%d); action=%s; affected=%d; library retained=%d"),
+      artifact, sum(candidates), sum(missing_identity), sum(generic),
+      if (isTRUE(remove_other)) "removed" else "queued for reassignment",
+      sum(candidates),
+      ncol(object$spectra)
+    ))
+  }
+  list(
+    libraries = libraries,
+    review = if (length(reviews)) {
+      data.table::rbindlist(reviews, fill = TRUE)
+    } else {
+      .lib_other_review_schema()
+    },
+    summary = if (length(summaries)) {
+      data.table::rbindlist(summaries, fill = TRUE)
+    } else {
+      .lib_other_filter_schema()
+    }
+  )
 }
 
 .lib_prepare_sources <- function(sources, range, res, metadata_name_lookup,
@@ -2938,7 +3079,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
                                  clean_metadata_values, convert_intensity,
                                  restrict_range_args, signal_noise, assess,
                                  prune, progress, workflow_data, output_dir,
-                                 previous_library_dir, reuse, seed, holdout,
+                                 previous_library_dir, reuse, remove_other,
+                                 seed, holdout,
                                  ...) {
   if (!is.character(output_dir) || length(output_dir) != 1L ||
       is.na(output_dir) || !nzchar(output_dir)) {
@@ -2995,7 +3137,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       convert_intensity = convert_intensity,
       restrict_range_args = restrict_range_args,
       signal_noise = signal_noise, assess = assess, prune = prune,
-      seed = seed, holdout = holdout
+      remove_other = remove_other, seed = seed, holdout = holdout
     )
   )
   # Keep completed libraries, medoids, and production models reusable when
@@ -3013,9 +3155,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       clean_metadata_values = clean_metadata_values,
       convert_intensity = convert_intensity,
       restrict_range_args = restrict_range_args,
-      signal_noise = signal_noise, assess = assess, prune = prune
+      signal_noise = signal_noise, assess = assess, prune = prune,
+      remove_other = remove_other
     ),
-    component_version = "reference-artifacts-v3-na-support"
+    component_version = "reference-artifacts-v4-other-taxonomy"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -3072,7 +3215,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       }
     }
     completed <- .lib_complete_reference_build(
-      core, tables = tables, prune = prune, progress = progress,
+      core, tables = tables, prune = prune, remove_other = remove_other,
+      progress = progress,
       report = report
     )
     libraries <- completed$libraries
@@ -3121,7 +3265,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "source-local-type-macro-reference-v4"
+      assessment_version = "source-local-type-macro-reference-v5-ranked-confusion"
     ),
     algo = "sha256"
   )
@@ -3246,7 +3390,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "source-local-type-macro-reference-v4"
+    assessment_version = "source-local-type-macro-reference-v5-ranked-confusion"
   ), algo = "sha256")
   cached <- checkpoints$get("assessments", key = assessment_key)
   if (!is.null(cached)) {
@@ -3382,7 +3526,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   keep <- c(
     "lookup_coverage", "identity_cleanup", "class_prediction",
     "class_coverage", "type_coverage", "exclusions_deduplication",
-    "filters", "metadata_drop", "pruning", "quality_control"
+    "other_review", "other_filter", "filters", "metadata_drop", "pruning",
+    "pruning_reassignments", "quality_control"
   )
   assessments[intersect(keep, names(assessments))]
 }
@@ -3624,8 +3769,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   invisible(path)
 }
 
-.lib_complete_reference_build <- function(libraries, tables, prune, progress,
-                                          report) {
+.lib_complete_reference_build <- function(libraries, tables, prune,
+                                          remove_other, progress, report) {
   prediction_rows <- list()
   coverage_rows <- list()
   for (name in names(libraries)) {
@@ -3647,7 +3792,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     ]
     libraries[[name]] <- .lib_complete_reference_classes(
       libraries[[name]], classes = tables$classes_reference,
-      hierarchy = tables$material_hierarchy
+      hierarchy = tables$material_hierarchy,
+      enforce_other_limit = !isTRUE(remove_other)
     )
     prediction_rows[[name]] <- data.table::data.table(
       artifact = name, metric = names(prediction$summary),
@@ -3665,6 +3811,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       other_fraction = coverage$other_fraction
     )
   }
+
+  other_policy <- .lib_apply_other_policy(
+    libraries, remove_other = remove_other, report = report
+  )
+  libraries <- other_policy$libraries
 
   type_coverage <- data.table::rbindlist(lapply(names(libraries), function(name) {
     metadata <- libraries[[name]]$metadata
@@ -3693,6 +3844,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     prune_spec <- list(derivative = list(), nobaseline = list())
   }
   prune_rows <- list()
+  prune_reassignment_rows <- list()
   for (name in intersect(names(prune_spec), names(libraries))) {
     report(paste0("pruning ", name))
     args <- prune_spec[[name]]
@@ -3703,6 +3855,27 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     libraries[[name]] <- pruned$object
     prune_rows[[name]] <- data.table::copy(pruned$summary)[
       , artifact := name][]
+    if (nrow(pruned$reassignments)) {
+      prune_reassignment_rows[[name]] <- data.table::copy(
+        pruned$reassignments
+      )[, artifact := name][]
+    }
+  }
+  if (!isTRUE(remove_other) && nrow(other_policy$review)) {
+    other_policy$review[
+      action == "retained_for_semisupervised_reassignment",
+      action := "retained_unresolved"
+    ]
+    if (length(prune_reassignment_rows)) {
+      reassigned_ids <- data.table::rbindlist(
+        prune_reassignment_rows, fill = TRUE
+      )[, .(artifact, spectrum_id)]
+      other_policy$review[
+        reassigned_ids,
+        on = .(artifact, spectrum_id),
+        action := "reassigned"
+      ]
+    }
   }
 
   superseded_drop <- c(
@@ -3767,7 +3940,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       class_prediction = data.table::rbindlist(prediction_rows, fill = TRUE),
       class_coverage = data.table::rbindlist(coverage_rows, fill = TRUE),
       type_coverage = type_coverage,
+      other_review = other_policy$review,
+      other_filter = other_policy$summary,
       pruning = data.table::rbindlist(prune_rows, fill = TRUE),
+      pruning_reassignments = if (length(prune_reassignment_rows)) {
+        data.table::rbindlist(prune_reassignment_rows, fill = TRUE)
+      } else {
+        .lib_prune_reassignment_schema()
+      },
       quality_control = quality$assessment,
       filters = data.table::data.table(
         stage = "special_filter", before = before_filter,
@@ -3791,6 +3971,16 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 .lib_warning_schema <- function() {
   data.table::data.table(
     artifact = character(), model = character(), warning = character()
+  )
+}
+
+.lib_prune_reassignment_schema <- function() {
+  data.table::data.table(
+    artifact = character(), spectrum_id = character(),
+    prior_class = character(), material_class = character(),
+    prior_material_type = character(), material_type = character(),
+    matched_id = character(), correlation = numeric(), pool = character(),
+    reason = character()
   )
 }
 
@@ -4248,6 +4438,29 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     out[, artifact := name]
     out
   }), fill = TRUE)
+  other_review <- data.table::rbindlist(lapply(names(libraries), function(name) {
+    report <- attr(libraries[[name]], "other_review_report")
+    if (is.null(report) || !nrow(report)) return(NULL)
+    data.table::copy(report)
+  }), fill = TRUE)
+  if (!nrow(other_review)) other_review <- .lib_other_review_schema()
+  other_filter <- data.table::rbindlist(lapply(names(libraries), function(name) {
+    report <- attr(libraries[[name]], "other_filter_report")
+    if (is.null(report) || !nrow(report)) return(NULL)
+    data.table::copy(report)
+  }), fill = TRUE)
+  if (!nrow(other_filter)) other_filter <- .lib_other_filter_schema()
+  pruning_reassignments <- data.table::rbindlist(lapply(
+    names(libraries), function(name) {
+      report <- attr(libraries[[name]], "prune_report")
+      if (is.null(report) || is.null(report$reassignments) ||
+          !nrow(report$reassignments)) return(NULL)
+      data.table::copy(report$reassignments)[, artifact := name][]
+    }
+  ), fill = TRUE)
+  if (!nrow(pruning_reassignments)) {
+    pruning_reassignments <- .lib_prune_reassignment_schema()
+  }
 
   raw_coverage <- attr(libraries$raw, "class_coverage_report")
   before_filter <- if (is.null(raw_coverage) || nrow(raw_coverage) == 0L) {
@@ -4267,7 +4480,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     class_prediction = prediction,
     class_coverage = coverage,
     type_coverage = type_coverage,
+    other_review = other_review,
+    other_filter = other_filter,
     pruning = pruning,
+    pruning_reassignments = pruning_reassignments,
     filters = data.table::data.table(
       stage = "special_filter", before = before_filter,
       after = after_filter,
@@ -4387,10 +4603,13 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     class_prediction = data.table::data.table(),
     class_coverage = data.table::data.table(),
     type_coverage = data.table::data.table(),
+    other_review = .lib_other_review_schema(),
+    other_filter = .lib_other_filter_schema(),
     exclusions_deduplication = exclusions,
     filters = data.table::data.table(),
     metadata_drop = data.table::data.table(),
     pruning = data.table::data.table(),
+    pruning_reassignments = .lib_prune_reassignment_schema(),
     medoid_model_summary = model_summary,
     medoid_model_support = support,
     model_class_support = class_support,
@@ -5032,15 +5251,35 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       artifact = character(), model = character(), source = character(),
       technique = character(), provenance = character(),
       expected_class = character(), predicted_class = character(),
-      spectra = integer()
+      misidentified = logical(), spectra = integer(),
+      expected_class_spectra = integer(), expected_class_fraction = numeric()
     ))
   }
   group_cols <- intersect(
     c("artifact", "model", "source", "technique", "provenance"),
     names(tests)
   )
-  tests[, .(spectra = .N),
-        by = c(group_cols, "expected_class", "predicted_class")]
+  out <- tests[, .(spectra = .N),
+               by = c(group_cols, "expected_class", "predicted_class")]
+  out[, misidentified := is.na(expected_class) | is.na(predicted_class) |
+        expected_class != predicted_class]
+  expected_groups <- c(group_cols, "expected_class")
+  out[, `:=`(
+    expected_class_spectra = as.integer(sum(spectra)),
+    expected_class_fraction = spectra / sum(spectra)
+  ), by = expected_groups]
+  data.table::setcolorder(
+    out,
+    c(group_cols, "expected_class", "predicted_class", "misidentified",
+      "spectra", "expected_class_spectra", "expected_class_fraction")
+  )
+  data.table::setorderv(
+    out,
+    c(group_cols, "misidentified", "spectra", "expected_class",
+      "predicted_class"),
+    c(rep(1L, length(group_cols)), -1L, -1L, 1L, 1L), na.last = TRUE
+  )
+  out
 }
 
 .lib_assess_spec_summary <- function(x, artifact, source) {

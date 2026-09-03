@@ -48,13 +48,17 @@ if (identical(mode, "probe")) {
   probe <- filter_spec(raw, sample(eligible, 1000L))
   result <- build_lib(
     probe, output_dir = output, previous_library_dir = NULL,
-    reuse = reuse, seed = seed
+    reuse = reuse, remove_other = TRUE, seed = seed
   )
+  valid_type_map <- function(x) {
+    is.list(x) && length(x) > 0L &&
+      all(vapply(x, check_OpenSpecy, logical(1)))
+  }
   stopifnot(
     identical(names(result),
               c("libraries", "medoids", "models", "assessments")),
-    all(vapply(result$libraries, check_OpenSpecy, logical(1))),
-    all(vapply(result$medoids, check_OpenSpecy, logical(1)))
+    all(vapply(result$libraries, valid_type_map, logical(1))),
+    all(vapply(result$medoids, valid_type_map, logical(1)))
   )
   print(result$assessments$build_summary)
   print(result$assessments$output_manifest)

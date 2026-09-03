@@ -1,5 +1,20 @@
 # OpenSpecy 1.7.1
 
+- Official `build_lib()` runs now default to `remove_other = TRUE`, removing
+  blank `spectrum_identity` rows and the generic `other`, `other plastic`, and
+  `other material` labels before quality control, medoids, and models while
+  preserving a typed source-level review table and before/after counts in
+  `assessments`. Setting it to `FALSE` retains the semisupervised constrained
+  `prune_lib()` reassignment workflow.
+- Simplified official polymer class names, separated polyethylene from
+  polypropylene, and retained chemically meaningful
+  `polyhydroxy(meth)acrylates` notation. Confusion tables now flag and rank the
+  largest misidentifications and report each cell's share of its expected
+  class.
+- Fixed cold-cache failures in the pinned WebAssembly package-repository
+  workflow by letting a dependency-metadata cache key seed from the newest
+  compatible successful repository before rebuilding the exact OpenSpecy
+  commit. The Action now tests this fallback before its full build.
 - Added `rebuild_lib_artifacts()` to reuse completed type-keyed libraries while
   checkpointing a new medoid, model, and assessment run. Spectra with at least
   10% observed support now enter medoid/model preparation: PAM uses temporary

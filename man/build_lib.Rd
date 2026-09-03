@@ -35,6 +35,7 @@ build_lib(
   output_dir = NULL,
   previous_library_dir = "system",
   reuse = TRUE,
+  remove_other = TRUE,
   seed = 123,
   holdout = 0.1,
   ...
@@ -221,6 +222,14 @@ and retrieves missing artifacts with \code{get_lib()}.}
 \item{reuse}{logical; whether manifest-compatible completed checkpoints and
 versioned release files may be reused.}
 
+\item{remove_other}{logical; in the official end-to-end workflow, whether
+spectra with blank \code{spectrum_identity} or generic \code{"other"},
+\code{"other plastic"}, or \code{"other material"} metadata are removed
+before quality control, medoid selection, and model fitting. Removed rows
+remain reviewable in \code{assessments$other_review}. If \code{FALSE}, the
+generic rows are retained for \code{prune_lib()}'s constrained nearest-class
+reassignment. Source-only composable builds do not apply the official filter.}
+
 \item{seed}{random seed used before model training.}
 
 \item{holdout}{fraction of stable spectrum groups reserved for assessment.}
@@ -306,8 +315,9 @@ Official libraries and medoids are nested by recipe and then
 \code{ftir}, \code{raman}, or \code{nir}; FTIR and Raman medoids/models use
 800--3200 while the NIR interval is derived from finite coverage within
 4000--12000. Assessment items are typed reviewable data.tables, including
-macro-first summaries, class accuracy, confusion counts, quality-control
-removals, stable warnings, and output manifests. Each model contains one
+macro-first summaries, class accuracy, ranked confusion counts, generic-row
+review/removal tables, quality-control removals, stable warnings, and output
+manifests. Each model contains one
 \code{tests} data.table and a one-spectrum \code{fill} object.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
@@ -383,8 +393,12 @@ tails are trimmed and reassessed, failed corrections are removed, and
 spectra with running signal-to-noise below two are removed before pruning.
 Full artifacts are then partitioned into Raman (200--4000), FTIR
 (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
-Official class completion retains unmapped reviewed identities as
-\code{"other"} and stops when that class exceeds one percent of an artifact.
+Official class completion temporarily assigns unresolved identities to
+\code{"other"}. By default, spectra with a blank identity or a generic
+\code{"other"}, \code{"other plastic"}, or \code{"other material"} label
+are removed before quality control and retained in the
+\code{other_review} assessment table. Set \code{remove_other = FALSE} to
+retain them for \code{prune_lib()}'s nearest-class semisupervised pathway.
 Before pruning, \code{prune_lib()} reassigns generic classes by nearest
 same-technique correlation: \code{"other"} may use any established class,
 \code{"other plastic"} requires a plastic candidate, and

@@ -444,6 +444,10 @@ test_that("only one workflow publishes the combined native Pages site", {
   expect_true(any(grepl("path: _wasm/rwasm-dependency-cache", wasm,
                         fixed = TRUE)))
   expect_true(any(grepl("wasm-deps-v1-", wasm, fixed = TRUE)))
+  expect_gte(sum(grepl("wasm-deps-v1-${{ runner.os }}-", wasm,
+                       fixed = TRUE)), 2L)
+  expect_true(any(grepl("test-dependency-cache.ps1", wasm,
+                         fixed = TRUE)))
   expect_true(any(grepl("tools/wasm/test-workspace-path.ps1", wasm,
                          fixed = TRUE)))
   expect_false(any(grepl("r-wasm/actions/build-rwasm@v3", wasm,
@@ -527,6 +531,9 @@ test_that("hosted preflight is exact and the full pre-push gate is unskippable",
   expect_true(any(grepl("check-wasm-artifact.R", build, fixed = TRUE)))
   expect_true(any(grepl("DependencyCacheDir", build, fixed = TRUE)))
   expect_true(any(grepl("DependencyCacheSeed", build, fixed = TRUE)))
+  expect_true(any(grepl("dependency-cache.ps1", build, fixed = TRUE)))
+  expect_true(any(grepl("Get-OpenSpecyCompatibleWasmCacheSeed", build,
+                         fixed = TRUE)))
   expect_true(any(grepl("evict-wasm-cache-package.R", build, fixed = TRUE)))
   expect_true(any(grepl("Restoring wasm dependency cache", build,
                         fixed = TRUE)))

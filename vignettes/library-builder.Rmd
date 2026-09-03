@@ -213,8 +213,13 @@ IDs resolve correlation ties. Use `return = "report"` for the retained IDs,
 frozen class schedule, reassignment correlations, and removals.
 `build_lib(prune = ...)` maps recipe names to `prune_lib()` argument lists, so
 each selected spectral representation is pruned independently. In the official
-workflow, an otherwise unresolved identity is labeled `other`; the build stops
-for curation if `other` exceeds one percent of an artifact.
+workflow, an otherwise unresolved identity is temporarily labeled `other`.
+The default `remove_other = TRUE` removes blank identities and the generic
+`other`, `other plastic`, and `other material` labels before quality control,
+while keeping their identifiers, source metadata, prior labels, reasons, and
+actions in `assessments$other_review`; `assessments$other_filter` holds typed
+before/after counts. Set `remove_other = FALSE` to retain these rows for the
+constrained semisupervised `prune_lib()` reassignment described above.
 
 ```{r mini-library-prune}
 pruned <- prune_lib(
@@ -249,8 +254,11 @@ source-type lookup and asserts complete library/spectrum-type coverage. The
 exact class lookup runs first;
 `predict_class_reference()` then evaluates the separate regex table only for
 blank materials. Exact/regex overlaps are audited without overwriting exact
-values, and conflicting regex predictions stop for review. Remaining uncertain
-identities are retained under the curated generic-class policy. Derivative and
+values, and conflicting regex predictions stop for review. Material classes
+use concise polymer-family names, with polyethylene and polypropylene separated
+and `polyhydroxy(meth)acrylates` retaining its chemically meaningful optional
+group notation. Remaining uncertain identities follow the selected generic-row
+review policy. Derivative and
 nobaseline spectra pass three quality gates before pruning: FTIR CO2 is
 flattened when the 2200--2420 maximum divided by the 2420--2550 silent-region
 maximum is greater than two; high-tail detection ignores NA padding, trims each
@@ -291,9 +299,11 @@ Held-out identifiers are removed from full and medoid references before
 identification; production models are evaluated without retraining through
 `match_spec()` so partial spectra can use the stored filler. Macro class
 accuracy is the primary metric, followed by evaluated coverage, overall
-accuracy, per-class accuracy, confusion counts, and clear old/new
+accuracy, per-class accuracy, and clear old/new
 `assess_spec(report = "all")` shifts. Empty warnings retain their column schema
-and numeric measurements remain numeric. The smaller 1,000-spectrum run in the
+and numeric measurements remain numeric. Confusion tables mark incorrect cells,
+report each cell's fraction of its expected class, and order the largest
+misidentifications first. The smaller 1,000-spectrum run in the
 manual benchmark is development-only and is not part of `build_lib()` or final
 acceptance evidence.
 
@@ -303,7 +313,8 @@ The standard call therefore has this shape:
 reference_library_build <- build_lib(
   files,
   output_dir = output_dir,
-  previous_library_dir = "system"
+  previous_library_dir = "system",
+  remove_other = TRUE
 )
 ```
 
