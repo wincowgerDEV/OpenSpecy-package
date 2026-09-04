@@ -2027,3 +2027,91 @@ test("logistic legend stays above spectra and weight scale stays on the right", 
   expect(severeErrors).toEqual([]);
   expect(stderr).not.toMatch(/Warning: Error in|Execution halted/);
 });
+
+test("library identification reports completed block percentages", async ({ page }, testInfo) => {
+  test.setTimeout(360000);
+  const stderrStart = stderr.length;
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  for (const id of [
+    "collapse_decision", "threshold_decision", "cor_threshold_decision",
+    "filter_lib",
+  ]) {
+    await page.locator(`#${id}`).evaluate((input) => {
+      if (input.checked) input.click();
+    });
+    await expect(page.locator(`#${id}`)).not.toBeChecked();
+  }
+  await page.locator("#identification_active").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await expect(page.locator("#identification_active")).toBeChecked();
+  await pickerOption(page, "id_spec_type", "raman");
+  await pickerOption(page, "id_strategy", "deriv");
+  await pickerOption(page, "lib_type", "medoid");
+
+  const spectrumPath = path.join(repo, "inst", "extdata", "raman_hdpe.csv");
+  await stageLocalFiles(page, spectrumPath);
+
+  await page.evaluate(() => {
+    window.__openspecyIdentificationBlocks = [];
+    document.addEventListener("openspecy:analysis-phase", (event) => {
+      const state = event.detail || {};
+      if (/Identifying spectra/.test(state.message || "")) {
+        window.__openspecyIdentificationBlocks.push({
+          message: state.message, detail: state.detail, progress: state.progress,
+        });
+      }
+    });
+  });
+  await page.locator("#run_analysis").click();
+  await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
+    timeout: 30000,
+  });
+  await expect.poll(async () => page.evaluate(() =>
+    window.__openspecyIdentificationBlocks.some((state) =>
+      /0% of blocks complete/.test(state.message)
+    )
+  ), { timeout: 240000 }).toBe(true);
+  await expect(page.locator("#openspecy_busy_message")).toContainText(
+    /Identifying spectra \(0% of blocks complete\)/
+  );
+  await page.screenshot({
+    path: testInfo.outputPath("local-app-identification-block-progress.png"),
+    fullPage: true,
+  });
+
+  await expect.poll(async () => page.evaluate(() =>
+    window.__openspecyIdentificationBlocks.some((state) =>
+      /100% of blocks complete/.test(state.message)
+    )
+  ), { timeout: 240000 }).toBe(true);
+
+  await expect(page.locator("#event table tbody tr").first()).toBeVisible({
+    timeout: 240000,
+  });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  const states = await page.evaluate(() => window.__openspecyIdentificationBlocks);
+  expect(states.map((state) => state.message)).toEqual(expect.arrayContaining([
+    "Identifying spectra (0% of blocks complete)",
+    "Identifying spectra (100% of blocks complete)",
+  ]));
+  expect(states.some((state) => /Completed 1 of 1 block\b/.test(state.detail)))
+    .toBe(true);
+  expect(states.every((state, index) =>
+    index === 0 || state.progress >= states[index - 1].progress
+  )).toBe(true);
+  expect(severeErrors).toEqual([]);
+  expect(stderr.slice(stderrStart)).not.toMatch(/Warning: Error in|Execution halted/);
+});

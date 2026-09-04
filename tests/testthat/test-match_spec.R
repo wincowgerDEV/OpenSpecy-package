@@ -483,6 +483,31 @@ test_that("blockwise matching uses the 100-query fallback block size", {
   )
 })
 
+test_that("blockwise matching reports each completed block", {
+  updates <- list()
+  reported <- OpenSpecy:::.match_spec_blockwise(
+    tiny_map, test_lib, top_n = 3L, block_size = 2L,
+    progress = function(completed_blocks, total_blocks) {
+      updates[[length(updates) + 1L]] <<- c(completed_blocks, total_blocks)
+    }
+  )
+  expected <- OpenSpecy:::.match_spec_blockwise(
+    tiny_map, test_lib, top_n = 3L, block_size = 2L
+  )
+  update_matrix <- do.call(rbind, updates)
+  total_blocks <- as.integer(ceiling(ncol(tiny_map$spectra) / 2L))
+
+  expect_equal(reported, expected)
+  expect_identical(update_matrix[, 1L], seq_len(total_blocks))
+  expect_identical(update_matrix[, 2L], rep(total_blocks, total_blocks))
+  expect_error(
+    OpenSpecy:::.match_spec_blockwise(
+      tiny_map, test_lib, top_n = 1L, progress = TRUE
+    ),
+    "NULL or a function", fixed = TRUE
+  )
+})
+
 test_that("blockwise retained Top N capacity fails before allocation", {
   capacity <- OpenSpecy:::.blockwise_retained_capacity(100L, 10L)
   expect_equal(capacity$rows, 1000)

@@ -573,6 +573,18 @@
 
     if (window.Shiny && window.Shiny.addCustomMessageHandler) {
       window.Shiny.addCustomMessageHandler("openspecy-analysis-phase", function (state) {
+        // A phase belongs to the Run/upload/recalculate/download action that
+        // opened this lifecycle. Output rendering can cause later reactive
+        // flushes (for example a settled Top Matches default); once the owning
+        // action has reached idle and hideBusy() has cleared it, those flushes
+        // must not reopen a blocking overlay over already-visible results.
+        var busyAction = document.documentElement.getAttribute(
+          "data-openspecy-busy-action"
+        );
+        if (!analysisPhaseActive && !busyAction) return;
+        document.dispatchEvent(new CustomEvent(
+          "openspecy:analysis-phase", { detail: state }
+        ));
         analysisPhaseActive = true;
         window.clearTimeout(idleTimer);
         idleTimer = null;

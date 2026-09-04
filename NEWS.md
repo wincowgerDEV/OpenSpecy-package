@@ -1,5 +1,10 @@
 # OpenSpecy 1.7.1
 
+- Long-running full and medoid library identification in the bundled app now
+  reports completed blocks, total blocks, and the block-completion percentage
+  after every bounded matching block.
+- Hosted progress overlays now remain closed after a completed action, even
+  when late output-only reactive updates render after identification results.
 - Fixed the bundled app's logistic model interpretation so Top Matches row
   selection updates the quantitative coefficient background for the spectrum
   currently being viewed, including selected spectra within batches and maps.

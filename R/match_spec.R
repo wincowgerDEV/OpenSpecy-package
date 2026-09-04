@@ -220,13 +220,17 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
 # discarded so callers never retain the full library-by-query matrix.
 .match_spec_blockwise <- function(x, library, top_n = 10L,
                                   block_size = 100L, na.rm = TRUE,
-                                  conform = FALSE, type = "roll", ...) {
+                                  conform = FALSE, type = "roll",
+                                  progress = NULL, ...) {
   if(length(top_n) != 1L || !is.numeric(top_n) || is.na(top_n) ||
      !is.finite(top_n) || top_n < 1 || top_n > .Machine$integer.max ||
      top_n != floor(top_n)) {
     stop("'top_n' must be a positive integer", call. = FALSE)
   }
   top_n <- as.integer(top_n)
+  if(!is.null(progress) && !is.function(progress)) {
+    stop("'progress' must be NULL or a function", call. = FALSE)
+  }
 
   candidate_block_size <- tryCatch(
     suppressWarnings(as.integer(block_size)),
@@ -284,6 +288,9 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
     library_id[rows] <- block$library_id
     match_val[rows] <- block$match_val
     cursor <- cursor + nrow(block)
+    if(!is.null(progress)) {
+      progress(completed_blocks = i, total_blocks = length(starts))
+    }
   }
 
   data.table(

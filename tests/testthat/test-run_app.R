@@ -485,6 +485,9 @@ test_that("bundled Shiny app does not block startup or auto-load remote images",
   expect_true(any(grepl("busyDelay = 650", bridge, fixed = TRUE)))
   expect_true(any(grepl("openspecy-analysis-phase", bridge, fixed = TRUE)))
   expect_true(any(grepl("analysisPhaseActive", bridge, fixed = TRUE)))
+  expect_true(any(grepl("if (!analysisPhaseActive && !busyAction) return", bridge,
+                        fixed = TRUE)))
+  expect_true(any(grepl("openspecy:analysis-phase", bridge, fixed = TRUE)))
   expect_true(any(grepl("function beginBusyAction", bridge, fixed = TRUE)))
   expect_true(any(grepl("data-openspecy-busy-action", bridge, fixed = TRUE)))
   expect_true(any(grepl("function bindAnalysisSettings", bridge,
@@ -599,6 +602,12 @@ test_that("bundled app runs corrections and identification unconditionally", {
                fixed = TRUE)
   expect_match(server_source, "OpenSpecy:::.match_spec_blockwise(",
                fixed = TRUE)
+  expect_match(server_source, "app_identification_block_progress(",
+               fixed = TRUE)
+  expect_match(
+    server_source,
+    "progress = function(completed_blocks, total_blocks)", fixed = TRUE
+  )
   expect_match(server_source, "conform = FALSE, type = \"roll\"",
                fixed = TRUE)
   expect_match(server_source, "app_reference_for_query(", fixed = TRUE)

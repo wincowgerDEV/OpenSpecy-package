@@ -392,6 +392,46 @@ app_reference_for_query <- function(reference, query, preserve_axis = TRUE) {
   )
 }
 
+app_identification_block_progress <- function(
+    query_count, library_count, block_size, completed_blocks = 0L,
+    total_blocks = NULL, progress_start = 76, progress_end = 88) {
+  scalar_count <- function(value, fallback = 0L) {
+    value <- suppressWarnings(as.integer(value)[1L])
+    if(is.na(value) || value < 0L) fallback else value
+  }
+  query_count <- scalar_count(query_count)
+  library_count <- scalar_count(library_count)
+  block_size <- max(1L, scalar_count(block_size, 1L))
+  if(is.null(total_blocks)) {
+    total_blocks <- as.integer(max(1L, ceiling(query_count / block_size)))
+  } else {
+    total_blocks <- max(1L, scalar_count(total_blocks, 1L))
+  }
+  completed_blocks <- min(
+    total_blocks, scalar_count(completed_blocks)
+  )
+  block_fraction <- completed_blocks / total_blocks
+  block_percent <- as.integer(floor(100 * block_fraction))
+  list(
+    message = paste0(
+      "Identifying spectra (", block_percent, "% of blocks complete)"
+    ),
+    detail = paste0(
+      "Completed ", completed_blocks, " of ", total_blocks, " block",
+      if(total_blocks == 1L) "" else "s", " while comparing ",
+      format(query_count, big.mark = ","), " ",
+      if(query_count == 1L) "spectrum" else "spectra", " with ",
+      format(library_count, big.mark = ","), " references; block size ",
+      format(block_size, big.mark = ","), "."
+    ),
+    progress = progress_start +
+      (progress_end - progress_start) * block_fraction,
+    completed_blocks = completed_blocks,
+    total_blocks = total_blocks,
+    block_percent = block_percent
+  )
+}
+
 app_rejected_spectrum <- function(wavenumber) {
   axis <- as.numeric(wavenumber)
   spectra <- matrix(0, nrow = length(axis), ncol = 1L,
@@ -2944,7 +2984,7 @@ app_spectrum_legend_layout <- function(plot_width = NULL,
       y = 1.03, yanchor = "bottom", traceorder = "normal"
     ),
     margin = list(
-      t = if(compact) 92 else 76,
+      t = 92,
       r = if(isTRUE(model_overlay)) {
         if(compact) 92 else 112
       } else 24,

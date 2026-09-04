@@ -1400,19 +1400,24 @@ observeEvent(input$run_analysis, {
     reference <- app_reference_for_query(
       library_filtered(), object, preserve_axis = preserve_axis
     )
-    analysis_phase(
-      "Identifying spectra",
-      paste0(
-        "Comparing ", format(ncol(object$spectra), big.mark = ","),
-        " spectrum", if(ncol(object$spectra) == 1L) "" else "s",
-        " with ", format(ncol(reference$spectra), big.mark = ","),
-        " references in blocks of ", format(identify_block_size, big.mark = ","), "."
-      ),
-      76
-    )
+    report_identification_progress <- function(completed_blocks = 0L,
+                                               total_blocks = NULL) {
+      state <- app_identification_block_progress(
+        query_count = ncol(object$spectra),
+        library_count = ncol(reference$spectra),
+        block_size = identify_block_size,
+        completed_blocks = completed_blocks,
+        total_blocks = total_blocks
+      )
+      analysis_phase(state$message, state$detail, state$progress)
+    }
+    report_identification_progress()
     OpenSpecy:::.match_spec_blockwise(
       object, reference, top_n = top_n_value(), block_size = identify_block_size,
-      conform = FALSE, type = "roll"
+      conform = FALSE, type = "roll",
+      progress = function(completed_blocks, total_blocks) {
+        report_identification_progress(completed_blocks, total_blocks)
+      }
     )
   }
 

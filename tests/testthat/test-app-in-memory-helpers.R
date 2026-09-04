@@ -195,6 +195,33 @@ test_that("uploaded-axis identification conforms only the reference", {
   expect_true(all(rejected$spectra == 0))
 })
 
+test_that("identification block progress reports counts and percentages", {
+  env <- .source_in_memory_app_helpers()
+  initial <- env$app_identification_block_progress(
+    query_count = 2501L, library_count = 12345L, block_size = 1000L
+  )
+  middle <- env$app_identification_block_progress(
+    query_count = 2501L, library_count = 12345L, block_size = 1000L,
+    completed_blocks = 1L, total_blocks = 3L
+  )
+  final <- env$app_identification_block_progress(
+    query_count = 2501L, library_count = 12345L, block_size = 1000L,
+    completed_blocks = 3L, total_blocks = 3L
+  )
+
+  expect_identical(initial$block_percent, 0L)
+  expect_match(initial$message, "0% of blocks complete", fixed = TRUE)
+  expect_match(initial$detail, "Completed 0 of 3 blocks", fixed = TRUE)
+  expect_match(initial$detail, "2,501 spectra", fixed = TRUE)
+  expect_match(initial$detail, "12,345 references", fixed = TRUE)
+  expect_identical(middle$block_percent, 33L)
+  expect_equal(middle$progress, 80)
+  expect_identical(final$block_percent, 100L)
+  expect_equal(final$progress, 88)
+  expect_true(initial$progress < middle$progress)
+  expect_true(middle$progress < final$progress)
+})
+
 test_that("heatmaps omit inline legends and build bounded modal legends", {
   env <- .source_in_memory_app_helpers()
   layout <- env$app_heatmap_legend_layout("Material Class")

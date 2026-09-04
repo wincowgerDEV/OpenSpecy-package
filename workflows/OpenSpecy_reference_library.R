@@ -3,77 +3,73 @@
 # build_lib() owns source discovery, curated metadata joins, class completion,
 # pruning, one-off filters, medoid/model creation, resumable checkpoints,
 # complete legacy comparisons, assessments, and versioned output promotion.
-# Override its environment-aware path defaults with OPENSPECY_LIBRARY_DATA,
-# OPENSPECY_SOURCE_FILE, OPENSPECY_PROCESSED_DIR, or
-# OPENSPECY_LIBRARY_OUTPUT when the official files are elsewhere.
+# Maintainer paths for the current package source and official full rebuild.
 
-library(OpenSpecy)
 library(fs)
 
-data_dir <- Sys.getenv(
-  "OPENSPECY_LIBRARY_DATA",
-  unset = "H:\\My Drive\\Work\\Projects\\OpenSpecy\\SpectraFilesCodeProcessedSpectra"
+package_dir <- paste0(
+  "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
+  "OpenSpecy-package"
+)
+data_dir <- "H:\\My Drive\\Work\\Projects\\OpenSpecy\\SpectraFilesCodeProcessedSpectra"
+
+processed_dir <- data_dir
+
+output_dir <- paste0(
+  "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
+  "reference-library-build"
 )
 
-processed_dir <- Sys.getenv("OPENSPECY_PROCESSED_DIR", unset = data_dir)
+if (!requireNamespace("devtools", quietly = TRUE)) {
+  stop("Install 'devtools' before running the reference-library rebuild.",
+       call. = FALSE)
+}
+if (!file_exists(file.path(package_dir, "DESCRIPTION"))) {
+  stop("OpenSpecy package source directory does not exist: ", package_dir,
+       call. = FALSE)
+}
+devtools::load_all(package_dir)
 
-output_dir <- Sys.getenv(
-  "OPENSPECY_LIBRARY_OUTPUT",
-  unset = paste0(
-    "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
-    "reference-library-build"
-  )
-)
+if (!dir_exists(processed_dir)) {
+  stop("Processed source directory does not exist: ", processed_dir,
+       call. = FALSE)
+}
 
-metadatafiles <- dir_ls(
+metadatafiles <- sort(dir_ls(
   path = processed_dir,
   recurse = TRUE,
   regexp = "/Processed/.*\\.rds$",
   fail = FALSE
-)
+))
 
-source_file <- Sys.getenv(
-  "OPENSPECY_SOURCE_FILE",
-  unset = file.path(data_dir, "library_raw.rds")
-)
-files <- c(metadatafiles, source_file)
-if (!length(files) || any(!file.exists(files))) {
-  stop("Every source path supplied to build_lib() must exist", call. = FALSE)
+source_file <- file.path(data_dir, "library_raw.rds")
+if (!file_exists(source_file)) {
+  stop("Raw source library does not exist: ", source_file, call. = FALSE)
 }
+if (!length(metadatafiles)) {
+  stop("No processed RDS sources were found below: ", processed_dir,
+       call. = FALSE)
+}
+files <- unique(c(metadatafiles, source_file))
+
+message("OpenSpecy reference-library full rebuild")
+message("  Processed sources: ", length(metadatafiles))
+message("  Raw source: ", source_file)
+message("  Output root: ", output_dir)
+message("  Checkpoint reuse: enabled (manifest-compatible stages only)")
 
 reference_library_build <- build_lib(
   x = files,
   output_dir = output_dir,
-
-build_file <- paste0(
-  "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\reference-library-rebuild-na-support-20260902\\releases\\9cfc00e59556\\reference_library_build.rds"
+  previous_library_dir = "system",
+  reuse = TRUE,
+  remove_other = TRUE,
+  progress = TRUE
 )
 
-reference_library_build <- readRDS(build_file)
-
-der_ftir <- reference_library_build$libraries$derivative$ftir
-
-der_ram_mod <- reference_library_build$models$logistic_regression$derivative$raman
-
-sample_spec(der_ftir, 5) |> plot(offset = 1)
-
-library(dplyr)
-lib_type_mats <- der_ftir$metadata |>
-  dplyr::group_by(organization,material, material_class) |>
-  summarise(count = n())
-
-
-lib_type_mats <- der_ftir$metadata |>
-  dplyr::filter(is.na(spectrum_identity)) |>
-  dplyr::group_by(organization, spectrum_identity, material, material_class) #|>
-  summarise(count = n())
-
-get_lib("raw")
-
-raw_lib <- load_lib("raw")
-raw_mat <- raw_lib$metadata |>
-  dplyr::filter(is.na(spectrum_identity)) 
-
-
-names(reference_library_build)
-names(reference_library_build$assessments)
+release_dir <- attr(reference_library_build, "output_dir")
+message("Reference-library build complete: ", release_dir)
+message(
+  "Aggregate object: ",
+  file.path(release_dir, "reference_library_build.rds")
+)
