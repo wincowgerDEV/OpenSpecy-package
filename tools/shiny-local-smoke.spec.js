@@ -1363,11 +1363,14 @@ test("local app renders spectra, matches, and one informative progress overlay",
   const desktopLegend = await page.locator("#MyPlotC").evaluate((plot) => ({
     orientation: plot.layout.legend.orientation,
     x: plot.layout.legend.x,
+    y: plot.layout.legend.y,
+    topMargin: plot.layout.margin.t,
     rightMargin: plot.layout.margin.r,
   }));
-  expect(desktopLegend).toMatchObject({ orientation: "v" });
-  expect(desktopLegend.x).toBeGreaterThan(1);
-  expect(desktopLegend.rightMargin).toBeGreaterThanOrEqual(180);
+  expect(desktopLegend).toMatchObject({ orientation: "h", x: 0 });
+  expect(desktopLegend.y).toBeGreaterThan(1);
+  expect(desktopLegend.topMargin).toBeGreaterThanOrEqual(70);
+  expect(desktopLegend.rightMargin).toBeLessThan(40);
 
   const qualityControls = [
     { status: "automatic", label: /Automatic Corrections Made/i },
@@ -1899,10 +1902,10 @@ test("local app renders spectra, matches, and one informative progress overlay",
   const mobileLegend = await page.locator("#MyPlotC").evaluate((plot) => ({
     orientation: plot.layout.legend.orientation,
     y: plot.layout.legend.y,
-    bottomMargin: plot.layout.margin.b,
+    topMargin: plot.layout.margin.t,
   }));
-  expect(mobileLegend.y).toBeLessThan(0);
-  expect(mobileLegend.bottomMargin).toBeGreaterThanOrEqual(100);
+  expect(mobileLegend.y).toBeGreaterThan(1);
+  expect(mobileLegend.topMargin).toBeGreaterThanOrEqual(90);
   const mobileCategoricalSignature = await page.locator("#heatmapA").evaluate(
     (plot) => JSON.stringify({
       z: plot.data?.[0]?.z, colorscale: plot.data?.[0]?.colorscale,
@@ -1945,6 +1948,82 @@ test("local app renders spectra, matches, and one informative progress overlay",
   // Particle-analysis maps, histograms, click metadata, and ZIP exports are
   // covered by the dedicated ordinary-map journey above.
   expect(popups).toEqual([]);
+  expect(severeErrors).toEqual([]);
+  expect(stderr).not.toMatch(/Warning: Error in|Execution halted/);
+});
+
+test("logistic legend stays above spectra and weight scale stays on the right", async ({ page }, testInfo) => {
+  test.setTimeout(360000);
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|package .* not found|there is no package|pinned build requires/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await pickerOption(page, "lib_type", "model");
+  await pickerOption(page, "id_spec_type", "all");
+  await stageLocalFiles(page, path.join(repo, "inst", "extdata", "raman_hdpe.csv"));
+  await page.locator("#run_analysis").click();
+
+  const firstMatch = page.locator("#event table tbody tr").first();
+  await expect(firstMatch).toBeVisible({ timeout: 240000 });
+  await firstMatch.click();
+  await expect(page.locator("#MyPlotC .hm image")).toBeVisible({ timeout: 60000 });
+  await expect(page.locator("#MyPlotC .colorbar")).toBeVisible();
+
+  const geometry = await page.locator("#MyPlotC").evaluate((plot) => {
+    const legend = plot.querySelector(".legend")?.getBoundingClientRect();
+    const colorbar = plot.querySelector(".colorbar")?.getBoundingClientRect();
+    const full = plot._fullLayout;
+    const plotArea = full ? {
+      left: plot.getBoundingClientRect().left + full._size.l,
+      right: plot.getBoundingClientRect().left + full._size.l + full._size.w,
+      top: plot.getBoundingClientRect().top + full._size.t,
+      bottom: plot.getBoundingClientRect().top + full._size.t + full._size.h,
+    } : null;
+    const heat = (plot.data || []).find((trace) => trace.type === "heatmap");
+    const rect = (box) => box ? ({
+      left: box.left, right: box.right, top: box.top, bottom: box.bottom,
+    }) : null;
+    return {
+      legendLayout: plot.layout.legend,
+      margin: plot.layout.margin,
+      colorbarConfig: heat?.colorbar,
+      legend: rect(legend),
+      colorbar: rect(colorbar),
+      plotArea,
+    };
+  });
+
+  expect(geometry.legendLayout.orientation).toBe("h");
+  expect(geometry.legendLayout.x).toBe(0);
+  expect(geometry.legendLayout.y).toBeGreaterThan(1);
+  expect(geometry.margin.t).toBeGreaterThanOrEqual(70);
+  expect(geometry.margin.r).toBeGreaterThanOrEqual(100);
+  expect(geometry.colorbarConfig.x).toBeGreaterThan(1);
+  expect(geometry.colorbarConfig.xanchor).toBe("left");
+  expect(geometry.legend).not.toBeNull();
+  expect(geometry.colorbar).not.toBeNull();
+  expect(geometry.plotArea).not.toBeNull();
+  expect(geometry.legend.bottom).toBeLessThanOrEqual(geometry.plotArea.top + 4);
+  expect(geometry.colorbar.left).toBeGreaterThanOrEqual(geometry.plotArea.right - 4);
+  const boxesOverlap = !(
+    geometry.legend.right <= geometry.colorbar.left ||
+    geometry.colorbar.right <= geometry.legend.left ||
+    geometry.legend.bottom <= geometry.colorbar.top ||
+    geometry.colorbar.bottom <= geometry.legend.top
+  );
+  expect(boxesOverlap).toBe(false);
+
+  await page.screenshot({
+    path: testInfo.outputPath("local-app-logistic-legend-layout.png"),
+    fullPage: true,
+  });
   expect(severeErrors).toEqual([]);
   expect(stderr).not.toMatch(/Warning: Error in|Execution halted/);
 });

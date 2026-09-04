@@ -1,5 +1,10 @@
 # OpenSpecy 1.7.1
 
+- Fixed the bundled app's logistic model interpretation so Top Matches row
+  selection updates the quantitative coefficient background for the spectrum
+  currently being viewed, including selected spectra within batches and maps.
+  Spectrum trace toggles now stay above the axes while the logistic-weight
+  scale uses a separately reserved right margin.
 - `prune_lib()` now removes material classes with fewer than `min_n` spectra
   within each spectrum type before correlation pruning. Its report records
   class support, threshold shortfalls, and affected spectrum IDs; complete

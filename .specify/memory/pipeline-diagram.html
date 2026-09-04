@@ -455,6 +455,8 @@
   <!-- click interaction: Heatmap selection drives the active-spectrum inspection lane and metadata -->
   <path class="edge-click" d="M2250,2762 C 2160,2700 2050,2600 1970,2575" marker-end="url(#arrowClick)"></path>
   <path class="edge-click" d="M2250,2762 C 2380,2720 2380,2660 2260,2622" marker-end="url(#arrowClick)"></path>
+  <!-- Top Matches selection changes the explanatory logistic-weight overlay -->
+  <path class="edge-click" d="M2368,2160 C 2490,2250 2490,2470 2368,2545" marker-end="url(#arrowClick)"></path>
 </svg>
 
 <!-- Stage 0: upload -->
@@ -730,7 +732,7 @@
   Top Matches Table
   <div class="depends">depends on: Library Identification OR AI Classification</div>
   <div class="tip">output$event reads top_matches() &larr; app_top_matches_table(). Real-library mode shows the selected spectrum's ranked references; logistic mode shows the selected spectrum's ranked class probabilities. Clicking a logistic row selects the exact class whose signed coefficients are rendered behind the Spectrum Plot. Rank and probability are display evidence only and do not mutate canonical analysis state.
-  <span class="loc">Plan 025 &middot; server.R: top_matches(), selected_model_explanation() &middot; global.R: app_top_matches_table()</span></div>
+  <span class="loc">Plans 025/027 &middot; server.R: top_matches(), selected_model_explanation() &middot; global.R: app_top_matches_table(), app_selected_model_explanation()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2220px" tabindex="0">
@@ -757,8 +759,8 @@
 <div class="node output tip-left" style="left:2250px;top:2560px" tabindex="0">
   Spectrum Plot
   <div class="depends">depends on: Active Spectrum Inspection + optional match/model class</div>
-  <div class="tip">The processed trace is byte-for-byte the one-column object from Active Spectrum Inspection; the raw trace and optional selected reference remain labeled overlays. For one-spectrum logistic identification only, the selected Top Matches row adds a symmetric quantitative coefficient background: red negative, yellow near zero, green positive, with a weight color bar. It explains signed model influence, not causal peak importance, and is absent from library, no-identification, multi-spectrum/heatmap, and RF states.
-  <span class="loc">Plan 025 &middot; server.R: output$MyPlotC, selected_model_explanation() &middot; global.R: app_spectrum_plot() &middot; R/interactive_plots.R</span></div>
+  <div class="tip">The processed trace is byte-for-byte the one-column object from Active Spectrum Inspection; the raw trace and optional selected reference remain labeled overlays whose toggles stay in a horizontal legend above the axes. For logistic identification, the selected Top Matches row is first scoped to the spectrum currently under inspection, then adds a symmetric quantitative coefficient background from the prediction's FTIR, Raman, or NIR model: red negative, yellow near zero, green positive, with a separate vertical weight scale in the reserved right margin. A heatmap or metadata click changes the inspected spectrum and resets the explanatory candidate to rank 1; a Top Matches click changes only its explanatory class. It explains signed model influence, not causal peak importance, and is absent from library, no-identification, and RF states.
+  <span class="loc">Plans 025/027 &middot; server.R: output$MyPlotC, selected_model_explanation() &middot; global.R: app_selected_model_explanation(), app_spectrum_plot() &middot; R/interactive_plots.R</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2630px" tabindex="0">

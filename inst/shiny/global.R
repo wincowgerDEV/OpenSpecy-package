@@ -742,6 +742,63 @@ app_top_matches_table <- function(matches_to_single_result, model_library,
   }
 }
 
+# Resolve the explanatory logistic model from the same compact prediction rows
+# that feed Top Matches. Predictions may contain several spectra and several
+# type-specific models, so both axes must be selected before interpreting the
+# table row number.
+app_selected_model_explanation <- function(predictions, library,
+                                           selected_index,
+                                           selected_row = 1L) {
+  empty <- list(model = NULL, model_class = NULL)
+  predictions <- data.table::as.data.table(predictions)
+  selected_index <- suppressWarnings(as.integer(selected_index)[1L])
+  if(!nrow(predictions) || is.na(selected_index) || selected_index < 1L) {
+    return(empty)
+  }
+
+  rows <- if("spectrum_index" %in% names(predictions)) {
+    predictions[spectrum_index == selected_index]
+  } else if("x" %in% names(predictions)) {
+    predictions[x == selected_index]
+  } else if(selected_index <= nrow(predictions)) {
+    predictions[selected_index]
+  } else {
+    predictions[0L]
+  }
+  if(!nrow(rows)) return(empty)
+  if("prediction_rank" %in% names(rows)) {
+    data.table::setorder(rows, prediction_rank)
+  } else if("rank" %in% names(rows)) {
+    data.table::setorder(rows, rank)
+  }
+
+  selected_row <- suppressWarnings(as.integer(selected_row)[1L])
+  if(is.na(selected_row) || selected_row < 1L) selected_row <- 1L
+  selected <- rows[min(selected_row, nrow(rows))]
+  model <- library
+  if(inherits(model, "openspecy_typed_models")) {
+    type_column <- intersect(c("spectrum_type", "type"), names(selected))
+    if(!length(type_column)) return(empty)
+    type <- as.character(selected[[type_column[[1L]]]][[1L]])
+    if(!isTruthy(type) || is.null(model[[type]])) return(empty)
+    model <- model[[type]]
+  }
+
+  model_type <- if(is.null(model$model_type)) {
+    "logistic_regression"
+  } else {
+    as.character(model$model_type)[1L]
+  }
+  class_column <- intersect(c("material_class", "name"), names(selected))
+  if(!identical(model_type, "logistic_regression") || !length(class_column)) {
+    return(empty)
+  }
+  model_class <- as.character(selected[[class_column[[1L]]]][[1L]])
+  if(is.na(model_class) || !nzchar(model_class)) return(empty)
+
+  list(model = model, model_class = model_class)
+}
+
 # Project a one-pass pixel Top-N result onto collapsed units without averaging
 # incomplete reference coverage into a synthetic correlation. Each retained
 # value remains an actual member-pixel correlation and carries its provenance.
@@ -2875,25 +2932,25 @@ app_style_plotly <- function(plot) {
   )
 }
 
-app_spectrum_legend_layout <- function(plot_width = NULL) {
+app_spectrum_legend_layout <- function(plot_width = NULL,
+                                       model_overlay = FALSE) {
   width <- suppressWarnings(as.numeric(plot_width))
   width <- if(length(width)) width[[1L]] else NA_real_
   if(!is.finite(width)) width <- 900
-  if(width < 640) {
-    return(list(
-      legend = list(
-        orientation = "h", x = 0, xanchor = "left",
-        y = -0.22, yanchor = "top"
-      ),
-      margin = list(t = 28, r = 18, b = 105, l = 62)
-    ))
-  }
+  compact <- width < 640
   list(
     legend = list(
-      orientation = "v", x = 1.02, xanchor = "left",
-      y = 1, yanchor = "top"
+      orientation = "h", x = 0, xanchor = "left",
+      y = 1.03, yanchor = "bottom", traceorder = "normal"
     ),
-    margin = list(t = 28, r = 190, b = 64, l = 72)
+    margin = list(
+      t = if(compact) 92 else 76,
+      r = if(isTRUE(model_overlay)) {
+        if(compact) 92 else 112
+      } else 24,
+      b = 64,
+      l = if(compact) 62 else 72
+    )
   )
 }
 
@@ -2933,12 +2990,14 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
   }
 
   plot <- plotly::plot_ly(source = source)
+  has_weight_overlay <- FALSE
   if(!is.null(model) && isTruthy(model_class)) {
     weights <- tryCatch(
       OpenSpecy::model_class_weights(model, model_class),
       error = function(error) NULL
     )
     if(!is.null(weights) && nrow(weights)) {
+      has_weight_overlay <- TRUE
       limit <- max(abs(weights$weight), na.rm = TRUE)
       if(!is.finite(limit) || limit == 0) limit <- 1
       plot <- plotly::add_trace(
@@ -2951,7 +3010,11 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
         ),
         zmin = -limit, zmax = limit, zmid = 0, opacity = 0.28,
         showscale = TRUE,
-        colorbar = list(title = "Logistic<br>weight", thickness = 12),
+        colorbar = list(
+          title = "Logistic<br>weight", thickness = 12,
+          x = 1.02, xanchor = "left", xpad = 8,
+          y = 0.5, yanchor = "middle", len = 0.86
+        ),
         hovertemplate = paste0(
           "%{x:.1f} cm<sup>-1</sup><br>weight %{z:.4g}<extra>",
           model_class, "</extra>"
@@ -2975,7 +3038,9 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
     "Identification match",
     app_plot_palette$reference, 2.2, "dot"
   )
-  legend_layout <- app_spectrum_legend_layout(plot_width)
+  legend_layout <- app_spectrum_legend_layout(
+    plot_width, model_overlay = has_weight_overlay
+  )
   legend <- c(
     legend_layout$legend,
     list(

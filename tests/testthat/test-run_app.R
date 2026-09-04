@@ -1249,16 +1249,18 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_true(all(vapply(
     spectrum_traces, function(trace) isTRUE(trace$showlegend), logical(1)
   )))
-  expect_identical(spectrum_plot$x$layout$legend$orientation, "v")
-  expect_gt(spectrum_plot$x$layout$legend$x, 1)
-  expect_gte(spectrum_plot$x$layout$margin$r, 180)
+  expect_identical(spectrum_plot$x$layout$legend$orientation, "h")
+  expect_identical(spectrum_plot$x$layout$legend$x, 0)
+  expect_gt(spectrum_plot$x$layout$legend$y, 1)
+  expect_gte(spectrum_plot$x$layout$margin$t, 70)
+  expect_lt(spectrum_plot$x$layout$margin$r, 40)
 
   mobile_plot <- plotly::plotly_build(env$app_spectrum_plot(
     active, raw = raw, reference = reference, plot_width = 390
   ))
   expect_identical(mobile_plot$x$layout$legend$orientation, "h")
-  expect_lt(mobile_plot$x$layout$legend$y, 0)
-  expect_gte(mobile_plot$x$layout$margin$b, 100)
+  expect_gt(mobile_plot$x$layout$legend$y, 1)
+  expect_gte(mobile_plot$x$layout$margin$t, 90)
 
   active_only <- plotly::plotly_build(env$app_spectrum_plot(active))
   expect_identical(

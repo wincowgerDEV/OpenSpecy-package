@@ -2403,27 +2403,12 @@ observeEvent(input$run_analysis, {
       empty <- list(model = NULL, model_class = NULL)
       if(is.null(preprocessed$data) ||
          !isTRUE(settings$identification_active) ||
-         !isTRUE(settings$model_library) ||
-         source_count(DataR()) != 1L) return(empty)
-      rows <- matches_to_single()
-      if(is.null(rows) || !nrow(rows)) return(empty)
-      selected_row <- min(max(1L, as.integer(data_click$table)), nrow(rows))
-      selected <- rows[selected_row]
-      model <- libraryR()
-      if(inherits(model, "openspecy_typed_models")) {
-        type <- as.character(selected$spectrum_type[[1L]])
-        if(!isTruthy(type) || is.null(model[[type]])) return(empty)
-        model <- model[[type]]
-      }
-      model_type <- if(is.null(model$model_type)) {
-        "logistic_regression"
-      } else {
-        model$model_type
-      }
-      if(!identical(model_type, "logistic_regression")) return(empty)
-      list(
-        model = model,
-        model_class = as.character(selected$material_class[[1L]])
+         !isTRUE(settings$model_library)) return(empty)
+      app_selected_model_explanation(
+        predictions = matches_to_single(),
+        library = libraryR(),
+        selected_index = selected_unit_index(),
+        selected_row = data_click$table
       )
   })
 
@@ -3343,14 +3328,16 @@ output$progress_bars <- renderUI({
       toggle(id = "placeholder1", condition = !isTruthy(preprocessed$data))
   })
 
-  observe({
-      if(!isTruthy(input$event_rows_selected)){
-          data_click$table <- 1
-      }
-      else{
-          data_click$table <- input$event_rows_selected
-      }
+  # A DT rerender briefly clears event_rows_selected. Do not treat that transient
+  # NULL as a user choice: reset rank only when the viewed spectrum or its
+  # prediction set changes, and otherwise retain genuine row clicks.
+  observeEvent(input$event_rows_selected, ignoreInit = TRUE, {
+      selected <- suppressWarnings(as.integer(input$event_rows_selected)[1L])
+      if(!is.na(selected) && selected >= 1L) data_click$table <- selected
   })
+  observeEvent(list(selected_unit_index(), top_matches()), {
+      data_click$table <- 1L
+  }, ignoreInit = FALSE)
 
   # meta_cache()'s .openspecy_index is always a column index into
   # quantified_data()/canonical_final() -- i.e. a *unit* index (one particle

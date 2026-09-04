@@ -372,4 +372,78 @@ test_that("app spectrum plot explains a selected logistic class", {
   heat <- built$x$data[[which(types == "heatmap")[[1L]]]]
   expect_equal(heat$zmin, -2)
   expect_equal(heat$zmax, 2)
+  expect_identical(built$x$layout$legend$orientation, "h")
+  expect_gt(built$x$layout$legend$y, 1)
+  expect_gt(heat$colorbar$x, 1)
+  expect_identical(heat$colorbar$xanchor, "left")
+  expect_equal(heat$colorbar$y, 0.5)
+  expect_gte(built$x$layout$margin$r, 100)
+})
+
+test_that("model explanations follow the selected spectrum and Top Matches row", {
+  env <- .source_in_memory_app_helpers()
+  model_for <- function(classes, weights, type = "logistic_regression") {
+    list(
+      model_type = type,
+      coefficients = data.table::rbindlist(lapply(seq_along(classes), function(i) {
+        data.table::data.table(
+          dimensions_used = 1:3,
+          dimension_units = weights[[i]],
+          variable = i,
+          name = classes[[i]],
+          names = c(800, 900, 1000)
+        )
+      }))
+    )
+  }
+  ftir <- model_for(
+    c("ftir_first", "ftir_second"),
+    list(c(-2, 0, 1), c(1, 0, -3))
+  )
+  raman <- model_for("raman_first", list(c(0.5, 1, -0.5)))
+  models <- structure(
+    list(ftir = ftir, raman = raman),
+    class = c("openspecy_typed_models", "list")
+  )
+  predictions <- data.table::data.table(
+    spectrum_index = c(1L, 2L, 1L),
+    prediction_rank = c(1L, 1L, 2L),
+    material_class = c("ftir_first", "raman_first", "ftir_second"),
+    spectrum_type = c("ftir", "raman", "ftir")
+  )
+
+  first <- env$app_selected_model_explanation(predictions, models, 1L, 1L)
+  second <- env$app_selected_model_explanation(predictions, models, 1L, 2L)
+  other_spectrum <- env$app_selected_model_explanation(
+    predictions, models, 2L, 1L
+  )
+  expect_identical(first$model, ftir)
+  expect_identical(first$model_class, "ftir_first")
+  expect_identical(second$model, ftir)
+  expect_identical(second$model_class, "ftir_second")
+  expect_identical(other_spectrum$model, raman)
+  expect_identical(other_spectrum$model_class, "raman_first")
+
+  spectrum <- as_OpenSpecy(
+    c(800, 900, 1000), spectra = data.frame(sample = c(0, 1, 0))
+  )
+  heat_weights <- function(explanation) {
+    built <- plotly::plotly_build(env$app_spectrum_plot(
+      spectrum, model = explanation$model,
+      model_class = explanation$model_class
+    ))
+    types <- vapply(built$x$data, function(trace) trace$type, character(1))
+    sort(unique(as.numeric(unlist(
+      built$x$data[[which(types == "heatmap")[[1L]]]]$z
+    ))))
+  }
+  expect_equal(heat_weights(first), c(-2, 0, 1))
+  expect_equal(heat_weights(second), c(-3, 0, 1))
+
+  models$ftir$model_type <- "random_forest"
+  unsupported <- env$app_selected_model_explanation(
+    predictions, models, 1L, 1L
+  )
+  expect_null(unsupported$model)
+  expect_null(unsupported$model_class)
 })

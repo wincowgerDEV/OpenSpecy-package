@@ -98,3 +98,32 @@ test_that("the announce-priority Run observer cannot disturb reset/canonical/def
     )
   })
 })
+
+test_that("model explanation selection is not restricted to one-spectrum uploads", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  server_source <- paste(
+    readLines(file.path(run_app(test_mode = TRUE), "server.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  explanation_start <- regexpr(
+    "selected_model_explanation <- reactive({", server_source, fixed = TRUE
+  )
+  explanation_end <- regexpr(
+    "#All matches table for the current selection", server_source,
+    fixed = TRUE
+  )
+  explanation <- substr(
+    server_source, explanation_start,
+    explanation_end - 1L
+  )
+  expect_match(explanation, "selected_index = selected_unit_index()", fixed = TRUE)
+  expect_match(explanation, "selected_row = data_click$table", fixed = TRUE)
+  expect_false(grepl("source_count(DataR())", explanation, fixed = TRUE))
+})
