@@ -294,7 +294,12 @@ reassignment. \code{"other material"} candidates are restricted by
 \code{class_col} to \code{"organic matter"} or \code{"mineral"};
 \code{"other"} may match any established class in the spectral pool.}
 
-\item{min_n}{groups with \code{min_n} or fewer spectra are kept whole.}
+\item{min_n}{For \code{prune_lib()}, the minimum spectra required for a
+resolved class within one spectrum type: smaller groups are removed before
+correlation pruning, groups exactly at the threshold are retained whole,
+and larger groups are never reduced below it. For \code{reduce_lib()},
+groups with \code{min_n} or fewer spectra are kept whole. Model trainers
+fit only classes meeting the threshold.}
 
 \item{exclude}{numeric length-two wavenumber interval excluded from pruning
 correlations.}
@@ -338,7 +343,8 @@ recipe, and spectrum type. FTIR and Raman medoids/models use
 800--3200 while the NIR interval is derived from finite coverage within
 4000--12000. Assessment items are typed reviewable data.tables, including
 macro-first summaries, class accuracy, ranked confusion counts, generic-row
-review/removal tables, quality-control removals, metadata-finalization
+review/removal tables, minimum-support class exclusions, quality-control
+removals, metadata-finalization
 audits, ranked model assessment/error correlations, stable warnings, and
 output manifests. Each model contains one
 \code{tests} data.table and a one-spectrum \code{fill} object.
@@ -437,7 +443,11 @@ same-technique correlation: \code{"other"} may use any established class,
 \code{"other plastic"} requires a plastic candidate, and
 \code{"other material"} requires \code{"organic matter"} or
 \code{"mineral"}. The matched material type and a correlation audit are
-retained.
+retained. Once those labels are resolved, class/spectrum-type groups with
+fewer than \code{min_n} spectra are removed before correlation pruning. The report
+identifies each excluded class, its observed support, its shortfall, and the
+affected spectrum identifiers so maintainers can reassign it or acquire more
+reference spectra.
 
 \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the

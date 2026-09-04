@@ -1022,10 +1022,112 @@ test_that("prune_lib() orders classes, preserves floors, and audits removals", {
   expect_equal(report$schedule$initial_n, c(5L, 3L, 2L))
   expect_true(nrow(report$removals) >= 1)
   expect_equal(report$summary$reassigned, 0L)
+  expect_equal(nrow(report$excluded_classes), 0L)
+  expect_named(
+    report$excluded_classes,
+    names(OpenSpecy:::.lib_prune_excluded_class_schema())
+  )
   expect_true(all(table(report$object$metadata$material_class) >= 2))
   expect_identical(colnames(report$object$spectra),
                    report$object$metadata$sample_name)
   expect_identical(report$retained_ids, colnames(report$object$spectra))
+})
+
+test_that("prune_lib() removes undersupported classes by spectrum type", {
+  wn <- seq(500, 3500, length.out = 40)
+  spectra <- vapply(seq_len(7), function(i) {
+    dnorm(seq(-3, 3, length.out = length(wn)), mean = i / 20)
+  }, numeric(length(wn)))
+  colnames(spectra) <- c(
+    "ftir_a1", "ftir_a2", "ftir_rare", "raman_rare1", "raman_rare2",
+    "ftir_unclassified", "ftir_missing"
+  )
+  lib <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c(
+        "stable", "stable", "rare", "rare", "rare", "unclassified", NA
+      ),
+      material_type = "plastic",
+      spectrum_type = c(rep("ftir", 3), rep("raman", 2), "ftir", "ftir")
+    )
+  )
+
+  messages <- capture.output(
+    report <- prune_lib(
+      lib, min_n = 2, return = "report", progress = TRUE
+    ),
+    type = "message"
+  )
+  expect_match(
+    paste(messages, collapse = "\n"),
+    "minimum support gate removed 2 spectrum/spectra"
+  )
+
+  expect_equal(
+    report$excluded_classes[, c(
+      "spectrum_type", "material_class", "observed_n", "minimum_spectra",
+      "shortfall", "spectra_removed", "action", "reason"
+    ), with = FALSE],
+    data.table::data.table(
+      spectrum_type = c("ftir", "ftir"),
+      material_class = c("rare", "unclassified"),
+      observed_n = c(1L, 1L), minimum_spectra = c(2L, 2L),
+      shortfall = c(1L, 1L), spectra_removed = c(1L, 1L),
+      action = c("removed", "removed"),
+      reason = c("class_below_min_n", "class_below_min_n")
+    )
+  )
+  expect_true(all(c("raman_rare1", "raman_rare2") %in% report$retained_ids))
+  expect_true("ftir_missing" %in% report$retained_ids)
+  expect_false(any(c("ftir_rare", "ftir_unclassified") %in%
+                     report$retained_ids))
+  threshold_removals <- report$removals[reason == "class_below_min_n"]
+  expect_equal(threshold_removals$spectrum_id,
+               c("ftir_rare", "ftir_unclassified"))
+  expect_true(all(is.na(threshold_removals$matched_id)))
+  expect_type(threshold_removals$matched_id, "character")
+  expect_equal(report$summary$classes_excluded, 2L)
+  expect_equal(report$summary$threshold_removed, 2L)
+  expect_true(check_OpenSpecy(report$object))
+  expect_identical(colnames(report$object$spectra),
+                   report$object$metadata$sample_name)
+
+  recovered <- OpenSpecy:::.lib_recover_library_assessments(
+    list(raw = lib, derivative = report$object),
+    list(metadata_drop = data.table::data.table(metadata_column = character()))
+  )
+  expect_named(
+    recovered$pruning_excluded_classes,
+    names(OpenSpecy:::.lib_prune_excluded_assessment_schema())
+  )
+  expect_equal(unique(recovered$pruning_excluded_classes$artifact),
+               "derivative")
+  expect_equal(nrow(recovered$pruning_excluded_classes), 2L)
+})
+
+test_that("prune_lib() resolves generic labels before minimum support", {
+  wn <- seq(500, 3500, length.out = 40)
+  shape <- dnorm(seq(-3, 3, length.out = length(wn)))
+  spectra <- cbind(shape, shape * 1.01)
+  colnames(spectra) <- c("rare", "generic")
+  lib <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c("polymer rare", "other plastic"),
+      material_type = "plastic", spectrum_type = "ftir"
+    )
+  )
+
+  report <- prune_lib(lib, min_n = 2, return = "report", progress = FALSE)
+
+  expect_equal(report$object$metadata$material_class,
+               rep("polymer rare", 2))
+  expect_equal(nrow(report$reassignments), 1L)
+  expect_equal(nrow(report$excluded_classes), 0L)
+  expect_equal(report$schedule$initial_n, 2L)
 })
 
 test_that("prune_lib() retains unclassified spectra outside matching", {
@@ -1637,11 +1739,16 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   data.table::fwrite(data.table::data.table(
     metadata_column = "unused_legacy_column"
   ), file.path(workflow_data, "metadata_drop_columns.csv"))
+  fixture_prune <- list(
+    derivative = list(min_n = 2, progress = FALSE),
+    nobaseline = list(min_n = 2, progress = FALSE)
+  )
 
   first <- suppressWarnings(build_lib(
     lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
     progress = FALSE,
+    prune = fixture_prune,
     recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
   expect_named(first, c("libraries", "medoids", "models", "assessments"))
@@ -1657,9 +1764,15 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_true(all(c(
     "build_summary", "class_prediction", "class_coverage",
     "type_coverage", "other_review", "other_filter", "pruning",
-    "pruning_reassignments", "metadata_drop", "metadata_finalization",
+    "pruning_excluded_classes", "pruning_reassignments", "metadata_drop",
+    "metadata_finalization",
     "model_assessment_correlations", "output_manifest"
   ) %in% names(first$assessments)))
+  expect_s3_class(first$assessments$pruning_excluded_classes, "data.table")
+  expect_named(
+    first$assessments$pruning_excluded_classes,
+    names(OpenSpecy:::.lib_prune_excluded_assessment_schema())
+  )
   release_dir <- attr(first, "output_dir")
   expect_true(all(file.exists(file.path(
     release_dir,
@@ -1678,6 +1791,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
     progress = FALSE, reuse = TRUE,
+    prune = fixture_prune,
     recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
   expect_true(any(second$assessments$output_manifest$status == "reused"))
@@ -1688,6 +1802,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
     progress = FALSE, reuse = FALSE,
+    prune = fixture_prune,
     recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
   expect_false(any(rebuilt$assessments$output_manifest$status == "reused"))

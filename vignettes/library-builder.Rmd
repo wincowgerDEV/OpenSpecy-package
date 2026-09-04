@@ -207,10 +207,16 @@ candidate whose `material_type` is `plastic`, and `other material` only to
 `organic matter` or `mineral`. The matched `material_type` is copied with the
 class. It then evaluates material classes from largest to smallest using
 bounded correlation blocks. FTIR and NIR share a candidate pool; Raman is
-separate; 2200--2420 cm^-1^ is excluded by default. Classes are never reduced
-below `min_n`, constant or unmatched spectra are retained, and deterministic
-IDs resolve correlation ties. Use `return = "report"` for the retained IDs,
-frozen class schedule, reassignment correlations, and removals.
+separate; 2200--2420 cm^-1^ is excluded by default. After generic reassignment,
+each `spectrum_type` and material-class group must contain at least `min_n`
+spectra. Smaller groups are removed before correlation pruning, while groups
+exactly at the threshold are retained whole and larger groups are never reduced
+below it. Constant or unmatched spectra in eligible classes are retained, and
+deterministic IDs resolve correlation ties. Use `return = "report"` for the
+retained IDs, frozen class schedule, reassignment correlations, spectrum-level
+removals, and `excluded_classes`, which reports observed support and the number
+of additional or reassigned spectra needed. End-to-end builds combine these
+class rows in `assessments$pruning_excluded_classes` with the recipe name.
 `build_lib(prune = ...)` maps recipe names to `prune_lib()` argument lists, so
 each selected spectral representation is pruned independently. In the official
 workflow, an otherwise unresolved identity is temporarily labeled `other`.
@@ -230,6 +236,7 @@ pruned <- prune_lib(
 )
 pruned$summary
 pruned$schedule
+pruned$excluded_classes
 ```
 
 ## Official Reference-Library Workflow

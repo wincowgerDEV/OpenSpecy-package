@@ -1,5 +1,11 @@
 # OpenSpecy 1.7.1
 
+- `prune_lib()` now removes material classes with fewer than `min_n` spectra
+  within each spectrum type before correlation pruning. Its report records
+  class support, threshold shortfalls, and affected spectrum IDs; complete
+  builds collect the actionable class table in
+  `assessments$pruning_excluded_classes` so maintainers can reassign classes or
+  target additional reference spectra. Classes exactly at `min_n` remain.
 - Added `train_spec_model()` for reusable logistic-regression and experimental
   full-library `ranger` probability-forest training. Official builds now retain
   algorithm-explicit models and assessments, while legacy logistic filenames

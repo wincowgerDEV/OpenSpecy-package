@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 Use `.specify/memory/constitution.md` as durable project memory and the active
 concise feature plan as the implementation brief. Default Spec Kit workflow:
-the active plan is `specs/025-random-forest-models/plan.md`;
+the active plan is `specs/026-prune-minimum-class-support/plan.md`;
 create or update one `plan.md` under `specs/<feature>/`; keep it under 100
 nonblank lines and target 1,500 words, with goals, requirements, technical
 decisions, package surfaces, a short work checklist, verification, and open

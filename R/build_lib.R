@@ -83,7 +83,11 @@
 #' \code{"other plastic"} requires a plastic candidate, and
 #' \code{"other material"} requires \code{"organic matter"} or
 #' \code{"mineral"}. The matched material type and a correlation audit are
-#' retained.
+#' retained. Once those labels are resolved, class/spectrum-type groups with
+#' fewer than \code{min_n} spectra are removed before correlation pruning. The report
+#' identifies each excluded class, its observed support, its shortfall, and the
+#' affected spectrum identifiers so maintainers can reassign it or acquire more
+#' reference spectra.
 #'
 #' \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 #' values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -242,7 +246,12 @@
 #' @param group_cols metadata columns defining groups for reduction.
 #' @param k maximum representatives to keep for groups larger than
 #' \code{min_n}.
-#' @param min_n groups with \code{min_n} or fewer spectra are kept whole.
+#' @param min_n For \code{prune_lib()}, the minimum spectra required for a
+#' resolved class within one spectrum type: smaller groups are removed before
+#' correlation pruning, groups exactly at the threshold are retained whole,
+#' and larger groups are never reduced below it. For \code{reduce_lib()},
+#' groups with \code{min_n} or fewer spectra are kept whole. Model trainers
+#' fit only classes meeting the threshold.
 #' @param class_col,type_col metadata columns used for model labels.
 #' @param nearest logical; if \code{TRUE}, \code{assess_lib()} compares each
 #' spectrum with its highest-correlation neighbor and reports the fraction where
@@ -280,7 +289,8 @@
 #' 800--3200 while the NIR interval is derived from finite coverage within
 #' 4000--12000. Assessment items are typed reviewable data.tables, including
 #' macro-first summaries, class accuracy, ranked confusion counts, generic-row
-#' review/removal tables, quality-control removals, metadata-finalization
+#' review/removal tables, minimum-support class exclusions, quality-control
+#' removals, metadata-finalization
 #' audits, ranked model assessment/error correlations, stable warnings, and
 #' output manifests. Each model contains one
 #' \code{tests} data.table and a one-spectrum \code{fill} object.
@@ -2269,11 +2279,78 @@ prune_lib <- function(x, class_col = "material_class",
   metadata[[material_type_col]] <- material_types
   rm(normalized)
   protected <- tolower(classes) %in% "unclassified"
+  spectrum_types <- trimws(tolower(as.character(metadata[[type_col]])))
+
+  support <- data.table::data.table(
+    row = seq_along(ids), spectrum_type = spectrum_types, pool = pools,
+    material_class = classes
+  )[
+    !is.na(spectrum_type) & nzchar(spectrum_type) &
+      !is.na(material_class) & nzchar(material_class),
+    .(observed_n = .N), by = .(spectrum_type, pool, material_class)
+  ]
+  if (nrow(support)) {
+    data.table::setorder(
+      support, spectrum_type, -observed_n, material_class
+    )
+  }
+  excluded_classes <- support[observed_n < min_n, .(
+    spectrum_type, pool, material_class,
+    observed_n = as.integer(observed_n),
+    minimum_spectra = as.integer(min_n),
+    shortfall = as.integer(min_n - observed_n),
+    spectra_removed = as.integer(observed_n),
+    action = "removed",
+    reason = "class_below_min_n"
+  )]
+  if (!nrow(excluded_classes)) {
+    excluded_classes <- .lib_prune_excluded_class_schema()
+  }
+  threshold_rows <- if (nrow(excluded_classes)) {
+    data.table::data.table(
+      row = seq_along(ids), spectrum_type = spectrum_types, pool = pools,
+      material_class = classes
+    )[
+      excluded_classes,
+      on = .(spectrum_type, pool, material_class), nomatch = 0L
+    ][, row]
+  } else {
+    integer()
+  }
+  active <- rep(TRUE, length(ids))
+  active[threshold_rows] <- FALSE
+  if (isTRUE(progress)) {
+    if (nrow(excluded_classes)) {
+      preview_n <- min(8L, nrow(excluded_classes))
+      preview <- excluded_classes[seq_len(preview_n), sprintf(
+        "%s / %s (n=%d; shortfall=%d)",
+        spectrum_type, material_class, observed_n, shortfall
+      )]
+      if (nrow(excluded_classes) > preview_n) {
+        preview <- c(
+          preview,
+          sprintf("and %d more", nrow(excluded_classes) - preview_n)
+        )
+      }
+      message(sprintf(
+        paste0("prune_lib: minimum support gate removed %d spectrum/spectra ",
+               "from %d class/type group(s) below min_n=%d: %s"),
+        length(threshold_rows), nrow(excluded_classes), min_n,
+        paste(preview, collapse = "; ")
+      ))
+    } else {
+      message(sprintf(
+        paste0("prune_lib: minimum support gate complete ",
+               "(%d class/type group(s); none below min_n=%d)"),
+        nrow(support), min_n
+      ))
+    }
+  }
 
   schedule <- data.table::data.table(
-    pool = pools,
-    material_class = classes,
-    is_protected = protected
+    pool = pools[active],
+    material_class = classes[active],
+    is_protected = protected[active]
   )[!is.na(pool) & !is.na(material_class) & nzchar(material_class),
     .(initial_n = .N, is_protected = all(is_protected)),
     by = .(pool, material_class)][is_protected == FALSE]
@@ -2284,9 +2361,18 @@ prune_lib <- function(x, class_col = "material_class",
     schedule[, schedule_order := integer()]
   }
 
-  active <- rep(TRUE, length(ids))
-  removal_rows <- list()
-  removal_i <- 0L
+  removal_rows <- if (length(threshold_rows)) {
+    list(data.table::data.table(
+      spectrum_id = ids[threshold_rows],
+      prior_class = classes[threshold_rows],
+      matched_id = NA_character_, matched_class = NA_character_,
+      correlation = NA_real_, pool = pools[threshold_rows],
+      schedule_order = NA_integer_, reason = "class_below_min_n"
+    ))
+  } else {
+    list()
+  }
+  removal_i <- length(removal_rows)
   if (isTRUE(progress)) {
     message(sprintf(
       "prune_lib: starting %d scheduled class(es) across %d spectrum pool(s)",
@@ -2426,24 +2512,45 @@ prune_lib <- function(x, class_col = "material_class",
   audit <- list(
     retained_ids = retained_ids,
     schedule = schedule,
+    excluded_classes = excluded_classes,
     reassignments = reassigned$report,
     removals = removals,
     summary = data.table::data.table(
       before = length(ids),
       after = sum(active),
       reassigned = nrow(reassigned$report),
+      classes_excluded = nrow(excluded_classes),
+      threshold_removed = length(threshold_rows),
       removed = sum(!active)
     )
   )
   attr(out, "prune_report") <- audit
   if (isTRUE(progress)) {
     message(sprintf(
-      "prune_lib: complete (before=%d; after=%d; reassigned=%d; removed=%d)",
-      length(ids), sum(active), nrow(reassigned$report), sum(!active)
+      paste0("prune_lib: complete (before=%d; after=%d; reassigned=%d; ",
+             "classes_excluded=%d; threshold_removed=%d; removed=%d)"),
+      length(ids), sum(active), nrow(reassigned$report),
+      nrow(excluded_classes), length(threshold_rows), sum(!active)
     ))
   }
   if (return == "ids") return(retained_ids)
   if (return == "report") return(c(list(object = out), audit))
+  out
+}
+
+.lib_prune_excluded_class_schema <- function() {
+  data.table::data.table(
+    spectrum_type = character(), pool = character(),
+    material_class = character(), observed_n = integer(),
+    minimum_spectra = integer(), shortfall = integer(),
+    spectra_removed = integer(), action = character(), reason = character()
+  )
+}
+
+.lib_prune_excluded_assessment_schema <- function() {
+  out <- .lib_prune_excluded_class_schema()
+  out[, artifact := character()]
+  data.table::setcolorder(out, c("artifact", setdiff(names(out), "artifact")))
   out
 }
 
@@ -3389,7 +3496,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       signal_noise = signal_noise, assess = assess, prune = prune,
       remove_other = remove_other
     ),
-    component_version = "reference-artifacts-v5-random-forest"
+    component_version = "reference-artifacts-v6-prune-minimum-class-support"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -3800,7 +3907,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "lookup_coverage", "identity_cleanup", "class_prediction",
     "class_coverage", "type_coverage", "exclusions_deduplication",
     "other_review", "other_filter", "filters", "metadata_drop",
-    "metadata_finalization", "pruning", "pruning_reassignments",
+    "metadata_finalization", "pruning", "pruning_excluded_classes",
+    "pruning_reassignments",
     "quality_control", "model_assessment_correlations"
   )
   assessments[intersect(keep, names(assessments))]
@@ -4118,6 +4226,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     prune_spec <- list(derivative = list(), nobaseline = list())
   }
   prune_rows <- list()
+  prune_excluded_rows <- list()
   prune_reassignment_rows <- list()
   for (name in intersect(names(prune_spec), names(libraries))) {
     report(paste0("pruning ", name))
@@ -4129,6 +4238,15 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     libraries[[name]] <- pruned$object
     prune_rows[[name]] <- data.table::copy(pruned$summary)[
       , artifact := name][]
+    if (nrow(pruned$excluded_classes)) {
+      prune_excluded_rows[[name]] <- data.table::copy(
+        pruned$excluded_classes
+      )[, artifact := name][]
+      data.table::setcolorder(
+        prune_excluded_rows[[name]],
+        c("artifact", setdiff(names(prune_excluded_rows[[name]]), "artifact"))
+      )
+    }
     if (nrow(pruned$reassignments)) {
       prune_reassignment_rows[[name]] <- data.table::copy(
         pruned$reassignments
@@ -4217,6 +4335,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       other_review = other_policy$review,
       other_filter = other_policy$summary,
       pruning = data.table::rbindlist(prune_rows, fill = TRUE),
+      pruning_excluded_classes = if (length(prune_excluded_rows)) {
+        data.table::rbindlist(prune_excluded_rows, fill = TRUE)
+      } else {
+        .lib_prune_excluded_assessment_schema()
+      },
       pruning_reassignments = if (length(prune_reassignment_rows)) {
         data.table::rbindlist(prune_reassignment_rows, fill = TRUE)
       } else {
@@ -4763,6 +4886,22 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     out[, artifact := name]
     out
   }), fill = TRUE)
+  pruning_excluded_classes <- data.table::rbindlist(lapply(
+    names(libraries), function(name) {
+      report <- attr(libraries[[name]], "prune_report")
+      if (is.null(report) || is.null(report$excluded_classes) ||
+          !nrow(report$excluded_classes)) return(NULL)
+      out <- data.table::copy(report$excluded_classes)
+      out[, artifact := name]
+      data.table::setcolorder(
+        out, c("artifact", setdiff(names(out), "artifact"))
+      )
+      out
+    }
+  ), fill = TRUE)
+  if (!nrow(pruning_excluded_classes)) {
+    pruning_excluded_classes <- .lib_prune_excluded_assessment_schema()
+  }
   other_review <- data.table::rbindlist(lapply(names(libraries), function(name) {
     report <- attr(libraries[[name]], "other_review_report")
     if (is.null(report) || !nrow(report)) return(NULL)
@@ -4808,6 +4947,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     other_review = other_review,
     other_filter = other_filter,
     pruning = pruning,
+    pruning_excluded_classes = pruning_excluded_classes,
     pruning_reassignments = pruning_reassignments,
     filters = data.table::data.table(
       stage = "special_filter", before = before_filter,
@@ -4949,6 +5089,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     metadata_drop = data.table::data.table(),
     metadata_finalization = .lib_metadata_finalization_schema(),
     pruning = data.table::data.table(),
+    pruning_excluded_classes = .lib_prune_excluded_assessment_schema(),
     pruning_reassignments = .lib_prune_reassignment_schema(),
     medoid_model_summary = model_summary,
     medoid_model_support = support,
