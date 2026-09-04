@@ -654,9 +654,9 @@
 </div>
 <div class="node function" style="left:1550px;top:2950px" tabindex="0">
   AI Model Classification
-  <div class="sub">ai_output_gate: match_spec()</div>
-  <div class="tip">For an explicit type the router runs that FTIR, Raman, or NIR model. The default All option runs every type-specific model whose axis overlaps the query, using each model's training-median filler for partial coverage, then retains the highest-confidence class per spectrum. This bypasses identify_blockwise()/.match_spec_blockwise() and never populates matches/pixel_matches. ai_output() feeds max_cor()/max_cor_identity(), the Heatmap material colors, Selection Metadata, both Top Matches outputs, and Download: Thresholded Particles.
-  <span class="loc">Plan 022 &middot; global.R: app_classify_model_library() &middot; server.R: ai_output_gate()</span></div>
+  <div class="sub">ai_output_gate: match_spec(top_n = 5)</div>
+  <div class="tip">For an explicit type the router runs that FTIR, Raman, or NIR logistic model. The default All option runs every overlapping type-specific model with its wavenumber-mean filler, ranks class probabilities per spectrum, and retains the five strongest scores. Rank 1 alone feeds map colors, threshold summaries, and material identity; all ranks feed Top Matches and its download. The selected rank drives the optional coefficient overlay without rerunning classification. This path remains separate from identify_blockwise() and does not expose experimental random forests.
+  <span class="loc">Plan 025 &middot; global.R: app_classify_model_library() &middot; server.R: ai_output_gate()</span></div>
 </div>
 
 <div class="node function" style="left:1850px;top:2560px" tabindex="0">
@@ -729,8 +729,8 @@
 <div class="node output tip-left" style="left:2250px;top:2110px" tabindex="0">
   Top Matches Table
   <div class="depends">depends on: Library Identification OR AI Classification</div>
-  <div class="tip">output$event reads top_matches() &larr; app_top_matches_table() (global.R), which now branches on lib_type: real-library mode shows the selected spectrum's ranked candidates unchanged; AI mode shows a single row -- matches_to_single()[selected_unit_index(), ] via dplyr::any_of() -- since AI mode has one prediction per spectrum, not ranked candidates. Previously blocked entirely in AI mode (req(!grepl("^model$", ...))) despite the Download version and Selection Metadata Table already showing AI results; fixed in spec 015.
-  <span class="loc">server.R:2049-2055, 2130-2138 &middot; global.R app_top_matches_table()</span></div>
+  <div class="tip">output$event reads top_matches() &larr; app_top_matches_table(). Real-library mode shows the selected spectrum's ranked references; logistic mode shows the selected spectrum's ranked class probabilities. Clicking a logistic row selects the exact class whose signed coefficients are rendered behind the Spectrum Plot. Rank and probability are display evidence only and do not mutate canonical analysis state.
+  <span class="loc">Plan 025 &middot; server.R: top_matches(), selected_model_explanation() &middot; global.R: app_top_matches_table()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2220px" tabindex="0">
@@ -756,15 +756,15 @@
 
 <div class="node output tip-left" style="left:2250px;top:2560px" tabindex="0">
   Spectrum Plot
-  <div class="depends">depends on: Active Spectrum Inspection + optional match</div>
-  <div class="tip">The processed trace is byte-for-byte the one-column object from Active Spectrum Inspection; the raw trace and optional selected reference remain labeled overlays. Heatmap/table selection drives the inspection lane, which drives this plot and Quality Findings together. The plot never reads a synthetic rejected spectrum.
-  <span class="loc">server.R: output$MyPlotC &middot; DataR_plot() &middot; active_spectrum_view()</span></div>
+  <div class="depends">depends on: Active Spectrum Inspection + optional match/model class</div>
+  <div class="tip">The processed trace is byte-for-byte the one-column object from Active Spectrum Inspection; the raw trace and optional selected reference remain labeled overlays. For one-spectrum logistic identification only, the selected Top Matches row adds a symmetric quantitative coefficient background: red negative, yellow near zero, green positive, with a weight color bar. It explains signed model influence, not causal peak importance, and is absent from library, no-identification, multi-spectrum/heatmap, and RF states.
+  <span class="loc">Plan 025 &middot; server.R: output$MyPlotC, selected_model_explanation() &middot; global.R: app_spectrum_plot() &middot; R/interactive_plots.R</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2630px" tabindex="0">
   Selection Metadata Table
   <div class="depends">depends on: canonical_final() + click; Identification OR AI</div>
-  <div class="tip">output$eventmetadata reads match_metadata(), from selected_unit_index() + matches_to_single(). match_metadata() branches on lib_type: real-library mode uses Library Identification's matches_to_single(); AI mode instead does bind_cols(quantified_data()$metadata, matches_to_single()) where matches_to_single() reads ai_output() &mdash; unlike Top Matches Table, this one is NOT blocked in AI mode. Row selection is set by clicking the Heatmap (dashed teal line below).
+  <div class="tip">output$eventmetadata reads match_metadata(), from selected_unit_index() + matches_to_single(). Real-library mode uses the selected reference row. Logistic mode joins only rank 1 for the selected spectrum into canonical metadata; lower ranked Top Matches remain interpretation alternatives and do not replace the winning identity. Row selection is set by clicking the Heatmap (dashed teal line below).
   <strong>Plan 018 target:</strong> a compact selection fetches exactly one aligned source metadata row and its value-level match fields.
   <span class="loc">Plan 018 &middot; server.R: match_metadata() &middot; Specs metadata accessors</span></div>
 </div>

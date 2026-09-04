@@ -10,6 +10,7 @@
 \alias{prune_lib}
 \alias{reduce_lib}
 \alias{build_model_lib}
+\alias{train_spec_model}
 \alias{assess_lib}
 \title{Build spectral libraries}
 \usage{
@@ -114,6 +115,21 @@ build_model_lib(
   grouped = TRUE,
   weights = TRUE,
   make_relative = TRUE,
+  method = c("logistic_regression", "random_forest"),
+  ...
+)
+
+train_spec_model(
+  x,
+  class_col = "material_class",
+  type_col = "spectrum_type",
+  min_n = 10,
+  alpha = 0.1,
+  seed = 123,
+  grouped = TRUE,
+  weights = TRUE,
+  make_relative = TRUE,
+  method = c("logistic_regression", "random_forest"),
   ...
 )
 
@@ -293,10 +309,15 @@ correlations.}
 \item{grouped}{logical; whether multinomial coefficients use grouped
 penalties.}
 
-\item{weights}{logical; whether to use inverse class-frequency weights.}
+\item{weights}{logical; whether to use inverse class-frequency weights for
+logistic regression or inverse-frequency case sampling for random forest.}
 
 \item{make_relative}{logical; whether to normalize model inputs with
 \code{\link{make_rel}()}.}
+
+\item{method}{classifier to train: \code{"logistic_regression"} (the
+backward-compatible default) or \code{"random_forest"}. The latter requires
+the suggested \pkg{ranger} package.}
 
 \item{nearest}{logical; if \code{TRUE}, \code{assess_lib()} compares each
 spectrum with its highest-correlation neighbor and reports the fraction where
@@ -312,7 +333,8 @@ In composable mode, \code{build_lib()} returns a named list of
 \code{OpenSpecy} libraries. Its end-to-end mode returns one list containing
 \code{libraries}, \code{medoids}, \code{models}, and \code{assessments}.
 Official libraries and medoids are nested by recipe and then
-\code{ftir}, \code{raman}, or \code{nir}; FTIR and Raman medoids/models use
+\code{ftir}, \code{raman}, or \code{nir}. Models are nested by algorithm,
+recipe, and spectrum type. FTIR and Raman medoids/models use
 800--3200 while the NIR interval is derived from finite coverage within
 4000--12000. Assessment items are typed reviewable data.tables, including
 macro-first summaries, class accuracy, ranked confusion counts, generic-row
@@ -325,11 +347,13 @@ output manifests. Each model contains one
 object unless \code{return} requests a table, report, or ids.
 \code{make_lib_lookup_template()} returns a data.table unless \code{path} is
 supplied, in which case it writes the csv and invisibly returns the table.
-\code{build_model_lib()} returns a list suitable for AI classification with
+\code{train_spec_model()} and \code{build_model_lib()} return a list suitable
+for AI classification with
 \code{\link{match_spec}()} and one tidy \code{tests} table instead of
 separate accuracy/confusion summaries. It also contains typed
-\code{lambda_metrics} and \code{support} tables. \code{assess_lib()} returns a
-data.table summary.
+\code{lambda_metrics} and \code{support} tables. Random-forest results also
+contain out-of-bag metrics and feature importance. \code{assess_lib()}
+returns a data.table summary.
 }
 \description{
 Create reference libraries from source files and OpenSpecy objects.
@@ -437,12 +461,22 @@ relative spectra whose missing values are temporarily replaced by each
 spectrum's finite mean. Official medoids are then selected from the original
 object so their genuine missing values are preserved.
 
-\code{build_model_lib()} trains the multinomial \code{glmnet} model structure
-used by OpenSpecy model libraries. Inverse class weights and stratified
-cross-validation select the lambda with the highest out-of-fold macro class
-accuracy. Missing training values are replaced with the finite mean at each
+\code{train_spec_model()} trains either OpenSpecy's multinomial logistic
+regression model (\code{method = "logistic_regression"}) or an experimental
+probability random forest (\code{method = "random_forest"}). Logistic
+regression uses inverse class weights and stratified cross-validation to
+select the lambda with the highest out-of-fold macro class accuracy. Random
+forest uses inverse-frequency balanced case sampling and out-of-bag
+predictions. This improves minority-class representation in each bootstrap
+sample without applying a second class-vote correction.
+Treat the stored out-of-bag metrics as fit diagnostics: balanced resampling
+can make them optimistic, so grouped held-out accuracy is the comparison and
+model-selection metric used by the library workflow.
+Missing training values are replaced with the finite mean at each
 wavenumber. The returned model carries the same training-mean filler so
 \code{\link{match_spec}()} can identify partially covered spectra.
+\code{build_model_lib()} is the backward-compatible wrapper used by older
+scripts; \code{build_lib()} calls the dedicated trainer for official models.
 
 \code{assess_lib()} returns a compact summary of object validity, library
 size, class balance, and optionally nearest-neighbor class consistency.
@@ -516,12 +550,16 @@ libs <- build_lib(
   dedupe = FALSE
 )
 
-model <- suppressWarnings(build_model_lib(
+model <- suppressWarnings(train_spec_model(
   joined, class_col = "material_class", type_col = NULL, min_n = 2,
   nlambda = 3
 ))
 assess_lib(libs$raw, class_col = "material_class", nearest = FALSE)
 
+}
+\seealso{
+\code{\link{match_spec}()} for deploying trained models and
+\code{\link{plotly_spec}()} for logistic coefficient overlays.
 }
 \author{
 Win Cowger

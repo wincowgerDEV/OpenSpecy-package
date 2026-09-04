@@ -9,6 +9,16 @@
 #' the first group.
 #' @param x2 an optional second \code{OpenSpecy} object containing metadata and
 #' spectral data for the second group.
+#' @param model optional model library returned by \code{\link{train_spec_model}()}.
+#' Supplying this with \code{model_class} adds a logistic-regression coefficient
+#' background to \code{plotly_spec()}.
+#' @param model_class exact trained class label whose signed logistic
+#' coefficients should be displayed. Positive weights are green, values near
+#' zero yellow, and negative weights red. These are model weights, not causal
+#' peak attributions.
+#' @param model_colorscale continuous Plotly colorscale for signed model
+#' weights, centered at zero.
+#' @param model_opacity opacity of the model-weight background from zero to one.
 #' @param z optional numeric vector specifying the intensity values for the
 #' heatmap. If not provided, the function will use the intensity values from the
 #' \code{OpenSpecy} object.
@@ -84,6 +94,14 @@ plotly_spec.default <- function(x, ...) {
 #' @export
 plotly_spec.OpenSpecy <- function(x,
                                   x2 = NULL,
+                                  model = NULL,
+                                  model_class = NULL,
+                                  model_colorscale = list(
+                                    c(0, "#d73027"),
+                                    c(0.5, "#fee08b"),
+                                    c(1, "#1a9850")
+                                  ),
+                                  model_opacity = 0.28,
                                   line = list(color = 'rgb(255, 255, 255)'),
                                   line2 = list(dash = "dot",
                                                color = "rgb(255,0,0)"),
@@ -102,8 +120,41 @@ plotly_spec.OpenSpecy <- function(x,
       value.name = "intensity"
     )
 
-  p <- plot_ly(dt, type = "scatter", mode = "lines", ...) |>
+  p <- plot_ly(dt, ...)
+  if (!is.null(model) || !is.null(model_class)) {
+    if (is.null(model) || is.null(model_class)) {
+      stop("'model' and 'model_class' must be supplied together", call. = FALSE)
+    }
+    if (!is.numeric(model_opacity) || length(model_opacity) != 1L ||
+        is.na(model_opacity) || model_opacity < 0 || model_opacity > 1) {
+      stop("'model_opacity' must be one number from zero to one", call. = FALSE)
+    }
+    weights <- model_class_weights(model, model_class)
+    limit <- max(abs(weights$weight), na.rm = TRUE)
+    if (!is.finite(limit) || limit == 0) limit <- 1
+    p <- p |> add_trace(
+      x = weights$wavenumber,
+      y = c(0, 1),
+      z = rbind(weights$weight, weights$weight),
+      type = "heatmap",
+      yaxis = "y2",
+      colorscale = model_colorscale,
+      zmin = -limit,
+      zmax = limit,
+      zmid = 0,
+      opacity = model_opacity,
+      showscale = TRUE,
+      colorbar = list(title = "Logistic<br>weight"),
+      hovertemplate = paste0(
+        "%{x:.1f} cm<sup>-1</sup><br>weight %{z:.4g}<extra>",
+        model_class, "</extra>"
+      ),
+      inherit = FALSE
+    )
+  }
+  p <- p |>
     add_trace(
+      data = dt,
       x = ~ wavenumber,
       y = ~ intensity,
       split = ~ id,
@@ -115,6 +166,8 @@ plotly_spec.OpenSpecy <- function(x,
       xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                    autorange = "reversed"),
       yaxis = list(title = "intensity [-]"),
+      yaxis2 = list(overlaying = "y", range = c(0, 1), visible = FALSE,
+                    fixedrange = TRUE),
       plot_bgcolor = plot_bgcolor,
       paper_bgcolor = paper_bgcolor,
       legend = list(orientation = 'h', y = 1.1),
@@ -146,6 +199,76 @@ plotly_spec.OpenSpecy <- function(x,
   }
 
   return(p)
+}
+
+#' @rdname interactive_plots
+#'
+#' @export
+model_class_weights <- function(model, model_class) {
+  if (!is.list(model) || is.null(model$coefficients)) {
+    stop("'model' must be a trained logistic-regression model library",
+         call. = FALSE)
+  }
+  model_type <- if (is.null(model$model_type)) {
+    "logistic_regression"
+  } else {
+    model$model_type
+  }
+  if (!identical(model_type, "logistic_regression")) {
+    stop("Model-weight overlays currently support logistic regression only",
+         call. = FALSE)
+  }
+  if (!is.character(model_class) || length(model_class) != 1L ||
+      is.na(model_class) || !nzchar(model_class)) {
+    stop("'model_class' must be one nonempty trained class label", call. = FALSE)
+  }
+  coefficients <- data.table::as.data.table(model$coefficients)
+  required <- c("name", "names", "dimension_units")
+  missing <- setdiff(required, names(coefficients))
+  if (length(missing)) {
+    stop("Model coefficients are missing: ", paste(missing, collapse = ", "),
+         call. = FALSE)
+  }
+  available <- unique(c(
+    as.character(coefficients$name),
+    as.character(model$class_names),
+    if (!is.null(model$dimension_conversion$name)) {
+      as.character(model$dimension_conversion$name)
+    } else {
+      character()
+    }
+  ))
+  available <- available[!is.na(available) & nzchar(available)]
+  if (!model_class %in% available) {
+    stop(
+      "Class '", model_class, "' is not present in this model. Available ",
+      "classes include: ", paste(head(available, 10L), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  out <- coefficients[
+    as.character(name) == model_class,
+    .(
+      wavenumber = suppressWarnings(as.numeric(names)),
+      weight = as.numeric(dimension_units)
+    )
+  ]
+  out <- out[is.finite(wavenumber) & wavenumber != 0 & is.finite(weight)]
+  out <- out[, .(weight = sum(weight)), by = wavenumber]
+  axis <- suppressWarnings(as.numeric(model$all_variables))
+  axis <- sort(unique(axis[is.finite(axis) & axis != 0]))
+  if (length(axis)) {
+    out <- merge(
+      data.table::data.table(wavenumber = axis), out,
+      by = "wavenumber", all.x = TRUE, sort = TRUE
+    )
+    out[is.na(weight), weight := 0]
+  }
+  if (!nrow(out)) {
+    stop("The model does not contain a finite wavenumber axis", call. = FALSE)
+  }
+  data.table::setorder(out, wavenumber)
+  out[]
 }
 
 #' @rdname interactive_plots

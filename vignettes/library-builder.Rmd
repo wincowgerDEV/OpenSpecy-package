@@ -268,7 +268,8 @@ Each completed library, medoid, model, and assessment component is written with
 a manifest under `output_dir/checkpoints`. `reuse = TRUE` loads it only when
 the source/lookup signatures, arguments, package version, and builder contract
 still match. Validated output is promoted into a versioned release directory,
-which contains the seven legacy RDS names plus one aggregate build RDS.
+which contains the seven legacy RDS names, explicit algorithm-named model RDS
+files, and one aggregate build RDS.
 
 The returned object has four top-level elements: `libraries`, `medoids`,
 `models`, and `assessments`. Libraries are recipe-first and then keyed by
@@ -282,12 +283,22 @@ axis to enter medoid selection or model fitting. PAM operates on a temporary
 relative matrix where each spectrum's missing values are filled by that
 spectrum's finite mean. Selected medoid IDs are then pulled from the original
 range-restricted object, so published medoids retain their original `NA`
-positions. Model fitting fills those restored gaps with the finite mean at each
-wavenumber across training medoids. Each model stores that training-mean filler,
-the support audit, per-lambda cross-validation metrics, and one tidy `tests`
-table. Lambda is selected by maximum out-of-fold macro class accuracy; the
-calibrated alpha, no-intercept, grouped multinomial, and inverse-frequency
-weight settings are unchanged.
+positions. `models` is algorithm-first (`logistic_regression` or
+`random_forest`), then recipe and type. Logistic regression retains
+derivative/nobaseline medoid training and fills restored gaps with the finite
+mean at each wavenumber across training medoids. Random forests use the complete
+eligible raw, derivative, and nobaseline type libraries, relative normalization,
+wavenumber-mean filling, inverse-frequency balanced case sampling, 500
+probability trees, permutation importance, and all available ranger threads.
+Balanced sampling improves minority representation in each bootstrap without
+also applying a class-vote correction. Because this resampling can make
+out-of-bag accuracy optimistic, treat OOB results as fit diagnostics and use
+the grouped held-out assessment as the model comparison and selection result.
+`train_spec_model()` exposes both engines; `build_model_lib()` remains a
+compatible wrapper. Each model stores its filler, support audit, training
+diagnostics, and one tidy `tests` table. Logistic lambda selection remains
+maximum out-of-fold macro class accuracy with its calibrated alpha,
+no-intercept, grouped multinomial, and weighting settings unchanged.
 
 Full assessment uses every candidate and downloaded legacy artifact. Candidate
 artifacts use a seeded approximately ten-percent class/type-stratified sample
@@ -296,8 +307,12 @@ legacy full library. This source-local policy tolerates taxonomy evolution
 without fuzzy cross-version class matching; its results describe each
 artifact on its own source population and are not paired causal deltas.
 Held-out identifiers are removed from full and medoid references before
-identification; production models are evaluated without retraining through
-`match_spec()` so partial spectra can use the stored filler. Macro class
+identification. Candidate random forests are assessed by fitting a separate
+forest on only the 90% full-library training partition and predicting its held
+out 10%; their production forests still use all eligible spectra. Logistic and
+published artifacts retain their existing source-local evaluation contract.
+All model queries come from full libraries, never medoids, and `match_spec()`
+uses stored fillers for partial spectra. Macro class
 accuracy is the primary metric, followed by evaluated coverage, overall
 accuracy, per-class accuracy, and clear old/new
 `assess_spec(report = "all")` shifts. Empty warnings retain their column schema

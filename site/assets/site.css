@@ -348,7 +348,7 @@ h3 {
   border-radius: 1.5rem;
   background: var(--os-bg-deep);
   box-shadow: var(--os-shadow);
-  transform: rotate(1.2deg);
+  transform: none;
 }
 
 .hero-video-card iframe {

@@ -1,5 +1,19 @@
 # OpenSpecy 1.7.1
 
+- Added `train_spec_model()` for reusable logistic-regression and experimental
+  full-library `ranger` probability-forest training. Official builds now retain
+  algorithm-explicit models and assessments, while legacy logistic filenames
+  remain compatible. Random forests cover raw, derivative, and nobaseline data
+  with inverse-frequency balanced sampling, permutation importance, OOB diagnostics, checkpointed
+  training, and leakage-free grouped full-library holdouts.
+- Model matching can now return ranked top class probabilities. The bundled app
+  displays the top logistic scores and updates a quantitative red-yellow-green
+  coefficient background on the selected spectrum when a top class is chosen;
+  `plotly_spec()` and `model_class_weights()` expose the same interpretation for
+  package users. The colors show signed model influence, not causal peak
+  attribution.
+- Leveled the hosted homepage video card while retaining its autoplay,
+  privacy-enhanced embed, and responsive aspect ratio.
 - Final full and medoid reference libraries now drop metadata columns that are
   entirely `NA` and stably order the remainder from least to most missing.
   `assessments$metadata_finalization` records the change. Model holdout outputs

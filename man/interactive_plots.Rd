@@ -4,6 +4,7 @@
 \alias{plotly_spec}
 \alias{plotly_spec.default}
 \alias{plotly_spec.OpenSpecy}
+\alias{model_class_weights}
 \alias{heatmap_spec}
 \alias{heatmap_spec.default}
 \alias{heatmap_spec.OpenSpecy}
@@ -19,6 +20,10 @@ plotly_spec(x, ...)
 \method{plotly_spec}{OpenSpecy}(
   x,
   x2 = NULL,
+  model = NULL,
+  model_class = NULL,
+  model_colorscale = list(c(0, "#d73027"), c(0.5, "#fee08b"), c(1, "#1a9850")),
+  model_opacity = 0.28,
   line = list(color = "rgb(255, 255, 255)"),
   line2 = list(dash = "dot", color = "rgb(255,0,0)"),
   font = list(color = "#FFFFFF"),
@@ -28,6 +33,8 @@ plotly_spec(x, ...)
   make_rel = TRUE,
   ...
 )
+
+model_class_weights(model, model_class)
 
 heatmap_spec(x, ...)
 
@@ -73,6 +80,20 @@ the first group.}
 
 \item{x2}{an optional second \code{OpenSpecy} object containing metadata and
 spectral data for the second group.}
+
+\item{model}{optional model library returned by \code{\link{train_spec_model}()}.
+Supplying this with \code{model_class} adds a logistic-regression coefficient
+background to \code{plotly_spec()}.}
+
+\item{model_class}{exact trained class label whose signed logistic
+coefficients should be displayed. Positive weights are green, values near
+zero yellow, and negative weights red. These are model weights, not causal
+peak attributions.}
+
+\item{model_colorscale}{continuous Plotly colorscale for signed model
+weights, centered at zero.}
+
+\item{model_opacity}{opacity of the model-weight background from zero to one.}
 
 \item{line}{list; \code{line} parameter for \code{x}; passed to
 \code{\link[plotly]{add_trace}()}.}

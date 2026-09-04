@@ -34,6 +34,40 @@ test_that("heatmap_spec() generates static object", {
     expect_silent()
 })
 
+test_that("plotly_spec() adds a quantitative logistic weight background", {
+  coefficients <- data.table::data.table(
+    dimensions_used = c(1L, 3L),
+    dimension_units = c(-2, 1),
+    variable = 1L,
+    name = "ftir_test class",
+    names = c(800, 1000)
+  )
+  model <- list(
+    model_type = "logistic_regression",
+    coefficients = coefficients,
+    dimension_conversion = data.table::data.table(
+      factor_num = 1L, name = "ftir_test class"
+    ),
+    all_variables = c(800, 900, 1000)
+  )
+  weights <- model_class_weights(model, "ftir_test class")
+  expect_equal(weights$weight, c(-2, 0, 1))
+
+  x <- as_OpenSpecy(
+    c(800, 900, 1000),
+    spectra = data.frame(sample = c(0, 1, 0))
+  )
+  plot <- plotly_spec(x, model = model, model_class = "ftir_test class")
+  expect_s3_class(plot, "plotly")
+  built <- plotly::plotly_build(plot)
+  types <- vapply(built$x$data, function(trace) trace$type, character(1))
+  expect_true("heatmap" %in% types)
+  heat <- built$x$data[[which(types == "heatmap")[[1L]]]]
+  expect_equal(heat$zmin, -2)
+  expect_equal(heat$zmax, 2)
+  expect_equal(heat$zmid, 0)
+})
+
 test_that("interactive_plot() generates 'plotly' object", {
   interactive_plot(map, x2 = raman_hdpe, select = 2) |>
         expect_s3_class("plotly")

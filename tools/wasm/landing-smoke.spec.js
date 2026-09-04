@@ -55,6 +55,7 @@ test("static landing shell is crawlable, responsive, and base-path safe", async 
   })).toBeTruthy();
   const heroVideo = page.locator(".hero-video-card iframe");
   await expect(heroVideo).toBeVisible();
+  await expect(page.locator(".hero-video-card")).toHaveCSS("transform", "none");
   await expect(heroVideo).toHaveAttribute(
     "src",
     /youtube-nocookie\.com\/embed\/8zrlQeTCwkQ\?autoplay=1&mute=1&playsinline=1&rel=0/

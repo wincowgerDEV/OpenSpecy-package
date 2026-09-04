@@ -349,3 +349,27 @@ test_that("histogram axis stays at the data range and clamps out-of-range thresh
   vline_x <- vline_x[!is.na(vline_x)]
   expect_setequal(vline_x, c(1, 3))
 })
+
+test_that("app spectrum plot explains a selected logistic class", {
+  env <- .source_in_memory_app_helpers()
+  model <- list(
+    model_type = "logistic_regression",
+    coefficients = data.table::data.table(
+      dimensions_used = 1:3, dimension_units = c(-1, 0, 2),
+      variable = 1L, name = "raman_polyethylene",
+      names = c(500, 1000, 1500)
+    )
+  )
+  spectrum <- as_OpenSpecy(
+    c(500, 1000, 1500), spectra = data.frame(sample = c(0, 1, 0))
+  )
+  plot <- env$app_spectrum_plot(
+    spectrum, model = model, model_class = "raman_polyethylene"
+  )
+  built <- plotly::plotly_build(plot)
+  types <- vapply(built$x$data, function(trace) trace$type, character(1))
+  expect_true("heatmap" %in% types)
+  heat <- built$x$data[[which(types == "heatmap")[[1L]]]]
+  expect_equal(heat$zmin, -2)
+  expect_equal(heat$zmax, 2)
+})

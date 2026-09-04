@@ -87,7 +87,7 @@ ai_classify(x, ...)
 
 \method{ai_classify}{default}(x, ...)
 
-\method{ai_classify}{OpenSpecy}(x, library, fill = NULL, ...)
+\method{ai_classify}{OpenSpecy}(x, library, fill = NULL, top_n = 1L, ...)
 
 fill_spec(x, ...)
 
@@ -104,7 +104,7 @@ os_similarity(x, ...)
 \arguments{
 \item{x}{an \code{OpenSpecy} object, typically with unknowns.}
 
-\item{library}{an \code{OpenSpecy} or \code{glmnet} object representing the
+\item{library}{an \code{OpenSpecy} or trained model object representing the
 reference library of spectra or model to use in identification.}
 
 \item{na.rm}{logical; indicating whether missing values should be removed
@@ -119,7 +119,9 @@ will use the current most optimized strategy for Pearson correlation, "base"
 will use base R's \code{cor()}}
 
 \item{top_n}{integer; specifying the number of top matches to return.
-If \code{NULL} (default), all matches will be returned.}
+For spectral libraries, \code{NULL} returns all matches. Model libraries
+preserve their historical single winning class when \code{NULL}; a positive
+value returns that many ranked class probabilities per spectrum.}
 
 \item{order}{an \code{OpenSpecy} used for sorting, ideally the unprocessed
 one; \code{NULL} skips sorting.}

@@ -124,6 +124,13 @@ test_that("ai_classify() handles array predictions with spectrum IDs", {
   expect_equal(matches$y, c(2L, 1L))
   expect_equal(matches$value, c(0.7, 0.8))
   expect_equal(matches$name, c("two", "one"))
+  expect_equal(matches$rank, c(1L, 1L))
+
+  ranked <- ai_classify(os, lib, top_n = 2L)
+  expect_equal(ranked$x, c(1L, 1L, 2L, 2L))
+  expect_equal(ranked$rank, c(1L, 2L, 1L, 2L))
+  expect_equal(ranked$name, c("two", "three", "one", "two"))
+  expect_equal(ranked$value, c(0.7, 0.2, 0.8, 0.1))
 })
 
 test_that("fill_spec() preserves filler values where queries are missing", {

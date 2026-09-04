@@ -932,6 +932,10 @@ test_that("static landing and Shiny app provide the embed handshake", {
   ))
   expect_true(any(grepl('class="hero-video-card"', homepage,
                          fixed = TRUE)))
+  expect_true(grepl(
+    "\\.hero-video-card\\s*\\{[^}]*transform:\\s*none",
+    paste(css, collapse = "\n"), perl = TRUE
+  ))
   expect_false(any(grepl('class="spectrum-card"', homepage,
                           fixed = TRUE)))
   expect_true(any(grepl("Walking Softer", homepage, fixed = TRUE)))

@@ -722,10 +722,18 @@ app_top_matches_table <- function(matches_to_single_result, model_library,
                                   selected_index) {
   matches_to_single_result <- data.table::as.data.table(matches_to_single_result)
   if(isTRUE(model_library)) {
-    matches_to_single_result[selected_index, ] %>%
+    rows <- if("spectrum_index" %in% names(matches_to_single_result)) {
+      matches_to_single_result[spectrum_index == selected_index]
+    } else {
+      matches_to_single_result[selected_index, ]
+    }
+    if("prediction_rank" %in% names(rows)) {
+      data.table::setorder(rows, prediction_rank)
+    }
+    rows %>%
       dplyr::select(dplyr::any_of(c(
-        "match_val", "material_class", "spectrum_identity", "organization",
-        "sample_name"
+        "prediction_rank", "match_val", "material_class", "spectrum_identity",
+        "organization", "sample_name"
       )))
   } else {
     matches_to_single_result %>%
@@ -2890,6 +2898,7 @@ app_spectrum_legend_layout <- function(plot_width = NULL) {
 }
 
 app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
+                              model = NULL, model_class = NULL,
                               make_rel = FALSE, source = "B",
                               plot_width = NULL) {
   prepare_trace <- function(x, normalize = FALSE) {
@@ -2924,6 +2933,33 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
   }
 
   plot <- plotly::plot_ly(source = source)
+  if(!is.null(model) && isTruthy(model_class)) {
+    weights <- tryCatch(
+      OpenSpecy::model_class_weights(model, model_class),
+      error = function(error) NULL
+    )
+    if(!is.null(weights) && nrow(weights)) {
+      limit <- max(abs(weights$weight), na.rm = TRUE)
+      if(!is.finite(limit) || limit == 0) limit <- 1
+      plot <- plotly::add_trace(
+        plot,
+        x = weights$wavenumber, y = c(0, 1),
+        z = rbind(weights$weight, weights$weight),
+        type = "heatmap", yaxis = "y2",
+        colorscale = list(
+          c(0, "#d73027"), c(0.5, "#fee08b"), c(1, "#1a9850")
+        ),
+        zmin = -limit, zmax = limit, zmid = 0, opacity = 0.28,
+        showscale = TRUE,
+        colorbar = list(title = "Logistic<br>weight", thickness = 12),
+        hovertemplate = paste0(
+          "%{x:.1f} cm<sup>-1</sup><br>weight %{z:.4g}<extra>",
+          model_class, "</extra>"
+        ),
+        inherit = FALSE
+      )
+    }
+  }
   plot <- add_spectrum(
     plot, prepare_trace(raw, normalize = make_rel), "Raw spectrum",
     "rgba(203, 213, 225, 0.24)", 1.2
@@ -2956,6 +2992,8 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
       autorange = "reversed"
     ),
     yaxis = list(title = "intensity [-]"),
+    yaxis2 = list(overlaying = "y", range = c(0, 1), visible = FALSE,
+                  fixedrange = TRUE),
     legend = legend,
     margin = legend_layout$margin
   )
@@ -3136,7 +3174,7 @@ app_select_library_spectrum_type <- function(artifact,
   structure(typed, class = c("openspecy_typed_models", "list"))
 }
 
-app_classify_model_library <- function(x, library) {
+app_classify_model_library <- function(x, library, top_n = 5L) {
   classify_one <- function(model) {
     fill <- model$fill
     model_axis <- if(is_OpenSpecy(fill)) {
@@ -3162,7 +3200,9 @@ app_classify_model_library <- function(x, library) {
     data <- conform_spec(
       x, range = fill$wavenumber, res = NULL, allow_na = TRUE
     )
-    match_spec(data, library = model, na.rm = TRUE, fill = fill)
+    match_spec(
+      data, library = model, na.rm = TRUE, fill = fill, top_n = top_n
+    )
   }
 
   if(!inherits(library, "openspecy_typed_models")) {
@@ -3187,8 +3227,9 @@ app_classify_model_library <- function(x, library) {
          call. = FALSE)
   }
   candidates <- data.table::rbindlist(predictions, use.names = TRUE, fill = TRUE)
-  data.table::setorder(candidates, x, -value, .type_order, na.last = TRUE)
-  result <- candidates[, .SD[1L], by = x]
+  data.table::setorder(candidates, x, -value, .type_order, name, na.last = TRUE)
+  result <- candidates[, head(.SD, top_n), by = x]
+  result[, rank := seq_len(.N), by = x]
   result[, .type_order := NULL]
   data.table::setorder(result, x)
   result

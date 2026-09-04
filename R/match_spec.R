@@ -21,12 +21,14 @@
 #' @param compute the compute strategy used for correlation, "optimized" by default
 #' will use the current most optimized strategy for Pearson correlation, "base"
 #' will use base R's \code{cor()}
-#' @param library an \code{OpenSpecy} or \code{glmnet} object representing the
+#' @param library an \code{OpenSpecy} or trained model object representing the
 #' reference library of spectra or model to use in identification.
 #' @param na.rm logical; indicating whether missing values should be removed
 #' when calculating correlations. Default is \code{TRUE}.
 #' @param top_n integer; specifying the number of top matches to return.
-#' If \code{NULL} (default), all matches will be returned.
+#' For spectral libraries, \code{NULL} returns all matches. Model libraries
+#' preserve their historical single winning class when \code{NULL}; a positive
+#' value returns that many ranked class probabilities per spectrum.
 #' @param cor_matrix a correlation matrix for object and library,
 #' can be returned by \code{cor_spec()}
 #' @param order an \code{OpenSpecy} used for sorting, ideally the unprocessed
@@ -360,7 +362,7 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
     if (is.null(fill) && is.list(library) && is_OpenSpecy(library$fill)) {
       fill <- library$fill
     }
-    res <- ai_classify(x, library, fill)
+    res <- ai_classify(x, library = library, fill = fill, top_n = top_n)
   }
 
   if(!is.null(order)) {
@@ -529,7 +531,7 @@ ai_classify.default <- function(x, ...) {
 #' @rdname match_spec
 #'
 #' @export
-ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
+ai_classify.OpenSpecy <- function(x, library, fill = NULL, top_n = 1L, ...) {
   x <- as_OpenSpecy(x)
 
   if (is.null(fill) && is.list(library) && is_OpenSpecy(library$fill)) {
@@ -543,25 +545,48 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
   proc <- t(filled$spectra)
   colnames(proc) <- filled$wavenumber
 
-  selected_lambda <- if (!is.null(library$lambda_selected)) {
-    library$lambda_selected
+  model_type <- if (!is.null(library$model_type)) {
+    library$model_type
+  } else if (inherits(library$model, "ranger")) {
+    "random_forest"
   } else {
-    min(library$model$lambda)
+    "logistic_regression"
   }
-  pred <- predict(library$model,
-                  newx = proc,
-                  selected_lambda,
-                  type = "response")
-  filt <- .ai_prediction_table(pred, n = nrow(proc))
+  if (identical(model_type, "random_forest")) {
+    if (!requireNamespace("ranger", quietly = TRUE)) {
+      stop(
+        "Using a random-forest model requires the suggested 'ranger' package",
+        call. = FALSE
+      )
+    }
+    pred <- predict(library$model, data = proc, num.threads = 0L)$predictions
+  } else {
+    selected_lambda <- if (!is.null(library$lambda_selected)) {
+      library$lambda_selected
+    } else {
+      min(library$model$lambda)
+    }
+    pred <- predict(library$model,
+                    newx = proc,
+                    selected_lambda,
+                    type = "response")
+  }
+  if (is.null(top_n)) top_n <- 1L
+  filt <- .ai_prediction_table(pred, n = nrow(proc), top_n = top_n)
   
   res <- merge(filt, library$dimension_conversion, all.x = T,
                by.x = "y", by.y = "factor_num")
-  setorder(res, "x")
+  setorder(res, "x", "rank")
 
   return(res)
 }
 
-.ai_prediction_table <- function(pred, n) {
+.ai_prediction_table <- function(pred, n, top_n = 1L) {
+  if (length(top_n) != 1L || !is.numeric(top_n) || is.na(top_n) ||
+      top_n < 1 || top_n != floor(top_n)) {
+    stop("'top_n' must be a positive integer", call. = FALSE)
+  }
+  top_n <- as.integer(top_n)
   pred_dim <- dim(pred)
 
   if (is.null(pred_dim)) {
@@ -592,7 +617,33 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
   if (is.null(class_id)) class_id <- seq_len(pred_dim[2L])
   if (is.null(lambda_id)) lambda_id <- seq_len(pred_dim[3L])
 
+  if (pred_dim[3L] != 1L && top_n > 1L) {
+    stop("ranked model predictions require exactly one selected tuning value",
+         call. = FALSE)
+  }
   vals <- matrix(as.vector(pred), nrow = pred_dim[1L])
+  if (top_n > 1L) {
+    scores <- matrix(pred[, , 1L], nrow = pred_dim[1L], ncol = pred_dim[2L])
+    scores_order <- scores
+    scores_order[is.na(scores_order)] <- -Inf
+    keep_n <- min(top_n, pred_dim[2L])
+    ordered <- t(vapply(seq_len(pred_dim[1L]), function(row) {
+      head(order(scores_order[row, ], decreasing = TRUE, method = "radix"),
+           keep_n)
+    }, integer(keep_n)))
+    row_id <- rep(seq_len(pred_dim[1L]), each = keep_n)
+    class_column <- as.vector(t(ordered))
+    value <- scores[cbind(row_id, class_column)]
+    class_value <- suppressWarnings(as.integer(class_id[class_column]))
+    class_value[!is.finite(value)] <- NA_integer_
+    return(data.table(
+      x = row_id,
+      y = class_value,
+      z = rep(lambda_id[[1L]], length(row_id)),
+      value = value,
+      rank = rep(seq_len(keep_n), times = pred_dim[1L])
+    ))
+  }
   vals_no_na <- vals
   vals_no_na[is.na(vals_no_na)] <- -Inf
   best <- max.col(vals_no_na, ties.method = "first")
@@ -610,7 +661,8 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, ...) {
     x = seq_len(pred_dim[1L]),
     y = as.integer(combo$y[best]),
     z = combo$z[best],
-    value = value
+    value = value,
+    rank = 1L
   )
 }
 

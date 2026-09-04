@@ -2262,8 +2262,15 @@ observeEvent(input$run_analysis, {
       settings <- canonical_state()$settings
       req(isTRUE(settings$identification_active))
       if(isTRUE(settings$model_library)) {
-        ai <- as.numeric(ai_output()[["value"]])
-        names(ai) <- ai_output()[["name"]]
+        predictions <- data.table::as.data.table(ai_output())
+        winners <- if("rank" %in% names(predictions)) {
+          predictions[rank == 1L]
+        } else {
+          predictions[, .SD[which.max(value)], by = x]
+        }
+        data.table::setorder(winners, x)
+        ai <- as.numeric(winners$value)
+        names(ai) <- winners$name
         return(ai)
       }
       matches <- identification_matches()
@@ -2320,9 +2327,23 @@ observeEvent(input$run_analysis, {
       settings <- canonical_state()$settings
       req(isTRUE(settings$identification_active))
       if(isTRUE(settings$model_library)){
-          data.table(object_id = colnames(DataR()$spectra),
-                     material_class = max_cor_identity(),
-                     match_val = ai_output()$value)
+          predictions <- data.table::as.data.table(ai_output())
+          data.table::data.table(
+            object_id = colnames(DataR()$spectra)[predictions$x],
+            spectrum_index = as.integer(predictions$x),
+            prediction_rank = if("rank" %in% names(predictions)) {
+              as.integer(predictions$rank)
+            } else {
+              1L
+            },
+            material_class = as.character(predictions$name),
+            match_val = signif(as.numeric(predictions$value), 2),
+            spectrum_type = if("spectrum_type" %in% names(predictions)) {
+              as.character(predictions$spectrum_type)
+            } else {
+              NA_character_
+            }
+          )
       }
       else{
           selected <- selected_unit_index()
@@ -2377,6 +2398,35 @@ observeEvent(input$run_analysis, {
       )
   })
 
+  selected_model_explanation <- reactive({
+      settings <- canonical_state()$settings
+      empty <- list(model = NULL, model_class = NULL)
+      if(is.null(preprocessed$data) ||
+         !isTRUE(settings$identification_active) ||
+         !isTRUE(settings$model_library) ||
+         source_count(DataR()) != 1L) return(empty)
+      rows <- matches_to_single()
+      if(is.null(rows) || !nrow(rows)) return(empty)
+      selected_row <- min(max(1L, as.integer(data_click$table)), nrow(rows))
+      selected <- rows[selected_row]
+      model <- libraryR()
+      if(inherits(model, "openspecy_typed_models")) {
+        type <- as.character(selected$spectrum_type[[1L]])
+        if(!isTruthy(type) || is.null(model[[type]])) return(empty)
+        model <- model[[type]]
+      }
+      model_type <- if(is.null(model$model_type)) {
+        "logistic_regression"
+      } else {
+        model$model_type
+      }
+      if(!identical(model_type, "logistic_regression")) return(empty)
+      list(
+        model = model,
+        model_class = as.character(selected$material_class[[1L]])
+      )
+  })
+
   #All matches table for the current selection
   top_matches <- reactive({
       req(!is.null(preprocessed$data))
@@ -2417,9 +2467,16 @@ match_metadata <- reactive({
           quantified_data(), selected_match, canonical_signal_noise()
         )
     } else {
+        selected_object_id <- colnames(quantified_data()$spectra)[selected_index]
+        prediction <- matches_to_single()[
+          object_id == selected_object_id & prediction_rank == 1L
+        ]
+        if(nrow(prediction) && prediction$match_val[[1L]] < MinCor()) {
+          prediction$material_class[[1L]] <- "unknown"
+        }
         result <- bind_cols(
           quantified_data()$metadata[selected_index,],
-          matches_to_single()[selected_index,]
+          prediction[1L,]
         )
         result$signal_to_noise <- canonical_signal_noise()[selected_index]
         result <- result[, !sapply(result, OpenSpecy::is_empty_vector), with = FALSE] %>%
@@ -2762,10 +2819,13 @@ output$progress_bars <- renderUI({
       primary <- DataR_plot()
       raw <- RawR_plot()
       reference <- selected_match()
+      explanation <- selected_model_explanation()
       app_spectrum_plot(
         active = primary,
         raw = raw,
         reference = reference,
+        model = explanation$model,
+        model_class = explanation$model_class,
         make_rel = isTRUE(input$make_rel_decision),
         source = "B",
         plot_width = session$clientData$output_MyPlotC_width
@@ -3156,8 +3216,21 @@ output$progress_bars <- renderUI({
           )
           fwrite(all_matches, file)
         } else {
-          result <- bind_cols(quantified_data()$metadata, matches_to_single())
-          result$signal_to_noise <- canonical_signal_noise()
+          spectrum <- data.table::copy(
+            data.table::as.data.table(quantified_data()$metadata)
+          )
+          if("material_class" %in% names(spectrum)) {
+            spectrum[, material_class := NULL]
+          }
+          spectrum[, `:=`(
+            spectrum_index = seq_len(.N),
+            object_id = colnames(quantified_data()$spectra),
+            signal_to_noise = canonical_signal_noise()
+          )]
+          result <- merge(
+            matches_to_single(), spectrum,
+            by = c("spectrum_index", "object_id"), all.x = TRUE, sort = FALSE
+          )
           keep <- !sapply(result, OpenSpecy::is_empty_vector) |
             names(result) %in% quant_columns
           result <- result[, keep, with = FALSE] %>%

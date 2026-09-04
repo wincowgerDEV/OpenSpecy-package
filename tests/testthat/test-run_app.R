@@ -2324,6 +2324,17 @@ test_that("app_top_matches_table populates AI mode instead of erroring", {
   expect_identical(model_result$material_class, "PVC")
   expect_identical(model_result$match_val, 0.4)
 
+  ranked_model_rows <- data.table::data.table(
+    spectrum_index = c(1L, 1L, 2L, 2L),
+    prediction_rank = c(1L, 2L, 1L, 2L),
+    material_class = c("PET", "PE", "PVC", "PP"),
+    match_val = c(0.7, 0.2, 0.6, 0.3)
+  )
+  ranked_result <- env$app_top_matches_table(ranked_model_rows, TRUE, 2L)
+  expect_identical(ranked_result$prediction_rank, c(1L, 2L))
+  expect_identical(ranked_result$material_class, c("PVC", "PP"))
+  expect_identical(ranked_result$match_val, c(0.6, 0.3))
+
   server_source <- paste(
     readLines(file.path(app_path, "server.R"), warn = FALSE), collapse = "\n"
   )
@@ -2512,8 +2523,9 @@ test_that("app spectrum-type router supports complete and specific artifacts", {
     )
   }
   prediction <- env$app_classify_model_library(typed$ftir, models)
-  expect_identical(prediction$spectrum_type, "raman")
-  expect_identical(prediction$value, 0.8)
+  expect_identical(prediction$spectrum_type, c("raman", "ftir"))
+  expect_identical(prediction$value, c(0.8, 0.6))
+  expect_identical(prediction$rank, c(1L, 2L))
 })
 
 test_that("bundled app orders downloads from the current analysis state", {

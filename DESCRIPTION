@@ -101,6 +101,7 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.1.9),
+    ranger,
     sgolay,
     curl,
     shinyjs, 

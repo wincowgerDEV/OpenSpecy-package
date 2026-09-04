@@ -242,7 +242,7 @@ test_that("build_model_lib() returns the model library artifact structure", {
   model <- suppressWarnings(
     build_model_lib(lib, type_col = NULL, min_n = 2, nlambda = 3)
   )
-  expect_named(model, c("model", "lambda_selected", "selection_metric",
+  expect_named(model, c("model", "model_type", "lambda_selected", "selection_metric",
                         "lambda_metrics", "dimension_conversion", "tests",
                         "coefficients", "class_names", "class_num",
                         "observation_count", "fill", "support",
@@ -250,6 +250,7 @@ test_that("build_model_lib() returns the model library artifact structure", {
                         "variable_num",
                         "all_variables", "variables_in"))
   expect_true(is_OpenSpecy(model$fill))
+  expect_identical(model$model_type, "logistic_regression")
   expect_identical(model$selection_metric, "macro_class_accuracy")
   expect_identical(model$fill_method, "wavenumber_mean")
   expect_true(all(c("lambda", "macro_class_accuracy", "overall_accuracy",
@@ -262,11 +263,41 @@ test_that("build_model_lib() returns the model library artifact structure", {
                     "provenance") %in% names(model$tests)))
 })
 
+test_that("build_model_lib() trains and deploys a balanced probability random forest", {
+  skip_if_not_installed("ranger")
+  lib <- tiny_build_lib()
+  lib$spectra[1:3, 1] <- NA_real_
+  lib$metadata$material_class <- c(rep("class_a", 6), rep("class_b", 2))
+
+  model <- build_model_lib(
+    lib, type_col = NULL, min_n = 2, method = "random_forest",
+    num.trees = 30L, min.node.size = 1L, mtry = 4L
+  )
+  expect_identical(model$model_type, "random_forest")
+  expect_s3_class(model$model, "ranger")
+  expect_true(model$fill_replaced >= 3L)
+  expect_true(all(c("accuracy", "macro_class_accuracy", "mean_score",
+                    "brier_score") %in% names(model$oob_metrics)))
+  expect_true(all(c("wavenumber", "importance") %in%
+                    names(model$feature_importance)))
+  expect_equal(model$class_weights$weight, c(2 / 3, 2))
+  expect_true(all(model$class_weights$application == "case_sampling"))
+  expect_identical(
+    model$training_parameters$balance_method,
+    "inverse_frequency_case_sampling"
+  )
+  expect_equal(nrow(model$tests), ncol(lib$spectra))
+
+  prediction <- suppressWarnings(match_spec(lib, library = model))
+  expect_equal(nrow(prediction), ncol(lib$spectra))
+  expect_true(all(prediction$name %in% c("class_a", "class_b")))
+})
+
 test_that("official model building records fit warnings and progress", {
   lib <- tiny_build_lib()
   messages <- character()
   local_mocked_bindings(
-    build_model_lib = function(...) {
+    train_spec_model = function(...) {
       warning("mock convergence warning", call. = FALSE)
       list(
         observation_count = 4L, class_num = 2L,
@@ -277,22 +308,76 @@ test_that("official model building records fit warnings and progress", {
   )
 
   result <- OpenSpecy:::.lib_build_models(
-    list(derivative = list(nir = lib)),
+    libraries = list(),
+    medoids = list(derivative = list(nir = lib)),
     report = function(message) messages <<- c(messages, message)
   )
   expect_identical(
     result$warnings,
     data.table::data.table(
-      artifact = "derivative", model = "nir",
+      algorithm = "logistic_regression", artifact = "derivative", model = "nir",
       warning = "mock convergence warning"
     )
   )
   expect_identical(
-    attr(result$models$derivative$nir, "training_warnings"),
+    attr(result$models$logistic_regression$derivative$nir,
+         "training_warnings"),
     "mock convergence warning"
   )
   expect_true(any(grepl("model warning", messages, fixed = TRUE)))
   expect_true(any(grepl("model complete", messages, fixed = TRUE)))
+})
+
+test_that("official random forests train on full libraries rather than medoids", {
+  skip_if_not_installed("ranger")
+  base <- tiny_build_lib()
+  full <- base
+  full$spectra <- do.call(cbind, lapply(1:3, function(copy) {
+    values <- base$spectra + copy / 1000
+    colnames(values) <- paste0(colnames(values), "_", copy)
+    values
+  }))
+  full$metadata <- data.table::rbindlist(lapply(1:3, function(copy) {
+    metadata <- data.table::copy(base$metadata)
+    metadata$sample_name <- paste0(metadata$sample_name, "_", copy)
+    metadata
+  }))
+  full <- as_OpenSpecy(full)
+
+  result <- OpenSpecy:::.lib_build_models(
+    libraries = list(raw = list(ftir = full)), medoids = list(),
+    report = function(...) NULL,
+    random_forest_args = list(num.trees = 20L, min.node.size = 1L, mtry = 4L)
+  )
+  model <- result$models$random_forest$raw$ftir
+  expect_identical(model$model_type, "random_forest")
+  expect_equal(model$observation_count, ncol(full$spectra))
+  expect_equal(model$training_parameters$num_trees, 20L)
+})
+
+test_that("typed random forests do not repeat FTIR and Raman in a combined fit", {
+  lib <- tiny_build_lib()
+  local_mocked_bindings(
+    train_spec_model = function(x, ...) {
+      list(
+        model_type = "random_forest",
+        observation_count = ncol(x$spectra), class_num = 2L,
+        fill_replaced = 0L,
+        oob_metrics = data.table::data.table(macro_class_accuracy = 0.5),
+        training_parameters = data.table::data.table(
+          num_trees = 20L, mtry = 2L
+        )
+      )
+    },
+    .package = "OpenSpecy"
+  )
+
+  result <- OpenSpecy:::.lib_build_models(
+    libraries = list(raw = list(ftir = lib, raman = lib)),
+    medoids = list(), report = function(...) NULL
+  )
+
+  expect_named(result$models$random_forest$raw, c("ftir", "raman"))
 })
 
 test_that("build_lib() applies named recipes to merged sources", {
@@ -1325,7 +1410,8 @@ test_that("official other policy removes vague rows and preserves a typed review
 
 test_that("confusion tables rank the largest misidentifications first", {
   tests <- data.table::data.table(
-    artifact = "derivative", model = "raman", source = "new",
+    algorithm = "logistic_regression", artifact = "derivative",
+    model = "raman", source = "new",
     technique = "raman", provenance = "candidate",
     expected_class = c(rep("polyethylene", 10), rep("polypropylene", 4)),
     predicted_class = c(rep("polyethylene", 5), rep("polypropylene", 5),
@@ -1333,7 +1419,7 @@ test_that("confusion tables rank the largest misidentifications first", {
   )
   confusion <- OpenSpecy:::.lib_confusion_table(tests)
   expect_named(confusion, c(
-    "artifact", "model", "source", "technique", "provenance",
+    "algorithm", "artifact", "model", "source", "technique", "provenance",
     "expected_class", "predicted_class", "spectra", "misidentified",
     "expected_class_spectra", "expected_class_fraction"
   ), ignore.order = TRUE)
@@ -1350,13 +1436,15 @@ test_that("confusion tables rank the largest misidentifications first", {
 test_that("model assessment metrics rank associations with inaccurate IDs", {
   rows <- data.table::rbindlist(list(
     data.table::data.table(
-      artifact = "derivative", model = "raman", source = "new",
+      algorithm = "logistic_regression", artifact = "derivative",
+      model = "raman", source = "new",
       technique = "raman", provenance = "candidate", check = "low_snr",
       metric = "run_sig_over_noise", value = c(8, 7, 6, 5, 2, 1, 0, -1),
       correct = c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
     ),
     data.table::data.table(
-      artifact = "derivative", model = "raman", source = "new",
+      algorithm = "logistic_regression", artifact = "derivative",
+      model = "raman", source = "new",
       technique = "raman", provenance = "candidate",
       check = "missing_values", metric = "non_finite_count",
       value = rep(0, 8),
@@ -1559,7 +1647,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_named(first, c("libraries", "medoids", "models", "assessments"))
   expect_named(first$libraries, c("raw", "derivative", "nobaseline"))
   expect_named(first$medoids, c("derivative", "nobaseline"))
-  expect_named(first$models, c("derivative", "nobaseline"))
+  expect_named(first$models, c("logistic_regression", "random_forest"))
   expect_true(all(vapply(first$libraries, function(recipe) {
     all(vapply(recipe, check_OpenSpecy, logical(1)))
   }, logical(1))))
@@ -1578,6 +1666,11 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     c("raw.rds", "derivative.rds", "nobaseline.rds",
       "medoid_derivative.rds", "medoid_nobaseline.rds",
       "model_derivative.rds", "model_nobaseline.rds",
+      "model_logistic_regression_derivative.rds",
+      "model_logistic_regression_nobaseline.rds",
+      "model_random_forest_raw.rds",
+      "model_random_forest_derivative.rds",
+      "model_random_forest_nobaseline.rds",
       "reference_library_build.rds")
   ))))
 
@@ -1645,6 +1738,7 @@ test_that("source-local reference splits prevent self-match leakage", {
 
 test_that("complete old-new assessments cover every artifact and held-out model", {
   skip_if_not_installed("glmnet")
+  skip_if_not_installed("ranger")
   small <- tiny_build_lib()
   spectra <- do.call(cbind, lapply(seq_len(5), function(i) {
     small$spectra + i / 1000
@@ -1663,6 +1757,10 @@ test_that("complete old-new assessments cover every artifact and held-out model"
     lib, min = 800, max = 3200, make_rel = FALSE
   )
   model <- suppressWarnings(build_model_lib(model_input))
+  rf_model <- train_spec_model(
+    model_input, method = "random_forest", num.trees = 20L,
+    min.node.size = 1L, mtry = 4L
+  )
   model_set <- list(both = model, ftir = model, raman = NULL)
   build <- list(
     libraries = list(
@@ -1673,7 +1771,12 @@ test_that("complete old-new assessments cover every artifact and held-out model"
       derivative = list(ftir = model_input),
       nobaseline = list(ftir = model_input)
     ),
-    models = list(derivative = model_set, nobaseline = model_set),
+    models = list(
+      logistic_regression = list(
+        derivative = model_set, nobaseline = model_set
+      ),
+      random_forest = list(raw = list(ftir = rf_model))
+    ),
     assessments = list()
   )
   previous <- file.path(tempdir(), paste0("previous-", sample.int(1e8, 1)))
@@ -1698,17 +1801,29 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   expect_equal(unique(comparison$split_manifest$artifact), c(
     "raw_ftir", "derivative_ftir", "nobaseline_ftir",
     "medoid_derivative_ftir", "medoid_nobaseline_ftir",
-    "model_derivative_ftir", "model_nobaseline_ftir"
+    "model_derivative_ftir", "model_nobaseline_ftir", "model_raw_ftir"
   ))
   expect_setequal(unique(comparison$split_manifest$source), c("new", "old"))
   expect_gt(nrow(comparison$library_identification), 0L)
   expect_gt(nrow(comparison$model_identification), 0L)
+  expect_setequal(
+    unique(comparison$model_identification$algorithm),
+    c("logistic_regression", "random_forest")
+  )
   expect_gt(nrow(comparison$model_assessment_correlations), 0L)
   expect_gt(nrow(comparison$assess_spec_shifts), 0L)
   expect_true(all(
-    comparison$models$derivative$ftir$tests$provenance ==
+    comparison$models$logistic_regression$derivative$ftir$tests$provenance ==
       "candidate_model_source_local_holdout"
   ))
+  expect_true(all(
+    comparison$models$random_forest$raw$ftir$tests$provenance ==
+      "candidate_model_grouped_full_library_holdout"
+  ))
+  expect_equal(
+    comparison$models$random_forest$raw$ftir$observation_count,
+    ncol(model_input$spectra)
+  )
 })
 
 test_that("support and fill helpers use the intended axes", {
@@ -1792,7 +1907,9 @@ test_that("rebuild_lib_artifacts reuses completed libraries downstream", {
   ))
   expect_named(first, c("libraries", "medoids", "models", "assessments"))
   expect_true(anyNA(first$medoids$derivative$ftir$spectra))
-  expect_true(first$models$derivative$ftir$fill_replaced > 0L)
+  expect_true(
+    first$models$logistic_regression$derivative$ftir$fill_replaced > 0L
+  )
   expect_true("medoid_model_support" %in% names(first$assessments))
   second <- suppressWarnings(rebuild_lib_artifacts(
     input, output_dir = output, previous_library_dir = NULL,
@@ -1803,7 +1920,7 @@ test_that("rebuild_lib_artifacts reuses completed libraries downstream", {
 
 test_that("reference quality schemas and type ranges are stable", {
   expect_named(OpenSpecy:::.lib_warning_schema(),
-               c("artifact", "model", "warning"))
+               c("algorithm", "artifact", "model", "warning"))
   expect_type(OpenSpecy:::.lib_warning_schema()$warning, "character")
 
   x <- tiny_build_lib()

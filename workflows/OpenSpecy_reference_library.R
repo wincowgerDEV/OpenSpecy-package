@@ -53,7 +53,7 @@ reference_library_build <- readRDS(build_file)
 
 der_ftir <- reference_library_build$libraries$derivative$ftir
 
-der_ram_mod <- reference_library_build$models$derivative$raman
+der_ram_mod <- reference_library_build$models$logistic_regression$derivative$raman
 
 sample_spec(der_ftir, 5) |> plot(offset = 1)
 
