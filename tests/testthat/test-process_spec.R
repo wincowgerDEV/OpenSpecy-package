@@ -17,7 +17,8 @@ test_that("process_spec() returns expected values", {
                   window = 11,
                   derivative = 1,
                   abs = T,
-                  make_rel = T)
+                  make_rel = FALSE) |>
+    make_rel(na.rm = TRUE)
   attr(expected_conf, "derivative_order") <- "1"
   expect_equal(conf, expected_conf)
   expect_true(check_OpenSpecy(conf))
@@ -33,7 +34,8 @@ test_that("process_spec() returns expected values", {
   expect_true(check_OpenSpecy(proc))
   
   expected_proc <- conform_spec(raman_hdpe) |>
-    smooth_intens(derivative = 1, make_rel = T)
+    smooth_intens(derivative = 1, make_rel = FALSE) |>
+    make_rel(na.rm = TRUE)
   attr(expected_proc, "derivative_order") <- "1"
   expect_equal(proc, expected_proc)
 })

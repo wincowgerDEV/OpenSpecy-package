@@ -74,7 +74,13 @@
 #'   \item{`instrument_mode`}{Instrument modes/settings, e.g.
 #'   transmission, reflectance }
 #'   \item{`intensity_units*`}{Units of the intensity values for the spectrum,
-#'   options transmittance, reflectance, absorbance }
+#'   e.g. transmittance, reflectance, absorbance,
+#'   `W m^-2 sr^-1 (cm^-1)^-1` for calibrated spectral radiance, or
+#'   emissivity }
+#'   \item{`radiance_level`}{Radiometric measurement level when applicable,
+#'   e.g. `surface_leaving` for calibrated thermal-emission spectra }
+#'   \item{`radiometric_calibration`}{Description or identifier for the
+#'   absolute radiometric calibration when applicable }
 #'   \item{`spectral_resolution`}{Spectral resolution, e.g. 4/cm }
 #'   \item{`laser_light_used`}{Wavelength of the laser/light used, e.g.
 #'   785 nm }
@@ -100,8 +106,9 @@
 #' details, when set, they will be used to automate transformations and warning messages:
 #'
 #' \describe{
-#'   \item{`intensity_units`}{supported options include `"absorbance"`,
-#'   `"transmittance"`, or `"reflectance"`}
+#'   \item{`intensity_unit`}{supported options include `"absorbance"`,
+#'   `"transmittance"`, `"reflectance"`,
+#'   `"W m^-2 sr^-1 (cm^-1)^-1"`, or `"emissivity"`}
 #'   \item{`derivative_order`}{supported options include `"0"`, `"1"`, or
 #'   `"2"`}
 #'   \item{`baseline`}{supported options include `"raw"` or `"nobaseline"`}

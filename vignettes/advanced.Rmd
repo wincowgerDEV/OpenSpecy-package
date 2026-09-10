@@ -153,7 +153,163 @@ knitr::include_graphics("advanced/horiba-5.png")
     to measure the spectrum of your material again or use another
     spectral analysis tool.
     
+# Experimental Temperature and Emissivity Diagnostics
+
+`estimate_temperature()` and `calculate_emissivity()` apply only to calibrated
+FTIR **surface-leaving spectral radiance** in
+W m^-2^ sr^-1^ (cm^-1^)^-1^. They do not convert absorbance, transmittance,
+reflectance, normalized spectra, derivatives, baseline-corrected spectra, or
+arbitrary detector counts into radiance. Set the object's `spectra_type` to
+`"ftir"` and its `intensity_unit` to the exact radiance unit, and retain
+traceable calibration and surface-leaving provenance in its metadata. A unit
+label is a declaration about upstream calibration, not proof that calibration
+was performed.
+
+The experimental retrieval models an opaque, isothermal surface as
+
+$$L = \epsilon B(T) + (1 - \epsilon)L_{down},$$
+
+where $L$ is measured surface-leaving radiance, $B(T)$ is Planck radiance at
+temperature $T$, $L_{down}$ is environmental downwelling radiance, and
+$\epsilon$ is effective emissivity. The Planck calculation follows the
+[NIST wavenumber formulation](https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote910-8.pdf).
+Temperature-emissivity separation is underdetermined; this implementation uses
+the spectral-smoothness premise described by
+[Borel](https://digital.library.unt.edu/ark:/67531/metadc696880/), so the result
+is model-conditioned rather than an independent thermometric measurement.
+
+Three physical inputs must be chosen for each acquisition:
+
+1.  `downwelling` is measured or modelled environmental radiance in the same
+    units and on the same bands as the map. A scalar zero is accepted only as
+    an explicit no-background assumption; it is not a safe general default.
+2.  `temperature_range_k` is a physically defensible lower and upper bound in
+    Kelvin. Too narrow a range rejects a real solution at a boundary; an
+    unnecessarily broad range increases ambiguity and computation.
+3.  `fit_range_cm1` restricts the fit to a calibrated, usable thermal-emission
+    interval in cm^-1^. Exclude saturated, poorly calibrated, and strong
+    atmospheric-interference bands. For targets near room temperature, use a
+    validated longwave interval. The 3--5 micrometre region can require
+    reflected-source, solar, and directional-reflectance terms that this model
+    does not include; see [Cheng et al.](https://doi.org/10.1109/TGRS.2010.2076818).
+
+If radiance uncertainty is available, pass it with `radiance_uncertainty` in
+the same radiance units. Larger uncertainty causes more channels to be treated
+as uninformative or near-singular. Without it, numerical safeguards can detect
+unstable denominators but cannot quantify measurement uncertainty.
+
+## Efficient Map-Level Metrics
+
+The standard in-memory `OpenSpecy` method is optimized for large maps. It
+searches spectra in bounded matrix blocks and returns one row per input spectrum
+instead of allocating a bands-by-pixels emissivity cube. Choose the single
+emissivity summary returned in `emissivity_value`:
+
+- `"planck_weighted"` (the default) is the band-integrated directional
+  effective emissivity,
+  $\sum_i \epsilon_i B_i(T)\Delta\widetilde{\nu}_i /
+  \sum_i B_i(T)\Delta\widetilde{\nu}_i$, over the selected fit bands;
+- `"mean"` summarizes the unweighted fitted emissivity level;
+- `"median"` is less sensitive to isolated bands and is often a useful robust
+  map contrast; and
+- `"max"` emphasizes the highest fitted band but is most sensitive to noise,
+  calibration errors, and out-of-range values.
+
+The Planck-weighted value is limited to the measured wavenumber interval and
+viewing geometry. It is not a tabulated total hemispherical emissivity, which
+would require integration over the full relevant spectrum and emission angles.
+[Wilber, Kratz, and Gupta](https://ntrs.nasa.gov/citations/19990100634), for
+example, form broadband emissivities from spectral values using the Planck
+energy distribution and report the band and assumed temperature.
+
+For example, a 100,000-pixel in-memory map can be reduced to aligned scalar
+diagnostics without materializing 100,000 emissivity spectra:
+
+```{r, eval=FALSE}
+thermal_metrics <- estimate_temperature(
+  radiance_map,
+  downwelling = measured_downwelling,
+  temperature_range_k = c(290, 380),
+  fit_range_cm1 = c(800, 1250),
+  radiance_uncertainty = measured_uncertainty,
+  emissivity_stat = "planck_weighted"
+)
+
+heatmap_spec(radiance_map, z = thermal_metrics$emissivity_value)
+```
+
+`block_size = NULL` chooses a bounded block automatically. A smaller positive
+whole number reduces transient memory at the cost of more block overhead; a
+larger value may be faster but uses more memory. It must not change numerical
+results. The `FileSpecs` method is available for file-backed acquisitions and
+uses the same kernel, but calibrated in-memory `OpenSpecy` maps are a primary
+optimized use case rather than a required conversion to disk.
+
+The output remains in source order and includes estimated material temperature,
+the requested emissivity value, roughness, physical-range and valid-band
+fractions, and a fit `status`. Use only rows where `status == "ok"`; keep failed
+rows as `NA`. Boundary, flat, multiple-minimum, near-singular, and
+insufficient-band outcomes are rejections, not extreme particle values.
+Emissivity is deliberately not clipped to 0--1: values outside that interval
+can expose calibration, background, mixing, or model failure. There is no
+universal rule that higher or lower emissivity indicates a particle, so any
+predicate passed to `def_features()` must be validated for that acquisition.
+
+Compare the temperature/emissivity metric on held-out labelled pixels against
+direct radiance contrast and an appropriate signal-to-noise metric. Use it only
+when it adds reproducible separation. Where the assumptions of `sig_noise()`
+fit the acquisition, retain that result as a baseline rather than replacing it
+with emissivity. For example, after choosing a threshold from independent
+controls:
+
+```{r, eval=FALSE}
+particle_pixels <- thermal_metrics$status == "ok" &
+  thermal_metrics$emissivity_value > validated_threshold
+
+particle_map <- def_features(radiance_map, features = particle_pixels) |>
+  collapse_spec()
+
+# Temperature is nonlinear: estimate it again after spectra are collapsed.
+particle_metrics <- estimate_temperature(
+  particle_map,
+  downwelling = measured_downwelling,
+  temperature_range_k = c(290, 380),
+  fit_range_cm1 = c(800, 1250),
+  emissivity_stat = "median"
+)
+
+# Materialize full curves only for collapsed particles with successful fits.
+ok_particles <- particle_metrics$status == "ok"
+particle_emissivity <- calculate_emissivity(
+  filter_spec(particle_map, ok_particles),
+  temperature_k =
+    particle_metrics$estimated_material_temperature_k[ok_particles],
+  downwelling = measured_downwelling
+)
+```
+
+Use `calculate_emissivity()` only when full emissivity curves are needed for a
+small selected or collapsed set. Supply the corresponding fitted temperature
+and downwelling radiance. Thin, transmitting, scattering, subpixel-mixed, or
+non-isothermal particles yield **effective pixel emissivity**, not an intrinsic
+material constant. Do not pass the emissivity curves to `process_spec()` or
+`match_spec()`, and do not use them to overwrite a conventional FTIR spectrum
+collected for library identification. Keep identification and radiometric
+diagnostic workflows separate. Absolute smoothness can also produce false
+high-temperature minima, as demonstrated by
+[Wu et al.](https://doi.org/10.1109/IGARSS.2017.8128417); OpenSpecy therefore
+rejects ambiguous or boundary solutions instead of forcing an estimate.
+
 # References
+
+Borel CC (1997). Iterative Retrieval of Surface Emissivity and Temperature for
+a Hyperspectral Sensor. Los Alamos National Laboratory report LA-UR-97-3012.
+[https://digital.library.unt.edu/ark:/67531/metadc696880/](https://digital.library.unt.edu/ark:/67531/metadc696880/).
+
+Cheng J, Liang S, Wang J, Li X (2011). A Stepwise Refining Algorithm of
+Temperature and Emissivity Separation for Hyperspectral Thermal Infrared Data.
+*IEEE Transactions on Geoscience and Remote Sensing*, **49**(5), 1588--1597.
+doi: [10.1109/TGRS.2010.2076818](https://doi.org/10.1109/TGRS.2010.2076818).
 
 Chabuka BK, Kalivas JH (2020). “Application of a Hybrid Fusion Classification
 Process for Identification of Microplastics Based on Fourier Transform Infrared
@@ -183,9 +339,25 @@ Identification of Microplastics from Environmental Compartments Based on FT-IR
 Spectroscopy.” *Analytical Chemistry*, **89**(22), 12045–12053. doi: 
 [10.1021/acs.analchem.7b02472](https://doi.org/10.1021/acs.analchem.7b02472).
 
+Richmond JC, Nicodemus FE (1985). “Blackbodies, Blackbody Radiation, and
+Temperature Scales.” In *Self-Study Manual on Optical Radiation Measurements:
+Part I--Concepts*, Chapter 12. National Bureau of Standards Technical Note
+910-8.
+[https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote910-8.pdf](https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote910-8.pdf).
+
+Wilber AC, Kratz DP, Gupta SK (1999). *Surface Emissivity Maps for Use in
+Satellite Retrievals of Longwave Radiation*. NASA/TP-1999-209362.
+[https://ntrs.nasa.gov/citations/19990100634](https://ntrs.nasa.gov/citations/19990100634).
+
 Savitzky A, Golay MJ (1964). “Smoothing and Differentiation of Data by
 Simplified Least Squares Procedures.” *Analytical Chemistry*, **36**(8),
 1627–1639.
+
+Wu Z, Ren H, Zhang T, Qin Q, Dong J, Ye X (2017). “A Modified Method to Prevent
+False Minimums Occurring in Iterative Spectrally Smooth Temperature Emissivity
+Separation.” In *2017 IEEE International Geoscience and Remote Sensing Symposium
+(IGARSS)*, 6170--6173. doi:
+[10.1109/IGARSS.2017.8128417](https://doi.org/10.1109/IGARSS.2017.8128417).
 
 Zhao J, Lui H, McLean DI, Zeng H (2007). “Automated Autofluorescence Background
 Subtraction Algorithm for Biomedical Raman Spectroscopy.”

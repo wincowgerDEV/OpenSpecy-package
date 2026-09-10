@@ -1,5 +1,16 @@
 # OpenSpecy 1.7.1
 
+- Added experimental `estimate_temperature()` and `calculate_emissivity()`
+  diagnostics for calibrated, surface-leaving FTIR spectral radiance. The
+  in-memory method uses bounded matrix blocks for large hyperspectral maps and
+  returns one Planck-weighted, mean, median, or maximum emissivity value per
+  spectrum; full unclipped emissivity curves are materialized only when
+  explicitly requested for selected spectra. Ambiguous fits are reported by
+  aligned statuses, while the physical-range fraction exposes nonphysical
+  emissivity values without clipping. These outputs are contrast and
+  quality diagnostics, not library-identification spectra, and remain
+  experimental pending validation on traceable measured particle/background
+  data.
 - Added an in-app **Walk me through** guide with Process, Identify, and
   Quantify lessons that use packaged test spectra and the same explanatory
   guidance as the app controls.

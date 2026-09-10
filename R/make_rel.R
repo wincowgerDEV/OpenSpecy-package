@@ -71,6 +71,7 @@ make_rel.matrix <- function(x, na.rm = FALSE, ...) {
 make_rel.OpenSpecy <- function(x, na.rm = FALSE, ...) {
   x <- as_OpenSpecy(x)
   x$spectra <- make_rel(x$spectra, na.rm = na.rm)
-
-  return(x)
+  .append_specs_transformation(x, list(
+    method = "make_rel", na_rm = isTRUE(na.rm), lossy = TRUE
+  ))
 }

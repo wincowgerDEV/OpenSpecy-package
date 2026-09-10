@@ -145,7 +145,13 @@ Focal Plane Array, CCD}
 \item{\code{instrument_mode}}{Instrument modes/settings, e.g.
 transmission, reflectance }
 \item{\verb{intensity_units*}}{Units of the intensity values for the spectrum,
-options transmittance, reflectance, absorbance }
+e.g. transmittance, reflectance, absorbance,
+\verb{W m^-2 sr^-1 (cm^-1)^-1} for calibrated spectral radiance, or
+emissivity }
+\item{\code{radiance_level}}{Radiometric measurement level when applicable,
+e.g. \code{surface_leaving} for calibrated thermal-emission spectra }
+\item{\code{radiometric_calibration}}{Description or identifier for the
+absolute radiometric calibration when applicable }
 \item{\code{spectral_resolution}}{Spectral resolution, e.g. 4/cm }
 \item{\code{laser_light_used}}{Wavelength of the laser/light used, e.g.
 785 nm }
@@ -171,8 +177,9 @@ The \code{attributes} argument may contain a named list with the following
 details, when set, they will be used to automate transformations and warning messages:
 
 \describe{
-\item{\code{intensity_units}}{supported options include \code{"absorbance"},
-\code{"transmittance"}, or \code{"reflectance"}}
+\item{\code{intensity_unit}}{supported options include \code{"absorbance"},
+\code{"transmittance"}, \code{"reflectance"},
+\code{"W m^-2 sr^-1 (cm^-1)^-1"}, or \code{"emissivity"}}
 \item{\code{derivative_order}}{supported options include \code{"0"}, \code{"1"}, or
 \code{"2"}}
 \item{\code{baseline}}{supported options include \code{"raw"} or \code{"nobaseline"}}
