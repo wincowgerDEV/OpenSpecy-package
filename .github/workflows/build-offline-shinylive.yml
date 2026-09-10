@@ -1,0 +1,307 @@
+name: Build offline OpenSpecy bundles
+
+on:
+  workflow_run:
+    workflows: ["Build and deploy Shinylive app"]
+    branches: [main, master]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      package_sha:
+        description: Exact 40-character commit used by the successful Pages build
+        required: true
+        type: string
+      pages_run_id:
+        description: Successful Build and deploy Shinylive app run containing openspecy-pages-<SHA>
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: offline-shinylive-${{ github.event.workflow_run.head_sha || inputs.package_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      REQUESTED_PACKAGE_SHA: ${{ inputs.package_sha || '' }}
+      PAGES_RUN_ID: ${{ github.event.workflow_run.id || inputs.pages_run_id }}
+      SOURCE_WORKFLOW: Build and deploy Shinylive app
+      GO_VERSION: 1.24.7
+      PLAYWRIGHT_VERSION: 1.61.1
+    steps:
+      - name: Validate successful source workflow and exact artifact
+        id: source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${REQUESTED_PACKAGE_SHA}" &&
+                ! "${REQUESTED_PACKAGE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Requested package SHA must be exactly 40 lowercase hexadecimal characters." >&2
+            exit 1
+          fi
+          if [[ ! "${PAGES_RUN_ID}" =~ ^[0-9]+$ ]]; then
+            echo "PAGES_RUN_ID must be numeric." >&2
+            exit 1
+          fi
+          run_json=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${PAGES_RUN_ID}")
+          jq -e \
+            --arg workflow "${SOURCE_WORKFLOW}" \
+            '.name == $workflow and .conclusion == "success"' \
+            <<< "${run_json}" >/dev/null
+          source_event=$(jq -er '.event' <<< "${run_json}")
+          source_head_sha=$(jq -er '.head_sha' <<< "${run_json}")
+          artifacts_json=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${PAGES_RUN_ID}/artifacts?per_page=100")
+          mapfile -t artifact_names < <(jq -r '
+            .artifacts[] |
+            select((.expired | not) and
+              (.name | test("^openspecy-pages-[0-9a-f]{40}$"))) |
+            .name
+          ' <<< "${artifacts_json}")
+          if [[ "${#artifact_names[@]}" != "1" ]]; then
+            echo "Expected one unexpired openspecy-pages-<SHA> artifact; found ${#artifact_names[@]}." >&2
+            exit 1
+          fi
+          artifact_name="${artifact_names[0]}"
+          package_sha="${artifact_name#openspecy-pages-}"
+          if [[ -n "${REQUESTED_PACKAGE_SHA}" &&
+                "${REQUESTED_PACKAGE_SHA}" != "${package_sha}" ]]; then
+            echo "Requested package SHA ${REQUESTED_PACKAGE_SHA} does not match ${artifact_name}." >&2
+            exit 1
+          fi
+          if [[ "${source_event}" != "workflow_dispatch" &&
+                "${source_head_sha}" != "${package_sha}" ]]; then
+            echo "Automatic Pages run head ${source_head_sha} does not match ${artifact_name}." >&2
+            exit 1
+          fi
+          echo "PACKAGE_SHA=${package_sha}" >> "${GITHUB_ENV}"
+          echo "PAGES_ARTIFACT_NAME=${artifact_name}" >> "${GITHUB_ENV}"
+          echo "package_sha=${package_sha}" >> "${GITHUB_OUTPUT}"
+          echo "artifact_name=${artifact_name}" >> "${GITHUB_OUTPUT}"
+          echo "Verified successful ${SOURCE_WORKFLOW} run ${PAGES_RUN_ID} artifact ${artifact_name}."
+
+      - name: Checkout exact package source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.source.outputs.package_sha }}
+
+      - name: Verify checkout identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PACKAGE_SHA}"
+
+      - name: Download exact Pages artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ steps.source.outputs.artifact_name }}
+          path: _offline/pages-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PAGES_RUN_ID }}
+
+      - name: Setup pinned Go toolchain
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: tools/offline/go.mod
+
+      - name: Test launcher and packager
+        shell: bash
+        run: |
+          set -euo pipefail
+          go -C tools/offline test ./...
+
+      - name: Cross-compile five native launchers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _offline/launchers _offline/output
+          while IFS='|' read -r target goos goarch launcher_name; do
+            launcher_dir="${GITHUB_WORKSPACE}/_offline/launchers/${target}"
+            mkdir -p "${launcher_dir}"
+            CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
+              go -C tools/offline build -trimpath \
+                -ldflags="-s -w -buildid=" \
+                -o "${launcher_dir}/${launcher_name}" \
+                ./cmd/openspecy-offline
+            test -s "${launcher_dir}/${launcher_name}"
+            file "${launcher_dir}/${launcher_name}"
+          done <<'TARGETS'
+          windows-amd64|windows|amd64|OpenSpecy Offline.exe
+          macos-amd64|darwin|amd64|OpenSpecy Offline
+          macos-arm64|darwin|arm64|OpenSpecy Offline
+          linux-amd64|linux|amd64|OpenSpecy Offline
+          linux-arm64|linux|arm64|OpenSpecy Offline
+          TARGETS
+          go -C tools/offline build -trimpath \
+            -o "${GITHUB_WORKSPACE}/_offline/package-offline" \
+            ./cmd/package-offline
+
+      - name: Validate Pages identities and build target archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS='|' read -r target launcher_name; do
+            archive="openspecy-offline-${target}-${PACKAGE_SHA}.zip"
+            "${GITHUB_WORKSPACE}/_offline/package-offline" \
+              -artifact-root "${GITHUB_WORKSPACE}/_offline/pages-artifact" \
+              -launcher "${GITHUB_WORKSPACE}/_offline/launchers/${target}/${launcher_name}" \
+              -output "${GITHUB_WORKSPACE}/_offline/output/${archive}" \
+              -package-sha "${PACKAGE_SHA}" \
+              -target "${target}" \
+              -source-repository "${GITHUB_REPOSITORY}" \
+              -source-run-id "${PAGES_RUN_ID}"
+            test -s "_offline/output/${archive}"
+            test -s "_offline/output/${archive}.sha256"
+            (
+              cd _offline/output
+              sha256sum --check "${archive}.sha256"
+            )
+          done <<'TARGETS'
+          windows-amd64|OpenSpecy Offline.exe
+          macos-amd64|OpenSpecy Offline
+          macos-arm64|OpenSpecy Offline
+          linux-amd64|OpenSpecy Offline
+          linux-arm64|OpenSpecy Offline
+          TARGETS
+          package_version=$(jq -er \
+            --arg sha "${PACKAGE_SHA}" \
+            'select(.package.commit == $sha) | .package.version' \
+            _offline/pages-artifact/_site/app/pinned-wasm-library.json)
+          echo "PACKAGE_VERSION=${package_version}" >> "${GITHUB_ENV}"
+          ls -lh _offline/output
+
+      - name: Setup Node for internet-blocked browser acceptance
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install pinned browser smoke dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save "@playwright/test@${PLAYWRIGHT_VERSION}"
+          npx playwright install chromium
+
+      - name: Run extracted Linux bundle from a spaced path without internet
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _offline/smoke
+          spaced_dir=$(mktemp -d \
+            --tmpdir="${RUNNER_TEMP}" 'OpenSpecy Offline acceptance.XXXXXX')
+          archive="_offline/output/openspecy-offline-linux-amd64-${PACKAGE_SHA}.zip"
+          unzip -q "${archive}" -d "${spaced_dir}"
+          bundle_root="${spaced_dir}/OpenSpecy-offline-${PACKAGE_SHA}"
+          launcher="${bundle_root}/OpenSpecy Offline"
+          test -x "${launcher}"
+          test -f "${bundle_root}/site/index.html"
+          test -f "${bundle_root}/site/app/index.html"
+          test -f "${bundle_root}/site/pkgdown/index.html"
+          url_file="${spaced_dir}/launcher-url.txt"
+          "${launcher}" --no-browser --write-url "${url_file}" \
+            > _offline/smoke/launcher.log 2>&1 &
+          launcher_pid=$!
+          cleanup() {
+            kill "${launcher_pid}" 2>/dev/null || true
+            wait "${launcher_pid}" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          for attempt in {1..60}; do
+            if [[ -s "${url_file}" ]]; then
+              offline_url=$(tr -d '\r\n' < "${url_file}")
+              if curl --fail --silent --show-error "${offline_url}" >/dev/null; then
+                break
+              fi
+            fi
+            if ! kill -0 "${launcher_pid}" 2>/dev/null; then
+              cat _offline/smoke/launcher.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          test -n "${offline_url:-}"
+          [[ "${offline_url}" =~ ^http://127\.0\.0\.1:[0-9]+/app/$ ]]
+          origin="${offline_url%/app/}"
+          curl --fail --silent --show-error "${origin}/" >/dev/null
+          curl --fail --silent --show-error "${origin}/pkgdown/" >/dev/null
+          OPENSPECY_OFFLINE_URL="${offline_url}" \
+          OPENSPECY_EXPECTED_VERSION="${PACKAGE_VERSION}" \
+            npx playwright test tools/offline/offline-smoke.spec.js \
+              --workers=1 --output=_offline/smoke/playwright
+          cleanup
+          trap - EXIT
+
+      - name: Upload offline smoke diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: openspecy-offline-smoke-${{ env.PACKAGE_SHA }}
+          path: _offline/smoke
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload Windows x64 offline bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: openspecy-offline-windows-amd64-${{ env.PACKAGE_SHA }}
+          path: |
+            _offline/output/openspecy-offline-windows-amd64-${{ env.PACKAGE_SHA }}.zip
+            _offline/output/openspecy-offline-windows-amd64-${{ env.PACKAGE_SHA }}.zip.sha256
+          compression-level: 0
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Upload macOS Intel offline bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: openspecy-offline-macos-amd64-${{ env.PACKAGE_SHA }}
+          path: |
+            _offline/output/openspecy-offline-macos-amd64-${{ env.PACKAGE_SHA }}.zip
+            _offline/output/openspecy-offline-macos-amd64-${{ env.PACKAGE_SHA }}.zip.sha256
+          compression-level: 0
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Upload macOS Apple Silicon offline bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: openspecy-offline-macos-arm64-${{ env.PACKAGE_SHA }}
+          path: |
+            _offline/output/openspecy-offline-macos-arm64-${{ env.PACKAGE_SHA }}.zip
+            _offline/output/openspecy-offline-macos-arm64-${{ env.PACKAGE_SHA }}.zip.sha256
+          compression-level: 0
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Upload Linux x64 offline bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: openspecy-offline-linux-amd64-${{ env.PACKAGE_SHA }}
+          path: |
+            _offline/output/openspecy-offline-linux-amd64-${{ env.PACKAGE_SHA }}.zip
+            _offline/output/openspecy-offline-linux-amd64-${{ env.PACKAGE_SHA }}.zip.sha256
+          compression-level: 0
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Upload Linux ARM64 offline bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: openspecy-offline-linux-arm64-${{ env.PACKAGE_SHA }}
+          path: |
+            _offline/output/openspecy-offline-linux-arm64-${{ env.PACKAGE_SHA }}.zip
+            _offline/output/openspecy-offline-linux-arm64-${{ env.PACKAGE_SHA }}.zip.sha256
+          compression-level: 0
+          retention-days: 90
+          if-no-files-found: error

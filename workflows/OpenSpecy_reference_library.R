@@ -11,6 +11,7 @@ package_dir <- paste0(
   "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
   "OpenSpecy-package"
 )
+setwd(package_dir)
 data_dir <- "H:\\My Drive\\Work\\Projects\\OpenSpecy\\SpectraFilesCodeProcessedSpectra"
 
 processed_dir <- data_dir

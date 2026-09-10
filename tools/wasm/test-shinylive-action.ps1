@@ -241,6 +241,11 @@ Invoke-Checked $Rscript @(
   "--package-sha", $PackageSha
 )
 Invoke-Checked $Rscript @(
+  "tools/wasm/configure-shinylive-cache.R",
+  "--site-dir", (Get-RepoRelative $site),
+  "--package-sha", $PackageSha
+)
+Invoke-Checked $Rscript @(
   "tools/wasm/check-shinylive-export.R",
   (Get-RepoRelative $site)
 )

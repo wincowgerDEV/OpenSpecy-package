@@ -43,7 +43,16 @@ function(input, output, session) {
   measurement_definitions <- reactiveVal(app_empty_measurement_definitions())
   quantification_axis <- reactiveVal(NULL)
   inspection_source_gate <- reactiveVal(NULL)
+  heatmap_events_ready <- reactiveVal(FALSE)
+  tutorial_state <- reactiveValues(workflow = NULL, step = 0L)
+  tutorial_generation <- reactiveVal(0L)
+  selection_ready_run <- reactiveVal(NULL)
   quality_modal_observers <- new.env(parent = emptyenv())
+
+  # The header is present before the Shiny socket is bound. Enabling this
+  # action only after the first server flush prevents an eager first click
+  # from being lost during connection startup.
+  session$onFlushed(function() shinyjs::enable("walkthrough_open"), once = TRUE)
 
   # .match_spec_blockwise() computes and discards one library-by-block
   # correlation matrix at a time so memory stays bounded regardless of query
@@ -120,45 +129,29 @@ function(input, output, session) {
     )
   })
 
-  # One "Turn All On/Off" button per settings tab that has switches. The
-  # label names the action the click will take (based on whether every
-  # switch in the tab is already on), not the current state.
-  app_tab_switch_ids <- list(
-    preprocessing = c(
-      "make_rel_decision", "smooth_decision", "conform_decision",
-      "intensity_decision", "baseline_decision", "range_decision",
-      "co2_decision", "spike_decision", "saturation_decision"
-    ),
-    identification = c("identification_active", "filter_lib"),
-    advanced = c(
-      "threshold_decision", "cor_threshold_decision", "spatial_decision",
-      "xy_grid", "collapse_decision"
-    )
-  )
+  # The tab-wide action is intentionally one-way. "All on" combines mutually
+  # unsuitable scientific choices, so the safe convenience is always Reset
+  # all switches to off and users then opt into the few steps they need.
+  tab_switch_ids <- app_tab_switch_ids()
   app_render_tab_all_toggle <- function(tab) {
-    ids <- app_tab_switch_ids[[tab]]
-    values <- vapply(ids, function(id) isTRUE(input[[id]]), logical(1))
-    turn_on <- !all(values)
     actionButton(
       paste0(tab, "_all_toggle"),
-      if(turn_on) "Turn All On" else "Turn All Off",
-      icon = icon(if(turn_on) "toggle-on" else "toggle-off"),
+      "Turn All Off",
+      icon = icon("toggle-off"),
       class = "btn-sm openspecy-tab-all-toggle",
-      title = paste0(
-        if(turn_on) "Turn on every switch " else "Turn off every switch ",
-        "in this tab."
-      )
+      title = "Turn off every switch in this tab."
     )
   }
-  lapply(names(app_tab_switch_ids), function(tab) {
-    output[[paste0(tab, "_all_toggle")]] <- renderUI(
+  lapply(names(tab_switch_ids), function(tab) {
+    output_id <- paste0(tab, "_all_toggle_ui")
+    output[[output_id]] <- renderUI(
       app_render_tab_all_toggle(tab)
     )
-    outputOptions(output, paste0(tab, "_all_toggle"), suspendWhenHidden = FALSE)
+    outputOptions(output, output_id, suspendWhenHidden = FALSE)
     observeEvent(input[[paste0(tab, "_all_toggle")]], {
-      ids <- app_tab_switch_ids[[tab]]
-      turn_on <- !all(vapply(ids, function(id) isTRUE(input[[id]]), logical(1)))
-      for(id in ids) shinyWidgets::updatePrettySwitch(session, id, value = turn_on)
+      for(id in tab_switch_ids[[tab]]) {
+        shinyWidgets::updatePrettySwitch(session, id, value = FALSE)
+      }
     }, ignoreInit = TRUE)
   })
 
@@ -252,6 +245,8 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
   data_click$table <- 1
   preprocessed$data <- NULL
   inspection_source_gate(NULL)
+  heatmap_events_ready(FALSE)
+  session$sendCustomMessage("openspecy-clear-heatmap-click", list())
   attr(file_info, "mounted") <- isTRUE(mounted)
   active_file_info(file_info)
   set_upload_status(NULL)
@@ -473,6 +468,8 @@ stage_selected_files <- function(file_info, mounted = FALSE) {
   active_file_info(file_info)
   preprocessed$data <- NULL
   inspection_source_gate(NULL)
+  heatmap_events_ready(FALSE)
+  session$sendCustomMessage("openspecy-clear-heatmap-click", list())
   ratio_definitions(app_empty_ratio_definitions())
   measurement_definitions(app_empty_measurement_definitions())
   quantification_axis(NULL)
@@ -493,6 +490,263 @@ stage_selected_files <- function(file_info, mounted = FALSE) {
     )
   }
 }
+
+  # Guided onboarding ----
+  # The chooser is safe to open at any time. A dataset is replaced only after
+  # the user chooses a workflow, and the disclosure is shown before that click.
+  show_tutorial_chooser <- function() {
+    tutorial_generation(tutorial_generation() + 1L)
+    tutorial_state$workflow <- NULL
+    tutorial_state$step <- 0L
+    session$sendCustomMessage("openspecy-tutorial-exit", list())
+    tutorials <- app_tutorial_workflows()
+    choices <- lapply(names(tutorials), function(id) {
+      tutorial <- tutorials[[id]]
+      actionButton(
+        paste0("walkthrough_choose_", id),
+        tagList(
+          icon(tutorial$icon, `aria-hidden` = "true"),
+          tags$span(tutorial$label),
+          tags$small(tutorial$summary)
+        ),
+        class = "btn-lg openspecy-tutorial-choice",
+        title = paste("Start the", tutorial$label, "walkthrough"),
+        `aria-label` = paste(
+          "Start the", tutorial$label, "walkthrough.", tutorial$summary
+        )
+      )
+    })
+    showModal(modalDialog(
+      title = tagList(icon("route"), "Walk me through Open Specy"),
+      tags$p(
+        "Choose a short guided comparison. Each path uses the packaged Raman ",
+        "HDPE test spectrum, changes the real controls, and clicks the same ",
+        "Run button you will use for your own data."
+      ),
+      tags$p(
+        class = "openspecy-tutorial-replacement",
+        icon("exclamation-triangle", `aria-hidden` = "true"),
+        tags$strong("Your current data and unsaved ratio definitions will be replaced "),
+        "when you choose a walkthrough. The tutorial data stays only in this session."
+      ),
+      tags$div(
+        class = "openspecy-tutorial-choices", role = "group",
+        `aria-label` = "Choose a walkthrough", choices
+      ),
+      easyClose = TRUE, size = "l", footer = modalButton("Exit")
+    ))
+  }
+
+  tutorial_guidance_ui <- function(topics) {
+    lapply(topics, function(topic) {
+      guidance <- app_guidance_topic(topic)
+      tags$section(
+        class = "openspecy-tutorial-guidance",
+        tags$h4(guidance$title),
+        lapply(guidance$body, tags$p)
+      )
+    })
+  }
+
+  show_tutorial_step <- function() {
+    workflow_id <- tutorial_state$workflow
+    step_number <- tutorial_state$step
+    tutorials <- app_tutorial_workflows()
+    tutorial <- tutorials[[workflow_id]]
+    step <- app_tutorial_step(workflow_id, step_number)
+    final_step <- step_number >= length(tutorial$steps)
+    next_button <- actionButton(
+      "walkthrough_next", "Next", icon = icon("arrow-right"),
+      class = "btn-primary", title = "Apply and run the next comparison"
+    )
+    if(final_step) {
+      next_button <- htmltools::tagAppendAttributes(
+        next_button, disabled = "disabled", `aria-disabled` = "true"
+      )
+    }
+    showModal(modalDialog(
+      title = paste(tutorial$label, "walkthrough"),
+      tags$p(
+        class = "openspecy-tutorial-progress", role = "status",
+        `aria-live` = "polite",
+        paste("Step", step_number, "of", length(tutorial$steps), "-", step$title)
+      ),
+      tags$p(step$explanation),
+      tutorial_guidance_ui(step$guidance),
+      tags$p(
+        class = "text-muted",
+        "The last tutorial result remains available when you exit, so you can inspect plots, metadata, matches, and downloads."
+      ),
+      easyClose = FALSE, size = "l",
+      footer = tags$div(
+        class = "openspecy-tutorial-actions",
+        actionButton(
+          "walkthrough_back", "Back", icon = icon("arrow-left"),
+          title = if(step_number == 1L) {
+            "Return to the walkthrough choices"
+          } else "Restore and run the previous comparison"
+        ),
+        actionButton(
+          "walkthrough_repeat", "Repeat", icon = icon("redo"),
+          title = "Apply these controls and repeat the ordinary Run"
+        ),
+        next_button,
+        actionButton(
+          "walkthrough_view", "View result", icon = icon("eye"),
+          class = "btn-success",
+          title = "Hide this guide and inspect the completed result"
+        ),
+        actionButton(
+          "walkthrough_exit", "Exit", icon = icon("times"),
+          class = "btn-outline-secondary",
+          title = "Close the walkthrough and keep its last result"
+        )
+      )
+    ))
+  }
+
+  apply_tutorial_inputs <- function(values) {
+    all_switches <- unlist(app_tab_switch_ids(), use.names = FALSE)
+    switch_values <- stats::setNames(rep(FALSE, length(all_switches)), all_switches)
+    specified_switches <- intersect(names(values), all_switches)
+    if(length(specified_switches)) {
+      switch_values[specified_switches] <- vapply(
+        values[specified_switches], isTRUE, logical(1)
+      )
+    }
+    for(id in names(switch_values)) {
+      shinyWidgets::updatePrettySwitch(
+        session, id, value = unname(switch_values[[id]])
+      )
+    }
+
+    picker_ids <- intersect(
+      names(values), c("id_spec_type", "id_strategy", "lib_type")
+    )
+    for(id in picker_ids) {
+      shinyWidgets::updatePickerInput(session, id, selected = values[[id]])
+    }
+    if("quant_ratio_type" %in% names(values)) {
+      updateRadioButtons(
+        session, "quant_ratio_type", selected = values$quant_ratio_type
+      )
+    }
+    if("quant_ratio_name" %in% names(values)) {
+      updateTextInput(session, "quant_ratio_name", value = values$quant_ratio_name)
+    }
+    slider_ids <- intersect(names(values), "derivative_order")
+    for(id in slider_ids) updateSliderInput(session, id, value = values[[id]])
+    numeric_ids <- intersect(
+      names(values),
+      c(
+        "quant_numerator_area_min", "quant_numerator_area_max",
+        "quant_denominator_area_min", "quant_denominator_area_max",
+        "quant_numerator_peak", "quant_denominator_peak"
+      )
+    )
+    for(id in numeric_ids) {
+      updateNumericInput(session, id, value = values[[id]])
+    }
+  }
+
+  apply_tutorial_step <- function(workflow, step_number) {
+    step <- app_tutorial_step(workflow, step_number)
+    generation <- tutorial_generation() + 1L
+    tutorial_generation(generation)
+    tutorial_state$workflow <- workflow
+    tutorial_state$step <- as.integer(step_number)
+    apply_tutorial_inputs(step$values)
+    updateTabsetPanel(session, "analysis_settings", selected = step$tab)
+
+    # A/B quantification uses the same ratio-definition helper as Add Ratio.
+    # It is prepared before Run so quantified_data_gate sees it in that exact
+    # ordinary Run; every other workflow clears this tutorial-owned definition.
+    ratio_definitions(app_empty_ratio_definitions())
+    measurement_definitions(app_empty_measurement_definitions())
+    if(identical(step$ratio, "carbonyl_area")) {
+      ratio_definitions(app_add_ratio_definition(
+        app_empty_ratio_definitions(), name = "Carbonyl area", type = "area",
+        numerator = c(1650, 1850), denominator = c(1420, 1500),
+        axis = raman_hdpe$wavenumber
+      ))
+    }
+
+    show_tutorial_step()
+    controls <- unique(c(
+      names(step$values),
+      unlist(lapply(step$guidance, function(topic) {
+        app_guidance_topic(topic)$controls
+      }), use.names = FALSE)
+    ))
+    session$onFlushed(function() {
+      session$sendCustomMessage(
+        "openspecy-tutorial-step",
+        list(
+          workflow = workflow, step = as.integer(step_number),
+          tab = step$tab, controls = controls, run = TRUE,
+          generation = generation,
+          has_next = step_number < length(
+            app_tutorial_workflows()[[workflow]]$steps
+          )
+        )
+      )
+    }, once = TRUE)
+  }
+
+  start_tutorial <- function(workflow) {
+    file_info <- app_tutorial_file_info(
+      OpenSpecy::read_extdata("raman_hdpe.csv")
+    )
+    stage_selected_files(file_info, mounted = FALSE)
+    apply_tutorial_step(workflow, 1L)
+  }
+
+  observeEvent(input$walkthrough_open, {
+    if(isTruthy(tutorial_state$workflow) && tutorial_state$step > 0L) {
+      show_tutorial_step()
+    } else {
+      show_tutorial_chooser()
+    }
+  }, ignoreInit = TRUE)
+  lapply(names(app_tutorial_workflows()), function(workflow) {
+    observeEvent(input[[paste0("walkthrough_choose_", workflow)]], {
+      start_tutorial(workflow)
+    }, ignoreInit = TRUE)
+  })
+  observeEvent(input$walkthrough_next, {
+    req(isTruthy(tutorial_state$workflow))
+    count <- length(app_tutorial_workflows()[[tutorial_state$workflow]]$steps)
+    if(tutorial_state$step < count) {
+      apply_tutorial_step(tutorial_state$workflow, tutorial_state$step + 1L)
+    }
+  }, ignoreInit = TRUE)
+  observeEvent(input$walkthrough_back, {
+    req(isTruthy(tutorial_state$workflow))
+    if(tutorial_state$step <= 1L) {
+      show_tutorial_chooser()
+    } else {
+      apply_tutorial_step(tutorial_state$workflow, tutorial_state$step - 1L)
+    }
+  }, ignoreInit = TRUE)
+  observeEvent(input$walkthrough_repeat, {
+    req(isTruthy(tutorial_state$workflow), tutorial_state$step > 0L)
+    apply_tutorial_step(tutorial_state$workflow, tutorial_state$step)
+  }, ignoreInit = TRUE)
+  observeEvent(input$walkthrough_view, {
+    req(isTruthy(tutorial_state$workflow), tutorial_state$step > 0L)
+    removeModal()
+    showNotification(
+      "Result ready. Select Walk me through to reopen this step and continue.",
+      type = "message", duration = 8
+    )
+  }, ignoreInit = TRUE)
+  observeEvent(input$walkthrough_exit, {
+    removeModal()
+    tutorial_generation(tutorial_generation() + 1L)
+    tutorial_state$workflow <- NULL
+    tutorial_state$step <- 0L
+    session$sendCustomMessage("openspecy-tutorial-exit", list())
+  }, ignoreInit = TRUE)
 
 if(!app_wasm_mode()) {
   local_roots <- app_local_roots()
@@ -671,6 +925,29 @@ observeEvent(input$run_analysis, {
       ordinary_processing_input_ids
     )
   }
+
+  # Compatibility advice is deliberately captured and shown only on Run. It
+  # is nonblocking because advanced users may upload spectra that were already
+  # transformed before entering Open Specy.
+  observeEvent(input$run_analysis, {
+    processing <- current_processing_settings()
+    snapshot <- c(
+      list(
+        identification_active = isTRUE(input$identification_active),
+        id_strategy = input$id_strategy
+      ),
+      processing[c(
+        "smooth_decision", "derivative_order", "derivative_abs",
+        "baseline_decision"
+      )]
+    )
+    messages <- app_identification_compatibility_warnings(snapshot)
+    lapply(messages, function(message) {
+      showNotification(
+        message, type = "warning", duration = 12, closeButton = TRUE
+      )
+    })
+  }, priority = RUN_GATE_PRIORITY_MATERIALIZE - 1L)
 
   # Ordinary spectral processing is a pure operation over its input. Spatial
   # smoothing is deliberately kept outside this function so S/N and particle
@@ -1941,7 +2218,13 @@ observeEvent(input$run_analysis, {
   #The data to use in the plot. 
   selected_unit_index <- reactive({
       value <- suppressWarnings(as.integer(data_click$plot))
-      count <- ncol(DataR()$spectra)
+      # canonical_state() is nullable before the first successful Run. Do not
+      # enter canonical_final()/DataR() here: its validation message is useful
+      # to outputs, but an always-on selection observer turned that message
+      # into a server warning during a quiet startup flush.
+      object <- canonical_state()$object
+      if(is.null(object) || is.null(object$spectra)) return(NA_integer_)
+      count <- ncol(object$spectra)
       if(length(value) != 1L || is.na(value) || value < 1L ||
          value > count) return(NA_integer_)
       value
@@ -2208,12 +2491,47 @@ observeEvent(input$run_analysis, {
     }, ignoreInit = TRUE
   )
 
-  observeEvent(list(quantified_data(), effective_signal_selection()), {
-      req(isTruthy(quantified_data()))
-      meta_cache(app_uploaded_metadata_cache(
-        quantified_data(), canonical_signal_noise()
-      ))
-  })
+  # Every successful Run owns a fresh rank-1/metadata readiness boundary. Key
+  # this directly to the action event: two Runs may legitimately produce an
+  # identical object, in which case a value-triggered observer would not fire.
+  # The lower priority runs after the canonical and quantification gates.
+  observeEvent(input$run_analysis, {
+      current_run <- suppressWarnings(as.integer(input$run_analysis)[1L])
+      state <- canonical_state()
+      object <- quantified_data_gate$read()
+      success <- !is.null(state$object) && !is.null(object)
+
+      if(success) {
+        selected <- app_initial_result_selection(object, state$pixel_to_unit)
+        data_click$plot <- selected$plot
+        data_click$pixel <- selected$pixel
+        data_click$table <- selected$table
+        meta_cache(app_uploaded_metadata_cache(
+          object, canonical_signal_noise()
+        ))
+        selection_ready_run(current_run)
+        session$onFlushed(function() {
+          DT::selectRows(DT::dataTableProxy("event", session = session), 1L)
+        }, once = TRUE)
+      }
+
+      # Tutorial navigation is released by this generation-keyed acknowledgement,
+      # never merely because the client became idle. A failed canonical Run
+      # leaves Next/View disabled while Back and Repeat remain available.
+      if(isTruthy(isolate(tutorial_state$workflow))) {
+        acknowledgement <- list(
+          generation = isolate(tutorial_generation()),
+          step = isolate(tutorial_state$step),
+          run = current_run,
+          success = success
+        )
+        session$onFlushed(function() {
+          session$sendCustomMessage(
+            "openspecy-tutorial-run-complete", acknowledgement
+          )
+        }, once = TRUE)
+      }
+  }, priority = -10L, ignoreInit = TRUE)
   RawR_plot <- reactive({
       req(!is.null(preprocessed$data))
       uploaded <- data()
@@ -2384,7 +2702,7 @@ observeEvent(input$run_analysis, {
       # Get data from filter_spec
       rows <- matches_to_single()
       req(nrow(rows) > 0L)
-      selected_row <- min(max(1L, as.integer(data_click$table)), nrow(rows))
+      selected_row <- app_selected_rank_index(data_click$table, nrow(rows))
       filter_spec(
         library_filtered(),
         logic = colnames(library_filtered()$spectra) ==
@@ -2451,7 +2769,7 @@ match_metadata <- reactive({
     }
     if (!model_library) {
         rows <- matches_to_single()
-        selected_row <- min(max(1L, as.integer(data_click$table)), nrow(rows))
+        selected_row <- app_selected_rank_index(data_click$table, nrow(rows))
         selected_match <- rows[selected_row, ]
         app_selected_metadata(
           quantified_data(), selected_match, canonical_signal_noise()
@@ -2545,6 +2863,7 @@ output$event <- DT::renderDataTable({
               style = "bootstrap",
               selection = list(mode = "single", selected = c(1)))
 })
+outputOptions(output, "event", suspendWhenHidden = FALSE)
 
 #Full metadata table for uploaded spectra
 output$sidebar_metadata <- DT::renderDataTable({
@@ -2959,8 +3278,23 @@ output$progress_bars <- renderUI({
   }, ignoreNULL = TRUE)
 
   output$heatmapA <- plotly::renderPlotly({
-      app_particle_plotly(current_heatmap_data(), source = "heat_plot",
-                          select = isolate(current_select_xy()))
+      heatmap_data <- current_heatmap_data()
+      spectrum_count <- if(is.null(preprocessed$data)) 0L else
+        source_count(preprocessed$data)
+      clickable <- app_has_clickable_heatmap(heatmap_data, spectrum_count)
+      plot <- app_particle_plotly(current_heatmap_data(), source = "heat_plot",
+        select = isolate(current_select_xy())
+      )
+      if(clickable) {
+        # event_register() is attached above. Establish event_data() only in a
+        # later flush, after renderPlotly has registered the real heatmap with
+        # the session; doing it during startup produced Plotly's unregistered
+        # source warning while the hidden map output was still suspended.
+        session$onFlushed(function() heatmap_events_ready(TRUE), once = TRUE)
+      } else {
+        heatmap_events_ready(FALSE)
+      }
+      plot
   })
 
   observeEvent(input$heatmap_legend_details, {
@@ -2997,8 +3331,10 @@ output$progress_bars <- renderUI({
         )
   }, ignoreNULL = FALSE, ignoreInit = TRUE)
 
-  observeEvent(plotly::event_data("plotly_click", source = "heat_plot"), {
+  observe({
+      req(isTRUE(heatmap_events_ready()))
       click <- plotly::event_data("plotly_click", source = "heat_plot")
+      req(!is.null(click))
       curve_number <- if(length(click$curveNumber)) {
         suppressWarnings(as.integer(click$curveNumber[[1L]]))
       } else {
@@ -3024,7 +3360,7 @@ output$progress_bars <- renderUI({
           data_click$plot <- selected
         }
       }
-  }, ignoreNULL = TRUE, ignoreInit = TRUE)
+  })
   
   #Summary Plots ----
   output$particle_plot <- renderPlot({
@@ -3340,10 +3676,21 @@ output$progress_bars <- renderUI({
       selected <- suppressWarnings(as.integer(input$event_rows_selected)[1L])
       if(!is.na(selected) && selected >= 1L) data_click$table <- selected
   })
-  observeEvent(list(selected_unit_index(), top_matches()), {
+  last_rank_unit <- reactiveVal(NA_integer_)
+  observeEvent(selected_unit_index(), {
+      selected <- selected_unit_index()
+      req(!is.na(selected))
+      previous <- last_rank_unit()
+      last_rank_unit(selected)
+      # Fresh-Run rank initialization belongs to the canonical readiness
+      # observer. Reset only when a user moves from one valid spectrum/unit to
+      # another, keeping the DT row, reference overlay, and metadata aligned.
+      if(is.na(previous) || identical(previous, selected)) return()
       data_click$table <- 1L
-  }, ignoreInit = FALSE)
-
+      session$onFlushed(function() {
+        DT::selectRows(DT::dataTableProxy("event", session = session), 1L)
+      }, once = TRUE)
+  }, ignoreInit = TRUE)
   # meta_cache()'s .openspecy_index is always a column index into
   # quantified_data()/canonical_final() -- i.e. a *unit* index (one particle
   # per row when collapsed, one pixel per row otherwise; identical when not

@@ -92,22 +92,22 @@
   }
 
   function initVideo() {
-    var container = document.querySelector("[data-video-embed]");
-    if (!container) return;
-    var button = container.querySelector(".video-load");
-    if (!button) return;
+    document.querySelectorAll("[data-video-embed]").forEach(function (container) {
+      var button = container.querySelector(".video-load");
+      if (!button) return;
 
-    button.addEventListener("click", function () {
-      var source = container.dataset.videoSrc;
-      if (!source) return;
-      var frame = document.createElement("iframe");
-      frame.src = source;
-      frame.title = "OpenSpecy full application tutorial";
-      frame.referrerPolicy = "strict-origin-when-cross-origin";
-      frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-      frame.allowFullscreen = true;
-      container.replaceChildren(frame);
-    }, { once: true });
+      button.addEventListener("click", function () {
+        var source = container.dataset.videoSrc;
+        if (!source) return;
+        var frame = document.createElement("iframe");
+        frame.src = source;
+        frame.title = container.dataset.videoTitle || "OpenSpecy video";
+        frame.referrerPolicy = "strict-origin-when-cross-origin";
+        frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+        frame.allowFullscreen = true;
+        container.replaceChildren(frame);
+      }, { once: true });
+    });
   }
 
   function initLanding() {

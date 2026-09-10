@@ -58,6 +58,317 @@ library(OpenSpecy)
 validate_wasm_package_version()
 #library(glmnet)
 
+# Shared, structured explanations for controls used by both the in-place
+# "What this changes" disclosures and the guided walkthrough. Keeping stable
+# topic IDs here prevents the tutorial from drifting away from the controls it
+# demonstrates.
+app_guidance_registry <- list(
+  min_max_normalize = list(
+    title = "Min-Max Normalize",
+    controls = "make_rel_decision",
+    body = c(
+      "Min-Max Normalize rescales each spectrum to a zero-to-one relative-intensity scale so spectra with different absolute signal levels can be compared.",
+      "Turning the owner switch off is a true no-op: uploaded intensity units and scale are retained. This can make absolute intensity differences easier to see, but magnitude may dominate visual comparisons."
+    )
+  ),
+  smoothing_derivative = list(
+    title = "Smoothing / Derivative",
+    controls = c(
+      "smooth_decision", "smoother", "derivative_order",
+      "smoother_window", "derivative_abs"
+    ),
+    body = c(
+      "Polynomial chooses the Savitzky-Golay polynomial order (0-5); Wavenumber Window is the smoothing width in cm^-1, where a larger window suppresses more noise but can blur narrow bands.",
+      "Derivative Order 0 smooths without differentiating; higher orders emphasize spectral shape changes and also amplify noise. Absolute Value folds negative derivative values above zero.",
+      "When Smoothing / Derivative is off, every child value is ignored. The Derivative identification library expects this switch on with order 1 and Absolute Value on; a deliberate preprocessed upload may still proceed after the Run warning."
+    )
+  ),
+  baseline_correction = list(
+    title = "Baseline Correction",
+    controls = c(
+      "baseline_decision", "baseline_method", "baseline", "refit",
+      "baseline_lambda", "baseline_hwi", "iterations"
+    ),
+    body = c(
+      "Modified Polynomial estimates a whole-spectrum baseline; a higher polynomial degree can follow more curvature but can also remove broad real bands. Refit performs one final fit after iterative rejection.",
+      "Fill Peaks uses a unitless smoothing-penalty setting plus a Local Half-Window measured in sampled wavenumber buckets; larger values produce a smoother or broader baseline estimate. Iterations controls repeated peak suppression.",
+      "When Baseline Correction is off, all child settings are ignored. The No Baseline identification library expects correction on and no active derivative transform; deliberately preprocessed uploads may still proceed after the Run warning."
+    )
+  ),
+  identification_strategy = list(
+    title = "Identification Strategy",
+    controls = c(
+      "identification_active", "id_spec_type", "id_strategy", "lib_type",
+      "top_n_input", "filter_lib", "lib_org"
+    ),
+    body = c(
+      "Spectrum Type limits candidate references when the measurement type is known; All searches FTIR, Raman, and NIR. Library Type trades reference detail against runtime, while Top N controls how many ranked candidates are retained per spectrum.",
+      "Derivative requires absolute first-derivative preprocessing. No Baseline requires baseline correction and no active derivative. A mismatch can make scores scientifically misleading, so Run reports a nonblocking warning with the corrective controls.",
+      "Turning Identification off skips library/model loading, matching, Top Matches, and material-dependent spatial grouping. Filter Library is also a no-op while its owner switch is off."
+    )
+  ),
+  custom_ratios = list(
+    title = "Custom Ratios",
+    controls = c(
+      "quant_ratio_name", "quant_ratio_type", "quant_numerator_area_min",
+      "quant_numerator_area_max", "quant_denominator_area_min",
+      "quant_denominator_area_max", "quant_numerator_peak",
+      "quant_denominator_peak", "quant_ratio_add"
+    ),
+    body = c(
+      "Every saved ratio uses the same final processed spectrum shown as the primary Spectra trace; a library-reference overlay is never used as a second quantification pipeline.",
+      "Area ratio integrates numerator and denominator ranges in cm^-1. Peak ratio compares the nearest sampled intensities at two requested wavenumbers; narrower choices are more sensitive to axis resolution and peak-position uncertainty.",
+      "For a polyethylene carbonyl-area demonstration, use 1650-1850 cm^-1 over 1420-1500 cm^-1. Interpret any ratio only with a method suitable for the material, instrument, preprocessing, and a meaningful nonzero denominator."
+    )
+  )
+)
+
+app_guidance_topic <- function(topic) {
+  if(length(topic) != 1L || is.na(topic) || !nzchar(topic) ||
+     !topic %in% names(app_guidance_registry)) {
+    stop("Unknown app guidance topic: ", paste(topic, collapse = ", "),
+         call. = FALSE)
+  }
+  guidance <- app_guidance_registry[[topic]]
+  if(!is.list(guidance) || !isTruthy(guidance$title) ||
+     !length(guidance$controls) || !length(guidance$body) ||
+     any(!nzchar(trimws(guidance$body)))) {
+    stop("App guidance topic is incomplete: ", topic, call. = FALSE)
+  }
+  guidance
+}
+
+app_guidance_text <- function(topic) app_guidance_topic(topic)$body
+
+app_tab_switch_ids <- function() {
+  list(
+    preprocessing = c(
+      "make_rel_decision", "smooth_decision", "conform_decision",
+      "intensity_decision", "baseline_decision", "range_decision",
+      "co2_decision", "spike_decision", "saturation_decision",
+      "derivative_abs", "refit", "range_automate", "co2_automate"
+    ),
+    identification = c("identification_active", "filter_lib"),
+    advanced = c(
+      "threshold_decision", "cor_threshold_decision", "spatial_decision",
+      "xy_grid", "collapse_decision"
+    )
+  )
+}
+
+app_tab_all_off_values <- function(tab) {
+  ids <- app_tab_switch_ids()[[tab]]
+  if(is.null(ids)) stop("Unknown settings tab: ", tab, call. = FALSE)
+  stats::setNames(rep(FALSE, length(ids)), ids)
+}
+
+# Return Run-time compatibility notices without blocking or changing expert
+# workflows. Configuration changes alone never call this helper from server.R;
+# the Run observer owns presentation of the result.
+app_identification_compatibility_warnings <- function(settings) {
+  if(!is.list(settings) || !isTRUE(settings$identification_active)) {
+    return(character())
+  }
+  strategy <- as.character(settings$id_strategy)[1L]
+  smooth <- isTRUE(settings$smooth_decision)
+  derivative <- suppressWarnings(as.integer(settings$derivative_order)[1L])
+  derivative_active <- smooth && !is.na(derivative) && derivative > 0L
+  messages <- character()
+
+  if(identical(strategy, "deriv") &&
+     (!smooth || !identical(derivative, 1L) ||
+      !isTRUE(settings$derivative_abs))) {
+    messages <- c(messages, paste(
+      "Derivative library compatibility: turn on Smoothing / Derivative,",
+      "set Derivative Order to 1, and turn on Absolute Value."
+    ))
+  }
+  if(identical(strategy, "nobaseline") &&
+     (!isTRUE(settings$baseline_decision) || derivative_active)) {
+    messages <- c(messages, paste(
+      "No Baseline library compatibility: turn on Baseline Correction and",
+      "use Derivative Order 0 (or turn Smoothing / Derivative off)."
+    ))
+  }
+  if(length(messages)) {
+    messages <- paste0(
+      messages,
+      " If the upload was deliberately preprocessed this way, you may proceed."
+    )
+  }
+  messages
+}
+
+# Tutorial definitions contain only UI state and stable guidance references.
+# The server applies them with the ordinary input updaters and then clicks the
+# existing Run button; there is no tutorial-only analysis implementation.
+app_tutorial_workflows <- function() {
+  list(
+    process = list(
+      label = "Process", icon = "sliders-h",
+      summary = "Compare a normalized spectrum with its uploaded intensity scale.",
+      steps = list(
+        list(
+          title = "A: normalized processing", tab = "preprocessing",
+          guidance = "min_max_normalize",
+          explanation = paste(
+            "The packaged Raman HDPE spectrum is loaded and Min-Max Normalize",
+            "is switched on. Run shows relative intensity from 0 to 1."
+          ),
+          values = list(
+            make_rel_decision = TRUE, identification_active = FALSE
+          ),
+          ratio = "clear"
+        ),
+        list(
+          title = "B: uploaded intensity scale", tab = "preprocessing",
+          guidance = "min_max_normalize",
+          explanation = paste(
+            "Min-Max Normalize is now switched off and the same Run is repeated.",
+            "Compare the primary trace and Selection Metadata with step A."
+          ),
+          values = list(
+            make_rel_decision = FALSE, identification_active = FALSE
+          ),
+          ratio = "clear"
+        )
+      )
+    ),
+    identify = list(
+      label = "Identify", icon = "search",
+      summary = "See matching appear when identification and its compatible transform are enabled.",
+      steps = list(
+        list(
+          title = "A: identification off", tab = "identification",
+          guidance = "identification_strategy",
+          explanation = paste(
+            "The packaged Raman HDPE spectrum runs with Identification off.",
+            "There is no reference overlay or Top Matches table."
+          ),
+          values = list(identification_active = FALSE), ratio = "clear"
+        ),
+        list(
+          title = "B: derivative identification", tab = "preprocessing",
+          guidance = c("identification_strategy", "smoothing_derivative"),
+          explanation = paste(
+            "Identification is switched on with the Raman medoid Derivative",
+            "library, absolute first derivative, and rank 1 selected. This",
+            "step opens Preprocessing so the required transform is visible;",
+            "use View result to compare the overlay, metadata, and Top Matches."
+          ),
+          values = list(
+            identification_active = TRUE, id_spec_type = "raman",
+            id_strategy = "deriv", lib_type = "medoid",
+            smooth_decision = TRUE, derivative_order = 1,
+            derivative_abs = TRUE
+          ),
+          ratio = "clear"
+        )
+      )
+    ),
+    quantify = list(
+      label = "Quantify", icon = "calculator",
+      summary = "Add a named area ratio to the same final processed spectrum.",
+      steps = list(
+        list(
+          title = "A: processed spectrum without a saved ratio",
+          tab = "quantification", guidance = "custom_ratios",
+          explanation = paste(
+            "The packaged Raman HDPE spectrum runs with no saved ratio. The",
+            "ratio controls are filled with the example bands but do not yet",
+            "add a metadata result."
+          ),
+          values = list(
+            identification_active = FALSE, quant_ratio_type = "area",
+            quant_ratio_name = "Carbonyl area",
+            quant_numerator_area_min = 1650,
+            quant_numerator_area_max = 1850,
+            quant_denominator_area_min = 1420,
+            quant_denominator_area_max = 1500
+          ),
+          ratio = "clear"
+        ),
+        list(
+          title = "B: Carbonyl area ratio saved", tab = "quantification",
+          guidance = "custom_ratios",
+          explanation = paste(
+            "The named 1650-1850 / 1420-1500 cm^-1 area ratio is added and",
+            "the ordinary Run is repeated. Its value now appears in Selection",
+            "Metadata and processed downloads."
+          ),
+          values = list(
+            identification_active = FALSE, quant_ratio_type = "area",
+            quant_ratio_name = "Carbonyl area",
+            quant_numerator_area_min = 1650,
+            quant_numerator_area_max = 1850,
+            quant_denominator_area_min = 1420,
+            quant_denominator_area_max = 1500
+          ),
+          ratio = "carbonyl_area"
+        )
+      )
+    )
+  )
+}
+
+app_tutorial_step <- function(workflow, step) {
+  tutorials <- app_tutorial_workflows()
+  if(length(workflow) != 1L || !workflow %in% names(tutorials)) {
+    stop("Unknown walkthrough: ", workflow, call. = FALSE)
+  }
+  step <- suppressWarnings(as.integer(step)[1L])
+  steps <- tutorials[[workflow]]$steps
+  if(is.na(step) || step < 1L || step > length(steps)) {
+    stop("Walkthrough step is out of range.", call. = FALSE)
+  }
+  steps[[step]]
+}
+
+app_tutorial_file_info <- function(path) {
+  if(length(path) != 1L || is.na(path) || !file.exists(path)) {
+    stop("The packaged Raman HDPE tutorial file is unavailable.", call. = FALSE)
+  }
+  data.frame(
+    name = "raman_hdpe.csv", size = unname(file.info(path)$size),
+    type = "text/csv",
+    datapath = normalizePath(path, winslash = "/", mustWork = TRUE),
+    stringsAsFactors = FALSE
+  )
+}
+
+app_initial_result_selection <- function(object, pixel_to_unit = NULL) {
+  if(is.null(object) || is.null(object$spectra) || ncol(object$spectra) < 1L) {
+    return(list(plot = NA_integer_, pixel = NA_integer_, table = 1L))
+  }
+  pixel <- 1L
+  if(!is.null(pixel_to_unit)) {
+    mapping <- data.table::as.data.table(pixel_to_unit)
+    if(all(c("kept", "unit_index", "pixel_index") %in% names(mapping))) {
+      candidates <- mapping[
+        kept & !is.na(unit_index) & unit_index == 1L,
+        pixel_index
+      ]
+      if(length(candidates) && !is.na(candidates[[1L]])) {
+        pixel <- as.integer(candidates[[1L]])
+      }
+    }
+  }
+  list(plot = 1L, pixel = pixel, table = 1L)
+}
+
+app_selected_rank_index <- function(selected_row, row_count) {
+  row_count <- suppressWarnings(as.integer(row_count)[1L])
+  if(is.na(row_count) || row_count < 1L) return(NA_integer_)
+  selected_row <- suppressWarnings(as.integer(selected_row)[1L])
+  if(is.na(selected_row)) selected_row <- 1L
+  min(max(1L, selected_row), row_count)
+}
+
+app_has_clickable_heatmap <- function(data, spectrum_count) {
+  !is.null(data) && !identical(data$type, "empty") &&
+    is.finite(spectrum_count) && spectrum_count > 1L
+}
+
 app_download_choices <- function(has_upload, identification,
                                  collapse = FALSE, compact = FALSE) {
   tests <- c("Test Data", "Test Map")

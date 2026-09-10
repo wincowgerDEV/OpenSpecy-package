@@ -33,10 +33,10 @@ the [package vignette](https://wincowgerdev.github.io/OpenSpecy-package/pkgdown/
 
 # Running the App
 
-To get started with the Open Specy user interface, access
-[the embedded browser app](https://wincowgerdev.github.io/OpenSpecy-package/) or
-start the Shiny GUI directly from your own computer in R. If using the package,
-you just need to read in the library and run the command `run_app()`.
+To get started with the Open Specy user interface, use
+[the embedded browser app](https://wincowgerdev.github.io/OpenSpecy-package/),
+download a self-contained offline browser bundle, or start the bundled Shiny
+GUI from R with `run_app()`.
 
 ```{r eval = F}
 install.packages("OpenSpecy")
@@ -62,6 +62,71 @@ action-built WebAssembly library image for the matching OpenSpecy commit and
 dependency set. It therefore does not wait for a floating webR repository to
 publish the package. To keep the browser app small, it exposes the medoid and
 multinomial model libraries; the local app can still use the full libraries.
+
+After a successful hosted-app load, the browser automatically caches the
+same-origin Shinylive runtime, webR files, app manifest, and pinned OpenSpecy
+package image. Later visits can reuse those bytes without any user action. A
+new deployment has a different commit-stamped cache: the browser checks for it,
+activates it, reloads once, and removes only older OpenSpecy runtime caches.
+Private-browsing rules, storage quotas, or manual site-data clearing can remove
+the cache; the app safely falls back to the network. A warm load avoids most
+repeat transfer latency, although webR still needs local initialization and
+package decompression time.
+
+## Run the browser bundle offline without R
+
+Every successful **Build offline OpenSpecy bundles** GitHub Action packages the
+exact pinned Pages build for five desktop targets: Windows x64, macOS Intel,
+macOS Apple Silicon, Linux x64, and Linux ARM64. The archive already contains
+OpenSpecy, webR, its R-package dependency image, compact identification
+libraries, the app, and the documentation. The destination computer therefore
+does not need R, Python, Node, an OpenSpecy installation, another file download,
+or an internet connection while the app is running. It only needs a modern
+browser with WebAssembly and service-worker support.
+
+1. Open the repository's [offline bundle
+   Action](https://github.com/wincowgerDEV/OpenSpecy-package/actions/workflows/build-offline-shinylive.yml),
+   choose a successful run, and download the artifact matching the computer,
+   such as `openspecy-offline-windows-amd64-<commit>` or
+   `openspecy-offline-macos-arm64-<commit>`. GitHub may require you to sign in
+   to download an Action artifact.
+2. Extract the downloaded artifact. Before opening its contained target ZIP,
+   compare it with the adjacent `.zip.sha256`: use `Get-FileHash -Algorithm
+   SHA256 <target.zip>` in PowerShell, or `shasum -a 256 <target.zip>` on macOS
+   or Linux. Then extract that target ZIP and keep the whole
+   `OpenSpecy-offline-<commit>` folder together. `offline-manifest.json` names
+   the exact package commit and `SHA256SUMS.txt` records every other bundled
+   file (the checksum list cannot include its own digest).
+3. On Windows, open **OpenSpecy Offline.exe**. On macOS or Linux, open
+   **OpenSpecy Offline** from a terminal. If archive software removed its
+   executable permission, run `chmod +x "OpenSpecy Offline"` once. Unsigned
+   macOS builds may require the standard one-time **Privacy & Security → Open
+   Anyway** approval.
+4. Leave the launcher window open. It binds only to `127.0.0.1` on an available
+   local port and opens `/app/` directly in the default browser, without trying
+   to load the landing page's online video. The landing page remains at `/` and
+   this documentation is at `/pkgdown/` relative to the local address. Stop it
+   with **Ctrl+C** or by closing the launcher window.
+
+Do not open `site/index.html` directly with a `file://` address. Shinylive uses
+a service worker to host its in-browser Shiny session, and browsers allow that
+worker on HTTPS or localhost. The included launcher supplies localhost without
+exposing the files to the local network. The bundle is offline-ready after it
+has been downloaded, but ordinary external links in the landing page naturally
+remain unavailable while the computer is offline.
+
+## Use the guided walkthrough
+
+Select **Walk me through** in the app header, then choose the large **Process**,
+**Identify**, or **Quantify** button. The guide explains which packaged test
+data it will use before replacing any current in-session upload. Each lesson
+opens the relevant settings, explains them using the same guidance as the
+control's **What this changes** disclosure, applies a comparison, and runs the
+ordinary analysis so the plot, Selection Metadata, or Top Matches visibly
+changes. After a step finishes, select **View result** to hide the guide and
+inspect that comparison; select **Walk me through** again to reopen the same
+step. Use **Back**, **Next**, **Repeat**, or **Exit** to navigate. Exiting leaves
+the latest tutorial result available so you can continue exploring it.
 
 # Reading Data
 

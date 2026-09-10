@@ -123,13 +123,16 @@
         </ul>
       </div>
 
-      <div class="hero-video-card">
-        <iframe
-          src="https://www.youtube-nocookie.com/embed/8zrlQeTCwkQ?autoplay=1&amp;mute=1&amp;playsinline=1&amp;rel=0"
-          title="OpenSpecy project video"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen></iframe>
+      <div class="hero-video-card" data-video-embed
+           data-video-title="OpenSpecy project video"
+           data-video-src="https://www.youtube-nocookie.com/embed/8zrlQeTCwkQ?autoplay=1&amp;mute=1&amp;playsinline=1&amp;rel=0">
+        <button class="video-load" type="button"
+                aria-label="Load the OpenSpecy project video from YouTube">
+          <span class="video-play" aria-hidden="true">&#9654;</span>
+          <strong>Play the OpenSpecy project video</strong>
+          <span>Loads the privacy-enhanced YouTube player.</span>
+        </button>
+        <noscript><a href="https://www.youtube.com/watch?v=8zrlQeTCwkQ">Watch the OpenSpecy project video on YouTube.</a></noscript>
       </div>
     </section>
 

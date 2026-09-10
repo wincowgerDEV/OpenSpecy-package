@@ -54,6 +54,73 @@ if (!identical(pin$package$name, unname(desc[["Package"]])) ||
     !nzchar(pin$package$commit)) {
   fail("Pinned wasm library manifest does not match DESCRIPTION.")
 }
+
+worker_file <- file.path(site_dir, "shinylive-sw.js")
+loader_file <- file.path(site_dir, "shinylive", "load-shinylive-sw.js")
+need_file(worker_file)
+need_file(loader_file)
+worker_text <- rawToChar(readBin(
+  worker_file, what = "raw", n = file.info(worker_file)$size
+))
+loader_text <- rawToChar(readBin(
+  loader_file, what = "raw", n = file.info(loader_file)$size
+))
+cache_markers <- c(
+  "OPENSPECY_RUNTIME_CACHE_V1",
+  paste0('const openspecyPackageSha = "', tolower(pin$package$commit), '";'),
+  'const openspecyCachePrefix = "openspecy-shinylive-runtime-v1-";',
+  'relativePath === "app.json"',
+  'relativePath === "pinned-wasm-library.json"',
+  'relativePath.startsWith("shinylive/")',
+  'url.origin !== self.location.origin',
+  "networkResponse.ok && networkResponse.status === 200",
+  "key.startsWith(openspecyCachePrefix)",
+  "key !== openspecyCacheName"
+)
+missing_cache_markers <- cache_markers[!vapply(
+  cache_markers, grepl, logical(1), x = worker_text, fixed = TRUE
+)]
+if (length(missing_cache_markers)) {
+  fail("Exported service worker is missing runtime-cache markers: ",
+       paste(missing_cache_markers, collapse = ", "))
+}
+if (grepl("key.indexOf(version + cacheName)", worker_text, fixed = TRUE) ||
+    grepl("if (useCaching)", worker_text, fixed = TRUE)) {
+  fail("Exported service worker retains unsafe upstream cache handling.")
+}
+cache_read <- regexpr("await cache.match(request)", worker_text,
+                      fixed = TRUE)[[1L]]
+network_read <- regexpr("addCoiHeaders(await fetch(request))", worker_text,
+                        fixed = TRUE)[[1L]]
+if (cache_read < 0L || network_read < 0L || cache_read >= network_read) {
+  fail("Exported service worker is not cache-first before its network fallback.")
+}
+if (!grepl(".then((registration) => registration.update())", loader_text,
+           fixed = TRUE)) {
+  fail("Shinylive loader no longer checks automatically for worker updates.")
+}
+if (!grepl("if (!navigator.serviceWorker.controller)", loader_text,
+           fixed = TRUE) ||
+    !grepl("openspecyReloadForWorker();", loader_text, fixed = TRUE)) {
+  fail(paste(
+    "Shinylive loader no longer reloads the initial uncontrolled document;",
+    "the first successful app load would not populate the runtime cache."
+  ))
+}
+loader_markers <- c(
+  "OPENSPECY_RUNTIME_UPDATE_V1",
+  paste0('const openspecyWorkerSha = "', tolower(pin$package$commit), '";'),
+  'navigator.serviceWorker.addEventListener(',
+  '"controllerchange", openspecyReloadForWorker, { once: true }',
+  "window.location.reload();"
+)
+missing_loader_markers <- loader_markers[!vapply(
+  loader_markers, grepl, logical(1), x = loader_text, fixed = TRUE
+)]
+if (length(missing_loader_markers)) {
+  fail("Exported loader is missing automatic update markers: ",
+       paste(missing_loader_markers, collapse = ", "))
+}
 if (!any(grepl(paste0("openspecy.shiny.wasm.package_version = \\\"",
                       desc[["Version"]], "\\\""), app_text,
                fixed = TRUE))) {

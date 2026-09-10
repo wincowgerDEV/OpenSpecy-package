@@ -37,7 +37,7 @@ spectrum_identity,material
 *paralloid,other plastic
 *seed apium nodiflorum,organic matter
 0,mineral
-008,""
+008,
 06-monoacetylmorphine hcl trihydrate (lot #n17-p100a),other material
 1,mineral
 1 2 polybutadiene,"poly(1,2-butadiene)"
@@ -209,7 +209,7 @@ spectrum_identity,material
 "4,5-(methylenedioxy)-2-aminoindan hcl (lot #n16-p75c)",other material
 "4,6-dinitro-m-xylene",other material
 4-(2-aminopropyl)benzofuran hcl (lot #n17-p87b),other material
-4-5,""
+5-Apr,
 4-acetamidophenol,other material
 4-acetoxy-det hcl (lot #0496888-7),other material
 4-acetoxy-mipt hcl (lot #0541115-2),other material
@@ -1985,7 +1985,7 @@ boussingaultite__r061027__raman__785__0__unoriented__raman_data_processed__14768
 boussingaultite__r070597__raman__532__0__unoriented__raman_data_processed__23144,mineral
 boussingaultite__r070597__raman__780__0__unoriented__raman_data_processed__23142,mineral
 bowieite,mineral
-bpf,""
+bpf,
 br,polydienes
 br tl,mineral
 brackebuschite,mineral
@@ -7337,7 +7337,7 @@ mffrc130_polyacrylate (inidex)_courtaulds,polyacrylates
 mffrc131_polyacrylate (vectran hs)_hoechst celanese,polyacrylates
 mffrc132_polyester (pet)_albany international,polyesters
 mffrc133_polyester (pen)_allied signal fibers,polyesters
-mffrc134_pvdc (nonbur n90 (mac))_asahi chemical c,""
+mffrc134_pvdc (nonbur n90 (mac))_asahi chemical c,
 "mffrc135_polyester (pcdt, vestan 16)_bayer",polyesters
 mffrc136_polyester (coolmax)_du pont,polyesters
 "mffrc137_polyester (pet, dacron 242)_du pont",polyesters
@@ -7639,8 +7639,8 @@ morinite__r070529__raman__532__0__unoriented__raman_data_processed__26277,minera
 morinite__r070529__raman__785__0__unoriented__raman_data_processed__26276,mineral
 morphine base monohydrate (lot #n14-p61),other material
 morphine hcl trihydrate (lot #x07917),other material
-morphotype 1,""
-morphotype 2,""
+morphotype 1,
+morphotype 2,
 mortar roman homogenized (august's bridge 27bc; p. tiano),other material
 mos - 87 - 2b,other material
 mosandrite-(ce),mineral
@@ -8024,7 +8024,7 @@ northupite__r060156__raman__780__0__unoriented__raman_data_processed__33123,mine
 nosean,mineral
 nosean__r050422__raman__532__0__unoriented__raman_data_processed__30517,mineral
 nosean__r050422__raman__780__0__unoriented__raman_data_processed__30519,mineral
-npsf,""
+npsf,
 nuffieldite,mineral
 nuffieldite__r100113__raman__532__0__unoriented__raman_data_processed__34421,mineral
 nylon,polyamides
@@ -8267,7 +8267,7 @@ oxy-dravite,mineral
 oxy-schorl,mineral
 oxycodone hcl monohydrate (lot #1312000123),other material
 oxyphlogopite,mineral
-p,""
+p,
 p-phenylenediamine,organic matter
 p-vinylbenzyl chloride,organic matter
 p-xylene,organic matter
@@ -11168,7 +11168,7 @@ strapping tape blue,other plastic
 strashimirite,mineral
 strashimirite__r060142__raman__532__0__unoriented__raman_data_processed__36611,mineral
 strashimirite__r060335__raman__532__0__unoriented__raman_data_processed__36659,mineral
-strawberry container,""
+strawberry container,
 strelkinite,mineral
 strelkinite__r070046__raman__532__0__unoriented__raman_data_processed__17315,mineral
 strelkinite__r070046__raman__785__0__unoriented__raman_data_processed__25045,mineral
@@ -12153,9 +12153,9 @@ umwelt/pest,polyesters
 umwelt/polystyrol,polystyrene
 umwelt/polyvinylchlorid,poly(vinyl chloride)
 umwelt/vinylidene chloride,other plastic
-umweltprobe,""
-unknown,""
-unknown_x_x,""
+umweltprobe,
+unknown,
+unknown_x_x,
 ur-144 (lot #alb214-11),other material
 uralborite,mineral
 uralborite__r061140__raman__532__0__unoriented__raman_data_processed__16704,mineral
@@ -12567,7 +12567,7 @@ whewellite__r050526-1__infrared__infrared_data_processed__592,mineral
 whewellite__r050526__raman__532__0__unoriented__raman_data_processed__32192,mineral
 whewellite__r050526__raman__780__0__unoriented__raman_data_processed__32194,mineral
 whewellite__r070655__raman__780__0__unoriented__raman_data_processed__24908,mineral
-white and gray mask filter,""
+white and gray mask filter,
 white marble-ward's-45-e-3120-35-kbr,other material
 white shoe sole fragment,other plastic
 whiteite-(cafemg),mineral
@@ -12920,3 +12920,5 @@ zwieselite__r050279__raman__532__0__unoriented__raman_data_processed__28435,mine
 zwieselite__r050279__raman__780__0__unoriented__raman_data_processed__28437,mineral
 zykaite,mineral
 zykaite__r070477__raman__532__0__unoriented__raman_data_processed__22173,mineral
+natural,other material
+polymeric,other plastic

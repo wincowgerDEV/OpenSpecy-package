@@ -186,6 +186,14 @@ jobs:
             --site-dir "_site/app" \
             --package-sha "${PACKAGE_SHA}"
 
+      - name: Configure SHA-versioned Shinylive runtime cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript tools/wasm/configure-shinylive-cache.R \
+            --site-dir "_site/app" \
+            --package-sha "${PACKAGE_SHA}"
+
       - name: Check Shinylive export
         shell: bash
         run: |
@@ -280,13 +288,15 @@ jobs:
           robots_url="${public_url}robots.txt"
           sitemap_url="${public_url}sitemap.xml"
           pin_url="${app_url}pinned-wasm-library.json"
+          worker_url="${app_url}shinylive-sw.js"
           for attempt in {1..40}; do
             if root_body=$(curl --fail --silent --show-error "${public_url}") && \
                app_body=$(curl --fail --silent --show-error "${app_url}") && \
                pkgdown_body=$(curl --fail --silent --show-error "${pkgdown_url}") && \
                robots_body=$(curl --fail --silent --show-error "${robots_url}") && \
                sitemap_body=$(curl --fail --silent --show-error "${sitemap_url}") && \
-               pin_body=$(curl --fail --silent --show-error "${pin_url}"); then
+               pin_body=$(curl --fail --silent --show-error "${pin_url}") && \
+               worker_body=$(curl --fail --silent --show-error "${worker_url}"); then
               if grep -q "data-openspecy-embed" <<< "$root_body" && \
                  grep -q 'src="app/"' <<< "$root_body" && \
                  grep -q 'href="pkgdown/' <<< "$root_body" && \
@@ -298,7 +308,9 @@ jobs:
                  ! grep -q "data-openspecy-embed" <<< "$pkgdown_body" && \
                  grep -q 'Sitemap: https://' <<< "$robots_body" && \
                  grep -q '<urlset' <<< "$sitemap_body" && \
-                 grep -q "${PACKAGE_SHA}" <<< "$pin_body"; then
+                 grep -q "${PACKAGE_SHA}" <<< "$pin_body" && \
+                 grep -q 'OPENSPECY_RUNTIME_CACHE_V1' <<< "$worker_body" && \
+                 grep -q "${PACKAGE_SHA}" <<< "$worker_body"; then
                 echo "Verified ${public_url}, ${app_url}, ${pkgdown_url}, and current app ${PACKAGE_SHA}"
                 exit 0
               fi

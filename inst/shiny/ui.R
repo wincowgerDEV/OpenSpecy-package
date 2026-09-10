@@ -1,6 +1,7 @@
 # UI helpers ----
 app_control_box <- function(input_id, label, value = FALSE, ...,
-                            note = character()) {
+                            note = character(), topic = NULL) {
+  if(!is.null(topic)) note <- app_guidance_text(topic)
   bs4Dash::box(
     width = 12,
     collapsed = TRUE,
@@ -22,10 +23,7 @@ app_control_box <- function(input_id, label, value = FALSE, ...,
 preprocessing_controls <- tagList(
   app_control_box(
     "make_rel_decision", "Min-Max Normalize", TRUE,
-    note = c(
-      "Rescales each spectrum between zero and one for comparison.",
-      "Turn this off when raw intensity values are needed."
-    )
+    topic = "min_max_normalize"
   ),
   app_control_box(
     "smooth_decision", "Smoothing / Derivative", TRUE,
@@ -36,10 +34,7 @@ preprocessing_controls <- tagList(
                 min = 50, max = 200, value = 90, step = 5),
     prettySwitch("derivative_abs", "Absolute Value", inline = TRUE,
                  value = TRUE, status = "success", fill = TRUE),
-    note = c(
-      "Savitzky-Golay smoothing can improve signal-to-noise.",
-      "Use derivative order 1 with the derivative identification library."
-    )
+    topic = "smoothing_derivative"
   ),
   app_control_box(
     "conform_decision", "Conform Wavenumbers", TRUE,
@@ -93,10 +88,7 @@ preprocessing_controls <- tagList(
                    value = 50, min = 1, step = 1)
     ),
     sliderInput("iterations", "Iterations", min = 1, max = 100, value = 10),
-    note = c(
-      "Modified polynomial fitting estimates a whole-spectrum baseline.",
-      "Fill Peaks iteratively suppresses peaks in local windows and is useful for nonlinear or locally varying baselines."
-    )
+    topic = "baseline_correction"
   ),
   app_control_box(
     "range_decision", "Range Selection", FALSE,
@@ -207,12 +199,10 @@ identification_controls <- tagList(
         value = TRUE, status = "success", fill = TRUE
       )
     ),
-    footer = footnote(
-      "Identification options",
-      "All compares against the complete FTIR, Raman, and NIR reference set; choose one spectrum type only when it is known in advance.",
-      "Choose a library transformation that matches preprocessing.",
-      "The local app supports full, medoid, and multinomial libraries; the browser app uses compact libraries.",
-      "Turning this off skips identification entirely: no match table, no Top Matches, no correlation threshold, and Spatial material-connected clusters (which require a material identity) become unavailable."
+    footer = do.call(
+      footnote,
+      c(list("Identification options"),
+        as.list(app_guidance_text("identification_strategy")))
     ),
     pickerInput(
       "id_spec_type", "Spectrum Type",
@@ -465,11 +455,12 @@ quantification_controls <- tagList(
       tags$h5("Saved Ratios"),
       uiOutput("quant_saved_ratios")
     ),
-    footer = footnote(
-      "How ratios are calculated",
-      "Every ratio uses exactly the final processed uploaded spectrum visible as the primary trace in the Spectra plot; reference-match overlays are not used and no separate quantification treatment is applied.",
-      "For one polyethylene carbonyl-area scenario, choose Area ratio, name it Carbonyl area, use 1650-1850 cm^-1 as the numerator and 1420-1500 cm^-1 as the denominator, then click Add Ratio.",
-      "Choose Peak ratio when a method compares two individual wavenumbers. Confirm suitable bands and preprocessing for the material, instrument, and method you are following."
+    # Every ratio uses exactly the final processed uploaded spectrum visible
+    # in the app; the shared guidance registry supplies the rendered details.
+    footer = do.call(
+      footnote,
+      c(list("How ratios are calculated"),
+        as.list(app_guidance_text("custom_ratios")))
     )
   ),
   bs4Dash::box(
@@ -568,6 +559,17 @@ dashboardPage(
       )
     ),
     rightUi = tagList(
+      tags$li(
+        class = "dropdown nav-item openspecy-walkthrough-item",
+        shinyjs::disabled(
+          actionButton(
+            "walkthrough_open", "Walk me through",
+            icon = icon("route"),
+            class = "openspecy-walkthrough-button",
+            title = "Open a guided Process, Identify, or Quantify walkthrough"
+          )
+        )
+      ),
       tags$li(
         class = "dropdown nav-item openspecy-version-item",
         tags$a(
@@ -844,6 +846,11 @@ dashboardPage(
           align-items: center;
           margin-right: 10px;
         }
+        .openspecy-walkthrough-item {
+          display: flex;
+          align-items: center;
+          margin-right: 10px;
+        }
         .openspecy-version-item { display: flex; align-items: center; }
         .openspecy-version-link {
           font-size: 19px;
@@ -864,6 +871,68 @@ dashboardPage(
           border-color: var(--openspecy-accent) !important;
           font-weight: 700;
           white-space: nowrap;
+        }
+        .btn.openspecy-walkthrough-button {
+          color: var(--openspecy-canvas) !important;
+          background: var(--openspecy-success) !important;
+          border-color: var(--openspecy-success) !important;
+          font-weight: 800;
+          white-space: nowrap;
+        }
+        .openspecy-tutorial-choices {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+          margin: 18px 0;
+        }
+        .btn.openspecy-tutorial-choice {
+          min-height: 112px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 18px;
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border: 2px solid var(--openspecy-accent) !important;
+          font-size: 1.2rem;
+          font-weight: 800;
+          white-space: normal;
+        }
+        .btn.openspecy-tutorial-choice:hover,
+        .btn.openspecy-tutorial-choice:focus {
+          color: var(--openspecy-canvas) !important;
+          background: var(--openspecy-accent) !important;
+          outline: 3px solid var(--openspecy-text);
+          outline-offset: 2px;
+        }
+        .openspecy-tutorial-replacement {
+          padding: 10px 12px;
+          border-left: 4px solid var(--openspecy-warning, #F59E0B);
+          background: var(--openspecy-panel-2);
+        }
+        .openspecy-tutorial-progress {
+          color: var(--openspecy-muted);
+          font-weight: 700;
+        }
+        .openspecy-tutorial-guidance {
+          margin-top: 14px;
+          padding: 12px;
+          border: 1px solid var(--openspecy-grid);
+          border-radius: 6px;
+        }
+        .openspecy-tutorial-actions {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 8px;
+          width: 100%;
+        }
+        .openspecy-tutorial-highlight {
+          outline: 4px solid var(--openspecy-success) !important;
+          outline-offset: 3px;
+          box-shadow: 0 0 0 7px rgba(34, 197, 94, .24) !important;
         }
         .btn.openspecy-run-button {
           display: inline-flex;
@@ -1288,12 +1357,15 @@ dashboardPage(
           }
           .openspecy-upload-column { margin-bottom: 8px; }
           .openspecy-support-button { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+          .openspecy-tutorial-choices { grid-template-columns: 1fr; }
         }
         @media (max-width: 575px) {
           .openspecy-summary-grid > .openspecy-summary-panel { flex-basis: 100%; }
           .openspecy-quality-controls { grid-template-columns: 1fr; }
           .main-footer { text-align: left; }
           .openspecy-support-button { max-width: 52px; }
+          .openspecy-walkthrough-button { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+          .openspecy-tutorial-actions .btn { flex: 1 1 calc(50% - 8px); }
         }
       ")))
     ),
@@ -1387,7 +1459,7 @@ dashboardPage(
               value = "preprocessing",
               div(
                 class = "openspecy-tab-scroll",
-                uiOutput("preprocessing_all_toggle"),
+                uiOutput("preprocessing_all_toggle_ui"),
                 preprocessing_controls
               )
             ),
@@ -1396,7 +1468,7 @@ dashboardPage(
               value = "identification",
               div(
                 class = "openspecy-tab-scroll",
-                uiOutput("identification_all_toggle"),
+                uiOutput("identification_all_toggle_ui"),
                 identification_controls
               )
             ),
@@ -1405,7 +1477,7 @@ dashboardPage(
               value = "advanced",
               div(
                 class = "openspecy-tab-scroll",
-                uiOutput("advanced_all_toggle"),
+                uiOutput("advanced_all_toggle_ui"),
                 advanced_controls
               )
             ),

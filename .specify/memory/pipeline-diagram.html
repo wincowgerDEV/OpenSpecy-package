@@ -494,8 +494,8 @@
 
 <div class="node trigger" style="left:1650px;top:500px" tabindex="0">
   &#9654; Click Run
-  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. A staged source is materialized here unless Recalculate Preview has already materialized it for S/N inspection. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Readers compact coordinates and metadata losslessly but do not hash spectra or accept PCA, K-means, or Hilbert arguments. Other settings remain passive until the next Run. Every later output derives from this snapshot.
-  <span class="loc">Plan 018 &middot; server.R: run gate priorities and canonical_state_gate()</span></div>
+  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. A staged source is materialized here unless Recalculate Preview has already materialized it for S/N inspection. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Readers compact coordinates and metadata losslessly but do not hash spectra or accept PCA, K-means, or Hilbert arguments. Other settings remain passive until the next Run. Every later output derives from this snapshot. The Process, Identify, and Quantify walkthroughs load packaged test data at the same materialized-input boundary, update the visible controls, wait for those input changes to flush, and dispatch this exact Run event; they add no tutorial-only processing path.
+  <span class="loc">Plans 018/030 &middot; server.R: tutorial controller, run gate priorities, and canonical_state_gate()</span></div>
 </div>
 
 <div class="node trigger" style="left:1650px;top:610px" tabindex="0">
@@ -731,8 +731,8 @@
 <div class="node output tip-left" style="left:2250px;top:2110px" tabindex="0">
   Top Matches Table
   <div class="depends">depends on: Library Identification OR AI Classification</div>
-  <div class="tip">output$event reads top_matches() &larr; app_top_matches_table(). Real-library mode shows the selected spectrum's ranked references; logistic mode shows the selected spectrum's ranked class probabilities. Clicking a logistic row selects the exact class whose signed coefficients are rendered behind the Spectrum Plot. Rank and probability are display evidence only and do not mutate canonical analysis state.
-  <span class="loc">Plans 025/027 &middot; server.R: top_matches(), selected_model_explanation() &middot; global.R: app_top_matches_table(), app_selected_model_explanation()</span></div>
+  <div class="tip">output$event reads top_matches() &larr; app_top_matches_table(). Real-library mode shows the selected spectrum's ranked references; logistic mode shows the selected spectrum's ranked class probabilities. Clicking a logistic row selects the exact class whose signed coefficients are rendered behind the Spectrum Plot. Rank and probability are display evidence only and do not mutate canonical analysis state. Selection initialization waits for the first successful canonical result and its matches, then establishes rank 1; transient DT rerenders cannot erase a genuine row selection or force a second Run.
+  <span class="loc">Plans 025/027/030 &middot; server.R: top_matches(), result-ready selection, selected_model_explanation() &middot; global.R: app_top_matches_table(), app_selected_model_explanation()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2220px" tabindex="0">
@@ -766,9 +766,9 @@
 <div class="node output tip-left" style="left:2250px;top:2630px" tabindex="0">
   Selection Metadata Table
   <div class="depends">depends on: canonical_final() + click; Identification OR AI</div>
-  <div class="tip">output$eventmetadata reads match_metadata(), from selected_unit_index() + matches_to_single(). Real-library mode uses the selected reference row. Logistic mode joins only rank 1 for the selected spectrum into canonical metadata; lower ranked Top Matches remain interpretation alternatives and do not replace the winning identity. Row selection is set by clicking the Heatmap (dashed teal line below).
+  <div class="tip">output$eventmetadata reads match_metadata(), from selected_unit_index() + matches_to_single(). Before a canonical object exists, selection resolves to unavailable without evaluating the validating final-data reactive. On the first successful Run, plot/pixel/rank, uploaded metadata, and Top Matches initialize from the same result-ready boundary so this table appears immediately. Real-library mode uses the selected reference row. Logistic mode joins only rank 1 for the selected spectrum into canonical metadata; lower ranked Top Matches remain interpretation alternatives and do not replace the winning identity. Row selection is set by clicking the Heatmap (dashed teal line below).
   <strong>Plan 018 target:</strong> a compact selection fetches exactly one aligned source metadata row and its value-level match fields.
-  <span class="loc">Plan 018 &middot; server.R: match_metadata() &middot; Specs metadata accessors</span></div>
+  <span class="loc">Plans 018/030 &middot; server.R: canonical-result readiness, selected_unit_index(), match_metadata() &middot; Specs metadata accessors</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2720px" tabindex="0">

@@ -1,0 +1,317 @@
+#!/usr/bin/env Rscript
+
+value_after <- function(args, flag, default = NULL) {
+  hit <- which(args == flag)
+  if (!length(hit) || hit[[1L]] == length(args)) return(default)
+  args[[hit[[1L]] + 1L]]
+}
+
+read_raw_text <- function(path) {
+  if (!file.exists(path)) {
+    stop("Missing expected Shinylive export file: ", path, call. = FALSE)
+  }
+  rawToChar(readBin(path, what = "raw", n = file.info(path)$size))
+}
+
+write_raw_text <- function(text, path) {
+  connection <- file(path, open = "wb")
+  on.exit(close(connection), add = TRUE)
+  writeBin(charToRaw(text), connection)
+}
+
+fixed_count <- function(text, marker) {
+  hits <- gregexpr(marker, text, fixed = TRUE)[[1L]]
+  if (length(hits) == 1L && hits[[1L]] < 0L) 0L else length(hits)
+}
+
+require_once <- function(text, marker, label) {
+  count <- fixed_count(text, marker)
+  if (count != 1L) {
+    stop(
+      "Pinned Shinylive ", label, " changed (matches: ", count,
+      "); refusing to configure runtime caching.",
+      call. = FALSE
+    )
+  }
+  invisible(marker)
+}
+
+replace_once <- function(text, marker, replacement, label) {
+  require_once(text, marker, label)
+  sub(marker, replacement, text, fixed = TRUE)
+}
+
+replace_between <- function(text, start, end, replacement, label) {
+  require_once(text, start, paste0(label, " start marker"))
+  require_once(text, end, paste0(label, " end marker"))
+  start_at <- regexpr(start, text, fixed = TRUE)[[1L]]
+  end_at <- regexpr(end, text, fixed = TRUE)[[1L]]
+  if (end_at <= start_at) {
+    stop("Pinned Shinylive ", label, " markers are out of order.",
+         call. = FALSE)
+  }
+  paste0(
+    substr(text, 1L, start_at - 1L),
+    replacement,
+    substr(text, end_at, nchar(text))
+  )
+}
+
+configure_shinylive_runtime_cache <- function(site_dir, package_sha) {
+  if (length(package_sha) != 1L || is.na(package_sha) ||
+      !grepl("^[0-9a-fA-F]{40}$", package_sha)) {
+    stop("--package-sha must be one immutable 40-character commit SHA.",
+         call. = FALSE)
+  }
+  package_sha <- tolower(package_sha)
+
+  pin_file <- file.path(site_dir, "pinned-wasm-library.json")
+  if (!file.exists(pin_file)) {
+    stop("Cannot configure caching before the pinned wasm manifest exists: ",
+         pin_file, call. = FALSE)
+  }
+  pin <- jsonlite::fromJSON(pin_file, simplifyVector = FALSE)
+  pinned_sha <- pin$package$commit
+  if (length(pinned_sha) != 1L ||
+      !identical(tolower(pinned_sha), package_sha)) {
+    stop("Pinned wasm manifest commit does not match --package-sha.",
+         call. = FALSE)
+  }
+
+  worker_file <- file.path(site_dir, "shinylive-sw.js")
+  loader_file <- file.path(site_dir, "shinylive", "load-shinylive-sw.js")
+  worker <- gsub("\r\n", "\n", read_raw_text(worker_file), fixed = TRUE)
+  loader <- gsub("\r\n", "\n", read_raw_text(loader_file), fixed = TRUE)
+
+  require_once(
+    loader,
+    ".then((registration) => registration.update())",
+    "automatic service-worker update marker"
+  )
+  require_once(
+    loader,
+    "if (!navigator.serviceWorker.controller)",
+    "first-load service-worker control marker"
+  )
+  require_once(
+    loader,
+    "window.location.reload();",
+    "first-load controlled reload marker"
+  )
+  if (fixed_count(worker, "OPENSPECY_RUNTIME_CACHE_V1") != 0L) {
+    stop("The Shinylive worker is already runtime-cache configured.",
+         call. = FALSE)
+  }
+
+  loader_open <- 'if ("serviceWorker" in navigator) {'
+  loader_patch <- paste0(
+    loader_open, "\n",
+    "  /* OPENSPECY_RUNTIME_UPDATE_V1: reload once when a new worker claims. */\n",
+    '  const openspecyWorkerSha = "', package_sha, '";\n',
+    "  let openspecyWorkerReloadRequested = false;\n",
+    "  const openspecyReloadForWorker = () => {\n",
+    "    if (openspecyWorkerReloadRequested) return;\n",
+    "    openspecyWorkerReloadRequested = true;\n",
+    "    window.location.reload();\n",
+    "  };\n",
+    "  navigator.serviceWorker.addEventListener(\n",
+    '    "controllerchange", openspecyReloadForWorker, { once: true }\n',
+    "  );"
+  )
+  loader <- replace_once(
+    loader, "window.location.reload();", "openspecyReloadForWorker();",
+    "first-load reload call"
+  )
+  loader <- replace_once(
+    loader, loader_open, loader_patch, "service-worker loader block"
+  )
+
+  upstream_header <- paste(
+    'var useCaching = false;',
+    'var cacheName = "::shinyliveServiceworker";',
+    'var version = "v10";',
+    sep = "\n"
+  )
+  require_once(worker, "// src/shinylive-sw.ts", "worker source marker")
+  require_once(
+    worker,
+    "Promise.all([self.skipWaiting(), caches.open(version + cacheName)])",
+    "install cache marker"
+  )
+  require_once(
+    worker,
+    "return key.indexOf(version + cacheName) !== 0;",
+    "upstream cache eviction marker"
+  )
+  require_once(
+    worker,
+    'request.url.startsWith(baseUrl + "/shinylive/")',
+    "upstream cache route marker"
+  )
+
+  cache_header <- paste0(
+    "/* OPENSPECY_RUNTIME_CACHE_V1\n",
+    " * Generated by tools/wasm/configure-shinylive-cache.R.\n",
+    " * The commit stamp changes the worker bytes and its private cache key.\n",
+    " */\n",
+    'const openspecyPackageSha = "', package_sha, '";\n',
+    'const openspecyCachePrefix = "openspecy-shinylive-runtime-v1-";\n',
+    "const openspecyCacheName = openspecyCachePrefix + openspecyPackageSha;\n",
+    "\n",
+    "function openspecyCacheableRequest(request, url, basePath) {\n",
+    '  if (request.method !== "GET" || url.origin !== self.location.origin) {\n',
+    "    return false;\n",
+    "  }\n",
+    '  if (request.cache === "no-store" || request.cache === "reload") {\n',
+    "    return false;\n",
+    "  }\n",
+    '  if (request.headers && request.headers.has("range")) return false;\n',
+    '  const basePrefix = basePath.endsWith("/") ? basePath : basePath + "/";\n',
+    "  if (!url.pathname.startsWith(basePrefix)) return false;\n",
+    "  const relativePath = url.pathname.slice(basePrefix.length);\n",
+    "  return relativePath === \"app.json\" ||\n",
+    "    relativePath === \"pinned-wasm-library.json\" ||\n",
+    "    // Includes WebR runtime files and the pinned package library image.\n",
+    '    relativePath.startsWith("shinylive/");\n',
+    "}\n",
+    "\n",
+    "async function openspecyBestEffortOpenCache() {\n",
+    "  try {\n",
+    "    return await caches.open(openspecyCacheName);\n",
+    "  } catch {\n",
+    "    return null;\n",
+    "  }\n",
+    "}\n",
+    "\n",
+    "function openspecyCacheFirst(event) {\n",
+    "  const request = event.request;\n",
+    "  let backgroundWrite = Promise.resolve();\n",
+    "  const responsePromise = (async () => {\n",
+    "    let cache = await openspecyBestEffortOpenCache();\n",
+    "    if (cache) {\n",
+    "      try {\n",
+    "        const cachedResponse = await cache.match(request);\n",
+    "        if (cachedResponse) return cachedResponse;\n",
+    "      } catch {\n",
+    "        // CacheStorage read failures must not prevent a network load.\n",
+    "      }\n",
+    "    }\n",
+    "\n",
+    "    const networkResponse = addCoiHeaders(await fetch(request));\n",
+    "    if (networkResponse.ok && networkResponse.status === 200) {\n",
+    "      backgroundWrite = (async () => {\n",
+    "        try {\n",
+    "          if (!cache) cache = await openspecyBestEffortOpenCache();\n",
+    "          if (cache) await cache.put(request, networkResponse.clone());\n",
+    "        } catch {\n",
+    "          // Quota and CacheStorage write failures are deliberately inert.\n",
+    "        }\n",
+    "      })();\n",
+    "    }\n",
+    "    return networkResponse;\n",
+    "  })();\n",
+    "\n",
+    "  try {\n",
+    "    event.waitUntil(\n",
+    "      responsePromise.then(() => backgroundWrite).catch(() => undefined)\n",
+    "    );\n",
+    "  } catch {\n",
+    "    // respondWith remains authoritative when background work is rejected.\n",
+    "  }\n",
+    "  return responsePromise;\n",
+    "}\n",
+    "/* OPENSPECY_RUNTIME_CACHE_V1_END */"
+  )
+  worker <- replace_once(
+    worker, upstream_header, cache_header, "worker cache configuration header"
+  )
+
+  lifecycle_start <- 'self.addEventListener("install", (event) => {'
+  lifecycle_end <- 'self.addEventListener("fetch", function(event) {'
+  cache_lifecycle <- paste0(
+    'self.addEventListener("install", (event) => {\n',
+    "  event.waitUntil(\n",
+    "    (async () => {\n",
+    "      await self.skipWaiting();\n",
+    "      await openspecyBestEffortOpenCache();\n",
+    "    })()\n",
+    "  );\n",
+    "});\n",
+    'self.addEventListener("activate", function(event) {\n',
+    "  event.waitUntil(\n",
+    "    (async () => {\n",
+    "      await self.clients.claim();\n",
+    "      try {\n",
+    "        const keys = await caches.keys();\n",
+    "        await Promise.all(\n",
+    "          keys.filter((key) =>\n",
+    "            key.startsWith(openspecyCachePrefix) &&\n",
+    "            key !== openspecyCacheName\n",
+    "          ).map(async (key) => {\n",
+    "            try {\n",
+    "              await caches.delete(key);\n",
+    "            } catch {\n",
+    "              // Cache cleanup is best-effort and OpenSpecy-scoped.\n",
+    "            }\n",
+    "          })\n",
+    "        );\n",
+    "      } catch {\n",
+    "        // CacheStorage may be disabled or unavailable.\n",
+    "      }\n",
+    "    })()\n",
+    "  );\n",
+    "});\n"
+  )
+  worker <- replace_between(
+    worker, lifecycle_start, lifecycle_end, cache_lifecycle,
+    "install/activate handlers"
+  )
+
+  cache_branch_start <- "  if (useCaching) {\n    event.respondWith("
+  cache_branch_end <- "  if (coiRequested) {\n    event.respondWith("
+  cache_branch <- paste0(
+    "  if (openspecyCacheableRequest(request, url, base_path)) {\n",
+    "    event.respondWith(openspecyCacheFirst(event));\n",
+    "    return;\n",
+    "  }\n"
+  )
+  worker <- replace_between(
+    worker, cache_branch_start, cache_branch_end, cache_branch,
+    "fetch cache branch"
+  )
+
+  for (marker in c(
+    paste0('const openspecyPackageSha = "', package_sha, '";'),
+    'relativePath === "app.json"',
+    'relativePath === "pinned-wasm-library.json"',
+    'relativePath.startsWith("shinylive/")',
+    "networkResponse.ok && networkResponse.status === 200",
+    "key.startsWith(openspecyCachePrefix)",
+    "key !== openspecyCacheName"
+  )) {
+    require_once(worker, marker, "configured runtime-cache marker")
+  }
+  if (grepl("key.indexOf(version + cacheName)", worker, fixed = TRUE) ||
+      grepl("if (useCaching)", worker, fixed = TRUE)) {
+    stop("Unsafe upstream cache handling remained after configuration.",
+         call. = FALSE)
+  }
+
+  write_raw_text(worker, worker_file)
+  write_raw_text(loader, loader_file)
+  cat(
+    "Configured OpenSpecy Shinylive runtime cache for ", package_sha,
+    " at ", worker_file, ".\n", sep = ""
+  )
+  invisible(worker_file)
+}
+
+if (sys.nframe() == 0L) {
+  args <- commandArgs(trailingOnly = TRUE)
+  site_dir <- value_after(args, "--site-dir")
+  package_sha <- value_after(args, "--package-sha", Sys.getenv("GITHUB_SHA", ""))
+  if (is.null(site_dir) || !nzchar(site_dir) || !nzchar(package_sha)) {
+    stop("--site-dir and --package-sha are required.", call. = FALSE)
+  }
+  configure_shinylive_runtime_cache(site_dir, package_sha)
+}

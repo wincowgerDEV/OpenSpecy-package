@@ -18,6 +18,7 @@
   var busyActionSawShinyBusy = false;
   var analysisPhaseActive = false;
   var shinyIsBusy = false;
+  var tutorialRunGeneration = 0;
   var mountedFileLimit = 10 * 1024 * 1024 * 1024;
   var busyState = {
     message: "Preparing analysis...",
@@ -662,6 +663,181 @@
         var input = document.getElementById("openspecy_workerfs_files");
         if (input) input.value = "";
         workerfsRequest("unmount").catch(function () {});
+      });
+
+      // Plotly stores the last click as a Shiny client value. Clear that value
+      // whenever the server stages/materializes a replacement dataset so an
+      // old coordinate cannot be replayed when the next heatmap becomes ready.
+      window.Shiny.addCustomMessageHandler("openspecy-clear-heatmap-click", function (_state) {
+        window.Shiny.setInputValue(
+          "plotly_click-heat_plot", null, { priority: "event" }
+        );
+      });
+
+      function clearTutorialHighlights() {
+        Array.prototype.forEach.call(
+          document.querySelectorAll(".openspecy-tutorial-highlight"),
+          function (element) {
+            element.classList.remove("openspecy-tutorial-highlight");
+          }
+        );
+      }
+
+      function setTutorialNavigationDisabled(disabled) {
+        var hasNext = document.documentElement.getAttribute(
+          "data-openspecy-tutorial-has-next"
+        ) === "true";
+        ["walkthrough_back", "walkthrough_repeat", "walkthrough_next",
+          "walkthrough_view"].forEach(
+          function (id) {
+            var button = document.getElementById(id);
+            if (!button) return;
+            var unavailable = Boolean(disabled) ||
+              (id === "walkthrough_next" && !hasNext);
+            button.disabled = unavailable;
+            button.setAttribute("aria-disabled", unavailable ? "true" : "false");
+          }
+        );
+      }
+
+      window.Shiny.addCustomMessageHandler("openspecy-tutorial-step", function (state) {
+        state = state || {};
+        var generation = Number(state.generation);
+        if (!Number.isFinite(generation)) generation = tutorialRunGeneration + 1;
+        // Custom messages share one ordered Shiny connection. The newest step
+        // received here is authoritative; assigning its generation cancels
+        // any older retry timer without rejecting a valid post-chooser step.
+        tutorialRunGeneration = generation;
+        clearTutorialHighlights();
+        var settingsBox = document.getElementById("analysis_settings_box");
+        if (settingsBox && settingsBox.classList.contains("collapsed-card")) {
+          var collapseControl = settingsBox.querySelector(
+            ':scope > .card-header [data-card-widget="collapse"]'
+          );
+          if (collapseControl) collapseControl.click();
+        }
+        document.documentElement.setAttribute(
+          "data-openspecy-tutorial-workflow", String(state.workflow || "")
+        );
+        document.documentElement.setAttribute(
+          "data-openspecy-tutorial-step", String(state.step || "")
+        );
+        document.documentElement.setAttribute(
+          "data-openspecy-tutorial-has-next", state.has_next ? "true" : "false"
+        );
+        document.documentElement.setAttribute(
+          "data-openspecy-tutorial-run-status", state.run ? "pending" : "idle"
+        );
+        document.documentElement.removeAttribute(
+          "data-openspecy-tutorial-result-status"
+        );
+        setTutorialNavigationDisabled(Boolean(state.run));
+
+        var firstTarget = null;
+        (state.controls || []).forEach(function (id) {
+          var input = document.getElementById(String(id));
+          if (!input) return;
+          var target = input.closest(".card, .form-group") || input;
+          var visible = Boolean(
+            target.offsetWidth || target.offsetHeight || target.getClientRects().length
+          );
+          if (!visible) return;
+          var card = input.closest(".card.collapsed-card");
+          if (card) {
+            var cardControl = card.querySelector(
+              ':scope > .card-header [data-card-widget="collapse"]'
+            );
+            if (cardControl) cardControl.click();
+          }
+          target.classList.add("openspecy-tutorial-highlight");
+          if (!firstTarget) firstTarget = target;
+        });
+        if (firstTarget && firstTarget.scrollIntoView) {
+          firstTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        // Input-update messages and this handler travel over the same ordered
+        // Shiny connection. Wait for the real Run button to become enabled,
+        // then click it; this retains the app's normal input/event ordering,
+        // busy lifecycle, and all Run-gated consumers.
+        function runWhenReady(attempt) {
+          if (!state.run || generation !== tutorialRunGeneration) return;
+          var button = document.getElementById("run_analysis");
+          var disabled = !button || button.disabled ||
+            button.getAttribute("aria-disabled") === "true" ||
+            button.getAttribute("aria-busy") === "true";
+          if (!disabled) {
+            document.documentElement.setAttribute(
+              "data-openspecy-tutorial-run-status", "running"
+            );
+            button.click();
+            document.documentElement.setAttribute(
+              "data-openspecy-tutorial-run", String(state.step || "")
+            );
+            return;
+          }
+          if (attempt < 6000) {
+            window.setTimeout(function () { runWhenReady(attempt + 1); }, 100);
+          } else {
+            document.documentElement.setAttribute(
+              "data-openspecy-tutorial-run-status", "timed-out"
+            );
+            ["walkthrough_back", "walkthrough_repeat"].forEach(function (id) {
+              var button = document.getElementById(id);
+              if (!button) return;
+              button.disabled = false;
+              button.setAttribute("aria-disabled", "false");
+            });
+            ["walkthrough_next", "walkthrough_view"].forEach(function (id) {
+              var button = document.getElementById(id);
+              if (!button) return;
+              button.disabled = true;
+              button.setAttribute("aria-disabled", "true");
+            });
+            window.console.warn("Tutorial Run did not become ready.");
+          }
+        }
+        window.requestAnimationFrame(function () {
+          window.requestAnimationFrame(function () { runWhenReady(0); });
+        });
+      });
+
+      window.Shiny.addCustomMessageHandler(
+        "openspecy-tutorial-run-complete", function (state) {
+          state = state || {};
+          var generation = Number(state.generation);
+          if (!Number.isFinite(generation) || generation !== tutorialRunGeneration) return;
+          var success = Boolean(state.success);
+          var hasNext = document.documentElement.getAttribute(
+            "data-openspecy-tutorial-has-next"
+          ) === "true";
+          document.documentElement.setAttribute(
+            "data-openspecy-tutorial-run-status", success ? "complete" : "failed"
+          );
+          document.documentElement.setAttribute(
+            "data-openspecy-tutorial-result-status", success ? "success" : "failed"
+          );
+          ["walkthrough_back", "walkthrough_repeat", "walkthrough_next",
+            "walkthrough_view"].forEach(function (id) {
+            var button = document.getElementById(id);
+            if (!button) return;
+            var unavailable = (id === "walkthrough_next" && (!success || !hasNext)) ||
+              (id === "walkthrough_view" && !success);
+            button.disabled = unavailable;
+            button.setAttribute("aria-disabled", unavailable ? "true" : "false");
+          });
+        }
+      );
+
+      window.Shiny.addCustomMessageHandler("openspecy-tutorial-exit", function (_state) {
+        tutorialRunGeneration += 1;
+        clearTutorialHighlights();
+        document.documentElement.removeAttribute("data-openspecy-tutorial-workflow");
+        document.documentElement.removeAttribute("data-openspecy-tutorial-step");
+        document.documentElement.removeAttribute("data-openspecy-tutorial-has-next");
+        document.documentElement.removeAttribute("data-openspecy-tutorial-run-status");
+        document.documentElement.removeAttribute("data-openspecy-tutorial-result-status");
+        document.documentElement.removeAttribute("data-openspecy-tutorial-run");
       });
     }
 

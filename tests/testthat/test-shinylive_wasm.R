@@ -35,6 +35,228 @@ source_wasm_tool <- function(file, env) {
   sys.source(path, envir = env)
 }
 
+shinylive_cache_worker_fixture <- function() {
+  paste(c(
+    'function dirname(path) { return path.slice(0, path.lastIndexOf("/")); }',
+    "// src/shinylive-sw.ts",
+    "var useCaching = false;",
+    'var cacheName = "::shinyliveServiceworker";',
+    'var version = "v10";',
+    "function addCoiHeaders(response) { return response; }",
+    'self.addEventListener("install", (event) => {',
+    "  event.waitUntil(",
+    "    Promise.all([self.skipWaiting(), caches.open(version + cacheName)])",
+    "  );",
+    "});",
+    'self.addEventListener("activate", function(event) {',
+    "  event.waitUntil(",
+    "    (async () => {",
+    "      await self.clients.claim();",
+    "      const keys = await caches.keys();",
+    "      return Promise.all(",
+    "        keys.filter(function(key) {",
+    "          return key.indexOf(version + cacheName) !== 0;",
+    "        }).map(function(key) {",
+    "          return caches.delete(key);",
+    "        })",
+    "      );",
+    "    })()",
+    "  );",
+    "});",
+    'self.addEventListener("fetch", function(event) {',
+    "  const request = event.request;",
+    "  const url = new URL(request.url);",
+    "  if (self.location.origin !== url.origin) return;",
+    "  const base_path = dirname(self.location.pathname);",
+    "  const coiRequested = false;",
+    '  if (request.method !== "GET") {',
+    "    return;",
+    "  }",
+    "  if (useCaching) {",
+    "    event.respondWith(",
+    "      (async () => {",
+    "        const cachedResponse = await caches.match(request);",
+    "        if (cachedResponse) return cachedResponse;",
+    "        const networkResponse = addCoiHeaders(await fetch(request));",
+    "        const baseUrl = self.location.origin + dirname(self.location.pathname);",
+    '        if (request.url.startsWith(baseUrl + "/shinylive/")) {',
+    "          const cache = await caches.open(version + cacheName);",
+    "          await cache.put(request, networkResponse.clone());",
+    "        }",
+    "        return networkResponse;",
+    "      })()",
+    "    );",
+    "    return;",
+    "  }",
+    "  if (coiRequested) {",
+    "    event.respondWith(Promise.resolve(fetch(request)));",
+    "  }",
+    "});",
+    ""
+  ), collapse = "\n")
+}
+
+write_shinylive_cache_fixture <- function(path, sha, worker = NULL,
+                                           controlled_reload = TRUE) {
+  dir.create(file.path(path, "shinylive"), recursive = TRUE,
+             showWarnings = FALSE)
+  if (is.null(worker)) worker <- shinylive_cache_worker_fixture()
+  writeBin(charToRaw(worker), file.path(path, "shinylive-sw.js"))
+  loader <- c(
+    'if ("serviceWorker" in navigator) {',
+    "navigator.serviceWorker.register(serviceWorkerPath, { type: \"module\" })",
+    "  .then((registration) => registration.update());",
+    "navigator.serviceWorker.ready.then(() => {",
+    if (controlled_reload) "  if (!navigator.serviceWorker.controller)" else
+      "  if (false)",
+    if (controlled_reload) "    window.location.reload();" else
+      "    console.log('uncontrolled');",
+    "});",
+    "}"
+  )
+  writeLines(loader, file.path(path, "shinylive", "load-shinylive-sw.js"))
+  jsonlite::write_json(
+    list(package = list(commit = sha)),
+    file.path(path, "pinned-wasm-library.json"),
+    auto_unbox = TRUE
+  )
+  invisible(path)
+}
+
+test_that("Shinylive runtime cache is SHA-versioned, scoped, and resilient", {
+  env <- new.env(parent = globalenv())
+  source_wasm_tool("configure-shinylive-cache.R", env)
+  sha <- strrep("a", 40L)
+  other_sha <- strrep("c", 40L)
+  fixture <- file.path(tempdir(), paste0("openspecy-cache-", Sys.getpid()))
+  rotated <- paste0(fixture, "-rotated")
+  on.exit(unlink(c(fixture, rotated), recursive = TRUE), add = TRUE)
+  write_shinylive_cache_fixture(fixture, sha)
+
+  expect_no_error(env$configure_shinylive_runtime_cache(fixture, sha))
+  worker_path <- file.path(fixture, "shinylive-sw.js")
+  worker <- rawToChar(readBin(
+    worker_path, what = "raw", n = file.info(worker_path)$size
+  ))
+  expect_true(grepl("OPENSPECY_RUNTIME_CACHE_V1", worker, fixed = TRUE))
+  expect_true(grepl(
+    paste0('const openspecyPackageSha = "', sha, '";'),
+    worker, fixed = TRUE
+  ))
+  expect_true(all(vapply(c(
+    'relativePath === "app.json"',
+    'relativePath === "pinned-wasm-library.json"',
+    'relativePath.startsWith("shinylive/")',
+    "await cache.match(request)",
+    "addCoiHeaders(await fetch(request))",
+    "networkResponse.ok && networkResponse.status === 200",
+    "key.startsWith(openspecyCachePrefix)",
+    "key !== openspecyCacheName",
+    "CacheStorage read failures must not prevent a network load",
+    "Quota and CacheStorage write failures are deliberately inert"
+  ), grepl, logical(1), x = worker, fixed = TRUE)))
+  expect_lt(
+    regexpr("await cache.match(request)", worker, fixed = TRUE)[[1L]],
+    regexpr("addCoiHeaders(await fetch(request))", worker,
+            fixed = TRUE)[[1L]]
+  )
+  expect_false(grepl("key.indexOf(version + cacheName)", worker,
+                     fixed = TRUE))
+  expect_false(grepl("if (useCaching)", worker, fixed = TRUE))
+  loader <- readLines(
+    file.path(fixture, "shinylive", "load-shinylive-sw.js"), warn = FALSE
+  )
+  expect_true(any(grepl("OPENSPECY_RUNTIME_UPDATE_V1", loader,
+                        fixed = TRUE)))
+  expect_true(any(grepl(
+    paste0('const openspecyWorkerSha = "', sha, '";'),
+    loader, fixed = TRUE
+  )))
+  expect_true(any(grepl(
+    '"controllerchange", openspecyReloadForWorker, { once: true }',
+    loader, fixed = TRUE
+  )))
+  expect_true(any(grepl("openspecyReloadForWorker();", loader,
+                        fixed = TRUE)))
+  expect_error(
+    env$configure_shinylive_runtime_cache(fixture, sha),
+    "already runtime-cache configured"
+  )
+
+  write_shinylive_cache_fixture(rotated, other_sha)
+  expect_no_error(env$configure_shinylive_runtime_cache(rotated, other_sha))
+  rotated_worker <- rawToChar(readBin(
+    file.path(rotated, "shinylive-sw.js"), what = "raw",
+    n = file.info(file.path(rotated, "shinylive-sw.js"))$size
+  ))
+  expect_false(identical(worker, rotated_worker))
+  expect_true(grepl(other_sha, rotated_worker, fixed = TRUE))
+  expect_false(grepl(sha, rotated_worker, fixed = TRUE))
+
+  node <- Sys.which("node")
+  if (.Platform$OS.type == "windows" && !nzchar(node)) {
+    node <- Sys.which("node.exe")
+  }
+  if (nzchar(node)) {
+    harness <- test_path("..", "..", "tools", "wasm",
+                         "test-shinylive-cache.js")
+    syntax <- system2(node, c("--check", shQuote(worker_path)),
+                      stdout = TRUE, stderr = TRUE)
+    expect_null(attr(syntax, "status"), info = paste(syntax, collapse = "\n"))
+    loader_syntax <- system2(
+      node,
+      c("--check", shQuote(file.path(
+        fixture, "shinylive", "load-shinylive-sw.js"
+      ))),
+      stdout = TRUE, stderr = TRUE
+    )
+    expect_null(attr(loader_syntax, "status"),
+                info = paste(loader_syntax, collapse = "\n"))
+    behavior <- system2(
+      node, c(shQuote(harness), shQuote(worker_path), sha),
+      stdout = TRUE, stderr = TRUE
+    )
+    expect_null(attr(behavior, "status"),
+                info = paste(behavior, collapse = "\n"))
+    expect_true(any(grepl("runtime cache fixture passed", behavior,
+                          fixed = TRUE)))
+  }
+})
+
+test_that("Shinylive cache configurator rejects drift and mismatched pins", {
+  env <- new.env(parent = globalenv())
+  source_wasm_tool("configure-shinylive-cache.R", env)
+  sha <- strrep("d", 40L)
+  base <- file.path(tempdir(), paste0("openspecy-cache-drift-", Sys.getpid()))
+  on.exit(unlink(base, recursive = TRUE), add = TRUE)
+
+  pin_mismatch <- file.path(base, "pin")
+  write_shinylive_cache_fixture(pin_mismatch, strrep("e", 40L))
+  expect_error(
+    env$configure_shinylive_runtime_cache(pin_mismatch, sha),
+    "manifest commit does not match"
+  )
+
+  loader_drift <- file.path(base, "loader")
+  write_shinylive_cache_fixture(loader_drift, sha,
+                                controlled_reload = FALSE)
+  expect_error(
+    env$configure_shinylive_runtime_cache(loader_drift, sha),
+    "first-load service-worker control marker"
+  )
+
+  worker_drift <- sub(
+    'var version = "v10";', 'var version = "v11";',
+    shinylive_cache_worker_fixture(), fixed = TRUE
+  )
+  worker_path <- file.path(base, "worker")
+  write_shinylive_cache_fixture(worker_path, sha, worker = worker_drift)
+  expect_error(
+    env$configure_shinylive_runtime_cache(worker_path, sha),
+    "cache configuration header changed"
+  )
+})
+
 test_that("Shinylive wasm package roots include app runtime packages", {
   roots <- read_wasm_manifest_lines(wasm_manifest_path("app-package-roots.txt"))
   hosted_packages <- .openspecy_app_packages(hosted = TRUE)
@@ -506,6 +728,19 @@ test_that("hosted preflight is exact and the full pre-push gate is unskippable",
                          fixed = TRUE)))
   expect_true(any(grepl("check-wasm-artifact.R", preflight, fixed = TRUE)))
   expect_true(any(grepl("check-wasm-repo.R", preflight, fixed = TRUE)))
+  expect_true(any(grepl("configure-shinylive-cache.R", preflight,
+                        fixed = TRUE)))
+  preflight_bundle <- grep('"tools/wasm/bundle-wasm-library.R"', preflight,
+                           fixed = TRUE)
+  preflight_cache <- grep('"tools/wasm/configure-shinylive-cache.R"',
+                          preflight, fixed = TRUE)
+  preflight_check <- grep('"tools/wasm/check-shinylive-export.R"', preflight,
+                          fixed = TRUE)
+  expect_length(preflight_bundle, 1L)
+  expect_length(preflight_cache, 1L)
+  expect_length(preflight_check, 1L)
+  expect_lt(preflight_bundle, preflight_cache)
+  expect_lt(preflight_cache, preflight_check)
   expect_true(any(grepl('$env:R_LIBS_USER = $tools', preflight,
                         fixed = TRUE)))
   expect_true(any(grepl(
@@ -643,10 +878,20 @@ test_that("hosted deployment exports the exact current bundled app", {
   install_step <- grep("Install current package and app source", workflow,
                        fixed = TRUE)
   build_step <- grep("- name: Build pkgdown site", workflow, fixed = TRUE)
+  bundle_step <- grep("- name: Bundle pinned wasm package library", workflow,
+                      fixed = TRUE)
+  cache_step <- grep("- name: Configure SHA-versioned Shinylive runtime cache",
+                     workflow, fixed = TRUE)
+  check_step <- grep("- name: Check Shinylive export", workflow, fixed = TRUE)
 
   expect_length(install_step, 1L)
   expect_length(build_step, 1L)
+  expect_length(bundle_step, 1L)
+  expect_length(cache_step, 1L)
+  expect_length(check_step, 1L)
   expect_lt(install_step, build_step)
+  expect_lt(bundle_step, cache_step)
+  expect_lt(cache_step, check_step)
   expect_true(any(grepl(
     'install.packages(".", repos = NULL, type = "source")',
     workflow, fixed = TRUE
@@ -664,6 +909,12 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_true(any(grepl("Upload hosted smoke diagnostics", workflow,
                         fixed = TRUE)))
   expect_true(any(grepl("pinned-wasm-library.json", workflow, fixed = TRUE)))
+  expect_true(any(grepl("tools/wasm/configure-shinylive-cache.R", workflow,
+                        fixed = TRUE)))
+  expect_true(any(grepl('worker_url="${app_url}shinylive-sw.js"', workflow,
+                        fixed = TRUE)))
+  expect_true(any(grepl("OPENSPECY_RUNTIME_CACHE_V1", workflow,
+                        fixed = TRUE)))
   expect_true(any(grepl(
     'grep -q "${PACKAGE_SHA}" <<< "$pin_body"', workflow, fixed = TRUE
   )))
@@ -932,6 +1183,12 @@ test_that("static landing and Shiny app provide the embed handshake", {
   ))
   expect_true(any(grepl('class="hero-video-card"', homepage,
                          fixed = TRUE)))
+  expect_false(grepl(
+    '<iframe[[:space:]]+src="https://www.youtube-nocookie.com',
+    homepage_text, perl = TRUE
+  ))
+  expect_true(any(grepl('data-video-title="OpenSpecy project video"',
+                         homepage, fixed = TRUE)))
   expect_true(grepl(
     "\\.hero-video-card\\s*\\{[^}]*transform:\\s*none",
     paste(css, collapse = "\n"), perl = TRUE
@@ -957,6 +1214,8 @@ test_that("static landing and Shiny app provide the embed handshake", {
   expect_true(any(grepl("openspecy-app-fullscreen-open", script,
                          fixed = TRUE)))
   expect_true(any(grepl("DOMContentLoaded", script, fixed = TRUE)))
+  expect_true(any(grepl('querySelectorAll("[data-video-embed]")', script,
+                         fixed = TRUE)))
   expect_true(any(grepl("initVideo", script, fixed = TRUE)))
   expect_true(any(grepl("container.replaceChildren(frame)", script,
                          fixed = TRUE)))

@@ -1,5 +1,17 @@
 # OpenSpecy 1.7.1
 
+- Added an in-app **Walk me through** guide with Process, Identify, and
+  Quantify lessons that use packaged test spectra and the same explanatory
+  guidance as the app controls.
+- Added versioned browser caching and a new GitHub Action that packages the
+  exact pinned Shinylive Pages build as self-contained offline archives for
+  Windows, macOS, and Linux. Their native loopback launcher needs no R, Python,
+  Node, package download, installation, or internet connection at runtime;
+  bundled landing-page videos now load only after an explicit click.
+- Restored preprocessing compatibility warnings for derivative and no-baseline
+  identification libraries, made tab-wide actions turn switches off only, and
+  fixed fresh-session startup/Plotly warnings plus first-Run Selection Metadata
+  and Top Matches initialization.
 - Long-running full and medoid library identification in the bundled app now
   reports completed blocks, total blocks, and the block-completion percentage
   after every bounded matching block.

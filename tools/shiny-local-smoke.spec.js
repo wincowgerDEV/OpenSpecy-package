@@ -568,6 +568,19 @@ test("settings tabs expand the card and sustained actions start the overlay clie
   await expectCardCollapsed(settingsCard, false);
   await expect(page.getByRole("link", { name: "Identification", exact: true }))
     .toHaveClass(/active/);
+  for (const id of ["identification_active", "filter_lib"]) {
+    await page.locator(`#${id}`).evaluate((input) => {
+      if (!input.checked) input.click();
+    });
+    await expect(page.locator(`#${id}`)).toBeChecked();
+  }
+  const allOff = page.locator("button#identification_all_toggle");
+  await expect(allOff).toHaveText(/Turn All Off/);
+  await allOff.click();
+  await expect(page.locator("#identification_active")).not.toBeChecked();
+  await expect(page.locator("#filter_lib")).not.toBeChecked();
+  await expect(allOff).toHaveText(/Turn All Off/);
+  await expect(page.getByRole("button", { name: /Turn All On/ })).toHaveCount(0);
   await toggleCard(settingsCard);
   await expectCardCollapsed(settingsCard);
 
@@ -598,6 +611,192 @@ test("settings tabs expand the card and sustained actions start the overlay clie
   });
   await expectClientBusyOverlay(
     page, "#recalculate_snr", "recalculate", false
+  );
+});
+
+test("Process walkthrough runs the real controls twice and keeps its last result", async ({ page }) => {
+  test.setTimeout(360000);
+  const stderrStart = stderr.length;
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+
+  await page.locator("#walkthrough_open").click();
+  const modal = page.locator(".modal-content");
+  await expect(modal).toContainText("Your current data and unsaved ratio definitions will be replaced");
+  for (const label of ["Process", "Identify", "Quantify"]) {
+    await expect(modal.getByRole("button", { name: new RegExp(`Start the ${label}`, "i") }))
+      .toBeVisible();
+  }
+  await page.locator("#walkthrough_choose_process").click();
+
+  const root = page.locator("html");
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-workflow", "process");
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-run", "1", {
+    timeout: 30000,
+  });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 180000,
+  });
+  await expect(page.locator("#eventmetadata table")).toBeVisible({ timeout: 120000 });
+  await expect(page.locator("#make_rel_decision")).toBeChecked();
+  const normalizedRange = await page.locator("#MyPlotC").evaluate((plot) => {
+    const trace = (plot.data || []).find((item) => item.name === "Active spectrum");
+    return Math.max(...trace.y) - Math.min(...trace.y);
+  });
+  expect(normalizedRange).toBeLessThanOrEqual(1.01);
+
+  await expect(root).toHaveAttribute(
+    "data-openspecy-tutorial-result-status", "success", { timeout: 120000 }
+  );
+  await expect(page.locator("#walkthrough_view")).toBeEnabled();
+  await page.locator("#walkthrough_view").click();
+  await expect(modal).toBeHidden();
+  await expect(page.locator("#eventmetadata table")).toBeVisible();
+
+  await page.locator("#walkthrough_open").click();
+  await expect(modal).toBeVisible();
+  await expect(modal).toContainText(/Step 1 of 2 - A: normalized processing/);
+  await expect(page.locator("#walkthrough_next")).toBeEnabled();
+  await page.locator("#walkthrough_next").click();
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-step", "2");
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-run", "2", {
+    timeout: 30000,
+  });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 180000,
+  });
+  await expect(page.locator("#make_rel_decision")).not.toBeChecked();
+  await expect.poll(async () => page.locator("#MyPlotC").evaluate((plot) => {
+    const trace = (plot.data || []).find((item) => item.name === "Active spectrum");
+    return Math.max(...trace.y) - Math.min(...trace.y);
+  }), { timeout: 120000 }).toBeGreaterThan(normalizedRange * 2);
+
+  await expect(page.locator(".openspecy-tutorial-highlight").first()).toBeVisible();
+  await page.locator("#walkthrough_exit").click();
+  await expect(modal).toBeHidden();
+  await expect(root).not.toHaveAttribute("data-openspecy-tutorial-workflow");
+  await expect(page.locator(".openspecy-tutorial-highlight")).toHaveCount(0);
+  await expect(page.locator("#eventmetadata table")).toBeVisible();
+  expect(stderr.slice(stderrStart)).not.toMatch(
+    /Warning: Error in|Execution halted|plotly_click.*not registered/i
+  );
+});
+
+test("Identify and Quantify walkthroughs expose controls, matches, and saved ratios", async ({ page }) => {
+  test.setTimeout(720000);
+  const stderrStart = stderr.length;
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+
+  const root = page.locator("html");
+  const modal = page.locator(".modal-content");
+  await page.locator("#walkthrough_open").click();
+  await page.locator("#walkthrough_choose_identify").click();
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-workflow", "identify");
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-step", "1");
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-run", "1", {
+    timeout: 30000,
+  });
+  await expect(root).toHaveAttribute(
+    "data-openspecy-tutorial-result-status", "success", { timeout: 180000 }
+  );
+  await expect(page.locator("#identification_active")).not.toBeChecked();
+
+  await expect(page.locator("#walkthrough_next")).toBeEnabled();
+  await page.locator("#walkthrough_next").click();
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-step", "2");
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-run", "2", {
+    timeout: 30000,
+  });
+  await expect(page.getByRole("link", { name: "Preprocessing", exact: true }))
+    .toHaveClass(/active/);
+
+  const derivativeInput = page.locator("#derivative_order");
+  const derivativeCard = derivativeInput.locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  const derivativeControl = derivativeInput.locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' form-group ')][1]"
+  );
+  await expectCardCollapsed(derivativeCard, false);
+  await expect(derivativeControl).toBeVisible();
+  await expect(derivativeControl).toContainText("Derivative Order");
+  await expect(derivativeControl.locator(".irs--shiny")).toBeVisible();
+  await expect(page.locator("#smooth_decision")).toBeChecked();
+  await expect(derivativeInput).toHaveValue("1");
+  await expect(page.locator("#derivative_abs")).toBeChecked();
+
+  await expect(root).toHaveAttribute(
+    "data-openspecy-tutorial-result-status", "success", { timeout: 300000 }
+  );
+  await expect(root).not.toHaveClass(/\bshiny-busy\b/, { timeout: 120000 });
+  await page.locator("#walkthrough_view").click();
+  await expect(modal).toBeHidden();
+
+  const selectionMetadata = page.locator("#eventmetadata table");
+  const matchRows = page.locator("#event table tbody tr");
+  await expect(selectionMetadata).toBeVisible({ timeout: 120000 });
+  await expect(matchRows.first()).toBeVisible({ timeout: 240000 });
+  expect(await matchRows.count()).toBeGreaterThan(1);
+  await expect(matchRows.first()).toHaveClass(/selected|active/);
+  const rankOneMetadata = (await selectionMetadata.innerText()).trim();
+  await matchRows.nth(1).click();
+  await expect(matchRows.nth(1)).toHaveClass(/selected|active/);
+  await expect.poll(async () => (await selectionMetadata.innerText()).trim(), {
+    timeout: 60000,
+  }).not.toBe(rankOneMetadata);
+
+  // Resume the still-active guide, exit cleanly, then run Quantify A/B in the
+  // same genuine tutorial session path.
+  await page.locator("#walkthrough_open").click();
+  await expect(modal).toContainText(/Step 2 of 2 - B: derivative identification/);
+  await page.locator("#walkthrough_exit").click();
+  await expect(modal).toBeHidden();
+  await expect(root).not.toHaveAttribute("data-openspecy-tutorial-workflow");
+
+  await page.locator("#walkthrough_open").click();
+  await page.locator("#walkthrough_choose_quantify").click();
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-workflow", "quantify");
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-run", "1", {
+    timeout: 30000,
+  });
+  await expect(root).toHaveAttribute(
+    "data-openspecy-tutorial-result-status", "success", { timeout: 180000 }
+  );
+  await expect(page.locator("#walkthrough_next")).toBeEnabled();
+  await page.locator("#walkthrough_next").click();
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-step", "2");
+  await expect(root).toHaveAttribute("data-openspecy-tutorial-run", "2", {
+    timeout: 30000,
+  });
+  await expect(root).toHaveAttribute(
+    "data-openspecy-tutorial-result-status", "success", { timeout: 180000 }
+  );
+  await page.locator("#walkthrough_view").click();
+  await expect(modal).toBeHidden();
+
+  const quantifiedMetadata = page.locator("#eventmetadata table");
+  await expect(quantifiedMetadata).toBeVisible({ timeout: 120000 });
+  await expect(quantifiedMetadata).toContainText(/Carbonyl area/i);
+  await expect(quantifiedMetadata).toContainText(/area_ratio_carbonyl_area/i);
+  expect(severeErrors).toEqual([]);
+  expect(stderr.slice(stderrStart)).not.toMatch(
+    /Warning: Error in|Execution halted|plotly_click.*not registered/i
   );
 });
 
@@ -2058,6 +2257,10 @@ test("library identification reports completed block percentages", async ({ page
   await pickerOption(page, "id_spec_type", "raman");
   await pickerOption(page, "id_strategy", "deriv");
   await pickerOption(page, "lib_type", "medoid");
+  await page.locator("#derivative_abs").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(page.locator("#derivative_abs")).not.toBeChecked();
 
   const spectrumPath = path.join(repo, "inst", "extdata", "raman_hdpe.csv");
   await stageLocalFiles(page, spectrumPath);
@@ -2074,6 +2277,10 @@ test("library identification reports completed block percentages", async ({ page
     });
   });
   await page.locator("#run_analysis").click();
+  await expect(page.getByText(/Derivative library compatibility:/).last())
+    .toBeVisible({ timeout: 10000 });
+  await expect(page.getByText(/set Derivative Order to 1.*Absolute Value/s).last())
+    .toBeVisible({ timeout: 10000 });
   await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
     timeout: 30000,
   });
@@ -2102,6 +2309,27 @@ test("library identification reports completed block percentages", async ({ page
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
+
+  // Regression: a fresh session's very first identification used to render
+  // the matches before its selected-spectrum metadata/rank state was ready.
+  // The table then appeared empty and a row click had no effect until some
+  // unrelated setting was changed and Run was clicked again.
+  const selectionMetadata = page.locator("#eventmetadata table");
+  await expect(selectionMetadata).toBeVisible({ timeout: 120000 });
+  await expect(selectionMetadata).not.toContainText(/Analysis is not available/i);
+  const initialMetadata = (await selectionMetadata.innerText()).trim();
+  expect(initialMetadata.length).toBeGreaterThan(20);
+
+  const matchRows = page.locator("#event table tbody tr");
+  expect(await matchRows.count()).toBeGreaterThan(1);
+  await expect(matchRows.first()).toHaveClass(/selected/);
+  await matchRows.nth(1).click();
+  await expect(matchRows.nth(1)).toHaveClass(/selected/);
+  await expect.poll(async () => (await selectionMetadata.innerText()).trim(), {
+    timeout: 60000,
+  }).not.toBe(initialMetadata);
+  await expect(page.locator("#run_analysis")).toBeEnabled();
+
   const states = await page.evaluate(() => window.__openspecyIdentificationBlocks);
   expect(states.map((state) => state.message)).toEqual(expect.arrayContaining([
     "Identifying spectra (0% of blocks complete)",
@@ -2113,5 +2341,7 @@ test("library identification reports completed block percentages", async ({ page
     index === 0 || state.progress >= states[index - 1].progress
   )).toBe(true);
   expect(severeErrors).toEqual([]);
-  expect(stderr.slice(stderrStart)).not.toMatch(/Warning: Error in|Execution halted/);
+  expect(stderr.slice(stderrStart)).not.toMatch(
+    /Warning: Error in|Execution halted|plotly_click.*not registered/i
+  );
 });
