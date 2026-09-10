@@ -61,7 +61,10 @@ func TestHandlerServesOnlyLoopbackHosts(t *testing.T) {
 	writeRequiredSite(t, root)
 	handler := NewHandler(root)
 
-	request := httptest.NewRequest(http.MethodGet, "http://127.0.0.1/index.html", nil)
+	// Request the fixture's public landing route. net/http.FileServer deliberately
+	// redirects /index.html to ./, so asserting 200 for /index.html tests its
+	// canonical redirect rather than successful file serving.
+	request := httptest.NewRequest(http.MethodGet, "http://127.0.0.1/", nil)
 	request.Host = "127.0.0.1:43210"
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
