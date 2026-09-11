@@ -242,7 +242,7 @@ versioned release files may be reused.}
 spectra with blank \code{spectrum_identity} or generic \code{"other"},
 \code{"other plastic"}, or \code{"other material"} metadata are removed
 before quality control, medoid selection, and model fitting. Removed rows
-remain reviewable in \code{assessments$other_review}. If \code{FALSE}, the
+remain reviewable in \code{assessments$cleanup$summary}. If \code{FALSE}, the
 generic rows are retained for \code{prune_lib()}'s constrained nearest-class
 reassignment. Source-only composable builds do not apply the official filter.}
 
@@ -341,12 +341,14 @@ Official libraries and medoids are nested by recipe and then
 \code{ftir}, \code{raman}, or \code{nir}. Models are nested by algorithm,
 recipe, and spectrum type. FTIR and Raman medoids/models use
 800--3200 while the NIR interval is derived from finite coverage within
-4000--12000. Assessment items are typed reviewable data.tables, including
-macro-first summaries, class accuracy, ranked confusion counts, generic-row
-review/removal tables, minimum-support class exclusions, quality-control
-removals, metadata-finalization
-audits, ranked model assessment/error correlations, stable warnings, and
-output manifests. Each model contains one
+4000--12000. Assessments use five ordered process lists:
+\code{cleanup}, \code{ref_lib}, \code{medoid}, \code{model}, and
+\code{functionality}, with no more than ten nonempty review tables in total.
+Old/new metrics are adjacent columns, accuracy and confusion are ranked by
+the new result with an old fallback, model diagnostics are ranked by absolute
+correlation, and quality shifts omit passes. Row-level tests, split manifests,
+and release manifests remain hash-addressed evidence attributes rather than
+additional review leaves. Each model contains one
 \code{tests} data.table and a one-spectrum \code{fill} object.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
@@ -413,17 +415,22 @@ is reused only when its manifest signature matches the source files, curated
 tables, relevant arguments, package version, and builder implementation.
 Full assessments use the complete candidate and legacy artifacts. Seeded
 ten-percent holdouts are allocated independently within each source across
-class/type strata. Candidate artifacts are assessed on candidate data and
+class/type strata after physical identifiers and exact spectral-content
+duplicates have been joined into stable groups. Candidate artifacts are assessed on candidate data and
 legacy artifacts on legacy data, so taxonomy changes do not require fuzzy
 cross-version class matching. Query identifiers are removed from full and
-medoid references before matching to prevent exact self-matches.
+medoid references by group before matching to prevent transformed duplicate
+or physical-replicate self-matches. Both logistic and random-forest
+assessment models are refit on their source-local grouped training partition;
+production models still use all eligible spectra.
 Held-out model outputs are also joined to per-spectrum assessment metric
 values. Point-biserial Pearson correlations with incorrect identification
 are ranked within each model output and across each source so the strongest
 quality-related error associations can be reviewed directly.
 After derivative and baseline-removal processing, FTIR spectra whose
 2200--2420 CO2-region maximum exceeds twice the 2420--2550 silent-region
-maximum are flattened. High-tail checks use each spectrum's finite support;
+maximum are flattened and reassessed; failed postconditions are removed.
+High-tail checks use each spectrum's finite support;
 tails are trimmed and reassessed, failed corrections are removed, and
 spectra with running signal-to-noise below two are removed before pruning.
 Full artifacts are then partitioned into Raman (200--4000), FTIR
@@ -468,8 +475,11 @@ this step when that should affect duplicate detection.
 \code{reduce_lib()} uses PAM medoids to keep representative spectra within
 each metadata group. It uses OpenSpecy's optimized correlation routine on
 relative spectra whose missing values are temporarily replaced by each
-spectrum's finite mean. Official medoids are then selected from the original
-object so their genuine missing values are preserved.
+spectrum's finite mean. Groups of at most 3,000 spectra use exact PAM;
+oversized groups use five deterministic 1,000-spectrum PAM samples and keep
+the candidate set with the best full-group correlation-distance objective.
+Official medoids are then selected from the original object so their genuine
+missing values are preserved.
 
 \code{train_spec_model()} trains either OpenSpecy's multinomial logistic
 regression model (\code{method = "logistic_regression"}) or an experimental
@@ -495,6 +505,8 @@ size, class balance, and optionally nearest-neighbor class consistency.
 and rebuilds only medoids, models, and assessments. Its input and output
 locations are explicit, and every downstream component is checkpointed so a
 compatible interrupted run can resume without repeating completed work.
+Checkpoint and release payloads carry SHA-256 hashes, and an existing
+versioned release path is accepted only when its payload is unchanged.
 }
 \examples{
 wavenumber <- seq(100, 6100, by = 100)

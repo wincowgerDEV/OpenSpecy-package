@@ -35,25 +35,27 @@ dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
 devtools::load_all(quiet = TRUE)
 build <- readRDS(build_path)
-training <- build$medoids[[recipe]]$raman
-released <- build$models[[recipe]]$raman
+released <- build$models$logistic_regression[[recipe]]$raman
 candidate <- build$libraries[[recipe]]$raman
-if (!is_OpenSpecy(training) || !is_OpenSpecy(candidate) || is.null(released)) {
+if (!is_OpenSpecy(candidate) || is.null(released)) {
   stop("The completed build lacks the requested Raman artifacts", call. = FALSE)
 }
 
 eligible <- OpenSpecy:::.lib_restrict_model_range(candidate, "raman")
-holdout_ids <- as.character(released$tests$spectrum_id)
-eligible_ids <- as.character(OpenSpecy:::.lib_ids(eligible, "sample_name"))
-holdout_rows <- match(holdout_ids, eligible_ids)
-if (anyNA(holdout_rows)) {
-  stop("Released Raman holdout identifiers are absent from the library",
+evidence <- attr(build$assessments, "evidence", exact = TRUE)
+split <- evidence$split_manifest[
+  artifact == paste("model", recipe, "raman", sep = "_") & source == "new"
+]
+rows <- OpenSpecy:::.lib_split_rows(eligible, source = "new")
+test_groups <- split[split == "test", group_id]
+holdout_rows <- rows[group_id %in% test_groups, row]
+training_rows <- rows[!group_id %in% test_groups, row]
+if (!length(holdout_rows) || !length(training_rows)) {
+  stop("The completed build lacks grouped Raman train/test evidence",
        call. = FALSE)
 }
 holdout <- filter_spec(eligible, holdout_rows)
-if (ncol(holdout$spectra) != nrow(released$tests)) {
-  stop("Raman holdout reconstruction changed its denominator", call. = FALSE)
-}
+training <- filter_spec(eligible, training_rows)
 
 alpha_label <- function(alpha) {
   sub("\\.", "p", sprintf("%.1f", alpha))

@@ -932,7 +932,44 @@ assess_spec.OpenSpecy <- function(x,
 .artifact_ratio_metrics <- function(x, tail_n = 5L,
                                     co2_region = c(2200, 2420),
                                     silent_region = c(2420, 2550),
-                                    na.rm = TRUE) {
+                                    na.rm = TRUE,
+                                    batch_size = 2000L) {
+  batch_size <- as.integer(batch_size)
+  if (!is.finite(batch_size) || batch_size < 1L) {
+    stop("'batch_size' must be a positive integer", call. = FALSE)
+  }
+  if (ncol(x$spectra) <= batch_size) {
+    return(.artifact_ratio_metrics_block(
+      x, tail_n = tail_n, co2_region = co2_region,
+      silent_region = silent_region, na.rm = na.rm
+    ))
+  }
+
+  batches <- split(
+    seq_len(ncol(x$spectra)),
+    ceiling(seq_len(ncol(x$spectra)) / batch_size)
+  )
+  pieces <- vector("list", length(batches))
+  for (i in seq_along(batches)) {
+    pieces[[i]] <- .artifact_ratio_metrics_block(
+      filter_spec(x, batches[[i]]), tail_n = tail_n,
+      co2_region = co2_region, silent_region = silent_region,
+      na.rm = na.rm
+    )
+    if (i %% 5L == 0L && i < length(batches)) gc(verbose = FALSE)
+  }
+  fields <- names(pieces[[1L]])
+  result <- lapply(fields, function(field) {
+    if (identical(field, "tail_n")) pieces[[1L]][[field]] else
+      unlist(lapply(pieces, `[[`, field), use.names = FALSE)
+  })
+  stats::setNames(result, fields)
+}
+
+.artifact_ratio_metrics_block <- function(x, tail_n = 5L,
+                                           co2_region = c(2200, 2420),
+                                           silent_region = c(2420, 2550),
+                                           na.rm = TRUE) {
   spectra <- x$spectra
   nr <- nrow(spectra)
   tail_n <- min(as.integer(tail_n), nr)

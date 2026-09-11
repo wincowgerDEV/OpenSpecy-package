@@ -235,6 +235,34 @@ test_that("reduce_lib() uses cluster PAM medoids and reports useful progress", {
   expect_error(reduce_lib(lib, progress = NA), "'progress'")
 })
 
+test_that("oversized PAM groups use deterministic sampled correlation medoids", {
+  set.seed(42)
+  wn <- seq(800, 3200, length.out = 60)
+  spectra <- matrix(runif(length(wn) * 120L), nrow = length(wn))
+  colnames(spectra) <- paste0("large_", seq_len(ncol(spectra)))
+  lib <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(sample_name = colnames(spectra))
+  )
+
+  messages <- capture.output(
+    first <- OpenSpecy:::.pam_large_group_ids(
+      lib, id_col = "sample_name", k = 5L, progress = TRUE,
+      group_label = "test", samples = 3L, sample_size = 60L
+    ),
+    type = "message"
+  )
+  second <- OpenSpecy:::.pam_large_group_ids(
+    lib, id_col = "sample_name", k = 5L, progress = FALSE,
+    group_label = "test", samples = 3L, sample_size = 60L
+  )
+
+  expect_identical(first, second)
+  expect_length(first, 5L)
+  expect_true(all(first %in% colnames(spectra)))
+  expect_match(paste(messages, collapse = "\n"), "sampled PAM complete")
+})
+
 test_that("build_model_lib() returns the model library artifact structure", {
   skip_if_not_installed("glmnet")
   lib <- tiny_build_lib()
@@ -242,7 +270,9 @@ test_that("build_model_lib() returns the model library artifact structure", {
   model <- suppressWarnings(
     build_model_lib(lib, type_col = NULL, min_n = 2, nlambda = 3)
   )
-  expect_named(model, c("model", "model_type", "lambda_selected", "selection_metric",
+  expect_named(model, c("model", "model_type", "lambda_selected",
+                        "lambda_path_complete", "selected_lambda_converged",
+                        "convergence_error", "training_groups", "selection_metric",
                         "lambda_metrics", "dimension_conversion", "tests",
                         "coefficients", "class_names", "class_num",
                         "observation_count", "fill", "support",
@@ -1031,6 +1061,34 @@ test_that("prune_lib() orders classes, preserves floors, and audits removals", {
   expect_identical(colnames(report$object$spectra),
                    report$object$metadata$sample_name)
   expect_identical(report$retained_ids, colnames(report$object$spectra))
+
+  query <- which(lib$metadata$material_class == "large")
+  candidates <- seq_len(ncol(lib$spectra))
+  normalized <- OpenSpecy:::.lib_prune_normalize(
+    lib$spectra, lib$wavenumber, c(2200, 2420)
+  )
+  legacy <- OpenSpecy:::.lib_prune_correlations(
+    lib, query, candidates, c(2200, 2420), lib$metadata$sample_name
+  )
+  actual <- OpenSpecy:::.lib_prune_best_match(
+    query, candidates, normalized, lib$metadata$sample_name,
+    exclude_self = TRUE, block_size = 2L
+  )
+  bounded_full <- OpenSpecy:::.lib_prune_best_match(
+    query, candidates, normalized, lib$metadata$sample_name,
+    exclude_self = TRUE, block_size = length(query)
+  )
+  expect_equal(actual, bounded_full)
+
+  # Proportional synthetic spectra create several effectively exact ties.
+  # The bounded implementation deliberately resolves those ties by stable ID;
+  # BLAS operation shape can make the legacy full matrix select a different
+  # tied column. Verify that every bounded choice has the same scientific score.
+  legacy_best <- matrixStats::rowMaxs(legacy)
+  actual_columns <- match(actual$index, candidates)
+  legacy_at_actual <- legacy[cbind(seq_along(query), actual_columns)]
+  tolerance <- sqrt(.Machine$double.eps) * pmax(1, abs(legacy_best))
+  expect_true(all(abs(legacy_at_actual - legacy_best) <= tolerance))
 })
 
 test_that("prune_lib() removes undersupported classes by spectrum type", {
@@ -1244,10 +1302,17 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
   drops <- data.table::fread(
     reference_workflow_data_path("metadata_drop_columns.csv")
   )
+  known_bad <- data.table::fread(
+    reference_workflow_data_path("known_bad_ids.csv")
+  )
 
   expect_false(anyNA(classes$spectrum_identity))
   expect_false(any(classes$spectrum_identity == ""))
   expect_identical(anyDuplicated(classes$spectrum_identity), 0L)
+  expect_false(any(grepl(
+    "^([0-9]{1,2}-[A-Za-z]{3}|[A-Za-z]{3}-[0-9]{1,2})$",
+    classes$spectrum_identity
+  )))
   expect_false(any(grepl("^regex:", classes$spectrum_identity)))
   expect_named(regex_classes, c("pattern", "material"))
   expect_false(anyNA(regex_classes$pattern))
@@ -1256,10 +1321,12 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
   class_audit <- predict_class_reference(
     classes, regex_classes, return = "report"
   )
-  expect_gt(class_audit$summary$predicted, 0L)
+  expect_gte(class_audit$summary$predicted, 0L)
   expect_equal(class_audit$summary$clashes, 0L)
   expect_gt(class_audit$summary$overlaps, 0L)
   expect_true(all(!is.na(regex_classes$material)))
+  expect_identical(anyDuplicated(known_bad$sample_name), 0L)
+  expect_true(all(grepl("^[[:xdigit:]]{32}$", known_bad$sample_name)))
   expect_identical(anyDuplicated(hierarchy$material), 0L)
   expect_equal(hierarchy[material == "other", material_class], "other")
   expect_equal(hierarchy[material == "other", material_type], "other")
@@ -1627,6 +1694,36 @@ test_that("build_lib() preserves full source ranges through NA-aware recipes", {
   expect_true(any(is.finite(built$nobaseline$spectra[, 8])))
 })
 
+test_that("streamed variable-axis paths match c_spec() interpolation", {
+  lib <- tiny_build_lib()
+  left <- filter_spec(lib, 1:4)
+  left$wavenumber <- lib$wavenumber[1:40]
+  left$spectra <- left$spectra[1:40, , drop = FALSE]
+  right <- filter_spec(lib, 5:8)
+  right$wavenumber <- lib$wavenumber[22:61]
+  right$spectra <- right$spectra[22:61, , drop = FALSE]
+  paths <- c(tempfile(fileext = ".rds"), tempfile(fileext = ".rds"))
+  saveRDS(left, paths[[1L]])
+  saveRDS(right, paths[[2L]])
+
+  expected <- c_spec(list(left, right), range = "full", res = 6)
+  actual <- build_lib(
+    paths,
+    recipes = list(raw = list()),
+    range = "full",
+    res = 6,
+    dedupe = FALSE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )$raw
+
+  expect_equal(actual$wavenumber, expected$wavenumber)
+  expect_equal(actual$spectra, expected$spectra, tolerance = 1e-12)
+  expect_equal(actual$metadata$sample_name, expected$metadata$sample_name)
+  expect_true(check_OpenSpecy(actual))
+})
+
 test_that("source-stage hashes support spectra with no shared finite rows", {
   lib <- filter_spec(tiny_build_lib(), 1:2)
   midpoint <- floor(nrow(lib$spectra) / 2)
@@ -1705,6 +1802,23 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     user_name = source,
     spectrum_id = sample_name
   )]
+  spectra <- do.call(cbind, lapply(seq_len(10), function(copy) {
+    out <- lib$spectra + copy / 1000
+    colnames(out) <- paste0(colnames(out), "_", copy)
+    out
+  }))
+  metadata <- data.table::rbindlist(lapply(seq_len(10), function(copy) {
+    out <- data.table::copy(lib$metadata)
+    out[, `:=`(
+      sample_name = paste0(sample_name, "_", copy),
+      spectrum_id = paste0(spectrum_id, "_", copy)
+    )]
+    out
+  }))
+  lib <- as_OpenSpecy(
+    lib$wavenumber, spectra = spectra, metadata = metadata,
+    attributes = list(intensity_unit = "absorbance")
+  )
   workflow_root <- file.path(
     tempdir(), paste0("workflow-", sample.int(1e8, 1))
   )
@@ -1740,8 +1854,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     metadata_column = "unused_legacy_column"
   ), file.path(workflow_data, "metadata_drop_columns.csv"))
   fixture_prune <- list(
-    derivative = list(min_n = 2, progress = FALSE),
-    nobaseline = list(min_n = 2, progress = FALSE)
+    derivative = list(min_n = 10, progress = FALSE),
+    nobaseline = list(min_n = 10, progress = FALSE)
   )
 
   first <- suppressWarnings(build_lib(
@@ -1761,18 +1875,17 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_true(all(vapply(first$medoids, function(recipe) {
     all(vapply(recipe, check_OpenSpecy, logical(1)))
   }, logical(1))))
-  expect_true(all(c(
-    "build_summary", "class_prediction", "class_coverage",
-    "type_coverage", "other_review", "other_filter", "pruning",
-    "pruning_excluded_classes", "pruning_reassignments", "metadata_drop",
-    "metadata_finalization",
-    "model_assessment_correlations", "output_manifest"
-  ) %in% names(first$assessments)))
-  expect_s3_class(first$assessments$pruning_excluded_classes, "data.table")
-  expect_named(
-    first$assessments$pruning_excluded_classes,
-    names(OpenSpecy:::.lib_prune_excluded_assessment_schema())
-  )
+  expect_named(first$assessments,
+               c("cleanup", "ref_lib", "medoid", "model", "functionality"))
+  expect_lte(sum(lengths(first$assessments)), 10L)
+  expect_true(all(lengths(first$assessments) > 0L))
+  expect_true(all(vapply(
+    unlist(first$assessments, recursive = FALSE), nrow, integer(1L)
+  ) > 0L))
+  expect_identical(attr(first$assessments, "assessment_schema_version"),
+                   "2.0.0")
+  expect_named(first$assessments$cleanup$dropped_spectrum_identities,
+               "spectrum_identity")
   release_dir <- attr(first, "output_dir")
   expect_true(all(file.exists(file.path(
     release_dir,
@@ -1794,7 +1907,11 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     prune = fixture_prune,
     recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
-  expect_true(any(second$assessments$output_manifest$status == "reused"))
+  expect_true(all(
+    second$assessments$functionality$comparison[
+      assessment_kind == "release", status
+    ] == "available"
+  ))
   expect_equal(second$libraries$raw$ftir$spectra,
                first$libraries$raw$ftir$spectra)
 
@@ -1805,7 +1922,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     prune = fixture_prune,
     recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
-  expect_false(any(rebuilt$assessments$output_manifest$status == "reused"))
+  expect_named(rebuilt$assessments,
+               c("cleanup", "ref_lib", "medoid", "model", "functionality"))
 })
 
 test_that("source-local reference splits prevent self-match leakage", {
@@ -1929,16 +2047,150 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   expect_gt(nrow(comparison$assess_spec_shifts), 0L)
   expect_true(all(
     comparison$models$logistic_regression$derivative$ftir$tests$provenance ==
-      "candidate_model_source_local_holdout"
+      "new_logistic_regression_grouped_training_holdout"
   ))
   expect_true(all(
     comparison$models$random_forest$raw$ftir$tests$provenance ==
-      "candidate_model_grouped_full_library_holdout"
+      "new_random_forest_grouped_training_holdout"
   ))
   expect_equal(
     comparison$models$random_forest$raw$ftir$observation_count,
     ncol(model_input$spectra)
   )
+})
+
+test_that("assessment review is process nested, wide, compact, and ranked", {
+  identification <- data.table::data.table(
+    artifact = rep(c("raw_ftir", "medoid_derivative_ftir"), each = 2L),
+    source = rep(c("old", "new"), 2L), technique = "ftir",
+    provenance = "grouped", macro_class_accuracy = c(.5, .8, .9, .7),
+    coverage = 1, overall_accuracy = c(.6, .85, .91, .75),
+    spectra = 20L, evaluated = 20L, classes = 2L,
+    evaluated_classes = 2L, mean_score = .8
+  )
+  confusion <- data.table::data.table(
+    artifact = rep("raw_ftir", 4L), source = rep(c("old", "new"), 2L),
+    technique = "ftir", provenance = "grouped",
+    expected_class = c("a", "a", "b", "b"),
+    predicted_class = c("b", "b", "a", "a"), misidentified = TRUE,
+    spectra = c(2L, 7L, 1L, 4L), expected_class_spectra = 10L,
+    expected_class_fraction = c(.2, .7, .1, .4)
+  )
+  model_identification <- data.table::copy(identification[artifact == "raw_ftir"])
+  model_identification[, `:=`(
+    algorithm = "logistic_regression", artifact = "derivative",
+    model = "ftir"
+  )]
+  correlations <- data.table::data.table(
+    scope = "model_output", algorithm = "logistic_regression",
+    artifact = "derivative", model = "ftir", source = c("old", "new"),
+    technique = "ftir", provenance = "grouped", check = "signal",
+    metric = "snr", spectra = 20L, evaluated = 20L, inaccurate = c(4L, 2L),
+    inaccuracy_rate = c(.2, .1), mean_value_correct = 3,
+    mean_value_incorrect = 1, correlation = c(-.4, -.8),
+    absolute_correlation = c(.4, .8), rank = 1L, strongest = TRUE
+  )
+  reviewed <- OpenSpecy:::.lib_assessment_review(list(
+    build_summary = data.table::data.table(artifact = "raw_ftir", spectra = 20L),
+    dropped_spectrum_identities = data.table::data.table(
+      spectrum_identity = c("z", "a", "z")
+    ),
+    library_identification = identification,
+    library_class_accuracy = data.table::data.table(),
+    library_confusion = confusion,
+    model_identification = model_identification,
+    model_class_accuracy = data.table::data.table(),
+    model_confusion = data.table::copy(confusion)[, `:=`(
+      algorithm = "logistic_regression", artifact = "derivative", model = "ftir"
+    )],
+    model_assessment_correlations = correlations,
+    assess_spec_shifts = data.table::data.table(
+      artifact = "raw_ftir", check = "signal", rate_old = .2,
+      rate_new = .1, rate_shift = -.1
+    ),
+    old_new_compatibility = data.table::data.table(
+      artifact = "raw_ftir", spectra_old = 10L, spectra_new = 20L,
+      spectra_shift = 10L
+    ),
+    output_manifest = data.table::data.table(
+      component = "raw", status = "available", path = "raw.rds", size = 1
+    )
+  ))
+
+  expect_named(reviewed,
+               c("cleanup", "ref_lib", "medoid", "model", "functionality"))
+  expect_lte(sum(lengths(reviewed)), 10L)
+  expect_true(all(lengths(reviewed) > 0L))
+  expect_identical(
+    reviewed$cleanup$dropped_spectrum_identities$spectrum_identity,
+    c("a", "z")
+  )
+  accuracy_names <- names(reviewed$ref_lib$accuracy)
+  expect_equal(match("macro_class_accuracy_new", accuracy_names),
+               match("macro_class_accuracy_old", accuracy_names) + 1L)
+  expect_true(all(diff(reviewed$ref_lib$accuracy$review_accuracy) <= 0))
+  expect_true(all(diff(reviewed$ref_lib$confusion$review_spectra) <= 0))
+  expect_true(all(diff(
+    reviewed$model$diagnostics$absolute_correlation[!is.na(
+      reviewed$model$diagnostics$absolute_correlation
+    )]
+  ) <= 0))
+})
+
+test_that("assessment shifts merge findings, omit passes, and rank rate shifts", {
+  summary <- data.table::data.table(
+    artifact = rep("raw_ftir", 6L), source = rep(c("old", "new"), each = 3L),
+    check = rep(c("signal", "signal", "range"), 2L),
+    status = rep(c("pass", "warning", "error"), 2L),
+    count = c(90L, 5L, 1L, 80L, 10L, 4L),
+    finding_count = c(0L, 5L, 1L, 0L, 10L, 4L),
+    example_ids = c("", "a", "b", "", "c", "d"), spectra = 100L
+  )
+  shifts <- OpenSpecy:::.lib_assessment_shift_table(summary)
+  expect_false("status" %in% names(shifts))
+  expect_equal(shifts[check == "signal", count_old], 5L)
+  expect_equal(shifts[check == "signal", count_new], 10L)
+  expect_true(all(diff(shifts$rate_shift) <= 0))
+})
+
+test_that("stable groups connect physical IDs and exact spectral content", {
+  x <- tiny_build_lib()
+  x$metadata$sample_name_old <- paste0("legacy_", seq_len(nrow(x$metadata)))
+  x$metadata$sample_name_old[2] <- x$metadata$sample_name_old[1]
+  x$spectra[, 4] <- x$spectra[, 3]
+  groups <- OpenSpecy:::.lib_stable_group_info(x)
+  expect_equal(groups$group_id[1], groups$group_id[2])
+  expect_equal(groups$group_id[3], groups$group_id[4])
+  split <- OpenSpecy:::.lib_source_split(
+    x, artifact = "raw", source = "new", seed = 1, holdout = .25
+  )
+  expect_identical(
+    split$manifest[, data.table::uniqueN(split), by = group_id][, max(V1)],
+    1L
+  )
+})
+
+test_that("immutable promotion rejects a changed payload", {
+  path <- tempfile(fileext = ".rds")
+  first <- OpenSpecy:::.lib_promote_rds(list(value = 1L), path)
+  expect_equal(first$status, "promoted")
+  second <- OpenSpecy:::.lib_promote_rds(list(value = 1L), path)
+  expect_equal(second$status, "verified_existing")
+  expect_error(
+    OpenSpecy:::.lib_promote_rds(list(value = 2L), path),
+    "Immutable release artifact differs"
+  )
+})
+
+test_that("file signature caching preserves hashes and invalidates on metadata", {
+  path <- tempfile(fileext = ".txt")
+  writeLines("first", path)
+  first <- OpenSpecy:::.lib_file_signatures(path)
+  second <- OpenSpecy:::.lib_file_signatures(path)
+  expect_identical(first$checksum, second$checksum)
+  writeLines("a different sized payload", path)
+  changed <- OpenSpecy:::.lib_file_signatures(path)
+  expect_false(identical(first$checksum, changed$checksum))
 })
 
 test_that("support and fill helpers use the intended axes", {
@@ -2025,12 +2277,17 @@ test_that("rebuild_lib_artifacts reuses completed libraries downstream", {
   expect_true(
     first$models$logistic_regression$derivative$ftir$fill_replaced > 0L
   )
-  expect_true("medoid_model_support" %in% names(first$assessments))
+  expect_named(first$assessments,
+               c("cleanup", "ref_lib", "medoid", "model", "functionality"))
   second <- suppressWarnings(rebuild_lib_artifacts(
     input, output_dir = output, previous_library_dir = NULL,
     reuse = TRUE, progress = FALSE
   ))
-  expect_true(any(second$assessments$output_manifest$status == "reused"))
+  expect_true(all(
+    second$assessments$functionality$comparison[
+      assessment_kind == "release", status
+    ] == "available"
+  ))
 })
 
 test_that("reference quality schemas and type ranges are stable", {

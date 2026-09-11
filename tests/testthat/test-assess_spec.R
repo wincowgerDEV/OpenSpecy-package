@@ -444,3 +444,21 @@ test_that("high-tail checks use each spectrum's finite endpoints", {
   expect_false(any(assessed$status == "error"))
   expect_true(all(assessed$status == "pass"))
 })
+
+test_that("artifact metrics preserve column order across bounded batches", {
+  object <- as_OpenSpecy(
+    x = seq(2000, 2600, length.out = 40),
+    spectra = as.data.frame(matrix(seq_len(40 * 7), nrow = 40, ncol = 7)),
+    metadata = data.table::data.table(file_name = paste0("sample_", 1:7))
+  )
+  object$spectra[c(1, 40), c(2, 5)] <- NA_real_
+
+  expected <- OpenSpecy:::.artifact_ratio_metrics_block(object)
+  actual <- OpenSpecy:::.artifact_ratio_metrics(object, batch_size = 2L)
+
+  expect_named(actual, names(expected))
+  expect_identical(actual$tail_n, expected$tail_n)
+  for (field in setdiff(names(expected), "tail_n")) {
+    expect_equal(actual[[field]], expected[[field]])
+  }
+})

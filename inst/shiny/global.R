@@ -58,10 +58,8 @@ library(OpenSpecy)
 validate_wasm_package_version()
 #library(glmnet)
 
-# Shared, structured explanations for controls used by both the in-place
-# "What this changes" disclosures and the guided walkthrough. Keeping stable
-# topic IDs here prevents the tutorial from drifting away from the controls it
-# demonstrates.
+# Shared, structured explanations for the in-place "What this changes"
+# disclosures. Stable topic IDs keep guidance aligned with the controls.
 app_guidance_registry <- list(
   min_max_normalize = list(
     title = "Min-Max Normalize",
@@ -197,143 +195,6 @@ app_identification_compatibility_warnings <- function(settings) {
     )
   }
   messages
-}
-
-# Tutorial definitions contain only UI state and stable guidance references.
-# The server applies them with the ordinary input updaters and then clicks the
-# existing Run button; there is no tutorial-only analysis implementation.
-app_tutorial_workflows <- function() {
-  list(
-    process = list(
-      label = "Process", icon = "sliders-h",
-      summary = "Compare a normalized spectrum with its uploaded intensity scale.",
-      steps = list(
-        list(
-          title = "A: normalized processing", tab = "preprocessing",
-          guidance = "min_max_normalize",
-          explanation = paste(
-            "The packaged Raman HDPE spectrum is loaded and Min-Max Normalize",
-            "is switched on. Run shows relative intensity from 0 to 1."
-          ),
-          values = list(
-            make_rel_decision = TRUE, identification_active = FALSE
-          ),
-          ratio = "clear"
-        ),
-        list(
-          title = "B: uploaded intensity scale", tab = "preprocessing",
-          guidance = "min_max_normalize",
-          explanation = paste(
-            "Min-Max Normalize is now switched off and the same Run is repeated.",
-            "Compare the primary trace and Selection Metadata with step A."
-          ),
-          values = list(
-            make_rel_decision = FALSE, identification_active = FALSE
-          ),
-          ratio = "clear"
-        )
-      )
-    ),
-    identify = list(
-      label = "Identify", icon = "search",
-      summary = "See matching appear when identification and its compatible transform are enabled.",
-      steps = list(
-        list(
-          title = "A: identification off", tab = "identification",
-          guidance = "identification_strategy",
-          explanation = paste(
-            "The packaged Raman HDPE spectrum runs with Identification off.",
-            "There is no reference overlay or Top Matches table."
-          ),
-          values = list(identification_active = FALSE), ratio = "clear"
-        ),
-        list(
-          title = "B: derivative identification", tab = "preprocessing",
-          guidance = c("identification_strategy", "smoothing_derivative"),
-          explanation = paste(
-            "Identification is switched on with the Raman medoid Derivative",
-            "library, absolute first derivative, and rank 1 selected. This",
-            "step opens Preprocessing so the required transform is visible;",
-            "use View result to compare the overlay, metadata, and Top Matches."
-          ),
-          values = list(
-            identification_active = TRUE, id_spec_type = "raman",
-            id_strategy = "deriv", lib_type = "medoid",
-            smooth_decision = TRUE, derivative_order = 1,
-            derivative_abs = TRUE
-          ),
-          ratio = "clear"
-        )
-      )
-    ),
-    quantify = list(
-      label = "Quantify", icon = "calculator",
-      summary = "Add a named area ratio to the same final processed spectrum.",
-      steps = list(
-        list(
-          title = "A: processed spectrum without a saved ratio",
-          tab = "quantification", guidance = "custom_ratios",
-          explanation = paste(
-            "The packaged Raman HDPE spectrum runs with no saved ratio. The",
-            "ratio controls are filled with the example bands but do not yet",
-            "add a metadata result."
-          ),
-          values = list(
-            identification_active = FALSE, quant_ratio_type = "area",
-            quant_ratio_name = "Carbonyl area",
-            quant_numerator_area_min = 1650,
-            quant_numerator_area_max = 1850,
-            quant_denominator_area_min = 1420,
-            quant_denominator_area_max = 1500
-          ),
-          ratio = "clear"
-        ),
-        list(
-          title = "B: Carbonyl area ratio saved", tab = "quantification",
-          guidance = "custom_ratios",
-          explanation = paste(
-            "The named 1650-1850 / 1420-1500 cm^-1 area ratio is added and",
-            "the ordinary Run is repeated. Its value now appears in Selection",
-            "Metadata and processed downloads."
-          ),
-          values = list(
-            identification_active = FALSE, quant_ratio_type = "area",
-            quant_ratio_name = "Carbonyl area",
-            quant_numerator_area_min = 1650,
-            quant_numerator_area_max = 1850,
-            quant_denominator_area_min = 1420,
-            quant_denominator_area_max = 1500
-          ),
-          ratio = "carbonyl_area"
-        )
-      )
-    )
-  )
-}
-
-app_tutorial_step <- function(workflow, step) {
-  tutorials <- app_tutorial_workflows()
-  if(length(workflow) != 1L || !workflow %in% names(tutorials)) {
-    stop("Unknown walkthrough: ", workflow, call. = FALSE)
-  }
-  step <- suppressWarnings(as.integer(step)[1L])
-  steps <- tutorials[[workflow]]$steps
-  if(is.na(step) || step < 1L || step > length(steps)) {
-    stop("Walkthrough step is out of range.", call. = FALSE)
-  }
-  steps[[step]]
-}
-
-app_tutorial_file_info <- function(path) {
-  if(length(path) != 1L || is.na(path) || !file.exists(path)) {
-    stop("The packaged Raman HDPE tutorial file is unavailable.", call. = FALSE)
-  }
-  data.frame(
-    name = "raman_hdpe.csv", size = unname(file.info(path)$size),
-    type = "text/csv",
-    datapath = normalizePath(path, winslash = "/", mustWork = TRUE),
-    stringsAsFactors = FALSE
-  )
 }
 
 app_initial_result_selection <- function(object, pixel_to_unit = NULL) {

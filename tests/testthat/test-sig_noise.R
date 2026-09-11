@@ -57,6 +57,20 @@ test_that("sig_noise() run signal-to-noise is matrix-equivalent with NA tails", 
   expect_equal(sig_noise(multi, step = 10), abs(legacy))
 })
 
+test_that("run signal-to-noise preserves results across bounded batches", {
+  spectra <- matrix(seq_len(80 * 7), nrow = 80, ncol = 7)
+  spectra[c(1, 80), c(2, 5)] <- NA_real_
+
+  expected <- OpenSpecy:::.run_sig_over_noise_matrix(
+    spectra, step = 10, batch_size = ncol(spectra)
+  )
+  actual <- OpenSpecy:::.run_sig_over_noise_matrix(
+    spectra, step = 10, batch_size = 2L
+  )
+
+  expect_equal(actual, expected)
+})
+
 test_that("entropy results in accurate info", {
     sig_noise(raman_hdpe, 
               metric = "entropy",

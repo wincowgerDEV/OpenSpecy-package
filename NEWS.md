@@ -1,5 +1,19 @@
 # OpenSpecy 1.7.1
 
+- Official reference builds now return at most ten nonempty assessment tables
+  nested by `cleanup`, `ref_lib`, `medoid`, `model`, and `functionality`.
+  Old/new metrics are wide and adjacent; accuracy, confusion, model-correlation,
+  and warning/error-shift tables are ranked for direct review. Row-level tests
+  and split manifests remain attached as hash-addressed evidence.
+- Reference and model holdouts now group physical IDs and exact transformed
+  spectral duplicates, and both logistic and random-forest assessment models
+  are refit only on grouped training rows. Failed CO2 corrections and flat
+  processed spectra fail closed, while releases and checkpoints use SHA-256
+  payload verification and immutable versioned paths.
+- Replaced the legacy broad plate-ID substring filter with 139 reviewed exact
+  spectrum IDs, restoring 31 valid `7_b10`--`7_b12` FTIR plastic spectra.
+  Corrected the spreadsheet-mutated `4-5` identity and added an exact PVDC
+  mapping for the newly reviewed dataset.
 - Added experimental `estimate_temperature()` and `calculate_emissivity()`
   diagnostics for calibrated, surface-leaving FTIR spectral radiance. The
   in-memory method uses bounded matrix blocks for large hyperspectral maps and
@@ -11,9 +25,9 @@
   quality diagnostics, not library-identification spectra, and remain
   experimental pending validation on traceable measured particle/background
   data.
-- Added an in-app **Walk me through** guide with Process, Identify, and
-  Quantify lessons that use packaged test spectra and the same explanatory
-  guidance as the app controls.
+- Removed the in-app **Walk me through** guide while retaining the concise,
+  control-adjacent **What this changes** guidance. A video tutorial can be
+  linked when its replacement is ready.
 - Added versioned browser caching and a new GitHub Action that packages the
   exact pinned Shinylive Pages build as self-contained offline archives for
   Windows, macOS, and Linux. Their native loopback launcher needs no R, Python,
@@ -91,7 +105,10 @@
   inputs while preserving its existing vector behavior.
 - Large medoid groups now use deterministic `cluster::pam(variant = "faster")`
   initialization, avoiding the prior quadratic-times-k BUILD phase while
-  retaining FasterPAM swaps and reproducible selected identifiers.
+  retaining FasterPAM swaps and reproducible selected identifiers. Groups over
+  3,000 spectra use five deterministic 1,000-spectrum PAM samples scored
+  against the complete group with correlation distance, avoiding oversized
+  full dissimilarity matrices while preserving reproducible medoid selection.
 - Candidate medoids/models are now tested on independently stratified candidate
   library samples and legacy artifacts on legacy library samples. Exact class
   labels are used within each source, reference self-matches are removed, and

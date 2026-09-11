@@ -209,7 +209,7 @@ spectrum_identity,material
 "4,5-(methylenedioxy)-2-aminoindan hcl (lot #n16-p75c)",other material
 "4,6-dinitro-m-xylene",other material
 4-(2-aminopropyl)benzofuran hcl (lot #n17-p87b),other material
-5-Apr,
+4-5,
 4-acetamidophenol,other material
 4-acetoxy-det hcl (lot #0496888-7),other material
 4-acetoxy-mipt hcl (lot #0541115-2),other material
@@ -7337,7 +7337,7 @@ mffrc130_polyacrylate (inidex)_courtaulds,polyacrylates
 mffrc131_polyacrylate (vectran hs)_hoechst celanese,polyacrylates
 mffrc132_polyester (pet)_albany international,polyesters
 mffrc133_polyester (pen)_allied signal fibers,polyesters
-mffrc134_pvdc (nonbur n90 (mac))_asahi chemical c,
+mffrc134_pvdc (nonbur n90 (mac))_asahi chemical c,poly(vinylidene chloride)
 "mffrc135_polyester (pcdt, vestan 16)_bayer",polyesters
 mffrc136_polyester (coolmax)_du pont,polyesters
 "mffrc137_polyester (pet, dacron 242)_du pont",polyesters

@@ -1,6 +1,9 @@
-# Manual reference-library validation with three explicit modes:
+# Manual reference-library validation with four explicit modes:
 # - saved (default): retain the earlier saved-build taxonomy/pruning checks;
-# - probe: development-only end-to-end build of 1,000 sampled legacy raw spectra;
+# - probe: development-only end-to-end build of up to 1,000 class-balanced
+#   FTIR/Raman legacy spectra;
+# - artifact-metrics: repeated same-output comparisons of unbatched and bounded
+#   artifact-ratio, signal/noise, and pruning correlations;
 # - full: complete candidate build and comprehensive comparison with all seven
 #   downloaded legacy artifacts.
 # Set OPENSPECY_REFERENCE_VALIDATION_MODE and the path variables named below.
@@ -14,6 +17,100 @@ if (requireNamespace("pkgload", quietly = TRUE)) {
 }
 
 mode <- Sys.getenv("OPENSPECY_REFERENCE_VALIDATION_MODE", unset = "saved")
+if (identical(mode, "artifact-metrics")) {
+  spectra <- raman_hdpe$spectra[, rep(1L, 1000L), drop = FALSE]
+  spectra <- sweep(spectra, 2L, seq_len(ncol(spectra)) / 1e6, "+")
+  colnames(spectra) <- paste0("metric_", seq_len(ncol(spectra)))
+  object <- as_OpenSpecy(
+    raman_hdpe$wavenumber, as.data.frame(spectra),
+    metadata = data.table::data.table(sample_name = paste0("metric_", 1:1000))
+  )
+  old <- OpenSpecy:::.artifact_ratio_metrics_block(object)
+  new <- OpenSpecy:::.artifact_ratio_metrics(object, batch_size = 200L)
+  stopifnot(identical(names(old), names(new)))
+  for (field in setdiff(names(old), "tail_n")) {
+    stopifnot(isTRUE(all.equal(old[[field]], new[[field]])))
+  }
+  elapsed <- function(fun) {
+    replicate(3L, system.time(fun())[["elapsed"]])
+  }
+  old_seconds <- elapsed(function() {
+    OpenSpecy:::.artifact_ratio_metrics_block(object)
+  })
+  new_seconds <- elapsed(function() {
+    OpenSpecy:::.artifact_ratio_metrics(object, batch_size = 200L)
+  })
+  result <- data.table::data.table(
+    implementation = rep(c("unbatched", "bounded"), each = 3L),
+    elapsed_seconds = c(old_seconds, new_seconds)
+  )
+  print(result)
+  if (stats::median(new_seconds) > 3 * stats::median(old_seconds)) {
+    stop("Bounded artifact metrics are more than 3x slower than unbatched")
+  }
+  old_snr <- OpenSpecy:::.run_sig_over_noise_matrix(
+    object$spectra, step = 10L, batch_size = ncol(object$spectra)
+  )
+  new_snr <- OpenSpecy:::.run_sig_over_noise_matrix(
+    object$spectra, step = 10L, batch_size = 200L
+  )
+  stopifnot(isTRUE(all.equal(old_snr, new_snr)))
+  old_snr_seconds <- elapsed(function() {
+    OpenSpecy:::.run_sig_over_noise_matrix(
+      object$spectra, step = 10L, batch_size = ncol(object$spectra)
+    )
+  })
+  new_snr_seconds <- elapsed(function() {
+    OpenSpecy:::.run_sig_over_noise_matrix(
+      object$spectra, step = 10L, batch_size = 200L
+    )
+  })
+  snr_result <- data.table::data.table(
+    implementation = rep(c("unbatched_snr", "bounded_snr"), each = 3L),
+    elapsed_seconds = c(old_snr_seconds, new_snr_seconds)
+  )
+  print(snr_result)
+  if (stats::median(new_snr_seconds) > 3 * stats::median(old_snr_seconds)) {
+    stop("Bounded running S/N is more than 3x slower than unbatched")
+  }
+  prune_query <- seq_len(100L)
+  prune_candidates <- seq_len(ncol(object$spectra))
+  prune_ids <- colnames(object$spectra)
+  normalized <- OpenSpecy:::.lib_prune_normalize(
+    object$spectra, object$wavenumber, c(2200, 2420)
+  )
+  old_prune <- OpenSpecy:::.lib_prune_correlations(
+    object, prune_query, prune_candidates, c(2200, 2420), prune_ids
+  )
+  new_prune <- OpenSpecy:::.lib_prune_best_match(
+    prune_query, prune_candidates, normalized, prune_ids,
+    exclude_self = TRUE, block_size = 32L
+  )
+  old_prune_best <- matrixStats::rowMaxs(old_prune)
+  tolerance <- sqrt(.Machine$double.eps) * pmax(1, abs(old_prune_best))
+  stopifnot(all(abs(new_prune$correlation - old_prune_best) <= tolerance))
+  old_prune_seconds <- elapsed(function() {
+    OpenSpecy:::.lib_prune_correlations(
+      object, prune_query, prune_candidates, c(2200, 2420), prune_ids
+    )
+  })
+  new_prune_seconds <- elapsed(function() {
+    OpenSpecy:::.lib_prune_best_match(
+      prune_query, prune_candidates, normalized, prune_ids,
+      exclude_self = TRUE, block_size = 32L
+    )
+  })
+  prune_result <- data.table::data.table(
+    implementation = rep(c("full_matrix_prune", "bounded_prune"), each = 3L),
+    elapsed_seconds = c(old_prune_seconds, new_prune_seconds)
+  )
+  print(prune_result)
+  if (stats::median(new_prune_seconds) >
+      5 * stats::median(old_prune_seconds)) {
+    stop("Bounded pruning correlation is more than 5x slower than full matrix")
+  }
+  quit(save = "no", status = 0L)
+}
 if (identical(mode, "probe")) {
   seed <- as.integer(Sys.getenv("OPENSPECY_VALIDATION_SEED", unset = "123"))
   output <- Sys.getenv(
@@ -39,13 +136,29 @@ if (identical(mode, "probe")) {
   fill <- is.na(organization) | !nzchar(organization)
   organization[fill] <- fallback[fill]
   eligible <- organization %in% types$organization &
-    !is.na(raw$metadata$spectrum_type) & nzchar(raw$metadata$spectrum_type)
+    tolower(raw$metadata$spectrum_type) %in% c("ftir", "raman") &
+    !is.na(raw$metadata$material_class) & nzchar(raw$metadata$material_class)
   eligible[is.na(eligible)] <- FALSE
-  eligible <- which(eligible)
-  if (length(eligible) < 1000L) {
-    stop("Legacy raw library has fewer than 1,000 safely typed spectra")
+  pool <- data.table::data.table(
+    row = which(eligible),
+    spectrum_type = tolower(raw$metadata$spectrum_type[eligible]),
+    material_class = as.character(raw$metadata$material_class[eligible])
+  )[!tolower(material_class) %in% c("other", "other plastic", "other material")]
+  supported <- pool[, .N, by = .(spectrum_type, material_class)][N >= 40L]
+  supported <- supported[order(spectrum_type, -N)][, head(.SD, 5L),
+                                                   by = spectrum_type]
+  if (supported[, data.table::uniqueN(material_class), by = spectrum_type][
+      , any(V1 < 2L)]) {
+    stop("Probe requires at least two supported classes per selected type")
   }
-  probe <- filter_spec(raw, sample(eligible, 1000L))
+  selected <- unlist(lapply(seq_len(nrow(supported)), function(i) {
+    rows <- pool[
+      spectrum_type == supported$spectrum_type[[i]] &
+        material_class == supported$material_class[[i]], row
+    ]
+    sample(rows, min(length(rows), 100L))
+  }), use.names = FALSE)
+  probe <- filter_spec(raw, selected)
   result <- build_lib(
     probe, output_dir = output, previous_library_dir = NULL,
     reuse = reuse, remove_other = TRUE, seed = seed
@@ -58,11 +171,14 @@ if (identical(mode, "probe")) {
     identical(names(result),
               c("libraries", "medoids", "models", "assessments")),
     all(vapply(result$libraries, valid_type_map, logical(1))),
-    all(vapply(result$medoids, valid_type_map, logical(1)))
+    all(vapply(result$medoids, valid_type_map, logical(1))),
+    identical(names(result$assessments),
+              c("cleanup", "ref_lib", "medoid", "model", "functionality")),
+    sum(lengths(result$assessments)) <= 10L
   )
-  print(result$assessments$build_summary)
-  print(result$assessments$output_manifest)
-  message("Development-only 1,000-spectrum probe retained at: ", output)
+  print(result$assessments$cleanup$summary[, .N, by = assessment_kind])
+  print(result$assessments$functionality$comparison)
+  message("Development-only class-balanced probe retained at: ", output)
   quit(save = "no", status = 0L)
 }
 
@@ -70,26 +186,36 @@ if (identical(mode, "full")) {
   workflow <- new.env(parent = globalenv())
   sys.source("workflows/OpenSpecy_reference_library.R", envir = workflow)
   result <- workflow$reference_library_build
+  evidence <- attr(result$assessments, "evidence", exact = TRUE)
+  leaves <- unlist(result$assessments, recursive = FALSE)
   stopifnot(
-    nrow(result$assessments$split_manifest) > 0L,
-    nrow(result$assessments$library_identification) > 0L,
-    nrow(result$assessments$model_identification) > 0L,
-    nrow(result$assessments$assess_spec_shifts) > 0L,
-    !anyDuplicated(result$assessments$split_manifest[
-      , paste(artifact, group_id, sep = "\r")
-    ])
+    identical(names(result$assessments),
+              c("cleanup", "ref_lib", "medoid", "model", "functionality")),
+    sum(lengths(result$assessments)) <= 10L,
+    all(vapply(leaves, nrow, integer(1L)) > 0L),
+    identical(names(result$assessments$cleanup$dropped_spectrum_identities),
+              "spectrum_identity"),
+    nrow(evidence$split_manifest) > 0L,
+    nrow(evidence$library_tests) > 0L,
+    nrow(evidence$model_tests) > 0L,
+    !nrow(evidence$split_manifest[
+      , data.table::uniqueN(split), by = .(artifact, source, group_id)
+    ][V1 > 1L])
   )
-  print(result$assessments$library_identification)
-  print(result$assessments$model_identification)
-  print(result$assessments$assess_spec_shifts)
-  print(result$assessments$old_new_compatibility)
-  print(result$assessments$output_manifest)
+  print(result$assessments$ref_lib$accuracy)
+  print(result$assessments$medoid$accuracy)
+  print(result$assessments$model$accuracy)
+  print(result$assessments$model$diagnostics)
+  print(result$assessments$functionality$comparison)
   message("Full candidate release retained at: ", attr(result, "output_dir"))
   quit(save = "no", status = 0L)
 }
 
 if (!identical(mode, "saved")) {
-  stop("OPENSPECY_REFERENCE_VALIDATION_MODE must be saved, probe, or full")
+  stop(paste(
+    "OPENSPECY_REFERENCE_VALIDATION_MODE must be saved, probe,",
+    "artifact-metrics, or full"
+  ))
 }
 
 path <- Sys.getenv("OPENSPECY_SAVED_LIBRARIES")

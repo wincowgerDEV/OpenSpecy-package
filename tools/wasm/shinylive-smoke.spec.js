@@ -693,10 +693,16 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
+  await expect(appFrame.locator("html")).not.toHaveClass(
+    /\bopenspecy-busy-visible\b/, { timeout: 30000 }
+  );
   await expect(embed).toHaveClass(/\bis-fullscreen\b/);
 
   {
     await appFrame.locator("html").evaluate(() => {
+      // Discard callbacks queued while the overlay's idle grace was settling.
+      // From this point onward, only a genuine post-result reappearance counts.
+      window.__openspecyBusyTransitions = [];
       window.__openspecyResultSeenAt = performance.now();
     });
     await page.waitForTimeout(1000);

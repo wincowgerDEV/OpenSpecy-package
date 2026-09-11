@@ -560,17 +560,6 @@ dashboardPage(
     ),
     rightUi = tagList(
       tags$li(
-        class = "dropdown nav-item openspecy-walkthrough-item",
-        shinyjs::disabled(
-          actionButton(
-            "walkthrough_open", "Walk me through",
-            icon = icon("route"),
-            class = "openspecy-walkthrough-button",
-            title = "Open a guided Process, Identify, or Quantify walkthrough"
-          )
-        )
-      ),
-      tags$li(
         class = "dropdown nav-item openspecy-version-item",
         tags$a(
           app_version_display$text,
@@ -846,11 +835,6 @@ dashboardPage(
           align-items: center;
           margin-right: 10px;
         }
-        .openspecy-walkthrough-item {
-          display: flex;
-          align-items: center;
-          margin-right: 10px;
-        }
         .openspecy-version-item { display: flex; align-items: center; }
         .openspecy-version-link {
           font-size: 19px;
@@ -871,68 +855,6 @@ dashboardPage(
           border-color: var(--openspecy-accent) !important;
           font-weight: 700;
           white-space: nowrap;
-        }
-        .btn.openspecy-walkthrough-button {
-          color: var(--openspecy-canvas) !important;
-          background: var(--openspecy-success) !important;
-          border-color: var(--openspecy-success) !important;
-          font-weight: 800;
-          white-space: nowrap;
-        }
-        .openspecy-tutorial-choices {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 12px;
-          margin: 18px 0;
-        }
-        .btn.openspecy-tutorial-choice {
-          min-height: 112px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 18px;
-          color: var(--openspecy-text) !important;
-          background: var(--openspecy-panel-2) !important;
-          border: 2px solid var(--openspecy-accent) !important;
-          font-size: 1.2rem;
-          font-weight: 800;
-          white-space: normal;
-        }
-        .btn.openspecy-tutorial-choice:hover,
-        .btn.openspecy-tutorial-choice:focus {
-          color: var(--openspecy-canvas) !important;
-          background: var(--openspecy-accent) !important;
-          outline: 3px solid var(--openspecy-text);
-          outline-offset: 2px;
-        }
-        .openspecy-tutorial-replacement {
-          padding: 10px 12px;
-          border-left: 4px solid var(--openspecy-warning, #F59E0B);
-          background: var(--openspecy-panel-2);
-        }
-        .openspecy-tutorial-progress {
-          color: var(--openspecy-muted);
-          font-weight: 700;
-        }
-        .openspecy-tutorial-guidance {
-          margin-top: 14px;
-          padding: 12px;
-          border: 1px solid var(--openspecy-grid);
-          border-radius: 6px;
-        }
-        .openspecy-tutorial-actions {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-          gap: 8px;
-          width: 100%;
-        }
-        .openspecy-tutorial-highlight {
-          outline: 4px solid var(--openspecy-success) !important;
-          outline-offset: 3px;
-          box-shadow: 0 0 0 7px rgba(34, 197, 94, .24) !important;
         }
         .btn.openspecy-run-button {
           display: inline-flex;
@@ -1357,15 +1279,12 @@ dashboardPage(
           }
           .openspecy-upload-column { margin-bottom: 8px; }
           .openspecy-support-button { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
-          .openspecy-tutorial-choices { grid-template-columns: 1fr; }
         }
         @media (max-width: 575px) {
           .openspecy-summary-grid > .openspecy-summary-panel { flex-basis: 100%; }
           .openspecy-quality-controls { grid-template-columns: 1fr; }
           .main-footer { text-align: left; }
           .openspecy-support-button { max-width: 52px; }
-          .openspecy-walkthrough-button { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
-          .openspecy-tutorial-actions .btn { flex: 1 1 calc(50% - 8px); }
         }
       ")))
     ),

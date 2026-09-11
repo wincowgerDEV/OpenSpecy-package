@@ -2,7 +2,7 @@
 
 **Feature dir**: `specs/032-reference-library-accuracy-hardening`  
 **Date**: 2026-09-10  
-**Status**: Proposed from read-only audit and interpretability review; implementation and rebuilding have not started.  
+**Status**: Implemented and under final checkpointed production verification.
 **Current tranche**: Make official `build_lib()` accuracy evidence independent, interpretable, complete, and reproducible before tuning or publishing another library.  
 **Change class**: package/scientific.
 **Audit target**: `C:\Users\winco\OneDrive\Documents\OpenSpecy_offline\reference-library-build\releases\75b72a79d864\reference_library_build.rds` (SHA-256 `c4e80dc4778e0a839c41d6692a84279f81b3b63b863b741bae19eab7e29b24ed`).
@@ -48,17 +48,17 @@
 - **Functionality consolidation**: `functionality$comparison` uses `assessment_kind` to separate wide quality-shift, compatibility, integrity, and release rows without more leaves.
 - **Model policy**: do not tune alpha, thresholds, or default routes against `75b72a79d864`. First reproduce all algorithms with identical folds; typed derivative FTIR and typed nobaseline Raman are provisional comparison leaders, not validated recommendations.
 - **Dependencies/generated files**: keep `ranger` in `DESCRIPTION` `Suggests` but require it for official RF builds. Update roxygen/vignette/`NEWS.md` and regenerate `NAMESPACE`/`man/*.Rd` only with roxygen2 8.0.0; `.github/workflows/` is N/A unless CI enforcement is approved.
-- **Performance/observability**: preflight <2 minutes/<2 GiB; probe 1,000 groups/type. Checkpoint each fold/recipe/type/algorithm; target RF fits <30 minutes/<12 GiB and stop at 60 minutes, >2x projection, or unsafe memory.
-- **Bundled Shiny / pipeline diagram**: `inst/shiny/` and `.specify/memory/pipeline-diagram.html` are N/A. Update the assessment/split/promotion boxes in `.specify/memory/build-lib-diagram.html`.
+- **Performance/observability**: preflight <2 minutes/<2 GiB; probe 1,000 groups/type. Batch artifact/SNR/pruning kernels, stage full recipes on disk, consume partitions in place, and use exact PAM through 3,000 spectra or five deterministic 1,000-spectrum PAM samples scored on the full group above that bound. Checkpoint each fold/recipe/type/algorithm; enforce a 12 GiB resident ceiling and stop any non-checkpointed stage at 60 minutes or >2x projection.
+- **Bundled Shiny / pipeline diagram**: this scientific tranche does not alter the app pipeline. A later maintainer-requested maintenance extension removes the guided walkthrough, updates its diagram annotation, and fixes the hosted busy-state smoke assertion without changing spectral processing.
 - **Hosted Shinylive/WebAssembly**: `R/` and docs trigger fast `-HostedAppStatic`; exact-artifact preflight applies only to staged replacements, and clean wasm is N/A unless dependency/pin/release scope changes.
 
 ## Package Surfaces And Work Checklist
 
-- [ ] `R/build_lib.R`: implement stable splits, fold-local builders, the five-process/10-table assessment assembler and sort/pivot rules, exact exclusions, QC/conservation, fail-closed gates, and cryptographic manifests.
-- [ ] `tests/testthat/test-build_lib.R`: prove hierarchy/leaf-count/order, no empty leaves, dropped-identity schema, wide old/new adjacency, required sorts, no leakage, grouped folds, failure gates, immutability, and round trips.
-- [ ] `workflows/data/classes_reference.csv`, `classes_regex.csv`, and new `known_bad_ids.csv`: restore `4-5`, guard date coercion, replace broad exclusions with reviewed exact IDs, and report all mapping/removal denominators.
-- [ ] `benchmarks/reference_library_validation.R` and `reference_library_raman_alpha.R`: consume the new paths, verify sort/pivot invariants, machine-readable bounds, common cohorts, calibration, and staged resource guards.
-- [ ] `R/build_lib.R`, `vignettes/library-builder.Rmd`, `NEWS.md`, and `.specify/memory/build-lib-diagram.html`: document schema migration, meanings, limitations, provenance, failure policy, and review sequence; regenerate expected help only.
+- [x] `R/build_lib.R`: implement stable splits, fold-local builders, the five-process/10-table assessment assembler and sort/pivot rules, exact exclusions, QC/conservation, fail-closed gates, and cryptographic manifests.
+- [x] `tests/testthat/test-build_lib.R`: prove hierarchy/leaf-count/order, no empty leaves, dropped-identity schema, wide old/new adjacency, required sorts, no leakage, grouped folds, failure gates, immutability, and round trips.
+- [x] `workflows/data/classes_reference.csv`, `classes_regex.csv`, and new `known_bad_ids.csv`: restore `4-5`, guard date coercion, replace broad exclusions with reviewed exact IDs, and report all mapping/removal denominators.
+- [x] `benchmarks/reference_library_validation.R` and `reference_library_raman_alpha.R`: consume the new paths, verify sort/pivot invariants, machine-readable bounds, common cohorts, calibration, and staged resource guards.
+- [x] `R/build_lib.R`, `vignettes/library-builder.Rmd`, `NEWS.md`, and `.specify/memory/build-lib-diagram.html`: document schema migration, meanings, limitations, provenance, failure policy, and review sequence; regenerate expected help only.
 - [ ] Run focused checks, probe folds, full tests, hosted static, then one checkpointed downstream/full candidate into a new external output root; compare IDs, axes, metadata, warnings, hashes, and representative matches to `75b72a79d864` without publishing.
 - [ ] Reconcile every checkbox with evidence; record deferred external/release gates, stop or record owned processes, inspect `git status`, and remove task scratch.
 
@@ -80,4 +80,4 @@
 
 ## Approval Notes
 
-- Requested by maintainer on 2026-09-10; implementation, external data review, rebuilding, and publishing await approval of this plan.
+- Approved by the maintainer for implementation and a local external rebuild on 2026-09-10. Publishing remains maintainer-owned and out of scope.

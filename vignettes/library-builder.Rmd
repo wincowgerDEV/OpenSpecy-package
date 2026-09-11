@@ -216,15 +216,17 @@ deterministic IDs resolve correlation ties. Use `return = "report"` for the
 retained IDs, frozen class schedule, reassignment correlations, spectrum-level
 removals, and `excluded_classes`, which reports observed support and the number
 of additional or reassigned spectra needed. End-to-end builds combine these
-class rows in `assessments$pruning_excluded_classes` with the recipe name.
+class rows in `assessments$cleanup$summary` with the recipe name.
 `build_lib(prune = ...)` maps recipe names to `prune_lib()` argument lists, so
 each selected spectral representation is pruned independently. In the official
 workflow, an otherwise unresolved identity is temporarily labeled `other`.
 The default `remove_other = TRUE` removes blank identities and the generic
 `other`, `other plastic`, and `other material` labels before quality control,
 while keeping their identifiers, source metadata, prior labels, reasons, and
-actions in `assessments$other_review`; `assessments$other_filter` holds typed
-before/after counts. Set `remove_other = FALSE` to retain these rows for the
+actions and typed before/after counts in `assessments$cleanup$summary`. The
+separate `assessments$cleanup$dropped_spectrum_identities` table contains only
+the sorted distinct source identities removed anywhere in cleanup. Set
+`remove_other = FALSE` to retain generic rows for the
 constrained semisupervised `prune_lib()` reassignment described above.
 
 ```{r mini-library-prune}
@@ -272,11 +274,12 @@ maximum is greater than two; high-tail detection ignores NA padding, trims each
 spectrum on its finite support, and drops failed corrections; and finite
 running SNR below two (or unavailable SNR) is removed. Raw remains unpruned.
 Each completed library, medoid, model, and assessment component is written with
-a manifest under `output_dir/checkpoints`. `reuse = TRUE` loads it only when
+a SHA-256 manifest under `output_dir/checkpoints`. `reuse = TRUE` loads it only when
 the source/lookup signatures, arguments, package version, and builder contract
 still match. Validated output is promoted into a versioned release directory,
 which contains the seven legacy RDS names, explicit algorithm-named model RDS
-files, and one aggregate build RDS.
+files, one aggregate build RDS, and a release manifest. Existing versioned
+payloads are immutable: a different hash stops promotion.
 
 The returned object has four top-level elements: `libraries`, `medoids`,
 `models`, and `assessments`. Libraries are recipe-first and then keyed by
@@ -290,7 +293,10 @@ axis to enter medoid selection or model fitting. PAM operates on a temporary
 relative matrix where each spectrum's missing values are filled by that
 spectrum's finite mean. Selected medoid IDs are then pulled from the original
 range-restricted object, so published medoids retain their original `NA`
-positions. `models` is algorithm-first (`logistic_regression` or
+positions. Groups with more than 3,000 spectra use five deterministic
+1,000-spectrum PAM samples; each candidate set is scored against the complete
+group with the same correlation distance, avoiding a full oversized
+dissimilarity matrix. `models` is algorithm-first (`logistic_regression` or
 `random_forest`), then recipe and type. Logistic regression retains
 derivative/nobaseline medoid training and fills restored gaps with the finite
 mean at each wavenumber across training medoids. Random forests use the complete
@@ -308,24 +314,27 @@ maximum out-of-fold macro class accuracy with its calibrated alpha,
 no-intercept, grouped multinomial, and weighting settings unchanged.
 
 Full assessment uses every candidate and downloaded legacy artifact. Candidate
-artifacts use a seeded approximately ten-percent class/type-stratified sample
-from the candidate full library, while legacy artifacts independently use the
-legacy full library. This source-local policy tolerates taxonomy evolution
+and legacy artifacts independently use a seeded approximately ten-percent
+class/type-stratified sample. Rows sharing a physical identifier or exact
+spectral content are one group and cannot cross training and test. This
+source-local policy tolerates taxonomy evolution
 without fuzzy cross-version class matching; its results describe each
 artifact on its own source population and are not paired causal deltas.
-Held-out identifiers are removed from full and medoid references before
-identification. Candidate random forests are assessed by fitting a separate
-forest on only the 90% full-library training partition and predicting its held
-out 10%; their production forests still use all eligible spectra. Logistic and
-published artifacts retain their existing source-local evaluation contract.
+Held-out groups are removed from full and medoid references before
+identification. Logistic and random-forest assessments both fit a separate
+model on only the source-local grouped training partition and predict its held
+out groups; production models still use all eligible spectra.
 All model queries come from full libraries, never medoids, and `match_spec()`
 uses stored fillers for partial spectra. Macro class
 accuracy is the primary metric, followed by evaluated coverage, overall
 accuracy, per-class accuracy, and clear old/new
-`assess_spec(report = "all")` shifts. Empty warnings retain their column schema
-and numeric measurements remain numeric. Confusion tables mark incorrect cells,
-report each cell's fraction of its expected class, and order the largest
-misidentifications first. The smaller 1,000-spectrum run in the
+`assess_spec(report = "all")` shifts. The review surface contains at most ten
+tables nested under `cleanup`, `ref_lib`, `medoid`, `model`, and
+`functionality`. Old and new values occupy adjacent columns; accuracy,
+misidentification counts, absolute diagnostic correlations, and warning/error
+rate shifts are sorted from largest to smallest. Pass rows are omitted from
+quality shifts. Machine-level split and row-test evidence is available through
+`attr(reference_library_build$assessments, "evidence")`. The smaller 1,000-spectrum run in the
 manual benchmark is development-only and is not part of `build_lib()` or final
 acceptance evidence.
 

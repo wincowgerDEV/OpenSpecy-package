@@ -20,40 +20,16 @@
   env
 }
 
-test_that("walkthroughs and in-place help share complete guidance topics", {
+test_that("in-place help exposes complete guidance topics", {
   env <- .source_onboarding_helpers()
-  tutorials <- env$app_tutorial_workflows()
-
-  expect_named(tutorials, c("process", "identify", "quantify"))
-  expect_true(all(vapply(tutorials, function(tutorial) {
-    length(tutorial$steps) >= 2L && nzchar(tutorial$label) &&
-      nzchar(tutorial$summary)
-  }, logical(1))))
-
-  topics <- unique(unlist(lapply(tutorials, function(tutorial) {
-    lapply(tutorial$steps, `[[`, "guidance")
-  }), use.names = FALSE))
-  expect_true(all(topics %in% names(env$app_guidance_registry)))
-  for(topic in topics) {
+  expect_true(length(env$app_guidance_registry) > 0L)
+  for(topic in names(env$app_guidance_registry)) {
     guidance <- env$app_guidance_topic(topic)
     expect_true(nzchar(guidance$title))
     expect_true(length(guidance$controls) > 0L)
     expect_true(all(nzchar(guidance$body)))
   }
-
-  expect_true(env$app_tutorial_step("process", 1)$values$make_rel_decision)
-  expect_false(env$app_tutorial_step("process", 2)$values$make_rel_decision)
-  expect_false(env$app_tutorial_step("identify", 1)$values$identification_active)
-  expect_true(env$app_tutorial_step("identify", 2)$values$identification_active)
-  expect_identical(env$app_tutorial_step("identify", 2)$tab, "preprocessing")
-  expect_true(all(c(
-    "smooth_decision", "derivative_order", "derivative_abs"
-  ) %in% names(env$app_tutorial_step("identify", 2)$values)))
-  expect_identical(env$app_tutorial_step("quantify", 1)$ratio, "clear")
-  expect_identical(
-    env$app_tutorial_step("quantify", 2)$ratio, "carbonyl_area"
-  )
-  expect_error(env$app_tutorial_step("unknown", 1), "Unknown walkthrough")
+  expect_error(env$app_guidance_topic("unknown"), "Unknown app guidance topic")
 })
 
 test_that("tab-wide actions have an all-off-only model", {
@@ -107,14 +83,9 @@ test_that("identification compatibility warnings cover both library recipes", {
   expect_length(env$app_identification_compatibility_warnings(settings), 0L)
 })
 
-test_that("packaged tutorial input and initial result selection are bounded", {
+test_that("initial result selection is bounded", {
   env <- .source_onboarding_helpers()
   path <- OpenSpecy::read_extdata("raman_hdpe.csv")
-  info <- env$app_tutorial_file_info(path)
-
-  expect_identical(info$name, "raman_hdpe.csv")
-  expect_true(info$size > 0)
-  expect_true(file.exists(info$datapath))
 
   object <- OpenSpecy::read_any(path)
   mapping <- data.table::data.table(
@@ -233,7 +204,14 @@ test_that("the real server exposes metadata and rank 2 on its first Run", {
       quant_measurement_area_min = 1650, quant_measurement_area_max = 1850,
       quant_measurement_wavenumber = 1715
     )
-    stage_selected_files(env$app_tutorial_file_info(query_path), mounted = FALSE)
+    query_info <- data.frame(
+      name = basename(query_path),
+      size = unname(file.info(query_path)$size),
+      type = "text/csv",
+      datapath = normalizePath(query_path, winslash = "/", mustWork = TRUE),
+      stringsAsFactors = FALSE
+    )
+    stage_selected_files(query_info, mounted = FALSE)
     session$setInputs(run_analysis = 1L)
 
     expect_s3_class(canonical_state()$object, "OpenSpecy")
@@ -302,37 +280,18 @@ test_that("startup and heatmap event guards are explicit in app sources", {
   expect_match(server, 'plotly::event_data("plotly_click", source = "heat_plot")',
                fixed = TRUE)
 
-  expect_match(ui, '"walkthrough_open", "Walk me through"', fixed = TRUE)
-  expect_match(server, "Your current data and unsaved ratio definitions will be replaced",
-               fixed = TRUE)
-  expect_match(server, '"walkthrough_view", "View result"', fixed = TRUE)
-  expect_match(server, 'show_tutorial_chooser <- function() {', fixed = TRUE)
-  expect_match(server, 'session$sendCustomMessage("openspecy-tutorial-exit"',
-               fixed = TRUE)
+  expect_false(grepl("walkthrough", ui, ignore.case = TRUE))
+  expect_false(grepl("walkthrough|openspecy-tutorial", server,
+                     ignore.case = TRUE))
   expect_match(server, '"Turn All Off"', fixed = TRUE)
   expect_false(grepl("Turn All On", server, fixed = TRUE))
   expect_match(ui, 'uiOutput("preprocessing_all_toggle_ui")', fixed = TRUE)
   expect_match(server, 'output_id <- paste0(tab, "_all_toggle_ui")',
                fixed = TRUE)
-  expect_match(bridge, '"openspecy-tutorial-step"', fixed = TRUE)
-  expect_match(bridge, 'document.getElementById("run_analysis")', fixed = TRUE)
-  expect_match(bridge, "tutorialRunGeneration", fixed = TRUE)
-  expect_match(bridge, '"openspecy-tutorial-run-complete"', fixed = TRUE)
+  expect_false(grepl("walkthrough|openspecy-tutorial|tutorialRunGeneration",
+                     bridge, ignore.case = TRUE))
   expect_match(bridge, '"openspecy-clear-heatmap-click"', fixed = TRUE)
   expect_match(bridge, '"plotly_click-heat_plot", null', fixed = TRUE)
-  expect_match(
-    bridge,
-    '["walkthrough_next", "walkthrough_view"].forEach',
-    fixed = TRUE
-  )
-  expect_match(bridge, "target.getClientRects().length", fixed = TRUE)
-  expect_match(
-    bridge, ':scope > .card-header [data-card-widget="collapse"]', fixed = TRUE
-  )
-  expect_false(grepl("shiny:idle.openspecyTutorial", bridge, fixed = TRUE))
-  expect_match(bridge, "attempt < 6000", fixed = TRUE)
-  expect_match(bridge, 'document.getElementById("analysis_settings_box")',
-               fixed = TRUE)
 })
 
 test_that("heatmap events are enabled only for a real multi-spectrum map", {

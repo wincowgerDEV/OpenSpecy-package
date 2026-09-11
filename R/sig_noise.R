@@ -195,11 +195,44 @@ sig_noise.OpenSpecy <- function(x, metric = "run_sig_over_noise",
 }
 
 .run_sig_over_noise_matrix <- function(spectra, step = 20, prob = 0.5,
-                                       na.rm = TRUE) {
+                                       na.rm = TRUE, batch_size = 2000L) {
   if (!is.numeric(step) || length(step) != 1L || is.na(step) || step < 1) {
     stop("'step' must be a positive number", call. = FALSE)
   }
   step <- as.integer(step)
+  if (!is.numeric(batch_size) || length(batch_size) != 1L ||
+      is.na(batch_size) || batch_size < 1) {
+    stop("'batch_size' must be a positive number", call. = FALSE)
+  }
+  batch_size <- as.integer(batch_size)
+  if (ncol(spectra) > batch_size) {
+    values <- rep(NA_real_, ncol(spectra))
+    batches <- split(
+      seq_len(ncol(spectra)),
+      ceiling(seq_len(ncol(spectra)) / batch_size)
+    )
+    warnings <- character()
+    for (i in seq_along(batches)) {
+      cols <- batches[[i]]
+      values[cols] <- withCallingHandlers(
+        .run_sig_over_noise_matrix(
+          spectra[, cols, drop = FALSE], step = step, prob = prob,
+          na.rm = na.rm, batch_size = length(cols)
+        ),
+        warning = function(condition) {
+          warnings <<- unique(c(warnings, conditionMessage(condition)))
+          invokeRestart("muffleWarning")
+        }
+      )
+      if (i %% 5L == 0L || i == length(batches)) {
+        gc(verbose = FALSE)
+      }
+    }
+    if (length(warnings)) {
+      warning(paste(warnings, collapse = "\n"), call. = FALSE)
+    }
+    return(values)
+  }
 
   values <- rep(NA_real_, ncol(spectra))
   valid_n <- colSums(!is.na(spectra))
