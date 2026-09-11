@@ -432,6 +432,9 @@ func copyTree(source, destination string) error {
 		}
 		key := portablePathKey(portableRelative)
 		if previous, exists := seen[key]; exists {
+			if collapsiblePkgdownRedirects(source, previous, portableRelative) {
+				return nil
+			}
 			return fmt.Errorf("Pages artifact paths %q and %q collide on a portable filesystem",
 				previous, portableRelative)
 		}
@@ -448,6 +451,33 @@ func copyTree(source, destination string) error {
 		}
 		return copyFile(path, target, 0o644)
 	})
+}
+
+// pkgdown can emit case-only aliases for two different documentation topics
+// (for example OpenSpecy.html and openspecy.html). Both are redirect stubs,
+// but no portable archive can represent both names safely. Keep the first
+// lexical alias only when both colliding files are verified pkgdown redirects;
+// every other collision remains a hard error.
+func collapsiblePkgdownRedirects(root, first, second string) bool {
+	firstSlash := filepath.ToSlash(first)
+	secondSlash := filepath.ToSlash(second)
+	if firstSlash == secondSlash || !strings.EqualFold(firstSlash, secondSlash) ||
+		strings.ToLower(filepath.ToSlash(filepath.Dir(firstSlash))) != "pkgdown/reference" ||
+		strings.ToLower(filepath.Ext(firstSlash)) != ".html" {
+		return false
+	}
+	for _, relative := range []string{first, second} {
+		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
+		if err != nil {
+			return false
+		}
+		lower := strings.ToLower(string(content))
+		if !strings.Contains(lower, `<meta http-equiv="refresh"`) ||
+			!strings.Contains(lower, `<link rel="canonical"`) {
+			return false
+		}
+	}
+	return true
 }
 
 func copyFile(source, destination string, mode os.FileMode) error {

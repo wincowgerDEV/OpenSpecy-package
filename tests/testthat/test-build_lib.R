@@ -316,6 +316,7 @@ test_that("build_model_lib() trains and deploys a balanced probability random fo
     model$training_parameters$balance_method,
     "inverse_frequency_case_sampling"
   )
+  expect_identical(model$training_parameters$num_threads, 1L)
   expect_equal(nrow(model$tests), ncol(lib$spectra))
 
   prediction <- suppressWarnings(match_spec(lib, library = model))
@@ -2176,6 +2177,17 @@ test_that("immutable promotion rejects a changed payload", {
   expect_equal(first$status, "promoted")
   second <- OpenSpecy:::.lib_promote_rds(list(value = 1L), path)
   expect_equal(second$status, "verified_existing")
+
+  semantic_path <- tempfile(fileext = ".rds")
+  saveRDS(list(value = 1L), semantic_path, compress = FALSE)
+  semantic_checksum <- OpenSpecy:::.lib_sha256_file(semantic_path)
+  semantic <- OpenSpecy:::.lib_promote_rds(
+    list(value = 1L), semantic_path
+  )
+  expect_equal(semantic$status, "verified_existing")
+  expect_identical(
+    OpenSpecy:::.lib_sha256_file(semantic_path), semantic_checksum
+  )
   expect_error(
     OpenSpecy:::.lib_promote_rds(list(value = 2L), path),
     "Immutable release artifact differs"

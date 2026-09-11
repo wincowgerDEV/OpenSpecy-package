@@ -271,6 +271,33 @@ func TestValidatePortableRelativePath(t *testing.T) {
 	}
 }
 
+func TestCopyTreeCollapsesCaseOnlyPkgdownRedirectAliases(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("a case-insensitive filesystem cannot construct both aliases")
+	}
+	source := t.TempDir()
+	destination := t.TempDir()
+	reference := filepath.Join(source, "pkgdown", "reference")
+	if err := os.MkdirAll(reference, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	redirect := []byte(`<html><head><meta http-equiv="refresh" content="0;URL=target.html"><link rel="canonical" href="target.html"></head></html>`)
+	for _, name := range []string{"OpenSpecy.html", "openspecy.html"} {
+		if err := os.WriteFile(filepath.Join(reference, name), redirect, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := copyTree(source, destination); err != nil {
+		t.Fatalf("case-only pkgdown redirect aliases were rejected: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(destination, "pkgdown", "reference", "OpenSpecy.html")); err != nil {
+		t.Fatalf("canonical lexical alias was not retained: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(destination, "pkgdown", "reference", "openspecy.html")); !os.IsNotExist(err) {
+		t.Fatalf("case-only redirect alias was not collapsed: %v", err)
+	}
+}
+
 func TestVerifyArchiveRejectsDuplicatePortablePaths(t *testing.T) {
 	for _, names := range [][]string{
 		{"OpenSpecy-offline-" + testSHA + "/site/index.html",

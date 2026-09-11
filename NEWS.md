@@ -42,6 +42,10 @@
   after every bounded matching block.
 - Hosted progress overlays now remain closed after a completed action, even
   when late output-only reactive updates render after identification results.
+- Offline packaging now collapses verified case-only pkgdown redirect aliases
+  that cannot coexist on portable filesystems. Seeded random forests default
+  to one worker, and immutable promotion preserves an existing artifact when
+  differently serialized RDS payloads deserialize to identical objects.
 - Fixed the bundled app's logistic model interpretation so Top Matches row
   selection updates the quantitative coefficient background for the spectrum
   currently being viewed, including selected spectra within batches and maps.

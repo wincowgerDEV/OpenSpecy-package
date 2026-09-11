@@ -28,7 +28,7 @@ cor_threshold <- 0.6
 get_lib("medoid_derivative")
 lib <- load_lib("medoid_derivative")
 
-wd = "C:\\Users\\winco\\OneDrive\\Documents\\EWG"
+wd = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\IDC"
 source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\bigconcurve.h5"
 map <- open_specs(source_file, cache_dir = wd)
 print(map)
@@ -39,7 +39,7 @@ print(map)
 region_views <- split_spec(map, by = "region")
 names(region_views)
 
-files <- list.files(path = wd, "REANALYZED\\.h5", full.names = T)
+files <- list.files(path = wd, "\\.(h5)|(rds)", full.names = T)
 
 for(file in files){
   print(file)
@@ -51,7 +51,7 @@ for(item in listedfiles){
   }
 }
 
-files <- list.files(path = wd, "REANALYZED.*\\.rds", full.names = T)
+files <- list.files(path = wd, "\\.(h5)|(rds)", full.names = T)
 
 files <- files[!grepl("(particles)|(time)", files)]
 
