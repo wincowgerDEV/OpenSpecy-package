@@ -3805,11 +3805,12 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   .lib_validate_reference_build(build)
   checkpoints$put("assessments", build$assessments, key = assessment_key)
   checkpoints$put("reference_library_build", build, key = assessment_key)
+  release_signature <- .lib_release_signature(assessment_key)
 
   report("promoting validated artifacts to a versioned release directory")
   promotion <- .lib_promote_reference_build(
     build, output_dir = output_dir,
-    signature = assessment_key, reuse = reuse, progress = report
+    signature = release_signature, reuse = reuse, progress = report
   )
   release_dir <- promotion$directory
   assessment_components$output_manifest <- data.table::copy(promotion$manifest)
@@ -3817,11 +3818,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   build$assessments <- .lib_assessment_review(assessment_components)
   .lib_validate_reference_build(build)
   attr(build, "output_dir") <- normalizePath(release_dir, mustWork = FALSE)
-  attr(build, "build_signature") <- assessment_key
+  attr(build, "build_signature") <- release_signature
   report("serializing the combined reference-library build object")
   aggregate <- .lib_promote_build_aggregate(
     build, file.path(release_dir, "reference_library_build.rds"),
-    signature = assessment_key
+    signature = release_signature
   )
   build <- aggregate$build
   aggregate_manifest <- aggregate$manifest
@@ -3829,6 +3830,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     list(promotion$manifest, aggregate_manifest), fill = TRUE
   )
   release_manifest[, status := "available"]
+  attr(release_manifest, "build_signature") <- release_signature
   .lib_promote_rds(
     release_manifest, file.path(release_dir, "release_manifest.rds")
   )
@@ -3963,10 +3965,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   .lib_validate_reference_build(build)
   checkpoints$put("assessments", build$assessments, key = assessment_key)
   checkpoints$put("reference_library_build", build, key = assessment_key)
+  release_signature <- .lib_release_signature(assessment_key)
 
   report("promoting downstream artifacts to a versioned release directory")
   promotion <- .lib_promote_reference_build(
-    build, output_dir = output_dir, signature = assessment_key,
+    build, output_dir = output_dir, signature = release_signature,
     reuse = reuse, progress = report
   )
   release_dir <- promotion$directory
@@ -3975,10 +3978,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   build$assessments <- .lib_assessment_review(assessment_components)
   .lib_validate_reference_build(build)
   attr(build, "output_dir") <- normalizePath(release_dir, mustWork = FALSE)
-  attr(build, "build_signature") <- assessment_key
+  attr(build, "build_signature") <- release_signature
   aggregate <- .lib_promote_build_aggregate(
     build, file.path(release_dir, "reference_library_build.rds"),
-    signature = assessment_key
+    signature = release_signature
   )
   build <- aggregate$build
   aggregate_manifest <- aggregate$manifest
@@ -3986,6 +3989,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     list(promotion$manifest, aggregate_manifest), fill = TRUE
   )
   release_manifest[, status := "available"]
+  attr(release_manifest, "build_signature") <- release_signature
   .lib_promote_rds(
     release_manifest, file.path(release_dir, "release_manifest.rds")
   )
@@ -4268,6 +4272,19 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     list(sources = sources, workflow = workflow, arguments = arguments,
          version = description, code = code_checksum,
          git = .lib_git_state(), runtime = .lib_runtime_provenance()),
+    algo = "sha256"
+  )
+}
+
+.lib_release_signature <- function(assessment_signature) {
+  package_source <- .lib_file_signatures(
+    c("DESCRIPTION", file.path("R", "build_lib.R")), checksum_limit = Inf
+  )
+  digest::digest(
+    list(
+      assessment = assessment_signature, package_source = package_source,
+      git = .lib_git_state(), runtime = .lib_runtime_provenance()
+    ),
     algo = "sha256"
   )
 }
@@ -6321,6 +6338,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         }
         split_by_type <- list()
         assessment_by_type <- list()
+        training_by_type <- list()
         for (type in source_types) {
           source_data <- source_object(type)
           if (is.null(source_data)) next
@@ -6355,6 +6373,43 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             rm(eligible, split)
             next
           }
+          if (identical(algorithm, "logistic_regression")) {
+            train_groups <- split$manifest[split == "train", group_id]
+            train_rows <- split$rows[group_id %in% train_groups, row]
+            medoid_stage <- paste0(
+              "assessment_training_medoids_", recipe, "_", type, "_",
+              source, "_v1"
+            )
+            training_reference <- if (is.null(checkpoints)) NULL else
+              checkpoints$get(medoid_stage, key = checkpoint_key)
+            if (is.null(training_reference) && length(train_rows)) {
+              training_source <- filter_spec(eligible, train_rows)
+              if (isTRUE(progress)) message(
+                "build_lib assessment: selecting fold-local training medoids ",
+                recipe, "/", type, "/", source, " (spectra=",
+                ncol(training_source$spectra), ")"
+              )
+              training_ids <- reduce_lib(
+                training_source,
+                group_cols = intersect(
+                  c("organization", "material_class"),
+                  names(training_source$metadata)
+                ),
+                k = 50, min_n = 50, return = "ids", progress = progress
+              )
+              training_reference <- filter_spec(training_source, training_ids)
+              if (!is.null(checkpoints)) {
+                checkpoints$put(
+                  medoid_stage, training_reference, key = checkpoint_key
+                )
+              }
+              rm(training_source, training_ids)
+              gc(verbose = FALSE)
+            }
+            if (!is.null(training_reference)) {
+              training_by_type[[type]] <- training_reference
+            }
+          }
           query <- filter_spec(eligible, test_rows)
           stage <- paste0(
             "assessment_model_metrics_", recipe, "_", type, "_", source
@@ -6385,7 +6440,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           rm(eligible, query, split)
           gc(verbose = FALSE)
         }
-        available_model_types <- names(split_by_type)
+        available_model_types <- if (identical(
+          algorithm, "logistic_regression"
+        )) names(training_by_type) else names(split_by_type)
         if (identical(algorithm, "logistic_regression") &&
             all(c("ftir", "raman") %in% available_model_types)) {
           available_model_types <- c(available_model_types, "both")
@@ -6412,7 +6469,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             if (length(test_rows)) {
               query_parts[[actual_type]] <- filter_spec(eligible, test_rows)
             }
-            if (length(train_rows)) {
+            if (identical(algorithm, "logistic_regression") &&
+                !is.null(training_by_type[[actual_type]])) {
+              train_parts[[actual_type]] <- training_by_type[[actual_type]]
+            } else if (length(train_rows)) {
               train_parts[[actual_type]] <- filter_spec(eligible, train_rows)
             }
             rm(eligible, split)
@@ -6432,18 +6492,32 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           rm(query_parts, train_parts)
           gc(verbose = FALSE)
           model_started <- proc.time()[["elapsed"]]
-          provenance <- paste0(
-            source, "_", algorithm, "_grouped_training_holdout"
-          )
+          fold_suffix <- if (identical(algorithm, "logistic_regression")) {
+            "_fold_medoids_v1"
+          } else {
+            ""
+          }
+          provenance <- if (identical(algorithm, "logistic_regression")) {
+            paste0(source, "_", algorithm,
+                   "_grouped_training_medoid_holdout")
+          } else {
+            paste0(source, "_", algorithm, "_grouped_training_holdout")
+          }
           fit_stage <- paste0(
-            "assessment_fit_", algorithm, "_", recipe, "_", type, "_", source
+            "assessment_fit_", algorithm, "_", recipe, "_", type, "_",
+            source, fold_suffix
           )
           assessment_model <- if (is.null(checkpoints)) NULL else
             checkpoints$get(fit_stage, key = checkpoint_key)
           if (is.null(assessment_model)) {
             if (isTRUE(progress)) message(
               "build_lib assessment: fitting ", algorithm, "/", recipe, "/",
-              type, "/", source, " on grouped training partition (train=",
+              type, "/", source,
+              if (identical(algorithm, "logistic_regression")) {
+                " on fold-local training medoids (train="
+              } else {
+                " on grouped training partition (train="
+              },
               ncol(train$spectra), "; test=",
               ncol(query$spectra), ")"
             )
@@ -6461,7 +6535,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             ncol(query$spectra), ")"
           )
           stage <- paste0(
-            "assessment_model_", algorithm, "_", recipe, "_", type, "_", source
+            "assessment_model_", algorithm, "_", recipe, "_", type, "_",
+            source, fold_suffix
           )
           tests <- if (is.null(checkpoints)) NULL else
             checkpoints$get(stage, key = checkpoint_key)
@@ -7096,6 +7171,20 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
                                          progress = NULL) {
   release_dir <- file.path(output_dir, "releases", substr(signature, 1L, 12L))
   dir.create(release_dir, recursive = TRUE, showWarnings = FALSE)
+  prior_manifest <- NULL
+  manifest_path <- file.path(release_dir, "release_manifest.rds")
+  if (isTRUE(reuse) && file.exists(manifest_path)) {
+    candidate_manifest <- tryCatch(
+      readRDS(manifest_path), error = function(error) NULL
+    )
+    if (inherits(candidate_manifest, c("data.frame", "data.table")) &&
+        identical(
+          attr(candidate_manifest, "build_signature", exact = TRUE),
+          signature
+        )) {
+      prior_manifest <- data.table::as.data.table(candidate_manifest)
+    }
+  }
   model_artifacts <- list()
   for (algorithm in names(build$models)) {
     for (recipe in names(build$models[[algorithm]])) {
@@ -7120,11 +7209,43 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     if(is.function(progress)) {
       progress(paste0("verifying/promoting release artifact: ", name))
     }
-    .lib_promote_rds(artifacts[[name]], path)
+    verified <- .lib_verify_manifested_release_artifact(path, prior_manifest)
+    if (!is.null(verified)) verified else .lib_promote_rds(artifacts[[name]], path)
   })
   list(
     directory = release_dir,
     manifest = data.table::rbindlist(manifest, fill = TRUE)
+  )
+}
+
+.lib_verify_manifested_release_artifact <- function(path, manifest) {
+  if (is.null(manifest) || !file.exists(path)) return(NULL)
+  component <- tools::file_path_sans_ext(basename(path))
+  normalized <- normalizePath(path, mustWork = TRUE)
+  manifest_paths <- normalizePath(
+    as.character(manifest$path), mustWork = FALSE
+  )
+  row <- manifest[
+    as.character(manifest$component) == component & manifest_paths == normalized
+  ]
+  if (nrow(row) != 1L || !identical(row$checksum_algorithm, "sha256")) {
+    return(NULL)
+  }
+  info <- file.info(path)
+  checksum <- .lib_sha256_file(path)
+  if (!identical(as.numeric(row$size), as.numeric(info$size)) ||
+      !identical(as.character(row$checksum), checksum)) {
+    return(NULL)
+  }
+  readable <- tryCatch({
+    readRDS(path)
+    TRUE
+  }, error = function(error) FALSE)
+  if (!isTRUE(readable)) return(NULL)
+  data.table::data.table(
+    component = component, status = "verified_existing",
+    path = normalized, size = as.numeric(info$size),
+    checksum_algorithm = "sha256", checksum = checksum
   )
 }
 

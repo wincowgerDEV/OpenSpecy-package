@@ -2048,7 +2048,7 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   expect_gt(nrow(comparison$assess_spec_shifts), 0L)
   expect_true(all(
     comparison$models$logistic_regression$derivative$ftir$tests$provenance ==
-      "new_logistic_regression_grouped_training_holdout"
+      "new_logistic_regression_grouped_training_medoid_holdout"
   ))
   expect_true(all(
     comparison$models$random_forest$raw$ftir$tests$provenance ==
@@ -2192,6 +2192,23 @@ test_that("immutable promotion rejects a changed payload", {
     OpenSpecy:::.lib_promote_rds(list(value = 2L), path),
     "Immutable release artifact differs"
   )
+})
+
+test_that("completed release manifests authorize immutable byte reuse", {
+  path <- tempfile(fileext = ".rds")
+  manifest <- OpenSpecy:::.lib_promote_rds(list(value = 1L), path)
+  attr(manifest, "build_signature") <- "signed-build"
+
+  verified <- OpenSpecy:::.lib_verify_manifested_release_artifact(
+    path, manifest
+  )
+  expect_equal(verified$status, "verified_existing")
+  expect_identical(verified$checksum, manifest$checksum)
+
+  saveRDS(list(value = 2L), path)
+  expect_null(OpenSpecy:::.lib_verify_manifested_release_artifact(
+    path, manifest
+  ))
 })
 
 test_that("file signature caching preserves hashes and invalidates on metadata", {

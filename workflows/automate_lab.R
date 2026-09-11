@@ -79,11 +79,27 @@ result2 <- automate_particle_analysis(
     origins = list(x = 0, y = 0)
 )
 
+
+total_areas <- data.frame(sample_id = names(result2$samples), 
+           total_area = vapply(seq_along(result2$samples), function(b){
+  length(result2$samples[[b]]$particle_heatmap$x) * length(result2$samples[[b]]$particle_heatmap$y)
+}, integer(1))
+)
+
+
 library(dplyr)
-result2$particle_details_all_csv %>%
+spike_and_blank <- result2$particle_details_all_csv %>%
   dplyr::group_by(sample_id) %>%
-  dplyr::summarise(percent_area = sum(area_um2[material_class == "poly(ethylene)"])/sum(area_um2),
-  pe_area = sum(area_um2[material_class == "poly(ethylene)"]), area = sum(area_um2))
+  dplyr::summarise(pe_area = sum(area_um2[material_class == "poly(ethylene)"])) %>%
+  left_join(total_areas) %>%
+  mutate(percent_area = pe_area/total_area*100)
+
+spike_and_blank$dose <- c(1/10, 1/100, 1/1000, 1/10000, 1/100000, 0,0,0,0)
+
+ggplot(spike_and_blank) +
+  geom_point(aes(x = dose, y = percent_area)) +
+  scale_x_log10()+
+  scale_y_log10()
 
 plot(sample_spec(listedfiles[[4]] |> spatial_smooth(), 10))
 percent_area <- c(137/(322*262),  2479/(317*251), 31885/(304*266))
