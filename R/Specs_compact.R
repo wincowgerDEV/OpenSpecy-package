@@ -61,6 +61,7 @@ specs_background_filter <- function(metric = "run_sig_over_noise", minimum,
 #' @export
 specs_source_count <- function(x) {
   if (!is_Specs(x)) stop("'x' must be a Specs object", call. = FALSE)
+  if (inherits(x, "FileSpecs")) return(.filespec_n_spectra(x))
   if (inherits(x$coords, "SpecsCoords")) return(as.integer(x$coords$n_source))
   nrow(x$coords)
 }
@@ -108,6 +109,21 @@ specs_source_values <- function(x, index = NULL) {
 #' @export
 specs_coordinates <- function(x, index = NULL, columns = NULL) {
   if (!is_Specs(x)) stop("'x' must be a Specs object", call. = FALSE)
+  if (inherits(x, "FileSpecs")) {
+    source <- .filespec_index(x)
+    index <- if (is.null(index)) seq_len(nrow(source)) else
+      .filespec_positions(index, nrow(source), "index")
+    out <- data.table::copy(source[index])
+    if (!is.null(columns)) {
+      missing <- setdiff(columns, names(out))
+      if (length(missing)) {
+        stop("unknown coordinate column(s): ", paste(missing, collapse = ", "),
+             call. = FALSE)
+      }
+      out <- out[, columns, with = FALSE]
+    }
+    return(out)
+  }
   index <- .specs_source_index(x, index)
   if (!inherits(x$coords, "SpecsCoords")) {
     out <- data.table::copy(data.table::as.data.table(x$coords)[index])
@@ -154,6 +170,9 @@ specs_coordinates <- function(x, index = NULL, columns = NULL) {
 #' @export
 specs_metadata <- function(x, index = NULL, columns = NULL) {
   if (!is_Specs(x)) stop("'x' must be a Specs object", call. = FALSE)
+  if (inherits(x, "FileSpecs")) {
+    return(specs_coordinates(x, index = index, columns = columns))
+  }
   index <- .specs_source_index(x, index)
   model <- attr(x, "source_metadata")
   if (inherits(model, "SpecsMetadata")) {

@@ -271,6 +271,7 @@ automate_particle_analysis.FileSpecs <- function(
 
 .filespec_particle_snr <- function(x, index, bands, metric, abs,
                                    spectral_smooth, sigma1, chunk_size) {
+  chunk_size <- .filespec_bounded_chunk_size(length(bands), chunk_size)
   chunks <- .filespec_particle_chunks(x, index, chunk_size)
   out <- rep(NA_real_, nrow(index))
   for (rows in chunks) {
@@ -400,6 +401,8 @@ automate_particle_analysis.FileSpecs <- function(
 .filespec_mean_features <- function(x, index, feature_metadata, feature_ids,
                                     axis, spectral_smooth, sigma1,
                                     chunk_size) {
+  chunk_size <- .filespec_bounded_chunk_size(length(axis), chunk_size)
+  .filespec_retained_mean_capacity(length(axis), length(feature_ids))
   ids <- as.character(feature_metadata$feature_id)
   keep <- ids %in% feature_ids
   selected <- which(keep)
@@ -437,6 +440,89 @@ automate_particle_analysis.FileSpecs <- function(
   md$col_id <- feature_ids
   as_OpenSpecy(axis, spectra = spectra, metadata = md, coords = NULL,
                compute_file_id = FALSE)
+}
+
+# Collapse a file-backed map through the same connected-region contract as the
+# in-memory app path. Only a one-row geometric display and bounded spectral
+# blocks are materialized; one running sum/count pair is retained per particle.
+.filespec_collapse_connected_mean <- function(
+    x, eligible, area_threshold = 1, spectral_smooth = FALSE,
+    sigma = c(1, 1, 1), chunk_size = 8192L) {
+  started <- proc.time()[["elapsed"]]
+  .filespec_validate_object(x)
+  index <- data.table::copy(.filespec_index(x))
+  if (!is.logical(eligible) || length(eligible) != nrow(index)) {
+    stop("'eligible' must have one logical value per file-backed spectrum",
+         call. = FALSE)
+  }
+  eligible[is.na(eligible)] <- FALSE
+  display <- .filespec_particle_display(
+    index, snr = rep(NA_real_, nrow(index)), threshold = eligible
+  )
+  partition <- .partition_particle_map(
+    display, eligible = eligible, strategy = "collapse",
+    collapse_function = base::mean, area_threshold = area_threshold
+  )
+  message(
+    "FileSpecs collapse: ", nrow(index), " source spectra; ",
+    sum(eligible), " retained; ",
+    sum(unique(stats::na.omit(partition$pixel_to_unit$unit_index)) > 0L),
+    " connected units."
+  )
+  if (is.null(partition$analysis_units)) return(partition)
+
+  feature_ids <- colnames(partition$analysis_units$spectra)
+  partition$analysis_units <- .filespec_mean_features(
+    x, index = index, feature_metadata = partition$display$metadata,
+    feature_ids = feature_ids, axis = .filespec_axis(x),
+    spectral_smooth = spectral_smooth, sigma1 = sigma,
+    chunk_size = chunk_size
+  )
+  partition$settings$file_backed <- TRUE
+  partition$settings$chunk_size <- .filespec_bounded_chunk_size(
+    length(.filespec_axis(x)), chunk_size
+  )
+  partition$settings$elapsed_seconds <-
+    proc.time()[["elapsed"]] - started
+  message(
+    "FileSpecs collapse complete in ",
+    sprintf("%.2f", partition$settings$elapsed_seconds), " seconds."
+  )
+  partition
+}
+
+.filespec_bounded_chunk_size <- function(n_bands, requested,
+                                         max_bytes = getOption(
+                                           "OpenSpecy.filespec.max_block_bytes",
+                                           64 * 1024^2)) {
+  n_bands <- suppressWarnings(as.integer(n_bands))
+  requested <- suppressWarnings(as.integer(requested))
+  max_bytes <- suppressWarnings(as.numeric(max_bytes))
+  if(length(n_bands) != 1L || is.na(n_bands) || n_bands < 1L ||
+     length(requested) != 1L || is.na(requested) || requested < 1L ||
+     length(max_bytes) != 1L || is.na(max_bytes) || !is.finite(max_bytes) ||
+     max_bytes < n_bands * 8) {
+    stop("FileSpecs block settings cannot fit one spectrum in the memory bound",
+         call. = FALSE)
+  }
+  as.integer(min(requested, floor(max_bytes / (n_bands * 8))))
+}
+
+.filespec_retained_mean_capacity <- function(
+    n_bands, n_features,
+    max_bytes = getOption("OpenSpecy.filespec.max_live_bytes", 768 * 1024^2)) {
+  bytes <- as.double(n_bands) * as.double(n_features) * 8 * 2
+  max_bytes <- suppressWarnings(as.numeric(max_bytes))
+  if(length(max_bytes) != 1L || is.na(max_bytes) || !is.finite(max_bytes) ||
+     max_bytes <= 0) max_bytes <- 768 * 1024^2
+  if(!is.finite(bytes) || bytes > max_bytes) {
+    stop(
+      "Collapsed particle means would exceed the file-backed live-memory ",
+      "bound. Increase the minimum particle area or split the map.",
+      call. = FALSE
+    )
+  }
+  list(bytes = bytes, max_bytes = max_bytes)
 }
 
 .filespec_image_identity <- function(image, bottom_left, top_right) {

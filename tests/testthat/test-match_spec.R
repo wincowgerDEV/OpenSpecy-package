@@ -454,6 +454,118 @@ test_that("blockwise top matches equal full correlation and identification", {
   expect_true(all(is.na(tied[object_id == "query_na", match_val])))
 })
 
+test_that("grouped matching retains Top N independently per library group", {
+  library <- as_OpenSpecy(
+    1:5,
+    spectra = data.frame(
+      a_first = 1:5,
+      a_tied = 1:5,
+      b_reverse = 5:1,
+      b_peak = c(1, 1, 5, 1, 1)
+    ),
+    metadata = data.frame(
+      library_key = c("a_first", "a_tied", "b_reverse", "b_peak"),
+      organization = c("A", "A", "B", "B"),
+      label = paste0("label-", 1:4)
+    ),
+    compute_file_id = FALSE
+  )
+  query <- as_OpenSpecy(
+    1:5,
+    spectra = data.frame(up = 1:5, down = 5:1),
+    metadata = data.frame(
+      object_key = c("up", "down"), source_label = c("one", "two")
+    ),
+    compute_file_id = FALSE
+  )
+
+  actual <- match_spec(query, library, top_n = 1L,
+                       top_n_by = "organization")
+  expect_identical(actual$object_id, c("up", "up", "down", "down"))
+  expect_identical(actual$library_id,
+                   c("a_first", "b_peak", "b_reverse", "a_first"))
+
+  oracle <- data.table::rbindlist(lapply(c("A", "B"), function(group) {
+    columns <- which(library$metadata$organization == group)
+    match_spec(query, filter_spec(library, columns), top_n = 1L)
+  }))
+  object_order <- match(oracle$object_id, colnames(query$spectra))
+  library_order <- match(oracle$library_id, colnames(library$spectra))
+  oracle <- oracle[order(object_order, -match_val, library_order,
+                         na.last = TRUE)]
+  expect_equal(actual, oracle)
+
+  blockwise <- OpenSpecy:::.match_spec_blockwise(
+    query, library, top_n = 1L, top_n_by = "organization", block_size = 1L
+  )
+  expect_equal(blockwise, oracle)
+  expect_equal(nrow(blockwise), ncol(query$spectra) * 2L)
+
+  enriched <- match_spec(
+    query, library, top_n = 1L, top_n_by = "organization",
+    add_library_metadata = "library_key",
+    add_object_metadata = "object_key"
+  )
+  expect_identical(enriched$object_id, actual$object_id)
+  expect_identical(enriched$library_id, actual$library_id)
+  expect_identical(enriched$label,
+                   library$metadata$label[match(actual$library_id,
+                                                library$metadata$library_key)])
+  expect_identical(enriched$source_label,
+                   query$metadata$source_label[match(actual$object_id,
+                                                     query$metadata$object_key)])
+})
+
+test_that("grouped matching validates metadata and model use", {
+  library <- as_OpenSpecy(
+    1:4, spectra = data.frame(a = 1:4, b = 4:1),
+    metadata = data.frame(organization = c("A", "")),
+    compute_file_id = FALSE
+  )
+  query <- as_OpenSpecy(1:4, spectra = data.frame(q = 1:4),
+                        compute_file_id = FALSE)
+
+  expect_error(match_spec(query, library, top_n_by = "organization"),
+               "positive integer 'top_n'")
+  expect_error(match_spec(query, library, top_n = 1L,
+                          top_n_by = "missing"),
+               "not present")
+  expect_error(match_spec(query, library, top_n = 1L,
+                          top_n_by = "organization"),
+               "nonblank value")
+  expect_error(match_spec(query, list(model = TRUE), top_n = 1L,
+                          top_n_by = "organization"),
+               "not supported for trained model")
+})
+
+test_that("Specs grouped matching follows OpenSpecy grouping", {
+  library <- as_OpenSpecy(
+    1:5,
+    spectra = data.frame(a = 1:5, b = 2:6, c = 5:1, d = c(1, 5, 1, 1, 1)),
+    metadata = data.frame(organization = c("A", "A", "B", "B")),
+    compute_file_id = FALSE
+  )
+  query <- as_OpenSpecy(1:5, spectra = data.frame(q = 1:5),
+                        compute_file_id = FALSE)
+  expected <- match_spec(query, library, top_n = 1L,
+                         top_n_by = "organization")
+  query_specs <- Specs(
+    as.character(query$wavenumber), query$spectra,
+    metadata = data.frame(value_id = colnames(query$spectra)),
+    attributes = list(variable_model = list(model_id = "group-test"))
+  )
+  library_specs <- Specs(
+    as.character(library$wavenumber), library$spectra,
+    metadata = data.frame(
+      value_id = colnames(library$spectra),
+      organization = library$metadata$organization
+    ), attributes = list(variable_model = list(model_id = "group-test"))
+  )
+  actual <- match_spec(query_specs, library_specs, top_n = 1L,
+                       top_n_by = "organization")
+  expect_equal(actual, expected)
+})
+
 test_that("blockwise matching uses the 100-query fallback block size", {
   expected <- OpenSpecy:::.match_spec_blockwise(
     tiny_map, test_lib, top_n = 3L, block_size = 100L

@@ -5,7 +5,9 @@
 #' materialized. The object never stores an open connection or modifies a
 #' source member.
 #'
-#' @param path path to an H5 file, an ENVI binary file, or its `.hdr` file.
+#' @param path path to an H5 file, an ENVI binary file, or its `.hdr` file. An
+#'   explicit two-file ENVI binary/header pair is also accepted when temporary
+#'   upload names do not share a basename.
 #' @param cache_dir directory for immutable derived cache generations. The
 #'   default uses the user cache directory, never the source directory.
 #' @param x a `FileSpecs` object.
@@ -459,18 +461,30 @@ write_spec.FileSpecs <- function(x, file, method = NULL, ...) {
 }
 
 .filespec_source_path <- function(path) {
-  if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path))
-    stop("'path' must be one existing H5 or ENVI source path", call. = FALSE)
-  if (!file.exists(path) || dir.exists(path))
-    stop("FileSpecs source does not exist: ", path, call. = FALSE)
+  if (!is.character(path) || !length(path) || length(path) > 2L ||
+      anyNA(path) || any(!nzchar(path))) {
+    stop("'path' must be one source path or one ENVI binary/header pair",
+         call. = FALSE)
+  }
+  if (length(path) == 2L) {
+    extensions <- tolower(tools::file_ext(path))
+    if (sum(extensions == "hdr") != 1L ||
+        sum(extensions %in% c("dat", "img")) != 1L) {
+      stop("a two-file 'path' must contain one ENVI header and one binary",
+           call. = FALSE)
+    }
+  }
+  if (any(!file.exists(path)) || any(dir.exists(path)))
+    stop("FileSpecs source does not exist: ", paste(path, collapse = ", "),
+         call. = FALSE)
   normalizePath(path, winslash = "/", mustWork = TRUE)
 }
 
 .filespec_backend <- function(path) {
   extension <- tolower(tools::file_ext(path))
-  if (extension %in% c("h5", "hdf5"))
+  if (length(extension) == 1L && extension %in% c("h5", "hdf5"))
     return("h5")
-  if (extension %in% c("hdr", "dat", "img"))
+  if (all(extension %in% c("hdr", "dat", "img")))
     return("envi")
   stop("FileSpecs currently supports H5 and ENVI (.hdr/.dat/.img) sources",
        call. = FALSE)
@@ -784,6 +798,15 @@ write_spec.FileSpecs <- function(x, file, method = NULL, ...) {
 }
 
 .filespec_envi_pair <- function(path) {
+  if (length(path) == 2L) {
+    extension <- tolower(tools::file_ext(path))
+    return(list(
+      header = normalizePath(path[extension == "hdr"][[1L]], winslash = "/",
+                             mustWork = TRUE),
+      binary = normalizePath(path[extension %in% c("dat", "img")][[1L]],
+                             winslash = "/", mustWork = TRUE)
+    ))
+  }
   extension <- tolower(tools::file_ext(path))
   directory <- dirname(path)
   if (identical(extension, "hdr")) {

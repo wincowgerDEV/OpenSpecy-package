@@ -122,6 +122,7 @@ specs_metadata(x, index = NULL, columns = NULL)
   library,
   top_n = NULL,
   expand = FALSE,
+  top_n_by = NULL,
   add_library_metadata = NULL,
   add_object_metadata = NULL,
   compute = "optimized",
@@ -222,6 +223,9 @@ classifies the unsmoothed spectra.}
 \code{"base"}.}
 
 \item{top_n}{integer; number of top latent matches to return.}
+
+\item{top_n_by}{optional single library metadata column name; when supplied,
+retain \code{top_n} matches independently within each nonblank group.}
 
 \item{add_library_metadata}{name of a library metadata column to join.}
 

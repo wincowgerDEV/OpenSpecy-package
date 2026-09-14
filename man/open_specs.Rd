@@ -34,7 +34,9 @@ open_specs(path, cache_dir = NULL)
 \method{collapse_spec}{FileSpecs}(x, ...)
 }
 \arguments{
-\item{path}{path to an H5 file, an ENVI binary file, or its \code{.hdr} file.}
+\item{path}{path to an H5 file, an ENVI binary file, or its \code{.hdr} file. An
+explicit two-file ENVI binary/header pair is also accepted when temporary
+upload names do not share a basename.}
 
 \item{cache_dir}{directory for immutable derived cache generations. The
 default uses the user cache directory, never the source directory.}

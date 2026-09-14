@@ -32,23 +32,42 @@ cor_spec.FileSpecs <- function(x, ...) {
 #' @rdname Specs
 #' @export
 match_spec.Specs <- function(x, library, top_n = NULL, expand = FALSE,
+                             top_n_by = NULL,
                              add_library_metadata = NULL,
                              add_object_metadata = NULL,
                              compute = "optimized", na.rm = TRUE, ...) {
   x <- as_Specs(x)
   library <- as_Specs(library)
+  .validate_grouped_top_n(top_n, top_n_by)
+  groups <- .library_match_groups(library, top_n_by)
 
   if (.is_hilbert_specs(x) || .is_hilbert_specs(library)) {
     res <- .match_specs_hilbert(
-      x, library = library, top_n = top_n,
+      x, library = library, top_n = top_n, groups = groups,
       add_library_metadata = add_library_metadata,
       add_object_metadata = add_object_metadata
     )
   } else {
-    res <- cor_spec(x, library = library, compute = compute, na.rm = na.rm, ...) |>
-      ident_spec(x, library = library, top_n = top_n,
-                 add_library_metadata = add_library_metadata,
-                 add_object_metadata = add_object_metadata)
+    scores <- cor_spec(x, library = library, compute = compute,
+                       na.rm = na.rm, ...)
+    if (is.null(groups)) {
+      res <- ident_spec(scores, x, library = library, top_n = top_n,
+                        add_library_metadata = add_library_metadata,
+                        add_object_metadata = add_object_metadata)
+    } else {
+      rows <- split(seq_len(nrow(scores)), groups, drop = TRUE)
+      res <- data.table::rbindlist(lapply(rows, function(group_rows) {
+        .top_match_rows(scores[group_rows, , drop = FALSE],
+                        min(as.integer(top_n), length(group_rows)))
+      }))
+      object_order <- match(res$object_id, colnames(scores))
+      library_order <- match(res$library_id, rownames(scores))
+      res <- res[order(object_order, -match_val, library_order,
+                       na.last = TRUE)]
+      res <- .append_match_metadata(
+        res, x, library, add_library_metadata, add_object_metadata
+      )
+    }
   }
 
   if (isTRUE(expand))
@@ -63,7 +82,7 @@ match_spec.FileSpecs <- function(x, ...) {
   .filespec_stop_unsupported("match_spec()")
 }
 
-.match_specs_hilbert <- function(x, library, top_n = NULL,
+.match_specs_hilbert <- function(x, library, top_n = NULL, groups = NULL,
                                  add_library_metadata = NULL,
                                  add_object_metadata = NULL) {
   match_distance <- NULL
@@ -72,14 +91,28 @@ match_spec.FileSpecs <- function(x, ...) {
   lib_codes <- .hilbert_code_numeric(library)
   obj_codes <- .hilbert_code_numeric(x)
 
-  if (is.null(top_n) || top_n > length(lib_codes)) {
+  if (is.null(groups) && (is.null(top_n) || top_n > length(lib_codes))) {
     top_n <- length(lib_codes)
     message("'top_n' larger than the number of spectra in the library; ",
             "returning all matches")
   }
   top_n <- as.integer(top_n)
 
-  if (top_n == 1L) {
+  if (!is.null(groups)) {
+    group_rows <- split(seq_along(lib_codes), groups, drop = TRUE)
+    out <- data.table::rbindlist(lapply(seq_along(obj_codes), function(j) {
+      data.table::rbindlist(lapply(group_rows, function(rows) {
+        dist <- abs(lib_codes[rows] - obj_codes[j])
+        idx <- rows[head(order(dist, rows, method = "radix"),
+                         min(top_n, length(rows)))]
+        data.table(
+          object_id = names(obj_codes)[j], library_id = names(lib_codes)[idx],
+          match_val = -abs(lib_codes[idx] - obj_codes[j]),
+          match_distance = abs(lib_codes[idx] - obj_codes[j])
+        )
+      }))
+    }))
+  } else if (top_n == 1L) {
     best <- vapply(obj_codes, function(code) {
       which.min(abs(lib_codes - code))
     }, FUN.VALUE = integer(1L))
@@ -102,17 +135,20 @@ match_spec.FileSpecs <- function(x, ...) {
     }))
   }
 
-  data.table::setorder(out, match_distance)
+  if (is.null(groups)) {
+    data.table::setorder(out, match_distance)
+  } else {
+    out[, .object_order := match(object_id, names(obj_codes))]
+    out[, .library_order := match(library_id, names(lib_codes))]
+    data.table::setorder(
+      out, .object_order, match_distance, .library_order, na.last = TRUE
+    )
+    out[, c(".object_order", ".library_order") := NULL]
+  }
 
-  if (is.character(add_library_metadata))
-    out <- merge(out, library$metadata,
-                 by.x = "library_id", by.y = add_library_metadata,
-                 all.x = TRUE)
-
-  if (is.character(add_object_metadata))
-    out <- merge(out, x$metadata,
-                 by.x = "object_id", by.y = add_object_metadata,
-                 all.x = TRUE)
+  out <- .append_match_metadata(
+    out, x, library, add_library_metadata, add_object_metadata
+  )
 
   out
 }

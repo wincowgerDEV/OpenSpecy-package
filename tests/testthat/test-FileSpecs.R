@@ -248,6 +248,30 @@ test_that("FileSpecs ENVI adapter reads BSQ, BIL, and BIP windows", {
   }
 })
 
+test_that("FileSpecs accepts explicit ENVI pairs with unrelated upload names", {
+  directory <- tempfile("filespec-envi-pair-")
+  dir.create(directory)
+  fixture <- .make_filespec_envi(directory, "bip")
+  uploaded_header <- file.path(directory, "upload-a.hdr")
+  uploaded_binary <- file.path(directory, "upload-b.dat")
+  file.copy(fixture$header, uploaded_header)
+  file.copy(fixture$binary, uploaded_binary)
+
+  specs <- open_specs(
+    c(uploaded_binary, uploaded_header),
+    cache_dir = file.path(directory, "cache")
+  )
+  expect_s3_class(specs, "FileSpecs")
+  expect_equal(specs_source_count(specs), 4L)
+  expect_equal(nrow(specs_coordinates(specs)), 4L)
+  expect_equal(nrow(specs_metadata(specs)), 4L)
+  expect_equal(
+    decompress_spec(specs, index = c(1L, 4L))$spectra,
+    cbind(fixture$cube[, 1, 1], fixture$cube[, 2, 2]),
+    ignore_attr = TRUE
+  )
+})
+
 test_that("FileSpecs exports a new atomic ENVI pair without changing sources", {
   directory <- tempfile("filespec-envi-write-")
   dir.create(directory)

@@ -43,6 +43,10 @@ function(input, output, session) {
   measurement_definitions <- reactiveVal(app_empty_measurement_definitions())
   quantification_axis <- reactiveVal(NULL)
   inspection_source_gate <- reactiveVal(NULL)
+  # The reference artifact is committed by Run alongside canonical_state().
+  # Downstream plots/tables must never pair a completed medoid result with a
+  # newly selected (but not yet run) model library, or vice versa.
+  analysis_library <- reactiveVal(NULL)
   heatmap_events_ready <- reactiveVal(FALSE)
   selection_ready_run <- reactiveVal(NULL)
   quality_modal_observers <- new.env(parent = emptyenv())
@@ -154,6 +158,10 @@ function(input, output, session) {
     shinyjs::toggleState("id_strategy", condition = active)
     shinyjs::toggleState("lib_type", condition = active)
     shinyjs::toggleState("top_n_input", condition = active)
+    shinyjs::toggleState(
+      "top_n_per_organization",
+      condition = active && !identical(input$lib_type, "model")
+    )
   })
 
   observeEvent(input$range_automate, {
@@ -329,7 +337,8 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
               res = if(input$conform_decision) input$conform_res else 8
             )
           }
-          if(is_Specs(combined) && !is.null(background_policy) &&
+          if(is_Specs(combined) && !inherits(combined, "FileSpecs") &&
+             !is.null(background_policy) &&
              identical(input$signal_basis, "fully_processed")) {
             analysis_phase(
               "Classifying fully processed signal/noise",
@@ -449,6 +458,7 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
         analysis_dirty(TRUE)
         analysis_needs_reset(TRUE)
         canonical_state_gate$clear()
+        analysis_library(NULL)
         quantified_data_gate$clear()
         automatic_report_gate$clear()
         ai_output_gate$clear()
@@ -473,6 +483,7 @@ stage_selected_files <- function(file_info, mounted = FALSE) {
   analysis_dirty(TRUE)
   analysis_needs_reset(TRUE)
   canonical_state_gate$clear()
+  analysis_library(NULL)
   quantified_data_gate$clear()
   automatic_report_gate$clear()
   ai_output_gate$clear()
@@ -694,6 +705,12 @@ observeEvent(input$run_analysis, {
     }
     report_phase <- function(...) {
       if(!isTRUE(view_only)) analysis_phase(...)
+    }
+    if(inherits(uploaded, "FileSpecs")) {
+      stop(paste(
+        "File-backed maps must be collapsed to retained particle means before",
+        "ordinary spectral processing."
+      ), call. = FALSE)
     }
     if(is_Specs(uploaded)) uploaded <- decompress_spec(uploaded, expand = FALSE)
     processed <- uploaded
@@ -1279,6 +1296,26 @@ observeEvent(input$run_analysis, {
 
   signal_to_noise <- reactive({
     source <- spatial_data()
+    if(inherits(source, "FileSpecs")) {
+      if(identical(input$signal_basis, "fully_processed")) {
+        stop(paste(
+          "Fully Processed signal/noise is not available for file-backed",
+          "maps because it would materialize every pixel. Use Raw + Spatial",
+          "signal/noise and connected Mean collapse."
+        ), call. = FALSE)
+      }
+      index <- OpenSpecy:::.filespec_index(source)
+      values <- OpenSpecy:::.filespec_particle_snr(
+        source, index = index,
+        bands = seq_along(OpenSpecy:::.filespec_axis(source)),
+        metric = effective_signal_selection(), abs = FALSE,
+        spectral_smooth = isTRUE(input$spatial_decision),
+        sigma1 = rep(as.numeric(input$sigma), 3L),
+        chunk_size = 8192L
+      )
+      names(values) <- index$source_id
+      return(values)
+    }
     if(is_Specs(source)) {
       background <- attr(source, "background")
       if(!is.null(background) && length(background$signal_to_noise) ==
@@ -1410,11 +1447,16 @@ observeEvent(input$run_analysis, {
 
   identify_blockwise <- function(object) {
     preserve_axis <- isTRUE(attr(object, "preserve_uploaded_axis", exact = TRUE))
+    library <- analysis_library()
+    req(!is.null(library))
     reference <- app_reference_for_query(
-      library_filtered(), object, preserve_axis = preserve_axis
+      library, object, preserve_axis = preserve_axis
     )
     report_identification_progress <- function(completed_blocks = 0L,
-                                               total_blocks = NULL) {
+                                               total_blocks = NULL,
+                                               group = NULL,
+                                               completed_groups = NULL,
+                                               total_groups = NULL, ...) {
       state <- app_identification_block_progress(
         query_count = ncol(object$spectra),
         library_count = ncol(reference$spectra),
@@ -1422,14 +1464,24 @@ observeEvent(input$run_analysis, {
         completed_blocks = completed_blocks,
         total_blocks = total_blocks
       )
+      if(isTruthy(group) && !is.null(completed_groups) &&
+         !is.null(total_groups)) {
+        state$detail <- paste0(
+          state$detail, " Organization ", completed_groups, " of ",
+          total_groups, ": ", group, "."
+        )
+      }
       analysis_phase(state$message, state$detail, state$progress)
     }
     report_identification_progress()
     OpenSpecy:::.match_spec_blockwise(
       object, reference, top_n = top_n_value(), block_size = identify_block_size,
+      top_n_by = if(isTRUE(input$top_n_per_organization)) {
+        "organization"
+      } else NULL,
       conform = FALSE, type = "roll",
-      progress = function(completed_blocks, total_blocks) {
-        report_identification_progress(completed_blocks, total_blocks)
+      progress = function(completed_blocks, total_blocks, ...) {
+        report_identification_progress(completed_blocks, total_blocks, ...)
       }
     )
   }
@@ -1441,9 +1493,13 @@ observeEvent(input$run_analysis, {
   }
 
   match_material <- function(library_id) {
-    metadata <- data.table::as.data.table(library_filtered()$metadata)
+    library <- analysis_library()
+    if(is.null(library) || !is_OpenSpecy(library)) {
+      return(rep.int("unknown", length(library_id)))
+    }
+    metadata <- data.table::as.data.table(library$metadata)
     ids <- if("sample_name" %in% names(metadata)) metadata$sample_name else
-      colnames(library_filtered()$spectra)
+      colnames(library$spectra)
     classes <- if("material_class" %in% names(metadata)) {
       metadata$material_class
     } else rep("unknown", nrow(metadata))
@@ -1491,10 +1547,15 @@ observeEvent(input$run_analysis, {
   }
 
   aggregate_unit_matches <- function(matches, mapping, unit_ids) {
+    library <- analysis_library()
+    req(!is.null(library), is_OpenSpecy(library))
+    groups <- if(isTRUE(input$top_n_per_organization)) {
+      as.character(library$metadata$organization)
+    } else NULL
     app_aggregate_unit_matches(
       matches, mapping, unit_ids = unit_ids,
-      library_ids = colnames(library_filtered()$spectra),
-      top_n = top_n_value()
+      library_ids = colnames(library$spectra),
+      top_n = top_n_value(), library_groups = groups
     )
   }
 
@@ -1547,6 +1608,10 @@ observeEvent(input$run_analysis, {
       identification_active = isTRUE(input$identification_active),
       model_library = isTRUE(input$identification_active) &&
         identical(input$lib_type, "model"),
+      top_n = top_n_value(),
+      top_n_per_organization = isTRUE(input$identification_active) &&
+        !identical(input$lib_type, "model") &&
+        isTRUE(input$top_n_per_organization),
       threshold_active = isTRUE(input$threshold_decision),
       correlation_active = particle_pipeline_enabled() &&
         isTRUE(input$cor_threshold_decision),
@@ -1554,6 +1619,10 @@ observeEvent(input$run_analysis, {
       processing = current_processing_settings()
     )
     result <- tryCatch({
+      run_library <- if(run_settings$identification_active) {
+        if(run_settings$model_library) libraryR() else library_filtered()
+      } else NULL
+      analysis_library(run_library)
       spatial <- spatial_data()
       inspection_source_gate(spatial)
       use_library <- run_settings$identification_active &&
@@ -1587,6 +1656,65 @@ observeEvent(input$run_analysis, {
           "Correlation thresholds and spatial spectral clusters need",
           "Identification with a medoid or full reference library."
         )))
+      }
+
+      if(inherits(spatial, "FileSpecs")) {
+        unsupported <- character()
+        if(!collapse) unsupported <- c(
+          unsupported, "enable Collapse Spectra"
+        )
+        if(!identical(strategy, "collapse")) unsupported <- c(
+          unsupported, "use Connected Particle collapse"
+        )
+        if(!identical(input$collapse_type, "Mean")) unsupported <- c(
+          unsupported, "use Mean collapse"
+        )
+        if(identical(input$signal_basis, "fully_processed")) unsupported <- c(
+          unsupported, "use Raw + Spatial signal/noise"
+        )
+        if(correlation_threshold) unsupported <- c(
+          unsupported, "turn off the per-pixel correlation threshold"
+        )
+        if(length(unsupported)) {
+          return(unavailable(paste0(
+            "This file-backed map is protected from full-map materialization; ",
+            paste(unique(unsupported), collapse = ", "), "."
+          )))
+        }
+        signal_keep <- signal_eligible()
+        if(!any(signal_keep)) {
+          return(unavailable(
+            "No pixels pass the enabled signal/noise threshold."
+          ))
+        }
+        analysis_phase(
+          "Collapsing retained particles",
+          paste(
+            "Streaming retained spectra into connected particle means without",
+            "materializing or combining the full map."
+          ),
+          34
+        )
+        partition <- OpenSpecy:::.filespec_collapse_connected_mean(
+          spatial, eligible = signal_keep,
+          area_threshold = particle_area_threshold(),
+          spectral_smooth = isTRUE(input$spatial_decision),
+          sigma = rep(as.numeric(input$sigma), 3L), chunk_size = 8192L
+        )
+        if(is.null(partition$analysis_units)) {
+          return(unavailable(
+            "No connected particle regions meet the active thresholds and minimum area.",
+            partition$pixel_to_unit, partition
+          ))
+        }
+        processed <- ordinary_process(partition$analysis_units)
+        matches <- if(use_library) identify_blockwise(processed) else NULL
+        processed <- attach_best_matches(processed, matches)
+        return(list(
+          object = processed, matches = matches, pixel_matches = NULL,
+          pixel_to_unit = partition$pixel_to_unit, partition = partition,
+          error = NULL, diagnostic = NULL, settings = run_settings
+        ))
       }
 
       if(!collapse) {
@@ -1734,8 +1862,11 @@ observeEvent(input$run_analysis, {
         matches <- app_aggregate_unit_matches(
           cluster_matches, membership,
           unit_ids = colnames(final_object$spectra),
-          library_ids = colnames(library_filtered()$spectra),
-          top_n = top_n_value()
+          library_ids = colnames(analysis_library()$spectra),
+          top_n = top_n_value(),
+          library_groups = if(isTRUE(input$top_n_per_organization)) {
+            as.character(analysis_library()$metadata$organization)
+          } else NULL
         )
         final_object <- attach_best_matches(final_object, matches)
         cluster_partition$final_partition <- final_partition
@@ -2007,6 +2138,15 @@ observeEvent(input$run_analysis, {
 
   DataR_plot <- reactive(active_spectrum_view())
 
+  active_peak_positions <- reactive({
+    if(!isTRUE(input$show_peak_positions)) return(NULL)
+    viewed <- active_spectrum_view()
+    if(!identical(attr(viewed, "openspecy_selection_status"), "retained")) {
+      return(NULL)
+    }
+    app_peak_positions(viewed, top_n = input$peak_count)
+  })
+
   output$active_spectrum_status <- renderText({
     viewed <- active_spectrum_view()
     if(identical(attr(viewed, "openspecy_selection_status"),
@@ -2262,7 +2402,9 @@ observeEvent(input$run_analysis, {
       uploaded_count <- source_count(uploaded)
       if(length(selected) != 1L || is.na(selected) ||
          selected < 1L || selected > uploaded_count) {
-        axis <- if(is_Specs(uploaded)) {
+        axis <- if(inherits(uploaded, "FileSpecs")) {
+          OpenSpecy:::.filespec_axis(uploaded)
+        } else if(is_Specs(uploaded)) {
           OpenSpecy:::.specs_variables_for_open_specy(uploaded$variables)
         } else uploaded$wavenumber
         return(app_rejected_spectrum(axis))
@@ -2285,8 +2427,11 @@ observeEvent(input$run_analysis, {
   #The output from the AI classification algorithm.
   ai_output_gate <- run_gated_reactive(function() { #tested working.
       req(!is.null(preprocessed$data))
-      req(isTRUE(input$identification_active))
-      req(grepl("^model$", input$lib_type))
+      settings <- canonical_state()$settings
+      req(isTRUE(settings$identification_active))
+      req(isTRUE(settings$model_library))
+      model_library <- analysis_library()
+      req(!is.null(model_library))
       analysis_phase(
         "Classifying spectra",
         paste0("Running the selected model for ", ncol(DataR()$spectra),
@@ -2294,7 +2439,7 @@ observeEvent(input$run_analysis, {
         76
       )
 
-      app_classify_model_library(DataR(), libraryR())
+      app_classify_model_library(DataR(), model_library)
   })
   ai_output <- reactive(ai_output_gate$read())
 
@@ -2337,7 +2482,7 @@ observeEvent(input$run_analysis, {
         } else match_material(names(values))
       } else names(values)
       data.table::fifelse(
-        is.na(values) | values < MinCor(),
+        is.na(values) | values < canonical_state()$settings$min_cor,
         rep.int("unknown", length(values)), identities
       )
   })
@@ -2355,7 +2500,7 @@ observeEvent(input$run_analysis, {
         best_match_rows(pixel_matches)$match_val
       } else max_cor()
       req(!is.null(values), length(values))
-      thresholds <- if(correlation_active) MinCor() else numeric()
+      thresholds <- if(correlation_active) state$settings$min_cor else numeric()
       app_particle_plotly(list(
         type = "histogram", values = as.numeric(values),
         thresholds = thresholds, xlab = "Correlation"
@@ -2400,7 +2545,7 @@ observeEvent(input$run_analysis, {
             identification_matches(), selected_object_id
           ) %>%
               dplyr::rename(sample_name = library_id) %>%
-              left_join(library_filtered()$metadata, by = c("sample_name")) %>%
+              left_join(analysis_library()$metadata, by = c("sample_name")) %>%
               mutate(match_val = signif(match_val, 2)) %>%
               {
                 settings <- canonical_state()$settings
@@ -2423,9 +2568,11 @@ observeEvent(input$run_analysis, {
       rows <- matches_to_single()
       req(nrow(rows) > 0L)
       selected_row <- app_selected_rank_index(data_click$table, nrow(rows))
+      library <- analysis_library()
+      req(!is.null(library), is_OpenSpecy(library))
       filter_spec(
-        library_filtered(),
-        logic = colnames(library_filtered()$spectra) ==
+        library,
+        logic = colnames(library$spectra) ==
           rows[[selected_row, "sample_name"]]
       )
   })
@@ -2449,7 +2596,7 @@ observeEvent(input$run_analysis, {
          !isTRUE(settings$model_library)) return(empty)
       app_selected_model_explanation(
         predictions = matches_to_single(),
-        library = libraryR(),
+        library = analysis_library(),
         selected_index = selected_unit_index(),
         selected_row = data_click$table
       )
@@ -2499,7 +2646,7 @@ match_metadata <- reactive({
         prediction <- matches_to_single()[
           object_id == selected_object_id & prediction_rank == 1L
         ]
-        if(nrow(prediction) && prediction$match_val[[1L]] < MinCor()) {
+        if(nrow(prediction) && prediction$match_val[[1L]] < settings$min_cor) {
           prediction$material_class[[1L]] <- "unknown"
         }
         result <- bind_cols(
@@ -2545,9 +2692,9 @@ output$snr_plot <- renderPlotly({
 })
 
 #Table of metadata for the selected spectrum and match
-output$eventmetadata <- DT::renderDataTable(server = FALSE, {
+output$eventmetadata <- DT::renderDT({
     req(!is.null(match_metadata()))
-    datatable(
+    DT::datatable(
         match_metadata(),
         escape = TRUE,
         options = list(
@@ -2561,10 +2708,10 @@ output$eventmetadata <- DT::renderDataTable(server = FALSE, {
         caption = "Selection Metadata",
         selection = 'none'
     )
-})
+}, server = FALSE)
 
 # Create the data tables for all matches
-output$event <- DT::renderDataTable({
+output$event <- DT::renderDT({
     data <- top_matches()
     # AI mode's any_of()-selected row may be missing either column.
     if("organization" %in% names(data)) {
@@ -2573,7 +2720,7 @@ output$event <- DT::renderDataTable({
     if("material_class" %in% names(data)) {
       data <- data %>% mutate(material_class = as.factor(material_class))
     }
-    datatable(data,
+    DT::datatable(data,
               options = list(searchHighlight = TRUE,
                              scrollX = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
@@ -2581,26 +2728,12 @@ output$event <- DT::renderDataTable({
               rownames = FALSE,
               filter = "top", caption = "Selectable Matches",
               style = "bootstrap",
-              selection = list(mode = "single", selected = c(1)),
-              callback = DT::JS(
-                "table.off('click.openspecyRank', 'tbody tr');",
-                "table.on('click.openspecyRank', 'tbody tr', function() {",
-                "  var row = this;",
-                "  var rank = table.row(row).index();",
-                "  if (rank === undefined || rank === null) return;",
-                "  $(table.rows().nodes()).removeClass('selected');",
-                "  $(row).addClass('selected');",
-                "  setTimeout(function() {",
-                "    Shiny.setInputValue('event_rows_selected', [rank + 1],",
-                "      {priority: 'event'});",
-                "  }, 0);",
-                "});"
-              ))
-})
+              selection = list(mode = "single", selected = c(1)))
+}, server = FALSE)
 outputOptions(output, "event", suspendWhenHidden = FALSE)
 
 #Full metadata table for uploaded spectra
-output$sidebar_metadata <- DT::renderDataTable({
+output$sidebar_metadata <- DT::renderDT({
     req(!is.null(meta_cache()))
     app_uploaded_metadata_table(meta_cache())
 }, server = FALSE)
@@ -2869,6 +3002,7 @@ output$progress_bars <- renderUI({
         reference = reference,
         model = explanation$model,
         model_class = explanation$model_class,
+        peaks = active_peak_positions(),
         make_rel = isTRUE(input$make_rel_decision),
         source = "B",
         plot_width = session$clientData$output_MyPlotC_width
@@ -3107,7 +3241,11 @@ output$progress_bars <- renderUI({
   
   output$material_plot <- renderPlot({
       req(!is.null(preprocessed$data))
-      if(isTRUE(canonical_state()$settings$collapse)) {
+      settings <- canonical_state()$settings
+      if(isTRUE(settings$identification_active)) {
+          match_names <- max_cor_identity()
+          req(!is.null(match_names), length(match_names))
+      } else if(isTRUE(settings$collapse)) {
           particles <- canonical_final()
           req(!is.null(particles),
               "material_class" %in% names(particles$metadata))
@@ -3189,7 +3327,7 @@ output$progress_bars <- renderUI({
 
   output$columns_selected_ui <- renderUI({
     req(identical(input$download_selection, "Top Matches"))
-    req(!identical(input$lib_type, "model"))
+    req(!isTRUE(canonical_state()$settings$model_library))
     tags$details(
       class = "openspecy-download-details",
       tags$summary("Top Matches columns"),
@@ -3255,22 +3393,24 @@ output$progress_bars <- renderUI({
           active_ratio_definitions(),
           active_measurement_definitions()
         )
-        if(!grepl("^model$", input$lib_type)) {
-          top_n <- input$top_n_input
-          if(is.null(top_n) || !is.finite(top_n)) top_n <- 10L
-          top_n <- min(top_n_value(), max(1L, as.integer(top_n)))
+        run_settings <- canonical_state()$settings
+        if(!isTRUE(run_settings$model_library)) {
+          top_n <- run_settings$top_n
           columns_selected <- input$columns_selected
           if(is.null(columns_selected)) columns_selected <- "Simple"
           processed <- quantified_data()
           snr <- canonical_signal_noise()
           all_matches <- app_top_matches_export_compact(
             matches = identification_matches(),
-            library_metadata = library_filtered()$metadata,
+            library_metadata = analysis_library()$metadata,
             spectrum_metadata = processed$metadata,
             signal_to_noise = snr,
-            match_threshold = MinCor(),
-            signal_threshold = c(MinSNR(), MaxSNR()),
+            match_threshold = run_settings$min_cor,
+            signal_threshold = c(run_settings$min_snr, run_settings$max_snr),
             top_n = top_n,
+            top_n_by = if(isTRUE(
+              canonical_state()$settings$top_n_per_organization
+            )) "organization" else NULL,
             columns_selected = columns_selected,
             quant_columns = quant_columns
           )
@@ -3297,7 +3437,7 @@ output$progress_bars <- renderUI({
             select(file_name, col_id, material_class, match_val,
                    signal_to_noise, everything()) %>%
             mutate(
-              material_class = ifelse(match_val < MinCor(), "unknown",
+              material_class = ifelse(match_val < run_settings$min_cor, "unknown",
                                       material_class)
             )
           fwrite(result, file)
@@ -3366,8 +3506,12 @@ output$progress_bars <- renderUI({
           path <- file.path(archive_root, "particle_size_distribution.png")
           app_write_ggplot_png(app_particle_size_plot(canonical_final()), path)
           files <- c(files, path)
-          if("material_class" %in% names(canonical_final()$metadata)) {
-            material <- canonical_final()$metadata$material_class
+          material <- if(isTRUE(run_settings$identification_active)) {
+            max_cor_identity()
+          } else if("material_class" %in% names(canonical_final()$metadata)) {
+            canonical_final()$metadata$material_class
+          } else NULL
+          if(!is.null(material) && length(material)) {
             path <- file.path(archive_root, "material_summary.png")
             app_write_ggplot_png(app_material_summary_plot(material), path)
             files <- c(files, path)

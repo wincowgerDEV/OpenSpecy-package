@@ -340,6 +340,29 @@ test_that("Specs Hilbert matching uses compatible code distance", {
   expect_error(match_spec(unknown, bad, top_n = 1), "same variables")
 })
 
+test_that("Specs Hilbert grouped matching is ordered within each query", {
+  os <- make_specs_test_os()
+  model <- fit_specs_pca(os, n_components = 3)
+  pca_specs <- as_Specs(os, model, steps = "pca")
+  library <- encode_specs_hilbert(pca_specs, bits_per_variable = 8)
+  unknown <- encode_specs_hilbert(
+    pca_specs, limits = attr(library, "hilbert_model")
+  )
+  library$metadata$organization <- rep(
+    c("A", "B"), length.out = ncol(library$values)
+  )
+
+  matches <- match_spec(
+    unknown, library, top_n = 1L, top_n_by = "organization",
+    add_library_metadata = "value_id"
+  )
+  expected_objects <- rep(colnames(unknown$values), each = 2L)
+  expect_identical(matches$object_id, expected_objects)
+  expect_true(all(matches[, data.table::uniqueN(organization) == 2L,
+                          by = object_id]$V1))
+  expect_true(all(matches[, diff(match_distance) >= 0, by = object_id]$V1))
+})
+
 test_that("def_features() and collapse_spec() work with Specs coords", {
   os <- make_specs_test_os()
   model <- fit_specs_pca(os, n_components = 3)

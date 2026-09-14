@@ -105,6 +105,59 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   expect_identical(source_after, source_before)
 })
 
+test_that("file-backed connected means equal eager connected collapse", {
+  directory <- tempfile("filespec-connected-mean-")
+  dir.create(directory)
+  fixture <- .make_particle_filespec_envi(directory)
+  specs <- open_specs(fixture$header, cache_dir = file.path(directory, "cache"))
+  eligible <- rep(FALSE, 16L)
+  eligible[c(6L, 7L, 10L, 11L)] <- TRUE
+
+  streamed <- OpenSpecy:::.filespec_collapse_connected_mean(
+    specs, eligible = eligible, area_threshold = 1L, chunk_size = 2L
+  )
+  eager_source <- decompress_spec(specs, region = "Region1")
+  eager <- OpenSpecy:::.partition_particle_map(
+    eager_source, eligible = eligible, strategy = "collapse",
+    collapse_function = mean, area_threshold = 1L
+  )
+
+  mapping_columns <- setdiff(names(streamed$pixel_to_unit), "source_id")
+  expect_equal(streamed$pixel_to_unit[, mapping_columns, with = FALSE],
+               eager$pixel_to_unit[, mapping_columns, with = FALSE])
+  expect_equal(data.table::uniqueN(streamed$pixel_to_unit$source_id), 1L)
+  expect_equal(streamed$analysis_units$spectra,
+               eager$analysis_units$spectra,
+               tolerance = 1e-10, ignore_attr = TRUE)
+  expect_true(isTRUE(streamed$settings$file_backed))
+  expect_equal(streamed$settings$chunk_size, 2L)
+})
+
+test_that("file-backed particle blocks and retained means enforce memory bounds", {
+  max_block <- 64 * 1024^2
+  bands <- 427L
+  expected <- floor(max_block / (bands * 8))
+  expect_equal(
+    OpenSpecy:::.filespec_bounded_chunk_size(bands, 100000L, max_block),
+    as.integer(expected)
+  )
+  expect_error(
+    OpenSpecy:::.filespec_bounded_chunk_size(bands, 1L, bands * 8 - 1),
+    "cannot fit one spectrum"
+  )
+
+  capacity <- OpenSpecy:::.filespec_retained_mean_capacity(
+    n_bands = bands, n_features = 1000L, max_bytes = 8 * 1024^2
+  )
+  expect_equal(capacity$bytes, bands * 1000 * 8 * 2)
+  expect_error(
+    OpenSpecy:::.filespec_retained_mean_capacity(
+      n_bands = bands, n_features = 2000L, max_bytes = 8 * 1024^2
+    ),
+    "exceed the file-backed live-memory bound"
+  )
+})
+
 test_that("FileSpecs particle automation accepts both threshold extremes", {
   directory <- tempfile("filespec-particle-extremes-")
   dir.create(directory)

@@ -50,6 +50,8 @@
 #' @param compress compression argument passed to \code{\link[base]{saveRDS}()}.
 #' @param library a \code{Specs} object to match against.
 #' @param top_n integer; number of top latent matches to return.
+#' @param top_n_by optional single library metadata column name; when supplied,
+#'   retain \code{top_n} matches independently within each nonblank group.
 #' @param add_library_metadata name of a library metadata column to join.
 #' @param add_object_metadata name of an object metadata column to join.
 #' @param compute correlation compute strategy, \code{"optimized"} or

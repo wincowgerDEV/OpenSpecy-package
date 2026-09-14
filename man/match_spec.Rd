@@ -52,6 +52,7 @@ match_spec(x, ...)
   type = "roll",
   top_n = NULL,
   order = NULL,
+  top_n_by = NULL,
   add_library_metadata = NULL,
   add_object_metadata = NULL,
   compute = "optimized",
@@ -125,6 +126,11 @@ value returns that many ranked class probabilities per spectrum.}
 
 \item{order}{an \code{OpenSpecy} used for sorting, ideally the unprocessed
 one; \code{NULL} skips sorting.}
+
+\item{top_n_by}{optional single library metadata column name. When supplied
+for a spectral library, \code{top_n} matches are retained independently for
+each non-missing group (for example, \code{"organization"}). It is not
+supported for trained model libraries.}
 
 \item{add_library_metadata}{name of a column in the library metadata to be
 joined; \code{NULL} if you don't want to join.}
@@ -209,6 +215,10 @@ cor_spec(unknown, test_lib)
 
 match_spec(unknown, test_lib, add_library_metadata = "sample_name",
            top_n = 1)
+test_lib$metadata[["organization"]] <- rep(
+  c("collection_a", "collection_b"), length.out = nrow(test_lib$metadata)
+)
+match_spec(unknown, test_lib, top_n = 1, top_n_by = "organization")
 
 }
 \seealso{

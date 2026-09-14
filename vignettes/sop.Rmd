@@ -898,7 +898,9 @@ identify the spectra using `match_spec()`. Whichever library you choose, you nee
 spectra into a similar enough format to use for comparison. The
 `add_library_metadata` and `add_object_metadata` options specify the column name
 in the metadata that you want to add metadata from and `top_n` specifies how
-many matches you want. In this example we just identified a single spectrum with
+many matches you want. Set `top_n_by` to one nonblank library metadata column,
+such as `"organization"`, to retain that many matches independently from every
+group. In this example we just identified a single spectrum with
 the library but you can also send an OpenSpecy object with multiple spectra. The
 output `matches` is a data.table with at least 3 columns, `object_id` tells you
 the column names of the spectra in `x`, `library_id` tells you the column names
@@ -918,7 +920,8 @@ library with FTIR or Raman spectra, you can first filter the library using
 
 ```{r, eval=FALSE}
 matches <- match_spec(x = processed, library = test_lib, conform = T,
-                      add_library_metadata = "sample_name", top_n = 5)[order(match_val, decreasing = T)]
+                      add_library_metadata = "sample_name", top_n = 1,
+                      top_n_by = "organization")[order(match_val, decreasing = T)]
 print(matches[,c("object_id", "library_id", "match_val", "SpectrumType",
                  "SpectrumIdentity")])
 ```

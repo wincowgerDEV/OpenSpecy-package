@@ -97,10 +97,10 @@ app_guidance_registry <- list(
     title = "Identification Strategy",
     controls = c(
       "identification_active", "id_spec_type", "id_strategy", "lib_type",
-      "top_n_input", "filter_lib", "lib_org"
+      "top_n_input", "top_n_per_organization", "filter_lib", "lib_org"
     ),
     body = c(
-      "Spectrum Type limits candidate references when the measurement type is known; All searches FTIR, Raman, and NIR. Library Type trades reference detail against runtime, while Top N controls how many ranked candidates are retained per spectrum.",
+      "Spectrum Type limits candidate references when the measurement type is known; All searches FTIR, Raman, and NIR. Library Type trades reference detail against runtime. Top N per organization retains that many candidates from every selected organization; turning it off applies Top N across the full library.",
       "Derivative requires absolute first-derivative preprocessing. No Baseline requires baseline correction and no active derivative. A mismatch can make scores scientifically misleading, so Run reports a nonblocking warning with the corrective controls.",
       "Turning Identification off skips library/model loading, matching, Top Matches, and material-dependent spatial grouping. Filter Library is also a no-op while its owner switch is off."
     )
@@ -146,7 +146,9 @@ app_tab_switch_ids <- function() {
       "co2_decision", "spike_decision", "saturation_decision",
       "derivative_abs", "refit", "range_automate", "co2_automate"
     ),
-    identification = c("identification_active", "filter_lib"),
+    identification = c(
+      "identification_active", "top_n_per_organization", "filter_lib"
+    ),
     advanced = c(
       "threshold_decision", "cor_threshold_decision", "spatial_decision",
       "xy_grid", "collapse_decision"
@@ -446,11 +448,10 @@ app_read_uploaded_members <- function(paths, mounted = FALSE,
   envi_pair <- length(paths) == 2L &&
     any(grepl("\\.(dat|img)$", paths, ignore.case = TRUE)) &&
     any(grepl("\\.hdr$", paths, ignore.case = TRUE))
-  if(envi_pair) return(read_any(
-    file = paths, c_spec = FALSE, representation = representation,
-    background_filter = background_filter,
-    spectral_smooth = spectral_smooth, sigma = sigma
-  ))
+  if(envi_pair && identical(representation, "Specs")) {
+    return(open_specs(paths))
+  }
+  if(envi_pair) return(read_any(file = paths, c_spec = FALSE))
   if(length(paths) > 1L) {
     return(Map(read_one, paths, mounted_text))
   }
@@ -1015,7 +1016,7 @@ app_selected_model_explanation <- function(predictions, library,
 # incomplete reference coverage into a synthetic correlation. Each retained
 # value remains an actual member-pixel correlation and carries its provenance.
 app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
-                                       top_n = 10L) {
+                                       top_n = 10L, library_groups = NULL) {
   matches <- data.table::copy(data.table::as.data.table(matches))
   mapping <- data.table::copy(data.table::as.data.table(mapping))
   if(!all(c("object_id", "library_id", "match_val") %in% names(matches)) ||
@@ -1032,6 +1033,14 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
   top_n <- suppressWarnings(as.integer(top_n))
   if(length(top_n) != 1L || is.na(top_n) || top_n < 1L) top_n <- 1L
   top_n <- min(top_n, length(library_ids))
+  if(!is.null(library_groups)) {
+    library_groups <- trimws(as.character(library_groups))
+    if(length(library_groups) != length(library_ids) || anyNA(library_groups) ||
+       any(!nzchar(library_groups))) {
+      stop("Library groups must align with every library identifier.",
+           call. = FALSE)
+    }
+  }
 
   membership <- mapping[
     kept & !is.na(unit_id),
@@ -1052,6 +1061,9 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
     library_order = match(library_id, library_ids),
     unit_order = match(unit_id, unit_ids)
   )]
+  joined[, library_group := if(is.null(library_groups)) {
+    "__all__"
+  } else library_groups[library_order]]
   if(anyNA(joined$library_order) || anyNA(joined$unit_order)) {
     stop("Unit-match projection identifiers do not align.", call. = FALSE)
   }
@@ -1063,7 +1075,7 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
     ranked, unit_order, -match_val, library_order, pixel_index,
     na.last = TRUE
   )
-  ranked[, .rank := seq_len(.N), by = unit_id]
+  ranked[, .rank := seq_len(.N), by = .(unit_id, library_group)]
   ranked <- ranked[.rank <= top_n]
   ranked[, .(
     object_id = unit_id, library_id, match_val, source_pixel_id
@@ -1075,6 +1087,7 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
 app_top_matches_export_compact <- function(
     matches, library_metadata, spectrum_metadata, signal_to_noise,
     match_threshold, signal_threshold = c(-Inf, Inf), top_n = 10L,
+    top_n_by = NULL,
     columns_selected = c("Simple", "All"), quant_columns = character()) {
   columns_selected <- match.arg(columns_selected)
   matches <- data.table::copy(data.table::as.data.table(matches))
@@ -1107,9 +1120,23 @@ app_top_matches_export_compact <- function(
   top_n <- suppressWarnings(as.integer(top_n))
   if(length(top_n) != 1L || is.na(top_n) || top_n < 1L) top_n <- 1L
   top_n <- min(top_n, length(library_ids))
-  matches[, .rank := seq_len(.N), by = object_id]
+  if(!is.null(top_n_by)) {
+    if(!is.character(top_n_by) || length(top_n_by) != 1L ||
+       !top_n_by %in% names(library_metadata)) {
+      stop("Top Matches grouping column is missing from reference metadata.",
+           call. = FALSE)
+    }
+    groups <- trimws(as.character(library_metadata[[top_n_by]]))
+    if(anyNA(groups) || any(!nzchar(groups))) {
+      stop("Top Matches grouping values must be nonblank.", call. = FALSE)
+    }
+    matches[, .match_group := groups[match(library_id, library_ids)]]
+  } else {
+    matches[, .match_group := "__all__"]
+  }
+  matches[, .rank := seq_len(.N), by = .(object_id, .match_group)]
   matches <- matches[.rank <= top_n]
-  matches[, .rank := NULL]
+  matches[, c(".rank", ".match_group") := NULL]
 
   thresholds <- suppressWarnings(as.numeric(signal_threshold))
   thresholds <- thresholds[!is.na(thresholds)]
@@ -1230,7 +1257,7 @@ app_user_metadata_input_ids <- c(
   "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
   # Identification
   "identification_active", "id_spec_type", "id_strategy", "lib_type",
-  "top_n_input", "filter_lib", "lib_org",
+  "top_n_input", "top_n_per_organization", "filter_lib", "lib_org",
   # Advanced
   "threshold_decision", "signal_basis", "MinSNR", "MaxSNR",
   "signal_selection",
@@ -3166,8 +3193,61 @@ app_spectrum_legend_layout <- function(plot_width = NULL,
   )
 }
 
+# Find derivative-zero maxima on exactly one displayed processed spectrum.
+# A flat-topped peak is represented by the middle sample of the zero-difference
+# plateau bracketed by a positive and then negative first difference.
+app_peak_positions <- function(x, top_n = 7L) {
+  if(!inherits(x, "OpenSpecy") || ncol(x$spectra) != 1L) {
+    stop("Peak positions require exactly one OpenSpecy spectrum.",
+         call. = FALSE)
+  }
+  top_n <- suppressWarnings(as.integer(top_n))
+  if(length(top_n) != 1L || is.na(top_n) || top_n < 1L || top_n > 20L) {
+    stop("'top_n' must be an integer from 1 through 20.", call. = FALSE)
+  }
+  y <- as.numeric(x$spectra[, 1L])
+  wn <- as.numeric(x$wavenumber)
+  if(length(y) < 3L) return(data.frame(
+    index = integer(), wavenumber = numeric(), intensity = numeric(),
+    rank = integer(), label = character()
+  ))
+  delta <- diff(y)
+  candidates <- integer()
+  i <- 1L
+  while(i < length(delta)) {
+    if(is.finite(delta[[i]]) && delta[[i]] > 0) {
+      j <- i + 1L
+      while(j <= length(delta) && is.finite(delta[[j]]) &&
+            delta[[j]] == 0) j <- j + 1L
+      if(j <= length(delta) && is.finite(delta[[j]]) && delta[[j]] < 0) {
+        candidates <- c(candidates, as.integer(floor((i + 1L + j) / 2L)))
+        i <- j
+      }
+    }
+    i <- i + 1L
+  }
+  candidates <- candidates[
+    is.finite(y[candidates]) & is.finite(wn[candidates]) &
+      candidates > 1L & candidates < length(y)
+  ]
+  if(!length(candidates)) return(data.frame(
+    index = integer(), wavenumber = numeric(), intensity = numeric(),
+    rank = integer(), label = character()
+  ))
+  ordered <- candidates[order(-y[candidates], wn[candidates], candidates,
+                              method = "radix")]
+  ordered <- head(ordered, top_n)
+  data.frame(
+    index = ordered, wavenumber = wn[ordered], intensity = y[ordered],
+    rank = seq_along(ordered),
+    label = format(round(wn[ordered], 1L), trim = TRUE, nsmall = 0),
+    stringsAsFactors = FALSE
+  )
+}
+
 app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
                               model = NULL, model_class = NULL,
+                              peaks = NULL,
                               make_rel = FALSE, source = "B",
                               plot_width = NULL) {
   prepare_trace <- function(x, normalize = FALSE) {
@@ -3250,6 +3330,27 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
     "Identification match",
     app_plot_palette$reference, 2.2, "dot"
   )
+  if(!is.null(peaks) && nrow(peaks)) {
+    peak_order <- order(peaks$wavenumber, method = "radix")
+    label_position <- rep(c("top center", "bottom center"),
+                          length.out = nrow(peaks))
+    label_position[peak_order] <- rep(
+      c("top center", "bottom center"), length.out = nrow(peaks)
+    )
+    plot <- plotly::add_trace(
+      plot, data = peaks, x = ~wavenumber, y = ~intensity,
+      type = "scatter", mode = "markers+text", name = "Peak positions",
+      text = ~label, textposition = label_position,
+      textfont = list(color = app_plot_palette$text, size = 11),
+      marker = list(color = app_plot_palette$reference, size = 8,
+                    line = list(color = app_plot_palette$panel, width = 1)),
+      hovertemplate = paste0(
+        "Peak rank %{customdata}<br>%{x:.1f} cm<sup>-1</sup><br>",
+        "%{y:.4g}<extra></extra>"
+      ),
+      customdata = ~rank, inherit = FALSE
+    )
+  }
   legend_layout <- app_spectrum_legend_layout(
     plot_width, model_overlay = has_weight_overlay
   )
@@ -3277,7 +3378,8 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
 }
 
 app_empty_spectrum_plot <- function() {
-  plotly::plot_ly(type = "scatter", mode = "lines") |>
+  plotly::plot_ly(x = numeric(), y = numeric(),
+                  type = "scatter", mode = "lines") |>
     plotly::layout(
       xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                    range = c(4000, 400)),

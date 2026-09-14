@@ -47,7 +47,8 @@ test_that("compact Top Matches obeys requested and default Top N", {
   library_metadata <- data.frame(
     sample_name = rev(library_ids),
     material_class = paste0("material-", rev(seq_along(library_ids))),
-    spectrum_identity = paste0("identity-", rev(seq_along(library_ids)))
+    spectrum_identity = paste0("identity-", rev(seq_along(library_ids))),
+    organization = rep(c("A", "B"), each = 6L)
   )
   spectrum_metadata <- data.frame(
     col_id = rev(object_ids),
@@ -78,6 +79,15 @@ test_that("compact Top Matches obeys requested and default Top N", {
     "identity-1"
   )
   expect_false(any(grepl("\\.[xy]$", names(requested))))
+
+  grouped <- env$app_top_matches_export_compact(
+    matches, library_metadata, spectrum_metadata, signal_to_noise,
+    match_threshold = 0.5, top_n = 2, top_n_by = "organization",
+    columns_selected = "All"
+  )
+  grouped_counts <- grouped[, .N, by = .(col_id, organization)]
+  expect_true(all(grouped_counts$N == 2L))
+  expect_true(all(grouped[, .N, by = col_id]$N == 4L))
 
   default <- env$app_top_matches_export_compact(
     matches, library_metadata, spectrum_metadata, signal_to_noise,
@@ -161,6 +171,12 @@ test_that("collapsed units reuse real member-pixel correlations", {
   expect_equal(projected$match_val, c(0.9, 0.85))
   expect_identical(projected$source_pixel_id, c("p1", "p2"))
   expect_false(any(projected$match_val == mean(c(0.9, 0.7))))
+
+  grouped <- env$app_aggregate_unit_matches(
+    matches, mapping, unit_ids = "u1", library_ids = c("a", "b", "c"),
+    top_n = 1L, library_groups = c("A", "A", "B")
+  )
+  expect_identical(grouped$library_id, c("a", "c"))
 
   split_membership <- data.table::data.table(
     pixel_id = c("p1", "p1"), unit_id = c("u1", "u2"),

@@ -225,11 +225,16 @@ identification_controls <- tagList(
         "top_n_input", "Top N matches retained",
         value = 10, min = 1, max = 1000, step = 1
       ),
+      prettySwitch(
+        "top_n_per_organization", "Top N per organization",
+        inline = TRUE, value = TRUE, status = "success", fill = TRUE
+      ),
       tags$p(
         class = "text-muted",
         paste(
-          "Only these ranked matches are kept for each spectrum. The Matches",
-          "table and Top Matches download reuse this compact result."
+          "When enabled, this many matches are retained from every selected",
+          "library organization. When off, Top N applies across the full",
+          "reference library. The best score overall remains the identity."
         )
       )
     )
@@ -1188,6 +1193,15 @@ dashboardPage(
                       0 8px 24px rgba(0, 0, 0, .28);
         }
         .openspecy-plot-frame { padding: 8px; margin: 8px 0 16px; }
+        .openspecy-peak-controls {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 20px;
+          padding: 4px 8px 0;
+        }
+        .openspecy-peak-controls .form-group { margin-bottom: 4px; }
+        .openspecy-peak-controls .irs { min-width: 220px; }
         .openspecy-mini-plot { margin-top: 8px; }
         .openspecy-snr-preview-header {
           display: flex;
@@ -1518,11 +1532,25 @@ dashboardPage(
               class = "text-muted openspecy-active-spectrum-status",
               textOutput("active_spectrum_status", inline = TRUE)
             ),
+            div(
+              class = "openspecy-peak-controls",
+              prettySwitch(
+                "show_peak_positions", "Show Peak Positions", inline = TRUE,
+                value = TRUE, status = "success", fill = TRUE
+              ),
+              conditionalPanel(
+                condition = "input.show_peak_positions === true",
+                sliderInput(
+                  "peak_count", "Top peak labels", min = 1, max = 20,
+                  value = 7, step = 1
+                )
+              )
+            ),
             plotlyOutput("MyPlotC", height = "45vh")
           ),
           div(
             style = "overflow-x:auto",
-            DT::dataTableOutput("eventmetadata")
+            DT::DTOutput("eventmetadata")
           ),
           sidebar = boxSidebar(
             id = "mycardsidebar",
@@ -1532,14 +1560,14 @@ dashboardPage(
                 "Library Matches",
                 fluidRow(
                   style = "padding:1rem;overflow-x:auto",
-                  DT::dataTableOutput("event")
+                  DT::DTOutput("event")
                 )
               ),
               tabPanel(
                 "Uploaded Metadata",
                 fluidRow(
                   style = "padding:1rem;overflow-x:auto",
-                  DT::dataTableOutput("sidebar_metadata")
+                  DT::DTOutput("sidebar_metadata")
                 )
               )
             )

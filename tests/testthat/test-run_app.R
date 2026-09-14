@@ -290,9 +290,9 @@ test_that("bundled app has one mode-specific direct or mounted read route", {
   app_source <- paste(unlist(lapply(source_paths, readLines, warn = FALSE)),
                       collapse = "\n")
   prohibited <- c(
-    "app_local_file_mode", "app_filespec_", "open_via_filespecs",
+    "app_local_file_mode", "open_via_filespecs",
     "openspecy.shiny.local_files", "OPENSPECY_SHINY_LOCAL_FILES",
-    "FileSpecs", "file-backed", "Local H5 / ENVI"
+    "Local H5 / ENVI"
   )
   expect_false(any(vapply(
     prohibited, grepl, logical(1), x = app_source, fixed = TRUE
@@ -374,10 +374,41 @@ test_that("bundled Shiny app avoids app-local library data assumptions", {
   expect_true(any(grepl("OpenSpecy:::.match_spec_blockwise", server_source,
                         fixed = TRUE)))
   expect_false(any(grepl("vapply\\(\\.\\$spectra", server_source)))
-  expect_true(any(grepl("colnames\\(library_filtered\\(\\)\\$spectra\\)", server_source)))
+  expect_true(any(grepl("colnames\\(analysis_library\\(\\)\\$spectra\\)", server_source)))
   expect_true(any(grepl("colnames\\(DataR\\(\\)\\$spectra\\)", server_source)))
   expect_false(any(grepl("\\bnames\\(library_filtered\\(\\)\\$spectra\\)", server_source)))
   expect_false(any(grepl("\\bnames\\(DataR\\(\\)\\$spectra\\)", server_source)))
+  expect_true(any(grepl(
+    "analysis_library <- reactiveVal(NULL)", server_source, fixed = TRUE
+  )))
+})
+
+test_that("identification outputs use the library committed by Run", {
+  app_path <- run_app(test_mode = TRUE)
+  server_source <- paste(
+    readLines(file.path(app_path, "server.R"), warn = FALSE), collapse = "\n"
+  )
+
+  expect_match(
+    server_source,
+    "analysis_library(run_library)\n      spatial <- spatial_data()",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source, "app_classify_model_library(DataR(), model_library)",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "if(isTRUE(settings$identification_active)) {\n          match_names <- max_cor_identity()",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source, "library = analysis_library()", fixed = TRUE
+  )
+  expect_false(grepl(
+    "library = libraryR()", server_source, fixed = TRUE
+  ))
 })
 
 test_that("bundled app updates map selection without full heatmap or spectrum redraws", {
@@ -514,6 +545,8 @@ test_that("bundled app runs corrections and identification unconditionally", {
                      collapse = "\n")
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                    warn = FALSE), collapse = "\n")
+  global_source <- paste(readLines(file.path(app_path, "global.R"),
+                                   warn = FALSE), collapse = "\n")
   expect_false(grepl("active_preprocessing", ui_source, fixed = TRUE))
   expect_false(grepl("active_identification", ui_source, fixed = TRUE))
   expect_false(grepl("active_advanced", ui_source, fixed = TRUE))
@@ -606,8 +639,11 @@ test_that("bundled app runs corrections and identification unconditionally", {
                fixed = TRUE)
   expect_match(
     server_source,
-    "progress = function(completed_blocks, total_blocks)", fixed = TRUE
+    "progress = function(completed_blocks, total_blocks, ...)", fixed = TRUE
   )
+  expect_match(global_source, "open_specs(paths)", fixed = TRUE)
+  expect_match(server_source, ".filespec_collapse_connected_mean(",
+               fixed = TRUE)
   expect_match(server_source, "conform = FALSE, type = \"roll\"",
                fixed = TRUE)
   expect_match(server_source, "app_reference_for_query(", fixed = TRUE)
@@ -669,11 +705,11 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_match(server_source, 'tags$summary("Top Matches columns")',
                fixed = TRUE)
   expect_match(server_source,
-               "output$eventmetadata <- DT::renderDataTable(server = FALSE",
+               "output$eventmetadata <- DT::renderDT({",
                fixed = TRUE)
-  expect_match(server_source, "click.openspecyRank", fixed = TRUE)
-  expect_match(server_source, "Shiny.setInputValue('event_rows_selected'",
-               fixed = TRUE)
+  expect_match(server_source, "output$event <- DT::renderDT({", fixed = TRUE)
+  expect_false(grepl("click.openspecyRank", server_source, fixed = TRUE))
+  expect_match(ui_source, 'DT::DTOutput("event")', fixed = TRUE)
   expect_match(ui_source, '"baseline_method", "Baseline Method"',
                fixed = TRUE)
   expect_match(ui_source, '"Fill Peaks (4S)" = "fill_peaks"',
@@ -2362,12 +2398,63 @@ test_that("app_top_matches_table populates AI mode instead of erroring", {
   ))
 
   event_source <- sub(
-    '.*output\\$event <- DT::renderDataTable\\(\\{', "", server_source
+    '.*output\\$event <- DT::renderDT\\(\\{', "", server_source
   )
   event_source <- sub("\\}\\)\\n\\n.*", "", event_source)
   expect_false(grepl(
     'req(!grepl("^model$", input$lib_type))', event_source, fixed = TRUE
   ))
+})
+
+test_that("active-spectrum peak positions rank derivative-zero maxima", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  spectrum <- as_OpenSpecy(
+    101:109,
+    spectra = matrix(c(0, 2, 2, 2, 0, 1, 3, 1, 0), ncol = 1,
+                     dimnames = list(NULL, "active")),
+    compute_file_id = FALSE
+  )
+  peaks <- env$app_peak_positions(spectrum, top_n = 7L)
+  expect_identical(peaks$index, c(7L, 3L))
+  expect_identical(peaks$rank, 1:2)
+  expect_equal(peaks$wavenumber, c(107, 103))
+  expect_equal(peaks$intensity, c(3, 2))
+
+  tied <- spectrum
+  tied$spectra[, 1L] <- c(0, 2, 0, 0, 2, 0, NA, 4, 0)
+  tied_peaks <- env$app_peak_positions(tied, top_n = 1L)
+  expect_equal(tied_peaks$wavenumber, 102)
+  expect_error(env$app_peak_positions(c_spec(list(spectrum, spectrum))),
+               "exactly one")
+  expect_error(env$app_peak_positions(spectrum, 21L), "1 through 20")
+
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  server_source <- paste(
+    readLines(file.path(app_path, "server.R"), warn = FALSE), collapse = "\n"
+  )
+  expect_match(ui_source, '"show_peak_positions", "Show Peak Positions"',
+               fixed = TRUE)
+  expect_match(ui_source, '"peak_count", "Top peak labels", min = 1, max = 20',
+               fixed = TRUE)
+  expect_match(server_source,
+               'if(!isTRUE(input$show_peak_positions)) return(NULL)',
+               fixed = TRUE)
+  expect_match(server_source,
+               '"openspecy_selection_status"), "retained"', fixed = TRUE)
 })
 
 test_that("app_quality_checks covers every assess_spec() check with a real success description", {
@@ -2657,7 +2744,8 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "range_artifact_ratio", "MinRange", "MaxRange", "co2_decision",
     "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
     "identification_active", "id_spec_type", "id_strategy", "lib_type",
-    "top_n_input", "filter_lib", "lib_org", "threshold_decision",
+    "top_n_input", "top_n_per_organization", "filter_lib", "lib_org",
+    "threshold_decision",
     "signal_basis",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
     "spatial_decision", "sigma", "xy_grid",

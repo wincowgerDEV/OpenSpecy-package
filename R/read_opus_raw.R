@@ -182,7 +182,12 @@ read_opus_raw <- function(rw, type = "spec", atm_comp_minus4offset = FALSE) {
   if (length(end) == 1) {
     end_spc <- end
   } else {
-    end_spc <- end[diff(end) > 4 * min(NPT)]
+    # Each spacing describes the END marker immediately before it, so align
+    # the length-(n - 1) logical vector explicitly with the first n - 1
+    # markers. R-devel now warns when a logical subscript is recycled to a
+    # non-multiple length; the former expression also allowed an unrelated
+    # recycled flag to select the final marker.
+    end_spc <- end[-length(end)][diff(end) > 4 * min(NPT)]
   }
 
   ## Find final spectra information block positions

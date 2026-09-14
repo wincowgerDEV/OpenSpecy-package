@@ -1,5 +1,15 @@
 # OpenSpecy 1.7.1
 
+- Added optional per-metadata-group Top-N spectral matching with
+  `match_spec(..., top_n_by = "organization")`; the Shiny app enables this per
+  organization by default and batches both organizations and query spectra.
+  The app also labels ranked derivative-zero peaks on the active processed
+  spectrum, reports model material classes in Summary, and keeps completed
+  plot/table state stable until Run commits changed identification settings.
+- Large BIP ENVI maps can now stay file-backed through raw/spatial signal/noise
+  thresholding and connected Mean collapse. Retained members are accumulated
+  directly into particle means in bounded blocks instead of assembling and
+  `cbind`ing a dense retained-pixel matrix.
 - Official reference builds now return at most ten nonempty assessment tables
   nested by `cleanup`, `ref_lib`, `medoid`, `model`, and `functionality`.
   Old/new metrics are wide and adjacent; accuracy, confusion, model-correlation,

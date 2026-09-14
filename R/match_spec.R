@@ -29,6 +29,10 @@
 #' For spectral libraries, \code{NULL} returns all matches. Model libraries
 #' preserve their historical single winning class when \code{NULL}; a positive
 #' value returns that many ranked class probabilities per spectrum.
+#' @param top_n_by optional single library metadata column name. When supplied
+#' for a spectral library, \code{top_n} matches are retained independently for
+#' each non-missing group (for example, \code{"organization"}). It is not
+#' supported for trained model libraries.
 #' @param cor_matrix a correlation matrix for object and library,
 #' can be returned by \code{cor_spec()}
 #' @param order an \code{OpenSpecy} used for sorting, ideally the unprocessed
@@ -91,6 +95,10 @@
 #'
 #' match_spec(unknown, test_lib, add_library_metadata = "sample_name",
 #'            top_n = 1)
+#' test_lib$metadata[["organization"]] <- rep(
+#'   c("collection_a", "collection_b"), length.out = nrow(test_lib$metadata)
+#' )
+#' match_spec(unknown, test_lib, top_n = 1, top_n_by = "organization")
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
@@ -218,7 +226,7 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
 # Internal bounded matcher used by in-memory app workflows. Correlation is
 # calculated for at most `block_size` query spectra, ranked immediately, and
 # discarded so callers never retain the full library-by-query matrix.
-.match_spec_blockwise <- function(x, library, top_n = 10L,
+.match_spec_blockwise <- function(x, library, top_n = 10L, top_n_by = NULL,
                                   block_size = 100L, na.rm = TRUE,
                                   conform = FALSE, type = "roll",
                                   progress = NULL, ...) {
@@ -247,20 +255,23 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   ]
   library_count <- ncol(library_spectra)
   query_count <- ncol(inputs$x$spectra)
-  top_n <- min(top_n, library_count)
+  groups <- .library_match_groups(inputs$library, top_n_by)
+  group_rows <- if (is.null(groups)) {
+    list(all = seq_len(library_count))
+  } else {
+    split(seq_len(library_count), groups, drop = TRUE)
+  }
+  retained_per_query <- sum(vapply(
+    group_rows, function(rows) min(top_n, length(rows)), integer(1L)
+  ))
   if(query_count == 0L || library_count == 0L) {
     return(data.table(
       object_id = character(), library_id = character(), match_val = numeric()
     ))
   }
-  capacity <- .blockwise_retained_capacity(query_count, top_n)
+  capacity <- .blockwise_retained_capacity(query_count, retained_per_query)
   library_ids <- colnames(library_spectra)
   query_ids <- colnames(inputs$x$spectra)
-
-  library_spectra <- make_rel(library_spectra, na.rm = na.rm)
-  library_spectra <- .matrix_mean_replace(library_spectra)
-  scaled_library <- .scale_correlation_spectra(library_spectra)
-  rm(library_spectra)
 
   starts <- seq.int(1L, query_count, by = candidate_block_size)
   result_rows <- as.integer(capacity$rows)
@@ -268,34 +279,65 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   library_id <- character(result_rows)
   match_val <- numeric(result_rows)
   cursor <- 1
-  for(i in seq_along(starts)) {
-    columns <- seq.int(
-      starts[[i]], min(query_count, starts[[i]] + candidate_block_size - 1L)
-    )
-    query_block <- inputs$x$spectra[
-      inputs$x_rows, columns, drop = FALSE
-    ]
-    query_block <- make_rel(query_block, na.rm = na.rm)
-    query_block <- .matrix_mean_replace(query_block)
-    scaled_query_block <- .scale_correlation_spectra(query_block)
-    rm(query_block)
-    scores <- tcrossprod(scaled_library, scaled_query_block)
-    rownames(scores) <- library_ids
-    colnames(scores) <- query_ids[columns]
-    block <- .top_match_rows(scores, top_n)
-    rows <- seq.int(cursor, length.out = nrow(block))
-    object_id[rows] <- block$object_id
-    library_id[rows] <- block$library_id
-    match_val[rows] <- block$match_val
-    cursor <- cursor + nrow(block)
-    if(!is.null(progress)) {
-      progress(completed_blocks = i, total_blocks = length(starts))
+  total_blocks <- length(starts) * length(group_rows)
+  completed_blocks <- 0L
+  for(group_index in seq_along(group_rows)) {
+    library_columns <- group_rows[[group_index]]
+    group_library <- library_spectra[, library_columns, drop = FALSE]
+    group_library <- make_rel(group_library, na.rm = na.rm)
+    group_library <- .matrix_mean_replace(group_library)
+    scaled_library <- .scale_correlation_spectra(group_library)
+    rm(group_library)
+    for(i in seq_along(starts)) {
+      columns <- seq.int(
+        starts[[i]], min(query_count, starts[[i]] + candidate_block_size - 1L)
+      )
+      query_block <- inputs$x$spectra[
+        inputs$x_rows, columns, drop = FALSE
+      ]
+      query_block <- make_rel(query_block, na.rm = na.rm)
+      query_block <- .matrix_mean_replace(query_block)
+      scaled_query_block <- .scale_correlation_spectra(query_block)
+      rm(query_block)
+      scores <- tcrossprod(scaled_library, scaled_query_block)
+      rownames(scores) <- library_ids[library_columns]
+      colnames(scores) <- query_ids[columns]
+      block <- .top_match_rows(scores, min(top_n, length(library_columns)))
+      rows <- seq.int(cursor, length.out = nrow(block))
+      object_id[rows] <- block$object_id
+      library_id[rows] <- block$library_id
+      match_val[rows] <- block$match_val
+      cursor <- cursor + nrow(block)
+      completed_blocks <- completed_blocks + 1L
+      if(!is.null(progress)) {
+        .report_match_progress(
+          progress, completed_blocks, total_blocks,
+          group = names(group_rows)[[group_index]],
+          completed_groups = group_index, total_groups = length(group_rows),
+          completed_query_blocks = i, total_query_blocks = length(starts)
+        )
+      }
     }
+    rm(scaled_library)
   }
-
-  data.table(
+  out <- data.table(
     object_id = object_id, library_id = library_id, match_val = match_val
   )
+  object_order <- match(out$object_id, query_ids)
+  library_order <- match(out$library_id, library_ids)
+  out[order(object_order, -match_val, library_order, na.last = TRUE)]
+}
+
+.report_match_progress <- function(progress, completed_blocks, total_blocks,
+                                   ...) {
+  details <- list(...)
+  accepted <- names(formals(progress))
+  args <- c(list(completed_blocks = completed_blocks,
+                 total_blocks = total_blocks), details)
+  if (!is.null(accepted) && !"..." %in% accepted) {
+    args <- args[intersect(names(args), accepted)]
+  }
+  do.call(progress, args)
 }
 
 .blockwise_retained_capacity <- function(query_count, top_n,
@@ -337,6 +379,66 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   )
 }
 
+.library_match_groups <- function(library, top_n_by = NULL) {
+  if (is.null(top_n_by)) return(NULL)
+  if (!is.character(top_n_by) || length(top_n_by) != 1L ||
+      is.na(top_n_by) || !nzchar(top_n_by)) {
+    stop("'top_n_by' must be NULL or one library metadata column name",
+         call. = FALSE)
+  }
+  if (is.null(library$metadata) || !top_n_by %in% names(library$metadata)) {
+    stop("'top_n_by' column '", top_n_by,
+         "' is not present in the library metadata", call. = FALSE)
+  }
+  groups <- trimws(as.character(library$metadata[[top_n_by]]))
+  library_count <- if (!is.null(library$spectra)) {
+    ncol(library$spectra)
+  } else {
+    ncol(library$values)
+  }
+  if (length(groups) != library_count ||
+      anyNA(groups) || any(!nzchar(groups))) {
+    stop("'top_n_by' column '", top_n_by,
+         "' must contain one nonblank value per library spectrum",
+         call. = FALSE)
+  }
+  factor(groups, levels = unique(groups))
+}
+
+.validate_grouped_top_n <- function(top_n, top_n_by) {
+  if (is.null(top_n_by)) return(invisible(NULL))
+  if (length(top_n) != 1L || !is.numeric(top_n) || is.na(top_n) ||
+      !is.finite(top_n) || top_n < 1 || top_n != floor(top_n)) {
+    stop("a positive integer 'top_n' is required when 'top_n_by' is used",
+         call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+.append_match_metadata <- function(res, x, library,
+                                   add_library_metadata = NULL,
+                                   add_object_metadata = NULL) {
+  if (!is.character(add_library_metadata) &&
+      !is.character(add_object_metadata)) return(res)
+  res <- data.table::copy(data.table::as.data.table(res))
+  res[, ".match_result_order" := list(seq_len(nrow(res)))]
+  if (is.character(add_library_metadata)) {
+    res <- merge(
+      res, library$metadata, by.x = "library_id",
+      by.y = add_library_metadata, all.x = TRUE, sort = FALSE
+    )
+  }
+  if (is.character(add_object_metadata)) {
+    res <- merge(
+      res, x$metadata, by.x = "object_id",
+      by.y = add_object_metadata, all.x = TRUE, sort = FALSE
+    )
+  }
+  data.table::setorderv(res, ".match_result_order")
+  res[, ".match_result_order" := NULL]
+  res
+}
+
 #' @rdname match_spec
 #' @export
 match_spec <- function(x, ...) {
@@ -356,16 +458,33 @@ match_spec.default <- function(x, ...) {
 
 match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                                  type = "roll", top_n = NULL, order = NULL,
+                                 top_n_by = NULL,
                                  add_library_metadata = NULL,
                                  add_object_metadata = NULL, 
                                  compute = "optimized",
                                  fill = NULL, ...) {
+  .validate_grouped_top_n(top_n, top_n_by)
   if(is_OpenSpecy(library)) {
-    res <- cor_spec(x, library = library, conform = conform, type = type, compute = compute) |>
-      ident_spec(x, library = library, top_n = top_n, 
-                 add_library_metadata = add_library_metadata,
-                 add_object_metadata = add_object_metadata)
+    if (is.null(top_n_by)) {
+      res <- cor_spec(x, library = library, conform = conform, type = type,
+                      compute = compute) |>
+        ident_spec(x, library = library, top_n = top_n,
+                   add_library_metadata = add_library_metadata,
+                   add_object_metadata = add_object_metadata)
+    } else {
+      res <- .match_spec_blockwise(
+        x, library = library, top_n = top_n, top_n_by = top_n_by,
+        block_size = 1000L, na.rm = na.rm, conform = conform, type = type, ...
+      )
+      res <- .append_match_metadata(
+        res, x, library, add_library_metadata, add_object_metadata
+      )
+    }
   } else {
+    if (!is.null(top_n_by)) {
+      stop("'top_n_by' is not supported for trained model libraries",
+           call. = FALSE)
+    }
     if (is.null(fill) && is.list(library) && is_OpenSpecy(library$fill)) {
       fill <- library$fill
     }
