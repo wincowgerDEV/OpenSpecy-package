@@ -9,7 +9,9 @@
   spectral duplicates, and both logistic and random-forest assessment models
   are refit only on grouped training rows. Logistic assessments select their
   production-matched medoids inside each training fold before fitting, while
-  full spectra remain untouched as test queries. Failed CO2 corrections and
+  full spectra remain untouched as test queries. Parallel logistic cross-
+  validation now uses reproducible `doRNG` streams without backend misuse
+  warnings. Failed CO2 corrections and
   flat processed spectra fail closed, while releases and checkpoints use
   SHA-256 payload verification and immutable versioned paths.
 - Replaced the legacy broad plate-ID substring filter with 139 reviewed exact
@@ -45,11 +47,20 @@
 - Hosted progress overlays now remain closed after a completed action, even
   when late output-only reactive updates render after identification results.
 - Offline packaging now collapses verified case-only pkgdown redirect aliases
-  that cannot coexist on portable filesystems, and its browser acceptance now
-  verifies server-owned selection metadata instead of a theme-specific DT row
-  class. Seeded random forests default to one worker, and immutable promotion
-  reuses existing bytes only when a completed same-signature release manifest
-  verifies their size and SHA-256.
+  that cannot coexist on portable filesystems. Selection Metadata now uses
+  client-side rendering for its single row, and an explicit WebAssembly-safe
+  row-click bridge keeps Top Matches selection synchronized. Package and CI
+  model fitting remains single-worker by default, while
+  production builders can set `options(OpenSpecy.build_workers = n)` to run
+  logistic cross-validation folds and random forests concurrently. Scientific
+  component checkpoints are keyed by their inputs, runtime, and an explicit
+  component version so presentation-only source edits do not repeat core
+  preprocessing. Immutable promotion reuses existing bytes only when a
+  completed same-signature release manifest verifies their size and SHA-256.
+- Official library partitioning and medoid preparation now remove spectra that
+  become flat only after the technique or model range is applied. Their exact
+  identities remain visible in cleanup/QC evidence, and models cannot reuse
+  checkpoints from before this post-restriction gate.
 - Fixed the bundled app's logistic model interpretation so Top Matches row
   selection updates the quantitative coefficient background for the spectrum
   currently being viewed, including selected spectra within batches and maps.

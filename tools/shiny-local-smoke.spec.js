@@ -2103,9 +2103,6 @@ test("library identification reports completed block percentages", async ({ page
       /0% of blocks complete/.test(state.message)
     )
   ), { timeout: 240000 }).toBe(true);
-  await expect(page.locator("#openspecy_busy_message")).toContainText(
-    /Identifying spectra \(0% of blocks complete\)/
-  );
   await page.screenshot({
     path: testInfo.outputPath("local-app-identification-block-progress.png"),
     fullPage: true,
@@ -2136,9 +2133,9 @@ test("library identification reports completed block percentages", async ({ page
 
   const matchRows = page.locator("#event table tbody tr");
   expect(await matchRows.count()).toBeGreaterThan(1);
-  await expect(matchRows.first()).toHaveClass(/selected/);
+  await expect(matchRows.first()).toHaveClass(/\b(?:active|selected)\b/);
   await matchRows.nth(1).click();
-  await expect(matchRows.nth(1)).toHaveClass(/selected/);
+  await expect(matchRows.nth(1)).toHaveClass(/\b(?:active|selected)\b/);
   await expect.poll(async () => (await selectionMetadata.innerText()).trim(), {
     timeout: 60000,
   }).not.toBe(initialMetadata);

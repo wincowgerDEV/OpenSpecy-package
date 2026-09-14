@@ -2969,6 +2969,44 @@ build_model_lib <- function(x, class_col = "material_class",
   )
 }
 
+.lib_build_workers <- function() {
+  workers <- suppressWarnings(as.integer(
+    getOption("OpenSpecy.build_workers", 1L)
+  ))
+  if (length(workers) != 1L || is.na(workers) || workers < 1L) return(1L)
+  workers
+}
+
+.lib_cv_glmnet <- function(arguments, workers, folds, seed) {
+  workers <- min(as.integer(workers), as.integer(folds))
+  can_parallelize <- workers > 1L &&
+    requireNamespace("doFuture", quietly = TRUE) &&
+    requireNamespace("doRNG", quietly = TRUE) &&
+    requireNamespace("future", quietly = TRUE) &&
+    requireNamespace("foreach", quietly = TRUE)
+  if (!can_parallelize) return(do.call(glmnet::cv.glmnet, arguments))
+
+  # A maintainer workflow may register one persistent doFuture backend so
+  # successive model fits do not repeatedly start and stop worker processes.
+  if (identical(foreach::getDoParName(), "doFuture")) {
+    doRNG::registerDoRNG(seed)
+    on.exit(doFuture::registerDoFuture(), add = TRUE)
+    arguments$parallel <- TRUE
+    return(do.call(glmnet::cv.glmnet, arguments))
+  }
+
+  previous_plan <- future::plan()
+  on.exit({
+    future::plan(previous_plan)
+    foreach::registerDoSEQ()
+  }, add = TRUE)
+  doFuture::registerDoFuture()
+  future::plan(future::multisession, workers = workers)
+  doRNG::registerDoRNG(seed)
+  arguments$parallel <- TRUE
+  do.call(glmnet::cv.glmnet, arguments)
+}
+
 #' @rdname build_lib
 #' @export
 train_spec_model <- function(x, class_col = "material_class",
@@ -3090,7 +3128,9 @@ train_spec_model <- function(x, class_col = "material_class",
     cv_args$nfolds <- nfolds
     cv_args$type.measure <- "class"
     cv_args$keep <- TRUE
-    fit <- do.call(glmnet::cv.glmnet, cv_args)
+    fit <- .lib_cv_glmnet(
+      cv_args, workers = .lib_build_workers(), folds = nfolds, seed = seed
+    )
     model <- fit$glmnet.fit
     lambda_metrics <- .lib_macro_lambda_metrics(
       fit$fit.preval, outcome = outcome, lambda = fit$lambda
@@ -3235,9 +3275,9 @@ train_spec_model <- function(x, class_col = "material_class",
     importance = "permutation",
     write.forest = TRUE,
     oob.error = TRUE,
-    # A fixed single worker keeps seeded forests byte-stable across rebuilds
-    # and R/ranger toolchains. Callers may still opt into parallel fitting.
-    num.threads = 1L,
+    # Package and CI runs remain single-threaded by default. Official builders
+    # can opt into the host's cores without expanding the public API.
+    num.threads = .lib_build_workers(),
     seed = as.integer(seed),
     verbose = FALSE
   )
@@ -3650,7 +3690,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       signal_noise = signal_noise, assess = assess, prune = prune,
       remove_other = remove_other
     ),
-    component_version = "reference-artifacts-v7-sampled-large-pam"
+    component_version = "reference-artifacts-v8-range-flat-filter"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -3743,7 +3783,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- finalized$medoids
   local_assessments$metadata_finalization <- finalized$assessment
 
-  models <- checkpoints$get("models")
+  models <- checkpoints$get("models_parallel_rng_v1")
   model_warnings <- .lib_warning_schema()
   if (is.null(models)) {
     model_result <- .lib_build_models(
@@ -3751,7 +3791,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
     models <- model_result$models
     model_warnings <- model_result$warnings
-    checkpoints$put("models", models)
+    checkpoints$put("models_parallel_rng_v1", models)
   }
 
   build <- list(
@@ -3767,17 +3807,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "grouped-refit-process-review-v9"
+      assessment_version = "grouped-refit-process-review-v10"
     ),
     algo = "sha256"
   )
   cached_assessments <- checkpoints$get(
-    "assessment_components", key = assessment_key
+    "assessment_components_parallel_rng_v1", key = assessment_key
   )
   if (!is.null(cached_assessments)) {
     build$assessments <- cached_assessments
     validated_models <- checkpoints$get(
-      "validated_models", key = assessment_key
+      "validated_models_parallel_rng_v1", key = assessment_key
     )
     if (!is.null(validated_models)) build$models <- validated_models
   } else if (!is.null(previous_library_dir)) {
@@ -3790,7 +3830,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     if (!is.null(comparison$models)) {
       build$models <- comparison$models
       checkpoints$put(
-        "validated_models", build$models, key = assessment_key
+        "validated_models_parallel_rng_v1", build$models, key = assessment_key
       )
       comparison$models <- NULL
     }
@@ -3799,7 +3839,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   build$assessments$output_manifest <- checkpoints$manifest()
   assessment_components <- build$assessments
   checkpoints$put(
-    "assessment_components", assessment_components, key = assessment_key
+    "assessment_components_parallel_rng_v1", assessment_components,
+    key = assessment_key
   )
   build$assessments <- .lib_assessment_review(assessment_components)
   .lib_validate_reference_build(build)
@@ -3870,11 +3911,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
   report("resolving completed libraries and upstream assessments")
   input <- .lib_resolve_rebuild_input(x)
-  libraries <- input$libraries
+  libraries <- .lib_drop_typed_range_flats(input$libraries, report = report)
   completed <- input$assessments
   signature <- digest::digest(list(
     input = input$signature,
-    downstream_version = "full-library-random-forest-model-v4-sampled-large-pam"
+    downstream_version = "full-library-random-forest-model-v5-range-flat-filter"
   ), algo = "sha256")
   checkpoints <- .lib_checkpoint_manager(
     output_dir, signature = signature, reuse = reuse, report = report
@@ -3899,7 +3940,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- finalized$medoids
   if (is.null(completed)) completed <- list()
   completed$metadata_finalization <- finalized$assessment
-  models <- checkpoints$get("models")
+  models <- checkpoints$get("models_parallel_rng_v1")
   model_warnings <- .lib_warning_schema()
   if (is.null(models)) {
     supplied_models <- input$models
@@ -3923,7 +3964,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
     models <- result$models
     model_warnings <- result$warnings
-    checkpoints$put("models", models)
+    checkpoints$put("models_parallel_rng_v1", models)
   }
   build <- list(
     libraries = libraries, medoids = medoids, models = models,
@@ -3935,12 +3976,16 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "grouped-refit-process-review-v9"
+    assessment_version = "grouped-refit-process-review-v10"
   ), algo = "sha256")
-  cached <- checkpoints$get("assessment_components", key = assessment_key)
+  cached <- checkpoints$get(
+    "assessment_components_parallel_rng_v1", key = assessment_key
+  )
   if (!is.null(cached)) {
     build$assessments <- cached
-    validated <- checkpoints$get("validated_models", key = assessment_key)
+    validated <- checkpoints$get(
+      "validated_models_parallel_rng_v1", key = assessment_key
+    )
     if (!is.null(validated)) build$models <- validated
   } else if (!is.null(previous_library_dir)) {
     report("assessing candidate and legacy artifacts on source-local cohorts")
@@ -3951,7 +3996,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
     if (!is.null(comparison$models)) {
       build$models <- comparison$models
-      checkpoints$put("validated_models", build$models, key = assessment_key)
+      checkpoints$put(
+        "validated_models_parallel_rng_v1", build$models, key = assessment_key
+      )
       comparison$models <- NULL
     }
     build$assessments[names(comparison)] <- comparison
@@ -3959,7 +4006,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   build$assessments$output_manifest <- checkpoints$manifest()
   assessment_components <- build$assessments
   checkpoints$put(
-    "assessment_components", assessment_components, key = assessment_key
+    "assessment_components_parallel_rng_v1", assessment_components,
+    key = assessment_key
   )
   build$assessments <- .lib_assessment_review(assessment_components)
   .lib_validate_reference_build(build)
@@ -4300,16 +4348,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
   }
   workflow <- .lib_file_signatures(workflow_paths, checksum_limit = Inf)
-  package_source <- .lib_file_signatures(
-    intersect(c("DESCRIPTION", file.path("R", "build_lib.R")),
-              c("DESCRIPTION", file.path("R", "build_lib.R"))),
-    checksum_limit = Inf
-  )
   digest::digest(
     list(
       sources = sources, workflow = workflow, arguments = arguments,
-      component_version = component_version, package_source = package_source,
-      git = .lib_git_state(), runtime = .lib_runtime_provenance()
+      component_version = component_version,
+      runtime = .lib_runtime_provenance()
     ),
     algo = "sha256"
   )
@@ -4780,6 +4823,26 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   libraries <- .lib_partition_reference_libraries(partition_store, report)
   rm(partition_store)
   gc(verbose = FALSE, full = TRUE)
+  range_flat_rows <- data.table::rbindlist(lapply(names(libraries), function(recipe) {
+    data.table::rbindlist(lapply(libraries[[recipe]], function(object) {
+      attr(object, "range_flat_drops", exact = TRUE)
+    }), fill = TRUE)
+  }), fill = TRUE)
+  if (nrow(range_flat_rows)) {
+    quality$assessment <- data.table::rbindlist(
+      list(quality$assessment, range_flat_rows), fill = TRUE
+    )
+    dropped_spectrum_identities <- data.table::rbindlist(
+      list(
+        dropped_spectrum_identities,
+        range_flat_rows[
+          !is.na(spectrum_identity) & nzchar(trimws(spectrum_identity)),
+          .(spectrum_identity)
+        ]
+      ),
+      fill = TRUE
+    )[, .(spectrum_identity = sort(unique(spectrum_identity)))]
+  }
 
   list(
     libraries = libraries,
@@ -5044,6 +5107,65 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   x
 }
 
+.lib_flat_spectrum_mask <- function(x) {
+  if (!is_OpenSpecy(x) || !ncol(x$spectra)) return(logical())
+  vapply(seq_len(ncol(x$spectra)), function(column) {
+    values <- x$spectra[, column]
+    values <- values[is.finite(values)]
+    length(values) == 0L || diff(range(values)) <= 0
+  }, logical(1))
+}
+
+.lib_drop_range_flat_spectra <- function(x, artifact, spectrum_type,
+                                         reason, report = NULL) {
+  flat <- .lib_flat_spectrum_mask(x)
+  if (!any(flat)) return(x)
+  support <- attr(x, "identification_support", exact = TRUE)
+  metadata <- x$metadata[flat, , drop = FALSE]
+  rows <- data.table::data.table(
+    artifact = artifact,
+    spectrum_id = as.character(.lib_ids(x, "sample_name"))[flat],
+    spectrum_identity = if ("spectrum_identity" %in% names(metadata)) {
+      as.character(metadata$spectrum_identity)
+    } else {
+      NA_character_
+    },
+    spectrum_type = spectrum_type,
+    check = "flat_spectrum", action = "drop",
+    before_value = 0, after_value = NA_real_, threshold = 0,
+    removed = TRUE, reason = reason
+  )
+  x <- filter_spec(x, !flat)
+  if (!is.null(support) && nrow(support)) {
+    support <- data.table::copy(support)
+    support[spectrum_id %in% rows$spectrum_id, retained := FALSE]
+    attr(x, "identification_support") <- support
+    attr(x, "identification_dropped_ids") <- unique(c(
+      attr(x, "identification_dropped_ids", exact = TRUE),
+      rows$spectrum_id
+    ))
+  }
+  attr(x, "range_flat_drops") <- rows
+  if (!is.null(report)) report(sprintf(
+    "discarded flat spectra after range restriction (%s/%s; removed=%d)",
+    artifact, spectrum_type, nrow(rows)
+  ))
+  x
+}
+
+.lib_drop_typed_range_flats <- function(libraries, report = NULL) {
+  for (recipe in names(libraries)) {
+    for (type in names(libraries[[recipe]])) {
+      libraries[[recipe]][[type]] <- .lib_drop_range_flat_spectra(
+        libraries[[recipe]][[type]], artifact = recipe,
+        spectrum_type = type, reason = "post_partition_flat_spectrum",
+        report = report
+      )
+    }
+  }
+  libraries
+}
+
 .lib_partition_reference_libraries <- function(libraries, report = NULL) {
   ranges <- .lib_type_ranges()
   stored <- is.environment(libraries)
@@ -5067,6 +5189,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         subset, min = limits[1L], max = limits[2L], make_rel = FALSE
       )
       subset <- .lib_drop_blank_metadata(subset)
+      subset <- .lib_drop_range_flat_spectra(
+        subset, artifact = recipe, spectrum_type = type,
+        reason = "post_partition_flat_spectrum", report = report
+      )
       if (!is.null(report)) report(sprintf(
         "partitioned %s/%s (spectra=%d; range=%g-%g; wavenumbers=%d)",
         recipe, type, ncol(subset$spectra), limits[1L], limits[2L],
@@ -5100,6 +5226,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         , attr(x, "identification_minimum_observed", exact = TRUE),
         nrow(x$spectra)
       ))
+      x <- .lib_drop_range_flat_spectra(
+        x, artifact = paste0("medoid_", name), spectrum_type = type,
+        reason = "post_model_range_flat_spectrum", report = report
+      )
+      flat_drops <- attr(x, "range_flat_drops", exact = TRUE)
+      if (!is.null(flat_drops) && nrow(flat_drops)) {
+        dropped <- unique(c(dropped, flat_drops$spectrum_id))
+      }
       report(sprintf(
         "selecting medoids (%s/%s; spectra=%d; wavenumbers=%d; range=%g-%g)",
         name, type, ncol(x$spectra), nrow(x$spectra),
@@ -5119,6 +5253,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       attr(result, "identification_dropped_ids") <- dropped
       attr(result, "identification_minimum_observed") <-
         attr(x, "identification_minimum_observed", exact = TRUE)
+      attr(result, "range_flat_drops") <- flat_drops
       if (!is.null(checkpoints)) checkpoints$put(stage, result)
       result
     }), names(types))
@@ -5169,7 +5304,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       }
       models[[algorithm]][[recipe]] <- list()
       for (type in names(sources)) {
-      stage <- paste("model", algorithm, recipe, type, sep = "_")
+      stage <- paste0(
+        paste("model", algorithm, recipe, type, sep = "_"),
+        if (identical(algorithm, "logistic_regression")) {
+          "_parallel_rng_v1"
+        } else {
+          ""
+        }
+      )
       cached <- if (is.null(checkpoints)) NULL else checkpoints$get(stage)
       if (!is.null(cached)) {
         models[[algorithm]][[recipe]][[type]] <- cached
@@ -5613,6 +5755,29 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     output_manifest = data.table::data.table()
   )
   if (!is.null(completed)) defaults[names(completed)] <- completed
+  range_flat <- data.table::rbindlist(lapply(
+    c(
+      .lib_named_typed_objects(libraries),
+      .lib_named_typed_objects(medoids, prefix = "medoid_")
+    ),
+    function(object) attr(object, "range_flat_drops", exact = TRUE)
+  ), fill = TRUE)
+  if (nrow(range_flat)) {
+    defaults$quality_control <- unique(data.table::rbindlist(
+      list(defaults$quality_control, range_flat), fill = TRUE
+    ))
+    range_flat_identities <- range_flat[
+      !is.na(spectrum_identity) & nzchar(trimws(spectrum_identity)),
+      .(spectrum_identity)
+    ]
+    defaults$dropped_spectrum_identities <- data.table::rbindlist(
+      list(defaults$dropped_spectrum_identities, range_flat_identities),
+      fill = TRUE
+    )[
+      !is.na(spectrum_identity) & nzchar(trimws(spectrum_identity)),
+      .(spectrum_identity = sort(unique(as.character(spectrum_identity))))
+    ]
+  }
   defaults
 }
 
@@ -6493,7 +6658,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           gc(verbose = FALSE)
           model_started <- proc.time()[["elapsed"]]
           fold_suffix <- if (identical(algorithm, "logistic_regression")) {
-            "_fold_medoids_v1"
+            "_fold_medoids_parallel_rng_v2"
           } else {
             ""
           }

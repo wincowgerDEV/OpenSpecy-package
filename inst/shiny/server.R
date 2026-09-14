@@ -2545,7 +2545,7 @@ output$snr_plot <- renderPlotly({
 })
 
 #Table of metadata for the selected spectrum and match
-output$eventmetadata <- DT::renderDataTable(server = TRUE, {
+output$eventmetadata <- DT::renderDataTable(server = FALSE, {
     req(!is.null(match_metadata()))
     datatable(
         match_metadata(),
@@ -2581,7 +2581,21 @@ output$event <- DT::renderDataTable({
               rownames = FALSE,
               filter = "top", caption = "Selectable Matches",
               style = "bootstrap",
-              selection = list(mode = "single", selected = c(1)))
+              selection = list(mode = "single", selected = c(1)),
+              callback = DT::JS(
+                "table.off('click.openspecyRank', 'tbody tr');",
+                "table.on('click.openspecyRank', 'tbody tr', function() {",
+                "  var row = this;",
+                "  var rank = table.row(row).index();",
+                "  if (rank === undefined || rank === null) return;",
+                "  $(table.rows().nodes()).removeClass('selected');",
+                "  $(row).addClass('selected');",
+                "  setTimeout(function() {",
+                "    Shiny.setInputValue('event_rows_selected', [rank + 1],",
+                "      {priority: 'event'});",
+                "  }, 0);",
+                "});"
+              ))
 })
 outputOptions(output, "event", suspendWhenHidden = FALSE)
 

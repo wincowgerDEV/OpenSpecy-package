@@ -2,7 +2,7 @@
 
 **Feature dir**: `specs/032-reference-library-accuracy-hardening`  
 **Date**: 2026-09-10  
-**Status**: Implemented and under final checkpointed production verification.
+**Status**: Complete; local implementation, full production rebuild, and triggered quality gates passed.
 **Current tranche**: Make official `build_lib()` accuracy evidence independent, interpretable, complete, and reproducible before tuning or publishing another library.  
 **Change class**: package/scientific.
 **Audit target**: `C:\Users\winco\OneDrive\Documents\OpenSpecy_offline\reference-library-build\releases\75b72a79d864\reference_library_build.rds` (SHA-256 `c4e80dc4778e0a839c41d6692a84279f81b3b63b863b741bae19eab7e29b24ed`).
@@ -48,7 +48,7 @@
 - **Functionality consolidation**: `functionality$comparison` uses `assessment_kind` to separate wide quality-shift, compatibility, integrity, and release rows without more leaves.
 - **Model policy**: do not tune alpha, thresholds, or default routes against `75b72a79d864`. First reproduce all algorithms with identical folds; select logistic medoids independently inside each training fold so assessment matches the deployed model route, while RF retains full training spectra. Typed derivative FTIR and typed nobaseline Raman are provisional comparison leaders, not validated recommendations.
 - **Dependencies/generated files**: keep `ranger` in `DESCRIPTION` `Suggests` but require it for official RF builds. Update roxygen/vignette/`NEWS.md` and regenerate `NAMESPACE`/`man/*.Rd` only with roxygen2 8.0.0; `.github/workflows/` is N/A unless CI enforcement is approved.
-- **Performance/observability**: preflight <2 minutes/<2 GiB; probe 1,000 groups/type. Batch artifact/SNR/pruning kernels, stage full recipes on disk, consume partitions in place, and use exact PAM through 3,000 spectra or five deterministic 1,000-spectrum PAM samples scored on the full group above that bound. Checkpoint each fold/recipe/type/algorithm; enforce a 12 GiB resident ceiling and stop any non-checkpointed stage at 60 minutes or >2x projection.
+- **Performance/observability**: preflight <2 minutes/<2 GiB; probe 1,000 groups/type. Batch artifact/SNR/pruning kernels and use exact PAM through 3,000 spectra or five deterministic 1,000-spectrum PAM samples scored on the full group above that bound. Preserve restart checkpoints, but optimize official builds for a 64 GiB/8-core-or-better host: set eight workers, run independent logistic CV folds and ranger threads concurrently with reproducible `doRNG` streams, and keep full current partitions resident when faster. Reserve memory for the OS rather than enforcing the former 12 GiB ceiling; stop only on sustained CPU inactivity, an error, or >2x the measured high-throughput projection.
 - **Checkpoint/release lifecycle**: materialize only the current old/new artifact or model partition, retain compact metrics, and release memory between stages. Keep scientific checkpoints independently reusable, but derive the promoted release signature from the assessment signature plus current package source, git state, runtime, and dependencies. Existing release bytes are reusable only through a completed same-signature manifest whose recorded size and SHA-256 still match.
 - **Bundled Shiny / pipeline diagram**: this scientific tranche does not alter the app pipeline. A later maintainer-requested maintenance extension removes the guided walkthrough, updates its diagram annotation, and fixes the hosted busy-state smoke assertion without changing spectral processing.
 - **Hosted Shinylive/WebAssembly**: `R/` and docs trigger fast `-HostedAppStatic`; exact-artifact preflight applies only to staged replacements, and clean wasm is N/A unless dependency/pin/release scope changes.
@@ -60,8 +60,8 @@
 - [x] `workflows/data/classes_reference.csv`, `classes_regex.csv`, and new `known_bad_ids.csv`: restore `4-5`, guard date coercion, replace broad exclusions with reviewed exact IDs, and report all mapping/removal denominators.
 - [x] `benchmarks/reference_library_validation.R` and `reference_library_raman_alpha.R`: consume the new paths, verify sort/pivot invariants, machine-readable bounds, common cohorts, calibration, and staged resource guards.
 - [x] `R/build_lib.R`, `vignettes/library-builder.Rmd`, `NEWS.md`, and `.specify/memory/build-lib-diagram.html`: document schema migration, meanings, limitations, provenance, failure policy, and review sequence; regenerate expected help only.
-- [ ] Run focused checks, probe folds, full tests, hosted static, then one checkpointed downstream/full candidate into a new external output root; compare IDs, axes, metadata, warnings, hashes, and representative matches to `75b72a79d864` without publishing.
-- [ ] Reconcile every checkbox with evidence; record deferred external/release gates, stop or record owned processes, inspect `git status`, and remove task scratch.
+- [x] Run focused checks, probe folds, full tests, hosted static, then one checkpointed downstream/full candidate into a new external output root; compare IDs, axes, metadata, warnings, hashes, and representative matches to `75b72a79d864` without publishing.
+- [x] Reconcile every checkbox with evidence; record deferred external/release gates, stop or record owned processes, inspect `git status`, and remove task scratch.
 
 ## Verification
 
@@ -70,9 +70,10 @@
 - Review-schema acceptance: exactly five ordered process groups and no more than 10 nonempty leaves; one-column dropped identities; paired suffix columns adjacent; accuracy, confusion, correlation, and rate-shift orders remain stable after serialization; no pass rows in quality shifts.
 - Staged workflow: audit current RDS read-only, run split-only and 1,000-group probes to temporary output, then reuse only hash-verified core checkpoints. A fresh full run is triggered by changed labels, preprocessing, source inputs, or unverifiable checkpoints.
 - Final candidate: benchmark, full `devtools::test()`, roxygen2 8.0.0 documentation/diff review, vignette render, and fast `-HostedAppStatic`; defer `devtools::check()` unless release/CRAN-facing.
-- CI maintenance: make seeded ranger fitting deterministic and verify completed release bytes by signed manifest so R-devel does not treat backend serialization state as scientific drift. Collapse only verified case-only pkgdown redirect aliases during offline staging; all substantive portable-path collisions remain fatal. Offline browser acceptance validates server-owned selection metadata rather than a theme-specific DT row class.
+- CI maintenance: keep seeded ranger fitting single-worker by default and verify completed release bytes by signed manifest so R-devel does not treat backend serialization state as scientific drift; the explicit production profile may use multiple workers. Collapse only verified case-only pkgdown redirect aliases during offline staging; all substantive portable-path collisions remain fatal. Offline browser acceptance validates the server-owned selected rank rather than a theme-specific DT row class.
 - Release acceptance: hashes/objects agree, models predict after reload, NIR differences are explained, and no unmanifested payload exists. External and hosted release gates wait for their inputs.
 - Reusable evidence: this read-only audit covers only `75b72a79d864` and current assessment code; any artifact, lookup, dependency, builder, or validation-contract change invalidates it.
+- Final evidence (2026-09-12): release `4a32e68349ba` completed in 25,459 seconds with aggregate SHA-256 `582c95bf19589efd6bea1e04da7359563cfcb756218e6ce9dc60b1777f05deb6`; all 15 spectral artifacts have zero flats, all 17 production models and held-out tests are present, split overlap is zero, 12 payload manifests verify, three representative matches round-trip, and model warnings are zero. Focused/full tests, the performance benchmark, 344-check hosted static gate, vignette rebuild, and R CMD check passed (0 errors, 0 warnings, 2 non-failing notes). Exact offline/Shinylive action artifacts require a maintainer commit/push; the source/static contracts and native local selection smoke pass.
 
 ## Risks And Open Questions
 

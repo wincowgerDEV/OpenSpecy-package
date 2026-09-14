@@ -293,6 +293,18 @@ test_that("build_model_lib() returns the model library artifact structure", {
                     "provenance") %in% names(model$tests)))
 })
 
+test_that("official builders can opt into host workers without changing defaults", {
+  previous <- options("OpenSpecy.build_workers")
+  on.exit(options(previous), add = TRUE)
+
+  options(OpenSpecy.build_workers = NULL)
+  expect_identical(OpenSpecy:::.lib_build_workers(), 1L)
+  options(OpenSpecy.build_workers = 8L)
+  expect_identical(OpenSpecy:::.lib_build_workers(), 8L)
+  options(OpenSpecy.build_workers = -1L)
+  expect_identical(OpenSpecy:::.lib_build_workers(), 1L)
+})
+
 test_that("build_model_lib() trains and deploys a balanced probability random forest", {
   skip_if_not_installed("ranger")
   lib <- tiny_build_lib()
@@ -2331,6 +2343,36 @@ test_that("reference quality schemas and type ranges are stable", {
   )$raw
   expect_equal(range(typed$ftir$wavenumber), c(400, 4000))
   expect_equal(range(typed$raman$wavenumber), c(200, 4000))
+})
+
+test_that("range restriction removes spectra that become flat", {
+  x <- tiny_build_lib()
+  x$metadata$spectrum_type <- "raman"
+  x$spectra[, 1] <- 1
+  outside_partition <- x$wavenumber > 4000
+  x$spectra[outside_partition, 1] <- seq_len(sum(outside_partition))
+
+  typed <- OpenSpecy:::.lib_partition_reference_libraries(
+    list(raw = x), report = NULL
+  )$raw$raman
+  expect_false("s1" %in% typed$metadata$sample_name)
+  partition_drops <- attr(typed, "range_flat_drops", exact = TRUE)
+  expect_equal(partition_drops$spectrum_id, "s1")
+  expect_equal(partition_drops$reason, "post_partition_flat_spectrum")
+
+  model_source <- tiny_build_lib()
+  model_source$metadata$spectrum_type <- "raman"
+  model_source$spectra[, 1] <- 1
+  outside_model <- model_source$wavenumber > 3200
+  model_source$spectra[outside_model, 1] <- seq_len(sum(outside_model))
+  medoids <- OpenSpecy:::.lib_build_medoids(
+    list(derivative = list(raman = model_source)),
+    report = function(...) NULL, progress = FALSE
+  )$derivative$raman
+  expect_false("s1" %in% medoids$metadata$sample_name)
+  model_drops <- attr(medoids, "range_flat_drops", exact = TRUE)
+  expect_equal(model_drops$spectrum_id, "s1")
+  expect_equal(model_drops$reason, "post_model_range_flat_spectrum")
 })
 
 test_that("identification ranges retain partial spectra and drop empty ones", {

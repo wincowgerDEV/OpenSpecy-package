@@ -194,20 +194,25 @@ test("extracted launcher serves the landing page and runs the full app flow with
   await expect(app.locator("#top_n_input")).toHaveValue("10");
   const selectionMetadata = app.locator("#eventmetadata table");
   await expect(selectionMetadata).toBeVisible({ timeout: 120000 });
-  await expect(selectionMetadata).toContainText(
-    /raman_hdpe|poly\(ethylene\)|material.class/i,
+  const selectionMetadataRows = selectionMetadata.locator("tbody tr");
+  await expect(selectionMetadataRows.first()).toContainText(
+    /raman_hdpe|poly\(ethylene\)/i,
     { timeout: 120000 }
   );
 
-  // DT's visual row class is a theme/client implementation detail and is not
-  // reliable in the headless WebAssembly runtime. Verify the actual app
-  // contract instead: each click must drive the server-owned Selection
-  // Metadata table, and returning to rank one must restore its first result.
+  // The app supplies an explicit WebAssembly-safe row-click bridge. Verify the
+  // user-facing class and its server-owned Selection Metadata consequence.
   const firstSelectionMetadata = await selectionMetadata.innerText();
   await matches.nth(1).click();
+  await expect(matches.nth(1)).toHaveClass(/\b(?:active|selected)\b/, {
+    timeout: 60000,
+  });
   await expect.poll(() => selectionMetadata.innerText(), { timeout: 60000 })
     .not.toBe(firstSelectionMetadata);
   await matches.first().click();
+  await expect(matches.first()).toHaveClass(/\b(?:active|selected)\b/, {
+    timeout: 60000,
+  });
   await expect.poll(() => selectionMetadata.innerText(), { timeout: 60000 })
     .toBe(firstSelectionMetadata);
 

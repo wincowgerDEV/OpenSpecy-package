@@ -31,6 +31,16 @@ if (!file_exists(file.path(package_dir, "DESCRIPTION"))) {
 }
 devtools::load_all(package_dir)
 
+build_workers <- min(8L, parallelly::availableCores(omit = 1L))
+options(
+  OpenSpecy.build_workers = build_workers,
+  future.globals.maxSize = 8 * 1024^3
+)
+data.table::setDTthreads(build_workers)
+previous_future_plan <- future::plan()
+doFuture::registerDoFuture()
+future::plan(future::multisession, workers = min(5L, build_workers))
+
 if (!dir_exists(processed_dir)) {
   stop("Processed source directory does not exist: ", processed_dir,
        call. = FALSE)
@@ -58,14 +68,21 @@ message("  Processed sources: ", length(metadatafiles))
 message("  Raw source: ", source_file)
 message("  Output root: ", output_dir)
 message("  Checkpoint reuse: enabled (manifest-compatible stages only)")
+message("  High-throughput workers: ", build_workers)
 
-reference_library_build <- build_lib(
-  x = files,
-  output_dir = output_dir,
-  previous_library_dir = "system",
-  reuse = TRUE,
-  remove_other = TRUE,
-  progress = TRUE
+reference_library_build <- tryCatch(
+  build_lib(
+    x = files,
+    output_dir = output_dir,
+    previous_library_dir = "system",
+    reuse = TRUE,
+    remove_other = TRUE,
+    progress = TRUE
+  ),
+  finally = {
+    future::plan(previous_future_plan)
+    foreach::registerDoSEQ()
+  }
 )
 
 release_dir <- attr(reference_library_build, "output_dir")

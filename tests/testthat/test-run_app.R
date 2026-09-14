@@ -668,6 +668,12 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   )))
   expect_match(server_source, 'tags$summary("Top Matches columns")',
                fixed = TRUE)
+  expect_match(server_source,
+               "output$eventmetadata <- DT::renderDataTable(server = FALSE",
+               fixed = TRUE)
+  expect_match(server_source, "click.openspecyRank", fixed = TRUE)
+  expect_match(server_source, "Shiny.setInputValue('event_rows_selected'",
+               fixed = TRUE)
   expect_match(ui_source, '"baseline_method", "Baseline Method"',
                fixed = TRUE)
   expect_match(ui_source, '"Fill Peaks (4S)" = "fill_peaks"',
