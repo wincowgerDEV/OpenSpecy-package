@@ -1252,7 +1252,7 @@ observeEvent(input$run_analysis, {
 
   top_n_value <- reactive({
     value <- suppressWarnings(as.integer(input$top_n_input))
-    if(length(value) != 1L || is.na(value) || value < 1L) 10L else value
+    if(length(value) != 1L || is.na(value) || value < 1L) 1L else value
   })
 
   MinSNR <- reactive({
@@ -2599,7 +2599,7 @@ observeEvent(input$run_analysis, {
       req(!is.na(selected_unit_index()))
       app_top_matches_table(
         matches_to_single(), isTRUE(settings$model_library),
-        selected_unit_index()
+        selected_unit_index(), simple = isTRUE(input$simple_metadata)
       )
   })
 
@@ -2708,13 +2708,6 @@ output$eventmetadata <- DT::renderDT({
 # Create the data tables for all matches
 output$event <- DT::renderDT({
     data <- top_matches()
-    # AI mode's any_of()-selected row may be missing either column.
-    if("organization" %in% names(data)) {
-      data <- data %>% mutate(organization = as.factor(organization))
-    }
-    if("material_class" %in% names(data)) {
-      data <- data %>% mutate(material_class = as.factor(material_class))
-    }
     DT::datatable(data,
               options = list(scrollX = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
@@ -2730,7 +2723,14 @@ outputOptions(output, "event", suspendWhenHidden = FALSE)
 output$sidebar_metadata <- DT::renderDT({
     req(!is.null(meta_cache()))
     selected <- app_uploaded_metadata_row(meta_cache(), data_click$plot)
-    app_uploaded_metadata_table(meta_cache(), selected = selected)
+    settings <- canonical_state()$settings
+    calibration <- pixel_calibration()
+    app_uploaded_metadata_table(
+      meta_cache(), selected = selected,
+      simple = isTRUE(input$simple_metadata),
+      particle = isTRUE(settings$collapse),
+      pixel_size = calibration$size, pixel_unit = calibration$unit
+    )
 }, server = FALSE)
 outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
 
@@ -3315,20 +3315,6 @@ output$progress_bars <- renderUI({
     )
   }, ignoreNULL = FALSE)
 
-  output$columns_selected_ui <- renderUI({
-    req(identical(input$download_selection, "Top Matches"))
-    req(!isTRUE(canonical_state()$settings$model_library))
-    tags$details(
-      class = "openspecy-download-details",
-      tags$summary("Top Matches columns"),
-      selectInput(
-        inputId = "columns_selected", label = "Columns to save",
-        choices = c("Simple", "All"), selected = "Simple"
-      )
-    )
-  })
-  outputOptions(output, "columns_selected_ui", suspendWhenHidden = FALSE)
-
   output$particle_download_contents <- renderUI({
     req(identical(input$download_selection, "Thresholded Particles"))
     choices <- c(
@@ -3386,8 +3372,6 @@ output$progress_bars <- renderUI({
         run_settings <- canonical_state()$settings
         if(!isTRUE(run_settings$model_library)) {
           top_n <- run_settings$top_n
-          columns_selected <- input$columns_selected
-          if(is.null(columns_selected)) columns_selected <- "Simple"
           processed <- quantified_data()
           snr <- canonical_signal_noise()
           all_matches <- app_top_matches_export_compact(
@@ -3401,7 +3385,7 @@ output$progress_bars <- renderUI({
             top_n_by = if(isTRUE(
               canonical_state()$settings$top_n_per_organization
             )) "organization" else NULL,
-            columns_selected = columns_selected,
+            simple = isTRUE(input$simple_metadata),
             quant_columns = quant_columns
           )
           fwrite(all_matches, file)
@@ -3433,6 +3417,12 @@ output$progress_bars <- renderUI({
           if(".model_class_key" %in% names(result)) {
             result[, .model_class_key := NULL]
           }
+          result <- app_without_particle_metadata(result)
+          if(isTRUE(input$simple_metadata)) {
+            result <- app_selection_metadata_display(
+              result, simple = TRUE, particle = FALSE, library = TRUE
+            )
+          }
           fwrite(result, file)
         }
       } else if(identical(selection, "Thresholded Particles")) {
@@ -3448,9 +3438,18 @@ output$progress_bars <- renderUI({
         calibration <- pixel_calibration()
         if("details" %in% selected) {
           path <- file.path(archive_root, "particle_details.csv")
-          fwrite(app_particle_metadata_units(
-            canonical_final()$metadata, calibration$size, calibration$unit
-          ), path)
+          details <- data.table::copy(
+            data.table::as.data.table(canonical_final()$metadata)
+          )
+          signal_to_noise <- canonical_signal_noise()
+          if(length(signal_to_noise) == nrow(details)) {
+            details[, signal_to_noise := as.numeric(signal_to_noise)]
+          }
+          details <- app_selection_metadata_display(
+            details, simple = isTRUE(input$simple_metadata), particle = TRUE,
+            pixel_size = calibration$size, pixel_unit = calibration$unit
+          )
+          fwrite(details, path)
           files <- c(files, path)
         }
         if("processed" %in% selected) {

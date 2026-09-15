@@ -449,9 +449,7 @@ test_that("bundled app updates map selection through stable widget renders", {
   expect_false(grepl("DT::dataTableProxy", server_source, fixed = TRUE))
   expect_false(grepl("searchHighlight = TRUE", server_source, fixed = TRUE))
   expect_false(grepl("searchHighlight = TRUE", global_source, fixed = TRUE))
-  expect_match(server_source,
-               "app_uploaded_metadata_table(meta_cache(), selected = selected)",
-               fixed = TRUE)
+  expect_match(server_source, "app_uploaded_metadata_table(", fixed = TRUE)
   expect_match(ui_source, 'plotly::plotlyOutput("heatmapA"', fixed = TRUE)
   expect_false(grepl('plotOutput(\n                  "heatmapA"', ui_source,
                      fixed = TRUE))
@@ -720,7 +718,18 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
     function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
     logical(1)
   )))
-  expect_match(server_source, 'tags$summary("Top Matches columns")',
+  expect_false(grepl('"columns_selected"', server_source, fixed = TRUE))
+  expect_false(grepl('"columns_selected_ui"', ui_source, fixed = TRUE))
+  expect_match(server_source,
+               'path <- file.path(archive_root, "particle_details.csv")',
+               fixed = TRUE)
+  expect_match(server_source,
+               "details <- app_selection_metadata_display(", fixed = TRUE)
+  expect_match(server_source,
+               "simple = isTRUE(input$simple_metadata), particle = TRUE",
+               fixed = TRUE)
+  expect_match(ui_source,
+               '"top_n_input", "Top N matches retained",\n      value = 1',
                fixed = TRUE)
   expect_match(server_source,
                "output$eventmetadata <- DT::renderDT({",
@@ -2267,7 +2276,9 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
   expect_identical(cache$.openspecy_index, seq_len(208L))
   expect_identical(cache$signal_to_noise, signal_to_noise)
 
-  table <- env$app_uploaded_metadata_table(cache, selected = 37L)
+  table <- env$app_uploaded_metadata_table(
+    cache, selected = 37L, simple = FALSE
+  )
   expect_s3_class(table, "datatables")
   expect_identical(nrow(table$x$data), 208L)
   expect_identical(table$x$filter, "top")
@@ -2279,6 +2290,12 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
     table$x$data$signal_to_noise,
     signif(as.numeric(signal_to_noise), 2)
   )
+  simple_table <- env$app_uploaded_metadata_table(
+    cache, selected = 37L, simple = TRUE
+  )
+  expect_identical(names(simple_table$x$data), c(
+    "Signal to Noise", "File Name"
+  ))
 
   reordered <- test_map
   reordered$metadata <- data.table::copy(test_map$metadata[208:1])
@@ -2372,13 +2389,19 @@ test_that("app_top_matches_table populates AI mode instead of erroring", {
     spectrum_identity = c("polyethylene terephthalate", "polyethylene"),
     organization = c("Lab A", "Lab A"), sample_name = c("ref_1", "ref_2")
   )
-  library_result <- env$app_top_matches_table(library_rows, FALSE, 1L)
+  library_result <- env$app_top_matches_table(
+    library_rows, FALSE, 1L, simple = FALSE
+  )
   expect_identical(nrow(library_result), 2L)
   expect_identical(
     names(library_result),
     c("match_val", "material_class", "spectrum_identity", "organization",
       "sample_name")
   )
+  simple_library <- env$app_top_matches_table(library_rows, FALSE, 1L)
+  expect_identical(names(simple_library), c(
+    "Match Value", "Material Class", "Spectrum Identity", "Organization"
+  ))
 
   # AI mode: matches_to_single() has one prediction row per spectrum in the
   # whole dataset (only match_val/material_class/object_id), indexed by
@@ -2390,7 +2413,9 @@ test_that("app_top_matches_table populates AI mode instead of erroring", {
     material_class = c("PET", "PVC", "PE"),
     match_val = c(0.7, 0.4, 0.9)
   )
-  model_result <- env$app_top_matches_table(model_rows, TRUE, 2L)
+  model_result <- env$app_top_matches_table(
+    model_rows, TRUE, 2L, simple = FALSE
+  )
   expect_identical(nrow(model_result), 1L)
   expect_identical(names(model_result), c("match_val", "material_class"))
   expect_identical(model_result$material_class, "PVC")
@@ -2402,7 +2427,9 @@ test_that("app_top_matches_table populates AI mode instead of erroring", {
     material_class = c("PET", "PE", "PVC", "PP"),
     match_val = c(0.7, 0.2, 0.6, 0.3)
   )
-  ranked_result <- env$app_top_matches_table(ranked_model_rows, TRUE, 2L)
+  ranked_result <- env$app_top_matches_table(
+    ranked_model_rows, TRUE, 2L, simple = FALSE
+  )
   expect_identical(ranked_result$prediction_rank, c(1L, 2L))
   expect_identical(ranked_result$material_class, c("PVC", "PP"))
   expect_identical(ranked_result$match_val, c(0.6, 0.3))
@@ -2870,7 +2897,7 @@ test_that("bundled app updates the native download label without replacing it", 
                      fixed = TRUE))
 })
 
-test_that("bundled app bridges downloads only inside WebAssembly", {
+test_that("bundled app manages downloads through preparation in both runtimes", {
   app_path <- run_app(test_mode = TRUE)
   ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
                      collapse = "\n")
@@ -2881,8 +2908,10 @@ test_that("bundled app bridges downloads only inside WebAssembly", {
   expect_match(ui_source, 'name = "openspecy-wasm-mode"', fixed = TRUE)
   expect_match(ui_source, 'if(app_wasm_mode()) "true" else "false"',
                fixed = TRUE)
-  expect_match(bridge, "function bindWasmDownloads()", fixed = TRUE)
-  expect_match(bridge, "if (!isWasmMode()) return", fixed = TRUE)
+  expect_match(bridge, "function bindManagedDownloads()", fixed = TRUE)
+  expect_false(grepl("downloadFeedbackTimer", bridge, fixed = TRUE))
+  expect_false(grepl("setTimeout(function () {\n          hideBusy();\n        }, 4000)",
+                     bridge, fixed = TRUE))
   expect_match(bridge, "event.preventDefault()", fixed = TRUE)
   expect_match(bridge, "window.fetch(href", fixed = TRUE)
   expect_match(bridge, "if (response.status >= 500)", fixed = TRUE)

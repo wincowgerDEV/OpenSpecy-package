@@ -2,7 +2,7 @@
 
 **Feature dir**: `specs/033-shinylive-identification-peaks-memory`  
 **Date**: 2026-09-14  
-**Status**: Implementation complete; clean-commit hosted Actions remain maintainer-owned.
+**Status**: Metadata and download UX refinement complete locally; clean-commit hosted Actions remain maintainer-owned.
 **Review budget**: Under 100 nonblank lines and 1,500 words.  
 **Current tranche**: Add live peak markers and per-organization library matches while repairing first-run hosted identification, genuine large-ENVI memory behavior, and the currently red CMD/Shinylive/offline CI chain.
 **Change class**: mixed; highest is hosted/release, with package/scientific and bundled-app behavior changes.
@@ -34,6 +34,7 @@
 - R10. Move the live peak switch/count into Advanced and render marker-only peaks with rank/wavenumber/intensity hover. Strip leading `ftir_`, `raman_`, or `nir_` from model class display values while retaining raw class keys for model lookup.
 - R11. Advanced **Simple Metadata** defaults on. Selection Metadata then shows friendly Material Class, Match Value, Signal to Noise, optional calibrated particle geometry, and File Name; off preserves detailed metadata with calibrated unit suffixes.
 - R12. Top N remains user-settable for multinomial models; per-organization grouping stays spectral-library-only. Initial Filter Library organization selection includes every available organization.
+- R13. Default Top N to 1, use contrasting blue peak markers, and keep every Advanced control box initially closed. Simple Metadata controls Selection and Uploaded Metadata, Selectable Matches, Top Matches downloads, and thresholded particle details from shared friendly-name helpers: library matches retain Match Value, Material Class, Spectrum Identity, and Organization; uploaded/particle rows mirror Selection Metadata; Top Matches omit particle geometry/location. Remove the separate Top Matches Simple/All selector. Keep the download overlay visible through server preparation and transfer, dismissing it only when the browser download/save handoff starts or fails.
 
 ## Technical Decisions
 
@@ -57,10 +58,11 @@
 - [x] Preserve streamed connected geometry and add calibrated particle metadata/volume helpers, heatmap coordinates/labels, downloads, and selection-metadata tests.
 - [x] Move/simplify peak controls and traces; standardize model display classes; expose model Top N; default every filter organization; update app state tests and guidance.
 - [x] Fix the Shinylive smoke by committing explicit Top N/group controls before map Run, switching the internal-ID assertion to detailed metadata, preserving compact-map pixel IDs, and removing DT/Plotly proxy races; focused app/static gates, affected local journeys, and an action-equivalent nested hosted smoke pass against the exact `f552219` artifact.
+- [x] Unify simple metadata across app tables and downloads; set Top N/peak/Advanced defaults; keep download feedback through browser save handoff; verify focused helpers, the local identification/download journey, and hosted-static contracts.
 
 ## Verification
 
-- Focused: configured Windows R runs `devtools::test(filter = "match_spec|Specs|FileSpecs-particle|run_app|app-in-memory|shinylive_wasm", reporter = "check", stop_on_failure = TRUE)` plus app/R/JS/PowerShell parse/static checks and both benchmarks before broad tests. Final repair evidence: 1,282 focused bundled assertions, 353 hosted-static assertions, two affected local Playwright journeys, full 3,708-test suite, staged package check, and the complete nested hosted Playwright smoke all pass.
+- Focused: configured Windows R runs `devtools::test(filter = "match_spec|Specs|FileSpecs-particle|run_app|app-in-memory|shinylive_wasm", reporter = "check", stop_on_failure = TRUE)` plus app/R/JS/PowerShell parse/static checks and both benchmarks before broad tests. Final repair evidence: 1,282 focused bundled assertions, 353 hosted-static assertions, two affected local Playwright journeys, full 3,708-test suite, staged package check, and the complete nested hosted Playwright smoke all pass. R13 adds 1,294 focused assertions plus passing download/default, identification, map Top-Matches, and Uploaded-Metadata browser journeys; exact hosted rerun is correctly blocked until an artifact matching current `b0c4ad6` exists.
 - Scientific/UI acceptance: hand-built spectra cover sharp, plateau, tied, boundary, NA, fewer-than-X, and no-peak cases; grouped results equal independently split-and-ranked organization oracles; the ungrouped route is unchanged.
 - Genuine large path: reproduce the metadata settings on BlueSphere DAT/HDR `b1bccf03...e23f` / `7302dcd5...50c6`, then stress the supplied MIPPR `fb93e1b8...a6f3` / `2901a1e8...b61`; compare collapsed spectra/mapping/counts to bounded eager oracles within `1e-10`, verify source hashes unchanged, and inspect stage telemetry.
 - Browser: fresh local and exact nested hosted frames cover no-upload, retained/rejected selection, live peak on/off/count, grouped Top Matches and rank changes, Selection Metadata, 300-500 MB mounted ENVI Run, genuine Processed/Top Matches/Thresholded Particles downloads, desktop/mobile screenshots, and severe console/server errors.

@@ -52,9 +52,8 @@
   // Shared immediate (zero-round-trip) busy decoration, so Run, Recalculate
   // Preview, and downloads all give the same instant visual response on
   // click instead of waiting on a server round trip -- reused below by
-  // downloadInCurrentFrame() (wasm downloads) and bindInstantFeedback()
-  // (Run/Recalculate Preview in both modes, plain downloads in non-wasm
-  // mode).
+  // downloadInCurrentFrame() (downloads in both runtimes) and
+  // bindInstantFeedback() (Run/Recalculate Preview).
   function markBusy(el) {
     if (!el) return;
     el.setAttribute("aria-busy", "true");
@@ -199,8 +198,7 @@
     }
   }
 
-  function bindWasmDownloads() {
-    if (!isWasmMode()) return;
+  function bindManagedDownloads() {
     document.addEventListener("click", function (event) {
       var target = event.target;
       var button = target && target.closest ? target.closest("#download_data") : null;
@@ -211,18 +209,12 @@
     }, true);
   }
 
-  var downloadFeedbackTimer = null;
-
   // Instant (pre-server-round-trip) busy feedback for Run, Recalculate
-  // Preview, and plain (non-wasm) downloads, consistent with the fetch+blob
-  // download path above. Run/Recalculate Preview are ordinary Shiny
+  // Preview. These are ordinary Shiny
   // actionButtons -- this only decorates them, it must never preventDefault
   // or stopPropagation, or Shiny's own click binding would stop receiving
-  // the click. Cleared for Run/Recalculate by hideBusy() below, once the
-  // real analysis-phase/idle cycle finishes; downloads get a fixed fallback
-  // timeout since a same-tab file download has no reliable JS completion
-  // event when using the native Shiny download binding (kept as-is here,
-  // consistent with the wasm path only decorating, never replacing it).
+  // the click. Cleared by hideBusy() below once the real
+  // analysis-phase/idle cycle finishes.
   function bindInstantFeedback() {
     document.addEventListener("click", function (event) {
       var target = event.target;
@@ -245,20 +237,6 @@
         progress: 8
       });
 
-      if (isWasmMode()) return; // #download_data is fully handled by bindWasmDownloads() there
-      var downloadButton = closest("#download_data");
-      if (downloadButton) {
-        beginBusyAction(downloadButton, {
-          action: "download",
-          message: "Preparing download",
-          detail: "Open Specy is generating the selected file.",
-          progress: 8
-        });
-        window.clearTimeout(downloadFeedbackTimer);
-        downloadFeedbackTimer = window.setTimeout(function () {
-          hideBusy();
-        }, 4000);
-      }
     }, true);
   }
 
@@ -504,11 +482,9 @@
     var overlay = document.getElementById("openspecy_busy_overlay");
     window.clearTimeout(busyTimer);
     window.clearTimeout(idleTimer);
-    window.clearTimeout(downloadFeedbackTimer);
     window.clearInterval(elapsedTimer);
     busyTimer = null;
     idleTimer = null;
-    downloadFeedbackTimer = null;
     elapsedTimer = null;
     busyStartedAt = null;
     busyActionStartedAt = null;
@@ -718,7 +694,7 @@
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
-      bindWasmDownloads();
+      bindManagedDownloads();
       bindInstantFeedback();
       bindAnalysisSettings();
       bindUploadLimit();
@@ -727,7 +703,7 @@
       bindReadyEvent();
     }, { once: true });
   } else {
-    bindWasmDownloads();
+    bindManagedDownloads();
     bindInstantFeedback();
     bindAnalysisSettings();
     bindUploadLimit();

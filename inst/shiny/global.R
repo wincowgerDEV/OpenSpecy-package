@@ -724,6 +724,7 @@ app_particle_metadata_units <- function(metadata, pixel_size = 1,
 
 app_selection_metadata_display <- function(metadata, simple = TRUE,
                                            particle = FALSE,
+                                           library = FALSE,
                                            pixel_size = 1,
                                            pixel_unit = "pixel") {
   calibration <- app_pixel_calibration(pixel_size, pixel_unit)
@@ -734,6 +735,9 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
     )
   }
   if(!isTRUE(simple)) return(result)
+  if(!"match_val" %in% names(result) && "max_cor_val" %in% names(result)) {
+    result[, match_val := max_cor_val]
+  }
 
   particle_columns <- if(isTRUE(particle)) c(
     paste0("area_", calibration$area_suffix),
@@ -746,14 +750,17 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
     paste0("first_y_", calibration$length_suffix)
   ) else character()
   keep <- intersect(
-    c("material_class", "match_val", "signal_to_noise", particle_columns,
-      "file_name"),
+    c("material_class", "match_val",
+      if(isTRUE(library)) c("spectrum_identity", "organization") else NULL,
+      "signal_to_noise", particle_columns, "file_name"),
     names(result)
   )
   result <- result[, keep, with = FALSE]
   friendly <- c(
     material_class = "Material Class",
     match_val = "Match Value",
+    spectrum_identity = "Spectrum Identity",
+    organization = "Organization",
     signal_to_noise = "Signal to Noise",
     file_name = "File Name"
   )
@@ -770,6 +777,20 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
   names(particle_friendly) <- particle_columns
   labels <- c(friendly, particle_friendly)
   data.table::setnames(result, keep, unname(labels[keep]))
+  result
+}
+
+app_particle_metadata_fields <- c(
+  "x", "y", "z", "centroid_x", "centroid_y", "first_x", "first_y",
+  "area", "perimeter", "feret_min", "feret_max", "convex_hull_area",
+  "volume", "pixel_index", "region_id", "cluster_id", "unit_id",
+  "unit_index"
+)
+
+app_without_particle_metadata <- function(metadata) {
+  result <- data.table::copy(data.table::as.data.table(metadata))
+  drop <- intersect(app_particle_metadata_fields, names(result))
+  if(length(drop)) result[, (drop) := NULL]
   result
 }
 
@@ -1025,9 +1046,15 @@ app_uploaded_metadata_row <- function(metadata, spectrum_index) {
   if(is.na(row)) integer() else as.integer(row)
 }
 
-app_uploaded_metadata_table <- function(metadata, selected = integer()) {
-  large <- nrow(metadata) > app_uploaded_metadata_large_threshold
-  caption <- if(isTRUE(large)) {
+app_uploaded_metadata_table <- function(metadata, selected = integer(),
+                                        simple = TRUE, particle = FALSE,
+                                        pixel_size = 1,
+                                        pixel_unit = "pixel") {
+  large <- !isTRUE(simple) &&
+    nrow(metadata) > app_uploaded_metadata_large_threshold
+  caption <- if(isTRUE(simple)) {
+    "Uploaded Metadata"
+  } else if(isTRUE(large)) {
     paste0(
       "Uploaded Metadata (", format(nrow(metadata), big.mark = ","),
       " spectra: showing only x/y/z and other per-pixel columns that vary",
@@ -1036,8 +1063,16 @@ app_uploaded_metadata_table <- function(metadata, selected = integer()) {
   } else {
     "Uploaded Metadata"
   }
+  display <- if(isTRUE(simple)) {
+    app_selection_metadata_display(
+      metadata, simple = TRUE, particle = particle,
+      pixel_size = pixel_size, pixel_unit = pixel_unit
+    )
+  } else {
+    app_uploaded_metadata_display(metadata, large = large)
+  }
   DT::datatable(
-    app_uploaded_metadata_display(metadata, large = large),
+    display,
     escape = TRUE,
     options = list(
       scrollX = TRUE,
@@ -1122,9 +1157,9 @@ app_map_color_choices <- function(identification_active, model_library,
 # erroring on a literal select() of library-metadata columns that don't
 # exist there.
 app_top_matches_table <- function(matches_to_single_result, model_library,
-                                  selected_index) {
+                                  selected_index, simple = TRUE) {
   matches_to_single_result <- data.table::as.data.table(matches_to_single_result)
-  if(isTRUE(model_library)) {
+  result <- if(isTRUE(model_library)) {
     rows <- if("spectrum_index" %in% names(matches_to_single_result)) {
       matches_to_single_result[spectrum_index == selected_index]
     } else {
@@ -1143,6 +1178,16 @@ app_top_matches_table <- function(matches_to_single_result, model_library,
       dplyr::select("match_val", "material_class", "spectrum_identity",
                     "organization", "sample_name")
   }
+  result <- data.table::as.data.table(result)
+  if(!isTRUE(simple)) return(result)
+  result <- app_selection_metadata_display(
+    result, simple = TRUE, library = TRUE
+  )
+  columns <- intersect(
+    c("Match Value", "Material Class", "Spectrum Identity", "Organization"),
+    names(result)
+  )
+  result[, columns, with = FALSE]
 }
 
 # Resolve the explanatory logistic model from the same compact prediction rows
@@ -1279,10 +1324,8 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
 # identification consumer. No correlation matrix is reconstructed here.
 app_top_matches_export_compact <- function(
     matches, library_metadata, spectrum_metadata, signal_to_noise,
-    match_threshold, signal_threshold = c(-Inf, Inf), top_n = 10L,
-    top_n_by = NULL,
-    columns_selected = c("Simple", "All"), quant_columns = character()) {
-  columns_selected <- match.arg(columns_selected)
+    match_threshold, signal_threshold = c(-Inf, Inf), top_n = 1L,
+    top_n_by = NULL, simple = TRUE, quant_columns = character()) {
   matches <- data.table::copy(data.table::as.data.table(matches))
   required_matches <- c("object_id", "library_id", "match_val")
   if(!all(required_matches %in% names(matches)) || !nrow(matches)) {
@@ -1397,12 +1440,11 @@ app_top_matches_export_compact <- function(
       )),
       dplyr::everything()
     )
-  if(identical(columns_selected, "Simple")) {
-    result <- result %>%
-      dplyr::select(dplyr::any_of(c(
-        "file_name", "col_id", "material_class", "match_val",
-        "signal_to_noise", quant_columns
-      )))
+  result <- app_without_particle_metadata(result)
+  if(isTRUE(simple)) {
+    result <- app_selection_metadata_display(
+      result, simple = TRUE, particle = FALSE, library = TRUE
+    )
   }
   data.table::as.data.table(result)
 }
@@ -2429,6 +2471,7 @@ app_plot_palette <- list(
   text = app_theme$text,
   primary = app_theme$accent,
   raw = app_theme$raw,
+  peak = "#3B82F6",
   reference = app_theme$reference,
   spectrum = app_theme$spectrum
 )
@@ -3541,7 +3584,7 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
     plot <- plotly::add_trace(
       plot, data = peaks, x = ~wavenumber, y = ~intensity,
       type = "scatter", mode = "markers", name = "Peak positions",
-      marker = list(color = app_plot_palette$reference, size = 8,
+      marker = list(color = app_plot_palette$peak, size = 8,
                     line = list(color = app_plot_palette$panel, width = 1)),
       hovertemplate = paste0(
         "Peak rank %{customdata}<br>%{x:.1f} cm<sup>-1</sup><br>",

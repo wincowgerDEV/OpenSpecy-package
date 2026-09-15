@@ -354,8 +354,10 @@ async function stageLocalFiles(page, files) {
 }
 
 async function expectNativeDownloadBusyOverlay(page) {
+  let releaseDownload;
+  const downloadGate = new Promise((resolve) => { releaseDownload = resolve; });
   await page.route(/\/download\/download_data(?:\?|$)/, async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await downloadGate;
     await route.continue();
   }, { times: 1 });
   const downloadPromise = page.waitForEvent("download");
@@ -366,6 +368,9 @@ async function expectNativeDownloadBusyOverlay(page) {
   await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
     timeout: 3000,
   });
+  await page.waitForTimeout(4250);
+  await expect(page.locator("#openspecy_busy_overlay")).toBeVisible();
+  releaseDownload();
   await clickPromise;
   await downloadPromise;
   await expect(page.locator("#openspecy_busy_overlay")).toBeHidden({
@@ -756,7 +761,7 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   });
   await expect(page.locator("#download_selection")).toHaveValue("Top Matches");
   await expect(page.locator("#download_data")).toHaveText("Download Top Matches");
-  await expect(page.locator("#top_n_input")).toHaveValue("10");
+  await expect(page.locator("#top_n_input")).toHaveValue("1");
 
   // fetchDownload() below calls fetch() directly on the link's href and
   // never dispatches a real click, so it can't catch a click-feedback
@@ -785,9 +790,9 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   expect(topMatches.contentType).toMatch(/^text\/(?:csv|plain)/i);
   expect(topMatches.disposition).toMatch(/filename="?Top-Matches-.*\.csv/i);
   const rows = topMatches.content.split(/\r?\n/).filter(Boolean);
-  expect(rows).toHaveLength(2081);
-  expect(rows[0]).toMatch(
-    /file_name.*col_id.*material_class.*match_val.*signal_to_noise/i
+  expect(rows).toHaveLength(209);
+  expect(rows[0]).toBe(
+    "Material Class,Match Value,Spectrum Identity,Organization,Signal to Noise,File Name"
   );
 
   await page.locator("#download_selection").evaluate((select) => {
@@ -858,14 +863,6 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   await expect(page.locator("#eventmetadata")).toContainText("CA small UF.dat", {
     timeout: 180000,
   });
-  // This journey verifies exact source-row selection, so opt into the live
-  // detailed metadata view that includes col_id before clicking another row.
-  await page.locator("#simple_metadata").evaluate((input) => {
-    if (input.checked) input.click();
-  });
-  await expect(page.locator("#simple_metadata")).not.toBeChecked();
-  await dismissQueuedAlerts(page);
-
   const spectraCard = page.locator("#spectra_box");
   const sidebarToggle = page.locator("#mycardsidebar");
   await sidebarToggle.click();
@@ -877,9 +874,20 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   const metadataTable = sidebar.locator(
     "#sidebar_metadata .dataTables_scrollBody table"
   );
-  await expect(metadataTable).toBeVisible({
-    timeout: 60000,
+  await expect(metadataTable).toBeVisible({ timeout: 60000 });
+  await expect(metadataTable.locator("thead")).toContainText("Material Class");
+  await expect(metadataTable.locator("thead")).toContainText("Match Value");
+  await expect(metadataTable.locator("thead")).toContainText("Signal to Noise");
+  await expect(metadataTable.locator("thead")).toContainText("File Name");
+  await expect(metadataTable.locator("thead")).not.toContainText("col_id");
+  // This journey verifies exact source-row selection, so opt into the live
+  // detailed metadata view that includes col_id before clicking another row.
+  await page.locator("#simple_metadata").evaluate((input) => {
+    if (input.checked) input.click();
   });
+  await expect(page.locator("#simple_metadata")).not.toBeChecked();
+  await expect(metadataTable.locator("thead")).toContainText("col_id");
+  await dismissQueuedAlerts(page);
   const nonFirstMetadataRow = metadataTable.locator("tbody tr").nth(1);
   await expect(nonFirstMetadataRow).toContainText("0_1", { timeout: 60000 });
   await nonFirstMetadataRow.click();
@@ -1072,8 +1080,10 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   const particleHeader = particleDetails.stdout.split(/\r?\n/, 1)[0]
     .split(",");
   for (const field of [
-    "first_x_um", "first_y_um", "perimeter_um", "feret_min_um",
-    "feret_max_um", "convex_hull_area_um2", "volume_um3",
+    "Material Class", "Match Value", "Signal to Noise", "Area (um^2)",
+    "Perimeter (um)", "Feret Minimum (um)", "Feret Maximum (um)",
+    "Convex Hull Area (um^2)", "Estimated Volume (um^3)",
+    "First X (um)", "First Y (um)", "File Name",
   ]) {
     expect(particleHeader).toContain(field);
   }
@@ -1156,6 +1166,17 @@ test("local app renders spectra, matches, and one informative progress overlay",
     await tab.click();
     await expectCardCollapsed(settingsCard, false);
     await expect(tab).toHaveClass(/active/);
+    if (tabName === "Advanced") {
+      const advancedPane = page.locator("#simple_metadata").locator(
+        "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' tab-pane ')][1]"
+      );
+      const advancedCards = advancedPane.locator(".card");
+      const advancedCount = await advancedCards.count();
+      expect(advancedCount).toBeGreaterThan(0);
+      for (let index = 0; index < advancedCount; index += 1) {
+        await expect(advancedCards.nth(index)).toHaveClass(/collapsed-card/);
+      }
+    }
     if (tabName === "Preprocessing") {
       await expect(minMaxControl).toBeVisible();
       await expect(page.locator("#spike_decision")).not.toBeChecked();
@@ -1902,25 +1923,20 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await toggleCard(downloadCard);
   await expectCardCollapsed(downloadCard, false);
   await selectizeOption(page, "download_selection", "Top Matches");
-  const topMatchDetails = page.locator("details.openspecy-download-details");
-  await expect(topMatchDetails).toBeVisible();
-  await expect(topMatchDetails).not.toHaveAttribute("open", "");
+  await expect(page.locator("#columns_selected")).toHaveCount(0);
+  await page.locator("#simple_metadata").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await expect(page.locator("#simple_metadata")).toBeChecked();
   await expect(overlay).toBeHidden({ timeout: 120000 });
-  await topMatchDetails.locator("summary").click({ timeout: 30000 });
-  await selectizeOption(page, "columns_selected", "Simple");
-  await expect(overlay).toBeHidden({ timeout: 240000 });
   const topMatchesDownload = await consumeDownload(page);
   expect(topMatchesDownload.filename).toMatch(/^Top-Matches-.*\.csv$/i);
   const topMatchesText = topMatchesDownload.content.toString("utf8");
   const topMatchLines = topMatchesText.split(/\r?\n/).filter(Boolean);
-  expect(topMatchLines[0]).toMatch(/file_name.*col_id.*material_class.*match_val.*signal_to_noise/i);
-  expect(topMatchLines[0]).toMatch(/quantification_source/i);
-  expect(topMatchesText).toMatch(/displayed_processed_spectra/i);
-  expect(topMatchLines[0]).toMatch(/quantification_definitions/i);
-  expect(topMatchLines[0]).toMatch(/area_ratio_custom_carbonyl/i);
-  expect(topMatchLines[0]).toMatch(/peak_ratio_custom_peak/i);
-  expect(topMatchLines[0]).toMatch(/area_under_band_custom_area/i);
-  expect(topMatchLines[0]).toMatch(/point_intensity_custom_intensity/i);
+  expect(topMatchLines[0]).toBe(
+    "Material Class,Match Value,Spectrum Identity,Organization,Signal to Noise,File Name"
+  );
+  expect(topMatchLines[0]).not.toMatch(/col_id|quantification|area|perimeter|feret|first_x|first_y/i);
   expect(topMatchLines.length).toBe(7);
   expect(topMatchesText).toMatch(/poly\(ethylene\)/i);
   await toggleCard(downloadCard);

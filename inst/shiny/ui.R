@@ -221,7 +221,7 @@ identification_controls <- tagList(
     ),
     numericInput(
       "top_n_input", "Top N matches retained",
-      value = 10, min = 1, max = 1000, step = 1
+      value = 1, min = 1, max = 1000, step = 1
     ),
     conditionalPanel(
       condition = "input.lib_type != 'model'",
@@ -268,13 +268,15 @@ advanced_controls <- tagList(
   app_control_box(
     "simple_metadata", "Simple Metadata", TRUE,
     note = paste(
-      "Shows a short, human-readable Selection Metadata table. Turn this",
-      "off to inspect every available metadata field with unit-bearing",
-      "particle column names."
+      "Uses short, human-readable columns for Selection Metadata, Uploaded",
+      "Metadata, Selectable Matches, Top Matches downloads, and particle",
+      "details. Turn this off to inspect detailed metadata fields."
     )
   ),
   bs4Dash::box(
     width = 12,
+    collapsible = TRUE,
+    collapsed = TRUE,
     title = "Hyperspectral Pixel Calibration",
     fluidRow(
       column(
@@ -1486,8 +1488,7 @@ dashboardPage(
             div(
               class = "openspecy-download-body",
               uiOutput("download_ui"),
-              uiOutput("particle_download_contents"),
-              uiOutput("columns_selected_ui")
+              uiOutput("particle_download_contents")
             )
           )
         )

@@ -61,7 +61,7 @@ test_that("compact Top Matches obeys requested and default Top N", {
 
   requested <- env$app_top_matches_export_compact(
     matches, library_metadata, spectrum_metadata, signal_to_noise,
-    match_threshold = 0.5, top_n = 3, columns_selected = "All"
+    match_threshold = 0.5, top_n = 3, simple = FALSE
   )
   requested_counts <- requested[, .N, by = col_id]
   expect_true(all(requested_counts$N <= 3L))
@@ -79,11 +79,12 @@ test_that("compact Top Matches obeys requested and default Top N", {
     "identity-1"
   )
   expect_false(any(grepl("\\.[xy]$", names(requested))))
+  expect_false("x" %in% names(requested))
 
   grouped <- env$app_top_matches_export_compact(
     matches, library_metadata, spectrum_metadata, signal_to_noise,
     match_threshold = 0.5, top_n = 2, top_n_by = "organization",
-    columns_selected = "All"
+    simple = FALSE
   )
   grouped_counts <- grouped[, .N, by = .(col_id, organization)]
   expect_true(all(grouped_counts$N == 2L))
@@ -91,11 +92,11 @@ test_that("compact Top Matches obeys requested and default Top N", {
 
   default <- env$app_top_matches_export_compact(
     matches, library_metadata, spectrum_metadata, signal_to_noise,
-    match_threshold = 0.5, columns_selected = "All"
+    match_threshold = 0.5, simple = FALSE
   )
   default_counts <- default[, .N, by = col_id]
-  expect_true(all(default_counts$N <= 10L))
-  expect_identical(sort(default_counts$N), c(10L, 10L))
+  expect_true(all(default_counts$N <= 1L))
+  expect_identical(sort(default_counts$N), c(1L, 1L))
 
   edge_matches <- data.table::data.table(
     object_id = rep("query-1", 2L),
@@ -106,12 +107,24 @@ test_that("compact Top Matches obeys requested and default Top N", {
     edge_matches, library_metadata,
     spectrum_metadata[spectrum_metadata$col_id == "query-1", , drop = FALSE],
     signal_to_noise["query-1"], match_threshold = 0.5,
-    top_n = 2, columns_selected = "All"
+    top_n = 2, simple = FALSE
   )
   expect_true(edge[sample_name == "lib1", good_match_vals])
   expect_identical(edge[sample_name == "lib1", material_class], "material-1")
   expect_false(edge[sample_name == "lib2", good_match_vals])
   expect_identical(edge[sample_name == "lib2", material_class], "unknown")
+
+  simple <- env$app_top_matches_export_compact(
+    matches, library_metadata, spectrum_metadata, signal_to_noise,
+    match_threshold = 0.5, top_n = 1, simple = TRUE
+  )
+  expect_identical(names(simple), c(
+    "Material Class", "Match Value", "Spectrum Identity", "Organization",
+    "Signal to Noise", "File Name"
+  ))
+  expect_false(any(grepl(
+    "^(X|Y|Area|Perimeter|Feret|Convex|Estimated Volume)", names(simple)
+  )))
 })
 
 test_that("single-spectrum Top Matches selection uses exact object IDs", {
@@ -628,6 +641,7 @@ test_that("heatmap calibration labels axes and peak overlays use markers only", 
   )
   peak_trace <- built_spectrum$x$data[[2L]]
   expect_identical(peak_trace$mode, "markers")
+  expect_identical(peak_trace$marker$color, "#3B82F6")
   expect_null(peak_trace$textposition)
   expect_match(peak_trace$hovertemplate, "Peak rank", fixed = TRUE)
 })
