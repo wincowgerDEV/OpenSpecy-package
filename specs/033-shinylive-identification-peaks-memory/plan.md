@@ -9,7 +9,7 @@
 
 ## Current Assessment
 
-- At `930b164`, only Ubuntu R-devel CMD fails; Shinylive assembles then fails its Thresholded Particles download smoke with `$table.DataTable is not a function`, missing tables, an invalid Plotly trace, and Shiny client errors. Offline is consequently skipped; its last executed failure was the internet-blocked bundle smoke.
+- At `f552219`, every R-CMD matrix leg, pkgdown, coverage, and the wasm package-repository action passes. Shinylive alone fails its browser smoke because Simple Metadata intentionally hides the stale expected `col_id`; offline is consequently skipped. The repaired candidate explicitly switches that assertion to detailed metadata and also fixes the subsequently exposed compact-`Specs` pixel projection, particle download synchronization, and DT/Plotly first-render races.
 - `read_envi(..., representation = "Specs", background_filter = ...)` reads the supplied BIP map in blocks, but retains every eligible pixel in `value_chunks` and `cbind`s them before app collapse. The 511 x 580 x 427 float32 fixture is 506,217,040 bytes; a full R double matrix is about 966 MiB, so a 600 MiB allocation is credible even when connected mean collapse later yields fewer than 1,000 units.
 - Metadata fixture `os_metadata_20260914-114832.csv` records threshold `sig_times_noise` 0.01, connected Mean collapse, medoid derivative identification, Top 1, no spatial smoothing, and enabled spectral smoothing/absolute first derivative (polynomial 3, window 90). The matching supplied BlueSphere BIP pair is 436 x 445 x 427/331,386,160 bytes (DAT SHA-256 `b1bccf03...e23f`; HDR `7302dcd5...50c6`); its dense R-double payload is about 632 MiB and directly explains the hosted allocation error.
 
@@ -56,11 +56,11 @@
 - [ ] Confirm clean-commit Shinylive/deploy/offline Actions on the maintainer-pushed candidate; local focused/full/staged-package/hosted/browser gates pass, and the staged check has only the two existing global-binding/UTF-8 data NOTEs.
 - [x] Preserve streamed connected geometry and add calibrated particle metadata/volume helpers, heatmap coordinates/labels, downloads, and selection-metadata tests.
 - [x] Move/simplify peak controls and traces; standardize model display classes; expose model Top N; default every filter organization; update app state tests and guidance.
-- [x] Fix the Shinylive smoke by committing explicit Top N/group controls before map Run; run focused app, hosted-static, and affected local browser journeys.
+- [x] Fix the Shinylive smoke by committing explicit Top N/group controls before map Run, switching the internal-ID assertion to detailed metadata, preserving compact-map pixel IDs, and removing DT/Plotly proxy races; focused app/static gates, affected local journeys, and an action-equivalent nested hosted smoke pass against the exact `f552219` artifact.
 
 ## Verification
 
-- Focused: configured Windows R runs `devtools::test(filter = "match_spec|Specs|FileSpecs-particle|run_app|app-in-memory|shinylive_wasm", reporter = "check", stop_on_failure = TRUE)` plus app/R/JS/PowerShell parse/static checks and both benchmarks before broad tests.
+- Focused: configured Windows R runs `devtools::test(filter = "match_spec|Specs|FileSpecs-particle|run_app|app-in-memory|shinylive_wasm", reporter = "check", stop_on_failure = TRUE)` plus app/R/JS/PowerShell parse/static checks and both benchmarks before broad tests. Final repair evidence: 1,282 focused bundled assertions, 353 hosted-static assertions, two affected local Playwright journeys, full 3,708-test suite, staged package check, and the complete nested hosted Playwright smoke all pass.
 - Scientific/UI acceptance: hand-built spectra cover sharp, plateau, tied, boundary, NA, fewer-than-X, and no-peak cases; grouped results equal independently split-and-ranked organization oracles; the ungrouped route is unchanged.
 - Genuine large path: reproduce the metadata settings on BlueSphere DAT/HDR `b1bccf03...e23f` / `7302dcd5...50c6`, then stress the supplied MIPPR `fb93e1b8...a6f3` / `2901a1e8...b61`; compare collapsed spectra/mapping/counts to bounded eager oracles within `1e-10`, verify source hashes unchanged, and inspect stage telemetry.
 - Browser: fresh local and exact nested hosted frames cover no-upload, retained/rejected selection, live peak on/off/count, grouped Top Matches and rank changes, Selection Metadata, 300-500 MB mounted ENVI Run, genuine Processed/Top Matches/Thresholded Particles downloads, desktop/mobile screenshots, and severe console/server errors.

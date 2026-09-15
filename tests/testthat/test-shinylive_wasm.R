@@ -984,6 +984,13 @@ test_that("hosted deployment exports the exact current bundled app", {
   top_n_grouping <- grep(
     'appFrame.locator("#top_n_per_organization"), false', smoke, fixed = TRUE
   )
+  detailed_metadata <- grep(
+    'appFrame.locator("#simple_metadata"), false', smoke, fixed = TRUE
+  )
+  selected_col_id <- grep(
+    'locator("#eventmetadata table")).toContainText("0_1"',
+    smoke, fixed = TRUE
+  )
   map_run <- grep("await runButton.click();", smoke, fixed = TRUE)
   top_n_lines <- grep("toHaveLength(209)", smoke, fixed = TRUE)
   expect_length(top_n_locator, 1L)
@@ -991,16 +998,26 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_length(top_n_fill, 1L)
   expect_length(top_n_blur, 1L)
   expect_length(top_n_grouping, 1L)
+  expect_length(detailed_metadata, 1L)
+  expect_length(selected_col_id, 1L)
   expect_length(top_n_lines, 1L)
   expect_lt(top_n_tab, top_n_locator)
   expect_lt(top_n_locator, top_n_fill)
   expect_lt(top_n_fill, top_n_blur)
   expect_lt(top_n_blur, top_n_grouping)
   expect_true(any(map_run > top_n_grouping & map_run < top_n_lines))
+  expect_lt(detailed_metadata, selected_col_id)
   expect_lt(top_n_blur, top_n_lines)
   expect_true(any(grepl("toHaveLength(209)", smoke, fixed = TRUE)))
   expect_true(any(grepl("cannot allocate vector", smoke, fixed = TRUE)))
+  expect_true(any(grepl("\\$table\\.DataTable is not a function", smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl("trace index .* out of bounds", smoke,
+                        fixed = TRUE)))
   expect_true(any(grepl("stableFor: 1500", smoke, fixed = TRUE)))
+  expect_true(sum(grepl(
+    'waitForStableDownloadGeneration(', smoke, fixed = TRUE
+  )) >= 2L)
   expect_true(any(grepl(
     'filenamePattern: /^Thresholded-Particles-.*\\.zip$/i',
     smoke, fixed = TRUE

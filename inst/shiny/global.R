@@ -220,6 +220,44 @@ app_initial_result_selection <- function(object, pixel_to_unit = NULL) {
   list(plot = 1L, pixel = pixel, table = 1L)
 }
 
+# Build the full source-pixel projection used when analysis has not supplied a
+# particle mapping. Specs stores source identifiers and coordinates separately
+# from its compact value matrix, so treating it like an OpenSpecy object drops
+# pixel_id and leaves map outputs unable to align after a Run.
+app_identity_pixel_mapping <- function(object, eligible = NULL) {
+  compact <- is_Specs(object)
+  metadata <- if(compact) {
+    data.table::as.data.table(specs_metadata(object))
+  } else data.table::as.data.table(object$metadata)
+  coordinates <- if(compact) {
+    data.table::as.data.table(specs_coordinates(object))
+  } else NULL
+  ids <- if(compact) {
+    as.character(coordinates$source_id)
+  } else colnames(object$spectra)
+  if(is.null(ids)) ids <- paste0("pixel_", seq_len(nrow(metadata)))
+  count <- length(ids)
+  eligible <- if(is.null(eligible)) rep(TRUE, count) else as.logical(eligible)
+  if(length(eligible) != count) {
+    stop("Pixel eligibility must align with every source spectrum.",
+         call. = FALSE)
+  }
+  eligible[is.na(eligible)] <- FALSE
+  x <- if("x" %in% names(metadata)) metadata$x else if(compact &&
+       "x" %in% names(coordinates)) coordinates$x else seq_len(count) - 1
+  y <- if("y" %in% names(metadata)) metadata$y else if(compact &&
+       "y" %in% names(coordinates)) coordinates$y else rep(0, count)
+  data.table::data.table(
+    pixel_index = seq_len(count), pixel_id = ids,
+    source_id = OpenSpecy:::.particle_source_vector(metadata, count),
+    x = x, y = y, eligible = eligible, material = NA_character_,
+    region_id = ids, cluster_id = NA_character_, unit_id = ids,
+    unit_index = ifelse(eligible, seq_len(count), NA_integer_),
+    area = 1L, kept = eligible,
+    rejection_reason = ifelse(eligible, NA_character_, "threshold")
+  )
+}
+
 app_selected_rank_index <- function(selected_row, row_count) {
   row_count <- suppressWarnings(as.integer(row_count)[1L])
   if(is.na(row_count) || row_count < 1L) return(NA_integer_)
@@ -987,7 +1025,7 @@ app_uploaded_metadata_row <- function(metadata, spectrum_index) {
   if(is.na(row)) integer() else as.integer(row)
 }
 
-app_uploaded_metadata_table <- function(metadata) {
+app_uploaded_metadata_table <- function(metadata, selected = integer()) {
   large <- nrow(metadata) > app_uploaded_metadata_large_threshold
   caption <- if(isTRUE(large)) {
     paste0(
@@ -1002,7 +1040,6 @@ app_uploaded_metadata_table <- function(metadata) {
     app_uploaded_metadata_display(metadata, large = large),
     escape = TRUE,
     options = list(
-      searchHighlight = TRUE,
       scrollX = TRUE,
       sDom = '<"top">lrt<"bottom">ip',
       lengthChange = FALSE,
@@ -1012,7 +1049,7 @@ app_uploaded_metadata_table <- function(metadata) {
     filter = "top",
     caption = caption,
     style = "bootstrap",
-    selection = "single"
+    selection = list(mode = "single", selected = selected)
   )
 }
 

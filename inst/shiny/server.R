@@ -1533,23 +1533,6 @@ observeEvent(input$run_analysis, {
   # unlike the collapse paths), but a NA `unit_index` keeps a click on one
   # from resolving to a valid spectrum, so it flat-lines like a rejected
   # collapsed particle instead of silently ignoring the threshold.
-  identity_pixel_mapping <- function(object, eligible = NULL) {
-    metadata <- data.table::as.data.table(object$metadata)
-    ids <- colnames(object$spectra)
-    eligible <- if(is.null(eligible)) rep(TRUE, length(ids)) else eligible
-    data.table::data.table(
-      pixel_index = seq_along(ids), pixel_id = ids,
-      source_id = OpenSpecy:::.particle_source_vector(metadata, length(ids)),
-      x = if("x" %in% names(metadata)) metadata$x else seq_along(ids) - 1,
-      y = if("y" %in% names(metadata)) metadata$y else 0,
-      eligible = eligible, material = NA_character_, region_id = ids,
-      cluster_id = NA_character_, unit_id = ids,
-      unit_index = ifelse(eligible, seq_along(ids), NA_integer_),
-      area = 1L, kept = eligible,
-      rejection_reason = ifelse(eligible, NA_character_, "threshold")
-    )
-  }
-
   aggregate_unit_matches <- function(matches, mapping, unit_ids) {
     library <- analysis_library()
     req(!is.null(library), is_OpenSpecy(library))
@@ -1738,7 +1721,9 @@ observeEvent(input$run_analysis, {
         }
         matches <- if(use_library) identify_blockwise(processed) else NULL
         processed <- attach_best_matches(processed, matches)
-        mapping <- identity_pixel_mapping(processed, rep(TRUE, ncol(processed$spectra)))
+        mapping <- app_identity_pixel_mapping(
+          processed, rep(TRUE, ncol(processed$spectra))
+        )
         if(is_Specs(spatial)) {
           mapping <- expand_pixel_mapping(mapping, spatial, compact_keep)
         }
@@ -1909,7 +1894,7 @@ observeEvent(input$run_analysis, {
       # particles. Their Top-N rows are projected from that same first pass.
       processed_pixels <- ordinary_process(signal_subset)
       pixel_matches <- identify_blockwise(processed_pixels)
-      subset_mapping <- identity_pixel_mapping(signal_subset)
+      subset_mapping <- app_identity_pixel_mapping(signal_subset)
       subset_mapping <- mapping_match_fields(
         subset_mapping, subset_mapping$pixel_id, pixel_matches
       )
@@ -2390,9 +2375,6 @@ observeEvent(input$run_analysis, {
           object, canonical_signal_noise()
         ))
         selection_ready_run(current_run)
-        session$onFlushed(function() {
-          DT::selectRows(DT::dataTableProxy("event", session = session), 1L)
-        }, once = TRUE)
       }
 
   }, priority = -10L, ignoreInit = TRUE)
@@ -2734,8 +2716,7 @@ output$event <- DT::renderDT({
       data <- data %>% mutate(material_class = as.factor(material_class))
     }
     DT::datatable(data,
-              options = list(searchHighlight = TRUE,
-                             scrollX = TRUE,
+              options = list(scrollX = TRUE,
                              sDom  = '<"top">lrt<"bottom">ip',
                              lengthChange = FALSE, pageLength = 5),
               rownames = FALSE,
@@ -2748,19 +2729,10 @@ outputOptions(output, "event", suspendWhenHidden = FALSE)
 #Full metadata table for uploaded spectra
 output$sidebar_metadata <- DT::renderDT({
     req(!is.null(meta_cache()))
-    app_uploaded_metadata_table(meta_cache())
+    selected <- app_uploaded_metadata_row(meta_cache(), data_click$plot)
+    app_uploaded_metadata_table(meta_cache(), selected = selected)
 }, server = FALSE)
 outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
-
-  sidebar_proxy <- DT::dataTableProxy("sidebar_metadata")
-
-  observeEvent(list(meta_cache(), data_click$plot), {
-      req(!is.null(meta_cache()))
-      row <- app_uploaded_metadata_row(meta_cache(), data_click$plot)
-      if (length(row)) {
-          DT::selectRows(sidebar_proxy, row)
-      }
-  }, ignoreInit = FALSE)
 
   pixel_projection_gate <- run_gated_reactive(function() {
     req(!is.null(preprocessed$data))
@@ -2769,9 +2741,15 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       specs_coordinates(spatial)$source_id
     } else colnames(spatial$spectra)
     mapping <- canonical_state()$pixel_to_unit
-    if(is.null(mapping)) mapping <- identity_pixel_mapping(spatial)
+    if(is.null(mapping)) {
+      mapping <- app_identity_pixel_mapping(spatial, signal_eligible())
+    }
     mapping <- data.table::as.data.table(mapping)
-    mapping <- mapping[match(ids, pixel_id)]
+    if(!"pixel_id" %in% names(mapping)) {
+      stop("Pixel projection mapping is missing source identifiers.",
+           call. = FALSE)
+    }
+    mapping <- mapping[match(ids, mapping$pixel_id)]
 
     unit_values <- function(values) {
       if(is.null(values)) return(rep(NA, length(ids)))
@@ -3173,7 +3151,7 @@ output$progress_bars <- renderUI({
         source_count(preprocessed$data)
       clickable <- app_has_clickable_heatmap(heatmap_data, spectrum_count)
       plot <- app_particle_plotly(current_heatmap_data(), source = "heat_plot",
-        select = isolate(current_select_xy())
+        select = current_select_xy()
       )
       if(clickable) {
         # event_register() is attached above. Establish event_data() only in a
@@ -3204,22 +3182,6 @@ output$progress_bars <- renderUI({
                   source_count(preprocessed$data) > 1
              ))
   })
-
-  # Cheap selection sync: move only the marker trace instead of a full
-  # heatmap redraw. Guarded on
-  # a heatmap actually existing client-side yet, so this never races the
-  # widget's own first creation (which already places the marker correctly
-  # via output$heatmapA's own `select =` argument).
-  observeEvent(current_select_xy(), {
-      req(!is.null(isolate(current_heatmap_data())))
-      select <- current_select_xy()
-      x <- if(is.null(select)) NA_real_ else select$x
-      y <- if(is.null(select)) NA_real_ else select$y
-      plotly::plotlyProxy("heatmapA", session) %>%
-        plotly::plotlyProxyInvoke(
-          "restyle", list(x = list(list(x)), y = list(list(y))), list(2L)
-        )
-  }, ignoreNULL = FALSE, ignoreInit = TRUE)
 
   observe({
       req(isTRUE(heatmap_events_ready()))
@@ -3611,9 +3573,6 @@ output$progress_bars <- renderUI({
       # another, keeping the DT row, reference overlay, and metadata aligned.
       if(is.na(previous) || identical(previous, selected)) return()
       data_click$table <- 1L
-      session$onFlushed(function() {
-        DT::selectRows(DT::dataTableProxy("event", session = session), 1L)
-      }, once = TRUE)
   }, ignoreInit = TRUE)
   # meta_cache()'s .openspecy_index is always a column index into
   # quantified_data()/canonical_final() -- i.e. a *unit* index (one particle
@@ -3635,10 +3594,9 @@ output$progress_bars <- renderUI({
         meta_cache(), input$sidebar_metadata_rows_selected
       )
       if(!length(sel)) return()
-      # The sidebar_proxy sync below (observeEvent(list(meta_cache(),
-      # data_click$plot), ...)) calls DT::selectRows() every time
+      # The metadata table rerenders with the selected row whenever
       # data_click$plot changes from ANY source, including a manual heatmap
-      # click -- and that client-side selection change echoes straight back
+      # click -- and that client-side selection change can echo straight back
       # through this same input, indistinguishable from a genuine table
       # click. Without this guard, that echo re-derives a "representative"
       # (first, not necessarily clicked) member pixel for the unit and

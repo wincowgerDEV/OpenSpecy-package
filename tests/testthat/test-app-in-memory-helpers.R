@@ -569,6 +569,34 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
   expect_false("Material Class" %in% names(detailed))
 })
 
+test_that("identity pixel mappings preserve compact Specs source IDs", {
+  env <- .source_in_memory_app_helpers()
+  object <- as_OpenSpecy(
+    100:102,
+    spectra = matrix(
+      1:6, nrow = 3,
+      dimnames = list(NULL, c("pixel-a", "pixel-b"))
+    ),
+    metadata = data.frame(
+      file_name = c("map.dat", "map.dat"), x = c(4, 6), y = c(8, 8)
+    )
+  )
+  compact <- as_Specs(object, steps = character())
+
+  mapping <- env$app_identity_pixel_mapping(compact, c(TRUE, FALSE))
+
+  expect_identical(mapping$pixel_id, c("pixel-a", "pixel-b"))
+  expect_identical(mapping$pixel_index, 1:2)
+  expect_equal(mapping$x, c(4, 6))
+  expect_equal(mapping$y, c(8, 8))
+  expect_identical(mapping$kept, c(TRUE, FALSE))
+  expect_identical(mapping$unit_index, c(1L, NA_integer_))
+  expect_error(
+    env$app_identity_pixel_mapping(compact, TRUE),
+    "eligibility must align"
+  )
+})
+
 test_that("heatmap calibration labels axes and peak overlays use markers only", {
   env <- .source_in_memory_app_helpers()
   metadata <- data.frame(x = c(0, 1), y = c(0, 0))

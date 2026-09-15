@@ -417,12 +417,14 @@ test_that("identification outputs use the library committed by Run", {
   ))
 })
 
-test_that("bundled app updates map selection without full heatmap or spectrum redraws", {
+test_that("bundled app updates map selection through stable widget renders", {
   app_path <- run_app(test_mode = TRUE)
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                    warn = FALSE), collapse = "\n")
   ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
                      collapse = "\n")
+  global_source <- paste(readLines(file.path(app_path, "global.R"), warn = FALSE),
+                         collapse = "\n")
 
   expect_match(server_source, "source_count(preprocessed$data) > 1",
                fixed = TRUE)
@@ -436,10 +438,20 @@ test_that("bundled app updates map selection without full heatmap or spectrum re
                      fixed = TRUE))
   expect_match(server_source, 'event_data("plotly_click", source = "heat_plot"',
                fixed = TRUE)
-  # A cheap marker restyle (not a full heatmap redraw) syncs the selection
-  # marker on click.
-  expect_true(grepl('plotlyProxy("heatmapA", session)', server_source,
-                    fixed = TRUE))
+  # The selected point is part of the render contract. Avoid proxy calls that
+  # can reach Shinylive before the new widget has installed its marker trace.
+  expect_match(server_source, "select = current_select_xy()", fixed = TRUE)
+  expect_false(grepl('plotlyProxy("heatmapA", session)', server_source,
+                     fixed = TRUE))
+  expect_match(ui_source, 'identical(dependency$name, "dt-core")',
+               fixed = TRUE)
+  expect_match(ui_source, 'class = "openspecy-dt-dependency"', fixed = TRUE)
+  expect_false(grepl("DT::dataTableProxy", server_source, fixed = TRUE))
+  expect_false(grepl("searchHighlight = TRUE", server_source, fixed = TRUE))
+  expect_false(grepl("searchHighlight = TRUE", global_source, fixed = TRUE))
+  expect_match(server_source,
+               "app_uploaded_metadata_table(meta_cache(), selected = selected)",
+               fixed = TRUE)
   expect_match(ui_source, 'plotly::plotlyOutput("heatmapA"', fixed = TRUE)
   expect_false(grepl('plotOutput(\n                  "heatmapA"', ui_source,
                      fixed = TRUE))
@@ -2255,13 +2267,14 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
   expect_identical(cache$.openspecy_index, seq_len(208L))
   expect_identical(cache$signal_to_noise, signal_to_noise)
 
-  table <- env$app_uploaded_metadata_table(cache)
+  table <- env$app_uploaded_metadata_table(cache, selected = 37L)
   expect_s3_class(table, "datatables")
   expect_identical(nrow(table$x$data), 208L)
   expect_identical(table$x$filter, "top")
   expect_identical(table$x$options$pageLength, 5)
   expect_match(table$x$options$sDom, "ip", fixed = TRUE)
   expect_identical(attr(table$x$options, "escapeIdx"), "true")
+  expect_identical(table$x$selection$selected, 37L)
   expect_identical(
     table$x$data$signal_to_noise,
     signif(as.numeric(signal_to_noise), 2)

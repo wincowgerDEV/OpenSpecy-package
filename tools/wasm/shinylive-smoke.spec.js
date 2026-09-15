@@ -359,8 +359,9 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     if (message.type() === "error") consoleErrors.push(message.text());
   });
   page.on("pageerror", (error) => {
-    runtimeDiagnostics.push(`[pageerror] ${error.message}`);
-    consoleErrors.push(error.message);
+    const detail = error.stack || error.message;
+    runtimeDiagnostics.push(`[pageerror] ${detail}`);
+    consoleErrors.push(detail);
   });
   page.on("requestfailed", (request) => {
     runtimeDiagnostics.push(
@@ -839,6 +840,10 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     "CA small UF.dat",
     { timeout: 900000 }
   );
+  // The simple view deliberately hides internal source identifiers. This
+  // selection check needs col_id, so explicitly opt into detailed metadata
+  // before asserting that the second uploaded row becomes active.
+  await setShinyCheckbox(appFrame.locator("#simple_metadata"), false);
   await dismissQueuedAlerts(appFrame);
   const mapSpectraCard = appFrame.locator("#spectra_box");
   const mapSidebarToggle = appFrame.locator("#mycardsidebar");
@@ -976,6 +981,21 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
       group.querySelectorAll('input[type="checkbox"]:checked')
     ).map((input) => input.value))
   ).toEqual(["details", "summary"]);
+  // Checkbox clicks update the DOM immediately, but WebR receives and applies
+  // those inputs asynchronously. Wait for that round trip before following
+  // the download URL; otherwise Chromium can follow a generation that Shiny
+  // invalidates while the request is being opened and no request reaches R.
+  await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 300000,
+  });
+  await waitForStableDownloadGeneration(
+    downloadSelection,
+    "Thresholded Particles",
+    { timeout: 300000, stableFor: 2000 }
+  );
+  await expect(downloadLink).not.toHaveClass(/\bdisabled\b/, {
+    timeout: 300000,
+  });
   const thresholdedParticles = await verifyNativeDownload({
     page,
     link: downloadLink,
@@ -994,7 +1014,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(embed).toHaveClass(/\bis-fullscreen\b/);
 
   const severeErrors = consoleErrors.filter((text) =>
-    /Error in|package .* not found|there is no package|pinned build requires/i.test(text)
+    /Error in|package .* not found|there is no package|pinned build requires|\$table\.DataTable is not a function|Cannot read properties of undefined|trace index .* out of bounds/i.test(text)
   );
   expect(severeErrors).toEqual([]);
 

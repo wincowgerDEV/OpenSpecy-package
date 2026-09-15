@@ -588,6 +588,12 @@ quantification_controls <- tagList(
 )
 
 # UI ----
+app_dt_core_dependency <- Filter(
+  function(dependency) identical(dependency$name, "dt-core"),
+  DT::datatable(data.frame(.openspecy = character()),
+                options = list(dom = "t"))$dependencies
+)
+
 dashboardPage(
   dark = NULL,
   help = NULL,
@@ -631,6 +637,13 @@ dashboardPage(
   sidebar = dashboardSidebar(disable = TRUE),
   body = dashboardBody(
     shinyjs::useShinyjs(),
+    # Shinylive resolves htmlwidget dependencies asynchronously. Load the DT
+    # core once with the page so simultaneous first renders cannot race ahead
+    # of $.fn.DataTable becoming available.
+    htmltools::attachDependencies(
+      tags$span(class = "openspecy-dt-dependency", hidden = "hidden"),
+      app_dt_core_dependency
+    ),
     tags$head(
       tags$meta(
         name = "openspecy-wasm-mode",
