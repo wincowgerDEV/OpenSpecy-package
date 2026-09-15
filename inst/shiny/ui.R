@@ -219,12 +219,12 @@ identification_controls <- tagList(
       "lib_type", "Library Type",
       choices = app_library_type_choices(), selected = "medoid"
     ),
+    numericInput(
+      "top_n_input", "Top N matches retained",
+      value = 10, min = 1, max = 1000, step = 1
+    ),
     conditionalPanel(
       condition = "input.lib_type != 'model'",
-      numericInput(
-        "top_n_input", "Top N matches retained",
-        value = 10, min = 1, max = 1000, step = 1
-      ),
       prettySwitch(
         "top_n_per_organization", "Top N per organization",
         inline = TRUE, value = TRUE, status = "success", fill = TRUE
@@ -253,6 +253,48 @@ identification_controls <- tagList(
 )
 
 advanced_controls <- tagList(
+  app_control_box(
+    "show_peak_positions", "Show Peak Positions", TRUE,
+    sliderInput(
+      "peak_count", "Number of top peaks", min = 1, max = 20,
+      value = 7, step = 1
+    ),
+    note = paste(
+      "Marks the highest derivative-zero maxima on the active processed",
+      "spectrum. Rank, wavenumber, and intensity remain available on hover;",
+      "changing the count is live and does not require Run."
+    )
+  ),
+  app_control_box(
+    "simple_metadata", "Simple Metadata", TRUE,
+    note = paste(
+      "Shows a short, human-readable Selection Metadata table. Turn this",
+      "off to inspect every available metadata field with unit-bearing",
+      "particle column names."
+    )
+  ),
+  bs4Dash::box(
+    width = 12,
+    title = "Hyperspectral Pixel Calibration",
+    fluidRow(
+      column(
+        6,
+        numericInput(
+          "pixel_size", "Pixel edge length", value = 1,
+          min = .Machine$double.eps, step = 0.1
+        )
+      ),
+      column(
+        6,
+        textInput("pixel_unit", "Pixel length unit", value = "pixel")
+      )
+    ),
+    footer = footnote(
+      "How spatial units are applied",
+      "Coordinates, perimeter, and Feret lengths are multiplied by the pixel edge length; areas are multiplied by its square. Estimated volume is the cube of the square root of calibrated area.",
+      "The unit is used in heatmap axes and appended to detailed metadata names. Pixel size must be a positive finite number; the default 1 pixel preserves the uploaded grid scale."
+    )
+  ),
   app_control_box(
     "threshold_decision", "Threshold Signal / Noise", FALSE,
     selectInput(
@@ -1193,15 +1235,6 @@ dashboardPage(
                       0 8px 24px rgba(0, 0, 0, .28);
         }
         .openspecy-plot-frame { padding: 8px; margin: 8px 0 16px; }
-        .openspecy-peak-controls {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 8px 20px;
-          padding: 4px 8px 0;
-        }
-        .openspecy-peak-controls .form-group { margin-bottom: 4px; }
-        .openspecy-peak-controls .irs { min-width: 220px; }
         .openspecy-mini-plot { margin-top: 8px; }
         .openspecy-snr-preview-header {
           display: flex;
@@ -1531,20 +1564,6 @@ dashboardPage(
             tags$p(
               class = "text-muted openspecy-active-spectrum-status",
               textOutput("active_spectrum_status", inline = TRUE)
-            ),
-            div(
-              class = "openspecy-peak-controls",
-              prettySwitch(
-                "show_peak_positions", "Show Peak Positions", inline = TRUE,
-                value = TRUE, status = "success", fill = TRUE
-              ),
-              conditionalPanel(
-                condition = "input.show_peak_positions === true",
-                sliderInput(
-                  "peak_count", "Top peak labels", min = 1, max = 20,
-                  value = 7, step = 1
-                )
-              )
             ),
             plotlyOutput("MyPlotC", height = "45vh")
           ),

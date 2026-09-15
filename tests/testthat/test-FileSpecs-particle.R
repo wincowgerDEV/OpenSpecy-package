@@ -129,6 +129,16 @@ test_that("file-backed connected means equal eager connected collapse", {
   expect_equal(streamed$analysis_units$spectra,
                eager$analysis_units$spectra,
                tolerance = 1e-10, ignore_attr = TRUE)
+  geometry <- c(
+    "first_x", "first_y", "perimeter", "feret_min", "feret_max",
+    "convex_hull_area"
+  )
+  expect_true(all(geometry %in% names(streamed$analysis_units$metadata)))
+  expect_equal(
+    streamed$analysis_units$metadata[, geometry, with = FALSE],
+    eager$analysis_units$metadata[, geometry, with = FALSE],
+    tolerance = 1e-10
+  )
   expect_true(isTRUE(streamed$settings$file_backed))
   expect_equal(streamed$settings$chunk_size, 2L)
 })

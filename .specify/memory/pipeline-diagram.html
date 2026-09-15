@@ -494,7 +494,7 @@
 
 <div class="node trigger" style="left:1650px;top:500px" tabindex="0">
   &#9654; Click Run
-  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. A staged source is materialized here unless Recalculate Preview has already materialized it for S/N inspection. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Readers compact coordinates and metadata losslessly but do not hash spectra or accept PCA, K-means, or Hilbert arguments. Other settings remain passive until the next Run. Every later output derives from this snapshot.
+  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. A staged source is materialized here unless Recalculate Preview has already materialized it for S/N inspection. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Readers compact coordinates and metadata losslessly but do not hash spectra or accept PCA, K-means, or Hilbert arguments. Scientific settings remain passive until the next Run; Advanced peak display, simple metadata, and pixel calibration are live presentation/export controls. Every later output derives from this snapshot.
   <span class="loc">Plans 018/030 &middot; server.R: run gate priorities and canonical_state_gate()</span></div>
 </div>
 
@@ -571,7 +571,7 @@
 <div class="node function" style="left:550px;top:1760px" tabindex="0">
   Connected Threshold Regions
   <div class="sub">strategy = "collapse"</div>
-  <div class="tip">The ordinary path flood-fills spatially connected eligible pixels and collapses them. For file-backed ENVI, the same mapping is built from a one-row geometric display; retained source members are then streamed in bounded blocks directly into per-particle sums/counts. Only the final Mean spectra materialize, and projected live-state capacity is checked before allocation. Median/geometric mean and per-pixel correlation modes preflight as unsupported for this file-backed route.
+  <div class="tip">The ordinary path flood-fills spatially connected eligible pixels and collapses them. For file-backed ENVI, the same mapping is built from a one-row geometric display; retained source members are then streamed in bounded blocks directly into per-particle sums/counts while first X/Y, perimeter, Feret dimensions, and convex-hull area remain aligned to each unit. Only the final Mean spectra materialize, and projected live-state capacity is checked before allocation. Median/geometric mean and per-pixel correlation modes preflight as unsupported for this file-backed route.
   <span class="loc">Plan 033 &middot; server.R: FileSpecs canonical branch &middot; R/automate_particle_filespecs.R: .filespec_collapse_connected_mean()</span></div>
 </div>
 <div class="node function" style="left:1050px;top:1760px" tabindex="0">
@@ -656,8 +656,8 @@
 </div>
 <div class="node function" style="left:1550px;top:2950px" tabindex="0">
   AI Model Classification
-  <div class="sub">ai_output_gate: match_spec(top_n = 5)</div>
-  <div class="tip">For an explicit type the router runs that FTIR, Raman, or NIR logistic model. The default All option runs every overlapping type-specific model, ranks class probabilities per spectrum, and retains five scores. Rank 1 feeds map colors, Selection Metadata, and the Summary material classes even after particle collapse; all ranks feed Top Matches. The committed model artifact and settings remain unchanged until Run.
+  <div class="sub">ai_output_gate: user-selected Top N probabilities</div>
+  <div class="tip">For an explicit type the router runs that FTIR, Raman, or NIR logistic model. The default All option runs every overlapping type-specific model, ranks class probabilities per spectrum, and retains the user-selected Top N. Rank 1 feeds map colors, Selection Metadata, and standardized Summary material classes even after particle collapse; display values strip technique prefixes while raw keys remain available for coefficient lookup. All retained ranks feed Top Matches. The committed model artifact and settings remain unchanged until Run.
   <span class="loc">Plans 025/033 &middot; global.R: app_classify_model_library() &middot; server.R: ai_output_gate()/max_cor_identity()</span></div>
 </div>
 
@@ -710,7 +710,7 @@
 <div class="node output tip-left" style="left:2250px;top:1490px" tabindex="0">
   Download: Thresholded Particles (zip)
   <div class="depends">depends on: Collapse, Signal/Noise, Identification/AI</div>
-  <div class="tip">Details/processed/summary/particle-size figures come from canonical_final() + snr_preview(). The correlation and material-summary figures use the committed rank-1 library or model identities, so model classifications appear even though they do not mutate canonical spectral metadata. Heatmap PNGs use the same pixel projection.
+  <div class="tip">Details/processed/summary/particle-size figures come from canonical_final() + snr_preview(). Live pixel calibration scales length/coordinate fields, areas, and area^(3/2) volume into unit-bearing metadata and figure axes without mutating canonical spectra. The correlation and material-summary figures use the committed rank-1 library or standardized model identities. Heatmap PNGs use the same calibrated pixel projection.
   <span class="loc">server.R:2781-2843</span></div>
 </div>
 
@@ -759,14 +759,14 @@
 <div class="node output tip-left" style="left:2250px;top:2560px" tabindex="0">
   Spectrum Plot
   <div class="depends">depends on: Active Spectrum Inspection + optional match/model class</div>
-  <div class="tip">The processed trace is byte-for-byte the one-column object from Active Spectrum Inspection. When Show Peak Positions is on, the plot adds up to the selected 1&ndash;20 finite interior positive-to-negative derivative-zero maxima, ranked by displayed intensity and labeled by wavenumber; this annotation responds live and does not need Run. Raw, committed reference, and committed model-coefficient overlays remain stable when identification controls change until the next Run.
+  <div class="tip">The processed trace is byte-for-byte the one-column object from Active Spectrum Inspection. When Advanced Show Peak Positions is on, the plot adds up to the selected 1&ndash;20 finite interior positive-to-negative derivative-zero maxima as marker-only points ranked by displayed intensity; rank, wavenumber, and intensity remain on hover. This annotation responds live and does not need Run. Raw, committed reference, and committed model-coefficient overlays remain stable when identification controls change until the next Run.
   <span class="loc">Plans 025/027/033 &middot; server.R: output$MyPlotC/active_peak_positions() &middot; global.R: app_peak_positions()/app_spectrum_plot()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2630px" tabindex="0">
   Selection Metadata Table
   <div class="depends">depends on: canonical_final() + click; Identification OR AI</div>
-  <div class="tip">output$eventmetadata is a native client-side DT over match_metadata(). Before a canonical object exists, selection resolves to unavailable. On the first successful Run, plot/pixel/rank, uploaded metadata, and Top Matches initialize from one result-ready boundary so metadata appears immediately. Real-library mode uses the selected committed reference row; logistic mode joins rank 1 for the selected spectrum.
+  <div class="tip">output$eventmetadata is a native client-side DT over match_metadata(). Before a canonical object exists, selection resolves to unavailable. On the first successful Run, plot/pixel/rank, uploaded metadata, and Top Matches initialize from one result-ready boundary so metadata appears immediately. Simple Metadata defaults to friendly material, score, S/N, optional calibrated geometry, and file name; detailed mode exposes unit-bearing fields. Real-library mode uses the selected committed reference row; logistic mode joins rank 1 with standardized display classes while preserving raw model keys internally.
   <strong>Plan 018 target:</strong> a compact selection fetches exactly one aligned source metadata row and its value-level match fields.
   <span class="loc">Plans 018/030 &middot; server.R: canonical-result readiness, selected_unit_index(), match_metadata() &middot; Specs metadata accessors</span></div>
 </div>
@@ -782,7 +782,7 @@
 <div class="node output tip-left" style="left:2250px;top:2810px" tabindex="0">
   Heatmap
   <div class="depends">depends on: Pixel Projection; Identification OR AI</div>
-  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(). Its available colorings change with upstream state: Collapse off shows per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows only Signal/Noise-based coloring. Clicking selects a pixel/unit for Active Spectrum Inspection and Selection Metadata (dashed teal lines); the heatmap is never the quality-test data source.
+  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(). Its available colorings change with upstream state: Collapse off shows per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows only Signal/Noise-based coloring. X/Y default to pixels and scale live to the Advanced pixel edge length/unit for plotting, hover, click lookup, and exported figures. Clicking selects a pixel/unit for Active Spectrum Inspection and Selection Metadata (dashed teal lines); the heatmap is never the quality-test data source.
   <span class="loc">server.R:2523, 2475</span></div>
 </div>
 

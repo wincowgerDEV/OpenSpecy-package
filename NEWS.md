@@ -3,13 +3,19 @@
 - Added optional per-metadata-group Top-N spectral matching with
   `match_spec(..., top_n_by = "organization")`; the Shiny app enables this per
   organization by default and batches both organizations and query spectra.
-  The app also labels ranked derivative-zero peaks on the active processed
-  spectrum, reports model material classes in Summary, and keeps completed
-  plot/table state stable until Run commits changed identification settings.
+  The app also marks ranked derivative-zero peaks on the active processed
+  spectrum, reports standardized model material classes in Summary, lets model
+  matching retain the user-selected Top N, and keeps completed plot/table state
+  stable until Run commits changed identification settings.
 - Large BIP ENVI maps can now stay file-backed through raw/spatial signal/noise
   thresholding and connected Mean collapse. Retained members are accumulated
   directly into particle means in bounded blocks instead of assembling and
-  `cbind`ing a dense retained-pixel matrix.
+  `cbind`ing a dense retained-pixel matrix. Connected geometry is preserved;
+  Advanced pixel calibration supplies unit-bearing coordinates, size/shape,
+  area, and estimated-volume metadata, heatmap axes, summaries, and exports.
+- Selection Metadata now defaults to a concise friendly view, with detailed
+  calibrated metadata available from Advanced, and library filtering initially
+  selects every available organization.
 - Official reference builds now return at most ten nonempty assessment tables
   nested by `cleanup`, `ref_lib`, `medoid`, `model`, and `functionality`.
   Old/new metrics are wide and adjacent; accuracy, confusion, model-correlation,

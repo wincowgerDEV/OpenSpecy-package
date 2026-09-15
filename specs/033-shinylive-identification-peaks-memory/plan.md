@@ -2,9 +2,9 @@
 
 **Feature dir**: `specs/033-shinylive-identification-peaks-memory`  
 **Date**: 2026-09-14  
-**Status**: Implemented locally; clean-commit hosted/offline workflows await maintainer push.  
+**Status**: Implementation complete; clean-commit hosted Actions remain maintainer-owned.
 **Review budget**: Under 100 nonblank lines and 1,500 words.  
-**Current tranche**: Add live peak labels and per-organization library matches while repairing first-run hosted identification, genuine large-ENVI memory behavior, and the currently red CMD/Shinylive/offline CI chain.  
+**Current tranche**: Add live peak markers and per-organization library matches while repairing first-run hosted identification, genuine large-ENVI memory behavior, and the currently red CMD/Shinylive/offline CI chain.
 **Change class**: mixed; highest is hosted/release, with package/scientific and bundled-app behavior changes.
 
 ## Current Assessment
@@ -22,14 +22,18 @@
 
 ## Requirements
 
-- R1. Inside the Active retained spectrum frame, add **Show Peak Positions** (default on) and a gated 1-20 slider (default 7). It is live after a retained selection changes and never needs Run; off/no-upload/no-retained-selection/rejected-pixel states perform no peak work and show no markers.
-- R2. An app-internal pure helper accepts exactly one processed spectrum, finds finite interior local maxima where the discrete first derivative crosses positive-to-negative (including a zero plateau bracketed by those signs), chooses one deterministic sample per plateau, then ranks by displayed intensity descending with wavenumber/source-index tie breaks. Plot the requested available ranks as points and non-overlapping wavenumber labels; fewer/no candidates remain valid.
+- R1. In Advanced, add **Show Peak Positions** (default on) and a gated 1-20 slider (default 7). It is live after a retained selection changes and never needs Run; off/no-upload/no-retained-selection/rejected-pixel states perform no peak work and show no markers.
+- R2. An app-internal pure helper accepts exactly one processed spectrum, finds finite interior local maxima where the discrete first derivative crosses positive-to-negative (including a zero plateau bracketed by those signs), chooses one deterministic sample per plateau, then ranks by displayed intensity descending with wavenumber/source-index tie breaks. Plot the requested available ranks as marker-only points with rank/wavenumber/intensity hover; fewer/no candidates remain valid.
 - R3. Add `top_n_by = NULL` to spectral-library `match_spec()` methods. `NULL` preserves global Top-N and schema; one valid library-metadata column (initial use `organization`) returns up to `top_n` rows per nonblank group and query, globally score-sorted per query with deterministic library-order ties. Invalid/missing groups, grouped model matching, and nonpositive/missing `top_n` fail clearly; `ident_spec()` stays unchanged.
 - R4. Add an Identification-owned **Top N per organization** switch, default on, muted when Identification/model mode is off. App matching passes `top_n_by = "organization"`; filter-library mode groups only selected organizations. Rank 1 across all returned candidates alone feeds canonical material/max-correlation metadata, while every group winner feeds Top Matches, metadata selection, and download.
 - R5. Grouped blockwise matching loops by organization and by at most 1,000 query spectra, releasing each correlation block after reduction. Progress reports organization plus query-block completion; retained-capacity checks use `queries x top_n x groups`. Ungrouped outputs remain tolerance-identical and no slower by more than 10% on repeated representative benchmarks.
 - R6. For BIP ENVI + raw/spatial S/N threshold + connected Mean collapse, keep the source as `FileSpecs`, stream S/N and connected membership, then read and accumulate retained spectra by particle before materializing only collapsed `OpenSpecy` units; never `cbind` the retained full map. Preserve source mapping, coordinates, metadata, thresholds, mean spectra, processing order/attributes, active inspection, heatmap, summaries, and downloads. Unsupported large-file modes preflight and explain their bound instead of attempting a huge allocation.
 - R7. A fresh hosted session with genuine packaged spectra immediately shows Top Matches rank 1 and Selection Metadata, supports rank changes, and completes all native downloads without DT/Plotly/Shiny client errors. Fix the result-ready/trace/table cause in shared source, not a smoke-only exception.
 - R8. Diagnose and fix the exact Ubuntu R-devel check error; require CMD, Shinylive, and an actually executed (not skipped) offline bundle workflow to pass on one candidate. Offline remains a consumer of the exact successful Pages SHA.
+- R9. Preserve connected-particle `first_x`, `first_y`, `perimeter`, `feret_min`, `feret_max`, and `convex_hull_area` through FileSpecs collapse. Advanced pixel calibration defaults to size 1 and unit `pixel`; displayed/exported coordinates and lengths scale by size, areas by size squared, and estimated volume is area^(3/2), with unit-bearing names. Heatmap axes use the same calibrated unit.
+- R10. Move the live peak switch/count into Advanced and render marker-only peaks with rank/wavenumber/intensity hover. Strip leading `ftir_`, `raman_`, or `nir_` from model class display values while retaining raw class keys for model lookup.
+- R11. Advanced **Simple Metadata** defaults on. Selection Metadata then shows friendly Material Class, Match Value, Signal to Noise, optional calibrated particle geometry, and File Name; off preserves detailed metadata with calibrated unit suffixes.
+- R12. Top N remains user-settable for multinomial models; per-organization grouping stays spectral-library-only. Initial Filter Library organization selection includes every available organization.
 
 ## Technical Decisions
 
@@ -37,7 +41,7 @@
 - **Object flow**: mounted ENVI pair -> descriptor-only `FileSpecs` -> bounded S/N/mask -> connected unit mapping -> streaming Mean `OpenSpecy` -> ordinary processing -> organization/query-block matches -> canonical final `OpenSpecy` -> plots/tables/downloads. Keep unique spectra names, aligned metadata, coordinates, selection status, processing/correction attributes, and the original file read-only.
 - **Memory/observability**: primary reproduction is BlueSphere 194,020 x 427 and stress fixture is MIPPR 296,380 x 427; chunk <=8,192 (about 27 MiB raw double payload). Log source/eligible/unit counts, bytes and elapsed time at mount, S/N, components, collapse, processing, each organization, and completion. Target no single spectral allocation above 64 MiB and incremental webR heap below 512 MiB; stop before allocation if projected live state exceeds 768 MiB or measured stage growth exceeds 2x its projection.
 - **Dependencies/generated files**: add none. Update roxygen and regenerate/inspect `man/match_spec.Rd` with configured roxygen2 8.0.0; never hand-edit `NAMESPACE`, Rd, pkgdown, or `_wasm/` output.
-- **Bundled app/diagram**: canonical visible/exported source remains `canonical_state_gate()$object`; peak annotations read only `active_spectrum_view()`. Gate peak count behind peak owner and retained status, and grouping behind Identification/non-model mode. Update Pipeline boxes **Read & Combine/Base Specs Materialization**, **Collapse**, **Library Identification**, **Active Spectrum Inspection**, **Spectrum Plot**, **Top Matches**, and **Selection Metadata**.
+- **Bundled app/diagram**: canonical visible/exported source remains `canonical_state_gate()$object`; peak annotations read only `active_spectrum_view()`. Keep live peak, simple-metadata, and pixel-calibration controls in Advanced without invalidating canonical spectra; gate grouping behind Identification/non-model mode. Update Pipeline boxes **Read & Combine/Base Specs Materialization**, **Collapse**, **Library Identification**, **Active Spectrum Inspection**, **Spectrum Plot**, **Top Matches**, and **Selection Metadata**.
 - **Hosted impact**: shared `R/`, `inst/shiny/`, tests, docs, and diagram change. Preserve `/`, `/app/`, `/pkgdown/`, hard pins, closure, compact libraries, and generated boundaries; run `-HostedAppStatic`, an exact matching-artifact preflight/nested-frame smoke, then a clean-commit rebuild because this tranche is release-facing.
 - **Surface classification**: `R/`, `tests/testthat/`, `benchmarks/`, `inst/shiny/`, app docs, and `NEWS.md` change; `tools/{wasm,offline}` and `.github/workflows/` change only when root-cause repair requires it. `workflows/`, `site/`, README, `DESCRIPTION`, dependencies, and app assets stay unchanged; reference-artifact compatibility is N/A.
 
@@ -49,7 +53,10 @@
 - [x] Repair first-result DT/Plotly selection and native-download behavior in shared app/wasm sources; update local, hosted, and offline browser fixtures only to express the corrected contract.
 - [x] Update roxygen/example, `vignettes/{sop.Rmd,app.Rmd}`, `NEWS.md`, and `.specify/memory/pipeline-diagram.html`; regenerate expected docs and inspect generated diffs.
 - [x] Add repeated `benchmarks/match_spec_grouped.R` and `benchmarks/shinylive_filespec_collapse.R`, retaining old kernels and checking output equivalence, runtime, allocation projection, and abort thresholds.
-- [ ] Isolate R-devel failure, run focused/full/package/hosted gates once on the final candidate, then reconcile evidence, processes, status, and scratch; local gates pass, while clean-commit Shinylive/deploy/offline Actions await maintainer push.
+- [ ] Confirm clean-commit Shinylive/deploy/offline Actions on the maintainer-pushed candidate; local focused/full/staged-package/hosted/browser gates pass, and the staged check has only the two existing global-binding/UTF-8 data NOTEs.
+- [x] Preserve streamed connected geometry and add calibrated particle metadata/volume helpers, heatmap coordinates/labels, downloads, and selection-metadata tests.
+- [x] Move/simplify peak controls and traces; standardize model display classes; expose model Top N; default every filter organization; update app state tests and guidance.
+- [x] Fix the Shinylive smoke by committing explicit Top N/group controls before map Run; run focused app, hosted-static, and affected local browser journeys.
 
 ## Verification
 

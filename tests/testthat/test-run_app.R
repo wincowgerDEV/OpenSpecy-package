@@ -395,7 +395,8 @@ test_that("identification outputs use the library committed by Run", {
     fixed = TRUE
   )
   expect_match(
-    server_source, "app_classify_model_library(DataR(), model_library)",
+    server_source,
+    "DataR(), model_library, top_n = settings$top_n",
     fixed = TRUE
   )
   expect_match(
@@ -405,6 +406,11 @@ test_that("identification outputs use the library committed by Run", {
   )
   expect_match(
     server_source, "library = analysis_library()", fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    'updatePickerInput(session, "lib_org", choices = orgs,\n                        selected = orgs)',
+    fixed = TRUE
   )
   expect_false(grepl(
     "library = libraryR()", server_source, fixed = TRUE
@@ -2448,8 +2454,14 @@ test_that("active-spectrum peak positions rank derivative-zero maxima", {
   )
   expect_match(ui_source, '"show_peak_positions", "Show Peak Positions"',
                fixed = TRUE)
-  expect_match(ui_source, '"peak_count", "Top peak labels", min = 1, max = 20',
+  expect_match(ui_source, '"peak_count", "Number of top peaks", min = 1, max = 20',
                fixed = TRUE)
+  expect_lt(
+    regexpr("advanced_controls <-", ui_source, fixed = TRUE)[[1L]],
+    regexpr('"show_peak_positions", "Show Peak Positions"', ui_source,
+            fixed = TRUE)[[1L]]
+  )
+  expect_false(grepl('mode = "markers+text"', server_source, fixed = TRUE))
   expect_match(server_source,
                'if(!isTRUE(input$show_peak_positions)) return(NULL)',
                fixed = TRUE)
@@ -2620,7 +2632,9 @@ test_that("app spectrum-type router supports complete and specific artifacts", {
     raman = model_for("raman", seq(800, 824, by = 6), 0.8),
     nir = model_for("nir", seq(4000, 4024, by = 6), 0.99)
   ), "all")
+  observed_top_n <- integer()
   env$match_spec <- function(x, library, ...) {
+    observed_top_n <<- c(observed_top_n, list(...)$top_n)
     data.table::data.table(
       x = seq_len(ncol(x$spectra)), y = 1L,
       value = library$score, name = paste0("class_", library$score)
@@ -2630,6 +2644,13 @@ test_that("app spectrum-type router supports complete and specific artifacts", {
   expect_identical(prediction$spectrum_type, c("raman", "ftir"))
   expect_identical(prediction$value, c(0.8, 0.6))
   expect_identical(prediction$rank, c(1L, 2L))
+  expect_true(all(observed_top_n == 5L))
+
+  observed_top_n <- integer()
+  top_one <- env$app_classify_model_library(typed$ftir, models, top_n = 1L)
+  expect_identical(top_one$spectrum_type, "raman")
+  expect_identical(top_one$rank, 1L)
+  expect_true(all(observed_top_n == 1L))
 })
 
 test_that("bundled app orders downloads from the current analysis state", {
@@ -2745,13 +2766,14 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "co2_automate", "co2_artifact_ratio", "MinFlat", "MaxFlat",
     "identification_active", "id_spec_type", "id_strategy", "lib_type",
     "top_n_input", "top_n_per_organization", "filter_lib", "lib_org",
-    "threshold_decision",
-    "signal_basis",
+    "threshold_decision", "signal_basis",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
     "spatial_decision", "sigma", "xy_grid",
     "collapse_decision",
     "collapse_type", "particle_id_strategy", "particle_pca_components",
     "particle_cluster_k", "particle_area_threshold",
+    "pixel_size", "pixel_unit", "simple_metadata", "show_peak_positions",
+    "peak_count",
     "quant_ratio_name", "quant_ratio_type", "quant_numerator_area_min",
     "quant_numerator_area_max", "quant_denominator_area_min",
     "quant_denominator_area_max", "quant_numerator_peak",

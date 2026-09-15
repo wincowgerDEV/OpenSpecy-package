@@ -444,6 +444,17 @@ membership metadata that maps its source pixels.
 For file-backed ENVI maps, connected Mean collapse streams only the retained
 particle members. Median and geometric-mean collapse still require an in-memory
 map because their exact values cannot be calculated from bounded running sums.
+Connected-particle metadata retains the first X/Y location, perimeter, minimum
+and maximum Feret dimensions, area, and convex-hull area. In **Advanced**,
+**Pixel edge length** and **Pixel length unit** default to `1` and `pixel`.
+Lengths and heatmap coordinates use that scale, areas use its square, and the
+estimated volume is the calibrated area raised to the 3/2 power. Detailed
+metadata/download column names include the selected unit.
+
+**Simple Metadata** is on by default and limits Selection Metadata to Material
+Class, Match Value, Signal to Noise, particle geometry when particles are
+collapsed, and File Name. Turn it off in Advanced to inspect all available
+unit-bearing fields.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download_threshold.jpg")
@@ -504,12 +515,14 @@ identification. Scores exactly equal to the minimum pass; lower or non-finite
 scores are blacked out in a spectral map and labeled unknown in downloads.
 
 **Top N** controls how many ranked library matches the app retains per spectrum.
+It also controls how many ranked probabilities a Multinomial model retains.
 **Top N per organization** is on by default: Top N is then applied independently
 to every selected library organization instead of across the combined library.
 Matching iterates through one organization and at most 1,000 query spectra at a
 time. The globally strongest result still supplies the material identity, while
 every retained organization result appears in Matches and Top Matches downloads.
-The switch is unavailable for model classification.
+The per-organization switch is unavailable for model classification. When
+**Filter Library** is enabled, every available organization starts selected.
 
 Identification settings are committed only by **Run**. Changing Medoid to Model
 or another identification setting marks Run as pending but leaves the active
@@ -534,11 +547,12 @@ may assist you in interpreting the spectra. For example, if the spectra has
 metadata which says it is a liquid and you are analyzing a solid particle, that
 spectrum may not be the best match.
 
-Inside **Active retained spectrum**, **Show Peak Positions** is on by default.
-Its 1--20 slider starts at 7 and updates the current processed spectrum without
-another Run. Points mark interior positive-to-negative first-derivative zero
-crossings, rank by displayed intensity, and are labeled in cm^-1^. Rejected
-pixels and states without an active retained spectrum do not run peak finding.
+In **Advanced**, **Show Peak Positions** is on by default. Its 1--20 slider
+starts at 7 and updates the current processed spectrum without another Run.
+Points mark interior positive-to-negative first-derivative zero crossings and
+rank by displayed intensity. Rank, wavenumber, and intensity are available on
+hover without permanent text labels. Rejected pixels and states without an
+active retained spectrum do not run peak finding.
 
 ## Download Top Matches
 

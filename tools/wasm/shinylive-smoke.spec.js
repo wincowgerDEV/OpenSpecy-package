@@ -793,6 +793,26 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(appFrame.locator("html")).toHaveAttribute(
     "data-openspecy-materialized", "pending", { timeout: 60000 }
   );
+  // Top N and grouping are committed analysis controls. Set this fixture's
+  // one-match, overall-library contract before Run instead of mutating an
+  // input afterward and exporting the previous run's settings.
+  const settingsBox = appFrame.locator("#analysis_settings_box");
+  if ((await settingsBox.getAttribute("class") || "")
+    .includes("collapsed-card")) {
+    await settingsBox.locator('[data-card-widget="collapse"]').first().click();
+    await expect(settingsBox).not.toHaveClass(/\bcollapsed-card\b/);
+  }
+  await appFrame.getByRole("link", {
+    name: "Identification", exact: true,
+  }).click();
+  const mapTopNInput = appFrame.locator("#top_n_input");
+  await expect(mapTopNInput).toBeVisible();
+  await mapTopNInput.fill("1");
+  await mapTopNInput.press("Tab");
+  await expect(mapTopNInput).toHaveValue("1");
+  await setShinyCheckbox(
+    appFrame.locator("#top_n_per_organization"), false
+  );
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await runButton.click();
   await expect(appFrame.locator("html")).toHaveAttribute(
@@ -854,25 +874,6 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     "Top Matches",
     { timeout: 300000, stableFor: 1500 }
   );
-  // This fixture's 209-line assertion requires one retained match per map
-  // spectrum. Configure that precondition explicitly: Top N is an analysis
-  // control whose product default may change independently of this smoke.
-  // The settings panel opens on another tab, so make the owning tab visible
-  // before using Playwright's user-level form interaction.
-  const settingsBox = appFrame.locator("#analysis_settings_box");
-  if ((await settingsBox.getAttribute("class") || "")
-    .includes("collapsed-card")) {
-    await settingsBox.locator('[data-card-widget="collapse"]').first().click();
-    await expect(settingsBox).not.toHaveClass(/\bcollapsed-card\b/);
-  }
-  await appFrame.getByRole("link", {
-    name: "Identification", exact: true,
-  }).click();
-  const mapTopNInput = appFrame.locator("#top_n_input");
-  await expect(mapTopNInput).toBeVisible();
-  await mapTopNInput.fill("1");
-  await mapTopNInput.press("Tab");
-  await expect(mapTopNInput).toHaveValue("1");
   const mapDiagnosticStart = runtimeDiagnostics.length;
   const mapTopMatches = await verifyNativeDownload({
     page,

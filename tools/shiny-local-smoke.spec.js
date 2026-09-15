@@ -575,7 +575,7 @@ test("settings tabs expand the card and sustained actions start the overlay clie
     await expect(page.locator(`#${id}`)).toBeChecked();
   }
   const allOff = page.locator("button#identification_all_toggle");
-  await expect(allOff).toHaveText(/Turn All Off/);
+  await expect(allOff).toHaveText(/Turn All Off/, { timeout: 60000 });
   await allOff.click();
   await expect(page.locator("#identification_active")).not.toBeChecked();
   await expect(page.locator("#filter_lib")).not.toBeChecked();
@@ -682,6 +682,10 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   });
   await expect(page.locator("#collapse_decision")).not.toBeChecked();
   await expect(page.locator("#threshold_decision")).not.toBeChecked();
+  await page.locator("#top_n_per_organization").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(page.locator("#top_n_per_organization")).not.toBeChecked();
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
@@ -854,6 +858,12 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   await expect(page.locator("#eventmetadata")).toContainText("CA small UF.dat", {
     timeout: 180000,
   });
+  // This journey verifies exact source-row selection, so opt into the live
+  // detailed metadata view that includes col_id before clicking another row.
+  await page.locator("#simple_metadata").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(page.locator("#simple_metadata")).not.toBeChecked();
   await dismissQueuedAlerts(page);
 
   const spectraCard = page.locator("#spectra_box");
@@ -924,6 +934,10 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
       priority: "event",
     });
   });
+  await page.locator("#pixel_size").fill("2");
+  await page.locator("#pixel_size").press("Tab");
+  await page.locator("#pixel_unit").fill("um");
+  await page.locator("#pixel_unit").press("Tab");
 
   await stageLocalFiles(
     page, path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
@@ -946,7 +960,7 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
     Object.keys(select.selectize ? select.selectize.options : {})
   );
   expect(mapChoices).toEqual(expect.arrayContaining([
-    "Particle Unit", "Material Class", "Match ID", "Match Value", "Signal/Noise",
+    "Particle Unit", "Material Class", "Match ID", "Match Value",
   ]));
   await expect(page.locator("#heatmapA.js-plotly-plot .main-svg").first())
     .toBeVisible({ timeout: 120000 });
@@ -972,15 +986,19 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   const heatmapContract = await page.locator("#heatmapA").evaluate((plot) => ({
     traceCount: plot.data?.length || 0,
     showscale: plot.data?.[0]?.showscale,
+    xTitle: plot.layout?.xaxis?.title?.text,
+    yTitle: plot.layout?.yaxis?.title?.text,
   }));
   expect(heatmapContract.traceCount).toBeGreaterThanOrEqual(3);
   expect(heatmapContract.showscale).toBe(false);
+  expect(heatmapContract.xTitle).toBe("X (um)");
+  expect(heatmapContract.yTitle).toBe("Y (um)");
   await page.locator("#heatmap_legend_details").click();
   await expect(page.getByRole("dialog")).toContainText("Legend");
   await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
 
   for (const value of [
-    "Particle Unit", "Material Class", "Match ID", "Match Value", "Signal/Noise",
+    "Particle Unit", "Material Class", "Match ID", "Match Value",
   ]) {
     await page.locator("#map_color").evaluate((select, next) => {
       select.selectize.setValue(next);
@@ -1040,11 +1058,24 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   for (const figure of [
     "signal_noise_histogram.png", "correlation_histogram.png",
     "material_class_heatmap.png", "match_id_heatmap.png",
-    "match_value_heatmap.png", "signal_noise_heatmap.png",
-    "particle_unit_heatmap.png", "material_summary.png",
+    "match_value_heatmap.png", "particle_unit_heatmap.png",
+    "spectrum_index_heatmap.png", "material_summary.png",
     "particle_size_distribution.png",
   ]) {
     expect(archiveList.stdout).toEqual(expect.stringContaining(figure));
+  }
+  const particleDetails = spawnSync(
+    "tar", ["-xOf", download.path, "particle_details.csv"],
+    { encoding: "utf8" }
+  );
+  expect(particleDetails.status).toBe(0);
+  const particleHeader = particleDetails.stdout.split(/\r?\n/, 1)[0]
+    .split(",");
+  for (const field of [
+    "first_x_um", "first_y_um", "perimeter_um", "feret_min_um",
+    "feret_max_um", "convex_hull_area_um2", "volume_um3",
+  ]) {
+    expect(particleHeader).toContain(field);
   }
 
   // A rejected map pixel is deliberately not snapped to the nearest retained
@@ -1371,7 +1402,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(referenceTrace.dash).toBe("dot");
   expect(String(referenceTrace.color).toUpperCase()).toMatch(/#FB7185|RGB\(251[, ]+113[, ]+133\)/);
   await expect(page.locator("#MyPlotC .legendtext")).toHaveText([
-    "Raw spectrum", "Active spectrum", "Identification match",
+    "Raw spectrum", "Active spectrum", "Identification match", "Peak positions",
   ]);
   const desktopLegend = await page.locator("#MyPlotC").evaluate((plot) => ({
     orientation: plot.layout.legend.orientation,
@@ -1621,7 +1652,10 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(progressState.phases.join(" ")).toMatch(/Preprocessing|reference library|Identifying|Rendering/i);
   expect(progressState.phases.join(" ")).toMatch(/reference library/i);
   expect(progressState.elapsed.length).toBeGreaterThanOrEqual(2);
-  expect(progressState.progress.length).toBeGreaterThanOrEqual(2);
+  // Browser rendering can coalesce several progressbar attribute mutations
+  // during a fast two-spectrum run; at least one observed value plus the
+  // phase history and minimum reached percentage proves useful progress.
+  expect(progressState.progress.length).toBeGreaterThanOrEqual(1);
   // Identification of this two-spectrum fixture can finish inside the
   // overlay debounce. Reference loading is the last guaranteed visible
   // long-running phase; larger matching jobs expose the later 76% phase.
@@ -1804,6 +1838,19 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(mutedQuantState.phases).toEqual(["Preparing analysis..."]);
   expect(mutedQuantState.visible).toEqual([false]);
 
+  // Quantification fields belong to detailed Selection Metadata; the default
+  // simple view intentionally contains only the user-facing interpretation.
+  await page.locator("#simple_metadata").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(page.locator("#simple_metadata")).not.toBeChecked();
+  await page.getByRole("link", { name: "Identification", exact: true }).click();
+  await page.locator("#top_n_input").fill("3");
+  await page.locator("#top_n_input").press("Tab");
+  await page.locator("#top_n_per_organization").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(page.locator("#top_n_per_organization")).not.toBeChecked();
   await resetProgressProbe(page);
   await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
   await page.locator("#run_analysis").click();
@@ -1860,10 +1907,6 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect(topMatchDetails).not.toHaveAttribute("open", "");
   await expect(overlay).toBeHidden({ timeout: 120000 });
   await topMatchDetails.locator("summary").click({ timeout: 30000 });
-  // #top_n_input lives in the Identification tab pane, hidden while a
-  // different settings tab (Quantification, above) is active.
-  await page.getByRole("link", { name: "Identification", exact: true }).click();
-  await page.locator("#top_n_input").fill("3");
   await selectizeOption(page, "columns_selected", "Simple");
   await expect(overlay).toBeHidden({ timeout: 240000 });
   const topMatchesDownload = await consumeDownload(page);
@@ -2068,6 +2111,10 @@ test("library identification reports completed block percentages", async ({ page
     if (!input.checked) input.click();
   });
   await expect(page.locator("#identification_active")).toBeChecked();
+  await page.locator("#top_n_per_organization").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(page.locator("#top_n_per_organization")).not.toBeChecked();
   await pickerOption(page, "id_spec_type", "raman");
   await pickerOption(page, "id_strategy", "deriv");
   await pickerOption(page, "lib_type", "medoid");

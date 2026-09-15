@@ -421,6 +421,10 @@ test_that("app spectrum plot explains a selected logistic class", {
   expect_identical(heat$colorbar$xanchor, "left")
   expect_equal(heat$colorbar$y, 0.5)
   expect_gte(built$x$layout$margin$r, 100)
+  expect_match(
+    heat$hovertemplate, "<extra>polyethylene</extra>", fixed = TRUE
+  )
+  expect_false(grepl("raman_polyethylene", heat$hovertemplate, fixed = TRUE))
 })
 
 test_that("model explanations follow the selected spectrum and Top Matches row", {
@@ -489,4 +493,113 @@ test_that("model explanations follow the selected spectrum and Top Matches row",
   )
   expect_null(unsupported$model)
   expect_null(unsupported$model_class)
+})
+
+test_that("spatial calibration preserves geometry and creates unit-bearing metadata", {
+  env <- .source_in_memory_app_helpers()
+  metadata <- data.frame(
+    file_name = "particle.dat", material_class = "raman_polyethylene",
+    match_val = 0.91, signal_to_noise = 12.34,
+    x = 2, y = 3, first_x = 1, first_y = 2, area = 4,
+    perimeter = 8, feret_min = 2, feret_max = 5,
+    convex_hull_area = 6
+  )
+  original <- metadata
+
+  calibration <- env$app_pixel_calibration(2, "\u00b5m")
+  expect_identical(calibration$unit, "\u00b5m")
+  expect_identical(calibration$length_suffix, "um")
+  converted <- env$app_particle_metadata_units(metadata, 2, "\u00b5m")
+  expect_true(all(c(
+    "first_x_um", "first_y_um", "perimeter_um", "feret_min_um",
+    "feret_max_um", "convex_hull_area_um2", "area_um2", "volume_um3"
+  ) %in% names(converted)))
+  expect_equal(converted$first_x_um, 2)
+  expect_equal(converted$perimeter_um, 16)
+  expect_equal(converted$area_um2, 16)
+  expect_equal(converted$convex_hull_area_um2, 24)
+  expect_equal(converted$volume_um3, 64)
+  expect_identical(metadata, original)
+  expect_error(env$app_pixel_calibration(0, "um"), "positive finite")
+})
+
+test_that("simple selection metadata is friendly, ordered, and model-neutral", {
+  env <- .source_in_memory_app_helpers()
+  metadata <- data.frame(
+    file_name = "particle.dat", col_id = "particle-1",
+    material_class = "ftir_polyethylene", match_val = 0.91,
+    signal_to_noise = 12.34, first_x = 1, first_y = 2, area = 4,
+    perimeter = 8, feret_min = 2, feret_max = 5,
+    convex_hull_area = 6
+  )
+  simple <- env$app_selection_metadata_display(
+    metadata, simple = TRUE, particle = TRUE,
+    pixel_size = 2, pixel_unit = "um"
+  )
+  expect_identical(names(simple), c(
+    "Material Class", "Match Value", "Signal to Noise", "Area (um^2)",
+    "Perimeter (um)", "Feret Minimum (um)", "Feret Maximum (um)",
+    "Convex Hull Area (um^2)", "Estimated Volume (um^3)",
+    "First X (um)", "First Y (um)", "File Name"
+  ))
+  expect_identical(simple[["Material Class"]], "polyethylene")
+  expect_identical(env$app_standardize_material_class(
+    c("FTIR_polyethylene", "raman-polystyrene", "nir_other", "unknown")
+  ), c("polyethylene", "polystyrene", "other", "unknown"))
+
+  particles <- as_OpenSpecy(
+    1:3, spectra = matrix(1:6, nrow = 3),
+    metadata = data.frame(area = c(4, 9))
+  )
+  summary <- env$app_particle_summary_table(
+    particles, material = c("ftir_polyethylene", "raman_polystyrene")
+  )
+  expect_identical(summary$material_class, c("polyethylene", "polystyrene"))
+  expect_error(
+    env$app_particle_summary_table(particles, material = "polyethylene"),
+    "do not align"
+  )
+
+  detailed <- env$app_selection_metadata_display(
+    metadata, simple = FALSE, particle = TRUE,
+    pixel_size = 1, pixel_unit = "pixel"
+  )
+  expect_true(all(c("first_x_pixel", "first_y_pixel", "area_pixel2") %in%
+                    names(detailed)))
+  expect_false("Material Class" %in% names(detailed))
+})
+
+test_that("heatmap calibration labels axes and peak overlays use markers only", {
+  env <- .source_in_memory_app_helpers()
+  metadata <- data.frame(x = c(0, 1), y = c(0, 0))
+  calibrated <- env$app_calibrate_spatial_metadata(metadata, 2.5, "um")
+  expect_equal(calibrated$x, c(0, 2.5))
+  heatmap <- env$app_ordinary_heatmap_data(
+    calibrated, c(1, 2), FALSE, "Spectrum Index", axis_unit = "um"
+  )
+  built_heatmap <- suppressWarnings(
+    plotly::plotly_build(env$app_particle_plotly(heatmap))
+  )
+  x_title <- built_heatmap$x$layout$xaxis$title
+  y_title <- built_heatmap$x$layout$yaxis$title
+  if(is.list(x_title)) x_title <- x_title$text
+  if(is.list(y_title)) y_title <- y_title$text
+  expect_identical(x_title, "X (um)")
+  expect_identical(y_title, "Y (um)")
+  expect_match(
+    env$app_heatmap_hover_text(heatmap, "Spectrum Index")[[1L]],
+    "x (um):", fixed = TRUE
+  )
+
+  spectrum <- as_OpenSpecy(
+    101:105, spectra = matrix(c(0, 1, 3, 1, 0), ncol = 1)
+  )
+  peaks <- env$app_peak_positions(spectrum, 1L)
+  built_spectrum <- plotly::plotly_build(
+    env$app_spectrum_plot(spectrum, peaks = peaks)
+  )
+  peak_trace <- built_spectrum$x$data[[2L]]
+  expect_identical(peak_trace$mode, "markers")
+  expect_null(peak_trace$textposition)
+  expect_match(peak_trace$hovertemplate, "Peak rank", fixed = TRUE)
 })

@@ -100,7 +100,10 @@ function(input, output, session) {
   analysis_dirty <- reactiveVal(FALSE)
   analysis_needs_reset <- reactiveVal(FALSE)
   settings_signature <- reactive({
-    lapply(app_user_metadata_input_ids, function(id) input[[id]])
+    analysis_ids <- setdiff(
+      app_user_metadata_input_ids, app_live_display_input_ids
+    )
+    lapply(analysis_ids, function(id) input[[id]])
   })
   observeEvent(settings_signature(), {
     analysis_dirty(TRUE)
@@ -596,11 +599,8 @@ observeEvent(input$run_analysis, {
   observeEvent(libraryR(), {
       if(identical(input$lib_type, "model")) return()
       orgs <- sort(unique(libraryR()$metadata$organization))
-      current <- isolate(input$lib_org)
-      selected <- intersect(current, orgs)
-      if(!length(selected)) selected <- orgs
       updatePickerInput(session, "lib_org", choices = orgs,
-                        selected = selected)
+                        selected = orgs)
   })
   
 
@@ -1443,6 +1443,10 @@ observeEvent(input$run_analysis, {
   particle_area_threshold <- reactive({
     value <- suppressWarnings(as.numeric(input$particle_area_threshold))
     if(length(value) != 1L || is.na(value) || value < 0) 1 else value
+  })
+
+  pixel_calibration <- reactive({
+    app_pixel_calibration(input$pixel_size, input$pixel_unit)
   })
 
   identify_blockwise <- function(object) {
@@ -2439,7 +2443,9 @@ observeEvent(input$run_analysis, {
         76
       )
 
-      app_classify_model_library(DataR(), model_library)
+      app_classify_model_library(
+        DataR(), model_library, top_n = settings$top_n
+      )
   })
   ai_output <- reactive(ai_output_gate$read())
 
@@ -2480,7 +2486,7 @@ observeEvent(input$run_analysis, {
         if("material_class" %in% names(metadata)) {
           as.character(metadata$material_class)
         } else match_material(names(values))
-      } else names(values)
+      } else app_standardize_material_class(names(values))
       data.table::fifelse(
         is.na(values) | values < canonical_state()$settings$min_cor,
         rep.int("unknown", length(values)), identities
@@ -2524,7 +2530,8 @@ observeEvent(input$run_analysis, {
             } else {
               1L
             },
-            material_class = as.character(predictions$name),
+            .model_class_key = as.character(predictions$name),
+            material_class = app_standardize_material_class(predictions$name),
             match_val = signif(as.numeric(predictions$value), 2),
             spectrum_type = if("spectrum_type" %in% names(predictions)) {
               as.character(predictions$spectrum_type)
@@ -2626,15 +2633,14 @@ match_metadata <- reactive({
     settings <- canonical_state()$settings
     identification_active <- isTRUE(settings$identification_active)
     model_library <- isTRUE(settings$model_library)
-    if(!identification_active) {
+    result <- if(!identification_active) {
         selected_object_id <- colnames(quantified_data()$spectra)[selected_index]
-        return(app_selected_metadata(
+        app_selected_metadata(
           quantified_data(),
           data.table::data.table(object_id = selected_object_id),
           canonical_signal_noise()
-        ))
-    }
-    if (!model_library) {
+        )
+    } else if (!model_library) {
         rows <- matches_to_single()
         selected_row <- app_selected_rank_index(data_click$table, nrow(rows))
         selected_match <- rows[selected_row, ]
@@ -2662,6 +2668,13 @@ match_metadata <- reactive({
             select(file_name, col_id, material_class, match_val, signal_to_noise, everything())
         result
     }
+    app_selection_metadata_display(
+      result,
+      simple = isTRUE(input$simple_metadata),
+      particle = isTRUE(settings$collapse),
+      pixel_size = pixel_calibration()$size,
+      pixel_unit = pixel_calibration()$unit
+    )
 })
 
 # Display ----
@@ -3019,6 +3032,7 @@ output$progress_bars <- renderUI({
 
   heatmap_state_for <- function(map_color) {
       projection <- pixel_projection()
+      calibration <- pixel_calibration()
       categorical <- FALSE
       z <- if(identical(map_color, "Particle Unit")) {
         categorical <- TRUE
@@ -3050,11 +3064,14 @@ output$progress_bars <- renderUI({
         )
       }
       list(
-        metadata = projection$metadata,
+        metadata = app_calibrate_spatial_metadata(
+          projection$metadata, calibration$size, calibration$unit
+        ),
         z = z,
         categorical = categorical,
         rejected = projection$rejected,
-        rejection_reason = projection$rejection_reason
+        rejection_reason = projection$rejection_reason,
+        axis_unit = calibration$unit
       )
   }
 
@@ -3086,7 +3103,8 @@ output$progress_bars <- renderUI({
       app_ordinary_heatmap_data(
         state$metadata, state$z, state$categorical, map_color,
         rejected = state$rejected,
-        rejection_reason = state$rejection_reason
+        rejection_reason = state$rejection_reason,
+        axis_unit = state$axis_unit
       )
   }
 
@@ -3122,7 +3140,11 @@ output$progress_bars <- renderUI({
         }
       }
       if(length(selected) != 1L || is.na(selected)) return(NULL)
-      list(x = metadata$x[[selected]], y = metadata$y[[selected]])
+      calibration <- pixel_calibration()
+      list(
+        x = metadata$x[[selected]] * calibration$size,
+        y = metadata$y[[selected]] * calibration$size
+      )
   })
 
   observeEvent(data_click$plot, {
@@ -3214,8 +3236,11 @@ output$progress_bars <- renderUI({
       click_y <- click$y[[1L]]
 
       req(!is.null(preprocessed$data))
-      selected <- nearest_metadata_row(source_metadata(spatial_data()), click_x,
-                                       click_y)
+      calibration <- pixel_calibration()
+      click_metadata <- app_calibrate_spatial_metadata(
+        source_metadata(spatial_data()), calibration$size, calibration$unit
+      )
+      selected <- nearest_metadata_row(click_metadata, click_x, click_y)
       if(length(selected) && selected <= source_count(preprocessed$data)) {
         data_click$pixel <- selected
         mapping <- canonical_state()$pixel_to_unit
@@ -3236,7 +3261,10 @@ output$progress_bars <- renderUI({
       req(isTRUE(canonical_state()$settings$collapse))
       particles <- canonical_final()
       req(particles$metadata$area)
-      app_particle_size_plot(particles)
+      calibration <- pixel_calibration()
+      app_particle_size_plot(
+        particles, calibration$size, calibration$unit
+      )
   })
   
   output$material_plot <- renderPlot({
@@ -3440,6 +3468,9 @@ output$progress_bars <- renderUI({
               material_class = ifelse(match_val < run_settings$min_cor, "unknown",
                                       material_class)
             )
+          if(".model_class_key" %in% names(result)) {
+            result[, .model_class_key := NULL]
+          }
           fwrite(result, file)
         }
       } else if(identical(selection, "Thresholded Particles")) {
@@ -3452,19 +3483,32 @@ output$progress_bars <- renderUI({
         dir.create(archive_root, recursive = TRUE, showWarnings = FALSE)
         on.exit(unlink(archive_root, recursive = TRUE, force = TRUE), add = TRUE)
         files <- character()
+        calibration <- pixel_calibration()
         if("details" %in% selected) {
           path <- file.path(archive_root, "particle_details.csv")
-          fwrite(data.table::as.data.table(canonical_final()$metadata), path)
+          fwrite(app_particle_metadata_units(
+            canonical_final()$metadata, calibration$size, calibration$unit
+          ), path)
           files <- c(files, path)
         }
         if("processed" %in% selected) {
           path <- file.path(archive_root, "particles_processed.rds")
-          saveRDS(canonical_final(), path)
+          processed_particles <- canonical_final()
+          processed_particles$metadata <- app_particle_metadata_units(
+            processed_particles$metadata, calibration$size, calibration$unit
+          )
+          saveRDS(processed_particles, path)
           files <- c(files, path)
         }
         if("summary" %in% selected) {
           path <- file.path(archive_root, "particle_summary.csv")
-          fwrite(app_particle_summary_table(canonical_final()), path)
+          summary_material <- if(isTRUE(
+            canonical_state()$settings$identification_active
+          )) max_cor_identity() else NULL
+          fwrite(app_particle_summary_table(
+            canonical_final(), calibration$size, calibration$unit,
+            material = summary_material
+          ), path)
           files <- c(files, path)
         }
         if("figures" %in% selected) {
@@ -3504,7 +3548,9 @@ output$progress_bars <- renderUI({
           }
 
           path <- file.path(archive_root, "particle_size_distribution.png")
-          app_write_ggplot_png(app_particle_size_plot(canonical_final()), path)
+          app_write_ggplot_png(app_particle_size_plot(
+            canonical_final(), calibration$size, calibration$unit
+          ), path)
           files <- c(files, path)
           material <- if(isTRUE(run_settings$identification_active)) {
             max_cor_identity()

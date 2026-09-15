@@ -400,7 +400,7 @@ automate_particle_analysis.FileSpecs <- function(
 
 .filespec_mean_features <- function(x, index, feature_metadata, feature_ids,
                                     axis, spectral_smooth, sigma1,
-                                    chunk_size) {
+                                    chunk_size, unit_metadata = NULL) {
   chunk_size <- .filespec_bounded_chunk_size(length(axis), chunk_size)
   .filespec_retained_mean_capacity(length(axis), length(feature_ids))
   ids <- as.character(feature_metadata$feature_id)
@@ -436,7 +436,24 @@ automate_particle_analysis.FileSpecs <- function(
     }
   }
   spectra <- sweep(sums, 2L, counts, "/")
-  md <- data.table::copy(feature_metadata[match(feature_ids, ids)])
+  md <- if (is.null(unit_metadata)) {
+    data.table::copy(feature_metadata[match(feature_ids, ids)])
+  } else {
+    unit_metadata <- data.table::as.data.table(unit_metadata)
+    id_column <- intersect(c("col_id", "unit_id", "feature_id"),
+                           names(unit_metadata))
+    if (!length(id_column)) {
+      stop("collapsed unit metadata requires an identifier column",
+           call. = FALSE)
+    }
+    unit_index <- match(feature_ids,
+                        as.character(unit_metadata[[id_column[[1L]]]]))
+    if (anyNA(unit_index)) {
+      stop("collapsed unit metadata does not align with streamed features",
+           call. = FALSE)
+    }
+    data.table::copy(unit_metadata[unit_index])
+  }
   md$col_id <- feature_ids
   as_OpenSpecy(axis, spectra = spectra, metadata = md, coords = NULL,
                compute_file_id = FALSE)
@@ -476,7 +493,8 @@ automate_particle_analysis.FileSpecs <- function(
     x, index = index, feature_metadata = partition$display$metadata,
     feature_ids = feature_ids, axis = .filespec_axis(x),
     spectral_smooth = spectral_smooth, sigma1 = sigma,
-    chunk_size = chunk_size
+    chunk_size = chunk_size,
+    unit_metadata = partition$analysis_units$metadata
   )
   partition$settings$file_backed <- TRUE
   partition$settings$chunk_size <- .filespec_bounded_chunk_size(

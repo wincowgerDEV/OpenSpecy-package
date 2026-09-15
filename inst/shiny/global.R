@@ -100,7 +100,7 @@ app_guidance_registry <- list(
       "top_n_input", "top_n_per_organization", "filter_lib", "lib_org"
     ),
     body = c(
-      "Spectrum Type limits candidate references when the measurement type is known; All searches FTIR, Raman, and NIR. Library Type trades reference detail against runtime. Top N per organization retains that many candidates from every selected organization; turning it off applies Top N across the full library.",
+      "Spectrum Type limits candidate references when the measurement type is known; All searches FTIR, Raman, and NIR. Library Type trades reference detail against runtime. Top N limits retained model probabilities too; for spectral libraries, Top N per organization retains that many candidates from every selected organization and turning it off applies Top N globally.",
       "Derivative requires absolute first-derivative preprocessing. No Baseline requires baseline correction and no active derivative. A mismatch can make scores scientifically misleading, so Run reports a nonblocking warning with the corrective controls.",
       "Turning Identification off skips library/model loading, matching, Top Matches, and material-dependent spatial grouping. Filter Library is also a no-op while its owner switch is off."
     )
@@ -151,7 +151,8 @@ app_tab_switch_ids <- function() {
     ),
     advanced = c(
       "threshold_decision", "cor_threshold_decision", "spatial_decision",
-      "xy_grid", "collapse_decision"
+      "xy_grid", "collapse_decision", "show_peak_positions",
+      "simple_metadata"
     )
   )
 }
@@ -502,7 +503,8 @@ app_threshold_rejection_mask <- function(values, enabled, minimum,
 # Name/ID/Value, Signal/Noise), matching the same contract.
 app_ordinary_heatmap_data <- function(metadata, values, categorical,
                                       legend_title, rejected = NULL,
-                                      rejection_reason = NULL) {
+                                      rejection_reason = NULL,
+                                      axis_unit = "pixel") {
   rejected <- if(is.null(rejected)) rep(FALSE, length(values)) else {
     out <- as.logical(rejected)
     if(length(out) != length(values)) {
@@ -541,12 +543,12 @@ app_ordinary_heatmap_data <- function(metadata, values, categorical,
     list(type = "heatmap_categorical", x = grid$x, y = grid$y, z = grid$z,
          levels = levels, legend_title = legend_title,
          palette = app_category_palette(levels), rejected = rejected_grid,
-         rejection_reason = reason_grid)
+         rejection_reason = reason_grid, axis_unit = axis_unit)
   } else {
     grid <- OpenSpecy:::.particle_map_grid(metadata, values, 1, c(0, 0))
     list(type = "heatmap", x = grid$x, y = grid$y, z = grid$z,
          legend_title = legend_title, rejected = rejected_grid,
-         rejection_reason = reason_grid)
+         rejection_reason = reason_grid, axis_unit = axis_unit)
   }
 }
 
@@ -615,36 +617,183 @@ app_rejected_spectrum <- function(wavenumber) {
   )
 }
 
-app_particle_summary_table <- function(object) {
-  md <- data.table::as.data.table(object$metadata)
-  if(!nrow(md)) return(data.table::data.table())
-  material <- if("material_class" %in% names(md)) {
-    as.character(md$material_class)
-  } else rep("unidentified", nrow(md))
-  material[is.na(material) | !nzchar(material)] <- "unknown"
-  area <- if("area" %in% names(md)) as.numeric(md$area) else rep(1, nrow(md))
-  data.table::data.table(material_class = material, area = area)[, .(
-    particle_count = .N,
-    total_area_pixels = sum(area, na.rm = TRUE),
-    mean_area_pixels = mean(area, na.rm = TRUE),
-    median_area_pixels = stats::median(area, na.rm = TRUE)
-  ), by = material_class][order(-particle_count, material_class)]
+app_standardize_material_class <- function(x) {
+  values <- as.character(x)
+  sub("^(ftir|raman|nir)[_-]+", "", values, ignore.case = TRUE)
 }
 
-app_particle_size_plot <- function(object) {
-  md <- data.table::as.data.table(object$metadata)
-  area <- if("area" %in% names(md)) as.numeric(md$area) else numeric()
+app_pixel_calibration <- function(pixel_size = 1, pixel_unit = "pixel") {
+  size <- suppressWarnings(as.numeric(pixel_size))
+  if(length(size) != 1L || is.na(size) || !is.finite(size) || size <= 0) {
+    stop("Pixel edge length must be one positive finite number.", call. = FALSE)
+  }
+  unit <- trimws(as.character(pixel_unit)[1L])
+  if(is.na(unit) || !nzchar(unit)) unit <- "pixel"
+  suffix_unit <- gsub("[µμ]", "u", unit)
+  suffix <- tolower(gsub("[^A-Za-z0-9]+", "_", suffix_unit))
+  suffix <- gsub("^_+|_+$", "", suffix)
+  if(!nzchar(suffix)) suffix <- "pixel"
+  list(
+    size = size, unit = unit, length_suffix = suffix,
+    area_suffix = paste0(suffix, "2"),
+    volume_suffix = paste0(suffix, "3")
+  )
+}
+
+app_calibrate_spatial_metadata <- function(metadata, pixel_size = 1,
+                                           pixel_unit = "pixel") {
+  calibration <- app_pixel_calibration(pixel_size, pixel_unit)
+  result <- data.table::copy(data.table::as.data.table(metadata))
+  for(column in intersect(c("x", "y"), names(result))) {
+    result[[column]] <- as.numeric(result[[column]]) * calibration$size
+  }
+  attr(result, "openspecy_spatial_unit") <- calibration$unit
+  result
+}
+
+app_particle_metadata_units <- function(metadata, pixel_size = 1,
+                                        pixel_unit = "pixel") {
+  calibration <- app_pixel_calibration(pixel_size, pixel_unit)
+  result <- data.table::copy(data.table::as.data.table(metadata))
+  linear <- intersect(
+    c("x", "y", "centroid_x", "centroid_y", "first_x", "first_y",
+      "perimeter", "feret_min", "feret_max"),
+    names(result)
+  )
+  area <- intersect(c("area", "convex_hull_area"), names(result))
+  for(column in linear) {
+    result[[column]] <- as.numeric(result[[column]]) * calibration$size
+  }
+  for(column in area) {
+    result[[column]] <- as.numeric(result[[column]]) * calibration$size^2
+  }
+  if("area" %in% names(result)) {
+    volume_name <- paste0("volume_", calibration$volume_suffix)
+    result[[volume_name]] <- sqrt(pmax(result$area, 0))^3
+  }
+  if(length(linear)) {
+    data.table::setnames(
+      result, linear, paste0(linear, "_", calibration$length_suffix)
+    )
+  }
+  if(length(area)) {
+    data.table::setnames(
+      result, area, paste0(area, "_", calibration$area_suffix)
+    )
+  }
+  result
+}
+
+app_selection_metadata_display <- function(metadata, simple = TRUE,
+                                           particle = FALSE,
+                                           pixel_size = 1,
+                                           pixel_unit = "pixel") {
+  calibration <- app_pixel_calibration(pixel_size, pixel_unit)
+  result <- app_particle_metadata_units(metadata, pixel_size, pixel_unit)
+  if("material_class" %in% names(result)) {
+    result$material_class <- app_standardize_material_class(
+      result$material_class
+    )
+  }
+  if(!isTRUE(simple)) return(result)
+
+  particle_columns <- if(isTRUE(particle)) c(
+    paste0("area_", calibration$area_suffix),
+    paste0("perimeter_", calibration$length_suffix),
+    paste0("feret_min_", calibration$length_suffix),
+    paste0("feret_max_", calibration$length_suffix),
+    paste0("convex_hull_area_", calibration$area_suffix),
+    paste0("volume_", calibration$volume_suffix),
+    paste0("first_x_", calibration$length_suffix),
+    paste0("first_y_", calibration$length_suffix)
+  ) else character()
+  keep <- intersect(
+    c("material_class", "match_val", "signal_to_noise", particle_columns,
+      "file_name"),
+    names(result)
+  )
+  result <- result[, keep, with = FALSE]
+  friendly <- c(
+    material_class = "Material Class",
+    match_val = "Match Value",
+    signal_to_noise = "Signal to Noise",
+    file_name = "File Name"
+  )
+  particle_friendly <- c(
+    paste0("Area (", calibration$unit, "^2)"),
+    paste0("Perimeter (", calibration$unit, ")"),
+    paste0("Feret Minimum (", calibration$unit, ")"),
+    paste0("Feret Maximum (", calibration$unit, ")"),
+    paste0("Convex Hull Area (", calibration$unit, "^2)"),
+    paste0("Estimated Volume (", calibration$unit, "^3)"),
+    paste0("First X (", calibration$unit, ")"),
+    paste0("First Y (", calibration$unit, ")")
+  )
+  names(particle_friendly) <- particle_columns
+  labels <- c(friendly, particle_friendly)
+  data.table::setnames(result, keep, unname(labels[keep]))
+  result
+}
+
+app_particle_summary_table <- function(object, pixel_size = 1,
+                                       pixel_unit = "pixel",
+                                       material = NULL) {
+  calibration <- app_pixel_calibration(pixel_size, pixel_unit)
+  md <- app_particle_metadata_units(
+    object$metadata, pixel_size = pixel_size, pixel_unit = pixel_unit
+  )
+  if(!nrow(md)) return(data.table::data.table())
+  material <- if(!is.null(material)) {
+    if(length(material) != nrow(md)) {
+      stop("Particle summary material classes do not align with particles.",
+           call. = FALSE)
+    }
+    app_standardize_material_class(material)
+  } else if("material_class" %in% names(md)) {
+    app_standardize_material_class(md$material_class)
+  } else rep("unidentified", nrow(md))
+  material[is.na(material) | !nzchar(material)] <- "unknown"
+  area_column <- paste0("area_", calibration$area_suffix)
+  area <- if(area_column %in% names(md)) {
+    as.numeric(md[[area_column]])
+  } else rep(1, nrow(md))
+  result <- data.table::data.table(material_class = material, area = area)[, .(
+    particle_count = .N,
+    total_area = sum(area, na.rm = TRUE),
+    mean_area = mean(area, na.rm = TRUE),
+    median_area = stats::median(area, na.rm = TRUE)
+  ), by = material_class][order(-particle_count, material_class)]
+  data.table::setnames(
+    result, c("total_area", "mean_area", "median_area"),
+    paste0(c("total_area_", "mean_area_", "median_area_"),
+           calibration$area_suffix)
+  )
+  result
+}
+
+app_particle_size_plot <- function(object, pixel_size = 1,
+                                   pixel_unit = "pixel") {
+  calibration <- app_pixel_calibration(pixel_size, pixel_unit)
+  md <- app_particle_metadata_units(
+    object$metadata, pixel_size = pixel_size, pixel_unit = pixel_unit
+  )
+  area_column <- paste0("area_", calibration$area_suffix)
+  area <- if(area_column %in% names(md)) as.numeric(md[[area_column]]) else
+    numeric()
   ggplot2::ggplot(data.frame(size = sqrt(area)), ggplot2::aes(x = size)) +
     ggplot2::geom_histogram(
       bins = 30L, fill = app_plot_palette$primary,
       color = app_plot_palette$panel
     ) +
     theme_black_minimal(base_size = 15) +
-    ggplot2::labs(x = "Nominal Particle Size (sqrt(area))", y = "Count")
+    ggplot2::labs(
+      x = paste0("Nominal Particle Size (", calibration$unit, ")"),
+      y = "Count"
+    )
 }
 
 app_material_summary_plot <- function(material, palette = NULL) {
-  values <- as.character(material)
+  values <- app_standardize_material_class(material)
   values[is.na(values) | !nzchar(values)] <- "unknown"
   if(is.null(palette)) palette <- app_category_palette(values)
   missing_levels <- setdiff(unique(values), names(palette))
@@ -720,8 +869,12 @@ app_heatmap_ggplot <- function(data) {
       data = grid[rejected, , drop = FALSE], fill = "black"
     )
   }
+  axis_unit <- if(isTruthy(data$axis_unit)) data$axis_unit else "pixel"
   plot <- plot + ggplot2::coord_equal() + theme_black_minimal(base_size = 13) +
-    ggplot2::labs(x = "X (um)", y = "Y (um)", fill = data$legend_title)
+    ggplot2::labs(
+      x = paste0("X (", axis_unit, ")"),
+      y = paste0("Y (", axis_unit, ")"), fill = data$legend_title
+    )
   # Particle Unit and Match ID are per-particle identifiers -- essentially
   # as many categories as there are particles -- so a legend is never
   # useful for them, unlike Material Class's small fixed vocabulary.
@@ -1002,7 +1155,10 @@ app_selected_model_explanation <- function(predictions, library,
   } else {
     as.character(model$model_type)[1L]
   }
-  class_column <- intersect(c("material_class", "name"), names(selected))
+  class_column <- intersect(
+    c(".model_class_key", "model_class", "material_class", "name"),
+    names(selected)
+  )
   if(!identical(model_type, "logistic_regression") || !length(class_column)) {
     return(empty)
   }
@@ -1264,6 +1420,8 @@ app_user_metadata_input_ids <- c(
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
   "xy_grid", "collapse_decision", "collapse_type", "particle_id_strategy",
   "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
+  "pixel_size", "pixel_unit", "simple_metadata", "show_peak_positions",
+  "peak_count",
   # Quantification builder
   "quant_ratio_name", "quant_ratio_type",
   "quant_numerator_area_min", "quant_numerator_area_max",
@@ -1272,6 +1430,13 @@ app_user_metadata_input_ids <- c(
   "quant_measurement_name", "quant_measurement_type",
   "quant_measurement_area_min", "quant_measurement_area_max",
   "quant_measurement_wavenumber"
+)
+
+# These controls change only presentation/export formatting and must remain
+# live without marking an otherwise completed scientific analysis stale.
+app_live_display_input_ids <- c(
+  "pixel_size", "pixel_unit", "simple_metadata", "show_peak_positions",
+  "peak_count"
 )
 
 app_saturation_value <- function(mode = "auto", ceiling = NULL) {
@@ -2993,6 +3158,7 @@ app_indexed_colorscale <- function(colors) {
 app_heatmap_hover_text <- function(data, legend_title, levels = NULL) {
   xs <- data$x
   ys <- data$y
+  axis_unit <- if(isTruthy(data$axis_unit)) data$axis_unit else "pixel"
   z_t <- t(data$z)
   z_label <- if (!is.null(levels)) {
     ifelse(is.na(z_t), NA_character_, levels[z_t])
@@ -3003,7 +3169,8 @@ app_heatmap_hover_text <- function(data, legend_title, levels = NULL) {
     is.na(z_label), "no data", paste0(legend_title, ": ", z_label)
   )
   matrix(
-    paste0("x: ", rep(xs, each = length(ys)), "<br>y: ",
+    paste0("x (", axis_unit, "): ", rep(xs, each = length(ys)),
+           "<br>y (", axis_unit, "): ",
            rep(ys, times = length(xs)), "<br>", value_line),
     nrow = length(ys), ncol = length(xs)
   )
@@ -3110,6 +3277,7 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
   ))
 
   legend_layout <- app_heatmap_legend_layout(legend_title)
+  axis_unit <- if(isTruthy(data$axis_unit)) data$axis_unit else "pixel"
 
   select_x <- if (!is.null(select) && is.finite(select$x)) select$x else NA
   select_y <- if (!is.null(select) && is.finite(select$y)) select$y else NA
@@ -3137,8 +3305,9 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       hoverinfo = "skip", showlegend = FALSE, name = "Selected"
     ) |>
     plotly::layout(
-      xaxis = list(title = "X (um)"),
-      yaxis = list(title = "Y (um)", scaleanchor = "x", scaleratio = 1),
+      xaxis = list(title = paste0("X (", axis_unit, ")")),
+      yaxis = list(title = paste0("Y (", axis_unit, ")"),
+                   scaleanchor = "x", scaleratio = 1),
       showlegend = FALSE, margin = legend_layout$margin
     ) |>
     app_style_plotly()
@@ -3290,6 +3459,7 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
     )
     if(!is.null(weights) && nrow(weights)) {
       has_weight_overlay <- TRUE
+      display_model_class <- app_standardize_material_class(model_class)
       limit <- max(abs(weights$weight), na.rm = TRUE)
       if(!is.finite(limit) || limit == 0) limit <- 1
       plot <- plotly::add_trace(
@@ -3309,7 +3479,7 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
         ),
         hovertemplate = paste0(
           "%{x:.1f} cm<sup>-1</sup><br>weight %{z:.4g}<extra>",
-          model_class, "</extra>"
+          display_model_class, "</extra>"
         ),
         inherit = FALSE
       )
@@ -3331,17 +3501,9 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
     app_plot_palette$reference, 2.2, "dot"
   )
   if(!is.null(peaks) && nrow(peaks)) {
-    peak_order <- order(peaks$wavenumber, method = "radix")
-    label_position <- rep(c("top center", "bottom center"),
-                          length.out = nrow(peaks))
-    label_position[peak_order] <- rep(
-      c("top center", "bottom center"), length.out = nrow(peaks)
-    )
     plot <- plotly::add_trace(
       plot, data = peaks, x = ~wavenumber, y = ~intensity,
-      type = "scatter", mode = "markers+text", name = "Peak positions",
-      text = ~label, textposition = label_position,
-      textfont = list(color = app_plot_palette$text, size = 11),
+      type = "scatter", mode = "markers", name = "Peak positions",
       marker = list(color = app_plot_palette$reference, size = 8,
                     line = list(color = app_plot_palette$panel, width = 1)),
       hovertemplate = paste0(

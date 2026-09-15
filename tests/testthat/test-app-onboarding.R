@@ -197,6 +197,8 @@ test_that("the real server exposes metadata and rank 2 on its first Run", {
       collapse_decision = FALSE, collapse_type = "Mean",
       particle_id_strategy = "collapse", particle_pca_components = 10,
       particle_cluster_k = 10, particle_area_threshold = 1,
+      pixel_size = 1, pixel_unit = "pixel", simple_metadata = TRUE,
+      show_peak_positions = TRUE, peak_count = 7,
       quant_ratio_type = "area", quant_ratio_name = "",
       quant_numerator_area_min = 1650, quant_numerator_area_max = 1850,
       quant_denominator_area_min = 1420, quant_denominator_area_max = 1500,
