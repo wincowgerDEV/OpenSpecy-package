@@ -119,7 +119,7 @@ test_that("compact Top Matches obeys requested and default Top N", {
     match_threshold = 0.5, top_n = 1, simple = TRUE
   )
   expect_identical(names(simple), c(
-    "Material Class", "Match Value", "Spectrum Identity", "Organization",
+    "Material Class", "Correlation", "Spectrum Identity", "Organization",
     "Signal to Noise", "File Name"
   ))
   expect_false(any(grepl(
@@ -547,10 +547,11 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
   )
   simple <- env$app_selection_metadata_display(
     metadata, simple = TRUE, particle = TRUE,
-    pixel_size = 2, pixel_unit = "um"
+    pixel_size = 2, pixel_unit = "um",
+    match_label = "Probability", signal_label = "Signal Times Noise"
   )
   expect_identical(names(simple), c(
-    "Material Class", "Match Value", "Signal to Noise", "Area (um^2)",
+    "Material Class", "Probability", "Signal Times Noise", "Area (um^2)",
     "Perimeter (um)", "Feret Minimum (um)", "Feret Maximum (um)",
     "Convex Hull Area (um^2)", "Estimated Volume (um^3)",
     "First X (um)", "First Y (um)", "File Name"
@@ -559,6 +560,11 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
   expect_identical(env$app_standardize_material_class(
     c("FTIR_polyethylene", "raman-polystyrene", "nir_other", "unknown")
   ), c("polyethylene", "polystyrene", "other", "unknown"))
+  expect_identical(env$app_match_value_label(FALSE), "Correlation")
+  expect_identical(env$app_match_value_label(TRUE), "Probability")
+  expect_identical(
+    env$app_signal_metric_label("sig_times_noise"), "Signal Times Noise"
+  )
 
   particles <- as_OpenSpecy(
     1:3, spectra = matrix(1:6, nrow = 3),
@@ -607,6 +613,19 @@ test_that("identity pixel mappings preserve compact Specs source IDs", {
   expect_error(
     env$app_identity_pixel_mapping(compact, TRUE),
     "eligibility must align"
+  )
+})
+
+test_that("file-backed selection starts at the first retained pixel safely", {
+  env <- .source_in_memory_app_helpers()
+  mapping <- data.table::data.table(
+    pixel_index = 1:4, kept = c(FALSE, FALSE, TRUE, TRUE)
+  )
+  expect_identical(env$app_first_retained_pixel(mapping), 3L)
+  expect_true(is.na(env$app_first_retained_pixel(mapping[kept == FALSE])))
+  expect_error(
+    env$app_first_retained_pixel(mapping[, .(pixel_index)]),
+    "missing retained-selection columns"
   )
 })
 

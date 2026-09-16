@@ -579,11 +579,16 @@ test("settings tabs expand the card and sustained actions start the overlay clie
     });
     await expect(page.locator(`#${id}`)).toBeChecked();
   }
+  await page.locator("#top_n_per_organization").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await expect(page.locator("#top_n_per_organization")).toBeChecked();
   const allOff = page.locator("button#identification_all_toggle");
   await expect(allOff).toHaveText(/Turn All Off/, { timeout: 60000 });
   await allOff.click();
   await expect(page.locator("#identification_active")).not.toBeChecked();
   await expect(page.locator("#filter_lib")).not.toBeChecked();
+  await expect(page.locator("#top_n_per_organization")).toBeChecked();
   await expect(allOff).toHaveText(/Turn All Off/);
   await expect(page.getByRole("button", { name: /Turn All On/ })).toHaveCount(0);
   await toggleCard(settingsCard);
@@ -792,7 +797,7 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   const rows = topMatches.content.split(/\r?\n/).filter(Boolean);
   expect(rows).toHaveLength(209);
   expect(rows[0]).toBe(
-    "Material Class,Match Value,Spectrum Identity,Organization,Signal to Noise,File Name"
+    "Material Class,Correlation,Spectrum Identity,Organization,Signal Over Noise,File Name"
   );
 
   await page.locator("#download_selection").evaluate((select) => {
@@ -876,8 +881,8 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   );
   await expect(metadataTable).toBeVisible({ timeout: 60000 });
   await expect(metadataTable.locator("thead")).toContainText("Material Class");
-  await expect(metadataTable.locator("thead")).toContainText("Match Value");
-  await expect(metadataTable.locator("thead")).toContainText("Signal to Noise");
+  await expect(metadataTable.locator("thead")).toContainText("Correlation");
+  await expect(metadataTable.locator("thead")).toContainText("Signal Over Noise");
   await expect(metadataTable.locator("thead")).toContainText("File Name");
   await expect(metadataTable.locator("thead")).not.toContainText("col_id");
   // This journey verifies exact source-row selection, so opt into the live
@@ -1080,7 +1085,7 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   const particleHeader = particleDetails.stdout.split(/\r?\n/, 1)[0]
     .split(",");
   for (const field of [
-    "Material Class", "Match Value", "Signal to Noise", "Area (um^2)",
+    "Material Class", "Correlation", "Signal Over Noise", "Area (um^2)",
     "Perimeter (um)", "Feret Minimum (um)", "Feret Maximum (um)",
     "Convex Hull Area (um^2)", "Estimated Volume (um^3)",
     "First X (um)", "First Y (um)", "File Name",
@@ -1934,7 +1939,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
   const topMatchesText = topMatchesDownload.content.toString("utf8");
   const topMatchLines = topMatchesText.split(/\r?\n/).filter(Boolean);
   expect(topMatchLines[0]).toBe(
-    "Material Class,Match Value,Spectrum Identity,Organization,Signal to Noise,File Name"
+    "Material Class,Correlation,Spectrum Identity,Organization,Signal Over Noise,File Name"
   );
   expect(topMatchLines[0]).not.toMatch(/col_id|quantification|area|perimeter|feret|first_x|first_y/i);
   expect(topMatchLines.length).toBe(7);

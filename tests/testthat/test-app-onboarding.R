@@ -37,8 +37,12 @@ test_that("tab-wide actions have an all-off-only model", {
   ids <- env$app_tab_switch_ids()
 
   expect_named(ids, c("preprocessing", "identification", "advanced"))
-  expect_true(all(c(
+  expect_false(any(c(
     "derivative_abs", "refit", "range_automate", "co2_automate"
+  ) %in% ids$preprocessing))
+  expect_false("top_n_per_organization" %in% ids$identification)
+  expect_true(all(c(
+    "make_rel_decision", "smooth_decision", "baseline_decision"
   ) %in% ids$preprocessing))
   for(tab in names(ids)) {
     values <- env$app_tab_all_off_values(tab)
@@ -226,7 +230,7 @@ test_that("the real server exposes metadata and rank 2 on its first Run", {
     session$setInputs(event_rows_selected = 2L)
     expect_identical(data_click$table, 2L)
     expect_identical(
-      colnames(match_selected()$spectra), top_matches()$sample_name[[2L]]
+      colnames(match_selected()$spectra), matches_to_single()$sample_name[[2L]]
     )
     expect_identical(input$run_analysis, 1L)
 
@@ -239,6 +243,96 @@ test_that("the real server exposes metadata and rank 2 on its first Run", {
     session$setInputs(event_rows_selected = 2L)
     expect_identical(data_click$table, 2L)
     expect_identical(input$run_analysis, 2L)
+  }))
+})
+
+test_that("file-backed threshold inspection keeps the map bounded and selectable", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+  server <- sys.source(file.path(app_path, "server.R"), envir = env)$value
+  source_dir <- tempfile("openspecy-file-backed-map-")
+  dir.create(source_dir)
+  utils::unzip(read_extdata("CA_tiny_map.zip"), exdir = source_dir)
+  paths <- list.files(source_dir, full.names = TRUE)
+  paths <- paths[grepl("\\.(dat|hdr)$", paths, ignore.case = TRUE)]
+
+  suppressWarnings(shiny::testServer(server, {
+    session$setInputs(
+      spike_decision = FALSE, spike_direction = "both",
+      spike_residual_threshold = 8, spike_residual_window = 5,
+      saturation_decision = FALSE, saturation_mode = "auto",
+      saturation_ceiling = 65535, saturation_max_loss = 0.7,
+      make_rel_decision = FALSE, smooth_decision = FALSE, smoother = 3,
+      derivative_order = 1, smoother_window = 90, derivative_abs = TRUE,
+      conform_decision = FALSE, conform_selection = "mean_up", conform_res = 6,
+      intensity_decision = FALSE, intensity_corr = "none",
+      baseline_decision = FALSE, baseline_method = "polynomial", baseline = 8,
+      refit = FALSE, baseline_lambda = 4, baseline_hwi = 50, iterations = 10,
+      range_decision = FALSE, range_automate = TRUE,
+      range_artifact_ratio = 2, MinRange = 300, MaxRange = 2000,
+      co2_decision = FALSE, co2_automate = TRUE, co2_artifact_ratio = 2,
+      MinFlat = 2200, MaxFlat = 2420,
+      identification_active = FALSE, id_spec_type = "all",
+      id_strategy = "deriv", lib_type = "medoid", top_n_input = 1,
+      top_n_per_organization = TRUE, filter_lib = FALSE,
+      threshold_decision = TRUE, signal_basis = "raw_smoothed",
+      MinSNR = 0.01, MaxSNR = 1e12,
+      signal_selection = "sig_times_noise",
+      cor_threshold_decision = FALSE, MinCor = 0.7,
+      spatial_decision = FALSE, sigma = 1, xy_grid = FALSE,
+      collapse_decision = FALSE, collapse_type = "Mean",
+      particle_id_strategy = "collapse", particle_pca_components = 10,
+      particle_cluster_k = 10, particle_area_threshold = 1,
+      pixel_size = 1, pixel_unit = "pixel", simple_metadata = TRUE,
+      show_peak_positions = TRUE, peak_count = 7,
+      quant_ratio_type = "area", quant_ratio_name = "",
+      quant_numerator_area_min = 1650, quant_numerator_area_max = 1850,
+      quant_denominator_area_min = 1420, quant_denominator_area_max = 1500,
+      quant_measurement_type = "area", quant_measurement_name = "",
+      quant_measurement_area_min = 1650, quant_measurement_area_max = 1850,
+      quant_measurement_wavenumber = 1715
+    )
+    info <- data.frame(
+      name = basename(paths), size = unname(file.info(paths)$size), type = "",
+      datapath = paths, stringsAsFactors = FALSE
+    )
+    stage_selected_files(info, mounted = FALSE)
+    session$setInputs(run_analysis = 1L)
+
+    state <- canonical_state()
+    mapping <- data.table::as.data.table(state$pixel_to_unit)
+    expect_s3_class(inspection_source_gate(), "FileSpecs")
+    expect_true(state$settings$file_backed_selection)
+    expect_identical(ncol(state$object$spectra), 1L)
+    expect_identical(nrow(mapping), 208L)
+    expect_identical(nrow(pixel_projection()$metadata), 208L)
+    expect_identical(nrow(meta_cache()), 208L)
+    expect_identical(data_click$pixel, env$app_first_retained_pixel(mapping))
+    expect_identical(selected_unit_index(), 1L)
+    expect_identical(names(match_metadata()), c("Signal Times Noise", "File Name"))
+
+    rejected <- mapping[kept == FALSE, pixel_index][[1L]]
+    data_click$pixel <- rejected
+    data_click$plot <- NA_integer_
+    session$flushReact()
+    expect_true(is.na(selected_unit_index()))
+    expect_identical(
+      attr(active_spectrum_view(), "openspecy_selection_status"),
+      "rejected_pixel"
+    )
+    expect_identical(specs_source_count(inspection_source_gate()), 208L)
   }))
 })
 
@@ -263,7 +357,9 @@ test_that("startup and heatmap event guards are explicit in app sources", {
   selected_block <- paste(
     server_lines[selected_start:(selected_end - 1L)], collapse = "\n"
   )
-  expect_match(selected_block, "object <- canonical_state()$object", fixed = TRUE)
+  expect_match(selected_block, "state <- canonical_state()", fixed = TRUE)
+  expect_match(selected_block, "object <- state$object", fixed = TRUE)
+  expect_match(selected_block, "file_backed_selection", fixed = TRUE)
   expect_false(grepl("ncol(DataR()$spectra)", selected_block, fixed = TRUE))
   expect_match(server, "selection_ready_run", fixed = TRUE)
   expect_match(server, "Every successful Run owns a fresh rank-1", fixed = TRUE)

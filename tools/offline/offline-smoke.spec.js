@@ -173,8 +173,9 @@ test("extracted launcher serves the landing page and runs the full app flow with
     id_spec_type: "raman",
     id_strategy: "deriv",
     lib_type: "medoid",
-    top_n_input: 10,
   });
+  await app.locator("#top_n_input").fill("10");
+  await app.locator("#top_n_input").press("Tab");
 
   expect(fs.existsSync(uploadPath)).toBe(true);
   await mountedInput.setInputFiles(path.resolve(uploadPath));

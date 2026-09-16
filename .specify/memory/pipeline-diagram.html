@@ -550,14 +550,14 @@
 <div class="node function" style="left:250px;top:1590px" tabindex="0">
   Ordinary Process
   <div class="sub">process_spec() + corrections &middot; foreground values once</div>
-  <div class="tip">The !collapse branch applies the existing correction and processing sequence. For Plan 018 compact maps, deterministic columnwise operations run once per stored foreground value while source mappings and compact metadata remain aligned; range changes update <code>variables</code>. Coordinate-dependent exceptions use their named compact method and update descriptors. This remains the only stage that changes spectral values.
-  <span class="loc">Plan 018 &middot; server.R: ordinary processing &middot; R/process_spec.R &middot; R/Specs_methods.R</span></div>
+  <div class="tip">The !collapse branch applies the existing correction and processing sequence. Compact in-memory maps process retained stored values while keeping source mappings aligned. A <code>FileSpecs</code> map instead keeps its full S/N/pixel mapping descriptor-only and applies the Run-captured sequence to just the selected one-spectrum view; changing the heatmap selection performs another bounded indexed read, never whole-map decompression. This remains the only stage that changes spectral values.
+  <span class="loc">Plans 018/033 &middot; server.R: ordinary_process()/active_spectrum_view() &middot; R/{process_spec,Specs_methods}.R</span></div>
 </div>
 <div class="node function" style="left:250px;top:1760px" tabindex="0">
   Identity Pixel Mapping
   <div class="sub">identity_pixel_mapping()</div>
-  <div class="tip">With Collapse off, an ineligible pixel remains excluded from canonical units. Exact-mode rejection retains Plan 017's source-pixel inspection fallback. When Plan 018's committed <code>background</code> step ran, the source instead points deliberately to the protected zero sentinel and carries suppression reason/provenance; it is never presented as an unchanged measurement.
-  <span class="loc">Plan 018 &middot; server.R: identity_pixel_mapping() &middot; Specs source mapping</span></div>
+  <div class="tip">With Collapse off, an ineligible pixel remains excluded from canonical units. For <code>FileSpecs</code>, the identity map still contains every source coordinate and streamed S/N decision, while canonical state materializes only the first retained spectrum and later clicks use the source-pixel inspection lane. Exact-mode rejection remains selectable for inspection without being promoted to a retained unit.
+  <span class="loc">Plans 018/033 &middot; server.R: app_identity_pixel_mapping()/file_backed_selection &middot; Specs source mapping</span></div>
 </div>
 
 <!-- collapse-on: strategy -->
@@ -616,9 +616,9 @@
 
 <div class="node function" style="left:1050px;top:2440px" tabindex="0">
   Build canonical_state
-  <div class="sub">one Specs map or OpenSpecy unit object &middot; Run-gated</div>
-  <div class="tip">The single expensive-analysis owner bundles one canonical object, matches, pixel/unit mapping, partition, diagnostics, and the committed run-settings snapshot. Its companion <code>analysis_library</code> commits the exact medoid/full/model artifact used by that Run. Changing an identification control only marks Run pending; plots, metadata, summaries, and downloads continue reading the completed state until the next Run.
-  <span class="loc">Plan 018 &middot; server.R: canonical_state_gate()</span></div>
+  <div class="sub">Specs/OpenSpecy result or bounded FileSpecs selection &middot; Run-gated</div>
+  <div class="tip">The single expensive-analysis owner bundles a canonical result, full pixel/unit mapping, partition, diagnostics, and the committed run-settings snapshot. File-backed Collapse-off threshold assessment is explicit: state holds the full lightweight mapping plus one processed retained spectrum and a <code>file_backed_selection</code> marker; the immutable descriptor remains the inspection owner. Its companion <code>analysis_library</code> commits the exact artifact used by that Run.
+  <span class="loc">Plans 018/033 &middot; server.R: canonical_state_gate()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:2610px" tabindex="0">
@@ -664,7 +664,7 @@
 <div class="node function" style="left:1850px;top:2560px" tabindex="0">
   Active Spectrum Inspection
   <div class="sub">active_spectrum_view() &middot; indexed exact decompression</div>
-  <div class="tip">One aligned, one-column <code>OpenSpecy</code> object is the exact processed trace used by Spectrum Plot, live derivative-zero peak ranking, and Quality Findings. Peak work runs only for a retained selection; rejected inspection never receives peak markers. A rejected click takes that source pixel from the committed inspection source and applies the committed Run processing settings once. Selection changes are narrow and do not recompute the map or library.
+  <div class="tip">One aligned, one-column <code>OpenSpecy</code> object is the exact processed trace used by Spectrum Plot, live derivative-zero peak ranking, and Quality Findings. Peak work runs only for a retained selection; rejected inspection never receives peak markers. For file-backed Collapse-off runs, every retained or rejected click reads exactly that source spectrum and applies the committed Run processing settings; selection changes never recompute or materialize the full map.
   <strong>Plan 018 target:</strong> a compact map resolves the clicked source and calls indexed <code>decompress_spec()</code> without expanding unrelated data. Retained foreground reconstructs through its stacked transforms as applicable. Mapping 0 bypasses PCA centering and every fitted model; a suppressed source returns an exact zero line labeled “background-suppressed,” with metric, bounds, sigma, and reason.
   <span class="loc">Plan 018 &middot; server.R: active_spectrum_view(), DataR_plot() &middot; R/Specs.R: decompress_spec(index=)</span></div>
 </div>
@@ -702,9 +702,8 @@
 <div class="node output tip-left" style="left:2250px;top:1430px" tabindex="0">
   Sidebar Metadata Table
   <div class="depends">depends on: Batch Compact (off) or Collapse (on)</div>
-  <div class="tip">output$sidebar_metadata reads meta_cache(), from quantified_data() + canonical_signal_noise(); displayed signal-to-noise values use two significant figures while canonical values retain full precision. Its row structure changes drastically with Collapse: OFF &rarr; one row per uploaded spectrum/pixel, an identity that traces straight back to Read &amp; Combine (long dotted line to the top of the diagram) rather than any processing step; ON &rarr; one row per collapsed particle/cluster, an identity decided at Collapse/Particle ID Strategy instead.
-  <strong>Plan 018 target:</strong> compact maps materialize only the requested display columns/rows through indexed metadata accessors; the full spectral matrix is never expanded.
-  <span class="loc">Plan 018 &middot; server.R: sidebar metadata cache &middot; Specs metadata accessors</span></div>
+  <div class="tip">output$sidebar_metadata reads meta_cache(); displayed threshold values use the selected technique's name and two significant figures while canonical values retain full precision. Collapse OFF has one row per uploaded spectrum/pixel; file-backed maps build those rows from descriptor metadata plus the streamed S/N vector and serve table pages server-side. Collapse ON has one row per particle/cluster. No sidebar path expands a spectral matrix.
+  <span class="loc">Plans 018/033 &middot; server.R: sidebar metadata cache/renderDT &middot; Specs metadata accessors</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:1490px" tabindex="0">

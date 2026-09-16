@@ -143,11 +143,10 @@ app_tab_switch_ids <- function() {
     preprocessing = c(
       "make_rel_decision", "smooth_decision", "conform_decision",
       "intensity_decision", "baseline_decision", "range_decision",
-      "co2_decision", "spike_decision", "saturation_decision",
-      "derivative_abs", "refit", "range_automate", "co2_automate"
+      "co2_decision", "spike_decision", "saturation_decision"
     ),
     identification = c(
-      "identification_active", "top_n_per_organization", "filter_lib"
+      "identification_active", "filter_lib"
     ),
     advanced = c(
       "threshold_decision", "cor_threshold_decision", "spatial_decision",
@@ -256,6 +255,17 @@ app_identity_pixel_mapping <- function(object, eligible = NULL) {
     area = 1L, kept = eligible,
     rejection_reason = ifelse(eligible, NA_character_, "threshold")
   )
+}
+
+app_first_retained_pixel <- function(mapping) {
+  mapping <- data.table::as.data.table(mapping)
+  required <- c("pixel_index", "kept")
+  if(!all(required %in% names(mapping))) {
+    stop("Pixel mapping is missing retained-selection columns.", call. = FALSE)
+  }
+  pixels <- mapping[kept == TRUE & !is.na(pixel_index), pixel_index]
+  if(!length(pixels)) return(NA_integer_)
+  as.integer(pixels[[1L]])
 }
 
 app_selected_rank_index <- function(selected_row, row_count) {
@@ -722,11 +732,28 @@ app_particle_metadata_units <- function(metadata, pixel_size = 1,
   result
 }
 
+app_match_value_label <- function(model_library = FALSE) {
+  if(isTRUE(model_library)) "Probability" else "Correlation"
+}
+
+app_signal_metric_label <- function(metric) {
+  labels <- c(
+    run_sig_over_noise = "Signal Over Noise",
+    sig_times_noise = "Signal Times Noise",
+    log_tot_sig = "Total Signal"
+  )
+  metric <- as.character(metric)[1L]
+  if(is.na(metric) || !metric %in% names(labels)) return("Signal to Noise")
+  unname(labels[[metric]])
+}
+
 app_selection_metadata_display <- function(metadata, simple = TRUE,
                                            particle = FALSE,
                                            library = FALSE,
                                            pixel_size = 1,
-                                           pixel_unit = "pixel") {
+                                           pixel_unit = "pixel",
+                                           match_label = "Correlation",
+                                           signal_label = "Signal to Noise") {
   calibration <- app_pixel_calibration(pixel_size, pixel_unit)
   result <- app_particle_metadata_units(metadata, pixel_size, pixel_unit)
   if("material_class" %in% names(result)) {
@@ -758,10 +785,10 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
   result <- result[, keep, with = FALSE]
   friendly <- c(
     material_class = "Material Class",
-    match_val = "Match Value",
+    match_val = match_label,
     spectrum_identity = "Spectrum Identity",
     organization = "Organization",
-    signal_to_noise = "Signal to Noise",
+    signal_to_noise = signal_label,
     file_name = "File Name"
   )
   particle_friendly <- c(
@@ -953,8 +980,16 @@ app_write_ggplot_png <- function(plot, path, width = 8, height = 6) {
 }
 
 app_uploaded_metadata_cache <- function(x, signal_to_noise) {
-  spectrum_ids <- colnames(x$spectra)
-  metadata <- data.table::copy(data.table::as.data.table(x$metadata))
+  compact <- is_Specs(x)
+  spectrum_ids <- if(compact) {
+    as.character(specs_coordinates(x)$source_id)
+  } else colnames(x$spectra)
+  metadata <- if(compact) {
+    data.table::copy(data.table::as.data.table(specs_metadata(x)))
+  } else data.table::copy(data.table::as.data.table(x$metadata))
+  if(compact && !"col_id" %in% names(metadata)) {
+    metadata[, col_id := spectrum_ids]
+  }
   if(is.null(spectrum_ids) || anyNA(spectrum_ids) || anyDuplicated(spectrum_ids) ||
      !"col_id" %in% names(metadata)) {
     stop("Uploaded spectra and metadata require unique identifiers.",
@@ -1049,7 +1084,9 @@ app_uploaded_metadata_row <- function(metadata, spectrum_index) {
 app_uploaded_metadata_table <- function(metadata, selected = integer(),
                                         simple = TRUE, particle = FALSE,
                                         pixel_size = 1,
-                                        pixel_unit = "pixel") {
+                                        pixel_unit = "pixel",
+                                        match_label = "Correlation",
+                                        signal_label = "Signal to Noise") {
   large <- !isTRUE(simple) &&
     nrow(metadata) > app_uploaded_metadata_large_threshold
   caption <- if(isTRUE(simple)) {
@@ -1066,7 +1103,8 @@ app_uploaded_metadata_table <- function(metadata, selected = integer(),
   display <- if(isTRUE(simple)) {
     app_selection_metadata_display(
       metadata, simple = TRUE, particle = particle,
-      pixel_size = pixel_size, pixel_unit = pixel_unit
+      pixel_size = pixel_size, pixel_unit = pixel_unit,
+      match_label = match_label, signal_label = signal_label
     )
   } else {
     app_uploaded_metadata_display(metadata, large = large)
@@ -1157,7 +1195,10 @@ app_map_color_choices <- function(identification_active, model_library,
 # erroring on a literal select() of library-metadata columns that don't
 # exist there.
 app_top_matches_table <- function(matches_to_single_result, model_library,
-                                  selected_index, simple = TRUE) {
+                                  selected_index, simple = TRUE,
+                                  match_label = app_match_value_label(
+                                    model_library
+                                  )) {
   matches_to_single_result <- data.table::as.data.table(matches_to_single_result)
   result <- if(isTRUE(model_library)) {
     rows <- if("spectrum_index" %in% names(matches_to_single_result)) {
@@ -1181,10 +1222,10 @@ app_top_matches_table <- function(matches_to_single_result, model_library,
   result <- data.table::as.data.table(result)
   if(!isTRUE(simple)) return(result)
   result <- app_selection_metadata_display(
-    result, simple = TRUE, library = TRUE
+    result, simple = TRUE, library = TRUE, match_label = match_label
   )
   columns <- intersect(
-    c("Match Value", "Material Class", "Spectrum Identity", "Organization"),
+    c(match_label, "Material Class", "Spectrum Identity", "Organization"),
     names(result)
   )
   result[, columns, with = FALSE]
@@ -1325,7 +1366,8 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
 app_top_matches_export_compact <- function(
     matches, library_metadata, spectrum_metadata, signal_to_noise,
     match_threshold, signal_threshold = c(-Inf, Inf), top_n = 1L,
-    top_n_by = NULL, simple = TRUE, quant_columns = character()) {
+    top_n_by = NULL, simple = TRUE, quant_columns = character(),
+    match_label = "Correlation", signal_label = "Signal to Noise") {
   matches <- data.table::copy(data.table::as.data.table(matches))
   required_matches <- c("object_id", "library_id", "match_val")
   if(!all(required_matches %in% names(matches)) || !nrow(matches)) {
@@ -1443,7 +1485,8 @@ app_top_matches_export_compact <- function(
   result <- app_without_particle_metadata(result)
   if(isTRUE(simple)) {
     result <- app_selection_metadata_display(
-      result, simple = TRUE, particle = FALSE, library = TRUE
+      result, simple = TRUE, particle = FALSE, library = TRUE,
+      match_label = match_label, signal_label = signal_label
     )
   }
   data.table::as.data.table(result)

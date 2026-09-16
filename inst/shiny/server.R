@@ -1603,6 +1603,8 @@ observeEvent(input$run_analysis, {
       correlation_active = particle_pipeline_enabled() &&
         isTRUE(input$cor_threshold_decision),
       min_snr = MinSNR(), max_snr = MaxSNR(), min_cor = MinCor(),
+      signal_metric = effective_signal_selection(),
+      file_backed_selection = FALSE,
       processing = current_processing_settings()
     )
     result <- tryCatch({
@@ -1646,10 +1648,39 @@ observeEvent(input$run_analysis, {
       }
 
       if(inherits(spatial, "FileSpecs")) {
+        signal_keep <- signal_eligible()
+        if(!any(signal_keep)) {
+          return(unavailable(
+            "No pixels pass the enabled signal/noise threshold."
+          ))
+        }
+        if(!collapse) {
+          if(run_settings$identification_active) {
+            return(unavailable(paste(
+              "File-backed spectrum-by-spectrum inspection cannot identify",
+              "the entire map. Turn off Identification or enable Collapse",
+              "Spectra to identify streamed particle means."
+            )))
+          }
+          run_settings$file_backed_selection <- TRUE
+          mapping <- app_identity_pixel_mapping(spatial, signal_keep)
+          selected <- which(signal_keep)[[1L]]
+          analysis_phase(
+            "Preparing file-backed spectrum inspection",
+            paste(
+              "Keeping the streamed signal/noise map selectable and reading",
+              "only the initial retained spectrum."
+            ),
+            34
+          )
+          processed <- ordinary_process(decompress_spec(spatial, index = selected))
+          return(list(
+            object = processed, matches = NULL, pixel_matches = NULL,
+            pixel_to_unit = mapping, partition = NULL,
+            error = NULL, diagnostic = NULL, settings = run_settings
+          ))
+        }
         unsupported <- character()
-        if(!collapse) unsupported <- c(
-          unsupported, "enable Collapse Spectra"
-        )
         if(!identical(strategy, "collapse")) unsupported <- c(
           unsupported, "use Connected Particle collapse"
         )
@@ -1667,12 +1698,6 @@ observeEvent(input$run_analysis, {
             "This file-backed map is protected from full-map materialization; ",
             paste(unique(unsupported), collapse = ", "), "."
           )))
-        }
-        signal_keep <- signal_eligible()
-        if(!any(signal_keep)) {
-          return(unavailable(
-            "No pixels pass the enabled signal/noise threshold."
-          ))
         }
         analysis_phase(
           "Collapsing retained particles",
@@ -2039,7 +2064,7 @@ observeEvent(input$run_analysis, {
     }
     mapping <- data.table::as.data.table(mapping)
     mapping[, signal_to_noise := as.numeric(pixel_values[pixel_index])]
-    by_unit <- mapping[kept & !is.na(unit_id), .(
+    by_unit <- mapping[kept == TRUE & !is.na(unit_id), .(
       signal_to_noise = mean(signal_to_noise, na.rm = TRUE)
     ), by = unit_id]
     values <- by_unit$signal_to_noise[match(ids, by_unit$unit_id)]
@@ -2078,8 +2103,16 @@ observeEvent(input$run_analysis, {
       # enter canonical_final()/DataR() here: its validation message is useful
       # to outputs, but an always-on selection observer turned that message
       # into a server warning during a quiet startup flush.
-      object <- canonical_state()$object
+      state <- canonical_state()
+      object <- state$object
       if(is.null(object) || is.null(object$spectra)) return(NA_integer_)
+      if(isTRUE(state$settings$file_backed_selection)) {
+        pixel <- suppressWarnings(as.integer(data_click$pixel))
+        mapping <- data.table::as.data.table(state$pixel_to_unit)
+        kept <- mapping$kept[match(pixel, mapping$pixel_index)]
+        if(length(kept) == 1L && isTRUE(kept)) return(1L)
+        return(NA_integer_)
+      }
       count <- ncol(object$spectra)
       if(length(value) != 1L || is.na(value) || value < 1L ||
          value > count) return(NA_integer_)
@@ -2087,6 +2120,35 @@ observeEvent(input$run_analysis, {
   })
 
   active_spectrum_view <- reactive({
+    state <- canonical_state()
+    if(isTRUE(state$settings$file_backed_selection)) {
+      source <- inspection_source_gate()
+      pixel <- suppressWarnings(as.integer(data_click$pixel))
+      source_count <- if(is_Specs(source)) specs_source_count(source) else 0L
+      validate(need(
+        !is.null(source) && length(pixel) == 1L && !is.na(pixel) &&
+          pixel >= 1L && pixel <= source_count,
+        "The selected source pixel is not available for inspection."
+      ))
+      viewed <- ordinary_process(
+        decompress_spec(source, index = pixel),
+        settings = state$settings$processing, view_only = TRUE
+      )
+      mapping <- data.table::as.data.table(state$pixel_to_unit)
+      retained <- mapping$kept[match(pixel, mapping$pixel_index)]
+      pixel_id <- specs_coordinates(source, pixel)$source_id[[1L]]
+      viewed$metadata$col_id <- pixel_id
+      if(length(retained) == 1L && isTRUE(retained)) {
+        colnames(viewed$spectra) <- pixel_id
+        viewed$metadata$selection <- "Retained file-backed spectrum"
+        attr(viewed, "openspecy_selection_status") <- "retained"
+      } else {
+        colnames(viewed$spectra) <- paste0("Rejected pixel: ", pixel_id)
+        viewed$metadata$selection <- "Rejected pixel inspection"
+        attr(viewed, "openspecy_selection_status") <- "rejected_pixel"
+      }
+      return(viewed)
+    }
     final <- DataR()
     selected <- selected_unit_index()
     if(!is.na(selected)) {
@@ -2367,13 +2429,25 @@ observeEvent(input$run_analysis, {
       success <- !is.null(state$object) && !is.null(object)
 
       if(success) {
-        selected <- app_initial_result_selection(object, state$pixel_to_unit)
-        data_click$plot <- selected$plot
-        data_click$pixel <- selected$pixel
-        data_click$table <- selected$table
-        meta_cache(app_uploaded_metadata_cache(
-          object, canonical_signal_noise()
-        ))
+        if(isTRUE(state$settings$file_backed_selection)) {
+          mapping <- data.table::as.data.table(state$pixel_to_unit)
+          selected_pixel <- app_first_retained_pixel(mapping)
+          req(!is.na(selected_pixel))
+          data_click$plot <- selected_pixel
+          data_click$pixel <- selected_pixel
+          data_click$table <- 1L
+          meta_cache(app_uploaded_metadata_cache(
+            inspection_source_gate(), snr_preview()
+          ))
+        } else {
+          selected <- app_initial_result_selection(object, state$pixel_to_unit)
+          data_click$plot <- selected$plot
+          data_click$pixel <- selected$pixel
+          data_click$table <- selected$table
+          meta_cache(app_uploaded_metadata_cache(
+            object, canonical_signal_noise()
+          ))
+        }
         selection_ready_run(current_run)
       }
 
@@ -2381,7 +2455,8 @@ observeEvent(input$run_analysis, {
   RawR_plot <- reactive({
       req(!is.null(preprocessed$data))
       uploaded <- data()
-      selected <- if(isTRUE(canonical_state()$settings$collapse)) {
+      selected <- if(isTRUE(canonical_state()$settings$collapse) ||
+                    isTRUE(canonical_state()$settings$file_backed_selection)) {
         data_click$pixel
       } else data_click$plot
       selected <- suppressWarnings(as.integer(selected))
@@ -2591,6 +2666,14 @@ observeEvent(input$run_analysis, {
       )
   })
 
+  simple_match_label <- reactive({
+    app_match_value_label(isTRUE(canonical_state()$settings$model_library))
+  })
+
+  simple_signal_label <- reactive({
+    app_signal_metric_label(canonical_state()$settings$signal_metric)
+  })
+
   #All matches table for the current selection
   top_matches <- reactive({
       req(!is.null(preprocessed$data))
@@ -2599,20 +2682,38 @@ observeEvent(input$run_analysis, {
       req(!is.na(selected_unit_index()))
       app_top_matches_table(
         matches_to_single(), isTRUE(settings$model_library),
-        selected_unit_index(), simple = isTRUE(input$simple_metadata)
+        selected_unit_index(), simple = isTRUE(input$simple_metadata),
+        match_label = simple_match_label()
       )
   })
 
 #Create the data table that goes below the plot which provides extra metadata.
 match_metadata <- reactive({
     req(!is.null(preprocessed$data))
+    settings <- canonical_state()$settings
+    if(isTRUE(settings$file_backed_selection)) {
+      viewed <- active_spectrum_view()
+      if(!identical(attr(viewed, "openspecy_selection_status"), "retained")) {
+        return(data.table::data.table(
+          Selection = "The selected pixel does not pass the signal threshold."
+        ))
+      }
+      pixel <- suppressWarnings(as.integer(data_click$pixel))
+      result <- data.table::copy(data.table::as.data.table(viewed$metadata))
+      values <- snr_preview()
+      result[, signal_to_noise := as.numeric(values[[pixel]])]
+      return(app_selection_metadata_display(
+        result, simple = isTRUE(input$simple_metadata), particle = FALSE,
+        match_label = simple_match_label(),
+        signal_label = simple_signal_label()
+      ))
+    }
     selected_index <- selected_unit_index()
     if(is.na(selected_index)) {
       return(data.table::data.table(
         Selection = "The selected pixel does not belong to a retained particle."
       ))
     }
-    settings <- canonical_state()$settings
     identification_active <- isTRUE(settings$identification_active)
     model_library <- isTRUE(settings$model_library)
     result <- if(!identification_active) {
@@ -2655,7 +2756,9 @@ match_metadata <- reactive({
       simple = isTRUE(input$simple_metadata),
       particle = isTRUE(settings$collapse),
       pixel_size = pixel_calibration()$size,
-      pixel_unit = pixel_calibration()$unit
+      pixel_unit = pixel_calibration()$unit,
+      match_label = simple_match_label(),
+      signal_label = simple_signal_label()
     )
 })
 
@@ -2729,9 +2832,11 @@ output$sidebar_metadata <- DT::renderDT({
       meta_cache(), selected = selected,
       simple = isTRUE(input$simple_metadata),
       particle = isTRUE(settings$collapse),
-      pixel_size = calibration$size, pixel_unit = calibration$unit
+      pixel_size = calibration$size, pixel_unit = calibration$unit,
+      match_label = simple_match_label(),
+      signal_label = simple_signal_label()
     )
-}, server = FALSE)
+}, server = TRUE)
 outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
 
   pixel_projection_gate <- run_gated_reactive(function() {
@@ -2776,6 +2881,10 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       match_id <- pixel_best$library_id[pixel_best_index]
       material <- match_material(match_id)
     } else if(is.null(state$object)) {
+      correlation <- rep(NA_real_, length(ids))
+      match_id <- rep(NA_character_, length(ids))
+      material <- rep(NA_character_, length(ids))
+    } else if(!isTRUE(state$settings$identification_active)) {
       correlation <- rep(NA_real_, length(ids))
       match_id <- rep(NA_character_, length(ids))
       material <- rep(NA_character_, length(ids))
@@ -3139,8 +3248,8 @@ output$progress_bars <- renderUI({
       return()
     }
     representative <- mapping[
-      unit_index == selected_plot & kept,
-      pixel_index[[1L]]
+      unit_index == selected_plot & kept == TRUE,
+      pixel_index
     ]
     if(length(representative)) data_click$pixel <- representative
   }, ignoreNULL = TRUE)
@@ -3358,8 +3467,18 @@ output$progress_bars <- renderUI({
                             overwrite = TRUE)
         if(!isTRUE(copied)) stop("Unable to copy the bundled Test Map.")
       } else if(identical(selection, "Processed Spectra")) {
-        your_spec <- quantified_data()
-        your_spec$metadata$signal_to_noise <- canonical_signal_noise()
+        if(isTRUE(canonical_state()$settings$file_backed_selection)) {
+          your_spec <- active_spectrum_view()
+          your_spec <- app_attach_quantification(
+            your_spec, active_ratio_definitions(),
+            active_measurement_definitions()
+          )
+          pixel <- suppressWarnings(as.integer(data_click$pixel))
+          your_spec$metadata$signal_to_noise <- snr_preview()[[pixel]]
+        } else {
+          your_spec <- quantified_data()
+          your_spec$metadata$signal_to_noise <- canonical_signal_noise()
+        }
         write_spec(your_spec, file)
       } else if(identical(selection, "Compact Map (RDS)")) {
         req(is_Specs(preprocessed$data))
@@ -3386,7 +3505,9 @@ output$progress_bars <- renderUI({
               canonical_state()$settings$top_n_per_organization
             )) "organization" else NULL,
             simple = isTRUE(input$simple_metadata),
-            quant_columns = quant_columns
+            quant_columns = quant_columns,
+            match_label = simple_match_label(),
+            signal_label = simple_signal_label()
           )
           fwrite(all_matches, file)
         } else {
@@ -3420,7 +3541,9 @@ output$progress_bars <- renderUI({
           result <- app_without_particle_metadata(result)
           if(isTRUE(input$simple_metadata)) {
             result <- app_selection_metadata_display(
-              result, simple = TRUE, particle = FALSE, library = TRUE
+              result, simple = TRUE, particle = FALSE, library = TRUE,
+              match_label = simple_match_label(),
+              signal_label = simple_signal_label()
             )
           }
           fwrite(result, file)
@@ -3447,7 +3570,9 @@ output$progress_bars <- renderUI({
           }
           details <- app_selection_metadata_display(
             details, simple = isTRUE(input$simple_metadata), particle = TRUE,
-            pixel_size = calibration$size, pixel_unit = calibration$unit
+            pixel_size = calibration$size, pixel_unit = calibration$unit,
+            match_label = simple_match_label(),
+            signal_label = simple_signal_label()
           )
           fwrite(details, path)
           files <- c(files, path)
@@ -3608,7 +3733,7 @@ output$progress_bars <- renderUI({
       mapping <- canonical_state()$pixel_to_unit
       if(!is.null(mapping)) {
         mapping <- data.table::as.data.table(mapping)
-        representative <- mapping[unit_index == sel & kept, pixel_index[[1L]]]
+        representative <- mapping[unit_index == sel & kept == TRUE, pixel_index]
         if(length(representative)) data_click$pixel <- representative[[1L]]
       }
       data_click$plot <- sel

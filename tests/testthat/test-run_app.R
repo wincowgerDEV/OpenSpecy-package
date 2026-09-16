@@ -2361,7 +2361,14 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
     'outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)',
     fixed = TRUE
   )
-  expect_match(server_source, "}, server = FALSE)", fixed = TRUE)
+  sidebar_start <- regexpr(
+    "output$sidebar_metadata <- DT::renderDT({", server_source, fixed = TRUE
+  )
+  sidebar_end <- regexpr(
+    'outputOptions(output, "sidebar_metadata"', server_source, fixed = TRUE
+  )
+  sidebar_source <- substr(server_source, sidebar_start, sidebar_end)
+  expect_match(sidebar_source, "}, server = TRUE)", fixed = TRUE)
   expect_false(grepl("setkey(dataR_metadata", server_source, fixed = TRUE))
 })
 
@@ -2400,7 +2407,7 @@ test_that("app_top_matches_table populates AI mode instead of erroring", {
   )
   simple_library <- env$app_top_matches_table(library_rows, FALSE, 1L)
   expect_identical(names(simple_library), c(
-    "Match Value", "Material Class", "Spectrum Identity", "Organization"
+    "Correlation", "Material Class", "Spectrum Identity", "Organization"
   ))
 
   # AI mode: matches_to_single() has one prediction row per spectrum in the
@@ -2420,6 +2427,8 @@ test_that("app_top_matches_table populates AI mode instead of erroring", {
   expect_identical(names(model_result), c("match_val", "material_class"))
   expect_identical(model_result$material_class, "PVC")
   expect_identical(model_result$match_val, 0.4)
+  simple_model <- env$app_top_matches_table(model_rows, TRUE, 2L)
+  expect_identical(names(simple_model), c("Probability", "Material Class"))
 
   ranked_model_rows <- data.table::data.table(
     spectrum_index = c(1L, 1L, 2L, 2L),
