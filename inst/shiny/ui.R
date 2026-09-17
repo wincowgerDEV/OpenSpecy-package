@@ -1259,6 +1259,9 @@ dashboardPage(
                       0 8px 24px rgba(0, 0, 0, .28);
         }
         .openspecy-plot-frame { padding: 8px; margin: 8px 0 16px; }
+        #heatmap_frame.openspecy-heatmap-pending {
+          visibility: hidden;
+        }
         .openspecy-mini-plot { margin-top: 8px; }
         .openspecy-snr-preview-header {
           display: flex;
@@ -1515,7 +1518,8 @@ dashboardPage(
               11,
               div(
                 id = "heatmap_frame",
-                class = "openspecy-plot-frame",
+                class = "openspecy-plot-frame openspecy-heatmap-pending",
+                `aria-busy` = "true",
                 style = "display:none; position: relative;",
                 plotly::plotlyOutput("heatmapA", height = "48vh")
               )

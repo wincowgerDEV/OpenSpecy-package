@@ -123,7 +123,8 @@ test_that("compact Top Matches obeys requested and default Top N", {
     "Signal to Noise", "File Name"
   ))
   expect_false(any(grepl(
-    "^(X|Y|Area|Perimeter|Feret|Convex|Estimated Volume)", names(simple)
+    "^(X|Y|Area|Perimeter|Rectangular|Feret|Convex|Estimated Volume)",
+    names(simple)
   )))
 })
 
@@ -202,20 +203,19 @@ test_that("heatmap colors expose identification fields only when enabled", {
 
   expect_identical(
     unname(env$app_map_color_choices(FALSE, FALSE, FALSE)),
-    c("Signal/Noise", "Spectrum Index")
+    "Signal/Noise"
   )
   expect_identical(
     unname(env$app_map_color_choices(FALSE, FALSE, TRUE)),
-    c("Signal/Noise", "Particle Unit", "Spectrum Index")
+    c("Signal/Noise", "Particle Unit")
   )
   expect_identical(
     unname(env$app_map_color_choices(TRUE, FALSE, FALSE)),
-    c("Material Class", "Match ID", "Match Value", "Signal/Noise",
-      "Spectrum Index")
+    c("Material Class", "Match ID", "Match Value", "Signal/Noise")
   )
   expect_identical(
     unname(env$app_map_color_choices(TRUE, TRUE, FALSE)),
-    c("Material Class", "Match Value", "Signal/Noise", "Spectrum Index")
+    c("Material Class", "Match Value", "Signal/Noise")
   )
 })
 
@@ -569,10 +569,11 @@ test_that("spatial calibration preserves geometry and creates unit-bearing metad
   env <- .source_in_memory_app_helpers()
   metadata <- data.frame(
     file_name = "particle.dat", material_class = "raman_polyethylene",
-    match_val = 0.91, signal_to_noise = 12.34,
+    match_val = 0.912345, signal_to_noise = 12.3456,
     x = 2, y = 3, first_x = 1, first_y = 2, area = 4,
-    perimeter = 8, feret_min = 2, feret_max = 5,
-    convex_hull_area = 6
+    perimeter = 8.7654, rectangular_min = 1.23456,
+    feret_min = 2.34567, feret_max = 5.67891,
+    convex_hull_area = 6.78912
   )
   original <- metadata
 
@@ -581,13 +582,15 @@ test_that("spatial calibration preserves geometry and creates unit-bearing metad
   expect_identical(calibration$length_suffix, "um")
   converted <- env$app_particle_metadata_units(metadata, 2, "\u00b5m")
   expect_true(all(c(
-    "first_x_um", "first_y_um", "perimeter_um", "feret_min_um",
+    "first_x_um", "first_y_um", "perimeter_um", "rectangular_min_um",
+    "feret_min_um",
     "feret_max_um", "convex_hull_area_um2", "area_um2", "volume_um3"
   ) %in% names(converted)))
   expect_equal(converted$first_x_um, 2)
-  expect_equal(converted$perimeter_um, 16)
+  expect_equal(converted$perimeter_um, signif(8.7654 * 2, 3))
+  expect_equal(converted$rectangular_min_um, signif(1.23456 * 2, 3))
   expect_equal(converted$area_um2, 16)
-  expect_equal(converted$convex_hull_area_um2, 24)
+  expect_equal(converted$convex_hull_area_um2, signif(6.78912 * 4, 3))
   expect_equal(converted$volume_um3, 64)
   expect_identical(metadata, original)
   expect_error(env$app_pixel_calibration(0, "um"), "positive finite")
@@ -597,10 +600,11 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
   env <- .source_in_memory_app_helpers()
   metadata <- data.frame(
     file_name = "particle.dat", col_id = "particle-1",
-    material_class = "ftir_polyethylene", match_val = 0.91,
-    signal_to_noise = 12.34, first_x = 1, first_y = 2, area = 4,
-    perimeter = 8, feret_min = 2, feret_max = 5,
-    convex_hull_area = 6
+    material_class = "ftir_polyethylene", match_val = 0.912345,
+    signal_to_noise = 12.3456, first_x = 1, first_y = 2, area = 4,
+    perimeter = 8.7654, rectangular_min = 1.23456,
+    feret_min = 2.34567, feret_max = 5.67891,
+    convex_hull_area = 6.78912
   )
   simple <- env$app_selection_metadata_display(
     metadata, simple = TRUE, particle = TRUE,
@@ -609,11 +613,17 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
   )
   expect_identical(names(simple), c(
     "Material Class", "Probability", "Signal Times Noise", "Area (um^2)",
-    "Perimeter (um)", "Feret Minimum (um)", "Feret Maximum (um)",
+    "Perimeter (um)", "Rectangular Minimum (um)", "Feret Minimum (um)",
+    "Feret Maximum (um)",
     "Convex Hull Area (um^2)", "Estimated Volume (um^3)",
     "First X (um)", "First Y (um)", "File Name"
   ))
   expect_identical(simple[["Material Class"]], "polyethylene")
+  expect_identical(simple[["Probability"]], signif(0.912345, 3))
+  expect_identical(simple[["Signal Times Noise"]], signif(12.3456, 3))
+  expect_identical(simple[["Perimeter (um)"]], signif(8.7654 * 2, 3))
+  expect_identical(simple[["Rectangular Minimum (um)"]],
+                   signif(1.23456 * 2, 3))
   expect_identical(env$app_standardize_material_class(
     c("FTIR_polyethylene", "raman-polystyrene", "nir_other", "unknown")
   ), c("polyethylene", "polystyrene", "other", "unknown"))
@@ -643,6 +653,33 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
   expect_true(all(c("first_x_pixel", "first_y_pixel", "area_pixel2") %in%
                     names(detailed)))
   expect_false("Material Class" %in% names(detailed))
+})
+
+test_that("material summary bars place the greatest count on top", {
+  env <- .source_in_memory_app_helpers()
+  plot <- env$app_material_summary_plot(c("common", "rare", "common"))
+  expect_identical(levels(plot$data$material_class), c("rare", "common"))
+})
+
+test_that("exported heatmaps separate bounded legends from fixed canvases", {
+  env <- .source_in_memory_app_helpers()
+  data <- env$app_ordinary_heatmap_data(
+    data.frame(x = c(0, 1, 0, 1), y = c(0, 0, 1, 1)),
+    c(0.1, 0.2, 0.3, 0.4), categorical = FALSE,
+    legend_title = "Match Value"
+  )
+  components <- env$app_heatmap_export_components(data)
+  expect_s3_class(components$heatmap, "ggplot")
+  expect_s3_class(components$legend, "gtable")
+  expect_identical(components$heatmap$theme$legend.position, "none")
+
+  heatmap_path <- tempfile(fileext = ".png")
+  legend_path <- tempfile(fileext = ".png")
+  on.exit(unlink(c(heatmap_path, legend_path)), add = TRUE)
+  env$app_write_ggplot_png(components$heatmap, heatmap_path, 8, 7)
+  env$app_write_grob_png(components$legend, legend_path)
+  expect_gt(file.info(heatmap_path)$size, 0)
+  expect_gt(file.info(legend_path)$size, 0)
 })
 
 test_that("identity pixel mappings preserve compact Specs source IDs", {
@@ -692,7 +729,7 @@ test_that("heatmap calibration labels axes and peak overlays use markers only", 
   calibrated <- env$app_calibrate_spatial_metadata(metadata, 2.5, "um")
   expect_equal(calibrated$x, c(0, 2.5))
   heatmap <- env$app_ordinary_heatmap_data(
-    calibrated, c(1, 2), FALSE, "Spectrum Index", axis_unit = "um"
+    calibrated, c(1, 2), FALSE, "Signal/Noise", axis_unit = "um"
   )
   built_heatmap <- suppressWarnings(
     plotly::plotly_build(env$app_particle_plotly(heatmap))
@@ -704,7 +741,7 @@ test_that("heatmap calibration labels axes and peak overlays use markers only", 
   expect_identical(x_title, "X (um)")
   expect_identical(y_title, "Y (um)")
   expect_match(
-    env$app_heatmap_hover_text(heatmap, "Spectrum Index")[[1L]],
+    env$app_heatmap_hover_text(heatmap, "Signal/Noise")[[1L]],
     "x (um):", fixed = TRUE
   )
 

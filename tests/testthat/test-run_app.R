@@ -1702,15 +1702,15 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
     identification_active = FALSE, model_library = FALSE, collapse = FALSE
   )
   expect_identical(
-    unname(no_identification), c("Signal/Noise", "Spectrum Index")
+    unname(no_identification), "Signal/Noise"
   )
   expect_false(any(c("Material Class", "Match ID", "Match Value") %in%
                      unname(no_identification)))
-  only_index <- env$app_map_color_choices(
+  no_available_map <- env$app_map_color_choices(
     identification_active = FALSE, model_library = FALSE, collapse = FALSE,
-    availability = c("Signal/Noise" = FALSE, "Spectrum Index" = TRUE)
+    availability = c("Signal/Noise" = FALSE)
   )
-  expect_identical(unname(only_index), "Spectrum Index")
+  expect_length(no_available_map, 0L)
 
   map <- as_OpenSpecy(
     c(1000, 1100),
@@ -2288,7 +2288,7 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
   expect_identical(table$x$selection$selected, 37L)
   expect_identical(
     table$x$data$signal_to_noise,
-    signif(as.numeric(signal_to_noise), 2)
+    signif(as.numeric(signal_to_noise), 3)
   )
   simple_table <- env$app_uploaded_metadata_table(
     cache, selected = 37L, simple = TRUE
@@ -2327,7 +2327,7 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
   )
   expect_identical(reordered$metadata, reordered_before)
   expect_identical(selected$col_id, spectrum_ids[[137L]])
-  expect_identical(selected$signal_to_noise, signif(137, 2))
+  expect_identical(selected$signal_to_noise, signif(137, 3))
   expect_identical(
     selected$x,
     test_map$metadata[col_id == spectrum_ids[[137L]], x]

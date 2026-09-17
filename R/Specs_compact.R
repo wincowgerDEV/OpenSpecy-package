@@ -6,9 +6,13 @@
 #' @param sigma optional three-dimensional Gaussian smoothing sigma. `NULL`
 #'   classifies the unsmoothed spectra.
 #' @param step run-length step passed to [sig_noise()].
+#' @param intensity_type optional intensity units passed to [adj_intens()] before
+#'   signal/noise is measured. `NULL` or `"none"` preserves uploaded values;
+#'   `"transmittance"` and `"reflectance"` classify absorbance-adjusted values.
 #' @export
 specs_background_filter <- function(metric = "run_sig_over_noise", minimum,
-                                    maximum = Inf, sigma = NULL, step = 10) {
+                                    maximum = Inf, sigma = NULL, step = 10,
+                                    intensity_type = NULL) {
   metric <- as.character(metric)
   if (length(metric) != 1L || is.na(metric) || !nzchar(metric)) {
     stop("'metric' must be one nonempty string", call. = FALSE)
@@ -31,9 +35,17 @@ specs_background_filter <- function(metric = "run_sig_over_noise", minimum,
   if (length(step) != 1L || is.na(step) || !is.finite(step) || step <= 0) {
     stop("'step' must be one positive finite number", call. = FALSE)
   }
+  if (!is.null(intensity_type)) {
+    intensity_type <- as.character(intensity_type)
+    if (length(intensity_type) != 1L || is.na(intensity_type) ||
+        !intensity_type %in% c("none", "transmittance", "reflectance")) {
+      stop("'intensity_type' must be NULL, 'none', 'transmittance', or ",
+           "'reflectance'", call. = FALSE)
+    }
+  }
   structure(
     list(metric = metric, minimum = minimum, maximum = maximum,
-         sigma = sigma, step = step),
+         sigma = sigma, step = step, intensity_type = intensity_type),
     class = c("SpecsBackgroundFilter", "list")
   )
 }
@@ -44,7 +56,16 @@ specs_background_filter <- function(metric = "run_sig_over_noise", minimum,
     stop("'background_filter' must be returned by specs_background_filter()",
          call. = FALSE)
   }
-  specs_background_filter(x$metric, x$minimum, x$maximum, x$sigma, x$step)
+  specs_background_filter(
+    x$metric, x$minimum, x$maximum, x$sigma, x$step,
+    intensity_type = x$intensity_type
+  )
+}
+
+.specs_background_intensity <- function(x, policy) {
+  type <- policy$intensity_type
+  if (is.null(type) || identical(type, "none")) return(x)
+  adj_intens(x, type = type, make_rel = FALSE)
 }
 
 .specs_value_index <- function(x) {
@@ -553,6 +574,7 @@ specs_metadata <- function(x, index = NULL, columns = NULL) {
   dense <- decompress_spec(x)
   basis <- if (is.null(policy$sigma)) dense else
     spatial_smooth(dense, sigma = policy$sigma)
+  basis <- .specs_background_intensity(basis, policy)
   snr <- sig_noise(basis, metric = policy$metric, step = policy$step,
                    spatial_smooth = FALSE, abs = FALSE)
   .apply_specs_background_result(x, policy, snr, basis = if (
@@ -617,6 +639,7 @@ specs_metadata <- function(x, index = NULL, columns = NULL) {
     method = "background", retained = sum(keep), suppressed = sum(!keep),
     metric = policy$metric, minimum = policy$minimum,
     maximum = policy$maximum, sigma = policy$sigma,
+    intensity_type = policy$intensity_type,
     basis = as.character(basis), lossy = TRUE
   ))
 }

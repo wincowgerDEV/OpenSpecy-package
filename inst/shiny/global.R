@@ -662,9 +662,6 @@ app_file_stream_processing_issues <- function(settings,
     stop("Streaming processing settings must be a named list.", call. = FALSE)
   }
   issues <- character()
-  if(isTRUE(spatial_smooth)) {
-    issues <- c(issues, "turn off Spatial Smooth")
-  }
   if(isTRUE(settings$saturation_decision)) {
     issues <- c(issues, "turn off Saturation Correction")
   }
@@ -675,6 +672,21 @@ app_file_stream_processing_issues <- function(settings,
     issues <- c(issues, "turn off automatic range restriction")
   }
   unique(issues)
+}
+
+# Raw/Spatial signal thresholding intentionally omits the ordinary baseline,
+# spectral smoothing, range, and normalization steps, but intensity units are
+# not optional scientific decoration: a selected transmittance/reflectance
+# conversion must happen before S/N is interpreted as absorbance-like data.
+app_intensity_snr_basis <- function(x, settings) {
+  if(!inherits(x, "OpenSpecy") || !is.list(settings)) {
+    stop("Intensity-adjusted S/N requires OpenSpecy data and settings.",
+         call. = FALSE)
+  }
+  if(!isTRUE(settings$intensity_decision)) return(x)
+  type <- if(is.null(settings$intensity_corr)) "none" else
+    as.character(settings$intensity_corr)[[1L]]
+  adj_intens(x, type = type, make_rel = FALSE)
 }
 
 app_prepare_correlation_reference <- function(reference) {
@@ -753,7 +765,8 @@ app_match_prepared_best <- function(query, prepared,
 # spectrum survive; full library-by-query correlation matrices are discarded
 # by the callback before the next file block is read.
 app_stream_filespec_best_matches <- function(
-    source, eligible, process, identify, chunk_size = 1000L, progress = NULL) {
+    source, eligible, process, identify, chunk_size = 1000L, progress = NULL,
+    spatial_smooth = FALSE, sigma = c(1, 1, 1)) {
   if(!inherits(source, "FileSpecs")) {
     stop("Streaming identification requires a FileSpecs source.", call. = FALSE)
   }
@@ -788,7 +801,14 @@ app_stream_filespec_best_matches <- function(
     rows <- seq.int(
       starts[[i]], min(length(positions), starts[[i]] + chunk_size - 1L)
     )
-    query <- decompress_spec(source, index = positions[rows])
+    query <- if(isTRUE(spatial_smooth)) {
+      values <- OpenSpecy:::.filespec_smoothed_values(
+        source, index, positions[rows], bands = NULL, sigma1 = sigma
+      )
+      OpenSpecy:::.filespec_values_to_OpenSpecy(source, values)
+    } else {
+      decompress_spec(source, index = positions[rows])
+    }
     processed <- process(query)
     if(!inherits(processed, "OpenSpecy")) {
       stop("The streaming process callback must return OpenSpecy.",
@@ -884,7 +904,7 @@ app_particle_metadata_units <- function(metadata, pixel_size = 1,
   result <- data.table::copy(data.table::as.data.table(metadata))
   linear <- intersect(
     c("x", "y", "centroid_x", "centroid_y", "first_x", "first_y",
-      "perimeter", "feret_min", "feret_max"),
+      "perimeter", "rectangular_min", "feret_min", "feret_max"),
     names(result)
   )
   area <- intersect(c("area", "convex_hull_area"), names(result))
@@ -907,6 +927,25 @@ app_particle_metadata_units <- function(metadata, pixel_size = 1,
     data.table::setnames(
       result, area, paste0(area, "_", calibration$area_suffix)
     )
+  }
+  app_round_reported_metadata(result)
+}
+
+app_round_reported_metadata <- function(metadata, digits = 3L) {
+  result <- data.table::copy(data.table::as.data.table(metadata))
+  measurement_stems <- c(
+    "perimeter", "rectangular_min", "feret_min", "feret_max",
+    "convex_hull_area", "volume"
+  )
+  measurement_pattern <- paste0("^(", paste(measurement_stems,
+                                              collapse = "|"), ")($|_)")
+  columns <- unique(c(
+    grep(measurement_pattern, names(result), value = TRUE),
+    intersect(c("match_val", "max_cor_val", "signal_to_noise"),
+              names(result))
+  ))
+  for(column in columns) {
+    result[[column]] <- base::signif(as.numeric(result[[column]]), digits)
   }
   result
 }
@@ -935,6 +974,7 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
                                            signal_label = "Signal to Noise") {
   calibration <- app_pixel_calibration(pixel_size, pixel_unit)
   result <- app_particle_metadata_units(metadata, pixel_size, pixel_unit)
+  result <- app_round_reported_metadata(result)
   if("material_class" %in% names(result)) {
     result$material_class <- app_standardize_material_class(
       result$material_class
@@ -948,6 +988,7 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
   particle_columns <- if(isTRUE(particle)) c(
     paste0("area_", calibration$area_suffix),
     paste0("perimeter_", calibration$length_suffix),
+    paste0("rectangular_min_", calibration$length_suffix),
     paste0("feret_min_", calibration$length_suffix),
     paste0("feret_max_", calibration$length_suffix),
     paste0("convex_hull_area_", calibration$area_suffix),
@@ -973,6 +1014,7 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
   particle_friendly <- c(
     paste0("Area (", calibration$unit, "^2)"),
     paste0("Perimeter (", calibration$unit, ")"),
+    paste0("Rectangular Minimum (", calibration$unit, ")"),
     paste0("Feret Minimum (", calibration$unit, ")"),
     paste0("Feret Maximum (", calibration$unit, ")"),
     paste0("Convex Hull Area (", calibration$unit, "^2)"),
@@ -988,7 +1030,8 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
 
 app_particle_metadata_fields <- c(
   "x", "y", "z", "centroid_x", "centroid_y", "first_x", "first_y",
-  "area", "perimeter", "feret_min", "feret_max", "convex_hull_area",
+  "area", "perimeter", "rectangular_min", "feret_min", "feret_max",
+  "convex_hull_area",
   "volume", "pixel_index", "region_id", "cluster_id", "unit_id",
   "unit_index"
 )
@@ -1065,7 +1108,9 @@ app_material_summary_plot <- function(material, palette = NULL) {
   if(length(missing_levels)) {
     palette <- c(palette, app_category_palette(missing_levels))
   }
-  frame <- data.frame(material_class = factor(values, levels = names(palette)))
+  counts <- table(values)
+  levels <- names(sort(counts, decreasing = FALSE))
+  frame <- data.frame(material_class = factor(values, levels = levels))
   ggplot2::ggplot(frame, ggplot2::aes(y = material_class,
                                       fill = material_class)) +
     ggplot2::geom_bar() +
@@ -1150,11 +1195,43 @@ app_heatmap_ggplot <- function(data) {
   plot
 }
 
+app_ggplot_legend_grob <- function(plot) {
+  built <- ggplot2::ggplotGrob(plot)
+  positions <- which(grepl("^guide-box", built$layout$name))
+  if(!length(positions)) return(NULL)
+  for(position in positions) {
+    candidate <- built$grobs[[position]]
+    if(inherits(candidate, "gtable") && length(candidate$grobs)) {
+      return(candidate)
+    }
+  }
+  NULL
+}
+
+app_heatmap_export_components <- function(data) {
+  plot <- app_heatmap_ggplot(data)
+  list(
+    heatmap = plot + ggplot2::theme(legend.position = "none"),
+    legend = app_ggplot_legend_grob(plot)
+  )
+}
+
 app_write_ggplot_png <- function(plot, path, width = 8, height = 6) {
   ggplot2::ggsave(
     filename = path, plot = plot, width = width, height = height,
     units = "in", dpi = 150, bg = app_plot_palette$panel
   )
+  invisible(path)
+}
+
+app_write_grob_png <- function(grob, path, width = 4, height = 5) {
+  grDevices::png(
+    filename = path, width = width, height = height, units = "in",
+    res = 150, bg = app_plot_palette$panel
+  )
+  on.exit(grDevices::dev.off(), add = TRUE)
+  grid::grid.newpage()
+  grid::grid.draw(grob)
   invisible(path)
 }
 
@@ -1227,11 +1304,7 @@ app_uploaded_metadata_display <- function(metadata, large = NULL) {
     , !names(metadata) %in% c(".openspecy_index", ".openspecy_coord_key"),
     with = FALSE
   ]
-  if("signal_to_noise" %in% names(display)) {
-    # Keep full precision in the canonical object and downloads, but make the
-    # user-facing metadata as readable as the two-significant-figure match.
-    display[, signal_to_noise := signif(as.numeric(signal_to_noise), 2)]
-  }
+  display <- app_round_reported_metadata(display)
   if(is.null(large)) {
     large <- nrow(display) > app_uploaded_metadata_large_threshold
   }
@@ -1353,8 +1426,7 @@ app_map_color_choices <- function(identification_active, model_library,
       "Match ID" else NA_character_,
     if(isTRUE(identification_active)) "Match Value" else NA_character_,
     "Signal/Noise",
-    if(isTRUE(collapse)) "Particle Unit" else NA_character_,
-    "Spectrum Index"
+    if(isTRUE(collapse)) "Particle Unit" else NA_character_
   )
   choices <- choices[!is.na(choices)]
   if(!is.null(availability)) {
@@ -1399,6 +1471,7 @@ app_top_matches_table <- function(matches_to_single_result, model_library,
                     "organization", "sample_name")
   }
   result <- data.table::as.data.table(result)
+  result <- app_round_reported_metadata(result)
   if(!isTRUE(simple)) return(result)
   result <- app_selection_metadata_display(
     result, simple = TRUE, library = TRUE, match_label = match_label
@@ -1662,6 +1735,7 @@ app_top_matches_export_compact <- function(
       dplyr::everything()
     )
   result <- app_without_particle_metadata(result)
+  result <- app_round_reported_metadata(result)
   if(isTRUE(simple)) {
     result <- app_selection_metadata_display(
       result, simple = TRUE, particle = FALSE, library = TRUE,

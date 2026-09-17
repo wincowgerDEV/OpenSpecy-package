@@ -79,7 +79,10 @@ collapsed for the features. All units are in pixels. Metadata described below.
 \item{\code{feature_id}}{unique identifier of each feature}
 \item{\code{area}}{area in pixels of the feature}
 \item{\code{perimeter}}{perimeter of the convex hull of the feature}
-\item{\code{feret_min}}{feret_max divided by the area}
+\item{\code{rectangular_min}}{area divided by \code{feret_max}, retained as the
+legacy rectangular-width approximation}
+\item{\code{feret_min}}{width of the bounding box perpendicular to the
+\code{feret_max} axis}
 \item{\code{feret_max}}{largest dimension of the convex hull of the feature}
 \item{\code{convex_hull_area}}{area of the convex hull}
 \item{\code{centroid_x}}{mean x coordinate of the feature}

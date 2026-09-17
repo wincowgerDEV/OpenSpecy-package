@@ -18,6 +18,7 @@
   var busyActionSawShinyBusy = false;
   var analysisPhaseActive = false;
   var shinyIsBusy = false;
+  var heatmapRenderGeneration = 0;
   var mountedFileLimit = 10 * 1024 * 1024 * 1024;
   var busyState = {
     message: "Preparing analysis...",
@@ -47,6 +48,37 @@
     return String(filename || "openspecy-download")
       .replace(/[\\/:*?"<>|]/g, "-")
       .replace(/^\.+|\.+$/g, "") || "openspecy-download";
+  }
+
+  function markHeatmapPending() {
+    heatmapRenderGeneration += 1;
+    var frame = document.getElementById("heatmap_frame");
+    if (!frame) return heatmapRenderGeneration;
+    frame.classList.add("openspecy-heatmap-pending");
+    frame.setAttribute("aria-busy", "true");
+    return heatmapRenderGeneration;
+  }
+
+  function revealHeatmapWhenPainted(generation, attempts) {
+    var frame = document.getElementById("heatmap_frame");
+    var plot = document.getElementById("heatmapA");
+    if (generation !== heatmapRenderGeneration || !frame || !plot) return;
+    var painted = plot.querySelector(".main-svg");
+    if (!painted || plot.classList.contains("recalculating")) {
+      if (attempts < 180) {
+        window.setTimeout(function () {
+          revealHeatmapWhenPainted(generation, attempts + 1);
+        }, 16);
+      }
+      return;
+    }
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(function () {
+        if (generation !== heatmapRenderGeneration) return;
+        frame.classList.remove("openspecy-heatmap-pending");
+        frame.setAttribute("aria-busy", "false");
+      });
+    });
   }
 
   // Shared immediate (zero-round-trip) busy decoration, so Run, Recalculate
@@ -649,7 +681,24 @@
         );
       });
 
+      window.Shiny.addCustomMessageHandler("openspecy-heatmap-pending", function (_state) {
+        markHeatmapPending();
+      });
+
     }
+
+    shinyDocument.on("shiny:recalculating.openspecyHeatmap", function (event) {
+      if (event.target && event.target.id === "heatmapA") markHeatmapPending();
+    });
+
+    shinyDocument.on("shiny:value.openspecyHeatmap", function (event) {
+      if (event.name !== "heatmapA" &&
+          (!event.target || event.target.id !== "heatmapA")) return;
+      var generation = markHeatmapPending();
+      window.setTimeout(function () {
+        revealHeatmapWhenPainted(generation, 0);
+      }, 0);
+    });
 
     shinyDocument.on("shiny:busy.openspecyBusy", function () {
       shinyIsBusy = true;

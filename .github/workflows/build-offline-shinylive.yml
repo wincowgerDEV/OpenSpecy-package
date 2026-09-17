@@ -193,7 +193,7 @@ jobs:
           npm install --no-save "@playwright/test@${PLAYWRIGHT_VERSION}"
           npx playwright install chromium
 
-      - name: Run extracted Linux bundle from a spaced path without internet
+      - name: Verify extracted Linux bundle startup from a spaced path without internet
         shell: bash
         run: |
           set -euo pipefail

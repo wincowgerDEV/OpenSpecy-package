@@ -504,6 +504,9 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
                     y = rep(seq_len(layout$ny) - 1L, each = layout$nx)
                 )
             )
+            metric_object <- .specs_background_intensity(
+                metric_object, background_filter
+            )
             region_snr <- sig_noise(
                 metric_object, metric = background_filter$metric,
                 step = background_filter$step,

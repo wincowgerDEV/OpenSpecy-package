@@ -130,7 +130,8 @@ test_that("file-backed connected means equal eager connected collapse", {
                eager$analysis_units$spectra,
                tolerance = 1e-10, ignore_attr = TRUE)
   geometry <- c(
-    "first_x", "first_y", "perimeter", "feret_min", "feret_max",
+    "first_x", "first_y", "perimeter", "rectangular_min", "feret_min",
+    "feret_max",
     "convex_hull_area"
   )
   expect_true(all(geometry %in% names(streamed$analysis_units$metadata)))

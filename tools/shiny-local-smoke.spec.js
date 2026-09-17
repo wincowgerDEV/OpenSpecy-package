@@ -956,6 +956,11 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
       priority: "event",
     });
   });
+  const pixelCalibrationCard = page.locator("#pixel_size").locator(
+    "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  await toggleCard(pixelCalibrationCard);
+  await expectCardCollapsed(pixelCalibrationCard, false);
   await page.locator("#pixel_size").fill("2");
   await page.locator("#pixel_size").press("Tab");
   await page.locator("#pixel_unit").fill("um");
@@ -1081,11 +1086,27 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
     "signal_noise_histogram.png", "correlation_histogram.png",
     "material_class_heatmap.png", "match_id_heatmap.png",
     "match_value_heatmap.png", "particle_unit_heatmap.png",
-    "spectrum_index_heatmap.png", "material_summary.png",
+    "material_class_legend.png", "match_value_legend.png",
+    "material_summary.png",
     "particle_size_distribution.png",
   ]) {
     expect(archiveList.stdout).toEqual(expect.stringContaining(figure));
   }
+  const heatmapFiles = [
+    "material_class_heatmap.png", "match_id_heatmap.png",
+    "match_value_heatmap.png", "particle_unit_heatmap.png",
+  ];
+  const heatmapDimensions = heatmapFiles.map((figure) => {
+    const extracted = spawnSync("tar", ["-xOf", download.path, figure], {
+      encoding: null,
+    });
+    expect(extracted.status).toBe(0);
+    expect(extracted.stdout.subarray(1, 4).toString("ascii")).toBe("PNG");
+    return [
+      extracted.stdout.readUInt32BE(16), extracted.stdout.readUInt32BE(20),
+    ].join("x");
+  });
+  expect(new Set(heatmapDimensions)).toEqual(new Set(["1200x1050"]));
   const particleDetails = spawnSync(
     "tar", ["-xOf", download.path, "particle_details.csv"],
     { encoding: "utf8" }
@@ -1095,7 +1116,8 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
     .split(",");
   for (const field of [
     "Material Class", "Correlation", "Signal Over Noise", "Area (um^2)",
-    "Perimeter (um)", "Feret Minimum (um)", "Feret Maximum (um)",
+    "Perimeter (um)", "Rectangular Minimum (um)", "Feret Minimum (um)",
+    "Feret Maximum (um)",
     "Convex Hull Area (um^2)", "Estimated Volume (um^3)",
     "First X (um)", "First Y (um)", "File Name",
   ]) {

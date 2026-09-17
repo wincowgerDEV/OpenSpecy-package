@@ -1135,7 +1135,8 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   # disconnected spectral clusters do not have one defensible hull. Keep the
   # recomputed centroid/count below and remove unsupported stale geometry.
   stale_geometry <- intersect(
-    c("perimeter", "feret_min", "feret_max", "convex_hull_area",
+    c("perimeter", "rectangular_min", "feret_min", "feret_max",
+      "convex_hull_area",
       "first_x", "first_y", "rand_x", "rand_y"),
     names(collapsed$metadata)
   )
@@ -1225,13 +1226,16 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
       return(data.table::data.table(
         unit_id = id, centroid_x = points$x, centroid_y = points$y,
         first_x = first$x, first_y = first$y, perimeter = 4,
-        feret_min = 1, feret_max = 1, convex_hull_area = NA_real_
+        rectangular_min = 1, feret_min = 1, feret_max = 1,
+        convex_hull_area = NA_real_
       ))
     }
 
     hull <- points[unique(grDevices::chull(points$x, points$y))]
     distances <- as.matrix(stats::dist(hull[, c("x", "y"), with = FALSE]))
-    feret_max <- max(distances) + 1
+    feret <- .particle_feret_dimensions(hull[, c("x", "y"), with = FALSE])
+    feret_max <- unname(feret[["feret_max"]])
+    feret_min <- unname(feret[["feret_min"]])
     next_point <- c(seq.int(2L, nrow(hull)), 1L)
     perimeter <- sum(sqrt(
       (hull$x - hull$x[next_point])^2 +
@@ -1249,7 +1253,8 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
       unit_id = id,
       centroid_x = mean(points$x), centroid_y = mean(points$y),
       first_x = first$x, first_y = first$y,
-      perimeter = perimeter, feret_min = area / feret_max,
+      perimeter = perimeter, rectangular_min = area / feret_max,
+      feret_min = feret_min,
       feret_max = feret_max, convex_hull_area = convex_hull_area
     )
   }, unit_id, unit_rows))
@@ -1415,6 +1420,8 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   if ("perimeter" %in% names(dt)) dt$perimeter_um <- dt$perimeter * pixel_length
   if ("feret_max" %in% names(dt)) dt$max_length_um <- dt$feret_max * pixel_length
   if ("feret_min" %in% names(dt)) dt$min_length_um <- dt$feret_min * pixel_length
+  if ("rectangular_min" %in% names(dt))
+    dt$rectangular_min_um <- dt$rectangular_min * pixel_length
   if ("centroid_x" %in% names(dt))
     dt$centroid_x <- dt$centroid_x * pixel_length + origin[1L]
   if ("centroid_y" %in% names(dt))
@@ -1442,7 +1449,8 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   cols <- intersect(c("particle_id", "sample_id", "max_cor_val",
                       "bad_spectra", material_col,
                       "area_um2", "perimeter_um", "max_length_um",
-                      "min_length_um", "aspect_ratio", "circularity",
+                      "min_length_um", "rectangular_min_um", "aspect_ratio",
+                      "circularity",
                       "centroid_x", "centroid_y", "first_x", "first_y",
                       "acc_analy_conf", "max_cor_name", "mean_cor",
                       "mean_snr", "r", "g", "b"), names(dt))

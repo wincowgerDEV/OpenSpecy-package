@@ -417,7 +417,8 @@ test_that("particle partitions scope repeated coordinates to source maps", {
       r = c(3, 4, 5, 12), g = c(0, 0, 6, 8), b = c(1, 1, 2, 2),
       mean_snr = 999, mean_cor = 999,
       mean_r = 999L, mean_g = 999L, mean_b = 999L,
-      perimeter = rep(999, 4), feret_max = rep(999, 4),
+      perimeter = rep(999, 4), rectangular_min = rep(999, 4),
+      feret_max = rep(999, 4),
       convex_hull_area = rep(999, 4), first_x = rep(999, 4)
     )
   )
@@ -449,6 +450,7 @@ test_that("particle partitions scope repeated coordinates to source maps", {
   expect_equal(connected$analysis_units$metadata$perimeter, c(2, 2))
   expect_equal(connected$analysis_units$metadata$feret_max, c(2, 2))
   expect_equal(connected$analysis_units$metadata$feret_min, c(1, 1))
+  expect_equal(connected$analysis_units$metadata$rectangular_min, c(1, 1))
   expect_equal(connected$analysis_units$metadata$convex_hull_area, c(0, 0))
   expect_equal(connected$analysis_units$metadata$first_x, c(0, 0))
   expect_equal(connected$analysis_units$metadata$mean_snr, c(2, 4))
@@ -477,7 +479,7 @@ test_that("particle partitions scope repeated coordinates to source maps", {
   expect_equal(nonspatial$analysis_units$metadata$mean_r, c(3, 9))
   expect_equal(nonspatial$analysis_units$metadata$mean_g, c(0, 7))
   expect_equal(nonspatial$analysis_units$metadata$mean_b, c(1, 2))
-  expect_false(any(c("perimeter", "feret_min", "feret_max",
+  expect_false(any(c("perimeter", "rectangular_min", "feret_min", "feret_max",
                      "convex_hull_area", "first_x", "first_y") %in%
                    names(nonspatial$analysis_units$metadata)))
 })
@@ -558,7 +560,8 @@ test_that("connected collapse recomputes geometry used by particle details", {
     spectra = spectra,
     metadata = data.frame(
       x = c(0, 1, 0, 1), y = c(0, 0, 1, 1),
-      perimeter = 999, feret_min = 999, feret_max = 999,
+      perimeter = 999, rectangular_min = 999, feret_min = 999,
+      feret_max = 999,
       convex_hull_area = 999, first_x = 999, first_y = 999
     )
   )
@@ -576,7 +579,8 @@ test_that("connected collapse recomputes geometry used by particle details", {
   expect_equal(md$first_y, 0)
   expect_equal(md$perimeter, 4)
   expect_equal(md$feret_max, expected_max)
-  expect_equal(md$feret_min, 4 / expected_max)
+  expect_equal(md$rectangular_min, 4 / expected_max)
+  expect_equal(md$feret_min, expected_max)
   expect_equal(md$convex_hull_area, 1)
 
   details <- OpenSpecy:::.particle_details_table(
@@ -586,8 +590,9 @@ test_that("connected collapse recomputes geometry used by particle details", {
   expect_equal(details$area_um2, 16)
   expect_equal(details$perimeter_um, 8)
   expect_equal(details$max_length_um, 2 * expected_max)
-  expect_equal(details$min_length_um, 8 / expected_max)
-  expect_equal(details$aspect_ratio, expected_max^2 / 4)
+  expect_equal(details$min_length_um, 2 * expected_max)
+  expect_equal(details$rectangular_min_um, 8 / expected_max)
+  expect_equal(details$aspect_ratio, 1)
   expect_equal(details$circularity, 1 / pi)
   expect_equal(details$centroid_x, 11)
   expect_equal(details$centroid_y, 21)

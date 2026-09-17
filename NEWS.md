@@ -13,6 +13,12 @@
   `cbind`ing a dense retained-pixel matrix. Connected geometry is preserved;
   Advanced pixel calibration supplies unit-bearing coordinates, size/shape,
   area, and estimated-volume metadata, heatmap axes, summaries, and exports.
+- Particle metadata now distinguishes the legacy area/Feret approximation as
+  `rectangular_min` and calculates `feret_min` from the bounding width
+  perpendicular to the maximum-Feret axis. Reported shape, score, and
+  signal/noise values use three significant figures. Spectrum Index maps were
+  removed; material summaries sort largest-first; Thresholded Particles now
+  exports fixed-size legend-free heatmaps with separate legend images.
 - File-backed connected Mean analysis can now apply per-pixel library
   correlation thresholds by processing and matching bounded spectrum chunks;
   only each pixel's winning score and identity are retained before connected
@@ -59,6 +65,11 @@
   Windows, macOS, and Linux. Their native loopback launcher needs no R, Python,
   Node, package download, installation, or internet connection at runtime;
   bundled landing-page videos now load only after an explicit click.
+- Offline acceptance now tests the risks unique to its archive—native launch
+  from a spaced path, first-load WebAssembly startup without internet, bundled
+  fixture download, and loopback-only traffic—instead of repeating the full
+  identification/quantification smoke already required of its exact successful
+  Pages artifact.
 - Restored preprocessing compatibility warnings for derivative and no-baseline
   identification libraries, made tab-wide actions turn switches off only, and
   fixed fresh-session startup/Plotly warnings plus first-Run Selection Metadata

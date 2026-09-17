@@ -571,7 +571,7 @@
 <div class="node function" style="left:550px;top:1760px" tabindex="0">
   Connected Threshold Regions
   <div class="sub">strategy = "collapse"</div>
-  <div class="tip">The ordinary path flood-fills spatially connected eligible pixels and collapses them. For file-backed ENVI, the same mapping is built from a one-row geometric display. When correlation thresholding is active, bounded pixel chunks receive the committed ordinary preprocessing, each library-by-chunk matrix is reduced immediately to one winning score/reference/material per pixel, and equal-material retained regions are formed from those winners. Source members are then streamed into per-particle sums/counts while geometry stays aligned. Only final Mean spectra materialize; Median/geometric mean and chunk-unstable preprocessing require full-memory mode.
+  <div class="tip">The ordinary path flood-fills spatially connected eligible pixels and collapses them. For file-backed ENVI, the same mapping is built from a one-row geometric display. When correlation thresholding is active, bounded pixel chunks receive the committed ordinary preprocessing, each library-by-chunk matrix is reduced immediately to one winning score/reference/material per pixel, and equal-material retained regions are formed from those winners. Source members are then streamed into per-particle sums/counts while geometry stays aligned. Both paths preserve <code>rectangular_min = area / feret_max</code> and calculate true <code>feret_min</code> as the perpendicular bounding width along the maximum-Feret axis. Only final Mean spectra materialize; Median/geometric mean and chunk-unstable preprocessing require full-memory mode.
   <span class="loc">Plan 033 &middot; server.R: FileSpecs canonical branch &middot; R/automate_particle_filespecs.R: .filespec_collapse_connected_mean()</span></div>
 </div>
 <div class="node function" style="left:1050px;top:1760px" tabindex="0">
@@ -702,14 +702,14 @@
 <div class="node output tip-left" style="left:2250px;top:1430px" tabindex="0">
   Sidebar Metadata Table
   <div class="depends">depends on: Batch Compact (off) or Collapse (on)</div>
-  <div class="tip">output$sidebar_metadata reads meta_cache(); displayed threshold values use the selected technique's name and two significant figures while canonical values retain full precision. Collapse OFF has one row per uploaded spectrum/pixel; file-backed maps build those rows from descriptor metadata plus the streamed S/N vector and serve table pages server-side. Collapse ON has one row per particle/cluster. No sidebar path expands a spectral matrix.
+  <div class="tip">output$sidebar_metadata reads meta_cache(); reported threshold, score, and particle shape values use the selected technique's name and three significant figures. Collapse OFF has one row per uploaded spectrum/pixel; file-backed maps build those rows from descriptor metadata plus the streamed S/N vector and serve table pages server-side. Collapse ON has one row per particle/cluster. No sidebar path expands a spectral matrix.
   <span class="loc">Plans 018/033 &middot; server.R: sidebar metadata cache/renderDT &middot; Specs metadata accessors</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:1490px" tabindex="0">
   Download: Thresholded Particles (zip)
   <div class="depends">depends on: Collapse, Signal/Noise, Identification/AI</div>
-  <div class="tip">Details/processed/summary/particle-size figures come from canonical_final() + snr_preview(). Live pixel calibration scales length/coordinate fields, areas, and area^(3/2) volume into unit-bearing metadata and figure axes without mutating canonical spectra. The correlation and material-summary figures use the committed rank-1 library or standardized model identities. Heatmap PNGs use the same calibrated pixel projection.
+  <div class="tip">Details/processed/summary/particle-size figures come from canonical_final() + snr_preview(). Live pixel calibration scales length/coordinate fields, areas, and area^(3/2) volume into unit-bearing metadata and figure axes without mutating canonical spectra. The correlation and greatest-first material-summary figures use the committed rank-1 library or standardized model identities. Heatmap PNGs use the same calibrated pixel projection, omit inline legends so every heatmap canvas stays 8 by 7 inches, and write each useful bounded legend to a companion PNG. Spectrum Index is not an export choice.
   <span class="loc">server.R:2781-2843</span></div>
 </div>
 

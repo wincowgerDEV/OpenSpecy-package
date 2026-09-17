@@ -23,7 +23,10 @@
 #'   \item{`feature_id`}{unique identifier of each feature}
 #'   \item{`area`}{area in pixels of the feature}
 #'   \item{`perimeter`}{perimeter of the convex hull of the feature}
-#'   \item{`feret_min`}{feret_max divided by the area}
+#'   \item{`rectangular_min`}{area divided by `feret_max`, retained as the
+#'   legacy rectangular-width approximation}
+#'   \item{`feret_min`}{width of the bounding box perpendicular to the
+#'   `feret_max` axis}
 #'   \item{`feret_max`}{largest dimension of the convex hull of the feature}
 #'   \item{`convex_hull_area`}{area of the convex hull}
 #'   \item{`centroid_x`}{mean x coordinate of the feature}
@@ -76,6 +79,33 @@
 #' @export
 collapse_spec <- function(x, ...) {
   UseMethod("collapse_spec")
+}
+
+.particle_feret_dimensions <- function(points) {
+    points <- unique(as.matrix(points))
+    storage.mode(points) <- "double"
+    if (nrow(points) <= 1L) {
+        return(c(feret_min = 1, feret_max = 1))
+    }
+    distances <- as.matrix(stats::dist(points))
+    diag(distances) <- -Inf
+    candidates <- which(distances == max(distances), arr.ind = TRUE)
+    candidates <- candidates[
+        candidates[, 1L] < candidates[, 2L], , drop = FALSE
+    ]
+    candidates <- candidates[
+        order(candidates[, 1L], candidates[, 2L]), , drop = FALSE
+    ]
+    endpoints <- candidates[1L, ]
+    axis <- points[endpoints[2L], ] - points[endpoints[1L], ]
+    center_distance <- sqrt(sum(axis^2))
+    axis <- axis / center_distance
+    perpendicular <- c(-axis[2L], axis[1L])
+    perpendicular_projection <- as.numeric(points %*% perpendicular)
+    c(
+        feret_min = diff(range(perpendicular_projection)) + 1,
+        feret_max = center_distance + 1
+    )
 }
 
 #' @rdname def_features
@@ -378,13 +408,16 @@ def_features.OpenSpecy <- function(x, features,
             return(data.table(feature_id = id,
                               area = 1,
                               perimeter = 4,
+                              rectangular_min = 1,
                               feret_min = 1,
                               feret_max = 1)
             )
         
         # Calculate Feret dimensions
         dist_matrix <- as.matrix(dist(hull))
-        feret_max <- max(dist_matrix) + 1
+        feret <- .particle_feret_dimensions(hull[, c(2, 1)])
+        feret_max <- unname(feret[["feret_max"]])
+        feret_min <- unname(feret[["feret_min"]])
         
         perimeter <- 0
         cols = 1:nrow(hull)
@@ -407,11 +440,12 @@ def_features.OpenSpecy <- function(x, features,
         # Calculate the convex hull area
         convex_hull_area <- polygon_area(hull[,2], hull[,1])
         
-        feret_min = area/feret_max #Can probably calculate this better.
+        rectangular_min <- area / feret_max
         
         data.table(feature_id = id,
                    area = area,
                    perimeter = perimeter,
+                   rectangular_min = rectangular_min,
                    feret_min = feret_min,
                    feret_max = feret_max,
                    convex_hull_area = convex_hull_area

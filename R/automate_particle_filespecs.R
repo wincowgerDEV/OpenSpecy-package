@@ -270,7 +270,11 @@ automate_particle_analysis.FileSpecs <- function(
 }
 
 .filespec_particle_snr <- function(x, index, bands, metric, abs,
-                                   spectral_smooth, sigma1, chunk_size) {
+                                   spectral_smooth, sigma1, chunk_size,
+                                   process = NULL) {
+  if(!is.null(process) && !is.function(process)) {
+    stop("'process' must be NULL or a function", call. = FALSE)
+  }
   chunk_size <- .filespec_bounded_chunk_size(length(bands), chunk_size)
   chunks <- .filespec_particle_chunks(x, index, chunk_size)
   out <- rep(NA_real_, nrow(index))
@@ -286,6 +290,12 @@ automate_particle_analysis.FileSpecs <- function(
       metadata = data.frame(col_id = colnames(values$spectra)),
       coords = "gen_grid", session_id = FALSE, compute_file_id = FALSE
     )
+    if(!is.null(process)) {
+      block <- process(block)
+      if(!inherits(block, "OpenSpecy")) {
+        stop("the streamed S/N process must return OpenSpecy", call. = FALSE)
+      }
+    }
     out[rows] <- sig_noise(block, metric = metric, spatial_smooth = FALSE,
                           abs = abs)
   }

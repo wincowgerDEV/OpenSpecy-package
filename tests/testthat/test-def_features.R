@@ -21,6 +21,8 @@ test_that("features are identified when given logical", {
     expect_equal(16)
   max(id_map$metadata$feret_min, na.rm = T) |> round(2) |>
     expect_equal(1)
+  max(id_map$metadata$rectangular_min, na.rm = T) |> round(2) |>
+    expect_equal(1)
   max(id_map$metadata$perimeter, na.rm = T) |> round(2) |>
     expect_equal(30)
 })
@@ -108,6 +110,16 @@ test_that("check that particles are identified with all TRUE or FALSE logical ve
   # All FALSE case
   map$metadata$particles <- rep(FALSE, nrow(map$metadata))
   def_features(map, map$metadata$particles) |> expect_error()
+})
+
+test_that("minimum Feret uses the bounding width along the maximum axis", {
+  points <- rbind(c(0, 0), c(1, 0), c(0, 1), c(1, 1))
+  dimensions <- OpenSpecy:::.particle_feret_dimensions(points)
+  expect_equal(unname(dimensions[["feret_max"]]), sqrt(2) + 1)
+  expect_equal(unname(dimensions[["feret_min"]]), sqrt(2) + 1)
+  expect_false(isTRUE(all.equal(
+    unname(dimensions[["feret_min"]]), 4 / dimensions[["feret_max"]]
+  )))
 })
 
 test_that("single-class character features can define one feature class", {

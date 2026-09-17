@@ -218,6 +218,7 @@ read_envi <- function(file, header = NULL,
       metadata = data.frame(x = rep(seq_len(nx) - 1L, times = ny),
                             y = rep(seq_len(ny) - 1L, each = nx))
     )
+    metric_object <- .specs_background_intensity(metric_object, policy)
     snr <- sig_noise(metric_object, metric = policy$metric,
                      step = policy$step, spatial_smooth = FALSE, abs = FALSE)
     streamed <- .envi_background_result(values, snr, policy)
@@ -397,6 +398,7 @@ read_envi <- function(file, header = NULL,
                                     times = length(local)),
                             y = rep(core_start:core_end - 1L, each = nx))
     )
+    metric_object <- .specs_background_intensity(metric_object, policy)
     block_snr <- sig_noise(
       metric_object, metric = policy$metric, step = policy$step,
       spatial_smooth = FALSE, abs = FALSE
