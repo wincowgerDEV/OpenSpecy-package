@@ -304,7 +304,14 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
   )
       
       rout <- tryCatch(expr = {
-          background_policy <- if(isTRUE(input$threshold_decision)) {
+          serialized_rds <- nrow(file_info) == 1L &&
+            grepl("\\.rds$", file_info$name[[1L]], ignore.case = TRUE)
+          # Serialized OpenSpecy objects are already materialized. Their S/N
+          # is calculated by the canonical analysis pipeline after import, so
+          # constructing a compact-reader policy here is both unnecessary and
+          # made particle-RDS round trips depend on the installed reader API.
+          background_policy <- if(isTRUE(input$threshold_decision) &&
+                                     !serialized_rds) {
             specs_background_filter(
               metric = effective_signal_selection(), minimum = MinSNR(),
               maximum = MaxSNR(),
@@ -324,15 +331,15 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
           # RDS directly avoids dispatch and, critically for gigabyte maps,
           # avoids hashing/copying the full spectra matrix merely to add a
           # provenance ID. Existing IDs in the serialized object are retained.
-          members <- if(nrow(file_info) == 1L &&
-                       grepl("\\.rds$", file_info$name[[1L]],
-                             ignore.case = TRUE)) {
+          members <- if(serialized_rds) {
             serialized <- readRDS(as.character(file_info$datapath[[1L]]))
             if(is_Specs(serialized)) {
               check_Specs(serialized)
               serialized
             } else {
-              as_OpenSpecy(serialized, compute_file_id = FALSE)
+              app_restore_spatial_coordinates(
+                as_OpenSpecy(serialized, compute_file_id = FALSE)
+              )
             }
           } else {
             app_read_uploaded_members(
@@ -486,6 +493,11 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
         ai_output_gate$clear()
         pixel_projection_gate$clear()
         preprocessed$data <- rout
+        spatial_unit <- attr(rout, "openspecy_spatial_unit", exact = TRUE)
+        if(isTruthy(spatial_unit)) {
+          updateNumericInput(session, "pixel_size", value = 1)
+          updateTextInput(session, "pixel_unit", value = spatial_unit)
+        }
         set_upload_status(NULL)
         session$sendCustomMessage(
           "openspecy-upload-materialized",
@@ -2662,9 +2674,17 @@ observeEvent(input$run_analysis, {
           data_click$plot <- selected_pixel
           data_click$pixel <- selected_pixel
           data_click$table <- 1L
-          meta_cache(app_uploaded_metadata_cache(
+          uploaded_cache <- app_uploaded_metadata_cache(
             inspection_source_gate(), snr_preview()
-          ))
+          )
+          projection <- pixel_projection_gate$read()
+          if(!is.null(projection) &&
+             length(projection$correlation) == nrow(uploaded_cache)) {
+            uploaded_cache$match_val <- projection$correlation
+            uploaded_cache$material_class <- projection$material
+            uploaded_cache$spectrum_identity <- projection$match_id
+          }
+          meta_cache(uploaded_cache)
         } else {
           selected <- app_initial_result_selection(object, state$pixel_to_unit)
           data_click$plot <- selected$plot
@@ -2829,7 +2849,8 @@ observeEvent(input$run_analysis, {
       state <- canonical_state()
       pixel_matches <- state$pixel_matches
       correlation_active <- isTRUE(state$settings$correlation_active)
-      values <- if(correlation_active &&
+      values <- if((correlation_active ||
+                    isTRUE(state$settings$file_backed_selection)) &&
                    !is.null(pixel_matches) && nrow(pixel_matches)) {
         best_match_rows(pixel_matches)$match_val
       } else max_cor()
@@ -3630,7 +3651,14 @@ output$progress_bars <- renderUI({
       req(!is.null(preprocessed$data))
       settings <- canonical_state()$settings
       if(isTRUE(settings$identification_active)) {
-          match_names <- max_cor_identity()
+          pixel_matches <- canonical_state()$pixel_matches
+          match_names <- if(isTRUE(settings$file_backed_selection) &&
+                            !is.null(pixel_matches) && nrow(pixel_matches)) {
+            winners <- best_match_rows(pixel_matches)
+            if(isTRUE(settings$model_library)) {
+              app_standardize_material_class(winners$library_id)
+            } else match_material(winners$library_id)
+          } else max_cor_identity()
           req(!is.null(match_names), length(match_names))
       } else if(isTRUE(settings$collapse)) {
           particles <- canonical_final()
@@ -3887,6 +3915,11 @@ output$progress_bars <- renderUI({
           processed_particles$metadata <- app_particle_metadata_units(
             processed_particles$metadata, calibration$size, calibration$unit
           )
+          processed_particles <- app_restore_spatial_coordinates(
+            processed_particles
+          )
+          attr(processed_particles, "openspecy_spatial_unit") <-
+            calibration$unit
           processed_particles$metadata <- app_round_reported_metadata(
             processed_particles$metadata
           )
@@ -4012,6 +4045,16 @@ output$progress_bars <- renderUI({
       # another, keeping the DT row, reference overlay, and metadata aligned.
       if(is.na(previous) || identical(previous, selected)) return()
       data_click$table <- 1L
+  }, ignoreInit = TRUE)
+  last_filespec_pixel <- reactiveVal(NA_integer_)
+  observeEvent(data_click$pixel, {
+      if(!isTRUE(canonical_state()$settings$file_backed_selection)) return()
+      selected <- suppressWarnings(as.integer(data_click$pixel)[1L])
+      previous <- last_filespec_pixel()
+      last_filespec_pixel(selected)
+      if(!is.na(previous) && !identical(previous, selected)) {
+        data_click$table <- 1L
+      }
   }, ignoreInit = TRUE)
   # meta_cache()'s .openspecy_index is always a column index into
   # quantified_data()/canonical_final() -- i.e. a *unit* index (one particle

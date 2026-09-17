@@ -1,5 +1,15 @@
 # OpenSpecy 1.7.1
 
+- Processed-particle RDS downloads now round-trip through upload with canonical
+  heatmap coordinates while retaining their unit-bearing metadata columns.
+- File-backed maps now support Fully Processed signal/noise and Collapse-off
+  identification through bounded, spatial-halo-aware chunks. Whole-map state
+  retains only S/N and rank-1 match summaries; selecting a pixel reads and
+  processes that spectrum and calculates its requested Top N matches on demand.
+- Raw / Spatially Smoothed signal thresholds now include the selected intensity
+  conversion, so transmittance and reflectance are measured after conversion to
+  absorbance-like units. The first heatmap remains hidden until its current
+  Plotly result is painted, eliminating the upload-time empty/stale flash.
 - Added optional per-metadata-group Top-N spectral matching with
   `match_spec(..., top_n_by = "organization")`; the Shiny app enables this per
   organization by default and batches both organizations and query spectra.

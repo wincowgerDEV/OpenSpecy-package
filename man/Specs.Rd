@@ -100,7 +100,8 @@ specs_background_filter(
   minimum,
   maximum = Inf,
   sigma = NULL,
-  step = 10
+  step = 10,
+  intensity_type = NULL
 )
 
 specs_source_count(x)
@@ -212,6 +213,10 @@ decompress. With \code{expand = TRUE}, indexes refer to rows in
 classifies the unsmoothed spectra.}
 
 \item{step}{run-length step passed to \code{\link[=sig_noise]{sig_noise()}}.}
+
+\item{intensity_type}{optional intensity units passed to \code{\link[=adj_intens]{adj_intens()}} before
+signal/noise is measured. \code{NULL} or \code{"none"} preserves uploaded values;
+\code{"transmittance"} and \code{"reflectance"} classify absorbance-adjusted values.}
 
 \item{columns}{optional coordinate or metadata columns to return.}
 

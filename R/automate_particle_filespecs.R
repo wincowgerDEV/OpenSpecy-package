@@ -276,7 +276,16 @@ automate_particle_analysis.FileSpecs <- function(
     stop("'process' must be NULL or a function", call. = FALSE)
   }
   chunk_size <- .filespec_bounded_chunk_size(length(bands), chunk_size)
-  chunks <- .filespec_particle_chunks(x, index, chunk_size)
+  chunks <- if(isTRUE(spectral_smooth)) {
+    col_chunk <- .filespec_column_chunk_id(index, chunk_size)
+    if(is.null(col_chunk)) {
+      stop("spectral_smooth requires a complete rectangular row/col grid ",
+           "for this FileSpecs region", call. = FALSE)
+    }
+    split(seq_len(nrow(index)), col_chunk)
+  } else {
+    .filespec_particle_chunks(x, index, chunk_size)
+  }
   out <- rep(NA_real_, nrow(index))
   for (rows in chunks) {
     values <- if (isTRUE(spectral_smooth)) {

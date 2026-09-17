@@ -401,9 +401,10 @@ test_that("identification outputs use the library committed by Run", {
   )
   expect_match(
     server_source,
-    "if(isTRUE(settings$identification_active)) {\n          match_names <- max_cor_identity()",
+    "if(isTRUE(settings$identification_active)) {\n          pixel_matches <- canonical_state()$pixel_matches",
     fixed = TRUE
   )
+  expect_match(server_source, "} else max_cor_identity()", fixed = TRUE)
   expect_match(
     server_source, "library = analysis_library()", fixed = TRUE
   )
@@ -428,6 +429,11 @@ test_that("bundled app updates map selection through stable widget renders", {
 
   expect_match(server_source, "source_count(preprocessed$data) > 1",
                fixed = TRUE)
+  expect_match(
+    server_source,
+    "source_count(preprocessed$data) > 1 &&\n                  !isTRUE(analysis_needs_reset()) &&\n                  !is.null(pixel_projection())",
+    fixed = TRUE
+  )
   expect_match(server_source, "output$heatmapA <- plotly::renderPlotly({",
                fixed = TRUE)
   expect_false(grepl("app_draw_server_heatmap(", server_source, fixed = TRUE))
@@ -455,6 +461,12 @@ test_that("bundled app updates map selection through stable widget renders", {
                      fixed = TRUE))
   expect_false(grepl('plotly::plotlyOutput("heatmapB"', ui_source,
                      fixed = TRUE))
+  expect_match(ui_source, "openspecy-heatmap-pending", fixed = TRUE)
+  bridge_source <- paste(readLines(
+    file.path(app_path, "www", "parent-frame.js"), warn = FALSE
+  ), collapse = "\n")
+  expect_match(bridge_source, '"openspecy-heatmap-pending"', fixed = TRUE)
+  expect_match(bridge_source, "revealHeatmapWhenPainted", fixed = TRUE)
   expect_match(server_source, "selected_match <- reactive({", fixed = TRUE)
   expect_match(server_source, "selected_match()", fixed = TRUE)
   expect_false(grepl("selected_match_cache", server_source, fixed = TRUE))
@@ -1030,7 +1042,7 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   # Every Run-gated result is a reactiveVal cache (not a plain bindEvent()
   # reactive) so a fresh upload can explicitly clear it.
   for(gate in c("canonical_state", "quantified_data", "automatic_report",
-                "ai_output", "pixel_projection")) {
+                "pixel_projection")) {
     expect_match(
       server_source,
       paste0(gate, "_gate <- run_gated_reactive(function() {"),
@@ -1042,6 +1054,7 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
       fixed = TRUE
     )
   }
+  expect_match(server_source, "ai_output <- reactive({", fixed = TRUE)
   expect_match(server_source, "quality_report <- reactive({", fixed = TRUE)
   expect_match(server_source, "active_spectrum_view <- reactive({",
                fixed = TRUE)
@@ -1070,6 +1083,11 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   expect_match(server_source, "automatic_report_gate$clear()", fixed = TRUE)
   expect_match(server_source, "ai_output_gate$clear()", fixed = TRUE)
   expect_match(server_source, "pixel_projection_gate$clear()", fixed = TRUE)
+  clear_position <- regexpr("pixel_projection_gate$clear()", server_source,
+                            fixed = TRUE)
+  publish_position <- regexpr("preprocessed$data <- rout", server_source,
+                              fixed = TRUE)
+  expect_true(clear_position < publish_position)
   expect_match(
     server_source,
     'need(\n      !isTRUE(analysis_needs_reset()),\n      "A new dataset was uploaded. Click Run to analyze it."\n    )',
@@ -1081,14 +1099,11 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
     fixed = TRUE
   )
 
-  # The reset markers are set right after preprocessed$data is assigned the
-  # newly read object, in the upload observer's success branch -- not in the
-  # error/warning branches, which intentionally leave prior results in place.
-  expect_match(
-    server_source,
-    "preprocessed$data <- rout\n        set_upload_status(NULL)",
-    fixed = TRUE
-  )
+  # The upload success branch publishes the new source only after clearing
+  # all prior Run-gated state; unit restoration may update controls between
+  # publishing and clearing the upload status.
+  expect_match(server_source, "preprocessed$data <- rout", fixed = TRUE)
+  expect_match(server_source, "set_upload_status(NULL)", fixed = TRUE)
   expect_match(
     server_source,
     "analysis_dirty(TRUE)\n        analysis_needs_reset(TRUE)\n        canonical_state_gate$clear()",
@@ -1119,6 +1134,35 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   expect_false(grepl('"btn-success openspecy-run-button"', ui_source, fixed = TRUE))
   expect_match(ui_source, ".btn.openspecy-run-button.openspecy-run-dirty {",
                fixed = TRUE)
+})
+
+test_that("bundled app streams fully processed file-backed map summaries", {
+  app_path <- run_app(test_mode = TRUE)
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+  global_source <- paste(readLines(file.path(app_path, "global.R"),
+                                   warn = FALSE), collapse = "\n")
+
+  expect_false(grepl(
+    "Fully Processed signal/noise is not available for file-backed",
+    server_source, fixed = TRUE
+  ))
+  expect_match(
+    server_source,
+    "process = if(fully_processed)", fixed = TRUE
+  )
+  expect_match(server_source, "app_intensity_snr_basis(spatial", fixed = TRUE)
+  expect_match(server_source, "serialized_rds <- nrow(file_info) == 1L",
+               fixed = TRUE)
+  expect_match(server_source, "app_restore_spatial_coordinates(", fixed = TRUE)
+  expect_match(server_source, "classify_filespec_best <- function", fixed = TRUE)
+  expect_match(server_source, "selected_filespec_library_matches <- reactive",
+               fixed = TRUE)
+  expect_match(server_source, "selected_filespec_model_predictions <- reactive",
+               fixed = TRUE)
+  expect_match(global_source, "OpenSpecy:::.filespec_smoothed_values(",
+               fixed = TRUE)
+  expect_false(grepl("turn off Spatial Smooth", global_source, fixed = TRUE))
 })
 
 test_that("collapse and spatial smooth are silently ignored for a single spectrum", {

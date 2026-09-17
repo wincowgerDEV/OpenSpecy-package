@@ -686,7 +686,9 @@ app_intensity_snr_basis <- function(x, settings) {
   if(!isTRUE(settings$intensity_decision)) return(x)
   type <- if(is.null(settings$intensity_corr)) "none" else
     as.character(settings$intensity_corr)[[1L]]
-  adj_intens(x, type = type, make_rel = FALSE)
+  adjusted <- adj_intens(x, type = type, make_rel = FALSE)
+  if(!identical(type, "none")) attr(adjusted, "intensity_unit") <- "absorbance"
+  adjusted
 }
 
 app_prepare_correlation_reference <- function(reference) {
@@ -792,15 +794,22 @@ app_stream_filespec_best_matches <- function(
   chunk_size <- OpenSpecy:::.filespec_bounded_chunk_size(
     length(OpenSpecy:::.filespec_axis(source)), chunk_size
   )
-  starts <- seq.int(1L, length(positions), by = chunk_size)
+  row_chunks <- if(isTRUE(spatial_smooth)) {
+    col_chunk <- OpenSpecy:::.filespec_column_chunk_id(index, chunk_size)
+    if(is.null(col_chunk)) {
+      stop("Spatial smoothing requires a complete rectangular file-backed grid.",
+           call. = FALSE)
+    }
+    split(seq_along(positions), col_chunk[positions])
+  } else {
+    split(seq_along(positions), ceiling(seq_along(positions) / chunk_size))
+  }
   object_id <- character(length(positions))
   library_id <- character(length(positions))
   match_val <- rep(NA_real_, length(positions))
 
-  for(i in seq_along(starts)) {
-    rows <- seq.int(
-      starts[[i]], min(length(positions), starts[[i]] + chunk_size - 1L)
-    )
+  for(i in seq_along(row_chunks)) {
+    rows <- row_chunks[[i]]
     query <- if(isTRUE(spatial_smooth)) {
       values <- OpenSpecy:::.filespec_smoothed_values(
         source, index, positions[rows], bands = NULL, sigma1 = sigma
@@ -837,13 +846,13 @@ app_stream_filespec_best_matches <- function(
     match_val[rows] <- as.numeric(best$match_val[aligned])
     if(!is.null(progress)) {
       progress(
-        completed_blocks = i, total_blocks = length(starts),
-        completed_spectra = rows[[length(rows)]],
+        completed_blocks = i, total_blocks = length(row_chunks),
+        completed_spectra = sum(lengths(row_chunks[seq_len(i)])),
         total_spectra = length(positions), chunk_size = chunk_size
       )
     }
     rm(query, processed, matches, best)
-    if(i %% 5L == 0L || i == length(starts)) {
+    if(i %% 5L == 0L || i == length(row_chunks)) {
       invisible(gc(verbose = FALSE))
     }
   }
@@ -885,6 +894,44 @@ app_pixel_calibration <- function(pixel_size = 1, pixel_unit = "pixel") {
     area_suffix = paste0(suffix, "2"),
     volume_suffix = paste0(suffix, "3")
   )
+}
+
+# Particle RDS downloads use unit-bearing metadata names (for example,
+# x_pixel/y_pixel or x_um/y_um). Restore the canonical x/y aliases needed by
+# the map pipeline when one of those downloads is uploaded again, while
+# retaining every reported unit-bearing column unchanged.
+app_restore_spatial_coordinates <- function(x) {
+  if(!is_OpenSpecy(x) || is.null(x$metadata)) return(x)
+  metadata <- data.table::copy(data.table::as.data.table(x$metadata))
+  if(all(c("x", "y") %in% names(metadata))) return(x)
+
+  coordinate_pair <- function(prefix = "") {
+    x_prefix <- paste0("^", prefix, "x_")
+    x_names <- grep(x_prefix, names(metadata), value = TRUE)
+    if(!length(x_names)) return(NULL)
+    suffixes <- sub(x_prefix, "", x_names)
+    y_names <- paste0(prefix, "y_", suffixes)
+    valid <- y_names %in% names(metadata)
+    if(!any(valid)) return(NULL)
+    first <- which(valid)[[1L]]
+    list(x = x_names[[first]], y = y_names[[first]], unit = suffixes[[first]])
+  }
+
+  pair <- coordinate_pair()
+  if(is.null(pair)) pair <- coordinate_pair("centroid_")
+  if(is.null(pair)) return(x)
+
+  x_values <- suppressWarnings(as.numeric(metadata[[pair$x]]))
+  y_values <- suppressWarnings(as.numeric(metadata[[pair$y]]))
+  if(length(x_values) != nrow(metadata) || length(y_values) != nrow(metadata) ||
+     !any(is.finite(x_values) & is.finite(y_values))) return(x)
+
+  metadata[, `:=`(x = x_values, y = y_values)]
+  x$metadata <- metadata
+  if(is.null(attr(x, "openspecy_spatial_unit", exact = TRUE))) {
+    attr(x, "openspecy_spatial_unit") <- pair$unit
+  }
+  x
 }
 
 app_calibrate_spatial_metadata <- function(metadata, pixel_size = 1,

@@ -163,6 +163,29 @@ test_that("file-backed matching retains only one winner per eligible spectrum", 
   expect_identical(length(progress), 4L)
   expect_identical(progress[[4L]]$completed_spectra, 11L)
   expect_identical(progress[[4L]]$total_spectra, 11L)
+
+  index <- OpenSpecy:::.filespec_index(source)
+  values <- OpenSpecy:::.filespec_smoothed_values(
+    source, index, which(eligible), bands = NULL, sigma1 = c(1, 1, 1)
+  )
+  smooth_query <- OpenSpecy:::.filespec_values_to_OpenSpecy(source, values)
+  smooth_library <- filter_spec(
+    smooth_query, logic = seq_len(ncol(smooth_query$spectra)) %in% c(1L, 6L, 11L)
+  )
+  smooth_prepared <- env$app_prepare_correlation_reference(smooth_library)
+  smooth_streamed <- env$app_stream_filespec_best_matches(
+    source, eligible = eligible, chunk_size = 3L, process = identity,
+    identify = function(query) env$app_match_prepared_best(
+      query, smooth_prepared, library_block_size = 2L
+    ),
+    spatial_smooth = TRUE, sigma = c(1, 1, 1)
+  )
+  smooth_eager <- OpenSpecy:::.match_spec_blockwise(
+    smooth_query, smooth_library, top_n = 1L, block_size = 20L,
+    conform = FALSE, type = "roll"
+  )
+  expect_equal(smooth_streamed, smooth_eager, ignore_attr = TRUE,
+               tolerance = 1e-12)
 })
 
 test_that("file-backed streaming reports processing that needs full memory", {
@@ -177,11 +200,31 @@ test_that("file-backed streaming reports processing that needs full memory", {
       ),
       spatial_smooth = TRUE
     ),
-    c(
-      "turn off Spatial Smooth", "turn off Saturation Correction",
-      "turn off automatic CO2 flattening",
-      "turn off automatic range restriction"
-    )
+    c("turn off Saturation Correction", "turn off automatic CO2 flattening",
+      "turn off automatic range restriction")
+  )
+})
+
+test_that("raw signal/noise basis applies only the selected intensity conversion", {
+  env <- .source_in_memory_app_helpers()
+  spectrum <- as_OpenSpecy(
+    1000:1003,
+    spectra = matrix(c(20, 35, 50, 70), ncol = 1,
+                     dimnames = list(NULL, "pixel-1"))
+  )
+  settings <- list(
+    intensity_decision = TRUE, intensity_corr = "transmittance"
+  )
+  adjusted <- env$app_intensity_snr_basis(spectrum, settings)
+  expected <- adj_intens(spectrum, type = "transmittance", make_rel = FALSE)
+
+  expect_equal(adjusted$spectra, expected$spectra)
+  expect_identical(attr(adjusted, "intensity_unit"), "absorbance")
+  expect_identical(
+    env$app_intensity_snr_basis(
+      spectrum, list(intensity_decision = FALSE, intensity_corr = "reflectance")
+    ),
+    spectrum
   )
 })
 
@@ -757,4 +800,35 @@ test_that("heatmap calibration labels axes and peak overlays use markers only", 
   expect_identical(peak_trace$marker$color, "#3B82F6")
   expect_null(peak_trace$textposition)
   expect_match(peak_trace$hovertemplate, "Peak rank", fixed = TRUE)
+})
+
+test_that("processed particle RDS metadata restores heatmap coordinates", {
+  env <- .source_in_memory_app_helpers()
+  particles <- as_OpenSpecy(
+    100:102,
+    spectra = matrix(seq_len(9), nrow = 3,
+                     dimnames = list(NULL, paste0("unit_", 1:3))),
+    metadata = data.frame(
+      col_id = paste0("unit_", 1:3),
+      x_pixel = c(2, 5, 8), y_pixel = c(3, 4, 7),
+      area_pixel2 = c(4, 9, 16)
+    )
+  )
+  particles$metadata[, c("x", "y") := NULL]
+
+  restored <- env$app_restore_spatial_coordinates(particles)
+
+  expect_equal(restored$metadata$x, particles$metadata$x_pixel)
+  expect_equal(restored$metadata$y, particles$metadata$y_pixel)
+  expect_identical(attr(restored, "openspecy_spatial_unit"), "pixel")
+  expect_true(all(c("x_pixel", "y_pixel", "area_pixel2") %in%
+                    names(restored$metadata)))
+  mapping <- env$app_identity_pixel_mapping(restored)
+  expect_equal(mapping$x, c(2, 5, 8))
+  expect_equal(mapping$y, c(3, 4, 7))
+  heatmap <- env$app_ordinary_heatmap_data(
+    restored$metadata, c(1, 2, 3), FALSE, "Signal/Noise"
+  )
+  expect_identical(heatmap$type, "heatmap")
+  expect_true(any(is.finite(heatmap$z)))
 })

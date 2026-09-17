@@ -500,14 +500,14 @@
 
 <div class="node trigger" style="left:1650px;top:610px" tabindex="0">
   &#8635; Recalculate Preview
-  <div class="tip">Works before the first Run: if only file paths are staged, it materializes and validates them, then scans the selected S/N basis and retains only histogram values/summary. It never publishes canonical analysis. Central progress makes the potentially long scan explicit; any changed metric, bounds, basis, or sigma keeps canonical results stale until Click Run.
+  <div class="tip">Works before the first Run: if only file paths are staged, it materializes and validates them, then scans the selected S/N basis and retains only histogram values/summary. It never publishes canonical analysis. Central progress makes the potentially long scan explicit; any changed metric, bounds, basis, sigma, intensity units, or Fully Processed setting keeps the preview stale until Recalculate or Click Run.
   <span class="loc">Plan 022 &middot; server.R: read_uploaded_files() + recalculate_snr_preview()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:570px" tabindex="0">
   Base Specs Materialization
   <div class="sub">explicit descriptor-backed or complete in-memory representation</div>
-  <div class="tip">With Load Entire Map into Memory off, an explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N, bounded winning-correlation matching, and connected Mean collapse. With it on, every spectrum is deliberately materialized as ordinary <code>OpenSpecy</code> and all later stages use the dense path; allocation failures are measured runtime failures rather than an arbitrary size rejection. H5 and other compatible sources follow the same explicit choice.
+  <div class="tip">With Load Entire Map into Memory off, an explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N, bounded winning-correlation matching, and connected Mean collapse. With it on, every spectrum is deliberately materialized as ordinary <code>OpenSpecy</code> and all later stages use the dense path; allocation failures are measured runtime failures rather than an arbitrary size rejection. H5 and other compatible sources follow the same explicit choice. A processed-particle RDS is already materialized, so it bypasses reader-only background policies and restores canonical x/y aliases from its retained unit-bearing coordinates for heatmap selection.
   <span class="loc">Plans 018/033 &middot; global.R: app_read_uploaded_members() &middot; R/{Specs_file,read_envi,read_ext}.R</span></div>
 </div>
 
@@ -535,7 +535,7 @@
 <div class="node function" style="left:1050px;top:1250px" tabindex="0">
   Signal/Noise Compute
   <div class="sub">bounded FileSpecs scan or committed compact/dense values</div>
-  <div class="tip">File-backed ENVI reads at most one bounded block, optionally with the exact Gaussian halo, and retains only one S/N value per source pixel. Compact maps reuse/project their stored S/N contract; dense/Fully Processed paths retain ordinary computation. Selected-spectrum Quality Findings remain bound to Active Spectrum Inspection.
+  <div class="tip">File-backed ENVI reads at most one bounded column block, optionally with the exact Gaussian halo, and retains only one S/N value per source pixel. Raw/Spatial always includes the selected transmittance/reflectance-to-absorbance intensity adjustment before measurement. Fully Processed applies the committed chunk-stable ordinary sequence inside each block rather than materializing the map; compact readers record the same intensity policy in stored S/N provenance. Selected-spectrum Quality Findings remain bound to Active Spectrum Inspection.
   <span class="loc">Plans 018/033 &middot; server.R: signal_to_noise()/signal_eligible() &middot; R/automate_particle_filespecs.R</span></div>
 </div>
 
@@ -550,13 +550,13 @@
 <div class="node function" style="left:250px;top:1590px" tabindex="0">
   Ordinary Process
   <div class="sub">process_spec() + corrections &middot; foreground values once</div>
-  <div class="tip">The !collapse branch applies the existing correction and processing sequence. Compact in-memory maps process retained stored values while keeping source mappings aligned. A <code>FileSpecs</code> map instead keeps its full S/N/pixel mapping descriptor-only and applies the Run-captured sequence to just the selected one-spectrum view; changing the heatmap selection performs another bounded indexed read, never whole-map decompression. This remains the only stage that changes spectral values.
+  <div class="tip">The !collapse branch applies the existing correction and processing sequence. Compact in-memory maps process retained stored values while keeping source mappings aligned. A <code>FileSpecs</code> map uses bounded, halo-aware processed chunks only to derive S/N and rank-1 map summaries, then applies the Run-captured sequence to the selected one-spectrum view; changing the heatmap selection performs another bounded indexed read and Top-N match, never whole-map decompression. This remains the only stage that changes retained spectral values.
   <span class="loc">Plans 018/033 &middot; server.R: ordinary_process()/active_spectrum_view() &middot; R/{process_spec,Specs_methods}.R</span></div>
 </div>
 <div class="node function" style="left:250px;top:1760px" tabindex="0">
   Identity Pixel Mapping
   <div class="sub">identity_pixel_mapping()</div>
-  <div class="tip">With Collapse off, an ineligible pixel remains excluded from canonical units. For <code>FileSpecs</code>, the identity map still contains every source coordinate and streamed S/N decision, while canonical state materializes only the first retained spectrum and later clicks use the source-pixel inspection lane. Exact-mode rejection remains selectable for inspection without being promoted to a retained unit.
+  <div class="tip">With Collapse off, an ineligible pixel remains excluded from canonical units. For <code>FileSpecs</code>, the identity map still contains every source coordinate, streamed S/N decision, and (when enabled) rank-1 library/model score and identity, while canonical state materializes only the first retained spectrum and later clicks use the source-pixel inspection lane. Exact-mode rejection remains selectable for inspection without being promoted to a retained unit.
   <span class="loc">Plans 018/033 &middot; server.R: app_identity_pixel_mapping()/file_backed_selection &middot; Specs source mapping</span></div>
 </div>
 
@@ -604,7 +604,7 @@
 <div class="node function" style="left:1050px;top:2100px" tabindex="0">
   Library Identification
   <div class="sub">organization blocks &times; at most 1,000 query spectra</div>
-  <div class="tip">The default Top N per organization policy iterates selected reference organizations outside bounded query blocks, immediately reduces each correlation block, and releases it. Rank 1 across all retained candidates alone feeds canonical identity; each organization winner remains selectable/exportable. File-backed correlation thresholding first performs a separate global-Top-1 pixel stream solely for threshold/group membership, then this ordinary matcher identifies the collapsed particle means using the requested Top N policy. The reference artifact itself is committed by Run.
+  <div class="tip">The default Top N per organization policy iterates selected reference organizations outside bounded query blocks, immediately reduces each correlation block, and releases it. Rank 1 across all retained candidates alone feeds canonical identity; each organization winner remains selectable/exportable. File-backed maps stream a global Top-1 summary per eligible pixel for thresholds, heatmaps, and summaries. Collapse identifies final particle means normally; Collapse off re-reads only the selected pixel and computes its requested Top N candidates on demand. The reference artifact itself is committed by Run.
   <span class="loc">Plans 022/029/033 &middot; server.R: analysis_library()/identify_blockwise() &middot; R/{match_spec,Specs_methods}.R</span></div>
 </div>
 <div class="node function" style="left:1050px;top:2270px" tabindex="0">
@@ -617,7 +617,7 @@
 <div class="node function" style="left:1050px;top:2440px" tabindex="0">
   Build canonical_state
   <div class="sub">Specs/OpenSpecy result or bounded FileSpecs selection &middot; Run-gated</div>
-  <div class="tip">The single expensive-analysis owner bundles a canonical result, full pixel/unit mapping, partition, diagnostics, and the committed run-settings snapshot. File-backed Collapse-off threshold assessment is explicit: state holds the full lightweight mapping plus one processed retained spectrum and a <code>file_backed_selection</code> marker; the immutable descriptor remains the inspection owner. Its companion <code>analysis_library</code> commits the exact artifact used by that Run.
+  <div class="tip">The single expensive-analysis owner bundles a canonical result, full pixel/unit mapping, partition, diagnostics, and the committed run-settings snapshot. File-backed Collapse-off state holds the full lightweight mapping, S/N vector, optional rank-1 match summaries, one processed retained spectrum, and a <code>file_backed_selection</code> marker; the immutable descriptor remains the inspection owner. Its companion <code>analysis_library</code> commits the exact artifact used by that Run.
   <span class="loc">Plans 018/033 &middot; server.R: canonical_state_gate()</span></div>
 </div>
 
@@ -657,7 +657,7 @@
 <div class="node function" style="left:1550px;top:2950px" tabindex="0">
   AI Model Classification
   <div class="sub">ai_output_gate: user-selected Top N probabilities</div>
-  <div class="tip">For an explicit type the router runs that FTIR, Raman, or NIR logistic model. The default All option runs every overlapping type-specific model, ranks class probabilities per spectrum, and retains the user-selected Top N. Rank 1 feeds map colors, Selection Metadata, and standardized Summary material classes even after particle collapse; display values strip technique prefixes while raw keys remain available for coefficient lookup. All retained ranks feed Top Matches. The committed model artifact and settings remain unchanged until Run.
+  <div class="tip">For an explicit type the router runs that FTIR, Raman, or NIR logistic model. The default All option runs every overlapping type-specific model, ranks class probabilities per spectrum, and retains the user-selected Top N. File-backed maps retain only rank 1 per pixel for maps/summaries and recompute the selected pixel's Top N on demand. Rank 1 feeds map colors, Selection Metadata, and standardized Summary material classes; display values strip technique prefixes while raw keys remain available for coefficient lookup. The committed model artifact and settings remain unchanged until Run.
   <span class="loc">Plans 025/033 &middot; global.R: app_classify_model_library() &middot; server.R: ai_output_gate()/max_cor_identity()</span></div>
 </div>
 
@@ -709,7 +709,7 @@
 <div class="node output tip-left" style="left:2250px;top:1490px" tabindex="0">
   Download: Thresholded Particles (zip)
   <div class="depends">depends on: Collapse, Signal/Noise, Identification/AI</div>
-  <div class="tip">Details/processed/summary/particle-size figures come from canonical_final() + snr_preview(). Live pixel calibration scales length/coordinate fields, areas, and area^(3/2) volume into unit-bearing metadata and figure axes without mutating canonical spectra. The correlation and greatest-first material-summary figures use the committed rank-1 library or standardized model identities. Heatmap PNGs use the same calibrated pixel projection, omit inline legends so every heatmap canvas stays 8 by 7 inches, and write each useful bounded legend to a companion PNG. Spectrum Index is not an export choice.
+  <div class="tip">Details/processed/summary/particle-size figures come from canonical_final() + snr_preview(). Live pixel calibration scales length/coordinate fields, areas, and area^(3/2) volume into unit-bearing metadata and figure axes without mutating canonical spectra. The processed RDS also carries canonical x/y aliases and its spatial-unit attribute, so uploading it again reproduces a selectable map without discarding the reported unit-bearing columns. The correlation and greatest-first material-summary figures use the committed rank-1 library or standardized model identities. Heatmap PNGs use the same calibrated pixel projection, omit inline legends so every heatmap canvas stays 8 by 7 inches, and write each useful bounded legend to a companion PNG. Spectrum Index is not an export choice.
   <span class="loc">server.R:2781-2843</span></div>
 </div>
 
@@ -781,7 +781,7 @@
 <div class="node output tip-left" style="left:2250px;top:2810px" tabindex="0">
   Heatmap
   <div class="depends">depends on: Pixel Projection; Identification OR AI</div>
-  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(). Its available colorings change with upstream state: Collapse off shows per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows only Signal/Noise-based coloring. X/Y default to pixels and scale live to the Advanced pixel edge length/unit for plotting, hover, click lookup, and exported figures. Clicking selects a pixel/unit for Active Spectrum Inspection and Selection Metadata (dashed teal lines); the heatmap is never the quality-test data source.
+  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(). Its available colorings change with upstream state: Collapse off shows streamed per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows only Signal/Noise-based coloring. The frame stays hidden after upload/invalidation until the current Run has pixel projection and Plotly has painted its SVG, preventing an empty or prior-state flash. X/Y default to pixels and scale live to the Advanced pixel edge length/unit. Clicking selects a pixel/unit for Active Spectrum Inspection and Selection Metadata; the heatmap is never the quality-test data source.
   <span class="loc">server.R:2523, 2475</span></div>
 </div>
 

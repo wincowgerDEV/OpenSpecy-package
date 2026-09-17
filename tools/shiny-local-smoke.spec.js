@@ -12,6 +12,12 @@ const path = require("path");
 
 const repo = path.resolve(__dirname, "..");
 const rPidFile = path.join(repo, "test-results", ".shiny-local-smoke-r.pid");
+const filespecFixtureDir = path.join(
+  repo, "test-results", ".shiny-local-smoke-filespec"
+);
+const particleRdsFixture = path.join(
+  filespecFixtureDir, "particles_processed.rds"
+);
 let port = Number(process.env.OPENSPECY_LOCAL_SMOKE_PORT || 0);
 let app;
 let stderr = "";
@@ -353,6 +359,21 @@ async function stageLocalFiles(page, files) {
   await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
 }
 
+function findFixtureFile(directory, extension) {
+  const pending = [directory];
+  while (pending.length) {
+    const current = pending.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const candidate = path.join(current, entry.name);
+      if (entry.isDirectory()) pending.push(candidate);
+      if (entry.isFile() && entry.name.toLowerCase().endsWith(extension)) {
+        return candidate;
+      }
+    }
+  }
+  throw new Error(`Missing ${extension} fixture under ${directory}`);
+}
+
 async function expectNativeDownloadBusyOverlay(page) {
   let releaseDownload;
   const downloadGate = new Promise((resolve) => { releaseDownload = resolve; });
@@ -492,6 +513,36 @@ async function expectBlueBorder(locator) {
 
 test.beforeAll(async () => {
   test.setTimeout(90000);
+  fs.rmSync(filespecFixtureDir, { recursive: true, force: true });
+  fs.mkdirSync(filespecFixtureDir, { recursive: true });
+  const fixtureArchive = path.join(repo, "inst", "extdata", "CA_tiny_map.zip");
+  const unzip = spawnSync(
+    "C:/Program Files/R/R-4.3.3/bin/Rscript.exe",
+    ["-e", `utils::unzip(${JSON.stringify(fixtureArchive.replace(/\\/g, "/"))}, exdir=${JSON.stringify(filespecFixtureDir.replace(/\\/g, "/"))})`],
+    { cwd: repo, windowsHide: true, encoding: "utf8" }
+  );
+  if (unzip.status !== 0) {
+    throw new Error(`Unable to prepare FileSpecs smoke fixture: ${unzip.stderr}`);
+  }
+  const particleFixture = spawnSync(
+    "C:/Program Files/R/R-4.3.3/bin/Rscript.exe",
+    ["-e", [
+      `devtools::load_all(${JSON.stringify(repo.replace(/\\/g, "/"))}, quiet=TRUE)`,
+      "axis <- seq(400, 2000, length.out=201)",
+      "spectra <- vapply(1:4, function(i) sin(axis / (35 + i)) + i / 10, numeric(length(axis)))",
+      "colnames(spectra) <- paste0('unit_', 1:4)",
+      "x <- as_OpenSpecy(axis, spectra=spectra, metadata=data.frame(col_id=colnames(spectra), x_um=c(0, 2, 0, 2), y_um=c(0, 0, 2, 2)))",
+      "x$metadata$x <- NULL; x$metadata$y <- NULL",
+      "attr(x, 'openspecy_spatial_unit') <- 'um'",
+      `saveRDS(x, ${JSON.stringify(particleRdsFixture.replace(/\\/g, "/"))})`,
+    ].join("; ")],
+    { cwd: repo, windowsHide: true, encoding: "utf8" }
+  );
+  if (particleFixture.status !== 0) {
+    throw new Error(
+      `Unable to prepare particle RDS smoke fixture: ${particleFixture.stderr}`
+    );
+  }
   if (!Number.isInteger(port) || port < 1) port = await findFreePort();
   fs.mkdirSync(path.dirname(rPidFile), { recursive: true });
   fs.rmSync(rPidFile, { force: true });
@@ -545,6 +596,7 @@ test.afterAll(async () => {
   app?.stderr?.destroy();
   app?.unref();
   fs.rmSync(rPidFile, { force: true });
+  fs.rmSync(filespecFixtureDir, { recursive: true, force: true });
 });
 
 test.afterEach(async ({}, testInfo) => {
@@ -849,6 +901,131 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
     .toMatch(/completed 'Top Matches' download/i);
   const diagnostics = stderr.slice(stderrStart);
   expect(diagnostics).not.toMatch(/cannot allocate vector/i);
+  expect(severeErrors).toEqual([]);
+});
+
+test("file-backed fully processed map streams without a first-paint blink", async ({ page }, testInfo) => {
+  test.setTimeout(300000);
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+
+  await page.locator("#collapse_decision").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await page.locator("#load_entire_map").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await page.locator("#threshold_decision").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await page.locator("#spatial_decision").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await page.evaluate(() => {
+    window.Shiny.setInputValue("signal_basis", "fully_processed", {
+      priority: "event",
+    });
+    window.Shiny.setInputValue("MinSNR", -1e12, { priority: "event" });
+    window.Shiny.setInputValue("MaxSNR", 1e300, { priority: "event" });
+  });
+
+  const header = findFixtureFile(filespecFixtureDir, ".hdr");
+  const binary = findFixtureFile(filespecFixtureDir, ".dat");
+  await stageLocalFiles(page, [header, binary]);
+  await expect(page.locator("#heatmap_frame")).toBeHidden();
+  await page.evaluate(() => {
+    window.__openspecyInvalidHeatmapPaints = [];
+    window.__openspecyHeatmapPaintProbe = window.setInterval(() => {
+      const frame = document.getElementById("heatmap_frame");
+      const plot = document.getElementById("heatmapA");
+      if (!frame || !plot) return;
+      const style = getComputedStyle(frame);
+      if (style.display === "none" || style.visibility === "hidden") return;
+      const hasSvg = Boolean(plot.querySelector(".main-svg"));
+      const hasHeatmap = Array.isArray(plot.data) && plot.data.some((trace) =>
+        Array.isArray(trace.z) && trace.z.length > 0
+      );
+      if (!hasSvg || !hasHeatmap) {
+        window.__openspecyInvalidHeatmapPaints.push({ hasSvg, hasHeatmap });
+      }
+    }, 5);
+  });
+
+  await page.locator("#run_analysis").click();
+  await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 240000 });
+  await expect(page.locator("#heatmap_frame")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator("#heatmapA.js-plotly-plot .main-svg").first())
+    .toBeVisible({ timeout: 60000 });
+  await expect(page.locator("#event table tbody tr").first())
+    .toBeVisible({ timeout: 240000 });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  await expect(page.locator("#openspecy_busy_overlay")).toBeHidden();
+  const invalidPaints = await page.evaluate(() => {
+    window.clearInterval(window.__openspecyHeatmapPaintProbe);
+    return window.__openspecyInvalidHeatmapPaints;
+  });
+  expect(invalidPaints).toEqual([]);
+  await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
+  expect(severeErrors).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath("file-backed-fully-processed.png"),
+    fullPage: true,
+  });
+});
+
+test("processed particle RDS round-trips into a thresholded heatmap", async ({ page }) => {
+  test.setTimeout(180000);
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|unused argument|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await page.locator("#collapse_decision").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await page.locator("#identification_active").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await page.locator("#threshold_decision").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await page.evaluate(() => {
+    window.Shiny.setInputValue("signal_basis", "raw", { priority: "event" });
+    window.Shiny.setInputValue("MinSNR", -1e12, { priority: "event" });
+    window.Shiny.setInputValue("MaxSNR", 1e300, { priority: "event" });
+  });
+
+  await stageLocalFiles(page, particleRdsFixture);
+  await page.locator("#run_analysis").click();
+  await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 120000 });
+  await expect(page.locator("#heatmapA.js-plotly-plot .main-svg").first())
+    .toBeVisible({ timeout: 60000 });
+  await expect(page.locator("#pixel_unit")).toHaveValue("um");
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => ({
+    x: plot.layout?.xaxis?.title?.text,
+    y: plot.layout?.yaxis?.title?.text,
+  })), { timeout: 30000 }).toEqual({ x: "X (um)", y: "Y (um)" });
+  await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
   expect(severeErrors).toEqual([]);
 });
 
@@ -2167,6 +2344,11 @@ test("library identification reports completed block percentages", async ({ page
     if (input.checked) input.click();
   });
   await expect(page.locator("#top_n_per_organization")).not.toBeChecked();
+  await page.locator("#top_n_input").evaluate((input) => {
+    input.value = "2";
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await expect(page.locator("#top_n_input")).toHaveValue("2");
   await pickerOption(page, "id_spec_type", "raman");
   await pickerOption(page, "id_strategy", "deriv");
   await pickerOption(page, "lib_type", "medoid");

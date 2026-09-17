@@ -149,6 +149,19 @@ test_that("precomputed background classification preserves foreground spectra", 
   )
 })
 
+test_that("background policies validate and preserve intensity units", {
+  policy <- specs_background_filter(
+    metric = "sig", minimum = 0, intensity_type = "transmittance"
+  )
+  expect_identical(policy$intensity_type, "transmittance")
+  expect_identical(OpenSpecy:::.validate_specs_background_filter(policy), policy)
+  expect_null(specs_background_filter(minimum = 0)$intensity_type)
+  expect_error(
+    specs_background_filter(minimum = 0, intensity_type = "transmission"),
+    "intensity_type"
+  )
+})
+
 test_that("fit_specs_pca() and as_Specs() compress OpenSpecy objects", {
   os <- make_specs_test_os()
   model <- fit_specs_pca(os, n_components = 3)

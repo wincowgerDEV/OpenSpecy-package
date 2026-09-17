@@ -352,7 +352,7 @@ advanced_controls <- tagList(
       uiOutput("snr_plot_ui")
     ),
     note = c(
-      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses only the uploaded spectra plus optional Spatial Smooth (fast, the previous default); Fully Processed additionally applies every other enabled preprocessing step to each pixel first (slower, but excludes pixels whose apparent signal is a raw-data or baseline artifact).",
+      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses the uploaded spectra, the selected Intensity Adjustment (so transmittance or reflectance is measured after conversion to absorbance-like units), and optional Spatial Smooth. Fully Processed additionally applies every other enabled preprocessing step to each pixel first; file-backed maps do this in bounded chunks, so it is slower without loading the complete map.",
       "Minimum and Maximum Value define a strict accepted interval on the selected metric scale: values must be greater than the minimum and less than the maximum. The histogram draws both current thresholds.",
       "Signal Over Noise is a local peak-to-noise ratio, Signal Times Noise emphasizes absolute response, and Total Signal sums intensity. Larger values are not interchangeable between metrics.",
       "Pixels outside either bound are background. The default maximum is deliberately high; lower it when saturated or unusually intense pixels must be excluded.",

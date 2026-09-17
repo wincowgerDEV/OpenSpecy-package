@@ -193,6 +193,58 @@ test_that("file-backed particle blocks and retained means enforce memory bounds"
   )
 })
 
+test_that("file-backed S/N applies bounded preprocessing before measurement", {
+  directory <- tempfile("filespec-snr-process-")
+  dir.create(directory)
+  fixture <- .make_particle_filespec_envi(directory)
+  specs <- open_specs(fixture$header, cache_dir = file.path(directory, "cache"))
+  index <- OpenSpecy:::.filespec_index(specs)
+  bands <- seq_along(fixture$axis)
+  adjust <- function(block) adj_intens(
+    block, type = "transmittance", make_rel = FALSE
+  )
+
+  streamed <- OpenSpecy:::.filespec_particle_snr(
+    specs, index = index, bands = bands, metric = "sig", abs = FALSE,
+    spectral_smooth = FALSE, sigma1 = c(1, 1, 1), chunk_size = 3L,
+    process = adjust
+  )
+  eager <- decompress_spec(specs, region = "Region1") |>
+    adjust() |>
+    sig_noise(metric = "sig", abs = FALSE)
+
+  expect_equal(streamed, unname(eager), tolerance = 1e-12)
+
+  fully_process <- function(block) process_spec(
+    block, adj_intens = TRUE,
+    adj_intens_args = list(type = "transmittance"),
+    conform_spec = FALSE, restrict_range = FALSE, flatten_range = FALSE,
+    subtr_baseline = FALSE, smooth_intens = FALSE, make_rel = TRUE
+  )
+  streamed_fully <- OpenSpecy:::.filespec_particle_snr(
+    specs, index = index, bands = bands, metric = "sig_times_noise",
+    abs = FALSE, spectral_smooth = TRUE, sigma1 = c(1, 1, 1),
+    chunk_size = 8L, process = fully_process
+  )
+  smooth_values <- OpenSpecy:::.filespec_smoothed_values(
+    specs, index, seq_len(nrow(index)), bands = bands, sigma1 = c(1, 1, 1)
+  )
+  eager_fully <- OpenSpecy:::.filespec_values_to_OpenSpecy(
+    specs, smooth_values
+  ) |>
+    fully_process() |>
+    sig_noise(metric = "sig_times_noise", abs = FALSE)
+  expect_equal(streamed_fully, unname(eager_fully), tolerance = 1e-12)
+  expect_error(
+    OpenSpecy:::.filespec_particle_snr(
+      specs, index = index, bands = bands, metric = "sig", abs = FALSE,
+      spectral_smooth = FALSE, sigma1 = c(1, 1, 1), chunk_size = 3L,
+      process = "invalid"
+    ),
+    "process"
+  )
+})
+
 test_that("FileSpecs particle automation accepts both threshold extremes", {
   directory <- tempfile("filespec-particle-extremes-")
   dir.create(directory)

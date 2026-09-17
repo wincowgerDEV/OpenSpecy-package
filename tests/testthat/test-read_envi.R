@@ -174,6 +174,29 @@ test_that("compact ENVI background filtering matches whole-cube smoothing", {
   expect_equal(ncol(compact$values), sum(metric > threshold))
   expect_equal(unname(specs_source_values(compact, c(1, pixels))[, 2L]),
                spectra[, pixels], tolerance = 1e-7)
+
+  adjusted_reference <- adj_intens(
+    reference, type = "transmittance", make_rel = FALSE
+  )
+  adjusted_metric <- sig_noise(adjusted_reference, metric = "sig", abs = FALSE)
+  adjusted_threshold <- stats::median(adjusted_metric)
+  adjusted_policy <- specs_background_filter(
+    metric = "sig", minimum = adjusted_threshold, sigma = c(1, 1, 1),
+    step = 1, intensity_type = "transmittance"
+  )
+  adjusted <- read_envi(
+    binary, header, representation = "Specs",
+    background_filter = adjusted_policy,
+    metadata = list(file_name = "map.dat")
+  )
+  expect_equal(
+    attr(adjusted, "background")$signal_to_noise,
+    unname(adjusted_metric), tolerance = 1e-7
+  )
+  expect_identical(
+    attr(adjusted, "background")$policy$intensity_type,
+    "transmittance"
+  )
 })
 
 test_that("compact ENVI supports BIP, BIL, and BSQ without changing values", {
