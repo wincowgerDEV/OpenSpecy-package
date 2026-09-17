@@ -13,6 +13,12 @@
   `cbind`ing a dense retained-pixel matrix. Connected geometry is preserved;
   Advanced pixel calibration supplies unit-bearing coordinates, size/shape,
   area, and estimated-volume metadata, heatmap axes, summaries, and exports.
+- File-backed connected Mean analysis can now apply per-pixel library
+  correlation thresholds by processing and matching bounded spectrum chunks;
+  only each pixel's winning score and identity are retained before connected
+  collapse. An Advanced opt-in can instead load the complete map into memory
+  for users who deliberately prefer the ordinary dense workflow and have
+  sufficient memory.
 - Selection Metadata now defaults to a concise friendly view, with detailed
   calibrated metadata available from Advanced, and library filtering initially
   selects every available organization.

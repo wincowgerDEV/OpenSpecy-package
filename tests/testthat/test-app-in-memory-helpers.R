@@ -127,6 +127,63 @@ test_that("compact Top Matches obeys requested and default Top N", {
   )))
 })
 
+test_that("file-backed matching retains only one winner per eligible spectrum", {
+  env <- .source_in_memory_app_helpers()
+  directory <- tempfile("app-file-match-")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(read_extdata("CA_tiny_map.zip"), exdir = directory)
+  paths <- list.files(directory, full.names = TRUE)
+  paths <- paths[grepl("\\.(dat|hdr)$", paths, ignore.case = TRUE)]
+  source <- open_specs(paths, cache_dir = file.path(directory, "cache"))
+  eligible <- rep(FALSE, specs_source_count(source))
+  eligible[seq_len(11L)] <- TRUE
+  library <- decompress_spec(source, index = c(1L, 6L, 11L))
+  prepared <- env$app_prepare_correlation_reference(library)
+  progress <- list()
+
+  streamed <- env$app_stream_filespec_best_matches(
+    source, eligible = eligible, chunk_size = 3L,
+    process = identity,
+    identify = function(query) {
+      env$app_match_prepared_best(query, prepared, library_block_size = 2L)
+    },
+    progress = function(...) progress[[length(progress) + 1L]] <<- list(...)
+  )
+  eager_query <- decompress_spec(source, index = which(eligible))
+  eager <- OpenSpecy:::.match_spec_blockwise(
+    eager_query, library, top_n = 1L, block_size = 20L,
+    conform = FALSE, type = "roll"
+  )
+
+  expect_equal(streamed, eager, ignore_attr = TRUE, tolerance = 1e-12)
+  expect_identical(nrow(streamed), sum(eligible))
+  expect_identical(attr(streamed, "chunk_size"), 3L)
+  expect_identical(length(progress), 4L)
+  expect_identical(progress[[4L]]$completed_spectra, 11L)
+  expect_identical(progress[[4L]]$total_spectra, 11L)
+})
+
+test_that("file-backed streaming reports processing that needs full memory", {
+  env <- .source_in_memory_app_helpers()
+  expect_length(env$app_file_stream_processing_issues(list()), 0L)
+  expect_identical(
+    env$app_file_stream_processing_issues(
+      list(
+        saturation_decision = TRUE,
+        co2_decision = TRUE, co2_automate = TRUE,
+        range_decision = TRUE, range_automate = TRUE
+      ),
+      spatial_smooth = TRUE
+    ),
+    c(
+      "turn off Spatial Smooth", "turn off Saturation Correction",
+      "turn off automatic CO2 flattening",
+      "turn off automatic range restriction"
+    )
+  )
+})
+
 test_that("single-spectrum Top Matches selection uses exact object IDs", {
   env <- .source_in_memory_app_helpers()
   matches <- data.table::data.table(

@@ -285,12 +285,19 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
     return(NULL)
   }
 
+  load_entire_map <- isTRUE(input$load_entire_map)
   analysis_phase(
-    "Reading and materializing spectra",
+    if(load_entire_map) "Reading entire map into memory" else
+      "Reading spectra",
     paste0(
       "Reading and validating ", nrow(file_info), " ",
       if(isTRUE(mounted)) "browser-mounted" else "uploaded", " file",
-      if(nrow(file_info) == 1L) "." else "s."
+      if(nrow(file_info) == 1L) "." else "s.",
+      if(load_entire_map) {
+        " Full-memory mode is enabled."
+      } else {
+        " Supported maps remain file-backed."
+      }
     ),
     8
   )
@@ -326,7 +333,7 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
           } else {
             app_read_uploaded_members(
               paths = file_info$datapath, mounted = mounted,
-              representation = "Specs",
+              representation = if(load_entire_map) "OpenSpecy" else "Specs",
               background_filter = reader_background_policy,
               spectral_smooth = isTRUE(input$spatial_decision),
               sigma = rep(as.numeric(input$sigma), 3L)
@@ -339,6 +346,24 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
               members, range = "common",
               res = if(input$conform_decision) input$conform_res else 8
             )
+          }
+          if(load_entire_map && is_Specs(combined)) {
+            analysis_phase(
+              "Materializing the complete map",
+              paste(
+                "Reading every spectrum into the ordinary in-memory workflow",
+                "as explicitly requested."
+              ),
+              12
+            )
+            combined <- if(inherits(combined, "FileSpecs")) {
+              decompress_spec(
+                combined,
+                index = seq_len(OpenSpecy:::.filespec_n_spectra(combined))
+              )
+            } else {
+              decompress_spec(combined, expand = TRUE)
+            }
           }
           if(is_Specs(combined) && !inherits(combined, "FileSpecs") &&
              !is.null(background_policy) &&
@@ -1490,6 +1515,68 @@ observeEvent(input$run_analysis, {
     )
   }
 
+  identify_filespec_best <- function(source, eligible, settings) {
+    issues <- app_file_stream_processing_issues(
+      settings, spatial_smooth = isTRUE(input$spatial_decision)
+    )
+    if(length(issues)) {
+      stop(paste0(
+        "File-backed per-pixel correlation requires chunk-stable processing; ",
+        paste(issues, collapse = ", "),
+        ", or enable Load Entire Map into Memory."
+      ), call. = FALSE)
+    }
+    library <- analysis_library()
+    req(!is.null(library), is_OpenSpecy(library))
+    reference <- NULL
+    prepared_reference <- NULL
+    total_queries <- sum(eligible, na.rm = TRUE)
+    app_stream_filespec_best_matches(
+      source, eligible = eligible, chunk_size = identify_block_size,
+      process = function(query) {
+        ordinary_process(query, settings = settings, view_only = TRUE)
+      },
+      identify = function(query) {
+        preserve_axis <- isTRUE(attr(
+          query, "preserve_uploaded_axis", exact = TRUE
+        ))
+        if(is.null(reference)) {
+          reference <<- app_reference_for_query(
+            library, query, preserve_axis = preserve_axis
+          )
+          prepared_reference <<- app_prepare_correlation_reference(reference)
+        } else if(!identical(reference$wavenumber, query$wavenumber)) {
+          stop(
+            "Streamed preprocessing produced inconsistent wavenumber axes.",
+            call. = FALSE
+          )
+        }
+        app_match_prepared_best(
+          query, prepared_reference,
+          library_block_size = identify_block_size
+        )
+      },
+      progress = function(completed_blocks, total_blocks,
+                          completed_spectra, total_spectra, chunk_size) {
+        fraction <- completed_blocks / max(1L, total_blocks)
+        analysis_phase(
+          paste0(
+            "Identifying file-backed pixels (",
+            as.integer(floor(100 * fraction)), "% complete)"
+          ),
+          paste0(
+            "Retained one winning correlation per pixel for ",
+            format(completed_spectra, big.mark = ","), " of ",
+            format(total_queries, big.mark = ","),
+            " eligible spectra; chunk size ",
+            format(chunk_size, big.mark = ","), "."
+          ),
+          38 + 34 * fraction
+        )
+      }
+    )
+  }
+
   best_match_rows <- function(matches) {
     matches <- data.table::as.data.table(matches)
     if(!nrow(matches)) return(matches)
@@ -1604,6 +1691,7 @@ observeEvent(input$run_analysis, {
         isTRUE(input$cor_threshold_decision),
       min_snr = MinSNR(), max_snr = MaxSNR(), min_cor = MinCor(),
       signal_metric = effective_signal_selection(),
+      load_entire_map = isTRUE(input$load_entire_map),
       file_backed_selection = FALSE,
       processing = current_processing_settings()
     )
@@ -1690,14 +1778,31 @@ observeEvent(input$run_analysis, {
         if(identical(input$signal_basis, "fully_processed")) unsupported <- c(
           unsupported, "use Raw + Spatial signal/noise"
         )
-        if(correlation_threshold) unsupported <- c(
-          unsupported, "turn off the per-pixel correlation threshold"
-        )
         if(length(unsupported)) {
           return(unavailable(paste0(
             "This file-backed map is protected from full-map materialization; ",
             paste(unique(unsupported), collapse = ", "), "."
           )))
+        }
+        pixel_matches <- if(correlation_threshold) {
+          identify_filespec_best(
+            spatial, eligible = signal_keep,
+            settings = run_settings$processing
+          )
+        } else NULL
+        threshold_mapping <- app_identity_pixel_mapping(spatial, signal_keep)
+        if(correlation_threshold) {
+          threshold_mapping <- mapping_match_fields(
+            threshold_mapping, threshold_mapping$pixel_id, pixel_matches
+          )
+          correlation_keep <-
+            is.finite(threshold_mapping$threshold_match_val) &
+            threshold_mapping$threshold_match_val >= run_settings$min_cor
+          collapse_keep <- signal_keep & correlation_keep
+          collapse_material <- threshold_mapping$threshold_material
+        } else {
+          collapse_keep <- signal_keep
+          collapse_material <- NULL
         }
         analysis_phase(
           "Collapsing retained particles",
@@ -1705,10 +1810,10 @@ observeEvent(input$run_analysis, {
             "Streaming retained spectra into connected particle means without",
             "materializing or combining the full map."
           ),
-          34
+          if(correlation_threshold) 74 else 34
         )
         partition <- OpenSpecy:::.filespec_collapse_connected_mean(
-          spatial, eligible = signal_keep,
+          spatial, eligible = collapse_keep, material = collapse_material,
           area_threshold = particle_area_threshold(),
           spectral_smooth = isTRUE(input$spatial_decision),
           sigma = rep(as.numeric(input$sigma), 3L), chunk_size = 8192L
@@ -1716,14 +1821,30 @@ observeEvent(input$run_analysis, {
         if(is.null(partition$analysis_units)) {
           return(unavailable(
             "No connected particle regions meet the active thresholds and minimum area.",
-            partition$pixel_to_unit, partition
+            partition$pixel_to_unit, partition, pixel_matches
           ))
+        }
+        if(correlation_threshold) {
+          mapping <- data.table::as.data.table(partition$pixel_to_unit)
+          source_rows <- match(
+            mapping$pixel_index, threshold_mapping$pixel_index
+          )
+          for(column in c(
+              "threshold_match_val", "threshold_match_id",
+              "threshold_material")) {
+            mapping[[column]] <- threshold_mapping[[column]][source_rows]
+          }
+          mapping$rejection_reason[
+            signal_keep & !collapse_keep
+          ] <- "correlation"
+          partition$pixel_to_unit <- mapping
         }
         processed <- ordinary_process(partition$analysis_units)
         matches <- if(use_library) identify_blockwise(processed) else NULL
         processed <- attach_best_matches(processed, matches)
         return(list(
-          object = processed, matches = matches, pixel_matches = NULL,
+          object = processed, matches = matches,
+          pixel_matches = pixel_matches,
           pixel_to_unit = partition$pixel_to_unit, partition = partition,
           error = NULL, diagnostic = NULL, settings = run_settings
         ))

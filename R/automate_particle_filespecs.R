@@ -463,7 +463,7 @@ automate_particle_analysis.FileSpecs <- function(
 # in-memory app path. Only a one-row geometric display and bounded spectral
 # blocks are materialized; one running sum/count pair is retained per particle.
 .filespec_collapse_connected_mean <- function(
-    x, eligible, area_threshold = 1, spectral_smooth = FALSE,
+    x, eligible, material = NULL, area_threshold = 1, spectral_smooth = FALSE,
     sigma = c(1, 1, 1), chunk_size = 8192L) {
   started <- proc.time()[["elapsed"]]
   .filespec_validate_object(x)
@@ -473,12 +473,17 @@ automate_particle_analysis.FileSpecs <- function(
          call. = FALSE)
   }
   eligible[is.na(eligible)] <- FALSE
+  if(!is.null(material) && length(material) != nrow(index)) {
+    stop("'material' must have one value per file-backed spectrum",
+         call. = FALSE)
+  }
   display <- .filespec_particle_display(
     index, snr = rep(NA_real_, nrow(index)), threshold = eligible
   )
   partition <- .partition_particle_map(
     display, eligible = eligible, strategy = "collapse",
-    collapse_function = base::mean, area_threshold = area_threshold
+    material = material, collapse_function = base::mean,
+    area_threshold = area_threshold
   )
   message(
     "FileSpecs collapse: ", nrow(index), " source spectra; ",

@@ -9,6 +9,8 @@ if (!requireNamespace("devtools", quietly = TRUE)) {
   stop("Install devtools to run this benchmark.", call. = FALSE)
 }
 devtools::load_all(quiet = TRUE)
+app_env <- new.env(parent = globalenv())
+sys.source(file.path(run_app(test_mode = TRUE), "global.R"), envir = app_env)
 
 make_fixture <- function(directory, rows = 48L, columns = 64L, bands = 128L) {
   axis <- seq(600, by = 4, length.out = bands)
@@ -78,6 +80,49 @@ print(data.frame(
 ), row.names = FALSE)
 stopifnot(identical(
   source_hash, digest::digest(fixture$binary, algo = "sha256", file = TRUE)
+))
+
+# Correlation-threshold identification deliberately trades dense-map speed for
+# bounded memory. The eager oracle is retained here for identical-output
+# evidence; production maps use the streamed kernel because a full processed
+# query plus library-by-query correlation matrix need not fit in memory.
+library <- decompress_spec(x, index = seq_len(12L))
+prepared_library <- app_env$app_prepare_correlation_reference(library)
+eager_best <- function() {
+  query <- decompress_spec(x, index = which(fixture$retained))
+  OpenSpecy:::.match_spec_blockwise(
+    query, library, top_n = 1L, block_size = ncol(query$spectra),
+    conform = FALSE, type = "roll"
+  )
+}
+stream_best <- function() {
+  app_env$app_stream_filespec_best_matches(
+    x, fixture$retained, process = identity, chunk_size = 64L,
+    identify = function(query) {
+      app_env$app_match_prepared_best(
+        query, prepared_library, library_block_size = 6L
+      )
+    }
+  )
+}
+eager_matches <- eager_best()
+streamed_matches <- stream_best()
+stopifnot(isTRUE(all.equal(
+  eager_matches, streamed_matches, tolerance = 1e-12,
+  check.attributes = FALSE
+)))
+eager_match_time <- elapsed(eager_best)
+stream_match_time <- elapsed(stream_best)
+print(data.frame(
+  kernel = c("eager pixel match", "bounded file-backed pixel match"),
+  median_seconds = c(
+    stats::median(eager_match_time), stats::median(stream_match_time)
+  )
+), row.names = FALSE)
+cat(sprintf(
+  "Fixture dense correlation allocation %.2f MiB; streamed block %.2f MiB.\n",
+  sum(fixture$retained) * ncol(library$spectra) * 8 / 1024^2,
+  64 * ncol(library$spectra) * 8 / 1024^2
 ))
 
 arguments <- commandArgs(trailingOnly = TRUE)

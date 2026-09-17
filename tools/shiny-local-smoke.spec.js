@@ -611,6 +611,11 @@ test("settings tabs expand the card and sustained actions start the overlay clie
   });
   await page.getByRole("link", { name: "Advanced", exact: true }).click();
   await expectCardCollapsed(settingsCard, false);
+  await expect(page.locator("#load_entire_map")).not.toBeChecked();
+  await page.locator("#load_entire_map").evaluate((input) => input.click());
+  await expect(page.locator("#load_entire_map")).toBeChecked();
+  await page.locator("button#advanced_all_toggle").click();
+  await expect(page.locator("#load_entire_map")).not.toBeChecked();
   const thresholdCard = page.locator("#threshold_decision").locator(
     "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
   );
@@ -690,8 +695,12 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   await page.locator("#threshold_decision").evaluate((input) => {
     if (input.checked) input.click();
   });
+  await page.locator("#load_entire_map").evaluate((input) => {
+    if (input.checked) input.click();
+  });
   await expect(page.locator("#collapse_decision")).not.toBeChecked();
   await expect(page.locator("#threshold_decision")).not.toBeChecked();
+  await expect(page.locator("#load_entire_map")).not.toBeChecked();
   await page.locator("#top_n_per_organization").evaluate((input) => {
     if (input.checked) input.click();
   });

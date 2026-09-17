@@ -164,6 +164,7 @@ test("extracted launcher serves the landing page and runs the full app flow with
     ["cor_threshold_decision", false],
     ["spatial_decision", false],
     ["xy_grid", false],
+    ["load_entire_map", false],
     ["collapse_decision", false],
   ]) {
     await setCheckbox(app, id, checked);

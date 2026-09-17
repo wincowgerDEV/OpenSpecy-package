@@ -273,6 +273,14 @@ advanced_controls <- tagList(
       "details. Turn this off to inspect detailed metadata fields."
     )
   ),
+  app_control_box(
+    "load_entire_map", "Load Entire Map into Memory", FALSE,
+    note = c(
+      "Off keeps supported hyperspectral maps file-backed and streams bounded chunks for signal/noise, per-pixel correlation thresholding, connected Mean collapse, and active-spectrum inspection.",
+      "On deliberately reads every spectrum into R memory before analysis and then uses the ordinary in-memory workflow. This can enable workflows that are not streamable and may be faster when ample memory is available, but a file-backed float map commonly needs more than twice its on-disk size as an R double matrix, plus processing copies.",
+      "This switch changes execution and memory use, not the selected scientific processing settings. If allocation fails, turn it off and use a supported streamed workflow."
+    )
+  ),
   bs4Dash::box(
     width = 12,
     collapsible = TRUE,
@@ -356,9 +364,10 @@ advanced_controls <- tagList(
     numericInput("MinCor", "Minimum Value", value = 0.7,
                  min = 0, max = 1, step = 0.1),
     div(class = "openspecy-mini-plot", uiOutput("cor_plot_ui")),
-    note = paste(
+    note = c(
       "Set the minimum match score used for a confident identification.",
-      "Scores at or above the minimum pass; lower or non-finite scores are background."
+      "Scores at or above the minimum pass; lower or non-finite scores are background.",
+      "For file-backed connected Mean maps, spectra are preprocessed and correlated in bounded chunks and only each pixel's winning score and identity are retained. Spatial smoothing, saturation correction, and automatic CO2/range decisions need the complete-map context; turn those steps off or enable Load Entire Map into Memory."
     )
   ),
   app_control_box(

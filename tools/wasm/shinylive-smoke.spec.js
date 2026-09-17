@@ -505,6 +505,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     for (const [id, checked] of [
       ["threshold_decision", true],
       ["spatial_decision", false],
+      ["load_entire_map", false],
       ["collapse_decision", false],
       ["cor_threshold_decision", false],
       ["identification_active", true],
@@ -917,6 +918,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   // Enable the SNR threshold that owns the logical feature mask used for
   // collapsing, then click Run so the change actually takes effect.
   await setShinyCheckbox(appFrame.locator("#threshold_decision"), false);
+  await setShinyCheckbox(appFrame.locator("#load_entire_map"), false);
   await setShinyCheckbox(appFrame.locator("#collapse_decision"), true);
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await runButton.click();

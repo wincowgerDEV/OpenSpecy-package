@@ -150,7 +150,8 @@ app_tab_switch_ids <- function() {
     ),
     advanced = c(
       "threshold_decision", "cor_threshold_decision", "spatial_decision",
-      "xy_grid", "collapse_decision", "show_peak_positions",
+      "xy_grid", "collapse_decision", "load_entire_map",
+      "show_peak_positions",
       "simple_metadata"
     )
   )
@@ -653,6 +654,184 @@ app_identification_block_progress <- function(
     total_blocks = total_blocks,
     block_percent = block_percent
   )
+}
+
+app_file_stream_processing_issues <- function(settings,
+                                              spatial_smooth = FALSE) {
+  if(!is.list(settings)) {
+    stop("Streaming processing settings must be a named list.", call. = FALSE)
+  }
+  issues <- character()
+  if(isTRUE(spatial_smooth)) {
+    issues <- c(issues, "turn off Spatial Smooth")
+  }
+  if(isTRUE(settings$saturation_decision)) {
+    issues <- c(issues, "turn off Saturation Correction")
+  }
+  if(isTRUE(settings$co2_decision) && isTRUE(settings$co2_automate)) {
+    issues <- c(issues, "turn off automatic CO2 flattening")
+  }
+  if(isTRUE(settings$range_decision) && isTRUE(settings$range_automate)) {
+    issues <- c(issues, "turn off automatic range restriction")
+  }
+  unique(issues)
+}
+
+app_prepare_correlation_reference <- function(reference) {
+  if(!inherits(reference, "OpenSpecy")) {
+    stop("The correlation reference must be OpenSpecy.", call. = FALSE)
+  }
+  values <- make_rel(reference$spectra, na.rm = TRUE)
+  values <- OpenSpecy:::.matrix_mean_replace(values)
+  list(
+    wavenumber = reference$wavenumber,
+    library_id = colnames(reference$spectra),
+    scaled = OpenSpecy:::.scale_correlation_spectra(values)
+  )
+}
+
+# Match one processed query chunk while bounding both score-matrix dimensions.
+# The scaled reference is reusable across file chunks; every library block is
+# discarded after updating one global winning score/index per query spectrum.
+app_match_prepared_best <- function(query, prepared,
+                                    library_block_size = 1000L) {
+  if(!inherits(query, "OpenSpecy") || !is.list(prepared) ||
+     !identical(query$wavenumber, prepared$wavenumber)) {
+    stop("The processed query and prepared reference axes must match.",
+         call. = FALSE)
+  }
+  library_block_size <- suppressWarnings(as.integer(library_block_size)[1L])
+  if(is.na(library_block_size) || library_block_size < 1L) {
+    stop("'library_block_size' must be a positive whole number.",
+         call. = FALSE)
+  }
+  library_count <- nrow(prepared$scaled)
+  if(length(prepared$library_id) != library_count || library_count < 1L) {
+    stop("The prepared correlation reference is empty or invalid.",
+         call. = FALSE)
+  }
+  query_values <- make_rel(query$spectra, na.rm = TRUE)
+  query_values <- OpenSpecy:::.matrix_mean_replace(query_values)
+  scaled_query <- OpenSpecy:::.scale_correlation_spectra(query_values)
+  query_count <- nrow(scaled_query)
+  best_value <- rep(NA_real_, query_count)
+  best_index <- rep(NA_integer_, query_count)
+  starts <- seq.int(1L, library_count, by = library_block_size)
+  query_columns <- seq_len(query_count)
+
+  for(start in starts) {
+    rows <- seq.int(
+      start, min(library_count, start + library_block_size - 1L)
+    )
+    scores <- tcrossprod(
+      prepared$scaled[rows, , drop = FALSE], scaled_query
+    )
+    ranked_scores <- scores
+    ranked_scores[!is.finite(ranked_scores)] <- -Inf
+    local_index <- max.col(t(ranked_scores), ties.method = "first")
+    candidate_value <- scores[cbind(local_index, query_columns)]
+    candidate_index <- rows[local_index]
+    update <- is.na(best_index) |
+      (!is.na(candidate_value) &
+         (is.na(best_value) | candidate_value > best_value))
+    best_value[update] <- candidate_value[update]
+    best_index[update] <- candidate_index[update]
+    rm(
+      scores, ranked_scores, local_index, candidate_value, candidate_index,
+      update
+    )
+  }
+  data.table::data.table(
+    object_id = colnames(query$spectra),
+    library_id = prepared$library_id[best_index],
+    match_val = best_value
+  )
+}
+
+# Stream a FileSpecs query through caller-owned processing and matching
+# callbacks. Only one bounded spectral block and one winning match per source
+# spectrum survive; full library-by-query correlation matrices are discarded
+# by the callback before the next file block is read.
+app_stream_filespec_best_matches <- function(
+    source, eligible, process, identify, chunk_size = 1000L, progress = NULL) {
+  if(!inherits(source, "FileSpecs")) {
+    stop("Streaming identification requires a FileSpecs source.", call. = FALSE)
+  }
+  if(!is.function(process) || !is.function(identify)) {
+    stop("Streaming identification requires process and identify functions.",
+         call. = FALSE)
+  }
+  if(!is.null(progress) && !is.function(progress)) {
+    stop("'progress' must be NULL or a function.", call. = FALSE)
+  }
+  index <- OpenSpecy:::.filespec_index(source)
+  if(!is.logical(eligible) || length(eligible) != nrow(index)) {
+    stop("'eligible' must have one logical value per file-backed spectrum.",
+         call. = FALSE)
+  }
+  eligible[is.na(eligible)] <- FALSE
+  positions <- which(eligible)
+  if(!length(positions)) {
+    return(data.table::data.table(
+      object_id = character(), library_id = character(), match_val = numeric()
+    ))
+  }
+  chunk_size <- OpenSpecy:::.filespec_bounded_chunk_size(
+    length(OpenSpecy:::.filespec_axis(source)), chunk_size
+  )
+  starts <- seq.int(1L, length(positions), by = chunk_size)
+  object_id <- character(length(positions))
+  library_id <- character(length(positions))
+  match_val <- rep(NA_real_, length(positions))
+
+  for(i in seq_along(starts)) {
+    rows <- seq.int(
+      starts[[i]], min(length(positions), starts[[i]] + chunk_size - 1L)
+    )
+    query <- decompress_spec(source, index = positions[rows])
+    processed <- process(query)
+    if(!inherits(processed, "OpenSpecy")) {
+      stop("The streaming process callback must return OpenSpecy.",
+           call. = FALSE)
+    }
+    query_ids <- colnames(processed$spectra)
+    matches <- data.table::as.data.table(identify(processed))
+    required <- c("object_id", "library_id", "match_val")
+    if(!all(required %in% names(matches))) {
+      stop("The streaming match callback returned an invalid match table.",
+           call. = FALSE)
+    }
+    matches[, .stream_order := seq_len(.N)]
+    data.table::setorderv(
+      matches, c("object_id", "match_val", ".stream_order"),
+      c(1L, -1L, 1L), na.last = TRUE
+    )
+    best <- matches[!duplicated(object_id)]
+    aligned <- match(query_ids, best$object_id)
+    if(length(query_ids) != length(rows) || anyNA(aligned)) {
+      stop("Streamed match rows do not align with the processed spectra.",
+           call. = FALSE)
+    }
+    object_id[rows] <- query_ids
+    library_id[rows] <- as.character(best$library_id[aligned])
+    match_val[rows] <- as.numeric(best$match_val[aligned])
+    if(!is.null(progress)) {
+      progress(
+        completed_blocks = i, total_blocks = length(starts),
+        completed_spectra = rows[[length(rows)]],
+        total_spectra = length(positions), chunk_size = chunk_size
+      )
+    }
+    rm(query, processed, matches, best)
+    if(i %% 5L == 0L || i == length(starts)) {
+      invisible(gc(verbose = FALSE))
+    }
+  }
+  result <- data.table::data.table(
+    object_id = object_id, library_id = library_id, match_val = match_val
+  )
+  attr(result, "chunk_size") <- chunk_size
+  result
 }
 
 app_rejected_spectrum <- function(wavenumber) {
@@ -1540,7 +1719,8 @@ app_user_metadata_input_ids <- c(
   "threshold_decision", "signal_basis", "MinSNR", "MaxSNR",
   "signal_selection",
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
-  "xy_grid", "collapse_decision", "collapse_type", "particle_id_strategy",
+  "xy_grid", "load_entire_map", "collapse_decision", "collapse_type",
+  "particle_id_strategy",
   "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
   "pixel_size", "pixel_unit", "simple_metadata", "show_peak_positions",
   "peak_count",

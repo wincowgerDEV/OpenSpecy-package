@@ -494,7 +494,7 @@
 
 <div class="node trigger" style="left:1650px;top:500px" tabindex="0">
   &#9654; Click Run
-  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. A staged source is materialized here unless Recalculate Preview has already materialized it for S/N inspection. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Readers compact coordinates and metadata losslessly but do not hash spectra or accept PCA, K-means, or Hilbert arguments. Scientific settings remain passive until the next Run; Advanced peak display, simple metadata, and pixel calibration are live presentation/export controls. Every later output derives from this snapshot.
+  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. A staged source is read here unless Recalculate Preview already did so. Advanced <strong>Load Entire Map into Memory</strong> explicitly chooses dense <code>OpenSpecy</code>; off keeps supported maps descriptor-backed. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Scientific settings remain passive until the next Run; peak display, simple metadata, and pixel calibration remain live presentation/export controls. Every later output derives from this snapshot.
   <span class="loc">Plans 018/030 &middot; server.R: run gate priorities and canonical_state_gate()</span></div>
 </div>
 
@@ -506,8 +506,8 @@
 
 <div class="node function" style="left:1050px;top:570px" tabindex="0">
   Base Specs Materialization
-  <div class="sub">descriptor-only FileSpecs for ENVI &middot; compact/dense for other sources</div>
-  <div class="tip">An explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N and connected Mean collapse, including upload pairs whose temporary basenames differ. H5 and other compatible compact paths retain <code>Specs</code>; ordinary small formats retain dense <code>OpenSpecy</code>. No retained-pixel spectral matrix is assembled at this stage.
+  <div class="sub">explicit descriptor-backed or complete in-memory representation</div>
+  <div class="tip">With Load Entire Map into Memory off, an explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N, bounded winning-correlation matching, and connected Mean collapse. With it on, every spectrum is deliberately materialized as ordinary <code>OpenSpecy</code> and all later stages use the dense path; allocation failures are measured runtime failures rather than an arbitrary size rejection. H5 and other compatible sources follow the same explicit choice.
   <span class="loc">Plans 018/033 &middot; global.R: app_read_uploaded_members() &middot; R/{Specs_file,read_envi,read_ext}.R</span></div>
 </div>
 
@@ -571,7 +571,7 @@
 <div class="node function" style="left:550px;top:1760px" tabindex="0">
   Connected Threshold Regions
   <div class="sub">strategy = "collapse"</div>
-  <div class="tip">The ordinary path flood-fills spatially connected eligible pixels and collapses them. For file-backed ENVI, the same mapping is built from a one-row geometric display; retained source members are then streamed in bounded blocks directly into per-particle sums/counts while first X/Y, perimeter, Feret dimensions, and convex-hull area remain aligned to each unit. Only the final Mean spectra materialize, and projected live-state capacity is checked before allocation. Median/geometric mean and per-pixel correlation modes preflight as unsupported for this file-backed route.
+  <div class="tip">The ordinary path flood-fills spatially connected eligible pixels and collapses them. For file-backed ENVI, the same mapping is built from a one-row geometric display. When correlation thresholding is active, bounded pixel chunks receive the committed ordinary preprocessing, each library-by-chunk matrix is reduced immediately to one winning score/reference/material per pixel, and equal-material retained regions are formed from those winners. Source members are then streamed into per-particle sums/counts while geometry stays aligned. Only final Mean spectra materialize; Median/geometric mean and chunk-unstable preprocessing require full-memory mode.
   <span class="loc">Plan 033 &middot; server.R: FileSpecs canonical branch &middot; R/automate_particle_filespecs.R: .filespec_collapse_connected_mean()</span></div>
 </div>
 <div class="node function" style="left:1050px;top:1760px" tabindex="0">
@@ -597,14 +597,14 @@
 <div class="node decision" style="left:1450px;top:1930px" tabindex="0">
   Correlation Threshold on?
   <div class="sub">input$cor_threshold_decision</div>
-  <div class="tip">Requires identification to be on (UI note). Captured into run_settings$correlation_active alongside identification_active at the very start of canonical_state_gate, and feeds MinCor() (else -Inf, i.e. no-op). Gates the per-pixel correlation_keep mask used inside "Connected Threshold Regions" and "Spatial Clusters", and separately gates the Correlation Histogram and the correlation-based rejection shown on the Heatmap/Map Color Choices/Progress Bars.
+  <div class="tip">Requires spectral-library identification. Captured into run_settings$correlation_active and feeds MinCor() (else -Inf). Dense maps use their ordinary processed-pixel match pass. File-backed connected Mean maps stream processed chunks, retain only each pixel's global winning correlation/identity/material, discard every correlation matrix, and build the same correlation_keep/material-connected mapping. The retained winning vector also feeds the Correlation Histogram and heatmap rejection state.
   <span class="loc">server.R:1015-1017, 1309-1310, 1495-1563</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:2100px" tabindex="0">
   Library Identification
   <div class="sub">organization blocks &times; at most 1,000 query spectra</div>
-  <div class="tip">The default Top N per organization policy iterates selected reference organizations outside bounded query blocks, immediately reduces each correlation block, and releases it. Rank 1 across all retained candidates alone feeds canonical identity; each organization winner remains selectable/exportable. Turning grouping off preserves legacy global Top-N. Progress names the organization and query-block boundary. The reference artifact itself is committed by Run so later selector edits cannot mutate displayed results.
+  <div class="tip">The default Top N per organization policy iterates selected reference organizations outside bounded query blocks, immediately reduces each correlation block, and releases it. Rank 1 across all retained candidates alone feeds canonical identity; each organization winner remains selectable/exportable. File-backed correlation thresholding first performs a separate global-Top-1 pixel stream solely for threshold/group membership, then this ordinary matcher identifies the collapsed particle means using the requested Top N policy. The reference artifact itself is committed by Run.
   <span class="loc">Plans 022/029/033 &middot; server.R: analysis_library()/identify_blockwise() &middot; R/{match_spec,Specs_methods}.R</span></div>
 </div>
 <div class="node function" style="left:1050px;top:2270px" tabindex="0">

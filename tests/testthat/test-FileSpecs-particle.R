@@ -141,6 +141,30 @@ test_that("file-backed connected means equal eager connected collapse", {
   )
   expect_true(isTRUE(streamed$settings$file_backed))
   expect_equal(streamed$settings$chunk_size, 2L)
+
+  material <- rep(NA_character_, 16L)
+  material[c(6L, 7L)] <- "polymer-a"
+  material[c(10L, 11L)] <- "polymer-b"
+  streamed_by_material <- OpenSpecy:::.filespec_collapse_connected_mean(
+    specs, eligible = eligible, material = material,
+    area_threshold = 1L, chunk_size = 2L
+  )
+  eager_by_material <- OpenSpecy:::.partition_particle_map(
+    eager_source, eligible = eligible, strategy = "collapse",
+    material = material, collapse_function = mean, area_threshold = 1L
+  )
+  expect_identical(ncol(streamed_by_material$analysis_units$spectra), 2L)
+  expect_equal(
+    streamed_by_material$analysis_units$spectra,
+    eager_by_material$analysis_units$spectra,
+    tolerance = 1e-10, ignore_attr = TRUE
+  )
+  expect_error(
+    OpenSpecy:::.filespec_collapse_connected_mean(
+      specs, eligible = eligible, material = material[-1L]
+    ),
+    "one value per file-backed spectrum"
+  )
 })
 
 test_that("file-backed particle blocks and retained means enforce memory bounds", {

@@ -714,7 +714,7 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_match(ui_source, 'tabPanel(\n              "Quantification"', fixed = TRUE)
   expect_true(all(vapply(
     c("threshold_decision", "cor_threshold_decision", "spatial_decision",
-      "xy_grid", "collapse_decision"),
+      "xy_grid", "load_entire_map", "collapse_decision"),
     function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
     logical(1)
   )))
@@ -2817,7 +2817,7 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "top_n_input", "top_n_per_organization", "filter_lib", "lib_org",
     "threshold_decision", "signal_basis",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
-    "spatial_decision", "sigma", "xy_grid",
+    "spatial_decision", "sigma", "xy_grid", "load_entire_map",
     "collapse_decision",
     "collapse_type", "particle_id_strategy", "particle_pca_components",
     "particle_cluster_k", "particle_area_threshold",

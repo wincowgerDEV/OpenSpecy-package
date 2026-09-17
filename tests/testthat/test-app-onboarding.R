@@ -44,6 +44,7 @@ test_that("tab-wide actions have an all-off-only model", {
   expect_true(all(c(
     "make_rel_decision", "smooth_decision", "baseline_decision"
   ) %in% ids$preprocessing))
+  expect_true("load_entire_map" %in% ids$advanced)
   for(tab in names(ids)) {
     values <- env$app_tab_all_off_values(tab)
     expect_named(values, ids[[tab]])
@@ -292,6 +293,7 @@ test_that("file-backed threshold inspection keeps the map bounded and selectable
       signal_selection = "sig_times_noise",
       cor_threshold_decision = FALSE, MinCor = 0.7,
       spatial_decision = FALSE, sigma = 1, xy_grid = FALSE,
+      load_entire_map = FALSE,
       collapse_decision = FALSE, collapse_type = "Mean",
       particle_id_strategy = "collapse", particle_pca_components = 10,
       particle_cluster_k = 10, particle_area_threshold = 1,
@@ -333,6 +335,47 @@ test_that("file-backed threshold inspection keeps the map bounded and selectable
       "rejected_pixel"
     )
     expect_identical(specs_source_count(inspection_source_gate()), 208L)
+
+    session$setInputs(
+      make_rel_decision = TRUE,
+      smooth_decision = TRUE, smoother = 3, derivative_order = 1,
+      smoother_window = 90, derivative_abs = TRUE,
+      conform_decision = TRUE, conform_selection = "mean_up", conform_res = 6,
+      identification_active = TRUE, id_spec_type = "all",
+      id_strategy = "deriv", lib_type = "medoid", top_n_input = 1,
+      top_n_per_organization = FALSE, filter_lib = FALSE,
+      threshold_decision = FALSE,
+      cor_threshold_decision = TRUE, MinCor = -1,
+      collapse_decision = TRUE, collapse_type = "Mean",
+      particle_id_strategy = "collapse", particle_area_threshold = 1
+    )
+    session$setInputs(run_analysis = 2L)
+    state <- canonical_state()
+    streamed_matches <- data.table::as.data.table(state$pixel_matches)
+    streamed_mapping <- data.table::as.data.table(state$pixel_to_unit)
+    expect_s3_class(inspection_source_gate(), "FileSpecs")
+    expect_false(state$settings$load_entire_map)
+    expect_null(state$diagnostic)
+    expect_s3_class(state$object, "OpenSpecy")
+    expect_identical(nrow(streamed_matches), 208L)
+    expect_true(all(streamed_matches[, .N, by = object_id]$N == 1L))
+    expect_true(all(c(
+      "threshold_match_val", "threshold_match_id", "threshold_material"
+    ) %in% names(streamed_mapping)))
+    expect_identical(nrow(streamed_mapping), 208L)
+
+    session$setInputs(
+      load_entire_map = TRUE,
+      identification_active = FALSE, cor_threshold_decision = FALSE,
+      collapse_decision = FALSE,
+      make_rel_decision = FALSE, smooth_decision = FALSE,
+      conform_decision = FALSE
+    )
+    session$setInputs(run_analysis = 3L)
+    expect_s3_class(preprocessed$data, "OpenSpecy")
+    expect_false(inherits(preprocessed$data, "Specs"))
+    expect_identical(ncol(preprocessed$data$spectra), 208L)
+    expect_true(canonical_state()$settings$load_entire_map)
   }))
 })
 
