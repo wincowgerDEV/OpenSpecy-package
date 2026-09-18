@@ -721,6 +721,59 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
     timeout: 30000,
   });
   await expect(page.locator("#run_analysis")).toHaveClass(/openspecy-run-dirty/);
+
+  // Threshold masking is off by default, but the selected metric must still
+  // own both preview values and the post-Run Signal map.
+  await page.locator("#identification_active").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await page.locator("#collapse_decision").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(page.locator("#identification_active")).not.toBeChecked();
+  await expect(page.locator("#collapse_decision")).not.toBeChecked();
+  await page.waitForTimeout(500);
+  await page.locator("#run_analysis").click();
+  await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
+    timeout: 10000,
+  });
+  await expect(page.locator("#openspecy_busy_overlay")).toBeHidden({
+    timeout: 120000,
+  });
+  await page.waitForFunction(() => {
+    const select = document.getElementById("map_color");
+    const alert = document.querySelector(
+      ".swal2-popup.swal2-show, .sweet-alert.showSweetAlert.visible"
+    );
+    if (alert) throw new Error(alert.textContent || "Unexpected analysis alert");
+    return Object.keys(select?.selectize?.options || {}).includes("Signal/Noise");
+  }, null, { timeout: 30000 });
+  await selectizeOption(page, "map_color", "Signal/Noise");
+  const initialSignal = await page.locator("#heatmapA").evaluate((plot) =>
+    JSON.stringify(plot.data?.[0]?.z)
+  );
+  const initialHistogram = await page.locator("#snr_plot").evaluate((plot) =>
+    JSON.stringify(plot.data?.[0]?.x)
+  );
+  await selectizeOption(page, "signal_selection", "sig_times_noise");
+  await preview.click();
+  await expect(page.locator("#openspecy_busy_overlay")).toBeHidden({
+    timeout: 240000,
+  });
+  await expect(
+    page.locator("#map_color + .selectize-control .selectize-input .item")
+  ).toHaveText("Signal Times Noise", { timeout: 30000 });
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) =>
+    JSON.stringify(plot.data?.[0]?.z)
+  ), { timeout: 30000 }).not.toBe(initialSignal);
+  await expect.poll(async () => page.locator("#snr_plot").evaluate((plot) =>
+    JSON.stringify(plot.data?.[0]?.x)
+  ), { timeout: 30000 }).not.toBe(initialHistogram);
+  const activeHover = await page.locator("#heatmapA").evaluate((plot) =>
+    JSON.stringify(plot.data?.[0]?.text)
+  );
+  expect(activeHover).toContain("Signal Times Noise:");
+  await expect(page.locator("#threshold_decision")).not.toBeChecked();
   expect(severeErrors).toEqual([]);
 });
 

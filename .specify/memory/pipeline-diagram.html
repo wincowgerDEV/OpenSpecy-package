@@ -500,7 +500,7 @@
 
 <div class="node trigger" style="left:1650px;top:610px" tabindex="0">
   &#8635; Recalculate Preview
-  <div class="tip">Works before the first Run: if only file paths are staged, it materializes and validates them, then scans the selected S/N basis and retains only histogram values/summary. It never publishes canonical analysis. Central progress makes the potentially long scan explicit; any changed metric, bounds, basis, sigma, intensity units, or Fully Processed setting keeps the preview stale until Recalculate or Click Run.
+  <div class="tip">Works before the first Run: if only file paths are staged, it materializes and validates them, then scans the selected S/N basis and retains one value per source pixel for the histogram and Signal map. Metric calculation is independent of the threshold owner; that switch controls only whether the current bounds black out map pixels. Recalculate or Click Run commits changed metric, basis, sigma, intensity-unit, or Fully Processed preview state, and the Map Color label/hover name that active metric. It never publishes canonical analysis.
   <span class="loc">Plan 022 &middot; server.R: read_uploaded_files() + recalculate_snr_preview()</span></div>
 </div>
 
@@ -535,7 +535,7 @@
 <div class="node function" style="left:1050px;top:1250px" tabindex="0">
   Signal/Noise Compute
   <div class="sub">bounded FileSpecs scan or committed compact/dense values</div>
-  <div class="tip">File-backed ENVI reads at most one bounded column block, optionally with the exact Gaussian halo, and retains only one S/N value per source pixel. Raw/Spatial always includes the selected transmittance/reflectance-to-absorbance intensity adjustment before measurement. Fully Processed applies the committed chunk-stable ordinary sequence inside each block rather than materializing the map; compact readers record the same intensity policy in stored S/N provenance. Selected-spectrum Quality Findings remain bound to Active Spectrum Inspection.
+  <div class="tip">File-backed ENVI reads at most one bounded column block, optionally with the exact Gaussian halo, and retains only one S/N value per source pixel. Raw/Spatial always includes the selected transmittance/reflectance-to-absorbance intensity adjustment before measurement. Fully Processed applies the committed chunk-stable ordinary sequence through the stage immediately before final Min-Max normalization inside each block rather than materializing the map. Every threshold metric is therefore measured before Min-Max; that switch still controls only the final canonical spectra. Compact readers record the same intensity policy in stored S/N provenance. Selected-spectrum Quality Findings remain bound to Active Spectrum Inspection.
   <span class="loc">Plans 018/033 &middot; server.R: signal_to_noise()/signal_eligible() &middot; R/automate_particle_filespecs.R</span></div>
 </div>
 
@@ -781,7 +781,7 @@
 <div class="node output tip-left" style="left:2250px;top:2810px" tabindex="0">
   Heatmap
   <div class="depends">depends on: Pixel Projection; Identification OR AI</div>
-  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(). Its available colorings change with upstream state: Collapse off shows streamed per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows only Signal/Noise-based coloring. The frame stays hidden after upload/invalidation until the current Run has pixel projection and Plotly has painted its SVG, preventing an empty or prior-state flash. X/Y default to pixels and scale live to the Advanced pixel edge length/unit. Clicking selects a pixel/unit for Active Spectrum Inspection and Selection Metadata; the heatmap is never the quality-test data source.
+  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(), with the latest explicitly recalculated per-pixel signal preview overlaid on the Signal coloring. Its available colorings change with upstream state: Collapse off shows streamed per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows the active named signal metric. The threshold owner only enables/disables the black signal-bound mask; it does not choose or calculate the metric. The frame stays hidden after upload/invalidation until the current Run has pixel projection and Plotly has painted its SVG, preventing an empty or prior-state flash. X/Y default to pixels and scale live to the Advanced pixel edge length/unit. Clicking selects a pixel/unit for Active Spectrum Inspection and Selection Metadata; the heatmap is never the quality-test data source.
   <span class="loc">server.R:2523, 2475</span></div>
 </div>
 

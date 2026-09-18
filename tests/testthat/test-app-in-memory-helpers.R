@@ -213,13 +213,18 @@ test_that("raw signal/noise basis applies only the selected intensity conversion
                      dimnames = list(NULL, "pixel-1"))
   )
   settings <- list(
-    intensity_decision = TRUE, intensity_corr = "transmittance"
+    intensity_decision = TRUE, intensity_corr = "transmittance",
+    make_rel_decision = TRUE
   )
   adjusted <- env$app_intensity_snr_basis(spectrum, settings)
   expected <- adj_intens(spectrum, type = "transmittance", make_rel = FALSE)
+  normalized <- make_rel(expected)
 
   expect_equal(adjusted$spectra, expected$spectra)
+  expect_false(isTRUE(all.equal(adjusted$spectra, normalized$spectra)))
   expect_identical(attr(adjusted, "intensity_unit"), "absorbance")
+  expect_true(settings$make_rel_decision)
+  expect_false(env$app_snr_processing_settings(settings)$make_rel_decision)
   expect_identical(
     env$app_intensity_snr_basis(
       spectrum, list(intensity_decision = FALSE, intensity_corr = "reflectance")
@@ -260,6 +265,11 @@ test_that("heatmap colors expose identification fields only when enabled", {
     unname(env$app_map_color_choices(TRUE, TRUE, FALSE)),
     c("Material Class", "Match Value", "Signal/Noise")
   )
+  labelled <- env$app_map_color_choices(
+    FALSE, FALSE, FALSE, signal_label = "Signal Times Noise"
+  )
+  expect_identical(unname(labelled), "Signal/Noise")
+  expect_identical(names(labelled), "Signal Times Noise")
 })
 
 test_that("collapsed units reuse real member-pixel correlations", {

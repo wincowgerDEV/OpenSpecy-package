@@ -674,6 +674,18 @@ app_file_stream_processing_issues <- function(settings,
   unique(issues)
 }
 
+# Signal/noise thresholding is always measured before the final Min-Max
+# Normalize step. This helper makes that ordering explicit for Fully Processed
+# as well as raw/file-backed paths without changing the settings later used to
+# build the canonical processed spectra.
+app_snr_processing_settings <- function(settings) {
+  if(!is.list(settings)) {
+    stop("Signal/noise processing settings must be a list.", call. = FALSE)
+  }
+  settings$make_rel_decision <- FALSE
+  settings
+}
+
 # Raw/Spatial signal thresholding intentionally omits the ordinary baseline,
 # spectral smoothing, range, and normalization steps, but intensity units are
 # not optional scientific decoration: a selected transmittance/reflectance
@@ -683,6 +695,7 @@ app_intensity_snr_basis <- function(x, settings) {
     stop("Intensity-adjusted S/N requires OpenSpecy data and settings.",
          call. = FALSE)
   }
+  settings <- app_snr_processing_settings(settings)
   if(!isTRUE(settings$intensity_decision)) return(x)
   type <- if(is.null(settings$intensity_corr)) "none" else
     as.character(settings$intensity_corr)[[1L]]
@@ -1466,7 +1479,8 @@ app_matches_for_object <- function(matches, object_id) {
 }
 
 app_map_color_choices <- function(identification_active, model_library,
-                                  collapse, availability = NULL) {
+                                  collapse, availability = NULL,
+                                  signal_label = "Signal/Noise") {
   choices <- c(
     if(isTRUE(identification_active)) "Material Class" else NA_character_,
     if(isTRUE(identification_active) && !isTRUE(model_library))
@@ -1481,7 +1495,13 @@ app_map_color_choices <- function(identification_active, model_library,
     available[is.na(available)] <- FALSE
     choices <- choices[available]
   }
-  stats::setNames(choices, choices)
+  labels <- choices
+  signal_label <- as.character(signal_label)[1L]
+  if(is.na(signal_label) || !nzchar(trimws(signal_label))) {
+    signal_label <- "Signal/Noise"
+  }
+  labels[choices == "Signal/Noise"] <- signal_label
+  stats::setNames(choices, labels)
 }
 
 # The Top Matches table shows the ranked candidate list for the SELECTED

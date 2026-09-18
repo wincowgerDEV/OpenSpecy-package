@@ -956,6 +956,16 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
   expect_match(server_source,
                "smooth_args <- if(smooth_enabled)", fixed = TRUE)
   expect_match(server_source, "effective_signal_selection", fixed = TRUE)
+  expect_false(grepl(
+    'if(!isTRUE(input$threshold_decision)) return("run_sig_over_noise")',
+    server_source, fixed = TRUE
+  ))
+  expect_match(server_source, "signal_label = preview_signal_label()", fixed = TRUE)
+  expect_match(
+    server_source,
+    'legend_title <- if(identical(map_color, "Signal/Noise"))',
+    fixed = TRUE
+  )
   # A single Run button, gated only on upload completion, is the sole
   # trigger for the expensive analysis tranche; there are no per-tab
   # owner switches left to keep child controls inert while disabled.
@@ -1152,6 +1162,16 @@ test_that("bundled app streams fully processed file-backed map summaries", {
     "process = if(fully_processed)", fixed = TRUE
   )
   expect_match(server_source, "app_intensity_snr_basis(spatial", fixed = TRUE)
+  expect_match(
+    server_source,
+    "settings <- app_snr_processing_settings(current_processing_settings())",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "settings = app_snr_processing_settings(\n                current_processing_settings()",
+    fixed = TRUE
+  )
   expect_match(server_source, "serialized_rds <- nrow(file_info) == 1L",
                fixed = TRUE)
   expect_match(server_source, "app_restore_spatial_coordinates(", fixed = TRUE)
@@ -1795,9 +1815,10 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
   expect_match(server_source, "keep[is.na(keep)] <- FALSE", fixed = TRUE)
   expect_match(
     server_source,
-    "rejected = projection$rejected",
+    "correlation_rejected = correlation_rejected",
     fixed = TRUE
   )
+  expect_match(server_source, "rejected = rejected", fixed = TRUE)
   expect_match(server_source, "app_material_summary_plot(", fixed = TRUE)
   expect_match(server_source, "map_color_choices <- reactive({", fixed = TRUE)
   expect_match(server_source, "resolved_map_color <- reactive({", fixed = TRUE)

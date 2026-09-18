@@ -352,11 +352,12 @@ advanced_controls <- tagList(
       uiOutput("snr_plot_ui")
     ),
     note = c(
-      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses the uploaded spectra, the selected Intensity Adjustment (so transmittance or reflectance is measured after conversion to absorbance-like units), and optional Spatial Smooth. Fully Processed additionally applies every other enabled preprocessing step to each pixel first; file-backed maps do this in bounded chunks, so it is slower without loading the complete map.",
+      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses the uploaded spectra, the selected Intensity Adjustment (so transmittance or reflectance is measured after conversion to absorbance-like units), and optional Spatial Smooth. Fully Processed additionally applies the other enabled preprocessing steps through the stage immediately before Min-Max Normalize; file-backed maps do this in bounded chunks, so it is slower without loading the complete map.",
+      "Threshold Signal / Noise is always calculated before Min-Max Normalize. The normalization switch still controls the final processed spectra, but it cannot change which pixels pass the signal/noise threshold.",
       "Minimum and Maximum Value define a strict accepted interval on the selected metric scale: values must be greater than the minimum and less than the maximum. The histogram draws both current thresholds.",
       "Signal Over Noise is a local peak-to-noise ratio, Signal Times Noise emphasizes absolute response, and Total Signal sums intensity. Larger values are not interchangeable between metrics.",
-      "Pixels outside either bound are background. The default maximum is deliberately high; lower it when saturated or unusually intense pixels must be excluded.",
-      "The preview histogram only updates on Run or Recalculate Preview (green = a recalculation would change it; dark = it already matches these settings). A new upload resets it to blank until the first Run or Recalculate."
+      "Pixels outside either bound are background only when Threshold Signal / Noise is on. Turning it off disables that black map mask but does not disable calculation of the selected metric.",
+      "The preview histogram and Signal map update on Run or Recalculate Preview (green = a recalculation would change them; dark = they already match these settings). The Map Color option and hover use the active metric name. A new upload resets the preview to blank until the first Run or Recalculate."
     )
   ),
   app_control_box(

@@ -388,7 +388,10 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
               13
             )
             classification_basis <- ordinary_process(
-              combined, settings = current_processing_settings(),
+              combined,
+              settings = app_snr_processing_settings(
+                current_processing_settings()
+              ),
               view_only = TRUE
             )
             classification_snr <- sig_noise(
@@ -1322,25 +1325,28 @@ observeEvent(input$run_analysis, {
   # S/N Basis defaults to only the uploaded spectra plus the optional spatial
   # smooth (fast; independent of baseline, derivative, range, normalization,
   # particle collapse, or identification settings). Signal/Noise Basis =
-  # "Fully Processed" instead runs every other enabled preprocessing step on
-  # each pixel first, at real cost on a large map -- deliberately not the
-  # default. Either way, this decides collapse eligibility (signal_eligible()
-  # below), not what data particles collapse from.
+  # "Fully Processed" instead runs every other enabled preprocessing step that
+  # precedes final Min-Max normalization on each pixel first, at real cost on a
+  # large map -- deliberately not the default. S/N is always measured before
+  # Min-Max; that switch still controls the final canonical spectra. Either
+  # way, this decides collapse eligibility (signal_eligible() below), not what
+  # data particles collapse from.
   signal_to_noise_basis <- reactive({
     req(!is.null(preprocessed$data))
     spatial <- spatial_data()
+    settings <- app_snr_processing_settings(current_processing_settings())
     if(identical(input$signal_basis, "fully_processed")) {
-      ordinary_process(spatial)
+      ordinary_process(spatial, settings = settings, view_only = TRUE)
     } else {
       if(is_Specs(spatial)) spatial <- decompress_spec(spatial, expand = FALSE)
-      app_intensity_snr_basis(spatial, current_processing_settings())
+      app_intensity_snr_basis(spatial, settings)
     }
   })
 
   signal_to_noise <- reactive({
     source <- spatial_data()
     if(inherits(source, "FileSpecs")) {
-      settings <- current_processing_settings()
+      settings <- app_snr_processing_settings(current_processing_settings())
       fully_processed <- identical(input$signal_basis, "fully_processed")
       if(fully_processed) {
         issues <- app_file_stream_processing_issues(
@@ -1417,10 +1423,8 @@ observeEvent(input$run_analysis, {
     list(
       signal_basis = input$signal_basis, spatial_decision = input$spatial_decision,
       sigma = input$sigma, signal_selection = input$signal_selection,
-      threshold_decision = input$threshold_decision,
-      MinSNR = input$MinSNR, MaxSNR = input$MaxSNR,
       processing = if(identical(input$signal_basis, "fully_processed")) {
-        current_processing_settings()
+        app_snr_processing_settings(current_processing_settings())
       } else {
         current_processing_settings()[c("intensity_decision", "intensity_corr")]
       }
@@ -1459,6 +1463,15 @@ observeEvent(input$run_analysis, {
   snr_preview_stale <- reactive({
     is.null(snr_preview_signature()) ||
       !identical(snr_preview_signature(), snr_relevant_signature())
+  })
+  preview_signal_metric <- reactive({
+    signature <- snr_preview_signature()
+    metric <- if(is.null(signature)) NULL else signature$signal_selection
+    if(is.null(metric)) metric <- effective_signal_selection()
+    metric
+  })
+  preview_signal_label <- reactive({
+    app_signal_metric_label(preview_signal_metric())
   })
   observe({
     shinyjs::toggleClass(
@@ -2448,11 +2461,12 @@ observeEvent(input$run_analysis, {
   outputOptions(output, "active_spectrum_status", suspendWhenHidden = FALSE)
   
   # SNR ----
-  # Keep the metric control inert until thresholding is enabled. This lets a
-  # user prepare the setting without invalidating the analysis pipeline.
+  # The selected metric always controls S/N calculation and display. The
+  # threshold owner controls only whether its bounds reject/black out pixels.
   effective_signal_selection <- reactive({
-      if(!isTRUE(input$threshold_decision)) return("run_sig_over_noise")
-      input$signal_selection
+      metric <- as.character(input$signal_selection)[1L]
+      valid <- c("run_sig_over_noise", "sig_times_noise", "log_tot_sig")
+      if(is.na(metric) || !metric %in% valid) "run_sig_over_noise" else metric
   })
 
   quality_report <- reactive({
@@ -3093,7 +3107,7 @@ output$snr_plot <- renderPlotly({
     } else numeric()
     app_particle_plotly(list(
       type = "histogram", values = as.numeric(values),
-      thresholds = thresholds, xlab = "Signal/Noise"
+      thresholds = thresholds, xlab = preview_signal_label()
     ), source = "snr_histogram")
 })
 
@@ -3225,9 +3239,12 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
 
     list(
       metadata = source_metadata(spatial), mapping = mapping,
+      pixel_id = ids,
       signal_to_noise = signal, correlation = as.numeric(correlation),
       match_id = as.character(match_id), material = as.character(material),
       unit_id = mapping$unit_id, unit_index = mapping$unit_index,
+      signal_rejected = signal_rejected,
+      correlation_rejected = correlation_rejected,
       rejected = rejected,
       rejection_reason = reason
     )
@@ -3249,18 +3266,20 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       any(!is.na(values) & nzchar(trimws(values)))
     }
     has_number <- function(values) any(is.finite(as.numeric(values)))
+    preview <- snr_preview()
     availability <- c(
       "Material Class" = has_text(projection$material),
       "Match ID" = has_text(projection$match_id),
       "Match Value" = has_number(projection$correlation),
-      "Signal/Noise" = has_number(projection$signal_to_noise),
+      "Signal/Noise" = has_number(preview),
       "Particle Unit" = has_number(projection$unit_index)
     )
     app_map_color_choices(
       identification_active = state$settings$identification_active,
       model_library = state$settings$model_library,
       collapse = state$settings$collapse,
-      availability = availability
+      availability = availability,
+      signal_label = preview_signal_label()
     )
   })
 
@@ -3275,6 +3294,7 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
 # Progress Bars
 output$choice_names <- renderUI({
     choice_names <- map_color_choices()
+    req(length(choice_names) > 0L)
     selected <- isolate(input$map_color)
     if(!isTruthy(selected) || !selected %in% unname(choice_names)) {
       selected <- unname(choice_names)[[1L]]
@@ -3429,6 +3449,36 @@ output$progress_bars <- renderUI({
   heatmap_state_for <- function(map_color) {
       projection <- pixel_projection()
       calibration <- pixel_calibration()
+      preview <- snr_preview()
+      signal <- projection$signal_to_noise
+      if(!is.null(preview)) {
+        if(!is.null(names(preview)) && !is.null(projection$pixel_id)) {
+          matched <- as.numeric(
+            preview[match(projection$pixel_id, names(preview))]
+          )
+          if(any(is.finite(matched)) || length(preview) != length(signal)) {
+            signal <- matched
+          } else {
+            signal <- as.numeric(preview)
+          }
+        } else if(length(preview) == length(signal)) {
+          signal <- as.numeric(preview)
+        }
+      }
+      signal_rejected <- app_threshold_rejection_mask(
+        signal, enabled = isTRUE(input$threshold_decision),
+        minimum = MinSNR(), maximum = MaxSNR()
+      )
+      correlation_rejected <- projection$correlation_rejected
+      if(is.null(correlation_rejected)) {
+        correlation_rejected <- rep(FALSE, length(signal_rejected))
+      }
+      rejected <- signal_rejected | correlation_rejected
+      rejection_reason <- rep(NA_character_, length(rejected))
+      rejection_reason[signal_rejected & !correlation_rejected] <- "signal/noise"
+      rejection_reason[!signal_rejected & correlation_rejected] <- "correlation"
+      rejection_reason[signal_rejected & correlation_rejected] <-
+        "signal/noise and correlation"
       categorical <- FALSE
       z <- if(identical(map_color, "Particle Unit")) {
         categorical <- TRUE
@@ -3439,7 +3489,7 @@ output$progress_bars <- renderUI({
       } else if(identical(map_color, "Match Value")) {
         signif(projection$correlation, 3)
       } else if(identical(map_color, "Signal/Noise")) {
-        signif(projection$signal_to_noise, 3)
+        signif(signal, 3)
       } else if(identical(map_color, "Material Class")) {
         categorical <- TRUE
         projection$material
@@ -3463,8 +3513,8 @@ output$progress_bars <- renderUI({
         ),
         z = z,
         categorical = categorical,
-        rejected = projection$rejected,
-        rejection_reason = projection$rejection_reason,
+        rejected = rejected,
+        rejection_reason = rejection_reason,
         axis_unit = calibration$unit
       )
   }
@@ -3494,8 +3544,11 @@ output$progress_bars <- renderUI({
   # Particle and ordinary maps share one Plotly data contract and renderer.
   heatmap_data_for <- function(map_color) {
       state <- heatmap_state_for(map_color)
+      legend_title <- if(identical(map_color, "Signal/Noise")) {
+        preview_signal_label()
+      } else map_color
       app_ordinary_heatmap_data(
-        state$metadata, state$z, state$categorical, map_color,
+        state$metadata, state$z, state$categorical, legend_title,
         rejected = state$rejected,
         rejection_reason = state$rejection_reason,
         axis_unit = state$axis_unit

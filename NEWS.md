@@ -1,5 +1,15 @@
 # OpenSpecy 1.7.1
 
+- Signal metric previews no longer fall back to Signal Over Noise when the
+  threshold mask is off. Recalculate Preview now refreshes both the histogram
+  and Signal map with the selected metric, while the threshold switch controls
+  only its black rejection mask; Map Color and heatmap hover show the active
+  metric name.
+
+- Signal/noise threshold metrics are now always calculated before Min-Max
+  Normalize. Intensity-unit conversion still occurs before raw/spatial S/N,
+  while the normalization switch affects only the final processed spectra and
+  cannot change threshold eligibility.
 - Processed-particle RDS downloads now round-trip through upload with canonical
   heatmap coordinates while retaining their unit-bearing metadata columns.
 - File-backed maps now support Fully Processed signal/noise and Collapse-off
