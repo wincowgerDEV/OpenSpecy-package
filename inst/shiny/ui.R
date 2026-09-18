@@ -352,8 +352,8 @@ advanced_controls <- tagList(
       uiOutput("snr_plot_ui")
     ),
     note = c(
-      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses the uploaded spectra, the selected Intensity Adjustment (so transmittance or reflectance is measured after conversion to absorbance-like units), and optional Spatial Smooth. Fully Processed additionally applies the other enabled preprocessing steps through the stage immediately before Min-Max Normalize; file-backed maps do this in bounded chunks, so it is slower without loading the complete map.",
-      "Threshold Signal / Noise is always calculated before Min-Max Normalize. The normalization switch still controls the final processed spectra, but it cannot change which pixels pass the signal/noise threshold.",
+      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses the uploaded spectra, the selected Intensity Adjustment (so transmittance or reflectance is measured after conversion to absorbance-like units), and optional Spatial Smooth, and it never Min-Max normalizes. Fully Processed applies the complete enabled preprocessing recipe, including Min-Max Normalize when that switch is on; file-backed maps do this in bounded chunks, so it is slower without loading the complete map.",
+      "Min-Max Normalize can therefore change Fully Processed signal/noise eligibility, but it never changes Raw / Spatially Smoothed signal/noise.",
       "Minimum and Maximum Value define a strict accepted interval on the selected metric scale: values must be greater than the minimum and less than the maximum. The histogram draws both current thresholds.",
       "Signal Over Noise is a local peak-to-noise ratio, Signal Times Noise emphasizes absolute response, and Total Signal sums intensity. Larger values are not interchangeable between metrics.",
       "Pixels outside either bound are background only when Threshold Signal / Noise is on. Turning it off disables that black map mask but does not disable calculation of the selected metric.",
@@ -391,6 +391,7 @@ advanced_controls <- tagList(
       "particle_id_strategy", "Particle ID Strategy",
       choices = c(
         "Connected threshold regions" = "collapse",
+        "Cluster Buster 1000" = "cluster_buster_1000",
         "Spatial material-connected clusters" = "partial_collapse",
         "Non-spatial spectral clusters" = "nonspatial_collapse"
       ),
@@ -424,8 +425,9 @@ advanced_controls <- tagList(
       value = 1, min = 0, step = 1
     ),
     note = c(
-      "Turning collapse off leaves pixels in the ordinary app workflow. Signal/noise always uses only the uploaded spectra plus optional Spatial Smooth.",
+      "Turning collapse off leaves pixels in the ordinary app workflow. Particle eligibility uses the active Signal/Noise Basis and its current bounds.",
       "Connected regions use the enabled signal/noise and correlation thresholds and require equal material identity when correlation is active.",
+      "Cluster Buster 1000 requires Threshold Signal / Noise plus medoid or full-library Identification. It processes S/N-retained pixels, compares bounded blocks of at most 1,000 against the selected library plus their processed mean as a temporary background, rejects background winners and optional low correlations, joins the remaining touching pixels, then re-identifies final particles without the temporary background. File-backed maps require Mean collapse.",
       "Both cluster modes fit source-scoped PCA then K-means to spatial-only spectra and collapse those groups before other processing. Non-spatial mode keeps the identified clusters as particles. Spatial mode projects their material identities to pixels, joins touching equal-material clusters, collapses the spatial-only data again, and reprocesses without a second identification.",
       "PCA Components and K-means Clusters are requested maxima. The effective values are clamped to each source and reported above. Higher values cost more memory and can make smaller groups.",
       "Minimum Particle Area is inclusive: groups with fewer pixels than this value are rejected after grouping. Geometric Mean requires every collapsed intensity to be positive."

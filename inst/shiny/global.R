@@ -674,10 +674,8 @@ app_file_stream_processing_issues <- function(settings,
   unique(issues)
 }
 
-# Signal/noise thresholding is always measured before the final Min-Max
-# Normalize step. This helper makes that ordering explicit for Fully Processed
-# as well as raw/file-backed paths without changing the settings later used to
-# build the canonical processed spectra.
+# Raw/Spatial signal/noise never applies Min-Max Normalize. Fully Processed
+# deliberately bypasses this helper and uses the complete enabled recipe.
 app_snr_processing_settings <- function(settings) {
   if(!is.list(settings)) {
     stop("Signal/noise processing settings must be a list.", call. = FALSE)
@@ -695,7 +693,6 @@ app_intensity_snr_basis <- function(x, settings) {
     stop("Intensity-adjusted S/N requires OpenSpecy data and settings.",
          call. = FALSE)
   }
-  settings <- app_snr_processing_settings(settings)
   if(!isTRUE(settings$intensity_decision)) return(x)
   type <- if(is.null(settings$intensity_corr)) "none" else
     as.character(settings$intensity_corr)[[1L]]
@@ -773,6 +770,38 @@ app_match_prepared_best <- function(query, prepared,
     library_id = prepared$library_id[best_index],
     match_val = best_value
   )
+}
+
+app_match_bounded_best <- function(query, reference, block_size = 1000L,
+                                   progress = NULL) {
+  if(!inherits(query, "OpenSpecy") || !inherits(reference, "OpenSpecy") ||
+     !identical(query$wavenumber, reference$wavenumber)) {
+    stop("Bounded matching requires OpenSpecy objects on one axis.",
+         call. = FALSE)
+  }
+  block_size <- suppressWarnings(as.integer(block_size)[1L])
+  if(is.na(block_size) || block_size < 1L) {
+    stop("'block_size' must be a positive whole number.", call. = FALSE)
+  }
+  prepared <- app_prepare_correlation_reference(reference)
+  chunks <- split(
+    seq_len(ncol(query$spectra)),
+    ceiling(seq_len(ncol(query$spectra)) / block_size)
+  )
+  result <- vector("list", length(chunks))
+  for(i in seq_along(chunks)) {
+    rows <- chunks[[i]]
+    block <- filter_spec(
+      query, logic = seq_len(ncol(query$spectra)) %in% rows
+    )
+    result[[i]] <- app_match_prepared_best(
+      block, prepared, library_block_size = block_size
+    )
+    if(!is.null(progress)) {
+      progress(i, length(chunks), sum(lengths(chunks[seq_len(i)])))
+    }
+  }
+  data.table::rbindlist(result, use.names = TRUE)
 }
 
 # Stream a FileSpecs query through caller-owned processing and matching
@@ -874,6 +903,176 @@ app_stream_filespec_best_matches <- function(
   )
   attr(result, "chunk_size") <- chunk_size
   result
+}
+
+# Build the Cluster Buster background from bounded, fully processed query
+# chunks. Summing after `process()` is essential: the temporary background must
+# inhabit the same processed feature space as matching, not the raw map space.
+app_stream_filespec_processed_mean <- function(
+    source, eligible, process, chunk_size = 1000L, progress = NULL,
+    spatial_smooth = FALSE, sigma = c(1, 1, 1)) {
+  if(!inherits(source, "FileSpecs") || !is.function(process)) {
+    stop("A FileSpecs source and processing callback are required.", call. = FALSE)
+  }
+  index <- OpenSpecy:::.filespec_index(source)
+  if(!is.logical(eligible) || length(eligible) != nrow(index)) {
+    stop("'eligible' must have one logical value per file-backed spectrum.",
+         call. = FALSE)
+  }
+  eligible[is.na(eligible)] <- FALSE
+  positions <- which(eligible)
+  if(!length(positions)) {
+    stop("Cluster Buster requires at least one retained spectrum.", call. = FALSE)
+  }
+  chunk_size <- OpenSpecy:::.filespec_bounded_chunk_size(
+    length(OpenSpecy:::.filespec_axis(source)), chunk_size
+  )
+  chunks <- if(isTRUE(spatial_smooth)) {
+    column_chunk <- OpenSpecy:::.filespec_column_chunk_id(index, chunk_size)
+    if(is.null(column_chunk)) {
+      stop("Spatial smoothing requires a complete rectangular file-backed grid.",
+           call. = FALSE)
+    }
+    split(seq_along(positions), column_chunk[positions])
+  } else {
+    split(seq_along(positions), ceiling(seq_along(positions) / chunk_size))
+  }
+  total <- NULL
+  axis <- NULL
+  preserve_uploaded_axis <- FALSE
+  count <- 0L
+  for(i in seq_along(chunks)) {
+    rows <- chunks[[i]]
+    query <- if(isTRUE(spatial_smooth)) {
+      values <- OpenSpecy:::.filespec_smoothed_values(
+        source, index, positions[rows], bands = NULL, sigma1 = sigma
+      )
+      OpenSpecy:::.filespec_values_to_OpenSpecy(source, values)
+    } else {
+      decompress_spec(source, index = positions[rows])
+    }
+    processed <- process(query)
+    if(!inherits(processed, "OpenSpecy")) {
+      stop("The streaming process callback must return OpenSpecy.", call. = FALSE)
+    }
+    if(is.null(axis)) {
+      axis <- processed$wavenumber
+      preserve_uploaded_axis <- isTRUE(attr(
+        processed, "preserve_uploaded_axis", exact = TRUE
+      ))
+      total <- rowSums(processed$spectra)
+    } else {
+      if(!identical(axis, processed$wavenumber)) {
+        stop("Streamed preprocessing produced inconsistent wavenumber axes.",
+             call. = FALSE)
+      }
+      total <- total + rowSums(processed$spectra)
+    }
+    count <- count + ncol(processed$spectra)
+    if(!is.null(progress)) {
+      progress(
+        completed_blocks = i, total_blocks = length(chunks),
+        completed_spectra = sum(lengths(chunks[seq_len(i)])),
+        total_spectra = length(positions), chunk_size = chunk_size
+      )
+    }
+    rm(query, processed)
+  }
+  spectra <- matrix(
+    total / count, ncol = 1L,
+    dimnames = list(as.character(axis), "background")
+  )
+  result <- as_OpenSpecy(
+    axis, spectra = spectra,
+    metadata = data.table::data.table(
+      col_id = "background", sample_name = "background",
+      spectrum_identity = "background", material_class = "background",
+      organization = "Temporary map background"
+    ), compute_file_id = FALSE
+  )
+  attr(result, "preserve_uploaded_axis") <- preserve_uploaded_axis
+  result
+}
+
+app_cluster_buster_background <- function(processed) {
+  if(!inherits(processed, "OpenSpecy") || ncol(processed$spectra) < 1L) {
+    stop("Cluster Buster requires processed retained spectra.", call. = FALSE)
+  }
+  spectra <- matrix(
+    rowMeans(processed$spectra), ncol = 1L,
+    dimnames = list(as.character(processed$wavenumber), "background")
+  )
+  result <- as_OpenSpecy(
+    processed$wavenumber, spectra = spectra,
+    metadata = data.table::data.table(
+      col_id = "background", sample_name = "background",
+      spectrum_identity = "background", material_class = "background",
+      organization = "Temporary map background"
+    ), compute_file_id = FALSE
+  )
+  attr(result, "preserve_uploaded_axis") <- isTRUE(attr(
+    processed, "preserve_uploaded_axis", exact = TRUE
+  ))
+  result
+}
+
+app_append_cluster_buster_background <- function(reference, background) {
+  if(!inherits(reference, "OpenSpecy") || !inherits(background, "OpenSpecy") ||
+     ncol(background$spectra) != 1L ||
+     !identical(reference$wavenumber, background$wavenumber)) {
+    stop("The reference and one-spectrum background must share an axis.",
+         call. = FALSE)
+  }
+  if("background" %in% colnames(reference$spectra)) {
+    stop("The selected library already contains a spectrum named 'background'.",
+         call. = FALSE)
+  }
+  result <- reference
+  result$spectra <- cbind(reference$spectra, background$spectra)
+  result$metadata <- data.table::rbindlist(
+    list(
+      data.table::as.data.table(reference$metadata),
+      data.table::as.data.table(background$metadata)
+    ), use.names = TRUE, fill = TRUE
+  )
+  result$metadata$col_id <- colnames(result$spectra)
+  result
+}
+
+app_cluster_buster_decisions <- function(
+    matches, pixel_ids, signal_keep, correlation_enabled = FALSE,
+    minimum = -Inf, background_id = "background") {
+  matches <- data.table::as.data.table(matches)
+  required <- c("object_id", "library_id", "match_val")
+  if(!all(required %in% names(matches))) {
+    stop("Cluster Buster matches are missing required columns.", call. = FALSE)
+  }
+  pixel_ids <- as.character(pixel_ids)
+  signal_keep <- as.logical(signal_keep)
+  if(length(pixel_ids) != length(signal_keep) || anyNA(pixel_ids) ||
+     anyDuplicated(pixel_ids)) {
+    stop("Cluster Buster pixel identifiers and S/N mask do not align.",
+         call. = FALSE)
+  }
+  signal_keep[is.na(signal_keep)] <- FALSE
+  index <- match(pixel_ids, as.character(matches$object_id))
+  winner <- as.character(matches$library_id[index])
+  score <- as.numeric(matches$match_val[index])
+  background <- signal_keep & (is.na(winner) | winner == background_id)
+  correlation <- signal_keep & !background & isTRUE(correlation_enabled) &
+    (!is.finite(score) | score < as.numeric(minimum)[1L])
+  keep <- signal_keep & !background & !correlation
+  reason <- rep(NA_character_, length(pixel_ids))
+  reason[!signal_keep] <- "signal/noise"
+  reason[background] <- "background"
+  reason[correlation] <- "correlation"
+  data.table::data.table(
+    pixel_id = pixel_ids, signal_keep = signal_keep,
+    library_id = winner, match_val = score,
+    background_rejected = background,
+    correlation_rejected = correlation, keep = keep,
+    rejection_reason = reason
+  )
 }
 
 app_rejected_spectrum <- function(wavenumber) {

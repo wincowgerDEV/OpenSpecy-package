@@ -1148,7 +1148,7 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   expect(severeErrors).toEqual([]);
 });
 
-test("in-memory particle analysis exposes three strategies and a canonical ZIP", async ({ page }, testInfo) => {
+test("in-memory particle analysis exposes four strategies and a canonical ZIP", async ({ page }, testInfo) => {
   test.setTimeout(900000);
   const severeErrors = [];
   page.on("console", (message) => {
@@ -1221,6 +1221,29 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   ]));
   await expect(page.locator("#heatmapA.js-plotly-plot .main-svg").first())
     .toBeVisible({ timeout: 120000 });
+
+  // Regression: clicking a collapsed Uploaded Metadata row must resolve one
+  // representative source pixel. The former vector-valued selection blanked
+  // Selection Metadata and left it unable to recover.
+  const spectraCard = page.locator("#spectra_box");
+  const sidebarToggle = page.locator("#mycardsidebar");
+  await sidebarToggle.click();
+  await expect(spectraCard).toHaveClass(/direct-chat-contacts-open/);
+  const sidebar = spectraCard.locator(".direct-chat-contacts");
+  await sidebar.getByRole("link", {
+    name: "Uploaded Metadata", exact: true,
+  }).click();
+  const particleRows = sidebar.locator(
+    "#sidebar_metadata .dataTables_scrollBody table tbody tr"
+  );
+  await expect(particleRows.first()).toBeVisible({ timeout: 60000 });
+  const rowCount = await particleRows.count();
+  await particleRows.nth(Math.max(0, rowCount - 1)).click();
+  await expect(page.locator("#eventmetadata table tbody tr").first())
+    .toBeVisible({ timeout: 60000 });
+  await expect(page.locator("#eventmetadata")).not.toContainText("No data");
+  await sidebarToggle.click();
+  await expect(spectraCard).not.toHaveClass(/direct-chat-contacts-open/);
   const signalCard = page.locator("#threshold_decision").locator(
     "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
   );
@@ -1285,6 +1308,20 @@ test("in-memory particle analysis exposes three strategies and a canonical ZIP",
   }
   expect(strategyStatuses.partial_collapse)
     .not.toBe(strategyStatuses.nonspatial_collapse);
+  await page.evaluate(() => {
+    window.Shiny.setInputValue("threshold_decision", true, { priority: "event" });
+    window.Shiny.setInputValue("MinSNR", -1e12, { priority: "event" });
+    window.Shiny.setInputValue("MaxSNR", 1e300, { priority: "event" });
+  });
+  await pickerOption(page, "particle_id_strategy", "cluster_buster_1000");
+  await page.locator("#run_analysis").click();
+  await expect(page.locator("#particle_partition_status"))
+    .toContainText("Cluster Buster 1000", { timeout: 360000 });
+  await expect(particleAlert).toHaveCount(0);
+
+  await page.evaluate(() => {
+    window.Shiny.setInputValue("threshold_decision", false, { priority: "event" });
+  });
   await pickerOption(page, "particle_id_strategy", "collapse");
   await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
   await page.locator("#run_analysis").click();

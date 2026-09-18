@@ -188,6 +188,87 @@ test_that("file-backed matching retains only one winner per eligible spectrum", 
                tolerance = 1e-12)
 })
 
+test_that("Cluster Buster builds processed backgrounds and bounded decisions", {
+  env <- .source_in_memory_app_helpers()
+  processed <- as_OpenSpecy(
+    1000:1003,
+    spectra = matrix(
+      c(1, 3, 5, 7, 3, 5, 7, 9), nrow = 4,
+      dimnames = list(NULL, c("pixel-1", "pixel-2"))
+    ),
+    metadata = data.frame(col_id = c("pixel-1", "pixel-2"))
+  )
+  attr(processed, "preserve_uploaded_axis") <- TRUE
+  background <- env$app_cluster_buster_background(processed)
+
+  expect_equal(background$spectra[, 1L], rowMeans(processed$spectra))
+  expect_identical(colnames(background$spectra), "background")
+  expect_identical(background$metadata$organization,
+                   "Temporary map background")
+  expect_true(attr(background, "preserve_uploaded_axis", exact = TRUE))
+
+  reference <- filter_spec(processed, logic = c(TRUE, FALSE))
+  appended <- env$app_append_cluster_buster_background(reference, background)
+  expect_identical(colnames(appended$spectra), c("pixel-1", "background"))
+  expect_identical(appended$metadata$col_id, colnames(appended$spectra))
+  expect_error(
+    env$app_append_cluster_buster_background(appended, background),
+    "already contains"
+  )
+
+  bounded <- env$app_match_bounded_best(
+    processed, appended, block_size = 1L
+  )
+  eager <- OpenSpecy:::.match_spec_blockwise(
+    processed, appended, top_n = 1L, block_size = 20L,
+    conform = FALSE, type = "roll"
+  )
+  expect_equal(bounded, eager, ignore_attr = TRUE, tolerance = 1e-12)
+
+  decisions <- env$app_cluster_buster_decisions(
+    data.table::data.table(
+      object_id = c("p1", "p2", "p3"),
+      library_id = c("background", "library-a", "library-b"),
+      match_val = c(0.99, 0.65, 0.95)
+    ),
+    pixel_ids = c("p1", "p2", "p3", "p4"),
+    signal_keep = c(TRUE, TRUE, TRUE, FALSE),
+    correlation_enabled = TRUE, minimum = 0.7
+  )
+  expect_identical(decisions$keep, c(FALSE, FALSE, TRUE, FALSE))
+  expect_identical(
+    decisions$rejection_reason,
+    c("background", "correlation", NA_character_, "signal/noise")
+  )
+})
+
+test_that("Cluster Buster streams the mean after processing", {
+  env <- .source_in_memory_app_helpers()
+  directory <- tempfile("app-cluster-background-")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(read_extdata("CA_tiny_map.zip"), exdir = directory)
+  paths <- list.files(directory, full.names = TRUE)
+  paths <- paths[grepl("\\.(dat|hdr)$", paths, ignore.case = TRUE)]
+  source <- open_specs(paths, cache_dir = file.path(directory, "cache"))
+  eligible <- rep(FALSE, specs_source_count(source))
+  eligible[seq_len(7L)] <- TRUE
+  process <- function(x) {
+    x$spectra <- x$spectra^2
+    attr(x, "preserve_uploaded_axis") <- TRUE
+    x
+  }
+
+  streamed <- env$app_stream_filespec_processed_mean(
+    source, eligible, process = process, chunk_size = 3L
+  )
+  eager <- process(decompress_spec(source, index = which(eligible)))
+
+  expect_equal(streamed$spectra[, 1L], rowMeans(eager$spectra),
+               tolerance = 1e-12)
+  expect_true(attr(streamed, "preserve_uploaded_axis", exact = TRUE))
+})
+
 test_that("file-backed streaming reports processing that needs full memory", {
   env <- .source_in_memory_app_helpers()
   expect_length(env$app_file_stream_processing_issues(list()), 0L)

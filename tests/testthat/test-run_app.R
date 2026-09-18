@@ -1164,13 +1164,22 @@ test_that("bundled app streams fully processed file-backed map summaries", {
   expect_match(server_source, "app_intensity_snr_basis(spatial", fixed = TRUE)
   expect_match(
     server_source,
-    "settings <- app_snr_processing_settings(current_processing_settings())",
+    "settings <- current_processing_settings()",
     fixed = TRUE
   )
   expect_match(
     server_source,
-    "settings = app_snr_processing_settings(\n                current_processing_settings()",
+    "function(block) ordinary_process(\n            block, settings = settings, view_only = TRUE",
     fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "function(block) app_intensity_snr_basis(block, settings)",
+    fixed = TRUE
+  )
+  expect_match(
+    global_source,
+    "settings$make_rel_decision <- FALSE", fixed = TRUE
   )
   expect_match(server_source, "serialized_rds <- nrow(file_info) == 1L",
                fixed = TRUE)
@@ -1183,6 +1192,26 @@ test_that("bundled app streams fully processed file-backed map summaries", {
   expect_match(global_source, "OpenSpecy:::.filespec_smoothed_values(",
                fixed = TRUE)
   expect_false(grepl("turn off Spatial Smooth", global_source, fixed = TRUE))
+})
+
+test_that("bundled app exposes the gated Cluster Buster strategy", {
+  app_path <- run_app(test_mode = TRUE)
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+
+  expect_match(ui_source,
+               '"Cluster Buster 1000" = "cluster_buster_1000"',
+               fixed = TRUE)
+  expect_match(server_source,
+               "Cluster Buster 1000 requires Threshold Signal / Noise",
+               fixed = TRUE)
+  expect_match(server_source, "app_stream_filespec_processed_mean(",
+               fixed = TRUE)
+  expect_match(server_source, "library_override = temporary_library",
+               fixed = TRUE)
+  expect_match(server_source, "app_cluster_buster_decisions(", fixed = TRUE)
 })
 
 test_that("collapse and spatial smooth are silently ignored for a single spectrum", {

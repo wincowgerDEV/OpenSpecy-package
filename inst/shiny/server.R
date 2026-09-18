@@ -1325,16 +1325,15 @@ observeEvent(input$run_analysis, {
   # S/N Basis defaults to only the uploaded spectra plus the optional spatial
   # smooth (fast; independent of baseline, derivative, range, normalization,
   # particle collapse, or identification settings). Signal/Noise Basis =
-  # "Fully Processed" instead runs every other enabled preprocessing step that
-  # precedes final Min-Max normalization on each pixel first, at real cost on a
-  # large map -- deliberately not the default. S/N is always measured before
-  # Min-Max; that switch still controls the final canonical spectra. Either
+  # "Fully Processed" instead runs the complete enabled preprocessing recipe,
+  # including Min-Max normalization when selected, at real cost on a large map
+  # -- deliberately not the default. Raw/Spatial never applies Min-Max. Either
   # way, this decides collapse eligibility (signal_eligible() below), not what
   # data particles collapse from.
   signal_to_noise_basis <- reactive({
     req(!is.null(preprocessed$data))
     spatial <- spatial_data()
-    settings <- app_snr_processing_settings(current_processing_settings())
+    settings <- current_processing_settings()
     if(identical(input$signal_basis, "fully_processed")) {
       ordinary_process(spatial, settings = settings, view_only = TRUE)
     } else {
@@ -1346,7 +1345,7 @@ observeEvent(input$run_analysis, {
   signal_to_noise <- reactive({
     source <- spatial_data()
     if(inherits(source, "FileSpecs")) {
-      settings <- app_snr_processing_settings(current_processing_settings())
+      settings <- current_processing_settings()
       fully_processed <- identical(input$signal_basis, "fully_processed")
       if(fully_processed) {
         issues <- app_file_stream_processing_issues(
@@ -1424,7 +1423,7 @@ observeEvent(input$run_analysis, {
       signal_basis = input$signal_basis, spatial_decision = input$spatial_decision,
       sigma = input$sigma, signal_selection = input$signal_selection,
       processing = if(identical(input$signal_basis, "fully_processed")) {
-        app_snr_processing_settings(current_processing_settings())
+        current_processing_settings()
       } else {
         current_processing_settings()[c("intensity_decision", "intensity_corr")]
       }
@@ -1568,6 +1567,7 @@ observeEvent(input$run_analysis, {
   }
 
   identify_filespec_best <- function(source, eligible, settings,
+                                     library_override = NULL,
                                      spatial_smooth = FALSE,
                                      spatial_sigma = c(1, 1, 1)) {
     issues <- app_file_stream_processing_issues(
@@ -1580,7 +1580,8 @@ observeEvent(input$run_analysis, {
         ", or enable Load Entire Map into Memory."
       ), call. = FALSE)
     }
-    library <- analysis_library()
+    library <- if(is.null(library_override)) analysis_library() else
+      library_override
     req(!is.null(library), is_OpenSpecy(library))
     reference <- NULL
     prepared_reference <- NULL
@@ -1830,6 +1831,7 @@ observeEvent(input$run_analysis, {
       strategy <- run_settings$strategy
       clustered <- collapse && strategy %in%
         c("partial_collapse", "nonspatial_collapse")
+      cluster_buster <- collapse && identical(strategy, "cluster_buster_1000")
       correlation_threshold <- run_settings$correlation_active
 
       unavailable <- function(message, mapping = NULL, partition = NULL,
@@ -1847,6 +1849,63 @@ observeEvent(input$run_analysis, {
         mapping$threshold_match_id <- best$library_id[index]
         mapping$threshold_material <- match_material(best$library_id[index])
         mapping
+      }
+
+      cluster_buster_reference <- function(background) {
+        original <- analysis_library()
+        reference <- app_reference_for_query(
+          original, background,
+          preserve_axis = isTRUE(attr(
+            background, "preserve_uploaded_axis", exact = TRUE
+          ))
+        )
+        app_append_cluster_buster_background(reference, background)
+      }
+
+      cluster_buster_mapping <- function(source, signal_keep, pixel_matches) {
+        mapping <- app_identity_pixel_mapping(source, signal_keep)
+        decisions <- app_cluster_buster_decisions(
+          pixel_matches, mapping$pixel_id, signal_keep,
+          correlation_enabled = correlation_threshold,
+          minimum = run_settings$min_cor
+        )
+        mapping$threshold_match_val <- decisions$match_val
+        mapping$threshold_match_id <- decisions$library_id
+        mapping$threshold_material <- match_material(decisions$library_id)
+        background_rows <- !is.na(decisions$library_id) &
+          decisions$library_id == "background"
+        mapping$threshold_material[background_rows] <- "background"
+        replace <- !is.na(decisions$rejection_reason)
+        mapping$rejection_reason[replace] <- decisions$rejection_reason[replace]
+        list(mapping = mapping, decisions = decisions)
+      }
+
+      overlay_cluster_buster_mapping <- function(partition, threshold_state) {
+        mapping <- data.table::as.data.table(partition$pixel_to_unit)
+        source_rows <- match(
+          mapping$pixel_id, threshold_state$mapping$pixel_id
+        )
+        for(column in c(
+            "threshold_match_val", "threshold_match_id",
+            "threshold_material")) {
+          mapping[[column]] <- threshold_state$mapping[[column]][source_rows]
+        }
+        decision_rows <- match(
+          mapping$pixel_id, threshold_state$decisions$pixel_id
+        )
+        rejected <- !is.na(decision_rows) &
+          !threshold_state$decisions$keep[decision_rows]
+        mapping$rejection_reason[rejected] <-
+          threshold_state$decisions$rejection_reason[decision_rows][rejected]
+        partition$pixel_to_unit <- mapping
+        partition
+      }
+
+      if(cluster_buster && (!run_settings$threshold_active || !use_library)) {
+        return(unavailable(paste(
+          "Cluster Buster 1000 requires Threshold Signal / Noise and",
+          "Identification with a medoid or full reference library."
+        )))
       }
 
       if((correlation_threshold || (clustered &&
@@ -1903,7 +1962,7 @@ observeEvent(input$run_analysis, {
           ))
         }
         unsupported <- character()
-        if(!identical(strategy, "collapse")) unsupported <- c(
+        if(!strategy %in% c("collapse", "cluster_buster_1000")) unsupported <- c(
           unsupported, "use Connected Particle collapse"
         )
         if(!identical(input$collapse_type, "Mean")) unsupported <- c(
@@ -1914,6 +1973,71 @@ observeEvent(input$run_analysis, {
             "This file-backed map is protected from full-map materialization; ",
             paste(unique(unsupported), collapse = ", "), "."
           )))
+        }
+        if(cluster_buster) {
+          analysis_phase(
+            "Building Cluster Buster background",
+            paste(
+              "Processing S/N-retained spectra in bounded blocks and retaining",
+              "only their running mean."
+            ), 24
+          )
+          background <- app_stream_filespec_processed_mean(
+            spatial, eligible = signal_keep, chunk_size = identify_block_size,
+            process = function(query) ordinary_process(
+              query, settings = run_settings$processing, view_only = TRUE
+            ),
+            progress = function(completed_blocks, total_blocks,
+                                completed_spectra, total_spectra, ...) {
+              fraction <- completed_blocks / max(1L, total_blocks)
+              analysis_phase(
+                paste0("Building background (", floor(100 * fraction), "%)"),
+                paste0(
+                  "Accumulated ", format(completed_spectra, big.mark = ","),
+                  " of ", format(total_spectra, big.mark = ","),
+                  " processed retained spectra."
+                ), 24 + 10 * fraction
+              )
+            },
+            spatial_smooth = run_settings$spatial_smooth,
+            sigma = run_settings$spatial_sigma
+          )
+          temporary_library <- cluster_buster_reference(background)
+          pixel_matches <- identify_filespec_best(
+            spatial, eligible = signal_keep,
+            settings = run_settings$processing,
+            library_override = temporary_library,
+            spatial_smooth = run_settings$spatial_smooth,
+            spatial_sigma = run_settings$spatial_sigma
+          )
+          threshold_state <- cluster_buster_mapping(
+            spatial, signal_keep, pixel_matches
+          )
+          partition <- OpenSpecy:::.filespec_collapse_connected_mean(
+            spatial, eligible = threshold_state$decisions$keep,
+            area_threshold = particle_area_threshold(),
+            spectral_smooth = run_settings$spatial_smooth,
+            sigma = run_settings$spatial_sigma, chunk_size = 8192L
+          )
+          partition$settings$requested_strategy <- strategy
+          partition <- overlay_cluster_buster_mapping(
+            partition, threshold_state
+          )
+          if(is.null(partition$analysis_units)) {
+            return(unavailable(
+              "No Cluster Buster particles meet the active filters and minimum area.",
+              partition$pixel_to_unit, partition, pixel_matches
+            ))
+          }
+          processed <- ordinary_process(partition$analysis_units)
+          matches <- identify_blockwise(processed)
+          processed <- attach_best_matches(processed, matches)
+          return(list(
+            object = processed, matches = matches,
+            pixel_matches = pixel_matches,
+            pixel_to_unit = partition$pixel_to_unit, partition = partition,
+            error = NULL, diagnostic = NULL, settings = run_settings
+          ))
         }
         pixel_matches <- if(correlation_threshold) {
           identify_filespec_best(
@@ -2024,6 +2148,59 @@ observeEvent(input$run_analysis, {
         decompress_spec(spatial, index = which(signal_keep))
       } else if(all(signal_keep)) spatial else {
         filter_spec(spatial, logic = signal_keep)
+      }
+
+      if(cluster_buster) {
+        analysis_phase(
+          "Building Cluster Buster background",
+          paste(
+            "Processing retained pixels, averaging their processed spectra,",
+            "and running bounded Top-1 background comparison."
+          ), 28
+        )
+        processed_pixels <- ordinary_process(signal_subset)
+        background <- app_cluster_buster_background(processed_pixels)
+        temporary_library <- cluster_buster_reference(background)
+        pixel_matches <- app_match_bounded_best(
+          processed_pixels, temporary_library,
+          block_size = identify_block_size,
+          progress = function(completed_blocks, total_blocks, ...) {
+            fraction <- completed_blocks / max(1L, total_blocks)
+            analysis_phase(
+              paste0("Cluster Buster matching (", floor(100 * fraction), "%)"),
+              paste0(
+                "Completed ", completed_blocks, " of ", total_blocks,
+                " query blocks; block size ", identify_block_size, "."
+              ), 38 + 34 * fraction
+            )
+          }
+        )
+        threshold_state <- cluster_buster_mapping(
+          spatial, signal_keep, pixel_matches
+        )
+        partition <- OpenSpecy:::.partition_particle_map(
+          spatial, eligible = threshold_state$decisions$keep,
+          strategy = "collapse",
+          collapse_function = particle_collapse_function(),
+          area_threshold = particle_area_threshold()
+        )
+        partition$settings$requested_strategy <- strategy
+        partition <- overlay_cluster_buster_mapping(partition, threshold_state)
+        if(is.null(partition$analysis_units)) {
+          return(unavailable(
+            "No Cluster Buster particles meet the active filters and minimum area.",
+            partition$pixel_to_unit, partition, pixel_matches
+          ))
+        }
+        processed <- ordinary_process(partition$analysis_units)
+        matches <- identify_blockwise(processed)
+        processed <- attach_best_matches(processed, matches)
+        return(list(
+          object = processed, matches = matches,
+          pixel_matches = pixel_matches,
+          pixel_to_unit = partition$pixel_to_unit, partition = partition,
+          error = NULL, diagnostic = NULL, settings = run_settings
+        ))
       }
 
       if(clustered) {
@@ -2254,13 +2431,18 @@ observeEvent(input$run_analysis, {
     strategy <- if(is.null(settings$requested_strategy)) {
       settings$strategy
     } else settings$requested_strategy
-    if(identical(strategy, "collapse")) {
+    if(strategy %in% c("collapse", "cluster_buster_1000")) {
       retained <- unique(state$pixel_to_unit$unit_id[
         state$pixel_to_unit$kept & !is.na(state$pixel_to_unit$unit_id)
       ])
       return(tags$p(
         class = "text-muted",
-        paste(length(retained), "connected particle regions retained.")
+        paste0(
+          if(identical(strategy, "cluster_buster_1000")) {
+            "Cluster Buster 1000: "
+          } else "",
+          length(retained), " connected particle regions retained."
+        )
       ))
     }
     centers <- settings$centers
@@ -3611,7 +3793,7 @@ output$progress_bars <- renderUI({
       unit_index == selected_plot & kept == TRUE,
       pixel_index
     ]
-    if(length(representative)) data_click$pixel <- representative
+    if(length(representative)) data_click$pixel <- representative[[1L]]
   }, ignoreNULL = TRUE)
 
   output$heatmapA <- plotly::renderPlotly({

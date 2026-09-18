@@ -35,8 +35,7 @@ the [package vignette](https://wincowgerdev.github.io/OpenSpecy-package/pkgdown/
 
 To get started with the Open Specy user interface, use
 [the embedded browser app](https://wincowgerdev.github.io/OpenSpecy-package/),
-download a self-contained offline browser bundle, or start the bundled Shiny
-GUI from R with `run_app()`.
+or start the bundled Shiny GUI from R with `run_app()`.
 
 ```{r eval = F}
 install.packages("OpenSpecy")
@@ -72,48 +71,6 @@ Private-browsing rules, storage quotas, or manual site-data clearing can remove
 the cache; the app safely falls back to the network. A warm load avoids most
 repeat transfer latency, although webR still needs local initialization and
 package decompression time.
-
-## Run the browser bundle offline without R
-
-Every successful **Build offline OpenSpecy bundles** GitHub Action packages the
-exact pinned Pages build for five desktop targets: Windows x64, macOS Intel,
-macOS Apple Silicon, Linux x64, and Linux ARM64. The archive already contains
-OpenSpecy, webR, its R-package dependency image, compact identification
-libraries, the app, and the documentation. The destination computer therefore
-does not need R, Python, Node, an OpenSpecy installation, another file download,
-or an internet connection while the app is running. It only needs a modern
-browser with WebAssembly and service-worker support.
-
-1. Open the repository's [offline bundle
-   Action](https://github.com/wincowgerDEV/OpenSpecy-package/actions/workflows/build-offline-shinylive.yml),
-   choose a successful run, and download the artifact matching the computer,
-   such as `openspecy-offline-windows-amd64-<commit>` or
-   `openspecy-offline-macos-arm64-<commit>`. GitHub may require you to sign in
-   to download an Action artifact.
-2. Extract the downloaded artifact. Before opening its contained target ZIP,
-   compare it with the adjacent `.zip.sha256`: use `Get-FileHash -Algorithm
-   SHA256 <target.zip>` in PowerShell, or `shasum -a 256 <target.zip>` on macOS
-   or Linux. Then extract that target ZIP and keep the whole
-   `OpenSpecy-offline-<commit>` folder together. `offline-manifest.json` names
-   the exact package commit and `SHA256SUMS.txt` records every other bundled
-   file (the checksum list cannot include its own digest).
-3. On Windows, open **OpenSpecy Offline.exe**. On macOS or Linux, open
-   **OpenSpecy Offline** from a terminal. If archive software removed its
-   executable permission, run `chmod +x "OpenSpecy Offline"` once. Unsigned
-   macOS builds may require the standard one-time **Privacy & Security → Open
-   Anyway** approval.
-4. Leave the launcher window open. It binds only to `127.0.0.1` on an available
-   local port and opens `/app/` directly in the default browser, without trying
-   to load the landing page's online video. The landing page remains at `/` and
-   this documentation is at `/pkgdown/` relative to the local address. Stop it
-   with **Ctrl+C** or by closing the launcher window.
-
-Do not open `site/index.html` directly with a `file://` address. Shinylive uses
-a service worker to host its in-browser Shiny session, and browsers allow that
-worker on HTTPS or localhost. The included launcher supplies localhost without
-exposing the files to the local network. The bundle is offline-ready after it
-has been downloaded, but ordinary external links in the landing page naturally
-remain unavailable while the computer is offline.
 
 ## Use the guided walkthrough
 

@@ -6,10 +6,19 @@
   only its black rejection mask; Map Color and heatmap hover show the active
   metric name.
 
-- Signal/noise threshold metrics are now always calculated before Min-Max
-  Normalize. Intensity-unit conversion still occurs before raw/spatial S/N,
-  while the normalization switch affects only the final processed spectra and
-  cannot change threshold eligibility.
+- Raw/Spatial signal/noise always excludes Min-Max Normalize, while Fully
+  Processed signal/noise now honors the complete selected recipe, including
+  Min-Max when enabled. Intensity-unit conversion still occurs before either
+  basis is measured.
+- Added **Cluster Buster 1000** particle identification. It builds a temporary
+  processed map-background reference, performs bounded Top-1 pixel matching,
+  rejects background winners and optional low correlations, collapses the
+  remaining connected regions, and re-identifies final particles against the
+  original library. Collapsed Uploaded Metadata selection now also resolves a
+  single representative pixel so Selection Metadata remains populated.
+- Retired the unsupported offline-bundle GitHub Action, Go packager/launcher,
+  dedicated tests, and user instructions. The bundled local Shiny app and
+  hosted Shinylive app remain supported.
 - Processed-particle RDS downloads now round-trip through upload with canonical
   heatmap coordinates while retaining their unit-bearing metadata columns.
 - File-backed maps now support Fully Processed signal/noise and Collapse-off
@@ -80,16 +89,6 @@
 - Removed the in-app **Walk me through** guide while retaining the concise,
   control-adjacent **What this changes** guidance. A video tutorial can be
   linked when its replacement is ready.
-- Added versioned browser caching and a new GitHub Action that packages the
-  exact pinned Shinylive Pages build as self-contained offline archives for
-  Windows, macOS, and Linux. Their native loopback launcher needs no R, Python,
-  Node, package download, installation, or internet connection at runtime;
-  bundled landing-page videos now load only after an explicit click.
-- Offline acceptance now tests the risks unique to its archive—native launch
-  from a spaced path, first-load WebAssembly startup without internet, bundled
-  fixture download, and loopback-only traffic—instead of repeating the full
-  identification/quantification smoke already required of its exact successful
-  Pages artifact.
 - Restored preprocessing compatibility warnings for derivative and no-baseline
   identification libraries, made tab-wide actions turn switches off only, and
   fixed fresh-session startup/Plotly warnings plus first-Run Selection Metadata
@@ -99,10 +98,9 @@
   after every bounded matching block.
 - Hosted progress overlays now remain closed after a completed action, even
   when late output-only reactive updates render after identification results.
-- Offline packaging now collapses verified case-only pkgdown redirect aliases
-  that cannot coexist on portable filesystems. Selection Metadata now uses
-  client-side rendering for its single row, and an explicit WebAssembly-safe
-  row-click bridge keeps Top Matches selection synchronized. Package and CI
+- Selection Metadata now uses client-side rendering for its single row, and an
+  explicit WebAssembly-safe row-click bridge keeps Top Matches selection
+  synchronized. Package and CI
   model fitting remains single-worker by default, while
   production builders can set `options(OpenSpecy.build_workers = n)` to run
   logistic cross-validation folds and random forests concurrently. Scientific

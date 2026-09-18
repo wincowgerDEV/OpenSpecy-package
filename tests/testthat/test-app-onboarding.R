@@ -325,6 +325,19 @@ test_that("file-backed threshold inspection keeps the map bounded and selectable
     expect_identical(selected_unit_index(), 1L)
     expect_identical(names(match_metadata()), c("Signal Times Noise", "File Name"))
 
+    raw_without_minmax <- signal_to_noise()
+    session$setInputs(make_rel_decision = TRUE)
+    raw_with_switch_on <- signal_to_noise()
+    expect_equal(raw_with_switch_on, raw_without_minmax, tolerance = 1e-12)
+    session$setInputs(signal_basis = "fully_processed")
+    fully_with_minmax <- signal_to_noise()
+    session$setInputs(make_rel_decision = FALSE)
+    fully_without_minmax <- signal_to_noise()
+    expect_false(isTRUE(all.equal(
+      fully_with_minmax, fully_without_minmax, tolerance = 1e-12
+    )))
+    session$setInputs(signal_basis = "raw_smoothed")
+
     rejected <- mapping[kept == FALSE, pixel_index][[1L]]
     data_click$pixel <- rejected
     data_click$plot <- NA_integer_
@@ -364,6 +377,49 @@ test_that("file-backed threshold inspection keeps the map bounded and selectable
     ) %in% names(streamed_mapping)))
     expect_identical(nrow(streamed_mapping), 208L)
 
+    # A collapsed Uploaded Metadata click must select one representative
+    # source pixel. Assigning every member pixel here used to make
+    # selected_unit_index() vector-valued and blank Selection Metadata.
+    data_click$plot <- NA_integer_
+    data_click$pixel <- NA_integer_
+    session$setInputs(sidebar_metadata_rows_selected = 1L)
+    session$flushReact()
+    expect_length(data_click$pixel, 1L)
+    expect_false(is.na(data_click$pixel))
+    expect_identical(selected_unit_index(), 1L)
+    expect_true(nrow(match_metadata()) == 1L)
+
+    cluster_snr <- signal_to_noise()
+    cluster_cutoff <- sort(unique(cluster_snr))[[2L]]
+    cluster_eligible <- cluster_snr > cluster_cutoff & cluster_snr < 1e12
+    session$setInputs(
+      threshold_decision = TRUE, MinSNR = cluster_cutoff, MaxSNR = 1e12,
+      cor_threshold_decision = FALSE,
+      particle_id_strategy = "cluster_buster_1000"
+    )
+    session$setInputs(run_analysis = 3L)
+    cluster_state <- canonical_state()
+    cluster_mapping <- data.table::as.data.table(
+      cluster_state$pixel_to_unit
+    )
+    expect_null(cluster_state$error)
+    expect_identical(
+      cluster_state$partition$settings$requested_strategy,
+      "cluster_buster_1000"
+    )
+    expect_identical(
+      nrow(cluster_state$pixel_matches), sum(cluster_eligible)
+    )
+    expect_true(all(is.na(cluster_mapping[
+      rejection_reason == "signal/noise", threshold_match_id
+    ])))
+    expect_true(all(
+      cluster_mapping[kept == TRUE, threshold_match_id] != "background"
+    ))
+    if(!is.null(cluster_state$matches)) {
+      expect_false("background" %in% cluster_state$matches$library_id)
+    }
+
     session$setInputs(
       load_entire_map = TRUE,
       identification_active = FALSE, cor_threshold_decision = FALSE,
@@ -371,7 +427,7 @@ test_that("file-backed threshold inspection keeps the map bounded and selectable
       make_rel_decision = FALSE, smooth_decision = FALSE,
       conform_decision = FALSE
     )
-    session$setInputs(run_analysis = 3L)
+    session$setInputs(run_analysis = 4L)
     expect_s3_class(preprocessed$data, "OpenSpecy")
     expect_false(inherits(preprocessed$data, "Specs"))
     expect_identical(ncol(preprocessed$data$spectra), 208L)
