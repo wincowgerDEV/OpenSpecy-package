@@ -327,15 +327,21 @@ out groups; production models still use all eligible spectra.
 All model queries come from full libraries, never medoids, and `match_spec()`
 uses stored fillers for partial spectra. Macro class
 accuracy is the primary metric, followed by evaluated coverage, overall
-accuracy, per-class accuracy, and clear old/new
+accuracy, and clear old/new
 `assess_spec(report = "all")` shifts. The review surface contains at most ten
 tables nested under `cleanup`, `ref_lib`, `medoid`, `model`, and
 `functionality`. Old and new values occupy adjacent columns; accuracy,
 misidentification counts, absolute diagnostic correlations, and warning/error
 rate shifts are sorted from largest to smallest. Pass rows are omitted from
 quality shifts. Machine-level split and row-test evidence is available through
-`attr(reference_library_build$assessments, "evidence")`. The smaller 1,000-spectrum run in the
-manual benchmark is development-only and is not part of `build_lib()` or final
+`attr(reference_library_build$assessments, "evidence")`. Published accuracy
+tables contain aggregate overall and macro metrics, not per-class accuracy
+rows. A versioned release writes all global cleanup, quality, pruning, model,
+and comparison evidence to `assessments.rds`; its library, medoid, and model
+files contain only runtime data and prediction state. The accompanying
+`reference_library_build.rds` is a lightweight index that can be supplied to
+`rebuild_lib_artifacts()`. The smaller 1,000-spectrum run in the manual
+benchmark is development-only and is not part of `build_lib()` or final
 acceptance evidence.
 
 The standard call therefore has this shape:

@@ -293,6 +293,46 @@ test_that("build_model_lib() returns the model library artifact structure", {
                     "provenance") %in% names(model$tests)))
 })
 
+test_that("release sanitizers retain runtime state and remove assessments", {
+  lib <- tiny_build_lib()
+  attr(lib, "derivative_order") <- "1"
+  attr(lib, "transformations") <- list(list(method = "derivative"))
+  attr(lib, "quality_control_report") <- data.table::data.table(value = 1)
+  attr(lib, "prune_report") <- list(summary = data.table::data.table(value = 1))
+  attr(lib$metadata, "join_report") <- data.table::data.table(value = 1)
+
+  slim <- OpenSpecy:::.lib_slim_reference_object(lib)
+  expect_true(check_OpenSpecy(slim))
+  expect_identical(attr(slim, "derivative_order"), "1")
+  expect_equal(attr(slim, "transformations"), list(list(method = "derivative")))
+  expect_null(attr(slim, "quality_control_report", exact = TRUE))
+  expect_null(attr(slim, "prune_report", exact = TRUE))
+  expect_null(attr(slim$metadata, "join_report", exact = TRUE))
+  expect_identical(colnames(slim$spectra), slim$metadata$sample_name)
+
+  model <- list(
+    model = structure(list(), class = "mock_model"),
+    model_type = "logistic_regression", lambda_selected = 0.1,
+    dimension_conversion = data.table::data.table(factor_num = 1L, name = "a"),
+    coefficients = data.table::data.table(), class_names = "a", class_num = 1L,
+    observation_count = 8L, fill = lib, fill_method = "wavenumber_mean",
+    variable_num = nrow(lib$spectra), all_variables = lib$wavenumber,
+    variables_in = lib$wavenumber,
+    tests = data.table::data.table(correct = TRUE),
+    lambda_metrics = data.table::data.table(lambda = 0.1),
+    support = data.table::data.table(spectrum_id = "s1")
+  )
+  attr(model, "training_warnings") <- "diagnostic warning"
+  slim_model <- OpenSpecy:::.lib_slim_model(model)
+  expect_true(all(names(slim_model) %in%
+                    OpenSpecy:::.lib_runtime_model_fields()))
+  expect_false(any(c("tests", "lambda_metrics", "support") %in%
+                     names(slim_model)))
+  expect_null(attr(slim_model, "training_warnings", exact = TRUE))
+  expect_true(check_OpenSpecy(slim_model$fill))
+  expect_null(attr(slim_model$fill, "quality_control_report", exact = TRUE))
+})
+
 test_that("official builders can opt into host workers without changing defaults", {
   previous <- options("OpenSpecy.build_workers")
   on.exit(options(previous), add = TRUE)
@@ -1910,8 +1950,70 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
       "model_random_forest_raw.rds",
       "model_random_forest_derivative.rds",
       "model_random_forest_nobaseline.rds",
+      "assessments.rds",
       "reference_library_build.rds")
   ))))
+  release_index <- readRDS(file.path(release_dir, "reference_library_build.rds"))
+  expect_identical(
+    release_index$schema, "OpenSpecy_reference_build_index_v1"
+  )
+  expect_false(any(c("libraries", "medoids", "models") %in%
+                     names(release_index)))
+  expect_lt(file.info(file.path(
+    release_dir, "reference_library_build.rds"
+  ))$size, 1e6)
+
+  release_assessments <- readRDS(file.path(release_dir, "assessments.rds"))
+  expect_identical(
+    attr(release_assessments, "assessment_schema_version"), "2.0.0"
+  )
+  expect_false(any(c("scope", "expected_class") %in%
+                     names(release_assessments$ref_lib$accuracy)))
+  expect_true("model_training_tests" %in%
+                names(attr(release_assessments, "evidence")))
+
+  report_attributes <- c(
+    "join_report", "metadata_lookup_reports",
+    "spectrum_identity_cleanup_report", "build_stage_report",
+    "dropped_spectrum_identities", "class_prediction_report",
+    "class_coverage_report", "other_review_report", "other_filter_report",
+    "quality_control_report", "prune_report", "identification_support",
+    "identification_dropped_ids", "identification_minimum_observed",
+    "identification_finite_coverage", "range_flat_drops"
+  )
+  for (component in c("raw", "derivative", "nobaseline",
+                      "medoid_derivative", "medoid_nobaseline")) {
+    artifact <- readRDS(file.path(release_dir, paste0(component, ".rds")))
+    for (object in artifact) {
+      expect_true(check_OpenSpecy(object))
+      expect_length(intersect(names(attributes(object)), report_attributes), 0L)
+      expect_null(attr(object$metadata, "join_report", exact = TRUE))
+    }
+  }
+  model_fields <- OpenSpecy:::.lib_runtime_model_fields()
+  for (component in c(
+    "model_logistic_regression_derivative",
+    "model_logistic_regression_nobaseline", "model_random_forest_raw",
+    "model_random_forest_derivative", "model_random_forest_nobaseline"
+  )) {
+    artifact <- readRDS(file.path(release_dir, paste0(component, ".rds")))
+    for (model in artifact) {
+      expect_true(all(names(model) %in% model_fields))
+      expect_false(any(c(
+        "tests", "lambda_metrics", "oob_metrics", "oob_class_accuracy",
+        "feature_importance", "training_parameters", "class_weights",
+        "support", "class_support"
+      ) %in% names(model)))
+      expect_null(attr(model, "training_warnings", exact = TRUE))
+    }
+  }
+
+  resolved <- OpenSpecy:::.lib_resolve_rebuild_input(
+    file.path(release_dir, "reference_library_build.rds")
+  )
+  expect_named(resolved$libraries, c("raw", "derivative", "nobaseline"))
+  expect_named(resolved$medoids, c("derivative", "nobaseline"))
+  expect_named(resolved$models, c("logistic_regression", "random_forest"))
 
   second <- suppressWarnings(build_lib(
     lib, output_dir = output_dir,
@@ -2109,10 +2211,21 @@ test_that("assessment review is process nested, wide, compact, and ranked", {
       spectrum_identity = c("z", "a", "z")
     ),
     library_identification = identification,
-    library_class_accuracy = data.table::data.table(),
+    library_class_accuracy = data.table::data.table(
+      artifact = "raw_ftir", source = "new", technique = "ftir",
+      provenance = "grouped", expected_class = "class_a",
+      spectra = 10L, evaluated = 10L, coverage = 1,
+      class_accuracy = 0.5
+    ),
     library_confusion = confusion,
     model_identification = model_identification,
-    model_class_accuracy = data.table::data.table(),
+    model_class_accuracy = data.table::data.table(
+      algorithm = "logistic_regression", artifact = "derivative",
+      model = "ftir", source = "new", technique = "ftir",
+      provenance = "grouped", expected_class = "class_a",
+      spectra = 10L, evaluated = 10L, coverage = 1,
+      class_accuracy = 0.5
+    ),
     model_confusion = data.table::copy(confusion)[, `:=`(
       algorithm = "logistic_regression", artifact = "derivative", model = "ftir"
     )],
@@ -2139,6 +2252,8 @@ test_that("assessment review is process nested, wide, compact, and ranked", {
     c("a", "z")
   )
   accuracy_names <- names(reviewed$ref_lib$accuracy)
+  expect_false(any(c("scope", "expected_class", "class_accuracy_new",
+                     "class_accuracy_old") %in% accuracy_names))
   expect_equal(match("macro_class_accuracy_new", accuracy_names),
                match("macro_class_accuracy_old", accuracy_names) + 1L)
   expect_true(all(diff(reviewed$ref_lib$accuracy$review_accuracy) <= 0))

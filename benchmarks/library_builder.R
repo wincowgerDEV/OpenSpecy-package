@@ -424,3 +424,61 @@ if (new_sn_time > old_sn_time * 1.1) {
   stop("Matrix run signal-to-noise is more than 10% slower than the ",
        "legacy per-spectrum loop")
 }
+
+# Release payloads retain identical runtime behavior while moving bulky build
+# diagnostics to assessments.rds.
+release_lib <- make_benchmark_lib(n = 400)
+audit_rows <- data.table(
+  spectrum_id = rep(colnames(release_lib$spectra), each = 125L),
+  check = rep(c("signal", "range", "metadata", "class"), length.out = 50000L),
+  value = seq_len(50000L)
+)
+attr(release_lib, "quality_control_report") <- audit_rows
+attr(release_lib, "prune_report") <- list(
+  summary = audit_rows, reassignments = copy(audit_rows)
+)
+attr(release_lib$metadata, "join_report") <- audit_rows
+slim_reference <- getFromNamespace(".lib_slim_reference_object", "OpenSpecy")
+slim_model <- getFromNamespace(".lib_slim_model", "OpenSpecy")
+slim_release_lib <- slim_reference(release_lib)
+
+old_release_file <- tempfile(fileext = ".rds")
+slim_release_file <- tempfile(fileext = ".rds")
+saveRDS(list(ftir = release_lib), old_release_file)
+saveRDS(list(ftir = slim_release_lib), slim_release_file)
+old_release_size <- file.info(old_release_file)$size
+slim_release_size <- file.info(slim_release_file)$size
+stopifnot(slim_release_size < old_release_size)
+
+median_read_time <- function(path, batches = 5L, iterations = 5L) {
+  readRDS(path)
+  median(replicate(batches, {
+    unname(system.time(for (i in seq_len(iterations)) readRDS(path))[[
+      "elapsed"
+    ]]) / iterations
+  }))
+}
+old_release_read <- median_read_time(old_release_file)
+slim_release_read <- median_read_time(slim_release_file)
+message("Diagnostic-bearing reference bytes: ", old_release_size)
+message("Slim runtime reference bytes: ", slim_release_size)
+message("Diagnostic-bearing reference read median: ", old_release_read)
+message("Slim runtime reference read median: ", slim_release_read)
+if (slim_release_read > max(old_release_read * 1.1, old_release_read + 0.01)) {
+  stop("Slim runtime reference is materially slower to deserialize")
+}
+
+if (requireNamespace("glmnet", quietly = TRUE)) {
+  fitted <- suppressWarnings(build_model_lib(
+    lib, type_col = NULL, min_n = 2, nlambda = 3
+  ))
+  before <- suppressWarnings(match_spec(lib, library = fitted))
+  fitted_slim <- slim_model(fitted)
+  after <- suppressWarnings(match_spec(lib, library = fitted_slim))
+  stopifnot(isTRUE(all.equal(before, after, tolerance = 1e-12)))
+  stopifnot(!any(c(
+    "tests", "lambda_metrics", "support", "class_support"
+  ) %in% names(fitted_slim)))
+}
+
+unlink(c(old_release_file, slim_release_file))

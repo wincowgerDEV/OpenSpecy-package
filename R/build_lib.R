@@ -300,12 +300,17 @@
 #' 4000--12000. Assessments use five ordered process lists:
 #' \code{cleanup}, \code{ref_lib}, \code{medoid}, \code{model}, and
 #' \code{functionality}, with no more than ten nonempty review tables in total.
-#' Old/new metrics are adjacent columns, accuracy and confusion are ranked by
-#' the new result with an old fallback, model diagnostics are ranked by absolute
-#' correlation, and quality shifts omit passes. Row-level tests, split manifests,
-#' and release manifests remain hash-addressed evidence attributes rather than
-#' additional review leaves. Each model contains one
-#' \code{tests} data.table and a one-spectrum \code{fill} object.
+#' Accuracy tables contain overall aggregate metrics only. Old/new metrics are
+#' adjacent columns, accuracy and confusion are ranked by the new result with an
+#' old fallback, model diagnostics are ranked by absolute correlation, and
+#' quality shifts omit passes. Row-level tests, split manifests, model-training
+#' diagnostics, and release manifests remain hash-addressed evidence attributes
+#' rather than additional review leaves. Each in-memory training model contains
+#' one \code{tests} data.table and a one-spectrum \code{fill} object. Versioned
+#' release directories instead store global build and model diagnostics only in
+#' \code{assessments.rds}; library, medoid, and model files retain only runtime
+#' data, scientific attributes, and prediction state. The companion
+#' \code{reference_library_build.rds} is a lightweight release index.
 #' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 #' \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 #' object unless \code{return} requests a table, report, or ids.
@@ -3807,7 +3812,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "grouped-refit-process-review-v10"
+      assessment_version = "slim-release-overall-accuracy-v11"
     ),
     algo = "sha256"
   )
@@ -3853,27 +3858,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     build, output_dir = output_dir,
     signature = release_signature, reuse = reuse, progress = report
   )
-  release_dir <- promotion$directory
-  assessment_components$output_manifest <- data.table::copy(promotion$manifest)
-  assessment_components$output_manifest[, status := "available"]
-  build$assessments <- .lib_assessment_review(assessment_components)
-  .lib_validate_reference_build(build)
-  attr(build, "output_dir") <- normalizePath(release_dir, mustWork = FALSE)
-  attr(build, "build_signature") <- release_signature
-  report("serializing the combined reference-library build object")
-  aggregate <- .lib_promote_build_aggregate(
-    build, file.path(release_dir, "reference_library_build.rds"),
-    signature = release_signature
-  )
-  build <- aggregate$build
-  aggregate_manifest <- aggregate$manifest
-  release_manifest <- data.table::rbindlist(
-    list(promotion$manifest, aggregate_manifest), fill = TRUE
-  )
-  release_manifest[, status := "available"]
-  attr(release_manifest, "build_signature") <- release_signature
-  .lib_promote_rds(
-    release_manifest, file.path(release_dir, "release_manifest.rds")
+  build <- .lib_finalize_reference_release(
+    build, assessment_components, promotion, release_signature, report
   )
   report("complete")
   build
@@ -3976,7 +3962,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "grouped-refit-process-review-v10"
+    assessment_version = "slim-release-overall-accuracy-v11"
   ), algo = "sha256")
   cached <- checkpoints$get(
     "assessment_components_parallel_rng_v1", key = assessment_key
@@ -4020,26 +4006,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     build, output_dir = output_dir, signature = release_signature,
     reuse = reuse, progress = report
   )
-  release_dir <- promotion$directory
-  assessment_components$output_manifest <- data.table::copy(promotion$manifest)
-  assessment_components$output_manifest[, status := "available"]
-  build$assessments <- .lib_assessment_review(assessment_components)
-  .lib_validate_reference_build(build)
-  attr(build, "output_dir") <- normalizePath(release_dir, mustWork = FALSE)
-  attr(build, "build_signature") <- release_signature
-  aggregate <- .lib_promote_build_aggregate(
-    build, file.path(release_dir, "reference_library_build.rds"),
-    signature = release_signature
-  )
-  build <- aggregate$build
-  aggregate_manifest <- aggregate$manifest
-  release_manifest <- data.table::rbindlist(
-    list(promotion$manifest, aggregate_manifest), fill = TRUE
-  )
-  release_manifest[, status := "available"]
-  attr(release_manifest, "build_signature") <- release_signature
-  .lib_promote_rds(
-    release_manifest, file.path(release_dir, "release_manifest.rds")
+  build <- .lib_finalize_reference_release(
+    build, assessment_components, promotion, release_signature, report
   )
   report("complete")
   build
@@ -4091,6 +4059,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       if (file.exists(sibling)) sibling_assessments <- readRDS(sibling)
     }
     x <- readRDS(source_path)
+    if (.lib_is_release_index(x)) {
+      source_signature <- x$build_signature
+      x <- .lib_load_release_index(x, dirname(source_path))
+    }
   }
 
   if (!is.list(x)) {
@@ -4545,27 +4517,42 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
-.lib_promote_build_aggregate <- function(build, path, signature) {
-  if (file.exists(path)) {
-    canonical <- tryCatch(readRDS(path), error = function(error) NULL)
-    if (is.null(canonical) ||
-        !identical(attr(canonical, "build_signature", exact = TRUE), signature)) {
-      stop("Existing aggregate does not match its immutable release signature: ",
-           path, call. = FALSE)
-    }
-    .lib_validate_reference_build(canonical)
-    info <- file.info(path)
-    return(list(
-      build = canonical,
-      manifest = data.table::data.table(
-        component = "reference_library_build", status = "verified_existing",
-        path = normalizePath(path, mustWork = TRUE),
-        size = as.numeric(info$size), checksum_algorithm = "sha256",
-        checksum = .lib_sha256_file(path)
-      )
-    ))
-  }
-  list(build = build, manifest = .lib_promote_rds(build, path))
+.lib_promote_build_index <- function(signature, artifact_manifest, path) {
+  index <- .lib_release_index(signature, artifact_manifest)
+  .lib_promote_rds(index, path)
+}
+
+.lib_finalize_reference_release <- function(build, assessment_components,
+                                            promotion, signature, report) {
+  release_dir <- promotion$directory
+  assessment_components$output_manifest <- data.table::copy(promotion$manifest)
+  assessment_components$output_manifest[, status := "available"]
+  build$assessments <- .lib_assessment_review(assessment_components)
+  .lib_validate_reference_build(build)
+  attr(build, "output_dir") <- normalizePath(release_dir, mustWork = FALSE)
+  attr(build, "build_signature") <- signature
+
+  report("serializing standalone reference-library assessments")
+  assessments_manifest <- .lib_promote_rds(
+    build$assessments, file.path(release_dir, "assessments.rds")
+  )
+  artifact_manifest <- data.table::rbindlist(
+    list(promotion$manifest, assessments_manifest), fill = TRUE
+  )
+  report("serializing the lightweight reference-library release index")
+  index_manifest <- .lib_promote_build_index(
+    signature, artifact_manifest,
+    file.path(release_dir, "reference_library_build.rds")
+  )
+  release_manifest <- data.table::rbindlist(
+    list(artifact_manifest, index_manifest), fill = TRUE
+  )
+  release_manifest[, status := "available"]
+  attr(release_manifest, "build_signature") <- signature
+  .lib_promote_rds(
+    release_manifest, file.path(release_dir, "release_manifest.rds")
+  )
+  build
 }
 
 .lib_complete_reference_build <- function(libraries, tables, prune,
@@ -5600,6 +5587,41 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
+.lib_model_assessment_tables <- function(models) {
+  table_fields <- c(
+    "tests", "lambda_metrics", "oob_metrics", "oob_class_accuracy",
+    "feature_importance", "training_parameters", "class_weights"
+  )
+  out <- stats::setNames(vector("list", length(table_fields)), table_fields)
+  for (algorithm in names(models)) {
+    for (recipe in names(models[[algorithm]])) {
+      for (type in names(models[[algorithm]][[recipe]])) {
+        model <- models[[algorithm]][[recipe]][[type]]
+        if (is.null(model)) next
+        for (field in table_fields) {
+          value <- model[[field]]
+          if (is.null(value) || !length(value)) next
+          value <- data.table::copy(data.table::as.data.table(value))
+          if (!nrow(value)) next
+          value[, `:=`(
+            algorithm = algorithm, artifact = recipe, model = type
+          )]
+          data.table::setcolorder(
+            value,
+            c("algorithm", "artifact", "model",
+              setdiff(names(value), c("algorithm", "artifact", "model")))
+          )
+          out[[field]][[length(out[[field]]) + 1L]] <- value
+        }
+      }
+    }
+  }
+  lapply(out, function(rows) {
+    if (!length(rows)) return(data.table::data.table())
+    data.table::rbindlist(rows, fill = TRUE, use.names = TRUE)
+  })
+}
+
 .lib_local_build_assessments <- function(libraries, medoids, models,
                                          completed, model_warnings) {
   artifacts <- c(
@@ -5716,6 +5738,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     out[, artifact := name]
     out
   }), fill = TRUE)
+  model_tables <- .lib_model_assessment_tables(models)
   defaults <- list(
     build_summary = summary,
     lookup_coverage = lookup_coverage,
@@ -5735,12 +5758,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     medoid_model_summary = model_summary,
     medoid_model_support = support,
     model_class_support = class_support,
+    model_training_tests = model_tables$tests,
+    model_lambda_metrics = model_tables$lambda_metrics,
+    model_oob_metrics = model_tables$oob_metrics,
+    model_oob_class_accuracy = model_tables$oob_class_accuracy,
+    model_feature_importance = model_tables$feature_importance,
+    model_training_parameters = model_tables$training_parameters,
+    model_class_weights = model_tables$class_weights,
     split_manifest = data.table::data.table(),
     library_identification = data.table::data.table(),
-    library_class_accuracy = data.table::data.table(),
     library_confusion = data.table::data.table(),
     model_identification = data.table::data.table(),
-    model_class_accuracy = data.table::data.table(),
     model_confusion = data.table::data.table(),
     model_assessment_correlations =
       .lib_model_assessment_correlation_schema(),
@@ -5847,34 +5875,24 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   out[]
 }
 
-.lib_accuracy_review <- function(summary, class_accuracy, medoid = FALSE) {
+.lib_accuracy_review <- function(summary, medoid = FALSE) {
   summary <- data.table::copy(data.table::as.data.table(summary))
-  class_accuracy <- data.table::copy(data.table::as.data.table(class_accuracy))
-  if (nrow(summary)) {
-    data.table::set(summary, j = "scope", value = "overall")
-    data.table::set(summary, j = "expected_class", value = NA_character_)
+  if (!nrow(summary) || !"artifact" %in% names(summary)) {
+    return(data.table::data.table())
   }
-  if (nrow(class_accuracy)) {
-    data.table::set(class_accuracy, j = "scope", value = "class")
-  }
-  rows <- data.table::rbindlist(list(summary, class_accuracy), fill = TRUE)
-  if (!nrow(rows) || !"artifact" %in% names(rows)) return(data.table::data.table())
-  is_medoid <- grepl("^medoid_", rows$artifact)
-  rows <- rows[is_medoid == medoid]
+  is_medoid <- grepl("^medoid_", summary$artifact)
+  rows <- summary[is_medoid == medoid]
   out <- .lib_pivot_assessment_sources(
     rows,
-    id_cols = c("algorithm", "artifact", "model", "technique", "scope",
-                "expected_class"),
-    value_cols = c("provenance", "macro_class_accuracy", "class_accuracy",
-                   "coverage", "overall_accuracy", "spectra", "evaluated",
-                   "classes", "evaluated_classes", "mean_score"),
-    shift_cols = c("macro_class_accuracy", "class_accuracy", "coverage",
-                   "overall_accuracy")
+    id_cols = c("algorithm", "artifact", "model", "technique"),
+    value_cols = c("provenance", "macro_class_accuracy", "coverage",
+                   "overall_accuracy", "spectra", "evaluated", "classes",
+                   "evaluated_classes", "mean_score"),
+    shift_cols = c("macro_class_accuracy", "coverage", "overall_accuracy")
   )
   if (!nrow(out)) return(out)
   accuracy_columns <- intersect(
-    c("macro_class_accuracy_new", "class_accuracy_new",
-      "macro_class_accuracy_old", "class_accuracy_old"),
+    c("macro_class_accuracy_new", "macro_class_accuracy_old"),
     names(out)
   )
   review_accuracy <- if (length(accuracy_columns) == 1L) {
@@ -5884,8 +5902,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
   data.table::set(out, j = "review_accuracy", value = review_accuracy)
   data.table::setorderv(
-    out, c("review_accuracy", "artifact", "scope", "expected_class"),
-    c(-1L, 1L, 1L, 1L), na.last = TRUE
+    out, c("review_accuracy", "artifact"), c(-1L, 1L), na.last = TRUE
   )
   out[]
 }
@@ -5955,7 +5972,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   details <- .lib_bind_assessment_tables(
     assessments,
     c("medoid_model_summary", "medoid_model_support", "model_class_support",
-      "warnings")
+      "warnings", "model_lambda_metrics", "model_oob_metrics",
+      "model_oob_class_accuracy", "model_feature_importance",
+      "model_training_parameters", "model_class_weights")
   )
   if (nrow(details) && "stage" %in% names(details)) {
     details <- details[is.na(stage) | stage != "medoid"]
@@ -5990,12 +6009,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
 
   ref_accuracy <- .lib_accuracy_review(
-    assessments$library_identification, assessments$library_class_accuracy,
-    medoid = FALSE
+    assessments$library_identification, medoid = FALSE
   )
   medoid_accuracy <- .lib_accuracy_review(
-    assessments$library_identification, assessments$library_class_accuracy,
-    medoid = TRUE
+    assessments$library_identification, medoid = TRUE
   )
   ref_confusion <- .lib_confusion_review(
     assessments$library_confusion, medoid = FALSE
@@ -6003,9 +6020,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoid_confusion <- .lib_confusion_review(
     assessments$library_confusion, medoid = TRUE
   )
-  model_accuracy <- .lib_accuracy_review(
-    assessments$model_identification, assessments$model_class_accuracy
-  )
+  model_accuracy <- .lib_accuracy_review(assessments$model_identification)
   model_confusion <- .lib_confusion_review(assessments$model_confusion)
   model_diagnostics <- .lib_model_diagnostics_review(assessments)
 
@@ -6079,7 +6094,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     }
   }
   evidence_names <- intersect(
-    c("split_manifest", "library_tests", "model_tests", "output_manifest"),
+    c("split_manifest", "library_tests", "model_training_tests", "model_tests",
+      "model_lambda_metrics", "model_oob_metrics", "model_oob_class_accuracy",
+      "model_feature_importance", "model_training_parameters",
+      "model_class_weights", "output_manifest"),
     names(assessments)
   )
   evidence <- assessments[evidence_names]
@@ -6457,7 +6475,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   split_manifest <- data.table::rbindlist(split_rows, fill = TRUE)
   reference_tests <- data.table::rbindlist(reference_tests, fill = TRUE)
   library_identification <- .lib_identification_summary(reference_tests)
-  library_class_accuracy <- .lib_class_accuracy(reference_tests)
   library_confusion <- .lib_confusion_table(reference_tests)
   assess_spec_shifts <- .lib_assessment_shift_table(
     data.table::rbindlist(assessment_summaries, fill = TRUE)
@@ -6757,7 +6774,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
   model_tests <- data.table::rbindlist(model_tests, fill = TRUE)
   model_identification <- .lib_identification_summary(model_tests)
-  model_class_accuracy <- .lib_class_accuracy(model_tests)
   model_confusion <- .lib_confusion_table(model_tests)
   model_assessment_correlations <- .lib_model_assessment_correlations(
     data.table::rbindlist(model_metric_rows, fill = TRUE)
@@ -6768,11 +6784,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     split_manifest = split_manifest,
     library_tests = reference_tests,
     library_identification = library_identification,
-    library_class_accuracy = library_class_accuracy,
     library_confusion = library_confusion,
     model_identification = model_identification,
     model_tests = model_tests,
-    model_class_accuracy = model_class_accuracy,
     model_confusion = model_confusion,
     model_assessment_correlations = model_assessment_correlations,
     assess_spec_shifts = assess_spec_shifts,
@@ -7130,29 +7144,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   out
 }
 
-.lib_class_accuracy <- function(tests) {
-  if (!nrow(tests)) {
-    return(data.table::data.table(
-      algorithm = character(), artifact = character(), model = character(),
-      source = character(),
-      technique = character(), provenance = character(),
-      expected_class = character(), spectra = integer(), evaluated = integer(),
-      coverage = numeric(), class_accuracy = numeric()
-    ))
-  }
-  group_cols <- intersect(
-    c("algorithm", "artifact", "model", "source", "technique", "provenance"),
-    names(tests)
-  )
-  tests[, .(
-    spectra = .N,
-    evaluated = sum(!is.na(correct)),
-    coverage = mean(!is.na(correct)),
-    class_accuracy = if (all(is.na(correct))) NA_real_ else
-      mean(correct, na.rm = TRUE)
-  ), by = c(group_cols, "expected_class")]
-}
-
 .lib_confusion_table <- function(tests) {
   if (!nrow(tests)) {
     return(data.table::data.table(
@@ -7332,6 +7323,127 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   invisible(build)
 }
 
+.lib_runtime_open_specy_attributes <- function() {
+  c(
+    "names", "class", "intensity_unit", "intensity_units",
+    "derivative_order", "baseline", "spectra_type", "transformations",
+    "identification_range"
+  )
+}
+
+.lib_keep_attributes <- function(x, keep) {
+  object_attributes <- attributes(x)
+  attributes(x) <- object_attributes[intersect(keep, names(object_attributes))]
+  x
+}
+
+.lib_slim_reference_object <- function(x) {
+  if (!is_OpenSpecy(x)) {
+    stop("Release sanitization requires an OpenSpecy object", call. = FALSE)
+  }
+  x <- .lib_keep_attributes(x, .lib_runtime_open_specy_attributes())
+  x$wavenumber <- .lib_keep_attributes(x$wavenumber, "names")
+  x$spectra <- .lib_keep_attributes(
+    x$spectra,
+    c("dim", "dimnames", "names", "row.names", "class", ".internal.selfref")
+  )
+  x$metadata <- .lib_keep_attributes(
+    x$metadata, c("names", "row.names", "class", ".internal.selfref")
+  )
+  x
+}
+
+.lib_slim_reference_collection <- function(collection) {
+  lapply(collection, function(recipe) {
+    if (is_OpenSpecy(recipe)) return(.lib_slim_reference_object(recipe))
+    lapply(recipe, .lib_slim_reference_object)
+  })
+}
+
+.lib_runtime_model_fields <- function() {
+  c(
+    "model", "model_type", "lambda_selected", "dimension_conversion",
+    "coefficients", "class_names", "class_num", "observation_count", "fill",
+    "fill_method", "variable_num", "all_variables", "variables_in"
+  )
+}
+
+.lib_slim_model <- function(model) {
+  if (is.null(model)) return(NULL)
+  fields <- intersect(.lib_runtime_model_fields(), names(model))
+  out <- model[fields]
+  if (is_OpenSpecy(out$fill)) out$fill <- .lib_slim_reference_object(out$fill)
+  out
+}
+
+.lib_slim_model_collection <- function(models) {
+  lapply(models, function(recipes) {
+    lapply(recipes, function(types) lapply(types, .lib_slim_model))
+  })
+}
+
+.lib_release_index <- function(signature, artifact_manifest) {
+  files <- stats::setNames(
+    basename(as.character(artifact_manifest$path)),
+    as.character(artifact_manifest$component)
+  )
+  structure(
+    list(
+      schema = "OpenSpecy_reference_build_index_v1",
+      build_signature = signature,
+      artifacts = files,
+      assessments = "assessments.rds",
+      release_manifest = "release_manifest.rds"
+    ),
+    build_signature = signature
+  )
+}
+
+.lib_is_release_index <- function(x) {
+  is.list(x) && identical(x$schema, "OpenSpecy_reference_build_index_v1") &&
+    is.character(x$artifacts) && length(x$artifacts) > 0L
+}
+
+.lib_load_release_index <- function(index, directory) {
+  artifact_path <- function(component) {
+    file <- index$artifacts[[component]]
+    if (is.null(file) || !nzchar(file)) return(NULL)
+    path <- file.path(directory, file)
+    if (!file.exists(path)) {
+      stop("Release index artifact is missing: ", path, call. = FALSE)
+    }
+    path
+  }
+  load_artifact <- function(component) {
+    path <- artifact_path(component)
+    if (is.null(path)) NULL else readRDS(path)
+  }
+  libraries <- stats::setNames(lapply(
+    intersect(c("raw", "derivative", "nobaseline"), names(index$artifacts)),
+    load_artifact
+  ), intersect(c("raw", "derivative", "nobaseline"), names(index$artifacts)))
+  medoid_components <- intersect(
+    c("medoid_derivative", "medoid_nobaseline"), names(index$artifacts)
+  )
+  medoids <- stats::setNames(
+    lapply(medoid_components, load_artifact), sub("^medoid_", "", medoid_components)
+  )
+  models <- list(logistic_regression = list(), random_forest = list())
+  for (algorithm in names(models)) {
+    prefix <- paste0("model_", algorithm, "_")
+    components <- names(index$artifacts)[startsWith(names(index$artifacts), prefix)]
+    recipes <- sub(paste0("^", prefix), "", components)
+    models[[algorithm]] <- stats::setNames(lapply(components, load_artifact), recipes)
+  }
+  models <- Filter(length, models)
+  assessments_path <- file.path(directory, index$assessments)
+  assessments <- if (file.exists(assessments_path)) readRDS(assessments_path) else NULL
+  list(
+    libraries = libraries, medoids = medoids, models = models,
+    assessments = assessments
+  )
+}
+
 .lib_promote_reference_build <- function(build, output_dir, signature, reuse,
                                          progress = NULL) {
   release_dir <- file.path(output_dir, "releases", substr(signature, 1L, 12L))
@@ -7350,14 +7462,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       prior_manifest <- data.table::as.data.table(candidate_manifest)
     }
   }
+  release_libraries <- .lib_slim_reference_collection(build$libraries)
+  release_medoids <- .lib_slim_reference_collection(build$medoids)
+  release_models <- .lib_slim_model_collection(build$models)
   model_artifacts <- list()
-  for (algorithm in names(build$models)) {
-    for (recipe in names(build$models[[algorithm]])) {
+  for (algorithm in names(release_models)) {
+    for (recipe in names(release_models[[algorithm]])) {
       model_artifacts[[paste("model", algorithm, recipe, sep = "_")]] <-
-        build$models[[algorithm]][[recipe]]
+        release_models[[algorithm]][[recipe]]
     }
   }
-  logistic <- build$models$logistic_regression
+  logistic <- release_models$logistic_regression
   if (!is.null(logistic)) {
     for (recipe in intersect(c("derivative", "nobaseline"), names(logistic))) {
       # Retain the historical filenames consumed by get_lib() and older clients.
@@ -7365,8 +7480,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     }
   }
   artifacts <- c(
-    build$libraries,
-    setNames(build$medoids, paste0("medoid_", names(build$medoids))),
+    release_libraries,
+    setNames(release_medoids, paste0("medoid_", names(release_medoids))),
     model_artifacts
   )
   manifest <- lapply(names(artifacts), function(name) {

@@ -344,12 +344,17 @@ recipe, and spectrum type. FTIR and Raman medoids/models use
 4000--12000. Assessments use five ordered process lists:
 \code{cleanup}, \code{ref_lib}, \code{medoid}, \code{model}, and
 \code{functionality}, with no more than ten nonempty review tables in total.
-Old/new metrics are adjacent columns, accuracy and confusion are ranked by
-the new result with an old fallback, model diagnostics are ranked by absolute
-correlation, and quality shifts omit passes. Row-level tests, split manifests,
-and release manifests remain hash-addressed evidence attributes rather than
-additional review leaves. Each model contains one
-\code{tests} data.table and a one-spectrum \code{fill} object.
+Accuracy tables contain overall aggregate metrics only. Old/new metrics are
+adjacent columns, accuracy and confusion are ranked by the new result with an
+old fallback, model diagnostics are ranked by absolute correlation, and
+quality shifts omit passes. Row-level tests, split manifests, model-training
+diagnostics, and release manifests remain hash-addressed evidence attributes
+rather than additional review leaves. Each in-memory training model contains
+one \code{tests} data.table and a one-spectrum \code{fill} object. Versioned
+release directories instead store global build and model diagnostics only in
+\code{assessments.rds}; library, medoid, and model files retain only runtime
+data, scientific attributes, and prediction state. The companion
+\code{reference_library_build.rds} is a lightweight release index.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 object unless \code{return} requests a table, report, or ids.

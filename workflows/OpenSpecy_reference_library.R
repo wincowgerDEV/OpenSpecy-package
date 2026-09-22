@@ -9,16 +9,17 @@ library(fs)
 
 package_dir <- paste0(
   "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
-  "OpenSpecy-package"
-)
+  "OpenSpecy-package")
+
 setwd(package_dir)
+
 data_dir <- "H:\\My Drive\\Work\\Projects\\OpenSpecy\\SpectraFilesCodeProcessedSpectra"
 
 processed_dir <- data_dir
 
 output_dir <- paste0(
   "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
-  "reference-library-build"
+  "reference-library-build-2.0.0"
 )
 
 if (!requireNamespace("devtools", quietly = TRUE)) {
@@ -46,12 +47,16 @@ if (!dir_exists(processed_dir)) {
        call. = FALSE)
 }
 
-metadatafiles <- sort(dir_ls(
+metadatafiles <- dir_ls(
   path = processed_dir,
   recurse = TRUE,
-  regexp = "/Processed/.*\\.rds$",
+  type = "file",
+  glob = "*.rds",
   fail = FALSE
-))
+)
+metadatafiles <- sort(metadatafiles[
+  path_file(path_dir(metadatafiles)) == "Processed"
+])
 
 source_file <- file.path(data_dir, "library_raw.rds")
 if (!file_exists(source_file)) {
@@ -67,7 +72,7 @@ message("OpenSpecy reference-library full rebuild")
 message("  Processed sources: ", length(metadatafiles))
 message("  Raw source: ", source_file)
 message("  Output root: ", output_dir)
-message("  Checkpoint reuse: enabled (manifest-compatible stages only)")
+message("  Checkpoint reuse: disabled (clean full rebuild)")
 message("  High-throughput workers: ", build_workers)
 
 reference_library_build <- tryCatch(
@@ -75,7 +80,7 @@ reference_library_build <- tryCatch(
     x = files,
     output_dir = output_dir,
     previous_library_dir = "system",
-    reuse = TRUE,
+    reuse = FALSE,
     remove_other = TRUE,
     progress = TRUE
   ),
@@ -88,6 +93,7 @@ reference_library_build <- tryCatch(
 release_dir <- attr(reference_library_build, "output_dir")
 message("Reference-library build complete: ", release_dir)
 message(
-  "Aggregate object: ",
+  "Release index: ",
   file.path(release_dir, "reference_library_build.rds")
 )
+message("Assessments: ", file.path(release_dir, "assessments.rds"))

@@ -1,3 +1,11 @@
+# OpenSpecy 2.0.0
+
+- Versioned reference-library releases now keep global cleanup, quality,
+  pruning, comparison, and model-training diagnostics in a standalone
+  `assessments.rds`. Runtime library, medoid, and model files are stripped to
+  scientific/prediction state for smaller, faster-loading downloads; published
+  accuracy reviews now contain aggregate overall and macro metrics only.
+
 # OpenSpecy 1.7.1
 
 - Signal metric previews no longer fall back to Signal Over Noise when the
