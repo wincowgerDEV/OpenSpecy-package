@@ -66,7 +66,7 @@
 #' @references
 #' National Bureau of Standards. *Radiometric temperature measurements: II.
 #' Applications* (Technical Note 910-8).
-#' \url{https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote910-8.pdf}
+#' \url{https://www.nist.gov/publications/self-study-manual-optical-radiation-measurements-part-i-concepts-chapter-12}
 #'
 #' Borel CC (1997). Iterative retrieval of surface emissivity and temperature
 #' for a hyperspectral sensor. \url{https://digital.library.unt.edu/ark:/67531/metadc696880/}

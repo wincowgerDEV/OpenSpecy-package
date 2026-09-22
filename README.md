@@ -65,7 +65,7 @@ See [package vignette](https://wincowgerdev.github.io/OpenSpecy-package/pkgdown/
 for a detailed standard operating procedure.
 
 ```r
-# Fetch current spectral library from https://osf.io/x7dpz/
+# Fetch the current spectral library from the Open Specy AWS distribution
 get_lib("derivative")
 
 # Load library into global environment
@@ -80,13 +80,13 @@ plotly_spec(raman_hdpe)
 
 # Process the spectra and conform it to the library format
 raman_proc <- raman_hdpe |>
-  process_spec(conform_spec_args = list(range = spec_lib$wavenumbers), 
-               smooth_intens = T, make_rel = T)
+  process_spec(conform_spec_args = list(range = spec_lib$wavenumber),
+               smooth_intens = TRUE, make_rel = TRUE)
 
 # Compare raw and processed spectra
 plotly_spec(raman_hdpe, raman_proc)
 
-top_matches <- match_spec(raman_proc, library = spec_lib, na.rm = T, top_n = 5,
+top_matches <- match_spec(raman_proc, library = spec_lib, na.rm = TRUE, top_n = 5,
                           add_library_metadata = "sample_name",
                           add_object_metadata = "col_id")
 

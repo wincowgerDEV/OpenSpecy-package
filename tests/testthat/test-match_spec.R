@@ -154,11 +154,15 @@ test_that("fill_spec() preserves filler values where queries are missing", {
 
 test_that("match_spec() returns correct structure with AI", {
   skip_on_cran()
+  skip_if_not(
+    identical(Sys.getenv("OPENSPECY_RUN_AWS_LIBRARY_TESTS"), "true"),
+    "Set OPENSPECY_RUN_AWS_LIBRARY_TESTS=true for the large AWS integration"
+  )
   skip_if_offline(host = "d2jrxerjcsjhs7.cloudfront.net")
 
   dir.create(tmp, showWarnings = FALSE, recursive = TRUE)
   tryCatch(
-    get_lib("model_derivative", path = tmp, aws = TRUE),
+    get_lib("model_derivative", path = tmp),
     error = function(error) {
       skip(paste(
         "CloudFront model_derivative library is unavailable:",
@@ -185,13 +189,13 @@ test_that("match_spec() returns correct structure with AI", {
       smooth_intens() #%>%
       #restrict_range(min = 900, max = 3000)
   
-  matches <- match_spec(x = preproc2, library = lib, na.rm = T, fill = fill) |>
+  matches <- match_spec(x = preproc2, library = lib, na.rm = TRUE, fill = fill) |>
     expect_silent()
   
   nrow(matches) |> expect_equal(1)
   names(matches) |> expect_contains(c("x", "y", "z", "value", "name"))
   #round(matches$value, 2) |> expect_equal(0.37)
-  grepl("ftir_poly\\(ethylene\\)", matches$name) |> expect_true()
+  matches$name |> expect_identical("ftir_polyethylene")
 })
 
 test_that("match_spec() handles input errors correctly", {

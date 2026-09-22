@@ -68,7 +68,7 @@
 - [x] Extract reports before sanitization, publish overall-only accuracy, slim library/medoid/model artifacts, and replace the aggregate with a nonduplicating index.
 - [x] Run the subset probe and `benchmarks/library_builder.R`; verify object invariants, exact/tolerant prediction parity, size targets, read latency, budgets, and checkpoint restart.
 - [x] Run the clean full rebuild first; compare IDs, axes, counts, metadata names, warnings, joins/matches, model predictions, assessment completeness, sizes, memory, and read timings with `4a32e68349ba`.
-- [ ] Make `get_lib()` AWS-only, remove OSF storage guidance/call sites, regenerate documentation, and update 2.0.0 release prose.
+- [x] Make `get_lib()` AWS-only, remove OSF storage guidance/call sites, regenerate documentation, and update 2.0.0 release prose.
 - [ ] After maintainer upload, pin all version IDs/hashes and validate byte-identical downloads plus local and hosted type-specific matches.
 - [ ] Complete OPUS, code-analysis, encoding/licensing, test-runtime, vignette, URL, reverse-dependency, exact-tarball, and multi-platform CRAN gates.
 - [ ] Run `-HostedAppStatic`, matching-artifact preflight, and clean wasm build once on the final rebuilt/pinned candidate; reconcile evidence, processes, `git status`, and scratch cleanup.
@@ -79,6 +79,9 @@
 - Upload/publishing remains maintainer-owned. Capture S3 version IDs before pin changes and do not validate only through unversioned cached CloudFront responses.
 - Confirm whether any external maintainer workflow consumes `reference_library_build.rds`; absent a consumer, omit the 688 MB aggregate and retain the manifest plus canonical `assessments.rds`.
 - Confirm canonical 2.0 public/support URLs and third-party redistribution rights; remove unsupported links/assets rather than guessing replacements or relicensing.
+- 2026-09-22: all seven runtime AWS objects are pinned and pass byte/SHA/load/full-medoid-model matching; `assessments.rds` and release index/manifest are not yet public, so R15 remains open.
+- Local final candidate: 3,863 assertions passed; staged R 4.3.3 check rebuilt both CRAN vignettes with 0 errors, 0 warnings, and one explained valid-UTF-8 data NOTE in 10m08s; current CRAN reverse dependencies: none.
+- Hosted static gate passes 353 assertions. Exact-artifact preflight/clean wasm and current R-patched/release/devel multi-platform checks require a committed candidate and fresh CI artifact, so the last two checklist items remain open.
 
 ## Approval Notes
 

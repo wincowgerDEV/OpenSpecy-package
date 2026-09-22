@@ -6,6 +6,11 @@
   scientific/prediction state for smaller, faster-loading downloads; published
   accuracy reviews now contain aggregate overall and macro metrics only.
 
+- Reference-library downloads now use AWS exclusively. `get_lib()` no longer
+  accepts the obsolete `aws` switch, AWS now serves `raw.rds`, and the package,
+  bundled app, and WebAssembly staging share immutable S3 version IDs and
+  SHA-256 checksums for the 2.0.0 runtime artifacts.
+
 # OpenSpecy 1.7.1
 
 - Signal metric previews no longer fall back to Signal Over Noise when the

@@ -5,7 +5,7 @@
 \alias{raman_hdpe}
 \title{Sample Raman spectrum}
 \format{
-An threepart list of class \code{\link{OpenSpecy}} containing:
+A three-part list of class \code{\link{OpenSpecy}} containing:
 \tabular{ll}{
 \code{wavenumber}: \tab spectral wavenumbers [1/cm] (vector of 964 rows) \cr
 \code{spectra}: \tab absorbance values \link{-}
@@ -13,9 +13,18 @@ An threepart list of class \code{\link{OpenSpecy}} containing:
 \code{metadata}: \tab spectral metadata \cr
 }
 }
+\source{
+Horiba Scientific; distributed with source metadata identifying the
+license as CC BY-NC.
+}
 \description{
 Raman spectrum of high-density polyethylene (HDPE) provided by
 Horiba Scientific.
+}
+\details{
+The bundled spectrum and its alternate files under \code{inst/extdata} retain the
+source metadata license \verb{CC BY-NC}. This dataset-specific restriction is
+separate from the package's CC BY 4.0 license; see \code{LICENSE.note}.
 }
 \examples{
 data(raman_hdpe)
@@ -24,9 +33,9 @@ print(raman_hdpe)
 }
 \references{
 Cowger W, Gray A, Christiansen SH, De Frond H, Deshpande AD, Hemabessiere L,
-Lee E, Mill L, et al. (2020). “Critical Review of Processing and
-Classification Techniques for Images and Spectra in Microplastic Research.”
-\emph{Applied Spectroscopy}, \strong{74}(9), 989–1010.
+Lee E, Mill L, et al. (2020). "Critical Review of Processing and
+Classification Techniques for Images and Spectra in Microplastic Research."
+\emph{Applied Spectroscopy}, \strong{74}(9), 989--1010.
 \doi{10.1177/0003702820929064}.
 }
 \author{

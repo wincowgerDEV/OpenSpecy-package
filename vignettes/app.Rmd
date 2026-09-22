@@ -37,7 +37,7 @@ To get started with the Open Specy user interface, use
 [the embedded browser app](https://wincowgerdev.github.io/OpenSpecy-package/),
 or start the bundled Shiny GUI from R with `run_app()`.
 
-```{r eval = F}
+```{r eval = FALSE}
 install.packages("OpenSpecy")
 ```
 
@@ -45,7 +45,7 @@ install.packages("OpenSpecy")
 library(OpenSpecy)
 ```
 
-```{r eval = F}
+```{r eval = FALSE}
 run_app()
 ```
 

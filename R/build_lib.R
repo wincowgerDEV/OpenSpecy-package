@@ -4273,7 +4273,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     .lib_file_signatures(x)
   } else {
     data.table::data.table(
-      path = "<in-memory>", size = as.numeric(object.size(x)),
+      path = "<in-memory>", size = as.numeric(utils::object.size(x)),
       modified = NA_character_, checksum = digest::digest(x, algo = "sha256")
     )
   }
@@ -4315,7 +4315,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     .lib_file_signatures(x)
   } else {
     data.table::data.table(
-      path = "<in-memory>", size = as.numeric(object.size(x)),
+      path = "<in-memory>", size = as.numeric(utils::object.size(x)),
       modified = NA_character_, checksum = digest::digest(x, algo = "sha256")
     )
   }
@@ -5044,7 +5044,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       }
       normalized[finite] <- (normalized[finite] - lo) / span
       left <- head(finite, tail_n)
-      right <- tail(finite, tail_n)
+      right <- utils::tail(finite, tail_n)
       control <- setdiff(
         finite,
         c(left, right, which(wavenumber >= co2_region[1L] &

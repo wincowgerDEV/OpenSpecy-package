@@ -24,12 +24,14 @@ read_manifest_lines <- function(path) {
 }
 
 library_types <- read_manifest_lines(library_types_file)
-library_revisions <- c(
-  medoid_derivative = "iThmNyMeUKhkWMvbBxQqpf1sESdQBFTs",
-  medoid_nobaseline = "CLJCDpeFCMZw4hFUW4Y1QFT2cj23W1Yz",
-  model_derivative = "Wk7H.Zjj4coxiMGlqQlXjV5smmZou.IH",
-  model_nobaseline = "rtJY7zQTDzRISfGpvYrU0bcj8nnRYs26"
+library_release <- getFromNamespace(
+  ".openspecy_library_release", "OpenSpecy"
+)()
+library_revisions <- setNames(
+  library_release$version_id,
+  library_release$type
 )
+library_hashes <- setNames(library_release$sha256, library_release$type)
 
 missing_revisions <- setdiff(library_types, names(library_revisions))
 if (length(missing_revisions)) {
@@ -97,8 +99,7 @@ entries <- lapply(library_types, function(type) {
   OpenSpecy::get_lib(
     type,
     path = out_dir,
-    revision = unname(library_revisions[[type]]),
-    aws = TRUE
+    revision = unname(library_revisions[[type]])
   )
 
   lib <- OpenSpecy::load_lib(type, path = out_dir)
@@ -110,6 +111,7 @@ entries <- lapply(library_types, function(type) {
       type = type,
       file = basename(file),
       revision = unname(library_revisions[[type]]),
+      sha256 = unname(library_hashes[[type]]),
       bytes = file.info(file)$size
     ),
     md

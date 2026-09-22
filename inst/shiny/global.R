@@ -4289,13 +4289,12 @@ app_library_dir <- function() {
   dir
 }
 
-app_library_revisions <- c(
-  medoid_derivative = "iThmNyMeUKhkWMvbBxQqpf1sESdQBFTs",
-  medoid_nobaseline = "CLJCDpeFCMZw4hFUW4Y1QFT2cj23W1Yz",
-  model_derivative = "Wk7H.Zjj4coxiMGlqQlXjV5smmZou.IH",
-  model_nobaseline = "rtJY7zQTDzRISfGpvYrU0bcj8nnRYs26",
-  nobaseline = "XHh26IfFkVgU6O011uKpGeXGoPNsB0_t",
-  derivative = "k9DA01hqGk0dNudCu3ddhwQX.whPGrsp"
+app_library_release <- getFromNamespace(
+  ".openspecy_library_release", "OpenSpecy"
+)()
+app_library_revisions <- setNames(
+  app_library_release$version_id,
+  app_library_release$type
 )
 
 app_wasm_library_types <- function() {
@@ -4456,8 +4455,7 @@ load_app_library <- function(type) {
     get_lib(
       type,
       path = library_path,
-      revision = unname(app_library_revisions[[type]]),
-      aws = TRUE
+      revision = unname(app_library_revisions[[type]])
     ),
     error = function(e) e,
     warning = function(w) w

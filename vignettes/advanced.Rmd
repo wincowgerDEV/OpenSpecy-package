@@ -172,7 +172,7 @@ $$L = \epsilon B(T) + (1 - \epsilon)L_{down},$$
 where $L$ is measured surface-leaving radiance, $B(T)$ is Planck radiance at
 temperature $T$, $L_{down}$ is environmental downwelling radiance, and
 $\epsilon$ is effective emissivity. The Planck calculation follows the
-[NIST wavenumber formulation](https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote910-8.pdf).
+[NIST wavenumber formulation](https://www.nist.gov/publications/self-study-manual-optical-radiation-measurements-part-i-concepts-chapter-12).
 Temperature-emissivity separation is underdetermined; this implementation uses
 the spectral-smoothness premise described by
 [Borel](https://digital.library.unt.edu/ark:/67531/metadc696880/), so the result
@@ -343,7 +343,7 @@ Richmond JC, Nicodemus FE (1985). “Blackbodies, Blackbody Radiation, and
 Temperature Scales.” In *Self-Study Manual on Optical Radiation Measurements:
 Part I--Concepts*, Chapter 12. National Bureau of Standards Technical Note
 910-8.
-[https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote910-8.pdf](https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote910-8.pdf).
+[NIST publication record](https://www.nist.gov/publications/self-study-manual-optical-radiation-measurements-part-i-concepts-chapter-12).
 
 Wilber AC, Kratz DP, Gupta SK (1999). *Surface Emissivity Maps for Use in
 Satellite Retrievals of Longwave Radiation*. NASA/TP-1999-209362.

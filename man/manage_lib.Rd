@@ -20,7 +20,6 @@ get_lib(
   path = "system",
   mode = "wb",
   revision = NULL,
-  aws = FALSE,
   ...
 )
 
@@ -46,13 +45,11 @@ everything.}
 
 \item{mode}{see \code{?download.file} for details on mode.}
 
-\item{revision}{revision number to use for libraries, revision numbers can be found
-at the osf repo (https://osf.io/x7dpz/) by clicking the library then history,
-if NULL defaults to most recent. This allows exact version control.}
+\item{revision}{optional AWS S3 \code{versionId}. A single value applies to
+every requested type; a named character vector can pin each type separately.
+If \code{NULL}, the current unversioned object is downloaded.}
 
-\item{aws}{whether to source the files from AWS or OSF, default of FALSE is OSF.}
-
-\item{\ldots}{further arguments passed to \code{\link[osfr]{osf_download}()}.}
+\item{\ldots}{further arguments passed to \code{\link[utils]{download.file}()}.}
 }
 \value{
 \code{check_lib()} and \code{get_lib()} return messages only;
@@ -71,8 +68,7 @@ attributed when you are using their data.
 \details{
 \code{check_lib()} checks to see if the Open Specy reference library
 already exists on the users computer.
-\code{get_lib()} downloads the Open Specy library from OSF
-(\doi{10.17605/OSF.IO/X7DPZ}).
+\code{get_lib()} downloads the Open Specy library from its AWS distribution.
 \code{load_lib()} will load the library into the global environment for use
 with the Open Specy functions.
 \code{rm_lib()} removes the libraries from your computer.

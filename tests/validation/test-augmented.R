@@ -25,15 +25,15 @@ augment_full <- function(Data){
 }
 
 #Augment the library data ----
-# Fetch current spectral library from https://osf.io/x7dpz/
+# Fetch the current spectral library from the Open Specy AWS distribution
 get_lib()
 
 # Load library into global environment
 spec_lib <- load_lib()
 
 #subset 100 of each library
-raman_subset <- unique(spec_lib$raman$library$sample_name)[sample(1:length(unique(spec_lib$raman$library$sample_name)), 100, replace = F)]
-ftir_subset <- unique(spec_lib$ftir$library$sample_name)[sample(1:length(unique(spec_lib$ftir$library$sample_name)), 100, replace = F)]
+raman_subset <- unique(spec_lib$raman$library$sample_name)[sample(1:length(unique(spec_lib$raman$library$sample_name)), 100, replace = FALSE)]
+ftir_subset <- unique(spec_lib$ftir$library$sample_name)[sample(1:length(unique(spec_lib$ftir$library$sample_name)), 100, replace = FALSE)]
 
 augmented_raman <- augment_full(spec_lib$raman$library %>%
                                     filter(sample_name %in% raman_subset)) %>%

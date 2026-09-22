@@ -13,8 +13,7 @@
 #' @details
 #' \code{check_lib()} checks to see if the Open Specy reference library
 #' already exists on the users computer.
-#' \code{get_lib()} downloads the Open Specy library from OSF
-#' (\doi{10.17605/OSF.IO/X7DPZ}).
+#' \code{get_lib()} downloads the Open Specy library from its AWS distribution.
 #' \code{load_lib()} will load the library into the global environment for use
 #' with the Open Specy functions.
 #' \code{rm_lib()} removes the libraries from your computer.
@@ -26,13 +25,12 @@
 #' \code{"system"} pointing to
 #' \code{system.file("extdata", package = "OpenSpecy")}.
 #' @param mode see \code{?download.file} for details on mode.
-#' @param revision revision number to use for libraries, revision numbers can be found 
-#' at the osf repo (https://osf.io/x7dpz/) by clicking the library then history, 
-#' if NULL defaults to most recent. This allows exact version control. 
-#' @param aws whether to source the files from AWS or OSF, default of FALSE is OSF. 
+#' @param revision optional AWS S3 \code{versionId}. A single value applies to
+#' every requested type; a named character vector can pin each type separately.
+#' If \code{NULL}, the current unversioned object is downloaded.
 #' @param condition determines if \code{check_lib()} should warn
 #' (\code{"warning"}, the default) or throw and error (\code{"error"}).
-#' @param \ldots further arguments passed to \code{\link[osfr]{osf_download}()}.
+#' @param \ldots further arguments passed to \code{\link[utils]{download.file}()}.
 #'
 #' @return
 #' \code{check_lib()} and \code{get_lib()} return messages only;
@@ -181,6 +179,59 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_deriva
   invisible()
 }
 
+# Immutable metadata for the OpenSpecy 2.0.0 reference-library release.
+# This is deliberately internal: it coordinates first-party download, app, and
+# WebAssembly consumers without adding a second public library-management API.
+.openspecy_library_release <- function() {
+  data.frame(
+    type = c(
+      "derivative", "nobaseline", "raw", "medoid_derivative",
+      "medoid_nobaseline", "model_derivative", "model_nobaseline"
+    ),
+    filename = c(
+      "derivative.rds", "nobaseline.rds", "raw.rds",
+      "medoid_derivative.rds", "medoid_nobaseline.rds",
+      "model_derivative.rds", "model_nobaseline.rds"
+    ),
+    version_id = c(
+      "plEFh7vekJt_2rcBqEud6KeNTU07FfUy",
+      "6rVVsE1G9TaCoAsAa21FZaNNjgXsmhwj",
+      "ysLLpg5ORhA2sWl6R0hnhaV7CfROPOEU",
+      "qWwA0_NJo59R38afYgI7vo7Js.paPDWA",
+      "t7lzVXWzVVVIuLn9uce.OQrnx79aHJD0",
+      "ExI.nMpxauEqSgXLr48yO.teTD9NemHz",
+      "WnkXuBzPHSC7GKrG.bgz2ztqtszfLRc2"
+    ),
+    sha256 = c(
+      "de81f1681974438fff8ee9433cb5179589e3521cf401fd5a5069f3569fb36efa",
+      "f6a2b4479323df45483d31711487efa01de2fb6c26ab46ff69779e611639a68f",
+      "dc4fa682ce62204b569b71fdc02ff3b3ac76a2c65407111aa6287ad35ed1329f",
+      "f1a48e59b13a4b3af480dc7322bec0cdd0e1f0f550d6cc4e21df23a8637c02fa",
+      "fcd05f2a8386b2d374ca97f89fba96c74868ef994d9fbf6de930a487446b278a",
+      "4323e039d7b4bc3b460553df9ad42edb5f801b3d45a3b0b3884964479c26ea4c",
+      "e1e66067f07b4c8dc1c584b3a9451b85674b8b2328399b6f190ee0d573d35c1d"
+    ),
+    bytes = c(42221086, 25165414, 202934904, 4260006, 2672978,
+              48087984, 37956676),
+    stringsAsFactors = FALSE
+  )
+}
+
+.library_revision <- function(revision, type) {
+  if (is.null(revision)) return(NULL)
+  if (!is.character(revision) || anyNA(revision) ||
+      any(!nzchar(revision))) {
+    stop("'revision' must be NULL or a nonempty character vector",
+         call. = FALSE)
+  }
+  if (length(revision) == 1L) return(unname(revision))
+  if (is.null(names(revision)) || !type %in% names(revision)) {
+    stop("a multi-value 'revision' must be named for every requested type",
+         call. = FALSE)
+  }
+  unname(revision[[type]])
+}
+
 #' @rdname manage_lib
 #'
 #' @importFrom utils read.csv download.file sessionInfo
@@ -192,115 +243,43 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivati
                     path = "system",
                     mode = "wb",
                     revision = NULL,
-                    aws = FALSE,
                     ...) {
-    
-    lp <- ifelse(path == "system",
-                 system.file("extdata", package = "OpenSpecy"),
-                 path)
-    
-  if (!aws) {
-    message("Fetching Open Specy reference libraries from OSF ...")
-    
-    # Mapping from types to URLs and filenames
-    library_info <- list(
-      derivative = list(
-        url = "https://osf.io/download/2qbkt/",
-        filename = "derivative.rds",
-        msg = "Fetching derivative library..."
-      ),
-      nobaseline = list(
-        url = "https://osf.io/download/jy7zk/",
-        filename = "nobaseline.rds",
-        msg = "Fetching nobaseline library..."
-      ),
-      raw = list(
-        url = "https://osf.io/download/kzv3n/",
-        filename = "raw.rds",
-        msg = "Fetching raw library..."
-      ),
-      medoid_derivative = list(
-        url = "https://osf.io/download/2dmwu/",
-        filename = "medoid_derivative.rds",
-        msg = "Fetching medoid derivative library..."
-      ),
-      medoid_nobaseline = list(
-        url = "https://osf.io/download/8f3sg/",
-        filename = "medoid_nobaseline.rds",
-        msg = "Fetching medoid nobaseline library..."
-      ),
-      model_derivative = list(
-        url = "https://osf.io/download/s5bmh/",
-        filename = "model_derivative.rds",
-        msg = "Fetching model derivative library..."
-      ),
-      model_nobaseline = list(
-        url = "https://osf.io/download/v4abf/",
-        filename = "model_nobaseline.rds",
-        msg = "Fetching model nobaseline library..."
-      )
-    )
-    
-  } else {
-      
-    message("Fetching Open Specy reference libraries from OSF ...")
-    
-    # Mapping from types to URLs and filenames
-    library_info <- list(
-      derivative = list(
-        url = "https://d2jrxerjcsjhs7.cloudfront.net/derivative.rds",
-        filename = "derivative.rds",
-        msg = "Fetching derivative library..."
-      ),
-      nobaseline = list(
-        url = "https://d2jrxerjcsjhs7.cloudfront.net/nobaseline.rds",
-        filename = "nobaseline.rds",
-        msg = "Fetching nobaseline library..."
-      ),
-      medoid_derivative = list(
-        url = "https://d2jrxerjcsjhs7.cloudfront.net/medoid_derivative.rds",
-        filename = "medoid_derivative.rds",
-        msg = "Fetching medoid derivative library..."
-      ),
-      medoid_nobaseline = list(
-        url = "https://d2jrxerjcsjhs7.cloudfront.net/medoid_nobaseline.rds",
-        filename = "medoid_nobaseline.rds",
-        msg = "Fetching medoid nobaseline library..."
-      ),
-      model_derivative = list(
-        url = "https://d2jrxerjcsjhs7.cloudfront.net/model_derivative.rds",
-        filename = "model_derivative.rds",
-        msg = "Fetching model derivative library..."
-      ),
-      model_nobaseline = list(
-        url = "https://d2jrxerjcsjhs7.cloudfront.net/model_nobaseline.rds",
-        filename = "model_nobaseline.rds",
-        msg = "Fetching model nobaseline library..."
-      )
-    )
-  }
-  
-  # Loop over the types requested
+  lp <- ifelse(path == "system",
+               system.file("extdata", package = "OpenSpecy"),
+               path)
+  if (!dir.exists(lp)) dir.create(lp, recursive = TRUE, showWarnings = FALSE)
+
+  release <- .openspecy_library_release()
+  message("Fetching Open Specy reference libraries from AWS ...")
+
   for (t in type) {
-    if (t %in% names(library_info)) {
-      info <- library_info[[t]]
-      message(info$msg)
-      url <- info$url
-      if (!is.null(revision) & !aws) {
-        url <- paste0(url, "?revision=", revision)
-      }
-      if (!is.null(revision) & aws) {
-          url <- paste0(url, "?versionId=", revision)
-      }
-      destfile <- file.path(lp, info$filename)
-      download.file(url, destfile = destfile, mode = mode, ...)
-    } else {
+    row <- release[release$type == t, , drop = FALSE]
+    if (!nrow(row)) {
       warning("Unknown library type: ", t)
+      next
+    }
+
+    message("Fetching ", gsub("_", " ", t), " library...")
+    version_id <- .library_revision(revision, t)
+    url <- paste0("https://d2jrxerjcsjhs7.cloudfront.net/", row$filename)
+    if (!is.null(version_id)) {
+      url <- paste0(url, "?versionId=",
+                    utils::URLencode(version_id, reserved = TRUE))
+    }
+    destfile <- file.path(lp, row$filename)
+    download.file(url, destfile = destfile, mode = mode, ...)
+
+    if (!is.null(version_id) && identical(version_id, row$version_id)) {
+      actual <- digest::digest(destfile, algo = "sha256", file = TRUE)
+      if (!identical(tolower(actual), row$sha256)) {
+        unlink(destfile)
+        stop("SHA-256 verification failed for '", t, "'", call. = FALSE)
+      }
     }
   }
-  
+
   message("Use 'load_lib()' to load the library")
-  
+  invisible()
 }
 
 #' @rdname manage_lib

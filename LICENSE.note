@@ -1,0 +1,15 @@
+OpenSpecy package code and documentation are licensed under CC BY 4.0 as stated
+in DESCRIPTION.
+
+The bundled `raman_hdpe` sample spectrum was provided by Horiba Scientific and
+retains its source metadata license, CC BY-NC. This exception applies to:
+
+- data/raman_hdpe.RData
+- inst/extdata/raman_hdpe.csv
+- inst/extdata/raman_hdpe.json
+- inst/extdata/raman_hdpe.rds
+- inst/extdata/raman_hdpe_os.csv
+
+Users redistributing or reusing those files must comply with the dataset's
+CC BY-NC terms. The object metadata and `?raman_hdpe` preserve the attribution
+and license notice.
