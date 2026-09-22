@@ -78,21 +78,22 @@
 #' the fewest to the most missing values. Spectra, metadata rows, identifiers,
 #' axes, and object attributes are unchanged.
 #' Official class completion temporarily assigns unresolved identities to
-#' \code{"other"}. By default, spectra with a blank identity or a generic
-#' \code{"other"}, \code{"other plastic"}, or \code{"other material"} label
-#' are removed before quality control and retained in the
-#' \code{other_review} assessment table. Set \code{remove_other = FALSE} to
-#' retain them for \code{prune_lib()}'s nearest-class semisupervised pathway.
+#' \code{"other"}. By default, spectra with a blank identity or that unresolved
+#' literal class are removed before quality control and retained in the
+#' \code{other_review} assessment table. Reviewed \code{"other plastic"} and
+#' \code{"other material"} rows stay in the reference library and enter
+#' \code{prune_lib()}'s nearest-class semisupervised pathway.
 #' Before pruning, \code{prune_lib()} reassigns generic classes by nearest
 #' same-technique correlation: \code{"other"} may use any established class,
 #' \code{"other plastic"} requires a plastic candidate, and
 #' \code{"other material"} requires \code{"organic matter"} or
 #' \code{"mineral"}. The matched material type and a correlation audit are
-#' retained. Once those labels are resolved, class/spectrum-type groups with
-#' fewer than \code{min_n} spectra are removed before correlation pruning. The report
-#' identifies each excluded class, its observed support, its shortfall, and the
-#' affected spectrum identifiers so maintainers can reassign it or acquire more
-#' reference spectra.
+#' retained. Once those labels are resolved, each class/spectrum-type group with
+#' fewer than \code{min_n} spectra is reassigned as a whole to its
+#' most-correlated established class in the same technique pool and material
+#' type. A group is removed only when no eligible correlated destination
+#' exists. The report identifies its support, destination, class-level
+#' correlation, action, reason, and affected spectrum identifiers.
 #'
 #' \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 #' values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -245,21 +246,24 @@
 #' @param reuse logical; whether manifest-compatible completed checkpoints and
 #' versioned release files may be reused.
 #' @param remove_other logical; in the official end-to-end workflow, whether
-#' spectra with blank \code{spectrum_identity} or generic \code{"other"},
-#' \code{"other plastic"}, or \code{"other material"} metadata are removed
-#' before quality control, medoid selection, and model fitting. Removed rows
-#' remain reviewable in \code{assessments$cleanup$summary}. If \code{FALSE}, the
-#' generic rows are retained for \code{prune_lib()}'s constrained nearest-class
-#' reassignment. Source-only composable builds do not apply the official filter.
+#' spectra with blank \code{spectrum_identity} or the unresolved literal
+#' \code{"other"} class are removed before quality control, medoid selection,
+#' and model fitting. Reviewed broad \code{"other plastic"} and
+#' \code{"other material"} categories remain in the reference libraries and
+#' are eligible for \code{prune_lib()}'s constrained nearest-class
+#' reassignment. Removed and reviewed rows remain visible in
+#' \code{assessments$cleanup$summary}. Source-only composable builds do not
+#' apply the official filter.
 #' @param seed fixed seed for the grouped old/new assessment split.
 #' @param holdout fraction of stable spectrum groups reserved for assessment.
 #' @param group_cols metadata columns defining groups for reduction.
 #' @param k maximum representatives to keep for groups larger than
 #' \code{min_n}.
 #' @param min_n For \code{prune_lib()}, the minimum spectra required for a
-#' resolved class within one spectrum type: smaller groups are removed before
-#' correlation pruning, groups exactly at the threshold are retained whole,
-#' and larger groups are never reduced below it. For \code{reduce_lib()},
+#' resolved class within one spectrum type: smaller groups are reassigned as a
+#' whole to their most-correlated eligible class, or removed only when no valid
+#' destination exists; groups exactly at the threshold are retained whole, and
+#' larger groups are never reduced below it. For \code{reduce_lib()},
 #' groups with \code{min_n} or fewer spectra are kept whole. Model trainers
 #' fit only classes meeting the threshold.
 #' @param class_col,type_col metadata columns used for model labels.
@@ -300,7 +304,11 @@
 #' 4000--12000. Assessments use five ordered process lists:
 #' \code{cleanup}, \code{ref_lib}, \code{medoid}, \code{model}, and
 #' \code{functionality}, with no more than ten nonempty review tables in total.
-#' Accuracy tables contain overall aggregate metrics only. Old/new metrics are
+#' Every spectrum receives a derived \code{library_name}: populated
+#' \code{organization} first, otherwise \code{user_name}. The cleanup summary
+#' includes source-library counts at each major stage and identifies the first
+#' stage and reason whenever an entire source library is dropped. Accuracy
+#' tables contain overall aggregate metrics only. Old/new metrics are
 #' adjacent columns, accuracy and confusion are ranked by the new result with an
 #' old fallback, model diagnostics are ranked by absolute correlation, and
 #' quality shifts omit passes. Row-level tests, split manifests, model-training
@@ -624,6 +632,8 @@ rebuild_lib_artifacts <- function(x, output_dir,
     }
   }
 
+  lib$metadata <- .lib_assign_library_name(lib$metadata)
+
   source_key_report <- .lib_fill_metadata_key(
     lib$metadata, canonical = "organization", fallback = "user_name"
   )
@@ -777,6 +787,10 @@ rebuild_lib_artifacts <- function(x, output_dir,
     ))
   }
 
+  retention_stages <- .lib_library_stage_counts(
+    list(source = lib), stage = "prepared"
+  )[, artifact := NULL]
+
   identity_index <- data.table::data.table(
     sample_name = as.character(.lib_ids(lib, "sample_name")),
     spectrum_identity = if ("spectrum_identity" %in% names(lib$metadata)) {
@@ -799,6 +813,12 @@ rebuild_lib_artifacts <- function(x, output_dir,
     report(sprintf("removed %d excluded identifier(s)",
                    before - ncol(lib$spectra)))
   }
+  retention_stages <- data.table::rbindlist(list(
+    retention_stages,
+    .lib_library_stage_counts(
+      list(source = lib), stage = "post_exclusion"
+    )[, artifact := NULL]
+  ))
 
   if (dedupe) {
     before <- ncol(lib$spectra)
@@ -826,6 +846,12 @@ rebuild_lib_artifacts <- function(x, output_dir,
     report(sprintf("deduplication complete (removed=%d; retained=%d)",
                    before - ncol(lib$spectra), ncol(lib$spectra)))
   }
+  retention_stages <- data.table::rbindlist(list(
+    retention_stages,
+    .lib_library_stage_counts(
+      list(source = lib), stage = "core"
+    )[, artifact := NULL]
+  ))
   retained_ids <- as.character(.lib_ids(lib, "sample_name"))
   dropped_identities <- identity_index[!sample_name %in% retained_ids &
     !is.na(spectrum_identity) & nzchar(trimws(spectrum_identity)),
@@ -900,6 +926,12 @@ rebuild_lib_artifacts <- function(x, output_dir,
     attr(out, "spectrum_identity_cleanup_report") <- identity_cleanup_report
     attr(out, "build_stage_report") <- build_stage_report
     attr(out, "dropped_spectrum_identities") <- dropped_identities
+    recipe_retention <- data.table::copy(retention_stages)
+    recipe_retention[, artifact := recipe_name]
+    data.table::setcolorder(
+      recipe_retention, c("stage", "artifact", "library_name", "spectra")
+    )
+    attr(out, "library_retention_stages") <- recipe_retention
 
     out
   }
@@ -1206,7 +1238,8 @@ predict_class_reference <- function(metadata, regex_reference,
   data.table::data.table(
     artifact = character(), source_row = integer(), spectrum_id = character(),
     spectrum_identity = character(), sample_id = character(),
-    file_name = character(), organization = character(), user_name = character(),
+    file_name = character(), library_name = character(),
+    organization = character(), user_name = character(),
     citation = character(), other_info = character(), material = character(),
     material_class = character(), material_type = character(),
     spectrum_type = character(), generic_fields = character(),
@@ -1244,11 +1277,11 @@ predict_class_reference <- function(metadata, regex_reference,
     }
     generic <- rowSums(generic_matrix) > 0L
     candidates <- missing_identity | generic
-    action <- if (isTRUE(remove_other)) {
-      "removed"
-    } else {
-      "retained_for_semisupervised_reassignment"
-    }
+    unresolved <- rowSums(vapply(label_columns, function(column) {
+      label <- tolower(trimws(value(metadata, column)))
+      !is.na(label) & label == "other"
+    }, logical(nrow(metadata)))) > 0L
+    remove <- isTRUE(remove_other) & (missing_identity | unresolved)
     if (any(candidates)) {
       rows <- which(candidates)
       triggered <- apply(generic_matrix[rows, , drop = FALSE], 1L, function(x) {
@@ -1261,6 +1294,7 @@ predict_class_reference <- function(metadata, regex_reference,
         spectrum_identity = identity[rows],
         sample_id = value(metadata, "sample_id")[rows],
         file_name = value(metadata, "file_name")[rows],
+        library_name = value(metadata, "library_name")[rows],
         organization = value(metadata, "organization")[rows],
         user_name = value(metadata, "user_name")[rows],
         citation = value(metadata, "citation")[rows],
@@ -1270,26 +1304,39 @@ predict_class_reference <- function(metadata, regex_reference,
         material_type = value(metadata, "material_type")[rows],
         spectrum_type = value(metadata, "spectrum_type")[rows],
         generic_fields = triggered,
-        reason = ifelse(missing_identity[rows],
-                        "missing_spectrum_identity", "generic_other_label"),
-        action = action
+        reason = data.table::fcase(
+          missing_identity[rows], "missing_spectrum_identity",
+          unresolved[rows], "unresolved_other_label",
+          default = "reviewed_broad_category"
+        ),
+        action = if (isTRUE(remove_other)) {
+          ifelse(remove[rows], "removed", "retained_reviewed_broad_category")
+        } else {
+          rep("retained_for_semisupervised_reassignment", length(rows))
+        }
       )
       reviews[[artifact]] <- review
     }
     before <- ncol(object$spectra)
-    if (isTRUE(remove_other) && any(candidates)) {
-      if (all(candidates)) {
-        stop("Removing blank identities and generic classes would remove every ",
+    if (any(remove)) {
+      if (all(remove)) {
+        stop("Removing blank identities and unresolved classes would remove every ",
              "spectrum from ", artifact, call. = FALSE)
       }
-      object <- filter_spec(object, !candidates)
+      object <- filter_spec(object, !remove)
     }
     summary <- data.table::data.table(
-      artifact = artifact, action = action, before = as.integer(before),
+      artifact = artifact,
+      action = if (isTRUE(remove_other)) {
+        "remove_unresolved_retain_reviewed_broad"
+      } else {
+        "retain_for_semisupervised_reassignment"
+      },
+      before = as.integer(before),
       candidates = as.integer(sum(candidates)),
       missing_identity = as.integer(sum(missing_identity)),
       generic_label = as.integer(sum(generic)),
-      removed = as.integer(if (isTRUE(remove_other)) sum(candidates) else 0L),
+      removed = as.integer(sum(remove)),
       after = as.integer(ncol(object$spectra))
     )
     summaries[[artifact]] <- summary
@@ -1304,8 +1351,9 @@ predict_class_reference <- function(metadata, regex_reference,
       paste0("generic review %s: candidates=%d (missing identity=%d; ",
              "generic label=%d); action=%s; affected=%d; library retained=%d"),
       artifact, sum(candidates), sum(missing_identity), sum(generic),
-      if (isTRUE(remove_other)) "removed" else "queued for reassignment",
-      sum(candidates),
+      if (isTRUE(remove_other)) "reviewed/removed unresolved" else
+        "queued for reassignment",
+      sum(remove),
       ncol(object$spectra)
     ))
   }
@@ -2132,6 +2180,110 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
   ), fill = TRUE)
 }
 
+.lib_assign_library_name <- function(metadata) {
+  metadata <- data.table::as.data.table(metadata)
+  value <- function(column) {
+    if (column %in% names(metadata)) {
+      trimws(as.character(metadata[[column]]))
+    } else {
+      rep(NA_character_, nrow(metadata))
+    }
+  }
+  organization <- value("organization")
+  user_name <- value("user_name")
+  blank <- is.na(organization) | !nzchar(organization)
+  organization[blank] <- user_name[blank]
+  blank <- is.na(organization) | !nzchar(organization)
+  organization[blank] <- NA_character_
+  data.table::set(metadata, j = "library_name", value = organization)
+  metadata
+}
+
+.lib_library_stage_counts <- function(libraries, stage) {
+  rows <- list()
+  collect <- function(value, artifact) {
+    if (is_OpenSpecy(value)) {
+      metadata <- .lib_assign_library_name(data.table::copy(value$metadata))
+      names <- as.character(metadata$library_name)
+      names[is.na(names) | !nzchar(trimws(names))] <- "(missing)"
+      rows[[length(rows) + 1L]] <<- data.table::data.table(
+        stage = stage, artifact = artifact, library_name = names
+      )[, .(spectra = .N), by = .(stage, artifact, library_name)]
+    } else if (is.list(value)) {
+      for (name in names(value)) collect(value[[name]], artifact)
+    }
+  }
+  for (artifact in names(libraries)) collect(libraries[[artifact]], artifact)
+  if (!length(rows)) {
+    return(data.table::data.table(
+      stage = character(), artifact = character(),
+      library_name = character(), spectra = integer()
+    ))
+  }
+  data.table::rbindlist(rows)[
+    , .(spectra = sum(spectra)), by = .(stage, artifact, library_name)
+  ]
+}
+
+.lib_library_retention_report <- function(stages) {
+  if (inherits(stages, c("data.frame", "data.table"))) stages <- list(stages)
+  stages <- data.table::rbindlist(stages, fill = TRUE)
+  stage_order <- c(
+    "prepared", "post_exclusion", "core", "post_other", "post_quality",
+    "post_prune", "post_transform", "final"
+  )
+  if (!nrow(stages)) {
+    out <- data.table::data.table(artifact = character(),
+                                  library_name = character())
+    for (stage in stage_order) out[[paste0(stage, "_n")]] <- integer()
+    out[, `:=`(status = character(), reason = character())]
+    return(out)
+  }
+  stages <- stages[, lapply(.SD, sum),
+                   by = c("stage", "artifact", "library_name"),
+                   .SDcols = "spectra"]
+  wide <- data.table::dcast(
+    stages, stats::as.formula("artifact + library_name ~ stage"),
+    value.var = "spectra", fill = 0L
+  )
+  for (stage in stage_order) {
+    if (!stage %in% names(wide)) wide[[stage]] <- 0L
+  }
+  data.table::setcolorder(wide, c("artifact", "library_name", stage_order))
+  data.table::setnames(wide, stage_order, paste0(stage_order, "_n"))
+  wide <- data.table::copy(wide)
+  count_columns <- paste0(stage_order, "_n")
+  reason_by_stage <- c(
+    post_exclusion = "known_bad_identifier",
+    core = "deduplication",
+    post_other = "unresolved_other_policy",
+    post_quality = "quality_control",
+    post_prune = "class_support_or_correlation_pruning",
+    post_transform = "post_transform_flat_spectrum",
+    final = "type_range_or_flat_partition"
+  )
+  wide[["status"]] <- data.table::fcase(
+    wide[["final_n"]] == 0L, "dropped",
+    wide[["final_n"]] < wide[["prepared_n"]], "partially_retained",
+    default = "retained"
+  )
+  wide[["reason"]] <- NA_character_
+  for (i in 2:length(stage_order)) {
+    stage <- stage_order[[i]]
+    previous <- count_columns[[i - 1L]]
+    current <- count_columns[[i]]
+    rows <- wide$status == "dropped" & is.na(wide$reason) &
+      wide[[previous]] > 0L & wide[[current]] == 0L
+    wide$reason[rows] <- unname(reason_by_stage[[stage]])
+  }
+  partial <- wide[["status"]] == "partially_retained"
+  wide[["reason"]][partial] <- "one_or_more_spectra_removed_during_cleanup"
+  unexplained <- wide[["status"]] == "dropped" & is.na(wide[["reason"]])
+  wide[["reason"]][unexplained] <- "not_retained"
+  data.table::setorder(wide, artifact, library_name)
+  wide[]
+}
+
 #' @rdname build_lib
 #' @export
 make_lib_lookup_template <- function(x, columns, add = NULL, path = NULL) {
@@ -2412,15 +2564,24 @@ prune_lib <- function(x, class_col = "material_class",
   pools <- .lib_prune_pools(metadata[[type_col]])
   normalized <- .lib_prune_normalize(x$spectra, x$wavenumber, exclude)
 
-  reassigned <- .lib_reassign_other_classes(
+  generic_reassigned <- .lib_reassign_other_classes(
     classes, material_types, pools, normalized, ids, progress = progress
   )
-  classes <- reassigned$classes
-  material_types <- reassigned$material_types
+  classes <- generic_reassigned$classes
+  material_types <- generic_reassigned$material_types
+  spectrum_types <- trimws(tolower(as.character(metadata[[type_col]])))
+  small_reassigned <- .lib_reassign_small_classes(
+    classes, material_types, spectrum_types, pools, normalized, ids,
+    min_n = min_n, progress = progress
+  )
+  classes <- small_reassigned$classes
+  material_types <- small_reassigned$material_types
+  reassignment_report <- data.table::rbindlist(list(
+    generic_reassigned$report, small_reassigned$report
+  ), fill = TRUE)
   metadata[[class_col]] <- classes
   metadata[[material_type_col]] <- material_types
   protected <- tolower(classes) %in% "unclassified"
-  spectrum_types <- trimws(tolower(as.character(metadata[[type_col]])))
 
   support <- data.table::data.table(
     row = seq_along(ids), spectrum_type = spectrum_types, pool = pools,
@@ -2435,29 +2596,11 @@ prune_lib <- function(x, class_col = "material_class",
       support, spectrum_type, -observed_n, material_class
     )
   }
-  excluded_classes <- support[observed_n < min_n, .(
-    spectrum_type, pool, material_class,
-    observed_n = as.integer(observed_n),
-    minimum_spectra = as.integer(min_n),
-    shortfall = as.integer(min_n - observed_n),
-    spectra_removed = as.integer(observed_n),
-    action = "removed",
-    reason = "class_below_min_n"
-  )]
+  excluded_classes <- small_reassigned$classes_report
   if (!nrow(excluded_classes)) {
     excluded_classes <- .lib_prune_excluded_class_schema()
   }
-  threshold_rows <- if (nrow(excluded_classes)) {
-    data.table::data.table(
-      row = seq_along(ids), spectrum_type = spectrum_types, pool = pools,
-      material_class = classes
-    )[
-      excluded_classes,
-      on = .(spectrum_type, pool, material_class), nomatch = 0L
-    ][, row]
-  } else {
-    integer()
-  }
+  threshold_rows <- small_reassigned$dropped_rows
   active <- rep(TRUE, length(ids))
   active[threshold_rows] <- FALSE
   if (isTRUE(progress)) {
@@ -2474,9 +2617,11 @@ prune_lib <- function(x, class_col = "material_class",
         )
       }
       message(sprintf(
-        paste0("prune_lib: minimum support gate removed %d spectrum/spectra ",
-               "from %d class/type group(s) below min_n=%d: %s"),
-        length(threshold_rows), nrow(excluded_classes), min_n,
+        paste0("prune_lib: minimum support gate reassigned %d and removed %d ",
+               "spectrum/spectra across %d class/type group(s) below ",
+               "min_n=%d: %s"),
+        nrow(small_reassigned$report), length(threshold_rows),
+        nrow(excluded_classes), min_n,
         paste(preview, collapse = "; ")
       ))
     } else {
@@ -2651,13 +2796,13 @@ prune_lib <- function(x, class_col = "material_class",
     retained_ids = retained_ids,
     schedule = schedule,
     excluded_classes = excluded_classes,
-    reassignments = reassigned$report,
+    reassignments = reassignment_report,
     removals = removals,
     summary = data.table::data.table(
       before = length(ids),
       after = sum(active),
-      reassigned = nrow(reassigned$report),
-      classes_excluded = nrow(excluded_classes),
+      reassigned = nrow(reassignment_report),
+      classes_excluded = sum(excluded_classes$action == "dropped"),
       threshold_removed = length(threshold_rows),
       removed = sum(!active)
     )
@@ -2667,8 +2812,9 @@ prune_lib <- function(x, class_col = "material_class",
     message(sprintf(
       paste0("prune_lib: complete (before=%d; after=%d; reassigned=%d; ",
              "classes_excluded=%d; threshold_removed=%d; removed=%d)"),
-      length(ids), sum(active), nrow(reassigned$report),
-      nrow(excluded_classes), length(threshold_rows), sum(!active)
+      length(ids), sum(active), nrow(reassignment_report),
+      sum(excluded_classes$action == "dropped"), length(threshold_rows),
+      sum(!active)
     ))
   }
   if (return == "ids") return(retained_ids)
@@ -2681,6 +2827,7 @@ prune_lib <- function(x, class_col = "material_class",
     spectrum_type = character(), pool = character(),
     material_class = character(), observed_n = integer(),
     minimum_spectra = integer(), shortfall = integer(),
+    destination_class = character(), mean_correlation = numeric(),
     spectra_removed = integer(), action = character(), reason = character()
   )
 }
@@ -2859,6 +3006,156 @@ prune_lib <- function(x, class_col = "material_class",
     ))
   }
   list(classes = classes, material_types = material_types, report = report)
+}
+
+.lib_reassign_small_classes <- function(classes, material_types,
+                                        spectrum_types, pools, normalized,
+                                        ids, min_n, progress = FALSE) {
+  generic <- c("other", "other plastic", "other material", "unclassified")
+  support <- data.table::data.table(
+    row = seq_along(ids), spectrum_type = spectrum_types, pool = pools,
+    material_class = classes, material_type = material_types
+  )[
+    !is.na(spectrum_type) & nzchar(spectrum_type) &
+      !is.na(material_class) & nzchar(material_class),
+    .(
+      observed_n = .N,
+      material_type = {
+        values <- unique(material_type[!is.na(material_type) &
+                                         nzchar(material_type)])
+        if (length(values) == 1L) values else NA_character_
+      }
+    ),
+    by = .(spectrum_type, pool, material_class)
+  ]
+  small <- support[observed_n < min_n]
+  if (nrow(small)) {
+    data.table::setorder(small, spectrum_type, material_class)
+  }
+  established <- support[
+    observed_n >= min_n & !tolower(material_class) %in% generic
+  ]
+  report_rows <- list()
+  class_rows <- list()
+  dropped_rows <- integer()
+
+  for (i in seq_len(nrow(small))) {
+    item <- small[i]
+    query <- which(
+      spectrum_types == item$spectrum_type & pools == item$pool &
+        !is.na(classes) & classes == item$material_class
+    )
+    eligible_classes <- established[
+      spectrum_type == item$spectrum_type & pool == item$pool,
+      material_class
+    ]
+    candidates <- which(
+      spectrum_types == item$spectrum_type & pools == item$pool &
+        classes %in% eligible_classes
+    )
+    if (!is.na(item$material_type)) {
+      candidates <- candidates[
+        material_types[candidates] == item$material_type
+      ]
+    }
+    candidates <- candidates[!is.na(candidates)]
+    match <- .lib_prune_best_class(
+      query, candidates, classes, normalized, ids
+    )
+    if (is.null(match) || tolower(item$material_class) == "unclassified") {
+      dropped_rows <- c(dropped_rows, query)
+      class_rows[[length(class_rows) + 1L]] <- data.table::data.table(
+        spectrum_type = item$spectrum_type, pool = item$pool,
+        material_class = item$material_class,
+        observed_n = as.integer(item$observed_n),
+        minimum_spectra = as.integer(min_n),
+        shortfall = as.integer(min_n - item$observed_n),
+        destination_class = NA_character_, mean_correlation = NA_real_,
+        spectra_removed = as.integer(item$observed_n), action = "dropped",
+        reason = "class_below_min_n_no_eligible_destination"
+      )
+      next
+    }
+    prior_class <- classes[query]
+    prior_type <- material_types[query]
+    classes[query] <- match$material_class
+    material_types[query] <- material_types[match$index]
+    report_rows[[length(report_rows) + 1L]] <- data.table::data.table(
+      spectrum_id = ids[query], prior_class,
+      material_class = classes[query], prior_material_type = prior_type,
+      material_type = material_types[query],
+      matched_id = ids[match$index], correlation = match$correlation,
+      pool = pools[query], reason = "class_below_min_n_reassigned"
+    )
+    class_rows[[length(class_rows) + 1L]] <- data.table::data.table(
+      spectrum_type = item$spectrum_type, pool = item$pool,
+      material_class = item$material_class,
+      observed_n = as.integer(item$observed_n),
+      minimum_spectra = as.integer(min_n),
+      shortfall = as.integer(min_n - item$observed_n),
+      destination_class = match$material_class,
+      mean_correlation = match$mean_correlation,
+      spectra_removed = 0L, action = "reassigned",
+      reason = "class_below_min_n_reassigned"
+    )
+  }
+  report <- if (length(report_rows)) {
+    data.table::rbindlist(report_rows, fill = TRUE)
+  } else {
+    .lib_prune_reassignment_schema()
+  }
+  classes_report <- if (length(class_rows)) {
+    data.table::rbindlist(class_rows, fill = TRUE)
+  } else {
+    .lib_prune_excluded_class_schema()
+  }
+  if (isTRUE(progress) && nrow(small)) {
+    message(sprintf(
+      paste0("prune_lib: small-class reassignment complete ",
+             "(classes=%d; reassigned=%d; dropped=%d)"),
+      nrow(small), sum(classes_report$action == "reassigned"),
+      sum(classes_report$action == "dropped")
+    ))
+  }
+  list(
+    classes = classes, material_types = material_types, report = report,
+    classes_report = classes_report,
+    dropped_rows = sort(unique(as.integer(dropped_rows)))
+  )
+}
+
+.lib_prune_best_class <- function(query, candidates, classes, normalized, ids) {
+  if (!length(query) || !length(candidates)) return(NULL)
+  candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
+  destination <- sort(unique(classes[candidates]))
+  destination <- destination[!is.na(destination) & nzchar(destination)]
+  if (!length(destination)) return(NULL)
+  correlations <- tcrossprod(
+    normalized[query, , drop = FALSE], normalized
+  )[, candidates, drop = FALSE]
+  correlations[!is.finite(correlations)] <- -Inf
+  scores <- vapply(destination, function(class) {
+    columns <- which(classes[candidates] == class)
+    best <- matrixStats::rowMaxs(correlations[, columns, drop = FALSE])
+    if (any(!is.finite(best))) -Inf else mean(best)
+  }, numeric(1L))
+  if (!any(is.finite(scores))) return(NULL)
+  best_score <- max(scores)
+  tolerance <- sqrt(.Machine$double.eps) * max(1, abs(best_score))
+  selected <- destination[which(abs(scores - best_score) <= tolerance)[[1L]]]
+  selected_candidates <- candidates[classes[candidates] == selected]
+  selected_columns <- match(selected_candidates, candidates)
+  selected_correlations <- correlations[, selected_columns, drop = FALSE]
+  top <- matrixStats::rowMaxs(selected_correlations)
+  near_top <- abs(selected_correlations - top) <=
+    sqrt(.Machine$double.eps) * pmax(1, abs(top))
+  local <- max.col(near_top, ties.method = "first")
+  list(
+    material_class = selected,
+    mean_correlation = unname(best_score),
+    index = selected_candidates[local],
+    correlation = selected_correlations[cbind(seq_along(query), local)]
+  )
 }
 
 #' @rdname build_lib
@@ -3695,7 +3992,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       signal_noise = signal_noise, assess = assess, prune = prune,
       remove_other = remove_other
     ),
-    component_version = "reference-artifacts-v8-range-flat-filter"
+    component_version = "reference-artifacts-v10-small-class-reassignment"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -3720,7 +4017,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       restrict_range_args = restrict_range_args,
       signal_noise = signal_noise, assess = assess
     ),
-    component_version = "core-libraries-v1"
+    component_version = "core-libraries-v2-library-name"
   )
   checkpoints <- .lib_checkpoint_manager(
     output_dir, signature = artifact_signature, reuse = reuse, report = report
@@ -3812,7 +4109,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "slim-release-overall-accuracy-v11"
+      assessment_version = "slim-release-library-retention-v13"
     ),
     algo = "sha256"
   )
@@ -3962,7 +4259,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "slim-release-overall-accuracy-v11"
+    assessment_version = "slim-release-library-retention-v13"
   ), algo = "sha256")
   cached <- checkpoints$get(
     "assessment_components_parallel_rng_v1", key = assessment_key
@@ -4121,7 +4418,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "other_review", "other_filter", "filters", "metadata_drop",
     "metadata_finalization", "pruning", "pruning_excluded_classes",
     "pruning_reassignments",
-    "quality_control", "dropped_spectrum_identities",
+    "quality_control", "library_retention", "dropped_spectrum_identities",
     "model_assessment_correlations"
   )
   assessments[intersect(keep, names(assessments))]
@@ -4557,6 +4854,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_complete_reference_build <- function(libraries, tables, prune,
                                            remove_other, progress, report) {
+  retention_stages <- data.table::rbindlist(lapply(
+    libraries,
+    function(object) attr(object, "library_retention_stages", exact = TRUE)
+  ), fill = TRUE)
   identity_index <- data.table::rbindlist(lapply(names(libraries), function(name) {
     metadata <- libraries[[name]]$metadata
     data.table::data.table(
@@ -4618,6 +4919,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
   libraries <- other_policy$libraries
   other_policy$libraries <- NULL
+  retention_stages <- data.table::rbindlist(list(
+    retention_stages,
+    .lib_library_stage_counts(libraries, stage = "post_other")
+  ), fill = TRUE)
 
   type_coverage <- data.table::rbindlist(lapply(names(libraries), function(name) {
     metadata <- libraries[[name]]$metadata
@@ -4647,6 +4952,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   quality$libraries <- NULL
   rm(quality_store)
   gc(verbose = FALSE)
+  retention_stages <- data.table::rbindlist(list(
+    retention_stages,
+    .lib_library_stage_counts(libraries, stage = "post_quality")
+  ), fill = TRUE)
 
   prune_spec <- prune
   if (is.null(prune_spec)) {
@@ -4707,6 +5016,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     prune_paths <- character()
     gc(verbose = FALSE, full = TRUE)
   }
+  retention_stages <- data.table::rbindlist(list(
+    retention_stages,
+    .lib_library_stage_counts(libraries, stage = "post_prune")
+  ), fill = TRUE)
   if (!isTRUE(remove_other) && nrow(other_policy$review)) {
     other_policy$review[
       action == "retained_for_semisupervised_reassignment",
@@ -4782,6 +5095,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       libraries[[name]] <- filter_spec(libraries[[name]], !flat)
     }
   }
+  retention_stages <- data.table::rbindlist(list(
+    retention_stages,
+    .lib_library_stage_counts(libraries, stage = "post_transform")
+  ), fill = TRUE)
   report(sprintf("reviewed exclusions and flat-spectrum checks complete (removed=%d; retained=%d)",
                  before_filter - ncol(libraries$raw$spectra),
                  ncol(libraries$raw$spectra)))
@@ -4830,6 +5147,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       fill = TRUE
     )[, .(spectrum_identity = sort(unique(spectrum_identity)))]
   }
+  retention_stages <- data.table::rbindlist(list(
+    retention_stages,
+    .lib_library_stage_counts(libraries, stage = "final")
+  ), fill = TRUE)
+  library_retention <- .lib_library_retention_report(retention_stages)
 
   list(
     libraries = libraries,
@@ -4851,6 +5173,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         .lib_prune_reassignment_schema()
       },
       quality_control = quality$assessment,
+      library_retention = library_retention,
       dropped_spectrum_identities = dropped_spectrum_identities,
       filters = data.table::data.table(
         stage = "special_filter", before = before_filter,
@@ -5583,6 +5906,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         before_filter - after_filter
     ),
     metadata_drop = metadata_drop,
+    library_retention = .lib_library_retention_report(list(
+      .lib_library_stage_counts(libraries, stage = "final")
+    )),
     dropped_spectrum_identities = dropped_spectrum_identities
   )
 }
@@ -5775,6 +6101,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     assess_spec_shifts = data.table::data.table(),
     old_new_compatibility = data.table::data.table(),
     quality_control = .lib_quality_schema(),
+    library_retention = data.table::data.table(),
     dropped_spectrum_identities = data.table::data.table(
       spectrum_identity = character()
     ),
@@ -5996,7 +6323,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "lookup_coverage", "identity_cleanup", "class_prediction", "class_coverage",
     "type_coverage", "other_review", "other_filter", "exclusions_deduplication",
     "filters", "metadata_drop", "metadata_finalization", "pruning",
-    "pruning_excluded_classes", "pruning_reassignments", "quality_control"
+    "pruning_excluded_classes", "pruning_reassignments", "quality_control",
+    "library_retention"
   )
   cleanup_summary <- .lib_bind_assessment_tables(assessments, cleanup_names)
   dropped <- assessments$dropped_spectrum_identities

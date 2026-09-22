@@ -1,4 +1,4 @@
-test_that("bundled package data preserve clean text and source licenses", {
+test_that("bundled package data preserve clean text and package license", {
   data("test_lib", package = "OpenSpecy", envir = environment())
   data("raman_hdpe", package = "OpenSpecy", envir = environment())
 
@@ -21,6 +21,14 @@ test_that("bundled package data preserve clean text and source licenses", {
   expect_false(grepl(intToUtf8(c(0x251c, 0x255d)), varnish_note,
                      fixed = TRUE))
 
-  expect_identical(raman_hdpe$metadata$license, "CC BY-NC")
+  expect_identical(raman_hdpe$metadata$license, "CC BY 4.0")
   expect_identical(raman_hdpe$metadata$organization, "Horiba Scientific")
+
+  alternate <- lapply(
+    c("raman_hdpe.json", "raman_hdpe.rds", "raman_hdpe_os.csv"),
+    function(name) read_spec(read_extdata(name))
+  )
+  expect_true(all(vapply(alternate, function(object) {
+    identical(object$metadata$license, "CC BY 4.0")
+  }, logical(1))))
 })

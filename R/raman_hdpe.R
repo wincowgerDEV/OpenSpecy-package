@@ -4,11 +4,6 @@
 #' Raman spectrum of high-density polyethylene (HDPE) provided by
 #' Horiba Scientific.
 #'
-#' @details
-#' The bundled spectrum and its alternate files under `inst/extdata` retain the
-#' source metadata license `CC BY-NC`. This dataset-specific restriction is
-#' separate from the package's CC BY 4.0 license; see `LICENSE.note`.
-#'
 #' @format
 #' A three-part list of class \code{\link{OpenSpecy}} containing:
 #' \tabular{ll}{
@@ -32,8 +27,8 @@
 #' \emph{Applied Spectroscopy}, \strong{74}(9), 989--1010.
 #' \doi{10.1177/0003702820929064}.
 #'
-#' @source Horiba Scientific; distributed with source metadata identifying the
-#' license as CC BY-NC.
+#' @source Horiba Scientific; distributed under the package's CC BY 4.0
+#' license.
 #'
 #' @docType data
 #' @keywords data

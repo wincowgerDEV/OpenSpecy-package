@@ -14,17 +14,12 @@ A three-part list of class \code{\link{OpenSpecy}} containing:
 }
 }
 \source{
-Horiba Scientific; distributed with source metadata identifying the
-license as CC BY-NC.
+Horiba Scientific; distributed under the package's CC BY 4.0
+license.
 }
 \description{
 Raman spectrum of high-density polyethylene (HDPE) provided by
 Horiba Scientific.
-}
-\details{
-The bundled spectrum and its alternate files under \code{inst/extdata} retain the
-source metadata license \verb{CC BY-NC}. This dataset-specific restriction is
-separate from the package's CC BY 4.0 license; see \code{LICENSE.note}.
 }
 \examples{
 data(raman_hdpe)

@@ -1010,6 +1010,8 @@ test_that("build_lib() standardizes source keys before external lookups", {
   expect_equal(built$metadata$spectrum_type, rep("ftir", 3))
   expect_equal(built$metadata$organization,
                c("source org", "fallback user", "unmapped"))
+  expect_equal(built$metadata$library_name,
+               c("source org", "fallback user", "unmapped"))
   expect_equal(
     attr(built, "metadata_lookup_reports")$canonical_source_keys[
       problem == "filled_canonical_key", n
@@ -1144,7 +1146,7 @@ test_that("prune_lib() orders classes, preserves floors, and audits removals", {
   expect_true(all(abs(legacy_at_actual - legacy_best) <= tolerance))
 })
 
-test_that("prune_lib() removes undersupported classes by spectrum type", {
+test_that("prune_lib() reassigns undersupported classes by spectrum type", {
   wn <- seq(500, 3500, length.out = 40)
   spectra <- vapply(seq_len(7), function(i) {
     dnorm(seq(-3, 3, length.out = length(wn)), mean = i / 20)
@@ -1173,34 +1175,42 @@ test_that("prune_lib() removes undersupported classes by spectrum type", {
   )
   expect_match(
     paste(messages, collapse = "\n"),
-    "minimum support gate removed 2 spectrum/spectra"
+    "minimum support gate reassigned 1 and removed 1 spectrum/spectra"
   )
 
   expect_equal(
     report$excluded_classes[, c(
       "spectrum_type", "material_class", "observed_n", "minimum_spectra",
-      "shortfall", "spectra_removed", "action", "reason"
+      "shortfall", "destination_class", "spectra_removed", "action", "reason"
     ), with = FALSE],
     data.table::data.table(
       spectrum_type = c("ftir", "ftir"),
       material_class = c("rare", "unclassified"),
       observed_n = c(1L, 1L), minimum_spectra = c(2L, 2L),
-      shortfall = c(1L, 1L), spectra_removed = c(1L, 1L),
-      action = c("removed", "removed"),
-      reason = c("class_below_min_n", "class_below_min_n")
+      shortfall = c(1L, 1L), destination_class = c("stable", NA_character_),
+      spectra_removed = c(0L, 1L), action = c("reassigned", "dropped"),
+      reason = c("class_below_min_n_reassigned",
+                 "class_below_min_n_no_eligible_destination")
     )
   )
   expect_true(all(c("raman_rare1", "raman_rare2") %in% report$retained_ids))
   expect_true("ftir_missing" %in% report$retained_ids)
-  expect_false(any(c("ftir_rare", "ftir_unclassified") %in%
-                     report$retained_ids))
+  expect_true("ftir_rare" %in% report$retained_ids)
+  expect_false("ftir_unclassified" %in% report$retained_ids)
+  expect_equal(
+    report$object$metadata[sample_name == "ftir_rare", material_class],
+    "stable"
+  )
+  expect_equal(
+    report$reassignments[spectrum_id == "ftir_rare", reason],
+    "class_below_min_n_reassigned"
+  )
   threshold_removals <- report$removals[reason == "class_below_min_n"]
-  expect_equal(threshold_removals$spectrum_id,
-               c("ftir_rare", "ftir_unclassified"))
+  expect_equal(threshold_removals$spectrum_id, "ftir_unclassified")
   expect_true(all(is.na(threshold_removals$matched_id)))
   expect_type(threshold_removals$matched_id, "character")
-  expect_equal(report$summary$classes_excluded, 2L)
-  expect_equal(report$summary$threshold_removed, 2L)
+  expect_equal(report$summary$classes_excluded, 1L)
+  expect_equal(report$summary$threshold_removed, 1L)
   expect_true(check_OpenSpecy(report$object))
   expect_identical(colnames(report$object$spectra),
                    report$object$metadata$sample_name)
@@ -1239,6 +1249,39 @@ test_that("prune_lib() resolves generic labels before minimum support", {
   expect_equal(nrow(report$reassignments), 1L)
   expect_equal(nrow(report$excluded_classes), 0L)
   expect_equal(report$schedule$initial_n, 2L)
+})
+
+test_that("prune_lib() sends an undersupported class to one correlated class", {
+  wn <- seq(500, 3500, length.out = 40)
+  shape_a <- dnorm(seq(-3, 3, length.out = length(wn)), mean = -0.5)
+  shape_b <- dnorm(seq(-3, 3, length.out = length(wn)), mean = 1)
+  spectra <- cbind(
+    shape_a, shape_a * 1.01, shape_a * 0.99,
+    shape_b, shape_b * 1.01, shape_b * 0.99,
+    shape_a * 1.02, shape_a * 0.98
+  )
+  colnames(spectra) <- paste0("whole_", seq_len(ncol(spectra)))
+  lib <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c(rep("class_a", 3), rep("class_b", 3), rep("rare", 2)),
+      material_type = "plastic", spectrum_type = "ftir"
+    )
+  )
+
+  report <- prune_lib(lib, min_n = 3, return = "report", progress = FALSE)
+  reassigned <- report$reassignments[prior_class == "rare"]
+
+  expect_equal(nrow(reassigned), 2L)
+  expect_identical(unique(reassigned$material_class), "class_a")
+  expect_true(all(report$object$metadata$sample_name %in%
+                    colnames(lib$spectra)))
+  expect_false("rare" %in% report$object$metadata$material_class)
+  expect_equal(
+    report$excluded_classes[material_class == "rare", action],
+    "reassigned"
+  )
 })
 
 test_that("prune_lib() retains unclassified spectra outside matching", {
@@ -1587,7 +1630,7 @@ test_that("reference class completion labels and caps unresolved other", {
   )
 })
 
-test_that("official other policy removes vague rows and preserves a typed review", {
+test_that("official other policy removes unresolved rows and retains broad classes", {
   lib <- tiny_build_lib()
   lib$metadata[, `:=`(
     spectrum_identity = c(NA_character_, paste0("identity_", 2:8)),
@@ -1607,16 +1650,20 @@ test_that("official other policy removes vague rows and preserves a typed review
   removed <- OpenSpecy:::.lib_apply_other_policy(
     list(raw = lib), remove_other = TRUE, report = NULL
   )
-  expect_identical(colnames(removed$libraries$raw$spectra), paste0("s", 4:8))
-  expect_identical(nrow(removed$libraries$raw$metadata), 5L)
+  expect_identical(colnames(removed$libraries$raw$spectra), paste0("s", 2:8))
+  expect_identical(nrow(removed$libraries$raw$metadata), 7L)
   expect_named(removed$review, names(OpenSpecy:::.lib_other_review_schema()))
   expect_named(removed$summary, names(OpenSpecy:::.lib_other_filter_schema()))
   expect_type(removed$review$source_row, "integer")
   expect_type(removed$summary$removed, "integer")
   expect_equal(removed$review$reason,
-               c("missing_spectrum_identity", rep("generic_other_label", 2)))
+               c("missing_spectrum_identity", rep("reviewed_broad_category", 2)))
+  expect_equal(
+    removed$review$action,
+    c("removed", rep("retained_reviewed_broad_category", 2))
+  )
   expect_equal(removed$summary[, .(candidates, removed, after)],
-               data.table::data.table(candidates = 3L, removed = 3L, after = 5L))
+               data.table::data.table(candidates = 3L, removed = 1L, after = 7L))
   expect_true(check_OpenSpecy(removed$libraries$raw))
 
   retained <- OpenSpecy:::.lib_apply_other_policy(
@@ -1628,6 +1675,40 @@ test_that("official other policy removes vague rows and preserves a typed review
   ))
   expect_identical(retained$summary$removed, 0L)
   expect_identical(formals(build_lib)$remove_other, TRUE)
+})
+
+test_that("source-library retention reports complete drops with a stage reason", {
+  stages <- list(
+    data.table::data.table(
+      stage = "prepared", artifact = "raw",
+      library_name = c("kept", "dropped"), spectra = c(4L, 2L)
+    ),
+    data.table::data.table(
+      stage = "post_exclusion", artifact = "raw",
+      library_name = c("kept", "dropped"), spectra = c(4L, 2L)
+    ),
+    data.table::data.table(
+      stage = "core", artifact = "raw",
+      library_name = c("kept", "dropped"), spectra = c(4L, 2L)
+    ),
+    data.table::data.table(
+      stage = "post_other", artifact = "raw",
+      library_name = "kept", spectra = 4L
+    ),
+    data.table::data.table(
+      stage = c("post_quality", "post_prune", "post_transform", "final"),
+      artifact = "raw", library_name = "kept", spectra = 4L
+    )
+  )
+  report <- OpenSpecy:::.lib_library_retention_report(stages)
+
+  expect_equal(report[library_name == "kept", status], "retained")
+  expect_equal(report[library_name == "dropped", status], "dropped")
+  expect_equal(
+    report[library_name == "dropped", reason],
+    "unresolved_other_policy"
+  )
+  expect_equal(report[library_name == "dropped", final_n], 0L)
 })
 
 test_that("confusion tables rank the largest misidentifications first", {
@@ -1939,6 +2020,15 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
                    "2.0.0")
   expect_named(first$assessments$cleanup$dropped_spectrum_identities,
                "spectrum_identity")
+  retention <- first$assessments$cleanup$summary[
+    assessment_kind == "library_retention"
+  ]
+  expect_gt(nrow(retention), 0L)
+  expect_true(all(c("library_name", "prepared_n", "final_n", "status",
+                    "reason") %in% names(retention)))
+  expect_true(all(vapply(first$libraries$raw, function(object) {
+    "library_name" %in% names(object$metadata)
+  }, logical(1))))
   release_dir <- attr(first, "output_dir")
   expect_true(all(file.exists(file.path(
     release_dir,
@@ -1979,7 +2069,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     "class_coverage_report", "other_review_report", "other_filter_report",
     "quality_control_report", "prune_report", "identification_support",
     "identification_dropped_ids", "identification_minimum_observed",
-    "identification_finite_coverage", "range_flat_drops"
+    "identification_finite_coverage", "range_flat_drops",
+    "library_retention_stages"
   )
   for (component in c("raw", "derivative", "nobaseline",
                       "medoid_derivative", "medoid_nobaseline")) {

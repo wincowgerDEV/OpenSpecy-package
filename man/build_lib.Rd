@@ -239,12 +239,14 @@ and retrieves missing artifacts with \code{get_lib()}.}
 versioned release files may be reused.}
 
 \item{remove_other}{logical; in the official end-to-end workflow, whether
-spectra with blank \code{spectrum_identity} or generic \code{"other"},
-\code{"other plastic"}, or \code{"other material"} metadata are removed
-before quality control, medoid selection, and model fitting. Removed rows
-remain reviewable in \code{assessments$cleanup$summary}. If \code{FALSE}, the
-generic rows are retained for \code{prune_lib()}'s constrained nearest-class
-reassignment. Source-only composable builds do not apply the official filter.}
+spectra with blank \code{spectrum_identity} or the unresolved literal
+\code{"other"} class are removed before quality control, medoid selection,
+and model fitting. Reviewed broad \code{"other plastic"} and
+\code{"other material"} categories remain in the reference libraries and
+are eligible for \code{prune_lib()}'s constrained nearest-class
+reassignment. Removed and reviewed rows remain visible in
+\code{assessments$cleanup$summary}. Source-only composable builds do not
+apply the official filter.}
 
 \item{seed}{random seed used before model training.}
 
@@ -295,9 +297,10 @@ reassignment. \code{"other material"} candidates are restricted by
 \code{"other"} may match any established class in the spectral pool.}
 
 \item{min_n}{For \code{prune_lib()}, the minimum spectra required for a
-resolved class within one spectrum type: smaller groups are removed before
-correlation pruning, groups exactly at the threshold are retained whole,
-and larger groups are never reduced below it. For \code{reduce_lib()},
+resolved class within one spectrum type: smaller groups are reassigned as a
+whole to their most-correlated eligible class, or removed only when no valid
+destination exists; groups exactly at the threshold are retained whole, and
+larger groups are never reduced below it. For \code{reduce_lib()},
 groups with \code{min_n} or fewer spectra are kept whole. Model trainers
 fit only classes meeting the threshold.}
 
@@ -344,7 +347,11 @@ recipe, and spectrum type. FTIR and Raman medoids/models use
 4000--12000. Assessments use five ordered process lists:
 \code{cleanup}, \code{ref_lib}, \code{medoid}, \code{model}, and
 \code{functionality}, with no more than ten nonempty review tables in total.
-Accuracy tables contain overall aggregate metrics only. Old/new metrics are
+Every spectrum receives a derived \code{library_name}: populated
+\code{organization} first, otherwise \code{user_name}. The cleanup summary
+includes source-library counts at each major stage and identifies the first
+stage and reason whenever an entire source library is dropped. Accuracy
+tables contain overall aggregate metrics only. Old/new metrics are
 adjacent columns, accuracy and confusion are ranked by the new result with an
 old fallback, model diagnostics are ranked by absolute correlation, and
 quality shifts omit passes. Row-level tests, split manifests, model-training
@@ -445,21 +452,22 @@ only missing values are removed and the remainder are stably ordered from
 the fewest to the most missing values. Spectra, metadata rows, identifiers,
 axes, and object attributes are unchanged.
 Official class completion temporarily assigns unresolved identities to
-\code{"other"}. By default, spectra with a blank identity or a generic
-\code{"other"}, \code{"other plastic"}, or \code{"other material"} label
-are removed before quality control and retained in the
-\code{other_review} assessment table. Set \code{remove_other = FALSE} to
-retain them for \code{prune_lib()}'s nearest-class semisupervised pathway.
+\code{"other"}. By default, spectra with a blank identity or that unresolved
+literal class are removed before quality control and retained in the
+\code{other_review} assessment table. Reviewed \code{"other plastic"} and
+\code{"other material"} rows stay in the reference library and enter
+\code{prune_lib()}'s nearest-class semisupervised pathway.
 Before pruning, \code{prune_lib()} reassigns generic classes by nearest
 same-technique correlation: \code{"other"} may use any established class,
 \code{"other plastic"} requires a plastic candidate, and
 \code{"other material"} requires \code{"organic matter"} or
 \code{"mineral"}. The matched material type and a correlation audit are
-retained. Once those labels are resolved, class/spectrum-type groups with
-fewer than \code{min_n} spectra are removed before correlation pruning. The report
-identifies each excluded class, its observed support, its shortfall, and the
-affected spectrum identifiers so maintainers can reassign it or acquire more
-reference spectra.
+retained. Once those labels are resolved, each class/spectrum-type group with
+fewer than \code{min_n} spectra is reassigned as a whole to its
+most-correlated established class in the same technique pool and material
+type. A group is removed only when no eligible correlated destination
+exists. The report identifies its support, destination, class-level
+correlation, action, reason, and affected spectrum identifiers.
 
 \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the

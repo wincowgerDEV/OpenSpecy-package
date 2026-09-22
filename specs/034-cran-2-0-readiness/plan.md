@@ -26,7 +26,7 @@
 
 - R1. Set version/date, lead `NEWS.md` with the 2.0.0 migration summary, and generate `cran-comments.md` from final evidence.
 - R2. Eliminate code-analysis findings by declaring legitimate data-table/NSE symbols and namespace-qualifying/importing utilities; add no speculative exports.
-- R3. Correct two mojibaked `test_lib` strings, preserve valid UTF-8, and establish licenses/attribution, including `raman_hdpe`'s CC BY-NC source.
+- R3. Correct two mojibaked `test_lib` strings, preserve valid UTF-8, and establish licenses/attribution; `raman_hdpe` follows the package CC BY 4.0 license because no supported dataset exception exists.
 - R4. Keep representative CRAN tests; CI-guard exhaustive app/hosted/network cases. Target tests ≤3 minutes and check ≤5 minutes on current R.
 - R5. Clean-build both CRAN vignettes; validate disabled snippets; fix stale claims, links, booleans, and README's invalid plural `wavenumbers` access.
 - R6. Run online URL/DOI/ORCID checks, verify canonical URLs, re-query reverse dependencies, and prove R-patched/release/devel plus multi-platform checks.
@@ -39,6 +39,9 @@
 - R13. Prediction and matching results from slim artifacts equal the pre-slim build within existing tolerances; preserve type/axis/ID/class mappings and required baseline/derivative/transformation/range attributes.
 - R14. Implement and subset-test the slim schema, then perform a clean full rebuild before AWS upload or remaining CRAN finalization. Compare it with `4a32e68349ba`; do not mutate that immutable baseline.
 - R15. After upload, record version IDs/SHA-256 for the runtime artifacts plus `assessments.rds`, prove byte identity, load every artifact, and exercise representative full/medoid/model matches. Keep this integration off CRAN.
+- R16. Derive `library_name` from organization first and user name second; retain reviewed broad `other plastic`/`other material` sources, and publish per-recipe source-library retention counts plus a clear first-stage reason for every complete drop.
+- R17. Keep README onboarding short. Put compact/file-backed Specs and app pipeline details only in the advanced, SOP, and app vignettes.
+- R18. Reassign every resolved class below pruning `min_n` as a whole to its most-correlated established class within the same technique/material constraints; drop only when no valid destination exists and audit the outcome.
 
 ## Technical Decisions
 
@@ -55,6 +58,7 @@
 ## Package Surfaces
 
 - `R/build_lib.R`: assessment collection/review, overall-only accuracy, release sanitizer, model slimming, standalone assessment promotion, aggregate/manifest behavior.
+- `R/raman_hdpe.R`, package/extdata objects, `README.md`, and vignettes: correct license metadata and separate beginner from advanced guidance.
 - `R/manage_lib.R`, `R/zzz.R`: AWS-only mappings and version semantics; regenerate affected Rd files.
 - `tests/testthat/test-build_lib.R` and model/matching/app tests: artifact absence/presence contracts, overall-only rows, prediction parity, manifests, loading, and guarded integration.
 - `benchmarks/library_builder.R`: serialized size, memory, read latency, and equivalent predictions.
@@ -69,6 +73,8 @@
 - [x] Run the subset probe and `benchmarks/library_builder.R`; verify object invariants, exact/tolerant prediction parity, size targets, read latency, budgets, and checkpoint restart.
 - [x] Run the clean full rebuild first; compare IDs, axes, counts, metadata names, warnings, joins/matches, model predictions, assessment completeness, sizes, memory, and read timings with `4a32e68349ba`.
 - [x] Make `get_lib()` AWS-only, remove OSF storage guidance/call sites, regenerate documentation, and update 2.0.0 release prose.
+- [ ] Add canonical `library_name`, retain reviewed broad source categories, reassign undersupported classes, audit every source library, and rebuild with explicit complete-drop assessments.
+- [x] Correct `raman_hdpe` licensing and shorten README while preserving advanced guidance in vignettes.
 - [ ] After maintainer upload, pin all version IDs/hashes and validate byte-identical downloads plus local and hosted type-specific matches.
 - [ ] Complete OPUS, code-analysis, encoding/licensing, test-runtime, vignette, URL, reverse-dependency, exact-tarball, and multi-platform CRAN gates.
 - [ ] Run `-HostedAppStatic`, matching-artifact preflight, and clean wasm build once on the final rebuilt/pinned candidate; reconcile evidence, processes, `git status`, and scratch cleanup.
@@ -79,9 +85,9 @@
 - Upload/publishing remains maintainer-owned. Capture S3 version IDs before pin changes and do not validate only through unversioned cached CloudFront responses.
 - Confirm whether any external maintainer workflow consumes `reference_library_build.rds`; absent a consumer, omit the 688 MB aggregate and retain the manifest plus canonical `assessments.rds`.
 - Confirm canonical 2.0 public/support URLs and third-party redistribution rights; remove unsupported links/assets rather than guessing replacements or relicensing.
-- 2026-09-22: all seven runtime AWS objects are pinned and pass byte/SHA/load/full-medoid-model matching; `assessments.rds` and release index/manifest are not yet public, so R15 remains open.
-- Local final candidate: 3,863 assertions passed; staged R 4.3.3 check rebuilt both CRAN vignettes with 0 errors, 0 warnings, and one explained valid-UTF-8 data NOTE in 10m08s; current CRAN reverse dependencies: none.
-- Hosted static gate passes 353 assertions. Exact-artifact preflight/clean wasm and current R-patched/release/devel multi-platform checks require a committed candidate and fresh CI artifact, so the last two checklist items remain open.
+- 2026-09-22: all seven runtime AWS objects are pinned and pass byte/SHA/load/full-medoid-model matching on R 4.3.3 and R 4.6.1; `assessments.rds` and release index/manifest are not yet public, so R15 remains open.
+- Current R 4.3.3 candidate: 3,884 assertions passed with 30 expected validation warnings and two guarded AWS skips; 353 hosted-static assertions passed. The staged check rebuilt both CRAN vignettes and has 0 errors, 0 warnings, and one explained valid-UTF-8 NOTE in 12m16s. R 4.6.1 remains to be rerun after the current source changes; current CRAN reverse dependencies: none.
+- Hosted static gate passes 353 assertions. Commit `3b92b15` now pins the candidate, but exact-artifact preflight/clean wasm awaits a running Docker engine or fresh CI artifact; R-patched/devel Linux/macOS checks also remain, so the last two checklist items stay open.
 
 ## Approval Notes
 

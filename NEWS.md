@@ -1,5 +1,17 @@
 # OpenSpecy 2.0.0
 
+- Reference builds now derive `library_name` from organization first and user
+  name second, retain reviewed `other plastic` and `other material` sources,
+  and record stage-by-stage source-library retention with explicit reasons for
+  complete drops in `assessments.rds`.
+- `prune_lib()` now reassigns each resolved class below `min_n` as a whole to
+  its most-correlated established class within the same technique and material
+  type; it drops spectra only when no valid destination exists and audits both
+  outcomes.
+- Corrected the bundled `raman_hdpe` metadata to the package CC BY 4.0 license
+  and moved advanced compact/file-backed/app workflow guidance out of the
+  beginner README and into vignettes.
+
 - Versioned reference-library releases now keep global cleanup, quality,
   pruning, comparison, and model-training diagnostics in a standalone
   `assessments.rds`. Runtime library, medoid, and model files are stripped to
@@ -163,11 +175,10 @@
   PNG, and Pandoc build prerequisites once in the pinned driver image, with a
   retried apt refresh that no longer depends on the runtime rig repository.
 - Official `build_lib()` runs now default to `remove_other = TRUE`, removing
-  blank `spectrum_identity` rows and the generic `other`, `other plastic`, and
-  `other material` labels before quality control, medoids, and models while
-  preserving a typed source-level review table and before/after counts in
-  `assessments`. Setting it to `FALSE` retains the semisupervised constrained
-  `prune_lib()` reassignment workflow.
+  blank `spectrum_identity` rows and the unresolved literal `other` class
+  before quality control, while retaining reviewed broad `other plastic` and
+  `other material` categories for constrained `prune_lib()` reassignment.
+  Typed source-level review and before/after counts remain in `assessments`.
 - Simplified official polymer class names, separated polyethylene from
   polypropylene, and retained chemically meaningful
   `polyhydroxy(meth)acrylates` notation. Confusion tables now flag and rank the

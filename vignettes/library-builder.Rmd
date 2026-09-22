@@ -156,9 +156,11 @@ and unique lookup keys. Lookups with no usable shared key are skipped with a
 message; lookups with multiple usable shared keys are treated as ambiguous, so
 wrap a lookup as `list(lookup = table, by = "key")` when an explicit key is
 needed. Named `by` vectors map metadata names to different lookup names.
-Canonical source metadata is standardized before these external joins: a
-populated `organization` remains authoritative and a blank organization is
-filled from the reviewed internal `user_name` alias. The older lookup-level
+Canonical source metadata is standardized before these external joins. Every
+spectrum receives `library_name` from a populated `organization`, otherwise
+from `user_name`; this is the canonical source-library grouping used by build
+assessments. A blank `organization` is still filled from the reviewed internal
+`user_name` alias for the existing type lookup. The older lookup-level
 `fallback_by` field is deprecated. Set `fill_only = TRUE` to fill blank values
 such as `library_type` or `spectrum_type` without replacing populated source
 metadata.
@@ -218,12 +220,19 @@ removals, and `excluded_classes`, which reports observed support and the number
 of additional or reassigned spectra needed. End-to-end builds combine these
 class rows in `assessments$cleanup$summary` with the recipe name.
 `build_lib(prune = ...)` maps recipe names to `prune_lib()` argument lists, so
-each selected spectral representation is pruned independently. In the official
+each selected spectral representation is pruned independently. Resolved
+class/type groups below `min_n` are reassigned as a whole to the
+most-correlated established class in the same technique pool and material type;
+they are dropped only when no eligible correlated destination exists. The
+pruning assessment records the destination, mean class correlation, action,
+and reason. In the official
 workflow, an otherwise unresolved identity is temporarily labeled `other`.
-The default `remove_other = TRUE` removes blank identities and the generic
-`other`, `other plastic`, and `other material` labels before quality control,
-while keeping their identifiers, source metadata, prior labels, reasons, and
-actions and typed before/after counts in `assessments$cleanup$summary`. The
+The default `remove_other = TRUE` removes blank identities and the unresolved
+literal `other` class before quality control. Reviewed broad `other plastic`
+and `other material` categories stay in the reference libraries and remain
+eligible for constrained reassignment during derivative/no-baseline pruning.
+The builder keeps reviewed identifiers, source metadata, prior labels, reasons,
+actions, and typed before/after counts in `assessments$cleanup$summary`. The
 separate `assessments$cleanup$dropped_spectrum_identities` table contains only
 the sorted distinct source identities removed anywhere in cleanup. Set
 `remove_other = FALSE` to retain generic rows for the
@@ -258,8 +267,13 @@ inputs. When `workflow_data` is not supplied, `build_lib()` looks for the
 helper tables under `data/` beside the calling script, then under `data/` or
 `workflows/data/` in the current working directory. Calling `build_lib()` with
 no `x` now stops with an actionable error instead of guessing external paths.
-The official build fills a missing organization from `user_name` before one
-source-type lookup and asserts complete library/spectrum-type coverage. The
+The official build derives `library_name` from organization first and user name
+second, fills a missing organization from `user_name` before one source-type
+lookup, and asserts complete library/spectrum-type coverage. Per-recipe
+retention rows in `assessments$cleanup$summary` report counts at preparation,
+exclusion, deduplication, broad-category review, quality control, pruning,
+post-transform, and final partition stages. A completely dropped source names
+the first empty stage and its reason. The
 exact class lookup runs first;
 `predict_class_reference()` then evaluates the separate regex table only for
 blank materials. Exact/regex overlaps are audited without overwriting exact
