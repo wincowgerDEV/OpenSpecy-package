@@ -1,5 +1,26 @@
 # OpenSpecy 2.0.0
 
+- Reference-library downloads, bundled-app fallback, and Shinylive staging now
+  use the latest unversioned AWS objects by default; explicit S3 `versionId`
+  downloads remain available for historical comparisons, and hosted staging
+  records the actual SHA-256 and byte size it resolved.
+- `automate_particle_analysis()` now opens H5/HDF5 paths through bounded
+  `FileSpecs` chunks and supports streamed `all_cell_id` identification plus
+  connected Mean collapse, avoiding multi-gigabyte eager map allocations.
+- Reference-build review tables are now coherent and compact instead of sparse
+  unions of unrelated schemas. Review columns are limited to at most 10%
+  missing values, detailed evidence remains attached separately, and model
+  error-mode reporting directly compares with-error and without-error accuracy
+  percentages without retraining.
+- Added `split_h5()` to natively copy whole-region metadata categories into
+  separate H5 files without loading spectral values into R; an explicit RDS
+  mode remains available for within-region categories.
+
+- Released logistic models now retain only their selected glmnet lambda and no
+  captured training call, restoring compact model downloads without changing
+  predictions. Routine reference builds no longer train or publish the
+  experimental random-forest models; explicit random-forest training remains
+  available through `build_model_lib()`.
 - Reference builds now derive `library_name` from organization first and user
   name second, retain reviewed `other plastic` and `other material` sources,
   and record stage-by-stage source-library retention with explicit reasons for
@@ -16,12 +37,11 @@
   pruning, comparison, and model-training diagnostics in a standalone
   `assessments.rds`. Runtime library, medoid, and model files are stripped to
   scientific/prediction state for smaller, faster-loading downloads; published
-  accuracy reviews now contain aggregate overall and macro metrics only.
+  accuracy reviews now contain only the overall accuracy percentage and its
+  identifying context.
 
 - Reference-library downloads now use AWS exclusively. `get_lib()` no longer
-  accepts the obsolete `aws` switch, AWS now serves `raw.rds`, and the package,
-  bundled app, and WebAssembly staging share immutable S3 version IDs and
-  SHA-256 checksums for the 2.0.0 runtime artifacts.
+  accepts the obsolete `aws` switch, and AWS now serves `raw.rds`.
 
 # OpenSpecy 1.7.1
 
@@ -203,10 +223,12 @@
   3,000 spectra use five deterministic 1,000-spectrum PAM samples scored
   against the complete group with correlation distance, avoiding oversized
   full dissimilarity matrices while preserving reproducible medoid selection.
-- Candidate medoids/models are now tested on independently stratified candidate
-  library samples and legacy artifacts on legacy library samples. Exact class
-  labels are used within each source, reference self-matches are removed, and
-  denominators/provenance make the source-local results explicit.
+- Candidate and legacy medoids now identify their complete corresponding
+  processed libraries, and existing production models likewise identify each
+  complete source dataset without assessment-time retraining. Full reference
+  libraries retain independently stratified source-local holdouts with
+  self-matches removed. Exact class labels, denominators, and provenance remain
+  explicit.
 - Official `build_lib()` artifacts are now partitioned by FTIR, Raman, and NIR
   with full ranges of 400--4000, 200--4000, and 4000--12000 respectively;
   FTIR/Raman medoids and models use 800--3200, while the NIR identification
@@ -251,14 +273,13 @@
   artifact and reports each artifact/source timing.
 - Fixed the anchored-regex audit so PCRE escapes such as `\x2c` are classified
   without compiling an invalid detector expression.
-- Full reference assessment now uses a stable-identity-grouped ten-percent
-  holdout across the complete candidate and legacy artifacts, prevents exact
-  reference leakage, records model and reference identification metrics, and
-  reports per-check shifts from `assess_spec()`. Model evaluation rows now live
-  in one tidy `tests` table rather than scattered accuracy/confusion fields.
-  Candidate and legacy production models are applied directly to their
-  corresponding held-out spectra without being retrained, and the assessment
-  records that provenance explicitly.
+- Full reference assessment uses a stable-identity-grouped ten-percent holdout
+  across the complete candidate and legacy artifacts, prevents exact reference
+  leakage, records identification metrics, and reports per-check shifts from
+  `assess_spec()`. Medoid and model evaluation instead exercise each deployed
+  artifact once against its complete corresponding dataset; model assessment
+  never selects fold-local medoids or retrains a model. Evaluation rows live in
+  one tidy `tests` table with explicit provenance.
 - Reference-build promotion now reports each release artifact and serializes
   the aggregate build only once after its final manifest is attached, removing
   a redundant multi-gigabyte in-memory compression pass.

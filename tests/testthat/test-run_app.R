@@ -3132,3 +3132,45 @@ test_that("bundled Shiny app can match with a local cached library", {
   expect_identical(names(top_match)[[1]], colnames(local_library$spectra)[[1]])
   expect_gt(unname(top_match[[1]]), 0.99)
 })
+
+test_that("bundled Shiny app downloads the latest unversioned library", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  old_library_path <- Sys.getenv("OPENSPECY_SHINY_LIBRARY_PATH", unset = NA)
+  on.exit(setwd(old_wd), add = TRUE)
+  on.exit({
+    if (is.na(old_library_path)) Sys.unsetenv("OPENSPECY_SHINY_LIBRARY_PATH")
+    else Sys.setenv(OPENSPECY_SHINY_LIBRARY_PATH = old_library_path)
+  }, add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  library_path <- tempfile("OpenSpecy-shiny-latest-")
+  Sys.setenv(OPENSPECY_SHINY_LIBRARY_PATH = library_path)
+  downloaded <- FALSE
+  expected <- structure(list(source = "latest"), class = "fake_lib")
+  env$load_lib <- function(type, path = "system") {
+    if (downloaded && identical(path, library_path)) return(expected)
+    stop("library unavailable")
+  }
+  env$get_lib <- function(type, path, ...) {
+    expect_identical(type, "medoid_derivative")
+    expect_identical(path, library_path)
+    expect_length(list(...), 0L)
+    downloaded <<- TRUE
+    invisible()
+  }
+
+  expect_identical(env$load_app_library("medoid_derivative"), expected)
+  expect_true(downloaded)
+  expect_false(exists("app_library_revisions", envir = env, inherits = FALSE))
+})

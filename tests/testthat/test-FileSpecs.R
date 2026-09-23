@@ -219,6 +219,80 @@ test_that("FileSpecs materializes metadata for every region safely", {
   expect_equal(metadata$stage_pos_1, c(0, 10))
 })
 
+test_that("split_h5 natively copies and saves one H5 region at a time", {
+  skip_if_not_installed("hdf5r")
+  directory <- tempfile("split-h5-")
+  dir.create(directory)
+  file <- .make_filespec_h5(file.path(directory, "large-map.h5"))
+  output <- file.path(directory, "split")
+  testthat::local_mocked_bindings(
+    open_specs = function(...) stop("default H5 split materialized FileSpecs"),
+    .package = "OpenSpecy"
+  )
+
+  expect_message(
+    paths <- split_h5(file, output_dir = output),
+    "copying Region1.*1/2"
+  )
+
+  expect_named(paths, c("Region1", "Region2"))
+  expect_identical(
+    basename(unname(paths)),
+    c("large-map_Region1.h5", "large-map_Region2.h5")
+  )
+  expect_true(all(file.exists(paths)))
+  pieces <- lapply(paths, read_h5, read_visual = FALSE)
+  expect_true(all(vapply(pieces, inherits, logical(1L), "OpenSpecy")))
+  expect_true(all(vapply(pieces, check_OpenSpecy, logical(1L))))
+  expect_equal(vapply(pieces, function(x) ncol(x$spectra), integer(1L)),
+               c(Region1 = 4L, Region2 = 4L))
+
+  eager <- read_h5(file, read_visual = FALSE)
+  expect_equal(pieces$Region1$spectra, eager$spectra[, 1:4],
+               ignore_attr = TRUE)
+  expect_equal(pieces$Region2$spectra, eager$spectra[, 5:8],
+               ignore_attr = TRUE)
+  expect_error(split_h5(file, output_dir = output), "refusing to overwrite")
+})
+
+test_that("split_h5 supports metadata fields and safe output names", {
+  skip_if_not_installed("hdf5r")
+  directory <- tempfile("split-h5-field-")
+  dir.create(directory)
+  file <- .make_filespec_h5(file.path(directory, "metadata.hdf5"))
+
+  expect_message(
+    paths <- split_h5(file, field = "stage_pos_1"),
+    "split_h5: copying 0"
+  )
+  expect_named(paths, c("0", "10"))
+  expect_identical(basename(unname(paths)),
+                   c("metadata_0.h5", "metadata_10.h5"))
+  expect_equal(ncol(read_h5(paths[["0"]], read_visual = FALSE)$spectra), 4L)
+  expect_equal(ncol(read_h5(paths[["10"]], read_visual = FALSE)$spectra), 4L)
+
+  rds_output <- file.path(directory, "rds")
+  expect_error(split_h5(file, field = "row", output_dir = rds_output),
+               "complete regions.*format = \"rds\"")
+  expect_message(
+    rds_paths <- split_h5(file, field = "row", output_dir = rds_output,
+                          format = "rds"),
+    "split_h5: reading 1"
+  )
+  expect_identical(basename(unname(rds_paths)),
+                   c("metadata_1.rds", "metadata_2.rds"))
+  expect_equal(ncol(readRDS(rds_paths[["1"]])$spectra), 4L)
+  expect_equal(ncol(readRDS(rds_paths[["2"]])$spectra), 4L)
+
+  expect_identical(OpenSpecy:::.split_h5_file_label("a/b:*?\"c"), "a_b_c")
+  expect_error(split_h5(file, field = "not_a_field"),
+               "metadata field not found")
+  expect_error(split_h5(file, field = character()), "'field'")
+  expect_error(split_h5(file, format = "csv"), "'arg' should be one of")
+  expect_error(split_h5(file.path(directory, "missing.csv")),
+               "\\.h5 or \\.hdf5")
+})
+
 test_that("FileSpecs ENVI adapter reads BSQ, BIL, and BIP windows", {
   directory <- tempfile("filespec-envi-")
   dir.create(directory)

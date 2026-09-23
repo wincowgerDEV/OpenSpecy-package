@@ -115,6 +115,13 @@ cache_dir <- file.path(tempdir(), "openspecy-large-map-cache")
 map <- open_specs("D:/spectral-data/map.h5", cache_dir = cache_dir)
 map
 
+# Natively copy one region at a time as map_Region1.h5, etc. Spectral values
+# are not loaded into R.
+region_files <- split_h5(
+  "D:/spectral-data/map.h5",
+  output_dir = "D:/spectral-data/regions"
+)
+
 # These are descriptor-only regional views.
 region_views <- split_spec(map, by = "region")
 
@@ -132,6 +139,13 @@ map <- read_specs("map.filespec.rds")
 # Existing output members are refused rather than overwritten.
 write_spec(region_views[[1]], "region-1-export.hdr")
 ```
+
+`split_h5()` defaults to `field = "region"` and native H5 output. Another
+indexed or H5 metadata field can be used when each category contains complete
+regions. For a field that divides pixels within a region, use `format = "rds"`;
+each materialized category must then fit in memory. The function returns output
+paths invisibly, sanitizes invalid filename characters, and refuses to
+overwrite existing files.
 
 The export preserves the wavelength axis with round-trip-safe formatting and
 rejects custom writers, incomplete/multi-region views, source members, and

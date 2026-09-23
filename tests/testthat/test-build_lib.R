@@ -291,6 +291,15 @@ test_that("build_model_lib() returns the model library artifact structure", {
   expect_true(all(c("spectrum_id", "technique", "expected_class",
                     "predicted_class", "correct", "score", "split",
                     "provenance") %in% names(model$tests)))
+  expect_null(model$model$call)
+
+  before <- suppressWarnings(match_spec(lib, library = model))
+  full_bytes <- length(serialize(model$model, NULL))
+  slim <- OpenSpecy:::.lib_slim_model(model)
+  after <- suppressWarnings(match_spec(lib, library = slim))
+  expect_length(slim$model$lambda, 1L)
+  expect_lt(length(serialize(slim$model, NULL)), full_bytes)
+  expect_equal(after, before, tolerance = 1e-12)
 })
 
 test_that("release sanitizers retain runtime state and remove assessments", {
@@ -430,6 +439,7 @@ test_that("official random forests train on full libraries rather than medoids",
   result <- OpenSpecy:::.lib_build_models(
     libraries = list(raw = list(ftir = full)), medoids = list(),
     report = function(...) NULL,
+    methods = "random_forest",
     random_forest_args = list(num.trees = 20L, min.node.size = 1L, mtry = 4L)
   )
   model <- result$models$random_forest$raw$ftir
@@ -457,7 +467,8 @@ test_that("typed random forests do not repeat FTIR and Raman in a combined fit",
 
   result <- OpenSpecy:::.lib_build_models(
     libraries = list(raw = list(ftir = lib, raman = lib)),
-    medoids = list(), report = function(...) NULL
+    medoids = list(), report = function(...) NULL,
+    methods = "random_forest"
   )
 
   expect_named(result$models$random_forest$raw, c("ftir", "raman"))
@@ -1741,44 +1752,30 @@ test_that("confusion tables rank the largest misidentifications first", {
   expect_named(OpenSpecy:::.lib_confusion_table(tests[0]), names(confusion))
 })
 
-test_that("model assessment metrics rank associations with inaccurate IDs", {
-  rows <- data.table::rbindlist(list(
-    data.table::data.table(
-      algorithm = "logistic_regression", artifact = "derivative",
-      model = "raman", source = "new",
-      technique = "raman", provenance = "candidate", check = "low_snr",
-      metric = "run_sig_over_noise", value = c(8, 7, 6, 5, 2, 1, 0, -1),
-      correct = c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
-    ),
-    data.table::data.table(
-      algorithm = "logistic_regression", artifact = "derivative",
-      model = "raman", source = "new",
-      technique = "raman", provenance = "candidate",
-      check = "missing_values", metric = "non_finite_count",
-      value = rep(0, 8),
-      correct = c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
-    )
-  ))
-  result <- OpenSpecy:::.lib_model_assessment_correlations(rows)
-  detailed <- result[scope == "model_output"]
+test_that("model assessment compares error-mode accuracy percentages", {
+  tests <- data.table::data.table(
+    algorithm = "logistic_regression", artifact = "derivative",
+    model = "raman", source = "new", technique = "raman",
+    spectrum_id = paste0("s", 1:8),
+    correct = c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
+  )
+  flags <- data.table::data.table(
+    artifact = "derivative", technique = "raman",
+    spectrum_id = paste0("s", 5:8), error_mode = "low_snr"
+  )
+  result <- OpenSpecy:::.lib_model_assessment_correlations(tests, flags)
 
   expect_named(
     result, names(OpenSpecy:::.lib_model_assessment_correlation_schema())
   )
-  expect_identical(detailed$check[[1L]], "low_snr")
-  expect_identical(detailed$rank[[1L]], 1L)
-  expect_true(detailed$strongest[[1L]])
-  expect_lt(detailed$correlation[[1L]], -0.8)
-  expect_equal(detailed$inaccuracy_rate[[1L]], 0.5)
-  expect_equal(detailed$mean_value_correct[[1L]], 6.5)
-  expect_equal(detailed$mean_value_incorrect[[1L]], 0.5)
-  expect_true(is.na(detailed[check == "missing_values", correlation]))
-  expect_true(all(c("model_output", "source_overall") %in% result$scope))
+  expect_identical(result$error_mode[[1L]], "low_snr")
+  expect_equal(result$with_error_accuracy_pct, 0)
+  expect_equal(result$without_error_accuracy_pct, 100)
+  expect_equal(result$accuracy_difference_pct, -100)
 
-  empty <- OpenSpecy:::.lib_model_assessment_correlations(rows[0])
+  empty <- OpenSpecy:::.lib_model_assessment_correlations(tests[0], flags)
   expect_named(empty, names(result))
-  expect_type(empty$correlation, "double")
-  expect_type(empty$rank, "integer")
+  expect_type(empty$with_error_accuracy_pct, "double")
 })
 
 test_that("reference metadata is ordered by missingness after all-NA removal", {
@@ -2007,7 +2004,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_named(first, c("libraries", "medoids", "models", "assessments"))
   expect_named(first$libraries, c("raw", "derivative", "nobaseline"))
   expect_named(first$medoids, c("derivative", "nobaseline"))
-  expect_named(first$models, c("logistic_regression", "random_forest"))
+  expect_named(first$models, "logistic_regression")
   expect_true(all(vapply(first$libraries, function(recipe) {
     all(vapply(recipe, check_OpenSpecy, logical(1)))
   }, logical(1))))
@@ -2042,9 +2039,6 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
       "model_derivative.rds", "model_nobaseline.rds",
       "model_logistic_regression_derivative.rds",
       "model_logistic_regression_nobaseline.rds",
-      "model_random_forest_raw.rds",
-      "model_random_forest_derivative.rds",
-      "model_random_forest_nobaseline.rds",
       "assessments.rds",
       "reference_library_build.rds")
   ))))
@@ -2089,8 +2083,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   model_fields <- OpenSpecy:::.lib_runtime_model_fields()
   for (component in c(
     "model_logistic_regression_derivative",
-    "model_logistic_regression_nobaseline", "model_random_forest_raw",
-    "model_random_forest_derivative", "model_random_forest_nobaseline"
+    "model_logistic_regression_nobaseline"
   )) {
     artifact <- readRDS(file.path(release_dir, paste0(component, ".rds")))
     for (model in artifact) {
@@ -2109,7 +2102,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   )
   expect_named(resolved$libraries, c("raw", "derivative", "nobaseline"))
   expect_named(resolved$medoids, c("derivative", "nobaseline"))
-  expect_named(resolved$models, c("logistic_regression", "random_forest"))
+  expect_named(resolved$models, "logistic_regression")
 
   second <- suppressWarnings(build_lib(
     lib, output_dir = output_dir,
@@ -2118,10 +2111,9 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     prune = fixture_prune,
     recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
+  second_evidence <- attr(second$assessments, "evidence")
   expect_true(all(
-    second$assessments$functionality$comparison[
-      assessment_kind == "release", status
-    ] == "available"
+    second_evidence$output_manifest$status == "available"
   ))
   expect_equal(second$libraries$raw$ftir$spectra,
                first$libraries$raw$ftir$spectra)
@@ -2180,7 +2172,25 @@ test_that("source-local reference splits prevent self-match leakage", {
   expect_true(all(old_tests$source == "old"))
 })
 
-test_that("complete old-new assessments cover every artifact and held-out model", {
+test_that("medoid assessment searches the complete corresponding library", {
+  lib <- tiny_build_lib()
+  medoid <- filter_spec(lib, c(1L, 3L))
+  messages <- capture.output(
+    tests <- OpenSpecy:::.lib_reference_complete_test(
+      medoid, lib, artifact = "medoid_derivative_ftir", source = "new",
+      progress = TRUE, block_size = 2L
+    ),
+    type = "message"
+  )
+  expect_match(paste(messages, collapse = "\n"),
+               "medoid identifying complete dataset")
+  expect_equal(nrow(tests), ncol(lib$spectra))
+  expect_setequal(tests$spectrum_id, lib$metadata$sample_name)
+  expect_true(all(tests$split == "complete"))
+  expect_true(all(tests$provenance == "complete_medoid_reference_search"))
+})
+
+test_that("complete old-new assessments directly test deployed models", {
   skip_if_not_installed("glmnet")
   skip_if_not_installed("ranger")
   small <- tiny_build_lib()
@@ -2233,6 +2243,13 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   saveRDS(model_set, file.path(previous, "model_derivative.rds"))
   saveRDS(model_set, file.path(previous, "model_nobaseline.rds"))
 
+  local_mocked_bindings(
+    train_spec_model = function(...) {
+      stop("assessment must not retrain a model", call. = FALSE)
+    },
+    .package = "OpenSpecy"
+  )
+
   comparison <- suppressWarnings(OpenSpecy:::.lib_compare_reference_build(
     build, previous_library_dir = previous,
     seed = 211, holdout = 0.25, progress = FALSE
@@ -2243,9 +2260,7 @@ test_that("complete old-new assessments cover every artifact and held-out model"
     "assess_spec_shifts", "old_new_compatibility"
   ) %in% names(comparison)))
   expect_equal(unique(comparison$split_manifest$artifact), c(
-    "raw_ftir", "derivative_ftir", "nobaseline_ftir",
-    "medoid_derivative_ftir", "medoid_nobaseline_ftir",
-    "model_derivative_ftir", "model_nobaseline_ftir", "model_raw_ftir"
+    "raw_ftir", "derivative_ftir", "nobaseline_ftir"
   ))
   expect_setequal(unique(comparison$split_manifest$source), c("new", "old"))
   expect_gt(nrow(comparison$library_identification), 0L)
@@ -2254,15 +2269,28 @@ test_that("complete old-new assessments cover every artifact and held-out model"
     unique(comparison$model_identification$algorithm),
     c("logistic_regression", "random_forest")
   )
-  expect_gt(nrow(comparison$model_assessment_correlations), 0L)
+  expect_equal(nrow(comparison$model_assessment_correlations), 0L)
   expect_gt(nrow(comparison$assess_spec_shifts), 0L)
+  expect_equal(
+    comparison$library_tests[
+      artifact == "medoid_derivative_ftir" & source == "new", .N
+    ],
+    ncol(lib$spectra)
+  )
+  expect_true(all(comparison$library_tests[
+    grepl("^medoid_", artifact), split
+  ] == "complete"))
   expect_true(all(
     comparison$models$logistic_regression$derivative$ftir$tests$provenance ==
-      "new_logistic_regression_grouped_training_medoid_holdout"
+      "new_logistic_regression_complete_dataset"
   ))
+  expect_equal(
+    nrow(comparison$models$logistic_regression$derivative$ftir$tests),
+    ncol(lib$spectra)
+  )
   expect_true(all(
     comparison$models$random_forest$raw$ftir$tests$provenance ==
-      "new_random_forest_grouped_training_holdout"
+      "new_random_forest_complete_dataset"
   ))
   expect_equal(
     comparison$models$random_forest$raw$ftir$observation_count,
@@ -2270,7 +2298,7 @@ test_that("complete old-new assessments cover every artifact and held-out model"
   )
 })
 
-test_that("assessment review is process nested, wide, compact, and ranked", {
+test_that("assessment review is process nested, compact, and nonsparse", {
   identification <- data.table::data.table(
     artifact = rep(c("raw_ftir", "medoid_derivative_ftir"), each = 2L),
     source = rep(c("old", "new"), 2L), technique = "ftir",
@@ -2293,13 +2321,11 @@ test_that("assessment review is process nested, wide, compact, and ranked", {
     model = "ftir"
   )]
   correlations <- data.table::data.table(
-    scope = "model_output", algorithm = "logistic_regression",
-    artifact = "derivative", model = "ftir", source = c("old", "new"),
-    technique = "ftir", provenance = "grouped", check = "signal",
-    metric = "snr", spectra = 20L, evaluated = 20L, inaccurate = c(4L, 2L),
-    inaccuracy_rate = c(.2, .1), mean_value_correct = 3,
-    mean_value_incorrect = 1, correlation = c(-.4, -.8),
-    absolute_correlation = c(.4, .8), rank = 1L, strongest = TRUE
+    algorithm = "logistic_regression", artifact = "derivative",
+    model = "ftir", technique = "ftir", error_mode = "low_snr",
+    with_error_accuracy_pct = 50,
+    without_error_accuracy_pct = 90,
+    accuracy_difference_pct = -40
   )
   reviewed <- OpenSpecy:::.lib_assessment_review(list(
     build_summary = data.table::data.table(artifact = "raw_ftir", spectra = 20L),
@@ -2348,17 +2374,21 @@ test_that("assessment review is process nested, wide, compact, and ranked", {
     c("a", "z")
   )
   accuracy_names <- names(reviewed$ref_lib$accuracy)
-  expect_false(any(c("scope", "expected_class", "class_accuracy_new",
-                     "class_accuracy_old") %in% accuracy_names))
-  expect_equal(match("macro_class_accuracy_new", accuracy_names),
-               match("macro_class_accuracy_old", accuracy_names) + 1L)
-  expect_true(all(diff(reviewed$ref_lib$accuracy$review_accuracy) <= 0))
-  expect_true(all(diff(reviewed$ref_lib$confusion$review_spectra) <= 0))
-  expect_true(all(diff(
-    reviewed$model$diagnostics$absolute_correlation[!is.na(
-      reviewed$model$diagnostics$absolute_correlation
-    )]
-  ) <= 0))
+  expect_false(any(c("scope", "expected_class", "class_accuracy") %in%
+                     accuracy_names))
+  expect_true(all(c("source", "overall_accuracy_pct") %in%
+                    accuracy_names))
+  expect_false(any(c("macro_accuracy_pct", "coverage_pct", "mean_score",
+                     "evaluated_classes") %in% accuracy_names))
+  expect_identical(
+    reviewed$model$error_mode_accuracy$accuracy_difference_pct, -40
+  )
+  sparse <- unlist(lapply(
+    unlist(reviewed, recursive = FALSE),
+    function(value) vapply(value, function(column) mean(is.na(column)),
+                           numeric(1L))
+  ))
+  expect_true(all(sparse <= 0.10))
 })
 
 test_that("assessment shifts merge findings, omit passes, and rank rate shifts", {
@@ -2535,10 +2565,9 @@ test_that("rebuild_lib_artifacts reuses completed libraries downstream", {
     input, output_dir = output, previous_library_dir = NULL,
     reuse = TRUE, progress = FALSE
   ))
+  second_evidence <- attr(second$assessments, "evidence")
   expect_true(all(
-    second$assessments$functionality$comparison[
-      assessment_kind == "release", status
-    ] == "available"
+    second_evidence$output_manifest$status == "available"
   ))
 })
 

@@ -141,7 +141,7 @@ jobs:
             "_wasm/pinned" "${PACKAGE_SHA}" \
             "_wasm/verified-wasm-packages.json"
 
-      - name: Stage small OpenSpecy libraries
+      - name: Stage latest small OpenSpecy libraries
         shell: bash
         run: |
           set -euo pipefail

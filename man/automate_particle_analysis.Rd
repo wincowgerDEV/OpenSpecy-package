@@ -114,7 +114,8 @@ automate_particle_analysis(
 }
 \arguments{
 \item{x}{character vector of files, an \code{OpenSpecy}/\code{Specs} object, or a list
-of objects/files.}
+of objects/files. H5/HDF5 paths are opened as bounded file-backed
+\link[=open_specs]{FileSpecs} sources rather than read into memory in full.}
 
 \item{library}{reference \code{OpenSpecy} object or trained model library passed
 to \code{\link{match_spec}()}.}

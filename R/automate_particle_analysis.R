@@ -14,7 +14,8 @@
 #' Both threshold extremes emit an informational message.
 #'
 #' @param x character vector of files, an `OpenSpecy`/`Specs` object, or a list
-#' of objects/files.
+#' of objects/files. H5/HDF5 paths are opened as bounded file-backed
+#' [FileSpecs][open_specs] sources rather than read into memory in full.
 #' @param library reference `OpenSpecy` object or trained model library passed
 #' to \code{\link{match_spec}()}.
 #' @param output_dir optional directory for CSV/RDS/PNG outputs.
@@ -124,12 +125,62 @@ automate_particle_analysis.default <- function(
   if (!is.null(output_dir)) dir.create(output_dir, recursive = TRUE,
                                        showWarnings = FALSE)
 
-  sample_results <- vector("list", length(samples))
-  names(sample_results) <- names(samples)
+  sample_results <- list()
 
   for (i in seq_along(samples)) {
     time_start <- Sys.time()
     sample_name <- names(samples)[i]
+    file_backed <- if (inherits(samples[[i]], "FileSpecs")) {
+      samples[[i]]
+    } else if (is.character(samples[[i]]) && length(samples[[i]]) == 1L &&
+               grepl("\\.(h5|hdf5)$", samples[[i]], ignore.case = TRUE)) {
+      open_specs(samples[[i]])
+    } else {
+      NULL
+    }
+    if (!is.null(file_backed)) {
+      indexed_image <- .indexed_argument(images, i)
+      indexed_bottom_left <- .indexed_argument(bottom_left, i)
+      indexed_top_right <- .indexed_argument(top_right, i)
+      indexed_origin <- .particle_origin(origins, i)
+      result <- automate_particle_analysis.FileSpecs(
+        file_backed, library = library, output_dir = output_dir,
+        images = if (is.null(indexed_image)) NULL else list(indexed_image),
+        bottom_left = if (is.null(indexed_bottom_left)) NULL else
+          list(indexed_bottom_left),
+        top_right = if (is.null(indexed_top_right)) NULL else
+          list(indexed_top_right),
+        origins = list(x = indexed_origin[[1L]], y = indexed_origin[[2L]]),
+        material_col = material_col,
+        library_id_col = library_id_col,
+        particle_id_strategy = particle_id_strategy,
+        spectral_smooth = spectral_smooth, sigma1 = sigma1,
+        sigma2 = sigma2, close = close, close_kernel = close_kernel,
+        sn_threshold_min = sn_threshold_min,
+        sn_threshold_max = sn_threshold_max, cor_threshold = cor_threshold,
+        area_threshold = area_threshold, label_unknown = label_unknown,
+        remove_materials = remove_materials,
+        remove_unknown = remove_unknown, pixel_length = pixel_length,
+        metric = metric, abs = abs, collapse_function = collapse_function,
+        outputs = outputs, process_args = process_args,
+        specs_steps = specs_steps, specs_centers = specs_centers
+      )
+      region_names <- names(result$samples)
+      if (length(result$samples) == 1L) {
+        region_names <- sample_name
+      } else {
+        region_names <- paste(sample_name, region_names, sep = "_")
+      }
+      region_names <- make.unique(c(names(sample_results), region_names))[
+        length(sample_results) + seq_along(region_names)
+      ]
+      names(result$samples) <- region_names
+      for (region_name in region_names) {
+        result$samples[[region_name]]$sample_id <- region_name
+        sample_results[[region_name]] <- result$samples[[region_name]]
+      }
+      next
+    }
     .particle_progress(sample_name, "read", sprintf("sample %d of %d", i,
                                                      length(samples)))
     map <- .read_particle_sample(samples[[i]], spectral_smooth = spectral_smooth,
@@ -158,9 +209,9 @@ automate_particle_analysis.default <- function(
       threshold, sample_name, particle_id_strategy
     )
     if (identical(threshold_state, "none")) {
-      sample_results[[i]] <- .empty_particle_result(sample_name, map,
-                                                    time_start, outputs,
-                                                    plot_outputs, output_dir)
+      sample_results[[sample_name]] <- .empty_particle_result(
+        sample_name, map, time_start, outputs, plot_outputs, output_dir
+      )
       next
     }
 
@@ -185,18 +236,18 @@ automate_particle_analysis.default <- function(
       library_id_col = library_id_col
     )
     if (is.null(strategy_result)) {
-      sample_results[[i]] <- .empty_particle_result(sample_name, map,
-                                                    time_start, outputs,
-                                                    plot_outputs, output_dir)
+      sample_results[[sample_name]] <- .empty_particle_result(
+        sample_name, map, time_start, outputs, plot_outputs, output_dir
+      )
       next
     }
     proc_map <- strategy_result$processed
     display_map <- strategy_result$display
 
     if (is.null(proc_map) || ncol(proc_map$spectra) == 0L) {
-      sample_results[[i]] <- .empty_particle_result(sample_name, map,
-                                                    time_start, outputs,
-                                                    plot_outputs, output_dir)
+      sample_results[[sample_name]] <- .empty_particle_result(
+        sample_name, map, time_start, outputs, plot_outputs, output_dir
+      )
       next
     }
 
@@ -244,7 +295,7 @@ automate_particle_analysis.default <- function(
                               origin, elapsed)
     }
 
-    sample_results[[i]] <- list(
+    sample_results[[sample_name]] <- list(
       sample_id = sample_name,
       particle_details_csv = details,
       particle_summary_csv = summary,

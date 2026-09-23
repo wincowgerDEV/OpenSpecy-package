@@ -24,19 +24,13 @@ read_manifest_lines <- function(path) {
 }
 
 library_types <- read_manifest_lines(library_types_file)
-library_release <- getFromNamespace(
-  ".openspecy_library_release", "OpenSpecy"
+library_catalog <- getFromNamespace(
+  ".openspecy_library_catalog", "OpenSpecy"
 )()
-library_revisions <- setNames(
-  library_release$version_id,
-  library_release$type
-)
-library_hashes <- setNames(library_release$sha256, library_release$type)
-
-missing_revisions <- setdiff(library_types, names(library_revisions))
-if (length(missing_revisions)) {
-  stop("Missing pinned revisions for: ",
-       paste(missing_revisions, collapse = ", "), call. = FALSE)
+missing_types <- setdiff(library_types, library_catalog$type)
+if (length(missing_types)) {
+  stop("Unknown library types: ", paste(missing_types, collapse = ", "),
+       call. = FALSE)
 }
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -96,11 +90,7 @@ library_summary <- function(lib) {
 
 entries <- lapply(library_types, function(type) {
   message("Staging OpenSpecy library: ", type)
-  OpenSpecy::get_lib(
-    type,
-    path = out_dir,
-    revision = unname(library_revisions[[type]])
-  )
+  OpenSpecy::get_lib(type, path = out_dir)
 
   lib <- OpenSpecy::load_lib(type, path = out_dir)
   file <- file.path(out_dir, paste0(type, ".rds"))
@@ -110,8 +100,8 @@ entries <- lapply(library_types, function(type) {
     list(
       type = type,
       file = basename(file),
-      revision = unname(library_revisions[[type]]),
-      sha256 = unname(library_hashes[[type]]),
+      source = "latest",
+      sha256 = digest::digest(file, algo = "sha256", file = TRUE),
       bytes = file.info(file)$size
     ),
     md

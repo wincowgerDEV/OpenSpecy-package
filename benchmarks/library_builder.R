@@ -473,9 +473,12 @@ if (requireNamespace("glmnet", quietly = TRUE)) {
     lib, type_col = NULL, min_n = 2, nlambda = 3
   ))
   before <- suppressWarnings(match_spec(lib, library = fitted))
+  fitted_bytes <- length(serialize(fitted$model, NULL))
   fitted_slim <- slim_model(fitted)
   after <- suppressWarnings(match_spec(lib, library = fitted_slim))
   stopifnot(isTRUE(all.equal(before, after, tolerance = 1e-12)))
+  stopifnot(length(fitted_slim$model$lambda) == 1L)
+  stopifnot(length(serialize(fitted_slim$model, NULL)) < fitted_bytes)
   stopifnot(!any(c(
     "tests", "lambda_metrics", "support", "class_support"
   ) %in% names(fitted_slim)))

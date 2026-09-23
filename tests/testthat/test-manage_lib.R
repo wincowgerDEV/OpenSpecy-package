@@ -1,15 +1,13 @@
-test_that("AWS release metadata covers every public library type", {
-  release <- .openspecy_library_release()
+test_that("AWS catalog covers every public library type", {
+  catalog <- .openspecy_library_catalog()
   expected <- c(
     "derivative", "nobaseline", "raw", "medoid_derivative",
     "medoid_nobaseline", "model_derivative", "model_nobaseline"
   )
 
-  expect_identical(release$type, expected)
-  expect_identical(release$filename, paste0(expected, ".rds"))
-  expect_true(all(nzchar(release$version_id)))
-  expect_true(all(grepl("^[0-9a-f]{64}$", release$sha256)))
-  expect_true(all(release$bytes > 0))
+  expect_identical(catalog$type, expected)
+  expect_identical(catalog$filename, paste0(expected, ".rds"))
+  expect_identical(names(catalog), c("type", "filename"))
   expect_false("aws" %in% names(formals(get_lib)))
 })
 
@@ -43,6 +41,28 @@ test_that("get_lib() builds AWS URLs including raw and S3 version IDs", {
   expect_true(all(file.exists(file.path(tmp, c("raw.rds", "derivative.rds")))))
 })
 
+test_that("get_lib() defaults to the current unversioned AWS object", {
+  tmp <- tempfile("OpenSpecy-get-latest-")
+  dir.create(tmp)
+  on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
+  url <- NULL
+  local_mocked_bindings(
+    download.file = function(url, destfile, mode, ...) {
+      url <<- url
+      saveRDS(list(downloaded = TRUE), destfile)
+      invisible(0L)
+    },
+    .package = "OpenSpecy"
+  )
+
+  get_lib("medoid_derivative", path = tmp)
+
+  expect_identical(
+    url,
+    "https://d2jrxerjcsjhs7.cloudfront.net/medoid_derivative.rds"
+  )
+})
+
 test_that("named revisions pin each requested library independently", {
   revisions <- c(raw = "raw-version", derivative = "derivative-version")
   expect_identical(.library_revision(revisions, "raw"), "raw-version")
@@ -52,7 +72,7 @@ test_that("named revisions pin each requested library independently", {
   expect_error(.library_revision(unname(revisions), "raw"), "must be named")
 })
 
-test_that("all pinned AWS libraries download, verify, load, and match", {
+test_that("all latest AWS libraries download, load, and match", {
   skip_on_cran()
   skip_if_not(
     identical(Sys.getenv("OPENSPECY_RUN_AWS_LIBRARY_TESTS"), "true"),
@@ -63,18 +83,14 @@ test_that("all pinned AWS libraries download, verify, load, and match", {
   tmp <- tempfile("OpenSpecy-aws-release-")
   dir.create(tmp)
   on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
-  release <- .openspecy_library_release()
-  revisions <- setNames(release$version_id, release$type)
+  catalog <- .openspecy_library_catalog()
 
-  for (type in release$type) {
-    get_lib(type, path = tmp, revision = revisions[[type]], quiet = TRUE)
+  for (type in catalog$type) {
+    get_lib(type, path = tmp, quiet = TRUE)
     file <- file.path(tmp, paste0(type, ".rds"))
-    row <- release[release$type == type, , drop = FALSE]
-    expect_identical(unname(file.info(file)$size), row$bytes)
-    expect_identical(
-      digest::digest(file, algo = "sha256", file = TRUE),
-      row$sha256
-    )
+    expect_gt(unname(file.info(file)$size), 0)
+    expect_match(digest::digest(file, algo = "sha256", file = TRUE),
+                 "^[0-9a-f]{64}$")
     expect_no_error(load_lib(type, path = tmp))
   }
 

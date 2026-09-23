@@ -179,10 +179,11 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_deriva
   invisible()
 }
 
-# Immutable metadata for the OpenSpecy 2.0.0 reference-library release.
-# This is deliberately internal: it coordinates first-party download, app, and
-# WebAssembly consumers without adding a second public library-management API.
-.openspecy_library_release <- function() {
+# Internal catalog for the current OpenSpecy reference-library objects. The
+# unversioned CloudFront URLs always resolve to the latest maintainer upload;
+# callers can still pass an explicit S3 versionId to get_lib() for historical
+# comparisons or reproducible tests.
+.openspecy_library_catalog <- function() {
   data.frame(
     type = c(
       "derivative", "nobaseline", "raw", "medoid_derivative",
@@ -193,26 +194,6 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_deriva
       "medoid_derivative.rds", "medoid_nobaseline.rds",
       "model_derivative.rds", "model_nobaseline.rds"
     ),
-    version_id = c(
-      "plEFh7vekJt_2rcBqEud6KeNTU07FfUy",
-      "6rVVsE1G9TaCoAsAa21FZaNNjgXsmhwj",
-      "ysLLpg5ORhA2sWl6R0hnhaV7CfROPOEU",
-      "qWwA0_NJo59R38afYgI7vo7Js.paPDWA",
-      "t7lzVXWzVVVIuLn9uce.OQrnx79aHJD0",
-      "ExI.nMpxauEqSgXLr48yO.teTD9NemHz",
-      "WnkXuBzPHSC7GKrG.bgz2ztqtszfLRc2"
-    ),
-    sha256 = c(
-      "de81f1681974438fff8ee9433cb5179589e3521cf401fd5a5069f3569fb36efa",
-      "f6a2b4479323df45483d31711487efa01de2fb6c26ab46ff69779e611639a68f",
-      "dc4fa682ce62204b569b71fdc02ff3b3ac76a2c65407111aa6287ad35ed1329f",
-      "f1a48e59b13a4b3af480dc7322bec0cdd0e1f0f550d6cc4e21df23a8637c02fa",
-      "fcd05f2a8386b2d374ca97f89fba96c74868ef994d9fbf6de930a487446b278a",
-      "4323e039d7b4bc3b460553df9ad42edb5f801b3d45a3b0b3884964479c26ea4c",
-      "e1e66067f07b4c8dc1c584b3a9451b85674b8b2328399b6f190ee0d573d35c1d"
-    ),
-    bytes = c(42221086, 25165414, 202934904, 4260006, 2672978,
-              48087984, 37956676),
     stringsAsFactors = FALSE
   )
 }
@@ -249,11 +230,11 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivati
                path)
   if (!dir.exists(lp)) dir.create(lp, recursive = TRUE, showWarnings = FALSE)
 
-  release <- .openspecy_library_release()
+  catalog <- .openspecy_library_catalog()
   message("Fetching Open Specy reference libraries from AWS ...")
 
   for (t in type) {
-    row <- release[release$type == t, , drop = FALSE]
+    row <- catalog[catalog$type == t, , drop = FALSE]
     if (!nrow(row)) {
       warning("Unknown library type: ", t)
       next
@@ -269,13 +250,6 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivati
     destfile <- file.path(lp, row$filename)
     download.file(url, destfile = destfile, mode = mode, ...)
 
-    if (!is.null(version_id) && identical(version_id, row$version_id)) {
-      actual <- digest::digest(destfile, algo = "sha256", file = TRUE)
-      if (!identical(tolower(actual), row$sha256)) {
-        unlink(destfile)
-        stop("SHA-256 verification failed for '", t, "'", call. = FALSE)
-      }
-    }
   }
 
   message("Use 'load_lib()' to load the library")

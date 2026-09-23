@@ -109,6 +109,43 @@ test_that("automate_particle_analysis() reads a vector of file paths one at a ti
   )
 })
 
+test_that("H5 paths route through bounded FileSpecs analysis", {
+  opened <- character()
+  fake_specs <- structure(list(), class = c("FileSpecs", "Specs", "list"))
+  empty <- data.table::data.table()
+  sample <- list(
+    sample_id = "Region1", particle_details_csv = empty,
+    particle_summary_csv = empty, particles_raw_rds = fake_specs,
+    particles_rds = NULL, particle_image = NULL, particle_heatmap = NULL,
+    particle_heatmap_thresholded = NULL, cor_heatmap = NULL,
+    sn_histogram = NULL, cor_histogram = NULL, time_rds = NULL
+  )
+  local_mocked_bindings(
+    open_specs = function(path, ...) {
+      opened <<- c(opened, path)
+      fake_specs
+    },
+    automate_particle_analysis.FileSpecs = function(...) structure(
+      list(samples = list(Region1 = sample),
+           particle_details_all_csv = empty,
+           particle_summary_all_csv = empty),
+      class = c("OpenSpecyParticleAnalysis", "list")
+    ),
+    .read_particle_sample = function(...) {
+      stop("H5 path was read eagerly")
+    },
+    .package = "OpenSpecy"
+  )
+
+  result <- automate_particle_analysis(
+    "large.h5", library = list(), collapse_function = mean
+  )
+
+  expect_identical(opened, "large.h5")
+  expect_named(result$samples, "large")
+  expect_identical(result$samples$large$sample_id, "large")
+})
+
 test_that("automate_particle_analysis() rejects removed legacy arguments", {
   wn <- 1:5
   os <- as_OpenSpecy(wn, spectra = matrix(seq_len(10), nrow = 5))

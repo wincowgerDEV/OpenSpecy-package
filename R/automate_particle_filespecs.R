@@ -21,9 +21,10 @@ automate_particle_analysis.FileSpecs <- function(
   .filespec_validate_object(x)
   .filespec_validate_source(x, strong = FALSE)
   strategy <- .normalize_particle_strategy(particle_id_strategy)
-  if (!identical(strategy, "collapse")) {
-    stop("FileSpecs particle analysis currently supports only ",
-         "'particle_id_strategy = \"collapse\"'", call. = FALSE)
+  if (!strategy %in% c("collapse", "all_cell_id")) {
+    stop("FileSpecs particle analysis currently supports ",
+         "'particle_id_strategy = \"collapse\"' or \"all_cell_id\"",
+         call. = FALSE)
   }
   if (!identical(match.fun(collapse_function), base::mean)) {
     stop("FileSpecs particle analysis currently requires ",
@@ -63,6 +64,7 @@ automate_particle_analysis.FileSpecs <- function(
       spectral_smooth = spectral_smooth, sigma1 = sigma1,
       sigma2 = sigma2, close = close,
       close_kernel = close_kernel,
+      particle_id_strategy = strategy,
       sn_threshold_min = sn_threshold_min,
       sn_threshold_max = sn_threshold_max, cor_threshold = cor_threshold,
       area_threshold = area_threshold, label_unknown = label_unknown,
@@ -92,9 +94,10 @@ automate_particle_analysis.FileSpecs <- function(
 .automate_particle_filespec_region <- function(
     x, library, sample_name, output_dir, image, bottom_left, top_right,
     origin, material_col, library_id_col, spectral_smooth, sigma1, sigma2,
-    close, close_kernel, sn_threshold_min, sn_threshold_max, cor_threshold,
-    area_threshold, label_unknown, remove_materials, remove_unknown,
-    pixel_length, metric, abs, outputs, process_args,
+    close, close_kernel, particle_id_strategy, sn_threshold_min,
+    sn_threshold_max, cor_threshold, area_threshold, label_unknown,
+    remove_materials, remove_unknown, pixel_length, metric, abs, outputs,
+    process_args,
     chunk_size = getOption("OpenSpecy.filespec.chunk_size", 8192L)) {
   time_start <- Sys.time()
   .particle_progress(sample_name, "index")
@@ -119,16 +122,22 @@ automate_particle_analysis.FileSpecs <- function(
     stop("the FileSpecs axis does not overlap the particle S/N ranges",
          call. = FALSE)
   }
-  axis <- .filespec_read(x, index = 1L)$wavenumber
-
   cache_key <- digest::digest(list(
-    schema = "filespec-particle-collapse-3", source = x$source$id,
+    schema = "filespec-particle-collapse-4", source = x$source$id,
     view = x$view, metric = metric, abs = abs,
+    strategy = particle_id_strategy,
     spectral_smooth = isTRUE(spectral_smooth), sigma1 = sigma1,
     sigma2 = sigma2, close = close,
     close_kernel = close_kernel, sn_min = sn_threshold_min,
     sn_max = sn_threshold_max, area = area_threshold,
-    image = .filespec_image_identity(image, bottom_left, top_right)
+    image = .filespec_image_identity(image, bottom_left, top_right),
+    library = if (identical(particle_id_strategy, "all_cell_id")) {
+      digest::digest(library, algo = "sha256")
+    } else NULL,
+    process_args = if (identical(particle_id_strategy, "all_cell_id")) {
+      process_args
+    } else NULL,
+    material_col = material_col, library_id_col = library_id_col
   ))
   cache_file <- .filespec_cache_path(x, "particle-collapse", cache_key)
   cached <- if (file.exists(cache_file)) {
@@ -155,42 +164,33 @@ automate_particle_analysis.FileSpecs <- function(
       cached <- list(snr = snr, threshold = threshold,
                      feature_metadata = NULL, collapsed = NULL)
     } else {
-      id_map <- if (identical(threshold_state, "all")) {
-        .partition_particle_map(
-          display, eligible = threshold, strategy = "collapse",
-          collapse_function = mean, area_threshold = 0,
-          shape_kernel = sigma2, close = close,
-          close_kernel = close_kernel
-        )$display
-      } else {
-        def_features(
-          display, threshold, shape_kernel = sigma2, close = close,
-          close_kernel = close_kernel
-        )
-      }
-      region_name <- as.character(index$region[[1L]])
-      feature <- as.character(id_map$metadata$feature_id)
-      foreground <- !is.na(feature) & feature != "-88"
-      feature[foreground] <- paste(region_name, feature[foreground], sep = ":")
-      id_map$metadata$feature_id <- feature
-      feature_ids <- unique(feature[
-        foreground & id_map$metadata$area > area_threshold
-      ])
-      feature_ids <- feature_ids[!is.na(feature_ids)]
-      collapsed <- if (length(feature_ids)) {
-        .particle_progress(sample_name, "streaming particle means")
-        .filespec_mean_features(
-          x, index = index, feature_metadata = id_map$metadata,
-          feature_ids = feature_ids, axis = axis,
+      material <- max_cor_val <- NULL
+      if (identical(particle_id_strategy, "all_cell_id")) {
+        .particle_progress(sample_name, "streaming pixel identification")
+        pixel_matches <- .filespec_particle_matches(
+          x, eligible = threshold, library = library,
+          process_args = process_args, material_col = material_col,
+          library_id_col = library_id_col,
           spectral_smooth = spectral_smooth, sigma1 = sigma1,
-          chunk_size = chunk_size
+          chunk_size = min(chunk_size, 1000L)
         )
-      } else {
-        NULL
+        match_index <- match(index$col_id, pixel_matches$object_id)
+        material <- pixel_matches[[material_col]][match_index]
+        max_cor_val <- pixel_matches$max_cor_val[match_index]
+        material[!threshold] <- "background"
       }
+      .particle_progress(sample_name, "streaming particle means")
+      partition <- .filespec_collapse_connected_mean(
+        x, eligible = threshold, material = material, snr = snr,
+        max_cor_val = max_cor_val, area_threshold = area_threshold,
+        spectral_smooth = spectral_smooth, sigma = sigma1,
+        shape_kernel = sigma2, close = close, close_kernel = close_kernel,
+        chunk_size = chunk_size
+      )
       cached <- list(
         snr = snr, threshold = threshold,
-        feature_metadata = id_map$metadata, collapsed = collapsed
+        feature_metadata = partition$display$metadata,
+        collapsed = partition$analysis_units
       )
     }
     .filespec_atomic_save_rds(cached, cache_file)
@@ -198,7 +198,8 @@ automate_particle_analysis.FileSpecs <- function(
     .particle_progress(sample_name, "reuse cached particle means")
   }
 
-  .particle_threshold_state_message(cached$threshold, sample_name, "collapse")
+  .particle_threshold_state_message(cached$threshold, sample_name,
+                                    particle_id_strategy)
 
   display <- .filespec_particle_display(index, cached$snr, cached$threshold)
   if (!is.null(cached$feature_metadata)) {
@@ -417,6 +418,151 @@ automate_particle_analysis.FileSpecs <- function(
                compute_file_id = FALSE)
 }
 
+# Match every eligible file-backed pixel while retaining only its best result.
+# Query and reference score matrices are both bounded so all-cell grouping does
+# not recreate the complete H5 spectra matrix or a library-by-map matrix.
+.filespec_particle_matches <- function(
+    x, eligible, library, process_args, material_col, library_id_col,
+    spectral_smooth, sigma1, chunk_size) {
+  index <- .filespec_index(x)
+  if (!is.logical(eligible) || length(eligible) != nrow(index)) {
+    stop("'eligible' must have one logical value per file-backed spectrum",
+         call. = FALSE)
+  }
+  eligible[is.na(eligible)] <- FALSE
+  positions <- which(eligible)
+  empty <- data.table::data.table(
+    object_id = character(), max_cor_val = numeric()
+  )
+  empty[[material_col]] <- character()
+  if (!length(positions)) return(empty)
+
+  chunk_size <- .filespec_bounded_chunk_size(
+    length(.filespec_axis(x)), chunk_size
+  )
+  chunks <- if (isTRUE(spectral_smooth)) {
+    col_chunk <- .filespec_column_chunk_id(index, chunk_size)
+    if (is.null(col_chunk)) {
+      stop("spectral_smooth requires a complete rectangular row/col grid ",
+           "for this FileSpecs region", call. = FALSE)
+    }
+    split(seq_along(positions), col_chunk[positions])
+  } else {
+    split(seq_along(positions), ceiling(seq_along(positions) / chunk_size))
+  }
+
+  prepared <- NULL
+  result <- vector("list", length(chunks))
+  for (i in seq_along(chunks)) {
+    rows <- chunks[[i]]
+    source_rows <- positions[rows]
+    values <- if (isTRUE(spectral_smooth)) {
+      .filespec_smoothed_values(
+        x, index, source_rows, bands = NULL, sigma1 = sigma1
+      )
+    } else {
+      .filespec_read_values(x, index = source_rows)
+    }
+    query <- .filespec_values_to_OpenSpecy(x, values)
+    query <- .process_for_particle_match(query, library, process_args)
+
+    if (is_OpenSpecy(library)) {
+      if (is.null(prepared)) {
+        reference <- library
+        if (!identical(reference$wavenumber, query$wavenumber)) {
+          reference <- conform_spec(
+            reference, range = query$wavenumber, res = NULL, allow_na = FALSE
+          )
+        }
+        prepared <- .filespec_prepare_correlation_reference(reference)
+      }
+      matches <- .filespec_match_prepared_best(query, prepared)
+      lib_md <- data.table::as.data.table(library$metadata)
+      material_index <- match(matches$library_id, lib_md[[library_id_col]])
+      material <- if (all(c(library_id_col, material_col) %in% names(lib_md))) {
+        as.character(lib_md[[material_col]][material_index])
+      } else {
+        as.character(matches$library_id)
+      }
+    } else {
+      prediction <- data.table::as.data.table(match_spec(query, library))
+      if (!all(c("x", "name", "value") %in% names(prediction))) {
+        stop("the model library returned an unsupported match table",
+             call. = FALSE)
+      }
+      prediction <- prediction[order(x, -value)][!duplicated(x)]
+      object_index <- suppressWarnings(as.integer(prediction$x))
+      matches <- data.table::data.table(
+        object_id = colnames(query$spectra)[object_index],
+        library_id = as.character(prediction$name),
+        match_val = as.numeric(prediction$value)
+      )
+      material <- matches$library_id
+    }
+    aligned <- match(colnames(query$spectra), matches$object_id)
+    if (anyNA(aligned)) {
+      stop("streamed pixel matches do not align with their source spectra",
+           call. = FALSE)
+    }
+    block <- data.table::data.table(
+      object_id = colnames(query$spectra),
+      max_cor_val = as.numeric(matches$match_val[aligned])
+    )
+    block[[material_col]] <- material[aligned]
+    result[[i]] <- block
+    rm(values, query, matches, block)
+    if (i %% 5L == 0L || i == length(chunks)) invisible(gc(verbose = FALSE))
+  }
+  data.table::rbindlist(result, use.names = TRUE)
+}
+
+.filespec_prepare_correlation_reference <- function(reference) {
+  values <- make_rel(reference$spectra, na.rm = TRUE)
+  values <- .matrix_mean_replace(values)
+  list(
+    wavenumber = reference$wavenumber,
+    library_id = colnames(reference$spectra),
+    scaled = .scale_correlation_spectra(values)
+  )
+}
+
+.filespec_match_prepared_best <- function(query, prepared,
+                                          library_block_size = 1000L) {
+  if (!identical(query$wavenumber, prepared$wavenumber)) {
+    stop("processed query and reference axes do not match", call. = FALSE)
+  }
+  query_values <- make_rel(query$spectra, na.rm = TRUE)
+  query_values <- .matrix_mean_replace(query_values)
+  scaled_query <- .scale_correlation_spectra(query_values)
+  query_count <- nrow(scaled_query)
+  best_value <- rep(NA_real_, query_count)
+  best_index <- rep(NA_integer_, query_count)
+  query_columns <- seq_len(query_count)
+  starts <- seq.int(1L, nrow(prepared$scaled), by = library_block_size)
+
+  for (start in starts) {
+    rows <- seq.int(
+      start, min(nrow(prepared$scaled), start + library_block_size - 1L)
+    )
+    scores <- tcrossprod(prepared$scaled[rows, , drop = FALSE], scaled_query)
+    ranked <- scores
+    ranked[!is.finite(ranked)] <- -Inf
+    local_index <- max.col(t(ranked), ties.method = "first")
+    candidate_value <- scores[cbind(local_index, query_columns)]
+    candidate_index <- rows[local_index]
+    update <- is.na(best_index) |
+      (!is.na(candidate_value) &
+         (is.na(best_value) | candidate_value > best_value))
+    best_value[update] <- candidate_value[update]
+    best_index[update] <- candidate_index[update]
+  }
+  data.table::data.table(
+    object_id = colnames(query$spectra),
+    library_id = prepared$library_id[best_index],
+    match_val = best_value
+  )
+}
+
 .filespec_mean_features <- function(x, index, feature_metadata, feature_ids,
                                     axis, spectral_smooth, sigma1,
                                     chunk_size, unit_metadata = NULL) {
@@ -482,8 +628,10 @@ automate_particle_analysis.FileSpecs <- function(
 # in-memory app path. Only a one-row geometric display and bounded spectral
 # blocks are materialized; one running sum/count pair is retained per particle.
 .filespec_collapse_connected_mean <- function(
-    x, eligible, material = NULL, area_threshold = 1, spectral_smooth = FALSE,
-    sigma = c(1, 1, 1), chunk_size = 8192L) {
+    x, eligible, material = NULL, snr = NULL, max_cor_val = NULL,
+    area_threshold = 1, spectral_smooth = FALSE, sigma = c(1, 1, 1),
+    shape_kernel = c(3, 3), close = FALSE, close_kernel = c(4, 4),
+    chunk_size = 8192L) {
   started <- proc.time()[["elapsed"]]
   .filespec_validate_object(x)
   index <- data.table::copy(.filespec_index(x))
@@ -496,13 +644,23 @@ automate_particle_analysis.FileSpecs <- function(
     stop("'material' must have one value per file-backed spectrum",
          call. = FALSE)
   }
+  if (is.null(snr)) snr <- rep(NA_real_, nrow(index))
+  if (length(snr) != nrow(index)) {
+    stop("'snr' must have one value per file-backed spectrum", call. = FALSE)
+  }
+  if (!is.null(max_cor_val) && length(max_cor_val) != nrow(index)) {
+    stop("'max_cor_val' must have one value per file-backed spectrum",
+         call. = FALSE)
+  }
   display <- .filespec_particle_display(
-    index, snr = rep(NA_real_, nrow(index)), threshold = eligible
+    index, snr = snr, threshold = eligible
   )
+  if (!is.null(max_cor_val)) display$metadata$max_cor_val <- max_cor_val
   partition <- .partition_particle_map(
     display, eligible = eligible, strategy = "collapse",
     material = material, collapse_function = base::mean,
-    area_threshold = area_threshold
+    area_threshold = area_threshold, shape_kernel = shape_kernel,
+    close = close, close_kernel = close_kernel
   )
   message(
     "FileSpecs collapse: ", nrow(index), " source spectra; ",

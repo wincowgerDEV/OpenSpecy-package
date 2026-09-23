@@ -27,6 +27,7 @@ cor_threshold <- 0.6
 
 get_lib("medoid_derivative")
 lib <- load_lib("medoid_derivative")
+lib <- filter_spec(lib, lib$metadata$spectrum_type == "raman")
 
 wd = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\SilverTest"
 source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\SilverTest\\EWG_0.2umFilter_10-100-1000-10000.h5"
@@ -43,7 +44,7 @@ files <- list.files(path = wd, "\\.(h5)", full.names = T)
 
 for(file in files[1:2]){
   print(file)
-map <- read_h5(file)
+map <- read_h5("C:\\Users\\winco\\OneDrive\\Documents\\EWG\\SilverTest/EWG_0.2umFilter_10-100-1000-10000_Region2.h5")
 listedfiles <- lapply(unique(map$metadata$region), function(x) filter_spec(map, map$metadata$region ==x))
 for(item in listedfiles){
   print(gsub("\\.h5", paste0(unique(item$metadata$region), ".rds"), file))
@@ -51,12 +52,14 @@ for(item in listedfiles){
   }
 }
 
-files <- list.files(path = wd, "\\.(h5)|(rds)", full.names = T)
+check_OpenSpecy(map)
+
+files <- list.files(path = wd, "EWG_0.2umFilter_10-100-1000-10000_Region.\\.(h5)$", full.names = T)
 
 files <- files[!grepl("(particles)|(time)", files)]
 
 result2 <- automate_particle_analysis( 
-    files,
+    files[3:4],
     library = lib,
     output_dir = wd,
     material_col = "material_class",

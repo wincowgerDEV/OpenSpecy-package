@@ -287,6 +287,43 @@ test_that("FileSpecs particle automation accepts both threshold extremes", {
   expect_equal(removed$particle_summary_all_csv$count, 0L)
 })
 
+test_that("FileSpecs all-cell identification matches the eager workflow", {
+  directory <- tempfile("filespec-all-cell-")
+  dir.create(directory)
+  fixture <- .make_particle_filespec_envi(directory)
+  specs <- open_specs(fixture$header, cache_dir = file.path(directory, "cache"))
+  library <- as_OpenSpecy(
+    fixture$axis,
+    spectra = cbind(particle = fixture$particle,
+                    other = c(4, 2, 3, 1)),
+    metadata = data.frame(sample_name = c("particle", "other"),
+                          material_class = c("polymer", "other"))
+  )
+  args <- list(
+    library = library, particle_id_strategy = "all_cell_id",
+    sn_threshold_min = 5, sn_threshold_max = Inf,
+    cor_threshold = 0.7, area_threshold = 0, metric = "tot_sig",
+    collapse_function = mean, outputs = c("details", "processed"),
+    process_args = list(smooth_intens = FALSE, make_rel = TRUE)
+  )
+
+  old_chunk <- getOption("OpenSpecy.filespec.chunk_size")
+  options(OpenSpecy.filespec.chunk_size = 3L)
+  on.exit(options(OpenSpecy.filespec.chunk_size = old_chunk), add = TRUE)
+  streamed <- do.call(automate_particle_analysis, c(list(x = specs), args))
+  eager <- do.call(
+    automate_particle_analysis,
+    c(list(x = decompress_spec(specs, region = "Region1")), args)
+  )
+
+  compare <- setdiff(names(streamed$particle_details_all_csv), "sample_id")
+  expect_equal(streamed$particle_details_all_csv[, ..compare],
+               eager$particle_details_all_csv[, ..compare], tolerance = 1e-10)
+  expect_equal(streamed$samples$Region1$particles_rds$spectra,
+               eager$samples[[1L]]$particles_rds$spectra,
+               tolerance = 1e-10, ignore_attr = TRUE)
+})
+
 test_that("FileSpecs particle automation rejects unsupported whole-map paths", {
   directory <- tempfile("filespec-particle-errors-")
   dir.create(directory)
@@ -302,7 +339,7 @@ test_that("FileSpecs particle automation rejects unsupported whole-map paths", {
                "collapse_function = mean")
   expect_error(automate_particle_analysis(
     specs, library, collapse_function = mean, particle_id_strategy = "raw"
-  ), "supports only")
+  ), "currently supports")
   expect_error(automate_particle_analysis(
     specs, library, collapse_function = mean, metric = "entropy"
   ), "explicit global breaks")

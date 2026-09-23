@@ -319,8 +319,9 @@ wavenumber-mean filling, inverse-frequency balanced case sampling, 500
 probability trees, permutation importance, and all available ranger threads.
 Balanced sampling improves minority representation in each bootstrap without
 also applying a class-vote correction. Because this resampling can make
-out-of-bag accuracy optimistic, treat OOB results as fit diagnostics and use
-the grouped held-out assessment as the model comparison and selection result.
+out-of-bag accuracy optimistic, treat OOB results as fit diagnostics. The
+release assessment separately applies each deployed model to its complete
+corresponding source dataset.
 `train_spec_model()` exposes both engines; `build_model_lib()` remains a
 compatible wrapper. Each model stores its filler, support audit, training
 diagnostics, and one tidy `tests` table. Logistic lambda selection remains
@@ -334,12 +335,14 @@ spectral content are one group and cannot cross training and test. This
 source-local policy tolerates taxonomy evolution
 without fuzzy cross-version class matching; its results describe each
 artifact on its own source population and are not paired causal deltas.
-Held-out groups are removed from full and medoid references before
-identification. Logistic and random-forest assessments both fit a separate
-model on only the source-local grouped training partition and predict its held
-out groups; production models still use all eligible spectra.
-All model queries come from full libraries, never medoids, and `match_spec()`
-uses stored fillers for partial spectra. Macro class
+Held-out groups are removed from full reference libraries before their
+identification assessment. Medoid artifacts are instead tested as deployed:
+each medoid library identifies every spectrum in its complete corresponding
+processed library (for example, `medoid_derivative.rds` searches
+`derivative.rds`). Existing logistic and random-forest artifacts likewise
+identify their complete corresponding source libraries once; assessment does
+not select new medoids or call `train_spec_model()`. `match_spec()` uses stored
+fillers for partial spectra. Macro class
 accuracy is the primary metric, followed by evaluated coverage, overall
 accuracy, and clear old/new
 `assess_spec(report = "all")` shifts. The review surface contains at most ten

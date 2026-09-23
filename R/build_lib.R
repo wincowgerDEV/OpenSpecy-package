@@ -57,14 +57,13 @@
 #' duplicates have been joined into stable groups. Candidate artifacts are assessed on candidate data and
 #' legacy artifacts on legacy data, so taxonomy changes do not require fuzzy
 #' cross-version class matching. Query identifiers are removed from full and
-#' medoid references by group before matching to prevent transformed duplicate
-#' or physical-replicate self-matches. Both logistic and random-forest
-#' assessment models are refit on their source-local grouped training partition;
-#' production models still use all eligible spectra.
-#' Held-out model outputs are also joined to per-spectrum assessment metric
-#' values. Point-biserial Pearson correlations with incorrect identification
-#' are ranked within each model output and across each source so the strongest
-#' quality-related error associations can be reviewed directly.
+#' references by group before matching to prevent transformed duplicate or
+#' physical-replicate self-matches. Each medoid artifact separately identifies
+#' its complete corresponding processed library, measuring the deployed medoid
+#' search directly without another split. Model assessments do not retrain models:
+#' each existing candidate or legacy model identifies its complete corresponding
+#' source dataset once. This measures the deployed artifact directly and keeps
+#' assessment generation bounded by prediction rather than model fitting.
 #' After derivative and baseline-removal processing, FTIR spectra whose
 #' 2200--2420 CO2-region maximum exceeds twice the 2420--2550 silent-region
 #' maximum are flattened and reassessed; failed postconditions are removed.
@@ -129,8 +128,8 @@
 #' predictions. This improves minority-class representation in each bootstrap
 #' sample without applying a second class-vote correction.
 #' Treat the stored out-of-bag metrics as fit diagnostics: balanced resampling
-#' can make them optimistic, so grouped held-out accuracy is the comparison and
-#' model-selection metric used by the library workflow.
+#' can make them optimistic. The library workflow separately reports accuracy
+#' from applying each deployed model to its complete corresponding dataset.
 #' Missing training values are replaced with the finite mean at each
 #' wavenumber. The returned model carries the same training-mean filler so
 #' \code{\link{match_spec}()} can identify partially covered spectra.
@@ -308,10 +307,10 @@
 #' \code{organization} first, otherwise \code{user_name}. The cleanup summary
 #' includes source-library counts at each major stage and identifies the first
 #' stage and reason whenever an entire source library is dropped. Accuracy
-#' tables contain overall aggregate metrics only. Old/new metrics are
-#' adjacent columns, accuracy and confusion are ranked by the new result with an
-#' old fallback, model diagnostics are ranked by absolute correlation, and
-#' quality shifts omit passes. Row-level tests, split manifests, model-training
+#' tables contain overall aggregate metrics only in long form, confusion tables
+#' retain misidentifications only, and model error-mode tables compare accuracy
+#' percentages with and without each automated-test flag. Review tables reject
+#' columns with more than 10 percent missing values. Row-level tests, split manifests, model-training
 #' diagnostics, and release manifests remain hash-addressed evidence attributes
 #' rather than additional review leaves. Each in-memory training model contains
 #' one \code{tests} data.table and a one-spectrum \code{fill} object. Versioned
@@ -3453,6 +3452,10 @@ train_spec_model <- function(x, class_col = "material_class",
   convergence_error <- if (is.null(model$jerr)) 0L else as.integer(model$jerr)
   selected_lambda_converged <- convergence_error == 0L ||
     selected_index < length(model$lambda)
+  # Calls produced through do.call() can capture the complete training matrix
+  # and outcome. They are not used by coef() or predict(), and retaining them
+  # needlessly adds many megabytes to checkpoints and release artifacts.
+  model$call <- NULL
   coefficients <- stats::coef(model, s = lambda)
 
   coef_list <- if (is.list(coefficients)) coefficients else list(coefficients)
@@ -4085,7 +4088,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- finalized$medoids
   local_assessments$metadata_finalization <- finalized$assessment
 
-  models <- checkpoints$get("models_parallel_rng_v1")
+  models <- checkpoints$get("models_logistic_regression_parallel_rng_v2")
   model_warnings <- .lib_warning_schema()
   if (is.null(models)) {
     model_result <- .lib_build_models(
@@ -4093,7 +4096,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
     models <- model_result$models
     model_warnings <- model_result$warnings
-    checkpoints$put("models_parallel_rng_v1", models)
+    checkpoints$put("models_logistic_regression_parallel_rng_v2", models)
   }
 
   build <- list(
@@ -4109,7 +4112,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "slim-release-library-retention-v13"
+      assessment_version = "complete-model-prediction-v16-compact-review"
+    ),
+    algo = "sha256"
+  )
+  fallback_assessment_key <- digest::digest(
+    list(
+      artifact_signature, prior_signature, seed = seed, holdout = holdout,
+      assessment_version = "selected-lambda-logistic-v14"
     ),
     algo = "sha256"
   )
@@ -4127,7 +4137,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     comparison <- .lib_compare_reference_build(
       build, previous_library_dir = previous_library_dir,
       seed = seed, holdout = holdout, progress = progress,
-      checkpoints = checkpoints, checkpoint_key = assessment_key
+      checkpoints = checkpoints, checkpoint_key = assessment_key,
+      checkpoint_fallback_key = fallback_assessment_key
     )
     if (!is.null(comparison$models)) {
       build$models <- comparison$models
@@ -4223,7 +4234,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- finalized$medoids
   if (is.null(completed)) completed <- list()
   completed$metadata_finalization <- finalized$assessment
-  models <- checkpoints$get("models_parallel_rng_v1")
+  models <- checkpoints$get("models_logistic_regression_parallel_rng_v2")
   model_warnings <- .lib_warning_schema()
   if (is.null(models)) {
     supplied_models <- input$models
@@ -4233,6 +4244,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           stage <- paste(
             "model", "logistic_regression", recipe, type, sep = "_"
           )
+          stage <- paste0(stage, "_parallel_rng_v1")
           if (is.null(checkpoints$get(stage))) {
             model <- supplied_models$logistic_regression[[recipe]][[type]]
             if (is.null(model$model_type)) model$model_type <- "logistic_regression"
@@ -4247,7 +4259,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
     models <- result$models
     model_warnings <- result$warnings
-    checkpoints$put("models_parallel_rng_v1", models)
+    checkpoints$put("models_logistic_regression_parallel_rng_v2", models)
   }
   build <- list(
     libraries = libraries, medoids = medoids, models = models,
@@ -4259,7 +4271,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "slim-release-library-retention-v13"
+    assessment_version = "complete-model-prediction-v16-compact-review"
+  ), algo = "sha256")
+  fallback_assessment_key <- digest::digest(list(
+    signature, prior_signature, seed = seed, holdout = holdout,
+    assessment_version = "selected-lambda-logistic-v14"
   ), algo = "sha256")
   cached <- checkpoints$get(
     "assessment_components_parallel_rng_v1", key = assessment_key
@@ -4275,7 +4291,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     comparison <- .lib_compare_reference_build(
       build, previous_library_dir = previous_library_dir,
       seed = seed, holdout = holdout, progress = progress,
-      checkpoints = checkpoints, checkpoint_key = assessment_key
+      checkpoints = checkpoints, checkpoint_key = assessment_key,
+      checkpoint_fallback_key = fallback_assessment_key
     )
     if (!is.null(comparison$models)) {
       build$models <- comparison$models
@@ -4418,7 +4435,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "other_review", "other_filter", "filters", "metadata_drop",
     "metadata_finalization", "pruning", "pruning_excluded_classes",
     "pruning_reassignments",
-    "quality_control", "library_retention", "dropped_spectrum_identities",
+    "quality_control", "automated_test_flags", "library_retention",
+    "dropped_spectrum_identities",
     "model_assessment_correlations"
   )
   assessments[intersect(keep, names(assessments))]
@@ -5060,6 +5078,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           collapse = "; ")
   ))
 
+  automated_test_flags <- .lib_collect_automated_test_flags(libraries)
+
   before_filter <- ncol(libraries$raw$spectra)
   material_type <- as.character(libraries$raw$metadata$material_type)
   if (any(is.na(material_type) | !nzchar(trimws(material_type)))) {
@@ -5172,6 +5192,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       } else {
         .lib_prune_reassignment_schema()
       },
+      automated_test_flags = automated_test_flags,
       quality_control = quality$assessment,
       library_retention = library_retention,
       dropped_spectrum_identities = dropped_spectrum_identities,
@@ -5573,7 +5594,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_build_models <- function(libraries, medoids, report, checkpoints = NULL,
+                              methods = "logistic_regression",
                               random_forest_args = list()) {
+  methods <- match.arg(
+    methods, c("logistic_regression", "random_forest"), several.ok = TRUE
+  )
   if (!is.list(random_forest_args) ||
       (length(random_forest_args) &&
        (is.null(names(random_forest_args)) || any(!nzchar(names(random_forest_args)))))) {
@@ -5594,6 +5619,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       args = random_forest_args
     )
   )
+  configurations <- configurations[methods]
   for (algorithm in names(configurations)) {
     configuration <- configurations[[algorithm]]
     models[[algorithm]] <- list()
@@ -5948,6 +5974,40 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   })
 }
 
+.lib_collect_automated_test_flags <- function(libraries) {
+  rows <- lapply(names(libraries), function(artifact) {
+    object <- libraries[[artifact]]
+    if (!is_OpenSpecy(object)) return(NULL)
+    metadata <- data.table::as.data.table(object$metadata)
+    required <- c("assessment_flag", "assessment_checks")
+    if (!all(required %in% names(metadata))) return(NULL)
+    keep <- !is.na(metadata$assessment_flag) & metadata$assessment_flag &
+      !is.na(metadata$assessment_checks) &
+      nzchar(trimws(metadata$assessment_checks))
+    if (!any(keep)) return(NULL)
+    ids <- .lib_ids(object, "sample_name")
+    technique <- if ("spectrum_type" %in% names(metadata)) {
+      as.character(metadata$spectrum_type)
+    } else {
+      rep("all", nrow(metadata))
+    }
+    checks <- strsplit(as.character(metadata$assessment_checks[keep]),
+                       ";\\s*")
+    data.table::data.table(
+      artifact = artifact,
+      technique = rep(technique[keep], lengths(checks)),
+      spectrum_id = rep(as.character(ids[keep]), lengths(checks)),
+      error_mode = trimws(unlist(checks, use.names = FALSE))
+    )[nzchar(error_mode)]
+  })
+  out <- unique(data.table::rbindlist(rows, fill = TRUE))
+  if (nrow(out)) return(out[])
+  data.table::data.table(
+    artifact = character(), technique = character(),
+    spectrum_id = character(), error_mode = character()
+  )
+}
+
 .lib_local_build_assessments <- function(libraries, medoids, models,
                                          completed, model_warnings) {
   artifacts <- c(
@@ -6098,6 +6158,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     model_confusion = data.table::data.table(),
     model_assessment_correlations =
       .lib_model_assessment_correlation_schema(),
+    automated_test_flags = data.table::data.table(
+      artifact = character(), technique = character(),
+      spectrum_id = character(), error_mode = character()
+    ),
     assess_spec_shifts = data.table::data.table(),
     old_new_compatibility = data.table::data.table(),
     quality_control = .lib_quality_schema(),
@@ -6208,28 +6272,20 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     return(data.table::data.table())
   }
   is_medoid <- grepl("^medoid_", summary$artifact)
-  rows <- summary[is_medoid == medoid]
-  out <- .lib_pivot_assessment_sources(
-    rows,
-    id_cols = c("algorithm", "artifact", "model", "technique"),
-    value_cols = c("provenance", "macro_class_accuracy", "coverage",
-                   "overall_accuracy", "spectra", "evaluated", "classes",
-                   "evaluated_classes", "mean_score"),
-    shift_cols = c("macro_class_accuracy", "coverage", "overall_accuracy")
-  )
+  out <- summary[is_medoid == medoid]
   if (!nrow(out)) return(out)
-  accuracy_columns <- intersect(
-    c("macro_class_accuracy_new", "macro_class_accuracy_old"),
-    names(out)
-  )
-  review_accuracy <- if (length(accuracy_columns) == 1L) {
-    out[[accuracy_columns]]
-  } else {
-    do.call(data.table::fcoalesce, out[, ..accuracy_columns])
-  }
-  data.table::set(out, j = "review_accuracy", value = review_accuracy)
+  out[, overall_accuracy_pct := 100 * overall_accuracy]
+  keep <- intersect(c(
+    "algorithm", "artifact", "model", "technique", "source", "provenance",
+    "spectra", "overall_accuracy_pct"
+  ), names(out))
+  out <- out[, ..keep]
   data.table::setorderv(
-    out, c("review_accuracy", "artifact"), c(-1L, 1L), na.last = TRUE
+    out, intersect(c("algorithm", "artifact", "model", "technique", "source"),
+                   names(out)),
+    rep(1L, length(intersect(
+      c("algorithm", "artifact", "model", "technique", "source"), names(out)
+    )))
   )
   out[]
 }
@@ -6241,76 +6297,84 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     is_medoid <- grepl("^medoid_", rows$artifact)
     rows <- rows[is_medoid == medoid]
   }
-  out <- .lib_pivot_assessment_sources(
-    rows,
-    id_cols = c("algorithm", "artifact", "model", "technique",
-                "expected_class", "predicted_class", "misidentified"),
-    value_cols = c("provenance", "spectra", "expected_class_spectra",
-                   "expected_class_fraction"),
-    shift_cols = c("spectra", "expected_class_fraction")
-  )
+  out <- rows[misidentified %in% TRUE]
   if (!nrow(out)) return(out)
-  data.table::set(
-    out, j = "review_spectra",
-    value = data.table::fcoalesce(out$spectra_new, out$spectra_old)
-  )
+  out[is.na(predicted_class) | !nzchar(predicted_class),
+      predicted_class := "unclassified"]
+  out[, expected_class_pct := 100 * expected_class_fraction]
+  keep <- intersect(c(
+    "algorithm", "artifact", "model", "technique", "source", "provenance",
+    "expected_class", "predicted_class", "spectra",
+    "expected_class_spectra", "expected_class_pct"
+  ), names(out))
+  out <- out[, ..keep]
   data.table::setorderv(
     out,
-    c("misidentified", "review_spectra", "artifact", "expected_class",
-      "predicted_class"),
-    c(-1L, -1L, 1L, 1L, 1L), na.last = TRUE
+    intersect(c("algorithm", "artifact", "model", "technique", "source",
+                "spectra", "expected_class", "predicted_class"), names(out)),
+    c(rep(1L, length(intersect(
+      c("algorithm", "artifact", "model", "technique", "source"), names(out)
+    ))), -1L, 1L, 1L)
   )
   out[]
 }
 
 .lib_model_diagnostics_review <- function(assessments) {
-  correlations <- data.table::copy(data.table::as.data.table(
+  out <- data.table::copy(data.table::as.data.table(
     assessments$model_assessment_correlations
   ))
-  if (nrow(correlations)) {
-    correlations <- .lib_pivot_assessment_sources(
-      correlations,
-      id_cols = c("scope", "algorithm", "artifact", "model", "technique",
-                  "check", "metric"),
-      value_cols = c("provenance", "spectra", "evaluated", "inaccurate",
-                     "inaccuracy_rate", "mean_value_correct",
-                     "mean_value_incorrect", "correlation"),
-      shift_cols = c("inaccuracy_rate", "correlation")
-    )
-    data.table::set(
-      correlations, j = "assessment_kind",
-      value = "assessment_correlation"
-    )
-    data.table::set(
-      correlations, j = "absolute_correlation",
-      value = pmax(
-        abs(correlations$correlation_old),
-        abs(correlations$correlation_new), na.rm = TRUE
-      )
-    )
-    invalid_correlation <- !is.finite(correlations$absolute_correlation)
-    if (any(invalid_correlation)) {
-      data.table::set(
-        correlations, i = which(invalid_correlation),
-        j = "absolute_correlation", value = NA_real_
-      )
-    }
-  }
-  details <- .lib_bind_assessment_tables(
-    assessments,
-    c("medoid_model_summary", "medoid_model_support", "model_class_support",
-      "warnings", "model_lambda_metrics", "model_oob_metrics",
-      "model_oob_class_accuracy", "model_feature_importance",
-      "model_training_parameters", "model_class_weights")
-  )
-  if (nrow(details) && "stage" %in% names(details)) {
-    details <- details[is.na(stage) | stage != "medoid"]
-  }
-  out <- data.table::rbindlist(list(correlations, details), fill = TRUE)
   if (nrow(out)) data.table::setorderv(
-    out, c("absolute_correlation", "assessment_kind", "algorithm", "artifact",
-           "model"), c(-1L, 1L, 1L, 1L, 1L), na.last = TRUE
+    out, c("accuracy_difference_pct", "algorithm", "artifact", "model",
+           "technique", "error_mode"), c(1L, 1L, 1L, 1L, 1L, 1L)
   )
+  out[]
+}
+
+.lib_cleanup_review <- function(assessments, table_names) {
+  rows <- lapply(intersect(table_names, names(assessments)), function(name) {
+    value <- assessments[[name]]
+    if (!inherits(value, c("data.frame", "data.table")) || !nrow(value)) {
+      return(NULL)
+    }
+    value <- data.table::as.data.table(value)
+    data.table::data.table(
+      assessment = name,
+      rows = as.integer(nrow(value)),
+      artifacts = as.integer(if ("artifact" %in% names(value)) {
+        data.table::uniqueN(value$artifact, na.rm = TRUE)
+      } else 0L),
+      spectrum_records = as.integer(if ("spectrum_id" %in% names(value)) {
+        data.table::uniqueN(value$spectrum_id, na.rm = TRUE)
+      } else if ("n" %in% names(value)) {
+        sum(value$n, na.rm = TRUE)
+      } else 0L),
+      removed_spectra = as.integer(if ("removed" %in% names(value)) {
+        sum(as.numeric(value$removed), na.rm = TRUE)
+      } else if ("spectra_removed" %in% names(value)) {
+        sum(value$spectra_removed, na.rm = TRUE)
+      } else 0L)
+    )
+  })
+  out <- data.table::rbindlist(rows, fill = TRUE)
+  if (nrow(out)) data.table::setorder(out, assessment)
+  out[]
+}
+
+.lib_functionality_review <- function(shifts) {
+  shifts <- data.table::copy(data.table::as.data.table(shifts))
+  if (!nrow(shifts)) return(data.table::data.table())
+  for (column in c("rate_old", "rate_new")) {
+    if (!column %in% names(shifts)) shifts[[column]] <- 0
+    shifts[is.na(get(column)), (column) := 0]
+  }
+  out <- shifts[, .(
+    artifact, check,
+    old_error_pct = 100 * rate_old,
+    new_error_pct = 100 * rate_new,
+    change_pct = 100 * (rate_new - rate_old)
+  )]
+  data.table::setorderv(out, c("change_pct", "artifact", "check"),
+                       c(-1L, 1L, 1L))
   out[]
 }
 
@@ -6326,7 +6390,22 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "pruning_excluded_classes", "pruning_reassignments", "quality_control",
     "library_retention"
   )
-  cleanup_summary <- .lib_bind_assessment_tables(assessments, cleanup_names)
+  cleanup_summary <- data.table::copy(data.table::as.data.table(
+    assessments$library_retention
+  ))
+  if (nrow(cleanup_summary)) {
+    if ("reason" %in% names(cleanup_summary)) {
+      cleanup_summary[is.na(reason) | !nzchar(trimws(reason)),
+                      reason := "retained"]
+    }
+    cleanup_summary[, assessment_kind := "library_retention"]
+    data.table::setcolorder(
+      cleanup_summary,
+      c("assessment_kind", setdiff(names(cleanup_summary), "assessment_kind"))
+    )
+  } else {
+    cleanup_summary <- .lib_cleanup_review(assessments, cleanup_names)
+  }
   dropped <- assessments$dropped_spectrum_identities
   if (is.null(dropped) || !nrow(dropped)) {
     dropped <- data.table::data.table(spectrum_identity = character())
@@ -6352,45 +6431,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   model_confusion <- .lib_confusion_review(assessments$model_confusion)
   model_diagnostics <- .lib_model_diagnostics_review(assessments)
 
-  shifts <- data.table::copy(data.table::as.data.table(assessments$assess_spec_shifts))
-  if (nrow(shifts)) {
-    data.table::set(shifts, j = "assessment_kind", value = "quality_shift")
-  }
-  compatibility <- data.table::copy(data.table::as.data.table(
-    assessments$old_new_compatibility
-  ))
-  if (nrow(compatibility)) {
-    data.table::set(
-      compatibility, j = "assessment_kind", value = "compatibility"
-    )
-  }
-  integrity <- data.table::copy(data.table::as.data.table(assessments$build_summary))
-  if (nrow(integrity)) {
-    data.table::set(integrity, j = "assessment_kind", value = "integrity")
-  }
-  manifest <- data.table::copy(data.table::as.data.table(assessments$output_manifest))
-  if (nrow(manifest)) {
-    manifest <- manifest[, .(
-      events = .N, paths = data.table::uniqueN(path),
-      bytes = if ("size" %in% names(manifest)) sum(size, na.rm = TRUE) else NA_real_
-    ), by = .(status)]
-    data.table::set(manifest, j = "assessment_kind", value = "release")
-  }
-  functionality <- data.table::rbindlist(
-    list(shifts, compatibility, integrity, manifest), fill = TRUE
-  )
-  if (nrow(functionality)) {
-    order_columns <- intersect(
-      c("assessment_kind", "rate_shift", "artifact", "check"),
-      names(functionality)
-    )
-    order_direction <- c(
-      assessment_kind = 1L, rate_shift = -1L, artifact = 1L, check = 1L
-    )[order_columns]
-    data.table::setorderv(
-      functionality, order_columns, order_direction, na.last = TRUE
-    )
-  }
+  functionality <- .lib_functionality_review(assessments$assess_spec_shifts)
 
   compact <- function(values) {
     values[vapply(values, function(value) {
@@ -6406,13 +6447,13 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     medoid = compact(list(accuracy = medoid_accuracy, confusion = medoid_confusion)),
     model = compact(list(
       accuracy = model_accuracy, confusion = model_confusion,
-      diagnostics = model_diagnostics
+      error_mode_accuracy = model_diagnostics
     )),
     functionality = compact(list(comparison = functionality))
   )
   fallback <- c(
     cleanup = "summary", ref_lib = "accuracy", medoid = "accuracy",
-    model = "diagnostics", functionality = "comparison"
+    model = "error_mode_accuracy", functionality = "comparison"
   )
   for (process in names(out)) {
     if (!length(out[[process]])) {
@@ -6425,7 +6466,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     c("split_manifest", "library_tests", "model_training_tests", "model_tests",
       "model_lambda_metrics", "model_oob_metrics", "model_oob_class_accuracy",
       "model_feature_importance", "model_training_parameters",
-      "model_class_weights", "output_manifest"),
+      "model_class_weights", "medoid_model_summary", "medoid_model_support",
+      "model_class_support", "warnings", "old_new_compatibility",
+      "build_summary", "assess_spec_shifts", "output_manifest"),
     names(assessments)
   )
   evidence <- assessments[evidence_names]
@@ -6545,92 +6588,64 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_model_assessment_correlation_schema <- function() {
   data.table::data.table(
-    scope = character(), algorithm = character(), artifact = character(),
-    model = character(),
-    source = character(), technique = character(), provenance = character(),
-    check = character(), metric = character(), spectra = integer(),
-    evaluated = integer(), inaccurate = integer(),
-    inaccuracy_rate = numeric(), mean_value_correct = numeric(),
-    mean_value_incorrect = numeric(), correlation = numeric(),
-    absolute_correlation = numeric(), rank = integer(),
-    strongest = logical()
+    algorithm = character(), artifact = character(), model = character(),
+    technique = character(), error_mode = character(),
+    with_error_accuracy_pct = numeric(),
+    without_error_accuracy_pct = numeric(),
+    accuracy_difference_pct = numeric()
   )
 }
 
-.lib_model_assessment_correlations <- function(rows) {
+.lib_model_assessment_correlations <- function(tests, flags) {
   schema <- .lib_model_assessment_correlation_schema()
-  if (is.null(rows) || !nrow(rows)) return(schema)
-  rows <- data.table::as.data.table(rows)
-  required <- c(
-    "algorithm", "artifact", "model", "source", "technique", "provenance",
-    "check", "metric", "value", "correct"
+  if (is.null(tests) || !nrow(tests) || is.null(flags) || !nrow(flags)) {
+    return(schema)
+  }
+  tests <- data.table::copy(data.table::as.data.table(tests))
+  flags <- unique(data.table::copy(data.table::as.data.table(flags)))
+  test_required <- c(
+    "algorithm", "artifact", "model", "source", "technique",
+    "spectrum_id", "correct"
   )
-  missing <- setdiff(required, names(rows))
+  flag_required <- c("artifact", "technique", "spectrum_id", "error_mode")
+  missing <- c(setdiff(test_required, names(tests)),
+               setdiff(flag_required, names(flags)))
   if (length(missing)) {
-    stop("Model assessment rows are missing: ", paste(missing, collapse = ", "),
-         call. = FALSE)
+    stop("Model error-mode assessment rows are missing: ",
+         paste(unique(missing), collapse = ", "), call. = FALSE)
   }
-  summarize <- function(x, by, scope) {
-    out <- x[, {
-      complete <- is.finite(value) & !is.na(correct)
-      values <- value[complete]
-      inaccurate <- !correct[complete]
-      association <- if (length(values) >= 3L &&
-                           data.table::uniqueN(values) > 1L &&
-                           data.table::uniqueN(inaccurate) > 1L) {
-        stats::cor(values, as.numeric(inaccurate))
-      } else {
-        NA_real_
-      }
-      list(
-        spectra = as.integer(.N),
-        evaluated = as.integer(sum(complete)),
-        inaccurate = as.integer(sum(inaccurate)),
-        inaccuracy_rate = if (length(inaccurate)) mean(inaccurate) else NA_real_,
-        mean_value_correct = if (any(!inaccurate)) {
-          mean(values[!inaccurate])
-        } else {
-          NA_real_
-        },
-        mean_value_incorrect = if (any(inaccurate)) {
-          mean(values[inaccurate])
-        } else {
-          NA_real_
-        },
-        correlation = association,
-        absolute_correlation = abs(association)
-      )
-    }, by = by]
-    out[, scope := scope]
-    out
-  }
-  output_groups <- c(
-    "algorithm", "artifact", "model", "source", "technique", "provenance",
-    "check", "metric"
+  tests <- tests[source == "new" & !is.na(correct), ..test_required]
+  flags <- flags[
+    !is.na(error_mode) & nzchar(trimws(error_mode)), ..flag_required
+  ]
+  modes <- unique(flags[, .(artifact, technique, error_mode)])
+  if (!nrow(tests) || !nrow(modes)) return(schema)
+  rows <- merge(
+    tests, modes, by = c("artifact", "technique"), allow.cartesian = TRUE
   )
-  output <- summarize(rows, output_groups, "model_output")
-  overall <- summarize(
-    rows, c("algorithm", "source", "provenance", "check", "metric"),
-    "source_overall"
+  flags[, has_error := TRUE]
+  rows <- merge(
+    rows, flags,
+    by = c("artifact", "technique", "spectrum_id", "error_mode"),
+    all.x = TRUE, sort = FALSE
   )
-  overall[, `:=`(
-    artifact = "all", model = "all", technique = "all"
-  )]
-  out <- data.table::rbindlist(list(output, overall), fill = TRUE)
-  rank_groups <- c(
-    "scope", "algorithm", "artifact", "model", "source", "technique",
-    "provenance"
-  )
-  out[, rank := as.integer(data.table::frank(
-    -absolute_correlation, ties.method = "min", na.last = "keep"
-  )), by = rank_groups]
-  out[, strongest := !is.na(rank) & rank == 1L]
+  rows[is.na(has_error), has_error := FALSE]
+  groups <- c("algorithm", "artifact", "model", "technique", "error_mode")
+  out <- rows[, .(
+    error_spectra = as.integer(sum(has_error)),
+    with_error_accuracy_pct = 100 * mean(correct[has_error]),
+    no_error_spectra = as.integer(sum(!has_error)),
+    without_error_accuracy_pct = 100 * mean(correct[!has_error])
+  ), by = groups]
+  out <- out[error_spectra > 0L & no_error_spectra > 0L]
+  if (!nrow(out)) return(schema)
+  out[, accuracy_difference_pct :=
+        with_error_accuracy_pct - without_error_accuracy_pct]
+  out[, c("error_spectra", "no_error_spectra") := NULL]
   data.table::setcolorder(out, names(schema))
   data.table::setorderv(
-    out,
-    c(rank_groups, "rank", "absolute_correlation", "check", "metric"),
-    c(rep(1L, length(rank_groups)), 1L, -1L, 1L, 1L),
-    na.last = TRUE
+    out, c("accuracy_difference_pct", groups),
+    c(1L, rep(1L, length(groups)))
   )
   out[]
 }
@@ -6654,8 +6669,21 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 .lib_compare_reference_build <- function(build, previous_library_dir,
                                          seed, holdout, progress,
                                          checkpoints = NULL,
-                                         checkpoint_key = NULL) {
+                                         checkpoint_key = NULL,
+                                         checkpoint_fallback_key = NULL) {
   prior <- .lib_load_previous_libraries(previous_library_dir, progress)
+  get_checkpoint <- function(stage, stable = FALSE) {
+    if (is.null(checkpoints)) return(NULL)
+    value <- checkpoints$get(stage, key = checkpoint_key)
+    can_fallback <- isTRUE(stable) && is.null(value) &&
+      !is.null(checkpoint_fallback_key) &&
+      !identical(checkpoint_key, checkpoint_fallback_key)
+    if (can_fallback) {
+      value <- checkpoints$get(stage, key = checkpoint_fallback_key)
+      if (!is.null(value)) checkpoints$put(stage, value, key = checkpoint_key)
+    }
+    value
+  }
   reference_pairs <- list()
   for (recipe in intersect(names(build$libraries),
                            c("raw", "derivative", "nobaseline"))) {
@@ -6710,8 +6738,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
   }
 
-  compatibility <- if (is.null(checkpoints)) NULL else
-    checkpoints$get("assessment_compatibility", key = checkpoint_key)
+  compatibility <- get_checkpoint("assessment_compatibility", stable = TRUE)
   compatibility_rows <- list()
   split_rows <- list()
   reference_tests <- list()
@@ -6720,7 +6747,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     artifact <- names(reference_pairs)[[i]]
     if (isTRUE(progress)) {
       message(sprintf(
-        "build_lib assessment: split and identify %s (%d/%d)",
+        "build_lib assessment: identify %s (%d/%d)",
         artifact, i, length(reference_pairs)
       ))
     }
@@ -6732,30 +6759,41 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       )
     }
     for (source in c("new", "old")) {
-      split_stage <- paste0("assessment_split_", artifact, "_", source)
-      split <- if (is.null(checkpoints)) NULL else
-        checkpoints$get(split_stage, key = checkpoint_key)
-      if (is.null(split)) {
-        split <- .lib_source_split(
-          pair[[paste0(source, "_data")]], artifact = artifact,
-          source = source, seed = seed + i * 2L + match(source, c("new", "old")),
-          holdout = holdout
-        )
-        if (!is.null(checkpoints)) {
-          checkpoints$put(split_stage, split, key = checkpoint_key)
+      is_medoid <- identical(reference_pairs[[artifact]]$kind, "medoid")
+      split <- NULL
+      if (!is_medoid) {
+        split_stage <- paste0("assessment_split_", artifact, "_", source)
+        split <- get_checkpoint(split_stage, stable = TRUE)
+        if (is.null(split)) {
+          split <- .lib_source_split(
+            pair[[paste0(source, "_data")]], artifact = artifact,
+            source = source,
+            seed = seed + i * 2L + match(source, c("new", "old")),
+            holdout = holdout
+          )
+          if (!is.null(checkpoints)) {
+            checkpoints$put(split_stage, split, key = checkpoint_key)
+          }
         }
+        split_rows[[paste(artifact, source, sep = "_")]] <- split$manifest
       }
-      split_rows[[paste(artifact, source, sep = "_")]] <- split$manifest
-      stage <- paste0("assessment_reference_", artifact, "_", source)
-      tests <- if (is.null(checkpoints)) NULL else
-        checkpoints$get(stage, key = checkpoint_key)
+      stage <- paste0(
+        "assessment_reference_", if (is_medoid) "complete_" else "",
+        artifact, "_", source, if (is_medoid) "_v1" else ""
+      )
+      tests <- get_checkpoint(stage, stable = !is_medoid)
       if (is.null(tests)) {
-        tests <- .lib_reference_holdout_test(
+        test_args <- list(
           reference = pair[[paste0(source, "_reference")]],
           data = pair[[paste0(source, "_data")]],
-          split = split, artifact = artifact, source = source,
-          progress = progress
+          artifact = artifact, source = source, progress = progress
         )
+        tests <- if (is_medoid) {
+          do.call(.lib_reference_complete_test, test_args)
+        } else {
+          test_args$split <- split
+          do.call(.lib_reference_holdout_test, test_args)
+        }
         if (!is.null(checkpoints)) {
           checkpoints$put(stage, tests, key = checkpoint_key)
         }
@@ -6763,8 +6801,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       reference_tests[[paste0(artifact, "_", source)]] <- tests
 
       stage <- paste0("assessment_spectra_", artifact, "_", source)
-      summary <- if (is.null(checkpoints)) NULL else
-        checkpoints$get(stage, key = checkpoint_key)
+      summary <- get_checkpoint(stage, stable = TRUE)
       if (is.null(summary)) {
         assessment_started <- proc.time()[["elapsed"]]
         if (isTRUE(progress)) {
@@ -6809,9 +6846,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 
   model_tests <- list()
-  model_metric_rows <- list()
   updated_models <- build$models
-  model_split_rows <- list()
   algorithms <- intersect(
     c("logistic_regression", "random_forest"), names(updated_models)
   )
@@ -6834,11 +6869,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         } else {
           legacy_model
         }
-        source_types <- if (source == "new") {
-          intersect(names(build$libraries[[recipe]]), c("ftir", "raman", "nir"))
-        } else {
-          intersect(c("ftir", "raman"), names(model_set))
-        }
         source_object <- function(type) {
           if (source == "new") {
             build$libraries[[recipe]][[type]]
@@ -6846,118 +6876,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             .lib_filter_optional_type(prior[[recipe]], type)
           }
         }
-        split_by_type <- list()
-        assessment_by_type <- list()
-        training_by_type <- list()
-        for (type in source_types) {
-          source_data <- source_object(type)
-          if (is.null(source_data)) next
-          eligible <- tryCatch(
-            .lib_restrict_model_range(source_data, type),
-            error = function(error) NULL
-          )
-          rm(source_data)
-          if (is.null(eligible)) next
-          split_artifact <- paste("model", recipe, type, sep = "_")
-          split_stage <- paste0("assessment_split_", split_artifact, "_", source)
-          split <- if (is.null(checkpoints)) NULL else
-            checkpoints$get(split_stage, key = checkpoint_key)
-          if (is.null(split)) {
-            split <- .lib_source_split(
-              eligible, artifact = split_artifact, source = source,
-              seed = seed + 100L + match(recipe, c("raw", "derivative", "nobaseline")) * 20L +
-                match(type, c("ftir", "raman", "nir")) * 2L +
-                match(source, c("new", "old")),
-              holdout = holdout
-            )
-            if (!is.null(checkpoints)) {
-              checkpoints$put(split_stage, split, key = checkpoint_key)
-            }
-          }
-          model_split_rows[[paste(split_artifact, source, sep = "_")]] <-
-            split$manifest
-          split_by_type[[type]] <- split
-          test_groups <- split$manifest[split == "test", group_id]
-          test_rows <- split$rows[group_id %in% test_groups, row]
-          if (!length(test_rows)) {
-            rm(eligible, split)
-            next
-          }
-          if (identical(algorithm, "logistic_regression")) {
-            train_groups <- split$manifest[split == "train", group_id]
-            train_rows <- split$rows[group_id %in% train_groups, row]
-            medoid_stage <- paste0(
-              "assessment_training_medoids_", recipe, "_", type, "_",
-              source, "_v1"
-            )
-            training_reference <- if (is.null(checkpoints)) NULL else
-              checkpoints$get(medoid_stage, key = checkpoint_key)
-            if (is.null(training_reference) && length(train_rows)) {
-              training_source <- filter_spec(eligible, train_rows)
-              if (isTRUE(progress)) message(
-                "build_lib assessment: selecting fold-local training medoids ",
-                recipe, "/", type, "/", source, " (spectra=",
-                ncol(training_source$spectra), ")"
-              )
-              training_ids <- reduce_lib(
-                training_source,
-                group_cols = intersect(
-                  c("organization", "material_class"),
-                  names(training_source$metadata)
-                ),
-                k = 50, min_n = 50, return = "ids", progress = progress
-              )
-              training_reference <- filter_spec(training_source, training_ids)
-              if (!is.null(checkpoints)) {
-                checkpoints$put(
-                  medoid_stage, training_reference, key = checkpoint_key
-                )
-              }
-              rm(training_source, training_ids)
-              gc(verbose = FALSE)
-            }
-            if (!is.null(training_reference)) {
-              training_by_type[[type]] <- training_reference
-            }
-          }
-          query <- filter_spec(eligible, test_rows)
-          stage <- paste0(
-            "assessment_model_metrics_", recipe, "_", type, "_", source
-          )
-          assessed <- if (is.null(checkpoints)) NULL else
-            checkpoints$get(stage, key = checkpoint_key)
-          if (is.null(assessed)) {
-            assessment_started <- proc.time()[["elapsed"]]
-            if (isTRUE(progress)) message(
-              "build_lib assessment: assess_spec model holdout ", recipe, "/",
-              type, "/", source, " starting (spectra=",
-              ncol(query$spectra), ")"
-            )
-            assessed <- assess_spec(
-              query, report = "all"
-            )[scope == "spectrum", .(spectrum_id, check, metric, value)]
-            if (!is.null(checkpoints)) {
-              checkpoints$put(stage, assessed, key = checkpoint_key)
-            }
-            if (isTRUE(progress)) message(sprintf(
-              paste0("build_lib assessment: assess_spec model holdout ",
-                     "%s/%s/%s complete (%.1fs)"),
-              recipe, type, source,
-              proc.time()[["elapsed"]] - assessment_started
-            ))
-          }
-          assessment_by_type[[type]] <- assessed
-          rm(eligible, query, split)
-          gc(verbose = FALSE)
-        }
-        available_model_types <- if (identical(
-          algorithm, "logistic_regression"
-        )) names(training_by_type) else names(split_by_type)
-        if (identical(algorithm, "logistic_regression") &&
-            all(c("ftir", "raman") %in% available_model_types)) {
-          available_model_types <- c(available_model_types, "both")
-        }
-        for (type in intersect(names(model_set), available_model_types)) {
+        for (type in names(model_set)) {
           if (is.null(model_set[[type]])) next
           component_types <- if (identical(type, "both")) {
             c("ftir", "raman")
@@ -6965,94 +6884,37 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             type
           }
           query_parts <- list()
-          train_parts <- list()
           for (actual_type in component_types) {
             eligible <- tryCatch(
               .lib_restrict_model_range(source_object(actual_type), actual_type),
               error = function(error) NULL
             )
-            split <- split_by_type[[actual_type]]
-            if (is.null(eligible) || is.null(split)) next
-            test_groups <- split$manifest[split == "test", group_id]
-            test_rows <- split$rows[group_id %in% test_groups, row]
-            train_rows <- split$rows[!group_id %in% test_groups, row]
-            if (length(test_rows)) {
-              query_parts[[actual_type]] <- filter_spec(eligible, test_rows)
-            }
-            if (identical(algorithm, "logistic_regression") &&
-                !is.null(training_by_type[[actual_type]])) {
-              train_parts[[actual_type]] <- training_by_type[[actual_type]]
-            } else if (length(train_rows)) {
-              train_parts[[actual_type]] <- filter_spec(eligible, train_rows)
-            }
-            rm(eligible, split)
+            if (!is.null(eligible)) query_parts[[actual_type]] <- eligible
           }
-          if (!all(component_types %in% names(query_parts)) ||
-              !all(component_types %in% names(train_parts))) next
+          if (!all(component_types %in% names(query_parts))) next
           query <- if (length(component_types) == 1L) {
             query_parts[[1L]]
           } else {
             .lib_bind_same_axis(query_parts, "combined model test spectra")
           }
-          train <- if (length(component_types) == 1L) {
-            train_parts[[1L]]
-          } else {
-            .lib_bind_same_axis(train_parts, "combined model training spectra")
-          }
-          rm(query_parts, train_parts)
+          rm(query_parts)
           gc(verbose = FALSE)
           model_started <- proc.time()[["elapsed"]]
-          fold_suffix <- if (identical(algorithm, "logistic_regression")) {
-            "_fold_medoids_parallel_rng_v2"
-          } else {
-            ""
-          }
-          provenance <- if (identical(algorithm, "logistic_regression")) {
-            paste0(source, "_", algorithm,
-                   "_grouped_training_medoid_holdout")
-          } else {
-            paste0(source, "_", algorithm, "_grouped_training_holdout")
-          }
-          fit_stage <- paste0(
-            "assessment_fit_", algorithm, "_", recipe, "_", type, "_",
-            source, fold_suffix
-          )
-          assessment_model <- if (is.null(checkpoints)) NULL else
-            checkpoints$get(fit_stage, key = checkpoint_key)
-          if (is.null(assessment_model)) {
-            if (isTRUE(progress)) message(
-              "build_lib assessment: fitting ", algorithm, "/", recipe, "/",
-              type, "/", source,
-              if (identical(algorithm, "logistic_regression")) {
-                " on fold-local training medoids (train="
-              } else {
-                " on grouped training partition (train="
-              },
-              ncol(train$spectra), "; test=",
-              ncol(query$spectra), ")"
-            )
-            assessment_model <- train_spec_model(
-              train, method = algorithm,
-              seed = seed + match(source, c("new", "old"))
-            )
-            if (!is.null(checkpoints)) {
-              checkpoints$put(fit_stage, assessment_model, key = checkpoint_key)
-            }
-          }
+          provenance <- paste0(source, "_", algorithm, "_complete_dataset")
           if (isTRUE(progress)) message(
-            "build_lib assessment: source-local model ", algorithm, "/",
-            recipe, "/", type, "/", source, " starting (test=",
+            "build_lib assessment: existing model ", algorithm, "/",
+            recipe, "/", type, "/", source, " identifying complete dataset (",
             ncol(query$spectra), ")"
           )
           stage <- paste0(
-            "assessment_model_", algorithm, "_", recipe, "_", type, "_",
-            source, fold_suffix
+            "assessment_model_complete_", algorithm, "_", recipe, "_", type,
+            "_", source, "_v1"
           )
           tests <- if (is.null(checkpoints)) NULL else
             checkpoints$get(stage, key = checkpoint_key)
           if (is.null(tests)) {
-            tests <- .lib_model_holdout_test(
-              assessment_model, query, recipe, type,
+            tests <- .lib_model_complete_test(
+              model_set[[type]], query, recipe, type,
               algorithm = algorithm, source = source, provenance = provenance
             )
             if (!is.null(checkpoints)) {
@@ -7064,47 +6926,41 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           }
           key <- paste(algorithm, recipe, type, source, sep = "_")
           model_tests[[key]] <- tests
-          evidence <- if (type == "both") {
-            data.table::rbindlist(
-              assessment_by_type[intersect(c("ftir", "raman"),
-                                           names(assessment_by_type))],
-              fill = TRUE
-            )
-          } else {
-            assessment_by_type[[type]]
-          }
-          if (!is.null(evidence) && nrow(evidence) && nrow(tests)) {
-            joined <- merge(
-              tests, evidence, by = "spectrum_id", all = FALSE,
-              allow.cartesian = TRUE, sort = FALSE
-            )
-            model_metric_rows[[key]] <- joined[, .(
-              algorithm, artifact, model, source, technique, provenance,
-              spectrum_id, correct, check, metric, value
-            )]
-          }
           if (isTRUE(progress)) message(sprintf(
-            paste0("build_lib assessment: source-local model ",
+            paste0("build_lib assessment: existing model ",
                    "%s/%s/%s/%s complete (%.1fs)"),
             algorithm, recipe, type, source,
                    proc.time()[["elapsed"]] - model_started
           ))
-          rm(query, train, assessment_model)
+          rm(query)
           gc(verbose = FALSE, full = TRUE)
         }
-        rm(split_by_type, assessment_by_type)
         gc(verbose = FALSE, full = TRUE)
       }
     }
   }
   split_manifest <- data.table::rbindlist(
-    c(split_rows, model_split_rows), fill = TRUE
+    split_rows, fill = TRUE
   )
   model_tests <- data.table::rbindlist(model_tests, fill = TRUE)
   model_identification <- .lib_identification_summary(model_tests)
   model_confusion <- .lib_confusion_table(model_tests)
+  automated_test_flags <- build$assessments$automated_test_flags
+  if (is.null(automated_test_flags) || !nrow(automated_test_flags)) {
+    quality <- data.table::copy(data.table::as.data.table(
+      build$assessments$quality_control
+    ))
+    if (nrow(quality) && all(c(
+      "artifact", "spectrum_type", "spectrum_id", "check"
+    ) %in% names(quality))) {
+      automated_test_flags <- unique(quality[, .(
+        artifact, technique = spectrum_type, spectrum_id,
+        error_mode = check
+      )])
+    }
+  }
   model_assessment_correlations <- .lib_model_assessment_correlations(
-    data.table::rbindlist(model_metric_rows, fill = TRUE)
+    model_tests, automated_test_flags
   )
 
   list(
@@ -7384,8 +7240,55 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
-.lib_model_holdout_test <- function(model, x, artifact, type, algorithm, source,
-                                    provenance) {
+.lib_reference_complete_test <- function(reference, data, artifact, source,
+                                         progress = FALSE,
+                                         block_size = 1000L) {
+  block_size <- max(1L, as.integer(block_size))
+  query_ids <- .lib_ids(data, "sample_name")
+  library_ids <- .lib_ids(reference, "sample_name")
+  blocks <- split(
+    seq_len(ncol(data$spectra)),
+    ceiling(seq_len(ncol(data$spectra)) / block_size)
+  )
+  started <- proc.time()[["elapsed"]]
+  if (isTRUE(progress)) message(sprintf(
+    paste0("build_lib assessment: %s/%s medoid identifying complete ",
+           "dataset (query=%d; reference=%d; blocks=%d)"),
+    artifact, source, ncol(data$spectra), ncol(reference$spectra),
+    length(blocks)
+  ))
+  rows <- lapply(seq_along(blocks), function(i) {
+    idx <- blocks[[i]]
+    query <- if (length(idx) == ncol(data$spectra)) data else
+      filter_spec(data, idx)
+    cors <- cor_spec(query, library = reference, compute = "optimized")
+    top <- max_cor_named(cors)
+    matched_rows <- match(names(top), library_ids)
+    rm(cors)
+    expected <- as.character(query$metadata$material_class)
+    predicted <- as.character(reference$metadata$material_class[matched_rows])
+    if (isTRUE(progress)) message(sprintf(
+      "build_lib assessment: %s/%s medoid block %d/%d complete",
+      artifact, source, i, length(blocks)
+    ))
+    data.table::data.table(
+      artifact = artifact, source = source,
+      spectrum_id = query_ids[idx],
+      technique = as.character(query$metadata$spectrum_type),
+      expected_class = expected, predicted_class = predicted,
+      correct = expected == predicted, score = as.numeric(top),
+      split = "complete", provenance = "complete_medoid_reference_search"
+    )
+  })
+  if (isTRUE(progress)) message(sprintf(
+    "build_lib assessment: %s/%s complete medoid search finished (%.1fs)",
+    artifact, source, proc.time()[["elapsed"]] - started
+  ))
+  data.table::rbindlist(rows, fill = TRUE)
+}
+
+.lib_model_complete_test <- function(model, x, artifact, type, algorithm, source,
+                                     provenance) {
   fill <- model$fill
   if (!is_OpenSpecy(fill)) {
     variables <- as.numeric(model$all_variables)
@@ -7421,7 +7324,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     expected_class = expected, predicted_class = predicted,
     correct = expected == predicted,
     score = if ("value" %in% names(prediction)) prediction$value else NA_real_,
-    split = "test", provenance = provenance
+    split = "complete", provenance = provenance
   )
 }
 
@@ -7577,6 +7480,18 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     stop("Assessment review contains empty or non-tabular leaves: ",
          paste(names(leaves)[empty], collapse = ", "), call. = FALSE)
   }
+  sparse <- unlist(lapply(names(leaves), function(name) {
+    value <- leaves[[name]]
+    if (!nrow(value)) return(character())
+    missing <- vapply(value, function(column) mean(is.na(column)), numeric(1L))
+    columns <- names(missing)[missing > 0.10]
+    if (!length(columns)) return(character())
+    paste0(name, "$", columns)
+  }), use.names = FALSE)
+  if (length(sparse)) {
+    stop("Assessment review contains columns with more than 10% missing ",
+         "values: ", paste(sparse, collapse = ", "), call. = FALSE)
+  }
 
   artifacts <- c(
     .lib_named_typed_objects(build$libraries),
@@ -7604,15 +7519,21 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
          paste(names(artifacts)[flat], collapse = ", "), call. = FALSE)
   }
 
-  expected <- list(
-    logistic_regression = lapply(build$medoids, function(types) {
+  expected <- list()
+  if (!is.null(build$models$logistic_regression)) {
+    expected$logistic_regression <- lapply(build$medoids, function(types) {
       out <- names(types)
       if (all(c("ftir", "raman") %in% out)) out <- c(out, "both")
       out
-    }),
-    random_forest = lapply(build$libraries, names)
-  )
+    })
+  }
+  if (!is.null(build$models$random_forest)) {
+    expected$random_forest <- lapply(build$libraries, names)
+  }
   problems <- character()
+  if (is.null(expected$logistic_regression)) {
+    problems <- c(problems, "logistic_regression missing")
+  }
   for (algorithm in names(expected)) {
     for (recipe in names(expected[[algorithm]])) {
       for (type in expected[[algorithm]][[recipe]]) {
@@ -7696,10 +7617,45 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
+.lib_slim_glmnet_model <- function(model, lambda_selected) {
+  if (!inherits(model, "glmnet")) return(model)
+  if (!is.numeric(lambda_selected) || length(lambda_selected) != 1L ||
+      !is.finite(lambda_selected) || !length(model$lambda)) {
+    stop("A finite selected lambda is required to slim a glmnet model",
+         call. = FALSE)
+  }
+  selected <- which.min(abs(model$lambda - lambda_selected))
+  subset_path <- function(value) {
+    if (is.null(value)) return(NULL)
+    if (is.list(value) && !inherits(value, "Matrix")) {
+      return(lapply(value, subset_path))
+    }
+    if (length(dim(value)) == 2L) return(value[, selected, drop = FALSE])
+    value[selected]
+  }
+  model$a0 <- subset_path(model$a0)
+  model$beta <- subset_path(model$beta)
+  model$dfmat <- subset_path(model$dfmat)
+  model$df <- subset_path(model$df)
+  model$lambda <- as.numeric(lambda_selected)
+  model$dev.ratio <- subset_path(model$dev.ratio)
+  if (length(model$dim) >= 2L) model$dim[[2L]] <- 1L
+  keep <- c(
+    "a0", "beta", "dfmat", "df", "dim", "lambda", "dev.ratio",
+    "nulldev", "npasses", "jerr", "offset", "classnames", "nobs"
+  )
+  out <- model[intersect(keep, names(model))]
+  class(out) <- class(model)
+  out
+}
+
 .lib_slim_model <- function(model) {
   if (is.null(model)) return(NULL)
   fields <- intersect(.lib_runtime_model_fields(), names(model))
   out <- model[fields]
+  if (inherits(out$model, "glmnet")) {
+    out$model <- .lib_slim_glmnet_model(out$model, out$lambda_selected)
+  }
   if (is_OpenSpecy(out$fill)) out$fill <- .lib_slim_reference_object(out$fill)
   out
 }

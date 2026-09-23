@@ -35,25 +35,29 @@
 - R9. Publish `assessments.rds` as the sole release payload for global cleanup, quality-control, pruning, compatibility, accuracy/confusion, model diagnostics/warnings, and manifest reports. Include it in the release manifest.
 - R10. Libraries and medoids contain only `wavenumber`, `spectra`, row-aligned `metadata`, and required scientific/runtime provenance attributes; no global report table may remain on a component or metadata object.
 - R11. Model artifacts retain only fields proven necessary to load and predict. Move training tests, per-class/OOB assessment tables, tuning paths, warnings, feature importance, and support diagnostics to `assessments.rds` unless a runtime consumer proves a field necessary.
-- R12. `ref_lib$accuracy`, `medoid$accuracy`, and `model$accuracy` contain only overall aggregate rows and metrics (including overall and macro accuracy); remove `scope = "class"`/`expected_class` accuracy rows. Distinct confusion/support diagnostics may remain only in `assessments.rds`.
+- R12. `ref_lib$accuracy`, `medoid$accuracy`, and `model$accuracy` contain only overall accuracy percentages and identifying context; remove class-wise and secondary aggregate metrics. Distinct confusion/support diagnostics may remain only in `assessments.rds`.
 - R13. Prediction and matching results from slim artifacts equal the pre-slim build within existing tolerances; preserve type/axis/ID/class mappings and required baseline/derivative/transformation/range attributes.
 - R14. Implement and subset-test the slim schema, then perform a clean full rebuild before AWS upload or remaining CRAN finalization. Compare it with `4a32e68349ba`; do not mutate that immutable baseline.
-- R15. After upload, record version IDs/SHA-256 for the runtime artifacts plus `assessments.rds`, prove byte identity, load every artifact, and exercise representative full/medoid/model matches. Keep this integration off CRAN.
+- R15. Routine package tests, bundled-app fallback, and Shinylive staging download the current unversioned AWS objects. Preserve optional `get_lib(revision=)` only for explicit historical comparisons; record the actual staged SHA-256/bytes in the action manifest and keep the live integration off CRAN.
 - R16. Derive `library_name` from organization first and user name second; retain reviewed broad `other plastic`/`other material` sources, and publish per-recipe source-library retention counts plus a clear first-stage reason for every complete drop.
 - R17. Keep README onboarding short. Put compact/file-backed Specs and app pipeline details only in the advanced, SOP, and app vignettes.
 - R18. Reassign every resolved class below pruning `min_n` as a whole to its most-correlated established class within the same technique/material constraints; drop only when no valid destination exists and audit the outcome.
+- R19. Keep random-forest training available only through explicit experimental calls; the production reference rebuild defaults to logistic models and does not publish random-forest artifacts.
+- R20. Keep review tables coherent and compact: do not row-bind unrelated schemas, reject review columns with more than 10% missing values, retain detailed evidence separately, and report model/test-error association as with-error versus without-error accuracy percentages.
+- R21. Route H5 paths in `automate_particle_analysis()` through bounded `FileSpecs`; support streamed `all_cell_id` matching and connected Mean collapse without materializing the complete spectral matrix.
 
 ## Technical Decisions
 
 - **Assessment boundary**: gather reports while building, consume them for validation, then strip them through one internal release-sanitization step. Do not rely on incidental attribute loss in `filter_spec()`. A slim index may replace or accompany `reference_library_build.rds`, but it must not duplicate full artifacts or assessments.
 - **Attribute contract**: define/test an allowlist of scientific/runtime attributes (for example units, derivative/baseline state, transformations, spectrum type, and identification range); everything report-shaped is assessment data.
-- **Model contract**: map `match_spec()`, app, serialization, and backward-compatible loaders before trimming. Keep prediction inputs/state and compact schema metadata; extract diagnostics before promotion and test round-trip predictions.
-- **Accuracy contract**: stop generating/publishing class-wise accuracy review rows rather than filtering only at display time; keep aggregate denominators, coverage, old/new provenance, and shifts interpretable.
+- **Model contract**: map `match_spec()`, app, serialization, and backward-compatible loaders before trimming. Keep prediction inputs/state and compact schema metadata; extract diagnostics before promotion, reduce released glmnet fits to the selected lambda, and test round-trip predictions. The exact historical derivative model (`Wk7H...`) is 12,546,653 bytes; the replacement must not exceed it.
+- **Accuracy contract**: publish only overall accuracy percentages with artifact/source provenance; keep class-wise, macro, coverage, score, and training diagnostics out of the review table.
+- **Deployed-artifact assessment**: apply each medoid to its complete corresponding processed library and each existing model to its complete corresponding source dataset once. Do not split, reduce medoids, or retrain models for these assessments; retain grouped holdouts only for full-reference nearest-neighbor evaluation.
 - **Rebuild staging**: probe all three techniques and recipes with ≤100 spectra per class, then benchmark medoid reduction/model fit at representative largest-class dimensions. Set expected full-stage time from the probe; abort/restart from checkpoints at >2× that estimate, >80% available RAM, or 30 minutes without progress/checkpoint evidence.
 - **Performance**: extend `benchmarks/library_builder.R` with old-versus-slim serialized bytes, in-memory bytes, and five repeated `readRDS()` timings plus prediction equivalence. Target medoid derivative ≤5 MB and no-baseline ≤3 MB; every other runtime artifact must shrink materially or document irreducible model/spectral state.
 - **Generated docs**: edit roxygen/package metadata, run configured roxygen2 8.0.0, and inspect `NAMESPACE`/`man/*.Rd`; never hand-edit generated output.
-- **Bundled app/pipeline**: no analysis routing change and no diagram update. Synchronize immutable AWS pins only; test genuine full, medoid, and model identification from the rebuilt set.
-- **Hosted impact**: shared `R/` and staged libraries change. Run `-HostedAppStatic`, exact-artifact `/`, `/app/`, `/pkgdown/` preflight with library matching, and the release-triggered clean wasm rebuild; stage only slim medoid/model artifacts.
+- **Bundled app/pipeline**: no Shiny analysis routing change and no diagram update. Package batch H5 analysis gains a bounded file-backed route; verify exact eager parity on fixtures and a representative real H5 slab.
+- **Hosted impact**: shared `R/`, app fallback, and staged libraries change. Keep the package/WASM dependency closure pinned, but fetch latest slim medoid/model data at action time and record their resolved hashes; run `-HostedAppStatic`, exact-artifact preflight, and the release-triggered clean wasm rebuild.
 
 ## Package Surfaces
 
@@ -73,20 +77,24 @@
 - [x] Run the subset probe and `benchmarks/library_builder.R`; verify object invariants, exact/tolerant prediction parity, size targets, read latency, budgets, and checkpoint restart.
 - [x] Run the clean full rebuild first; compare IDs, axes, counts, metadata names, warnings, joins/matches, model predictions, assessment completeness, sizes, memory, and read timings with `4a32e68349ba`.
 - [x] Make `get_lib()` AWS-only, remove OSF storage guidance/call sites, regenerate documentation, and update 2.0.0 release prose.
-- [ ] Add canonical `library_name`, retain reviewed broad source categories, reassign undersupported classes, audit every source library, and rebuild with explicit complete-drop assessments.
+- [x] Add canonical `library_name`, retain reviewed broad source categories, reassign undersupported classes, audit every source library, and rebuild with explicit complete-drop assessments.
+- [x] Remove captured glmnet training calls, publish selected-lambda-only logistic fits at or below the 12.55 MB historical derivative model, disable random forests in routine builds, assess deployed medoids/models once without retraining, and resume the completed build from model checkpoints.
 - [x] Correct `raman_hdpe` licensing and shorten README while preserving advanced guidance in vignettes.
-- [ ] After maintainer upload, pin all version IDs/hashes and validate byte-identical downloads plus local and hosted type-specific matches.
+- [x] After maintainer upload, switch routine consumers to latest AWS objects, retain opt-in historical revision tests, and validate current downloads plus staged hashes and type-specific matches.
+- [x] Replace sparse mixed assessment unions with coherent long-form review tables, restore compact error-mode accuracy comparisons without retraining, enforce the 10% missingness ceiling, and retain detailed evidence separately.
+- [x] Route H5 batch paths and `all_cell_id` through bounded FileSpecs chunks; reproduce the 4.94 GB eager-allocation cause and verify a real 2,384-spectrum slab without `bad_alloc`.
 - [ ] Complete OPUS, code-analysis, encoding/licensing, test-runtime, vignette, URL, reverse-dependency, exact-tarball, and multi-platform CRAN gates.
 - [ ] Run `-HostedAppStatic`, matching-artifact preflight, and clean wasm build once on the final rebuilt/pinned candidate; reconcile evidence, processes, `git status`, and scratch cleanup.
 
 ## Verification And Open Questions
 
 - Focused order: sanitizer/assessment/model tests → payload benchmark/subset probe → full rebuild → AWS integration → docs/vignettes → full tests/check → hosted/release gates. Reuse evidence only while covered code, artifacts, pins, and contracts are unchanged.
-- Upload/publishing remains maintainer-owned. Capture S3 version IDs before pin changes and do not validate only through unversioned cached CloudFront responses.
+- Upload/publishing remains maintainer-owned. Routine consumers deliberately follow current CloudFront objects; exact comparison tests must supply an explicit S3 version ID, while action manifests preserve the resolved content hashes.
 - Confirm whether any external maintainer workflow consumes `reference_library_build.rds`; absent a consumer, omit the 688 MB aggregate and retain the manifest plus canonical `assessments.rds`.
 - Confirm canonical 2.0 public/support URLs and third-party redistribution rights; remove unsupported links/assets rather than guessing replacements or relicensing.
 - 2026-09-22: all seven runtime AWS objects are pinned and pass byte/SHA/load/full-medoid-model matching on R 4.3.3 and R 4.6.1; `assessments.rds` and release index/manifest are not yet public, so R15 remains open.
-- Current R 4.3.3 candidate: 3,884 assertions passed with 30 expected validation warnings and two guarded AWS skips; 353 hosted-static assertions passed. The staged check rebuilt both CRAN vignettes and has 0 errors, 0 warnings, and one explained valid-UTF-8 NOTE in 12m16s. R 4.6.1 remains to be rerun after the current source changes; current CRAN reverse dependencies: none.
+- 2026-09-23 release `2c1b3ce60210`: models are 800,310/796,970 bytes with exact pre-slim prediction parity, no RF, 422,227 complete-dataset model rows, and 213,780 complete-library medoid rows; Nicolas Coca is retained and no source library is completely dropped.
+- Current R 4.3.3 candidate: full tests passed in 270.7s with expected validation warnings and two guarded AWS skips; 357 hosted-static assertions passed. The exact staged check rebuilt both CRAN vignettes and has 0 errors, 0 warnings, and one explained valid-UTF-8 NOTE in 9m21s. R 4.6.1 remains to be rerun after the current source changes; current CRAN reverse dependencies: none.
 - Hosted static gate passes 357 assertions. The exact `41722b5` GitHub wasm artifact passes its 118-package closure, staged AWS library match (0.9715), 269 MB site assembly, and full desktop/mobile browser workflow after selecting the typed Raman medoid partition and accepting the 2.0 library label/quoted CSV contract. A clean post-fix CI rerun and R-patched/devel Linux/macOS checks remain, so the last two checklist items stay open.
 
 ## Approval Notes

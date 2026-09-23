@@ -4289,14 +4289,6 @@ app_library_dir <- function() {
   dir
 }
 
-app_library_release <- getFromNamespace(
-  ".openspecy_library_release", "OpenSpecy"
-)()
-app_library_revisions <- setNames(
-  app_library_release$version_id,
-  app_library_release$type
-)
-
 app_wasm_library_types <- function() {
   configured <- getOption("openspecy.shiny.wasm.libraries", character())
   if (length(configured)) return(configured)
@@ -4452,11 +4444,7 @@ load_app_library <- function(type) {
   }
 
   download_result <- tryCatch(
-    get_lib(
-      type,
-      path = library_path,
-      revision = unname(app_library_revisions[[type]])
-    ),
+    get_lib(type, path = library_path),
     error = function(e) e,
     warning = function(w) w
   )

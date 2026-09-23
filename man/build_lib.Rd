@@ -351,10 +351,10 @@ Every spectrum receives a derived \code{library_name}: populated
 \code{organization} first, otherwise \code{user_name}. The cleanup summary
 includes source-library counts at each major stage and identifies the first
 stage and reason whenever an entire source library is dropped. Accuracy
-tables contain overall aggregate metrics only. Old/new metrics are
-adjacent columns, accuracy and confusion are ranked by the new result with an
-old fallback, model diagnostics are ranked by absolute correlation, and
-quality shifts omit passes. Row-level tests, split manifests, model-training
+tables contain overall aggregate metrics only in long form, confusion tables
+retain misidentifications only, and model error-mode tables compare accuracy
+percentages with and without each automated-test flag. Review tables reject
+columns with more than 10 percent missing values. Row-level tests, split manifests, model-training
 diagnostics, and release manifests remain hash-addressed evidence attributes
 rather than additional review leaves. Each in-memory training model contains
 one \code{tests} data.table and a one-spectrum \code{fill} object. Versioned
@@ -431,14 +431,13 @@ class/type strata after physical identifiers and exact spectral-content
 duplicates have been joined into stable groups. Candidate artifacts are assessed on candidate data and
 legacy artifacts on legacy data, so taxonomy changes do not require fuzzy
 cross-version class matching. Query identifiers are removed from full and
-medoid references by group before matching to prevent transformed duplicate
-or physical-replicate self-matches. Both logistic and random-forest
-assessment models are refit on their source-local grouped training partition;
-production models still use all eligible spectra.
-Held-out model outputs are also joined to per-spectrum assessment metric
-values. Point-biserial Pearson correlations with incorrect identification
-are ranked within each model output and across each source so the strongest
-quality-related error associations can be reviewed directly.
+references by group before matching to prevent transformed duplicate or
+physical-replicate self-matches. Each medoid artifact separately identifies
+its complete corresponding processed library, measuring the deployed medoid
+search directly without another split. Model assessments do not retrain models:
+each existing candidate or legacy model identifies its complete corresponding
+source dataset once. This measures the deployed artifact directly and keeps
+assessment generation bounded by prediction rather than model fitting.
 After derivative and baseline-removal processing, FTIR spectra whose
 2200--2420 CO2-region maximum exceeds twice the 2420--2550 silent-region
 maximum are flattened and reassessed; failed postconditions are removed.
@@ -503,8 +502,8 @@ forest uses inverse-frequency balanced case sampling and out-of-bag
 predictions. This improves minority-class representation in each bootstrap
 sample without applying a second class-vote correction.
 Treat the stored out-of-bag metrics as fit diagnostics: balanced resampling
-can make them optimistic, so grouped held-out accuracy is the comparison and
-model-selection metric used by the library workflow.
+can make them optimistic. The library workflow separately reports accuracy
+from applying each deployed model to its complete corresponding dataset.
 Missing training values are replaced with the finite mean at each
 wavenumber. The returned model carries the same training-mean filler so
 \code{\link{match_spec}()} can identify partially covered spectra.
