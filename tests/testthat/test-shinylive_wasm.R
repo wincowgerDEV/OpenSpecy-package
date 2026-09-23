@@ -314,6 +314,19 @@ test_that("Shinylive wasm library allow-list is intentionally small", {
   expect_false(any(c("derivative", "nobaseline", "raw") %in% library_types))
 })
 
+test_that("staged-library smoke selects the Raman medoid partition", {
+  smoke_path <- test_path("..", "..", "tools", "wasm",
+                          "smoke-staged-libraries.R")
+  if (!file.exists(smoke_path)) {
+    skip("Repository-only wasm deployment tools are not in the package tarball")
+  }
+  source <- paste(readLines(smoke_path, warn = FALSE), collapse = "\n")
+
+  expect_match(source, '"raman" %in% names\\(lib\\)', fixed = FALSE)
+  expect_match(source, 'lib\\[\\["raman"\\]\\]', fixed = FALSE)
+  expect_match(source, "OpenSpecy::is_OpenSpecy", fixed = TRUE)
+})
+
 test_that("pinned wasm artifacts must match their exact package commit", {
   env <- new.env(parent = globalenv())
   source_wasm_tool("check-wasm-artifact.R", env)
@@ -992,7 +1005,8 @@ test_that("hosted deployment exports the exact current bundled app", {
     smoke, fixed = TRUE
   )
   map_run <- grep("await runButton.click();", smoke, fixed = TRUE)
-  top_n_lines <- grep("toHaveLength(209)", smoke, fixed = TRUE)
+  top_n_records <- grep("csvRecordCount(mapTopMatches.content", smoke,
+                        fixed = TRUE)
   expect_length(top_n_locator, 1L)
   expect_length(top_n_tab, 1L)
   expect_length(top_n_fill, 1L)
@@ -1000,15 +1014,16 @@ test_that("hosted deployment exports the exact current bundled app", {
   expect_length(top_n_grouping, 1L)
   expect_length(detailed_metadata, 1L)
   expect_length(selected_col_id, 1L)
-  expect_length(top_n_lines, 1L)
+  expect_length(top_n_records, 1L)
   expect_lt(top_n_tab, top_n_locator)
   expect_lt(top_n_locator, top_n_fill)
   expect_lt(top_n_fill, top_n_blur)
   expect_lt(top_n_blur, top_n_grouping)
-  expect_true(any(map_run > top_n_grouping & map_run < top_n_lines))
+  expect_true(any(map_run > top_n_grouping & map_run < top_n_records))
   expect_lt(detailed_metadata, selected_col_id)
-  expect_lt(top_n_blur, top_n_lines)
-  expect_true(any(grepl("toHaveLength(209)", smoke, fixed = TRUE)))
+  expect_lt(top_n_blur, top_n_records)
+  expect_true(any(grepl(".toBe(209)", smoke, fixed = TRUE)))
+  expect_true(any(grepl("character === '\"'", smoke, fixed = TRUE)))
   expect_true(any(grepl("cannot allocate vector", smoke, fixed = TRUE)))
   expect_true(any(grepl("\\$table\\.DataTable is not a function", smoke,
                         fixed = TRUE)))

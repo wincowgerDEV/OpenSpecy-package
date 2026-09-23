@@ -24,6 +24,13 @@ for (type in library_types) {
 
 query <- OpenSpecy::read_any(OpenSpecy::read_extdata("raman_hdpe.csv"))
 lib <- OpenSpecy::load_lib("medoid_derivative", path = library_dir)
+if (is.list(lib) && is.null(lib$wavenumber)) {
+  if (!"raman" %in% names(lib) || !OpenSpecy::is_OpenSpecy(lib[["raman"]])) {
+    stop("Staged derivative medoids do not contain a Raman partition.",
+         call. = FALSE)
+  }
+  lib <- lib[["raman"]]
+}
 query <- OpenSpecy::process_spec(
   query,
   active = TRUE,

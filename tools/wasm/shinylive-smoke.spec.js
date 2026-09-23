@@ -24,6 +24,31 @@ function dispositionFilename(disposition) {
   return plain ? plain[1] : "";
 }
 
+function csvRecordCount(text) {
+  let records = 0;
+  let inQuotes = false;
+  let hasContent = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '"') {
+      if (inQuotes && text[index + 1] === '"') {
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      hasContent = true;
+    } else if (character === "\n" && !inQuotes) {
+      if (hasContent) records += 1;
+      hasContent = false;
+    } else if (character !== "\r") {
+      hasContent = true;
+    }
+  }
+
+  return records + (hasContent ? 1 : 0);
+}
+
 function tinyEnviFiles() {
   const header = [
     "ENVI", "samples = 2", "lines = 2", "bands = 3",
@@ -689,7 +714,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(appFrame.locator("#openspecy_busy_message")).toContainText(
     /Loading the reference library|Preparing analysis|Preprocessing|Identifying|Rendering/
   );
-  await expect(firstMatch).toContainText(/poly\(ethylene\)/i, {
+  await expect(firstMatch).toContainText(/poly(?:\(ethylene\)|ethylene).*hdpe/i, {
     timeout: 600000,
   });
   await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
@@ -748,7 +773,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
       label: "Top Matches",
       filenamePattern: /^Top-Matches-.*\.csv$/i,
       contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
-      contentPattern: /poly\(ethylene\)/i,
+      contentPattern: /poly(?:\(ethylene\)|ethylene).*hdpe/i,
       testInfo,
       runtimeDiagnostics,
     });
@@ -892,9 +917,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     testInfo,
     runtimeDiagnostics,
   });
-  const mapTopMatchLines = mapTopMatches.content.toString("utf8")
-    .split(/\r?\n/).filter(Boolean);
-  expect(mapTopMatchLines).toHaveLength(209);
+  expect(csvRecordCount(mapTopMatches.content.toString("utf8"))).toBe(209);
   const mapDownloadLogs = runtimeDiagnostics.slice(mapDiagnosticStart).join("\n");
   expect(mapDownloadLogs).toMatch(/creating 'Top Matches' download/i);
   expect(mapDownloadLogs).toMatch(/completed 'Top Matches' download/i);

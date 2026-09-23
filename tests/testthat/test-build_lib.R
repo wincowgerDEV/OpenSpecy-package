@@ -1492,6 +1492,11 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
           spectrum_type],
     "raman"
   )
+  expect_equal(
+    types[organization == "walters art museum pigment library",
+          c(library_type, spectrum_type)],
+    c("pigments", "raman")
+  )
   expect_false(anyNA(types$spectrum_type))
   expect_false(any(types$spectrum_type == ""))
   expect_true(all(c("interpretation", "form_factor", "shape", "x_unit",

@@ -87,7 +87,7 @@
 - Confirm canonical 2.0 public/support URLs and third-party redistribution rights; remove unsupported links/assets rather than guessing replacements or relicensing.
 - 2026-09-22: all seven runtime AWS objects are pinned and pass byte/SHA/load/full-medoid-model matching on R 4.3.3 and R 4.6.1; `assessments.rds` and release index/manifest are not yet public, so R15 remains open.
 - Current R 4.3.3 candidate: 3,884 assertions passed with 30 expected validation warnings and two guarded AWS skips; 353 hosted-static assertions passed. The staged check rebuilt both CRAN vignettes and has 0 errors, 0 warnings, and one explained valid-UTF-8 NOTE in 12m16s. R 4.6.1 remains to be rerun after the current source changes; current CRAN reverse dependencies: none.
-- Hosted static gate passes 353 assertions. Commit `3b92b15` now pins the candidate, but exact-artifact preflight/clean wasm awaits a running Docker engine or fresh CI artifact; R-patched/devel Linux/macOS checks also remain, so the last two checklist items stay open.
+- Hosted static gate passes 357 assertions. The exact `41722b5` GitHub wasm artifact passes its 118-package closure, staged AWS library match (0.9715), 269 MB site assembly, and full desktop/mobile browser workflow after selecting the typed Raman medoid partition and accepting the 2.0 library label/quoted CSV contract. A clean post-fix CI rerun and R-patched/devel Linux/macOS checks remain, so the last two checklist items stay open.
 
 ## Approval Notes
 
