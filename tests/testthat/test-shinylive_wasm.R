@@ -785,6 +785,11 @@ test_that("hosted preflight is exact and the full pre-push gate is unskippable",
   expect_true(any(grepl("docker-preflight.ps1", build, fixed = TRUE)))
   expect_true(any(grepl("Assert-OpenSpecyDockerEngine", build,
                          fixed = TRUE)))
+  expect_true(any(grepl("MaxAttempts = 3", docker, fixed = TRUE)))
+  expect_true(any(grepl("attempt -lt $MaxAttempts", docker,
+                         fixed = TRUE)))
+  expect_true(any(grepl("Start-Sleep -Seconds $RetryDelaySeconds", docker,
+                         fixed = TRUE)))
   expect_true(any(grepl("check-wasm-artifact.R", build, fixed = TRUE)))
   expect_true(any(grepl("DependencyCacheDir", build, fixed = TRUE)))
   expect_true(any(grepl("DependencyCacheSeed", build, fixed = TRUE)))

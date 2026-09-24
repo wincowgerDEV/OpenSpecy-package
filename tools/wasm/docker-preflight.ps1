@@ -267,9 +267,26 @@ function Format-OpenSpecyDockerFailure {
 }
 
 function Assert-OpenSpecyDockerEngine {
-  $readiness = Get-OpenSpecyDockerReadiness
-  if (-not $readiness.Ready) {
-    throw (Format-OpenSpecyDockerFailure $readiness)
+  param(
+    [ValidateRange(1, 10)][int]$MaxAttempts = 3,
+    [ValidateRange(0, 60)][int]$RetryDelaySeconds = 3
+  )
+
+  $readiness = $null
+  for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+    $readiness = Get-OpenSpecyDockerReadiness
+    if ($readiness.Ready) { return $readiness }
+
+    if ($attempt -lt $MaxAttempts) {
+      Write-Warning (
+        "Docker engine readiness attempt $attempt of $MaxAttempts failed: " +
+        $readiness.Reason
+      )
+      if ($RetryDelaySeconds -gt 0) {
+        Start-Sleep -Seconds $RetryDelaySeconds
+      }
+    }
   }
-  $readiness
+
+  throw (Format-OpenSpecyDockerFailure $readiness)
 }
