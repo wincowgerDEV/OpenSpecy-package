@@ -53,6 +53,7 @@ match_spec(x, ...)
   top_n = NULL,
   order = NULL,
   top_n_by = NULL,
+  batch_size = NULL,
   add_library_metadata = NULL,
   add_object_metadata = NULL,
   compute = "optimized",
@@ -130,6 +131,12 @@ one; \code{NULL} skips sorting.}
 \item{top_n_by}{optional single library metadata column name. When supplied
 for a spectral library, \code{top_n} matches are retained independently for
 each non-missing group (for example, \code{"organization"}). It is not
+supported for trained model libraries.}
+
+\item{batch_size}{optional positive integer number of query spectra to match
+per correlation block. For spectral libraries this bounds peak memory and
+requires a finite \code{top_n}; \code{NULL} preserves the ordinary dense
+correlation path unless \code{top_n_by} requires grouped matching. It is not
 supported for trained model libraries.}
 
 \item{add_library_metadata}{name of a column in the library metadata to be

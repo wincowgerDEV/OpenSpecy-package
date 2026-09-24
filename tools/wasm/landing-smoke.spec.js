@@ -75,6 +75,12 @@ test("static landing shell is crawlable, responsive, and base-path safe", async 
   await expect(docsLink).toBeVisible();
   const docsUrl = new URL(await docsLink.getAttribute("href"), page.url());
   expect(docsUrl.pathname).toMatch(/\/site\/pkgdown\/$/);
+  const emailProject = page.getByRole("link", { name: /Email the project/i });
+  await expect(emailProject).toHaveAttribute(
+    "href", "mailto:wincowger@gmail.com?subject=OpenSpecy%20inquiry"
+  );
+  await expect(emailProject).toHaveAttribute("target", "_blank");
+  await expect(emailProject).toHaveAttribute("rel", /noopener/);
 
   await page.screenshot({
     path: path.join(screenshotDir, "landing-desktop.png"),

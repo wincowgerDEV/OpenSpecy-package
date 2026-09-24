@@ -74,6 +74,18 @@ query_specs <- as_Specs(
 match_spec(query_specs, library_specs, top_n = 5)
 ```
 
+For a large in-memory `OpenSpecy` query, bound the temporary
+reference-by-query correlation matrix with `batch_size`. A smaller positive
+integer lowers peak memory and adds loop overhead; a larger value is faster
+when memory permits. Bounded matching requires a finite `top_n` and preserves
+the same ranked rows and ordering as the dense calculation.
+
+```{r bounded-match, eval=FALSE}
+matches <- match_spec(
+  query_map, library = spec_lib, top_n = 1, batch_size = 1000
+)
+```
+
 The file-backed `FileSpecs` workflow for maps larger than memory is documented
 in the standard operating procedure. The bundled and browser app pipeline,
 including spatial and spectral clustering behavior, is documented in the app

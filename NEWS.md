@@ -1,5 +1,23 @@
 # OpenSpecy 2.0.0
 
+- `match_spec()` now accepts `batch_size` for bounded spectral-library Top-N
+  searches. The bundled app exposes this limit for dense and file-backed
+  identification so large in-memory maps do not allocate one full correlation
+  matrix.
+- The bundled app now presents one direct-path **Choose spectra...** control:
+  it opens the native file chooser on Windows and macOS when available and the
+  no-copy filesystem browser elsewhere. It also presents the requested
+  Advanced-control order, scopes pixel calibration to particle
+  collapse, and shows Column ID plus available X/Y coordinates in Simple
+  Metadata. Min-Max Normalize consistently rescales every plotted spectrum,
+  and the Logistic weight legend controls its complete overlay.
+- Quantification ratios and measurements can be defined before upload or Run,
+  persist when a file is selected, and can be cleared together with Remove
+  All. Settings tabs turn green whenever they contain an active feature and
+  use the same dark-panel, blue-outline hover treatment as quality-status
+  controls.
+- The landing contact links now open through the browser's external mail
+  handler.
 - Reference-library downloads, bundled-app fallback, and Shinylive staging now
   use the latest unversioned AWS objects by default; explicit S3 `versionId`
   downloads remain available for historical comparisons, and hosted staging
@@ -37,8 +55,8 @@
   pruning, comparison, and model-training diagnostics in a standalone
   `assessments.rds`. Runtime library, medoid, and model files are stripped to
   scientific/prediction state for smaller, faster-loading downloads; published
-  accuracy reviews now contain only the overall accuracy percentage and its
-  identifying context.
+  accuracy reviews now contain overall and macro class accuracy percentages,
+  evaluated class counts, and adjacent old/new identifying context.
 
 - Reference-library downloads now use AWS exclusively. `get_lib()` no longer
   accepts the obsolete `aws` switch, and AWS now serves `raw.rds`.
@@ -372,7 +390,8 @@
   and pass their paths to the ordinary `read_any()` pipeline, avoiding the
   copying multipart/R-raw upload bridge while still fully materializing an
   in-memory `OpenSpecy` object. Shinylive now presents only that mounted-file
-  picker, while local Shiny presents only its native upload. Hosted mount and
+  picker, while local Shiny presents one direct-path picker that uses the native
+  Windows/macOS dialog when available and otherwise uses `shinyFiles`. Hosted mount and
   read/materialization status appears in the central progress popup instead of
   explanatory/status text below the picker. Mounted text spectra are read
   through `fread()`'s text parser to avoid its unsupported 32-bit WORKERFS file

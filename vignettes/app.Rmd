@@ -88,10 +88,13 @@ the latest tutorial result available so you can continue exploring it.
 # Reading Data
 
 Once the app is open, select your data at the top left and then click **Run**.
-Local Shiny uses a filesystem picker and reads the selected source path without
-making a Shiny upload copy. The hosted app uses its single browser picker and
-mounts that file through WORKERFS. Selection only stages the source; the central
-progress popup reports reading and every later analysis phase after **Run**.
+Local Shiny provides one **Choose spectra...** control. It opens the operating
+system's multi-file dialog on Windows and macOS when available, or the mounted
+filesystem browser elsewhere. The control returns the original filesystem paths, so even very large files are not
+copied into Shiny upload storage. The hosted app uses its single browser picker
+and mounts that file through WORKERFS. Selection only stages the source; the
+central progress popup reports reading and every later analysis phase after
+**Run**.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
 knitr::include_graphics("app/mainpage.jpg")
@@ -228,7 +231,12 @@ knitr::include_graphics("app/signal_settings.jpg")
 knitr::include_graphics("app/min_max.jpg")
 ```
 
-Min-max normalization is usually desired as it will convert spectral intensities to range from 0-1. If raw intensity units are desired, deselect this option. 
+Min-max normalization is usually desired as it converts spectral intensities to
+the range 0--1. The plot rescales the raw, active, and identification traces
+after every selected correction, including a flattening step, so their visible
+scales remain comparable. This final plot rescaling is display-only; downloads
+and quantification retain the canonical processed values. If raw intensity
+units are desired, deselect this option.
 
 ## Smoothing
 
@@ -323,11 +331,13 @@ artifacts occur in spectra.
 ## Quantification
 
 The **Quantification** tab builds user-defined ratios and independent single
-measurements and is off by default. Upload spectra, give a ratio a meaningful
-name, choose **Area ratio** or **Peak ratio**, enter the numerator and
-denominator values, and click **Add Ratio**. Numeric text boxes permit exact
-typed values within the shared wavenumber axis of the final processed data. Add
-as many definitions as needed, or remove a saved definition before exporting.
+measurements. Definitions can be added before a file is uploaded and before
+**Run**: give a ratio a meaningful name, choose **Area ratio** or **Peak
+ratio**, enter the numerator and denominator values, and click **Add Ratio**.
+Numeric text boxes permit exact typed values; once a processed axis exists, new
+definitions are also checked against that axis. Add as many definitions as
+needed, remove one saved definition, or use **Remove All** at the top of the tab
+to clear every ratio and measurement.
 
 Area ratios use two wavenumber ranges and divide the area in the numerator band
 by the area in the denominator band. Peak ratios use two points and divide the
@@ -339,17 +349,20 @@ preprocessing depend on the material and method, so treat this only as a setup
 example.
 
 The **Single Measurements** box can independently save either the area under
-one region or the intensity at one wavenumber. Enable it, name the measurement,
+one region or the intensity at one wavenumber. Name the measurement,
 choose its type, enter the numeric bounds or point, and click **Add
 Measurement**. The app can calculate saved ratios and saved single measurements
 together. Single-wavenumber intensity uses the nearest measured wavenumber and
 does not search for a local peak.
 
-Calculations use the exact final processed spectra shown as the white active
-trace in the **Spectra** plot. Configure the shared preprocessing settings
-before interpreting or comparing results; quantification does not run a second
-preprocessing pipeline. Draft names and numeric values do not start calculation;
-only saved definitions are calculated after Quantification is enabled.
+Calculations use the canonical final processed spectra behind the white active
+trace in the **Spectra** plot. When Min-Max Normalize is selected, the plot can
+apply one final display-only rescaling after later corrections; quantification
+still uses the canonical values and does not run a second preprocessing
+pipeline. Draft names and numeric values do not start calculation; only saved
+definitions are calculated on **Run**. A tab button turns green whenever that
+tab contains an active processing feature; Quantification is green whenever at
+least one ratio or measurement is saved.
 
 The saved area- and peak-ratio definitions, single-region areas,
 single-wavenumber intensities, values, and processed-spectrum source are added
@@ -403,15 +416,16 @@ particle members. Median and geometric-mean collapse still require an in-memory
 map because their exact values cannot be calculated from bounded running sums.
 Connected-particle metadata retains the first X/Y location, perimeter, minimum
 and maximum Feret dimensions, area, and convex-hull area. In **Advanced**,
-**Pixel edge length** and **Pixel length unit** default to `1` and `pixel`.
+the **Collapse Particle Spectra** box contains **Pixel edge length** and
+**Pixel length unit**, which default to `1` and `pixel`.
 Lengths and heatmap coordinates use that scale, areas use its square, and the
 estimated volume is the calibrated area raised to the 3/2 power. Detailed
 metadata/download column names include the selected unit.
 
 **Simple Metadata** is on by default and limits Selection Metadata to Material
 Class, Match Value, Signal to Noise, particle geometry when particles are
-collapsed, and File Name. Turn it off in Advanced to inspect all available
-unit-bearing fields.
+collapsed, File Name, the unique Column ID, and X/Y coordinates when available.
+Turn it off in Advanced to inspect all available unit-bearing fields.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/download_threshold.jpg")
@@ -475,8 +489,10 @@ scores are blacked out in a spectral map and labeled unknown in downloads.
 It also controls how many ranked probabilities a Multinomial model retains.
 **Top N per organization** is on by default: Top N is then applied independently
 to every selected library organization instead of across the combined library.
-Matching iterates through one organization and at most 1,000 query spectra at a
-time. The globally strongest result still supplies the material identity, while
+Matching iterates through one organization and the configured Advanced
+**Identification Batch Size** number of query spectra at a time. Lower values
+reduce peak memory and add overhead; higher values can be faster when memory
+permits. The globally strongest result still supplies the material identity, while
 every retained organization result appears in Matches and Top Matches downloads.
 The per-organization switch is unavailable for model classification. When
 **Filter Library** is enabled, every available organization starts selected.

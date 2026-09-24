@@ -120,7 +120,7 @@ test_that("compact Top Matches obeys requested and default Top N", {
   )
   expect_identical(names(simple), c(
     "Material Class", "Correlation", "Spectrum Identity", "Organization",
-    "Signal to Noise", "File Name"
+    "Signal to Noise", "File Name", "Column ID"
   ))
   expect_false(any(grepl(
     "^(X|Y|Area|Perimeter|Rectangular|Feret|Convex|Estimated Volume)",
@@ -750,7 +750,7 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
     "Perimeter (um)", "Rectangular Minimum (um)", "Feret Minimum (um)",
     "Feret Maximum (um)",
     "Convex Hull Area (um^2)", "Estimated Volume (um^3)",
-    "First X (um)", "First Y (um)", "File Name"
+    "First X (um)", "First Y (um)", "File Name", "Column ID"
   ))
   expect_identical(simple[["Material Class"]], "polyethylene")
   expect_identical(simple[["Probability"]], signif(0.912345, 3))

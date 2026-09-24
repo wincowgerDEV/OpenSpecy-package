@@ -27,7 +27,7 @@ cor_threshold <- 0.6
 
 get_lib("medoid_derivative")
 lib <- load_lib("medoid_derivative")
-lib <- filter_spec(lib, lib$metadata$spectrum_type == "raman")
+lib <- lib$raman
 
 wd = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\SilverTest"
 source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\SilverTest\\EWG_0.2umFilter_10-100-1000-10000.h5"
@@ -59,7 +59,7 @@ files <- list.files(path = wd, "EWG_0.2umFilter_10-100-1000-10000_Region.\\.(h5)
 files <- files[!grepl("(particles)|(time)", files)]
 
 result2 <- automate_particle_analysis( 
-    files[3:4],
+    files,
     library = lib,
     output_dir = wd,
     material_col = "material_class",

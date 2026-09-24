@@ -8,15 +8,63 @@ app_wasm_mode <- function() {
     env %in% c("1", "true", "yes", "on")
 }
 
-# Keep the local filesystem picker available without advertising shinyFiles to
-# Shinylive's static dependency scanner. The package is required by run_app()
-# for local sessions and this resolver is never called in WebAssembly mode.
+# Resolve local-only filesystem controls dynamically so Shinylive's dependency
+# scanner does not pull shinyFiles or desktop GUI packages into WebAssembly.
 app_shiny_files <- function(name) {
   if(app_wasm_mode()) {
     stop("Local filesystem controls are unavailable in WebAssembly mode.",
          call. = FALSE)
   }
   getExportedValue("shinyFiles", name)
+}
+
+app_local_file_extensions <- function() {
+  c(
+    "csv", "asp", "tsv", "spc", "jdx", "dx", "RData", "spa", "0",
+    "zip", "img", "h5", "txt", "json", "rds", "hdr", "dat"
+  )
+}
+
+app_native_dialog_available <- function(
+    os_type = .Platform$OS.type,
+    sysname = unname(Sys.info()[["sysname"]]),
+    tcltk_available = isTRUE(capabilities("tcltk")) &&
+      requireNamespace("tcltk", quietly = TRUE)) {
+  identical(os_type, "windows") ||
+    (identical(sysname, "Darwin") && isTRUE(tcltk_available))
+}
+
+app_choose_local_paths <- function(
+    chooser = NULL, os_type = .Platform$OS.type,
+    sysname = unname(Sys.info()[["sysname"]]),
+    tcltk_available = isTRUE(capabilities("tcltk")) &&
+      requireNamespace("tcltk", quietly = TRUE)) {
+  if(is.null(chooser)) {
+    if(identical(os_type, "windows")) {
+      chooser <- utils::choose.files
+    } else if(identical(sysname, "Darwin") && isTRUE(tcltk_available)) {
+      chooser <- getExportedValue("tcltk", "tk_choose.files")
+    } else {
+      stop(
+        "A native multi-file dialog is unavailable; use Filesystem browser.",
+        call. = FALSE
+      )
+    }
+  }
+  patterns <- paste0("*.", app_local_file_extensions(), collapse = ";")
+  filters <- matrix(
+    c("Spectral files", patterns, "All files", "*.*"),
+    ncol = 2L, byrow = TRUE,
+    dimnames = list(NULL, c("Description", "Extensions"))
+  )
+  selected <- chooser(
+    default = "", caption = "Select OpenSpecy spectral files",
+    multi = TRUE, filters = filters, index = 1L
+  )
+  selected <- as.character(selected)
+  selected <- selected[!is.na(selected) & nzchar(selected)]
+  if(!length(selected)) return(character())
+  normalizePath(selected, winslash = "/", mustWork = TRUE)
 }
 
 validate_wasm_package_version <- function() {
@@ -65,7 +113,7 @@ app_guidance_registry <- list(
     title = "Min-Max Normalize",
     controls = "make_rel_decision",
     body = c(
-      "Min-Max Normalize rescales each spectrum to a zero-to-one relative-intensity scale so spectra with different absolute signal levels can be compared.",
+      "Min-Max Normalize rescales every plotted raw, active, and reference spectrum to a zero-to-one relative-intensity scale after the selected corrections, so flattening or other processing cannot leave the active trace on a different display scale.",
       "Turning the owner switch off is a true no-op: uploaded intensity units and scale are retained. This can make absolute intensity differences easier to see, but magnitude may dominate visual comparisons."
     )
   ),
@@ -149,10 +197,9 @@ app_tab_switch_ids <- function() {
       "identification_active", "filter_lib"
     ),
     advanced = c(
-      "threshold_decision", "cor_threshold_decision", "spatial_decision",
-      "xy_grid", "collapse_decision", "load_entire_map",
-      "show_peak_positions",
-      "simple_metadata"
+      "cor_threshold_decision", "threshold_decision", "collapse_decision",
+      "spatial_decision", "simple_metadata", "show_peak_positions",
+      "load_entire_map", "xy_grid"
     )
   )
 }
@@ -161,6 +208,19 @@ app_tab_all_off_values <- function(tab) {
   ids <- app_tab_switch_ids()[[tab]]
   if(is.null(ids)) stop("Unknown settings tab: ", tab, call. = FALSE)
   stats::setNames(rep(FALSE, length(ids)), ids)
+}
+
+app_tab_active_states <- function(settings, ratio_definitions,
+                                  measurement_definitions) {
+  switch_ids <- app_tab_switch_ids()
+  states <- vapply(switch_ids, function(ids) {
+    any(vapply(ids, function(id) isTRUE(settings[[id]]), logical(1)))
+  }, logical(1))
+  c(
+    states,
+    quantification = nrow(ratio_definitions) > 0L ||
+      nrow(measurement_definitions) > 0L
+  )
 }
 
 # Return Run-time compatibility notices without blocking or changing expert
@@ -419,17 +479,39 @@ app_mounted_file_info <- function(value) {
   )
 }
 
-app_local_file_info <- function(value, roots) {
+app_native_file_info <- function(value) {
   value <- data.frame(value, stringsAsFactors = FALSE)
   required <- c("name", "size", "type", "datapath")
   if (!nrow(value) || !all(required %in% names(value))) {
-    stop("Local file selection did not return complete file metadata.",
+    stop("Native file selection did not return complete file metadata.",
          call. = FALSE)
   }
   paths <- normalizePath(value$datapath, winslash = "/", mustWork = TRUE)
   if (any(file.info(paths)$isdir)) {
-    stop("Local selection must contain files, not directories.", call. = FALSE)
+    stop("Native selection must contain files, not directories.",
+         call. = FALSE)
   }
+  if (anyDuplicated(tolower(paths))) {
+    stop("Selected files must be unique.", call. = FALSE)
+  }
+  value$datapath <- paths
+  value$size <- as.numeric(file.info(paths)$size)
+  value[, required, drop = FALSE]
+}
+
+app_direct_file_info <- function(paths) {
+  paths <- as.character(paths)
+  paths <- paths[!is.na(paths) & nzchar(paths)]
+  if(!length(paths)) return(NULL)
+  app_native_file_info(data.frame(
+    name = basename(paths), size = as.numeric(file.info(paths)$size),
+    type = "", datapath = paths, stringsAsFactors = FALSE
+  ))
+}
+
+app_local_file_info <- function(value, roots) {
+  value <- app_native_file_info(value)
+  paths <- value$datapath
   root_paths <- unique(normalizePath(
     unname(as.character(roots)), winslash = "/", mustWork = TRUE
   ))
@@ -437,27 +519,22 @@ app_local_file_info <- function(value, roots) {
   inside <- vapply(paths, function(path) {
     any(path == root_paths | startsWith(path, root_prefixes))
   }, logical(1))
-  if (!all(inside)) {
+  if(!all(inside)) {
     stop("Local file selection escaped the configured filesystem roots.",
          call. = FALSE)
   }
-  if (anyDuplicated(tolower(paths))) {
-    stop("Local files must be unique.", call. = FALSE)
-  }
-  value$datapath <- paths
-  value$size <- as.numeric(file.info(paths)$size)
-  value[, required, drop = FALSE]
+  value
 }
 
 app_local_roots <- function() {
-  if (identical(.Platform$OS.type, "windows")) {
+  if(identical(.Platform$OS.type, "windows")) {
     candidates <- paste0(LETTERS, ":/")
     paths <- candidates[dir.exists(candidates)]
     names(paths) <- sub(":/$", "", paths)
   } else {
     paths <- c(root = "/")
   }
-  if (!length(paths)) {
+  if(!length(paths)) {
     stop("No readable local filesystem roots were found.", call. = FALSE)
   }
   stats::setNames(
@@ -1255,10 +1332,13 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
     paste0("first_x_", calibration$length_suffix),
     paste0("first_y_", calibration$length_suffix)
   ) else character()
+  coordinate_columns <- paste0(c("x", "y"), "_", calibration$length_suffix)
+  coordinate_columns <- intersect(coordinate_columns, names(result))
   keep <- intersect(
     c("material_class", "match_val",
       if(isTRUE(library)) c("spectrum_identity", "organization") else NULL,
-      "signal_to_noise", particle_columns, "file_name"),
+      "signal_to_noise", particle_columns, "file_name", "col_id",
+      coordinate_columns),
     names(result)
   )
   result <- result[, keep, with = FALSE]
@@ -1268,8 +1348,13 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
     spectrum_identity = "Spectrum Identity",
     organization = "Organization",
     signal_to_noise = signal_label,
-    file_name = "File Name"
+    file_name = "File Name",
+    col_id = "Column ID"
   )
+  coordinate_friendly <- ifelse(
+    startsWith(coordinate_columns, "x_"), "X", "Y"
+  )
+  names(coordinate_friendly) <- coordinate_columns
   particle_friendly <- c(
     paste0("Area (", calibration$unit, "^2)"),
     paste0("Perimeter (", calibration$unit, ")"),
@@ -1282,7 +1367,7 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
     paste0("First Y (", calibration$unit, ")")
   )
   names(particle_friendly) <- particle_columns
-  labels <- c(friendly, particle_friendly)
+  labels <- c(friendly, particle_friendly, coordinate_friendly)
   data.table::setnames(result, keep, unname(labels[keep]))
   result
 }
@@ -2059,7 +2144,8 @@ app_user_metadata_input_ids <- c(
   "threshold_decision", "signal_basis", "MinSNR", "MaxSNR",
   "signal_selection",
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
-  "xy_grid", "load_entire_map", "collapse_decision", "collapse_type",
+  "xy_grid", "load_entire_map", "identify_batch_size",
+  "collapse_decision", "collapse_type",
   "particle_id_strategy",
   "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
   "pixel_size", "pixel_unit", "simple_metadata", "show_peak_positions",
@@ -2362,7 +2448,7 @@ app_ratio_column_name <- function(name, type) {
 }
 
 app_add_ratio_definition <- function(definitions, name, type, numerator,
-                                     denominator, axis) {
+                                     denominator, axis = NULL) {
   expected <- names(app_empty_ratio_definitions())
   if(!is.data.frame(definitions) || !identical(names(definitions), expected)) {
     stop("Ratio definitions have an unexpected structure.", call. = FALSE)
@@ -2375,11 +2461,14 @@ app_add_ratio_definition <- function(definitions, name, type, numerator,
          call. = FALSE)
   }
 
-  axis <- sort(unique(as.numeric(axis)))
-  axis <- axis[is.finite(axis)]
-  if(!length(axis)) {
-    stop("Upload and process a valid spectrum before adding ratios.",
-         call. = FALSE)
+  validate_axis <- !is.null(axis)
+  if(validate_axis) {
+    axis <- sort(unique(as.numeric(axis)))
+    axis <- axis[is.finite(axis)]
+    if(!length(axis)) {
+      stop("The processed spectrum does not have a valid wavenumber axis.",
+           call. = FALSE)
+    }
   }
   normalize_selection <- function(value, expected_length, label) {
     if(!is.numeric(value) || length(value) != expected_length ||
@@ -2402,13 +2491,14 @@ app_add_ratio_definition <- function(definitions, name, type, numerator,
   }
 
   values <- c(numerator, denominator)
-  if(any(values < axis[[1L]] | values > axis[[length(axis)]])) {
+  if(validate_axis &&
+     any(values < axis[[1L]] | values > axis[[length(axis)]])) {
     stop(
       "Ratio selections must stay within the displayed processed wavenumber range.",
       call. = FALSE
     )
   }
-  if(identical(type, "area") &&
+  if(validate_axis && identical(type, "area") &&
      (!any(axis >= numerator[[1L]] & axis <= numerator[[2L]]) ||
       !any(axis >= denominator[[1L]] & axis <= denominator[[2L]]))) {
     stop(
@@ -2541,7 +2631,7 @@ app_measurement_column_name <- function(name, type) {
 }
 
 app_add_measurement_definition <- function(definitions, name, type, values,
-                                           axis) {
+                                           axis = NULL) {
   expected <- names(app_empty_measurement_definitions())
   if(!is.data.frame(definitions) || !identical(names(definitions), expected)) {
     stop("Measurement definitions have an unexpected structure.",
@@ -2555,11 +2645,14 @@ app_add_measurement_definition <- function(definitions, name, type, values,
          call. = FALSE)
   }
 
-  axis <- sort(unique(as.numeric(axis)))
-  axis <- axis[is.finite(axis)]
-  if(!length(axis)) {
-    stop("Upload and process a valid spectrum before adding measurements.",
-         call. = FALSE)
+  validate_axis <- !is.null(axis)
+  if(validate_axis) {
+    axis <- sort(unique(as.numeric(axis)))
+    axis <- axis[is.finite(axis)]
+    if(!length(axis)) {
+      stop("The processed spectrum does not have a valid wavenumber axis.",
+           call. = FALSE)
+    }
   }
   expected_length <- if(identical(type, "area")) 2L else 1L
   if(!is.numeric(values) || length(values) != expected_length ||
@@ -2575,13 +2668,14 @@ app_add_measurement_definition <- function(definitions, name, type, values,
   }
   values <- sort(as.numeric(values))
   if(identical(type, "point")) values <- rep(values, 2L)
-  if(any(values < axis[[1L]] | values > axis[[length(axis)]])) {
+  if(validate_axis &&
+     any(values < axis[[1L]] | values > axis[[length(axis)]])) {
     stop(
       "Measurement selections must stay within the displayed processed wavenumber range.",
       call. = FALSE
     )
   }
-  if(identical(type, "area") &&
+  if(validate_axis && identical(type, "area") &&
      !any(axis >= values[[1L]] & axis <= values[[2L]])) {
     stop(
       "The measurement area must contain at least one displayed processed wavenumber.",
@@ -4114,6 +4208,7 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
           c(0, "#d73027"), c(0.5, "#fee08b"), c(1, "#1a9850")
         ),
         zmin = -limit, zmax = limit, zmid = 0, opacity = 0.28,
+        legendgroup = "logistic_weight", showlegend = FALSE,
         showscale = TRUE,
         colorbar = list(
           title = "Logistic<br>weight", thickness = 12,
@@ -4126,6 +4221,15 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
         ),
         inherit = FALSE
       )
+      plot <- plotly::add_trace(
+        plot,
+        x = weights$wavenumber[[1L]], y = 2, yaxis = "y2",
+        type = "scatter", mode = "markers",
+        name = "Logistic weight", legendgroup = "logistic_weight",
+        showlegend = TRUE,
+        marker = list(color = "#1a9850", size = 9, symbol = "square"),
+        hoverinfo = "skip", inherit = FALSE
+      )
     }
   }
   plot <- add_spectrum(
@@ -4133,9 +4237,9 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
     "rgba(203, 213, 225, 0.24)", 1.2
   )
   plot <- add_spectrum(
-    # Keep the active trace byte-for-byte on the final DataR() scale so that
-    # displayed values and quantification use exactly the same processed data.
-    plot, prepare_trace(active), "Active spectrum",
+    # Normalization is display-only; quantification continues to use the
+    # canonical processed values even when all plotted traces are rescaled.
+    plot, prepare_trace(active, normalize = make_rel), "Active spectrum",
     app_plot_palette$spectrum, 2.4
   )
   plot <- add_spectrum(
@@ -4165,7 +4269,8 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
       bgcolor = "rgba(11, 25, 41, 0.82)",
       bordercolor = app_plot_palette$grid,
       borderwidth = 1,
-      font = list(color = app_plot_palette$text)
+      font = list(color = app_plot_palette$text),
+      groupclick = "togglegroup"
     )
   )
   plotly::layout(
@@ -4182,13 +4287,21 @@ app_spectrum_plot <- function(active, raw = NULL, reference = NULL,
   )
 }
 
-app_empty_spectrum_plot <- function() {
+app_empty_spectrum_plot <- function(
+    message = "Upload some data to get started."
+) {
+  annotation <- if(isTruthy(message)) list(list(
+    text = as.character(message)[[1L]], x = 0.5, y = 0.5,
+    xref = "paper", yref = "paper", showarrow = FALSE,
+    font = list(color = app_theme$muted, size = 18)
+  )) else list()
   plotly::plot_ly(x = numeric(), y = numeric(),
                   type = "scatter", mode = "lines") |>
     plotly::layout(
       xaxis = list(title = "wavenumber [cm<sup>-1</sup>]",
                    range = c(4000, 400)),
-      yaxis = list(title = "intensity [-]", range = c(0, 1))
+      yaxis = list(title = "intensity [-]", range = c(0, 1)),
+      annotations = annotation
     ) |>
     app_style_plotly()
 }

@@ -323,7 +323,9 @@ test_that("file-backed threshold inspection keeps the map bounded and selectable
     expect_identical(nrow(meta_cache()), 208L)
     expect_identical(data_click$pixel, env$app_first_retained_pixel(mapping))
     expect_identical(selected_unit_index(), 1L)
-    expect_identical(names(match_metadata()), c("Signal Times Noise", "File Name"))
+    expect_identical(names(match_metadata()), c(
+      "Signal Times Noise", "File Name", "Column ID", "X", "Y"
+    ))
 
     raw_without_minmax <- signal_to_noise()
     session$setInputs(make_rel_decision = TRUE)

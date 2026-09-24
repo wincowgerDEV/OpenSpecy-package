@@ -1359,10 +1359,13 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
 .append_particle_matches <- function(proc_map, library, material_col,
                                      library_id_col) {
   if (is_OpenSpecy(library)) {
-    cors <- cor_spec(proc_map, library, compute = "base")
-    max_cors <- max_cor_named(cors)
-    proc_map$metadata$max_cor_val <- as.numeric(max_cors)
-    proc_map$metadata$max_cor_name <- names(max_cors)
+    matches <- match_spec(
+      proc_map, library, top_n = 1L, batch_size = 1000L,
+      compute = "optimized"
+    )
+    row_order <- match(colnames(proc_map$spectra), matches$object_id)
+    proc_map$metadata$max_cor_val <- matches$match_val[row_order]
+    proc_map$metadata$max_cor_name <- matches$library_id[row_order]
     lib_md <- data.table::as.data.table(library$metadata)
     if (all(c(library_id_col, material_col) %in% names(lib_md))) {
       idx <- match(proc_map$metadata$max_cor_name, lib_md[[library_id_col]])

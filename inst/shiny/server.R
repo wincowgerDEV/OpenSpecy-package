@@ -51,13 +51,10 @@ function(input, output, session) {
   selection_ready_run <- reactiveVal(NULL)
   quality_modal_observers <- new.env(parent = emptyenv())
 
-  # .match_spec_blockwise() computes and discards one library-by-block
-  # correlation matrix at a time so memory stays bounded regardless of query
-  # count; the result is identical for any block size. 1000 cuts per-block R
-  # loop/allocation overhead substantially versus the old 100 on large maps
-  # (tens of thousands of query pixels) while keeping peak memory for one
-  # block (library_count * block_size * 8 bytes) small.
-  identify_block_size <- 1000L
+  identify_batch_size <- reactive({
+    value <- suppressWarnings(as.integer(input$identify_batch_size))
+    if(length(value) != 1L || is.na(value) || value < 1L) 1000L else value
+  })
 
   # The Run button is the single trigger for the full analysis tranche; it is
   # enabled purely by upload completion (preprocessed$data becoming non-NULL)
@@ -155,6 +152,39 @@ function(input, output, session) {
     }, ignoreInit = TRUE)
   })
 
+  output$quantification_all_toggle_ui <- renderUI(
+    actionButton(
+      "quantification_remove_all", "Remove All",
+      icon = icon("trash"), class = "btn-sm openspecy-tab-all-toggle",
+      title = "Remove every saved ratio and measurement."
+    )
+  )
+  outputOptions(
+    output, "quantification_all_toggle_ui", suspendWhenHidden = FALSE
+  )
+
+  observeEvent(input$quantification_remove_all, {
+    ratio_definitions(app_empty_ratio_definitions())
+    measurement_definitions(app_empty_measurement_definitions())
+    analysis_dirty(TRUE)
+  }, ignoreInit = TRUE)
+
+  observe({
+    values <- stats::setNames(
+      lapply(unique(unlist(tab_switch_ids, use.names = FALSE)), function(id) {
+        input[[id]]
+      }),
+      unique(unlist(tab_switch_ids, use.names = FALSE))
+    )
+    states <- app_tab_active_states(
+      values, ratio_definitions(), measurement_definitions()
+    )
+    session$sendCustomMessage(
+      "openspecy-tab-active-state",
+      as.list(states)
+    )
+  })
+
   observe({
     active <- isTRUE(input$identification_active)
     shinyjs::toggleState("id_spec_type", condition = active)
@@ -240,7 +270,7 @@ function(input, output, session) {
 
 
   #Read Data ----
-# The mode-exclusive local Shiny upload and hosted WORKERFS picker enter this
+# Local native/shinyFiles direct paths and hosted WORKERFS mounts enter this
 # function as the same four-column file table and converge before read_any().
 read_uploaded_files <- function(file_info, mounted = FALSE) {
   started <- proc.time()[["elapsed"]]
@@ -521,8 +551,6 @@ stage_selected_files <- function(file_info, mounted = FALSE) {
   heatmap_events_ready(FALSE)
   session$sendCustomMessage("openspecy-heatmap-pending", list())
   session$sendCustomMessage("openspecy-clear-heatmap-click", list())
-  ratio_definitions(app_empty_ratio_definitions())
-  measurement_definitions(app_empty_measurement_definitions())
   quantification_axis(NULL)
   set_upload_status(paste0(
     nrow(file_info), " file", if(nrow(file_info) == 1L) "" else "s",
@@ -547,14 +575,27 @@ if(!app_wasm_mode()) {
   local_roots <- app_local_roots()
   app_shiny_files("shinyFileChoose")(
     input, "local_files", roots = local_roots, session = session,
-    filetypes = c("csv", "asp", "tsv", "spc", "jdx", "dx", "RData",
-                  "spa", "0", "zip", "img", "h5", "txt", "json", "rds",
-                  "hdr", "dat")
+    filetypes = app_local_file_extensions()
   )
   observeEvent(input$local_files, {
     parsed <- app_shiny_files("parseFilePaths")(local_roots, input$local_files)
     file_info <- tryCatch(app_local_file_info(parsed, local_roots),
                           error = identity)
+    if(inherits(file_info, "error")) {
+      set_upload_status(conditionMessage(file_info), "error")
+      return(NULL)
+    }
+    stage_selected_files(file_info, mounted = FALSE)
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$local_native_files, {
+    paths <- tryCatch(app_choose_local_paths(), error = identity)
+    if(inherits(paths, "error")) {
+      set_upload_status(conditionMessage(paths), "error")
+      return(NULL)
+    }
+    if(!length(paths)) return(NULL)
+    file_info <- tryCatch(app_direct_file_info(paths), error = identity)
     if(inherits(file_info, "error")) {
       set_upload_status(conditionMessage(file_info), "error")
       return(NULL)
@@ -1085,19 +1126,9 @@ observeEvent(input$run_analysis, {
   }, ignoreInit = TRUE)
 
   observeEvent(input$quant_ratio_add, {
-    if(is.null(preprocessed$data)) {
-      return()
-    }
-    if(is.null(isolate(canonical_state()$object))) return()
-
     result <- tryCatch({
-      processed <- isolate(DataR())
       type <- isolate(input$quant_ratio_type)
       if(is.null(type)) type <- "area"
-      defaults <- app_quantification_defaults(
-        processed$wavenumber,
-        type = type
-      )
       numerator <- if(identical(type, "peak")) {
         isolate(input$quant_numerator_peak)
       } else {
@@ -1114,19 +1145,14 @@ observeEvent(input$run_analysis, {
           isolate(input$quant_denominator_area_max)
         )
       }
-      if(is.null(numerator) || !length(numerator)) {
-        numerator <- defaults$numerator
-      }
-      if(is.null(denominator) || !length(denominator)) {
-        denominator <- defaults$denominator
-      }
+      axis_state <- isolate(quantification_axis())
       app_add_ratio_definition(
         ratio_definitions(),
         name = isolate(input$quant_ratio_name),
         type = type,
         numerator = numerator,
         denominator = denominator,
-        axis = processed$wavenumber
+        axis = if(is.null(axis_state)) NULL else axis_state$axis
       )
     }, error = function(error) error)
 
@@ -1139,6 +1165,7 @@ observeEvent(input$run_analysis, {
       return()
     }
     ratio_definitions(result)
+    analysis_dirty(TRUE)
     updateTextInput(session, "quant_ratio_name", value = "")
   })
 
@@ -1172,6 +1199,7 @@ observeEvent(input$run_analysis, {
     if(is.na(id)) return()
     definitions <- ratio_definitions()
     ratio_definitions(definitions[definitions$id != id, , drop = FALSE])
+    analysis_dirty(TRUE)
   })
 
   observeEvent(list(quantification_axis(), input$quant_measurement_type), {
@@ -1202,12 +1230,7 @@ observeEvent(input$run_analysis, {
   }, ignoreInit = TRUE)
 
   observeEvent(input$quant_measurement_add, {
-    if(is.null(preprocessed$data)) {
-      return()
-    }
-    if(is.null(isolate(canonical_state()$object))) return()
     result <- tryCatch({
-      processed <- isolate(DataR())
       ui_type <- isolate(input$quant_measurement_type)
       type <- if(identical(ui_type, "intensity")) "point" else "area"
       values <- if(identical(type, "point")) {
@@ -1218,12 +1241,13 @@ observeEvent(input$run_analysis, {
           isolate(input$quant_measurement_area_max)
         )
       }
+      axis_state <- isolate(quantification_axis())
       app_add_measurement_definition(
         measurement_definitions(),
         name = isolate(input$quant_measurement_name),
         type = type,
         values = values,
-        axis = processed$wavenumber
+        axis = if(is.null(axis_state)) NULL else axis_state$axis
       )
     }, error = function(error) error)
     if(inherits(result, "error")) {
@@ -1235,6 +1259,7 @@ observeEvent(input$run_analysis, {
       return()
     }
     measurement_definitions(result)
+    analysis_dirty(TRUE)
     updateTextInput(session, "quant_measurement_name", value = "")
   })
 
@@ -1281,10 +1306,12 @@ observeEvent(input$run_analysis, {
     measurement_definitions(
       definitions[definitions$id != id, , drop = FALSE]
     )
+    analysis_dirty(TRUE)
   })
 
   observeEvent(input$quant_measurement_clear, {
     measurement_definitions(app_empty_measurement_definitions())
+    analysis_dirty(TRUE)
   })
 
   active_ratio_definitions <- reactive({
@@ -1358,7 +1385,7 @@ observeEvent(input$run_analysis, {
         stop(paste(
           "Fully Processed file-backed signal/noise requires chunk-stable",
           "processing;", paste(issues, collapse = ", "),
-          "or enable Load Entire Map into Memory."
+          "or enable Load Entire File into Memory."
         ), call. = FALSE)
       }
       index <- OpenSpecy:::.filespec_index(source)
@@ -1455,7 +1482,9 @@ observeEvent(input$run_analysis, {
     priority = RUN_GATE_PRIORITY_CANONICAL
   )
   observeEvent(input$recalculate_snr, recalculate_snr_preview(), ignoreInit = TRUE)
-  observeEvent(list(input$local_files, input$mounted_files), {
+  observeEvent(list(
+    input$local_files, input$local_native_files, input$mounted_files
+  ), {
     snr_preview(NULL)
     snr_preview_signature(NULL)
   }, ignoreInit = TRUE)
@@ -1522,10 +1551,13 @@ observeEvent(input$run_analysis, {
   })
 
   pixel_calibration <- reactive({
+    if(!isTRUE(input$collapse_decision)) {
+      return(app_pixel_calibration(1, "pixel"))
+    }
     app_pixel_calibration(input$pixel_size, input$pixel_unit)
   })
 
-  identify_blockwise <- function(object) {
+  identify_blockwise <- function(object, batch_size = identify_batch_size()) {
     preserve_axis <- isTRUE(attr(object, "preserve_uploaded_axis", exact = TRUE))
     library <- analysis_library()
     req(!is.null(library))
@@ -1540,7 +1572,7 @@ observeEvent(input$run_analysis, {
       state <- app_identification_block_progress(
         query_count = ncol(object$spectra),
         library_count = ncol(reference$spectra),
-        block_size = identify_block_size,
+        block_size = batch_size,
         completed_blocks = completed_blocks,
         total_blocks = total_blocks
       )
@@ -1554,8 +1586,8 @@ observeEvent(input$run_analysis, {
       analysis_phase(state$message, state$detail, state$progress)
     }
     report_identification_progress()
-    OpenSpecy:::.match_spec_blockwise(
-      object, reference, top_n = top_n_value(), block_size = identify_block_size,
+    match_spec(
+      object, reference, top_n = top_n_value(), batch_size = batch_size,
       top_n_by = if(isTRUE(input$top_n_per_organization)) {
         "organization"
       } else NULL,
@@ -1566,7 +1598,7 @@ observeEvent(input$run_analysis, {
     )
   }
 
-  identify_filespec_best <- function(source, eligible, settings,
+  identify_filespec_best <- function(source, eligible, settings, batch_size,
                                      library_override = NULL,
                                      spatial_smooth = FALSE,
                                      spatial_sigma = c(1, 1, 1)) {
@@ -1577,7 +1609,7 @@ observeEvent(input$run_analysis, {
       stop(paste0(
         "File-backed per-pixel correlation requires chunk-stable processing; ",
         paste(issues, collapse = ", "),
-        ", or enable Load Entire Map into Memory."
+        ", or enable Load Entire File into Memory."
       ), call. = FALSE)
     }
     library <- if(is.null(library_override)) analysis_library() else
@@ -1587,7 +1619,7 @@ observeEvent(input$run_analysis, {
     prepared_reference <- NULL
     total_queries <- sum(eligible, na.rm = TRUE)
     app_stream_filespec_best_matches(
-      source, eligible = eligible, chunk_size = identify_block_size,
+      source, eligible = eligible, chunk_size = batch_size,
       process = function(query) {
         ordinary_process(query, settings = settings, view_only = TRUE)
       },
@@ -1608,7 +1640,7 @@ observeEvent(input$run_analysis, {
         }
         app_match_prepared_best(
           query, prepared_reference,
-          library_block_size = identify_block_size
+          library_block_size = batch_size
         )
       },
       progress = function(completed_blocks, total_blocks,
@@ -1633,7 +1665,7 @@ observeEvent(input$run_analysis, {
     )
   }
 
-  classify_filespec_best <- function(source, eligible, settings,
+  classify_filespec_best <- function(source, eligible, settings, batch_size,
                                      spatial_smooth = FALSE,
                                      spatial_sigma = c(1, 1, 1)) {
     issues <- app_file_stream_processing_issues(
@@ -1643,14 +1675,14 @@ observeEvent(input$run_analysis, {
       stop(paste0(
         "File-backed per-pixel model classification requires chunk-stable ",
         "processing; ", paste(issues, collapse = ", "),
-        ", or enable Load Entire Map into Memory."
+        ", or enable Load Entire File into Memory."
       ), call. = FALSE)
     }
     model_library <- analysis_library()
     req(!is.null(model_library))
     total_queries <- sum(eligible, na.rm = TRUE)
     app_stream_filespec_best_matches(
-      source, eligible = eligible, chunk_size = identify_block_size,
+      source, eligible = eligible, chunk_size = batch_size,
       process = function(query) ordinary_process(
         query, settings = settings, view_only = TRUE
       ),
@@ -1807,6 +1839,7 @@ observeEvent(input$run_analysis, {
       top_n_per_organization = isTRUE(input$identification_active) &&
         !identical(input$lib_type, "model") &&
         isTRUE(input$top_n_per_organization),
+      identify_batch_size = identify_batch_size(),
       threshold_active = isTRUE(input$threshold_decision),
       correlation_active = particle_pipeline_enabled() &&
         isTRUE(input$cor_threshold_decision),
@@ -1931,6 +1964,7 @@ observeEvent(input$run_analysis, {
               classify_filespec_best(
                 spatial, eligible = signal_keep,
                 settings = run_settings$processing,
+                batch_size = run_settings$identify_batch_size,
                 spatial_smooth = run_settings$spatial_smooth,
                 spatial_sigma = run_settings$spatial_sigma
               )
@@ -1938,6 +1972,7 @@ observeEvent(input$run_analysis, {
               identify_filespec_best(
                 spatial, eligible = signal_keep,
                 settings = run_settings$processing,
+                batch_size = run_settings$identify_batch_size,
                 spatial_smooth = run_settings$spatial_smooth,
                 spatial_sigma = run_settings$spatial_sigma
               )
@@ -1983,7 +2018,8 @@ observeEvent(input$run_analysis, {
             ), 24
           )
           background <- app_stream_filespec_processed_mean(
-            spatial, eligible = signal_keep, chunk_size = identify_block_size,
+            spatial, eligible = signal_keep,
+            chunk_size = run_settings$identify_batch_size,
             process = function(query) ordinary_process(
               query, settings = run_settings$processing, view_only = TRUE
             ),
@@ -2006,6 +2042,7 @@ observeEvent(input$run_analysis, {
           pixel_matches <- identify_filespec_best(
             spatial, eligible = signal_keep,
             settings = run_settings$processing,
+            batch_size = run_settings$identify_batch_size,
             library_override = temporary_library,
             spatial_smooth = run_settings$spatial_smooth,
             spatial_sigma = run_settings$spatial_sigma
@@ -2030,7 +2067,9 @@ observeEvent(input$run_analysis, {
             ))
           }
           processed <- ordinary_process(partition$analysis_units)
-          matches <- identify_blockwise(processed)
+          matches <- identify_blockwise(
+            processed, run_settings$identify_batch_size
+          )
           processed <- attach_best_matches(processed, matches)
           return(list(
             object = processed, matches = matches,
@@ -2043,6 +2082,7 @@ observeEvent(input$run_analysis, {
           identify_filespec_best(
             spatial, eligible = signal_keep,
             settings = run_settings$processing,
+            batch_size = run_settings$identify_batch_size,
             spatial_smooth = run_settings$spatial_smooth,
             spatial_sigma = run_settings$spatial_sigma
           )
@@ -2097,7 +2137,9 @@ observeEvent(input$run_analysis, {
           partition$pixel_to_unit <- mapping
         }
         processed <- ordinary_process(partition$analysis_units)
-        matches <- if(use_library) identify_blockwise(processed) else NULL
+        matches <- if(use_library) identify_blockwise(
+          processed, run_settings$identify_batch_size
+        ) else NULL
         processed <- attach_best_matches(processed, matches)
         return(list(
           object = processed, matches = matches,
@@ -2122,7 +2164,9 @@ observeEvent(input$run_analysis, {
           selected <- seq_len(ncol(spatial$spectra))
           processed <- ordinary_process(spatial)
         }
-        matches <- if(use_library) identify_blockwise(processed) else NULL
+        matches <- if(use_library) identify_blockwise(
+          processed, run_settings$identify_batch_size
+        ) else NULL
         processed <- attach_best_matches(processed, matches)
         mapping <- app_identity_pixel_mapping(
           processed, rep(TRUE, ncol(processed$spectra))
@@ -2163,14 +2207,15 @@ observeEvent(input$run_analysis, {
         temporary_library <- cluster_buster_reference(background)
         pixel_matches <- app_match_bounded_best(
           processed_pixels, temporary_library,
-          block_size = identify_block_size,
+          block_size = run_settings$identify_batch_size,
           progress = function(completed_blocks, total_blocks, ...) {
             fraction <- completed_blocks / max(1L, total_blocks)
             analysis_phase(
               paste0("Cluster Buster matching (", floor(100 * fraction), "%)"),
               paste0(
                 "Completed ", completed_blocks, " of ", total_blocks,
-                " query blocks; block size ", identify_block_size, "."
+                " query blocks; block size ",
+                run_settings$identify_batch_size, "."
               ), 38 + 34 * fraction
             )
           }
@@ -2193,7 +2238,9 @@ observeEvent(input$run_analysis, {
           ))
         }
         processed <- ordinary_process(partition$analysis_units)
-        matches <- identify_blockwise(processed)
+        matches <- identify_blockwise(
+          processed, run_settings$identify_batch_size
+        )
         processed <- attach_best_matches(processed, matches)
         return(list(
           object = processed, matches = matches,
@@ -2226,7 +2273,9 @@ observeEvent(input$run_analysis, {
         }
         processed_clusters <- ordinary_process(cluster_partition$analysis_units)
         cluster_matches <- if(use_library) {
-          identify_blockwise(processed_clusters)
+          identify_blockwise(
+            processed_clusters, run_settings$identify_batch_size
+          )
         } else NULL
         processed_clusters <- attach_best_matches(
           processed_clusters, cluster_matches
@@ -2336,7 +2385,9 @@ observeEvent(input$run_analysis, {
           ))
         }
         processed <- ordinary_process(partition$analysis_units)
-        matches <- if(use_library) identify_blockwise(processed) else NULL
+        matches <- if(use_library) identify_blockwise(
+          processed, run_settings$identify_batch_size
+        ) else NULL
         processed <- attach_best_matches(processed, matches)
         return(list(
           object = processed, matches = matches, pixel_matches = NULL,
@@ -2349,7 +2400,9 @@ observeEvent(input$run_analysis, {
       # pass, then collapse the spatial-only source and reprocess the final
       # particles. Their Top-N rows are projected from that same first pass.
       processed_pixels <- ordinary_process(signal_subset)
-      pixel_matches <- identify_blockwise(processed_pixels)
+      pixel_matches <- identify_blockwise(
+        processed_pixels, run_settings$identify_batch_size
+      )
       subset_mapping <- app_identity_pixel_mapping(signal_subset)
       subset_mapping <- mapping_match_fields(
         subset_mapping, subset_mapping$pixel_id, pixel_matches
@@ -2416,7 +2469,8 @@ observeEvent(input$run_analysis, {
     )
   }, ignoreNULL = TRUE)
   observeEvent(
-    list(input$local_files, input$mounted_files), canonical_error_key(NULL),
+    list(input$local_files, input$local_native_files, input$mounted_files),
+    canonical_error_key(NULL),
     ignoreInit = TRUE
   )
 
@@ -2628,20 +2682,12 @@ observeEvent(input$run_analysis, {
     if(!identical(attr(viewed, "openspecy_selection_status"), "retained")) {
       return(NULL)
     }
+    if(isTRUE(input$make_rel_decision)) {
+      viewed <- make_rel(viewed, na.rm = TRUE)
+    }
     app_peak_positions(viewed, top_n = input$peak_count)
   })
 
-  output$active_spectrum_status <- renderText({
-    viewed <- active_spectrum_view()
-    if(identical(attr(viewed, "openspecy_selection_status"),
-                 "rejected_pixel")) {
-      "Rejected-pixel inspection: this processed source pixel was not retained as an analysis unit."
-    } else {
-      "Active retained spectrum"
-    }
-  })
-  outputOptions(output, "active_spectrum_status", suspendWhenHidden = FALSE)
-  
   # SNR ----
   # The selected metric always controls S/N calculation and display. The
   # threshold owner controls only whether its bounds reject/black out pixels.
@@ -2932,9 +2978,9 @@ observeEvent(input$run_analysis, {
       library, query,
       preserve_axis = isTRUE(attr(query, "preserve_uploaded_axis", exact = TRUE))
     )
-    OpenSpecy:::.match_spec_blockwise(
+    match_spec(
       query, reference, top_n = state$settings$top_n,
-      block_size = identify_block_size,
+      batch_size = state$settings$identify_batch_size,
       top_n_by = if(isTRUE(state$settings$top_n_per_organization)) {
         "organization"
       } else NULL,
@@ -3599,7 +3645,12 @@ output$progress_bars <- renderUI({
 
   output$MyPlotC <- renderPlotly({
       if(is.null(preprocessed$data)) {
-          return(app_empty_spectrum_plot() %>%
+          message <- if(is.null(active_file_info())) {
+            "Upload some data to get started."
+          } else {
+            "A new dataset was uploaded. Click Run to analyze it."
+          }
+          return(app_empty_spectrum_plot(message) %>%
                    config(modeBarButtonsToAdd = list("drawopenpath", "eraseshape")))
       }
 
@@ -4255,12 +4306,6 @@ output$progress_bars <- renderUI({
               file.info(file)$size, " bytes)")
     }
   )
-
-  # Hide functions or objects when they shouldn't exist.
-
-  observe({
-      toggle(id = "placeholder1", condition = !isTruthy(preprocessed$data))
-  })
 
   # A DT rerender briefly clears event_rows_selected. Do not treat that transient
   # NULL as a user choice: reset rank only when the viewed spectrum or its

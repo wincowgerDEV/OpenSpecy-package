@@ -33,6 +33,11 @@
 #' for a spectral library, \code{top_n} matches are retained independently for
 #' each non-missing group (for example, \code{"organization"}). It is not
 #' supported for trained model libraries.
+#' @param batch_size optional positive integer number of query spectra to match
+#' per correlation block. For spectral libraries this bounds peak memory and
+#' requires a finite \code{top_n}; \code{NULL} preserves the ordinary dense
+#' correlation path unless \code{top_n_by} requires grouped matching. It is not
+#' supported for trained model libraries.
 #' @param cor_matrix a correlation matrix for object and library,
 #' can be returned by \code{cor_spec()}
 #' @param order an \code{OpenSpecy} used for sorting, ideally the unprocessed
@@ -415,6 +420,16 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   invisible(NULL)
 }
 
+.validate_match_batch_size <- function(batch_size) {
+  if (is.null(batch_size)) return(NULL)
+  if (length(batch_size) != 1L || !is.numeric(batch_size) ||
+      is.na(batch_size) || !is.finite(batch_size) || batch_size < 1 ||
+      batch_size > .Machine$integer.max || batch_size != floor(batch_size)) {
+    stop("'batch_size' must be a positive integer or NULL", call. = FALSE)
+  }
+  as.integer(batch_size)
+}
+
 .append_match_metadata <- function(res, x, library,
                                    add_library_metadata = NULL,
                                    add_object_metadata = NULL) {
@@ -458,14 +473,22 @@ match_spec.default <- function(x, ...) {
 
 match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                                  type = "roll", top_n = NULL, order = NULL,
-                                 top_n_by = NULL,
+                                 top_n_by = NULL, batch_size = NULL,
                                  add_library_metadata = NULL,
                                  add_object_metadata = NULL, 
                                  compute = "optimized",
                                  fill = NULL, ...) {
   .validate_grouped_top_n(top_n, top_n_by)
+  batch_size <- .validate_match_batch_size(batch_size)
   if(is_OpenSpecy(library)) {
-    if (is.null(top_n_by)) {
+    bounded <- !is.null(batch_size) || !is.null(top_n_by)
+    if (isTRUE(bounded) && (is.null(top_n) || length(top_n) != 1L ||
+        !is.numeric(top_n) || is.na(top_n) || !is.finite(top_n) ||
+        top_n < 1 || top_n != floor(top_n))) {
+      stop("a positive integer 'top_n' is required when 'batch_size' or ",
+           "'top_n_by' is used", call. = FALSE)
+    }
+    if (!isTRUE(bounded)) {
       res <- cor_spec(x, library = library, conform = conform, type = type,
                       compute = compute) |>
         ident_spec(x, library = library, top_n = top_n,
@@ -474,7 +497,8 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
     } else {
       res <- .match_spec_blockwise(
         x, library = library, top_n = top_n, top_n_by = top_n_by,
-        block_size = 1000L, na.rm = na.rm, conform = conform, type = type, ...
+        block_size = if (is.null(batch_size)) 1000L else batch_size,
+        na.rm = na.rm, conform = conform, type = type, ...
       )
       res <- .append_match_metadata(
         res, x, library, add_library_metadata, add_object_metadata
@@ -483,6 +507,10 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   } else {
     if (!is.null(top_n_by)) {
       stop("'top_n_by' is not supported for trained model libraries",
+           call. = FALSE)
+    }
+    if (!is.null(batch_size)) {
+      stop("'batch_size' is not supported for trained model libraries",
            call. = FALSE)
     }
     if (is.null(fill) && is.list(library) && is_OpenSpecy(library$fill)) {

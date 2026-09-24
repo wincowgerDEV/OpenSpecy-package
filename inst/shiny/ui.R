@@ -254,55 +254,14 @@ identification_controls <- tagList(
 
 advanced_controls <- tagList(
   app_control_box(
-    "show_peak_positions", "Show Peak Positions", TRUE,
-    sliderInput(
-      "peak_count", "Number of top peaks", min = 1, max = 20,
-      value = 7, step = 1
-    ),
-    note = paste(
-      "Marks the highest derivative-zero maxima on the active processed",
-      "spectrum. Rank, wavenumber, and intensity remain available on hover;",
-      "changing the count is live and does not require Run."
-    )
-  ),
-  app_control_box(
-    "simple_metadata", "Simple Metadata", TRUE,
-    note = paste(
-      "Uses short, human-readable columns for Selection Metadata, Uploaded",
-      "Metadata, Selectable Matches, Top Matches downloads, and particle",
-      "details. Turn this off to inspect detailed metadata fields."
-    )
-  ),
-  app_control_box(
-    "load_entire_map", "Load Entire Map into Memory", FALSE,
+    "cor_threshold_decision", "Threshold Correlation", TRUE,
+    numericInput("MinCor", "Minimum Value", value = 0.7,
+                 min = 0, max = 1, step = 0.1),
+    div(class = "openspecy-mini-plot", uiOutput("cor_plot_ui")),
     note = c(
-      "Off keeps supported hyperspectral maps file-backed and streams bounded chunks for signal/noise, per-pixel correlation thresholding, connected Mean collapse, and active-spectrum inspection.",
-      "On deliberately reads every spectrum into R memory before analysis and then uses the ordinary in-memory workflow. This can enable workflows that are not streamable and may be faster when ample memory is available, but a file-backed float map commonly needs more than twice its on-disk size as an R double matrix, plus processing copies.",
-      "This switch changes execution and memory use, not the selected scientific processing settings. If allocation fails, turn it off and use a supported streamed workflow."
-    )
-  ),
-  bs4Dash::box(
-    width = 12,
-    collapsible = TRUE,
-    collapsed = TRUE,
-    title = "Hyperspectral Pixel Calibration",
-    fluidRow(
-      column(
-        6,
-        numericInput(
-          "pixel_size", "Pixel edge length", value = 1,
-          min = .Machine$double.eps, step = 0.1
-        )
-      ),
-      column(
-        6,
-        textInput("pixel_unit", "Pixel length unit", value = "pixel")
-      )
-    ),
-    footer = footnote(
-      "How spatial units are applied",
-      "Coordinates, perimeter, and Feret lengths are multiplied by the pixel edge length; areas are multiplied by its square. Estimated volume is the cube of the square root of calibrated area.",
-      "The unit is used in heatmap axes and appended to detailed metadata names. Pixel size must be a positive finite number; the default 1 pixel preserves the uploaded grid scale."
+      "Set the minimum match score used for a confident identification.",
+      "Scores at or above the minimum pass; lower or non-finite scores are background.",
+      "For file-backed connected Mean maps, spectra are preprocessed and correlated in bounded chunks and only each pixel's winning score and identity are retained. Spatial smoothing, saturation correction, and automatic CO2/range decisions need the complete-file context; turn those steps off or enable Load Entire File into Memory."
     )
   ),
   app_control_box(
@@ -316,14 +275,8 @@ advanced_controls <- tagList(
       selected = "raw_smoothed"
     ),
     fluidRow(
-      column(
-        6,
-        numericInput("MinSNR", "Minimum Value", value = 4, step = 1)
-      ),
-      column(
-        6,
-        numericInput("MaxSNR", "Maximum Value", value = 1e12, step = 1)
-      )
+      column(6, numericInput("MinSNR", "Minimum Value", value = 4, step = 1)),
+      column(6, numericInput("MaxSNR", "Maximum Value", value = 1e12, step = 1))
     ),
     selectInput(
       "signal_selection", "Signal Thresholding Technique",
@@ -336,8 +289,7 @@ advanced_controls <- tagList(
     div(
       class = "openspecy-snr-preview-header",
       actionButton(
-        "recalculate_snr", "Recalculate Preview",
-        icon = icon("rotate"),
+        "recalculate_snr", "Recalculate Preview", icon = icon("rotate"),
         class = "btn-sm openspecy-run-button openspecy-recalculate-button",
         title = paste(
           "Recompute the Signal/Noise Basis and preview histogram for the",
@@ -346,40 +298,15 @@ advanced_controls <- tagList(
         )
       )
     ),
-    div(
-      id = "snr_preview_container",
-      class = "openspecy-mini-plot",
-      uiOutput("snr_plot_ui")
-    ),
+    div(id = "snr_preview_container", class = "openspecy-mini-plot",
+        uiOutput("snr_plot_ui")),
     note = c(
-      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses the uploaded spectra, the selected Intensity Adjustment (so transmittance or reflectance is measured after conversion to absorbance-like units), and optional Spatial Smooth, and it never Min-Max normalizes. Fully Processed applies the complete enabled preprocessing recipe, including Min-Max Normalize when that switch is on; file-backed maps do this in bounded chunks, so it is slower without loading the complete map.",
-      "Min-Max Normalize can therefore change Fully Processed signal/noise eligibility, but it never changes Raw / Spatially Smoothed signal/noise.",
+      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses the uploaded spectra, the selected Intensity Adjustment, and optional Spatial Smooth, and it never Min-Max normalizes. Fully Processed applies the complete enabled preprocessing recipe, including Min-Max Normalize when that switch is on; file-backed maps do this in bounded chunks.",
       "Minimum and Maximum Value define a strict accepted interval on the selected metric scale: values must be greater than the minimum and less than the maximum. The histogram draws both current thresholds.",
       "Signal Over Noise is a local peak-to-noise ratio, Signal Times Noise emphasizes absolute response, and Total Signal sums intensity. Larger values are not interchangeable between metrics.",
       "Pixels outside either bound are background only when Threshold Signal / Noise is on. Turning it off disables that black map mask but does not disable calculation of the selected metric.",
-      "The preview histogram and Signal map update on Run or Recalculate Preview (green = a recalculation would change them; dark = they already match these settings). The Map Color option and hover use the active metric name. A new upload resets the preview to blank until the first Run or Recalculate."
+      "The preview histogram and Signal map update on Run or Recalculate Preview. A new upload resets the preview until the first calculation."
     )
-  ),
-  app_control_box(
-    "cor_threshold_decision", "Threshold Correlation", TRUE,
-    numericInput("MinCor", "Minimum Value", value = 0.7,
-                 min = 0, max = 1, step = 0.1),
-    div(class = "openspecy-mini-plot", uiOutput("cor_plot_ui")),
-    note = c(
-      "Set the minimum match score used for a confident identification.",
-      "Scores at or above the minimum pass; lower or non-finite scores are background.",
-      "For file-backed connected Mean maps, spectra are preprocessed and correlated in bounded chunks and only each pixel's winning score and identity are retained. Spatial smoothing, saturation correction, and automatic CO2/range decisions need the complete-map context; turn those steps off or enable Load Entire Map into Memory."
-    )
-  ),
-  app_control_box(
-    "spatial_decision", "Spatial Smooth", FALSE,
-    numericInput("sigma", "Spatial Standard Deviation", value = 1,
-                 min = 0.01, max = 3, step = 0.01),
-    note = "Apply Gaussian smoothing to the uploaded hyperspectral map before thresholding or particle grouping."
-  ),
-  app_control_box(
-    "xy_grid", "XY Grid Conform", FALSE,
-    note = "Replace discontinuous uploaded map coordinates with a continuous XY grid."
   ),
   app_control_box(
     "collapse_decision", "Collapse Particle Spectra", FALSE,
@@ -424,14 +351,70 @@ advanced_controls <- tagList(
       "particle_area_threshold", "Minimum Particle Area (pixels)",
       value = 1, min = 0, step = 1
     ),
+    tags$hr(),
+    tags$h5("Hyperspectral Pixel Calibration"),
+    fluidRow(
+      column(
+        6,
+        numericInput(
+          "pixel_size", "Pixel edge length", value = 1,
+          min = .Machine$double.eps, step = 0.1
+        )
+      ),
+      column(6, textInput("pixel_unit", "Pixel length unit", value = "pixel"))
+    ),
     note = c(
       "Turning collapse off leaves pixels in the ordinary app workflow. Particle eligibility uses the active Signal/Noise Basis and its current bounds.",
       "Connected regions use the enabled signal/noise and correlation thresholds and require equal material identity when correlation is active.",
       "Cluster Buster 1000 requires Threshold Signal / Noise plus medoid or full-library Identification. It processes S/N-retained pixels, compares bounded blocks of at most 1,000 against the selected library plus their processed mean as a temporary background, rejects background winners and optional low correlations, joins the remaining touching pixels, then re-identifies final particles without the temporary background. File-backed maps require Mean collapse.",
       "Both cluster modes fit source-scoped PCA then K-means to spatial-only spectra and collapse those groups before other processing. Non-spatial mode keeps the identified clusters as particles. Spatial mode projects their material identities to pixels, joins touching equal-material clusters, collapses the spatial-only data again, and reprocesses without a second identification.",
       "PCA Components and K-means Clusters are requested maxima. The effective values are clamped to each source and reported above. Higher values cost more memory and can make smaller groups.",
-      "Minimum Particle Area is inclusive: groups with fewer pixels than this value are rejected after grouping. Geometric Mean requires every collapsed intensity to be positive."
+      "Minimum Particle Area is inclusive: groups with fewer pixels than this value are rejected after grouping. Geometric Mean requires every collapsed intensity to be positive.",
+      "Pixel edge length and unit calibrate collapsed-particle coordinates, perimeter, Feret lengths, area, estimated volume, and heatmap axes. They are ignored when collapse is off; 1 pixel preserves the uploaded grid scale."
     )
+  ),
+  app_control_box(
+    "spatial_decision", "Spatial Smooth", FALSE,
+    numericInput("sigma", "Spatial Standard Deviation", value = 1,
+                 min = 0.01, max = 3, step = 0.01),
+    note = "Apply Gaussian smoothing to the uploaded hyperspectral map before thresholding or particle grouping."
+  ),
+  app_control_box(
+    "simple_metadata", "Simple Metadata", TRUE,
+    note = paste(
+      "Uses short, human-readable columns for Selection Metadata, Uploaded",
+      "Metadata, Selectable Matches, Top Matches downloads, and particle",
+      "details. Column ID is always included; X and Y are included when",
+      "available. Turn this off to inspect detailed metadata fields."
+    )
+  ),
+  app_control_box(
+    "show_peak_positions", "Show Peak Positions", TRUE,
+    sliderInput(
+      "peak_count", "Number of top peaks", min = 1, max = 20,
+      value = 7, step = 1
+    ),
+    note = paste(
+      "Marks the highest derivative-zero maxima on the active processed",
+      "spectrum. Rank, wavenumber, and intensity remain available on hover;",
+      "changing the count is live and does not require Run."
+    )
+  ),
+  app_control_box(
+    "load_entire_map", "Load Entire File into Memory", FALSE,
+    numericInput(
+      "identify_batch_size", "Identification Batch Size",
+      value = 1000, min = 1, max = 100000, step = 100
+    ),
+    note = c(
+      "Off keeps supported hyperspectral files file-backed and streams bounded chunks for signal/noise, per-pixel correlation thresholding, connected Mean collapse, and active-spectrum inspection.",
+      "On deliberately reads every spectrum into R memory before analysis. A file-backed float dataset commonly needs more than twice its on-disk size as an R double matrix, plus processing copies.",
+      "Identification Batch Size is the maximum number of in-memory query spectra correlated at once. Lower values reduce peak memory but add overhead; higher values are faster when memory allows. Matching results do not change."
+    )
+  ),
+  app_control_box(
+    "xy_grid", "XY Grid Conform", FALSE,
+    note = "Replace discontinuous uploaded map coordinates with a continuous XY grid."
   )
 )
 
@@ -741,6 +724,19 @@ dashboardPage(
           color: var(--openspecy-text);
           background: var(--openspecy-panel-2);
           border-color: var(--openspecy-accent);
+        }
+        #analysis_settings_box .nav-link.openspecy-tab-has-active,
+        #analysis_settings_box .nav-link.openspecy-tab-has-active.active {
+          color: var(--openspecy-canvas) !important;
+          background: var(--openspecy-success) !important;
+          border-color: var(--openspecy-success) !important;
+        }
+        #analysis_settings_box .nav-link.openspecy-tab-has-active:hover,
+        #analysis_settings_box .nav-link.openspecy-tab-has-active:focus {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-accent) !important;
+          box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2);
         }
         .openspecy-tab-scroll {
           max-height: 50vh;
@@ -1339,6 +1335,20 @@ dashboardPage(
           transition: width .35s ease;
         }
         @keyframes openspecy-spin { to { transform: rotate(360deg); } }
+        .openspecy-local-picker {
+          display: grid;
+          gap: 6px;
+        }
+        .openspecy-local-picker .btn { width: 100%; }
+        .openspecy-filesystem-fallback {
+          font-size: .82rem;
+          opacity: .92;
+        }
+        .openspecy-local-picker-help {
+          margin: 5px 0 7px;
+          font-size: .78rem;
+          line-height: 1.25;
+        }
         @media (prefers-reduced-motion: reduce) {
           .openspecy-busy-spinner { animation: none; }
           #openspecy_busy_progress_fill { transition: none; }
@@ -1415,17 +1425,31 @@ dashboardPage(
             )
           } else {
             tagList(
-              app_shiny_files("shinyFilesButton")(
-                "local_files", "Select spectra", "Select local spectral files",
-                multiple = TRUE,
-                class = "btn btn-default action-button openspecy-local-files"
-              ),
-              uiOutput(
-                "upload_status",
-                container = tags$p,
-                class = "openspecy-upload-status",
-                role = "status",
-                `aria-live` = "polite"
+              tags$div(
+                class = "openspecy-local-picker",
+                if(app_native_dialog_available()) {
+                  actionButton(
+                    "local_native_files", "Choose spectra...",
+                    icon = icon("folder-open"),
+                    class = "openspecy-local-files",
+                    title = paste(
+                      "Open the operating system file dialog and use the",
+                      "selected files directly without copying them."
+                    )
+                  )
+                } else {
+                  app_shiny_files("shinyFilesButton")(
+                    "local_files", "Choose spectra...",
+                    paste(
+                      "Browse local filesystem paths directly without copying",
+                      "large files into Shiny upload storage."
+                    ),
+                    multiple = TRUE,
+                    class = paste(
+                      "btn btn-default action-button openspecy-local-files"
+                    )
+                  )
+                }
               )
             )
           },
@@ -1480,7 +1504,11 @@ dashboardPage(
             tabPanel(
               "Quantification",
               value = "quantification",
-              div(class = "openspecy-tab-scroll", quantification_controls)
+              div(
+                class = "openspecy-tab-scroll",
+                uiOutput("quantification_all_toggle_ui"),
+                quantification_controls
+              )
             )
           )
         ),
@@ -1514,7 +1542,6 @@ dashboardPage(
           title = "Spectra",
           maximizable = TRUE,
           width = 12,
-          h4(id = "placeholder1", "Upload some data to get started..."),
           uiOutput("choice_names"),
           fluidRow(
             column(
@@ -1591,10 +1618,6 @@ dashboardPage(
           ),
           div(
             class = "openspecy-plot-frame openspecy-spectrum-frame",
-            tags$p(
-              class = "text-muted openspecy-active-spectrum-status",
-              textOutput("active_spectrum_status", inline = TRUE)
-            ),
             plotlyOutput("MyPlotC", height = "45vh")
           ),
           div(

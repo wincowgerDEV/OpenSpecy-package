@@ -650,6 +650,17 @@
         setRunButtonReady(enabled);
       });
 
+      window.Shiny.addCustomMessageHandler("openspecy-tab-active-state", function (state) {
+        var links = document.querySelectorAll("#analysis_settings .nav-link");
+        links.forEach(function (link) {
+          var value = link.getAttribute("data-value");
+          link.classList.toggle(
+            "openspecy-tab-has-active",
+            Boolean(value && state && state[value])
+          );
+        });
+      });
+
       window.Shiny.addCustomMessageHandler("openspecy-download-label", function (state) {
         var button = document.getElementById(state.id || "download_data");
         var label = state.label || "Download selected";

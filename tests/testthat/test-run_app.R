@@ -174,7 +174,7 @@ test_that("hosted mounted-file metadata stays inside its session mount", {
                    ordinary_text$metadata$file_name)
 })
 
-test_that("local file metadata preserves normalized source paths", {
+test_that("local file pickers preserve normalized direct paths", {
   missing <- .openspecy_app_packages()[
     !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
             quietly = TRUE)
@@ -190,50 +190,58 @@ test_that("local file metadata preserves normalized source paths", {
   on.exit(setwd(old_wd), add = TRUE)
   sys.source(file.path(app_path, "global.R"), envir = env)
 
-  roots <- env$app_local_roots()
-  expect_true(length(roots) >= 1L)
-  expect_true(all(dir.exists(unname(roots))))
-
   workspace_file <- normalizePath(
     file.path(old_wd, "test-run_app.R"), winslash = "/", mustWork = TRUE
   )
-  workspace_root <- roots[vapply(unname(roots), function(root_path) {
-    root_prefix <- paste0(sub("/+$", "", root_path), "/")
-    identical(workspace_file, root_path) || startsWith(workspace_file, root_prefix)
-  }, logical(1))][1]
-  expect_false(is.na(workspace_root))
   drive_selected <- data.frame(
     name = basename(workspace_file), size = file.info(workspace_file)$size,
     type = "text/plain", datapath = workspace_file
   )
   expect_identical(
-    env$app_local_file_info(drive_selected, workspace_root)$datapath,
+    env$app_native_file_info(drive_selected)$datapath,
+    workspace_file
+  )
+  expect_true(env$app_native_dialog_available(
+    os_type = "windows", sysname = "Windows", tcltk_available = FALSE
+  ))
+  expect_true(env$app_native_dialog_available(
+    os_type = "unix", sysname = "Darwin", tcltk_available = TRUE
+  ))
+  expect_false(env$app_native_dialog_available(
+    os_type = "unix", sysname = "Darwin", tcltk_available = FALSE
+  ))
+  chosen <- env$app_choose_local_paths(
+    chooser = function(...) workspace_file
+  )
+  expect_identical(chosen, workspace_file)
+  expect_identical(
+    env$app_direct_file_info(chosen)$datapath,
     workspace_file
   )
 
   root <- tempfile("openspecy-local-root-")
-  outside <- tempfile("openspecy-local-outside-")
   dir.create(root)
-  dir.create(outside)
-  on.exit(unlink(c(root, outside), recursive = TRUE), add = TRUE)
+  on.exit(unlink(root, recursive = TRUE), add = TRUE)
   source <- file.path(root, "map.dat")
   writeBin(as.raw(1:16), source)
   selected <- data.frame(
     name = basename(source), size = file.info(source)$size,
     type = "application/octet-stream", datapath = source
   )
-  info <- env$app_local_file_info(selected, c(root = root))
+  info <- env$app_native_file_info(selected)
   normalized <- normalizePath(source, winslash = "/", mustWork = TRUE)
   expect_identical(info$datapath, normalized)
   expect_true(file.exists(normalized))
   expect_identical(as.numeric(file.info(normalized)$size), info$size)
 
-  escaped <- file.path(outside, "escaped.dat")
-  writeBin(as.raw(1:4), escaped)
-  selected$datapath <- escaped
-  expect_error(
-    env$app_local_file_info(selected, c(root = root)), "escaped"
-  )
+  roots <- stats::setNames(normalizePath(
+    root, winslash = "/", mustWork = TRUE
+  ), "test")
+  expect_identical(env$app_local_file_info(selected, roots)$datapath,
+                   normalized)
+
+  selected$datapath <- root
+  expect_error(env$app_native_file_info(selected), "files, not directories")
 })
 
 test_that("local and hosted modes render exactly one upload control", {
@@ -268,14 +276,22 @@ test_that("local and hosted modes render exactly one upload control", {
   local_html <- render_mode(FALSE)
   hosted_html <- render_mode(TRUE)
 
+  if(env$app_native_dialog_available()) {
+    expect_match(local_html, 'id="local_native_files"', fixed = TRUE)
+    expect_false(grepl('id="local_files"', local_html, fixed = TRUE))
+  } else {
+    expect_match(local_html, 'id="local_files"', fixed = TRUE)
+    expect_false(grepl('id="local_native_files"', local_html, fixed = TRUE))
+  }
   expect_length(
-    regmatches(local_html, gregexpr('id="local_files"', local_html,
+    regmatches(local_html, gregexpr("Choose spectra...", local_html,
                                     fixed = TRUE))[[1L]],
     1L
   )
-  expect_match(local_html, 'id="upload_status"', fixed = TRUE)
+  expect_false(grepl('id="upload_status"', local_html, fixed = TRUE))
   expect_false(grepl("openspecy_workerfs_files", local_html, fixed = TRUE))
   expect_false(grepl('id="local_files"', hosted_html, fixed = TRUE))
+  expect_false(grepl('id="local_native_files"', hosted_html, fixed = TRUE))
   expect_match(hosted_html, 'id="openspecy_workerfs_files"', fixed = TRUE)
   expect_match(hosted_html, " disabled", fixed = TRUE)
   expect_false(grepl('id="upload_status"', hosted_html, fixed = TRUE))
@@ -309,6 +325,14 @@ test_that("bundled app has one mode-specific direct or mounted read route", {
                fixed = TRUE)
   expect_match(server_source, "app_mounted_file_info(input$mounted_files)",
                fixed = TRUE)
+  expect_false(grepl('id = "placeholder1"', app_source, fixed = TRUE))
+  expect_false(grepl("active_spectrum_status", app_source, fixed = TRUE))
+  expect_match(server_source, '"Upload some data to get started."',
+               fixed = TRUE)
+  expect_match(server_source, "app_choose_local_paths()", fixed = TRUE)
+  expect_match(server_source, "app_direct_file_info(paths)", fixed = TRUE)
+  expect_match(server_source, "shinyFileChoose", fixed = TRUE)
+  expect_match(server_source, "parseFilePaths", fixed = TRUE)
   expect_match(server_source, "app_read_uploaded_members(", fixed = TRUE)
   expect_match(server_source,
                "combined <- if(is_OpenSpecy(members) || is_Specs(members))",
@@ -371,7 +395,8 @@ test_that("bundled Shiny app avoids app-local library data assumptions", {
   expect_false(any(grepl("data/.*\\.rds", server_source)))
   expect_true(any(grepl("load_app_library", server_source, fixed = TRUE)))
   expect_false(any(grepl("apply\\(library\\$spectra, 2", server_source)))
-  expect_true(any(grepl("OpenSpecy:::.match_spec_blockwise", server_source,
+  expect_true(any(grepl("match_spec(", server_source, fixed = TRUE)))
+  expect_true(any(grepl("batch_size = batch_size", server_source,
                         fixed = TRUE)))
   expect_false(any(grepl("vapply\\(\\.\\$spectra", server_source)))
   expect_true(any(grepl("colnames\\(analysis_library\\(\\)\\$spectra\\)", server_source)))
@@ -642,7 +667,7 @@ test_that("bundled app runs corrections and identification unconditionally", {
   expect_match(server_source,
                'shinyjs::toggleState("MaxRange", condition = manual_range)',
                fixed = TRUE)
-  expect_match(server_source, "app_empty_spectrum_plot()", fixed = TRUE)
+  expect_match(server_source, "app_empty_spectrum_plot(message)", fixed = TRUE)
   expect_match(server_source, "active_ratio_definitions", fixed = TRUE)
   expect_match(server_source, "quantified_data", fixed = TRUE)
   expect_match(server_source, "app_attach_quantification", fixed = TRUE)
@@ -661,7 +686,7 @@ test_that("bundled app runs corrections and identification unconditionally", {
                fixed = TRUE)
   expect_match(server_source, "current_heatmap_data <- reactive({",
                fixed = TRUE)
-  expect_match(server_source, "OpenSpecy:::.match_spec_blockwise(",
+  expect_match(server_source, "match_spec(",
                fixed = TRUE)
   expect_match(server_source, "app_identification_block_progress(",
                fixed = TRUE)
@@ -730,6 +755,19 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
     function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
     logical(1)
   )))
+  advanced_ids <- c(
+    "cor_threshold_decision", "threshold_decision", "collapse_decision",
+    "spatial_decision", "simple_metadata", "show_peak_positions",
+    "load_entire_map", "xy_grid"
+  )
+  advanced_positions <- vapply(advanced_ids, function(id) {
+    regexpr(paste0('"', id, '"'), ui_source, fixed = TRUE)[[1L]]
+  }, integer(1))
+  expect_true(all(diff(advanced_positions) > 0L))
+  expect_match(ui_source, '"identify_batch_size", "Identification Batch Size"',
+               fixed = TRUE)
+  expect_match(ui_source, '"load_entire_map", "Load Entire File into Memory"',
+               fixed = TRUE)
   expect_false(grepl('"columns_selected"', server_source, fixed = TRUE))
   expect_false(grepl('"columns_selected_ui"', ui_source, fixed = TRUE))
   expect_match(server_source,
@@ -764,12 +802,17 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
       "quant_measurement_area_min",
       "quant_measurement_area_max", "quant_measurement_wavenumber",
       "quant_measurement_add", "quant_measurement_remove",
-      "quant_measurement_clear", "quant_measurement_definitions"
+      "quant_measurement_clear", "quant_measurement_definitions",
+      "quantification_all_toggle_ui"
     ),
     function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
     logical(1)
   )))
   expect_false(grepl("quant_measurement_enabled", ui_source, fixed = TRUE))
+  expect_match(server_source,
+               '"quantification_remove_all", "Remove All"', fixed = TRUE)
+  expect_match(server_source, '"openspecy-tab-active-state"', fixed = TRUE)
+  expect_match(ui_source, ".openspecy-tab-has-active", fixed = TRUE)
   expect_false(grepl('"quant_ratio_bounds"', ui_source, fixed = TRUE))
   expect_false(grepl("app_quantification_indices", global_source,
                      fixed = TRUE))
@@ -1009,7 +1052,13 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
     "observeEvent(list(input$file, input$quant_ratio_type)",
     server_source, fixed = TRUE
   ))
-  expect_match(server_source, "axis = processed$wavenumber", fixed = TRUE)
+  expect_match(server_source,
+               "axis = if(is.null(axis_state)) NULL else axis_state$axis",
+               fixed = TRUE)
+  expect_false(grepl(
+    "if(is.null(preprocessed$data)) {\n      return()\n    }",
+    server_source, fixed = TRUE
+  ))
   expect_false(grepl("quantification_source <- reactive", server_source,
                      fixed = TRUE))
   expect_match(bridge_source,
@@ -1032,22 +1081,20 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   read_body <- substr(server_source, read_start, stage_start - 1L)
   stage_body <- substr(server_source, stage_start, local_start - 1L)
 
-  # Saved quantification belongs to the selected source. Re-running that
-  # source must retain the definitions; choosing a new source resets them.
+  # Saved quantification definitions are independent of upload timing, so a
+  # definition created before choosing a file must survive source staging.
   expect_false(grepl("ratio_definitions(app_empty_ratio_definitions())",
                      read_body, fixed = TRUE))
   expect_false(grepl(
     "measurement_definitions(app_empty_measurement_definitions())",
     read_body, fixed = TRUE
   ))
-  expect_match(stage_body,
-               "ratio_definitions(app_empty_ratio_definitions())",
-               fixed = TRUE)
-  expect_match(
-    stage_body,
+  expect_false(grepl("ratio_definitions(app_empty_ratio_definitions())",
+                     stage_body, fixed = TRUE))
+  expect_false(grepl(
     "measurement_definitions(app_empty_measurement_definitions())",
-    fixed = TRUE
-  )
+    stage_body, fixed = TRUE
+  ))
 
   # Every Run-gated result is a reactiveVal cache (not a plain bindEvent()
   # reactive) so a fresh upload can explicitly clear it.
@@ -1347,8 +1394,34 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   expect_true(is.function(env$app_summary_row))
   expect_true(is.function(env$app_style_plotly))
   expect_true(is.function(env$app_spectrum_plot))
+  expect_true(is.function(env$app_tab_active_states))
   expect_true(is.function(env$app_empty_spectrum_plot))
   expect_match(env$app_version_display$text, "^OpenSpecy ")
+
+  off_settings <- stats::setNames(
+    as.list(rep(FALSE, length(unique(unlist(env$app_tab_switch_ids()))))),
+    unique(unlist(env$app_tab_switch_ids()))
+  )
+  off_states <- env$app_tab_active_states(
+    off_settings, env$app_empty_ratio_definitions(),
+    env$app_empty_measurement_definitions()
+  )
+  expect_false(any(off_states))
+  off_settings$make_rel_decision <- TRUE
+  on_states <- env$app_tab_active_states(
+    off_settings, env$app_empty_ratio_definitions(),
+    env$app_empty_measurement_definitions()
+  )
+  expect_true(on_states[["preprocessing"]])
+  expect_false(on_states[["quantification"]])
+  saved_ratio <- env$app_add_ratio_definition(
+    env$app_empty_ratio_definitions(), "Carbonyl", "area",
+    c(1650, 1850), c(1420, 1500)
+  )
+  quant_states <- env$app_tab_active_states(
+    off_settings, saved_ratio, env$app_empty_measurement_definitions()
+  )
+  expect_true(quant_states[["quantification"]])
 
   expect_true(all(c(
     "canvas", "panel", "panel_2", "border", "accent", "success", "text",
@@ -1391,6 +1464,10 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
 
   expect_s3_class(env$app_empty_spectrum_plot(), "plotly")
   empty_plot <- plotly::plotly_build(env$app_empty_spectrum_plot())
+  expect_identical(
+    empty_plot$x$layout$annotations[[1L]]$text,
+    "Upload some data to get started."
+  )
   expect_identical(empty_plot$x$layout$paper_bgcolor,
                    env$app_plot_palette$panel)
   expect_identical(empty_plot$x$layout$xaxis$gridcolor,
@@ -1456,10 +1533,42 @@ test_that("bundled Shiny app helpers can be sourced when app packages exist", {
   ))
   expect_equal(
     as.numeric(normalized_overlays$x$data[[2L]]$y),
-    as.numeric(as.matrix(active$spectra)[, 1L])
+    c(0, 1, 1 / 6)
   )
   expect_equal(range(normalized_overlays$x$data[[1L]]$y), c(0, 1))
+  expect_equal(range(normalized_overlays$x$data[[2L]]$y), c(0, 1))
   expect_equal(range(normalized_overlays$x$data[[3L]]$y), c(0, 1))
+
+  coefficients <- data.table::data.table(
+    dimensions_used = c(1L, 3L), dimension_units = c(-2, 1),
+    variable = 1L, name = "ftir_test class", names = c(1000, 1200)
+  )
+  model <- list(
+    model_type = "logistic_regression", coefficients = coefficients,
+    dimension_conversion = data.table::data.table(
+      factor_num = 1L, name = "ftir_test class"
+    ),
+    all_variables = axis
+  )
+  weighted <- plotly::plotly_build(env$app_spectrum_plot(
+    active, model = model, model_class = "ftir_test class"
+  ))
+  weighted_names <- vapply(weighted$x$data, function(trace) {
+    if(is.null(trace$name)) "" else trace$name
+  }, character(1))
+  heat_index <- which(vapply(
+    weighted$x$data, function(trace) identical(trace$type, "heatmap"),
+    logical(1)
+  ))
+  legend_index <- which(weighted_names == "Logistic weight")
+  expect_length(heat_index, 1L)
+  expect_length(legend_index, 1L)
+  expect_identical(weighted$x$data[[heat_index]]$legendgroup,
+                   "logistic_weight")
+  expect_identical(weighted$x$data[[legend_index]]$legendgroup,
+                   "logistic_weight")
+  expect_true(isTRUE(weighted$x$data[[legend_index]]$showlegend))
+  expect_identical(weighted$x$layout$legend$groupclick, "togglegroup")
 
   data_table_active <- active
   data_table_active$spectra <- data.table::as.data.table(active$spectra)
@@ -1990,6 +2099,11 @@ test_that("bundled app quantifies the displayed processed spectra", {
     definitions$column,
     c("area_ratio_custom_carbonyl", "peak_ratio_point_check")
   )
+  preupload_ratio <- env$app_add_ratio_definition(
+    env$app_empty_ratio_definitions(), name = "Before upload", type = "area",
+    numerator = c(1650, 1850), denominator = c(1420, 1500)
+  )
+  expect_identical(preupload_ratio$column, "area_ratio_before_upload")
 
   measurements <- env$app_empty_measurement_definitions()
   expect_identical(
@@ -2015,6 +2129,12 @@ test_that("bundled app quantifies the displayed processed spectra", {
     c("area_under_band_carbonyl_area", "point_intensity_typed_point")
   )
   expect_identical(measurements$type, c("area", "point"))
+  preupload_measurement <- env$app_add_measurement_definition(
+    env$app_empty_measurement_definitions(), name = "Before upload",
+    type = "point", values = 1715
+  )
+  expect_identical(preupload_measurement$column,
+                   "point_intensity_before_upload")
 
   expected_area <- area_under_band(
     processed, min = 1650, max = 1850
@@ -2388,7 +2508,7 @@ test_that("bundled Test Map metadata renders and keeps spectrum alignment", {
     cache, selected = 37L, simple = TRUE
   )
   expect_identical(names(simple_table$x$data), c(
-    "Signal to Noise", "File Name"
+    "Signal to Noise", "File Name", "Column ID", "X", "Y"
   ))
 
   reordered <- test_map
@@ -2912,6 +3032,7 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "threshold_decision", "signal_basis",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
     "spatial_decision", "sigma", "xy_grid", "load_entire_map",
+    "identify_batch_size",
     "collapse_decision",
     "collapse_type", "particle_id_strategy", "particle_pca_components",
     "particle_cluster_k", "particle_area_threshold",
@@ -2983,6 +3104,10 @@ test_that("bundled app updates the native download label without replacing it", 
   expect_match(script_source,
                'addCustomMessageHandler("openspecy-download-label"',
                fixed = TRUE)
+  expect_match(script_source,
+               'addCustomMessageHandler("openspecy-tab-active-state"',
+               fixed = TRUE)
+  expect_match(script_source, '"openspecy-tab-has-active"', fixed = TRUE)
   expect_match(script_source, 'document.getElementById(state.id || "download_data")',
                fixed = TRUE)
   expect_match(script_source, 'button.setAttribute("aria-label", label)',

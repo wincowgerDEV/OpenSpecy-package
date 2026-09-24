@@ -340,6 +340,16 @@ test_that("release sanitizers retain runtime state and remove assessments", {
   expect_null(attr(slim_model, "training_warnings", exact = TRUE))
   expect_true(check_OpenSpecy(slim_model$fill))
   expect_null(attr(slim_model$fill, "quality_control_report", exact = TRUE))
+  expect_true(OpenSpecy:::.lib_selected_lambda_converged(list(
+    model = structure(list(jerr = 0L), class = "glmnet")
+  )))
+  expect_false(OpenSpecy:::.lib_selected_lambda_converged(list(
+    model = structure(list(jerr = -3L), class = "glmnet")
+  )))
+  expect_false(OpenSpecy:::.lib_selected_lambda_converged(list(
+    model = structure(list(jerr = 0L), class = "glmnet"),
+    selected_lambda_converged = FALSE
+  )))
 })
 
 test_that("official builders can opt into host workers without changing defaults", {
@@ -2376,10 +2386,14 @@ test_that("assessment review is process nested, compact, and nonsparse", {
   accuracy_names <- names(reviewed$ref_lib$accuracy)
   expect_false(any(c("scope", "expected_class", "class_accuracy") %in%
                      accuracy_names))
-  expect_true(all(c("source", "overall_accuracy_pct") %in%
+  expect_true(all(c("source", "overall_accuracy_pct",
+                    "macro_class_accuracy_pct", "class_count") %in%
                     accuracy_names))
-  expect_false(any(c("macro_accuracy_pct", "coverage_pct", "mean_score",
+  expect_false(any(c("coverage_pct", "mean_score",
                      "evaluated_classes") %in% accuracy_names))
+  expect_identical(reviewed$ref_lib$accuracy$source, c("old", "new"))
+  expect_equal(reviewed$ref_lib$accuracy$macro_class_accuracy_pct, c(50, 80))
+  expect_identical(reviewed$ref_lib$accuracy$class_count, c(2L, 2L))
   expect_identical(
     reviewed$model$error_mode_accuracy$accuracy_difference_pct, -40
   )

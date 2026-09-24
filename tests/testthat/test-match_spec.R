@@ -444,6 +444,11 @@ test_that("blockwise top matches equal full correlation and identification", {
       nrow(actual), ncol(query$spectra) * min(top_n, ncol(library$spectra))
     )
     expect_identical(unique(actual$object_id), colnames(query$spectra))
+
+    public <- match_spec(
+      query, library, top_n = top_n, batch_size = 2L
+    )
+    expect_equal(public, expected)
   }
 
   tied <- OpenSpecy:::.match_spec_blockwise(
@@ -456,6 +461,21 @@ test_that("blockwise top matches equal full correlation and identification", {
     tied[object_id == "query_na", library_id], c("first", "tied")
   )
   expect_true(all(is.na(tied[object_id == "query_na", match_val])))
+})
+
+test_that("match_spec batch_size validates bounded spectral matching", {
+  expect_error(
+    match_spec(tiny_map, test_lib, batch_size = 2L),
+    "positive integer 'top_n'"
+  )
+  expect_error(
+    match_spec(tiny_map, test_lib, top_n = 1L, batch_size = 0L),
+    "positive integer"
+  )
+  expect_error(
+    match_spec(tiny_map, list(model = TRUE), top_n = 1L, batch_size = 2L),
+    "not supported for trained model"
+  )
 })
 
 test_that("grouped matching retains Top N independently per library group", {

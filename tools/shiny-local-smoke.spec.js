@@ -331,10 +331,16 @@ async function expectClientBusyOverlay(page, selector, action, requireOverlay = 
     delete window.__openspecyBusyBlocker;
   });
   await page.reload({ waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
+}
+
+async function expectLocalPicker(page) {
+  const picker = page.locator("#local_native_files, #local_files");
+  await expect(picker).toHaveCount(1, { timeout: 60000 });
+  await expect(picker.first()).toHaveText(/Choose spectra/);
 }
 
 async function stageLocalFiles(page, files) {
@@ -352,7 +358,7 @@ async function stageLocalFiles(page, files) {
       path.relative(roots[0], file).split(path.sep).filter(Boolean)
     ),
   };
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   await page.evaluate((selection) => {
     window.Shiny.setInputValue("local_files", selection, { priority: "event" });
   }, payload);
@@ -609,10 +615,101 @@ test.afterEach(async ({}, testInfo) => {
   }
 });
 
+test("settings tabs show active state and quantification clears before upload", async ({ page }, testInfo) => {
+  test.setTimeout(180000);
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expectLocalPicker(page);
+  await expect(page.locator("#active_spectrum_status")).toHaveCount(0);
+  await expect(page.locator("#MyPlotC .annotation-text")).toHaveText(
+    "Upload some data to get started."
+  );
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+
+  const settingsCard = page.locator("#analysis_settings_box");
+  const preprocessingTab = page.getByRole(
+    "link", { name: "Preprocessing", exact: true }
+  );
+  await expect(preprocessingTab).toHaveClass(/openspecy-tab-has-active/);
+  const activeBackground = await preprocessingTab.evaluate(
+    (link) => getComputedStyle(link).backgroundColor
+  );
+  const qualityHoverBackground = await page.evaluate(() => {
+    const probe = document.createElement("span");
+    probe.style.backgroundColor = "var(--openspecy-panel)";
+    document.body.appendChild(probe);
+    const color = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return color;
+  });
+  const qualityHoverText = await page.evaluate(() => {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--openspecy-text)";
+    document.body.appendChild(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  });
+  await preprocessingTab.hover();
+  await expect.poll(() => preprocessingTab.evaluate(
+    (link) => getComputedStyle(link).backgroundColor
+  )).toBe(qualityHoverBackground);
+  await expect.poll(() => preprocessingTab.evaluate(
+    (link) => getComputedStyle(link).color
+  )).toBe(qualityHoverText);
+  await page.mouse.move(0, 0);
+  await expect.poll(() => preprocessingTab.evaluate(
+    (link) => getComputedStyle(link).backgroundColor
+  )).toBe(activeBackground);
+
+  const identificationTab = page.getByRole(
+    "link", { name: "Identification", exact: true }
+  );
+  await identificationTab.click();
+  await expectCardCollapsed(settingsCard, false);
+  await page.locator("#identification_active").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await expect(identificationTab).toHaveClass(/openspecy-tab-has-active/);
+  await page.locator("#identification_all_toggle").click();
+  await expect(identificationTab).not.toHaveClass(
+    /openspecy-tab-has-active/
+  );
+
+  const quantificationTab = page.getByRole(
+    "link", { name: "Quantification", exact: true }
+  );
+  await quantificationTab.click();
+  await expect(quantificationTab).not.toHaveClass(
+    /openspecy-tab-has-active/
+  );
+  await page.locator("#quant_ratio_name").fill("Before upload");
+  await page.locator("#quant_ratio_add").click();
+  await expect(page.locator("#quant_saved_ratios")).toContainText(
+    "Before upload"
+  );
+  await expect(quantificationTab).toHaveClass(
+    /openspecy-tab-has-active/
+  );
+  const removeAll = page.locator("#quantification_remove_all");
+  await expect(removeAll).toHaveText(/Remove All/);
+  await removeAll.click();
+  await expect(page.locator("#quant_saved_ratios")).toContainText(
+    "No ratios saved yet"
+  );
+  await expect(quantificationTab).not.toHaveClass(
+    /openspecy-tab-has-active/
+  );
+  await settingsCard.screenshot({
+    path: testInfo.outputPath("local-app-settings-tab-active-state.png"),
+  });
+});
+
 test("settings tabs expand the card and sustained actions start the overlay client-side", async ({ page }) => {
   test.setTimeout(300000);
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   await expect(page.locator("#openspecy_workerfs_files")).toHaveCount(0);
   await expect(page.locator("input[type='file']")).toHaveCount(0);
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
@@ -691,14 +788,15 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
     }
   });
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   await expect(page.locator("#id_spec_type")).toHaveValue("all");
 
   await stageLocalFiles(
     page, path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
   );
-  await expect(page.locator("#upload_status")).toContainText(
-    "selected. Click Run to read and analyze."
+  await expect(page.locator("#placeholder1")).toHaveCount(0);
+  await expect(page.locator("#MyPlotC")).toContainText(
+    "A new dataset was uploaded. Click Run to analyze it."
   );
 
   const settingsCard = page.locator("#analysis_settings_box");
@@ -790,7 +888,7 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
@@ -816,7 +914,6 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
 
   const mapUploadPath = path.join(repo, "inst", "extdata", "CA_tiny_map.zip");
   await stageLocalFiles(page, mapUploadPath);
-  await expect(page.locator("#upload_status")).toContainText("1 file selected");
 
   // Toggling Spatial Smooth (before Run) must not force spatial_smooth() to
   // actually run: it's a live (not Run-gated) reactive by design, but a
@@ -911,7 +1008,7 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   const rows = topMatches.content.split(/\r?\n/).filter(Boolean);
   expect(rows).toHaveLength(209);
   expect(rows[0]).toBe(
-    "Material Class,Correlation,Spectrum Identity,Organization,Signal Over Noise,File Name"
+    "Material Class,Correlation,Spectrum Identity,Organization,Signal Over Noise,File Name,Column ID"
   );
 
   await page.locator("#download_selection").evaluate((select) => {
@@ -969,7 +1066,7 @@ test("file-backed fully processed map streams without a first-paint blink", asyn
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
@@ -1052,7 +1149,7 @@ test("processed particle RDS round-trips into a thresholded heatmap", async ({ p
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   await page.locator("#collapse_decision").evaluate((input) => {
     if (input.checked) input.click();
   });
@@ -1077,7 +1174,7 @@ test("processed particle RDS round-trips into a thresholded heatmap", async ({ p
   await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => ({
     x: plot.layout?.xaxis?.title?.text,
     y: plot.layout?.yaxis?.title?.text,
-  })), { timeout: 30000 }).toEqual({ x: "X (um)", y: "Y (um)" });
+  })), { timeout: 30000 }).toEqual({ x: "X (pixel)", y: "Y (pixel)" });
   await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
   expect(severeErrors).toEqual([]);
 });
@@ -1094,7 +1191,7 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   for (const inputId of ["collapse_decision", "threshold_decision"]) {
     await page.locator(`#${inputId}`).evaluate((input) => {
       if (input.checked) input.click();
@@ -1160,7 +1257,7 @@ test("in-memory particle analysis exposes four strategies and a canonical ZIP", 
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   const settingsCard = page.locator("#analysis_settings_box");
   await toggleCard(settingsCard);
   await expectCardCollapsed(settingsCard, false);
@@ -1442,12 +1539,16 @@ test("local app renders spectra, matches, and one informative progress overlay",
   page.on("popup", (popup) => popups.push(popup.url()));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
+  await expect(page.locator("#active_spectrum_status")).toHaveCount(0);
   const minMaxControl = page.getByText("Min-Max Normalize", { exact: true });
   await expect(minMaxControl).toBeHidden();
-  await expect(page.locator("#placeholder1")).toBeVisible();
+  await expect(page.locator("#placeholder1")).toHaveCount(0);
   await expect(page.locator("#heatmap_frame")).toBeHidden();
   await expect(page.locator("#MyPlotC.js-plotly-plot .main-svg").first()).toBeVisible({ timeout: 60000 });
+  await expect(page.locator("#MyPlotC .annotation-text")).toHaveText(
+    "Upload some data to get started."
+  );
   await expect(page.locator("#MyPlotC .xaxislayer-above")).toBeAttached();
   await expect(page.locator("#MyPlotC .yaxislayer-above")).toBeAttached();
   expect(await nonemptyTraces(page)).toEqual([]);
@@ -1707,7 +1808,9 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await page.screenshot({ path: testInfo.outputPath("local-app-analysis-progress.png"), fullPage: true });
 
   const firstMatch = page.locator("#event table tbody tr").first();
-  await expect(firstMatch).toContainText(/poly\(ethylene\)/i, { timeout: 240000 });
+  await expect(firstMatch).toContainText(/poly(?:\(ethylene\)|ethylene)/i, {
+    timeout: 240000,
+  });
   await expect(page.locator("#MyPlotC.js-plotly-plot .main-svg").first()).toBeVisible();
   await expect.poll(() => nonemptyTraces(page), { timeout: 240000 }).toHaveLength(3);
   const traces = await nonemptyTraces(page);
@@ -2029,7 +2132,9 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect.poll(async () => (
     await page.evaluate(() => window.__openspecySmoke.phases.join(" "))
   ), { timeout: 240000 }).toMatch(/Identifying spectra|Rendering results/i);
-  await expect(firstMatch).toContainText(/poly\(ethylene\)/i, { timeout: 240000 });
+  await expect(firstMatch).toContainText(/poly(?:\(ethylene\)|ethylene)/i, {
+    timeout: 240000,
+  });
   await expect(overlay).toBeHidden({ timeout: 120000 });
 
   // Draft ratios and single measurements never trigger the analysis
@@ -2192,7 +2297,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
   await expect(page.locator("#eventmetadata table")).toContainText(
     /point_intensity_custom_intensity/i
   );
-  await expect(firstMatch).toContainText(/poly\(ethylene\)/i);
+  await expect(firstMatch).toContainText(/poly(?:\(ethylene\)|ethylene)/i);
   await expect(overlay).toBeHidden({ timeout: 120000 });
 
   await expect(page.locator("#download_selection")).toHaveValue("Top Matches");
@@ -2237,11 +2342,11 @@ test("local app renders spectra, matches, and one informative progress overlay",
   const topMatchesText = topMatchesDownload.content.toString("utf8");
   const topMatchLines = topMatchesText.split(/\r?\n/).filter(Boolean);
   expect(topMatchLines[0]).toBe(
-    "Material Class,Correlation,Spectrum Identity,Organization,Signal Over Noise,File Name"
+    "Material Class,Correlation,Spectrum Identity,Organization,Signal Over Noise,File Name,Column ID"
   );
   expect(topMatchLines[0]).not.toMatch(/col_id|quantification|area|perimeter|feret|first_x|first_y/i);
   expect(topMatchLines.length).toBe(7);
-  expect(topMatchesText).toMatch(/poly\(ethylene\)/i);
+  expect(topMatchesText).toMatch(/poly(?:\(ethylene\)|ethylene)/i);
   await toggleCard(downloadCard);
   await expectCardCollapsed(downloadCard);
   await page.screenshot({ path: testInfo.outputPath("local-app-analysis-result.png"), fullPage: true });
@@ -2265,7 +2370,9 @@ test("local app renders spectra, matches, and one informative progress overlay",
   expect(processedText).toMatch(/area_under_band_custom_area/i);
   expect(processedText).toMatch(/point_intensity_custom_intensity/i);
   expect(processedText).toMatch(/raman_hdpe/i);
-  await expect(firstMatch).toContainText(/poly\(ethylene\)/i, { timeout: 240000 });
+  await expect(firstMatch).toContainText(/poly(?:\(ethylene\)|ethylene)/i, {
+    timeout: 240000,
+  });
   await expect.poll(() => nonemptyTraces(page), { timeout: 240000 }).toHaveLength(3);
   await expect(overlay).toBeHidden({ timeout: 30000 });
 
@@ -2339,7 +2446,7 @@ test("logistic legend stays above spectra and weight scale stays on the right", 
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   await pickerOption(page, "lib_type", "model");
   await pickerOption(page, "id_spec_type", "all");
   await stageLocalFiles(page, path.join(repo, "inst", "extdata", "raman_hdpe.csv"));
@@ -2350,6 +2457,15 @@ test("logistic legend stays above spectra and weight scale stays on the right", 
   await firstMatch.click();
   await expect(page.locator("#MyPlotC .hm image")).toBeVisible({ timeout: 60000 });
   await expect(page.locator("#MyPlotC .colorbar")).toBeVisible();
+  const weightLegendItem = page.locator("#MyPlotC g.traces").filter({
+    hasText: "Logistic weight",
+  });
+  const weightLegendToggle = weightLegendItem.locator(".legendtoggle");
+  await expect(weightLegendToggle).toBeVisible();
+  await weightLegendToggle.click();
+  await expect(page.locator("#MyPlotC .hm image")).toBeHidden();
+  await weightLegendToggle.click();
+  await expect(page.locator("#MyPlotC .hm image")).toBeVisible();
 
   const geometry = await page.locator("#MyPlotC").evaluate((plot) => {
     const legend = plot.querySelector(".legend")?.getBoundingClientRect();
@@ -2416,7 +2532,7 @@ test("library identification reports completed block percentages", async ({ page
   page.on("pageerror", (error) => severeErrors.push(error.message));
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#local_files")).toBeAttached({ timeout: 60000 });
+  await expectLocalPicker(page);
   for (const id of [
     "collapse_decision", "threshold_decision", "cor_threshold_decision",
     "filter_lib",

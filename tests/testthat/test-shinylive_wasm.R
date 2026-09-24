@@ -1241,6 +1241,10 @@ test_that("static landing and Shiny app provide the embed handshake", {
     function(marker) grepl(marker, homepage_text, fixed = TRUE),
     logical(1)
   )))
+  expect_true(grepl(
+    'href="mailto:wincowger@gmail.com?subject=OpenSpecy%20inquiry" target="_blank" rel="noopener noreferrer"',
+    homepage_text, fixed = TRUE
+  ))
   json_text <- sub(
     '(?s).*<script type="application/ld\\+json">[[:space:]]*(.*?)[[:space:]]*</script>.*',
     "\\1", homepage_text, perl = TRUE

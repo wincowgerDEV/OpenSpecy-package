@@ -68,8 +68,8 @@ canonical_full_match <- function() {
 }
 
 blockwise_match <- function() {
-  OpenSpecy:::.match_spec_blockwise(
-    query, library, top_n = top_n, block_size = block_size
+  match_spec(
+    query, library, top_n = top_n, batch_size = block_size
   )
 }
 

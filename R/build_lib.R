@@ -4112,7 +4112,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "complete-model-prediction-v16-compact-review"
+      assessment_version = "complete-model-prediction-v17-accuracy-comparison"
     ),
     algo = "sha256"
   )
@@ -4271,7 +4271,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "complete-model-prediction-v16-compact-review"
+    assessment_version = "complete-model-prediction-v17-accuracy-comparison"
   ), algo = "sha256")
   fallback_assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
@@ -6274,19 +6274,27 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   is_medoid <- grepl("^medoid_", summary$artifact)
   out <- summary[is_medoid == medoid]
   if (!nrow(out)) return(out)
-  out[, overall_accuracy_pct := 100 * overall_accuracy]
+  out[, `:=`(
+    overall_accuracy_pct = 100 * overall_accuracy,
+    macro_class_accuracy_pct = 100 * macro_class_accuracy,
+    class_count = as.integer(evaluated_classes)
+  )]
   keep <- intersect(c(
     "algorithm", "artifact", "model", "technique", "source", "provenance",
-    "spectra", "overall_accuracy_pct"
+    "spectra", "class_count", "overall_accuracy_pct",
+    "macro_class_accuracy_pct"
   ), names(out))
   out <- out[, ..keep]
+  out[, .source_order := match(source, c("old", "new"))]
   data.table::setorderv(
-    out, intersect(c("algorithm", "artifact", "model", "technique", "source"),
-                   names(out)),
+    out, intersect(c("algorithm", "artifact", "model", "technique",
+                     ".source_order"), names(out)),
     rep(1L, length(intersect(
-      c("algorithm", "artifact", "model", "technique", "source"), names(out)
+      c("algorithm", "artifact", "model", "technique", ".source_order"),
+      names(out)
     )))
   )
+  out[, .source_order := NULL]
   out[]
 }
 
@@ -7548,7 +7556,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           problems <- c(problems, paste0(label, " incomplete"))
         }
         if (identical(algorithm, "logistic_regression") &&
-            !isTRUE(model$selected_lambda_converged)) {
+            !.lib_selected_lambda_converged(model)) {
           problems <- c(problems, paste0(label, " selected lambda unconverged"))
         }
       }
@@ -7570,6 +7578,18 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     }
   }
   invisible(build)
+}
+
+.lib_selected_lambda_converged <- function(model) {
+  # Full training checkpoints retain the explicit diagnostic. Release models
+  # intentionally omit assessment-only fields, but the retained one-lambda
+  # glmnet object still carries jerr, which is sufficient to validate it when
+  # a completed release is used as the input to a later assessment rebuild.
+  if (!is.null(model$selected_lambda_converged)) {
+    return(isTRUE(model$selected_lambda_converged))
+  }
+  error <- model$model$jerr
+  is.numeric(error) && length(error) == 1L && !is.na(error) && error == 0L
 }
 
 .lib_runtime_open_specy_attributes <- function() {

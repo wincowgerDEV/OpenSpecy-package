@@ -468,9 +468,9 @@
 </div>
 <div class="node input" style="left:1050px;top:70px" tabindex="0">
   Local Filesystem Path(s)
-  <div class="sub">local-only direct picker &middot; no upload copy</div>
-  <div class="tip">The bundled/local app uses one secured <code>shinyFiles</code> picker to resolve normalized, read-only real paths, including multiple files and ENVI companions. It replaces <code>fileInput()</code>, so Shiny does not first copy the source into session temp storage. Shinylive renders only its WORKERFS picker. Both entry paths converge at the same readers and scientific pipeline.
-  <span class="loc">Plan 018 &middot; ui.R/server.R: local source picker &middot; parent-frame.js: bindWorkerfsUpload()</span></div>
+  <div class="sub">one picker &middot; native dialog or mounted-filesystem browser</div>
+  <div class="tip">The bundled/local app exposes one <strong>Choose spectra...</strong> control. It opens the standard Windows or macOS multi-file dialog when available, or the <code>shinyFiles</code> mounted-filesystem browser elsewhere. Either backend returns validated original filesystem paths rather than duplicating large files in Shiny upload storage. Shinylive separately renders its WORKERFS picker; all paths converge at the same readers and scientific pipeline.
+  <span class="loc">Plan 034 &middot; ui.R/server.R: local source picker &middot; parent-frame.js: bindWorkerfsUpload()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:230px" tabindex="0">
@@ -494,8 +494,8 @@
 
 <div class="node trigger" style="left:1650px;top:500px" tabindex="0">
   &#9654; Click Run
-  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. A staged source is read here unless Recalculate Preview already did so. Advanced <strong>Load Entire Map into Memory</strong> explicitly chooses dense <code>OpenSpecy</code>; off keeps supported maps descriptor-backed. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Scientific settings remain passive until the next Run; peak display, simple metadata, and pixel calibration remain live presentation/export controls. Every later output derives from this snapshot.
-  <span class="loc">Plans 018/030 &middot; server.R: run gate priorities and canonical_state_gate()</span></div>
+  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. A staged source is read here unless Recalculate Preview already did so. Advanced <strong>Load Entire File into Memory</strong> explicitly chooses dense <code>OpenSpecy</code>; off keeps supported maps descriptor-backed. Its Identification Batch Size bounds query spectra per correlation allocation on both paths. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Scientific settings remain passive until the next Run; peak display and simple metadata remain live presentation controls, while pixel calibration applies only when Collapse Particle Spectra owns it. Every later output derives from this snapshot.
+  <span class="loc">Plans 018/030/034 &middot; server.R: run gate priorities and canonical_state_gate()</span></div>
 </div>
 
 <div class="node trigger" style="left:1650px;top:610px" tabindex="0">
@@ -507,7 +507,7 @@
 <div class="node function" style="left:1050px;top:570px" tabindex="0">
   Base Specs Materialization
   <div class="sub">explicit descriptor-backed or complete in-memory representation</div>
-  <div class="tip">With Load Entire Map into Memory off, an explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N, bounded winning-correlation matching, and connected Mean collapse. With it on, every spectrum is deliberately materialized as ordinary <code>OpenSpecy</code> and all later stages use the dense path; allocation failures are measured runtime failures rather than an arbitrary size rejection. H5 and other compatible sources follow the same explicit choice. A processed-particle RDS is already materialized, so it bypasses reader-only background policies and restores canonical x/y aliases from its retained unit-bearing coordinates for heatmap selection.
+  <div class="tip">With Load Entire File into Memory off, an explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N, bounded winning-correlation matching, and connected Mean collapse. With it on, every spectrum is deliberately materialized as ordinary <code>OpenSpecy</code> and all later stages use the dense path; allocation failures are measured runtime failures rather than an arbitrary size rejection. H5 and other compatible sources follow the same explicit choice. A processed-particle RDS is already materialized, so it bypasses reader-only background policies and restores canonical x/y aliases from its retained unit-bearing coordinates for heatmap selection.
   <span class="loc">Plans 018/033 &middot; global.R: app_read_uploaded_members() &middot; R/{Specs_file,read_envi,read_ext}.R</span></div>
 </div>
 
@@ -603,9 +603,9 @@
 
 <div class="node function" style="left:1050px;top:2100px" tabindex="0">
   Library Identification
-  <div class="sub">organization blocks &times; at most 1,000 query spectra</div>
-  <div class="tip">The default Top N per organization policy iterates selected reference organizations outside bounded query blocks, immediately reduces each correlation block, and releases it. Rank 1 across all retained candidates alone feeds canonical identity; each organization winner remains selectable/exportable. File-backed maps stream a global Top-1 summary per eligible pixel for thresholds, heatmaps, and summaries. Cluster Buster's temporary background participates only in the first global pixel classification and is removed before final particle identification. Collapse identifies final particle means normally; Collapse off re-reads only the selected pixel and computes its requested Top N candidates on demand. The reference artifact itself is committed by Run.
-  <span class="loc">Plans 022/029/033 &middot; server.R: analysis_library()/identify_blockwise() &middot; R/{match_spec,Specs_methods}.R</span></div>
+  <div class="sub">organization blocks &times; configurable query batches</div>
+  <div class="tip">The public <code>match_spec(batch_size=)</code> path bounds each query correlation allocation, immediately reduces its Top-N result, and releases it. The default Top N per organization policy also iterates selected reference organizations outside those batches. Rank 1 across all retained candidates alone feeds canonical identity; each organization winner remains selectable/exportable. File-backed maps stream a global Top-1 summary per eligible pixel for thresholds, heatmaps, and summaries. Cluster Buster's temporary background participates only in the first global pixel classification and is removed before final particle identification. Collapse identifies final particle means normally; Collapse off re-reads only the selected pixel and computes its requested Top N candidates on demand. The reference artifact itself is committed by Run.
+  <span class="loc">Plans 022/029/033/034 &middot; server.R: analysis_library()/identify_blockwise() &middot; R/{match_spec,Specs_methods}.R</span></div>
 </div>
 <div class="node function" style="left:1050px;top:2270px" tabindex="0">
   Attach Best Matches
@@ -631,7 +631,7 @@
 <div class="node decision" style="left:550px;top:2780px" tabindex="0">
   Quantification defined?
   <div class="sub">ratio_definitions() / measurement_definitions()</div>
-  <div class="tip">Purely data-driven, no switch: true if the user has added any peak-ratio or point-intensity definitions. Also Run-gated (quantified_data_gate), so it recomputes on the same Click Run event as canonical_state_gate, not independently.
+  <div class="tip">Purely data-driven, no switch: true if the user has added any peak-ratio or point-intensity definitions. Definitions may be created before upload or Run and survive later source selection; finite numeric structure is validated immediately and processed-axis coverage is validated once an axis is available. The Quantification tab turns green while either definition table is nonempty, and its Remove All action clears both. Preprocessing, Identification, and Advanced tabs use the same green active-state cue for their owner switches. Applying definitions remains Run-gated (quantified_data_gate), so it recomputes on the same Click Run event as canonical_state_gate, not independently.
   <span class="loc">server.R:1676-1694</span></div>
 </div>
 <div class="node function" style="left:550px;top:2950px" tabindex="0">
@@ -758,14 +758,14 @@
 <div class="node output tip-left" style="left:2250px;top:2560px" tabindex="0">
   Spectrum Plot
   <div class="depends">depends on: Active Spectrum Inspection + optional match/model class</div>
-  <div class="tip">The processed trace is byte-for-byte the one-column object from Active Spectrum Inspection. When Advanced Show Peak Positions is on, the plot adds up to the selected 1&ndash;20 finite interior positive-to-negative derivative-zero maxima as marker-only points ranked by displayed intensity; rank, wavenumber, and intensity remain on hover. This annotation responds live and does not need Run. Raw, committed reference, and committed model-coefficient overlays remain stable when identification controls change until the next Run.
+  <div class="tip">The processed trace comes from the one-column Active Spectrum Inspection object. When Min-Max Normalize is selected, raw, active, and reference display traces are each rescaled after all corrections; canonical values used by quantification remain unchanged. When Advanced Show Peak Positions is on, the plot adds up to the selected 1&ndash;20 finite interior positive-to-negative derivative-zero maxima as marker-only points ranked by displayed intensity; rank, wavenumber, and intensity remain on hover. This annotation responds live and does not need Run. The committed model-coefficient overlay remains stable until the next Run and its Logistic weight legend item toggles the complete overlay group.
   <span class="loc">Plans 025/027/033 &middot; server.R: output$MyPlotC/active_peak_positions() &middot; global.R: app_peak_positions()/app_spectrum_plot()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2630px" tabindex="0">
   Selection Metadata Table
   <div class="depends">depends on: canonical_final() + click; Identification OR AI</div>
-  <div class="tip">output$eventmetadata is a native client-side DT over match_metadata(). Before a canonical object exists, selection resolves to unavailable. On the first successful Run, plot/pixel/rank, uploaded metadata, and Top Matches initialize from one result-ready boundary so metadata appears immediately. An Uploaded Metadata click resolves one retained unit and exactly one representative source pixel even when that particle contains many pixels, preventing vector-valued selection from blanking this table. Simple Metadata defaults to friendly material, score, S/N, optional calibrated geometry, and file name; detailed mode exposes unit-bearing fields. Real-library mode uses the selected committed reference row; logistic mode joins rank 1 with standardized display classes while preserving raw model keys internally.
+  <div class="tip">output$eventmetadata is a native client-side DT over match_metadata(). Before a canonical object exists, selection resolves to unavailable. On the first successful Run, plot/pixel/rank, uploaded metadata, and Top Matches initialize from one result-ready boundary so metadata appears immediately. An Uploaded Metadata click resolves one retained unit and exactly one representative source pixel even when that particle contains many pixels, preventing vector-valued selection from blanking this table. Simple Metadata defaults to friendly material, score, S/N, optional calibrated geometry, file name, the unique Column ID, and X/Y whenever available; detailed mode exposes unit-bearing fields. Real-library mode uses the selected committed reference row; logistic mode joins rank 1 with standardized display classes while preserving raw model keys internally.
   <strong>Plan 018 target:</strong> a compact selection fetches exactly one aligned source metadata row and its value-level match fields.
   <span class="loc">Plans 018/030 &middot; server.R: canonical-result readiness, selected_unit_index(), match_metadata() &middot; Specs metadata accessors</span></div>
 </div>
