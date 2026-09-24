@@ -70,10 +70,10 @@ Description: Raman and (FT)IR spectral analysis tool for plastic particles and
     alignment, and min-max normalization. Spectra can be identified in batch
     using an onboard reference library using match_spec(). A bundled Shiny app
     is available via run_app() or online at
-    <https://wincowgerdev.github.io/OpenSpecy-package/>.
+    <https://www.openanalysis.org/OpenSpecyV2/>.
 URL: https://github.com/wincowgerDEV/OpenSpecy-package/,
-     https://wincowgerdev.github.io/OpenSpecy-package/,
-     https://wincowgerdev.github.io/OpenSpecy-package/pkgdown/
+     https://www.openanalysis.org/OpenSpecyV2/,
+     https://www.openanalysis.org/OpenSpecyV2/pkgdown/
 BugReports: https://github.com/wincowgerDEV/OpenSpecy-package/issues/
 License: CC BY 4.0
 Encoding: UTF-8

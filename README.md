@@ -9,7 +9,7 @@ Analyze, Process, Identify, and Share Raman and (FT)IR Spectra
 [![Codecov test coverage](https://codecov.io/gh/wincowgerDEV/OpenSpecy-package/branch/main/graph/badge.svg)](https://app.codecov.io/gh/wincowgerDEV/OpenSpecy-package?branch=main)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![DOI](https://img.shields.io/badge/DOI-10.1021/acs.analchem.5c00962-blue.svg)](https://doi.org/10.1021/acs.analchem.5c00962)
-[![Website](https://img.shields.io/badge/web-OpenSpecy%20app-white)](https://wincowgerdev.github.io/OpenSpecy-package/)
+[![Website](https://img.shields.io/badge/web-OpenSpecy%20app-white)](https://www.openanalysis.org/OpenSpecyV2/)
 <!-- badges: end -->
 
 Raman and (FT)IR spectral analysis tool for 
@@ -27,7 +27,7 @@ or directly on this website.
 ## Use OpenSpecy online
 
 Use the hosted browser app on the
-[OpenSpecy website](https://wincowgerdev.github.io/OpenSpecy-package/). The
+[OpenSpecy website](https://www.openanalysis.org/OpenSpecyV2/). The
 local app remains available through `run_app()`.
 
 ## Installation
@@ -61,7 +61,7 @@ run_app()
 
 ## Simple workflow for single spectral identification
 
-See [package vignette](https://wincowgerdev.github.io/OpenSpecy-package/pkgdown/articles/sop.html)
+See [package vignette](https://www.openanalysis.org/OpenSpecyV2/pkgdown/articles/sop.html)
 for a detailed standard operating procedure.
 
 ```r

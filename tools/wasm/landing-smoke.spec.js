@@ -41,7 +41,7 @@ test("static landing shell is crawlable, responsive, and base-path safe", async 
   expect(description && description.length).toBeLessThan(180);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    /^https:\/\/wincowgerdev\.github\.io\/OpenSpecy-package\/$/
+    /^https:\/\/www\.openanalysis\.org\/OpenSpecyV2\/$/
   );
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /OpenSpecy/);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", /summary/);

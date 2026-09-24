@@ -1270,12 +1270,12 @@ test_that("static landing and Shiny app provide the embed handshake", {
   )))
   expect_true(any(grepl("app-shell.is-fullscreen", css,
                          fixed = TRUE)))
-  expect_true(any(grepl("Sitemap: https://wincowgerdev.github.io/",
+  expect_true(any(grepl("Sitemap: https://www.openanalysis.org/OpenSpecyV2/",
                          robots, fixed = TRUE)))
-  expect_true(any(grepl("OpenSpecy-package/pkgdown/", sitemap,
+  expect_true(any(grepl("OpenSpecyV2/pkgdown/", sitemap,
                          fixed = TRUE)))
   expect_true(any(grepl(
-    "url: https://wincowgerdev.github.io/OpenSpecy-package/pkgdown/",
+    "url: https://www.openanalysis.org/OpenSpecyV2/pkgdown/",
     pkgdown, fixed = TRUE
   )))
 })

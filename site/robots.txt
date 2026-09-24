@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://wincowgerdev.github.io/OpenSpecy-package/sitemap.xml
+Sitemap: https://www.openanalysis.org/OpenSpecyV2/sitemap.xml

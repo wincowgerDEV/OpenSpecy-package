@@ -62,7 +62,7 @@
 - **Performance**: extend `benchmarks/library_builder.R` with old-versus-slim serialized bytes, in-memory bytes, and five repeated `readRDS()` timings plus prediction equivalence. Target medoid derivative ≤5 MB and no-baseline ≤3 MB; every other runtime artifact must shrink materially or document irreducible model/spectral state.
 - **Generated docs**: edit roxygen/package metadata, run configured roxygen2 8.0.0, and inspect `NAMESPACE`/`man/*.Rd`; never hand-edit generated output.
 - **Bundled app/pipeline**: update the Upload/source-routing, Run/settings snapshot, Identification, Simple Metadata, and Spectrum Plot boxes in `pipeline-diagram.html`. Standard upload paths converge on the same reader; dense matching uses public bounded `match_spec()`, and plots apply display-only normalization without changing canonical data.
-- **Hosted impact**: shared `R/`, app fallback, and staged libraries change. Keep the package/WASM dependency closure pinned, but fetch latest slim medoid/model data at action time and record their resolved hashes; run `-HostedAppStatic`, exact-artifact preflight, and the release-triggered clean wasm rebuild.
+- **Hosted impact**: shared `R/`, app fallback, staged libraries, and canonical URLs change. Publish the landing page, app, pkgdown, sitemap, and social metadata under `https://www.openanalysis.org/OpenSpecyV2/`. Keep the package/WASM dependency closure pinned, but fetch latest slim medoid/model data at action time and record their resolved hashes; run `-HostedAppStatic`, exact-artifact preflight, and the release-triggered clean wasm rebuild.
 
 ## Package Surfaces
 

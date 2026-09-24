@@ -95,7 +95,7 @@ redirect_document <- function(relative_target, canonical_target, label) {
 }
 
 write_legacy_redirects <- function(site_dir) {
-  canonical_root <- "https://wincowgerdev.github.io/OpenSpecy-package/pkgdown/"
+  canonical_root <- "https://www.openanalysis.org/OpenSpecyV2/pkgdown/"
   redirects <- list(
     list("articles/index.html", "../pkgdown/articles/", "articles/", "Articles"),
     list("articles/app.html", "../pkgdown/articles/app.html", "articles/app.html",

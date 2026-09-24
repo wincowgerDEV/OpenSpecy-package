@@ -1,5 +1,8 @@
 # OpenSpecy 2.0.0
 
+- The public app, pkgdown site, canonical metadata, sitemap, and documentation
+  links now use the institutional GitHub Pages route at
+  `https://www.openanalysis.org/OpenSpecyV2/`.
 - `match_spec()` now accepts `batch_size` for bounded spectral-library Top-N
   searches. The bundled app exposes this limit for dense and file-backed
   identification so large in-memory maps do not allocate one full correlation
