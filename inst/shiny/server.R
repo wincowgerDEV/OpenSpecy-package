@@ -41,6 +41,8 @@ function(input, output, session) {
   correction_diagnostics <- reactiveVal(data.frame())
   ratio_definitions <- reactiveVal(app_empty_ratio_definitions())
   measurement_definitions <- reactiveVal(app_empty_measurement_definitions())
+  settings_defaults <- reactiveVal(NULL)
+  settings_import_status <- reactiveVal(NULL)
   quantification_axis <- reactiveVal(NULL)
   inspection_source_gate <- reactiveVal(NULL)
   # The reference artifact is committed by Run alongside canonical_state().
@@ -96,6 +98,19 @@ function(input, output, session) {
   # color once Run has been clicked for the current upload and settings.
   analysis_dirty <- reactiveVal(FALSE)
   analysis_needs_reset <- reactiveVal(FALSE)
+  session$onFlushed(function() {
+    defaults <- shiny::isolate(
+      stats::setNames(
+        lapply(app_user_metadata_input_ids, function(id) input[[id]]),
+        app_user_metadata_input_ids
+      )
+    )
+    if(is.null(defaults$visual_overlay)) defaults$visual_overlay <- TRUE
+    if(is.null(defaults$overlay_transparency)) {
+      defaults$overlay_transparency <- 20
+    }
+    settings_defaults(defaults)
+  }, once = TRUE)
   settings_signature <- reactive({
     analysis_ids <- setdiff(
       app_user_metadata_input_ids, app_live_display_input_ids
@@ -305,7 +320,7 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
     return(NULL)
   }
 
-  if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
+  if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.jpg$)|(\\.jpeg$)|(\\.png$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
              ignore.case = TRUE, as.character(file_info$name)))) {
     set_upload_status(paste(
       "Uploaded data type is not supported. Check the upload guidance for",
@@ -548,6 +563,13 @@ stage_selected_files <- function(file_info, mounted = FALSE) {
   active_file_info(file_info)
   preprocessed$data <- NULL
   inspection_source_gate(NULL)
+  data_click$plot <- NULL
+  data_click$pixel <- NULL
+  data_click$table <- NULL
+  meta_cache(NULL)
+  correction_diagnostics(data.frame())
+  snr_preview(NULL)
+  snr_preview_signature(NULL)
   heatmap_events_ready(FALSE)
   session$sendCustomMessage("openspecy-heatmap-pending", list())
   session$sendCustomMessage("openspecy-clear-heatmap-click", list())
@@ -617,6 +639,72 @@ observeEvent(input$mounted_files, {
     return(NULL)
   }
   stage_selected_files(file_info, mounted = TRUE)
+}, ignoreInit = TRUE)
+
+update_imported_setting <- function(id, value) {
+  if(id %in% app_logical_setting_ids) {
+    shinyWidgets::updatePrettySwitch(session, id, value = isTRUE(value))
+  } else if(id %in% c("id_spec_type", "id_strategy", "lib_type", "lib_org",
+                      "collapse_type", "particle_id_strategy")) {
+    shinyWidgets::updatePickerInput(session, id, selected = value)
+  } else if(id %in% c("intensity_corr", "quant_ratio_type",
+                      "quant_measurement_type")) {
+    updateRadioButtons(session, id, selected = value)
+  } else if(id %in% c("smoother", "derivative_order", "smoother_window",
+                      "conform_res", "baseline", "baseline_lambda",
+                      "iterations", "saturation_max_loss", "peak_count",
+                      "overlay_transparency")) {
+    updateSliderInput(session, id, value = value)
+  } else if(id %in% c("pixel_unit", "quant_ratio_name",
+                      "quant_measurement_name")) {
+    updateTextInput(session, id, value = value)
+  } else if(id %in% app_numeric_setting_ids) {
+    updateNumericInput(session, id, value = value)
+  } else {
+    updateSelectInput(session, id, selected = value)
+  }
+}
+
+output$settings_import_status <- renderUI({
+  status <- settings_import_status()
+  if(is.null(status)) return(NULL)
+  tags$p(class = if(isTRUE(status$ok)) "text-success" else "text-danger",
+         status$message)
+})
+
+observeEvent(input$settings_csv, {
+  upload <- input$settings_csv
+  req(!is.null(upload), nrow(upload) == 1L)
+  parsed <- tryCatch({
+    snapshot <- data.table::fread(
+      upload$datapath[[1L]], data.table = FALSE, check.names = FALSE,
+      na.strings = c("NA", "")
+    )
+    app_user_metadata_import(snapshot, settings_defaults())
+  }, error = identity)
+  if(inherits(parsed, "error")) {
+    settings_import_status(list(ok = FALSE, message = conditionMessage(parsed)))
+    return(NULL)
+  }
+  for(id in app_user_metadata_input_ids) {
+    update_imported_setting(id, parsed$settings[[id]])
+  }
+  ratio_definitions(parsed$ratios)
+  measurement_definitions(parsed$measurements)
+  analysis_dirty(TRUE)
+  analysis_needs_reset(TRUE)
+  canonical_state_gate$clear()
+  quantified_data_gate$clear()
+  automatic_report_gate$clear()
+  ai_output_gate$clear()
+  pixel_projection_gate$clear()
+  warning_text <- if(length(parsed$unknown)) {
+    paste0(" Unknown columns ignored: ", paste(parsed$unknown, collapse = ", "), ".")
+  } else ""
+  settings_import_status(list(
+    ok = TRUE,
+    message = paste0("Settings restored. Click Run to apply them.", warning_text)
+  ))
 }, ignoreInit = TRUE)
 
 observeEvent(input$run_analysis, {
@@ -2926,15 +3014,31 @@ observeEvent(input$run_analysis, {
             uploaded_cache$material_class <- projection$material
             uploaded_cache$spectrum_identity <- projection$match_id
           }
+          if(!is.null(projection) &&
+             nrow(projection$metadata) == nrow(uploaded_cache)) {
+            for(name in intersect(c("x", "y", "grid_x", "grid_y"),
+                                  names(projection$metadata))) {
+              uploaded_cache[[name]] <- projection$metadata[[name]]
+            }
+          }
           meta_cache(uploaded_cache)
         } else {
           selected <- app_initial_result_selection(object, state$pixel_to_unit)
           data_click$plot <- selected$plot
           data_click$pixel <- selected$pixel
           data_click$table <- selected$table
-          meta_cache(app_uploaded_metadata_cache(
+          uploaded_cache <- app_uploaded_metadata_cache(
             object, canonical_signal_noise()
-          ))
+          )
+          projection <- pixel_projection_gate$read()
+          if(!isTRUE(state$settings$collapse) && !is.null(projection) &&
+             nrow(projection$metadata) == nrow(uploaded_cache)) {
+            for(name in intersect(c("x", "y", "grid_x", "grid_y"),
+                                  names(projection$metadata))) {
+              uploaded_cache[[name]] <- projection$metadata[[name]]
+            }
+          }
+          meta_cache(uploaded_cache)
         }
         selection_ready_run(current_run)
       }
@@ -3239,6 +3343,11 @@ match_metadata <- reactive({
       }
       pixel <- suppressWarnings(as.integer(data_click$pixel))
       result <- data.table::copy(data.table::as.data.table(viewed$metadata))
+      projection <- pixel_projection()
+      if(!is.null(projection) && pixel <= nrow(projection$metadata)) {
+        result$x <- projection$metadata$x[[pixel]]
+        result$y <- projection$metadata$y[[pixel]]
+      }
       values <- snr_preview()
       result[, signal_to_noise := as.numeric(values[[pixel]])]
       if(isTRUE(settings$identification_active)) {
@@ -3256,8 +3365,12 @@ match_metadata <- reactive({
           }
         }
       }
+      display_unit <- if(!is.null(projection) && isTruthy(projection$axis_unit)) {
+        projection$axis_unit
+      } else "pixel"
       return(app_selection_metadata_display(
         result, simple = isTRUE(input$simple_metadata), particle = FALSE,
+        pixel_size = 1, pixel_unit = display_unit,
         match_label = simple_match_label(),
         signal_label = simple_signal_label()
       ))
@@ -3301,12 +3414,22 @@ match_metadata <- reactive({
             select(file_name, col_id, material_class, match_val, signal_to_noise, everything())
         result
     }
+    display_calibration <- pixel_calibration()
+    projection <- pixel_projection()
+    if(!isTRUE(settings$collapse) && !is.null(projection) &&
+       isTruthy(projection$axis_unit)) {
+      display_calibration <- app_pixel_calibration(1, projection$axis_unit)
+      if(selected_index <= nrow(projection$metadata) && nrow(result) == 1L) {
+        result$x <- projection$metadata$x[[selected_index]]
+        result$y <- projection$metadata$y[[selected_index]]
+      }
+    }
     app_selection_metadata_display(
       result,
       simple = isTRUE(input$simple_metadata),
       particle = isTRUE(settings$collapse),
-      pixel_size = pixel_calibration()$size,
-      pixel_unit = pixel_calibration()$unit,
+      pixel_size = display_calibration$size,
+      pixel_unit = display_calibration$unit,
       match_label = simple_match_label(),
       signal_label = simple_signal_label()
     )
@@ -3378,6 +3501,11 @@ output$sidebar_metadata <- DT::renderDT({
     selected <- app_uploaded_metadata_row(meta_cache(), data_click$plot)
     settings <- canonical_state()$settings
     calibration <- pixel_calibration()
+    projection <- pixel_projection()
+    if(!isTRUE(settings$collapse) && !is.null(projection) &&
+       isTruthy(projection$axis_unit)) {
+      calibration <- app_pixel_calibration(1, projection$axis_unit)
+    }
     app_uploaded_metadata_table(
       meta_cache(), selected = selected,
       simple = isTRUE(input$simple_metadata),
@@ -3465,8 +3593,15 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
     reason[signal_rejected & correlation_rejected] <-
       "signal/noise and correlation"
 
+    calibration <- pixel_calibration()
+    coordinate_projection <- app_project_source_coordinates(
+      preprocessed$data, source_metadata(spatial),
+      pixel_size = calibration$size, pixel_unit = calibration$unit
+    )
     list(
-      metadata = source_metadata(spatial), mapping = mapping,
+      metadata = coordinate_projection$metadata,
+      axis_unit = coordinate_projection$unit,
+      coordinate_source = coordinate_projection$source, mapping = mapping,
       pixel_id = ids,
       signal_to_noise = signal, correlation = as.numeric(correlation),
       match_id = as.character(match_id), material = as.character(material),
@@ -3543,10 +3678,31 @@ output$choice_names <- renderUI({
                       icon = icon("list"), class = "btn btn-outline-info"
                     )
                   )
-                )
+                ),
+                column(3, uiOutput("visual_overlay_controls"))
             )
                 )
 })
+
+  registered_visual <- reactive({
+    req(!is.null(preprocessed$data))
+    app_registered_visual(preprocessed$data)
+  })
+
+  output$visual_overlay_controls <- renderUI({
+    req(!is.null(registered_visual()))
+    tagList(
+      shinyWidgets::prettySwitch(
+        "visual_overlay", "Visual Image Overlay", value = TRUE,
+        status = "success", fill = TRUE, inline = TRUE
+      ),
+      sliderInput(
+        "overlay_transparency", "Overlay Transparency",
+        min = 0, max = 100, value = 20, step = 5, post = "%"
+      )
+    )
+  })
+  outputOptions(output, "visual_overlay_controls", suspendWhenHidden = FALSE)
 
 output$progress_bars <- renderUI({
     req(!is.null(preprocessed$data))
@@ -3681,7 +3837,6 @@ output$progress_bars <- renderUI({
 
   heatmap_state_for <- function(map_color) {
       projection <- pixel_projection()
-      calibration <- pixel_calibration()
       preview <- snr_preview()
       signal <- projection$signal_to_noise
       if(!is.null(preview)) {
@@ -3741,14 +3896,12 @@ output$progress_bars <- renderUI({
         )
       }
       list(
-        metadata = app_calibrate_spatial_metadata(
-          projection$metadata, calibration$size, calibration$unit
-        ),
+        metadata = projection$metadata,
         z = z,
         categorical = categorical,
         rejected = rejected,
         rejection_reason = rejection_reason,
-        axis_unit = calibration$unit
+        axis_unit = projection$axis_unit
       )
   }
 
@@ -3795,7 +3948,17 @@ output$progress_bars <- renderUI({
           reason = "A new dataset was uploaded. Click Run to analyze it."
         ))
       }
-      heatmap_data_for(resolved_map_color())
+      data <- heatmap_data_for(resolved_map_color())
+      visual <- registered_visual()
+      if(!is.null(visual) && isTRUE(input$visual_overlay)) {
+        data$visual_image <- visual$image
+        transparency <- suppressWarnings(as.numeric(input$overlay_transparency))
+        if(length(transparency) != 1L || !is.finite(transparency)) {
+          transparency <- 20
+        }
+        data$overlay_opacity <- 1 - pmin(pmax(transparency, 0), 100) / 100
+      }
+      data
   })
 
   # The currently selected point's data coordinates come from the uploaded
@@ -3810,7 +3973,7 @@ output$progress_bars <- renderUI({
       # on every Spatial Smooth/sigma change, via this reactive's own
       # always-on observer below -- before Run, without the map ever
       # visibly changing, since nothing here used the smoothed values.
-      metadata <- source_metadata(data())
+      metadata <- pixel_projection()$metadata
       if(length(selected) != 1L || is.na(selected) || selected < 1L ||
          selected > nrow(metadata)) {
         mapping <- canonical_state()$pixel_to_unit
@@ -3820,10 +3983,9 @@ output$progress_bars <- renderUI({
         }
       }
       if(length(selected) != 1L || is.na(selected)) return(NULL)
-      calibration <- pixel_calibration()
       list(
-        x = metadata$x[[selected]] * calibration$size,
-        y = metadata$y[[selected]] * calibration$size
+        x = metadata$x[[selected]],
+        y = metadata$y[[selected]]
       )
   })
 
@@ -3896,16 +4058,15 @@ output$progress_bars <- renderUI({
       } else {
         0L
       }
-      if(is.na(curve_number) || !curve_number %in% c(0L, 1L)) return()
+      image_offset <- as.integer(!is.null(current_heatmap_data()$visual_image))
+      if(is.na(curve_number) ||
+         !curve_number %in% (c(0L, 1L) + image_offset)) return()
       req(length(click$x), length(click$y))
       click_x <- click$x[[1L]]
       click_y <- click$y[[1L]]
 
       req(!is.null(preprocessed$data))
-      calibration <- pixel_calibration()
-      click_metadata <- app_calibrate_spatial_metadata(
-        source_metadata(spatial_data()), calibration$size, calibration$unit
-      )
+      click_metadata <- pixel_projection()$metadata
       selected <- nearest_metadata_row(click_metadata, click_x, click_y)
       if(length(selected) && selected <= source_count(preprocessed$data)) {
         data_click$pixel <- selected
@@ -4403,7 +4564,9 @@ output$progress_bars <- renderUI({
       cur <- data_click$plot
       row <- app_uploaded_metadata_row(meta, cur)
       if(!length(row) || !all(c("x", "y") %in% names(meta))) return()
-      target <- paste(meta$x[[row]] + dx, meta$y[[row]] + dy)
+      nav_x <- if("grid_x" %in% names(meta)) meta$grid_x else meta$x
+      nav_y <- if("grid_y" %in% names(meta)) meta$grid_y else meta$y
+      target <- paste(nav_x[[row]] + dx, nav_y[[row]] + dy)
       target_row <- match(target, meta$.openspecy_coord_key)
       if (!is.na(target_row)) {
         data_click$plot <- meta$.openspecy_index[[target_row]]

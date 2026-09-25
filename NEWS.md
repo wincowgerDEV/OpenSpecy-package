@@ -1,5 +1,16 @@
 # OpenSpecy 2.0.0
 
+- H5 stage coordinates and supported ENVI origin/pixel-size metadata now drive
+  physical X/Y axes in the bundled app while preserving integer pixel topology.
+  Registered H5 mosaics and basename-matched ENVI JPG/PNG images can be shown
+  below the particle-style heatmap with live overlay transparency.
+- The Advanced tab can restore the app's versioned one-row User Metadata CSV,
+  including saved ratios and measurements. Replacement uploads now clear stale
+  selections and outputs, continuous legends show five three-significant-figure
+  ticks, and numeric metadata filters follow the active theme.
+- `split_h5()` now retains the mosaic centers and image tiles intersecting each
+  native H5 split. `automate_particle_analysis()` automatically discovers an
+  unambiguous same-basename JPG/PNG beside ENVI DAT/IMG inputs.
 - `automate_particle_analysis()` now exposes `file_processing = "stream"` or
   `"memory"` for file-backed inputs. Streaming remains the bounded default and
   now reports chunk counts, processed spectra, percentages, and elapsed time

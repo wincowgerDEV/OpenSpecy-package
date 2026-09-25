@@ -25,6 +25,41 @@ test_that("ENVI files are read", {
   names(tiny_map$metadata) |>
     expect_contains(c("x", "y", "file_name", "file_id", "description",
                       "pixel size"))
+  calibration <- attr(tiny_map, "spatial_calibration")
+  expect_equal(calibration$x_origin, 12362.22)
+  expect_equal(calibration$y_origin, 614.82)
+  expect_equal(calibration$x_step, 25)
+  expect_equal(calibration$y_step, 25)
+  expect_identical(calibration$unit, "um")
+})
+
+test_that("ENVI map info calibration survives dense, compact, and file reads", {
+  directory <- tempfile("envi-map-info-")
+  dir.create(directory)
+  binary <- file.path(directory, "map.dat")
+  header <- file.path(directory, "map.hdr")
+  on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+  connection <- file(binary, "wb")
+  writeBin(as.numeric(1:8), connection, size = 4L, endian = "little")
+  close(connection)
+  writeLines(c(
+    "ENVI", "samples = 2", "lines = 2", "bands = 2",
+    "header offset = 0", "data type = 4", "interleave = bip",
+    "byte order = 0", "wavelength = {1000, 1001}",
+    "map info = {UTM, 1, 1, 500, 1000, 25, 50, units=Meters}"
+  ), header)
+
+  dense <- read_envi(binary, header)
+  compact <- read_envi(binary, header, representation = "Specs")
+  backed <- open_specs(c(header, binary))
+  expected <- list(x_origin = 500, y_origin = 1000, x_step = 25,
+                   y_step = -50, unit = "Meters")
+  for(object in list(dense, compact, backed)) {
+    calibration <- attr(object, "spatial_calibration")
+    expect_equal(calibration[names(expected)], expected)
+  }
+  expect_identical(dense$metadata$x, c(0, 1, 0, 1))
+  expect_identical(dense$metadata$y, c(0, 0, 1, 1))
 })
 
 test_that("ENVI ZIP members stream without a full extraction directory", {

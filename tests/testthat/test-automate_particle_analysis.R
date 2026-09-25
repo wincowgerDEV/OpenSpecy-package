@@ -60,6 +60,47 @@ test_that(".normalize_particle_samples() expands a file-path vector", {
   expect_identical(wrapped[[1]], object)
 })
 
+test_that("particle analysis discovers one basename-matched ENVI image", {
+  skip_if_not_installed("png")
+  directory <- tempfile("particle-companion-")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+  dat <- file.path(directory, "sample.dat")
+  jpg <- file.path(directory, "sample.JPG")
+  png <- file.path(directory, "other.png")
+  file.create(dat, jpg, png)
+
+  expect_identical(
+    OpenSpecy:::.particle_companion_image(dat),
+    normalizePath(jpg, winslash = "/")
+  )
+  duplicate <- file.path(directory, "sample.png")
+  file.create(duplicate)
+  expect_warning(
+    expect_null(OpenSpecy:::.particle_companion_image(dat)),
+    "Multiple same-basename"
+  )
+
+  unlink(c(jpg, duplicate))
+  image_path <- file.path(directory, "sample.png")
+  image <- array(0, dim = c(8, 8, 3))
+  image[c(2, 7), 2:7, 1L] <- 1
+  image[2:7, c(2, 7), 1L] <- 1
+  png::writePNG(image, image_path)
+  map <- as_OpenSpecy(
+    1:2, spectra = matrix(1:8, nrow = 2),
+    metadata = data.frame(x = c(0, 1, 0, 1), y = c(0, 0, 1, 1))
+  )
+  attached <- OpenSpecy:::.attach_particle_image(
+    map, images = NULL, bottom_left = NULL, top_right = NULL, i = 1L,
+    source = dat
+  )
+  expect_identical(visual_image(attached)$source,
+                   normalizePath(image_path, winslash = "/"))
+  expect_identical(visual_image(attached)$detection_method,
+                   "red_box")
+})
+
 test_that("automate_particle_analysis() reads a vector of file paths one at a time", {
   wn <- seq(750, 1800, length.out = 40)
   pe <- sin(wn / 120) + 1

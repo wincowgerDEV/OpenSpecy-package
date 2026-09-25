@@ -1,3 +1,14 @@
+.filespec_test_bmp <- function() {
+  c(
+    charToRaw("BM"), as.raw(c(70, 0, 0, 0)), as.raw(rep(0, 4)),
+    as.raw(c(54, 0, 0, 0)), as.raw(c(40, 0, 0, 0)),
+    as.raw(c(2, 0, 0, 0, 2, 0, 0, 0, 1, 0, 24, 0)),
+    as.raw(rep(0, 24)),
+    as.raw(c(0, 0, 255, 0, 255, 0, 0, 0,
+             255, 0, 0, 255, 255, 255, 0, 0))
+  )
+}
+
 .make_filespec_h5 <- function(path,
                               region_names = c("Region1", "Region2")) {
   h5 <- hdf5r::H5File$new(path, mode = "w")
@@ -17,8 +28,13 @@
   region2[["Dataset"]] <- array(as.numeric(101:116), dim = c(4, 2, 2))
   region2[["-StagePosXYZ"]] <- c(10, 0, 0, 11, 1, 0)
   mosaic <- h5$create_group("Mosaic")
-  mosaic[["Centers"]] <- matrix(c(-1, 2, 0.5, 5.5, -1, 12), nrow = 1)
-  mosaic[["Image0"]] <- as.integer(0)
+  mosaic[["Centers"]] <- rbind(
+    c(-1, 2, 0.5, 0.5, -1, 2),
+    c(-1, 2, 0.5, 10.5, 9, 12)
+  )
+  mosaic[["Image0"]] <- as.integer(.filespec_test_bmp())
+  mosaic[["Image1"]] <- as.integer(.filespec_test_bmp())
+  mosaic$create_attr("registration", robj = "stage-nm")
   invisible(path)
 }
 
@@ -124,7 +140,8 @@ test_that("FileSpecs H5 descriptors read bounded selections without handles", {
   expect_contains(names(OpenSpecy:::.filespec_index(specs)),
                   c("index", "region", "row", "col", "x", "y", "col_id",
                     "stage_x_nm", "stage_y_nm", "stage_units"))
-  expect_equal(specs$source$visual$image_datasets, "/Mosaic/Image0")
+  expect_equal(specs$source$visual$image_datasets,
+               c("/Mosaic/Image0", "/Mosaic/Image1"))
   expect_named(specs$source$visual$regions, c("Region1", "Region2"))
   expect_identical(attr(specs, "visual_image"), specs$source$visual)
   expect_match(capture.output(print(specs))[[1L]], "FileSpecs")
@@ -241,11 +258,25 @@ test_that("split_h5 natively copies and saves one H5 region at a time", {
     c("large-map_Region1.h5", "large-map_Region2.h5")
   )
   expect_true(all(file.exists(paths)))
-  pieces <- lapply(paths, read_h5, read_visual = FALSE)
+  pieces <- lapply(paths, read_h5, read_visual = TRUE)
   expect_true(all(vapply(pieces, inherits, logical(1L), "OpenSpecy")))
   expect_true(all(vapply(pieces, check_OpenSpecy, logical(1L))))
   expect_equal(vapply(pieces, function(x) ncol(x$spectra), integer(1L)),
                c(Region1 = 4L, Region2 = 4L))
+  expect_true(all(vapply(pieces, function(x) {
+    !is.null(visual_image(x)$image)
+  }, logical(1L))))
+  for(path in unname(paths)) {
+    split_file <- hdf5r::H5File$new(path, mode = "r")
+    expect_true(split_file$exists("/Mosaic/Image0"))
+    expect_false(split_file$exists("/Mosaic/Image1"))
+    split_centers <- split_file[["/Mosaic/Centers"]]$read()
+    expect_equal(nrow(OpenSpecy:::.h5_mosaic_stage_tiles(split_centers)), 1L)
+    expect_identical(
+      split_file[["/Mosaic"]]$attr_open("registration")$read(), "stage-nm"
+    )
+    split_file$close_all()
+  }
 
   eager <- read_h5(file, read_visual = FALSE)
   expect_equal(pieces$Region1$spectra, eager$spectra[, 1:4],

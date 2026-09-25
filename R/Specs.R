@@ -189,6 +189,7 @@ Specs <- function(variables, values, coords = NULL, metadata = NULL,
   attr(obj, "background") <- .specs_attr(attributes, "background", NULL)
   attr(obj, "source_metadata") <- .specs_attr(attributes, "source_metadata", NULL)
   attr(obj, "source_attributes") <- .specs_attr(attributes, "source_attributes", NULL)
+  attr(obj, "spatial_calibration") <- .specs_attr(attributes, "spatial_calibration", NULL)
 
   if (inherits(coords, "SpecsCoords")) {
     .validate_specs_metadata_model(attr(obj, "source_metadata"),
@@ -513,6 +514,8 @@ decompress_spec.Specs <- function(x, expand = TRUE, index = NULL, ...) {
   )
   if (!is.null(attr(x, "visual_image")))
     attr(out, "visual_image") <- attr(x, "visual_image")
+  if (!is.null(attr(x, "spatial_calibration")))
+    attr(out, "spatial_calibration") <- attr(x, "spatial_calibration")
   source_attributes <- attr(x, "source_attributes")
   if (is.list(source_attributes)) {
     for (name in setdiff(names(source_attributes), c("names", "class"))) {

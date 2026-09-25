@@ -96,6 +96,13 @@ and mounts that file through WORKERFS. Selection only stages the source; the
 central progress popup reports reading and every later analysis phase after
 **Run**.
 
+For a supported ENVI map, select its DAT/IMG and HDR together. A JPG or PNG
+with the same basename may be selected at the same time; the app registers the
+map from the image's red boundary. H5 files use their embedded registered
+mosaic. When either image is available, the heatmap exposes **Visual Image
+Overlay** and a live **Overlay Transparency** slider. The image stays in the
+background and material classes use the same colors as `particle_image()`.
+
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
 knitr::include_graphics("app/mainpage.jpg")
 ```
@@ -422,6 +429,11 @@ Lengths and heatmap coordinates use that scale, areas use its square, and the
 estimated volume is the calibrated area raised to the 3/2 power. Detailed
 metadata/download column names include the selected unit.
 
+H5 stage positions and supported ENVI origin/pixel-size fields take precedence
+for heatmap X/Y coordinates and axis units. The manual pixel edge length and
+unit remain the fallback when a source has no validated calibration; source
+calibration is not multiplied by the manual value a second time.
+
 **Simple Metadata** is on by default and limits Selection Metadata to Material
 Class, Match Value, Signal to Noise, particle geometry when particles are
 collapsed, File Name, the unique Column ID, and X/Y coordinates when available.
@@ -451,9 +463,11 @@ identification, advanced, and quantification inputs using their app input names,
 along with session, app-version, uploaded-file, displayed-processed-data, and
 saved-ratio and saved-measurement provenance. The MD5 field describes the displayed processed
 `OpenSpecy` object rather than the original file bytes. The file is intended to
-help document and manually reproduce an analysis. The app does not currently
-upload these snapshots or use them to reset controls, and the export does not
-establish a long-term settings-import compatibility promise.
+help document and reproduce an analysis. In **Advanced**, upload it with
+**Load Settings** to restore recognized controls and saved ratio/measurement
+definitions. Omitted settings reset to app defaults, provenance fields remain
+read-only, and invalid files change nothing. The loaded spectra are retained,
+but the restored configuration requires **Run** before results update.
 
 # Identifying Spectra 
 

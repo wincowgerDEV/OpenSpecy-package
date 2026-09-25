@@ -456,6 +456,16 @@ test_that("heatmaps omit inline legends and build bounded modal legends", {
   expect_false(model$too_many)
   expect_identical(model$levels, c("PE", "PP"))
 
+  continuous <- env$app_heatmap_legend_model(list(
+    type = "heatmap", legend_title = "Match Value",
+    z = matrix(c(0.12345, 0.98765), nrow = 1L)
+  ))
+  expect_length(continuous$ticks, 5L)
+  expect_equal(continuous$ticks[c(1L, 5L)], c(0.12345, 0.98765))
+  legend_html <- as.character(env$app_heatmap_legend_content(continuous))
+  expect_match(legend_html, "0.123", fixed = TRUE)
+  expect_match(legend_html, "0.988", fixed = TRUE)
+
   crowded <- env$app_heatmap_legend_model(list(
     type = "heatmap_categorical", legend_title = "Particle Unit",
     levels = as.character(seq_len(31L))
@@ -463,6 +473,81 @@ test_that("heatmaps omit inline legends and build bounded modal legends", {
   expect_true(crowded$too_many)
   expect_match(as.character(env$app_heatmap_legend_content(crowded)),
                "More than 30 categories", fixed = TRUE)
+})
+
+test_that("source coordinate projection prefers H5 and ENVI calibration", {
+  env <- .source_in_memory_app_helpers()
+  metadata <- data.frame(x = c(0, 1), y = c(0, 1),
+                         stage_x_nm = c(100, 125), stage_y_nm = c(500, 450))
+  projected <- env$app_project_source_coordinates(list(), metadata, 9, "um")
+  expect_identical(projected$unit, "nm")
+  expect_equal(projected$metadata$x, c(100, 125))
+  expect_equal(projected$metadata$grid_x, c(0, 1))
+
+  source <- list()
+  attr(source, "spatial_calibration") <- list(
+    x_origin = 10, y_origin = 20, x_step = 2, y_step = -3,
+    unit = "um", source = "map info"
+  )
+  projected <- env$app_project_source_coordinates(
+    source, data.frame(x = c(0, 1), y = c(0, 1)), 9, "pixel"
+  )
+  expect_equal(projected$metadata$x, c(10, 12))
+  expect_equal(projected$metadata$y, c(20, 17))
+  expect_identical(projected$unit, "um")
+})
+
+test_that("User Metadata settings restore atomically and reset omissions", {
+  env <- .source_in_memory_app_helpers()
+  defaults <- stats::setNames(
+    lapply(env$app_user_metadata_input_ids, function(id) {
+      if(id %in% env$app_logical_setting_ids) FALSE else
+        if(id %in% env$app_numeric_setting_ids) 1 else "default"
+    }), env$app_user_metadata_input_ids
+  )
+  defaults$lib_org <- character()
+  settings <- defaults
+  settings$threshold_decision <- TRUE
+  settings$MinSNR <- 4.567
+  settings$lib_org <- c("polymer", "fiber")
+  ratios <- data.frame(
+    id = 1L, name = "Carbonyl", column = "ratio_carbonyl_area",
+    type = "area", numerator_min = 1650, numerator_max = 1850,
+    denominator_min = 1420, denominator_max = 1500
+  )
+  snapshot <- env$app_user_metadata_snapshot(
+    settings, ratios, "now", "1.0.0", "session"
+  )
+  csv_row <- data.frame(snapshot, check.names = FALSE)
+  csv_row$pixel_unit <- NULL
+  csv_row$future_setting <- "ignored"
+  parsed <- env$app_user_metadata_import(csv_row, defaults)
+
+  expect_true(parsed$settings$threshold_decision)
+  expect_equal(parsed$settings$MinSNR, 4.567)
+  expect_identical(parsed$settings$lib_org, c("polymer", "fiber"))
+  expect_identical(parsed$settings$pixel_unit, defaults$pixel_unit)
+  expect_equal(parsed$ratios$name, "Carbonyl")
+  expect_identical(parsed$unknown, "future_setting")
+
+  invalid <- csv_row
+  invalid$MinSNR <- "not numeric"
+  expect_error(env$app_user_metadata_import(invalid, defaults), "MinSNR")
+})
+
+test_that("particle plotly places an image below an alpha heatmap", {
+  env <- .source_in_memory_app_helpers()
+  data <- list(
+    type = "heatmap_categorical", x = 0:1, y = 0:1,
+    z = matrix(c(1, 2, 2, 1), nrow = 2), levels = c("PE", "PP"),
+    palette = c(PE = "#112233", PP = "#445566"),
+    visual_image = array(0.5, dim = c(2, 2, 3)), overlay_opacity = 0.35
+  )
+  built <- suppressWarnings(plotly::plotly_build(env$app_particle_plotly(data)))
+  expect_identical(built$x$data[[1L]]$type, "image")
+  expect_identical(built$x$data[[2L]]$type, "heatmap")
+  expect_equal(built$x$data[[2L]]$opacity, 0.35)
+  expect_identical(built$x$data[[3L]]$name, "Rejected")
 })
 
 test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {

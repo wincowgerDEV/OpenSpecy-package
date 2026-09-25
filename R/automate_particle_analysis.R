@@ -19,7 +19,9 @@
 #' @param library reference `OpenSpecy` object or trained model library passed
 #' to \code{\link{match_spec}()}.
 #' @param output_dir optional directory for CSV/RDS/PNG outputs.
-#' @param images optional image path(s) or image objects aligned with `x`.
+#' @param images optional image path(s) or image objects aligned with `x`. When
+#'   omitted for an ENVI DAT/IMG path, an unambiguous same-basename JPG, JPEG,
+#'   or PNG in the same directory is discovered automatically.
 #' @param bottom_left,top_right optional lists of image corners; if missing and
 #' an image is supplied, \code{\link{detect_image_origin}()} is attempted.
 #' @param origins optional list with `x` and `y` origin offsets for map-unit
@@ -192,7 +194,8 @@ automate_particle_analysis.default <- function(
                                                      length(samples)))
     map <- .read_particle_sample(samples[[i]], spectral_smooth = spectral_smooth,
                                  sigma = sigma1)
-    map <- .attach_particle_image(map, images, bottom_left, top_right, i)
+    map <- .attach_particle_image(map, images, bottom_left, top_right, i,
+                                  source = samples[[i]])
 
     origin <- .particle_origin(origins, i)
     .particle_progress(sample_name, "signal/noise")
@@ -540,8 +543,28 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   spatial_smooth(x, sigma = sigma)
 }
 
-.attach_particle_image <- function(map, images, bottom_left, top_right, i) {
+.particle_companion_image <- function(path) {
+  if (!is.character(path) || length(path) != 1L ||
+      !grepl("\\.(dat|img|hdr)$", path, ignore.case = TRUE)) return(NULL)
+  directory <- dirname(path)
+  stem <- tolower(tools::file_path_sans_ext(basename(path)))
+  candidates <- list.files(directory, full.names = TRUE)
+  candidates <- candidates[
+    tolower(tools::file_path_sans_ext(basename(candidates))) == stem &
+      tolower(tools::file_ext(candidates)) %in% c("jpg", "jpeg", "png")
+  ]
+  if (length(candidates) > 1L) {
+    warning("Multiple same-basename visual images were found for ",
+            basename(path), "; supply 'images' explicitly", call. = FALSE)
+    return(NULL)
+  }
+  if (length(candidates)) candidates[[1L]] else NULL
+}
+
+.attach_particle_image <- function(map, images, bottom_left, top_right, i,
+                                   source = NULL) {
   img <- .indexed_argument(images, i)
+  if (is.null(img)) img <- .particle_companion_image(source)
   if (is.null(img)) return(map)
   bl <- .indexed_argument(bottom_left, i)
   tr <- .indexed_argument(top_right, i)
@@ -559,6 +582,10 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
       detection_method = if (!is.null(detection)) detection$detection_method else NULL,
       diagnostics = if (!is.null(detection)) detection$diagnostics else NULL
     )
+  } else {
+    warning("Could not detect a red map boundary in visual image '",
+            if (is.character(img)) basename(img) else "<image>",
+            "'; continuing without an overlay", call. = FALSE)
   }
   map
 }

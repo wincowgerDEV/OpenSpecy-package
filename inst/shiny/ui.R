@@ -415,6 +415,18 @@ advanced_controls <- tagList(
   app_control_box(
     "xy_grid", "XY Grid Conform", FALSE,
     note = "Replace discontinuous uploaded map coordinates with a continuous XY grid."
+  ),
+  bs4Dash::box(
+    width = 12,
+    title = "Load Settings",
+    fileInput(
+      "settings_csv", "User Metadata CSV", accept = c(".csv", "text/csv")
+    ),
+    uiOutput("settings_import_status"),
+    footer = footnote(
+      "Restore app controls",
+      "Upload the one-row User Metadata CSV downloaded from this app. Recognized controls and saved quantification definitions are restored; omitted controls reset to their app defaults. The current spectra remain loaded, and Run is required before results update."
+    )
   )
 )
 
@@ -1048,6 +1060,40 @@ dashboardPage(
           border-color: var(--openspecy-accent) !important;
           box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2) !important;
         }
+        .dataTables_wrapper .noUi-target,
+        .dataTables_wrapper .noUi-base,
+        .dataTables_wrapper .noUi-connects,
+        .dataTables_wrapper input[type='range'] {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel-2) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        .dataTables_wrapper .noUi-connect {
+          background: var(--openspecy-accent) !important;
+        }
+        .dataTables_wrapper .noUi-handle {
+          background: var(--openspecy-panel) !important;
+          border: 2px solid var(--openspecy-accent) !important;
+          box-shadow: 0 0 0 .12rem rgba(56, 189, 248, .18) !important;
+        }
+        .dataTables_wrapper .noUi-handle:hover,
+        .dataTables_wrapper .noUi-handle:focus {
+          background: var(--openspecy-panel-2) !important;
+          box-shadow: 0 0 0 .2rem rgba(56, 189, 248, .3) !important;
+        }
+        .dataTables_wrapper .noUi-tooltip,
+        .dataTables_wrapper .noUi-value,
+        .dataTables_wrapper .noUi-marker,
+        .dataTables_wrapper .range-filter,
+        .dataTables_wrapper .range-filter label {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-grid) !important;
+        }
+        .dataTables_wrapper .noUi-state-disabled,
+        .dataTables_wrapper [disabled] + .noUi-target {
+          opacity: .55;
+        }
         .openspecy-manual-range.openspecy-inputs-disabled {
           opacity: .54;
         }
@@ -1419,7 +1465,7 @@ dashboardPage(
                 accept = paste(c(
                   ".csv", ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData",
                   ".spa", ".0", ".zip", ".img", ".h5", ".txt", ".json",
-                  ".rds", ".hdr", ".dat"
+                  ".rds", ".hdr", ".dat", ".jpg", ".jpeg", ".png"
                 ), collapse = ",")
               )
             )

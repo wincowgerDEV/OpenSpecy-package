@@ -125,7 +125,9 @@ to \code{\link{match_spec}()}.}
 
 \item{output_dir}{optional directory for CSV/RDS/PNG outputs.}
 
-\item{images}{optional image path(s) or image objects aligned with \code{x}.}
+\item{images}{optional image path(s) or image objects aligned with \code{x}. When
+omitted for an ENVI DAT/IMG path, an unambiguous same-basename JPG, JPEG,
+or PNG in the same directory is discovered automatically.}
 
 \item{bottom_left, top_right}{optional lists of image corners; if missing and
 an image is supplied, \code{\link{detect_image_origin}()} is attempted.}

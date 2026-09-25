@@ -145,7 +145,10 @@ indexed or H5 metadata field can be used when each category contains complete
 regions. For a field that divides pixels within a region, use `format = "rds"`;
 each materialized category must then fit in memory. The function returns output
 paths invisibly, sanitizes invalid filename characters, and refuses to
-overwrite existing files.
+overwrite existing files. Native splits retain the registered H5 mosaic tiles
+that intersect their selected regions, with matching `Centers` rows and
+renumbered image datasets, so `visual_image()` and particle overlays continue
+to work on each output.
 
 The export preserves the wavelength axis with round-trip-safe formatting and
 rejects custom writers, incomplete/multi-region views, source members, and
@@ -206,6 +209,13 @@ tile. Stream mode supports connected `collapse` with `mean` and
 strategies, median/custom collapse, and arbitrary whole-map operation chains
 require memory mode. Verify stream/memory equivalence on a representative
 subset before interpreting a large run.
+
+For an ENVI DAT/IMG path, `automate_particle_analysis()` also looks beside the
+spectral pair for one same-basename JPG, JPEG, or PNG when `images` is omitted.
+It uses the red-boundary detector to register that image and draws the same
+material-class overlay as `particle_image()`. Multiple matches or an
+undetectable boundary warn and leave the spectral analysis usable without an
+image.
 
 Local Shiny uses one **Choose spectra...** control: a native Windows/macOS
 multi-file dialog when available, or a mounted-filesystem browser elsewhere.

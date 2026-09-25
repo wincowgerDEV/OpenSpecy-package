@@ -469,15 +469,15 @@
 <div class="node input" style="left:1050px;top:70px" tabindex="0">
   Local Filesystem Path(s)
   <div class="sub">one picker &middot; native dialog or mounted-filesystem browser</div>
-  <div class="tip">The bundled/local app exposes one <strong>Choose spectra...</strong> control. It opens the standard Windows or macOS multi-file dialog when available, or the <code>shinyFiles</code> mounted-filesystem browser elsewhere. Either backend returns validated original filesystem paths rather than duplicating large files in Shiny upload storage. Shinylive separately renders its WORKERFS picker; all paths converge at the same readers and scientific pipeline.
-  <span class="loc">Plan 034 &middot; ui.R/server.R: local source picker &middot; parent-frame.js: bindWorkerfsUpload()</span></div>
+  <div class="tip">The bundled/local app exposes one <strong>Choose spectra...</strong> control on every selection cycle. It opens the standard Windows or macOS multi-file dialog when available, or the <code>shinyFiles</code> mounted-filesystem browser elsewhere. Either backend returns validated original filesystem paths rather than duplicating large files in Shiny upload storage. A replacement clears prior clicks, previews, matches, quantification outputs, and errors. Shinylive separately renders its WORKERFS picker; all paths converge at the same readers and scientific pipeline.
+  <span class="loc">Plans 034/035 &middot; ui.R/server.R: local source picker and replacement reset &middot; parent-frame.js: bindWorkerfsUpload()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:230px" tabindex="0">
   Stage Source &amp; Header
   <div class="sub">validate path, members, header, dimensions &middot; no full map</div>
-  <div class="tip"><strong>Plan 018 target:</strong> mounted and native paths converge into a session-owned source descriptor. H5/ENVI/ZIP input validates readable members, header, dimensions, axis, and expected bytes but defers spectral materialization until Click Run commits scientific settings. Ordinary small formats retain their compatible dense <code>OpenSpecy</code> read. The original source stays untouched and available for reruns.
-  <span class="loc">Plan 018 &middot; server.R: staged_source() &middot; global.R: app_read_uploaded_members() &middot; R/{read_multi,read_envi,read_ext}.R</span></div>
+  <div class="tip"><strong>Plan 018 target:</strong> mounted and native paths converge into a session-owned source descriptor. H5/ENVI/ZIP input validates readable members, header, dimensions, axis, expected bytes, and source spatial calibration but defers spectral materialization until Click Run commits scientific settings. A basename-matched ENVI JPG/PNG is registered by its red boundary; H5 retains its embedded mosaic descriptor. Ordinary small formats retain their compatible dense <code>OpenSpecy</code> read. The original source stays untouched and available for reruns.
+  <span class="loc">Plans 018/035 &middot; server.R: staged source validation &middot; global.R: app_read_uploaded_members() &middot; R/{read_multi,read_envi,read_ext,visual_image}.R</span></div>
 </div>
 
 <div class="node decision" style="left:1050px;top:400px" tabindex="0">
@@ -494,8 +494,8 @@
 
 <div class="node trigger" style="left:1650px;top:500px" tabindex="0">
   &#9654; Click Run
-  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. A staged source is read here unless Recalculate Preview already did so. Advanced <strong>Load Entire File into Memory</strong> explicitly chooses dense <code>OpenSpecy</code>; off keeps supported maps descriptor-backed. Its Identification Batch Size bounds query spectra per correlation allocation on both paths. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Scientific settings remain passive until the next Run; peak display and simple metadata remain live presentation controls, while pixel calibration applies only when Collapse Particle Spectra owns it. Every later output derives from this snapshot.
-  <span class="loc">Plans 018/030/034 &middot; server.R: run gate priorities and canonical_state_gate()</span></div>
+  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. Advanced <strong>Load Settings</strong> first validates a versioned one-row User Metadata CSV atomically, resets omitted controls to defaults, restores saved quantification definitions, and invalidates results without replacing the staged spectra; this Run is what applies it. A staged source is read here unless Recalculate Preview already did so. Advanced <strong>Load Entire File into Memory</strong> explicitly chooses dense <code>OpenSpecy</code>; off keeps supported maps descriptor-backed. Its Identification Batch Size bounds query spectra per correlation allocation on both paths. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Scientific settings remain passive until the next Run; peak display, image overlay/transparency, and simple metadata remain live presentation controls. Every later output derives from this snapshot.
+  <span class="loc">Plans 018/030/034/035 &middot; server.R: settings_csv + run gate priorities and canonical_state_gate()</span></div>
 </div>
 
 <div class="node trigger" style="left:1650px;top:610px" tabindex="0">
@@ -507,8 +507,8 @@
 <div class="node function" style="left:1050px;top:570px" tabindex="0">
   Base Specs Materialization
   <div class="sub">explicit descriptor-backed or complete in-memory representation</div>
-  <div class="tip">With Load Entire File into Memory off, an explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N, bounded winning-correlation matching, and connected Mean collapse. With it on, every spectrum is deliberately materialized as ordinary <code>OpenSpecy</code> and all later stages use the dense path; allocation failures are measured runtime failures rather than an arbitrary size rejection. H5 and other compatible sources follow the same explicit choice. A processed-particle RDS is already materialized, so it bypasses reader-only background policies and restores canonical x/y aliases from its retained unit-bearing coordinates for heatmap selection.
-  <span class="loc">Plans 018/033 &middot; global.R: app_read_uploaded_members() &middot; R/{Specs_file,read_envi,read_ext}.R</span></div>
+  <div class="tip">With Load Entire File into Memory off, an explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N, bounded winning-correlation matching, and connected Mean collapse. With it on, every spectrum is deliberately materialized as ordinary <code>OpenSpecy</code> and all later stages use the dense path; allocation failures are measured runtime failures rather than an arbitrary size rejection. H5 and other compatible sources follow the same explicit choice. Both representations retain validated origin/step/unit metadata and registered imagery without replacing their integer adjacency grid. A processed-particle RDS is already materialized, so it bypasses reader-only background policies and restores canonical x/y aliases from its retained unit-bearing coordinates for heatmap selection.
+  <span class="loc">Plans 018/033/035 &middot; global.R: app_read_uploaded_members() &middot; R/{Specs_file,read_envi,read_ext}.R</span></div>
 </div>
 
 <div class="node decision" style="left:1050px;top:740px" tabindex="0">
@@ -644,8 +644,8 @@
 <div class="node function" style="left:1050px;top:2780px" tabindex="0">
   Pixel Projection
   <div class="sub">indexed projection &middot; map only, Run-gated</div>
-  <div class="tip">Projects canonical unit/value results through the compact source index for heatmap coloring and rejection metadata. Coordinate and requested color columns materialize only for the plotted rows; spectral matrices do not expand. Dense objects retain the existing pixel-to-unit path.
-  <span class="loc">Plan 018 &middot; server.R: pixel_projection_gate() &middot; Specs accessors</span></div>
+  <div class="tip">Projects canonical unit/value results through the compact source index for heatmap coloring and rejection metadata. Coordinate and requested color columns materialize only for the plotted rows; spectral matrices do not expand. Validated H5 stage or ENVI origin/step metadata projects physical display X/Y while retained grid X/Y continues to own adjacency and arrow navigation. Dense objects use the same projection contract.
+  <span class="loc">Plans 018/035 &middot; server.R: pixel_projection_gate() &middot; global.R: app_project_source_coordinates() &middot; Specs accessors</span></div>
 </div>
 
 <div class="node decision" style="left:1550px;top:2780px" tabindex="0">
@@ -781,8 +781,8 @@
 <div class="node output tip-left" style="left:2250px;top:2810px" tabindex="0">
   Heatmap
   <div class="depends">depends on: Pixel Projection; Identification OR AI</div>
-  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(), with the latest explicitly recalculated per-pixel signal preview overlaid on the Signal coloring. Its available colorings change with upstream state: Collapse off shows streamed per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows the active named signal metric. The threshold owner only enables/disables the black signal-bound mask; it does not choose or calculate the metric. The frame stays hidden after upload/invalidation until the current Run has pixel projection and Plotly has painted its SVG, preventing an empty or prior-state flash. X/Y default to pixels and scale live to the Advanced pixel edge length/unit. Clicking selects a pixel/unit for Active Spectrum Inspection and Selection Metadata; the heatmap is never the quality-test data source.
-  <span class="loc">server.R:2523, 2475</span></div>
+  <div class="tip">output$heatmapA reads current_heatmap_data() &larr; pixel_projection(), with the latest explicitly recalculated per-pixel signal preview overlaid on the Signal coloring. Its available colorings change with upstream state: Collapse off shows streamed per-pixel identification; Collapse on shows per-particle results projected back to pixels; Identification off shows the active named signal metric. A registered H5 or ENVI visual image can render below the same particle-class colors with live transparency; rejected cells and selection remain above it. Continuous legends expose five ordered values at three significant figures. The threshold owner only enables/disables the black signal-bound mask; it does not choose or calculate the metric. The frame stays hidden after upload/invalidation until the current Run has pixel projection and Plotly has painted its SVG. X/Y use validated source coordinates when present and manual Advanced pixel calibration only as fallback. Clicking selects a pixel/unit for Active Spectrum Inspection and Selection Metadata; the heatmap is never the quality-test data source.
+  <span class="loc">Plan 035 &middot; server.R: current_heatmap_data()/pixel_projection_gate() &middot; global.R: app_particle_plotly()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2900px" tabindex="0">

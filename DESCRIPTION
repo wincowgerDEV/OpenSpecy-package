@@ -95,6 +95,7 @@ Imports:
     glmnet,
     cluster,
     jpeg,
+    png,
     shiny,
     hdf5r,
     matrixStats

@@ -70,6 +70,7 @@ open_specs <- function(path, cache_dir = NULL) {
     source_id = source_id
   ))
   attr(out, "visual_image") <- opened$source$visual
+  attr(out, "spatial_calibration") <- opened$source$spatial_calibration
   .filespec_validate_object(out)
   out
 }
@@ -364,6 +365,7 @@ write_spec.FileSpecs <- function(x, file, method = NULL, ...) {
     backend = x$source$backend,
     generation = x$cache$generation
   )
+  attr(out, "spatial_calibration") <- attr(x, "spatial_calibration")
   out
 }
 
@@ -583,7 +585,8 @@ write_spec.FileSpecs <- function(x, file, method = NULL, ...) {
       layout = list(regions = layouts),
       file_metadata = file_metadata,
       region_metadata = region_metadata,
-      visual = .filespec_h5_visual_descriptor(h5, region_extents)
+      visual = .filespec_h5_visual_descriptor(h5, region_extents),
+      spatial_calibration = .h5_spatial_calibrations(region_extents)
     ),
     index = data.table::rbindlist(index, use.names = TRUE, fill = TRUE)
   )
@@ -760,7 +763,8 @@ write_spec.FileSpecs <- function(x, file, method = NULL, ...) {
         header_offset = header_offset
       ),
       file_metadata = header_metadata,
-      region_metadata = list()
+      region_metadata = list(),
+      spatial_calibration = .envi_spatial_calibration(header)
     ),
     index = index
   )

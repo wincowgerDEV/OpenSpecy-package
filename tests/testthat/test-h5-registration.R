@@ -80,6 +80,12 @@ test_that("read_h5 registers every intersecting tile by region and stage", {
   expect_equal(sort(unique(a_md$stage_y_nm)), c(2, 18))
   expect_equal(unique(a_md$stage_z_nm), 500)
   expect_identical(unique(a_md$stage_units), "nm")
+  calibrations <- attr(os, "spatial_calibration")
+  expect_equal(calibrations$RegionA$x_origin, 2)
+  expect_equal(calibrations$RegionA$y_origin, 2)
+  expect_equal(calibrations$RegionA$x_step, 16)
+  expect_equal(calibrations$RegionA$y_step, 16)
+  expect_identical(calibrations$RegionA$unit, "nm")
   expect_equal(
     a_md[row == 1L & col == 1L,
          c("stage_x_nm", "stage_y_nm"), with = FALSE],
@@ -114,6 +120,7 @@ test_that("read_h5 registers every intersecting tile by region and stage", {
   expect_setequal(b_vi$source, paste0("/Mosaic/Image", 4:5))
 
   file_specs <- open_specs(file, cache_dir = tempfile("h5-visual-cache-"))
+  expect_equal(attr(file_specs, "spatial_calibration")$RegionB$x_origin, 102)
   region_a_specs <- split_spec(file_specs, by = "region")$RegionA
   descriptor <- visual_image(region_a_specs, require = TRUE)
   expect_null(descriptor$image)

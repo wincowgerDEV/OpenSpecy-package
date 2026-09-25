@@ -621,6 +621,8 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
         }
     }
 
+    os <- .set_spatial_calibration(os, .h5_spatial_calibrations(region_extents))
+
     if (isTRUE(read_visual)) {
         vi <- .read_h5_visual_image(h5, region_extents)
         if (!is.null(vi$image) || length(vi$regions)) {

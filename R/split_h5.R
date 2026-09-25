@@ -13,8 +13,9 @@
 #' category to contain complete source regions because the source schema stores
 #' spectra as three-dimensional regional grids. Use `format = "rds"` for a
 #' field that divides pixels within a region. File-level metadata and selected
-#' region groups are retained in H5 outputs; the source-wide mosaic is omitted
-#' because its geometry may refer to regions stored in other split files.
+#' region groups are retained in H5 outputs. When registered mosaic metadata is
+#' available, each H5 output also retains the intersecting image tiles and their
+#' corresponding centers so visual-image registration remains self-contained.
 #'
 #' @param file path to one `.h5` or `.hdf5` file.
 #' @param field metadata field used to group spectra. Defaults to `"region"`.
@@ -202,6 +203,7 @@ split_h5 <- function(file, field = "region", output_dir = dirname(file),
     source_path <- paste0("/Regions/", region)
     output$obj_copy_from(input, source_path, source_path)
   }
+  .split_h5_copy_mosaic(input, output, regions)
   output$flush()
   output$close_all()
   output_open <- FALSE
@@ -209,4 +211,81 @@ split_h5 <- function(file, field = "region", output_dir = dirname(file),
   if (!file.rename(stage, path))
     stop("could not atomically publish output file: ", path, call. = FALSE)
   invisible(path)
+}
+
+.split_h5_copy_mosaic <- function(input, output, regions) {
+  if (!input$exists("/Mosaic")) return(invisible(FALSE))
+  mosaic <- input[["/Mosaic"]]
+  image_names <- .h5_mosaic_image_names(mosaic)
+  if (!length(image_names) || !input$exists("/Mosaic/Centers")) {
+    output$obj_copy_from(input, "/Mosaic", "/Mosaic")
+    return(invisible(TRUE))
+  }
+  centers <- tryCatch(input[["/Mosaic/Centers"]]$read(),
+                      error = function(e) NULL)
+  tiles <- tryCatch(.h5_mosaic_stage_tiles(centers), error = function(e) NULL)
+  if (is.null(centers) || is.null(tiles) || !nrow(tiles)) {
+    output$obj_copy_from(input, "/Mosaic", "/Mosaic")
+    return(invisible(TRUE))
+  }
+
+  file_meta <- .read_h5_file_metadata(input)
+  extents <- lapply(seq_along(regions), function(i) {
+    region <- regions[[i]]
+    dataset <- input[[paste0("/Regions/", region, "/Dataset")]]
+    dims <- .h5_dataset_dims(dataset)
+    spectral_dim <- .h5_spectral_dim(dims, file_meta)
+    spatial_dims <- setdiff(seq_along(dims), spectral_dim)
+    extent <- .h5_region_stage(
+      input, region, ny = dims[[spatial_dims[[1L]]]],
+      nx = dims[[spatial_dims[[2L]]]]
+    )
+    if (is.null(extent)) {
+      extent <- .h5_region_stage_from_metadata(
+        file_meta, region_index = match(region, names(input[["/Regions"]])),
+        ny = dims[[spatial_dims[[1L]]]], nx = dims[[spatial_dims[[2L]]]],
+        region = region
+      )
+    }
+    extent
+  })
+  extents <- Filter(Negate(is.null), extents)
+  if (!length(extents)) {
+    output$obj_copy_from(input, "/Mosaic", "/Mosaic")
+    return(invisible(TRUE))
+  }
+  hits <- sort(unique(unlist(lapply(extents, function(extent) {
+    .h5_intersecting_tiles(tiles, extent)
+  }), use.names = FALSE)))
+  hits <- hits[hits <= length(image_names)]
+  if (!length(hits)) return(invisible(FALSE))
+
+  output_mosaic <- output$create_group("/Mosaic")
+  for (attr_name in hdf5r::h5attr_names(mosaic) %||% character()) {
+    attr_value <- tryCatch(
+      hdf5r::h5attr(mosaic, attr_name), error = function(e) NULL
+    )
+    if (!is.null(attr_value)) {
+      output_mosaic$create_attr(attr_name, robj = attr_value)
+    }
+  }
+  if (is.matrix(centers) || is.data.frame(centers)) {
+    output_mosaic[["Centers"]] <- centers[hits, , drop = FALSE]
+  } else if (length(centers) %% nrow(tiles) == 0L) {
+    matrix_centers <- matrix(centers, nrow = nrow(tiles), byrow = TRUE)
+    output_mosaic[["Centers"]] <- matrix_centers[hits, , drop = FALSE]
+  } else {
+    output$obj_copy_from(input, "/Mosaic/Centers", "/Mosaic/Centers")
+  }
+  for (i in seq_along(hits)) {
+    source <- paste0("/Mosaic/", image_names[[hits[[i]]]])
+    target <- paste0("/Mosaic/Image", i - 1L)
+    output$obj_copy_from(input, source, target)
+  }
+  other <- setdiff(names(mosaic), c("Centers", image_names))
+  for (name in other) {
+    output$obj_copy_from(input, paste0("/Mosaic/", name),
+                         paste0("/Mosaic/", name))
+  }
+  invisible(TRUE)
 }

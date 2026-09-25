@@ -43,8 +43,9 @@ Existing output files are never overwritten. Native H5 output requires each
 category to contain complete source regions because the source schema stores
 spectra as three-dimensional regional grids. Use \code{format = "rds"} for a
 field that divides pixels within a region. File-level metadata and selected
-region groups are retained in H5 outputs; the source-wide mosaic is omitted
-because its geometry may refer to regions stored in other split files.
+region groups are retained in H5 outputs. When registered mosaic metadata is
+available, each H5 output also retains the intersecting image tiles and their
+corresponding centers so visual-image registration remains self-contained.
 }
 \examples{
 \dontrun{

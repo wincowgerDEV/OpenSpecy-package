@@ -210,10 +210,15 @@ test_that("local file pickers preserve normalized direct paths", {
   expect_false(env$app_native_dialog_available(
     os_type = "unix", sysname = "Darwin", tcltk_available = FALSE
   ))
-  chosen <- env$app_choose_local_paths(
-    chooser = function(...) workspace_file
-  )
+  chooser_calls <- 0L
+  chooser <- function(...) {
+    chooser_calls <<- chooser_calls + 1L
+    workspace_file
+  }
+  chosen <- env$app_choose_local_paths(chooser = chooser)
   expect_identical(chosen, workspace_file)
+  expect_identical(env$app_choose_local_paths(chooser = chooser), workspace_file)
+  expect_identical(chooser_calls, 2L)
   expect_identical(
     env$app_direct_file_info(chosen)$datapath,
     workspace_file
@@ -694,7 +699,7 @@ test_that("bundled app runs corrections and identification unconditionally", {
     server_source,
     "progress = function(completed_blocks, total_blocks, ...)", fixed = TRUE
   )
-  expect_match(global_source, "open_specs(paths)", fixed = TRUE)
+  expect_match(global_source, "open_specs(spectral_paths)", fixed = TRUE)
   expect_match(server_source, ".filespec_collapse_connected_mean(",
                fixed = TRUE)
   expect_match(server_source, "conform = FALSE, type = \"roll\"",
@@ -3037,7 +3042,7 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "collapse_type", "particle_id_strategy", "particle_pca_components",
     "particle_cluster_k", "particle_area_threshold",
     "pixel_size", "pixel_unit", "simple_metadata", "show_peak_positions",
-    "peak_count",
+    "peak_count", "visual_overlay", "overlay_transparency",
     "quant_ratio_name", "quant_ratio_type", "quant_numerator_area_min",
     "quant_numerator_area_max", "quant_denominator_area_min",
     "quant_denominator_area_max", "quant_numerator_peak",
@@ -3059,7 +3064,7 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     session_id = "session-test"
   )
   provenance <- c(
-    "recorded_at", "app_version", "session_id", "data_uploaded",
+    "metadata_schema_version", "recorded_at", "app_version", "session_id", "data_uploaded",
     "data_file_name", "data_file_size_bytes", "data_file_type",
     "data_file_last_modified", "data_digest_md5", "data_spectrum_count",
     "data_wavenumber_count", "data_wavenumber_min", "data_wavenumber_max"
@@ -3080,14 +3085,13 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
                      collapse = "\n")
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                   warn = FALSE), collapse = "\n")
-  expect_false(grepl(
-    'fileInput\\s*\\(\\s*["\'](?:user_)?metadata(?:_file|_upload)?',
-    ui_source, ignore.case = TRUE, perl = TRUE
-  ))
-  expect_false(grepl(
-    "observeEvent\\s*\\(\\s*input\\$(?:user_)?metadata(?:_file|_upload)?",
-    server_source, ignore.case = TRUE, perl = TRUE
-  ))
+  expect_match(ui_source, 'fileInput(\n      "settings_csv"', fixed = TRUE)
+  expect_match(server_source, "observeEvent(input$settings_csv", fixed = TRUE)
+  expect_match(
+    server_source,
+    "session$onFlushed(function() {\n    defaults <- shiny::isolate(",
+    fixed = TRUE
+  )
 })
 
 test_that("bundled app updates the native download label without replacing it", {

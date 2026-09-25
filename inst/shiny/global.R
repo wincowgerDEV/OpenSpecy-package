@@ -21,7 +21,8 @@ app_shiny_files <- function(name) {
 app_local_file_extensions <- function() {
   c(
     "csv", "asp", "tsv", "spc", "jdx", "dx", "RData", "spa", "0",
-    "zip", "img", "h5", "txt", "json", "rds", "hdr", "dat"
+    "zip", "img", "h5", "txt", "json", "rds", "hdr", "dat",
+    "jpg", "jpeg", "png"
   )
 }
 
@@ -557,6 +558,12 @@ app_read_uploaded_members <- function(paths, mounted = FALSE,
                                       spectral_smooth = FALSE,
                                       sigma = c(1, 1, 1)) {
   paths <- as.character(paths)
+  image_paths <- paths[grepl("\\.(jpg|jpeg|png)$", paths, ignore.case = TRUE)]
+  spectral_paths <- setdiff(paths, image_paths)
+  if(!length(spectral_paths)) {
+    stop("Select a supported spectral file with the visual image.",
+         call. = FALSE)
+  }
   mounted_text <- isTRUE(mounted) &
     grepl("\\.(xyz|csv|tsv|txt)$", paths, ignore.case = TRUE)
   read_one <- function(path, use_workerfs_text) {
@@ -572,17 +579,56 @@ app_read_uploaded_members <- function(paths, mounted = FALSE,
       read_any(file = path, c_spec = FALSE)
     }
   }
-  envi_pair <- length(paths) == 2L &&
-    any(grepl("\\.(dat|img)$", paths, ignore.case = TRUE)) &&
-    any(grepl("\\.hdr$", paths, ignore.case = TRUE))
+  envi_pair <- length(spectral_paths) == 2L &&
+    any(grepl("\\.(dat|img)$", spectral_paths, ignore.case = TRUE)) &&
+    any(grepl("\\.hdr$", spectral_paths, ignore.case = TRUE))
+  attach_envi_image <- function(object) {
+    if(!envi_pair || !length(image_paths)) return(object)
+    binary <- spectral_paths[grepl("\\.(dat|img)$", spectral_paths,
+                                   ignore.case = TRUE)][[1L]]
+    stem <- tolower(tools::file_path_sans_ext(basename(binary)))
+    matching <- image_paths[
+      tolower(tools::file_path_sans_ext(basename(image_paths))) == stem
+    ]
+    if(length(matching) != 1L) {
+      warning(
+        if(length(matching)) {
+          "Multiple basename-matched ENVI images were supplied; continuing without an overlay."
+        } else {
+          "The ENVI image basename does not match the DAT/IMG file; continuing without an overlay."
+        }, call. = FALSE
+      )
+      return(object)
+    }
+    detection <- tryCatch(detect_image_origin(matching[[1L]]),
+                          error = identity)
+    if(inherits(detection, "error")) {
+      warning("Could not detect a red map boundary in ",
+              basename(matching[[1L]]), "; continuing without an overlay.",
+              call. = FALSE)
+      return(object)
+    }
+    add_visual_image(
+      object, matching[[1L]], bottom_left = detection$bottom_left,
+      top_right = detection$top_right,
+      detection_method = detection$detection_method,
+      diagnostics = detection$diagnostics
+    )
+  }
   if(envi_pair && identical(representation, "Specs")) {
-    return(open_specs(paths))
+    return(attach_envi_image(open_specs(spectral_paths)))
   }
-  if(envi_pair) return(read_any(file = paths, c_spec = FALSE))
-  if(length(paths) > 1L) {
-    return(Map(read_one, paths, mounted_text))
+  if(envi_pair) {
+    return(attach_envi_image(read_any(file = spectral_paths, c_spec = FALSE)))
   }
-  read_one(paths[[1L]], mounted_text[[1L]])
+  if(length(spectral_paths) > 1L) {
+    mounted_spectral <- isTRUE(mounted) &
+      grepl("\\.(xyz|csv|tsv|txt)$", spectral_paths, ignore.case = TRUE)
+    return(Map(read_one, spectral_paths, mounted_spectral))
+  }
+  read_one(spectral_paths[[1L]],
+           isTRUE(mounted) && grepl("\\.(xyz|csv|tsv|txt)$",
+                                    spectral_paths[[1L]], ignore.case = TRUE))
 }
 
 app_upload_failure_guidance <- function(elapsed_seconds, mounted = FALSE) {
@@ -1232,6 +1278,65 @@ app_calibrate_spatial_metadata <- function(metadata, pixel_size = 1,
   }
   attr(result, "openspecy_spatial_unit") <- calibration$unit
   result
+}
+
+app_project_source_coordinates <- function(source, metadata,
+                                           pixel_size = 1,
+                                           pixel_unit = "pixel") {
+  result <- data.table::copy(data.table::as.data.table(metadata))
+  if(all(c("stage_x_nm", "stage_y_nm") %in% names(result))) {
+    stage_x <- suppressWarnings(as.numeric(result$stage_x_nm))
+    stage_y <- suppressWarnings(as.numeric(result$stage_y_nm))
+    if(length(stage_x) == nrow(result) && length(stage_y) == nrow(result) &&
+       all(is.finite(stage_x)) && all(is.finite(stage_y))) {
+      result[, `:=`(grid_x = x, grid_y = y, x = stage_x, y = stage_y)]
+      attr(result, "openspecy_spatial_unit") <- "nm"
+      return(list(metadata = result, unit = "nm", source = "H5 stage"))
+    }
+  }
+  calibration <- attr(source, "spatial_calibration", exact = TRUE)
+  if(is.list(calibration) && !is.null(calibration$x_origin)) {
+    result[, `:=`(
+      grid_x = x, grid_y = y,
+      x = calibration$x_origin + as.numeric(x) * calibration$x_step,
+      y = calibration$y_origin + as.numeric(y) * calibration$y_step
+    )]
+    unit <- if(isTruthy(calibration$unit)) calibration$unit else "map unit"
+    attr(result, "openspecy_spatial_unit") <- unit
+    return(list(metadata = result, unit = unit,
+                source = if(isTruthy(calibration$source)) {
+                  calibration$source
+                } else "source metadata"))
+  }
+  fallback <- app_calibrate_spatial_metadata(result, pixel_size, pixel_unit)
+  list(metadata = fallback, unit = attr(fallback, "openspecy_spatial_unit"),
+       source = "manual pixel calibration")
+}
+
+app_registered_visual <- function(source) {
+  if(is.null(source)) return(NULL)
+  visual <- if(inherits(source, "FileSpecs") &&
+               identical(source$source$backend, "h5")) {
+    tryCatch(OpenSpecy:::.filespec_materialize_visual(source),
+             error = function(e) NULL)
+  } else {
+    tryCatch(visual_image(source), error = function(e) NULL)
+  }
+  if(is.null(visual) || is.null(visual$image) ||
+     is.null(visual$bottom_left) || is.null(visual$top_right)) return(NULL)
+  image <- tryCatch(OpenSpecy:::.image_rgb_array(visual$image),
+                    error = function(e) NULL)
+  if(is.null(image)) return(NULL)
+  rows <- range(round(c(visual$bottom_left[[2L]], visual$top_right[[2L]])))
+  cols <- range(round(c(visual$bottom_left[[1L]], visual$top_right[[1L]])))
+  rows <- pmin(pmax(rows, 1L), dim(image)[[1L]])
+  cols <- pmin(pmax(cols, 1L), dim(image)[[2L]])
+  if(rows[[1L]] > rows[[2L]] || cols[[1L]] > cols[[2L]]) return(NULL)
+  cropped <- image[seq.int(rows[[1L]], rows[[2L]]),
+                   seq.int(cols[[1L]], cols[[2L]]), , drop = FALSE]
+  list(image = cropped, transform = visual$transform,
+       detection_method = visual$detection_method,
+       source = visual$source)
 }
 
 app_particle_metadata_units <- function(metadata, pixel_size = 1,
@@ -2149,7 +2254,7 @@ app_user_metadata_input_ids <- c(
   "particle_id_strategy",
   "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
   "pixel_size", "pixel_unit", "simple_metadata", "show_peak_positions",
-  "peak_count",
+  "peak_count", "visual_overlay", "overlay_transparency",
   # Quantification builder
   "quant_ratio_name", "quant_ratio_type",
   "quant_numerator_area_min", "quant_numerator_area_max",
@@ -2164,7 +2269,34 @@ app_user_metadata_input_ids <- c(
 # live without marking an otherwise completed scientific analysis stale.
 app_live_display_input_ids <- c(
   "pixel_size", "pixel_unit", "simple_metadata", "show_peak_positions",
-  "peak_count"
+  "peak_count", "visual_overlay", "overlay_transparency"
+)
+
+app_logical_setting_ids <- c(
+  "spike_decision", "saturation_decision", "make_rel_decision",
+  "smooth_decision", "derivative_abs", "conform_decision",
+  "intensity_decision", "baseline_decision", "refit", "range_decision",
+  "range_automate", "co2_decision", "co2_automate",
+  "identification_active", "top_n_per_organization", "filter_lib",
+  "threshold_decision", "cor_threshold_decision", "spatial_decision",
+  "xy_grid", "load_entire_map", "collapse_decision", "simple_metadata",
+  "show_peak_positions", "visual_overlay"
+)
+
+app_numeric_setting_ids <- c(
+  "spike_residual_threshold", "spike_residual_window", "saturation_ceiling",
+  "saturation_max_loss", "derivative_order", "smoother_window",
+  "conform_res", "baseline", "baseline_lambda", "baseline_hwi",
+  "iterations", "range_artifact_ratio", "MinRange", "MaxRange",
+  "co2_artifact_ratio", "MinFlat", "MaxFlat", "top_n_input", "MinSNR",
+  "MaxSNR", "MinCor", "sigma", "identify_batch_size",
+  "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
+  "pixel_size", "peak_count", "overlay_transparency",
+  "quant_numerator_area_min", "quant_numerator_area_max",
+  "quant_denominator_area_min", "quant_denominator_area_max",
+  "quant_numerator_peak", "quant_denominator_peak",
+  "quant_measurement_area_min", "quant_measurement_area_max",
+  "quant_measurement_wavenumber"
 )
 
 app_saturation_value <- function(mode = "auto", ceiling = NULL) {
@@ -2370,13 +2502,20 @@ app_user_metadata_snapshot <- function(settings, definitions, recorded_at,
   }
 
   uploaded <- !is.null(source)
-  spectra_count <- if(uploaded) ncol(source$spectra) else NA_integer_
-  wavenumber_count <- if(uploaded) length(source$wavenumber) else NA_integer_
+  spectra_count <- if(uploaded && is_Specs(source)) {
+    specs_source_count(source)
+  } else if(uploaded) ncol(source$spectra) else NA_integer_
+  source_axis <- if(uploaded && inherits(source, "FileSpecs")) {
+    OpenSpecy:::.filespec_axis(source)
+  } else if(uploaded && is_Specs(source)) {
+    source$variables
+  } else if(uploaded) source$wavenumber else numeric()
+  wavenumber_count <- if(uploaded) length(source_axis) else NA_integer_
   wavenumber_min <- if(uploaded && wavenumber_count) {
-    min(source$wavenumber, na.rm = TRUE)
+    min(source_axis, na.rm = TRUE)
   } else NA_real_
   wavenumber_max <- if(uploaded && wavenumber_count) {
-    max(source$wavenumber, na.rm = TRUE)
+    max(source_axis, na.rm = TRUE)
   } else NA_real_
   data_digest <- if(uploaded) {
     digest::digest(source, algo = "md5")
@@ -2393,6 +2532,7 @@ app_user_metadata_snapshot <- function(settings, definitions, recorded_at,
 
   snapshot <- c(
     list(
+      metadata_schema_version = 1L,
       recorded_at = app_metadata_scalar(recorded_at),
       app_version = app_metadata_scalar(app_version),
       session_id = app_metadata_scalar(session_id),
@@ -2427,6 +2567,110 @@ app_user_metadata_snapshot <- function(settings, definitions, recorded_at,
          call. = FALSE)
   }
   snapshot
+}
+
+app_parse_saved_definitions <- function(value, template) {
+  if(length(value) != 1L || is.na(value) || !nzchar(trimws(value))) {
+    return(template)
+  }
+  rows <- strsplit(as.character(value), " \\|\\| ")[[1L]]
+  required <- names(template)
+  parsed <- lapply(rows, function(row) {
+    fields <- strsplit(row, "; ", fixed = TRUE)[[1L]]
+    pairs <- strsplit(fields, "=", fixed = TRUE)
+    keys <- vapply(pairs, `[[`, character(1L), 1L)
+    values <- vapply(pairs, function(x) paste(x[-1L], collapse = "="),
+                     character(1L))
+    if(anyDuplicated(keys) || !setequal(keys, required)) {
+      stop("A saved quantification definition has unexpected fields.",
+           call. = FALSE)
+    }
+    stats::setNames(as.list(values[match(required, keys)]), required)
+  })
+  out <- data.table::rbindlist(parsed, fill = FALSE)
+  for(name in required) {
+    if(is.integer(template[[name]])) {
+      out[[name]] <- suppressWarnings(as.integer(out[[name]]))
+    } else if(is.numeric(template[[name]])) {
+      out[[name]] <- suppressWarnings(as.numeric(out[[name]]))
+    } else {
+      out[[name]] <- as.character(out[[name]])
+    }
+    if(anyNA(out[[name]])) {
+      stop("A saved quantification definition contains an invalid '", name,
+           "' value.", call. = FALSE)
+    }
+  }
+  as.data.frame(out[, required, with = FALSE], stringsAsFactors = FALSE)
+}
+
+app_user_metadata_import <- function(snapshot, defaults) {
+  if(!is.data.frame(snapshot) || nrow(snapshot) != 1L) {
+    stop("Load Settings requires exactly one CSV data row.", call. = FALSE)
+  }
+  if(anyDuplicated(names(snapshot))) {
+    stop("Load Settings CSV column names must be unique.", call. = FALSE)
+  }
+  version <- if("metadata_schema_version" %in% names(snapshot)) {
+    suppressWarnings(as.integer(snapshot$metadata_schema_version[[1L]]))
+  } else 1L
+  if(length(version) != 1L || is.na(version) || version != 1L) {
+    stop("Unsupported settings metadata schema version: ",
+         as.character(snapshot$metadata_schema_version[[1L]]), call. = FALSE)
+  }
+  if(!is.list(defaults) || !all(app_user_metadata_input_ids %in% names(defaults))) {
+    stop("App defaults are not ready; wait for the Advanced tab to finish loading.",
+         call. = FALSE)
+  }
+  settings <- defaults[app_user_metadata_input_ids]
+  present <- intersect(app_user_metadata_input_ids, names(snapshot))
+  for(id in present) {
+    raw <- snapshot[[id]][[1L]]
+    if(length(raw) != 1L || is.na(raw) ||
+       (is.character(raw) && !nzchar(trimws(raw)))) next
+    if(id %in% app_logical_setting_ids) {
+      text <- tolower(trimws(as.character(raw)))
+      if(!text %in% c("true", "false", "1", "0")) {
+        stop("Setting '", id, "' must be TRUE or FALSE.", call. = FALSE)
+      }
+      settings[[id]] <- text %in% c("true", "1")
+    } else if(id %in% app_numeric_setting_ids) {
+      value <- suppressWarnings(as.numeric(raw))
+      if(length(value) != 1L || !is.finite(value)) {
+        stop("Setting '", id, "' must be a finite number.", call. = FALSE)
+      }
+      settings[[id]] <- value
+    } else if(identical(id, "lib_org")) {
+      settings[[id]] <- strsplit(as.character(raw), " \\| ")[[1L]]
+    } else {
+      settings[[id]] <- as.character(raw)
+    }
+  }
+  saved_value <- function(name) {
+    if(name %in% names(snapshot)) snapshot[[name]][[1L]] else NA_character_
+  }
+  ratios <- app_parse_saved_definitions(
+    saved_value("quant_saved_ratio_definitions"),
+    app_empty_ratio_definitions()
+  )
+  measurements <- app_parse_saved_definitions(
+    saved_value("quant_saved_measurement_definitions"),
+    app_empty_measurement_definitions()
+  )
+  provenance <- c(
+    "metadata_schema_version", "recorded_at", "app_version", "session_id",
+    "data_uploaded", "data_file_name", "data_file_size_bytes",
+    "data_file_type", "data_file_last_modified", "data_digest_md5",
+    "data_spectrum_count", "data_wavenumber_count", "data_wavenumber_min",
+    "data_wavenumber_max", "quant_saved_ratio_count",
+    "quant_saved_ratio_definitions", "quant_saved_measurement_count",
+    "quant_saved_measurement_definitions"
+  )
+  list(
+    settings = settings, ratios = ratios, measurements = measurements,
+    unknown = setdiff(names(snapshot), c(app_user_metadata_input_ids,
+                                         provenance))
+  )
 }
 
 app_quantification_source_value <- "displayed_processed_spectra"
@@ -3163,15 +3407,23 @@ app_heatmap_legend_model <- function(data, max_categories = 30L) {
       app_category_palette(levels)[levels]
     return(list(
       title = title, categorical = TRUE, too_many = length(levels) > max_categories,
-      levels = levels, colors = unname(colors), range = NULL
+      levels = levels, colors = unname(colors), range = NULL, ticks = NULL
     ))
   }
   values <- as.numeric(data$z)
   values <- values[is.finite(values)]
+  value_range <- if(length(values)) range(values) else c(NA_real_, NA_real_)
+  ticks <- if(all(is.finite(value_range))) {
+    if(identical(value_range[[1L]], value_range[[2L]])) {
+      rep(value_range[[1L]], 5L)
+    } else {
+      seq(value_range[[1L]], value_range[[2L]], length.out = 5L)
+    }
+  } else numeric()
   list(
     title = title, categorical = FALSE, too_many = FALSE,
     levels = NULL, colors = vapply(app_heatmap_colorscale, `[[`, "", 2L),
-    range = if(length(values)) range(values) else c(NA_real_, NA_real_)
+    range = value_range, ticks = ticks
   )
 }
 
@@ -3198,9 +3450,9 @@ app_heatmap_legend_content <- function(model) {
       ))
     ))
   }
-  labels <- if(all(is.finite(model$range))) {
-    format(signif(model$range, 4), trim = TRUE)
-  } else c("No finite values", "")
+  labels <- if(length(model$ticks)) {
+    format(signif(model$ticks, 3), trim = TRUE)
+  } else "No finite values"
   tags$div(
     tags$div(
       `aria-hidden` = "true",
@@ -3211,7 +3463,7 @@ app_heatmap_legend_content <- function(model) {
     ),
     tags$div(
       style = "display:flex;justify-content:space-between;margin-top:.35rem;",
-      tags$span(labels[[1L]]), tags$span(labels[[2L]])
+      lapply(labels, tags$span)
     )
   )
 }
@@ -4019,13 +4271,31 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
   select_x <- if (!is.null(select) && is.finite(select$x)) select$x else NA
   select_y <- if (!is.null(select) && is.finite(select$y)) select$y else NA
 
-  plot <- plotly::plot_ly(source = source) |>
+  plot <- plotly::plot_ly(source = source)
+  if(!is.null(data$visual_image) && length(dim(data$visual_image)) == 3L) {
+    image <- pmin(pmax(data$visual_image, 0), 1)
+    x_range <- range(data$x, finite = TRUE)
+    y_range <- range(data$y, finite = TRUE)
+    plot <- plotly::add_trace(
+      plot, z = round(image * 255), type = "image",
+      x0 = x_range[[1L]], y0 = y_range[[2L]],
+      dx = diff(x_range) / max(dim(image)[[2L]] - 1L, 1L),
+      dy = -diff(y_range) / max(dim(image)[[1L]] - 1L, 1L),
+      hoverinfo = "skip", showlegend = FALSE, name = "Visual image"
+    )
+  }
+  overlay_opacity <- suppressWarnings(as.numeric(data$overlay_opacity))
+  if(length(overlay_opacity) != 1L || !is.finite(overlay_opacity)) {
+    overlay_opacity <- 1
+  }
+  overlay_opacity <- pmin(pmax(overlay_opacity, 0), 1)
+  plot <- plot |>
     plotly::add_trace(
       x = data$x, y = data$y, z = z, type = "heatmap",
       colorscale = colorscale,
       zmin = if (categorical) 0.5 else continuous_range[[1L]],
       zmax = if (categorical) length(levels) + 0.5 else continuous_range[[2L]],
-      showscale = FALSE,
+      showscale = FALSE, opacity = overlay_opacity,
       hoverinfo = "text", text = hover_text, hoverongaps = FALSE
     ) |>
     plotly::add_trace(

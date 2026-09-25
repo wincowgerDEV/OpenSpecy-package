@@ -40,6 +40,7 @@
 #'
 #' @importFrom grDevices as.raster col2rgb
 #' @importFrom jpeg readJPEG
+#' @importFrom png readPNG
 #' @export
 add_visual_image <- function(x, image, bottom_left = NULL, top_right = NULL,
                              source = NULL, detection_method = NULL,
@@ -158,6 +159,7 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
       stop("image file does not exist: ", image, call. = FALSE)
     ext <- tolower(tools::file_ext(image))
     if (ext %in% c("jpg", "jpeg")) return(jpeg::readJPEG(image))
+    if (identical(ext, "png")) return(png::readPNG(image))
     if (ext %in% c("bmp", "dib")) return(.read_visual_bmp_file(image))
     return(tryCatch(jpeg::readJPEG(image),
                     error = function(e) .read_visual_bmp_file(image)))

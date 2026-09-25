@@ -412,7 +412,8 @@ specs_metadata <- function(x, index = NULL, columns = NULL) {
     visual_image = attr(x, "visual_image"),
     background = attr(x, "background"),
     source_metadata = attr(x, "source_metadata"),
-    source_attributes = attr(x, "source_attributes")
+    source_attributes = attr(x, "source_attributes"),
+    spatial_calibration = attr(x, "spatial_calibration")
   )
   utils::modifyList(attrs, overrides, keep.null = TRUE)
 }

@@ -163,6 +163,8 @@ read_envi <- function(file, header = NULL,
                      session_id = T,
                      ...)
 
+  os <- .set_spatial_calibration(os, .envi_spatial_calibration(hdr))
+
   return(os)
 }
 
@@ -194,7 +196,7 @@ read_envi <- function(file, header = NULL,
     mapping <- seq_len(ny * nx)
     return(.envi_build_specs(
       spectra, wavenumbers, nx, ny, mapping, source_metadata,
-      background = NULL
+      background = NULL, calibration = .envi_spatial_calibration(hdr)
     ))
   }
 
@@ -226,7 +228,8 @@ read_envi <- function(file, header = NULL,
 
   .envi_build_specs(
     streamed$values, wavenumbers, nx, ny, streamed$mapping,
-    source_metadata, background = streamed$background
+    source_metadata, background = streamed$background,
+    calibration = .envi_spatial_calibration(hdr)
   )
 }
 
@@ -265,7 +268,8 @@ read_envi <- function(file, header = NULL,
 }
 
 .envi_build_specs <- function(values, wavenumbers, nx, ny, mapping,
-                              source_metadata, background = NULL) {
+                              source_metadata, background = NULL,
+                              calibration = NULL) {
   value_ids <- paste0("V", seq_len(ncol(values)))
   colnames(values) <- value_ids
   regions <- data.table::data.table(
@@ -282,7 +286,8 @@ read_envi <- function(file, header = NULL,
     variables = wavenumbers, values = values, coords = coords,
     metadata = data.table::data.table(value_id = value_ids),
     attributes = list(source_metadata = source_metadata,
-                      background = background)
+                      background = background,
+                      spatial_calibration = calibration)
   )
   if (is.null(background)) return(out)
   .append_specs_transformation(out, list(
