@@ -4058,9 +4058,10 @@ output$progress_bars <- renderUI({
       } else {
         0L
       }
-      image_offset <- as.integer(!is.null(current_heatmap_data()$visual_image))
+      map_trace_max <- 1L +
+        as.integer(!is.null(current_heatmap_data()$visual_image))
       if(is.na(curve_number) ||
-         !curve_number %in% (c(0L, 1L) + image_offset)) return()
+         !curve_number %in% seq.int(0L, map_trace_max)) return()
       req(length(click$x), length(click$y))
       click_x <- click$x[[1L]]
       click_y <- click$y[[1L]]

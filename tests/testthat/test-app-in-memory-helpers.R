@@ -535,7 +535,7 @@ test_that("User Metadata settings restore atomically and reset omissions", {
   expect_error(env$app_user_metadata_import(invalid, defaults), "MinSNR")
 })
 
-test_that("particle plotly places an image below an alpha heatmap", {
+test_that("particle plotly places the alpha image above the heatmap boundary", {
   env <- .source_in_memory_app_helpers()
   data <- list(
     type = "heatmap_categorical", x = 0:1, y = 0:1,
@@ -544,10 +544,18 @@ test_that("particle plotly places an image below an alpha heatmap", {
     visual_image = array(0.5, dim = c(2, 2, 3)), overlay_opacity = 0.35
   )
   built <- suppressWarnings(plotly::plotly_build(env$app_particle_plotly(data)))
-  expect_identical(built$x$data[[1L]]$type, "image")
-  expect_identical(built$x$data[[2L]]$type, "heatmap")
-  expect_equal(built$x$data[[2L]]$opacity, 0.35)
-  expect_identical(built$x$data[[3L]]$name, "Rejected")
+  expect_identical(built$x$data[[1L]]$type, "heatmap")
+  expect_true(is.null(built$x$data[[1L]]$opacity) ||
+                identical(built$x$data[[1L]]$opacity, 1))
+  expect_identical(built$x$data[[2L]]$name, "Rejected")
+  expect_identical(built$x$data[[3L]]$type, "image")
+  expect_equal(built$x$data[[3L]]$opacity, 0.35)
+  expect_equal(built$x$data[[3L]]$x0, -0.5)
+  expect_equal(built$x$data[[3L]]$y0, 1.5)
+  expect_equal(built$x$data[[3L]]$dx, 2)
+  expect_equal(built$x$data[[3L]]$dy, -2)
+  expect_identical(built$x$data[[4L]]$type, "scatter")
+  expect_identical(built$x$data[[4L]]$mode, "markers")
 })
 
 test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {

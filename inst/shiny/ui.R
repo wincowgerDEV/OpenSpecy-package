@@ -1060,11 +1060,17 @@ dashboardPage(
           border-color: var(--openspecy-accent) !important;
           box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2) !important;
         }
+        .dataTables_wrapper td[data-type='number'] > div:last-child,
+        .dataTables_wrapper td[data-type='integer'] > div:last-child,
+        .dataTables_wrapper td[data-type='number'] > div:last-child > span,
+        .dataTables_wrapper td[data-type='integer'] > div:last-child > span,
         .dataTables_wrapper .noUi-target,
         .dataTables_wrapper .noUi-base,
+        .dataTables_wrapper .noUi-background,
+        .dataTables_wrapper .noUi-origin,
         .dataTables_wrapper .noUi-connects,
         .dataTables_wrapper input[type='range'] {
-          color: var(--openspecy-text) !important;
+          color: #FFFFFF !important;
           background: var(--openspecy-panel-2) !important;
           border-color: var(--openspecy-grid) !important;
         }
@@ -1086,8 +1092,8 @@ dashboardPage(
         .dataTables_wrapper .noUi-marker,
         .dataTables_wrapper .range-filter,
         .dataTables_wrapper .range-filter label {
-          color: var(--openspecy-text) !important;
-          background: var(--openspecy-panel) !important;
+          color: #FFFFFF !important;
+          background: var(--openspecy-panel-2) !important;
           border-color: var(--openspecy-grid) !important;
         }
         .dataTables_wrapper .noUi-state-disabled,

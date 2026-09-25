@@ -1339,6 +1339,34 @@ app_registered_visual <- function(source) {
        source = visual$source)
 }
 
+app_heatmap_cell_range <- function(values) {
+  values <- sort(unique(as.numeric(values[is.finite(values)])))
+  if(!length(values)) return(c(0, 1))
+  if(length(values) == 1L) return(values + c(-0.5, 0.5))
+  c(
+    values[[1L]] - (values[[2L]] - values[[1L]]) / 2,
+    values[[length(values)]] +
+      (values[[length(values)]] - values[[length(values) - 1L]]) / 2
+  )
+}
+
+app_visual_trace_geometry <- function(x, y, image) {
+  x_boundary <- app_heatmap_cell_range(x)
+  y_boundary <- app_heatmap_cell_range(y)
+  image_rows <- dim(image)[[1L]]
+  image_cols <- dim(image)[[2L]]
+  list(
+    # The detected red-frame pixels are the map boundary, rather than the
+    # centers of the first and last heatmap cells.
+    x0 = x_boundary[[1L]],
+    y0 = y_boundary[[2L]],
+    dx = diff(x_boundary) / max(image_cols - 1L, 1L),
+    dy = -diff(y_boundary) / max(image_rows - 1L, 1L),
+    x_boundary = x_boundary,
+    y_boundary = y_boundary
+  )
+}
+
 app_particle_metadata_units <- function(metadata, pixel_size = 1,
                                         pixel_unit = "pixel") {
   calibration <- app_pixel_calibration(pixel_size, pixel_unit)
@@ -4271,31 +4299,18 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
   select_x <- if (!is.null(select) && is.finite(select$x)) select$x else NA
   select_y <- if (!is.null(select) && is.finite(select$y)) select$y else NA
 
-  plot <- plotly::plot_ly(source = source)
-  if(!is.null(data$visual_image) && length(dim(data$visual_image)) == 3L) {
-    image <- pmin(pmax(data$visual_image, 0), 1)
-    x_range <- range(data$x, finite = TRUE)
-    y_range <- range(data$y, finite = TRUE)
-    plot <- plotly::add_trace(
-      plot, z = round(image * 255), type = "image",
-      x0 = x_range[[1L]], y0 = y_range[[2L]],
-      dx = diff(x_range) / max(dim(image)[[2L]] - 1L, 1L),
-      dy = -diff(y_range) / max(dim(image)[[1L]] - 1L, 1L),
-      hoverinfo = "skip", showlegend = FALSE, name = "Visual image"
-    )
-  }
   overlay_opacity <- suppressWarnings(as.numeric(data$overlay_opacity))
   if(length(overlay_opacity) != 1L || !is.finite(overlay_opacity)) {
     overlay_opacity <- 1
   }
   overlay_opacity <- pmin(pmax(overlay_opacity, 0), 1)
-  plot <- plot |>
+  plot <- plotly::plot_ly(source = source) |>
     plotly::add_trace(
       x = data$x, y = data$y, z = z, type = "heatmap",
       colorscale = colorscale,
       zmin = if (categorical) 0.5 else continuous_range[[1L]],
       zmax = if (categorical) length(levels) + 0.5 else continuous_range[[2L]],
-      showscale = FALSE, opacity = overlay_opacity,
+      showscale = FALSE,
       hoverinfo = "text", text = hover_text, hoverongaps = FALSE
     ) |>
     plotly::add_trace(
@@ -4304,7 +4319,19 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       zmin = 0, zmax = 1, showscale = FALSE,
       hoverinfo = "text", text = rejected_text, hoverongaps = FALSE,
       name = "Rejected"
-    ) |>
+    )
+  if(!is.null(data$visual_image) && length(dim(data$visual_image)) == 3L) {
+    image <- pmin(pmax(data$visual_image, 0), 1)
+    geometry <- app_visual_trace_geometry(data$x, data$y, image)
+    plot <- plotly::add_trace(
+      plot, z = round(image * 255), type = "image",
+      x0 = geometry$x0, y0 = geometry$y0,
+      dx = geometry$dx, dy = geometry$dy,
+      opacity = overlay_opacity,
+      hoverinfo = "skip", showlegend = FALSE, name = "Visual image"
+    )
+  }
+  plot <- plot |>
     plotly::add_trace(
       x = select_x, y = select_y, type = "scatter", mode = "markers",
       marker = list(color = "#F59E0B", size = 14, opacity = 1,

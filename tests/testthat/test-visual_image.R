@@ -4,10 +4,20 @@ test_that("visual images attach and red box origins are detected", {
   img[c(3, 18), 5:25, 2:3] <- 0
   img[3:18, c(5, 25), 1] <- 1
   img[3:18, c(5, 25), 2:3] <- 0
+  # Red annotations outside and inside the frame must not expand its bounds.
+  annotation <- cbind(
+    c(1, 2, 19, 20, 10, 10),
+    c(1, 2, 29, 30, 14, 15)
+  )
+  img[cbind(annotation, 1L)] <- 1
+  img[cbind(annotation, 2L)] <- 0
+  img[cbind(annotation, 3L)] <- 0
 
   origin <- detect_image_origin(img)
   expect_equal(origin$bottom_left, c(5, 18))
   expect_equal(origin$top_right, c(25, 3))
+  expect_equal(origin$diagnostics$x_boundary_counts, c(16L, 16L))
+  expect_equal(origin$diagnostics$y_boundary_counts, c(21L, 21L))
 
   os <- as_OpenSpecy(
     1:3,

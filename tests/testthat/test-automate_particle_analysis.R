@@ -32,6 +32,24 @@ test_that("automate_particle_analysis() returns details and summaries", {
   expect_s3_class(res$particle_details_all_csv, "data.table")
   expect_s3_class(res$particle_summary_all_csv, "data.table")
   expect_gt(nrow(res$particle_details_all_csv), 0)
+  expect_contains(
+    names(res$particle_summary_all_csv),
+    c("count", "map_area_um2", "total_area_um2", "mean_area_um2",
+      "median_area_um2")
+  )
+  expected_area <- res$particle_details_all_csv[, .(
+    count = .N,
+    total_area_um2 = sum(area_um2),
+    mean_area_um2 = mean(area_um2),
+    median_area_um2 = stats::median(area_um2)
+  ), by = material_class]
+  actual_area <- res$particle_summary_all_csv[, .(
+    count, total_area_um2, mean_area_um2, median_area_um2
+  ), by = material_class]
+  data.table::setorder(expected_area, material_class)
+  data.table::setorder(actual_area, material_class)
+  expect_equal(actual_area, expected_area)
+  expect_true(all(res$particle_summary_all_csv$map_area_um2 == 4 * 25^2))
   expect_named(
     res$samples[[1]],
     c("sample_id", "particle_details_csv", "particle_summary_csv",
@@ -286,6 +304,10 @@ test_that("automate_particle_analysis() accepts both threshold extremes", {
   expect_identical(strategy_calls, 0L)
   expect_null(removed$samples[[1]]$particles_rds)
   expect_equal(removed$particle_summary_all_csv$count, 0L)
+  expect_equal(removed$particle_summary_all_csv$map_area_um2, 4 * 25^2)
+  expect_equal(removed$particle_summary_all_csv$total_area_um2, 0)
+  expect_true(is.na(removed$particle_summary_all_csv$mean_area_um2))
+  expect_true(is.na(removed$particle_summary_all_csv$median_area_um2))
 })
 
 test_that("particle preprocessing preserves an explicit target axis", {
@@ -402,7 +424,7 @@ test_that("automate_particle_analysis() returns and writes image outputs", {
   expect_true(file.exists(file.path(out_dir, "particle_image_small.png")))
   expect_true(file.exists(file.path(out_dir, "particle_heatmap_small.png")))
   expect_true(file.exists(file.path(out_dir,
-                                   "particle_heatmap_thresholdedsmall.jpg")))
+                                   "particle_heatmap_thresholded_small.jpg")))
   expect_true(file.exists(file.path(out_dir, "cor_heatmap_small.png")))
   expect_true(file.exists(file.path(out_dir, "sn_histogram_small.png")))
   expect_true(file.exists(file.path(out_dir, "cor_histogram_small.png")))
@@ -413,6 +435,29 @@ test_that("automate_particle_analysis() returns and writes image outputs", {
   expect_invisible(plot(res, sample = "small", which = "sn_histogram"))
   grDevices::dev.off()
   expect_gt(file.info(replay)$size, 0)
+})
+
+test_that("file-backed output names retain the complete source basename", {
+  descriptor <- list(source = list(
+    backend = "h5",
+    members = data.frame(path = file.path(
+      "input", "Recovery_red_beads_75-90um_5um-screen_Region1.h5"
+    )),
+    layout = list(regions = list(Region1 = list()))
+  ))
+  expect_identical(
+    OpenSpecy:::.particle_filespec_output_names(descriptor, "Region1"),
+    "Recovery_red_beads_75-90um_5um-screen_Region1"
+  )
+
+  descriptor$source$members$path <- file.path("input", "complete-map.h5")
+  descriptor$source$layout$regions$Region2 <- list()
+  expect_identical(
+    OpenSpecy:::.particle_filespec_output_names(
+      descriptor, c("Region1", "Region2")
+    ),
+    c("complete-map_Region1", "complete-map_Region2")
+  )
 })
 
 test_that("particle heatmap scale includes the finite endpoints", {

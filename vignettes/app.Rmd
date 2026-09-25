@@ -100,8 +100,10 @@ For a supported ENVI map, select its DAT/IMG and HDR together. A JPG or PNG
 with the same basename may be selected at the same time; the app registers the
 map from the image's red boundary. H5 files use their embedded registered
 mosaic. When either image is available, the heatmap exposes **Visual Image
-Overlay** and a live **Overlay Transparency** slider. The image stays in the
-background and material classes use the same colors as `particle_image()`.
+Overlay** and a live **Overlay Transparency** slider. The registered image is
+drawn above the heatmap, and the slider changes only the image transparency.
+For ENVI companions, the dominant red frame is aligned to the outer heatmap
+boundary rather than treating other red annotations as part of the frame.
 
 ```{r, fig.align="center", out.width="98%", echo=FALSE}
 knitr::include_graphics("app/mainpage.jpg")

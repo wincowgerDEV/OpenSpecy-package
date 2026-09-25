@@ -1221,6 +1221,35 @@ test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, 
   await expect(metadataTable.locator("thead")).toContainText("Signal Over Noise");
   await expect(metadataTable.locator("thead")).toContainText("File Name");
   await expect(metadataTable.locator("thead")).not.toContainText("col_id");
+  const numericFilter = sidebar.locator(
+    "#sidebar_metadata td[data-type='number'] input, " +
+    "#sidebar_metadata td[data-type='integer'] input"
+  ).first();
+  await numericFilter.click();
+  const numericFilterPanel = numericFilter.locator(
+    "xpath=ancestor::td[1]/div[last()]"
+  );
+  await expect(numericFilterPanel).toBeVisible();
+  const numericFilterTheme = await numericFilterPanel.evaluate((panel) => {
+    const panelStyle = window.getComputedStyle(panel);
+    const label = panel.querySelector("span");
+    const labelStyle = label ? window.getComputedStyle(label) : null;
+    const track = panel.querySelector(".noUi-background");
+    const trackStyle = track ? window.getComputedStyle(track) : null;
+    return {
+      panelBackground: panelStyle.backgroundColor,
+      panelColor: panelStyle.color,
+      labelColor: labelStyle && labelStyle.color,
+      trackBackground: trackStyle && trackStyle.backgroundColor,
+    };
+  });
+  expect(numericFilterTheme).toEqual({
+    panelBackground: "rgb(16, 36, 58)",
+    panelColor: "rgb(255, 255, 255)",
+    labelColor: "rgb(255, 255, 255)",
+    trackBackground: "rgb(16, 36, 58)",
+  });
+  await numericFilter.press("Escape");
   // This journey verifies exact source-row selection, so opt into the live
   // detailed metadata view that includes col_id before clicking another row.
   await page.locator("#simple_metadata").evaluate((input) => {

@@ -123,7 +123,9 @@ of objects/files. H5/HDF5 paths can be analyzed as bounded file-backed
 \item{library}{reference \code{OpenSpecy} object or trained model library passed
 to \code{\link{match_spec}()}.}
 
-\item{output_dir}{optional directory for CSV/RDS/PNG outputs.}
+\item{output_dir}{optional directory for CSV/RDS/PNG outputs. Per-source
+filenames retain the complete input basename (without its extension);
+multi-region sources append the region after that basename.}
 
 \item{images}{optional image path(s) or image objects aligned with \code{x}. When
 omitted for an ENVI DAT/IMG path, an unambiguous same-basename JPG, JPEG,
@@ -195,6 +197,8 @@ enough RAM for all spectra and their analysis intermediates.}
 A list with \code{samples}, \code{particle_details_all_csv}, and
 \code{particle_summary_all_csv}. Each per-sample entry has \code{particle_details_csv},
 \code{particle_summary_csv}, \code{particles_raw_rds}, \code{particles_rds}, and \code{time_rds},
+with summary rows reporting full map area, particle count, and total, mean,
+and median particle area in square micrometres for each material class,
 plus one plot-data list for each requested plot output: \code{particle_image},
 \code{particle_heatmap}, \code{particle_heatmap_thresholded}, \code{cor_heatmap},
 \code{sn_histogram}, and \code{cor_histogram}. Each plot-data list carries the grid or

@@ -66,9 +66,10 @@ detection.}
 \description{
 \code{add_visual_image()} stores a visual image and map-to-image alignment metadata
 on an \code{OpenSpecy} or \code{Specs} object. \code{visual_image()} retrieves that
-attribute. \code{detect_image_origin()} detects red Thermo Fisher iN10 map boxes
-in visual images and returns the image coordinates needed for overlays and
-feature color extraction.
+attribute. \code{detect_image_origin()} detects the dominant separated red Thermo
+Fisher iN10 map-box lines and returns the image coordinates needed for
+overlays and feature color extraction without treating shorter red
+annotations as bounds.
 }
 \examples{
 data("raman_hdpe")

@@ -71,6 +71,10 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   expect_named(result$samples, "Region1")
   expect_equal(nrow(result$particle_details_all_csv), 1)
   expect_equal(result$particle_details_all_csv$area_um2, 4 * 25^2)
+  expect_equal(result$particle_summary_all_csv$map_area_um2, 16 * 25^2)
+  expect_equal(result$particle_summary_all_csv$total_area_um2, 4 * 25^2)
+  expect_equal(result$particle_summary_all_csv$mean_area_um2, 4 * 25^2)
+  expect_equal(result$particle_summary_all_csv$median_area_um2, 4 * 25^2)
   expect_equal(result$particle_details_all_csv$material_class, "polymer")
   expect_equal(result$samples$Region1$particles_rds$metadata$max_cor_name,
                "particle")
@@ -120,6 +124,22 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   expect_equal(warm$particle_details_all_csv,
                result$particle_details_all_csv)
   expect_identical(file.info(cache_files)$mtime, cache_mtime)
+
+  output_dir <- file.path(directory, "outputs")
+  written <- do.call(
+    automate_particle_analysis,
+    c(list(x = specs, output_dir = output_dir), args)
+  )
+  expect_named(written$samples, "Region1")
+  expect_true(file.exists(file.path(
+    output_dir, "particle_details_particle-map.csv"
+  )))
+  expect_true(file.exists(file.path(
+    output_dir, "particle_heatmap_particle-map.png"
+  )))
+  expect_true(file.exists(file.path(
+    output_dir, "particle_heatmap_thresholded_particle-map.jpg"
+  )))
 
   source_after <- list(
     header = digest::digest(fixture$header, algo = "sha256", file = TRUE),
@@ -309,6 +329,10 @@ test_that("FileSpecs particle automation accepts both threshold extremes", {
   )
   expect_null(removed$samples$Region1$particles_rds)
   expect_equal(removed$particle_summary_all_csv$count, 0L)
+  expect_equal(removed$particle_summary_all_csv$map_area_um2, 16 * 25^2)
+  expect_equal(removed$particle_summary_all_csv$total_area_um2, 0)
+  expect_true(is.na(removed$particle_summary_all_csv$mean_area_um2))
+  expect_true(is.na(removed$particle_summary_all_csv$median_area_um2))
 })
 
 test_that("FileSpecs all-cell identification matches the eager workflow", {

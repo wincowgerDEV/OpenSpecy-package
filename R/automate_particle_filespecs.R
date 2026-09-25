@@ -27,6 +27,7 @@ automate_particle_analysis.FileSpecs <- function(
     if (is.null(names(views)) || any(!nzchar(names(views)))) {
       names(views) <- paste0("region_", seq_along(views))
     }
+    output_names <- .particle_filespec_output_names(x, names(views))
     counts <- vapply(views, .filespec_n_spectra, integer(1))
     materialize_started <- proc.time()[["elapsed"]]
     .particle_progress(
@@ -46,6 +47,7 @@ automate_particle_analysis.FileSpecs <- function(
                 format(counts[[i]], big.mark = ","))
       )
       map <- decompress_spec(views[[i]], index = seq_len(counts[[i]]))
+      attr(map, "particle_output_name") <- output_names[[i]]
       .particle_progress(
         sample_name, "memory materialization complete",
         sprintf("elapsed %.1f s",
@@ -101,12 +103,14 @@ automate_particle_analysis.FileSpecs <- function(
   if (is.null(names(views)) || any(!nzchar(names(views)))) {
     names(views) <- paste0("region_", seq_along(views))
   }
+  output_names <- .particle_filespec_output_names(x, names(views))
 
   sample_results <- lapply(seq_along(views), function(i) {
     .particle_progress(names(views)[[i]], "region", sprintf("%d of %d", i,
                                                             length(views)))
     .automate_particle_filespec_region(
       x = views[[i]], library = library, sample_name = names(views)[[i]],
+      output_name = output_names[[i]],
       output_dir = output_dir, image = .indexed_argument(images, i),
       bottom_left = .indexed_argument(bottom_left, i),
       top_right = .indexed_argument(top_right, i),
@@ -142,8 +146,35 @@ automate_particle_analysis.FileSpecs <- function(
   )
 }
 
+.particle_filespec_output_names <- function(x, region_names) {
+  paths <- as.character(x$source$members$path)
+  extensions <- tolower(tools::file_ext(paths))
+  preferred <- if (identical(x$source$backend, "h5")) {
+    which(extensions %in% c("h5", "hdf5"))
+  } else {
+    which(extensions %in% c("dat", "img"))
+  }
+  if (!length(preferred)) preferred <- seq_along(paths)
+  stem <- if (length(preferred)) {
+    tools::file_path_sans_ext(basename(paths[[preferred[[1L]]]]))
+  } else {
+    "source"
+  }
+  source_region_count <- if (identical(x$source$backend, "h5")) {
+    length(x$source$layout$regions)
+  } else {
+    1L
+  }
+  names <- if (length(region_names) > 1L || source_region_count > 1L) {
+    paste(stem, region_names, sep = "_")
+  } else {
+    rep(stem, length(region_names))
+  }
+  make.unique(names)
+}
+
 .automate_particle_filespec_region <- function(
-    x, library, sample_name, output_dir, image, bottom_left, top_right,
+    x, library, sample_name, output_name, output_dir, image, bottom_left, top_right,
     origin, material_col, library_id_col, spectral_smooth, sigma1, sigma2,
     close, close_kernel, particle_id_strategy, sn_threshold_min,
     sn_threshold_max, cor_threshold, area_threshold, label_unknown,
@@ -262,12 +293,14 @@ automate_particle_analysis.FileSpecs <- function(
   display <- .attach_particle_image(display, list(image), list(bottom_left),
                                     list(top_right), 1L)
   plot_outputs <- .particle_pre_match_plots(
-    display, sample_name, output_dir, outputs, pixel_length, origin,
+    display, output_name, output_dir, outputs, pixel_length, origin,
     sn_threshold_min, sn_threshold_max
   )
   if (is.null(cached$collapsed)) {
     out <- .empty_particle_result(sample_name, x, time_start, outputs,
-                                  plot_outputs, output_dir)
+                                  plot_outputs, output_dir,
+                                  output_name = output_name,
+                                  pixel_length = pixel_length)
     return(out)
   }
 
@@ -289,12 +322,14 @@ automate_particle_analysis.FileSpecs <- function(
                             cor_threshold, pixel_length, origin)
   } else NULL
   summary <- if ("summary" %in% outputs) {
-    .particle_summary_table(proc_map, sample_name, material_col)
+    .particle_summary_table(
+      proc_map, sample_name, material_col, pixel_length, display
+    )
   } else NULL
   plot_outputs <- utils::modifyList(
     plot_outputs,
     .particle_post_match_plots(
-      display, proc_map, sample_name, output_dir, outputs, material_col,
+      display, proc_map, output_name, output_dir, outputs, material_col,
       pixel_length, origin, cor_threshold
     )
   )
@@ -302,7 +337,7 @@ automate_particle_analysis.FileSpecs <- function(
   elapsed <- Sys.time() - time_start
   if (!is.null(output_dir)) {
     .write_particle_outputs(
-      output_dir, sample_name, x, proc_map, details, summary, outputs,
+      output_dir, output_name, x, proc_map, details, summary, outputs,
       material_col, pixel_length, origin, elapsed
     )
   }

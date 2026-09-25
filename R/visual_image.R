@@ -4,9 +4,10 @@
 #' @description
 #' `add_visual_image()` stores a visual image and map-to-image alignment metadata
 #' on an `OpenSpecy` or `Specs` object. `visual_image()` retrieves that
-#' attribute. `detect_image_origin()` detects red Thermo Fisher iN10 map boxes
-#' in visual images and returns the image coordinates needed for overlays and
-#' feature color extraction.
+#' attribute. `detect_image_origin()` detects the dominant separated red Thermo
+#' Fisher iN10 map-box lines and returns the image coordinates needed for
+#' overlays and feature color extraction without treating shorter red
+#' annotations as bounds.
 #'
 #' @param x an `OpenSpecy` or `Specs` object.
 #' @param image image path, raster, matrix, array, raw BMP bytes, or an existing
@@ -122,10 +123,19 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
     stop("Could not detect enough red box pixels in the image", call. = FALSE)
   }
 
-  x_min <- min(red_coords[, "col"])
-  x_max <- max(red_coords[, "col"])
-  y_top <- min(red_coords[, "row"])
-  y_bottom <- max(red_coords[, "row"])
+  # The iN10 camera image can contain red labels, particles, and a red cursor
+  # in addition to the map frame. Extrema therefore do not identify the frame.
+  # The frame sides are the two long, well-separated red runs on each axis.
+  x_lines <- .dominant_red_frame_lines(
+    red_coords[, "col"], dim(red_pixels)[[2L]]
+  )
+  y_lines <- .dominant_red_frame_lines(
+    red_coords[, "row"], dim(red_pixels)[[1L]]
+  )
+  x_min <- x_lines$positions[[1L]]
+  x_max <- x_lines$positions[[2L]]
+  y_top <- y_lines$positions[[1L]]
+  y_bottom <- y_lines$positions[[2L]]
 
   out <- list(
     bottom_left = c(x_min, y_bottom),
@@ -137,10 +147,44 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
       red_pixel_count = nrow(red_coords),
       image_dim = dim(red_pixels),
       red_threshold = red_threshold,
-      red_ratio = red_ratio
+      red_ratio = red_ratio,
+      x_boundary_counts = x_lines$counts,
+      y_boundary_counts = y_lines$counts
     )
   }
   out
+}
+
+.dominant_red_frame_lines <- function(position, dimension,
+                                      minimum_separation = 10L) {
+  counts <- sort(table(position), decreasing = TRUE)
+  locations <- suppressWarnings(as.integer(names(counts)))
+  valid <- is.finite(locations)
+  counts <- counts[valid]
+  locations <- locations[valid]
+  if (length(locations) < 2L) {
+    stop("Could not detect two red map boundary lines in the image",
+         call. = FALSE)
+  }
+
+  # Preserve the validation-pipeline separation for ordinary camera images,
+  # while still allowing the small synthetic images used by package tests.
+  separation <- min(
+    as.integer(minimum_separation),
+    max(1L, as.integer(floor((as.numeric(dimension) - 1) / 4)))
+  )
+  first <- locations[[1L]]
+  second_index <- which(abs(locations - first) > separation)
+  if (!length(second_index)) {
+    stop("Could not detect two separated red map boundary lines in the image",
+         call. = FALSE)
+  }
+  selected <- c(1L, second_index[[1L]])
+  order_index <- order(locations[selected])
+  list(
+    positions = locations[selected][order_index],
+    counts = as.integer(counts[selected][order_index])
+  )
 }
 
 .validate_image_corner <- function(x) {

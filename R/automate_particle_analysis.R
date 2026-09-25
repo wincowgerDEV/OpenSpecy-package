@@ -18,7 +18,9 @@
 #' [FileSpecs][open_specs] sources or materialized in memory before analysis.
 #' @param library reference `OpenSpecy` object or trained model library passed
 #' to \code{\link{match_spec}()}.
-#' @param output_dir optional directory for CSV/RDS/PNG outputs.
+#' @param output_dir optional directory for CSV/RDS/PNG outputs. Per-source
+#'   filenames retain the complete input basename (without its extension);
+#'   multi-region sources append the region after that basename.
 #' @param images optional image path(s) or image objects aligned with `x`. When
 #'   omitted for an ENVI DAT/IMG path, an unambiguous same-basename JPG, JPEG,
 #'   or PNG in the same directory is discovered automatically.
@@ -66,6 +68,8 @@
 #' A list with `samples`, `particle_details_all_csv`, and
 #' `particle_summary_all_csv`. Each per-sample entry has `particle_details_csv`,
 #' `particle_summary_csv`, `particles_raw_rds`, `particles_rds`, and `time_rds`,
+#' with summary rows reporting full map area, particle count, and total, mean,
+#' and median particle area in square micrometres for each material class,
 #' plus one plot-data list for each requested plot output: `particle_image`,
 #' `particle_heatmap`, `particle_heatmap_thresholded`, `cor_heatmap`,
 #' `sn_histogram`, and `cor_histogram`. Each plot-data list carries the grid or
@@ -138,6 +142,11 @@ automate_particle_analysis.default <- function(
   for (i in seq_along(samples)) {
     time_start <- Sys.time()
     sample_name <- names(samples)[i]
+    output_name <- attr(samples[[i]], "particle_output_name", exact = TRUE)
+    if (!is.character(output_name) || length(output_name) != 1L ||
+        is.na(output_name) || !nzchar(output_name)) {
+      output_name <- sample_name
+    }
     file_backed <- if (inherits(samples[[i]], "FileSpecs")) {
       samples[[i]]
     } else if (is.character(samples[[i]]) && length(samples[[i]]) == 1L &&
@@ -211,7 +220,7 @@ automate_particle_analysis.default <- function(
     threshold[is.na(threshold)] <- FALSE
     map$metadata$threshold <- threshold
     plot_outputs <- .particle_pre_match_plots(
-      map, sample_name, output_dir, outputs, pixel_length, origin,
+      map, output_name, output_dir, outputs, pixel_length, origin,
       sn_threshold_min, sn_threshold_max
     )
 
@@ -220,7 +229,8 @@ automate_particle_analysis.default <- function(
     )
     if (identical(threshold_state, "none")) {
       sample_results[[sample_name]] <- .empty_particle_result(
-        sample_name, map, time_start, outputs, plot_outputs, output_dir
+        sample_name, map, time_start, outputs, plot_outputs, output_dir,
+        output_name = output_name, pixel_length = pixel_length
       )
       next
     }
@@ -247,7 +257,8 @@ automate_particle_analysis.default <- function(
     )
     if (is.null(strategy_result)) {
       sample_results[[sample_name]] <- .empty_particle_result(
-        sample_name, map, time_start, outputs, plot_outputs, output_dir
+        sample_name, map, time_start, outputs, plot_outputs, output_dir,
+        output_name = output_name, pixel_length = pixel_length
       )
       next
     }
@@ -256,7 +267,8 @@ automate_particle_analysis.default <- function(
 
     if (is.null(proc_map) || ncol(proc_map$spectra) == 0L) {
       sample_results[[sample_name]] <- .empty_particle_result(
-        sample_name, map, time_start, outputs, plot_outputs, output_dir
+        sample_name, map, time_start, outputs, plot_outputs, output_dir,
+        output_name = output_name, pixel_length = pixel_length
       )
       next
     }
@@ -285,14 +297,16 @@ automate_particle_analysis.default <- function(
       NULL
     }
     summary <- if ("summary" %in% outputs) {
-      .particle_summary_table(proc_map, sample_name, material_col)
+      .particle_summary_table(
+        proc_map, sample_name, material_col, pixel_length, map
+      )
     } else {
       NULL
     }
     plot_outputs <- utils::modifyList(
       plot_outputs,
       .particle_post_match_plots(
-        map, proc_map, sample_name, output_dir, outputs, material_col,
+        map, proc_map, output_name, output_dir, outputs, material_col,
         pixel_length, origin, cor_threshold
       )
     )
@@ -300,7 +314,7 @@ automate_particle_analysis.default <- function(
     .particle_progress(sample_name, "outputs")
     elapsed <- Sys.time() - time_start
     if (!is.null(output_dir)) {
-      .write_particle_outputs(output_dir, sample_name, map, proc_map, details,
+      .write_particle_outputs(output_dir, output_name, map, proc_map, details,
                               summary, outputs, material_col, pixel_length,
                               origin, elapsed)
     }
@@ -1575,10 +1589,35 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   dt[, cols, with = FALSE]
 }
 
-.particle_summary_table <- function(proc_map, sample_name, material_col) {
+.particle_map_area_um2 <- function(map, pixel_length) {
+  pixel_count <- if (inherits(map, "FileSpecs")) {
+    .filespec_n_spectra(map)
+  } else if (!is.null(map$metadata)) {
+    nrow(map$metadata)
+  } else {
+    0L
+  }
+  as.numeric(pixel_count) * pixel_length^2
+}
+
+.particle_summary_table <- function(proc_map, sample_name, material_col,
+                                    pixel_length, map) {
   dt <- data.table::as.data.table(proc_map$metadata)
   if (!material_col %in% names(dt)) return(data.table::data.table())
-  out <- dt[, .(count = .N), by = material_col]
+  area_um2 <- if ("area" %in% names(dt)) {
+    as.numeric(dt$area) * pixel_length^2
+  } else {
+    rep(pixel_length^2, nrow(dt))
+  }
+  dt <- data.table::copy(dt)
+  dt[, .particle_area_um2 := area_um2]
+  out <- dt[, .(
+    count = .N,
+    map_area_um2 = .particle_map_area_um2(map, pixel_length),
+    total_area_um2 = sum(.particle_area_um2, na.rm = TRUE),
+    mean_area_um2 = mean(.particle_area_um2, na.rm = TRUE),
+    median_area_um2 = stats::median(.particle_area_um2, na.rm = TRUE)
+  ), by = material_col]
   out$sample_id <- sample_name
   out
 }
@@ -1602,7 +1641,7 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
       map, pixel_length, origin
     )
     .write_particle_plot_file(
-      output_dir, "particle_heatmap_thresholded", sample_name, ".jpg",
+      output_dir, "particle_heatmap_thresholded_", sample_name, ".jpg",
       "jpeg",
       function() .draw_particle_plot_data(out$particle_heatmap_thresholded)
     )
@@ -1926,7 +1965,9 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
 }
 
 .empty_particle_result <- function(sample_name, map, time_start, outputs,
-                                   plot_outputs = list(), output_dir = NULL) {
+                                   plot_outputs = list(), output_dir = NULL,
+                                   output_name = sample_name,
+                                   pixel_length = 1) {
   elapsed <- Sys.time() - time_start
   note <- paste(
     "no particles passed the current signal/noise, correlation, or area",
@@ -1941,6 +1982,12 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   summary <- if ("summary" %in% outputs) {
     data.table::data.table(sample_id = sample_name,
                            material_class = NA_character_, count = 0L,
+                           map_area_um2 = .particle_map_area_um2(
+                             map, pixel_length
+                           ),
+                           total_area_um2 = 0,
+                           mean_area_um2 = NA_real_,
+                           median_area_um2 = NA_real_,
                            note = note)
   } else {
     NULL
@@ -1948,17 +1995,17 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   if (!is.null(output_dir)) {
     if (!is.null(details)) {
       data.table::fwrite(details, file.path(
-        output_dir, paste0("particle_details_", sample_name, ".csv")
+        output_dir, paste0("particle_details_", output_name, ".csv")
       ))
     }
     if (!is.null(summary)) {
       data.table::fwrite(summary, file.path(
-        output_dir, paste0("particle_summary_", sample_name, ".csv")
+        output_dir, paste0("particle_summary_", output_name, ".csv")
       ))
     }
     if ("time" %in% outputs) {
       saveRDS(elapsed, file.path(output_dir,
-                                 paste0("time_", sample_name, ".rds")))
+                                 paste0("time_", output_name, ".rds")))
     }
   }
   empty_plot <- list(type = "empty", reason = note)
