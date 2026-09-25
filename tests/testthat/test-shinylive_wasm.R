@@ -979,6 +979,14 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl("tinyEnviFiles", smoke, fixed = TRUE)))
   expect_true(any(grepl("#openspecy_workerfs_files", smoke, fixed = TRUE)))
+  expect_true(any(grepl('locator("#settings_csv")', smoke, fixed = TRUE)))
+  expect_true(any(grepl(
+    "input[type='file']:not(#openspecy_workerfs_files):not(#settings_csv)",
+    smoke, fixed = TRUE
+  )))
+  expect_false(any(grepl(
+    'locator("input[type=\'file\']").toHaveCount(1)', smoke, fixed = TRUE
+  )))
   expect_true(any(grepl("mountedInput.setInputFiles(mapUploadPath)", smoke,
                         fixed = TRUE)))
   expect_true(any(grepl("OPENSPECY_SMOKE_LARGE_UPLOAD", smoke,

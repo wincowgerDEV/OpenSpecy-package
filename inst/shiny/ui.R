@@ -370,7 +370,7 @@ advanced_controls <- tagList(
       "Both cluster modes fit source-scoped PCA then K-means to spatial-only spectra and collapse those groups before other processing. Non-spatial mode keeps the identified clusters as particles. Spatial mode projects their material identities to pixels, joins touching equal-material clusters, collapses the spatial-only data again, and reprocesses without a second identification.",
       "PCA Components and K-means Clusters are requested maxima. The effective values are clamped to each source and reported above. Higher values cost more memory and can make smaller groups.",
       "Minimum Particle Area is inclusive: groups with fewer pixels than this value are rejected after grouping. Geometric Mean requires every collapsed intensity to be positive.",
-      "Pixel edge length and unit calibrate collapsed-particle coordinates, perimeter, Feret lengths, area, estimated volume, and heatmap axes. They are ignored when collapse is off; 1 pixel preserves the uploaded grid scale."
+      "Pixel edge length and unit calibrate collapsed-particle coordinates, perimeter, Feret lengths, area, estimated volume, and heatmap axes. A validated square H5 or ENVI pixel step and its unit populate these inputs automatically; anisotropic, conflicting, or incomplete source calibration leaves the current manual values unchanged. They are ignored when collapse is off; 1 pixel preserves the uploaded grid scale."
     )
   ),
   app_control_box(

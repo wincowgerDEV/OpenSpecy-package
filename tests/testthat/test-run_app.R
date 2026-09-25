@@ -1086,6 +1086,18 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   read_body <- substr(server_source, read_start, stage_start - 1L)
   stage_body <- substr(server_source, stage_start, local_start - 1L)
 
+  expect_match(read_body, "app_source_pixel_calibration(rout)", fixed = TRUE)
+  expect_match(
+    read_body,
+    'updateNumericInput(\n            session, "pixel_size", value = inferred_calibration$size',
+    fixed = TRUE
+  )
+  expect_match(
+    read_body,
+    'updateTextInput(\n            session, "pixel_unit", value = inferred_calibration$unit',
+    fixed = TRUE
+  )
+
   # Saved quantification definitions are independent of upload timing, so a
   # definition created before choosing a file must survive source staging.
   expect_false(grepl("ratio_definitions(app_empty_ratio_definitions())",

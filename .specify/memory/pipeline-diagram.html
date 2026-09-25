@@ -476,7 +476,7 @@
 <div class="node function" style="left:1050px;top:230px" tabindex="0">
   Stage Source &amp; Header
   <div class="sub">validate path, members, header, dimensions &middot; no full map</div>
-  <div class="tip"><strong>Plan 018 target:</strong> mounted and native paths converge into a session-owned source descriptor. H5/ENVI/ZIP input validates readable members, header, dimensions, axis, expected bytes, and source spatial calibration but defers spectral materialization until Click Run commits scientific settings. A basename-matched ENVI JPG/PNG is registered by its red boundary; H5 retains its embedded mosaic descriptor. Ordinary small formats retain their compatible dense <code>OpenSpecy</code> read. The original source stays untouched and available for reruns.
+  <div class="tip"><strong>Plan 018 target:</strong> mounted and native paths converge into a session-owned source descriptor. H5/ENVI/ZIP input validates readable members, header, dimensions, axis, expected bytes, and source spatial calibration but defers spectral materialization until Click Run commits scientific settings. One consistent square source pixel step with a known unit also populates the Advanced pixel-length inputs; anisotropic, conflicting, or incomplete calibration leaves manual values unchanged. A basename-matched ENVI JPG/PNG is registered by its red boundary; H5 retains its embedded mosaic descriptor. Ordinary small formats retain their compatible dense <code>OpenSpecy</code> read. The original source stays untouched and available for reruns.
   <span class="loc">Plans 018/035 &middot; server.R: staged source validation &middot; global.R: app_read_uploaded_members() &middot; R/{read_multi,read_envi,read_ext,visual_image}.R</span></div>
 </div>
 

@@ -516,7 +516,11 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(mountedInput).toBeVisible({ timeout: 180000 });
   await expect(mountedInput).toBeEnabled({ timeout: 180000 });
   await expect(appFrame.locator("#file")).toHaveCount(0);
-  await expect(appFrame.locator("input[type='file']")).toHaveCount(1);
+  const settingsInput = appFrame.locator("#settings_csv");
+  await expect(settingsInput).toHaveCount(1);
+  await expect(appFrame.locator(
+    "input[type='file']:not(#openspecy_workerfs_files):not(#settings_csv)",
+  )).toHaveCount(0);
   await expect(appFrame.locator("#upload_status")).toHaveCount(0);
   const runButton = appFrame.locator("#run_analysis").first();
   const firstMatch = appFrame.locator("#event table tbody tr").first();

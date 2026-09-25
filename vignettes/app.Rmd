@@ -432,9 +432,13 @@ estimated volume is the calibrated area raised to the 3/2 power. Detailed
 metadata/download column names include the selected unit.
 
 H5 stage positions and supported ENVI origin/pixel-size fields take precedence
-for heatmap X/Y coordinates and axis units. The manual pixel edge length and
-unit remain the fallback when a source has no validated calibration; source
-calibration is not multiplied by the manual value a second time.
+for heatmap X/Y coordinates and axis units. When that source metadata provides
+one consistent square pixel step and a known unit, the app also populates the
+Advanced **Pixel edge length** and **Pixel length unit** inputs with those
+values. Anisotropic, conflicting multi-region, or incomplete calibration leaves
+the manual inputs unchanged. Those inputs remain the fallback when a source has
+no validated calibration; source calibration is not multiplied by the displayed
+value a second time.
 
 **Simple Metadata** is on by default and limits Selection Metadata to Material
 Class, Match Value, Signal to Noise, particle geometry when particles are

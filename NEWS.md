@@ -2,6 +2,8 @@
 
 - H5 stage coordinates and supported ENVI origin/pixel-size metadata now drive
   physical X/Y axes in the bundled app while preserving integer pixel topology.
+  A consistent square source pixel length and its known unit also populate the
+  corresponding Advanced calibration inputs automatically.
   Registered H5 mosaics and basename-matched ENVI JPG/PNG images can be shown
   above the particle-style heatmap with live image-only transparency. ENVI red
   frames now use dominant separated boundary lines, so red labels and particles

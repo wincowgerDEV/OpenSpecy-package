@@ -497,6 +497,45 @@ test_that("source coordinate projection prefers H5 and ENVI calibration", {
   expect_identical(projected$unit, "um")
 })
 
+test_that("source pixel calibration populates only one consistent square scale", {
+  env <- .source_in_memory_app_helpers()
+  source <- list()
+  attr(source, "spatial_calibration") <- list(
+    x_origin = 10, y_origin = 20, x_step = 2.5, y_step = -2.5,
+    unit = "um", source = "map info"
+  )
+  inferred <- env$app_source_pixel_calibration(source)
+  expect_equal(inferred$size, 2.5)
+  expect_identical(inferred$unit, "um")
+
+  attr(source, "spatial_calibration") <- list(
+    Region1 = list(x_origin = 0, y_origin = 0, x_step = 25, y_step = -25,
+                   unit = "nm"),
+    Region2 = list(x_origin = 100, y_origin = 200, x_step = 25, y_step = -25,
+                   unit = "nm")
+  )
+  inferred <- env$app_source_pixel_calibration(source)
+  expect_equal(inferred$size, 25)
+  expect_identical(inferred$unit, "nm")
+
+  attr(source, "spatial_calibration")[["Region2"]]$x_step <- 30
+  expect_null(env$app_source_pixel_calibration(source))
+
+  attr(source, "spatial_calibration") <- list(
+    x_origin = 0, y_origin = 0, x_step = 2, y_step = 3,
+    unit = "um"
+  )
+  expect_null(env$app_source_pixel_calibration(source))
+
+  attr(source, "spatial_calibration")$y_step <- 2
+  attr(source, "spatial_calibration")$unit <- "map unit"
+  expect_null(env$app_source_pixel_calibration(source))
+
+  attr(source, "spatial_calibration") <- NULL
+  attr(source, "openspecy_spatial_unit") <- "um"
+  expect_equal(env$app_source_pixel_calibration(source)$size, 1)
+})
+
 test_that("User Metadata settings restore atomically and reset omissions", {
   env <- .source_in_memory_app_helpers()
   defaults <- stats::setNames(

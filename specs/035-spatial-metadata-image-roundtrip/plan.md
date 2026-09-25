@@ -21,7 +21,7 @@
 
 - R1. Dense, compact, and file-backed H5/ENVI reads derive one validated spatial calibration (`x_origin`, `y_origin`, `x_step`, `y_step`, unit, axis direction) from supported source metadata. Package-native integer `x/y` plus `row/col` remain topology-safe; the app projects display/export `x/y = origin + zero-based index * step` without mutating adjacency coordinates.
 - R2. H5 prefers region stage metadata already read from `-StagePosXYZ`/file metadata. ENVI supports the common headers accepted by the package, including standard map/start fields and Thermo-style description/pixel-size fields; ambiguous, incomplete, or non-finite calibration warns and falls back to pixels without guessing units.
-- R3. The app uses physical `x/y` and source units for heatmap axes, hover, selection metadata, collapsed-particle location/size exports, and image registration when calibration exists; manual Pixel edge length/unit remains the documented fallback and is never applied twice.
+- R3. The app uses physical `x/y` and source units for heatmap axes, hover, selection metadata, collapsed-particle location/size exports, and image registration when calibration exists. One consistent square source step and known unit populate the Advanced Pixel edge length/unit inputs; anisotropic, conflicting, or incomplete calibration preserves the manual fallback, which is never applied twice.
 - R4. A separate **Load Settings** CSV control in the Advanced tab accepts the app's one-row **User Metadata** download, validates a schema version plus recognized columns, restores all supported controls and saved ratio/measurement definitions with correct types, leaves provenance fields read-only, resets omitted settings to app defaults, and invalidates the current result until Run. Invalid files change nothing and report actionable fields.
 - R5. Restored owner toggles continue to gate child inputs; inactive child values may be restored but remain scientifically inert. Import does not replace spectral data or trigger Run.
 - R6. Live **Visual Image Overlay** and **Overlay Transparency** controls appear only when a registered image is available. H5 uses its embedded registered mosaic; an ENVI DAT/IMG+HDR upload may include one basename-matched JPG/PNG, attached via `detect_image_origin()` and `add_visual_image()`. Ambiguous pairing or failed red-boundary detection warns and leaves analysis usable without overlay.
@@ -63,8 +63,10 @@
 - [x] Refine dominant red-frame registration, top-raster opacity, numeric-filter theming, and complete file-backed output basenames from maintainer fixture feedback.
 - [x] Add calibrated full-map, total, mean, and median area to per-material particle-analysis summaries.
 - [x] Correct Plotly's cross-module paint order by rendering the registered raster in the explicit above-map layout layer and keeping selection above it.
+- [x] Populate Advanced pixel edge length/unit from one validated, consistent square H5/ENVI source calibration.
+- [x] Reproduce and fix the failed `Build and deploy Shinylive app` action's stale one-file-input smoke assertion after the Advanced settings uploader added a second intentional file input.
 - [ ] Run the matching-artifact browser journey after a clean commit produces the required action-built wasm artifact.
-- [x] Run local proportional gates, audit package/app size, inspect generated diffs, reconcile checkboxes, stop owned processes, inspect `git status`, and remove task scratch.
+- [x] Run local proportional gates, audit package/app size, inspect generated diffs, reconcile checkboxes, stop owned processes, and inspect `git status`; record the test-generated scratch file when automated deletion is unavailable.
 
 ## Verification
 
@@ -83,5 +85,5 @@
 ## Approval Notes
 
 - Approved by: maintainer implementation request, 2026-09-25.
-- Evidence: the focused app-helper regression passes; bundled `run_app` passes 865 checks and HostedAppStatic passes 361 checks. The maintainer ENVI/JPG fixture serializes its complete 460 x 446 crop as a decoded 460 x 446 RGBA PNG in Plotly's `above` layer at the 196 x 202 map-cell boundary. `inst/shiny` remains 13 files (539,689 bytes) with no new static asset. Routine refinement scope did not trigger a new full package suite or R CMD check.
-- Follow-up: the exact matching-artifact browser tier and clean wasm dependency rebuild require a clean committed SHA/action artifact and remain deferred. Push/pull remains unauthorized.
+- Evidence: focused calibration/overlay helper regressions pass; bundled `run_app` passes 868 checks. The maintainer ENVI fixture infers 25 um directly from its descriptor, and its JPG serializes as a complete 460 x 446 RGBA PNG in Plotly's `above` layer at the 196 x 202 map-cell boundary. The failed action log was reproduced as a stale global one-file-input assertion; the smoke now addresses the workerfs spectra uploader and Advanced settings CSV uploader separately, and the focused hosted/static gate passes 364 checks. `inst/shiny` remains 13 files (541,807 bytes) with no new static asset. Routine refinement scope did not trigger a new full package suite or R CMD check.
+- Follow-up: the exact matching-artifact browser tier and clean wasm dependency rebuild require a clean committed SHA/action artifact and remain deferred. A remote action retry cannot exercise this uncommitted fix; push/pull remains unauthorized.

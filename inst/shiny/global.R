@@ -1231,6 +1231,51 @@ app_pixel_calibration <- function(pixel_size = 1, pixel_unit = "pixel") {
   )
 }
 
+app_source_pixel_calibration <- function(source) {
+  calibration <- attr(source, "spatial_calibration", exact = TRUE)
+  candidates <- if(is.list(calibration) && !is.null(calibration$x_origin)) {
+    list(calibration)
+  } else if(is.list(calibration)) {
+    Filter(function(item) is.list(item) && !is.null(item$x_origin), calibration)
+  } else {
+    list()
+  }
+
+  if(length(candidates)) {
+    inferred <- lapply(candidates, function(item) {
+      steps <- abs(suppressWarnings(as.numeric(c(item$x_step, item$y_step))))
+      unit <- if(is.null(item$unit) || !length(item$unit)) "" else
+        trimws(as.character(item$unit)[[1L]])
+      known_unit <- !is.na(unit) && nzchar(unit) &&
+        !tolower(unit) %in% c("map unit", "map units", "unknown")
+      square <- length(steps) == 2L && all(is.finite(steps)) &&
+        all(steps > 0) && isTRUE(all.equal(
+          steps[[1L]], steps[[2L]], tolerance = 1e-8
+        ))
+      if(!known_unit || !square) return(NULL)
+      list(size = mean(steps), unit = unit)
+    })
+    if(any(lengths(inferred) == 0L)) return(NULL)
+    sizes <- vapply(inferred, `[[`, numeric(1L), "size")
+    units <- vapply(inferred, `[[`, character(1L), "unit")
+    consistent_size <- all(vapply(
+      sizes,
+      function(value) isTRUE(all.equal(value, sizes[[1L]], tolerance = 1e-8)),
+      logical(1L)
+    ))
+    consistent_unit <- length(unique(tolower(units))) == 1L
+    if(consistent_size && consistent_unit) {
+      return(app_pixel_calibration(sizes[[1L]], units[[1L]]))
+    }
+    return(NULL)
+  }
+
+  # Processed particle RDS files already contain physical x/y values, so their
+  # unit-bearing metadata contract uses a neutral scale of one on re-upload.
+  spatial_unit <- attr(source, "openspecy_spatial_unit", exact = TRUE)
+  if(isTruthy(spatial_unit)) app_pixel_calibration(1, spatial_unit) else NULL
+}
+
 # Particle RDS downloads use unit-bearing metadata names (for example,
 # x_pixel/y_pixel or x_um/y_um). Restore the canonical x/y aliases needed by
 # the map pipeline when one of those downloads is uploaded again, while

@@ -541,10 +541,14 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
         ai_output_gate$clear()
         pixel_projection_gate$clear()
         preprocessed$data <- rout
-        spatial_unit <- attr(rout, "openspecy_spatial_unit", exact = TRUE)
-        if(isTruthy(spatial_unit)) {
-          updateNumericInput(session, "pixel_size", value = 1)
-          updateTextInput(session, "pixel_unit", value = spatial_unit)
+        inferred_calibration <- app_source_pixel_calibration(rout)
+        if(!is.null(inferred_calibration)) {
+          updateNumericInput(
+            session, "pixel_size", value = inferred_calibration$size
+          )
+          updateTextInput(
+            session, "pixel_unit", value = inferred_calibration$unit
+          )
         }
         set_upload_status(NULL)
         session$sendCustomMessage(
